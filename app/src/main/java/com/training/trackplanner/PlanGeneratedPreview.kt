@@ -54,6 +54,7 @@ internal fun ProgramSkeletonPreview(
     skeleton: GeneratedProgramSkeleton,
     exercises: List<Exercise>,
     metadataByExerciseId: Map<String, RuntimeExerciseMetadata>,
+    progressionEligibleKeys: Set<String> = emptySet(),
     onSkeletonChange: (GeneratedProgramSkeleton) -> Unit
 ) {
     var selectedWeek by rememberSaveable(skeleton.suggestedName) { mutableStateOf(1) }
@@ -131,6 +132,7 @@ internal fun ProgramSkeletonPreview(
             ) {
                 ProgramDraftEditTab(
                     skeleton = skeleton,
+                    progressionEligibleKeys = progressionEligibleKeys,
                     selectedWeek = selectedWeek,
                     selectedDay = selectedDay,
                     selectedDays = selectedDays,
@@ -152,7 +154,7 @@ internal fun ProgramSkeletonPreview(
                     },
                     onAddExercise = { showExercisePicker = true },
                     onEditItem = { editingItem = it },
-                    onProgressionChange = { updated -> onSkeletonChange(skeleton.upsertDraftItem(updated)) },
+                    onProgressionChange = onSkeletonChange,
                     onDeleteItem = { item -> onSkeletonChange(skeleton.deleteDraftItem(item.localId)) }
                 )
             }
@@ -222,6 +224,7 @@ private fun PersonalizedDecisionSummary(decision: PersonalizedPlanningDecision) 
 @Composable
 private fun ProgramDraftEditTab(
     skeleton: GeneratedProgramSkeleton,
+    progressionEligibleKeys: Set<String>,
     selectedWeek: Int,
     selectedDay: Int,
     selectedDays: List<Int>,
@@ -230,7 +233,7 @@ private fun ProgramDraftEditTab(
     onToggleDay: (Int) -> Unit,
     onAddExercise: () -> Unit,
     onEditItem: (ProgramSkeletonItem) -> Unit,
-    onProgressionChange: (ProgramSkeletonItem) -> Unit,
+    onProgressionChange: (GeneratedProgramSkeleton) -> Unit,
     onDeleteItem: (ProgramSkeletonItem) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -288,8 +291,8 @@ private fun ProgramDraftEditTab(
                     onEdit = { onEditItem(item) },
                     onDelete = { onDeleteItem(item) }
                 )
-                if (ProgramSetPrescriptionResolver.resolve(item).any { it.weightKg > 0 && it.reps > 0 }) {
-                    ProgressionDraftControl(item, skeleton.items, onProgressionChange)
+                if (item.exerciseStableKey in progressionEligibleKeys && item.progressionBinding != null) {
+                    ProgressionDraftControl(item, skeleton, onProgressionChange)
                 }
             }
         }

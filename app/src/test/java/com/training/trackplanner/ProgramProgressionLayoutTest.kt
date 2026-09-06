@@ -59,8 +59,38 @@ class ProgramProgressionLayoutTest {
         val keep = compose.onNodeWithTag("progression-keep").getUnclippedBoundsInRoot()
         assertTrue(keep.top > apply.top)
         compose.runOnIdle { settings.value = true }
+        for (label in listOf("진행 세션", "자동으로 연결", "새 진행 세션", "연결하지 않음")) {
+            compose.onNodeWithText(label).performScrollTo().assertIsDisplayed()
+            assertSingleLineWithin(label, width)
+        }
+        compose.onNodeWithText("자동").performScrollTo().performClick()
+        for (label in listOf("메인", "보조")) assertSingleLineWithin(label, width)
+        compose.onNodeWithText("메인").performClick()
+        compose.onNodeWithText("내 기준").performScrollTo().performClick()
+        for (label in listOf("앱 기준", "직접 판단")) assertSingleLineWithin(label, width)
+        compose.onNodeWithText("직접 판단").performClick()
+        assertSingleLineWithin("직접 판단", width)
         compose.onNodeWithTag("progression-save").performScrollTo().assertIsDisplayed()
         assertSingleLineWithin("저장", width)
+    }
+
+    @Test fun zeroWeightManualControlOpensSessionChoicesAndStoresNewSession() {
+        val draft = mutableStateOf(manualSessionDraft(0.0))
+        val original = draft.value.sessionKey("item-0")
+        compose.setContent {
+            TrainingTrackPlannerTheme {
+                Box(Modifier.width(320.dp)) {
+                    ProgressionDraftControl(draft.value.items.single { it.localId == "item-0" }, draft.value) { draft.value = it }
+                }
+            }
+        }
+        compose.onNodeWithTag("progression-session-control").assertIsDisplayed().performClick()
+        compose.onNodeWithText("새 진행 세션").performScrollTo().performClick()
+        compose.onNodeWithTag("progression-save").performScrollTo().performClick()
+        compose.runOnIdle {
+            assertNotEquals(original, draft.value.sessionKey("item-0"))
+            assertEquals(ProgressionLinkMode.SEPARATE, draft.value.items.single { it.localId == "item-0" }.progressionBinding!!.linkMode)
+        }
     }
     private fun assertSingleLineWithin(label: String, width: Int) {
         val node = compose.onNodeWithText(label, useUnmergedTree = true)

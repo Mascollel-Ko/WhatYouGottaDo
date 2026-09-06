@@ -69,7 +69,6 @@ internal class ProgramPlanService(
         val now = System.currentTimeMillis()
         val request = skeleton.request
         val existing = existingProgramId?.let { programDao.findProgram(it) }
-        val oldBindings = db.programProgressionDao().items().associateBy { "existing-${it.programItemId}" }
         val generated = mutableMapOf<Long, ProgramSkeletonItem>()
         val restored = mutableMapOf<Long, ProgramProgressionItem>()
         val program = TrainingProgram(
@@ -96,10 +95,19 @@ internal class ProgramPlanService(
             programDao.insertProgram(program)
         }
         programDao.deleteProgramTombstone(program.stableKey)
+        val sessions = skeleton.progressionSessions.associateBy { it.key }
+        skeleton.items.mapNotNull { it.progressionBinding }.map { it.sessionKey }.distinct().forEach { key ->
+            val session = sessions.getValue(key)
+            require(session.track.programStableKey == "draft" || session.track.programStableKey == program.stableKey)
+            db.programProgressionDao().putTrack(session.track.copy(programStableKey = program.stableKey))
+        }
         skeleton.items.forEach { item ->
             val itemId = programDao.insertProgramItem(item.toTrainingProgramItem(programId))
             generated[itemId] = item
-            oldBindings[item.localId]?.let { restored[itemId] = it.copy(programItemId = itemId) }
+            item.progressionBinding?.let { binding ->
+                require(sessions.getValue(binding.sessionKey).track.exerciseStableKey == item.exerciseStableKey)
+                restored[itemId] = ProgramProgressionItem(itemId, binding.logicalItemId, binding.sessionKey, binding.linkMode, binding.signature)
+            }
             programDao.insertProgramItemSets(
                 ProgramSetPrescriptionResolver.resolve(item).map { set -> set.toEntity(itemId) }
             )

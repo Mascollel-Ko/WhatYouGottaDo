@@ -14,12 +14,19 @@ enum class MissingProgressionRpe { HOLD, COMPLETION_ONLY }
 enum class ProgressionRpePolicy { MAX_WORKING, ANCHOR }
 enum class FirstProgressionFailure { HOLD, REVIEW }
 
-data class ProgressionDraftSettings(
-    val linkMode: ProgressionLinkMode,
-    val targetLocalId: String?,
-    val role: ProgressionRole,
-    val mode: ProgressionMode,
-    val rule: ProgressionRule
+enum class ProgressionAuthority { USER_EXPLICIT, PLANNER_EXPLICIT, AUTO_INFERRED }
+
+/** Session identity is independent of any member item; settings have one shared owner. */
+data class DraftProgressionSession(val track: ProgramProgressionTrack, val source: ProgressionAuthority) {
+    val key: String get() = track.id
+}
+
+data class DraftProgressionBinding(
+    val sessionKey: String,
+    val logicalItemId: String = UUID.randomUUID().toString(),
+    val linkMode: ProgressionLinkMode = ProgressionLinkMode.AUTO,
+    val signature: ProgressionSignature,
+    val persisted: Boolean = false
 )
 
 /** Versioned engineering defaults, not physiological thresholds. Copied into each applied link. */

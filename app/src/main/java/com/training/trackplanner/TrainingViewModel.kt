@@ -234,6 +234,8 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         repository.programItems(programId)
 
     val progressionTracks = repository.progressionTracks
+    suspend fun programEditorSnapshot(programId: Long) = repository.programEditorSnapshot(programId)
+    suspend fun progressionDraftContext() = repository.progressionDraftContext()
     val progressionItems = repository.progressionItems
     val programWorkoutLinks = repository.programWorkoutLinks
     val progressionSuggestions = repository.progressionSuggestions

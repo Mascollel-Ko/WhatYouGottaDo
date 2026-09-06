@@ -150,7 +150,7 @@ data class ProgramSkeletonItem(
     val progressionVariant: String = "",
     val progressionAnchorSetIndex: Int? = null,
     val progressionRole: ProgressionRole = ProgressionRole.AUTO,
-    val progressionSettings: ProgressionDraftSettings? = null
+    val progressionBinding: DraftProgressionBinding? = null
 )
 
 data class GeneratedProgramSkeleton(
@@ -165,7 +165,8 @@ data class GeneratedProgramSkeleton(
     val optimizationSummary: ProgramOptimizationSummary = ProgramOptimizationSummary(),
     val templateId: String = "POLICY_FALLBACK",
     val representativeTemplate: Boolean = false,
-    val personalizedDecision: PersonalizedPlanningDecision? = null
+    val personalizedDecision: PersonalizedPlanningDecision? = null,
+    val progressionSessions: List<DraftProgressionSession> = emptyList()
 )
 
 /** Compatibility entry point retained for the existing repository and editor. */

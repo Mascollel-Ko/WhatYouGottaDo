@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.4.0 |
+| Protocol version | 3.4.1 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
@@ -14,6 +14,30 @@
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 
 ## 1. 일반 사용자용 요약
+
+### v0.14.1 수동 진행 세션 교정 (2026-09-06)
+
+`RECORD_BASED_PLANNER_0.14.1_KOTLIN_1`은 작성·재편집의 진행 세션 상태 전달을 교정합니다.
+`DraftProgressionSession` 컬렉션이 공유 역할/override/모드/규칙을 소유하며 항목의
+`DraftProgressionBinding`은 세션 UUID, 논리 항목 ID, 연결 모드와 typed signature를 참조합니다.
+권위는 USER_EXPLICIT > PLANNER_EXPLICIT > AUTO_INFERRED입니다. 같은 exact exerciseStableKey만
+수동 연결할 수 있으며, 한 멤버 삭제나 명시 연결 멤버의 처방 변경이 세션을 해체하지 않습니다.
+수동 명시 세션의 처방 불일치는 연결 해제 대신 REVIEW입니다. 생성 style의 drift 규칙은 유지합니다.
+
+기존 `ProgramProgressionTrack`/`ProgramProgressionItem`을 그대로 사용하며 Room 31 및 백업
+format 13/schema 12는 바꾸지 않습니다. 편집 시작은 항목/세트/연결/세션을 단일 DB transaction으로
+읽고 `skeletonFromProgram`에서 실제 상태와 planner style/variant/anchor/role을 복원합니다.
+저장은 화면에 있는 세션/논리 ID를 materialize하며 숨겨진 `oldBindings` 복구는 없습니다.
+
+canonical activity, progress behavior, training-role authority가 적격성을 정하므로 적격 저항운동은
+0kg에서도 진행 세션을 선택할 수 있습니다. 이름·카테고리·장비·양수 중량으로 적격성을 추정하지 않습니다.
+초안과 상세 화면은 같은 세션 선택 sheet를 사용하며 처방 요약과 중복 제거한 요일을 표시합니다.
+역할은 세션 단위이므로 어느 멤버에서 변경해도 공유합니다. 새 세션은 별도 UUID입니다.
+사용자 custom 규칙 및 APP/CUSTOM/DIRECT/OFF는 재편집과 다음 적용까지 보존합니다.
+
+자동 sameTrack 4%/세트 수 비교, predecessor blocking, 기본 RPE/step fallback, OFI/색상,
+개인화 선택과 legacy builder는 변경하지 않습니다. Move/순수 미확정 Push의 연결·순번·처방 출처는
+유지하고 일반 copy는 detached입니다. 부분 수행 push 정책은 기존 v0.14.0 그대로입니다.
 
 ### v0.14.0 프로그램 실행·진행 제안 (2026-09-06)
 
@@ -302,6 +326,8 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 - [기록 기반 planner 릴리스 노트](../../v0.5.1.4_record_based_planner_release_notes.md)
 
 ## 20. 변경 이력
+
+- `3.4.1` (2026-09-06): 수동 진행 세션의 독립 초안 identity, 공유 역할과 lossless 편집/저장 경계 및 0kg 적격성 UI를 교정했습니다. 영속 schema와 자동 비교/제안 산식은 유지합니다.
 
 - `3.3.1` (2026-09-05): 코트 기반 3일 AUTO cap을 제거하고 주별 중단 답변·확정 중단 bridge·run-local HIGH 근거·전신/국소 제한 분리를 적용했습니다. physiological engines/finite allocator/legacy 경로는 유지합니다.
 - `3.3.0` (2026-09-05): 장기 strain/adaptation/tolerance와 중단 인지 지속 용량을 추가하고 전신 soft dose 중복을 제거했습니다. SUPPORTIVE가 후속 DIRECT 후보를 지우지 않도록 수정했습니다. representation·Objective V2·OFI·strength posterior·tissue engine·legacy builder의 수치는 변경하지 않았습니다.

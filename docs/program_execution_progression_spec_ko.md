@@ -1101,3 +1101,58 @@ Room 30→31은 기존 테이블을 변경하거나 삭제하지 않고 아래 �
 ### 25.5 검증
 
 검증 명령/최종 집계는 같은 변경의 `docs/CODEX_WORKLOG.md`에 기록한다. 핵심 테스트는 `ProgramProgressionEngineTest`, `ProgramProgressionPersistenceTest`, `ProgramProgressionLayoutTest`, `ProgressionCalendarTest`, 실제 Android `ProgramProgressionMigrationTest`, `ProgramProgressionDeviceLayoutTest`다. UI는 320/360/411dp × fontScale 1.0/1.3에서 실제 line/glyph bounds와 emulator 화면을 함께 확인한다. 테스트용 자료는 합성 데이터이며 사용자 개인 백업을 소스에 추가하지 않는다.
+
+## 26. 수동 진행 세션 교정 — v0.14.1 (2026-09-06)
+
+이 절은 §25의 초안 대상 항목 참조와 재편집 보존 구현을 교정한다. 기준 main은
+`339baa919ceca5cb17aef50d23f26d61aa16e026`이다. runtime은
+`RECORD_BASED_PLANNER_0.14.1_KOTLIN_1`, PROGRAM-BUILDER-OVERVIEW는 `3.4.1`이다.
+앱 버전과 Room 31, CSV format 13 / restore schema 12 / program schema 2는 유지한다.
+Ponytail 원칙은 사용하지 않았다.
+
+### 26.1 단일 세션 소유자와 권위
+
+- 초안 `GeneratedProgramSkeleton.progressionSessions`의 `DraftProgressionSession`은
+  `ProgramProgressionTrack` 값과 typed source를 보유한다. 세션 키는 UUID이며 어느 멤버의 localId도 아니다.
+- `ProgramSkeletonItem.progressionBinding`의 `DraftProgressionBinding`은 sessionKey,
+  logicalItemId, linkMode, signature 및 기존 DB에서 복원했는지 나타내는 draft-only persisted 표지를 가진다.
+  persisted 표지는 새 초안의 canonical e1RM 초기 snapshot과 기존 null snapshot 보존을 구분한다.
+- USER_EXPLICIT > PLANNER_EXPLICIT > AUTO_INFERRED. 역할/override/모드/규칙은 공유 세션에만 저장한다.
+  roleOverride=AUTO는 다시 planner role 또는 기존 자동 역할 후보를 허용한다.
+- 같은 exact exerciseStableKey만 연결할 수 있다. 명시 분리/연결은 세트 수·반복·중량 편집에도 남는다.
+  수동 세션의 비교 불일치는 REVIEW로 표시할 수 있지만 연결을 바꾸지 않는다.
+  멤버 삭제는 다른 멤버의 UUID/규칙을 없애지 않는다. 모든 멤버가 없어지면 초안 목록에서만 제외하며
+  이미 적용한 이력이나 영속 과거 세션을 자동 삭제하지 않는다.
+- `resolveProgressionSession`은 초안과 영속 authoring의 역할/검토 상태 해석을 공유한다.
+  `sameTrack` 4%와 세트 수 비교, generated-style drift 및 수치 제안 엔진은 변경하지 않는다.
+
+### 26.2 작성·저장·재편집
+
+- 적격성은 canonical activity kind, progress behavior 및 training-role 관계다. 적격 저항운동은
+  0kg/처방 미완성 상태에서도 진행 세션을 선택할 수 있다. 미완성 load의 제안 기준은 REVIEW다.
+  sport/plyometric/skill/conditioning은 자동 중량 진행 대상이 아니다. 이름/장비/카테고리 추론은 없다.
+- 작성 화면의 짧은 진행 세션 행을 누르면 자동 연결, 동일 운동의 기존 세션, 새 세션, 연결하지 않음,
+  역할, 제안 기준을 표시한다. 기존 custom form을 공유하며 ID 대신 실제 처방·역할과 요일을 보여 준다.
+  anchor는 탑세트/백오프, 그 외 비균일 구조는 혼합 세트로 표시한다. 반복 주차의 요일은 중복 제거한다.
+- 기존 세션을 선택하면 그 세션의 실제 역할/모드/규칙을 form에 로드한다. 새 세션은 별도 UUID로 생성된다.
+  연결하지 않음은 항목의 연결 모드이며, 세션의 OFF 제안 모드와 구분한다. 다른 멤버의 모드를 끄지 않는다.
+- `programEditorSnapshot`은 program/items/sets/bindings/tracks를 하나의 Room transaction으로 읽는다.
+  `skeletonFromProgram` → `hydrateProgression`은 UUID, logicalItemId, 명시 연결, roleOverride,
+  mode/rule와 planner style/variant/anchor/role/slot/intensity를 복원한다. 항목만 먼저 도착한 중간 상태로
+  초안을 확정하지 않는다. 저장은 그 visible draft graph를 materialize하며 `oldBindings` 우회는 없다.
+- 기존 저장본의 e1RM snapshot은 null도 보존한다. 새 초안은 `ProgressionDraftContext`로 적격성과
+  기존 canonical 확인 기록 projection의 snapshot을 함께 읽는다. UI와 저장이 같은 snapshot으로
+  기존 자동 비교를 사용하며, context 없는 생성/API 초안은 첫 저장 때 기존 경로로 snapshot을 채운다.
+  새 사용자 명시 세션은 이 자동 비교보다 우선한다.
+- 재저장 때 숫자 programItemId가 바뀌어도 논리 항목 및 세션 UUID는 유지한다. 기존 실행 snapshot은
+  변경하지 않으며 새 template 설정은 다음 application부터 적용한다. 기존 backup wire로 같은 graph를 복원한다.
+
+### 26.3 제외 범위와 검증
+
+자동 분류기/4%/세트 수 비교/미수행 predecessor/APP RPE/step fallback/OFI/회복/색상/빈도/선택/legacy
+builder는 이 교정의 대상이 아니다. Move 및 완전 미확정 future Push는 application/track/sequence/
+처방 출처를 보존한다. generic copy는 detached이며 부분 확인 push 정책은 v0.14.0 그대로다.
+
+추가 검증은 `ProgramProgressionDraftTest`, `ProgramProgressionSessionPersistenceTest`, 갱신된
+`ProgramProgressionPersistenceTest`, `ProgramProgressionLayoutTest`, `ProgramProgressionDeviceLayoutTest`다.
+실행 결과와 한계는 현재 worklog에 기록한다. schema 변경이 없으므로 새 migration을 만들지 않는다.

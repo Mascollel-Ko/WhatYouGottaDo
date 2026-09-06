@@ -142,8 +142,8 @@
     <string name="restore_close">닫기</string>
     <string name="restore_failed_title">복원할 수 없습니다</string>
     <string name="progression_program">프로그램</string>
-    <string name="progression_progression">진행</string>
-    <string name="progression_settings">진행 설정</string>
+    <string name="progression_progression">진행 세션</string>
+    <string name="progression_settings">진행 세션</string>
     <string name="progression_review">진행 연결 확인이 필요합니다. 저장·적용은 계속할 수 있습니다.</string>
     <string name="progression_auto">자동</string>
     <string name="progression_main">메인</string>
@@ -153,8 +153,8 @@
     <string name="progression_direct">직접 판단</string>
     <string name="progression_off">끄기</string>
     <string name="progression_link">진행 연결</string>
-    <string name="progression_existing">기존 트랙 선택</string>
-    <string name="progression_separate">별도 트랙</string>
+    <string name="progression_existing">기존 진행 세션</string>
+    <string name="progression_separate">새 진행 세션</string>
     <string name="progression_role">역할</string>
     <string name="progression_mode">제안 기준</string>
     <string name="progression_save">저장</string>
@@ -195,4 +195,8 @@
     <string name="progression_increase">증량</string>
     <string name="progression_decrease_action">감량</string>
     <string name="progression_edit_sets">기준 중량을 확정할 수 없습니다. 계획을 유지한 뒤 기록 화면에서 각 세트를 직접 수정해 주세요.</string>
+    <string name="progression_auto_connect">자동으로 연결</string>
+    <string name="progression_disconnected">연결하지 않음</string>
+    <string name="progression_top_backoff">탑세트/백오프</string>
+    <string name="progression_mixed_sets">혼합 세트</string>
 </resources>

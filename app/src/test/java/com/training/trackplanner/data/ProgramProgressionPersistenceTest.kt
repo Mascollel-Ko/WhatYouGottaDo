@@ -176,6 +176,32 @@ class ProgramProgressionPersistenceTest {
         assertEquals(before, db.programProgressionDao().items().single().signature)
     }
 
+    @Test fun provisionalAutoDraftStillUsesCanonicalE1rmComparatorAtFirstSave() = runBlocking {
+        val db = database()
+        db.exerciseDao().insertExercise(Exercise("squat", "Anything", "", activityKind = "TRAINING_EXERCISE", progressMetricType = "ESTIMATED_1RM", estimated1RmEligible = true))
+        val record = db.workoutDao().insertEntry(WorkoutEntry(date = "2026-01-01", exerciseStableKey = "squat", exerciseName = "Anything", category = ""))
+        db.workoutDao().insertSet(WorkoutSet(entryId = record, setIndex = 1, reps = 1, weightKg = 200.0, confirmed = true))
+        val source = manualSessionDraft(100.0)
+        val draft = source.copy(items = source.items.filter { it.exerciseStableKey == "squat" }.take(2).mapIndexed { index, item ->
+            item.copy(weightKg = if (index == 0) 100.0 else 105.0, progressionBinding = null)
+        }, progressionSessions = emptyList()).reconcileProgression(setOf("squat"))
+        assertEquals(2, draft.progressionSessions.size) // preview without history uses the unchanged 4% load fallback
+        service(db).saveGeneratedProgram(null, draft)
+        val bindings = db.programProgressionDao().items()
+        assertTrue(bindings.all { it.signature.oneRmSnapshotKg != null })
+        assertEquals(1, bindings.map { it.trackId }.distinct().size) // 5kg / canonical e1RM is within 4 percentage points
+        val context = TrainingRepository(db, ApplicationProvider.getApplicationContext()).progressionDraftContext()
+        val visible = draft.copy(items = draft.items.map { it.copy(progressionBinding = null) }, progressionSessions = emptyList())
+            .reconcileProgression(context.eligibleKeys, context.oneRmSnapshots)
+        assertEquals(1, visible.progressionSessions.size) // actual editor already has the canonical snapshot
+        val configured = visible.choose("item-1", ProgressionLinkMode.AUTO)
+        val savedId = service(db).saveGeneratedProgram(null, configured)
+        val editor = com.training.trackplanner.skeletonFromProgram(TrainingRepository(db, ApplicationProvider.getApplicationContext()).programEditorSnapshot(savedId))
+        assertEquals(configured.progressionSessions.single().key, editor.progressionSessions.single().key)
+        assertEquals(ProgressionMode.CUSTOM, editor.progressionSessions.single().track.mode)
+        assertEquals(2.5, editor.progressionSessions.single().track.rule.incrementKg!!, 0.0)
+    }
+
     @Test fun malformedWireEnumsFailClosed() = runBlocking {
         val db = database(); apply(db, fixture(db))
         val rows = ProgramProgressionBackup.export(db).map { row ->
@@ -204,12 +230,9 @@ class ProgramProgressionPersistenceTest {
         dao.putItem(before.copy(signature = before.signature.copy(style = "HEAVY_LIGHT_MEDIUM", variant = "HEAVY", plannerRole = ProgressionRole.MAIN)))
         ProgramProgressionService(db).configure(before.programItemId, ProgressionLinkMode.EXISTING, before.trackId, ProgressionRole.ASSISTANCE, ProgressionMode.CUSTOM, ProgressionRule(incrementKg = 1.0))
         val item = db.programDao().itemsForProgram(id).first { it.id == before.programItemId }
-        val draft = ProgramSkeletonItem(localId = "existing-${item.id}", weekNumber = item.weekNumber, dayOfWeek = item.dayOfWeek, orderIndex = item.orderIndex,
-            exerciseStableKey = item.exerciseStableKey, exerciseName = item.exerciseName, category = item.category, setCount = 3, reps = 5, weightKg = 140.0,
-            seconds = 0, restSeconds = 60, prescription = "", selectionReason = "", weightSource = "MANUAL_INPUT",
-            trainingSlot = ProgramTrainingSlot.FULL_BODY_BADMINTON_SUPPORT.name, dayIntensity = ProgramDayIntensity.MODERATE.name)
-        val request = ProgramSkeletonRequest("Edited", ProgramGoal.STRENGTH, 3, 45, emptySet(), "", 0.4, "AUTO", ProgramPeriodizationType.AUTO)
-        service(db).saveGeneratedProgram(id, GeneratedProgramSkeleton("Edited", 21, request, ProgramPeriodizationType.AUTO, emptyList(), listOf(draft)))
+        val snapshot = TrainingRepository(db, ApplicationProvider.getApplicationContext()).programEditorSnapshot(id)
+        val draft = com.training.trackplanner.skeletonFromProgram(snapshot)
+        service(db).saveGeneratedProgram(id, draft.copy(items = draft.items.filter { it.localId == "existing-${item.id}" }))
         val after = dao.items().single()
         assertEquals(before.logicalItemId, after.logicalItemId)
         assertEquals("HEAVY_LIGHT_MEDIUM", after.signature.style)

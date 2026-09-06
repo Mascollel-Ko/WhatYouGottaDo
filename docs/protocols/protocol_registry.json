@@ -1365,7 +1365,7 @@
       "familyId": "PROGRAM_BUILDER",
       "titleKo": "자동·기록 기반 프로그램 생성 개요",
       "titleEn": "Automatic and Record-Based Program Builder Overview",
-      "currentVersion": "3.4.0",
+      "currentVersion": "3.4.1",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1377,6 +1377,7 @@
       "lastAuditedCommit": "d7ee94a5e35fbd76a4d756245aa48f62dd29ccfd",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/ProgramProgressionModels.kt",
+        "app/src/main/java/com/training/trackplanner/data/ProgramProgressionDraft.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramProgressionEngine.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramProgressionService.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramProgressionMigration.kt",
@@ -1415,6 +1416,8 @@
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/data/ProgramProgressionEngineTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/ProgramProgressionDraftTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/ProgramProgressionSessionPersistenceTest.kt",
         "app/src/test/java/com/training/trackplanner/data/ProgramProgressionPersistenceTest.kt",
         "app/src/test/java/com/training/trackplanner/ProgramProgressionLayoutTest.kt",
         "app/src/androidTest/java/com/training/trackplanner/ProgramProgressionDeviceLayoutTest.kt",

@@ -45,10 +45,12 @@ class ProgramProgressionDeviceLayoutTest {
         val korean = context.createConfigurationContext(Configuration(context.resources.configuration).apply { setLocale(Locale.KOREAN) })
         val width = mutableStateOf(320)
         val font = mutableStateOf(1f)
-        val settings = mutableStateOf(false)
+        val settings = mutableStateOf(true)
         val frame = mutableStateOf(0)
         val ready = AtomicReference(CountDownLatch(1))
         val bounds = AtomicReference(Rect.Zero)
+        val mainTrack = ProgramProgressionTrack(id = "main", programStableKey = "program", exerciseStableKey = "squat", label = "스쿼트 · 3×5 · 메인", role = ProgressionRole.MAIN, roleOverride = ProgressionRole.MAIN)
+        val supportTrack = mainTrack.copy(id = "support", label = "스쿼트 · 3×10 · 보조", role = ProgressionRole.ASSISTANCE, roleOverride = ProgressionRole.ASSISTANCE)
         val suggestion = ProgressionSuggestion(applicationId = "app", trackId = "track", sourceEntryId = 1, targetEntryId = 2,
             previousActualKg = 140.0, currentPlanKg = 145.0, suggestedKg = 142.5, judgmentRpe = 7.0,
             direction = ProgressionDirection.INCREASE, reasons = "TARGET_COMPLETED_MANAGEABLE_EFFORT", evidenceHash = "hash", rule = ProgressionRule())
@@ -63,8 +65,9 @@ class ProgramProgressionDeviceLayoutTest {
                             Surface(Modifier.windowInsetsPadding(WindowInsets.safeDrawing)) {
                                 Box(Modifier.width(width.value.dp).onGloballyPositioned { bounds.set(it.boundsInWindow()) }) {
                                     if (settings.value) ProgressionSettingsContent(
-                                        ProgramProgressionTrack(id = "track", programStableKey = "program", exerciseStableKey = "squat", label = "스쿼트 · 5회 · 메인", mode = ProgressionMode.CUSTOM),
-                                        ProgramProgressionItem(1, trackId = "track", signature = ProgressionSignature("squat", 3, "5|5|5", 140.0, null, null)), emptyList()) { _, _, _, _, _ -> }
+                                        mainTrack,
+                                        ProgramProgressionItem(1, trackId = mainTrack.id, linkMode = ProgressionLinkMode.EXISTING, signature = ProgressionSignature("squat", 3, "5|5|5", 140.0, null, null)), listOf(mainTrack, supportTrack),
+                                        listOf(ProgressionSessionOption(mainTrack, mainTrack.label, "월요일 · 금요일"), ProgressionSessionOption(supportTrack, supportTrack.label, "수요일"))) { _, _, _, _, _ -> }
                                     else ProgressionSuggestionContent(suggestion) { _, _ -> }
                                 }
                             }
@@ -78,7 +81,7 @@ class ProgramProgressionDeviceLayoutTest {
                 instrumentation.runOnMainSync { width.value = dp; font.value = scale; frame.value++ }
                 assertTrue(ready.get().await(15, TimeUnit.SECONDS))
                 assertTrue(bounds.get().width / context.resources.displayMetrics.density <= dp + 1)
-                screenshot("suggestion-$dp-$scale.png")
+                screenshot("manual-sessions-$dp-$scale.png")
             }
             ready.set(CountDownLatch(1))
             instrumentation.runOnMainSync { width.value = 320; font.value = 1.3f; settings.value = true; frame.value++ }

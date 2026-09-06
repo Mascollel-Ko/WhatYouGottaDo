@@ -70,6 +70,7 @@
     <string name="progression_apply">Apply suggestion</string>
     <string name="progression_assistance">Assistance</string>
     <string name="progression_auto">Auto</string>
+    <string name="progression_auto_connect">Connect automatically</string>
     <string name="progression_completion">Require target sets and reps completed</string>
     <string name="progression_completion_only">Use completion only</string>
     <string name="progression_current">Current plan</string>
@@ -78,8 +79,9 @@
     <string name="progression_decrease_action">Decrease</string>
     <string name="progression_delta">Relative to previous actual</string>
     <string name="progression_direct">Direct judgment</string>
+    <string name="progression_disconnected">Do not connect</string>
     <string name="progression_edit_sets">No unambiguous load base. Keep the plan, then edit individual sets in the record screen.</string>
-    <string name="progression_existing">Choose existing track</string>
+    <string name="progression_existing">Existing progression session</string>
     <string name="progression_failures">Consecutive misses before decrease (2–5)</string>
     <string name="progression_first_failure">First miss</string>
     <string name="progression_hold">Hold</string>
@@ -90,13 +92,14 @@
     <string name="progression_manual">Manual input</string>
     <string name="progression_max_rpe">Maximum working-set RPE</string>
     <string name="progression_missing">Missing RPE</string>
+    <string name="progression_mixed_sets">Mixed sets</string>
     <string name="progression_mode">Suggestion mode</string>
     <string name="progression_no">Allow incomplete targets</string>
     <string name="progression_off">Off</string>
     <string name="progression_pending">Review suggestion from the previous comparable session</string>
     <string name="progression_previous">Previous actual</string>
     <string name="progression_program">Program</string>
-    <string name="progression_progression">Progression</string>
+    <string name="progression_progression">Progression session</string>
     <string name="progression_reason_local">Increase held due to related local tissue restriction</string>
     <string name="progression_reason_miss">Target missed: hold on the first miss, review reduction on repeated misses</string>
     <string name="progression_reason_review">Review structure, executable load step, or additional sessions</string>
@@ -107,8 +110,8 @@
     <string name="progression_role">Role</string>
     <string name="progression_rule_rpe">Judgment RPE</string>
     <string name="progression_save">Save</string>
-    <string name="progression_separate">Separate track</string>
-    <string name="progression_settings">Progression settings</string>
+    <string name="progression_separate">New progression session</string>
+    <string name="progression_settings">Progression session</string>
     <string name="progression_snapshot">Settings changes affect the next program application.</string>
     <string name="progression_stale">Evidence changed. Review the latest suggestion.</string>
     <string name="progression_step">Increment kg (blank: automatic)</string>
@@ -116,6 +119,7 @@
     <string name="progression_successes">Required consecutive successes (1–3)</string>
     <string name="progression_suggested">Suggestion</string>
     <string name="progression_threshold">RPE threshold</string>
+    <string name="progression_top_backoff">Top set/back-off</string>
     <string name="progression_unavailable">Insufficient evidence or structure needs review</string>
     <string name="progression_use_previous">Use previous actual load</string>
     <string name="progression_yes">Required</string>

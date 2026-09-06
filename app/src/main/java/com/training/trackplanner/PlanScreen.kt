@@ -60,6 +60,9 @@ import com.training.trackplanner.data.TrainingProgramItemSet
 import com.training.trackplanner.data.defaultProgramWeekDaySchedule
 import com.training.trackplanner.data.emptyProgramSkeleton
 import com.training.trackplanner.data.withResolvedWeekDaySchedule
+import com.training.trackplanner.data.ProgramEditorSnapshot
+import com.training.trackplanner.data.hydrateProgression
+import com.training.trackplanner.data.reconcileProgression
 import com.training.trackplanner.data.personalized.PersonalizedPlanningAnswers
 import com.training.trackplanner.data.personalized.PersonalizedGenerationConstraints
 import com.training.trackplanner.data.personalized.PersonalizedPlanningPreflight
@@ -325,16 +328,8 @@ private fun ProgramEditorScreen(
     val context = LocalContext.current
     val exercises by viewModel.exercises.collectAsState()
     val runtimeMetadataByExerciseId by viewModel.exerciseRuntimeMetadata.collectAsState()
-    val existingItems by if (program != null) {
-        remember(program.id) { viewModel.programItems(program.id) }.collectAsState(initial = emptyList())
-    } else {
-        remember { mutableStateOf(emptyList()) }
-    }
-    val existingItemSets by if (program != null) {
-        remember(program.id) { viewModel.programItemSets(program.id) }.collectAsState(initial = emptyList())
-    } else {
-        remember { mutableStateOf(emptyList()) }
-    }
+    var progressionContext by remember { mutableStateOf<com.training.trackplanner.data.ProgressionDraftContext?>(null) }
+    val progressionEligibleKeys = progressionContext?.eligibleKeys.orEmpty()
     var nameText by rememberSaveable(program?.id ?: 0L) {
         mutableStateOf(program?.name ?: "")
     }
@@ -371,11 +366,14 @@ private fun ProgramEditorScreen(
     var personalizedDurationOverride by rememberSaveable(program?.id ?: 0L) { mutableStateOf<Int?>(null) }
     var lastGenerationWasPersonalized by rememberSaveable { mutableStateOf(false) }
 
-    LaunchedEffect(program?.id, existingItems, existingItemSets) {
-        if (program != null && skeleton == null && existingItems.isNotEmpty()) {
-            skeleton = skeletonFromProgram(program, existingItems, existingItemSets)
-                .withResolvedWeekDaySchedule()
-        }
+    LaunchedEffect(program?.id) {
+        if (program != null && skeleton == null) skeleton = skeletonFromProgram(viewModel.programEditorSnapshot(program.id)).withResolvedWeekDaySchedule()
+    }
+    LaunchedEffect(exercises, runtimeMetadataByExerciseId) {
+        progressionContext = viewModel.progressionDraftContext()
+    }
+    LaunchedEffect(skeleton, progressionContext) {
+        progressionContext?.let { context -> skeleton = skeleton?.reconcileProgression(context.eligibleKeys, context.oneRmSnapshots) }
     }
 
     fun normalizedProgramName(): String = nameText.trim()
@@ -660,6 +658,7 @@ private fun ProgramEditorScreen(
                     skeleton = currentSkeleton,
                     exercises = exercises,
                     metadataByExerciseId = runtimeMetadataByExerciseId,
+                    progressionEligibleKeys = progressionEligibleKeys,
                     onSkeletonChange = { skeleton = it }
                 )
             }
@@ -905,7 +904,7 @@ private fun ProgramDetailScreen(
                 setsByItemId = itemSets.groupBy(TrainingProgramItemSet::programItemId),
                 onExerciseInfo = { stableKey -> infoExerciseKey = stableKey },
                 availableExerciseKeys = exercises.mapTo(mutableSetOf()) { it.stableKey },
-                progressionControl = { itemId -> ProgressionTrackControl(itemId, viewModel) }
+                progressionControl = { itemId -> ProgressionTrackControl(itemId, viewModel, items, itemSets) }
             )
         }
     }
@@ -998,11 +997,10 @@ private fun ProgramApplyCard(
     }
 }
 
-private fun skeletonFromProgram(
-    program: TrainingProgram,
-    items: List<TrainingProgramItem>,
-    itemSets: List<TrainingProgramItemSet>
-): GeneratedProgramSkeleton {
+internal fun skeletonFromProgram(snapshot: ProgramEditorSnapshot): GeneratedProgramSkeleton {
+    val program = snapshot.program
+    val items = snapshot.items
+    val itemSets = snapshot.sets
     val restoredItems = items.map { item ->
         item to ProgramItemRestoreMetadataParser.resolve(item)
     }
@@ -1073,7 +1071,7 @@ private fun skeletonFromProgram(
                 add("$PROGRAM_ITEM_RESTORE_WARNING: fallback metadata used")
             }
         }
-    )
+    ).hydrateProgression(snapshot)
 }
 
 private const val PROGRAM_ITEM_RESTORE_WARNING = "PROGRAM_ITEM_RESTORE_METADATA_FALLBACK"

@@ -318,6 +318,27 @@ class TrainingRepository(
             .flatMap { it.contributors.map { contributor -> contributor.exerciseStableKey } }.toSet()
     }
     val progressionTracks = db.programProgressionDao().observeTracks()
+    suspend fun programEditorSnapshot(programId: Long): ProgramEditorSnapshot = withContext(Dispatchers.IO) {
+        db.withTransaction {
+            val program = requireNotNull(db.programDao().findProgram(programId))
+            val items = db.programDao().itemsForProgram(programId)
+            ProgramEditorSnapshot(program, items, db.programDao().programItemSetsForProgram(programId),
+                db.programProgressionDao().items().filter { binding -> items.any { it.id == binding.programItemId } },
+                db.programProgressionDao().tracks().filter { it.programStableKey == program.stableKey })
+        }
+    }
+    suspend fun progressionDraftContext(): ProgressionDraftContext = withContext(Dispatchers.IO) {
+        db.withTransaction {
+            val roles = exerciseRoleRelationDao.allTrainingRoles().groupBy { it.exerciseStableKey }
+            val metadata = runtimeExerciseMetadataDao.all().associate { it.stableKey to it.toRuntimeMetadata() }
+            val eligible = exerciseDao.allExercises().filter { progressionEligible(it,
+                roles[it.stableKey].orEmpty().mapTo(mutableSetOf()) { row -> row.trainingRoleCode }, metadata[it.stableKey]) }
+            val history = workoutDao.entriesWithSetsUntil(java.time.LocalDate.now().toString()).groupBy { it.entry.exerciseStableKey }
+            ProgressionDraftContext(eligible.mapTo(mutableSetOf()) { it.stableKey }, eligible.mapNotNull { exercise ->
+                canonicalProgressionOneRm(exercise, history[exercise.stableKey].orEmpty(), metadata[exercise.stableKey])?.let { exercise.stableKey to it }
+            }.toMap())
+        }
+    }
     val progressionItems = db.programProgressionDao().observeItems()
     val programWorkoutLinks = db.programProgressionDao().observeLinks()
     val progressionSuggestions = db.programProgressionDao().observeSuggestions()

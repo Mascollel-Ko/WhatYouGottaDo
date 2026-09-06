@@ -25,17 +25,15 @@ internal class ProgramProgressionService(
             val exercise = db.exerciseDao().findByStableKey(item.exerciseStableKey) ?: continue
             val prescriptions = ProgramSetPrescriptionResolver.resolve(item, sets[item.id].orEmpty())
             // Canonical activity kind only; never category/name/equipment guesses.
-            if (!progressionEligible(exercise, roles[item.exerciseStableKey].orEmpty().mapTo(mutableSetOf()) { it.trainingRoleCode }) || prescriptions.none { it.weightKg > 0 && it.reps > 0 }) {
+            if (!progressionEligible(exercise, roles[item.exerciseStableKey].orEmpty().mapTo(mutableSetOf()) { it.trainingRoleCode }, metadata[item.exerciseStableKey])) {
                 dao.deleteItem(item.id)
                 continue
             }
             val old = previous[item.id]?.takeIf { it.signature.exerciseStableKey == item.exerciseStableKey }
             val source = generated[item.id]
             // Reuse the existing confirmed-record e1RM projection. Never use a metadata proxy or fabricate a prior.
-            val oneRm = if (old != null) old.signature.oneRmSnapshotKg else history[item.exerciseStableKey].orEmpty()
-                .sortedByDescending { it.entry.date }.firstNotNullOfOrNull { record ->
-                    com.training.trackplanner.analysis.features.ExerciseAnalysisMapper.fromRecord(exercise, record.entry, record.sets, metadata[item.exerciseStableKey]).estimated1Rm
-                }
+            val oneRm = if (old != null && (source?.progressionBinding?.persisted != false || old.signature.oneRmSnapshotKg != null)) old.signature.oneRmSnapshotKg
+                else canonicalProgressionOneRm(exercise, history[item.exerciseStableKey].orEmpty(), metadata[item.exerciseStableKey])
             val signature = ProgressionTrackInference.signature(item.exerciseStableKey, prescriptions,
                 oneRmKg = oneRm,
                 style = source?.progressionStyle?.ifBlank { null } ?: old?.signature?.style.orEmpty(),
@@ -46,10 +44,14 @@ internal class ProgramProgressionService(
             val explicit = old?.takeIf { it.linkMode != ProgressionLinkMode.AUTO }
             val candidate = assigned.firstOrNull { it.linkMode == ProgressionLinkMode.AUTO && ProgressionTrackInference.sameTrack(it.signature, signature) }
             val oldTrack = old?.let { allTracks[it.trackId] }
-            val retain = explicit != null || old != null && ProgressionTrackInference.sameTrack(old.signature, signature)
+            // New AUTO previews have no confirmed-history e1RM snapshot yet. Finalize with the
+            // existing canonical comparator; only persisted or user-explicit choices bypass it.
+            val provisionalAuto = source?.progressionBinding?.let { !it.persisted && it.linkMode == ProgressionLinkMode.AUTO } == true
+            val retain = !provisionalAuto && (explicit != null || old != null && (old.signature == signature || ProgressionTrackInference.sameTrack(old.signature, signature)))
             val track = when {
                 retain && oldTrack != null -> oldTrack
                 candidate != null -> allTracks.getValue(candidate.trackId)
+                provisionalAuto && oldTrack != null -> oldTrack
                 else -> ProgramProgressionTrack(programStableKey = program.stableKey, exerciseStableKey = item.exerciseStableKey,
                     label = "${item.exerciseName} · ${signature.repsPattern.split('|').distinct().joinToString("/")}회" + signature.variant.takeIf { it.isNotBlank() }?.let { " · $it" }.orEmpty(),
                     basePolicy = signature.basePolicy, anchorSetIndex = signature.anchorSetIndex,
@@ -68,29 +70,9 @@ internal class ProgramProgressionService(
             val trackIds = bindings.map { it.trackId }.distinct()
             for (id in trackIds) {
                 val track = allTracks.getValue(id)
-                val signatures = bindings.filter { it.trackId == id }.map { it.signature }
-                val explicitStyle = signatures.all { it.style.isNotBlank() }
-                val plannerMain = signatures.all { it.plannerRole == ProgressionRole.MAIN }
-                val plannerSupport = signatures.all { it.plannerRole == ProgressionRole.ASSISTANCE }
-                val role = when {
-                    track.roleOverride != ProgressionRole.AUTO -> track.roleOverride
-                    plannerMain -> ProgressionRole.MAIN
-                    plannerSupport -> ProgressionRole.ASSISTANCE
-                    trackIds.size == 1 -> ProgressionRole.MAIN
-                    else -> ProgressionRole.AUTO
-                }
-                val reviewed = bindings.filter { it.trackId == id }.any { it.linkMode != ProgressionLinkMode.AUTO }
-                dao.putTrack(track.copy(role = role, needsReview = track.basePolicy == ProgressionBase.REVIEW || (!reviewed && trackIds.size > 1 && !explicitStyle && role == ProgressionRole.AUTO),
-                    rule = if (track.mode == ProgressionMode.APP) ProgressionRule(rpeThreshold = if (role == ProgressionRole.ASSISTANCE) 9.0 else 8.0) else track.rule))
+                val members = bindings.filter { it.trackId == id }.map { DraftProgressionBinding(it.trackId, it.logicalItemId, it.linkMode, it.signature) }
+                dao.putTrack(resolveProgressionSession(DraftProgressionSession(track, ProgressionAuthority.AUTO_INFERRED), members, trackIds.size).track)
             }
-        }
-        // Draft overrides are resolved against exact draft IDs after automatic authoring of all rows.
-        for ((itemId, source) in generated) {
-            val settings = source.progressionSettings ?: continue
-            if (assigned.none { it.programItemId == itemId }) continue
-            val targetItemId = generated.entries.firstOrNull { it.value.localId == settings.targetLocalId }?.key
-            val targetTrack = dao.items().firstOrNull { it.programItemId == targetItemId }?.trackId
-            configure(itemId, settings.linkMode, targetTrack, settings.role, settings.mode, settings.rule)
         }
     }
 
@@ -113,10 +95,11 @@ internal class ProgramProgressionService(
             }?.let { other -> available.single { it.id == other.trackId } } ?: original
             else -> original
         }
-        dao.putTrack(selected.copy(roleOverride = role, role = if (role == ProgressionRole.AUTO) selected.role else role,
-            mode = if (missingTarget) ProgressionMode.DIRECT else if (linkMode == ProgressionLinkMode.OFF) ProgressionMode.OFF else mode,
+        dao.putTrack(selected.copy(roleOverride = role,
+            mode = if (missingTarget) ProgressionMode.DIRECT else mode,
             rule = rule, needsReview = missingTarget || selected.basePolicy == ProgressionBase.REVIEW))
         dao.putItem(binding.copy(trackId = selected.id, linkMode = if (missingTarget) ProgressionLinkMode.SEPARATE else linkMode))
+        author(requireNotNull(db.programDao().allProgramItems().firstOrNull { it.id == itemId }).programId)
         // Applied links deliberately retain their old role/rule/intent snapshots.
     }
 
@@ -244,7 +227,8 @@ internal class ProgramProgressionService(
     }
 }
 
-internal fun progressionEligible(exercise: Exercise, roles: Set<String>): Boolean =
+internal fun progressionEligible(exercise: Exercise, roles: Set<String>, metadata: RuntimeExerciseMetadata? = null): Boolean =
     exercise.resolvedActivityKind() == ActivityKind.TRAINING_EXERCISE &&
         roles.none { it in setOf("PLYOMETRIC", "SKILL_DRILL", "CONDITIONING") } &&
-        (exercise.estimated1RmEligible || exercise.volumeLoadEligible || roles.any { it in setOf("STRENGTH", "HYPERTROPHY") })
+        (exercise.estimated1RmEligible || exercise.volumeLoadEligible || roles.any { it in setOf("STRENGTH", "HYPERTROPHY") } ||
+            metadata?.progressBehavior in setOf(ProgressMetricRuntimeBehavior.LOAD_REPS, ProgressMetricRuntimeBehavior.VOLUME_LOAD, ProgressMetricRuntimeBehavior.ESTIMATED_1RM))
