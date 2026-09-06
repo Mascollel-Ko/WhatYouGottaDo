@@ -2,6 +2,8 @@
 
 ## 2026-09-06 - Manual progression-session correction v0.14.1
 
+- Audited implementation commit: `17467a5ab18bc3f54f94e0c11afe67dfb2e0ac1e`. The subsequent docs-only commit records audit provenance without changing runtime behavior.
+
 - Baseline main: `339baa919ceca5cb17aef50d23f26d61aa16e026`; fetched origin/main and verified it was already current before editing. Read the supplied correction prompt and current execution/progression authority. Reported the persisted/draft models, lossy hydration, replacement session identity and no-migration decision before editing. Ponytail was not used.
 - `DraftProgressionSession` owns a shared `ProgramProgressionTrack` value plus typed source. Each `DraftProgressionBinding` owns the session UUID reference, logical item UUID, link mode, signature and draft-only persisted marker. Removed `targetLocalId` and hidden `oldBindings` recovery. No member is a session leader. Same exact exercise key is required; user explicit linking/separation outranks planner intent and automatic inference. Roles/modes/custom rules are shared; manual prescription drift may warn REVIEW but cannot silently unlink.
 - `programEditorSnapshot` reads the complete graph in one transaction, and `skeletonFromProgram` hydrates it into the visible editor, including planner style/variant/anchor/role/slot/intensity. Unchanged save preserves durable logical IDs even when numeric item IDs change. Named native SQLite tests close/reopen the DB, recreate the repository and use the actual editor hydration function. Backup restores the same graph after item-ID remapping.
