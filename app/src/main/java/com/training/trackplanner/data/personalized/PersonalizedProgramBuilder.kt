@@ -312,7 +312,7 @@ class PersonalizedProgramBuilder(
     private val validator: ProgramProjectionValidator = ProgramProjectionValidator(),
     private val repairPolicy: ProgramRepairPolicy = ProgramRepairPolicy()
 ) {
-    fun build(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, gaps: List<AdaptationGap>, intent: BlockIntent, horizon: Int, request: ProgramSkeletonRequest, answers: PersonalizedPlanningAnswers, priorDecisionId: String?): GeneratedProgramSkeleton {
+    fun build(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, gaps: List<AdaptationGap>, intent: BlockIntent, horizon: Int, request: ProgramSkeletonRequest, answers: PersonalizedPlanningAnswers, priorDecisionId: String?, explicitWeeklyDays: Boolean = true): GeneratedProgramSkeleton {
         val transitionPlanner = AdaptationTransitionPlanner()
         val transitions = state.anchors.associate { anchor -> anchor.stableKey to transitionPlanner.decide(anchor, state, gaps) }
         val recentResistance = snapshot.allConfirmedSets.filter {
@@ -399,6 +399,8 @@ class PersonalizedProgramBuilder(
         val targetResistance = selected.filter { snapshot.activityKind(it.stableKey) == PlannedActivityKind.RESISTANCE }.sumOf(PlannedExercise::targetSets)
         val schedule = RecordBasedReviewedPolicy.defaultSchedule(horizon, days)
         val retentionPriorities = mutableMapOf<String, Int>()
+        val postProcessAtoms = mutableMapOf<String, String>()
+        val postProcessSources = mutableMapOf<String, PlannedExercise>()
         val items = buildList {
             (1..horizon).forEach { week ->
                 val weekDays = schedule.getValue(week).sorted()
@@ -412,6 +414,9 @@ class PersonalizedProgramBuilder(
                         val estimatedSeconds = timedItem.estimatedSeconds
                         val localId = "personalized_${week}_${logicalDay}_${index}_${item.stableKey}"
                         retentionPriorities[localId] = item.priority
+                        val atomId = "slot_${logicalDay}_${index}"
+                        postProcessAtoms[localId] = atomId
+                        postProcessSources[atomId] = item
                         add(ProgramSkeletonItem(
                             localId = localId, weekNumber = week, dayOfWeek = weekDays[logicalDay - 1], orderIndex = index + 1,
                             progressionStyle = item.style.takeUnless { it in setOf(StrengthProgrammingStyle.NONE, StrengthProgrammingStyle.UNRESOLVED) }?.name.orEmpty(),
@@ -497,7 +502,28 @@ class PersonalizedProgramBuilder(
             trainingStateAssessment = state.trainingStateAssessment,
             weeklyFrequencyEvidence = WeeklyDosePlanner().resolve(state,state.anchors.size+gaps.size)
         )
-        return repaired.copy(personalizedDecision = decision)
+        // INITIAL SKELETON: all existing selection, placement, repair, validation and fingerprinting end here.
+        val initialSkeleton = repaired.copy(personalizedDecision = decision)
+        val authorized = try {
+            selected.mapIndexed { index, item -> AuthorizedPrescription("authorized_$index", item,
+                prescriptionPlanner.prescribe(snapshot, state.strengthIntent, item, item.style), item in continuity) }
+        } catch (failure: Exception) {
+            if (failure is java.util.concurrent.CancellationException) throw failure
+            return initialSkeleton.copy(personalizedDecision = decision.copy(residualCompletion = ResidualCompletionTrace(
+                "POST_PROCESS_FAILED_SAFE_AUTHORIZED_PRESCRIPTION", fingerprint, fingerprint, snapshot.cutoff.plusDays(1).toString())))
+        }
+        val completion = ResidualCompletion(prescriptionPlanner).complete(initialSkeleton, snapshot, state, gaps,
+            authorized, envelope, postProcessAtoms, postProcessSources, explicitWeeklyDays, snapshot.planDayProjection)
+        val completedWeek = completion.skeleton.items.filter { it.weekNumber == 1 }
+        fun completedUnits(kind: PlannedActivityKind) = completedWeek.filter { snapshot.activityKind(it.exerciseStableKey) == kind }
+            .sumOf { it.setPrescriptions.size }
+        return completion.skeleton.copy(personalizedDecision = decision.copy(
+            residualCompletion = completion.trace,
+            // Existing execution trace remains the initial allocation audit; display counts describe the completed plan.
+            planningBudget = budget.copy(plannedResistanceSets = completedUnits(PlannedActivityKind.RESISTANCE),
+                plannedStructuredBadmintonBouts = completedUnits(PlannedActivityKind.STRUCTURED_BADMINTON_DRILL),
+                plannedAthleticPerformanceBouts = completedUnits(PlannedActivityKind.ATHLETIC_PERFORMANCE_DRILL)),
+            weeklyFrequency = completion.skeleton.request.weeklyTrainingDays))
     }
 
 

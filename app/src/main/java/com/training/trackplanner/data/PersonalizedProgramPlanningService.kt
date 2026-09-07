@@ -106,7 +106,8 @@ internal class PersonalizedProgramPlanningService(
         val constraints = preflight.constraints
         val personalizedRequest = resolvePersonalizedRequest(preflight.request, constraints, state.programGoal, recommendedDays, recommendedHorizon)
         val priorId = appMetaDao.latestByPrefix("$DECISION_PREFIX%")?.value?.let(::decisionIdFromJson)
-        return programBuilder.build(snapshot, state, gaps, intent, personalizedRequest.durationWeeks, personalizedRequest, answers, priorId)
+        return programBuilder.build(snapshot, state, gaps, intent, personalizedRequest.durationWeeks, personalizedRequest, answers, priorId,
+            explicitWeeklyDays = constraints.explicitWeeklyTrainingDays != null)
     }
 
     /** Compatibility wrapper for callers that have not yet adopted the two-phase API. */
@@ -173,6 +174,10 @@ internal class PersonalizedProgramPlanningService(
         } ?: ExerciseRoleRelationCatalog.EMPTY
         val snapshot = snapshotBuilder.build(cutoff, history, exercises, metadata, badmintonCatalog, profile, preferences, canonicalStrength, recovery, roleCatalog)
         return snapshot.copy(performancePrescriptions = performancePrescriptions,
+            planDayProjection = com.training.trackplanner.data.personalized.PlanDayOfiProjection(cutoff,
+                DailyFatigueCalculator(runtimeCatalog, canonicalOfiAxisProfiles,
+                    dailyCanonicalStrengthPosterior(posteriorHistory, strengthPerformanceRegistry)),
+                exercises, history, profile, dailyMetrics),
             dailyStrain = ofiSeries.filter { it.date >= snapshot.historyStart }.map { PlanningDailyStrain(it.date,it.overallFatigueIndex.toDouble(),
                 it.highForceNeuralScore.toDouble(),it.systemicMuscularScore.toDouble(),it.localMuscularScore.toDouble(),
                 it.highSpeedScore.toDouble(),it.reactiveScore.toDouble(),it.recoveryPressureScore.toDouble(),it.confirmedTrainingLoad) },
@@ -271,6 +276,7 @@ internal class PersonalizedProgramPlanningService(
         .put("genericCourtLoad", genericCourtLoad).put("objectiveExposure", JSONObject(objectiveExposure))
         .put("trainingStateAssessment", trainingStateAssessment?.toJson())
         .put("weeklyFrequencyEvidence", weeklyFrequencyEvidence?.toJson())
+        .put("residualCompletion", residualCompletion?.toJson())
         .put("anchorTransitions", JSONArray(anchorTransitions.map { transition -> JSONObject()
             .put("stableKey", transition.stableKey)
             .put("observedStyle", transition.observedStyle.name)
@@ -348,7 +354,9 @@ internal class PersonalizedProgramPlanningService(
 }
 
 internal fun isPersonalizedProgramEdited(decision: PersonalizedPlanningDecision, finalFingerprint: String): Boolean =
-    decision.originalGenerationFingerprint.isNotBlank() && decision.originalGenerationFingerprint != finalFingerprint
+    (decision.residualCompletion?.completedFingerprint ?: decision.originalGenerationFingerprint).let { generated ->
+        generated.isNotBlank() && generated != finalFingerprint
+    }
 
 internal fun resolvePersonalizedRequest(
     request: ProgramSkeletonRequest,

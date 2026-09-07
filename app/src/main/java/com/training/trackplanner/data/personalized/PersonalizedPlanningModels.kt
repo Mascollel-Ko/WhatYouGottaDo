@@ -212,7 +212,8 @@ data class PlanningHistorySnapshot(
     val dailyStrain: List<PlanningDailyStrain> = emptyList(),
     val weeklyCourtLoad: Map<LocalDate, Double> = emptyMap(),
     val hardRestrictedModes: Set<String> = emptySet(),
-    val weekAnnotations: Map<LocalDate, WeeklyContextAnnotation> = emptyMap()
+    val weekAnnotations: Map<LocalDate, WeeklyContextAnnotation> = emptyMap(),
+    val planDayProjection: PlanDayProjection? = null
 ) {
     val historyStart: LocalDate get() = allConfirmedSets.minOf(PlanningSetRecord::date)
     val historyDays: Int get() = java.time.temporal.ChronoUnit.DAYS.between(historyStart, cutoff).toInt() + 1
@@ -325,7 +326,8 @@ data class PersonalizedPlanningDecision(
     val badmintonObjectiveRepresentations: List<BadmintonObjectiveRepresentation> = emptyList(),
     val adaptationGaps: List<AdaptationGap> = emptyList(),
     val trainingStateAssessment: TrainingStateAssessment? = null,
-    val weeklyFrequencyEvidence: WeeklyFrequencyEvidence? = null
+    val weeklyFrequencyEvidence: WeeklyFrequencyEvidence? = null,
+    val residualCompletion: ResidualCompletionTrace? = null
 )
 
 sealed interface PersonalizedPlanningOutcome {

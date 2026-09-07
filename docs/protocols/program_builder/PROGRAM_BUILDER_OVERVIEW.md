@@ -3,17 +3,60 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.4.1 |
+| Protocol version | 3.5.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 6efd7d0b52109495a3abdcfa120392e471a9f4c9 |
+| Last audited commit | 3d3c01605a775217996c8a8695afa6aad7025f6b |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 
 ## 1. 일반 사용자용 요약
+
+### Post-generation residual completion (2026-09-07, Commit 1)
+
+Legacy Auto는 이 경계 밖에 있습니다. 기존 Record-Based 분석, AdaptationGap, 용량 배정,
+정확한 처방, 초기 시간 배치, horizon 생성, repair 및 validation은 변경하지 않습니다.
+그 결과를 InitialSkeleton으로 고정하며 originalGenerationFingerprint는 계속 이 초기 결과를 가리킵니다.
+현재 작업의 baseline은 위 audit SHA이며 아래 구현은 별도 로컬 커밋으로 검증합니다.
+
+- Q = authorized post-capacity/pre-placement demand: FiniteExecutionAllocator 이후의
+  continuity + gapItems + optional만 사용합니다. 배치 이전 raw gap 후보는 Q가 아닙니다.
+- 저항 Q/C의 단위는 실제 처방 working sets, objective Q/C는 sets × canonical coefficient의
+  RPE-neutral planning exposure입니다. C는 완성된 초기 주의 전체 항목에서 합산합니다.
+  R = max(0, Q-C), objective EPSILON = 1e-9. 수요 선택은 기존 priority, R/Q, 기존 순서입니다.
+  종목 간 단위 합산 점수나 생리적 충분성 판정은 만들지 않습니다.
+- 기존 DIRECT-drop에만 DIRECT-specific sets 잔여량을 둡니다. SUPPORTIVE는 실제 계수로
+  weighted objective 잔여량에 기여하지만 DIRECT에는 0입니다. continuity는 exact stableKey/style variant입니다.
+- 실제 과거 RPE는 기존 역사 분석에만 사용합니다. 미래 residual에는 계획 RPE를 발명하거나
+  처방 문자열에서 읽지 않습니다. ProgramSetPrescription에 performed RPE를 추가하지 않습니다.
+- week 1의 명시적 logical slot identity, stableKey, 전체 처방과 순서를 포함해 각 주의 동형성을
+  검증합니다. 불일치는 POST_PROCESS_SKIPPED_NON_ISOMORPHIC_WEEKS로 초기 결과를 그대로 반환합니다.
+  보충은 대표 주에서 한 번만 수행하고 모든 동형 주에 동일하게 반영합니다.
+- 관측 세션 >=4이면 ExecutionCapacityPlanner의 excluded-week 정책이 이미 적용된 unit/time
+  median을 사용합니다. 아니면 비어 있지 않은 초기 일들의 median입니다. 시간 기준은 세션 상한 이하입니다.
+  units/reference <0.50 AND seconds/reference <0.50인 날만 보충하며 시간비, unit비, 일 순서로 고릅니다.
+  시간은 sum(seconds>0 ? seconds :45) + rest × max(0, sets-1)입니다. setup 시간은 발명하지 않습니다.
+- 매 항목 추가 후 전체 주의 C/R과 sparse 지표를 다시 계산합니다. 기존 후보·제한·장비·처방 권한을
+  사용하고, 의미 있는 최소값까지 기존 flexible 저항 처방만 축소합니다. reviewed indivisible 처방은 분할하지 않습니다.
+  전체 추가량도 authorized exact units 및 기존 capacity를 넘지 않습니다. 빈 시간은 허용하며 filler는 없습니다.
+- StandaloneDayOFI는 동일한 cutoff+1 날짜에 실제 cutoff까지의 confirmed history와 평가할 하루만
+  넣어 DailyFatigueCalculator로 계산합니다. synthetic row의 rpe는 null이고 canonical missing-RPE 정책이
+  처리합니다. OFI >=87 및 기존 축 caution(100 포함)을 거부합니다. 실제 미래 생리적 OFI 예측이 아닌
+  동일 baseline의 계획 비교 투영입니다. canonical projector가 없는 호출은 초기 결과를 보존합니다.
+- 조직에는 안전한 canonical synthetic projection 진입점이 없으므로 기존 tissueRestrictedStableKeys,
+  current global hard-state만 사용합니다. 별도 tissue 엔진/점수/임계값은 만들지 않습니다.
+- 기존 모든 날에 hard-feasibility상 들어갈 수 없는 동일한 양의 잔여 수요가 새 날에는 들어가고,
+  사용자가 주간 일수를 고정하지 않았으며 기존 최대 5일 이내일 때에만 최대 +1일을 허용합니다.
+  날짜는 RecordBasedReviewedPolicy.defaultSchedule을 사용합니다. 기존 2일 요청의 3-slot schedule처럼
+  canonical schedule이 실제 새 slot을 제공하지 않으면 날짜를 발명하지 않습니다.
+- residualCompletion provenance는 Q/초기 C/최종 C/R, 각 추가 항목 및 재계산 잔여량, 기준값,
+  projection date, 초기/완성 fingerprint를 기존 decision JSON에 저장합니다. 자동 보충 자체를 사용자 편집으로
+  오인하지 않도록 편집 비교만 completedFingerprint를 사용합니다. schema/backup 계약은 바꾸지 않습니다.
+  planningBudget의 표시용 planned counts는 완성 결과로 갱신하고 기존 execution trace는 초기 배정 감사 기록으로 보존합니다.
+- 보충 오류는 유효한 InitialSkeleton을 보존합니다. 이 단계에는 최종 균등화·이동·swap이 없습니다.
 
 ### Legacy Auto Skeleton V1 isolation (2026-09-06)
 
@@ -375,6 +418,9 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 - [기록 기반 planner 릴리스 노트](../../v0.5.1.4_record_based_planner_release_notes.md)
 
 ## 20. 변경 이력
+
+- `3.5.0` (2026-09-07): 초기 skeleton 이후 funded Q/C/R 기반 잔여 보충, 대표 주 mirror,
+  동일 기준일 canonical OFI 비교와 기존 tissue 제한을 추가했습니다. 초기 분석·용량·처방·Legacy는 동결합니다.
 
 - `3.4.1` (2026-09-06): 수동 진행 세션의 독립 초안 identity, 공유 역할과 lossless 편집/저장 경계 및 0kg 적격성 UI를 교정했습니다. 영속 schema와 자동 비교/제안 산식은 유지합니다.
 

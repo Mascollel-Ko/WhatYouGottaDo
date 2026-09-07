@@ -1,5 +1,26 @@
 # Codex Worklog
 
+## 2026-09-07 — Commit 1: Post-generation authorized residual completion
+
+- Baseline: `3d3c01605a775217996c8a8695afa6aad7025f6b`; clean main. No push, no chat signing key,
+  no Ponytail, no subagents. Commit 2 must not start before this separately tested local commit exists.
+- Initial generation/repair/validation/fingerprint authority is unchanged. Explicit logical identities are
+  recorded at horizon materialization. The post-pass uses only funded continuity + gapItems + optional.
+- New typed residual units, exact Q/C/R, representative-week mirror, current-history session references,
+  sparse AND rule, incremental exact prescriptions, canonical fixed-date OFI adapter and tissue gates.
+  Existing calendar/progression/backup/schema/UI, Legacy and numerical analysis sources are unchanged.
+- Canonical protocol/index/registry updated to 3.5.0; registry audit SHA identifies the inspected baseline.
+  Per-run residual decision provenance identifies initial and completed generation fingerprints.
+- Verification: testDebugUnitTest + assembleDebug PASS (4m43s), 259 suites / 1,480 tests:
+  1,477 passed, zero failures/errors, three existing conditional private-input skips.
+  Includes 20 residual tests, authority source-hash guard, unchanged 29-persona initial golden,
+  360/360 Legacy parity, Legacy isolation and existing UI/persistence/analysis suites.
+- Frozen Legacy source audit 10/10; historical/demand/capacity/prescription sources hash-identical;
+  protocol validation eight families/34 protocols; git diff --check PASS. New test fixture was added
+  to the official generated metadata compatibility-consumer inventory (no metadata values changed).
+  Existing reflection golden excludes only the new residualCompletion provenance field; all old fields
+  and old golden values remain unchanged. No final rebalancing code is present in this commit.
+
 ## 2026-09-06 — Restore Legacy pre-save manual progression sessions
 
 - Baseline and fetched origin/main: `2e0a1979e5d967dbe55e2819047a7710c449c30f`, clean checkout.
