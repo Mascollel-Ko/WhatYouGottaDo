@@ -517,8 +517,11 @@ class PersonalizedProgramBuilder(
         val completedWeek = completion.skeleton.items.filter { it.weekNumber == 1 }
         fun completedUnits(kind: PlannedActivityKind) = completedWeek.filter { snapshot.activityKind(it.exerciseStableKey) == kind }
             .sumOf { it.setPrescriptions.size }
-        return completion.skeleton.copy(personalizedDecision = decision.copy(
+        // The second stage owns only placement. Its fail-safe is CompletedPlan, never InitialSkeleton.
+        val rebalanced = BoundedDayRebalancer().rebalance(completion, snapshot, state, snapshot.planDayProjection)
+        return rebalanced.skeleton.copy(personalizedDecision = decision.copy(
             residualCompletion = completion.trace,
+            dayRebalancing = rebalanced.trace,
             // Existing execution trace remains the initial allocation audit; display counts describe the completed plan.
             planningBudget = budget.copy(plannedResistanceSets = completedUnits(PlannedActivityKind.RESISTANCE),
                 plannedStructuredBadmintonBouts = completedUnits(PlannedActivityKind.STRUCTURED_BADMINTON_DRILL),

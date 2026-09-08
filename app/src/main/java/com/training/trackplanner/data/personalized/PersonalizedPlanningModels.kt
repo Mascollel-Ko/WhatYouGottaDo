@@ -327,7 +327,8 @@ data class PersonalizedPlanningDecision(
     val adaptationGaps: List<AdaptationGap> = emptyList(),
     val trainingStateAssessment: TrainingStateAssessment? = null,
     val weeklyFrequencyEvidence: WeeklyFrequencyEvidence? = null,
-    val residualCompletion: ResidualCompletionTrace? = null
+    val residualCompletion: ResidualCompletionTrace? = null,
+    val dayRebalancing: DayRebalancingTrace? = null
 )
 
 sealed interface PersonalizedPlanningOutcome {

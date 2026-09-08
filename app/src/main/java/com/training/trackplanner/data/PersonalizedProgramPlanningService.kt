@@ -277,6 +277,7 @@ internal class PersonalizedProgramPlanningService(
         .put("trainingStateAssessment", trainingStateAssessment?.toJson())
         .put("weeklyFrequencyEvidence", weeklyFrequencyEvidence?.toJson())
         .put("residualCompletion", residualCompletion?.toJson())
+        .put("dayRebalancing", dayRebalancing?.toJson())
         .put("anchorTransitions", JSONArray(anchorTransitions.map { transition -> JSONObject()
             .put("stableKey", transition.stableKey)
             .put("observedStyle", transition.observedStyle.name)
@@ -354,7 +355,7 @@ internal class PersonalizedProgramPlanningService(
 }
 
 internal fun isPersonalizedProgramEdited(decision: PersonalizedPlanningDecision, finalFingerprint: String): Boolean =
-    (decision.residualCompletion?.completedFingerprint ?: decision.originalGenerationFingerprint).let { generated ->
+    (decision.dayRebalancing?.finalFingerprint ?: decision.residualCompletion?.completedFingerprint ?: decision.originalGenerationFingerprint).let { generated ->
         generated.isNotBlank() && generated != finalFingerprint
     }
 

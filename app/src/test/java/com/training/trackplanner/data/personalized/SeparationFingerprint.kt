@@ -19,10 +19,10 @@ private fun separationCanonical(value: Any?): String = when (value) {
         .joinToString(prefix = "{", postfix = "}") { separationCanonical(it.key) + "=" + separationCanonical(it.value) }
     is Set<*> -> value.map(::separationCanonical).sorted().joinToString(prefix = "<", postfix = ">")
     is Iterable<*> -> value.joinToString(prefix = "[", postfix = "]") { separationCanonical(it) }
-    // The a53f419 golden owns the complete INITIAL result, before this new additive provenance field.
+    // The a53f419 golden owns the complete INITIAL result, before these additive post-process audit fields.
     // All pre-existing decision fields, items and prescriptions remain in the golden comparison.
     else -> value.javaClass.declaredFields.filterNot { it.isSynthetic || Modifier.isStatic(it.modifiers) ||
-        value is PersonalizedPlanningDecision && it.name == "residualCompletion" }
+        value is PersonalizedPlanningDecision && it.name in setOf("residualCompletion", "dayRebalancing") }
         .sortedBy { it.name }.joinToString(prefix = "(", postfix = ")") {
             it.isAccessible = true
             it.name + "=" + separationCanonical(it.get(value))

@@ -1,5 +1,41 @@
 # Codex Worklog
 
+## 2026-09-07 — Commit 2: Final bounded day rebalancing
+
+- Started only after clean Commit 1: `295b326d9ba7cb0e9a103dbe747b3b80ffa7a8b0`.
+  That commit is not amended/squashed. No push and no chat signing key.
+- BoundedDayRebalancer runs after CompletedPlan, uses frozen post-completion TIME/OFI medians,
+  independent same-cutoff+1 canonical projections, 70-130% dimensionless band distances,
+  lexicographic objective and per-metric non-worsening constraints. It exhausts improving single
+  moves before evaluating pair swaps; whole prescriptions only, protected CORE/MAIN/style slots fixed.
+- Exact item/prescription content and summation order preserve weekly Q/C/R; stableKey collisions,
+  lower/impact concentration, hard time/OFI/tissue gates prevent unsafe rearrangement. All horizon
+  weeks share the same move map. No feasible improvement is an intentional constrained result.
+- New trace preserves residualCompletion separately and uses CompletedPlan as the failure fallback.
+  Canonical protocol/index/registry updated to 3.6.0, with the inspected Commit-1 audit SHA.
+- Verification on 2026-09-08: protocol validation PASS (eight families/34 protocols), frozen Legacy
+  source audit PASS (10/10), git diff --check PASS; excluded analysis/Legacy/progression/calendar/
+  metadata/schema/app-version sources have no baseline diff. Commit-1 implementation files remain unchanged.
+- Final verification after user-authorized environment update: normal testDebugUnitTest + assembleDebug
+  PASS (2m46s), 260 suites / 1,511 tests: 1,508 passed, zero failures/errors, three existing conditional
+  private-input skips. New bounded-rebalancing tests 31/31, residual completion 20/20, frozen authority
+  guard 1/1, personalized parity 10/10 (including all 29 historical personas), Legacy 360-case parity,
+  and isolation architecture 5/5 passed. Existing persistence/UI/analysis suites also passed.
+- Earlier sandboxed runs failed before tests with cached Compose JAR AccessDeniedException, including
+  a compiler-fork attempt and copied in-workspace cache. The permission update resolved the error with
+  the original cache and standard build command; no build configuration change or task exclusion was needed.
+  Temporary compiler init script removed; copied cache remains ignored under build/gradle-verification-home.
+- First targeted execution exposed one incorrect test assumption: the FINAL median of 45/40/40/38 is
+  coincidentally the original 40. The test now verifies that the median changes after the FIRST move while
+  every subsequent ratio still uses frozen 40. Production algorithm did not change to satisfy this test.
+- Representative controlled test: time minutes 65/60/20/18 -> 45/40/40/38, two whole-item MOVE actions,
+  frozen time median 40 minutes. Controlled OFI oracle 65/60/20/18 -> 45/40/40/38, frozen OFI median 40;
+  this oracle is test-only, not a production physiological formula. Actual canonical adapter on the minimal
+  no-history/axes fixture at 2026-09-04 returns OFI 0/0/0/0 before and after, so only TIME balancing is active.
+  Prescriptions/item content and exact Q/C/R remain equal. No real-user future OFI prediction is claimed.
+- Commit 2 is a separate tested local commit; Commit 1 remains intact. No push, remote workflow,
+  chat signing-key use, physiological engine changes, or physiological optimality claim.
+
 ## 2026-09-07 — Commit 1: Post-generation authorized residual completion
 
 - Baseline: `3d3c01605a775217996c8a8695afa6aad7025f6b`; clean main. No push, no chat signing key,

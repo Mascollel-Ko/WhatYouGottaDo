@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.5.0 |
+| Protocol version | 3.6.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 3d3c01605a775217996c8a8695afa6aad7025f6b |
+| Last audited commit | 295b326d9ba7cb0e9a103dbe747b3b80ffa7a8b0 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -15,12 +15,53 @@
 
 ## 1. 일반 사용자용 요약
 
+### Final bounded day rebalancing (2026-09-07, Commit 2)
+
+검증된 residual completion 커밋 `295b326d9ba7cb0e9a103dbe747b3b80ffa7a8b0` 이후에만 실행합니다.
+CompletedPlan의 대표 주에서 각 운동 전체(정확한 set prescriptions, 중량/반복/초/rest/source 포함)를
+PlacementAtom으로 취급합니다. 추가/삭제/분할은 금지하며 일 배정과 표시 orderIndex만 바꿉니다.
+
+- ScheduledDays는 +1일을 포함한 완료 계획의 모든 logical slot입니다. 비어 있지 않은 날의
+  TimeReference = median(post-completion day seconds), OFIReference = median(post-completion standalone day OFI)를
+  한 번 계산해 고정합니다. 과거 세션 median, 평균값, session maximum을 중앙 기준으로 쓰지 않습니다.
+  비어 있는 날도 후보이며 OFI는 실제 empty-day projection으로 구합니다. OFIReference <=0이면 OFI 비율만 비활성화합니다.
+- TimeRatio = seconds/TimeReference, OFIRatio = standalone OFI/OFIReference.
+  목표 밴드는 0.70..1.30입니다. **70%-130%는 engineering distribution target이며 생리적 안전/최적 임계값이 아닙니다.**
+  시간 OR 활성 OFI 중 하나라도 밴드 밖이면 검토합니다. >1.30 또는 canonical OFI hard caution인 날이 source,
+  시간 또는 활성 OFI가 <0.70인 날이 destination입니다. 정상 날끼리 이동하지 않습니다.
+- BandDistance(r) = 0(밴드 내부), 0.70-r(아래), r-1.30(위).
+  BalanceObjective = (밴드 위반 day/metric 수, 최대 BandDistance, 전체 BandDistance 합)를 사전식 최소화합니다.
+  서로 다른 단위를 더한 점수나 TIME/OFI 임의 가중치는 없습니다.
+- 영향받는 각 날의 각 활성 metric에서 distance_after <= distance_before이며 적어도 하나는 엄격히 개선되어야 합니다.
+  전체 objective도 엄격히 작아야 합니다. 시간 개선을 위해 정상 OFI를 악화시키거나 그 반대도 허용하지 않습니다.
+- 모든 합법적 단방향 이동을 평가한 뒤 objective, movement-cost tier(OPTIONAL_CAPACITY→IMPORTANT),
+  낮은 기존 priority, stableKey, source/destination day, atom identity 순으로 하나를 선택합니다.
+  개선 단방향 이동이 전혀 없을 때만 overloaded/underloaded 날 사이 전체 항목 두 개 swap을 평가합니다.
+  swap tie-break는 objective, 합산 cost tier/priority, stableKey pair, source/destination 순입니다. 세 항목 이상 탐색하지 않습니다.
+- CORE_MUST_DO, progression MAIN(명시적 세션 MAIN 포함), 비어 있지 않은 HLM/DUP/Madcow 등 style variant,
+  명시적 required template anchor는 고정합니다. robustSchedule의 기존 조기 core 보호를 유지합니다.
+  이동 후 동일 stableKey가 한 날에 충돌하면 거부합니다.
+- lowerStress는 기존 TimedWeeklyPlacementPlanner와 같은 movement {LOWER_KNEE, POSTERIOR_CHAIN, CALVES}
+  또는 jointTendonImpactStressLevel {HIGH, VERY_HIGH}입니다. 어느 동작도 max daily lowerStress seconds를 늘리지 못합니다.
+- 목적지는 기존 session time 상한, canonical OFI <87 및 axis caution, Commit-1 current tissue gate를 모두 통과해야 합니다.
+  swap은 양쪽이 목적지이므로 양쪽을 검사합니다. OFI는 Commit-1과 같은 cutoff+1 독립 투영이며 실제 미래 상태 예측이 아닙니다.
+- 이동 후 원래 orderIndex→stableKey→atom identity로 일별 정렬해 1..N으로 매깁니다. 전체 content의 합산 순서도 보존해
+  floating objective coverage와 Q/C/R까지 정확히 동일하게 유지합니다. 모든 동형 horizon 주에 같은 배정을 mirror합니다.
+- 매 동작 후 현재 metrics/objective를 다시 계산하되 기준 median은 고정입니다. 단일 이동/쌍 교환 모두 개선 불가능하거나
+  모든 활성 비율이 밴드 안이면 종료합니다. 엄격한 유한 상태 objective 개선과 방문 상태 검사로 순환을 금지합니다.
+- dayRebalancing JSON provenance는 pre/final fingerprint, 고정 기준, 처음/최종 일별 시간·standalone OFI·비율,
+  objective 및 모든 MOVE/SWAP의 atom/날/전후 비율/objective/gate 결과를 남깁니다. residualCompletion은 덮어쓰지 않습니다.
+  상태는 ALREADY_BALANCED, WITHIN_TARGET_BAND, IMPROVED_BUT_CONSTRAINED, UNRESOLVED_BALANCE_CONSTRAINT입니다.
+  미해결 제약은 허용하며 filler나 처방 변경으로 숨기지 않습니다.
+- 재배치 실패는 **CompletedPlan**을 반환해 성공한 보충을 보존합니다. 사용자 편집 비교는 최종 자동 재배치 fingerprint를
+  사용하되 originalGenerationFingerprint는 계속 초기 skeleton입니다. UI 레이아웃·Legacy·수치 분석식은 변경하지 않습니다.
+
 ### Post-generation residual completion (2026-09-07, Commit 1)
 
 Legacy Auto는 이 경계 밖에 있습니다. 기존 Record-Based 분석, AdaptationGap, 용량 배정,
 정확한 처방, 초기 시간 배치, horizon 생성, repair 및 validation은 변경하지 않습니다.
 그 결과를 InitialSkeleton으로 고정하며 originalGenerationFingerprint는 계속 이 초기 결과를 가리킵니다.
-현재 작업의 baseline은 위 audit SHA이며 아래 구현은 별도 로컬 커밋으로 검증합니다.
+Residual completion의 baseline은 `3d3c01605a775217996c8a8695afa6aad7025f6b`이며, 별도 로컬 커밋 `295b326d9ba7cb0e9a103dbe747b3b80ffa7a8b0`으로 검증했습니다.
 
 - Q = authorized post-capacity/pre-placement demand: FiniteExecutionAllocator 이후의
   continuity + gapItems + optional만 사용합니다. 배치 이전 raw gap 후보는 Q가 아닙니다.
@@ -418,6 +459,9 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 - [기록 기반 planner 릴리스 노트](../../v0.5.1.4_record_based_planner_release_notes.md)
 
 ## 20. 변경 이력
+
+- `3.6.0` (2026-09-07): 완료 주간 처방을 보존하는 고정 median 70-130% bounded move/swap 재배치를 추가했습니다.
+  residual completion 커밋은 별도 보존하고 Legacy 및 기존 분석/용량/처방 권한은 수정하지 않았습니다.
 
 - `3.5.0` (2026-09-07): 초기 skeleton 이후 funded Q/C/R 기반 잔여 보충, 대표 주 mirror,
   동일 기준일 canonical OFI 비교와 기존 tissue 제한을 추가했습니다. 초기 분석·용량·처방·Legacy는 동결합니다.
