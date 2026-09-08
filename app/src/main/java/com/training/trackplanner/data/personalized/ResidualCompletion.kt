@@ -14,26 +14,33 @@ data class PlanningResidual(
         .put("requested", requested).put("initialCoverage", initialCoverage).put("coverage", coverage).put("residual", residual)
 }
 data class ResidualAddition(val atomId: String, val demandId: String, val stableKey: String, val day: Int,
-    val setCount: Int, val prescriptionSource: String, val ofi: Int, val residualsAfter: List<PlanningResidual>) {
+    val setCount: Int, val prescriptionSource: String, val ofi: Int, val residualsAfter: List<PlanningResidual>,
+    val residualsBefore: List<PlanningResidual> = emptyList(), val exactExhausted: Boolean = true) {
     fun toJson(): JSONObject = JSONObject().put("atomId", atomId).put("demandId", demandId).put("stableKey", stableKey)
         .put("day", day).put("setCount", setCount).put("prescriptionSource", prescriptionSource).put("ofi", ofi)
+        .put("action", "SEMANTIC_ADDITION").put("authorizedParent", JSONObject.NULL).put("exactExhausted", exactExhausted)
+        .put("timeGate", "PASS").put("ofiGate", "PASS").put("residualsBefore", JSONArray(residualsBefore.map { it.toJson() }))
         .put("tissueGate", "CANONICAL_CURRENT_RESTRICTIONS_PASS").put("residualsAfter", JSONArray(residualsAfter.map { it.toJson() }))
 }
 data class ResidualCompletionTrace(val state: String, val initialFingerprint: String,
     val completedFingerprint: String, val projectionDate: String, val referenceUnits: Double = 0.0,
     val referenceSeconds: Double = 0.0, val authorizedUnits: Int = 0, val residuals: List<PlanningResidual> = emptyList(),
-    val additions: List<ResidualAddition> = emptyList(), val addedDay: Boolean = false) {
+    val additions: List<ResidualAddition> = emptyList(), val addedDay: Boolean = false,
+    val exactShortfalls: List<ExactPrescriptionShortfall> = emptyList(), val restorations: List<ExactRestorationAction> = emptyList()) {
     fun toJson(): JSONObject = JSONObject().put("state", state).put("initialFingerprint", initialFingerprint)
         .put("completedFingerprint", completedFingerprint).put("projectionDate", projectionDate)
         .put("demandBoundary", "AUTHORIZED_POST_CAPACITY_PRE_PLACEMENT_DEMAND")
         .put("referenceUnits", referenceUnits).put("referenceSeconds", referenceSeconds).put("authorizedUnits", authorizedUnits)
         .put("residuals", JSONArray(residuals.map { it.toJson() })).put("additions", JSONArray(additions.map { it.toJson() }))
         .put("addedDay", addedDay)
+        .put("exactShortfalls", JSONArray(exactShortfalls.map { it.toJson() }))
+        .put("restorations", JSONArray(restorations.map { it.toJson() }))
 }
 
 internal data class AuthorizedPrescription(val id: String, val item: PlannedExercise, val prescription: PlannedPrescription, val continuity: Boolean)
 internal data class DemandDefinition(val id: String, val unit: PlanningDemandUnit, val priority: Int,
-    val objective: String = "", val movements: Set<MovementCoverage> = emptySet(), val key: String = "", val variant: String = "") {
+    val objective: String = "", val movements: Set<MovementCoverage> = emptySet(), val key: String = "", val variant: String = "",
+    val ownerGapCodes: Set<String> = emptySet()) {
     fun contribution(snapshot: PlanningHistorySnapshot, stableKey: String, styleVariant: String, count: Int): Double = when (unit) {
         PlanningDemandUnit.RESISTANCE_SETS -> if (snapshot.activityKind(stableKey) == PlannedActivityKind.RESISTANCE &&
             snapshot.movementCoverage(stableKey) in movements) count.toDouble() else 0.0
@@ -55,11 +62,11 @@ internal class AuthorizedPlanningDemand(private val snapshot: PlanningHistorySna
             val priority = when (gap.priority) { "HIGH" -> 100; "MODERATE", "MEDIUM" -> 90; else -> 70 }
             val objective = badmintonObjectiveFromGap(code)
             if (objective.isNotBlank()) {
-                add(DemandDefinition("OBJECTIVE:$objective", PlanningDemandUnit.OBJECTIVE_EXPOSURE, priority, objective))
-                if (code == "BADMINTON_DROP_$objective") add(DemandDefinition("DIRECT:$objective", PlanningDemandUnit.DIRECT_SETS, priority, objective))
+                add(DemandDefinition("OBJECTIVE:$objective", PlanningDemandUnit.OBJECTIVE_EXPOSURE, priority, objective, ownerGapCodes = setOf(code)))
+                if (code == "BADMINTON_DROP_$objective") add(DemandDefinition("DIRECT:$objective", PlanningDemandUnit.DIRECT_SETS, priority, objective, ownerGapCodes = setOf(code)))
             } else if (code == "BADMINTON_FOUNDATIONAL_ONRAMP") {
                 authorized.filter { code in it.item.representedGapCodes }.flatMap { it.item.representedObjectives + it.item.supportiveObjectives }
-                    .distinct().sorted().forEach { add(DemandDefinition("OBJECTIVE:$it", PlanningDemandUnit.OBJECTIVE_EXPOSURE, priority, it)) }
+                    .distinct().sorted().forEach { add(DemandDefinition("OBJECTIVE:$it", PlanningDemandUnit.OBJECTIVE_EXPOSURE, priority, it, ownerGapCodes = setOf(code))) }
             } else {
                 val mapped = when (code.removePrefix("HYPERTROPHY_REBALANCE_")) {
                     "UPPER_PULL" -> setOf(MovementCoverage.HORIZONTAL_PULL, MovementCoverage.VERTICAL_PULL)
@@ -68,12 +75,18 @@ internal class AuthorizedPlanningDemand(private val snapshot: PlanningHistorySna
                 val movements = mapped.ifEmpty { authorized.filter { code in it.item.representedGapCodes }
                     .map { snapshot.movementCoverage(it.item.stableKey) }.toSet() }
                 if (code == "RESISTANCE_FOUNDATIONAL_ONRAMP") movements.sortedBy { it.name }.forEach { movement ->
-                    add(DemandDefinition("$code:${movement.name}", PlanningDemandUnit.RESISTANCE_SETS, priority, movements = setOf(movement)))
-                } else add(DemandDefinition(code, PlanningDemandUnit.RESISTANCE_SETS, priority, movements = movements))
+                    add(DemandDefinition("$code:${movement.name}", PlanningDemandUnit.RESISTANCE_SETS, priority, movements = setOf(movement), ownerGapCodes = setOf(code)))
+                } else add(DemandDefinition(code, PlanningDemandUnit.RESISTANCE_SETS, priority, movements = movements, ownerGapCodes = setOf(code)))
             }
         }
-    }.distinctBy { it.id }
-    private val requested = definitions.associate { d -> d.id to authorized.sumOf {
+    }.groupBy { it.id }.values.map { definitions -> definitions.first().copy(
+        priority = definitions.maxOf { it.priority }, ownerGapCodes = definitions.flatMap { it.ownerGapCodes }.toSet()) }
+    // Q asks why an item was funded. C below retains the canonical semantic contribution rules.
+    private val requested = definitions.associate { d -> d.id to authorized.filter { a ->
+        if (d.unit == PlanningDemandUnit.CONTINUITY_SETS) a.continuity && a.item.stableKey == d.key && a.item.styleVariant == d.variant
+        else a.item.representedGapCodes.any { code -> code in d.ownerGapCodes &&
+            (code != "BADMINTON_FOUNDATIONAL_ONRAMP" || d.objective in a.item.representedObjectives + a.item.supportiveObjectives) }
+    }.sumOf {
         d.contribution(snapshot, it.item.stableKey, it.item.styleVariant, it.prescription.sets.size) } }
     private val initialCoverage = coverage(initial)
     val authorizedUnits: Int = authorized.sumOf { it.prescription.sets.size }
@@ -96,14 +109,14 @@ internal class ResidualCompletion(private val prescriptions: PersonalizedPrescri
     fun complete(initial: GeneratedProgramSkeleton, snapshot: PlanningHistorySnapshot, state: AthletePlanningState,
         gaps: List<AdaptationGap>, authorized: List<AuthorizedPrescription>, envelope: WeeklyCapacityEnvelope,
         atoms: Map<String, String>, sources: Map<String, PlannedExercise>, explicitDays: Boolean,
-        projection: PlanDayProjection?): CompletionResult {
+        projection: PlanDayProjection?, origins: Map<String, AuthorizedAtomOrigin>? = null): CompletionResult {
         val fingerprint = personalizedProgramFingerprint(initial.request, initial.items)
         fun unchanged(code: String) = CompletionResult(initial, ResidualCompletionTrace(code, fingerprint, fingerprint,
             snapshot.cutoff.plusDays(1).toString()), null, sources, null)
         val week = RepresentativeWeek.derive(initial, atoms) ?: return unchanged("POST_PROCESS_SKIPPED_NON_ISOMORPHIC_WEEKS")
         if (projection == null) return unchanged("POST_PROCESS_SKIPPED_MISSING_CANONICAL_PROJECTION")
         return try {
-            run(initial, snapshot, state, gaps, authorized, envelope, week, sources, explicitDays, projection)
+            run(initial, snapshot, state, gaps, authorized, envelope, week, sources, explicitDays, projection, origins)
         } catch (failure: Exception) {
             if (failure is java.util.concurrent.CancellationException) throw failure
             unchanged("POST_PROCESS_FAILED_SAFE_INITIAL_SKELETON")
@@ -112,7 +125,8 @@ internal class ResidualCompletion(private val prescriptions: PersonalizedPrescri
 
     private fun run(initial: GeneratedProgramSkeleton, snapshot: PlanningHistorySnapshot, state: AthletePlanningState,
         gaps: List<AdaptationGap>, authorized: List<AuthorizedPrescription>, envelope: WeeklyCapacityEnvelope,
-        week: RepresentativeWeek, sources: Map<String, PlannedExercise>, explicitDays: Boolean, projection: PlanDayProjection): CompletionResult {
+        week: RepresentativeWeek, sources: Map<String, PlannedExercise>, explicitDays: Boolean, projection: PlanDayProjection,
+        origins: Map<String, AuthorizedAtomOrigin>?): CompletionResult {
         val demand = AuthorizedPlanningDemand(snapshot, authorized, gaps, week.items)
         var rows = week.items
         var schedule = initial.weekDaySchedule
@@ -125,6 +139,9 @@ internal class ResidualCompletion(private val prescriptions: PersonalizedPrescri
             if (envelope.historicalSessionObservationCount >= 4) envelope.historicalSessionSecondsMedian
             else planningMedian(nonEmpty.map { it.sumOf(::plannedSeconds).toDouble() }))
         val additions = mutableListOf<ResidualAddition>()
+        val exact = origins?.let { ExactAuthorizedRestoration(snapshot, state, initial.request, authorized,
+            minOf(demand.authorizedUnits, envelope.finalControllableUnits), projection, demand, week.atomByLocalId, it, rows) }
+        if (exact != null) rows = exact.restore(rows, days)
         fun dayRows(day: Int) = rows.filter { it.dayOfWeek == day }
         fun unitFill(day: Int) = if (referenceUnits > 0) dayRows(day).sumOf { it.setPrescriptions.size } / referenceUnits else 1.0
         fun timeFill(day: Int) = if (referenceSeconds > 0) dayRows(day).sumOf(::plannedSeconds) / referenceSeconds else 1.0
@@ -136,13 +153,16 @@ internal class ResidualCompletion(private val prescriptions: PersonalizedPrescri
             state.anchors.mapTo(mutableSetOf(), UserAnchor::stableKey), allAlternatives = true)
         fun candidateItems(residual: PlanningResidual): List<PlannedExercise> {
             val definition = demand.definitions.first { it.id == residual.id }
+            // Exact continuity cannot be fragmented by the later flexible semantic prescription loop.
+            if (exact != null && definition.unit == PlanningDemandUnit.CONTINUITY_SETS) return emptyList()
             val incumbents = authorized.filter { a -> definition.contribution(snapshot, a.item.stableKey, a.item.styleVariant, 1) > 0 }.map { it.item }
             val pool = if (definition.unit == PlanningDemandUnit.CONTINUITY_SETS) incumbents else
                 alternatives.filter { definition.contribution(snapshot, it.stableKey, it.styleVariant, 1) > 0 }
                     .map { alternative -> incumbents.firstOrNull { it.stableKey == alternative.stableKey && it.styleVariant == alternative.styleVariant } ?: alternative } + incumbents
             return pool.distinctBy { it.stableKey to it.styleVariant }.filter { item ->
+                val ownsUnrestoredExact = exact?.shortfalls(rows)?.any { it.stableKey == item.stableKey && it.shortfall > 0 } == true
                 val equipment = snapshot.exercises[item.stableKey]?.equipment.orEmpty().split('|', ',').map(String::trim).filter(String::isNotBlank)
-                item.stableKey !in initial.request.excludedExerciseStableKeys && !snapshot.explicitlyRestricted(item.stableKey) &&
+                !ownsUnrestoredExact && item.stableKey !in initial.request.excludedExerciseStableKeys && !snapshot.explicitlyRestricted(item.stableKey) &&
                     snapshot.metadata[item.stableKey]?.planningEligibility in setOf("PROGRAM_SELECTABLE", "SELECTABLE") &&
                     postProcessTissueAllowed(snapshot, state, item.stableKey) &&
                     (initial.request.availableEquipment.isEmpty() || equipment.all { it == "BODYWEIGHT" || it in initial.request.availableEquipment })
@@ -160,9 +180,13 @@ internal class ResidualCompletion(private val prescriptions: PersonalizedPrescri
                     val delta = definition.contribution(snapshot, trial.stableKey, trial.styleVariant, rx.sets.size)
                     val units = rows.sumOf { it.setPrescriptions.size } + rx.sets.size
                     val capacity = minOf(demand.authorizedUnits, envelope.finalControllableUnits)
+                    val sameKeyAuthority = authorized.filter { it.item.stableKey == trial.stableKey }
+                    val withinExactKeyCeiling = exact == null || sameKeyAuthority.isEmpty() ||
+                        rows.filter { it.exerciseStableKey == trial.stableKey }.sumOf { it.setPrescriptions.size } + rx.sets.size <=
+                        sameKeyAuthority.sumOf { it.prescription.sets.size }
                     val row = residualItem(snapshot, trial, rx, "addition_${additions.size}", day,
                         (dayRows(day).maxOfOrNull { it.orderIndex } ?: 0) + 1)
-                    if (delta > PLANNING_EPSILON && delta <= residual.residual + PLANNING_EPSILON && units <= capacity &&
+                    if (withinExactKeyCeiling && delta > PLANNING_EPSILON && delta <= residual.residual + PLANNING_EPSILON && units <= capacity &&
                         dayRows(day).sumOf(::plannedSeconds) + plannedSeconds(row) <= initial.request.sessionMinutes * 60 &&
                         projection.evaluate(dayRows(day) + row).feasible) return row to trial
                     if (snapshot.activityKind(trial.stableKey) != PlannedActivityKind.RESISTANCE || trial.styleVariant.isNotBlank()) break
@@ -175,10 +199,25 @@ internal class ResidualCompletion(private val prescriptions: PersonalizedPrescri
         }
         fun accept(residual: PlanningResidual, day: Int, candidate: Pair<ProgramSkeletonItem, PlannedExercise>) {
             val (row, source) = candidate
+            check(exact == null || exact.restore(rows, days) == rows) { "Semantic substitution preceded legal exact restoration" }
+            val before = demand.residuals(rows)
             rows = rows + row
             sourceByAtom[row.localId] = source
             additions += ResidualAddition(row.localId, residual.id, row.exerciseStableKey, day, row.setCount,
-                row.weightSource, projection.evaluate(dayRows(day)).ofi, demand.residuals(rows))
+                row.weightSource, projection.evaluate(dayRows(day)).ofi, demand.residuals(rows), before)
+        }
+        var addedDay = false
+        // Existing +1 eligibility: unfixed, below five, funded residual and no hard-feasible existing-day completion.
+        val newDayResiduals = rankedResiduals().filter { residual -> days.none { feasible(residual, it) != null } }.map { it.id }.toSet()
+        if (exact != null && !explicitDays && initial.request.weeklyTrainingDays < 5 &&
+            exact.shortfalls(rows).any { it.shortfall > 0 } && newDayResiduals.isNotEmpty()) {
+            val proposed = RecordBasedReviewedPolicy.defaultSchedule(initial.request.durationWeeks, initial.request.weeklyTrainingDays + 1)
+            val proposedDays = proposed.getValue(1).sorted()
+            if (proposedDays.size == days.size + 1) {
+                val remapped = rows.map { it.copy(dayOfWeek = proposedDays[days.indexOf(it.dayOfWeek)]) }
+                val restored = exact.restore(remapped, proposedDays, newDayResiduals)
+                if (restored != remapped) { rows = restored; days = proposedDays; schedule = proposed; addedDay = true }
+            }
         }
         while (true) {
             var accepted = false
@@ -192,8 +231,7 @@ internal class ResidualCompletion(private val prescriptions: PersonalizedPrescri
             }
             if (!accepted) break
         }
-        var addedDay = false
-        if (!explicitDays && initial.request.weeklyTrainingDays < 5) {
+        if (!addedDay && !explicitDays && initial.request.weeklyTrainingDays < 5) {
             // Hard-feasibility check deliberately considers ALL existing days, including non-sparse days.
             for (residual in rankedResiduals()) {
                 if (days.any { feasible(residual, it) != null }) continue
@@ -204,6 +242,10 @@ internal class ResidualCompletion(private val prescriptions: PersonalizedPrescri
                 val newDay = proposedDays.last()
                 val oldRows = rows
                 rows = rows.map { it.copy(dayOfWeek = proposedDays[days.indexOf(it.dayOfWeek)]) }
+                val restored = exact?.restore(rows, proposedDays, setOf(residual.id))
+                if (restored != null && restored != rows) {
+                    rows = restored; days = proposedDays; schedule = proposed; addedDay = true; break
+                }
                 val candidate = feasible(residual, newDay)
                 if (candidate == null) { rows = oldRows; continue }
                 days = proposedDays; schedule = proposed
@@ -220,9 +262,12 @@ internal class ResidualCompletion(private val prescriptions: PersonalizedPrescri
         require(ProgramProjectionValidator().errors(completed, state.genericCourtLoad).isEmpty())
         val trace = ResidualCompletionTrace("POST_GENERATION_RESIDUAL_COMPLETION", personalizedProgramFingerprint(initial.request, initial.items),
             personalizedProgramFingerprint(completed.request, completed.items), snapshot.cutoff.plusDays(1).toString(),
-            referenceUnits, referenceSeconds, demand.authorizedUnits, demand.residuals(rows), additions, addedDay)
+            referenceUnits, referenceSeconds, demand.authorizedUnits, demand.residuals(rows), additions, addedDay,
+            exact?.shortfalls(rows).orEmpty(), exact?.actions.orEmpty())
+        sourceByAtom.putAll(exact?.sources.orEmpty())
+        val newAtoms = rows.filter { it.localId !in week.atomByLocalId }.map { it.localId }
         val completedAtoms = completed.items.associate { row -> row.localId to
-            (week.atomByLocalId[row.localId] ?: additions.first { row.localId == "residual_${row.weekNumber}_${it.atomId}" }.atomId) }
+            (week.atomByLocalId[row.localId] ?: newAtoms.first { row.localId == "residual_${row.weekNumber}_$it" }) }
         return CompletionResult(completed, trace, RepresentativeWeek.derive(completed, completedAtoms), sourceByAtom, demand)
     }
 }

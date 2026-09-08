@@ -3,17 +3,34 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.7.0 |
+| Protocol version | 3.7.1 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 197567f7c656c59e765d514325aa5fe200cfcfa0 |
+| Last audited commit | 7ec418a768a61f4f7c10f5b74b9161e708b0586a |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 
 ## 1. 일반 사용자용 요약
+
+### Exact authorized restoration (2026-09-09, 3.7.1)
+
+Q는 승인 사유(continuity 및 명시적 representedGapCodes)만 소유합니다. C는 현재 운동의 기존 semantic
+coverage이며 R=max(0,Q-C)입니다. 예를 들어 continuity squat 4 + LOWER_KNEE leg press 2의 gap Q는 2이지
+6이 아닙니다. 동일 운동의 복수 gap/objective 소유는 유지하고 DIRECT/SUPPORTIVE 계수는 변경하지 않습니다.
+
+초기 atom의 authorizedDemandId로 정확한 승인량/초기 실현량/현재 실현량/누락량을 계산합니다.
+정확 복원을 우선순위 순으로 먼저 소진한 뒤 semantic residual을 보충합니다. 1..3 및 구조적 세션은 원래
+처방 전체를 현재 날에 복원하고 불가능하면 다른 기존 날로 옮깁니다. eligible 4..6은 기존 canonical chunk만
+사용하며 같은 key 같은 날 중복 및 주간 승인량 증가를 금지합니다. 미래 처방을 새로 추정하지 않습니다.
+초기 주의 정확 복원 내용을 기존 local identity를 유지한 채 모든 주차로 동일하게 미러링합니다.
+
+기존 exclusion/equipment/eligibility/tissue/time/OFI/axis/weekly ceiling/envelope gate와 기존 조건부 +1일
+정책을 유지합니다. 고정 주당 빈도는 확장하지 않습니다. semantic 단계가 원자적 continuity를 잘게 쪼개는
+우회 경로는 허용하지 않습니다. 정확 누락과 semantic Q/C/R은 서로 다른 감사 필드로 남깁니다.
+이 규칙은 engineering scheduling policy이며 OFI/조직/분석/수동 progression/Legacy의 수치·저장 의미는 그대로입니다.
 
 ### Split-aware continuity allocation (2026-09-08, 3.7.0)
 
@@ -498,6 +515,7 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 20. 변경 이력
 
+- `3.7.1` (2026-09-09): 명시적 소유 기반 Q와 semantic C를 분리하고, canonical 청크/원자적 세션의 정확 복원을 대체 운동 보충보다 우선합니다.
 - `3.7.0` (2026-09-08): 승인된 straight continuity의 정확한 4→2+2, 5→3+2, 6→3+3 분할 비교 및 부모/청크 provenance를 추가했습니다.
 - `3.6.1` (2026-09-08): TIME <0.70 목적지가 없고 >1.30 source가 있는 경우에만 낮은 TIME 비율 순서의 MOVE fallback을 추가했습니다. primary, SWAP, 밴드 및 기존 안전/처방 권한은 유지합니다.
 - `3.6.0` (2026-09-07): 완료 주간 처방을 보존하는 고정 median 70-130% bounded move/swap 재배치를 추가했습니다.

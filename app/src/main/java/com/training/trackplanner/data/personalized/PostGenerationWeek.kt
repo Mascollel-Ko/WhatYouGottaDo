@@ -25,8 +25,8 @@ internal data class RepresentativeWeek(
             result.map { row ->
                 val atom = atomByLocalId[row.localId] ?: row.localId
                 val original = originals[week to atom]
-                // Existing local identities and complete content survive; new rows get deterministic identities.
-                (original ?: row.copy(localId = "residual_${week}_${row.localId}")).copy(
+                // Mirror reviewed content (including exact restorations), retaining existing local identities.
+                row.copy(localId = original?.localId ?: "residual_${week}_${row.localId}").copy(
                     weekNumber = week, dayOfWeek = targetDays[firstDays.indexOf(row.dayOfWeek)], orderIndex = row.orderIndex)
             }
         }

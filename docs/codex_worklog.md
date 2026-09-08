@@ -1,5 +1,24 @@
 # Codex Worklog
 
+## 2026-09-09 — Stage 2: Ownership-aware exact restoration
+
+- Started only after stage 1 commit `7ec418a768a61f4f7c10f5b74b9161e708b0586a` passed the full suite with a clean tree.
+- Q now counts explicit demand owners, while C retains canonical semantic coefficients. Multiple owner gap codes
+  merge without losing objective ownership; incidental continuity coverage cannot inflate gap Q.
+- Added parent-identity exact restoration before semantic additions, original whole-session restoration/relocation,
+  canonical 4/5/6 chunks and separate initial/current exact audit. A complete canonical chunk may remain deferred;
+  no arbitrary fragment or weekly inflation is permitted. Semantic continuity cannot bypass atomic prescription rules.
+- Kept all current hard gates and bounded +1-day eligibility. Representative mirroring retains local identity while
+  copying the reviewed restored prescription into every isomorphic week. No persistence or manual-session code changed.
+- Protocol/index/registry 3.7.1. Real private audit remains gated until all three production stages and normal tests pass;
+  use the current production backup parser and UNKNOWN/UNSURE interruption test assumptions, never raw data in git.
+- Full testDebugUnitTest + assembleDebug PASS (4m44s): 262 suites / 1,562 tests, 1,559 passes,
+  zero failures/errors and three existing conditional private-input skips. Exact restoration 24/24, existing residual 20/20,
+  unchanged rebalancer 46/46, split 11/11 and session persistence 7/7 pass. Existing 29-persona goldens and Legacy
+  360-case parity/source isolation/frozen authority SHA guard pass. Protocol eight families/34 protocols, frozen Legacy
+  sources 10/10 and git diff --check pass. Two initial fixture ownership/order errors and a +1 fixture ownership error
+  were corrected without weakening production assertions. No stage 3 production file or excluded authority changed.
+
 ## 2026-09-08 — Stage 1: Split-aware authorized continuity
 
 - Fetched and fast-forward checked main; clean baseline `197567f7c656c59e765d514325aa5fe200cfcfa0`.
