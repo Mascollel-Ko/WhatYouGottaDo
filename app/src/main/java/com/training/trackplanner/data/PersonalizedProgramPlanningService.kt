@@ -278,6 +278,7 @@ internal class PersonalizedProgramPlanningService(
         .put("weeklyFrequencyEvidence", weeklyFrequencyEvidence?.toJson())
         .put("residualCompletion", residualCompletion?.toJson())
         .put("dayRebalancing", dayRebalancing?.toJson())
+        .put("authorizedScheduling", authorizedScheduling?.toJson())
         .put("anchorTransitions", JSONArray(anchorTransitions.map { transition -> JSONObject()
             .put("stableKey", transition.stableKey)
             .put("observedStyle", transition.observedStyle.name)

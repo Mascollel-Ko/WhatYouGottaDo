@@ -328,7 +328,8 @@ data class PersonalizedPlanningDecision(
     val trainingStateAssessment: TrainingStateAssessment? = null,
     val weeklyFrequencyEvidence: WeeklyFrequencyEvidence? = null,
     val residualCompletion: ResidualCompletionTrace? = null,
-    val dayRebalancing: DayRebalancingTrace? = null
+    val dayRebalancing: DayRebalancingTrace? = null,
+    val authorizedScheduling: AuthorizedSchedulingTrace? = null
 )
 
 sealed interface PersonalizedPlanningOutcome {

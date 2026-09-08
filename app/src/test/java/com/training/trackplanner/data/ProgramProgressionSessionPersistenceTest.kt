@@ -5,6 +5,7 @@ import android.content.ContextWrapper
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.training.trackplanner.skeletonFromProgram
+import com.training.trackplanner.data.personalized.*
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.*
@@ -35,6 +36,39 @@ class ProgramProgressionSessionPersistenceTest {
         var draft = manualSessionDraft().choose("item-0", ProgressionLinkMode.SEPARATE, mode = mode)
         draft = draft.choose("item-2", ProgressionLinkMode.EXISTING, draft.sessionKey("item-0"), mode = mode)
         return draft.choose("item-1", ProgressionLinkMode.SEPARATE, role = ProgressionRole.ASSISTANCE, mode = mode)
+    }
+    @Test fun generatedContinuitySplitRetainsBothOccurrencesAcrossSaveReopenAndApply() = runBlocking {
+        val f = PostGenerationFixture
+        val snapshot = f.snapshot()
+        val allocation = SplitAwareContinuityAllocation(PersonalizedPrescriptionPlanner()).allocate(snapshot, f.state(),
+            listOf(f.source("press", 4)), emptyList(), emptyList(), 2, 20)
+        val rows = allocation.days.flatMap { (day, atoms) -> atoms.mapIndexed { index, atom ->
+            residualItem(snapshot, atom.timed.item, atom.timed.prescription, "split_${day}_$index", day, index + 1)
+                .copy(progressionRole = ProgressionRole.MAIN)
+        } }
+        assertEquals(listOf(2, 2), rows.map { it.setCount })
+        var draft = f.plan(rows, listOf(1, 2), 20).reconcileProgression(setOf("press"))
+        val firstId = draft.items.first().localId
+        draft = draft.choose(firstId, ProgressionLinkMode.SEPARATE, role = ProgressionRole.ASSISTANCE, mode = ProgressionMode.CUSTOM)
+        val explicitKey = draft.sessionKey(firstId)
+        val name = "generated-split-${UUID.randomUUID()}.db"
+        val first = database(name)
+        first.exerciseDao().insertExercise(Exercise("press", "Press", "Strength", activityKind = "TRAINING_EXERCISE", volumeLoadEligible = true))
+        val id = service(first).saveGeneratedProgram(null, draft)
+        first.close()
+        val reopened = database(name)
+        val loaded = editor(reopened, id)
+        assertEquals(6, loaded.items.size)
+        assertEquals(12, loaded.items.sumOf { it.setCount })
+        assertTrue(loaded.items.groupBy { it.weekNumber }.values.all { week -> week.map { it.dayOfWeek }.distinct().size == 2 })
+        assertEquals(ProgressionMode.CUSTOM, loaded.progressionSessions.single { it.key == explicitKey }.track.mode)
+        assertEquals(ProgressionRole.ASSISTANCE, loaded.progressionSessions.single { it.key == explicitKey }.track.roleOverride)
+        service(reopened).applyProgramToDates(id, "2026-09-07", ProgramApplyMode.Append)
+        val applied = reopened.workoutDao().allEntriesWithSets()
+        assertEquals(6, applied.size)
+        assertEquals(12, applied.sumOf { it.sets.size })
+        assertTrue(applied.flatMap { it.sets }.none { it.confirmed })
+        assertEquals(6, applied.map { it.entry.date }.distinct().size)
     }
     @Test fun fullCustomRuleAndDisconnectedMemberSurviveBothEditorAndDetailConfiguration() = runBlocking {
         val db = database(); seed(db)

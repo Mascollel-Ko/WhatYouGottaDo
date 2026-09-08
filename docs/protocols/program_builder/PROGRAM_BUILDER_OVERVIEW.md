@@ -3,17 +3,37 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.6.1 |
+| Protocol version | 3.7.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 0c2d28f00a013cf06286a8f0b3084e5c0a8de9fa |
+| Last audited commit | 197567f7c656c59e765d514325aa5fe200cfcfa0 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 
 ## 1. 일반 사용자용 요약
+
+### Split-aware continuity allocation (2026-09-08, 3.7.0)
+
+유한 용량 승인 뒤 continuity/material/optional의 정확한 처방을 한 번 고정합니다. 기존 timed allocator와
+TimedWeeklyPlacementPlanner 자체는 변경하지 않고, 별도 SplitAwareContinuityAllocation이 승인 연속성 처방의
+미분할·분할 배치를 비교합니다. 1/2/3세트는 유지, 4→2+2, 5→3+2, 6→3+3만 허용합니다. 7세트 이상은
+새 규칙 없이 기존 결과를 보존하고 감사에 남깁니다. 분할은 주간 수요 증가가 아닌 engineering scheduling policy입니다.
+
+- resistance continuity이고 실제 승인 set 수가 4..6이며 typed style이 NONE/STRAIGHT_5X5/STRAIGHT_STRENGTH_SETS,
+  variant가 비어 있고 index를 제외한 모든 세트 내용이 같을 때만 가능합니다. TOP_SET, HLM/DUP/Madcow, 미확정 스타일,
+  ramping/비균일 처방, performance 구조는 제외합니다. 현재 초기 builder의 requiredTemplateAnchor는 기본 false이며
+  고정 구조는 기존 typed style/variant로 제외됩니다. 사용자 처방 문장을 파싱하지 않습니다.
+- 원래 full unsplit을 먼저 시험합니다. full이 실패하고 split이 전량 배치되거나, 양쪽 모두 전량 배치되면서 split의
+  max day seconds가 엄격히 작고 기존 lower/impact maximum이 증가하지 않을 때만 split을 선택합니다.
+  동률은 unsplit이며 둘 다 불가능하면 기존 안전한 축소/유예를 유지합니다. 새 가중 점수/최소 볼륨/회복 간격은 없습니다.
+- 기존 scheduler의 다른 날 배치·같은 key 같은 날 충돌·시간 상한 및 current restriction/사용 가능한 canonical OFI gate를
+  적용합니다. 모든 정확한 reps/load/seconds/rest/source를 보존하며 session-local setIndex만 다시 매깁니다.
+- authorizedDemandId는 stableKey와 별개입니다. splitGroupId/chunkIndex 및 각 materialized atom의 부모를
+  authorizedScheduling 감사에 보존합니다. 기존 stableKey 요약 map은 요약용이며 chunk authority가 아닙니다.
+  부모가 continuity인 split은 기존 planner MAIN 의미를 보존합니다. 수동 progression hierarchy/schema는 변경하지 않습니다.
 
 ### TIME destination fallback correction (2026-09-08, 3.6.1)
 
@@ -478,6 +498,7 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 20. 변경 이력
 
+- `3.7.0` (2026-09-08): 승인된 straight continuity의 정확한 4→2+2, 5→3+2, 6→3+3 분할 비교 및 부모/청크 provenance를 추가했습니다.
 - `3.6.1` (2026-09-08): TIME <0.70 목적지가 없고 >1.30 source가 있는 경우에만 낮은 TIME 비율 순서의 MOVE fallback을 추가했습니다. primary, SWAP, 밴드 및 기존 안전/처방 권한은 유지합니다.
 - `3.6.0` (2026-09-07): 완료 주간 처방을 보존하는 고정 median 70-130% bounded move/swap 재배치를 추가했습니다.
   residual completion 커밋은 별도 보존하고 Legacy 및 기존 분석/용량/처방 권한은 수정하지 않았습니다.

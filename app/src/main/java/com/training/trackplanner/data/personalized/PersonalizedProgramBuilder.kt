@@ -390,9 +390,9 @@ class PersonalizedProgramBuilder(
         val optional = optionalCandidates.filter { it.targetSets <= spare }
         val selected = continuity + gapItems + optional
         require(selected.isNotEmpty()) { "NO_EXECUTABLE_PLANNING_DEMAND" }
-        val placement = TimedExecutionAllocationPlanner(prescriptionPlanner).allocate(
-            snapshot, state, continuity, gapItems, optional, days, request.sessionMinutes)
-        val timed = placement.days.values.flatten()
+        val placement = SplitAwareContinuityAllocation(prescriptionPlanner).allocate(
+            snapshot, state, continuity, gapItems, optional, days, request.sessionMinutes, request)
+        val timed = placement.days.values.flatten().map { it.timed }
         val logical = placement.days
         val placementDeferred = placement.deferred
         val performanceItems = selected.filter { snapshot.activityKind(it.stableKey) in PERFORMANCE_ACTIVITY_KINDS }
@@ -401,11 +401,13 @@ class PersonalizedProgramBuilder(
         val retentionPriorities = mutableMapOf<String, Int>()
         val postProcessAtoms = mutableMapOf<String, String>()
         val postProcessSources = mutableMapOf<String, PlannedExercise>()
+        val postProcessOrigins = mutableMapOf<String, AuthorizedAtomOrigin>()
         val items = buildList {
             (1..horizon).forEach { week ->
                 val weekDays = schedule.getValue(week).sorted()
                 logical.forEach { (logicalDay, rows) ->
-                    rows.forEachIndexed { index, timedItem ->
+                    rows.forEachIndexed { index, scheduledAtom ->
+                        val timedItem = scheduledAtom.timed
                         val item = timedItem.item
                         val exercise = snapshot.exercises.getValue(item.stableKey)
                         val meta = snapshot.metadata[item.stableKey]
@@ -417,11 +419,12 @@ class PersonalizedProgramBuilder(
                         val atomId = "slot_${logicalDay}_${index}"
                         postProcessAtoms[localId] = atomId
                         postProcessSources[atomId] = item
+                        postProcessOrigins[atomId] = scheduledAtom.origin
                         add(ProgramSkeletonItem(
                             localId = localId, weekNumber = week, dayOfWeek = weekDays[logicalDay - 1], orderIndex = index + 1,
                             progressionStyle = item.style.takeUnless { it in setOf(StrengthProgrammingStyle.NONE, StrengthProgrammingStyle.UNRESOLVED) }?.name.orEmpty(),
                             progressionVariant = item.styleVariant,
-                            progressionRole = if (item in continuity && item.styleVariant !in setOf("LIGHT", "VOLUME")) com.training.trackplanner.data.ProgressionRole.MAIN else com.training.trackplanner.data.ProgressionRole.ASSISTANCE,
+                            progressionRole = if ((item in continuity || scheduledAtom.origin.splitGroupId.isNotBlank() && placement.trace.authorized.any { it.id == scheduledAtom.origin.authorizedDemandId && it.continuity }) && item.styleVariant !in setOf("LIGHT", "VOLUME")) com.training.trackplanner.data.ProgressionRole.MAIN else com.training.trackplanner.data.ProgressionRole.ASSISTANCE,
                             progressionAnchorSetIndex = if (item.style in setOf(StrengthProgrammingStyle.TOP_SET_BACKOFF, StrengthProgrammingStyle.TOP_SET_HYPERTROPHY, StrengthProgrammingStyle.MADCOW_LIKE_HLM_RAMPING)) rx.sets.maxByOrNull { it.weightKg }?.setIndex else null,
                             exerciseStableKey = item.stableKey, exerciseName = exercise.name, category = exercise.category, restSeconds = rx.restSeconds, prescription = rx.text,
                             setCount = rx.sets.size, reps = scalar.reps, weightKg = scalar.weightKg, seconds = scalar.seconds, selectionReason = item.reason, weightSource = rx.weightSource,
@@ -496,6 +499,7 @@ class PersonalizedProgramBuilder(
             confidence = state.confidence.name, reasonCodes = intent.reasonCodes + listOf("RESOLVED_WEEKLY_DAYS_${days}", "WEEKLY_COURT_LOAD_NORMALIZED", "CROSS_DOMAIN_FINITE_EXECUTION_ALLOCATION") + if (capacityExpanded) listOf("MINIMAL_CAPACITY_EXPANSION") else emptyList(), reasons = intent.reasons, constraints = intent.constraints, metadataAuthorityVersion = PERSONALIZED_AUTHORITY_VERSION, priorDecisionId = priorDecisionId, userAnswers = answers.values,
             originalGenerationFingerprint = fingerprint, recoverySignalCodes = state.recoverySignals.sourceCodes.sorted(), genericCourtLoad = state.genericCourtLoad, objectiveExposure = state.objectiveExposure,
             anchorTransitions = transitions.values.sortedBy(AnchorTransition::stableKey), planningBudget = budget,
+            authorizedScheduling = placement.trace.copy(origins = postProcessOrigins, initialWeek = firstWeek),
             movementRepresentations = state.movementRepresentations,
             badmintonObjectiveRepresentations = state.badmintonObjectiveRepresentations,
             adaptationGaps = gaps,
@@ -505,8 +509,7 @@ class PersonalizedProgramBuilder(
         // INITIAL SKELETON: all existing selection, placement, repair, validation and fingerprinting end here.
         val initialSkeleton = repaired.copy(personalizedDecision = decision)
         val authorized = try {
-            selected.mapIndexed { index, item -> AuthorizedPrescription("authorized_$index", item,
-                prescriptionPlanner.prescribe(snapshot, state.strengthIntent, item, item.style), item in continuity) }
+            placement.trace.authorized.map { AuthorizedPrescription(it.id, it.item, it.prescription, it.continuity) }
         } catch (failure: Exception) {
             if (failure is java.util.concurrent.CancellationException) throw failure
             return initialSkeleton.copy(personalizedDecision = decision.copy(residualCompletion = ResidualCompletionTrace(

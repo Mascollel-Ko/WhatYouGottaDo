@@ -1,5 +1,24 @@
 # Codex Worklog
 
+## 2026-09-08 — Stage 1: Split-aware authorized continuity
+
+- Fetched and fast-forward checked main; clean baseline `197567f7c656c59e765d514325aa5fe200cfcfa0`.
+  Three sequential behavioral commits requested; no next-stage work before this stage is tested/committed.
+  Private backup path supplied externally and exists; never copy it into tracked source. Push gated on private E2E.
+- Added an identity-aware wrapper around unchanged timed/finite/capacity authorities. Authorized prescriptions freeze
+  before placement; eligible straight continuity can use only 4=2+2, 5=3+2, 6=3+3. Exact set contents preserved.
+  Full unsplit wins ties; split requires full coverage advantage or strictly smaller maximum time with no larger lower/impact peak.
+- Added parent/chunk provenance and initial-week audit without schema or manual-session authority changes.
+  Existing stableKey maps audited: they remain display summaries; occurrence authority is the new atom-to-parent map.
+  Repeated chunk instances are matched by identity, never overwritten by stableKey. No physiology or Legacy changes.
+- Protocol/index/registry 3.7.0. Ponytail and subagents not used.
+- Full testDebugUnitTest + assembleDebug PASS (3m54s): 261 suites / 1,538 tests, 1,535 passes,
+  zero failures/errors, three existing conditional private-input skips. Split suite 11/11; session persistence 7/7
+  includes generated 2+2 save, file-DB reopen, manual CUSTOM override and all six dated occurrences across three weeks.
+  Existing 29-persona goldens unchanged, Legacy 360-case parity/isolation and frozen source SHA guard pass.
+  Protocol validation eight families/34 protocols, Legacy source audit 10/10 and git diff --check pass.
+  Excluded production files have no diff, including original ExecutionAllocationPlanner and residual/rebalancing stages.
+
 ## 2026-09-08 — Bounded TIME-overload destination fallback
 
 - Fetched origin and fast-forward checked main: baseline `0c2d28f00a013cf06286a8f0b3084e5c0a8de9fa`, clean worktree.
