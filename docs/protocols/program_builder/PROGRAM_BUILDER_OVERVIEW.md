@@ -3,17 +3,35 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.6.0 |
+| Protocol version | 3.6.1 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 295b326d9ba7cb0e9a103dbe747b3b80ffa7a8b0 |
+| Last audited commit | 0c2d28f00a013cf06286a8f0b3084e5c0a8de9fa |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 
 ## 1. 일반 사용자용 요약
+
+### TIME destination fallback correction (2026-09-08, 3.6.1)
+
+Primary MOVE destination은 TimeRatio <0.70입니다. 그런 날이 하나라도 있으면 기존 전체 후보 비교 경로를
+그대로 사용합니다(기존 OFI <0.70 목적지 조건도 유지). OFI-only 불균형 역시 기존 경로만 사용합니다.
+
+TimeRatio <0.70인 scheduled day가 전혀 없고 TimeRatio >1.30인 날이 하나 이상 있을 때만,
+MOVE에 한해 대체 목적지를 검색합니다. source는 TIME >1.30인 날만 비율 내림차순→logical day 오름차순,
+destination은 자신을 제외한 모든 scheduled day를 TIME 비율 오름차순→logical day 오름차순으로 시도합니다.
+각 source/destination 조합의 모든 이동 가능한 전체 운동을 기존 legality/comparator로 평가합니다.
+처음 유효한 개선 후보가 있는 조합에서 최선의 한 운동만 이동하고, 지표 재계산 후 전체 루프를 다시 시작합니다.
+목적지 전체가 실패하면 다음 source를 시도합니다. median 기준은 계속 고정입니다.
+
+이 fallback은 70%-130% 목표 밴드를 바꾸지 않습니다. 다른 날들이 모두 70% 이상이라는 이유만으로
+130% 초과 source가 이동 불가능해지는 현상만 방지합니다. 기존 balanceNonWorsening과 사전식
+BalanceObjective의 엄격한 개선, 전체 처방/Q/C/R 보존 및 모든 보호·hard-time·OFI·조직·하체 집중
+검사는 변경하지 않습니다. SWAP source/destination 조건은 기존 그대로이며 fallback 목적지로 확장하지 않습니다.
+별도의 absolute-OFI trigger, residual completion, 초기 생성, 수치 분석, UI, 저장 계약 변경은 없습니다.
 
 ### Final bounded day rebalancing (2026-09-07, Commit 2)
 
@@ -28,13 +46,13 @@ PlacementAtom으로 취급합니다. 추가/삭제/분할은 금지하며 일 �
 - TimeRatio = seconds/TimeReference, OFIRatio = standalone OFI/OFIReference.
   목표 밴드는 0.70..1.30입니다. **70%-130%는 engineering distribution target이며 생리적 안전/최적 임계값이 아닙니다.**
   시간 OR 활성 OFI 중 하나라도 밴드 밖이면 검토합니다. >1.30 또는 canonical OFI hard caution인 날이 source,
-  시간 또는 활성 OFI가 <0.70인 날이 destination입니다. 정상 날끼리 이동하지 않습니다.
+  시간 또는 활성 OFI가 <0.70인 날이 기존 destination입니다. MOVE에만 위 3.6.1 TIME fallback 예외를 적용하며 정상 날끼리 이동하지 않습니다.
 - BandDistance(r) = 0(밴드 내부), 0.70-r(아래), r-1.30(위).
   BalanceObjective = (밴드 위반 day/metric 수, 최대 BandDistance, 전체 BandDistance 합)를 사전식 최소화합니다.
   서로 다른 단위를 더한 점수나 TIME/OFI 임의 가중치는 없습니다.
 - 영향받는 각 날의 각 활성 metric에서 distance_after <= distance_before이며 적어도 하나는 엄격히 개선되어야 합니다.
   전체 objective도 엄격히 작아야 합니다. 시간 개선을 위해 정상 OFI를 악화시키거나 그 반대도 허용하지 않습니다.
-- 모든 합법적 단방향 이동을 평가한 뒤 objective, movement-cost tier(OPTIONAL_CAPACITY→IMPORTANT),
+- 기존 primary 경로는 모든 합법적 단방향 이동을 평가한 뒤 objective, movement-cost tier(OPTIONAL_CAPACITY→IMPORTANT),
   낮은 기존 priority, stableKey, source/destination day, atom identity 순으로 하나를 선택합니다.
   개선 단방향 이동이 전혀 없을 때만 overloaded/underloaded 날 사이 전체 항목 두 개 swap을 평가합니다.
   swap tie-break는 objective, 합산 cost tier/priority, stableKey pair, source/destination 순입니다. 세 항목 이상 탐색하지 않습니다.
@@ -460,6 +478,7 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 20. 변경 이력
 
+- `3.6.1` (2026-09-08): TIME <0.70 목적지가 없고 >1.30 source가 있는 경우에만 낮은 TIME 비율 순서의 MOVE fallback을 추가했습니다. primary, SWAP, 밴드 및 기존 안전/처방 권한은 유지합니다.
 - `3.6.0` (2026-09-07): 완료 주간 처방을 보존하는 고정 median 70-130% bounded move/swap 재배치를 추가했습니다.
   residual completion 커밋은 별도 보존하고 Legacy 및 기존 분석/용량/처방 권한은 수정하지 않았습니다.
 

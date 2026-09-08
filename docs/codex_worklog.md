@@ -1,5 +1,29 @@
 # Codex Worklog
 
+## 2026-09-08 — Bounded TIME-overload destination fallback
+
+- Fetched origin and fast-forward checked main: baseline `0c2d28f00a013cf06286a8f0b3084e5c0a8de9fa`, clean worktree.
+  Prior residual-completion and bounded-rebalancing commits remain intact. One new patch commit; no tag or chat signing key.
+- Production change is confined to BoundedDayRebalancer MOVE enumeration. No TIME <0.70 plus some TIME >1.30
+  enables fallback: TIME-overloaded sources descending ratio/ascending day; other destinations ascending ratio/day.
+  Evaluate every atom within one pair using the existing comparator, accept first feasible pair's best single move,
+  then restart with recalculated metrics and frozen references. Existing primary enumeration and SWAP predicates stay intact.
+- Unchanged evaluator enforces exact whole prescriptions, Q/C/R, non-worsening metrics, strict objective improvement,
+  protected CORE/MAIN/session/style/anchor authority, collisions, time/OFI/tissue and lower-impact limits.
+  No extra absolute-OFI trigger, Commit-1 change, new physiological formula, UI/persistence/schema or app-version change.
+- Canonical Program Builder overview/registry/index updated to 3.6.1. Ponytail and subagents were not used.
+- Verification: new fallback tests 15/15; complete BoundedDayRebalancer suite 46/46; ResidualCompletion 20/20.
+  Full testDebugUnitTest + assembleDebug PASS (3m20s): 260 suites / 1,526 tests, 1,523 passed,
+  zero failures/errors, three existing conditional private-input skips. Personalized parity 10/10 (29 personas),
+  Legacy parity including all 360 historical cases and isolation architecture 5/5 passed.
+- Controlled actual result (seconds): 140/105/95/90 -> 130/105/95/100, exact ten-second whole atom,
+  fixed median 100; Q/C/R, full item and set-prescription invariants and deterministic repeated output passed.
+  Additional fixtures cover next destination/source, source/destination ties, iteration with frozen medians,
+  in-band and OFI-only non-activation, primary path, unchanged SWAP eligibility, and existing safety gates.
+- Diff audit: only one production file changed. LF-normalized prefix through all equations/projection/evaluator/
+  comparator and suffix from original SWAP onward match baseline exactly. All excluded production files unchanged.
+  Protocol validation PASS (eight families/34 protocols), frozen Legacy source audit 10/10, git diff --check PASS.
+
 ## 2026-09-07 — Commit 2: Final bounded day rebalancing
 
 - Started only after clean Commit 1: `295b326d9ba7cb0e9a103dbe747b3b80ffa7a8b0`.

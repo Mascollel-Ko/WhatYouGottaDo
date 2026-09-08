@@ -31,6 +31,129 @@ class BoundedDayRebalancerTest {
     private fun frozenContent(plan: GeneratedProgramSkeleton) = plan.items.associate { it.localId to it.copy(dayOfWeek = 1, orderIndex = 0) }
     private val proportionalOfi = PlanDayProjection { rows -> StandaloneDayLoad(rows.sumOf(::plannedSeconds) / 60, listOf(0)) }
 
+    private fun units(key: String, day: Int, seconds: Int, movable: Boolean = false, id: String = key, order: Int = 1) =
+        f.row(key, day, 1, seconds, id, order).copy(progressionRole = if (movable) ProgressionRole.AUTO else ProgressionRole.MAIN)
+    private fun fallbackRows(atomSeconds: Int = 10) = listOf(units("press", 1, 140 - atomSeconds),
+        units("row", 1, atomSeconds, true, order = 2), units("direct", 2, 105), units("support", 4, 95), units("other", 6, 90))
+    private fun multipleSources(first: Int = 150, second: Int = 140) = listOf(units("press", 1, first - 10),
+        units("row", 1, 10, true, order = 2), units("direct", 2, second - 10), units("support", 2, 10, true, order = 2),
+        units("other", 3, 100), units("hinge", 4, 95), units("squat", 5, 90))
+
+    @Test fun `fallback 140 105 95 90 moves ten whole units to lowest day`() {
+        val rows = fallbackRows()
+        val auth = rows.map { row -> AuthorizedPrescription(row.localId, f.source(row.exerciseStableKey, row.setCount),
+            PlannedPrescription(row.prescription, row.setPrescriptions, row.restSeconds, row.weightSource), true) }
+        val demand = AuthorizedPlanningDemand(snapshot, auth, emptyList(), rows)
+        val input = completed(rows, demand = demand)
+        val result = run(input)
+        assertEquals(listOf(140, 105, 95, 90), result.trace.initialDays.map { it.seconds })
+        assertEquals(listOf(130, 105, 95, 100), result.trace.finalDays.map { it.seconds })
+        assertEquals(100.0, result.trace.timeReference, 0.0)
+        assertEquals(6, result.trace.actions.single().destinationDay)
+        assertEquals(listOf("row"), result.trace.actions.single().stableKeys)
+        assertEquals("MOVE", result.trace.actions.single().actionType)
+        assertEquals(frozenContent(input.skeleton), frozenContent(result.skeleton))
+        assertEquals(input.skeleton.items.map { it.setPrescriptions }, result.skeleton.items.map { it.setPrescriptions })
+        assertEquals(demand.residuals(rows), demand.residuals(result.skeleton.items.filter { it.weekNumber == 1 }))
+        assertEquals(demand.coverage(rows), demand.coverage(result.skeleton.items.filter { it.weekNumber == 1 }))
+        assertEquals(result, run(input))
+        println("TIME_FALLBACK seconds ${result.trace.initialDays.map { it.seconds }} -> ${result.trace.finalDays.map { it.seconds }}")
+    }
+    @Test fun `fallback tries next lowest day after collision blocks lowest`() {
+        val rows = fallbackRows().map { if (it.exerciseStableKey == "other") it.copy(exerciseStableKey = "row") else it }
+        val result = run(completed(rows))
+        assertEquals(4, result.trace.actions.single().destinationDay)
+        assertEquals(listOf(130, 105, 105, 90), result.trace.finalDays.map { it.seconds })
+    }
+    @Test fun `fallback tries next overloaded source when first has no legal atom`() {
+        val rows = multipleSources().map { if (it.exerciseStableKey == "row") it.copy(progressionRole = ProgressionRole.MAIN) else it }
+        val result = run(completed(rows, days = listOf(1, 2, 3, 4, 5)))
+        assertEquals(2, result.trace.actions.single().sourceDay)
+    }
+    @Test fun `fallback larger source ratio precedes earlier logical day`() {
+        val result = run(completed(multipleSources(140, 150), days = listOf(1, 2, 3, 4, 5)))
+        assertEquals(2, result.trace.actions.first().sourceDay)
+        assertEquals(listOf(2, 1), result.trace.actions.map { it.sourceDay })
+        assertEquals(listOf(5, 4), result.trace.actions.map { it.destinationDay })
+        assertEquals(100.0, result.trace.timeReference, 0.0)
+        result.trace.actions.forEach { action -> action.after.forEach { day ->
+            assertEquals(day.seconds / 100.0, day.timeRatio, 0.0) } }
+    }
+    @Test fun `fallback equal source ratios use earlier logical day`() {
+        val result = run(completed(multipleSources(140, 140), days = listOf(1, 2, 3, 4, 5)))
+        assertEquals(1, result.trace.actions.first().sourceDay)
+    }
+    @Test fun `fallback equal destination ratios use earlier logical day`() {
+        val rows = fallbackRows().map { if (it.dayOfWeek == 6) it.copy(setPrescriptions = f.rx(1, 95).sets) else it }
+        assertEquals(4, run(completed(rows)).trace.actions.single().destinationDay)
+    }
+    @Test fun `fallback in-band times never cause equalization`() {
+        val rows = fallbackRows().map { if (it.exerciseStableKey == "press") it.copy(setPrescriptions = f.rx(1, 110).sets) else it }
+        val input = completed(rows)
+        assertEquals(input.skeleton, run(input).skeleton)
+        assertEquals("ALREADY_BALANCED", run(input).trace.balanceState)
+    }
+    @Test fun `fallback primary underloaded path still selects global best candidate`() {
+        val rows = listOf(units("press", 1, 120), units("row", 1, 20, true, order = 2), units("direct", 2, 110),
+            units("support", 4, 90), units("other", 6, 60))
+        val result = run(completed(rows))
+        assertEquals(listOf(120, 110, 90, 80), result.trace.finalDays.map { it.seconds })
+        assertEquals(6, result.trace.actions.single().destinationDay)
+        // The existing primary comparator remains covered by the optional-tier tie test below.
+    }
+    @Test fun `fallback does not repair OFI-only overload into in-band destinations`() {
+        val rows = fallbackRows().map { if (it.exerciseStableKey == "press") it.copy(setPrescriptions = f.rx(1, 110).sets) else it }
+        val input = completed(rows)
+        val projection = PlanDayProjection { day -> StandaloneDayLoad(if (day.any { it.exerciseStableKey == "press" }) 60 else 40, listOf(0)) }
+        val result = run(input, projection)
+        assertTrue(result.trace.initialDays.any { it.ofiDistance > 0 })
+        assertTrue(result.trace.actions.isEmpty())
+        assertFalse(result.trace.diagnostic.contains("FAILED_SAFE"))
+    }
+    @Test fun `fallback cannot broaden swap destinations when no whole move fits`() {
+        val rows = listOf(units("press", 1, 90), units("row", 1, 50, true, order = 2), units("direct", 2, 105),
+            units("support", 4, 95), units("other", 6, 40, true), units("hinge", 6, 50, order = 2))
+        // Swapping 50 with 40 would balance time, but neither destination is originally underloaded.
+        val result = run(completed(rows))
+        assertTrue(result.trace.actions.isEmpty())
+        assertEquals("UNRESOLVED_BALANCE_CONSTRAINT", result.trace.balanceState)
+    }
+    @Test fun `fallback rejects destination above upper band without changing non-worsening rule`() {
+        val result = run(completed(fallbackRows(50)))
+        assertTrue(result.trace.actions.isEmpty())
+        assertFalse(result.trace.diagnostic.contains("FAILED_SAFE"))
+    }
+    @Test fun `fallback OFI feasibility rejects lowest and tries next destination`() {
+        for (blocked in listOf(StandaloneDayLoad(87, listOf(0)), StandaloneDayLoad(30, listOf(100)))) {
+            val result = run(completed(fallbackRows()), PlanDayProjection { day ->
+                if (day.any { it.exerciseStableKey == "row" } && day.any { it.exerciseStableKey == "other" }) blocked else StandaloneDayLoad(30, listOf(0)) })
+            assertEquals(4, result.trace.actions.single().destinationDay)
+        }
+    }
+    @Test fun `fallback respects tissue and all existing protected atom kinds`() {
+        val rows = fallbackRows()
+        val restricted = snapshot.copy(recoverySignals = PlanningRecoverySignals(tissueRestrictedStableKeys = setOf("row")))
+        assertTrue(run(completed(rows), source = restricted).trace.actions.isEmpty())
+        val variants = listOf<(ProgramSkeletonItem) -> ProgramSkeletonItem>(
+            { it.copy(progressionRole = ProgressionRole.MAIN) }, { it.copy(progressionVariant = "HEAVY") },
+            { it.copy(requiredTemplateAnchor = true) })
+        variants.forEach { protect -> assertTrue(run(completed(rows.map { if (it.exerciseStableKey == "row") protect(it) else it })).trace.actions.isEmpty()) }
+        assertTrue(run(completed(rows, overrides = mapOf("row" to f.source("row", 1, priority = 100, material = true)))).trace.actions.isEmpty())
+    }
+    @Test fun `fallback lower impact concentration cannot increase`() {
+        val source = snapshot.copy(metadata = snapshot.metadata.mapValues { (key, metadata) ->
+            metadata.copy(jointTendonImpactStressLevel = if (key != "press") "HIGH" else "LOW") })
+        val rows = fallbackRows(20)
+        // Existing max lower stress =105; all destinations would reach110 or more.
+        assertTrue(run(completed(rows), source = source).trace.actions.isEmpty())
+    }
+    @Test fun `fallback compares all atoms within first feasible pair using existing comparator`() {
+        val rows = listOf(units("press", 1, 120), units("row", 1, 10, true, order = 2), units("hinge", 1, 10, true, order = 3),
+            units("direct", 2, 105), units("support", 4, 95), units("other", 6, 90))
+        val input = completed(rows, overrides = mapOf("row" to f.source("row", 1, priority = 90, material = true)))
+        assertEquals("hinge", run(input).trace.actions.single().stableKeys.single())
+    }
+
     @Test fun `50 45 40 35 is already within band and performs zero moves`() {
         val input = completed(listOf(minutes("press", 1, 50), minutes("row", 2, 45), minutes("support", 4, 40), minutes("other", 6, 35)))
         val result = run(input, proportionalOfi)

@@ -172,10 +172,25 @@ internal class BoundedDayRebalancer {
             fun consider(candidate: RebalanceCandidate?) {
                 if (candidate != null && (best == null || candidateOrder.compare(candidate, best!!) < 0)) best = candidate
             }
-            // Exhaust ALL single moves before considering a swap, regardless of a swap's possible score.
-            for (source in rows.filter { it.dayOfWeek in sourceDays }) for (destination in destinationDays) {
-                if (source.dayOfWeek != destination) consider(evaluate(source, destination))
+            val useTimeDestinationFallback = currentMetrics.none { it.timeRatio < LOWER_BALANCE_RATIO } &&
+                currentMetrics.any { it.timeRatio > UPPER_BALANCE_RATIO }
+            if (useTimeDestinationFallback) {
+                val fallbackSources = currentMetrics.filter { it.timeRatio > UPPER_BALANCE_RATIO }
+                    .sortedWith(compareByDescending<BalanceDay> { it.timeRatio }.thenBy { it.day })
+                val fallbackDestinations = currentMetrics.sortedWith(compareBy<BalanceDay> { it.timeRatio }.thenBy { it.day })
+                // First feasible source/destination pair wins; compare every whole atom within that pair.
+                fallback@ for (sourceDay in fallbackSources) for (destination in fallbackDestinations) {
+                    if (sourceDay.day == destination.day) continue
+                    for (source in rows.filter { it.dayOfWeek == sourceDay.day }) consider(evaluate(source, destination.day))
+                    if (best != null) break@fallback
+                }
+            } else {
+                // Preserve the primary search and comparator, including existing OFI-underloaded destinations.
+                for (source in rows.filter { it.dayOfWeek in sourceDays }) for (destination in destinationDays) {
+                    if (source.dayOfWeek != destination) consider(evaluate(source, destination))
+                }
             }
+            // SWAP still uses only the original source/destination predicates, never fallback destinations.
             if (best == null) {
                 for (source in rows.filter { it.dayOfWeek in sourceDays }) for (destination in rows.filter { it.dayOfWeek in destinationDays }) {
                     if (source.dayOfWeek != destination.dayOfWeek) consider(evaluate(source, destination.dayOfWeek, destination))
