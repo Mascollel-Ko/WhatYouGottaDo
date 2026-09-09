@@ -6,7 +6,15 @@ import java.security.MessageDigest
 import java.time.temporal.TemporalAccessor
 
 internal fun separationFingerprint(skeleton: GeneratedProgramSkeleton): String {
-    val normalized = skeleton.copy(personalizedDecision = skeleton.personalizedDecision?.copy(decisionId = "AUDIT_ID", generatedAtEpochMillis = 0))
+    val decision = skeleton.personalizedDecision
+    // The old golden mislabeled INITIAL materialized units as capacity. Reconstruct that legacy audit
+    // field only for comparison; current computed capacity is tested separately and the kernel stays byte-frozen.
+    val budget = decision?.planningBudget
+    val legacyBudget = if (decision?.frequencyDemand != null && budget?.execution != null) budget.copy(
+        execution = budget.execution.copy(capacity = budget.execution.capacity.copy(finalControllableUnits =
+            decision.authorizedScheduling!!.initialWeek.sumOf { it.setPrescriptions.size }))) else budget
+    val normalized = skeleton.copy(personalizedDecision = decision?.copy(decisionId = "AUDIT_ID", generatedAtEpochMillis = 0,
+        planningBudget = legacyBudget))
     return MessageDigest.getInstance("SHA-256").digest(separationCanonical(normalized).toByteArray(Charsets.UTF_8))
         .joinToString("") { "%02x".format(it) }
 }
@@ -22,7 +30,7 @@ private fun separationCanonical(value: Any?): String = when (value) {
     // The a53f419 golden owns the complete INITIAL result, before these additive post-process audit fields.
     // All pre-existing decision fields, items and prescriptions remain in the golden comparison.
     else -> value.javaClass.declaredFields.filterNot { it.isSynthetic || Modifier.isStatic(it.modifiers) ||
-        value is PersonalizedPlanningDecision && it.name in setOf("residualCompletion", "dayRebalancing", "authorizedScheduling") }
+        value is PersonalizedPlanningDecision && it.name in setOf("residualCompletion", "dayRebalancing", "authorizedScheduling", "frequencyDemand") }
         .sortedBy { it.name }.joinToString(prefix = "(", postfix = ")") {
             it.isAccessible = true
             it.name + "=" + separationCanonical(it.get(value))

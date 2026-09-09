@@ -312,7 +312,9 @@ class PersonalizedProgramBuilder(
     private val validator: ProgramProjectionValidator = ProgramProjectionValidator(),
     private val repairPolicy: ProgramRepairPolicy = ProgramRepairPolicy()
 ) {
-    fun build(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, gaps: List<AdaptationGap>, intent: BlockIntent, horizon: Int, request: ProgramSkeletonRequest, answers: PersonalizedPlanningAnswers, priorDecisionId: String?, explicitWeeklyDays: Boolean = true): GeneratedProgramSkeleton {
+    fun build(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, gaps: List<AdaptationGap>, intent: BlockIntent, horizon: Int, request: ProgramSkeletonRequest, answers: PersonalizedPlanningAnswers, priorDecisionId: String?, explicitWeeklyDays: Boolean = true,
+        frequency: PlanningFrequencyProvenance = PlanningFrequencyProvenance(WeeklyDosePlanner().resolve(state, state.anchors.size + gaps.size),
+            request.weeklyTrainingDays, if (explicitWeeklyDays) PlanningFrequencySource.EXPLICIT_USER else PlanningFrequencySource.AUTO)): GeneratedProgramSkeleton {
         val transitionPlanner = AdaptationTransitionPlanner()
         val transitions = state.anchors.associate { anchor -> anchor.stableKey to transitionPlanner.decide(anchor, state, gaps) }
         val recentResistance = snapshot.allConfirmedSets.filter {
@@ -389,6 +391,14 @@ class PersonalizedProgramBuilder(
         val spare = capacity - finite.continuity - finite.material.sum()
         val optional = optionalCandidates.filter { it.targetSets <= spare }
         val selected = continuity + gapItems + optional
+        // Capture original demand before finite capacity is allowed to erase it. No selection changes in this trace stage.
+        val originalAllocations = proportionalAllocation(incumbentWeights.entries.sortedByDescending { it.value }
+            .associate { it.toPair() }, continuityDemand)
+        val originalContinuity = continuityPlanner.select(state, transitions, originalAllocations.filterKeys { it in anchorWeights }, days) +
+            performanceContinuity.map { it.copy(targetSets = originalAllocations[it.stableKey] ?: it.targetSets) }
+        val candidates = capacityCandidateTrace(snapshot, state,
+            materialCandidates.map { it to false } + originalContinuity.map { it to true } + optionalCandidates.map { it to false },
+            selected, prescriptionPlanner)
         require(selected.isNotEmpty()) { "NO_EXECUTABLE_PLANNING_DEMAND" }
         val placement = SplitAwareContinuityAllocation(prescriptionPlanner).allocate(
             snapshot, state, continuity, gapItems, optional, days, request.sessionMinutes, request)
@@ -463,7 +473,7 @@ class PersonalizedProgramBuilder(
             targetAthleticPerformanceBouts = performanceItems.filter { snapshot.activityKind(it.stableKey) == PlannedActivityKind.ATHLETIC_PERFORMANCE_DRILL }.sumOf(PlannedExercise::targetSets),
             plannedAthleticPerformanceBouts = plannedAthleticBouts,
             execution = ExecutionAllocationTrace(
-                capacity = envelope.copy(finalControllableUnits = plannedResistanceSets + plannedDrillBouts + plannedAthleticBouts),
+                capacity = envelope,
                 continuityRequestedUnits = continuityDemand,
                 continuityAllocatedUnits = firstWeek.filter { row -> continuity.any { it.stableKey == row.exerciseStableKey } }.sumOf(ProgramSkeletonItem::setCount),
                 materialGapRequestedUnits = materialRequested,
@@ -504,7 +514,9 @@ class PersonalizedProgramBuilder(
             badmintonObjectiveRepresentations = state.badmintonObjectiveRepresentations,
             adaptationGaps = gaps,
             trainingStateAssessment = state.trainingStateAssessment,
-            weeklyFrequencyEvidence = WeeklyDosePlanner().resolve(state,state.anchors.size+gaps.size)
+            weeklyFrequencyEvidence = frequency.recommendation,
+            frequencyDemand = FrequencyDemandProvenance(frequency, candidates, placement.trace.authorized, envelope,
+                plannedResistanceSets + plannedDrillBouts + plannedAthleticBouts)
         )
         // INITIAL SKELETON: all existing selection, placement, repair, validation and fingerprinting end here.
         val initialSkeleton = repaired.copy(personalizedDecision = decision)
@@ -525,6 +537,7 @@ class PersonalizedProgramBuilder(
         return rebalanced.skeleton.copy(personalizedDecision = decision.copy(
             residualCompletion = completion.trace,
             dayRebalancing = rebalanced.trace,
+            frequencyDemand = decision.frequencyDemand?.copy(actualMaterializedUnits = completedWeek.sumOf { it.setPrescriptions.size }),
             // Existing execution trace remains the initial allocation audit; display counts describe the completed plan.
             planningBudget = budget.copy(plannedResistanceSets = completedUnits(PlannedActivityKind.RESISTANCE),
                 plannedStructuredBadmintonBouts = completedUnits(PlannedActivityKind.STRUCTURED_BADMINTON_DRILL),

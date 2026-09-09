@@ -1,5 +1,18 @@
 # Codex Worklog
 
+## 2026-09-10 — Frequency expansion stage 1: capacity provenance
+
+- Clean main baseline `b4e4675b1da3d7f323734458b4f7bf52496a9c23`; prior record-input fix is committed/pushed.
+- Retain the existing WeeklyDosePlanner recommendation before explicit override, original material/continuity
+  prescriptions and owner/rank/partial-funding metadata. Only finite-capacity rejection enters the recoverable queue.
+- Preserve BASE authorized identity and distinguish computed capacity from actual authorized/materialized counts.
+- This commit does not enable volume expansion or change record persistence, planner formulas, Legacy or split templates.
+- Protocol registry/index/canonical document 3.8.0. Full testDebugUnitTest + assembleDebug PASS (4m44s):
+  1,592 tests, 1,589 passed, zero failures/errors, three existing private-input conditional skips.
+  Includes new provenance tests and 29-persona historical parity; the old golden only normalizes the newly additive
+  trace and restores its legacy mislabeled capacity display for comparison. No golden values or numerical authorities changed.
+  Protocol validation 8 families/34 protocols, Legacy frozen-source 10/10 and git diff --check PASS.
+
 ## 2026-09-10 — Immediate record persistence, deferred derived refresh
 
 - Clean main baseline: `b4a7cab53a35784da44972889011dda63a240359` (fetch + fast-forward pull).

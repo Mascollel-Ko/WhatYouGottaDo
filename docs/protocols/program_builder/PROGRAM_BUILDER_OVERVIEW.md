@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.7.2 |
+| Protocol version | 3.8.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
@@ -14,6 +14,16 @@
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 
 ## 1. 일반 사용자용 요약
+
+### Capacity-rejected demand provenance (2026-09-10, 3.8.0)
+
+`WeeklyDosePlanner.resolve`의 추천을 override 전에 `PlanningFrequencyProvenance`로 보존합니다.
+명시 선택과 AUTO 출처를 구분하며, 첫 단계는 운동량을 늘리지 않습니다. 기존 material 순위와 continuity
+배분 순서의 원본 처방·stableKey·gap/objective 소유권·priority·schedule tier·부분 미지원 단위를
+`CapacityCandidateTrace`에 남깁니다. 안전/semantic 탈락은 FINITE_CAPACITY 큐로 승격하지 않습니다.
+`FrequencyDemandProvenance`는 BASE 승인 처방과 원래 계산 용량을 보존합니다. 실행 trace의 capacity는
+계산 용량이며 별도 frequencyDemand의 baseAuthorizedUnits/actualMaterializedUnits와 구분합니다. 기존 선택/분할/배치 산식은 그대로입니다.
+후속 USER_FREQUENCY_EXPANSION은 별도 단계이며 이 버전에서는 활성화하지 않습니다.
 
 ### Isolated TIME-underload fallback (2026-09-09, 3.7.2)
 

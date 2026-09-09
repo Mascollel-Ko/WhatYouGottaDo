@@ -101,13 +101,18 @@ internal class PersonalizedProgramPlanningService(
         persistAnswers(answers, snapshot.profilePrimaryGoal)
         val gaps = gapAnalyzer.analyze(snapshot, state)
         val intent = blockPlanner.decide(state, gaps)
-        val recommendedDays = WeeklyDosePlanner().chooseDays(state, state.anchors.size + gaps.size)
+        val frequencyEvidence = WeeklyDosePlanner().resolve(state, state.anchors.size + gaps.size)
+        val recommendedDays = frequencyEvidence.recommendedDays
         val recommendedHorizon = horizonPlanner.choose(state, gaps, intent)
         val constraints = preflight.constraints
         val personalizedRequest = resolvePersonalizedRequest(preflight.request, constraints, state.programGoal, recommendedDays, recommendedHorizon)
         val priorId = appMetaDao.latestByPrefix("$DECISION_PREFIX%")?.value?.let(::decisionIdFromJson)
         return programBuilder.build(snapshot, state, gaps, intent, personalizedRequest.durationWeeks, personalizedRequest, answers, priorId,
-            explicitWeeklyDays = constraints.explicitWeeklyTrainingDays != null)
+            explicitWeeklyDays = constraints.explicitWeeklyTrainingDays != null,
+            frequency = com.training.trackplanner.data.personalized.PlanningFrequencyProvenance(frequencyEvidence,
+                personalizedRequest.weeklyTrainingDays, if (constraints.explicitWeeklyTrainingDays != null)
+                    com.training.trackplanner.data.personalized.PlanningFrequencySource.EXPLICIT_USER
+                else com.training.trackplanner.data.personalized.PlanningFrequencySource.AUTO))
     }
 
     /** Compatibility wrapper for callers that have not yet adopted the two-phase API. */
@@ -279,6 +284,7 @@ internal class PersonalizedProgramPlanningService(
         .put("residualCompletion", residualCompletion?.toJson())
         .put("dayRebalancing", dayRebalancing?.toJson())
         .put("authorizedScheduling", authorizedScheduling?.toJson())
+        .put("frequencyDemand", frequencyDemand?.toJson())
         .put("anchorTransitions", JSONArray(anchorTransitions.map { transition -> JSONObject()
             .put("stableKey", transition.stableKey)
             .put("observedStyle", transition.observedStyle.name)
