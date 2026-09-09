@@ -56,6 +56,7 @@ internal class PersonalizedProgramPlanningService(
     private val canonicalOfiAxisProfiles: Map<String, CanonicalOfiAxisProfile>,
     private val exerciseRoleRelationDao: ExerciseRoleRelationDao? = null,
     private val tissueStateProvider: suspend (LocalDate) -> com.training.trackplanner.analysis.tissue.TissueCurrentState? = { null },
+    private val tissueProjectionProvider: suspend (LocalDate) -> com.training.trackplanner.data.personalized.PlanWeekTissueProjection? = { null },
     private val performancePrescriptions: Map<String, com.training.trackplanner.data.personalized.PerformancePrescriptionAuthority> = emptyMap(),
     private val snapshotBuilder: PlanningHistorySnapshotBuilder = PlanningHistorySnapshotBuilder(),
     private val stateBuilder: AthletePlanningStateBuilder = AthletePlanningStateBuilder(),
@@ -179,6 +180,7 @@ internal class PersonalizedProgramPlanningService(
         } ?: ExerciseRoleRelationCatalog.EMPTY
         val snapshot = snapshotBuilder.build(cutoff, history, exercises, metadata, badmintonCatalog, profile, preferences, canonicalStrength, recovery, roleCatalog)
         return snapshot.copy(performancePrescriptions = performancePrescriptions,
+            planWeekTissueProjection = tissueProjectionProvider(cutoff),
             planDayProjection = com.training.trackplanner.data.personalized.PlanDayOfiProjection(cutoff,
                 DailyFatigueCalculator(runtimeCatalog, canonicalOfiAxisProfiles,
                     dailyCanonicalStrengthPosterior(posteriorHistory, strengthPerformanceRegistry)),
@@ -285,6 +287,7 @@ internal class PersonalizedProgramPlanningService(
         .put("dayRebalancing", dayRebalancing?.toJson())
         .put("authorizedScheduling", authorizedScheduling?.toJson())
         .put("frequencyDemand", frequencyDemand?.toJson())
+        .put("frequencyExpansion", frequencyExpansion?.toJson())
         .put("anchorTransitions", JSONArray(anchorTransitions.map { transition -> JSONObject()
             .put("stableKey", transition.stableKey)
             .put("observedStyle", transition.observedStyle.name)

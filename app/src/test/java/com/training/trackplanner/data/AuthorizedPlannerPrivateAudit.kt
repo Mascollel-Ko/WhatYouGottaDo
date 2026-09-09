@@ -24,6 +24,11 @@ internal object AuthorizedPlannerPrivateAudit {
     }
 
     fun write(label: String, plan: GeneratedProgramSkeleton, snapshot: PlanningHistorySnapshot, format: Int) {
+        if (plan.personalizedDecision?.frequencyExpansion != null) {
+            // Expansion has its own relocation/tissue gate before normal balancing, so the pre-expansion replay is not equivalent.
+            writeFrequencyAudit("LIFECYCLE_$label", plan, snapshot)
+            return
+        }
         val decision = requireNotNull(plan.personalizedDecision)
         val allocation = requireNotNull(decision.authorizedScheduling)
         val residual = requireNotNull(decision.residualCompletion)

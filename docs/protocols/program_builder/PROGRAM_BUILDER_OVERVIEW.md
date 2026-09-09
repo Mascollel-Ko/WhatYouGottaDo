@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.8.0 |
+| Protocol version | 3.9.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
@@ -14,6 +14,49 @@
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 
 ## 1. 일반 사용자용 요약
+
+### Explicit frequency expansion (2026-09-10, 3.9.0)
+
+`WeeklyDosePlanner.resolve` 추천 D_algorithm과 명시 선택 D_user를 분리합니다. AUTO 또는
+D_user ≤ D_algorithm이면 기존 파이프라인을 그대로 실행합니다. 명시적 증가에만 동일 입력/컷오프/답변으로
+D_algorithm의 유한 배분을 먼저 실행하여 BASE 승인 처방 B를 고정합니다. 목표는
+`roundToInt(B * D_user.toDouble() / D_algorithm)`이고, 추가량 상한은 목표−B입니다.
+이 비율은 **engineering product volume-release policy**이지 생리학적 용량-반응 법칙이 아닙니다.
+
+- 미리 보존한 FINITE_CAPACITY 후보만 원래 rank 순서로 복원합니다. exclusion/equipment/eligibility/
+  현재 제한을 다시 검사하며, 안전/semantic 탈락은 복원하지 않습니다. 원본 prescription과 gap/objective/
+  continuity 소유권을 유지합니다. BASE 처방 자체를 비례 증량하지 않습니다.
+- 실제 상한은 수학적 목표, D_user의 기존 ExecutionCapacityPlanner envelope, 원래 유효 미지원 수요의
+  최솟값입니다. 후보가 없으면 종료하며 filler를 추가하지 않습니다. 부분 복원은 기존 처방기가 허용하고
+  원본 세트 내용/휴식/source와 정확히 일치하는 유연한 처방만 가능합니다. 구조적 처방은 원자적입니다.
+- BASE + USER_FREQUENCY_EXPANSION을 사용자 일수로 새로 배치합니다. 기존 timed/split/exact restoration/
+  residual Q/C/R을 사용합니다. 별도 EXPANSION_UNITS 의미 단위는 만들지 않습니다. 4→2+2, 5→3+2,
+  6→3+3만 유지하며 7/8/9 확장은 없습니다. 최종 세트마다 원본 승인 ID와 funding source/rank를 감사합니다.
+- PlanDayOfiProjection/DailyFatigueCalculator의 기존 OFI <87, axis caution 없음, caution reason 없음과
+  시간/same-key gate를 검사합니다. 기존 일반 rebalancer loop-entry/threshold 및 MAIN 보호는 그대로입니다.
+  상대 비율이 in-band여도 절대 hard gate에 실패한 추가 구성은 승인하지 않습니다.
+- `ConnectiveTissueAnalysisService.planProjection`은 컷오프의 불변 입력을 캡처하여 같은 canonical RCV
+  ledger, per-load-unit/class, 회복 곡선, prior/personal baseline, bounded COD Context C를 사용합니다.
+  대표 주는 컷오프 이후 월요일 정오부터 실제 logical day 간격으로 평가합니다. 계획 운동에는 기존 typed
+  ProgramWeekPlan.targetRpeMax를 투영 상한으로 사용하며, 이를 관측 RPE로 저장하거나 주장하지 않습니다.
+  합성 기록은 메모리 노출 계산에만 쓰고 DB/개인 calibration evidence에 넣지 않습니다.
+- 해당 세션이 실제 노출시키는 canonical 조직 단위의 세션 전 HIGH/VERY_HIGH 또는 symptom 제한을
+  검사합니다. 세션 후 상태는 다음 세션까지 canonical recovery 후 다시 평가합니다. 운동 이름이나
+  generic lower-body score로 판정하지 않고 joint/tendon/ligament를 합치지 않습니다. 해석 불가능한
+  노출/미제공 projection은 추가분에 대해 fail-closed입니다. 부상 확률 또는 임상 안전 판정이 아닙니다.
+- 실패 시 이동 가능한 확장 atom을 다른 허용일로 먼저 시험하고 기존 normal bounded rebalancer를
+  실행합니다. 승인되는 이동은 전체 주의 시간/OFI/조직/충돌/처방 무결성을 재검사합니다. 해결되지 않으면
+  마지막(가장 낮은 원래 rank) 확장부터 합법적 감소 또는 제거하고 새로 배치합니다. 실패 반복마다 최소
+  한 확장 단위가 감소하므로 유한 종료합니다. BASE 처방을 희생해 추가분을 살리지 않습니다.
+- 새 배치가 원래 완성된 BASE조차 보존하지 못하면 BASE 내용/일정을 보존하고 추가 가용일은 빈 상태로
+  둡니다(`BASE_PRESERVED_USER_PLACEMENT_CONSTRAINED`). BASE 자체의 독립 hard-gate 실패는 별도로
+  기록하며 정상이라고 감추지 않습니다. MAIN/구조적 보호 때문에 못 옮기는 경우도 그대로 남깁니다.
+
+FrequencyExpansionTrace는 추천/선택/활성화, B/수학 목표/계산 capacity/유효 상한, 전체 rejected 큐,
+원래 순서의 승인·거절·이동 시도, 초기/최종 추가량, 철회, 세트별 소유권, 실제 최종량, day OFI 및
+chronological tissue 상태를 구분합니다. 계산 capacity를 실제 운동량으로 덮어쓰지 않습니다.
+비공개 3/4/5일 재현은 `FrequencyExpansionRealBackupTest`와 ignored `build/private-audit/frequency-expansion`
+JSON/실제 프로그램 Markdown으로 감사합니다. 기존 UNKNOWN/UNSURE 답변은 테스트 가정입니다.
 
 ### Capacity-rejected demand provenance (2026-09-10, 3.8.0)
 

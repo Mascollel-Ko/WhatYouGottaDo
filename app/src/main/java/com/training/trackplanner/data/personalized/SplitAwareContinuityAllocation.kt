@@ -5,13 +5,15 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 data class AuthorizedAtomOrigin(val authorizedDemandId: String, val splitGroupId: String = "", val splitChunkIndex: Int? = null)
-data class AuthorizedSchedulingDemand(val id: String, val item: PlannedExercise, val prescription: PlannedPrescription, val continuity: Boolean)
+data class AuthorizedSchedulingDemand(val id: String, val item: PlannedExercise, val prescription: PlannedPrescription, val continuity: Boolean,
+    val fundingSource: PlanningFundingSource = PlanningFundingSource.BASE, val originalRank: Int? = null)
 data class ContinuitySplitDecision(val authorizedDemandId: String, val eligible: Boolean, val template: List<Int>, val decision: String)
 data class AuthorizedSchedulingTrace(val authorized: List<AuthorizedSchedulingDemand>, val decisions: List<ContinuitySplitDecision>,
     val origins: Map<String, AuthorizedAtomOrigin> = emptyMap(), val initialWeek: List<ProgramSkeletonItem> = emptyList()) {
     fun toJson() = JSONObject().put("demandBoundary", "AUTHORIZED_POST_CAPACITY_PRE_PLACEMENT_DEMAND")
         .put("authorized", JSONArray(authorized.map { demand -> JSONObject().put("authorizedDemandId", demand.id)
             .put("stableKey", demand.item.stableKey).put("continuity", demand.continuity)
+            .put("fundingSource", demand.fundingSource.name).put("originalRank", demand.originalRank)
             .put("gapCodes", JSONArray(demand.item.representedGapCodes.toList())).put("style", demand.item.style.name)
             .put("variant", demand.item.styleVariant).put("sets", demand.prescription.sets.size)
             .put("prescription", demand.prescription.text).put("prescriptionSource", demand.prescription.weightSource)
@@ -52,6 +54,12 @@ internal data class SplitAwareAllocation(val days: Map<Int, List<AuthorizedTimed
 
 /** Wrapper around the unchanged finite/timed allocator. No prescription is re-authored by splitting. */
 internal class SplitAwareContinuityAllocation(private val prescriptions: PersonalizedPrescriptionPlanner) {
+    fun allocateAuthorized(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, authorized: List<AuthorizedSchedulingDemand>,
+        days: Int, minutes: Int, request: ProgramSkeletonRequest): SplitAwareAllocation {
+        val result = TimedWeeklyPlacementPlanner().distribute(authorized.map { TimedPlannedExercise(it.item, it.prescription) },
+            days, minutes, snapshot, state.trainingStateAssessment?.sustainable?.robustSchedule == true)
+        return improve(snapshot, state, authorized, TimedExecutionAllocation(result.first, result.second), days, minutes, request)
+    }
     fun allocate(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, continuity: List<PlannedExercise>,
         material: List<PlannedExercise>, optional: List<PlannedExercise>, days: Int, minutes: Int, request: ProgramSkeletonRequest? = null): SplitAwareAllocation {
         val authorized = (continuity + material + optional).mapIndexed { index, item -> AuthorizedSchedulingDemand("authorized_$index", item,
@@ -63,7 +71,8 @@ internal class SplitAwareContinuityAllocation(private val prescriptions: Persona
     internal fun improve(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, authorized: List<AuthorizedSchedulingDemand>,
         baseline: TimedExecutionAllocation, days: Int, minutes: Int, request: ProgramSkeletonRequest? = null): SplitAwareAllocation {
         fun origin(row: TimedPlannedExercise): AuthorizedAtomOrigin {
-            val parent = authorized.single { it.item.copy(targetSets = row.item.targetSets) == row.item }
+            val parent = authorized.firstOrNull { it.item === row.item }
+                ?: authorized.single { it.item.copy(targetSets = row.item.targetSets) == row.item }
             return AuthorizedAtomOrigin(parent.id)
         }
         var placed = baseline.days.mapValues { (_, rows) -> rows.map { AuthorizedTimedAtom(it, origin(it)) } }

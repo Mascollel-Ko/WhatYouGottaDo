@@ -30,7 +30,7 @@ private fun separationCanonical(value: Any?): String = when (value) {
     // The a53f419 golden owns the complete INITIAL result, before these additive post-process audit fields.
     // All pre-existing decision fields, items and prescriptions remain in the golden comparison.
     else -> value.javaClass.declaredFields.filterNot { it.isSynthetic || Modifier.isStatic(it.modifiers) ||
-        value is PersonalizedPlanningDecision && it.name in setOf("residualCompletion", "dayRebalancing", "authorizedScheduling", "frequencyDemand") }
+        value is PersonalizedPlanningDecision && it.name in setOf("residualCompletion", "dayRebalancing", "authorizedScheduling", "frequencyDemand", "frequencyExpansion") }
         .sortedBy { it.name }.joinToString(prefix = "(", postfix = ")") {
             it.isAccessible = true
             it.name + "=" + separationCanonical(it.get(value))

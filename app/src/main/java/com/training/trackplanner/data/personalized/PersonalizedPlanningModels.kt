@@ -213,7 +213,8 @@ data class PlanningHistorySnapshot(
     val weeklyCourtLoad: Map<LocalDate, Double> = emptyMap(),
     val hardRestrictedModes: Set<String> = emptySet(),
     val weekAnnotations: Map<LocalDate, WeeklyContextAnnotation> = emptyMap(),
-    val planDayProjection: PlanDayProjection? = null
+    val planDayProjection: PlanDayProjection? = null,
+    val planWeekTissueProjection: PlanWeekTissueProjection? = null
 ) {
     val historyStart: LocalDate get() = allConfirmedSets.minOf(PlanningSetRecord::date)
     val historyDays: Int get() = java.time.temporal.ChronoUnit.DAYS.between(historyStart, cutoff).toInt() + 1
@@ -330,7 +331,8 @@ data class PersonalizedPlanningDecision(
     val residualCompletion: ResidualCompletionTrace? = null,
     val dayRebalancing: DayRebalancingTrace? = null,
     val authorizedScheduling: AuthorizedSchedulingTrace? = null,
-    val frequencyDemand: FrequencyDemandProvenance? = null
+    val frequencyDemand: FrequencyDemandProvenance? = null,
+    val frequencyExpansion: FrequencyExpansionTrace? = null
 )
 
 sealed interface PersonalizedPlanningOutcome {

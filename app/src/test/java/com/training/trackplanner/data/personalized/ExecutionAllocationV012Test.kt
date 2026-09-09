@@ -179,7 +179,8 @@ class ExecutionAllocationV012Test {
     }
 
     @Test fun `final materialized plans use additional days and minutes when continuity demand remains`() {
-        val base = history()
+        val base = history().copy(planDayProjection = PostGenerationFixture.safe,
+            planWeekTissueProjection = PlanWeekTissueProjection { _, _ -> PlannedTissueWeek(emptyList()) })
         val keys = (1..9).map { "anchor_$it" }
         val source = base.copy(
             exercises = keys.associateWith { base.exercises.getValue("anchor").copy(stableKey = it) },

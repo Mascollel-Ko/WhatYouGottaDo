@@ -9,7 +9,8 @@ data class PlanningFrequencyProvenance(val recommendation: WeeklyFrequencyEviden
     val algorithmRecommendedDays: Int get() = recommendation.recommendedDays
     val explicitIncrease: Boolean get() = source == PlanningFrequencySource.EXPLICIT_USER && resolvedUserDays > algorithmRecommendedDays
     fun toJson() = JSONObject().put("algorithmRecommendedDays", algorithmRecommendedDays)
-        .put("resolvedUserDays", resolvedUserDays).put("frequencySource", source.name).put("recommendation", recommendation.toJson())
+        .put("resolvedUserDays", resolvedUserDays).put("frequencySource", source.name).put("expansionActivated", explicitIncrease)
+        .put("recommendation", recommendation.toJson())
 }
 
 enum class PlanningFundingSource { BASE, USER_FREQUENCY_EXPANSION }

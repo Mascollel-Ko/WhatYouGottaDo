@@ -369,7 +369,8 @@ class TrainingRepository(
         tissueStateProvider = { cutoff ->
             val endOfDay = cutoff.plusDays(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() - 1
             connectiveTissueAnalysisService.build(endOfDay)
-        }
+        },
+        tissueProjectionProvider = { cutoff -> connectiveTissueAnalysisService.planProjection(cutoff) }
     )
     private val dailyReadinessInputService = DailyReadinessInputService(
         exerciseDao = exerciseDao,

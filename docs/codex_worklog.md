@@ -1,5 +1,45 @@
 # Codex Worklog
 
+## 2026-09-10 — Frequency expansion stage 2: explicit useful-demand release
+
+- Stage 1 commit `d6524e84630286cc3ebdf8b86cd907a53ce44faf` was tested and clean before stage 2.
+- Only explicit D_user > WeeklyDosePlanner D_algorithm builds protected algorithm-day BASE, then releases
+  original FINITE_CAPACITY demand in original rank order up to roundToInt(B * D_user / D_algorithm), user capacity
+  and legitimate remainder. No per-exercise multiplier, filler, new candidate score or new Q/C/R unit.
+- Typed per-set BASE/USER_FREQUENCY_EXPANSION origins retain exact approved parent IDs, owner and prescription.
+  Existing timed placement and 4/5/6 split policy are reused; original prescription authority owns legal partials.
+- Canonical standalone OFI plus chronological RCV projection gate fresh user-day placement. The tissue adapter
+  captures immutable cutoff inputs, uses typed planned RPE upper bound, actual logical gaps and existing canonical
+  ledger/recovery/baselines/Context C. Synthetic exposures never enter Room or personal calibration evidence.
+- Expansion relocation precedes normal bounded balancing; every accepted move passes whole-week hard gates.
+  Lowest retained expansion rank is reduced/removed on failure and placement is retried, with a strictly decreasing
+  finite unit budget. BASE cannot shrink; independent BASE failure is explicitly reported. MAIN and loop-entry unchanged.
+- Private production audit at 2026-09-02 with the prior UNKNOWN/UNSURE test answers: algorithm 4 days, BASE 46.
+  Explicit 3/4 days remain 46. At 5 days target 58, capacity 49, legitimate queue 3: rank 13 landmine_anti_rotation,
+  owner BADMINTON_DEVELOP_ANTI_ROTATION. All 3 were authorized, relocation tried, then removed for OFI_CONSTRAINT.
+  Final BASE 46 remains; existing random shuttle drill retains HIGH_SPEED_CAUTION/REACTIVE_CAUTION even with OFI 86.
+  The four-day BASE also has day 2 OFI 93 with relative OFI 1.16 (in-band); the general loop-entry issue stays out of scope.
+  Actual programs and all traces stay ignored under build/private-audit/frequency-expansion; private CSV is untracked.
+- Focused expansion fixture proves 18 < 21 <= 30 units for 3/4/5 days with safe useful demand, plus no-filler,
+  partial/atomic, exclusion, OFI relocation/rollback, and missing-projection BASE-floor cases. Tissue integration
+  proves unchanged canonical initial state, no writes, distinct classes, and close-vs-spaced recovery behavior.
+  Initial test failures (empty fixture history and comparing severity-sorted tissue keys as ordered inventories)
+  were corrected in fixtures/assertions; no canonical formula or historical golden was changed.
+  Final inspection also caught the tissue UI's top-1/top-2 contributor truncation: projection now uses ALL canonical
+  exposure events, never that display summary. A dedicated dominance/omission regression protects this boundary.
+- Each 3/4/5-day audit now starts from a separate identical restored DB, with the same seven explicit test answers.
+  Reusing a DB had exposed additional older interruption questions after earlier answers were persisted; isolating
+  the runs fixes the comparison fixture, without changing production questions. The final raw-event projection
+  resolves the triceps exposure correctly; only the shuttle drill remains missing its canonical exposure input.
+- Protocol 3.9.0 in existing overview/index/registry. Final testDebugUnitTest + assembleDebug PASS (5m33s):
+  269 suites / 1,607 tests, 1,606 passes, zero failures/errors, one existing optional Python actual-output parity
+  skip because v0131_python_actual.json was not supplied. New expansion 10/10 and tissue projection 4/4 pass.
+  Real-backup isolated 3/4/5 audit, existing save/edit/apply/restart/backup lifecycle E2E and training-state current
+  private audit all pass with real input enabled. Includes 29-persona parity, Legacy 360-case parity, progression,
+  allocation/ranking/split/residual/QCR/OFI/tissue/Context-C/rebalancing suites. Protocol 8 families/34 protocols,
+  Legacy 10/10 frozen-source audit and staged git diff --check PASS. Numerical analysis, assets, app version,
+  record mutation, MAIN classification and 7/8/9 split policy remain unchanged.
+
 ## 2026-09-10 — Frequency expansion stage 1: capacity provenance
 
 - Clean main baseline `b4e4675b1da3d7f323734458b4f7bf52496a9c23`; prior record-input fix is committed/pushed.

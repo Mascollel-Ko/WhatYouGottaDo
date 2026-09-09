@@ -315,6 +315,25 @@ class PersonalizedProgramBuilder(
     fun build(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, gaps: List<AdaptationGap>, intent: BlockIntent, horizon: Int, request: ProgramSkeletonRequest, answers: PersonalizedPlanningAnswers, priorDecisionId: String?, explicitWeeklyDays: Boolean = true,
         frequency: PlanningFrequencyProvenance = PlanningFrequencyProvenance(WeeklyDosePlanner().resolve(state, state.anchors.size + gaps.size),
             request.weeklyTrainingDays, if (explicitWeeklyDays) PlanningFrequencySource.EXPLICIT_USER else PlanningFrequencySource.AUTO)): GeneratedProgramSkeleton {
+        if (!frequency.explicitIncrease) return buildCore(snapshot, state, gaps, intent, horizon, request, answers, priorDecisionId,
+            explicitWeeklyDays, frequency)
+        val base = buildCore(snapshot, state, gaps, intent, horizon, request.copy(weeklyTrainingDays = frequency.algorithmRecommendedDays),
+            answers, priorDecisionId, true, frequency)
+        return FrequencyExpansionPlanner(prescriptionPlanner).expand(snapshot, state, request, base, frequency) { authorized, capacity ->
+            var result: CompletionResult? = null
+            buildCore(snapshot, state, gaps, intent, horizon, request, answers, priorDecisionId, true, frequency, authorized, capacity) {
+                result = it
+                it.skeleton
+            }
+            checkNotNull(result)
+        }
+    }
+
+    private fun buildCore(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, gaps: List<AdaptationGap>, intent: BlockIntent,
+        horizon: Int, request: ProgramSkeletonRequest, answers: PersonalizedPlanningAnswers, priorDecisionId: String?, explicitWeeklyDays: Boolean,
+        frequency: PlanningFrequencyProvenance, authorizedOverride: List<AuthorizedSchedulingDemand>? = null,
+        capacityOverride: WeeklyCapacityEnvelope? = null,
+        finish: ((CompletionResult) -> GeneratedProgramSkeleton)? = null): GeneratedProgramSkeleton {
         val transitionPlanner = AdaptationTransitionPlanner()
         val transitions = state.anchors.associate { anchor -> anchor.stableKey to transitionPlanner.decide(anchor, state, gaps) }
         val recentResistance = snapshot.allConfirmedSets.filter {
@@ -364,7 +383,7 @@ class PersonalizedProgramBuilder(
             null -> 0.0
         }
         val materialRequested = materialCandidates.sumOf(PlannedExercise::targetSets)
-        val envelope = ExecutionCapacityPlanner().envelope(snapshot, state, request, baselineResistance,
+        val envelope = capacityOverride ?: ExecutionCapacityPlanner().envelope(snapshot, state, request, baselineResistance,
             continuityDemand + materialRequested, systemicDoseFactor)
         val coreReserve = if (state.anchors.isEmpty()) 0 else minOf(continuityDemand, state.anchors.size).coerceAtLeast(1)
         val capacityExpanded = baselineResistance < 4.0 && materialCandidates.any { it.priority >= 100 } && systemicDoseFactor >= .92
@@ -383,13 +402,13 @@ class PersonalizedProgramBuilder(
             .take(finite.continuity).associate { it.toPair() }, finite.continuity)
         val allocations = incumbentAllocations.filterKeys { it in anchorWeights }
         val days = request.weeklyTrainingDays.coerceIn(2, 5)
-        val continuity = continuityPlanner.select(state, transitions, allocations, days) +
-            performanceContinuity.mapNotNull { item -> incumbentAllocations[item.stableKey]?.let { item.copy(targetSets = it) } }
-        val gapItems = materialCandidates.mapIndexedNotNull { index, item ->
+        val continuity = authorizedOverride?.filter { it.continuity }?.map { it.item } ?: (continuityPlanner.select(state, transitions, allocations, days) +
+            performanceContinuity.mapNotNull { item -> incumbentAllocations[item.stableKey]?.let { item.copy(targetSets = it) } })
+        val gapItems = authorizedOverride?.filter { !it.continuity && it.item.material }?.map { it.item } ?: materialCandidates.mapIndexedNotNull { index, item ->
             finite.material[index].takeIf { it > 0 }?.let { item.copy(targetSets = it) }
         }
         val spare = capacity - finite.continuity - finite.material.sum()
-        val optional = optionalCandidates.filter { it.targetSets <= spare }
+        val optional = authorizedOverride?.filter { !it.continuity && !it.item.material }?.map { it.item } ?: optionalCandidates.filter { it.targetSets <= spare }
         val selected = continuity + gapItems + optional
         // Capture original demand before finite capacity is allowed to erase it. No selection changes in this trace stage.
         val originalAllocations = proportionalAllocation(incumbentWeights.entries.sortedByDescending { it.value }
@@ -400,8 +419,10 @@ class PersonalizedProgramBuilder(
             materialCandidates.map { it to false } + originalContinuity.map { it to true } + optionalCandidates.map { it to false },
             selected, prescriptionPlanner)
         require(selected.isNotEmpty()) { "NO_EXECUTABLE_PLANNING_DEMAND" }
-        val placement = SplitAwareContinuityAllocation(prescriptionPlanner).allocate(
+        val allocator = SplitAwareContinuityAllocation(prescriptionPlanner)
+        val placement = if (authorizedOverride == null) allocator.allocate(
             snapshot, state, continuity, gapItems, optional, days, request.sessionMinutes, request)
+        else allocator.allocateAuthorized(snapshot, state, authorizedOverride, days, request.sessionMinutes, request)
         val timed = placement.days.values.flatten().map { it.timed }
         val logical = placement.days
         val placementDeferred = placement.deferred
@@ -532,6 +553,12 @@ class PersonalizedProgramBuilder(
         val completedWeek = completion.skeleton.items.filter { it.weekNumber == 1 }
         fun completedUnits(kind: PlannedActivityKind) = completedWeek.filter { snapshot.activityKind(it.exerciseStableKey) == kind }
             .sumOf { it.setPrescriptions.size }
+        if (finish != null) return finish(completion.copy(skeleton = completion.skeleton.copy(personalizedDecision = decision.copy(
+            residualCompletion = completion.trace,
+            planningBudget = budget.copy(plannedResistanceSets = completedUnits(PlannedActivityKind.RESISTANCE),
+                plannedStructuredBadmintonBouts = completedUnits(PlannedActivityKind.STRUCTURED_BADMINTON_DRILL),
+                plannedAthleticPerformanceBouts = completedUnits(PlannedActivityKind.ATHLETIC_PERFORMANCE_DRILL)),
+            weeklyFrequency = completion.skeleton.request.weeklyTrainingDays))))
         // The second stage owns only placement. Its fail-safe is CompletedPlan, never InitialSkeleton.
         val rebalanced = BoundedDayRebalancer().rebalance(completion, snapshot, state, snapshot.planDayProjection)
         return rebalanced.skeleton.copy(personalizedDecision = decision.copy(

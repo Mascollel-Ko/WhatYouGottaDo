@@ -65,7 +65,7 @@ private data class RebalanceCandidate(val rows: List<ProgramSkeletonItem>, val m
     val movementCost: Int, val priority: Int, val keyOrder: String, val identityOrder: String)
 
 /** Whole-item placement only. References freeze once, and every accepted action strictly improves a finite objective. */
-internal class BoundedDayRebalancer {
+internal class BoundedDayRebalancer(private val additionalGate: (List<ProgramSkeletonItem>) -> Boolean = { true }) {
     fun rebalance(completed: CompletionResult, snapshot: PlanningHistorySnapshot, state: AthletePlanningState,
         projection: PlanDayProjection?): RebalancingResult {
         val skeleton = completed.skeleton
@@ -156,6 +156,7 @@ internal class BoundedDayRebalancer {
                     }
                 }
                 if (maxLower(tentative) > lowerBefore) return null
+                if (!additionalGate(tentative)) return null
                 val nextMetrics = metrics(tentative)
                 val beforeAffected = currentMetrics.filter { it.day in affected }
                 val afterAffected = nextMetrics.filter { it.day in affected }
