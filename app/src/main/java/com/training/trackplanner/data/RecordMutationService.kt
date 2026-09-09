@@ -91,9 +91,10 @@ internal class RecordMutationService(
         }
     }
 
-    suspend fun updateSet(set: WorkoutSet) {
-        val entry = workoutDao.findEntryById(set.entryId) ?: return
-        mutateDate(entry.date) {
+    suspend fun updateSet(set: WorkoutSet): RecordSetMutationResult? = db.withTransaction {
+        val entry = workoutDao.findEntryById(set.entryId) ?: return@withTransaction null
+        val mutation: suspend () -> RecordSetMutationResult = {
+            val before = StrengthSessionCompletionDetector.state(workoutDao, entry.date)
             val existing = workoutDao.findSetById(set.id)
             ProgramProgressionService(db).beforeSetUpdate(existing, set)
             val newlyConfirmed = set.confirmed && existing?.confirmed != true
@@ -124,7 +125,13 @@ internal class RecordMutationService(
             } else {
                 refreshEntryCompletion(set.entryId)
             }
+            RecordSetMutationResult(
+                entry.date, before, StrengthSessionCompletionDetector.state(workoutDao, entry.date),
+                newlyConfirmed, derivedAnalysisDirty = existing != set
+            )
         }
+        strengthPosteriorCoordinator?.mutateDate(entry.date, processImmediately = false, mutation = mutation)
+            ?: mutation()
     }
 
     suspend fun deleteSet(set: WorkoutSet): Boolean {

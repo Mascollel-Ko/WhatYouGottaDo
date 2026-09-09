@@ -284,6 +284,13 @@ Room 30→31은 기존 기록을 변경하지 않고 여섯 관계형 테이블�
 검증: `ProgramProgressionEngineTest`, `ProgramProgressionPersistenceTest`,
 `ProgramProgressionLayoutTest`, `ProgramProgressionDeviceLayoutTest`, `ProgramProgressionMigrationTest`.
 
+2026-09-10 record-input refresh lifecycle: `beforeSetUpdate`와 처방 동결은 원본 저장 transaction에 남습니다.
+전체 `ProgramProgressionService.refresh`는 매 편집에서 제거하고 날짜 완료 또는 완료 날짜의 750ms 유휴 편집
+갱신으로 합칩니다. tissue restriction 계산은 raw write transaction 밖에서 수행합니다. 정상 앱 초기화에서도
+Room 원본으로 진행 제안을 갱신합니다. rule/track/manual binding, threshold, RPE 정책, 제안 수식,
+Legacy progression 및 planner 생성 동작은 그대로입니다. `ProgramProgressionPersistenceTest`와
+`RecordInputPersistenceTest`가 최종 제안/분석 동일성과 즉시 저장을 검증합니다.
+
 프로그램 만들기에는 서로 독립적인 두 결정론적 경로가 있습니다. 기존 자동 골자 생성은 기존 입력과 rule table을 그대로 사용합니다. 기록 기반 경로는 완료 기록, 명시 답변, canonical metadata를 사용해 설명 가능한 다주 계획을 만듭니다.
 
 ## 2. 목적

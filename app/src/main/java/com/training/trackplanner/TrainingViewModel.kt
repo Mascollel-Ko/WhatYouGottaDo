@@ -194,11 +194,22 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     val exerciseRuntimeMetadata: StateFlow<Map<String, RuntimeExerciseMetadata>> =
         _exerciseRuntimeMetadata.asStateFlow()
 
+    private val recordDerivedRefresh = RecordDerivedRefreshCoordinator(
+        scope = viewModelScope,
+        refresh = {
+            repository.refreshRecordDerivedState()
+            refreshAnalysisSummaries()
+        },
+        onFailure = { android.util.Log.e("RecordDerivedRefresh", "Raw record saved; derived refresh failed", it) }
+    )
+
     init {
         viewModelScope.launch {
             repository.seedIfNeeded()
             _dataTransferReport.value = repository.latestDataTransferReport()
             refreshExerciseRuntimeMetadataInternal()
+            // A killed/coalesced derived job never owns the raw edit. Rebuild from Room on launch.
+            repository.refreshRecordDerivedState()
             refreshAnalysisSummaries()
         }
     }
@@ -310,8 +321,7 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
 
     fun updateSet(set: WorkoutSet) {
         viewModelScope.launch {
-            repository.updateSet(set)
-            refreshAnalysisSummaries()
+            repository.updateSet(set)?.let(recordDerivedRefresh::afterCommit)
         }
     }
 

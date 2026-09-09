@@ -25,6 +25,27 @@ grouping key when the backup has no immutable exercise identifier.
 
 ## 1. 일반 사용자용 요약
 
+### 기록 입력 저장과 파생 갱신 수명주기 (2026-09-10)
+
+RAW WORKOUT PERSISTENCE = immediate and durable. `TrainingViewModel.updateSet` →
+`TrainingRepository.updateSet` → `RecordMutationService.updateSet`의 Room transaction은
+RPE/reps/weight/seconds/confirmed/manualWeight/rest override를 지연 없이 저장합니다.
+`beforeSetUpdate`, 첫 확인/완료 시각, 표시 순서, frozen prescription과 source identity는 즉시 처리됩니다.
+DB 전후의 `StrengthSessionCompletionState`를 담은 `RecordSetMutationResult`는 commit 후 반환됩니다.
+
+DERIVED ANALYSIS REFRESH = deferred/coalesced. 날짜 전체에 미확인 세트가 남으면 dirty만 표시하고
+전체 progression/analysis는 실행하지 않습니다. 마지막 세트 확인은 기존 완료 detector를 통해 한 번 갱신을
+예약합니다. 이미 완료된 날짜의 연속 편집은 ViewModel 수명 내 `RecordDerivedRefreshCoordinator`가
+750ms 유휴 시간으로 합칩니다. 이는 UI workload 조절이지 생리학적 규칙이 아닙니다.
+진행 중 계산은 취소·중복 실행하지 않고, 그동안 새로 commit된 변경은 후속 갱신으로 처리합니다.
+
+Derived-refresh failure or interruption must never roll back or lose the raw workout edit.
+지연 작업이 종료되거나 process가 죽어도 원본은 Room에 남습니다. 정상 초기화는 기존 posterior revision
+복구 후 progression과 분석을 Room에서 다시 구축합니다. pending posterior 이벤트도 원본 transaction에
+저장됩니다. 이 변경은 Room schema, 백업 format, 기존 기록의 confirmed 의미를 바꾸지 않습니다.
+검증: `RecordInputPersistenceTest`, `RecordDerivedRefreshCoordinatorTest`,
+`RecordMutationServiceTest`, `StrengthPosteriorEventIntegrationTest`.
+
 ### 프로그램 실행 graph v1 (2026-09-06)
 
 Backup format 13 / restore schema 12는 `PROGRAM_EXECUTION_V1` capability와

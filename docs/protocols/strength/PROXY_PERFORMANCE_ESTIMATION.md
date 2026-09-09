@@ -149,6 +149,13 @@ reviewed `LOCAL_INNOVATION_SHARED_ONLY` row가 최소 local history를 충족하
 
 ## 8. 집계 방식
 
+2026-09-10 입력 수명주기: `updateSet`은 원본과 PENDING event를 commit한 뒤 반환하며 posterior 계산을
+기다리지 않습니다. 날짜 완료 후의 단일 derived refresh에서 pending event를 처리합니다. 동일 process에서는
+완료 transaction에서 확보한 record/exercise snapshot을 사용하므로 후속 빠른 원본 편집이 completion
+fingerprint를 바꾸지 않습니다. processor는 직렬화되어 중복 호출에서도 처리 완료 여부를 다시 확인합니다.
+process가 끝나 snapshot이 사라지면 기존 `ensureCurrentRevision`이 미완료 event를 감지하고 Room 원본으로
+revision을 재구축합니다. 이벤트 identity, fingerprint 함수, revision policy와 posterior 산식은 변경하지 않습니다.
+
 완료 상태는 날짜 session key에서 `unconfirmed > 0`이던 상태가 `unconfirmed == 0`이 되고 confirmed set이 하나 이상 남는 전이입니다. 마지막 planned set 삭제도 confirmed set이 남으면 완료할 수 있지만 모든 set 삭제는 event가 아닙니다. PENDING event는 record mutation transaction 안에서 completion fingerprint와 함께 삽입됩니다.
 
 처리는 날짜·event UUID 순으로 결정론적이며 `Dispatchers.Default`에서 실행됩니다. evidence, target history, exercise-local history/state, proxy-transfer history, current state, curve posterior와 PROCESSED 상태는 revision 안에서 transaction으로 commit됩니다. 실패하면 partial posterior row 없이 FAILED/PENDING event를 재시도합니다. 같은 revision/session/completion fingerprint는 두 번째 event를 만들지 않습니다. UI의 `관련 세션` 수는 active revision target history의 distinct event UUID 수이며 direct anchor뿐 아니라 적용된 variation/proxy와 실패 신호도 포함합니다.

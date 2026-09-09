@@ -37,6 +37,26 @@ class ProgramProgressionPersistenceTest {
         db.workoutDao().setsForEntry(entryId).forEach { db.workoutDao().updateSet(it.copy(confirmed = true, rpe = 7.0)) }
         ProgramProgressionService(db).refresh()
     }
+    @Test fun deferredCompletionPreservesCanonicalSuggestionAndFrozenPrescription() = runBlocking {
+        val db = database(); apply(db, fixture(db))
+        val entry = db.workoutDao().allEntriesWithSets().minBy { it.entry.date }
+        val mutation = RecordMutationService(db, db.exerciseDao(), db.workoutDao())
+        entry.sets.forEachIndexed { index, set ->
+            val result = mutation.updateSet(set.copy(confirmed = true, rpe = 7.0))!!
+            assertEquals(index == entry.sets.lastIndex, result.dateJustCompleted)
+            assertTrue(db.programProgressionDao().suggestions().isEmpty())
+        }
+        val frozen = db.programProgressionDao().prescriptions(entry.entry.id)
+        ProgramProgressionService(db).refresh()
+        val suggestion = db.programProgressionDao().suggestions().single()
+        assertEquals(ProgressionDirection.INCREASE, suggestion.direction)
+        assertEquals(142.5, suggestion.suggestedKg!!, 0.0)
+        assertEquals(7.0, suggestion.judgmentRpe!!, 0.0)
+        ProgramProgressionService(db).refresh()
+        assertEquals(suggestion, db.programProgressionDao().suggestions().single())
+        assertEquals(frozen, db.programProgressionDao().prescriptions(entry.entry.id))
+    }
+
     @Test fun authorTracksBeforeApplyAndTwoApplicationsRemainSeparateAfterTemplateDelete() = runBlocking {
         val db = database(); val id = fixture(db)
         assertEquals(3, db.programProgressionDao().items().size)

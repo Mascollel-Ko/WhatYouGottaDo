@@ -158,11 +158,16 @@ internal class ProgramProgressionService(
         if (link.basePolicy == ProgressionBase.ANCHOR) dao.putLink(link.copy(needsReview = true))
     }
 
-    suspend fun refresh() = db.withTransaction {
+    suspend fun refresh() {
+        // Tissue analysis must not hold Room's write transaction while raw edits are arriving.
+        val restricted = restrictedKeys()
+        refreshWithRestrictions(restricted)
+    }
+
+    private suspend fun refreshWithRestrictions(restricted: Set<String>) = db.withTransaction {
         val links = dao.links()
         val prescriptions = dao.prescriptions().groupBy { it.entryId }
         val sessions = links.map { ProgressionSession(it, workouts.setsForEntry(it.entryId).sortedBy { s -> s.setIndex }, prescriptions[it.entryId].orEmpty()) }
-        val restricted = restrictedKeys()
         val suggestions = dao.suggestions()
         // Including all same-chain evidence makes removals, edits and trend changes observable.
         for (old in suggestions.filter { it.resolution == ProgressionResolution.PENDING }) {

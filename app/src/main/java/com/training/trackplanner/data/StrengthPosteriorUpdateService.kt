@@ -16,6 +16,9 @@ import java.time.LocalDate
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import java.util.concurrent.ConcurrentHashMap
 
 data class StrengthSessionCompletionState(
     val unconfirmedSetCount: Int,
@@ -23,11 +26,20 @@ data class StrengthSessionCompletionState(
 )
 
 object StrengthSessionCompletionDetector {
+    suspend fun state(workoutDao: WorkoutDao, date: String) = StrengthSessionCompletionState(
+        workoutDao.countUnconfirmedSetsOnDate(date), workoutDao.countConfirmedSetsOnDate(date)
+    )
+
     fun eligible(before: StrengthSessionCompletionState, after: StrengthSessionCompletionState): Boolean =
         before.unconfirmedSetCount > 0 &&
             after.unconfirmedSetCount == 0 &&
             after.confirmedSetCount > 0
 }
+
+data class StrengthCompletionSnapshot(
+    val records: List<WorkoutEntryWithSets>,
+    val exercises: Map<String, Exercise>
+)
 
 class StrengthPosteriorEventProcessor(
     private val exerciseDao: ExerciseDao,
@@ -41,13 +53,15 @@ class StrengthPosteriorEventProcessor(
     private val rirPolicy: RpeRirPolicy,
     private val now: () -> Long = System::currentTimeMillis
 ) {
-    suspend fun process(eventUuid: String): Boolean {
-        val event = posteriorDao.eventByUuid(eventUuid) ?: return false
-        if (event.status == STATUS_PROCESSED) return true
-        return runCatching {
+    private val processing = Mutex()
+
+    suspend fun process(eventUuid: String, snapshot: StrengthCompletionSnapshot? = null): Boolean = processing.withLock {
+        val event = posteriorDao.eventByUuid(eventUuid) ?: return@withLock false
+        if (event.status == STATUS_PROCESSED) return@withLock true
+        runCatching {
             val date = LocalDate.parse(event.sessionDate)
-            val records = workoutDao.entriesWithSets(event.sessionDate)
-            val exercises = exerciseDao.allExercises().associateBy(Exercise::stableKey)
+            val records = snapshot?.records ?: workoutDao.entriesWithSets(event.sessionDate)
+            val exercises = snapshot?.exercises ?: exerciseDao.allExercises().associateBy(Exercise::stableKey)
             val currentFingerprint = StrengthCompletionFingerprint.forRevision(
                 event.revisionKey,
                 StrengthCompletionFingerprint.build(event.sessionDate, records, exercises)
@@ -182,16 +196,19 @@ class StrengthPosteriorUpdateCoordinator(
     private val posteriorDao: StrengthPosteriorDao,
     private val processor: StrengthPosteriorEventProcessor,
     private val now: () -> Long = System::currentTimeMillis,
-    private val processEvent: suspend (String) -> Boolean = { eventUuid -> processor.process(eventUuid) }
+    private val processEvent: (suspend (String) -> Boolean)? = null
 ) {
-    suspend fun state(date: String): StrengthSessionCompletionState = StrengthSessionCompletionState(
-        unconfirmedSetCount = workoutDao.countUnconfirmedSetsOnDate(date),
-        confirmedSetCount = workoutDao.countConfirmedSetsOnDate(date)
-    )
+    // Only derived input is retained here. Raw sets and the PENDING event are already durable.
+    // On process death ensureCurrentRevision rebuilds unfinished events from Room.
+    private val completionSnapshots = ConcurrentHashMap<String, StrengthCompletionSnapshot>()
+
+    suspend fun state(date: String): StrengthSessionCompletionState =
+        StrengthSessionCompletionDetector.state(workoutDao, date)
 
     suspend fun <T> mutateDate(
         date: String,
         reason: String = REASON_LIVE_COMPLETION,
+        processImmediately: Boolean = true,
         mutation: suspend () -> T
     ): T {
         val trackStrengthEvent = currentRevisionAvailable()
@@ -204,7 +221,7 @@ class StrengthPosteriorUpdateCoordinator(
             }
             value
         }
-        pendingEventUuid?.let { eventUuid -> processOffUi(eventUuid) }
+        if (processImmediately) pendingEventUuid?.let { eventUuid -> processOffUi(eventUuid) }
         return result
     }
 
@@ -268,7 +285,12 @@ class StrengthPosteriorUpdateCoordinator(
     }
 
     private suspend fun processOffUi(eventUuid: String): Boolean =
-        withContext(Dispatchers.Default) { processEvent(eventUuid) }
+        withContext(Dispatchers.Default) {
+            val processed = processEvent?.invoke(eventUuid)
+                ?: processor.process(eventUuid, completionSnapshots[eventUuid])
+            if (processed) completionSnapshots.remove(eventUuid)
+            processed
+        }
 
     private suspend fun currentRevisionAvailable(): Boolean {
         if (appMetaDao.value(StrengthModelRevisionPolicy.REBUILD_MARKER_KEY) == null) return false
@@ -405,6 +427,7 @@ class StrengthPosteriorUpdateCoordinator(
             revisionKey = revisionKey
         )
         val inserted = posteriorDao.insertPendingEvent(event)
+        if (inserted != -1L) completionSnapshots[eventUuid] = StrengthCompletionSnapshot(records, exercises)
         return if (inserted != -1L) eventUuid else posteriorDao.eventByCompletionFingerprint(completionFingerprint)?.eventUuid
     }
 

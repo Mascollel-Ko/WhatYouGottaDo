@@ -1,5 +1,26 @@
 # Codex Worklog
 
+## 2026-09-10 — Immediate record persistence, deferred derived refresh
+
+- Clean main baseline: `b4a7cab53a35784da44972889011dda63a240359` (fetch + fast-forward pull).
+- Removed full progression/analysis refresh from per-set raw save. Typed database before/after completion
+  result preserves the whole-date detector; immediate transaction retains every WorkoutSet field and record integrity.
+- ViewModel-owned single worker: incomplete dates only dirty; completion triggers one refresh; completed edits
+  coalesce after 750ms of UI idle. An in-flight refresh never owns the next save; later edits schedule a trailing pass.
+- PENDING posterior event remains transactional; immutable completion input protects delayed fingerprint checking;
+  serialized processing prevents duplicate history. Existing startup revision recovery plus progression/analysis
+  rebuild repairs interrupted derived work from durable Room records. No schema/backup/numerical/planner/Legacy change.
+- Moved only the progression refresh's expensive tissue read outside its Room write transaction.
+- Canonical backup lifecycle, strength event lifecycle and execution progression docs updated; registry adds test/source anchors.
+- Focused suites PASS 48/48: record mutation 8, disk persistence/blocked dependencies/parity 5, virtual-time coalescing 5,
+  posterior events 14, progression persistence 16. A first parity comparison exposed differing evaluation timestamps;
+  fixed the test's exercise/evaluation time (not production recovery math), then reran green.
+- Full `testDebugUnitTest` + `assembleDebug` PASS (2m42s): 265 suites / 1,589 tests, 1,586 passes,
+  zero failures/errors, three existing conditional private-planner-input skips. Backup/restore, progression sessions,
+  fatigue/readiness/tissue, posterior, Legacy parity/isolation suites pass. Protocol validation: 8 families/34 protocols;
+  frozen Legacy source check: 10/10; `git diff --check` PASS. Planner, Legacy, analysis formula sources,
+  authority assets, schema, backup format and app version are unchanged. No device latency benchmark is claimed.
+
 ## 2026-09-09 — Stage 3: Isolated TIME-underload fallback
 
 - Started from clean, fully tested stage 2 `14d98b0b0e610948b6d36d3bb2f6e9161cbdbf8c`.

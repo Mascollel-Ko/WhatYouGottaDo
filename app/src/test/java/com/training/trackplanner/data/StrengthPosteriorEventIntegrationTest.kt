@@ -41,6 +41,8 @@ class StrengthPosteriorEventIntegrationTest {
         assertTrue(db.strengthPosteriorDao().allEvents().isEmpty())
 
         service.updateSet(fixture.sets[1].copy(confirmed = true))
+        assertEquals(StrengthPosteriorEventProcessor.STATUS_PENDING, db.strengthPosteriorDao().allEvents().single().status)
+        coordinator(db).retryPending()
         val event = db.strengthPosteriorDao().allEvents().single()
         val originalHistory = db.strengthPosteriorDao().historyForEvent(event.eventUuid)
         assertEquals(StrengthPosteriorEventProcessor.STATUS_PROCESSED, event.status)
@@ -80,6 +82,39 @@ class StrengthPosteriorEventIntegrationTest {
         deletedService.deleteWorkoutEntry(checkNotNull(deletedDb.workoutDao().findEntryById(deleted.entryId)))
 
         assertTrue(deletedDb.strengthPosteriorDao().allEvents().isEmpty())
+    }
+
+    @Test
+    fun `deferred posterior uses immutable completion evidence despite rapid raw edits`() = runBlocking {
+        val db = newDatabase()
+        val coordinator = coordinator(db)
+        coordinator.ensureCurrentRevision()
+        val service = RecordMutationService(db, db.exerciseDao(), db.workoutDao(), coordinator)
+        val fixture = insertSession(db, "2026-07-20", listOf(false))
+        service.updateSet(fixture.sets.single().copy(confirmed = true))
+        val pending = db.strengthPosteriorDao().allEvents().single()
+        assertEquals(StrengthPosteriorEventProcessor.STATUS_PENDING, pending.status)
+        service.updateSet(fixture.sets.single().copy(confirmed = true, weightKg = 125.0, rpe = 9.0))
+        coordinator.retryPending()
+        assertEquals(StrengthPosteriorEventProcessor.STATUS_PROCESSED, db.strengthPosteriorDao().allEvents().single().status)
+        val history = db.strengthPosteriorDao().historyForEvent(pending.eventUuid)
+        assertTrue(history.isNotEmpty())
+        coordinator.retryPending()
+        assertEquals(history, db.strengthPosteriorDao().historyForEvent(pending.eventUuid))
+        assertEquals(125.0, db.workoutDao().findSetById(fixture.sets.single().id)!!.weightKg, 0.0)
+    }
+
+    @Test
+    fun `new coordinator recovers committed raw completion without a pending in-memory job`() = runBlocking {
+        val db = newDatabase()
+        coordinator(db).ensureCurrentRevision()
+        val fixture = insertSession(db, "2026-07-20", listOf(false))
+        mutationService(db).updateSet(fixture.sets.single().copy(confirmed = true, rpe = 8.5))
+        assertEquals(StrengthPosteriorEventProcessor.STATUS_PENDING, db.strengthPosteriorDao().allEvents().single().status)
+        assertEquals(StrengthAnalysisLifecycleStatus.CURRENT, coordinator(db).ensureCurrentRevision().status)
+        assertTrue(db.workoutDao().findSetById(fixture.sets.single().id)!!.confirmed)
+        assertEquals(StrengthPosteriorEventProcessor.STATUS_PROCESSED, db.strengthPosteriorDao().allEvents().single().status)
+        assertEquals(1, db.strengthPosteriorDao().allEvents().size)
     }
 
     @Test
@@ -385,7 +420,7 @@ class StrengthPosteriorEventIntegrationTest {
                     false
                 }
             } else {
-                { eventUuid -> processor.process(eventUuid) }
+                null
             }
         )
     }
