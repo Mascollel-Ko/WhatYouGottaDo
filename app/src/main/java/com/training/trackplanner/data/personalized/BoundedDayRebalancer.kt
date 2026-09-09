@@ -32,12 +32,13 @@ data class BalanceDay(val day: Int, val seconds: Int, val standaloneOfi: Int, va
 data class BalanceAction(val actionType: String, val atomIds: List<String>, val stableKeys: List<String>, val sourceDay: Int,
     val destinationDay: Int, val before: List<BalanceDay>, val after: List<BalanceDay>, val beforeObjective: BalanceObjective,
     val afterObjective: BalanceObjective, val ofiGate: String = "PASS", val tissueGate: String = "CANONICAL_CURRENT_RESTRICTIONS_PASS",
-    val lowerStressDispersion: String = "NON_INCREASING") {
+    val lowerStressDispersion: String = "NON_INCREASING", val route: String = if (actionType == "SWAP") "SWAP" else "PRIMARY_MOVE") {
     fun toJson(): JSONObject = JSONObject().put("actionType", actionType).put("atomIds", JSONArray(atomIds))
         .put("stableKeys", JSONArray(stableKeys)).put("sourceDay", sourceDay).put("destinationDay", destinationDay)
         .put("before", JSONArray(before.map { it.toJson() })).put("after", JSONArray(after.map { it.toJson() }))
         .put("beforeObjective", beforeObjective.toJson()).put("afterObjective", afterObjective.toJson())
         .put("ofiGate", ofiGate).put("tissueGate", tissueGate).put("lowerStressDispersion", lowerStressDispersion)
+        .put("route", route)
 }
 data class DayRebalancingTrace(val balanceState: String, val preRebalanceFingerprint: String, val finalFingerprint: String,
     val timeReference: Double, val ofiReference: Double, val initialDays: List<BalanceDay>, val finalDays: List<BalanceDay>,
@@ -135,7 +136,8 @@ internal class BoundedDayRebalancer {
         while (currentMetrics.any(BalanceDay::needsBalance)) {
             val beforeObjective = balanceObjective(currentMetrics)
             val lowerBefore = maxLower(rows)
-            fun evaluate(source: ProgramSkeletonItem, destination: Int, reverse: ProgramSkeletonItem? = null): RebalanceCandidate? {
+            fun evaluate(source: ProgramSkeletonItem, destination: Int, reverse: ProgramSkeletonItem? = null,
+                route: String = if (reverse == null) "PRIMARY_MOVE" else "SWAP"): RebalanceCandidate? {
                 if (!movable(source) || reverse?.let { !movable(it) } == true) return null
                 val moved = listOfNotNull(source, reverse)
                 if (moved.any { !postProcessTissueAllowed(snapshot, state, it.exerciseStableKey) }) return null
@@ -162,7 +164,7 @@ internal class BoundedDayRebalancer {
                 if (objective >= beforeObjective) return null
                 check(immutable(tentative) == immutable(rows))
                 val action = BalanceAction(if (reverse == null) "MOVE" else "SWAP", moved.map(::atom), moved.map { it.exerciseStableKey },
-                    source.dayOfWeek, destination, beforeAffected, afterAffected, beforeObjective, objective)
+                    source.dayOfWeek, destination, beforeAffected, afterAffected, beforeObjective, objective, route = route)
                 return RebalanceCandidate(tentative, nextMetrics, action, moved.sumOf(::cost), moved.sumOf(::priority),
                     moved.map { it.exerciseStableKey }.sorted().joinToString("|"), moved.map(::atom).sorted().joinToString("|"))
             }
@@ -181,13 +183,26 @@ internal class BoundedDayRebalancer {
                 // First feasible source/destination pair wins; compare every whole atom within that pair.
                 fallback@ for (sourceDay in fallbackSources) for (destination in fallbackDestinations) {
                     if (sourceDay.day == destination.day) continue
-                    for (source in rows.filter { it.dayOfWeek == sourceDay.day }) consider(evaluate(source, destination.day))
+                    for (source in rows.filter { it.dayOfWeek == sourceDay.day }) consider(evaluate(source, destination.day, route = "TIME_OVERLOAD_FALLBACK"))
                     if (best != null) break@fallback
                 }
             } else {
                 // Preserve the primary search and comparator, including existing OFI-underloaded destinations.
                 for (source in rows.filter { it.dayOfWeek in sourceDays }) for (destination in destinationDays) {
                     if (source.dayOfWeek != destination) consider(evaluate(source, destination))
+                }
+            }
+            if (best == null && currentMetrics.any { it.timeRatio < LOWER_BALANCE_RATIO } &&
+                currentMetrics.none { it.timeRatio > UPPER_BALANCE_RATIO }) {
+                val underloaded = currentMetrics.filter { it.timeRatio < LOWER_BALANCE_RATIO }
+                    .sortedWith(compareBy<BalanceDay> { it.timeRatio }.thenBy { it.day })
+                val donors = currentMetrics.filter { day -> rows.any { it.dayOfWeek == day.day && movable(it) } }
+                    .sortedWith(compareByDescending<BalanceDay> { it.timeRatio }.thenBy { it.day })
+                underload@ for (destination in underloaded) for (donor in donors) {
+                    if (donor.day == destination.day) continue
+                    for (source in rows.filter { it.dayOfWeek == donor.day })
+                        consider(evaluate(source, destination.day, route = "TIME_UNDERLOAD_FALLBACK"))
+                    if (best != null) break@underload
                 }
             }
             // SWAP still uses only the original source/destination predicates, never fallback destinations.

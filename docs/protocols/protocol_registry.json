@@ -1365,7 +1365,7 @@
       "familyId": "PROGRAM_BUILDER",
       "titleKo": "자동·기록 기반 프로그램 생성 개요",
       "titleEn": "Automatic and Record-Based Program Builder Overview",
-      "currentVersion": "3.7.1",
+      "currentVersion": "3.7.2",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1374,7 +1374,7 @@
       ],
       "canonicalDocument": "program_builder/PROGRAM_BUILDER_OVERVIEW.md",
       "implementedFromAppVersion": "v0.4.2.0; independent record-based builder from v0.5.1.4; v0.14.0 execution layer from 2026-09-06",
-      "lastAuditedCommit": "7ec418a768a61f4f7c10f5b74b9161e708b0586a",
+      "lastAuditedCommit": "14d98b0b0e610948b6d36d3bb2f6e9161cbdbf8c",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/ProgramProgressionModels.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramProgressionDraft.kt",
@@ -1445,6 +1445,7 @@
         "app/src/test/java/com/training/trackplanner/data/personalized/BoundedDayRebalancerTest.kt",
         "app/src/test/java/com/training/trackplanner/data/personalized/SplitAwareContinuityAllocationTest.kt",
         "app/src/test/java/com/training/trackplanner/data/personalized/ExactAuthorizedRestorationTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/personalized/AuthorizedPipelineInvariantTest.kt",
         "app/src/test/java/com/training/trackplanner/data/personalized/PostGenerationAuthorityFreezeTest.kt",
         "app/src/test/java/com/training/trackplanner/data/personalized/TrainingStateParityTest.kt",
         "app/src/test/java/com/training/trackplanner/data/personalized/TrainingStateCorrectionTest.kt",

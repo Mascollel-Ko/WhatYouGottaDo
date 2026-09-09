@@ -1,5 +1,23 @@
 # Codex Worklog
 
+## 2026-09-09 — Stage 3: Isolated TIME-underload fallback
+
+- Started from clean, fully tested stage 2 `14d98b0b0e610948b6d36d3bb2f6e9161cbdbf8c`.
+- Production change confined to BoundedDayRebalancer: after unsuccessful primary MOVE, some TIME<.70 and no TIME>1.30
+  enables ascending-time destinations / descending-time movable donors / logical-day ties, first feasible pair's best atom.
+  Existing overload route, primary predicates, SWAP predicates, frozen medians, numerical gates and comparison functions unchanged.
+- Added explicit action route provenance and integrated exact-dose/QCR invariants for squat 4 and 5 plus gap-owned leg press 2.
+- Protocol/index/registry 3.7.2. Private E2E will use current production backup authority and disclose UNKNOWN/UNSURE assumptions.
+- Focused stage suite PASS: rebalancer 58/58 (12 new underload tests), integrated pipeline 2/2 and exact restoration 24/24.
+  Full testDebugUnitTest + assembleDebug PASS (3m28s): 263 suites / 1,576 tests, 1,573 passes,
+  zero failures/errors, three existing conditional private-input skips. Existing 29-persona, Legacy 360-case parity/isolation,
+  frozen authority, progression/persistence/backup suites pass. Protocol eight families/34 protocols, frozen Legacy sources
+  10/10 and git diff --check pass. Only BoundedDayRebalancer changed in this stage's production diff.
+- Updated test harness only: production-supported backup format, independent current comparison audit mode (historical BEFORE
+  still frozen), and private production replay with dose/owner/QCR assertions for AUTO/3/4/5-day actual programs.
+  Audit output is ignored under build/private-audit/authorized-planner; unknown interruption answers remain test assumptions.
+  Private actual-backup E2E is the remaining push gate after this commit; no remote push yet.
+
 ## 2026-09-09 — Stage 2: Ownership-aware exact restoration
 
 - Started only after stage 1 commit `7ec418a768a61f4f7c10f5b74b9161e708b0586a` passed the full suite with a clean tree.

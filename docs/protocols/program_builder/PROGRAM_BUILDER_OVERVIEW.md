@@ -3,17 +3,34 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.7.1 |
+| Protocol version | 3.7.2 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 7ec418a768a61f4f7c10f5b74b9161e708b0586a |
+| Last audited commit | 14d98b0b0e610948b6d36d3bb2f6e9161cbdbf8c |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 
 ## 1. 일반 사용자용 요약
+
+### Isolated TIME-underload fallback (2026-09-09, 3.7.2)
+
+기존 primary MOVE가 유효한 개선을 찾지 못했고 TIME <0.70인 날이 있으며 TIME >1.30인 날은 없을 때만
+추가 donor 검색을 합니다. 목적지는 TIME 비율 오름차순→logical day, donor는 이동 가능한 내용이 있는
+다른 모든 날 중 TIME 비율 내림차순→logical day 순입니다. 최초로 가능한 조합 안에서 기존 comparator의
+최선 전체 atom 하나를 이동하고 재계산합니다. 기존 primary, TIME-overload fallback, SWAP 조건은 그대로입니다.
+
+새 점수·생리학·절대 OFI 루프 진입 규칙은 없습니다. 고정 median, 0.70–1.30 engineering band,
+각 영향 날/활성 metric의 bandDistance 비악화와 엄격한 사전식 objective 개선, MAIN/CORE/style 보호,
+시간·OFI·조직·same-key·lowerStress 검사를 재사용합니다. 시간 균형이 OFI 균형을 악화시킬 수 없습니다.
+감사 action은 PRIMARY_MOVE/TIME_OVERLOAD_FALLBACK/TIME_UNDERLOAD_FALLBACK/SWAP route를 구분합니다.
+
+비공개 실제 백업 검증은 WGTD_REAL_BACKUP_PATH를 production parser로 읽어 AUTO/3/4/5일 결과를 생성합니다.
+현재 지원 backup contract를 사용하고 UNKNOWN/UNSURE interruption 답변은 사용자 확인이 아닌 테스트 가정입니다.
+승인/분할/초기/정확 복원/semantic QCR/재배치/최종 처방과 미해결 제약을 ignored private audit에 기록하며,
+정확 복원 가능한 상태에서 semantic 대체가 발생하면 검증을 실패시킵니다. 백업·개인 감사 파일은 추적하지 않습니다.
 
 ### Exact authorized restoration (2026-09-09, 3.7.1)
 
@@ -515,6 +532,7 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 20. 변경 이력
 
+- `3.7.2` (2026-09-09): primary 실패 뒤 TIME 저부하-only donor fallback 및 route 감사, 세 단계 주간 처방/QCR 보존 검증을 추가합니다.
 - `3.7.1` (2026-09-09): 명시적 소유 기반 Q와 semantic C를 분리하고, canonical 청크/원자적 세션의 정확 복원을 대체 운동 보충보다 우선합니다.
 - `3.7.0` (2026-09-08): 승인된 straight continuity의 정확한 4→2+2, 5→3+2, 6→3+3 분할 비교 및 부모/청크 provenance를 추가했습니다.
 - `3.6.1` (2026-09-08): TIME <0.70 목적지가 없고 >1.30 source가 있는 경우에만 낮은 TIME 비율 순서의 MOVE fallback을 추가했습니다. primary, SWAP, 밴드 및 기존 안전/처방 권한은 유지합니다.

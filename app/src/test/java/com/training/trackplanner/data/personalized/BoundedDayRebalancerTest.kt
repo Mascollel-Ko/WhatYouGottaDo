@@ -39,6 +39,90 @@ class BoundedDayRebalancerTest {
         units("row", 1, 10, true, order = 2), units("direct", 2, second - 10), units("support", 2, 10, true, order = 2),
         units("other", 3, 100), units("hinge", 4, 95), units("squat", 5, 90))
 
+    private fun underloadRows(atomSeconds: Int = 20) = listOf(units("press", 1, 115 - atomSeconds),
+        units("row", 1, atomSeconds, true, order = 2), units("direct", 2, 105), units("support", 4, 100), units("other", 6, 60))
+    private fun twoUnderloads() = listOf(units("press", 1, 95), units("row", 1, 20, true, order = 2),
+        units("direct", 2, 90), units("support", 2, 20, true, order = 2), units("hinge", 3, 100), units("other", 4, 60), units("squat", 5, 55))
+
+    @Test fun `underload only 115 105 100 60 accepts whole donor atom`() {
+        val input = completed(underloadRows())
+        val result = run(input)
+        assertEquals(listOf(95, 105, 100, 80), result.trace.finalDays.map { it.seconds })
+        assertEquals(102.5, result.trace.timeReference, 0.0)
+        assertEquals("TIME_UNDERLOAD_FALLBACK", result.trace.actions.single().route)
+        assertEquals("TIME_UNDERLOAD_FALLBACK", result.trace.actions.single().toJson().getString("route"))
+        assertEquals(frozenContent(input.skeleton), frozenContent(result.skeleton))
+        assertEquals(result, run(input))
+    }
+    @Test fun `underload destinations ascend before donors descend and restart after each move`() {
+        val result = run(completed(twoUnderloads(), days = listOf(1, 2, 3, 4, 5)))
+        assertEquals(listOf(5, 4), result.trace.actions.map { it.destinationDay })
+        assertEquals(listOf(1, 2), result.trace.actions.map { it.sourceDay })
+        assertTrue(result.trace.actions.all { it.route == "TIME_UNDERLOAD_FALLBACK" })
+        result.trace.actions.forEach { assertTrue(balanceNonWorsening(it.before, it.after)); assertTrue(it.afterObjective < it.beforeObjective) }
+        assertEquals(100.0, result.trace.timeReference, 0.0)
+    }
+    @Test fun `underload equal destination ratios choose earlier logical day`() {
+        val rows = twoUnderloads().map { if (it.dayOfWeek == 5) it.copy(setPrescriptions = f.rx(1, 60).sets, estimatedDurationSeconds = 60) else it }
+        assertEquals(4, run(completed(rows, days = listOf(1, 2, 3, 4, 5))).trace.actions.first().destinationDay)
+    }
+    @Test fun `underload equal donor ratios choose earlier logical day`() {
+        val rows = twoUnderloads().map { if (it.exerciseStableKey == "direct") it.copy(setPrescriptions = f.rx(1, 95).sets, estimatedDurationSeconds = 95) else it }
+        assertEquals(1, run(completed(rows, days = listOf(1, 2, 3, 4, 5))).trace.actions.first().sourceDay)
+    }
+    @Test fun `underload first blocked donor advances to next donor`() {
+        val rows = twoUnderloads().map { if (it.dayOfWeek == 5) it.copy(exerciseStableKey = "row") else it }
+        val result = run(completed(rows, days = listOf(1, 2, 3, 4, 5)))
+        assertEquals(2, result.trace.actions.first().sourceDay); assertEquals(5, result.trace.actions.first().destinationDay)
+    }
+    @Test fun `underload cannot transfer violation to donor or overfill destination`() {
+        for (size in listOf(50, 80)) {
+            val result = run(completed(underloadRows(size)))
+            assertTrue(result.trace.actions.isEmpty()); assertEquals("UNRESOLVED_BALANCE_CONSTRAINT", result.trace.balanceState)
+        }
+    }
+    @Test fun `underload cannot worsen OFI band distance`() {
+        val projection = PlanDayProjection { day -> StandaloneDayLoad(when {
+            day.any { it.exerciseStableKey == "row" } && day.any { it.exerciseStableKey == "other" } -> 50
+            else -> 30
+        }, listOf(0)) }
+        assertTrue(run(completed(underloadRows()), projection).trace.actions.isEmpty())
+    }
+    @Test fun `underload OFI and axis hard gates remain absolute`() {
+        for (blocked in listOf(StandaloneDayLoad(87, listOf(0)), StandaloneDayLoad(30, listOf(100)))) {
+            val projection = PlanDayProjection { day -> if (day.any { it.exerciseStableKey == "row" } && day.any { it.exerciseStableKey == "other" }) blocked else StandaloneDayLoad(30, listOf(0)) }
+            assertTrue(run(completed(underloadRows()), projection).trace.actions.isEmpty())
+        }
+    }
+    @Test fun `underload tissue and same key and lower impact maximum remain protected`() {
+        val restricted = snapshot.copy(recoverySignals = PlanningRecoverySignals(tissueRestrictedStableKeys = setOf("row")))
+        assertTrue(run(completed(underloadRows()), source = restricted).trace.actions.isEmpty())
+        val collision = underloadRows().map { if (it.exerciseStableKey == "other") it.copy(exerciseStableKey = "row") else it }
+        assertTrue(run(completed(collision)).trace.actions.isEmpty())
+        val impact = snapshot.copy(metadata = snapshot.metadata.mapValues { (key, value) -> if (key in setOf("row", "other")) value.copy(jointTendonImpactStressLevel = "HIGH") else value })
+        assertTrue(run(completed(underloadRows()), source = impact).trace.actions.isEmpty())
+    }
+    @Test fun `underload MAIN CORE variant and fixed template remain immovable`() {
+        val rows = underloadRows()
+        for (protected in listOf(rows.map { it.copy(progressionRole = ProgressionRole.MAIN) },
+            rows.map { it.copy(progressionVariant = "HEAVY") }, rows.map { it.copy(requiredTemplateAnchor = true) })) {
+            assertTrue(run(completed(protected)).trace.actions.isEmpty())
+        }
+        val core = mapOf("row" to f.source("row", 1, priority = 100, material = true))
+        assertTrue(run(completed(rows, overrides = core)).trace.actions.isEmpty())
+    }
+    @Test fun `underload never activates for OFI only imbalance or all in band TIME`() {
+        val rows = underloadRows().map { if (it.exerciseStableKey == "other") it.copy(setPrescriptions = f.rx(1, 90).sets, estimatedDurationSeconds = 90) else it }
+        assertEquals("ALREADY_BALANCED", run(completed(rows)).trace.balanceState)
+        val result = run(completed(rows), PlanDayProjection { day -> StandaloneDayLoad(if (day.any { it.exerciseStableKey == "other" }) 15 else 30, listOf(0)) })
+        assertTrue(result.trace.actions.none { it.route == "TIME_UNDERLOAD_FALLBACK" })
+    }
+    @Test fun `old primary and overload routes remain preferred and distinguishable`() {
+        assertEquals("TIME_OVERLOAD_FALLBACK", run(completed(fallbackRows())).trace.actions.single().route)
+        val rows = listOf(units("press", 1, 120), units("row", 1, 20, true, order = 2), units("direct", 2, 110), units("support", 4, 90), units("other", 6, 60))
+        assertEquals("PRIMARY_MOVE", run(completed(rows)).trace.actions.single().route)
+    }
+
     @Test fun `fallback 140 105 95 90 moves ten whole units to lowest day`() {
         val rows = fallbackRows()
         val auth = rows.map { row -> AuthorizedPrescription(row.localId, f.source(row.exerciseStableKey, row.setCount),

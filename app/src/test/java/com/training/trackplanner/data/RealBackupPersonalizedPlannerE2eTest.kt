@@ -32,7 +32,7 @@ import java.time.LocalDate
 
 /**
  * Opt-in production-route verification. The private backup always stays outside the repository.
- * Run with WGTD_REAL_BACKUP_PATH pointing at an explicit format-12 backup file.
+ * Run with WGTD_REAL_BACKUP_PATH pointing at a production-supported backup file.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28])
@@ -45,7 +45,8 @@ class RealBackupPersonalizedPlannerE2eTest {
         assumeTrue("WGTD_REAL_BACKUP_PATH is not configured", backup?.isFile == true)
         val sourceFile = requireNotNull(backup)
         val parsed = RecordCsvBackupRestore.parse(sourceFile.readText(Charsets.UTF_8)) as RecordCsvImportData.Restore
-        assertEquals(12, parsed.manifest?.formatVersion)
+        val backupFormat = requireNotNull(parsed.manifest).formatVersion
+        assertTrue(backupFormat <= RecordCsvBackupRestore.CURRENT_BACKUP_FORMAT_VERSION)
 
         val firstDb = database()
         val firstRepository = TrainingRepository(firstDb, context)
@@ -95,6 +96,10 @@ class RealBackupPersonalizedPlannerE2eTest {
                     trace.supportiveGapCodesByStableKey.values.any { "BADMINTON_UNDERREPRESENTED_ANTI_ROTATION" in it })
             }
             val latestPlan = generate(firstRepository, request, latest)
+            val auditSnapshot = AuthorizedPlannerPrivateAudit.snapshot(firstRepository, latest)
+            listOf("AUTO" to autoPlan, "3_DAY" to threeDay, "4_DAY" to latestPlan, "5_DAY" to fiveDay).forEach { (label, plan) ->
+                AuthorizedPlannerPrivateAudit.write(label, plan, auditSnapshot, backupFormat)
+            }
             val fourWeeksAgo = generate(firstRepository, request, latest.minusWeeks(4))
             val eightWeeksAgo = generate(firstRepository, request, latest.minusWeeks(8))
             assertTrue(latestPlan.items.isNotEmpty())

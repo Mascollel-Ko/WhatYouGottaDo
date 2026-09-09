@@ -32,9 +32,9 @@ class TrainingStateRealBackupComparisonTest {
     @Test fun captureExactRealUserGeneration() = runBlocking {
         val source = System.getenv("WGTD_REAL_BACKUP_PATH")?.let(::File)
         val phase = System.getenv("WGTD_COMPARISON_PHASE")
-        assumeTrue(source?.isFile == true && phase != null && phase in setOf("before", "after"))
+        assumeTrue(source?.isFile == true && phase != null && phase in setOf("before", "after", "audit"))
         val directory = File(requireNotNull(System.getenv("WGTD_COMPARISON_DIR"))).apply { mkdirs() }
-        require(phase=="after") { "v0.13.0 correction BEFORE is already frozen; do not regenerate with corrected production" }
+        require(phase in setOf("after", "audit")) { "Historical BEFORE stays frozen; use audit for current standalone verification" }
         val context = ApplicationProvider.getApplicationContext<Context>()
         val db = Room.inMemoryDatabaseBuilder(context, TrainingDatabase::class.java).allowMainThreadQueries().build()
         try {
@@ -67,6 +67,7 @@ class TrainingStateRealBackupComparisonTest {
                 .put("constraints",json(constraints)).put("answers",json(originalAnswers))
                 .put("preferences",(json(preferences) as JSONObject).apply { remove("interruptionCause"); remove("interruptionFrequency"); remove("interruptionFrequencyAnsweredAtEpochMillis") })
             val report = JSONObject().put("input",input).put("recovery",json(snapshot.recoverySignals))
+                .put("comparisonAuthority", if (phase == "audit") "CURRENT_AUDIT_ONLY_NO_HISTORICAL_BEFORE_COMPARISON" else "FROZEN_BEFORE_COMPARISON")
                 .put("isConstrained",snapshot.recoverySignals.isConstrained)
                 .put("systemicRecoveryPressure",AdaptationTransitionPlanner().systemicRecoveryPressure(snapshot.recoverySignals))
                 .put("genericCourtLoad",snapshot.genericCourtLoad).put("budget",json(budget))
@@ -92,7 +93,7 @@ class TrainingStateRealBackupComparisonTest {
                     "dailyMinutes" to items.groupBy { it.dayOfWeek }.toSortedMap().mapValues { (_,rows)-> rows.sumOf { it.estimatedDurationSeconds }/60.0 })
             }
             report.put("weeklyTotals",json(weeks))
-            if (phase == "after") {
+            if (phase in setOf("after", "audit")) {
                 report.put("trainingStateAssessment",decision.trainingStateAssessment?.toJson())
                     .put("additionalContextAnswers",JSONObject(answers.values-originalAnswers.values.keys))
                     .put("additionalContextSource",if (System.getenv("WGTD_INTERRUPTION_CAUSE")==null) "TEST_ASSUMPTION_UNSURE_NOT_USER_CONFIRMED" else "EXPLICIT_TEST_CONTEXT")
@@ -151,7 +152,7 @@ class TrainingStateRealBackupComparisonTest {
                     })).put("interruptionFrequency","UNSURE")
                 File(directory,"v0131_numerical_inputs.json").writeText(numerical.toString(2)+"\n")
             }
-            assertEquals(JSONObject(File(directory,"v0131_before.json").readText()).getJSONObject("input").toString(),input.toString())
+            if (phase == "after") assertEquals(JSONObject(File(directory,"v0131_before.json").readText()).getJSONObject("input").toString(),input.toString())
             println("COMPARISON_$phase ${output.absolutePath} weeks=${plan.request.durationWeeks} days=${plan.request.weeklyTrainingDays} totals=${json(weeks)}")
         } finally { db.close() }
     }
