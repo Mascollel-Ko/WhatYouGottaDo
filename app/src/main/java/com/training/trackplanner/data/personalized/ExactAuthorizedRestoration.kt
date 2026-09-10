@@ -79,6 +79,9 @@ internal class ExactAuthorizedRestoration(private val snapshot: PlanningHistoryS
                     for (day in destinations) {
                         val onDay = (others + placed.map { it.first }).filter { it.dayOfWeek == day }
                         if (onDay.any { it.exerciseStableKey == parent.item.stableKey }) continue
+                        if (PrimaryStrengthAnchorSpacingPolicy.protects(snapshot,state,parent.item.stableKey,parent.continuity) &&
+                            !PrimaryStrengthAnchorSpacingPolicy.allowed((others + placed.map { it.first })
+                                .filter { it.exerciseStableKey==parent.item.stableKey }.map { it.dayOfWeek } + day)) continue
                         val rx = chunk.timed.prescription
                         val base = existing ?: residualItem(snapshot, chunk.timed.item, rx, "exact_${parent.id}_$index", day, 1)
                         val scalar = rx.sets.first()
@@ -102,6 +105,9 @@ internal class ExactAuthorizedRestoration(private val snapshot: PlanningHistoryS
                     // Keep a previously reduced chunk if only its sibling can currently be restored.
                     val onDay = (others + placed.map { it.first }).filter { it.dayOfWeek == existing.dayOfWeek }
                     return if (onDay.none { it.exerciseStableKey == existing.exerciseStableKey } &&
+                        (!PrimaryStrengthAnchorSpacingPolicy.protects(snapshot,state,parent.item.stableKey,parent.continuity) ||
+                            PrimaryStrengthAnchorSpacingPolicy.allowed((others + placed.map { it.first }).filter { it.exerciseStableKey==parent.item.stableKey }
+                                .map { it.dayOfWeek } + existing.dayOfWeek)) &&
                         others.sumOf { it.setPrescriptions.size } + placed.sumOf { it.first.setPrescriptions.size } + existing.setPrescriptions.size <= capacity)
                         place(index + 1, placed + (existing to chunk.origin)) else null
                 }

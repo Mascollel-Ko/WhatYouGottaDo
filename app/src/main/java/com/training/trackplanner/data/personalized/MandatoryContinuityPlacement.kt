@@ -1,6 +1,6 @@
 package com.training.trackplanner.data.personalized
 
-enum class SplitPlacementFailure { SAME_KEY_OR_DISTINCT_DAY, SESSION_TIME_LIMIT, OFI_CONSTRAINT, TISSUE_RECOVERY_CONSTRAINT }
+enum class SplitPlacementFailure { SAME_KEY_OR_DISTINCT_DAY, PRIMARY_ANCHOR_CALENDAR_SPACING, SESSION_TIME_LIMIT, OFI_CONSTRAINT, TISSUE_RECOVERY_CONSTRAINT }
 data class SplitOfiWarning(val chunkIndex: Int, val sets: Int, val day: Int, val load: StandaloneDayLoad)
 internal data class MandatoryContinuityResult(val days: Map<Int, List<AuthorizedTimedAtom>>, val failures: Set<SplitPlacementFailure>,
     val ofiWarnings: List<SplitOfiWarning>)
@@ -44,6 +44,12 @@ internal class MandatoryContinuityPlacement(private val snapshot: PlanningHistor
                 val onDay = layout.getValue(day)
                 if (day in used || onDay.any { it.timed.item.stableKey == parent.item.stableKey }) {
                     failures += SplitPlacementFailure.SAME_KEY_OR_DISTINCT_DAY; continue
+                }
+                val sameKeyDays = layout.filterValues { atoms -> atoms.any { it.timed.item.stableKey == parent.item.stableKey } }
+                    .keys.map { actualDays[it-1] } + actualDays[day-1]
+                if (PrimaryStrengthAnchorSpacingPolicy.protects(snapshot,state,parent.item.stableKey,parent.continuity) &&
+                    !PrimaryStrengthAnchorSpacingPolicy.allowed(sameKeyDays)) {
+                    failures += SplitPlacementFailure.PRIMARY_ANCHOR_CALENDAR_SPACING; continue
                 }
                 if (onDay.sumOf { it.timed.estimatedSeconds } + chunk.timed.estimatedSeconds > minutes * 60) {
                     failures += SplitPlacementFailure.SESSION_TIME_LIMIT; continue

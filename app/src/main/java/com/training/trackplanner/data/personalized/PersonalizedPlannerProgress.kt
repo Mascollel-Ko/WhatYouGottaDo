@@ -15,6 +15,7 @@ enum class PersonalizedPlannerStage(val percent: Int, val message: String) {
     EXPANSION_RECHECK(80, "추가 운동의 배치와 회복 조건을 다시 확인하는 중입니다."),
     RESIDUAL(88, "남은 처방과 배치 가능성을 확인하는 중입니다."),
     BALANCE(94, "훈련일 간 균형을 최종 조정하는 중입니다."),
+    POST_SPLIT_REFLOW(96, "분할된 운동을 기준으로 주간 배치를 다시 조정하는 중입니다."),
     FINAL(98, "프로그램을 최종 검증하는 중입니다."),
     COMPLETE(100, "프로그램 구성을 완료했습니다.")
 }

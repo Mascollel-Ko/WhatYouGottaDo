@@ -27,14 +27,14 @@ class FrequencyExpansionRealBackupTest {
         val context: Context = ApplicationProvider.getApplicationContext()
         var fixedAnswers: PersonalizedPlanningAnswers? = null
         // Each run restores the identical backup. Persisted answers from an earlier run must not reveal different follow-up questions.
-        for (days in 3..5) {
+        for (days in listOf<Int?>(null, 3, 4, 5)) {
           val db = Room.inMemoryDatabaseBuilder(context, TrainingDatabase::class.java).allowMainThreadQueries().build()
           try {
             val repository = TrainingRepository(db, context)
             repository.importRecordsBackup(Uri.fromFile(requireNotNull(backup)))
             val cutoff = LocalDate.of(2026, 9, 2)
             val historyBefore = db.workoutDao().allEntriesWithSets()
-                val request = ProgramSkeletonRequest("실제 백업 교정 검증", ProgramGoal.BODYBUILDING, days, 90, emptySet(), "", .5,
+                val request = ProgramSkeletonRequest("실제 백업 교정 검증", ProgramGoal.BODYBUILDING, days ?: 4, 90, emptySet(), "", .5,
                     "AUTO", ProgramPeriodizationType.AUTO, 5)
                 val preflight = repository.preparePersonalizedProgram(request, constraints = PersonalizedGenerationConstraints(
                     explicitGoal = request.goal, explicitDurationWeeks = 5, explicitWeeklyTrainingDays = days, explicitSessionMinutes = 90), cutoff = cutoff)
@@ -54,14 +54,14 @@ class FrequencyExpansionRealBackupTest {
                     lastPercent = it.percent
                 })
                 assertEquals(PersonalizedPlannerStage.FINAL, stages.last())
-                assertEquals(days > plan.personalizedDecision!!.frequencyDemand!!.frequency.algorithmRecommendedDays,
+                assertEquals(days != null && days > plan.personalizedDecision!!.frequencyDemand!!.frequency.algorithmRecommendedDays,
                     PersonalizedPlannerStage.EXPANSION in stages)
                 val snapshot = AuthorizedPlannerPrivateAudit.snapshot(repository, cutoff)
-                writeFrequencyAudit("${days}_DAY", plan, snapshot)
-                assertEquals(days, plan.request.weeklyTrainingDays)
+                writeFrequencyAudit(days?.let { "${it}_DAY" } ?: "AUTO", plan, snapshot)
+                if (days != null) assertEquals(days, plan.request.weeklyTrainingDays)
                 assertEquals(historyBefore, db.workoutDao().allEntriesWithSets())
                 val saved = repository.saveGeneratedProgram(null, plan)
-                assertEquals(days, db.programDao().findProgram(saved)!!.weeklyTrainingDays)
+                assertEquals(plan.request.weeklyTrainingDays, db.programDao().findProgram(saved)!!.weeklyTrainingDays)
                 val json = JSONObject(db.appMetaDao().latestByPrefix("${PersonalizedProgramPlanningService.DECISION_PREFIX}%")!!.value)
                 assertFalse(json.getBoolean("userEditedAfterGeneration"))
                 if (plan.personalizedDecision!!.frequencyExpansion != null) assertTrue(json.has("frequencyExpansion"))
@@ -87,7 +87,7 @@ internal fun writeFrequencyAudit(label: String, plan: GeneratedProgramSkeleton, 
             assertTrue(trace.dayLoads.all { it.second.feasible })
         }
     }
-    val tissue = trace?.tissueProjection ?: snapshot.planWeekTissueProjection?.evaluate(first, plan.weekPlans.first().targetRpeMax)
+    val tissue = snapshot.planWeekTissueProjection?.evaluate(first, plan.weekPlans.first().targetRpeMax)
     val scheduling = decision.authorizedScheduling
     val splitAudit = scheduling?.authorized.orEmpty().filter { ContinuitySplitPolicy.mandatory(snapshot, it) }.map { parent ->
         val rows = first.filter { scheduling!!.localOrigins[it.localId]?.authorizedDemandId == parent.id }
@@ -106,6 +106,7 @@ internal fun writeFrequencyAudit(label: String, plan: GeneratedProgramSkeleton, 
         .put("actualFinalUnits", count).put("tissueProjection", tissue?.toJson())
         .put("splitAudit", JSONArray(splitAudit)).put("authorizedScheduling", scheduling?.toJson())
         .put("residualCompletion", decision.residualCompletion?.toJson())
+        .put("postSplitReflow", decision.postSplitReflow?.toJson())
         .put("fixedSplitRelocationReview", reviewFixedSplitRelocations(plan, snapshot))
         .put("program", JSONArray(first.map(::auditPlannedItem)))
     val root = generateSequence(File(System.getProperty("user.dir")), File::getParentFile).first { File(it, "settings.gradle.kts").isFile }

@@ -299,6 +299,7 @@ internal class PersonalizedProgramPlanningService(
         .put("weeklyFrequencyEvidence", weeklyFrequencyEvidence?.toJson())
         .put("residualCompletion", residualCompletion?.toJson())
         .put("dayRebalancing", dayRebalancing?.toJson())
+        .put("postSplitReflow", postSplitReflow?.toJson())
         .put("authorizedScheduling", authorizedScheduling?.toJson())
         .put("frequencyDemand", frequencyDemand?.toJson())
         .put("frequencyExpansion", frequencyExpansion?.toJson())
@@ -379,7 +380,8 @@ internal class PersonalizedProgramPlanningService(
 }
 
 internal fun isPersonalizedProgramEdited(decision: PersonalizedPlanningDecision, finalFingerprint: String): Boolean =
-    (if (decision.frequencyExpansion != null) decision.originalGenerationFingerprint
+    (if (decision.postSplitReflow != null) decision.postSplitReflow.finalFingerprint
+    else if (decision.frequencyExpansion != null) decision.originalGenerationFingerprint
     else decision.dayRebalancing?.finalFingerprint ?: decision.residualCompletion?.completedFingerprint ?: decision.originalGenerationFingerprint).let { generated ->
         generated.isNotBlank() && generated != finalFingerprint
     }

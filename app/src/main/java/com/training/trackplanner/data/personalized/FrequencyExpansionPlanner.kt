@@ -68,6 +68,8 @@ internal class FrequencyExpansionPlanner(private val prescriptions: Personalized
         val baseDecision = requireNotNull(base.personalizedDecision)
         val provenance = requireNotNull(baseDecision.frequencyDemand)
         val baseDemand = provenance.baseAuthorized
+        val primaryKeys = PrimaryStrengthAnchorSpacingPolicy.keys(snapshot,state,
+            (baseDemand.filter { it.continuity }.map { it.item.stableKey } + provenance.expansionSupply.filter { it.continuity }.map { it.item.stableKey }).toSet())
         val b = baseDemand.sumOf { it.prescription.sets.size }
         val queue = provenance.expansionSupply
         val target = frequencyExpandedTarget(b, frequency.algorithmRecommendedDays, frequency.resolvedUserDays)
@@ -124,6 +126,7 @@ internal class FrequencyExpansionPlanner(private val prescriptions: Personalized
                     day to loadCache.getOrPut(key) { projection.evaluate(items) }
                 } }
             fun failure(rows: List<ProgramSkeletonItem>): String? {
+                if (!PrimaryStrengthAnchorSpacingPolicy.allowedRows(rows,primaryKeys)) return "PRIMARY_ANCHOR_CALENDAR_SPACING"
                 if (rows.groupBy { it.dayOfWeek }.any { (_, items) -> items.sumOf(::plannedSeconds) > request.sessionMinutes * 60 ||
                         items.map { it.exerciseStableKey }.distinct().size != items.size }) return "SESSION_TIME_OR_COLLISION"
                 if (snapshot.planDayProjection == null || loads(rows).any { !it.second.feasible }) return "OFI_CONSTRAINT"

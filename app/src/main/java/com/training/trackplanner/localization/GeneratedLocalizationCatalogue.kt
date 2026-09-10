@@ -1334,6 +1334,7 @@ internal object GeneratedLocalizationCatalogue {
         "분석하기" to R.string.loc_baseline_d07b6c9583ec,
         "분석할 수 없습니다" to R.string.loc_baseline_ce1c4a7c4fd4,
         "분석할 수 없음" to R.string.loc_baseline_9b43a07f1905,
+        "분할된 운동을 기준으로 주간 배치를 다시 조정하는 중입니다." to R.string.loc_baseline_08f27389248e,
         "불가리안 스플릿 스쿼트" to R.string.loc_metadata_8ebec9114ab5,
         "불편감 / 제한 신호" to R.string.loc_ui_fbdb207e1247,
         "불편감 경고" to R.string.loc_ui_30dff158c3e0,
@@ -1636,10 +1637,10 @@ internal object GeneratedLocalizationCatalogue {
         "시티드 원암 케이블 로우" to R.string.loc_metadata_1480ef343e11,
         "시티드 카프 레이즈" to R.string.loc_metadata_a8760e696f75,
         "시티드 카프 레이즈 머신" to R.string.loc_metadata_37b69a1b850c,
-        "식별정보 상태" to R.string.loc_metadata_54091184f640,
     )
 
     private fun exactUiTextIdsChunk4(): Map<String, Int> = mapOf(
+        "식별정보 상태" to R.string.loc_metadata_54091184f640,
         "신경계 부하" to R.string.loc_metadata_5956f21014fb,
         "신경계 속도 부하" to R.string.loc_metadata_f870ab4be33d,
         "신경근 스트레스 수준" to R.string.loc_metadata_dae7a0a2c334,
@@ -2039,10 +2040,10 @@ internal object GeneratedLocalizationCatalogue {
         "일별 피로도와 연결조직 회복을 확인하는 중입니다." to R.string.loc_baseline_d9ff86ccb0fc,
         "일부 계산은 연구에서 직접 확인된 내용을 사용하고, 일부는 관련 연구와 운동 특성을 바탕으로 실용적으로 정한 제품 정책과 휴리스틱을 사용합니다." to R.string.loc_ui_72060afc07fc,
         "일부 프로그램 메타데이터를 복원하지 못했습니다. 저장 전 구성을 확인하세요." to R.string.loc_baseline_449210c7a4dc,
-        "일부 피로가 평소보다 높습니다." to R.string.loc_baseline_5e999abe652a,
     )
 
     private fun exactUiTextIdsChunk5(): Map<String, Int> = mapOf(
+        "일부 피로가 평소보다 높습니다." to R.string.loc_baseline_5e999abe652a,
         "일시적 최대 부하" to R.string.loc_metadata_66c16f08c55e,
         "입력" to R.string.loc_baseline_3b87927bf846,
         "입력 조건을 확인하는 중입니다." to R.string.loc_baseline_0a00803efca9,
@@ -2442,10 +2443,10 @@ internal object GeneratedLocalizationCatalogue {
         "최근 불편감 입력이 높습니다. 운동 기록만으로 단정하지 않고 오늘 부하를 보수적으로 조절합니다." to R.string.loc_baseline_de15027f60ef,
         "최근 비중과 관련 피로축이 함께 높게 잡힙니다." to R.string.loc_baseline_2a588965d2cc,
         "최근 비중이 높게 누적되었습니다." to R.string.loc_baseline_04ce3b24dbb7,
-        "최근 수면 데이터가 부족해 수면 보정 신호를 계산할 수 없습니다." to R.string.loc_ui_e18401169d40,
     )
 
     private fun exactUiTextIdsChunk6(): Map<String, Int> = mapOf(
+        "최근 수면 데이터가 부족해 수면 보정 신호를 계산할 수 없습니다." to R.string.loc_ui_e18401169d40,
         "최근 수면 입력이 낮아 RPE 해석을 보수적으로 봅니다." to R.string.loc_baseline_63b5d9e981f8,
         "최근 수면 입력이 낮아 긴 코트 시간 뒤 회복 해석을 보수적으로 봅니다." to R.string.loc_baseline_c1aedab5ea9b,
         "최근 수면 입력이 부족해 수면 보정 신호를 계산하지 않았습니다." to R.string.loc_baseline_76d9b9bfeef1,
@@ -2845,10 +2846,10 @@ internal object GeneratedLocalizationCatalogue {
         "항회전 코어 안정성 스트레스" to R.string.loc_metadata_6a964a525d55,
         "항회전/몸통제어" to R.string.loc_baseline_0179186c7d48,
         "항회전/회전코어" to R.string.loc_baseline_223906541902,
-        "항회전·항신전 코어" to R.string.loc_metadata_d611059149cd,
     )
 
     private fun exactUiTextIdsChunk7(): Map<String, Int> = mapOf(
+        "항회전·항신전 코어" to R.string.loc_metadata_d611059149cd,
         "항회전·항신전 코어 변형" to R.string.loc_metadata_df07fb8ea163,
         "해결 상태" to R.string.loc_metadata_92b6e011b010,
         "해당 목표의 보조운동으로 배정했습니다. 직접 훈련을 대체하지는 않습니다." to R.string.loc_baseline_f7458344a77c,

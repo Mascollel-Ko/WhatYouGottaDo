@@ -129,6 +129,8 @@ internal class ResidualCompletion(private val prescriptions: PersonalizedPrescri
         week: RepresentativeWeek, sources: Map<String, PlannedExercise>, explicitDays: Boolean, projection: PlanDayProjection,
         origins: Map<String, AuthorizedAtomOrigin>?): CompletionResult {
         val demand = AuthorizedPlanningDemand(snapshot, authorized, gaps, week.items)
+        val primaryKeys = PrimaryStrengthAnchorSpacingPolicy.keys(snapshot, state,
+            authorized.filter { it.continuity }.mapTo(mutableSetOf()) { it.item.stableKey })
         var rows = week.items
         var schedule = initial.weekDaySchedule
         var days = week.days
@@ -189,6 +191,7 @@ internal class ResidualCompletion(private val prescriptions: PersonalizedPrescri
                         (dayRows(day).maxOfOrNull { it.orderIndex } ?: 0) + 1)
                     if (withinExactKeyCeiling && delta > PLANNING_EPSILON && delta <= residual.residual + PLANNING_EPSILON && units <= capacity &&
                         dayRows(day).sumOf(::plannedSeconds) + plannedSeconds(row) <= initial.request.sessionMinutes * 60 &&
+                        PrimaryStrengthAnchorSpacingPolicy.allowedRows(rows + row, primaryKeys) &&
                         projection.evaluate(dayRows(day) + row).feasible) return row to trial
                     if (snapshot.activityKind(trial.stableKey) != PlannedActivityKind.RESISTANCE || trial.styleVariant.isNotBlank()) break
                     val minimum = if (trial.transition != null) 1 else 2
@@ -216,7 +219,8 @@ internal class ResidualCompletion(private val prescriptions: PersonalizedPrescri
             val proposedDays = proposed.getValue(1).sorted()
             if (proposedDays.size == days.size + 1) {
                 val remapped = rows.map { it.copy(dayOfWeek = proposedDays[days.indexOf(it.dayOfWeek)]) }
-                val restored = exact.restore(remapped, proposedDays, newDayResiduals)
+                val restored = if (PrimaryStrengthAnchorSpacingPolicy.allowedRows(remapped, primaryKeys))
+                    exact.restore(remapped, proposedDays, newDayResiduals) else remapped
                 if (restored != remapped) { rows = restored; days = proposedDays; schedule = proposed; addedDay = true }
             }
         }
@@ -243,6 +247,7 @@ internal class ResidualCompletion(private val prescriptions: PersonalizedPrescri
                 val newDay = proposedDays.last()
                 val oldRows = rows
                 rows = rows.map { it.copy(dayOfWeek = proposedDays[days.indexOf(it.dayOfWeek)]) }
+                if (!PrimaryStrengthAnchorSpacingPolicy.allowedRows(rows, primaryKeys)) { rows = oldRows; continue }
                 val restored = exact?.restore(rows, proposedDays, setOf(residual.id))
                 if (restored != null && restored != rows) {
                     rows = restored; days = proposedDays; schedule = proposed; addedDay = true; break

@@ -332,6 +332,7 @@ data class PersonalizedPlanningDecision(
     val weeklyFrequencyEvidence: WeeklyFrequencyEvidence? = null,
     val residualCompletion: ResidualCompletionTrace? = null,
     val dayRebalancing: DayRebalancingTrace? = null,
+    val postSplitReflow: PostSplitReflowTrace? = null,
     val authorizedScheduling: AuthorizedSchedulingTrace? = null,
     val frequencyDemand: FrequencyDemandProvenance? = null,
     val frequencyExpansion: FrequencyExpansionTrace? = null

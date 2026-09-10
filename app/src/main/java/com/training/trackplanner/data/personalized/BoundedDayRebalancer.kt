@@ -85,6 +85,8 @@ internal class BoundedDayRebalancer(private val additionalGate: (List<ProgramSke
         state: AthletePlanningState, projection: PlanDayProjection): RebalancingResult {
         val skeleton = completed.skeleton
         val original = week.items
+        val primaryKeys = PrimaryStrengthAnchorSpacingPolicy.keys(snapshot,state,
+            completed.demand?.authorized.orEmpty().filter { it.continuity }.mapTo(mutableSetOf()) { it.item.stableKey })
         var rows = original
         fun atom(row: ProgramSkeletonItem) = week.atomByLocalId.getValue(row.localId)
         val originalOrder = original.associate { atom(it) to it.orderIndex }
@@ -156,6 +158,7 @@ internal class BoundedDayRebalancer(private val additionalGate: (List<ProgramSke
                     }
                 }
                 if (maxLower(tentative) > lowerBefore) return null
+                if (!PrimaryStrengthAnchorSpacingPolicy.allowedRows(tentative,primaryKeys)) return null
                 if (!additionalGate(tentative)) return null
                 val nextMetrics = metrics(tentative)
                 val beforeAffected = currentMetrics.filter { it.day in affected }

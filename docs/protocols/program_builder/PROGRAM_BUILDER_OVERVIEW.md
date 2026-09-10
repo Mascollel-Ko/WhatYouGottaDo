@@ -3,17 +3,36 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.11.0 |
+| Protocol version | 3.12.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 09ead08af8ba5b76c8f951896a06ec5d3c97d8a4 |
+| Last audited commit | 83d1bd31e70ccb8c33ad84a98edc4c6f3f50f11c |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 
 ## 1. 일반 사용자용 요약
+
+### 3.12.0 — primary-anchor spacing and post-split weekly reflow
+
+This is a deterministic scheduling/product policy, not a physiological coefficient or injury prediction.
+`PrimaryStrengthAnchorSpacingPolicy` protects an exact observed `state.anchors` identity only when it is resistance continuity and its canonical coverage is LOWER_KNEE, POSTERIOR_CHAIN, HORIZONTAL_PUSH, VERTICAL_PUSH, HORIZONTAL_PULL or VERTICAL_PULL. CORE_DIRECT, CALVES, arms and OTHER are excluded. Names, equipment, direct-strength ranking and progression MAIN do not define this predicate.
+
+Repeated exposures of the same protected key require `min(abs(a-b), 7-abs(a-b)) >= 2` on actual calendar weekdays. Sunday/Monday is adjacent. The shared hard gate applies to mandatory split placement, conditional split trials, exact restoration, residual day remapping, frequency relocation and final rebalancing/reflow. Mandatory-split OFI advisory does not override this spacing rule. Infeasible canonical chunks retain their exact authorized Q and visible C/R; no smaller chunks are fabricated.
+
+Production order: authorized demand → placement/split → exact restoration and residual completion → existing bounded rebalancer → `PostSplitWeeklyReflow` → final validation. The reflow activates only for an actually materialized mandatory 6–9-set split parent. Without one, it returns the exact prior result without a new decision trace. It neither authorizes volume nor changes expansion/ranking decisions.
+
+Every split child is fixed, including order and progression identity. Surrounding whole resistance or uniform supportive-performance rows may change only dayOfWeek/orderIndex. A performance-domain label alone is not a weekday binding. CORE_MUST_DO, template anchors, structured/atomic styles or variants, ordered nonuniform prescriptions, structured badminton/court sessions, missing source/session authority and user restrictions are protected. Ordinary unstructured MAIN is not automatically immovable. Each week's immutable fields and bindings are retained; non-isomorphic weeks fail safe unchanged.
+
+The finite objective is lexicographic: existing BalanceObjective (band violations, maximum distance, total distance), then maximum distinct major anchors on a day, then sum of major-anchor co-location pairs. References are fixed initial positive-day median time and canonical OFI, using existing bands. Only a strict improvement is accepted. Candidate ties use priority, stableKey, source/destination weekday and immutable local ID. Whole-item MOVE only, visited assignments, at most 128 accepted moves; no random search or speculative SWAP.
+
+Each move checks same-key destination exclusion, requested time, canonical destination OFI, current restrictions/equipment/eligibility, same-anchor spacing, non-increasing maximum lower/impact seconds and chronological tissue projection. No blocked tissue unit or new unresolved input is allowed; a moved key must be resolved. Unchanged unrelated unresolved catalogue inputs are retained as explicit diagnostics, not represented as full tissue PASS. Existing other-day OFI warnings can remain; the destination must pass.
+
+`PostSplitReflowTrace` is separate from DayRebalancingTrace: activation, parent/chunk IDs, before/after fingerprints, metrics/objectives, moves/rejection counts, spacing, OFI/tissue and invariant Q/C/R. It distinguishes APPLIED, REVIEWED_NO_BENEFICIAL_LEGAL_MOVE, NOT_APPLICABLE_NO_MANDATORY_SPLIT and FAILED_SAFE_UNCHANGED. User-edit detection uses its final fingerprint without overwriting earlier provenance. Stage POST_SPLIT_REFLOW (96%) is emitted once for actual review, not per candidate or elapsed time. Korean/English display is generated through localization authority.
+
+No Legacy Auto, dose/ranking/frequency ownership, OFI/tissue formula, Context C, progression calculation, persistence schema or backup format changes.
 
 ### Record-Based generation progress UI (2026-09-10; numerical protocol unchanged)
 

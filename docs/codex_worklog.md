@@ -1,5 +1,30 @@
 # Codex Worklog
 
+## 2026-09-10 — Post-split weekly reflow and primary-anchor calendar spacing
+
+- Second focused change after prepared-retry commit 83d1bd31e70ccb8c33ad84a98edc4c6f3f50f11c.
+- Verification history: sandbox-change KAPT cache-JAR access failure resolved when full access was restored.
+  Initial full run exposed a stale compatibility inventory and inclusion of the new additive trace field in the historical
+  reflection fingerprint. Regenerated the compatibility inventory and excluded only the additive trace (like existing traces);
+  historical item/prescription/schedule comparisons and the original golden bytes remain unchanged.
+- Focused final components: retry 3, spacing/restoration 5, reflow 13, independent AUTO/3/4/5 backup audit 1 passed.
+  Production reflow now applies a legal whole supportive-item move in the five-day private fixture; other frequencies remain
+  reviewed/no-beneficial-move. Fixed split chunks and Q/C/R remain unchanged. Private records/reports stay ignored, not published.
+- Final verification (2026-09-11): testDebugUnitTest 1,651 total, 1,650 passed, zero failures/errors, one optional
+  private Python-assessment comparison skipped because its separate artifact was not supplied. assembleDebug passed.
+  Unmodified 29-persona golden and Legacy 360-case parity passed; frozen Legacy sources 10/10, protocol 8 families/34 entries,
+  localization tests 10/10 and deterministic generation checks passed; git diff --check passed.
+- Central observed continuity/resistance/major-coverage predicate enforces cyclic weekday distance >=2;
+  no MAIN-only or exercise-name inference. Canonical high-set chunks remain exact with visible shortfall if spacing is impossible.
+- Production post-split stage runs after restoration and existing rebalancing, once after expansion rollback completes.
+  Fixed chunks are immutable. Whole ordinary MAIN rows may move, but prescription, provenance, Q/C/R and progression remain unchanged.
+- Finite strict BalanceObjective/major-dispersion improvement with canonical destination OFI/time, chronological/current tissue,
+  same-key/spacing/equipment/eligibility and lower-concentration gates. Missing authorities fail safe with explicit trace.
+- Separate PostSplitReflowTrace retains before/after metrics and moves; no-split returns the original result.
+  Real-backup audit now independently restores AUTO/3/4/5 cases using unchanged UNKNOWN/UNSURE test assumptions.
+- Protocol 3.12.0 documents placement policy only. POST_SPLIT_REFLOW 96% Korean/English generated through localization authority.
+  No Legacy, physiological formula, ranking/dose, progression calculation or persistence/backup schema changes.
+
 ## 2026-09-10 — Prepared-generation retry ownership
 
 - Clean current origin/main baseline 5f78972d3f3bf3f9a2c91f925d26ab03218fb7ce, fetch/checkout/ff-only verified.

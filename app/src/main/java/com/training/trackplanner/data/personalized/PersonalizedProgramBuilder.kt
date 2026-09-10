@@ -316,6 +316,15 @@ class PersonalizedProgramBuilder(
         frequency: PlanningFrequencyProvenance = PlanningFrequencyProvenance(WeeklyDosePlanner().resolve(state, state.anchors.size + gaps.size),
             request.weeklyTrainingDays, if (explicitWeeklyDays) PlanningFrequencySource.EXPLICIT_USER else PlanningFrequencySource.AUTO),
         progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE): GeneratedProgramSkeleton {
+        val placed = buildBeforeReflow(snapshot, state, gaps, intent, horizon, request, answers, priorDecisionId, explicitWeeklyDays, frequency, progress)
+        val reviewed = PostSplitWeeklyReflow().review(placed, snapshot, state, progress)
+        if (reviewed.trace.state == "NOT_APPLICABLE_NO_MANDATORY_SPLIT") return placed
+        return reviewed.skeleton.copy(personalizedDecision = reviewed.skeleton.personalizedDecision?.copy(postSplitReflow = reviewed.trace))
+    }
+
+    private fun buildBeforeReflow(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, gaps: List<AdaptationGap>, intent: BlockIntent,
+        horizon: Int, request: ProgramSkeletonRequest, answers: PersonalizedPlanningAnswers, priorDecisionId: String?, explicitWeeklyDays: Boolean,
+        frequency: PlanningFrequencyProvenance, progress: PersonalizedPlannerProgressReporter): GeneratedProgramSkeleton {
         if (!frequency.explicitIncrease) return buildCore(snapshot, state, gaps, intent, horizon, request, answers, priorDecisionId,
             explicitWeeklyDays, frequency, progress = progress)
         // BASE is fully evaluated before expansion. Its nested work must not consume expansion's milestone range.

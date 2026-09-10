@@ -111,6 +111,12 @@ internal class SplitAwareContinuityAllocation(private val prescriptions: Persona
                 val index = remaining.indexOfFirst { it.timed === row }
                 check(index >= 0); remaining.removeAt(index)
             } }
+            val actualDays = RecordBasedReviewedPolicy.defaultSchedule(1, days).getValue(1).sorted()
+            val primaryKeys = PrimaryStrengthAnchorSpacingPolicy.keys(snapshot, state,
+                authorized.filter { it.continuity }.mapTo(mutableSetOf()) { it.item.stableKey })
+            if (primaryKeys.any { key -> !PrimaryStrengthAnchorSpacingPolicy.allowed(layout.entries.flatMap { (day, rows) ->
+                rows.filter { it.timed.item.stableKey == key }.map { actualDays[day - 1] }
+            }) }) return null
             if (layout.values.any { rows -> snapshot.planDayProjection?.evaluate(rows.mapIndexed { index, row ->
                 residualItem(snapshot, row.timed.item, row.timed.prescription, "split_trial_$index", 1, index + 1)
             })?.feasible == false }) return null
