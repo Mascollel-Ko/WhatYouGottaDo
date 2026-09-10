@@ -375,6 +375,7 @@ private fun ProgramEditorScreen(
     var personalizedSkeletonCreated by rememberSaveable(program?.id ?: 0L) { mutableStateOf(false) }
     var pendingPersonalizedPreflight by remember { mutableStateOf<PersonalizedPlanningPreflight?>(null) }
     var personalizedAnswers by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    val personalizedRetry = remember(program?.id) { PersonalizedPreparedRetryState() }
     var personalizedDaysOverride by rememberSaveable(program?.id ?: 0L) { mutableStateOf<Int?>(null) }
     var personalizedDurationOverride by rememberSaveable(program?.id ?: 0L) { mutableStateOf<Int?>(null) }
     var lastGenerationWasPersonalized by rememberSaveable { mutableStateOf(false) }
@@ -421,6 +422,7 @@ private fun ProgramEditorScreen(
 
     fun startBlankProgram() {
         if (!requireProgramName()) return
+        personalizedRetry.clear()
         val request = currentRequest()
         legacyAutoDraft = null
         legacyProgressionDraft = LegacyProgressionDraft()
@@ -434,6 +436,7 @@ private fun ProgramEditorScreen(
 
     fun generateSkeleton() {
         if (!requireProgramName()) return
+        personalizedRetry.clear()
         val request = LegacyAutoRequest(
             name = normalizedProgramName(), goal = LegacyAutoGoal.BADMINTON_SUPPORT,
             weeklyTrainingDays = weeklyDays, sessionMinutes = sessionMinutes, durationWeeks = durationWeeks,
@@ -456,8 +459,10 @@ private fun ProgramEditorScreen(
     fun runPreparedPersonalized(preflight: PersonalizedPlanningPreflight, answers: Map<String, String>) {
         if (viewModel.programBuildProgress.value is ProgramBuildProgressState.Running) return
         val frozenAnswers = answers.toMap()
+        val confirmed = personalizedRetry.confirm(preflight, frozenAnswers)
         pendingPersonalizedPreflight = null
-        viewModel.generatePreparedPersonalizedProgram(preflight, PersonalizedPlanningAnswers(frozenAnswers)) { generated ->
+        viewModel.generatePreparedPersonalizedProgram(confirmed.preflight, confirmed.answers) { generated ->
+            personalizedRetry.clear()
             val request = currentRequest()
             legacyAutoDraft = null
             legacyProgressionDraft = LegacyProgressionDraft()
@@ -474,6 +479,8 @@ private fun ProgramEditorScreen(
 
     fun preparePersonalized() {
         if (!requireProgramName()) return
+        if (viewModel.programBuildProgress.value is ProgramBuildProgressState.Running) return
+        personalizedRetry.clear()
         val request = currentRequest()
         lastGenerationWasPersonalized = true
         personalizedAnswers = emptyMap()
@@ -499,6 +506,7 @@ private fun ProgramEditorScreen(
             onAnswer = { id, value -> personalizedAnswers = personalizedAnswers + (id to value) },
             onGenerate = { runPreparedPersonalized(preflight, personalizedAnswers) },
             onDismiss = {
+                personalizedRetry.clear()
                 pendingPersonalizedPreflight = null
                 personalizedAnswers = emptyMap()
             }
@@ -676,7 +684,11 @@ private fun ProgramEditorScreen(
             item {
                 ProgramBuildProgressCard(
                     progress = buildProgress,
-                    onRetry = { if (lastGenerationWasPersonalized) preparePersonalized() else generateSkeleton() }
+                    onRetry = {
+                        if (lastGenerationWasPersonalized) personalizedRetry.retry(::preparePersonalized) {
+                            runPreparedPersonalized(it.preflight, it.answers.values)
+                        } else generateSkeleton()
+                    }
                 )
             }
         }

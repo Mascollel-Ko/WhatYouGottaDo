@@ -1,5 +1,13 @@
 # Codex Worklog
 
+## 2026-09-10 — Prepared-generation retry ownership
+
+- Clean current origin/main baseline 5f78972d3f3bf3f9a2c91f925d26ab03218fb7ce, fetch/checkout/ff-only verified.
+- Editor-owned transient retry payload retains exact preflight and copied confirmed answers after generation failure.
+  Failure-card Retry routes to the prepared payload; preparation failures still rerun preparation. Success/new/cancel clears it.
+- Production retry-state + actual single-flight runner tests cover failing generation, identical retry inputs, mutable UI answer
+  isolation, duplicate Retry, prepare failure and cleanup. Actual PlanScreen wiring is source-guarded; no Room/backup changes.
+
 ## 2026-09-10 — Record-Based preflight-to-progress UX
 
 - Clean origin/main baseline 75207414453386b46876135e31a1784cc9ec069d, fetched/checked out/fast-forward checked.

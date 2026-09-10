@@ -17,6 +17,10 @@
 
 ### Record-Based generation progress UI (2026-09-10; numerical protocol unchanged)
 
+- 확정된 preflight와 방어적으로 복사한 답변은 editor attempt의 `PersonalizedPreparedRetryState`에 보존합니다.
+  prepared generation 실패의 Retry는 같은 payload로 생성만 다시 실행하며, prepare 실패의 Retry만 사전 분석을 반복합니다.
+  성공/새 생성/명시적 취소 시 payload를 지우며 Room/backup에는 저장하지 않습니다. 기존 single-flight/progress/cancellation은 유지합니다.
+
 - `이 답변으로 생성`은 현재 답변을 복사하고 질문 선택 상태를 즉시 종료합니다. ViewModel의 동기 single-flight
   진입으로 중복 요청을 차단하며, 실행 중에는 질문 버튼이 없는 전용 진행 모달을 표시합니다.
 - 제목: `프로그램을 구성하는 중입니다`. 설명: `최적의 프로그램이 아닐 수 있습니다.` 다음 줄에
