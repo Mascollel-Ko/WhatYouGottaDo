@@ -14,7 +14,7 @@ data class PlanningFrequencyProvenance(val recommendation: WeeklyFrequencyEviden
 }
 
 enum class PlanningFundingSource { BASE, USER_FREQUENCY_EXPANSION }
-enum class CandidateRejectionReason { FUNDED, FINITE_CAPACITY, SAFETY_OR_SEMANTIC_REJECTION }
+enum class CandidateRejectionReason { FUNDED, FINITE_CAPACITY, SAFETY_OR_SEMANTIC_REJECTION, MOVEMENT_ANCHOR_CUTOFF, GLOBAL_ANCHOR_CUTOFF }
 
 /** Original prescription and owner travel with the candidate, including unfunded portions. */
 data class CapacityCandidateTrace(val originalRank: Int, val item: PlannedExercise, val prescription: PlannedPrescription,
@@ -34,12 +34,21 @@ data class CapacityCandidateTrace(val originalRank: Int, val item: PlannedExerci
 
 data class FrequencyDemandProvenance(val frequency: PlanningFrequencyProvenance, val candidates: List<CapacityCandidateTrace>,
     val baseAuthorized: List<AuthorizedSchedulingDemand>, val computedCapacity: WeeklyCapacityEnvelope,
-    val actualMaterializedUnits: Int = 0) {
+    val actualMaterializedUnits: Int = 0,
+    val incumbentRanking: List<EligibleIncumbentCandidate> = emptyList(),
+    val retainedIncumbents: List<CapacityCandidateTrace> = emptyList(),
+    val expansionSelectedKeys: Set<String> = emptySet()) {
     val capacityRejected: List<CapacityCandidateTrace> get() = candidates.filter {
         it.rejectionReason == CandidateRejectionReason.FINITE_CAPACITY && it.remainingUnits > 0
     }.sortedBy { it.originalRank }
+    // Separate source domains: authorized finite-capacity demand always precedes anchor-cut history.
+    val expansionSupply: List<CapacityCandidateTrace> get() = capacityRejected + retainedIncumbents
     fun toJson() = JSONObject().put("frequency", frequency.toJson())
         .put("candidates", JSONArray(candidates.map { it.toJson() }))
+        .put("retainedIncumbents", JSONArray(retainedIncumbents.map { it.toJson() }))
+        .put("fullEligibleIncumbentRanking", JSONArray(incumbentRanking.map { candidate -> candidate.toJson(
+            frequency.explicitIncrease && retainedIncumbents.any { it.item.stableKey == candidate.anchor.stableKey },
+            candidate.anchor.stableKey in expansionSelectedKeys) }))
         .put("baseAuthorizedUnits", baseAuthorized.sumOf { it.prescription.sets.size })
         .put("computedCapacityUnits", computedCapacity.finalControllableUnits)
         .put("actualMaterializedUnits", actualMaterializedUnits)

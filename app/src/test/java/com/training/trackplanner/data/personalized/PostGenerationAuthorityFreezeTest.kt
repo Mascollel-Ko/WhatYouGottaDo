@@ -8,9 +8,10 @@ import java.security.MessageDigest
 class PostGenerationAuthorityFreezeTest {
     @Test fun `existing historical demand capacity timing and prescription authorities remain byte frozen`() {
         val root = generateSequence(File(System.getProperty("user.dir")), File::getParentFile).first { File(it, "settings.gradle.kts").isFile }
-        // SHA-256 of LF-normalized sources at baseline 3d3c016; never regenerate for a post-process edit.
+        // Baseline 3d3c016, except the explicitly approved full incumbent ranking in AthletePlanningStateBuilder.
+        // All unrelated historical, style, numerical and prescription authorities remain frozen.
         val frozen = mapOf(
-            "AthletePlanningStateBuilder.kt" to "873b1ea64d2ae6a1e554704edaacb457311120b65d0ad0f8209ef1c9d8aabcd0",
+            "AthletePlanningStateBuilder.kt" to "edc55032496651ad17488b20275f163f51f54c3b57b3aef5c3b64195b06585f7",
             "ExposureRepresentation.kt" to "c50938180f863a2316a8dff8eba21b49afce5cda295eb1ace7c7a7322408e4e8",
             "PersonalizedDecisionComponents.kt" to "c2364c349bd40028049d0028577df999f69efd33c2bd9d503a5499180dc2ff60",
             "ExecutionAllocationPlanner.kt" to "335e1541515bdc706bddb5232956abeff6e4712a821245e6c9f19c76b5479e61",

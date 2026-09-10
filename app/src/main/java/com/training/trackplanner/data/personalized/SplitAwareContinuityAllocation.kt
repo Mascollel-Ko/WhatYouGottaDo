@@ -6,7 +6,8 @@ import org.json.JSONObject
 
 data class AuthorizedAtomOrigin(val authorizedDemandId: String, val splitGroupId: String = "", val splitChunkIndex: Int? = null)
 data class AuthorizedSchedulingDemand(val id: String, val item: PlannedExercise, val prescription: PlannedPrescription, val continuity: Boolean,
-    val fundingSource: PlanningFundingSource = PlanningFundingSource.BASE, val originalRank: Int? = null)
+    val fundingSource: PlanningFundingSource = PlanningFundingSource.BASE, val originalRank: Int? = null,
+    val sourceReason: CandidateRejectionReason? = null)
 data class ContinuitySplitDecision(val authorizedDemandId: String, val eligible: Boolean, val template: List<Int>, val decision: String)
 data class AuthorizedSchedulingTrace(val authorized: List<AuthorizedSchedulingDemand>, val decisions: List<ContinuitySplitDecision>,
     val origins: Map<String, AuthorizedAtomOrigin> = emptyMap(), val initialWeek: List<ProgramSkeletonItem> = emptyList()) {
@@ -14,6 +15,7 @@ data class AuthorizedSchedulingTrace(val authorized: List<AuthorizedSchedulingDe
         .put("authorized", JSONArray(authorized.map { demand -> JSONObject().put("authorizedDemandId", demand.id)
             .put("stableKey", demand.item.stableKey).put("continuity", demand.continuity)
             .put("fundingSource", demand.fundingSource.name).put("originalRank", demand.originalRank)
+            .put("sourceReason", demand.sourceReason?.name)
             .put("gapCodes", JSONArray(demand.item.representedGapCodes.toList())).put("style", demand.item.style.name)
             .put("variant", demand.item.styleVariant).put("sets", demand.prescription.sets.size)
             .put("prescription", demand.prescription.text).put("prescriptionSource", demand.prescription.weightSource)

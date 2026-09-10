@@ -62,7 +62,9 @@ class AthletePlanningStateBuilder(
         val freeWeight = answeredFreeWeight ?: snapshot.preferences.freeWeightWillingness ?: FreeWeightWillingness.UNRESOLVED
         val machineRatio = resistance.count { snapshot.isMachine(it.stableKey) }.toDouble() / resistance.size.coerceAtLeast(1)
         val freeRatio = resistance.count { snapshot.isFreeWeight(it.stableKey) }.toDouble() / resistance.size.coerceAtLeast(1)
-        val anchors = anchors(snapshot)
+        val ranking = rankEligibleIncumbents(anchors(snapshot), snapshot.strengthPerformanceRegistry?.targets()
+            .orEmpty().flatMap { it.anchorStableKeys }.toSet())
+        val anchors = ranking.filter { it.baseSelected }.map { it.anchor }
         val style = styleAnalyzer.analyze(snapshot, anchors.map(UserAnchor::stableKey).toSet())
         val styleFeatures = anchors.associate { it.stableKey to featureAnalyzer.analyze(snapshot, it.stableKey) }
         val weeklyCounts = decisionWindow.filterNot { snapshot.isSportSession(it.stableKey) }
@@ -111,7 +113,8 @@ class AthletePlanningStateBuilder(
             badmintonObjectiveRepresentations = badmintonRepresentations,
             resistanceFoundationalOnramp = movementRepresentations.sumOf(MovementExposureRepresentation::currentExposure28d) == 0.0,
             badmintonFoundationalOnramp = currentStructuredObjectiveSessions == 0,
-            trainingStateAssessment = assessment
+            trainingStateAssessment = assessment,
+            fullEligibleIncumbentRanking = ranking
         )
     }
 
@@ -144,9 +147,7 @@ class AthletePlanningStateBuilder(
                 )
             }
             .sortedWith(compareByDescending<UserAnchor> { it.score }.thenBy(UserAnchor::stableKey))
-            .groupBy(UserAnchor::movementGroup).values.flatMap { it.take(2) }
-            .sortedWith(compareByDescending<UserAnchor> { it.score }.thenBy(UserAnchor::stableKey))
-            .take(9)
+            .toList()
     }
 
 }

@@ -214,7 +214,8 @@ data class PlanningHistorySnapshot(
     val hardRestrictedModes: Set<String> = emptySet(),
     val weekAnnotations: Map<LocalDate, WeeklyContextAnnotation> = emptyMap(),
     val planDayProjection: PlanDayProjection? = null,
-    val planWeekTissueProjection: PlanWeekTissueProjection? = null
+    val planWeekTissueProjection: PlanWeekTissueProjection? = null,
+    val strengthPerformanceRegistry: com.training.trackplanner.analysis.strengthperformance.StrengthPerformanceRegistry? = null
 ) {
     val historyStart: LocalDate get() = allConfirmedSets.minOf(PlanningSetRecord::date)
     val historyDays: Int get() = java.time.temporal.ChronoUnit.DAYS.between(historyStart, cutoff).toInt() + 1
@@ -267,7 +268,8 @@ data class AthletePlanningState(
     val badmintonObjectiveRepresentations: List<BadmintonObjectiveRepresentation> = emptyList(),
     val resistanceFoundationalOnramp: Boolean = false,
     val badmintonFoundationalOnramp: Boolean = false,
-    val trainingStateAssessment: TrainingStateAssessment? = null
+    val trainingStateAssessment: TrainingStateAssessment? = null,
+    val fullEligibleIncumbentRanking: List<EligibleIncumbentCandidate> = emptyList()
 )
 
 data class AdaptationGap(

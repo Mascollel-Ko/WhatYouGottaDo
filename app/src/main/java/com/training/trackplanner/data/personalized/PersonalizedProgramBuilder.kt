@@ -418,6 +418,7 @@ class PersonalizedProgramBuilder(
         val candidates = capacityCandidateTrace(snapshot, state,
             materialCandidates.map { it to false } + originalContinuity.map { it to true } + optionalCandidates.map { it to false },
             selected, prescriptionPlanner)
+        val retained = retainedIncumbentSupply(snapshot, state, gaps, request, candidates, prescriptionPlanner)
         require(selected.isNotEmpty()) { "NO_EXECUTABLE_PLANNING_DEMAND" }
         val allocator = SplitAwareContinuityAllocation(prescriptionPlanner)
         val placement = if (authorizedOverride == null) allocator.allocate(
@@ -537,7 +538,8 @@ class PersonalizedProgramBuilder(
             trainingStateAssessment = state.trainingStateAssessment,
             weeklyFrequencyEvidence = frequency.recommendation,
             frequencyDemand = FrequencyDemandProvenance(frequency, candidates, placement.trace.authorized, envelope,
-                plannedResistanceSets + plannedDrillBouts + plannedAthleticBouts)
+                plannedResistanceSets + plannedDrillBouts + plannedAthleticBouts,
+                state.fullEligibleIncumbentRanking, retained)
         )
         // INITIAL SKELETON: all existing selection, placement, repair, validation and fingerprinting end here.
         val initialSkeleton = repaired.copy(personalizedDecision = decision)

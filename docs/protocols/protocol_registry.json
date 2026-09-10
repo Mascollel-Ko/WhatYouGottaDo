@@ -1369,7 +1369,7 @@
       "familyId": "PROGRAM_BUILDER",
       "titleKo": "자동·기록 기반 프로그램 생성 개요",
       "titleEn": "Automatic and Record-Based Program Builder Overview",
-      "currentVersion": "3.9.0",
+      "currentVersion": "3.10.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1378,8 +1378,10 @@
       ],
       "canonicalDocument": "program_builder/PROGRAM_BUILDER_OVERVIEW.md",
       "implementedFromAppVersion": "v0.4.2.0; independent record-based builder from v0.5.1.4; v0.14.0 execution layer from 2026-09-06",
-      "lastAuditedCommit": "14d98b0b0e610948b6d36d3bb2f6e9161cbdbf8c",
+      "lastAuditedCommit": "f7baebde2bbbe2a2c47a2dd240c29b820ef7d21e",
       "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/data/personalized/EligibleIncumbentRanking.kt",
+        "app/src/main/java/com/training/trackplanner/data/personalized/RetainedIncumbentSupply.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramProgressionModels.kt",
         "app/src/main/java/com/training/trackplanner/data/personalized/FrequencyDemandProvenance.kt",
         "app/src/main/java/com/training/trackplanner/data/personalized/FrequencyExpansionPlanner.kt",

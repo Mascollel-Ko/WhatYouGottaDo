@@ -3,17 +3,38 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.9.0 |
+| Protocol version | 3.10.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 14d98b0b0e610948b6d36d3bb2f6e9161cbdbf8c |
+| Last audited commit | f7baebde2bbbe2a2c47a2dd240c29b820ef7d21e |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 
 ## 1. 일반 사용자용 요약
+
+### Full eligible incumbent ranking (2026-09-10, 3.10.0)
+
+56일 완료 저항운동 이력, 최소 2회 세션, 기존 canonical planning eligibility 및 명시 제한 계약을 유지합니다.
+모든 eligible incumbent를 먼저 정렬하고 movementRank/globalPreCutRank를 기록합니다.
+`baseScore = sessions * 2.0 + sets * 0.15 + responseBonus`이며 기존 responseBonus는
+STRONG_POSITIVE=4, POSITIVE=3, NEGATIVE=-3, 그 외=1입니다.
+활성 `StrengthPerformanceRegistry` 타깃의 정확한 direct anchor stableKey에만 +2.0을 적용합니다.
+이는 **engineering product-priority policy**로 최근 세션 한 회의 순위 단위와 같으며 생리학 계수가 아닙니다.
+Proxy 관계, 장비, 이름, 이동군 또는 MAIN progression role은 보너스 근거가 아닙니다.
+
+finalScore 내림차순/stableKey 동점 정렬 후 movement top2/global top9는 BASE 선택만 합니다.
+BASE_SELECTED, MOVEMENT_ANCHOR_CUTOFF, GLOBAL_ANCHOR_CUTOFF를 별도로 기록하며 후보를 삭제하지 않습니다.
+직접 앵커도 순위가 낮으면 BASE 밖에 남습니다. 자동으로 BASE 연속성을 늘리지 않습니다.
+명시적 D_user>D_algorithm에서만 기존 FINITE_CAPACITY 원순서 뒤에 cut incumbent finalScore 순서를 붙입니다.
+이미 다른 수요 소유자가 있는 키는 중복 공급하지 않습니다. 컷 사유를 FINITE_CAPACITY로 바꾸지 않습니다.
+각 후보의 관측 주당 세트/continuityScore/localDoseFactor로 로컬 수요를 만들고, 해당 후보 자신의
+style features, transition, 기존 continuity planner 및 canonical prescription을 사용합니다.
+현재 equipment/exclusion/tissue/eligibility를 재검사하고 기존 시간/OFI/chronological recovery 및 BASE 보호를 적용합니다.
+`frequencyDemand.fullEligibleIncumbentRanking`과 retainedIncumbents는 점수 분해, 순위, 컷 및 확장 결과를 보존합니다.
+기존 수치 계산, Q/C/R, 확장 비율 및 Legacy Auto는 변경하지 않습니다.
 
 ### Explicit frequency expansion (2026-09-10, 3.9.0)
 
@@ -23,7 +44,7 @@ D_algorithm의 유한 배분을 먼저 실행하여 BASE 승인 처방 B를 고�
 `roundToInt(B * D_user.toDouble() / D_algorithm)`이고, 추가량 상한은 목표−B입니다.
 이 비율은 **engineering product volume-release policy**이지 생리학적 용량-반응 법칙이 아닙니다.
 
-- 미리 보존한 FINITE_CAPACITY 후보만 원래 rank 순서로 복원합니다. exclusion/equipment/eligibility/
+- 미리 보존한 FINITE_CAPACITY 후보를 원래 rank 순서로 먼저 복원합니다(3.10.0의 cutoff tier는 그 뒤). exclusion/equipment/eligibility/
   현재 제한을 다시 검사하며, 안전/semantic 탈락은 복원하지 않습니다. 원본 prescription과 gap/objective/
   continuity 소유권을 유지합니다. BASE 처방 자체를 비례 증량하지 않습니다.
 - 실제 상한은 수학적 목표, D_user의 기존 ExecutionCapacityPlanner envelope, 원래 유효 미지원 수요의

@@ -26,9 +26,9 @@ class FrequencyExpansionPlannerTest {
         return plan.copy(personalizedDecision = decision(3).copy(frequencyDemand = FrequencyDemandProvenance(frequency(3), queue(), demand, f.envelope(), 18)))
     }
     private fun expand(days: Int = 5, snapshot: PlanningHistorySnapshot = snapshot(), candidates: List<CapacityCandidateTrace> = queue(),
-        forceSameDay: Boolean = false): GeneratedProgramSkeleton {
+        forceSameDay: Boolean = false, retained: List<CapacityCandidateTrace> = emptyList()): GeneratedProgramSkeleton {
         val base = base().let { it.copy(personalizedDecision = it.personalizedDecision!!.copy(
-            frequencyDemand = it.personalizedDecision!!.frequencyDemand!!.copy(candidates = candidates))) }
+            frequencyDemand = it.personalizedDecision!!.frequencyDemand!!.copy(candidates = candidates, retainedIncumbents = retained))) }
         val state = f.state(snapshot)
         val request = base.request.copy(weeklyTrainingDays = days)
         return FrequencyExpansionPlanner().expand(snapshot, state, request, base, frequency(days)) { authorized, envelope ->
@@ -91,6 +91,16 @@ class FrequencyExpansionPlannerTest {
         assertEquals(trace.toJson().toString(), 7, trace.finalExpandedUnits)
         assertEquals(25, trace.actualFinalMaterializedUnits)
         assertEquals(30, trace.mathematicalExpandedTarget)
+    }
+    @Test fun cutoffIncumbentsFollowFiniteCapacityWithoutLosingTheirReason() {
+        val retained = queue().drop(1).map { it.copy(rejectionReason = CandidateRejectionReason.GLOBAL_ANCHOR_CUTOFF) }
+        val plan = expand(candidates = queue().take(1), retained = retained)
+        val trace = plan.personalizedDecision!!.frequencyExpansion!!
+        assertEquals(listOf(4, 5, 6), trace.expansionAttempts.filter { it.action == "AUTHORIZED" }.map { it.rank })
+        assertEquals("FINITE_CAPACITY_RECOVERED", trace.expansionAttempts.first().reason)
+        assertEquals("GLOBAL_ANCHOR_CUTOFF_RECOVERED", trace.expansionAttempts[1].reason)
+        assertTrue(plan.personalizedDecision!!.frequencyDemand!!.expansionSelectedKeys.contains("other"))
+        assertEquals(18, trace.unitOrigins.count { it.fundingSource == PlanningFundingSource.BASE })
     }
     @Test fun excludesAndSafetyRejectionsNeverRevive() {
         val queue = queue().map { if (it.originalRank == 5) it.copy(rejectionReason = CandidateRejectionReason.SAFETY_OR_SEMANTIC_REJECTION) else it }

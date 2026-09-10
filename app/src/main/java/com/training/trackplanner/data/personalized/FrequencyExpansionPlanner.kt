@@ -69,7 +69,7 @@ internal class FrequencyExpansionPlanner(private val prescriptions: Personalized
         val provenance = requireNotNull(baseDecision.frequencyDemand)
         val baseDemand = provenance.baseAuthorized
         val b = baseDemand.sumOf { it.prescription.sets.size }
-        val queue = provenance.capacityRejected
+        val queue = provenance.expansionSupply
         val target = frequencyExpandedTarget(b, frequency.algorithmRecommendedDays, frequency.resolvedUserDays)
         val budget = requireNotNull(baseDecision.planningBudget)
         val capacity = ExecutionCapacityPlanner().envelope(snapshot, state, request, budget.baselineResistanceSets,
@@ -91,11 +91,11 @@ internal class FrequencyExpansionPlanner(private val prescriptions: Personalized
                 !eligible -> "OTHER_EXISTING_HARD_GATE"
                 remaining <= 0 -> if (capacity.finalControllableUnits <= target) "USER_DAY_CAPACITY_LIMIT" else "EXPANSION_CEILING"
                 rx == null -> "PRESCRIPTION_ATOMICITY"
-                else -> "FINITE_CAPACITY_RECOVERED"
+                else -> "${candidate.rejectionReason.name}_RECOVERED"
             }
             attempts += FrequencyExpansionAction(candidate.originalRank, key, rx?.sets?.size ?: 0, if (rx == null) "REJECTED" else "AUTHORIZED", reason)
             if (rx != null) expansion += AuthorizedSchedulingDemand("frequency_${candidate.originalRank}", candidate.item.copy(targetSets = rx.sets.size),
-                rx, candidate.continuity, PlanningFundingSource.USER_FREQUENCY_EXPANSION, candidate.originalRank)
+                rx, candidate.continuity, PlanningFundingSource.USER_FREQUENCY_EXPANSION, candidate.originalRank, candidate.rejectionReason)
         }
         val initialExtra = expansion.sumOf { it.prescription.sets.size }
         var diagnostic = when {
@@ -211,7 +211,8 @@ internal class FrequencyExpansionPlanner(private val prescriptions: Personalized
             rollbacks, finalOrigins, actual, finalTissue, finalLoads, diagnostic)
         val decision = requireNotNull(result.personalizedDecision)
         fun count(kind: PlannedActivityKind) = finalRows.filter { snapshot.activityKind(it.exerciseStableKey) == kind }.sumOf { it.setPrescriptions.size }
-        return result.copy(personalizedDecision = decision.copy(frequencyDemand = provenance.copy(actualMaterializedUnits = actual),
+        return result.copy(personalizedDecision = decision.copy(frequencyDemand = provenance.copy(actualMaterializedUnits = actual,
+            expansionSelectedKeys = expansion.mapTo(linkedSetOf()) { it.item.stableKey }),
             frequencyExpansion = trace, originalGenerationFingerprint = personalizedProgramFingerprint(result.request, result.items),
             planningBudget = decision.planningBudget?.let { it.copy(plannedResistanceSets = count(PlannedActivityKind.RESISTANCE),
                 plannedStructuredBadmintonBouts = count(PlannedActivityKind.STRUCTURED_BADMINTON_DRILL),

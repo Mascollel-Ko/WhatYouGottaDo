@@ -180,6 +180,7 @@ internal class PersonalizedProgramPlanningService(
         } ?: ExerciseRoleRelationCatalog.EMPTY
         val snapshot = snapshotBuilder.build(cutoff, history, exercises, metadata, badmintonCatalog, profile, preferences, canonicalStrength, recovery, roleCatalog)
         return snapshot.copy(performancePrescriptions = performancePrescriptions,
+            strengthPerformanceRegistry = strengthPerformanceRegistry,
             planWeekTissueProjection = tissueProjectionProvider(cutoff),
             planDayProjection = com.training.trackplanner.data.personalized.PlanDayOfiProjection(cutoff,
                 DailyFatigueCalculator(runtimeCatalog, canonicalOfiAxisProfiles,

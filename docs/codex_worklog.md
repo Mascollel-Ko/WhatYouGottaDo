@@ -1,5 +1,20 @@
 # Codex Worklog
 
+## 2026-09-10 — Full eligible incumbent ranking
+
+- Clean main baseline: f7baebde2bbbe2a2c47a2dd240c29b820ef7d21e, fetched and fast-forward checked.
+- Preserve every eligible incumbent before movement top2/global top9 BASE selection, with typed cut provenance.
+- Canonical enabled direct strength targets receive +2.0 engineering ranking priority; proxy relations do not transfer it.
+- Explicit higher-frequency supply remains tiered: original finite-capacity candidates, then retained cutoff incumbents.
+  Own history/style/transition/local-dose/prescription and existing safety gates remain authoritative.
+- Private backup artifacts remain under ignored build/private-audit; pre-change reports preserved separately.
+- Only the explicitly authorized AthletePlanningStateBuilder ranking freeze is advanced; unrelated frozen authorities remain unchanged.
+- Verification: full testDebugUnitTest 1612 tests / 1611 pass / 0 failures / 0 errors / 1 optional Python-actual parity skip;
+  assembleDebug PASS; 29 personas, Legacy 360 parity, 10/10 Legacy source verification, protocol validation and diff check PASS.
+- Cutoff 2026-09-02 private audit: deadlift 4 sessions/13 sets, UNKNOWN, base 10.95 +2 =12.95,
+  movement rank 2/global rank 11, GLOBAL_ANCHOR_CUTOFF. RDL 5/16, POSITIVE, 15.4 +0, movement 1/global 4 BASE.
+  Five-day expansion authorized deadlift 2 sets, then removed them under OFI_CONSTRAINT; no preferred output forced.
+
 ## 2026-09-10 — Frequency expansion stage 2: explicit useful-demand release
 
 - Stage 1 commit `d6524e84630286cc3ebdf8b86cd907a53ce44faf` was tested and clean before stage 2.
