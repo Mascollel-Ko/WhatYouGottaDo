@@ -79,10 +79,25 @@ internal fun writeFrequencyAudit(label: String, plan: GeneratedProgramSkeleton, 
         }
     }
     val tissue = trace?.tissueProjection ?: snapshot.planWeekTissueProjection?.evaluate(first, plan.weekPlans.first().targetRpeMax)
+    val scheduling = decision.authorizedScheduling
+    val splitAudit = scheduling?.authorized.orEmpty().filter { ContinuitySplitPolicy.mandatory(snapshot, it) }.map { parent ->
+        val rows = first.filter { scheduling!!.localOrigins[it.localId]?.authorizedDemandId == parent.id }
+        val materialized = rows.sumOf { it.setCount }
+        val expected = ContinuitySplitPolicy.template(parent.prescription.sets.size, plan.request.weeklyTrainingDays)
+        assertTrue(rows.map { it.dayOfWeek }.distinct().size == rows.size)
+        if (materialized == parent.prescription.sets.size) assertEquals(expected.sorted(), rows.map { it.setCount }.sorted())
+        JSONObject().put("parentId", parent.id).put("stableKey", parent.item.stableKey).put("eligible", true)
+            .put("Q", parent.prescription.sets.size).put("C", materialized).put("R", parent.prescription.sets.size - materialized)
+            .put("canonicalPartition", JSONArray(expected)).put("chunks", JSONArray(rows.map { it.setCount }))
+            .put("days", JSONArray(rows.map { it.dayOfWeek })).put("fundingSource", parent.fundingSource.name)
+    }
     val report = JSONObject().put("cutoff", decision.historyCutoff).put("answers", JSONObject(decision.userAnswers))
         .put("answerAuthority", "TEST_ASSUMPTIONS_NOT_USER_CONFIRMATIONS; same UNKNOWN/UNSURE answers as previous audit")
         .put("frequencyDemand", provenance.toJson()).put("frequencyExpansion", trace?.toJson())
         .put("actualFinalUnits", count).put("tissueProjection", tissue?.toJson())
+        .put("splitAudit", JSONArray(splitAudit)).put("authorizedScheduling", scheduling?.toJson())
+        .put("residualCompletion", decision.residualCompletion?.toJson())
+        .put("fixedSplitRelocationReview", reviewFixedSplitRelocations(plan, snapshot))
         .put("program", JSONArray(first.map(::auditPlannedItem)))
     val root = generateSequence(File(System.getProperty("user.dir")), File::getParentFile).first { File(it, "settings.gradle.kts").isFile }
     val directory = File(root, "build/private-audit/frequency-expansion").apply { mkdirs() }

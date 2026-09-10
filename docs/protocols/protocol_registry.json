@@ -1369,7 +1369,7 @@
       "familyId": "PROGRAM_BUILDER",
       "titleKo": "자동·기록 기반 프로그램 생성 개요",
       "titleEn": "Automatic and Record-Based Program Builder Overview",
-      "currentVersion": "3.10.0",
+      "currentVersion": "3.11.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1378,8 +1378,10 @@
       ],
       "canonicalDocument": "program_builder/PROGRAM_BUILDER_OVERVIEW.md",
       "implementedFromAppVersion": "v0.4.2.0; independent record-based builder from v0.5.1.4; v0.14.0 execution layer from 2026-09-06",
-      "lastAuditedCommit": "f7baebde2bbbe2a2c47a2dd240c29b820ef7d21e",
+      "lastAuditedCommit": "09ead08af8ba5b76c8f951896a06ec5d3c97d8a4",
       "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/data/personalized/MandatoryContinuityPlacement.kt",
+        "app/src/main/java/com/training/trackplanner/data/personalized/SplitParentProgression.kt",
         "app/src/main/java/com/training/trackplanner/data/personalized/EligibleIncumbentRanking.kt",
         "app/src/main/java/com/training/trackplanner/data/personalized/RetainedIncumbentSupply.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramProgressionModels.kt",

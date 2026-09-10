@@ -3,17 +3,48 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.10.0 |
+| Protocol version | 3.11.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | f7baebde2bbbe2a2c47a2dd240c29b820ef7d21e |
+| Last audited commit | 09ead08af8ba5b76c8f951896a06ec5d3c97d8a4 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 
 ## 1. 일반 사용자용 요약
+
+### High-set continuity distribution (2026-09-10, 3.11.0)
+
+승인된 ordinary straight-set continuity의 6–9세트는 시간 여유나 목적함수의 엄격 개선 여부와 관계없이
+기본적으로 분할합니다: **6→3+3, 7→3+4, 8→4+4, 9→3+3+3**. 정확히 2일이면 **9→4+5**입니다.
+1–3은 유지하고 4→2+2, 5→3+2는 기존 조건부 비교를 유지합니다. 이는 **distribution policy**이며
+상류의 주간 세트 승인량을 늘리거나 줄이지 않습니다. 특정 운동 예외는 없습니다.
+
+- 기존 typed eligibility(저항운동, uniform straight sets, blank structured variant)를 사용합니다.
+  TOP_SET/BACKOFF, HLM, DUP, Madcow/ramping, atomic performance 및 비균일 처방은 분할하지 않습니다.
+- 같은 부모의 청크는 서로 다른 실제 scheduled day를 사용합니다. 유한한 청크/일 조합을 결정론적으로
+  검색하며 시간, same-key, 현재 조직 제한 및 chronological recovery를 통과해야 합니다.
+  **2026-09-10 사용자 후속 승인:** 이미 승인된 6–9세트의 분할 배치/정확 복원에서는 OFI를 차단하지 않고
+  `ADVISORY_AUTHORIZED_HIGH_SET_SPLIT` 경고와 실제 OFI/axis/caution 값을 남깁니다. 9를 한날에 재합치지 않습니다.
+  이 예외는 4/5세트 조건부 분할이나 새로운 frequency expansion 승인, 다른 운동 이동의 gate에는 적용하지 않습니다.
+  OFI 수식/임계값은 그대로이며, 경고 상태를 안전 통과로 표시하지 않습니다.
+  기존 무관한 unresolved identity는 진단으로 남지만 해당 분할 key의 미해석 또는 downstream 조직 차단은 허용하지 않습니다.
+- 전량 배치 불가 시 작은 임의 청크나 추가 훈련일을 만들지 않습니다. 원래 Q와 exact parent를 유지하고
+  materialized C 및 R 부족분, 실패한 hard gate를 명시합니다. exact restoration도 같은 canonical partition을 사용하며
+  semantic substitution보다 먼저 실행됩니다. 예: Q9/C6/R3 또는 Q9/C9/R0.
+- authorizedDemandId, splitGroupId/chunkIndex, continuity owner, originalRank, BASE/USER_FREQUENCY_EXPANSION
+  funding provenance를 보존합니다. 확장은 WHAT 승인량이고 분할은 HOW 배치입니다.
+- localId→parent의 명시적 관계로 신규 split draft progression session을 연결합니다. 4+5처럼 크기가 달라도
+  같은 부모가 임의의 독립 진행 체인이 되지 않습니다. 사용자 연결/분리/OFF와 persisted binding은 재그룹하지 않습니다.
+  저장/재로딩/적용/날짜 이동/backup의 기존 binding 형식을 사용하며 schema 변경은 없습니다.
+- 초기 생성 지문은 보존합니다. 미수정 저장의 비교 기준은 확장 결과가 있으면 기존 최종 확장 지문,
+  없으면 최종 재배치/복원 지문이며, 자동 분할을 사용자 수정으로 오인하지 않습니다.
+  일반 BoundedDayRebalancer loop-entry, MAIN 역할 및 수치 분석 authority는 변경하지 않습니다.
+- 후속 실제 백업 감사에서는 split을 고정하고 MAIN/CORE/구조적 보호를 유지한 채 다른 운동의 단일 이동을
+  기존 시간/OFI/조직 및 balance objective로 읽기 전용 재검토합니다. `fixedSplitRelocationReview`는
+  유리한 이동과 거부 사유를 기록하며 자동 재배치 규칙을 추가하지 않습니다.
 
 ### Full eligible incumbent ranking (2026-09-10, 3.10.0)
 
@@ -52,7 +83,7 @@ D_algorithm의 유한 배분을 먼저 실행하여 BASE 승인 처방 B를 고�
   원본 세트 내용/휴식/source와 정확히 일치하는 유연한 처방만 가능합니다. 구조적 처방은 원자적입니다.
 - BASE + USER_FREQUENCY_EXPANSION을 사용자 일수로 새로 배치합니다. 기존 timed/split/exact restoration/
   residual Q/C/R을 사용합니다. 별도 EXPANSION_UNITS 의미 단위는 만들지 않습니다. 4→2+2, 5→3+2,
-  6→3+3만 유지하며 7/8/9 확장은 없습니다. 최종 세트마다 원본 승인 ID와 funding source/rank를 감사합니다.
+  3.11.0의 6–9 mandatory distribution을 적용합니다. 최종 세트마다 원본 승인 ID와 funding source/rank를 감사합니다.
 - PlanDayOfiProjection/DailyFatigueCalculator의 기존 OFI <87, axis caution 없음, caution reason 없음과
   시간/same-key gate를 검사합니다. 기존 일반 rebalancer loop-entry/threshold 및 MAIN 보호는 그대로입니다.
   상대 비율이 in-band여도 절대 hard gate에 실패한 추가 구성은 승인하지 않습니다.
@@ -127,14 +158,14 @@ coverage이며 R=max(0,Q-C)입니다. 예를 들어 continuity squat 4 + LOWER_K
 
 유한 용량 승인 뒤 continuity/material/optional의 정확한 처방을 한 번 고정합니다. 기존 timed allocator와
 TimedWeeklyPlacementPlanner 자체는 변경하지 않고, 별도 SplitAwareContinuityAllocation이 승인 연속성 처방의
-미분할·분할 배치를 비교합니다. 1/2/3세트는 유지, 4→2+2, 5→3+2, 6→3+3만 허용합니다. 7세트 이상은
-새 규칙 없이 기존 결과를 보존하고 감사에 남깁니다. 분할은 주간 수요 증가가 아닌 engineering scheduling policy입니다.
+미분할·분할 배치를 비교합니다. 1/2/3세트는 유지, 4→2+2, 5→3+2는 조건부 비교입니다.
+6–9세트는 위 3.11.0 canonical distribution이 이 초기 정책을 대체합니다. 분할은 주간 수요 증가가 아닌 engineering scheduling policy입니다.
 
 - resistance continuity이고 실제 승인 set 수가 4..6이며 typed style이 NONE/STRAIGHT_5X5/STRAIGHT_STRENGTH_SETS,
   variant가 비어 있고 index를 제외한 모든 세트 내용이 같을 때만 가능합니다. TOP_SET, HLM/DUP/Madcow, 미확정 스타일,
   ramping/비균일 처방, performance 구조는 제외합니다. 현재 초기 builder의 requiredTemplateAnchor는 기본 false이며
   고정 구조는 기존 typed style/variant로 제외됩니다. 사용자 처방 문장을 파싱하지 않습니다.
-- 원래 full unsplit을 먼저 시험합니다. full이 실패하고 split이 전량 배치되거나, 양쪽 모두 전량 배치되면서 split의
+- 4/5세트는 원래 full unsplit을 먼저 시험합니다. full이 실패하고 split이 전량 배치되거나, 양쪽 모두 전량 배치되면서 split의
   max day seconds가 엄격히 작고 기존 lower/impact maximum이 증가하지 않을 때만 split을 선택합니다.
   동률은 unsplit이며 둘 다 불가능하면 기존 안전한 축소/유예를 유지합니다. 새 가중 점수/최소 볼륨/회복 간격은 없습니다.
 - 기존 scheduler의 다른 날 배치·같은 key 같은 날 충돌·시간 상한 및 current restriction/사용 가능한 canonical OFI gate를

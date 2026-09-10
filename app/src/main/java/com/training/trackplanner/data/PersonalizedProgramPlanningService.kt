@@ -108,12 +108,12 @@ internal class PersonalizedProgramPlanningService(
         val constraints = preflight.constraints
         val personalizedRequest = resolvePersonalizedRequest(preflight.request, constraints, state.programGoal, recommendedDays, recommendedHorizon)
         val priorId = appMetaDao.latestByPrefix("$DECISION_PREFIX%")?.value?.let(::decisionIdFromJson)
-        return programBuilder.build(snapshot, state, gaps, intent, personalizedRequest.durationWeeks, personalizedRequest, answers, priorId,
+        return com.training.trackplanner.data.personalized.bindSplitParentProgression(programBuilder.build(snapshot, state, gaps, intent, personalizedRequest.durationWeeks, personalizedRequest, answers, priorId,
             explicitWeeklyDays = constraints.explicitWeeklyTrainingDays != null,
             frequency = com.training.trackplanner.data.personalized.PlanningFrequencyProvenance(frequencyEvidence,
                 personalizedRequest.weeklyTrainingDays, if (constraints.explicitWeeklyTrainingDays != null)
                     com.training.trackplanner.data.personalized.PlanningFrequencySource.EXPLICIT_USER
-                else com.training.trackplanner.data.personalized.PlanningFrequencySource.AUTO))
+                else com.training.trackplanner.data.personalized.PlanningFrequencySource.AUTO)))
     }
 
     /** Compatibility wrapper for callers that have not yet adopted the two-phase API. */
@@ -366,7 +366,8 @@ internal class PersonalizedProgramPlanningService(
 }
 
 internal fun isPersonalizedProgramEdited(decision: PersonalizedPlanningDecision, finalFingerprint: String): Boolean =
-    (decision.dayRebalancing?.finalFingerprint ?: decision.residualCompletion?.completedFingerprint ?: decision.originalGenerationFingerprint).let { generated ->
+    (if (decision.frequencyExpansion != null) decision.originalGenerationFingerprint
+    else decision.dayRebalancing?.finalFingerprint ?: decision.residualCompletion?.completedFingerprint ?: decision.originalGenerationFingerprint).let { generated ->
         generated.isNotBlank() && generated != finalFingerprint
     }
 

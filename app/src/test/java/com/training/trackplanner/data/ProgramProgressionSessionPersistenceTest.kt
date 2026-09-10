@@ -172,4 +172,45 @@ class ProgramProgressionSessionPersistenceTest {
         assertEquals(snapshot.tracks.sortedBy { it.id }, loaded.progressionSessions.map { it.track }.sortedBy { it.id })
         assertEquals(snapshot.bindings.map { it.logicalItemId }.toSet(), loaded.items.map { it.progressionBinding!!.logicalItemId }.toSet())
     }
+    @Test fun highSetParentSessionSurvivesSaveReloadApplyAndBackupForTwoAndThreeDays() = runBlocking {
+        for (days in listOf(2, 3)) {
+            val db = database()
+            db.exerciseDao().insertExercise(Exercise("press", "Press", "Strength", activityKind = "TRAINING_EXERCISE", volumeLoadEligible = true))
+            val draft = bindSplitParentProgression(SplitParentProgressionTest().plan(9, days)).reconcileProgression(setOf("press"))
+            val id = service(db).saveGeneratedProgram(null, draft)
+            val loaded = editor(db, id)
+            assertEquals(1, loaded.progressionSessions.size)
+            assertEquals(draft.progressionSessions.single().key, loaded.progressionSessions.single().key)
+            assertTrue(loaded.items.groupBy { it.weekNumber }.values.all { rows -> rows.sumOf { it.setCount } == 9 })
+            service(db).saveGeneratedProgram(id, loaded)
+            service(db).applyProgramToDates(id, "2026-09-07", ProgramApplyMode.Append)
+            assertEquals(27, db.workoutDao().allEntriesWithSets().sumOf { it.sets.size })
+            assertTrue(db.workoutDao().allEntriesWithSets().flatMap { it.sets }.none { it.confirmed })
+            assertEquals(1, db.programProgressionDao().links().map { it.trackId }.distinct().size)
+            // The production backup wrapper assigns source IDs before exporting execution links.
+            db.workoutDao().entriesMissingBackupSourceId().forEach { entry ->
+                db.workoutDao().updateEntry(entry.copy(backupSourceId = UUID.randomUUID().toString()))
+            }
+            val snapshot = TrainingRepository(db, context).programEditorSnapshot(id)
+            val exported = ProgramProgressionBackup.export(db)
+            ProgramProgressionBackup.validate(exported)
+            val restored = database()
+            restored.exerciseDao().insertExercise(Exercise("press", "Press", "Strength", activityKind = "TRAINING_EXERCISE", volumeLoadEligible = true))
+            val newId = restored.programDao().insertProgram(snapshot.program.copy(id = 0))
+            snapshot.items.forEach { item ->
+                val itemId = restored.programDao().insertProgramItem(item.copy(id = item.id + 100, programId = newId))
+                restored.programDao().insertProgramItemSets(snapshot.sets.filter { it.programItemId == item.id }.map { it.copy(id = 0, programItemId = itemId) })
+            }
+            val entriesBySource = db.workoutDao().allEntriesWithSets().associate { record ->
+                val newEntry = restored.workoutDao().insertEntry(record.entry.copy(id = 0))
+                record.sets.forEach { restored.workoutDao().insertSet(it.copy(id = 0, entryId = newEntry)) }
+                requireNotNull(record.entry.backupSourceId) to newEntry
+            }
+            ProgramProgressionBackup.restore(restored, exported, entriesBySource)
+            val roundTrip = editor(restored, newId)
+            assertEquals(snapshot.tracks, roundTrip.progressionSessions.map { it.track })
+            assertEquals(snapshot.bindings.map { it.logicalItemId }.toSet(), roundTrip.items.map { it.progressionBinding!!.logicalItemId }.toSet())
+            assertEquals(1, restored.programProgressionDao().links().map { it.trackId }.distinct().size)
+        }
+    }
 }

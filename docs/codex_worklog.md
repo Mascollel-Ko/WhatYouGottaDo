@@ -1,5 +1,38 @@
 # Codex Worklog
 
+## 2026-09-10 — High-set continuity distribution
+
+- Separate stage after verified commit 09ead08af8ba5b76c8f951896a06ec5d3c97d8a4.
+- Mandatory eligible straight continuity partitions: 6=3+3, 7=3+4, 8=4+4, 9=3+3+3; exactly two days 9=4+5.
+  Existing 1–5 conditional behavior and structured/atomic exclusions remain. Upstream weekly authorization is unchanged.
+- Distinct-day search retains exact parent/funding/ownership/rank, rejects time/tissue violations and leaves exact shortfall.
+  Exact restoration cannot remerge mandatory partitions. Q/C/R and residual ordering remain unchanged.
+- Explicit local parent provenance binds new split progression sessions without name/key-fragment inference, fake style,
+  new schema, or regrouping persisted/user-authored session choices. Final generated fingerprint includes automated final placement.
+- First focused run: 48/49 pass; real-backup unchanged-save assertion exposed stale initial fingerprint after automatic
+  split/restoration. Corrected generation provenance; no user-edit or scheduling semantics broadened.
+- User follow-up explicitly chose OFI-advisory complete 3+3+3 placement, not a whole-nine fallback. This override applies
+  only to already-authorized mandatory high-set splitting/exact restoration; OFI formula/thresholds and expansion/move gates stay unchanged.
+- User also requested reevaluation of moving other exercises with splits fixed. Added a read-only exact-source audit using
+  existing MAIN/CORE/structure protection, time/OFI/tissue gates and the existing balance objective; no general loop change.
+- Second focused run: 58/60 passed. Five-day fallback exposed save comparison against pre-expansion fingerprint;
+  final expansion fingerprint now owns that comparison. The new backup fixture was missing source IDs assigned by the
+  production wrapper; fixture now includes source-ID assignment and restores applied entries/sets before execution links.
+- Final focused rerun: 73/73 passed. Independent private 3/4/5-day plans retain BASE 46 units; calf parent authorized_6
+  materializes 3+3+3 with Q=9/C=9/R=0 on days 1/3/5, 1/4/6, and 1/4/6 respectively. Five-day expansion rolls back
+  all 12 extra units under existing OFI constraints, including both conventional-deadlift sets; BASE remains intact.
+- Fixed-split single-move review: no permitted beneficial destination in 3/4-day plans. Five-day Pallof press day 1 to 7
+  improves the existing balance objective: day 1 minutes/OFI 24.5/91 to 20.75/85; day 7 18.25/39 to 22/49.
+  This is an audit recommendation, not an applied production move; the whole-week expansion OFI gate is unchanged.
+  High split OFI warnings remain visible, and the existing unresolved badminton event identity is not reported as tissue-safe.
+- First full rerun: 1619 tests, 1617 pass, one failure and one optional skip. Existing source guard caught an unnecessary
+  overwrite of the initial builder fingerprint. Removed that overwrite; initial provenance remains intact and saved-edit
+  comparison uses the existing final expansion fingerprint when present, otherwise the final rebalancing/completion fingerprint.
+- Final full verification: testDebugUnitTest 1619 tests / 1618 pass / 0 failures / 0 errors / 1 optional skip
+  (private v0131_python_actual.json not supplied); assembleDebug PASS in the same successful 7m03s invocation.
+  BoundedDayRebalancer 58/58, 29-persona matrix, Legacy 360 parity, private backup independent 3/4/5-day and lifecycle
+  checks PASS. Protocol validation (8 families/34 protocols), frozen Legacy sources 10/10 and git diff --check PASS.
+
 ## 2026-09-10 — Full eligible incumbent ranking
 
 - Clean main baseline: f7baebde2bbbe2a2c47a2dd240c29b820ef7d21e, fetched and fast-forward checked.

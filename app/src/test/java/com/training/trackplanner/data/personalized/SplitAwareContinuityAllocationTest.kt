@@ -15,9 +15,11 @@ class SplitAwareContinuityAllocationTest {
             parent.item.copy(targetSets = baselineCount), parent.prescription.copy(sets = parent.prescription.sets.take(baselineCount)))) else emptyList() }, emptyList())
         return SplitAwareContinuityAllocation(PersonalizedPrescriptionPlanner()).improve(source, f.state(source), listOf(parent), baseline, days, minutes)
     }
-    @Test fun `canonical table is exact and no rule is invented for seven plus`() {
-        assertEquals(listOf(listOf(1), listOf(2), listOf(3), listOf(2, 2), listOf(3, 2), listOf(3, 3), listOf(7)),
-            (1..7).map(ContinuitySplitPolicy::template))
+    @Test fun `canonical table through nine conserves exact weekly volume`() {
+        assertEquals(listOf(listOf(1), listOf(2), listOf(3), listOf(2, 2), listOf(3, 2), listOf(3, 3), listOf(3, 4), listOf(4, 4), listOf(3, 3, 3)),
+            (1..9).map { ContinuitySplitPolicy.template(it) })
+        assertEquals(listOf(4, 5), ContinuitySplitPolicy.template(9, 2))
+        for (days in 2..5) for (count in 1..9) assertEquals(count, ContinuitySplitPolicy.template(count, days).sum())
     }
     @Test fun `four five six split preserve every weekly prescription field except local index`() {
         for (count in 4..6) {
@@ -52,7 +54,7 @@ class SplitAwareContinuityAllocationTest {
         val forbidden = setOf(StrengthProgrammingStyle.TOP_SET_BACKOFF, StrengthProgrammingStyle.TOP_SET_HYPERTROPHY,
             StrengthProgrammingStyle.HEAVY_LIGHT_MEDIUM, StrengthProgrammingStyle.DUP_LIKE_UNDULATING,
             StrengthProgrammingStyle.MADCOW_LIKE_HLM_RAMPING, StrengthProgrammingStyle.UNRESOLVED)
-        forbidden.forEach { style -> assertFalse(ContinuitySplitPolicy.eligible(snapshot, parent(5, style = style))) }
+        forbidden.forEach { style -> for (count in 5..9) assertFalse(ContinuitySplitPolicy.eligible(snapshot, parent(count, style = style))) }
         assertFalse(ContinuitySplitPolicy.eligible(snapshot, parent(4).let { it.copy(item = it.item.copy(styleVariant = "HEAVY")) }))
     }
     @Test fun `nonuniform ordered prescriptions and noncontinuity are ineligible`() {
@@ -63,21 +65,53 @@ class SplitAwareContinuityAllocationTest {
         val performance = snapshot.copy(metadata = snapshot.metadata.mapValues { (_, meta) -> meta.copy(activityKind = "STRUCTURED_BADMINTON_DRILL") })
         assertFalse(ContinuitySplitPolicy.eligible(performance, parent))
     }
-    @Test fun `one to three and seven plus preserve existing behavior`() {
-        for (count in listOf(1, 2, 3, 7)) {
+    @Test fun `one to three preserve existing behavior`() {
+        for (count in listOf(1, 2, 3)) {
             val result = improve(parent(count))
             assertEquals(1, result.days.values.flatten().size)
             assertEquals(count, result.days.values.flatten().sumOf { it.timed.prescription.sets.size })
         }
-        assertEquals("UNSUPPORTED_7_PLUS_PRESERVED", improve(parent(7)).trace.decisions.single().decision)
     }
-    @Test fun `hard time blocked chunks retain previous safe reduction`() {
+    @Test fun `hard time blocked mandatory chunks retain authorization not noncanonical reduction`() {
         val result = improve(parent(6), minutes = 3, baselineCount = 2)
-        assertEquals(2, result.days.values.flatten().sumOf { it.timed.prescription.sets.size })
-        assertEquals("EXISTING_SAFE_REDUCTION_OR_DEFER", result.trace.decisions.single().decision)
+        assertEquals(0, result.days.values.flatten().sumOf { it.timed.prescription.sets.size })
+        assertEquals(6, result.trace.authorized.single().prescription.sets.size)
+        assertEquals("CANONICAL_PARTITION_HARD_PLACEMENT_SHORTFALL", result.trace.decisions.single().decision)
+    }
+    @Test fun `high sets split by default on distinct days even with unlimited session time`() {
+        for (days in 2..5) for (count in 6..9) {
+            val parent = parent(count).copy(fundingSource = PlanningFundingSource.USER_FREQUENCY_EXPANSION, originalRank = 12)
+            val result = improve(parent, days = days, minutes = 90)
+            val atoms = result.days.values.flatten()
+            assertEquals(ContinuitySplitPolicy.template(count, days).sorted(), atoms.map { it.timed.prescription.sets.size }.sorted())
+            assertEquals(atoms.size, result.days.count { it.value.isNotEmpty() })
+            assertEquals(count, atoms.sumOf { it.timed.prescription.sets.size })
+            assertTrue(atoms.all { it.origin.authorizedDemandId == parent.id && it.origin.splitGroupId == parent.id })
+            assertEquals(parent, result.trace.authorized.single())
+            assertEquals("CANONICAL_HIGH_SET_PARTITION", result.trace.decisions.single().decision)
+        }
     }
     @Test fun `one scheduled day cannot split`() {
         assertEquals(1, improve(parent(4), days = 1).days.values.flatten().size)
+    }
+    @Test fun `approved high set split keeps all units and reports OFI as advisory only`() {
+        val source = snapshot.copy(planDayProjection = PlanDayProjection { StandaloneDayLoad(99, listOf(100), listOf("TEST_CAUTION")) })
+        val result = improve(parent(9), days = 3, minutes = 90, source = source)
+        assertEquals(listOf(3, 3, 3), result.days.values.flatten().map { it.timed.prescription.sets.size })
+        assertTrue(result.trace.decisions.single().ofiWarnings.isNotEmpty())
+        assertTrue(result.trace.decisions.single().failureReasons.isEmpty())
+        // The override does not extend to the existing conditional four/five-set path.
+        assertEquals(2, improve(parent(4), baselineCount = 2, source = source).days.values.flatten().sumOf { it.timed.prescription.sets.size })
+    }
+    @Test fun `chronological tissue failure leaves exact canonical chunk shortfall`() {
+        val source = snapshot.copy(planDayProjection = f.safe, planWeekTissueProjection = PlanWeekTissueProjection { rows, _ ->
+            PlannedTissueWeek(listOf(PlannedTissueDay(5, "2026-09-11",
+                if (rows.sumOf { it.setCount } > 6) setOf("canonical_fixture_unit") else emptySet(), emptySet(), null, null)))
+        })
+        val result = improve(parent(9), days = 3, minutes = 90, source = source)
+        assertEquals(listOf(3, 3), result.days.values.flatten().map { it.timed.prescription.sets.size })
+        assertEquals(9, result.trace.authorized.single().prescription.sets.size)
+        assertTrue(SplitPlacementFailure.TISSUE_RECOVERY_CONSTRAINT in result.trace.decisions.single().failureReasons)
     }
     @Test fun `exclusions equipment and eligibility do not authorize extra continuity`() {
         val parent = parent(4)

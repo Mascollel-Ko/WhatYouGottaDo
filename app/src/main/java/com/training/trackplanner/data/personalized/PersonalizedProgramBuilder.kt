@@ -531,7 +531,8 @@ class PersonalizedProgramBuilder(
             confidence = state.confidence.name, reasonCodes = intent.reasonCodes + listOf("RESOLVED_WEEKLY_DAYS_${days}", "WEEKLY_COURT_LOAD_NORMALIZED", "CROSS_DOMAIN_FINITE_EXECUTION_ALLOCATION") + if (capacityExpanded) listOf("MINIMAL_CAPACITY_EXPANSION") else emptyList(), reasons = intent.reasons, constraints = intent.constraints, metadataAuthorityVersion = PERSONALIZED_AUTHORITY_VERSION, priorDecisionId = priorDecisionId, userAnswers = answers.values,
             originalGenerationFingerprint = fingerprint, recoverySignalCodes = state.recoverySignals.sourceCodes.sorted(), genericCourtLoad = state.genericCourtLoad, objectiveExposure = state.objectiveExposure,
             anchorTransitions = transitions.values.sortedBy(AnchorTransition::stableKey), planningBudget = budget,
-            authorizedScheduling = placement.trace.copy(origins = postProcessOrigins, initialWeek = firstWeek),
+            authorizedScheduling = placement.trace.copy(origins = postProcessOrigins, initialWeek = firstWeek,
+                localOrigins = postProcessAtoms.mapValues { postProcessOrigins.getValue(it.value) }),
             movementRepresentations = state.movementRepresentations,
             badmintonObjectiveRepresentations = state.badmintonObjectiveRepresentations,
             adaptationGaps = gaps,
@@ -556,6 +557,7 @@ class PersonalizedProgramBuilder(
         fun completedUnits(kind: PlannedActivityKind) = completedWeek.filter { snapshot.activityKind(it.exerciseStableKey) == kind }
             .sumOf { it.setPrescriptions.size }
         if (finish != null) return finish(completion.copy(skeleton = completion.skeleton.copy(personalizedDecision = decision.copy(
+            authorizedScheduling = completion.skeleton.personalizedDecision?.authorizedScheduling,
             residualCompletion = completion.trace,
             planningBudget = budget.copy(plannedResistanceSets = completedUnits(PlannedActivityKind.RESISTANCE),
                 plannedStructuredBadmintonBouts = completedUnits(PlannedActivityKind.STRUCTURED_BADMINTON_DRILL),
@@ -564,6 +566,7 @@ class PersonalizedProgramBuilder(
         // The second stage owns only placement. Its fail-safe is CompletedPlan, never InitialSkeleton.
         val rebalanced = BoundedDayRebalancer().rebalance(completion, snapshot, state, snapshot.planDayProjection)
         return rebalanced.skeleton.copy(personalizedDecision = decision.copy(
+            authorizedScheduling = completion.skeleton.personalizedDecision?.authorizedScheduling,
             residualCompletion = completion.trace,
             dayRebalancing = rebalanced.trace,
             frequencyDemand = decision.frequencyDemand?.copy(actualMaterializedUnits = completedWeek.sumOf { it.setPrescriptions.size }),

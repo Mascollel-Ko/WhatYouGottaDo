@@ -268,7 +268,11 @@ internal class ResidualCompletion(private val prescriptions: PersonalizedPrescri
         val newAtoms = rows.filter { it.localId !in week.atomByLocalId }.map { it.localId }
         val completedAtoms = completed.items.associate { row -> row.localId to
             (week.atomByLocalId[row.localId] ?: newAtoms.first { row.localId == "residual_${row.weekNumber}_$it" }) }
-        return CompletionResult(completed, trace, RepresentativeWeek.derive(completed, completedAtoms), sourceByAtom, demand)
+        val withOrigins = completed.copy(personalizedDecision = completed.personalizedDecision?.let { decision -> decision.copy(
+            authorizedScheduling = decision.authorizedScheduling?.copy(localOrigins = completedAtoms.mapNotNull { (id, atom) ->
+                (exact?.origins?.get(atom) ?: origins?.get(atom))?.let { id to it }
+            }.toMap())) })
+        return CompletionResult(withOrigins, trace, RepresentativeWeek.derive(withOrigins, completedAtoms), sourceByAtom, demand)
     }
 }
 

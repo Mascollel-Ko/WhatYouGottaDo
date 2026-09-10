@@ -11,10 +11,11 @@ data class ExactPrescriptionShortfall(val authorizedDemandId: String, val stable
         .put("requested", requested).put("initialMaterialized", initialMaterialized).put("materialized", materialized).put("shortfall", shortfall)
 }
 data class ExactRestorationAction(val authorizedDemandId: String, val before: Int, val after: Int,
-    val rows: List<ProgramSkeletonItem>, val residualsBefore: List<PlanningResidual>, val residualsAfter: List<PlanningResidual>) {
+    val rows: List<ProgramSkeletonItem>, val residualsBefore: List<PlanningResidual>, val residualsAfter: List<PlanningResidual>,
+    val ofiGate: String = "PASS") {
     fun toJson() = JSONObject().put("action", "RESTORE_EXACT").put("authorizedDemandId", authorizedDemandId)
         .put("beforeShortfall", before).put("afterShortfall", after).put("rows", JSONArray(rows.map(::auditPlannedItem)))
-        .put("timeGate", "PASS").put("ofiGate", "PASS").put("tissueGate", "CANONICAL_CURRENT_RESTRICTIONS_PASS")
+        .put("timeGate", "PASS").put("ofiGate", ofiGate).put("tissueGate", "CANONICAL_CURRENT_RESTRICTIONS_PASS")
         .put("residualsBefore", JSONArray(residualsBefore.map { it.toJson() })).put("residualsAfter", JSONArray(residualsAfter.map { it.toJson() }))
 }
 
@@ -43,12 +44,13 @@ internal class ExactAuthorizedRestoration(private val snapshot: PlanningHistoryS
             val scheduling = AuthorizedSchedulingDemand(parent.id, parent.item, parent.prescription, parent.continuity)
             val split = ContinuitySplitPolicy.eligible(snapshot, scheduling) && old.none { it.requiredTemplateAnchor }
             val whole = listOf(AuthorizedTimedAtom(TimedPlannedExercise(parent.item, parent.prescription), AuthorizedAtomOrigin(parent.id)))
-            val chunks = if (split) ContinuitySplitPolicy.chunks(scheduling) { n ->
+            val mandatory = ContinuitySplitPolicy.mandatory(snapshot, scheduling)
+            val chunks = if (split) ContinuitySplitPolicy.chunks(scheduling, days.size) { n ->
                 // Only the presentation text is obtained from the existing authority; dose stays frozen.
                 PersonalizedPrescriptionPlanner().prescribe(snapshot, state.strengthIntent, parent.item.copy(targetSets = n), parent.item.style).text
             } else emptyList()
             // A partially present split keeps its canonical structure. An unsplit reduction first attempts same-day whole restoration.
-            val variants = if (old.any { origin(it)?.splitChunkIndex != null }) listOf(chunks) else listOf(whole, chunks)
+            val variants = if (mandatory || old.any { origin(it)?.splitChunkIndex != null }) listOf(chunks) else listOf(whole, chunks)
             val others = rows - old.toSet()
             var accepted: List<Pair<ProgramSkeletonItem, AuthorizedAtomOrigin>>? = null
             for (variant in variants.filter { it.isNotEmpty() }) {
@@ -66,7 +68,8 @@ internal class ExactAuthorizedRestoration(private val snapshot: PlanningHistoryS
                 fun place(index: Int, placed: List<Pair<ProgramSkeletonItem, AuthorizedAtomOrigin>>): List<Pair<ProgramSkeletonItem, AuthorizedAtomOrigin>>? {
                     if (index == variant.size) return placed.takeIf { result ->
                         result.sumOf { it.first.setPrescriptions.size } > count &&
-                            old.all { previous -> result.any { it.first.localId == previous.localId } }
+                            old.all { previous -> result.any { it.first.localId == previous.localId } } &&
+                            (!mandatory || splitTissueAllowed(snapshot, others + result.map { it.first }, parent.item.stableKey, 8.5))
                     }
                     val chunk = variant[index]
                     val existing = existingByChunk[index]
@@ -86,7 +89,8 @@ internal class ExactAuthorizedRestoration(private val snapshot: PlanningHistoryS
                                 rx.sets.maxByOrNull { it.weightKg }?.setIndex else base.progressionAnchorSetIndex,
                             progressionRole = if (parent.continuity && parent.item.styleVariant !in setOf("LIGHT", "VOLUME")) ProgressionRole.MAIN else base.progressionRole)
                         if (others.sumOf { it.setPrescriptions.size } + placed.sumOf { it.first.setPrescriptions.size } + rx.sets.size > capacity ||
-                            onDay.sumOf(::plannedSeconds) + plannedSeconds(row) > request.sessionMinutes * 60 || !projection.evaluate(onDay + row).feasible) continue
+                            onDay.sumOf(::plannedSeconds) + plannedSeconds(row) > request.sessionMinutes * 60 ||
+                            (!mandatory && !projection.evaluate(onDay + row).feasible)) continue
                         val result = place(index + 1, placed + (row to chunk.origin))
                         if (result != null) return result
                     }
@@ -114,7 +118,9 @@ internal class ExactAuthorizedRestoration(private val snapshot: PlanningHistoryS
             }
             actions += ExactRestorationAction(parent.id, parent.prescription.sets.size - count,
                 parent.prescription.sets.size - restored.sumOf { it.first.setPrescriptions.size },
-                restored.map { it.first }, before, demand.residuals(rows))
+                restored.map { it.first }, before, demand.residuals(rows),
+                if (mandatory && restored.any { restoredRow -> !projection.evaluate(rows.filter { it.dayOfWeek == restoredRow.first.dayOfWeek }).feasible })
+                    "ADVISORY_AUTHORIZED_HIGH_SET_SPLIT" else "PASS")
         }
         } while (rows.sumOf { it.setPrescriptions.size } > unitsBefore)
         return rows

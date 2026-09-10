@@ -54,13 +54,25 @@ class ExactAuthorizedRestorationTest {
         assertEquals(1, result.trace.restorations.size); assertTrue(result.trace.additions.isEmpty())
     }
     @Test fun `fully materialized 4 5 6 chunks produce no exact shortfall`() {
-        for (n in 4..6) {
+        for (n in 4..9) {
             val chunks = ContinuitySplitPolicy.template(n)
             val result = run(auth(n), chunks.mapIndexed { i, c -> f.row("squat", 1 + i * 2, c, id = "s$i") },
                 chunks.indices.associate { "atom_$it" to AuthorizedAtomOrigin("parent", "parent", it) })
             assertEquals(0, result.trace.exactShortfalls.single().shortfall)
             assertEquals(n, result.week!!.items.sumOf { it.setCount }); assertTrue(result.trace.restorations.isEmpty())
         }
+    }
+    @Test fun `two day nine conserves Q9 C9 R0 and exact missing chunk remains R3`() {
+        val two = run(auth(9), listOf(f.row("squat", 1, 4), f.row("squat", 5, 5, id = "second")),
+            mapOf("atom_0" to AuthorizedAtomOrigin("parent", "parent", 0), "atom_1" to AuthorizedAtomOrigin("parent", "parent", 1)), days = listOf(1, 5))
+        assertEquals(0, two.trace.exactShortfalls.single().shortfall)
+        val partial = run(auth(9), listOf(f.row("squat", 1, 3), f.row("squat", 3, 3, id = "second")),
+            mapOf("atom_0" to AuthorizedAtomOrigin("parent", "parent", 0), "atom_1" to AuthorizedAtomOrigin("parent", "parent", 1)), units = 6)
+        val residual = partial.trace.residuals.single { it.id == "CONTINUITY:squat:" }
+        assertEquals(9.0, residual.requested, 0.0)
+        assertEquals(6.0, residual.coverage, 0.0)
+        assertEquals(3.0, residual.residual, 0.0)
+        assertEquals(3, partial.trace.exactShortfalls.single().shortfall)
     }
     @Test fun `missing first chunk of five retains unique identity and never becomes six`() {
         val result = run(auth(5), listOf(reduced()), origin(1))
@@ -101,6 +113,12 @@ class ExactAuthorizedRestorationTest {
         listOf(StandaloneDayLoad(87, listOf(0)), StandaloneDayLoad(0, listOf(100))).forEach { load ->
             assertTrue(run(auth(4), listOf(reduced()), origin(), projection = PlanDayProjection { load }).trace.restorations.isEmpty())
         }
+    }
+    @Test fun `approved nine set shortfall restores canonical chunks despite advisory OFI`() {
+        val result = run(auth(9), listOf(reduced(3)), origin(0), projection = PlanDayProjection { StandaloneDayLoad(99, listOf(100)) })
+        assertEquals(listOf(3, 3, 3), result.week!!.items.map { it.setCount })
+        assertEquals(0, result.trace.exactShortfalls.single().shortfall)
+        assertEquals("ADVISORY_AUTHORIZED_HIGH_SET_SPLIT", result.trace.restorations.single().ofiGate)
     }
     @Test fun `tissue and explicit user exclusion remain hard gates`() {
         val restricted = snapshot.copy(recoverySignals = PlanningRecoverySignals(tissueRestrictedStableKeys = setOf("squat")))

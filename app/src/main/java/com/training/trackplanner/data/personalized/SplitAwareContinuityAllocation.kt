@@ -8,9 +8,11 @@ data class AuthorizedAtomOrigin(val authorizedDemandId: String, val splitGroupId
 data class AuthorizedSchedulingDemand(val id: String, val item: PlannedExercise, val prescription: PlannedPrescription, val continuity: Boolean,
     val fundingSource: PlanningFundingSource = PlanningFundingSource.BASE, val originalRank: Int? = null,
     val sourceReason: CandidateRejectionReason? = null)
-data class ContinuitySplitDecision(val authorizedDemandId: String, val eligible: Boolean, val template: List<Int>, val decision: String)
+data class ContinuitySplitDecision(val authorizedDemandId: String, val eligible: Boolean, val template: List<Int>, val decision: String,
+    val failureReasons: Set<SplitPlacementFailure> = emptySet(), val ofiWarnings: List<SplitOfiWarning> = emptyList())
 data class AuthorizedSchedulingTrace(val authorized: List<AuthorizedSchedulingDemand>, val decisions: List<ContinuitySplitDecision>,
-    val origins: Map<String, AuthorizedAtomOrigin> = emptyMap(), val initialWeek: List<ProgramSkeletonItem> = emptyList()) {
+    val origins: Map<String, AuthorizedAtomOrigin> = emptyMap(), val initialWeek: List<ProgramSkeletonItem> = emptyList(),
+    val localOrigins: Map<String, AuthorizedAtomOrigin> = emptyMap()) {
     fun toJson() = JSONObject().put("demandBoundary", "AUTHORIZED_POST_CAPACITY_PRE_PLACEMENT_DEMAND")
         .put("authorized", JSONArray(authorized.map { demand -> JSONObject().put("authorizedDemandId", demand.id)
             .put("stableKey", demand.item.stableKey).put("continuity", demand.continuity)
@@ -21,10 +23,17 @@ data class AuthorizedSchedulingTrace(val authorized: List<AuthorizedSchedulingDe
             .put("prescription", demand.prescription.text).put("prescriptionSource", demand.prescription.weightSource)
             .put("restSeconds", demand.prescription.restSeconds).put("setPrescriptions", auditSets(demand.prescription.sets)) }))
         .put("decisions", JSONArray(decisions.map { JSONObject().put("authorizedDemandId", it.authorizedDemandId)
-            .put("splitCapable", it.eligible).put("template", JSONArray(it.template)).put("decision", it.decision) }))
+            .put("splitCapable", it.eligible).put("template", JSONArray(it.template)).put("decision", it.decision)
+            .put("failureReasons", JSONArray(it.failureReasons.map { reason -> reason.name }))
+            .put("ofiPolicy", if (it.ofiWarnings.isEmpty()) "NO_OVERRIDE_NEEDED" else "ADVISORY_AUTHORIZED_HIGH_SET_SPLIT")
+            .put("ofiWarnings", JSONArray(it.ofiWarnings.map { rejection -> JSONObject().put("chunkIndex", rejection.chunkIndex)
+                .put("sets", rejection.sets).put("day", rejection.day).put("ofi", rejection.load.ofi)
+                .put("axisScores", JSONArray(rejection.load.axisScores)).put("cautionReasons", JSONArray(rejection.load.cautionReasons)) })) }))
         .put("origins", JSONObject().apply { origins.forEach { (atom, origin) -> put(atom, JSONObject()
             .put("authorizedDemandId", origin.authorizedDemandId).put("splitGroupId", origin.splitGroupId).put("splitChunkIndex", origin.splitChunkIndex)) } })
         .put("initialWeek", JSONArray(initialWeek.map(::auditPlannedItem)))
+        .put("localOrigins", JSONObject().apply { localOrigins.forEach { (id, origin) -> put(id, JSONObject()
+            .put("authorizedDemandId", origin.authorizedDemandId).put("splitGroupId", origin.splitGroupId).put("splitChunkIndex", origin.splitChunkIndex)) } })
 }
 internal fun auditSets(sets: List<ProgramSetPrescription>) = JSONArray(sets.map { JSONObject().put("index", it.setIndex)
     .put("reps", it.reps).put("weightKg", it.weightKg).put("seconds", it.seconds) })
@@ -34,15 +43,21 @@ internal fun auditPlannedItem(item: ProgramSkeletonItem) = JSONObject().put("loc
     .put("setPrescriptions", auditSets(item.setPrescriptions))
 
 internal object ContinuitySplitPolicy {
-    fun template(count: Int): List<Int> = when (count) { 4 -> listOf(2, 2); 5 -> listOf(3, 2); 6 -> listOf(3, 3); else -> listOf(count) }
+    fun template(count: Int, days: Int = 3): List<Int> = when (count) {
+        4 -> listOf(2, 2); 5 -> listOf(3, 2); 6 -> listOf(3, 3); 7 -> listOf(3, 4); 8 -> listOf(4, 4)
+        9 -> if (days == 2) listOf(4, 5) else listOf(3, 3, 3)
+        else -> listOf(count)
+    }
+    fun mandatory(snapshot: PlanningHistorySnapshot, demand: AuthorizedSchedulingDemand) =
+        eligible(snapshot, demand) && demand.prescription.sets.size in 6..9
     fun eligible(snapshot: PlanningHistorySnapshot, demand: AuthorizedSchedulingDemand): Boolean = demand.continuity &&
-        snapshot.activityKind(demand.item.stableKey) == PlannedActivityKind.RESISTANCE && demand.prescription.sets.size in 4..6 &&
+        snapshot.activityKind(demand.item.stableKey) == PlannedActivityKind.RESISTANCE && demand.prescription.sets.size in 4..9 &&
         demand.item.style in setOf(StrengthProgrammingStyle.NONE, StrengthProgrammingStyle.STRAIGHT_5X5, StrengthProgrammingStyle.STRAIGHT_STRENGTH_SETS) &&
         demand.item.styleVariant.isBlank() && demand.prescription.sets.map { it.copy(setIndex = 0) }.distinct().size == 1
 
-    fun chunks(demand: AuthorizedSchedulingDemand, textForCount: (Int) -> String = { demand.prescription.text }): List<AuthorizedTimedAtom> {
+    fun chunks(demand: AuthorizedSchedulingDemand, days: Int = 3, textForCount: (Int) -> String = { demand.prescription.text }): List<AuthorizedTimedAtom> {
         var offset = 0
-        return template(demand.prescription.sets.size).mapIndexed { index, count ->
+        return template(demand.prescription.sets.size, days).mapIndexed { index, count ->
             val sets = demand.prescription.sets.subList(offset, offset + count).mapIndexed { local, set -> set.copy(setIndex = local + 1) }
             offset += count
             AuthorizedTimedAtom(TimedPlannedExercise(demand.item.copy(targetSets = count), demand.prescription.copy(text = textForCount(count), sets = sets)),
@@ -106,14 +121,23 @@ internal class SplitAwareContinuityAllocation(private val prescriptions: Persona
                 snapshot.metadata[parent.item.stableKey]?.planningEligibility in setOf("PROGRAM_SELECTABLE", "SELECTABLE") &&
                 (request?.availableEquipment.isNullOrEmpty() || equipment.all { it == "BODYWEIGHT" || it in request!!.availableEquipment })
             if (!eligible || !permitted || days < 2 || !postProcessTissueAllowed(snapshot, state, parent.item.stableKey) || snapshot.explicitlyRestricted(parent.item.stableKey)) {
-                decisions += ContinuitySplitDecision(parent.id, eligible, ContinuitySplitPolicy.template(parent.prescription.sets.size),
-                    if (parent.prescription.sets.size >= 7) "UNSUPPORTED_7_PLUS_PRESERVED" else "UNSPLIT_INELIGIBLE_OR_RESTRICTED")
+                decisions += ContinuitySplitDecision(parent.id, eligible, ContinuitySplitPolicy.template(parent.prescription.sets.size, days),
+                    "UNSPLIT_INELIGIBLE_OR_RESTRICTED")
+                continue
+            }
+            if (ContinuitySplitPolicy.mandatory(snapshot, parent)) {
+                val result = MandatoryContinuityPlacement(snapshot, state, days, minutes).place(parent, placed, prescriptions)
+                placed = result.days
+                val materialized = result.days.values.flatten().filter { it.origin.authorizedDemandId == parent.id }.sumOf { it.timed.prescription.sets.size }
+                decisions += ContinuitySplitDecision(parent.id, true, ContinuitySplitPolicy.template(parent.prescription.sets.size, days),
+                    if (materialized == parent.prescription.sets.size) "CANONICAL_HIGH_SET_PARTITION" else "CANONICAL_PARTITION_HARD_PLACEMENT_SHORTFALL",
+                    result.failures, result.ofiWarnings)
                 continue
             }
             val current = placed.values.flatten()
             val others = current.filter { it.origin.authorizedDemandId != parent.id }
             val full = trial(others + AuthorizedTimedAtom(TimedPlannedExercise(parent.item, parent.prescription), AuthorizedAtomOrigin(parent.id)))
-            val split = trial(others + ContinuitySplitPolicy.chunks(parent) { count ->
+            val split = trial(others + ContinuitySplitPolicy.chunks(parent, days) { count ->
                 prescriptions.prescribe(snapshot, state.strengthIntent, parent.item.copy(targetSets = count), parent.item.style).text
             })
             val chooseSplit = split != null && (full == null || maximum(split) < maximum(full) && maxLower(split) <= maxLower(full))
