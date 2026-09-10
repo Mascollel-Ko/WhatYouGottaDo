@@ -394,34 +394,26 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    private val personalizedGenerationRunner by lazy { PersonalizedGenerationRunner(viewModelScope, _programBuildProgress) }
+
     fun generatePersonalizedProgram(
         request: ProgramSkeletonRequest,
         answers: PersonalizedPlanningAnswers = PersonalizedPlanningAnswers(),
         onOutcome: (PersonalizedPlanningOutcome) -> Unit
     ) {
-        if (_programBuildProgress.value is ProgramBuildProgressState.Running) return
-        viewModelScope.launch {
-            _programBuildProgress.value = ProgramBuildProgressState.Running(10, "완료 기록과 canonical 메타데이터를 확인하는 중입니다.")
-            runCatching {
-                withTimeout(15_000) {
-                    _programBuildProgress.value = ProgramBuildProgressState.Running(45, "적응 상태와 보완 대상을 분석하는 중입니다.")
-                    repository.generatePersonalizedProgram(
-                        request,
-                        answers,
-                        PersonalizedGenerationConstraints(explicitSessionMinutes = request.sessionMinutes)
-                    )
-                }
-            }.onSuccess { outcome ->
+        val frozenAnswers = answers.copy(values = answers.values.toMap())
+        personalizedGenerationRunner.launch({ progress ->
+            repository.generatePersonalizedProgram(request, frozenAnswers,
+                PersonalizedGenerationConstraints(explicitSessionMinutes = request.sessionMinutes), progress = progress)
+        }) { outcome ->
                 when (outcome) {
                     is PersonalizedPlanningOutcome.Questions -> _programBuildProgress.value = ProgramBuildProgressState.Idle
-                    is PersonalizedPlanningOutcome.Generated -> _programBuildProgress.value = ProgramBuildProgressState.Completed(outcome.skeleton.optimizationSummary)
+                    is PersonalizedPlanningOutcome.Generated -> {
+                        _programBuildProgress.value = ProgramBuildProgressState.Running(100, "프로그램 구성을 완료했습니다.")
+                        _programBuildProgress.value = ProgramBuildProgressState.Completed(outcome.skeleton.optimizationSummary)
+                    }
                 }
                 onOutcome(outcome)
-            }.onFailure { error ->
-                _programBuildProgress.value = ProgramBuildProgressState.Failed(
-                    if (error is TimeoutCancellationException) "기록 기반 계획 생성 시간이 초과되었습니다." else error.message ?: "기록 기반 계획 생성에 실패했습니다."
-                )
-            }
         }
     }
 
@@ -430,19 +422,11 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         constraints: PersonalizedGenerationConstraints,
         onPrepared: (PersonalizedPlanningPreflight) -> Unit
     ) {
-        if (_programBuildProgress.value is ProgramBuildProgressState.Running) return
-        viewModelScope.launch {
-            _programBuildProgress.value = ProgramBuildProgressState.Running(10, "완료 기록과 canonical 메타데이터를 확인하는 중입니다.")
-            runCatching {
-                withTimeout(15_000) { repository.preparePersonalizedProgram(request, constraints) }
-            }.onSuccess { preflight ->
+        personalizedGenerationRunner.launch({ progress ->
+            repository.preparePersonalizedProgram(request, constraints, progress = progress)
+        }) { preflight ->
                 _programBuildProgress.value = ProgramBuildProgressState.Idle
                 onPrepared(preflight)
-            }.onFailure { error ->
-                _programBuildProgress.value = ProgramBuildProgressState.Failed(
-                    if (error is TimeoutCancellationException) "기록 기반 사전 분석 시간이 초과되었습니다." else error.message ?: "기록 기반 사전 분석에 실패했습니다."
-                )
-            }
         }
     }
 
@@ -451,19 +435,13 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         answers: PersonalizedPlanningAnswers,
         onResult: (GeneratedProgramSkeleton) -> Unit
     ) {
-        if (_programBuildProgress.value is ProgramBuildProgressState.Running) return
-        viewModelScope.launch {
-            _programBuildProgress.value = ProgramBuildProgressState.Running(35, "확정된 입력으로 다음 블록을 구성하는 중입니다.")
-            runCatching {
-                withTimeout(15_000) { repository.generatePreparedPersonalizedProgram(preflight, answers) }
-            }.onSuccess { generated ->
+        val frozenAnswers = answers.copy(values = answers.values.toMap())
+        personalizedGenerationRunner.launch({ progress ->
+            repository.generatePreparedPersonalizedProgram(preflight, frozenAnswers, progress)
+        }) { generated ->
+                _programBuildProgress.value = ProgramBuildProgressState.Running(100, "프로그램 구성을 완료했습니다.")
                 _programBuildProgress.value = ProgramBuildProgressState.Completed(generated.optimizationSummary)
                 onResult(generated)
-            }.onFailure { error ->
-                _programBuildProgress.value = ProgramBuildProgressState.Failed(
-                    if (error is TimeoutCancellationException) "기록 기반 계획 생성 시간이 초과되었습니다." else error.message ?: "기록 기반 계획 생성에 실패했습니다."
-                )
-            }
         }
     }
 

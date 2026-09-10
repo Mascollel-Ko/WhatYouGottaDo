@@ -15,6 +15,24 @@
 
 ## 1. 일반 사용자용 요약
 
+### Record-Based generation progress UI (2026-09-10; numerical protocol unchanged)
+
+- `이 답변으로 생성`은 현재 답변을 복사하고 질문 선택 상태를 즉시 종료합니다. ViewModel의 동기 single-flight
+  진입으로 중복 요청을 차단하며, 실행 중에는 질문 버튼이 없는 전용 진행 모달을 표시합니다.
+- 제목: `프로그램을 구성하는 중입니다`. 설명: `최적의 프로그램이 아닐 수 있습니다.` 다음 줄에
+  `생성 결과를 바탕으로 자신에게 맞게 프로그램을 조정해 보세요.`를 표시합니다. 기본 반응형 dialog 너비를 사용합니다.
+- 퍼센트/bar/메시지는 `PersonalizedPlannerProgressReporter` → ViewModel `ProgramBuildProgressState` → Compose로
+  전달되는 실행 단계이며 시간 추정이나 timer animation이 아닙니다. 5 입력, 12 기록, 20 패턴, 30 적응,
+  40 기본 수요, 50 기본 배치, 70 분배, 80 피로/회복, 필요할 때만 88 정확 복원, 94 균형, 98 최종 확인입니다.
+- 명시적 빈도 확장은 기본 계획의 후반 평가를 55에 유지한 뒤 실제 확장 공급 검토에서 60으로 진행합니다.
+  반복 배치/복원/회복/철회는 owning stage인 80에서 재확인 메시지를 유지하고, 반복 횟수로 퍼센트를 올리지 않습니다.
+  확장이 없으면 확장 메시지는 생략하며, ViewModel은 낮은 단계 이벤트를 표시하지 않습니다.
+- 성공하면 100 이후 Completed로 전환하고 기존 editable preview를 표시합니다. 실제 예외는 Failed와 기존 retry로
+  노출하며 답변 모달을 자동 재개하지 않습니다. 실행 중 outside tap/Back은 모달을 닫지 않습니다.
+- Record-Based prepare, prepared generate, compatibility generate의 `withTimeout(15_000)`을 제거했습니다.
+  대체 wall-clock timeout은 없으며 일반 coroutine/ViewModel lifecycle cancellation과 예외 처리는 유지합니다.
+  Legacy Auto의 12초 timeout, planner 결과/수치/순위/분할/진행/저장 및 backup schema는 변경하지 않습니다.
+
 ### High-set continuity distribution (2026-09-10, 3.11.0)
 
 승인된 ordinary straight-set continuity의 6–9세트는 시간 여유나 목적함수의 엄격 개선 여부와 관계없이

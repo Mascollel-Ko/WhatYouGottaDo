@@ -843,38 +843,41 @@ class TrainingRepository(
         request: ProgramSkeletonRequest,
         answers: PersonalizedPlanningAnswers = PersonalizedPlanningAnswers(),
         constraints: PersonalizedGenerationConstraints = PersonalizedGenerationConstraints(explicitSessionMinutes = request.sessionMinutes),
-        cutoff: LocalDate = LocalDate.now()
+        cutoff: LocalDate = LocalDate.now(),
+        progress: com.training.trackplanner.data.personalized.PersonalizedPlannerProgressReporter = com.training.trackplanner.data.personalized.PersonalizedPlannerProgressReporter.NONE
     ): PersonalizedPlanningOutcome = withContext(Dispatchers.IO) {
         personalizedProgramPlanningService.generate(
             request = request,
             answers = answers,
             metadata = exerciseMetadataEditorService.resolvedRuntimeMetadataByExerciseStableKey(),
             constraints = constraints,
-            cutoff = cutoff
+            cutoff = cutoff, progress = progress
         )
     }
 
     suspend fun preparePersonalizedProgram(
         request: ProgramSkeletonRequest,
         constraints: PersonalizedGenerationConstraints = PersonalizedGenerationConstraints(explicitSessionMinutes = request.sessionMinutes),
-        cutoff: LocalDate = LocalDate.now()
+        cutoff: LocalDate = LocalDate.now(),
+        progress: com.training.trackplanner.data.personalized.PersonalizedPlannerProgressReporter = com.training.trackplanner.data.personalized.PersonalizedPlannerProgressReporter.NONE
     ): PersonalizedPlanningPreflight = withContext(Dispatchers.IO) {
         personalizedProgramPlanningService.prepare(
             request = request,
             metadata = exerciseMetadataEditorService.resolvedRuntimeMetadataByExerciseStableKey(),
             constraints = constraints,
-            cutoff = cutoff
+            cutoff = cutoff, progress = progress
         )
     }
 
     suspend fun generatePreparedPersonalizedProgram(
         preflight: PersonalizedPlanningPreflight,
-        answers: PersonalizedPlanningAnswers
+        answers: PersonalizedPlanningAnswers,
+        progress: com.training.trackplanner.data.personalized.PersonalizedPlannerProgressReporter = com.training.trackplanner.data.personalized.PersonalizedPlannerProgressReporter.NONE
     ): GeneratedProgramSkeleton = withContext(Dispatchers.IO) {
         personalizedProgramPlanningService.generatePrepared(
             preflight = preflight,
             answers = answers,
-            metadata = exerciseMetadataEditorService.resolvedRuntimeMetadataByExerciseStableKey()
+            metadata = exerciseMetadataEditorService.resolvedRuntimeMetadataByExerciseStableKey(), progress = progress
         )
     }
 

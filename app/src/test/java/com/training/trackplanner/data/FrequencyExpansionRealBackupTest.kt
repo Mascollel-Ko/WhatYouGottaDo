@@ -46,7 +46,16 @@ class FrequencyExpansionRealBackupTest {
                     else -> if (question.id.startsWith("INTERRUPTION_CAUSE_")) "UNKNOWN" else error(question.id)
                 } })
                 fixedAnswers = answers
-                val plan = repository.generatePreparedPersonalizedProgram(preflight, answers)
+                val stages = mutableListOf<PersonalizedPlannerStage>()
+                var lastPercent = 0
+                val plan = repository.generatePreparedPersonalizedProgram(preflight, answers, PersonalizedPlannerProgressReporter {
+                    stages += it
+                    assertTrue("Stage regressed: $lastPercent to ${it.percent}", it.percent >= lastPercent)
+                    lastPercent = it.percent
+                })
+                assertEquals(PersonalizedPlannerStage.FINAL, stages.last())
+                assertEquals(days > plan.personalizedDecision!!.frequencyDemand!!.frequency.algorithmRecommendedDays,
+                    PersonalizedPlannerStage.EXPANSION in stages)
                 val snapshot = AuthorizedPlannerPrivateAudit.snapshot(repository, cutoff)
                 writeFrequencyAudit("${days}_DAY", plan, snapshot)
                 assertEquals(days, plan.request.weeklyTrainingDays)

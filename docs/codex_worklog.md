@@ -1,5 +1,31 @@
 # Codex Worklog
 
+## 2026-09-10 — Record-Based preflight-to-progress UX
+
+- Clean origin/main baseline 75207414453386b46876135e31a1784cc9ec069d, fetched/checked out/fast-forward checked.
+- Root cause: pending preflight was cleared only in success callback, covering both the progress and failure cards.
+- Freeze answers, immediately exit questions, synchronously acquire single-flight Running state, and render a dedicated
+  non-dismissible modal with the requested title/body, percentage, progress bar and actual execution-stage message.
+- Add transient domain stage callback, ViewModel-owned monotonic state and owning-stage reporting for repeated expansion.
+  No timer-derived percentage or planner-result mutation. Success preserves existing editable draft/request/reconciliation flow.
+- Remove three Record-Based 15-second timeouts, retain exception handling and lifecycle cancellation; Legacy timeout unchanged.
+- Add UI lifecycle/duplicate/rendering tests, virtual-time >15s/single-flight/cancellation tests and reporter-on/off 29-persona parity.
+  Private 3/4/5-day audit now checks actual monotonic stage events; private baseline outputs retained under ignored build/.
+- Numerical protocol remains 3.11.0; existing protocol overview documents presentation/orchestration only.
+- First focused run 25/25 passed (UI/question 10, runner 5, personalized parity suite 10). First full run 1630 tests:
+  1628 pass / 1 failure / 1 optional Python-actual skip. Added large-font UI check found Android resource whitespace
+  collapsing the explanatory newline; preserve the two requested sentences as separate Text nodes and use native graphics
+  for real text measurement. One diagnostic retry lacked ANDROID_HOME and did not execute tests; corrected environment.
+- Baseline/private rerun comparisons: all 3/4/5-day program rows, set prescriptions, frequency demand/expansion, split audit
+  and tissue projection JSON match exactly. Localization authority/audit generation and 10 Python tests passed with zero leaks.
+- Final focused UI/orchestration rerun 16/16 passed (question 5, progress UI 6 including native 320dp/fontScale 1.3,
+  coroutine runner 5). Final full testDebugUnitTest: 1630 tests / 1629 pass / 0 failures / 0 errors / 1 optional skip
+  because v0131_python_actual.json was not supplied. Personalized package: 223 tests / 222 pass / that same one skip.
+- Final assembleDebug PASS (same 4m05s full invocation); 29-persona reporter-on/off parity, Legacy 360 cases and
+  10/10 frozen Legacy source validation PASS. Final private 3/4/5-day comparison repeated with all five output sections identical.
+  Protocol validation (8 families/34 protocols), deterministic localization generation/audit and git diff --check PASS.
+  Compose verification is Robolectric/native-graphics testing; no physical-device generation run is claimed.
+
 ## 2026-09-10 — High-set continuity distribution
 
 - Separate stage after verified commit 09ead08af8ba5b76c8f951896a06ec5d3c97d8a4.

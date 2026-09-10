@@ -23,7 +23,8 @@ data class ExactRestorationAction(val authorizedDemandId: String, val before: In
 internal class ExactAuthorizedRestoration(private val snapshot: PlanningHistorySnapshot, private val state: AthletePlanningState,
     private val request: ProgramSkeletonRequest, private val authorized: List<AuthorizedPrescription>,
     private val capacity: Int, private val projection: PlanDayProjection, private val demand: AuthorizedPlanningDemand,
-    private val atomByLocalId: Map<String, String>, origins: Map<String, AuthorizedAtomOrigin>, initial: List<ProgramSkeletonItem>) {
+    private val atomByLocalId: Map<String, String>, origins: Map<String, AuthorizedAtomOrigin>, initial: List<ProgramSkeletonItem>,
+    private val progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE) {
     val origins = origins.toMutableMap()
     val sources = mutableMapOf<String, PlannedExercise>()
     val actions = mutableListOf<ExactRestorationAction>()
@@ -41,6 +42,7 @@ internal class ExactAuthorizedRestoration(private val snapshot: PlanningHistoryS
             val old = children(rows, parent.id)
             val count = old.sumOf { it.setPrescriptions.size }
             if (count >= parent.prescription.sets.size || !allowed(parent.item.stableKey)) continue
+            progress.report(PersonalizedPlannerStage.RESIDUAL)
             val scheduling = AuthorizedSchedulingDemand(parent.id, parent.item, parent.prescription, parent.continuity)
             val split = ContinuitySplitPolicy.eligible(snapshot, scheduling) && old.none { it.requiredTemplateAnchor }
             val whole = listOf(AuthorizedTimedAtom(TimedPlannedExercise(parent.item, parent.prescription), AuthorizedAtomOrigin(parent.id)))

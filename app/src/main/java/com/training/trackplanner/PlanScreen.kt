@@ -85,6 +85,7 @@ internal fun PersonalizedPlanningQuestionDialog(
     onGenerate: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    var submitted by remember { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("기록 기반 계획 사전 확인") },
@@ -102,7 +103,7 @@ internal fun PersonalizedPlanningQuestionDialog(
             }
         },
         confirmButton = {
-            Button(onClick = onGenerate, enabled = questions.isNotEmpty() && questions.all { question ->
+            Button(onClick = { if (!submitted) { submitted = true; onGenerate() } }, enabled = !submitted && questions.isNotEmpty() && questions.all { question ->
                 question.options.any { it.value == answers[question.id] && it.value != "UNRESOLVED" }
             }) { Text("이 답변으로 생성") }
         },
@@ -453,7 +454,10 @@ private fun ProgramEditorScreen(
     }
 
     fun runPreparedPersonalized(preflight: PersonalizedPlanningPreflight, answers: Map<String, String>) {
-        viewModel.generatePreparedPersonalizedProgram(preflight, PersonalizedPlanningAnswers(answers)) { generated ->
+        if (viewModel.programBuildProgress.value is ProgramBuildProgressState.Running) return
+        val frozenAnswers = answers.toMap()
+        pendingPersonalizedPreflight = null
+        viewModel.generatePreparedPersonalizedProgram(preflight, PersonalizedPlanningAnswers(frozenAnswers)) { generated ->
             val request = currentRequest()
             legacyAutoDraft = null
             legacyProgressionDraft = LegacyProgressionDraft()
@@ -486,7 +490,9 @@ private fun ProgramEditorScreen(
         }
     }
 
-    pendingPersonalizedPreflight?.let { preflight ->
+    if (lastGenerationWasPersonalized && buildProgress is ProgramBuildProgressState.Running) {
+        PersonalizedGenerationProgressDialog(buildProgress as ProgramBuildProgressState.Running)
+    } else pendingPersonalizedPreflight?.let { preflight ->
         PersonalizedPlanningQuestionDialog(
             questions = preflight.questions,
             answers = personalizedAnswers,
@@ -666,7 +672,7 @@ private fun ProgramEditorScreen(
                 }
             }
         }
-        if (buildProgress !is ProgramBuildProgressState.Idle) {
+        if (buildProgress !is ProgramBuildProgressState.Idle && !(lastGenerationWasPersonalized && buildProgress is ProgramBuildProgressState.Running)) {
             item {
                 ProgramBuildProgressCard(
                     progress = buildProgress,

@@ -20,6 +20,8 @@ import com.training.trackplanner.data.personalized.PersonalizedPlanningPreferenc
 import com.training.trackplanner.data.personalized.CanonicalStrengthSignal
 import com.training.trackplanner.data.personalized.PlanningRecoverySignals
 import com.training.trackplanner.data.personalized.PersonalizedProgramBuilder
+import com.training.trackplanner.data.personalized.PersonalizedPlannerProgressReporter
+import com.training.trackplanner.data.personalized.PersonalizedPlannerStage
 import com.training.trackplanner.data.personalized.PlanningHistorySnapshotBuilder
 import com.training.trackplanner.data.personalized.PlanningHorizonPlanner
 import com.training.trackplanner.data.personalized.WeeklyDosePlanner
@@ -70,10 +72,13 @@ internal class PersonalizedProgramPlanningService(
         request: ProgramSkeletonRequest,
         metadata: Map<String, RuntimeExerciseMetadata>,
         cutoff: LocalDate = LocalDate.now(),
-        constraints: PersonalizedGenerationConstraints = PersonalizedGenerationConstraints(explicitSessionMinutes = request.sessionMinutes)
+        constraints: PersonalizedGenerationConstraints = PersonalizedGenerationConstraints(explicitSessionMinutes = request.sessionMinutes),
+        progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE
     ): PersonalizedPlanningPreflight {
+        progress.report(PersonalizedPlannerStage.HISTORY)
         val preferences = readPreferences()
         val snapshot = buildSnapshot(cutoff, metadata, preferences)
+        progress.report(PersonalizedPlannerStage.PATTERNS)
         val state = stateBuilder.build(snapshot, PersonalizedPlanningAnswers())
         return PersonalizedPlanningPreflight(
             preparationId = UUID.randomUUID().toString(),
@@ -88,18 +93,23 @@ internal class PersonalizedProgramPlanningService(
     suspend fun generatePrepared(
         preflight: PersonalizedPlanningPreflight,
         answers: PersonalizedPlanningAnswers,
-        metadata: Map<String, RuntimeExerciseMetadata>
+        metadata: Map<String, RuntimeExerciseMetadata>,
+        progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE
     ): GeneratedProgramSkeleton {
+        progress.report(PersonalizedPlannerStage.INPUT)
         val missingAnswers = preflight.questions.filter { question ->
             question.options.none { it.value == answers.values[question.id] && it.value != "UNRESOLVED" }
         }.map(PersonalizedPlanningQuestion::id)
         require(missingAnswers.isEmpty()) { "사전 확인 답변이 누락됐습니다: ${missingAnswers.joinToString()}" }
+        progress.report(PersonalizedPlannerStage.HISTORY)
         val preferences = readPreferences()
         val snapshot = buildSnapshot(preflight.cutoff, metadata, preferences)
+        progress.report(PersonalizedPlannerStage.PATTERNS)
         val state = stateBuilder.build(snapshot, answers)
         require(state.strengthIntent != StrengthIntent.UNRESOLVED && state.badmintonIntent != BadmintonPlanningIntent.UNRESOLVED &&
             state.freeWeightWillingness != FreeWeightWillingness.UNRESOLVED) { "UNRESOLVED_PLANNING_INTENT_REQUIRES_PREFLIGHT" }
         persistAnswers(answers, snapshot.profilePrimaryGoal)
+        progress.report(PersonalizedPlannerStage.ADAPTATION)
         val gaps = gapAnalyzer.analyze(snapshot, state)
         val intent = blockPlanner.decide(state, gaps)
         val frequencyEvidence = WeeklyDosePlanner().resolve(state, state.anchors.size + gaps.size)
@@ -108,12 +118,14 @@ internal class PersonalizedProgramPlanningService(
         val constraints = preflight.constraints
         val personalizedRequest = resolvePersonalizedRequest(preflight.request, constraints, state.programGoal, recommendedDays, recommendedHorizon)
         val priorId = appMetaDao.latestByPrefix("$DECISION_PREFIX%")?.value?.let(::decisionIdFromJson)
-        return com.training.trackplanner.data.personalized.bindSplitParentProgression(programBuilder.build(snapshot, state, gaps, intent, personalizedRequest.durationWeeks, personalizedRequest, answers, priorId,
+        val generated = programBuilder.build(snapshot, state, gaps, intent, personalizedRequest.durationWeeks, personalizedRequest, answers, priorId,
             explicitWeeklyDays = constraints.explicitWeeklyTrainingDays != null,
             frequency = com.training.trackplanner.data.personalized.PlanningFrequencyProvenance(frequencyEvidence,
                 personalizedRequest.weeklyTrainingDays, if (constraints.explicitWeeklyTrainingDays != null)
                     com.training.trackplanner.data.personalized.PlanningFrequencySource.EXPLICIT_USER
-                else com.training.trackplanner.data.personalized.PlanningFrequencySource.AUTO)))
+                else com.training.trackplanner.data.personalized.PlanningFrequencySource.AUTO), progress = progress)
+        progress.report(PersonalizedPlannerStage.FINAL)
+        return com.training.trackplanner.data.personalized.bindSplitParentProgression(generated)
     }
 
     /** Compatibility wrapper for callers that have not yet adopted the two-phase API. */
@@ -122,14 +134,15 @@ internal class PersonalizedProgramPlanningService(
         answers: PersonalizedPlanningAnswers,
         metadata: Map<String, RuntimeExerciseMetadata>,
         cutoff: LocalDate = LocalDate.now(),
-        constraints: PersonalizedGenerationConstraints = PersonalizedGenerationConstraints(explicitSessionMinutes = request.sessionMinutes)
+        constraints: PersonalizedGenerationConstraints = PersonalizedGenerationConstraints(explicitSessionMinutes = request.sessionMinutes),
+        progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE
     ): PersonalizedPlanningOutcome {
-        val preflight = prepare(request, metadata, cutoff, constraints)
+        val preflight = prepare(request, metadata, cutoff, constraints, progress)
         val unanswered = preflight.questions.filter { question ->
             question.options.none { it.value == answers.values[question.id] && it.value != "UNRESOLVED" }
         }
         return if (unanswered.isNotEmpty()) PersonalizedPlanningOutcome.Questions(unanswered)
-        else PersonalizedPlanningOutcome.Generated(generatePrepared(preflight, answers, metadata))
+        else PersonalizedPlanningOutcome.Generated(generatePrepared(preflight, answers, metadata, progress))
     }
 
     private suspend fun buildSnapshot(

@@ -105,7 +105,8 @@ internal class AuthorizedPlanningDemand(private val snapshot: PlanningHistorySna
 internal data class CompletionResult(val skeleton: GeneratedProgramSkeleton, val trace: ResidualCompletionTrace,
     val week: RepresentativeWeek?, val sourceByAtom: Map<String, PlannedExercise>, val demand: AuthorizedPlanningDemand?)
 
-internal class ResidualCompletion(private val prescriptions: PersonalizedPrescriptionPlanner = PersonalizedPrescriptionPlanner()) {
+internal class ResidualCompletion(private val prescriptions: PersonalizedPrescriptionPlanner = PersonalizedPrescriptionPlanner(),
+    private val progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE) {
     fun complete(initial: GeneratedProgramSkeleton, snapshot: PlanningHistorySnapshot, state: AthletePlanningState,
         gaps: List<AdaptationGap>, authorized: List<AuthorizedPrescription>, envelope: WeeklyCapacityEnvelope,
         atoms: Map<String, String>, sources: Map<String, PlannedExercise>, explicitDays: Boolean,
@@ -140,7 +141,7 @@ internal class ResidualCompletion(private val prescriptions: PersonalizedPrescri
             else planningMedian(nonEmpty.map { it.sumOf(::plannedSeconds).toDouble() }))
         val additions = mutableListOf<ResidualAddition>()
         val exact = origins?.let { ExactAuthorizedRestoration(snapshot, state, initial.request, authorized,
-            minOf(demand.authorizedUnits, envelope.finalControllableUnits), projection, demand, week.atomByLocalId, it, rows) }
+            minOf(demand.authorizedUnits, envelope.finalControllableUnits), projection, demand, week.atomByLocalId, it, rows, progress) }
         if (exact != null) rows = exact.restore(rows, days)
         fun dayRows(day: Int) = rows.filter { it.dayOfWeek == day }
         fun unitFill(day: Int) = if (referenceUnits > 0) dayRows(day).sumOf { it.setPrescriptions.size } / referenceUnits else 1.0

@@ -70,7 +70,8 @@ internal data class SplitAwareAllocation(val days: Map<Int, List<AuthorizedTimed
     val trace: AuthorizedSchedulingTrace)
 
 /** Wrapper around the unchanged finite/timed allocator. No prescription is re-authored by splitting. */
-internal class SplitAwareContinuityAllocation(private val prescriptions: PersonalizedPrescriptionPlanner) {
+internal class SplitAwareContinuityAllocation(private val prescriptions: PersonalizedPrescriptionPlanner,
+    private val progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE) {
     fun allocateAuthorized(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, authorized: List<AuthorizedSchedulingDemand>,
         days: Int, minutes: Int, request: ProgramSkeletonRequest): SplitAwareAllocation {
         val result = TimedWeeklyPlacementPlanner().distribute(authorized.map { TimedPlannedExercise(it.item, it.prescription) },
@@ -87,6 +88,7 @@ internal class SplitAwareContinuityAllocation(private val prescriptions: Persona
 
     internal fun improve(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, authorized: List<AuthorizedSchedulingDemand>,
         baseline: TimedExecutionAllocation, days: Int, minutes: Int, request: ProgramSkeletonRequest? = null): SplitAwareAllocation {
+        progress.report(PersonalizedPlannerStage.DISTRIBUTION)
         fun origin(row: TimedPlannedExercise): AuthorizedAtomOrigin {
             val parent = authorized.firstOrNull { it.item === row.item }
                 ?: authorized.single { it.item.copy(targetSets = row.item.targetSets) == row.item }
