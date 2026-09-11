@@ -1,5 +1,14 @@
 # Codex Worklog
 
+## 2026-09-11 — Stage 0: actual first-performance ordering
+
+- Clean actual remote baseline c3e43a1273c8b725589fc905ba0f1de35debf415, local/remote SHA equality verified.
+- Manual drag remains persisted presentation order but its date marker no longer vetoes first-confirmation sorting.
+- On the first confirmation only, timestamped entries sort by firstConfirmedAt before unstarted entries in prior display order.
+  Later confirmations/edits/reconfirmation with an existing first timestamp do not introduce chronology events.
+- Only displayOrder is written by the ordering operation; normal confirmation, raw durability and deferred derived refresh remain unchanged.
+- Focused ordering/mutation/presentation/drag tests and compileDebugKotlin are the stage verification scope; no full matrix.
+
 ## 2026-09-10 — Post-split weekly reflow and primary-anchor calendar spacing
 
 - Second focused change after prepared-retry commit 83d1bd31e70ccb8c33ad84a98edc4c6f3f50f11c.

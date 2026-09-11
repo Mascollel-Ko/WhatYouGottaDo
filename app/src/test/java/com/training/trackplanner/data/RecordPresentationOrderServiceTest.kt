@@ -62,7 +62,7 @@ class RecordPresentationOrderServiceTest {
     }
 
     @Test
-    fun `later first confirmation does not replace a user established order`() = runBlocking {
+    fun `later first confirmation restores performed chronology after manual drag`() = runBlocking {
         val db = newDatabase()
         val ids = addEntries(db)
         val manualOrder = listOf(ids[2], ids[0], ids[1])
@@ -77,9 +77,31 @@ class RecordPresentationOrderServiceTest {
         ).updateSet(targetSet.copy(confirmed = true))
 
         assertEquals(
-            manualOrder,
+            listOf(ids[1], ids[2], ids[0]),
             RecordEntryOrdering.ordered(db.workoutDao().entriesWithSets(DATE)).map { it.entry.id }
         )
+    }
+
+    @Test fun `C then B starts preserve chronology and later sets do not reorder`() = runBlocking {
+        val db = newDatabase()
+        val ids = addEntries(db)
+        val mutation = RecordMutationService(db, db.exerciseDao(), db.workoutDao(), appMetaDao = db.appMetaDao())
+        suspend fun confirm(id: Long) { mutation.updateSet(db.workoutDao().setsForEntry(id).first().copy(confirmed = true)) }
+        confirm(ids[2])
+        val c = db.workoutDao().findEntryById(ids[2])!!
+        db.workoutDao().updateEntry(c.copy(firstConfirmedAt = 1L))
+        confirm(ids[1])
+        assertEquals(listOf(ids[2], ids[1], ids[0]), RecordEntryOrdering.ordered(db.workoutDao().entriesWithSets(DATE)).map { it.entry.id })
+        service(db).reorder(DATE, ids)
+        val before = db.workoutDao().entriesWithSets(DATE)
+        val b = db.workoutDao().findEntryById(ids[1])!!
+        mutation.addSet(b)
+        mutation.updateSet(db.workoutDao().setsForEntry(ids[1]).last().copy(confirmed = true))
+        mutation.updateSet(db.workoutDao().setsForEntry(ids[1]).first().copy(confirmed = true, reps = 11))
+        assertEquals(ids, RecordEntryOrdering.ordered(db.workoutDao().entriesWithSets(DATE)).map { it.entry.id })
+        assertEquals(b.firstConfirmedAt, db.workoutDao().findEntryById(ids[1])!!.firstConfirmedAt)
+        val unstarted = before.first { it.entry.id == ids[0] }
+        assertEquals(unstarted, db.workoutDao().entriesWithSets(DATE).first { it.entry.id == ids[0] })
     }
 
     private fun newDatabase(): TrainingDatabase =

@@ -1,6 +1,12 @@
 package com.training.trackplanner.data
 
 internal object RecordEntryOrdering {
+    fun firstConfirmationOrder(records: List<WorkoutEntryWithSets>): List<WorkoutEntryWithSets> {
+        val previous = ordered(records)
+        return previous.filter { it.entry.firstConfirmedAt != null }.sortedBy { it.entry.firstConfirmedAt } +
+            previous.filter { it.entry.firstConfirmedAt == null }
+    }
+
     fun ordered(records: List<WorkoutEntryWithSets>): List<WorkoutEntryWithSets> =
         if (records.all { it.entry.displayOrder > 0 }) {
             records.sortedWith(compareBy<WorkoutEntryWithSets> { it.entry.displayOrder }.thenBy { it.entry.id })

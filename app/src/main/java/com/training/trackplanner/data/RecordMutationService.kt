@@ -98,30 +98,17 @@ internal class RecordMutationService(
             val existing = workoutDao.findSetById(set.id)
             ProgramProgressionService(db).beforeSetUpdate(existing, set)
             val newlyConfirmed = set.confirmed && existing?.confirmed != true
-            val firstConfirmationForEntry = newlyConfirmed && workoutDao.confirmedCountForEntry(set.entryId) == 0
-            if (firstConfirmationForEntry) {
-                val entry = workoutDao.findEntryById(set.entryId)
-                if (entry != null) {
-                    val records = normalizeDisplayOrder(entry.date)
-                    val hasManualOrder = RecordManualOrderPolicy.applies(
-                        marker = appMetaDao?.value(RecordManualOrderPolicy.key(entry.date)),
-                        currentEntryIds = records.map { record -> record.entry.id }
-                    )
-                    if (!hasManualOrder) {
-                        val previousPerformedEntryId = records
-                            .asSequence()
-                            .filter { record -> record.entry.id != entry.id }
-                            .filter { record -> record.entry.firstConfirmedAt != null }
-                            .maxByOrNull { record -> record.entry.firstConfirmedAt ?: Long.MIN_VALUE }
-                            ?.entry
-                            ?.id
-                        moveEntryAfter(entry.date, entry.id, previousPerformedEntryId)
-                    }
-                }
-            }
+            val firstConfirmationForEntry = newlyConfirmed && entry.firstConfirmedAt == null &&
+                workoutDao.confirmedCountForEntry(set.entryId) == 0
             workoutDao.updateSet(set)
             if (newlyConfirmed) {
                 workoutDao.markEntryConfirmed(set.entryId, System.currentTimeMillis())
+                if (firstConfirmationForEntry) {
+                    RecordEntryOrdering.firstConfirmationOrder(workoutDao.entriesWithSets(entry.date))
+                        .forEachIndexed { index, record ->
+                            if (record.entry.displayOrder != index + 1) workoutDao.updateEntryDisplayOrder(record.entry.id, index + 1)
+                        }
+                }
             } else {
                 refreshEntryCompletion(set.entryId)
             }
