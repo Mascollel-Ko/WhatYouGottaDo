@@ -1,4 +1,8 @@
 korean,english,provenance,sourcePath
+근력 목표,Strength goal,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanScreen.kt
+배드민턴 구조화 훈련,Structured badminton training,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanScreen.kt
+프리웨이트·편측운동,Free weights and unilateral work,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanScreen.kt
+일정 변동 빈도,Schedule disruption frequency,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanScreen.kt
 "프로그램을 구성하는 중입니다","Building your program","CODEX_GENERATED_ENGLISH","app/src/main/java/com/training/trackplanner/PersonalizedGenerationProgressDialog.kt"
 "최적의 프로그램이 아닐 수 있습니다.","This may not be the optimal program.","CODEX_GENERATED_ENGLISH","app/src/main/java/com/training/trackplanner/PersonalizedGenerationProgressDialog.kt"
 "생성 결과를 바탕으로 자신에게 맞게 프로그램을 조정해 보세요.","Use the generated result as a starting point and adjust it to suit your needs.","CODEX_GENERATED_ENGLISH","app/src/main/java/com/training/trackplanner/PersonalizedGenerationProgressDialog.kt"

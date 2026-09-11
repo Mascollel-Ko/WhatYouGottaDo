@@ -42,6 +42,7 @@ class PersonalizedGenerationProgressUiTest {
         }
     }
     private fun generate() {
+        compose.onNodeWithTag("question_answer_INTENT").performClick()
         compose.onNodeWithText("함께 훈련").performClick()
         compose.onNodeWithText("이 답변으로 생성").performClick()
     }

@@ -3,17 +3,24 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.13.0 |
+| Protocol version | 3.14.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 0f22c771664af50f246408bf5de75ec21e390655 |
+| Last audited commit | 216039ea4c251c9555c7da94b4680736a6f0209a |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 
 ## 1. 일반 사용자용 요약
+
+### 3.14.0 — low-week interpretation and compact preflight
+
+- One canonical LOW_WEEK_RATIO changes from 0.625 to 0.85: units strictly below localTypicalUnits × 0.85 are low; equality is not low. Local-typical calculation and other thresholds are unchanged.
+- Exact-week USER_CONFIRMED EXTERNAL, EVENT_OR_TAPER and INTENTIONAL_DELOAD causes set excludedFromTolerance. Existing tolerance windows and capacity session evidence honor that same field. FATIGUE, OTHER and UNKNOWN remain included conservatively; raw records, adaptation and OFI evidence are not deleted or filtered.
+- All unresolved questions stay together in one scrollable dialog, with one collapsed single-line label/selected-answer row and dropdown per question. Labels use canonical question IDs and exact week dates, not Korean prompt parsing. Full semantic prompts remain in the model. All required answers are needed for the single Generate action.
+- Existing three-week recency bound, durable answered-week suppression, prepared retry, cancellation and generation-progress lifecycle are unchanged. This does not change numerical physiology or prescription authorities.
 
 ### 3.13.0 — MAIN placement and weekday mobility
 

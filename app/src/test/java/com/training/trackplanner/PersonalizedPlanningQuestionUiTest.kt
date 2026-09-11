@@ -17,6 +17,42 @@ import org.robolectric.annotation.Config
 class PersonalizedPlanningQuestionUiTest {
     @get:Rule val compose = createComposeRule()
 
+    @Test @Config(sdk=[34],qualifiers="ko-rKR-w320dp-h640dp")
+    fun narrowRowsAreSingleLineAndAnswersSurviveScrollAndRecomposition() {
+        val ids=listOf(QUESTION_STRENGTH_INTENT,QUESTION_BADMINTON_INTENT,QUESTION_FREE_WEIGHT)+
+            (0..14).map { weekCauseQuestionId(java.time.LocalDate.parse("2026-08-24").minusWeeks(it.toLong())) }
+        val questions=ids.map { PersonalizedPlanningQuestion(it,"전체 의미를 보존한 긴 질문",listOf(
+            PersonalizedPlanningAnswerOption("YES","의도적으로 쉬거나 디로드함"),PersonalizedPlanningAnswerOption("NO","다른 이유"))) }
+        val answers=mutableStateOf(emptyMap<String,String>())
+        val scale=mutableStateOf(1f)
+        compose.setContent {
+            val density=androidx.compose.ui.platform.LocalDensity.current
+            CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(density.density,scale.value)) {
+                TrainingTrackPlannerTheme { PersonalizedPlanningQuestionDialog(questions,answers.value,
+                    { id,value -> answers.value=answers.value+(id to value) },{},{}) }
+            }
+        }
+        compose.onNodeWithText("의도적으로 쉬거나 디로드함").assertDoesNotExist()
+        compose.onNodeWithTag("preflight_questions").assert(hasScrollAction())
+        for(id in ids.take(3)) compose.onNodeWithTag("question_row_$id").assertIsDisplayed()
+        compose.onNodeWithTag("question_answer_${ids.first()}").performClick()
+        compose.onNodeWithText("의도적으로 쉬거나 디로드함").performClick()
+        compose.runOnIdle { assertEquals(mapOf(ids.first() to "YES"),answers.value); scale.value=1.3f }
+        compose.onNodeWithTag("question_answer_${ids.last()}").performScrollTo().performClick()
+        compose.onNodeWithText("다른 이유").performClick()
+        compose.onNodeWithTag("question_answer_${ids.first()}").performScrollTo()
+        compose.runOnIdle { assertEquals(mapOf(ids.first() to "YES",ids.last() to "NO"),answers.value) }
+        val layouts=mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+        compose.onAllNodes(hasText("근력 목표") or hasText("의도적으로 쉬거나 디로드함"),useUnmergedTree=true)
+            .fetchSemanticsNodes().forEach { node ->
+                node.config.getOrElseNullable(androidx.compose.ui.semantics.SemanticsActions.GetTextLayoutResult) { null }?.action?.invoke(layouts)
+            }
+        assertEquals(2,layouts.size)
+        assertTrue(layouts.all { it.lineCount==1 })
+        compose.onNodeWithText("취소").assertIsDisplayed()
+        compose.onNodeWithText("이 답변으로 생성").assertIsDisplayed().assertIsNotEnabled()
+    }
+
     @Test fun allQuestionsMustBeAnsweredAndScrollingReachesTheLastAnswer() {
         val questions = listOf(
             PersonalizedPlanningQuestion(QUESTION_STRENGTH_INTENT, "근력 목표", (1..4).map {
@@ -38,9 +74,12 @@ class PersonalizedPlanningQuestionUiTest {
             }
         }
         compose.onNodeWithText("이 답변으로 생성").assertIsNotEnabled()
+        compose.onNodeWithTag("question_answer_$QUESTION_STRENGTH_INTENT").performClick()
         compose.onNodeWithText("근력 선택 1").performScrollTo().performClick()
+        compose.onNodeWithTag("question_answer_$QUESTION_BADMINTON_INTENT").performClick()
         compose.onNodeWithText("포함").performScrollTo().performClick()
         compose.onNodeWithText("이 답변으로 생성").assertIsNotEnabled()
+        compose.onNodeWithTag("question_answer_$QUESTION_FREE_WEIGHT").performClick()
         compose.onNodeWithText("포함 가능").performScrollTo().performClick()
         compose.onNodeWithText("이 답변으로 생성").assertIsEnabled().performClick()
         compose.runOnIdle { assertEquals(3, generated!!.size) }
@@ -74,8 +113,12 @@ class PersonalizedPlanningQuestionUiTest {
             TrainingTrackPlannerTheme { PersonalizedPlanningQuestionDialog(questions,answers,
                 { id,value -> answers=answers+(id to value) },{ generated=answers },{}) }
         }
-        for (i in 1..6) compose.onNodeWithText("질문 $i 선택 5").performScrollTo().performClick()
+        for (i in 1..6) {
+            compose.onNodeWithTag("question_answer_${ids[i-1]}").performScrollTo().performClick()
+            compose.onNodeWithText("질문 $i 선택 5").performScrollTo().performClick()
+        }
         compose.onNodeWithText("이 답변으로 생성").assertIsNotEnabled()
+        compose.onNodeWithTag("question_answer_${ids.last()}").performScrollTo().performClick()
         compose.onNodeWithText("질문 7 선택 5").performScrollTo().performClick()
         compose.onNodeWithText("이 답변으로 생성").assertIsEnabled().performClick()
         compose.runOnIdle { assertEquals(ids.associateWith { "UNSURE" },generated) }
@@ -89,7 +132,8 @@ class PersonalizedPlanningQuestionUiTest {
                     PersonalizedPlanningAnswerOption("FREQUENT","한 달에 여러 번"),
                     PersonalizedPlanningAnswerOption("UNSURE","잘 모르겠음")))),emptyMap(),{ _,_ -> },{},{})
         } }
-        compose.onNodeWithText("How often do outside commitments disrupt your training schedule?").assertExists()
+        compose.onNodeWithText("Schedule disruption frequency").assertExists()
+        compose.onNodeWithTag("question_answer_$QUESTION_INTERRUPTION_FREQUENCY").performClick()
         compose.onNodeWithText("Several times a month").assertExists()
         compose.onNodeWithText("Not sure").assertExists()
     }
@@ -106,7 +150,8 @@ class PersonalizedPlanningQuestionUiTest {
                     PersonalizedPlanningAnswerOption("INTENTIONAL_DELOAD","의도적으로 쉬거나 디로드함")))),
                 emptyMap(),{ id,value -> selected=id to value },{},{})
         } }
-        compose.onNodeWithText("You trained much less than usual during 2026-08-17 to 2026-08-23. What was the main reason for this week?").assertExists()
+        compose.onNodeWithText("8/17~8/23 workload reduction reason").assertExists()
+        compose.onNodeWithTag("question_answer_${weekCauseQuestionId(start)}").performClick()
         compose.onNodeWithText("Intentional rest or deload").assertExists()
         compose.onNodeWithText("I do not remember").performClick()
         compose.runOnIdle { assertEquals("INTERRUPTION_CAUSE_2026-08-17" to "UNKNOWN",selected) }

@@ -15,7 +15,7 @@ AXES = ("highForceNeuralScore", "systemicMuscularScore", "localMuscularScore",
 CONTROL = {"RESISTANCE", "STRUCTURED_BADMINTON_DRILL", "ATHLETIC_PERFORMANCE_DRILL"}
 MAJOR = {"LOWER_KNEE", "POSTERIOR_CHAIN", "HORIZONTAL_PUSH", "HORIZONTAL_PULL",
          "VERTICAL_PUSH", "VERTICAL_PULL"}
-LOW_WEEK_RATIO = .625
+LOW_WEEK_RATIO = .85
 BASELINE_FLOOR = 8.0
 GOLDEN = Path(__file__).with_name("fixtures") / "v013_training_state_golden.json"
 
@@ -212,7 +212,7 @@ def classify_weeks(weeks, source, cutoff):
                 context, reasons = "UNEXPLAINED_LOW_WEEK", ["CAUSE_UNKNOWN"]
         week.update(context=context, low=low, localTypicalUnits=typical, reasonCodes=reasons,
                     cause=cause, source=provenance, bridgesStableRun=False,
-                    excludedFromTolerance=low and provenance == "USER_CONFIRMED" and cause in {"EXTERNAL", "EVENT_OR_TAPER"})
+                    excludedFromTolerance=low and provenance == "USER_CONFIRMED" and cause in {"EXTERNAL", "EVENT_OR_TAPER", "INTENTIONAL_DELOAD"})
     runs, current, bridged = [], [], set()
     for i, week in enumerate(weeks):
         following = weeks[i+1] if i+1 < len(weeks) else None

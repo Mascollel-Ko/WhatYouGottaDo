@@ -1,5 +1,14 @@
 # Codex Worklog
 
+## 2026-09-11 — Stage 2: low-week interpretation and compact questions
+
+- Stage 1 pushed and clean local/remote equality verified at 216039ea4c251c9555c7da94b4680736a6f0209a; 113 focused tests plus one authority-freeze guard passed, compile passed. Final 7-test MAIN rerun also passed.
+- Unified strict LOW_WEEK_RATIO .625 -> .85. USER_CONFIRMED intentional deload joins external/event exclusions through the existing excludedFromTolerance authority used by tolerance and execution capacity. Fatigue/other/unknown stay included; raw physiological history is unchanged.
+- One scrollable preflight dialog now uses typed short labels, single-line ellipsized collapsed rows and full-option dropdowns. Answers stay parent-owned; required validation, frozen submission, prepared retry and progress transitions are unchanged. Korean/English assets are generated through the localization authority.
+- Initial focused run: 28 tests, two failures (new fixture incorrectly assumed one annotated week; independent Python golden retained the old threshold). Corrected the fixture and changed only the same threshold/cause rule in Python, then regenerated the two related goldens.
+- Final focused run: 37 tests, 36 passed, zero failures/errors, one expected optional private Python-artifact skip (WGTD_COMPARISON_DIR unset). Includes 12 Compose question/progress tests, three prepared-retry tests, 13 correction tests, eight training-state tests and one freeze guard. Narrow Korean 320dp rows remain one line at fontScale 1.3; selections survive scrolling/recomposition. Python 24 raw-input + seven run-local cases passed; localization 10 tests and deterministic authority/audit passed.
+- compileDebugKotlin and final assembleDebug passed. Protocol validation (8 families/34 protocols) and git diff --check passed. Full unit suite, 29-persona, Legacy 360 and full backup frequency matrix intentionally not run, as requested. No private backup, audit outputs or signing material committed.
+
 ## 2026-09-11 — Stage 1: MAIN scheduling responsibilities
 
 - Stage 0 pushed and local/remote equality verified at 0f22c771664af50f246408bf5de75ec21e390655; its 18 focused tests and compile passed.

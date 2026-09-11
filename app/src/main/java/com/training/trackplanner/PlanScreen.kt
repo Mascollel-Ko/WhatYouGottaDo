@@ -76,6 +76,28 @@ import com.training.trackplanner.data.personalized.PersonalizedGenerationConstra
 import com.training.trackplanner.data.personalized.PersonalizedPlanningPreflight
 import com.training.trackplanner.localization.localizedProgramName
 import java.time.LocalDate
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.style.TextOverflow
+import com.training.trackplanner.data.personalized.*
+
+internal fun personalizedQuestionShortLabel(question: PersonalizedPlanningQuestion): String = when (question.id) {
+    QUESTION_STRENGTH_INTENT -> "근력 목표"
+    QUESTION_BADMINTON_INTENT -> "배드민턴 구조화 훈련"
+    QUESTION_FREE_WEIGHT -> "프리웨이트·편측운동"
+    QUESTION_INTERRUPTION_FREQUENCY -> "일정 변동 빈도"
+    else -> {
+        val start = question.id.takeIf { it.startsWith(QUESTION_WEEK_CAUSE_PREFIX) }
+            ?.removePrefix(QUESTION_WEEK_CAUSE_PREFIX)?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+        if (start == null) question.prompt else {
+            val end = start.plusDays(6)
+            "${start.monthValue}/${start.dayOfMonth}~${end.monthValue}/${end.dayOfMonth} 운동량 감소 이유"
+        }
+    }
+}
 
 @Composable
 internal fun PersonalizedPlanningQuestionDialog(
@@ -90,13 +112,29 @@ internal fun PersonalizedPlanningQuestionDialog(
         onDismissRequest = onDismiss,
         title = { Text("기록 기반 계획 사전 확인") },
         text = {
-            Column(Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState()),
+            Column(Modifier.fillMaxWidth().heightIn(max = 480.dp).verticalScroll(rememberScrollState()).testTag("preflight_questions"),
                 verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 questions.forEach { question ->
-                    Text(question.prompt, style = MaterialTheme.typography.bodyMedium)
-                    question.options.forEach { option ->
-                        OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = { onAnswer(question.id, option.value) }) {
-                            Text(if (answers[question.id] == option.value) "✓ ${option.label}" else option.label)
+                    androidx.compose.runtime.key(question.id) {
+                        var expanded by remember { mutableStateOf(false) }
+                        Row(Modifier.fillMaxWidth().testTag("question_row_${question.id}"), verticalAlignment = Alignment.CenterVertically) {
+                            Text(personalizedQuestionShortLabel(question), Modifier.weight(1f),
+                                style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Box(Modifier.weight(1f)) {
+                                TextButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth().testTag("question_answer_${question.id}")) {
+                                    Text(question.options.firstOrNull { it.value == answers[question.id] }?.label ?: "선택 안 함",
+                                        Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text(" ▾", maxLines = 1)
+                                }
+                                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                                    question.options.forEach { option ->
+                                        DropdownMenuItem(text = { Text(option.label) }, onClick = {
+                                            onAnswer(question.id, option.value)
+                                            expanded = false
+                                        })
+                                    }
+                                }
+                            }
                         }
                     }
                 }

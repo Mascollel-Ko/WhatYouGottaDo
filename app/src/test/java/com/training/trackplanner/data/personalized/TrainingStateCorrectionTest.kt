@@ -19,6 +19,40 @@ class TrainingStateCorrectionTest {
     private fun state(s: PlanningHistorySnapshot)=AthletePlanningStateBuilder().build(s,PersonalizedPlanningAnswers())
     private fun assess(name: String)=TrainingStateAnalyzer().assess(input(name))
 
+    @Test fun canonicalLowWeekBoundaryIsStrictlyBelow85Percent() {
+        assertEquals(.85,TrainingStatePolicy.LOW_WEEK_RATIO,0.0)
+        val start=LocalDate.parse("2026-07-06")
+        for (units in listOf(84,85,86)) {
+            val raw=(0..6).map { i -> WeeklyWorkloadEvidence(start.plusWeeks(i.toLong()),start.plusWeeks(i.toLong()).plusDays(6),
+                if(i==3) units else 100,100.0,3,0.0,null,null,null,null) }
+            val (weeks,_)=WeeklyWorkloadContextAnalyzer().evaluate(raw,input("long_successful_run"))
+            assertEquals(100.0,weeks[3].localTypicalUnits!!,0.0)
+            assertEquals(units<85,weeks[3].low)
+        }
+    }
+
+    @Test fun allSixCausesUseOneExclusionAuthorityInToleranceAndCapacity() {
+        val original=input("confirmed_external")
+        val start=original.weekAnnotations.keys.max()
+        for(cause in WeeklyContextCause.entries) {
+            val annotated=original.copy(weekAnnotations=mapOf(start to WeeklyContextAnnotation(start,cause,WeeklyContextSource.USER_CONFIRMED)))
+            val assessed=TrainingStateAnalyzer().assess(annotated)
+            val excluded=cause in setOf(WeeklyContextCause.EXTERNAL,WeeklyContextCause.EVENT_OR_TAPER,WeeklyContextCause.INTENTIONAL_DELOAD)
+            assertEquals(cause.name,excluded,assessed.weeklyContext.single { it.start==start }.excludedFromTolerance)
+            val end=completedTrainingWeekEnd(annotated.cutoff)
+            val weeks=assessed.weeklyContext.filter { it.end in end.minusDays(27)..end && !it.excludedFromTolerance }
+            assertEquals(weeks.map { it.units }.average(),assessed.tolerance.current.units!!,1e-9)
+            val s=helpers.snapshot(annotated)
+            val state=state(s).copy(trainingStateAssessment=assessed)
+            val request=ProgramSkeletonRequest("test",ProgramGoal.BODYBUILDING,4,90,emptySet(),"",.5,"AUTO",ProgramPeriodizationType.AUTO,4)
+            val actual=ExecutionCapacityPlanner().envelope(s,state,request,30.0,100,1.0)
+            val filtered=s.copy(allConfirmedSets=s.allConfirmedSets.filter { row -> assessed.weeklyContext.none { it.excludedFromTolerance && row.date in it.start..it.end } })
+            assertEquals(actual,ExecutionCapacityPlanner().envelope(filtered,state,request,30.0,100,1.0))
+            assertEquals(original.records,annotated.records)
+            assertEquals(TrainingStateAnalyzer().assess(original).adaptation,assessed.adaptation)
+        }
+    }
+
     @Test fun highCourtNeverOwnsTheFrequencyCeiling() {
         val s=state(snapshot("long_successful_run"))
         val a=assess("long_successful_run")

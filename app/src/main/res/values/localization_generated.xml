@@ -73,6 +73,7 @@
     <string name="loc_baseline_0a00803efca9">입력 조건을 확인하는 중입니다.</string>
     <string name="loc_baseline_0a0dc6c9a203">계획대로 진행 가능</string>
     <string name="loc_baseline_0a3dcf906907">남은 계획 후 예상 피로도가 높습니다.</string>
+    <string name="loc_baseline_0a5262aeff41">근력 목표</string>
     <string name="loc_baseline_0a775f625a32">비중</string>
     <string name="loc_baseline_0a8b06387903">등</string>
     <string name="loc_baseline_0a92dce18992">포함하지 않음</string>
@@ -901,6 +902,7 @@
     <string name="loc_baseline_b67fc8777125">집중력/의욕 저하</string>
     <string name="loc_baseline_b69076055f3e">오늘은 고강도 훈련을 줄이세요.</string>
     <string name="loc_baseline_b6a39220e7c3">달력</string>
+    <string name="loc_baseline_b6a6dbca6624">배드민턴 구조화 훈련</string>
     <string name="loc_baseline_b6cb4e8945dd">전체 RPE</string>
     <string name="loc_baseline_b70de03dab8c">운동과 런타임 메타데이터를 저장했습니다.</string>
     <string name="loc_baseline_b78789f9f0f9">어깨 부담 큰 상체 푸시</string>
@@ -960,6 +962,7 @@
     <string name="loc_baseline_c0969856cf73">운동명 검색</string>
     <string name="loc_baseline_c0ab1cbc5201">피로 부담이 낮습니다.</string>
     <string name="loc_baseline_c0cb076a12e0">전이 목적 메타데이터가 있는 기록이 부족합니다.</string>
+    <string name="loc_baseline_c0d2dc00bd42">일정 변동 빈도</string>
     <string name="loc_baseline_c0e59c02b0f8">잘 모르겠음</string>
     <string name="loc_baseline_c1172b1b40a7">종료</string>
     <string name="loc_baseline_c15acfa592cf">이전 추정 없음</string>
@@ -1047,6 +1050,7 @@
     <string name="loc_baseline_d07b6c9583ec">분석하기</string>
     <string name="loc_baseline_d0bd48681421">조건에 맞는 운동 후보가 적어 일부 세션 구성이 짧을 수 있습니다.</string>
     <string name="loc_baseline_d0d24860d9f0">전체 운동량</string>
+    <string name="loc_baseline_d0df6dae661f">프리웨이트·편측운동</string>
     <string name="loc_baseline_d12bc541857f">힘/부하 유형</string>
     <string name="loc_baseline_d18c06e94b40">선택한 지표 조합은 엄격 분석을 시작할 수 없습니다.</string>
     <string name="loc_baseline_d1e991bdf03b">초기 프로필과 최근 기록을 함께 반영했습니다.</string>
@@ -3129,6 +3133,7 @@
     <string name="loc_ui_pattern_20653fa1ad9b">근거 %1$s · 세트 %2$s · 지문 %3$s</string>
     <string name="loc_ui_pattern_217c832715e3">완료된 주간 기록: %1$s주</string>
     <string name="loc_ui_pattern_21c868ab8b29">곡선 보정 %1$s · 최근 처리 %2$s</string>
+    <string name="loc_ui_pattern_21f8d262a616">%1$s/%2$s~%3$s/%4$s 운동량 감소 이유</string>
     <string name="loc_ui_pattern_262e4029c171">선택 기간 기여: %1$s%%</string>
     <string name="loc_ui_pattern_26bf9b3870f4">%1$s-%2$s주 신경계 누적 %3$s가 관리 기준 %4$s를 초과합니다.</string>
     <string name="loc_ui_pattern_270152c2c96d">%1$s 총부하</string>

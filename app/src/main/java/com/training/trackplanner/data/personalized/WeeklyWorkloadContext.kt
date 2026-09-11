@@ -67,7 +67,7 @@ internal class WeeklyWorkloadContextAnalyzer {
             }
             week.copy(context=context,low=low,localTypicalUnits=typical,reasonCodes=reasons,cause=cause,source=source,
                 excludedFromTolerance=low && source==WeeklyContextSource.USER_CONFIRMED &&
-                    cause in setOf(WeeklyContextCause.EXTERNAL,WeeklyContextCause.EVENT_OR_TAPER))
+                    cause in setOf(WeeklyContextCause.EXTERNAL,WeeklyContextCause.EVENT_OR_TAPER,WeeklyContextCause.INTENTIONAL_DELOAD))
         }.toMutableList()
         val runs=mutableListOf<List<WeeklyWorkloadEvidence>>()
         var current=mutableListOf<WeeklyWorkloadEvidence>()

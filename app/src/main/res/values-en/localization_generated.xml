@@ -73,6 +73,7 @@
     <string name="loc_baseline_0a00803efca9">Checking input conditions.</string>
     <string name="loc_baseline_0a0dc6c9a203">Can proceed as planned</string>
     <string name="loc_baseline_0a3dcf906907">Expected fatigue after remaining plans is high.</string>
+    <string name="loc_baseline_0a5262aeff41">Strength goal</string>
     <string name="loc_baseline_0a775f625a32">specific gravity</string>
     <string name="loc_baseline_0a8b06387903">etc.</string>
     <string name="loc_baseline_0a92dce18992">Do not include</string>
@@ -901,6 +902,7 @@
     <string name="loc_baseline_b67fc8777125">Difficulty concentrating/motivating</string>
     <string name="loc_baseline_b69076055f3e">Reduce your high-intensity training today.</string>
     <string name="loc_baseline_b6a39220e7c3">calendar</string>
+    <string name="loc_baseline_b6a6dbca6624">Structured badminton training</string>
     <string name="loc_baseline_b6cb4e8945dd">Full RPE</string>
     <string name="loc_baseline_b70de03dab8c">Saved exercise and runtime metadata.</string>
     <string name="loc_baseline_b78789f9f0f9">Upper body push with heavy shoulder burden</string>
@@ -960,6 +962,7 @@
     <string name="loc_baseline_c0969856cf73">Exercise name search</string>
     <string name="loc_baseline_c0ab1cbc5201">Fatigue burden is low.</string>
     <string name="loc_baseline_c0cb076a12e0">There are not enough records with transition purpose metadata.</string>
+    <string name="loc_baseline_c0d2dc00bd42">Schedule disruption frequency</string>
     <string name="loc_baseline_c0e59c02b0f8">Not sure</string>
     <string name="loc_baseline_c1172b1b40a7">end</string>
     <string name="loc_baseline_c15acfa592cf">No previous estimates</string>
@@ -1047,6 +1050,7 @@
     <string name="loc_baseline_d07b6c9583ec">analyze</string>
     <string name="loc_baseline_d0bd48681421">Some session configurations may be short due to a limited number of eligible exercise candidates.</string>
     <string name="loc_baseline_d0d24860d9f0">total training volume</string>
+    <string name="loc_baseline_d0df6dae661f">Free weights and unilateral work</string>
     <string name="loc_baseline_d12bc541857f">Force/Load Type</string>
     <string name="loc_baseline_d18c06e94b40">Strict analysis cannot start with the selected metric combination.</string>
     <string name="loc_baseline_d1e991bdf03b">It reflects both initial profiles and recent records.</string>
@@ -3129,6 +3133,7 @@ You can leave this screen open while it runs.</string>
     <string name="loc_ui_pattern_20653fa1ad9b">Grounds %1$s · Set %2$s · Fingerprint %3$s</string>
     <string name="loc_ui_pattern_217c832715e3">Completed weekly records: %1$s weeks</string>
     <string name="loc_ui_pattern_21c868ab8b29">Curve Correction %1$s · Recent Processing %2$s</string>
+    <string name="loc_ui_pattern_21f8d262a616">%1$s/%2$s~%3$s/%4$s workload reduction reason</string>
     <string name="loc_ui_pattern_262e4029c171">Contribution in selected period: %1$s%%%%</string>
     <string name="loc_ui_pattern_26bf9b3870f4">%1$s-%2$smain nervous system cumulative %3$s exceeds control criteria %4$s.</string>
     <string name="loc_ui_pattern_270152c2c96d">%1$s total load</string>

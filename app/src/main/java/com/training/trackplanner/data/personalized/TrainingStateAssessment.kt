@@ -78,7 +78,7 @@ data class TrainingStateAssessment(val strain: LongitudinalStrainProfile, val ad
 
 /** Planner-only engineering policies; independent Python raw-input goldens own parity. */
 object TrainingStatePolicy {
-    const val LOW_WEEK_RATIO = .625
+    const val LOW_WEEK_RATIO = .85
     const val BASELINE_SCALE_FLOOR = 8.0
     val controllableDomains = setOf(PlannedActivityKind.RESISTANCE, PlannedActivityKind.STRUCTURED_BADMINTON_DRILL, PlannedActivityKind.ATHLETIC_PERFORMANCE_DRILL)
     val majorMovements = setOf(MovementCoverage.LOWER_KNEE, MovementCoverage.POSTERIOR_CHAIN, MovementCoverage.HORIZONTAL_PUSH,
