@@ -87,7 +87,7 @@ internal class PostSplitWeeklyReflow {
         fun restriction(row: ProgramSkeletonItem): String? {
             val owned=source(row) ?: return "MISSING_EXACT_SOURCE"
             if(row.localId in fixed) return "FIXED_SPLIT_CHUNK"
-            if(owned.item.scheduleTier()==ScheduleTier.CORE_MUST_DO || row.requiredTemplateAnchor) return "CORE_OR_TEMPLATE"
+            if(owned.item.scheduleTier()==ScheduleTier.CORE_MUST_DO && !MainSchedulingPolicy.ordinaryMain(row,owned.item,plan) || row.requiredTemplateAnchor) return "CORE_OR_TEMPLATE"
             val binding = row.progressionBinding
             if (binding != null && (plan.progressionSessions.none { it.key == binding.sessionKey } ||
                 binding.signature.variant.isNotBlank() || binding.signature.style !in setOf("", StrengthProgrammingStyle.NONE.name,

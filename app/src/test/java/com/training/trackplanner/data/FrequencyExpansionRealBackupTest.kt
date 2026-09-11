@@ -27,7 +27,8 @@ class FrequencyExpansionRealBackupTest {
         val context: Context = ApplicationProvider.getApplicationContext()
         var fixedAnswers: PersonalizedPlanningAnswers? = null
         // Each run restores the identical backup. Persisted answers from an earlier run must not reveal different follow-up questions.
-        for (days in listOf<Int?>(null, 3, 4, 5)) {
+        val selectedDays = System.getenv("WGTD_FREQUENCY_AUDIT_DAYS")?.toIntOrNull()
+        for (days in if (selectedDays == null) listOf<Int?>(null, 3, 4, 5) else listOf(selectedDays)) {
           val db = Room.inMemoryDatabaseBuilder(context, TrainingDatabase::class.java).allowMainThreadQueries().build()
           try {
             val repository = TrainingRepository(db, context)
@@ -107,6 +108,7 @@ internal fun writeFrequencyAudit(label: String, plan: GeneratedProgramSkeleton, 
         .put("splitAudit", JSONArray(splitAudit)).put("authorizedScheduling", scheduling?.toJson())
         .put("residualCompletion", decision.residualCompletion?.toJson())
         .put("postSplitReflow", decision.postSplitReflow?.toJson())
+        .put("mainCountsByDay", JSONObject(plan.weekDaySchedule.getValue(1).associate { day -> day.toString() to first.count { it.dayOfWeek==day && it.progressionRole==ProgressionRole.MAIN } }))
         .put("fixedSplitRelocationReview", reviewFixedSplitRelocations(plan, snapshot))
         .put("program", JSONArray(first.map(::auditPlannedItem)))
     val root = generateSequence(File(System.getProperty("user.dir")), File::getParentFile).first { File(it, "settings.gradle.kts").isFile }

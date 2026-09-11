@@ -109,6 +109,10 @@ internal class BoundedDayRebalancer(private val additionalGate: (List<ProgramSke
         fun movable(row: ProgramSkeletonItem): Boolean {
             val source = completed.sourceByAtom[atom(row)] ?: return false
             val session = skeleton.progressionSessions.firstOrNull { it.key == row.progressionBinding?.sessionKey }
+            val origin = skeleton.personalizedDecision?.authorizedScheduling?.localOrigins?.get(row.localId)
+            if (origin?.splitGroupId?.isNotBlank() == true && skeleton.personalizedDecision?.authorizedScheduling?.authorized.orEmpty()
+                    .any { it.id == origin.authorizedDemandId && ContinuitySplitPolicy.mandatory(snapshot,it) }) return false
+            if (MainSchedulingPolicy.isMain(row,skeleton)) return MainSchedulingPolicy.ordinaryMain(row,source,skeleton)
             return source.scheduleTier() != ScheduleTier.CORE_MUST_DO && row.progressionRole != ProgressionRole.MAIN &&
                 session?.track?.role != ProgressionRole.MAIN && row.progressionVariant.isBlank() &&
                 source.styleVariant.isBlank() && !row.requiredTemplateAnchor

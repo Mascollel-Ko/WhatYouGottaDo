@@ -75,7 +75,8 @@ internal class SplitAwareContinuityAllocation(private val prescriptions: Persona
     fun allocateAuthorized(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, authorized: List<AuthorizedSchedulingDemand>,
         days: Int, minutes: Int, request: ProgramSkeletonRequest): SplitAwareAllocation {
         val result = TimedWeeklyPlacementPlanner().distribute(authorized.map { TimedPlannedExercise(it.item, it.prescription) },
-            days, minutes, snapshot, state.trainingStateAssessment?.sustainable?.robustSchedule == true)
+            days, minutes, snapshot, state.trainingStateAssessment?.sustainable?.robustSchedule == true,
+            isMain = { item -> MainSchedulingPolicy.role(item, authorized.any { it.item == item && it.continuity }) == com.training.trackplanner.data.ProgressionRole.MAIN })
         return improve(snapshot, state, authorized, TimedExecutionAllocation(result.first, result.second), days, minutes, request)
     }
     fun allocate(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, continuity: List<PlannedExercise>,

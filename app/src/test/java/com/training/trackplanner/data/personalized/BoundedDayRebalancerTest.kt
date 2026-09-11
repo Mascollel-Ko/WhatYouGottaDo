@@ -32,7 +32,7 @@ class BoundedDayRebalancerTest {
     private val proportionalOfi = PlanDayProjection { rows -> StandaloneDayLoad(rows.sumOf(::plannedSeconds) / 60, listOf(0)) }
 
     private fun units(key: String, day: Int, seconds: Int, movable: Boolean = false, id: String = key, order: Int = 1) =
-        f.row(key, day, 1, seconds, id, order).copy(progressionRole = if (movable) ProgressionRole.AUTO else ProgressionRole.MAIN)
+        f.row(key, day, 1, seconds, id, order).copy(requiredTemplateAnchor = !movable)
     private fun fallbackRows(atomSeconds: Int = 10) = listOf(units("press", 1, 140 - atomSeconds),
         units("row", 1, atomSeconds, true, order = 2), units("direct", 2, 105), units("support", 4, 95), units("other", 6, 90))
     private fun multipleSources(first: Int = 150, second: Int = 140) = listOf(units("press", 1, first - 10),
@@ -102,10 +102,9 @@ class BoundedDayRebalancerTest {
         val impact = snapshot.copy(metadata = snapshot.metadata.mapValues { (key, value) -> if (key in setOf("row", "other")) value.copy(jointTendonImpactStressLevel = "HIGH") else value })
         assertTrue(run(completed(underloadRows()), source = impact).trace.actions.isEmpty())
     }
-    @Test fun `underload MAIN CORE variant and fixed template remain immovable`() {
+    @Test fun `underload non MAIN CORE variant and fixed template remain immovable`() {
         val rows = underloadRows()
-        for (protected in listOf(rows.map { it.copy(progressionRole = ProgressionRole.MAIN) },
-            rows.map { it.copy(progressionVariant = "HEAVY") }, rows.map { it.copy(requiredTemplateAnchor = true) })) {
+        for (protected in listOf(rows.map { it.copy(progressionVariant = "HEAVY") }, rows.map { it.copy(requiredTemplateAnchor = true) })) {
             assertTrue(run(completed(protected)).trace.actions.isEmpty())
         }
         val core = mapOf("row" to f.source("row", 1, priority = 100, material = true))
@@ -150,7 +149,7 @@ class BoundedDayRebalancerTest {
         assertEquals(listOf(130, 105, 105, 90), result.trace.finalDays.map { it.seconds })
     }
     @Test fun `fallback tries next overloaded source when first has no legal atom`() {
-        val rows = multipleSources().map { if (it.exerciseStableKey == "row") it.copy(progressionRole = ProgressionRole.MAIN) else it }
+        val rows = multipleSources().map { if (it.exerciseStableKey == "row") it.copy(requiredTemplateAnchor = true) else it }
         val result = run(completed(rows, days = listOf(1, 2, 3, 4, 5)))
         assertEquals(2, result.trace.actions.single().sourceDay)
     }
@@ -219,7 +218,7 @@ class BoundedDayRebalancerTest {
         val restricted = snapshot.copy(recoverySignals = PlanningRecoverySignals(tissueRestrictedStableKeys = setOf("row")))
         assertTrue(run(completed(rows), source = restricted).trace.actions.isEmpty())
         val variants = listOf<(ProgramSkeletonItem) -> ProgramSkeletonItem>(
-            { it.copy(progressionRole = ProgressionRole.MAIN) }, { it.copy(progressionVariant = "HEAVY") },
+            { it.copy(progressionVariant = "HEAVY") },
             { it.copy(requiredTemplateAnchor = true) })
         variants.forEach { protect -> assertTrue(run(completed(rows.map { if (it.exerciseStableKey == "row") protect(it) else it })).trace.actions.isEmpty()) }
         assertTrue(run(completed(rows, overrides = mapOf("row" to f.source("row", 1, priority = 100, material = true)))).trace.actions.isEmpty())
@@ -338,11 +337,15 @@ class BoundedDayRebalancerTest {
         val result = run(completed(rows, overrides = overrides), state = robust)
         assertTrue(result.trace.actions.isEmpty()); assertEquals("UNRESOLVED_BALANCE_CONSTRAINT", result.trace.balanceState)
     }
-    @Test fun `progression MAIN items are immovable`() {
+    @Test fun `ordinary progression MAIN and MAIN CORE can move without prescription changes`() {
         val input = completed(uneven().map { it.copy(progressionRole = ProgressionRole.MAIN) })
-        assertEquals(input.skeleton, run(input).skeleton)
+        assertTrue(run(input).trace.actions.isNotEmpty())
+        assertEquals(frozenContent(input.skeleton), frozenContent(run(input).skeleton))
+        val core = input.copy(sourceByAtom=input.sourceByAtom.mapValues { (_,source) -> source.copy(priority=100,material=true) })
+        assertTrue(run(core).trace.actions.isNotEmpty())
+        assertEquals(frozenContent(core.skeleton),frozenContent(run(core).skeleton))
     }
-    @Test fun `shared session MAIN authority protects members even with AUTO row role`() {
+    @Test fun `shared ordinary session MAIN retains binding while moving AUTO row`() {
         val rows = uneven().map { row -> row.copy(progressionRole = ProgressionRole.AUTO,
             progressionBinding = DraftProgressionBinding("session_${row.exerciseStableKey}", logicalItemId = row.localId,
                 signature = ProgressionSignature(row.exerciseStableKey, row.setCount, "8", null, null, null))) }
@@ -352,9 +355,9 @@ class BoundedDayRebalancerTest {
             label = "explicit main", role = ProgressionRole.MAIN), ProgressionAuthority.USER_EXPLICIT) }
         val withSessions = input.copy(skeleton = input.skeleton.copy(progressionSessions = sessions))
         val result = run(withSessions)
-        assertTrue(result.trace.actions.isEmpty())
-        assertEquals("UNRESOLVED_BALANCE_CONSTRAINT", result.trace.balanceState)
-        assertEquals(withSessions.skeleton, result.skeleton)
+        assertTrue(result.trace.actions.isNotEmpty())
+        assertEquals(frozenContent(withSessions.skeleton), frozenContent(result.skeleton))
+        assertEquals(sessions,result.skeleton.progressionSessions)
     }
     @Test fun `style variants and canonical fixed template anchors cannot move`() {
         for (variant in listOf("HEAVY", "LIGHT", "STRENGTH", "VOLUME", "MEDIUM")) {

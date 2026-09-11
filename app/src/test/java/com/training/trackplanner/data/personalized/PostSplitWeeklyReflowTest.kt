@@ -57,12 +57,14 @@ class PostSplitWeeklyReflowTest {
             assertEquals(changed.items,review(changed).skeleton.items)
         }
     }
-    @Test fun coreMustDoIsProtectedButMainAloneIsNot() {
+    @Test fun nonMainCoreIsProtectedButOrdinaryMainCoreCanMove() {
         val original=plan()
         val authority=original.personalizedDecision!!.authorizedScheduling!!
         val core=original.copy(personalizedDecision=original.personalizedDecision!!.copy(authorizedScheduling=authority.copy(
             authorized=authority.authorized.map { if(it.id=="other") it.copy(item=it.item.copy(priority=100,material=true)) else it })))
-        assertEquals(core.items,review(core).skeleton.items)
+        assertTrue(review(core).trace.moves.isNotEmpty())
+        val nonMain=core.copy(items=core.items.map { if(it.exerciseStableKey=="row") it.copy(progressionRole=ProgressionRole.ASSISTANCE) else it })
+        assertEquals(nonMain.items,review(nonMain).skeleton.items)
         assertTrue(review(original).trace.moves.isNotEmpty())
     }
     @Test fun destinationOfiAndAxisAreHardGates() {

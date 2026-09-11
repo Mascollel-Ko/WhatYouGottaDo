@@ -3,17 +3,25 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.12.0 |
+| Protocol version | 3.13.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 83d1bd31e70ccb8c33ad84a98edc4c6f3f50f11c |
+| Last audited commit | 0f22c771664af50f246408bf5de75ec21e390655 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 
 ## 1. 일반 사용자용 요약
+
+### 3.13.0 — MAIN placement and weekday mobility
+
+- Step 10 prevents poor initial MAIN layout: lexicographically minimize sameDayMainExcess (`sum(max(0,count-1))`), maxMainCountPerDay, then cyclic three-calendar-day MAIN streaks. Two consecutive days and multiple different MAINs per day remain legal. Existing lower/impact, robust early-week and duration preferences are subordinate tie-breakers.
+- `MainSchedulingPolicy.role` reuses the existing final continuity/light-volume rule; it does not redefine MAIN. Initial MAIN-only branch-and-bound redistributes already placed whole ordinary items over the existing 2–5 days, preserving the original deferred/funded demand and non-MAIN placement. Same-key/time gates remain. Search stops on a proven objective lower bound or 200,000 visited nodes, retaining the best feasible assignment (never deletes demand). Structural MAIN rows stay fixed but count in the objective.
+- Step 15 remains general cleanup with the existing BalanceObjective and loop entry. Ordinary MAIN, including MAIN+CORE_MUST_DO and valid shared-session MAIN, may relocate unchanged whole prescriptions. Non-MAIN CORE remains protected. Template/structured styles or variants, nonuniform ordered prescriptions, missing required binding and mandatory split chunks remain protected.
+- Step 17 remains mandatory-high-set-specific cleanup; ordinary MAIN+CORE can move around fixed chunks. Its trigger, objective and 6/7/8/9 partitions (including two-day 4+5) are unchanged. This supersedes only the blanket CORE immovability in 3.12.0 below.
+- MAIN progression role, CORE scheduling importance and PrimaryStrengthAnchorSpacingPolicy are separate. The same-primary cyclic-distance policy is byte-unchanged; no rule forbids different MAIN exercises sharing a day. No ranking, prescription, frequency target, Q/C/R, restoration, OFI/tissue/Context C, progression linkage or schema changes.
 
 ### 3.12.0 — primary-anchor spacing and post-split weekly reflow
 

@@ -1369,7 +1369,7 @@
       "familyId": "PROGRAM_BUILDER",
       "titleKo": "자동·기록 기반 프로그램 생성 개요",
       "titleEn": "Automatic and Record-Based Program Builder Overview",
-      "currentVersion": "3.12.0",
+      "currentVersion": "3.13.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1378,9 +1378,10 @@
       ],
       "canonicalDocument": "program_builder/PROGRAM_BUILDER_OVERVIEW.md",
       "implementedFromAppVersion": "v0.4.2.0; independent record-based builder from v0.5.1.4; v0.14.0 execution layer from 2026-09-06",
-      "lastAuditedCommit": "83d1bd31e70ccb8c33ad84a98edc4c6f3f50f11c",
+      "lastAuditedCommit": "0f22c771664af50f246408bf5de75ec21e390655",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/personalized/PrimaryStrengthAnchorSpacingPolicy.kt",
+        "app/src/main/java/com/training/trackplanner/data/personalized/MainSchedulingPolicy.kt",
         "app/src/main/java/com/training/trackplanner/data/personalized/PostSplitWeeklyReflow.kt",
         "app/src/main/java/com/training/trackplanner/data/personalized/MandatoryContinuityPlacement.kt",
         "app/src/main/java/com/training/trackplanner/data/personalized/SplitParentProgression.kt",
@@ -1462,6 +1463,7 @@
         "app/src/test/java/com/training/trackplanner/data/personalized/BoundedDayRebalancerTest.kt",
         "app/src/test/java/com/training/trackplanner/data/personalized/SplitAwareContinuityAllocationTest.kt",
         "app/src/test/java/com/training/trackplanner/data/personalized/PrimaryStrengthAnchorSpacingPolicyTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/personalized/MainSchedulingPolicyTest.kt",
         "app/src/test/java/com/training/trackplanner/data/personalized/PostSplitWeeklyReflowTest.kt",
         "app/src/test/java/com/training/trackplanner/data/personalized/ExactAuthorizedRestorationTest.kt",
         "app/src/test/java/com/training/trackplanner/data/personalized/AuthorizedPipelineInvariantTest.kt",

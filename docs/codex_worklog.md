@@ -1,5 +1,16 @@
 # Codex Worklog
 
+## 2026-09-11 — Stage 1: MAIN scheduling responsibilities
+
+- Stage 0 pushed and local/remote equality verified at 0f22c771664af50f246408bf5de75ec21e390655; its 18 focused tests and compile passed.
+- Shared future/final MAIN role rule, MAIN-only bounded initial placement (overlap/max-count/cyclic 3-day streak),
+  normal MAIN+CORE whole-item mobility in existing general rebalancer and split-specific reflow.
+- Funded/deferred items and prescriptions are not changed by the initial placement review; non-MAIN layout stays fixed.
+  Non-MAIN CORE, structural variants/bindings and mandatory chunks remain protected. Primary spacing authority unchanged.
+- Focused scheduling/rebalancing/split tests and exactly one four-day private-backup audit; no full matrix.
+- Verification: 113 focused tests passed, then the final search lower-bound refinement passed all 7 MAIN policy tests again; compileDebugKotlin, protocol validation and diff check passed.
+- Four-day private audit: MAIN counts Mon/Tue/Thu/Sat = 3/3/4/3; squat Thu, weighted pull-up and incline dumbbell press Tue, calf Mon/Thu/Sat 3+3+3. The controlled overlap fixture improves excess 1 to 0. No private backup/report is committed.
+
 ## 2026-09-11 — Stage 0: actual first-performance ordering
 
 - Clean actual remote baseline c3e43a1273c8b725589fc905ba0f1de35debf415, local/remote SHA equality verified.

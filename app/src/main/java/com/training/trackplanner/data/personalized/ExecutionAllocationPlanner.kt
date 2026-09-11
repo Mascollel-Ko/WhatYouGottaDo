@@ -122,7 +122,8 @@ class TimedExecutionAllocationPlanner(private val prescriptions: PersonalizedPre
         }
         optional.forEach { if (fits(funded + it)) funded += it else deferred += timed(it) }
         val placement = TimedWeeklyPlacementPlanner().distribute(funded.map(::timed), days, minutes, snapshot,
-            state.trainingStateAssessment?.sustainable?.robustSchedule == true)
+            state.trainingStateAssessment?.sustainable?.robustSchedule == true,
+            isMain = { MainSchedulingPolicy.role(it, it in continuity) == com.training.trackplanner.data.ProgressionRole.MAIN })
         check(placement.second.isEmpty())
         return TimedExecutionAllocation(placement.first, deferred)
     }
@@ -291,7 +292,8 @@ class ExecutionCapacityPlanner {
 /** Prescriptions precede placement. No item-count or generic-court-count capacity rule. */
 class TimedWeeklyPlacementPlanner {
     fun distribute(items: List<TimedPlannedExercise>, days: Int, sessionMinutes: Int, snapshot: PlanningHistorySnapshot? = null,
-                   robustSchedule: Boolean = false): Pair<Map<Int, List<TimedPlannedExercise>>, List<TimedPlannedExercise>> {
+                   robustSchedule: Boolean = false,
+                   isMain: (PlannedExercise) -> Boolean = { false }): Pair<Map<Int, List<TimedPlannedExercise>>, List<TimedPlannedExercise>> {
         val buckets = (1..days).associateWith { mutableListOf<TimedPlannedExercise>() }
         val deferred = mutableListOf<TimedPlannedExercise>()
         val ordered = items.sortedWith(compareByDescending<TimedPlannedExercise> { it.item.priority }
@@ -318,7 +320,7 @@ class TimedWeeklyPlacementPlanner {
                 .thenBy { it.key })
             if (target == null) deferred += row else target.value += row
         }
-        return buckets to deferred
+        return InitialMainPlacement.review(buckets, sessionMinutes, snapshot, robustSchedule, isMain) to deferred
     }
 }
 
