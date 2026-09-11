@@ -4,23 +4,30 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class RecordEntryOrderingTest {
-    @Test fun performedChronologyPrecedesUnperformedPresentationOrderWithoutContentMutation() {
-        fun row(id: Long, order: Int, first: Long?) = WorkoutEntryWithSets(
-            WorkoutEntry(id=id,date="2026-09-11",exerciseStableKey="key$id",exerciseName="name$id",category="test",
-                displayOrder=order,firstConfirmedAt=first), emptyList())
-        val pushUp=row(1,1,null)
+    private fun row(id: Long, order: Int, first: Long? = null) = WorkoutEntryWithSets(
+        WorkoutEntry(id=id,date="2026-09-12",exerciseStableKey="key$id",exerciseName="name$id",category="test",
+            displayOrder=order,firstConfirmedAt=first), listOf(WorkoutSet(entryId=id,setIndex=1,reps=5,weightKg=40.0)))
+
+    @Test fun firstPerformedSquatMovesAbovePushUpWithoutChangingContent() {
+        val pushUp=row(1,1)
         val squat=row(2,2,100)
-        val pullUp=row(3,3,null)
-        assertEquals(listOf(squat,pushUp,pullUp),RecordEntryOrdering.firstConfirmationOrder(listOf(pushUp,squat,pullUp)))
-        val startedPullUp=pullUp.copy(entry=pullUp.entry.copy(firstConfirmedAt=200))
-        val another=row(4,4,null)
-        assertEquals(listOf(squat,startedPullUp,pushUp,another),
-            RecordEntryOrdering.firstConfirmationOrder(listOf(another,startedPullUp,pushUp,squat)))
-        // A later drag may reverse performed rows; the next first-confirmation event repairs chronology.
-        assertEquals(listOf(squat,startedPullUp,pushUp),RecordEntryOrdering.firstConfirmationOrder(listOf(
-            startedPullUp.copy(entry=startedPullUp.entry.copy(displayOrder=1)),
-            squat.copy(entry=squat.entry.copy(displayOrder=2)),pushUp.copy(entry=pushUp.entry.copy(displayOrder=3))))
-            .map { original -> listOf(squat,startedPullUp,pushUp).first { it.entry.id==original.entry.id } })
+        assertEquals(listOf(squat,pushUp),RecordEntryOrdering.insertNewlyPerformed(listOf(pushUp,squat),2))
+    }
+
+    @Test fun manualPerformedOrderAndUnperformedRelativeOrderSurviveInsertion() {
+        val pullUp=row(1,1,200)
+        val squat=row(2,2,100)
+        val pushUp=row(3,3)
+        val curl=row(4,4,300)
+        val other=row(5,5)
+        assertEquals(listOf(pullUp,squat,curl,pushUp,other),
+            RecordEntryOrdering.insertNewlyPerformed(listOf(other,curl,pushUp,squat,pullUp),4))
+    }
+
+    @Test fun insertionPreservesInterleavedUnperformedRowsRatherThanRebuildingGroups() {
+        val rows=listOf(row(1,1),row(2,2,200),row(3,3),row(4,4,100),row(5,5,300))
+        assertEquals(rows,RecordEntryOrdering.insertNewlyPerformed(rows,5))
+        assertEquals(rows,RecordEntryOrdering.insertNewlyPerformed(rows,999))
     }
     @Test
     fun firstConfirmationSequenceRemainsAThenCThenB() {

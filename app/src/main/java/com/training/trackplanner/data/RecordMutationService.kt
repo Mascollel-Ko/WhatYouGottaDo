@@ -104,7 +104,7 @@ internal class RecordMutationService(
             if (newlyConfirmed) {
                 workoutDao.markEntryConfirmed(set.entryId, System.currentTimeMillis())
                 if (firstConfirmationForEntry) {
-                    RecordEntryOrdering.firstConfirmationOrder(workoutDao.entriesWithSets(entry.date))
+                    RecordEntryOrdering.insertNewlyPerformed(workoutDao.entriesWithSets(entry.date), entry.id)
                         .forEachIndexed { index, record ->
                             if (record.entry.displayOrder != index + 1) workoutDao.updateEntryDisplayOrder(record.entry.id, index + 1)
                         }

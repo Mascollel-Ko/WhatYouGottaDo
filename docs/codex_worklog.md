@@ -1,5 +1,14 @@
 # Codex Worklog
 
+## 2026-09-12 — Record incremental first-performance insertion correction
+
+- Clean actual origin/main baseline: 2e2334e403019246414efefbe4e78295880478c8.
+- Previous Stage 0 incorrectly treated firstConfirmedAt chronology as permanent presentation authority and could undo manual ordering of already-performed entries.
+- Current displayOrder is authoritative. On first confirmation only, remove the newly started entry and insert it immediately after the last OTHER already-started entry in current display order (or at the beginning if none). Every other row retains its relative order; no timestamp reconstruction or performed/unperformed regrouping.
+- firstConfirmedAt remains historical data and is used only as the started-state predicate. Later sets, edits and reconfirmation cannot restore chronology. The existing manual marker remains presentation bookkeeping; it neither vetoes insertion nor authorizes a full sort.
+- Only the existing displayOrder persistence path changed. Manual drag, normal confirmation fields, raw-save/deferred-refresh, planner scheduling, 85% completed-week interpretation, deload exclusion and preflight UI remain untouched.
+- Verification: 22 focused tests passed (ordering 5, mutation 8, presentation 6, drag 3), zero failures/errors/skips; compileDebugKotlin and git diff --check passed. Tests include reversed performed manual order plus a new Curl, interleaved unperformed rows, content immutability, C then B, and later-set/edit/unconfirm/reconfirm durability. No full suite or planner/analysis matrix run.
+
 ## 2026-09-11 — Stage 2: low-week interpretation and compact questions
 
 - Stage 1 pushed and clean local/remote equality verified at 216039ea4c251c9555c7da94b4680736a6f0209a; 113 focused tests plus one authority-freeze guard passed, compile passed. Final 7-test MAIN rerun also passed.

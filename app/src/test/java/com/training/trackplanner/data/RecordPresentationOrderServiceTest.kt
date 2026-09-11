@@ -62,7 +62,7 @@ class RecordPresentationOrderServiceTest {
     }
 
     @Test
-    fun `later first confirmation restores performed chronology after manual drag`() = runBlocking {
+    fun `first confirmation inserts into manual order without a marker veto`() = runBlocking {
         val db = newDatabase()
         val ids = addEntries(db)
         val manualOrder = listOf(ids[2], ids[0], ids[1])
@@ -80,6 +80,51 @@ class RecordPresentationOrderServiceTest {
             listOf(ids[1], ids[2], ids[0]),
             RecordEntryOrdering.ordered(db.workoutDao().entriesWithSets(DATE)).map { it.entry.id }
         )
+    }
+
+    @Test fun `manual Pull-up before Squat survives Curl first confirmation with content unchanged`() = runBlocking {
+        val db = newDatabase()
+        val ids = addEntries(db, listOf("Squat", "Pull-up", "Push-up", "Curl"))
+        val dao = db.workoutDao()
+        val mutation = RecordMutationService(db, db.exerciseDao(), dao, appMetaDao = db.appMetaDao())
+        for (id in ids.take(2)) mutation.updateSet(dao.setsForEntry(id).single().copy(confirmed=true))
+        // Explicit unequal historical timestamps make a chronology-sort regression deterministic.
+        ids.take(2).forEachIndexed { index,id -> dao.updateEntry(dao.findEntryById(id)!!.copy(firstConfirmedAt=100L+index)) }
+        service(db).reorder(DATE,listOf(ids[1],ids[0],ids[2],ids[3]))
+        val before = dao.entriesWithSets(DATE).associateBy { it.entry.id }
+        val target = dao.setsForEntry(ids[3]).single()
+        mutation.updateSet(target.copy(confirmed=true))
+        val after = RecordEntryOrdering.ordered(dao.entriesWithSets(DATE))
+        assertEquals(listOf(ids[1],ids[0],ids[3],ids[2]),after.map { it.entry.id })
+        after.forEach { record ->
+            val original = before.getValue(record.entry.id)
+            if(record.entry.id==ids[3]) {
+                assertEquals(original.entry,record.entry.copy(displayOrder=original.entry.displayOrder,
+                    firstConfirmedAt=original.entry.firstConfirmedAt,completedAt=original.entry.completedAt,performedAt=original.entry.performedAt))
+                assertEquals(original.sets.map { it.copy(confirmed=true) },record.sets)
+            } else {
+                assertEquals(original.entry,record.entry.copy(displayOrder=original.entry.displayOrder))
+                assertEquals(original.sets,record.sets)
+            }
+        }
+        assertTrue(db.strengthPosteriorDao().allEvents().isEmpty())
+    }
+
+    @Test fun `manual order after all entries start survives edit unconfirm and reconfirm`() = runBlocking {
+        val db = newDatabase()
+        val ids = addEntries(db)
+        val dao = db.workoutDao()
+        val mutation = RecordMutationService(db,db.exerciseDao(),dao,appMetaDao=db.appMetaDao())
+        for(id in ids) mutation.updateSet(dao.setsForEntry(id).single().copy(confirmed=true))
+        val manual = listOf(ids[2],ids[0],ids[1])
+        service(db).reorder(DATE,manual)
+        val before = dao.entriesWithSets(DATE).associate { it.entry.id to (it.entry.displayOrder to it.entry.firstConfirmedAt) }
+        val target = dao.setsForEntry(ids[0]).single()
+        mutation.updateSet(target.copy(reps=12))
+        mutation.updateSet(target.copy(confirmed=false))
+        mutation.updateSet(target.copy(confirmed=true))
+        assertEquals(before,dao.entriesWithSets(DATE).associate { it.entry.id to (it.entry.displayOrder to it.entry.firstConfirmedAt) })
+        assertEquals(manual,RecordEntryOrdering.ordered(dao.entriesWithSets(DATE)).map { it.entry.id })
     }
 
     @Test fun `C then B starts preserve chronology and later sets do not reorder`() = runBlocking {
@@ -113,8 +158,8 @@ class RecordPresentationOrderServiceTest {
     private fun service(db: TrainingDatabase) =
         RecordPresentationOrderService(db, db.workoutDao(), db.appMetaDao())
 
-    private suspend fun addEntries(db: TrainingDatabase): List<Long> =
-        listOf("스쿼트", "벤치프레스", "데드리프트").mapIndexed { index, name ->
+    private suspend fun addEntries(db: TrainingDatabase, names: List<String> = listOf("스쿼트", "벤치프레스", "데드리프트")): List<Long> =
+        names.mapIndexed { index, name ->
             val stableKey = "exercise_$index"
             db.exerciseDao().insertExercise(
                 Exercise(stableKey = stableKey, name = name, category = "근력운동", mode = "무게*횟수")

@@ -1,10 +1,15 @@
 package com.training.trackplanner.data
 
 internal object RecordEntryOrdering {
-    fun firstConfirmationOrder(records: List<WorkoutEntryWithSets>): List<WorkoutEntryWithSets> {
-        val previous = ordered(records)
-        return previous.filter { it.entry.firstConfirmedAt != null }.sortedBy { it.entry.firstConfirmedAt } +
-            previous.filter { it.entry.firstConfirmedAt == null }
+    /** Current display order owns presentation; only the newly started entry may move. */
+    fun insertNewlyPerformed(records: List<WorkoutEntryWithSets>, newlyPerformedEntryId: Long): List<WorkoutEntryWithSets> {
+        val current = ordered(records).toMutableList()
+        val targetIndex = current.indexOfFirst { it.entry.id == newlyPerformedEntryId }
+        if (targetIndex < 0) return current
+        val target = current.removeAt(targetIndex)
+        val insertionIndex = current.indexOfLast { it.entry.firstConfirmedAt != null } + 1
+        current.add(insertionIndex, target)
+        return current
     }
 
     fun ordered(records: List<WorkoutEntryWithSets>): List<WorkoutEntryWithSets> =
