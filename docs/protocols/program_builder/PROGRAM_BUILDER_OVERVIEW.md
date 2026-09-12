@@ -3,17 +3,24 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.15.0 |
+| Protocol version | 3.15.1 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 1f1a3942193ca5b17a7570aa75b69410c9549322 |
+| Last audited commit | 8642073da005ed1391f19e460f6990fd85526551 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 
 ## 1. 일반 사용자용 요약
+
+### 3.15.1 — exact post-split evaluation optimization
+
+- PostSplitWeeklyReflow still enumerates all structurally eligible moves with the unchanged objective/comparator, 128-step bound and canonical hard gates. Instead of projecting tissue for every improving candidate before taking the minimum, it stable-sorts candidates and takes the first passing chronological-tissue gate. Tissue is not a score: this is the same minimum feasible candidate, including ties and best-candidate rejection.
+- Per-run objective memoization uses complete immutable row lists (including IDs, prescriptions, bindings and provenance-bearing identity). Existing day-load and whole-week tissue caches remain scoped to the run; unchanged day compositions reuse canonical OFI, with no approximate formula or tissue delta. Current lower-stress maximum and initial Q/C/R are calculated once rather than repeatedly.
+- Rejection diagnostics count gates actually evaluated; losing candidates after the first feasible winner no longer claim a tissue result. Test-only counters measure generated candidates, canonical day/week projections, objective evaluations and accepted actions. An exhaustive baseline evaluator in tests verifies exact final skeletons, move sequences, objectives, fixed chunks and Q/C/R.
+- No selection, prescription, ranking, primary membership, split rule, physiological authority, Legacy behavior or historical golden changes.
 
 ### 3.15.0 — exact primary-strength scheduling
 

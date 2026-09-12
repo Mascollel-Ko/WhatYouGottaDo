@@ -1,5 +1,25 @@
 # Codex Worklog
 
+## 2026-09-12 — Stage 1: exact 96% post-split evaluation optimization
+
+- Clean main fetched/fast-forward verified at 8642073da005ed1391f19e460f6990fd85526551. This stage must be verified, committed and pushed before starting editor scope or summary UI work.
+- Audited PostSplitWeeklyReflow, PostSplitObjective, exact-five primary policy, cyclic same-key spacing, canonical day OFI and chronological tissue projection, lower-stress gate, RepresentativeWeek identity checks and Q/C/R. Old order: structural restrictions -> same-key/time/spacing/lower concentration -> destination OFI -> exact objective improvement -> whole-week tissue -> minimum feasible comparator. Objective was recalculated for an accepted candidate and repeated current states; baseline Q/C/R and lower-stress maximum were also repeated.
+- Exact optimization: retain every candidate, unchanged comparator/tie breaks, objective and 128-step bound. Sort improving candidates stably, then evaluate the PASS/FAIL-only tissue gate until the first feasible candidate. This equals the old minimum over feasible candidates; score-affecting OFI stays before ranking. Existing day and tissue caches remain run-local. New full-row objective cache retains prescription, binding, chunk and local identity; baseline Q/C/R and current lower-stress maximum are reused. No approximate OFI/tissue delta, arbitrary top-K or move limit.
+- Rejection counts intentionally describe gates actually executed; skipped losing candidates do not fabricate tissue status. Operation counters are invocation-local measurement sinks, not persisted decisions or comparator inputs.
+- Test-only ExhaustivePostSplitReflowReference preserves baseline 8642073 algorithm plus counters, never enters production. Stress fixture has four days, fixed 9-set chunks, multiple exact primary rows and supportive rows. Tests compare entire skeleton, accepted moves, objective, Q/C/R and fixed identities, including first-winner pass, rejected-best fallback and no beneficial/legal move.
+- Initial test run: 46 tests, one overly strict operation-count assertion failed in the single-beneficial-candidate fixture; exact output assertions passed. Removed only that fixture's unsupported strict reduction assumption; the multi-candidate stress fixture retains strict reduction assertions. No golden or source-freeze updates.
+- Focused rerun passed all 46 tests (post-split 17, primary 8, spacing 5, Q/C/R pipeline 2, split allocation 14), zero failures/errors/skips.
+
+| Fixture | Candidates old/new | Day projections old/new | Week tissue old/new | Objectives old/new | Actions old/new |
+|---|---|---|---|---|---|
+| Four-day multiple-primary/support stress | 18/18 | 20/20 | 8/2 | 29/17 | 1/1 |
+| Best ranked candidate tissue-blocked | 27/27 | 22/22 | 9/4 | 39/23 | 2/2 |
+| Single useful destination | 6/6 | 8/8 | 2/2 | 11/4 | 1/1 |
+| No legal beneficial move | 3/3 | 8/8 | 2/2 | 6/4 | 0/0 |
+
+- Full-skeleton equality includes week-local IDs, prescriptions, bindings and original decision/provenance; separate move sequence, final objective, fixed-chunk and Q/C/R comparisons pass. The test-only oracle copies the exact baseline algorithm, not an alternate production planner. No wall-clock target or claimed device-temperature measurement.
+- Stage 1 full `testDebugUnitTest assembleDebug --no-daemon --continue` passed: 1681 tests, 1677 passed, zero failures/errors, 4 unchanged optional private-input skips; APK assembly passed. Historical 29 matrix, Legacy 360 matrix, source freeze and planner isolation passed unchanged. Protocol validation passed (8 families, 34 protocols), git diff --check passed; no localization changes. Local C1-only JVM option avoids the previously diagnosed Windows JBR C2 crash, with no repository configuration change.
+
 ## 2026-09-12 — Exact primary-strength scheduling and historical CI repair
 
 - Initial worktree clean; fetched/fast-forward checked main == origin/main at 1f1a3942193ca5b17a7570aa75b69410c9549322. Latest hosted Android Debug Build run 34615103433 confirmed 1667 tests, 1 failure, 4 conditional skips; protocol/whitespace/compilation passed, APK steps skipped. Failure was the historical 29-persona fingerprint assertion, not Android compilation.

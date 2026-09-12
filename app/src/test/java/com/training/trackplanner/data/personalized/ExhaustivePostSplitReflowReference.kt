@@ -2,47 +2,12 @@ package com.training.trackplanner.data.personalized
 
 import com.training.trackplanner.data.*
 import org.json.JSONArray
-import org.json.JSONObject
 
-data class PostSplitObjective(val balance: BalanceObjective, val maxMajorAnchors: Int, val majorCoLocations: Int,
-    val strengthPrimary: StrengthPrimaryObjective = StrengthPrimaryObjective(0,0)): Comparable<PostSplitObjective> {
-    override fun compareTo(other: PostSplitObjective) = compareValuesBy(this,other,
-        PostSplitObjective::strengthPrimary,PostSplitObjective::balance,PostSplitObjective::maxMajorAnchors,PostSplitObjective::majorCoLocations)
-    fun toJson() = JSONObject().put("balance",balance.toJson()).put("maxMajorAnchors",maxMajorAnchors).put("majorCoLocations",majorCoLocations)
-        .put("strengthPrimaryOverlap",strengthPrimary.overlap).put("maxStrengthPrimaryPerDay",strengthPrimary.maximumPerDay)
-}
-data class PostSplitMove(val localId: String,val stableKey: String,val from: Int,val to: Int,
-    val before: PostSplitObjective,val after: PostSplitObjective) {
-    fun toJson() = JSONObject().put("localId",localId).put("stableKey",stableKey).put("from",from).put("to",to)
-        .put("before",before.toJson()).put("after",after.toJson()).put("ofiGate","DESTINATION_PASS")
-        .put("tissueGate","NO_BLOCKED_UNITS_NO_NEW_UNRESOLVED_MOVED_KEY_RESOLVED")
-}
-data class PostSplitReflowTrace(val state: String,val parentIds: List<String>,val fixedChunkIds: List<String>,
-    val initialFingerprint: String,val finalFingerprint: String,val initialDays: List<BalanceDay> = emptyList(),val finalDays: List<BalanceDay> = emptyList(),
-    val initialObjective: PostSplitObjective? = null,val finalObjective: PostSplitObjective? = null,
-    val moves: List<PostSplitMove> = emptyList(),val rejections: Map<String,Int> = emptyMap(),val spacingJson: String = "[]",
-    val qcrBeforeJson: String = "[]",val qcrAfterJson: String = "[]",val tissue: PlannedTissueWeek? = null,val diagnostic: String = "",
-    val timeReference: Double = 0.0,val ofiReference: Double = 0.0) {
-    fun toJson() = JSONObject().put("state",state).put("mandatoryParentIds",JSONArray(parentIds)).put("protectedSplitChunkLocalIds",JSONArray(fixedChunkIds))
-        .put("initialFingerprint",initialFingerprint).put("finalFingerprint",finalFingerprint)
-        .put("initialDays",JSONArray(initialDays.map { it.toJson() })).put("finalDays",JSONArray(finalDays.map { it.toJson() }))
-        .put("initialObjective",initialObjective?.toJson()).put("finalObjective",finalObjective?.toJson())
-        .put("moves",JSONArray(moves.map { it.toJson() })).put("rejections",JSONObject(rejections)).put("primaryAnchorSpacing",JSONArray(spacingJson))
-        .put("qcrBefore",JSONArray(qcrBeforeJson)).put("qcrAfter",JSONArray(qcrAfterJson)).put("qcrUnchanged",qcrBeforeJson==qcrAfterJson)
-        .put("chronologicalTissue",tissue?.toJson()).put("diagnostic",diagnostic).put("timeReference",timeReference).put("ofiReference",ofiReference)
-        .put("ofiGate",if(moves.isEmpty()) "NO_ACCEPTED_MOVE" else "EVERY_DESTINATION_PASS; EXISTING_OTHER_DAY_WARNINGS_RETAINED")
-}
-internal data class PostSplitReflowResult(val skeleton: GeneratedProgramSkeleton,val trace: PostSplitReflowTrace)
-
-/** Optional measurement sink; one fresh instance per invocation, never a ranking input. */
-internal data class ReflowEvaluationCounts(var candidates: Int = 0, var dayProjections: Int = 0,
-    var tissueProjections: Int = 0, var objectives: Int = 0, var acceptedActions: Int = 0)
-
+// Baseline 8642073 exhaustive evaluator; test-only oracle, never production routing.
 /** Deterministic whole-item moves around fixed chunks. No prescription, demand, funding or progression mutation. */
-internal class PostSplitWeeklyReflow {
+internal class ExhaustivePostSplitReflowReference(private val counts: ReflowEvaluationCounts) {
     fun review(plan: GeneratedProgramSkeleton,snapshot: PlanningHistorySnapshot,state: AthletePlanningState,
-        progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE,
-        counts: ReflowEvaluationCounts = ReflowEvaluationCounts()): PostSplitReflowResult {
+        progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE): PostSplitReflowResult {
         val fingerprint=personalizedProgramFingerprint(plan.request,plan.items)
         val authority=plan.personalizedDecision?.authorizedScheduling
         val parents=authority?.authorized.orEmpty().filter { ContinuitySplitPolicy.mandatory(snapshot,it) }.map { it.id }
@@ -54,7 +19,7 @@ internal class PostSplitWeeklyReflow {
         if(fixed.isEmpty()) return unchanged("NOT_APPLICABLE_NO_MANDATORY_SPLIT")
         progress.report(PersonalizedPlannerStage.POST_SPLIT_REFLOW)
         return try {
-            run(plan,snapshot,state,requireNotNull(authority),materializedParents,fixed,counts)
+            run(plan,snapshot,state,requireNotNull(authority),materializedParents,fixed)
         } catch(error: Exception) {
             if(error is java.util.concurrent.CancellationException) throw error
             unchanged("FAILED_SAFE_UNCHANGED",error.message ?: error.javaClass.simpleName)
@@ -62,7 +27,7 @@ internal class PostSplitWeeklyReflow {
     }
 
     private fun run(plan: GeneratedProgramSkeleton,snapshot: PlanningHistorySnapshot,state: AthletePlanningState,
-        authority: AuthorizedSchedulingTrace,parents: List<String>,fixed: List<String>,counts: ReflowEvaluationCounts): PostSplitReflowResult {
+        authority: AuthorizedSchedulingTrace,parents: List<String>,fixed: List<String>): PostSplitReflowResult {
         val projection=requireNotNull(snapshot.planDayProjection) { "MISSING_CANONICAL_OFI_PROJECTION" }
         val tissueProjection=requireNotNull(snapshot.planWeekTissueProjection) { "MISSING_CANONICAL_TISSUE_PROJECTION" }
         // RepresentativeWeek verifies these positional atoms have exactly isomorphic per-week immutable content.
@@ -74,9 +39,7 @@ internal class PostSplitWeeklyReflow {
         val primary=PrimaryStrengthAnchorSpacingPolicy.keys(snapshot,state,authority.authorized.filter { it.continuity }.mapTo(mutableSetOf()) { it.item.stableKey })
         require(PrimaryStrengthAnchorSpacingPolicy.allowedRows(initial,primary)) { "PRE_REFLOW_PRIMARY_ANCHOR_SPACING_VIOLATION" }
         val loads=mutableMapOf<List<ProgramSkeletonItem>,StandaloneDayLoad>()
-        fun load(rows: List<ProgramSkeletonItem>)=loads.getOrPut(rows.map { it.copy(dayOfWeek=1,orderIndex=0) }) {
-            counts.dayProjections++; projection.evaluate(rows)
-        }
+        fun load(rows: List<ProgramSkeletonItem>)=loads.getOrPut(rows.map { it.copy(dayOfWeek=1,orderIndex=0) }) { counts.dayProjections++; projection.evaluate(rows) }
         val referenceDays=week.days.filter { day -> initial.any { it.dayOfWeek==day } }
         val timeRef=planningMedian(referenceDays.map { day -> initial.filter { it.dayOfWeek==day }.sumOf(::plannedSeconds).toDouble() })
         val ofiRef=planningMedian(referenceDays.map { day -> load(initial.filter { it.dayOfWeek==day }).ofi.toDouble() })
@@ -85,11 +48,10 @@ internal class PostSplitWeeklyReflow {
             val items=rows.filter { it.dayOfWeek==day }; val seconds=items.sumOf(::plannedSeconds); val ofi=load(items).ofi
             BalanceDay(day,seconds,ofi,seconds/timeRef,if(ofiRef>0) ofi/ofiRef else null)
         }
-        val objectives=mutableMapOf<List<ProgramSkeletonItem>,PostSplitObjective>()
-        fun objective(rows: List<ProgramSkeletonItem>): PostSplitObjective = objectives.getOrPut(rows) {
+        fun objective(rows: List<ProgramSkeletonItem>): PostSplitObjective {
             counts.objectives++
             val majorCounts=week.days.map { day -> rows.filter { it.dayOfWeek==day && it.exerciseStableKey in primary }.map { it.exerciseStableKey }.distinct().size }
-            PostSplitObjective(balanceObjective(metrics(rows)),majorCounts.maxOrNull() ?: 0,majorCounts.sumOf { it*(it-1)/2 },
+            return PostSplitObjective(balanceObjective(metrics(rows)),majorCounts.maxOrNull() ?: 0,majorCounts.sumOf { it*(it-1)/2 },
                 StrengthPrimaryMainPolicy.objective(rows,week.days))
         }
         fun lower(row: ProgramSkeletonItem)=snapshot.metadata[row.exerciseStableKey]?.let { meta ->
@@ -131,7 +93,6 @@ internal class PostSplitWeeklyReflow {
             plan.personalizedDecision!!.adaptationGaps,initial)
         fun qcr(rows: List<ProgramSkeletonItem>)=JSONArray(demand.residuals(rows).map { it.toJson() }).toString()
         fun immutable(rows: List<ProgramSkeletonItem>)=rows.map { it.copy(dayOfWeek=1,orderIndex=0) }
-        val initialQcr=qcr(initial)
         var rows=initial
         val initialObjective=objective(initial)
         val moves=mutableListOf<PostSplitMove>(); val rejected=sortedMapOf<String,Int>()
@@ -142,9 +103,7 @@ internal class PostSplitWeeklyReflow {
             .thenBy { it.move.from }.thenBy { it.move.to }.thenBy { it.move.localId }
         // Explicit bound; every accepted step strictly decreases the finite objective tuple.
         repeat(128) {
-            val before=objective(rows)
-            val lowerBefore=maxLower(rows)
-            val candidates=mutableListOf<Candidate>()
+            val before=objective(rows); var best: Candidate?=null
             for(row in rows) {
                 restriction(row)?.let { reject(it) } ?: run {
                     for(day in week.days.filter { it!=row.dayOfWeek }) {
@@ -156,34 +115,29 @@ internal class PostSplitWeeklyReflow {
                             destination.map { it.exerciseStableKey }.distinct().size!=destination.size -> "SAME_KEY"
                             destination.sumOf(::plannedSeconds)>plan.request.sessionMinutes*60 -> "SESSION_TIME"
                             !PrimaryStrengthAnchorSpacingPolicy.allowedRows(trial,primary) -> "PRIMARY_ANCHOR_CALENDAR_SPACING"
-                            maxLower(trial)>lowerBefore -> "LOWER_IMPACT_CONCENTRATION"
+                            maxLower(trial)>maxLower(rows) -> "LOWER_IMPACT_CONCENTRATION"
                             !load(destination).feasible -> "DESTINATION_OFI"
                             objective(trial)>=before -> "NO_STRICT_IMPROVEMENT"
+                            !tissueAllowed(trial,row.exerciseStableKey) -> "CHRONOLOGICAL_TISSUE"
                             else -> null
                         }
                         if(reason!=null) { reject(reason); continue }
                         val candidate=Candidate(trial,PostSplitMove(row.localId,row.exerciseStableKey,row.dayOfWeek,day,before,objective(trial)),source(row)!!.item.priority)
-                        candidates+=candidate
+                        if(best==null || comparator.compare(candidate,best!!)<0) best=candidate
                     }
                 }
             }
-            // Tissue is solely a PASS/FAIL gate, never a comparator input. A stable sort with
-            // the unchanged comparator followed by first feasible equals the exhaustive minimum.
-            // All structural/ranking candidates still exist; only unneeded tissue calls are skipped.
-            // Rejection counts describe gates actually executed, not hypothetical losing candidates.
-            val selected=candidates.sortedWith(comparator).firstOrNull { candidate ->
-                tissueAllowed(candidate.rows,candidate.move.stableKey).also { if(!it) reject("CHRONOLOGICAL_TISSUE") }
-            } ?: return finish(plan,week,initial,rows,authority,parents,fixed,primary,moves,rejected,
-                initialObjective,objective(rows),metrics(initial),metrics(rows),initialQcr,qcr(rows),tissue(rows),timeRef,ofiRef,"FINITE_LOCAL_OPTIMUM")
+            if(best==null) return finish(plan,week,initial,rows,authority,parents,fixed,primary,moves,rejected,
+                initialObjective,objective(rows),metrics(initial),metrics(rows),qcr(initial),qcr(rows),tissue(rows),timeRef,ofiRef,"FINITE_LOCAL_OPTIMUM")
+            val selected=best!!
             check(visited.add(selected.rows.map { it.localId to it.dayOfWeek })) { "REFLOW_CYCLE" }
             check(immutable(selected.rows)==immutable(initial)) { "REFLOW_IMMUTABLE_MUTATION" }
             check(selected.rows.filter { it.localId in fixed }==initial.filter { it.localId in fixed }) { "REFLOW_SPLIT_CHANGED" }
-            check(qcr(selected.rows)==initialQcr) { "REFLOW_QCR_CHANGED" }
-            counts.acceptedActions++
-            rows=selected.rows; moves+=selected.move
+            check(qcr(selected.rows)==qcr(initial)) { "REFLOW_QCR_CHANGED" }
+            rows=selected.rows; moves+=selected.move; counts.acceptedActions++
         }
         return finish(plan,week,initial,rows,authority,parents,fixed,primary,moves,rejected,
-            initialObjective,objective(rows),metrics(initial),metrics(rows),initialQcr,qcr(rows),tissue(rows),timeRef,ofiRef,"BOUNDED_128_MOVE_LIMIT")
+            initialObjective,objective(rows),metrics(initial),metrics(rows),qcr(initial),qcr(rows),tissue(rows),timeRef,ofiRef,"BOUNDED_128_MOVE_LIMIT")
     }
 
     private fun finish(plan: GeneratedProgramSkeleton,week: RepresentativeWeek,initial: List<ProgramSkeletonItem>,rows: List<ProgramSkeletonItem>,

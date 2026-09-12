@@ -5,6 +5,84 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class PostSplitWeeklyReflowTest {
+    @Test fun stressMultiplePrimariesAndSupportiveRowsPreserveExhaustiveSearch() {
+        fun key(value: String)=when(value) { "row" -> "ex_a61f1e96"; "other" -> "ex_e41f4c2b"; else -> value }
+        val base=plan()
+        val extras=listOf(f.row("other",1,3,id="extra_primary",order=3),f.row("support",1,2,id="extra_support",order=4))
+            .map { it.copy(progressionRole=ProgressionRole.MAIN) }
+        val added=(1..base.request.durationWeeks).flatMap { week -> extras.map { it.copy(localId="w${week}_${it.localId}",weekNumber=week) } }
+        val authority=base.personalizedDecision!!.authorizedScheduling!!
+        val original=base.copy(items=(base.items+added).map { it.copy(exerciseStableKey=key(it.exerciseStableKey)) },
+            personalizedDecision=base.personalizedDecision!!.copy(authorizedScheduling=authority.copy(
+                authorized=(authority.authorized+extras.map { AuthorizedSchedulingDemand(it.exerciseStableKey,f.source(it.exerciseStableKey,it.setCount),f.rx(it.setCount),true) })
+                    .map { it.copy(item=it.item.copy(stableKey=key(it.item.stableKey))) },
+                localOrigins=authority.localOrigins+added.associate { it.localId to AuthorizedAtomOrigin(it.exerciseStableKey) })))
+        val source=snapshot().let { old -> old.copy(exercises=old.exercises.mapKeys { key(it.key) }.mapValues { (id,e) -> e.copy(stableKey=id) },
+            metadata=old.metadata.mapKeys { key(it.key) }) }
+        val eager=ReflowEvaluationCounts(); val lazy=ReflowEvaluationCounts()
+        val reference=ExhaustivePostSplitReflowReference(eager).review(original,source,f.state(source))
+        val optimized=PostSplitWeeklyReflow().review(original,source,f.state(source),counts=lazy)
+        assertEquals(reference.skeleton,optimized.skeleton)
+        assertEquals(reference.trace.moves,optimized.trace.moves)
+        assertEquals(reference.trace.finalObjective,optimized.trace.finalObjective)
+        assertEquals(reference.trace.qcrAfterJson,optimized.trace.qcrAfterJson)
+        assertEquals(reference.trace.fixedChunkIds,optimized.trace.fixedChunkIds)
+        assertTrue(optimized.trace.moves.isNotEmpty())
+        assertEquals(eager.candidates,lazy.candidates)
+        assertEquals(eager.acceptedActions,lazy.acceptedActions)
+        assertTrue(lazy.tissueProjections<eager.tissueProjections)
+        assertTrue(lazy.objectives<eager.objectives)
+        println("REFLOW_COUNTS stress before=$eager after=$lazy")
+        val best=reference.trace.moves.first()
+        val rejecting=source.copy(planWeekTissueProjection=PlanWeekTissueProjection { rows,rpe ->
+            if(rows.any { it.localId==best.localId && it.dayOfWeek==best.to })
+                PlannedTissueWeek(listOf(PlannedTissueDay(best.to,"",setOf("blocked"),emptySet(),null,null)))
+            else source.planWeekTissueProjection!!.evaluate(rows,rpe)
+        })
+        val rejectedEager=ReflowEvaluationCounts(); val rejectedLazy=ReflowEvaluationCounts()
+        val fallback=ExhaustivePostSplitReflowReference(rejectedEager).review(original,rejecting,f.state(rejecting))
+        val actual=PostSplitWeeklyReflow().review(original,rejecting,f.state(rejecting),counts=rejectedLazy)
+        assertEquals(fallback.skeleton,actual.skeleton)
+        assertEquals(fallback.trace.moves,actual.trace.moves)
+        assertTrue(actual.trace.moves.isNotEmpty())
+        assertNotEquals(best,actual.trace.moves.first())
+        assertTrue(actual.trace.rejections.getOrDefault("CHRONOLOGICAL_TISSUE",0)>0)
+        assertTrue(rejectedLazy.tissueProjections<rejectedEager.tissueProjections)
+        println("REFLOW_COUNTS rejectedBest before=$rejectedEager after=$rejectedLazy")
+    }
+    @Test fun lazyTissueMatchesExhaustiveWinnerIncludingRejectedBestAndNoMove() {
+        for(mode in 0..2) {
+            val original=plan()
+            val base=snapshot()
+            var firstBlocked: List<ProgramSkeletonItem>?=null
+            // Block a deterministic target day, rather than invocation-order-dependent data.
+            val source=base.copy(planWeekTissueProjection=PlanWeekTissueProjection { rows,_ ->
+                val changed=rows.any { it.exerciseStableKey=="row" && it.dayOfWeek!=1 }
+                val blocked=mode==2 && changed || mode==1 && rows.any { it.exerciseStableKey=="row" && it.dayOfWeek==7 }
+                if(blocked) firstBlocked=rows
+                PlannedTissueWeek(rows.map { it.dayOfWeek }.distinct().map {
+                    PlannedTissueDay(it,"",if(blocked) setOf("blocked") else emptySet(),emptySet(),null,null)
+                })
+            })
+            val eager=ReflowEvaluationCounts(); val lazy=ReflowEvaluationCounts()
+            val reference=ExhaustivePostSplitReflowReference(eager).review(original,source,f.state(source))
+            val optimized=PostSplitWeeklyReflow().review(original,source,f.state(source),counts=lazy)
+            assertEquals(reference.skeleton,optimized.skeleton)
+            assertEquals(reference.trace.moves,optimized.trace.moves)
+            assertEquals(reference.trace.finalObjective,optimized.trace.finalObjective)
+            assertEquals(reference.trace.qcrAfterJson,optimized.trace.qcrAfterJson)
+            assertEquals(reference.trace.fixedChunkIds,optimized.trace.fixedChunkIds)
+            assertEquals(eager.candidates,lazy.candidates)
+            assertEquals(eager.acceptedActions,lazy.acceptedActions)
+            assertTrue(lazy.objectives<eager.objectives)
+            assertTrue(lazy.tissueProjections<=eager.tissueProjections)
+            // This small fixture has only one improving destination; reduction is asserted
+            // by the multi-primary stress fixture rather than inventing extra candidates.
+            if(mode==1) assertNotNull(firstBlocked)
+            if(mode==2) assertTrue(optimized.trace.moves.isEmpty())
+            println("REFLOW_COUNTS mode=$mode before=$eager after=$lazy")
+        }
+    }
     @Test fun primaryObjectiveOutranksSoftBalanceButNotHardGates() {
         val separated=PostSplitObjective(BalanceObjective(5,2.0,4.0),3,2,StrengthPrimaryObjective(0,1))
         val overlapping=PostSplitObjective(BalanceObjective(0,0.0,0.0),2,1,StrengthPrimaryObjective(1,2))
