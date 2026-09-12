@@ -43,6 +43,9 @@ import com.training.trackplanner.data.deleteDraftItem
 import com.training.trackplanner.data.resolvedWeekDaySchedule
 import com.training.trackplanner.data.upsertDraftItem
 import com.training.trackplanner.data.withWeekDays
+import com.training.trackplanner.data.ProgramEditScope
+import com.training.trackplanner.data.ProgramScopedEditor
+import androidx.compose.ui.platform.testTag
 import com.training.trackplanner.data.personalized.PersonalizedPlanningDecision
 import com.training.trackplanner.localization.localizedExerciseName
 import com.training.trackplanner.localization.localizedUiText
@@ -60,8 +63,14 @@ internal fun ProgramSkeletonPreview(
     var showExercisePicker by rememberSaveable { mutableStateOf(false) }
     var editingItem by remember { mutableStateOf<ProgramSkeletonItem?>(null) }
     var removeDayTarget by remember { mutableStateOf<Int?>(null) }
+    var allWeeks by rememberSaveable(skeleton.suggestedName) { mutableStateOf(true) }
+    val recordBased=skeleton.personalizedDecision!=null
+    val supportsAll=remember(skeleton) { ProgramScopedEditor.supportsAll(skeleton) }
+    val scope=if(recordBased && allWeeks && supportsAll) ProgramEditScope.ALL_WEEKS else ProgramEditScope.INDIVIDUAL_WEEK
+    val editWeek=if(scope==ProgramEditScope.ALL_WEEKS) 1 else selectedWeek
+    LaunchedEffect(supportsAll) { if(!supportsAll) allWeeks=false }
     val schedule = skeleton.resolvedWeekDaySchedule()
-    val selectedDays = schedule[selectedWeek].orEmpty().sorted()
+    val selectedDays = schedule[editWeek].orEmpty().sorted()
 
     LaunchedEffect(schedule, selectedWeek) {
         if (selectedWeek !in schedule.keys) selectedWeek = schedule.keys.minOrNull() ?: 1
@@ -77,8 +86,8 @@ internal fun ProgramSkeletonPreview(
             confirmButton = {
                 Button(
                     onClick = {
-                        val nextDays = schedule[selectedWeek].orEmpty() - day
-                        onSkeletonChange(skeleton.withWeekDays(selectedWeek, nextDays))
+                        val nextDays = schedule[editWeek].orEmpty() - day
+                        onSkeletonChange(if(recordBased) ProgramScopedEditor.days(skeleton,editWeek,nextDays,scope) else skeleton.withWeekDays(editWeek,nextDays))
                         removeDayTarget = null
                     }
                 ) { Text("제거") }
@@ -96,11 +105,11 @@ internal fun ProgramSkeletonPreview(
             onSelect = { exercise ->
                 val metadata = metadataByExerciseId[exercise.stableKey] ?: RuntimeExerciseMetadataDefaults.forExercise(exercise)
                 val nextOrder = skeleton.items
-                    .filter { it.weekNumber == selectedWeek && it.dayOfWeek == selectedDay }
+                    .filter { it.weekNumber == editWeek && it.dayOfWeek == selectedDay }
                     .maxOfOrNull(ProgramSkeletonItem::orderIndex)
                     ?.plus(1)
                     ?: 1
-                editingItem = draftItemForExercise(exercise, metadata, selectedWeek, selectedDay, nextOrder)
+                editingItem = draftItemForExercise(exercise, metadata, editWeek, selectedDay, nextOrder)
                 showExercisePicker = false
             }
         )
@@ -111,7 +120,9 @@ internal fun ProgramSkeletonPreview(
             item = item,
             onDismiss = { editingItem = null },
             onSave = { updated ->
-                onSkeletonChange(skeleton.upsertDraftItem(updated))
+                // Existing prescription edits remain current-week-only, even in structural template mode.
+                onSkeletonChange(if(recordBased && skeleton.items.none { it.localId==updated.localId })
+                    ProgramScopedEditor.add(skeleton,updated,scope) else skeleton.upsertDraftItem(updated))
                 editingItem = null
             }
         )
@@ -128,35 +139,57 @@ internal fun ProgramSkeletonPreview(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                if(recordBased) {
+                    ProgramEditScopeControl(scope,supportsAll) { allWeeks=it==ProgramEditScope.ALL_WEEKS }
+                    MaterialText(stringResource(R.string.program_prescription_week_only,editWeek),style=MaterialTheme.typography.bodySmall)
+                }
                 ProgramDraftEditTab(
                     skeleton = skeleton,
                     progressionEligibleKeys = progressionEligibleKeys,
-                    selectedWeek = selectedWeek,
+                    selectedWeek = editWeek,
+                    showWeekSelector = scope!=ProgramEditScope.ALL_WEEKS,
                     selectedDay = selectedDay,
                     selectedDays = selectedDays,
                     onSelectWeek = { selectedWeek = it },
                     onSelectDay = { selectedDay = it },
                     onToggleDay = { day ->
-                        val currentDays = schedule[selectedWeek].orEmpty()
+                        val currentDays = schedule[editWeek].orEmpty()
                         if (day in currentDays) {
-                            val hasItems = skeleton.items.any { it.weekNumber == selectedWeek && it.dayOfWeek == day }
+                            val hasItems = skeleton.items.any { it.weekNumber == editWeek && it.dayOfWeek == day }
                             if (hasItems) {
                                 removeDayTarget = day
                             } else {
-                                onSkeletonChange(skeleton.withWeekDays(selectedWeek, currentDays - day))
+                                onSkeletonChange(if(recordBased) ProgramScopedEditor.days(skeleton,editWeek,currentDays-day,scope) else skeleton.withWeekDays(editWeek,currentDays-day))
                             }
                         } else {
-                            onSkeletonChange(skeleton.withWeekDays(selectedWeek, currentDays + day))
+                            onSkeletonChange(if(recordBased) ProgramScopedEditor.days(skeleton,editWeek,currentDays+day,scope) else skeleton.withWeekDays(editWeek,currentDays+day))
                             selectedDay = day
                         }
                     },
                     onAddExercise = { showExercisePicker = true },
                     onEditItem = { editingItem = it },
                     onProgressionChange = onSkeletonChange,
-                    onDeleteItem = { item -> onSkeletonChange(skeleton.deleteDraftItem(item.localId)) }
+                    onDeleteItem = { item -> onSkeletonChange(if(recordBased) ProgramScopedEditor.delete(skeleton,item.localId,scope) else skeleton.deleteDraftItem(item.localId)) },
+                    onMoveItem = if(recordBased) { item,day -> onSkeletonChange(ProgramScopedEditor.move(skeleton,item.localId,day,scope)) } else null,
+                    onReorderItem = if(recordBased) { item,offset -> onSkeletonChange(ProgramScopedEditor.reorder(skeleton,item.localId,offset,scope)) } else null
                 )
             }
         }
+    }
+}
+
+@Composable
+internal fun ProgramEditScopeControl(scope: ProgramEditScope,supportsAll: Boolean,onChange: (ProgramEditScope)->Unit) {
+    Column(Modifier.fillMaxWidth(),verticalArrangement=Arrangement.spacedBy(4.dp)) {
+        // Full-width choices keep Korean readable at narrow widths and increased font scale.
+        OutlinedButton(onClick={onChange(ProgramEditScope.ALL_WEEKS)},enabled=supportsAll,
+            modifier=Modifier.fillMaxWidth().testTag("scope-all")) {
+            MaterialText(stringResource(R.string.program_scope_all)+(if(scope==ProgramEditScope.ALL_WEEKS) " ✓" else ""))
+        }
+        OutlinedButton(onClick={onChange(ProgramEditScope.INDIVIDUAL_WEEK)},modifier=Modifier.fillMaxWidth().testTag("scope-week")) {
+            MaterialText(stringResource(R.string.program_scope_week)+(if(scope==ProgramEditScope.INDIVIDUAL_WEEK) " ✓" else ""))
+        }
+        if(!supportsAll) MaterialText(stringResource(R.string.program_scope_diverged),style=MaterialTheme.typography.bodySmall)
     }
 }
 
@@ -224,6 +257,7 @@ private fun ProgramDraftEditTab(
     skeleton: GeneratedProgramSkeleton,
     progressionEligibleKeys: Set<String>,
     selectedWeek: Int,
+    showWeekSelector: Boolean,
     selectedDay: Int,
     selectedDays: List<Int>,
     onSelectWeek: (Int) -> Unit,
@@ -232,10 +266,12 @@ private fun ProgramDraftEditTab(
     onAddExercise: () -> Unit,
     onEditItem: (ProgramSkeletonItem) -> Unit,
     onProgressionChange: (GeneratedProgramSkeleton) -> Unit,
-    onDeleteItem: (ProgramSkeletonItem) -> Unit
+    onDeleteItem: (ProgramSkeletonItem) -> Unit,
+    onMoveItem: ((ProgramSkeletonItem,Int)->Unit)? = null,
+    onReorderItem: ((ProgramSkeletonItem,Int)->Unit)? = null
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        ProgramTemporalSelector(skeleton.weekPlans.map { it.weekIndex }, setOf(selectedWeek),
+        if(showWeekSelector) ProgramTemporalSelector(skeleton.weekPlans.map { it.weekIndex }, setOf(selectedWeek),
             "program-week", { programWeekChipLabel(it) }, onSelectWeek, { programWeekLabel(it) })
         MaterialText(stringResource(R.string.program_week_training_days, selectedWeek), fontWeight = FontWeight.SemiBold)
         ProgramTemporalSelector((1..7).toList(), selectedDays.toSet(),
@@ -259,6 +295,14 @@ private fun ProgramDraftEditTab(
                     onEdit = { onEditItem(item) },
                     onDelete = { onDeleteItem(item) }
                 )
+                if(onMoveItem!=null) {
+                    ProgramTemporalSelector(selectedDays,setOf(item.dayOfWeek),"move-${item.localId}",
+                        { programWeekdayChipLabel(it) },{ onMoveItem(item,it) },{ programWeekdayLabel(it) })
+                }
+                if(onReorderItem!=null) Row {
+                    TextButton(onClick={onReorderItem(item,-1)},enabled=item!=dayItems.first()) { MaterialText(stringResource(R.string.program_move_up)) }
+                    TextButton(onClick={onReorderItem(item,1)},enabled=item!=dayItems.last()) { MaterialText(stringResource(R.string.program_move_down)) }
+                }
                 if (item.exerciseStableKey in progressionEligibleKeys && item.progressionBinding != null) {
                     ProgressionDraftControl(item, skeleton, onProgressionChange)
                 }

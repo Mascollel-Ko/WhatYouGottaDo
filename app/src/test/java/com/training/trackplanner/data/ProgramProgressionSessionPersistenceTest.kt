@@ -20,6 +20,30 @@ import java.util.UUID
 @Config(sdk = [28])
 @SQLiteMode(SQLiteMode.Mode.NATIVE)
 class ProgramProgressionSessionPersistenceTest {
+    @Test fun allWeekMoveSavesReloadsWithWeekSpecificPrescriptionAndSessionIdentity() = runBlocking {
+        val f=PostGenerationFixture
+        for(weeks in listOf(4,5)) {
+            val draft=f.plan(listOf(f.row("press",1)),listOf(1,3,5),horizon=weeks).let { plan ->
+                plan.copy(items=plan.items.map { it.copy(weightKg=it.weekNumber*10.0,
+                    setPrescriptions=it.setPrescriptions.map { set -> set.copy(weightKg=it.weekNumber*10.0) }) })
+            }.reconcileProgression(setOf("press"))
+            val moved=ProgramScopedEditor.move(draft,draft.items.first().localId,3,ProgramEditScope.ALL_WEEKS)
+            assertEquals(draft.items.map { it.progressionBinding },moved.items.map { it.progressionBinding })
+            assertEquals(draft.progressionSessions,moved.progressionSessions)
+            val db=database()
+            db.exerciseDao().insertExercise(Exercise("press","Press","Strength",activityKind="TRAINING_EXERCISE",volumeLoadEligible=true))
+            val id=service(db).saveGeneratedProgram(null,moved)
+            val loaded=editor(db,id)
+            assertEquals(weeks,loaded.items.size)
+            for(row in loaded.items) {
+                val expected=moved.items.single { it.weekNumber==row.weekNumber }
+                assertEquals(3,row.dayOfWeek)
+                assertEquals(expected.setPrescriptions,row.setPrescriptions)
+                assertEquals(expected.progressionBinding?.sessionKey,row.progressionBinding?.sessionKey)
+                assertEquals(expected.progressionBinding?.logicalItemId,row.progressionBinding?.logicalItemId)
+            }
+        }
+    }
     private val context = ApplicationProvider.getApplicationContext<Context>()
     private val databases = mutableListOf<TrainingDatabase>()
     private val databaseRoot = java.nio.file.Files.createTempDirectory("wgtd-sessions-").toFile()

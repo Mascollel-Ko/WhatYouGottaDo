@@ -215,4 +215,10 @@
     <string name="program_unit_kg">kg</string>
     <string name="program_planning_summary">%1$d주 계획 · 주 %2$d일 · 신뢰도 %3$s</string>
     <string name="program_anchor_transition_summary">%1$s: 관찰 %2$s · 다음 블록 %3$s · %4$s</string>
+    <string name="program_scope_all">전체 주에 적용</string>
+    <string name="program_scope_week">주별 수정</string>
+    <string name="program_scope_diverged">주별 구성이 달라 주별 수정만 사용할 수 있습니다.</string>
+    <string name="program_prescription_week_only">세트·반복·중량 수정은 %1$d주에만 적용됩니다.</string>
+    <string name="program_move_up">위로</string>
+    <string name="program_move_down">아래로</string>
 </resources>

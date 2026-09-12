@@ -3,17 +3,25 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.15.1 |
+| Protocol version | 3.16.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 8642073da005ed1391f19e460f6990fd85526551 |
+| Last audited commit | ca3b76983396348be8bf9c668c90b492f3752712 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 
 ## 1. 일반 사용자용 요약
+
+### 3.16.0 — explicit record-based structural edit scope
+
+- Generated Record-Based drafts default to Apply to all weeks. The week selector is hidden and week one represents the common structure; individual-week mode reveals the existing week selector. Scope uses saveable UI state, not database/physiology state. Switching modes does not rewrite a draft.
+- RepresentativeWeek.deriveStructure is an editor-only correspondence alongside the unchanged exact planner derive. Exact authorized parent/chunk identity plus canonical exercise/variant/template-slot identify atoms; unowned rows require an unambiguous typed identity in each week. Names, order and list indices are not correspondence. Different schedules, missing/duplicate atoms or different placement force individual-week mode with an explanation.
+- Structural add/delete/day-move/order/day-toggle actions target those corresponding rows. Moves and reorders retain each week's own localId, prescription, binding and session; they do not mirror week one's prescription. New manual additions create new independent local identities, never duplicate an existing binding. Existing set/repetition/load editing remains selected-week-only and is explicitly labeled.
+- Historical authorization/provenance remains unchanged as audit history. Relocation conserves Q/C/R; an explicit user deletion/addition changes visible content intentionally, not by inventing or rewriting planner-authorized parents. Saving continues through the existing edited-draft and progression reconciliation paths. Ambiguous repeated unowned rows safely fall back rather than guessing correspondence.
+- Legacy preview/edit routing, planner generation, mandatory split authorization and numerical authorities are unchanged. The exact planner RepresentativeWeek.derive/mirror behavior is untouched.
 
 ### 3.15.1 — exact post-split evaluation optimization
 

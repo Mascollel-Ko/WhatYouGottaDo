@@ -70,8 +70,14 @@
     <string name="program_friday_compact">Fr</string>
     <string name="program_minutes">%1$d min</string>
     <string name="program_monday_compact">Mo</string>
+    <string name="program_move_down">Move down</string>
+    <string name="program_move_up">Move up</string>
     <string name="program_planning_summary">%1$d-week plan · %2$d days/week · confidence %3$s</string>
+    <string name="program_prescription_week_only">Set, rep and load edits apply only to week %1$d.</string>
     <string name="program_saturday_compact">Sa</string>
+    <string name="program_scope_all">Apply to all weeks</string>
+    <string name="program_scope_diverged">Weeks already differ; edit each week individually.</string>
+    <string name="program_scope_week">Edit individual week</string>
     <string name="program_sunday_compact">Su</string>
     <string name="program_thursday_compact">Th</string>
     <string name="program_tuesday_compact">Tu</string>
