@@ -3,17 +3,25 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.16.0 |
+| Protocol version | 3.16.1 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | ca3b76983396348be8bf9c668c90b492f3752712 |
+| Last audited commit | 3f4ba4eab0e4443e2f4ff2659ebe140a72762dbb |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 
 ## 1. 일반 사용자용 요약
+
+### 3.16.1 — structured, collapsed Record-Based summary
+
+- PlanningSummaryPresenter maps the immutable decision to PlanningSummaryUiModel before Compose renders it. Exactly five owners: observed history classifications/confidence; identified needs; exercise-level plan responses; final numeric allocation; meaningful limitations. This is presentation interpretation only, not a physiological or planner decision change.
+- Needs merge adaptation gaps, movement/objective representations and secondary targets by typed MovementCoverage, BadmintonObjective or foundational domain. Exact finite gap-code mappings include the existing hypertrophy rebalance and badminton drop/underrepresentation/development tokens. Multiple evidence sources remain available in the UI model but produce one row; no display-name or substring inference. Transition rows merge by exact stableKey and retain distinct structure/dose actions without repeating observed style.
+- Known GAP reason codes are fallback-only when a structured need does not own that key. Reviewed exact legacy constraints (starting-load uncertainty, tissue restriction, unresolved preferences) map to localized limitation categories and deduplicate there. Unknown prose/debug codes stay in the decision audit, never become a miscellaneous UI dump. Positive recovery observations are not limitations. No arbitrary strings are promoted to canonical metadata.
+- Default card shows title, observed behavior, supported response summary and confidence plus Details. Saveable expansion reveals the five sections in that order and can collapse again. Full-width single-column rows wrap naturally; no narrow two-column labels. Empty sections use neutral absence-of-evidence text, not a claim of universal safety.
+- Final allocation copies existing horizon/frequency and budget values (including fractional baseline sets and athletic bouts). User-frequency expansion units are shown only when its typed trace exists; minimal-capacity expansion is explained without inventing an amount. Existing high-OFI split cautions, unmet exact prescriptions/rollback and session-minute limit remain visible when supported by trace. No generated item, prescription, Q/C/R, fingerprint, Legacy behavior or persisted schema changes.
 
 ### 3.16.0 — explicit record-based structural edit scope
 

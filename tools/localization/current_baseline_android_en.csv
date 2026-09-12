@@ -1,4 +1,89 @@
 resourceKey,korean,english,provenance
+planning_summary_title,기록 기반 계획,Record-based plan,CODEX_GENERATED_ENGLISH
+planning_summary_details,자세히,Details,CODEX_GENERATED_ENGLISH
+planning_summary_collapse,접기,Collapse,CODEX_GENERATED_ENGLISH
+planning_summary_observed,최근 기록에서 본 상태,Observed in recent records,CODEX_GENERATED_ENGLISH
+planning_summary_needs,보완이 필요하다고 본 부분,Needs identified,CODEX_GENERATED_ENGLISH
+planning_summary_response,이번 계획에 반영한 내용,Plan response,CODEX_GENERATED_ENGLISH
+planning_summary_allocation,최종 배정량,Final allocation,CODEX_GENERATED_ENGLISH
+planning_summary_limitations,제한·주의 요인,Limitations and cautions,CODEX_GENERATED_ENGLISH
+planning_summary_empty,추가로 표시할 항목 없음,No additional items to show,CODEX_GENERATED_ENGLISH
+planning_summary_no_limits,추가로 확인된 제한 없음,No additional limitations identified,CODEX_GENERATED_ENGLISH
+planning_summary_unknown,판단 보류,Undetermined,CODEX_GENERATED_ENGLISH
+planning_summary_confidence,신뢰도 %1$s,Confidence: %1$s,CODEX_GENERATED_ENGLISH
+planning_summary_response_preserve,기존 운동 구성 유지,Existing exercise structure retained,CODEX_GENERATED_ENGLISH
+planning_summary_response_adjust,운동별 구성·용량 조정,Exercise-specific structure and volume adjustments,CODEX_GENERATED_ENGLISH
+planning_summary_response_review,배정 결과를 확인해 주세요,Review the allocation,CODEX_GENERATED_ENGLISH
+planning_summary_response_capacity,주간 배정 용량 조정,Weekly allocation capacity adjusted,CODEX_GENERATED_ENGLISH
+planning_summary_capacity_note,우선순위 보완 운동을 위해 배정 용량을 제한적으로 확장했습니다.,Allocation capacity was expanded modestly for priority needs.,CODEX_GENERATED_ENGLISH
+planning_summary_exercise,운동,Exercise,CODEX_GENERATED_ENGLISH
+planning_summary_transition,%1$s — %2$s · %3$s,%1$s — %2$s · %3$s,CODEX_GENERATED_ENGLISH
+planning_summary_need,%1$s — %2$s,%1$s — %2$s,CODEX_GENERATED_ENGLISH
+planning_summary_duration,%1$d주 · 주 %2$d일,%1$d weeks · %2$d days per week,CODEX_GENERATED_ENGLISH
+planning_summary_resistance,저항 세트: 기준 %1$s · 목표 %2$d · 배정 %3$d,Resistance sets: baseline %1$s · target %2$d · allocated %3$d,CODEX_GENERATED_ENGLISH
+planning_summary_badminton,구조화 배드민턴: 목표 %1$d · 배정 %2$d회,Structured badminton bouts: target %1$d · allocated %2$d,CODEX_GENERATED_ENGLISH
+planning_summary_athletic,운동 수행 드릴: 목표 %1$d · 배정 %2$d회,Athletic-performance bouts: target %1$d · allocated %2$d,CODEX_GENERATED_ENGLISH
+planning_summary_expansion,사용자 빈도 확장분: %1$d 실행 단위,User-frequency expansion: %1$d execution units,CODEX_GENERATED_ENGLISH
+planning_summary_foundation_resistance,저항훈련 재진입,Resistance training re-entry,CODEX_GENERATED_ENGLISH
+planning_summary_foundation_badminton,배드민턴 기초훈련,Foundational badminton training,CODEX_GENERATED_ENGLISH
+planning_summary_attention,보완 후보로 확인,Identified for attention,CODEX_GENERATED_ENGLISH
+planning_summary_optional_development,선택적 발달 후보,Optional development candidate,CODEX_GENERATED_ENGLISH
+planning_summary_underrepresented,최근 노출이 상대적으로 부족,Relatively low recent exposure,CODEX_GENERATED_ENGLISH
+planning_summary_absent,최근 노출 기록 없음,No recent exposure recorded,CODEX_GENERATED_ENGLISH
+planning_summary_direct_drop,최근 직접 훈련 노출 감소,Recent direct training exposure dropped,CODEX_GENERATED_ENGLISH
+planning_summary_limit_recovery,회복·훈련 소화 상태에 따른 제한이 반영됐습니다.,Recovery or workload-tolerance constraints were considered.,CODEX_GENERATED_ENGLISH
+planning_summary_limit_tissue,연결조직 회복 상태에 따른 증량 제한이 있습니다.,Connective-tissue recovery limits load increases.,CODEX_GENERATED_ENGLISH
+planning_summary_limit_unresolved_strength,고중량 선호가 확인되지 않은 임시 계획입니다.,Heavy-training preference remains unresolved.,CODEX_GENERATED_ENGLISH
+planning_summary_limit_unresolved_badminton,배드민턴 계획 의도가 확인되지 않았습니다.,Badminton planning intent remains unresolved.,CODEX_GENERATED_ENGLISH
+planning_summary_limit_starting_load,새 운동의 시작 중량은 RPE로 확인하세요. 기계 중량을 프리웨이트 중량으로 변환하지 않습니다.,Check starting loads for new exercises using RPE. Machine loads are not converted to free-weight loads.,CODEX_GENERATED_ENGLISH
+planning_summary_limit_court_load,일반 코트 부하는 회복 여유에 반영되며 목표별 훈련 자극과 구분됩니다.,General court load affects recovery capacity and is separate from objective-specific training exposure.,CODEX_GENERATED_ENGLISH
+planning_summary_limit_session_time,회당 시간 한도: %1$d분,Session time limit: %1$d min,CODEX_GENERATED_ENGLISH
+planning_summary_limit_scheduling,배치 제약으로 일부 수요가 남거나 추가 배정이 철회됐습니다.,Placement constraints left demand unmet or required expansion rollback.,CODEX_GENERATED_ENGLISH
+planning_summary_limit_fatigue_warning,분할 배정에 높은 일별 피로도 주의사항이 있습니다.,Split allocation includes high daily fatigue cautions.,CODEX_GENERATED_ENGLISH
+planning_summary_behavior_hypertrophy_dominant,근비대 중심,Hypertrophy dominant,CODEX_GENERATED_ENGLISH
+planning_summary_behavior_strength_dominant,근력 중심,Strength dominant,CODEX_GENERATED_ENGLISH
+planning_summary_behavior_mixed_strength_hypertrophy,근력·근비대 혼합,Mixed strength and hypertrophy,CODEX_GENERATED_ENGLISH
+planning_summary_behavior_general_mixed,종합 혼합,General mixed,CODEX_GENERATED_ENGLISH
+planning_summary_behavior_unknown,판단 보류,Undetermined,CODEX_GENERATED_ENGLISH
+planning_summary_confidence_low,낮음,Low,CODEX_GENERATED_ENGLISH
+planning_summary_confidence_moderate,보통,Moderate,CODEX_GENERATED_ENGLISH
+planning_summary_confidence_high,높음,High,CODEX_GENERATED_ENGLISH
+planning_summary_style_none,관찰된 근력 구성 없음,No strength style identified,CODEX_GENERATED_ENGLISH
+planning_summary_style_top_set_hypertrophy,탑세트 근비대,Top-set hypertrophy,CODEX_GENERATED_ENGLISH
+planning_summary_style_top_set_backoff,탑세트·백오프,Top set and back-off,CODEX_GENERATED_ENGLISH
+planning_summary_style_straight_5x5,동일중량 5×5,Straight 5×5,CODEX_GENERATED_ENGLISH
+planning_summary_style_straight_strength_sets,동일중량 근력 세트,Straight strength sets,CODEX_GENERATED_ENGLISH
+planning_summary_style_madcow_like_hlm_ramping,Madcow형 강·약·중 램핑,Madcow-like H/L/M ramping,CODEX_GENERATED_ENGLISH
+planning_summary_style_heavy_light_medium,강·약·중 구성,Heavy/light/medium,CODEX_GENERATED_ENGLISH
+planning_summary_style_dup_like_undulating,주간 파동형,Daily undulating,CODEX_GENERATED_ENGLISH
+planning_summary_style_unresolved,근력 구성 판단 보류,Strength style undetermined,CODEX_GENERATED_ENGLISH
+planning_summary_movement_lower_knee,무릎 중심 하체,Knee-dominant lower body,CODEX_GENERATED_ENGLISH
+planning_summary_movement_posterior_chain,후면 사슬,Posterior chain,CODEX_GENERATED_ENGLISH
+planning_summary_movement_horizontal_push,수평 밀기,Horizontal push,CODEX_GENERATED_ENGLISH
+planning_summary_movement_horizontal_pull,수평 당기기,Horizontal pull,CODEX_GENERATED_ENGLISH
+planning_summary_movement_vertical_push,수직 밀기,Vertical push,CODEX_GENERATED_ENGLISH
+planning_summary_movement_vertical_pull,수직 당기기,Vertical pull,CODEX_GENERATED_ENGLISH
+planning_summary_movement_core_direct,코어 직접 훈련,Direct core training,CODEX_GENERATED_ENGLISH
+planning_summary_movement_calves,종아리,Calves,CODEX_GENERATED_ENGLISH
+planning_summary_movement_arms_biceps,상완 이두,Biceps,CODEX_GENERATED_ENGLISH
+planning_summary_movement_arms_triceps,상완 삼두,Triceps,CODEX_GENERATED_ENGLISH
+planning_summary_movement_other,기타 움직임,Other movement,CODEX_GENERATED_ENGLISH
+planning_summary_objective_acceleration,가속,Acceleration,CODEX_GENERATED_ENGLISH
+planning_summary_objective_deceleration,감속,Deceleration,CODEX_GENERATED_ENGLISH
+planning_summary_objective_footwork,풋워크,Footwork,CODEX_GENERATED_ENGLISH
+planning_summary_objective_jump_landing,점프·착지,Jump and landing,CODEX_GENERATED_ENGLISH
+planning_summary_objective_lunge_reach,런지·리치,Lunge and reach,CODEX_GENERATED_ENGLISH
+planning_summary_objective_reaction,반응,Reaction,CODEX_GENERATED_ENGLISH
+planning_summary_objective_conditioning,컨디셔닝,Conditioning,CODEX_GENERATED_ENGLISH
+planning_summary_objective_rotation_generation,회전 생성,Rotation generation,CODEX_GENERATED_ENGLISH
+planning_summary_objective_anti_rotation,항회전,Anti-rotation,CODEX_GENERATED_ENGLISH
+planning_summary_structure_preserve,구성 유지,Structure retained,CODEX_GENERATED_ENGLISH
+planning_summary_structure_preserve_core_rebalance,핵심 유지·재배분,Core retained and rebalanced,CODEX_GENERATED_ENGLISH
+planning_summary_structure_partial_continuity,부분 연속성,Partial continuity,CODEX_GENERATED_ENGLISH
+planning_summary_structure_rotate_emphasis,강조점 전환,Emphasis rotated,CODEX_GENERATED_ENGLISH
+planning_summary_dose_maintain,용량 유지,Volume maintained,CODEX_GENERATED_ENGLISH
+planning_summary_dose_reduce_slightly,용량 소폭 감소,Volume reduced slightly,CODEX_GENERATED_ENGLISH
+planning_summary_dose_reduce_moderately,용량 중간 감소,Volume reduced moderately,CODEX_GENERATED_ENGLISH
 daily_check_in_joint_complex_clear,선택 지우기,Clear selection,CODEX_GENERATED_ENGLISH
 daily_check_in_joint_complex_label,관절/건 불편감 위치,Joint/tendon discomfort location,CODEX_GENERATED_ENGLISH
 daily_check_in_joint_complex_none,위치 선택 안 함,No location selected,CODEX_GENERATED_ENGLISH
