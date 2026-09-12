@@ -43,6 +43,7 @@ class PersonalizedPlannerParityTest {
         val separationGolden = java.io.File(root, "app/src/test/resources/program-authority/record_based_a53f419_29.csv")
             .readLines().associate { it.substringBefore(',') to it.split(',') }
         assertEquals(29, separationGolden.size)
+        val mismatches = mutableListOf<String>()
         names.forEachIndexed { index, name ->
             val snapshot = rawSnapshotFor(name, index)
             val state = AthletePlanningStateBuilder().build(snapshot, PersonalizedPlanningAnswers())
@@ -70,12 +71,21 @@ class PersonalizedPlannerParityTest {
                 .groupBy { it.weekNumber to it.exerciseStableKey }
                 .forEach { (_, variants) -> assertEquals(name, variants.size, variants.map { it.dayOfWeek }.distinct().size) }
             assertScenarioSemantics(name, snapshot, state, gaps, first)
-            assertEquals("$name changed from a53f419", separationGolden.getValue(name)[1], separationFingerprint(first))
+            val actualFingerprint = separationFingerprint(first)
+            if (separationGolden.getValue(name)[1] != actualFingerprint)
+                mismatches += "$name fingerprint ${separationGolden.getValue(name)[1]} -> $actualFingerprint"
+            System.getenv("WGTD_PARITY_AUDIT_DIR")?.let { directory ->
+                java.io.File(directory).mkdirs()
+                java.io.File(directory,"$name.txt").writeText(separationSnapshot(first))
+                java.io.File(directory,"$name.rows.txt").writeText(first.items.joinToString("\n")+"\nSCHEDULE="+first.weekDaySchedule)
+            }
             val emptyDays = first.weekDaySchedule.entries.flatMap { (week, active) ->
                 (active - first.items.filter { it.weekNumber == week }.map { it.dayOfWeek }.toSet()).map { "$week:$it" }
             }.joinToString("|")
-            assertEquals("$name pre-existing empty-day audit changed", separationGolden.getValue(name)[2], emptyDays)
+            if (separationGolden.getValue(name)[2] != emptyDays)
+                mismatches += "$name empty active days ${separationGolden.getValue(name)[2]} -> $emptyDays"
         }
+        assertTrue(mismatches.joinToString("\n"),mismatches.isEmpty())
     }
 
     @Test

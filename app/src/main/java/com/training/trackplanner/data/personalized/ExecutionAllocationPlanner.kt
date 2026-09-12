@@ -123,7 +123,7 @@ class TimedExecutionAllocationPlanner(private val prescriptions: PersonalizedPre
         optional.forEach { if (fits(funded + it)) funded += it else deferred += timed(it) }
         val placement = TimedWeeklyPlacementPlanner().distribute(funded.map(::timed), days, minutes, snapshot,
             state.trainingStateAssessment?.sustainable?.robustSchedule == true,
-            isMain = { MainSchedulingPolicy.role(it, it in continuity) == com.training.trackplanner.data.ProgressionRole.MAIN })
+            isMain = { MainSchedulingPolicy.role(it, it in continuity) == com.training.trackplanner.data.ProgressionRole.MAIN }, planningState = state)
         check(placement.second.isEmpty())
         return TimedExecutionAllocation(placement.first, deferred)
     }
@@ -293,7 +293,7 @@ class ExecutionCapacityPlanner {
 class TimedWeeklyPlacementPlanner {
     fun distribute(items: List<TimedPlannedExercise>, days: Int, sessionMinutes: Int, snapshot: PlanningHistorySnapshot? = null,
                    robustSchedule: Boolean = false,
-                   isMain: (PlannedExercise) -> Boolean = { false }): Pair<Map<Int, List<TimedPlannedExercise>>, List<TimedPlannedExercise>> {
+                   isMain: (PlannedExercise) -> Boolean = { false }, planningState: AthletePlanningState? = null): Pair<Map<Int, List<TimedPlannedExercise>>, List<TimedPlannedExercise>> {
         val buckets = (1..days).associateWith { mutableListOf<TimedPlannedExercise>() }
         val deferred = mutableListOf<TimedPlannedExercise>()
         val ordered = items.sortedWith(compareByDescending<TimedPlannedExercise> { it.item.priority }
@@ -320,7 +320,7 @@ class TimedWeeklyPlacementPlanner {
                 .thenBy { it.key })
             if (target == null) deferred += row else target.value += row
         }
-        return InitialMainPlacement.review(buckets, sessionMinutes, snapshot, robustSchedule, isMain) to deferred
+        return InitialMainPlacement.review(buckets, sessionMinutes, snapshot, robustSchedule, planningState, isMain) to deferred
     }
 }
 

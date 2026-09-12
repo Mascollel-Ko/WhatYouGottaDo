@@ -5,6 +5,30 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class PostSplitWeeklyReflowTest {
+    @Test fun primaryObjectiveOutranksSoftBalanceButNotHardGates() {
+        val separated=PostSplitObjective(BalanceObjective(5,2.0,4.0),3,2,StrengthPrimaryObjective(0,1))
+        val overlapping=PostSplitObjective(BalanceObjective(0,0.0,0.0),2,1,StrengthPrimaryObjective(1,2))
+        assertTrue(separated<overlapping)
+        assertEquals(0,separated.toJson().getInt("strengthPrimaryOverlap"))
+    }
+    @Test fun exactPrimaryMovesAroundFixedChunksWithoutChangingParentsOrQcr() {
+        fun key(value: String)=when(value) { "press" -> "barbell_bench_press"; "row" -> "ex_a61f1e96"; else -> value }
+        val initial=plan().let { original -> original.copy(
+            items=original.items.map { it.copy(exerciseStableKey=key(it.exerciseStableKey)) },
+            personalizedDecision=original.personalizedDecision!!.copy(authorizedScheduling=original.personalizedDecision!!.authorizedScheduling!!.let { auth ->
+                auth.copy(authorized=auth.authorized.map { it.copy(item=it.item.copy(stableKey=key(it.item.stableKey))) })
+            })) }
+        val source=snapshot().let { old -> old.copy(
+            exercises=old.exercises.mapKeys { key(it.key) }.mapValues { (id,value) -> value.copy(stableKey=id) },
+            metadata=old.metadata.mapKeys { key(it.key) }) }
+        val result=review(initial,source)
+        assertEquals(0,result.trace.finalObjective!!.strengthPrimary.overlap)
+        assertTrue(result.trace.moves.any { it.stableKey=="ex_a61f1e96" })
+        assertEquals(initial.items.filter { it.exerciseStableKey=="barbell_bench_press" },
+            result.skeleton.items.filter { it.exerciseStableKey=="barbell_bench_press" })
+        assertEquals(result.trace.qcrBeforeJson,result.trace.qcrAfterJson)
+        assertEquals(initial.personalizedDecision,result.skeleton.personalizedDecision)
+    }
     private val f=PostGenerationFixture
     private fun snapshot()=f.snapshot().copy(planDayProjection=f.safe,planWeekTissueProjection=PlanWeekTissueProjection { rows,_ ->
         PlannedTissueWeek(rows.map { it.dayOfWeek }.distinct().map { PlannedTissueDay(it,"",emptySet(),emptySet(),null,null) }) })

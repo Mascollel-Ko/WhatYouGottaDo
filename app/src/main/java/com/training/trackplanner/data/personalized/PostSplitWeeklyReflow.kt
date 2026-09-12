@@ -4,10 +4,12 @@ import com.training.trackplanner.data.*
 import org.json.JSONArray
 import org.json.JSONObject
 
-data class PostSplitObjective(val balance: BalanceObjective, val maxMajorAnchors: Int, val majorCoLocations: Int): Comparable<PostSplitObjective> {
+data class PostSplitObjective(val balance: BalanceObjective, val maxMajorAnchors: Int, val majorCoLocations: Int,
+    val strengthPrimary: StrengthPrimaryObjective = StrengthPrimaryObjective(0,0)): Comparable<PostSplitObjective> {
     override fun compareTo(other: PostSplitObjective) = compareValuesBy(this,other,
-        PostSplitObjective::balance,PostSplitObjective::maxMajorAnchors,PostSplitObjective::majorCoLocations)
+        PostSplitObjective::strengthPrimary,PostSplitObjective::balance,PostSplitObjective::maxMajorAnchors,PostSplitObjective::majorCoLocations)
     fun toJson() = JSONObject().put("balance",balance.toJson()).put("maxMajorAnchors",maxMajorAnchors).put("majorCoLocations",majorCoLocations)
+        .put("strengthPrimaryOverlap",strengthPrimary.overlap).put("maxStrengthPrimaryPerDay",strengthPrimary.maximumPerDay)
 }
 data class PostSplitMove(val localId: String,val stableKey: String,val from: Int,val to: Int,
     val before: PostSplitObjective,val after: PostSplitObjective) {
@@ -78,7 +80,8 @@ internal class PostSplitWeeklyReflow {
         }
         fun objective(rows: List<ProgramSkeletonItem>): PostSplitObjective {
             val majorCounts=week.days.map { day -> rows.filter { it.dayOfWeek==day && it.exerciseStableKey in primary }.map { it.exerciseStableKey }.distinct().size }
-            return PostSplitObjective(balanceObjective(metrics(rows)),majorCounts.maxOrNull() ?: 0,majorCounts.sumOf { it*(it-1)/2 })
+            return PostSplitObjective(balanceObjective(metrics(rows)),majorCounts.maxOrNull() ?: 0,majorCounts.sumOf { it*(it-1)/2 },
+                StrengthPrimaryMainPolicy.objective(rows,week.days))
         }
         fun lower(row: ProgramSkeletonItem)=snapshot.metadata[row.exerciseStableKey]?.let { meta ->
             snapshot.movementCoverage(row.exerciseStableKey) in setOf(MovementCoverage.LOWER_KNEE,MovementCoverage.POSTERIOR_CHAIN,MovementCoverage.CALVES) ||

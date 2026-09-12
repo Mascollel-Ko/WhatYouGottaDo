@@ -34,17 +34,23 @@ internal data class MainLayoutObjective(val sameDayMainExcess: Int, val maxMainC
     }
 }
 
-/** MAIN-only branch-and-bound over existing days; never changes funded items or the non-MAIN layout. */
+/** Existing branch-and-bound over ordinary MAIN/primary rows; never changes funded content or active days. */
 internal object InitialMainPlacement {
     fun review(baseline: Map<Int,List<TimedPlannedExercise>>, minutes: Int, snapshot: PlanningHistorySnapshot?, robust: Boolean,
+        state: AthletePlanningState? = null,
         isMain: (PlannedExercise)->Boolean): Map<Int,List<TimedPlannedExercise>> {
+        // Funding/conditional-split trials do not opt into this post-authorization review.
+        if (state == null && baseline.values.flatten().none { isMain(it.item) }) return baseline
+        if (baseline.values.flatten().none { StrengthPrimaryMainPolicy.isPrimary(it.item.stableKey) }) return baseline
         val days = baseline.keys.sorted()
         val actual = RecordBasedReviewedPolicy.defaultSchedule(1,days.size).getValue(1).sorted()
-        val moving = baseline.values.flatten().filter { isMain(it.item) && MainSchedulingPolicy.ordinary(it.item,it.prescription) }
+        val moving = baseline.values.flatten().filter { (isMain(it.item) || StrengthPrimaryMainPolicy.isPrimary(it.item.stableKey)) && MainSchedulingPolicy.ordinary(it.item,it.prescription) }
+            .sortedByDescending { StrengthPrimaryMainPolicy.isPrimary(it.item.stableKey) }
         if (moving.isEmpty()) return baseline
         val fixed = baseline.mapValues { (_,rows) -> rows.filterNot { candidate -> moving.any { it === candidate } }.toMutableList() }
-        fun objective(layout: Map<Int,List<TimedPlannedExercise>>) = MainLayoutObjective.of(layout.mapKeys { actual[days.indexOf(it.key)] }
-            .mapValues { (_,rows) -> rows.count { isMain(it.item) } })
+        fun objective(layout: Map<Int,List<TimedPlannedExercise>>) = InitialStrengthLayout(
+            StrengthPrimaryMainPolicy.counts(layout.values.map { rows -> rows.count { StrengthPrimaryMainPolicy.isPrimary(it.item.stableKey) } }),
+            MainLayoutObjective.of(layout.mapKeys { actual[days.indexOf(it.key)] }.mapValues { (_,rows) -> rows.count { isMain(it.item) } }))
         var best = baseline
         var bestObjective = objective(best)
         val totalMain = baseline.values.flatten().count { isMain(it.item) }
@@ -52,7 +58,31 @@ internal object InitialMainPlacement {
         val minimumStreak = (0 until (1 shl days.size)).filter { Integer.bitCount(it) == occupied }.minOf { mask ->
             MainLayoutObjective.of(actual.mapIndexed { index,day -> day to if(mask and (1 shl index)!=0) 1 else 0 }.toMap()).threeDayStreaks
         }
-        val lowerBound = MainLayoutObjective((totalMain-days.size).coerceAtLeast(0),(totalMain+days.size-1)/days.size,minimumStreak)
+        val primaryCount = baseline.values.flatten().count { StrengthPrimaryMainPolicy.isPrimary(it.item.stableKey) }
+        val lowerBound = InitialStrengthLayout(StrengthPrimaryObjective((primaryCount-days.size).coerceAtLeast(0),(primaryCount+days.size-1)/days.size),
+            MainLayoutObjective((totalMain-days.size).coerceAtLeast(0),(totalMain+days.size-1)/days.size,minimumStreak))
+        fun legal(layout: Map<Int,List<TimedPlannedExercise>>): Boolean {
+            if (primaryCount == 0 || snapshot == null) return true
+            fun projected(source: Map<Int,List<TimedPlannedExercise>>) = source.entries.flatMap { (day,rows) -> rows.mapIndexed { index,row ->
+                residualItem(snapshot,row.item,row.prescription,"primary_${day}_$index",actual[days.indexOf(day)],index+1)
+            } }
+            val rows = projected(layout)
+            val prior = projected(baseline)
+            val moved = layout.values.flatten().filter { row -> layout.entries.first { row in it.value }.key != baseline.entries.first { row in it.value }.key }
+                .map { it.item.stableKey }.toSet()
+            if (moved.any { snapshot.explicitlyRestricted(it) || state != null && !postProcessTissueAllowed(snapshot,state,it) }) return false
+            if (state != null) {
+                val protected = PrimaryStrengthAnchorSpacingPolicy.keys(snapshot,state,baseline.values.flatten().filter { isMain(it.item) }.mapTo(mutableSetOf()) { it.item.stableKey })
+                if (!PrimaryStrengthAnchorSpacingPolicy.allowedRows(rows,protected)) return false
+            }
+            if (actual.any { day -> rows.filter { it.dayOfWeek==day } != prior.filter { it.dayOfWeek==day } &&
+                    snapshot.planDayProjection?.evaluate(rows.filter { it.dayOfWeek==day })?.feasible == false }) return false
+            val tissue = snapshot.planWeekTissueProjection ?: return true
+            val before = tissue.evaluate(prior,8.5)
+            val after = tissue.evaluate(rows,8.5)
+            return after.diagnostic=="CANONICAL_RCV_PROJECTION" && after.days.all { day -> day.blockedUnits.isEmpty() &&
+                day.unresolvedKeys.none { it in moved } && day.unresolvedKeys.all { it in before.days.firstOrNull { old -> old.day==day.day }?.unresolvedKeys.orEmpty() } }
+        }
         var nodes = 0
         fun lower(row: TimedPlannedExercise) = snapshot?.let { it.movementCoverage(row.item.stableKey) in
             setOf(MovementCoverage.LOWER_KNEE,MovementCoverage.POSTERIOR_CHAIN,MovementCoverage.CALVES) ||
@@ -63,7 +93,7 @@ internal object InitialMainPlacement {
             if (objective(fixed) > bestObjective) return
             if (index == moving.size) {
                 val candidate = objective(fixed)
-                if (candidate < bestObjective) { bestObjective=candidate; best=fixed.mapValues { it.value.toList() } }
+                if (candidate < bestObjective && legal(fixed)) { bestObjective=candidate; best=fixed.mapValues { it.value.toList() } }
                 return
             }
             val row = moving[index]
@@ -81,4 +111,8 @@ internal object InitialMainPlacement {
         search(0)
         return best
     }
+}
+
+private data class InitialStrengthLayout(val primary: StrengthPrimaryObjective, val broadMain: MainLayoutObjective): Comparable<InitialStrengthLayout> {
+    override fun compareTo(other: InitialStrengthLayout) = compareValuesBy(this,other,InitialStrengthLayout::primary,InitialStrengthLayout::broadMain)
 }

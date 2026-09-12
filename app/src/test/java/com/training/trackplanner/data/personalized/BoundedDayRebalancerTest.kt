@@ -8,6 +8,26 @@ import org.json.JSONObject
 import java.io.File
 
 class BoundedDayRebalancerTest {
+    @Test fun primarySeparationEntersEvenWhenRelativeBandsAreBalancedAndKeepsContent() {
+        val rows = listOf(minutes("press",1,10).copy(exerciseStableKey="barbell_bench_press"), minutes("row",1,10,order=2).copy(exerciseStableKey="ex_a61f1e96"),
+            minutes("other",2,20)).map { it.copy(progressionRole=ProgressionRole.MAIN) }
+        val input = completed(rows,days=listOf(1,2))
+        val result = run(input)
+        assertEquals(0,result.trace.initialObjective.bandViolationCount)
+        assertEquals(0,StrengthPrimaryMainPolicy.objective(result.skeleton.items.filter { it.weekNumber==1 },listOf(1,2)).overlap)
+        assertTrue(result.trace.actions.any { it.route.startsWith("STRENGTH_PRIMARY") })
+        assertEquals(frozenContent(input.skeleton),frozenContent(result.skeleton))
+        assertEquals(input.skeleton.weekDaySchedule,result.skeleton.weekDaySchedule)
+    }
+    @Test fun primarySeparationStillHonorsDestinationOfiAndAdditionalTissueGate() {
+        val rows = listOf(minutes("press",1,10).copy(exerciseStableKey="barbell_bench_press"), minutes("row",1,10,order=2).copy(exerciseStableKey="ex_a61f1e96"),
+            minutes("other",2,20)).map { it.copy(progressionRole=ProgressionRole.MAIN) }
+        val input = completed(rows,days=listOf(1,2))
+        val blocked = run(input,PlanDayProjection { StandaloneDayLoad(99,listOf(0)) })
+        assertEquals(input.skeleton.items,blocked.skeleton.items)
+        val tissueBlocked = BoundedDayRebalancer { false }.rebalance(input,snapshot,f.state(snapshot),f.safe)
+        assertEquals(input.skeleton.items,tissueBlocked.skeleton.items)
+    }
     private val f = PostGenerationFixture
     private val snapshot = f.snapshot()
     private fun minutes(key: String, day: Int, minutes: Int, id: String = key, order: Int = 1) =

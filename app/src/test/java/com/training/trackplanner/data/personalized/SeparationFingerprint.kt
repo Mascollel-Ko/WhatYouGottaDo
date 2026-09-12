@@ -6,6 +6,10 @@ import java.security.MessageDigest
 import java.time.temporal.TemporalAccessor
 
 internal fun separationFingerprint(skeleton: GeneratedProgramSkeleton): String {
+    return MessageDigest.getInstance("SHA-256").digest(separationSnapshot(skeleton).toByteArray(Charsets.UTF_8))
+        .joinToString("") { "%02x".format(it) }
+}
+internal fun separationSnapshot(skeleton: GeneratedProgramSkeleton): String {
     val decision = skeleton.personalizedDecision
     // The old golden mislabeled INITIAL materialized units as capacity. Reconstruct that legacy audit
     // field only for comparison; current computed capacity is tested separately and the kernel stays byte-frozen.
@@ -15,8 +19,7 @@ internal fun separationFingerprint(skeleton: GeneratedProgramSkeleton): String {
             decision.authorizedScheduling!!.initialWeek.sumOf { it.setPrescriptions.size }))) else budget
     val normalized = skeleton.copy(personalizedDecision = decision?.copy(decisionId = "AUDIT_ID", generatedAtEpochMillis = 0,
         planningBudget = legacyBudget))
-    return MessageDigest.getInstance("SHA-256").digest(separationCanonical(normalized).toByteArray(Charsets.UTF_8))
-        .joinToString("") { "%02x".format(it) }
+    return separationCanonical(normalized)
 }
 private fun separationCanonical(value: Any?): String = when (value) {
     null -> "null"

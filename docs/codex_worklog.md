@@ -1,5 +1,38 @@
 # Codex Worklog
 
+## 2026-09-12 — Exact primary-strength scheduling and historical CI repair
+
+- Initial worktree clean; fetched/fast-forward checked main == origin/main at 1f1a3942193ca5b17a7570aa75b69410c9549322. Latest hosted Android Debug Build run 34615103433 confirmed 1667 tests, 1 failure, 4 conditional skips; protocol/whitespace/compilation passed, APK steps skipped. Failure was the historical 29-persona fingerprint assertion, not Android compilation.
+- Ran ALL 29 personas before modifying compatibility expectations. Only 28_explicit_madcow_incompatible_badminton differed: historical 0be57586d69b0c15743941c701eae0a14d41a36cbfe03713176988f119abf316 versus baseline d2bc5694f24c0f78d8d6d0691362d5707c8c4ab65fc40e4f91da9b6bfa779005. All empty-active-day audits matched. Independently reran passing historical commit 0f22c771664af50f246408bf5de75ec21e390655 in a detached diagnostic worktree: all 10 parity tests passed.
+- Persona 28 has 36 rows over six weeks. Only badminton_drill moved Monday to Tuesday each week (orderIndex 2 unchanged); its placement-derived localId and originalGenerationFingerprint changed with it. The active Mon/Tue/Thu/Sat schedule, all row prescriptions/sets/reps/load/seconds/roles/styles/variants/bindings/selection data and every remaining serialized decision field matched. This is a broad-MAIN placement side effect outside the requested exact-five policy, not a reason to replace goldens. New initiation requires actual primary work; all original 29 exact fingerprints AND empty-day expectations now pass unchanged. Diagnostic snapshot extraction preserves the exact original fingerprint algorithm and exclusions; failures are collected across all personas instead of stopping at the first.
+- StrengthPrimaryMainPolicy is the single scheduling owner of barbell_back_squat, barbell_bench_press, ex_a61f1e96 (incline dumbbell press), barbell_deadlift and ex_e41f4c2b (weighted pull-up). RDL, calf, Pallof, rows and overhead press are not members. No name/equipment/proxy/role inference. This does not change progression MAIN or strength ranking.
+- Initial placement opts in after authorization, with canonical day/tissue projection and unchanged calendar-spacing checks. Existing bounded rebalance and post-split reflow prioritize primary overlap, then maximum primaries/day, before secondary balance. Mandatory fixed chunks and structured prescriptions remain protected. Existing same-key, time, OFI/axis, lower-stress, tissue and additional gates remain; primary-specific bounded search does not fix the unrelated absolute-OFI loop-entry gap. Rejections and primary before/after metrics are additive trace fields.
+- Only reviewed frozen source ExecutionAllocationPlanner.kt changes: thread existing planningState into the post-authorization review; no score, dose, funding or formula edits. LF-normalized SHA-256 7bc2456c6bbfa7662bc27646d3bc51277730a299d72198d42eede412b778a0f0 -> cf89638b399e1997ddf89e790956fb316f09cc19ce9eb4d70322901c96317195. Other source hashes and builder authority prefix remain untouched.
+- Private backup audit: cutoff 2026-09-02; same prior UNKNOWN/UNSURE interruption test assumptions (not new user confirmations). Algorithm 5, explicit 4, BASE=46, expansion=0, rollback=0, final=46 before and after. All 12 authorized prescriptions, exact parent shortfalls and weighted Q/C/R records compare identically. No bench or conventional deadlift was selected or invented.
+
+| Actual selected exercise | Before day | After day | Weekly prescription |
+|---|---|---|---|
+| Weighted pull-up / ex_e41f4c2b | Tue | Mon | 4 sets, 0 kg × 6 |
+| Incline DB press / ex_a61f1e96 | Tue | Thu | 3 sets, 56 kg × 6 |
+| Squat / barbell_back_squat | Thu | Sat | 3 sets, 142.5 kg × 3 |
+| RDL / barbell_romanian_deadlift (not primary) | Tue | Thu | 3 sets, 120 kg × 8 |
+| Single-leg calf / ex_5ca7133f (not primary) | Mon/Thu/Sat | Mon/Thu/Sat | unchanged 3+3+3, Q=9/C=9/R=0 |
+
+| Active day | Primary before -> after | Minutes before -> after | OFI before -> after | Tissue |
+|---|---|---|---|---|
+| Mon | 0 -> 1 | 19 -> 22 | 93 -> 85 | no blocked units |
+| Tue | 2 -> 0 | 28.25 -> 25 | 51 -> 93 | no blocked units; existing unresolved shuttle key moved from Sat |
+| Thu | 1 -> 1 | 24.25 -> 28.75 | 86 -> 98 | no blocked units |
+| Sat | 0 -> 1 | 18.75 -> 14.5 | 94 -> 81 | no blocked units |
+
+- Existing mandatory-split high-OFI warnings remain visible; this is not a claim that every final day is below the ordinary OFI gate. No exception was broadened. Private before/after programs and complete traces remain in ignored build/private-audit/frequency-expansion, not committed personal records.
+- First implementation run: 89 focused tests passed (58 bounded, 13 post-split, 7 initial MAIN, 10 parity including all 29, 1 private E2E), zero failures/errors/skips. Additional new tests initially exposed four missing-key fixture errors, corrected without weakening assertions; final verification recorded below.
+- Protocol advanced 3.14.0 -> 3.15.0; metadata/physiology, Legacy, records, UI, LOW_WEEK_RATIO and schema/backup unchanged. Audit SHA denotes the verified input baseline, not a self-referencing commit.
+- Final focused scheduling run: 90 tests (primary 8, initial MAIN 7, bounded 60, post-split 15), zero failures/errors/skips. Full `./gradlew testDebugUnitTest assembleDebug --no-daemon --continue`: 1679 tests, 1675 passed, zero failures/errors, 4 established optional private-input skips; APK assembly passed. Legacy 360 matrix (2 test methods), isolation 5, source freeze 1, authorized-pipeline 2, frequency demand 3, frequency expansion 11, split allocation 14, residual completion 20, progression session persistence 8 all passed.
+- First `testDebugUnitTest --rerun-tasks` attempt failed at the runtime level: JBR 21.0.10 C2 CompilerThread1 EXCEPTION_ACCESS_VIOLATION in jvm.dll while compiling Robolectric AbstractWindowedCursor.clearOrCreateWindow; no ordinary assertion failure was reported. Logs preserved under ignored build/primary-audit/jvm-crash. Retrying unchanged tests with process-local JAVA_TOOL_OPTIONS=-XX:TieredStopAtLevel=1; no Gradle/workflow/source workaround committed.
+- Fresh full rerun with that local C1 option completed successfully (32/32 tasks executed, 7m23s): 1679 tests, 1675 passed, zero failures/errors, same 4 optional skips. Historical 29, Legacy 360, isolation and source freezes again passed. Optional skips are FrequencyExpansionRealBackupTest (separately passed with supplied CSV), TrainingStateParityTest Python input, RealBackupPersonalizedPlannerE2eTest optional input and TrainingStateRealBackupComparisonTest comparison input; no optional guard changed.
+- `python scripts/validate_protocol_docs.py`: passed (8 families, 34 protocols). `python tools/localization/localization_audit.py`: passed with all generated artifacts unchanged. `git diff --check`: passed. Latest pre-commit fetch still origin/main=baseline. One focused commit follows; its final SHA and actual hosted workflow conclusion are reported in the task handoff rather than writing an impossible self-referencing commit SHA into this file.
+
 ## 2026-09-12 — Record incremental first-performance insertion correction
 
 - Clean actual origin/main baseline: 2e2334e403019246414efefbe4e78295880478c8.

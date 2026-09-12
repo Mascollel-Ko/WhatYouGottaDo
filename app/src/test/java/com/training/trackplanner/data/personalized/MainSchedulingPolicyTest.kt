@@ -6,7 +6,8 @@ import org.junit.Test
 
 class MainSchedulingPolicyTest {
     private val f=PostGenerationFixture
-    private fun items(count: Int)=(1..count).map { TimedPlannedExercise(f.source("key$it",1,priority=100),f.rx(1)) }
+    private val primaryKeys=listOf("barbell_back_squat","ex_a61f1e96","barbell_deadlift","ex_e41f4c2b")
+    private fun items(count: Int)=primaryKeys.take(count).map { TimedPlannedExercise(f.source(it,1,priority=100),f.rx(1)) }
     private fun place(count: Int,days: Int,robust: Boolean=true)=TimedWeeklyPlacementPlanner().distribute(items(count),days,90,
         robustSchedule=robust,isMain={ MainSchedulingPolicy.role(it,true)==ProgressionRole.MAIN })
     @Test fun fourDaysThreeMainsPreferNoOverlapBeforeRobustEarlyWeekPreference() {

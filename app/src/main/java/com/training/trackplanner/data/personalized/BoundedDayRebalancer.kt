@@ -43,13 +43,17 @@ data class BalanceAction(val actionType: String, val atomIds: List<String>, val 
 data class DayRebalancingTrace(val balanceState: String, val preRebalanceFingerprint: String, val finalFingerprint: String,
     val timeReference: Double, val ofiReference: Double, val initialDays: List<BalanceDay>, val finalDays: List<BalanceDay>,
     val initialObjective: BalanceObjective, val finalObjective: BalanceObjective, val actions: List<BalanceAction>,
-    val diagnostic: String = "") {
+    val diagnostic: String = "", val primaryBefore: StrengthPrimaryObjective? = null,
+    val primaryAfter: StrengthPrimaryObjective? = null, val primaryRejections: Map<String, Int> = emptyMap()) {
     fun toJson(): JSONObject = JSONObject().put("balanceState", balanceState).put("preRebalanceFingerprint", preRebalanceFingerprint)
         .put("finalFingerprint", finalFingerprint).put("timeReference", timeReference).put("ofiReference", ofiReference)
         .put("ofiRatioState", if (ofiReference > 0) "ENABLED" else "OFI_RATIO_BALANCING_DISABLED")
         .put("initialDays", JSONArray(initialDays.map { it.toJson() })).put("finalDays", JSONArray(finalDays.map { it.toJson() }))
         .put("initialObjective", initialObjective.toJson()).put("finalObjective", finalObjective.toJson())
         .put("actions", JSONArray(actions.map { it.toJson() })).put("diagnostic", diagnostic)
+        .put("primaryOverlapBefore",primaryBefore?.overlap).put("primaryOverlapAfter",primaryAfter?.overlap)
+        .put("primaryMaximumBefore",primaryBefore?.maximumPerDay).put("primaryMaximumAfter",primaryAfter?.maximumPerDay)
+        .put("primaryRejections",JSONObject(primaryRejections))
 }
 
 internal fun balanceObjective(days: List<BalanceDay>): BalanceObjective {
@@ -133,20 +137,29 @@ internal class BoundedDayRebalancer(private val additionalGate: (List<ProgramSke
         }
         fun immutable(items: List<ProgramSkeletonItem>) = items.associate { atom(it) to it.copy(dayOfWeek = 1, orderIndex = 0) }
         var currentMetrics = metrics(rows)
+        fun strengthPrimary(items: List<ProgramSkeletonItem>) = StrengthPrimaryMainPolicy.objective(items,week.days)
+        val primaryCount = original.count { StrengthPrimaryMainPolicy.isPrimary(it.exerciseStableKey) }
+        val primaryMinimum = StrengthPrimaryObjective((primaryCount-week.days.size).coerceAtLeast(0),
+            (primaryCount+week.days.size-1)/week.days.size)
         val initialMetrics = currentMetrics
         val initialObjective = balanceObjective(initialMetrics)
         val actions = mutableListOf<BalanceAction>()
+        val primaryRejections = sortedMapOf<String,Int>()
         val visited = mutableSetOf(rows.associate { atom(it) to it.dayOfWeek })
-        val candidateOrder = compareBy<RebalanceCandidate> { it.action.afterObjective }.thenBy { it.movementCost }
+        val candidateOrder = compareBy<RebalanceCandidate> { strengthPrimary(it.rows) }.thenBy { it.action.afterObjective }.thenBy { it.movementCost }
             .thenBy { it.priority }.thenBy { it.keyOrder }.thenBy { it.action.sourceDay }.thenBy { it.action.destinationDay }.thenBy { it.identityOrder }
-        while (currentMetrics.any(BalanceDay::needsBalance)) {
+        while (currentMetrics.any(BalanceDay::needsBalance) || strengthPrimary(rows) > primaryMinimum) {
             val beforeObjective = balanceObjective(currentMetrics)
             val lowerBefore = maxLower(rows)
             fun evaluate(source: ProgramSkeletonItem, destination: Int, reverse: ProgramSkeletonItem? = null,
                 route: String = if (reverse == null) "PRIMARY_MOVE" else "SWAP"): RebalanceCandidate? {
-                if (!movable(source) || reverse?.let { !movable(it) } == true) return null
+                fun rejected(reason: String): RebalanceCandidate? {
+                    if (route.startsWith("STRENGTH_PRIMARY")) primaryRejections[reason] = primaryRejections.getOrDefault(reason,0)+1
+                    return null
+                }
+                if (!movable(source) || reverse?.let { !movable(it) } == true) return rejected("PROTECTED_STRUCTURE_OR_SPLIT")
                 val moved = listOfNotNull(source, reverse)
-                if (moved.any { !postProcessTissueAllowed(snapshot, state, it.exerciseStableKey) }) return null
+                if (moved.any { !postProcessTissueAllowed(snapshot, state, it.exerciseStableKey) }) return rejected("CURRENT_TISSUE_RESTRICTION")
                 val affected = setOf(source.dayOfWeek, destination)
                 val tentative = order(rows.map { row -> when (row.localId) {
                     source.localId -> row.copy(dayOfWeek = destination)
@@ -155,21 +168,24 @@ internal class BoundedDayRebalancer(private val additionalGate: (List<ProgramSke
                 } }, affected)
                 for (day in affected) {
                     val items = tentative.filter { it.dayOfWeek == day }
-                    if (items.map { it.exerciseStableKey }.distinct().size != items.size) return null
+                    if (items.map { it.exerciseStableKey }.distinct().size != items.size) return rejected("SAME_KEY")
                     // The one-way source may remain hard-constrained; both swap destinations must pass.
                     if (day == destination || reverse != null) {
-                        if (items.sumOf(::plannedSeconds) > skeleton.request.sessionMinutes * 60 || !load(items).feasible) return null
+                        if (items.sumOf(::plannedSeconds) > skeleton.request.sessionMinutes * 60) return rejected("SESSION_TIME")
+                        if (!load(items).feasible) return rejected("DESTINATION_OFI_OR_AXIS")
                     }
                 }
-                if (maxLower(tentative) > lowerBefore) return null
-                if (!PrimaryStrengthAnchorSpacingPolicy.allowedRows(tentative,primaryKeys)) return null
-                if (!additionalGate(tentative)) return null
+                if (maxLower(tentative) > lowerBefore) return rejected("LOWER_STRESS_CONCENTRATION")
+                if (!PrimaryStrengthAnchorSpacingPolicy.allowedRows(tentative,primaryKeys)) return rejected("PRIMARY_ANCHOR_CALENDAR_SPACING")
+                if (!additionalGate(tentative)) return rejected("ADDITIONAL_PLACEMENT_GATE")
                 val nextMetrics = metrics(tentative)
                 val beforeAffected = currentMetrics.filter { it.day in affected }
                 val afterAffected = nextMetrics.filter { it.day in affected }
-                if (!balanceNonWorsening(beforeAffected, afterAffected)) return null
+                val primaryChange = strengthPrimary(tentative).compareTo(strengthPrimary(rows))
+                if (primaryChange > 0) return null
+                if (primaryChange == 0 && !balanceNonWorsening(beforeAffected, afterAffected)) return null
                 val objective = balanceObjective(nextMetrics)
-                if (objective >= beforeObjective) return null
+                if (primaryChange == 0 && objective >= beforeObjective) return null
                 check(immutable(tentative) == immutable(rows))
                 val action = BalanceAction(if (reverse == null) "MOVE" else "SWAP", moved.map(::atom), moved.map { it.exerciseStableKey },
                     source.dayOfWeek, destination, beforeAffected, afterAffected, beforeObjective, objective, route = route)
@@ -181,6 +197,15 @@ internal class BoundedDayRebalancer(private val additionalGate: (List<ProgramSke
             var best: RebalanceCandidate? = null
             fun consider(candidate: RebalanceCandidate?) {
                 if (candidate != null && (best == null || candidateOrder.compare(candidate, best!!) < 0)) best = candidate
+            }
+            if (strengthPrimary(rows) > primaryMinimum) {
+                for (source in rows.filter { StrengthPrimaryMainPolicy.isPrimary(it.exerciseStableKey) }) {
+                    for (day in week.days.filter { it != source.dayOfWeek }) {
+                        consider(evaluate(source,day,route="STRENGTH_PRIMARY_MOVE"))
+                        for (reverse in rows.filter { it.dayOfWeek==day })
+                            consider(evaluate(source,day,reverse,"STRENGTH_PRIMARY_SWAP"))
+                    }
+                }
             }
             val useTimeDestinationFallback = currentMetrics.none { it.timeRatio < LOWER_BALANCE_RATIO } &&
                 currentMetrics.any { it.timeRatio > UPPER_BALANCE_RATIO }
@@ -239,6 +264,7 @@ internal class BoundedDayRebalancer(private val additionalGate: (List<ProgramSke
         }
         return RebalancingResult(result, DayRebalancingTrace(status, personalizedProgramFingerprint(skeleton.request, skeleton.items),
             personalizedProgramFingerprint(result.request, result.items), timeReference, ofiReference, initialMetrics, currentMetrics,
-            initialObjective, finalObjective, actions, if (finalObjective.bandViolationCount > 0) "UNRESOLVED_BALANCE_CONSTRAINT" else ""))
+            initialObjective, finalObjective, actions, if (finalObjective.bandViolationCount > 0) "UNRESOLVED_BALANCE_CONSTRAINT" else "",
+            strengthPrimary(original),strengthPrimary(rows),primaryRejections))
     }
 }

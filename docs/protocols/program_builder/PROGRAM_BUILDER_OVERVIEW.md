@@ -3,17 +3,26 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.14.0 |
+| Protocol version | 3.15.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 216039ea4c251c9555c7da94b4680736a6f0209a |
+| Last audited commit | 1f1a3942193ca5b17a7570aa75b69410c9549322 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 
 ## 1. 일반 사용자용 요약
+
+### 3.15.0 — exact primary-strength scheduling
+
+- `StrengthPrimaryMainPolicy` owns exactly five scheduling identities: squat `barbell_back_squat`, bench press `barbell_bench_press`, incline dumbbell press `ex_a61f1e96`, conventional deadlift `barbell_deadlift`, weighted pull-up `ex_e41f4c2b`. No names, equipment, movement-family inference, proxy propagation or progression MAIN role defines membership. Calf, Pallof, RDL, rows and overhead press do not consume these slots.
+- InitialMainPlacement, BoundedDayRebalancer and PostSplitWeeklyReflow compare primary overlap first, then maximum primaries per day, before their existing secondary soft objectives. Four primaries on four/five days prefer zero overlap; four on three/two days prefer 2+1+1 / 2+2. Hard gates may require greater overlap; demand must never be removed to obtain separation.
+- Only post-authorization placement opts into the initial review. Funding and conditional split trials retain their prior behavior. Broad MAIN alone no longer initiates initial redistribution; progression MAIN semantics themselves are unchanged.
+- Existing whole-item mobility, structured/atomic protection, fixed mandatory split chunks, exact parent ownership and Q/C/R, active weekdays, same-key cyclic PrimaryStrengthAnchorSpacingPolicy, OFI/tissue/time gates remain authoritative. Primary separation does not add days, sets, candidates or physiological meaning. The approved mandatory 6–9 split OFI exception is neither removed nor broadened.
+- Historical 29-persona diagnosis found only persona 28's broad-MAIN badminton weekday relocation. Restricting initiation to actual primary work restores all original exact fingerprints and empty-active-day expectations: no golden replacement or semantic normalization is needed. Current primary scheduling has separate exact-key and placement tests.
+- No Legacy Auto, LOW_WEEK_RATIO, record ordering, UI, backup/schema, ranking, prescription or numerical authority changes.
 
 ### 3.14.0 — low-week interpretation and compact preflight
 
