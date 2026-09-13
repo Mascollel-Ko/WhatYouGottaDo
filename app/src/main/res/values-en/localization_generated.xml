@@ -163,6 +163,7 @@
     <string name="loc_baseline_1aa3a0092113">thigh work</string>
     <string name="loc_baseline_1aa9bece2561">high load</string>
     <string name="loc_baseline_1aaba5f6f852">2-3 sets x 3-5 reps · Conservative weight · RPE 6.5-7.5</string>
+    <string name="loc_baseline_1ac4d3c56a84">Comparing weekly placement candidates.</string>
     <string name="loc_baseline_1af3094d97f5">well</string>
     <string name="loc_baseline_1b1caaa93088">transmit tensile load</string>
     <string name="loc_baseline_1b59b5fdeb0d">injury</string>
@@ -179,6 +180,7 @@
     <string name="loc_baseline_1e63ff0b0728">Enhancing check-in indicators</string>
     <string name="loc_baseline_1e7dd2a9d89a">High weight/strength nervous system</string>
     <string name="loc_baseline_1f642b3a840d">It\'s in the range based on recent records.</string>
+    <string name="loc_baseline_1f8acf4d56b9">Preparing weekly placement candidates.</string>
     <string name="loc_baseline_1fccd293db1d">} · Calibration ${point.curveCalibrationStatus ?:</string>
     <string name="loc_baseline_20129832470d">overwrite</string>
     <string name="loc_baseline_204ebcbb565b">May the plan include low-intensity free-weight or unilateral work as a new stimulus?</string>
@@ -426,6 +428,7 @@
     <string name="loc_baseline_4f3b28eed1db">No resistance training was recorded in the last 28 days, so a balanced re-entry structure is used.</string>
     <string name="loc_baseline_4f7a99760b39">Mixed reasons</string>
     <string name="loc_baseline_4fefe2ca6e5a">Badminton practice load</string>
+    <string name="loc_baseline_503f0a5ad119">Validating fatigue and tissue conditions for placement candidates.</string>
     <string name="loc_baseline_50d2bed8de2f">Multivariate time series analysis</string>
     <string name="loc_baseline_514992bd220e">As check-in records are accumulated, recovery/condition indicators can also be compared in the laboratory.</string>
     <string name="loc_baseline_51b8c89ae8f9">Fatigue/Recovery</string>
@@ -797,6 +800,7 @@
     <string name="loc_baseline_9e9b24777593">select all</string>
     <string name="loc_baseline_9ea562bf0f99">candidate week</string>
     <string name="loc_baseline_9eb8927d664f">Main action</string>
+    <string name="loc_baseline_9ed8312cc5a6">Comparing candidates again in the adjusted schedule.</string>
     <string name="loc_baseline_9f38bdd9fb3a">Check recovery input after long court times</string>
     <string name="loc_baseline_a0283eae91fb">This is training that strengthens the ability to decelerate just before stopping, landing, and changing direction.</string>
     <string name="loc_baseline_a06c23387b04">Condition today</string>
@@ -936,6 +940,7 @@
     <string name="loc_baseline_bbeb0f7d5a18">Adductors/abductors</string>
     <string name="loc_baseline_bc2ef91bd2e2">Training volume</string>
     <string name="loc_baseline_bc422c6f05c2">revert</string>
+    <string name="loc_baseline_bc4f651c5d7a">Rechecking the adjusted schedule.</string>
     <string name="loc_baseline_bc5041df2f47">Actual e1RM</string>
     <string name="loc_baseline_bc5f66eaf0a3">shoulder</string>
     <string name="loc_baseline_bc6722e5b8c7">Weekly quadriceps exercise</string>
@@ -999,6 +1004,7 @@
     <string name="loc_baseline_c4dfd12384e8">muscular nervous system</string>
     <string name="loc_baseline_c50900354985">Hide diagnostics</string>
     <string name="loc_baseline_c5549487d67f">It is not a definitive causal relationship, but an exploratory pattern based on weekly records.</string>
+    <string name="loc_baseline_c55906091815">Weekly placement adjustment is complete.</string>
     <string name="loc_baseline_c57e222bd5a4">Overwriting only deletes unconfirmed plans. Actual completion records will not be deleted.</string>
     <string name="loc_baseline_c57fc73d1143">Hypertrophy + strength</string>
     <string name="loc_baseline_c5ace50108c6">Utilize the program</string>
@@ -1007,6 +1013,7 @@
     <string name="loc_baseline_c6af60d95b20">They tend to be moderate.</string>
     <string name="loc_baseline_c718501b0ec3">Original Movement Classification</string>
     <string name="loc_baseline_c7266fe8ecfb">Weekly glute training volume in the last 7 days</string>
+    <string name="loc_baseline_c75deb852df4">Checking fatigue and tissue conditions in the reference schedule.</string>
     <string name="loc_baseline_c76df3b96a56">The configuration you are currently writing will be replaced with an automatic outline.</string>
     <string name="loc_baseline_c76f82de2b04">explanation</string>
     <string name="loc_baseline_c77115ae830c">Trend of repetition section proportion</string>
@@ -1077,6 +1084,7 @@
     <string name="loc_baseline_d75c0f804c98">The expected load after the remaining plans is very high.</string>
     <string name="loc_baseline_d79cef083c7a">rotation motion</string>
     <string name="loc_baseline_d7ce478f16d8">Go to the required analysis screen and check your training metrics.</string>
+    <string name="loc_baseline_d82cd74a613e">Checking the final weekly placement.</string>
     <string name="loc_baseline_d888be67f1df">positive signal</string>
     <string name="loc_baseline_d8d4e7d1f0a5">Growth rate</string>
     <string name="loc_baseline_d9007e0cb533">Area of ​​pain/attention</string>

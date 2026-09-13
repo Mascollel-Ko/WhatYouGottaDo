@@ -1,4 +1,12 @@
 korean,english,provenance,sourcePath
+주간 배치 후보를 준비하는 중입니다.,Preparing weekly placement candidates.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedPlannerProgress.kt
+기준 배치의 피로도와 연결조직 조건을 확인하는 중입니다.,Checking fatigue and tissue conditions in the reference schedule.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedPlannerProgress.kt
+주간 배치 후보를 비교하는 중입니다.,Comparing weekly placement candidates.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedPlannerProgress.kt
+조정된 배치에서 후보를 다시 비교하는 중입니다.,Comparing candidates again in the adjusted schedule.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedPlannerProgress.kt
+배치 후보의 피로도와 연결조직 조건을 검증하는 중입니다.,Validating fatigue and tissue conditions for placement candidates.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedPlannerProgress.kt
+조정된 배치에서 다시 확인하는 중입니다.,Rechecking the adjusted schedule.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedPlannerProgress.kt
+주간 배치 결과를 최종 확인하는 중입니다.,Checking the final weekly placement.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedPlannerProgress.kt
+주간 배치 조정을 완료했습니다.,Weekly placement adjustment is complete.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedPlannerProgress.kt
 근력 목표,Strength goal,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanScreen.kt
 배드민턴 구조화 훈련,Structured badminton training,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanScreen.kt
 프리웨이트·편측운동,Free weights and unilateral work,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanScreen.kt

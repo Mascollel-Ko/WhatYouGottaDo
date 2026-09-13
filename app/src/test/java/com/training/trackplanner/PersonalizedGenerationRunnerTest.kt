@@ -11,6 +11,15 @@ import java.io.File
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PersonalizedGenerationRunnerTest {
+    @Test fun stageRangesReserveReflowAndContainNoTimer() {
+        assertTrue(PersonalizedPlannerStage.entries.takeWhile { it!=PersonalizedPlannerStage.POST_SPLIT_REFLOW }.all { it.percent<65 })
+        assertEquals(65,PersonalizedPlannerStage.POST_SPLIT_REFLOW.percent)
+        assertEquals(98,PersonalizedPlannerStage.FINAL.percent)
+        assertEquals(100,PersonalizedPlannerStage.COMPLETE.percent)
+        val root=generateSequence(File(System.getProperty("user.dir")),File::getParentFile).first { File(it,"settings.gradle.kts").isFile }
+        val source=File(root,"app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedPlannerProgress.kt").readText()
+        assertFalse(source.contains("delay(")); assertFalse(source.contains("sleep(")); assertFalse(source.contains("currentTimeMillis"))
+    }
     @Test fun longGenerationHasNoFifteenSecondTimeoutAndDuplicateLaunchIsRejected() = runTest {
         val state = MutableStateFlow<ProgramBuildProgressState>(ProgramBuildProgressState.Idle)
         val runner = PersonalizedGenerationRunner(this, state)
@@ -36,12 +45,21 @@ class PersonalizedGenerationRunnerTest {
         runCurrent()
         report!!.report(PersonalizedPlannerStage.PATTERNS)
         advanceTimeBy(30_000)
-        assertEquals(20, (state.value as ProgramBuildProgressState.Running).progressPercent)
+        assertEquals(15, (state.value as ProgramBuildProgressState.Running).progressPercent)
         report!!.report(PersonalizedPlannerStage.EXPANSION_RECHECK)
         report!!.report(PersonalizedPlannerStage.DISTRIBUTION)
-        assertEquals(80, (state.value as ProgramBuildProgressState.Running).progressPercent)
+        assertEquals(62, (state.value as ProgramBuildProgressState.Running).progressPercent)
         report!!.report(PersonalizedPlannerStage.EXPANSION_RECHECK)
         assertEquals(PersonalizedPlannerStage.EXPANSION_RECHECK.message, (state.value as ProgramBuildProgressState.Running).message)
+        report!!.report(PersonalizedPlannerProgress(PersonalizedPlannerStage.POST_SPLIT_REFLOW,85,"검증 중"))
+        report!!.report(PersonalizedPlannerProgress(PersonalizedPlannerStage.POST_SPLIT_REFLOW,72,"과거 단계"))
+        assertEquals(ProgramBuildProgressState.Running(85,"검증 중"),state.value)
+        advanceTimeBy(120_000)
+        assertEquals(85,(state.value as ProgramBuildProgressState.Running).progressPercent)
+        report!!.report(PersonalizedPlannerStage.FINAL)
+        assertEquals(98,(state.value as ProgramBuildProgressState.Running).progressPercent)
+        report!!.report(PersonalizedPlannerStage.COMPLETE)
+        assertEquals(100,(state.value as ProgramBuildProgressState.Running).progressPercent)
         gate.complete(Unit)
     }
 

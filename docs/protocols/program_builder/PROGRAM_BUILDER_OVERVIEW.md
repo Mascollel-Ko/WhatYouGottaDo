@@ -3,17 +3,25 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.16.1 |
+| Protocol version | 3.16.2 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 3f4ba4eab0e4443e2f4ff2659ebe140a72762dbb |
+| Last audited commit | e14fa47968f13d956eb33bbdee7ae3f34b9d26b2 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 
 ## 1. 일반 사용자용 요약
+
+### 3.16.2 — real final-reflow execution progress
+
+- Progress is transient UX observation, not an elapsed-time estimate or planner input. Earlier INPUT/HISTORY/PATTERNS/ADAPTATION/DEMAND/PLACEMENT/BASE_REVIEW/EXPANSION/DISTRIBUTION/FEASIBILITY/EXPANSION_RECHECK/RESIDUAL/BALANCE milestones are now 5/10/15/22/30/38/44/49/55/60/62/63/64. FINAL remains 98 and COMPLETE 100.
+- Applicable PostSplitWeeklyReflow enters at 65, representative preparation completes at 68, reference OFI/tissue validation starts at 70, and the first existing row-comparison pass reports 72–84 according to completed rows. Lazy candidate tissue validations report 84–89 according to actual completed validations within that candidate list, without forcing evaluation of skipped candidates.
+- Applying a relocation reports 90; later comparison rounds report 90–92 and lazy validation 93–94. A per-run high-water mark prevents backward progress on any later round; unknown further rounds can remain at 94 with actual phase messages. Final mirroring/checks start at 95 and only a successfully returned reflow result reports 96. No timer, delay, progress interpolation or invented search completion.
+- The existing no-mandatory-split fast return emits no reflow stages. Failed-safe review does not claim 96 completion. Candidate x/y detail is intentionally omitted; row-pass proportions are internal execution measurements, not displayed candidate totals. ViewModel runner consumes structured updates with the same monotonic guard and coroutine cancellation contract as major stages.
+- Candidate generation/order/comparator, 128 bound, memoization, lazy tissue gates, numerical authorities, prescriptions, fixed chunks, Q/C/R and final planner output are unchanged. Planning summary and all-weeks editor UI are untouched.
 
 ### 3.16.1 — structured, collapsed Record-Based summary
 

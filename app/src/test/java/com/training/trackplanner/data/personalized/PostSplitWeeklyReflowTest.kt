@@ -206,11 +206,38 @@ class PostSplitWeeklyReflowTest {
         assertEquals("FAILED_SAFE_UNCHANGED",result.trace.state)
         assertEquals("MISSING_CANONICAL_TISSUE_PROJECTION",result.trace.diagnostic)
     }
-    @Test fun stageIsOneActualMilestoneNotPerCandidate() {
-        val stages=mutableListOf<PersonalizedPlannerStage>()
-        PostSplitWeeklyReflow().review(plan(),snapshot(),f.state(),PersonalizedPlannerProgressReporter { stages+=it })
-        assertEquals(listOf(PersonalizedPlannerStage.POST_SPLIT_REFLOW),stages)
-        assertEquals(96,stages.single().percent)
+    @Test fun realMultiRoundProgressIsMonotonicAndObservational() {
+        val updates=mutableListOf<PersonalizedPlannerProgress>()
+        val reporter=object : PersonalizedPlannerProgressReporter {
+            override fun report(stage: PersonalizedPlannerStage) { updates+=PersonalizedPlannerProgress(stage,stage.percent,stage.message) }
+            override fun report(update: PersonalizedPlannerProgress) { updates+=update }
+        }
+        val original=plan()
+        val source=snapshot()
+        var validationCalls=0
+        val observed=source.copy(planWeekTissueProjection=PlanWeekTissueProjection { rows,rpe ->
+            validationCalls++
+            assertTrue(updates.last().percent<96)
+            assertTrue(updates.last().message.contains("연결조직"))
+            source.planWeekTissueProjection!!.evaluate(rows,rpe)
+        })
+        val activeCounts=ReflowEvaluationCounts(); val noneCounts=ReflowEvaluationCounts()
+        val active=PostSplitWeeklyReflow().review(original,observed,f.state(source),reporter,activeCounts)
+        val none=PostSplitWeeklyReflow().review(original,source,f.state(source),counts=noneCounts)
+        assertEquals(none,active) // entire result, including immutable content, fingerprints, Q/C/R and trace
+        assertEquals(noneCounts,activeCounts) // instrumentation does not alter lazy gates/caches
+        assertTrue(validationCalls>1)
+        assertTrue(active.trace.moves.isNotEmpty())
+        assertEquals(65,updates.first().percent)
+        assertEquals(96,updates.last().percent)
+        assertEquals(1,updates.count { it.percent==96 })
+        assertTrue(updates.any { it.percent in 72..84 })
+        assertTrue(updates.any { it.percent in 85..94 })
+        assertTrue(updates.any { it.message=="조정된 배치에서 후보를 다시 비교하는 중입니다." })
+        assertTrue(updates.zipWithNext().all { (a,b) -> b.percent>=a.percent })
+        reporter.report(PersonalizedPlannerStage.FINAL)
+        reporter.report(PersonalizedPlannerStage.COMPLETE)
+        assertEquals(listOf(98,100),updates.takeLast(2).map { it.percent })
     }
     @Test fun sameKeyAndCalendarSpacingRejectOtherwiseAttractiveDestinations() {
         val original=plan()

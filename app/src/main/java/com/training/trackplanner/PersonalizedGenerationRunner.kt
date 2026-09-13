@@ -3,6 +3,7 @@ package com.training.trackplanner
 import com.training.trackplanner.data.ProgramBuildProgressState
 import com.training.trackplanner.data.personalized.PersonalizedPlannerProgressReporter
 import com.training.trackplanner.data.personalized.PersonalizedPlannerStage
+import com.training.trackplanner.data.personalized.PersonalizedPlannerProgress
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 
@@ -17,11 +18,14 @@ internal class PersonalizedGenerationRunner(
         state.value = ProgramBuildProgressState.Running(5, PersonalizedPlannerStage.INPUT.message)
         scope.launch {
             val context = currentCoroutineContext()
-            val reporter = PersonalizedPlannerProgressReporter { stage ->
-                context.ensureActive()
-                val current = state.value as? ProgramBuildProgressState.Running
-                if (current != null && stage.percent >= current.progressPercent)
-                    state.value = ProgramBuildProgressState.Running(stage.percent, stage.message)
+            val reporter = object : PersonalizedPlannerProgressReporter {
+                override fun report(stage: PersonalizedPlannerStage) = report(PersonalizedPlannerProgress(stage, stage.percent, stage.message))
+                override fun report(update: PersonalizedPlannerProgress) {
+                    context.ensureActive()
+                    val current = state.value as? ProgramBuildProgressState.Running
+                    if (current != null && update.percent >= current.progressPercent)
+                        state.value = ProgramBuildProgressState.Running(update.percent, update.message)
+                }
             }
             try {
                 val result = work(reporter)

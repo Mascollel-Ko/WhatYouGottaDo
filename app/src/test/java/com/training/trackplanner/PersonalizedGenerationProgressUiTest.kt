@@ -18,6 +18,39 @@ import org.robolectric.annotation.Config
 @Config(sdk = [34], qualifiers = "ko-rKR-w320dp-h640dp")
 @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
 class PersonalizedGenerationProgressUiTest {
+    @Test fun narrowReflowValidationMessageRemainsReadableAtLargeFont() {
+        val message="배치 후보의 피로도와 연결조직 조건을 검증하는 중입니다."
+        compose.setContent {
+            val density=androidx.compose.ui.platform.LocalDensity.current
+            CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(density.density,1.3f)) {
+                TrainingTrackPlannerTheme { PersonalizedGenerationProgressDialog(ProgramBuildProgressState.Running(85,message)) }
+            }
+        }
+        compose.onNodeWithText(message).assertIsDisplayed().performSemanticsAction(SemanticsActions.GetTextLayoutResult) { action ->
+            val layouts=mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+            action(layouts)
+            assertTrue(layouts.isNotEmpty())
+            layouts.forEach { assertFalse(it.hasVisualOverflow); assertTrue(it.lineCount<7) }
+        }
+    }
+    @Test @Config(sdk=[34],qualifiers="ko-rKR-w411dp-h900dp")
+    fun reflowIntermediateAndFinalMilestonesRenderAtLargeFont() {
+        val running=mutableStateOf(ProgramBuildProgressState.Running(65,"주간 배치 후보를 준비하는 중입니다."))
+        compose.setContent {
+            val density=androidx.compose.ui.platform.LocalDensity.current
+            CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(density.density,1.3f)) {
+                TrainingTrackPlannerTheme { PersonalizedGenerationProgressDialog(running.value) }
+            }
+        }
+        for((percent,message) in listOf(65 to "주간 배치 후보를 준비하는 중입니다.",76 to "주간 배치 후보를 비교하는 중입니다.",
+            85 to "배치 후보의 피로도와 연결조직 조건을 검증하는 중입니다.",96 to "주간 배치 조정을 완료했습니다.",
+            98 to PersonalizedPlannerStage.FINAL.message,100 to PersonalizedPlannerStage.COMPLETE.message)) {
+            compose.runOnIdle { running.value=ProgramBuildProgressState.Running(percent,message) }
+            compose.onNodeWithText("$percent%").assertIsDisplayed()
+            compose.onNodeWithText(message).assertIsDisplayed()
+            compose.onNodeWithTag("personalized-progress-bar").assertRangeInfoEquals(androidx.compose.ui.semantics.ProgressBarRangeInfo(percent/100f,0f..1f))
+        }
+    }
     @get:Rule val compose = createComposeRule()
     private val question = PersonalizedPlanningQuestion("INTENT", "목표", listOf(PersonalizedPlanningAnswerOption("MIXED", "함께 훈련")))
     private val state = mutableStateOf<ProgramBuildProgressState>(ProgramBuildProgressState.Idle)

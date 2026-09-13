@@ -53,8 +53,9 @@ internal class PostSplitWeeklyReflow {
             fingerprint,fingerprint,diagnostic=diagnostic))
         if(fixed.isEmpty()) return unchanged("NOT_APPLICABLE_NO_MANDATORY_SPLIT")
         progress.report(PersonalizedPlannerStage.POST_SPLIT_REFLOW)
+        val execution = ReflowProgress(progress)
         return try {
-            run(plan,snapshot,state,requireNotNull(authority),materializedParents,fixed,counts)
+            run(plan,snapshot,state,requireNotNull(authority),materializedParents,fixed,counts,execution).also { execution.complete() }
         } catch(error: Exception) {
             if(error is java.util.concurrent.CancellationException) throw error
             unchanged("FAILED_SAFE_UNCHANGED",error.message ?: error.javaClass.simpleName)
@@ -62,12 +63,13 @@ internal class PostSplitWeeklyReflow {
     }
 
     private fun run(plan: GeneratedProgramSkeleton,snapshot: PlanningHistorySnapshot,state: AthletePlanningState,
-        authority: AuthorizedSchedulingTrace,parents: List<String>,fixed: List<String>,counts: ReflowEvaluationCounts): PostSplitReflowResult {
+        authority: AuthorizedSchedulingTrace,parents: List<String>,fixed: List<String>,counts: ReflowEvaluationCounts,execution: ReflowProgress): PostSplitReflowResult {
         val projection=requireNotNull(snapshot.planDayProjection) { "MISSING_CANONICAL_OFI_PROJECTION" }
         val tissueProjection=requireNotNull(snapshot.planWeekTissueProjection) { "MISSING_CANONICAL_TISSUE_PROJECTION" }
         // RepresentativeWeek verifies these positional atoms have exactly isomorphic per-week immutable content.
         val atoms=plan.items.groupBy { it.weekNumber }.values.flatMap { rows -> rows.mapIndexed { i,row -> row.localId to "reflow_$i" } }.toMap()
         val week=requireNotNull(RepresentativeWeek.derive(plan,atoms)) { "NON_ISOMORPHIC_WEEK_OR_BINDING" }
+        execution.prepared()
         val initial=week.items
         val sources=authority.authorized.associateBy { it.id }
         fun source(row: ProgramSkeletonItem)=authority.localOrigins[row.localId]?.let { sources[it.authorizedDemandId] }
@@ -78,6 +80,7 @@ internal class PostSplitWeeklyReflow {
             counts.dayProjections++; projection.evaluate(rows)
         }
         val referenceDays=week.days.filter { day -> initial.any { it.dayOfWeek==day } }
+        execution.baselineValidation()
         val timeRef=planningMedian(referenceDays.map { day -> initial.filter { it.dayOfWeek==day }.sumOf(::plannedSeconds).toDouble() })
         val ofiRef=planningMedian(referenceDays.map { day -> load(initial.filter { it.dayOfWeek==day }).ofi.toDouble() })
         require(timeRef>0 && timeRef.isFinite() && ofiRef.isFinite())
@@ -141,11 +144,12 @@ internal class PostSplitWeeklyReflow {
         val comparator=compareBy<Candidate> { it.move.after }.thenBy { it.priority }.thenBy { it.move.stableKey }
             .thenBy { it.move.from }.thenBy { it.move.to }.thenBy { it.move.localId }
         // Explicit bound; every accepted step strictly decreases the finite objective tuple.
-        repeat(128) {
+        repeat(128) { round ->
+            execution.roundStarted(round)
             val before=objective(rows)
             val lowerBefore=maxLower(rows)
             val candidates=mutableListOf<Candidate>()
-            for(row in rows) {
+            for((rowIndex,row) in rows.withIndex()) {
                 restriction(row)?.let { reject(it) } ?: run {
                     for(day in week.days.filter { it!=row.dayOfWeek }) {
                         counts.candidates++
@@ -166,30 +170,38 @@ internal class PostSplitWeeklyReflow {
                         candidates+=candidate
                     }
                 }
+                execution.comparedRows(round,rowIndex+1,rows.size)
             }
             // Tissue is solely a PASS/FAIL gate, never a comparator input. A stable sort with
             // the unchanged comparator followed by first feasible equals the exhaustive minimum.
             // All structural/ranking candidates still exist; only unneeded tissue calls are skipped.
             // Rejection counts describe gates actually executed, not hypothetical losing candidates.
+            var validated = 0
             val selected=candidates.sortedWith(comparator).firstOrNull { candidate ->
-                tissueAllowed(candidate.rows,candidate.move.stableKey).also { if(!it) reject("CHRONOLOGICAL_TISSUE") }
+                execution.validating(round,validated,candidates.size)
+                tissueAllowed(candidate.rows,candidate.move.stableKey).also {
+                    if(!it) reject("CHRONOLOGICAL_TISSUE")
+                    execution.validating(round,++validated,candidates.size)
+                }
             } ?: return finish(plan,week,initial,rows,authority,parents,fixed,primary,moves,rejected,
-                initialObjective,objective(rows),metrics(initial),metrics(rows),initialQcr,qcr(rows),tissue(rows),timeRef,ofiRef,"FINITE_LOCAL_OPTIMUM")
+                initialObjective,objective(rows),metrics(initial),metrics(rows),initialQcr,qcr(rows),tissue(rows),timeRef,ofiRef,"FINITE_LOCAL_OPTIMUM",execution)
             check(visited.add(selected.rows.map { it.localId to it.dayOfWeek })) { "REFLOW_CYCLE" }
             check(immutable(selected.rows)==immutable(initial)) { "REFLOW_IMMUTABLE_MUTATION" }
             check(selected.rows.filter { it.localId in fixed }==initial.filter { it.localId in fixed }) { "REFLOW_SPLIT_CHANGED" }
             check(qcr(selected.rows)==initialQcr) { "REFLOW_QCR_CHANGED" }
             counts.acceptedActions++
             rows=selected.rows; moves+=selected.move
+            execution.moved()
         }
         return finish(plan,week,initial,rows,authority,parents,fixed,primary,moves,rejected,
-            initialObjective,objective(rows),metrics(initial),metrics(rows),initialQcr,qcr(rows),tissue(rows),timeRef,ofiRef,"BOUNDED_128_MOVE_LIMIT")
+            initialObjective,objective(rows),metrics(initial),metrics(rows),initialQcr,qcr(rows),tissue(rows),timeRef,ofiRef,"BOUNDED_128_MOVE_LIMIT",execution)
     }
 
     private fun finish(plan: GeneratedProgramSkeleton,week: RepresentativeWeek,initial: List<ProgramSkeletonItem>,rows: List<ProgramSkeletonItem>,
         authority: AuthorizedSchedulingTrace,parents: List<String>,fixed: List<String>,primary: Set<String>,moves: List<PostSplitMove>,rejections: Map<String,Int>,
         initialObjective: PostSplitObjective,finalObjective: PostSplitObjective,initialDays: List<BalanceDay>,finalDays: List<BalanceDay>,
-        qBefore: String,qAfter: String,tissue: PlannedTissueWeek,timeRef: Double,ofiRef: Double,diagnostic: String): PostSplitReflowResult {
+        qBefore: String,qAfter: String,tissue: PlannedTissueWeek,timeRef: Double,ofiRef: Double,diagnostic: String,execution: ReflowProgress): PostSplitReflowResult {
+        execution.finalizing()
         val assignment=rows.associateBy { week.atomByLocalId.getValue(it.localId) }
         // Preserve each week's own immutable fields/bindings, not the representative row's copies.
         val result=plan.copy(items=plan.items.map { row ->

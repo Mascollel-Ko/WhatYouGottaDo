@@ -163,6 +163,7 @@
     <string name="loc_baseline_1aa3a0092113">대퇴근</string>
     <string name="loc_baseline_1aa9bece2561">높은 부하</string>
     <string name="loc_baseline_1aaba5f6f852">2-3세트 x 3-5회 · 보수적 중량 · RPE 6.5-7.5</string>
+    <string name="loc_baseline_1ac4d3c56a84">주간 배치 후보를 비교하는 중입니다.</string>
     <string name="loc_baseline_1af3094d97f5">좋음</string>
     <string name="loc_baseline_1b1caaa93088">인장 부하를 전달</string>
     <string name="loc_baseline_1b59b5fdeb0d">부상</string>
@@ -179,6 +180,7 @@
     <string name="loc_baseline_1e63ff0b0728">체크인 지표 고도화</string>
     <string name="loc_baseline_1e7dd2a9d89a">고중량·힘 신경계</string>
     <string name="loc_baseline_1f642b3a840d">최근 기록 기준 범위에 있습니다.</string>
+    <string name="loc_baseline_1f8acf4d56b9">주간 배치 후보를 준비하는 중입니다.</string>
     <string name="loc_baseline_1fccd293db1d">} · 보정 ${point.curveCalibrationStatus ?:</string>
     <string name="loc_baseline_20129832470d">덮어쓰기</string>
     <string name="loc_baseline_204ebcbb565b">낮은 강도의 프리웨이트 또는 편측 운동을 새 자극으로 포함해도 될까요?</string>
@@ -426,6 +428,7 @@
     <string name="loc_baseline_4f3b28eed1db">최근 28일 저항운동 기록이 없어 균형 잡힌 재진입 구조를 사용합니다.</string>
     <string name="loc_baseline_4f7a99760b39">여러 이유가 섞여 있음</string>
     <string name="loc_baseline_4fefe2ca6e5a">배드민턴 연습 훈련량</string>
+    <string name="loc_baseline_503f0a5ad119">배치 후보의 피로도와 연결조직 조건을 검증하는 중입니다.</string>
     <string name="loc_baseline_50d2bed8de2f">다변량 시계열 분석</string>
     <string name="loc_baseline_514992bd220e">체크인 기록이 쌓이면 회복/컨디션 지표도 실험실에서 비교할 수 있습니다.</string>
     <string name="loc_baseline_51b8c89ae8f9">피로/회복</string>
@@ -797,6 +800,7 @@
     <string name="loc_baseline_9e9b24777593">전체 선택</string>
     <string name="loc_baseline_9ea562bf0f99">후보 주</string>
     <string name="loc_baseline_9eb8927d664f">주요 동작</string>
+    <string name="loc_baseline_9ed8312cc5a6">조정된 배치에서 후보를 다시 비교하는 중입니다.</string>
     <string name="loc_baseline_9f38bdd9fb3a">긴 코트 시간 뒤 회복 입력을 확인합니다</string>
     <string name="loc_baseline_a0283eae91fb">멈춤, 착지, 방향전환 직전의 감속 능력을 보강하는 훈련입니다.</string>
     <string name="loc_baseline_a06c23387b04">오늘 컨디션</string>
@@ -936,6 +940,7 @@
     <string name="loc_baseline_bbeb0f7d5a18">내전근/외전근</string>
     <string name="loc_baseline_bc2ef91bd2e2">운동량</string>
     <string name="loc_baseline_bc422c6f05c2">되돌리기</string>
+    <string name="loc_baseline_bc4f651c5d7a">조정된 배치에서 다시 확인하는 중입니다.</string>
     <string name="loc_baseline_bc5041df2f47">실제 e1RM</string>
     <string name="loc_baseline_bc5f66eaf0a3">숄더</string>
     <string name="loc_baseline_bc6722e5b8c7">주간 대퇴사두 운동량</string>
@@ -999,6 +1004,7 @@
     <string name="loc_baseline_c4dfd12384e8">근신경계</string>
     <string name="loc_baseline_c50900354985">진단 접기</string>
     <string name="loc_baseline_c5549487d67f">인과관계 확정이 아니라 주간 기록 기반의 탐색적 패턴입니다.</string>
+    <string name="loc_baseline_c55906091815">주간 배치 조정을 완료했습니다.</string>
     <string name="loc_baseline_c57e222bd5a4">덮어쓰기는 미확인 계획만 삭제합니다. 실제 완료 기록은 삭제되지 않습니다.</string>
     <string name="loc_baseline_c57fc73d1143">근비대 + 근력</string>
     <string name="loc_baseline_c5ace50108c6">프로그램 활용</string>
@@ -1007,6 +1013,7 @@
     <string name="loc_baseline_c6af60d95b20">중간 정도의 경향이 있습니다.</string>
     <string name="loc_baseline_c718501b0ec3">원본 동작 분류</string>
     <string name="loc_baseline_c7266fe8ecfb">주간 둔근 최근 7일 운동량</string>
+    <string name="loc_baseline_c75deb852df4">기준 배치의 피로도와 연결조직 조건을 확인하는 중입니다.</string>
     <string name="loc_baseline_c76df3b96a56">현재 작성 중인 구성이 자동 골자로 대체됩니다.</string>
     <string name="loc_baseline_c76f82de2b04">설명</string>
     <string name="loc_baseline_c77115ae830c">반복수 구간 비중 추이</string>
@@ -1077,6 +1084,7 @@
     <string name="loc_baseline_d75c0f804c98">남은 계획 후 예상 부하가 매우 높습니다.</string>
     <string name="loc_baseline_d79cef083c7a">회전 동작</string>
     <string name="loc_baseline_d7ce478f16d8">필요한 분석 화면으로 들어가 훈련 지표를 확인합니다.</string>
+    <string name="loc_baseline_d82cd74a613e">주간 배치 결과를 최종 확인하는 중입니다.</string>
     <string name="loc_baseline_d888be67f1df">양의 신호</string>
     <string name="loc_baseline_d8d4e7d1f0a5">성장률</string>
     <string name="loc_baseline_d9007e0cb533">통증/주의 부위</string>
