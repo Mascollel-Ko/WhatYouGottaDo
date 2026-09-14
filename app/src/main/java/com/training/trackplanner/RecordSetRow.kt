@@ -37,6 +37,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.data.WorkoutEntry
+import com.training.trackplanner.data.RecordSetEdit
+import com.training.trackplanner.data.RecordSetField.*
+import com.training.trackplanner.data.edit
 import com.training.trackplanner.data.WorkoutSet
 
 
@@ -48,7 +51,7 @@ internal fun WorkoutSetRow(
     showWeight: Boolean,
     isSportDurationInput: Boolean,
     canDelete: Boolean,
-    onUpdateSet: (WorkoutSet) -> Unit,
+    onUpdateSet: (RecordSetEdit) -> Unit,
     onDeleteSet: (WorkoutSet) -> Unit,
     timerState: RestTimerState,
     onStopRestTimer: () -> Unit,
@@ -87,7 +90,7 @@ internal fun WorkoutSetRow(
             hours = hoursText.toIntOrNull() ?: 0,
             minutes = minutesText.toIntOrNull() ?: 0
         )
-        onUpdateSet(set.copy(seconds = seconds))
+        onUpdateSet(set.copy(seconds = seconds).edit(DURATION))
     }
 
     fun normalizeSportDurationText() {
@@ -97,7 +100,7 @@ internal fun WorkoutSetRow(
         )
         sportHoursText = parts.hours.toString()
         sportMinutesText = parts.minutes.toString()
-        onUpdateSet(set.copy(seconds = hoursMinutesToStoredDuration(parts.hours, parts.minutes)))
+        onUpdateSet(set.copy(seconds = hoursMinutesToStoredDuration(parts.hours, parts.minutes)).edit(DURATION))
     }
 
     if (showRpeDialog) {
@@ -105,7 +108,7 @@ internal fun WorkoutSetRow(
             currentRpe = set.rpe,
             onDismiss = { showRpeDialog = false },
             onSelect = { selectedRpe ->
-                onUpdateSet(set.copy(rpe = selectedRpe))
+                onUpdateSet(set.copy(rpe = selectedRpe).edit(RPE))
                 showRpeDialog = false
             }
         )
@@ -116,7 +119,7 @@ internal fun WorkoutSetRow(
             currentOverride = set.restSecondsOverride,
             onDismiss = { showRestDialog = false },
             onApply = { override ->
-                onUpdateSet(set.copy(restSecondsOverride = override))
+                onUpdateSet(set.copy(restSecondsOverride = override).edit(REST))
                 showRestDialog = false
             }
         )
@@ -139,7 +142,11 @@ internal fun WorkoutSetRow(
                     SetEditField.Reps -> set.copy(reps = value.toIntOrNull() ?: 0)
                     SetEditField.Seconds -> set.copy(seconds = value.toIntOrNull() ?: 0)
                 }
-                onUpdateSet(updated)
+                onUpdateSet(updated.edit(when (field) {
+                    SetEditField.Weight -> WEIGHT
+                    SetEditField.Reps -> REPS
+                    SetEditField.Seconds -> DURATION
+                }))
                 if (field == SetEditField.Weight && updated.weightKg > 0.0 && updated.weightKg != set.weightKg) {
                     onPositiveWeightEdit(set, updated.weightKg)
                 }
@@ -166,7 +173,7 @@ internal fun WorkoutSetRow(
                     Checkbox(
                         modifier = Modifier.size(36.dp),
                         checked = true,
-                        onCheckedChange = { checked -> onUpdateSet(set.copy(confirmed = checked)) }
+                        onCheckedChange = { checked -> onUpdateSet(set.copy(confirmed = checked).edit(CONFIRMATION)) }
                     )
                     Text(
                         text = "${set.setIndex}",
@@ -252,7 +259,7 @@ internal fun WorkoutSetRow(
                     onValueChange = {
                         if (it.isUnsignedInt()) {
                             repsText = it
-                            it.toIntOrNull()?.let { reps -> onUpdateSet(set.copy(reps = reps)) }
+                            it.toIntOrNull()?.let { reps -> onUpdateSet(set.copy(reps = reps).edit(REPS)) }
                         }
                     },
                     onFocusChanged = { focused ->
@@ -261,7 +268,7 @@ internal fun WorkoutSetRow(
                             NumericInputTextPolicy.onFocus(repsText)
                         } else {
                             NumericInputTextPolicy.onBlur(repsText).also { restored ->
-                                if (restored == "0") onUpdateSet(set.copy(reps = 0))
+                                if (restored == "0") onUpdateSet(set.copy(reps = 0).edit(REPS))
                             }
                         }
                     }
@@ -280,7 +287,7 @@ internal fun WorkoutSetRow(
                                         set.copy(
                                             weightKg = kg,
                                             manualWeight = true
-                                        )
+                                        ).edit(WEIGHT)
                                     )
                                     if (kg > 0.0 && kg != set.weightKg) {
                                         onPositiveWeightEdit(set, kg)
@@ -295,7 +302,7 @@ internal fun WorkoutSetRow(
                             } else {
                                 NumericInputTextPolicy.onBlur(weightText).also { restored ->
                                     if (restored == "0") {
-                                        onUpdateSet(set.copy(weightKg = 0.0, manualWeight = false))
+                                        onUpdateSet(set.copy(weightKg = 0.0, manualWeight = false).edit(WEIGHT))
                                     }
                                 }
                             }
@@ -343,7 +350,7 @@ internal fun WorkoutSetRow(
                         onValueChange = {
                             if (it.isUnsignedInt()) {
                                 secondsText = it
-                                it.toIntOrNull()?.let { seconds -> onUpdateSet(set.copy(seconds = seconds)) }
+                                it.toIntOrNull()?.let { seconds -> onUpdateSet(set.copy(seconds = seconds).edit(DURATION)) }
                             }
                         },
                         onFocusChanged = { focused ->
@@ -352,7 +359,7 @@ internal fun WorkoutSetRow(
                                 NumericInputTextPolicy.onFocus(secondsText)
                             } else {
                                 NumericInputTextPolicy.onBlur(secondsText).also { restored ->
-                                    if (restored == "0") onUpdateSet(set.copy(seconds = 0))
+                                    if (restored == "0") onUpdateSet(set.copy(seconds = 0).edit(DURATION))
                                 }
                             }
                         }
@@ -375,7 +382,7 @@ internal fun WorkoutSetRow(
                         onCheckedChange = { checked ->
                             if (checked && isSportDurationInput && set.seconds <= 0) return@Checkbox
                             val updated = set.copy(confirmed = checked)
-                            onUpdateSet(updated)
+                            onUpdateSet(updated.edit(CONFIRMATION))
                             if (checked && !set.confirmed && effectiveRestSeconds > 0) {
                                 onStartRestTimer(updated, effectiveRestSeconds)
                             }
@@ -408,7 +415,7 @@ internal fun WorkoutSetRow(
                         onValueChange = {
                             if (it.isUnsignedInt()) {
                                 secondsText = it
-                                it.toIntOrNull()?.let { seconds -> onUpdateSet(set.copy(seconds = seconds)) }
+                                it.toIntOrNull()?.let { seconds -> onUpdateSet(set.copy(seconds = seconds).edit(DURATION)) }
                             }
                         },
                         onFocusChanged = { focused ->
@@ -417,7 +424,7 @@ internal fun WorkoutSetRow(
                                 NumericInputTextPolicy.onFocus(secondsText)
                             } else {
                                 NumericInputTextPolicy.onBlur(secondsText).also { restored ->
-                                    if (restored == "0") onUpdateSet(set.copy(seconds = 0))
+                                    if (restored == "0") onUpdateSet(set.copy(seconds = 0).edit(DURATION))
                                 }
                             }
                         }

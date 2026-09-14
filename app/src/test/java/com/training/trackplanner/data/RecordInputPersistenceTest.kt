@@ -53,6 +53,32 @@ class RecordInputPersistenceTest {
         }
     }
 
+    @Test fun `single lower-entry confirmation and stale blur survive database reopen`() = runBlocking {
+        val first = database()
+        val date = "2026-09-10"
+        val sets = seed(first, date, count = 3)
+        val repository = TrainingRepository(first, context)
+        val target = sets.last()
+        val confirmation = checkNotNull(repository.updateSet(target.copy(confirmed = true).edit(RecordSetField.CONFIRMATION)))
+        assertTrue(confirmation.newlyConfirmed)
+        repository.updateSet(target.copy(reps = 0).edit(RecordSetField.REPS))
+        val expectedOrder = listOf(target.entryId, sets[0].entryId, sets[1].entryId)
+        assertEquals(expectedOrder, RecordEntryOrdering.ordered(first.workoutDao().entriesWithSets(date)).map { it.entry.id })
+        val committedEntry = first.workoutDao().findEntryById(target.entryId)!!
+        assertNotNull(committedEntry.firstConfirmedAt)
+        first.close()
+        val reopened = database()
+        val recreated = TrainingRepository(reopened, context)
+        assertEquals(target.copy(confirmed = true, reps = 0), reopened.workoutDao().findSetById(target.id))
+        assertEquals(committedEntry, reopened.workoutDao().findEntryById(target.entryId))
+        assertEquals(expectedOrder, RecordEntryOrdering.ordered(reopened.workoutDao().entriesWithSets(date)).map { it.entry.id })
+        for (untouched in sets.dropLast(1)) assertEquals(untouched, reopened.workoutDao().findSetById(untouched.id))
+        // Repeated normalization is a no-op against fresh storage, not against a stale UI value.
+        assertFalse(checkNotNull(recreated.updateSet(target.copy(reps = 0).edit(RecordSetField.REPS))).derivedAnalysisDirty)
+        recreated.updateSet(target.copy(confirmed = false).edit(RecordSetField.CONFIRMATION))
+        assertEquals(target.copy(reps = 0), reopened.workoutDao().findSetById(target.id))
+    }
+
     @Test fun `every field commits before notification and survives database and repository reopen`() = runBlocking {
         val first = database()
         val sets = seed(first, "2026-09-10")

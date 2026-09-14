@@ -91,8 +91,18 @@ internal class RecordMutationService(
         }
     }
 
-    suspend fun updateSet(set: WorkoutSet): RecordSetMutationResult? = db.withTransaction {
+    /** Full replacement compatibility for non-UI callers; Record UI must supply field intent. */
+    suspend fun updateSet(set: WorkoutSet): RecordSetMutationResult? =
+        updateSet(set.edit(*RecordSetField.entries.toTypedArray()))
+
+    suspend fun updateSet(edit: RecordSetEdit): RecordSetMutationResult? = db.withTransaction {
+        val current = workoutDao.findSetById(edit.values.id) ?: return@withTransaction null
+        val set = edit.applyTo(current)
         val entry = workoutDao.findEntryById(set.entryId) ?: return@withTransaction null
+        if (set == current) {
+            val completion = StrengthSessionCompletionDetector.state(workoutDao, entry.date)
+            return@withTransaction RecordSetMutationResult(entry.date, completion, completion, false, false)
+        }
         val mutation: suspend () -> RecordSetMutationResult = {
             val before = StrengthSessionCompletionDetector.state(workoutDao, entry.date)
             val existing = workoutDao.findSetById(set.id)

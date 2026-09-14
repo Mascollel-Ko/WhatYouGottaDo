@@ -319,7 +319,7 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun updateSet(set: WorkoutSet) {
+    fun updateSet(set: com.training.trackplanner.data.RecordSetEdit) {
         viewModelScope.launch {
             repository.updateSet(set)?.let(recordDerivedRefresh::afterCommit)
         }

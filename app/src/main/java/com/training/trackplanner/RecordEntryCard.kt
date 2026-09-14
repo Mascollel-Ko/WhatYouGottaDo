@@ -49,6 +49,9 @@ import com.training.trackplanner.data.ActivityKind
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutEntryWithSets
+import com.training.trackplanner.data.RecordSetEdit
+import com.training.trackplanner.data.RecordSetField.*
+import com.training.trackplanner.data.edit
 import com.training.trackplanner.data.WorkoutSet
 import com.training.trackplanner.data.resolvedActivityKind
 import com.training.trackplanner.localization.localizedExerciseName
@@ -71,7 +74,7 @@ internal fun WorkoutEntryCard(
     onOverviewTargetPositioned: (Rect) -> Unit = {},
     onUpdateEntry: (WorkoutEntry) -> Unit,
     onAddSet: () -> Unit,
-    onUpdateSet: (WorkoutSet) -> Unit,
+    onUpdateSet: (RecordSetEdit) -> Unit,
     onDeleteSet: (WorkoutSet) -> Unit,
     onDeleteEntry: () -> Unit,
     onStopRestTimer: () -> Unit,
@@ -250,7 +253,7 @@ internal fun WorkoutEntryCard(
                                 !set.manualWeight &&
                                 !set.confirmed
                         }.forEach { set ->
-                            onUpdateSet(set.copy(weightKg = suggestion.kg, manualWeight = true))
+                            onUpdateSet(set.copy(weightKg = suggestion.kg, manualWeight = true).edit(WEIGHT))
                         }
                         pendingWeightSuggestion = null
                     },

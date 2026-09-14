@@ -28,6 +28,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.data.WorkoutEntry
+import com.training.trackplanner.data.RecordSetEdit
+import com.training.trackplanner.data.RecordSetField.*
+import com.training.trackplanner.data.edit
 import com.training.trackplanner.data.WorkoutSet
 
 
@@ -37,7 +40,7 @@ internal fun BulkEditDialog(
     sets: List<WorkoutSet>,
     showWeight: Boolean,
     onDismiss: () -> Unit,
-    onUpdateSet: (WorkoutSet) -> Unit
+    onUpdateSet: (RecordSetEdit) -> Unit
 ) {
     var operation by remember { mutableStateOf<BulkOperation?>(null) }
     var valueText by rememberSaveable(operation?.label.orEmpty()) { mutableStateOf("") }
@@ -121,7 +124,7 @@ internal fun BulkEditDialog(
                                         !set.manualWeight &&
                                         !set.confirmed
                                 }.forEach { set ->
-                                    onUpdateSet(set.copy(weightKg = lastPositiveKg, manualWeight = true))
+                                    onUpdateSet(set.copy(weightKg = lastPositiveKg, manualWeight = true).edit(WEIGHT))
                                 }
                                 onDismiss()
                             }
@@ -360,7 +363,7 @@ private fun applyBulkOperationToTargets(
     operation: BulkOperation,
     valueText: String,
     includeConfirmed: Boolean,
-    onUpdateSet: (WorkoutSet) -> Unit
+    onUpdateSet: (RecordSetEdit) -> Unit
 ) {
     val source = sets.firstOrNull()
     val value = valueText.toDoubleOrNull()
@@ -374,7 +377,15 @@ private fun applyBulkOperationToTargets(
                 BulkField.Rpe -> set.copy(rpe = if (valueText == BULK_CLEAR_RPE) null else value?.coerceIn(0.0, 10.0))
                 else -> value?.let { applyBulkOperation(entry, set, operation, it) } ?: set
             }
-            onUpdateSet(updated)
+            val fields = when (operation.field) {
+                BulkField.Weight -> setOf(WEIGHT)
+                BulkField.Reps -> setOf(REPS)
+                BulkField.Rest -> setOf(REST)
+                BulkField.Rpe -> setOf(RPE)
+                BulkField.Copy -> setOf(REPS, WEIGHT, DURATION, RPE, REST) +
+                    if (operation.mode == BulkMode.CopyValuesAndStatus) setOf(CONFIRMATION) else emptySet()
+            }
+            onUpdateSet(RecordSetEdit(updated, fields))
         }
 }
 

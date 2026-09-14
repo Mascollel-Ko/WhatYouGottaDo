@@ -816,6 +816,10 @@ class TrainingRepository(
         recordMutationService.updateSet(set)
     }
 
+    suspend fun updateSet(edit: RecordSetEdit) = withContext(Dispatchers.IO) {
+        recordMutationService.updateSet(edit)
+    }
+
     suspend fun refreshRecordDerivedState() = withContext(Dispatchers.IO) {
         strengthPosteriorCoordinator.retryPending()
         programProgressionService.refresh()

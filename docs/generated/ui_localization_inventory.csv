@@ -6268,9 +6268,9 @@ You can leave this screen open while it runs.",AnalysisPersistentStrengthPerform
 ,백업 개수 manifest가 올바르지 않습니다.,,RecordCsvBackupRestore,app/src/main/java/com/training/trackplanner/data/RecordCsvBackupRestore.kt,1590,DEVELOPER_DIAGNOSTIC,INTERNAL_DEBUG,,NO,Current-baseline locale-aware presentation audit
 ,백업 본문 해시가 manifest와 일치하지 않습니다.,,RecordCsvBackupRestore,app/src/main/java/com/training/trackplanner/data/RecordCsvBackupRestore.kt,1600,DEVELOPER_DIAGNOSTIC,INTERNAL_DEBUG,,NO,Current-baseline locale-aware presentation audit
 ,백업 manifest 개수와 본문 개수가 일치하지 않습니다: ,,RecordCsvBackupRestore,app/src/main/java/com/training/trackplanner/data/RecordCsvBackupRestore.kt,1639,DEVELOPER_DIAGNOSTIC,INTERNAL_DEBUG,,NO,Current-baseline locale-aware presentation audit
-,유산소운동,aerobic exercise,RecordMutationService,app/src/main/java/com/training/trackplanner/data/RecordMutationService.kt,148,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,스포츠,Sport,RecordMutationService,app/src/main/java/com/training/trackplanner/data/RecordMutationService.kt,149,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Current-baseline locale-aware presentation audit
-,시간,Duration,RecordMutationService,app/src/main/java/com/training/trackplanner/data/RecordMutationService.kt,150,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,유산소운동,aerobic exercise,RecordMutationService,app/src/main/java/com/training/trackplanner/data/RecordMutationService.kt,158,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,스포츠,Sport,RecordMutationService,app/src/main/java/com/training/trackplanner/data/RecordMutationService.kt,159,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Current-baseline locale-aware presentation audit
+,시간,Duration,RecordMutationService,app/src/main/java/com/training/trackplanner/data/RecordMutationService.kt,160,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
 ,실패한 운동일: ${},Failed workout day: %1$s,StrengthPosteriorUpdateService,app/src/main/java/com/training/trackplanner/data/StrengthPosteriorUpdateService.kt,332,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,%s,NO,Current-baseline locale-aware presentation audit
 ,오류 유형: ${},Error Type: %1$s,StrengthPosteriorUpdateService,app/src/main/java/com/training/trackplanner/data/StrengthPosteriorUpdateService.kt,333,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,%s,NO,Current-baseline locale-aware presentation audit
 ,해당 날짜의 posterior event 처리에 실패했지만 추가 메시지가 없습니다.,,StrengthPosteriorUpdateService,app/src/main/java/com/training/trackplanner/data/StrengthPosteriorUpdateService.kt,336,DEVELOPER_DIAGNOSTIC,INTERNAL_DEBUG,,NO,Current-baseline locale-aware presentation audit
@@ -6303,27 +6303,27 @@ You can leave this screen open while it runs.",AnalysisPersistentStrengthPerform
                     `currentCondition` = `currentMood`
                     ",,TrainingDatabase,app/src/main/java/com/training/trackplanner/data/TrainingDatabase.kt,230,CANONICAL_OR_MIGRATION_DATA,CANONICAL_NON_DISPLAY,,NO,Current-baseline locale-aware presentation audit
 ,진단 보고서 파일을 열 수 없습니다.,,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,534,DEVELOPER_DIAGNOSTIC,INTERNAL_DEBUG,,NO,Current-baseline locale-aware presentation audit
-,근력운동,Strength training,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1017,DEVELOPER_DIAGNOSTIC,INTERNAL_DEBUG,,NO,Current-baseline locale-aware presentation audit
-,남,other,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1206,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,남성,male,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1206,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,여,female,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1207,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,여성,female,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1207,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,반년,half a year,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1213,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,배드민턴,Badminton,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1230,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Current-baseline locale-aware presentation audit
-,근력,Strength,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1231,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Current-baseline locale-aware presentation audit
-,유지,maintain,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1231,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,근력,Strength,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1232,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Current-baseline locale-aware presentation audit
-,근비대,hypertrophy,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1233,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,체형,form,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1233,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,회복,recovery,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1234,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,부상,injury,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1234,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,체중,weight,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1235,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,^\d+\s*(세트|sets?|set)?\s*[xX×]\s*\d+\s*(회|reps?)?(\s*@\s*\d+(\.\d+)?\s*kg)?$,,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1398,INTERNAL_TOKEN_OR_PATTERN,CANONICAL_NON_DISPLAY,,NO,Current-baseline locale-aware presentation audit
-,^\d+\s*(초|분)\s*[xX×]\s*\d+\s*(세트|sets?)$,,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1399,INTERNAL_TOKEN_OR_PATTERN,CANONICAL_NON_DISPLAY,,NO,Current-baseline locale-aware presentation audit
-,^\d+\s*(세트|sets?)\s*[xX×]\s*\d+\s*(초|분)$,,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1400,INTERNAL_TOKEN_OR_PATTERN,CANONICAL_NON_DISPLAY,,NO,Current-baseline locale-aware presentation audit
-,^\d+\s*(회|reps?)\s*[xX×]\s*\d+\s*(세트|sets?)$,,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1401,INTERNAL_TOKEN_OR_PATTERN,CANONICAL_NON_DISPLAY,,NO,Current-baseline locale-aware presentation audit
-,배드민턴 웨이트 보조 4주,Badminton weight support 4 weeks,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1465,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,배드민턴 보조 4주,Badminton Assistant 4 weeks,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1465,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,근력운동,Strength training,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1021,DEVELOPER_DIAGNOSTIC,INTERNAL_DEBUG,,NO,Current-baseline locale-aware presentation audit
+,남,other,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1210,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,남성,male,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1210,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,여,female,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1211,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,여성,female,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1211,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,반년,half a year,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1217,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,배드민턴,Badminton,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1234,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Current-baseline locale-aware presentation audit
+,근력,Strength,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1235,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Current-baseline locale-aware presentation audit
+,유지,maintain,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1235,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,근력,Strength,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1236,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Current-baseline locale-aware presentation audit
+,근비대,hypertrophy,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1237,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,체형,form,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1237,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,회복,recovery,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1238,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,부상,injury,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1238,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,체중,weight,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1239,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,^\d+\s*(세트|sets?|set)?\s*[xX×]\s*\d+\s*(회|reps?)?(\s*@\s*\d+(\.\d+)?\s*kg)?$,,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1402,INTERNAL_TOKEN_OR_PATTERN,CANONICAL_NON_DISPLAY,,NO,Current-baseline locale-aware presentation audit
+,^\d+\s*(초|분)\s*[xX×]\s*\d+\s*(세트|sets?)$,,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1403,INTERNAL_TOKEN_OR_PATTERN,CANONICAL_NON_DISPLAY,,NO,Current-baseline locale-aware presentation audit
+,^\d+\s*(세트|sets?)\s*[xX×]\s*\d+\s*(초|분)$,,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1404,INTERNAL_TOKEN_OR_PATTERN,CANONICAL_NON_DISPLAY,,NO,Current-baseline locale-aware presentation audit
+,^\d+\s*(회|reps?)\s*[xX×]\s*\d+\s*(세트|sets?)$,,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1405,INTERNAL_TOKEN_OR_PATTERN,CANONICAL_NON_DISPLAY,,NO,Current-baseline locale-aware presentation audit
+,배드민턴 웨이트 보조 4주,Badminton weight support 4 weeks,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1469,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,배드민턴 보조 4주,Badminton Assistant 4 weeks,TrainingRepository,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt,1469,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
 ,자세히 알아보기,Learn more,DocumentationLinks,app/src/main/java/com/training/trackplanner/DocumentationLinks.kt,90,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
 ,전체,entire,ExerciseScreen,app/src/main/java/com/training/trackplanner/ExerciseScreen.kt,39,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
 ,전체,entire,ExerciseScreen,app/src/main/java/com/training/trackplanner/ExerciseScreen.kt,57,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
@@ -10084,37 +10084,37 @@ You can leave this screen open while it runs.",GeneratedLocalizationCatalogue,ap
 ,기존 디로드,Existing Deload,PlanScreen,app/src/main/java/com/training/trackplanner/PlanScreen.kt,1124,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
 ,기존 구성,Existing configuration,PlanScreen,app/src/main/java/com/training/trackplanner/PlanScreen.kt,1124,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
 ,기존 프로그램,existing program,PlanScreen,app/src/main/java/com/training/trackplanner/PlanScreen.kt,1156,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,kg 설정,kg setting,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,51,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,횟수 +,Count +,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,55,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,횟수 -,number -,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,56,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,RPE 설정,RPE settings,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,57,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,휴식 설정,relaxation settings,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,58,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,휴식 +,rest +,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,59,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,휴식 -,rest -,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,60,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,선택 복사,copy selection,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,61,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,기록 상태까지 선택 복사,Copy selection up to record status,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,62,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,일괄 편집,Bulk Edit,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,67,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,완료 세트 포함,Complete set included,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,86,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,미확인 세트만,Unconfirmed set only,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,86,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,완료 세트도 수정됩니다.,The completion set is also modified.,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,90,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,빈 kg에 ${}kg 적용,Apply %1$skg to empty kg,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,129,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,%s,NO,Current-baseline locale-aware presentation audit
-,완료 포함 적용,Done Included Apply,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,151,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,적용,Apply,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,151,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,초기화,reset,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,159,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,메뉴,menu,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,162,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,닫기,Close,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,166,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,취소,Cancel,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,166,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,기준: ${}세트 · ${}회 · ${}kg · RPE ${} · ${},Standard: %1$s set · %2$s times · %3$skg · RPE %4$s · %5$s,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,184,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,%s|%s|%s|%s|%s,NO,Current-baseline locale-aware presentation audit
-,복사할 기준 세트가 없습니다.,There is no baseline set to copy.,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,185,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,적용 예정: ${},To be applied: %1$s,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,192,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,%s,NO,Current-baseline locale-aware presentation audit
-,RPE 없음,No RPE,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,201,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,적용 예정: ${},To be applied: %1$s,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,206,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,%s,NO,Current-baseline locale-aware presentation audit
-,누적 kg,Cumulative kg,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,220,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,누적 횟수,Cumulative count,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,220,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,횟수,number,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,244,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,초,sec,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,245,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,회,attempts,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,336,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Current-baseline locale-aware presentation audit
-,RPE 없음,No RPE,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,343,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,kg 설정,kg setting,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,54,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,횟수 +,Count +,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,58,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,횟수 -,number -,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,59,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,RPE 설정,RPE settings,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,60,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,휴식 설정,relaxation settings,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,61,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,휴식 +,rest +,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,62,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,휴식 -,rest -,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,63,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,선택 복사,copy selection,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,64,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,기록 상태까지 선택 복사,Copy selection up to record status,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,65,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,일괄 편집,Bulk Edit,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,70,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,완료 세트 포함,Complete set included,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,89,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,미확인 세트만,Unconfirmed set only,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,89,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,완료 세트도 수정됩니다.,The completion set is also modified.,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,93,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,빈 kg에 ${}kg 적용,Apply %1$skg to empty kg,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,132,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,%s,NO,Current-baseline locale-aware presentation audit
+,완료 포함 적용,Done Included Apply,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,154,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,적용,Apply,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,154,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,초기화,reset,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,162,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,메뉴,menu,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,165,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,닫기,Close,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,169,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,취소,Cancel,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,169,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,기준: ${}세트 · ${}회 · ${}kg · RPE ${} · ${},Standard: %1$s set · %2$s times · %3$skg · RPE %4$s · %5$s,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,187,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,%s|%s|%s|%s|%s,NO,Current-baseline locale-aware presentation audit
+,복사할 기준 세트가 없습니다.,There is no baseline set to copy.,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,188,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,적용 예정: ${},To be applied: %1$s,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,195,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,%s,NO,Current-baseline locale-aware presentation audit
+,RPE 없음,No RPE,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,204,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,적용 예정: ${},To be applied: %1$s,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,209,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,%s,NO,Current-baseline locale-aware presentation audit
+,누적 kg,Cumulative kg,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,223,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,누적 횟수,Cumulative count,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,223,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,횟수,number,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,247,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,초,sec,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,248,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,회,attempts,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,339,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Current-baseline locale-aware presentation audit
+,RPE 없음,No RPE,RecordBulkEditDialog,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt,346,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
 ,프로그램으로 저장했습니다.,Saved as a program.,RecordCalendarScreen,app/src/main/java/com/training/trackplanner/RecordCalendarScreen.kt,197,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
 ,기록,Record,RecordCalendarScreen,app/src/main/java/com/training/trackplanner/RecordCalendarScreen.kt,279,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
 ,이전달,previous month,RecordCalendarScreen,app/src/main/java/com/training/trackplanner/RecordCalendarScreen.kt,289,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
@@ -10195,32 +10195,32 @@ You can leave this screen open while it runs.",GeneratedLocalizationCatalogue,ap
 ,이 날짜에는 아직 운동이 없습니다.,There are no workouts yet on this date.,RecordDateSection,app/src/main/java/com/training/trackplanner/RecordDateSection.kt,95,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
 ,운동 추가,Add exercise,RecordDateSection,app/src/main/java/com/training/trackplanner/RecordDateSection.kt,103,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
 ,프로그램에서 가져오기,Import from program,RecordDateSection,app/src/main/java/com/training/trackplanner/RecordDateSection.kt,109,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,운동 삭제,Delete exercise,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,129,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,삭제,Delete,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,146,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,취소,Cancel,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,151,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,길게 눌러 운동 순서 변경,Long-press to change exercise order,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,182,ACCESSIBILITY,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,운동 삭제,Delete exercise,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,204,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,세트+,set+,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,226,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,일괄,batch,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,233,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,접기,Hide,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,240,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Current-baseline locale-aware presentation audit
-,상세,Details,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,240,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Current-baseline locale-aware presentation audit
-,스포츠,Sport,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,336,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Current-baseline locale-aware presentation audit
-,상세 입력,Enter detailed information,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,351,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,기본 휴식,basic rest,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,365,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,초,sec,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,366,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,전체 RPE,Full RPE,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,380,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,최대 횟수,maximum number of times,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,396,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,운동 메모,exercise notes,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,408,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,빈 세트에도 ${}kg 적용?,Does %1$skg apply to empty sets as well?,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,432,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,%s,NO,Current-baseline locale-aware presentation audit
-,적용,Apply,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,440,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,안 함,No,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,446,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,스포츠,Sport,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,459,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Current-baseline locale-aware presentation audit
-,유산소운동,aerobic exercise,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,459,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,스포츠,Sport,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,468,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Current-baseline locale-aware presentation audit
-,계획 0세트,Plan 0 sets,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,472,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,계획 ${}세트,Plan %1$sset,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,477,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,%s,NO,Current-baseline locale-aware presentation audit
-,${}회,%1$s times,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,478,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,%s,NO,Current-baseline locale-aware presentation audit
-,${}초,%1$s seconds,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,482,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,%s,NO,Current-baseline locale-aware presentation audit
+,운동 삭제,Delete exercise,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,132,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,삭제,Delete,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,149,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,취소,Cancel,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,154,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,길게 눌러 운동 순서 변경,Long-press to change exercise order,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,185,ACCESSIBILITY,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,운동 삭제,Delete exercise,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,207,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,세트+,set+,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,229,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,일괄,batch,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,236,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,접기,Hide,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,243,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Current-baseline locale-aware presentation audit
+,상세,Details,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,243,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Current-baseline locale-aware presentation audit
+,스포츠,Sport,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,339,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Current-baseline locale-aware presentation audit
+,상세 입력,Enter detailed information,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,354,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,기본 휴식,basic rest,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,368,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,초,sec,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,369,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,전체 RPE,Full RPE,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,383,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,최대 횟수,maximum number of times,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,399,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,운동 메모,exercise notes,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,411,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,빈 세트에도 ${}kg 적용?,Does %1$skg apply to empty sets as well?,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,435,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,%s,NO,Current-baseline locale-aware presentation audit
+,적용,Apply,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,443,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,안 함,No,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,449,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,스포츠,Sport,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,462,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Current-baseline locale-aware presentation audit
+,유산소운동,aerobic exercise,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,462,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,스포츠,Sport,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,471,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Current-baseline locale-aware presentation audit
+,계획 0세트,Plan 0 sets,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,475,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,계획 ${}세트,Plan %1$sset,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,480,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,%s,NO,Current-baseline locale-aware presentation audit
+,${}회,%1$s times,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,481,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,%s,NO,Current-baseline locale-aware presentation audit
+,${}초,%1$s seconds,RecordEntryCard,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt,485,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,%s,NO,Current-baseline locale-aware presentation audit
 ,스매시 속도,smash speed,RecordMetricsCards,app/src/main/java/com/training/trackplanner/RecordMetricsCards.kt,54,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
 ,접기,Hide,RecordMetricsCards,app/src/main/java/com/training/trackplanner/RecordMetricsCards.kt,62,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Current-baseline locale-aware presentation audit
 ,기록,Record,RecordMetricsCards,app/src/main/java/com/training/trackplanner/RecordMetricsCards.kt,62,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
@@ -10233,42 +10233,42 @@ You can leave this screen open while it runs.",GeneratedLocalizationCatalogue,ap
 ,최고 ${} · Top3 ${} · ${}회,Top %1$s · Top 3 %2$s · %3$s times,RecordMetricsCards,app/src/main/java/com/training/trackplanner/RecordMetricsCards.kt,120,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,%s|%s|%s,NO,Current-baseline locale-aware presentation audit
 ,기록,Record,RecordScreen,app/src/main/java/com/training/trackplanner/RecordScreen.kt,219,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
 ,세트 입력과 확인을 우선합니다. 확인한 세트만 실제 수행 기록입니다.,Priority is given to set entry and confirmation. Only confirmed sets are actual performance records.,RecordScreen,app/src/main/java/com/training/trackplanner/RecordScreen.kt,220,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,${}초,%1$s seconds,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,178,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,%s,NO,Current-baseline locale-aware presentation audit
-,${}회,%1$s times,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,180,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,%s,NO,Current-baseline locale-aware presentation audit
-,상세,Details,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,209,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Current-baseline locale-aware presentation audit
-,회,attempts,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,250,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Current-baseline locale-aware presentation audit
-,분,minute,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,324,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,초,sec,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,341,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,완료,Completed,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,385,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,확인,check,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,385,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,스포츠 기록은 0시간 0분으로 완료할 수 없습니다.,A sports session cannot be completed with a duration of 0 hr 0 min.,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,392,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Current-baseline locale-aware presentation audit
-,초,sec,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,406,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,휴${},Rest %1$s,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,427,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,%s,NO,Current-baseline locale-aware presentation audit
-,세트별,By set,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,432,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,삭제,Delete,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,441,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,접기,Hide,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,445,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Current-baseline locale-aware presentation audit
-,휴식 종료,break ends,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,478,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,휴식 ${},Rest %1$s,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,478,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,%s,NO,Current-baseline locale-aware presentation audit
-,종료,end,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,488,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,세트 RPE,Set RPE,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,601,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,직접 입력,Enter directly,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,620,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,적용,Apply,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,631,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,비우기,Empty,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,637,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,취소,Cancel,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,640,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,세트별 휴식,Rest per set,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,661,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,기본 휴식 ${}초,Base rest %1$s seconds,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,665,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,%s,NO,Current-baseline locale-aware presentation audit
-,${}초,%1$s seconds,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,675,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,%s,NO,Current-baseline locale-aware presentation audit
-,휴식,rest,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,683,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,초,sec,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,684,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,적용,Apply,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,695,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,기본값,default,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,701,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,취소,Cancel,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,704,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,kg 수정,kg fix,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,731,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,횟수 수정,Modify number of times,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,732,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,시간 수정,time correction,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,733,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,적용,Apply,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,764,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,취소,Cancel,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,769,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
-,${}초,%1$s seconds,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,790,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,%s,NO,Current-baseline locale-aware presentation audit
+,${}초,%1$s seconds,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,185,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,%s,NO,Current-baseline locale-aware presentation audit
+,${}회,%1$s times,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,187,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,%s,NO,Current-baseline locale-aware presentation audit
+,상세,Details,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,216,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Current-baseline locale-aware presentation audit
+,회,attempts,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,257,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Current-baseline locale-aware presentation audit
+,분,minute,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,331,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,초,sec,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,348,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,완료,Completed,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,392,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,확인,check,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,392,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,스포츠 기록은 0시간 0분으로 완료할 수 없습니다.,A sports session cannot be completed with a duration of 0 hr 0 min.,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,399,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Current-baseline locale-aware presentation audit
+,초,sec,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,413,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,휴${},Rest %1$s,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,434,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,%s,NO,Current-baseline locale-aware presentation audit
+,세트별,By set,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,439,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,삭제,Delete,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,448,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,접기,Hide,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,452,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Current-baseline locale-aware presentation audit
+,휴식 종료,break ends,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,485,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,휴식 ${},Rest %1$s,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,485,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,%s,NO,Current-baseline locale-aware presentation audit
+,종료,end,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,495,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,세트 RPE,Set RPE,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,608,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,직접 입력,Enter directly,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,627,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,적용,Apply,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,638,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,비우기,Empty,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,644,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,취소,Cancel,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,647,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,세트별 휴식,Rest per set,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,668,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,기본 휴식 ${}초,Base rest %1$s seconds,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,672,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,%s,NO,Current-baseline locale-aware presentation audit
+,${}초,%1$s seconds,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,682,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,%s,NO,Current-baseline locale-aware presentation audit
+,휴식,rest,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,690,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,초,sec,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,691,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,적용,Apply,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,702,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,기본값,default,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,708,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,취소,Cancel,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,711,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,kg 수정,kg fix,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,738,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,횟수 수정,Modify number of times,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,739,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,시간 수정,time correction,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,740,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,적용,Apply,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,771,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,취소,Cancel,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,776,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Current-baseline locale-aware presentation audit
+,${}초,%1$s seconds,RecordSetRow,app/src/main/java/com/training/trackplanner/RecordSetRow.kt,797,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,%s,NO,Current-baseline locale-aware presentation audit
 ,^(.+)\s+(\d+)세트 준비$,,RestTimerState,app/src/main/java/com/training/trackplanner/RestTimerState.kt,52,INTERNAL_TOKEN_OR_PATTERN,CANONICAL_NON_DISPLAY,,NO,Current-baseline locale-aware presentation audit
 ,사용자 운동 추가,,RuntimeMetadataExerciseEditorDialog,app/src/main/java/com/training/trackplanner/RuntimeMetadataExerciseEditorDialog.kt,83,NON_DISPLAY_IDENTIFIER,CANONICAL_NON_DISPLAY,,NO,Current-baseline locale-aware presentation audit
 ,운동 메타데이터 수정,,RuntimeMetadataExerciseEditorDialog,app/src/main/java/com/training/trackplanner/RuntimeMetadataExerciseEditorDialog.kt,83,NON_DISPLAY_IDENTIFIER,CANONICAL_NON_DISPLAY,,NO,Current-baseline locale-aware presentation audit

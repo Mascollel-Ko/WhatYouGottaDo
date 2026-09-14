@@ -149,6 +149,72 @@ class RecordPresentationOrderServiceTest {
         assertEquals(unstarted, db.workoutDao().entriesWithSets(DATE).first { it.entry.id == ids[0] })
     }
 
+    @Test fun `one confirmation survives delayed stale field callbacks and reload`() = runBlocking {
+        val db = newDatabase()
+        val ids = addEntries(db)
+        val dao = db.workoutDao()
+        val mutation = RecordMutationService(db, db.exerciseDao(), dao)
+        val stale = dao.setsForEntry(ids[2]).single()
+        mutation.addSet(dao.findEntryById(ids[2])!!)
+        val untouched = dao.setsForEntry(ids[2]).last()
+        mutation.updateSet(stale.copy(confirmed = true).edit(RecordSetField.CONFIRMATION))
+        // A delayed pre-confirmation input snapshot must not undo the one checkbox action.
+        mutation.updateSet(stale.copy(reps = 0).edit(RecordSetField.REPS))
+        val reloaded = RecordEntryOrdering.ordered(dao.entriesWithSets(DATE))
+        assertEquals(listOf(ids[2], ids[0], ids[1]), reloaded.map { it.entry.id })
+        assertEquals(stale.copy(confirmed = true, reps = 0), dao.findSetById(stale.id))
+        assertEquals(untouched, dao.findSetById(untouched.id))
+        assertTrue(reloaded.first().entry.firstConfirmedAt != null)
+    }
+
+    @Test fun `already performed A stays before C and explicit unconfirm survives fresh reload`() = runBlocking {
+        val db = newDatabase()
+        val ids = addEntries(db)
+        val dao = db.workoutDao()
+        val mutation = RecordMutationService(db, db.exerciseDao(), dao)
+        val a = dao.setsForEntry(ids[0]).single()
+        val c = dao.setsForEntry(ids[2]).single()
+        mutation.updateSet(a.copy(confirmed = true).edit(RecordSetField.CONFIRMATION))
+        assertEquals(ids, RecordEntryOrdering.ordered(dao.entriesWithSets(DATE)).map { it.entry.id })
+        assertTrue(dao.findSetById(a.id)!!.confirmed)
+        mutation.updateSet(c.copy(confirmed = true).edit(RecordSetField.CONFIRMATION))
+        val order = listOf(ids[0], ids[2], ids[1])
+        assertEquals(order, RecordEntryOrdering.ordered(dao.entriesWithSets(DATE)).map { it.entry.id })
+        assertTrue(dao.findSetById(c.id)!!.confirmed)
+        mutation.updateSet(c.copy(confirmed = false).edit(RecordSetField.CONFIRMATION))
+        assertFalse(dao.findSetById(c.id)!!.confirmed)
+        assertEquals(order, RecordEntryOrdering.ordered(dao.entriesWithSets(DATE)).map { it.entry.id })
+        assertTrue(service(db).reorder(DATE, ids.reversed()))
+        mutation.updateSet(c.copy(confirmed = true).edit(RecordSetField.CONFIRMATION))
+        assertEquals(ids.reversed(), RecordEntryOrdering.ordered(dao.entriesWithSets(DATE)).map { it.entry.id })
+    }
+
+    @Test fun `each unrelated field intent preserves confirmation and all other latest fields`() = runBlocking {
+        val db = newDatabase()
+        val ids = addEntries(db)
+        val dao = db.workoutDao()
+        val mutation = RecordMutationService(db, db.exerciseDao(), dao)
+        val stale = dao.setsForEntry(ids.last()).single()
+        mutation.updateSet(stale.copy(confirmed = true).edit(RecordSetField.CONFIRMATION))
+        val edits = listOf(
+            stale.copy(reps = 12).edit(RecordSetField.REPS),
+            stale.copy(weightKg = 72.5, manualWeight = true).edit(RecordSetField.WEIGHT),
+            stale.copy(seconds = 45).edit(RecordSetField.DURATION),
+            stale.copy(rpe = null).edit(RecordSetField.RPE),
+            stale.copy(restSecondsOverride = null).edit(RecordSetField.REST)
+        )
+        var expected = stale.copy(confirmed = true)
+        for (edit in edits) {
+            mutation.updateSet(edit)
+            expected = edit.applyTo(expected)
+            assertEquals(expected, dao.findSetById(stale.id))
+            assertTrue(dao.findSetById(stale.id)!!.confirmed)
+        }
+        // A delayed confirmation also cannot restore outdated numeric values.
+        mutation.updateSet(stale.copy(confirmed = false).edit(RecordSetField.CONFIRMATION))
+        assertEquals(expected.copy(confirmed = false), dao.findSetById(stale.id))
+    }
+
     private fun newDatabase(): TrainingDatabase =
         Room.inMemoryDatabaseBuilder(context, TrainingDatabase::class.java)
             .allowMainThreadQueries()
