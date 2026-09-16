@@ -62,7 +62,7 @@ private class LogicalCloudMutation(val db: TrainingDatabase) : AbstractCoroutine
 internal suspend fun <T> TrainingDatabase.withCloudRevision(
     scope: CloudMutationScope,
     mutation: suspend () -> T
-): T = withTransaction {
+): T = withLocalDataGate { withTransaction {
     val parent = coroutineContext[LogicalCloudMutation]?.takeIf { it.db === this@withCloudRevision }
     suspend fun runOperation(owner: LogicalCloudMutation): T {
         val before = scope.read(this@withCloudRevision)
@@ -81,12 +81,10 @@ internal suspend fun <T> TrainingDatabase.withCloudRevision(
             result
         }
     }
-}
+} }
 
-/** Phase 1-B recovery integration boundary. Call only inside the eventual protected
- * import transaction after preflight/recovery; never import trusted lineage from CSV.
- * Not wired to today's manual import until that recovery lifecycle exists.
- */
+/** External/manual import branch boundary. Call only inside the protected import
+ * transaction after preflight/recovery; never import trusted lineage from CSV. */
 internal suspend fun TrainingDatabase.startExternalCloudBranchInTransaction() {
     check(inTransaction()) { "External branch reset must share the import Room transaction" }
     cloudBackupStateDao().getOrCreate()

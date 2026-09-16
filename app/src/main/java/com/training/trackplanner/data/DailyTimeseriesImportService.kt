@@ -11,8 +11,8 @@ internal class DailyTimeseriesImportService(
     ): RecordCsvTransferResult {
         var dailyCount = 0
         var aggregateRowsSkipped = 0
-        // TODO(Phase 1-B recovery): inside this transaction, after protected-import setup,
-        // call db.startExternalCloudBranchInTransaction(). Never trust lineage from CSV.
+        // The LocalRecoveryService caller wraps this transaction and performs the
+        // external-branch reset only after this import succeeds.
         db.withTransaction {
             data.rows.forEach { row ->
                 if (row.sleepHours != null || row.bodyWeightKg != null) {

@@ -1,10 +1,10 @@
-# Phase 1-B1: local Cloud revision audit
+# Phase 1-B: local Cloud revision and recovery audit
 
-Baseline: `890d08c89bd71c9ffc0db7a9e8c19c7b820d62ce`.
-DATA-CLOUD-BACKUP remains DRAFT and is now PARTIALLY_IMPLEMENTED. Its 1.0.1 product
-contract is unchanged: this update synchronizes implementation status and anchors.
-No Cloud transport, auth, workers, settings UI, recovery/archive/pending snapshots,
-merge or network requests are implemented.
+Baseline: `f8e47838df238c54df62412fcce6ecc902418143`.
+DATA-CLOUD-BACKUP remains DRAFT and is now PARTIALLY_IMPLEMENTED. Its 1.1.0 product
+contract records the local recovery subset while Cloud transport remains deferred.
+No Cloud transport, auth, Cloud worker, settings UI, archive/pending snapshots, merge
+or network requests are implemented. The local recovery subset is implemented.
 
 ## State and migration
 
@@ -54,8 +54,8 @@ later analysis refresh cannot erase either the raw edit or its Cloud pending sta
 | DailyStatusService saveDailyMetric/upsertDailyCheckIn/deleteDailyCheckIn | Logical revision at public user-operation boundary; metric/check-in dual writes count once. Internal restore helpers remain untracked. |
 | TrainingRepository saveInitialUserProfile/addSmashSpeed/deleteSmashSpeed | One logical revision per meaningful operation. |
 | PersonalizedProgramPlanningService persistAnswers | Production-injected transaction callback covers portable preference and weekly annotation writes together; computation runs outside it. Saved decision/edit annotations are already inside program-save transactions. |
-| Manual backup import/confirmed selectable restore | Deferred to next recovery phase; existing import transaction has explicit TODO and tested transaction-only branch reset API. |
-| Daily-timeseries external import | Same deferred protected-import boundary; internal daily helper deliberately does not increment separately for each row. |
+| Manual backup import/confirmed selectable restore | Implemented for the local recovery phase: preflight, durable `BEFORE_MANUAL_IMPORT` snapshot, then import and external-branch reset in one Room transaction. |
+| Daily-timeseries external import | Same protected-import boundary; internal daily helper deliberately does not increment separately for each row. |
 | Seed/identity repair/metadata reconciliation, source-ID backfill during export | Infrastructure/migration, no user revision. |
 | Derived strength/progression refresh, suggestion recomputation, rebuild/cache/analysis events | Derived from already-persisted raw edits or startup reconstruction; no independent user revision. User progression configuration/resolution is tracked separately above. |
 | Theme/locale/navigation/scroll/transient UI, diagnostic reports, retry bookkeeping, nonportable app_meta | Infrastructure/non-portable, no revision. |
@@ -66,14 +66,36 @@ services remain reusable untracked internals for seeding/import/maintenance; new
 entry points must use the existing repository transaction wrapper. No blanket DAO
 write interception is installed.
 
-## Manual import boundary and known gap
+## Local Recovery and protected boundaries
+
+`LocalRecoveryStore` writes immutable UUID generation directories containing the
+canonical CSV gzip (`local_recovery_previous.csv.gz`) and a trusted JSON sidecar. It
+hashes the exact compressed bytes, gunzips and runs the existing parser, canonicalizer,
+and restore planner before a generation is accepted. The active generation ID is a
+portable-excluded `app_meta` pointer, so pointer promotion and trusted Room restore
+commit in one Room transaction. Obsolete UUID generations are cleaned only after a
+successful promotion; a corrupt active generation is retained.
+
+`LocalRecoveryService` creates a durable snapshot before manual imports and the audited
+date deletion, date-range deletion, date/copy range moves, future-plan push, program
+application and program deletion operations. Failed
+snapshot creation fails closed. Trusted recovery restore performs full user-data
+replacement, preserves the current installation ID, restores sidecar account/base/
+revision/pending state, preserves the current enablement setting, clears transient
+retry/success state, and rotates the previous current database into recovery. Recovery
+does not use the external-import branch reset.
+The five-minute stabilization boundary is scheduled with one local-only unique
+WorkManager job. Repeated edits replace it; the worker calls `refreshStable` with a
+revision/time token and exits without writing if the token is stale. No network
+constraint or Cloud worker is involved.
+
+## Manual import boundary
 
 `startExternalCloudBranchInTransaction` requires an active Room transaction and sets
 base=null, revision=1, pending=true, and last change time, preserving installation ID.
-It must be called by BackupRestoreImportService / DailyTimeseriesImportService only
-when the later phase supplies the protected recovery lifecycle. Those existing
-importers are intentionally unchanged apart from TODOs: their writes do not currently
-update Cloud revision/lineage. This phase therefore must not enable Cloud sync.
+It is called by both canonical and daily-timeseries external import callbacks only
+after preflight and a `BEFORE_MANUAL_IMPORT` snapshot, in the same Room transaction as
+the import. This phase does not enable Cloud sync.
 No arbitrary file is treated as trusted lineage. Current backups contain no Cloud state.
 Future Cloud restore/acknowledgement/account switching is outside this phase; there is
 no API that invents an acknowledged Cloud backup ID.

@@ -303,6 +303,7 @@ internal class BackupRestorePlanner(
             dailyCheckInDao.all().forEach { add("dailyCheckIn=$it") }
             smashSpeedDao.all().forEach { add("smashSpeed=$it") }
             appMetaDao.all()
+                .filter { BackupAppMetaPolicy.isSourceOverwriteAllowed(it.key) }
                 .filterNot { it.key.startsWith("data_transfer_report_") }
                 .forEach { add("appMeta=${it.key}|${it.value}|${it.updatedAt}") }
         }

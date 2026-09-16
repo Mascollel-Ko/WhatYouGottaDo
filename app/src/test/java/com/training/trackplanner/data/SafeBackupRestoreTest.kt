@@ -299,7 +299,7 @@ class SafeBackupRestoreTest {
                 programId = programId,
                 weekNumber = 1,
                 dayOfWeek = 1,
-                orderIndex = 0,
+                orderIndex = 1,
                 exerciseStableKey = retained.stableKey,
                 exerciseName = retained.name,
                 category = retained.category

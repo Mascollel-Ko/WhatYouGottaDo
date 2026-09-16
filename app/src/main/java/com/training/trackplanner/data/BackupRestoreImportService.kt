@@ -54,8 +54,8 @@ internal class BackupRestoreImportService(
         var programTombstoneCount = 0
         var posteriorCounts = PosteriorRestoreCounts()
         var skipped = 0
-        // TODO(Phase 1-B recovery): inside this transaction, after protected-import setup,
-        // call db.startExternalCloudBranchInTransaction(). Never trust lineage from CSV.
+        // The LocalRecoveryService caller wraps this transaction and performs the
+        // external-branch reset only after this import succeeds.
         db.withTransaction {
             if (
                 restorePlanner.currentFingerprint(

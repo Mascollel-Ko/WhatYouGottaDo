@@ -426,7 +426,11 @@ class TrainingRepository(
         smashSpeedService.observeForDate(date)
 
     private suspend fun <T> cloudMutation(scope: CloudMutationScope, mutation: suspend () -> T): T =
-        withContext(Dispatchers.IO) { db.withCloudRevision(scope, mutation) }
+        withContext(Dispatchers.IO) {
+            val result = db.withCloudRevision(scope, mutation)
+            LocalRecoveryScheduler.schedule(context)
+            result
+        }
 
     suspend fun addSmashSpeed(date: String, speedKmh: Double, note: String? = null) = cloudMutation(CloudMutationScope.SMASH) {
         smashSpeedService.add(date, speedKmh, note)
@@ -443,10 +447,10 @@ class TrainingRepository(
         dailyStatusService.recentCheckIns(startDate, endDate)
 
     suspend fun upsertDailyCheckIn(checkIn: DailyCheckIn) =
-        dailyStatusService.upsertDailyCheckIn(checkIn)
+        dailyStatusService.upsertDailyCheckIn(checkIn).also { LocalRecoveryScheduler.schedule(context) }
 
     suspend fun deleteDailyCheckIn(date: String) =
-        dailyStatusService.deleteDailyCheckIn(date)
+        dailyStatusService.deleteDailyCheckIn(date).also { LocalRecoveryScheduler.schedule(context) }
 
     suspend fun todayReadinessSummary(): TodayReadinessSummary =
         todayStatusSummaryService.todayReadinessSummary()
@@ -561,6 +565,11 @@ class TrainingRepository(
         when (RecordCsvBackupRestore.parse(text)) {
             is RecordCsvImportData.DailyTimeseries -> service.import(context, uri, onReportChanged)
             is RecordCsvImportData.Restore -> {
+                // Validate first without touching Room. Canonical export performs the
+                // same infrastructure normalization; repeat the non-mutating plan
+                // after that normalization so recovery creation cannot invalidate it.
+                service.prepare(context, uri)
+                workoutSourceIdentityProvider.backfillMissingWorkoutSourceIds()
                 val prepared = service.prepare(context, uri)
                 val plan = service.plan(
                     prepared,
@@ -574,6 +583,9 @@ class TrainingRepository(
 
     suspend fun prepareRecordsRestore(uri: Uri): BackupRestorePreparation = withContext(Dispatchers.IO) {
         cancelPendingRecordsRestore()
+        // A malformed or contradictory backup must not cause even infrastructure writes.
+        backupImportService().prepare(context, uri)
+        workoutSourceIdentityProvider.backfillMissingWorkoutSourceIds()
         val prepared = backupImportService().prepare(context, uri)
         pendingBackupRestore = prepared
         BackupRestorePreparation(
@@ -609,11 +621,51 @@ class TrainingRepository(
         pendingBackupRestorePlan = null
     }
 
+    internal val localRecovery: LocalRecoveryService by lazy {
+        LocalRecoveryService(db, LocalRecoveryStore(
+            java.io.File(context.noBackupFilesDir, "recovery"), ::preflightRecovery
+        ), { time -> backupExportService().buildCanonicalBackup(exportedAt = time) }, ::applyLocalRecovery)
+    }
+
+    /** Creates the one valid previous-state snapshot after canonical preflight. */
+    internal suspend fun createLocalRecoverySnapshot(): ValidatedLocalRecovery = localRecovery.snapshot()
+
+    /** Restores the trusted previous snapshot and rotates the current state into recovery. */
+    internal suspend fun restoreLocalRecoverySnapshot() = localRecovery.restore()
+
+    internal suspend fun refreshLocalRecoveryIfStable(expected: RecoveryRevision): Boolean =
+        localRecovery.refreshStable(expected)
+
+    internal suspend fun protectWithLocalRecovery(
+        trigger: RecoveryTrigger,
+        operation: suspend () -> Unit
+    ) = localRecovery.protect(trigger, operation)
+
+    private suspend fun preflightRecovery(csv: String): RecordCsvImportData.Restore {
+        val parsed = RecordCsvBackupRestore.parse(csv) as? RecordCsvImportData.Restore
+            ?: error("Local Recovery must contain a canonical restore backup")
+        val result = BackupRestoreCanonicalizer(legacyExerciseImportMapper).canonicalize(
+            parsed, SeedData.exactExerciseMetadataByStableKey(context))
+        require(result.errors.isEmpty()) { "Local Recovery canonical preflight failed: ${result.errors}" }
+        backupRestorePlanner.prepare(result.data)
+        return result.data
+    }
+
+    private suspend fun applyLocalRecovery(data: RecordCsvImportData.Restore) {
+        check(db.inTransaction())
+        clearLocalRecoveryUserData(db)
+        val plan = backupRestorePlanner.plan(backupRestorePlanner.prepare(data),
+            WorkoutRestoreMode.APPEND_TO_CURRENT, ExerciseListRestoreMode.APPLY_BACKUP_ACTIVE_EXERCISE_LIST)
+        backupRestoreImportService.importRestorePlan(plan)
+    }
+
     private fun backupImportService(): BackupImportService = BackupImportService(
-        restoreImporter = backupRestoreImportService::importRestoreCsv,
-        restorePlanImporter = backupRestoreImportService::importRestorePlan,
+        restoreImporter = { data -> localRecovery.externalImport { backupRestoreImportService.importRestoreCsv(data) }.also { LocalRecoveryScheduler.schedule(context) } },
+        restorePlanImporter = { plan -> localRecovery.externalImport {
+            backupRestoreImportService.importRestorePlan(plan)
+        }.also { LocalRecoveryScheduler.schedule(context) } },
         restorePlanner = backupRestorePlanner,
-        dailyTimeseriesImporter = dailyTimeseriesImportService::importDailyTimeseriesCsv,
+        dailyTimeseriesImporter = { data -> localRecovery.externalImport { dailyTimeseriesImportService.importDailyTimeseriesCsv(data) }.also { LocalRecoveryScheduler.schedule(context) } },
         canonicalizer = BackupRestoreCanonicalizer(legacyExerciseImportMapper),
         canonicalExercises = { SeedData.exactExerciseMetadataByStableKey(context) },
         reportStore = dataTransferReportStore
@@ -657,6 +709,7 @@ class TrainingRepository(
 
     suspend fun seedIfNeeded() = withContext(Dispatchers.IO) {
         db.cloudBackupStateDao().getOrCreate()
+        runCatching { localRecovery.cleanup() }
         val exerciseSeedVersion = appMetaDao.intValue(META_EXERCISE_SEED_VERSION)
         val programSeedVersion = appMetaDao.intValue(META_PROGRAM_SEED_VERSION)
         val semanticRevision = exerciseMetadataReconciliationService.markRequiredIfNeeded()
@@ -810,27 +863,27 @@ class TrainingRepository(
     }
 
     suspend fun addWorkoutEntry(date: String, exerciseStableKey: String): Long = withContext(Dispatchers.IO) {
-        recordMutationService.addWorkoutEntry(date, exerciseStableKey)
+        recordMutationService.addWorkoutEntry(date, exerciseStableKey).also { LocalRecoveryScheduler.schedule(context) }
     }
 
     suspend fun updateWorkoutEntry(entry: WorkoutEntry) = withContext(Dispatchers.IO) {
-        recordMutationService.updateWorkoutEntry(entry)
+        recordMutationService.updateWorkoutEntry(entry).also { LocalRecoveryScheduler.schedule(context) }
     }
 
     suspend fun deleteWorkoutEntry(entry: WorkoutEntry) = withContext(Dispatchers.IO) {
-        recordMutationService.deleteWorkoutEntry(entry)
+        recordMutationService.deleteWorkoutEntry(entry).also { LocalRecoveryScheduler.schedule(context) }
     }
 
     suspend fun addSet(entry: WorkoutEntry) = withContext(Dispatchers.IO) {
-        recordMutationService.addSet(entry)
+        recordMutationService.addSet(entry).also { LocalRecoveryScheduler.schedule(context) }
     }
 
     suspend fun updateSet(set: WorkoutSet) = withContext(Dispatchers.IO) {
-        recordMutationService.updateSet(set)
+        recordMutationService.updateSet(set).also { LocalRecoveryScheduler.schedule(context) }
     }
 
     suspend fun updateSet(edit: RecordSetEdit) = withContext(Dispatchers.IO) {
-        recordMutationService.updateSet(edit)
+        recordMutationService.updateSet(edit).also { LocalRecoveryScheduler.schedule(context) }
     }
 
     suspend fun refreshRecordDerivedState() = withContext(Dispatchers.IO) {
@@ -839,7 +892,7 @@ class TrainingRepository(
     }
 
     suspend fun deleteSet(set: WorkoutSet): Boolean = withContext(Dispatchers.IO) {
-        recordMutationService.deleteSet(set)
+        recordMutationService.deleteSet(set).also { LocalRecoveryScheduler.schedule(context) }
     }
 
     suspend fun reorderWorkoutEntries(date: String, orderedEntryIds: List<Long>): Boolean =
@@ -915,8 +968,10 @@ class TrainingRepository(
         }
     }
 
-    suspend fun deleteProgram(programId: Long) = cloudMutation(CloudMutationScope.PROGRAMS) {
-        programPlanService.deleteProgram(programId)
+    suspend fun deleteProgram(programId: Long) = withContext(Dispatchers.IO) {
+        localRecovery.protect(RecoveryTrigger.BEFORE_BULK_CHANGE) {
+            cloudMutation(CloudMutationScope.PROGRAMS) { programPlanService.deleteProgram(programId) }
+        }
     }
 
     suspend fun addExerciseToProgram(
@@ -970,8 +1025,12 @@ class TrainingRepository(
         programId: Long,
         startDate: String,
         mode: ProgramApplyMode
-    ) = cloudMutation(CloudMutationScope.APPLICATION) {
-        programPlanService.applyProgramToDates(programId, startDate, mode)
+    ) = withContext(Dispatchers.IO) {
+        localRecovery.protect(RecoveryTrigger.BEFORE_BULK_CHANGE) {
+            cloudMutation(CloudMutationScope.APPLICATION) {
+                programPlanService.applyProgramToDates(programId, startDate, mode)
+            }
+        }
     }
 
     suspend fun calendarConflictSummary(dates: List<String>): CalendarConflictSummary =
@@ -980,7 +1039,8 @@ class TrainingRepository(
         }
 
     suspend fun deleteDate(date: String) = withContext(Dispatchers.IO) {
-        calendarRecordService.deleteDate(date)
+        localRecovery.protect(RecoveryTrigger.BEFORE_BULK_CHANGE) { calendarRecordService.deleteDate(date) }
+            .also { LocalRecoveryScheduler.schedule(context) }
     }
 
     suspend fun deleteDateRange(
@@ -988,7 +1048,9 @@ class TrainingRepository(
         endDate: String,
         includeConfirmed: Boolean
     ) = withContext(Dispatchers.IO) {
-        calendarRecordService.deleteDateRange(startDate, endDate, includeConfirmed)
+        localRecovery.protect(RecoveryTrigger.BEFORE_BULK_CHANGE) {
+            calendarRecordService.deleteDateRange(startDate, endDate, includeConfirmed)
+        }.also { LocalRecoveryScheduler.schedule(context) }
     }
 
     suspend fun copyDate(
@@ -997,7 +1059,9 @@ class TrainingRepository(
         keepConfirmed: Boolean,
         conflictMode: CalendarConflictMode
     ) = withContext(Dispatchers.IO) {
-        calendarRecordService.copyDate(sourceDate, targetDate, keepConfirmed, conflictMode)
+        localRecovery.protect(RecoveryTrigger.BEFORE_BULK_CHANGE) {
+            calendarRecordService.copyDate(sourceDate, targetDate, keepConfirmed, conflictMode)
+        }.also { LocalRecoveryScheduler.schedule(context) }
     }
 
     suspend fun moveDate(
@@ -1005,12 +1069,16 @@ class TrainingRepository(
         targetDate: String,
         conflictMode: CalendarConflictMode
     ) = withContext(Dispatchers.IO) {
-        calendarRecordService.moveDate(sourceDate, targetDate, conflictMode)
+        localRecovery.protect(RecoveryTrigger.BEFORE_BULK_CHANGE) {
+            calendarRecordService.moveDate(sourceDate, targetDate, conflictMode)
+        }.also { LocalRecoveryScheduler.schedule(context) }
     }
 
     suspend fun pushFuturePlan(startDate: String, dayCount: Int): PlanPushResult =
         withContext(Dispatchers.IO) {
-            calendarRecordService.pushFuturePlan(startDate, dayCount)
+            localRecovery.protect(RecoveryTrigger.BEFORE_BULK_CHANGE) {
+                calendarRecordService.pushFuturePlan(startDate, dayCount)
+            }.also { LocalRecoveryScheduler.schedule(context) }
         }
 
     suspend fun copyDateRangeAsPlan(
@@ -1020,7 +1088,9 @@ class TrainingRepository(
         conflictMode: CalendarConflictMode,
         keepConfirmed: Boolean = false
     ) = withContext(Dispatchers.IO) {
-        calendarRecordService.copyDateRangeAsPlan(sourceStart, sourceEnd, targetStart, conflictMode, keepConfirmed)
+        localRecovery.protect(RecoveryTrigger.BEFORE_BULK_CHANGE) {
+            calendarRecordService.copyDateRangeAsPlan(sourceStart, sourceEnd, targetStart, conflictMode, keepConfirmed)
+        }.also { LocalRecoveryScheduler.schedule(context) }
     }
 
     @Suppress("unused")

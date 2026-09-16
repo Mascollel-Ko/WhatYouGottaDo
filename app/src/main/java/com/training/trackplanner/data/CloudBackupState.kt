@@ -28,6 +28,12 @@ abstract class CloudBackupStateDao {
     @Query("SELECT * FROM cloud_backup_state WHERE id = 1")
     abstract suspend fun get(): CloudBackupState?
 
+    @Query("SELECT * FROM cloud_backup_state WHERE id = 1")
+    abstract fun observe(): kotlinx.coroutines.flow.Flow<CloudBackupState?>
+
+    @Update
+    internal abstract suspend fun restoreTrusted(state: CloudBackupState)
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     protected abstract suspend fun insertInitial(state: CloudBackupState)
 

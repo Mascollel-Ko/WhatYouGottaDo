@@ -1883,7 +1883,7 @@
       "familyId": "DATA_PORTABILITY",
       "titleKo": "클라우드 백업",
       "titleEn": "Cloud Backup",
-      "currentVersion": "1.0.1",
+      "currentVersion": "1.1.0",
       "status": "DRAFT",
       "implementationStatus": "PARTIALLY_IMPLEMENTED",
       "evidenceProfile": [
@@ -1891,8 +1891,8 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "data_portability/CLOUD_BACKUP.md",
-      "implementedFromAppVersion": "UNRELEASED_PHASE_1_B1",
-      "lastAuditedCommit": "890d08c89bd71c9ffc0db7a9e8c19c7b820d62ce",
+      "implementedFromAppVersion": "UNRELEASED_PHASE_1_B2",
+      "lastAuditedCommit": "f8e47838df238c54df62412fcce6ecc902418143",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/CloudBackupState.kt",
         "app/src/main/java/com/training/trackplanner/data/CloudRevisionTracking.kt",
@@ -1900,11 +1900,15 @@
         "app/src/main/java/com/training/trackplanner/data/RecordMutationService.kt",
         "app/src/main/java/com/training/trackplanner/data/CalendarRecordService.kt",
         "app/src/main/java/com/training/trackplanner/data/DailyStatusService.kt",
-        "app/src/main/java/com/training/trackplanner/data/PersonalizedProgramPlanningService.kt"
+        "app/src/main/java/com/training/trackplanner/data/PersonalizedProgramPlanningService.kt",
+        "app/src/main/java/com/training/trackplanner/data/LocalRecoveryStore.kt",
+        "app/src/main/java/com/training/trackplanner/data/LocalRecoveryService.kt",
+        "app/src/main/java/com/training/trackplanner/data/LocalRecoveryScheduler.kt"
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/data/CloudBackupStateTest.kt",
-        "app/src/test/java/com/training/trackplanner/data/WorkoutSessionIdentityTest.kt"
+        "app/src/test/java/com/training/trackplanner/data/WorkoutSessionIdentityTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/LocalRecoveryServiceTest.kt"
       ],
       "authorityAssets": [
         "app/schemas/com.training.trackplanner.data.TrainingDatabase/33.json"
@@ -1914,8 +1918,8 @@
         "docs/cloud_backup_phase_1b1_audit.md"
       ],
       "knownGaps": [
-        "Only local session identity and revision infrastructure are implemented. Cloud auth, transport, snapshots, recovery, lineage acknowledgements and conflict handling remain unimplemented.",
-        "Manual backup and daily-timeseries import branch reset is deferred to protected Local Recovery integration; the transaction-only API is not wired to current imports."
+        "Only local session identity, revision infrastructure, and one local previous-state recovery are implemented. Cloud auth, transport, Cloud CURRENT/RETAINED objects, lineage acknowledgements and conflict handling remain unimplemented.",
+        "The local recovery scheduler and protected mutation boundaries are local-only; no Cloud upload/download worker or network constraint is installed."
       ],
       "supersedes": [],
       "publicSummaryAvailable": true

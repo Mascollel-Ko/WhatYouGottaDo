@@ -3,11 +3,11 @@
 | 항목 | 값 |
 |---|---|
 | Protocol ID | `DATA-CLOUD-BACKUP` |
-| Protocol version | `1.0.1` |
+| Protocol version | `1.1.0` |
 | Status | `DRAFT` |
 | Implementation status | `PARTIALLY_IMPLEMENTED` |
-| Implemented from app version | `UNRELEASED_PHASE_1_B1` |
-| Last audited commit | `890d08c89bd71c9ffc0db7a9e8c19c7b820d62ce` |
+| Implemented from app version | `UNRELEASED_PHASE_1_B2` |
+| Last audited commit | `f8e47838df238c54df62412fcce6ecc902418143` |
 | Evidence profile | `PRODUCT_POLICY, ENGINEERING_HEURISTIC` |
 | Supersedes | 없음 |
 
@@ -1011,8 +1011,8 @@ restore 중 하나라도 실패하면 현재 Local DB를 변경하지 않습니�
 저장:
 
 ```text
-recovery/local_recovery_previous.csv.gz
-+ metadata
+recovery/{generation_uuid}/local_recovery_previous.csv.gz
+recovery/{generation_uuid}/metadata.json
 ```
 
 정확히 1개의 valid previous recovery를 유지합니다.
@@ -1027,9 +1027,15 @@ recovery/local_recovery_previous.csv.gz
 
 Atomic replace:
 
-1. temp 생성
-2. checksum/preflight
-3. valid일 때만 기존 recovery 교체
+1. immutable UUID generation directory에 CSV gzip과 sidecar를 fsync
+2. compressed-byte checksum, gzip, canonical parser/canonicalizer/restore planner preflight
+3. Room의 local recovery generation pointer를 transaction으로 promote
+4. valid일 때만 이전 generation을 보수적으로 정리
+
+현재 Phase 1-B2 구현은 이 pointer를 Room `app_meta`의 local infrastructure key로
+기록합니다. 따라서 payload와 sidecar가 완성·검증되기 전에는 pointer가 바뀌지 않으며,
+trusted restore에서는 복원 데이터·lineage·pointer가 같은 Room transaction에서
+commit/rollback됩니다.
 
 ### 11.3 Recovery safe swap
 
@@ -1055,6 +1061,8 @@ created_at
 account_user_id          // guest null
 local_base_backup_id     // unknown null
 local_revision
+cloud_backup_pending
+last_local_change_at
 checksum
 checksum_algorithm       // SHA-256
 compressed_size_bytes
@@ -1062,6 +1070,10 @@ backup_format_version
 schema_version
 app_version
 ```
+
+`cloud_backup_state`는 canonical CSV에 포함되지 않습니다. restore 시 현재 installation
+`installId`와 enablement를 유지하고 retry, next retry, failure, last successful Cloud
+acknowledgement는 복원하지 않습니다.
 
 Account archive 추가:
 
@@ -1071,7 +1083,8 @@ archived_reason
 - GUEST_LOGIN_MERGE
 ```
 
-내부 snapshot restore 시 sidecar의 lineage를 복원합니다.
+내부 snapshot restore 시 sidecar의 account/base/revision/pending/last-local-change
+lineage를 복원합니다. 현재 설치의 `installId`와 Cloud enablement는 유지합니다.
 
 ### 11.5 Manual Import
 
@@ -1828,7 +1841,9 @@ OFF 자체가 lineage reset은 아닙니다.
 ### 19.1 현재 구현 상태
 
 이 문서는 `PARTIALLY_IMPLEMENTED`입니다. Phase 1-A의 session identity와
-Phase 1-B1의 local state/revision infrastructure만 구현되었습니다.
+Phase 1-B1의 local state/revision infrastructure와 Phase 1-B2의 Local Recovery
+subset이 구현되었습니다. Local Recovery는 canonical payload를 보존하고 보호된
+import/bulk mutation 경계에서 reversible full replacement를 제공합니다.
 Room 32 → 33은 installation-local `cloud_backup_state`만 추가합니다.
 현재 canonical backup은 format 14 / restore schema 13이며 Cloud state를 포함하지 않습니다.
 
@@ -1838,12 +1853,13 @@ Phase 1-B1 source/test audit와 mutation classification:
 없으므로 base/account/success ID 없이 revision 1 / pending true로 보수적으로 시작합니다.
 일반 user operation은 동일 Room transaction에서 실제 domain 변경을 비교하여 한 번만
 revision을 증가시킵니다. nested operation은 한 번으로 합쳐지며 no-op와 infrastructure는 제외됩니다.
-수동 import branch reset은 Local Recovery 작업까지 연결하지 않습니다.
-`startExternalCloudBranchInTransaction` API와 import transaction TODO/test가 integration boundary입니다.
-Cloud가 활성화된 end-to-end backup 동작을 의미하지 않습니다.
+수동 import는 Local Recovery 생성 뒤 import transaction과
+`startExternalCloudBranchInTransaction` branch reset을 한 Room transaction으로
+수행합니다. 이는 Cloud가 활성화된 end-to-end backup 동작을 의미하지 않습니다.
 
-Cloud runtime, Supabase tables, Edge Functions, R2 lifecycle, WorkManager integration,
-Conflict UI는 아직 이 문서 기준으로 구현되었다고 간주하지 않습니다.
+Cloud runtime, Supabase tables, Edge Functions, R2 lifecycle, Cloud WorkManager
+integration, Conflict UI는 아직 이 문서 기준으로 구현되었다고 간주하지 않습니다.
+Local Recovery의 local-only WorkManager stabilization job은 구현되어 있습니다.
 
 기존 코드에서 확인한 재사용 authority:
 
@@ -1857,13 +1873,12 @@ Conflict UI는 아직 이 문서 기준으로 구현되었다고 간주하지 �
 
 새로 필요한 대표 구현:
 
-- WorkManager
 - Supabase schema/RLS/Edge Functions
 - R2 presigned upload/download
 - server verify/finalize
 - semantic comparison engine
 - conflict UI
-- Local Recovery / account archive / pending resolution
+- account archive / pending resolution
 - cleanup Cron
 
 ### 19.2 Existing source anchors
@@ -1881,7 +1896,7 @@ app/src/main/java/com/training/trackplanner/data/ProgramProgressionBackup.kt
 docs/protocols/data_portability/BACKUP_AND_RESTORE.md
 ```
 
-Phase 1-B1 local implementation anchors:
+Phase 1-B local implementation anchors:
 
 ```text
 app/src/main/java/com/training/trackplanner/data/CloudBackupState.kt
@@ -1889,12 +1904,18 @@ app/src/main/java/com/training/trackplanner/data/CloudRevisionTracking.kt
 app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt
 app/src/main/java/com/training/trackplanner/data/RecordMutationService.kt
 app/src/main/java/com/training/trackplanner/data/DailyStatusService.kt
+app/src/main/java/com/training/trackplanner/data/LocalRecoveryGate.kt
+app/src/main/java/com/training/trackplanner/data/LocalRecoveryReplacement.kt
+app/src/main/java/com/training/trackplanner/data/LocalRecoveryStore.kt
+app/src/main/java/com/training/trackplanner/data/LocalRecoveryService.kt
+app/src/main/java/com/training/trackplanner/data/LocalRecoveryScheduler.kt
 app/schemas/com.training.trackplanner.data.TrainingDatabase/33.json
 app/src/test/java/com/training/trackplanner/data/CloudBackupStateTest.kt
 app/src/test/java/com/training/trackplanner/data/WorkoutSessionIdentityTest.kt
+app/src/test/java/com/training/trackplanner/data/LocalRecoveryServiceTest.kt
 ```
 
-Cloud transport/recovery/auth는 여전히 미구현입니다.
+Cloud transport/auth, account archive, pending resolution은 여전히 미구현입니다.
 
 ### 19.3 Required verification
 
@@ -2057,6 +2078,13 @@ R2 object만 존재하고 server verification/CURRENT promotion이 완료되지 
 registry/index도 같은 task에서 갱신합니다.
 
 ### 20.3 변경 이력
+
+- `1.1.0`
+  - Local Recovery generation pairs use canonical CSV → gzip plus trusted sidecar metadata.
+  - SHA-256, gzip, parser/preflight validation and Room-backed atomic generation pointer are required.
+  - Protected manual imports and audited bulk mutations fail closed until a valid previous snapshot exists.
+  - Trusted Local Recovery restore performs a reversible full replacement while preserving install identity.
+  - Cloud transport, auth, Cloud CURRENT/RETAINED objects and network workers remain outside this release.
 
 - `1.0.1`
   - canonical UTF-8 CSV → gzip representation 및 `.csv.gz` 경로 명료화

@@ -100,7 +100,7 @@ internal class RecordMutationService(
     suspend fun updateSet(set: WorkoutSet): RecordSetMutationResult? =
         updateSet(set.edit(*RecordSetField.entries.toTypedArray()))
 
-    suspend fun updateSet(edit: RecordSetEdit): RecordSetMutationResult? = db.withTransaction {
+    suspend fun updateSet(edit: RecordSetEdit): RecordSetMutationResult? = withLocalDataGate { db.withTransaction {
         val current = workoutDao.findSetById(edit.values.id) ?: return@withTransaction null
         val set = edit.applyTo(current)
         val entry = workoutDao.findEntryById(set.entryId) ?: return@withTransaction null
@@ -136,7 +136,7 @@ internal class RecordMutationService(
         }
         strengthPosteriorCoordinator?.mutateDate(entry.date, processImmediately = false, mutation = mutation)
             ?: mutation()
-    }
+    } }
 
     suspend fun deleteSet(set: WorkoutSet): Boolean {
         if (workoutDao.setCount(set.entryId) <= 1) return false
@@ -152,14 +152,14 @@ internal class RecordMutationService(
         }
     }
 
-    private suspend fun <T> mutateDate(date: String, mutation: suspend () -> T): T {
+    private suspend fun <T> mutateDate(date: String, mutation: suspend () -> T): T = withLocalDataGate {
         val tracked: suspend () -> T = { db.withCloudRevision(CloudMutationScope.workouts(listOf(date)), mutation) }
-        return strengthPosteriorCoordinator?.mutateDate(date, mutation = tracked) ?: tracked()
+        strengthPosteriorCoordinator?.mutateDate(date, mutation = tracked) ?: tracked()
     }
 
-    private suspend fun <T> mutateDates(dates: Collection<String>, mutation: suspend () -> T): T {
+    private suspend fun <T> mutateDates(dates: Collection<String>, mutation: suspend () -> T): T = withLocalDataGate {
         val tracked: suspend () -> T = { db.withCloudRevision(CloudMutationScope.workouts(dates), mutation) }
-        return strengthPosteriorCoordinator?.mutateDates(dates, mutation = tracked) ?: tracked()
+        strengthPosteriorCoordinator?.mutateDates(dates, mutation = tracked) ?: tracked()
     }
 
     private fun defaultSet(entryId: Long, setIndex: Int, exercise: Exercise?): WorkoutSet {
