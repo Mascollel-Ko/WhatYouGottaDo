@@ -56,4 +56,72 @@ class MainSchedulingPolicyTest {
         assertEquals(rows.toSet(),result.values.flatten().toSet())
         assertTrue(result.values.all { day -> day.sumOf { it.estimatedSeconds }<=120 })
     }
+
+    @Test fun optimizedInitialSearchMatchesTestOnlyReferenceOracle() {
+        val rows = items(4)
+        val initial = mapOf(1 to rows, 2 to emptyList(), 3 to emptyList(), 4 to emptyList())
+        val expected = referenceReview(initial, 90, true) { true }
+        val metrics = InitialMainPlacementMetrics()
+        val actual = InitialMainPlacement.review(initial, 90, null, true, metrics = metrics) { true }
+        assertEquals(expected, actual)
+        assertTrue(metrics.searchNodes > 0)
+        assertTrue(metrics.objectiveEvaluations > 0)
+    }
+
+    /** Small test oracle retaining the pre-optimization traversal and objective calculations. */
+    private fun referenceReview(
+        baseline: Map<Int, List<TimedPlannedExercise>>,
+        minutes: Int,
+        robust: Boolean,
+        isMain: (PlannedExercise) -> Boolean
+    ): Map<Int, List<TimedPlannedExercise>> {
+        val days = baseline.keys.sorted()
+        val actual = RecordBasedReviewedPolicy.defaultSchedule(1, days.size).getValue(1).sorted()
+        val moving = baseline.values.flatten()
+            .filter { (isMain(it.item) || StrengthPrimaryMainPolicy.isPrimary(it.item.stableKey)) && MainSchedulingPolicy.ordinary(it.item, it.prescription) }
+            .sortedByDescending { StrengthPrimaryMainPolicy.isPrimary(it.item.stableKey) }
+        val fixed = baseline.mapValues { (_, rows) -> rows.filterNot { candidate -> moving.any { it === candidate } }.toMutableList() }
+        fun objective(layout: Map<Int, List<TimedPlannedExercise>>): RefObjective = RefObjective(
+            StrengthPrimaryMainPolicy.counts(layout.values.map { rows -> rows.count { StrengthPrimaryMainPolicy.isPrimary(it.item.stableKey) } }),
+            MainLayoutObjective.of(layout.mapKeys { actual[days.indexOf(it.key)] }.mapValues { (_, rows) -> rows.count { isMain(it.item) } })
+        )
+        var best = baseline
+        var bestObjective = objective(best)
+        var nodes = 0
+        fun lower(row: TimedPlannedExercise) = false
+        fun search(index: Int) {
+            if (++nodes > 200_000) return
+            if (objective(fixed) > bestObjective) return
+            if (index == moving.size) {
+                val candidate = objective(fixed)
+                if (candidate < bestObjective) {
+                    bestObjective = candidate
+                    best = fixed.mapValues { it.value.toList() }
+                }
+                return
+            }
+            val row = moving[index]
+            val targets = days.filter { day -> fixed.getValue(day).none { it.item.stableKey == row.item.stableKey } &&
+                fixed.getValue(day).sumOf { it.estimatedSeconds } + row.estimatedSeconds <= minutes * 60
+            }.sortedWith(compareBy<Int> { day ->
+                fixed.getValue(day).add(row)
+                val value = objective(fixed)
+                fixed.getValue(day).removeAt(fixed.getValue(day).lastIndex)
+                value
+            }.thenBy { day -> if (lower(row)) fixed.getValue(day).filter(::lower).sumOf { it.estimatedSeconds } else 0 }
+                .thenBy { day -> if (robust && row.item.scheduleTier() == ScheduleTier.CORE_MUST_DO && day > (days.size + 1) / 2) 1 else 0 }
+                .thenBy { day -> fixed.getValue(day).sumOf { it.estimatedSeconds } }.thenBy { it })
+            for (day in targets) {
+                fixed.getValue(day).add(row)
+                search(index + 1)
+                fixed.getValue(day).removeAt(fixed.getValue(day).lastIndex)
+            }
+        }
+        search(0)
+        return best
+    }
+
+    private data class RefObjective(val primary: StrengthPrimaryObjective, val broadMain: MainLayoutObjective) : Comparable<RefObjective> {
+        override fun compareTo(other: RefObjective) = compareValuesBy(this, other, RefObjective::primary, RefObjective::broadMain)
+    }
 }

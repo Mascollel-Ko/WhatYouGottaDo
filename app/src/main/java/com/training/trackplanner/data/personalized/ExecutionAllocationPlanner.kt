@@ -320,7 +320,7 @@ class TimedWeeklyPlacementPlanner {
                 .thenBy { it.key })
             if (target == null) deferred += row else target.value += row
         }
-        return InitialMainPlacement.review(buckets, sessionMinutes, snapshot, robustSchedule, planningState, isMain) to deferred
+        return InitialMainPlacement.review(buckets, sessionMinutes, snapshot, robustSchedule, planningState, isMain = isMain) to deferred
     }
 }
 
