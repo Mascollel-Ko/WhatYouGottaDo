@@ -135,7 +135,7 @@ data class MaterialDemand(
     val audit: Map<String, String>
 )
 
-class MaterialDemandResolver {
+class MaterialDemandResolver(private val prescriptions: PersonalizedPrescriptionPlanner = PersonalizedPrescriptionPlanner()) {
     fun resolve(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, gaps: List<AdaptationGap>, request: ProgramSkeletonRequest): MaterialDemand {
         val anchors = state.anchors.mapTo(mutableSetOf(), UserAnchor::stableKey)
         val alternatives = GapCandidateSelector().select(snapshot, state, gaps, anchors, allAlternatives = true)
@@ -143,7 +143,7 @@ class MaterialDemandResolver {
         val feasible = alternatives.filter { item ->
             val exercise = snapshot.exercises.getValue(item.stableKey)
             val equipment = exercise.equipment.split('|', ',').map(String::trim).filter(String::isNotBlank)
-            val minimumPrescription = PersonalizedPrescriptionPlanner().prescribe(snapshot, state.strengthIntent, item, item.style)
+            val minimumPrescription = prescriptions.prescribe(snapshot, state.strengthIntent, item, item.style)
             val minimumSeconds = TimedPlannedExercise(item, minimumPrescription).estimatedSeconds
             val reason = when {
                 item.stableKey in request.excludedExerciseStableKeys -> "USER_EXCLUDED"

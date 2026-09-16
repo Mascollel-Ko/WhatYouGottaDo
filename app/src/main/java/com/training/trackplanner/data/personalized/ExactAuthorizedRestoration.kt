@@ -24,7 +24,8 @@ internal class ExactAuthorizedRestoration(private val snapshot: PlanningHistoryS
     private val request: ProgramSkeletonRequest, private val authorized: List<AuthorizedPrescription>,
     private val capacity: Int, private val projection: PlanDayProjection, private val demand: AuthorizedPlanningDemand,
     private val atomByLocalId: Map<String, String>, origins: Map<String, AuthorizedAtomOrigin>, initial: List<ProgramSkeletonItem>,
-    private val progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE) {
+    private val progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE,
+    private val prescriptions: PersonalizedPrescriptionPlanner = PersonalizedPrescriptionPlanner()) {
     val origins = origins.toMutableMap()
     val sources = mutableMapOf<String, PlannedExercise>()
     val actions = mutableListOf<ExactRestorationAction>()
@@ -49,7 +50,7 @@ internal class ExactAuthorizedRestoration(private val snapshot: PlanningHistoryS
             val mandatory = ContinuitySplitPolicy.mandatory(snapshot, scheduling)
             val chunks = if (split) ContinuitySplitPolicy.chunks(scheduling, days.size) { n ->
                 // Only the presentation text is obtained from the existing authority; dose stays frozen.
-                PersonalizedPrescriptionPlanner().prescribe(snapshot, state.strengthIntent, parent.item.copy(targetSets = n), parent.item.style).text
+                prescriptions.prescribe(snapshot, state.strengthIntent, parent.item.copy(targetSets = n), parent.item.style).text
             } else emptyList()
             // A partially present split keeps its canonical structure. An unsplit reduction first attempts same-day whole restoration.
             val variants = if (mandatory || old.any { origin(it)?.splitChunkIndex != null }) listOf(chunks) else listOf(whole, chunks)

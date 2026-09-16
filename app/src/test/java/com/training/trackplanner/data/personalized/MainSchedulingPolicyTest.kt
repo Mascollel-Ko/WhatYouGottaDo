@@ -68,6 +68,31 @@ class MainSchedulingPolicyTest {
         assertTrue(metrics.objectiveEvaluations > 0)
     }
 
+    @Test fun generationMemoReusesExactCanonicalComputations() {
+        val memo = PlanningComputationMemo()
+        var dayCalls = 0
+        var tissueCalls = 0
+        val source = PostGenerationFixture.snapshot().copy(
+            planDayProjection = PlanDayProjection { dayCalls++; StandaloneDayLoad(10, listOf(10)) },
+            planWeekTissueProjection = PlanWeekTissueProjection { _, _ -> tissueCalls++; PlannedTissueWeek(emptyList()) }
+        )
+        val wrapped = memo.wrap(source)
+        val row = PostGenerationFixture.row("press", 1)
+        wrapped.planDayProjection!!.evaluate(listOf(row))
+        wrapped.planDayProjection!!.evaluate(listOf(row))
+        wrapped.planWeekTissueProjection!!.evaluate(listOf(row), 8.5)
+        wrapped.planWeekTissueProjection!!.evaluate(listOf(row), 8.5)
+        val planner = PersonalizedPrescriptionPlanner().scopedTo(memo)
+        val item = PostGenerationFixture.source("press")
+        planner.prescribe(wrapped, StrengthIntent.MIXED, item, item.style)
+        planner.prescribe(wrapped, StrengthIntent.MIXED, item, item.style)
+        assertEquals(1, dayCalls)
+        assertEquals(1, tissueCalls)
+        assertEquals(1, memo.dayProjectionHits)
+        assertEquals(1, memo.tissueProjectionHits)
+        assertEquals(1, memo.prescriptionHits)
+    }
+
     /** Small test oracle retaining the pre-optimization traversal and objective calculations. */
     private fun referenceReview(
         baseline: Map<Int, List<TimedPlannedExercise>>,

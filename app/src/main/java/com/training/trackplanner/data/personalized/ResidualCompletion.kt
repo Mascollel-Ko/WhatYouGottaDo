@@ -143,7 +143,7 @@ internal class ResidualCompletion(private val prescriptions: PersonalizedPrescri
             else planningMedian(nonEmpty.map { it.sumOf(::plannedSeconds).toDouble() }))
         val additions = mutableListOf<ResidualAddition>()
         val exact = origins?.let { ExactAuthorizedRestoration(snapshot, state, initial.request, authorized,
-            minOf(demand.authorizedUnits, envelope.finalControllableUnits), projection, demand, week.atomByLocalId, it, rows, progress) }
+            minOf(demand.authorizedUnits, envelope.finalControllableUnits), projection, demand, week.atomByLocalId, it, rows, progress, prescriptions) }
         if (exact != null) rows = exact.restore(rows, days)
         fun dayRows(day: Int) = rows.filter { it.dayOfWeek == day }
         fun unitFill(day: Int) = if (referenceUnits > 0) dayRows(day).sumOf { it.setPrescriptions.size } / referenceUnits else 1.0

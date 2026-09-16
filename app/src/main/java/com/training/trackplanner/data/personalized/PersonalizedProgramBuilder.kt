@@ -197,11 +197,24 @@ data class PlannedPrescription(
     val weightSource: String
 )
 
-class PersonalizedPrescriptionPlanner {
+class PersonalizedPrescriptionPlanner private constructor(private val computationMemo: PlanningComputationMemo?) {
+    constructor() : this(null)
+    internal fun scopedTo(memo: PlanningComputationMemo): PersonalizedPrescriptionPlanner =
+        if (computationMemo === memo) this else withMemo(memo)
+
+    private companion object {
+        fun withMemo(memo: PlanningComputationMemo): PersonalizedPrescriptionPlanner = PersonalizedPrescriptionPlanner(memo)
+    }
+
     fun prescribe(snapshot: PlanningHistorySnapshot, item: PlannedExercise, style: StrengthProgrammingStyle, week: Int): PlannedPrescription =
         prescribe(snapshot, StrengthIntent.MIXED, item, style)
 
-    fun prescribe(snapshot: PlanningHistorySnapshot, strengthIntent: StrengthIntent, item: PlannedExercise, style: StrengthProgrammingStyle): PlannedPrescription {
+    fun prescribe(snapshot: PlanningHistorySnapshot, strengthIntent: StrengthIntent, item: PlannedExercise, style: StrengthProgrammingStyle): PlannedPrescription =
+        computationMemo?.prescription(snapshot, strengthIntent, item, style) {
+            prescribeUncached(snapshot, strengthIntent, item, style)
+        } ?: prescribeUncached(snapshot, strengthIntent, item, style)
+
+    private fun prescribeUncached(snapshot: PlanningHistorySnapshot, strengthIntent: StrengthIntent, item: PlannedExercise, style: StrengthProgrammingStyle): PlannedPrescription {
         if (snapshot.activityKind(item.stableKey) in PERFORMANCE_ACTIVITY_KINDS) return PerformancePrescriptionResolver.prescribe(snapshot, item)
         val history = snapshot.allConfirmedSets.filter { it.stableKey == item.stableKey }
         val latestDate = history.maxByOrNull { it.date.toEpochDay() }?.date
@@ -316,29 +329,33 @@ class PersonalizedProgramBuilder(
         frequency: PlanningFrequencyProvenance = PlanningFrequencyProvenance(WeeklyDosePlanner().resolve(state, state.anchors.size + gaps.size),
             request.weeklyTrainingDays, if (explicitWeeklyDays) PlanningFrequencySource.EXPLICIT_USER else PlanningFrequencySource.AUTO),
         progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE): GeneratedProgramSkeleton {
-        val placed = buildBeforeReflow(snapshot, state, gaps, intent, horizon, request, answers, priorDecisionId, explicitWeeklyDays, frequency, progress)
-        val reviewed = PostSplitWeeklyReflow().review(placed, snapshot, state, progress)
+        val memo = PlanningComputationMemo()
+        val memoSnapshot = memo.wrap(snapshot)
+        val generationPrescriptions = prescriptionPlanner.scopedTo(memo)
+        val placed = buildBeforeReflow(memoSnapshot, state, gaps, intent, horizon, request, answers, priorDecisionId, explicitWeeklyDays, frequency, progress, generationPrescriptions)
+        val reviewed = PostSplitWeeklyReflow().review(placed, memoSnapshot, state, progress)
         if (reviewed.trace.state == "NOT_APPLICABLE_NO_MANDATORY_SPLIT") return placed
         return reviewed.skeleton.copy(personalizedDecision = reviewed.skeleton.personalizedDecision?.copy(postSplitReflow = reviewed.trace))
     }
 
     private fun buildBeforeReflow(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, gaps: List<AdaptationGap>, intent: BlockIntent,
         horizon: Int, request: ProgramSkeletonRequest, answers: PersonalizedPlanningAnswers, priorDecisionId: String?, explicitWeeklyDays: Boolean,
-        frequency: PlanningFrequencyProvenance, progress: PersonalizedPlannerProgressReporter): GeneratedProgramSkeleton {
+        frequency: PlanningFrequencyProvenance, progress: PersonalizedPlannerProgressReporter,
+        generationPrescriptions: PersonalizedPrescriptionPlanner): GeneratedProgramSkeleton {
         if (!frequency.explicitIncrease) return buildCore(snapshot, state, gaps, intent, horizon, request, answers, priorDecisionId,
-            explicitWeeklyDays, frequency, progress = progress)
+            explicitWeeklyDays, frequency, progress = progress, generationPrescriptions = generationPrescriptions)
         // BASE is fully evaluated before expansion. Its nested work must not consume expansion's milestone range.
         val baseProgress = PersonalizedPlannerProgressReporter { stage ->
             progress.report(if (stage.percent > 50) PersonalizedPlannerStage.BASE_REVIEW else stage)
         }
         val base = buildCore(snapshot, state, gaps, intent, horizon, request.copy(weeklyTrainingDays = frequency.algorithmRecommendedDays),
-            answers, priorDecisionId, true, frequency, progress = baseProgress)
+            answers, priorDecisionId, true, frequency, progress = baseProgress, generationPrescriptions = generationPrescriptions)
         progress.report(PersonalizedPlannerStage.EXPANSION)
-        return FrequencyExpansionPlanner(prescriptionPlanner).expand(snapshot, state, request, base, frequency) { authorized, capacity ->
+        return FrequencyExpansionPlanner(generationPrescriptions).expand(snapshot, state, request, base, frequency) { authorized, capacity ->
             progress.report(PersonalizedPlannerStage.EXPANSION_RECHECK)
             var result: CompletionResult? = null
             buildCore(snapshot, state, gaps, intent, horizon, request, answers, priorDecisionId, true, frequency, authorized, capacity,
-                progress = PersonalizedPlannerProgressReporter { progress.report(PersonalizedPlannerStage.EXPANSION_RECHECK) }) {
+                progress = PersonalizedPlannerProgressReporter { progress.report(PersonalizedPlannerStage.EXPANSION_RECHECK) }, generationPrescriptions = generationPrescriptions) {
                 result = it
                 it.skeleton
             }
@@ -350,6 +367,7 @@ class PersonalizedProgramBuilder(
         horizon: Int, request: ProgramSkeletonRequest, answers: PersonalizedPlanningAnswers, priorDecisionId: String?, explicitWeeklyDays: Boolean,
         frequency: PlanningFrequencyProvenance, authorizedOverride: List<AuthorizedSchedulingDemand>? = null,
         capacityOverride: WeeklyCapacityEnvelope? = null,
+        generationPrescriptions: PersonalizedPrescriptionPlanner = prescriptionPlanner,
         progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE,
         finish: ((CompletionResult) -> GeneratedProgramSkeleton)? = null): GeneratedProgramSkeleton {
         progress.report(PersonalizedPlannerStage.DEMAND)
@@ -371,7 +389,7 @@ class PersonalizedProgramBuilder(
         val continuityReference = if (state.trainingStateAssessment?.permitsSustainableRelease == true)
             maxOf(baselineResistance, normalResistance ?: baselineResistance) else baselineResistance
         val resistanceContinuityDemand = continuityReference.roundToInt().coerceAtLeast(if (state.anchors.isEmpty()) 0 else 1)
-        val demand = MaterialDemandResolver().resolve(snapshot, state, gaps, request)
+        val demand = MaterialDemandResolver(generationPrescriptions).resolve(snapshot, state, gaps, request)
         val materialKeys = demand.candidates.filter(PlannedExercise::material).mapTo(mutableSetOf(), PlannedExercise::stableKey)
         val performanceContinuity = snapshot.allConfirmedSets.filter {
             !it.date.isBefore(snapshot.cutoff.minusDays(27)) && !it.date.isAfter(snapshot.cutoff) &&
@@ -436,11 +454,11 @@ class PersonalizedProgramBuilder(
             performanceContinuity.map { it.copy(targetSets = originalAllocations[it.stableKey] ?: it.targetSets) }
         val candidates = capacityCandidateTrace(snapshot, state,
             materialCandidates.map { it to false } + originalContinuity.map { it to true } + optionalCandidates.map { it to false },
-            selected, prescriptionPlanner)
-        val retained = retainedIncumbentSupply(snapshot, state, gaps, request, candidates, prescriptionPlanner)
+            selected, generationPrescriptions)
+        val retained = retainedIncumbentSupply(snapshot, state, gaps, request, candidates, generationPrescriptions)
         require(selected.isNotEmpty()) { "NO_EXECUTABLE_PLANNING_DEMAND" }
         progress.report(PersonalizedPlannerStage.PLACEMENT)
-        val allocator = SplitAwareContinuityAllocation(prescriptionPlanner, progress)
+        val allocator = SplitAwareContinuityAllocation(generationPrescriptions, progress)
         val placement = if (authorizedOverride == null) allocator.allocate(
             snapshot, state, continuity, gapItems, optional, days, request.sessionMinutes, request)
         else allocator.allocateAuthorized(snapshot, state, authorizedOverride, days, request.sessionMinutes, request)
@@ -572,7 +590,7 @@ class PersonalizedProgramBuilder(
             return initialSkeleton.copy(personalizedDecision = decision.copy(residualCompletion = ResidualCompletionTrace(
                 "POST_PROCESS_FAILED_SAFE_AUTHORIZED_PRESCRIPTION", fingerprint, fingerprint, snapshot.cutoff.plusDays(1).toString())))
         }
-        val completion = ResidualCompletion(prescriptionPlanner, progress).complete(initialSkeleton, snapshot, state, gaps,
+        val completion = ResidualCompletion(generationPrescriptions, progress).complete(initialSkeleton, snapshot, state, gaps,
             authorized, envelope, postProcessAtoms, postProcessSources, explicitWeeklyDays, snapshot.planDayProjection, postProcessOrigins)
         val completedWeek = completion.skeleton.items.filter { it.weekNumber == 1 }
         fun completedUnits(kind: PlannedActivityKind) = completedWeek.filter { snapshot.activityKind(it.exerciseStableKey) == kind }
