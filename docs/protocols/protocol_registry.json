@@ -1892,7 +1892,7 @@
       ],
       "canonicalDocument": "data_portability/CLOUD_BACKUP.md",
       "implementedFromAppVersion": "UNRELEASED_PHASE_2_SUPABASE_TRANSPORT",
-      "lastAuditedCommit": "71e4dbd171ea395b9979988a185cc34654537281",
+      "lastAuditedCommit": "c6e001ee3271f9086e679beb18199e171242ac67",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/CloudBackupState.kt",
         "app/src/main/java/com/training/trackplanner/data/CloudRevisionTracking.kt",

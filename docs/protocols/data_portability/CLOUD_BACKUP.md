@@ -7,7 +7,7 @@
 | Status | `DRAFT` |
 | Implementation status | `PARTIALLY_IMPLEMENTED` |
 | Implemented from app version | `UNRELEASED_PHASE_2_SUPABASE_TRANSPORT` |
-| Last audited commit | `71e4dbd171ea395b9979988a185cc34654537281` |
+| Last audited commit | `c6e001ee3271f9086e679beb18199e171242ac67` |
 | Evidence profile | `PRODUCT_POLICY, ENGINEERING_HEURISTIC` |
 | Supersedes | 없음 |
 
