@@ -56,9 +56,17 @@ internal data class RestoreWorkoutGraph(
     val displayOrder: Int?,
     val firstConfirmedAt: Long?,
     val performedAt: Long?,
-    val sets: List<RestoreSetRow>
+    val sets: List<RestoreSetRow>,
+    val sessionStableKey: String? = null
 ) {
+    // Legacy files cannot assert a session key; absence is not a content divergence.
+    fun hasSameContent(other: RestoreWorkoutGraph): Boolean =
+        if (sessionStableKey == null || other.sessionStableKey == null) {
+            copy(sessionStableKey = null).contentToken() == other.copy(sessionStableKey = null).contentToken()
+        } else contentToken() == other.contentToken()
+
     fun contentToken(): String = listOf(
+        sessionStableKey,
         date,
         stableKey,
         exerciseName,
@@ -149,11 +157,11 @@ internal class BackupRestorePlanner(
         val overlap = backupDates intersect currentDates
         val currentBySource = currentGraphs.mapNotNull { graph -> graph.sourceId?.let { it to graph } }.toMap()
         val divergent = graphs.count { graph ->
-            graph.sourceId?.let(currentBySource::get)?.contentToken()?.let { it != graph.contentToken() } == true
+            graph.sourceId?.let(currentBySource::get)?.let { !it.hasSameContent(graph) } == true
         }
         val outOfScope = graphs.count { graph ->
             val current = graph.sourceId?.let(currentBySource::get) ?: return@count false
-            current.date !in overlap && current.contentToken() != graph.contentToken()
+            current.date !in overlap && !current.hasSameContent(graph)
         }
         val represented = data.exerciseRows.mapTo(sortedSetOf()) { it.stableKey.trim() }.filter(String::isNotBlank).toSet()
         val currentExercises = exerciseDao.allExercises()
@@ -318,12 +326,13 @@ internal fun RecordCsvImportData.Restore.toWorkoutGraphs(): List<RestoreWorkoutG
     .values
     .map { rows ->
         val first = rows.first()
-        require(rows.all { it.date == first.date && it.stableKey == first.stableKey }) {
+        require(rows.all { it.date == first.date && it.stableKey == first.stableKey && it.sessionStableKey == first.sessionStableKey }) {
             "One backup entry key contains contradictory workout rows."
         }
         RestoreWorkoutGraph(
             entryKey = first.entryKey,
             sourceId = first.entrySourceId,
+            sessionStableKey = first.sessionStableKey,
             date = first.date,
             stableKey = first.stableKey,
             exerciseName = first.exerciseName,
@@ -345,6 +354,7 @@ internal fun RecordCsvImportData.Restore.toWorkoutGraphs(): List<RestoreWorkoutG
 internal fun WorkoutEntryWithSets.toRestoreGraph(): RestoreWorkoutGraph = RestoreWorkoutGraph(
     entryKey = entry.id.toString(),
     sourceId = entry.backupSourceId,
+    sessionStableKey = entry.sessionStableKey,
     date = entry.date,
     stableKey = entry.exerciseStableKey,
     exerciseName = entry.exerciseName,
@@ -379,6 +389,7 @@ internal fun WorkoutEntryWithSets.toRestoreGraph(): RestoreWorkoutGraph = Restor
             sleepHours = null,
             bodyWeightKg = null,
             entrySourceId = entry.backupSourceId,
+            sessionStableKey = entry.sessionStableKey,
             entryCreatedAt = entry.createdAt,
             entryCompletedAt = entry.completedAt,
             entryDisplayOrder = entry.displayOrder,

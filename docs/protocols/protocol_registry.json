@@ -1,6 +1,6 @@
 {
-  "registryVersion": "1.4.0",
-  "lastUpdated": "2026-09-03",
+  "registryVersion": "1.5.0",
+  "lastUpdated": "2026-09-16",
   "families": [
     {
       "familyId": "OFI",
@@ -1879,6 +1879,33 @@
       "publicSummaryAvailable": true
     },
     {
+      "protocolId": "DATA-CLOUD-BACKUP",
+      "familyId": "DATA_PORTABILITY",
+      "titleKo": "클라우드 백업",
+      "titleEn": "Cloud Backup",
+      "currentVersion": "1.0.0",
+      "status": "DRAFT",
+      "implementationStatus": "SPECIFICATION_ONLY",
+      "evidenceProfile": [
+        "PRODUCT_POLICY",
+        "ENGINEERING_HEURISTIC"
+      ],
+      "canonicalDocument": "data_portability/CLOUD_BACKUP.md",
+      "implementedFromAppVersion": null,
+      "lastAuditedCommit": "a56eaad3ad9a1a7afc33cb3cbfff9f963202c6bc",
+      "sourceAnchors": [],
+      "testAnchors": [],
+      "authorityAssets": [],
+      "supportingDocuments": [
+        "docs/protocols/data_portability/BACKUP_AND_RESTORE.md"
+      ],
+      "knownGaps": [
+        "Cloud runtime is specification only. Phase 1-A implements only local session identity and backup portability."
+      ],
+      "supersedes": [],
+      "publicSummaryAvailable": true
+    },
+    {
       "protocolId": "DATA-BACKUP-RESTORE",
       "familyId": "DATA_PORTABILITY",
       "titleKo": "백업과 복원",
@@ -1894,6 +1921,7 @@
       "implementedFromAppVersion": "v0.5.0.5; stableKey-only format from v0.5.0.6; metadata preservation from v0.5.0.11; exact program sets from v0.5.0.12; typed role relations from v0.5.0.21; canonical authority from v0.5.0.22; self-contained metadata snapshot from v0.5.0.24; explicit overrides and selectable safe restore from v0.5.0.25",
       "lastAuditedCommit": "d7ee94a5e35fbd76a4d756245aa48f62dd29ccfd",
       "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/data/WorkoutSessionIdentityMigration.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramProgressionBackup.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramProgressionWireCodec.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramProgressionMigration.kt",
@@ -1916,6 +1944,7 @@
         "app/src/main/java/com/training/trackplanner/BackupRestoreUiState.kt"
       ],
       "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/data/WorkoutSessionIdentityTest.kt",
         "app/src/test/java/com/training/trackplanner/data/ProgramProgressionPersistenceTest.kt",
         "app/src/androidTest/java/com/training/trackplanner/data/ProgramProgressionMigrationTest.kt",
         "app/src/test/java/com/training/trackplanner/data/ProgramBackupRestoreTest.kt",
@@ -1933,6 +1962,7 @@
         "app/src/test/java/com/training/trackplanner/BackupRestoreDialogUiTest.kt"
       ],
       "authorityAssets": [
+        "app/schemas/com.training.trackplanner.data.TrainingDatabase/32.json",
         "app/schemas/com.training.trackplanner.data.TrainingDatabase/30.json",
         "app/schemas/com.training.trackplanner.data.TrainingDatabase/31.json",
         "app/src/main/assets/training_settings_seed.csv",

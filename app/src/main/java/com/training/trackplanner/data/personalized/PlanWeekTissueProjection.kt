@@ -47,7 +47,8 @@ internal class CanonicalPlanWeekTissueProjection(private val cutoff: LocalDate, 
                 val id = identity--
                 accumulated += WorkoutEntryWithSets(WorkoutEntry(id = id, date = date.toString(),
                     exerciseStableKey = item.exerciseStableKey, exerciseName = item.exerciseName, category = item.category,
-                    restSeconds = item.restSeconds, createdAt = time, performedAt = time), item.setPrescriptions.map {
+                    restSeconds = item.restSeconds, createdAt = time, performedAt = time,
+                    sessionStableKey = "synthetic:plan-week:$day"), item.setPrescriptions.map {
                     WorkoutSet(entryId = id, setIndex = it.setIndex, reps = it.reps, weightKg = it.weightKg,
                         seconds = it.seconds, confirmed = true, rpe = targetRpeMax)
                 })

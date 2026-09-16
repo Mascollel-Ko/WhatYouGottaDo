@@ -30,6 +30,10 @@ internal class RecordMutationService(
                     category = exercise.category,
                     restSeconds = exercise.defaultRestSeconds,
                     displayOrder = beforeInsert.size + 1,
+                    // The date selects the UI context; reuse its last entry's stored session.
+                    sessionStableKey = beforeInsert.maxWithOrNull(
+                        compareBy({ it.entry.displayOrder }, { it.entry.createdAt }, { it.entry.id })
+                    )?.entry?.sessionStableKey ?: java.util.UUID.randomUUID().toString(),
                     backupSourceId = workoutSourceIdentityProvider?.newWorkoutSourceId()
                 )
             )
@@ -56,6 +60,7 @@ internal class RecordMutationService(
         mutateDates(setOf(previousDate, entry.date)) {
             workoutDao.updateEntry(
                 entry.copy(
+                    sessionStableKey = existing?.sessionStableKey ?: entry.sessionStableKey,
                     backupSourceId = existing?.backupSourceId
                         ?: workoutSourceIdentityProvider?.sourceIdForImport(entry.backupSourceId)
                         ?: entry.backupSourceId

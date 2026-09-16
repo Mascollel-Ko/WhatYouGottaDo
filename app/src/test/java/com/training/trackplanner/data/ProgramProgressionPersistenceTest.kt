@@ -146,7 +146,7 @@ class ProgramProgressionPersistenceTest {
         val csv = RecordCsvBackupRestore.wrapWithManifest(body, "test", 1, mapOf("execution_graph_row" to rows.size))
         val parsed = RecordCsvBackupRestore.parse(csv) as RecordCsvImportData.Restore
         assertEquals(rows, parsed.progressionRows)
-        assertEquals(13, parsed.manifest!!.formatVersion)
+        assertEquals(14, parsed.manifest!!.formatVersion)
         val restored = database()
         restored.exerciseDao().insertExercise(db.exerciseDao().allExercises().single())
         val mapping = entries.associate { row ->
@@ -280,7 +280,7 @@ class ProgramProgressionPersistenceTest {
 
     @Test fun format12Schema11WithoutExecutionRowsIsStillReadable() {
         val body = RecordCsvBackupRestore.buildRestoreCsv(emptyList(), emptyList(), emptyList())
-            .replace(Regex("(?m)^12,"), "11,")
+            .replace(Regex("(?m)^${RecordCsvBackupRestore.CURRENT_RESTORE_SCHEMA_VERSION},"), "11,")
         val wrapped = RecordCsvBackupRestore.wrapWithManifest(body, "old", 1, emptyMap(), capabilities = setOf(RecordCsvBackupRestore.EXPLICIT_METADATA_USER_OVERRIDES_CAPABILITY))
         val header = wrapped.substringBefore('\n').split(',').toMutableList().also { it[1] = "12" }.joinToString(",")
         val parsed = RecordCsvBackupRestore.parse(header + "\n" + wrapped.substringAfter('\n')) as RecordCsvImportData.Restore

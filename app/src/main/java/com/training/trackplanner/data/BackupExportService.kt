@@ -3,6 +3,14 @@ package com.training.trackplanner.data
 import android.content.Context
 import android.net.Uri
 
+internal data class CanonicalBackupContent(
+    val csv: String,
+    val result: RecordCsvTransferResult,
+    val warnings: List<DataTransferDiagnostic>
+) {
+    fun utf8Bytes(): ByteArray = csv.toByteArray(Charsets.UTF_8)
+}
+
 internal class BackupExportService(
     private val context: Context,
     private val workoutDao: WorkoutDao,
@@ -37,223 +45,8 @@ internal class BackupExportService(
         )
         session.begin()
         try {
-            session.stage(DataTransferStages.LOADING)
-            workoutSourceIdentityProvider.backfillMissingWorkoutSourceIds()
-            val sourceDatabaseLineageId = workoutSourceIdentityProvider.sourceDatabaseLineageId()
-            val entriesWithSets = workoutDao.allEntriesWithSets()
-            val entries = workoutDao.allEntries()
-            val sets = workoutDao.allSets()
-            val metrics = dailyMetricDao.allMetrics()
-            val checkIns = dailyCheckInDao.all()
-            val smashSpeeds = smashSpeedDao.all()
-            val exercises = exerciseDao.allExercises()
-            val trainingRoleRelations = exerciseRoleRelationDao.allTrainingRoles()
-            val programSlotCapabilityRelations = exerciseRoleRelationDao.allProgramSlotCapabilities()
-            val persistedRuntimeByKey = runtimeExerciseMetadataDao.all()
-                .map(RuntimeExerciseMetadataEntity::toRuntimeMetadata)
-                .associateBy(RuntimeExerciseMetadata::stableKey)
-            val metadataUserOverrides = exerciseMetadataUserOverrideDao.all()
-            val overridesByKey = metadataUserOverrides.groupBy(ExerciseMetadataUserOverrideEntity::stableKey)
-            val materializedRolesByKey = trainingRoleRelations
-                .groupBy(ExerciseTrainingRoleRelation::exerciseStableKey)
-                .mapValues { (_, rows) -> rows.mapTo(sortedSetOf(), ExerciseTrainingRoleRelation::trainingRoleCode) }
-            val materializedCapabilitiesByKey = programSlotCapabilityRelations
-                .groupBy(ExerciseProgramSlotCapabilityRelation::exerciseStableKey)
-                .mapValues { (_, rows) ->
-                    rows.mapTo(sortedSetOf(), ExerciseProgramSlotCapabilityRelation::capabilityCode)
-                }
-            val effectiveResolver = ExerciseMetadataEffectiveStateResolver(
-                canonicalExercisesByStableKey = canonicalMetadataRepository.exercises(includeHistory = true)
-                    .associateBy(Exercise::stableKey),
-                canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog,
-                canonicalTrainingRolesByStableKey = canonicalMetadataRepository.trainingRoleRelations()
-                    .groupBy(ExerciseTrainingRoleRelation::exerciseStableKey)
-                    .mapValues { (_, rows) ->
-                        rows.mapTo(sortedSetOf(), ExerciseTrainingRoleRelation::trainingRoleCode)
-                    },
-                canonicalProgramSlotsByStableKey = canonicalMetadataRepository.programSlotCapabilityRelations()
-                    .groupBy(ExerciseProgramSlotCapabilityRelation::exerciseStableKey)
-                    .mapValues { (_, rows) ->
-                        rows.mapTo(sortedSetOf(), ExerciseProgramSlotCapabilityRelation::capabilityCode)
-                    }
-            )
-            val effectiveStates = exercises.associate { exercise ->
-                exercise.stableKey to effectiveResolver.resolve(
-                    materializedExercise = exercise,
-                    materializedRuntimeMetadata = persistedRuntimeByKey[exercise.stableKey],
-                    materializedTrainingRoles = materializedRolesByKey[exercise.stableKey].orEmpty(),
-                    materializedProgramSlotCapabilities = materializedCapabilitiesByKey[exercise.stableKey].orEmpty(),
-                    overrides = overridesByKey[exercise.stableKey].orEmpty()
-                )
-            }
-            val runtimeMetadata = effectiveStates.values.map(ExerciseMetadataEffectiveState::runtimeMetadata)
-            val profile = initialUserProfileDao.profile()
-            val portableAppMeta = appMetaDao.all().filter { BackupAppMetaPolicy.authority(it.key) == BackupAppMetaAuthority.PORTABLE_USER_STATE }
-            val posteriorEvents = strengthPosteriorDao.allEvents()
-            val posteriorHistory = strengthPosteriorDao.allHistory()
-            val posteriorStates = strengthPosteriorDao.allModelStates()
-            val curvePosteriors = strengthPosteriorDao.allCurvePosteriors()
-            val posteriorEvidence = strengthPosteriorDao.allEvidence()
-            val posteriorRevisions = strengthPosteriorDao.allRevisions()
-            val programs = programDao.allPrograms()
-            val executionRows = progressionRows()
-            val programItems = programDao.allProgramItems()
-            val programItemSets = programDao.allProgramItemSets()
-            val programTombstones = programDao.allProgramTombstones()
-            val migrationIssues = exerciseIdentityMigrationIssueDao.all()
-            val posteriorLocalStates = posteriorRevisions.flatMap { revision ->
-                strengthPosteriorDao.localStates(revision.revisionKey)
-            }
-            val posteriorLocalHistory = posteriorRevisions.flatMap { revision ->
-                strengthPosteriorDao.localHistory(revision.revisionKey)
-            }
-            val posteriorProxyHistory = posteriorRevisions.flatMap { revision ->
-                strengthPosteriorDao.proxyHistory(revision.revisionKey)
-            }
-
-            session.stage(DataTransferStages.PREFLIGHT)
-            val preflight = BackupPreflightValidator.validate(
-                exercises = exercises,
-                workoutEntries = entries,
-                workoutSets = sets,
-                programs = programs,
-                programItems = programItems,
-                programItemSets = programItemSets,
-                runtimeMetadata = runtimeMetadata,
-                migrationIssues = migrationIssues
-            )
-            session.counts(
-                preflight.entityCounts + mapOf(
-                    "daily_metric" to metrics.size,
-                    "daily_check_in" to checkIns.size,
-                    "smash_speed" to smashSpeeds.size,
-                    "runtime_metadata" to runtimeMetadata.size
-                )
-            )
-            if (preflight.errors.isNotEmpty()) {
-                throw DataTransferFailure(
-                    session.finish(warnings = preflight.warnings, errors = preflight.errors)
-                )
-            }
-
-            val programsById = programs.associateBy(TrainingProgram::id)
-            val programItemsById = programItems.associateBy(TrainingProgramItem::id)
-            val exercisesByKey = exercises.associateBy(Exercise::stableKey)
-            val backupProgramItems = programItems.map { item ->
-                val program = checkNotNull(programsById[item.programId])
-                val exercise = checkNotNull(exercisesByKey[item.exerciseStableKey])
-                ProgramBackupItem(
-                    programStableKey = program.stableKey,
-                    weekNumber = item.weekNumber,
-                    dayOfWeek = item.dayOfWeek,
-                    orderIndex = item.orderIndex,
-                    exerciseStableKey = exercise.stableKey,
-                    exerciseName = item.exerciseName,
-                    category = item.category,
-                    restSeconds = item.restSeconds,
-                    prescription = item.prescription,
-                    setCount = item.setCount,
-                    reps = item.reps,
-                    weightKg = item.weightKg,
-                    seconds = item.seconds,
-                    trainingSlot = item.trainingSlot,
-                    dayIntensity = item.dayIntensity,
-                    weightSource = item.weightSource
-                )
-            }
-            val backupProgramItemSets = programItemSets.map { set ->
-                val item = checkNotNull(programItemsById[set.programItemId])
-                val program = checkNotNull(programsById[item.programId])
-                ProgramBackupItemSet(
-                    programStableKey = program.stableKey,
-                    weekNumber = item.weekNumber,
-                    dayOfWeek = item.dayOfWeek,
-                    orderIndex = item.orderIndex,
-                    setIndex = set.setIndex,
-                    reps = set.reps,
-                    weightKg = set.weightKg,
-                    seconds = set.seconds
-                )
-            }
-            val metadataSnapshots = exercises.flatMap { exercise ->
-                val state = checkNotNull(effectiveStates[exercise.stableKey])
-                ExerciseMetadataFieldPolicyRegistry.snapshot(
-                    ExerciseMetadataSnapshotSource(
-                        exercise = state.exercise,
-                        runtimeMetadata = state.runtimeMetadata,
-                        trainingRoles = state.trainingRoles,
-                        programSlotCapabilities = state.programSlotCapabilities
-                    )
-                )
-            }
-
-            session.stage(DataTransferStages.SERIALIZING)
-            val body = RecordCsvBackupRestore.buildRestoreCsv(
-                entriesWithSets = entriesWithSets,
-                metrics = metrics,
-                exercises = exercises,
-                initialProfile = profile,
-                checkIns = checkIns,
-                smashSpeeds = smashSpeeds,
-                runtimeMetadata = runtimeMetadata,
-                posteriorBootstrapMarker = appMetaDao.value(StrengthPosteriorUpdateCoordinator.BOOTSTRAP_MARKER_KEY),
-                posteriorEvents = posteriorEvents,
-                posteriorHistory = posteriorHistory,
-                posteriorModelStates = posteriorStates,
-                curvePosteriors = curvePosteriors,
-                posteriorEvidence = posteriorEvidence,
-                posteriorRevisions = posteriorRevisions,
-                posteriorLocalStates = posteriorLocalStates,
-                posteriorLocalHistory = posteriorLocalHistory,
-                posteriorProxyHistory = posteriorProxyHistory,
-                programs = programs,
-                programItems = backupProgramItems,
-                programItemSets = backupProgramItemSets,
-                programTombstones = programTombstones,
-                trainingRoleRelations = trainingRoleRelations,
-                programSlotCapabilityRelations = programSlotCapabilityRelations,
-                metadataSnapshots = metadataSnapshots,
-                metadataUserOverrides = metadataUserOverrides,
-                portableAppMeta = portableAppMeta,
-                sourceDatabaseLineageId = sourceDatabaseLineageId,
-                includeProgramSnapshot = true,
-                progressionRows = executionRows
-            )
-            val dailyBackupCount = (
-                metrics.map(DailyMetric::date) +
-                    checkIns.filter { it.sleepHours != null || it.bodyWeightKg != null }.map(DailyCheckIn::date)
-                ).distinct().size
-            val manifestCounts = RecordCsvBackupRestore.backupEntityCounts(
-                exerciseCount = exercises.size,
-                dailyMetricCount = dailyBackupCount,
-                dailyCheckInCount = checkIns.size,
-                smashSpeedCount = smashSpeeds.size,
-                profileCount = if (profile == null) 0 else 1,
-                entryCount = entriesWithSets.count { it.sets.isNotEmpty() },
-                setCount = sets.size,
-                runtimeMetadataCount = runtimeMetadata.count { it.stableKey.isNotBlank() },
-                programCount = programs.size,
-                programItemCount = backupProgramItems.size,
-                programItemSetCount = backupProgramItemSets.size,
-                programTombstoneCount = programTombstones.size,
-                metadataSnapshotCount = metadataSnapshots.size,
-                metadataUserOverrideCount = metadataUserOverrides.size,
-                portableAppMetaCount = portableAppMeta.size,
-                progressionRowCount = executionRows.size
-            )
-            val csv = RecordCsvBackupRestore.wrapWithManifest(
-                body = body,
-                appVersion = appVersion,
-                exportedAt = System.currentTimeMillis(),
-                entityCounts = manifestCounts,
-                representedExerciseStableKeys = exercises.mapTo(sortedSetOf(), Exercise::stableKey),
-                semanticCanonicalRevision = ExerciseMetadataRevisionPolicy.project(
-                    context,
-                    canonicalMetadataRepository
-                ).semanticCanonicalMetadataRevision,
-                sourceDatabaseLineageId = sourceDatabaseLineageId
-            )
-
+            val canonical = buildCanonicalBackup(session)
+            val csv = canonical.csv
             session.stage(DataTransferStages.WRITING)
             val output = try {
                 context.contentResolver.openOutputStream(uri)
@@ -299,32 +92,8 @@ internal class BackupExportService(
                 )
             }
 
-            val result = RecordCsvTransferResult(
-                format = "restore-v${RecordCsvBackupRestore.CURRENT_BACKUP_FORMAT_VERSION}",
-                exerciseCount = exercises.size,
-                dailyMetricCount = metrics.size,
-                dailyCheckInCount = checkIns.size,
-                smashSpeedCount = smashSpeeds.size,
-                profileCount = if (profile != null) 1 else 0,
-                entryCount = entries.size,
-                setCount = sets.size,
-                posteriorEventCount = posteriorEvents.size,
-                posteriorHistoryCount = posteriorHistory.size,
-                posteriorStateCount = posteriorStates.size,
-                posteriorCurveCount = curvePosteriors.size,
-                posteriorEvidenceCount = posteriorEvidence.size,
-                posteriorRevisionCount = posteriorRevisions.size,
-                posteriorLocalStateCount = posteriorLocalStates.size,
-                posteriorLocalHistoryCount = posteriorLocalHistory.size,
-                posteriorProxyTransferCount = posteriorProxyHistory.size,
-                programCount = programs.size,
-                programItemCount = backupProgramItems.size,
-                programItemSetCount = backupProgramItemSets.size,
-                programTombstoneCount = programTombstones.size,
-                warningCount = preflight.warnings.size
-            )
-            session.finish(warnings = preflight.warnings)
-            return result
+            session.finish(warnings = canonical.warnings)
+            return canonical.result
         } catch (failure: DataTransferFailure) {
             throw failure
         } catch (error: Throwable) {
@@ -347,6 +116,261 @@ internal class BackupExportService(
             }
             throw DataTransferFailure(session.finish(errors = listOf(diagnostic)))
         }
+    }
+
+    /** One current-format snapshot/preflight/serializer for manual and future transport callers.
+     * Call without a report session inside the caller's Room transaction for a consistent snapshot.
+     */
+    suspend fun buildCanonicalBackup(
+        session: DataTransferReportSession? = null,
+        exportedAt: Long = System.currentTimeMillis()
+    ): CanonicalBackupContent {
+        session?.stage(DataTransferStages.LOADING)
+        workoutSourceIdentityProvider.backfillMissingWorkoutSourceIds()
+        val sourceDatabaseLineageId = workoutSourceIdentityProvider.sourceDatabaseLineageId()
+        val entriesWithSets = workoutDao.allEntriesWithSets()
+        val entries = workoutDao.allEntries()
+        val sets = workoutDao.allSets()
+        val metrics = dailyMetricDao.allMetrics()
+        val checkIns = dailyCheckInDao.all()
+        val smashSpeeds = smashSpeedDao.all()
+        val exercises = exerciseDao.allExercises()
+        val trainingRoleRelations = exerciseRoleRelationDao.allTrainingRoles()
+        val programSlotCapabilityRelations = exerciseRoleRelationDao.allProgramSlotCapabilities()
+        val persistedRuntimeByKey = runtimeExerciseMetadataDao.all()
+            .map(RuntimeExerciseMetadataEntity::toRuntimeMetadata)
+            .associateBy(RuntimeExerciseMetadata::stableKey)
+        val metadataUserOverrides = exerciseMetadataUserOverrideDao.all()
+        val overridesByKey = metadataUserOverrides.groupBy(ExerciseMetadataUserOverrideEntity::stableKey)
+        val materializedRolesByKey = trainingRoleRelations
+            .groupBy(ExerciseTrainingRoleRelation::exerciseStableKey)
+            .mapValues { (_, rows) -> rows.mapTo(sortedSetOf(), ExerciseTrainingRoleRelation::trainingRoleCode) }
+        val materializedCapabilitiesByKey = programSlotCapabilityRelations
+            .groupBy(ExerciseProgramSlotCapabilityRelation::exerciseStableKey)
+            .mapValues { (_, rows) ->
+                rows.mapTo(sortedSetOf(), ExerciseProgramSlotCapabilityRelation::capabilityCode)
+            }
+        val effectiveResolver = ExerciseMetadataEffectiveStateResolver(
+            canonicalExercisesByStableKey = canonicalMetadataRepository.exercises(includeHistory = true)
+                .associateBy(Exercise::stableKey),
+            canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog,
+            canonicalTrainingRolesByStableKey = canonicalMetadataRepository.trainingRoleRelations()
+                .groupBy(ExerciseTrainingRoleRelation::exerciseStableKey)
+                .mapValues { (_, rows) ->
+                    rows.mapTo(sortedSetOf(), ExerciseTrainingRoleRelation::trainingRoleCode)
+                },
+            canonicalProgramSlotsByStableKey = canonicalMetadataRepository.programSlotCapabilityRelations()
+                .groupBy(ExerciseProgramSlotCapabilityRelation::exerciseStableKey)
+                .mapValues { (_, rows) ->
+                    rows.mapTo(sortedSetOf(), ExerciseProgramSlotCapabilityRelation::capabilityCode)
+                }
+        )
+        val effectiveStates = exercises.associate { exercise ->
+            exercise.stableKey to effectiveResolver.resolve(
+                materializedExercise = exercise,
+                materializedRuntimeMetadata = persistedRuntimeByKey[exercise.stableKey],
+                materializedTrainingRoles = materializedRolesByKey[exercise.stableKey].orEmpty(),
+                materializedProgramSlotCapabilities = materializedCapabilitiesByKey[exercise.stableKey].orEmpty(),
+                overrides = overridesByKey[exercise.stableKey].orEmpty()
+            )
+        }
+        val runtimeMetadata = effectiveStates.values.map(ExerciseMetadataEffectiveState::runtimeMetadata)
+        val profile = initialUserProfileDao.profile()
+        val portableAppMeta = appMetaDao.all().filter { BackupAppMetaPolicy.authority(it.key) == BackupAppMetaAuthority.PORTABLE_USER_STATE }
+        val posteriorEvents = strengthPosteriorDao.allEvents()
+        val posteriorHistory = strengthPosteriorDao.allHistory()
+        val posteriorStates = strengthPosteriorDao.allModelStates()
+        val curvePosteriors = strengthPosteriorDao.allCurvePosteriors()
+        val posteriorEvidence = strengthPosteriorDao.allEvidence()
+        val posteriorRevisions = strengthPosteriorDao.allRevisions()
+        val programs = programDao.allPrograms()
+        val executionRows = progressionRows()
+        val programItems = programDao.allProgramItems()
+        val programItemSets = programDao.allProgramItemSets()
+        val programTombstones = programDao.allProgramTombstones()
+        val migrationIssues = exerciseIdentityMigrationIssueDao.all()
+        val posteriorLocalStates = posteriorRevisions.flatMap { revision ->
+            strengthPosteriorDao.localStates(revision.revisionKey)
+        }
+        val posteriorLocalHistory = posteriorRevisions.flatMap { revision ->
+            strengthPosteriorDao.localHistory(revision.revisionKey)
+        }
+        val posteriorProxyHistory = posteriorRevisions.flatMap { revision ->
+            strengthPosteriorDao.proxyHistory(revision.revisionKey)
+        }
+
+        session?.stage(DataTransferStages.PREFLIGHT)
+        val preflight = BackupPreflightValidator.validate(
+            exercises = exercises,
+            workoutEntries = entries,
+            workoutSets = sets,
+            programs = programs,
+            programItems = programItems,
+            programItemSets = programItemSets,
+            runtimeMetadata = runtimeMetadata,
+            migrationIssues = migrationIssues
+        )
+        session?.counts(
+            preflight.entityCounts + mapOf(
+                "daily_metric" to metrics.size,
+                "daily_check_in" to checkIns.size,
+                "smash_speed" to smashSpeeds.size,
+                "runtime_metadata" to runtimeMetadata.size
+            )
+        )
+        if (preflight.errors.isNotEmpty()) {
+            if (session != null) {
+                throw DataTransferFailure(session.finish(warnings = preflight.warnings, errors = preflight.errors))
+            }
+            throw DataTransferFormatException(preflight.errors.first().code, preflight.errors.first().messageKo)
+        }
+
+        val programsById = programs.associateBy(TrainingProgram::id)
+        val programItemsById = programItems.associateBy(TrainingProgramItem::id)
+        val exercisesByKey = exercises.associateBy(Exercise::stableKey)
+        val backupProgramItems = programItems.map { item ->
+            val program = checkNotNull(programsById[item.programId])
+            val exercise = checkNotNull(exercisesByKey[item.exerciseStableKey])
+            ProgramBackupItem(
+                programStableKey = program.stableKey,
+                weekNumber = item.weekNumber,
+                dayOfWeek = item.dayOfWeek,
+                orderIndex = item.orderIndex,
+                exerciseStableKey = exercise.stableKey,
+                exerciseName = item.exerciseName,
+                category = item.category,
+                restSeconds = item.restSeconds,
+                prescription = item.prescription,
+                setCount = item.setCount,
+                reps = item.reps,
+                weightKg = item.weightKg,
+                seconds = item.seconds,
+                trainingSlot = item.trainingSlot,
+                dayIntensity = item.dayIntensity,
+                weightSource = item.weightSource
+            )
+        }
+        val backupProgramItemSets = programItemSets.map { set ->
+            val item = checkNotNull(programItemsById[set.programItemId])
+            val program = checkNotNull(programsById[item.programId])
+            ProgramBackupItemSet(
+                programStableKey = program.stableKey,
+                weekNumber = item.weekNumber,
+                dayOfWeek = item.dayOfWeek,
+                orderIndex = item.orderIndex,
+                setIndex = set.setIndex,
+                reps = set.reps,
+                weightKg = set.weightKg,
+                seconds = set.seconds
+            )
+        }
+        val metadataSnapshots = exercises.flatMap { exercise ->
+            val state = checkNotNull(effectiveStates[exercise.stableKey])
+            ExerciseMetadataFieldPolicyRegistry.snapshot(
+                ExerciseMetadataSnapshotSource(
+                    exercise = state.exercise,
+                    runtimeMetadata = state.runtimeMetadata,
+                    trainingRoles = state.trainingRoles,
+                    programSlotCapabilities = state.programSlotCapabilities
+                )
+            )
+        }
+
+        session?.stage(DataTransferStages.SERIALIZING)
+        val body = RecordCsvBackupRestore.buildRestoreCsv(
+            entriesWithSets = entriesWithSets,
+            metrics = metrics,
+            exercises = exercises,
+            initialProfile = profile,
+            checkIns = checkIns,
+            smashSpeeds = smashSpeeds,
+            runtimeMetadata = runtimeMetadata,
+            posteriorBootstrapMarker = appMetaDao.value(StrengthPosteriorUpdateCoordinator.BOOTSTRAP_MARKER_KEY),
+            posteriorEvents = posteriorEvents,
+            posteriorHistory = posteriorHistory,
+            posteriorModelStates = posteriorStates,
+            curvePosteriors = curvePosteriors,
+            posteriorEvidence = posteriorEvidence,
+            posteriorRevisions = posteriorRevisions,
+            posteriorLocalStates = posteriorLocalStates,
+            posteriorLocalHistory = posteriorLocalHistory,
+            posteriorProxyHistory = posteriorProxyHistory,
+            programs = programs,
+            programItems = backupProgramItems,
+            programItemSets = backupProgramItemSets,
+            programTombstones = programTombstones,
+            trainingRoleRelations = trainingRoleRelations,
+            programSlotCapabilityRelations = programSlotCapabilityRelations,
+            metadataSnapshots = metadataSnapshots,
+            metadataUserOverrides = metadataUserOverrides,
+            portableAppMeta = portableAppMeta,
+            sourceDatabaseLineageId = sourceDatabaseLineageId,
+            includeProgramSnapshot = true,
+            progressionRows = executionRows
+        )
+        val dailyBackupCount = (
+            metrics.map(DailyMetric::date) +
+                checkIns.filter { it.sleepHours != null || it.bodyWeightKg != null }.map(DailyCheckIn::date)
+            ).distinct().size
+        val manifestCounts = RecordCsvBackupRestore.backupEntityCounts(
+            exerciseCount = exercises.size,
+            dailyMetricCount = dailyBackupCount,
+            dailyCheckInCount = checkIns.size,
+            smashSpeedCount = smashSpeeds.size,
+            profileCount = if (profile == null) 0 else 1,
+            entryCount = entriesWithSets.count { it.sets.isNotEmpty() },
+            setCount = sets.size,
+            runtimeMetadataCount = runtimeMetadata.count { it.stableKey.isNotBlank() },
+            programCount = programs.size,
+            programItemCount = backupProgramItems.size,
+            programItemSetCount = backupProgramItemSets.size,
+            programTombstoneCount = programTombstones.size,
+            metadataSnapshotCount = metadataSnapshots.size,
+            metadataUserOverrideCount = metadataUserOverrides.size,
+            portableAppMetaCount = portableAppMeta.size,
+            progressionRowCount = executionRows.size
+        )
+        val csv = RecordCsvBackupRestore.wrapWithManifest(
+            body = body,
+            appVersion = appVersion,
+            exportedAt = exportedAt,
+            entityCounts = manifestCounts,
+            representedExerciseStableKeys = exercises.mapTo(sortedSetOf(), Exercise::stableKey),
+            semanticCanonicalRevision = ExerciseMetadataRevisionPolicy.project(
+                context,
+                canonicalMetadataRepository
+            ).semanticCanonicalMetadataRevision,
+            sourceDatabaseLineageId = sourceDatabaseLineageId
+        )
+
+        val result = RecordCsvTransferResult(
+            format = "restore-v${RecordCsvBackupRestore.CURRENT_BACKUP_FORMAT_VERSION}",
+            exerciseCount = exercises.size,
+            dailyMetricCount = metrics.size,
+            dailyCheckInCount = checkIns.size,
+            smashSpeedCount = smashSpeeds.size,
+            profileCount = if (profile != null) 1 else 0,
+            entryCount = entries.size,
+            setCount = sets.size,
+            posteriorEventCount = posteriorEvents.size,
+            posteriorHistoryCount = posteriorHistory.size,
+            posteriorStateCount = posteriorStates.size,
+            posteriorCurveCount = curvePosteriors.size,
+            posteriorEvidenceCount = posteriorEvidence.size,
+            posteriorRevisionCount = posteriorRevisions.size,
+            posteriorLocalStateCount = posteriorLocalStates.size,
+            posteriorLocalHistoryCount = posteriorLocalHistory.size,
+            posteriorProxyTransferCount = posteriorProxyHistory.size,
+            programCount = programs.size,
+            programItemCount = backupProgramItems.size,
+            programItemSetCount = backupProgramItemSets.size,
+            programTombstoneCount = programTombstones.size,
+            warningCount = preflight.warnings.size
+        )
+        // Validate the exact generated content before handing it to any transport.
+        val parsed = RecordCsvBackupRestore.parse(csv)
+        check(parsed is RecordCsvImportData.Restore && parsed.manifest != null)
+        return CanonicalBackupContent(csv, result, preflight.warnings)
     }
 
     private fun exportFailure(

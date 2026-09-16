@@ -32,7 +32,8 @@ class PlanDayOfiProjection(
         WorkoutEntryWithSets(
             WorkoutEntry(id = id, date = projectionDate.toString(), exerciseStableKey = item.exerciseStableKey,
                 exerciseName = item.exerciseName, category = item.category, restSeconds = item.restSeconds,
-                rpe = null, createdAt = 0L, displayOrder = index),
+                rpe = null, createdAt = 0L, displayOrder = index,
+                sessionStableKey = "synthetic:plan-day"),
             item.setPrescriptions.map { set -> WorkoutSet(entryId = id, setIndex = set.setIndex,
                 reps = set.reps, weightKg = set.weightKg, seconds = set.seconds, confirmed = true, rpe = null) }
         )

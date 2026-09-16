@@ -253,6 +253,7 @@ interface WorkoutDao {
     suspend fun insertEntryUnchecked(entry: WorkoutEntry): Long
 
     suspend fun insertEntry(entry: WorkoutEntry): Long {
+        require(entry.sessionStableKey.isNotBlank()) { "Workout sessionStableKey must not be blank." }
         require(entry.exerciseStableKey.isNotBlank()) { "Workout exerciseStableKey must not be blank." }
         require(entry.backupSourceId == null || entry.backupSourceId.isNotBlank()) {
             "Workout backupSourceId must be null or nonblank."
@@ -273,6 +274,7 @@ interface WorkoutDao {
     suspend fun updateEntryUnchecked(entry: WorkoutEntry)
 
     suspend fun updateEntry(entry: WorkoutEntry) {
+        require(entry.sessionStableKey.isNotBlank()) { "Workout sessionStableKey must not be blank." }
         require(entry.exerciseStableKey.isNotBlank()) { "Workout exerciseStableKey must not be blank." }
         require(entry.backupSourceId == null || entry.backupSourceId.isNotBlank()) {
             "Workout backupSourceId must be null or nonblank."

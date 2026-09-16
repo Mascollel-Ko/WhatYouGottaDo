@@ -31,14 +31,15 @@ internal class DailyStatusService(
 
     internal suspend fun upsertInTransaction(
         checkIn: DailyCheckIn,
-        preserveUpdatedAt: Boolean = false
+        preserveUpdatedAt: Boolean = false,
+        preserveCreatedAt: Boolean = false
     ) {
         val validated = checkIn.validated()
         val existing = dailyCheckInDao.getForDate(checkIn.date)
         val existingMetric = dailyMetricDao.metric(checkIn.date)
         val updatedAt = if (preserveUpdatedAt) validated.updatedAt else System.currentTimeMillis()
         val canonical = validated.copy(
-            createdAt = existing?.createdAt ?: validated.createdAt,
+            createdAt = if (preserveCreatedAt) validated.createdAt else existing?.createdAt ?: validated.createdAt,
             updatedAt = updatedAt
         )
         dailyCheckInDao.upsert(canonical)

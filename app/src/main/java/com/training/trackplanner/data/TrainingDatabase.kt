@@ -43,7 +43,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         StrengthExercisePerformanceHistoryEntity::class,
         StrengthProxyTransferHistoryEntity::class
     ],
-    version = 31,
+    version = 32,
     exportSchema = true
 )
 @TypeConverters(RuntimeMetadataTypeConverters::class)
@@ -853,7 +853,8 @@ abstract class TrainingDatabase : RoomDatabase() {
                         MIGRATION_27_28,
                         MIGRATION_28_29,
                         MIGRATION_29_30,
-                        ProgramProgressionMigration.MIGRATION_30_31
+                        ProgramProgressionMigration.MIGRATION_30_31,
+                        MIGRATION_31_32
                     )
                     .build()
                     .also { instance = it }

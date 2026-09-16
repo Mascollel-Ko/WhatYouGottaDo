@@ -15,6 +15,7 @@ application, tests, tooling, and protocol registry.
   architecture and result-availability semantics.
 - `docs/strict_bayesian_lab_app_integration.md`: current Lab orchestration, UI,
   detail-report, and export contract.
+- `docs/cloud_backup_phase_1a_release_notes.md`: session identity, migration, format compatibility and creation-path audit.
 - `docs/codex_worklog.md`: cumulative implementation worklog.
 
 Older release notes, handoffs, superseded designs, and generated Markdown

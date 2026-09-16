@@ -85,6 +85,10 @@ restore preflight fingerprint도 실행 graph를 포함합니다. 이전 format 
 
 ## 4. 비적용 범위
 
+Local/manual backup and restore remain governed by this protocol. Cloud backup,
+lineage, semantic merge and conflict handling are governed separately by
+[DATA-CLOUD-BACKUP](CLOUD_BACKUP.md).
+
 프로필, 일별 상태와 strength analysis 입력의 기존 백업 의미는 바꾸지
 않습니다. Exercise metadata는 v0.5.0.24부터 이 계약의 typed snapshot
 범위에 포함됩니다. Backup 암호화, cloud

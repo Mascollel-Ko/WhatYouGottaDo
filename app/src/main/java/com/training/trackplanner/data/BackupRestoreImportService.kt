@@ -185,6 +185,9 @@ internal class BackupRestoreImportService(
                 programTombstoneCount = counts.tombstones
             }
             val importedDailyMetrics = mutableMapOf<String, DailyMetric>()
+            // Daily-metric restoration may synthesize a check-in before its explicit backup row.
+            // Those new rows must not override the backup's original creation timestamp.
+            val checkInDatesBeforeRestore = dailyCheckInDao.all().mapTo(mutableSetOf(), DailyCheckIn::date)
             data.dailyRows.forEach { row ->
                 if (row.sleepHours != null || row.bodyWeightKg != null) {
                     dailyStatusService.saveDailyMetricInTransaction(
@@ -215,7 +218,8 @@ internal class BackupRestoreImportService(
                         createdAt = row.createdAt ?: now,
                         updatedAt = row.updatedAt ?: now
                     ),
-                    preserveUpdatedAt = true
+                    preserveUpdatedAt = true,
+                    preserveCreatedAt = row.date !in checkInDatesBeforeRestore
                 )
                 if (canonicalMetric == null && row.sleepHours != null) dailyCount += 1
                 dailyMetricDao.metric(row.date)?.let { metric ->
@@ -256,10 +260,11 @@ internal class BackupRestoreImportService(
             }
             val restoredEntryIdsByBackupKey = mutableMapOf<String, Long>()
             val restoredEntryIdsBySource = mutableMapOf<String, Long>()
+            val legacySessionKeys = mutableMapOf<String, String>()
             plan.prepared.workoutGraphs.forEach { graph ->
                 val existing = graph.sourceId?.let(currentBySource::get)
                 if (existing != null) {
-                    val sameContent = existing.toRestoreGraph().contentToken() == graph.contentToken()
+                    val sameContent = existing.toRestoreGraph().hasSameContent(graph)
                     val existingWasReplaced = plan.workoutMode == WorkoutRestoreMode.REPLACE_OVERLAPPING_DATES &&
                         existing.entry.date in plan.prepared.overlappingDates
                     if (!existingWasReplaced) {
@@ -303,6 +308,9 @@ internal class BackupRestoreImportService(
                         displayOrder = graph.displayOrder ?: first.entryOrder,
                         firstConfirmedAt = graph.firstConfirmedAt,
                         performedAt = graph.performedAt,
+                        sessionStableKey = graph.sessionStableKey ?: legacySessionKeys.getOrPut(graph.date) {
+                            java.util.UUID.randomUUID().toString()
+                        },
                         backupSourceId = sourceId
                     )
                 )

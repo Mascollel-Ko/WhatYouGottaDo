@@ -235,6 +235,7 @@ internal class CalendarRecordService(
                 workoutDao.deleteEntriesOnDates(targetDates)
             }
             var createdAt = nextCreatedAt()
+            val copiedSessionKeys = mutableMapOf<String, String>()
             sourceEntriesByDate.forEachIndexed { index, (_, entries) ->
                 if (entries.isNotEmpty()) {
                     copyEntriesToDate(
@@ -242,7 +243,8 @@ internal class CalendarRecordService(
                         targetDate = targetDates[index],
                         keepConfirmed = keepConfirmed,
                         baseCreatedAt = createdAt,
-                        preserveSourceIdentity = false
+                        preserveSourceIdentity = false,
+                        copiedSessionKeys = copiedSessionKeys
                     )
                     createdAt += entries.size
                 }
@@ -257,7 +259,8 @@ internal class CalendarRecordService(
         baseCreatedAt: Long,
         preserveSourceIdentity: Boolean,
         progressionLinks: Map<Long, ProgramWorkoutLink> = emptyMap(),
-        progressionPrescriptions: Map<Long, List<ProgramPrescriptionSet>> = emptyMap()
+        progressionPrescriptions: Map<Long, List<ProgramPrescriptionSet>> = emptyMap(),
+        copiedSessionKeys: MutableMap<String, String> = mutableMapOf()
     ) {
         sourceEntries.forEachIndexed { entryIndex, entryWithSets ->
             val confirmedCount = entryWithSets.sets.count { it.confirmed }
@@ -274,6 +277,13 @@ internal class CalendarRecordService(
                         null
                     },
                     performedAt = null,
+                    sessionStableKey = if (preserveSourceIdentity) {
+                        entryWithSets.entry.sessionStableKey
+                    } else {
+                        copiedSessionKeys.getOrPut(entryWithSets.entry.sessionStableKey) {
+                            java.util.UUID.randomUUID().toString()
+                        }
+                    },
                     backupSourceId = if (preserveSourceIdentity) {
                         workoutSourceIdentityProvider?.sourceIdForImport(entryWithSets.entry.backupSourceId)
                             ?: entryWithSets.entry.backupSourceId

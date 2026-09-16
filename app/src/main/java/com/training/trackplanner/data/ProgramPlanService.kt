@@ -260,12 +260,14 @@ internal class ProgramPlanService(
             progression.author(programId)
             val application = ProgramApplication(programStableKey = program.stableKey, programName = program.name, startDate = startDate)
             db.programProgressionDao().putApplication(application)
+            val sessionKeys = mutableMapOf<String, String>()
             items.forEachIndexed { index, item ->
                 val itemDate = dateForProgramItem(startDate, item)
                 val storedSets = storedSetsByItemId[item.id].orEmpty()
                 val entryId = workoutDao.insertEntry(
                     WorkoutEntry(
                         date = itemDate,
+                        sessionStableKey = sessionKeys.getOrPut(itemDate) { java.util.UUID.randomUUID().toString() },
                         exerciseStableKey = item.exerciseStableKey,
                         exerciseName = item.exerciseName,
                         category = item.category,

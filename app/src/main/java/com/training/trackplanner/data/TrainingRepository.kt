@@ -496,29 +496,37 @@ class TrainingRepository(
         uri: Uri,
         onReportChanged: (DataTransferReport) -> Unit = {}
     ): RecordCsvTransferResult = withContext(Dispatchers.IO) {
-        BackupExportService(
-            context = context,
-            workoutDao = workoutDao,
-            dailyMetricDao = dailyMetricDao,
-            dailyCheckInDao = dailyCheckInDao,
-            smashSpeedDao = smashSpeedDao,
-            exerciseDao = exerciseDao,
-            exerciseRoleRelationDao = exerciseRoleRelationDao,
-            initialUserProfileDao = initialUserProfileDao,
-            runtimeExerciseMetadataDao = runtimeExerciseMetadataDao,
-            exerciseMetadataUserOverrideDao = exerciseMetadataUserOverrideDao,
-            appMetaDao = appMetaDao,
-            strengthPosteriorDao = strengthPosteriorDao,
-            programDao = programDao,
-            exerciseIdentityMigrationIssueDao = exerciseIdentityMigrationIssueDao,
-            canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog,
-            canonicalMetadataRepository = canonicalMetadataRepository,
-            workoutSourceIdentityProvider = workoutSourceIdentityProvider,
-            reportStore = dataTransferReportStore,
-            appVersion = context.packageManager.getPackageInfo(context.packageName, 0).versionName.orEmpty(),
-            progressionRows = { ProgramProgressionBackup.export(db) }
-        ).export(uri, onReportChanged)
+        backupExportService().export(uri, onReportChanged)
     }
+
+    /** Current canonical payload, without a user-selected Uri or any Cloud lineage. */
+    internal suspend fun canonicalRecordsBackup(exportedAt: Long = System.currentTimeMillis()): CanonicalBackupContent =
+        withContext(Dispatchers.IO) {
+            db.withTransaction { backupExportService().buildCanonicalBackup(exportedAt = exportedAt) }
+        }
+
+    private fun backupExportService() = BackupExportService(
+        context = context,
+        workoutDao = workoutDao,
+        dailyMetricDao = dailyMetricDao,
+        dailyCheckInDao = dailyCheckInDao,
+        smashSpeedDao = smashSpeedDao,
+        exerciseDao = exerciseDao,
+        exerciseRoleRelationDao = exerciseRoleRelationDao,
+        initialUserProfileDao = initialUserProfileDao,
+        runtimeExerciseMetadataDao = runtimeExerciseMetadataDao,
+        exerciseMetadataUserOverrideDao = exerciseMetadataUserOverrideDao,
+        appMetaDao = appMetaDao,
+        strengthPosteriorDao = strengthPosteriorDao,
+        programDao = programDao,
+        exerciseIdentityMigrationIssueDao = exerciseIdentityMigrationIssueDao,
+        canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog,
+        canonicalMetadataRepository = canonicalMetadataRepository,
+        workoutSourceIdentityProvider = workoutSourceIdentityProvider,
+        reportStore = dataTransferReportStore,
+        appVersion = context.packageManager.getPackageInfo(context.packageName, 0).versionName.orEmpty(),
+        progressionRows = { ProgramProgressionBackup.export(db) }
+    )
 
     suspend fun latestDataTransferReport(): DataTransferReport? = withContext(Dispatchers.IO) {
         dataTransferReportStore.latest()

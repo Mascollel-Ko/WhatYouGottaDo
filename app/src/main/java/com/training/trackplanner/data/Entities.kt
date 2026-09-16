@@ -147,7 +147,9 @@ data class WorkoutEntry(
     val displayOrder: Int = 0,
     val firstConfirmedAt: Long? = null,
     val performedAt: Long? = null,
-    val backupSourceId: String? = null
+    val backupSourceId: String? = null,
+    @androidx.room.ColumnInfo(defaultValue = "''")
+    val sessionStableKey: String = java.util.UUID.randomUUID().toString()
 )
 
 @Entity(tableName = "workout_sets")

@@ -171,6 +171,7 @@ data class RestoreSetRow(
     val sleepHours: Double?,
     val bodyWeightKg: Double?,
     val entrySourceId: String? = null,
+    val sessionStableKey: String? = null,
     val entryCreatedAt: Long? = null,
     val entryCompletedAt: Long? = null,
     val entryDisplayOrder: Int? = null,
@@ -237,8 +238,8 @@ data class DailyTimeseriesRow(
 )
 
 object RecordCsvBackupRestore {
-    internal const val CURRENT_RESTORE_SCHEMA_VERSION = 12
-    internal const val CURRENT_BACKUP_FORMAT_VERSION = 13
+    internal const val CURRENT_RESTORE_SCHEMA_VERSION = 13
+    internal const val CURRENT_BACKUP_FORMAT_VERSION = 14
     internal const val CURRENT_PROGRAM_BACKUP_SCHEMA_VERSION = 2
     internal const val EXPLICIT_METADATA_USER_OVERRIDES_CAPABILITY = "EXPLICIT_METADATA_USER_OVERRIDES_V1"
     private const val MANIFEST_PREFIX = "#WGTD_BACKUP_MANIFEST"
@@ -249,6 +250,7 @@ object RecordCsvBackupRestore {
         "date",
         "entry_key",
         "entry_source_id",
+        "session_stable_key",
         "entry_order",
         "entry_created_at",
         "entry_completed_at",
@@ -804,6 +806,7 @@ object RecordCsvBackupRestore {
                                 "date" to entry.date,
                                 "entry_key" to entry.id.toString(),
                                 "entry_source_id" to sourceId,
+                                "session_stable_key" to entry.sessionStableKey.also { require(it.isNotBlank()) },
                                 "entry_order" to (entryIndex + 1).toString(),
                                 "entry_created_at" to entry.createdAt.toString(),
                                 "entry_completed_at" to entry.completedAt?.toString().orEmpty(),
@@ -1005,8 +1008,13 @@ object RecordCsvBackupRestore {
         if (parsed is RecordCsvImportData.Restore && manifest != null) {
             validateManifestCounts(manifest, parsed)
             if (manifest.formatVersion >= 12) {
-                require(parsed.backupSchemaVersion == if (manifest.formatVersion == 12) 11 else CURRENT_RESTORE_SCHEMA_VERSION) {
-                    "Backup format 12 must use restore schema $CURRENT_RESTORE_SCHEMA_VERSION."
+                val expectedSchemaVersion = when (manifest.formatVersion) {
+                    12 -> 11
+                    13 -> 12
+                    else -> CURRENT_RESTORE_SCHEMA_VERSION
+                }
+                require(parsed.backupSchemaVersion == expectedSchemaVersion) {
+                    "Backup format and restore schema versions do not match."
                 }
                 val represented = parsed.exerciseRows.map(RestoreExerciseRow::stableKey)
                     .map(String::trim)
@@ -1031,6 +1039,9 @@ object RecordCsvBackupRestore {
         index: Map<String, Int>,
         manifest: BackupManifest?
     ): RecordCsvImportData.Restore {
+        if ((manifest?.formatVersion ?: 0) >= 14) {
+            require("session_stable_key" in index) { "Backup format 14 requires session_stable_key." }
+        }
         val isFormat12 = (manifest?.formatVersion ?: 0) >= 12
         if (isFormat12) {
             val requiredColumns = setOf(
@@ -1432,6 +1443,7 @@ object RecordCsvBackupRestore {
                     sleepHours = row.safeSleepHours(index),
                     bodyWeightKg = row.safeDouble(index, "body_weight_kg"),
                     entrySourceId = row.value(index, "entry_source_id").ifBlank { null },
+                    sessionStableKey = row.value(index, "session_stable_key").ifBlank { null },
                     entryCreatedAt = row.safeLong(index, "entry_created_at"),
                     entryCompletedAt = row.safeLong(index, "entry_completed_at"),
                     entryDisplayOrder = row.safeInt(index, "entry_display_order"),
@@ -1506,6 +1518,14 @@ object RecordCsvBackupRestore {
             )
         }
         ExerciseMetadataFieldPolicyRegistry.validate(metadataSnapshotRows)
+        if ((manifest?.formatVersion ?: 0) >= 14 || backupSchemaVersion >= 13) {
+            require(setRows.all { !it.sessionStableKey.isNullOrBlank() }) {
+                "Session-aware backups require a nonblank session identity on every workout row."
+            }
+        }
+        require(setRows.groupBy(RestoreSetRow::entryKey).values.all { rows ->
+            rows.map(RestoreSetRow::sessionStableKey).distinct().size == 1
+        }) { "One backup entry contains contradictory session identities." }
         ProgramProgressionBackup.validate(progressionRows, setRows.mapNotNull { row -> row.entrySourceId?.let { it to row.stableKey } }.toMap())
         if (progressionRows.isNotEmpty()) {
             require(backupSchemaVersion >= 12) { "Execution graph requires restore schema 12" }

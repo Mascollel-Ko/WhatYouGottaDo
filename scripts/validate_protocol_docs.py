@@ -74,6 +74,31 @@ HEADINGS = [
     "관련 문서",
     "변경 이력",
 ]
+
+# Approved Cloud specification has its own complete 20-section structure.
+CLOUD_BACKUP_HEADINGS = [
+    '일반 사용자용 요약',
+    '목적',
+    '적용 범위',
+    '비적용 범위',
+    '용어',
+    '입력 데이터와 권위 identity',
+    'Cloud Backup 계약',
+    'Cloud object, quota, retention',
+    'Lineage, 비교, semantic merge',
+    'Conflict와 resolution',
+    'Restore와 Local Recovery',
+    'Retry와 failure',
+    'Server data model과 제품 정책',
+    'Server authority, RLS, state transition',
+    'Upload verify / finalize',
+    'Cleanup',
+    '출력과 UI 해석',
+    '예외 및 fallback',
+    '현재 구현 상태, 구현 위치, 검증',
+    '권위 자산, 관련 문서, 변경 이력',
+]
+
 CANONICAL_FAMILY_DIRS = {
     "ofi",
     "connective_tissue",
@@ -130,7 +155,7 @@ def metadata_value(text: str, field: str) -> str | None:
         text,
         re.MULTILINE,
     )
-    return match.group(1).strip() if match else None
+    return match.group(1).strip().strip("`") if match else None
 
 
 def without_known_gaps(text: str) -> str:
@@ -226,7 +251,8 @@ def validate_protocol(item: dict, family_ids: set[str], errors: Errors) -> None:
         errors.add(protocol_id, document, "canonicalDocument", "Create the registered Markdown file.")
         return
     text = path.read_text(encoding="utf-8")
-    for number, heading in enumerate(HEADINGS, start=1):
+    headings = CLOUD_BACKUP_HEADINGS if protocol_id == "DATA-CLOUD-BACKUP" else HEADINGS
+    for number, heading in enumerate(headings, start=1):
         expected = f"## {number}. {heading}"
         if expected not in text:
             errors.add(protocol_id, document, f"heading {number}", f"Add exact heading `{expected}`.")
