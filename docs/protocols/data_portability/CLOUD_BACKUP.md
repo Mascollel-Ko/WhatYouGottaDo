@@ -5,15 +5,15 @@
 | Protocol ID | `DATA-CLOUD-BACKUP` |
 | Protocol version | `1.0.1` |
 | Status | `DRAFT` |
-| Implementation status | `SPECIFICATION_ONLY` |
-| Implemented from app version | `NOT_IMPLEMENTED` |
-| Last audited commit | `b742693b8e4dc0ea2207b0913e26f27f0db56d2e` |
+| Implementation status | `PARTIALLY_IMPLEMENTED` |
+| Implemented from app version | `UNRELEASED_PHASE_1_B1` |
+| Last audited commit | `890d08c89bd71c9ffc0db7a9e8c19c7b820d62ce` |
 | Evidence profile | `PRODUCT_POLICY, ENGINEERING_HEURISTIC` |
 | Supersedes | 없음 |
 
 `1.0.0`은 WhatYouGottaDo의 Cloud Backup, 계정별 데이터 격리, backup lineage,
 semantic merge, conflict recovery, Supabase/R2 권한 경계를 처음 governed contract로
-고정한 버전입니다. 이 문서는 현재 runtime 구현을 주장하지 않습니다.
+고정한 버전입니다. 전체 Cloud runtime 구현을 주장하지 않으며 local foundation 구현 범위는 19절에 명시합니다.
 
 ---
 
@@ -1827,7 +1827,20 @@ OFF 자체가 lineage reset은 아닙니다.
 
 ### 19.1 현재 구현 상태
 
-이 문서는 `SPECIFICATION_ONLY`입니다.
+이 문서는 `PARTIALLY_IMPLEMENTED`입니다. Phase 1-A의 session identity와
+Phase 1-B1의 local state/revision infrastructure만 구현되었습니다.
+Room 32 → 33은 installation-local `cloud_backup_state`만 추가합니다.
+현재 canonical backup은 format 14 / restore schema 13이며 Cloud state를 포함하지 않습니다.
+
+Phase 1-B1 source/test audit와 mutation classification:
+[local revision audit](../../cloud_backup_phase_1b1_audit.md).
+새 설치 상태는 revision 0 / pending false이며, 기존 DB migration은 Cloud 승인 이력이
+없으므로 base/account/success ID 없이 revision 1 / pending true로 보수적으로 시작합니다.
+일반 user operation은 동일 Room transaction에서 실제 domain 변경을 비교하여 한 번만
+revision을 증가시킵니다. nested operation은 한 번으로 합쳐지며 no-op와 infrastructure는 제외됩니다.
+수동 import branch reset은 Local Recovery 작업까지 연결하지 않습니다.
+`startExternalCloudBranchInTransaction` API와 import transaction TODO/test가 integration boundary입니다.
+Cloud가 활성화된 end-to-end backup 동작을 의미하지 않습니다.
 
 Cloud runtime, Supabase tables, Edge Functions, R2 lifecycle, WorkManager integration,
 Conflict UI는 아직 이 문서 기준으로 구현되었다고 간주하지 않습니다.
@@ -1844,9 +1857,6 @@ Conflict UI는 아직 이 문서 기준으로 구현되었다고 간주하지 �
 
 새로 필요한 대표 구현:
 
-- `sessionStableKey`
-- Room migration과 legacy same-date backfill
-- Cloud local state
 - WorkManager
 - Supabase schema/RLS/Edge Functions
 - R2 presigned upload/download
@@ -1871,8 +1881,20 @@ app/src/main/java/com/training/trackplanner/data/ProgramProgressionBackup.kt
 docs/protocols/data_portability/BACKUP_AND_RESTORE.md
 ```
 
-Cloud-specific source path는 구현 시 확정하고 이 문서에 실제 anchor로 갱신해야 합니다.
-존재하지 않는 파일 경로를 미리 authoritative anchor로 기록하지 않습니다.
+Phase 1-B1 local implementation anchors:
+
+```text
+app/src/main/java/com/training/trackplanner/data/CloudBackupState.kt
+app/src/main/java/com/training/trackplanner/data/CloudRevisionTracking.kt
+app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt
+app/src/main/java/com/training/trackplanner/data/RecordMutationService.kt
+app/src/main/java/com/training/trackplanner/data/DailyStatusService.kt
+app/schemas/com.training.trackplanner.data.TrainingDatabase/33.json
+app/src/test/java/com/training/trackplanner/data/CloudBackupStateTest.kt
+app/src/test/java/com/training/trackplanner/data/WorkoutSessionIdentityTest.kt
+```
+
+Cloud transport/recovery/auth는 여전히 미구현입니다.
 
 ### 19.3 Required verification
 

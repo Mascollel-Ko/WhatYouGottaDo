@@ -347,13 +347,14 @@ class TrainingRepository(
     val programWorkoutLinks = db.programProgressionDao().observeLinks()
     val progressionSuggestions = db.programProgressionDao().observeSuggestions()
     suspend fun refreshProgression() = withContext(Dispatchers.IO) { programProgressionService.refresh() }
-    suspend fun configureProgression(itemId: Long, linkMode: ProgressionLinkMode, trackId: String?, role: ProgressionRole, mode: ProgressionMode, rule: ProgressionRule) = withContext(Dispatchers.IO) {
+    suspend fun configureProgression(itemId: Long, linkMode: ProgressionLinkMode, trackId: String?, role: ProgressionRole, mode: ProgressionMode, rule: ProgressionRule) = cloudMutation(CloudMutationScope.PROGRAMS) {
         programProgressionService.configure(itemId, linkMode, trackId, role, mode, rule)
     }
-    suspend fun resolveProgression(id: String, resolution: ProgressionResolution, kg: Double?): Boolean = withContext(Dispatchers.IO) {
+    suspend fun resolveProgression(id: String, resolution: ProgressionResolution, kg: Double?): Boolean = cloudMutation(CloudMutationScope.PROGRAMS) {
         programProgressionService.resolve(id, resolution, kg)
     }
     private val personalizedProgramPlanningService = PersonalizedProgramPlanningService(
+        persistUserState = { mutation -> db.withCloudRevision(CloudMutationScope.PORTABLE_META, mutation) },
         performancePrescriptions = com.training.trackplanner.data.personalized.PerformancePrescriptionResolver.fromCanonicalPrograms(SeedData.programs(context)),
         exerciseDao = exerciseDao,
         workoutDao = workoutDao,
@@ -424,11 +425,14 @@ class TrainingRepository(
     fun observeSmashSpeedsForDate(date: String): Flow<List<SmashSpeedRecord>> =
         smashSpeedService.observeForDate(date)
 
-    suspend fun addSmashSpeed(date: String, speedKmh: Double, note: String? = null) = withContext(Dispatchers.IO) {
+    private suspend fun <T> cloudMutation(scope: CloudMutationScope, mutation: suspend () -> T): T =
+        withContext(Dispatchers.IO) { db.withCloudRevision(scope, mutation) }
+
+    suspend fun addSmashSpeed(date: String, speedKmh: Double, note: String? = null) = cloudMutation(CloudMutationScope.SMASH) {
         smashSpeedService.add(date, speedKmh, note)
     }
 
-    suspend fun deleteSmashSpeed(recordId: Long) = withContext(Dispatchers.IO) {
+    suspend fun deleteSmashSpeed(recordId: Long) = cloudMutation(CloudMutationScope.SMASH) {
         smashSpeedService.delete(recordId)
     }
 
@@ -640,7 +644,7 @@ class TrainingRepository(
     fun programItemSets(programId: Long): Flow<List<TrainingProgramItemSet>> =
         programPlanService.programItemSets(programId)
 
-    suspend fun saveInitialUserProfile(profile: InitialUserProfile) = withContext(Dispatchers.IO) {
+    suspend fun saveInitialUserProfile(profile: InitialUserProfile) = cloudMutation(CloudMutationScope.PROFILE) {
         val existing = initialUserProfileDao.profile()
         initialUserProfileDao.upsert(
             profile.copy(
@@ -652,6 +656,7 @@ class TrainingRepository(
     }
 
     suspend fun seedIfNeeded() = withContext(Dispatchers.IO) {
+        db.cloudBackupStateDao().getOrCreate()
         val exerciseSeedVersion = appMetaDao.intValue(META_EXERCISE_SEED_VERSION)
         val programSeedVersion = appMetaDao.intValue(META_PROGRAM_SEED_VERSION)
         val semanticRevision = exerciseMetadataReconciliationService.markRequiredIfNeeded()
@@ -764,12 +769,12 @@ class TrainingRepository(
         }
 
     suspend fun saveExerciseEditor(data: ExerciseRuntimeMetadataEditorData): String =
-        withContext(Dispatchers.IO) {
+        cloudMutation(CloudMutationScope.EXERCISES) {
             exerciseMetadataEditorService.saveExerciseEditor(data)
         }
 
     suspend fun resetExerciseMetadataOverride(exerciseStableKey: String): Boolean =
-        withContext(Dispatchers.IO) {
+        cloudMutation(CloudMutationScope.EXERCISES) {
             exerciseMetadataEditorService.resetExerciseMetadataOverride(exerciseStableKey)
         }
 
@@ -796,11 +801,11 @@ class TrainingRepository(
     ): RuntimeExerciseMetadataCatalog =
         exerciseMetadataEditorService.resolvedRuntimeMetadataCatalog(exercises)
 
-    suspend fun setExerciseActive(exerciseStableKey: String, active: Boolean) = withContext(Dispatchers.IO) {
+    suspend fun setExerciseActive(exerciseStableKey: String, active: Boolean) = cloudMutation(CloudMutationScope.EXERCISES) {
         exerciseMetadataEditorService.setExerciseActive(exerciseStableKey, active)
     }
 
-    suspend fun deleteExerciseIfUnused(exerciseStableKey: String): ExerciseDeleteResult = withContext(Dispatchers.IO) {
+    suspend fun deleteExerciseIfUnused(exerciseStableKey: String): ExerciseDeleteResult = cloudMutation(CloudMutationScope.EXERCISES) {
         exerciseMetadataEditorService.deleteExerciseIfUnused(exerciseStableKey)
     }
 
@@ -838,11 +843,11 @@ class TrainingRepository(
     }
 
     suspend fun reorderWorkoutEntries(date: String, orderedEntryIds: List<Long>): Boolean =
-        withContext(Dispatchers.IO) {
+        cloudMutation(CloudMutationScope.workouts(listOf(date))) {
             recordPresentationOrderService.reorder(date, orderedEntryIds)
         }
 
-    suspend fun createProgram() = withContext(Dispatchers.IO) {
+    suspend fun createProgram() = cloudMutation(CloudMutationScope.PROGRAMS) {
         programPlanService.createProgram()
     }
 
@@ -895,12 +900,12 @@ class TrainingRepository(
 
     suspend fun saveLegacyAutoProgram(existingProgramId: Long?, skeleton: LegacyAutoSkeleton,
         progressionDraft: LegacyProgressionDraft = LegacyProgressionDraft()): Long =
-        withContext(Dispatchers.IO) { programPlanService.saveLegacyAutoProgram(existingProgramId, skeleton, progressionDraft) }
+        cloudMutation(CloudMutationScope.PROGRAMS) { programPlanService.saveLegacyAutoProgram(existingProgramId, skeleton, progressionDraft) }
 
     suspend fun saveGeneratedProgram(
         existingProgramId: Long?,
         skeleton: GeneratedProgramSkeleton
-    ): Long = withContext(Dispatchers.IO) {
+    ): Long = cloudMutation(CloudMutationScope.PROGRAMS) {
         programPlanService.saveGeneratedProgram(existingProgramId, skeleton).also { programId ->
             skeleton.personalizedDecision?.let { decision ->
                 val stableKey = requireNotNull(programPlanService.programStableKey(programId))
@@ -910,7 +915,7 @@ class TrainingRepository(
         }
     }
 
-    suspend fun deleteProgram(programId: Long) = withContext(Dispatchers.IO) {
+    suspend fun deleteProgram(programId: Long) = cloudMutation(CloudMutationScope.PROGRAMS) {
         programPlanService.deleteProgram(programId)
     }
 
@@ -919,17 +924,17 @@ class TrainingRepository(
         weekNumber: Int,
         dayOfWeek: Int,
         exerciseStableKey: String
-    ) = withContext(Dispatchers.IO) {
+    ) = cloudMutation(CloudMutationScope.PROGRAMS) {
         programPlanService.addExerciseToProgram(programId, weekNumber, dayOfWeek, exerciseStableKey)
         programPlanService.programFingerprint(programId)?.let { personalizedProgramPlanningService.markProgramEdited(programId, it) }
     }
 
-    suspend fun updateProgramItem(item: TrainingProgramItem) = withContext(Dispatchers.IO) {
+    suspend fun updateProgramItem(item: TrainingProgramItem) = cloudMutation(CloudMutationScope.PROGRAMS) {
         programPlanService.updateProgramItem(item)
         programPlanService.programFingerprint(item.programId)?.let { personalizedProgramPlanningService.markProgramEdited(item.programId, it) }
     }
 
-    suspend fun deleteProgramItem(item: TrainingProgramItem) = withContext(Dispatchers.IO) {
+    suspend fun deleteProgramItem(item: TrainingProgramItem) = cloudMutation(CloudMutationScope.PROGRAMS) {
         programPlanService.deleteProgramItem(item)
         programPlanService.programFingerprint(item.programId)?.let { personalizedProgramPlanningService.markProgramEdited(item.programId, it) }
     }
@@ -945,7 +950,7 @@ class TrainingRepository(
         firstDate: String,
         secondDate: String,
         name: String
-    ): Long = withContext(Dispatchers.IO) {
+    ): Long = cloudMutation(CloudMutationScope.PROGRAMS) {
         programPlanService.createProgramFromRecordRange(firstDate, secondDate, name)
     }
 
@@ -965,7 +970,7 @@ class TrainingRepository(
         programId: Long,
         startDate: String,
         mode: ProgramApplyMode
-    ) = withContext(Dispatchers.IO) {
+    ) = cloudMutation(CloudMutationScope.APPLICATION) {
         programPlanService.applyProgramToDates(programId, startDate, mode)
     }
 

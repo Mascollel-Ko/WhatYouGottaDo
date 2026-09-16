@@ -24,7 +24,7 @@ internal class DailyStatusService(
         withContext(Dispatchers.IO) { dailyCheckInDao.between(startDate, endDate) }
 
     suspend fun upsertDailyCheckIn(checkIn: DailyCheckIn) = withContext(Dispatchers.IO) {
-        db.withTransaction {
+        db.withCloudRevision(CloudMutationScope.DAILY) {
             upsertInTransaction(checkIn)
         }
     }
@@ -56,7 +56,7 @@ internal class DailyStatusService(
     }
 
     suspend fun deleteDailyCheckIn(date: String) = withContext(Dispatchers.IO) {
-        dailyCheckInDao.deleteForDate(date)
+        db.withCloudRevision(CloudMutationScope.DAILY) { dailyCheckInDao.deleteForDate(date) }
     }
 
     suspend fun saveDailyMetric(
@@ -64,7 +64,7 @@ internal class DailyStatusService(
         sleepHours: Double?,
         bodyWeightKg: Double?
     ) = withContext(Dispatchers.IO) {
-        db.withTransaction {
+        db.withCloudRevision(CloudMutationScope.DAILY) {
             saveDailyMetricInTransaction(date, sleepHours, bodyWeightKg)
         }
     }

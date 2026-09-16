@@ -326,9 +326,10 @@ internal class CalendarRecordService(
         val plannedSets: List<WorkoutSet>
     )
 
-    private suspend fun <T> mutateDates(dates: Collection<String>, mutation: suspend () -> T): T =
-        strengthPosteriorCoordinator?.mutateDates(dates, mutation = mutation)
-            ?: db.withTransaction { mutation() }
+    private suspend fun <T> mutateDates(dates: Collection<String>, mutation: suspend () -> T): T {
+        val tracked: suspend () -> T = { db.withCloudRevision(CloudMutationScope.workouts(dates), mutation) }
+        return strengthPosteriorCoordinator?.mutateDates(dates, mutation = tracked) ?: tracked()
+    }
 
     private companion object {
         const val MAX_PLAN_PUSH_DAYS = 36_500

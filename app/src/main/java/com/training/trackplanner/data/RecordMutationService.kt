@@ -109,28 +109,30 @@ internal class RecordMutationService(
             return@withTransaction RecordSetMutationResult(entry.date, completion, completion, false, false)
         }
         val mutation: suspend () -> RecordSetMutationResult = {
-            val before = StrengthSessionCompletionDetector.state(workoutDao, entry.date)
-            val existing = workoutDao.findSetById(set.id)
-            ProgramProgressionService(db).beforeSetUpdate(existing, set)
-            val newlyConfirmed = set.confirmed && existing?.confirmed != true
-            val firstConfirmationForEntry = newlyConfirmed && entry.firstConfirmedAt == null &&
-                workoutDao.confirmedCountForEntry(set.entryId) == 0
-            workoutDao.updateSet(set)
-            if (newlyConfirmed) {
-                workoutDao.markEntryConfirmed(set.entryId, System.currentTimeMillis())
-                if (firstConfirmationForEntry) {
-                    RecordEntryOrdering.insertNewlyPerformed(workoutDao.entriesWithSets(entry.date), entry.id)
-                        .forEachIndexed { index, record ->
-                            if (record.entry.displayOrder != index + 1) workoutDao.updateEntryDisplayOrder(record.entry.id, index + 1)
-                        }
+            db.withCloudRevision(CloudMutationScope.workouts(listOf(entry.date))) {
+                val before = StrengthSessionCompletionDetector.state(workoutDao, entry.date)
+                val existing = workoutDao.findSetById(set.id)
+                ProgramProgressionService(db).beforeSetUpdate(existing, set)
+                val newlyConfirmed = set.confirmed && existing?.confirmed != true
+                val firstConfirmationForEntry = newlyConfirmed && entry.firstConfirmedAt == null &&
+                    workoutDao.confirmedCountForEntry(set.entryId) == 0
+                workoutDao.updateSet(set)
+                if (newlyConfirmed) {
+                    workoutDao.markEntryConfirmed(set.entryId, System.currentTimeMillis())
+                    if (firstConfirmationForEntry) {
+                        RecordEntryOrdering.insertNewlyPerformed(workoutDao.entriesWithSets(entry.date), entry.id)
+                            .forEachIndexed { index, record ->
+                                if (record.entry.displayOrder != index + 1) workoutDao.updateEntryDisplayOrder(record.entry.id, index + 1)
+                            }
+                    }
+                } else {
+                    refreshEntryCompletion(set.entryId)
                 }
-            } else {
-                refreshEntryCompletion(set.entryId)
+                RecordSetMutationResult(
+                    entry.date, before, StrengthSessionCompletionDetector.state(workoutDao, entry.date),
+                    newlyConfirmed, derivedAnalysisDirty = existing != set
+                )
             }
-            RecordSetMutationResult(
-                entry.date, before, StrengthSessionCompletionDetector.state(workoutDao, entry.date),
-                newlyConfirmed, derivedAnalysisDirty = existing != set
-            )
         }
         strengthPosteriorCoordinator?.mutateDate(entry.date, processImmediately = false, mutation = mutation)
             ?: mutation()
@@ -150,13 +152,15 @@ internal class RecordMutationService(
         }
     }
 
-    private suspend fun <T> mutateDate(date: String, mutation: suspend () -> T): T =
-        strengthPosteriorCoordinator?.mutateDate(date, mutation = mutation)
-            ?: db.withTransaction { mutation() }
+    private suspend fun <T> mutateDate(date: String, mutation: suspend () -> T): T {
+        val tracked: suspend () -> T = { db.withCloudRevision(CloudMutationScope.workouts(listOf(date)), mutation) }
+        return strengthPosteriorCoordinator?.mutateDate(date, mutation = tracked) ?: tracked()
+    }
 
-    private suspend fun <T> mutateDates(dates: Collection<String>, mutation: suspend () -> T): T =
-        strengthPosteriorCoordinator?.mutateDates(dates, mutation = mutation)
-            ?: db.withTransaction { mutation() }
+    private suspend fun <T> mutateDates(dates: Collection<String>, mutation: suspend () -> T): T {
+        val tracked: suspend () -> T = { db.withCloudRevision(CloudMutationScope.workouts(dates), mutation) }
+        return strengthPosteriorCoordinator?.mutateDates(dates, mutation = tracked) ?: tracked()
+    }
 
     private fun defaultSet(entryId: Long, setIndex: Int, exercise: Exercise?): WorkoutSet {
         val seconds = when (exercise?.category) {

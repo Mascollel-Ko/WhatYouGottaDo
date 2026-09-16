@@ -66,7 +66,8 @@ internal class PersonalizedProgramPlanningService(
     private val gapAnalyzer: AdaptationGapAnalyzer = AdaptationGapAnalyzer(),
     private val blockPlanner: BlockIntentPlanner = BlockIntentPlanner(),
     private val horizonPlanner: PlanningHorizonPlanner = PlanningHorizonPlanner(),
-    private val programBuilder: PersonalizedProgramBuilder = PersonalizedProgramBuilder()
+    private val programBuilder: PersonalizedProgramBuilder = PersonalizedProgramBuilder(),
+    private val persistUserState: suspend (suspend () -> Unit) -> Unit = { it() }
 ) {
     suspend fun prepare(
         request: ProgramSkeletonRequest,
@@ -266,18 +267,20 @@ internal class PersonalizedProgramPlanningService(
             interruptionFrequency = answers.values[QUESTION_INTERRUPTION_FREQUENCY]?.let(InterruptionFrequency::valueOf) ?: old.interruptionFrequency,
             interruptionFrequencyAnsweredAtEpochMillis = if (QUESTION_INTERRUPTION_FREQUENCY in answers.values) System.currentTimeMillis() else old.interruptionFrequencyAnsweredAtEpochMillis
         )
-        appMetaDao.upsert(AppMeta(PREFERENCES_KEY, JSONObject()
-            .put("strengthIntent", next.strengthIntent?.name.orEmpty())
-            .put("strengthIntentAnsweredAtEpochMillis", next.strengthIntentAnsweredAtEpochMillis)
-            .put("strengthIntentProfileGoal", next.strengthIntentProfileGoal.orEmpty())
-            .put("badmintonIntent", next.badmintonIntent?.name.orEmpty())
-            .put("interruptionCause",next.interruptionCause?.name.orEmpty())
-            .put("interruptionFrequency",next.interruptionFrequency?.name.orEmpty())
-            .put("interruptionFrequencyAnsweredAtEpochMillis",next.interruptionFrequencyAnsweredAtEpochMillis)
-            .put("freeWeightWillingness", next.freeWeightWillingness?.name.orEmpty()).toString()))
-        val annotations=answers.weekAnnotations(System.currentTimeMillis())
-        if (annotations.isNotEmpty()) appMetaDao.upsert(AppMeta(WeeklyContextAnnotationJson.KEY,
-            WeeklyContextAnnotationJson.write(WeeklyContextAnnotationJson.read(appMetaDao.value(WeeklyContextAnnotationJson.KEY))+annotations)))
+        persistUserState {
+            appMetaDao.upsert(AppMeta(PREFERENCES_KEY, JSONObject()
+                .put("strengthIntent", next.strengthIntent?.name.orEmpty())
+                .put("strengthIntentAnsweredAtEpochMillis", next.strengthIntentAnsweredAtEpochMillis)
+                .put("strengthIntentProfileGoal", next.strengthIntentProfileGoal.orEmpty())
+                .put("badmintonIntent", next.badmintonIntent?.name.orEmpty())
+                .put("interruptionCause",next.interruptionCause?.name.orEmpty())
+                .put("interruptionFrequency",next.interruptionFrequency?.name.orEmpty())
+                .put("interruptionFrequencyAnsweredAtEpochMillis",next.interruptionFrequencyAnsweredAtEpochMillis)
+                .put("freeWeightWillingness", next.freeWeightWillingness?.name.orEmpty()).toString()))
+            val annotations=answers.weekAnnotations(System.currentTimeMillis())
+            if (annotations.isNotEmpty()) appMetaDao.upsert(AppMeta(WeeklyContextAnnotationJson.KEY,
+                WeeklyContextAnnotationJson.write(WeeklyContextAnnotationJson.read(appMetaDao.value(WeeklyContextAnnotationJson.KEY))+annotations)))
+        }
     }
 
     private fun decisionIdFromJson(value: String): String? = runCatching { JSONObject(value).optString("decisionId").takeIf(String::isNotBlank) }.getOrNull()

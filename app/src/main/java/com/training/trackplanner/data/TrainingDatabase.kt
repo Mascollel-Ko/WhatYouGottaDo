@@ -10,6 +10,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [
+        CloudBackupState::class,
         ProgramProgressionTrack::class,
         ProgramProgressionItem::class,
         ProgramApplication::class,
@@ -43,11 +44,12 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         StrengthExercisePerformanceHistoryEntity::class,
         StrengthProxyTransferHistoryEntity::class
     ],
-    version = 32,
+    version = 33,
     exportSchema = true
 )
 @TypeConverters(RuntimeMetadataTypeConverters::class)
 abstract class TrainingDatabase : RoomDatabase() {
+    abstract fun cloudBackupStateDao(): CloudBackupStateDao
     abstract fun programProgressionDao(): ProgramProgressionDao
     abstract fun exerciseDao(): ExerciseDao
     abstract fun exerciseIdentityMigrationIssueDao(): ExerciseIdentityMigrationIssueDao
@@ -854,7 +856,8 @@ abstract class TrainingDatabase : RoomDatabase() {
                         MIGRATION_28_29,
                         MIGRATION_29_30,
                         ProgramProgressionMigration.MIGRATION_30_31,
-                        MIGRATION_31_32
+                        MIGRATION_31_32,
+                        MIGRATION_32_33
                     )
                     .build()
                     .also { instance = it }
