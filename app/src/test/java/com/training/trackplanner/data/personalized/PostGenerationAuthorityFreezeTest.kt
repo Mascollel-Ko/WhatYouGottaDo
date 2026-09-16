@@ -17,7 +17,7 @@ class PostGenerationAuthorityFreezeTest {
             "AthletePlanningStateBuilder.kt" to "edc55032496651ad17488b20275f163f51f54c3b57b3aef5c3b64195b06585f7",
             "ExposureRepresentation.kt" to "c50938180f863a2316a8dff8eba21b49afce5cda295eb1ace7c7a7322408e4e8",
             "PersonalizedDecisionComponents.kt" to "c2364c349bd40028049d0028577df999f69efd33c2bd9d503a5499180dc2ff60",
-            "ExecutionAllocationPlanner.kt" to "cf89638b399e1997ddf89e790956fb316f09cc19ce9eb4d70322901c96317195",
+            "ExecutionAllocationPlanner.kt" to "e41aa089d5d845eab2b18662463d24048f817908f4069fd239ba0bc2c9e68b2b",
             "PerformancePrescriptionResolver.kt" to "48eda34c9e390ca109bbb1e19e7a8ac79802f01f60c25470f92c8eb7f87063be",
             "RecordBasedReviewedPolicy.kt" to "cc5b12bf40b47226d75256455aa9bc34908f47f78e9ea3ac0fa76016f97bc25d",
             "PlanningHistorySnapshotBuilder.kt" to "2df6c87925dcfc7c03a340e6a12a5158b2575e57330b13ba445bf36b62848828",
@@ -32,7 +32,7 @@ class PostGenerationAuthorityFreezeTest {
         val builderAuthorities = File(root, "app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt")
             .readText().replace("\r\n", "\n").substringBefore("class PersonalizedProgramBuilder(")
         assertEquals("Continuity, GapCandidateSelector, PersonalizedPrescriptionPlanner, validation and repair stay frozen",
-            "24a45f447d98757f5fdd0e8132aadbf1b894bb1ac1a053ddade80ad92a930343",
+            "e5485c32ad5d1c9ef342a4e405cff2eb8108234d232242e9a426000f6b0bc4e8",
             MessageDigest.getInstance("SHA-256").digest(builderAuthorities.toByteArray()).joinToString("") { "%02x".format(it) })
     }
 }

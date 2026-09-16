@@ -8,6 +8,13 @@ import org.json.JSONObject
 import java.io.File
 
 class BoundedDayRebalancerTest {
+    @Test fun candidateEvaluationReusesUnaffectedDayMetrics() {
+        val counts = RebalanceEvaluationCounts()
+        BoundedDayRebalancer().rebalance(completed(underloadRows()), snapshot, f.state(snapshot), f.safe, counts)
+        assertTrue(counts.candidates > 0)
+        assertTrue(counts.reusedDayMetrics > 0)
+    }
+
     @Test fun primarySeparationEntersEvenWhenRelativeBandsAreBalancedAndKeepsContent() {
         val rows = listOf(minutes("press",1,10).copy(exerciseStableKey="barbell_bench_press"), minutes("row",1,10,order=2).copy(exerciseStableKey="ex_a61f1e96"),
             minutes("other",2,20)).map { it.copy(progressionRole=ProgressionRole.MAIN) }

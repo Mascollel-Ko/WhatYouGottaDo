@@ -65,13 +65,14 @@ internal fun balanceNonWorsening(before: List<BalanceDay>, after: List<BalanceDa
         after.any { day -> before.first { it.day == day.day }.let { prior -> day.timeDistance < prior.timeDistance || day.ofiDistance < prior.ofiDistance } }
 
 internal data class RebalancingResult(val skeleton: GeneratedProgramSkeleton, val trace: DayRebalancingTrace)
+internal data class RebalanceEvaluationCounts(var candidates: Int = 0, var dayMetrics: Int = 0, var reusedDayMetrics: Int = 0)
 private data class RebalanceCandidate(val rows: List<ProgramSkeletonItem>, val metrics: List<BalanceDay>, val action: BalanceAction,
     val movementCost: Int, val priority: Int, val keyOrder: String, val identityOrder: String)
 
 /** Whole-item placement only. References freeze once, and every accepted action strictly improves a finite objective. */
 internal class BoundedDayRebalancer(private val additionalGate: (List<ProgramSkeletonItem>) -> Boolean = { true }) {
     fun rebalance(completed: CompletionResult, snapshot: PlanningHistorySnapshot, state: AthletePlanningState,
-        projection: PlanDayProjection?): RebalancingResult {
+        projection: PlanDayProjection?, counts: RebalanceEvaluationCounts = RebalanceEvaluationCounts()): RebalancingResult {
         val skeleton = completed.skeleton
         val fingerprint = personalizedProgramFingerprint(skeleton.request, skeleton.items)
         fun unchanged(reason: String): RebalancingResult = RebalancingResult(skeleton, DayRebalancingTrace(
@@ -79,14 +80,14 @@ internal class BoundedDayRebalancer(private val additionalGate: (List<ProgramSke
             BalanceObjective(0, 0.0, 0.0), BalanceObjective(0, 0.0, 0.0), emptyList(), reason))
         val week = completed.week ?: return unchanged("POST_PROCESS_SKIPPED_NON_ISOMORPHIC_OR_UNAVAILABLE_COMPLETION")
         if (projection == null) return unchanged("POST_PROCESS_SKIPPED_MISSING_CANONICAL_PROJECTION")
-        return try { run(completed, week, snapshot, state, projection) } catch (failure: Exception) {
+        return try { run(completed, week, snapshot, state, projection, counts) } catch (failure: Exception) {
             if (failure is java.util.concurrent.CancellationException) throw failure
             unchanged("FINAL_REBALANCE_FAILED_SAFE_COMPLETED_PLAN")
         }
     }
 
     private fun run(completed: CompletionResult, week: RepresentativeWeek, snapshot: PlanningHistorySnapshot,
-        state: AthletePlanningState, projection: PlanDayProjection): RebalancingResult {
+        state: AthletePlanningState, projection: PlanDayProjection, counts: RebalanceEvaluationCounts): RebalancingResult {
         val skeleton = completed.skeleton
         val original = week.items
         val primaryKeys = PrimaryStrengthAnchorSpacingPolicy.keys(snapshot,state,
@@ -104,10 +105,15 @@ internal class BoundedDayRebalancer(private val additionalGate: (List<ProgramSke
         val timeReference = planningMedian(referenceDays.map { day -> original.filter { it.dayOfWeek == day }.sumOf(::plannedSeconds).toDouble() })
         val ofiReference = planningMedian(referenceDays.map { day -> load(original.filter { it.dayOfWeek == day }).ofi.toDouble() })
         require(timeReference > 0 && timeReference.isFinite() && ofiReference.isFinite())
-        fun metrics(items: List<ProgramSkeletonItem>) = week.days.map { day ->
+        fun metrics(items: List<ProgramSkeletonItem>, reuse: List<BalanceDay>? = null, affected: Set<Int> = emptySet()) = week.days.map { day ->
+            if (reuse != null && day !in affected) {
+                counts.reusedDayMetrics++
+                return@map reuse.first { it.day == day }
+            }
             val dayRows = items.filter { it.dayOfWeek == day }
             val seconds = dayRows.sumOf(::plannedSeconds)
             val ofi = load(dayRows).ofi
+            counts.dayMetrics++
             BalanceDay(day, seconds, ofi, seconds / timeReference, if (ofiReference > 0) ofi / ofiReference else null)
         }
         fun movable(row: ProgramSkeletonItem): Boolean {
@@ -153,6 +159,7 @@ internal class BoundedDayRebalancer(private val additionalGate: (List<ProgramSke
             val lowerBefore = maxLower(rows)
             fun evaluate(source: ProgramSkeletonItem, destination: Int, reverse: ProgramSkeletonItem? = null,
                 route: String = if (reverse == null) "PRIMARY_MOVE" else "SWAP"): RebalanceCandidate? {
+                counts.candidates++
                 fun rejected(reason: String): RebalanceCandidate? {
                     if (route.startsWith("STRENGTH_PRIMARY")) primaryRejections[reason] = primaryRejections.getOrDefault(reason,0)+1
                     return null
@@ -178,7 +185,9 @@ internal class BoundedDayRebalancer(private val additionalGate: (List<ProgramSke
                 if (maxLower(tentative) > lowerBefore) return rejected("LOWER_STRESS_CONCENTRATION")
                 if (!PrimaryStrengthAnchorSpacingPolicy.allowedRows(tentative,primaryKeys)) return rejected("PRIMARY_ANCHOR_CALENDAR_SPACING")
                 if (!additionalGate(tentative)) return rejected("ADDITIONAL_PLACEMENT_GATE")
-                val nextMetrics = metrics(tentative)
+                // Only source and destination days can change. Reuse the already computed metrics
+                // for every other day while preserving the exact candidate ordering and objectives.
+                val nextMetrics = metrics(tentative, currentMetrics, affected)
                 val beforeAffected = currentMetrics.filter { it.day in affected }
                 val afterAffected = nextMetrics.filter { it.day in affected }
                 val primaryChange = strengthPrimary(tentative).compareTo(strengthPrimary(rows))
