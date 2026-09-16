@@ -1889,11 +1889,10 @@ stabilization job remains implemented.
 - canonical local backup/restore preflight
 - `ProgramProgressionItem.logicalItemId`의 progression-only 의미
 
-새로 필요한 대표 구현:
+아직 필요한 대표 구현:
 
-- Supabase schema/RLS/Edge Functions
-- R2 presigned upload/download
-- server verify/finalize
+- server-side object verification/finalize
+- CURRENT promotion and retention
 - semantic comparison engine
 - conflict UI
 - account archive / pending resolution
@@ -2027,24 +2026,20 @@ Security:
 
 **Phase 2 — Supabase foundation**
 
-- profile
-- cloud_backups
-- upload authorizations
-- failure log
-- conflict/resolution tables
-- indexes/check constraints
-- RLS/grants
-- Edge Function skeleton
+- profile, cloud_backups, upload authorizations, and failure log metadata
+- indexes/check constraints and owner-only RLS/grants
+- authenticated upload/download presign Edge Functions
+- conflict/resolution tables remain future work
 
 **Phase 3 — R2 backup runtime**
 
 - gzip object generation
-- presigned PUT/GET
+- presigned PUT/GET authorization (implemented)
 - verify/finalize
 - WorkManager
 - retention
 - Cron cleanup
-- quota/storage guards
+- quota/storage authorization guards (implemented; actual accounting remains future work)
 
 **Phase 4 — Semantic merge/UI**
 
