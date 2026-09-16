@@ -310,6 +310,51 @@ class WorkoutSessionIdentityTest {
         assertEquals(99L, existingTarget.dailyCheckInDao().getForDate("2026-09-01")!!.createdAt)
     }
 
+    @Test fun frozenSeptember13BackupPreservesIdentityThroughCurrentExportAndCleanRestore() = runBlocking {
+        val csv = javaClass.getResource("/backup-history/september-format-13.csv")!!.readText(Charsets.UTF_8)
+        val historical = RecordCsvBackupRestore.parse(csv) as RecordCsvImportData.Restore
+        assertEquals(13, historical.manifest!!.formatVersion)
+        assertEquals(12, historical.backupSchemaVersion)
+        assertFalse("session_stable_key" in csv.lineSequence().drop(1).first().split(','))
+        assertTrue(historical.setRows.all { it.sessionStableKey == null && !it.entrySourceId.isNullOrBlank() })
+        assertEquals(ProgramProgressionBackup.types, historical.progressionRows.map { it.type }.toSet())
+        val historicalGraphs = historical.toWorkoutGraphs()
+        assertEquals(6, historicalGraphs.size)
+        val target = database()
+        assertEquals(6, restore(target, csv).entryCount)
+        val restored = target.workoutDao().allEntriesWithSets().map { it.entry }
+        restored.forEach { UUID.fromString(it.sessionStableKey) }
+        assertEquals(3, restored.map { it.sessionStableKey }.toSet().size)
+        restored.groupBy { it.date }.values.forEach { sameDate ->
+            assertEquals(1, sameDate.map { it.sessionStableKey }.toSet().size)
+        }
+        val canonical = TrainingRepository(target, context).canonicalRecordsBackup(1234L)
+        val normalized = RecordCsvBackupRestore.parse(canonical.csv) as RecordCsvImportData.Restore
+        assertEquals(14, normalized.manifest!!.formatVersion)
+        assertEquals(13, normalized.backupSchemaVersion)
+        assertTrue(normalized.setRows.all { !it.sessionStableKey.isNullOrBlank() })
+        assertEquals(restored.associate { it.backupSourceId to it.sessionStableKey },
+            normalized.toWorkoutGraphs().associate { it.sourceId to it.sessionStableKey })
+        // Compare source IDs and complete workout values while allowing the new session field.
+        assertEquals(historicalGraphs.associate { it.sourceId to it.contentToken() },
+            normalized.toWorkoutGraphs().associate { it.sourceId to it.copy(sessionStableKey = null).contentToken() })
+        assertEquals(historical.exerciseRows.map { it.stableKey }.toSet(), normalized.exerciseRows.map { it.stableKey }.toSet())
+        assertEquals(historical.programSnapshot, normalized.programSnapshot)
+        assertEquals(historical.progressionRows, normalized.progressionRows)
+        assertEquals(historical.metadataSnapshotRows, normalized.metadataSnapshotRows)
+        assertEquals(historical.metadataUserOverrideRows, normalized.metadataUserOverrideRows)
+        assertEquals(historical.portableAppMetaRows, normalized.portableAppMetaRows)
+        assertEquals(historical.checkInRows, normalized.checkInRows)
+        assertFalse(canonical.csv.contains("parent_backup_id"))
+        assertFalse(canonical.csv.contains("backup_id"))
+        val clean = database()
+        assertEquals(6, restore(clean, canonical.csv).entryCount)
+        assertEquals(restored.associate { it.backupSourceId to it.sessionStableKey },
+            clean.workoutDao().allEntriesWithSets().associate { it.entry.backupSourceId to it.entry.sessionStableKey })
+        val again = TrainingRepository(clean, context).canonicalRecordsBackup(1234L)
+        assertCanonicalAuthorityEquals(normalized, RecordCsvBackupRestore.parse(again.csv) as RecordCsvImportData.Restore)
+    }
+
     private fun assertCanonicalAuthorityEquals(expected: RecordCsvImportData.Restore, actual: RecordCsvImportData.Restore) {
         assertEquals(expected.toWorkoutGraphs().associate { it.sourceId to it.contentToken() },
             actual.toWorkoutGraphs().associate { it.sourceId to it.contentToken() })

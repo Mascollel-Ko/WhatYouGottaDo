@@ -1,5 +1,5 @@
 {
-  "registryVersion": "1.5.0",
+  "registryVersion": "1.5.1",
   "lastUpdated": "2026-09-16",
   "families": [
     {
@@ -1883,7 +1883,7 @@
       "familyId": "DATA_PORTABILITY",
       "titleKo": "클라우드 백업",
       "titleEn": "Cloud Backup",
-      "currentVersion": "1.0.0",
+      "currentVersion": "1.0.1",
       "status": "DRAFT",
       "implementationStatus": "SPECIFICATION_ONLY",
       "evidenceProfile": [
@@ -1892,7 +1892,7 @@
       ],
       "canonicalDocument": "data_portability/CLOUD_BACKUP.md",
       "implementedFromAppVersion": null,
-      "lastAuditedCommit": "a56eaad3ad9a1a7afc33cb3cbfff9f963202c6bc",
+      "lastAuditedCommit": "b742693b8e4dc0ea2207b0913e26f27f0db56d2e",
       "sourceAnchors": [],
       "testAnchors": [],
       "authorityAssets": [],

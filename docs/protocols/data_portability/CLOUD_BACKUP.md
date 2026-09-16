@@ -3,11 +3,11 @@
 | 항목 | 값 |
 |---|---|
 | Protocol ID | `DATA-CLOUD-BACKUP` |
-| Protocol version | `1.0.0` |
+| Protocol version | `1.0.1` |
 | Status | `DRAFT` |
 | Implementation status | `SPECIFICATION_ONLY` |
 | Implemented from app version | `NOT_IMPLEMENTED` |
-| Last audited commit | `a56eaad3ad9a1a7afc33cb3cbfff9f963202c6bc` |
+| Last audited commit | `b742693b8e4dc0ea2207b0913e26f27f0db56d2e` |
 | Evidence profile | `PRODUCT_POLICY, ENGINEERING_HEURISTIC` |
 | Supersedes | 없음 |
 
@@ -502,7 +502,7 @@ offline은 user-data failure로 취급하지 않습니다.
 서버가 다음 key를 계산합니다.
 
 ```text
-users/{verified_supabase_user_uuid}/backups/{backup_id}.json.gz
+users/{verified_supabase_user_uuid}/backups/{backup_id}.csv.gz
 ```
 
 규칙:
@@ -516,6 +516,12 @@ users/{verified_supabase_user_uuid}/backups/{backup_id}.json.gz
 
 ### 8.2 Compression과 size
 
+- canonical payload: `BackupExportService.buildCanonicalBackup()`이 생성한
+  `CanonicalBackupContent.utf8Bytes()`의 UTF-8 CSV bytes
+- storage pipeline: **canonical CSV bytes → gzip**; JSON wrapping이나 별도 serializer 금지
+- manual export와 Cloud/local snapshot은 동일 canonical serialization/preflight 경로를 재사용
+- R2, pending resolution, Local Recovery, Account Archive의 canonical snapshot 모두 `.csv.gz` 사용
+- Account Archive 예: `archives/{account_id}/account_archive.csv.gz` (lineage는 별도 sidecar)
 - compression: `GZIP`
 - 최대 object size: **gzip 이후 실제 R2 object 기준 20 MB**
 - server는 client가 보낸 size를 신뢰하지 않고 실제 object를 검증
@@ -525,7 +531,7 @@ users/{verified_supabase_user_uuid}/backups/{backup_id}.json.gz
 ### 8.3 Integrity
 
 - algorithm: `SHA-256`
-- checksum 대상: 실제 R2의 `.json.gz` object bytes
+- checksum 대상: 실제 저장/전송하는 gzip 압축 후 `.csv.gz` bytes (R2 object 및 local snapshot); 압축 전 CSV 또는 JSON이 아님
 
 restore 검증 순서:
 
@@ -935,7 +941,7 @@ created_at
 
 ```text
 pending_resolution/
-  result.json.gz
+  result.csv.gz
   result.meta
 ```
 
@@ -973,7 +979,7 @@ A 계정의 pending M이 upload 전인데 B 계정으로 전환하면:
 1. client가 `backup_id`로 GET authorization 요청
 2. server가 user ownership 확인
 3. 5분 GET URL 발급
-4. `.json.gz` download
+4. `.csv.gz` download
 5. compressed size 검증
 6. SHA-256 검증
 7. gunzip
@@ -1005,7 +1011,7 @@ restore 중 하나라도 실패하면 현재 Local DB를 변경하지 않습니�
 저장:
 
 ```text
-recovery/local_recovery_previous.json.gz
+recovery/local_recovery_previous.csv.gz
 + metadata
 ```
 
@@ -2029,6 +2035,11 @@ R2 object만 존재하고 server verification/CURRENT promotion이 완료되지 
 registry/index도 같은 task에서 갱신합니다.
 
 ### 20.3 변경 이력
+
+- `1.0.1`
+  - canonical UTF-8 CSV → gzip representation 및 `.csv.gz` 경로 명료화
+  - 공통 canonical builder 재사용과 실제 압축 bytes의 SHA-256 검증 명시
+  - Cloud runtime 변화 없음 (SPECIFICATION_ONLY 유지)
 
 - `1.0.0`
   - 최초 Cloud Backup specification
