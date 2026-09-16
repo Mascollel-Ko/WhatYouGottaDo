@@ -1891,8 +1891,8 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "data_portability/CLOUD_BACKUP.md",
-      "implementedFromAppVersion": "UNRELEASED_PHASE_1_B2",
-      "lastAuditedCommit": "f8e47838df238c54df62412fcce6ecc902418143",
+      "implementedFromAppVersion": "UNRELEASED_PHASE_2_SUPABASE_TRANSPORT",
+      "lastAuditedCommit": "71e4dbd171ea395b9979988a185cc34654537281",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/CloudBackupState.kt",
         "app/src/main/java/com/training/trackplanner/data/CloudRevisionTracking.kt",
@@ -1903,12 +1903,21 @@
         "app/src/main/java/com/training/trackplanner/data/PersonalizedProgramPlanningService.kt",
         "app/src/main/java/com/training/trackplanner/data/LocalRecoveryStore.kt",
         "app/src/main/java/com/training/trackplanner/data/LocalRecoveryService.kt",
-        "app/src/main/java/com/training/trackplanner/data/LocalRecoveryScheduler.kt"
+        "app/src/main/java/com/training/trackplanner/data/LocalRecoveryScheduler.kt",
+        "supabase/config.toml",
+        "supabase/migrations/20260917000000_cloud_backup_transport.sql",
+        "supabase/functions/_shared/cloud_backup.mjs",
+        "supabase/functions/_shared/supabase_auth.mjs",
+        "supabase/functions/_shared/r2.mjs",
+        "supabase/functions/cloud-backup-upload-url/index.ts",
+        "supabase/functions/cloud-backup-download-url/index.ts"
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/data/CloudBackupStateTest.kt",
         "app/src/test/java/com/training/trackplanner/data/WorkoutSessionIdentityTest.kt",
-        "app/src/test/java/com/training/trackplanner/data/LocalRecoveryServiceTest.kt"
+        "app/src/test/java/com/training/trackplanner/data/LocalRecoveryServiceTest.kt",
+        "tests/cloud_transport.test.mjs",
+        "supabase/tests/cloud_backup_transport.sql"
       ],
       "authorityAssets": [
         "app/schemas/com.training.trackplanner.data.TrainingDatabase/33.json"
@@ -1918,8 +1927,8 @@
         "docs/cloud_backup_phase_1b1_audit.md"
       ],
       "knownGaps": [
-        "Only local session identity, revision infrastructure, and one local previous-state recovery are implemented. Cloud auth, transport, Cloud CURRENT/RETAINED objects, lineage acknowledgements and conflict handling remain unimplemented.",
-        "The local recovery scheduler and protected mutation boundaries are local-only; no Cloud upload/download worker or network constraint is installed."
+        "The server transport foundation issues authenticated presigned URLs and records UPLOADING metadata, but object verification/finalize, CURRENT promotion, retention, and Cloud lineage acknowledgement are not implemented.",
+        "Android Cloud upload/download workers, network scheduling, semantic comparison/merge, conflict UI, account archive, and cleanup remain unimplemented; remote migration and Edge Function deployment were not performed in this task."
       ],
       "supersedes": [],
       "publicSummaryAvailable": true

@@ -6,8 +6,8 @@
 | Protocol version | `1.1.0` |
 | Status | `DRAFT` |
 | Implementation status | `PARTIALLY_IMPLEMENTED` |
-| Implemented from app version | `UNRELEASED_PHASE_1_B2` |
-| Last audited commit | `f8e47838df238c54df62412fcce6ecc902418143` |
+| Implemented from app version | `UNRELEASED_PHASE_2_SUPABASE_TRANSPORT` |
+| Last audited commit | `71e4dbd171ea395b9979988a185cc34654537281` |
 | Evidence profile | `PRODUCT_POLICY, ENGINEERING_HEURISTIC` |
 | Supersedes | 없음 |
 
@@ -1857,10 +1857,28 @@ revision을 증가시킵니다. nested operation은 한 번으로 합쳐지며 n
 `startExternalCloudBranchInTransaction` branch reset을 한 Room transaction으로
 수행합니다. 이는 Cloud가 활성화된 end-to-end backup 동작을 의미하지 않습니다.
 
-Cloud runtime, Supabase tables, Edge Functions, R2 lifecycle, Cloud WorkManager
-integration, Conflict UI는 아직 이 문서 기준으로 구현되었다고 간주하지 않습니다.
-Local Recovery의 local-only WorkManager stabilization job은 구현되어 있습니다.
+Phase 2 server transport foundation is now implemented in the repository:
+`supabase/migrations/20260917000000_cloud_backup_transport.sql` adds the
+protocol metadata tables, owner-only RLS/grants, current format/schema checks,
+parent ownership constraints, source `local_revision`, and quota/storage indexes. The authenticated
+`cloud-backup-upload-url` and `cloud-backup-download-url` Edge Functions verify
+Supabase Auth identity, generate backup IDs/object keys, enforce request limits,
+and issue five-minute R2 presigned PUT/GET URLs. They use only these server-side
+secret names: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`,
+`R2_BUCKET`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`.
+The R2 credential is a dedicated S3 API credential with Object Read & Write
+limited to the `whatyougottado-backups` bucket. Configure these names through
+Supabase Edge Function Secrets or the local ignored `.env`; never put values in
+Git or logs. Remote migration and function deployment were not performed in
+this task.
 
+The upload authorization creates an `UPLOADING` metadata row. A future
+completion/verification step must promote it through `VERIFIED` before
+`CURRENT`; issuing a URL alone never acknowledges a valid backup.
+Client upload/download workers, object verification/finalize, CURRENT promotion,
+lineage comparison, semantic merge, conflict UI, account archive, retention,
+and cleanup remain future work. Local Recovery's local-only WorkManager
+stabilization job remains implemented.
 기존 코드에서 확인한 재사용 authority:
 
 - `TrainingProgram.stableKey`
@@ -1915,7 +1933,7 @@ app/src/test/java/com/training/trackplanner/data/WorkoutSessionIdentityTest.kt
 app/src/test/java/com/training/trackplanner/data/LocalRecoveryServiceTest.kt
 ```
 
-Cloud transport/auth, account archive, pending resolution은 여전히 미구현입니다.
+Cloud transport foundation is implemented by the Supabase migration and the two authenticated presign functions above. Android Cloud upload/download, object verification/finalize, account archive, pending resolution, and semantic conflict handling remain unimplemented.
 
 ### 19.3 Required verification
 
