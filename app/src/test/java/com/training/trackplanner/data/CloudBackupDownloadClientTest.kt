@@ -26,7 +26,8 @@ class CloudBackupDownloadClientTest {
     @Test fun currentCanonicalGzipDownloadsAndParses() = runBlocking {
         val csv = RecordCsvBackupRestore.wrapWithManifest(
             body = RecordCsvBackupRestore.buildRestoreCsv(
-                entriesWithSets = emptyList(), metrics = emptyList(), exercises = emptyList()
+                entriesWithSets = emptyList(), metrics = emptyList(), exercises = emptyList(),
+                portableAppMeta = listOf(AppMeta("test_meta", "test", 1L))
             ),
             appVersion = "test",
             exportedAt = 1L,
