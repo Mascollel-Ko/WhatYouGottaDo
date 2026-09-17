@@ -68,6 +68,29 @@ class MainSchedulingPolicyTest {
         assertTrue(metrics.objectiveEvaluations > 0)
     }
 
+    @Test fun initialPlacementDefersWeekValidationUntilDayValidationPasses() {
+        var weekCalls = 0
+        val snapshot = PostGenerationFixture.snapshot().copy(
+            planDayProjection = PlanDayProjection { StandaloneDayLoad(100, listOf(100), listOf("DAY_REJECTED")) },
+            planWeekTissueProjection = PlanWeekTissueProjection { _, _ ->
+                weekCalls++
+                PlannedTissueWeek(emptyList())
+            }
+        )
+        val rows = items(3)
+        val metrics = InitialMainPlacementMetrics()
+        InitialMainPlacement.review(
+            baseline = mapOf(1 to rows, 2 to emptyList(), 3 to emptyList(), 4 to emptyList()),
+            minutes = 90,
+            snapshot = snapshot,
+            robust = true,
+            metrics = metrics,
+            isMain = { true }
+        )
+        assertTrue(metrics.legalChecks > 0)
+        assertEquals(0, weekCalls)
+    }
+
     @Test fun generationMemoReusesExactCanonicalComputations() {
         val memo = PlanningComputationMemo()
         var dayCalls = 0

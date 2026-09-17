@@ -65,6 +65,8 @@ internal object InitialMainPlacement {
         val primaryByIdentity = java.util.IdentityHashMap<TimedPlannedExercise, Boolean>()
         val mainByIdentity = java.util.IdentityHashMap<TimedPlannedExercise, Boolean>()
         val lowerByIdentity = java.util.IdentityHashMap<TimedPlannedExercise, Boolean>()
+        val baselineDayByIdentity = java.util.IdentityHashMap<TimedPlannedExercise, Int>()
+        val currentDayByIdentity = java.util.IdentityHashMap<TimedPlannedExercise, Int>()
         baseline.values.flatten().forEach { row ->
             primaryByIdentity[row] = StrengthPrimaryMainPolicy.isPrimary(row.item.stableKey)
             mainByIdentity[row] = isMain(row.item)
@@ -100,7 +102,11 @@ internal object InitialMainPlacement {
         }
         // Start from the complete baseline so the retained incumbent objective is exact, then
         // remove the movable rows to represent the mutable search layout.
-        baseline.forEach { (day, rows) -> rows.forEach { addCounters(day, it) } }
+        baseline.forEach { (day, rows) -> rows.forEach {
+            baselineDayByIdentity[it] = day
+            currentDayByIdentity[it] = day
+            addCounters(day, it)
+        } }
         fun objective(layout: Map<Int,List<TimedPlannedExercise>>): InitialStrengthLayout {
             metrics?.let { it.objectiveEvaluations++ }
             return InitialStrengthLayout(
@@ -109,7 +115,10 @@ internal object InitialMainPlacement {
         }
         var best = baseline
         var bestObjective = objective(best)
-        baseline.forEach { (day, rows) -> rows.forEach { row -> if (moving.any { it === row }) removeCounters(day, row) } }
+        baseline.forEach { (day, rows) -> rows.forEach { row -> if (moving.any { it === row }) {
+            removeCounters(day, row)
+            currentDayByIdentity.remove(row)
+        } } }
         val totalMain = baseline.values.flatten().count(::isMainRow)
         val occupied = minOf(totalMain, days.size)
         val minimumStreak = (0 until (1 shl days.size)).filter { Integer.bitCount(it) == occupied }.minOf { mask ->
@@ -118,39 +127,62 @@ internal object InitialMainPlacement {
         val primaryCount = baseline.values.flatten().count(::isPrimary)
         val lowerBound = InitialStrengthLayout(StrengthPrimaryObjective((primaryCount-days.size).coerceAtLeast(0),(primaryCount+days.size-1)/days.size),
             MainLayoutObjective((totalMain-days.size).coerceAtLeast(0),(totalMain+days.size-1)/days.size,minimumStreak))
-        // The baseline projection and tissue state are invariant for every search candidate. Building
-        // them once removes the largest repeated work from the 200k-node exact search while leaving
-        // candidate legality and traversal unchanged.
-        fun projected(source: Map<Int,List<TimedPlannedExercise>>) = source.entries.flatMap { (day,rows) -> rows.mapIndexed { index,row ->
-            residualItem(snapshot!!,row.item,row.prescription,"primary_${day}_$index",actual[days.indexOf(day)],index+1)
-        } }
-        val prior = if (primaryCount > 0 && snapshot != null) {
+        // Build the expensive baseline projection only if a legal candidate reaches the final
+        // tissue gate. Day-level OFI uses the same per-day representation without materializing a
+        // full-week projection for every search node.
+        fun projectedDay(source: Map<Int,List<TimedPlannedExercise>>, day: Int): List<ProgramSkeletonItem> =
+            source.getValue(day).mapIndexed { index, row ->
+                residualItem(snapshot!!, row.item, row.prescription, "primary_${day}_$index", actual[days.indexOf(day)], index + 1)
+            }
+        fun projected(source: Map<Int,List<TimedPlannedExercise>>) = days.flatMap { day -> projectedDay(source, day) }
+        val priorDayCache = mutableMapOf<Int, List<ProgramSkeletonItem>>()
+        fun priorDay(day: Int): List<ProgramSkeletonItem> = priorDayCache.getOrPut(day) {
             metrics?.let { it.baselineProjectionEvaluations++ }
-            projected(baseline)
-        } else emptyList()
+            projectedDay(baseline, day)
+        }
         val tissue = snapshot?.planWeekTissueProjection
-        val before = if (tissue != null && snapshot != null && primaryCount > 0) {
-            metrics?.let { it.weekTissueEvaluations++ }
-            tissue.evaluate(prior,8.5)
-        } else null
+        val before by lazy {
+            if (tissue != null && snapshot != null && primaryCount > 0) {
+                metrics?.let { it.baselineProjectionEvaluations++ }
+                metrics?.let { it.weekTissueEvaluations++ }
+                tissue.evaluate(projected(baseline), 8.5)
+            } else null
+        }
         val protected = if (state != null && snapshot != null) {
             PrimaryStrengthAnchorSpacingPolicy.keys(snapshot,state,baseline.values.flatten().filter { isMain(it.item) }.mapTo(mutableSetOf()) { it.item.stableKey })
         } else emptySet()
         fun lower(row: TimedPlannedExercise): Boolean = lowerByIdentity.getOrPut(row) { lowerValue(row) }
+        fun changedDays(): Set<Int> = moving.flatMap { row ->
+            val oldDay = baselineDayByIdentity[row]
+            val newDay = currentDayByIdentity[row]
+            if (oldDay != null && newDay != null && oldDay != newDay) listOf(oldDay, newDay) else emptyList()
+        }.toSet()
+        fun protectedSpacingAllowed(): Boolean {
+            if (protected.isEmpty()) return true
+            return protected.all { key ->
+                val assigned = baseline.values.flatten().filter { it.item.stableKey == key }
+                    .mapNotNull { currentDayByIdentity[it] }
+                PrimaryStrengthAnchorSpacingPolicy.allowed(assigned.map { actual[days.indexOf(it)] })
+            }
+        }
         fun legal(layout: Map<Int,List<TimedPlannedExercise>>): Boolean {
             metrics?.let { it.legalChecks++ }
             if (primaryCount == 0 || snapshot == null) return true
-            val rows = projected(layout)
-            val moved = layout.values.flatten().filter { row -> layout.entries.first { row in it.value }.key != baseline.entries.first { row in it.value }.key }
+            val changed = changedDays()
+            val moved = moving.filter { baselineDayByIdentity[it] != currentDayByIdentity[it] }
                 .map { it.item.stableKey }.toSet()
             if (moved.any { snapshot.explicitlyRestricted(it) || state != null && !postProcessTissueAllowed(snapshot,state,it) }) return false
             if (state != null) {
-                if (!PrimaryStrengthAnchorSpacingPolicy.allowedRows(rows,protected)) return false
+                if (!protectedSpacingAllowed()) return false
             }
-            if (actual.any { day -> rows.filter { it.dayOfWeek==day } != prior.filter { it.dayOfWeek==day } &&
+            if (changed.any { day ->
+                    val candidateDay = projectedDay(layout, day)
+                    candidateDay != priorDay(day) &&
                     snapshot.planDayProjection?.also { metrics?.let { it.dayProjectionEvaluations++ } }
-                        ?.evaluate(rows.filter { it.dayOfWeek==day })?.feasible == false }) return false
+                        ?.evaluate(candidateDay)?.feasible == false
+                }) return false
             val tissue = snapshot.planWeekTissueProjection ?: return true
+            val rows = projected(layout)
             val after = tissue.also { metrics?.let { it.weekTissueEvaluations++ } }.evaluate(rows,8.5)
             return after.diagnostic=="CANONICAL_RCV_PROJECTION" && after.days.all { day -> day.blockedUnits.isEmpty() &&
                 day.unresolvedKeys.none { it in moved } && day.unresolvedKeys.all { it in before?.days?.firstOrNull { old -> old.day==day.day }?.unresolvedKeys.orEmpty() } }
@@ -177,7 +209,13 @@ internal object InitialMainPlacement {
                     .thenBy { day -> if(robust && row.item.scheduleTier()==ScheduleTier.CORE_MUST_DO && day>(days.size+1)/2) 1 else 0 }
                     .thenBy { day -> seconds[dayIndex.getValue(day)] }.thenBy { it })
             for(day in targets) {
-                fixed.getValue(day).add(row); addCounters(day, row); search(index+1); removeCounters(day, row); fixed.getValue(day).removeAt(fixed.getValue(day).lastIndex)
+                fixed.getValue(day).add(row)
+                currentDayByIdentity[row] = day
+                addCounters(day, row)
+                search(index+1)
+                removeCounters(day, row)
+                currentDayByIdentity.remove(row)
+                fixed.getValue(day).removeAt(fixed.getValue(day).lastIndex)
             }
         }
         search(0)
