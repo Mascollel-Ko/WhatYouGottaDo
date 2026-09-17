@@ -32,7 +32,6 @@ class CloudBackupDownloadClientTest {
             appVersion = "test",
             exportedAt = 1L,
             entityCounts = emptyMap(),
-            capabilities = setOf(ProgramProgressionBackup.CAPABILITY),
             representedExerciseStableKeys = emptySet(),
             semanticCanonicalRevision = "test",
             sourceDatabaseLineageId = "test"
