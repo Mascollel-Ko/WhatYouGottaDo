@@ -180,6 +180,35 @@ class TissueRecoveryEngineTest {
         assertFalse(result.events.any { it.eventId.contains("LEFT") || it.eventId.contains("RIGHT") })
     }
 
+    @Test
+    fun preparedHistoryLedgerMatchesReferenceWhenProjectedRowsShareTheDate() {
+        val stableKey = "single_leg_rdl"
+        val exercise = Exercise(name = "원레그 루마니안 데드리프트", category = "근력운동", stableKey = stableKey)
+        fun record(id: Long, date: String, weight: Double) = TissueWorkoutRecord(
+            entry = WorkoutEntry(
+                id = id,
+                date = date,
+                exerciseStableKey = stableKey,
+                exerciseName = exercise.name,
+                category = exercise.category,
+                rpe = 7.0,
+                performedAt = id * 1_000L
+            ),
+            sets = listOf(WorkoutSet(entryId = id, setIndex = 1, reps = 8, weightKg = weight, confirmed = true, rpe = 7.0)),
+            exercise = exercise
+        )
+        val history = listOf(
+            record(1, "2026-07-01", 30.0),
+            record(2, "2026-07-10", 40.0)
+        )
+        val projected = record(-1, "2026-07-13", 50.0)
+        val builder = TissueRcvEventLedgerBuilder(catalog, ZoneOffset.UTC)
+        assertEquals(
+            builder.build(history + projected),
+            builder.prepare(history).build(listOf(projected))
+        )
+    }
+
     private fun recordFor(basis: String): TissueWorkoutRecord {
         val stableKey = when (basis) {
             "BODYWEIGHT_REPETITION" -> "ex_28902b13"

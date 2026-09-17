@@ -70,7 +70,13 @@ class MainSchedulingPolicyTest {
 
     @Test fun initialPlacementDefersWeekValidationUntilDayValidationPasses() {
         var weekCalls = 0
-        val snapshot = PostGenerationFixture.snapshot().copy(
+        val base = PostGenerationFixture.snapshot()
+        val primaryExercises = primaryKeys.associateWith { Exercise(stableKey = it, name = it, category = "운동") }
+        val snapshot = base.copy(
+            exercises = base.exercises + primaryExercises,
+            metadata = base.metadata + primaryExercises.mapValues { (_, exercise) ->
+                RuntimeExerciseMetadataDefaults.forExercise(exercise).copy(planningEligibility = "PROGRAM_SELECTABLE")
+            },
             planDayProjection = PlanDayProjection { StandaloneDayLoad(100, listOf(100), listOf("DAY_REJECTED")) },
             planWeekTissueProjection = PlanWeekTissueProjection { _, _ ->
                 weekCalls++

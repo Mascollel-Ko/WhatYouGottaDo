@@ -87,8 +87,41 @@ class TissueRcvEventLedgerBuilder(
 ) {
     private val contextModifierResolver = TissueContextModifierResolver(catalog)
 
-    fun build(records: List<TissueWorkoutRecord>): TissueEventLedgerResult {
+    fun build(records: List<TissueWorkoutRecord>): TissueEventLedgerResult =
+        buildInternal(records, records)
+
+    /** Prepare the fixed historical ledger so projected candidates do not rebuild it. */
+    fun prepare(records: List<TissueWorkoutRecord>): Prepared {
         val ordered = records.sortedWith(
+            compareBy<TissueWorkoutRecord>({ it.date }, { it.entry.id }, { it.exercise.stableKey })
+        )
+        return Prepared(ordered, buildInternal(ordered, ordered))
+    }
+
+    inner class Prepared internal constructor(
+        private val history: List<TissueWorkoutRecord>,
+        val historyResult: TissueEventLedgerResult
+    ) {
+        fun build(projected: List<TissueWorkoutRecord>): TissueEventLedgerResult {
+            if (projected.isEmpty()) return historyResult
+            val all = (history + projected).sortedWith(
+                compareBy<TissueWorkoutRecord>({ it.date }, { it.entry.id }, { it.exercise.stableKey })
+            )
+            val projectedResult = buildInternal(all, projected)
+            return TissueEventLedgerResult(
+                events = (historyResult.events + projectedResult.events)
+                    .sortedBy(TissueExposureEvent::eventId),
+                diagnostics = (historyResult.diagnostics + projectedResult.diagnostics)
+                    .distinct().sorted()
+            )
+        }
+    }
+
+    private fun buildInternal(
+        contextRecords: List<TissueWorkoutRecord>,
+        emittedRecords: List<TissueWorkoutRecord>
+    ): TissueEventLedgerResult {
+        val ordered = contextRecords.sortedWith(
             compareBy<TissueWorkoutRecord>({ it.date }, { it.entry.id }, { it.exercise.stableKey })
         )
         val authorityByStableKey = catalog.authorityRows.groupBy(TissueRcvAuthorityRow::exerciseStableKey)
@@ -104,7 +137,9 @@ class TissueRcvEventLedgerBuilder(
 
         val events = mutableListOf<TissueExposureEvent>()
         val diagnostics = mutableListOf<String>()
-        ordered.forEach { record ->
+        emittedRecords.sortedWith(
+            compareBy<TissueWorkoutRecord>({ it.date }, { it.entry.id }, { it.exercise.stableKey })
+        ).forEach { record ->
             val protocol = catalog.protocols[record.exercise.stableKey]
             val rows = authorityByStableKey[record.exercise.stableKey].orEmpty()
             if (protocol == null || rows.isEmpty()) {

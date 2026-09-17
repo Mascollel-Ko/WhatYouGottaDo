@@ -55,6 +55,12 @@ OFI는 확인된 운동 기록에서 계산한 다섯 피로 축을 0~100 하나
 
 고중량·힘 신경계, 전신 근육, 국소 근육, 고속, 반응 다섯 축만 mean, max, high-axis penalty로 합칩니다. `recoveryPressure`는 compatibility/internal 값이며 표시와 OFI 계산에서 제외됩니다. 연결조직 상태, prior, `PersonalBaseline`, `w_perUnit`도 OFI 입력이 아닙니다.
 
+계획 운동의 day projection은 cutoff 이전의 confirmed history를 immutable prepared context로
+한 번 만들고, 후보 행만 그 context에 추가해 계산할 수 있습니다. 이 준비 경로는 기록 context,
+baseline 후보, 다섯 축, recovery pressure, group state와 caution 결과를 canonical 계산과
+동일하게 유지하며 수식·계수·임계값을 바꾸지 않습니다. Reference 계산과 prepared 계산의
+동일성은 회귀 테스트로 고정합니다.
+
 ## 9. 출력과 UI 해석
 
 OFI는 운동 전 현재 상태입니다. 계획 운동 뒤 예상 피로(projected/expected fatigue)는 별도 값이며 현재 OFI 라벨을 덮어쓰지 않습니다.

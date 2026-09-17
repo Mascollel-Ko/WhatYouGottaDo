@@ -41,22 +41,114 @@ internal class ConnectiveTissueAnalysisService(
 
     suspend fun planProjection(cutoff: LocalDate): com.training.trackplanner.data.personalized.PlanWeekTissueProjection {
         val input = capture(cutoff)
+        val prepared = prepareProjection(input)
         return com.training.trackplanner.data.personalized.CanonicalPlanWeekTissueProjection(cutoff, zoneId) { time, projected ->
-            var exposure = emptyMap<String, Set<String>>()
-            val state = calculate(input, time, projected) { events ->
-                exposure = events.filter { it.performedTime.latestEpochMillis == time && it.initialExposure > 0.0 }
-                    .groupBy { it.exerciseStableKey }.mapValues { (_, rows) -> rows.mapTo(mutableSetOf()) { it.key.loadUnitStableKey } }
-            }
-            com.training.trackplanner.data.personalized.PlannedTissueCalculation(state, exposure)
+            prepared.calculate(time, recordsFrom(input, projected))
         }
     }
 
     private data class Input(val profile: InitialUserProfile?, val metrics: List<DailyMetric>, val checkIns: List<DailyCheckIn>,
         val exercises: Map<String, Exercise>, val history: List<WorkoutEntryWithSets>)
 
+    private inner class PreparedProjection(
+        private val input: Input,
+        private val records: List<TissueWorkoutRecord>,
+        private val ledger: TissueRcvEventLedgerBuilder.Prepared,
+        private val residualCalculator: TissueResidualCalculator,
+        private val sampler: TissueHistoricalResidualSampler,
+        private val weights: Map<String, com.training.trackplanner.analysis.tissue.TissuePerUnitCalibrationWeight>
+    ) {
+        private val historyByHour = mutableMapOf<Int, Map<String, Map<LocalDate, Double>>>()
+        private val baselineByDateHour = mutableMapOf<Pair<LocalDate, Int>, Map<String, TissueEffectiveBaseline>>()
+
+        fun calculate(
+            nowEpochMillis: Long,
+            projected: List<TissueWorkoutRecord>
+        ): com.training.trackplanner.data.personalized.PlannedTissueCalculation {
+            val now = Instant.ofEpochMilli(nowEpochMillis).atZone(zoneId).toLocalDate()
+            val exposureLedger = ledger.build(projected)
+            val currentResiduals = exposureLedger.events.mapNotNull {
+                residualCalculator.calculate(it, nowEpochMillis)
+            }
+            val historyByUnit = historyByHour.getOrPut(nowEpochMillis.let {
+                Instant.ofEpochMilli(it).atZone(zoneId).hour
+            }) { weights.mapValues { (stableKey, weight) ->
+                sampler.sampleUnit(stableKey, ledger.historyResult.events, weight.history, nowEpochMillis.let {
+                    Instant.ofEpochMilli(it).atZone(zoneId).hour
+                })
+            } }
+            val localHour = Instant.ofEpochMilli(nowEpochMillis).atZone(zoneId).hour
+            val profileInputs = TissuePriorUserProfileInputs(
+                bodyWeightKg = BodyweightEffectiveLoadCalculator.bodyWeightFor(now.toString(), input.metrics, input.profile),
+                strengthTrainingExperienceYears = input.profile?.strengthTrainingYears,
+                racketSportExperienceYears = input.profile?.badmintonTrainingYears,
+                habitualTrainingIntensity = input.profile?.habitualTrainingIntensity?.let {
+                    runCatching { TissueHabitualTrainingIntensity.valueOf(it) }.getOrNull()
+                }
+            )
+            val effectiveBaselines = baselineByDateHour.getOrPut(now to localHour) {
+                buildBaselines(
+                    localHour = localHour,
+                    profileInputs = profileInputs,
+                    weights = weights,
+                    historyByUnit = historyByUnit
+                )
+            }
+            val todayCheckIn = input.checkIns.firstOrNull { it.date == now.toString() }
+            val symptomPlan = tissueSymptomOverridePlan(
+                discomfort = todayCheckIn?.jointTendonDiscomfort,
+                selectedJointComplexKey = todayCheckIn?.jointTendonDiscomfortJointComplexKey,
+                loadUnitJointComplexes = catalog.loadUnits.mapValues { it.value.jointComplexStableKey }
+            )
+            val state = TissueCurrentStateAggregator(catalog).aggregate(
+                residuals = currentResiduals,
+                effectiveBaselinesByUnit = effectiveBaselines,
+                historyByUnit = historyByUnit.mapValues { (_, values) -> values.toSortedMap().values.toList() },
+                symptomOverrides = symptomPlan.overridesByLoadUnit,
+                diagnostics = buildList {
+                    addAll(exposureLedger.diagnostics)
+                    priorRegistry.exceptionOrNull()?.let { add("TISSUE_PRIOR_REGISTRY_INVALID: ${it.message ?: it::class.java.simpleName}") }
+                }
+            ).copy(hasUnscopedHighJointTendonDiscomfort = symptomPlan.unscopedHighDiscomfort)
+            val exposure = exposureLedger.events.filter {
+                it.performedTime.latestEpochMillis == nowEpochMillis && it.initialExposure > 0.0
+            }.groupBy { it.exerciseStableKey }
+                .mapValues { (_, rows) -> rows.mapTo(mutableSetOf()) { it.key.loadUnitStableKey } }
+            return com.training.trackplanner.data.personalized.PlannedTissueCalculation(state, exposure)
+        }
+
+    }
+
+    private fun prepareProjection(input: Input): PreparedProjection {
+        val records = recordsFrom(input, input.history)
+        val builder = TissueRcvEventLedgerBuilder(catalog, zoneId)
+        val ledger = builder.prepare(records)
+        val residualCalculator = TissueResidualCalculator(curves, zoneId)
+        val confirmedWorkoutDates = records.map(::recordLocalDate).toSet()
+        val checkInDates = input.checkIns.mapNotNull { runCatching { LocalDate.parse(it.date) }.getOrNull() }.toSet()
+        val anchorDate = TissueCalibrationAnchorPolicy.latestConfirmationDate(confirmedWorkoutDates, checkInDates)
+        val exposureDatesByUnit = ledger.historyResult.events.filter { it.initialExposure > 0.0 }.groupBy {
+            it.key.loadUnitStableKey
+        }.mapValues { (_, events) -> events.mapNotNull(::eventLocalDate).toSet() }
+        val weights = TissuePerUnitWeightPolicy.calculateAll(
+            anchorDate = anchorDate,
+            confirmedWorkoutDates = confirmedWorkoutDates,
+            unitExposureDates = catalog.loadUnits.keys.associateWith { exposureDatesByUnit[it].orEmpty() }
+        )
+        val sampler = TissueHistoricalResidualSampler(residualCalculator, zoneId)
+        return PreparedProjection(input, records, ledger, residualCalculator, sampler, weights)
+    }
+
     private suspend fun capture(cutoff: LocalDate) = Input(initialUserProfileDao.profile(), dailyMetricDao.metricsUntil(cutoff.toString()),
         dailyCheckInDao.all().filter { runCatching { LocalDate.parse(it.date) <= cutoff }.getOrDefault(false) },
         exerciseDao.allExercises().associateBy(Exercise::stableKey), workoutDao.entriesWithSetsUntil(cutoff.toString()))
+
+    private fun recordsFrom(input: Input, rows: List<WorkoutEntryWithSets>): List<TissueWorkoutRecord> = rows.mapNotNull { record ->
+        if (record.sets.none(WorkoutSet::confirmed)) return@mapNotNull null
+        val exercise = input.exercises[record.entry.exerciseStableKey] ?: return@mapNotNull null
+        val bodyWeightKg = BodyweightEffectiveLoadCalculator.bodyWeightFor(record.entry.date, input.metrics, input.profile)
+        TissueWorkoutRecord.from(record, exercise, bodyWeightKg)
+    }
 
     private fun calculate(input: Input, nowEpochMillis: Long, projected: List<WorkoutEntryWithSets> = emptyList(),
         exposureObserver: ((List<com.training.trackplanner.analysis.tissue.TissueExposureEvent>) -> Unit)? = null): TissueCurrentState {
@@ -65,22 +157,11 @@ internal class ConnectiveTissueAnalysisService(
         val profile = input.profile
         val dailyMetrics = input.metrics
         val checkIns = input.checkIns
-        val exercisesById = input.exercises
-        fun recordsFrom(rows: List<WorkoutEntryWithSets>) = rows.mapNotNull { record ->
-            if (record.sets.none(WorkoutSet::confirmed)) return@mapNotNull null
-            val exercise = exercisesById[record.entry.exerciseStableKey] ?: return@mapNotNull null
-            val bodyWeightKg = BodyweightEffectiveLoadCalculator.bodyWeightFor(
-                record.entry.date,
-                dailyMetrics,
-                profile
-            )
-            TissueWorkoutRecord.from(record, exercise, bodyWeightKg)
-        }
-        val records = recordsFrom(input.history)
+        val records = recordsFrom(input, input.history)
         val ledger = TissueRcvEventLedgerBuilder(catalog, zoneId).build(records)
         // Projected rows affect exposures, never personal calibration evidence or persisted history.
         val exposureLedger = if (projected.isEmpty()) ledger else
-            TissueRcvEventLedgerBuilder(catalog, zoneId).build(records + recordsFrom(projected))
+            TissueRcvEventLedgerBuilder(catalog, zoneId).build(records + recordsFrom(input, projected))
         exposureObserver?.invoke(exposureLedger.events)
         val residualCalculator = TissueResidualCalculator(curves, zoneId)
         val currentResiduals = exposureLedger.events.mapNotNull { residualCalculator.calculate(it, nowEpochMillis) }

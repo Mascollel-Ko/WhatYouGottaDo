@@ -51,6 +51,12 @@ Personal history가 없거나 무효여도 valid prior가 있으면 relative sta
 
 Event는 `TissueRcvLoadKey(loadUnitStableKey, loadDimension)`을 보존하지만 current/personal/prior 비교는 Phase 1과 호환되는 unit aggregate입니다. Joint complex는 child를 합산해 새 점수를 만들지 않고 worst child 상태를 사용합니다.
 
+계획 주간 projection은 cutoff 이전 ledger, calibration weight, historical residual sample과
+personal baseline을 한 번 준비합니다. 후보 행은 같은 canonical robust-reference 규칙으로
+새 exposure event만 만들고, 기존 history event와 합쳐 residual/aggregation을 계산합니다.
+Projection은 history를 mutate하지 않으며 reference ledger와 prepared ledger의 event,
+normalization, diagnostics parity를 회귀 테스트로 보장합니다.
+
 ## 9. 출력과 UI 해석
 
 정확한 상태 label은 `낮은 편`, `평소 범위`, `높은 편`, `매우 높은 편`, genuine authority failure의 `판단 불가`입니다. Old percentile과 calibration percentage를 표시하지 않고 baseline source를 scroll 마지막에 한 번만 보여 줍니다.

@@ -104,6 +104,16 @@ A rest-only timing row cannot define reps, rounds, work duration or load. Unreso
 
 ## Persistence and verification
 
+### Fixed-history projection performance
+
+Initial MAIN placement keeps the exact branch-and-bound traversal and 200,000-node cap. Row
+identity and day assignments are maintained incrementally; only days whose projected rows changed
+are sent through the OFI day gate. Full-week connective-tissue validation is deferred until those
+gates pass. Plan-day OFI and week tissue projection prepare immutable historical contexts once per
+generation and evaluate only candidate rows against that context. These are execution details;
+planner policy, candidate space, objective ordering, formulas, gates, and thresholds remain the
+same. Reference-vs-prepared parity tests are required whenever either prepared context changes.
+
 Additive `planningBudget.execution` JSON records candidate audit, prescription source, separate domain counts, direct representation, supportive allocation and deferred reasons. SUPPORTIVE_ONLY_DIRECT_EXPOSURE_NOT_REPLACED means assistance was actually scheduled while direct exposure remains unresolved.
 
 Existing portable `app_meta`, program items and per-set prescriptions carry save/edit/apply/backup/restore; no Room migration. Applied future work remains unconfirmed. Final counts and fingerprint describe returned items.
