@@ -1037,14 +1037,16 @@ class TrainingRepository(
 
     suspend fun updateSet(set: WorkoutSet) = withContext(Dispatchers.IO) {
         val beforeRevision = db.cloudBackupStateDao().getOrCreate().localRevision
-        recordMutationService.updateSet(set).also { LocalRecoveryScheduler.schedule(context) }
+        val result = recordMutationService.updateSet(set).also { LocalRecoveryScheduler.schedule(context) }
         scheduleAutomaticCloudBackupIfChanged(beforeRevision)
+        result
     }
 
     suspend fun updateSet(edit: RecordSetEdit) = withContext(Dispatchers.IO) {
         val beforeRevision = db.cloudBackupStateDao().getOrCreate().localRevision
-        recordMutationService.updateSet(edit).also { LocalRecoveryScheduler.schedule(context) }
+        val result = recordMutationService.updateSet(edit).also { LocalRecoveryScheduler.schedule(context) }
         scheduleAutomaticCloudBackupIfChanged(beforeRevision)
+        result
     }
 
     suspend fun refreshRecordDerivedState() = withContext(Dispatchers.IO) {
