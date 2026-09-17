@@ -112,7 +112,7 @@ data class ExerciseDeleteResult(
     val referenced: Boolean
 )
 
-class TrainingRepository(
+class TrainingRepository internal constructor(
     private val db: TrainingDatabase,
     private val context: Context,
     private val cloudCurrentDiscovery: suspend (CloudAuthSession) -> CloudCurrentBackupMetadata? = { session ->
