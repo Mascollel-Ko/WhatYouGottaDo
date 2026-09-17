@@ -60,7 +60,8 @@ internal fun frequencyPortion(snapshot: PlanningHistorySnapshot, state: AthleteP
     return null
 }
 
-internal class FrequencyExpansionPlanner(private val prescriptions: PersonalizedPrescriptionPlanner = PersonalizedPrescriptionPlanner()) {
+internal class FrequencyExpansionPlanner(private val prescriptions: PersonalizedPrescriptionPlanner = PersonalizedPrescriptionPlanner(),
+    private val performanceMetrics: PlannerPerformanceMetrics? = null) {
     fun expand(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, request: ProgramSkeletonRequest,
         base: GeneratedProgramSkeleton, frequency: PlanningFrequencyProvenance,
         place: (List<AuthorizedSchedulingDemand>, WeeklyCapacityEnvelope) -> CompletionResult): GeneratedProgramSkeleton {
@@ -169,7 +170,8 @@ internal class FrequencyExpansionPlanner(private val prescriptions: Personalized
                 completion = completion.copy(week = week.copy(items = rows), skeleton = week.mirror(completion.skeleton, rows, completion.skeleton.weekDaySchedule))
             }
             val rebalanced = BoundedDayRebalancer { trial -> failure(trial) == null && origins(trial) != null }
-                .rebalance(completion, snapshot, state, snapshot.planDayProjection)
+                .rebalance(completion, snapshot, state, snapshot.planDayProjection,
+                    RebalanceEvaluationCounts(performanceMetrics = performanceMetrics))
             result = rebalanced.skeleton.copy(personalizedDecision = rebalanced.skeleton.personalizedDecision?.copy(dayRebalancing = rebalanced.trace))
             rows = result.items.filter { it.weekNumber == 1 }
             origin = origins(rows)

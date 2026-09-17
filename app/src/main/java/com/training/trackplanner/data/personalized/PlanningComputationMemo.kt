@@ -6,7 +6,7 @@ import com.training.trackplanner.data.ProgramSkeletonItem
  * Request-scoped cache for pure planning computations. A new instance is created for each
  * top-level generation, so cached values never cross users, snapshots, or generations.
  */
-internal class PlanningComputationMemo {
+internal class PlanningComputationMemo(private val performanceMetrics: PlannerPerformanceMetrics? = null) {
     var prescriptionHits: Int = 0
     var prescriptionMisses: Int = 0
     var dayProjectionHits: Int = 0
@@ -46,8 +46,8 @@ internal class PlanningComputationMemo {
         planDayProjection = snapshot.planDayProjection?.let { delegate ->
             PlanDayProjection { items ->
                 val key = items.toList()
-                dayLoads[key]?.also { dayProjectionHits++ } ?: delegate.evaluate(items).also {
-                    dayProjectionMisses++
+                dayLoads[key]?.also { dayProjectionHits++; performanceMetrics?.let { it.dayProjectionCacheHits++ } } ?: delegate.evaluate(items).also {
+                    dayProjectionMisses++; performanceMetrics?.let { it.dayProjectionCacheMisses++ }
                     dayLoads[key] = it
                 }
             }
@@ -55,8 +55,8 @@ internal class PlanningComputationMemo {
         planWeekTissueProjection = snapshot.planWeekTissueProjection?.let { delegate ->
             PlanWeekTissueProjection { items, targetRpeMax ->
                 val key = items.toList() to targetRpeMax
-                tissueWeeks[key]?.also { tissueProjectionHits++ } ?: delegate.evaluate(items, targetRpeMax).also {
-                    tissueProjectionMisses++
+                tissueWeeks[key]?.also { tissueProjectionHits++; performanceMetrics?.let { it.tissueProjectionCacheHits++ } } ?: delegate.evaluate(items, targetRpeMax).also {
+                    tissueProjectionMisses++; performanceMetrics?.let { it.tissueProjectionCacheMisses++ }
                     tissueWeeks[key] = it
                 }
             }

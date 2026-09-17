@@ -88,15 +88,25 @@ data class TimedExecutionAllocation(
 /** Funds executable material work before discretionary continuity, using exact prescriptions.
  * The placement trial is a feasibility check; repair does not choose the block's priorities.
  */
-class TimedExecutionAllocationPlanner(private val prescriptions: PersonalizedPrescriptionPlanner) {
+class TimedExecutionAllocationPlanner(
+    private val prescriptions: PersonalizedPrescriptionPlanner,
+    private val placementContext: PlacementContext? = null,
+    private val performanceMetrics: PlannerPerformanceMetrics? = null,
+) {
     fun allocate(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, continuity: List<PlannedExercise>,
                  material: List<PlannedExercise>, optional: List<PlannedExercise>, days: Int, minutes: Int): TimedExecutionAllocation {
         val funded = mutableListOf<PlannedExercise>()
         val deferred = mutableListOf<TimedPlannedExercise>()
-        fun timed(item: PlannedExercise) = TimedPlannedExercise(item, prescriptions.prescribe(snapshot, state.strengthIntent, item, item.style))
-        fun fits(items: List<PlannedExercise>): Boolean =
-            TimedWeeklyPlacementPlanner().distribute(items.map(::timed), days, minutes, snapshot,
-                state.trainingStateAssessment?.sustainable?.robustSchedule == true).second.isEmpty()
+        val context = placementContext ?: PlacementContext(snapshot, state, days, minutes)
+        val timedCache = mutableMapOf<PlannedExercise, TimedPlannedExercise>()
+        fun timed(item: PlannedExercise): TimedPlannedExercise = timedCache.getOrPut(item) {
+            TimedPlannedExercise(item, prescriptions.prescribe(snapshot, state.strengthIntent, item, item.style))
+        }
+        fun fits(items: List<PlannedExercise>): Boolean {
+            performanceMetrics?.let { it.fundingFitsTrials++ }
+            return TimedWeeklyPlacementPlanner().distributeGreedy(items.map(::timed), days, minutes, snapshot,
+                state.trainingStateAssessment?.sustainable?.robustSchedule == true, context = context, metrics = performanceMetrics).second.isEmpty()
+        }
         // One core set per retained resistance anchor; style variants are rebuilt below.
         val cores = continuity.filter { it.transition != null }.groupBy(PlannedExercise::stableKey).values.map { variants ->
             variants.first().copy(targetSets = 1)
@@ -123,7 +133,8 @@ class TimedExecutionAllocationPlanner(private val prescriptions: PersonalizedPre
         optional.forEach { if (fits(funded + it)) funded += it else deferred += timed(it) }
         val placement = TimedWeeklyPlacementPlanner().distribute(funded.map(::timed), days, minutes, snapshot,
             state.trainingStateAssessment?.sustainable?.robustSchedule == true,
-            isMain = { MainSchedulingPolicy.role(it, it in continuity) == com.training.trackplanner.data.ProgressionRole.MAIN }, planningState = state)
+            isMain = { MainSchedulingPolicy.role(it, it in continuity) == com.training.trackplanner.data.ProgressionRole.MAIN },
+            planningState = state, context = context, metrics = performanceMetrics)
         check(placement.second.isEmpty())
         return TimedExecutionAllocation(placement.first, deferred)
     }
@@ -291,36 +302,89 @@ class ExecutionCapacityPlanner {
 
 /** Prescriptions precede placement. No item-count or generic-court-count capacity rule. */
 class TimedWeeklyPlacementPlanner {
-    fun distribute(items: List<TimedPlannedExercise>, days: Int, sessionMinutes: Int, snapshot: PlanningHistorySnapshot? = null,
-                   robustSchedule: Boolean = false,
-                   isMain: (PlannedExercise) -> Boolean = { false }, planningState: AthletePlanningState? = null): Pair<Map<Int, List<TimedPlannedExercise>>, List<TimedPlannedExercise>> {
+    fun distribute(
+        items: List<TimedPlannedExercise>,
+        days: Int,
+        sessionMinutes: Int,
+        snapshot: PlanningHistorySnapshot? = null,
+        robustSchedule: Boolean = false,
+        isMain: (PlannedExercise) -> Boolean = { false },
+        planningState: AthletePlanningState? = null,
+        context: PlacementContext? = null,
+        metrics: PlannerPerformanceMetrics? = null,
+    ): Pair<Map<Int, List<TimedPlannedExercise>>, List<TimedPlannedExercise>> {
+        val greedy = distributeGreedy(items, days, sessionMinutes, snapshot, robustSchedule, context, metrics)
+        val reviewed = InitialMainPlacement.review(
+            greedy.first,
+            sessionMinutes,
+            snapshot,
+            robustSchedule,
+            planningState,
+            isMain = isMain,
+            context = context,
+            performanceMetrics = metrics,
+        )
+        return reviewed to greedy.second
+    }
+
+    /**
+     * Greedy placement is the exact funding feasibility kernel. It has no
+     * canonical projection or post-authorization review, so funding trials can
+     * reuse this cheap structural pass without rebuilding a whole-week review.
+     */
+    internal fun distributeGreedy(
+        items: List<TimedPlannedExercise>,
+        days: Int,
+        sessionMinutes: Int,
+        snapshot: PlanningHistorySnapshot? = null,
+        robustSchedule: Boolean = false,
+        context: PlacementContext? = null,
+        metrics: PlannerPerformanceMetrics? = null,
+    ): Pair<Map<Int, List<TimedPlannedExercise>>, List<TimedPlannedExercise>> {
+        metrics?.let {
+            it.weeklyPlacementCalls++
+            it.placementAtomEvaluations += items.size
+        }
         val buckets = (1..days).associateWith { mutableListOf<TimedPlannedExercise>() }
         val deferred = mutableListOf<TimedPlannedExercise>()
+        val placementContext = context ?: snapshot?.let { PlacementContext(it, null, days, sessionMinutes) }
+        val atomContexts = java.util.IdentityHashMap<TimedPlannedExercise, PlacementAtomContext>()
+        fun atom(row: TimedPlannedExercise): PlacementAtomContext = atomContexts[row] ?:
+            PlacementAtomContext(
+                stableKey = row.item.stableKey,
+                estimatedSeconds = row.estimatedSeconds,
+                priority = row.item.priority,
+                scheduleTier = row.item.scheduleTier(),
+                lowerStress = placementContext?.lowerStress(row.item.stableKey) == true,
+                primary = StrengthPrimaryMainPolicy.isPrimary(row.item.stableKey),
+                main = false,
+                protectedPrimary = false,
+            ).also { atomContexts[row] = it }
         val ordered = items.sortedWith(compareByDescending<TimedPlannedExercise> { it.item.priority }
             .thenByDescending { it.item.representedGapCodes.isNotEmpty() }
-            .thenByDescending { it.item.styleVariant.isNotBlank() }.thenByDescending { it.estimatedSeconds }
-            .thenBy { it.item.stableKey }.thenBy { it.item.styleVariant })
+            .thenByDescending { it.item.styleVariant.isNotBlank() }
+            .thenByDescending { it.estimatedSeconds }
+            .thenBy { it.item.stableKey }
+            .thenBy { it.item.styleVariant })
         ordered.forEach { row ->
-            val sameKeyDays = buckets.filterValues { list -> list.any { it.item.stableKey == row.item.stableKey } }.keys
-            fun lowerStress(row: TimedPlannedExercise): Boolean = snapshot?.metadata?.get(row.item.stableKey)?.let { metadata ->
-                snapshot.movementCoverage(row.item.stableKey) in setOf(MovementCoverage.LOWER_KNEE, MovementCoverage.POSTERIOR_CHAIN, MovementCoverage.CALVES) ||
-                    metadata.jointTendonImpactStressLevel in setOf("HIGH", "VERY_HIGH")
-            } ?: false
+            val rowContext = atom(row)
+            val sameKeyDays = buckets.filterValues { list -> list.any { it.item.stableKey == rowContext.stableKey } }.keys
             val target = buckets.entries.filter { entry ->
-                entry.key !in sameKeyDays && entry.value.sumOf { it.estimatedSeconds } + row.estimatedSeconds <= sessionMinutes * 60
+                metrics?.let { it.candidateDayChecks++ }
+                entry.key !in sameKeyDays && entry.value.sumOf { it.estimatedSeconds } + rowContext.estimatedSeconds <= sessionMinutes * 60
             }.minWithOrNull(compareBy<Map.Entry<Int, MutableList<TimedPlannedExercise>>> {
-                if (lowerStress(row)) it.value.filter(::lowerStress).sumOf(TimedPlannedExercise::estimatedSeconds) else 0
+                if (rowContext.lowerStress) it.value.filter { atom(it).lowerStress }.sumOf { atom(it).estimatedSeconds } else 0
             }.thenBy {
-                if (!robustSchedule) 0 else when (row.item.scheduleTier()) {
-                    ScheduleTier.CORE_MUST_DO -> if (it.key <= (days+1)/2) 0 else 1
+                if (!robustSchedule) 0 else when (rowContext.scheduleTier) {
+                    ScheduleTier.CORE_MUST_DO -> if (it.key <= (days + 1) / 2) 0 else 1
                     ScheduleTier.IMPORTANT -> 0
-                    ScheduleTier.OPTIONAL_CAPACITY -> days-it.key
+                    ScheduleTier.OPTIONAL_CAPACITY -> days - it.key
                 }
-            }.thenBy { it.value.sumOf(TimedPlannedExercise::estimatedSeconds) }
+            }.thenBy { it.value.sumOf { atom(it).estimatedSeconds } }
                 .thenBy { it.key })
             if (target == null) deferred += row else target.value += row
         }
-        return InitialMainPlacement.review(buckets, sessionMinutes, snapshot, robustSchedule, planningState, isMain = isMain) to deferred
+        return buckets to deferred
     }
 }
 

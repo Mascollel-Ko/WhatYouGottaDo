@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.16.2 |
+| Protocol version | 3.17.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
@@ -14,6 +14,14 @@
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 
 ## 1. 일반 사용자용 요약
+
+### 3.17.0 — plausible-first record-based placement
+
+- Production record-based placement constructs a deterministic plausible layout in most-constrained-first order, using cheap time, duplicate-key, primary-anchor and lower-stress prefilters before invoking canonical OFI/tissue validation. A bounded local repair (at most 16 rounds) runs only when the first layout fails an authoritative gate; the previous exhaustive branch-and-bound remains a test/reference oracle.
+- Funding feasibility reuses the greedy timed placement kernel and no longer rebuilds a whole-week MAIN review for every trial. A generation-scoped `PlacementContext` caches structural atom metadata; canonical OFI and connective-tissue projections remain the only feasibility authorities and are never approximated.
+- Conditional four/five-set continuity parents try the unsplit placement first. Canonical chunks are considered only for an infeasible result or an explicit concentration need; six-to-nine-set parents retain their exact canonical partitions and stop at the first complete feasible partition. Post-split and day rebalancing remain finite, ordered local search with strict improvement.
+- Observation-only counters (`fundingFitsTrials`, placement/candidate checks, projection calls/cache hits, split candidates/trials, rebalancing candidates and accepted moves) are scoped to one generation and are available for diagnostics; they do not affect ranking, prescriptions, OFI, tissue or persisted output.
+- No Legacy behavior, backup/cloud contract, Room schema, signing configuration, application version, UI or physiological formula changed.
 
 ### 3.16.2 — real final-reflow execution progress
 

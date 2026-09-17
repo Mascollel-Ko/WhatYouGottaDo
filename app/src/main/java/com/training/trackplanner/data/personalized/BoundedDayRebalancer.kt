@@ -65,7 +65,8 @@ internal fun balanceNonWorsening(before: List<BalanceDay>, after: List<BalanceDa
         after.any { day -> before.first { it.day == day.day }.let { prior -> day.timeDistance < prior.timeDistance || day.ofiDistance < prior.ofiDistance } }
 
 internal data class RebalancingResult(val skeleton: GeneratedProgramSkeleton, val trace: DayRebalancingTrace)
-internal data class RebalanceEvaluationCounts(var candidates: Int = 0, var dayMetrics: Int = 0, var reusedDayMetrics: Int = 0)
+internal data class RebalanceEvaluationCounts(var candidates: Int = 0, var dayMetrics: Int = 0, var reusedDayMetrics: Int = 0,
+    val performanceMetrics: PlannerPerformanceMetrics? = null)
 private data class RebalanceCandidate(val rows: List<ProgramSkeletonItem>, val metrics: List<BalanceDay>, val action: BalanceAction,
     val movementCost: Int, val priority: Int, val keyOrder: String, val identityOrder: String)
 
@@ -114,6 +115,7 @@ internal class BoundedDayRebalancer(private val additionalGate: (List<ProgramSke
             val seconds = dayRows.sumOf(::plannedSeconds)
             val ofi = load(dayRows).ofi
             counts.dayMetrics++
+            counts.performanceMetrics?.let { it.dayProjectionCalls++ }
             BalanceDay(day, seconds, ofi, seconds / timeReference, if (ofiReference > 0) ofi / ofiReference else null)
         }
         fun movable(row: ProgramSkeletonItem): Boolean {
@@ -160,6 +162,7 @@ internal class BoundedDayRebalancer(private val additionalGate: (List<ProgramSke
             fun evaluate(source: ProgramSkeletonItem, destination: Int, reverse: ProgramSkeletonItem? = null,
                 route: String = if (reverse == null) "PRIMARY_MOVE" else "SWAP"): RebalanceCandidate? {
                 counts.candidates++
+                counts.performanceMetrics?.let { it.rebalanceCandidates++ }
                 fun rejected(reason: String): RebalanceCandidate? {
                     if (route.startsWith("STRENGTH_PRIMARY")) primaryRejections[reason] = primaryRejections.getOrDefault(reason,0)+1
                     return null
@@ -256,6 +259,7 @@ internal class BoundedDayRebalancer(private val additionalGate: (List<ProgramSke
             val accepted = best ?: break
             check(visited.add(accepted.rows.associate { atom(it) to it.dayOfWeek })) { "REBALANCE_CYCLE" }
             rows = accepted.rows; currentMetrics = accepted.metrics; actions += accepted.action
+            counts.performanceMetrics?.let { it.acceptedMoves++ }
         }
         check(immutable(original) == immutable(rows))
         completed.demand?.let { demand ->

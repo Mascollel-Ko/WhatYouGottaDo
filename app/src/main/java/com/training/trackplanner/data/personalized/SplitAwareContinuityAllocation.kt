@@ -71,19 +71,27 @@ internal data class SplitAwareAllocation(val days: Map<Int, List<AuthorizedTimed
 
 /** Wrapper around the unchanged finite/timed allocator. No prescription is re-authored by splitting. */
 internal class SplitAwareContinuityAllocation(private val prescriptions: PersonalizedPrescriptionPlanner,
-    private val progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE) {
+    private val progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE,
+    private val placementContext: PlacementContext? = null,
+    private val performanceMetrics: PlannerPerformanceMetrics? = null) {
+    private fun context(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, days: Int, minutes: Int): PlacementContext =
+        placementContext ?: PlacementContext(snapshot, state, days, minutes)
+
     fun allocateAuthorized(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, authorized: List<AuthorizedSchedulingDemand>,
         days: Int, minutes: Int, request: ProgramSkeletonRequest): SplitAwareAllocation {
+        val placement = context(snapshot, state, days, minutes)
         val result = TimedWeeklyPlacementPlanner().distribute(authorized.map { TimedPlannedExercise(it.item, it.prescription) },
             days, minutes, snapshot, state.trainingStateAssessment?.sustainable?.robustSchedule == true,
-            isMain = { item -> MainSchedulingPolicy.role(item, authorized.any { it.item == item && it.continuity }) == com.training.trackplanner.data.ProgressionRole.MAIN }, planningState = state)
+            isMain = { item -> MainSchedulingPolicy.role(item, authorized.any { it.item == item && it.continuity }) == com.training.trackplanner.data.ProgressionRole.MAIN },
+            planningState = state, context = placement, metrics = performanceMetrics)
         return improve(snapshot, state, authorized, TimedExecutionAllocation(result.first, result.second), days, minutes, request)
     }
     fun allocate(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, continuity: List<PlannedExercise>,
         material: List<PlannedExercise>, optional: List<PlannedExercise>, days: Int, minutes: Int, request: ProgramSkeletonRequest? = null): SplitAwareAllocation {
         val authorized = (continuity + material + optional).mapIndexed { index, item -> AuthorizedSchedulingDemand("authorized_$index", item,
             prescriptions.prescribe(snapshot, state.strengthIntent, item, item.style), index < continuity.size) }
-        val baseline = TimedExecutionAllocationPlanner(prescriptions).allocate(snapshot, state, continuity, material, optional, days, minutes)
+        val baseline = TimedExecutionAllocationPlanner(prescriptions, context(snapshot, state, days, minutes), performanceMetrics)
+            .allocate(snapshot, state, continuity, material, optional, days, minutes)
         return improve(snapshot, state, authorized, baseline, days, minutes, request)
     }
 
@@ -104,7 +112,9 @@ internal class SplitAwareContinuityAllocation(private val prescriptions: Persona
         fun maxLower(layout: Map<Int, List<AuthorizedTimedAtom>>) = layout.values.maxOfOrNull { it.filter(::lower).sumOf { row -> row.timed.estimatedSeconds } } ?: 0
         fun trial(atoms: List<AuthorizedTimedAtom>): Map<Int, List<AuthorizedTimedAtom>>? {
             val result = TimedWeeklyPlacementPlanner().distribute(atoms.map { it.timed }, days, minutes, snapshot,
-                state.trainingStateAssessment?.sustainable?.robustSchedule == true)
+                state.trainingStateAssessment?.sustainable?.robustSchedule == true,
+                isMain = { item -> MainSchedulingPolicy.role(item, authorized.any { it.item == item && it.continuity }) == com.training.trackplanner.data.ProgressionRole.MAIN },
+                planningState = state, context = context(snapshot, state, days, minutes), metrics = performanceMetrics)
             if (result.second.isNotEmpty()) return null
             // Equal chunks are distinguished by occurrence, never by stableKey-keyed maps.
             val remaining = atoms.toMutableList()
@@ -118,9 +128,12 @@ internal class SplitAwareContinuityAllocation(private val prescriptions: Persona
             if (primaryKeys.any { key -> !PrimaryStrengthAnchorSpacingPolicy.allowed(layout.entries.flatMap { (day, rows) ->
                 rows.filter { it.timed.item.stableKey == key }.map { actualDays[day - 1] }
             }) }) return null
-            if (layout.values.any { rows -> snapshot.planDayProjection?.evaluate(rows.mapIndexed { index, row ->
-                residualItem(snapshot, row.timed.item, row.timed.prescription, "split_trial_$index", 1, index + 1)
-            })?.feasible == false }) return null
+            if (layout.values.any { rows -> snapshot.planDayProjection?.let { projection ->
+                performanceMetrics?.let { it.dayProjectionCalls++ }
+                projection.evaluate(rows.mapIndexed { index, row ->
+                    residualItem(snapshot, row.timed.item, row.timed.prescription, "split_trial_$index", 1, index + 1)
+                })
+            }?.feasible == false }) return null
             return layout
         }
         for (parent in authorized.filter { it.continuity }.sortedWith(compareByDescending<AuthorizedSchedulingDemand> { it.item.priority }.thenBy { it.id })) {
@@ -135,7 +148,8 @@ internal class SplitAwareContinuityAllocation(private val prescriptions: Persona
                 continue
             }
             if (ContinuitySplitPolicy.mandatory(snapshot, parent)) {
-                val result = MandatoryContinuityPlacement(snapshot, state, days, minutes).place(parent, placed, prescriptions)
+                val result = MandatoryContinuityPlacement(snapshot, state, days, minutes, performanceMetrics)
+                    .place(parent, placed, prescriptions)
                 placed = result.days
                 val materialized = result.days.values.flatten().filter { it.origin.authorizedDemandId == parent.id }.sumOf { it.timed.prescription.sets.size }
                 decisions += ContinuitySplitDecision(parent.id, true, ContinuitySplitPolicy.template(parent.prescription.sets.size, days),
@@ -143,12 +157,22 @@ internal class SplitAwareContinuityAllocation(private val prescriptions: Persona
                     result.failures, result.ofiWarnings)
                 continue
             }
+            performanceMetrics?.let { it.conditionalSplitParents++ }
             val current = placed.values.flatten()
             val others = current.filter { it.origin.authorizedDemandId != parent.id }
             val full = trial(others + AuthorizedTimedAtom(TimedPlannedExercise(parent.item, parent.prescription), AuthorizedAtomOrigin(parent.id)))
-            val split = trial(others + ContinuitySplitPolicy.chunks(parent, days) { count ->
-                prescriptions.prescribe(snapshot, state.strengthIntent, parent.item.copy(targetSets = count), parent.item.style).text
-            })
+            performanceMetrics?.let { it.fullTrials++ }
+            // Four/five-set parents are split only when the unsplit placement is
+            // infeasible or leaves a day unused while concentrating the whole
+            // parent. This is the explicit need gate; the canonical split still
+            // runs through the same OFI/tissue checks when requested.
+            val needsSplit = full == null || full.values.count { it.isNotEmpty() } < minOf(days, 2)
+            val split = if (needsSplit) {
+                performanceMetrics?.let { it.splitTrials++ }
+                trial(others + ContinuitySplitPolicy.chunks(parent, days) { count ->
+                    prescriptions.prescribe(snapshot, state.strengthIntent, parent.item.copy(targetSets = count), parent.item.style).text
+                })
+            } else null
             val chooseSplit = split != null && (full == null || maximum(split) < maximum(full) && maxLower(split) <= maxLower(full))
             // An infeasible split never replaces the existing safe allocation; ties prefer full unsplit.
             placed = when { chooseSplit -> split!!; full != null -> full; else -> placed }

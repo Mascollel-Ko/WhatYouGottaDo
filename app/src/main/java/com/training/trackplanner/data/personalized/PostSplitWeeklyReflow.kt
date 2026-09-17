@@ -36,7 +36,8 @@ internal data class PostSplitReflowResult(val skeleton: GeneratedProgramSkeleton
 
 /** Optional measurement sink; one fresh instance per invocation, never a ranking input. */
 internal data class ReflowEvaluationCounts(var candidates: Int = 0, var dayProjections: Int = 0,
-    var tissueProjections: Int = 0, var objectives: Int = 0, var acceptedActions: Int = 0)
+    var tissueProjections: Int = 0, var objectives: Int = 0, var acceptedActions: Int = 0,
+    val performanceMetrics: PlannerPerformanceMetrics? = null)
 
 /** Deterministic whole-item moves around fixed chunks. No prescription, demand, funding or progression mutation. */
 internal class PostSplitWeeklyReflow {
@@ -77,7 +78,7 @@ internal class PostSplitWeeklyReflow {
         require(PrimaryStrengthAnchorSpacingPolicy.allowedRows(initial,primary)) { "PRE_REFLOW_PRIMARY_ANCHOR_SPACING_VIOLATION" }
         val loads=mutableMapOf<List<ProgramSkeletonItem>,StandaloneDayLoad>()
         fun load(rows: List<ProgramSkeletonItem>)=loads.getOrPut(rows.map { it.copy(dayOfWeek=1,orderIndex=0) }) {
-            counts.dayProjections++; projection.evaluate(rows)
+            counts.dayProjections++; counts.performanceMetrics?.let { it.dayProjectionCalls++ }; projection.evaluate(rows)
         }
         val referenceDays=week.days.filter { day -> initial.any { it.dayOfWeek==day } }
         execution.baselineValidation()
@@ -122,7 +123,9 @@ internal class PostSplitWeeklyReflow {
         }
         val rpe=plan.weekPlans.firstOrNull { it.weekIndex==1 }?.targetRpeMax ?: 8.5
         val tissueCache=mutableMapOf<List<ProgramSkeletonItem>,PlannedTissueWeek>()
-        fun tissue(rows: List<ProgramSkeletonItem>)=tissueCache.getOrPut(rows) { counts.tissueProjections++; tissueProjection.evaluate(rows,rpe) }
+        fun tissue(rows: List<ProgramSkeletonItem>)=tissueCache.getOrPut(rows) {
+            counts.tissueProjections++; counts.performanceMetrics?.let { it.weekTissueProjectionCalls++ }; tissueProjection.evaluate(rows,rpe)
+        }
         val baselineTissue=tissue(initial)
         fun tissueAllowed(rows: List<ProgramSkeletonItem>,moved: String): Boolean {
             val result=tissue(rows)
@@ -153,6 +156,7 @@ internal class PostSplitWeeklyReflow {
                 restriction(row)?.let { reject(it) } ?: run {
                     for(day in week.days.filter { it!=row.dayOfWeek }) {
                         counts.candidates++
+                        counts.performanceMetrics?.let { it.postSplitCandidates++ }
                         val trial=rows.map { if(it.localId==row.localId) it.copy(dayOfWeek=day,
                             orderIndex=(rows.filter { existing -> existing.dayOfWeek==day }.maxOfOrNull { existing -> existing.orderIndex } ?: 0)+1) else it }
                         val destination=trial.filter { it.dayOfWeek==day }
@@ -190,6 +194,7 @@ internal class PostSplitWeeklyReflow {
             check(selected.rows.filter { it.localId in fixed }==initial.filter { it.localId in fixed }) { "REFLOW_SPLIT_CHANGED" }
             check(qcr(selected.rows)==initialQcr) { "REFLOW_QCR_CHANGED" }
             counts.acceptedActions++
+            counts.performanceMetrics?.let { it.acceptedMoves++ }
             rows=selected.rows; moves+=selected.move
             execution.moved()
         }

@@ -7,7 +7,8 @@ internal data class MandatoryContinuityResult(val days: Map<Int, List<Authorized
 
 /** Searches only the finite canonical partition; never invents a day, set or alternative exercise. */
 internal class MandatoryContinuityPlacement(private val snapshot: PlanningHistorySnapshot, private val state: AthletePlanningState,
-    private val days: Int, private val minutes: Int) {
+    private val days: Int, private val minutes: Int,
+    private val performanceMetrics: PlannerPerformanceMetrics? = null) {
     fun place(parent: AuthorizedSchedulingDemand, current: Map<Int, List<AuthorizedTimedAtom>>,
         prescriptions: PersonalizedPrescriptionPlanner): MandatoryContinuityResult {
         val failures = linkedSetOf<SplitPlacementFailure>()
@@ -30,17 +31,25 @@ internal class MandatoryContinuityPlacement(private val snapshot: PlanningHistor
             if (index == chunks.size) {
                 if (units == 0) return
                 val projected = rows(layout)
-                if (!tissueFeasibility.getOrPut(projected) { splitTissueAllowed(snapshot, projected, parent.item.stableKey, 8.5) }) {
+                val feasible = tissueFeasibility[projected] ?: run {
+                    performanceMetrics?.let { it.mandatorySplitTissueCalls++ }
+                    splitTissueAllowed(snapshot, projected, parent.item.stableKey, 8.5).also { tissueFeasibility[projected] = it }
+                }
+                if (!feasible) {
                     failures += SplitPlacementFailure.TISSUE_RECOVERY_CONSTRAINT; return
                 }
                 val maximum = layout.values.maxOf { atoms -> atoms.sumOf { it.timed.estimatedSeconds } }
                 if (units > bestUnits || units == bestUnits && maximum < bestMaximum) {
                     best = layout; bestUnits = units; bestMaximum = maximum
                 }
+                // A complete canonical partition is the required result. Stop
+                // immediately once one passes all authoritative gates.
+                if (bestUnits == parent.prescription.sets.size) return
                 return
             }
             val chunk = chunks[index]
             for (day in (1..days).sortedWith(compareBy<Int> { layout.getValue(it).sumOf { atom -> atom.timed.estimatedSeconds } }.thenBy { it })) {
+                performanceMetrics?.let { it.mandatorySplitCandidates++ }
                 val onDay = layout.getValue(day)
                 if (day in used || onDay.any { it.timed.item.stableKey == parent.item.stableKey }) {
                     failures += SplitPlacementFailure.SAME_KEY_OR_DISTINCT_DAY; continue
@@ -56,7 +65,10 @@ internal class MandatoryContinuityPlacement(private val snapshot: PlanningHistor
                 }
                 val next = layout + (day to (onDay + chunk))
                 val projectedDay = rows(next).filter { it.dayOfWeek == actualDays[day - 1] }
-                val load = snapshot.planDayProjection?.let { projection -> dayLoads.getOrPut(projectedDay) { projection.evaluate(projectedDay) } }
+                val load = snapshot.planDayProjection?.let { projection -> dayLoads[projectedDay] ?: run {
+                    performanceMetrics?.let { it.mandatorySplitDayProjectionCalls++ }
+                    projection.evaluate(projectedDay).also { dayLoads[projectedDay] = it }
+                } }
                 if (load?.feasible == false) {
                     // Explicit product override: preserve already-authorized high-set volume; OFI is advisory here only.
                     ofiWarnings += SplitOfiWarning(index, chunk.timed.prescription.sets.size, actualDays[day - 1], load)
