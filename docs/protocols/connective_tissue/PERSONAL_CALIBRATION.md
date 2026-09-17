@@ -182,7 +182,7 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. Production
 - `tools/connective-tissue-prior/generated/generation_report.md`
 - `app/src/main/assets/metadata/tissue_load_v1/connective_tissue_prior_baselines_v1.json`
 
-Generator `CT-PRIOR-GENERATOR-1.0.0`, schema `1.0.0`, 77 units, 13 profiles, 24 hours, 936 quantiles입니다. Canonical/app-ready SHA-256는 `db4623dbdc1ce4a48cc1eb7757a6d5768b7aa207e814aef87d5fa8c82f6f30d5`, recovery fingerprint는 `07a5da10fdd1a1e1069883f0e9da3f893edb4cdbb3317ce93629a1c1224a05dd`, deterministic checksum은 `001676195cfca6f9a4788da6b12c6a25eb4dec05353091a6739aee39a37930c5`입니다. Generator/simulation code는 APK runtime에 들어가지 않습니다.
+Generator `CT-PRIOR-GENERATOR-1.0.0`, schema `1.0.0`, 77 units, 13 profiles, 24 hours, 936 quantiles입니다. Canonical/app-ready SHA-256는 `891f9105aa67bd863fe65c100c810371ef52c1354ce586a878bc670020fd594a`, recovery fingerprint는 `601febba937c75b00eb6a31aa1194e6f624f1c7ab52eae91eea0bf190d7562a2`, deterministic checksum은 `d6cafa9f4d4d061619cf368eb673e3d0df42bc3edc412f4bd875eb72b7dc928f`입니다. Generator/simulation code는 APK runtime에 들어가지 않습니다.
 
 ## 19. 관련 문서
 

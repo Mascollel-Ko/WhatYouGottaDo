@@ -111,7 +111,7 @@ class TissueEducationalCopyContractTest {
     fun educationalRewriteLeavesNumericalAuthoritiesByteIdentical() {
         val expected = mapOf(
             "connective_tissue_prior_baselines_v1.json" to
-                "db4623dbdc1ce4a48cc1eb7757a6d5768b7aa207e814aef87d5fa8c82f6f30d5",
+                "891f9105aa67bd863fe65c100c810371ef52c1354ce586a878bc670020fd594a",
             "tissue_rcv_exercise_load_unit_authority_v1.csv" to
                 "0b0a03cfbd1d72ffcde5d991c2db2eb1e5c554e29e0e866c4d1e3215f66d0d21",
             "tissue_rcv_recovery_curve_knots_v1.csv" to
