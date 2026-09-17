@@ -131,9 +131,11 @@ jobs:
             -keystore "$RUNNER_TEMP/whatyougottado-ci-debug.jks" \
             -alias "$ANDROID_CI_KEY_ALIAS" \
             '-storepass:env' ANDROID_CI_KEYSTORE_PASSWORD |
-            awk -F': ' '/SHA1:/{print $2; exit}' | tr -d '\r' | tr '[:lower:]' '[:upper:]')"
-          actual="$(awk -F': ' '/Signer #1 certificate SHA-1 digest:/{print $2; exit}' "$certs" |
-            tr -d '\r' | tr '[:lower:]' '[:upper:]')"
+            awk -F': ' '/SHA1:/{print $2; exit}' |
+            tr -d ':\r[:space:]' | tr '[:lower:]' '[:upper:]')"
+          actual="$(grep -i -m1 'SHA-1 digest:' "$certs" |
+            sed -En 's/.*SHA-1 digest:[[:space:]]*([0-9A-Fa-f:]+).*/\1/p' |
+            tr -d ':\r[:space:]' | tr '[:lower:]' '[:upper:]')"
           test -n "$expected" || {
             echo "::error::Could not derive the CI keystore SHA-1"
             exit 1
