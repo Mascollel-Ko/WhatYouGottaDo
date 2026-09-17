@@ -7,7 +7,6 @@ import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
-import androidx.work.WorkInfo
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
@@ -34,14 +33,11 @@ internal object CloudBackupScheduler {
             .build()
         runCatching {
             val workManager = WorkManager.getInstance(context.applicationContext)
-            val policy = runCatching {
-                if (workManager.getWorkInfosForUniqueWork(UNIQUE_WORK_NAME).get()
-                        .any { it.state == WorkInfo.State.RUNNING }
-                ) ExistingWorkPolicy.KEEP else ExistingWorkPolicy.REPLACE
-            }.getOrDefault(ExistingWorkPolicy.REPLACE)
             workManager.enqueueUniqueWork(
                 UNIQUE_WORK_NAME,
-                policy,
+                // Replacing an active worker coalesces the latest edit. The repository mutex
+                // keeps a cancelled network call from overlapping the replacement upload.
+                ExistingWorkPolicy.REPLACE,
                 request
             )
         }

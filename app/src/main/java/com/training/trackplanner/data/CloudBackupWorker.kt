@@ -54,8 +54,8 @@ internal class CloudBackupWorker(
         return try {
             // Logout/account changes can happen while work is queued. Recheck the current
             // store immediately before starting the upload and never trust worker input.
-            val current = auth.refreshIfNeeded()
-            check(current != null && current.userId.equals(session.userId, ignoreCase = true)) {
+            val current = auth.refreshIfNeeded() ?: error("LOGGED_OUT")
+            check(current.userId.equals(session.userId, ignoreCase = true)) {
                 "LOGGED_OUT"
             }
             repository.uploadCloudBackup(
