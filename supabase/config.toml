@@ -389,6 +389,9 @@ verify_jwt = true
 [functions.cloud-backup-download-url]
 verify_jwt = true
 
+[functions.cloud-backup-current]
+verify_jwt = true
+
 [functions.cloud-backup-finalize]
 verify_jwt = true
 

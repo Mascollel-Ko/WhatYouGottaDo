@@ -327,6 +327,7 @@
     <string name="cloud_backup_uploaded_pending">The backup uploaded, but later local changes still need a future backup.</string>
     <string name="cloud_no_backup">No cloud backup is available to load.</string>
     <string name="cloud_backup_ready">The backup is verified. Choose restore options.</string>
+    <string name="cloud_current_discovery_failed">The cloud backup status could not be checked. Check your network and try again.</string>
     <string name="cloud_restore_failed">The cloud backup could not be verified or loaded. Local records are preserved.</string>
     <string name="cloud_guest_comparison_required">Compare Guest and cloud records before choosing an outcome.</string>
     <string name="cloud_account_archive_required">An archive of the current account is required before switching accounts.</string>

@@ -11,6 +11,7 @@ import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
+import java.util.UUID
 import java.util.zip.GZIPOutputStream
 import java.util.zip.GZIPInputStream
 
@@ -171,6 +172,61 @@ internal data class CloudBackupDownloadResult(
     val metadata: CloudBackupDownloadMetadata,
     val csv: String
 )
+
+/** Minimal authenticated metadata for the one server-owned CURRENT backup. */
+internal data class CloudCurrentBackupMetadata(
+    val backupId: String,
+    val createdAt: String? = null,
+    val localRevision: Long? = null
+)
+
+/** Discovers CURRENT without exposing an object URL or accepting a client user id. */
+internal class CloudCurrentBackupClient(
+    private val config: CloudBackupConfig,
+    private val postTransport: CloudHttpTransport
+) {
+    suspend fun discover(session: CloudAuthSession): CloudCurrentBackupMetadata? =
+        withContext(Dispatchers.IO) {
+            require(config.configured) { "Cloud Backup is not configured for this build." }
+            require(session.userId.isNotBlank() && session.accessToken.isNotBlank()) {
+                "Cloud Backup requires an authenticated session."
+            }
+            val response = postTransport.postJson(
+                "${config.supabaseUrl}/functions/v1/cloud-backup-current",
+                session,
+                "{}"
+            )
+            if (response.status !in 200..299) throw CloudBackupException(parseError(response.body))
+            val payload = runCatching { JSONObject(response.body) }
+                .getOrElse { throw CloudBackupException("INVALID_SERVER_RESPONSE") }
+            if (!payload.has("current")) throw CloudBackupException("INVALID_SERVER_RESPONSE")
+            if (payload.isNull("current")) return@withContext null
+            val current = payload.optJSONObject("current")
+                ?: throw CloudBackupException("INVALID_SERVER_RESPONSE")
+            val backupId = current.optString("backup_id").trim()
+            if (backupId.isBlank() || runCatching { UUID.fromString(backupId) }.isFailure) {
+                throw CloudBackupException("INVALID_SERVER_RESPONSE")
+            }
+            if (current.has("status") && current.optString("status") != "CURRENT") {
+                throw CloudBackupException("INVALID_SERVER_RESPONSE")
+            }
+            if (current.has("backup_format_version") &&
+                current.optInt("backup_format_version", -1) != RecordCsvBackupRestore.CURRENT_BACKUP_FORMAT_VERSION
+            ) throw CloudBackupException("UNSUPPORTED_BACKUP_VERSION")
+            if (current.has("schema_version") &&
+                current.optInt("schema_version", -1) != RecordCsvBackupRestore.CURRENT_RESTORE_SCHEMA_VERSION
+            ) throw CloudBackupException("UNSUPPORTED_BACKUP_VERSION")
+            CloudCurrentBackupMetadata(
+                backupId = backupId,
+                createdAt = current.optString("created_at").takeIf(String::isNotBlank),
+                localRevision = current.optLong("local_revision", Long.MIN_VALUE)
+                    .takeIf { it >= 0L }
+            )
+        }
+
+    private fun parseError(body: String): String = runCatching { JSONObject(body).optString("error") }
+        .getOrNull()?.takeIf(String::isNotBlank) ?: "CLOUD_CURRENT_DISCOVERY_FAILED"
+}
 
 internal class CloudBackupDownloadClient(
     private val config: CloudBackupConfig,

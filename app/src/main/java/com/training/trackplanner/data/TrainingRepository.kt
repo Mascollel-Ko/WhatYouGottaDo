@@ -114,7 +114,11 @@ data class ExerciseDeleteResult(
 
 class TrainingRepository(
     private val db: TrainingDatabase,
-    private val context: Context
+    private val context: Context,
+    private val cloudCurrentDiscovery: suspend (CloudAuthSession) -> CloudCurrentBackupMetadata? = { session ->
+        val config = CloudBackupConfig.fromBuildConfig()
+        CloudCurrentBackupClient(config, UrlConnectionCloudHttpTransport(config.publishableKey)).discover(session)
+    }
 ) {
     internal fun observeCloudBackupState(): Flow<CloudBackupState?> = db.cloudBackupStateDao().observe()
     private val exerciseDao = db.exerciseDao()
@@ -572,9 +576,9 @@ class TrainingRepository(
             if (!state.cloudBackupPending || !state.cloudBackupEnabled) return@withContext false
             val verified = session ?: CloudAuthRepository(context).refreshIfNeeded()
                 ?: return@withContext false
-            val action = CloudAccountEntryClassifier.classify(
-                cloudAccountEntrySnapshot(), verified.userId
-            )
+            val account = runCatching { cloudAccountEntrySnapshot(verified) }
+                .getOrElse { return@withContext false }
+            val action = CloudAccountEntryClassifier.classify(account, verified.userId)
             if (action !in setOf(
                     CloudAccountEntryAction.ENABLE_CLOUD,
                     CloudAccountEntryAction.ADOPT_GUEST_LOCAL_DATA,
@@ -597,17 +601,36 @@ class TrainingRepository(
             changed
         }
 
-    internal suspend fun cloudAccountEntrySnapshot(): CloudAccountEntrySnapshot = withContext(Dispatchers.IO) {
+    internal suspend fun cloudAccountEntrySnapshot(
+        session: CloudAuthSession? = null
+    ): CloudAccountEntrySnapshot = withContext(Dispatchers.IO) {
         val state = db.cloudBackupStateDao().getOrCreate()
+        val hasMeaningfulLocalData = initialUserProfileDao.profile() != null ||
+            workoutDao.allEntries().isNotEmpty() || programDao.countPrograms() > 0
+        val locallyAcknowledgedBackupId = state.lastSuccessfulBackupId
+        val discovered = if (locallyAcknowledgedBackupId == null && session != null) {
+            // A missing local acknowledgement is not evidence that the user's Cloud is empty.
+            // Query the authenticated account before any bind/upload/restore decision.
+            cloudCurrentDiscovery(session)
+        } else {
+            null
+        }
         CloudAccountEntrySnapshot(
-            hasMeaningfulLocalData = initialUserProfileDao.profile() != null ||
-                workoutDao.allEntries().isNotEmpty() || programDao.countPrograms() > 0,
+            hasMeaningfulLocalData = hasMeaningfulLocalData,
             boundUserId = state.accountUserId,
-            cloudCurrentExists = state.lastSuccessfulBackupId != null,
-            // The current Edge Function accepts a backup id; it does not discover a user's
-            // CURRENT row. Treat Guest cloud presence as unknown until that query exists.
-            cloudCurrentKnown = state.lastSuccessfulBackupId != null
+            cloudCurrentExists = locallyAcknowledgedBackupId != null || discovered != null,
+            cloudCurrentBackupId = locallyAcknowledgedBackupId ?: discovered?.backupId,
+            cloudCurrentKnown = locallyAcknowledgedBackupId != null || session != null
         )
+    }
+
+    internal suspend fun discoverCloudCurrent(
+        session: CloudAuthSession
+    ): CloudCurrentBackupMetadata? = withContext(Dispatchers.IO) {
+        val state = db.cloudBackupStateDao().getOrCreate()
+        state.lastSuccessfulBackupId?.let { backupId ->
+            CloudCurrentBackupMetadata(backupId = backupId)
+        } ?: cloudCurrentDiscovery(session)
     }
 
     /** Bind only the safe A-without-Cloud, B-without-Cloud, and C login outcomes. */

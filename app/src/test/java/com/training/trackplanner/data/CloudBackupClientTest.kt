@@ -7,6 +7,7 @@ import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -33,6 +34,68 @@ class CloudBackupClientTest {
         assertEquals(CloudBackupCodec.gzip(bytes).toList(), compressed.toList())
     }
 
+    @Test fun discoveredGuestAbsenceAllowsFirstUploadAfterSafeBind() = runBlocking {
+        val db = db()
+        db.initialUserProfileDao().upsert(InitialUserProfile(bodyWeightKg = 72.0))
+        val session = CloudAuthSession("user-1", "token")
+        val repository = TrainingRepository(db, context) { null }
+        val snapshot = repository.cloudAccountEntrySnapshot(session)
+        assertEquals(CloudAccountEntryAction.ADOPT_GUEST_LOCAL_DATA,
+            CloudAccountEntryClassifier.classify(snapshot, session.userId))
+
+        repository.bindCloudAccountIfSafe(session.userId)
+        val backupId = "11111111-1111-4111-8111-111111111111"
+        val result = CloudBackupClient(
+            db = db,
+            canonicalBackup = { CanonicalBackupContent("canonical csv", RecordCsvTransferResult("restore-v14"), emptyList()) },
+            config = CloudBackupConfig("https://example.supabase.co", "publishable"),
+            http = RecordingTransport(backupId)
+        ).uploadNow(session, now = 1234L)
+
+        assertEquals(backupId, result.backupId)
+        assertTrue(result.acknowledged)
+        assertEquals(session.userId, db.cloudBackupStateDao().get()!!.accountUserId)
+    }
+
+    @Test fun currentDiscoveryReturnsMinimalServerMetadata() = runBlocking {
+        val transport = DiscoveryTransport(
+            CloudHttpResponse(200, JSONObject().put(
+                "current", JSONObject()
+                    .put("backup_id", "11111111-1111-4111-8111-111111111111")
+                    .put("status", "CURRENT")
+                    .put("backup_format_version", 14)
+                    .put("schema_version", 13)
+                    .put("local_revision", 4)
+            ).toString())
+        )
+        val current = CloudCurrentBackupClient(
+            CloudBackupConfig("https://example.supabase.co", "publishable"),
+            transport
+        ).discover(CloudAuthSession("user-1", "token"))
+        assertEquals("11111111-1111-4111-8111-111111111111", current?.backupId)
+        assertEquals("https://example.supabase.co/functions/v1/cloud-backup-current", transport.url)
+        assertEquals("{}", transport.body)
+    }
+
+    @Test fun currentDiscoveryReportsNoCurrentWithoutInventingMetadata() = runBlocking {
+        val current = CloudCurrentBackupClient(
+            CloudBackupConfig("https://example.supabase.co", "publishable"),
+            DiscoveryTransport(CloudHttpResponse(200, "{\"current\":null}"))
+        ).discover(CloudAuthSession("user-1", "token"))
+        assertFalse(current != null)
+    }
+
+    @Test fun currentDiscoveryFailureDoesNotProduceACloudResult() = runBlocking {
+        val result = runCatching {
+            CloudCurrentBackupClient(
+                CloudBackupConfig("https://example.supabase.co", "publishable"),
+                DiscoveryTransport(CloudHttpResponse(503, "{\"error\":\"TEMPORARY_FAILURE\"}"))
+            ).discover(CloudAuthSession("user-1", "token"))
+        }
+        assertTrue(result.isFailure)
+        assertEquals("TEMPORARY_FAILURE", result.exceptionOrNull()?.message)
+    }
+
     @Test fun uploadUsesCanonicalBytesFinalizesThenAcknowledgesSnapshot() = runBlocking {
         val db = db()
         val session = CloudAuthSession("user-1", "token")
@@ -53,6 +116,22 @@ class CloudBackupClientTest {
         assertEquals(backupId, transport.posts[1].getString("backup_id"))
         assertEquals(backupId, db.cloudBackupStateDao().get()!!.localBaseBackupId)
         assertEquals(0L, db.cloudBackupStateDao().get()!!.localRevision)
+    }
+
+    private class DiscoveryTransport(
+        private val response: CloudHttpResponse
+    ) : CloudHttpTransport {
+        var url: String = ""
+        var body: String = ""
+
+        override suspend fun postJson(url: String, session: CloudAuthSession, body: String): CloudHttpResponse {
+            this.url = url
+            this.body = body
+            return response
+        }
+
+        override suspend fun putBytes(url: String, bytes: ByteArray): CloudHttpResponse =
+            error("PUT is not used by current discovery")
     }
 
     private class RecordingTransport(private val backupId: String) : CloudHttpTransport {

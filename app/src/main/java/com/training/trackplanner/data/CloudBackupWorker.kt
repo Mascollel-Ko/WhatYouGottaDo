@@ -32,8 +32,22 @@ internal class CloudBackupWorker(
             return Result.success()
         }
 
+        if (!CloudBackupConfig.fromBuildConfig().configured) {
+            db.cloudBackupStateDao().updateRetry(state.retryAttempt, null, "CLOUD_NOT_CONFIGURED")
+            return Result.success()
+        }
+
         val repository = TrainingRepository(db, context)
-        val account = repository.cloudAccountEntrySnapshot()
+        val account = try {
+            // A queued worker must discover the authenticated user's CURRENT before it can
+            // decide whether an outstanding local revision is safe to upload.
+            repository.cloudAccountEntrySnapshot(session)
+        } catch (error: Throwable) {
+            val code = cloudFailureCode(error)
+            if (isTransientCloudFailure(error, code)) return Result.retry()
+            db.cloudBackupStateDao().updateRetry(state.retryAttempt, null, code)
+            return Result.success()
+        }
         val action = runCatching {
             CloudAccountEntryClassifier.classify(account, session.userId)
         }.getOrElse {
@@ -46,11 +60,6 @@ internal class CloudBackupWorker(
             db.cloudBackupStateDao().updateRetry(state.retryAttempt, null, action.name)
             return Result.success()
         }
-        if (!CloudBackupConfig.fromBuildConfig().configured) {
-            db.cloudBackupStateDao().updateRetry(state.retryAttempt, null, "CLOUD_NOT_CONFIGURED")
-            return Result.success()
-        }
-
         return try {
             // Logout/account changes can happen while work is queued. Recheck the current
             // store immediately before starting the upload and never trust worker input.
@@ -105,6 +114,7 @@ internal class CloudBackupWorker(
             "ACCOUNT_STATE_INVALID",
             "AUTO_RESTORE_CURRENT",
             "REQUIRE_GUEST_CLOUD_COMPARISON",
+            "REQUIRE_CLOUD_CURRENT_DISCOVERY",
             "REQUIRE_ACCOUNT_ARCHIVE",
             "GUEST_CLOUD_COMPARISON_REQUIRED",
             "ACCOUNT_ARCHIVE_REQUIRED",

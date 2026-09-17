@@ -22,6 +22,13 @@ class CloudAccountEntryClassifierTest {
         classify(true, null, false)
     )
 
+    @Test fun freshWithUnknownCloudPresenceWaitsForDiscovery() = assertEquals(
+        CloudAccountEntryAction.REQUIRE_CLOUD_CURRENT_DISCOVERY,
+        CloudAccountEntryClassifier.classify(
+            CloudAccountEntrySnapshot(false, null, false, cloudCurrentKnown = false), user
+        )
+    )
+
     @Test fun guestWithCloudRequiresComparison() = assertEquals(
         CloudAccountEntryAction.REQUIRE_GUEST_CLOUD_COMPARISON,
         classify(true, null, true)

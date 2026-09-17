@@ -315,6 +315,8 @@ private fun FirstLaunchAuthDialog(message: String?, onLogin: () -> Unit, onGuest
                         stringResource(
                             if (message == "CLOUD_NOT_CONFIGURED") {
                                 R.string.cloud_not_configured
+                            } else if (message == "CLOUD_CURRENT_DISCOVERY_FAILED") {
+                                R.string.cloud_current_discovery_failed
                             } else if (message == "GOOGLE_PROVIDER_NOT_CONFIGURED" ||
                                 message == "PROVIDER_NOT_CONFIGURED") {
                                 R.string.cloud_provider_not_configured
@@ -373,6 +375,7 @@ private fun CloudAccountDialog(
         when (code) {
             "AUTHENTICATING" -> stringResource(R.string.cloud_authenticating)
             "CLOUD_NOT_CONFIGURED" -> stringResource(R.string.cloud_not_configured)
+            "CLOUD_CURRENT_DISCOVERY_FAILED" -> stringResource(R.string.cloud_current_discovery_failed)
             "GOOGLE_PROVIDER_NOT_CONFIGURED" -> stringResource(R.string.cloud_provider_not_configured)
             "PROVIDER_NOT_CONFIGURED" -> stringResource(R.string.cloud_provider_not_configured)
             "NO_GOOGLE_CREDENTIAL" -> stringResource(R.string.cloud_google_unavailable)
@@ -393,7 +396,10 @@ private fun CloudAccountDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.cloud_account_title)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 if (auth.loggedIn) {
                     Text(auth.session?.displayEmail ?: stringResource(R.string.cloud_account_signed_in))
                     Text(
@@ -405,15 +411,6 @@ private fun CloudAccountDialog(
                         style = MaterialTheme.typography.bodySmall
                     )
                     message?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-                } else {
-                    Text(stringResource(R.string.cloud_account_signed_out))
-                    message?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-                }
-            }
-        },
-        confirmButton = {
-            Column {
-                if (auth.loggedIn) {
                     Button(onClick = onUpload, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.cloud_upload_now))
                     }
@@ -424,13 +421,17 @@ private fun CloudAccountDialog(
                         Text(stringResource(R.string.cloud_logout))
                     }
                 } else {
+                    Text(stringResource(R.string.cloud_account_signed_out))
+                    message?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
                     Button(onClick = onLogin, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.cloud_login_google))
                     }
                 }
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cloud_close)) } }
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cloud_close)) }
+        }
     )
 }
 

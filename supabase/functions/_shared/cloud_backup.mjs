@@ -152,6 +152,12 @@ export function validateUploadRequest(value) {
   };
 }
 
+export function validateCurrentRequest(value) {
+  assertObject(value);
+  rejectUnknownOrClientAuthorityFields(value, new Set());
+  return {};
+}
+
 export function validateDownloadRequest(value) {
   assertObject(value);
   for (const key of Object.keys(value)) {

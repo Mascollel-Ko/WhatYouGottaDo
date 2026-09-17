@@ -256,26 +256,80 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
             _cloudAuthState.value = _cloudAuthState.value.copy(message = "AUTHENTICATING")
             when (val result = authRepository.signInWithGoogle(activity)) {
                 is CloudAuthResult.Success -> {
-                    val entry = repository.cloudAccountEntrySnapshot()
-                    when (CloudAccountEntryClassifier.classify(entry, result.session.userId)) {
-                        CloudAccountEntryAction.ENABLE_CLOUD,
-                        CloudAccountEntryAction.ADOPT_GUEST_LOCAL_DATA,
-                        CloudAccountEntryAction.RESUME_SAME_ACCOUNT -> repository.bindCloudAccountIfSafe(result.session.userId)
-                        CloudAccountEntryAction.AUTO_RESTORE_CURRENT,
-                        CloudAccountEntryAction.REQUIRE_GUEST_CLOUD_COMPARISON,
-                        CloudAccountEntryAction.REQUIRE_ACCOUNT_ARCHIVE -> Unit
+                    val entryResult = runCatching { repository.cloudAccountEntrySnapshot(result.session) }
+                    if (entryResult.isFailure) {
+                        // Authentication succeeded, but without a trusted CURRENT answer no
+                        // account bind or upload is safe. Keep local Guest data untouched.
+                        _cloudAuthState.value = CloudAuthUiState(
+                            status = CloudAuthStatus.LOGGED_IN,
+                            session = result.session,
+                            firstLaunchChoiceRequired = false,
+                            message = "CLOUD_CURRENT_DISCOVERY_FAILED"
+                        )
+                        return@launch
                     }
-                    repository.reconcileAutomaticCloudBackup(result.session)
-                    _cloudAuthState.value = CloudAuthUiState(
-                        status = CloudAuthStatus.LOGGED_IN,
-                        session = result.session,
-                        firstLaunchChoiceRequired = false,
-                        message = when (CloudAccountEntryClassifier.classify(entry, result.session.userId)) {
-                            CloudAccountEntryAction.REQUIRE_ACCOUNT_ARCHIVE -> "ACCOUNT_ARCHIVE_REQUIRED"
-                            CloudAccountEntryAction.REQUIRE_GUEST_CLOUD_COMPARISON -> "GUEST_CLOUD_COMPARISON_REQUIRED"
-                            else -> null
+                    val entry = entryResult.getOrThrow()
+                    val action = CloudAccountEntryClassifier.classify(entry, result.session.userId)
+                    when (action) {
+                        CloudAccountEntryAction.ADOPT_GUEST_LOCAL_DATA -> {
+                            runCatching {
+                                repository.bindCloudAccountIfSafe(result.session.userId)
+                                repository.uploadCloudBackup(result.session)
+                            }.onSuccess { upload ->
+                                _cloudAuthState.value = CloudAuthUiState(
+                                    status = CloudAuthStatus.LOGGED_IN,
+                                    session = result.session,
+                                    firstLaunchChoiceRequired = false,
+                                    message = if (upload.acknowledged) "BACKUP_CURRENT"
+                                    else "BACKUP_UPLOADED_PENDING"
+                                )
+                            }.onFailure { error ->
+                                _cloudAuthState.value = CloudAuthUiState(
+                                    status = CloudAuthStatus.LOGGED_IN,
+                                    session = result.session,
+                                    firstLaunchChoiceRequired = false,
+                                    message = error.message ?: "CLOUD_UPLOAD_FAILED"
+                                )
+                            }
                         }
-                    )
+                        CloudAccountEntryAction.ENABLE_CLOUD,
+                        CloudAccountEntryAction.RESUME_SAME_ACCOUNT -> {
+                            repository.bindCloudAccountIfSafe(result.session.userId)
+                            repository.reconcileAutomaticCloudBackup(result.session)
+                            _cloudAuthState.value = CloudAuthUiState(
+                                status = CloudAuthStatus.LOGGED_IN,
+                                session = result.session,
+                                firstLaunchChoiceRequired = false
+                            )
+                        }
+                        CloudAccountEntryAction.AUTO_RESTORE_CURRENT -> {
+                            repository.bindCloudAccountIfSafe(result.session.userId)
+                            _cloudAuthState.value = CloudAuthUiState(
+                                status = CloudAuthStatus.LOGGED_IN,
+                                session = result.session,
+                                firstLaunchChoiceRequired = false
+                            )
+                            prepareCloudRestore(result.session, entry.cloudCurrentBackupId)
+                        }
+                        CloudAccountEntryAction.REQUIRE_ACCOUNT_ARCHIVE -> _cloudAuthState.value = CloudAuthUiState(
+                            status = CloudAuthStatus.LOGGED_IN,
+                            session = result.session,
+                            firstLaunchChoiceRequired = false,
+                            message = "ACCOUNT_ARCHIVE_REQUIRED"
+                        )
+                        CloudAccountEntryAction.REQUIRE_GUEST_CLOUD_COMPARISON -> _cloudAuthState.value = CloudAuthUiState(
+                            status = CloudAuthStatus.LOGGED_IN,
+                            session = result.session,
+                            firstLaunchChoiceRequired = false,
+                            message = "GUEST_CLOUD_COMPARISON_REQUIRED"
+                        )
+                        CloudAccountEntryAction.REQUIRE_CLOUD_CURRENT_DISCOVERY -> _cloudAuthState.value = CloudAuthUiState(
+                            status = CloudAuthStatus.LOGGED_IN,
+                            session = result.session,
+                            firstLaunchChoiceRequired = false,
+                            message = "CLOUD_CURRENT_DISCOVERY_FAILED"
+                        )
+                    }
                 }
                 is CloudAuthResult.Failure -> _cloudAuthState.value = _cloudAuthState.value.copy(
                     status = CloudAuthStatus.LOGGED_OUT,
@@ -311,14 +365,24 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
                 return@launch
             }
             _cloudAuthState.value = _cloudAuthState.value.copy(session = session, status = CloudAuthStatus.LOGGED_IN)
+            val snapshot = try {
+                repository.cloudAccountEntrySnapshot(session)
+            } catch (_: Throwable) {
+                // Unknown CURRENT is fail-closed: keep Guest/local data and let the user retry.
+                _cloudAuthState.value = _cloudAuthState.value.copy(message = "CLOUD_CURRENT_DISCOVERY_FAILED")
+                return@launch
+            }
             runCatching {
-                val snapshot = repository.cloudAccountEntrySnapshot()
                 when (CloudAccountEntryClassifier.classify(snapshot, session.userId)) {
                     CloudAccountEntryAction.ENABLE_CLOUD,
-                    CloudAccountEntryAction.ADOPT_GUEST_LOCAL_DATA,
                     CloudAccountEntryAction.RESUME_SAME_ACCOUNT -> repository.uploadCloudBackup(session)
+                    CloudAccountEntryAction.ADOPT_GUEST_LOCAL_DATA -> {
+                        repository.bindCloudAccountIfSafe(session.userId)
+                        repository.uploadCloudBackup(session)
+                    }
                     CloudAccountEntryAction.AUTO_RESTORE_CURRENT -> error("AUTO_RESTORE_REQUIRED")
                     CloudAccountEntryAction.REQUIRE_GUEST_CLOUD_COMPARISON -> error("GUEST_CLOUD_COMPARISON_REQUIRED")
+                    CloudAccountEntryAction.REQUIRE_CLOUD_CURRENT_DISCOVERY -> error("CLOUD_CURRENT_DISCOVERY_REQUIRED")
                     CloudAccountEntryAction.REQUIRE_ACCOUNT_ARCHIVE -> error("ACCOUNT_ARCHIVE_REQUIRED")
                 }
             }.onSuccess { result ->
@@ -334,27 +398,41 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     fun restoreCloudBackup() {
         viewModelScope.launch {
             val session = authRepository.refreshIfNeeded()
-            val backupId = cloudBackupState.value?.lastSuccessfulBackupId
             if (session == null) {
                 _cloudAuthState.value = _cloudAuthState.value.copy(message = "LOGIN_REQUIRED")
                 return@launch
             }
             _cloudAuthState.value = _cloudAuthState.value.copy(session = session, status = CloudAuthStatus.LOGGED_IN)
+            val snapshot = try {
+                repository.cloudAccountEntrySnapshot(session)
+            } catch (_: Throwable) {
+                _cloudAuthState.value = _cloudAuthState.value.copy(message = "CLOUD_CURRENT_DISCOVERY_FAILED")
+                return@launch
+            }
+            val backupId = snapshot.cloudCurrentBackupId
             if (backupId.isNullOrBlank()) {
                 _cloudAuthState.value = _cloudAuthState.value.copy(message = "NO_CLOUD_BACKUP")
                 return@launch
             }
-            _backupRestoreUiState.value = BackupRestoreUiState.Preparing
-            runCatching {
-                val downloaded = repository.downloadCloudBackup(session, backupId)
-                repository.prepareRecordsRestoreText(downloaded.csv)
-            }.onSuccess { preparation ->
-                _backupRestoreUiState.value = preparation.initialUiState()
-                _cloudAuthState.value = _cloudAuthState.value.copy(message = "CLOUD_BACKUP_READY")
-            }.onFailure { error ->
-                _backupRestoreUiState.value = BackupRestoreUiState.Failed(error.toBackupRestoreFailureReason())
-                _cloudAuthState.value = _cloudAuthState.value.copy(message = "CLOUD_RESTORE_FAILED")
-            }
+            prepareCloudRestore(session, backupId)
+        }
+    }
+
+    private suspend fun prepareCloudRestore(session: com.training.trackplanner.data.CloudAuthSession, backupId: String?) {
+        if (backupId.isNullOrBlank()) {
+            _cloudAuthState.value = _cloudAuthState.value.copy(message = "NO_CLOUD_BACKUP")
+            return
+        }
+        _backupRestoreUiState.value = BackupRestoreUiState.Preparing
+        runCatching {
+            val downloaded = repository.downloadCloudBackup(session, backupId)
+            repository.prepareRecordsRestoreText(downloaded.csv)
+        }.onSuccess { preparation ->
+            _backupRestoreUiState.value = preparation.initialUiState()
+            _cloudAuthState.value = _cloudAuthState.value.copy(message = "CLOUD_BACKUP_READY")
+        }.onFailure { error ->
+            _backupRestoreUiState.value = BackupRestoreUiState.Failed(error.toBackupRestoreFailureReason())
+            _cloudAuthState.value = _cloudAuthState.value.copy(message = "CLOUD_RESTORE_FAILED")
         }
     }
 

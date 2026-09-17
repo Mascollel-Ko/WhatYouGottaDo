@@ -6,6 +6,8 @@ internal data class CloudAccountEntrySnapshot(
     val hasMeaningfulLocalData: Boolean,
     val boundUserId: String?,
     val cloudCurrentExists: Boolean,
+    /** The server-owned CURRENT id, when discovery found one. */
+    val cloudCurrentBackupId: String? = null,
     /** False when the runtime has not queried the authenticated user's CURRENT metadata. */
     val cloudCurrentKnown: Boolean = true
 )
@@ -15,6 +17,7 @@ internal enum class CloudAccountEntryAction {
     AUTO_RESTORE_CURRENT,
     ADOPT_GUEST_LOCAL_DATA,
     REQUIRE_GUEST_CLOUD_COMPARISON,
+    REQUIRE_CLOUD_CURRENT_DISCOVERY,
     RESUME_SAME_ACCOUNT,
     REQUIRE_ACCOUNT_ARCHIVE
 }
@@ -28,10 +31,16 @@ internal object CloudAccountEntryClassifier {
             // operation. Never bind account B to account A's active Room rows.
             return CloudAccountEntryAction.REQUIRE_ACCOUNT_ARCHIVE
         }
-        if (bound != null) return CloudAccountEntryAction.RESUME_SAME_ACCOUNT
-        if (snapshot.hasMeaningfulLocalData && !snapshot.cloudCurrentKnown) {
-            return CloudAccountEntryAction.REQUIRE_GUEST_CLOUD_COMPARISON
+        if (!snapshot.cloudCurrentKnown) {
+            // Unknown Cloud presence is never treated as absence. Guest data keeps its
+            // comparison guard; an empty local database must wait for discovery too.
+            return if (snapshot.hasMeaningfulLocalData) {
+                CloudAccountEntryAction.REQUIRE_GUEST_CLOUD_COMPARISON
+            } else {
+                CloudAccountEntryAction.REQUIRE_CLOUD_CURRENT_DISCOVERY
+            }
         }
+        if (bound != null) return CloudAccountEntryAction.RESUME_SAME_ACCOUNT
         return when {
             !snapshot.hasMeaningfulLocalData && snapshot.cloudCurrentExists ->
                 CloudAccountEntryAction.AUTO_RESTORE_CURRENT

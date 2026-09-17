@@ -1919,6 +1919,7 @@
         "supabase/functions/_shared/r2.mjs",
         "supabase/functions/cloud-backup-upload-url/index.ts",
         "supabase/functions/cloud-backup-download-url/index.ts",
+        "supabase/functions/cloud-backup-current/index.ts",
         "supabase/functions/cloud-backup-finalize/index.ts"
       ],
       "testAnchors": [
@@ -1928,6 +1929,7 @@
         "app/src/test/java/com/training/trackplanner/data/LocalRecoveryServiceTest.kt",
         "tests/cloud_transport.test.mjs",
         "tests/cloud_backup_migration.test.mjs",
+        "tests/cloud_backup_current.test.mjs",
         "app/src/test/java/com/training/trackplanner/data/CloudBackupClientTest.kt",
         "app/src/test/java/com/training/trackplanner/data/CloudAccountEntryClassifierTest.kt",
         "app/src/test/java/com/training/trackplanner/data/CloudBackupDownloadClientTest.kt",
@@ -1943,7 +1945,7 @@
         "docs/cloud_backup_phase_1b1_audit.md"
       ],
       "knownGaps": [
-        "Guest Cloud presence/adoption comparison, account archive, semantic comparison/merge, conflict UI, and authenticated CURRENT discovery for fresh-install auto-restore remain guarded.",
+        "Guest+existing-Cloud semantic comparison, account archive, semantic comparison/merge, and conflict UI remain guarded.",
         "Edge Function deployment is gated on the required R2 secrets; the linked migrations are applied."
       ],
       "supersedes": [],

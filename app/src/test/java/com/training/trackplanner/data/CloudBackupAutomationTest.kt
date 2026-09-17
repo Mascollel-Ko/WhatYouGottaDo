@@ -14,7 +14,9 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import java.io.IOException
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -118,6 +120,76 @@ class CloudBackupAutomationTest {
             "user-1"
         )
         assertEquals(CloudAccountEntryAction.REQUIRE_GUEST_CLOUD_COMPARISON, action)
+    }
+
+    @Test
+    fun discoveredNoCurrentAllowsGuestAdoption() = runBlocking {
+        val db = database()
+        db.initialUserProfileDao().upsert(InitialUserProfile(bodyWeightKg = 72.0))
+        val session = CloudAuthSession("user-1", "token")
+        var discoveryCalls = 0
+        val repository = TrainingRepository(db, context) {
+            discoveryCalls += 1
+            null
+        }
+
+        val snapshot = repository.cloudAccountEntrySnapshot(session)
+        assertTrue(snapshot.hasMeaningfulLocalData)
+        assertTrue(snapshot.cloudCurrentKnown)
+        assertFalse(snapshot.cloudCurrentExists)
+        assertEquals(CloudAccountEntryAction.ADOPT_GUEST_LOCAL_DATA,
+            CloudAccountEntryClassifier.classify(snapshot, session.userId))
+        assertEquals(1, discoveryCalls)
+        assertNull(db.cloudBackupStateDao().get()!!.accountUserId)
+    }
+
+    @Test
+    fun discoveredCurrentKeepsGuestComparisonGuard() = runBlocking {
+        val db = database()
+        db.initialUserProfileDao().upsert(InitialUserProfile(bodyWeightKg = 72.0))
+        val session = CloudAuthSession("user-1", "token")
+        val repository = TrainingRepository(db, context) {
+            CloudCurrentBackupMetadata("11111111-1111-4111-8111-111111111111")
+        }
+
+        val snapshot = repository.cloudAccountEntrySnapshot(session)
+        assertTrue(snapshot.cloudCurrentKnown)
+        assertTrue(snapshot.cloudCurrentExists)
+        assertEquals("11111111-1111-4111-8111-111111111111", snapshot.cloudCurrentBackupId)
+        assertEquals(CloudAccountEntryAction.REQUIRE_GUEST_CLOUD_COMPARISON,
+            CloudAccountEntryClassifier.classify(snapshot, session.userId))
+        assertNull(db.cloudBackupStateDao().get()!!.accountUserId)
+    }
+
+    @Test
+    fun currentDiscoveryFailureLeavesGuestDataAndAccountUnbound() = runBlocking {
+        val db = database()
+        db.initialUserProfileDao().upsert(InitialUserProfile(bodyWeightKg = 72.0))
+        val repository = TrainingRepository(db, context) {
+            throw IOException("NETWORK_UNAVAILABLE")
+        }
+
+        val result = runCatching {
+            repository.cloudAccountEntrySnapshot(CloudAuthSession("user-1", "token"))
+        }
+        assertTrue(result.isFailure)
+        assertEquals("NETWORK_UNAVAILABLE", result.exceptionOrNull()?.message)
+        assertTrue(db.initialUserProfileDao().profile() != null)
+        assertNull(db.cloudBackupStateDao().get()!!.accountUserId)
+    }
+
+    @Test
+    fun emptyLocalDataWithDiscoveredCurrentRoutesToAutoRestore() = runBlocking {
+        val db = database()
+        val session = CloudAuthSession("user-1", "token")
+        val repository = TrainingRepository(db, context) {
+            CloudCurrentBackupMetadata("11111111-1111-4111-8111-111111111111")
+        }
+
+        val snapshot = repository.cloudAccountEntrySnapshot(session)
+        assertFalse(snapshot.hasMeaningfulLocalData)
+        assertEquals(CloudAccountEntryAction.AUTO_RESTORE_CURRENT,
+            CloudAccountEntryClassifier.classify(snapshot, session.userId))
     }
 
     @Test

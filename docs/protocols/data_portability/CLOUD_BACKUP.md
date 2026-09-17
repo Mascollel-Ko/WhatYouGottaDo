@@ -1940,13 +1940,14 @@ are implemented. Downloaded canonical bytes enter the existing parser/canonicali
 planner and protected Local Recovery restore path without a synthetic Uri. The manual
 restore dialog remains the same safe overlap/exercise choice flow used for file import.
 
-Fresh-install auto-restore is currently gated to a known local `lastSuccessfulBackupId`;
-the server transport has no authenticated CURRENT discovery operation, so the app does not
-guess a backup id or overwrite a fresh database. A future authenticated discovery endpoint
-may enable the remaining A path. Guest adoption is also gated until authenticated CURRENT
-absence is known. Guest+existing-Cloud comparison, account archive, and semantic merge remain
-future guarded work. Automatic Cloud Backup now uses the durable WorkManager scheduling and
-startup reconciliation described above; Local Recovery's separate local-only stabilization
+Authenticated CURRENT discovery is implemented by the `cloud-backup-current` Edge Function.
+It derives `user_id` from the verified Supabase JWT, returns only minimal CURRENT metadata,
+and never exposes an object URL. Android queries it before login-entry classification and
+manual upload when local Cloud acknowledgement is unknown. A discovered absence permits
+Guest adoption and the first upload; a discovered CURRENT preserves the comparison guard.
+Discovery failures remain fail-closed and preserve local data. Guest+existing-Cloud comparison,
+account archive, and semantic merge remain future guarded work. Automatic Cloud Backup now
+uses the durable WorkManager scheduling and startup reconciliation described above; Local Recovery's separate local-only stabilization
 job remains implemented.
 기존 코드에서 확인한 재사용 authority:
 
