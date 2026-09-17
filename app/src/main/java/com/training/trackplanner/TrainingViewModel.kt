@@ -208,7 +208,7 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
             )
         }
     )
-    val cloudAuthState: StateFlow<CloudAuthUiState> = _cloudAuthState.asStateFlow()
+    internal val cloudAuthState: StateFlow<CloudAuthUiState> = _cloudAuthState.asStateFlow()
     val cloudBackupState: StateFlow<CloudBackupState?> = repository.observeCloudBackupState().stateIn(
         viewModelScope, SharingStarted.WhileSubscribed(5_000), null
     )

@@ -69,7 +69,7 @@ internal class UrlConnectionCloudDownloadTransport(
                     output.write(buffer, 0, read)
                 }
                 output.toByteArray()
-            }.orEmpty()
+            } ?: ByteArray(0)
             CloudBytesResponse(status, bytes)
         } finally {
             connection.disconnect()
