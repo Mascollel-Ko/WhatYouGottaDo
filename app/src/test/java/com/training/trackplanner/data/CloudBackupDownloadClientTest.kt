@@ -27,7 +27,7 @@ class CloudBackupDownloadClientTest {
         val csv = RecordCsvBackupRestore.wrapWithManifest(
             body = RecordCsvBackupRestore.buildRestoreCsv(
                 entriesWithSets = emptyList(), metrics = emptyList(), exercises = emptyList(),
-                portableAppMeta = listOf(AppMeta("test_meta", "test", 1L))
+                portableAppMeta = listOf(AppMeta("personalized_planning_preferences_v1", "{}", 1L))
             ),
             appVersion = "test",
             exportedAt = 1L,
