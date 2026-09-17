@@ -126,7 +126,7 @@ jobs:
             exit 1
           }
           certs="$RUNNER_TEMP/whatyougottado-ci-debug-apksigner.txt"
-          "$apksigner" verify --print-certs "$apk" > "$certs"
+          "$apksigner" verify --print-certs "$apk" > "$certs" 2>&1
           expected="$(keytool -list -v \
             -keystore "$RUNNER_TEMP/whatyougottado-ci-debug.jks" \
             -alias "$ANDROID_CI_KEY_ALIAS" \
