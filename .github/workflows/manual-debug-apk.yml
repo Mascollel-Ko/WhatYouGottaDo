@@ -76,13 +76,25 @@ jobs:
             -alias "$ANDROID_CI_KEY_ALIAS" \
             '-storepass:env' ANDROID_CI_KEYSTORE_PASSWORD > /dev/null
 
+      - name: Verify Google Web Client ID configuration
+        env:
+          GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
+        run: |
+          set -euo pipefail
+          test -n "${GOOGLE_WEB_CLIENT_ID:-}" || {
+            echo "::error::GOOGLE_WEB_CLIENT_ID repository variable is not configured"
+            exit 1
+          }
+          echo "Google Web Client ID configured: yes"
+
       - name: Assemble manual unverified debug APK
         env:
           ANDROID_CI_KEYSTORE_PATH: ${{ runner.temp }}/whatyougottado-ci-debug.jks
           ANDROID_CI_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_CI_KEYSTORE_PASSWORD }}
           ANDROID_CI_KEY_ALIAS: ${{ secrets.ANDROID_CI_KEY_ALIAS }}
           ANDROID_CI_KEY_PASSWORD: ${{ secrets.ANDROID_CI_KEY_PASSWORD }}
-        run: ./gradlew assembleDebug
+          GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
+        run: ./gradlew assembleDebug -Pgoogle.webClientId="$GOOGLE_WEB_CLIENT_ID"
 
       - name: Verify manual CI debug APK signer
         env:
