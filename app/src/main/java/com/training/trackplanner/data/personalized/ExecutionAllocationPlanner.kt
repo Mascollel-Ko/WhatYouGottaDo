@@ -88,7 +88,7 @@ data class TimedExecutionAllocation(
 /** Funds executable material work before discretionary continuity, using exact prescriptions.
  * The placement trial is a feasibility check; repair does not choose the block's priorities.
  */
-class TimedExecutionAllocationPlanner(
+internal class TimedExecutionAllocationPlanner(
     private val prescriptions: PersonalizedPrescriptionPlanner,
     private val placementContext: PlacementContext? = null,
     private val performanceMetrics: PlannerPerformanceMetrics? = null,
@@ -301,7 +301,7 @@ class ExecutionCapacityPlanner {
 }
 
 /** Prescriptions precede placement. No item-count or generic-court-count capacity rule. */
-class TimedWeeklyPlacementPlanner {
+internal class TimedWeeklyPlacementPlanner {
     fun distribute(
         items: List<TimedPlannedExercise>,
         days: Int,
