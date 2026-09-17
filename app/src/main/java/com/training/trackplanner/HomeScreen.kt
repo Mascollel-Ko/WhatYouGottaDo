@@ -313,7 +313,10 @@ private fun FirstLaunchAuthDialog(message: String?, onLogin: () -> Unit, onGuest
                 if (message != null && message != "AUTHENTICATING") {
                     Text(
                         stringResource(
-                            if (message == "PROVIDER_NOT_CONFIGURED") {
+                            if (message == "CLOUD_NOT_CONFIGURED") {
+                                R.string.cloud_not_configured
+                            } else if (message == "GOOGLE_PROVIDER_NOT_CONFIGURED" ||
+                                message == "PROVIDER_NOT_CONFIGURED") {
                                 R.string.cloud_provider_not_configured
                             } else {
                                 R.string.cloud_login_failed
@@ -369,6 +372,8 @@ private fun CloudAccountDialog(
     val message = auth.message?.let { code ->
         when (code) {
             "AUTHENTICATING" -> stringResource(R.string.cloud_authenticating)
+            "CLOUD_NOT_CONFIGURED" -> stringResource(R.string.cloud_not_configured)
+            "GOOGLE_PROVIDER_NOT_CONFIGURED" -> stringResource(R.string.cloud_provider_not_configured)
             "PROVIDER_NOT_CONFIGURED" -> stringResource(R.string.cloud_provider_not_configured)
             "NO_GOOGLE_CREDENTIAL" -> stringResource(R.string.cloud_google_unavailable)
             "AUTHENTICATION_FAILED" -> stringResource(R.string.cloud_login_failed)

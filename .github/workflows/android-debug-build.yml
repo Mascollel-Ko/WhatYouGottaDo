@@ -83,13 +83,19 @@ jobs:
       - name: Verify Google Web Client ID configuration
         env:
           GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
         run: |
           set -euo pipefail
           test -n "${GOOGLE_WEB_CLIENT_ID:-}" || {
             echo "::error::GOOGLE_WEB_CLIENT_ID repository variable is not configured"
             exit 1
           }
+          test -n "${SUPABASE_PUBLISHABLE_KEY:-}" || {
+            echo "::error::SUPABASE_PUBLISHABLE_KEY repository secret is not configured"
+            exit 1
+          }
           echo "Google Web Client ID configured: yes"
+          echo "Supabase publishable key configured: yes"
 
       - name: Run debug unit tests
         env:
@@ -98,7 +104,8 @@ jobs:
           ANDROID_CI_KEY_ALIAS: ${{ secrets.ANDROID_CI_KEY_ALIAS }}
           ANDROID_CI_KEY_PASSWORD: ${{ secrets.ANDROID_CI_KEY_PASSWORD }}
           GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
-        run: ./gradlew testDebugUnitTest -Pgoogle.webClientId="$GOOGLE_WEB_CLIENT_ID"
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: ./gradlew testDebugUnitTest -Pgoogle.webClientId="$GOOGLE_WEB_CLIENT_ID" -Psupabase.publishableKey="$SUPABASE_PUBLISHABLE_KEY"
 
       - name: Assemble debug APK
         env:
@@ -107,7 +114,8 @@ jobs:
           ANDROID_CI_KEY_ALIAS: ${{ secrets.ANDROID_CI_KEY_ALIAS }}
           ANDROID_CI_KEY_PASSWORD: ${{ secrets.ANDROID_CI_KEY_PASSWORD }}
           GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
-        run: ./gradlew assembleDebug -Pgoogle.webClientId="$GOOGLE_WEB_CLIENT_ID"
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: ./gradlew assembleDebug -Pgoogle.webClientId="$GOOGLE_WEB_CLIENT_ID" -Psupabase.publishableKey="$SUPABASE_PUBLISHABLE_KEY"
 
       - name: Verify CI debug APK signer
         env:

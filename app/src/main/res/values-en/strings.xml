@@ -317,6 +317,7 @@
     <string name="cloud_logout">Sign out</string>
     <string name="cloud_close">Close</string>
     <string name="cloud_authenticating">Signing in with Google.</string>
+    <string name="cloud_not_configured">Cloud features are not configured for this build yet.</string>
     <string name="cloud_provider_not_configured">Google sign-in is not configured for this build yet.</string>
     <string name="cloud_google_unavailable">No Google account is available.</string>
     <string name="cloud_login_failed">Sign-in failed.</string>

@@ -95,9 +95,9 @@ internal class CloudAuthRepository(
     fun logout() = store.clear()
 
     suspend fun signInWithGoogle(activity: Activity): CloudAuthResult {
-        if (!config.configured) return CloudAuthResult.Failure("PROVIDER_NOT_CONFIGURED")
+        if (!config.configured) return CloudAuthResult.Failure("CLOUD_NOT_CONFIGURED")
         val webClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID.trim()
-        if (webClientId.isBlank()) return CloudAuthResult.Failure("PROVIDER_NOT_CONFIGURED")
+        if (webClientId.isBlank()) return CloudAuthResult.Failure("GOOGLE_PROVIDER_NOT_CONFIGURED")
         return try {
             val rawNonce = secureNonce()
             val authorizedCredential = try {
