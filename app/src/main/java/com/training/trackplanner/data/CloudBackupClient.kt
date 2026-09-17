@@ -77,7 +77,7 @@ internal object CloudBackupCodec {
     }
 
     fun sha256Hex(bytes: ByteArray): String = MessageDigest.getInstance("SHA-256")
-        .digest(bytes).joinToString("") { byte -> "%02x".format(byte) }
+        .digest(bytes).joinToString("") { byte -> "%02x".format(byte.toInt() and 0xff) }
 }
 
 internal class CloudBackupClient(
