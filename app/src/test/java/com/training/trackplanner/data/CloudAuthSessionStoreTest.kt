@@ -16,7 +16,7 @@ class CloudAuthSessionStoreTest {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         val store = CloudAuthSessionStore(context)
         store.clear()
-        store.chooseGuest()
+        store.setFirstLaunchChoice()
         val session = CloudAuthSession(
             userId = "11111111-1111-4111-8111-111111111111",
             accessToken = "access",
