@@ -513,6 +513,18 @@ class TrainingRepository(
             db.withTransaction { backupExportService().buildCanonicalBackup(exportedAt = exportedAt) }
         }
 
+    internal suspend fun uploadCloudBackup(
+        session: CloudAuthSession,
+        config: CloudBackupConfig = CloudBackupConfig.fromBuildConfig(),
+        http: CloudHttpTransport = UrlConnectionCloudHttpTransport(),
+        now: Long = System.currentTimeMillis()
+    ): CloudBackupUploadResult = CloudBackupClient(
+        db = db,
+        canonicalBackup = { canonicalRecordsBackup() },
+        config = config,
+        http = http
+    ).uploadNow(session, now)
+
     private fun backupExportService() = BackupExportService(
         context = context,
         workoutDao = workoutDao,

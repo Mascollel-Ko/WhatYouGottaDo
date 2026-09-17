@@ -1,9 +1,20 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     id("org.jetbrains.kotlin.kapt")
 }
+
+val localBuildProperties = Properties().apply {
+    val localFile = rootProject.file("local.properties")
+    if (localFile.isFile) localFile.inputStream().use { stream -> load(stream) }
+}
+fun cloudBuildProperty(name: String, defaultValue: String = ""): String =
+    providers.gradleProperty(name).orNull ?: localBuildProperties.getProperty(name) ?: defaultValue
+fun quoteBuildConfig(value: String): String =
+    "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
 
 val gitCommitSha = providers.environmentVariable("GITHUB_SHA").orNull
     ?.trim()
@@ -28,6 +39,10 @@ android {
         versionName = "0.5.1.4"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "GIT_COMMIT_SHA", "\"$gitCommitSha\"")
+        buildConfigField("String", "SUPABASE_URL", quoteBuildConfig(
+            cloudBuildProperty("supabase.url", "https://yiruprqpkptjuhtknvur.supabase.co")
+        ))
+        buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", quoteBuildConfig(cloudBuildProperty("supabase.publishableKey")))
     }
 
     sourceSets {

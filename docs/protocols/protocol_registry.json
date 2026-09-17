@@ -1883,7 +1883,7 @@
       "familyId": "DATA_PORTABILITY",
       "titleKo": "클라우드 백업",
       "titleEn": "Cloud Backup",
-      "currentVersion": "1.1.0",
+      "currentVersion": "1.2.0",
       "status": "DRAFT",
       "implementationStatus": "PARTIALLY_IMPLEMENTED",
       "evidenceProfile": [
@@ -1892,11 +1892,12 @@
       ],
       "canonicalDocument": "data_portability/CLOUD_BACKUP.md",
       "implementedFromAppVersion": "UNRELEASED_PHASE_2_SUPABASE_TRANSPORT",
-      "lastAuditedCommit": "c6e001ee3271f9086e679beb18199e171242ac67",
+      "lastAuditedCommit": "a7ef5af83a06d5869b8e199af15a9abfce2668c3",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/CloudBackupState.kt",
         "app/src/main/java/com/training/trackplanner/data/CloudRevisionTracking.kt",
         "app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt",
+        "app/src/main/java/com/training/trackplanner/data/CloudBackupClient.kt",
         "app/src/main/java/com/training/trackplanner/data/RecordMutationService.kt",
         "app/src/main/java/com/training/trackplanner/data/CalendarRecordService.kt",
         "app/src/main/java/com/training/trackplanner/data/DailyStatusService.kt",
@@ -1910,13 +1911,16 @@
         "supabase/functions/_shared/supabase_auth.mjs",
         "supabase/functions/_shared/r2.mjs",
         "supabase/functions/cloud-backup-upload-url/index.ts",
-        "supabase/functions/cloud-backup-download-url/index.ts"
+        "supabase/functions/cloud-backup-download-url/index.ts",
+        "supabase/functions/cloud-backup-finalize/index.ts"
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/data/CloudBackupStateTest.kt",
         "app/src/test/java/com/training/trackplanner/data/WorkoutSessionIdentityTest.kt",
         "app/src/test/java/com/training/trackplanner/data/LocalRecoveryServiceTest.kt",
         "tests/cloud_transport.test.mjs",
+        "tests/cloud_backup_migration.test.mjs",
+        "app/src/test/java/com/training/trackplanner/data/CloudBackupClientTest.kt",
         "supabase/tests/cloud_backup_transport.sql"
       ],
       "authorityAssets": [
@@ -1927,8 +1931,8 @@
         "docs/cloud_backup_phase_1b1_audit.md"
       ],
       "knownGaps": [
-        "The server transport foundation issues authenticated presigned URLs and records UPLOADING metadata, but object verification/finalize, CURRENT promotion, retention, and Cloud lineage acknowledgement are not implemented.",
-        "Android Cloud upload/download workers, network scheduling, semantic comparison/merge, conflict UI, account archive, and cleanup remain unimplemented; remote migration and Edge Function deployment were not performed in this task."
+        "Authentication UI/session persistence, WorkManager scheduling, download client, semantic comparison/merge, conflict UI, account archive, and cleanup remain unimplemented.",
+        "Edge Function deployment is gated on the required R2 secrets; the linked migrations are applied."
       ],
       "supersedes": [],
       "publicSummaryAvailable": true

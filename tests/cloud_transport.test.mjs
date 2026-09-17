@@ -11,6 +11,7 @@ import {
   isDownloadableStatus,
   issuePresignedUrl,
   validateDownloadRequest,
+  validateFinalizeRequest,
   validateUploadRequest,
 } from "../supabase/functions/_shared/cloud_backup.mjs";
 
@@ -83,6 +84,12 @@ test("download authorization accepts only an owned backup id and downloadable st
   assert.equal(isDownloadableStatus("CURRENT"), true);
   assert.equal(isDownloadableStatus("UPLOADING"), false);
   assert.equal(isDownloadableStatus("FAILED"), false);
+});
+
+test("finalize accepts only the server-issued backup id", () => {
+  assert.deepEqual(validateFinalizeRequest({ backup_id: PARENT_A }), { backup_id: PARENT_A });
+  assertRequestError(() => validateFinalizeRequest({ backup_id: PARENT_A, status: "CURRENT" }), "UNKNOWN_FIELD");
+  assertRequestError(() => validateFinalizeRequest({ backup_id: PARENT_A, user_id: USER_A }), "CLIENT_AUTHORITY_FIELD");
 });
 
 test("CORS preflight response is bodyless and successful", () => {

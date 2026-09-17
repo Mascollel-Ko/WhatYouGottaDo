@@ -24,18 +24,20 @@ function failurePayload(error) {
 }
 
 async function recordFailure(service, userId, backupId, installId, error) {
-  await service.from("cloud_backup_failures").insert({
+  const { error: insertError } = await service.from("cloud_backup_failures").insert({
     user_id: userId,
     backup_id: backupId,
     install_id: installId,
     occurred_at: new Date().toISOString(),
     ...failurePayload(error),
   });
+  if (insertError) throw new Error("failure record insert failed");
 }
 
 async function failBackup(service, userId, backupId, installId, error) {
-  await service.from("cloud_backups").update({ status: "FAILED" })
+  const { error: updateError } = await service.from("cloud_backups").update({ status: "FAILED" })
     .eq("backup_id", backupId).eq("user_id", userId);
+  if (updateError) throw new Error("failed to mark backup FAILED");
   await recordFailure(service, userId, backupId, installId, error);
 }
 

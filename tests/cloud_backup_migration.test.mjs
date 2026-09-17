@@ -6,6 +6,10 @@ const migration = await readFile(
   new URL("../supabase/migrations/20260917000000_cloud_backup_transport.sql", import.meta.url),
   "utf8",
 );
+const finalizeMigration = await readFile(
+  new URL("../supabase/migrations/20260917010000_cloud_backup_finalize.sql", import.meta.url),
+  "utf8",
+);
 
 test("transport migration defines the protocol metadata tables and current contract", () => {
   for (const table of [
@@ -38,4 +42,14 @@ test("transport migration enforces owner isolation and server-only lifecycle wri
   assert.match(migration, /revoke all on table public\.cloud_backup_failures from anon, authenticated/);
   assert.match(migration, /revoke all on table public\.cloud_storage_state from anon, authenticated/);
   assert.doesNotMatch(migration, /R2_SECRET_ACCESS_KEY\s*=/i);
+});
+
+test("finalize migration provides a locked server-only atomic promotion", () => {
+  assert.match(finalizeMigration, /cloud_promote_backup\(p_backup_id uuid, p_user_id uuid\)/);
+  assert.match(finalizeMigration, /for update/gi);
+  assert.match(finalizeMigration, /LINEAGE_CONFLICT/);
+  assert.match(finalizeMigration, /status = 'RETAINED'/);
+  assert.match(finalizeMigration, /status = 'CURRENT'/);
+  assert.match(finalizeMigration, /revoke all on function/);
+  assert.match(finalizeMigration, /grant execute on function .*service_role/);
 });

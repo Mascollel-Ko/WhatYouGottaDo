@@ -6,6 +6,9 @@ export const UPLOAD_AUTHORIZATION_WINDOW_MS = 24 * 60 * 60 * 1000;
 export const PRESIGN_EXPIRY_SECONDS = 5 * 60;
 export const GLOBAL_STORAGE_GUARD_BYTES = 8 * 1024 * 1024 * 1024;
 export const R2_CONTENT_TYPE = "application/gzip";
+// This is an implementation safety bound for decompression verification. It is
+// deliberately separate from the product's compressed-object storage quota.
+export const MAX_UNCOMPRESSED_VERIFY_BYTES = 256 * 1024 * 1024;
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -23,6 +26,7 @@ const ALLOWED_UPLOAD_FIELDS = new Set([
   "local_revision",
   "compression",
 ]);
+const ALLOWED_FINALIZE_FIELDS = new Set(["backup_id"]);
 
 export class CloudRequestError extends Error {
   constructor(code, message, status = 400) {
@@ -158,6 +162,19 @@ export function validateDownloadRequest(value) {
       );
     }
     if (key !== "backup_id") {
+      throw new CloudRequestError("UNKNOWN_FIELD", `Unsupported request field: ${key}.`);
+    }
+  }
+  return { backup_id: requireUuid(value.backup_id, "backup_id") };
+}
+
+export function validateFinalizeRequest(value) {
+  assertObject(value);
+  for (const key of Object.keys(value)) {
+    if (key === "user_id" || key === "object_key") {
+      throw new CloudRequestError("CLIENT_AUTHORITY_FIELD", `${key} is server-controlled and must not be supplied.`);
+    }
+    if (!ALLOWED_FINALIZE_FIELDS.has(key)) {
       throw new CloudRequestError("UNKNOWN_FIELD", `Unsupported request field: ${key}.`);
     }
   }

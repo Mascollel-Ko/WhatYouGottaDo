@@ -204,6 +204,38 @@ class CloudBackupStateTest {
         assertTrue(state(db).cloudBackupPending)
     }
 
+    @Test fun cloudAckKeepsMutationsAddedAfterSnapshotAsPending() = runBlocking {
+        val db = database()
+        val dao = db.cloudBackupStateDao()
+        dao.getOrCreate()
+        assertEquals(1, dao.bindAccount("cloud-user"))
+        dao.recordLocalChange(10L)
+        val snapshot = dao.get()!!
+        dao.recordLocalChange(20L)
+        assertEquals(1, dao.acknowledgeIfSnapshotUnchanged(
+            accountUserId = "cloud-user",
+            snapshotBaseBackupId = snapshot.localBaseBackupId,
+            snapshotRevision = snapshot.localRevision,
+            backupId = "new-backup",
+            now = 30L
+        ))
+        val acknowledged = dao.get()!!
+        assertEquals("new-backup", acknowledged.localBaseBackupId)
+        assertEquals(1L, acknowledged.localRevision)
+        assertTrue(acknowledged.cloudBackupPending)
+    }
+
+    @Test fun cloudAckDoesNothingAfterAccountLineageChanges() = runBlocking {
+        val db = database()
+        val dao = db.cloudBackupStateDao()
+        dao.getOrCreate(); dao.bindAccount("cloud-user"); dao.recordLocalChange(10L)
+        val snapshot = dao.get()!!
+        db.openHelper.writableDatabase.execSQL("UPDATE cloud_backup_state SET accountUserId = 'other-user' WHERE id = 1")
+        assertEquals(0, dao.acknowledgeIfSnapshotUnchanged("cloud-user", snapshot.localBaseBackupId,
+            snapshot.localRevision, "stale-backup", 20L))
+        assertEquals("other-user", dao.get()!!.accountUserId)
+    }
+
     @Test fun room32MigrationPreservesEveryExistingTableAndCreatesConservativeState() = runBlocking {
         val name = "c32-${UUID.randomUUID().toString().take(8)}"
         context.getDatabasePath(name).parentFile!!.mkdirs()

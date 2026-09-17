@@ -55,6 +55,25 @@ abstract class CloudBackupStateDao {
     @Query("""UPDATE cloud_backup_state SET retryAttempt = :attempt, nextRetryAt = :nextAt,
         lastFailureCode = :failure WHERE id = 1""")
     internal abstract suspend fun updateRetry(attempt: Int, nextAt: Long?, failure: String?)
+
+    @Query("""UPDATE cloud_backup_state SET accountUserId = :accountUserId,
+        cloudBackupEnabled = 1 WHERE id = 1 AND accountUserId IS NULL""")
+    internal abstract suspend fun bindAccount(accountUserId: String): Int
+
+    /** Acknowledge only the account/base snapshot used for the upload. */
+    @Query("""UPDATE cloud_backup_state SET localBaseBackupId = :backupId,
+        localRevision = CASE WHEN localRevision <= :snapshotRevision THEN 0
+            ELSE localRevision - :snapshotRevision END,
+        cloudBackupPending = CASE WHEN localRevision <= :snapshotRevision THEN 0 ELSE 1 END,
+        lastSuccessfulBackupId = :backupId, lastSuccessfulBackupAt = :now,
+        retryAttempt = 0, nextRetryAt = NULL, lastFailureCode = NULL
+        WHERE id = 1 AND accountUserId = :accountUserId
+        AND ((localBaseBackupId IS NULL AND :snapshotBaseBackupId IS NULL)
+             OR localBaseBackupId = :snapshotBaseBackupId)""")
+    internal abstract suspend fun acknowledgeIfSnapshotUnchanged(
+        accountUserId: String, snapshotBaseBackupId: String?, snapshotRevision: Long,
+        backupId: String, now: Long
+    ): Int
 }
 
 internal val MIGRATION_32_33 = object : Migration(32, 33) {
