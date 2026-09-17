@@ -3,6 +3,7 @@ package com.training.trackplanner
 import com.training.trackplanner.data.program.legacy.LegacyAutoRequest
 import com.training.trackplanner.data.program.legacy.LegacyAutoSkeleton
 
+import android.app.Activity
 import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
@@ -31,6 +32,13 @@ import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
 import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
 import com.training.trackplanner.analysis.tissue.TissueCurrentState
 import com.training.trackplanner.data.AnalysisStats
+import com.training.trackplanner.data.CloudAccountEntryAction
+import com.training.trackplanner.data.CloudAccountEntryClassifier
+import com.training.trackplanner.data.CloudAuthRepository
+import com.training.trackplanner.data.CloudAuthResult
+import com.training.trackplanner.data.CloudAuthStatus
+import com.training.trackplanner.data.CloudAuthUiState
+import com.training.trackplanner.data.CloudBackupState
 import com.training.trackplanner.data.DataTransferDiagnosticCodes
 import com.training.trackplanner.data.DataTransferFailure
 import com.training.trackplanner.data.DataTransferFormatException
@@ -80,6 +88,7 @@ import java.time.LocalDate
 
 class TrainingViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = TrainingRepository(TrainingDatabase.get(application), application)
+    private val authRepository = CloudAuthRepository(application)
     private val currentDate = LocalDate.now()
 
     val exercises: StateFlow<List<Exercise>> = repository.exercises.stateIn(
@@ -190,6 +199,20 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     private val _backupRestoreUiState = MutableStateFlow<BackupRestoreUiState>(BackupRestoreUiState.Idle)
     val backupRestoreUiState: StateFlow<BackupRestoreUiState> = _backupRestoreUiState.asStateFlow()
 
+    private val _cloudAuthState = MutableStateFlow(
+        authRepository.currentSession().let { session ->
+            CloudAuthUiState(
+                status = if (session == null) CloudAuthStatus.LOGGED_OUT else CloudAuthStatus.LOGGED_IN,
+                session = session,
+                firstLaunchChoiceRequired = authRepository.firstLaunchChoiceRequired()
+            )
+        }
+    )
+    val cloudAuthState: StateFlow<CloudAuthUiState> = _cloudAuthState.asStateFlow()
+    val cloudBackupState: StateFlow<CloudBackupState?> = repository.observeCloudBackupState().stateIn(
+        viewModelScope, SharingStarted.WhileSubscribed(5_000), null
+    )
+
     private val _exerciseRuntimeMetadata = MutableStateFlow<Map<String, RuntimeExerciseMetadata>>(emptyMap())
     val exerciseRuntimeMetadata: StateFlow<Map<String, RuntimeExerciseMetadata>> =
         _exerciseRuntimeMetadata.asStateFlow()
@@ -205,12 +228,121 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
 
     init {
         viewModelScope.launch {
+            val hadStoredSession = authRepository.currentSession() != null
+            val refreshedSession = authRepository.refreshIfNeeded()
+            _cloudAuthState.value = _cloudAuthState.value.copy(
+                status = if (refreshedSession == null) CloudAuthStatus.LOGGED_OUT else CloudAuthStatus.LOGGED_IN,
+                session = refreshedSession,
+                message = if (hadStoredSession && refreshedSession == null) "SESSION_EXPIRED" else null
+            )
             repository.seedIfNeeded()
             _dataTransferReport.value = repository.latestDataTransferReport()
             refreshExerciseRuntimeMetadataInternal()
             // A killed/coalesced derived job never owns the raw edit. Rebuild from Room on launch.
             repository.refreshRecordDerivedState()
             refreshAnalysisSummaries()
+        }
+    }
+
+    fun chooseGuest() {
+        authRepository.chooseGuest()
+        _cloudAuthState.value = _cloudAuthState.value.copy(firstLaunchChoiceRequired = false, message = null)
+    }
+
+    fun signInWithGoogle(activity: Activity) {
+        viewModelScope.launch {
+            _cloudAuthState.value = _cloudAuthState.value.copy(message = "AUTHENTICATING")
+            when (val result = authRepository.signInWithGoogle(activity)) {
+                is CloudAuthResult.Success -> {
+                    val entry = repository.cloudAccountEntrySnapshot()
+                    when (CloudAccountEntryClassifier.classify(entry, result.session.userId)) {
+                        CloudAccountEntryAction.ENABLE_CLOUD,
+                        CloudAccountEntryAction.ADOPT_GUEST_LOCAL_DATA,
+                        CloudAccountEntryAction.RESUME_SAME_ACCOUNT -> repository.bindCloudAccountIfSafe(result.session.userId)
+                        CloudAccountEntryAction.AUTO_RESTORE_CURRENT,
+                        CloudAccountEntryAction.REQUIRE_GUEST_CLOUD_COMPARISON,
+                        CloudAccountEntryAction.REQUIRE_ACCOUNT_ARCHIVE -> Unit
+                    }
+                    _cloudAuthState.value = CloudAuthUiState(
+                        status = CloudAuthStatus.LOGGED_IN,
+                        session = result.session,
+                        firstLaunchChoiceRequired = false,
+                        message = when (CloudAccountEntryClassifier.classify(entry, result.session.userId)) {
+                            CloudAccountEntryAction.REQUIRE_ACCOUNT_ARCHIVE -> "ACCOUNT_ARCHIVE_REQUIRED"
+                            CloudAccountEntryAction.REQUIRE_GUEST_CLOUD_COMPARISON -> "GUEST_CLOUD_COMPARISON_REQUIRED"
+                            else -> null
+                        }
+                    )
+                }
+                is CloudAuthResult.Failure -> _cloudAuthState.value = _cloudAuthState.value.copy(
+                    status = CloudAuthStatus.LOGGED_OUT,
+                    session = null,
+                    message = result.code
+                )
+            }
+        }
+    }
+
+    fun logoutCloud() {
+        authRepository.logout()
+        _cloudAuthState.value = CloudAuthUiState(
+            status = CloudAuthStatus.LOGGED_OUT,
+            firstLaunchChoiceRequired = false
+        )
+    }
+
+    fun uploadCloudBackup() {
+        viewModelScope.launch {
+            val session = authRepository.refreshIfNeeded()
+            if (session == null) {
+                _cloudAuthState.value = _cloudAuthState.value.copy(message = "LOGIN_REQUIRED")
+                return@launch
+            }
+            _cloudAuthState.value = _cloudAuthState.value.copy(session = session, status = CloudAuthStatus.LOGGED_IN)
+            runCatching {
+                val snapshot = repository.cloudAccountEntrySnapshot()
+                when (CloudAccountEntryClassifier.classify(snapshot, session.userId)) {
+                    CloudAccountEntryAction.ENABLE_CLOUD,
+                    CloudAccountEntryAction.ADOPT_GUEST_LOCAL_DATA,
+                    CloudAccountEntryAction.RESUME_SAME_ACCOUNT -> repository.uploadCloudBackup(session)
+                    CloudAccountEntryAction.AUTO_RESTORE_CURRENT -> error("AUTO_RESTORE_REQUIRED")
+                    CloudAccountEntryAction.REQUIRE_GUEST_CLOUD_COMPARISON -> error("GUEST_CLOUD_COMPARISON_REQUIRED")
+                    CloudAccountEntryAction.REQUIRE_ACCOUNT_ARCHIVE -> error("ACCOUNT_ARCHIVE_REQUIRED")
+                }
+            }.onSuccess { result ->
+                _cloudAuthState.value = _cloudAuthState.value.copy(
+                    message = if (result.acknowledged) "BACKUP_CURRENT" else "BACKUP_UPLOADED_PENDING"
+                )
+            }.onFailure { error ->
+                _cloudAuthState.value = _cloudAuthState.value.copy(message = error.message ?: "CLOUD_UPLOAD_FAILED")
+            }
+        }
+    }
+
+    fun restoreCloudBackup() {
+        viewModelScope.launch {
+            val session = authRepository.refreshIfNeeded()
+            val backupId = cloudBackupState.value?.lastSuccessfulBackupId
+            if (session == null) {
+                _cloudAuthState.value = _cloudAuthState.value.copy(message = "LOGIN_REQUIRED")
+                return@launch
+            }
+            _cloudAuthState.value = _cloudAuthState.value.copy(session = session, status = CloudAuthStatus.LOGGED_IN)
+            if (backupId.isNullOrBlank()) {
+                _cloudAuthState.value = _cloudAuthState.value.copy(message = "NO_CLOUD_BACKUP")
+                return@launch
+            }
+            _backupRestoreUiState.value = BackupRestoreUiState.Preparing
+            runCatching {
+                val downloaded = repository.downloadCloudBackup(session, backupId)
+                repository.prepareRecordsRestoreText(downloaded.csv)
+            }.onSuccess { preparation ->
+                _backupRestoreUiState.value = preparation.initialUiState()
+                _cloudAuthState.value = _cloudAuthState.value.copy(message = "CLOUD_BACKUP_READY")
+            }.onFailure { error ->
+                _backupRestoreUiState.value = BackupRestoreUiState.Failed(error.toBackupRestoreFailureReason())
+                _cloudAuthState.value = _cloudAuthState.value.copy(message = "CLOUD_RESTORE_FAILED")
+            }
         }
     }
 

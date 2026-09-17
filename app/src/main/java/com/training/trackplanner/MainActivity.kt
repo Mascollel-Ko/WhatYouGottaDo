@@ -113,11 +113,12 @@ internal fun TrainingTrackPlannerApp(
     var onboardingTarget by remember { mutableStateOf<Pair<OnboardingStep, Rect>?>(null) }
     var tutorialApplyRequest by rememberSaveable { mutableStateOf(0) }
     val timerState by restTimerSessionController.state.collectAsState()
+    val cloudAuth by viewModel.cloudAuthState.collectAsState()
     val context = LocalContext.current
     val onboardingStore = remember(context) { OnboardingStore(context) }
 
-    LaunchedEffect(onboardingStore) {
-        if (onboardingStep == null && onboardingStore.shouldAutoStart()) {
+    LaunchedEffect(onboardingStore, cloudAuth.firstLaunchChoiceRequired) {
+        if (!cloudAuth.firstLaunchChoiceRequired && onboardingStep == null && onboardingStore.shouldAutoStart()) {
             onboardingStep = OnboardingStep.HOME_PROGRAM
         }
     }

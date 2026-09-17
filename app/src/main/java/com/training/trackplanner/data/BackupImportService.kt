@@ -32,6 +32,11 @@ internal class BackupImportService(
             DataTransferDiagnosticCodes.RESTORE_MANIFEST_INVALID,
             "The restore file is empty or unavailable."
         )
+        return prepareText(text, uri.lastPathSegment.orEmpty())
+    }
+
+    /** Same restore preflight for Cloud bytes; no synthetic Uri or user-selected document is needed. */
+    suspend fun prepareText(text: String, fileDisplayName: String): PreparedRestore {
         val parsed = RecordCsvBackupRestore.parse(text)
         require(parsed is RecordCsvImportData.Restore) {
             "Selectable restore is available only for a full backup file."
@@ -46,7 +51,7 @@ internal class BackupImportService(
         return PreparedRestore(
             prepared = checkNotNull(restorePlanner).prepare(canonicalized.data),
             warnings = canonicalized.warnings,
-            fileDisplayName = uri.lastPathSegment.orEmpty()
+            fileDisplayName = fileDisplayName
         )
     }
 

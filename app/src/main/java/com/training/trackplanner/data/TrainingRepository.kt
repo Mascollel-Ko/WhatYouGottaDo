@@ -115,6 +115,7 @@ class TrainingRepository(
     private val db: TrainingDatabase,
     private val context: Context
 ) {
+    internal fun observeCloudBackupState(): Flow<CloudBackupState?> = db.cloudBackupStateDao().observe()
     private val exerciseDao = db.exerciseDao()
     private val workoutDao = db.workoutDao()
     private val programDao = db.programDao()
@@ -525,6 +526,44 @@ class TrainingRepository(
         http = http
     ).uploadNow(session, now)
 
+    internal suspend fun cloudAccountEntrySnapshot(): CloudAccountEntrySnapshot = withContext(Dispatchers.IO) {
+        val state = db.cloudBackupStateDao().getOrCreate()
+        CloudAccountEntrySnapshot(
+            hasMeaningfulLocalData = initialUserProfileDao.profile() != null ||
+                workoutDao.allEntries().isNotEmpty() || programDao.countPrograms() > 0,
+            boundUserId = state.accountUserId,
+            cloudCurrentExists = state.lastSuccessfulBackupId != null,
+            // The current Edge Function accepts a backup id; it does not discover a user's
+            // CURRENT row. Treat Guest cloud presence as unknown until that query exists.
+            cloudCurrentKnown = state.lastSuccessfulBackupId != null
+        )
+    }
+
+    /** Bind only the safe A-without-Cloud, B-without-Cloud, and C login outcomes. */
+    internal suspend fun bindCloudAccountIfSafe(userId: String) = withContext(Dispatchers.IO) {
+        db.withTransaction {
+            val stateDao = db.cloudBackupStateDao()
+            val state = stateDao.getOrCreate()
+            if (state.accountUserId == null) {
+                stateDao.bindAccount(userId)
+            } else if (state.accountUserId.equals(userId, ignoreCase = true)) {
+                stateDao.enableForAccount(userId)
+            }
+        }
+    }
+
+    internal suspend fun downloadCloudBackup(
+        session: CloudAuthSession,
+        backupId: String,
+        config: CloudBackupConfig = CloudBackupConfig.fromBuildConfig(),
+        http: CloudHttpTransport = UrlConnectionCloudHttpTransport(),
+        download: CloudDownloadTransport = UrlConnectionCloudDownloadTransport()
+    ): CloudBackupDownloadResult = CloudBackupDownloadClient(
+        config = config,
+        postTransport = http,
+        downloadTransport = download
+    ).download(session, backupId)
+
     private fun backupExportService() = BackupExportService(
         context = context,
         workoutDao = workoutDao,
@@ -599,6 +638,23 @@ class TrainingRepository(
         backupImportService().prepare(context, uri)
         workoutSourceIdentityProvider.backfillMissingWorkoutSourceIds()
         val prepared = backupImportService().prepare(context, uri)
+        pendingBackupRestore = prepared
+        BackupRestorePreparation(
+            hasOverlappingWorkoutDates = prepared.prepared.overlappingDates.isNotEmpty(),
+            impact = prepared.prepared.baseImpact
+        )
+    }
+
+    /** Prepare a verified Cloud canonical payload through the same parser, canonicalizer,
+     * planner and protected-restore path used by manual file import. */
+    internal suspend fun prepareRecordsRestoreText(
+        text: String,
+        fileDisplayName: String = "cloud-backup.csv"
+    ): BackupRestorePreparation = withContext(Dispatchers.IO) {
+        cancelPendingRecordsRestore()
+        backupImportService().prepareText(text, fileDisplayName)
+        workoutSourceIdentityProvider.backfillMissingWorkoutSourceIds()
+        val prepared = backupImportService().prepareText(text, fileDisplayName)
         pendingBackupRestore = prepared
         BackupRestorePreparation(
             hasOverlappingWorkoutDates = prepared.prepared.overlappingDates.isNotEmpty(),

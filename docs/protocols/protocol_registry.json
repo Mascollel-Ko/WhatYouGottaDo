@@ -1883,7 +1883,7 @@
       "familyId": "DATA_PORTABILITY",
       "titleKo": "클라우드 백업",
       "titleEn": "Cloud Backup",
-      "currentVersion": "1.2.0",
+      "currentVersion": "1.3.0",
       "status": "DRAFT",
       "implementationStatus": "PARTIALLY_IMPLEMENTED",
       "evidenceProfile": [
@@ -1891,13 +1891,18 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "data_portability/CLOUD_BACKUP.md",
-      "implementedFromAppVersion": "UNRELEASED_PHASE_2_SUPABASE_TRANSPORT",
-      "lastAuditedCommit": "a7ef5af83a06d5869b8e199af15a9abfce2668c3",
+      "implementedFromAppVersion": "UNRELEASED_PHASE_2_SUPABASE_TRANSPORT; native auth and protected download entry",
+      "lastAuditedCommit": "0f0929934fc0ca7a7c9706eb50fc81134d91d952",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/CloudBackupState.kt",
         "app/src/main/java/com/training/trackplanner/data/CloudRevisionTracking.kt",
         "app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt",
         "app/src/main/java/com/training/trackplanner/data/CloudBackupClient.kt",
+        "app/src/main/java/com/training/trackplanner/data/CloudAuth.kt",
+        "app/src/main/java/com/training/trackplanner/data/CloudAccountEntryClassifier.kt",
+        "app/src/main/java/com/training/trackplanner/HomeScreen.kt",
+        "app/src/main/java/com/training/trackplanner/MainActivity.kt",
+        "app/src/main/java/com/training/trackplanner/TrainingViewModel.kt",
         "app/src/main/java/com/training/trackplanner/data/RecordMutationService.kt",
         "app/src/main/java/com/training/trackplanner/data/CalendarRecordService.kt",
         "app/src/main/java/com/training/trackplanner/data/DailyStatusService.kt",
@@ -1921,6 +1926,10 @@
         "tests/cloud_transport.test.mjs",
         "tests/cloud_backup_migration.test.mjs",
         "app/src/test/java/com/training/trackplanner/data/CloudBackupClientTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/CloudAccountEntryClassifierTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/CloudBackupDownloadClientTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/CloudAuthSessionStoreTest.kt",
+        "app/src/test/java/com/training/trackplanner/CloudAuthUiStructuralTest.kt",
         "supabase/tests/cloud_backup_transport.sql"
       ],
       "authorityAssets": [
@@ -1931,7 +1940,7 @@
         "docs/cloud_backup_phase_1b1_audit.md"
       ],
       "knownGaps": [
-        "Authentication UI/session persistence, WorkManager scheduling, download client, semantic comparison/merge, conflict UI, account archive, and cleanup remain unimplemented.",
+        "Guest Cloud presence/adoption comparison, account archive, semantic comparison/merge, conflict UI, WorkManager cloud scheduling, and authenticated CURRENT discovery for fresh-install auto-restore remain guarded.",
         "Edge Function deployment is gated on the required R2 secrets; the linked migrations are applied."
       ],
       "supersedes": [],

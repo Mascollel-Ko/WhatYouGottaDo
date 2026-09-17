@@ -3,11 +3,11 @@
 | 항목 | 값 |
 |---|---|
 | Protocol ID | `DATA-CLOUD-BACKUP` |
-| Protocol version | `1.2.0` |
+| Protocol version | `1.3.0` |
 | Status | `DRAFT` |
 | Implementation status | `PARTIALLY_IMPLEMENTED` |
 | Implemented from app version | `UNRELEASED_PHASE_2_SUPABASE_TRANSPORT` |
-| Last audited commit | `a7ef5af83a06d5869b8e199af15a9abfce2668c3` |
+| Last audited commit | `0f0929934fc0ca7a7c9706eb50fc81134d91d952` |
 | Evidence profile | `PRODUCT_POLICY, ENGINEERING_HEURISTIC` |
 | Supersedes | 없음 |
 
@@ -293,6 +293,50 @@ Logout:
 - 현재 활성 로컬 운동 데이터는 유지합니다.
 - 서버 Cloud Backup도 유지합니다.
 - Cloud/social access만 비활성화합니다.
+
+#### 7.2.1 Android 로그인 진입 결정 절차
+
+Android native Google Sign-In은 Credential Manager에서 Google ID token을 받고,
+raw nonce는 Supabase에, SHA-256 nonce는 Google 요청에 전달합니다. Supabase Auth가
+검증한 UUID와 access/refresh session만 로컬 auth 저장소에 보존하며 email이나 이름은
+identity로 사용하지 않습니다. Google provider 또는 Web OAuth client ID가 설정되지 않은
+빌드는 로그인 선택을 제공하되 안전한 설정 안내만 표시하고 로컬 데이터를 변경하지 않습니다.
+
+실제 provider 연결을 위해 운영자는 Google Cloud에서 Android OAuth client
+(`com.whatyougottado.app`, debug SHA-1 `38:CB:6C:A1:CF:65:17:57:FE:97:BB:F7:52:DE:4D:14:3B:A4:A9:CC`)
+와 Web OAuth client를 만들고, Supabase Dashboard → Authentication → Providers → Google에
+Web client ID와 client secret을 등록해야 합니다. Android 빌드에는 Web client ID만
+`google.webClientId` build property로 주입합니다. 이 저장소에는 placeholder credential을
+커밋하지 않습니다. 현재 linked Supabase provider settings는 Google advertised=false로
+확인되어 native end-to-end login은 이 외부 설정 경계에서 대기 중입니다.
+
+로그인 성공 직후에는 다음 네 가지 상태를 먼저 분류합니다. 이 분류는
+`7.3 계정 전환`, `7.4 Guest → 로그인`, `7.5 계정 삭제`의 보관·비교 규칙보다 먼저
+실행하며, 분류가 끝나기 전에는 account bind, upload, restore를 시작하지 않습니다.
+
+| 상태 | 판정 | 허용되는 다음 단계 |
+|---|---|---|
+| A. Fresh | 의미 있는 로컬 user-data 없음 | Cloud CURRENT가 있으면 검증 후 restore, 없으면 Cloud 기본 ON 진입 |
+| B. Guest/local-only | 로컬 data 있음, bound account 없음 | Cloud가 없으면 현재 Guest data를 새 계정에 연결하고 첫 backup, Cloud가 있으면 `7.4` 비교 |
+| C. Same Supabase user | verified UUID가 기존 local account와 동일 | 기존 base/revision/pending을 유지하고 reconcile |
+| D. Different user | verified UUID가 기존 bound account와 다름 | `7.3` account archive가 검증되기 전까지 fail closed |
+
+현재 Android 구현은 A의 알려진 `lastSuccessfulBackupId` restore를 안전하게 시작합니다.
+Guest 상태에서 대상 계정의 CURRENT 존재를 조회할 수 없는 동안에는 B adoption도 보류하여
+기존 Cloud와의 비교가 끝나기 전 bind/upload를 거부합니다. 다른 계정의 데이터를 active
+Room DB에 bind하거나 덮어쓰지 않습니다. 인증된 CURRENT discovery가 추가되면 명시적으로
+Cloud가 없는 B 상태에서만 adoption을 허용할 수 있습니다.
+
+첫 실행에는 `Google로 로그인`과 `로그인 없이 사용`을 함께 제공합니다. Guest를 선택하면
+한 번만 경고를 표시하고 installation-local 선택을 저장합니다. 경고는 온라인 저장이 되지
+않으며 앱 삭제·기기 분실·기기 변경 시 복구할 수 없다는 점과 홈의 수동 backup 파일을
+별도로 보관하라는 내용을 포함합니다. 이 선택과 auth session은 canonical user-data
+backup에 포함하지 않습니다.
+
+홈 헤더의 왼쪽 계정 control은 로그인 상태, 최근 Cloud backup의 간단한 상태,
+`지금 백업하기`, `클라우드 백업 불러오기`, `로그아웃`을 제공합니다. 언어 선택 chip은
+오른쪽에 유지되며 좁은 화면에서도 account control과 분리됩니다. 로그아웃은 auth/session
+access만 지우고 Room 기록과 Cloud object를 삭제하지 않습니다.
 
 Cloud Backup OFF:
 
@@ -1882,9 +1926,20 @@ completion/verification step must promote it through `VERIFIED` before
 The Android client now reuses `canonicalRecordsBackup()`, gzip-compresses those
 exact UTF-8 bytes, sends the recorded metadata and exact `Content-Length`, PUTs
 the presigned bytes, calls finalize, and conditionally acknowledges the Room
-account/base/revision snapshot. Authentication UI/session persistence and
-WorkManager scheduling remain future work. Local Recovery's local-only
-WorkManager stabilization job remains implemented.
+account/base/revision snapshot. Android native Credential Manager Google Sign-In,
+installation-local session persistence and refresh, the first-launch Guest warning,
+Home account control, manual upload action, and bounded `.csv.gz` download verification
+are implemented. Downloaded canonical bytes enter the existing parser/canonicalizer/
+planner and protected Local Recovery restore path without a synthetic Uri. The manual
+restore dialog remains the same safe overlap/exercise choice flow used for file import.
+
+Fresh-install auto-restore is currently gated to a known local `lastSuccessfulBackupId`;
+the server transport has no authenticated CURRENT discovery operation, so the app does not
+guess a backup id or overwrite a fresh database. A future authenticated discovery endpoint
+may enable the remaining A path. Guest adoption is also gated until authenticated CURRENT
+absence is known. Guest+existing-Cloud comparison, account archive,
+semantic merge, conflict UI, and WorkManager cloud scheduling remain future guarded work.
+Local Recovery's local-only WorkManager stabilization job remains implemented.
 기존 코드에서 확인한 재사용 authority:
 
 - `TrainingProgram.stableKey`
@@ -1922,6 +1977,9 @@ Phase 1-B local implementation anchors:
 
 ```text
 app/src/main/java/com/training/trackplanner/data/CloudBackupState.kt
+app/src/main/java/com/training/trackplanner/data/CloudAuth.kt
+app/src/main/java/com/training/trackplanner/data/CloudAccountEntryClassifier.kt
+app/src/main/java/com/training/trackplanner/data/CloudBackupClient.kt
 app/src/main/java/com/training/trackplanner/data/CloudRevisionTracking.kt
 app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt
 app/src/main/java/com/training/trackplanner/data/RecordMutationService.kt
@@ -1939,9 +1997,11 @@ app/src/test/java/com/training/trackplanner/data/LocalRecoveryServiceTest.kt
 
 Cloud transport is implemented by the Supabase migrations, authenticated presign
 functions, finalize verifier, and atomic promotion RPC above. Android upload
-serialization/PUT/finalize/acknowledgement is implemented; authentication UI,
-download client, account archive, pending resolution, and semantic conflict
-handling remain unimplemented.
+serialization/PUT/finalize/acknowledgement, native auth/session persistence, bounded
+download verification, and protected manual Cloud restore are implemented. Guest+existing-
+Cloud comparison, account archive, semantic comparison/merge, conflict UI, WorkManager
+cloud scheduling, and authenticated CURRENT discovery for fresh-install auto-restore
+remain guarded gaps.
 
 ### 19.3 Required verification
 

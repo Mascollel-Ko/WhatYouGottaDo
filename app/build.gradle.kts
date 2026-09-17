@@ -43,6 +43,9 @@ android {
             cloudBuildProperty("supabase.url", "https://yiruprqpkptjuhtknvur.supabase.co")
         ))
         buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", quoteBuildConfig(cloudBuildProperty("supabase.publishableKey")))
+        // Native Google Sign-In is intentionally disabled until the user supplies the
+        // real Web OAuth client id in ignored local.properties or CI build properties.
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", quoteBuildConfig(cloudBuildProperty("google.webClientId")))
     }
 
     sourceSets {
@@ -88,6 +91,8 @@ dependencies {
 
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation("androidx.credentials:credentials:1.5.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.5.0")
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
@@ -100,6 +105,7 @@ dependencies {
     implementation("androidx.room:room-ktx:2.6.1")
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.work:work-runtime-ktx:2.9.1")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
     implementation("org.apache.commons:commons-math3:3.6.1")
     kapt("androidx.room:room-compiler:2.6.1")
 

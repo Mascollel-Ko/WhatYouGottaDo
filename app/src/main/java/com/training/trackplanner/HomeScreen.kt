@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.automirrored.outlined.EventNote
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.EditNote
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.AlertDialog
@@ -54,12 +56,14 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import com.training.trackplanner.analysis.fatigue.HomeTodaySummaryState
 import com.training.trackplanner.analysis.fatigue.MiniTrendPoint
 import com.training.trackplanner.data.InitialUserProfile
+import com.training.trackplanner.data.CloudAuthUiState
 import com.training.trackplanner.data.DataTransferReport
 import com.training.trackplanner.data.DataTransferStatus
 import com.training.trackplanner.data.ExerciseListRestoreMode
@@ -85,8 +89,13 @@ internal fun HomeScreen(
     val restoreUiState by viewModel.backupRestoreUiState.collectAsState()
     val initialProfile by viewModel.initialUserProfile.collectAsState()
     val todayCheckIn by viewModel.todayCheckIn.collectAsState()
+    val cloudAuth by viewModel.cloudAuthState.collectAsState()
+    val cloudBackup by viewModel.cloudBackupState.collectAsState()
+    val activity = LocalContext.current as? android.app.Activity
     var showInitialProfile by rememberSaveable { mutableStateOf(false) }
     var showTransferReport by rememberSaveable { mutableStateOf(false) }
+    var showAccountDialog by rememberSaveable { mutableStateOf(false) }
+    var showGuestWarning by rememberSaveable { mutableStateOf(false) }
     val backupLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("text/csv")
     ) { uri ->
@@ -109,13 +118,36 @@ internal fun HomeScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val accountDescription = stringResource(R.string.cloud_account_control_description)
+                OutlinedButton(
+                    onClick = { showAccountDialog = true },
+                    modifier = Modifier
+                        .widthIn(max = 180.dp)
+                        .semantics { contentDescription = accountDescription },
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp)
+                ) {
+                    Icon(Icons.Outlined.AccountCircle, contentDescription = null)
+                    Text(
+                        text = cloudAuth.session?.displayEmail ?: stringResource(R.string.cloud_account_login),
+                        modifier = Modifier.padding(start = 6.dp),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                }
+                androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
+                AppLanguageSelector()
+            }
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    text = "오늘 무엇을 할까요?",
+                    text = stringResource(R.string.home_title),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold
                 )
-                AppLanguageSelector()
             }
         }
         item {
@@ -182,6 +214,40 @@ internal fun HomeScreen(
             }
         )
     }
+    if (showAccountDialog) {
+        CloudAccountDialog(
+            auth = cloudAuth,
+            backup = cloudBackup,
+            onDismiss = { showAccountDialog = false },
+            onLogin = {
+                if (activity != null) viewModel.signInWithGoogle(activity)
+            },
+            onUpload = { viewModel.uploadCloudBackup() },
+            onRestore = { showAccountDialog = false; viewModel.restoreCloudBackup() },
+            onLogout = { viewModel.logoutCloud() }
+        )
+    }
+    if (cloudAuth.firstLaunchChoiceRequired) {
+        FirstLaunchAuthDialog(
+            message = cloudAuth.message,
+            onLogin = {
+                if (activity != null) viewModel.signInWithGoogle(activity)
+            },
+            onGuest = { showGuestWarning = true }
+        )
+    }
+    if (showGuestWarning) {
+        GuestWarningDialog(
+            onContinue = {
+                showGuestWarning = false
+                viewModel.chooseGuest()
+            },
+            onLogin = {
+                showGuestWarning = false
+                if (activity != null) viewModel.signInWithGoogle(activity)
+            }
+        )
+    }
     BackupRestoreDialogHost(
         state = restoreUiState,
         onWorkoutMode = viewModel::chooseWorkoutRestoreMode,
@@ -194,11 +260,11 @@ internal fun HomeScreen(
 }
 
 @Composable
-internal fun AppLanguageSelector() {
+internal fun AppLanguageSelector(modifier: Modifier = Modifier) {
     val configuration = LocalConfiguration.current
     val effectiveLanguage = AppLanguageRegistry.effectiveLanguage(configuration)
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End)
     ) {
         AppLanguage.entries.forEach { language ->
@@ -234,6 +300,133 @@ internal fun AppLanguageSelector() {
             }
         }
     }
+}
+
+@Composable
+private fun FirstLaunchAuthDialog(message: String?, onLogin: () -> Unit, onGuest: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = {},
+        title = { Text(stringResource(R.string.cloud_first_launch_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.cloud_first_launch_body))
+                if (message != null && message != "AUTHENTICATING") {
+                    Text(
+                        stringResource(
+                            if (message == "PROVIDER_NOT_CONFIGURED") {
+                                R.string.cloud_provider_not_configured
+                            } else {
+                                R.string.cloud_login_failed
+                            }
+                        ),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Column {
+                Button(onClick = onLogin, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.cloud_login_google))
+                }
+                OutlinedButton(onClick = onGuest, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.cloud_continue_guest))
+                }
+            }
+        }
+    )
+}
+
+@Composable
+private fun GuestWarningDialog(onContinue: () -> Unit, onLogin: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = {},
+        title = { Text(stringResource(R.string.cloud_guest_warning_title)) },
+        text = { Text(stringResource(R.string.cloud_guest_warning_body)) },
+        confirmButton = {
+            Column {
+                Button(onClick = onContinue, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.cloud_guest_continue))
+                }
+                OutlinedButton(onClick = onLogin, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.cloud_login_google))
+                }
+            }
+        }
+    )
+}
+
+@Composable
+private fun CloudAccountDialog(
+    auth: CloudAuthUiState,
+    backup: com.training.trackplanner.data.CloudBackupState?,
+    onDismiss: () -> Unit,
+    onLogin: () -> Unit,
+    onUpload: () -> Unit,
+    onRestore: () -> Unit,
+    onLogout: () -> Unit
+) {
+    val message = auth.message?.let { code ->
+        when (code) {
+            "AUTHENTICATING" -> stringResource(R.string.cloud_authenticating)
+            "PROVIDER_NOT_CONFIGURED" -> stringResource(R.string.cloud_provider_not_configured)
+            "NO_GOOGLE_CREDENTIAL" -> stringResource(R.string.cloud_google_unavailable)
+            "AUTHENTICATION_FAILED" -> stringResource(R.string.cloud_login_failed)
+            "SESSION_EXPIRED" -> stringResource(R.string.cloud_session_expired)
+            "LOGIN_REQUIRED" -> stringResource(R.string.cloud_login_required)
+            "BACKUP_CURRENT" -> stringResource(R.string.cloud_backup_current)
+            "BACKUP_UPLOADED_PENDING" -> stringResource(R.string.cloud_backup_uploaded_pending)
+            "NO_CLOUD_BACKUP" -> stringResource(R.string.cloud_no_backup)
+            "CLOUD_BACKUP_READY" -> stringResource(R.string.cloud_backup_ready)
+            "CLOUD_RESTORE_FAILED" -> stringResource(R.string.cloud_restore_failed)
+            "GUEST_CLOUD_COMPARISON_REQUIRED" -> stringResource(R.string.cloud_guest_comparison_required)
+            "ACCOUNT_ARCHIVE_REQUIRED" -> stringResource(R.string.cloud_account_archive_required)
+            else -> stringResource(R.string.cloud_operation_failed)
+        }
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.cloud_account_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (auth.loggedIn) {
+                    Text(auth.session?.displayEmail ?: stringResource(R.string.cloud_account_signed_in))
+                    Text(
+                        text = if (backup?.lastSuccessfulBackupAt != null) {
+                            stringResource(R.string.cloud_last_backup_available)
+                        } else {
+                            stringResource(R.string.cloud_last_backup_none)
+                        },
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    message?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                } else {
+                    Text(stringResource(R.string.cloud_account_signed_out))
+                    message?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                }
+            }
+        },
+        confirmButton = {
+            Column {
+                if (auth.loggedIn) {
+                    Button(onClick = onUpload, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.cloud_upload_now))
+                    }
+                    OutlinedButton(onClick = onRestore, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.cloud_restore_now))
+                    }
+                    TextButton(onClick = { onLogout(); onDismiss() }, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.cloud_logout))
+                    }
+                } else {
+                    Button(onClick = onLogin, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.cloud_login_google))
+                    }
+                }
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cloud_close)) } }
+    )
 }
 
 @Composable

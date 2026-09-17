@@ -60,6 +60,9 @@ abstract class CloudBackupStateDao {
         cloudBackupEnabled = 1 WHERE id = 1 AND accountUserId IS NULL""")
     internal abstract suspend fun bindAccount(accountUserId: String): Int
 
+    @Query("UPDATE cloud_backup_state SET cloudBackupEnabled = 1 WHERE id = 1 AND accountUserId = :accountUserId")
+    internal abstract suspend fun enableForAccount(accountUserId: String)
+
     /** Acknowledge only the account/base snapshot used for the upload. */
     @Query("""UPDATE cloud_backup_state SET localBaseBackupId = :backupId,
         localRevision = CASE WHEN localRevision <= :snapshotRevision THEN 0

@@ -11,8 +11,15 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
 import java.util.zip.GZIPOutputStream
+import java.util.zip.GZIPInputStream
 
-internal data class CloudAuthSession(val userId: String, val accessToken: String)
+internal data class CloudAuthSession(
+    val userId: String,
+    val accessToken: String,
+    val refreshToken: String = "",
+    val expiresAtEpochSeconds: Long = 0L,
+    val displayEmail: String? = null
+)
 
 internal data class CloudBackupConfig(val supabaseUrl: String, val publishableKey: String) {
     companion object {
@@ -28,6 +35,46 @@ internal data class CloudHttpResponse(val status: Int, val body: String = "")
 internal interface CloudHttpTransport {
     suspend fun postJson(url: String, session: CloudAuthSession, body: String): CloudHttpResponse
     suspend fun putBytes(url: String, bytes: ByteArray): CloudHttpResponse
+}
+
+internal data class CloudBytesResponse(val status: Int, val bytes: ByteArray = ByteArray(0))
+
+/** Download transport is separate from the upload interface so existing upload test fakes
+ * remain source compatible. The URL is a short-lived R2 capability and is never logged. */
+internal interface CloudDownloadTransport {
+    suspend fun getBytes(url: String): CloudBytesResponse
+}
+
+internal class UrlConnectionCloudDownloadTransport(
+    private val maxBytes: Int = 20 * 1024 * 1024
+) : CloudDownloadTransport {
+    override suspend fun getBytes(url: String): CloudBytesResponse = withContext(Dispatchers.IO) {
+        val connection = (URL(url).openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            connectTimeout = 20_000
+            readTimeout = 60_000
+        }
+        try {
+            val status = connection.responseCode
+            val stream = if (status >= 400) connection.errorStream else connection.inputStream
+            val bytes = stream?.use { input ->
+                val output = ByteArrayOutputStream()
+                val buffer = ByteArray(16 * 1024)
+                var total = 0
+                while (true) {
+                    val read = input.read(buffer)
+                    if (read < 0) break
+                    total += read
+                    if (total > maxBytes) throw CloudBackupException("BACKUP_TOO_LARGE")
+                    output.write(buffer, 0, read)
+                }
+                output.toByteArray()
+            }.orEmpty()
+            CloudBytesResponse(status, bytes)
+        } finally {
+            connection.disconnect()
+        }
+    }
 }
 
 internal class UrlConnectionCloudHttpTransport(
@@ -78,6 +125,126 @@ internal object CloudBackupCodec {
 
     fun sha256Hex(bytes: ByteArray): String = MessageDigest.getInstance("SHA-256")
         .digest(bytes).joinToString("") { byte -> "%02x".format(byte.toInt() and 0xff) }
+
+    fun gunzip(bytes: ByteArray, maxUncompressedBytes: Int = 256 * 1024 * 1024): ByteArray {
+        if (bytes.isEmpty()) throw CloudBackupException("EMPTY_DOWNLOAD")
+        val output = ByteArrayOutputStream()
+        GZIPInputStream(bytes.inputStream()).use { input ->
+            val buffer = ByteArray(16 * 1024)
+            var total = 0
+            while (true) {
+                val read = input.read(buffer)
+                if (read < 0) break
+                total += read
+                if (total > maxUncompressedBytes) throw CloudBackupException("BACKUP_TOO_LARGE")
+                output.write(buffer, 0, read)
+            }
+        }
+        return output.toByteArray()
+    }
+}
+
+internal data class CloudBackupDownloadMetadata(
+    val backupId: String,
+    val compressedSizeBytes: Int,
+    val uncompressedSizeBytes: Int?,
+    val checksum: String?,
+    val checksumAlgorithm: String?,
+    val status: String,
+    val backupFormatVersion: Int,
+    val schemaVersion: Int
+)
+
+internal data class CloudBackupDownloadResult(
+    val metadata: CloudBackupDownloadMetadata,
+    val csv: String
+)
+
+internal class CloudBackupDownloadClient(
+    private val config: CloudBackupConfig,
+    private val postTransport: CloudHttpTransport,
+    private val downloadTransport: CloudDownloadTransport = UrlConnectionCloudDownloadTransport(),
+    private val maxCompressedBytes: Int = 20 * 1024 * 1024,
+    private val maxUncompressedBytes: Int = 256 * 1024 * 1024
+) {
+    suspend fun download(session: CloudAuthSession, backupId: String): CloudBackupDownloadResult =
+        withContext(Dispatchers.IO) {
+            require(config.configured) { "Cloud Backup is not configured for this build." }
+            require(session.userId.isNotBlank() && session.accessToken.isNotBlank()) {
+                "Cloud Backup requires an authenticated session."
+            }
+            val request = postTransport.postJson(
+                "${config.supabaseUrl}/functions/v1/cloud-backup-download-url",
+                session,
+                JSONObject().put("backup_id", backupId).toString()
+            )
+            if (request.status !in 200..299) throw CloudBackupException(parseError(request.body))
+            val metadata = runCatching { JSONObject(request.body) }
+                .getOrElse { throw CloudBackupException("INVALID_SERVER_RESPONSE") }
+            val returnedBackupId = metadata.optString("backup_id")
+            if (returnedBackupId.isNotBlank() && returnedBackupId != backupId) {
+                throw CloudBackupException("INVALID_SERVER_RESPONSE")
+            }
+            val status = metadata.optString("status")
+            if (status !in setOf("CURRENT", "RETAINED", "VERIFIED", "CONFLICT_RECOVERY")) {
+                throw CloudBackupException("BACKUP_NOT_AVAILABLE")
+            }
+            val url = metadata.optString("download_url")
+                .takeIf(String::isNotBlank) ?: throw CloudBackupException("INVALID_SERVER_RESPONSE")
+            val compressedSize = metadata.optInt("compressed_size_bytes", -1)
+            if (compressedSize !in 0..maxCompressedBytes) throw CloudBackupException("BACKUP_TOO_LARGE")
+            val checksum = metadata.optString("checksum").takeIf(String::isNotBlank)
+            val algorithm = metadata.optString("checksum_algorithm").takeIf(String::isNotBlank)
+            if (checksum != null && (algorithm != "SHA-256" || !checksum.matches(Regex("[0-9a-fA-F]{64}")))) {
+                throw CloudBackupException("INVALID_CHECKSUM")
+            }
+            val fetched = downloadTransport.getBytes(url)
+            if (fetched.status !in 200..299) throw CloudBackupException("R2_GET_FAILED")
+            if (fetched.bytes.size != compressedSize) throw CloudBackupException("DOWNLOAD_SIZE_MISMATCH")
+            if (checksum != null && !checksum.equals(CloudBackupCodec.sha256Hex(fetched.bytes), ignoreCase = true)) {
+                throw CloudBackupException("DOWNLOAD_CHECKSUM_MISMATCH")
+            }
+            val uncompressed = try {
+                CloudBackupCodec.gunzip(fetched.bytes, maxUncompressedBytes)
+            } catch (error: CloudBackupException) {
+                throw error
+            } catch (_: Throwable) {
+                throw CloudBackupException("INVALID_GZIP")
+            }
+            val expectedUncompressed = metadata.optInt("uncompressed_size_bytes", -1)
+                .takeIf { it >= 0 }
+            if (expectedUncompressed != null && uncompressed.size != expectedUncompressed) {
+                throw CloudBackupException("UNCOMPRESSED_SIZE_MISMATCH")
+            }
+            val csv = uncompressed.toString(Charsets.UTF_8)
+            val parsed = runCatching { RecordCsvBackupRestore.parse(csv) }.getOrElse {
+                throw CloudBackupException("INVALID_CANONICAL_BACKUP")
+            }
+            val restore = parsed as? RecordCsvImportData.Restore
+                ?: throw CloudBackupException("INVALID_CANONICAL_BACKUP")
+            if (metadata.optInt("backup_format_version", -1) != RecordCsvBackupRestore.CURRENT_BACKUP_FORMAT_VERSION ||
+                metadata.optInt("schema_version", -1) != RecordCsvBackupRestore.CURRENT_RESTORE_SCHEMA_VERSION
+            ) throw CloudBackupException("UNSUPPORTED_BACKUP_VERSION")
+            if (restore.manifest?.formatVersion != RecordCsvBackupRestore.CURRENT_BACKUP_FORMAT_VERSION ||
+                restore.backupSchemaVersion != RecordCsvBackupRestore.CURRENT_RESTORE_SCHEMA_VERSION
+            ) throw CloudBackupException("UNSUPPORTED_BACKUP_VERSION")
+            CloudBackupDownloadResult(
+                metadata = CloudBackupDownloadMetadata(
+                    backupId = returnedBackupId.ifBlank { backupId },
+                    compressedSizeBytes = compressedSize,
+                    uncompressedSizeBytes = expectedUncompressed,
+                    checksum = checksum,
+                    checksumAlgorithm = algorithm,
+                    status = status,
+                    backupFormatVersion = metadata.optInt("backup_format_version", -1),
+                    schemaVersion = metadata.optInt("schema_version", -1)
+                ),
+                csv = csv
+            )
+        }
+
+    private fun parseError(body: String): String = runCatching { JSONObject(body).optString("error") }
+        .getOrNull()?.takeIf(String::isNotBlank) ?: "CLOUD_REQUEST_FAILED"
 }
 
 internal class CloudBackupClient(
