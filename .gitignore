@@ -5,6 +5,13 @@ app/build/
 local.properties
 *.apk
 *.aab
+*.jks
+*.keystore
+*.p12
+*-password.txt
+*.jks.b64
+*.keystore.b64
+*.p12.b64
 .idea/workspace.xml
 .idea/caches/
 .idea/libraries/

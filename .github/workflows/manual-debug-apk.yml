@@ -35,8 +35,99 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
+      - name: Restore CI debug keystore
+        env:
+          ANDROID_CI_KEYSTORE_B64: ${{ secrets.ANDROID_CI_KEYSTORE_B64 }}
+        run: |
+          set -euo pipefail
+          test -n "${ANDROID_CI_KEYSTORE_B64:-}" || {
+            echo "::error::ANDROID_CI_KEYSTORE_B64 is not configured"
+            exit 1
+          }
+          keystore="$RUNNER_TEMP/whatyougottado-ci-debug.jks"
+          printf '%s' "$ANDROID_CI_KEYSTORE_B64" | base64 --decode > "$keystore"
+          test -s "$keystore" || {
+            echo "::error::CI debug keystore decode produced an empty file"
+            exit 1
+          }
+          chmod 600 "$keystore"
+
+      - name: Verify CI debug keystore credentials
+        env:
+          ANDROID_CI_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_CI_KEYSTORE_PASSWORD }}
+          ANDROID_CI_KEY_ALIAS: ${{ secrets.ANDROID_CI_KEY_ALIAS }}
+          ANDROID_CI_KEY_PASSWORD: ${{ secrets.ANDROID_CI_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "${ANDROID_CI_KEYSTORE_PASSWORD:-}" || {
+            echo "::error::ANDROID_CI_KEYSTORE_PASSWORD is not configured"
+            exit 1
+          }
+          test -n "${ANDROID_CI_KEY_ALIAS:-}" || {
+            echo "::error::ANDROID_CI_KEY_ALIAS is not configured"
+            exit 1
+          }
+          test -n "${ANDROID_CI_KEY_PASSWORD:-}" || {
+            echo "::error::ANDROID_CI_KEY_PASSWORD is not configured"
+            exit 1
+          }
+          keytool -list -v \
+            -keystore "$RUNNER_TEMP/whatyougottado-ci-debug.jks" \
+            -alias "$ANDROID_CI_KEY_ALIAS" \
+            '-storepass:env' ANDROID_CI_KEYSTORE_PASSWORD > /dev/null
+
       - name: Assemble manual unverified debug APK
+        env:
+          ANDROID_CI_KEYSTORE_PATH: ${{ runner.temp }}/whatyougottado-ci-debug.jks
+          ANDROID_CI_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_CI_KEYSTORE_PASSWORD }}
+          ANDROID_CI_KEY_ALIAS: ${{ secrets.ANDROID_CI_KEY_ALIAS }}
+          ANDROID_CI_KEY_PASSWORD: ${{ secrets.ANDROID_CI_KEY_PASSWORD }}
         run: ./gradlew assembleDebug
+
+      - name: Verify manual CI debug APK signer
+        env:
+          ANDROID_CI_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_CI_KEYSTORE_PASSWORD }}
+          ANDROID_CI_KEY_ALIAS: ${{ secrets.ANDROID_CI_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          apk="$(find app/build/outputs/apk/debug -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          test -n "$apk" || {
+            echo "::error::No manual debug APK was produced"
+            exit 1
+          }
+          apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner -print | sort -V | tail -n 1)"
+          test -x "$apksigner" || {
+            echo "::error::Android apksigner was not found"
+            exit 1
+          }
+          certs="$RUNNER_TEMP/whatyougottado-ci-debug-manual-apksigner.txt"
+          "$apksigner" verify --print-certs "$apk" > "$certs"
+          expected="$(keytool -list -v \
+            -keystore "$RUNNER_TEMP/whatyougottado-ci-debug.jks" \
+            -alias "$ANDROID_CI_KEY_ALIAS" \
+            '-storepass:env' ANDROID_CI_KEYSTORE_PASSWORD |
+            awk -F': ' '/SHA1:/{print $2; exit}' | tr -d '\r' | tr '[:lower:]' '[:upper:]')"
+          actual="$(awk -F': ' '/Signer #1 certificate SHA-1 digest:/{print $2; exit}' "$certs" |
+            tr -d '\r' | tr '[:lower:]' '[:upper:]')"
+          test -n "$expected" || {
+            echo "::error::Could not derive the CI keystore SHA-1"
+            exit 1
+          }
+          test -n "$actual" || {
+            echo "::error::Manual APK signer certificate SHA-1 was not reported"
+            exit 1
+          }
+          test "$expected" = "$actual" || {
+            echo "::error::Manual APK signer SHA-1 does not match the CI keystore"
+            exit 1
+          }
+          {
+            echo "## Android CI debug signing certificate"
+            echo
+            echo "SHA-1: $expected"
+            echo
+            echo "Package: com.whatyougottado.app"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload manual unverified debug APK
         uses: actions/upload-artifact@v4

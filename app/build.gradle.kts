@@ -16,6 +16,21 @@ fun cloudBuildProperty(name: String, defaultValue: String = ""): String =
 fun quoteBuildConfig(value: String): String =
     "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
 
+val ciKeystorePath = providers.environmentVariable("ANDROID_CI_KEYSTORE_PATH").orNull
+    ?.trim()
+    ?.takeIf { it.isNotEmpty() }
+val ciKeystorePassword = providers.environmentVariable("ANDROID_CI_KEYSTORE_PASSWORD").orNull
+    ?.takeIf { it.isNotEmpty() }
+val ciKeyAlias = providers.environmentVariable("ANDROID_CI_KEY_ALIAS").orNull
+    ?.trim()
+    ?.takeIf { it.isNotEmpty() }
+val ciKeyPassword = providers.environmentVariable("ANDROID_CI_KEY_PASSWORD").orNull
+    ?.takeIf { it.isNotEmpty() }
+val ciSigningConfigured = ciKeystorePath != null &&
+    ciKeystorePassword != null &&
+    ciKeyAlias != null &&
+    ciKeyPassword != null
+
 val gitCommitSha = providers.environmentVariable("GITHUB_SHA").orNull
     ?.trim()
     ?.takeIf { it.isNotEmpty() }
@@ -46,6 +61,25 @@ android {
         // Native Google Sign-In is intentionally disabled until the user supplies the
         // real Web OAuth client id in ignored local.properties or CI build properties.
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", quoteBuildConfig(cloudBuildProperty("google.webClientId")))
+    }
+
+    signingConfigs {
+        if (ciSigningConfigured) {
+            create("ciDebug") {
+                storeFile = file(ciKeystorePath!!)
+                storePassword = ciKeystorePassword!!
+                keyAlias = ciKeyAlias!!
+                keyPassword = ciKeyPassword!!
+            }
+        }
+    }
+
+    buildTypes {
+        getByName("debug") {
+            if (ciSigningConfigured) {
+                signingConfig = signingConfigs.getByName("ciDebug")
+            }
+        }
     }
 
     sourceSets {
