@@ -47,39 +47,103 @@ class DailyFatigueCalculator(
         entriesWithSets: List<WorkoutEntryWithSets>,
         initialProfile: InitialUserProfile?,
         dailyMetrics: List<DailyMetric> = emptyList()
-    ): List<DailyFatigueResult> {
-        val exerciseMap = exercises.associateBy(Exercise::stableKey)
-        val records = entriesWithSets.mapNotNull { record ->
-            val date = runCatching { LocalDate.parse(record.entry.date) }.getOrNull() ?: return@mapNotNull null
-            val confirmedSets = record.sets.filter { it.confirmed }
-            val exercise = exerciseMap[record.entry.exerciseStableKey] ?: return@mapNotNull null
-            if (confirmedSets.isEmpty()) return@mapNotNull null
-            val metadata = ResolvedFatigueMetadata.from(exercise, metadataCatalog.resolve(exercise))
-            val rawWorkload = calculateWorkload(
-                date = date,
-                record = record,
-                exercise = exercise,
-                sets = confirmedSets,
-                metadata = metadata,
-                bodyWeightKg = BodyweightEffectiveLoadCalculator.bodyWeightFor(
-                    date = record.entry.date,
-                    dailyMetrics = dailyMetrics,
-                    initialProfile = initialProfile
-                )
-            ) ?: return@mapNotNull null
-            RecordContext(
-                date = date,
-                record = record,
-                exercise = exercise,
-                metadata = metadata,
-                canonicalOfiAxisProfile = canonicalOfiAxisProfiles[exercise.stableKey],
-                confirmedSets = confirmedSets,
-                rpe = averageRpe(record, confirmedSets) ?: defaultRpe(metadata),
-                rawWorkload = rawWorkload
-            )
-        }.filter { it.date <= endDate }
+    ): List<DailyFatigueResult> = prepareProjection(exercises, entriesWithSets, initialProfile, dailyMetrics)
+        .calculateSeries(endDate, days)
 
-        val contributions = records.map { record -> record.toContribution(records) }
+    /**
+     * Prepares immutable history once for repeated plan projections.  Historical records are
+     * converted to canonical contributions up front; projected rows are evaluated separately and
+     * cannot change historical baselines because contribution baselines only use earlier dates.
+     */
+    internal fun prepareProjection(
+        exercises: List<Exercise>,
+        entriesWithSets: List<WorkoutEntryWithSets>,
+        initialProfile: InitialUserProfile?,
+        dailyMetrics: List<DailyMetric> = emptyList()
+    ): PreparedProjection {
+        val exerciseMap = exercises.associateBy(Exercise::stableKey)
+        val records = entriesWithSets.mapNotNull { buildRecord(it, exerciseMap, initialProfile, dailyMetrics) }
+        val contributions = records.map { it.toContribution(records) }
+        return PreparedProjectionImpl(exerciseMap, records, contributions, initialProfile, dailyMetrics)
+    }
+
+    internal interface PreparedProjection {
+        fun calculateSeries(endDate: LocalDate, days: Int): List<DailyFatigueResult>
+        fun calculate(targetDate: LocalDate, projectedEntries: List<WorkoutEntryWithSets>): DailyFatigueResult
+    }
+
+    private inner class PreparedProjectionImpl(
+        private val exerciseMap: Map<String, Exercise>,
+        private val records: List<RecordContext>,
+        private val contributions: List<RecordFatigueContribution>,
+        private val initialProfile: InitialUserProfile?,
+        private val dailyMetrics: List<DailyMetric>
+    ) : PreparedProjection {
+        override fun calculateSeries(endDate: LocalDate, days: Int): List<DailyFatigueResult> {
+            val visibleRecords = records.filter { it.date <= endDate }
+            val visibleContributions = contributions.filter { it.date <= endDate }
+            return calculateSeriesFromPrepared(endDate, days, visibleRecords, visibleContributions, initialProfile)
+        }
+
+        override fun calculate(targetDate: LocalDate, projectedEntries: List<WorkoutEntryWithSets>): DailyFatigueResult {
+            val projected = projectedEntries.mapNotNull {
+                buildRecord(it, exerciseMap, initialProfile, dailyMetrics)
+            }.filter { it.date <= targetDate }
+            val allRecords = records + projected
+            val historyContributions = contributions.filter { it.date <= targetDate }
+            val projectedContributions = projected.map { it.toContribution(allRecords) }
+            return calculateSeriesFromPrepared(
+                targetDate,
+                1,
+                allRecords.filter { it.date <= targetDate },
+                historyContributions + projectedContributions,
+                initialProfile
+            ).single()
+        }
+    }
+
+    private fun buildRecord(
+        record: WorkoutEntryWithSets,
+        exerciseMap: Map<String, Exercise>,
+        initialProfile: InitialUserProfile?,
+        dailyMetrics: List<DailyMetric>
+    ): RecordContext? {
+        val date = runCatching { LocalDate.parse(record.entry.date) }.getOrNull() ?: return null
+        val confirmedSets = record.sets.filter { it.confirmed }
+        val exercise = exerciseMap[record.entry.exerciseStableKey] ?: return null
+        if (confirmedSets.isEmpty()) return null
+        val metadata = ResolvedFatigueMetadata.from(exercise, metadataCatalog.resolve(exercise))
+        val rawWorkload = calculateWorkload(
+            date = date,
+            record = record,
+            exercise = exercise,
+            sets = confirmedSets,
+            metadata = metadata,
+            bodyWeightKg = BodyweightEffectiveLoadCalculator.bodyWeightFor(
+                date = record.entry.date,
+                dailyMetrics = dailyMetrics,
+                initialProfile = initialProfile
+            )
+        ) ?: return null
+        return RecordContext(
+            date = date,
+            record = record,
+            exercise = exercise,
+            metadata = metadata,
+            canonicalOfiAxisProfile = canonicalOfiAxisProfiles[exercise.stableKey],
+            confirmedSets = confirmedSets,
+            rpe = averageRpe(record, confirmedSets) ?: defaultRpe(metadata),
+            rawWorkload = rawWorkload
+        )
+    }
+
+    private fun calculateSeriesFromPrepared(
+        endDate: LocalDate,
+        days: Int,
+        records: List<RecordContext>,
+        contributions: List<RecordFatigueContribution>,
+        initialProfile: InitialUserProfile?
+    ): List<DailyFatigueResult> {
         val seed = InitialProfileBaselineSeeder.seed(initialProfile)
         val rawCache = mutableMapOf<LocalDate, RawDailyFatigue>()
         fun raw(date: LocalDate): RawDailyFatigue =

@@ -20,6 +20,24 @@ import java.time.LocalDate
 
 class DailyFatigueCalculatorTest {
     @Test
+    fun preparedProjectionMatchesReferenceCalculationForFixedHistory() {
+        val stableKey = "prepared-lift"
+        val exercise = Exercise(name = "Prepared lift", category = "Strength", stableKey = stableKey)
+        val calculator = DailyFatigueCalculator(
+            RuntimeExerciseMetadataCatalog.of(listOf(neutralTestMetadata(stableKey, exercise.name)))
+        )
+        val history = listOf(
+            testRecord(LocalDate.of(2026, 8, 20), stableKey, exercise.name, id = 1),
+            testRecord(LocalDate.of(2026, 8, 24), stableKey, exercise.name, id = 2)
+        )
+        val candidate = testRecord(LocalDate.of(2026, 8, 25), stableKey, exercise.name, id = -1)
+        val reference = calculator.calculate(LocalDate.parse(candidate.entry.date), listOf(exercise), history + candidate, null)
+        val prepared = calculator.prepareProjection(listOf(exercise), history, null)
+            .calculate(LocalDate.parse(candidate.entry.date), listOf(candidate))
+        assertEquals(reference, prepared)
+    }
+
+    @Test
     fun factorsUseConfiguredRpeAndAxisLevels() {
         assertEquals(1.00, FatigueRecordFactors.rpeFactor(5.0), 0.0001)
         assertEquals(1.25, FatigueRecordFactors.rpeFactor(8.0), 0.0001)

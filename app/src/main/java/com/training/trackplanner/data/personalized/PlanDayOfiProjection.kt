@@ -27,6 +27,7 @@ class PlanDayOfiProjection(
     private val history = history.filter { runCatching { LocalDate.parse(it.entry.date) <= cutoff }.getOrDefault(false) }
         .map { it.copy(sets = it.sets.filter(WorkoutSet::confirmed)) }
     private val metrics = metrics.filter { runCatching { LocalDate.parse(it.date) <= cutoff }.getOrDefault(false) }
+    private val preparedHistory = calculator.prepareProjection(exercises, history, profile, metrics)
     internal fun syntheticRows(items: List<ProgramSkeletonItem>): List<WorkoutEntryWithSets> = items.mapIndexed { index, item ->
         val id = -(index + 1L)
         WorkoutEntryWithSets(
@@ -39,7 +40,7 @@ class PlanDayOfiProjection(
         )
     }
     override fun evaluate(items: List<ProgramSkeletonItem>): StandaloneDayLoad {
-        val result = calculator.calculate(projectionDate, exercises, history + syntheticRows(items), profile, metrics).state
+        val result = preparedHistory.calculate(projectionDate, syntheticRows(items)).state
         return StandaloneDayLoad(result.overallFatigueIndex, listOf(result.highForceNeuralScore,
             result.systemicMuscularScore, result.localMuscularScore, result.highSpeedScore,
             result.reactiveScore, result.recoveryPressureScore), result.cautionReasons)
