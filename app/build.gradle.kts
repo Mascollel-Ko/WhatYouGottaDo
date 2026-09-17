@@ -146,6 +146,7 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     testImplementation("androidx.compose.ui:ui-test-junit4")
     testImplementation("androidx.room:room-testing:2.6.1")
+    testImplementation("androidx.work:work-testing:2.9.1")
     testImplementation("androidx.test:core:1.6.1")
     testImplementation("org.json:json:20240303")
     testImplementation("org.robolectric:robolectric:4.12.2")

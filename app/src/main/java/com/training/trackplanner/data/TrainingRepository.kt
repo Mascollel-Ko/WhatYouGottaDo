@@ -30,6 +30,7 @@ import com.training.trackplanner.data.personalized.PersonalizedPlanningOutcome
 import com.training.trackplanner.data.personalized.PersonalizedPlanningPreflight
 import com.training.trackplanner.data.personalized.personalizedProgramFingerprint
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
@@ -428,10 +429,23 @@ class TrainingRepository(
 
     private suspend fun <T> cloudMutation(scope: CloudMutationScope, mutation: suspend () -> T): T =
         withContext(Dispatchers.IO) {
+            val beforeRevision = db.cloudBackupStateDao().getOrCreate().localRevision
             val result = db.withCloudRevision(scope, mutation)
             LocalRecoveryScheduler.schedule(context)
+            scheduleAutomaticCloudBackupIfChanged(beforeRevision)
             result
         }
+
+    private suspend fun scheduleAutomaticCloudBackupIfChanged(beforeRevision: Long) {
+        val state = db.cloudBackupStateDao().getOrCreate()
+        if (state.cloudBackupPending && state.localRevision > beforeRevision) {
+            CloudBackupScheduler.scheduleIfPending(context, db)
+        }
+    }
+
+    private suspend fun scheduleAutomaticCloudBackupIfPending() {
+        CloudBackupScheduler.scheduleIfPending(context, db)
+    }
 
     suspend fun addSmashSpeed(date: String, speedKmh: Double, note: String? = null) = cloudMutation(CloudMutationScope.SMASH) {
         smashSpeedService.add(date, speedKmh, note)
@@ -447,11 +461,19 @@ class TrainingRepository(
     suspend fun recentCheckIns(startDate: String, endDate: String): List<DailyCheckIn> =
         dailyStatusService.recentCheckIns(startDate, endDate)
 
-    suspend fun upsertDailyCheckIn(checkIn: DailyCheckIn) =
-        dailyStatusService.upsertDailyCheckIn(checkIn).also { LocalRecoveryScheduler.schedule(context) }
+    suspend fun upsertDailyCheckIn(checkIn: DailyCheckIn) = withContext(Dispatchers.IO) {
+        val beforeRevision = db.cloudBackupStateDao().getOrCreate().localRevision
+        dailyStatusService.upsertDailyCheckIn(checkIn)
+        LocalRecoveryScheduler.schedule(context)
+        scheduleAutomaticCloudBackupIfChanged(beforeRevision)
+    }
 
-    suspend fun deleteDailyCheckIn(date: String) =
-        dailyStatusService.deleteDailyCheckIn(date).also { LocalRecoveryScheduler.schedule(context) }
+    suspend fun deleteDailyCheckIn(date: String) = withContext(Dispatchers.IO) {
+        val beforeRevision = db.cloudBackupStateDao().getOrCreate().localRevision
+        dailyStatusService.deleteDailyCheckIn(date)
+        LocalRecoveryScheduler.schedule(context)
+        scheduleAutomaticCloudBackupIfChanged(beforeRevision)
+    }
 
     suspend fun todayReadinessSummary(): TodayReadinessSummary =
         todayStatusSummaryService.todayReadinessSummary()
@@ -518,13 +540,60 @@ class TrainingRepository(
         session: CloudAuthSession,
         config: CloudBackupConfig = CloudBackupConfig.fromBuildConfig(),
         http: CloudHttpTransport = UrlConnectionCloudHttpTransport(),
-        now: Long = System.currentTimeMillis()
-    ): CloudBackupUploadResult = CloudBackupClient(
-        db = db,
-        canonicalBackup = { canonicalRecordsBackup() },
-        config = config,
-        http = http
-    ).uploadNow(session, now)
+        now: Long = System.currentTimeMillis(),
+        automatic: Boolean = false
+    ): CloudBackupUploadResult = withContext(Dispatchers.IO) {
+        if (!automatic) CloudBackupScheduler.cancel(context)
+        try {
+            CloudBackupRuntimeMutex.withLock {
+                val result = CloudBackupClient(
+                    db = db,
+                    canonicalBackup = { canonicalRecordsBackup() },
+                    config = config,
+                    http = http
+                ).uploadNow(session, now)
+                scheduleAutomaticCloudBackupIfPending()
+                result
+            }
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Throwable) {
+            scheduleAutomaticCloudBackupIfPending()
+            throw error
+        }
+    }
+
+    /** Startup/resume reconciliation. It only schedules an outstanding safe obligation. */
+    internal suspend fun reconcileAutomaticCloudBackup(session: CloudAuthSession? = null): Boolean =
+        withContext(Dispatchers.IO) {
+            val state = db.cloudBackupStateDao().getOrCreate()
+            if (!state.cloudBackupPending || !state.cloudBackupEnabled) return@withContext false
+            val verified = session ?: CloudAuthRepository(context).refreshIfNeeded()
+                ?: return@withContext false
+            val action = CloudAccountEntryClassifier.classify(
+                cloudAccountEntrySnapshot(), verified.userId
+            )
+            if (action !in setOf(
+                    CloudAccountEntryAction.ENABLE_CLOUD,
+                    CloudAccountEntryAction.ADOPT_GUEST_LOCAL_DATA,
+                    CloudAccountEntryAction.RESUME_SAME_ACCOUNT
+                )
+            ) return@withContext false
+            CloudBackupScheduler.scheduleIfPending(context, db)
+            true
+        }
+
+    internal suspend fun setCloudBackupEnabled(enabled: Boolean, userId: String): Boolean =
+        withContext(Dispatchers.IO) {
+            val changed = db.withTransaction {
+                val state = db.cloudBackupStateDao().getOrCreate()
+                if (!state.accountUserId.equals(userId, ignoreCase = true)) return@withTransaction false
+                db.cloudBackupStateDao().setEnabledForAccount(userId, enabled)
+                true
+            }
+            if (changed && enabled) reconcileAutomaticCloudBackup()
+            changed
+        }
 
     internal suspend fun cloudAccountEntrySnapshot(): CloudAccountEntrySnapshot = withContext(Dispatchers.IO) {
         val state = db.cloudBackupStateDao().getOrCreate()
@@ -547,7 +616,8 @@ class TrainingRepository(
             if (state.accountUserId == null) {
                 stateDao.bindAccount(userId)
             } else if (state.accountUserId.equals(userId, ignoreCase = true)) {
-                stateDao.enableForAccount(userId)
+                // Preserve an explicit Cloud Backup OFF choice across logout/login. The
+                // foreground setting path calls setCloudBackupEnabled(true) when re-enabled.
             }
         }
     }
@@ -728,12 +798,21 @@ class TrainingRepository(
     }
 
     private fun backupImportService(): BackupImportService = BackupImportService(
-        restoreImporter = { data -> localRecovery.externalImport { backupRestoreImportService.importRestoreCsv(data) }.also { LocalRecoveryScheduler.schedule(context) } },
+        restoreImporter = { data -> localRecovery.externalImport { backupRestoreImportService.importRestoreCsv(data) }.also {
+            LocalRecoveryScheduler.schedule(context)
+            scheduleAutomaticCloudBackupIfPending()
+        } },
         restorePlanImporter = { plan -> localRecovery.externalImport {
             backupRestoreImportService.importRestorePlan(plan)
-        }.also { LocalRecoveryScheduler.schedule(context) } },
+        }.also {
+            LocalRecoveryScheduler.schedule(context)
+            scheduleAutomaticCloudBackupIfPending()
+        } },
         restorePlanner = backupRestorePlanner,
-        dailyTimeseriesImporter = { data -> localRecovery.externalImport { dailyTimeseriesImportService.importDailyTimeseriesCsv(data) }.also { LocalRecoveryScheduler.schedule(context) } },
+        dailyTimeseriesImporter = { data -> localRecovery.externalImport { dailyTimeseriesImportService.importDailyTimeseriesCsv(data) }.also {
+            LocalRecoveryScheduler.schedule(context)
+            scheduleAutomaticCloudBackupIfPending()
+        } },
         canonicalizer = BackupRestoreCanonicalizer(legacyExerciseImportMapper),
         canonicalExercises = { SeedData.exactExerciseMetadataByStableKey(context) },
         reportStore = dataTransferReportStore
@@ -931,27 +1010,41 @@ class TrainingRepository(
     }
 
     suspend fun addWorkoutEntry(date: String, exerciseStableKey: String): Long = withContext(Dispatchers.IO) {
-        recordMutationService.addWorkoutEntry(date, exerciseStableKey).also { LocalRecoveryScheduler.schedule(context) }
+        val beforeRevision = db.cloudBackupStateDao().getOrCreate().localRevision
+        val result = recordMutationService.addWorkoutEntry(date, exerciseStableKey)
+        LocalRecoveryScheduler.schedule(context)
+        scheduleAutomaticCloudBackupIfChanged(beforeRevision)
+        result
     }
 
     suspend fun updateWorkoutEntry(entry: WorkoutEntry) = withContext(Dispatchers.IO) {
+        val beforeRevision = db.cloudBackupStateDao().getOrCreate().localRevision
         recordMutationService.updateWorkoutEntry(entry).also { LocalRecoveryScheduler.schedule(context) }
+        scheduleAutomaticCloudBackupIfChanged(beforeRevision)
     }
 
     suspend fun deleteWorkoutEntry(entry: WorkoutEntry) = withContext(Dispatchers.IO) {
+        val beforeRevision = db.cloudBackupStateDao().getOrCreate().localRevision
         recordMutationService.deleteWorkoutEntry(entry).also { LocalRecoveryScheduler.schedule(context) }
+        scheduleAutomaticCloudBackupIfChanged(beforeRevision)
     }
 
     suspend fun addSet(entry: WorkoutEntry) = withContext(Dispatchers.IO) {
+        val beforeRevision = db.cloudBackupStateDao().getOrCreate().localRevision
         recordMutationService.addSet(entry).also { LocalRecoveryScheduler.schedule(context) }
+        scheduleAutomaticCloudBackupIfChanged(beforeRevision)
     }
 
     suspend fun updateSet(set: WorkoutSet) = withContext(Dispatchers.IO) {
+        val beforeRevision = db.cloudBackupStateDao().getOrCreate().localRevision
         recordMutationService.updateSet(set).also { LocalRecoveryScheduler.schedule(context) }
+        scheduleAutomaticCloudBackupIfChanged(beforeRevision)
     }
 
     suspend fun updateSet(edit: RecordSetEdit) = withContext(Dispatchers.IO) {
+        val beforeRevision = db.cloudBackupStateDao().getOrCreate().localRevision
         recordMutationService.updateSet(edit).also { LocalRecoveryScheduler.schedule(context) }
+        scheduleAutomaticCloudBackupIfChanged(beforeRevision)
     }
 
     suspend fun refreshRecordDerivedState() = withContext(Dispatchers.IO) {
@@ -960,7 +1053,10 @@ class TrainingRepository(
     }
 
     suspend fun deleteSet(set: WorkoutSet): Boolean = withContext(Dispatchers.IO) {
-        recordMutationService.deleteSet(set).also { LocalRecoveryScheduler.schedule(context) }
+        val beforeRevision = db.cloudBackupStateDao().getOrCreate().localRevision
+        val result = recordMutationService.deleteSet(set).also { LocalRecoveryScheduler.schedule(context) }
+        scheduleAutomaticCloudBackupIfChanged(beforeRevision)
+        result
     }
 
     suspend fun reorderWorkoutEntries(date: String, orderedEntryIds: List<Long>): Boolean =
@@ -1107,8 +1203,10 @@ class TrainingRepository(
         }
 
     suspend fun deleteDate(date: String) = withContext(Dispatchers.IO) {
+        val beforeRevision = db.cloudBackupStateDao().getOrCreate().localRevision
         localRecovery.protect(RecoveryTrigger.BEFORE_BULK_CHANGE) { calendarRecordService.deleteDate(date) }
             .also { LocalRecoveryScheduler.schedule(context) }
+        scheduleAutomaticCloudBackupIfChanged(beforeRevision)
     }
 
     suspend fun deleteDateRange(
@@ -1116,9 +1214,11 @@ class TrainingRepository(
         endDate: String,
         includeConfirmed: Boolean
     ) = withContext(Dispatchers.IO) {
+        val beforeRevision = db.cloudBackupStateDao().getOrCreate().localRevision
         localRecovery.protect(RecoveryTrigger.BEFORE_BULK_CHANGE) {
             calendarRecordService.deleteDateRange(startDate, endDate, includeConfirmed)
         }.also { LocalRecoveryScheduler.schedule(context) }
+        scheduleAutomaticCloudBackupIfChanged(beforeRevision)
     }
 
     suspend fun copyDate(
@@ -1127,9 +1227,11 @@ class TrainingRepository(
         keepConfirmed: Boolean,
         conflictMode: CalendarConflictMode
     ) = withContext(Dispatchers.IO) {
+        val beforeRevision = db.cloudBackupStateDao().getOrCreate().localRevision
         localRecovery.protect(RecoveryTrigger.BEFORE_BULK_CHANGE) {
             calendarRecordService.copyDate(sourceDate, targetDate, keepConfirmed, conflictMode)
         }.also { LocalRecoveryScheduler.schedule(context) }
+        scheduleAutomaticCloudBackupIfChanged(beforeRevision)
     }
 
     suspend fun moveDate(
@@ -1137,16 +1239,22 @@ class TrainingRepository(
         targetDate: String,
         conflictMode: CalendarConflictMode
     ) = withContext(Dispatchers.IO) {
+        val beforeRevision = db.cloudBackupStateDao().getOrCreate().localRevision
         localRecovery.protect(RecoveryTrigger.BEFORE_BULK_CHANGE) {
             calendarRecordService.moveDate(sourceDate, targetDate, conflictMode)
         }.also { LocalRecoveryScheduler.schedule(context) }
+        scheduleAutomaticCloudBackupIfChanged(beforeRevision)
     }
 
     suspend fun pushFuturePlan(startDate: String, dayCount: Int): PlanPushResult =
         withContext(Dispatchers.IO) {
+            val beforeRevision = db.cloudBackupStateDao().getOrCreate().localRevision
+            val result =
             localRecovery.protect(RecoveryTrigger.BEFORE_BULK_CHANGE) {
                 calendarRecordService.pushFuturePlan(startDate, dayCount)
             }.also { LocalRecoveryScheduler.schedule(context) }
+            scheduleAutomaticCloudBackupIfChanged(beforeRevision)
+            result
         }
 
     suspend fun copyDateRangeAsPlan(
@@ -1156,9 +1264,11 @@ class TrainingRepository(
         conflictMode: CalendarConflictMode,
         keepConfirmed: Boolean = false
     ) = withContext(Dispatchers.IO) {
+        val beforeRevision = db.cloudBackupStateDao().getOrCreate().localRevision
         localRecovery.protect(RecoveryTrigger.BEFORE_BULK_CHANGE) {
             calendarRecordService.copyDateRangeAsPlan(sourceStart, sourceEnd, targetStart, conflictMode, keepConfirmed)
         }.also { LocalRecoveryScheduler.schedule(context) }
+        scheduleAutomaticCloudBackupIfChanged(beforeRevision)
     }
 
     @Suppress("unused")

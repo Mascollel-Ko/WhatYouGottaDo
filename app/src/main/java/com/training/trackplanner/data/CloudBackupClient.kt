@@ -3,6 +3,7 @@ package com.training.trackplanner.data
 import com.training.trackplanner.BuildConfig
 import androidx.room.withTransaction
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
@@ -154,6 +155,17 @@ internal data class CloudBackupDownloadMetadata(
     val backupFormatVersion: Int,
     val schemaVersion: Int
 )
+
+internal object CloudBackupRetryPolicy {
+    const val FIRST_RETRY_DELAY_MILLIS = 15 * 60 * 1000L
+    private const val MAX_RETRY_DELAY_MILLIS = 24 * 60 * 60 * 1000L
+
+    fun delayMillis(attempt: Int): Long {
+        val exponent = (attempt - 1).coerceIn(0, 10)
+        return (FIRST_RETRY_DELAY_MILLIS * (1L shl exponent))
+            .coerceAtMost(MAX_RETRY_DELAY_MILLIS)
+    }
+}
 
 internal data class CloudBackupDownloadResult(
     val metadata: CloudBackupDownloadMetadata,
@@ -309,8 +321,15 @@ internal class CloudBackupClient(
                     ) > 0
                 }
                 CloudBackupUploadResult(backupId, compressed.size, checksum, acknowledged)
+            } catch (error: CancellationException) {
+                throw error
             } catch (error: Throwable) {
-                stateDao.updateRetry(state.retryAttempt + 1, now + 60_000L, error.message?.take(120) ?: "CLOUD_UPLOAD_FAILED")
+                val attempt = state.retryAttempt + 1
+                stateDao.updateRetry(
+                    attempt,
+                    now + CloudBackupRetryPolicy.delayMillis(attempt),
+                    error.message?.take(120) ?: "CLOUD_UPLOAD_FAILED"
+                )
                 throw error
             }
         }

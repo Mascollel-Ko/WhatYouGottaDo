@@ -3,11 +3,11 @@
 | 항목 | 값 |
 |---|---|
 | Protocol ID | `DATA-CLOUD-BACKUP` |
-| Protocol version | `1.3.0` |
+| Protocol version | `1.4.0` |
 | Status | `DRAFT` |
 | Implementation status | `PARTIALLY_IMPLEMENTED` |
-| Implemented from app version | `UNRELEASED_PHASE_2_SUPABASE_TRANSPORT` |
-| Last audited commit | `0f0929934fc0ca7a7c9706eb50fc81134d91d952` |
+| Implemented from app version | `UNRELEASED_PHASE_2_SUPABASE_TRANSPORT; automatic WorkManager scheduling` |
+| Last audited commit | `e53ebdedd672a6e5a3b9a340572c417cf25be6f7` |
 | Evidence profile | `PRODUCT_POLICY, ENGINEERING_HEURISTIC` |
 | Supersedes | 없음 |
 
@@ -493,11 +493,13 @@ snapshot revision 3이 CURRENT 승격 성공
 
 자동 Cloud Backup 시도 trigger:
 
-1. 마지막 local edit 이후 5분 동안 추가 변경이 없음
-2. 운동 세션 종료
-3. 앱 background 진입
+1. 의미 있는 local mutation이 성공하여 `cloudBackupPending = true`가 됨
+2. 앱 startup/resume reconciliation이 pending 상태를 발견함
+3. 12시간 주기 safety check가 pending 상태를 발견함
 
-세션 종료와 background 진입은 5분 debounce를 기다리지 않습니다.
+일반 자동 backup은 마지막 의미 있는 변경 시각으로부터 **10분 coalescing window**를
+사용합니다. 그 window 안의 추가 변경은 같은 unique work를 최신 변경 시각 기준으로
+다시 예약합니다. 사용자가 누르는 `지금 백업하기`는 즉시 실행됩니다.
 
 중복 방지:
 
@@ -507,12 +509,17 @@ snapshot revision 3이 CURRENT 승격 성공
 
 ### 7.10 Android WorkManager
 
-실제 Cloud 작업은 WorkManager 기반 durable work로 실행합니다.
+실제 Cloud 작업은 WorkManager 기반 durable work로 실행합니다. unique work 이름은
+`whatyougottado-cloud-backup`이며 `NetworkType.CONNECTED` 조건을 사용합니다.
+초기 자동 지연은 10분이고 transient 실패는 WorkManager exponential backoff(첫 재시도
+약 15분)로 처리합니다. retry 시각과 횟수는 기존 `nextRetryAt`/`retryAttempt`에
+기록합니다.
 
-- network connection 필요
 - Cloud Backup worker는 동시에 하나만 실행
-- app process 종료에 의존하지 않음
+- app process 종료와 device restart 뒤에도 WorkManager가 work를 유지
 - worker 실행 중 새 edit는 다음 snapshot으로 남김
+- startup/resume은 pending이고 인증·계정 ownership이 안전할 때만 unique work를 보장
+- 12시간 periodic safety check는 pending이 없으면 즉시 종료하며 backup을 만들지 않음
 - restore/import/conflict apply/account switch와 backup mutation은 mutex/serialization
 
 서로 겹치면 안 되는 작업:
@@ -532,9 +539,9 @@ offline은 user-data failure로 취급하지 않습니다.
 - Room 저장 정상
 - pending 유지
 - Local Recovery 정상
-- 연결 복구 후 적절한 다음 trigger에서 backup 시도
-- foreground 복귀 시 짧은 지연 후 재시도 가능
-- background에서는 정상 WorkManager 조건을 기다림
+- 연결 복구 후 WorkManager의 `CONNECTED` 조건이 충족되면 backup 시도
+- foreground 복귀 시 startup/resume reconciliation이 pending work를 보장
+- background에서는 정상 WorkManager 조건과 backoff를 기다림
 - 무조건적인 duplicate immediate upload는 하지 않음
 
 ---
@@ -1158,10 +1165,10 @@ lineage를 복원합니다. 현재 설치의 `installId`와 Cloud enablement는 
 retryable Cloud user-data operation:
 
 ```text
-1차 실패 → 1분
-2차 실패 → 5분
-3차 실패 → 15분
-그 후 자동 retry 종료
+1차 실패 → 약 15분
+2차 실패 → 약 30분
+3차 실패 → 약 60분
+이후 exponential backoff로 증가하며 WorkManager 상한까지 유지
 ```
 
 로컬 durable state:
@@ -1937,9 +1944,10 @@ Fresh-install auto-restore is currently gated to a known local `lastSuccessfulBa
 the server transport has no authenticated CURRENT discovery operation, so the app does not
 guess a backup id or overwrite a fresh database. A future authenticated discovery endpoint
 may enable the remaining A path. Guest adoption is also gated until authenticated CURRENT
-absence is known. Guest+existing-Cloud comparison, account archive,
-semantic merge, conflict UI, and WorkManager cloud scheduling remain future guarded work.
-Local Recovery's local-only WorkManager stabilization job remains implemented.
+absence is known. Guest+existing-Cloud comparison, account archive, and semantic merge remain
+future guarded work. Automatic Cloud Backup now uses the durable WorkManager scheduling and
+startup reconciliation described above; Local Recovery's separate local-only stabilization
+job remains implemented.
 기존 코드에서 확인한 재사용 authority:
 
 - `TrainingProgram.stableKey`
@@ -1989,8 +1997,11 @@ app/src/main/java/com/training/trackplanner/data/LocalRecoveryReplacement.kt
 app/src/main/java/com/training/trackplanner/data/LocalRecoveryStore.kt
 app/src/main/java/com/training/trackplanner/data/LocalRecoveryService.kt
 app/src/main/java/com/training/trackplanner/data/LocalRecoveryScheduler.kt
+app/src/main/java/com/training/trackplanner/data/CloudBackupScheduler.kt
+app/src/main/java/com/training/trackplanner/data/CloudBackupWorker.kt
 app/schemas/com.training.trackplanner.data.TrainingDatabase/33.json
 app/src/test/java/com/training/trackplanner/data/CloudBackupStateTest.kt
+app/src/test/java/com/training/trackplanner/data/CloudBackupAutomationTest.kt
 app/src/test/java/com/training/trackplanner/data/WorkoutSessionIdentityTest.kt
 app/src/test/java/com/training/trackplanner/data/LocalRecoveryServiceTest.kt
 ```
@@ -1999,9 +2010,8 @@ Cloud transport is implemented by the Supabase migrations, authenticated presign
 functions, finalize verifier, and atomic promotion RPC above. Android upload
 serialization/PUT/finalize/acknowledgement, native auth/session persistence, bounded
 download verification, and protected manual Cloud restore are implemented. Guest+existing-
-Cloud comparison, account archive, semantic comparison/merge, conflict UI, WorkManager
-cloud scheduling, and authenticated CURRENT discovery for fresh-install auto-restore
-remain guarded gaps.
+Cloud comparison, account archive, semantic comparison/merge, conflict UI, and authenticated
+CURRENT discovery for fresh-install auto-restore remain guarded gaps.
 
 ### 19.3 Required verification
 
@@ -2020,6 +2030,15 @@ Snapshot/local revision:
 - upload 중 추가 mutation 보존
 - snapshot revision 일부 성공 시 remaining revision 계산
 - process restart 후 pending/retry state 유지
+
+Automatic runtime:
+
+- meaningful mutation → one unique delayed work item
+- rapid mutations coalesce from the latest change
+- `CONNECTED` constraint and transient exponential retry
+- logged-out/off/ambiguous-account worker preserves pending without upload
+- startup/resume reconciliation and pending-only periodic safety check
+- manual immediate upload does not race automatic work
 
 Upload:
 
@@ -2105,7 +2124,7 @@ Security:
 - gzip object generation
 - presigned PUT/GET authorization (implemented)
 - verify/finalize
-- WorkManager
+- automatic WorkManager worker, debounce, retry and safety reconciliation (implemented)
 - retention
 - Cron cleanup
 - quota/storage authorization guards (implemented; actual accounting remains future work)
@@ -2160,6 +2179,13 @@ R2 object만 존재하고 server verification/CURRENT promotion이 완료되지 
 registry/index도 같은 task에서 갱신합니다.
 
 ### 20.3 변경 이력
+
+- `1.4.0`
+  - Automatic Cloud Backup uses unique WorkManager work with a 10-minute coalescing window.
+  - Only `CONNECTED` network work runs; transient failures use exponential backoff starting around 15 minutes.
+  - Startup/resume reconciliation and a 12-hour pending-only safety check recover lost enqueue events.
+  - Logout, Cloud Backup OFF, and unresolved account comparison preserve pending local obligations without upload.
+  - Manual immediate backup reuses the same uploader and serializes with automatic work.
 
 - `1.1.0`
   - Local Recovery generation pairs use canonical CSV → gzip plus trusted sidecar metadata.

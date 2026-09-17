@@ -1883,7 +1883,7 @@
       "familyId": "DATA_PORTABILITY",
       "titleKo": "클라우드 백업",
       "titleEn": "Cloud Backup",
-      "currentVersion": "1.3.0",
+      "currentVersion": "1.4.0",
       "status": "DRAFT",
       "implementationStatus": "PARTIALLY_IMPLEMENTED",
       "evidenceProfile": [
@@ -1891,8 +1891,8 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "data_portability/CLOUD_BACKUP.md",
-      "implementedFromAppVersion": "UNRELEASED_PHASE_2_SUPABASE_TRANSPORT; native auth and protected download entry",
-      "lastAuditedCommit": "0f0929934fc0ca7a7c9706eb50fc81134d91d952",
+      "implementedFromAppVersion": "UNRELEASED_PHASE_2_SUPABASE_TRANSPORT; native auth and protected download entry; automatic WorkManager scheduling",
+      "lastAuditedCommit": "e53ebdedd672a6e5a3b9a340572c417cf25be6f7",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/CloudBackupState.kt",
         "app/src/main/java/com/training/trackplanner/data/CloudRevisionTracking.kt",
@@ -1910,6 +1910,8 @@
         "app/src/main/java/com/training/trackplanner/data/LocalRecoveryStore.kt",
         "app/src/main/java/com/training/trackplanner/data/LocalRecoveryService.kt",
         "app/src/main/java/com/training/trackplanner/data/LocalRecoveryScheduler.kt",
+        "app/src/main/java/com/training/trackplanner/data/CloudBackupScheduler.kt",
+        "app/src/main/java/com/training/trackplanner/data/CloudBackupWorker.kt",
         "supabase/config.toml",
         "supabase/migrations/20260917000000_cloud_backup_transport.sql",
         "supabase/functions/_shared/cloud_backup.mjs",
@@ -1921,6 +1923,7 @@
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/data/CloudBackupStateTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/CloudBackupAutomationTest.kt",
         "app/src/test/java/com/training/trackplanner/data/WorkoutSessionIdentityTest.kt",
         "app/src/test/java/com/training/trackplanner/data/LocalRecoveryServiceTest.kt",
         "tests/cloud_transport.test.mjs",
@@ -1940,7 +1943,7 @@
         "docs/cloud_backup_phase_1b1_audit.md"
       ],
       "knownGaps": [
-        "Guest Cloud presence/adoption comparison, account archive, semantic comparison/merge, conflict UI, WorkManager cloud scheduling, and authenticated CURRENT discovery for fresh-install auto-restore remain guarded.",
+        "Guest Cloud presence/adoption comparison, account archive, semantic comparison/merge, conflict UI, and authenticated CURRENT discovery for fresh-install auto-restore remain guarded.",
         "Edge Function deployment is gated on the required R2 secrets; the linked migrations are applied."
       ],
       "supersedes": [],

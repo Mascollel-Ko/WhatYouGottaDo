@@ -45,7 +45,8 @@ abstract class CloudBackupStateDao {
     }
 
     @Query("""UPDATE cloud_backup_state SET localRevision = localRevision + 1,
-        cloudBackupPending = 1, lastLocalChangeAt = :now WHERE id = 1""")
+        cloudBackupPending = 1, lastLocalChangeAt = :now,
+        retryAttempt = 0, nextRetryAt = NULL, lastFailureCode = NULL WHERE id = 1""")
     internal abstract suspend fun recordLocalChange(now: Long)
 
     @Query("""UPDATE cloud_backup_state SET localBaseBackupId = NULL, localRevision = 1,
@@ -62,6 +63,9 @@ abstract class CloudBackupStateDao {
 
     @Query("UPDATE cloud_backup_state SET cloudBackupEnabled = 1 WHERE id = 1 AND accountUserId = :accountUserId")
     internal abstract suspend fun enableForAccount(accountUserId: String)
+
+    @Query("UPDATE cloud_backup_state SET cloudBackupEnabled = :enabled WHERE id = 1 AND accountUserId = :accountUserId")
+    internal abstract suspend fun setEnabledForAccount(accountUserId: String, enabled: Boolean)
 
     /** Acknowledge only the account/base snapshot used for the upload. */
     @Query("""UPDATE cloud_backup_state SET localBaseBackupId = :backupId,

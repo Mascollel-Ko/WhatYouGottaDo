@@ -37,10 +37,13 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.lifecycleScope
+import com.training.trackplanner.data.CloudBackupScheduler
 import com.training.trackplanner.localization.localizedUiText
 import com.training.trackplanner.ui.theme.TrainingTrackPlannerTheme
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
     private lateinit var restTimerSessionController: RestTimerSessionController
@@ -71,6 +74,14 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         restTimerSessionController.onResume()
+        lifecycleScope.launch {
+            val context = applicationContext
+            CloudBackupScheduler.ensurePeriodic(context)
+            val db = com.training.trackplanner.data.TrainingDatabase.get(context)
+            val auth = com.training.trackplanner.data.CloudAuthRepository(context)
+            com.training.trackplanner.data.TrainingRepository(db, context)
+                .reconcileAutomaticCloudBackup(auth.refreshIfNeeded())
+        }
     }
 
     override fun onPause() {

@@ -236,6 +236,8 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
                 message = if (hadStoredSession && refreshedSession == null) "SESSION_EXPIRED" else null
             )
             repository.seedIfNeeded()
+            com.training.trackplanner.data.CloudBackupScheduler.ensurePeriodic(getApplication())
+            repository.reconcileAutomaticCloudBackup(refreshedSession)
             _dataTransferReport.value = repository.latestDataTransferReport()
             refreshExerciseRuntimeMetadataInternal()
             // A killed/coalesced derived job never owns the raw edit. Rebuild from Room on launch.
@@ -263,6 +265,7 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
                         CloudAccountEntryAction.REQUIRE_GUEST_CLOUD_COMPARISON,
                         CloudAccountEntryAction.REQUIRE_ACCOUNT_ARCHIVE -> Unit
                     }
+                    repository.reconcileAutomaticCloudBackup(result.session)
                     _cloudAuthState.value = CloudAuthUiState(
                         status = CloudAuthStatus.LOGGED_IN,
                         session = result.session,
@@ -285,10 +288,19 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
 
     fun logoutCloud() {
         authRepository.logout()
+        com.training.trackplanner.data.CloudBackupScheduler.cancel(getApplication())
         _cloudAuthState.value = CloudAuthUiState(
             status = CloudAuthStatus.LOGGED_OUT,
             firstLaunchChoiceRequired = false
         )
+    }
+
+    fun setCloudBackupEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            val session = authRepository.refreshIfNeeded() ?: return@launch
+            repository.setCloudBackupEnabled(enabled, session.userId)
+            if (!enabled) com.training.trackplanner.data.CloudBackupScheduler.cancel(getApplication())
+        }
     }
 
     fun uploadCloudBackup() {
