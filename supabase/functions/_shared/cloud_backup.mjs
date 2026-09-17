@@ -181,6 +181,47 @@ export function validateFinalizeRequest(value) {
   return { backup_id: requireUuid(value.backup_id, "backup_id") };
 }
 
+export function assertCurrentPromotion(value) {
+  const result = Array.isArray(value) ? value[0] : value;
+  if (result === null || typeof result !== "object" || Array.isArray(result) ||
+      typeof result.status !== "string") {
+    throw new CloudRequestError(
+      "PROMOTION_RESULT_INVALID",
+      "Atomic promotion returned an invalid result.",
+      500,
+    );
+  }
+
+  switch (result.status) {
+    case "CURRENT":
+      return result;
+    case "LINEAGE_CONFLICT":
+      throw new CloudRequestError(
+        "LINEAGE_CONFLICT",
+        "The backup lineage conflicts with the current cloud backup.",
+        409,
+      );
+    case "NOT_FOUND":
+      throw new CloudRequestError(
+        "PROMOTION_NOT_FOUND",
+        "The candidate backup no longer exists.",
+        404,
+      );
+    case "NOT_VERIFIED":
+      throw new CloudRequestError(
+        "PROMOTION_NOT_VERIFIED",
+        "The candidate backup was not verified.",
+        409,
+      );
+    default:
+      throw new CloudRequestError(
+        "PROMOTION_RESULT_INVALID",
+        "Atomic promotion returned an unsupported result.",
+        500,
+      );
+  }
+}
+
 export function buildObjectKey(userId, backupId) {
   return `users/${requireUuid(userId, "user_id")}/backups/${requireUuid(backupId, "backup_id")}.csv.gz`;
 }

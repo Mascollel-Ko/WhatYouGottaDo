@@ -7,6 +7,7 @@ import {
   buildObjectKey,
   buildPutSigningRequest,
   assertParentOwned,
+  assertCurrentPromotion,
   emptyResponse,
   isDownloadableStatus,
   issuePresignedUrl,
@@ -90,6 +91,16 @@ test("finalize accepts only the server-issued backup id", () => {
   assert.deepEqual(validateFinalizeRequest({ backup_id: PARENT_A }), { backup_id: PARENT_A });
   assertRequestError(() => validateFinalizeRequest({ backup_id: PARENT_A, status: "CURRENT" }), "UNKNOWN_FIELD");
   assertRequestError(() => validateFinalizeRequest({ backup_id: PARENT_A, user_id: USER_A }), "CLIENT_AUTHORITY_FIELD");
+});
+
+test("finalize accepts success only for an explicit CURRENT promotion result", () => {
+  assert.equal(assertCurrentPromotion({ status: "CURRENT", backup_id: PARENT_A }).status, "CURRENT");
+  assert.equal(assertCurrentPromotion([{ status: "CURRENT", backup_id: PARENT_A }]).status, "CURRENT");
+  assertRequestError(() => assertCurrentPromotion({ status: "LINEAGE_CONFLICT" }), "LINEAGE_CONFLICT");
+  assertRequestError(() => assertCurrentPromotion({ status: "NOT_FOUND" }), "PROMOTION_NOT_FOUND");
+  assertRequestError(() => assertCurrentPromotion({ status: "NOT_VERIFIED" }), "PROMOTION_NOT_VERIFIED");
+  assertRequestError(() => assertCurrentPromotion({ status: "RETAINED" }), "PROMOTION_RESULT_INVALID");
+  assertRequestError(() => assertCurrentPromotion(undefined), "PROMOTION_RESULT_INVALID");
 });
 
 test("CORS preflight response is bodyless and successful", () => {

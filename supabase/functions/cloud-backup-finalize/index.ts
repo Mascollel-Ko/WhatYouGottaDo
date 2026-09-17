@@ -6,6 +6,7 @@ import {
   jsonResponse,
   parseJsonRequest,
   validateFinalizeRequest,
+  assertCurrentPromotion,
   buildObjectKey,
 } from "../_shared/cloud_backup.mjs";
 import { authenticateRequest, createServiceClient, requiredR2Config } from "../_shared/supabase_auth.mjs";
@@ -122,12 +123,7 @@ async function handler(request) {
 
     const promotion = await service.rpc("cloud_promote_backup", { p_backup_id: backupId, p_user_id: userId });
     if (promotion.error) throw new Error("atomic promotion failed");
-    const result = Array.isArray(promotion.data) ? promotion.data[0] : promotion.data;
-    if (!result || result.status === "LINEAGE_CONFLICT") {
-      await markFailed(service, userId, backup, "LINEAGE_CONFLICT");
-      await bestEffortDelete(client, r2.bucket, backup.object_key);
-      return jsonResponse({ error: "LINEAGE_CONFLICT" }, 409);
-    }
+    assertCurrentPromotion(promotion.data);
     return jsonResponse({ backup_id: backupId, status: "CURRENT" });
   } catch (error) {
     if (backup && service && backup.status === "UPLOADING" && !(error instanceof CloudRequestError && error.code === "BACKUP_NOT_FOUND")) {
