@@ -558,7 +558,9 @@ class TrainingRepository(
         } catch (error: CancellationException) {
             throw error
         } catch (error: Throwable) {
-            scheduleAutomaticCloudBackupIfPending()
+            // The automatic worker classifies the failure and lets WorkManager apply retry
+            // backoff. Do not enqueue a replacement here: doing so would turn permanent
+            // account/configuration failures into a retry loop.
             throw error
         }
     }
