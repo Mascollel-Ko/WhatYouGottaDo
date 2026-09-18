@@ -37,3 +37,20 @@ test("Community DTO code does not expose account UUIDs or private backup fields"
   const models = await readFile(new URL("../app/src/main/java/com/training/trackplanner/data/CommunityModels.kt", import.meta.url), "utf8");
   for (const forbidden of ["userId", "ownerUserId", "email", "backupSourceId", "sessionStableKey", "objectKey"]) assert.doesNotMatch(models, new RegExp(forbidden));
 });
+
+test("Community publication and structured filters remain server validated", () => {
+  assert.match(endpoint, /functionalPrimaryGoal/);
+  assert.match(endpoint, /badmintonPrimaryGoal/);
+  assert.match(endpoint, /includes_functional.*true/);
+  assert.match(endpoint, /includes_badminton.*true/);
+  assert.match(endpoint, /authorComment/);
+  assert.match(endpoint, /cautionText/);
+});
+
+test("Community imports use installation-local provenance without backup coupling", async () => {
+  const codec = await readFile(new URL("../app/src/main/java/com/training/trackplanner/data/CommunityProgramSnapshotCodec.kt", import.meta.url), "utf8");
+  const entity = await readFile(new URL("../app/src/main/java/com/training/trackplanner/data/Entities.kt", import.meta.url), "utf8");
+  assert.match(codec, /CommunityProgramImport/);
+  assert.match(entity, /community_program_imports/);
+  assert.doesNotMatch(codec, /backupSourceId|sessionStableKey/);
+});

@@ -242,8 +242,10 @@ function programDto(
   includeSnapshot: boolean,
   userId?: string,
 ) {
+  const isMine = userId != null && row.owner_user_id === userId;
   return {
     publicProgramId: row.public_program_id,
+    ...(isMine ? { sourceProgramStableKey: row.source_program_stable_key } : {}),
     nickname: profile?.nickname ?? "",
     authorReceivedLikeCount: Number(profile?.received_program_likes ?? 0),
     publishedAt: row.published_at,
@@ -265,7 +267,7 @@ function programDto(
         .map((item: any) => item.exercise_name) ?? [],
     likeCount: Number(row.like_count ?? 0),
     likedByMe: liked.has(row.public_program_id),
-    isMine: userId != null && row.owner_user_id === userId,
+    isMine,
     ...(includeSnapshot ? { snapshot: row.program_snapshot } : {}),
   };
 }

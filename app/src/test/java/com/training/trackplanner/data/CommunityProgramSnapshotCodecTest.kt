@@ -64,13 +64,18 @@ class CommunityProgramSnapshotCodecTest {
         assertTrue(!serialized.contains("\"trackId\""))
 
         val restored = database()
-        val restoredId = CommunityProgramSnapshotCodec.import(restored, snapshot)
+        val restoredId = CommunityProgramSnapshotCodec.import(restored, "public-program-1", snapshot)
         val restoredProgram = restored.programDao().findProgram(restoredId)!!
         assertNotEquals(program.stableKey, restoredProgram.stableKey)
         assertEquals(listOf("squat"), restored.programDao().itemsForProgram(restoredId).map { it.exerciseStableKey })
         assertEquals(1, restored.programDao().programItemSetsForProgram(restoredId).size)
         assertEquals(restoredProgram.stableKey, restored.programProgressionDao().tracks().single().programStableKey)
         assertEquals(restoredId, restored.programDao().itemsForProgram(restoredId).single().programId)
+        assertEquals("public-program-1", restored.communityProgramImportDao().findBySourcePublicProgramId("public-program-1")?.sourcePublicProgramId)
+
+        val duplicateId = CommunityProgramSnapshotCodec.import(restored, "public-program-1", snapshot)
+        assertNotEquals(restoredId, duplicateId)
+        assertEquals(2, restored.communityProgramImportDao().countBySourcePublicProgramId("public-program-1"))
     }
 
     @Test fun malformedSnapshotWritesNothing() = runBlocking {
@@ -78,9 +83,9 @@ class CommunityProgramSnapshotCodecTest {
         val invalid = JSONObject().put("schemaVersion", 1).put("program", JSONObject().put("name", "bad")).put(
             "items", org.json.JSONArray().put(JSONObject().put("exerciseStableKey", "squat").put("id", 99))
         )
-        assertThrows(IllegalArgumentException::class.java) { runBlocking { CommunityProgramSnapshotCodec.import(db, invalid) } }
+        assertThrows(IllegalArgumentException::class.java) { runBlocking { CommunityProgramSnapshotCodec.import(db, "public-program-invalid", invalid) } }
         assertEquals(0, db.programDao().countPrograms())
-        assertThrows(IllegalArgumentException::class.java) { runBlocking { CommunityProgramSnapshotCodec.import(db, invalid.put("schemaVersion", 99)) } }
+        assertThrows(IllegalArgumentException::class.java) { runBlocking { CommunityProgramSnapshotCodec.import(db, "public-program-invalid", invalid.put("schemaVersion", 99)) } }
         assertEquals(0, db.programDao().countPrograms())
     }
 }

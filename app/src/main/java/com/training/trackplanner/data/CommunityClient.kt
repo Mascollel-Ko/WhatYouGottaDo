@@ -51,13 +51,17 @@ internal class CommunityClient(
         strengthRegion: String? = null,
         strengthGoal: String? = null,
         includesFunctional: Boolean? = null,
-        includesBadminton: Boolean? = null
+        includesBadminton: Boolean? = null,
+        functionalPrimaryGoal: String? = null,
+        badmintonPrimaryGoal: String? = null
     ): List<CommunityProgram> {
         val body = JSONObject().put("op", "program_feed").put("q", query).put("sort", sort).put("pageSize", 20)
         strengthRegion?.let { body.put("strengthRegion", it) }
         strengthGoal?.let { body.put("strengthGoal", it) }
         includesFunctional?.let { body.put("includesFunctional", it) }
         includesBadminton?.let { body.put("includesBadminton", it) }
+        functionalPrimaryGoal?.let { body.put("functionalPrimaryGoal", it) }
+        badmintonPrimaryGoal?.let { body.put("badmintonPrimaryGoal", it) }
         return parsePrograms(call(session, body).optJSONArray("programs"))
     }
 
@@ -180,7 +184,7 @@ internal class CommunityClient(
         val labels = row.optJSONObject("labels") ?: JSONObject()
         val exercises = row.optJSONArray("representativeExercises")
         return CommunityProgram(
-            publicProgramId = row.getString("publicProgramId"), nickname = row.optString("nickname"),
+            publicProgramId = row.getString("publicProgramId"), sourceProgramStableKey = row.optString("sourceProgramStableKey").takeIf(String::isNotBlank), nickname = row.optString("nickname"),
             authorReceivedLikeCount = row.optLong("authorReceivedLikeCount"), publishedAt = row.optString("publishedAt"),
             updatedAt = row.optString("updatedAt"), programName = row.optString("programName"),
             labels = CommunityProgramLabels(labels.optString("strengthRegion"), labels.optString("strengthGoal"), labels.optBoolean("includesFunctional"), labels.optString("functionalPrimaryGoal").takeIf(String::isNotBlank), labels.optBoolean("includesBadminton"), labels.optString("badmintonPrimaryGoal").takeIf(String::isNotBlank)),

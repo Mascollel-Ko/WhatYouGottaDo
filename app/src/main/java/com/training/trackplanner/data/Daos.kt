@@ -703,6 +703,21 @@ interface ProgramDao {
 }
 
 @Dao
+interface CommunityProgramImportDao {
+    @Query("SELECT * FROM community_program_imports WHERE sourcePublicProgramId = :sourcePublicProgramId LIMIT 1")
+    suspend fun findBySourcePublicProgramId(sourcePublicProgramId: String): CommunityProgramImport?
+
+    @Query("SELECT COUNT(*) FROM community_program_imports WHERE sourcePublicProgramId = :sourcePublicProgramId")
+    suspend fun countBySourcePublicProgramId(sourcePublicProgramId: String): Int
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(record: CommunityProgramImport)
+
+    @Query("DELETE FROM community_program_imports WHERE localProgramStableKey = :localProgramStableKey")
+    suspend fun deleteByLocalProgramStableKey(localProgramStableKey: String)
+}
+
+@Dao
 interface DailyMetricDao {
     @Query("SELECT * FROM daily_metrics WHERE date = :date LIMIT 1")
     fun observeMetric(date: String): Flow<DailyMetric?>

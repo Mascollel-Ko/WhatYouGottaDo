@@ -15,6 +15,8 @@ import com.training.trackplanner.data.CommunityProgram
 import com.training.trackplanner.data.CommunityProgramLabels
 import com.training.trackplanner.data.CommunityProgramSnapshotCodec
 import com.training.trackplanner.data.CommunityWeeklySummary
+import com.training.trackplanner.data.CanonicalExerciseMetadataRepository
+import com.training.trackplanner.data.CommunityWeeklySummaryCalculator
 import com.training.trackplanner.data.TrainingDatabase
 import com.training.trackplanner.data.TrainingProgram
 import kotlinx.coroutines.Dispatchers
@@ -32,6 +34,7 @@ internal class CommunityViewModel(application: Application) : AndroidViewModel(a
     private val auth = CloudAuthRepository(application)
     private val db = TrainingDatabase.get(application)
     private val client = CommunityClient()
+    private val canonicalMetadata = CanonicalExerciseMetadataRepository(application)
     private val _session = MutableStateFlow(auth.currentSession())
     val session: StateFlow<CloudAuthSession?> = _session.asStateFlow()
     private val _profile = MutableStateFlow<com.training.trackplanner.data.CommunityProfile?>(null)
@@ -46,13 +49,20 @@ internal class CommunityViewModel(application: Application) : AndroidViewModel(a
     val loading: StateFlow<Boolean> = _loading.asStateFlow()
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message.asStateFlow()
+    private val _duplicateImport = MutableStateFlow<CommunityProgram?>(null)
+    val duplicateImport: StateFlow<CommunityProgram?> = _duplicateImport.asStateFlow()
+    private val _pendingPublication = MutableStateFlow<TrainingProgram?>(null)
+    val pendingPublication: StateFlow<TrainingProgram?> = _pendingPublication.asStateFlow()
+    private val _loaded = MutableStateFlow(false)
+    val loaded: StateFlow<Boolean> = _loaded.asStateFlow()
 
     fun load() {
         val current = auth.currentSession()
         _session.value = current
-        if (current == null) return
+        if (current == null) { _loaded.value = false; return }
         viewModelScope.launch {
             _loading.value = true
+            _loaded.value = false
             runCatching {
                 val results = listOf(
                     async { client.profile(current) },
@@ -69,6 +79,7 @@ internal class CommunityViewModel(application: Application) : AndroidViewModel(a
                 @Suppress("UNCHECKED_CAST")
                 _friends.value = results[3] as CommunityFriendsState
                 _message.value = null
+                _loaded.value = true
             }.onFailure { error -> _message.value = error.communityMessage() }
             _loading.value = false
         }
@@ -97,8 +108,8 @@ internal class CommunityViewModel(application: Application) : AndroidViewModel(a
         _friends.value = client.friends(session)
     }
 
-    fun search(query: String, sort: String, region: String?, goal: String?, functional: Boolean?, badminton: Boolean?) = launchRequest { session ->
-        _programs.value = client.feed(session, query, sort, region, goal, functional, badminton)
+    fun search(query: String, sort: String, region: String?, goal: String?, functional: Boolean?, badminton: Boolean?, functionalGoal: String? = null, badmintonGoal: String? = null) = launchRequest { session ->
+        _programs.value = client.feed(session, query, sort, region, goal, functional, badminton, functionalGoal, badmintonGoal)
     }
 
     fun like(program: CommunityProgram) = launchRequest { session ->
@@ -112,19 +123,31 @@ internal class CommunityViewModel(application: Application) : AndroidViewModel(a
         onLoaded(client.detail(session, program.publicProgramId))
     }
 
-    fun importProgram(program: CommunityProgram, onImported: (Long) -> Unit = {}) {
+    fun importProgram(program: CommunityProgram, allowDuplicate: Boolean = false, onImported: (Long) -> Unit = {}) {
         val snapshot = program.snapshot ?: run { _message.value = "PROGRAM_DETAILS_REQUIRED"; return }
         viewModelScope.launch {
-            runCatching { CommunityProgramSnapshotCodec.import(db, snapshot) }
+            val existing = db.communityProgramImportDao().findBySourcePublicProgramId(program.publicProgramId)
+            val existingProgram = existing?.let { db.programDao().findProgramByStableKey(it.localProgramStableKey) }
+            if (existingProgram != null && !allowDuplicate) {
+                _duplicateImport.value = program
+                return@launch
+            }
+            _duplicateImport.value = null
+            runCatching { CommunityProgramSnapshotCodec.import(db, program.publicProgramId, snapshot) }
                 .onSuccess(onImported)
                 .onFailure { _message.value = it.communityMessage() }
         }
     }
 
-    fun publishProgram(program: TrainingProgram, labels: CommunityProgramLabels = CommunityProgramLabels("ALL_LIMBS", "STRENGTH", false, null, false, null)) {
+    fun dismissDuplicateImport() { _duplicateImport.value = null }
+
+    fun requestPublication(program: TrainingProgram) { _pendingPublication.value = program }
+    fun consumePublicationRequest() { _pendingPublication.value = null }
+
+    fun publishProgram(program: TrainingProgram, labels: CommunityProgramLabels, authorComment: String, cautionText: String) {
         launchRequest { session ->
             val snapshot = CommunityProgramSnapshotCodec.export(db, program.id)
-            val published = client.publish(session, program.stableKey, program.updatedAt, snapshot, program.name, labels, "", "")
+            val published = client.publish(session, program.stableKey, program.updatedAt, snapshot, program.name, labels, authorComment, cautionText)
             _programs.value = listOf(published) + _programs.value.filterNot { it.publicProgramId == published.publicProgramId }
         }
     }
@@ -137,15 +160,15 @@ internal class CommunityViewModel(application: Application) : AndroidViewModel(a
     fun publishCurrentWeek() = launchRequest { session ->
         val today = LocalDate.now()
         val start = today.minusDays((today.dayOfWeek.value - 1).toLong())
-        val records = withContext(Dispatchers.IO) { db.workoutDao().allEntriesWithSets().filter { it.entry.date in start.toString()..today.toString() } }
-        val payload = JSONObject()
-            .put("weekStart", start.toString())
-            .put("weekEnd", today.toString())
-            .put("trainingDays", records.map { it.entry.date }.distinct().size)
-            .put("strengthSessionCount", records.count { it.entry.category != "배드민턴" && it.entry.category != "BADMINTON" })
-            .put("confirmedStrengthSetCount", records.filter { it.entry.category != "배드민턴" && it.entry.category != "BADMINTON" }.sumOf { row -> row.sets.count { it.confirmed } })
-            .put("badmintonSessionCount", records.count { it.entry.category == "배드민턴" || it.entry.category == "BADMINTON" })
-            .put("badmintonMinutes", records.filter { it.entry.category == "배드민턴" || it.entry.category == "BADMINTON" }.sumOf { row -> row.sets.sumOf { it.seconds } } / 60)
+        val payload = withContext(Dispatchers.IO) {
+            CommunityWeeklySummaryCalculator.payload(
+                entries = db.workoutDao().allEntriesWithSets(),
+                exercises = db.exerciseDao().allExercises(),
+                start = start,
+                end = today,
+                runtimeMetadata = canonicalMetadata.runtimeMetadataCatalog()
+            )
+        }
         client.publishWeekly(session, start.toString(), payload)
         _weekly.value = client.weeklyFeed(session)
     }

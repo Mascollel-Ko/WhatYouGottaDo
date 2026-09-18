@@ -57,7 +57,11 @@ progression 스냅샷, 안전한 주간 aggregate만 받습니다. 프로그램 
 소문자 normalized unique index로 case-insensitive uniqueness를 강제합니다. 프로그램
 레이블은 strength region/goal, functional 포함/목적, badminton 포함/목적을 독립적으로
 검증합니다. feed 검색은 프로그램명·코멘트·주의사항·exercise text를 대상으로 하고
-구조화 필터는 AND로 결합합니다. `LATEST`와 `POPULAR`는 결정적 keyset cursor 순서를
+게시 전에는 부위와 목적을 선택해야 하며 기능성·배드민턴을 포함할 때 각각의 주요
+목적도 선택합니다. 게시본 업데이트는 같은 author/source stable key publication을
+갱신하면서 public id, likes, 최초 게시 시각을 유지합니다. 구조화 필터는 부위·목적·
+포함 여부·주요 목적과 검색어를 AND로 결합하며 주요 목적 선택은 포함을 의미하고
+미포함 선택은 해당 목적을 비웁니다. `LATEST`와 `POPULAR`는 결정적 keyset cursor 순서를
 사용합니다. 좋아요와 저자 받은 좋아요 합계는 service-role RPC/trigger가 계산합니다.
 
 ## 8. 집계 방식
@@ -79,7 +83,10 @@ access/refresh token, object URL/key, R2 credential, Room ID와 raw record는 �
 Guest와 잘못된 JWT는 Community 작업을 수행할 수 없습니다. 닉네임 없는 계정은 게시와
 friend identity 작업에서 안내됩니다. 네트워크 실패는 로컬 기록·프로그램 저장을
 rollback하지 않습니다. malformed/unsupported snapshot은 Room transaction을 시작하지
-않거나 transaction 안에서 전부 rollback하며 duplicate import는 review 오류를 냅니다.
+않거나 transaction 안에서 전부 rollback합니다. 설치 로컬 `community_program_imports`가
+source public id와 새 local stable key를 기록하고, 기존 import가 남아 있으면 사용자 확인
+없이 복제하지 않습니다. 확인한 복제본은 새 stable key와 Room id를 갖는 독립 프로그램이며
+이 provenance는 canonical Cloud Backup CSV에 포함되지 않습니다.
 
 ## 11. 개인화 또는 보정
 
@@ -108,7 +115,7 @@ of truth가 아닙니다. hosted Edge Function deployment와 실제 기기에서
 
 ## 15. 현재 구현 상태
 
-Android Community 화면, Home 진입, profile/nickname/privacy, program feed/search/filter,
+Android Community 화면, Home 진입, profile/nickname/privacy, publication form, program feed/search/filter,
 like, snapshot import, weekly publish/unshare, friend request/accept/decline/remove/block,
 TTL/privacy activity API와 migration이 구현되어 있습니다. Edge Function은 `verify_jwt = true`
 로 등록되며 service role은 함수 내부에서만 사용합니다. Private Cloud Backup tables와
@@ -130,14 +137,17 @@ R2 object path는 Community 경로에서 읽지 않습니다.
 - `tests/community_sharing.test.mjs`
 - `supabase/tests/community_sharing.sql`
 
-테스트는 Room ID 제거와 fresh stableKey import, progression binding 재구성, malformed
-snapshot atomicity, JWT/RLS/grant/aggregate 계약을 확인합니다.
+주간 summary는 canonical sessionStableKey grouping과 canonical badminton practice volume
+calculator를 재사용해 여러 exercise/row를 한 session으로 집계합니다. 테스트는 Room ID 제거와
+fresh stableKey import/provenance, progression binding 재구성, malformed snapshot atomicity,
+publication/filter validation, confirmed-only activity, JWT/RLS/grant/aggregate 계약을 확인합니다.
 
 ## 18. 권위 자산
 
-별도 Community authority asset은 없습니다. 공개 snapshot의 의미는 현재 Room
-`TrainingProgram`/item/set/progression 모델에서 생성하며 server schema와 validation이
-공개 경계를 결정합니다.
+Room schema 34와 `MIGRATION_33_34`가 설치 로컬 import provenance의 저장 경계를
+정의합니다. 공개 snapshot의 의미는 현재 Room `TrainingProgram`/item/set/progression
+모델에서 생성하며 server schema와 validation이 공개 경계를 결정합니다. provenance
+테이블은 canonical Cloud Backup payload에서 제외됩니다.
 
 ## 19. 관련 문서
 

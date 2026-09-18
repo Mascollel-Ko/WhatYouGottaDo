@@ -45,6 +45,7 @@ import com.training.trackplanner.data.CommunityFriendActivity
 import com.training.trackplanner.data.CommunityFriendPreview
 import com.training.trackplanner.data.CommunityFriendRequest
 import com.training.trackplanner.data.CommunityProgram
+import com.training.trackplanner.data.CommunityProgramLabels
 import com.training.trackplanner.data.TrainingProgram
 
 @Composable
@@ -72,6 +73,9 @@ internal fun CommunityScreen(
     val programs by viewModel.programs.collectAsState()
     val weekly by viewModel.weekly.collectAsState()
     val friends by viewModel.friends.collectAsState()
+    val duplicateImport by viewModel.duplicateImport.collectAsState()
+    val pendingPublication by viewModel.pendingPublication.collectAsState()
+    val loaded by viewModel.loaded.collectAsState()
     val localPrograms by trainingViewModel.programs.collectAsState()
     val message by viewModel.message.collectAsState()
     val context = LocalContext.current
@@ -86,10 +90,21 @@ internal fun CommunityScreen(
     var goalFilter by rememberSaveable { mutableStateOf("") }
     var functionalFilter by rememberSaveable { mutableStateOf("ANY") }
     var badmintonFilter by rememberSaveable { mutableStateOf("ANY") }
+    var functionalGoalFilter by rememberSaveable { mutableStateOf("") }
+    var badmintonGoalFilter by rememberSaveable { mutableStateOf("") }
     var lookupPreview by remember { mutableStateOf<CommunityFriendPreview?>(null) }
+    var publicationProgram by remember { mutableStateOf<TrainingProgram?>(null) }
+    var publicationExisting by remember { mutableStateOf<CommunityProgram?>(null) }
     val clipboard = LocalClipboardManager.current
 
     LaunchedEffect(session) { if (session != null) viewModel.load() }
+    LaunchedEffect(session, pendingPublication, programs, loaded) {
+        if (session != null && loaded) pendingPublication?.let { program ->
+            publicationProgram = program
+            publicationExisting = programs.firstOrNull { it.isMine && it.sourceProgramStableKey == program.stableKey }
+            viewModel.consumePublicationRequest()
+        }
+    }
 
     if (session == null) {
         LazyColumn(Modifier.fillMaxSize(), contentPadding = screenPadding(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -137,6 +152,30 @@ internal fun CommunityScreen(
             onImport = { viewModel.importProgram(program); selectedProgram = null }
         )
     }
+    duplicateImport?.let { program ->
+        AlertDialog(
+            onDismissRequest = viewModel::dismissDuplicateImport,
+            title = { Text(stringResource(R.string.community_import_duplicate_title)) },
+            text = { Text(stringResource(R.string.community_import_duplicate_message)) },
+            confirmButton = {
+                Button(onClick = { viewModel.importProgram(program, allowDuplicate = true) }) {
+                    Text(stringResource(R.string.community_import))
+                }
+            },
+            dismissButton = { TextButton(onClick = viewModel::dismissDuplicateImport) { Text(stringResource(R.string.close)) } }
+        )
+    }
+    publicationProgram?.let { program ->
+        CommunityPublicationDialog(
+            existing = publicationExisting,
+            onDismiss = { publicationProgram = null; publicationExisting = null },
+            onPublish = { labels, comment, caution ->
+                viewModel.publishProgram(program, labels, comment, caution)
+                publicationProgram = null
+                publicationExisting = null
+            }
+        )
+    }
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = screenPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
@@ -174,16 +213,20 @@ internal fun CommunityScreen(
                 goalFilter = goalFilter,
                 functionalFilter = functionalFilter,
                 badmintonFilter = badmintonFilter,
+                functionalGoalFilter = functionalGoalFilter,
+                badmintonGoalFilter = badmintonGoalFilter,
                 onRegionFilter = { regionFilter = if (regionFilter == it) "" else it },
                 onGoalFilter = { goalFilter = if (goalFilter == it) "" else it },
-                onFunctionalFilter = { functionalFilter = if (functionalFilter == it) "ANY" else it },
-                onBadmintonFilter = { badmintonFilter = if (badmintonFilter == it) "ANY" else it },
-                onResetFilters = { regionFilter = ""; goalFilter = ""; functionalFilter = "ANY"; badmintonFilter = "ANY" },
-                onSearch = { viewModel.search(search, sort, regionFilter.ifBlank { null }, goalFilter.ifBlank { null }, filterBoolean(functionalFilter), filterBoolean(badmintonFilter)) },
-                onSort = { sort = it; viewModel.search(search, it, regionFilter.ifBlank { null }, goalFilter.ifBlank { null }, filterBoolean(functionalFilter), filterBoolean(badmintonFilter)) },
+                onFunctionalFilter = { value -> functionalFilter = if (functionalFilter == value) "ANY" else value; if (value == "false") functionalGoalFilter = "" },
+                onBadmintonFilter = { value -> badmintonFilter = if (badmintonFilter == value) "ANY" else value; if (value == "false") badmintonGoalFilter = "" },
+                onFunctionalGoalFilter = { functionalGoalFilter = if (functionalGoalFilter == it) "" else it; functionalFilter = "true" },
+                onBadmintonGoalFilter = { badmintonGoalFilter = if (badmintonGoalFilter == it) "" else it; badmintonFilter = "true" },
+                onResetFilters = { regionFilter = ""; goalFilter = ""; functionalFilter = "ANY"; badmintonFilter = "ANY"; functionalGoalFilter = ""; badmintonGoalFilter = "" },
+                onSearch = { viewModel.search(search, sort, regionFilter.ifBlank { null }, goalFilter.ifBlank { null }, filterBoolean(functionalFilter), filterBoolean(badmintonFilter), functionalGoalFilter.ifBlank { null }, badmintonGoalFilter.ifBlank { null }) },
+                onSort = { sort = it; viewModel.search(search, it, regionFilter.ifBlank { null }, goalFilter.ifBlank { null }, filterBoolean(functionalFilter), filterBoolean(badmintonFilter), functionalGoalFilter.ifBlank { null }, badmintonGoalFilter.ifBlank { null }) },
                 onSelect = { program -> viewModel.openProgram(program) { detail -> selectedProgram = detail } },
                 onLike = viewModel::like,
-                onPublish = viewModel::publishProgram,
+                onPublish = { program, existing -> publicationProgram = program; publicationExisting = existing },
                 onUnpublish = viewModel::unpublish
             )
             else -> WeeklySection(weekly, onPublish = viewModel::publishCurrentWeek, onUnpublish = viewModel::unpublishCurrentWeek)
@@ -217,16 +260,20 @@ private fun LazyListScope.ProgramsSection(
     goalFilter: String,
     functionalFilter: String,
     badmintonFilter: String,
+    functionalGoalFilter: String,
+    badmintonGoalFilter: String,
     onRegionFilter: (String) -> Unit,
     onGoalFilter: (String) -> Unit,
     onFunctionalFilter: (String) -> Unit,
     onBadmintonFilter: (String) -> Unit,
+    onFunctionalGoalFilter: (String) -> Unit,
+    onBadmintonGoalFilter: (String) -> Unit,
     onResetFilters: () -> Unit,
     onSearch: () -> Unit,
     onSort: (String) -> Unit,
     onSelect: (CommunityProgram) -> Unit,
     onLike: (CommunityProgram) -> Unit,
-    onPublish: (TrainingProgram) -> Unit,
+    onPublish: (TrainingProgram, CommunityProgram?) -> Unit,
     onUnpublish: (CommunityProgram) -> Unit
 ) {
     item {
@@ -243,7 +290,21 @@ private fun LazyListScope.ProgramsSection(
             FilterChip(selected = goalFilter == "HYPERTROPHY", onClick = { onGoalFilter("HYPERTROPHY") }, label = { Text(stringResource(R.string.community_filter_hypertrophy)) })
             FilterChip(selected = goalFilter == "STRENGTH", onClick = { onGoalFilter("STRENGTH") }, label = { Text(stringResource(R.string.community_filter_strength)) })
             FilterChip(selected = functionalFilter == "true", onClick = { onFunctionalFilter("true") }, label = { Text(stringResource(R.string.community_filter_functional)) })
+            FilterChip(selected = functionalFilter == "false", onClick = { onFunctionalFilter("false") }, label = { Text(stringResource(R.string.community_filter_functional_not_included)) })
             FilterChip(selected = badmintonFilter == "true", onClick = { onBadmintonFilter("true") }, label = { Text(stringResource(R.string.community_filter_badminton)) })
+            FilterChip(selected = badmintonFilter == "false", onClick = { onBadmintonFilter("false") }, label = { Text(stringResource(R.string.community_filter_badminton_not_included)) })
+        }
+        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            if (functionalFilter != "false") {
+                FilterChip(selected = functionalGoalFilter == "EXPLOSIVE_ACCELERATION", onClick = { onFunctionalGoalFilter("EXPLOSIVE_ACCELERATION") }, label = { Text(stringResource(R.string.community_goal_explosive)) })
+                FilterChip(selected = functionalGoalFilter == "ELASTIC_GROUND_REACTION", onClick = { onFunctionalGoalFilter("ELASTIC_GROUND_REACTION") }, label = { Text(stringResource(R.string.community_goal_elastic)) })
+                FilterChip(selected = functionalGoalFilter == "BODY_COORDINATION", onClick = { onFunctionalGoalFilter("BODY_COORDINATION") }, label = { Text(stringResource(R.string.community_goal_coordination)) })
+            }
+            if (badmintonFilter != "false") {
+                FilterChip(selected = badmintonGoalFilter == "SWING_POWER", onClick = { onBadmintonGoalFilter("SWING_POWER") }, label = { Text(stringResource(R.string.community_goal_swing)) })
+                FilterChip(selected = badmintonGoalFilter == "LANDING_DECELERATION_STABILITY", onClick = { onBadmintonGoalFilter("LANDING_DECELERATION_STABILITY") }, label = { Text(stringResource(R.string.community_goal_landing)) })
+                FilterChip(selected = badmintonGoalFilter == "FOOTWORK", onClick = { onBadmintonGoalFilter("FOOTWORK") }, label = { Text(stringResource(R.string.community_goal_footwork)) })
+            }
             TextButton(onClick = onResetFilters) { Text(stringResource(R.string.community_filter_reset)) }
         }
     }
@@ -252,7 +313,8 @@ private fun LazyListScope.ProgramsSection(
         items(localPrograms.take(6), key = { "local-${it.id}" }) { program ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(program.name, Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                OutlinedButton(onClick = { onPublish(program) }) { Text(stringResource(R.string.community_publish)) }
+                val existing = programs.firstOrNull { it.isMine && it.sourceProgramStableKey == program.stableKey }
+                OutlinedButton(onClick = { onPublish(program, existing) }) { Text(stringResource(if (existing == null) R.string.community_publish else R.string.community_update)) }
             }
         }
     }
@@ -349,6 +411,76 @@ private fun LazyListScope.WeeklySection(weekly: List<com.training.trackplanner.d
             }
         }
     )
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun CommunityPublicationDialog(
+    existing: CommunityProgram?,
+    onDismiss: () -> Unit,
+    onPublish: (CommunityProgramLabels, String, String) -> Unit
+) {
+    var region by rememberSaveable(existing?.publicProgramId ?: "new") { mutableStateOf(existing?.labels?.strengthRegion.orEmpty()) }
+    var goal by rememberSaveable(existing?.publicProgramId ?: "new") { mutableStateOf(existing?.labels?.strengthGoal.orEmpty()) }
+    var functional by rememberSaveable(existing?.publicProgramId ?: "new") { mutableStateOf(existing?.labels?.includesFunctional == true) }
+    var functionalGoal by rememberSaveable(existing?.publicProgramId ?: "new") { mutableStateOf(existing?.labels?.functionalPrimaryGoal.orEmpty()) }
+    var badminton by rememberSaveable(existing?.publicProgramId ?: "new") { mutableStateOf(existing?.labels?.includesBadminton == true) }
+    var badmintonGoal by rememberSaveable(existing?.publicProgramId ?: "new") { mutableStateOf(existing?.labels?.badmintonPrimaryGoal.orEmpty()) }
+    var comment by rememberSaveable(existing?.publicProgramId ?: "new") { mutableStateOf(existing?.authorComment.orEmpty()) }
+    var caution by rememberSaveable(existing?.publicProgramId ?: "new") { mutableStateOf(existing?.cautionText.orEmpty()) }
+    var error by rememberSaveable(existing?.publicProgramId ?: "new") { mutableStateOf<String?>(null) }
+    val labelsRequired = stringResource(R.string.community_publish_labels_required)
+    val functionalGoalRequired = stringResource(R.string.community_functional_goal_required)
+    val badmintonGoalRequired = stringResource(R.string.community_badminton_goal_required)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(if (existing == null) R.string.community_publish_form_title else R.string.community_update_form_title)) },
+        text = {
+            LazyColumn(Modifier.heightIn(max = 520.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                item { Text(stringResource(R.string.community_strength_region), style = MaterialTheme.typography.labelLarge) }
+                item { ChoiceRow(listOf("UPPER_BODY" to R.string.community_filter_upper, "LOWER_BODY" to R.string.community_filter_lower, "ALL_LIMBS" to R.string.community_filter_all_limbs), region) { region = it } }
+                item { Text(stringResource(R.string.community_strength_goal), style = MaterialTheme.typography.labelLarge) }
+                item { ChoiceRow(listOf("HYPERTROPHY" to R.string.community_filter_hypertrophy, "STRENGTH" to R.string.community_filter_strength), goal) { goal = it } }
+                item { Text(stringResource(R.string.community_functional), style = MaterialTheme.typography.labelLarge) }
+                item { ChoiceRow(listOf("false" to R.string.community_not_included, "true" to R.string.community_included), functional.toString()) { functional = it == "true"; if (!functional) functionalGoal = "" } }
+                if (functional) {
+                    item { Text(stringResource(R.string.community_functional_goal), style = MaterialTheme.typography.labelLarge) }
+                    item { ChoiceRow(listOf("EXPLOSIVE_ACCELERATION" to R.string.community_goal_explosive, "ELASTIC_GROUND_REACTION" to R.string.community_goal_elastic, "BODY_COORDINATION" to R.string.community_goal_coordination), functionalGoal) { functionalGoal = it } }
+                }
+                item { Text(stringResource(R.string.community_badminton), style = MaterialTheme.typography.labelLarge) }
+                item { ChoiceRow(listOf("false" to R.string.community_not_included, "true" to R.string.community_included), badminton.toString()) { badminton = it == "true"; if (!badminton) badmintonGoal = "" } }
+                if (badminton) {
+                    item { Text(stringResource(R.string.community_badminton_goal), style = MaterialTheme.typography.labelLarge) }
+                    item { ChoiceRow(listOf("SWING_POWER" to R.string.community_goal_swing, "LANDING_DECELERATION_STABILITY" to R.string.community_goal_landing, "FOOTWORK" to R.string.community_goal_footwork), badmintonGoal) { badmintonGoal = it } }
+                }
+                item { OutlinedTextField(comment, { comment = it.take(100) }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.community_author_comment)) }, supportingText = { Text("${comment.length}/100") }) }
+                item { OutlinedTextField(caution, { caution = it.take(200) }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.community_caution)) }, supportingText = { Text("${caution.length}/200") }) }
+                error?.let { message -> item { Text(message, color = MaterialTheme.colorScheme.error) } }
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                error = when {
+                    region.isBlank() || goal.isBlank() -> labelsRequired
+                    functional && functionalGoal.isBlank() -> functionalGoalRequired
+                    badminton && badmintonGoal.isBlank() -> badmintonGoalRequired
+                    else -> null
+                }
+                if (error == null) onPublish(CommunityProgramLabels(region, goal, functional, functionalGoal.takeIf { functional }, badminton, badmintonGoal.takeIf { badminton }), comment, caution)
+            }) { Text(stringResource(R.string.community_save)) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.close)) } }
+    )
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ChoiceRow(options: List<Pair<String, Int>>, selected: String, onSelect: (String) -> Unit) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        options.forEach { (value, label) ->
+            FilterChip(selected = selected == value, onClick = { onSelect(value) }, label = { Text(stringResource(label)) })
+        }
+    }
 }
 
 @Composable private fun NicknameDialog(initial: String, onDismiss: () -> Unit, onSave: (String) -> Unit) {

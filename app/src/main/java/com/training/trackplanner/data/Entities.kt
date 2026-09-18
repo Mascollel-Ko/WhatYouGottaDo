@@ -255,6 +255,16 @@ data class TrainingProgram(
     val updatedAt: Long = System.currentTimeMillis()
 )
 
+@Entity(
+    tableName = "community_program_imports",
+    indices = [Index(value = ["sourcePublicProgramId"])]
+)
+data class CommunityProgramImport(
+    @PrimaryKey val localProgramStableKey: String,
+    val sourcePublicProgramId: String,
+    val importedAt: Long = System.currentTimeMillis()
+)
+
 @Entity(tableName = "training_program_tombstones")
 data class TrainingProgramTombstone(
     @PrimaryKey val programStableKey: String,

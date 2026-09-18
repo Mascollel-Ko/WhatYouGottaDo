@@ -42,9 +42,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         StrengthModelRevisionEntity::class,
         StrengthExercisePerformanceStateEntity::class,
         StrengthExercisePerformanceHistoryEntity::class,
-        StrengthProxyTransferHistoryEntity::class
+        StrengthProxyTransferHistoryEntity::class,
+        CommunityProgramImport::class
     ],
-    version = 33,
+    version = 34,
     exportSchema = true
 )
 @TypeConverters(RuntimeMetadataTypeConverters::class)
@@ -64,6 +65,7 @@ abstract class TrainingDatabase : RoomDatabase() {
     abstract fun exerciseMetadataUserOverrideDao(): ExerciseMetadataUserOverrideDao
     abstract fun exerciseRoleRelationDao(): ExerciseRoleRelationDao
     abstract fun strengthPosteriorDao(): StrengthPosteriorDao
+    abstract fun communityProgramImportDao(): CommunityProgramImportDao
 
     companion object {
         @Volatile
@@ -818,6 +820,25 @@ abstract class TrainingDatabase : RoomDatabase() {
             }
         }
 
+        internal val MIGRATION_33_34 = object : Migration(33, 34) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `community_program_imports` (
+                        `localProgramStableKey` TEXT NOT NULL,
+                        `sourcePublicProgramId` TEXT NOT NULL,
+                        `importedAt` INTEGER NOT NULL,
+                        PRIMARY KEY(`localProgramStableKey`)
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_community_program_imports_sourcePublicProgramId` " +
+                        "ON `community_program_imports` (`sourcePublicProgramId`)"
+                )
+            }
+        }
+
         fun get(context: Context): TrainingDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -857,7 +878,8 @@ abstract class TrainingDatabase : RoomDatabase() {
                         MIGRATION_29_30,
                         ProgramProgressionMigration.MIGRATION_30_31,
                         MIGRATION_31_32,
-                        MIGRATION_32_33
+                        MIGRATION_32_33,
+                        MIGRATION_33_34
                     )
                     .build()
                     .also { instance = it }

@@ -256,7 +256,7 @@ internal fun TrainingTrackPlannerApp(
                                 }
                             },
                             onShareProgram = { program ->
-                                communityViewModel.publishProgram(program)
+                                communityViewModel.requestPublication(program)
                                 communityRoute = true
                             },
                             tutorialApplyRequest = tutorialApplyRequest,

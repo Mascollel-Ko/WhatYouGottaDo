@@ -22,6 +22,7 @@ internal data class CommunityProgramLabels(
 
 internal data class CommunityProgram(
     val publicProgramId: String,
+    val sourceProgramStableKey: String? = null,
     val nickname: String,
     val authorReceivedLikeCount: Long,
     val publishedAt: String,

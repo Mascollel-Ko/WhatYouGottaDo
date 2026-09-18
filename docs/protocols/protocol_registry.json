@@ -1989,7 +1989,9 @@
         "app/src/test/java/com/training/trackplanner/CommunityUiStructuralTest.kt",
         "tests/community_sharing.test.mjs"
       ],
-      "authorityAssets": [],
+      "authorityAssets": [
+        "app/schemas/com.training.trackplanner.data.TrainingDatabase/34.json"
+      ],
       "supportingDocuments": [],
       "knownGaps": [
         "Hosted deployment and full device-width UI validation are environment-dependent."

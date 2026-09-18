@@ -85,17 +85,13 @@ internal object CommunityProgramSnapshotCodec {
             .put("progression", JSONObject().put("tracks", trackArray).put("bindings", bindingArray))
     }
 
-    suspend fun import(db: TrainingDatabase, snapshot: JSONObject, allowDuplicate: Boolean = false): Long {
+    suspend fun import(db: TrainingDatabase, sourcePublicProgramId: String, snapshot: JSONObject): Long {
+        require(sourcePublicProgramId.isNotBlank()) { "INVALID_SOURCE_PUBLIC_PROGRAM_ID" }
         val normalized = validateSnapshot(snapshot)
         return db.withTransaction {
             val programObject = normalized.getJSONObject("program")
             val name = programObject.optString("name").trim().ifBlank { throw CommunityImportException("INVALID_SNAPSHOT") }
             val items = normalized.getJSONArray("items")
-            if (!allowDuplicate) {
-                val duplicate = db.programDao().allPrograms().firstOrNull { it.name == name }
-                    ?.let { db.programDao().itemsForProgram(it.id).size == items.length() } == true
-                if (duplicate) throw CommunityImportException("DUPLICATE_IMPORT_REVIEW_REQUIRED")
-            }
             val stableKey = ProgramStableKeyPolicy.newUserKey()
             val programId = db.programDao().insertProgram(
                 TrainingProgram(
@@ -200,6 +196,12 @@ internal object CommunityProgramSnapshotCodec {
                     )
                 )
             }
+            db.communityProgramImportDao().upsert(
+                CommunityProgramImport(
+                    localProgramStableKey = stableKey,
+                    sourcePublicProgramId = sourcePublicProgramId,
+                )
+            )
             programId
         }
     }

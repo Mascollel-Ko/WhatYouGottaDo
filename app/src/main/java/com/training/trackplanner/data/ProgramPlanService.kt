@@ -159,6 +159,7 @@ internal class ProgramPlanService(
         db.withTransaction {
             val program = programDao.findProgram(programId) ?: return@withTransaction
             programDao.deleteProgramItems(programId)
+            db.communityProgramImportDao().deleteByLocalProgramStableKey(program.stableKey)
             programDao.deleteProgram(programId)
             if (program.stableKey in builtInProgramKeys()) {
                 programDao.upsertProgramTombstone(
