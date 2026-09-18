@@ -29,7 +29,16 @@ class CommunityUiStructuralTest {
             .forEach { key ->
                 assertTrue(ko.contains("name=\"$key\""))
                 assertTrue(en.contains("name=\"$key\""))
-            }
+        }
+    }
+
+    @Test fun communityLabelSelectorsUseReusableMultiSelectDropdowns() {
+        val screen = source("src/main/java/com/training/trackplanner/CommunityScreen.kt")
+        assertTrue(screen.contains("CommunityMultiSelectDropdown"))
+        assertTrue(screen.contains("community_filter_functional_goals"))
+        assertTrue(screen.contains("community_filter_badminton_goals"))
+        assertTrue(!screen.contains("FilterChip"))
+        assertTrue(!screen.contains("ChoiceRow"))
     }
 
     private fun source(relativePath: String): String = sequenceOf(

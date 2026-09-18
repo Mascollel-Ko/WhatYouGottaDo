@@ -4,6 +4,7 @@ import test from "node:test";
 
 const endpoint = await readFile(new URL("../supabase/functions/community-api/index.ts", import.meta.url), "utf8");
 const migration = await readFile(new URL("../supabase/migrations/20260918000000_community_sharing.sql", import.meta.url), "utf8");
+const labelMigration = await readFile(new URL("../supabase/migrations/20260919000000_community_program_label_arrays.sql", import.meta.url), "utf8");
 const config = await readFile(new URL("../supabase/config.toml", import.meta.url), "utf8");
 
 test("Community API is authenticated and keeps the private boundary", () => {
@@ -39,10 +40,20 @@ test("Community DTO code does not expose account UUIDs or private backup fields"
 });
 
 test("Community publication and structured filters remain server validated", () => {
-  assert.match(endpoint, /functionalPrimaryGoal/);
-  assert.match(endpoint, /badmintonPrimaryGoal/);
-  assert.match(endpoint, /includes_functional.*true/);
-  assert.match(endpoint, /includes_badminton.*true/);
+  assert.match(endpoint, /labelArray\(input\.strengthRegions/);
+  assert.match(endpoint, /labelArray\(input\.strengthGoals/);
+  assert.match(endpoint, /labelArray\(input\.functionalGoals/);
+  assert.match(endpoint, /labelArray\(input\.badmintonGoals/);
+  assert.match(endpoint, /overlaps\(column/);
+  assert.match(endpoint, /NOT_INCLUDED/);
+  assert.match(endpoint, /if \(notIncluded && include\.length === 0\)/);
+  assert.match(endpoint, /\.eq\.\{\}/);
+  assert.match(labelMigration, /strength_regions text\[\]/);
+  assert.match(labelMigration, /functional_goals text\[\]/);
+  assert.match(labelMigration, /community_programs_strength_regions_array/);
+  assert.match(labelMigration, /community_program_label_arrays_sync/);
+  assert.match(labelMigration, /set strength_regions = array\[strength_region\]/);
+  assert.match(labelMigration, /set functional_goals = case/);
   assert.match(endpoint, /authorComment/);
   assert.match(endpoint, /cautionText/);
 });

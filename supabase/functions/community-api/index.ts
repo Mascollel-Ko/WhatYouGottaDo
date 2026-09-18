@@ -7,18 +7,18 @@ import { emptyResponse, jsonResponse } from "../_shared/cloud_backup.mjs";
 const MAX_PAGE_SIZE = 20;
 const ACTIVITY_TTL_MS = 90 * 60 * 1000;
 const LABELS = {
-  strengthRegion: new Set(["UPPER_BODY", "LOWER_BODY", "ALL_LIMBS"]),
-  strengthGoal: new Set(["HYPERTROPHY", "STRENGTH"]),
-  functionalGoal: new Set([
+  strengthRegions: ["UPPER_BODY", "LOWER_BODY", "ALL_LIMBS"],
+  strengthGoals: ["HYPERTROPHY", "STRENGTH"],
+  functionalGoals: [
     "EXPLOSIVE_ACCELERATION",
     "ELASTIC_GROUND_REACTION",
     "BODY_COORDINATION",
-  ]),
-  badmintonGoal: new Set([
+  ],
+  badmintonGoals: [
     "SWING_POWER",
     "LANDING_DECELERATION_STABILITY",
     "FOOTWORK",
-  ]),
+  ],
 };
 
 class CommunityError extends Error {
@@ -56,6 +56,33 @@ function bool(value: unknown, field: string, fallback = false): boolean {
   if (typeof value !== "boolean")
     throw new CommunityError(`INVALID_${field.toUpperCase()}`);
   return value;
+}
+
+function labelArray(value: unknown, field: string, allowed: string[], required: boolean, allowNotIncluded = false): string[] {
+  if (!Array.isArray(value)) throw new CommunityError(`INVALID_${field.toUpperCase()}`);
+  const normalized = value.map((item) => text(item, field, 60).toUpperCase());
+  const permitted = allowNotIncluded ? [...allowed, "NOT_INCLUDED"] : allowed;
+  if (normalized.length > permitted.length || new Set(normalized).size !== normalized.length || normalized.some((item) => !permitted.includes(item)))
+    throw new CommunityError(`INVALID_${field.toUpperCase()}`);
+  const result = allowed.filter((item) => normalized.includes(item));
+  if (normalized.includes("NOT_INCLUDED")) result.push("NOT_INCLUDED");
+  if (required && result.length === 0) throw new CommunityError(`INVALID_${field.toUpperCase()}`);
+  return result;
+}
+
+function searchLabelArray(value: unknown, field: string, allowed: string[], allowNotIncluded = false): string[] {
+  if (value == null) return [];
+  return labelArray(value, field, allowed, false, allowNotIncluded);
+}
+
+function applyLabelFilter(query: any, column: string, values: string[], allowNotIncluded = false): any {
+  if (!values.length) return query;
+  const include = values.filter((value) => value !== "NOT_INCLUDED");
+  const notIncluded = allowNotIncluded && values.includes("NOT_INCLUDED");
+  if (notIncluded && include.length === 0) return query.eq(column, "{}");
+  if (!notIncluded) return query.overlaps(column, include);
+  const literal = `{${include.join(",")}}`;
+  return query.or(`${column}.eq.{},${column}.ov.${literal}`);
 }
 
 function uuid(value: unknown, field: string): string {
@@ -252,12 +279,10 @@ function programDto(
     updatedAt: row.updated_at,
     programName: row.program_name,
     labels: {
-      strengthRegion: row.strength_region,
-      strengthGoal: row.strength_goal,
-      includesFunctional: row.includes_functional,
-      functionalPrimaryGoal: row.functional_primary_goal,
-      includesBadminton: row.includes_badminton,
-      badmintonPrimaryGoal: row.badminton_primary_goal,
+      strengthRegions: row.strength_regions ?? (row.strength_region ? [row.strength_region] : []),
+      strengthGoals: row.strength_goals ?? (row.strength_goal ? [row.strength_goal] : []),
+      functionalGoals: row.functional_goals ?? (row.includes_functional && row.functional_primary_goal ? [row.functional_primary_goal] : []),
+      badmintonGoals: row.badminton_goals ?? (row.includes_badminton && row.badminton_primary_goal ? [row.badminton_primary_goal] : []),
     },
     authorComment: row.author_comment,
     cautionText: row.caution_text,
@@ -301,52 +326,14 @@ async function listPrograms(
   let query = service
     .from("community_programs")
     .select(
-      "public_program_id,owner_user_id,published_at,updated_at,program_name,strength_region,strength_goal,includes_functional,functional_primary_goal,includes_badminton,badminton_primary_goal,author_comment,caution_text,like_count,program_snapshot,community_program_exercises(item_index,exercise_name)",
+      "public_program_id,owner_user_id,published_at,updated_at,program_name,strength_regions,strength_goals,functional_goals,badminton_goals,strength_region,strength_goal,includes_functional,functional_primary_goal,includes_badminton,badminton_primary_goal,author_comment,caution_text,like_count,program_snapshot,community_program_exercises(item_index,exercise_name)",
     )
     .not("published_at", "is", null)
     .limit(size);
-  if (input.strengthRegion != null) {
-    const value = text(input.strengthRegion, "strengthRegion", 40);
-    if (!LABELS.strengthRegion.has(value))
-      throw new CommunityError("INVALID_STRENGTH_REGION");
-    query = query.eq("strength_region", value);
-  }
-  if (input.strengthGoal != null) {
-    const value = text(input.strengthGoal, "strengthGoal", 40);
-    if (!LABELS.strengthGoal.has(value))
-      throw new CommunityError("INVALID_STRENGTH_GOAL");
-    query = query.eq("strength_goal", value);
-  }
-  if (input.includesFunctional != null)
-    query = query.eq(
-      "includes_functional",
-      bool(input.includesFunctional, "includesFunctional"),
-    );
-  if (input.functionalPrimaryGoal != null) {
-    const value = text(
-      input.functionalPrimaryGoal,
-      "functionalPrimaryGoal",
-      60,
-    );
-    if (!LABELS.functionalGoal.has(value))
-      throw new CommunityError("INVALID_FUNCTIONAL_GOAL");
-    query = query
-      .eq("functional_primary_goal", value)
-      .eq("includes_functional", true);
-  }
-  if (input.includesBadminton != null)
-    query = query.eq(
-      "includes_badminton",
-      bool(input.includesBadminton, "includesBadminton"),
-    );
-  if (input.badmintonPrimaryGoal != null) {
-    const value = text(input.badmintonPrimaryGoal, "badmintonPrimaryGoal", 60);
-    if (!LABELS.badmintonGoal.has(value))
-      throw new CommunityError("INVALID_BADMINTON_GOAL");
-    query = query
-      .eq("badminton_primary_goal", value)
-      .eq("includes_badminton", true);
-  }
+  query = applyLabelFilter(query, "strength_regions", searchLabelArray(input.strengthRegions, "strengthRegions", LABELS.strengthRegions));
+  query = applyLabelFilter(query, "strength_goals", searchLabelArray(input.strengthGoals, "strengthGoals", LABELS.strengthGoals));
+  query = applyLabelFilter(query, "functional_goals", searchLabelArray(input.functionalGoals, "functionalGoals", LABELS.functionalGoals, true), true);
+  query = applyLabelFilter(query, "badminton_goals", searchLabelArray(input.badmintonGoals, "badmintonGoals", LABELS.badmintonGoals, true), true);
   const sort = input.sort === "POPULAR" ? "POPULAR" : "LATEST";
   if (sort === "POPULAR") {
     query = query
@@ -703,37 +690,10 @@ async function handler(request: Request): Promise<Response> {
           "programName",
           160,
         );
-        const strengthRegion = text(input.strengthRegion, "strengthRegion", 40);
-        const strengthGoal = text(input.strengthGoal, "strengthGoal", 40);
-        if (
-          !LABELS.strengthRegion.has(strengthRegion) ||
-          !LABELS.strengthGoal.has(strengthGoal)
-        )
-          throw new CommunityError("INVALID_LABEL");
-        const includesFunctional = bool(
-          input.includesFunctional,
-          "includesFunctional",
-        );
-        const functionalPrimaryGoal = includesFunctional
-          ? text(input.functionalPrimaryGoal, "functionalPrimaryGoal", 60)
-          : null;
-        if (
-          includesFunctional &&
-          !LABELS.functionalGoal.has(functionalPrimaryGoal!)
-        )
-          throw new CommunityError("INVALID_FUNCTIONAL_GOAL");
-        const includesBadminton = bool(
-          input.includesBadminton,
-          "includesBadminton",
-        );
-        const badmintonPrimaryGoal = includesBadminton
-          ? text(input.badmintonPrimaryGoal, "badmintonPrimaryGoal", 60)
-          : null;
-        if (
-          includesBadminton &&
-          !LABELS.badmintonGoal.has(badmintonPrimaryGoal!)
-        )
-          throw new CommunityError("INVALID_BADMINTON_GOAL");
+        const strengthRegions = labelArray(input.strengthRegions, "strengthRegions", LABELS.strengthRegions, true);
+        const strengthGoals = labelArray(input.strengthGoals, "strengthGoals", LABELS.strengthGoals, true);
+        const functionalGoals = labelArray(input.functionalGoals ?? [], "functionalGoals", LABELS.functionalGoals, false);
+        const badmintonGoals = labelArray(input.badmintonGoals ?? [], "badmintonGoals", LABELS.badmintonGoals, false);
         const authorComment = optionalText(
           input.authorComment,
           "authorComment",
@@ -757,12 +717,17 @@ async function handler(request: Request): Promise<Response> {
           snapshot_sha256: sha,
           source_updated_at: Number(input.sourceUpdatedAt ?? Date.now()),
           program_name: programName,
-          strength_region: strengthRegion,
-          strength_goal: strengthGoal,
-          includes_functional: includesFunctional,
-          functional_primary_goal: functionalPrimaryGoal,
-          includes_badminton: includesBadminton,
-          badminton_primary_goal: badmintonPrimaryGoal,
+          strength_regions: strengthRegions,
+          strength_goals: strengthGoals,
+          functional_goals: functionalGoals,
+          badminton_goals: badmintonGoals,
+          // Legacy scalar columns remain populated for old clients and rows.
+          strength_region: strengthRegions[0],
+          strength_goal: strengthGoals[0],
+          includes_functional: functionalGoals.length > 0,
+          functional_primary_goal: functionalGoals[0] ?? null,
+          includes_badminton: badmintonGoals.length > 0,
+          badminton_primary_goal: badmintonGoals[0] ?? null,
           author_comment: authorComment,
           caution_text: cautionText,
           published_at: existing.data?.published_at ?? new Date().toISOString(),

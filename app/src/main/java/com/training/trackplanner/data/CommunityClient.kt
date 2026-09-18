@@ -48,20 +48,16 @@ internal class CommunityClient(
         session: CloudAuthSession,
         query: String = "",
         sort: String = "LATEST",
-        strengthRegion: String? = null,
-        strengthGoal: String? = null,
-        includesFunctional: Boolean? = null,
-        includesBadminton: Boolean? = null,
-        functionalPrimaryGoal: String? = null,
-        badmintonPrimaryGoal: String? = null
+        strengthRegions: List<String> = emptyList(),
+        strengthGoals: List<String> = emptyList(),
+        functionalGoals: List<String> = emptyList(),
+        badmintonGoals: List<String> = emptyList()
     ): List<CommunityProgram> {
         val body = JSONObject().put("op", "program_feed").put("q", query).put("sort", sort).put("pageSize", 20)
-        strengthRegion?.let { body.put("strengthRegion", it) }
-        strengthGoal?.let { body.put("strengthGoal", it) }
-        includesFunctional?.let { body.put("includesFunctional", it) }
-        includesBadminton?.let { body.put("includesBadminton", it) }
-        functionalPrimaryGoal?.let { body.put("functionalPrimaryGoal", it) }
-        badmintonPrimaryGoal?.let { body.put("badmintonPrimaryGoal", it) }
+        if (strengthRegions.isNotEmpty()) body.put("strengthRegions", JSONArray(strengthRegions))
+        if (strengthGoals.isNotEmpty()) body.put("strengthGoals", JSONArray(strengthGoals))
+        if (functionalGoals.isNotEmpty()) body.put("functionalGoals", JSONArray(functionalGoals))
+        if (badmintonGoals.isNotEmpty()) body.put("badmintonGoals", JSONArray(badmintonGoals))
         return parsePrograms(call(session, body).optJSONArray("programs"))
     }
 
@@ -89,14 +85,12 @@ internal class CommunityClient(
             .put("sourceUpdatedAt", sourceUpdatedAt)
             .put("snapshot", snapshot)
             .put("programName", programName)
-            .put("strengthRegion", labels.strengthRegion)
-            .put("strengthGoal", labels.strengthGoal)
-            .put("includesFunctional", labels.includesFunctional)
-            .put("includesBadminton", labels.includesBadminton)
+            .put("strengthRegions", JSONArray(labels.strengthRegions))
+            .put("strengthGoals", JSONArray(labels.strengthGoals))
+            .put("functionalGoals", JSONArray(labels.functionalGoals))
+            .put("badmintonGoals", JSONArray(labels.badmintonGoals))
             .put("authorComment", authorComment)
             .put("cautionText", cautionText)
-        labels.functionalPrimaryGoal?.let { body.put("functionalPrimaryGoal", it) }
-        labels.badmintonPrimaryGoal?.let { body.put("badmintonPrimaryGoal", it) }
         return parseProgram(call(session, body).getJSONObject("program"))
     }
 
@@ -183,15 +177,27 @@ internal class CommunityClient(
     private fun parseProgram(row: JSONObject): CommunityProgram {
         val labels = row.optJSONObject("labels") ?: JSONObject()
         val exercises = row.optJSONArray("representativeExercises")
+        val strengthRegions = labels.arrayOrLegacy("strengthRegions", "strengthRegion")
+        val strengthGoals = labels.arrayOrLegacy("strengthGoals", "strengthGoal")
+        val functionalGoals = labels.arrayOrLegacy("functionalGoals", "functionalPrimaryGoal")
+            .takeIf { labels.optBoolean("includesFunctional", it.isNotEmpty()) } ?: emptyList()
+        val badmintonGoals = labels.arrayOrLegacy("badmintonGoals", "badmintonPrimaryGoal")
+            .takeIf { labels.optBoolean("includesBadminton", it.isNotEmpty()) } ?: emptyList()
         return CommunityProgram(
             publicProgramId = row.getString("publicProgramId"), sourceProgramStableKey = row.optString("sourceProgramStableKey").takeIf(String::isNotBlank), nickname = row.optString("nickname"),
             authorReceivedLikeCount = row.optLong("authorReceivedLikeCount"), publishedAt = row.optString("publishedAt"),
             updatedAt = row.optString("updatedAt"), programName = row.optString("programName"),
-            labels = CommunityProgramLabels(labels.optString("strengthRegion"), labels.optString("strengthGoal"), labels.optBoolean("includesFunctional"), labels.optString("functionalPrimaryGoal").takeIf(String::isNotBlank), labels.optBoolean("includesBadminton"), labels.optString("badmintonPrimaryGoal").takeIf(String::isNotBlank)),
+            labels = CommunityProgramLabels(strengthRegions, strengthGoals, functionalGoals, badmintonGoals),
             authorComment = row.optString("authorComment"), cautionText = row.optString("cautionText"),
             representativeExercises = if (exercises == null) emptyList() else (0 until exercises.length()).map { exercises.optString(it) },
             likeCount = row.optLong("likeCount"), likedByMe = row.optBoolean("likedByMe"), isMine = row.optBoolean("isMine"), snapshot = row.optJSONObject("snapshot")
         )
+    }
+
+    private fun JSONObject.arrayOrLegacy(arrayKey: String, legacyKey: String): List<String> {
+        val array = optJSONArray(arrayKey)
+        if (array != null) return (0 until array.length()).mapNotNull { array.optString(it).takeIf(String::isNotBlank) }
+        return optString(legacyKey).takeIf(String::isNotBlank)?.let(::listOf) ?: emptyList()
     }
 
     private fun parseFriendRequests(rows: JSONArray?): List<CommunityFriendRequest> = if (rows == null) emptyList() else

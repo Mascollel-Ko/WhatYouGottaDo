@@ -395,6 +395,13 @@
     <string name="community_filter_badminton">배드민턴 포함</string>
     <string name="community_filter_functional_not_included">기능성 제외</string>
     <string name="community_filter_badminton_not_included">배드민턴 제외</string>
+    <string name="community_filter_functional_goals">기능성 목표</string>
+    <string name="community_filter_badminton_goals">배드민턴 목표</string>
+    <string name="community_filter_all">전체</string>
+    <string name="community_filter_apply">적용</string>
+    <string name="community_sort">정렬</string>
+    <string name="community_functional_goals">기능성 목표</string>
+    <string name="community_badminton_goals">배드민턴 목표</string>
     <string name="community_publish_form_title">프로그램 공유</string>
     <string name="community_update_form_title">게시본 업데이트</string>
     <string name="community_strength_region">근력 부위</string>

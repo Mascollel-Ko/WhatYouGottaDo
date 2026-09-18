@@ -110,8 +110,8 @@ internal class CommunityViewModel(application: Application) : AndroidViewModel(a
         _friends.value = client.friends(session)
     }
 
-    fun search(query: String, sort: String, region: String?, goal: String?, functional: Boolean?, badminton: Boolean?, functionalGoal: String? = null, badmintonGoal: String? = null) = launchRequest { session ->
-        _programs.value = client.feed(session, query, sort, region, goal, functional, badminton, functionalGoal, badmintonGoal)
+    fun search(query: String, sort: String, strengthRegions: List<String>, strengthGoals: List<String>, functionalGoals: List<String>, badmintonGoals: List<String>) = launchRequest { session ->
+        _programs.value = client.feed(session, query, sort, strengthRegions, strengthGoals, functionalGoals, badmintonGoals)
     }
 
     fun like(program: CommunityProgram) = launchRequest { session ->

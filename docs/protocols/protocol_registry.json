@@ -1973,7 +1973,7 @@
       ],
       "canonicalDocument": "community/COMMUNITY_SHARING.md",
       "implementedFromAppVersion": "UNRELEASED_COMMUNITY_V1",
-      "lastAuditedCommit": "77569334",
+      "lastAuditedCommit": "8ffafcf",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/CommunityScreen.kt",
         "app/src/main/java/com/training/trackplanner/CommunityViewModel.kt",
@@ -1983,6 +1983,7 @@
         "app/src/main/java/com/training/trackplanner/data/CommunityActivityPublisher.kt",
         "app/src/main/java/com/training/trackplanner/data/TrainingDatabase.kt",
         "supabase/migrations/20260918000000_community_sharing.sql",
+        "supabase/migrations/20260919000000_community_program_label_arrays.sql",
         "supabase/functions/community-api/index.ts",
         "supabase/config.toml"
       ],
@@ -1993,6 +1994,7 @@
         "app/src/test/java/com/training/trackplanner/data/CommunityActivityPublisherTest.kt",
         "app/src/androidTest/java/com/training/trackplanner/data/CommunityProgramImportMigrationTest.kt",
         "app/src/test/java/com/training/trackplanner/CommunityUiStructuralTest.kt",
+        "app/src/test/java/com/training/trackplanner/CommunityProgramLabelCatalogTest.kt",
         "tests/community_sharing.test.mjs"
       ],
       "authorityAssets": [
@@ -2238,3 +2240,4 @@
     }
   ]
 }
+

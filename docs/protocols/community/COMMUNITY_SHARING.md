@@ -55,13 +55,14 @@ progression 스냅샷, 안전한 주간 aggregate만 받습니다. 프로그램 
 
 닉네임은 trim 후 2–24 Unicode code point의 plain text이고 control/newline을 거부하며,
 소문자 normalized unique index로 case-insensitive uniqueness를 강제합니다. 프로그램
-레이블은 strength region/goal, functional 포함/목적, badminton 포함/목적을 독립적으로
-검증합니다. feed 검색은 프로그램명·코멘트·주의사항·exercise text를 대상으로 하고
-게시 전에는 부위와 목적을 선택해야 하며 기능성·배드민턴을 포함할 때 각각의 주요
-목적도 선택합니다. 게시본 업데이트는 같은 author/source stable key publication을
-갱신하면서 public id, likes, 최초 게시 시각을 유지합니다. 구조화 필터는 부위·목적·
-포함 여부·주요 목적과 검색어를 AND로 결합하며 주요 목적 선택은 포함을 의미하고
-미포함 선택은 해당 목적을 비웁니다. `LATEST`와 `POPULAR`는 결정적 keyset cursor 순서를
+레이블은 `strengthRegions`(1개 이상), `strengthGoals`(1개 이상), 선택적
+`functionalGoals`, `badmintonGoals` 배열로 검증합니다. 배열은 허용 vocabulary만
+받고 중복을 제거하며 canonical 순서를 사용합니다. feed 검색은 프로그램명·코멘트·
+주의사항·exercise text를 대상으로 하고, 같은 차원 안에서는 OR/array overlap,
+차원 간에는 AND로 결합합니다. 기능성·배드민턴 검색에는 `NOT_INCLUDED`를 사용할 수
+있고 빈 선택은 제약이 없습니다. 게시 전에는 strength 두 배열을 선택해야 하며 선택적
+기능성·배드민턴 배열이 비어 있으면 미포함입니다. 게시본 업데이트는 같은 author/source stable key publication을
+갱신하면서 public id, likes, 최초 게시 시각을 유지합니다. `LATEST`와 `POPULAR`는 결정적 keyset cursor 순서를
 사용합니다. 좋아요와 저자 받은 좋아요 합계는 service-role RPC/trigger가 계산합니다.
 
 ## 8. 집계 방식
@@ -115,7 +116,8 @@ of truth가 아닙니다. hosted Edge Function deployment와 실제 기기에서
 
 ## 15. 현재 구현 상태
 
-Android Community 화면, Home 진입, profile/nickname/privacy, publication form, program feed/search/filter,
+Android Community 화면, Home 진입, profile/nickname/privacy, array-based publication form,
+multi-select program feed/search/filter,
 like, snapshot import, weekly publish/unshare, friend request/accept/decline/remove/block,
 TTL/privacy activity API와 migration이 구현되어 있습니다. Edge Function은 `verify_jwt = true`
 로 등록되며 service role은 함수 내부에서만 사용합니다. Private Cloud Backup tables와
@@ -129,11 +131,14 @@ R2 object path는 Community 경로에서 읽지 않습니다.
 - `app/src/main/java/com/training/trackplanner/data/CommunityProgramSnapshotCodec.kt`
 - `supabase/functions/community-api/index.ts`
 - `supabase/migrations/20260918000000_community_sharing.sql`
+- `supabase/migrations/20260919000000_community_program_label_arrays.sql`
 - `supabase/config.toml`
 
 ## 17. 검증 테스트
 
 - `app/src/test/java/com/training/trackplanner/data/CommunityProgramSnapshotCodecTest.kt`
+- `app/src/test/java/com/training/trackplanner/CommunityProgramLabelCatalogTest.kt`
+- `app/src/test/java/com/training/trackplanner/CommunityUiStructuralTest.kt`
 - `tests/community_sharing.test.mjs`
 - `supabase/tests/community_sharing.sql`
 

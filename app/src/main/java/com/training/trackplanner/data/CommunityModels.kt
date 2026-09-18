@@ -12,13 +12,46 @@ internal data class CommunityProfile(
 )
 
 internal data class CommunityProgramLabels(
-    val strengthRegion: String,
-    val strengthGoal: String,
-    val includesFunctional: Boolean,
-    val functionalPrimaryGoal: String?,
-    val includesBadminton: Boolean,
-    val badmintonPrimaryGoal: String?
+    val strengthRegions: List<String>,
+    val strengthGoals: List<String>,
+    val functionalGoals: List<String>,
+    val badmintonGoals: List<String>
 )
+
+/** Canonical, deterministic label vocabulary shared by publication and search UI. */
+internal object CommunityProgramLabelCatalog {
+    val strengthRegions = listOf("UPPER_BODY", "LOWER_BODY", "ALL_LIMBS")
+    val strengthGoals = listOf("HYPERTROPHY", "STRENGTH")
+    val functionalGoals = listOf("EXPLOSIVE_ACCELERATION", "ELASTIC_GROUND_REACTION", "BODY_COORDINATION")
+    val badmintonGoals = listOf("SWING_POWER", "LANDING_DECELERATION_STABILITY", "FOOTWORK")
+
+    fun normalize(
+        strengthRegions: List<String>,
+        strengthGoals: List<String>,
+        functionalGoals: List<String> = emptyList(),
+        badmintonGoals: List<String> = emptyList()
+    ): CommunityProgramLabels {
+        return CommunityProgramLabels(
+            normalizeRequired(strengthRegions, this.strengthRegions, "strengthRegions"),
+            normalizeRequired(strengthGoals, this.strengthGoals, "strengthGoals"),
+            normalizeOptional(functionalGoals, this.functionalGoals, "functionalGoals"),
+            normalizeOptional(badmintonGoals, this.badmintonGoals, "badmintonGoals")
+        )
+    }
+
+    private fun normalizeRequired(values: List<String>, allowed: List<String>, field: String): List<String> {
+        val result = normalizeOptional(values, allowed, field)
+        require(result.isNotEmpty()) { "$field must contain at least one value" }
+        return result
+    }
+
+    private fun normalizeOptional(values: List<String>, allowed: List<String>, field: String): List<String> {
+        val normalized = values.map { it.trim().uppercase() }.distinct()
+        require(normalized.size <= allowed.size) { "$field contains too many values" }
+        require(normalized.all { it in allowed }) { "$field contains an unsupported value" }
+        return allowed.filter { it in normalized }
+    }
+}
 
 internal data class CommunityProgram(
     val publicProgramId: String,

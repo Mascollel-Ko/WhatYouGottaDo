@@ -386,6 +386,13 @@
     <string name="community_filter_badminton">Badminton included</string>
     <string name="community_filter_functional_not_included">Functional excluded</string>
     <string name="community_filter_badminton_not_included">Badminton excluded</string>
+    <string name="community_filter_functional_goals">Functional goals</string>
+    <string name="community_filter_badminton_goals">Badminton goals</string>
+    <string name="community_filter_all">All</string>
+    <string name="community_filter_apply">Apply</string>
+    <string name="community_sort">Sort</string>
+    <string name="community_functional_goals">Functional goals</string>
+    <string name="community_badminton_goals">Badminton goals</string>
     <string name="community_publish_form_title">Share program</string>
     <string name="community_update_form_title">Update publication</string>
     <string name="community_strength_region">Strength region</string>
