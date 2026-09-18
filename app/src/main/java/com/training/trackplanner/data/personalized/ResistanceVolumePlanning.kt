@@ -108,17 +108,17 @@ internal object ResistanceVolumePlanner {
         when {
             normal.isNotEmpty() -> {
                 baselineValues = normal
-                baseline = median(normal)!!
+                baseline = median(normal.map(Int::toDouble))!!
                 source = "NORMAL_COMPLETE_WEEK_MEDIAN"
             }
             active.isNotEmpty() -> {
                 baselineValues = active
-                baseline = median(active)!!
+                baseline = median(active.map(Int::toDouble))!!
                 source = "ACTIVE_COMPLETE_WEEK_MEDIAN"
             }
             recent.isNotEmpty() -> {
                 baselineValues = recent
-                baseline = median(recent)!!
+                baseline = median(recent.map(Int::toDouble))!!
                 source = "RECENT_RESISTANCE_WEEK_MEDIAN"
             }
             else -> {
