@@ -85,6 +85,7 @@ class PersonalizedPlannerParityTest {
             if (separationGolden.getValue(name)[2] != emptyDays)
                 mismatches += "$name empty active days ${separationGolden.getValue(name)[2]} -> $emptyDays"
         }
+        if (mismatches.isNotEmpty()) println("PARITY_MISMATCHES\n" + mismatches.joinToString("\n"))
         assertTrue(mismatches.joinToString("\n"),mismatches.isEmpty())
     }
 
