@@ -104,7 +104,7 @@ class PersonalizedPlannerV010Test {
     }
 
     @Test
-    fun `actual court cost remains when badminton generation intent is disabled and stays lower body local`() {
+    fun `absolute court load alone does not reduce local resistance dose`() {
         val lower = anchor("squat", MovementCoverage.LOWER_KNEE, StrengthProgrammingStyle.HEAVY_LIGHT_MEDIUM)
         val upper = anchor("press", MovementCoverage.HORIZONTAL_PUSH, StrengthProgrammingStyle.HEAVY_LIGHT_MEDIUM)
         val features = StyleFeatures(weeklyFrequency = 3.0, frequencyStability = 1.0, loadUndulation = 1.0, hlmOrdering = 1.0, heavyExposure = 1.0, weeksObserved = 8)
@@ -117,9 +117,9 @@ class PersonalizedPlannerV010Test {
         val planner = AdaptationTransitionPlanner()
         val lowerDecision = planner.decide(lower, state, emptyList())
         val upperDecision = planner.decide(upper, state, emptyList())
-        assertTrue(lowerDecision.adaptation.sportInterferencePressure > 0.0)
+        assertEquals(0.0, lowerDecision.adaptation.sportInterferencePressure, .0001)
         assertEquals(0.0, upperDecision.adaptation.sportInterferencePressure, .0001)
-        assertTrue(lowerDecision.localDoseFactor < upperDecision.localDoseFactor)
+        assertEquals(lowerDecision.localDoseFactor, upperDecision.localDoseFactor, .0001)
     }
 
     @Test

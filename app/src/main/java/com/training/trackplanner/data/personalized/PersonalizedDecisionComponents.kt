@@ -93,13 +93,17 @@ class AdaptationTransitionPlanner {
         val frequencyPressure = clip((features.weeklyFrequency - 2.0) / 2.0)
         val styleDemand = clip(.45 * features.heavyExposure + .35 * frequencyPressure + .20 * features.withinSessionRamping)
         val lowerAnchor = anchor.movementGroup in setOf(MovementCoverage.LOWER_KNEE.name, MovementCoverage.POSTERIOR_CHAIN.name)
-        val sportInterference = if (lowerAnchor) clip((state.genericCourtLoad / 240.0) * styleDemand) else 0.0
+        // Court volume is not a resistance penalty by itself.  Only deviation
+        // from the user's demonstrated court baseline, paired with negative
+        // lower-body evidence, can moderate a lower-body resistance anchor.
+        val courtInterference = if (lowerAnchor)
+            clip(state.courtDeviation * state.lowerNegativeEvidence * styleDemand) else 0.0
         val goalAlignment = goalAlignment(state, features, styleDemand)
         val evidence = confidenceScore.getValue(anchor.styleConfidence)
         val continuityBase = .40 * evidence + .20 * features.frequencyStability + .20 * clip(.50 + .50 * response) + .20 * goalAlignment
         val rotation = clip(.45 * gapPressure + .30 * rotationReadiness + .25 * (1.0 - goalAlignment))
         val continuity = clip(continuityBase - .35 * rotation - .15 * maxOf(0.0, -response) * maxOf(responseConfidence, .35))
-        var localDose = clip(1.0 - .15 * maxOf(0.0, -response) * responseConfidence - .18 * sportInterference, .65, 1.0)
+        var localDose = clip(1.0 - .15 * maxOf(0.0, -response) * responseConfidence - .18 * courtInterference, .65, 1.0)
         if (anchor.stableKey in state.recoverySignals.tissueRestrictedStableKeys) localDose = minOf(localDose, .80)
         val structure = when {
             continuity >= .76 && rotation < .42 -> StructureTreatment.PRESERVE
@@ -124,7 +128,7 @@ class AdaptationTransitionPlanner {
         val preserved = featureScores.entries.sortedWith(compareByDescending<Map.Entry<String, Double>> { it.value }.thenBy { it.key })
             .filter { it.value >= .55 + .15 * rotation }.map(Map.Entry<String, Double>::key)
         val moderated = buildList {
-            if (sportInterference >= .45 || -response * responseConfidence >= .45 || anchor.stableKey in state.recoverySignals.tissueRestrictedStableKeys || state.recoverySignals.readinessStatus == "LIMITED") {
+            if (courtInterference >= .45 || -response * responseConfidence >= .45 || anchor.stableKey in state.recoverySignals.tissueRestrictedStableKeys || state.recoverySignals.readinessStatus == "LIMITED") {
                 if (features.heavyExposure >= .55) add("heavy_exposure")
                 if (features.weeklyFrequency >= 3.0) add("weekly_frequency")
                 if (features.withinSessionRamping >= .30) add("within_session_ramping")
@@ -137,7 +141,7 @@ class AdaptationTransitionPlanner {
             observedStyle = anchor.style,
             observedConfidence = anchor.styleConfidence,
             styleFeatures = features,
-            adaptation = AdaptationState(response, responseConfidence, maturity, rotationReadiness, gapPressure, systemicRecovery, sportInterference, goalAlignment, styleDemand),
+            adaptation = AdaptationState(response, responseConfidence, maturity, rotationReadiness, gapPressure, systemicRecovery, courtInterference, goalAlignment, styleDemand),
             structureTreatment = structure,
             doseTreatment = dose,
             continuityScore = continuity,
@@ -149,7 +153,7 @@ class AdaptationTransitionPlanner {
                 if (evidence >= .75) add("반복 기록에서 신뢰할 수 있는 기존 구성이 확인됐습니다.")
                 if (gapPressure >= .55) add("확인된 보완 대상 때문에 다음 블록의 배분을 조정했습니다.")
                 if (-response * responseConfidence >= .45) add("이 운동의 반복 수행 저하에 따라 국소 용량을 조정했습니다.")
-                if (sportInterference >= .30) add("실제 주간 코트 부하가 하체 앵커의 비용을 높였습니다.")
+                if (courtInterference >= .30) add("평소 코트 운동량을 벗어난 증가와 하체 수행 저하가 함께 확인되어 관련 용량을 조정했습니다.")
                 if (anchor.stableKey in state.recoverySignals.tissueRestrictedStableKeys) add("조직 제한 stableKey라서 이 앵커의 증량을 차단했습니다.")
             }
         )
@@ -397,7 +401,7 @@ class BlockIntentPlanner {
             if (state.badmintonIntent == BadmintonPlanningIntent.UNRESOLVED) add("배드민턴 계획 의도가 미해결이어서 배드민턴 드릴을 새로 추가하지 않았습니다.")
             add("확인되지 않은 새 운동의 시작 중량은 RPE 기반으로 결정하며 기계 중량을 프리웨이트 중량으로 변환하지 않습니다.")
             add(state.recoveryConstraint)
-            if (state.genericCourtLoad > 0.0) add("최근 일반 코트 부하 ${state.genericCourtLoad.roundToInt()}가 주간 빈도·밀도·회복 여유에 반영됐습니다. 이 부하는 Objective V2 자극으로 계산하지 않았습니다.")
+            if (state.courtDeviation > 0.0 && state.lowerNegativeEvidence > 0.0) add("최근 코트 운동량은 개인의 평소 코트 운동량과 비교하며, 평소 범위를 벗어난 증가와 실제 수행·회복 악화가 함께 확인될 때 관련 하체 운동의 용량 조정에 반영합니다.")
             if (state.recoverySignals.tissueRestrictedStableKeys.isNotEmpty()) add("조직 회복 상태가 높은 기여 운동의 증량을 제한합니다.")
         }
         return BlockIntent(state.primaryAdaptation, duration.first, duration.second, selectedStyle, if (preserveObserved) "OBSERVED_HISTORY_ONLY" else "UNRESOLVED_OBSERVATION", reasons, constraints, listOf("HISTORY_CUTOFF_ENFORCED", "FIXED_56_DAY_DECISION_WINDOW", "STABLE_KEY_AUTHORITY", "CONTINUITY_HYSTERESIS") + state.recoverySignals.sourceCodes.sorted() + gaps.map { "GAP_${it.code}" })

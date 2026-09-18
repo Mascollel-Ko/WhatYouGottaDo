@@ -387,24 +387,16 @@ class PersonalizedProgramBuilder(
         progress.report(PersonalizedPlannerStage.DEMAND)
         val transitionPlanner = AdaptationTransitionPlanner()
         val transitions = state.anchors.associate { anchor -> anchor.stableKey to transitionPlanner.decide(anchor, state, gaps) }
-        val recentResistance = snapshot.allConfirmedSets.filter {
-            !it.date.isBefore(snapshot.cutoff.minusDays(55)) && snapshot.activityKind(it.stableKey) == PlannedActivityKind.RESISTANCE
-        }
-        val weeklyResistance = recentResistance.groupBy {
-            it.date.get(java.time.temporal.IsoFields.WEEK_BASED_YEAR) to it.date.get(java.time.temporal.IsoFields.WEEK_OF_WEEK_BASED_YEAR)
-        }.values.map(List<*>::size)
-        val baselineResistance = weeklyResistance.average().takeIf { it.isFinite() } ?: state.anchors.sumOf { anchor ->
+        val anchorFallbackResistance = state.anchors.sumOf { anchor ->
             anchor.sets.toDouble() / (state.styleFeaturesByAnchor[anchor.stableKey]?.weeksObserved ?: 1).coerceAtLeast(1)
         }
         val systemicDoseFactor = state.trainingStateAssessment?.globalDoseFactor ?: 1.0
-        val normalWeeks = state.trainingStateAssessment?.weeklyContext.orEmpty().filter { it.context == WeeklyTrainingContext.NORMAL }
-        val normalResistance = trainingMedian(normalWeeks.map { week -> snapshot.allConfirmedSets.count {
-            it.date in week.start..week.end && snapshot.activityKind(it.stableKey) == PlannedActivityKind.RESISTANCE }.toDouble() })
-        val continuityReference = if (state.trainingStateAssessment?.permitsSustainableRelease == true)
-            maxOf(baselineResistance, normalResistance ?: baselineResistance) else baselineResistance
-        val resistanceContinuityDemand = continuityReference.roundToInt().coerceAtLeast(if (state.anchors.isEmpty()) 0 else 1)
         val demand = MaterialDemandResolver(generationPrescriptions).resolve(snapshot, state, gaps, request)
         val materialKeys = demand.candidates.filter(PlannedExercise::material).mapTo(mutableSetOf(), PlannedExercise::stableKey)
+        val provisionalResistance = ResistanceVolumePlanner.plan(snapshot, state, request, Int.MAX_VALUE, anchorFallbackResistance)
+        val baselineResistance = provisionalResistance.resistanceBaselineSets
+        val resistanceContinuityDemand = provisionalResistance.resistanceCoreTarget
+            .coerceAtLeast(if (state.anchors.isEmpty()) 0 else 1)
         val performanceContinuity = snapshot.allConfirmedSets.filter {
             !it.date.isBefore(snapshot.cutoff.minusDays(27)) && !it.date.isAfter(snapshot.cutoff) &&
                 snapshot.activityKind(it.stableKey) in PERFORMANCE_ACTIVITY_KINDS &&
@@ -423,7 +415,8 @@ class PersonalizedProgramBuilder(
             }
         val continuityDemand = resistanceContinuityDemand + performanceContinuity.sumOf(PlannedExercise::targetSets)
         val materialCandidates = demand.candidates.filter(PlannedExercise::material).sortedWith(
-            compareByDescending<PlannedExercise> { it.priority }.thenBy { it.stableKey })
+            compareByDescending<PlannedExercise> { snapshot.activityKind(it.stableKey) == PlannedActivityKind.RESISTANCE }
+                .thenByDescending { it.priority }.thenBy { it.stableKey })
         val optionalCandidates = demand.candidates.filterNot(PlannedExercise::material).take(1)
         val lead = transitions.values.maxByOrNull(AnchorTransition::rotationPressure)
         val share = when (lead?.structureTreatment) {
@@ -434,13 +427,33 @@ class PersonalizedProgramBuilder(
             null -> 0.0
         }
         val materialRequested = materialCandidates.sumOf(PlannedExercise::targetSets)
+        val resistanceUsefulDemand = resistanceContinuityDemand +
+            materialCandidates.filter { snapshot.activityKind(it.stableKey) == PlannedActivityKind.RESISTANCE }.sumOf(PlannedExercise::targetSets) +
+            optionalCandidates.filter { snapshot.activityKind(it.stableKey) == PlannedActivityKind.RESISTANCE }.sumOf(PlannedExercise::targetSets)
+        val resistanceBudget = ResistanceVolumePlanner.plan(snapshot, state, request, resistanceUsefulDemand, anchorFallbackResistance)
+        val domains = DomainVolumeBudget(
+            resistance = resistanceBudget,
+            structuredBadminton = PerformanceVolumeBudget(
+                targetBouts = performanceContinuity.filter { snapshot.activityKind(it.stableKey) == PlannedActivityKind.STRUCTURED_BADMINTON_DRILL }.sumOf(PlannedExercise::targetSets) +
+                    materialCandidates.filter { snapshot.activityKind(it.stableKey) == PlannedActivityKind.STRUCTURED_BADMINTON_DRILL }.sumOf(PlannedExercise::targetSets),
+                authorizedBouts = performanceContinuity.filter { snapshot.activityKind(it.stableKey) == PlannedActivityKind.STRUCTURED_BADMINTON_DRILL }.sumOf(PlannedExercise::targetSets),
+                finalBouts = 0
+            ),
+            athleticPerformance = PerformanceVolumeBudget(
+                targetBouts = performanceContinuity.filter { snapshot.activityKind(it.stableKey) == PlannedActivityKind.ATHLETIC_PERFORMANCE_DRILL }.sumOf(PlannedExercise::targetSets) +
+                    materialCandidates.filter { snapshot.activityKind(it.stableKey) == PlannedActivityKind.ATHLETIC_PERFORMANCE_DRILL }.sumOf(PlannedExercise::targetSets),
+                authorizedBouts = performanceContinuity.filter { snapshot.activityKind(it.stableKey) == PlannedActivityKind.ATHLETIC_PERFORMANCE_DRILL }.sumOf(PlannedExercise::targetSets),
+                finalBouts = 0
+            )
+        )
         val envelope = capacityOverride ?: ExecutionCapacityPlanner().envelope(snapshot, state, request, baselineResistance,
-            continuityDemand + materialRequested, systemicDoseFactor)
-        val coreReserve = if (state.anchors.isEmpty()) 0 else minOf(continuityDemand, state.anchors.size).coerceAtLeast(1)
+            continuityDemand + materialRequested, systemicDoseFactor, domains)
+        val coreReserve = minOf(resistanceBudget.resistanceTargetSets, continuityDemand)
         val capacityExpanded = baselineResistance < 4.0 && materialCandidates.any { it.priority >= 100 } && systemicDoseFactor >= .92
         val capacity = if (envelope.historicalSessionObservationCount < 4)
-            minOf(envelope.finalControllableUnits, if (capacityExpanded) maxOf(continuityDemand, coreReserve + (materialCandidates.firstOrNull()?.targetSets ?: 0)) else continuityDemand)
-            else envelope.finalControllableUnits
+            minOf(maxOf(envelope.finalControllableUnits, resistanceBudget.resistanceTargetSets),
+                if (capacityExpanded) maxOf(continuityDemand, coreReserve + (materialCandidates.firstOrNull()?.targetSets ?: 0)) else maxOf(continuityDemand, resistanceBudget.resistanceTargetSets))
+            else maxOf(envelope.finalControllableUnits, resistanceBudget.resistanceTargetSets)
         val finite = FiniteExecutionAllocator.allocate(capacity, continuityDemand, materialCandidates.map(PlannedExercise::targetSets), share, coreReserve,
             materialCandidates.indices.filterTo(mutableSetOf()) { snapshot.activityKind(materialCandidates[it].stableKey) == PlannedActivityKind.RESISTANCE })
         val anchorWeights = state.anchors.associate { anchor ->
@@ -448,9 +461,14 @@ class PersonalizedProgramBuilder(
             val transition = transitions.getValue(anchor.stableKey)
             anchor.stableKey to maxOf(.20, anchor.sets.toDouble() / weeks) * maxOf(.25, transition.continuityScore) * transition.localDoseFactor
         }
-        val incumbentWeights = anchorWeights + performanceContinuity.associate { it.stableKey to it.targetSets.toDouble() }
-        val incumbentAllocations = proportionalAllocation(incumbentWeights.entries.sortedByDescending { it.value }
-            .take(finite.continuity).associate { it.toPair() }, finite.continuity)
+        val resistanceUnits = minOf(resistanceBudget.resistanceTargetSets, finite.continuity)
+        val performanceUnits = (finite.continuity - resistanceUnits).coerceAtLeast(0)
+        val resistanceAllocations = proportionalAllocation(anchorWeights.entries.sortedByDescending { it.value }
+            .take(resistanceUnits).associate { it.toPair() }, resistanceUnits)
+        val performanceWeights = performanceContinuity.associate { it.stableKey to it.targetSets.toDouble() }
+        val performanceAllocations = proportionalAllocation(performanceWeights.entries.sortedByDescending { it.value }
+            .take(performanceUnits).associate { it.toPair() }, performanceUnits)
+        val incumbentAllocations = resistanceAllocations + performanceAllocations
         val allocations = incumbentAllocations.filterKeys { it in anchorWeights }
         val days = request.weeklyTrainingDays.coerceIn(2, 5)
         val placementContext = PlacementContext(snapshot, state, days, request.sessionMinutes)
@@ -482,7 +500,7 @@ class PersonalizedProgramBuilder(
         val logical = placement.days
         val placementDeferred = placement.deferred
         val performanceItems = selected.filter { snapshot.activityKind(it.stableKey) in PERFORMANCE_ACTIVITY_KINDS }
-        val targetResistance = selected.filter { snapshot.activityKind(it.stableKey) == PlannedActivityKind.RESISTANCE }.sumOf(PlannedExercise::targetSets)
+        val targetResistance = resistanceBudget.resistanceTargetSets
         val schedule = RecordBasedReviewedPolicy.defaultSchedule(horizon, days)
         val retentionPriorities = mutableMapOf<String, Int>()
         val postProcessAtoms = mutableMapOf<String, String>()
@@ -548,6 +566,10 @@ class PersonalizedProgramBuilder(
             systemicDoseFactor = systemicDoseFactor,
             targetAthleticPerformanceBouts = performanceItems.filter { snapshot.activityKind(it.stableKey) == PlannedActivityKind.ATHLETIC_PERFORMANCE_DRILL }.sumOf(PlannedExercise::targetSets),
             plannedAthleticPerformanceBouts = plannedAthleticBouts,
+            resistance = resistanceBudget.copy(resistanceAuthorizedBeforeCompletion = selected.filter {
+                snapshot.activityKind(it.stableKey) == PlannedActivityKind.RESISTANCE
+            }.sumOf(PlannedExercise::targetSets)),
+            domains = domains,
             execution = ExecutionAllocationTrace(
                 capacity = envelope,
                 continuityRequestedUnits = continuityDemand,
@@ -582,9 +604,14 @@ class PersonalizedProgramBuilder(
             strengthIntent = state.strengthIntent.name, strengthIntentProvenance = if (snapshot.preferences.strengthIntent != null || QUESTION_STRENGTH_INTENT in answers.values) "EXPLICIT_USER" else "INFERRED_OR_UNRESOLVED",
             badmintonIntent = state.badmintonIntent.name, badmintonIntentProvenance = if (snapshot.preferences.badmintonIntent != null || QUESTION_BADMINTON_INTENT in answers.values) "EXPLICIT_USER" else "PROFILE_OR_UNRESOLVED",
             primaryAdaptation = intent.primary, secondaryTargets = gaps.map(AdaptationGap::code), strengthStyle = state.observedStrengthStyle.name, strengthStyleProvenance = "OBSERVED_HISTORY_ONLY", weeklyFrequency = days,
-            confidence = state.confidence.name, reasonCodes = intent.reasonCodes + listOf("RESOLVED_WEEKLY_DAYS_${days}", "WEEKLY_COURT_LOAD_NORMALIZED", "CROSS_DOMAIN_FINITE_EXECUTION_ALLOCATION") + if (capacityExpanded) listOf("MINIMAL_CAPACITY_EXPANSION") else emptyList(), reasons = intent.reasons, constraints = intent.constraints, metadataAuthorityVersion = PERSONALIZED_AUTHORITY_VERSION, priorDecisionId = priorDecisionId, userAnswers = answers.values,
+            confidence = state.confidence.name, reasonCodes = intent.reasonCodes + listOf("RESOLVED_WEEKLY_DAYS_${days}", "WEEKLY_COURT_LOAD_NORMALIZED", "DOMAIN_SEPARATE_VOLUME_AUTHORIZATION", "COMBINED_SCHEDULING_CANONICAL_VALIDATION") + if (capacityExpanded) listOf("MINIMAL_CAPACITY_EXPANSION") else emptyList(), reasons = intent.reasons, constraints = intent.constraints, metadataAuthorityVersion = PERSONALIZED_AUTHORITY_VERSION, priorDecisionId = priorDecisionId, userAnswers = answers.values,
             originalGenerationFingerprint = fingerprint, recoverySignalCodes = state.recoverySignals.sourceCodes.sorted(), genericCourtLoad = state.genericCourtLoad, objectiveExposure = state.objectiveExposure,
             anchorTransitions = transitions.values.sortedBy(AnchorTransition::stableKey), planningBudget = budget,
+            courtBaselineLoad = state.courtBaselineLoad,
+            recentCourtLoad = state.recentCourtLoad,
+            courtDeviation = state.courtDeviation,
+            lowerNegativeEvidence = state.lowerNegativeEvidence,
+            courtInterference = state.courtInterference,
             authorizedScheduling = placement.trace.copy(origins = postProcessOrigins, initialWeek = firstWeek,
                 localOrigins = postProcessAtoms.mapValues { postProcessOrigins.getValue(it.value) }),
             movementRepresentations = state.movementRepresentations,
@@ -610,12 +637,30 @@ class PersonalizedProgramBuilder(
         val completedWeek = completion.skeleton.items.filter { it.weekNumber == 1 }
         fun completedUnits(kind: PlannedActivityKind) = completedWeek.filter { snapshot.activityKind(it.exerciseStableKey) == kind }
             .sumOf { it.setPrescriptions.size }
+        val completedResistance = completedUnits(PlannedActivityKind.RESISTANCE)
+        val completedStructured = completedUnits(PlannedActivityKind.STRUCTURED_BADMINTON_DRILL)
+        val completedAthletic = completedUnits(PlannedActivityKind.ATHLETIC_PERFORMANCE_DRILL)
+        val finalizedBudget = budget.copy(
+            plannedResistanceSets = completedResistance,
+            plannedStructuredBadmintonBouts = completedStructured,
+            plannedAthleticPerformanceBouts = completedAthletic,
+            resistance = budget.resistance?.copy(
+                resistanceCompletionAddedSets = (completedResistance - (budget.resistance.resistanceAuthorizedBeforeCompletion)).coerceAtLeast(0),
+                resistanceFinalSets = completedResistance
+            ),
+            domains = budget.domains?.let { domains -> domains.copy(
+                resistance = domains.resistance.copy(
+                    resistanceCompletionAddedSets = (completedResistance - domains.resistance.resistanceAuthorizedBeforeCompletion).coerceAtLeast(0),
+                    resistanceFinalSets = completedResistance
+                ),
+                structuredBadminton = domains.structuredBadminton.copy(finalBouts = completedStructured),
+                athleticPerformance = domains.athleticPerformance.copy(finalBouts = completedAthletic)
+            ) }
+        )
         if (finish != null) return finish(completion.copy(skeleton = completion.skeleton.copy(personalizedDecision = decision.copy(
             authorizedScheduling = completion.skeleton.personalizedDecision?.authorizedScheduling,
             residualCompletion = completion.trace,
-            planningBudget = budget.copy(plannedResistanceSets = completedUnits(PlannedActivityKind.RESISTANCE),
-                plannedStructuredBadmintonBouts = completedUnits(PlannedActivityKind.STRUCTURED_BADMINTON_DRILL),
-                plannedAthleticPerformanceBouts = completedUnits(PlannedActivityKind.ATHLETIC_PERFORMANCE_DRILL)),
+            planningBudget = finalizedBudget,
             weeklyFrequency = completion.skeleton.request.weeklyTrainingDays))))
         // The second stage owns only placement. Its fail-safe is CompletedPlan, never InitialSkeleton.
         progress.report(PersonalizedPlannerStage.BALANCE)
@@ -627,9 +672,7 @@ class PersonalizedProgramBuilder(
             dayRebalancing = rebalanced.trace,
             frequencyDemand = decision.frequencyDemand?.copy(actualMaterializedUnits = completedWeek.sumOf { it.setPrescriptions.size }),
             // Existing execution trace remains the initial allocation audit; display counts describe the completed plan.
-            planningBudget = budget.copy(plannedResistanceSets = completedUnits(PlannedActivityKind.RESISTANCE),
-                plannedStructuredBadmintonBouts = completedUnits(PlannedActivityKind.STRUCTURED_BADMINTON_DRILL),
-                plannedAthleticPerformanceBouts = completedUnits(PlannedActivityKind.ATHLETIC_PERFORMANCE_DRILL)),
+            planningBudget = finalizedBudget,
             weeklyFrequency = completion.skeleton.request.weeklyTrainingDays))
     }
 

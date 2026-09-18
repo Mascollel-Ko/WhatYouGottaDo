@@ -1108,7 +1108,7 @@
       "familyId": "STRENGTH",
       "titleKo": "근력훈련 volume 계산",
       "titleEn": "Strength Volume Calculation",
-      "currentVersion": "1.6.0",
+      "currentVersion": "1.7.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1131,7 +1131,8 @@
         "app/src/main/java/com/training/trackplanner/AnalysisChartUi.kt",
         "app/src/main/java/com/training/trackplanner/analysis/core/CoreStimulusCalculator.kt",
         "app/src/main/java/com/training/trackplanner/analysis/core/CoreStimulusWeeklySeries.kt",
-        "app/src/main/java/com/training/trackplanner/analysis/lab/CoreStimulusMetricSeriesBuilder.kt"
+        "app/src/main/java/com/training/trackplanner/analysis/lab/CoreStimulusMetricSeriesBuilder.kt",
+        "app/src/main/java/com/training/trackplanner/data/personalized/ResistanceVolumePlanning.kt"
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/analysis/features/BodyweightEffectiveLoadCalculatorTest.kt",
@@ -1144,7 +1145,8 @@
         "app/src/test/java/com/training/trackplanner/analysis/core/CoreStimulusCalculatorTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/core/CoreStimulusWeeklySeriesTest.kt",
         "app/src/test/java/com/training/trackplanner/CoreStimulusChartSpecTest.kt",
-        "app/src/test/java/com/training/trackplanner/analysis/lab/CoreStimulusMetricSeriesBuilderTest.kt"
+        "app/src/test/java/com/training/trackplanner/analysis/lab/CoreStimulusMetricSeriesBuilderTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/personalized/ResistanceVolumePlanningTest.kt"
       ],
       "authorityAssets": [
         "app/src/main/assets/metadata/canonical_v1/core_relations.csv"
@@ -1375,7 +1377,7 @@
       "familyId": "PROGRAM_BUILDER",
       "titleKo": "자동·기록 기반 프로그램 생성 개요",
       "titleEn": "Automatic and Record-Based Program Builder Overview",
-      "currentVersion": "3.17.0",
+      "currentVersion": "3.18.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1424,6 +1426,7 @@
         "app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt",
         "app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt",
         "app/src/main/java/com/training/trackplanner/data/personalized/ExecutionAllocationPlanner.kt",
+        "app/src/main/java/com/training/trackplanner/data/personalized/ResistanceVolumePlanning.kt",
         "app/src/main/java/com/training/trackplanner/data/personalized/PlannerPerformanceMetrics.kt",
         "app/src/main/java/com/training/trackplanner/data/personalized/ResidualCompletion.kt",
         "app/src/main/java/com/training/trackplanner/data/personalized/BoundedDayRebalancer.kt",
@@ -1470,6 +1473,7 @@
         "app/src/test/java/com/training/trackplanner/data/personalized/PersonalizedPlannerV010Test.kt",
         "app/src/test/java/com/training/trackplanner/data/personalized/ExposureRepresentationV011Test.kt",
         "app/src/test/java/com/training/trackplanner/data/personalized/ExecutionAllocationV012Test.kt",
+        "app/src/test/java/com/training/trackplanner/data/personalized/ResistanceVolumePlanningTest.kt",
         "app/src/test/java/com/training/trackplanner/data/personalized/ResidualCompletionTest.kt",
         "app/src/test/java/com/training/trackplanner/data/personalized/BoundedDayRebalancerTest.kt",
         "app/src/test/java/com/training/trackplanner/data/personalized/SplitAwareContinuityAllocationTest.kt",

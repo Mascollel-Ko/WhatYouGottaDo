@@ -148,7 +148,10 @@ data class AdaptationState(
     val sportInterferencePressure: Double,
     val goalAlignment: Double,
     val styleDemand: Double
-)
+) {
+    /** Current name for the lower-body court deviation interaction. */
+    val courtInterference: Double get() = sportInterferencePressure
+}
 
 data class AnchorTransition(
     val stableKey: String,
@@ -175,7 +178,9 @@ data class PlanningBudget(
     val systemicDoseFactor: Double,
     val targetAthleticPerformanceBouts: Int = 0,
     val plannedAthleticPerformanceBouts: Int = 0,
-    val execution: ExecutionAllocationTrace? = null
+    val execution: ExecutionAllocationTrace? = null,
+    val resistance: ResistanceVolumeBudget? = null,
+    val domains: DomainVolumeBudget? = null
 )
 
 data class PlanningSetRecord(
@@ -269,7 +274,12 @@ data class AthletePlanningState(
     val resistanceFoundationalOnramp: Boolean = false,
     val badmintonFoundationalOnramp: Boolean = false,
     val trainingStateAssessment: TrainingStateAssessment? = null,
-    val fullEligibleIncumbentRanking: List<EligibleIncumbentCandidate> = emptyList()
+    val fullEligibleIncumbentRanking: List<EligibleIncumbentCandidate> = emptyList(),
+    val courtBaselineLoad: Double = 0.0,
+    val recentCourtLoad: Double = 0.0,
+    val courtDeviation: Double = 0.0,
+    val lowerNegativeEvidence: Double = 0.0,
+    val courtInterference: Double = 0.0
 )
 
 data class AdaptationGap(
@@ -335,7 +345,12 @@ data class PersonalizedPlanningDecision(
     val postSplitReflow: PostSplitReflowTrace? = null,
     val authorizedScheduling: AuthorizedSchedulingTrace? = null,
     val frequencyDemand: FrequencyDemandProvenance? = null,
-    val frequencyExpansion: FrequencyExpansionTrace? = null
+    val frequencyExpansion: FrequencyExpansionTrace? = null,
+    val courtBaselineLoad: Double = 0.0,
+    val recentCourtLoad: Double = 0.0,
+    val courtDeviation: Double = 0.0,
+    val lowerNegativeEvidence: Double = 0.0,
+    val courtInterference: Double = 0.0
 )
 
 sealed interface PersonalizedPlanningOutcome {

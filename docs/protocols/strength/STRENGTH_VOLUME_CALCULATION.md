@@ -3,13 +3,28 @@
 | Field | Value |
 |---|---|
 | Protocol ID | STRENGTH-VOLUME |
-| Protocol version | 1.6.0 |
+| Protocol version | 1.7.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | UNKNOWN_PENDING_AUDIT; CoreStimulus V1 from v0.5.0.33; weekly core presentation from v0.5.0.34; Lab pseudo-core metrics retired in v0.5.0.35; exact load/muscle authority from v0.5.0.36; dead cumulative compatibility removed in v0.5.0.37; debug-only V3 Common metrics retired after v0.5.0.37 |
 | Last audited commit | fd3fe5a |
 | Evidence profile | MIXED, PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
+
+## Record-Based resistance authorization boundary
+
+The Record-Based planner counts only confirmed `RESISTANCE` sets in complete
+ISO weeks for its demonstrated resistance workload. NORMAL complete weeks are
+the primary source, with active, recent and anchor-derived fallbacks recorded
+explicitly. Q25, median and Q75 are audit values; the median is the default
+baseline. Structured badminton drills and athletic-performance drills have
+separate bout budgets and never become resistance sets.
+
+The resulting resistance target is bounded by useful existing demand,
+resistance session time and the explicit extra-day release. The existing
+global recovery dose factor remains authoritative. These values describe
+demonstrated workload and scheduling availability; they are not MRV, an
+optimal dose, or medical safety certification.
 
 ## v0.5.0.33 CoreStimulus V1
 

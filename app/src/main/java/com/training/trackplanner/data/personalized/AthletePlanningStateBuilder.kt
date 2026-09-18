@@ -82,6 +82,11 @@ class AthletePlanningStateBuilder(
             else -> PlanningConfidence.LOW
         }
         val assessment = TrainingStateAnalyzer().assess(snapshot.trainingStateInput(answers))
+        val court = ResistanceVolumePlanner.courtTrace(snapshot)
+        val lowerNegativeEvidence = listOf(MovementCoverage.LOWER_KNEE, MovementCoverage.POSTERIOR_CHAIN)
+            .mapNotNull { movement -> assessment.adaptation.movements[movement]?.let { evidence ->
+                (-evidence.response * evidence.confidence).coerceIn(0.0, 1.0)
+            } }.maxOrNull() ?: 0.0
         return AthletePlanningState(
             observedBehavior = behavior,
             strengthExposure = exposure,
@@ -114,7 +119,12 @@ class AthletePlanningStateBuilder(
             resistanceFoundationalOnramp = movementRepresentations.sumOf(MovementExposureRepresentation::currentExposure28d) == 0.0,
             badmintonFoundationalOnramp = currentStructuredObjectiveSessions == 0,
             trainingStateAssessment = assessment,
-            fullEligibleIncumbentRanking = ranking
+            fullEligibleIncumbentRanking = ranking,
+            courtBaselineLoad = court.baselineLoad,
+            recentCourtLoad = court.recentLoad,
+            courtDeviation = court.deviation,
+            lowerNegativeEvidence = lowerNegativeEvidence,
+            courtInterference = court.deviation * lowerNegativeEvidence
         )
     }
 

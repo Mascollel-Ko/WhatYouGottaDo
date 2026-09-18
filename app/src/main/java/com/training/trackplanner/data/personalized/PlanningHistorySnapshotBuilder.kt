@@ -10,6 +10,8 @@ import com.training.trackplanner.data.InitialUserProfile
 import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import java.time.LocalDate
+import java.time.DayOfWeek
+import java.time.temporal.TemporalAdjusters
 
 class PlanningHistorySnapshotBuilder {
     fun build(
@@ -68,6 +70,12 @@ class PlanningHistorySnapshotBuilder {
             .calculate(recentHistory, exerciseByKey)
         val genericCourtLoad28d = BadmintonPracticeLoadCalculator(runtimeCatalog)
             .calculateRaw(recentHistory, exerciseByKey)
+        val weeklyCourtLoad = eligibleHistory
+            .mapNotNull { record -> runCatching { LocalDate.parse(record.entry.date) to record }.getOrNull() }
+            .groupBy { (date, _) -> date.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY)) }
+            .mapValues { (_, dated) ->
+                BadmintonPracticeLoadCalculator(runtimeCatalog).calculateRaw(dated.map { it.second }, exerciseByKey)
+            }
         return PlanningHistorySnapshot(
             cutoff = cutoff,
             allConfirmedSets = confirmed,
@@ -83,6 +91,7 @@ class PlanningHistorySnapshotBuilder {
             objectiveExposure = objectiveExposure,
             canonicalStrengthSignals = canonicalStrengthSignals,
             recoverySignals = recoverySignals,
+            weeklyCourtLoad = weeklyCourtLoad,
             badmintonDirectObjectives = directObjectiveMap,
             badmintonSupportiveObjectives = exercises.associate { exercise ->
                 exercise.stableKey to badmintonCatalog.relations(exercise.stableKey)

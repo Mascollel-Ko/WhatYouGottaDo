@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.17.0 |
+| Protocol version | 3.18.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
@@ -12,6 +12,14 @@
 | Supersedes | — |
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
+
+### 3.18.0 — domain-separated resistance authorization
+
+- Resistance volume is authorized from confirmed RESISTANCE records in complete ISO weeks only. NORMAL weeks provide the primary demonstrated baseline; active, recent and anchor-derived fallbacks are explicit. The audit keeps the resistance week count, Q25/median/Q75, source, core target, day release, time ceiling, useful demand, authorized amount and completion result.
+- Structured badminton drills and athletic-performance drills have separate bout budgets. Their counts are never interchangeable resistance sets, although all funded domains still share the existing final schedule, canonical OFI, connective-tissue/RCV and session-time gates.
+- Absolute badminton/court load is not a resistance penalty. Lower-body local dose uses court deviation from the user's own court baseline multiplied by negative lower-body performance evidence and style demand. A stable demonstrated court load therefore has no interference effect.
+- `R_target = min(R_release, R_time, R_useful)` after the existing global recovery dose factor. Explicit extra training days release only already useful resistance demand; no filler exercise is invented. The bounded residual completion path restores eligible retained/observed resistance candidates one ordered candidate at a time and records rejection reasons.
+- These values describe demonstrated workload and engineering availability. They are not MRV, an optimal dose, a medical safety certification or an injury prediction. Placement performance optimization, canonical OFI/tissue authority, signing, backup, schema and UI contracts remain unchanged.
 
 ## 1. 일반 사용자용 요약
 

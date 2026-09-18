@@ -21,7 +21,8 @@ data class WeeklyCapacityEnvelope(
     val courtInterferenceContext: Double,
     val usefulDemandUnits: Int,
     val scheduleFeasibleUnits: Int,
-    val finalControllableUnits: Int
+    val finalControllableUnits: Int,
+    val domainBudget: DomainVolumeBudget = DomainVolumeBudget()
 )
 
 data class ExecutionAllocationTrace(
@@ -55,7 +56,26 @@ data class ExecutionAllocationTrace(
             .put("courtInterferenceContext", capacity.courtInterferenceContext)
             .put("usefulDemandUnits", capacity.usefulDemandUnits)
             .put("scheduleFeasibleUnits", capacity.scheduleFeasibleUnits)
-            .put("finalControllableUnits", capacity.finalControllableUnits))
+            .put("finalControllableUnits", capacity.finalControllableUnits)
+            .put("domainBudget", JSONObject()
+                .put("resistance", JSONObject()
+                    .put("normalWeekCount", capacity.domainBudget.resistance.resistanceNormalWeekCount)
+                    .put("activeWeekCount", capacity.domainBudget.resistance.resistanceActiveWeekCount)
+                    .put("q25", capacity.domainBudget.resistance.resistanceWeeklyQ25)
+                    .put("median", capacity.domainBudget.resistance.resistanceWeeklyMedian)
+                    .put("q75", capacity.domainBudget.resistance.resistanceWeeklyQ75)
+                    .put("baselineSource", capacity.domainBudget.resistance.resistanceBaselineSource)
+                    .put("baselineSets", capacity.domainBudget.resistance.resistanceBaselineSets)
+                    .put("coreTarget", capacity.domainBudget.resistance.resistanceCoreTarget)
+                    .put("dayRelease", capacity.domainBudget.resistance.resistanceDayRelease)
+                    .put("timeCeiling", capacity.domainBudget.resistance.resistanceTimeCeiling)
+                    .put("usefulDemand", capacity.domainBudget.resistance.resistanceUsefulDemand)
+                    .put("targetSets", capacity.domainBudget.resistance.resistanceTargetSets)
+                    .put("authorizedBeforeCompletion", capacity.domainBudget.resistance.resistanceAuthorizedBeforeCompletion)
+                    .put("completionAddedSets", capacity.domainBudget.resistance.resistanceCompletionAddedSets)
+                    .put("finalSets", capacity.domainBudget.resistance.resistanceFinalSets))
+                .put("structuredBadmintonBouts", capacity.domainBudget.structuredBadminton.targetBouts)
+                .put("athleticPerformanceBouts", capacity.domainBudget.athleticPerformance.targetBouts)))
         .put("continuityRequestedUnits", continuityRequestedUnits)
         .put("continuityAllocatedUnits", continuityAllocatedUnits)
         .put("materialGapRequestedUnits", materialGapRequestedUnits)
@@ -259,7 +279,8 @@ object FiniteExecutionAllocator {
 
 class ExecutionCapacityPlanner {
     fun envelope(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, request: ProgramSkeletonRequest,
-                 baseline: Double, usefulDemand: Int, doseFactor: Double): WeeklyCapacityEnvelope {
+                 baseline: Double, usefulDemand: Int, doseFactor: Double,
+                 domains: DomainVolumeBudget? = null): WeeklyCapacityEnvelope {
         val assessment = state.trainingStateAssessment
         val excludedWeeks = assessment?.weeklyContext.orEmpty().filter { it.excludedFromTolerance }
         val recent = snapshot.allConfirmedSets.filter {
@@ -294,9 +315,12 @@ class ExecutionCapacityPlanner {
         val scheduleUnits = (available / maxOf(45.0, if (median > 0) medianSeconds / median else 135.0)).toInt()
         // Exactly one global soft/hard factor, after availability and useful demand bounds.
         val final = (minOf(usefulDemand, densityBound, scheduleUnits) * doseFactor).roundToInt().coerceAtLeast(0)
+        val domainBudget = domains ?: DomainVolumeBudget(
+            resistance = ResistanceVolumePlanner.plan(snapshot, state, request, usefulDemand, baseline)
+        )
         return WeeklyCapacityEnvelope(request.weeklyTrainingDays, request.sessionMinutes, available, sessions.size,
-            sessions.size, median, typical, medianSeconds, historical, 1.0 - doseFactor, state.genericCourtLoad,
-            usefulDemand, scheduleUnits, final)
+            sessions.size, median, typical, medianSeconds, historical, 1.0 - doseFactor, state.courtInterference,
+            usefulDemand, scheduleUnits, final, domainBudget)
     }
 }
 

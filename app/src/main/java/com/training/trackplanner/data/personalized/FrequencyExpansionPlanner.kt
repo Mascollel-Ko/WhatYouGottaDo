@@ -75,8 +75,14 @@ internal class FrequencyExpansionPlanner(private val prescriptions: Personalized
         val queue = provenance.expansionSupply
         val target = frequencyExpandedTarget(b, frequency.algorithmRecommendedDays, frequency.resolvedUserDays)
         val budget = requireNotNull(baseDecision.planningBudget)
+        val expandedResistance = ResistanceVolumePlanner.plan(
+            snapshot, state, request,
+            budget.resistance?.resistanceUsefulDemand ?: b,
+            budget.baselineResistanceSets
+        )
+        val expandedDomains = budget.domains?.copy(resistance = expandedResistance)
         val capacity = ExecutionCapacityPlanner().envelope(snapshot, state, request, budget.baselineResistanceSets,
-            b + queue.sumOf { it.remainingUnits }, budget.systemicDoseFactor)
+            b + queue.sumOf { it.remainingUnits }, budget.systemicDoseFactor, expandedDomains)
         val ceiling = minOf(target, capacity.finalControllableUnits, b + queue.sumOf { it.remainingUnits })
         val attempts = mutableListOf<FrequencyExpansionAction>()
         val rollbacks = mutableListOf<FrequencyExpansionAction>()

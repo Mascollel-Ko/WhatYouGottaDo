@@ -150,7 +150,8 @@ internal class ResidualCompletion(private val prescriptions: PersonalizedPrescri
         fun timeFill(day: Int) = if (referenceSeconds > 0) dayRows(day).sumOf(::plannedSeconds) / referenceSeconds else 1.0
         fun sparse(day: Int) = unitFill(day) < .50 && timeFill(day) < .50
         fun rankedResiduals() = demand.residuals(rows).filter { it.residual > PLANNING_EPSILON }
-            .sortedWith(compareByDescending<PlanningResidual> { it.priority }.thenByDescending { it.fraction })
+            .sortedWith(compareByDescending<PlanningResidual> { it.unit == PlanningDemandUnit.RESISTANCE_SETS }
+                .thenByDescending { it.priority }.thenByDescending { it.fraction })
         // Existing selector owns ordering/relations; only candidates for a funded residual are considered.
         val alternatives = GapCandidateSelector().select(snapshot, state, gaps,
             state.anchors.mapTo(mutableSetOf(), UserAnchor::stableKey), allAlternatives = true)
@@ -182,7 +183,17 @@ internal class ResidualCompletion(private val prescriptions: PersonalizedPrescri
                         catch (_: IllegalArgumentException) { break }
                     val delta = definition.contribution(snapshot, trial.stableKey, trial.styleVariant, rx.sets.size)
                     val units = rows.sumOf { it.setPrescriptions.size } + rx.sets.size
-                    val capacity = minOf(demand.authorizedUnits, envelope.finalControllableUnits)
+                    // Resistance completion has its own target. Performance
+                    // demand still shares the final schedule, but it cannot
+                    // erase already demonstrated resistance volume merely by
+                    // consuming the combined bookkeeping currency.
+                    val combinedCapacity = minOf(demand.authorizedUnits, envelope.finalControllableUnits)
+                    val resistanceTarget = envelope.domainBudget.resistance.resistanceTargetSets
+                    val currentResistance = rows.filter { snapshot.activityKind(it.exerciseStableKey) == PlannedActivityKind.RESISTANCE }
+                        .sumOf { it.setPrescriptions.size }
+                    val capacity = if (snapshot.activityKind(trial.stableKey) == PlannedActivityKind.RESISTANCE && currentResistance < resistanceTarget)
+                        maxOf(combinedCapacity, resistanceTarget)
+                    else combinedCapacity
                     val sameKeyAuthority = authorized.filter { it.item.stableKey == trial.stableKey }
                     val withinExactKeyCeiling = exact == null || sameKeyAuthority.isEmpty() ||
                         rows.filter { it.exerciseStableKey == trial.stableKey }.sumOf { it.setPrescriptions.size } + rx.sets.size <=

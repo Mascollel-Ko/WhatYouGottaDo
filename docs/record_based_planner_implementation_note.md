@@ -2,6 +2,14 @@
 
 Correction baseline: `fbaf65da9042d7d82c5481b79ee596a0621c3220`. Canonical protocol: `3.3.1`.
 
+## Domain-separated resistance volume authority (current)
+
+The current implementation supersedes the older mixed-domain volume description below for authorization. Complete ISO weeks of confirmed `RESISTANCE` records establish a demonstrated normal resistance baseline with Q25, median and Q75 trace values. NORMAL weeks are preferred, followed by active complete weeks, recent resistance-week median and an explicit anchor fallback. Structured badminton and athletic-performance drills are excluded from this resistance history.
+
+`R_core = round(R_base * globalDoseFactor)`. Explicit user days release only already useful resistance demand through `R_release = R_core + extraDays * (R_base / D_base)`. A resistance-only session-time ceiling and useful-demand ceiling produce `R_target = min(R_release, R_time, R_useful)`. These are engineering planning bounds, not MRV, an optimal dose or a medical safety statement.
+
+Court load is compared with the user's own complete-week court baseline. `courtDeviation = clip((B_recent - B_base) / max(B_base, epsilon), 0, 1)`. Lower-body interference is `courtDeviation * lowerNegativeEvidence * styleDemand`; absolute court load alone cannot reduce resistance local dose. Resistance, structured badminton and athletic-performance targets are authorized separately, then share the existing final placement, canonical OFI, connective-tissue/RCV and session-time gates. The bounded residual completion path can restore only existing useful resistance demand and records every rejected candidate.
+
 ## v0.13 longitudinal state and interruption-aware workload
 
 Runtime: `RECORD_BASED_PLANNER_0.13.1_KOTLIN_1`. The v0.12 sections below describe retained execution machinery; the equations in this section supersede its old soft recovery factor and active-week mean reference.
