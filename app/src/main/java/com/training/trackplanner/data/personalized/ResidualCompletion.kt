@@ -192,7 +192,7 @@ internal class ResidualCompletion(private val prescriptions: PersonalizedPrescri
                     val currentResistance = rows.filter { snapshot.activityKind(it.exerciseStableKey) == PlannedActivityKind.RESISTANCE }
                         .sumOf { it.setPrescriptions.size }
                     val capacity = if (snapshot.activityKind(trial.stableKey) == PlannedActivityKind.RESISTANCE && currentResistance < resistanceTarget)
-                        maxOf(combinedCapacity, resistanceTarget)
+                        minOf(combinedCapacity, resistanceTarget)
                     else combinedCapacity
                     val sameKeyAuthority = authorized.filter { it.item.stableKey == trial.stableKey }
                     val withinExactKeyCeiling = exact == null || sameKeyAuthority.isEmpty() ||

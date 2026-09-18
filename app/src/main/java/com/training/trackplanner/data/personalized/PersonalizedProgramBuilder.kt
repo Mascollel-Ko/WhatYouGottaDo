@@ -448,12 +448,16 @@ class PersonalizedProgramBuilder(
         )
         val envelope = capacityOverride ?: ExecutionCapacityPlanner().envelope(snapshot, state, request, baselineResistance,
             continuityDemand + materialRequested, systemicDoseFactor, domains)
-        val coreReserve = minOf(resistanceBudget.resistanceTargetSets, continuityDemand)
+        // Reserve only the resistance continuity that actually exists in the
+        // current demand.  The independent resistance target remains an
+        // authorization ceiling; it must not turn unused budget into filler.
+        val coreReserve = if (state.anchors.isEmpty()) 0 else
+            minOf(resistanceBudget.resistanceTargetSets, continuityDemand, state.anchors.size).coerceAtLeast(1)
         val capacityExpanded = baselineResistance < 4.0 && materialCandidates.any { it.priority >= 100 } && systemicDoseFactor >= .92
         val capacity = if (envelope.historicalSessionObservationCount < 4)
-            minOf(maxOf(envelope.finalControllableUnits, resistanceBudget.resistanceTargetSets),
-                if (capacityExpanded) maxOf(continuityDemand, coreReserve + (materialCandidates.firstOrNull()?.targetSets ?: 0)) else maxOf(continuityDemand, resistanceBudget.resistanceTargetSets))
-            else maxOf(envelope.finalControllableUnits, resistanceBudget.resistanceTargetSets)
+            minOf(envelope.finalControllableUnits,
+                if (capacityExpanded) maxOf(continuityDemand, coreReserve + (materialCandidates.firstOrNull()?.targetSets ?: 0)) else continuityDemand)
+            else envelope.finalControllableUnits
         val finite = FiniteExecutionAllocator.allocate(capacity, continuityDemand, materialCandidates.map(PlannedExercise::targetSets), share, coreReserve,
             materialCandidates.indices.filterTo(mutableSetOf()) { snapshot.activityKind(materialCandidates[it].stableKey) == PlannedActivityKind.RESISTANCE })
         val anchorWeights = state.anchors.associate { anchor ->
@@ -461,15 +465,12 @@ class PersonalizedProgramBuilder(
             val transition = transitions.getValue(anchor.stableKey)
             anchor.stableKey to maxOf(.20, anchor.sets.toDouble() / weeks) * maxOf(.25, transition.continuityScore) * transition.localDoseFactor
         }
-        val resistanceUnits = minOf(resistanceBudget.resistanceTargetSets, finite.continuity)
-        val performanceUnits = (finite.continuity - resistanceUnits).coerceAtLeast(0)
-        val resistanceAllocations = proportionalAllocation(anchorWeights.entries.sortedByDescending { it.value }
-            .take(resistanceUnits).associate { it.toPair() }, resistanceUnits)
-        val performanceWeights = performanceContinuity.associate { it.stableKey to it.targetSets.toDouble() }
-        val incumbentWeights = anchorWeights + performanceWeights
-        val performanceAllocations = proportionalAllocation(performanceWeights.entries.sortedByDescending { it.value }
-            .take(performanceUnits).associate { it.toPair() }, performanceUnits)
-        val incumbentAllocations = resistanceAllocations + performanceAllocations
+        // Keep the established continuity allocator as the final scheduling
+        // authority.  Domain budgets authorize independently; placement still
+        // receives the same finite, canonical continuity demand ordering.
+        val incumbentWeights = anchorWeights + performanceContinuity.associate { it.stableKey to it.targetSets.toDouble() }
+        val incumbentAllocations = proportionalAllocation(incumbentWeights.entries.sortedByDescending { it.value }
+            .take(finite.continuity).associate { it.toPair() }, finite.continuity)
         val allocations = incumbentAllocations.filterKeys { it in anchorWeights }
         val days = request.weeklyTrainingDays.coerceIn(2, 5)
         val placementContext = PlacementContext(snapshot, state, days, request.sessionMinutes)
