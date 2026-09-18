@@ -1973,7 +1973,7 @@
       ],
       "canonicalDocument": "community/COMMUNITY_SHARING.md",
       "implementedFromAppVersion": "UNRELEASED_COMMUNITY_V1",
-      "lastAuditedCommit": "2145a06d",
+      "lastAuditedCommit": "4a0b298e",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/CommunityScreen.kt",
         "app/src/main/java/com/training/trackplanner/CommunityViewModel.kt",
