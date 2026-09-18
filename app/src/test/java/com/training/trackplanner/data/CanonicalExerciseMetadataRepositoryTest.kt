@@ -86,8 +86,8 @@ class CanonicalExerciseMetadataRepositoryTest {
     @Test
     fun physicalQualityRelationsUseRuntimeAuthorityAndKeepLayersSeparate() {
         val catalog = repository.physicalQualityCatalog()
-        assertEquals(259, catalog.allRelations().size)
-        assertEquals(172, catalog.allRelations().mapTo(mutableSetOf()) { it.exerciseStableKey }.size)
+        assertEquals(265, catalog.allRelations().size)
+        assertEquals(176, catalog.allRelations().mapTo(mutableSetOf()) { it.exerciseStableKey }.size)
         assertTrue(catalog.allRelations().all { it.prescriptionDependent })
         assertTrue(catalog.allRelations().all { it.regionQualifier in PhysicalQualityRegion.entries })
         assertTrue(catalog.allRelations().all { it.modeQualifier in PhysicalQualityMode.entries })
@@ -120,6 +120,16 @@ class CanonicalExerciseMetadataRepositoryTest {
         assertTrue(catalog.relations("ex_149730de").any { it.qualityId == TrainableQuality.MOBILITY_ROM })
         assertTrue(catalog.relations("ex_df966b45").any { it.qualityId == TrainableQuality.POWER })
         assertTrue(catalog.relations("dumbbell_farmer_carry").any { it.qualityId == TrainableQuality.MUSCULAR_ENDURANCE })
+
+        assertTrue(catalog.relations("kettlebell_goblet_squat").any {
+            it.qualityId == TrainableQuality.STRENGTH && it.relationLevel == StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY
+        })
+        assertTrue(catalog.relations("kettlebell_goblet_squat").any { it.qualityId == TrainableQuality.HYPERTROPHY })
+        assertTrue(catalog.relations("ex_6232f4bc").any { it.qualityId == TrainableQuality.STRENGTH })
+        assertTrue(catalog.relations("ex_f332aeab").none {
+            it.qualityId == TrainableQuality.REACTIVE_STRENGTH_SSC && it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY
+        })
+        assertTrue(catalog.relations("ex_708e64ce").any { it.qualityId == TrainableQuality.HYPERTROPHY })
 
         listOf("band_pallof_press", "cable_pallof_press", "ex_a44ae2ca", "ex_f6d43398", "band_woodchop")
             .forEach { stableKey -> assertTrue(catalog.relations(stableKey).isEmpty()) }

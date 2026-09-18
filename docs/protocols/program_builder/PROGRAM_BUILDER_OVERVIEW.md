@@ -753,9 +753,12 @@ intent) is still required. General quality, Core quality, Sport performance
 task, Recovery/Prehab, and Mechanical Context remain separate relation layers.
 Its region and mode qualifiers are closed atomic vocabularies; quality plus
 qualifier composition is preferred to compound free-text labels.
-The current ProgramBuilder does not read this catalog and its selection,
-volume, and decision behavior remain unchanged. Unresolved audit rows are not
-planner fallbacks.
+The current ProgramBuilder does not read this catalog for selection, volume, or
+prescription. `AthleteNeedsProfile` is computed as a shadow/audit trace beside
+existing decisions and has no prescription authority. Underrepresentation !=
+Need, High workload != Overload, and Need != Execution feasibility. Unresolved
+audit rows are not planner fallbacks; Core, Sport Task, Recovery/Prehab, and
+general-quality memberships are orthogonal.
 
 - [`docs/v0.4.2.0_release_notes.md`](../../v0.4.2.0_release_notes.md)
 - [`docs/v0.5.0.13_release_notes.md`](../../v0.5.0.13_release_notes.md)

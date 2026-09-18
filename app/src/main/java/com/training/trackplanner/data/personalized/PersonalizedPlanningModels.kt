@@ -350,7 +350,9 @@ data class PersonalizedPlanningDecision(
     val recentCourtLoad: Double = 0.0,
     val courtDeviation: Double = 0.0,
     val lowerNegativeEvidence: Double = 0.0,
-    val courtInterference: Double = 0.0
+    val courtInterference: Double = 0.0,
+    /** Shadow/audit trace only. It has no prescription or selection authority. */
+    val athleteNeedsProfile: AthleteNeedsProfile? = null
 )
 
 sealed interface PersonalizedPlanningOutcome {

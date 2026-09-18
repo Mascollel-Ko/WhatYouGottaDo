@@ -20,8 +20,8 @@ class PhysicalQualityRelationsTest(unittest.TestCase):
         relations = read_csv(ASSETS / "physical_quality_relations.csv")
         manifest = json.loads((ASSETS / "manifest.json").read_text(encoding="utf-8"))
         entry = next(row for row in manifest["files"] if row["path"] == "physical_quality_relations.csv")
-        self.assertEqual(259, len(relations))
-        self.assertEqual(259, entry["rowCount"])
+        self.assertEqual(265, len(relations))
+        self.assertEqual(265, entry["rowCount"])
         self.assertEqual(entry["sha256"], hashlib.sha256((ASSETS / entry["path"]).read_bytes()).hexdigest())
         regions = {
             "SYSTEMIC", "LOWER", "POSTERIOR_CHAIN", "QUADS_GLUTE", "HAMSTRING", "ANKLE",
@@ -40,7 +40,7 @@ class PhysicalQualityRelationsTest(unittest.TestCase):
         self.assertTrue(all(row["modeQualifier"] in modes for row in relations))
         self.assertFalse(any("_SSC" in row["regionQualifier"] or "_SSC" in row["modeQualifier"] for row in relations))
 
-    def test_program_selectable_ownership_is_complete_and_exclusions_hold(self):
+    def test_program_selectable_membership_is_complete_and_exclusions_hold(self):
         runtime = {row["stableKey"]: row for row in read_csv(ASSETS / "runtime_metadata.csv")}
         identities = {row["stableKey"]: row for row in read_csv(ASSETS / "identity_master.csv")}
         queue = read_csv(QUEUE)
@@ -50,10 +50,14 @@ class PhysicalQualityRelationsTest(unittest.TestCase):
         }
         self.assertEqual(234, len(selectable))
         self.assertEqual(selectable, {row["exerciseStableKey"] for row in queue})
-        self.assertTrue(all(row["ownerLayer"] for row in queue))
-        self.assertEqual({"INTENTIONALLY_UNRESOLVED"}, {
-            row["ownerLayer"] for row in queue if row["exerciseStableKey"] in {"ex_708e64ce", "kettlebell_halo"}
-        })
+        self.assertTrue(all(row["primarySemanticLayer"] for row in queue))
+        for field in ("hasGeneralQuality", "hasCoreRelation", "hasSportTaskRelation", "hasRecoveryPrehabRelation"):
+            self.assertTrue(all(row[field] in {"YES", "NO"} for row in queue))
+        self.assertEqual("GENERAL_QUALITY_RELATION", next(row["primarySemanticLayer"] for row in queue if row["exerciseStableKey"] == "ex_708e64ce"))
+        self.assertEqual("INTENTIONALLY_UNRESOLVED", next(row["primarySemanticLayer"] for row in queue if row["exerciseStableKey"] == "kettlebell_halo"))
+        self.assertEqual("YES", next(row["hasGeneralQuality"] for row in queue if row["exerciseStableKey"] == "kettlebell_goblet_squat"))
+        self.assertEqual("YES", next(row["hasCoreRelation"] for row in queue if row["exerciseStableKey"] == "kettlebell_goblet_squat"))
+        self.assertGreater(sum(row["hasGeneralQuality"] == "YES" and row["hasCoreRelation"] == "YES" for row in queue), 0)
 
         relations = read_csv(ASSETS / "physical_quality_relations.csv")
         by_exercise = {}
@@ -63,6 +67,10 @@ class PhysicalQualityRelationsTest(unittest.TestCase):
             self.assertNotIn(key, by_exercise)
         for key in {"cable_hip_adduction", "hip_adduction_machine", "ex_728da646", "ex_8824026f", "ex_1cf51b6b"}:
             self.assertNotIn("REACTIVE_STRENGTH_SSC", {row["qualityId"] for row in by_exercise.get(key, [])})
+        self.assertIn("HYPERTROPHY", {row["qualityId"] for row in by_exercise["ex_708e64ce"]})
+        self.assertIn("STRENGTH", {row["qualityId"] for row in by_exercise["kettlebell_goblet_squat"]})
+        self.assertIn("HYPERTROPHY", {row["qualityId"] for row in by_exercise["kettlebell_goblet_squat"]})
+        self.assertNotIn("REACTIVE_STRENGTH_SSC", {row["qualityId"] for row in by_exercise["ex_f332aeab"] if row["relationLevel"] == "DIRECT_CAPABILITY"})
 
 
 if __name__ == "__main__":

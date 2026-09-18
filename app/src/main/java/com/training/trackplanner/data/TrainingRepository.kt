@@ -372,6 +372,7 @@ class TrainingRepository internal constructor(
         strengthPosteriorDao = strengthPosteriorDao,
         strengthPerformanceRegistry = strengthPerformanceRegistry,
         canonicalOfiAxisProfiles = canonicalOfiAxisProfiles,
+        physicalQualityCatalog = canonicalMetadataRepository.physicalQualityCatalog(),
         exerciseRoleRelationDao = exerciseRoleRelationDao,
         tissueStateProvider = { cutoff ->
             val endOfDay = cutoff.plusDays(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() - 1

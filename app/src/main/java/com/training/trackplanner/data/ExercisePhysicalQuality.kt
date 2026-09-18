@@ -122,6 +122,8 @@ class CanonicalExercisePhysicalQualityCatalog private constructor(
         all.filterNot { it.exerciseStableKey in assessmentOnlyKeys }
 
     companion object {
+        val EMPTY = CanonicalExercisePhysicalQualityCatalog(emptyList(), emptySet())
+
         fun of(
             relations: Collection<ExercisePhysicalQualityRelation>,
             assessmentOnlyStableKeys: Collection<String> = emptySet()

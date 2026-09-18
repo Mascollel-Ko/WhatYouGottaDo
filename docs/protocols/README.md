@@ -64,17 +64,18 @@ Protocol version과 application version은 독립적입니다. protocol `1.0.0`�
 | `DATA_PORTABILITY` | `DATA-CLOUD-BACKUP` | 클라우드 백업 | `1.1.0` | `DRAFT` | `PARTIALLY_IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `UNRELEASED_PHASE_2_SUPABASE_TRANSPORT` | `c6e001ee3271f9086e679beb18199e171242ac67` | [문서](data_portability/CLOUD_BACKUP.md) |
 | `COMMUNITY` | `COMMUNITY-SHARING` | 커뮤니티 공유 | `1.0.0` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `UNRELEASED_COMMUNITY_V1` | `77569334` | [문서](community/COMMUNITY_SHARING.md) |
 | `DATA_PORTABILITY` | `DATA-BACKUP-RESTORE` | 백업과 복원 | `1.7.0` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.5.0.5`; canonical authority compatibility `v0.5.0.22`; metadata snapshot `v0.5.0.24`; selectable safe restore `v0.5.0.25`; blank identity hardening `v0.5.0.37` | `d7ee94a5e35fbd76a4d756245aa48f62dd29ccfd` | [문서](data_portability/BACKUP_AND_RESTORE.md) |
-| `DATA_PORTABILITY` | `DATA-METADATA-ANALYSIS-CONTRACT` | 메타데이터 분석 계약 | `2.3.0` | `ACTIVE` | `PARTIALLY_IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.5.0.16` shadow baseline; canonical core/objective cutover `v0.5.0.33`; explicit semantic-authority closeout `v0.5.0.37`; physical-quality capability asset and atomic qualifier audit `2026-09` | `532d2343cafd9e54924dc52350c6e108893b4b07` | [문서](data_portability/METADATA_ANALYSIS_CONTRACT_PHASE_0_1.md) |
+| `DATA_PORTABILITY` | `DATA-METADATA-ANALYSIS-CONTRACT` | 메타데이터 분석 계약 | `2.4.0` | `ACTIVE` | `PARTIALLY_IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.5.0.16` shadow baseline; canonical core/objective cutover `v0.5.0.33`; explicit semantic-authority closeout `v0.5.0.37`; physical-quality capability asset, orthogonal relation audit, and AthleteNeedsProfile shadow `2026-09` | `532d2343cafd9e54924dc52350c6e108893b4b07` | [문서](data_portability/METADATA_ANALYSIS_CONTRACT_PHASE_0_1.md) |
 | `UI_PRESENTATION` | `UI-QUIET-PRESENTATION` | 조용한 UI 표시 원칙 | `1.5.0` | `ACTIVE` | `IMPLEMENTED` | USER_APPROVED_POLICY, PRODUCT_POLICY | `v0.5.0.0`; metadata/program results `v0.5.0.14`; fieldKey metadata routing `v0.5.0.26`; localized surfaces `v0.5.0.27`; adaptive controls/axes `v0.5.0.30` | `45fc91f` | [문서](presentation/QUIET_UI_PRESENTATION.md) |
 | `UI_PRESENTATION` | `UI-LOCALIZATION` | 한국어/영어 localization 계약 | `1.4.0` | `ACTIVE` | `IMPLEMENTED` | USER_APPROVED_POLICY, PRODUCT_POLICY | `v0.5.0.27`; correctness hardening `v0.5.0.28`; runtime composition `v0.5.0.30`; persistent-strength identity hardening `v0.5.1` | `f1c993929a2a0712c2cab899264f113af6d7d050` | [문서](presentation/LOCALIZATION.md) |
 
 메타데이터의 physical-quality relation은 운동의 **stimulus capability**를
 표현하며 실제 처방으로 발생한 **realized training stimulus**와 다릅니다.
 General Quality, Core Quality, Sport Performance Task, Recovery/Prehab,
-Mechanical Context는 서로 다른 canonical layer입니다. 현재 catalog는
-Needs Engine이나 ProgramBuilder 결정 경로에 연결되지 않았습니다. qualifier는
-atomic vocabulary 조합을 사용하며, 전체 `PROGRAM_SELECTABLE` owner audit와
-unresolved 사유는 `docs/audits/physical_quality_review_queue.csv`에 있습니다.
+Mechanical Context는 서로 다른 canonical layer입니다. 현재 catalog는 ProgramBuilder 결정 경로가 아닌 AthleteNeedsProfile shadow/audit 경로에서만 읽힙니다. qualifier는
+atomic vocabulary 조합을 사용합니다. `PROGRAM_SELECTABLE` audit는 general/core/sport/recovery
+멤버십을 독립적으로 기록하며, unresolved 사유는 `docs/audits/physical_quality_review_queue.csv`에 있습니다. AthleteNeedsProfile은
+shadow-only이며 처방 권한이 없습니다. Underrepresentation != Need, High workload != Overload,
+Need != Execution feasibility 입니다.
 
 ## Reading and publishing
 

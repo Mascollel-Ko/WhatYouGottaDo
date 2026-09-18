@@ -23,6 +23,7 @@ import com.training.trackplanner.data.personalized.PersonalizedProgramBuilder
 import com.training.trackplanner.data.personalized.PersonalizedPlannerProgressReporter
 import com.training.trackplanner.data.personalized.PersonalizedPlannerStage
 import com.training.trackplanner.data.personalized.PlanningHistorySnapshotBuilder
+import com.training.trackplanner.data.personalized.AthleteNeedsProfileEngine
 import com.training.trackplanner.data.personalized.PlanningHorizonPlanner
 import com.training.trackplanner.data.personalized.WeeklyDosePlanner
 import com.training.trackplanner.data.personalized.PlanningQuestionPolicy
@@ -60,6 +61,8 @@ internal class PersonalizedProgramPlanningService(
     private val tissueStateProvider: suspend (LocalDate) -> com.training.trackplanner.analysis.tissue.TissueCurrentState? = { null },
     private val tissueProjectionProvider: suspend (LocalDate) -> com.training.trackplanner.data.personalized.PlanWeekTissueProjection? = { null },
     private val performancePrescriptions: Map<String, com.training.trackplanner.data.personalized.PerformancePrescriptionAuthority> = emptyMap(),
+    private val physicalQualityCatalog: CanonicalExercisePhysicalQualityCatalog = CanonicalExercisePhysicalQualityCatalog.EMPTY,
+    private val athleteNeedsProfileEngine: AthleteNeedsProfileEngine = AthleteNeedsProfileEngine(),
     private val snapshotBuilder: PlanningHistorySnapshotBuilder = PlanningHistorySnapshotBuilder(),
     private val stateBuilder: AthletePlanningStateBuilder = AthletePlanningStateBuilder(),
     private val questionPolicy: PlanningQuestionPolicy = PlanningQuestionPolicy(),
@@ -126,7 +129,12 @@ internal class PersonalizedProgramPlanningService(
                     com.training.trackplanner.data.personalized.PlanningFrequencySource.EXPLICIT_USER
                 else com.training.trackplanner.data.personalized.PlanningFrequencySource.AUTO), progress = progress)
         progress.report(PersonalizedPlannerStage.FINAL)
-        return com.training.trackplanner.data.personalized.bindSplitParentProgression(generated)
+        val withShadowNeeds = generated.copy(
+            personalizedDecision = generated.personalizedDecision?.copy(
+                athleteNeedsProfile = athleteNeedsProfileEngine.analyze(snapshot, state, physicalQualityCatalog)
+            )
+        )
+        return com.training.trackplanner.data.personalized.bindSplitParentProgression(withShadowNeeds)
     }
 
     /** Compatibility wrapper for callers that have not yet adopted the two-phase API. */
@@ -303,6 +311,62 @@ internal class PersonalizedProgramPlanningService(
         .put("courtDeviation", courtDeviation)
         .put("lowerNegativeEvidence", lowerNegativeEvidence)
         .put("courtInterference", courtInterference)
+        .put("athleteNeedsProfile", athleteNeedsProfile?.let { profile -> JSONObject()
+            .put("generatedAtCutoff", profile.generatedAtCutoff.toString())
+            .put("shadowOnly", profile.shadowOnly)
+            .put("prescriptionAuthority", profile.prescriptionAuthority)
+            .put("maintenanceDomains", JSONArray(profile.maintenanceDomains))
+            .put("unresolved", JSONArray(profile.unresolved))
+            .put("evidenceSummary", JSONObject()
+                .put("recentWindowDays", profile.evidenceSummary.recentWindowDays)
+                .put("currentWindowDays", profile.evidenceSummary.currentWindowDays)
+                .put("previousWindowDays", profile.evidenceSummary.previousWindowDays)
+                .put("contextWindowDays", profile.evidenceSummary.contextWindowDays)
+                .put("historyDays", profile.evidenceSummary.historyDays)
+                .put("source", profile.evidenceSummary.source)
+                .put("notes", JSONArray(profile.evidenceSummary.notes)))
+            .put("qualityNeeds", JSONArray(profile.qualityNeeds.map { need -> JSONObject()
+                .put("quality", need.quality.name)
+                .put("relevance", need.relevance.name)
+                .put("currentExposure", need.currentExposure.name)
+                .put("response", need.response.name)
+                .put("decision", need.decision.name)
+                .put("confidence", need.confidence.name)
+                .put("reasonCodes", JSONArray(need.reasonCodes))
+                .put("evidence", JSONArray(need.evidence))
+                .put("exposure", JSONObject()
+                    .put("recent7dBouts", need.exposure.recent7dBouts)
+                    .put("current28dBouts", need.exposure.current28dBouts)
+                    .put("previous28dBouts", need.exposure.previous28dBouts)
+                    .put("context56dBouts", need.exposure.context56dBouts)
+                    .put("directSessions", need.exposure.directSessions)
+                    .put("directBouts", need.exposure.directBouts)
+                    .put("supportiveSessions", need.exposure.supportiveSessions)
+                    .put("supportiveBouts", need.exposure.supportiveBouts)
+                    .put("strengthLikeBouts", need.exposure.strengthLikeBouts)
+                    .put("hypertrophyLikeBouts", need.exposure.hypertrophyLikeBouts)
+                    .put("ambiguousBouts", need.exposure.ambiguousBouts))
+            }))
+            .put("sportTaskNeeds", JSONArray(profile.sportTaskNeeds.map { need -> JSONObject()
+                .put("task", need.task)
+                .put("relevance", need.relevance.name)
+                .put("currentExposure", need.currentExposure.name)
+                .put("response", need.response.name)
+                .put("decision", need.decision.name)
+                .put("confidence", need.confidence.name)
+                .put("structuredDirectBouts", need.structuredDirectBouts)
+                .put("structuredSupportiveBouts", need.structuredSupportiveBouts)
+                .put("sportContextLoad", need.sportContextLoad)
+                .put("reasonCodes", JSONArray(need.reasonCodes))
+                .put("evidence", JSONArray(need.evidence))
+            }))
+            .put("executionModifiers", JSONArray(profile.executionModifiers.map { modifier -> JSONObject()
+                .put("domain", modifier.domain)
+                .put("stableKeys", JSONArray(modifier.stableKeys))
+                .put("modifier", modifier.modifier.name)
+                .put("reasonCodes", JSONArray(modifier.reasonCodes))
+            }))
+        })
         .put("objectiveExposure", JSONObject(objectiveExposure))
         .put("trainingStateAssessment", trainingStateAssessment?.toJson())
         .put("weeklyFrequencyEvidence", weeklyFrequencyEvidence?.toJson())

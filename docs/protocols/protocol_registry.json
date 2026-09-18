@@ -1703,7 +1703,7 @@
       "familyId": "DATA_PORTABILITY",
       "titleKo": "메타데이터 분석 계약",
       "titleEn": "Metadata Analysis Contract",
-      "currentVersion": "2.3.0",
+      "currentVersion": "2.4.0",
       "status": "ACTIVE",
       "implementationStatus": "PARTIALLY_IMPLEMENTED",
       "evidenceProfile": [
@@ -1711,7 +1711,7 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "data_portability/METADATA_ANALYSIS_CONTRACT_PHASE_0_1.md",
-      "implementedFromAppVersion": "v0.5.0.16 shadow baseline; role split from v0.5.0.21; bundled authority cutover from v0.5.0.22; Korean display authority from v0.5.0.23; explicit override authority from v0.5.0.25; fieldKey routing from v0.5.0.26; canonical normalization from v0.5.0.32; core/objective analysis cutover from v0.5.0.33; physical-quality capability asset and atomic qualifier audit 2026-09",
+      "implementedFromAppVersion": "v0.5.0.16 shadow baseline; role split from v0.5.0.21; bundled authority cutover from v0.5.0.22; Korean display authority from v0.5.0.23; explicit override authority from v0.5.0.25; fieldKey routing from v0.5.0.26; canonical normalization from v0.5.0.32; core/objective analysis cutover from v0.5.0.33; physical-quality capability asset and atomic qualifier audit 2026-09; orthogonal physical-quality membership and AthleteNeedsProfile shadow 2026-09",
       "lastAuditedCommit": "532d2343cafd9e54924dc52350c6e108893b4b07",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/contracts/AnalysisContractModels.kt",
@@ -1738,7 +1738,9 @@
         "app/src/main/java/com/training/trackplanner/analysis/core/CoreStimulusCalculator.kt",
         "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveAuthority.kt",
         "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveStimulusCalculator.kt",
-        "app/src/main/java/com/training/trackplanner/data/ExercisePhysicalQuality.kt"
+        "app/src/main/java/com/training/trackplanner/data/ExercisePhysicalQuality.kt",
+        "app/src/main/java/com/training/trackplanner/data/personalized/AthleteNeedsProfile.kt",
+        "app/src/main/java/com/training/trackplanner/data/PersonalizedProgramPlanningService.kt"
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/analysis/contracts/AnalysisContractBaselineTest.kt",
@@ -1757,7 +1759,8 @@
         "app/src/test/java/com/training/trackplanner/analysis/core/CoreStimulusCalculatorTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveStimulusCalculatorTest.kt",
         "app/src/test/java/com/training/trackplanner/data/CanonicalExerciseMetadataRepositoryTest.kt",
-        "tools/metadata_authority/tests/test_physical_quality_relations.py"
+        "tools/metadata_authority/tests/test_physical_quality_relations.py",
+        "app/src/test/java/com/training/trackplanner/data/personalized/AthleteNeedsProfileTest.kt"
       ],
       "authorityAssets": [
         "app/src/main/assets/metadata/analysis_contract_baseline_v1.csv",
@@ -1814,7 +1817,8 @@
         "docs/audits/core_badminton_rotation_objective_audit.csv",
         "docs/v0.5.0.33_release_notes.md",
         "docs/audits/physical_quality_review_queue.csv",
-        "docs/audits/physical_quality_coverage_report.md"
+        "docs/audits/physical_quality_coverage_report.md",
+        "docs/audits/athlete_needs_shadow_comparison.md"
       ],
       "knownGaps": [
         "관계 정확성 전체 판정은 NOT_ADJUDICATED이며 deferred/research rows는 production asset으로 승격되지 않습니다.",
