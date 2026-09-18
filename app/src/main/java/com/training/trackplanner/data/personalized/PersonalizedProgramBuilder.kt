@@ -471,11 +471,11 @@ class PersonalizedProgramBuilder(
         )
         val envelope = capacityOverride ?: ExecutionCapacityPlanner().envelope(snapshot, state, request, baselineResistance,
             continuityDemand + materialRequested, systemicDoseFactor, domains)
-        // Reserve only the resistance continuity that actually exists in the
-        // current demand.  The independent resistance target remains an
-        // authorization ceiling; it must not turn unused budget into filler.
+        // The canonical finite allocator reserves the established incumbent
+        // continuity.  The independent resistance target is recorded as a
+        // volume authorization and does not turn unused budget into filler.
         val coreReserve = if (state.anchors.isEmpty()) 0 else
-            minOf(resistanceBudget.resistanceTargetSets, continuityDemand, state.anchors.size).coerceAtLeast(1)
+            minOf(continuityDemand, state.anchors.size).coerceAtLeast(1)
         val capacity = if (envelope.historicalSessionObservationCount < 4)
             minOf(envelope.finalControllableUnits,
                 if (capacityExpanded) maxOf(continuityDemand, coreReserve + (materialCandidates.firstOrNull()?.targetSets ?: 0)) else continuityDemand)
