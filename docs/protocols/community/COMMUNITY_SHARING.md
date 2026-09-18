@@ -74,6 +74,12 @@ session/minutes입니다. 친구 activity는 `last_activity_at`가 90분 이내�
 
 ## 9. 출력과 UI 해석
 
+Community base tables are not direct client APIs. RLS remains enabled and direct
+anon/authenticated table CRUD stays revoked. Server-only `SECURITY DEFINER` functions
+are revoked from `PUBLIC`, `anon`, and `authenticated`; trigger-only helpers are also
+closed to `service_role`. Only the required RPCs are executable by `service_role` inside
+the authenticated `community-api` Edge Function.
+
 공개 DTO는 `publicProgramId`, `requestId`, `friendshipId`, nickname, received like
 count, labels, safe aggregate와 privacy 허용 activity만 반환합니다. auth UUID, email,
 access/refresh token, object URL/key, R2 credential, Room ID와 raw record는 반환하지
@@ -117,7 +123,11 @@ of truth가 아닙니다. hosted Edge Function deployment와 실제 기기에서
 ## 15. 현재 구현 상태
 
 Android Community 화면, Home 진입, profile/nickname/privacy, array-based publication form,
-multi-select program feed/search/filter,
+multi-select program feed/search/filter. Programs opens with feed-first browsing: the
+default request is `LATEST` with no query or structured filters, and search/filter controls
+are collapsed until opened. Applying a search collapses the panel after success; the
+collapsed header shows the count of active filter dimensions. Multi-select semantics stay
+same-dimension OR/overlap and cross-dimension AND.
 like, snapshot import, weekly publish/unshare, friend request/accept/decline/remove/block,
 TTL/privacy activity API와 migration이 구현되어 있습니다. Edge Function은 `verify_jwt = true`
 로 등록되며 service role은 함수 내부에서만 사용합니다. Private Cloud Backup tables와
@@ -132,6 +142,7 @@ R2 object path는 Community 경로에서 읽지 않습니다.
 - `supabase/functions/community-api/index.ts`
 - `supabase/migrations/20260918000000_community_sharing.sql`
 - `supabase/migrations/20260919000000_community_program_label_arrays.sql`
+- `supabase/migrations/20260920000000_community_security_hardening.sql`
 - `supabase/config.toml`
 
 ## 17. 검증 테스트

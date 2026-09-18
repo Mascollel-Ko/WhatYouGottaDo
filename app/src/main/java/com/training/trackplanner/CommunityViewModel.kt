@@ -110,7 +110,7 @@ internal class CommunityViewModel(application: Application) : AndroidViewModel(a
         _friends.value = client.friends(session)
     }
 
-    fun search(query: String, sort: String, strengthRegions: List<String>, strengthGoals: List<String>, functionalGoals: List<String>, badmintonGoals: List<String>) = launchRequest { session ->
+    fun search(query: String, sort: String, strengthRegions: List<String>, strengthGoals: List<String>, functionalGoals: List<String>, badmintonGoals: List<String>, onSuccess: () -> Unit = {}) = launchRequest(onSuccess) { session ->
         _programs.value = client.feed(session, query, sort, strengthRegions, strengthGoals, functionalGoals, badmintonGoals)
     }
 
@@ -211,12 +211,12 @@ internal class CommunityViewModel(application: Application) : AndroidViewModel(a
         viewModelScope.launch { runCatching { client.updateActivity(current, exerciseStableKey, exerciseName, System.currentTimeMillis()) } }
     }
 
-    private fun launchRequest(block: suspend (CloudAuthSession) -> Unit) {
+    private fun launchRequest(onSuccess: () -> Unit = {}, block: suspend (CloudAuthSession) -> Unit) {
         val current = auth.currentSession()
         if (current == null) { _message.value = "LOGIN_REQUIRED"; return }
         viewModelScope.launch {
             _loading.value = true
-            runCatching { block(current) }.onFailure { _message.value = it.communityMessage() }
+            runCatching { block(current) }.onSuccess { onSuccess() }.onFailure { _message.value = it.communityMessage() }
             _loading.value = false
         }
     }

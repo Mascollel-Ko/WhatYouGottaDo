@@ -1984,6 +1984,7 @@
         "app/src/main/java/com/training/trackplanner/data/TrainingDatabase.kt",
         "supabase/migrations/20260918000000_community_sharing.sql",
         "supabase/migrations/20260919000000_community_program_label_arrays.sql",
+        "supabase/migrations/20260920000000_community_security_hardening.sql",
         "supabase/functions/community-api/index.ts",
         "supabase/config.toml"
       ],

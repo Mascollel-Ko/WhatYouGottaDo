@@ -88,6 +88,7 @@ internal fun CommunityScreen(
     var friendCode by rememberSaveable { mutableStateOf("") }
     var search by rememberSaveable { mutableStateOf("") }
     var sort by rememberSaveable { mutableStateOf("LATEST") }
+    var searchPanelExpanded by rememberSaveable { mutableStateOf(false) }
     var regionFilter by remember { mutableStateOf(emptyList<String>()) }
     var goalFilter by remember { mutableStateOf(emptyList<String>()) }
     var functionalGoalFilter by remember { mutableStateOf(emptyList<String>()) }
@@ -208,6 +209,7 @@ internal fun CommunityScreen(
                 localPrograms = localPrograms,
                 search = search,
                 sort = sort,
+                searchPanelExpanded = searchPanelExpanded,
                 onSearchChange = { search = it },
                 regionFilter = regionFilter,
                 goalFilter = goalFilter,
@@ -217,9 +219,10 @@ internal fun CommunityScreen(
                 onGoalFilter = { goalFilter = it },
                 onFunctionalGoalFilter = { functionalGoalFilter = it },
                 onBadmintonGoalFilter = { badmintonGoalFilter = it },
-                onResetFilters = { regionFilter = emptyList(); goalFilter = emptyList(); functionalGoalFilter = emptyList(); badmintonGoalFilter = emptyList() },
-                onSearch = { viewModel.search(search, sort, regionFilter, goalFilter, functionalGoalFilter, badmintonGoalFilter) },
-                onSort = { sort = it; viewModel.search(search, it, regionFilter, goalFilter, functionalGoalFilter, badmintonGoalFilter) },
+                onResetFilters = { search = ""; sort = "LATEST"; regionFilter = emptyList(); goalFilter = emptyList(); functionalGoalFilter = emptyList(); badmintonGoalFilter = emptyList(); viewModel.search("", "LATEST", emptyList(), emptyList(), emptyList(), emptyList()) { searchPanelExpanded = false } },
+                onSearchPanelExpandedChange = { searchPanelExpanded = it },
+                onSearch = { viewModel.search(search, sort, regionFilter, goalFilter, functionalGoalFilter, badmintonGoalFilter) { searchPanelExpanded = false } },
+                onSort = { sort = it },
                 onSelect = { program -> viewModel.openProgram(program) { detail -> selectedProgram = detail } },
                 onLike = viewModel::like,
                 onPublish = { program, existing -> publicationProgram = program; publicationExisting = existing },
@@ -250,6 +253,7 @@ private fun LazyListScope.ProgramsSection(
     localPrograms: List<TrainingProgram>,
     search: String,
     sort: String,
+    searchPanelExpanded: Boolean,
     onSearchChange: (String) -> Unit,
     regionFilter: List<String>,
     goalFilter: List<String>,
@@ -260,6 +264,7 @@ private fun LazyListScope.ProgramsSection(
     onFunctionalGoalFilter: (List<String>) -> Unit,
     onBadmintonGoalFilter: (List<String>) -> Unit,
     onResetFilters: () -> Unit,
+    onSearchPanelExpandedChange: (Boolean) -> Unit,
     onSearch: () -> Unit,
     onSort: (String) -> Unit,
     onSelect: (CommunityProgram) -> Unit,
@@ -268,17 +273,31 @@ private fun LazyListScope.ProgramsSection(
     onUnpublish: (CommunityProgram) -> Unit
 ) {
     item {
-        OutlinedTextField(value = search, onValueChange = onSearchChange, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.community_search)) }, singleLine = true)
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = onSearch, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.community_search)) }
-            CommunitySortDropdown(sort, onSort, Modifier.weight(1f))
+        val activeDimensions = listOf(
+            search.isNotBlank(), regionFilter.isNotEmpty(), goalFilter.isNotEmpty(),
+            functionalGoalFilter.isNotEmpty(), badmintonGoalFilter.isNotEmpty(), sort != "LATEST"
+        ).count { it }
+        OutlinedButton(onClick = { onSearchPanelExpandedChange(!searchPanelExpanded) }, modifier = Modifier.fillMaxWidth()) {
+            val label = if (activeDimensions == 0) stringResource(R.string.community_search_filters)
+            else stringResource(R.string.community_search_filters_active, activeDimensions)
+            Text("$label ${if (searchPanelExpanded) "▲" else "▼"}", maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        CommunityMultiSelectDropdown(stringResource(R.string.community_strength_region), listOf("UPPER_BODY" to R.string.community_filter_upper, "LOWER_BODY" to R.string.community_filter_lower, "ALL_LIMBS" to R.string.community_filter_all_limbs), regionFilter, onRegionFilter)
-        CommunityMultiSelectDropdown(stringResource(R.string.community_strength_goal), listOf("HYPERTROPHY" to R.string.community_filter_hypertrophy, "STRENGTH" to R.string.community_filter_strength), goalFilter, onGoalFilter)
-        CommunityMultiSelectDropdown(stringResource(R.string.community_filter_functional_goals), listOf("EXPLOSIVE_ACCELERATION" to R.string.community_goal_explosive, "ELASTIC_GROUND_REACTION" to R.string.community_goal_elastic, "BODY_COORDINATION" to R.string.community_goal_coordination, "NOT_INCLUDED" to R.string.community_filter_functional_not_included), functionalGoalFilter, onFunctionalGoalFilter)
-        CommunityMultiSelectDropdown(stringResource(R.string.community_filter_badminton_goals), listOf("SWING_POWER" to R.string.community_goal_swing, "LANDING_DECELERATION_STABILITY" to R.string.community_goal_landing, "FOOTWORK" to R.string.community_goal_footwork, "NOT_INCLUDED" to R.string.community_filter_badminton_not_included), badmintonGoalFilter, onBadmintonGoalFilter)
-        TextButton(onClick = onResetFilters) { Text(stringResource(R.string.community_filter_reset)) }
     }
+    if (searchPanelExpanded) item {
+        OutlinedTextField(value = search, onValueChange = onSearchChange, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.community_search)) }, singleLine = true)
+        CommunitySortDropdown(sort, onSort, Modifier.fillMaxWidth())
+        CommunityMultiSelectDropdown(stringResource(R.string.community_strength_region), listOf("UPPER_BODY" to R.string.community_filter_upper, "LOWER_BODY" to R.string.community_filter_lower, "ALL_LIMBS" to R.string.community_filter_all_limbs), regionFilter, onRegionFilter, stringResource(R.string.community_filter_all))
+        CommunityMultiSelectDropdown(stringResource(R.string.community_strength_goal), listOf("HYPERTROPHY" to R.string.community_filter_hypertrophy, "STRENGTH" to R.string.community_filter_strength), goalFilter, onGoalFilter, stringResource(R.string.community_filter_all))
+        CommunityMultiSelectDropdown(stringResource(R.string.community_filter_functional_goals), listOf("EXPLOSIVE_ACCELERATION" to R.string.community_goal_explosive, "ELASTIC_GROUND_REACTION" to R.string.community_goal_elastic, "BODY_COORDINATION" to R.string.community_goal_coordination, "NOT_INCLUDED" to R.string.community_filter_functional_not_included), functionalGoalFilter, onFunctionalGoalFilter, stringResource(R.string.community_filter_all))
+        CommunityMultiSelectDropdown(stringResource(R.string.community_filter_badminton_goals), listOf("SWING_POWER" to R.string.community_goal_swing, "LANDING_DECELERATION_STABILITY" to R.string.community_goal_landing, "FOOTWORK" to R.string.community_goal_footwork, "NOT_INCLUDED" to R.string.community_filter_badminton_not_included), badmintonGoalFilter, onBadmintonGoalFilter, stringResource(R.string.community_filter_all))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = onSearch, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.community_search_apply)) }
+            TextButton(onClick = onResetFilters, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.community_filter_reset)) }
+        }
+    }
+    item { Text(stringResource(R.string.community_programs), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
+    if (programs.isEmpty()) item { Text(stringResource(R.string.community_no_programs)) }
+    else items(programs, key = { it.publicProgramId }) { program -> ProgramCard(program, onSelect, onLike, onUnpublish) }
     if (localPrograms.isNotEmpty()) {
         item { Text(stringResource(R.string.community_publish), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
         items(localPrograms.take(6), key = { "local-${it.id}" }) { program ->
@@ -288,11 +307,6 @@ private fun LazyListScope.ProgramsSection(
                 OutlinedButton(onClick = { onPublish(program, existing) }) { Text(stringResource(if (existing == null) R.string.community_publish else R.string.community_update)) }
             }
         }
-    }
-    item { Text(stringResource(R.string.community_programs), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
-    if (programs.isEmpty()) item { Text(stringResource(R.string.community_no_programs)) }
-    else items(programs, key = { it.publicProgramId }) { program ->
-        ProgramCard(program, onSelect, onLike, onUnpublish)
     }
 }
 
@@ -318,13 +332,14 @@ private fun CommunityMultiSelectDropdown(
     label: String,
     options: List<Pair<String, Int>>,
     selectedValues: List<String>,
-    onSelectionChange: (List<String>) -> Unit
+    onSelectionChange: (List<String>) -> Unit,
+    emptySummary: String? = null
 ) {
     var expanded by remember { mutableStateOf(false) }
     var pending by remember(expanded, selectedValues) { mutableStateOf(selectedValues) }
     val summaryParts = mutableListOf<String>()
     if (pending.isNotEmpty()) for (option in options) if (option.first in pending) summaryParts += stringResource(option.second)
-    val summary = if (summaryParts.isEmpty()) stringResource(R.string.community_filter_all) else summaryParts.joinToString(" · ")
+    val summary = if (summaryParts.isEmpty()) emptySummary ?: stringResource(R.string.community_filter_all) else summaryParts.joinToString(" · ")
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
         OutlinedTextField(
             value = summary,
@@ -482,10 +497,10 @@ private fun CommunityPublicationDialog(
         title = { Text(stringResource(if (existing == null) R.string.community_publish_form_title else R.string.community_update_form_title)) },
         text = {
             LazyColumn(Modifier.heightIn(max = 520.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                item { CommunityMultiSelectDropdown(stringResource(R.string.community_strength_region), listOf("UPPER_BODY" to R.string.community_filter_upper, "LOWER_BODY" to R.string.community_filter_lower, "ALL_LIMBS" to R.string.community_filter_all_limbs), region) { region = it } }
-                item { CommunityMultiSelectDropdown(stringResource(R.string.community_strength_goal), listOf("HYPERTROPHY" to R.string.community_filter_hypertrophy, "STRENGTH" to R.string.community_filter_strength), goal) { goal = it } }
-                item { CommunityMultiSelectDropdown(stringResource(R.string.community_functional_goals), listOf("EXPLOSIVE_ACCELERATION" to R.string.community_goal_explosive, "ELASTIC_GROUND_REACTION" to R.string.community_goal_elastic, "BODY_COORDINATION" to R.string.community_goal_coordination), functionalGoal) { functionalGoal = it } }
-                item { CommunityMultiSelectDropdown(stringResource(R.string.community_badminton_goals), listOf("SWING_POWER" to R.string.community_goal_swing, "LANDING_DECELERATION_STABILITY" to R.string.community_goal_landing, "FOOTWORK" to R.string.community_goal_footwork), badmintonGoal) { badmintonGoal = it } }
+                item { CommunityMultiSelectDropdown(stringResource(R.string.community_strength_region), listOf("UPPER_BODY" to R.string.community_filter_upper, "LOWER_BODY" to R.string.community_filter_lower, "ALL_LIMBS" to R.string.community_filter_all_limbs), region, onSelectionChange = { region = it }, emptySummary = stringResource(R.string.community_filter_select)) }
+                item { CommunityMultiSelectDropdown(stringResource(R.string.community_strength_goal), listOf("HYPERTROPHY" to R.string.community_filter_hypertrophy, "STRENGTH" to R.string.community_filter_strength), goal, onSelectionChange = { goal = it }, emptySummary = stringResource(R.string.community_filter_select)) }
+                item { CommunityMultiSelectDropdown(stringResource(R.string.community_functional_goals), listOf("EXPLOSIVE_ACCELERATION" to R.string.community_goal_explosive, "ELASTIC_GROUND_REACTION" to R.string.community_goal_elastic, "BODY_COORDINATION" to R.string.community_goal_coordination), functionalGoal, onSelectionChange = { functionalGoal = it }, emptySummary = stringResource(R.string.community_filter_none)) }
+                item { CommunityMultiSelectDropdown(stringResource(R.string.community_badminton_goals), listOf("SWING_POWER" to R.string.community_goal_swing, "LANDING_DECELERATION_STABILITY" to R.string.community_goal_landing, "FOOTWORK" to R.string.community_goal_footwork), badmintonGoal, onSelectionChange = { badmintonGoal = it }, emptySummary = stringResource(R.string.community_filter_none)) }
                 item { OutlinedTextField(comment, { comment = it.take(100) }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.community_author_comment)) }, supportingText = { Text("${comment.length}/100") }) }
                 item { OutlinedTextField(caution, { caution = it.take(200) }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.community_caution)) }, supportingText = { Text("${caution.length}/200") }) }
                 error?.let { message -> item { Text(message, color = MaterialTheme.colorScheme.error) } }

@@ -5,6 +5,7 @@ import test from "node:test";
 const endpoint = await readFile(new URL("../supabase/functions/community-api/index.ts", import.meta.url), "utf8");
 const migration = await readFile(new URL("../supabase/migrations/20260918000000_community_sharing.sql", import.meta.url), "utf8");
 const labelMigration = await readFile(new URL("../supabase/migrations/20260919000000_community_program_label_arrays.sql", import.meta.url), "utf8");
+const securityMigration = await readFile(new URL("../supabase/migrations/20260920000000_community_security_hardening.sql", import.meta.url), "utf8");
 const config = await readFile(new URL("../supabase/config.toml", import.meta.url), "utf8");
 
 test("Community API is authenticated and keeps the private boundary", () => {
@@ -64,4 +65,25 @@ test("Community imports use installation-local provenance without backup couplin
   assert.match(codec, /CommunityProgramImport/);
   assert.match(entity, /community_program_imports/);
   assert.doesNotMatch(codec, /backupSourceId|sessionStableKey/);
+});
+
+test("Community SECURITY DEFINER functions are closed to direct RPC", () => {
+  for (const signature of [
+    "community_ensure_profile(uuid)",
+    "community_consume_friend_code_lookup(uuid)",
+    "community_toggle_program_like(uuid, uuid, boolean)",
+    "community_recalculate_like_totals()",
+    "community_recalculate_program_author_total()",
+    "community_touch_updated_at()",
+    "community_sync_program_label_arrays()",
+    "community_label_array_has_no_duplicates(text[])",
+  ]) {
+    assert.ok(securityMigration.includes(`revoke execute on function public.${signature}`));
+  }
+  assert.match(securityMigration, /from public, anon, authenticated/);
+  assert.match(securityMigration, /set search_path = pg_catalog/);
+  for (const rpc of ["community_ensure_profile", "community_consume_friend_code_lookup", "community_toggle_program_like"]) {
+    assert.match(securityMigration, new RegExp(`grant execute on function public\\.${rpc}`));
+  }
+  assert.match(securityMigration, /from public, anon, authenticated, service_role/);
 });

@@ -393,6 +393,11 @@
     <string name="community_sort">Sort</string>
     <string name="community_functional_goals">Functional goals</string>
     <string name="community_badminton_goals">Badminton goals</string>
+    <string name="community_search_filters">Search &amp; filters</string>
+    <string name="community_search_filters_active">Search &amp; filters · %1$d active</string>
+    <string name="community_search_apply">Apply search</string>
+    <string name="community_filter_select">Select</string>
+    <string name="community_filter_none">None</string>
     <string name="community_publish_form_title">Share program</string>
     <string name="community_update_form_title">Update publication</string>
     <string name="community_strength_region">Strength region</string>

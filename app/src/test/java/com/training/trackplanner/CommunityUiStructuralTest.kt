@@ -41,6 +41,22 @@ class CommunityUiStructuralTest {
         assertTrue(!screen.contains("ChoiceRow"))
     }
 
+    @Test fun communityProgramsStartWithFeedAndCollapsedSearch() {
+        val screen = source("src/main/java/com/training/trackplanner/CommunityScreen.kt")
+        assertTrue(screen.contains("var searchPanelExpanded by rememberSaveable { mutableStateOf(false) }"))
+        assertTrue(screen.contains("if (searchPanelExpanded) item"))
+        assertTrue(screen.indexOf("if (programs.isEmpty())") < screen.indexOf("if (localPrograms.isNotEmpty())"))
+        assertTrue(screen.contains("community_search_filters"))
+        assertTrue(screen.contains("searchPanelExpanded = false"))
+    }
+
+    @Test fun communityDropdownEmptySummariesAreContextual() {
+        val screen = source("src/main/java/com/training/trackplanner/CommunityScreen.kt")
+        assertTrue(screen.contains("community_filter_select"))
+        assertTrue(screen.contains("community_filter_none"))
+        assertTrue(screen.contains("community_filter_all"))
+    }
+
     private fun source(relativePath: String): String = sequenceOf(
         File(relativePath), File("app", relativePath), File("..", relativePath)
     ).first(File::isFile).readText()
