@@ -362,8 +362,8 @@ class CanonicalExerciseMetadataRepository(private val context: Context) {
                 exerciseStableKey = exerciseStableKey,
                 qualityId = TrainableQuality.valueOf(fields.required("qualityId")),
                 relationLevel = StimulusCapabilityLevel.valueOf(fields.required("relationLevel")),
-                regionQualifier = fields.required("regionQualifier"),
-                modeQualifier = fields.required("modeQualifier"),
+                regionQualifier = PhysicalQualityRegion.valueOf(fields.required("regionQualifier")),
+                modeQualifier = PhysicalQualityMode.valueOf(fields.required("modeQualifier")),
                 prescriptionDependent = prescriptionDependent,
                 provenance = fields.required("provenance"),
                 evidenceRelationKeys = evidenceRelationKeys,
@@ -375,7 +375,7 @@ class CanonicalExerciseMetadataRepository(private val context: Context) {
             "Duplicate physical-quality relation id."
         }
         require(relations.map {
-            listOf(it.exerciseStableKey, it.qualityId.name, it.regionQualifier, it.modeQualifier)
+            listOf(it.exerciseStableKey, it.qualityId.name, it.regionQualifier.name, it.modeQualifier.name)
         }.distinct().size == relations.size) {
             "Duplicate physical-quality exercise/quality/qualifier relation."
         }

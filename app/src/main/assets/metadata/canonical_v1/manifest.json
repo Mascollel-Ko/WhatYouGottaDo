@@ -10,7 +10,7 @@
     "selectableIdentityRows": 242,
     "timingRows": 242,
     "trainingRoleRows": 18,
-    "physicalQualityRelationRows": 43
+    "physicalQualityRelationRows": 259
   },
   "files": [
     {
@@ -140,9 +140,9 @@
       "primaryKey": [
         "relationId"
       ],
-      "rowCount": 43,
+      "rowCount": 259,
       "scope": "PRODUCTION_ACTIVE",
-      "sha256": "ad3a2184532c53695822fc64cb685130a11068091044b7ca0ce611c3e0c2d5db"
+      "sha256": "a22fbd18dee54c419c6d5df6ceeceb30f1e2d055272d28593f5665917b6b0273"
     },
     {
       "path": "program_slot_capabilities.csv",

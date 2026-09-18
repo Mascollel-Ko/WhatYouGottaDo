@@ -6,6 +6,7 @@ import com.training.trackplanner.data.program.legacy.LegacyAutoRuleTables as Pro
 import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -85,8 +86,12 @@ class CanonicalExerciseMetadataRepositoryTest {
     @Test
     fun physicalQualityRelationsUseRuntimeAuthorityAndKeepLayersSeparate() {
         val catalog = repository.physicalQualityCatalog()
-        assertEquals(43, catalog.allRelations().size)
+        assertEquals(259, catalog.allRelations().size)
+        assertEquals(172, catalog.allRelations().mapTo(mutableSetOf()) { it.exerciseStableKey }.size)
         assertTrue(catalog.allRelations().all { it.prescriptionDependent })
+        assertTrue(catalog.allRelations().all { it.regionQualifier in PhysicalQualityRegion.entries })
+        assertTrue(catalog.allRelations().all { it.modeQualifier in PhysicalQualityMode.entries })
+        assertTrue(catalog.hasGeneralQualityRelation("barbell_back_squat"))
         assertTrue(
             catalog.relations("barbell_back_squat").mapTo(mutableSetOf()) { it.qualityId }.containsAll(
                 setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY)
@@ -113,6 +118,8 @@ class CanonicalExerciseMetadataRepositoryTest {
         assertTrue(catalog.relations("ex_d6726746").any { it.qualityId == TrainableQuality.REACTIVE_STRENGTH_SSC })
         assertTrue(catalog.relations("ex_4773b6ea").any { it.qualityId == TrainableQuality.CARDIORESPIRATORY_FITNESS })
         assertTrue(catalog.relations("ex_149730de").any { it.qualityId == TrainableQuality.MOBILITY_ROM })
+        assertTrue(catalog.relations("ex_df966b45").any { it.qualityId == TrainableQuality.POWER })
+        assertTrue(catalog.relations("dumbbell_farmer_carry").any { it.qualityId == TrainableQuality.MUSCULAR_ENDURANCE })
 
         listOf("band_pallof_press", "cable_pallof_press", "ex_a44ae2ca", "ex_f6d43398", "band_woodchop")
             .forEach { stableKey -> assertTrue(catalog.relations(stableKey).isEmpty()) }
@@ -123,6 +130,16 @@ class CanonicalExerciseMetadataRepositoryTest {
             assertTrue(catalog.relations(stableKey).isEmpty())
         }
         assertTrue(catalog.relations("kettlebell_halo").isEmpty())
+    }
+
+    @Test
+    fun qualifierVocabularyRejectsCompoundOrUnknownTokens() {
+        assertThrows(IllegalArgumentException::class.java) {
+            PhysicalQualityRegion.valueOf("FRONTAL_SSC")
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            PhysicalQualityMode.valueOf("LANDING_SSC")
+        }
     }
 
     @Test

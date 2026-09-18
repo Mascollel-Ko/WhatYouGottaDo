@@ -3,7 +3,7 @@
 | 항목 | 값 |
 |---|---|
 | Protocol ID | DATA-METADATA-ANALYSIS-CONTRACT |
-| Protocol version | 2.2.0 |
+| Protocol version | 2.3.0 |
 | Status | ACTIVE |
 | Implementation status | PARTIALLY_IMPLEMENTED |
 | Implemented from app version | v0.5.0.16 shadow baseline; role split from v0.5.0.21; bundled authority cutover from v0.5.0.22; Korean display authority from v0.5.0.23; explicit override authority from v0.5.0.25; fieldKey routing from v0.5.0.26; canonical normalization from v0.5.0.32; core/objective analysis cutover from v0.5.0.33; explicit semantic-authority closeout from v0.5.0.37 |
@@ -54,9 +54,20 @@ for this layer. `exercise_bootstrap.csv` remains identity/bootstrap data only.
 
 The typed catalog is loaded by `CanonicalExerciseMetadataRepository` and is
 not connected to ProgramBuilder, Needs Engine, planner selection/volume, or
-any calculator in this phase. Exercises without an approved relation remain
-unresolved for later review rather than being inferred from names or legacy
-bootstrap categories.
+any calculator in this phase. Region and mode qualifiers use the closed
+`PhysicalQualityRegion` and `PhysicalQualityMode` vocabularies. Atomic
+qualifiers such as `POSTERIOR_CHAIN + HINGE` are preferred to compound free
+text such as `HINGE_POSTERIOR_CHAIN` or `FRONTAL_SSC`; mechanical context stays
+in the existing runtime metadata layer. Unknown qualifier tokens fail fast.
+
+The selectable audit is recorded in
+`docs/audits/physical_quality_review_queue.csv`. Each `PROGRAM_SELECTABLE`
+exercise has one auditable owner: general quality, Core, Sport Task,
+Recovery/Prehab, or intentionally unresolved. The current audit covers 234
+rows as 172 general-quality owners, 42 Core owners, 17 Sport Task owners, 2
+Recovery/Prehab owners, and 1 intentionally unresolved exercise. Exercises
+without an approved relation remain unresolved for later review rather than
+being inferred from names or legacy bootstrap categories.
 
 ## v0.5.0.33 analysis authority cutover
 

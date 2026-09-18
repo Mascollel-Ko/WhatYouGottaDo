@@ -24,13 +24,58 @@ enum class StimulusCapabilityLevel {
     SUPPORTIVE_CAPABILITY
 }
 
+/** Atomic region qualifiers. Compound movement/context labels are not allowed. */
+enum class PhysicalQualityRegion {
+    SYSTEMIC,
+    LOWER,
+    POSTERIOR_CHAIN,
+    QUADS_GLUTE,
+    HAMSTRING,
+    ANKLE,
+    UPPER_PUSH,
+    UPPER_PULL,
+    ROTATIONAL,
+    FOREARM_GRIP,
+    JOINT_ROM,
+    UNILATERAL_LOWER,
+    CHEST,
+    SHOULDERS,
+    ARMS,
+    OTHER
+}
+
+/** Atomic prescription/mode qualifiers. Mechanical context remains elsewhere. */
+enum class PhysicalQualityMode {
+    GENERAL,
+    BILATERAL,
+    UNILATERAL,
+    HINGE,
+    SQUAT,
+    HORIZONTAL_PRESS,
+    VERTICAL_PRESS,
+    PULL,
+    ECCENTRIC,
+    ISOMETRIC,
+    BALLISTIC,
+    PLYOMETRIC,
+    SSC,
+    LANDING,
+    ROTATIONAL,
+    WRIST_FLEXION,
+    WRIST_EXTENSION,
+    PRONATION_SUPINATION,
+    CONDITIONING,
+    MOBILITY_CONTROL,
+    OTHER
+}
+
 data class ExercisePhysicalQualityRelation(
     val relationId: String,
     val exerciseStableKey: String,
     val qualityId: TrainableQuality,
     val relationLevel: StimulusCapabilityLevel,
-    val regionQualifier: String,
-    val modeQualifier: String,
+    val regionQualifier: PhysicalQualityRegion,
+    val modeQualifier: PhysicalQualityMode,
     val prescriptionDependent: Boolean,
     val provenance: String,
     val evidenceRelationKeys: Set<String>,
@@ -64,6 +109,9 @@ class CanonicalExercisePhysicalQualityCatalog private constructor(
     fun relations(quality: TrainableQuality): List<ExercisePhysicalQualityRelation> =
         all.filter { it.qualityId == quality }
 
+    fun hasGeneralQualityRelation(stableKey: String): Boolean =
+        relations(stableKey).isNotEmpty()
+
     fun assessmentOnlyStableKeys(): Set<String> = assessmentOnlyKeys
 
     fun isAssessmentOnly(stableKey: String): Boolean =
@@ -85,7 +133,7 @@ class CanonicalExercisePhysicalQualityCatalog private constructor(
                 "Duplicate physical-quality relation id."
             }
             require(normalized.map {
-                listOf(it.exerciseStableKey, it.qualityId.name, it.regionQualifier, it.modeQualifier)
+                listOf(it.exerciseStableKey, it.qualityId.name, it.regionQualifier.name, it.modeQualifier.name)
             }.distinct().size == normalized.size) {
                 "Duplicate physical-quality exercise/quality/qualifier relation."
             }
