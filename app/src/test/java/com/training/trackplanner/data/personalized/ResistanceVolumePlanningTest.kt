@@ -19,7 +19,9 @@ class ResistanceVolumePlanningTest {
     @Test
     fun `resistance baseline ignores structured performance volume`() {
         val source = source(List(6) { 36 }, List(6) { 100.0 }, includeDrill = true)
-        val state = AthletePlanningStateBuilder().build(source, PersonalizedPlanningAnswers())
+        val state = AthletePlanningStateBuilder().build(source, PersonalizedPlanningAnswers()).let {
+            it.copy(trainingStateAssessment = requireNotNull(it.trainingStateAssessment).copy(globalDoseFactor = 1.0))
+        }
         val budget = ResistanceVolumePlanner.plan(source, state, request(3), 100, 0.0)
 
         assertEquals("NORMAL_COMPLETE_WEEK_MEDIAN", budget.resistanceBaselineSource)

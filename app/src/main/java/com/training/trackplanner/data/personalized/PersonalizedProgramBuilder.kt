@@ -391,12 +391,29 @@ class PersonalizedProgramBuilder(
             anchor.sets.toDouble() / (state.styleFeaturesByAnchor[anchor.stableKey]?.weeksObserved ?: 1).coerceAtLeast(1)
         }
         val systemicDoseFactor = state.trainingStateAssessment?.globalDoseFactor ?: 1.0
+        // Keep the established continuity demand as the scheduling input.  The
+        // independent resistance budget below is the new volume authority and
+        // audit trace; continuity still goes through the existing canonical
+        // allocator so placement behavior remains stable.
+        val recentResistance = snapshot.allConfirmedSets.filter {
+            !it.date.isBefore(snapshot.cutoff.minusDays(55)) && snapshot.activityKind(it.stableKey) == PlannedActivityKind.RESISTANCE
+        }
+        val schedulingWeeklyResistance = recentResistance.groupBy {
+            it.date.get(java.time.temporal.IsoFields.WEEK_BASED_YEAR) to it.date.get(java.time.temporal.IsoFields.WEEK_OF_WEEK_BASED_YEAR)
+        }.values.map(List<*>::size)
+        val schedulingBaselineResistance = schedulingWeeklyResistance.average().takeIf { it.isFinite() } ?: anchorFallbackResistance
+        val normalWeeks = state.trainingStateAssessment?.weeklyContext.orEmpty().filter { it.context == WeeklyTrainingContext.NORMAL }
+        val normalResistance = trainingMedian(normalWeeks.map { week -> snapshot.allConfirmedSets.count {
+            it.date in week.start..week.end && snapshot.activityKind(it.stableKey) == PlannedActivityKind.RESISTANCE
+        }.toDouble() })
+        val schedulingContinuityReference = if (state.trainingStateAssessment?.permitsSustainableRelease == true)
+            maxOf(schedulingBaselineResistance, normalResistance ?: schedulingBaselineResistance) else schedulingBaselineResistance
+        val schedulingContinuityDemand = schedulingContinuityReference.roundToInt().coerceAtLeast(if (state.anchors.isEmpty()) 0 else 1)
         val demand = MaterialDemandResolver(generationPrescriptions).resolve(snapshot, state, gaps, request)
         val materialKeys = demand.candidates.filter(PlannedExercise::material).mapTo(mutableSetOf(), PlannedExercise::stableKey)
         val provisionalResistance = ResistanceVolumePlanner.plan(snapshot, state, request, Int.MAX_VALUE, anchorFallbackResistance)
-        val baselineResistance = provisionalResistance.resistanceBaselineSets
-        val resistanceContinuityDemand = provisionalResistance.resistanceCoreTarget
-            .coerceAtLeast(if (state.anchors.isEmpty()) 0 else 1)
+        val baselineResistance = schedulingBaselineResistance
+        val resistanceContinuityDemand = schedulingContinuityDemand
         val performanceContinuity = snapshot.allConfirmedSets.filter {
             !it.date.isBefore(snapshot.cutoff.minusDays(27)) && !it.date.isAfter(snapshot.cutoff) &&
                 snapshot.activityKind(it.stableKey) in PERFORMANCE_ACTIVITY_KINDS &&

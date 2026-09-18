@@ -183,7 +183,10 @@ class PersonalizedPlannerParityTest {
         assertEquals(PlanningConfidence.HIGH, favorableState.observedStyleConfidence)
         assertEquals(PlanningConfidence.HIGH, pressuredState.observedStyleConfidence)
         assertTrue(favorable.continuityScore > 0.0)
-        assertTrue(pressured.localDoseFactor < favorable.localDoseFactor)
+        // Absolute court load is no longer a resistance penalty.  The
+        // constrained snapshot still changes treatment through its canonical
+        // recovery signal and explicit gap.
+        assertEquals(favorable.localDoseFactor, pressured.localDoseFactor, .0001)
         assertTrue(pressured.doseTreatment != favorable.doseTreatment || pressured.structureTreatment != favorable.structureTreatment || pressured.moderatedFeatures != favorable.moderatedFeatures)
     }
 
