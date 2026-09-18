@@ -300,7 +300,6 @@ class PersonalizedPlannerV010Test {
 
         assertEquals(1, noGap.personalizedDecision!!.planningBudget!!.targetResistanceSets)
         assertFalse("MINIMAL_CAPACITY_EXPANSION" in noGap.personalizedDecision!!.reasonCodes)
-        println("LOW_HISTORY_EXPANDED_BUDGET ${expanded.personalizedDecision!!.planningBudget}")
         assertEquals("budget=${expanded.personalizedDecision!!.planningBudget}", 3, expanded.personalizedDecision!!.planningBudget!!.targetResistanceSets)
         assertTrue("MINIMAL_CAPACITY_EXPANSION" in expanded.personalizedDecision!!.reasonCodes)
     }
