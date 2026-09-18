@@ -384,6 +384,8 @@ private fun CloudAccountDialog(
             "PROVIDER_NOT_CONFIGURED" -> stringResource(R.string.cloud_provider_not_configured)
             "NO_GOOGLE_CREDENTIAL" -> stringResource(R.string.cloud_google_unavailable)
             "AUTHENTICATION_FAILED" -> stringResource(R.string.cloud_login_failed)
+            "AUTH_NETWORK_UNAVAILABLE",
+            "AUTH_UNAVAILABLE" -> stringResource(R.string.cloud_auth_unavailable)
             "SESSION_EXPIRED" -> stringResource(R.string.cloud_session_expired)
             "LOGIN_REQUIRED" -> stringResource(R.string.cloud_login_required)
             "BACKUP_CURRENT" -> stringResource(R.string.cloud_backup_current)

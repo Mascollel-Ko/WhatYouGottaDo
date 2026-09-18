@@ -35,7 +35,9 @@ import com.training.trackplanner.data.AnalysisStats
 import com.training.trackplanner.data.CloudAccountEntryAction
 import com.training.trackplanner.data.CloudAccountEntryClassifier
 import com.training.trackplanner.data.CloudAuthRepository
+import com.training.trackplanner.data.CloudAuthRefreshResult
 import com.training.trackplanner.data.CloudAuthResult
+import com.training.trackplanner.data.CloudAuthSessionManager
 import com.training.trackplanner.data.CloudAuthStatus
 import com.training.trackplanner.data.CloudAuthUiState
 import com.training.trackplanner.data.CommunityActivityPublisher
@@ -80,6 +82,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.Dispatchers
@@ -95,7 +98,8 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     }
     private val repository = TrainingRepository(TrainingDatabase.get(application), application)
     private val communityDatabase = TrainingDatabase.get(application)
-    private val authRepository = CloudAuthRepository(application)
+    private val authSessionManager = CloudAuthSessionManager.forApplication(application)
+    private val authRepository = CloudAuthRepository(application, sessionManager = authSessionManager)
     private var lastCommunityActivityKey: String? = null
     private var lastCommunityActivityAt: Long = 0L
     private var communityActivityPublisher: CommunityActivityPublisher = DefaultCommunityActivityPublisher()
@@ -238,12 +242,32 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
 
     init {
         viewModelScope.launch {
-            val hadStoredSession = authRepository.currentSession() != null
-            val refreshedSession = authRepository.refreshIfNeeded()
+            authSessionManager.session.collect { session ->
+                val current = _cloudAuthState.value
+                _cloudAuthState.value = current.copy(
+                    status = if (session == null) CloudAuthStatus.LOGGED_OUT else CloudAuthStatus.LOGGED_IN,
+                    session = session,
+                    firstLaunchChoiceRequired = authRepository.firstLaunchChoiceRequired(),
+                    message = if (session == null) null else current.message
+                )
+            }
+        }
+        viewModelScope.launch {
+            val refresh = authRepository.refreshIfNeededDetailed()
+            val refreshedSession = when (refresh) {
+                is CloudAuthRefreshResult.Valid -> refresh.session
+                is CloudAuthRefreshResult.TransientFailure -> refresh.session
+                is CloudAuthRefreshResult.TerminalFailure,
+                CloudAuthRefreshResult.NoSession -> null
+            }
             _cloudAuthState.value = _cloudAuthState.value.copy(
                 status = if (refreshedSession == null) CloudAuthStatus.LOGGED_OUT else CloudAuthStatus.LOGGED_IN,
                 session = refreshedSession,
-                message = if (hadStoredSession && refreshedSession == null) "SESSION_EXPIRED" else null
+                message = when (refresh) {
+                    is CloudAuthRefreshResult.TransientFailure -> refresh.code
+                    is CloudAuthRefreshResult.TerminalFailure -> refresh.code
+                    else -> null
+                }
             )
             repository.seedIfNeeded()
             com.training.trackplanner.data.CloudBackupScheduler.ensurePeriodic(getApplication())
@@ -341,11 +365,14 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
                         )
                     }
                 }
-                is CloudAuthResult.Failure -> _cloudAuthState.value = _cloudAuthState.value.copy(
-                    status = CloudAuthStatus.LOGGED_OUT,
-                    session = null,
-                    message = result.code
-                )
+                is CloudAuthResult.Failure -> {
+                    val existing = authRepository.currentSession()
+                    _cloudAuthState.value = _cloudAuthState.value.copy(
+                        status = if (existing == null) CloudAuthStatus.LOGGED_OUT else CloudAuthStatus.LOGGED_IN,
+                        session = existing,
+                        message = result.code
+                    )
+                }
             }
         }
     }

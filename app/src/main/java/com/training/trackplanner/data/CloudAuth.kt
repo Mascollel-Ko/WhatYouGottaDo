@@ -9,14 +9,23 @@ import androidx.credentials.exceptions.NoCredentialException
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.training.trackplanner.BuildConfig
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import java.io.IOException
+import java.net.ConnectException
 import java.net.HttpURLConnection
 import java.net.URL
+import java.net.UnknownHostException
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.UUID
+import java.util.WeakHashMap
+import java.util.concurrent.TimeoutException
 import android.util.Base64
 
 internal enum class CloudAuthStatus { LOGGED_OUT, LOGGED_IN, PROVIDER_UNAVAILABLE, ERROR }
@@ -27,7 +36,8 @@ internal data class CloudAuthUiState(
     val firstLaunchChoiceRequired: Boolean = false,
     val message: String? = null
 ) {
-    val loggedIn: Boolean get() = status == CloudAuthStatus.LOGGED_IN && session != null
+    /** A temporary auth/network problem must not make a persisted account look logged out. */
+    val loggedIn: Boolean get() = session != null && status != CloudAuthStatus.LOGGED_OUT
 }
 
 /** Installation-local auth storage. Tokens stay in app-private preferences and are never
@@ -79,20 +89,111 @@ internal class CloudAuthSessionStore(context: Context) {
     }
 }
 
+/**
+ * Process-wide view of the installation's persisted auth session.
+ *
+ * The store remains the source of persistence; this manager is the single in-process source
+ * consumed by Home, Community, Cloud Backup, and workers. A new process recreates it from the
+ * same app-private preferences, so process death and APK updates do not become logouts.
+ */
+internal class CloudAuthSessionManager internal constructor(
+    context: Context,
+    private val store: CloudAuthSessionStore = CloudAuthSessionStore(context)
+) {
+    private val _session = MutableStateFlow(store.read())
+    val session: StateFlow<CloudAuthSession?> = _session.asStateFlow()
+
+    fun currentSession(): CloudAuthSession? = _session.value ?: store.read()?.also { _session.value = it }
+
+    fun persist(value: CloudAuthSession) {
+        store.write(value)
+        _session.value = value
+    }
+
+    fun clear() {
+        store.clear()
+        _session.value = null
+    }
+
+    fun firstLaunchChoiceRequired(): Boolean = !store.hasFirstLaunchChoice()
+    fun chooseGuest() = store.setFirstLaunchChoice()
+
+    companion object {
+        private val lock = Any()
+        private val instances = WeakHashMap<Context, CloudAuthSessionManager>()
+
+        fun forApplication(context: Context): CloudAuthSessionManager {
+            val application = context.applicationContext
+            synchronized(lock) {
+                return instances[application] ?: CloudAuthSessionManager(application).also {
+                    instances[application] = it
+                }
+            }
+        }
+    }
+}
+
 internal sealed interface CloudAuthResult {
     data class Success(val session: CloudAuthSession) : CloudAuthResult
     data class Failure(val code: String) : CloudAuthResult
 }
 
+internal sealed interface CloudAuthRefreshResult {
+    data class Valid(val session: CloudAuthSession) : CloudAuthRefreshResult
+    data class TransientFailure(val session: CloudAuthSession, val code: String) : CloudAuthRefreshResult
+    data class TerminalFailure(val code: String) : CloudAuthRefreshResult
+    data object NoSession : CloudAuthRefreshResult
+}
+
+internal data class CloudAuthTokenResponse(val status: Int, val body: String = "")
+
+internal interface CloudAuthTokenClient {
+    suspend fun post(config: CloudBackupConfig, grantType: String, body: JSONObject): CloudAuthTokenResponse
+}
+
+internal class CloudAuthHttpException(
+    val statusCode: Int,
+    val responseBody: String
+) : IOException("AUTH_HTTP_$statusCode")
+
+private class UrlConnectionCloudAuthTokenClient : CloudAuthTokenClient {
+    override suspend fun post(
+        config: CloudBackupConfig,
+        grantType: String,
+        body: JSONObject
+    ): CloudAuthTokenResponse = withContext(Dispatchers.IO) {
+        val connection = (URL("${config.supabaseUrl}/auth/v1/token?grant_type=$grantType")
+            .openConnection() as HttpURLConnection).apply {
+            requestMethod = "POST"
+            doOutput = true
+            connectTimeout = 20_000
+            readTimeout = 30_000
+            setRequestProperty("apikey", config.publishableKey)
+            setRequestProperty("Content-Type", "application/json")
+        }
+        try {
+            connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
+            val status = connection.responseCode
+            val stream = if (status >= 400) connection.errorStream else connection.inputStream
+            val text = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
+            CloudAuthTokenResponse(status, text)
+        } finally {
+            connection.disconnect()
+        }
+    }
+}
+
 internal class CloudAuthRepository(
     private val context: Context,
     private val config: CloudBackupConfig = CloudBackupConfig.fromBuildConfig(),
-    private val store: CloudAuthSessionStore = CloudAuthSessionStore(context)
+    private val sessionManager: CloudAuthSessionManager = CloudAuthSessionManager.forApplication(context),
+    private val tokenClient: CloudAuthTokenClient = UrlConnectionCloudAuthTokenClient()
 ) {
-    fun currentSession(): CloudAuthSession? = store.read()
-    fun firstLaunchChoiceRequired(): Boolean = !store.hasFirstLaunchChoice()
-    fun chooseGuest() = store.setFirstLaunchChoice()
-    fun logout() = store.clear()
+    val session: StateFlow<CloudAuthSession?> = sessionManager.session
+    fun currentSession(): CloudAuthSession? = sessionManager.currentSession()
+    fun firstLaunchChoiceRequired(): Boolean = sessionManager.firstLaunchChoiceRequired()
+    fun chooseGuest() = sessionManager.chooseGuest()
+    fun logout() = sessionManager.clear()
 
     suspend fun signInWithGoogle(activity: Activity): CloudAuthResult {
         if (!config.configured) return CloudAuthResult.Failure("CLOUD_NOT_CONFIGURED")
@@ -111,8 +212,8 @@ internal class CloudAuthRepository(
             val googleToken = (credential as? GoogleIdTokenCredential)?.idToken
                 ?: return CloudAuthResult.Failure("INVALID_GOOGLE_CREDENTIAL")
             val session = exchangeIdToken(googleToken, rawNonce)
-            store.write(session)
-            store.setFirstLaunchChoice()
+            sessionManager.persist(session)
+            sessionManager.chooseGuest()
             CloudAuthResult.Success(session)
         } catch (_: NoCredentialException) {
             CloudAuthResult.Failure("NO_GOOGLE_CREDENTIAL")
@@ -121,24 +222,41 @@ internal class CloudAuthRepository(
         }
     }
 
-    suspend fun refreshIfNeeded(nowEpochSeconds: Long = System.currentTimeMillis() / 1000): CloudAuthSession? {
-        val current = store.read() ?: return null
-        if (current.expiresAtEpochSeconds > nowEpochSeconds + 60) return current
-        if (current.refreshToken.isBlank()) {
-            store.clear()
-            return null
+    suspend fun refreshIfNeeded(nowEpochSeconds: Long = System.currentTimeMillis() / 1000): CloudAuthSession? =
+        when (val result = refreshIfNeededDetailed(nowEpochSeconds)) {
+            is CloudAuthRefreshResult.Valid -> result.session
+            is CloudAuthRefreshResult.TransientFailure -> result.session
+            is CloudAuthRefreshResult.TerminalFailure,
+            CloudAuthRefreshResult.NoSession -> null
         }
-        return runCatching {
+
+    suspend fun refreshIfNeededDetailed(
+        nowEpochSeconds: Long = System.currentTimeMillis() / 1000
+    ): CloudAuthRefreshResult {
+        val current = sessionManager.currentSession() ?: return CloudAuthRefreshResult.NoSession
+        if (current.expiresAtEpochSeconds > nowEpochSeconds + 60) {
+            return CloudAuthRefreshResult.Valid(current)
+        }
+        if (current.refreshToken.isBlank()) {
+            sessionManager.clear()
+            return CloudAuthRefreshResult.TerminalFailure("REFRESH_TOKEN_MISSING")
+        }
+        return try {
             val response = postToken(
                 grantType = "refresh_token",
                 body = JSONObject().put("refresh_token", current.refreshToken)
             )
             val refreshed = sessionFromResponse(response, current)
-            store.write(refreshed)
-            refreshed
-        }.getOrNull() ?: run {
-            store.clear()
-            null
+            sessionManager.persist(refreshed)
+            CloudAuthRefreshResult.Valid(refreshed)
+        } catch (error: Throwable) {
+            if (error is CancellationException) throw error
+            if (isTerminalRefreshFailure(error)) {
+                sessionManager.clear()
+                CloudAuthRefreshResult.TerminalFailure("SESSION_EXPIRED")
+            } else {
+                CloudAuthRefreshResult.TransientFailure(current, transientFailureCode(error))
+            }
         }
     }
 
@@ -176,25 +294,39 @@ internal class CloudAuthRepository(
         sessionFromResponse(response, null)
     }
 
-    private fun postToken(grantType: String, body: JSONObject): JSONObject {
-        val connection = (URL("${config.supabaseUrl}/auth/v1/token?grant_type=$grantType").openConnection() as HttpURLConnection).apply {
-            requestMethod = "POST"
-            doOutput = true
-            connectTimeout = 20_000
-            readTimeout = 30_000
-            setRequestProperty("apikey", config.publishableKey)
-            setRequestProperty("Content-Type", "application/json")
+    private suspend fun postToken(grantType: String, body: JSONObject): JSONObject {
+        val response = tokenClient.post(config, grantType, body)
+        if (response.status !in 200..299) {
+            throw CloudAuthHttpException(response.status, response.body)
         }
-        return try {
-            connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
-            val status = connection.responseCode
-            val stream = if (status >= 400) connection.errorStream else connection.inputStream
-            val text = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
-            if (status !in 200..299) throw IllegalStateException("AUTH_${status}")
-            JSONObject(text)
-        } finally {
-            connection.disconnect()
-        }
+        return JSONObject(response.body)
+    }
+
+    private fun isTerminalRefreshFailure(error: Throwable): Boolean {
+        val http = generateSequence(error) { it.cause }
+            .filterIsInstance<CloudAuthHttpException>()
+            .firstOrNull()
+            ?: return false
+        // Supabase GoTrue uses these explicit error codes/messages for a revoked or
+        // otherwise unusable refresh credential. Other 4xx responses stay retryable.
+        if (http.statusCode !in 400..499) return false
+        val marker = http.responseBody.lowercase()
+        return listOf(
+            "invalid_grant",
+            "refresh_token_not_found",
+            "refresh_token_already_used",
+            "invalid_refresh_token",
+            "invalid refresh token",
+            "refresh token not found"
+        ).any(marker::contains)
+    }
+
+    private fun transientFailureCode(error: Throwable): String = when {
+        generateSequence(error) { it.cause }.any { it is UnknownHostException } -> "AUTH_NETWORK_UNAVAILABLE"
+        generateSequence(error) { it.cause }.any { it is ConnectException } -> "AUTH_NETWORK_UNAVAILABLE"
+        generateSequence(error) { it.cause }.any { it is TimeoutException } -> "AUTH_NETWORK_UNAVAILABLE"
+        generateSequence(error) { it.cause }.any { it is IOException } -> "AUTH_NETWORK_UNAVAILABLE"
+        else -> "AUTH_UNAVAILABLE"
     }
 
     private fun sessionFromResponse(response: JSONObject, previous: CloudAuthSession?): CloudAuthSession {

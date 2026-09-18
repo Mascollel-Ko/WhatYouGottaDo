@@ -321,6 +321,7 @@
     <string name="cloud_provider_not_configured">Google sign-in is not configured for this build yet.</string>
     <string name="cloud_google_unavailable">No Google account is available.</string>
     <string name="cloud_login_failed">Sign-in failed.</string>
+    <string name="cloud_auth_unavailable">The authentication service is temporarily unavailable. Please try again later.</string>
     <string name="cloud_session_expired">The session expired and you are signed out. Local records are preserved.</string>
     <string name="cloud_login_required">Sign in to use cloud features.</string>
     <string name="cloud_backup_current">Cloud backup is up to date.</string>

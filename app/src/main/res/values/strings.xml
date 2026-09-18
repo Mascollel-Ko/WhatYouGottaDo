@@ -330,6 +330,7 @@
     <string name="cloud_provider_not_configured">Google 로그인이 아직 이 빌드에 설정되지 않았습니다.</string>
     <string name="cloud_google_unavailable">Google 계정을 선택할 수 없습니다.</string>
     <string name="cloud_login_failed">로그인에 실패했습니다.</string>
+    <string name="cloud_auth_unavailable">네트워크 문제로 인증 상태를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.</string>
     <string name="cloud_session_expired">세션이 만료되어 로그아웃 상태로 전환했습니다. 로컬 기록은 유지됩니다.</string>
     <string name="cloud_login_required">클라우드 기능을 사용하려면 로그인해 주세요.</string>
     <string name="cloud_backup_current">클라우드 백업이 최신 상태입니다.</string>

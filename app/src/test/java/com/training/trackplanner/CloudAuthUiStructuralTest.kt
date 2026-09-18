@@ -36,6 +36,19 @@ class CloudAuthUiStructuralTest {
             }
     }
 
+    @Test fun communityUsesTheCanonicalApplicationSession() {
+        val source = source("src/main/java/com/training/trackplanner/CommunityViewModel.kt")
+        assertTrue(source.contains("val session: StateFlow<CloudAuthSession?> = auth.session"))
+        assertTrue(source.contains("val current = auth.refreshIfNeeded()"))
+        assertFalse(source.contains("MutableStateFlow(auth.currentSession())"))
+    }
+
+    @Test fun trainingUsesTheSharedSessionManager() {
+        val source = source("src/main/java/com/training/trackplanner/TrainingViewModel.kt")
+        assertTrue(source.contains("CloudAuthSessionManager.forApplication(application)"))
+        assertTrue(source.contains("authSessionManager.session.collect"))
+    }
+
     private fun source(relativePath: String): String = sequenceOf(
         File(relativePath), File("app", relativePath), File("..", relativePath)
     ).first(File::isFile).readText()

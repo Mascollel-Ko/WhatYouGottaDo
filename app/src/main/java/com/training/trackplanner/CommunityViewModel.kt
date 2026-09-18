@@ -35,8 +35,8 @@ internal class CommunityViewModel(application: Application) : AndroidViewModel(a
     private val db = TrainingDatabase.get(application)
     private val client = CommunityClient()
     private val canonicalMetadata = CanonicalExerciseMetadataRepository(application)
-    private val _session = MutableStateFlow(auth.currentSession())
-    val session: StateFlow<CloudAuthSession?> = _session.asStateFlow()
+    /** Community observes the same application-scoped session as Home and Cloud Backup. */
+    val session: StateFlow<CloudAuthSession?> = auth.session
     private val _profile = MutableStateFlow<com.training.trackplanner.data.CommunityProfile?>(null)
     val profile: StateFlow<com.training.trackplanner.data.CommunityProfile?> = _profile.asStateFlow()
     private val _programs = MutableStateFlow<List<CommunityProgram>>(emptyList())
@@ -57,10 +57,13 @@ internal class CommunityViewModel(application: Application) : AndroidViewModel(a
     val loaded: StateFlow<Boolean> = _loaded.asStateFlow()
 
     fun load() {
-        val current = auth.currentSession()
-        _session.value = current
-        if (current == null) { _loaded.value = false; return }
         viewModelScope.launch {
+            // Reuse a valid access token immediately, refreshing silently when it is near
+            // expiry. A transient refresh failure returns the persisted session so Community
+            // remains signed in and can surface a retryable request error instead of showing
+            // a second Google sign-in flow.
+            val current = auth.refreshIfNeeded()
+            if (current == null) { _loaded.value = false; return@launch }
             _loading.value = true
             _loaded.value = false
             runCatching {
@@ -90,7 +93,6 @@ internal class CommunityViewModel(application: Application) : AndroidViewModel(a
             _loading.value = true
             when (val result = auth.signInWithGoogle(activity)) {
                 is CloudAuthResult.Success -> {
-                    _session.value = result.session
                     load()
                 }
                 is CloudAuthResult.Failure -> _message.value = result.code
@@ -205,12 +207,12 @@ internal class CommunityViewModel(application: Application) : AndroidViewModel(a
     }
 
     fun publishPerformedActivity(exerciseStableKey: String?, exerciseName: String?) {
-        val current = _session.value ?: return
+        val current = auth.currentSession() ?: return
         viewModelScope.launch { runCatching { client.updateActivity(current, exerciseStableKey, exerciseName, System.currentTimeMillis()) } }
     }
 
     private fun launchRequest(block: suspend (CloudAuthSession) -> Unit) {
-        val current = _session.value ?: auth.currentSession()
+        val current = auth.currentSession()
         if (current == null) { _message.value = "LOGIN_REQUIRED"; return }
         viewModelScope.launch {
             _loading.value = true
