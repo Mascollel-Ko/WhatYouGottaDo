@@ -15,6 +15,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text as MaterialText
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -143,6 +144,7 @@ internal fun ProgramCard(
     onApply: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    onShare: () -> Unit = {},
     applyModifier: Modifier = Modifier
 ) {
     val displayName = localizedProgramName(program)
@@ -200,6 +202,9 @@ internal fun ProgramCard(
                 ) {
                     Text("삭제")
                 }
+            }
+            TextButton(onClick = onShare, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.community_publish))
             }
         }
     }

@@ -38,6 +38,7 @@ import com.training.trackplanner.data.CloudAuthRepository
 import com.training.trackplanner.data.CloudAuthResult
 import com.training.trackplanner.data.CloudAuthStatus
 import com.training.trackplanner.data.CloudAuthUiState
+import com.training.trackplanner.data.CommunityClient
 import com.training.trackplanner.data.CloudBackupState
 import com.training.trackplanner.data.DataTransferDiagnosticCodes
 import com.training.trackplanner.data.DataTransferFailure
@@ -88,7 +89,10 @@ import java.time.LocalDate
 
 class TrainingViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = TrainingRepository(TrainingDatabase.get(application), application)
+    private val communityDatabase = TrainingDatabase.get(application)
     private val authRepository = CloudAuthRepository(application)
+    private var lastCommunityActivityKey: String? = null
+    private var lastCommunityActivityAt: Long = 0L
     private val currentDate = LocalDate.now()
 
     val exercises: StateFlow<List<Exercise>> = repository.exercises.stateIn(
@@ -543,7 +547,22 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
 
     fun updateSet(set: com.training.trackplanner.data.RecordSetEdit) {
         viewModelScope.launch {
-            repository.updateSet(set)?.let(recordDerivedRefresh::afterCommit)
+            repository.updateSet(set)?.let { result ->
+                recordDerivedRefresh.afterCommit(result)
+                if (result.newlyConfirmed) publishCommunityActivityAfterConfirmation(set)
+            }
+        }
+    }
+
+    private suspend fun publishCommunityActivityAfterConfirmation(set: com.training.trackplanner.data.RecordSetEdit) {
+        val session = authRepository.currentSession() ?: return
+        val entry = withContext(Dispatchers.IO) { communityDatabase.workoutDao().findEntryById(set.values.entryId) } ?: return
+        val now = System.currentTimeMillis()
+        if (entry.exerciseStableKey == lastCommunityActivityKey && now - lastCommunityActivityAt < 30_000L) return
+        lastCommunityActivityKey = entry.exerciseStableKey
+        lastCommunityActivityAt = now
+        runCatching {
+            CommunityClient().updateActivity(session, entry.exerciseStableKey, entry.exerciseName, now)
         }
     }
 

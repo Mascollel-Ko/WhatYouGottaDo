@@ -78,6 +78,10 @@ Cloud Backup은 의료 데이터 동기화, 실시간 공동 편집, CRDT 또는
 - conflict recovery
 - Local Recovery Snapshot
 - account archive
+
+Community publications are separate server-side data and are not Cloud Backup
+payloads or R2 objects. See [Community Sharing](../community/COMMUNITY_SHARING.md)
+for the public-sharing contract.
 - Guest ↔ Cloud 비교
 - 계정 전환
 - 계정 삭제 후 Guest 전환

@@ -80,6 +80,7 @@ internal fun HomeScreen(
     viewModel: TrainingViewModel,
     onNavigate: (AppTab) -> Unit,
     onOpenAppExplanation: () -> Unit,
+    onOpenCommunity: () -> Unit = {},
     onProgramTargetPositioned: (Rect) -> Unit = {}
 ) {
     val today = remember { LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE) }
@@ -160,6 +161,9 @@ internal fun HomeScreen(
         }
         item {
             TodaySummaryCard(summary)
+        }
+        item {
+            CommunityEntryCard(onClick = onOpenCommunity)
         }
         item {
             HomeDailyCheckInCard(

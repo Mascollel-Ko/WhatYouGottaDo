@@ -153,6 +153,7 @@ internal fun PersonalizedPlanningQuestionDialog(
 internal fun PlanScreen(
     viewModel: TrainingViewModel,
     onOpenRecord: () -> Unit,
+    onShareProgram: (TrainingProgram) -> Unit = {},
     tutorialApplyRequest: Int = 0,
     showOnboardingApplyTarget: Boolean = false,
     onApplyTargetPositioned: (Rect) -> Unit = {}
@@ -213,6 +214,7 @@ internal fun PlanScreen(
                         if (selectedProgramId == program.id) selectedProgramId = null
                     }
                 },
+                onShareProgram = onShareProgram,
                 onOpenRecord = onOpenRecord,
                 tutorialApplyRequest = tutorialApplyRequest,
                 showOnboardingApplyTarget = showOnboardingApplyTarget,
@@ -238,6 +240,7 @@ private fun ProgramListScreen(
     onSelectProgram: (TrainingProgram) -> Unit,
     onEditProgram: (TrainingProgram) -> Unit,
     onDeleteProgram: (TrainingProgram) -> Unit,
+    onShareProgram: (TrainingProgram) -> Unit,
     onOpenRecord: () -> Unit,
     tutorialApplyRequest: Int,
     showOnboardingApplyTarget: Boolean,
@@ -352,6 +355,7 @@ private fun ProgramListScreen(
                     onApply = { applyTarget = program },
                     onEdit = { onEditProgram(program) },
                     onDelete = { deleteTarget = program },
+                    onShare = { onShareProgram(program) },
                     applyModifier = if (program.id == programs.first().id) {
                         Modifier.onGloballyPositioned { coordinates ->
                             onApplyTargetPositioned(coordinates.boundsInRoot())

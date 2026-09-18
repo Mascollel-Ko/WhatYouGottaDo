@@ -24,6 +24,9 @@ jobs:
       - name: Validate canonical protocol documentation
         run: python scripts/validate_protocol_docs.py
 
+      - name: Run Community and Cloud contract tests
+        run: node --test tests/community_sharing.test.mjs tests/cloud_backup_current.test.mjs
+
       - name: Check whitespace errors
         run: git diff --check
 

@@ -45,6 +45,12 @@
       "indexDocument": "data_portability/BACKUP_AND_RESTORE.md"
     },
     {
+      "familyId": "COMMUNITY",
+      "titleKo": "커뮤니티 공유",
+      "descriptionKo": "인증된 공개 프로그램·주간 요약·친구 활동 공유 계약",
+      "indexDocument": "community/COMMUNITY_SHARING.md"
+    },
+    {
       "familyId": "UI_PRESENTATION",
       "titleKo": "제품 UI 표시",
       "descriptionKo": "조용한 표면 계층, 내비게이션, locale 선택과 한국어/영어 표시 계약",
@@ -1949,6 +1955,44 @@
       "knownGaps": [
         "Guest+existing-Cloud semantic comparison, account archive, semantic comparison/merge, and conflict UI remain guarded.",
         "Edge Function deployment is gated on the required R2 secrets; the linked migrations are applied."
+      ],
+      "supersedes": [],
+      "publicSummaryAvailable": true
+    },
+    {
+      "protocolId": "COMMUNITY-SHARING",
+      "familyId": "COMMUNITY",
+      "titleKo": "커뮤니티 공유",
+      "titleEn": "Community Sharing",
+      "currentVersion": "1.0.0",
+      "status": "ACTIVE",
+      "implementationStatus": "IMPLEMENTED",
+      "evidenceProfile": [
+        "PRODUCT_POLICY",
+        "ENGINEERING_HEURISTIC"
+      ],
+      "canonicalDocument": "community/COMMUNITY_SHARING.md",
+      "implementedFromAppVersion": "UNRELEASED_COMMUNITY_V1",
+      "lastAuditedCommit": "e4c4882f20c4faaa573f4931eb29348baf0fdd38",
+      "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/CommunityScreen.kt",
+        "app/src/main/java/com/training/trackplanner/CommunityViewModel.kt",
+        "app/src/main/java/com/training/trackplanner/data/CommunityClient.kt",
+        "app/src/main/java/com/training/trackplanner/data/CommunityProgramSnapshotCodec.kt",
+        "supabase/migrations/20260918000000_community_sharing.sql",
+        "supabase/functions/community-api/index.ts",
+        "supabase/config.toml"
+      ],
+      "testAnchors": [
+        "supabase/tests/community_sharing.sql",
+        "app/src/test/java/com/training/trackplanner/data/CommunityProgramSnapshotCodecTest.kt",
+        "app/src/test/java/com/training/trackplanner/CommunityUiStructuralTest.kt",
+        "tests/community_sharing.test.mjs"
+      ],
+      "authorityAssets": [],
+      "supportingDocuments": [],
+      "knownGaps": [
+        "Hosted deployment and full device-width UI validation are environment-dependent."
       ],
       "supersedes": [],
       "publicSummaryAvailable": true

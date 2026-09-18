@@ -113,10 +113,12 @@ internal enum class AppTab(val label: String, val icon: ImageVector) {
 internal fun TrainingTrackPlannerApp(
     restTimerSessionController: RestTimerSessionController,
     restTimerTargets: SharedFlow<RestTimerTarget>,
-    viewModel: TrainingViewModel = viewModel()
+    viewModel: TrainingViewModel = viewModel(),
+    communityViewModel: CommunityViewModel = viewModel()
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(AppTab.Home) }
     var infoRoute by rememberSaveable { mutableStateOf<AppInfoRoute?>(null) }
+    var communityRoute by rememberSaveable { mutableStateOf(false) }
     var recordTarget by remember { mutableStateOf<RestTimerTarget?>(null) }
     var recordTargetRequestId by remember { mutableStateOf(0L) }
     var dismissedTimerIdentity by rememberSaveable { mutableStateOf<String?>(null) }
@@ -143,11 +145,12 @@ internal fun TrainingTrackPlannerApp(
         }
     }
 
-    BackHandler(enabled = onboardingStep != null || infoRoute != null || selectedTab != AppTab.Home) {
+    BackHandler(enabled = onboardingStep != null || communityRoute || infoRoute != null || selectedTab != AppTab.Home) {
         if (onboardingStep == null) {
-            val currentRoute = infoRoute
-            if (currentRoute != null) {
-                infoRoute = currentRoute.parent
+            if (communityRoute) {
+                communityRoute = false
+            } else if (infoRoute != null) {
+                infoRoute = infoRoute?.parent
             } else {
                 selectedTab = AppTab.Home
             }
@@ -157,7 +160,7 @@ internal fun TrainingTrackPlannerApp(
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             bottomBar = {
-                if (infoRoute == null) {
+                if (infoRoute == null && !communityRoute) {
                     Column {
                         if (RestTimerForegroundBarPolicy.visible(timerState, dismissedTimerIdentity)) {
                             RestTimerForegroundBar(
@@ -195,24 +198,33 @@ internal fun TrainingTrackPlannerApp(
                     .fillMaxSize()
                     .padding(innerPadding)
             ) {
-                when (infoRoute) {
-                    AppInfoRoute.AppExplanation -> AppExplanationScreen(
-                        onBack = { infoRoute = null },
-                        onOpenAnalysisGuide = { infoRoute = AppInfoRoute.AnalysisGuide },
-                        onOpenCalculationPrinciples = {
-                            infoRoute = AppInfoRoute.CalculationPrinciples
-                        }
+                when {
+                    communityRoute -> CommunityScreen(
+                        viewModel = communityViewModel,
+                        trainingViewModel = viewModel,
+                        onBack = { communityRoute = false }
                     )
-                    AppInfoRoute.AnalysisGuide -> AnalysisGuideScreen(
-                        onBack = { infoRoute = AppInfoRoute.AppExplanation }
-                    )
-                    AppInfoRoute.CalculationPrinciples -> CalculationPrinciplesScreen(
-                        onBack = { infoRoute = AppInfoRoute.AppExplanation }
-                    )
-                    null -> when (selectedTab) {
+                    infoRoute != null -> when (infoRoute) {
+                        AppInfoRoute.AppExplanation -> AppExplanationScreen(
+                            onBack = { infoRoute = null },
+                            onOpenAnalysisGuide = { infoRoute = AppInfoRoute.AnalysisGuide },
+                            onOpenCalculationPrinciples = {
+                                infoRoute = AppInfoRoute.CalculationPrinciples
+                            }
+                        )
+                        AppInfoRoute.AnalysisGuide -> AnalysisGuideScreen(
+                            onBack = { infoRoute = AppInfoRoute.AppExplanation }
+                        )
+                        AppInfoRoute.CalculationPrinciples -> CalculationPrinciplesScreen(
+                            onBack = { infoRoute = AppInfoRoute.AppExplanation }
+                        )
+                        null -> Unit
+                    }
+                    else -> when (selectedTab) {
                         AppTab.Home -> HomeScreen(
                             viewModel = viewModel,
                             onNavigate = { selectedTab = it },
+                            onOpenCommunity = { communityRoute = true },
                             onOpenAppExplanation = {
                                 infoRoute = AppInfoRoute.AppExplanation
                             },
@@ -242,6 +254,10 @@ internal fun TrainingTrackPlannerApp(
                                 if (onboardingStep == OnboardingStep.PLAN_APPLY) {
                                     onboardingStep = OnboardingStep.RECORD_OVERVIEW
                                 }
+                            },
+                            onShareProgram = { program ->
+                                communityViewModel.publishProgram(program)
+                                communityRoute = true
                             },
                             tutorialApplyRequest = tutorialApplyRequest,
                             showOnboardingApplyTarget =
