@@ -177,8 +177,8 @@ internal object ResistanceVolumePlanner {
     }
 
     private fun median(values: List<Double>): Double? = trainingMedian(values)
-    private fun quantile(values: List<Int>, q: Double): Double = quantile(values.map(Int::toDouble), q)
-    private fun quantile(values: List<Double>, q: Double): Double = if (values.isEmpty()) 0.0 else {
+    private fun quantile(values: List<Int>, q: Double): Double = quantileDouble(values.map(Int::toDouble), q)
+    private fun quantileDouble(values: List<Double>, q: Double): Double = if (values.isEmpty()) 0.0 else {
         val sorted = values.sorted()
         sorted[((sorted.size - 1) * q).roundToInt()]
     }
