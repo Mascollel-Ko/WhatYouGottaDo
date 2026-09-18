@@ -77,6 +77,28 @@ class ResistanceVolumePlanningTest {
         assertTrue(constrained.resistanceTargetSets < normal.resistanceTargetSets)
     }
 
+    @Test
+    fun `additional performance bouts do not lower independent resistance target`() {
+        val resistanceOnly = source(List(6) { 32 }, List(6) { 0.0 })
+        val withPerformance = source(List(6) { 32 }, List(6) { 0.0 }, includeDrill = true)
+        val resistanceBudget = ResistanceVolumePlanner.plan(
+            resistanceOnly,
+            AthletePlanningStateBuilder().build(resistanceOnly, PersonalizedPlanningAnswers()),
+            request(3),
+            200,
+            0.0
+        )
+        val performanceBudget = ResistanceVolumePlanner.plan(
+            withPerformance,
+            AthletePlanningStateBuilder().build(withPerformance, PersonalizedPlanningAnswers()),
+            request(3),
+            200,
+            0.0
+        )
+        assertEquals(resistanceBudget.resistanceTargetSets, performanceBudget.resistanceTargetSets)
+        assertEquals(resistanceBudget.resistanceWeeklyMedian, performanceBudget.resistanceWeeklyMedian, .001)
+    }
+
     private fun request(days: Int) = ProgramSkeletonRequest(
         "resistance-volume", ProgramGoal.BODYBUILDING, days, 60, emptySet(), "", .5, "AUTO",
         ProgramPeriodizationType.AUTO, 4
@@ -86,7 +108,7 @@ class ResistanceVolumePlanningTest {
         val resistance = Exercise("squat", "Squat", "근력운동", planningEligibility = "PROGRAM_SELECTABLE")
         val drill = Exercise("drill", "Footwork", "배드민턴", activityKind = "EXERCISE", planningEligibility = "PROGRAM_SELECTABLE")
         val resistanceMetadata = RuntimeExerciseMetadataDefaults.forExercise(resistance).copy(
-            programSlot = "MAIN_LOWER_STRENGTH", analysisEligibility = MetadataTokenField.parse("STRENGTH_PROGRESS|HYPERTROPHY_VOLUME"),
+            activityKind = "EXERCISE", programSlot = "MAIN_LOWER_STRENGTH", analysisEligibility = MetadataTokenField.parse("STRENGTH_PROGRESS|HYPERTROPHY_VOLUME"),
             planningEligibility = "PROGRAM_SELECTABLE", sourceConfidenceLevel = "HIGH"
         )
         val drillMetadata = RuntimeExerciseMetadataDefaults.forExercise(drill).copy(

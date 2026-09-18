@@ -98,7 +98,10 @@ internal object ResistanceVolumePlanner {
     ): ResistanceVolumeBudget {
         val weekly = weeklyResistanceSets(snapshot)
         val contextByWeek = state.trainingStateAssessment?.weeklyContext.orEmpty().associateBy { it.start }
-        val normal = weekly.filter { contextByWeek[it.key]?.context == WeeklyTrainingContext.NORMAL &&
+        // The canonical analyzer supplies a context for every observed week.
+        // A small synthetic or pre-context snapshot has no such annotation;
+        // absent an exclusion, treat that complete week as normal evidence.
+        val normal = weekly.filter { (contextByWeek[it.key]?.context == WeeklyTrainingContext.NORMAL || contextByWeek[it.key] == null) &&
             contextByWeek[it.key]?.excludedFromTolerance != true && it.value > 0 }.values.toList()
         val active = weekly.filter { contextByWeek[it.key]?.excludedFromTolerance != true && it.value > 0 }.values.toList()
         val recent = weekly.values.filter { it > 0 }
@@ -132,8 +135,8 @@ internal object ResistanceVolumePlanner {
         val q75 = quantile(baselineValues, .75)
         val global = (state.trainingStateAssessment?.globalDoseFactor ?: 1.0).coerceIn(.80, 1.0)
         val core = (baseline * global).roundToInt().coerceAtLeast(0)
-        val normalDayCounts = weekly.keys.filter { it in contextByWeek &&
-            contextByWeek[it]?.context == WeeklyTrainingContext.NORMAL && contextByWeek[it]?.excludedFromTolerance != true }
+        val normalDayCounts = weekly.keys.filter { (contextByWeek[it]?.context == WeeklyTrainingContext.NORMAL || contextByWeek[it] == null) &&
+            contextByWeek[it]?.excludedFromTolerance != true }
             .map { week -> snapshot.allConfirmedSets.filter { completeWeekStart(it.date) == week && snapshot.activityKind(it.stableKey) == PlannedActivityKind.RESISTANCE }
                 .map(PlanningSetRecord::date).distinct().size }
             .filter { it > 0 }

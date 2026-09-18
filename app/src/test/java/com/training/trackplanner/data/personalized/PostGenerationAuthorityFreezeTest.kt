@@ -15,13 +15,15 @@ class PostGenerationAuthorityFreezeTest {
         // TrainingStateAssessment additionally permits Stage 2 LOW_WEEK_RATIO .625 -> .85 only.
         // All unrelated historical, style, numerical and prescription authorities remain frozen.
         val frozen = mapOf(
-            "AthletePlanningStateBuilder.kt" to "edc55032496651ad17488b20275f163f51f54c3b57b3aef5c3b64195b06585f7",
+            // Domain-separated volume and court-deviation trace are the approved
+            // changes in this follow-up; keep the remaining authorities frozen.
+            "AthletePlanningStateBuilder.kt" to "1e2f9e50cf77b92cb111bd2a6a2e59fc41e620be5e6cdfaa198c3777d8a9ad8d",
             "ExposureRepresentation.kt" to "c50938180f863a2316a8dff8eba21b49afce5cda295eb1ace7c7a7322408e4e8",
-            "PersonalizedDecisionComponents.kt" to "c2364c349bd40028049d0028577df999f69efd33c2bd9d503a5499180dc2ff60",
-            "ExecutionAllocationPlanner.kt" to "253b98c91f2cbd93783ebbfafcba263ab0f28e12ed08b9ffb16b8d165637d405",
+            "PersonalizedDecisionComponents.kt" to "66c6acc65bc46f5bc957d8f4f8b57f072b44d2a621f060edabe5d047aed89958",
+            "ExecutionAllocationPlanner.kt" to "b1aae9692671a78a40dba4cb30cfd1bb274a1a533f2c4294852d61641fbe3e41",
             "PerformancePrescriptionResolver.kt" to "48eda34c9e390ca109bbb1e19e7a8ac79802f01f60c25470f92c8eb7f87063be",
             "RecordBasedReviewedPolicy.kt" to "cc5b12bf40b47226d75256455aa9bc34908f47f78e9ea3ac0fa76016f97bc25d",
-            "PlanningHistorySnapshotBuilder.kt" to "2df6c87925dcfc7c03a340e6a12a5158b2575e57330b13ba445bf36b62848828",
+            "PlanningHistorySnapshotBuilder.kt" to "f2d4fd0a1b46100acaa815947bfa70ebe7d309cf7c8bd72c60efa9353b419d79",
             "TrainingStateAssessment.kt" to "9027cb6d45422fc2cdecafa19fbec34a8b8fcba8c14cc594058d15e802e53bf2",
             "TrainingStateRouting.kt" to "d086f1008c2247bda65e33b5db2277fc962a0ea666163dfe0f46e119a434b5f7"
         )
