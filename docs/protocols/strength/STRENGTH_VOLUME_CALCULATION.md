@@ -7,7 +7,7 @@
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | UNKNOWN_PENDING_AUDIT; CoreStimulus V1 from v0.5.0.33; weekly core presentation from v0.5.0.34; Lab pseudo-core metrics retired in v0.5.0.35; exact load/muscle authority from v0.5.0.36; dead cumulative compatibility removed in v0.5.0.37; debug-only V3 Common metrics retired after v0.5.0.37 |
-| Last audited commit | fd3fe5a |
+| Last audited commit | ee16d721 |
 | Evidence profile | MIXED, PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
