@@ -83,7 +83,8 @@ data class QualityNeed(
         hypertrophyLikeBouts = 0,
         ambiguousBouts = 0,
         currentExposure = ExposureState.UNKNOWN,
-        confidence = PlanningConfidence.LOW
+        confidence = PlanningConfidence.LOW,
+        evidence = emptyList()
     )
 )
 
@@ -221,7 +222,7 @@ class AthleteNeedsProfileEngine(
         val sportTasks = taskBuckets.entries.sortedBy { it.key }.map { (task, bucket) ->
             val structuredDirect = bucket.directBouts(0..27)
             val structuredSupportive = bucket.supportiveBouts(0..27)
-            val contextLoad = snapshot.badmintonObjectiveRepresentations
+            val contextLoad = state.badmintonObjectiveRepresentations
                 .firstOrNull { it.objective == task }?.currentWeighted28d ?: 0.0
             val relevant = taskRelevance(snapshot, state, task)
             val directExposure = if (structuredDirect == 0 && contextLoad > 0.0) ExposureState.UNKNOWN
@@ -253,7 +254,7 @@ class AthleteNeedsProfileEngine(
             )
         }
 
-        val modifiers = executionModifiers(snapshot, qualityNeeds)
+        val modifiers = executionModifiers(snapshot, state, qualityNeeds)
         val unresolved = buildList {
             if (snapshot.profilePrimaryGoal.isBlank() && state.strengthIntent == StrengthIntent.UNRESOLVED && state.badmintonIntent == BadmintonPlanningIntent.UNRESOLVED) {
                 add("UNKNOWN_USER_PRIORITY")
@@ -368,14 +369,14 @@ class AthleteNeedsProfileEngine(
         else -> ExposureState.LOW
     }
 
-    private fun executionModifiers(snapshot: PlanningHistorySnapshot, qualityNeeds: List<QualityNeed>): List<ExecutionModifierTrace> = buildList {
+    private fun executionModifiers(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, qualityNeeds: List<QualityNeed>): List<ExecutionModifierTrace> = buildList {
         val restricted = snapshot.recoverySignals.tissueRestrictedStableKeys
         if (restricted.isNotEmpty()) add(ExecutionModifierTrace("TISSUE", restricted.sorted(), ExecutionModifier.SUBSTITUTE, listOf("TISSUE_RESTRICTION_EXECUTION_ONLY")))
         if (snapshot.recoverySignals.isConstrained) add(ExecutionModifierTrace("RECOVERY", emptyList(), ExecutionModifier.HOLD, listOf("RECOVERY_MODIFIER_NOT_NEED_SUPPRESSION")))
-        if (snapshot.courtDeviation > 0.0 && snapshot.recoverySignals.isConstrained) add(ExecutionModifierTrace("BADMINTON", emptyList(), ExecutionModifier.REDUCE, listOf("COURT_DEVIATION_PLUS_RECOVERY_EVIDENCE")))
+        if (state.courtDeviation > 0.0 && snapshot.recoverySignals.isConstrained) add(ExecutionModifierTrace("BADMINTON", emptyList(), ExecutionModifier.REDUCE, listOf("COURT_DEVIATION_PLUS_RECOVERY_EVIDENCE")))
     }
 
-    private class MutableQualityBucket {
+    private inner class MutableQualityBucket {
         private val records = mutableListOf<QualityObservation>()
         fun add(row: PlanningSetRecord, relation: ExercisePhysicalQualityRelation, age: Int) {
             records += QualityObservation(row, relation.relationLevel, age, classify(row))
