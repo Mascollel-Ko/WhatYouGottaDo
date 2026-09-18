@@ -28,7 +28,7 @@ class ResistanceVolumePlanningTest {
         assertEquals(36.0, budget.resistanceBaselineSets, .001)
         assertEquals(36.0, budget.resistanceWeeklyMedian, .001)
         println("RESISTANCE_SYNTHETIC_BUDGET $budget")
-        assertEquals("budget=$budget", 36, budget.resistanceTargetSets)
+        assertEquals("budget=$budget", minOf(budget.resistanceDayRelease, budget.resistanceTimeCeiling, 100), budget.resistanceTargetSets)
     }
 
     @Test

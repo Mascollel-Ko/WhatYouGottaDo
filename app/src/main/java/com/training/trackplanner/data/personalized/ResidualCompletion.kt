@@ -188,12 +188,11 @@ internal class ResidualCompletion(private val prescriptions: PersonalizedPrescri
                     // erase already demonstrated resistance volume merely by
                     // consuming the combined bookkeeping currency.
                     val combinedCapacity = minOf(demand.authorizedUnits, envelope.finalControllableUnits)
-                    val resistanceTarget = envelope.domainBudget.resistance.resistanceTargetSets
-                    val currentResistance = rows.filter { snapshot.activityKind(it.exerciseStableKey) == PlannedActivityKind.RESISTANCE }
-                        .sumOf { it.setPrescriptions.size }
-                    val capacity = if (snapshot.activityKind(trial.stableKey) == PlannedActivityKind.RESISTANCE && currentResistance < resistanceTarget)
-                        minOf(combinedCapacity, resistanceTarget)
-                    else combinedCapacity
+                    // Completion remains bounded by the existing canonical
+                    // schedule capacity.  The domain target authorizes which
+                    // resistance residuals may be considered, while final
+                    // time/OFI/tissue validation still owns feasibility.
+                    val capacity = combinedCapacity
                     val sameKeyAuthority = authorized.filter { it.item.stableKey == trial.stableKey }
                     val withinExactKeyCeiling = exact == null || sameKeyAuthority.isEmpty() ||
                         rows.filter { it.exerciseStableKey == trial.stableKey }.sumOf { it.setPrescriptions.size } + rx.sets.size <=

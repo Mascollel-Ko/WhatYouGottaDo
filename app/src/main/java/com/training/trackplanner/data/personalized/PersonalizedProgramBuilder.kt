@@ -447,7 +447,13 @@ class PersonalizedProgramBuilder(
         val resistanceUsefulDemand = resistanceContinuityDemand +
             materialCandidates.filter { snapshot.activityKind(it.stableKey) == PlannedActivityKind.RESISTANCE }.sumOf(PlannedExercise::targetSets) +
             optionalCandidates.filter { snapshot.activityKind(it.stableKey) == PlannedActivityKind.RESISTANCE }.sumOf(PlannedExercise::targetSets)
-        val resistanceBudget = ResistanceVolumePlanner.plan(snapshot, state, request, resistanceUsefulDemand, anchorFallbackResistance)
+        val rawResistanceBudget = ResistanceVolumePlanner.plan(snapshot, state, request, resistanceUsefulDemand, anchorFallbackResistance)
+        val capacityExpanded = baselineResistance < 4.0 && materialCandidates.any { it.priority >= 100 } && systemicDoseFactor >= .92
+        val resistanceBudget = rawResistanceBudget.copy(
+            resistanceTargetSets = if (capacityExpanded)
+                minOf(rawResistanceBudget.resistanceTimeCeiling, resistanceUsefulDemand)
+            else rawResistanceBudget.resistanceTargetSets
+        )
         val domains = DomainVolumeBudget(
             resistance = resistanceBudget,
             structuredBadminton = PerformanceVolumeBudget(
@@ -470,7 +476,6 @@ class PersonalizedProgramBuilder(
         // authorization ceiling; it must not turn unused budget into filler.
         val coreReserve = if (state.anchors.isEmpty()) 0 else
             minOf(resistanceBudget.resistanceTargetSets, continuityDemand, state.anchors.size).coerceAtLeast(1)
-        val capacityExpanded = baselineResistance < 4.0 && materialCandidates.any { it.priority >= 100 } && systemicDoseFactor >= .92
         val capacity = if (envelope.historicalSessionObservationCount < 4)
             minOf(envelope.finalControllableUnits,
                 if (capacityExpanded) maxOf(continuityDemand, coreReserve + (materialCandidates.firstOrNull()?.targetSets ?: 0)) else continuityDemand)
