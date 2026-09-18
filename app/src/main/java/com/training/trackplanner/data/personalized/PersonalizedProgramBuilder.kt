@@ -466,6 +466,7 @@ class PersonalizedProgramBuilder(
         val resistanceAllocations = proportionalAllocation(anchorWeights.entries.sortedByDescending { it.value }
             .take(resistanceUnits).associate { it.toPair() }, resistanceUnits)
         val performanceWeights = performanceContinuity.associate { it.stableKey to it.targetSets.toDouble() }
+        val incumbentWeights = anchorWeights + performanceWeights
         val performanceAllocations = proportionalAllocation(performanceWeights.entries.sortedByDescending { it.value }
             .take(performanceUnits).associate { it.toPair() }, performanceUnits)
         val incumbentAllocations = resistanceAllocations + performanceAllocations

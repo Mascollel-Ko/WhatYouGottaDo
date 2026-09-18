@@ -68,7 +68,7 @@ internal object ResistanceVolumePlanner {
         return snapshot.allConfirmedSets
             .asSequence()
             .filter { it.date >= lower && it.date <= completeEnd && snapshot.activityKind(it.stableKey) in resistanceOnly }
-            .groupBy(::completeWeekStart)
+            .groupBy { completeWeekStart(it.date) }
             .mapValues { (_, rows) -> rows.size }
             .toSortedMap()
     }
@@ -102,11 +102,30 @@ internal object ResistanceVolumePlanner {
             contextByWeek[it.key]?.excludedFromTolerance != true && it.value > 0 }.values.toList()
         val active = weekly.filter { contextByWeek[it.key]?.excludedFromTolerance != true && it.value > 0 }.values.toList()
         val recent = weekly.values.filter { it > 0 }
-        val (baseline, source, baselineValues) = when {
-            normal.isNotEmpty() -> Triple(median(normal)!!, "NORMAL_COMPLETE_WEEK_MEDIAN", normal)
-            active.isNotEmpty() -> Triple(median(active)!!, "ACTIVE_COMPLETE_WEEK_MEDIAN", active)
-            recent.isNotEmpty() -> Triple(median(recent)!!, "RECENT_RESISTANCE_WEEK_MEDIAN", recent)
-            else -> Triple(anchorFallback.coerceAtLeast(0.0), "ANCHOR_DERIVED_FALLBACK", emptyList())
+        val baselineValues: List<Int>
+        val baseline: Double
+        val source: String
+        when {
+            normal.isNotEmpty() -> {
+                baselineValues = normal
+                baseline = median(normal)!!
+                source = "NORMAL_COMPLETE_WEEK_MEDIAN"
+            }
+            active.isNotEmpty() -> {
+                baselineValues = active
+                baseline = median(active)!!
+                source = "ACTIVE_COMPLETE_WEEK_MEDIAN"
+            }
+            recent.isNotEmpty() -> {
+                baselineValues = recent
+                baseline = median(recent)!!
+                source = "RECENT_RESISTANCE_WEEK_MEDIAN"
+            }
+            else -> {
+                baselineValues = emptyList()
+                baseline = anchorFallback.coerceAtLeast(0.0)
+                source = "ANCHOR_DERIVED_FALLBACK"
+            }
         }
         val q25 = quantile(baselineValues, .25)
         val q50 = quantile(baselineValues, .50)
