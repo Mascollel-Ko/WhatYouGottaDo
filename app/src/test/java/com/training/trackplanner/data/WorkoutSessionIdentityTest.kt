@@ -425,7 +425,7 @@ class WorkoutSessionIdentityTest {
             }).build())
         helper.writableDatabase; helper.close()
         val db = Room.databaseBuilder(context, TrainingDatabase::class.java, name)
-            .allowMainThreadQueries().addMigrations(MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34).build().also { databases += it }
+            .allowMainThreadQueries().addMigrations(MIGRATION_31_32, MIGRATION_32_33, TrainingDatabase.MIGRATION_33_34).build().also { databases += it }
         val migrated = db.workoutDao().allEntriesWithSets().sortedBy { it.entry.id }
         assertEquals(3, migrated.size)
         assertEquals(migrated[0].entry.sessionStableKey, migrated[1].entry.sessionStableKey)

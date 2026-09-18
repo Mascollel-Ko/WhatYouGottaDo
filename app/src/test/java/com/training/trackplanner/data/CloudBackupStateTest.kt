@@ -276,7 +276,7 @@ class CloudBackupStateTest {
         }
         val before = snapshot(helper.writableDatabase); helper.close()
         val db = Room.databaseBuilder(context, TrainingDatabase::class.java, name).allowMainThreadQueries()
-            .addMigrations(MIGRATION_32_33, MIGRATION_33_34).build()
+            .addMigrations(MIGRATION_32_33, TrainingDatabase.MIGRATION_33_34).build()
         try {
             val state = state(db)
             assertEquals(before, snapshot(db.openHelper.writableDatabase))
