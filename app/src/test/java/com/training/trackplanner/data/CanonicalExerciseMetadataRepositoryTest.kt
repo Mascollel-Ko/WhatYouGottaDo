@@ -83,6 +83,49 @@ class CanonicalExerciseMetadataRepositoryTest {
     }
 
     @Test
+    fun physicalQualityRelationsUseRuntimeAuthorityAndKeepLayersSeparate() {
+        val catalog = repository.physicalQualityCatalog()
+        assertEquals(43, catalog.allRelations().size)
+        assertTrue(catalog.allRelations().all { it.prescriptionDependent })
+        assertTrue(
+            catalog.relations("barbell_back_squat").mapTo(mutableSetOf()) { it.qualityId }.containsAll(
+                setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY)
+            )
+        )
+        assertTrue(
+            catalog.relations("ex_1cf51b6b").mapTo(mutableSetOf()) { it.qualityId } ==
+                setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY)
+        )
+
+        val bootstrapLeakageKeys = listOf(
+            "cable_hip_adduction",
+            "hip_adduction_machine",
+            "ex_728da646",
+            "ex_8824026f",
+            "ex_1cf51b6b"
+        )
+        assertTrue(
+            bootstrapLeakageKeys.flatMap(catalog::relations).none {
+                it.qualityId == TrainableQuality.REACTIVE_STRENGTH_SSC
+            }
+        )
+        assertTrue(catalog.relations("ex_7404067c").any { it.qualityId == TrainableQuality.POWER })
+        assertTrue(catalog.relations("ex_d6726746").any { it.qualityId == TrainableQuality.REACTIVE_STRENGTH_SSC })
+        assertTrue(catalog.relations("ex_4773b6ea").any { it.qualityId == TrainableQuality.CARDIORESPIRATORY_FITNESS })
+        assertTrue(catalog.relations("ex_149730de").any { it.qualityId == TrainableQuality.MOBILITY_ROM })
+
+        listOf("band_pallof_press", "cable_pallof_press", "ex_a44ae2ca", "ex_f6d43398", "band_woodchop")
+            .forEach { stableKey -> assertTrue(catalog.relations(stableKey).isEmpty()) }
+        listOf("ex_1c7f2342", "ex_33841b88", "ex_bc84eb7f", "ex_c5f4c242")
+            .forEach { stableKey -> assertTrue(catalog.relations(stableKey).isEmpty()) }
+        listOf("ex_91d8430b", "ex_c7977dfd").forEach { stableKey ->
+            assertTrue(catalog.isAssessmentOnly(stableKey))
+            assertTrue(catalog.relations(stableKey).isEmpty())
+        }
+        assertTrue(catalog.relations("kettlebell_halo").isEmpty())
+    }
+
+    @Test
     fun trunkControlRelationsAreDecomposedWithoutCollapsingRotationOrBracing() {
         val patterns = repository.movementRelations()
             .filter { it.relationType == "MOVEMENT_PATTERN" }

@@ -744,6 +744,16 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 19. 관련 문서
 
+### Physical-quality capability boundary
+
+The canonical physical-quality catalog is a metadata-only foundation for a
+future Needs Engine. It describes exercise capability, not realized training
+stimulus: prescription (load, reps, RPE, duration, and velocity or execution
+intent) is still required. General quality, Core quality, Sport performance
+task, Recovery/Prehab, and Mechanical Context remain separate relation layers.
+The current ProgramBuilder does not read this catalog and its selection,
+volume, and decision behavior remain unchanged.
+
 - [`docs/v0.4.2.0_release_notes.md`](../../v0.4.2.0_release_notes.md)
 - [`docs/v0.5.0.13_release_notes.md`](../../v0.5.0.13_release_notes.md)
 - [`docs/v0.5.0.14_release_notes.md`](../../v0.5.0.14_release_notes.md)

@@ -3,7 +3,7 @@
 | 항목 | 값 |
 |---|---|
 | Protocol ID | DATA-METADATA-ANALYSIS-CONTRACT |
-| Protocol version | 2.1.0 |
+| Protocol version | 2.2.0 |
 | Status | ACTIVE |
 | Implementation status | PARTIALLY_IMPLEMENTED |
 | Implemented from app version | v0.5.0.16 shadow baseline; role split from v0.5.0.21; bundled authority cutover from v0.5.0.22; Korean display authority from v0.5.0.23; explicit override authority from v0.5.0.25; fieldKey routing from v0.5.0.26; canonical normalization from v0.5.0.32; core/objective analysis cutover from v0.5.0.33; explicit semantic-authority closeout from v0.5.0.37 |
@@ -29,6 +29,34 @@ separate exact-key contracts.
 
 Search, localization, display labels, accessibility text, and diagnostics may
 still read names. This presentation allowance grants no semantic authority.
+
+## Physical-quality capability layer (metadata-only, 2026-09)
+
+`physical_quality_relations.csv` is a small canonical vocabulary for
+**Exercise → Stimulus Capability**. It describes what a reviewed exercise can
+train when prescribed appropriately; it does not claim a realized training
+stimulus. Realized stimulus remains dependent on load, reps, RPE, duration, and
+velocity or execution intent.
+
+The general vocabulary is `STRENGTH`, `HYPERTROPHY`, `POWER`,
+`RAPID_FORCE_PRODUCTION`, `REACTIVE_STRENGTH_SSC`, `MUSCULAR_ENDURANCE`,
+`CARDIORESPIRATORY_FITNESS`, and `MOBILITY_ROM`. `DIRECT_CAPABILITY` and
+`SUPPORTIVE_CAPABILITY` are ordinal relation levels, and every production row
+is prescription-dependent. Qualifiers carry region and mode detail instead of
+creating one-off qualities such as `GRIP_STRENGTH` or `ECCENTRIC_STRENGTH`.
+
+General quality, Core quality, Badminton/Sport performance task,
+Recovery/Prehab, and Mechanical Context are separate layers. Core and sport
+task relations continue to be owned by `core_relations.csv` and
+`badminton_objective_relations.csv`; analysis-only assessment exercises are
+excluded from the capability asset. Runtime metadata is the semantic authority
+for this layer. `exercise_bootstrap.csv` remains identity/bootstrap data only.
+
+The typed catalog is loaded by `CanonicalExerciseMetadataRepository` and is
+not connected to ProgramBuilder, Needs Engine, planner selection/volume, or
+any calculator in this phase. Exercises without an approved relation remain
+unresolved for later review rather than being inferred from names or legacy
+bootstrap categories.
 
 ## v0.5.0.33 analysis authority cutover
 

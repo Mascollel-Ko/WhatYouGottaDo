@@ -168,6 +168,7 @@ class CanonicalExerciseMetadataRepository(private val context: Context) {
         require(selectableKeys.all { key ->
             bootstrapByStableKey.getValue(key).defaultRestSeconds == timingByStableKey.getValue(key).defaultRestSeconds
         }) { "Canonical bootstrap timing differs from program timing authority." }
+        physicalQualityRelations()
     }
 
     fun identities(): List<CanonicalExerciseIdentity> = identitiesByStableKey.values.sortedBy { it.stableKey }
@@ -331,6 +332,63 @@ class CanonicalExerciseMetadataRepository(private val context: Context) {
         require(relations.none { it.objective.name == "ROTATION_POWER" })
         return CanonicalBadmintonObjectiveCatalog.of(relations, historyBadmintonSourceMap(relations))
     }
+
+    fun physicalQualityRelations(): List<ExercisePhysicalQualityRelation> {
+        val rows = parseVerifiedCsv("physical_quality_relations.csv")
+        val relations = rows.map { fields ->
+            val exerciseStableKey = fields.required("exerciseStableKey").normalizedCanonicalKey()
+            val identity = identitiesByStableKey[exerciseStableKey]
+            require(identity != null && (identity.selectable || identity.historyOnly)) {
+                "Physical-quality relation references non-selectable or missing identity: $exerciseStableKey"
+            }
+            val evidenceRelationKeys = fields["evidenceRelationKeys"]
+                .orEmpty()
+                .split('|')
+                .map(String::trim)
+                .filter(String::isNotBlank)
+                .toSet()
+            require(evidenceRelationKeys.isNotEmpty()) {
+                "Physical-quality relation must retain evidence keys: ${fields.required("relationId")}"
+            }
+            require(fields.required("reviewStatus") == "PASS") {
+                "Physical-quality relation is not approved: ${fields.required("relationId")}"
+            }
+            val prescriptionDependent = fields.required("prescriptionDependent").toYesNoBoolean()
+            require(prescriptionDependent) {
+                "Physical-quality capability must remain prescription-dependent: ${fields.required("relationId")}"
+            }
+            ExercisePhysicalQualityRelation(
+                relationId = fields.required("relationId"),
+                exerciseStableKey = exerciseStableKey,
+                qualityId = TrainableQuality.valueOf(fields.required("qualityId")),
+                relationLevel = StimulusCapabilityLevel.valueOf(fields.required("relationLevel")),
+                regionQualifier = fields.required("regionQualifier"),
+                modeQualifier = fields.required("modeQualifier"),
+                prescriptionDependent = prescriptionDependent,
+                provenance = fields.required("provenance"),
+                evidenceRelationKeys = evidenceRelationKeys,
+                reviewStatus = fields.required("reviewStatus"),
+                notes = fields.required("notes")
+            )
+        }
+        require(relations.map(ExercisePhysicalQualityRelation::relationId).distinct().size == relations.size) {
+            "Duplicate physical-quality relation id."
+        }
+        require(relations.map {
+            listOf(it.exerciseStableKey, it.qualityId.name, it.regionQualifier, it.modeQualifier)
+        }.distinct().size == relations.size) {
+            "Duplicate physical-quality exercise/quality/qualifier relation."
+        }
+        return relations
+    }
+
+    fun physicalQualityCatalog(): CanonicalExercisePhysicalQualityCatalog =
+        CanonicalExercisePhysicalQualityCatalog.of(
+            relations = physicalQualityRelations(),
+            assessmentOnlyStableKeys = runtimeMetadata
+                .filter { it.planningEligibility == "ANALYSIS_ONLY" }
+                .map(RuntimeExerciseMetadata::stableKey)
+        )
 
     fun progressionRelations(): List<CanonicalMetadataRelation> = canonicalRelations(
         assetName = "progression_relations.csv",
