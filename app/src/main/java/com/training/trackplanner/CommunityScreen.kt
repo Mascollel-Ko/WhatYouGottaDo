@@ -302,7 +302,7 @@ private fun ProgramCard(program: CommunityProgram, onSelect: (CommunityProgram) 
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("${program.nickname}  ♥ ${program.authorReceivedLikeCount}", style = MaterialTheme.typography.labelMedium)
             Text(program.programName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            Text(program.labels.compactText(), maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall)
+            CommunityLabelText(program.labels, Modifier.fillMaxWidth(), maxLines = 2)
             Text(program.representativeExercises.joinToString(" · "), maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 TextButton(onClick = { onLike(program) }) { Text("${if (program.likedByMe) "♥" else "♡"} ${program.likeCount}") }
@@ -367,7 +367,27 @@ private fun CommunitySortDropdown(sort: String, onSort: (String) -> Unit, modifi
     }
 }
 
-private fun CommunityProgramLabels.compactText(): String = (strengthRegions + strengthGoals + functionalGoals + badmintonGoals).joinToString(" · ")
+@Composable
+private fun CommunityLabelText(labels: CommunityProgramLabels, modifier: Modifier = Modifier, maxLines: Int = 1) {
+    val parts = mutableListOf<String>()
+    labels.strengthRegions.forEach { value -> parts += stringResource(when (value) {
+        "UPPER_BODY" -> R.string.community_filter_upper
+        "LOWER_BODY" -> R.string.community_filter_lower
+        else -> R.string.community_filter_all_limbs
+    }) }
+    labels.strengthGoals.forEach { value -> parts += stringResource(if (value == "HYPERTROPHY") R.string.community_filter_hypertrophy else R.string.community_filter_strength) }
+    labels.functionalGoals.forEach { value -> parts += stringResource(when (value) {
+        "EXPLOSIVE_ACCELERATION" -> R.string.community_goal_explosive
+        "ELASTIC_GROUND_REACTION" -> R.string.community_goal_elastic
+        else -> R.string.community_goal_coordination
+    }) }
+    labels.badmintonGoals.forEach { value -> parts += stringResource(when (value) {
+        "SWING_POWER" -> R.string.community_goal_swing
+        "LANDING_DECELERATION_STABILITY" -> R.string.community_goal_landing
+        else -> R.string.community_goal_footwork
+    }) }
+    Text(parts.joinToString(" · "), modifier = modifier, maxLines = maxLines, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall)
+}
 
 private fun LazyListScope.FriendsSection(friendCode: String, onFriendCodeChange: (String) -> Unit, onLookup: () -> Unit, state: com.training.trackplanner.data.CommunityFriendsState, onRespond: (String, Boolean) -> Unit, onRemove: (String) -> Unit) {
     item {
@@ -427,7 +447,7 @@ private fun LazyListScope.WeeklySection(weekly: List<com.training.trackplanner.d
         title = { Text(program.programName) },
         text = { Column(Modifier.heightIn(max = 420.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("${program.nickname}  ♥ ${program.authorReceivedLikeCount}")
-            Text(program.labels.compactText(), style = MaterialTheme.typography.bodySmall)
+            CommunityLabelText(program.labels, maxLines = 2)
             Text(program.representativeExercises.joinToString(" · "))
             if (program.authorComment.isNotBlank()) Text(program.authorComment)
             if (program.cautionText.isNotBlank()) Text(program.cautionText, color = MaterialTheme.colorScheme.error)
