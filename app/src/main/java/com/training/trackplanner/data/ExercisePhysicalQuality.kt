@@ -86,9 +86,9 @@ data class ExercisePhysicalQualityRelation(
 /**
  * Read-only catalog for the physical-quality relation layer.
  *
- * This catalog is intentionally not consumed by planner or Needs Engine code
- * in this phase. It exposes assessment exclusions so a future consumer cannot
- * accidentally treat an analysis-only test as a training stimulus provider.
+ * This catalog is not consumed by planner selection or prescription code.
+ * The shadow AthleteNeedsProfile analysis may read it, and assessment
+ * exclusions prevent an analysis-only test from becoming a training provider.
  */
 class CanonicalExercisePhysicalQualityCatalog private constructor(
     relations: Collection<ExercisePhysicalQualityRelation>,
