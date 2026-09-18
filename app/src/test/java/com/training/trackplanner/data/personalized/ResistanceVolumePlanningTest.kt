@@ -27,7 +27,7 @@ class ResistanceVolumePlanningTest {
         assertEquals("NORMAL_COMPLETE_WEEK_MEDIAN", budget.resistanceBaselineSource)
         assertEquals(36.0, budget.resistanceBaselineSets, .001)
         assertEquals(36.0, budget.resistanceWeeklyMedian, .001)
-        assertEquals(36, budget.resistanceTargetSets)
+        assertEquals("budget=$budget", 36, budget.resistanceTargetSets)
     }
 
     @Test
