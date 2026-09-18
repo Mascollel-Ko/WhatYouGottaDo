@@ -7,7 +7,7 @@
 | Status | `ACTIVE` |
 | Implementation status | `IMPLEMENTED` |
 | Implemented from app version | `UNRELEASED_COMMUNITY_V1` |
-| Last audited commit | `e4c4882f20c4faaa573f4931eb29348baf0fdd38` |
+| Last audited commit | `77569334` |
 | Evidence profile | `PRODUCT_POLICY, ENGINEERING_HEURISTIC` |
 | Supersedes | 없음 |
 

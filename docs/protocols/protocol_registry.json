@@ -1973,12 +1973,15 @@
       ],
       "canonicalDocument": "community/COMMUNITY_SHARING.md",
       "implementedFromAppVersion": "UNRELEASED_COMMUNITY_V1",
-      "lastAuditedCommit": "e4c4882f20c4faaa573f4931eb29348baf0fdd38",
+      "lastAuditedCommit": "77569334",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/CommunityScreen.kt",
         "app/src/main/java/com/training/trackplanner/CommunityViewModel.kt",
         "app/src/main/java/com/training/trackplanner/data/CommunityClient.kt",
         "app/src/main/java/com/training/trackplanner/data/CommunityProgramSnapshotCodec.kt",
+        "app/src/main/java/com/training/trackplanner/data/CommunityWeeklySummaryCalculator.kt",
+        "app/src/main/java/com/training/trackplanner/data/CommunityActivityPublisher.kt",
+        "app/src/main/java/com/training/trackplanner/data/TrainingDatabase.kt",
         "supabase/migrations/20260918000000_community_sharing.sql",
         "supabase/functions/community-api/index.ts",
         "supabase/config.toml"
@@ -1986,6 +1989,9 @@
       "testAnchors": [
         "supabase/tests/community_sharing.sql",
         "app/src/test/java/com/training/trackplanner/data/CommunityProgramSnapshotCodecTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/CommunityWeeklySummaryCalculatorTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/CommunityActivityPublisherTest.kt",
+        "app/src/androidTest/java/com/training/trackplanner/data/CommunityProgramImportMigrationTest.kt",
         "app/src/test/java/com/training/trackplanner/CommunityUiStructuralTest.kt",
         "tests/community_sharing.test.mjs"
       ],
