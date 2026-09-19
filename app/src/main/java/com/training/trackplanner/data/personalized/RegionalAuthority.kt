@@ -292,8 +292,23 @@ data class RegionalAuthorityTrace(
     val requestedUnits: Int = 0,
     val authorizedUnits: Int = 0,
     val materializedUnits: Int = 0,
+    val targetCompatibleMaterializedUnits: Int = 0,
     val shortfall: Int = 0,
     val finalReasonCodes: List<String> = emptyList()
+)
+
+/** Typed identity for an experimental regional owner. Display strings are not authority. */
+data class RegionalOwnershipKey(
+    val region: MovementCoverage,
+    val quality: TrainableQuality
+)
+
+/** The side table keeps a selected exercise linked to its target without changing PlannedExercise. */
+data class RegionalExperimentalTargetPlan(
+    val demand: MaterialDemand,
+    val targetByStableKey: Map<String, RegionalStimulusTarget>,
+    val ownedKeys: Set<RegionalOwnershipKey>,
+    val targetBySelectionRole: Map<String, RegionalStimulusTarget> = emptyMap()
 )
 
 /** Candidate selection is typed by MovementCoverage and TrainableQuality. */
@@ -311,9 +326,32 @@ class RegionalTargetCandidateSelector {
         target: RegionalStimulusTarget,
         snapshot: PlanningHistorySnapshot,
         state: AthletePlanningState,
+        request: ProgramSkeletonRequest,
         existingPlan: GeneratedProgramSkeleton? = null,
         usedStableKeys: Set<String> = emptySet(),
         catalog: CanonicalExercisePhysicalQualityCatalog = CanonicalExercisePhysicalQualityCatalog.EMPTY
+    ): Selection {
+        return selectInternal(target, snapshot, state, request, existingPlan, usedStableKeys, catalog)
+    }
+
+    /** Compatibility overload for focused unit tests; production experimental calls pass the real request. */
+    fun select(
+        target: RegionalStimulusTarget,
+        snapshot: PlanningHistorySnapshot,
+        state: AthletePlanningState,
+        existingPlan: GeneratedProgramSkeleton? = null,
+        usedStableKeys: Set<String> = emptySet(),
+        catalog: CanonicalExercisePhysicalQualityCatalog = CanonicalExercisePhysicalQualityCatalog.EMPTY
+    ): Selection = selectInternal(target, snapshot, state, null, existingPlan, usedStableKeys, catalog)
+
+    private fun selectInternal(
+        target: RegionalStimulusTarget,
+        snapshot: PlanningHistorySnapshot,
+        state: AthletePlanningState,
+        request: ProgramSkeletonRequest?,
+        existingPlan: GeneratedProgramSkeleton?,
+        usedStableKeys: Set<String>,
+        catalog: CanonicalExercisePhysicalQualityCatalog
     ): Selection {
         if (target.action !in setOf(RegionalTargetAction.ADD_SUPPORT, RegionalTargetAction.RESTORE) ||
             target.numericAuthority == RegionalNumericAuthority.DIRECTION_ONLY ||
@@ -334,15 +372,17 @@ class RegionalTargetCandidateSelector {
             .filter { key -> target.specificStableKey == null || key == target.specificStableKey }
             .filter { key -> key !in usedStableKeys }
             .filter { key -> snapshot.movementCoverage(key) == target.region }
+            .filter { key -> request?.excludedExerciseStableKeys?.contains(key) != true }
             .filter { key -> snapshot.metadata[key]?.planningEligibility in setOf("PROGRAM_SELECTABLE", "SELECTABLE") }
             .filterNot(snapshot::explicitlyRestricted)
             .filter { key -> key !in snapshot.recoverySignals.tissueRestrictedStableKeys }
             .filter { key -> exactCapability(catalog, key, target) }
-            .filter { key -> equipmentCompatible(snapshot, key, state) }
+            .filter { key -> equipmentCompatible(snapshot, key, state, request) }
             .filter { key -> prescriptionCompatible(snapshot, key, target.quality) }
             .sortedWith(
                 compareByDescending<String> { it in historyKeys }
                     .thenByDescending { qualityCompatibleHistory(snapshot, it, target.quality) }
+                    .thenByDescending { state.freeWeightWillingness != FreeWeightWillingness.PREFER_FAMILIAR || !snapshot.isFreeWeight(it) }
                     .thenByDescending { snapshot.metadata[it]?.sourceConfidenceLevel == "HIGH" }
                     .thenBy { redundancyPenalty(snapshot, it, existingPlan) }
                     .thenBy { it }
@@ -389,10 +429,13 @@ class RegionalTargetCandidateSelector {
             else -> false
         } }
 
-    private fun equipmentCompatible(snapshot: PlanningHistorySnapshot, key: String, state: AthletePlanningState): Boolean {
+    private fun equipmentCompatible(snapshot: PlanningHistorySnapshot, key: String, state: AthletePlanningState, request: ProgramSkeletonRequest?): Boolean {
         val exercise = snapshot.exercises[key] ?: return false
-        return state.freeWeightWillingness != FreeWeightWillingness.AVOID || !snapshot.isFreeWeight(key) ||
-            snapshot.allConfirmedSets.any { it.stableKey == key } && exercise.equipment.isNotBlank()
+        val equipment = exercise.equipment.split('|', ',').map(String::trim).filter(String::isNotBlank)
+        if (request != null && request.availableEquipment.isNotEmpty() && equipment.any { it != "BODYWEIGHT" && it !in request.availableEquipment }) return false
+        if (state.freeWeightWillingness in setOf(FreeWeightWillingness.AVOID, FreeWeightWillingness.UNRESOLVED) && snapshot.isFreeWeight(key) &&
+            snapshot.allConfirmedSets.none { it.stableKey == key }) return false
+        return true
     }
 
     private fun redundancyPenalty(snapshot: PlanningHistorySnapshot, key: String, existingPlan: GeneratedProgramSkeleton?): Int {
@@ -413,7 +456,8 @@ class RegionalTargetCandidateSelector {
 data class RegionalExperimentalMaterialDemand(
     val demand: MaterialDemand,
     val traces: List<RegionalAuthorityTrace>,
-    val counters: RegionalAuthorityCounters
+    val counters: RegionalAuthorityCounters,
+    val targetPlan: RegionalExperimentalTargetPlan
 )
 
 class RegionalExperimentalMaterialDemandBuilder(
@@ -427,16 +471,35 @@ class RegionalExperimentalMaterialDemandBuilder(
         snapshot: PlanningHistorySnapshot,
         state: AthletePlanningState,
         catalog: CanonicalExercisePhysicalQualityCatalog
+    ): RegionalExperimentalMaterialDemand = build(diagnoses, control, snapshot, state, control.request, catalog)
+
+    fun build(
+        diagnoses: List<RegionalBottleneckDiagnosis>,
+        control: GeneratedProgramSkeleton,
+        snapshot: PlanningHistorySnapshot,
+        state: AthletePlanningState,
+        request: ProgramSkeletonRequest,
+        catalog: CanonicalExercisePhysicalQualityCatalog
     ): RegionalExperimentalMaterialDemand {
         val candidates = mutableListOf<PlannedExercise>()
         val traces = mutableListOf<RegionalAuthorityTrace>()
+        val targetByStableKey = linkedMapOf<String, RegionalStimulusTarget>()
+        val targetBySelectionRole = linkedMapOf<String, RegionalStimulusTarget>()
+        val ownedKeys = linkedSetOf<RegionalOwnershipKey>()
         var candidateCount = 0
         diagnoses.sortedBy { it.region.ordinal }.forEach { diagnosis ->
             val decision = requirementResolver.resolve(diagnosis)
             val target = targetResolver.resolve(diagnosis)
-            val selection = selector.select(target, snapshot, state, control, candidates.map(PlannedExercise::stableKey).toSet(), catalog)
+            if (target.action in setOf(RegionalTargetAction.ADD_SUPPORT, RegionalTargetAction.RESTORE)) {
+                ownedKeys += RegionalOwnershipKey(target.region, target.quality)
+            }
+            val selection = selector.select(target, snapshot, state, request, control, candidates.map(PlannedExercise::stableKey).toSet(), catalog)
             candidateCount += selection.candidates.size
-            selection.selected?.let(candidates::add)
+            selection.selected?.let {
+                candidates += it
+                targetByStableKey[it.stableKey] = target
+                targetBySelectionRole["${it.stableKey}|${it.role}"] = target
+            }
             val credit = selection.credit
             traces += RegionalAuthorityTrace(
                 region = diagnosis.region,
@@ -476,6 +539,17 @@ class RegionalExperimentalMaterialDemandBuilder(
                 regionalTargetsProduced = traces.size,
                 candidatePoolsEvaluated = diagnoses.size,
                 candidateCountEvaluated = candidateCount
+            ),
+            targetPlan = RegionalExperimentalTargetPlan(
+                demand = MaterialDemand(
+                    candidates = candidates,
+                    deferred = traces.filter { it.residualDose > 0 && it.selectedStableKey == null }
+                        .associate { "REGIONAL_TARGET_${it.region.name}_${it.targetQuality.name}" to "NO_ELIGIBLE_CANDIDATE_OR_CAPACITY" },
+                    audit = candidates.associate { it.stableKey to "SELECTED_REGIONAL_TARGET_CANDIDATE" }
+                ),
+                targetByStableKey = targetByStableKey,
+                ownedKeys = ownedKeys,
+                targetBySelectionRole = targetBySelectionRole
             )
         )
     }
@@ -520,3 +594,268 @@ data class RegionalAuthorityCounters(
     val candidateCountEvaluated: Int = 0,
     val prescriptionResolutions: Int = 0
 )
+
+/**
+ * Experimental target-to-prescription seam. The production planner remains the source of
+ * canonical history/load semantics; this wrapper only accepts a prescription when its actual
+ * rep shape realizes the requested quality.
+ */
+class RegionalTargetPrescriptionResolver(
+    private val canonical: PersonalizedPrescriptionPlanner = PersonalizedPrescriptionPlanner()
+) {
+    data class Resolution(
+        val prescription: PlannedPrescription?,
+        val reasonCodes: List<String>
+    )
+
+    fun resolve(
+        target: RegionalStimulusTarget,
+        item: PlannedExercise,
+        snapshot: PlanningHistorySnapshot
+    ): Resolution {
+        if (target.action !in setOf(RegionalTargetAction.ADD_SUPPORT, RegionalTargetAction.RESTORE) ||
+            target.numericAuthority in setOf(RegionalNumericAuthority.NONE, RegionalNumericAuthority.DIRECTION_ONLY) ||
+            target.weeklyDoseTarget == null
+        ) return Resolution(null, listOf("NO_NUMERIC_TARGET_OR_NO_ADD_AUTHORITY"))
+
+        val requestedSets = item.targetSets.coerceAtLeast(1)
+        val history = snapshot.allConfirmedSets.filter { it.stableKey == item.stableKey }
+        val canonicalPrescription = canonical.prescribe(snapshot, snapshot.preferences.strengthIntent ?: StrengthIntent.MIXED, item, item.style)
+        return when (target.quality) {
+            TrainableQuality.HYPERTROPHY -> resolveHypertrophy(history, canonicalPrescription, requestedSets)
+            TrainableQuality.STRENGTH -> resolveStrength(history, canonicalPrescription, snapshot, item, requestedSets)
+            else -> Resolution(null, listOf("UNSUPPORTED_TARGET_QUALITY"))
+        }
+    }
+
+    private fun resolveHypertrophy(
+        history: List<PlanningSetRecord>,
+        canonicalPrescription: PlannedPrescription,
+        requestedSets: Int
+    ): Resolution {
+        val compatible = history.filter { provisionalRealizedStimulusClass(it) == RealizedStimulusClass.HYPERTROPHY_LIKE }
+            .maxWithOrNull(compareBy<PlanningSetRecord> { it.date }.thenBy { it.setIndex })
+        if (compatible != null) {
+            return Resolution(
+                PlannedPrescription(
+                    text = "Target-compatible hypertrophy personal history",
+                    sets = List(requestedSets) { index -> ProgramSetPrescription(index + 1, compatible.reps, compatible.weightKg, compatible.seconds) },
+                    restSeconds = canonicalPrescription.restSeconds,
+                    weightSource = "TARGET_COMPATIBLE_PERSONAL_HISTORY"
+                ),
+                listOf("HYPERTROPHY_PERSONAL_HISTORY_7_15")
+            )
+        }
+        if (canonicalPrescription.sets.isNotEmpty() && canonicalPrescription.sets.all {
+                provisionalRealizedStimulusClass(it.reps) == RealizedStimulusClass.HYPERTROPHY_LIKE
+            }) {
+            val source = canonicalPrescription.sets.first().weightKg.takeIf { it > 0.0 }
+            return Resolution(
+                canonicalPrescription.copy(
+                    sets = List(requestedSets) { index ->
+                        canonicalPrescription.sets[index % canonicalPrescription.sets.size].copy(setIndex = index + 1)
+                    },
+                    weightSource = if (source != null) "TARGET_COMPATIBLE_CANONICAL_HISTORY" else "TARGET_COMPATIBLE_PROVISIONAL_RPE_NO_INVENTED_LOAD"
+                ),
+                listOf("HYPERTROPHY_CANONICAL_OR_PROVISIONAL_PATH")
+            )
+        }
+        // A novel eligible accessory may be represented provisionally, but never by inventing a load.
+        return Resolution(
+            PlannedPrescription(
+                text = "Target-compatible hypertrophy provisional RPE prescription",
+                sets = List(requestedSets) { index -> ProgramSetPrescription(index + 1, 8, 0.0, 0) },
+                restSeconds = canonicalPrescription.restSeconds,
+                weightSource = "TARGET_COMPATIBLE_PROVISIONAL_RPE_NO_INVENTED_LOAD"
+            ),
+            listOf("HYPERTROPHY_PROVISIONAL_RPE_NO_INVENTED_LOAD")
+        )
+    }
+
+    private fun resolveStrength(
+        history: List<PlanningSetRecord>,
+        canonicalPrescription: PlannedPrescription,
+        snapshot: PlanningHistorySnapshot,
+        item: PlannedExercise,
+        requestedSets: Int
+    ): Resolution {
+        val compatible = history.filter {
+            provisionalRealizedStimulusClass(it) == RealizedStimulusClass.STRENGTH_LIKE && it.weightKg > 0.0
+        }.maxWithOrNull(compareBy<PlanningSetRecord> { it.date }.thenBy { it.setIndex })
+        if (compatible != null) {
+            return Resolution(
+                PlannedPrescription(
+                    text = "Target-compatible strength personal history",
+                    sets = List(requestedSets) { index -> ProgramSetPrescription(index + 1, compatible.reps, compatible.weightKg, compatible.seconds) },
+                    restSeconds = canonicalPrescription.restSeconds,
+                    weightSource = "TARGET_COMPATIBLE_PERSONAL_STRENGTH_HISTORY"
+                ),
+                listOf("STRENGTH_PERSONAL_HISTORY_1_6")
+            )
+        }
+        val canonicalStrengthAuthority = snapshot.canonicalStrengthSignals[item.stableKey]?.observationCount?.let { it >= 2 } == true
+        if (canonicalStrengthAuthority && canonicalPrescription.sets.isNotEmpty() &&
+            canonicalPrescription.sets.all { provisionalRealizedStimulusClass(it.reps) == RealizedStimulusClass.STRENGTH_LIKE } &&
+            canonicalPrescription.sets.any { it.weightKg > 0.0 }
+        ) {
+            return Resolution(
+                canonicalPrescription.copy(
+                    sets = List(requestedSets) { index -> canonicalPrescription.sets[index % canonicalPrescription.sets.size].copy(setIndex = index + 1) },
+                    weightSource = "TARGET_COMPATIBLE_CANONICAL_STRENGTH_AUTHORITY"
+                ),
+                listOf("STRENGTH_CANONICAL_AUTHORITY_1_6")
+            )
+        }
+        return Resolution(null, listOf("TARGET_PRESENT_BUT_NO_SAFE_COMPATIBLE_PRESCRIPTION"))
+    }
+}
+
+/** Removes only legacy demand that would fund an owned region × quality with the same actual set shape. */
+object RegionalMaterialDemandOwnershipFilter {
+    fun filter(
+        base: MaterialDemand,
+        snapshot: PlanningHistorySnapshot,
+        state: AthletePlanningState,
+        ownedKeys: Set<RegionalOwnershipKey>,
+        planner: PersonalizedPrescriptionPlanner = PersonalizedPrescriptionPlanner(),
+        catalog: CanonicalExercisePhysicalQualityCatalog = CanonicalExercisePhysicalQualityCatalog.EMPTY
+    ): MaterialDemand {
+        if (ownedKeys.isEmpty()) return base
+        val anchors = state.anchors.mapTo(mutableSetOf(), UserAnchor::stableKey)
+        val kept = base.candidates.filter { candidate ->
+            if (candidate.stableKey in anchors) return@filter true
+            val prescription = planner.prescribe(snapshot, state.strengthIntent, candidate, candidate.style)
+            val actualQualities = prescription.sets.mapNotNull { set ->
+                when (provisionalRealizedStimulusClass(set.reps)) {
+                    RealizedStimulusClass.STRENGTH_LIKE -> TrainableQuality.STRENGTH
+                    RealizedStimulusClass.HYPERTROPHY_LIKE -> TrainableQuality.HYPERTROPHY
+                    else -> null
+                }
+            }.toSet()
+            ownedKeys.none { owned ->
+                owned.quality in actualQualities && catalog.relations(candidate.stableKey).any { relation ->
+                    relation.qualityId == owned.quality &&
+                        relation.relationLevel == com.training.trackplanner.data.StimulusCapabilityLevel.DIRECT_CAPABILITY &&
+                        regionalRegionQualifierMatches(owned.region, relation.regionQualifier)
+                }
+            }
+        }
+        val removed = base.candidates.map(PlannedExercise::stableKey).toSet() - kept.map(PlannedExercise::stableKey).toSet()
+        return base.copy(
+            candidates = kept,
+            audit = base.audit + removed.associateWith { "SUPPRESSED_BY_TYPED_REGIONAL_OWNERSHIP" }
+        )
+    }
+}
+
+/** Final, post-reflow materialization audit over actual set prescriptions. */
+data class FinalRegionalStimulusProjection(
+    val requestedUnits: Int,
+    val creditedUnits: Int,
+    val residualUnits: Int,
+    val authorizedUnits: Int,
+    val targetCompatibleMaterializedUnits: Int,
+    val shortfall: Int,
+    val reasonCode: String
+)
+
+class FinalRegionalStimulusProjector {
+    fun project(
+        target: RegionalStimulusTarget,
+        finalPlan: GeneratedProgramSkeleton,
+        snapshot: PlanningHistorySnapshot,
+        catalog: CanonicalExercisePhysicalQualityCatalog,
+        selectedStableKey: String?,
+        creditedUnits: Int,
+        residualUnits: Int,
+        authorizedUnits: Int
+    ): FinalRegionalStimulusProjection {
+        val compatible = if (selectedStableKey == null) 0 else finalPlan.items
+            .filter { it.weekNumber == 1 && it.exerciseStableKey == selectedStableKey }
+            .filter { item ->
+                snapshot.movementCoverage(item.exerciseStableKey) == target.region &&
+                    catalog.relations(item.exerciseStableKey).any { relation ->
+                        relation.qualityId == target.quality &&
+                            relation.relationLevel == com.training.trackplanner.data.StimulusCapabilityLevel.DIRECT_CAPABILITY &&
+                            regionalRegionQualifierMatches(target.region, relation.regionQualifier)
+                    }
+            }
+            .sumOf { item -> item.setPrescriptions.count { set ->
+                when (target.quality) {
+                    TrainableQuality.STRENGTH -> provisionalRealizedStimulusClass(set.reps) == RealizedStimulusClass.STRENGTH_LIKE
+                    TrainableQuality.HYPERTROPHY -> provisionalRealizedStimulusClass(set.reps) == RealizedStimulusClass.HYPERTROPHY_LIKE
+                    else -> false
+                }
+            } }
+        val shortfall = (residualUnits - compatible).coerceAtLeast(0)
+        val reason = when {
+            target.action !in setOf(RegionalTargetAction.ADD_SUPPORT, RegionalTargetAction.RESTORE) || target.weeklyDoseTarget == null -> "NO_NUMERIC_TARGET_OR_NO_ADD_AUTHORITY"
+            selectedStableKey != null && compatible >= residualUnits -> "TARGET_FULLY_MATERIALIZED"
+            selectedStableKey != null && compatible > 0 -> "TARGET_PARTIALLY_MATERIALIZED"
+            selectedStableKey != null -> "TARGET_NOT_MATERIALIZED"
+            residualUnits > 0 -> "TARGET_NOT_MATERIALIZED"
+            else -> "EXISTING_PLAN_CREDIT_COVERS_TARGET"
+        }
+        return FinalRegionalStimulusProjection(
+            requestedUnits = target.weeklyDoseTarget?.roundToInt() ?: 0,
+            creditedUnits = creditedUnits,
+            residualUnits = residualUnits,
+            authorizedUnits = authorizedUnits,
+            targetCompatibleMaterializedUnits = compatible,
+            shortfall = shortfall,
+            reasonCode = reason
+        )
+    }
+}
+
+/** Applies target prescriptions only to the experimental side-table identities. */
+class RegionalTargetAwareFinalizer(
+    private val resolver: RegionalTargetPrescriptionResolver = RegionalTargetPrescriptionResolver()
+) {
+    fun apply(
+        plan: GeneratedProgramSkeleton,
+        snapshot: PlanningHistorySnapshot,
+        targetByStableKey: Map<String, RegionalStimulusTarget>,
+        targetBySelectionRole: Map<String, RegionalStimulusTarget> = emptyMap()
+    ): GeneratedProgramSkeleton {
+        if (targetByStableKey.isEmpty() && targetBySelectionRole.isEmpty()) return plan
+        val items = plan.items.mapNotNull { item ->
+            val target = targetBySelectionRole["${item.exerciseStableKey}|${item.selectionRole}"]
+                ?: if (targetBySelectionRole.isEmpty()) targetByStableKey[item.exerciseStableKey] else return@mapNotNull item
+            val planned = PlannedExercise(
+                stableKey = item.exerciseStableKey,
+                role = item.selectionRole.ifBlank { item.trainingSlot },
+                reason = item.selectionReason,
+                priority = 0,
+                targetSets = (if (item.setPrescriptions.isNotEmpty()) item.setPrescriptions.size else item.setCount).coerceAtLeast(1)
+            )
+            val resolved = resolver.resolve(target, planned, snapshot).prescription ?: return@mapNotNull null
+            val sets = resolved.sets.mapIndexed { index, set -> set.copy(setIndex = index + 1) }
+            val estimated = sets.sumOf { it.seconds.coerceAtLeast(0) } +
+                (sets.size - 1).coerceAtLeast(0) * item.restSeconds
+            item.copy(
+                prescription = resolved.text,
+                setCount = sets.size,
+                reps = sets.firstOrNull()?.reps ?: item.reps,
+                weightKg = sets.firstOrNull()?.weightKg ?: item.weightKg,
+                seconds = sets.firstOrNull()?.seconds ?: item.seconds,
+                weightSource = resolved.weightSource,
+                estimatedDurationSeconds = estimated,
+                setPrescriptions = sets
+            )
+        }
+        return plan.copy(items = items)
+    }
+}
+
+private fun regionalRegionQualifierMatches(
+    movement: MovementCoverage,
+    qualifier: com.training.trackplanner.data.PhysicalQualityRegion
+): Boolean = when (movement) {
+    MovementCoverage.LOWER_KNEE -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.LOWER, com.training.trackplanner.data.PhysicalQualityRegion.QUADS_GLUTE, com.training.trackplanner.data.PhysicalQualityRegion.UNILATERAL_LOWER)
+    MovementCoverage.POSTERIOR_CHAIN -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.POSTERIOR_CHAIN, com.training.trackplanner.data.PhysicalQualityRegion.HAMSTRING, com.training.trackplanner.data.PhysicalQualityRegion.LOWER, com.training.trackplanner.data.PhysicalQualityRegion.UNILATERAL_LOWER)
+    MovementCoverage.CALVES -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.ANKLE, com.training.trackplanner.data.PhysicalQualityRegion.LOWER)
+    MovementCoverage.HORIZONTAL_PUSH, MovementCoverage.VERTICAL_PUSH -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PUSH, com.training.trackplanner.data.PhysicalQualityRegion.CHEST, com.training.trackplanner.data.PhysicalQualityRegion.SHOULDERS, com.training.trackplanner.data.PhysicalQualityRegion.ARMS)
+    MovementCoverage.HORIZONTAL_PULL, MovementCoverage.VERTICAL_PULL -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PULL, com.training.trackplanner.data.PhysicalQualityRegion.SHOULDERS, com.training.trackplanner.data.PhysicalQualityRegion.ARMS)
+    else -> false
+}

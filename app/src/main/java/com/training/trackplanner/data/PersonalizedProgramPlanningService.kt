@@ -248,7 +248,7 @@ internal class PersonalizedProgramPlanningService(
             setOf(MovementCoverage.LOWER_KNEE, MovementCoverage.POSTERIOR_CHAIN, MovementCoverage.CALVES)
         )
         val regionalDemand = RegionalExperimentalMaterialDemandBuilder().build(
-            diagnoses, control, snapshot, state, physicalQualityCatalog
+            diagnoses, control, snapshot, state, request, physicalQualityCatalog
         )
         val priorId = appMetaDao.latestByPrefix("$DECISION_PREFIX%")?.value?.let(::decisionIdFromJson)
         val experimental = programBuilder.build(
@@ -260,18 +260,44 @@ internal class PersonalizedProgramPlanningService(
                 else com.training.trackplanner.data.personalized.PlanningFrequencySource.AUTO
             ),
             progress = progress,
-            materialDemandOverride = regionalDemand.demand
+            materialDemandOverride = regionalDemand.demand,
+            regionalTargetPlan = regionalDemand.targetPlan
         )
         val decisions = diagnoses.map { RegionalTrainingDecisionResolver().resolve(it) }
         val targets = diagnoses.map { RegionalStimulusTargetResolver().resolve(it) }
         val traces = regionalDemand.traces.map { trace ->
-            val materialized = experimental.items.filter { item ->
-                item.exerciseStableKey == trace.selectedStableKey && item.weekNumber == 1
-            }.sumOf { it.setPrescriptions.size }
+            val target = targets.firstOrNull { it.region == trace.region && it.quality == trace.targetQuality && it.action == trace.targetAction }
+            val projection = target?.let {
+                com.training.trackplanner.data.personalized.FinalRegionalStimulusProjector().project(
+                    target = it,
+                    finalPlan = experimental,
+                    snapshot = snapshot,
+                    catalog = physicalQualityCatalog,
+                    selectedStableKey = trace.selectedStableKey,
+                    creditedUnits = trace.existingPlannedCompatibleDose,
+                    residualUnits = trace.residualDose,
+                    authorizedUnits = trace.authorizedUnits
+                )
+            }
+            val resolverReasons = if (target != null && trace.selectedStableKey != null) {
+                val resolution = com.training.trackplanner.data.personalized.RegionalTargetPrescriptionResolver().resolve(
+                    target,
+                    com.training.trackplanner.data.personalized.PlannedExercise(
+                        stableKey = trace.selectedStableKey,
+                        role = "REGIONAL_TARGET",
+                        reason = "final-audit",
+                        priority = 0,
+                        targetSets = trace.authorizedUnits
+                    ),
+                    snapshot
+                )
+                resolution.reasonCodes.filter { it == "TARGET_PRESENT_BUT_NO_SAFE_COMPATIBLE_PRESCRIPTION" }
+            } else emptyList()
             trace.copy(
-                materializedUnits = materialized,
-                shortfall = (trace.requestedUnits - materialized).coerceAtLeast(0),
-                finalReasonCodes = trace.finalReasonCodes + if (materialized < trace.requestedUnits) listOf("CAPACITY_OR_FEASIBILITY_SHORTFALL") else listOf("TARGET_MATERIALIZED")
+                materializedUnits = projection?.targetCompatibleMaterializedUnits ?: 0,
+                targetCompatibleMaterializedUnits = projection?.targetCompatibleMaterializedUnits ?: 0,
+                shortfall = projection?.shortfall ?: trace.residualDose,
+                finalReasonCodes = trace.finalReasonCodes + resolverReasons + listOfNotNull(projection?.reasonCode)
             )
         }
         val experimentalPortfolio = needs?.let {
@@ -506,6 +532,7 @@ internal class PersonalizedProgramPlanningService(
             .put("selectedStableKey", trace.selectedStableKey).put("selectionReasons", JSONArray(trace.selectionReasons))
             .put("prescriptionCompatibility", trace.prescriptionCompatibility).put("requestedUnits", trace.requestedUnits)
             .put("authorizedUnits", trace.authorizedUnits).put("materializedUnits", trace.materializedUnits)
+            .put("targetCompatibleMaterializedUnits", trace.targetCompatibleMaterializedUnits)
             .put("shortfall", trace.shortfall).put("finalReasonCodes", JSONArray(trace.finalReasonCodes))
         }))
         .put("athleteNeedsProfile", athleteNeedsProfile?.let { profile -> JSONObject()

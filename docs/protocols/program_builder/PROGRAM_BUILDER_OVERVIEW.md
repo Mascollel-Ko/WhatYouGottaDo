@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.23.0 |
+| Protocol version | 3.24.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
@@ -12,6 +12,14 @@
 | Supersedes | — |
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
+
+### 3.24.0 — target-compatible regional materialization and ownership
+
+- Experimental regional target identity is carried through a typed side table into an experimental target-aware prescription seam; `PlannedExercise` and the production `PersonalizedPrescriptionPlanner` remain unchanged.
+- HYPERTROPHY materialization requires the shared provisional classifier's 7–15-repetition class, preferring same-exercise history, then canonical compatible history, then provisional RPE with no invented load. STRENGTH requires a safe 1–6-repetition personal or canonical strength authority; otherwise the demand is not materialized.
+- Regional ownership is typed by `MovementCoverage × TrainableQuality`. Legacy material demand is filtered only when its direct capability and actual prescription shape fund an owned key; unrelated demand and continuity anchors remain eligible.
+- Candidate eligibility uses the real `ProgramSkeletonRequest` equipment/exclusion constraints and the existing canonical equipment-token semantics. Final validation projects actual post-reflow `setPrescriptions`, reports target-compatible materialization and residual shortfall, and never counts incompatible sets as completion.
+- CONTROL remains the production default and does not receive the regional side-table or finalizer.
 
 ### 3.23.0 — hardened regional diagnosis and experimental A/B authority
 

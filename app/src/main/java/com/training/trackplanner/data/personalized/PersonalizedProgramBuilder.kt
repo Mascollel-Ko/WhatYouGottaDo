@@ -333,19 +333,22 @@ class PersonalizedProgramBuilder(
         frequency: PlanningFrequencyProvenance = PlanningFrequencyProvenance(WeeklyDosePlanner().resolve(state, state.anchors.size + gaps.size),
             request.weeklyTrainingDays, if (explicitWeeklyDays) PlanningFrequencySource.EXPLICIT_USER else PlanningFrequencySource.AUTO),
         progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE,
-        materialDemandOverride: MaterialDemand? = null): GeneratedProgramSkeleton {
+        materialDemandOverride: MaterialDemand? = null,
+        regionalTargetPlan: RegionalExperimentalTargetPlan? = null): GeneratedProgramSkeleton {
         val performanceMetrics = PlannerPerformanceMetrics()
         val memo = PlanningComputationMemo(performanceMetrics)
         val memoSnapshot = memo.wrap(snapshot)
         val generationPrescriptions = prescriptionPlanner.scopedTo(memo)
         val placed = buildBeforeReflow(memoSnapshot, state, gaps, intent, horizon, request, answers, priorDecisionId, explicitWeeklyDays,
-            frequency, progress, generationPrescriptions, performanceMetrics, materialDemandOverride)
+            frequency, progress, generationPrescriptions, performanceMetrics, materialDemandOverride, regionalTargetPlan)
         val reviewed = PostSplitWeeklyReflow().review(placed, memoSnapshot, state, progress,
             ReflowEvaluationCounts(performanceMetrics = performanceMetrics))
         val result = if (reviewed.trace.state == "NOT_APPLICABLE_NO_MANDATORY_SPLIT") placed
             else reviewed.skeleton.copy(personalizedDecision = reviewed.skeleton.personalizedDecision?.copy(postSplitReflow = reviewed.trace))
         lastPerformanceMetrics = performanceMetrics.asMap()
-        return result
+        return regionalTargetPlan?.let {
+            RegionalTargetAwareFinalizer().apply(result, snapshot, it.targetByStableKey, it.targetBySelectionRole)
+        } ?: result
     }
 
     private fun buildBeforeReflow(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, gaps: List<AdaptationGap>, intent: BlockIntent,
@@ -353,24 +356,28 @@ class PersonalizedProgramBuilder(
         frequency: PlanningFrequencyProvenance, progress: PersonalizedPlannerProgressReporter,
         generationPrescriptions: PersonalizedPrescriptionPlanner,
         performanceMetrics: PlannerPerformanceMetrics,
-        materialDemandOverride: MaterialDemand?): GeneratedProgramSkeleton {
+        materialDemandOverride: MaterialDemand?,
+        regionalTargetPlan: RegionalExperimentalTargetPlan?): GeneratedProgramSkeleton {
         if (!frequency.explicitIncrease) return buildCore(snapshot, state, gaps, intent, horizon, request, answers, priorDecisionId,
             explicitWeeklyDays, frequency, progress = progress, generationPrescriptions = generationPrescriptions,
-            performanceMetrics = performanceMetrics, materialDemandOverride = materialDemandOverride)
+            performanceMetrics = performanceMetrics, materialDemandOverride = materialDemandOverride,
+            regionalTargetPlan = regionalTargetPlan)
         // BASE is fully evaluated before expansion. Its nested work must not consume expansion's milestone range.
         val baseProgress = PersonalizedPlannerProgressReporter { stage ->
             progress.report(if (stage.percent > 50) PersonalizedPlannerStage.BASE_REVIEW else stage)
         }
         val base = buildCore(snapshot, state, gaps, intent, horizon, request.copy(weeklyTrainingDays = frequency.algorithmRecommendedDays),
             answers, priorDecisionId, true, frequency, progress = baseProgress, generationPrescriptions = generationPrescriptions,
-            performanceMetrics = performanceMetrics, materialDemandOverride = materialDemandOverride)
+            performanceMetrics = performanceMetrics, materialDemandOverride = materialDemandOverride,
+            regionalTargetPlan = regionalTargetPlan)
         progress.report(PersonalizedPlannerStage.EXPANSION)
         return FrequencyExpansionPlanner(generationPrescriptions, performanceMetrics).expand(snapshot, state, request, base, frequency) { authorized, capacity ->
             progress.report(PersonalizedPlannerStage.EXPANSION_RECHECK)
             var result: CompletionResult? = null
             buildCore(snapshot, state, gaps, intent, horizon, request, answers, priorDecisionId, true, frequency, authorized, capacity,
                 progress = PersonalizedPlannerProgressReporter { progress.report(PersonalizedPlannerStage.EXPANSION_RECHECK) }, generationPrescriptions = generationPrescriptions,
-                performanceMetrics = performanceMetrics, materialDemandOverride = materialDemandOverride) {
+                performanceMetrics = performanceMetrics, materialDemandOverride = materialDemandOverride,
+                regionalTargetPlan = regionalTargetPlan) {
                 result = it
                 it.skeleton
             }
@@ -386,6 +393,7 @@ class PersonalizedProgramBuilder(
         progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE,
         performanceMetrics: PlannerPerformanceMetrics = PlannerPerformanceMetrics(),
         materialDemandOverride: MaterialDemand? = null,
+        regionalTargetPlan: RegionalExperimentalTargetPlan? = null,
         finish: ((CompletionResult) -> GeneratedProgramSkeleton)? = null): GeneratedProgramSkeleton {
         progress.report(PersonalizedPlannerStage.DEMAND)
         val transitionPlanner = AdaptationTransitionPlanner()
@@ -413,7 +421,14 @@ class PersonalizedProgramBuilder(
             maxOf(schedulingBaselineResistance, normalResistance ?: schedulingBaselineResistance) else schedulingBaselineResistance
         val schedulingContinuityDemand = schedulingContinuityReference.roundToInt().coerceAtLeast(if (state.anchors.isEmpty()) 0 else 1)
         val baseDemand = MaterialDemandResolver(generationPrescriptions).resolve(snapshot, state, gaps, request)
-        val demand = materialDemandOverride?.let { mergeMaterialDemand(baseDemand, it) } ?: baseDemand
+        val ownedBaseDemand = regionalTargetPlan?.let {
+            RegionalMaterialDemandOwnershipFilter.filter(baseDemand, snapshot, state, it.ownedKeys, generationPrescriptions)
+        } ?: baseDemand
+        val demand = when {
+            regionalTargetPlan != null -> mergeTypedMaterialDemand(ownedBaseDemand, regionalTargetPlan.demand, regionalTargetPlan.targetByStableKey.keys)
+            materialDemandOverride != null -> mergeTypedMaterialDemand(baseDemand, materialDemandOverride, emptySet())
+            else -> baseDemand
+        }
         val materialKeys = demand.candidates.filter(PlannedExercise::material).mapTo(mutableSetOf(), PlannedExercise::stableKey)
         val provisionalResistance = ResistanceVolumePlanner.plan(snapshot, state, request, Int.MAX_VALUE, anchorFallbackResistance)
         val baselineResistance = schedulingBaselineResistance
@@ -726,11 +741,11 @@ class PersonalizedProgramBuilder(
     }
 }
 
-private fun mergeMaterialDemand(base: MaterialDemand, experimental: MaterialDemand): MaterialDemand {
+private fun mergeTypedMaterialDemand(base: MaterialDemand, experimental: MaterialDemand, experimentalKeys: Set<String>): MaterialDemand {
     val merged = linkedMapOf<String, PlannedExercise>()
     (base.candidates + experimental.candidates).forEach { candidate ->
         val old = merged[candidate.stableKey]
-        val isExperimental = candidate.role.startsWith("REGIONAL_TARGET_") || candidate.role == "REGIONAL_CANDIDATE"
+        val isExperimental = candidate.stableKey in experimentalKeys
         merged[candidate.stableKey] = if (old == null) candidate else old.copy(
             targetSets = maxOf(old.targetSets, candidate.targetSets),
             priority = maxOf(old.priority, candidate.priority),
