@@ -747,6 +747,9 @@ private fun mergeTypedMaterialDemand(base: MaterialDemand, experimental: Materia
         val old = merged[candidate.stableKey]
         val isExperimental = candidate.stableKey in experimentalKeys
         merged[candidate.stableKey] = if (old == null) candidate else old.copy(
+            role = if (isExperimental) candidate.role else old.role,
+            styleVariant = if (isExperimental) candidate.styleVariant else old.styleVariant,
+            style = if (isExperimental) candidate.style else old.style,
             targetSets = maxOf(old.targetSets, candidate.targetSets),
             priority = maxOf(old.priority, candidate.priority),
             representedGapCodes = old.representedGapCodes + candidate.representedGapCodes,
