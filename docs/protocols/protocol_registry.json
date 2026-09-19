@@ -1118,7 +1118,7 @@
       ],
       "canonicalDocument": "strength/STRENGTH_VOLUME_CALCULATION.md",
       "implementedFromAppVersion": "UNKNOWN_PENDING_AUDIT; CoreStimulus V1 from v0.5.0.33; weekly core presentation from v0.5.0.34; Lab pseudo-core metrics retired in v0.5.0.35; exact load/muscle authority from v0.5.0.36; dead cumulative compatibility removed in v0.5.0.37; debug-only V3 Common metrics retired after v0.5.0.37",
-      "lastAuditedCommit": "db71f76d",
+      "lastAuditedCommit": "892e98fc",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/features/BodyweightEffectiveLoadCalculator.kt",
         "app/src/main/java/com/training/trackplanner/analysis/features/BodyweightLoadProfileAuthority.kt",
@@ -1386,7 +1386,7 @@
       ],
       "canonicalDocument": "program_builder/PROGRAM_BUILDER_OVERVIEW.md",
       "implementedFromAppVersion": "v0.4.2.0; independent record-based builder from v0.5.1.4; v0.14.0 execution layer from 2026-09-06; AthleteNeedsProfile shadow semantics correction; prescription-aware weekly/exposure-week target history; frequency-aware shadow target comparison 2026-09; hardened regional diagnosis and experimental A/B target authority; target-compatible regional materialization and typed ownership 2026-09",
-      "lastAuditedCommit": "892e98fc",
+      "lastAuditedCommit": "74401f22",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/personalized/PrimaryStrengthAnchorSpacingPolicy.kt",
         "app/src/main/java/com/training/trackplanner/data/personalized/MainSchedulingPolicy.kt",
