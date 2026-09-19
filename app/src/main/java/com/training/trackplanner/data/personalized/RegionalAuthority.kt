@@ -505,6 +505,7 @@ class RegionalExperimentalMaterialDemandBuilder(
             val target = targetResolver.resolve(diagnosis)
             if (target.action in setOf(RegionalTargetAction.ADD_SUPPORT, RegionalTargetAction.RESTORE)) {
                 ownedKeys += RegionalOwnershipKey(target.region, target.quality)
+            }
             val selection = selector.select(target, snapshot, state, request, control, candidates.map(PlannedExercise::stableKey).toSet(), catalog)
             candidateCount += selection.candidates.size
             val resolution = selection.selected?.let {
