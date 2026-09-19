@@ -422,7 +422,7 @@ class PersonalizedProgramBuilder(
         val schedulingContinuityDemand = schedulingContinuityReference.roundToInt().coerceAtLeast(if (state.anchors.isEmpty()) 0 else 1)
         val baseDemand = MaterialDemandResolver(generationPrescriptions).resolve(snapshot, state, gaps, request)
         val ownedBaseDemand = regionalTargetPlan?.let {
-            RegionalMaterialDemandOwnershipFilter.filter(baseDemand, snapshot, state, it.ownedKeys, generationPrescriptions)
+            RegionalMaterialDemandOwnershipFilter.filter(baseDemand, snapshot, state, it.ownedKeys, it.blockedRegions, generationPrescriptions)
         } ?: baseDemand
         val demand = when {
             regionalTargetPlan != null -> mergeTypedMaterialDemand(ownedBaseDemand, regionalTargetPlan.demand, regionalTargetPlan.targetByStableKey.keys)

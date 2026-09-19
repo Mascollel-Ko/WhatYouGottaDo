@@ -308,7 +308,8 @@ data class RegionalExperimentalTargetPlan(
     val demand: MaterialDemand,
     val targetByStableKey: Map<String, RegionalStimulusTarget>,
     val ownedKeys: Set<RegionalOwnershipKey>,
-    val targetBySelectionRole: Map<String, RegionalStimulusTarget> = emptyMap()
+    val targetBySelectionRole: Map<String, RegionalStimulusTarget> = emptyMap(),
+    val blockedRegions: Set<MovementCoverage> = emptySet()
 )
 
 /** Candidate selection is typed by MovementCoverage and TrainableQuality. */
@@ -486,13 +487,14 @@ class RegionalExperimentalMaterialDemandBuilder(
         val targetByStableKey = linkedMapOf<String, RegionalStimulusTarget>()
         val targetBySelectionRole = linkedMapOf<String, RegionalStimulusTarget>()
         val ownedKeys = linkedSetOf<RegionalOwnershipKey>()
+        val blockedRegions = linkedSetOf<MovementCoverage>()
         var candidateCount = 0
         diagnoses.sortedBy { it.region.ordinal }.forEach { diagnosis ->
             val decision = requirementResolver.resolve(diagnosis)
             val target = targetResolver.resolve(diagnosis)
             if (target.action in setOf(RegionalTargetAction.ADD_SUPPORT, RegionalTargetAction.RESTORE)) {
                 ownedKeys += RegionalOwnershipKey(target.region, target.quality)
-            }
+            } else blockedRegions += target.region
             val selection = selector.select(target, snapshot, state, request, control, candidates.map(PlannedExercise::stableKey).toSet(), catalog)
             candidateCount += selection.candidates.size
             selection.selected?.let {
@@ -549,7 +551,8 @@ class RegionalExperimentalMaterialDemandBuilder(
                 ),
                 targetByStableKey = targetByStableKey,
                 ownedKeys = ownedKeys,
-                targetBySelectionRole = targetBySelectionRole
+                targetBySelectionRole = targetBySelectionRole,
+                blockedRegions = blockedRegions
             )
         )
     }
@@ -717,10 +720,11 @@ object RegionalMaterialDemandOwnershipFilter {
         snapshot: PlanningHistorySnapshot,
         state: AthletePlanningState,
         ownedKeys: Set<RegionalOwnershipKey>,
+        blockedRegions: Set<MovementCoverage> = emptySet(),
         planner: PersonalizedPrescriptionPlanner = PersonalizedPrescriptionPlanner(),
         catalog: CanonicalExercisePhysicalQualityCatalog = CanonicalExercisePhysicalQualityCatalog.EMPTY
     ): MaterialDemand {
-        if (ownedKeys.isEmpty()) return base
+        if (ownedKeys.isEmpty() && blockedRegions.isEmpty()) return base
         val anchors = state.anchors.mapTo(mutableSetOf(), UserAnchor::stableKey)
         val kept = base.candidates.filter { candidate ->
             if (candidate.stableKey in anchors) return@filter true
@@ -732,7 +736,13 @@ object RegionalMaterialDemandOwnershipFilter {
                     else -> null
                 }
             }.toSet()
-            ownedKeys.none { owned ->
+            blockedRegions.none { blocked ->
+                catalog.relations(candidate.stableKey).any { relation ->
+                    relation.qualityId in actualQualities &&
+                        relation.relationLevel == com.training.trackplanner.data.StimulusCapabilityLevel.DIRECT_CAPABILITY &&
+                        regionalRegionQualifierMatches(blocked, relation.regionQualifier)
+                }
+            } && ownedKeys.none { owned ->
                 owned.quality in actualQualities && catalog.relations(candidate.stableKey).any { relation ->
                     relation.qualityId == owned.quality &&
                         relation.relationLevel == com.training.trackplanner.data.StimulusCapabilityLevel.DIRECT_CAPABILITY &&
