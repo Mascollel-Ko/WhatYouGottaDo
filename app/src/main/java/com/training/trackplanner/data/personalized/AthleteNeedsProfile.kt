@@ -42,6 +42,16 @@ enum class RealizedStimulusClass {
     AMBIGUOUS_REALIZED_STIMULUS
 }
 
+/**
+ * One shared, deliberately provisional prescription-shape classifier. It describes the
+ * recorded rep range only; it never proves adaptation or response.
+ */
+internal fun provisionalRealizedStimulusClass(row: PlanningSetRecord): RealizedStimulusClass = when {
+    row.reps in 1..6 -> RealizedStimulusClass.STRENGTH_LIKE
+    row.reps in 7..15 -> RealizedStimulusClass.HYPERTROPHY_LIKE
+    else -> RealizedStimulusClass.AMBIGUOUS_REALIZED_STIMULUS
+}
+
 enum class RequirementRole { PRIMARY_REQUIREMENT, SUPPORTIVE_REQUIREMENT }
 
 enum class ExecutionModifier { NONE, HOLD, SUBSTITUTE, REDUCE }
@@ -442,7 +452,7 @@ class AthleteNeedsProfileEngine(
     private inner class MutableQualityBucket {
         private val records = mutableListOf<QualityObservation>()
         fun add(row: PlanningSetRecord, relation: ExercisePhysicalQualityRelation, age: Int) {
-            records += QualityObservation(row, relation.relationLevel, age, classify(row))
+            records += QualityObservation(row, relation.relationLevel, age, provisionalRealizedStimulusClass(row))
         }
         fun currentStableKeys(): Set<String> = records.asSequence()
             .filter { it.age in 0..27 }
@@ -479,12 +489,6 @@ class AthleteNeedsProfileEngine(
     }
 
     private data class QualityObservation(val record: PlanningSetRecord, val level: StimulusCapabilityLevel, val age: Int, val realized: RealizedStimulusClass)
-
-    private fun classify(row: PlanningSetRecord): RealizedStimulusClass = when {
-        row.reps in 1..6 -> RealizedStimulusClass.STRENGTH_LIKE
-        row.reps in 7..15 -> RealizedStimulusClass.HYPERTROPHY_LIKE
-        else -> RealizedStimulusClass.AMBIGUOUS_REALIZED_STIMULUS
-    }
 
     private fun List<Double>.medianOrNull(): Double? {
         if (isEmpty()) return null

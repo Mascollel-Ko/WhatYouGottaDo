@@ -3,14 +3,14 @@
 | 항목 | 값 |
 |---|---|
 | Protocol ID | DATA-METADATA-ANALYSIS-CONTRACT |
-| Protocol version | 2.5.0 |
+| Protocol version | 2.6.0 |
 | Status | ACTIVE |
 | Implementation status | PARTIALLY_IMPLEMENTED |
 | Implemented from app version | v0.5.0.16 shadow baseline; role split from v0.5.0.21; bundled authority cutover from v0.5.0.22; Korean display authority from v0.5.0.23; explicit override authority from v0.5.0.25; fieldKey routing from v0.5.0.26; canonical normalization from v0.5.0.32; core/objective analysis cutover from v0.5.0.33; explicit semantic-authority closeout from v0.5.0.37; orthogonal physical-quality membership and AthleteNeedsProfile shadow from 2026-09 |
 | Last audited commit | 532d2343cafd9e54924dc52350c6e108893b4b07 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 
-## 2.5.0 Shadow target portfolio contract
+## 2.6.0 Shadow target portfolio contract
 
 The shadow analysis now runs after the existing `GeneratedProgramSkeleton` is
 complete: `AthleteNeedsProfile` is converted to a
@@ -33,6 +33,18 @@ Quality target envelopes overlap and are not additive workload budgets.
 Planned capability coverage is an audit approximation, not proof of realized
 physiological stimulus. Domain volume baseline and quality stimulus baseline
 are distinct views.
+
+The successful-dose history keeps two separate distributions: weekly direct
+exposure across all eligible active normal weeks (including zero quality
+exposure) and direct dose only in weeks where the quality was exposed. The
+exposure-week count divided by eligible-week count is historical frequency; it
+is not a forced schedule. Inactive and canonical excluded weeks are omitted.
+
+`STRENGTH` and `HYPERTROPHY` history is prescription-aware where supported by
+the shared provisional prescription-shape classifier. Ambiguous prescriptions
+are not assigned to either adaptation. `POWER`, rapid-force, and reactive SSC
+retain canonical exercise-semantic exposure and do not inherit strength or
+hypertrophy rep filters. Capability remains distinct from realized stimulus.
 
 ## 2.4.1 AthleteNeedsProfile shadow interpretation
 

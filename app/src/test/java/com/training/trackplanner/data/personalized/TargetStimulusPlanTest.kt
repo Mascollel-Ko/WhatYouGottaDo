@@ -100,6 +100,13 @@ class TargetStimulusPlanTest {
 
     @Test
     fun supportiveExposureNeverBecomesDirectDoseAndTaskPriorityIsNotPrimary() {
+        val supportiveOnly = SuccessfulDoseBand(
+            eligibleWeekCount = 4,
+            directUnitsMedian = 0.0,
+            source = SuccessfulDoseSource.RECENT_ACTIVE_WEEKS_FALLBACK
+        )
+        assertTrue(!supportiveOnly.hasPersonalDirectBaseline)
+
         val task = TaskTrainingDecision("DECELERATION", TrainingNeedDecision.DEVELOP, TargetStimulusAction.INTRODUCE_DIRECT_STIMULUS,
             TargetPriority.SECONDARY, PlanningConfidence.MODERATE, false, listOf("NO_EXPLICIT_BADMINTON_TASK_PRIORITY"), emptyList())
         val portfolio = TrainingDecisionPortfolio(emptyList(), listOf(task), emptyList())
@@ -116,6 +123,26 @@ class TargetStimulusPlanTest {
         ).taskTargets.single()
         assertEquals(TargetNumericAuthority.PERSONAL_SUCCESSFUL_DOSE, maintenanceTarget.numericAuthority)
         assertEquals(12.0, maintenanceTarget.targetDirectUnitsPreferred!!, 0.0)
+    }
+
+    @Test
+    fun completelyInactiveWeekIsExcludedFromEligibleActiveWeeks() {
+        val cutoff = LocalDate.of(2026, 9, 19)
+        val completeEnd = completedTrainingWeekEnd(cutoff)
+        val rows = (0..7).filter { it != 3 }.map { offset ->
+            PlanningSetRecord(
+                completeEnd.minusDays(offset * 7L + 2L),
+                "anchor", "anchor", "RESISTANCE", 1, 5, 80.0, 0, 7.0
+            )
+        }
+        val snapshot = snapshot(cutoff, rows, mapOf("anchor" to metadata("anchor")))
+        val catalog = CanonicalExercisePhysicalQualityCatalog.of(listOf(
+            relation("anchor", "anchor", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY)
+        ))
+        val history = QualityDoseHistoryAnalyzer().analyze(snapshot, emptyState(), catalog)
+        assertEquals(8, history.indexedWeekCount)
+        assertEquals(7, history.bands.getValue(TrainableQuality.STRENGTH).eligibleWeekCount)
+        assertEquals(0, history.excludedWeekCount)
     }
 
     @Test
@@ -169,18 +196,163 @@ class TargetStimulusPlanTest {
             id, key, quality, level, PhysicalQualityRegion.LOWER, PhysicalQualityMode.GENERAL,
             true, "TEST", emptySet(), "PASS", "")
         val catalog = CanonicalExercisePhysicalQualityCatalog.of(listOf(
-            relation("strength-direct", directKey, TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY),
-            relation("strength-supportive", supportiveKey, TrainableQuality.STRENGTH, StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY),
-            relation("hypertrophy-overlap", directKey, TrainableQuality.HYPERTROPHY, StimulusCapabilityLevel.DIRECT_CAPABILITY)
+            relation("power-direct", directKey, TrainableQuality.POWER, StimulusCapabilityLevel.DIRECT_CAPABILITY),
+            relation("power-supportive", supportiveKey, TrainableQuality.POWER, StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY),
+            relation("rfd-overlap", directKey, TrainableQuality.RAPID_FORCE_PRODUCTION, StimulusCapabilityLevel.DIRECT_CAPABILITY)
         ))
         val history = QualityDoseHistoryAnalyzer().analyze(snapshot, emptyState(), catalog)
-        val strength = history.bands.getValue(TrainableQuality.STRENGTH)
-        val hypertrophy = history.bands.getValue(TrainableQuality.HYPERTROPHY)
-        assertEquals(4, strength.eligibleWeekCount)
-        assertEquals(3.0, strength.directUnitsMedian!!, 0.0)
-        assertEquals(6.0, strength.supportiveUnitsMedian!!, 0.0)
-        assertEquals(3.0, hypertrophy.directUnitsMedian!!, 0.0)
+        val power = history.bands.getValue(TrainableQuality.POWER)
+        val rfd = history.bands.getValue(TrainableQuality.RAPID_FORCE_PRODUCTION)
+        assertEquals(4, power.eligibleWeekCount)
+        assertEquals(3.0, power.directUnitsMedian!!, 0.0)
+        assertEquals(6.0, power.supportiveUnitsMedian!!, 0.0)
+        assertEquals(3.0, rfd.directUnitsMedian!!, 0.0)
     }
+
+    @Test
+    fun taskBandsUseObjectiveValuesInsteadOfExerciseStableKeys() {
+        val cutoff = LocalDate.of(2026, 9, 19)
+        val key = "decel_drill"
+        val row = PlanningSetRecord(completedTrainingWeekEnd(cutoff).minusDays(2), key, key, "RESISTANCE", 1, 8, 40.0, 0, 7.0)
+        val courtKey = "generic_court"
+        val courtRow = row.copy(stableKey = courtKey, exerciseName = courtKey)
+        val snapshot = snapshot(cutoff, listOf(row, courtRow), mapOf(
+            key to metadata(key), courtKey to metadata(courtKey).copy(activityKind = "SPORT_SESSION")
+        ), directObjectives = mapOf(key to setOf("DECELERATION"), courtKey to setOf("DECELERATION")))
+        val history = QualityDoseHistoryAnalyzer().analyze(snapshot, emptyState(), CanonicalExercisePhysicalQualityCatalog.EMPTY)
+        assertTrue(history.taskBands.containsKey("DECELERATION"))
+        assertTrue(!history.taskBands.containsKey("decel_drill"))
+        assertEquals(1, history.taskBands.getValue("DECELERATION").directExposureWeekCount)
+    }
+
+    @Test
+    fun intermittentPowerPreservesWeeklyZerosAndHistoricalFrequency() {
+        val cutoff = LocalDate.of(2026, 9, 19)
+        val completeEnd = completedTrainingWeekEnd(cutoff)
+        val rows = (0..7).flatMap { offset ->
+            val end = completeEnd.minusDays(offset * 7L)
+            val anchor = PlanningSetRecord(end.minusDays(2), "anchor", "anchor", "RESISTANCE", 1, 5, 80.0, 0, 7.0)
+            val power = if (offset % 2 == 0) (1..4).map { index ->
+                PlanningSetRecord(end.minusDays(2), "power", "power", "RESISTANCE", index, 3, 50.0, 0, 7.0)
+            } else emptyList()
+            listOf(anchor) + power
+        }
+        val snapshot = snapshot(cutoff, rows, mapOf("anchor" to metadata("anchor"), "power" to metadata("power")))
+        val catalog = CanonicalExercisePhysicalQualityCatalog.of(listOf(
+            relation("power", "power", TrainableQuality.POWER, StimulusCapabilityLevel.DIRECT_CAPABILITY),
+            relation("anchor", "anchor", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY)
+        ))
+        val history = QualityDoseHistoryAnalyzer().analyze(snapshot, emptyState(), catalog)
+        val band = history.bands.getValue(TrainableQuality.POWER)
+        assertEquals(8, band.eligibleWeekCount)
+        assertEquals(4, band.directExposureWeekCount)
+        assertEquals(0.5, band.directExposureWeekFrequency!!, 0.0)
+        assertEquals(4.0, band.exposureWeekDirectUnitsMedian!!, 0.0)
+        assertEquals(0.0, band.weeklyDirectUnitsQ25!!, 0.0)
+        assertTrue(band.hasPersonalDirectBaseline)
+
+        val target = TargetStimulusPlanEngine().build(
+            TrainingDecisionPortfolioEngine().build(
+                profile(TrainableQuality.POWER, NeedRelevance.MODERATE, TrainingNeedDecision.MAINTAIN), history), history
+        ).qualityTargets.single()
+        assertEquals(0.0, target.targetWeeklyDirectUnitsMin!!, 0.0)
+        assertEquals(4.0, target.targetExposureWeekDirectUnitsPreferred!!, 0.0)
+        assertEquals(0.5, target.targetExposureWeekFrequency!!, 0.0)
+    }
+
+    @Test
+    fun continuousStrengthPreservesWeeklyAndExposureWeekDose() {
+        val cutoff = LocalDate.of(2026, 9, 19)
+        val completeEnd = completedTrainingWeekEnd(cutoff)
+        val counts = listOf(12, 12, 11, 13, 12, 12, 13, 11)
+        val rows = counts.flatMapIndexed { offset, count ->
+            val end = completeEnd.minusDays(offset * 7L)
+            (1..count).map { index -> PlanningSetRecord(end.minusDays(2), "strength", "strength", "RESISTANCE", index, 3, 100.0, 0, 7.0) }
+        }
+        val snapshot = snapshot(cutoff, rows, mapOf("strength" to metadata("strength")))
+        val catalog = CanonicalExercisePhysicalQualityCatalog.of(listOf(
+            relation("strength", "strength", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY)
+        ))
+        val band = QualityDoseHistoryAnalyzer().analyze(snapshot, emptyState(), catalog).bands.getValue(TrainableQuality.STRENGTH)
+        assertEquals(8, band.eligibleWeekCount)
+        assertEquals(8, band.directExposureWeekCount)
+        assertEquals(1.0, band.directExposureWeekFrequency!!, 0.0)
+        assertEquals(12.0, band.weeklyDirectUnitsMedian!!, 0.0)
+        assertEquals(12.0, band.exposureWeekDirectUnitsMedian!!, 0.0)
+        assertTrue(band.hasPersonalDirectBaseline)
+    }
+
+    @Test
+    fun strengthAndHypertrophyHistoryUsesSharedPrescriptionShapeAndPowerKeepsSemanticExposure() {
+        val threeRep = analyzePrescriptionHistory(3)
+        assertEquals(4, threeRep.bands.getValue(TrainableQuality.STRENGTH).directExposureWeekCount)
+        assertEquals(0, threeRep.bands.getValue(TrainableQuality.HYPERTROPHY).directExposureWeekCount)
+        assertEquals(4, threeRep.bands.getValue(TrainableQuality.POWER).directExposureWeekCount)
+        assertEquals(RealizedStimulusClass.STRENGTH_LIKE, provisionalRealizedStimulusClass(PlanningSetRecord(
+            LocalDate.of(2026, 9, 12), "squat", "squat", "RESISTANCE", 1, 3, 100.0, 0, 7.0)))
+
+        val twelveRep = analyzePrescriptionHistory(12)
+        assertEquals(0, twelveRep.bands.getValue(TrainableQuality.STRENGTH).directExposureWeekCount)
+        assertEquals(4, twelveRep.bands.getValue(TrainableQuality.HYPERTROPHY).directExposureWeekCount)
+        assertEquals(4, twelveRep.bands.getValue(TrainableQuality.POWER).directExposureWeekCount)
+        assertEquals(RealizedStimulusClass.HYPERTROPHY_LIKE, provisionalRealizedStimulusClass(PlanningSetRecord(
+            LocalDate.of(2026, 9, 12), "squat", "squat", "RESISTANCE", 1, 12, 100.0, 0, 7.0)))
+
+        val ambiguous = analyzePrescriptionHistory(20)
+        assertEquals(0, ambiguous.bands.getValue(TrainableQuality.STRENGTH).directExposureWeekCount)
+        assertEquals(0, ambiguous.bands.getValue(TrainableQuality.HYPERTROPHY).directExposureWeekCount)
+        assertEquals(4, ambiguous.bands.getValue(TrainableQuality.POWER).directExposureWeekCount)
+        assertEquals(RealizedStimulusClass.AMBIGUOUS_REALIZED_STIMULUS, provisionalRealizedStimulusClass(PlanningSetRecord(
+            LocalDate.of(2026, 9, 12), "squat", "squat", "RESISTANCE", 1, 20, 100.0, 0, 7.0)))
+        assertTrue(ambiguous.notes.contains("AMBIGUOUS_REALIZED_STIMULUS_IS_NOT_ASSIGNED_TO_STRENGTH_OR_HYPERTROPHY"))
+    }
+
+    private fun analyzePrescriptionHistory(reps: Int): QualityDoseHistory {
+        val cutoff = LocalDate.of(2026, 9, 19)
+        val completeEnd = completedTrainingWeekEnd(cutoff)
+        val rows = (0..3).flatMap { offset ->
+            val date = completeEnd.minusDays(offset * 7L + 2L)
+            listOf(PlanningSetRecord(date, "squat", "squat", "RESISTANCE", 1, reps, 100.0, 0, 7.0))
+        }
+        val snapshot = snapshot(cutoff, rows, mapOf("squat" to metadata("squat")))
+        val catalog = CanonicalExercisePhysicalQualityCatalog.of(listOf(
+            relation("squat-strength", "squat", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY),
+            relation("squat-hypertrophy", "squat", TrainableQuality.HYPERTROPHY, StimulusCapabilityLevel.DIRECT_CAPABILITY),
+            relation("squat-power", "squat", TrainableQuality.POWER, StimulusCapabilityLevel.DIRECT_CAPABILITY)
+        ))
+        return QualityDoseHistoryAnalyzer().analyze(snapshot, emptyState(), catalog)
+    }
+
+    private fun snapshot(
+        cutoff: LocalDate,
+        rows: List<PlanningSetRecord>,
+        metadata: Map<String, com.training.trackplanner.data.RuntimeExerciseMetadata>,
+        directObjectives: Map<String, Set<String>> = emptyMap(),
+        supportiveObjectives: Map<String, Set<String>> = emptyMap()
+    ) = PlanningHistorySnapshot(
+        cutoff = cutoff,
+        allConfirmedSets = rows,
+        exercises = emptyMap(),
+        metadata = metadata,
+        badmintonObjectives = emptyMap(),
+        profilePrimaryGoal = "STRENGTH_GAIN",
+        strengthTrainingYears = 1.0,
+        badmintonTrainingYears = 0.0,
+        preferences = PersonalizedPlanningPreferences(),
+        badmintonDirectObjectives = directObjectives,
+        badmintonSupportiveObjectives = supportiveObjectives
+    )
+
+    private fun metadata(key: String) = RuntimeExerciseMetadataDefaults.forIdentity(key, key).copy(
+        activityKind = "EXERCISE",
+        programSlot = "MAIN_LOWER_STRENGTH",
+        analysisEligibility = com.training.trackplanner.data.MetadataTokenField.parse("STRENGTH_PROGRESS"),
+        progressMetricType = "LOAD_REPS"
+    )
+
+    private fun relation(id: String, key: String, quality: TrainableQuality, level: StimulusCapabilityLevel) =
+        ExercisePhysicalQualityRelation(id, key, quality, level, PhysicalQualityRegion.LOWER, PhysicalQualityMode.GENERAL,
+            true, "TEST", emptySet(), "PASS", "")
 
     private fun profile(
         quality: TrainableQuality,

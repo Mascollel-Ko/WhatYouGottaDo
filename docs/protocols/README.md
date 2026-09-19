@@ -55,7 +55,7 @@ Protocol version과 application version은 독립적입니다. protocol `1.0.0`�
 | `STRENGTH` | `STRENGTH-BODYWEIGHT-LOAD` | 체중 운동 유효 부하 | `1.2.0` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `UNKNOWN_PENDING_AUDIT`; weighted pull-up posterior boundary `v0.5.0.2`; exact stableKey profiles `v0.5.0.36`; tissue split dose `v0.5.0.37` | `bb045da` | [문서](strength/BODYWEIGHT_EFFECTIVE_LOAD.md) |
 | `STRENGTH` | `STRENGTH-DURATION-HOLD` | 시간 유지 운동 부하 | `1.1.0` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `UNKNOWN_PENDING_AUDIT`; exact stableKey profiles `v0.5.0.36` | `bb045da` | [문서](strength/DURATION_HOLD_LOAD.md) |
 | `STRENGTH` | `STRENGTH-CATALOGUE` | 근력 운동 catalogue | `1.2.0` | `ACTIVE` | `IMPLEMENTED` | MIXED, RESEARCH_TRANSFER, PRODUCT_POLICY | `v0.3.5.0`; canonical identities `v0.5.0.6`; localized presentation `v0.5.0.14` | `8f78c99b11af14c2715a36532d83256e7ebfe4bf` | [문서](strength/STRENGTH_EXERCISE_CATALOGUE.md) |
-| `PROGRAM_BUILDER` | `PROGRAM-BUILDER-OVERVIEW` | 자동·기록 기반 프로그램 생성 개요 | `3.19.0` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.4.2.0`; independent record-based builder `v0.5.1.4`; v0.14.0 execution layer `2026-09-06`; AthleteNeedsProfile shadow semantics; shadow target portfolio `3.19.0` | [canonical audit](program_builder/PROGRAM_BUILDER_OVERVIEW.md) | [문서](program_builder/PROGRAM_BUILDER_OVERVIEW.md) |
+| `PROGRAM_BUILDER` | `PROGRAM-BUILDER-OVERVIEW` | 자동·기록 기반 프로그램 생성 개요 | `3.20.0` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.4.2.0`; independent record-based builder `v0.5.1.4`; v0.14.0 execution layer `2026-09-06`; AthleteNeedsProfile shadow semantics; prescription-aware weekly/exposure-week target history `3.20.0` | [canonical audit](program_builder/PROGRAM_BUILDER_OVERVIEW.md) | [문서](program_builder/PROGRAM_BUILDER_OVERVIEW.md) |
 | `PROGRAM_BUILDER` | `PROGRAM-BUILDER-SLOTS` | 프로그램 slot과 role 모델 | `1.3.0` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.4.2.0`; workbook authority `v0.5.0.22`; public slot path only `v0.5.0.37` | `233d0fe84e85a9a4e44f9b9ed4c88a6dc77ee3ec` | [문서](program_builder/SLOT_AND_ROLE_MODEL.md) |
 | `PROGRAM_BUILDER` | `PROGRAM-BUILDER-SCORING` | 운동 선택과 우선순위 | `1.2.0` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.4.2.0`; exact stableKey candidate authority `v0.5.0.35`; dead scoring removed `v0.5.0.37` | `f1c993929a2a0712c2cab899264f113af6d7d050` | [문서](program_builder/EXERCISE_SELECTION_AND_SCORING.md) |
 | `PROGRAM_BUILDER` | `PROGRAM-BUILDER-CONSTRAINTS` | 대체와 제약 규칙 | `1.1.0` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.4.2.0`; dead advanced constraints removed `v0.5.0.37` | `06b65f6cdb243780e97a7464f659219b50010c7c` | [문서](program_builder/REPLACEMENT_AND_CONSTRAINT_RULES.md) |
@@ -64,7 +64,7 @@ Protocol version과 application version은 독립적입니다. protocol `1.0.0`�
 | `DATA_PORTABILITY` | `DATA-CLOUD-BACKUP` | 클라우드 백업 | `1.1.0` | `DRAFT` | `PARTIALLY_IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `UNRELEASED_PHASE_2_SUPABASE_TRANSPORT` | `c6e001ee3271f9086e679beb18199e171242ac67` | [문서](data_portability/CLOUD_BACKUP.md) |
 | `COMMUNITY` | `COMMUNITY-SHARING` | 커뮤니티 공유 | `1.0.0` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `UNRELEASED_COMMUNITY_V1` | `77569334` | [문서](community/COMMUNITY_SHARING.md) |
 | `DATA_PORTABILITY` | `DATA-BACKUP-RESTORE` | 백업과 복원 | `1.7.0` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.5.0.5`; canonical authority compatibility `v0.5.0.22`; metadata snapshot `v0.5.0.24`; selectable safe restore `v0.5.0.25`; blank identity hardening `v0.5.0.37` | `d7ee94a5e35fbd76a4d756245aa48f62dd29ccfd` | [문서](data_portability/BACKUP_AND_RESTORE.md) |
-| `DATA_PORTABILITY` | `DATA-METADATA-ANALYSIS-CONTRACT` | 메타데이터 분석 계약 | `2.5.0` | `ACTIVE` | `PARTIALLY_IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.5.0.16` shadow baseline; canonical core/objective cutover `v0.5.0.33`; explicit semantic-authority closeout `v0.5.0.37`; physical-quality shadow; target portfolio/dose envelope `2.5.0` | `532d2343cafd9e54924dc52350c6e108893b4b07` | [문서](data_portability/METADATA_ANALYSIS_CONTRACT_PHASE_0_1.md) |
+| `DATA_PORTABILITY` | `DATA-METADATA-ANALYSIS-CONTRACT` | 메타데이터 분석 계약 | `2.6.0` | `ACTIVE` | `PARTIALLY_IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.5.0.16` shadow baseline; canonical core/objective cutover `v0.5.0.33`; explicit semantic-authority closeout `v0.5.0.37`; physical-quality shadow; weekly/exposure-week and prescription-aware target history `2.6.0` | `532d2343cafd9e54924dc52350c6e108893b4b07` | [문서](data_portability/METADATA_ANALYSIS_CONTRACT_PHASE_0_1.md) |
 | `UI_PRESENTATION` | `UI-QUIET-PRESENTATION` | 조용한 UI 표시 원칙 | `1.5.0` | `ACTIVE` | `IMPLEMENTED` | USER_APPROVED_POLICY, PRODUCT_POLICY | `v0.5.0.0`; metadata/program results `v0.5.0.14`; fieldKey metadata routing `v0.5.0.26`; localized surfaces `v0.5.0.27`; adaptive controls/axes `v0.5.0.30` | `45fc91f` | [문서](presentation/QUIET_UI_PRESENTATION.md) |
 | `UI_PRESENTATION` | `UI-LOCALIZATION` | 한국어/영어 localization 계약 | `1.4.0` | `ACTIVE` | `IMPLEMENTED` | USER_APPROVED_POLICY, PRODUCT_POLICY | `v0.5.0.27`; correctness hardening `v0.5.0.28`; runtime composition `v0.5.0.30`; persistent-strength identity hardening `v0.5.1` | `f1c993929a2a0712c2cab899264f113af6d7d050` | [문서](presentation/LOCALIZATION.md) |
 
@@ -81,7 +81,12 @@ developmental stimulus가 아닙니다. 세부 task 우선순위가 없는 배�
 lower-domain negative evidence, recovery constraint를 모두 요구합니다. Underrepresentation != Need,
 High workload != Overload, Need != Execution feasibility 입니다. Need is not dose,
 Dose is not schedule, and quality target envelopes are overlapping semantic views,
-not additive workload budgets.
+not additive workload budgets. Weekly baseline distributions preserve zero-quality
+exposure in eligible active normal weeks; exposure-week dose and frequency are
+separate concepts. Intermittent stimulus is not automatically an every-week
+target. Exercise capability is not realized stimulus. STRENGTH/HYPERTROPHY
+history is prescription-aware where supported, while POWER/RFD/SSC are not
+filtered by those rep heuristics.
 
 ## Reading and publishing
 

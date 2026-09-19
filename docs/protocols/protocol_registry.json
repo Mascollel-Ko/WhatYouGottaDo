@@ -1377,7 +1377,7 @@
       "familyId": "PROGRAM_BUILDER",
       "titleKo": "자동·기록 기반 프로그램 생성 개요",
       "titleEn": "Automatic and Record-Based Program Builder Overview",
-      "currentVersion": "3.19.0",
+      "currentVersion": "3.20.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1385,7 +1385,7 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "program_builder/PROGRAM_BUILDER_OVERVIEW.md",
-      "implementedFromAppVersion": "v0.4.2.0; independent record-based builder from v0.5.1.4; v0.14.0 execution layer from 2026-09-06; AthleteNeedsProfile shadow semantics correction; shadow target portfolio and dose envelopes 2026-09",
+      "implementedFromAppVersion": "v0.4.2.0; independent record-based builder from v0.5.1.4; v0.14.0 execution layer from 2026-09-06; AthleteNeedsProfile shadow semantics correction; prescription-aware weekly/exposure-week target history 2026-09",
       "lastAuditedCommit": "892e98fc",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/personalized/PrimaryStrengthAnchorSpacingPolicy.kt",
@@ -1705,7 +1705,7 @@
       "familyId": "DATA_PORTABILITY",
       "titleKo": "메타데이터 분석 계약",
       "titleEn": "Metadata Analysis Contract",
-      "currentVersion": "2.5.0",
+      "currentVersion": "2.6.0",
       "status": "ACTIVE",
       "implementationStatus": "PARTIALLY_IMPLEMENTED",
       "evidenceProfile": [
@@ -1713,7 +1713,7 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "data_portability/METADATA_ANALYSIS_CONTRACT_PHASE_0_1.md",
-      "implementedFromAppVersion": "v0.5.0.16 shadow baseline; role split from v0.5.0.21; bundled authority cutover from v0.5.0.22; Korean display authority from v0.5.0.23; explicit override authority from v0.5.0.25; fieldKey routing from v0.5.0.26; canonical normalization from v0.5.0.32; core/objective analysis cutover from v0.5.0.33; physical-quality capability asset and atomic qualifier audit 2026-09; AthleteNeedsProfile shadow semantics correction; shadow target portfolio and dose envelopes 2026-09",
+      "implementedFromAppVersion": "v0.5.0.16 shadow baseline; role split from v0.5.0.21; bundled authority cutover from v0.5.0.22; Korean display authority from v0.5.0.23; explicit override authority from v0.5.0.25; fieldKey routing from v0.5.0.26; canonical normalization from v0.5.0.32; core/objective analysis cutover from v0.5.0.33; physical-quality capability asset and atomic qualifier audit 2026-09; AthleteNeedsProfile shadow semantics correction; weekly/exposure-week and prescription-aware target history 2026-09",
       "lastAuditedCommit": "532d2343cafd9e54924dc52350c6e108893b4b07",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/contracts/AnalysisContractModels.kt",

@@ -141,14 +141,28 @@ class TrainingStateRealBackupComparisonTest {
                     portfolio.taskDecisions.forEach { row -> appendLine(listOf(row.task, row.needDecision, row.action, row.priority, row.confidence, row.explicitUserTaskPriority).joinToString("|")) }
                 }
                 decision.targetStimulusPlan?.let { targetPlan ->
-                    appendLine("TARGET_STIMULUS quality|source|q25|median|q75|targetMin|targetPreferred|targetMax|numericAuthority")
-                    targetPlan.qualityTargets.forEach { row -> appendLine(listOf(row.quality, row.baseline?.source, row.baseline?.directUnitsQ25,
-                        row.baseline?.directUnitsMedian, row.baseline?.directUnitsQ75, row.targetDirectUnitsMin,
-                        row.targetDirectUnitsPreferred, row.targetDirectUnitsMax, row.numericAuthority).joinToString("|")) }
-                    appendLine("TARGET_STIMULUS_TASK task|source|q25|median|q75|targetMin|targetPreferred|targetMax|numericAuthority")
-                    targetPlan.taskTargets.forEach { row -> appendLine(listOf(row.task, row.baseline?.source, row.baseline?.directUnitsQ25,
-                        row.baseline?.directUnitsMedian, row.baseline?.directUnitsQ75, row.targetDirectUnitsMin,
-                        row.targetDirectUnitsPreferred, row.targetDirectUnitsMax, row.numericAuthority).joinToString("|")) }
+                    appendLine("TARGET_STIMULUS quality|action|priority|eligibleWeekCount|weeklyDirectQ25|weeklyDirectMedian|weeklyDirectQ75|exposureWeekDirectQ25|exposureWeekDirectMedian|exposureWeekDirectQ75|directExposureWeekCount|directExposureWeekFrequency|targetWeeklyMin|targetWeeklyPreferred|targetWeeklyMax|targetExposureWeekPreferred|targetExposureWeekFrequency|numericAuthority|plannedCapabilityUnits|comparisonStatus")
+                    targetPlan.qualityTargets.forEach { row ->
+                        val comparison = decision.targetPlanComparison?.qualityComparisons?.firstOrNull { it.quality == row.quality }
+                        appendLine(listOf(row.quality, row.action, row.priority, row.baseline?.eligibleWeekCount,
+                            row.baseline?.weeklyDirectUnitsQ25, row.baseline?.weeklyDirectUnitsMedian, row.baseline?.weeklyDirectUnitsQ75,
+                            row.baseline?.exposureWeekDirectUnitsQ25, row.baseline?.exposureWeekDirectUnitsMedian, row.baseline?.exposureWeekDirectUnitsQ75,
+                            row.baseline?.directExposureWeekCount, row.baseline?.directExposureWeekFrequency,
+                            row.targetWeeklyDirectUnitsMin, row.targetWeeklyDirectUnitsPreferred, row.targetWeeklyDirectUnitsMax,
+                            row.targetExposureWeekDirectUnitsPreferred, row.targetExposureWeekFrequency, row.numericAuthority,
+                            comparison?.plannedCapabilityUnits, comparison?.status).joinToString("|"))
+                    }
+                    appendLine("TARGET_STIMULUS_TASK task|action|priority|eligibleWeekCount|weeklyDirectQ25|weeklyDirectMedian|weeklyDirectQ75|exposureWeekDirectQ25|exposureWeekDirectMedian|exposureWeekDirectQ75|directExposureWeekCount|directExposureWeekFrequency|targetWeeklyMin|targetWeeklyPreferred|targetWeeklyMax|targetExposureWeekPreferred|targetExposureWeekFrequency|numericAuthority|plannedCapabilityUnits|comparisonStatus")
+                    targetPlan.taskTargets.forEach { row ->
+                        val comparison = decision.targetPlanComparison?.taskComparisons?.firstOrNull { it.task == row.task }
+                        appendLine(listOf(row.task, row.action, row.priority, row.baseline?.eligibleWeekCount,
+                            row.baseline?.weeklyDirectUnitsQ25, row.baseline?.weeklyDirectUnitsMedian, row.baseline?.weeklyDirectUnitsQ75,
+                            row.baseline?.exposureWeekDirectUnitsQ25, row.baseline?.exposureWeekDirectUnitsMedian, row.baseline?.exposureWeekDirectUnitsQ75,
+                            row.baseline?.directExposureWeekCount, row.baseline?.directExposureWeekFrequency,
+                            row.targetWeeklyDirectUnitsMin, row.targetWeeklyDirectUnitsPreferred, row.targetWeeklyDirectUnitsMax,
+                            row.targetExposureWeekDirectUnitsPreferred, row.targetExposureWeekFrequency, row.numericAuthority,
+                            comparison?.plannedCapabilityUnits, comparison?.status).joinToString("|"))
+                    }
                 }
                 decision.targetPlanComparison?.let { comparison ->
                     appendLine("TARGET_COMPARISON quality|plannedCapabilityUnits|targetMin|targetPreferred|targetMax|status")

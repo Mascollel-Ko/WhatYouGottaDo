@@ -42,21 +42,52 @@ enum class SuccessfulDoseSource {
 
 data class SuccessfulDoseBand(
     val eligibleWeekCount: Int,
-    val directUnitsQ25: Double?,
-    val directUnitsMedian: Double?,
-    val directUnitsQ75: Double?,
-    val directSessionsQ25: Double?,
-    val directSessionsMedian: Double?,
-    val directSessionsQ75: Double?,
-    val supportiveUnitsQ25: Double?,
-    val supportiveUnitsMedian: Double?,
-    val supportiveUnitsQ75: Double?,
-    val confidence: PlanningConfidence,
-    val source: SuccessfulDoseSource
+    /** Backwards-compatible aliases for the weekly direct-dose distribution. */
+    val directUnitsQ25: Double? = null,
+    val directUnitsMedian: Double? = null,
+    val directUnitsQ75: Double? = null,
+    val directSessionsQ25: Double? = null,
+    val directSessionsMedian: Double? = null,
+    val directSessionsQ75: Double? = null,
+    /** Backwards-compatible aliases for the weekly supportive-dose distribution. */
+    val supportiveUnitsQ25: Double? = null,
+    val supportiveUnitsMedian: Double? = null,
+    val supportiveUnitsQ75: Double? = null,
+    val confidence: PlanningConfidence = PlanningConfidence.LOW,
+    val source: SuccessfulDoseSource = SuccessfulDoseSource.NO_PERSONAL_BASELINE,
+    val weeklyDirectUnitsQ25: Double? = directUnitsQ25,
+    val weeklyDirectUnitsMedian: Double? = directUnitsMedian,
+    val weeklyDirectUnitsQ75: Double? = directUnitsQ75,
+    val weeklyDirectSessionsQ25: Double? = directSessionsQ25,
+    val weeklyDirectSessionsMedian: Double? = directSessionsMedian,
+    val weeklyDirectSessionsQ75: Double? = directSessionsQ75,
+    val exposureWeekDirectUnitsQ25: Double? = directUnitsQ25,
+    val exposureWeekDirectUnitsMedian: Double? = directUnitsMedian,
+    val exposureWeekDirectUnitsQ75: Double? = directUnitsQ75,
+    val exposureWeekDirectSessionsQ25: Double? = directSessionsQ25,
+    val exposureWeekDirectSessionsMedian: Double? = directSessionsMedian,
+    val exposureWeekDirectSessionsQ75: Double? = directSessionsQ75,
+    val directExposureWeekCount: Int = 0,
+    val directExposureWeekFrequency: Double? = null,
+    val weeklySupportiveUnitsQ25: Double? = supportiveUnitsQ25,
+    val weeklySupportiveUnitsMedian: Double? = supportiveUnitsMedian,
+    val weeklySupportiveUnitsQ75: Double? = supportiveUnitsQ75,
+    val weeklySupportiveSessionsQ25: Double? = null,
+    val weeklySupportiveSessionsMedian: Double? = null,
+    val weeklySupportiveSessionsQ75: Double? = null
 ) {
     val hasPersonalDirectBaseline: Boolean
-        get() = source in setOf(SuccessfulDoseSource.NORMAL_COMPLETED_WEEKS, SuccessfulDoseSource.RECENT_ACTIVE_WEEKS_FALLBACK) &&
-            eligibleWeekCount >= 2 && directUnitsMedian != null && directUnitsMedian > 0.0
+        get() {
+            val compatibleExposureWeeks = if (directExposureWeekCount > 0) directExposureWeekCount
+            // Legacy manually-constructed bands only have the weekly alias fields. A positive
+            // alias is safe to interpret as the old direct-baseline signal; a zero alias is
+            // deliberately not, because analyzer-produced supportive-only bands retain zero
+            // active weeks in their weekly distribution.
+            else if (directUnitsMedian != null && directUnitsMedian > 0.0) eligibleWeekCount
+            else 0
+            return source in setOf(SuccessfulDoseSource.NORMAL_COMPLETED_WEEKS, SuccessfulDoseSource.RECENT_ACTIVE_WEEKS_FALLBACK) &&
+                eligibleWeekCount >= 2 && compatibleExposureWeeks >= 2
+        }
 }
 
 data class QualityDoseHistory(
@@ -110,7 +141,20 @@ data class QualityStimulusTarget(
     val numericAuthority: TargetNumericAuthority,
     val confidence: PlanningConfidence,
     val reasonCodes: List<String>,
-    val evidence: List<String>
+    val evidence: List<String>,
+    val targetWeeklyDirectUnitsMin: Double? = targetDirectUnitsMin,
+    val targetWeeklyDirectUnitsPreferred: Double? = targetDirectUnitsPreferred,
+    val targetWeeklyDirectUnitsMax: Double? = targetDirectUnitsMax,
+    val targetWeeklyDirectSessionsMin: Double? = targetDirectSessionsMin,
+    val targetWeeklyDirectSessionsPreferred: Double? = targetDirectSessionsPreferred,
+    val targetWeeklyDirectSessionsMax: Double? = targetDirectSessionsMax,
+    val targetExposureWeekDirectUnitsMin: Double? = null,
+    val targetExposureWeekDirectUnitsPreferred: Double? = null,
+    val targetExposureWeekDirectUnitsMax: Double? = null,
+    val targetExposureWeekDirectSessionsMin: Double? = null,
+    val targetExposureWeekDirectSessionsPreferred: Double? = null,
+    val targetExposureWeekDirectSessionsMax: Double? = null,
+    val targetExposureWeekFrequency: Double? = baseline?.directExposureWeekFrequency
 )
 
 data class TaskStimulusTarget(
@@ -125,7 +169,14 @@ data class TaskStimulusTarget(
     val confidence: PlanningConfidence,
     val explicitUserTaskPriority: Boolean,
     val reasonCodes: List<String>,
-    val evidence: List<String>
+    val evidence: List<String>,
+    val targetWeeklyDirectUnitsMin: Double? = targetDirectUnitsMin,
+    val targetWeeklyDirectUnitsPreferred: Double? = targetDirectUnitsPreferred,
+    val targetWeeklyDirectUnitsMax: Double? = targetDirectUnitsMax,
+    val targetExposureWeekDirectUnitsMin: Double? = null,
+    val targetExposureWeekDirectUnitsPreferred: Double? = null,
+    val targetExposureWeekDirectUnitsMax: Double? = null,
+    val targetExposureWeekFrequency: Double? = baseline?.directExposureWeekFrequency
 )
 
 data class TargetStimulusPlan(
@@ -153,7 +204,12 @@ data class QualityTargetComparison(
     val targetPreferred: Double?,
     val targetMax: Double?,
     val status: TargetComparisonStatus,
-    val reasonCodes: List<String> = listOf("PLANNED_CAPABILITY_COVERAGE_NOT_REALIZED_STIMULUS")
+    val reasonCodes: List<String> = listOf("PLANNED_CAPABILITY_COVERAGE_NOT_REALIZED_STIMULUS"),
+    val targetWeeklyMin: Double? = targetMin,
+    val targetWeeklyPreferred: Double? = targetPreferred,
+    val targetWeeklyMax: Double? = targetMax,
+    val targetExposureWeekPreferred: Double? = null,
+    val targetExposureWeekFrequency: Double? = null
 )
 
 data class TaskTargetComparison(
@@ -163,7 +219,12 @@ data class TaskTargetComparison(
     val targetPreferred: Double?,
     val targetMax: Double?,
     val status: TargetComparisonStatus,
-    val reasonCodes: List<String> = listOf("PLANNED_CAPABILITY_COVERAGE_NOT_REALIZED_STIMULUS")
+    val reasonCodes: List<String> = listOf("PLANNED_CAPABILITY_COVERAGE_NOT_REALIZED_STIMULUS"),
+    val targetWeeklyMin: Double? = targetMin,
+    val targetWeeklyPreferred: Double? = targetPreferred,
+    val targetWeeklyMax: Double? = targetMax,
+    val targetExposureWeekPreferred: Double? = null,
+    val targetExposureWeekFrequency: Double? = null
 )
 
 data class TargetPlanComparison(
@@ -185,7 +246,10 @@ class QualityDoseHistoryAnalyzer {
         val weekEnds = (7 downTo 0).map { completeEnd.minusDays(it * 7L) }
         val contextByStart = state.trainingStateAssessment?.weeklyContext.orEmpty().associateBy { it.start }
         val relationByKey = catalog.trainingRelations().groupBy(ExercisePhysicalQualityRelation::exerciseStableKey)
-        val taskKeys = (snapshot.badmintonDirectObjectives.keys + snapshot.badmintonSupportiveObjectives.keys).toSet()
+        // The objective maps are exerciseStableKey -> objective names. taskBands is keyed by
+        // those objective names so it can join SportTaskNeed.task without a second translation.
+        val taskKeys = (snapshot.badmintonDirectObjectives.values.flatten() +
+            snapshot.badmintonSupportiveObjectives.values.flatten()).toSet()
         val firstStart = weekEnds.minOf { it }.minusDays(6)
         val lastEnd = weekEnds.maxOf { it }
         val rowsByWeekStart = snapshot.allConfirmedSets
@@ -203,59 +267,139 @@ class QualityDoseHistoryAnalyzer {
         val excluded = weeks.count { it.excluded }
         val eligible = weeks.filter { !it.excluded && it.rows.isNotEmpty() }
         val bands = TrainableQuality.entries.associateWith { quality ->
-            bandForQuality(quality, eligible, relationByKey, weeks, snapshot)
+            bandForQuality(quality, eligible, relationByKey, snapshot)
         }
-        val taskBands = taskKeys.associateWith { task -> bandForTask(task, eligible, weeks, snapshot) }
+        val taskBands = taskKeys.associateWith { task -> bandForTask(task, eligible, snapshot) }
         return QualityDoseHistory(bands, taskBands, weeks.size, excluded,
             listOf("COMPLETED_ISO_WEEKS_ONLY", "ACTIVE_WEEK_REQUIRES_CONFIRMED_CONTROLLABLE_RECORD",
-                "QUALITY_TARGET_ENVELOPES_OVERLAP_AND_ARE_NOT_ADDITIVE_WORKLOAD_BUDGETS"))
+                "QUALITY_TARGET_ENVELOPES_OVERLAP_AND_ARE_NOT_ADDITIVE_WORKLOAD_BUDGETS",
+                "STRENGTH_HYPERTROPHY_HISTORY_IS_PRESCRIPTION_AWARE_WHERE_SUPPORTED",
+                "AMBIGUOUS_REALIZED_STIMULUS_IS_NOT_ASSIGNED_TO_STRENGTH_OR_HYPERTROPHY",
+                "POWER_RFD_SSC_RETAIN_CANONICAL_CAPABILITY_EXPOSURE"))
     }
 
     private fun bandForQuality(
         quality: TrainableQuality,
         eligible: List<WeekSlice>,
         relationByKey: Map<String, List<ExercisePhysicalQualityRelation>>,
-        allWeeks: List<WeekSlice>,
         snapshot: PlanningHistorySnapshot
     ): SuccessfulDoseBand {
         fun values(weeks: List<WeekSlice>) = weeks.map { week ->
-            val direct = week.rows.filter { row -> relationByKey[row.stableKey].orEmpty().any { it.qualityId == quality && it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY } }
-            val supportive = week.rows.filter { row -> relationByKey[row.stableKey].orEmpty().any { it.qualityId == quality && it.relationLevel == StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY } }
-            DoseValues(direct.size.toDouble(), direct.map { it.date }.toSet().size.toDouble(), supportive.size.toDouble(), supportive.map { it.date }.toSet().size.toDouble())
+            val direct = week.rows.filter { row -> relationByKey[row.stableKey].orEmpty().any {
+                it.qualityId == quality && it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY &&
+                    prescriptionCompatible(quality, row)
+            } }
+            val supportive = week.rows.filter { row -> relationByKey[row.stableKey].orEmpty().any {
+                it.qualityId == quality && it.relationLevel == StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY &&
+                    prescriptionCompatible(quality, row)
+            } }
+            DoseValues(direct.size.toDouble(), direct.map { it.date }.toSet().size.toDouble(),
+                supportive.size.toDouble(), supportive.map { it.date }.toSet().size.toDouble())
         }
-        return band(values(eligible), values(allWeeks.filter { it.start >= snapshot.cutoff.minusDays(27).with(java.time.DayOfWeek.MONDAY) }))
+        val recentStart = snapshot.cutoff.minusDays(27).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+        return band(values(eligible), values(eligible.filter { it.start >= recentStart }))
     }
 
-    private fun bandForTask(task: String, eligible: List<WeekSlice>, allWeeks: List<WeekSlice>, snapshot: PlanningHistorySnapshot): SuccessfulDoseBand {
+    private fun bandForTask(task: String, eligible: List<WeekSlice>, snapshot: PlanningHistorySnapshot): SuccessfulDoseBand {
         fun values(weeks: List<WeekSlice>) = weeks.map { week ->
             val direct = week.rows.filter { task in snapshot.badmintonDirectObjectives[it.stableKey].orEmpty() }
             val supportive = week.rows.filter { task in snapshot.badmintonSupportiveObjectives[it.stableKey].orEmpty() }
             DoseValues(direct.size.toDouble(), direct.map { it.date }.toSet().size.toDouble(), supportive.size.toDouble(), supportive.map { it.date }.toSet().size.toDouble())
         }
-        return band(values(eligible), values(allWeeks.filter { it.start >= snapshot.cutoff.minusDays(27).with(java.time.DayOfWeek.MONDAY) }))
+        val recentStart = snapshot.cutoff.minusDays(27).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+        return band(values(eligible), values(eligible.filter { it.start >= recentStart }))
     }
 
     private fun band(normalValues: List<DoseValues>, currentValues: List<DoseValues>): SuccessfulDoseBand {
-        val directNormal = normalValues.filter { it.directUnits > 0.0 }
+        val normalExposure = normalValues.filter { it.directUnits > 0.0 }
+        val currentExposure = currentValues.filter { it.directUnits > 0.0 }
         val source: SuccessfulDoseSource
-        val values: List<DoseValues>
+        val weeklyValues: List<DoseValues>
+        val exposureValues: List<DoseValues>
         when {
-            directNormal.isNotEmpty() -> { source = SuccessfulDoseSource.NORMAL_COMPLETED_WEEKS; values = directNormal }
-            currentValues.any { it.directUnits > 0.0 } -> { source = SuccessfulDoseSource.CURRENT_28D_FALLBACK; values = currentValues.filter { it.directUnits > 0.0 } }
-            normalValues.any { it.supportiveUnits > 0.0 } -> { source = SuccessfulDoseSource.RECENT_ACTIVE_WEEKS_FALLBACK; values = normalValues.filter { it.supportiveUnits > 0.0 } }
-            else -> { source = SuccessfulDoseSource.NO_PERSONAL_BASELINE; values = emptyList() }
+            normalExposure.isNotEmpty() -> {
+                source = SuccessfulDoseSource.NORMAL_COMPLETED_WEEKS
+                weeklyValues = normalValues
+                exposureValues = normalExposure
+            }
+            currentExposure.isNotEmpty() -> {
+                source = SuccessfulDoseSource.CURRENT_28D_FALLBACK
+                weeklyValues = currentValues
+                exposureValues = currentExposure
+            }
+            normalValues.any { it.supportiveUnits > 0.0 } -> {
+                source = SuccessfulDoseSource.RECENT_ACTIVE_WEEKS_FALLBACK
+                weeklyValues = normalValues
+                exposureValues = emptyList()
+            }
+            else -> {
+                source = SuccessfulDoseSource.NO_PERSONAL_BASELINE
+                weeklyValues = normalValues
+                exposureValues = emptyList()
+            }
         }
         val confidence = when {
-            values.size >= 4 && consistent(values.map { it.directUnits }) -> PlanningConfidence.HIGH
-            values.size >= 2 -> PlanningConfidence.MODERATE
+            exposureValues.size >= 4 && consistent(exposureValues.map { it.directUnits }) -> PlanningConfidence.HIGH
+            exposureValues.size >= 2 -> PlanningConfidence.MODERATE
             else -> PlanningConfidence.LOW
         }
-        return SuccessfulDoseBand(values.size,
-            quantile(values.map { it.directUnits }, .25), quantile(values.map { it.directUnits }, .50), quantile(values.map { it.directUnits }, .75),
-            quantile(values.map { it.directSessions }, .25), quantile(values.map { it.directSessions }, .50), quantile(values.map { it.directSessions }, .75),
-            quantile(values.map { it.supportiveUnits }, .25), quantile(values.map { it.supportiveUnits }, .50), quantile(values.map { it.supportiveUnits }, .75),
-            confidence, source)
+        val weeklyUnitsQ25 = quantile(weeklyValues.map { it.directUnits }, .25)
+        val weeklyUnitsMedian = quantile(weeklyValues.map { it.directUnits }, .50)
+        val weeklyUnitsQ75 = quantile(weeklyValues.map { it.directUnits }, .75)
+        val weeklySessionsQ25 = quantile(weeklyValues.map { it.directSessions }, .25)
+        val weeklySessionsMedian = quantile(weeklyValues.map { it.directSessions }, .50)
+        val weeklySessionsQ75 = quantile(weeklyValues.map { it.directSessions }, .75)
+        val supportiveUnitsQ25 = quantile(weeklyValues.map { it.supportiveUnits }, .25)
+        val supportiveUnitsMedian = quantile(weeklyValues.map { it.supportiveUnits }, .50)
+        val supportiveUnitsQ75 = quantile(weeklyValues.map { it.supportiveUnits }, .75)
+        val supportiveSessionsQ25 = quantile(weeklyValues.map { it.supportiveSessions }, .25)
+        val supportiveSessionsMedian = quantile(weeklyValues.map { it.supportiveSessions }, .50)
+        val supportiveSessionsQ75 = quantile(weeklyValues.map { it.supportiveSessions }, .75)
+        val exposureFrequency = directFrequency(exposureValues.size, weeklyValues.size)
+        return SuccessfulDoseBand(
+            eligibleWeekCount = weeklyValues.size,
+            directUnitsQ25 = weeklyUnitsQ25,
+            directUnitsMedian = weeklyUnitsMedian,
+            directUnitsQ75 = weeklyUnitsQ75,
+            directSessionsQ25 = weeklySessionsQ25,
+            directSessionsMedian = weeklySessionsMedian,
+            directSessionsQ75 = weeklySessionsQ75,
+            supportiveUnitsQ25 = supportiveUnitsQ25,
+            supportiveUnitsMedian = supportiveUnitsMedian,
+            supportiveUnitsQ75 = supportiveUnitsQ75,
+            confidence = confidence,
+            source = source,
+            weeklyDirectUnitsQ25 = weeklyUnitsQ25,
+            weeklyDirectUnitsMedian = weeklyUnitsMedian,
+            weeklyDirectUnitsQ75 = weeklyUnitsQ75,
+            weeklyDirectSessionsQ25 = weeklySessionsQ25,
+            weeklyDirectSessionsMedian = weeklySessionsMedian,
+            weeklyDirectSessionsQ75 = weeklySessionsQ75,
+            exposureWeekDirectUnitsQ25 = quantile(exposureValues.map { it.directUnits }, .25),
+            exposureWeekDirectUnitsMedian = quantile(exposureValues.map { it.directUnits }, .50),
+            exposureWeekDirectUnitsQ75 = quantile(exposureValues.map { it.directUnits }, .75),
+            exposureWeekDirectSessionsQ25 = quantile(exposureValues.map { it.directSessions }, .25),
+            exposureWeekDirectSessionsMedian = quantile(exposureValues.map { it.directSessions }, .50),
+            exposureWeekDirectSessionsQ75 = quantile(exposureValues.map { it.directSessions }, .75),
+            directExposureWeekCount = exposureValues.size,
+            directExposureWeekFrequency = exposureFrequency,
+            weeklySupportiveUnitsQ25 = supportiveUnitsQ25,
+            weeklySupportiveUnitsMedian = supportiveUnitsMedian,
+            weeklySupportiveUnitsQ75 = supportiveUnitsQ75,
+            weeklySupportiveSessionsQ25 = supportiveSessionsQ25,
+            weeklySupportiveSessionsMedian = supportiveSessionsMedian,
+            weeklySupportiveSessionsQ75 = supportiveSessionsQ75
+        )
     }
+
+    private fun prescriptionCompatible(quality: TrainableQuality, row: PlanningSetRecord): Boolean = when (quality) {
+        TrainableQuality.STRENGTH -> provisionalRealizedStimulusClass(row) == RealizedStimulusClass.STRENGTH_LIKE
+        TrainableQuality.HYPERTROPHY -> provisionalRealizedStimulusClass(row) == RealizedStimulusClass.HYPERTROPHY_LIKE
+        else -> true
+    }
+
+    private fun directFrequency(exposureWeeks: Int, eligibleWeeks: Int): Double? =
+        if (eligibleWeeks == 0) null else exposureWeeks.toDouble() / eligibleWeeks.toDouble()
 
     private fun consistent(values: List<Double>): Boolean {
         val positive = values.filter { it > 0.0 }
@@ -331,10 +475,24 @@ class TargetStimulusPlanEngine {
             val band = history.bands[decision.quality]
             val numeric = numericAuthority(decision.action, band)
             val useBand = numeric in setOf(TargetNumericAuthority.PERSONAL_SUCCESSFUL_DOSE, TargetNumericAuthority.PERSONAL_RESTORE_BASELINE)
+            val targetBand = band?.takeIf { useBand }
             QualityStimulusTarget(decision.quality, decision.action, decision.priority, band,
-                band?.takeIf { useBand }?.directUnitsQ25, band?.takeIf { useBand }?.directUnitsMedian, band?.takeIf { useBand }?.directUnitsQ75,
-                band?.takeIf { useBand }?.directSessionsQ25, band?.takeIf { useBand }?.directSessionsMedian, band?.takeIf { useBand }?.directSessionsQ75,
-                numeric, decision.confidence, decision.reasonCodes + reasonsFor(decision.action, numeric, band), decision.evidence)
+                targetBand?.weeklyDirectUnitsQ25, targetBand?.weeklyDirectUnitsMedian, targetBand?.weeklyDirectUnitsQ75,
+                targetBand?.weeklyDirectSessionsQ25, targetBand?.weeklyDirectSessionsMedian, targetBand?.weeklyDirectSessionsQ75,
+                numeric, decision.confidence, decision.reasonCodes + reasonsFor(decision.action, numeric, band), decision.evidence,
+                targetWeeklyDirectUnitsMin = targetBand?.weeklyDirectUnitsQ25,
+                targetWeeklyDirectUnitsPreferred = targetBand?.weeklyDirectUnitsMedian,
+                targetWeeklyDirectUnitsMax = targetBand?.weeklyDirectUnitsQ75,
+                targetWeeklyDirectSessionsMin = targetBand?.weeklyDirectSessionsQ25,
+                targetWeeklyDirectSessionsPreferred = targetBand?.weeklyDirectSessionsMedian,
+                targetWeeklyDirectSessionsMax = targetBand?.weeklyDirectSessionsQ75,
+                targetExposureWeekDirectUnitsMin = targetBand?.exposureWeekDirectUnitsQ25,
+                targetExposureWeekDirectUnitsPreferred = targetBand?.exposureWeekDirectUnitsMedian,
+                targetExposureWeekDirectUnitsMax = targetBand?.exposureWeekDirectUnitsQ75,
+                targetExposureWeekDirectSessionsMin = targetBand?.exposureWeekDirectSessionsQ25,
+                targetExposureWeekDirectSessionsPreferred = targetBand?.exposureWeekDirectSessionsMedian,
+                targetExposureWeekDirectSessionsMax = targetBand?.exposureWeekDirectSessionsQ75,
+                targetExposureWeekFrequency = targetBand?.directExposureWeekFrequency)
         }
         val taskTargets = portfolio.taskDecisions.map { decision ->
             val band = history.taskBands[decision.task]
@@ -344,10 +502,18 @@ class TargetStimulusPlanEngine {
                 numericAuthority(decision.action, band)
             } else TargetNumericAuthority.DIRECTION_ONLY
             val useBand = (decision.explicitUserTaskPriority || maintenanceBaseline) && numeric != TargetNumericAuthority.DIRECTION_ONLY
+            val targetBand = band?.takeIf { useBand }
             TaskStimulusTarget(decision.task, decision.action, decision.priority, band,
-                band?.takeIf { useBand }?.directUnitsQ25, band?.takeIf { useBand }?.directUnitsMedian, band?.takeIf { useBand }?.directUnitsQ75,
+                targetBand?.weeklyDirectUnitsQ25, targetBand?.weeklyDirectUnitsMedian, targetBand?.weeklyDirectUnitsQ75,
                 numeric, decision.confidence, decision.explicitUserTaskPriority,
-                decision.reasonCodes + "NO_EXPLICIT_BADMINTON_TASK_PRIORITY", decision.evidence)
+                decision.reasonCodes + "NO_EXPLICIT_BADMINTON_TASK_PRIORITY", decision.evidence,
+                targetWeeklyDirectUnitsMin = targetBand?.weeklyDirectUnitsQ25,
+                targetWeeklyDirectUnitsPreferred = targetBand?.weeklyDirectUnitsMedian,
+                targetWeeklyDirectUnitsMax = targetBand?.weeklyDirectUnitsQ75,
+                targetExposureWeekDirectUnitsMin = targetBand?.exposureWeekDirectUnitsQ25,
+                targetExposureWeekDirectUnitsPreferred = targetBand?.exposureWeekDirectUnitsMedian,
+                targetExposureWeekDirectUnitsMax = targetBand?.exposureWeekDirectUnitsQ75,
+                targetExposureWeekFrequency = targetBand?.directExposureWeekFrequency)
         }
         return TargetStimulusPlan(qualityTargets, taskTargets, portfolio,
             portfolio.unresolved + listOf("TARGET_PLAN_IS_DIRECTIONAL_SHADOW_ONLY"))
@@ -411,8 +577,15 @@ class TargetPlanComparisonEngine {
             })
         }
         val qualityComparisons = plan.qualityTargets.map { target ->
-            QualityTargetComparison(target.quality, qualityCounts[target.quality] ?: 0, target.targetDirectUnitsMin,
-                target.targetDirectUnitsPreferred, target.targetDirectUnitsMax, status(target.targetDirectUnitsMin, target.targetDirectUnitsMax, qualityCounts[target.quality] ?: 0, target.numericAuthority, target.action))
+            val planned = qualityCounts[target.quality] ?: 0
+            QualityTargetComparison(target.quality, planned, target.targetWeeklyDirectUnitsMin,
+                target.targetWeeklyDirectUnitsPreferred, target.targetWeeklyDirectUnitsMax,
+                status(target.targetWeeklyDirectUnitsMin, target.targetWeeklyDirectUnitsMax, planned, target.numericAuthority, target.action),
+                targetWeeklyMin = target.targetWeeklyDirectUnitsMin,
+                targetWeeklyPreferred = target.targetWeeklyDirectUnitsPreferred,
+                targetWeeklyMax = target.targetWeeklyDirectUnitsMax,
+                targetExposureWeekPreferred = target.targetExposureWeekDirectUnitsPreferred,
+                targetExposureWeekFrequency = target.targetExposureWeekFrequency)
         }
         val taskCounts = plan.taskTargets.associate { target ->
             target.task to averageWeeklyUnits(generated.items.filter { item ->
@@ -421,11 +594,21 @@ class TargetPlanComparisonEngine {
             })
         }
         val taskComparisons = plan.taskTargets.map { target ->
-            TaskTargetComparison(target.task, taskCounts[target.task] ?: 0, target.targetDirectUnitsMin, target.targetDirectUnitsPreferred,
-                target.targetDirectUnitsMax, status(target.targetDirectUnitsMin, target.targetDirectUnitsMax, taskCounts[target.task] ?: 0, target.numericAuthority, target.action))
+            val planned = taskCounts[target.task] ?: 0
+            TaskTargetComparison(target.task, planned, target.targetWeeklyDirectUnitsMin, target.targetWeeklyDirectUnitsPreferred,
+                target.targetWeeklyDirectUnitsMax, status(target.targetWeeklyDirectUnitsMin, target.targetWeeklyDirectUnitsMax, planned, target.numericAuthority, target.action),
+                targetWeeklyMin = target.targetWeeklyDirectUnitsMin,
+                targetWeeklyPreferred = target.targetWeeklyDirectUnitsPreferred,
+                targetWeeklyMax = target.targetWeeklyDirectUnitsMax,
+                targetExposureWeekPreferred = target.targetExposureWeekDirectUnitsPreferred,
+                targetExposureWeekFrequency = target.targetExposureWeekFrequency)
         }
         return TargetPlanComparison(qualityComparisons, taskComparisons,
-            listOf("PLANNED_CAPABILITY_COVERAGE_IS_AN_AUDIT_APPROXIMATION", "NOT_PROOF_OF_REALIZED_PHYSIOLOGICAL_STIMULUS",
+            listOf("TARGET_HISTORY_IS_PRESCRIPTION_AWARE_WHERE_SUPPORTED",
+                "PLANNED_PROGRAM_SIDE_IS_CAPABILITY_PROJECTION_ONLY",
+                "CAPABILITY_COMPARISON_DOES_NOT_PROVE_FUTURE_REALIZED_STIMULUS",
+                "NOT_PROOF_OF_REALIZED_PHYSIOLOGICAL_STIMULUS",
+                "PLANNED_CAPABILITY_COVERAGE_IS_AN_AUDIT_APPROXIMATION",
                 "QUALITY_TARGET_ENVELOPES_ARE_OVERLAPPING_SEMANTIC_VIEWS_NOT_ADDITIVE_WEEKLY_WORKLOAD_BUDGETS"))
     }
 
@@ -464,14 +647,34 @@ internal fun TargetStimulusPlan.toJson(): JSONObject = JSONObject()
         .put("quality", it.quality.name).put("action", it.action.name).put("priority", it.priority.name)
         .put("baseline", it.baseline?.toJson()).put("targetDirectUnitsMin", it.targetDirectUnitsMin)
         .put("targetDirectUnitsPreferred", it.targetDirectUnitsPreferred).put("targetDirectUnitsMax", it.targetDirectUnitsMax)
+        .put("targetWeeklyDirectUnitsMin", it.targetWeeklyDirectUnitsMin)
+        .put("targetWeeklyDirectUnitsPreferred", it.targetWeeklyDirectUnitsPreferred)
+        .put("targetWeeklyDirectUnitsMax", it.targetWeeklyDirectUnitsMax)
         .put("targetDirectSessionsMin", it.targetDirectSessionsMin).put("targetDirectSessionsPreferred", it.targetDirectSessionsPreferred)
         .put("targetDirectSessionsMax", it.targetDirectSessionsMax).put("numericAuthority", it.numericAuthority.name)
+        .put("targetWeeklyDirectSessionsMin", it.targetWeeklyDirectSessionsMin)
+        .put("targetWeeklyDirectSessionsPreferred", it.targetWeeklyDirectSessionsPreferred)
+        .put("targetWeeklyDirectSessionsMax", it.targetWeeklyDirectSessionsMax)
+        .put("targetExposureWeekDirectUnitsMin", it.targetExposureWeekDirectUnitsMin)
+        .put("targetExposureWeekDirectUnitsPreferred", it.targetExposureWeekDirectUnitsPreferred)
+        .put("targetExposureWeekDirectUnitsMax", it.targetExposureWeekDirectUnitsMax)
+        .put("targetExposureWeekDirectSessionsMin", it.targetExposureWeekDirectSessionsMin)
+        .put("targetExposureWeekDirectSessionsPreferred", it.targetExposureWeekDirectSessionsPreferred)
+        .put("targetExposureWeekDirectSessionsMax", it.targetExposureWeekDirectSessionsMax)
+        .put("targetExposureWeekFrequency", it.targetExposureWeekFrequency)
         .put("confidence", it.confidence.name).put("reasonCodes", JSONArray(it.reasonCodes)).put("evidence", JSONArray(it.evidence))
     }))
     .put("taskTargets", JSONArray(taskTargets.map { JSONObject()
         .put("task", it.task).put("action", it.action.name).put("priority", it.priority.name)
         .put("baseline", it.baseline?.toJson()).put("targetDirectUnitsMin", it.targetDirectUnitsMin)
         .put("targetDirectUnitsPreferred", it.targetDirectUnitsPreferred).put("targetDirectUnitsMax", it.targetDirectUnitsMax)
+        .put("targetWeeklyDirectUnitsMin", it.targetWeeklyDirectUnitsMin)
+        .put("targetWeeklyDirectUnitsPreferred", it.targetWeeklyDirectUnitsPreferred)
+        .put("targetWeeklyDirectUnitsMax", it.targetWeeklyDirectUnitsMax)
+        .put("targetExposureWeekDirectUnitsMin", it.targetExposureWeekDirectUnitsMin)
+        .put("targetExposureWeekDirectUnitsPreferred", it.targetExposureWeekDirectUnitsPreferred)
+        .put("targetExposureWeekDirectUnitsMax", it.targetExposureWeekDirectUnitsMax)
+        .put("targetExposureWeekFrequency", it.targetExposureWeekFrequency)
         .put("numericAuthority", it.numericAuthority.name).put("confidence", it.confidence.name)
         .put("explicitUserTaskPriority", it.explicitUserTaskPriority)
         .put("reasonCodes", JSONArray(it.reasonCodes)).put("evidence", JSONArray(it.evidence))
@@ -482,6 +685,13 @@ private fun SuccessfulDoseBand.toJson(): JSONObject = JSONObject()
     .put("directUnitsQ25", directUnitsQ25).put("directUnitsMedian", directUnitsMedian).put("directUnitsQ75", directUnitsQ75)
     .put("directSessionsQ25", directSessionsQ25).put("directSessionsMedian", directSessionsMedian).put("directSessionsQ75", directSessionsQ75)
     .put("supportiveUnitsQ25", supportiveUnitsQ25).put("supportiveUnitsMedian", supportiveUnitsMedian).put("supportiveUnitsQ75", supportiveUnitsQ75)
+    .put("weeklyDirectUnitsQ25", weeklyDirectUnitsQ25).put("weeklyDirectUnitsMedian", weeklyDirectUnitsMedian).put("weeklyDirectUnitsQ75", weeklyDirectUnitsQ75)
+    .put("weeklyDirectSessionsQ25", weeklyDirectSessionsQ25).put("weeklyDirectSessionsMedian", weeklyDirectSessionsMedian).put("weeklyDirectSessionsQ75", weeklyDirectSessionsQ75)
+    .put("exposureWeekDirectUnitsQ25", exposureWeekDirectUnitsQ25).put("exposureWeekDirectUnitsMedian", exposureWeekDirectUnitsMedian).put("exposureWeekDirectUnitsQ75", exposureWeekDirectUnitsQ75)
+    .put("exposureWeekDirectSessionsQ25", exposureWeekDirectSessionsQ25).put("exposureWeekDirectSessionsMedian", exposureWeekDirectSessionsMedian).put("exposureWeekDirectSessionsQ75", exposureWeekDirectSessionsQ75)
+    .put("directExposureWeekCount", directExposureWeekCount).put("directExposureWeekFrequency", directExposureWeekFrequency)
+    .put("weeklySupportiveUnitsQ25", weeklySupportiveUnitsQ25).put("weeklySupportiveUnitsMedian", weeklySupportiveUnitsMedian).put("weeklySupportiveUnitsQ75", weeklySupportiveUnitsQ75)
+    .put("weeklySupportiveSessionsQ25", weeklySupportiveSessionsQ25).put("weeklySupportiveSessionsMedian", weeklySupportiveSessionsMedian).put("weeklySupportiveSessionsQ75", weeklySupportiveSessionsQ75)
     .put("confidence", confidence.name).put("source", source.name)
 
 internal fun TargetPlanComparison.toJson(): JSONObject = JSONObject()
@@ -490,10 +700,14 @@ internal fun TargetPlanComparison.toJson(): JSONObject = JSONObject()
     .put("qualityComparisons", JSONArray(qualityComparisons.map { JSONObject()
         .put("quality", it.quality.name).put("plannedCapabilityUnits", it.plannedCapabilityUnits)
         .put("targetMin", it.targetMin).put("targetPreferred", it.targetPreferred).put("targetMax", it.targetMax)
+        .put("targetWeeklyMin", it.targetWeeklyMin).put("targetWeeklyPreferred", it.targetWeeklyPreferred).put("targetWeeklyMax", it.targetWeeklyMax)
+        .put("targetExposureWeekPreferred", it.targetExposureWeekPreferred).put("targetExposureWeekFrequency", it.targetExposureWeekFrequency)
         .put("status", it.status.name).put("reasonCodes", JSONArray(it.reasonCodes))
     }))
     .put("taskComparisons", JSONArray(taskComparisons.map { JSONObject()
         .put("task", it.task).put("plannedCapabilityUnits", it.plannedCapabilityUnits)
         .put("targetMin", it.targetMin).put("targetPreferred", it.targetPreferred).put("targetMax", it.targetMax)
+        .put("targetWeeklyMin", it.targetWeeklyMin).put("targetWeeklyPreferred", it.targetWeeklyPreferred).put("targetWeeklyMax", it.targetWeeklyMax)
+        .put("targetExposureWeekPreferred", it.targetExposureWeekPreferred).put("targetExposureWeekFrequency", it.targetExposureWeekFrequency)
         .put("status", it.status.name).put("reasonCodes", JSONArray(it.reasonCodes))
     }))

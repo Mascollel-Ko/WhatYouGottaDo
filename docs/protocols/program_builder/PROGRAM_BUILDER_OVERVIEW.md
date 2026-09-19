@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.19.0 |
+| Protocol version | 3.20.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
@@ -13,7 +13,7 @@
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 
-### 3.19.0 — shadow target portfolio and dose envelopes
+### 3.20.0 — prescription-aware weekly and exposure-week shadow dose
 
 - The post-generation shadow sequence is `GeneratedProgramSkeleton → AthleteNeedsProfile → TrainingDecisionPortfolio → TargetStimulusPlan → TargetPlanComparison`. None of these new traces is read by selection, sets, reps, load, frequency, placement, or execution allocation.
 - Need is not dose. Dose is not schedule. `TrainingDecisionPortfolio` expresses a strategy (`HOLD_SUCCESSFUL_DOSE`, `RESTORE_PERSONAL_BASELINE`, `INTRODUCE_DIRECT_STIMULUS`, and related directional actions); `TargetStimulusPlan` expresses a target envelope only when personal successful-dose evidence supports a numeric band.
@@ -22,6 +22,10 @@
 - Personal successful dose is preferred over invented universal volume. Novel stimulus without a personal direct baseline remains `DIRECTION_ONLY` with null numeric targets.
 - Direct and supportive exposure remain separate; supportive exposure is not numerically exchangeable with direct exposure. Quality target envelopes overlap and are not additive weekly workload budgets.
 - Planned capability coverage is an audit approximation, not proof of realized physiological stimulus.
+- Weekly baseline distributions include zero-quality exposure in otherwise eligible active normal weeks; completely inactive or excluded weeks are not zero-dose quality samples.
+- Exposure-week dose and exposure-week frequency are separate from weekly exposure. Intermittent stimulus is not automatically an every-week target.
+- `STRENGTH`/`HYPERTROPHY` history is prescription-aware where currently supported through the shared provisional prescription-shape classifier; `POWER`, `RFD`, and `SSC` retain canonical capability exposure semantics and are not filtered by those rep heuristics.
+- `SuccessfulDoseBand` means repeated/tolerated personal exposure unless canonical response evidence proves adaptation response.
 
 ### 3.18.1 — AthleteNeedsProfile shadow semantics correction
 

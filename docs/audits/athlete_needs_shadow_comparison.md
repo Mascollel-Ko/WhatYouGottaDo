@@ -19,6 +19,16 @@ Comparison labels are `PLANNED_CAPABILITY_COVERAGE`; they are an audit
 approximation and not proof of realized physiological stimulus. Domain volume
 baseline and quality stimulus baseline are separate contracts.
 
+The target history exposes both weekly direct dose and exposure-week direct
+dose. Weekly values include zero-quality exposure in eligible active normal
+weeks; exposure-week values include only weeks with direct exposure. Their
+frequency is historical evidence, not schedule placement. Inactive or
+`excludedFromTolerance` weeks are omitted. `STRENGTH`/`HYPERTROPHY` history is
+prescription-aware through the shared provisional classifier, while
+`POWER`/RFD/SSC retain capability exposure semantics. Ambiguous prescriptions
+remain explicitly ambiguous, and capability comparison does not prove future
+realized stimulus.
+
 This is an audit trace beside the existing `AdaptationGapAnalyzer`. It does
 not feed exercise selection, weekly volume, sets, reps, load, frequency,
 placement, or any execution allocator.
