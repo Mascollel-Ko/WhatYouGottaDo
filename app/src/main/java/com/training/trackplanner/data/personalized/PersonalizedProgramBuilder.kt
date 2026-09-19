@@ -23,29 +23,8 @@ data class PlannedExercise(
     val representedGapCodes: Set<String> = emptySet(),
     val representedObjectives: Set<String> = emptySet(),
     val supportiveObjectives: Set<String> = emptySet(),
-    val material: Boolean = true,
-    /** Experimental regional authority metadata; null for the unchanged CONTROL path. */
-    val regionalTarget: RegionalStimulusTarget? = null
+    val material: Boolean = true
 )
-
-private fun mergeMaterialDemand(base: MaterialDemand, experimental: MaterialDemand): MaterialDemand {
-    val merged = linkedMapOf<String, PlannedExercise>()
-    (base.candidates + experimental.candidates).forEach { candidate ->
-        val old = merged[candidate.stableKey]
-        merged[candidate.stableKey] = if (old == null) candidate else old.copy(
-            targetSets = maxOf(old.targetSets, candidate.targetSets),
-            priority = maxOf(old.priority, candidate.priority),
-            representedGapCodes = old.representedGapCodes + candidate.representedGapCodes,
-            regionalTarget = candidate.regionalTarget ?: old.regionalTarget,
-            reason = if (candidate.regionalTarget != null) candidate.reason else old.reason
-        )
-    }
-    return MaterialDemand(
-        candidates = merged.values.toList(),
-        deferred = base.deferred + experimental.deferred,
-        audit = base.audit + experimental.audit
-    )
-}
 
 class ExerciseContinuityPlanner {
     fun select(state: AthletePlanningState, transitions: Map<String, AnchorTransition>, allocations: Map<String, Int>, weeklyDays: Int): List<PlannedExercise> {
@@ -745,6 +724,25 @@ class PersonalizedProgramBuilder(
         }
         return allocated
     }
+}
+
+private fun mergeMaterialDemand(base: MaterialDemand, experimental: MaterialDemand): MaterialDemand {
+    val merged = linkedMapOf<String, PlannedExercise>()
+    (base.candidates + experimental.candidates).forEach { candidate ->
+        val old = merged[candidate.stableKey]
+        val isExperimental = candidate.role.startsWith("REGIONAL_TARGET_") || candidate.role == "REGIONAL_CANDIDATE"
+        merged[candidate.stableKey] = if (old == null) candidate else old.copy(
+            targetSets = maxOf(old.targetSets, candidate.targetSets),
+            priority = maxOf(old.priority, candidate.priority),
+            representedGapCodes = old.representedGapCodes + candidate.representedGapCodes,
+            reason = if (isExperimental) candidate.reason else old.reason
+        )
+    }
+    return MaterialDemand(
+        candidates = merged.values.toList(),
+        deferred = base.deferred + experimental.deferred,
+        audit = base.audit + experimental.audit
+    )
 }
 
 internal fun personalizedProgramFingerprint(request: ProgramSkeletonRequest, items: List<ProgramSkeletonItem>): String {

@@ -354,12 +354,11 @@ class RegionalTargetCandidateSelector {
                 reason = "Experimental target ${target.region.name} × ${target.quality.name}; diagnosis does not choose exercise identity.",
                 priority = when (target.priority) { NeedRelevance.HIGH -> 100; NeedRelevance.MODERATE -> 90; NeedRelevance.LOW -> 70; else -> 50 },
                 targetSets = residual,
-                representedGapCodes = setOf("REGIONAL_TARGET_${target.region.name}_${target.quality.name}"),
-                regionalTarget = target
+                representedGapCodes = setOf("REGIONAL_TARGET_${target.region.name}_${target.quality.name}")
             )
         }
         return Selection(target, credit, pool.map { key ->
-            PlannedExercise(key, "REGIONAL_CANDIDATE", "Typed regional candidate", 0, targetSets = residual, material = true, regionalTarget = target)
+            PlannedExercise(key, "REGIONAL_CANDIDATE", "Typed regional candidate", 0, targetSets = residual, material = true)
         }, chosen, residual, listOfNotNull(
             "EXISTING_PLANNED_COMPATIBLE_UNITS=$alreadyPlanned",
             "RESIDUAL_UNITS=$residual",
