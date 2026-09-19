@@ -18,6 +18,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.analysis.badminton.BadmintonObjective
+import com.training.trackplanner.data.TrainableQuality
 import com.training.trackplanner.data.personalized.*
 import com.training.trackplanner.localization.localizedExerciseName
 import java.text.NumberFormat
@@ -28,7 +29,8 @@ internal fun PlanningSummaryCard(model: PlanningSummaryUiModel) {
     Card(Modifier.fillMaxWidth().testTag("planning-summary")) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             SummaryText(stringResource(R.string.planning_summary_title), fontWeight = FontWeight.Bold)
-            SummaryText(stringResource(behaviorLabel(model.observedState.behavior)))
+            if (model.programEmphasis.isNotEmpty()) SummaryText(emphasisSentence(model.programEmphasis))
+            else SummaryText(stringResource(behaviorLabel(model.observedState.behavior)))
             SummaryText(stringResource(compactResponse(model.planResponse)))
             SummaryText(stringResource(R.string.planning_summary_confidence, confidenceText(model.observedState.confidence)))
             TextButton(onClick = { expanded = !expanded }, modifier = Modifier.testTag("summary-toggle")) {
@@ -48,6 +50,11 @@ internal fun PlanningSummaryCard(model: PlanningSummaryUiModel) {
                     }
                 }
                 SummarySection(PlanningSummarySection.PLAN_RESPONSE, R.string.planning_summary_response) {
+                    if (model.regionalAnalyses.isNotEmpty()) {
+                        SummaryText(stringResource(R.string.planning_summary_stimulus_analysis), fontWeight = FontWeight.SemiBold,
+                            style = MaterialTheme.typography.titleSmall)
+                        model.regionalAnalyses.forEach { analysis -> RegionalAnalysisSummary(analysis) }
+                    }
                     if (model.planResponse.isEmpty()) EmptySummary()
                     model.planResponse.forEach { response ->
                         when (response) {
@@ -83,6 +90,37 @@ internal fun PlanningSummaryCard(model: PlanningSummaryUiModel) {
         }
     }
 }
+
+@Composable
+private fun emphasisSentence(labels: List<ProgramEmphasisLabel>): String {
+    val names = labels.map { stringResource(emphasisLabel(it)) }
+    return when (names.size) {
+        1 -> stringResource(R.string.planning_summary_emphasis_one, names[0])
+        2 -> stringResource(R.string.planning_summary_emphasis_two, names[0], names[1])
+        else -> stringResource(R.string.planning_summary_emphasis_three, names[0], names[1], names[2])
+    }
+}
+
+@Composable
+private fun RegionalAnalysisSummary(analysis: RegionalBottleneckDiagnosis) {
+    SummaryText(stringResource(regionalAnalysisTitle(analysis.region)), fontWeight = FontWeight.SemiBold)
+    val strengthBand = analysis.strengthDoseBand
+    if (strengthBand.eligibleWeekCount > 0) {
+        SummaryText(stringResource(R.string.planning_summary_regional_recent_exposure,
+            strengthBand.directExposureWeekCount, strengthBand.eligibleWeekCount))
+        strengthBand.exposureWeekUnitsQ25?.let { q25 ->
+            val q75 = strengthBand.exposureWeekUnitsQ75 ?: q25
+            SummaryText(stringResource(R.string.planning_summary_regional_exposure_dose, formatDose(q25, q75)))
+        }
+    }
+    SummaryText(stringResource(R.string.planning_summary_regional_response, stringResource(regionalResponseLabel(analysis.performanceResponse))))
+    if (analysis.hypertrophySupportStatus == RegionalHypertrophySupportStatus.LOW) {
+        SummaryText(stringResource(R.string.planning_summary_regional_hypertrophy_low))
+    }
+    SummaryText(stringResource(R.string.planning_summary_regional_diagnosis, stringResource(regionalDiagnosisLabel(analysis.primaryInterpretation))))
+}
+
+private fun formatDose(min: Double, max: Double): String = if (min == max) min.toInt().toString() else "${min.toInt()}~${max.toInt()}"
 
 @Composable
 private fun SummarySection(section: PlanningSummarySection, title: Int, content: @Composable () -> Unit) {
@@ -168,6 +206,59 @@ private fun movementLabel(value: MovementCoverage): Int = when (value) {
     MovementCoverage.ARMS_BICEPS -> R.string.planning_summary_movement_arms_biceps
     MovementCoverage.ARMS_TRICEPS -> R.string.planning_summary_movement_arms_triceps
     MovementCoverage.OTHER -> R.string.planning_summary_movement_other
+}
+
+private fun emphasisLabel(value: ProgramEmphasisLabel): Int = when (value.region to value.quality) {
+    MovementCoverage.LOWER_KNEE to TrainableQuality.STRENGTH -> R.string.planning_summary_emphasis_lower_strength
+    MovementCoverage.POSTERIOR_CHAIN to TrainableQuality.STRENGTH -> R.string.planning_summary_emphasis_posterior_strength
+    MovementCoverage.CALVES to TrainableQuality.STRENGTH -> R.string.planning_summary_emphasis_calves_strength
+    MovementCoverage.HORIZONTAL_PUSH to TrainableQuality.STRENGTH -> R.string.planning_summary_emphasis_horizontal_push_strength
+    MovementCoverage.VERTICAL_PUSH to TrainableQuality.STRENGTH -> R.string.planning_summary_emphasis_vertical_push_strength
+    MovementCoverage.HORIZONTAL_PULL to TrainableQuality.STRENGTH -> R.string.planning_summary_emphasis_horizontal_pull_strength
+    MovementCoverage.VERTICAL_PULL to TrainableQuality.STRENGTH -> R.string.planning_summary_emphasis_vertical_pull_strength
+    MovementCoverage.LOWER_KNEE to TrainableQuality.HYPERTROPHY -> R.string.planning_summary_emphasis_lower_hypertrophy
+    MovementCoverage.POSTERIOR_CHAIN to TrainableQuality.HYPERTROPHY -> R.string.planning_summary_emphasis_posterior_hypertrophy
+    MovementCoverage.CALVES to TrainableQuality.HYPERTROPHY -> R.string.planning_summary_emphasis_calves_hypertrophy
+    MovementCoverage.HORIZONTAL_PUSH to TrainableQuality.HYPERTROPHY -> R.string.planning_summary_emphasis_horizontal_push_hypertrophy
+    MovementCoverage.VERTICAL_PUSH to TrainableQuality.HYPERTROPHY -> R.string.planning_summary_emphasis_vertical_push_hypertrophy
+    MovementCoverage.HORIZONTAL_PULL to TrainableQuality.HYPERTROPHY -> R.string.planning_summary_emphasis_horizontal_pull_hypertrophy
+    MovementCoverage.VERTICAL_PULL to TrainableQuality.HYPERTROPHY -> R.string.planning_summary_emphasis_vertical_pull_hypertrophy
+    MovementCoverage.LOWER_KNEE to TrainableQuality.POWER -> R.string.planning_summary_emphasis_lower_power
+    MovementCoverage.POSTERIOR_CHAIN to TrainableQuality.POWER -> R.string.planning_summary_emphasis_posterior_power
+    MovementCoverage.CALVES to TrainableQuality.POWER -> R.string.planning_summary_emphasis_calves_power
+    MovementCoverage.HORIZONTAL_PUSH to TrainableQuality.POWER -> R.string.planning_summary_emphasis_horizontal_push_power
+    MovementCoverage.VERTICAL_PUSH to TrainableQuality.POWER -> R.string.planning_summary_emphasis_vertical_push_power
+    MovementCoverage.HORIZONTAL_PULL to TrainableQuality.POWER -> R.string.planning_summary_emphasis_horizontal_pull_power
+    MovementCoverage.VERTICAL_PULL to TrainableQuality.POWER -> R.string.planning_summary_emphasis_vertical_pull_power
+    else -> R.string.planning_summary_emphasis_general
+}
+
+private fun regionalAnalysisTitle(value: MovementCoverage): Int = when (value) {
+    MovementCoverage.LOWER_KNEE -> R.string.planning_summary_regional_lower_knee
+    MovementCoverage.POSTERIOR_CHAIN -> R.string.planning_summary_regional_posterior_chain
+    MovementCoverage.CALVES -> R.string.planning_summary_regional_calves
+    MovementCoverage.HORIZONTAL_PUSH -> R.string.planning_summary_regional_horizontal_push
+    MovementCoverage.VERTICAL_PUSH -> R.string.planning_summary_regional_vertical_push
+    MovementCoverage.HORIZONTAL_PULL -> R.string.planning_summary_regional_horizontal_pull
+    MovementCoverage.VERTICAL_PULL -> R.string.planning_summary_regional_vertical_pull
+    else -> R.string.planning_summary_regional_other
+}
+
+private fun regionalResponseLabel(value: TrainingResponseState): Int = when (value) {
+    TrainingResponseState.POSITIVE_RESPONSE -> R.string.planning_summary_regional_response_positive
+    TrainingResponseState.STABLE_RESPONSE -> R.string.planning_summary_regional_response_stable
+    TrainingResponseState.NEGATIVE_RESPONSE -> R.string.planning_summary_regional_response_negative
+    TrainingResponseState.INSUFFICIENT_EVIDENCE -> R.string.planning_summary_regional_response_insufficient
+}
+
+private fun regionalDiagnosisLabel(value: RegionalLimitingFactor): Int = when (value) {
+    RegionalLimitingFactor.NO_CLEAR_LIMITATION -> R.string.planning_summary_regional_diagnosis_no_clear
+    RegionalLimitingFactor.EXPOSURE_LIMITED -> R.string.planning_summary_regional_diagnosis_exposure
+    RegionalLimitingFactor.RECOVERY_LIMITED -> R.string.planning_summary_regional_diagnosis_recovery
+    RegionalLimitingFactor.SPECIFICITY_POSSIBLY_LIMITING -> R.string.planning_summary_regional_diagnosis_specificity
+    RegionalLimitingFactor.MORPHOLOGICAL_CAPACITY_POSSIBLY_LIMITING -> R.string.planning_summary_regional_diagnosis_morphology
+    RegionalLimitingFactor.MULTIFACTORIAL -> R.string.planning_summary_regional_diagnosis_multifactorial
+    RegionalLimitingFactor.INSUFFICIENT_EVIDENCE -> R.string.planning_summary_regional_diagnosis_insufficient
 }
 
 private fun objectiveLabel(value: BadmintonObjective): Int = when (value) {

@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.21.0 |
+| Protocol version | 3.22.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
@@ -12,6 +12,16 @@
 | Supersedes | — |
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
+
+### 3.22.0 — regional bottleneck shadow diagnosis and program emphasis
+
+- The existing frequency-aware global shadow chain remains unchanged: `TargetPlanComparison` still separates weekly dose, exposure-week dose, and exposure frequency, including the transparent ±1 planned exposure-week compatibility tolerance.
+- A parallel `PlanningHistorySnapshot → RegionalEvidenceIndex → RegionalBottleneckDiagnosis` layer is built once per personalized planning operation. It is an immutable, one-pass regional index with `O(N56 + relation indexing)` work; it is never recomputed during candidate ranking and has no Room table, cache, or persistence authority.
+- Regional ownership remains `MovementCoverage`; physical-quality relations use the existing typed `PhysicalQualityRegion`, `PhysicalQualityMode`, and shared provisional realized-stimulus classifier. The supported first-version regions are `LOWER_KNEE`, `POSTERIOR_CHAIN`, `CALVES`, `HORIZONTAL_PUSH`, `VERTICAL_PUSH`, `HORIZONTAL_PULL`, and `VERTICAL_PULL`.
+- Regional STRENGTH response reuses canonical strength posterior change percent and observation count. Regional strength exposure, hypertrophy-compatible support, recovery restriction, and specific performance-exercise continuity are competing explanations, not a new performance model or population-strength standard.
+- Low exposure is not automatically a deficit. A positive personal strength response suppresses unsupported `EXPOSURE_LIMITED` and morphological-capacity conclusions, even when hypertrophy-compatible support is low. Recovery and specificity alternatives are considered before the late-stage `MORPHOLOGICAL_CAPACITY_POSSIBLY_LIMITING` training hypothesis; that hypothesis is never a measured muscle-size claim and is capped at `MODERATE` confidence.
+- `RegionalBottleneckDiagnosis` is `shadowOnly=true` and `prescriptionAuthority=false`. It contains evidence, typed limiting factors, and provenance tiers only; it never prescribes sets, reps, load, frequency, placement, or execution allocation. The existing global target comparison remains the separate frequency-aware audit.
+- The presentation layer projects up to three deterministic labels from the actual final `GeneratedProgramSkeleton` (`MovementCoverage + TrainableQuality`). The collapsed Korean sentence describes generated program composition, not causal diagnostic authority; no raw enum, reason code, or population claim is shown to users.
 
 ### 3.21.0 — frequency-aware shadow target comparison
 

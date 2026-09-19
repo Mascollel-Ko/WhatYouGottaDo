@@ -44,6 +44,39 @@ This is an audit trace beside the existing `AdaptationGapAnalyzer`. It does
 not feed exercise selection, weekly volume, sets, reps, load, frequency,
 placement, or any execution allocator.
 
+## Regional bottleneck shadow diagnosis
+
+The regional layer is parallel to the global target comparison, not a
+replacement for it. One immutable `RegionalEvidenceIndex` is built per
+personalized planning operation in a single pass over the governed 56-day
+history. It keeps weekly direct dose, dose in exposed weeks, and exposure-week
+frequency separate, includes zero regional stimulus in eligible active weeks,
+and excludes inactive or canonical `excludedFromTolerance` weeks according to
+the existing policy.
+
+Regional ownership remains `MovementCoverage` for lower-knee, posterior-chain,
+calves, horizontal push, vertical push, horizontal pull, and vertical pull.
+Typed `PhysicalQualityRegion`/`PhysicalQualityMode` qualifiers and the shared
+provisional realized-stimulus classifier distinguish STRENGTH-like direct work
+from HYPERTROPHY-like support. Regional strength response reuses canonical
+posterior changes and observation counts; no population strength norm or
+second performance model is introduced.
+
+Low exposure is not automatically a deficit. A positive personal strength
+response suppresses unsupported `EXPOSURE_LIMITED` and
+`MORPHOLOGICAL_CAPACITY_POSSIBLY_LIMITING` conclusions. When response is not
+positive, exposure, recovery restriction, and specific-lift continuity are
+considered before the late-stage morphological-capacity training hypothesis.
+That hypothesis means only that additional hypertrophy support may be a useful
+next training hypothesis; it is not a claim about measured muscle size and is
+capped at `MODERATE` confidence. Diagnoses remain
+`shadowOnly=true`/`prescriptionAuthority=false`.
+
+The collapsed summary separately describes up to three deterministic labels
+from the actual final generated skeleton. It describes program composition,
+not causal diagnostic authority, and expanded regional details translate the
+evidence into Korean without exposing raw enums or reason codes.
+
 ## Decision boundary
 
 - `Exposure is not response`: repeated set rows cannot produce `POSITIVE_RESPONSE`. STRENGTH alone currently has canonical response authority, using the median posterior change for relevant stableKeys exposed to strength work in the current 28-day window. Every other quality remains `INSUFFICIENT_EVIDENCE` until a canonical outcome exists.

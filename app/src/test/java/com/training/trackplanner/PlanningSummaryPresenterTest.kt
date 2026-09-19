@@ -1,6 +1,7 @@
 package com.training.trackplanner
 
 import com.training.trackplanner.analysis.badminton.BadmintonObjective
+import com.training.trackplanner.data.TrainableQuality
 import com.training.trackplanner.data.personalized.*
 import org.junit.Assert.*
 import org.junit.Test
@@ -27,6 +28,20 @@ internal object PlanningSummaryFixture {
 }
 
 class PlanningSummaryPresenterTest {
+    @Test fun programEmphasisIsCappedAndKeepsRegionalDiagnosisSeparate() {
+        val d = PlanningSummaryFixture.decision().copy(
+            programEmphasisLabels = listOf(
+                ProgramEmphasisLabel(MovementCoverage.LOWER_KNEE, TrainableQuality.STRENGTH, 12),
+                ProgramEmphasisLabel(MovementCoverage.POSTERIOR_CHAIN, TrainableQuality.HYPERTROPHY, 10),
+                ProgramEmphasisLabel(MovementCoverage.VERTICAL_PULL, TrainableQuality.STRENGTH, 8),
+                ProgramEmphasisLabel(MovementCoverage.CALVES, TrainableQuality.STRENGTH, 1)
+            )
+        )
+        val model = PlanningSummaryPresenter.present(d)
+        assertEquals(3, model.programEmphasis.size)
+        assertTrue(model.regionalAnalyses.isEmpty())
+        assertEquals(MovementCoverage.LOWER_KNEE, model.programEmphasis.first().region)
+    }
     @Test fun threeMovementSourcesRenderOneOwnedNeed() {
         val d=PlanningSummaryFixture.decision().copy(secondaryTargets=listOf("VERTICAL_PULL"),
             adaptationGaps=listOf(AdaptationGap("VERTICAL_PULL","HIGH","raw",representationState=RepresentationState.UNDERREPRESENTATION_SIGNAL)),

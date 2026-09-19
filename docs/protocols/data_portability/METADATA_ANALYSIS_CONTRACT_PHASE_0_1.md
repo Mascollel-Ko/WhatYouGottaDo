@@ -3,12 +3,42 @@
 | 항목 | 값 |
 |---|---|
 | Protocol ID | DATA-METADATA-ANALYSIS-CONTRACT |
-| Protocol version | 2.7.0 |
+| Protocol version | 2.8.0 |
 | Status | ACTIVE |
 | Implementation status | PARTIALLY_IMPLEMENTED |
 | Implemented from app version | v0.5.0.16 shadow baseline; role split from v0.5.0.21; bundled authority cutover from v0.5.0.22; Korean display authority from v0.5.0.23; explicit override authority from v0.5.0.25; fieldKey routing from v0.5.0.26; canonical normalization from v0.5.0.32; core/objective analysis cutover from v0.5.0.33; explicit semantic-authority closeout from v0.5.0.37; orthogonal physical-quality membership and AthleteNeedsProfile shadow from 2026-09 |
 | Last audited commit | 532d2343cafd9e54924dc52350c6e108893b4b07 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
+
+## 2.8.0 Regional bottleneck shadow diagnosis contract
+
+The frequency-aware `TargetPlanComparison` contract remains intact and is not
+recomputed or replaced. A separate immutable `RegionalEvidenceIndex` is built
+in one pass over the governed 56-day history and then read by
+`RegionalBottleneckDiagnosis`. Regional weekly dose, dose in exposed weeks,
+and exposure-week frequency remain separate dimensions, with inactive and
+canonical excluded weeks following the existing active-week policy.
+
+The index uses `MovementCoverage` for regional ownership and the existing typed
+physical-quality region/mode relations plus the shared provisional prescription
+classifier. It supports lower-knee, posterior-chain, calves, horizontal push,
+vertical push, horizontal pull, and vertical pull. STRENGTH response reuses
+canonical posterior change percent and observation count; no second performance
+model or population strength standard is inferred.
+
+Low exposure is not automatically a deficit. A positive personal strength
+response suppresses unsupported exposure-deficit and morphological-deficit
+inference. Recovery restriction and reduced specific-lift continuity are
+considered before the late-stage
+`MORPHOLOGICAL_CAPACITY_POSSIBLY_LIMITING` hypothesis. That label is a
+training hypothesis only, never a measured muscle-size claim, and its
+confidence is capped at `MODERATE`. The diagnosis is shadow-only and has no
+prescription authority or persistence mechanism.
+
+The UI separately projects up to three deterministic emphasis labels from the
+actual final generated skeleton. This sentence describes what the program
+contains, not why it was generated; global target comparison remains the
+frequency-aware audit authority.
 
 ## 2.7.0 Frequency-aware shadow target comparison contract
 

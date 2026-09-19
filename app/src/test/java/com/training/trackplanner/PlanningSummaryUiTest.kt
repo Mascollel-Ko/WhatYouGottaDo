@@ -16,6 +16,9 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.ui.theme.TrainingTrackPlannerTheme
+import com.training.trackplanner.data.TrainableQuality
+import com.training.trackplanner.data.personalized.MovementCoverage
+import com.training.trackplanner.data.personalized.ProgramEmphasisLabel
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
@@ -76,5 +79,17 @@ class PlanningSummaryUiTest {
                 }
             }
         }
+    }
+
+    @Test fun collapsedSummaryDescribesActualProgramEmphasis() {
+        val emphasized = PlanningSummaryPresenter.present(PlanningSummaryFixture.decision().copy(
+            programEmphasisLabels = listOf(
+                ProgramEmphasisLabel(MovementCoverage.LOWER_KNEE, TrainableQuality.STRENGTH, 12),
+                ProgramEmphasisLabel(MovementCoverage.POSTERIOR_CHAIN, TrainableQuality.HYPERTROPHY, 10),
+                ProgramEmphasisLabel(MovementCoverage.VERTICAL_PULL, TrainableQuality.STRENGTH, 8)
+            )
+        ))
+        compose.setContent { TrainingTrackPlannerTheme { PlanningSummaryCard(emphasized) } }
+        compose.onNodeWithText("이 프로그램은 하체 근력, 후면사슬 근비대 및 상체 당기기 근력 자극을 중심으로 구성되었습니다.").assertExists()
     }
 }

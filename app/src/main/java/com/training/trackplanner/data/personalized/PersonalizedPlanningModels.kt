@@ -356,7 +356,11 @@ data class PersonalizedPlanningDecision(
     /** Additive shadow layers; existing planner consumers must not read these fields. */
     val trainingDecisionPortfolio: TrainingDecisionPortfolio? = null,
     val targetStimulusPlan: TargetStimulusPlan? = null,
-    val targetPlanComparison: TargetPlanComparison? = null
+    val targetPlanComparison: TargetPlanComparison? = null,
+    /** Regional diagnosis is an immutable post-generation audit trace only. */
+    val regionalBottleneckDiagnosis: List<RegionalBottleneckDiagnosis> = emptyList(),
+    /** Presentation projection of the final generated skeleton; never causal authority. */
+    val programEmphasisLabels: List<ProgramEmphasisLabel> = emptyList()
 )
 
 sealed interface PersonalizedPlanningOutcome {

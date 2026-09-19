@@ -31,7 +31,9 @@ internal data class PlanningSummaryUiModel(
     val identifiedNeeds: List<SummaryNeed>,
     val planResponse: List<SummaryResponse>,
     val finalAllocation: SummaryAllocation,
-    val limitations: List<SummaryLimitation>
+    val limitations: List<SummaryLimitation>,
+    val programEmphasis: List<ProgramEmphasisLabel> = emptyList(),
+    val regionalAnalyses: List<RegionalBottleneckDiagnosis> = emptyList()
 )
 
 internal object PlanningSummaryPresenter {
@@ -112,7 +114,10 @@ internal object PlanningSummaryPresenter {
             SummaryAllocation(decision.planningHorizonWeeks, decision.weeklyFrequency, budget?.baselineResistanceSets, budget?.targetResistanceSets,
                 budget?.plannedResistanceSets, budget?.targetStructuredBadmintonBouts, budget?.plannedStructuredBadmintonBouts,
                 budget?.targetAthleticPerformanceBouts, budget?.plannedAthleticPerformanceBouts, decision.frequencyExpansion?.finalExpandedUnits),
-            limits.values.toList()
+            limits.values.toList(),
+            decision.programEmphasisLabels.distinct().take(3),
+            decision.regionalBottleneckDiagnosis.filter { it.strengthDoseBand.eligibleWeekCount > 0 ||
+                it.performanceResponse != TrainingResponseState.INSUFFICIENT_EVIDENCE }
         )
     }
 

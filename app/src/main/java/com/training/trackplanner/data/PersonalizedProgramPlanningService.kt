@@ -28,6 +28,10 @@ import com.training.trackplanner.data.personalized.QualityDoseHistoryAnalyzer
 import com.training.trackplanner.data.personalized.TargetPlanComparisonEngine
 import com.training.trackplanner.data.personalized.TargetStimulusPlanEngine
 import com.training.trackplanner.data.personalized.TrainingDecisionPortfolioEngine
+import com.training.trackplanner.data.personalized.NeedRelevance
+import com.training.trackplanner.data.personalized.RegionalBottleneckDiagnosisEngine
+import com.training.trackplanner.data.personalized.RegionalEvidenceIndexBuilder
+import com.training.trackplanner.data.personalized.ProgramEmphasisProjector
 import com.training.trackplanner.data.personalized.toJson
 import com.training.trackplanner.data.personalized.PlanningHorizonPlanner
 import com.training.trackplanner.data.personalized.WeeklyDosePlanner
@@ -145,11 +149,23 @@ internal class PersonalizedProgramPlanningService(
             val portfolio = TrainingDecisionPortfolioEngine().build(needs, doseHistory)
             val targetPlan = TargetStimulusPlanEngine().build(portfolio, doseHistory)
             val comparison = TargetPlanComparisonEngine().compare(targetPlan, withShadowNeeds, snapshot, physicalQualityCatalog)
+            val regionalIndex = RegionalEvidenceIndexBuilder().build(snapshot, state, physicalQualityCatalog)
+            val strengthRequirement = needs.qualityNeeds.firstOrNull { it.quality == com.training.trackplanner.data.TrainableQuality.STRENGTH }?.relevance
+                ?: NeedRelevance.UNKNOWN
+            val regionalDiagnosis = RegionalBottleneckDiagnosisEngine().analyze(
+                regionalIndex,
+                strengthRequirement,
+                snapshot.recoverySignals.isConstrained || state.trainingStateAssessment?.globalHardRestriction == true,
+                state.courtDeviation > 0.0 && state.lowerNegativeEvidence > 0.0 && state.courtInterference > 0.0
+            )
+            val programEmphasis = ProgramEmphasisProjector().project(withShadowNeeds, snapshot, physicalQualityCatalog)
             return com.training.trackplanner.data.personalized.bindSplitParentProgression(withShadowNeeds.copy(
                 personalizedDecision = decision.copy(
                     trainingDecisionPortfolio = portfolio,
                     targetStimulusPlan = targetPlan,
-                    targetPlanComparison = comparison
+                    targetPlanComparison = comparison,
+                    regionalBottleneckDiagnosis = regionalDiagnosis,
+                    programEmphasisLabels = programEmphasis
                 )
             ))
         }
@@ -333,6 +349,8 @@ internal class PersonalizedProgramPlanningService(
         .put("trainingDecisionPortfolio", trainingDecisionPortfolio?.toJson())
         .put("targetStimulusPlan", targetStimulusPlan?.toJson())
         .put("targetPlanComparison", targetPlanComparison?.toJson())
+        .put("regionalBottleneckDiagnosis", JSONArray(regionalBottleneckDiagnosis.map { it.toJson() }))
+        .put("programEmphasisLabels", JSONArray(programEmphasisLabels.map { it.toJson() }))
         .put("athleteNeedsProfile", athleteNeedsProfile?.let { profile -> JSONObject()
             .put("generatedAtCutoff", profile.generatedAtCutoff.toString())
             .put("shadowOnly", profile.shadowOnly)

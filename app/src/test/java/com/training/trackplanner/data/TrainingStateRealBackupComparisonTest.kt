@@ -178,6 +178,24 @@ class TrainingStateRealBackupComparisonTest {
                         row.plannedExposureWeekFrequency, row.plannedExposureWeekUnitsMedian,
                         row.weeklyDoseStatus, row.frequencyStatus, row.exposureWeekDoseStatus, row.status).joinToString("|")) }
                 }
+                if (decision.regionalBottleneckDiagnosis.isNotEmpty()) {
+                    appendLine("REGIONAL_DIAGNOSIS region|strengthRequirement|eligibleWeekCount|strengthWeeklyQ25|strengthWeeklyMedian|strengthWeeklyQ75|strengthExposureWeekQ25|strengthExposureWeekMedian|strengthExposureWeekQ75|strengthExposureWeekCount|strengthExposureFrequency|regionalStrengthResponse|validStrengthObservationCount|hypertrophyWeeklyQ25|hypertrophyWeeklyMedian|hypertrophyWeeklyQ75|hypertrophyExposureWeekMedian|hypertrophyExposureFrequency|recoveryConstraint|sportLoadInterference|specificityContinuity|limitingFactors|primaryInterpretation|confidence|reasonCodes")
+                    decision.regionalBottleneckDiagnosis.forEach { row ->
+                        val strength = row.strengthDoseBand
+                        val hypertrophy = row.hypertrophyDoseBand
+                        appendLine(listOf(row.region, row.requirement, strength.eligibleWeekCount,
+                            strength.weeklyUnitsQ25, strength.weeklyUnitsMedian, strength.weeklyUnitsQ75,
+                            strength.exposureWeekUnitsQ25, strength.exposureWeekUnitsMedian, strength.exposureWeekUnitsQ75,
+                            strength.directExposureWeekCount, strength.directExposureWeekFrequency,
+                            row.performanceResponse, row.validStrengthObservationCount,
+                            hypertrophy.weeklyUnitsQ25, hypertrophy.weeklyUnitsMedian, hypertrophy.weeklyUnitsQ75,
+                            hypertrophy.exposureWeekUnitsMedian, hypertrophy.directExposureWeekFrequency,
+                            row.recoveryConstraint, row.sportLoadInterference, row.specificityContinuity,
+                            row.limitingFactors, row.primaryInterpretation, row.confidence, row.reasonCodes).joinToString("|"))
+                    }
+                }
+                appendLine("PROGRAM_EMPHASIS label|region|quality|plannedUnits")
+                decision.programEmphasisLabels.forEach { row -> appendLine(listOf("${row.region.name}_${row.quality.name}", row.region, row.quality, row.plannedUnits).joinToString("|")) }
                 plan.items.forEach { appendLine("W${it.weekNumber}/D${it.dayOfWeek} ${it.exerciseName} [${it.exerciseStableKey}] domain=${snapshot.activityKind(it.exerciseStableKey)} role=${it.trainingSlot} ${it.setPrescriptions} rest=${it.restSeconds} seconds=${it.estimatedDurationSeconds}") }
             })
             run {
