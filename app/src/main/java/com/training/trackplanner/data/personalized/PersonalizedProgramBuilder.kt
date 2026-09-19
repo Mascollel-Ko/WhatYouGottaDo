@@ -370,11 +370,7 @@ class PersonalizedProgramBuilder(
             performanceMetrics = performanceMetrics, materialDemandOverride = materialDemandOverride,
             regionalTargetPlan = regionalTargetPlan)
         progress.report(PersonalizedPlannerStage.EXPANSION)
-        val regionalPrescriptionFor: ((PlannedExercise, Int) -> PlannedPrescription?)? = regionalTargetPlan?.let { plan ->
-            { item: PlannedExercise, count: Int -> plan.authorizedPrescriptionFor(item, count) }
-        }
-        return FrequencyExpansionPlanner(generationPrescriptions, performanceMetrics).expand(snapshot, state, request, base, frequency,
-            prescriptionFor = regionalPrescriptionFor) { authorized, capacity ->
+        return FrequencyExpansionPlanner(generationPrescriptions, performanceMetrics).expand(snapshot, state, request, base, frequency) { authorized, capacity ->
             progress.report(PersonalizedPlannerStage.EXPANSION_RECHECK)
             var result: CompletionResult? = null
             buildCore(snapshot, state, gaps, intent, horizon, request, answers, priorDecisionId, true, frequency, authorized, capacity,
@@ -688,10 +684,7 @@ class PersonalizedProgramBuilder(
                 "POST_PROCESS_FAILED_SAFE_AUTHORIZED_PRESCRIPTION", fingerprint, fingerprint, snapshot.cutoff.plusDays(1).toString())))
         }
         val completion = ResidualCompletion(generationPrescriptions, progress).complete(initialSkeleton, snapshot, state, gaps,
-            authorized, envelope, postProcessAtoms, postProcessSources, explicitWeeklyDays, snapshot.planDayProjection, postProcessOrigins,
-            regionalTargetPlan?.let { plan ->
-                { item: PlannedExercise, count: Int -> plan.authorizedPrescriptionFor(item, count) }
-            })
+            authorized, envelope, postProcessAtoms, postProcessSources, explicitWeeklyDays, snapshot.planDayProjection, postProcessOrigins)
         val completedWeek = completion.skeleton.items.filter { it.weekNumber == 1 }
         fun completedUnits(kind: PlannedActivityKind) = completedWeek.filter { snapshot.activityKind(it.exerciseStableKey) == kind }
             .sumOf { it.setPrescriptions.size }
