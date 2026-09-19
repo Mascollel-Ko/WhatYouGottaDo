@@ -370,8 +370,11 @@ class PersonalizedProgramBuilder(
             performanceMetrics = performanceMetrics, materialDemandOverride = materialDemandOverride,
             regionalTargetPlan = regionalTargetPlan)
         progress.report(PersonalizedPlannerStage.EXPANSION)
+        val regionalPrescriptionFor: ((PlannedExercise, Int) -> PlannedPrescription?)? = regionalTargetPlan?.let { plan ->
+            { item: PlannedExercise, count: Int -> plan.authorizedPrescriptionFor(item, count) }
+        }
         return FrequencyExpansionPlanner(generationPrescriptions, performanceMetrics).expand(snapshot, state, request, base, frequency,
-            prescriptionFor = regionalTargetPlan?.let { plan -> { item, count -> plan.authorizedPrescriptionFor(item, count) } }) { authorized, capacity ->
+            prescriptionFor = regionalPrescriptionFor) { authorized, capacity ->
             progress.report(PersonalizedPlannerStage.EXPANSION_RECHECK)
             var result: CompletionResult? = null
             buildCore(snapshot, state, gaps, intent, horizon, request, answers, priorDecisionId, true, frequency, authorized, capacity,
@@ -686,7 +689,9 @@ class PersonalizedProgramBuilder(
         }
         val completion = ResidualCompletion(generationPrescriptions, progress).complete(initialSkeleton, snapshot, state, gaps,
             authorized, envelope, postProcessAtoms, postProcessSources, explicitWeeklyDays, snapshot.planDayProjection, postProcessOrigins,
-            regionalTargetPlan?.let { plan -> { item, count -> plan.authorizedPrescriptionFor(item, count) } })
+            regionalTargetPlan?.let { plan ->
+                { item: PlannedExercise, count: Int -> plan.authorizedPrescriptionFor(item, count) }
+            })
         val completedWeek = completion.skeleton.items.filter { it.weekNumber == 1 }
         fun completedUnits(kind: PlannedActivityKind) = completedWeek.filter { snapshot.activityKind(it.exerciseStableKey) == kind }
             .sumOf { it.setPrescriptions.size }
