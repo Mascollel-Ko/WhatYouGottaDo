@@ -3,6 +3,7 @@ package com.training.trackplanner.data.personalized
 import com.training.trackplanner.data.CanonicalExercisePhysicalQualityCatalog
 import com.training.trackplanner.data.ExercisePhysicalQualityRelation
 import com.training.trackplanner.data.GeneratedProgramSkeleton
+import com.training.trackplanner.data.ProgramSkeletonItem
 import com.training.trackplanner.data.StimulusCapabilityLevel
 import com.training.trackplanner.data.TrainableQuality
 import java.time.DayOfWeek
@@ -197,6 +198,14 @@ enum class TargetComparisonStatus {
     UNRESOLVED
 }
 
+enum class FrequencyComparisonStatus {
+    BELOW_FREQUENCY,
+    WITHIN_FREQUENCY,
+    ABOVE_FREQUENCY,
+    NO_FREQUENCY_TARGET,
+    UNRESOLVED
+}
+
 data class QualityTargetComparison(
     val quality: TrainableQuality,
     val plannedCapabilityUnits: Int,
@@ -209,7 +218,16 @@ data class QualityTargetComparison(
     val targetWeeklyPreferred: Double? = targetPreferred,
     val targetWeeklyMax: Double? = targetMax,
     val targetExposureWeekPreferred: Double? = null,
-    val targetExposureWeekFrequency: Double? = null
+    val targetExposureWeekFrequency: Double? = null,
+    val plannedCapabilityUnitsPerWeek: Double = plannedCapabilityUnits.toDouble(),
+    val plannedExposureWeekCount: Int = 0,
+    val plannedExposureWeekFrequency: Double? = null,
+    val plannedExposureWeekUnitsMedian: Double? = null,
+    val historicalTargetExposureFrequency: Double? = targetExposureWeekFrequency,
+    val historicalTargetExposureWeekUnitsPreferred: Double? = targetExposureWeekPreferred,
+    val weeklyDoseStatus: TargetComparisonStatus = status,
+    val frequencyStatus: FrequencyComparisonStatus = FrequencyComparisonStatus.NO_FREQUENCY_TARGET,
+    val exposureWeekDoseStatus: TargetComparisonStatus = status
 )
 
 data class TaskTargetComparison(
@@ -224,7 +242,16 @@ data class TaskTargetComparison(
     val targetWeeklyPreferred: Double? = targetPreferred,
     val targetWeeklyMax: Double? = targetMax,
     val targetExposureWeekPreferred: Double? = null,
-    val targetExposureWeekFrequency: Double? = null
+    val targetExposureWeekFrequency: Double? = null,
+    val plannedCapabilityUnitsPerWeek: Double = plannedCapabilityUnits.toDouble(),
+    val plannedExposureWeekCount: Int = 0,
+    val plannedExposureWeekFrequency: Double? = null,
+    val plannedExposureWeekUnitsMedian: Double? = null,
+    val historicalTargetExposureFrequency: Double? = targetExposureWeekFrequency,
+    val historicalTargetExposureWeekUnitsPreferred: Double? = targetExposureWeekPreferred,
+    val weeklyDoseStatus: TargetComparisonStatus = status,
+    val frequencyStatus: FrequencyComparisonStatus = FrequencyComparisonStatus.NO_FREQUENCY_TARGET,
+    val exposureWeekDoseStatus: TargetComparisonStatus = status
 )
 
 data class TargetPlanComparison(
@@ -567,41 +594,75 @@ class TargetPlanComparisonEngine {
     ): TargetPlanComparison {
         val relations = catalog.trainingRelations().groupBy(ExercisePhysicalQualityRelation::exerciseStableKey)
         val plannedWeekCount = generated.request.durationWeeks.coerceAtLeast(1)
-        fun averageWeeklyUnits(items: List<com.training.trackplanner.data.ProgramSkeletonItem>): Int =
-            (items.groupBy { it.weekNumber }.values.sumOf { rows -> rows.sumOf { it.setCount } }.toDouble() / plannedWeekCount).roundToInt()
-        val qualityCounts = TrainableQuality.entries.associateWith { quality ->
-            averageWeeklyUnits(generated.items.filter { item ->
+        val qualityProjections = TrainableQuality.entries.associateWith { quality ->
+            capabilityProjection(generated.items.filter { item ->
                 relations[item.exerciseStableKey].orEmpty().any {
                     it.qualityId == quality && it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY
                 }
-            })
+            }, plannedWeekCount)
         }
         val qualityComparisons = plan.qualityTargets.map { target ->
-            val planned = qualityCounts[target.quality] ?: 0
-            QualityTargetComparison(target.quality, planned, target.targetWeeklyDirectUnitsMin,
+            val projection = qualityProjections.getValue(target.quality)
+            val weeklyStatus = doseStatus(target.targetWeeklyDirectUnitsMin, target.targetWeeklyDirectUnitsMax,
+                projection.unitsPerWeek, target.numericAuthority, target.action)
+            val exposureWeekDoseStatus = exposureDoseStatus(target.targetExposureWeekDirectUnitsMin,
+                target.targetExposureWeekDirectUnitsMax, projection.exposureWeekUnitsMedian,
+                projection.exposureWeekCount, target.numericAuthority, target.action)
+            val frequencyStatus = frequencyStatus(target.targetExposureWeekFrequency,
+                projection.exposureWeekFrequency, projection.exposureWeekCount, plannedWeekCount,
+                target.numericAuthority, target.action)
+            val overallStatus = overallStatus(target.action, target.numericAuthority, weeklyStatus,
+                frequencyStatus, exposureWeekDoseStatus)
+            QualityTargetComparison(target.quality, projection.unitsPerWeek.roundToInt(), target.targetWeeklyDirectUnitsMin,
                 target.targetWeeklyDirectUnitsPreferred, target.targetWeeklyDirectUnitsMax,
-                status(target.targetWeeklyDirectUnitsMin, target.targetWeeklyDirectUnitsMax, planned, target.numericAuthority, target.action),
+                overallStatus,
+                reasonCodes = comparisonReasonCodes(frequencyStatus, overallStatus),
                 targetWeeklyMin = target.targetWeeklyDirectUnitsMin,
                 targetWeeklyPreferred = target.targetWeeklyDirectUnitsPreferred,
                 targetWeeklyMax = target.targetWeeklyDirectUnitsMax,
                 targetExposureWeekPreferred = target.targetExposureWeekDirectUnitsPreferred,
-                targetExposureWeekFrequency = target.targetExposureWeekFrequency)
+                targetExposureWeekFrequency = target.targetExposureWeekFrequency,
+                plannedCapabilityUnitsPerWeek = projection.unitsPerWeek,
+                plannedExposureWeekCount = projection.exposureWeekCount,
+                plannedExposureWeekFrequency = projection.exposureWeekFrequency,
+                plannedExposureWeekUnitsMedian = projection.exposureWeekUnitsMedian,
+                weeklyDoseStatus = weeklyStatus,
+                frequencyStatus = frequencyStatus,
+                exposureWeekDoseStatus = exposureWeekDoseStatus)
         }
-        val taskCounts = plan.taskTargets.associate { target ->
-            target.task to averageWeeklyUnits(generated.items.filter { item ->
+        val taskProjections = plan.taskTargets.associate { target ->
+            target.task to capabilityProjection(generated.items.filter { item ->
                 snapshot.activityKind(item.exerciseStableKey) in setOf(PlannedActivityKind.STRUCTURED_BADMINTON_DRILL, PlannedActivityKind.ATHLETIC_PERFORMANCE_DRILL, PlannedActivityKind.RESISTANCE) &&
                     target.task in snapshot.badmintonDirectObjectives[item.exerciseStableKey].orEmpty()
-            })
+            }, plannedWeekCount)
         }
         val taskComparisons = plan.taskTargets.map { target ->
-            val planned = taskCounts[target.task] ?: 0
-            TaskTargetComparison(target.task, planned, target.targetWeeklyDirectUnitsMin, target.targetWeeklyDirectUnitsPreferred,
-                target.targetWeeklyDirectUnitsMax, status(target.targetWeeklyDirectUnitsMin, target.targetWeeklyDirectUnitsMax, planned, target.numericAuthority, target.action),
+            val projection = taskProjections.getValue(target.task)
+            val weeklyStatus = doseStatus(target.targetWeeklyDirectUnitsMin, target.targetWeeklyDirectUnitsMax,
+                projection.unitsPerWeek, target.numericAuthority, target.action)
+            val exposureWeekDoseStatus = exposureDoseStatus(target.targetExposureWeekDirectUnitsMin,
+                target.targetExposureWeekDirectUnitsMax, projection.exposureWeekUnitsMedian,
+                projection.exposureWeekCount, target.numericAuthority, target.action)
+            val frequencyStatus = frequencyStatus(target.targetExposureWeekFrequency,
+                projection.exposureWeekFrequency, projection.exposureWeekCount, plannedWeekCount,
+                target.numericAuthority, target.action)
+            val overallStatus = overallStatus(target.action, target.numericAuthority, weeklyStatus,
+                frequencyStatus, exposureWeekDoseStatus)
+            TaskTargetComparison(target.task, projection.unitsPerWeek.roundToInt(), target.targetWeeklyDirectUnitsMin, target.targetWeeklyDirectUnitsPreferred,
+                target.targetWeeklyDirectUnitsMax, overallStatus,
+                reasonCodes = comparisonReasonCodes(frequencyStatus, overallStatus),
                 targetWeeklyMin = target.targetWeeklyDirectUnitsMin,
                 targetWeeklyPreferred = target.targetWeeklyDirectUnitsPreferred,
                 targetWeeklyMax = target.targetWeeklyDirectUnitsMax,
                 targetExposureWeekPreferred = target.targetExposureWeekDirectUnitsPreferred,
-                targetExposureWeekFrequency = target.targetExposureWeekFrequency)
+                targetExposureWeekFrequency = target.targetExposureWeekFrequency,
+                plannedCapabilityUnitsPerWeek = projection.unitsPerWeek,
+                plannedExposureWeekCount = projection.exposureWeekCount,
+                plannedExposureWeekFrequency = projection.exposureWeekFrequency,
+                plannedExposureWeekUnitsMedian = projection.exposureWeekUnitsMedian,
+                weeklyDoseStatus = weeklyStatus,
+                frequencyStatus = frequencyStatus,
+                exposureWeekDoseStatus = exposureWeekDoseStatus)
         }
         return TargetPlanComparison(qualityComparisons, taskComparisons,
             listOf("TARGET_HISTORY_IS_PRESCRIPTION_AWARE_WHERE_SUPPORTED",
@@ -609,17 +670,107 @@ class TargetPlanComparisonEngine {
                 "CAPABILITY_COMPARISON_DOES_NOT_PROVE_FUTURE_REALIZED_STIMULUS",
                 "NOT_PROOF_OF_REALIZED_PHYSIOLOGICAL_STIMULUS",
                 "PLANNED_CAPABILITY_COVERAGE_IS_AN_AUDIT_APPROXIMATION",
+                "WEEKLY_DOSE_EXPOSURE_WEEK_DOSE_AND_FREQUENCY_ARE_SEPARATE_COMPARISON_DIMENSIONS",
+                "ZERO_WEEKLY_Q25_DOES_NOT_ERASE_PERSONAL_EXPOSURE_FREQUENCY",
                 "QUALITY_TARGET_ENVELOPES_ARE_OVERLAPPING_SEMANTIC_VIEWS_NOT_ADDITIVE_WEEKLY_WORKLOAD_BUDGETS"))
     }
 
-    private fun status(min: Double?, max: Double?, planned: Int, authority: TargetNumericAuthority, action: TargetStimulusAction): TargetComparisonStatus = when {
+    private fun capabilityProjection(items: List<ProgramSkeletonItem>, plannedWeekCount: Int): CapabilityProjection {
+        val byWeek = items.groupBy { it.weekNumber }
+        val weeklyUnits = (1..plannedWeekCount).map { week ->
+            byWeek[week].orEmpty().sumOf { it.setCount }.toDouble()
+        }
+        val exposureWeeks = weeklyUnits.filter { it > 0.0 }
+        return CapabilityProjection(
+            unitsPerWeek = weeklyUnits.sum() / plannedWeekCount.toDouble(),
+            exposureWeekCount = exposureWeeks.size,
+            exposureWeekFrequency = exposureWeeks.size.toDouble() / plannedWeekCount.toDouble(),
+            exposureWeekUnitsMedian = quantile(exposureWeeks, .50)
+        )
+    }
+
+    private fun doseStatus(min: Double?, max: Double?, planned: Double?, authority: TargetNumericAuthority,
+        action: TargetStimulusAction): TargetComparisonStatus = when {
         action == TargetStimulusAction.UNRESOLVED -> TargetComparisonStatus.UNRESOLVED
         action == TargetStimulusAction.NO_MINIMUM_TARGET -> TargetComparisonStatus.NO_MINIMUM_TARGET
-        min == null || authority == TargetNumericAuthority.DIRECTION_ONLY -> TargetComparisonStatus.DIRECTION_ONLY
+        min == null || planned == null || authority == TargetNumericAuthority.DIRECTION_ONLY -> TargetComparisonStatus.DIRECTION_ONLY
         planned < min -> TargetComparisonStatus.BELOW_TARGET_BAND
         max != null && planned > max -> TargetComparisonStatus.ABOVE_TARGET_BAND
         else -> TargetComparisonStatus.WITHIN_TARGET_BAND
     }
+
+    private fun exposureDoseStatus(min: Double?, max: Double?, planned: Double?, plannedCount: Int,
+        authority: TargetNumericAuthority, action: TargetStimulusAction): TargetComparisonStatus = when {
+        action == TargetStimulusAction.UNRESOLVED -> TargetComparisonStatus.UNRESOLVED
+        action == TargetStimulusAction.NO_MINIMUM_TARGET -> TargetComparisonStatus.NO_MINIMUM_TARGET
+        authority == TargetNumericAuthority.DIRECTION_ONLY -> TargetComparisonStatus.DIRECTION_ONLY
+        plannedCount == 0 && min != null && min > 0.0 -> TargetComparisonStatus.BELOW_TARGET_BAND
+        plannedCount == 0 && min != null -> TargetComparisonStatus.WITHIN_TARGET_BAND
+        else -> doseStatus(min, max, planned, authority, action)
+    }
+
+    private fun frequencyStatus(historical: Double?, planned: Double?, plannedCount: Int, plannedWeekCount: Int,
+        authority: TargetNumericAuthority, action: TargetStimulusAction): FrequencyComparisonStatus = when {
+        action == TargetStimulusAction.UNRESOLVED -> FrequencyComparisonStatus.UNRESOLVED
+        action == TargetStimulusAction.NO_MINIMUM_TARGET -> FrequencyComparisonStatus.NO_FREQUENCY_TARGET
+        authority == TargetNumericAuthority.DIRECTION_ONLY || historical == null || historical <= 0.0 ->
+            FrequencyComparisonStatus.NO_FREQUENCY_TARGET
+        planned == null -> FrequencyComparisonStatus.UNRESOLVED
+        plannedCount == 0 -> FrequencyComparisonStatus.BELOW_FREQUENCY
+        else -> {
+            val targetExposureWeekCount = historical * plannedWeekCount.toDouble()
+            val toleranceWeeks = 1.0
+            when {
+                plannedCount.toDouble() < targetExposureWeekCount - toleranceWeeks -> FrequencyComparisonStatus.BELOW_FREQUENCY
+                plannedCount.toDouble() > targetExposureWeekCount + toleranceWeeks -> FrequencyComparisonStatus.ABOVE_FREQUENCY
+                else -> FrequencyComparisonStatus.WITHIN_FREQUENCY
+            }
+        }
+    }
+
+    private fun overallStatus(action: TargetStimulusAction, authority: TargetNumericAuthority,
+        weeklyStatus: TargetComparisonStatus, frequencyStatus: FrequencyComparisonStatus,
+        exposureWeekDoseStatus: TargetComparisonStatus): TargetComparisonStatus = when {
+        action == TargetStimulusAction.UNRESOLVED -> TargetComparisonStatus.UNRESOLVED
+        action == TargetStimulusAction.NO_MINIMUM_TARGET -> TargetComparisonStatus.NO_MINIMUM_TARGET
+        authority == TargetNumericAuthority.DIRECTION_ONLY ||
+            weeklyStatus == TargetComparisonStatus.DIRECTION_ONLY ||
+            exposureWeekDoseStatus == TargetComparisonStatus.DIRECTION_ONLY -> TargetComparisonStatus.DIRECTION_ONLY
+        weeklyStatus == TargetComparisonStatus.UNRESOLVED ||
+            exposureWeekDoseStatus == TargetComparisonStatus.UNRESOLVED ||
+            frequencyStatus == FrequencyComparisonStatus.UNRESOLVED -> TargetComparisonStatus.UNRESOLVED
+        weeklyStatus == TargetComparisonStatus.BELOW_TARGET_BAND ||
+            exposureWeekDoseStatus == TargetComparisonStatus.BELOW_TARGET_BAND ||
+            frequencyStatus == FrequencyComparisonStatus.BELOW_FREQUENCY -> TargetComparisonStatus.BELOW_TARGET_BAND
+        weeklyStatus == TargetComparisonStatus.ABOVE_TARGET_BAND ||
+            exposureWeekDoseStatus == TargetComparisonStatus.ABOVE_TARGET_BAND ||
+            frequencyStatus == FrequencyComparisonStatus.ABOVE_FREQUENCY -> TargetComparisonStatus.ABOVE_TARGET_BAND
+        else -> TargetComparisonStatus.WITHIN_TARGET_BAND
+    }
+
+    private fun comparisonReasonCodes(frequencyStatus: FrequencyComparisonStatus,
+        overallStatus: TargetComparisonStatus): List<String> = buildList {
+        add("PLANNED_CAPABILITY_COVERAGE_NOT_REALIZED_STIMULUS")
+        if (frequencyStatus == FrequencyComparisonStatus.BELOW_FREQUENCY) {
+            add("PLANNED_EXPOSURE_FREQUENCY_BELOW_PERSONAL_BASELINE")
+        }
+        if (overallStatus == TargetComparisonStatus.DIRECTION_ONLY) {
+            add("COMPARISON_REMAINS_DIRECTION_ONLY")
+        }
+    }
+
+    private fun quantile(values: List<Double>, q: Double): Double? {
+        if (values.isEmpty()) return null
+        val sorted = values.sorted()
+        return sorted[((sorted.size - 1) * q).roundToInt()]
+    }
+
+    private data class CapabilityProjection(
+        val unitsPerWeek: Double,
+        val exposureWeekCount: Int,
+        val exposureWeekFrequency: Double,
+        val exposureWeekUnitsMedian: Double?
+    )
 }
 
 internal fun TrainingDecisionPortfolio.toJson(): JSONObject = JSONObject()
@@ -699,15 +850,31 @@ internal fun TargetPlanComparison.toJson(): JSONObject = JSONObject()
     .put("notes", JSONArray(notes))
     .put("qualityComparisons", JSONArray(qualityComparisons.map { JSONObject()
         .put("quality", it.quality.name).put("plannedCapabilityUnits", it.plannedCapabilityUnits)
+        .put("plannedCapabilityUnitsPerWeek", it.plannedCapabilityUnitsPerWeek)
+        .put("plannedExposureWeekCount", it.plannedExposureWeekCount)
+        .put("plannedExposureWeekFrequency", it.plannedExposureWeekFrequency)
+        .put("plannedExposureWeekUnitsMedian", it.plannedExposureWeekUnitsMedian)
         .put("targetMin", it.targetMin).put("targetPreferred", it.targetPreferred).put("targetMax", it.targetMax)
         .put("targetWeeklyMin", it.targetWeeklyMin).put("targetWeeklyPreferred", it.targetWeeklyPreferred).put("targetWeeklyMax", it.targetWeeklyMax)
         .put("targetExposureWeekPreferred", it.targetExposureWeekPreferred).put("targetExposureWeekFrequency", it.targetExposureWeekFrequency)
+        .put("historicalTargetExposureFrequency", it.historicalTargetExposureFrequency)
+        .put("historicalTargetExposureWeekUnitsPreferred", it.historicalTargetExposureWeekUnitsPreferred)
+        .put("weeklyDoseStatus", it.weeklyDoseStatus.name).put("frequencyStatus", it.frequencyStatus.name)
+        .put("exposureWeekDoseStatus", it.exposureWeekDoseStatus.name)
         .put("status", it.status.name).put("reasonCodes", JSONArray(it.reasonCodes))
     }))
     .put("taskComparisons", JSONArray(taskComparisons.map { JSONObject()
         .put("task", it.task).put("plannedCapabilityUnits", it.plannedCapabilityUnits)
+        .put("plannedCapabilityUnitsPerWeek", it.plannedCapabilityUnitsPerWeek)
+        .put("plannedExposureWeekCount", it.plannedExposureWeekCount)
+        .put("plannedExposureWeekFrequency", it.plannedExposureWeekFrequency)
+        .put("plannedExposureWeekUnitsMedian", it.plannedExposureWeekUnitsMedian)
         .put("targetMin", it.targetMin).put("targetPreferred", it.targetPreferred).put("targetMax", it.targetMax)
         .put("targetWeeklyMin", it.targetWeeklyMin).put("targetWeeklyPreferred", it.targetWeeklyPreferred).put("targetWeeklyMax", it.targetWeeklyMax)
         .put("targetExposureWeekPreferred", it.targetExposureWeekPreferred).put("targetExposureWeekFrequency", it.targetExposureWeekFrequency)
+        .put("historicalTargetExposureFrequency", it.historicalTargetExposureFrequency)
+        .put("historicalTargetExposureWeekUnitsPreferred", it.historicalTargetExposureWeekUnitsPreferred)
+        .put("weeklyDoseStatus", it.weeklyDoseStatus.name).put("frequencyStatus", it.frequencyStatus.name)
+        .put("exposureWeekDoseStatus", it.exposureWeekDoseStatus.name)
         .put("status", it.status.name).put("reasonCodes", JSONArray(it.reasonCodes))
     }))

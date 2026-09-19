@@ -165,12 +165,18 @@ class TrainingStateRealBackupComparisonTest {
                     }
                 }
                 decision.targetPlanComparison?.let { comparison ->
-                    appendLine("TARGET_COMPARISON quality|plannedCapabilityUnits|targetMin|targetPreferred|targetMax|status")
-                    comparison.qualityComparisons.forEach { row -> appendLine(listOf(row.quality, row.plannedCapabilityUnits,
-                        row.targetMin, row.targetPreferred, row.targetMax, row.status).joinToString("|")) }
-                    appendLine("TARGET_COMPARISON_TASK task|plannedCapabilityUnits|targetMin|targetPreferred|targetMax|status")
-                    comparison.taskComparisons.forEach { row -> appendLine(listOf(row.task, row.plannedCapabilityUnits,
-                        row.targetMin, row.targetPreferred, row.targetMax, row.status).joinToString("|")) }
+                    appendLine("TARGET_COMPARISON quality|historicalExposureWeekFrequency|historicalExposureWeekDosePreferred|plannedCapabilityUnits|plannedCapabilityUnitsPerWeek|plannedExposureWeekCount|plannedExposureWeekFrequency|plannedExposureWeekDose|weeklyDoseStatus|frequencyStatus|exposureWeekDoseStatus|overallStatus")
+                    comparison.qualityComparisons.forEach { row -> appendLine(listOf(row.quality,
+                        row.historicalTargetExposureFrequency, row.historicalTargetExposureWeekUnitsPreferred,
+                        row.plannedCapabilityUnits, row.plannedCapabilityUnitsPerWeek, row.plannedExposureWeekCount,
+                        row.plannedExposureWeekFrequency, row.plannedExposureWeekUnitsMedian,
+                        row.weeklyDoseStatus, row.frequencyStatus, row.exposureWeekDoseStatus, row.status).joinToString("|")) }
+                    appendLine("TARGET_COMPARISON_TASK task|historicalExposureWeekFrequency|historicalExposureWeekDosePreferred|plannedCapabilityUnits|plannedCapabilityUnitsPerWeek|plannedExposureWeekCount|plannedExposureWeekFrequency|plannedExposureWeekDose|weeklyDoseStatus|frequencyStatus|exposureWeekDoseStatus|overallStatus")
+                    comparison.taskComparisons.forEach { row -> appendLine(listOf(row.task,
+                        row.historicalTargetExposureFrequency, row.historicalTargetExposureWeekUnitsPreferred,
+                        row.plannedCapabilityUnits, row.plannedCapabilityUnitsPerWeek, row.plannedExposureWeekCount,
+                        row.plannedExposureWeekFrequency, row.plannedExposureWeekUnitsMedian,
+                        row.weeklyDoseStatus, row.frequencyStatus, row.exposureWeekDoseStatus, row.status).joinToString("|")) }
                 }
                 plan.items.forEach { appendLine("W${it.weekNumber}/D${it.dayOfWeek} ${it.exerciseName} [${it.exerciseStableKey}] domain=${snapshot.activityKind(it.exerciseStableKey)} role=${it.trainingSlot} ${it.setPrescriptions} rest=${it.restSeconds} seconds=${it.estimatedDurationSeconds}") }
             })

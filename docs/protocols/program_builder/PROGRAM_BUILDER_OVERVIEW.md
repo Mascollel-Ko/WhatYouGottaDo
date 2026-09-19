@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.20.0 |
+| Protocol version | 3.21.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
@@ -13,7 +13,7 @@
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 
-### 3.20.0 — prescription-aware weekly and exposure-week shadow dose
+### 3.21.0 — frequency-aware shadow target comparison
 
 - The post-generation shadow sequence is `GeneratedProgramSkeleton → AthleteNeedsProfile → TrainingDecisionPortfolio → TargetStimulusPlan → TargetPlanComparison`. None of these new traces is read by selection, sets, reps, load, frequency, placement, or execution allocation.
 - Need is not dose. Dose is not schedule. `TrainingDecisionPortfolio` expresses a strategy (`HOLD_SUCCESSFUL_DOSE`, `RESTORE_PERSONAL_BASELINE`, `INTRODUCE_DIRECT_STIMULUS`, and related directional actions); `TargetStimulusPlan` expresses a target envelope only when personal successful-dose evidence supports a numeric band.
@@ -24,6 +24,9 @@
 - Planned capability coverage is an audit approximation, not proof of realized physiological stimulus.
 - Weekly baseline distributions include zero-quality exposure in otherwise eligible active normal weeks; completely inactive or excluded weeks are not zero-dose quality samples.
 - Exposure-week dose and exposure-week frequency are separate from weekly exposure. Intermittent stimulus is not automatically an every-week target.
+- `TargetPlanComparison` reports planned capability units per week, planned exposure-week count/frequency/median dose, historical exposure frequency/preferred exposure-week dose, and separate `weeklyDoseStatus`, `frequencyStatus`, and `exposureWeekDoseStatus` for both quality and meaningful task targets.
+- Frequency comparison scales the historical exposure-week rate to the planned duration and uses a transparent ±1 planned exposure-week tolerance; exact floating-point equality is not required. Overall status cannot be `WITHIN_TARGET_BAND` when a positive historical frequency is absent from the plan.
+- A zero weekly Q25 is a weekly distribution fact, not a zero-frequency target. Planned capability remains a future capability projection only; it never becomes a future realized-stimulus or repetition heuristic.
 - `STRENGTH`/`HYPERTROPHY` history is prescription-aware where currently supported through the shared provisional prescription-shape classifier; `POWER`, `RFD`, and `SSC` retain canonical capability exposure semantics and are not filtered by those rep heuristics.
 - `SuccessfulDoseBand` means repeated/tolerated personal exposure unless canonical response evidence proves adaptation response.
 

@@ -3,14 +3,14 @@
 | 항목 | 값 |
 |---|---|
 | Protocol ID | DATA-METADATA-ANALYSIS-CONTRACT |
-| Protocol version | 2.6.0 |
+| Protocol version | 2.7.0 |
 | Status | ACTIVE |
 | Implementation status | PARTIALLY_IMPLEMENTED |
 | Implemented from app version | v0.5.0.16 shadow baseline; role split from v0.5.0.21; bundled authority cutover from v0.5.0.22; Korean display authority from v0.5.0.23; explicit override authority from v0.5.0.25; fieldKey routing from v0.5.0.26; canonical normalization from v0.5.0.32; core/objective analysis cutover from v0.5.0.33; explicit semantic-authority closeout from v0.5.0.37; orthogonal physical-quality membership and AthleteNeedsProfile shadow from 2026-09 |
 | Last audited commit | 532d2343cafd9e54924dc52350c6e108893b4b07 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 
-## 2.6.0 Shadow target portfolio contract
+## 2.7.0 Frequency-aware shadow target comparison contract
 
 The shadow analysis now runs after the existing `GeneratedProgramSkeleton` is
 complete: `AthleteNeedsProfile` is converted to a
@@ -39,6 +39,17 @@ exposure across all eligible active normal weeks (including zero quality
 exposure) and direct dose only in weeks where the quality was exposed. The
 exposure-week count divided by eligible-week count is historical frequency; it
 is not a forced schedule. Inactive and canonical excluded weeks are omitted.
+
+The generated-program side now projects capability only: planned units per week,
+planned exposure-week count/frequency, and median units in exposed weeks. Quality
+and meaningful task comparisons retain historical exposure frequency and preferred
+exposure-week dose, then report separate weekly-dose, frequency, and exposure-week
+dose statuses. Historical frequency is scaled to the planned duration with a
+transparent tolerance of plus or minus one planned exposure week. A zero weekly
+Q25 therefore does not erase a positive personal exposure frequency, and a plan
+with no planned exposure cannot be reported as within target solely because its
+weekly average is zero. No future realized-stimulus or repetition heuristic is
+introduced.
 
 `STRENGTH` and `HYPERTROPHY` history is prescription-aware where supported by
 the shared provisional prescription-shape classifier. Ambiguous prescriptions

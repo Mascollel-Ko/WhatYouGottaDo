@@ -2,8 +2,13 @@ package com.training.trackplanner.data.personalized
 
 import com.training.trackplanner.data.CanonicalExercisePhysicalQualityCatalog
 import com.training.trackplanner.data.ExercisePhysicalQualityRelation
+import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.PhysicalQualityMode
 import com.training.trackplanner.data.PhysicalQualityRegion
+import com.training.trackplanner.data.ProgramGoal
+import com.training.trackplanner.data.ProgramPeriodizationType
+import com.training.trackplanner.data.ProgramSkeletonItem
+import com.training.trackplanner.data.ProgramSkeletonRequest
 import com.training.trackplanner.data.StimulusCapabilityLevel
 import com.training.trackplanner.data.TrainableQuality
 import com.training.trackplanner.data.RuntimeExerciseMetadataDefaults
@@ -283,6 +288,81 @@ class TargetStimulusPlanTest {
     }
 
     @Test
+    fun intermittentComparisonRequiresHistoricalExposureFrequencyAndDose() {
+        val history = listOf(4, 0, 4, 0, 4, 0, 4, 0)
+        val zero = comparePower(history, List(8) { 0 })
+        assertEquals(FrequencyComparisonStatus.BELOW_FREQUENCY, zero.frequencyStatus)
+        assertEquals(TargetComparisonStatus.BELOW_TARGET_BAND, zero.status)
+        assertEquals(0, zero.plannedExposureWeekCount)
+
+        val matched = comparePower(history, history)
+        assertEquals(FrequencyComparisonStatus.WITHIN_FREQUENCY, matched.frequencyStatus)
+        assertEquals(TargetComparisonStatus.WITHIN_TARGET_BAND, matched.exposureWeekDoseStatus)
+        assertEquals(TargetComparisonStatus.WITHIN_TARGET_BAND, matched.status)
+        assertEquals(4, matched.plannedExposureWeekCount)
+        assertEquals(0.5, matched.plannedExposureWeekFrequency!!, 0.0)
+        assertEquals(4.0, matched.plannedExposureWeekUnitsMedian!!, 0.0)
+    }
+
+    @Test
+    fun sparseComparisonDoesNotTreatZeroWeeklyQuartilesAsZeroFrequencyTarget() {
+        val history = listOf(4, 4, 0, 0, 0, 0, 0, 0)
+        val zero = comparePower(history, List(8) { 0 })
+        assertEquals(0.25, zero.historicalTargetExposureFrequency!!, 0.0)
+        assertEquals(FrequencyComparisonStatus.BELOW_FREQUENCY, zero.frequencyStatus)
+        assertTrue(zero.status != TargetComparisonStatus.WITHIN_TARGET_BAND)
+
+        val compatible = comparePower(history, listOf(4, 4, 0, 0, 0, 0, 0, 0))
+        assertEquals(FrequencyComparisonStatus.WITHIN_FREQUENCY, compatible.frequencyStatus)
+        assertEquals(2, compatible.plannedExposureWeekCount)
+    }
+
+    @Test
+    fun continuousComparisonSeparatesFullAndHalfFrequencyPlans() {
+        val history = List(8) { 4 }
+        val full = comparePower(history, history)
+        assertEquals(FrequencyComparisonStatus.WITHIN_FREQUENCY, full.frequencyStatus)
+        assertEquals(TargetComparisonStatus.WITHIN_TARGET_BAND, full.status)
+
+        val half = comparePower(history, listOf(4, 0, 4, 0, 4, 0, 4, 0))
+        assertEquals(FrequencyComparisonStatus.BELOW_FREQUENCY, half.frequencyStatus)
+        assertEquals(TargetComparisonStatus.BELOW_TARGET_BAND, half.status)
+    }
+
+    @Test
+    fun noMinimumTargetAllowsZeroExposureWithoutFrequencyTarget() {
+        val fixture = powerHistory(List(8) { 4 })
+        val history = fixture.history
+        val plan = TargetStimulusPlanEngine().build(
+            TrainingDecisionPortfolioEngine().build(
+                profile(TrainableQuality.POWER, NeedRelevance.NONE, TrainingNeedDecision.NO_EXTRA_NEED), history
+            ), history
+        )
+        val comparison = TargetPlanComparisonEngine().compare(
+            plan, generatedPowerProgram(List(8) { 0 }), fixture.snapshot, fixture.catalog
+        ).qualityComparisons.single()
+        assertEquals(FrequencyComparisonStatus.NO_FREQUENCY_TARGET, comparison.frequencyStatus)
+        assertEquals(TargetComparisonStatus.NO_MINIMUM_TARGET, comparison.status)
+    }
+
+    @Test
+    fun directionOnlyTargetDoesNotManufactureFrequency() {
+        val fixture = powerHistory(List(8) { 0 })
+        val history = QualityDoseHistory(emptyMap(), emptyMap(), 8, 0)
+        val plan = TargetStimulusPlanEngine().build(
+            TrainingDecisionPortfolioEngine().build(
+                profile(TrainableQuality.POWER, NeedRelevance.MODERATE, TrainingNeedDecision.DEVELOP), history
+            ), history
+        )
+        val comparison = TargetPlanComparisonEngine().compare(
+            plan, generatedPowerProgram(List(8) { 0 }), fixture.snapshot, fixture.catalog
+        ).qualityComparisons.single()
+        assertEquals(TargetNumericAuthority.DIRECTION_ONLY, plan.qualityTargets.single().numericAuthority)
+        assertEquals(FrequencyComparisonStatus.NO_FREQUENCY_TARGET, comparison.frequencyStatus)
+        assertEquals(TargetComparisonStatus.DIRECTION_ONLY, comparison.status)
+    }
+
+    @Test
     fun strengthAndHypertrophyHistoryUsesSharedPrescriptionShapeAndPowerKeepsSemanticExposure() {
         val threeRep = analyzePrescriptionHistory(3)
         assertEquals(4, threeRep.bands.getValue(TrainableQuality.STRENGTH).directExposureWeekCount)
@@ -322,6 +402,61 @@ class TargetStimulusPlanTest {
         ))
         return QualityDoseHistoryAnalyzer().analyze(snapshot, emptyState(), catalog)
     }
+
+    private fun comparePower(historyCounts: List<Int>, plannedCounts: List<Int>): QualityTargetComparison {
+        val fixture = powerHistory(historyCounts)
+        val plan = TargetStimulusPlanEngine().build(
+            TrainingDecisionPortfolioEngine().build(
+                profile(TrainableQuality.POWER, NeedRelevance.MODERATE, TrainingNeedDecision.MAINTAIN), fixture.history
+            ), fixture.history
+        )
+        return TargetPlanComparisonEngine().compare(
+            plan, generatedPowerProgram(plannedCounts), fixture.snapshot, fixture.catalog
+        ).qualityComparisons.single()
+    }
+
+    private fun powerHistory(counts: List<Int>): PowerHistoryFixture {
+        val cutoff = LocalDate.of(2026, 9, 19)
+        val completeEnd = completedTrainingWeekEnd(cutoff)
+        val rows = counts.flatMapIndexed { offset, count ->
+            val end = completeEnd.minusDays(offset * 7L)
+            val anchor = PlanningSetRecord(end.minusDays(2), "anchor", "anchor", "RESISTANCE", 1, 5, 80.0, 0, 7.0)
+            val power = (1..count).map { index ->
+                PlanningSetRecord(end.minusDays(2), "power", "power", "RESISTANCE", index, 3, 50.0, 0, 7.0)
+            }
+            listOf(anchor) + power
+        }
+        val snapshot = snapshot(cutoff, rows, mapOf("anchor" to metadata("anchor"), "power" to metadata("power")))
+        val catalog = CanonicalExercisePhysicalQualityCatalog.of(listOf(
+            relation("power", "power", TrainableQuality.POWER, StimulusCapabilityLevel.DIRECT_CAPABILITY)
+        ))
+        return PowerHistoryFixture(snapshot, catalog, QualityDoseHistoryAnalyzer().analyze(snapshot, emptyState(), catalog))
+    }
+
+    private fun generatedPowerProgram(weeklyCounts: List<Int>): GeneratedProgramSkeleton {
+        val request = ProgramSkeletonRequest(
+            "comparison", ProgramGoal.STRENGTH, 3, 60, emptySet(), "", 0.0, "AUTO",
+            ProgramPeriodizationType.AUTO, weeklyCounts.size
+        )
+        val items = weeklyCounts.flatMapIndexed { weekIndex, count ->
+            (1..count).map { index ->
+                ProgramSkeletonItem(
+                    localId = "w${weekIndex + 1}-$index", weekNumber = weekIndex + 1, dayOfWeek = 1,
+                    orderIndex = index, exerciseStableKey = "power", exerciseName = "power", category = "TEST",
+                    restSeconds = 60, prescription = "", setCount = 1, reps = 3, weightKg = 0.0, seconds = 0,
+                    selectionReason = "TEST", weightSource = "TEST"
+                )
+            }
+        }
+        return GeneratedProgramSkeleton("comparison", weeklyCounts.size * 7, request,
+            ProgramPeriodizationType.AUTO, emptyList(), items)
+    }
+
+    private data class PowerHistoryFixture(
+        val snapshot: PlanningHistorySnapshot,
+        val catalog: CanonicalExercisePhysicalQualityCatalog,
+        val history: QualityDoseHistory
+    )
 
     private fun snapshot(
         cutoff: LocalDate,

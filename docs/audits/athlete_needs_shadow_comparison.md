@@ -29,6 +29,17 @@ prescription-aware through the shared provisional classifier, while
 remain explicitly ambiguous, and capability comparison does not prove future
 realized stimulus.
 
+The planned side of the comparison is a capability projection with planned
+units per week, exposed-week count/frequency, and median units per exposed week.
+It is compared against historical frequency and preferred exposed-week dose in
+separate `weeklyDoseStatus`, `frequencyStatus`, and
+`exposureWeekDoseStatus` dimensions for qualities and meaningful tasks. The
+historical frequency is scaled to the plan duration with a transparent ±1
+planned exposure-week tolerance. A zero weekly Q25 is not a zero-frequency
+target: if historical exposure frequency is positive, a plan with no exposed
+weeks cannot be `WITHIN_TARGET_BAND`. No future realized-stimulus or repetition
+heuristic is inferred.
+
 This is an audit trace beside the existing `AdaptationGapAnalyzer`. It does
 not feed exercise selection, weekly volume, sets, reps, load, frequency,
 placement, or any execution allocator.
