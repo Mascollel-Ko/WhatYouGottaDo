@@ -32,6 +32,10 @@ enum class TrainingNeedDecision {
     UNKNOWN
 }
 
+/**
+ * Coarse prescription-shape description derived from reps only. This is provisional exposure
+ * metadata, not an adaptation or training-response classifier.
+ */
 enum class RealizedStimulusClass {
     STRENGTH_LIKE,
     HYPERTROPHY_LIKE,
@@ -44,21 +48,32 @@ enum class ExecutionModifier { NONE, HOLD, SUBSTITUTE, REDUCE }
 
 data class QualityExposureSummary(
     val quality: TrainableQuality,
-    val recent7dBouts: Int,
-    val current28dBouts: Int,
-    val previous28dBouts: Int,
-    val context56dBouts: Int,
+    /** A unit is one confirmed planning set record; a session is one unique training date. */
+    val recent7dUnits: Int,
+    val current28dUnits: Int,
+    val previous28dUnits: Int,
+    val context56dUnits: Int,
     val directSessions: Int,
-    val directBouts: Int,
+    val directUnits: Int,
     val supportiveSessions: Int,
-    val supportiveBouts: Int,
-    val strengthLikeBouts: Int,
-    val hypertrophyLikeBouts: Int,
-    val ambiguousBouts: Int,
+    val supportiveUnits: Int,
+    val provisionalStrengthLikeUnits: Int,
+    val provisionalHypertrophyLikeUnits: Int,
+    val ambiguousRealizedStimulusUnits: Int,
     val currentExposure: ExposureState,
     val confidence: PlanningConfidence,
     val evidence: List<String>
-)
+) {
+    @Deprecated("Use recent7dUnits; this value counts confirmed set rows, not bouts") val recent7dBouts get() = recent7dUnits
+    @Deprecated("Use current28dUnits; this value counts confirmed set rows, not bouts") val current28dBouts get() = current28dUnits
+    @Deprecated("Use previous28dUnits; this value counts confirmed set rows, not bouts") val previous28dBouts get() = previous28dUnits
+    @Deprecated("Use context56dUnits; this value counts confirmed set rows, not bouts") val context56dBouts get() = context56dUnits
+    @Deprecated("Use directUnits; this value counts confirmed set rows, not bouts") val directBouts get() = directUnits
+    @Deprecated("Use supportiveUnits; this value counts confirmed set rows, not bouts") val supportiveBouts get() = supportiveUnits
+    @Deprecated("Use provisionalStrengthLikeUnits") val strengthLikeBouts get() = provisionalStrengthLikeUnits
+    @Deprecated("Use provisionalHypertrophyLikeUnits") val hypertrophyLikeBouts get() = provisionalHypertrophyLikeUnits
+    @Deprecated("Use ambiguousRealizedStimulusUnits") val ambiguousBouts get() = ambiguousRealizedStimulusUnits
+}
 
 data class QualityNeed(
     val quality: TrainableQuality,
@@ -71,17 +86,17 @@ data class QualityNeed(
     val evidence: List<String> = emptyList(),
     val exposure: QualityExposureSummary = QualityExposureSummary(
         quality = quality,
-        recent7dBouts = 0,
-        current28dBouts = 0,
-        previous28dBouts = 0,
-        context56dBouts = 0,
+        recent7dUnits = 0,
+        current28dUnits = 0,
+        previous28dUnits = 0,
+        context56dUnits = 0,
         directSessions = 0,
-        directBouts = 0,
+        directUnits = 0,
         supportiveSessions = 0,
-        supportiveBouts = 0,
-        strengthLikeBouts = 0,
-        hypertrophyLikeBouts = 0,
-        ambiguousBouts = 0,
+        supportiveUnits = 0,
+        provisionalStrengthLikeUnits = 0,
+        provisionalHypertrophyLikeUnits = 0,
+        ambiguousRealizedStimulusUnits = 0,
         currentExposure = ExposureState.UNKNOWN,
         confidence = PlanningConfidence.LOW,
         evidence = emptyList()
@@ -95,12 +110,20 @@ data class SportTaskNeed(
     val response: TrainingResponseState,
     val decision: TrainingNeedDecision,
     val confidence: PlanningConfidence,
-    val structuredDirectBouts: Int,
-    val structuredSupportiveBouts: Int,
+    /** A unit is one confirmed planning set record; a session is one unique training date. */
+    val structuredDirectUnits: Int,
+    val structuredSupportiveUnits: Int,
+    val structuredDirectSessions: Int,
+    val structuredSupportiveSessions: Int,
     val sportContextLoad: Double,
     val reasonCodes: List<String> = emptyList(),
     val evidence: List<String> = emptyList()
-)
+) {
+    @Deprecated("Use structuredDirectUnits; this value counts confirmed set rows, not bouts")
+    val structuredDirectBouts get() = structuredDirectUnits
+    @Deprecated("Use structuredSupportiveUnits; this value counts confirmed set rows, not bouts")
+    val structuredSupportiveBouts get() = structuredSupportiveUnits
+}
 
 data class ExecutionModifierTrace(
     val domain: String,
@@ -193,18 +216,21 @@ class AthleteNeedsProfileEngine(
                 val bucket = qualityBuckets.getValue(relation.qualityId)
                 bucket.add(row, relation, age)
             }
-            snapshot.badmintonDirectObjectives[row.stableKey].orEmpty().forEach { task ->
-                taskBuckets.getOrPut(task) { MutableTaskBucket() }.addDirect(row, age)
-            }
-            snapshot.badmintonSupportiveObjectives[row.stableKey].orEmpty().forEach { task ->
-                taskBuckets.getOrPut(task) { MutableTaskBucket() }.addSupportive(row, age)
+            val activityKind = snapshot.activityKind(row.stableKey)
+            if (activityKind in STRUCTURED_TASK_EVIDENCE_KINDS) {
+                snapshot.badmintonDirectObjectives[row.stableKey].orEmpty().forEach { task ->
+                    taskBuckets.getOrPut(task) { MutableTaskBucket() }.addDirect(row, age)
+                }
+                snapshot.badmintonSupportiveObjectives[row.stableKey].orEmpty().forEach { task ->
+                    taskBuckets.getOrPut(task) { MutableTaskBucket() }.addSupportive(row, age)
+                }
             }
         }
 
         val qualityNeeds = TrainableQuality.entries.map { quality ->
             val exposure = qualityBuckets.getValue(quality).summary(quality, snapshot)
             val relevance = qualityRelevance(quality, snapshot, state)
-            val response = responseFor(quality, exposure, snapshot)
+            val response = responseFor(quality, qualityBuckets.getValue(quality).currentStableKeys(), snapshot)
             val decision = decide(relevance, exposure.currentExposure, response)
             QualityNeed(
                 quality = quality,
@@ -220,13 +246,13 @@ class AthleteNeedsProfileEngine(
         }
 
         val sportTasks = taskBuckets.entries.sortedBy { it.key }.map { (task, bucket) ->
-            val structuredDirect = bucket.directBouts(0..27)
-            val structuredSupportive = bucket.supportiveBouts(0..27)
+            val structuredDirect = bucket.directUnits(0..27)
+            val structuredSupportive = bucket.supportiveUnits(0..27)
             val contextLoad = state.badmintonObjectiveRepresentations
                 .firstOrNull { it.objective == task }?.currentWeighted28d ?: 0.0
-            val relevant = taskRelevance(snapshot, state, task)
-            val directExposure = if (structuredDirect == 0 && contextLoad > 0.0) ExposureState.UNKNOWN
-            else exposureState(structuredDirect + structuredSupportive, bucket.directBouts(28..55) + bucket.supportiveBouts(28..55), bucket.currentSessions())
+            val relevant = taskRelevance(state, task)
+            val directExposure = if (structuredDirect + structuredSupportive == 0 && contextLoad > 0.0) ExposureState.UNKNOWN
+            else exposureState(structuredDirect + structuredSupportive, bucket.directUnits(28..55) + bucket.supportiveUnits(28..55), bucket.currentSessions())
             val response = if (structuredDirect > 0) TrainingResponseState.INSUFFICIENT_EVIDENCE else TrainingResponseState.INSUFFICIENT_EVIDENCE
             val decision = when {
                 relevant == NeedRelevance.UNKNOWN -> TrainingNeedDecision.UNKNOWN
@@ -242,15 +268,17 @@ class AthleteNeedsProfileEngine(
                 response = response,
                 decision = decision,
                 confidence = if (directExposure == ExposureState.UNKNOWN) PlanningConfidence.LOW else bucket.confidence(snapshot),
-                structuredDirectBouts = structuredDirect,
-                structuredSupportiveBouts = structuredSupportive,
+                structuredDirectUnits = structuredDirect,
+                structuredSupportiveUnits = structuredSupportive,
+                structuredDirectSessions = bucket.directSessions(0..27),
+                structuredSupportiveSessions = bucket.supportiveSessions(0..27),
                 sportContextLoad = contextLoad,
                 reasonCodes = buildList {
                     if (contextLoad > 0.0) add("SPORT_CONTEXT_EXPOSURE_SEPARATE_FROM_STRUCTURED_STIMULUS")
                     if (structuredDirect == 0) add("NO_STRUCTURED_DIRECT_TASK_EVIDENCE")
                     add("TASK_REQUIREMENT_ORDINAL_ONLY")
                 },
-                evidence = listOf("structuredDirectBouts=$structuredDirect", "structuredSupportiveBouts=$structuredSupportive", "sportContextLoad=$contextLoad")
+                evidence = listOf("structuredDirectUnits=$structuredDirect", "structuredSupportiveUnits=$structuredSupportive", "sportContextLoad=$contextLoad")
             )
         }
 
@@ -277,13 +305,14 @@ class AthleteNeedsProfileEngine(
 
     private fun qualityRelevance(quality: TrainableQuality, snapshot: PlanningHistorySnapshot, state: AthletePlanningState): NeedRelevance {
         val goal = snapshot.profilePrimaryGoal.trim().uppercase()
-        val badminton = state.badmintonIntent == BadmintonPlanningIntent.ENABLED || goal == "BADMINTON_PERFORMANCE"
+        val badminton = state.badmintonIntent == BadmintonPlanningIntent.ENABLED
+        val taskDerived = taskDerivedQualityRelevance(quality, badminton)
         return when (quality) {
             TrainableQuality.STRENGTH -> when {
                 goal == "STRENGTH_GAIN" || state.strengthIntent == StrengthIntent.STRENGTH_PRIORITY -> NeedRelevance.HIGH
                 goal == "STRENGTH_MAINTENANCE" || state.strengthIntent == StrengthIntent.MIXED -> NeedRelevance.MODERATE
                 goal.isBlank() && state.strengthIntent == StrengthIntent.UNRESOLVED -> NeedRelevance.UNKNOWN
-                else -> NeedRelevance.LOW
+                else -> taskDerived ?: NeedRelevance.LOW
             }
             TrainableQuality.HYPERTROPHY -> when {
                 goal == "HYPERTROPHY_PHYSIQUE" || state.strengthIntent == StrengthIntent.HYPERTROPHY_PRIORITY -> NeedRelevance.HIGH
@@ -292,12 +321,15 @@ class AthleteNeedsProfileEngine(
             }
             TrainableQuality.POWER, TrainableQuality.RAPID_FORCE_PRODUCTION, TrainableQuality.REACTIVE_STRENGTH_SSC -> when {
                 goal == "HYPERTROPHY_PHYSIQUE" && !badminton -> NeedRelevance.NONE
-                badminton -> NeedRelevance.HIGH
+                badminton -> taskDerived ?: NeedRelevance.LOW
+                goal == "BADMINTON_PERFORMANCE" && state.badmintonIntent == BadmintonPlanningIntent.UNRESOLVED -> NeedRelevance.UNKNOWN
                 goal.isBlank() -> NeedRelevance.UNKNOWN
                 else -> NeedRelevance.LOW
             }
             TrainableQuality.MUSCULAR_ENDURANCE, TrainableQuality.CARDIORESPIRATORY_FITNESS -> when {
-                goal == "WEIGHT_MANAGEMENT" || goal == "BADMINTON_PERFORMANCE" -> NeedRelevance.HIGH
+                goal == "WEIGHT_MANAGEMENT" -> NeedRelevance.HIGH
+                badminton -> NeedRelevance.LOW
+                goal == "BADMINTON_PERFORMANCE" && state.badmintonIntent == BadmintonPlanningIntent.UNRESOLVED -> NeedRelevance.UNKNOWN
                 goal.isBlank() -> NeedRelevance.UNKNOWN
                 else -> NeedRelevance.LOW
             }
@@ -309,29 +341,52 @@ class AthleteNeedsProfileEngine(
         }
     }
 
-    private fun taskRelevance(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, task: String): NeedRelevance {
-        if (snapshot.profilePrimaryGoal.isBlank() && state.badmintonIntent == BadmintonPlanningIntent.UNRESOLVED) return NeedRelevance.UNKNOWN
-        return if (state.badmintonIntent == BadmintonPlanningIntent.ENABLED || snapshot.profilePrimaryGoal == "BADMINTON_PERFORMANCE") {
-            if (CanonicalPerformanceTaskQualityRequirements.forTask(task).isNotEmpty()) NeedRelevance.HIGH else NeedRelevance.UNKNOWN
-        } else NeedRelevance.NONE
+    private fun taskRelevance(state: AthletePlanningState, task: String): NeedRelevance {
+        return when (state.badmintonIntent) {
+            BadmintonPlanningIntent.UNRESOLVED -> NeedRelevance.UNKNOWN
+            BadmintonPlanningIntent.DISABLED -> NeedRelevance.NONE
+            BadmintonPlanningIntent.ENABLED ->
+                if (CanonicalPerformanceTaskQualityRequirements.forTask(task).isNotEmpty()) NeedRelevance.MODERATE else NeedRelevance.UNKNOWN
+        }
     }
 
-    private fun responseFor(quality: TrainableQuality, exposure: QualityExposureSummary, snapshot: PlanningHistorySnapshot): TrainingResponseState {
-        if (exposure.context56dBouts == 0) return TrainingResponseState.INSUFFICIENT_EVIDENCE
-        if (quality in setOf(TrainableQuality.POWER, TrainableQuality.RAPID_FORCE_PRODUCTION, TrainableQuality.REACTIVE_STRENGTH_SSC)) {
-            return TrainingResponseState.INSUFFICIENT_EVIDENCE
+    private fun taskDerivedQualityRelevance(quality: TrainableQuality, badminton: Boolean): NeedRelevance? {
+        if (!badminton) return null
+        val roles = requirements.filter { it.quality == quality }.map(PerformanceTaskQualityRequirement::role)
+        return when {
+            RequirementRole.PRIMARY_REQUIREMENT in roles -> NeedRelevance.MODERATE
+            RequirementRole.SUPPORTIVE_REQUIREMENT in roles -> NeedRelevance.LOW
+            else -> null
         }
-        if (quality == TrainableQuality.STRENGTH) {
-            val signals = snapshot.canonicalStrengthSignals.values.filter { it.observationCount >= 2 }
-            val change = signals.mapNotNull(CanonicalStrengthSignal::posteriorChangePercent).averageOrNull()
-            return when {
-                change != null && change > 2.0 && exposure.current28dBouts >= 2 -> TrainingResponseState.POSITIVE_RESPONSE
-                change != null && change < -5.0 && exposure.current28dBouts >= 2 -> TrainingResponseState.NEGATIVE_RESPONSE
-                exposure.current28dBouts >= 2 -> TrainingResponseState.STABLE_RESPONSE
-                else -> TrainingResponseState.INSUFFICIENT_EVIDENCE
-            }
+    }
+
+    private fun responseFor(
+        quality: TrainableQuality,
+        currentExposedStableKeys: Set<String>,
+        snapshot: PlanningHistorySnapshot
+    ): TrainingResponseState = when (quality) {
+        TrainableQuality.STRENGTH -> strengthResponse(currentExposedStableKeys, snapshot)
+        TrainableQuality.HYPERTROPHY,
+        TrainableQuality.POWER,
+        TrainableQuality.RAPID_FORCE_PRODUCTION,
+        TrainableQuality.REACTIVE_STRENGTH_SSC,
+        TrainableQuality.MUSCULAR_ENDURANCE,
+        TrainableQuality.CARDIORESPIRATORY_FITNESS,
+        TrainableQuality.MOBILITY_ROM -> TrainingResponseState.INSUFFICIENT_EVIDENCE
+    }
+
+    private fun strengthResponse(currentExposedStableKeys: Set<String>, snapshot: PlanningHistorySnapshot): TrainingResponseState {
+        val posteriorChanges = currentExposedStableKeys.mapNotNull { key ->
+            snapshot.canonicalStrengthSignals[key]
+                ?.takeIf { it.observationCount >= 2 }
+                ?.posteriorChangePercent
         }
-        return if (exposure.current28dBouts >= 2) TrainingResponseState.POSITIVE_RESPONSE else TrainingResponseState.INSUFFICIENT_EVIDENCE
+        val change = posteriorChanges.medianOrNull() ?: return TrainingResponseState.INSUFFICIENT_EVIDENCE
+        return when {
+            change > 2.0 -> TrainingResponseState.POSITIVE_RESPONSE
+            change < -5.0 -> TrainingResponseState.NEGATIVE_RESPONSE
+            else -> TrainingResponseState.STABLE_RESPONSE
+        }
     }
 
     private fun decide(relevance: NeedRelevance, exposure: ExposureState, response: TrainingResponseState): TrainingNeedDecision = when {
@@ -350,13 +405,18 @@ class AthleteNeedsProfileEngine(
         add("EXPOSURE_${exposure.currentExposure.name}")
         add("RESPONSE_${response.name}")
         add("DECISION_MATRIX_${decision.name}")
-        if (exposure.supportiveBouts > 0 && exposure.directBouts == 0) add("SUPPORTIVE_EVIDENCE_ONLY")
+        if (exposure.supportiveUnits > 0 && exposure.directUnits == 0) add("SUPPORTIVE_EVIDENCE_ONLY")
+        if (decision == TrainingNeedDecision.MAINTAIN && response == TrainingResponseState.INSUFFICIENT_EVIDENCE &&
+            exposure.currentExposure in setOf(ExposureState.ESTABLISHED, ExposureState.HIGH)) {
+            add("MAINTAIN_FROM_ESTABLISHED_EXPOSURE_WITHOUT_RESPONSE_EVIDENCE")
+        }
+        if (quality != TrainableQuality.STRENGTH) add("CANONICAL_OUTCOME_AUTHORITY_UNAVAILABLE")
         if (quality == TrainableQuality.POWER || quality == TrainableQuality.RAPID_FORCE_PRODUCTION || quality == TrainableQuality.REACTIVE_STRENGTH_SSC) add("PERFORMANCE_TEST_REQUIRED_FOR_RESPONSE")
     }
 
     private fun confidence(exposure: QualityExposureSummary, snapshot: PlanningHistorySnapshot): PlanningConfidence = when {
-        snapshot.historyDays < 28 || exposure.context56dBouts < 2 -> PlanningConfidence.LOW
-        exposure.current28dBouts >= 3 && exposure.previous28dBouts > 0 -> PlanningConfidence.HIGH
+        snapshot.historyDays < 28 || exposure.context56dUnits < 2 -> PlanningConfidence.LOW
+        exposure.current28dUnits >= 3 && exposure.previous28dUnits > 0 -> PlanningConfidence.HIGH
         else -> PlanningConfidence.MODERATE
     }
 
@@ -373,7 +433,10 @@ class AthleteNeedsProfileEngine(
         val restricted = snapshot.recoverySignals.tissueRestrictedStableKeys
         if (restricted.isNotEmpty()) add(ExecutionModifierTrace("TISSUE", restricted.sorted(), ExecutionModifier.SUBSTITUTE, listOf("TISSUE_RESTRICTION_EXECUTION_ONLY")))
         if (snapshot.recoverySignals.isConstrained) add(ExecutionModifierTrace("RECOVERY", emptyList(), ExecutionModifier.HOLD, listOf("RECOVERY_MODIFIER_NOT_NEED_SUPPRESSION")))
-        if (state.courtDeviation > 0.0 && snapshot.recoverySignals.isConstrained) add(ExecutionModifierTrace("BADMINTON", emptyList(), ExecutionModifier.REDUCE, listOf("COURT_DEVIATION_PLUS_RECOVERY_EVIDENCE")))
+        val acuteCourtInterference = state.courtDeviation > 0.0 &&
+            state.lowerNegativeEvidence > 0.0 && snapshot.recoverySignals.isConstrained
+        if (acuteCourtInterference) add(ExecutionModifierTrace("BADMINTON", emptyList(), ExecutionModifier.REDUCE,
+            listOf("COURT_DEVIATION_PLUS_LOWER_NEGATIVE_EVIDENCE_PLUS_RECOVERY_CONSTRAINT")))
     }
 
     private inner class MutableQualityBucket {
@@ -381,6 +444,10 @@ class AthleteNeedsProfileEngine(
         fun add(row: PlanningSetRecord, relation: ExercisePhysicalQualityRelation, age: Int) {
             records += QualityObservation(row, relation.relationLevel, age, classify(row))
         }
+        fun currentStableKeys(): Set<String> = records.asSequence()
+            .filter { it.age in 0..27 }
+            .map { it.record.stableKey }
+            .toSet()
         fun summary(quality: TrainableQuality, snapshot: PlanningHistorySnapshot): QualityExposureSummary {
             val recent = records.count { it.age in 0..6 }
             val current = records.count { it.age in 0..27 }
@@ -394,19 +461,20 @@ class AthleteNeedsProfileEngine(
                 records.count { it.realized == RealizedStimulusClass.HYPERTROPHY_LIKE && it.age in 0..27 },
                 records.count { it.realized == RealizedStimulusClass.AMBIGUOUS_REALIZED_STIMULUS && it.age in 0..27 },
                 exposure, if (snapshot.historyDays < 28) PlanningConfidence.LOW else PlanningConfidence.MODERATE,
-                listOf("recent7d=$recent", "current28d=$current", "previous28d=$previous", "directBouts=${direct.size}", "supportiveBouts=${supportive.size}"))
+                listOf("unit=confirmed planning set record", "session=unique training date", "recent7dUnits=$recent", "current28dUnits=$current", "previous28dUnits=$previous", "directUnits=${direct.size}", "supportiveUnits=${supportive.size}", "repsOnlyClassifier=PROVISIONAL_EXPOSURE_DESCRIPTION_ONLY"))
         }
     }
 
     private class MutableTaskBucket {
-        private val direct = mutableListOf<Int>()
-        private val supportive = mutableListOf<Int>()
-        private val dates = mutableSetOf<LocalDate>()
-        fun addDirect(row: PlanningSetRecord, age: Int) { if (age in 0..55) { direct += age; dates += row.date } }
-        fun addSupportive(row: PlanningSetRecord, age: Int) { if (age in 0..55) { supportive += age; dates += row.date } }
-        fun directBouts(range: IntRange): Int = direct.count { it in range }
-        fun supportiveBouts(range: IntRange): Int = supportive.count { it in range }
-        fun currentSessions(): Int = dates.size
+        private val direct = mutableListOf<Pair<Int, LocalDate>>()
+        private val supportive = mutableListOf<Pair<Int, LocalDate>>()
+        fun addDirect(row: PlanningSetRecord, age: Int) { if (age in 0..55) direct += age to row.date }
+        fun addSupportive(row: PlanningSetRecord, age: Int) { if (age in 0..55) supportive += age to row.date }
+        fun directUnits(range: IntRange): Int = direct.count { it.first in range }
+        fun supportiveUnits(range: IntRange): Int = supportive.count { it.first in range }
+        fun directSessions(range: IntRange): Int = direct.filter { it.first in range }.map { it.second }.toSet().size
+        fun supportiveSessions(range: IntRange): Int = supportive.filter { it.first in range }.map { it.second }.toSet().size
+        fun currentSessions(): Int = (direct + supportive).filter { it.first in 0..27 }.map { it.second }.toSet().size
         fun confidence(snapshot: PlanningHistorySnapshot): PlanningConfidence = if (snapshot.historyDays < 28) PlanningConfidence.LOW else if (direct.size + supportive.size >= 3) PlanningConfidence.MODERATE else PlanningConfidence.LOW
     }
 
@@ -418,5 +486,18 @@ class AthleteNeedsProfileEngine(
         else -> RealizedStimulusClass.AMBIGUOUS_REALIZED_STIMULUS
     }
 
-    private fun List<Double>.averageOrNull(): Double? = takeIf { it.isNotEmpty() }?.average()
+    private fun List<Double>.medianOrNull(): Double? {
+        if (isEmpty()) return null
+        val sorted = sorted()
+        val middle = sorted.size / 2
+        return if (sorted.size % 2 == 1) sorted[middle] else (sorted[middle - 1] + sorted[middle]) / 2.0
+    }
+
+    private companion object {
+        val STRUCTURED_TASK_EVIDENCE_KINDS = setOf(
+            PlannedActivityKind.RESISTANCE,
+            PlannedActivityKind.STRUCTURED_BADMINTON_DRILL,
+            PlannedActivityKind.ATHLETIC_PERFORMANCE_DRILL
+        )
+    }
 }

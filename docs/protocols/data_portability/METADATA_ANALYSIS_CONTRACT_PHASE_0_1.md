@@ -3,12 +3,43 @@
 | 항목 | 값 |
 |---|---|
 | Protocol ID | DATA-METADATA-ANALYSIS-CONTRACT |
-| Protocol version | 2.4.0 |
+| Protocol version | 2.4.1 |
 | Status | ACTIVE |
 | Implementation status | PARTIALLY_IMPLEMENTED |
 | Implemented from app version | v0.5.0.16 shadow baseline; role split from v0.5.0.21; bundled authority cutover from v0.5.0.22; Korean display authority from v0.5.0.23; explicit override authority from v0.5.0.25; fieldKey routing from v0.5.0.26; canonical normalization from v0.5.0.32; core/objective analysis cutover from v0.5.0.33; explicit semantic-authority closeout from v0.5.0.37; orthogonal physical-quality membership and AthleteNeedsProfile shadow from 2026-09 |
 | Last audited commit | 532d2343cafd9e54924dc52350c6e108893b4b07 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
+
+## 2.4.1 AthleteNeedsProfile shadow interpretation
+
+Exposure is not response. Repeated exercise exposure alone cannot produce
+`POSITIVE_RESPONSE`. The first shadow response authority is deliberately
+limited to STRENGTH: current-28-day strength-related stableKeys are intersected
+with canonical strength signals having `observationCount >= 2`, and the median
+`posteriorChangePercent` determines positive (`> +2%`), negative (`< -5%`), or
+stable response. HYPERTROPHY, POWER, RFD, reactive SSC, muscular endurance,
+cardiorespiratory fitness, and mobility/ROM remain `INSUFFICIENT_EVIDENCE`
+until a canonical outcome authority exists.
+
+Generic sport participation is context exposure and must not be counted as
+structured developmental task stimulus. Its objective representation and
+personal-baseline court load remain available as context/tolerance evidence.
+Structured badminton drills, athletic-performance drills, and resistance work
+with explicit objective relations may contribute structured units. A unit is
+one confirmed planning set record; a session is one unique training date.
+Canonical `*Units` and `*Sessions` fields are emitted alongside deprecated JSON
+`*Bouts` aliases for read compatibility.
+
+Badminton intent without a task-specific priority creates general/moderate
+task relevance, not universal HIGH relevance. Task-to-quality propagation is
+ordinal: a MODERATE task plus PRIMARY requirement yields MODERATE quality
+relevance, while SUPPORTIVE yields LOW; multiple tasks do not escalate to
+HIGH. Direct strength/hypertrophy user intent remains independent authority.
+
+Court load reduction requires deviation from personal baseline plus
+domain-relevant lower negative evidence plus a recovery/tissue constraint.
+Absolute load alone is never reduction authority. This changes only the
+shadow execution trace and does not suppress or prescribe a need.
 
 ## v0.5.0.37 explicit semantic-authority closeout
 

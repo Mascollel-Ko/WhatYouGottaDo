@@ -63,6 +63,7 @@ class TrainingStateRealBackupComparisonTest {
             val plan = repository.generatePreparedPersonalizedProgram(preflight,answers)
             val decision = requireNotNull(plan.personalizedDecision)
             val budget = requireNotNull(decision.planningBudget)
+            val needs = requireNotNull(decision.athleteNeedsProfile)
             val input = JSONObject().put("cutoff",cutoff).put("request",json(request))
                 .put("constraints",json(constraints)).put("answers",json(originalAnswers))
                 .put("preferences",(json(preferences) as JSONObject).apply { remove("interruptionCause"); remove("interruptionFrequency"); remove("interruptionFrequencyAnsweredAtEpochMillis") })
@@ -72,6 +73,7 @@ class TrainingStateRealBackupComparisonTest {
                 .put("systemicRecoveryPressure",AdaptationTransitionPlanner().systemicRecoveryPressure(snapshot.recoverySignals))
                 .put("genericCourtLoad",snapshot.genericCourtLoad).put("budget",json(budget))
                 .put("weeklyFrequencyEvidence",decision.weeklyFrequencyEvidence?.toJson())
+                .put("athleteNeedsProfile",json(needs))
                 .put("resolvedRequest",json(plan.request)).put("anchors",json(state.anchors))
                 .put("transitions",json(decision.anchorTransitions)).put("gaps",json(decision.adaptationGaps))
                 .put("items",JSONArray(plan.items.map { item ->
@@ -126,6 +128,12 @@ class TrainingStateRealBackupComparisonTest {
                 appendLine(input.toString(2)); appendLine(report.getJSONObject("recovery").toString(2))
                 appendLine("isConstrained=${report.getBoolean("isConstrained")}"); appendLine(json(budget))
                 appendLine("weeklyTotals=${json(weeks)}")
+                appendLine("ATHLETE_NEEDS_QUALITY quality|relevance|exposure|response|decision|confidence|directUnits|supportiveUnits")
+                needs.qualityNeeds.forEach { need -> appendLine(listOf(need.quality, need.relevance, need.currentExposure,
+                    need.response, need.decision, need.confidence, need.exposure.directUnits, need.exposure.supportiveUnits).joinToString("|")) }
+                appendLine("ATHLETE_NEEDS_TASK task|relevance|directUnits|supportiveUnits|contextLoad|decision")
+                needs.sportTaskNeeds.forEach { need -> appendLine(listOf(need.task, need.relevance, need.structuredDirectUnits,
+                    need.structuredSupportiveUnits, need.sportContextLoad, need.decision).joinToString("|")) }
                 plan.items.forEach { appendLine("W${it.weekNumber}/D${it.dayOfWeek} ${it.exerciseName} [${it.exerciseStableKey}] domain=${snapshot.activityKind(it.exerciseStableKey)} role=${it.trainingSlot} ${it.setPrescriptions} rest=${it.restSeconds} seconds=${it.estimatedDurationSeconds}") }
             })
             run {

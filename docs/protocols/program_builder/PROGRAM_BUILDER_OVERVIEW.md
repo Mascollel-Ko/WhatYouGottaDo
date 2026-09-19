@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.18.0 |
+| Protocol version | 3.18.1 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
@@ -12,6 +12,15 @@
 | Supersedes | — |
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
+
+### 3.18.1 — AthleteNeedsProfile shadow semantics correction
+
+- `AthleteNeedsProfile` remains post-generation, `shadowOnly=true`, and `prescriptionAuthority=false`; it is not an input to selection, volume, prescription, allocation, placement, OFI, or tissue/RCV.
+- Exposure is not response. Repeated exercise exposure alone cannot produce `POSITIVE_RESPONSE`. Only STRENGTH currently reads canonical outcome evidence, restricted to stableKeys with current 28-day strength exposure and at least two posterior observations; eligible posterior changes are combined by median.
+- Generic sport participation is context/load/tolerance exposure and is not structured developmental task stimulus. Structured badminton drills, athletic-performance drills, and explicitly related resistance work remain eligible task evidence.
+- Badminton intent without task-specific priority creates general `MODERATE` task relevance, not universal `HIGH` relevance. Quality relevance follows the ordinal task requirement role; no numeric coefficient is introduced.
+- Court execution reduction requires positive deviation from the personal baseline, domain-relevant lower negative evidence, and constrained recovery/tissue evidence together. The quality need itself remains separate and visible.
+- Exposure `unit` means one confirmed planning set record; `session` means one unique training date. Legacy JSON `*Bouts` keys remain compatibility aliases while `*Units`/`*Sessions` are canonical.
 
 ### 3.18.0 — domain-separated resistance authorization
 
