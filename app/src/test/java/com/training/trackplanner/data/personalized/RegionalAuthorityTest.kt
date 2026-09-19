@@ -134,6 +134,18 @@ class RegionalAuthorityTest {
         )
         assertEquals(3, projection.targetCompatibleMaterializedUnits)
         assertEquals(1, projection.shortfall)
+
+        val survivingPlan = plan.copy(items = listOf(item.copy(setPrescriptions = item.setPrescriptions.take(2))))
+        val shortfall = FinalRegionalStimulusProjector().project(
+            target = RegionalStimulusTarget(
+                MovementCoverage.LOWER_KNEE, TrainableQuality.HYPERTROPHY, RegionalTargetAction.ADD_SUPPORT,
+                RegionalNumericAuthority.FULL_WINDOW_PERSONAL_BAND, weeklyDoseTarget = 4.0
+            ), finalPlan = survivingPlan, snapshot = snapshot,
+            catalog = CanonicalExercisePhysicalQualityCatalog.of(listOf(relation)), selectedStableKey = key,
+            creditedUnits = 0, residualUnits = 4, authorizedUnits = 4
+        )
+        assertEquals(2, shortfall.targetCompatibleMaterializedUnits)
+        assertEquals(2, shortfall.shortfall)
     }
 
     private fun representation(key: String, priority: RepresentationPriority) = MovementExposureRepresentation(
