@@ -255,6 +255,7 @@ private fun regionalDiagnosisLabel(value: RegionalLimitingFactor): Int = when (v
     RegionalLimitingFactor.NO_CLEAR_LIMITATION -> R.string.planning_summary_regional_diagnosis_no_clear
     RegionalLimitingFactor.EXPOSURE_LIMITED -> R.string.planning_summary_regional_diagnosis_exposure
     RegionalLimitingFactor.RECOVERY_LIMITED -> R.string.planning_summary_regional_diagnosis_recovery
+    RegionalLimitingFactor.SPORT_LOAD_INTERFERENCE -> R.string.planning_summary_regional_diagnosis_sport_load
     RegionalLimitingFactor.SPECIFICITY_POSSIBLY_LIMITING -> R.string.planning_summary_regional_diagnosis_specificity
     RegionalLimitingFactor.MORPHOLOGICAL_CAPACITY_POSSIBLY_LIMITING -> R.string.planning_summary_regional_diagnosis_morphology
     RegionalLimitingFactor.MULTIFACTORIAL -> R.string.planning_summary_regional_diagnosis_multifactorial

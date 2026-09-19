@@ -246,6 +246,7 @@
     <string name="planning_summary_regional_diagnosis_no_clear">현재 기록에서 뚜렷한 제한 요인은 확인되지 않습니다.</string>
     <string name="planning_summary_regional_diagnosis_exposure">해당 근력 자극이 개인의 최근 기준보다 적습니다.</string>
     <string name="planning_summary_regional_diagnosis_recovery">현재는 자극 부족보다 회복 상태의 영향을 먼저 확인할 필요가 있습니다.</string>
+    <string name="planning_summary_regional_diagnosis_sport_load">스포츠 부하가 해당 지역의 경쟁 요인일 수 있습니다.</string>
     <string name="planning_summary_regional_diagnosis_specificity">해당 근력 동작의 직접적인 연습량이 이전보다 줄어 특이성 부족 가능성이 있습니다.</string>
     <string name="planning_summary_regional_diagnosis_morphology">근력 자극은 유지되고 있지만 근비대 지원 자극이 낮아, 구조적 용량 확대가 도움이 될 가능성이 있습니다.</string>
     <string name="planning_summary_regional_diagnosis_multifactorial">한 가지 원인보다 여러 요인이 함께 영향을 주고 있을 가능성이 있습니다.</string>

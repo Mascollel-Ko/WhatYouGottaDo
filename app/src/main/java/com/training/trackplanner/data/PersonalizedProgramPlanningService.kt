@@ -37,6 +37,9 @@ import com.training.trackplanner.data.personalized.RegionalPlanningAuthorityMode
 import com.training.trackplanner.data.personalized.MovementCoverage
 import com.training.trackplanner.data.personalized.RegionalTrainingDecisionResolver
 import com.training.trackplanner.data.personalized.RegionalStimulusTargetResolver
+import com.training.trackplanner.data.personalized.RegionalExperimentalMaterialDemandBuilder
+import com.training.trackplanner.data.personalized.RegionalAuthorityProgramComparison
+import com.training.trackplanner.data.personalized.movementCoverage
 import com.training.trackplanner.data.personalized.toJson
 import com.training.trackplanner.data.personalized.PlanningHorizonPlanner
 import com.training.trackplanner.data.personalized.WeeklyDosePlanner
@@ -227,7 +230,7 @@ internal class PersonalizedProgramPlanningService(
         val regionalIndex = RegionalEvidenceIndexBuilder().build(snapshot, state, physicalQualityCatalog)
         val needs = control.personalizedDecision?.athleteNeedsProfile
         val strengthRequirement = needs?.qualityNeeds
-            ?.firstOrNull { it.quality == TrainableQuality.STRENGTH }?.relevance ?: NeedRelevance.UNKNOWN
+            ?.firstOrNull { it.quality == com.training.trackplanner.data.TrainableQuality.STRENGTH }?.relevance ?: NeedRelevance.UNKNOWN
         val representations = state.movementRepresentations.ifEmpty {
             com.training.trackplanner.data.personalized.MovementExposureRepresentationAnalyzer()
                 .analyze(snapshot, state.profileGoal == "HYPERTROPHY")

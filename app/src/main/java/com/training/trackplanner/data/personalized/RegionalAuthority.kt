@@ -320,8 +320,10 @@ class RegionalTargetCandidateSelector {
             target.numericAuthority == RegionalNumericAuthority.NONE || target.weeklyDoseTarget == null
         ) return Selection(target, null, emptyList(), null, 0, listOf("NO_NUMERIC_TARGET_OR_NO_ADD_AUTHORITY"))
 
-        val credit = existingPlan?.let { RegionalStimulusCreditProjector().project(it, snapshot, catalog)
-            [target.region to target.quality] }
+        val credit = existingPlan?.let {
+            RegionalStimulusCreditProjector().project(it, snapshot, catalog)
+                .get(target.region to target.quality)
+        }
         val alreadyPlanned = credit?.weeklyUnits ?: 0
         val requested = target.weeklyDoseTarget.roundToInt().coerceAtLeast(0)
         val residual = (requested - alreadyPlanned).coerceAtLeast(0)

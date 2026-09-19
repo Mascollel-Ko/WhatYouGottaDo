@@ -167,6 +167,7 @@
     <string name="planning_summary_regional_diagnosis_no_clear">No clear limiting factor is shown in the current record.</string>
     <string name="planning_summary_regional_diagnosis_exposure">This strength stimulus is below the recent personal baseline.</string>
     <string name="planning_summary_regional_diagnosis_recovery">Recovery status should be checked before assuming insufficient stimulus.</string>
+    <string name="planning_summary_regional_diagnosis_sport_load">Sport load may be a competing factor for this region.</string>
     <string name="planning_summary_regional_diagnosis_specificity">Direct practice of this strength movement has declined; specificity may be limiting.</string>
     <string name="planning_summary_regional_diagnosis_morphology">Strength stimulus is maintained but hypertrophy support is low; additional capacity-building support may help.</string>
     <string name="planning_summary_regional_diagnosis_multifactorial">Several factors may be contributing together.</string>
