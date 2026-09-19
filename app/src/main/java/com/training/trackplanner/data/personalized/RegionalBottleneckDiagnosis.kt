@@ -30,9 +30,9 @@ enum class RegionalLimitingFactor {
     INSUFFICIENT_EVIDENCE
 }
 
-enum class RegionalStrengthExposureStatus { ABSENT, LOW, ADEQUATE, UNKNOWN }
-enum class RegionalHypertrophySupportStatus { LOW, ADEQUATE, UNKNOWN }
-enum class SpecificityContinuity { ADEQUATE, REDUCED, UNKNOWN }
+enum class RegionalStrengthExposureStatus { ABSENT, LOW, SUFFICIENT, UNKNOWN }
+enum class RegionalHypertrophySupportStatus { LOW, SUFFICIENT, UNKNOWN }
+enum class SpecificityContinuity { CONTINUOUS, REDUCED, UNKNOWN }
 
 data class RegionalDoseBand(
     val eligibleWeekCount: Int = 0,
@@ -313,7 +313,7 @@ class RegionalBottleneckDiagnosisEngine {
         val specificity = when {
             evidence.specificPrevious28dUnits <= 0 -> SpecificityContinuity.UNKNOWN
             evidence.specificCurrent28dUnits.toDouble() < evidence.specificPrevious28dUnits * .5 -> SpecificityContinuity.REDUCED
-            else -> SpecificityContinuity.ADEQUATE
+            else -> SpecificityContinuity.CONTINUOUS
         }
         val performanceSufficient = evidence.strengthResponse != TrainingResponseState.INSUFFICIENT_EVIDENCE && evidence.validStrengthObservationCount >= 2
         val positive = evidence.strengthResponse == TrainingResponseState.POSITIVE_RESPONSE
@@ -321,12 +321,12 @@ class RegionalBottleneckDiagnosisEngine {
         if (requirement in setOf(NeedRelevance.MODERATE, NeedRelevance.HIGH) && !positive && strengthStatus == RegionalStrengthExposureStatus.LOW &&
             (evidence.strengthBaselineEstablished || performanceSufficient)) factors += RegionalLimitingFactor.EXPOSURE_LIMITED
         if (recoveryConstraint && !positive && performanceSufficient) factors += RegionalLimitingFactor.RECOVERY_LIMITED
-        if (specificity == SpecificityContinuity.REDUCED && strengthStatus == RegionalStrengthExposureStatus.ADEQUATE &&
+        if (specificity == SpecificityContinuity.REDUCED && strengthStatus == RegionalStrengthExposureStatus.SUFFICIENT &&
             evidence.strengthResponse in setOf(TrainingResponseState.STABLE_RESPONSE, TrainingResponseState.NEGATIVE_RESPONSE)) {
             factors += RegionalLimitingFactor.SPECIFICITY_POSSIBLY_LIMITING
         }
         if (!positive && performanceSufficient && !recoveryConstraint && specificity != SpecificityContinuity.REDUCED &&
-            strengthStatus == RegionalStrengthExposureStatus.ADEQUATE && hypoStatus == RegionalHypertrophySupportStatus.LOW &&
+            strengthStatus == RegionalStrengthExposureStatus.SUFFICIENT && hypoStatus == RegionalHypertrophySupportStatus.LOW &&
             evidence.strengthResponse in setOf(TrainingResponseState.STABLE_RESPONSE, TrainingResponseState.NEGATIVE_RESPONSE)) {
             factors += RegionalLimitingFactor.MORPHOLOGICAL_CAPACITY_POSSIBLY_LIMITING
         }
@@ -390,14 +390,14 @@ class RegionalBottleneckDiagnosisEngine {
         band.directExposureWeekCount == 0 || (band.current28dUnits == 0 && band.previous28dUnits == 0) -> RegionalStrengthExposureStatus.ABSENT
         band.previous28dUnits > 0 && band.current28dUnits.toDouble() < band.previous28dUnits * .5 -> RegionalStrengthExposureStatus.LOW
         band.directExposureWeekFrequency != null && band.directExposureWeekFrequency < .25 -> RegionalStrengthExposureStatus.LOW
-        else -> RegionalStrengthExposureStatus.ADEQUATE
+        else -> RegionalStrengthExposureStatus.SUFFICIENT
     }
 
     private fun hypertrophyStatus(band: RegionalDoseBand): RegionalHypertrophySupportStatus = when {
         band.eligibleWeekCount == 0 -> RegionalHypertrophySupportStatus.UNKNOWN
         band.directExposureWeekCount == 0 -> RegionalHypertrophySupportStatus.LOW
         band.previous28dUnits > 0 && band.current28dUnits.toDouble() < band.previous28dUnits * .5 -> RegionalHypertrophySupportStatus.LOW
-        else -> RegionalHypertrophySupportStatus.ADEQUATE
+        else -> RegionalHypertrophySupportStatus.SUFFICIENT
     }
 }
 
