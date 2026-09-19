@@ -831,7 +831,8 @@ class RegionalTargetAwareFinalizer(
         if (targetByStableKey.isEmpty() && targetBySelectionRole.isEmpty()) return plan
         val items = plan.items.mapNotNull { item ->
             val target = targetBySelectionRole["${item.exerciseStableKey}|${item.selectionRole}"]
-                ?: if (targetBySelectionRole.isEmpty()) targetByStableKey[item.exerciseStableKey] else return@mapNotNull item
+                ?: targetByStableKey[item.exerciseStableKey].takeIf { targetBySelectionRole.isEmpty() }
+            if (target == null) return@mapNotNull item
             val planned = PlannedExercise(
                 stableKey = item.exerciseStableKey,
                 role = item.selectionRole.ifBlank { item.trainingSlot },
