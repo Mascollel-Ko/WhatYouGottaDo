@@ -360,7 +360,12 @@ data class PersonalizedPlanningDecision(
     /** Regional diagnosis is an immutable post-generation audit trace only. */
     val regionalBottleneckDiagnosis: List<RegionalBottleneckDiagnosis> = emptyList(),
     /** Presentation projection of the final generated skeleton; never causal authority. */
-    val programEmphasisLabels: List<ProgramEmphasisLabel> = emptyList()
+    val programEmphasisLabels: List<ProgramEmphasisLabel> = emptyList(),
+    /** Experimental-only authority payload; absent in normal CONTROL generation. */
+    val regionalPlanningAuthorityMode: RegionalPlanningAuthorityMode = RegionalPlanningAuthorityMode.CONTROL,
+    val regionalTrainingDecisions: List<RegionalTrainingDecisionResult> = emptyList(),
+    val regionalStimulusTargets: List<RegionalStimulusTarget> = emptyList(),
+    val regionalAuthorityTraces: List<RegionalAuthorityTrace> = emptyList()
 )
 
 sealed interface PersonalizedPlanningOutcome {

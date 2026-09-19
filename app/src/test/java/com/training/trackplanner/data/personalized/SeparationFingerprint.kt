@@ -39,7 +39,8 @@ private fun separationCanonical(value: Any?): String = when (value) {
             // intentionally continues to compare placement and prescriptions.
             "courtBaselineLoad", "recentCourtLoad", "courtDeviation", "lowerNegativeEvidence", "courtInterference",
             "athleteNeedsProfile", "trainingDecisionPortfolio", "targetStimulusPlan", "targetPlanComparison",
-            "regionalBottleneckDiagnosis", "programEmphasisLabels"
+            "regionalBottleneckDiagnosis", "programEmphasisLabels", "regionalPlanningAuthorityMode",
+            "regionalTrainingDecisions", "regionalStimulusTargets", "regionalAuthorityTraces"
         ) ||
         value is PlanningBudget && it.name in setOf("resistance", "domains") ||
         value is WeeklyCapacityEnvelope && it.name == "domainBudget" }

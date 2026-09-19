@@ -3,12 +3,44 @@
 | 항목 | 값 |
 |---|---|
 | Protocol ID | DATA-METADATA-ANALYSIS-CONTRACT |
-| Protocol version | 2.8.0 |
+| Protocol version | 2.9.0 |
 | Status | ACTIVE |
 | Implementation status | PARTIALLY_IMPLEMENTED |
 | Implemented from app version | v0.5.0.16 shadow baseline; role split from v0.5.0.21; bundled authority cutover from v0.5.0.22; Korean display authority from v0.5.0.23; explicit override authority from v0.5.0.25; fieldKey routing from v0.5.0.26; canonical normalization from v0.5.0.32; core/objective analysis cutover from v0.5.0.33; explicit semantic-authority closeout from v0.5.0.37; orthogonal physical-quality membership and AthleteNeedsProfile shadow from 2026-09 |
 | Last audited commit | 532d2343cafd9e54924dc52350c6e108893b4b07 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
+
+## 2.9.0 Regional diagnosis hardening and experimental target contract
+
+The regional requirement resolver uses canonical/base regional priority as
+importance evidence and keeps it independent from current exposure and
+representation-deficit state. Global STRENGTH relevance is a ceiling, the
+canonical UPPER_PULL owner maps to horizontal and vertical pull separately,
+and an unsupported region remains UNKNOWN. `SUFFICIENT` means only that the
+row is not below available personal exposure evidence; it does not mean
+physiological optimality.
+
+Regional dose reports weekly dose, exposure-week dose, and frequency as three
+separate dimensions. Current/prior exposure-week counts and medians are
+retained, with an explicit one-week tolerance in each four-week half-window.
+Hypertrophy support requires a valid personal baseline across those dimensions.
+Specificity is canonical performance stableKey continuity and is not inferred
+from an accessory without the existing canonical observation minimum.
+
+Systemic readiness/fatigue is separate from localized tissue restriction;
+stableKeys are mapped through canonical MovementCoverage. Strict court-load
+interference is a competing explanation only for LOWER_KNEE,
+POSTERIOR_CHAIN, and CALVES. Positive response remains the strong suppressor
+of unsupported exposure and morphology intervention.
+
+`EXPERIMENTAL_REGIONAL_TARGETS` is an internal/test-only authority mode. It
+creates Program B from the same input as unchanged CONTROL Program A through
+the existing prescription, capacity, OFI/tissue, time, scheduling, and reflow
+machinery. Diagnosis produces a typed decision and stimulus target, not an
+exercise. Existing final set prescriptions receive compatible stimulus credit
+before residual demand. `DIRECTION_ONLY` cannot invent numeric volume, and a
+shortfall is recorded rather than forced. Experimental traces are additive
+audit fields and do not enter production generation fingerprints.
 
 ## 2.8.0 Regional bottleneck shadow diagnosis contract
 

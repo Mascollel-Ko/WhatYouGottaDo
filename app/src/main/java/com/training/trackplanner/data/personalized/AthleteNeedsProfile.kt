@@ -47,8 +47,12 @@ enum class RealizedStimulusClass {
  * recorded rep range only; it never proves adaptation or response.
  */
 internal fun provisionalRealizedStimulusClass(row: PlanningSetRecord): RealizedStimulusClass = when {
-    row.reps in 1..6 -> RealizedStimulusClass.STRENGTH_LIKE
-    row.reps in 7..15 -> RealizedStimulusClass.HYPERTROPHY_LIKE
+    else -> provisionalRealizedStimulusClass(row.reps)
+}
+
+internal fun provisionalRealizedStimulusClass(reps: Int): RealizedStimulusClass = when {
+    reps in 1..6 -> RealizedStimulusClass.STRENGTH_LIKE
+    reps in 7..15 -> RealizedStimulusClass.HYPERTROPHY_LIKE
     else -> RealizedStimulusClass.AMBIGUOUS_REALIZED_STIMULUS
 }
 

@@ -61,6 +61,10 @@ class TrainingStateRealBackupComparisonTest {
                 mapOf(QUESTION_INTERRUPTION_FREQUENCY to "UNSURE"))
             val state = AthletePlanningStateBuilder().build(snapshot,answers)
             val plan = repository.generatePreparedPersonalizedProgram(preflight,answers)
+            val ab = service.generatePreparedComparison(preflight, answers, metadata)
+            val controlRows = plan.items.sortedWith(compareBy({ it.weekNumber }, { it.dayOfWeek }, { it.orderIndex }, { it.exerciseStableKey }))
+            val comparisonControlRows = ab.control.items.sortedWith(compareBy({ it.weekNumber }, { it.dayOfWeek }, { it.orderIndex }, { it.exerciseStableKey }))
+            assertEquals("CONTROL exercise/set/reps/load/placement parity", controlRows, comparisonControlRows)
             val decision = requireNotNull(plan.personalizedDecision)
             val budget = requireNotNull(decision.planningBudget)
             val needs = requireNotNull(decision.athleteNeedsProfile)
@@ -72,6 +76,22 @@ class TrainingStateRealBackupComparisonTest {
                 .put("isConstrained",snapshot.recoverySignals.isConstrained)
                 .put("systemicRecoveryPressure",AdaptationTransitionPlanner().systemicRecoveryPressure(snapshot.recoverySignals))
                 .put("genericCourtLoad",snapshot.genericCourtLoad).put("budget",json(budget))
+                .put("regionalAuthorityModeB", ab.experimental.personalizedDecision?.regionalPlanningAuthorityMode?.name)
+                .put("programAWeek1", JSONArray(ab.control.items.filter { it.weekNumber == 1 }.map { item ->
+                    JSONObject().put("day", item.dayOfWeek).put("exerciseStableKey", item.exerciseStableKey)
+                        .put("exerciseName", item.exerciseName).put("sets", item.setPrescriptions.size)
+                        .put("setPrescriptions", json(item.setPrescriptions)).put("restSeconds", item.restSeconds)
+                }))
+                .put("programBWeek1", JSONArray(ab.experimental.items.filter { it.weekNumber == 1 }.map { item ->
+                    JSONObject().put("day", item.dayOfWeek).put("exerciseStableKey", item.exerciseStableKey)
+                        .put("exerciseName", item.exerciseName).put("sets", item.setPrescriptions.size)
+                        .put("setPrescriptions", json(item.setPrescriptions)).put("restSeconds", item.restSeconds)
+                }))
+                .put("regionalAuthorityTraces", json(ab.traces))
+                .put("regionalAuthorityCounters", json(ab.counters))
+                .put("regionalDifferences", JSONArray(ab.differences))
+                .put("globalTargetComparisonA", json(ab.controlTargetComparison))
+                .put("globalTargetComparisonB", json(ab.experimentalTargetComparison))
                 .put("weeklyFrequencyEvidence",decision.weeklyFrequencyEvidence?.toJson())
                 .put("athleteNeedsProfile",json(needs))
                 .put("resolvedRequest",json(plan.request)).put("anchors",json(state.anchors))
@@ -196,6 +216,19 @@ class TrainingStateRealBackupComparisonTest {
                 }
                 appendLine("PROGRAM_EMPHASIS label|region|quality|plannedUnits")
                 decision.programEmphasisLabels.forEach { row -> appendLine(listOf("${row.region.name}_${row.quality.name}", row.region, row.quality, row.plannedUnits).joinToString("|")) }
+                appendLine("PROGRAM_A_WEEK_1")
+                ab.control.items.filter { it.weekNumber == 1 }.sortedWith(compareBy({ it.dayOfWeek }, { it.orderIndex })).forEach { item ->
+                    appendLine("D${item.dayOfWeek} ${item.exerciseName} [${item.exerciseStableKey}] ${item.setPrescriptions} rest=${item.restSeconds}")
+                }
+                appendLine("PROGRAM_B_WEEK_1")
+                ab.experimental.items.filter { it.weekNumber == 1 }.sortedWith(compareBy({ it.dayOfWeek }, { it.orderIndex })).forEach { item ->
+                    appendLine("D${item.dayOfWeek} ${item.exerciseName} [${item.exerciseStableKey}] ${item.setPrescriptions} rest=${item.restSeconds}")
+                }
+                appendLine("REGIONAL_AUTHORITY_TRACE")
+                ab.traces.forEach { trace -> appendLine(listOf(trace.region, trace.trainingDecision, trace.targetQuality,
+                    trace.targetAction, trace.targetWeeklyDose, trace.existingPlannedCompatibleDose,
+                    trace.residualDose, trace.selectedStableKey, trace.materializedUnits, trace.shortfall,
+                    trace.finalReasonCodes).joinToString("|")) }
                 plan.items.forEach { appendLine("W${it.weekNumber}/D${it.dayOfWeek} ${it.exerciseName} [${it.exerciseStableKey}] domain=${snapshot.activityKind(it.exerciseStableKey)} role=${it.trainingSlot} ${it.setPrescriptions} rest=${it.restSeconds} seconds=${it.estimatedDurationSeconds}") }
             })
             run {

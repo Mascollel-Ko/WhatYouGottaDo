@@ -32,6 +32,11 @@ import com.training.trackplanner.data.personalized.NeedRelevance
 import com.training.trackplanner.data.personalized.RegionalBottleneckDiagnosisEngine
 import com.training.trackplanner.data.personalized.RegionalEvidenceIndexBuilder
 import com.training.trackplanner.data.personalized.ProgramEmphasisProjector
+import com.training.trackplanner.data.personalized.RegionalStrengthRequirementResolver
+import com.training.trackplanner.data.personalized.RegionalPlanningAuthorityMode
+import com.training.trackplanner.data.personalized.MovementCoverage
+import com.training.trackplanner.data.personalized.RegionalTrainingDecisionResolver
+import com.training.trackplanner.data.personalized.RegionalStimulusTargetResolver
 import com.training.trackplanner.data.personalized.toJson
 import com.training.trackplanner.data.personalized.PlanningHorizonPlanner
 import com.training.trackplanner.data.personalized.WeeklyDosePlanner
@@ -152,11 +157,33 @@ internal class PersonalizedProgramPlanningService(
             val regionalIndex = RegionalEvidenceIndexBuilder().build(snapshot, state, physicalQualityCatalog)
             val strengthRequirement = needs.qualityNeeds.firstOrNull { it.quality == com.training.trackplanner.data.TrainableQuality.STRENGTH }?.relevance
                 ?: NeedRelevance.UNKNOWN
+            val regionalRequirements = RegionalStrengthRequirementResolver().resolve(
+                strengthRequirement,
+                state.movementRepresentations
+            )
+            val localizedTissue = snapshot.recoverySignals.tissueRestrictedStableKeys
+                .map(snapshot::movementCoverage)
+                .filter { it != com.training.trackplanner.data.personalized.MovementCoverage.OTHER }
+                .toSet()
+            val systemicRecovery = (
+                snapshot.recoverySignals.readinessStatus in setOf("CAUTION", "FATIGUED", "LIMITED") ||
+                    (snapshot.recoverySignals.overallFatigueIndex ?: 0) >= 70 ||
+                    state.trainingStateAssessment?.globalHardRestriction == true ||
+                    (snapshot.recoverySignals.tissueStatus in setOf("VERY_HIGH", "BLOCKED") && localizedTissue.isEmpty())
+                )
+            val lowerSportRegions = setOf(
+                com.training.trackplanner.data.personalized.MovementCoverage.LOWER_KNEE,
+                com.training.trackplanner.data.personalized.MovementCoverage.POSTERIOR_CHAIN,
+                com.training.trackplanner.data.personalized.MovementCoverage.CALVES
+            )
+            val sportInterference = state.courtDeviation > 0.0 && state.lowerNegativeEvidence > 0.0 && state.courtInterference > 0.0
             val regionalDiagnosis = RegionalBottleneckDiagnosisEngine().analyze(
                 regionalIndex,
-                strengthRequirement,
-                snapshot.recoverySignals.isConstrained || state.trainingStateAssessment?.globalHardRestriction == true,
-                state.courtDeviation > 0.0 && state.lowerNegativeEvidence > 0.0 && state.courtInterference > 0.0
+                regionalRequirements,
+                systemicRecovery,
+                sportInterference,
+                localizedTissue.associateWith { true },
+                lowerSportRegions
             )
             val programEmphasis = ProgramEmphasisProjector().project(withShadowNeeds, snapshot, physicalQualityCatalog)
             return com.training.trackplanner.data.personalized.bindSplitParentProgression(withShadowNeeds.copy(
@@ -170,6 +197,109 @@ internal class PersonalizedProgramPlanningService(
             ))
         }
         return com.training.trackplanner.data.personalized.bindSplitParentProgression(withShadowNeeds)
+    }
+
+    /**
+     * Test/dev-only A/B entry point.  The returned experimental skeleton is
+     * never persisted or routed to the normal app preview.  CONTROL is built
+     * first with the unchanged builder arguments, then the regional demand
+     * seam is injected into a second pass through the same downstream
+     * prescription, capacity, placement, OFI, tissue and time machinery.
+     */
+    internal suspend fun generatePreparedComparison(
+        preflight: PersonalizedPlanningPreflight,
+        answers: PersonalizedPlanningAnswers,
+        metadata: Map<String, RuntimeExerciseMetadata>,
+        progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE
+    ): com.training.trackplanner.data.personalized.RegionalProgramComparison {
+        val control = generatePrepared(preflight, answers, metadata, progress)
+        val preferences = readPreferences()
+        val snapshot = buildSnapshot(preflight.cutoff, metadata, preferences)
+        val state = stateBuilder.build(snapshot, answers)
+        val gaps = gapAnalyzer.analyze(snapshot, state)
+        val intent = blockPlanner.decide(state, gaps)
+        val frequencyEvidence = WeeklyDosePlanner().resolve(state, state.anchors.size + gaps.size)
+        val constraints = preflight.constraints
+        val request = resolvePersonalizedRequest(
+            preflight.request, constraints, state.programGoal, frequencyEvidence.recommendedDays,
+            horizonPlanner.choose(state, gaps, intent)
+        )
+        val regionalIndex = RegionalEvidenceIndexBuilder().build(snapshot, state, physicalQualityCatalog)
+        val needs = control.personalizedDecision?.athleteNeedsProfile
+        val strengthRequirement = needs?.qualityNeeds
+            ?.firstOrNull { it.quality == TrainableQuality.STRENGTH }?.relevance ?: NeedRelevance.UNKNOWN
+        val representations = state.movementRepresentations.ifEmpty {
+            com.training.trackplanner.data.personalized.MovementExposureRepresentationAnalyzer()
+                .analyze(snapshot, state.profileGoal == "HYPERTROPHY")
+        }
+        val requirements = RegionalStrengthRequirementResolver().resolve(strengthRequirement, representations)
+        val localizedTissue = snapshot.recoverySignals.tissueRestrictedStableKeys
+            .map(snapshot::movementCoverage).filter { it != MovementCoverage.OTHER }.toSet()
+        val systemic = snapshot.recoverySignals.readinessStatus in setOf("CAUTION", "FATIGUED", "LIMITED") ||
+            (snapshot.recoverySignals.overallFatigueIndex ?: 0) >= 70 ||
+            state.trainingStateAssessment?.globalHardRestriction == true ||
+            (snapshot.recoverySignals.tissueStatus in setOf("VERY_HIGH", "BLOCKED") && localizedTissue.isEmpty())
+        val sport = state.courtDeviation > 0.0 && state.lowerNegativeEvidence > 0.0 && state.courtInterference > 0.0
+        val diagnoses = RegionalBottleneckDiagnosisEngine().analyze(
+            regionalIndex, requirements, systemic, sport, localizedTissue.associateWith { true },
+            setOf(MovementCoverage.LOWER_KNEE, MovementCoverage.POSTERIOR_CHAIN, MovementCoverage.CALVES)
+        )
+        val regionalDemand = RegionalExperimentalMaterialDemandBuilder().build(
+            diagnoses, control, snapshot, state, physicalQualityCatalog
+        )
+        val priorId = appMetaDao.latestByPrefix("$DECISION_PREFIX%")?.value?.let(::decisionIdFromJson)
+        val experimental = programBuilder.build(
+            snapshot, state, gaps, intent, request.durationWeeks, request, answers, priorId,
+            explicitWeeklyDays = constraints.explicitWeeklyTrainingDays != null,
+            frequency = com.training.trackplanner.data.personalized.PlanningFrequencyProvenance(
+                frequencyEvidence, request.weeklyTrainingDays,
+                if (constraints.explicitWeeklyTrainingDays != null) com.training.trackplanner.data.personalized.PlanningFrequencySource.EXPLICIT_USER
+                else com.training.trackplanner.data.personalized.PlanningFrequencySource.AUTO
+            ),
+            progress = progress,
+            materialDemandOverride = regionalDemand.demand
+        )
+        val decisions = diagnoses.map { RegionalTrainingDecisionResolver().resolve(it) }
+        val targets = diagnoses.map { RegionalStimulusTargetResolver().resolve(it) }
+        val traces = regionalDemand.traces.map { trace ->
+            val materialized = experimental.items.filter { item ->
+                item.exerciseStableKey == trace.selectedStableKey && item.weekNumber == 1
+            }.sumOf { it.setPrescriptions.size }
+            trace.copy(
+                materializedUnits = materialized,
+                shortfall = (trace.requestedUnits - materialized).coerceAtLeast(0),
+                finalReasonCodes = trace.finalReasonCodes + if (materialized < trace.requestedUnits) listOf("CAPACITY_OR_FEASIBILITY_SHORTFALL") else listOf("TARGET_MATERIALIZED")
+            )
+        }
+        val experimentalPortfolio = needs?.let {
+            val doseHistory = QualityDoseHistoryAnalyzer().analyze(snapshot, state, physicalQualityCatalog)
+            TrainingDecisionPortfolioEngine().build(it, doseHistory) to doseHistory
+        }
+        val experimentalTargetPlan = experimentalPortfolio?.let { (portfolio, doseHistory) ->
+            TargetStimulusPlanEngine().build(portfolio, doseHistory)
+        }
+        val experimentalComparison = if (experimentalTargetPlan != null)
+            TargetPlanComparisonEngine().compare(experimentalTargetPlan, experimental, snapshot, physicalQualityCatalog)
+        else null
+        val decision = experimental.personalizedDecision
+        val experimentalWithTrace = experimental.copy(
+            personalizedDecision = decision?.copy(
+                regionalPlanningAuthorityMode = RegionalPlanningAuthorityMode.EXPERIMENTAL_REGIONAL_TARGETS,
+                athleteNeedsProfile = needs,
+                trainingDecisionPortfolio = experimentalPortfolio?.first,
+                targetStimulusPlan = experimentalTargetPlan,
+                targetPlanComparison = experimentalComparison,
+                regionalBottleneckDiagnosis = diagnoses,
+                regionalTrainingDecisions = decisions,
+                regionalStimulusTargets = targets,
+                regionalAuthorityTraces = traces,
+                programEmphasisLabels = ProgramEmphasisProjector().project(experimental, snapshot, physicalQualityCatalog)
+            )
+        )
+        return RegionalAuthorityProgramComparison().compare(
+            control, experimentalWithTrace, traces,
+            regionalDemand.counters.copy(prescriptionResolutions = regionalDemand.counters.candidateCountEvaluated)
+        )
     }
 
     /** Compatibility wrapper for callers that have not yet adopted the two-phase API. */
@@ -351,6 +481,30 @@ internal class PersonalizedProgramPlanningService(
         .put("targetPlanComparison", targetPlanComparison?.toJson())
         .put("regionalBottleneckDiagnosis", JSONArray(regionalBottleneckDiagnosis.map { it.toJson() }))
         .put("programEmphasisLabels", JSONArray(programEmphasisLabels.map { it.toJson() }))
+        .put("regionalPlanningAuthorityMode", regionalPlanningAuthorityMode.name)
+        .put("regionalTrainingDecisions", JSONArray(regionalTrainingDecisions.map { JSONObject()
+            .put("region", it.region.name).put("decision", it.decision.name).put("reasonCodes", JSONArray(it.reasonCodes))
+        }))
+        .put("regionalStimulusTargets", JSONArray(regionalStimulusTargets.map { JSONObject()
+            .put("region", it.region.name).put("quality", it.quality.name).put("action", it.action.name)
+            .put("numericAuthority", it.numericAuthority.name).put("weeklyDoseTarget", it.weeklyDoseTarget)
+            .put("exposureWeekDoseTarget", it.exposureWeekDoseTarget).put("exposureFrequencyTarget", it.exposureFrequencyTarget)
+            .put("priority", it.priority.name).put("reasonCodes", JSONArray(it.reasonCodes)).put("specificStableKey", it.specificStableKey)
+        }))
+        .put("regionalAuthorityTraces", JSONArray(regionalAuthorityTraces.map { trace -> JSONObject()
+            .put("region", trace.region.name).put("requirement", trace.requirement.name)
+            .put("performanceResponse", trace.performanceResponse.name).put("trainingDecision", trace.trainingDecision.name)
+            .put("targetQuality", trace.targetQuality.name).put("targetAction", trace.targetAction.name)
+            .put("targetWeeklyDose", trace.targetWeeklyDose).put("targetExposureWeekDose", trace.targetExposureWeekDose)
+            .put("targetFrequency", trace.targetFrequency).put("numericAuthority", trace.numericAuthority.name)
+            .put("existingPlannedCompatibleDose", trace.existingPlannedCompatibleDose)
+            .put("existingPlannedExposureFrequency", trace.existingPlannedExposureFrequency)
+            .put("residualDose", trace.residualDose).put("candidatePool", JSONArray(trace.candidatePool))
+            .put("selectedStableKey", trace.selectedStableKey).put("selectionReasons", JSONArray(trace.selectionReasons))
+            .put("prescriptionCompatibility", trace.prescriptionCompatibility).put("requestedUnits", trace.requestedUnits)
+            .put("authorizedUnits", trace.authorizedUnits).put("materializedUnits", trace.materializedUnits)
+            .put("shortfall", trace.shortfall).put("finalReasonCodes", JSONArray(trace.finalReasonCodes))
+        }))
         .put("athleteNeedsProfile", athleteNeedsProfile?.let { profile -> JSONObject()
             .put("generatedAtCutoff", profile.generatedAtCutoff.toString())
             .put("shadowOnly", profile.shadowOnly)

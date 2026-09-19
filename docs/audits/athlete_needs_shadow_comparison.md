@@ -77,6 +77,44 @@ from the actual final generated skeleton. It describes program composition,
 not causal diagnostic authority, and expanded regional details translate the
 evidence into Korean without exposing raw enums or reason codes.
 
+## Regional authority experiment (CONTROL vs EXPERIMENTAL_REGIONAL_TARGETS)
+
+The regional requirement resolver consumes canonical `basePriority` only;
+current exposure, representation state, retention ratio, and peer ratio are
+not requirement evidence. Global STRENGTH relevance is a ceiling: HIGH
+regional priority may receive that relevance, while MODERATE priority cannot
+escalate above it. The canonical `UPPER_PULL` owner maps to both horizontal
+and vertical pull requirements without combining their exposure histories.
+Regions with no canonical owner remain `UNKNOWN`. `SUFFICIENT` means only
+“not currently below the available personal exposure evidence”; it is not a
+physiological-optimality claim.
+
+Regional dose keeps weekly dose, dose in exposed weeks, and exposure frequency
+as separate dimensions. A four-week half-window tolerates one missing exposure
+week before reporting a frequency decline. Hypertrophy support requires a
+valid personal baseline across all three dimensions; one exposed week is not
+treated as solid support. Specificity is canonical performance stableKey
+continuity, gated by the existing canonical observation minimum.
+
+Systemic readiness/fatigue constraints are distinct from tissue restrictions
+localized through `tissueRestrictedStableKeys`. Court-load interference is a
+competing explanation limited to LOWER_KNEE, POSTERIOR_CHAIN, and CALVES and
+requires the strict deviation + lower-negative-evidence + interference gate.
+Positive canonical response remains the strong suppressor of unsupported
+intervention and morphology hypotheses.
+
+The test/dev-only `EXPERIMENTAL_REGIONAL_TARGETS` path creates a real final
+`GeneratedProgramSkeleton` through the existing prescription, capacity,
+OFI/tissue, time, placement, and reflow machinery. It does not replace or
+persist CONTROL. Diagnosis produces a typed training decision and stimulus
+target; candidate identity is selected later by exact `MovementCoverage` and
+`DIRECT_CAPABILITY`. Existing planned compatible set prescriptions are credited
+before residual demand is created. `DIRECTION_ONLY` records direction without
+inventing a numeric dose. Capacity, tissue, OFI, time, frequency, and the
+existing schedulers remain feasibility gates. Every A→B difference carries a
+regional authority trace with candidate pool, prescription compatibility,
+authorized/materialized units, and shortfall.
+
 ## Decision boundary
 
 - `Exposure is not response`: repeated set rows cannot produce `POSITIVE_RESPONSE`. STRENGTH alone currently has canonical response authority, using the median posterior change for relevant stableKeys exposed to strength work in the current 28-day window. Every other quality remains `INSUFFICIENT_EVIDENCE` until a canonical outcome exists.

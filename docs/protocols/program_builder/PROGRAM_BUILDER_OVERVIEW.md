@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.22.0 |
+| Protocol version | 3.23.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
@@ -12,6 +12,15 @@
 | Supersedes | — |
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
+
+### 3.23.0 — hardened regional diagnosis and experimental A/B authority
+
+- Regional requirement is resolved from canonical `MovementExposureRepresentation.basePriority` plus global STRENGTH relevance. Representation state, current exposure, retention, and peer ratios cannot manufacture requirement importance. `UPPER_PULL` maps to horizontal and vertical pull requirements without merging their histories; unsupported regions remain `UNKNOWN`.
+- Regional weekly dose, exposure-week dose, and frequency remain independent dimensions. Current/prior four-week exposure counts and medians are retained, with an explicit one-week frequency tolerance. `SUFFICIENT` means only “not below available personal exposure evidence,” never physiological optimality.
+- Specificity is stableKey-specific canonical performance continuity and is gated by the existing canonical observation minimum. Systemic readiness/fatigue is separate from tissue-restricted stableKeys localized through MovementCoverage. Strict court-load interference is a competing explanation only for LOWER_KNEE, POSTERIOR_CHAIN, and CALVES. Positive response suppresses unsupported exposure and morphology intervention.
+- Final program emphasis uses every final `setPrescriptions` row. A mixed top set/backoff item is classified per set; POWER/RFD/SSC retain canonical capability semantics and are not reinterpreted by strength/hypertrophy rep ranges.
+- The internal/test-only `EXPERIMENTAL_REGIONAL_TARGETS` mode produces Program B from the same input as unchanged CONTROL Program A. Diagnosis resolves typed regional decisions and `RegionalStimulusTarget`; a typed candidate selector then uses exact MovementCoverage, direct capability, equipment, exclusion, tissue, history, and deterministic lexicographic ranking. Existing compatible final set prescriptions are credited before residual demand, and `DIRECTION_ONLY` cannot invent numeric volume.
+- Program B is a real GeneratedProgramSkeleton through the existing prescription, capacity, OFI/tissue, session-time, scheduling, and reflow machinery. A shortfall is traceable rather than forced. Experimental fields are additive audit data, never normal settings, persistence, preview, or production fingerprint authority.
 
 ### 3.22.0 — regional bottleneck shadow diagnosis and program emphasis
 
