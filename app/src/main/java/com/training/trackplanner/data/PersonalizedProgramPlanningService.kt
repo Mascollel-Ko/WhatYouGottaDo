@@ -279,25 +279,11 @@ internal class PersonalizedProgramPlanningService(
                     authorizedUnits = trace.authorizedUnits
                 )
             }
-            val resolverReasons = if (target != null && trace.selectedStableKey != null) {
-                val resolution = com.training.trackplanner.data.personalized.RegionalTargetPrescriptionResolver().resolve(
-                    target,
-                    com.training.trackplanner.data.personalized.PlannedExercise(
-                        stableKey = trace.selectedStableKey,
-                        role = "REGIONAL_TARGET",
-                        reason = "final-audit",
-                        priority = 0,
-                        targetSets = trace.authorizedUnits
-                    ),
-                    snapshot
-                )
-                resolution.reasonCodes.filter { it == "TARGET_PRESENT_BUT_NO_SAFE_COMPATIBLE_PRESCRIPTION" }
-            } else emptyList()
             trace.copy(
                 materializedUnits = projection?.targetCompatibleMaterializedUnits ?: 0,
                 targetCompatibleMaterializedUnits = projection?.targetCompatibleMaterializedUnits ?: 0,
                 shortfall = projection?.shortfall ?: trace.residualDose,
-                finalReasonCodes = trace.finalReasonCodes + resolverReasons + listOfNotNull(projection?.reasonCode)
+                finalReasonCodes = trace.finalReasonCodes + listOfNotNull(projection?.reasonCode)
             )
         }
         val experimentalPortfolio = needs?.let {

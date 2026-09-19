@@ -14,6 +14,8 @@ import com.training.trackplanner.data.RuntimeExerciseMetadataDefaults
 import com.training.trackplanner.data.StimulusCapabilityLevel
 import com.training.trackplanner.data.TrainableQuality
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
@@ -135,7 +137,10 @@ class RegionalAuthorityTest {
         assertEquals(3, projection.targetCompatibleMaterializedUnits)
         assertEquals(1, projection.shortfall)
 
-        val survivingPlan = plan.copy(items = listOf(item.copy(setPrescriptions = item.setPrescriptions.take(2))))
+        val survivingPlan = plan.copy(items = listOf(item.copy(
+            setCount = 2, reps = 8, weightKg = 80.0,
+            setPrescriptions = item.setPrescriptions.drop(1).take(2)
+        )))
         val shortfall = FinalRegionalStimulusProjector().project(
             target = RegionalStimulusTarget(
                 MovementCoverage.LOWER_KNEE, TrainableQuality.HYPERTROPHY, RegionalTargetAction.ADD_SUPPORT,
@@ -146,6 +151,86 @@ class RegionalAuthorityTest {
         )
         assertEquals(2, shortfall.targetCompatibleMaterializedUnits)
         assertEquals(2, shortfall.shortfall)
+    }
+
+    @Test
+    fun authorizedRegionalPrescriptionIsVisibleToSchedulingBeforeFinalOutput() {
+        val snapshot = PostGenerationFixture.snapshot()
+        val state = PostGenerationFixture.state(snapshot)
+        val item = PostGenerationFixture.source("press", 3).copy(role = "REGIONAL_TARGET_LOWER_KNEE_HYPERTROPHY")
+        val authorized = PlannedPrescription(
+            "target-compatible 10-rep prescription",
+            List(3) { ProgramSetPrescription(it + 1, 10, 0.0, 0) },
+            90,
+            "TARGET_COMPATIBLE_TEST"
+        )
+        val demand = AuthorizedSchedulingDemand("regional_press", item, authorized, continuity = false)
+        val allocation = SplitAwareContinuityAllocation(PersonalizedPrescriptionPlanner()).allocateAuthorized(
+            snapshot, state, listOf(demand), 3, 60,
+            PostGenerationFixture.plan(listOf(PostGenerationFixture.row("press", 1))).request
+        )
+        assertEquals(authorized, allocation.trace.authorized.single().prescription)
+        assertTrue(allocation.days.values.flatten().all { atom -> atom.timed.prescription.sets.all { it.reps == 10 } })
+    }
+
+    @Test
+    fun regionalFinalizerIsAuditOnlyAndCannotMutatePostReflowPrescription() {
+        val key = "mixed-final"
+        val item = ProgramSkeletonItem(
+            localId = "post-reflow", weekNumber = 1, dayOfWeek = 1, orderIndex = 1, exerciseStableKey = key,
+            exerciseName = key, category = "TEST", restSeconds = 90, prescription = "ordinary five-rep",
+            setCount = 3, reps = 5, weightKg = 100.0, seconds = 0, selectionReason = "TEST", weightSource = "HISTORY",
+            selectionRole = "REGIONAL_ROLE",
+            setPrescriptions = List(3) { ProgramSetPrescription(it + 1, 5, 100.0, 0) }
+        )
+        val plan = GeneratedProgramSkeleton(
+            "post-reflow", 7,
+            ProgramSkeletonRequest("post-reflow", com.training.trackplanner.data.ProgramGoal.STRENGTH, 1, 60,
+                emptySet(), "", 0.0, "AUTO", ProgramPeriodizationType.AUTO, 1),
+            ProgramPeriodizationType.AUTO, emptyList(), listOf(item)
+        )
+        val result = RegionalTargetAwareFinalizer().apply(
+            plan, PostGenerationFixture.snapshot(),
+            mapOf(key to RegionalStimulusTarget(MovementCoverage.LOWER_KNEE, TrainableQuality.HYPERTROPHY,
+                RegionalTargetAction.ADD_SUPPORT, RegionalNumericAuthority.FULL_WINDOW_PERSONAL_BAND, 3.0)),
+            mapOf("$key|REGIONAL_ROLE" to RegionalStimulusTarget(MovementCoverage.LOWER_KNEE, TrainableQuality.HYPERTROPHY,
+                RegionalTargetAction.ADD_SUPPORT, RegionalNumericAuthority.FULL_WINDOW_PERSONAL_BAND, 3.0))
+        )
+        assertSame(plan, result)
+        assertTrue(result.items.single().setPrescriptions.all { it.reps == 5 })
+    }
+
+    @Test
+    fun sameRegionUnrelatedQualitySurvivesTypedOwnershipForHoldOrNoChange() {
+        val base = PostGenerationFixture.snapshot()
+        val strengthKey = "lower-strength"
+        val hyperKey = "lower-hyper"
+        val strengthExercise = Exercise(strengthKey, strengthKey, "RESISTANCE", equipment = "BODYWEIGHT")
+        val hyperExercise = Exercise(hyperKey, hyperKey, "RESISTANCE", equipment = "BODYWEIGHT")
+        val lowerMeta = base.metadata.getValue("squat")
+        val snapshot = base.copy(
+            allConfirmedSets = base.allConfirmedSets + PlanningSetRecord(base.cutoff.minusDays(2), strengthKey, strengthKey, "RESISTANCE", 1, 5, 100.0, 0, 8.0),
+            exercises = base.exercises + (strengthKey to strengthExercise) + (hyperKey to hyperExercise),
+            metadata = base.metadata + (strengthKey to lowerMeta.copy(stableKey = strengthKey, exerciseName = strengthKey)) +
+                (hyperKey to lowerMeta.copy(stableKey = hyperKey, exerciseName = hyperKey))
+        )
+        val candidates = MaterialDemand(listOf(
+            PlannedExercise(strengthKey, "OTHER_OBJECTIVE", "unrelated strength", 80, targetSets = 2),
+            PlannedExercise(hyperKey, "REGIONAL_DUPLICATE", "owned hyper", 80, targetSets = 2)
+        ), emptyMap(), emptyMap())
+        val relations = listOf(
+            ExercisePhysicalQualityRelation("strength", strengthKey, TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY,
+                PhysicalQualityRegion.LOWER, PhysicalQualityMode.SQUAT, true, "TEST", setOf("TEST"), "PASS", ""),
+            ExercisePhysicalQualityRelation("hyper", hyperKey, TrainableQuality.HYPERTROPHY, StimulusCapabilityLevel.DIRECT_CAPABILITY,
+                PhysicalQualityRegion.LOWER, PhysicalQualityMode.SQUAT, true, "TEST", setOf("TEST"), "PASS", "")
+        )
+        val filtered = RegionalMaterialDemandOwnershipFilter.filter(
+            candidates, snapshot, PostGenerationFixture.state(snapshot),
+            setOf(RegionalOwnershipKey(MovementCoverage.LOWER_KNEE, TrainableQuality.HYPERTROPHY)),
+            catalog = CanonicalExercisePhysicalQualityCatalog.of(relations)
+        )
+        assertTrue(filtered.candidates.any { it.stableKey == strengthKey })
+        assertFalse(filtered.candidates.any { it.stableKey == hyperKey })
     }
 
     private fun representation(key: String, priority: RepresentationPriority) = MovementExposureRepresentation(

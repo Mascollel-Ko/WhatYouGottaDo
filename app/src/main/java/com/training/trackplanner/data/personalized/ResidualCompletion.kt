@@ -110,14 +110,15 @@ internal class ResidualCompletion(private val prescriptions: PersonalizedPrescri
     fun complete(initial: GeneratedProgramSkeleton, snapshot: PlanningHistorySnapshot, state: AthletePlanningState,
         gaps: List<AdaptationGap>, authorized: List<AuthorizedPrescription>, envelope: WeeklyCapacityEnvelope,
         atoms: Map<String, String>, sources: Map<String, PlannedExercise>, explicitDays: Boolean,
-        projection: PlanDayProjection?, origins: Map<String, AuthorizedAtomOrigin>? = null): CompletionResult {
+        projection: PlanDayProjection?, origins: Map<String, AuthorizedAtomOrigin>? = null,
+        prescriptionFor: ((PlannedExercise, Int) -> PlannedPrescription?)? = null): CompletionResult {
         val fingerprint = personalizedProgramFingerprint(initial.request, initial.items)
         fun unchanged(code: String) = CompletionResult(initial, ResidualCompletionTrace(code, fingerprint, fingerprint,
             snapshot.cutoff.plusDays(1).toString()), null, sources, null)
         val week = RepresentativeWeek.derive(initial, atoms) ?: return unchanged("POST_PROCESS_SKIPPED_NON_ISOMORPHIC_WEEKS")
         if (projection == null) return unchanged("POST_PROCESS_SKIPPED_MISSING_CANONICAL_PROJECTION")
         return try {
-            run(initial, snapshot, state, gaps, authorized, envelope, week, sources, explicitDays, projection, origins)
+            run(initial, snapshot, state, gaps, authorized, envelope, week, sources, explicitDays, projection, origins, prescriptionFor)
         } catch (failure: Exception) {
             if (failure is java.util.concurrent.CancellationException) throw failure
             unchanged("POST_PROCESS_FAILED_SAFE_INITIAL_SKELETON")
@@ -127,7 +128,8 @@ internal class ResidualCompletion(private val prescriptions: PersonalizedPrescri
     private fun run(initial: GeneratedProgramSkeleton, snapshot: PlanningHistorySnapshot, state: AthletePlanningState,
         gaps: List<AdaptationGap>, authorized: List<AuthorizedPrescription>, envelope: WeeklyCapacityEnvelope,
         week: RepresentativeWeek, sources: Map<String, PlannedExercise>, explicitDays: Boolean, projection: PlanDayProjection,
-        origins: Map<String, AuthorizedAtomOrigin>?): CompletionResult {
+        origins: Map<String, AuthorizedAtomOrigin>?,
+        prescriptionFor: ((PlannedExercise, Int) -> PlannedPrescription?)?): CompletionResult {
         val demand = AuthorizedPlanningDemand(snapshot, authorized, gaps, week.items)
         val primaryKeys = PrimaryStrengthAnchorSpacingPolicy.keys(snapshot, state,
             authorized.filter { it.continuity }.mapTo(mutableSetOf()) { it.item.stableKey })
@@ -179,7 +181,10 @@ internal class ResidualCompletion(private val prescriptions: PersonalizedPrescri
                 var trial = candidate
                 // A flexible prescription is re-issued by its existing authority at each smaller count.
                 while (trial.targetSets > 0) {
-                    val rx = try { prescriptions.prescribe(snapshot, state.strengthIntent, trial, trial.style) }
+                    val rx = try {
+                        prescriptionFor?.invoke(trial, trial.targetSets)
+                            ?: prescriptions.prescribe(snapshot, state.strengthIntent, trial, trial.style)
+                    }
                         catch (_: IllegalArgumentException) { break }
                     val delta = definition.contribution(snapshot, trial.stableKey, trial.styleVariant, rx.sets.size)
                     val units = rows.sumOf { it.setPrescriptions.size } + rx.sets.size

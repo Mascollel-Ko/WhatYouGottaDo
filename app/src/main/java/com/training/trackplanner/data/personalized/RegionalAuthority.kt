@@ -303,14 +303,28 @@ data class RegionalOwnershipKey(
     val quality: TrainableQuality
 )
 
+data class RegionalSelectionIdentity(
+    val stableKey: String,
+    val selectionRole: String
+)
+
 /** The side table keeps a selected exercise linked to its target without changing PlannedExercise. */
 data class RegionalExperimentalTargetPlan(
     val demand: MaterialDemand,
     val targetByStableKey: Map<String, RegionalStimulusTarget>,
     val ownedKeys: Set<RegionalOwnershipKey>,
     val targetBySelectionRole: Map<String, RegionalStimulusTarget> = emptyMap(),
-    val blockedRegions: Set<MovementCoverage> = emptySet()
-)
+    val authorizedPrescriptionBySelectionRole: Map<RegionalSelectionIdentity, PlannedPrescription> = emptyMap()
+) {
+    /** Exact composite identity; stableKey alone is not sufficient when one exercise has multiple roles. */
+    fun authorizedPrescriptionFor(item: PlannedExercise, requestedSets: Int = item.targetSets): PlannedPrescription? {
+        val base = authorizedPrescriptionBySelectionRole[RegionalSelectionIdentity(item.stableKey, item.role)] ?: return null
+        val count = requestedSets.coerceAtLeast(1)
+        if (base.sets.size == count) return base
+        val sets = List(count) { index -> base.sets[index % base.sets.size].copy(setIndex = index + 1) }
+        return base.copy(sets = sets)
+    }
+}
 
 /** Candidate selection is typed by MovementCoverage and TrainableQuality. */
 class RegionalTargetCandidateSelector {
@@ -464,7 +478,8 @@ data class RegionalExperimentalMaterialDemand(
 class RegionalExperimentalMaterialDemandBuilder(
     private val requirementResolver: RegionalTrainingDecisionResolver = RegionalTrainingDecisionResolver(),
     private val targetResolver: RegionalStimulusTargetResolver = RegionalStimulusTargetResolver(),
-    private val selector: RegionalTargetCandidateSelector = RegionalTargetCandidateSelector()
+    private val selector: RegionalTargetCandidateSelector = RegionalTargetCandidateSelector(),
+    private val prescriptionResolver: RegionalTargetPrescriptionResolver = RegionalTargetPrescriptionResolver()
 ) {
     fun build(
         diagnoses: List<RegionalBottleneckDiagnosis>,
@@ -486,23 +501,31 @@ class RegionalExperimentalMaterialDemandBuilder(
         val traces = mutableListOf<RegionalAuthorityTrace>()
         val targetByStableKey = linkedMapOf<String, RegionalStimulusTarget>()
         val targetBySelectionRole = linkedMapOf<String, RegionalStimulusTarget>()
+        val authorizedPrescriptionBySelectionRole = linkedMapOf<RegionalSelectionIdentity, PlannedPrescription>()
         val ownedKeys = linkedSetOf<RegionalOwnershipKey>()
-        val blockedRegions = linkedSetOf<MovementCoverage>()
         var candidateCount = 0
+        var prescriptionResolutions = 0
         diagnoses.sortedBy { it.region.ordinal }.forEach { diagnosis ->
             val decision = requirementResolver.resolve(diagnosis)
             val target = targetResolver.resolve(diagnosis)
             if (target.action in setOf(RegionalTargetAction.ADD_SUPPORT, RegionalTargetAction.RESTORE)) {
                 ownedKeys += RegionalOwnershipKey(target.region, target.quality)
-            } else blockedRegions += target.region
             val selection = selector.select(target, snapshot, state, request, control, candidates.map(PlannedExercise::stableKey).toSet(), catalog)
             candidateCount += selection.candidates.size
-            selection.selected?.let {
+            val resolution = selection.selected?.let {
+                prescriptionResolutions++
+                prescriptionResolver.resolve(target, it, snapshot)
+            }
+            val authorized = resolution?.prescription
+            val selected = selection.selected?.takeIf { authorized != null }
+            selected?.let {
                 candidates += it
                 targetByStableKey[it.stableKey] = target
                 targetBySelectionRole["${it.stableKey}|${it.role}"] = target
+                authorizedPrescriptionBySelectionRole[RegionalSelectionIdentity(it.stableKey, it.role)] = authorized!!
             }
             val credit = selection.credit
+            val resolutionReasons = resolution?.reasonCodes.orEmpty()
             traces += RegionalAuthorityTrace(
                 region = diagnosis.region,
                 diagnosis = diagnosis,
@@ -519,40 +542,47 @@ class RegionalExperimentalMaterialDemandBuilder(
                 existingPlannedExposureFrequency = credit?.exposureFrequency ?: 0.0,
                 residualDose = selection.residualUnits,
                 candidatePool = selection.candidates.map(PlannedExercise::stableKey),
-                selectedStableKey = selection.selected?.stableKey,
-                selectionReasons = selection.reasons,
-                prescriptionCompatibility = selection.selected?.let { "TARGET_COMPATIBLE_EXISTING_PRESCRIPTION_AUTHORITY" } ?: "NO_SAFE_AUTHORITY",
+                selectedStableKey = selected?.stableKey,
+                selectionReasons = selection.reasons + resolutionReasons,
+                prescriptionCompatibility = when {
+                    selected != null -> "TARGET_COMPATIBLE_PRESCRIPTION_AUTHORITY"
+                    resolution != null -> "NO_SAFE_COMPATIBLE_PRESCRIPTION"
+                    else -> "NO_SAFE_AUTHORITY"
+                },
                 requestedUnits = target.weeklyDoseTarget?.roundToInt() ?: 0,
-                authorizedUnits = selection.selected?.targetSets ?: 0,
-                finalReasonCodes = target.reasonCodes + selection.reasons
+                authorizedUnits = selected?.targetSets ?: 0,
+                finalReasonCodes = target.reasonCodes + selection.reasons + resolutionReasons
             )
         }
+        val deferred = traces.filter { it.residualDose > 0 && it.selectedStableKey == null }
+            .associate { trace ->
+                "REGIONAL_TARGET_${trace.region.name}_${trace.targetQuality.name}" to
+                    if ("TARGET_PRESENT_BUT_NO_SAFE_COMPATIBLE_PRESCRIPTION" in trace.finalReasonCodes)
+                        "TARGET_PRESENT_BUT_NO_SAFE_COMPATIBLE_PRESCRIPTION"
+                    else "NO_ELIGIBLE_CANDIDATE_OR_CAPACITY"
+            }
+        val materialDemand = MaterialDemand(
+            candidates = candidates,
+            deferred = deferred,
+            audit = candidates.associate { it.stableKey to "SELECTED_REGIONAL_TARGET_CANDIDATE" }
+        )
         return RegionalExperimentalMaterialDemand(
-            demand = MaterialDemand(
-                candidates = candidates,
-                deferred = traces.filter { it.residualDose > 0 && it.selectedStableKey == null }
-                    .associate { "REGIONAL_TARGET_${it.region.name}_${it.targetQuality.name}" to "NO_ELIGIBLE_CANDIDATE_OR_CAPACITY" },
-                audit = candidates.associate { it.stableKey to "SELECTED_REGIONAL_TARGET_CANDIDATE" }
-            ),
+            demand = materialDemand,
             traces = traces,
             counters = RegionalAuthorityCounters(
                 historyRowsIndexed = snapshot.allConfirmedSets.size,
                 regionalDiagnosesProduced = diagnoses.size,
                 regionalTargetsProduced = traces.size,
                 candidatePoolsEvaluated = diagnoses.size,
-                candidateCountEvaluated = candidateCount
+                candidateCountEvaluated = candidateCount,
+                prescriptionResolutions = prescriptionResolutions
             ),
             targetPlan = RegionalExperimentalTargetPlan(
-                demand = MaterialDemand(
-                    candidates = candidates,
-                    deferred = traces.filter { it.residualDose > 0 && it.selectedStableKey == null }
-                        .associate { "REGIONAL_TARGET_${it.region.name}_${it.targetQuality.name}" to "NO_ELIGIBLE_CANDIDATE_OR_CAPACITY" },
-                    audit = candidates.associate { it.stableKey to "SELECTED_REGIONAL_TARGET_CANDIDATE" }
-                ),
+                demand = materialDemand,
                 targetByStableKey = targetByStableKey,
                 ownedKeys = ownedKeys,
                 targetBySelectionRole = targetBySelectionRole,
-                blockedRegions = blockedRegions
+                authorizedPrescriptionBySelectionRole = authorizedPrescriptionBySelectionRole
             )
         )
     }
@@ -720,11 +750,10 @@ object RegionalMaterialDemandOwnershipFilter {
         snapshot: PlanningHistorySnapshot,
         state: AthletePlanningState,
         ownedKeys: Set<RegionalOwnershipKey>,
-        blockedRegions: Set<MovementCoverage> = emptySet(),
         planner: PersonalizedPrescriptionPlanner = PersonalizedPrescriptionPlanner(),
         catalog: CanonicalExercisePhysicalQualityCatalog = CanonicalExercisePhysicalQualityCatalog.EMPTY
     ): MaterialDemand {
-        if (ownedKeys.isEmpty() && blockedRegions.isEmpty()) return base
+        if (ownedKeys.isEmpty()) return base
         val anchors = state.anchors.mapTo(mutableSetOf(), UserAnchor::stableKey)
         val kept = base.candidates.filter { candidate ->
             if (candidate.stableKey in anchors) return@filter true
@@ -736,13 +765,7 @@ object RegionalMaterialDemandOwnershipFilter {
                     else -> null
                 }
             }.toSet()
-            blockedRegions.none { blocked ->
-                catalog.relations(candidate.stableKey).any { relation ->
-                    relation.qualityId in actualQualities &&
-                        relation.relationLevel == com.training.trackplanner.data.StimulusCapabilityLevel.DIRECT_CAPABILITY &&
-                        regionalRegionQualifierMatches(blocked, relation.regionQualifier)
-                }
-            } && ownedKeys.none { owned ->
+            ownedKeys.none { owned ->
                 owned.quality in actualQualities && catalog.relations(candidate.stableKey).any { relation ->
                     relation.qualityId == owned.quality &&
                         relation.relationLevel == com.training.trackplanner.data.StimulusCapabilityLevel.DIRECT_CAPABILITY &&
@@ -818,44 +841,15 @@ class FinalRegionalStimulusProjector {
     }
 }
 
-/** Applies target prescriptions only to the experimental side-table identities. */
-class RegionalTargetAwareFinalizer(
-    private val resolver: RegionalTargetPrescriptionResolver = RegionalTargetPrescriptionResolver()
-) {
+/** Post-reflow hook is intentionally observation-only; target prescriptions are immutable before feasibility. */
+class RegionalTargetAwareFinalizer {
     fun apply(
         plan: GeneratedProgramSkeleton,
         snapshot: PlanningHistorySnapshot,
         targetByStableKey: Map<String, RegionalStimulusTarget>,
         targetBySelectionRole: Map<String, RegionalStimulusTarget> = emptyMap()
     ): GeneratedProgramSkeleton {
-        if (targetByStableKey.isEmpty() && targetBySelectionRole.isEmpty()) return plan
-        val items = plan.items.mapNotNull { item ->
-            val target = targetBySelectionRole["${item.exerciseStableKey}|${item.selectionRole}"]
-                ?: targetByStableKey[item.exerciseStableKey].takeIf { targetBySelectionRole.isEmpty() }
-            if (target == null) return@mapNotNull item
-            val planned = PlannedExercise(
-                stableKey = item.exerciseStableKey,
-                role = item.selectionRole.ifBlank { item.trainingSlot },
-                reason = item.selectionReason,
-                priority = 0,
-                targetSets = (if (item.setPrescriptions.isNotEmpty()) item.setPrescriptions.size else item.setCount).coerceAtLeast(1)
-            )
-            val resolved = resolver.resolve(target, planned, snapshot).prescription ?: return@mapNotNull null
-            val sets = resolved.sets.mapIndexed { index, set -> set.copy(setIndex = index + 1) }
-            val estimated = sets.sumOf { it.seconds.coerceAtLeast(0) } +
-                (sets.size - 1).coerceAtLeast(0) * item.restSeconds
-            item.copy(
-                prescription = resolved.text,
-                setCount = sets.size,
-                reps = sets.firstOrNull()?.reps ?: item.reps,
-                weightKg = sets.firstOrNull()?.weightKg ?: item.weightKg,
-                seconds = sets.firstOrNull()?.seconds ?: item.seconds,
-                weightSource = resolved.weightSource,
-                estimatedDurationSeconds = estimated,
-                setPrescriptions = sets
-            )
-        }
-        return plan.copy(items = items)
+        return plan
     }
 }
 

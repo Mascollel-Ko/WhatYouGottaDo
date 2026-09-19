@@ -346,9 +346,8 @@ class PersonalizedProgramBuilder(
         val result = if (reviewed.trace.state == "NOT_APPLICABLE_NO_MANDATORY_SPLIT") placed
             else reviewed.skeleton.copy(personalizedDecision = reviewed.skeleton.personalizedDecision?.copy(postSplitReflow = reviewed.trace))
         lastPerformanceMetrics = performanceMetrics.asMap()
-        return regionalTargetPlan?.let {
-            RegionalTargetAwareFinalizer().apply(result, snapshot, it.targetByStableKey, it.targetBySelectionRole)
-        } ?: result
+        // Regional prescriptions were authorized before placement and are now only audited.
+        return result
     }
 
     private fun buildBeforeReflow(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, gaps: List<AdaptationGap>, intent: BlockIntent,
@@ -371,7 +370,8 @@ class PersonalizedProgramBuilder(
             performanceMetrics = performanceMetrics, materialDemandOverride = materialDemandOverride,
             regionalTargetPlan = regionalTargetPlan)
         progress.report(PersonalizedPlannerStage.EXPANSION)
-        return FrequencyExpansionPlanner(generationPrescriptions, performanceMetrics).expand(snapshot, state, request, base, frequency) { authorized, capacity ->
+        return FrequencyExpansionPlanner(generationPrescriptions, performanceMetrics).expand(snapshot, state, request, base, frequency,
+            prescriptionFor = regionalTargetPlan?.let { plan -> { item, count -> plan.authorizedPrescriptionFor(item, count) } }) { authorized, capacity ->
             progress.report(PersonalizedPlannerStage.EXPANSION_RECHECK)
             var result: CompletionResult? = null
             buildCore(snapshot, state, gaps, intent, horizon, request, answers, priorDecisionId, true, frequency, authorized, capacity,
@@ -422,7 +422,7 @@ class PersonalizedProgramBuilder(
         val schedulingContinuityDemand = schedulingContinuityReference.roundToInt().coerceAtLeast(if (state.anchors.isEmpty()) 0 else 1)
         val baseDemand = MaterialDemandResolver(generationPrescriptions).resolve(snapshot, state, gaps, request)
         val ownedBaseDemand = regionalTargetPlan?.let {
-            RegionalMaterialDemandOwnershipFilter.filter(baseDemand, snapshot, state, it.ownedKeys, it.blockedRegions, generationPrescriptions)
+            RegionalMaterialDemandOwnershipFilter.filter(baseDemand, snapshot, state, it.ownedKeys, generationPrescriptions)
         } ?: baseDemand
         val demand = when {
             regionalTargetPlan != null -> mergeTypedMaterialDemand(ownedBaseDemand, regionalTargetPlan.demand, regionalTargetPlan.targetByStableKey.keys)
@@ -535,9 +535,18 @@ class PersonalizedProgramBuilder(
         require(selected.isNotEmpty()) { "NO_EXECUTABLE_PLANNING_DEMAND" }
         progress.report(PersonalizedPlannerStage.PLACEMENT)
         val allocator = SplitAwareContinuityAllocation(generationPrescriptions, progress, placementContext, performanceMetrics)
-        val placement = if (authorizedOverride == null) allocator.allocate(
-            snapshot, state, continuity, gapItems, optional, days, request.sessionMinutes, request)
-        else allocator.allocateAuthorized(snapshot, state, authorizedOverride, days, request.sessionMinutes, request)
+        val regionalAuthorized = if (regionalTargetPlan != null && authorizedOverride == null) {
+            selected.mapIndexed { index, item ->
+                val prescription = regionalTargetPlan.authorizedPrescriptionFor(item)
+                    ?: generationPrescriptions.prescribe(snapshot, state.strengthIntent, item, item.style)
+                AuthorizedSchedulingDemand("authorized_$index", item, prescription, index < continuity.size)
+            }
+        } else null
+        val placement = when {
+            authorizedOverride != null -> allocator.allocateAuthorized(snapshot, state, authorizedOverride, days, request.sessionMinutes, request)
+            regionalAuthorized != null -> allocator.allocateAuthorized(snapshot, state, regionalAuthorized, days, request.sessionMinutes, request)
+            else -> allocator.allocate(snapshot, state, continuity, gapItems, optional, days, request.sessionMinutes, request)
+        }
         progress.report(PersonalizedPlannerStage.FEASIBILITY)
         val timed = placement.days.values.flatten().map { it.timed }
         val logical = placement.days
@@ -676,7 +685,8 @@ class PersonalizedProgramBuilder(
                 "POST_PROCESS_FAILED_SAFE_AUTHORIZED_PRESCRIPTION", fingerprint, fingerprint, snapshot.cutoff.plusDays(1).toString())))
         }
         val completion = ResidualCompletion(generationPrescriptions, progress).complete(initialSkeleton, snapshot, state, gaps,
-            authorized, envelope, postProcessAtoms, postProcessSources, explicitWeeklyDays, snapshot.planDayProjection, postProcessOrigins)
+            authorized, envelope, postProcessAtoms, postProcessSources, explicitWeeklyDays, snapshot.planDayProjection, postProcessOrigins,
+            regionalTargetPlan?.let { plan -> { item, count -> plan.authorizedPrescriptionFor(item, count) } })
         val completedWeek = completion.skeleton.items.filter { it.weekNumber == 1 }
         fun completedUnits(kind: PlannedActivityKind) = completedWeek.filter { snapshot.activityKind(it.exerciseStableKey) == kind }
             .sumOf { it.setPrescriptions.size }

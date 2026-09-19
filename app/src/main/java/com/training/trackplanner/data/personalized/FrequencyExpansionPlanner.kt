@@ -45,7 +45,8 @@ data class FrequencyExpansionTrace(val algorithmRecommendedDays: Int, val userSe
 
 /** Only the original candidate's existing flexible prescription may release an unfunded portion. */
 internal fun frequencyPortion(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, candidate: CapacityCandidateTrace,
-    limit: Int, prescriptions: PersonalizedPrescriptionPlanner): PlannedPrescription? {
+    limit: Int, prescriptions: PersonalizedPrescriptionPlanner,
+    prescriptionFor: ((PlannedExercise, Int) -> PlannedPrescription?)? = null): PlannedPrescription? {
     val remainder = candidate.prescription.sets.drop(candidate.fundedBaseUnits)
     if (remainder.isEmpty() || limit <= 0) return null
     if (candidate.fundedBaseUnits == 0 && remainder.size <= limit) return candidate.prescription
@@ -53,7 +54,8 @@ internal fun frequencyPortion(snapshot: PlanningHistorySnapshot, state: AthleteP
         candidate.item.style !in setOf(StrengthProgrammingStyle.NONE, StrengthProgrammingStyle.STRAIGHT_5X5, StrengthProgrammingStyle.STRAIGHT_STRENGTH_SETS) ||
         candidate.prescription.sets.map { it.copy(setIndex = 0) }.distinct().size != 1) return null
     for (count in minOf(limit, remainder.size) downTo 1) {
-        val rx = prescriptions.prescribe(snapshot, state.strengthIntent, candidate.item.copy(targetSets = count), candidate.item.style)
+        val rx = prescriptionFor?.invoke(candidate.item, count)
+            ?: prescriptions.prescribe(snapshot, state.strengthIntent, candidate.item.copy(targetSets = count), candidate.item.style)
         if (rx.sets.size == count && rx.restSeconds == candidate.prescription.restSeconds && rx.weightSource == candidate.prescription.weightSource &&
             rx.sets.map { it.copy(setIndex = 0) } == remainder.take(count).map { it.copy(setIndex = 0) }) return rx
     }
@@ -64,6 +66,7 @@ internal class FrequencyExpansionPlanner(private val prescriptions: Personalized
     private val performanceMetrics: PlannerPerformanceMetrics? = null) {
     fun expand(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, request: ProgramSkeletonRequest,
         base: GeneratedProgramSkeleton, frequency: PlanningFrequencyProvenance,
+        prescriptionFor: ((PlannedExercise, Int) -> PlannedPrescription?)? = null,
         place: (List<AuthorizedSchedulingDemand>, WeeklyCapacityEnvelope) -> CompletionResult): GeneratedProgramSkeleton {
         require(frequency.explicitIncrease)
         val baseDecision = requireNotNull(base.personalizedDecision)
@@ -95,7 +98,7 @@ internal class FrequencyExpansionPlanner(private val prescriptions: Personalized
                 postProcessTissueAllowed(snapshot, state, key) &&
                 (request.availableEquipment.isEmpty() || equipment.all { it == "BODYWEIGHT" || it in request.availableEquipment })
             val remaining = ceiling - b - expansion.sumOf { it.prescription.sets.size }
-            val rx = if (eligible) frequencyPortion(snapshot, state, candidate, remaining, prescriptions) else null
+            val rx = if (eligible) frequencyPortion(snapshot, state, candidate, remaining, prescriptions, prescriptionFor) else null
             val reason = when {
                 !eligible -> "OTHER_EXISTING_HARD_GATE"
                 remaining <= 0 -> if (capacity.finalControllableUnits <= target) "USER_DAY_CAPACITY_LIMIT" else "EXPANSION_CEILING"
@@ -207,7 +210,7 @@ internal class FrequencyExpansionPlanner(private val prescriptions: Personalized
             diagnostic = rejected
             val last = expansion.last()
             val candidate = queue.first { it.originalRank == last.originalRank }
-            val reduced = frequencyPortion(snapshot, state, candidate, last.prescription.sets.size - 1, prescriptions)
+            val reduced = frequencyPortion(snapshot, state, candidate, last.prescription.sets.size - 1, prescriptions, prescriptionFor)
             expansion.removeAt(expansion.lastIndex)
             if (reduced != null) expansion += last.copy(item = last.item.copy(targetSets = reduced.sets.size), prescription = reduced)
             rollbacks += FrequencyExpansionAction(requireNotNull(last.originalRank), last.item.stableKey,

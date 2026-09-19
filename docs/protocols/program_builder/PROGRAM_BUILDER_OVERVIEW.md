@@ -3,15 +3,22 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.24.0 |
+| Protocol version | 3.25.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 74401f22 |
+| Last audited commit | 26aef4cb |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
+
+### 3.25.0 — pre-feasibility regional prescription authorization
+
+- Experimental regional targets authorize one immutable `PlannedPrescription` per exact `stableKey + selectionRole` before capacity, execution allocation, OFI, tissue, session-time, placement, or reflow. Every downstream consumer observes that same target-compatible prescription; the ordinary production planner remains the fallback for non-regional demand.
+- A selected numeric target with `TARGET_PRESENT_BUT_NO_SAFE_COMPATIBLE_PRESCRIPTION` is deferred before material scheduling demand is materialized. The final regional projector validates requested, credited, residual, authorized, target-compatible materialized units, and shortfall after reflow; it never repairs or rewrites prescriptions.
+- Regional ownership suppression is scoped to the typed owned `MovementCoverage × TrainableQuality` key, direct capability, and actual prescription shape. HOLD/NO_CHANGE does not block unrelated demand that happens to share a movement region.
+- `RegionalTargetAwareFinalizer` is observation-only. There is no post-feasibility prescription mutation, while CONTROL remains unchanged and never receives the experimental authorization side table.
 
 ### 3.24.0 — target-compatible regional materialization and ownership
 
