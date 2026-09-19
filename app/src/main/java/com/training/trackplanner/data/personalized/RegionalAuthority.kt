@@ -303,17 +303,22 @@ data class RegionalOwnershipKey(
     val quality: TrainableQuality
 )
 
+data class RegionalSelectionIdentity(
+    val stableKey: String,
+    val selectionRole: String
+)
+
 /** The side table keeps a selected exercise linked to its target without changing PlannedExercise. */
 data class RegionalExperimentalTargetPlan(
     val demand: MaterialDemand,
     val targetByStableKey: Map<String, RegionalStimulusTarget>,
     val ownedKeys: Set<RegionalOwnershipKey>,
     val targetBySelectionRole: Map<String, RegionalStimulusTarget> = emptyMap(),
-    val authorizedPrescriptionBySelectionRole: Map<String, PlannedPrescription> = emptyMap()
+    val authorizedPrescriptionBySelectionRole: Map<RegionalSelectionIdentity, PlannedPrescription> = emptyMap()
 ) {
     /** Exact composite identity; stableKey alone is not sufficient when one exercise has multiple roles. */
     fun authorizedPrescriptionFor(item: PlannedExercise, requestedSets: Int = item.targetSets): PlannedPrescription? {
-        val base = authorizedPrescriptionBySelectionRole["${item.stableKey}|${item.role}"] ?: return null
+        val base = authorizedPrescriptionBySelectionRole[RegionalSelectionIdentity(item.stableKey, item.role)] ?: return null
         val count = requestedSets.coerceAtLeast(1)
         if (base.sets.size == count) return base
         val sets = List(count) { index -> base.sets[index % base.sets.size].copy(setIndex = index + 1) }
@@ -496,7 +501,7 @@ class RegionalExperimentalMaterialDemandBuilder(
         val traces = mutableListOf<RegionalAuthorityTrace>()
         val targetByStableKey = linkedMapOf<String, RegionalStimulusTarget>()
         val targetBySelectionRole = linkedMapOf<String, RegionalStimulusTarget>()
-        val authorizedPrescriptionBySelectionRole = linkedMapOf<String, PlannedPrescription>()
+        val authorizedPrescriptionBySelectionRole = linkedMapOf<RegionalSelectionIdentity, PlannedPrescription>()
         val ownedKeys = linkedSetOf<RegionalOwnershipKey>()
         var candidateCount = 0
         var prescriptionResolutions = 0
@@ -518,7 +523,7 @@ class RegionalExperimentalMaterialDemandBuilder(
                 candidates += it
                 targetByStableKey[it.stableKey] = target
                 targetBySelectionRole["${it.stableKey}|${it.role}"] = target
-                authorizedPrescriptionBySelectionRole["${it.stableKey}|${it.role}"] = authorized!!
+                authorizedPrescriptionBySelectionRole[RegionalSelectionIdentity(it.stableKey, it.role)] = authorized!!
             }
             val credit = selection.credit
             val resolutionReasons = resolution?.reasonCodes.orEmpty()
