@@ -38,7 +38,7 @@ private fun separationCanonical(value: Any?): String = when (value) {
             // These are additive authority/audit traces.  The a53f419 golden
             // intentionally continues to compare placement and prescriptions.
             "courtBaselineLoad", "recentCourtLoad", "courtDeviation", "lowerNegativeEvidence", "courtInterference",
-            "athleteNeedsProfile"
+            "athleteNeedsProfile", "trainingDecisionPortfolio", "targetStimulusPlan", "targetPlanComparison"
         ) ||
         value is PlanningBudget && it.name in setOf("resistance", "domains") ||
         value is WeeklyCapacityEnvelope && it.name == "domainBudget" }

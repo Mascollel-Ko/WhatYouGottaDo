@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.18.1 |
+| Protocol version | 3.19.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
@@ -12,6 +12,16 @@
 | Supersedes | — |
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
+
+### 3.19.0 — shadow target portfolio and dose envelopes
+
+- The post-generation shadow sequence is `GeneratedProgramSkeleton → AthleteNeedsProfile → TrainingDecisionPortfolio → TargetStimulusPlan → TargetPlanComparison`. None of these new traces is read by selection, sets, reps, load, frequency, placement, or execution allocation.
+- Need is not dose. Dose is not schedule. `TrainingDecisionPortfolio` expresses a strategy (`HOLD_SUCCESSFUL_DOSE`, `RESTORE_PERSONAL_BASELINE`, `INTRODUCE_DIRECT_STIMULUS`, and related directional actions); `TargetStimulusPlan` expresses a target envelope only when personal successful-dose evidence supports a numeric band.
+- Positive response does not automatically authorize more volume. `HOLD_DOSE_ALLOW_PROGRESSION` preserves the personal Q25/median/Q75 exposure band and leaves load/reps/performance progression to existing authorities.
+- No-extra-need does not mean zero exposure. `NO_MINIMUM_TARGET` leaves numeric targets null and records that incidental/supportive exposure remains allowed.
+- Personal successful dose is preferred over invented universal volume. Novel stimulus without a personal direct baseline remains `DIRECTION_ONLY` with null numeric targets.
+- Direct and supportive exposure remain separate; supportive exposure is not numerically exchangeable with direct exposure. Quality target envelopes overlap and are not additive weekly workload budgets.
+- Planned capability coverage is an audit approximation, not proof of realized physiological stimulus.
 
 ### 3.18.1 — AthleteNeedsProfile shadow semantics correction
 

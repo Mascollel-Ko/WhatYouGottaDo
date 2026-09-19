@@ -352,7 +352,11 @@ data class PersonalizedPlanningDecision(
     val lowerNegativeEvidence: Double = 0.0,
     val courtInterference: Double = 0.0,
     /** Shadow/audit trace only. It has no prescription or selection authority. */
-    val athleteNeedsProfile: AthleteNeedsProfile? = null
+    val athleteNeedsProfile: AthleteNeedsProfile? = null,
+    /** Additive shadow layers; existing planner consumers must not read these fields. */
+    val trainingDecisionPortfolio: TrainingDecisionPortfolio? = null,
+    val targetStimulusPlan: TargetStimulusPlan? = null,
+    val targetPlanComparison: TargetPlanComparison? = null
 )
 
 sealed interface PersonalizedPlanningOutcome {

@@ -134,6 +134,30 @@ class TrainingStateRealBackupComparisonTest {
                 appendLine("ATHLETE_NEEDS_TASK task|relevance|directUnits|supportiveUnits|contextLoad|decision")
                 needs.sportTaskNeeds.forEach { need -> appendLine(listOf(need.task, need.relevance, need.structuredDirectUnits,
                     need.structuredSupportiveUnits, need.sportContextLoad, need.decision).joinToString("|")) }
+                decision.trainingDecisionPortfolio?.let { portfolio ->
+                    appendLine("TRAINING_DECISION quality|need|action|priority|confidence")
+                    portfolio.qualityDecisions.forEach { row -> appendLine(listOf(row.quality, row.needDecision, row.action, row.priority, row.confidence).joinToString("|")) }
+                    appendLine("TRAINING_DECISION_TASK task|need|action|priority|confidence|explicitUserTaskPriority")
+                    portfolio.taskDecisions.forEach { row -> appendLine(listOf(row.task, row.needDecision, row.action, row.priority, row.confidence, row.explicitUserTaskPriority).joinToString("|")) }
+                }
+                decision.targetStimulusPlan?.let { targetPlan ->
+                    appendLine("TARGET_STIMULUS quality|source|q25|median|q75|targetMin|targetPreferred|targetMax|numericAuthority")
+                    targetPlan.qualityTargets.forEach { row -> appendLine(listOf(row.quality, row.baseline?.source, row.baseline?.directUnitsQ25,
+                        row.baseline?.directUnitsMedian, row.baseline?.directUnitsQ75, row.targetDirectUnitsMin,
+                        row.targetDirectUnitsPreferred, row.targetDirectUnitsMax, row.numericAuthority).joinToString("|")) }
+                    appendLine("TARGET_STIMULUS_TASK task|source|q25|median|q75|targetMin|targetPreferred|targetMax|numericAuthority")
+                    targetPlan.taskTargets.forEach { row -> appendLine(listOf(row.task, row.baseline?.source, row.baseline?.directUnitsQ25,
+                        row.baseline?.directUnitsMedian, row.baseline?.directUnitsQ75, row.targetDirectUnitsMin,
+                        row.targetDirectUnitsPreferred, row.targetDirectUnitsMax, row.numericAuthority).joinToString("|")) }
+                }
+                decision.targetPlanComparison?.let { comparison ->
+                    appendLine("TARGET_COMPARISON quality|plannedCapabilityUnits|targetMin|targetPreferred|targetMax|status")
+                    comparison.qualityComparisons.forEach { row -> appendLine(listOf(row.quality, row.plannedCapabilityUnits,
+                        row.targetMin, row.targetPreferred, row.targetMax, row.status).joinToString("|")) }
+                    appendLine("TARGET_COMPARISON_TASK task|plannedCapabilityUnits|targetMin|targetPreferred|targetMax|status")
+                    comparison.taskComparisons.forEach { row -> appendLine(listOf(row.task, row.plannedCapabilityUnits,
+                        row.targetMin, row.targetPreferred, row.targetMax, row.status).joinToString("|")) }
+                }
                 plan.items.forEach { appendLine("W${it.weekNumber}/D${it.dayOfWeek} ${it.exerciseName} [${it.exerciseStableKey}] domain=${snapshot.activityKind(it.exerciseStableKey)} role=${it.trainingSlot} ${it.setPrescriptions} rest=${it.restSeconds} seconds=${it.estimatedDurationSeconds}") }
             })
             run {

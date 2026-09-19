@@ -1,5 +1,24 @@
 # AthleteNeedsProfile shadow comparison
 
+## Shadow target portfolio
+
+The post-generation audit sequence is now:
+
+`GeneratedProgramSkeleton → AthleteNeedsProfile → TrainingDecisionPortfolio → TargetStimulusPlan → TargetPlanComparison`.
+
+Need is not dose. Dose is not schedule. The portfolio expresses an ordinal
+strategy, while the target plan supplies numeric direct-dose envelopes only
+when a personal successful-dose baseline exists. Positive response does not
+automatically authorize more volume. `NO_MINIMUM_TARGET` is not target zero;
+incidental and supportive exposure remain allowed. A novel stimulus without
+personal dose history remains direction-only. Supportive exposure is not
+numerically exchangeable with direct exposure. Quality target envelopes are
+overlapping semantic views, not additive weekly workload budgets.
+
+Comparison labels are `PLANNED_CAPABILITY_COVERAGE`; they are an audit
+approximation and not proof of realized physiological stimulus. Domain volume
+baseline and quality stimulus baseline are separate contracts.
+
 This is an audit trace beside the existing `AdaptationGapAnalyzer`. It does
 not feed exercise selection, weekly volume, sets, reps, load, frequency,
 placement, or any execution allocator.

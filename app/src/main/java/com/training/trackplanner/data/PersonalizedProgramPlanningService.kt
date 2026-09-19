@@ -24,6 +24,11 @@ import com.training.trackplanner.data.personalized.PersonalizedPlannerProgressRe
 import com.training.trackplanner.data.personalized.PersonalizedPlannerStage
 import com.training.trackplanner.data.personalized.PlanningHistorySnapshotBuilder
 import com.training.trackplanner.data.personalized.AthleteNeedsProfileEngine
+import com.training.trackplanner.data.personalized.QualityDoseHistoryAnalyzer
+import com.training.trackplanner.data.personalized.TargetPlanComparisonEngine
+import com.training.trackplanner.data.personalized.TargetStimulusPlanEngine
+import com.training.trackplanner.data.personalized.TrainingDecisionPortfolioEngine
+import com.training.trackplanner.data.personalized.toJson
 import com.training.trackplanner.data.personalized.PlanningHorizonPlanner
 import com.training.trackplanner.data.personalized.WeeklyDosePlanner
 import com.training.trackplanner.data.personalized.PlanningQuestionPolicy
@@ -36,7 +41,6 @@ import com.training.trackplanner.data.personalized.InterruptionCause
 import com.training.trackplanner.data.personalized.InterruptionFrequency
 import com.training.trackplanner.data.personalized.QUESTION_INTERRUPTION_CAUSE
 import com.training.trackplanner.data.personalized.QUESTION_INTERRUPTION_FREQUENCY
-import com.training.trackplanner.data.personalized.toJson
 import com.training.trackplanner.data.personalized.WeeklyContextAnnotationJson
 import com.training.trackplanner.data.personalized.weekAnnotations
 import com.training.trackplanner.data.personalized.completedTrainingWeekEnd
@@ -134,6 +138,21 @@ internal class PersonalizedProgramPlanningService(
                 athleteNeedsProfile = athleteNeedsProfileEngine.analyze(snapshot, state, physicalQualityCatalog)
             )
         )
+        val decision = withShadowNeeds.personalizedDecision
+        val needs = decision?.athleteNeedsProfile
+        if (decision != null && needs != null) {
+            val doseHistory = QualityDoseHistoryAnalyzer().analyze(snapshot, state, physicalQualityCatalog)
+            val portfolio = TrainingDecisionPortfolioEngine().build(needs, doseHistory)
+            val targetPlan = TargetStimulusPlanEngine().build(portfolio, doseHistory)
+            val comparison = TargetPlanComparisonEngine().compare(targetPlan, withShadowNeeds, snapshot, physicalQualityCatalog)
+            return com.training.trackplanner.data.personalized.bindSplitParentProgression(withShadowNeeds.copy(
+                personalizedDecision = decision.copy(
+                    trainingDecisionPortfolio = portfolio,
+                    targetStimulusPlan = targetPlan,
+                    targetPlanComparison = comparison
+                )
+            ))
+        }
         return com.training.trackplanner.data.personalized.bindSplitParentProgression(withShadowNeeds)
     }
 
@@ -311,6 +330,9 @@ internal class PersonalizedProgramPlanningService(
         .put("courtDeviation", courtDeviation)
         .put("lowerNegativeEvidence", lowerNegativeEvidence)
         .put("courtInterference", courtInterference)
+        .put("trainingDecisionPortfolio", trainingDecisionPortfolio?.toJson())
+        .put("targetStimulusPlan", targetStimulusPlan?.toJson())
+        .put("targetPlanComparison", targetPlanComparison?.toJson())
         .put("athleteNeedsProfile", athleteNeedsProfile?.let { profile -> JSONObject()
             .put("generatedAtCutoff", profile.generatedAtCutoff.toString())
             .put("shadowOnly", profile.shadowOnly)
