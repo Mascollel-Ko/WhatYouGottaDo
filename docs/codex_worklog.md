@@ -7441,3 +7441,66 @@ Remaining debt:
 - Extended the deterministic Python fixture with raw-history badminton cases and verified Kotlin parity through the production `BadmintonObjectiveRepresentationAnalyzer`, including direct drops, never-direct evidence, sparse bins, peer-only evidence, supportive transfer and unrelated court activity.
 - Planner runtime protocol is `RECORD_BASED_PLANNER_0.11.1_KOTLIN_1`; canonical protocol is `PROGRAM-BUILDER-OVERVIEW 3.1.1`. No Room schema, Android app version or user-visible localization changed.
 - Verification: Python golden validation passed; focused v0.11/v0.10.1/29-persona suites passed 44/44; full `testDebugUnitTest` ran 1,324 tests with 0 failures and one expected opt-in real-backup skip across 238 suites. The supplied 7.6 MB format-12 real-backup E2E passed 1/1 separately. `assembleDebug`, localization authority/audit and 10/10 localization tests, protocol validation for 8 families and 34 protocols, and `git diff --check` passed.
+
+## 2026-09-20 - Regional frequency prescription provenance verification
+
+- Implementation commit: `44a952a5483694f05c21f1ef406a6e8fbec33aab` (`fix(planner): preserve regional prescriptions through frequency expansion`).
+- Start SHA: `8f54c2ce709eab27d04448c4040f093d25c8e15a`.
+- Protocol: `PROGRAM-BUILDER-OVERVIEW 3.26.0`. CONTROL remains the production default; frozen authority hashes and observation-only finalization were preserved.
+- Exact `stableKey + selectionRole` prescription authority now survives finite-capacity tracing. Typed regional provenance permits only subsets of the carried prescription during frequency expansion and rollback; ordinary CONTROL demand retains its canonical prescription path.
+
+### Core regression results
+
+Both tests passed through actual frequency expansion with algorithm 3 days and explicit user 5 days:
+
+| Target | Authorized prescription | Base funded | Remaining / expanded | Final compatible units | Shortfall |
+|---|---|---|---|---:|---:|
+| LOWER_KNEE HYPERTROPHY | 3 x 10 @ 70 kg | 1 x 10 | 2 x 10 @ 70 kg | 3 | 0 |
+| POSTERIOR_CHAIN STRENGTH | 3 x 4 @ 120 kg | 1 x 4 | 2 x 4 @ 120 kg | 3 | 0 |
+
+One-unit slices also preserve exact reps, load, rest and weight-source semantics. The tests check role identity, ordinary-demand fallback, canonical authorized scheduling and final regional projection.
+
+### Required local test results
+
+The focused run included the real-backup comparison with its external private input enabled. No backup contents or personal program output are included in this log.
+
+| Test class | Tests | Failures | Skips |
+|---|---:|---:|---:|
+| AthleteNeedsProfileTest | 19 | 0 | 0 |
+| AuthorizedPipelineInvariantTest | 2 | 0 | 0 |
+| FrequencyDemandProvenanceTest | 3 | 0 | 0 |
+| FrequencyExpansionPlannerTest | 11 | 0 | 0 |
+| PersonalizedPlannerParityTest | 10 | 0 | 0 |
+| PostGenerationAuthorityFreezeTest | 1 | 0 | 0 |
+| RegionalAuthorityTest | 7 | 0 | 0 |
+| RegionalFrequencyPrescriptionTest | 2 | 0 | 0 |
+| TargetStimulusPlanTest | 17 | 0 | 0 |
+| TrainingStateParityTest | 8 | 0 | 1 |
+| PlannerIsolationArchitectureTest | 5 | 0 | 0 |
+| TrainingStateRealBackupComparisonTest | 1 | 0 | 0 |
+
+- Focused total: 86 tests, 0 failures, 1 expected optional private-Python-artifact skip.
+- `TrainingStateRealBackupComparisonTest`: PASS with the supplied external backup. Production CONTROL and comparison CONTROL matched for all generated rows and the generation fingerprint. Backup save/restore checks passed, preserving imported week annotations.
+- Standard complete `testDebugUnitTest`: PASS, 1,875 tests across 305 classes, 0 failures, 4 optional skips. The standard run omitted private backup input; the required comparison was executed separately with that input.
+- Standard skips: `FrequencyExpansionRealBackupTest`, `RealBackupPersonalizedPlannerE2eTest`, `TrainingStateRealBackupComparisonTest`, and the optional private-artifact case in `TrainingStateParityTest`.
+- `assembleDebug`: PASS.
+- `python scripts/validate_protocol_docs.py`: PASS (9 families, 36 protocols).
+- `node --test tests/community_sharing.test.mjs tests/cloud_backup_current.test.mjs`: 9 PASS, 0 failures.
+- `git diff --check`: PASS.
+
+### Failures and environment limitations retained for review
+
+- An additional opt-in `RealBackupPersonalizedPlannerE2eTest` failed its assertion `Explicit anti-rotation assistance must actually execute` when the supplied backup was enabled in an initial broad run. This assertion was not weakened or changed. The passing standard suite skips that opt-in test, and does not erase this failure.
+- Initial Windows runs encountered a CRLF-sensitive legacy-import architecture assertion and a crash in `robolectric-nativeruntime.dll`. Local legacy source line endings were normalized without a committed semantic/source diff. The successful full run used the installed JDK 17, one test class per JVM and two parallel forks through an external Gradle init script; repository build settings were unchanged.
+- Gradle's initial Unix-domain loopback failure was resolved by using a short external socket temporary directory via `jdk.net.unixdomain.tmpdir`.
+- Real-backup audit findings remain separate from the provenance fix: experimental regional base allocation overfunding and final feasibility concerns were observed. This verification does not endorse promotion of Program B.
+
+### Final implementation CI
+
+- [Android Debug Build #412](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/35485800652), push-triggered for `44a952a5483694f05c21f1ef406a6e8fbec33aab`.
+- Validate canonical protocol documentation: SUCCESS.
+- Run debug unit tests: SUCCESS.
+- Assemble debug APK: SUCCESS.
+- APK signer verification and upload: SUCCESS.
+- Workflow conclusion: SUCCESS (completed 2026-09-20 UTC).
+- Implementation push was non-force; working tree was clean and HEAD equaled origin/main after verification.
