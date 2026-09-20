@@ -14,11 +14,13 @@ data class PlanningFrequencyProvenance(val recommendation: WeeklyFrequencyEviden
 }
 
 enum class PlanningFundingSource { BASE, USER_FREQUENCY_EXPANSION }
+enum class PrescriptionAuthoritySource { PRODUCTION_CANONICAL, REGIONAL_TARGET_AUTHORIZED }
 enum class CandidateRejectionReason { FUNDED, FINITE_CAPACITY, SAFETY_OR_SEMANTIC_REJECTION, MOVEMENT_ANCHOR_CUTOFF, GLOBAL_ANCHOR_CUTOFF }
 
 /** Original prescription and owner travel with the candidate, including unfunded portions. */
 data class CapacityCandidateTrace(val originalRank: Int, val item: PlannedExercise, val prescription: PlannedPrescription,
-    val fundedBaseUnits: Int, val continuity: Boolean, val rejectionReason: CandidateRejectionReason) {
+    val fundedBaseUnits: Int, val continuity: Boolean, val rejectionReason: CandidateRejectionReason,
+    val prescriptionAuthority: PrescriptionAuthoritySource = PrescriptionAuthoritySource.PRODUCTION_CANONICAL) {
     val requestedUnits: Int get() = prescription.sets.size
     val remainingUnits: Int get() = (requestedUnits - fundedBaseUnits).coerceAtLeast(0)
     val fundingSource: PlanningFundingSource get() = PlanningFundingSource.BASE
@@ -30,6 +32,8 @@ data class CapacityCandidateTrace(val originalRank: Int, val item: PlannedExerci
         .put("style", item.style.name).put("variant", item.styleVariant).put("transition", item.transition?.stableKey)
         .put("prescription", prescription.text).put("prescriptionSource", prescription.weightSource)
         .put("restSeconds", prescription.restSeconds).put("sets", auditSets(prescription.sets)).put("fundingSource", fundingSource.name)
+        .apply { if (prescriptionAuthority == PrescriptionAuthoritySource.REGIONAL_TARGET_AUTHORIZED)
+            put("prescriptionAuthority", prescriptionAuthority.name).put("selectionRole", item.role) }
 }
 
 data class FrequencyDemandProvenance(val frequency: PlanningFrequencyProvenance, val candidates: List<CapacityCandidateTrace>,
@@ -56,12 +60,18 @@ data class FrequencyDemandProvenance(val frequency: PlanningFrequencyProvenance,
 }
 
 internal fun capacityCandidateTrace(snapshot: PlanningHistorySnapshot, state: AthletePlanningState,
-    originals: List<Pair<PlannedExercise, Boolean>>, funded: List<PlannedExercise>, prescriptions: PersonalizedPrescriptionPlanner
+    originals: List<Pair<PlannedExercise, Boolean>>, funded: List<PlannedExercise>, prescriptions: PersonalizedPrescriptionPlanner,
+    authorizedPrescriptionFor: ((PlannedExercise) -> PlannedPrescription?)? = null
 ): List<CapacityCandidateTrace> = originals.mapIndexed { index, (original, continuity) ->
-    val originalPrescription = prescriptions.prescribe(snapshot, state.strengthIntent, original, original.style)
+    val regionalPrescription = authorizedPrescriptionFor?.invoke(original)
+    val originalPrescription = regionalPrescription ?: prescriptions.prescribe(snapshot, state.strengthIntent, original, original.style)
     val fundedItem = funded.firstOrNull { it.stableKey == original.stableKey && it.styleVariant == original.styleVariant &&
-        it.representedGapCodes == original.representedGapCodes }
-    val fundedUnits = fundedItem?.let { prescriptions.prescribe(snapshot, state.strengthIntent, it, it.style).sets.size } ?: 0
+        it.representedGapCodes == original.representedGapCodes && (regionalPrescription == null || it.role == original.role) }
+    val fundedUnits = fundedItem?.let {
+        if (regionalPrescription != null) requireNotNull(authorizedPrescriptionFor?.invoke(it)).sets.size
+        else prescriptions.prescribe(snapshot, state.strengthIntent, it, it.style).sets.size
+    } ?: 0
     CapacityCandidateTrace(index + 1, original, originalPrescription, fundedUnits, continuity,
-        if (fundedUnits < originalPrescription.sets.size) CandidateRejectionReason.FINITE_CAPACITY else CandidateRejectionReason.FUNDED)
+        if (fundedUnits < originalPrescription.sets.size) CandidateRejectionReason.FINITE_CAPACITY else CandidateRejectionReason.FUNDED,
+        if (regionalPrescription != null) PrescriptionAuthoritySource.REGIONAL_TARGET_AUTHORIZED else PrescriptionAuthoritySource.PRODUCTION_CANONICAL)
 }

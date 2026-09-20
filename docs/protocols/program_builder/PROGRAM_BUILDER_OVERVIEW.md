@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.25.0 |
+| Protocol version | 3.26.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
@@ -12,6 +12,13 @@
 | Supersedes | — |
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
+
+### 3.26.0 — regional prescription provenance through frequency expansion
+
+- Regional target-compatible prescriptions survive finite-capacity rejection. `CapacityCandidateTrace` resolves original and funded prescriptions using the same optional exact `stableKey + selectionRole` authority and records typed regional provenance.
+- User frequency expansion releases only subsets of the carried regional prescription, preserving reps, load, time, rest and weight-source semantics. It cannot regenerate regional sets through ordinary production prescription logic, including rollback slices.
+- Final regional materialization observes the true final skeleton after frequency expansion and counts compatible base plus expansion units. Incompatible sets receive no credit; the finalizer remains observation-only.
+- CONTROL retains its existing candidate matching, canonical prescription, frequency slicing, ordering, funding and rollback behavior. The provider defaults to absent and production remains CONTROL.
 
 ### 3.25.0 — pre-feasibility regional prescription authorization
 

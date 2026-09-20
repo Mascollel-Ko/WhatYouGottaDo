@@ -49,6 +49,9 @@ internal fun frequencyPortion(snapshot: PlanningHistorySnapshot, state: AthleteP
     val remainder = candidate.prescription.sets.drop(candidate.fundedBaseUnits)
     if (remainder.isEmpty() || limit <= 0) return null
     if (candidate.fundedBaseUnits == 0 && remainder.size <= limit) return candidate.prescription
+    if (candidate.prescriptionAuthority == PrescriptionAuthoritySource.REGIONAL_TARGET_AUTHORIZED) {
+        return candidate.prescription.copy(sets = remainder.take(limit).mapIndexed { index, set -> set.copy(setIndex = index + 1) })
+    }
     if (snapshot.activityKind(candidate.item.stableKey) != PlannedActivityKind.RESISTANCE || candidate.item.styleVariant.isNotBlank() ||
         candidate.item.style !in setOf(StrengthProgrammingStyle.NONE, StrengthProgrammingStyle.STRAIGHT_5X5, StrengthProgrammingStyle.STRAIGHT_STRENGTH_SETS) ||
         candidate.prescription.sets.map { it.copy(setIndex = 0) }.distinct().size != 1) return null

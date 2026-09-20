@@ -40,6 +40,8 @@ class TrainingStateRealBackupComparisonTest {
         try {
             val repository = TrainingRepository(db, context)
             repository.importRecordsBackup(Uri.fromFile(source!!))
+            val importedAnnotationKeys = WeeklyContextAnnotationJson.read(
+                db.appMetaDao().value(WeeklyContextAnnotationJson.KEY)).keys
             val history = db.workoutDao().allEntriesWithSets()
             val cutoff = history.filter { row -> row.sets.any(WorkoutSet::confirmed) }.maxOf { LocalDate.parse(it.entry.date) }
             val request = ProgramSkeletonRequest("실제 백업 교정 검증", ProgramGoal.BODYBUILDING,4,90,
@@ -65,6 +67,8 @@ class TrainingStateRealBackupComparisonTest {
             val controlRows = plan.items.sortedWith(compareBy({ it.weekNumber }, { it.dayOfWeek }, { it.orderIndex }, { it.exerciseStableKey }))
             val comparisonControlRows = ab.control.items.sortedWith(compareBy({ it.weekNumber }, { it.dayOfWeek }, { it.orderIndex }, { it.exerciseStableKey }))
             assertEquals("CONTROL exercise/set/reps/load/placement parity", controlRows, comparisonControlRows)
+            assertEquals("CONTROL fingerprint parity", plan.personalizedDecision?.originalGenerationFingerprint,
+                ab.control.personalizedDecision?.originalGenerationFingerprint)
             val decision = requireNotNull(plan.personalizedDecision)
             val budget = requireNotNull(decision.planningBudget)
             val needs = requireNotNull(decision.athleteNeedsProfile)
@@ -105,6 +109,29 @@ class TrainingStateRealBackupComparisonTest {
                         .put("supportiveGaps",json(budget.execution?.supportiveGapCodesByStableKey?.get(item.exerciseStableKey).orEmpty()))
                         .put("priorityAuthority",if (transition != null) transition.structureTreatment.name else item.trainingSlot)
                 }))
+            // Private audit only: inspect both true final programs with identical projection inputs.
+            fun finalAudit(program: GeneratedProgramSkeleton): JSONObject {
+                val rows = program.items.filter { it.weekNumber == 1 }
+                val d = requireNotNull(program.personalizedDecision)
+                return JSONObject().put("items", json(rows)).put("request", json(program.request))
+                    .put("fingerprint", d.originalGenerationFingerprint)
+                    .put("regionalDiagnosis", json(d.regionalBottleneckDiagnosis))
+                    .put("regionalDecisions", json(d.regionalTrainingDecisions))
+                    .put("regionalTargets", json(d.regionalStimulusTargets))
+                    .put("emphasis", json(d.programEmphasisLabels))
+                    .put("frequencyDemand", d.frequencyDemand?.toJson())
+                    .put("frequencyExpansion", d.frequencyExpansion?.toJson())
+                    .put("resistanceSets", rows.filter { snapshot.activityKind(it.exerciseStableKey) == PlannedActivityKind.RESISTANCE }.sumOf { it.setCount })
+                    .put("structuredBadmintonBouts", rows.filter { snapshot.activityKind(it.exerciseStableKey) == PlannedActivityKind.STRUCTURED_BADMINTON_DRILL }.sumOf { it.setCount })
+                    .put("athleticBouts", rows.filter { snapshot.activityKind(it.exerciseStableKey) == PlannedActivityKind.ATHLETIC_PERFORMANCE_DRILL }.sumOf { it.setCount })
+                    .put("days", JSONArray(rows.groupBy { it.dayOfWeek }.toSortedMap().map { (day, items) ->
+                        JSONObject().put("day", day).put("minutes", items.sumOf { it.estimatedDurationSeconds } / 60.0)
+                            .put("ofi", json(snapshot.planDayProjection?.evaluate(items)))
+                    }))
+                    .put("tissue", json(snapshot.planWeekTissueProjection?.evaluate(rows,
+                        program.weekPlans.firstOrNull { it.weekIndex == 1 }?.targetRpeMax ?: Double.NaN)))
+            }
+            report.put("finalAuditA", finalAudit(ab.control)).put("finalAuditB", finalAudit(ab.experimental))
             val weeks = plan.items.groupBy { it.weekNumber }.toSortedMap().mapValues { (_,items) ->
                 mapOf("resistanceSets" to items.filter { snapshot.activityKind(it.exerciseStableKey)==PlannedActivityKind.RESISTANCE }.sumOf { it.setCount },
                     "structuredBouts" to items.filter { snapshot.activityKind(it.exerciseStableKey)==PlannedActivityKind.STRUCTURED_BADMINTON_DRILL }.sumOf { it.setCount },
@@ -125,7 +152,7 @@ class TrainingStateRealBackupComparisonTest {
                 assertEquals(actual.toJson().toString(),saved.getJSONObject("trainingStateAssessment").toString())
                 val preferencesBefore=db.appMetaDao().value(PersonalizedProgramPlanningService.PREFERENCES_KEY)
                 val annotationsBefore=db.appMetaDao().value(WeeklyContextAnnotationJson.KEY)
-                assertEquals(answers.weekAnnotations().keys,WeeklyContextAnnotationJson.read(annotationsBefore).keys)
+                assertEquals(importedAnnotationKeys + answers.weekAnnotations().keys,WeeklyContextAnnotationJson.read(annotationsBefore).keys)
                 val roundTrip=File(directory,"v0131_private_roundtrip.csv")
                 repository.exportRecordsBackup(Uri.fromFile(roundTrip))
                 val restoredDb=Room.inMemoryDatabaseBuilder(context,TrainingDatabase::class.java).allowMainThreadQueries().build()

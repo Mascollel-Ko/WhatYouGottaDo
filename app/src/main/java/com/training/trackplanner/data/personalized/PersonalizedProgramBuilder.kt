@@ -529,7 +529,8 @@ class PersonalizedProgramBuilder(
             performanceContinuity.map { it.copy(targetSets = originalAllocations[it.stableKey] ?: it.targetSets) }
         val candidates = capacityCandidateTrace(snapshot, state,
             materialCandidates.map { it to false } + originalContinuity.map { it to true } + optionalCandidates.map { it to false },
-            selected, generationPrescriptions)
+            selected, generationPrescriptions,
+            authorizedPrescriptionFor = regionalTargetPlan?.let { plan -> { item -> plan.authorizedPrescriptionFor(item) } })
         val retained = retainedIncumbentSupply(snapshot, state, gaps, request, candidates, generationPrescriptions)
         require(selected.isNotEmpty()) { "NO_EXECUTABLE_PLANNING_DEMAND" }
         progress.report(PersonalizedPlannerStage.PLACEMENT)
