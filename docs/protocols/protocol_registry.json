@@ -1377,7 +1377,7 @@
       "familyId": "PROGRAM_BUILDER",
       "titleKo": "자동·기록 기반 프로그램 생성 개요",
       "titleEn": "Automatic and Record-Based Program Builder Overview",
-      "currentVersion": "3.26.0",
+      "currentVersion": "3.27.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1385,8 +1385,8 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "program_builder/PROGRAM_BUILDER_OVERVIEW.md",
-      "implementedFromAppVersion": "v0.4.2.0; independent record-based builder from v0.5.1.4; v0.14.0 execution layer from 2026-09-06; AthleteNeedsProfile shadow semantics correction; prescription-aware weekly/exposure-week target history; frequency-aware shadow target comparison 2026-09; hardened regional diagnosis and experimental A/B target authority; target-compatible regional materialization and typed ownership 2026-09; pre-feasibility regional prescription authorization; regional prescription provenance through frequency expansion",
-      "lastAuditedCommit": "26aef4cb",
+      "implementedFromAppVersion": "v0.4.2.0; independent record-based builder from v0.5.1.4; v0.14.0 execution layer from 2026-09-06; AthleteNeedsProfile shadow semantics correction; prescription-aware weekly/exposure-week target history; frequency-aware shadow target comparison 2026-09; hardened regional diagnosis and experimental A/B target authority; target-compatible regional materialization and typed ownership 2026-09; pre-feasibility regional prescription authorization; regional prescription provenance through frequency expansion; bounded regional authority and recovery gate",
+      "lastAuditedCommit": "4dab3209",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/personalized/PrimaryStrengthAnchorSpacingPolicy.kt",
         "app/src/main/java/com/training/trackplanner/data/personalized/MainSchedulingPolicy.kt",

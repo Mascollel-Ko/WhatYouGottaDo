@@ -131,7 +131,7 @@ class RegionalAuthorityTest {
                 MovementCoverage.LOWER_KNEE, TrainableQuality.HYPERTROPHY, RegionalTargetAction.ADD_SUPPORT,
                 RegionalNumericAuthority.FULL_WINDOW_PERSONAL_BAND, weeklyDoseTarget = 4.0
             ), finalPlan = plan, snapshot = snapshot,
-            catalog = CanonicalExercisePhysicalQualityCatalog.of(listOf(relation)), selectedStableKey = key,
+            catalog = CanonicalExercisePhysicalQualityCatalog.of(listOf(relation)), selectedIdentity = RegionalSelectionIdentity(key, item.selectionRole),
             creditedUnits = 0, residualUnits = 4, authorizedUnits = 4
         )
         assertEquals(3, projection.targetCompatibleMaterializedUnits)
@@ -146,7 +146,7 @@ class RegionalAuthorityTest {
                 MovementCoverage.LOWER_KNEE, TrainableQuality.HYPERTROPHY, RegionalTargetAction.ADD_SUPPORT,
                 RegionalNumericAuthority.FULL_WINDOW_PERSONAL_BAND, weeklyDoseTarget = 4.0
             ), finalPlan = survivingPlan, snapshot = snapshot,
-            catalog = CanonicalExercisePhysicalQualityCatalog.of(listOf(relation)), selectedStableKey = key,
+            catalog = CanonicalExercisePhysicalQualityCatalog.of(listOf(relation)), selectedIdentity = RegionalSelectionIdentity(key, item.selectionRole),
             creditedUnits = 0, residualUnits = 4, authorizedUnits = 4
         )
         assertEquals(2, shortfall.targetCompatibleMaterializedUnits)

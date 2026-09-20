@@ -119,6 +119,19 @@ class TrainingStateRealBackupComparisonTest {
                     .put("regionalDecisions", json(d.regionalTrainingDecisions))
                     .put("regionalTargets", json(d.regionalStimulusTargets))
                     .put("emphasis", json(d.programEmphasisLabels))
+                    .put("regionalOwnedSets", rows.filter { regionalSelectionIdentity(program, it) in ab.traces.mapNotNull { trace -> trace.selectedIdentity } }.sumOf { it.setPrescriptions.size })
+                    .put("ownerAudit", JSONArray(listOf(MovementCoverage.LOWER_KNEE, MovementCoverage.POSTERIOR_CHAIN).map { region ->
+                        val regionRows = rows.filter { snapshot.movementCoverage(it.exerciseStableKey) == region }
+                        val identities = ab.traces.filter { it.region == region }.mapNotNull { it.selectedIdentity }.toSet()
+                        fun compatible(items: List<ProgramSkeletonItem>) = items.sumOf { row -> row.setPrescriptions.count {
+                            provisionalRealizedStimulusClass(it.reps) == RealizedStimulusClass.STRENGTH_LIKE
+                        } }
+                        JSONObject().put("region", region.name).put("quality", "STRENGTH")
+                            .put("ordinaryCompatible", compatible(regionRows.filter { regionalSelectionIdentity(program, it) !in identities }))
+                            .put("regionalCompatible", compatible(regionRows.filter { regionalSelectionIdentity(program, it) in identities }))
+                            .put("authorized", if (program === ab.experimental) ab.traces.filter { it.region == region }.sumOf { it.authorizedUnits } else 0)
+                            .put("overrun", if (program === ab.experimental) ab.traces.filter { it.region == region }.sumOf { it.overrunUnits } else 0)
+                    }))
                     .put("frequencyDemand", d.frequencyDemand?.toJson())
                     .put("frequencyExpansion", d.frequencyExpansion?.toJson())
                     .put("resistanceSets", rows.filter { snapshot.activityKind(it.exerciseStableKey) == PlannedActivityKind.RESISTANCE }.sumOf { it.setCount })
@@ -127,9 +140,10 @@ class TrainingStateRealBackupComparisonTest {
                     .put("days", JSONArray(rows.groupBy { it.dayOfWeek }.toSortedMap().map { (day, items) ->
                         JSONObject().put("day", day).put("minutes", items.sumOf { it.estimatedDurationSeconds } / 60.0)
                             .put("ofi", json(snapshot.planDayProjection?.evaluate(items)))
+                            .put("ofiFeasible", snapshot.planDayProjection?.evaluate(items)?.feasible)
                     }))
-                    .put("tissue", json(snapshot.planWeekTissueProjection?.evaluate(rows,
-                        program.weekPlans.firstOrNull { it.weekIndex == 1 }?.targetRpeMax ?: Double.NaN)))
+                    .put("tissue", snapshot.planWeekTissueProjection?.evaluate(rows,
+                        program.weekPlans.firstOrNull { it.weekIndex == 1 }?.targetRpeMax ?: Double.NaN)?.toJson())
             }
             report.put("finalAuditA", finalAudit(ab.control)).put("finalAuditB", finalAudit(ab.experimental))
             val weeks = plan.items.groupBy { it.weekNumber }.toSortedMap().mapValues { (_,items) ->
@@ -283,6 +297,27 @@ class TrainingStateRealBackupComparisonTest {
                 File(directory,"v0131_numerical_inputs.json").writeText(numerical.toString(2)+"\n")
             }
             if (phase == "after") assertEquals(JSONObject(File(directory,"v0131_before.json").readText()).getJSONObject("input").toString(),input.toString())
+            // All regional traces, including nonnumeric HOLD/PRESERVE, must retain their own authority.
+            ab.traces.forEach { trace ->
+                assertEquals("${trace.region}: explicit overrun", 0, trace.overrunUnits)
+                assertTrue("${trace.region}: materialized exceeds authorization", trace.targetCompatibleMaterializedUnits <= trace.authorizedUnits)
+                assertTrue("${trace.region}: authorization exceeds residual", trace.authorizedUnits <= trace.residualDose)
+                if (trace.targetAction in setOf(RegionalTargetAction.HOLD, RegionalTargetAction.PRESERVE)) {
+                    assertEquals(0, trace.residualDose)
+                    assertEquals(0, trace.authorizedUnits)
+                    assertEquals(0, trace.materializedUnits)
+                }
+                if (trace.diagnosis.recoveryConstraint && trace.performanceResponse != TrainingResponseState.POSITIVE_RESPONSE) {
+                    assertEquals(RegionalTrainingDecision.HOLD_FOR_RECOVERY, trace.trainingDecision)
+                }
+            }
+            System.getenv("WGTD_CONTROL_BASELINE_PATH")?.let { baselinePath ->
+                val before = JSONObject(File(baselinePath).readText()).getJSONObject("finalAuditA")
+                val after = report.getJSONObject("finalAuditA")
+                assertEquals("CONTROL fingerprint", before.getString("fingerprint"), after.getString("fingerprint"))
+                assertEquals("CONTROL resolved request", before.getJSONObject("request").toString(), after.getJSONObject("request").toString())
+                assertEquals("CONTROL exact final rows", before.getJSONArray("items").toString(), after.getJSONArray("items").toString())
+            }
             println("COMPARISON_$phase ${output.absolutePath} weeks=${plan.request.durationWeeks} days=${plan.request.weeklyTrainingDays} totals=${json(weeks)}")
         } finally { db.close() }
     }

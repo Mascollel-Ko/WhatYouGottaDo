@@ -3,15 +3,24 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.26.0 |
+| Protocol version | 3.27.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 26aef4cb |
+| Last audited commit | 4dab3209 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
+
+### 3.27.0 — bounded regional authority and current recovery gate
+
+- Regional numeric authorization is a hard maximum, never a minimum for spare-capacity expansion. The orchestration excludes exact regional candidates from finite allocator flexibility; the frozen allocator is unchanged.
+- Same-stableKey ordinary and regional demands remain distinct owners. Exact `RegionalSelectionIdentity(stableKey, selectionRole)` survives merging, prescription lookup and capacity tracing; scheduling parent `authorizedDemandId` wins over row labels after splitting/reflow.
+- Authorized regional prescriptions reject requests above their original size and return only exact subsets. Frequency expansion remains subset-only across base plus expansion. Residual completion can restore authorized parent sets but cannot re-prescribe a bounded regional owner through generic semantic additions.
+- Final regional projection counts only compatible sets belonging to that owner, separately reports ordinary same-key compatible sets, and audits actual `overrunUnits` without clamping. `REGIONAL_AUTHORIZATION_OVERRUN` is an invariant failure; all regional final units must be <= authorized units <= residual demand. A post-reflow assertion protects the same maximum in every week.
+- Positive response is evaluated first and preserves effective work without adding dose. Otherwise current `diagnosis.recoveryConstraint` gates intervention to HOLD even for insufficient, stable or negative response. HOLD has no numeric authority, residual, authorization or new regional materialization. This intervention gate does not claim that recovery caused poor response, and does not change causal diagnosis rules.
+- Non-recovery exposure restoration and morphology support retain existing eligibility. CONTROL remains production, unchanged; no experimental promotion or OFI/tissue redesign.
 
 ### 3.26.0 — regional prescription provenance through frequency expansion
 

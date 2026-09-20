@@ -273,7 +273,7 @@ internal class PersonalizedProgramPlanningService(
                     finalPlan = experimental,
                     snapshot = snapshot,
                     catalog = physicalQualityCatalog,
-                    selectedStableKey = trace.selectedStableKey,
+                    selectedIdentity = trace.selectedIdentity,
                     creditedUnits = trace.existingPlannedCompatibleDose,
                     residualUnits = trace.residualDose,
                     authorizedUnits = trace.authorizedUnits
@@ -283,6 +283,8 @@ internal class PersonalizedProgramPlanningService(
                 materializedUnits = projection?.targetCompatibleMaterializedUnits ?: 0,
                 targetCompatibleMaterializedUnits = projection?.targetCompatibleMaterializedUnits ?: 0,
                 shortfall = projection?.shortfall ?: trace.residualDose,
+                overrunUnits = projection?.overrunUnits ?: 0,
+                ordinarySameKeyCompatibleUnits = projection?.ordinarySameKeyCompatibleUnits ?: 0,
                 finalReasonCodes = trace.finalReasonCodes + listOfNotNull(projection?.reasonCode)
             )
         }
@@ -519,6 +521,10 @@ internal class PersonalizedProgramPlanningService(
             .put("prescriptionCompatibility", trace.prescriptionCompatibility).put("requestedUnits", trace.requestedUnits)
             .put("authorizedUnits", trace.authorizedUnits).put("materializedUnits", trace.materializedUnits)
             .put("targetCompatibleMaterializedUnits", trace.targetCompatibleMaterializedUnits)
+            .put("selectedIdentity", trace.selectedIdentity?.let { JSONObject()
+                .put("stableKey", it.stableKey).put("selectionRole", it.selectionRole) })
+            .put("overrunUnits", trace.overrunUnits)
+            .put("ordinarySameKeyCompatibleUnits", trace.ordinarySameKeyCompatibleUnits)
             .put("shortfall", trace.shortfall).put("finalReasonCodes", JSONArray(trace.finalReasonCodes))
         }))
         .put("athleteNeedsProfile", athleteNeedsProfile?.let { profile -> JSONObject()

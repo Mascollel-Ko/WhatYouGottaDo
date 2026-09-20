@@ -103,7 +103,7 @@ class RegionalFrequencyPrescriptionTest {
         val relation = ExercisePhysicalQualityRelation("test", key, quality, StimulusCapabilityLevel.DIRECT_CAPABILITY,
             PhysicalQualityRegion.LOWER, mode, true, "TEST", setOf("TEST"), "PASS", "")
         val projection = FinalRegionalStimulusProjector().project(target, expanded, snapshot,
-            CanonicalExercisePhysicalQualityCatalog.of(listOf(relation)), key, 0, 3, 3)
+            CanonicalExercisePhysicalQualityCatalog.of(listOf(relation)), RegionalSelectionIdentity(key, item.role), 0, 3, 3)
         assertEquals(3, projection.targetCompatibleMaterializedUnits)
         assertEquals(0, projection.shortfall)
     }

@@ -3,6 +3,7 @@ package com.training.trackplanner.data.personalized
 import com.training.trackplanner.data.CanonicalExercisePhysicalQualityCatalog
 import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.ProgramSkeletonRequest
+import com.training.trackplanner.data.ProgramSkeletonItem
 import com.training.trackplanner.data.ProgramSetPrescription
 import com.training.trackplanner.data.TrainableQuality
 import kotlin.math.max
@@ -93,9 +94,9 @@ class RegionalTrainingDecisionResolver {
                 listOf("POSITIVE_RESPONSE_SUPPRESSES_UNSUPPORTED_INTERVENTION")
             )
         }
-        if (RegionalLimitingFactor.RECOVERY_LIMITED in diagnosis.limitingFactors) {
+        if (diagnosis.recoveryConstraint || RegionalLimitingFactor.RECOVERY_LIMITED in diagnosis.limitingFactors) {
             return RegionalTrainingDecisionResult(diagnosis.region, RegionalTrainingDecision.HOLD_FOR_RECOVERY,
-                listOf("SYSTEMIC_OR_REGION_TISSUE_RECOVERY_HOLD"))
+                listOf("CURRENT_RECOVERY_CONSTRAINT_INTERVENTION_HOLD"))
         }
         if (RegionalLimitingFactor.SPORT_LOAD_INTERFERENCE in diagnosis.limitingFactors) {
             return RegionalTrainingDecisionResult(diagnosis.region, RegionalTrainingDecision.HOLD_FOR_SPORT_LOAD,
@@ -294,7 +295,10 @@ data class RegionalAuthorityTrace(
     val materializedUnits: Int = 0,
     val targetCompatibleMaterializedUnits: Int = 0,
     val shortfall: Int = 0,
-    val finalReasonCodes: List<String> = emptyList()
+    val finalReasonCodes: List<String> = emptyList(),
+    val selectedIdentity: RegionalSelectionIdentity? = null,
+    val overrunUnits: Int = 0,
+    val ordinarySameKeyCompatibleUnits: Int = 0
 )
 
 /** Typed identity for an experimental regional owner. Display strings are not authority. */
@@ -319,10 +323,8 @@ data class RegionalExperimentalTargetPlan(
     /** Exact composite identity; stableKey alone is not sufficient when one exercise has multiple roles. */
     fun authorizedPrescriptionFor(item: PlannedExercise, requestedSets: Int = item.targetSets): PlannedPrescription? {
         val base = authorizedPrescriptionBySelectionRole[RegionalSelectionIdentity(item.stableKey, item.role)] ?: return null
-        val count = requestedSets.coerceAtLeast(1)
-        if (base.sets.size == count) return base
-        val sets = List(count) { index -> base.sets[index % base.sets.size].copy(setIndex = index + 1) }
-        return base.copy(sets = sets)
+        require(requestedSets in 0..base.sets.size) { "REGIONAL_AUTHORIZATION_OVERRUN: requested=$requestedSets authorized=${base.sets.size}" }
+        return if (requestedSets == base.sets.size) base else base.copy(sets = base.sets.take(requestedSets))
     }
 }
 
@@ -544,6 +546,7 @@ class RegionalExperimentalMaterialDemandBuilder(
                 residualDose = selection.residualUnits,
                 candidatePool = selection.candidates.map(PlannedExercise::stableKey),
                 selectedStableKey = selected?.stableKey,
+                selectedIdentity = selected?.let { RegionalSelectionIdentity(it.stableKey, it.role) },
                 selectionReasons = selection.reasons + resolutionReasons,
                 prescriptionCompatibility = when {
                     selected != null -> "TARGET_COMPATIBLE_PRESCRIPTION_AUTHORITY"
@@ -790,8 +793,21 @@ data class FinalRegionalStimulusProjection(
     val authorizedUnits: Int,
     val targetCompatibleMaterializedUnits: Int,
     val shortfall: Int,
-    val reasonCode: String
+    val reasonCode: String,
+    val overrunUnits: Int = 0,
+    val ordinarySameKeyCompatibleUnits: Int = 0
 )
+
+/** Canonical parent provenance wins over a row's display role after splitting/reflow. */
+internal fun regionalSelectionIdentity(plan: GeneratedProgramSkeleton, row: ProgramSkeletonItem): RegionalSelectionIdentity? {
+    val trace = plan.personalizedDecision?.authorizedScheduling
+    val origin = trace?.localOrigins?.get(row.localId)
+    if (origin != null) {
+        val parent = trace.authorized.singleOrNull { it.id == origin.authorizedDemandId } ?: return null
+        return RegionalSelectionIdentity(parent.item.stableKey, parent.item.role)
+    }
+    return RegionalSelectionIdentity(row.exerciseStableKey, row.selectionRole)
+}
 
 class FinalRegionalStimulusProjector {
     fun project(
@@ -799,13 +815,13 @@ class FinalRegionalStimulusProjector {
         finalPlan: GeneratedProgramSkeleton,
         snapshot: PlanningHistorySnapshot,
         catalog: CanonicalExercisePhysicalQualityCatalog,
-        selectedStableKey: String?,
+        selectedIdentity: RegionalSelectionIdentity?,
         creditedUnits: Int,
         residualUnits: Int,
         authorizedUnits: Int
     ): FinalRegionalStimulusProjection {
-        val compatible = if (selectedStableKey == null) 0 else finalPlan.items
-            .filter { it.weekNumber == 1 && it.exerciseStableKey == selectedStableKey }
+        val sameKeyRows = finalPlan.items
+            .filter { it.weekNumber == 1 && it.exerciseStableKey == selectedIdentity?.stableKey }
             .filter { item ->
                 snapshot.movementCoverage(item.exerciseStableKey) == target.region &&
                     catalog.relations(item.exerciseStableKey).any { relation ->
@@ -814,19 +830,23 @@ class FinalRegionalStimulusProjector {
                             regionalRegionQualifierMatches(target.region, relation.regionQualifier)
                     }
             }
-            .sumOf { item -> item.setPrescriptions.count { set ->
+        fun compatibleUnits(items: List<ProgramSkeletonItem>) = items.sumOf { item -> item.setPrescriptions.count { set ->
                 when (target.quality) {
                     TrainableQuality.STRENGTH -> provisionalRealizedStimulusClass(set.reps) == RealizedStimulusClass.STRENGTH_LIKE
                     TrainableQuality.HYPERTROPHY -> provisionalRealizedStimulusClass(set.reps) == RealizedStimulusClass.HYPERTROPHY_LIKE
                     else -> false
                 }
             } }
+        val compatible = compatibleUnits(sameKeyRows.filter { regionalSelectionIdentity(finalPlan, it) == selectedIdentity })
+        val ordinary = compatibleUnits(sameKeyRows.filter { regionalSelectionIdentity(finalPlan, it) != selectedIdentity })
+        val overrun = (compatible - authorizedUnits).coerceAtLeast(0)
         val shortfall = (residualUnits - compatible).coerceAtLeast(0)
         val reason = when {
+            overrun > 0 -> "REGIONAL_AUTHORIZATION_OVERRUN"
             target.action !in setOf(RegionalTargetAction.ADD_SUPPORT, RegionalTargetAction.RESTORE) || target.weeklyDoseTarget == null -> "NO_NUMERIC_TARGET_OR_NO_ADD_AUTHORITY"
-            selectedStableKey != null && compatible >= residualUnits -> "TARGET_FULLY_MATERIALIZED"
-            selectedStableKey != null && compatible > 0 -> "TARGET_PARTIALLY_MATERIALIZED"
-            selectedStableKey != null -> "TARGET_NOT_MATERIALIZED"
+            selectedIdentity != null && compatible >= residualUnits -> "TARGET_FULLY_MATERIALIZED"
+            selectedIdentity != null && compatible > 0 -> "TARGET_PARTIALLY_MATERIALIZED"
+            selectedIdentity != null -> "TARGET_NOT_MATERIALIZED"
             residualUnits > 0 -> "TARGET_NOT_MATERIALIZED"
             else -> "EXISTING_PLAN_CREDIT_COVERS_TARGET"
         }
@@ -837,7 +857,9 @@ class FinalRegionalStimulusProjector {
             authorizedUnits = authorizedUnits,
             targetCompatibleMaterializedUnits = compatible,
             shortfall = shortfall,
-            reasonCode = reason
+            reasonCode = reason,
+            overrunUnits = overrun,
+            ordinarySameKeyCompatibleUnits = ordinary
         )
     }
 }

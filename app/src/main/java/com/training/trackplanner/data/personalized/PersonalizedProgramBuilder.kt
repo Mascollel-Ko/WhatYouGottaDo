@@ -346,7 +346,13 @@ class PersonalizedProgramBuilder(
         val result = if (reviewed.trace.state == "NOT_APPLICABLE_NO_MANDATORY_SPLIT") placed
             else reviewed.skeleton.copy(personalizedDecision = reviewed.skeleton.personalizedDecision?.copy(postSplitReflow = reviewed.trace))
         lastPerformanceMetrics = performanceMetrics.asMap()
-        // Regional prescriptions were authorized before placement and are now only audited.
+        // Assert the immutable authority after every placement/restoration/reflow stage; never trim the result.
+        regionalTargetPlan?.authorizedPrescriptionBySelectionRole?.forEach { (owner, prescription) ->
+            result.items.groupBy { it.weekNumber }.forEach { (week, rows) ->
+                val units = rows.filter { regionalSelectionIdentity(result, it) == owner }.sumOf { it.setPrescriptions.size }
+                check(units <= prescription.sets.size) { "REGIONAL_AUTHORIZATION_OVERRUN: $owner week=$week units=$units authorized=${prescription.sets.size}" }
+            }
+        }
         return result
     }
 
@@ -424,7 +430,7 @@ class PersonalizedProgramBuilder(
             RegionalMaterialDemandOwnershipFilter.filter(baseDemand, snapshot, state, it.ownedKeys, generationPrescriptions)
         } ?: baseDemand
         val demand = when {
-            regionalTargetPlan != null -> mergeTypedMaterialDemand(ownedBaseDemand, regionalTargetPlan.demand, regionalTargetPlan.targetByStableKey.keys)
+            regionalTargetPlan != null -> mergeTypedMaterialDemand(ownedBaseDemand, regionalTargetPlan.demand, regionalTargetPlan.authorizedPrescriptionBySelectionRole.keys)
             materialDemandOverride != null -> mergeTypedMaterialDemand(baseDemand, materialDemandOverride, emptySet())
             else -> baseDemand
         }
@@ -499,7 +505,11 @@ class PersonalizedProgramBuilder(
                 if (capacityExpanded) maxOf(continuityDemand, coreReserve + (materialCandidates.firstOrNull()?.targetSets ?: 0)) else continuityDemand)
             else envelope.finalControllableUnits
         val finite = FiniteExecutionAllocator.allocate(capacity, continuityDemand, materialCandidates.map(PlannedExercise::targetSets), share, coreReserve,
-            materialCandidates.indices.filterTo(mutableSetOf()) { snapshot.activityKind(materialCandidates[it].stableKey) == PlannedActivityKind.RESISTANCE })
+            materialCandidates.indices.filterTo(mutableSetOf()) {
+                val item = materialCandidates[it]
+                snapshot.activityKind(item.stableKey) == PlannedActivityKind.RESISTANCE &&
+                    RegionalSelectionIdentity(item.stableKey, item.role) !in regionalTargetPlan?.authorizedPrescriptionBySelectionRole.orEmpty()
+            })
         val anchorWeights = state.anchors.associate { anchor ->
             val weeks = (state.styleFeaturesByAnchor[anchor.stableKey]?.weeksObserved ?: 1).coerceAtLeast(1)
             val transition = transitions.getValue(anchor.stableKey)
@@ -685,7 +695,8 @@ class PersonalizedProgramBuilder(
                 "POST_PROCESS_FAILED_SAFE_AUTHORIZED_PRESCRIPTION", fingerprint, fingerprint, snapshot.cutoff.plusDays(1).toString())))
         }
         val completion = ResidualCompletion(generationPrescriptions, progress).complete(initialSkeleton, snapshot, state, gaps,
-            authorized, envelope, postProcessAtoms, postProcessSources, explicitWeeklyDays, snapshot.planDayProjection, postProcessOrigins)
+            authorized, envelope, postProcessAtoms, postProcessSources, explicitWeeklyDays, snapshot.planDayProjection, postProcessOrigins,
+            regionalTargetPlan?.authorizedPrescriptionBySelectionRole?.keys.orEmpty())
         val completedWeek = completion.skeleton.items.filter { it.weekNumber == 1 }
         fun completedUnits(kind: PlannedActivityKind) = completedWeek.filter { snapshot.activityKind(it.exerciseStableKey) == kind }
             .sumOf { it.setPrescriptions.size }
@@ -750,12 +761,14 @@ class PersonalizedProgramBuilder(
     }
 }
 
-private fun mergeTypedMaterialDemand(base: MaterialDemand, experimental: MaterialDemand, experimentalKeys: Set<String>): MaterialDemand {
-    val merged = linkedMapOf<String, PlannedExercise>()
+private fun mergeTypedMaterialDemand(base: MaterialDemand, experimental: MaterialDemand, experimentalKeys: Set<RegionalSelectionIdentity>): MaterialDemand {
+    val merged = linkedMapOf<Pair<Boolean, RegionalSelectionIdentity>, PlannedExercise>()
     (base.candidates + experimental.candidates).forEach { candidate ->
-        val old = merged[candidate.stableKey]
-        val isExperimental = candidate.stableKey in experimentalKeys
-        merged[candidate.stableKey] = if (old == null) candidate else old.copy(
+        val exactIdentity = RegionalSelectionIdentity(candidate.stableKey, candidate.role)
+        val isExperimental = exactIdentity in experimentalKeys
+        val mergeIdentity = isExperimental to if (isExperimental) exactIdentity else RegionalSelectionIdentity(candidate.stableKey, "")
+        val old = merged[mergeIdentity]
+        merged[mergeIdentity] = if (old == null) candidate else old.copy(
             role = if (isExperimental) candidate.role else old.role,
             styleVariant = if (isExperimental) candidate.styleVariant else old.styleVariant,
             style = if (isExperimental) candidate.style else old.style,

@@ -92,6 +92,10 @@ class RealBackupPersonalizedPlannerE2eTest {
                 } == true }
                 assertTrue("Real history requires more than one isolated performance item: ${trace.candidateAudit}", performance.map { it.exerciseStableKey }.distinct().size >= 2)
                 assertTrue(performance.all { it.setCount >= 2 })
+                println("ANTI_ROTATION_DIAGNOSTIC days=${plan.request.weeklyTrainingDays} rows=" +
+                    plan.items.filter { it.weekNumber == 1 }.map { "${it.exerciseStableKey}:${it.selectionRole}" })
+                println("ANTI_ROTATION_SUPPORTIVE days=${plan.request.weeklyTrainingDays} ${trace.supportiveGapCodesByStableKey}")
+                println("ANTI_ROTATION_CANDIDATES days=${plan.request.weeklyTrainingDays} ${trace.candidateAudit}")
                 assertTrue("Explicit anti-rotation assistance must actually execute",
                     trace.supportiveGapCodesByStableKey.values.any { "BADMINTON_UNDERREPRESENTED_ANTI_ROTATION" in it })
             }
