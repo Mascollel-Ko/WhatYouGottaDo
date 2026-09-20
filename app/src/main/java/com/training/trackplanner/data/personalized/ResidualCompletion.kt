@@ -111,14 +111,14 @@ internal class ResidualCompletion(private val prescriptions: PersonalizedPrescri
         gaps: List<AdaptationGap>, authorized: List<AuthorizedPrescription>, envelope: WeeklyCapacityEnvelope,
         atoms: Map<String, String>, sources: Map<String, PlannedExercise>, explicitDays: Boolean,
         projection: PlanDayProjection?, origins: Map<String, AuthorizedAtomOrigin>? = null,
-        boundedRegionalOwners: Set<RegionalSelectionIdentity> = emptySet()): CompletionResult {
+        boundedRegionalOwners: Set<RegionalSelectionIdentity> = emptySet(), exactAuthorizationOnly: Boolean = false): CompletionResult {
         val fingerprint = personalizedProgramFingerprint(initial.request, initial.items)
         fun unchanged(code: String) = CompletionResult(initial, ResidualCompletionTrace(code, fingerprint, fingerprint,
             snapshot.cutoff.plusDays(1).toString()), null, sources, null)
         val week = RepresentativeWeek.derive(initial, atoms) ?: return unchanged("POST_PROCESS_SKIPPED_NON_ISOMORPHIC_WEEKS")
         if (projection == null) return unchanged("POST_PROCESS_SKIPPED_MISSING_CANONICAL_PROJECTION")
         return try {
-            run(initial, snapshot, state, gaps, authorized, envelope, week, sources, explicitDays, projection, origins, boundedRegionalOwners)
+            run(initial, snapshot, state, gaps, authorized, envelope, week, sources, explicitDays, projection, origins, boundedRegionalOwners, exactAuthorizationOnly)
         } catch (failure: Exception) {
             if (failure is java.util.concurrent.CancellationException) throw failure
             unchanged("POST_PROCESS_FAILED_SAFE_INITIAL_SKELETON")
@@ -128,7 +128,7 @@ internal class ResidualCompletion(private val prescriptions: PersonalizedPrescri
     private fun run(initial: GeneratedProgramSkeleton, snapshot: PlanningHistorySnapshot, state: AthletePlanningState,
         gaps: List<AdaptationGap>, authorized: List<AuthorizedPrescription>, envelope: WeeklyCapacityEnvelope,
         week: RepresentativeWeek, sources: Map<String, PlannedExercise>, explicitDays: Boolean, projection: PlanDayProjection,
-        origins: Map<String, AuthorizedAtomOrigin>?, boundedRegionalOwners: Set<RegionalSelectionIdentity>): CompletionResult {
+        origins: Map<String, AuthorizedAtomOrigin>?, boundedRegionalOwners: Set<RegionalSelectionIdentity>, exactAuthorizationOnly: Boolean): CompletionResult {
         val demand = AuthorizedPlanningDemand(snapshot, authorized, gaps, week.items)
         val primaryKeys = PrimaryStrengthAnchorSpacingPolicy.keys(snapshot, state,
             authorized.filter { it.continuity }.mapTo(mutableSetOf()) { it.item.stableKey })
@@ -157,6 +157,8 @@ internal class ResidualCompletion(private val prescriptions: PersonalizedPrescri
         val alternatives = GapCandidateSelector().select(snapshot, state, gaps,
             state.anchors.mapTo(mutableSetOf(), UserAnchor::stableKey), allAlternatives = true)
         fun candidateItems(residual: PlanningResidual): List<PlannedExercise> {
+            // Experimental quantity authority belongs to exact parents, never semantic substitutes.
+            if (exactAuthorizationOnly) return emptyList()
             val definition = demand.definitions.first { it.id == residual.id }
             // Exact continuity cannot be fragmented by the later flexible semantic prescription loop.
             if (exact != null && definition.unit == PlanningDemandUnit.CONTINUITY_SETS) return emptyList()

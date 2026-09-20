@@ -3,15 +3,25 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.27.0 |
+| Protocol version | 3.28.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 4dab3209 |
+| Last audited commit | 62078a92 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
+
+### 3.28.0 — capacity bounds legitimate material demand
+
+- Capacity is an upper feasibility bound, not demand. Spare capacity cannot create new demand; unused capacity is valid. This is an experimental orchestration contract, not a biological dose formula.
+- Every experimental material owner has an explicit maximum. Regional maximum is the exact regional authorized prescription size; ordinary maximum is the original candidate `targetSets`. Inspection found no separate canonical per-candidate expansion authority. Aggregate resistance budgets and additional user days do not supply that authority. A canonical minimum shape exceeding the maximum is rejected, not silently enlarged.
+- `BoundedMaterialDemandAllocation` uses the frozen finite allocator for its atomic first pass with no expandable indexes. It then reconsiders deferred legitimate owners in the same resistance/priority/key order, inside the core reserve and total capacity. Only existing `frequencyPortion` rules can release a compatible partial canonical prescription; indivisible shapes remain deferred. Exclusion, equipment, metadata, recovery/tissue, placement/time and post-placement feasibility gates remain applicable.
+- Candidate traces carry the original bounded prescription and exact owner (`stableKey`, selection role, variant). Ordinary frequency release preserves the original remaining quantity, reps/load/rest/source and atomicity; regional release remains exact-subset-only. More days can make unmet demand executable but cannot increase its maximum.
+- Experimental residual completion uses exact authorized parent restoration only. Semantic substitution cannot create a new owner or enlarge an existing owner; exact restoration and its feasibility gates remain active. Final observation after completion and frequency/reflow asserts every material owner's funded and materialized quantities against the original maximum in every week. Existing regional projector provenance, recovery HOLD and regional overrun assertions remain intact.
+- Observation-only `frequencyDemand.boundedMaterialAllocation` records total capacity, legitimate demand, funded demand, materialized demand, physical `unusedCapacityUnits`, unfunded capacity, and per-owner requested/max/prescribed/initial/final funding with deferred material remainder. Total `deferredLegitimateDemandRemaining` includes unfunded continuity/optional/eligible retained demand; `deferredMaterialDemandRemaining` isolates bounded material owners. `totalLegitimateDemand` includes eligible material maxima plus original canonical continuity/optional demand and, when explicit frequency expansion is active, eligible retained-history supply (also separately audited in existing provenance). `capacityOverrunUnits` separately exposes any physical excess instead of hiding it in the unused-capacity floor. Physical unused capacity includes placement shortfalls and is never a request to fill them.
+- CONTROL remains exact and does not receive this bounded trace or policy. `ExecutionAllocationPlanner.kt`, `FiniteExecutionAllocator`, frozen prescription authority and freeze hashes are unchanged.
 
 ### 3.27.0 — bounded regional authority and current recovery gate
 

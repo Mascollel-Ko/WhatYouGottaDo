@@ -14,7 +14,7 @@ data class PlanningFrequencyProvenance(val recommendation: WeeklyFrequencyEviden
 }
 
 enum class PlanningFundingSource { BASE, USER_FREQUENCY_EXPANSION }
-enum class PrescriptionAuthoritySource { PRODUCTION_CANONICAL, REGIONAL_TARGET_AUTHORIZED }
+enum class PrescriptionAuthoritySource { PRODUCTION_CANONICAL, REGIONAL_TARGET_AUTHORIZED, EXPERIMENTAL_MATERIAL_AUTHORIZED }
 enum class CandidateRejectionReason { FUNDED, FINITE_CAPACITY, SAFETY_OR_SEMANTIC_REJECTION, MOVEMENT_ANCHOR_CUTOFF, GLOBAL_ANCHOR_CUTOFF }
 
 /** Original prescription and owner travel with the candidate, including unfunded portions. */
@@ -32,7 +32,7 @@ data class CapacityCandidateTrace(val originalRank: Int, val item: PlannedExerci
         .put("style", item.style.name).put("variant", item.styleVariant).put("transition", item.transition?.stableKey)
         .put("prescription", prescription.text).put("prescriptionSource", prescription.weightSource)
         .put("restSeconds", prescription.restSeconds).put("sets", auditSets(prescription.sets)).put("fundingSource", fundingSource.name)
-        .apply { if (prescriptionAuthority == PrescriptionAuthoritySource.REGIONAL_TARGET_AUTHORIZED)
+        .apply { if (prescriptionAuthority != PrescriptionAuthoritySource.PRODUCTION_CANONICAL)
             put("prescriptionAuthority", prescriptionAuthority.name).put("selectionRole", item.role) }
 }
 
@@ -41,7 +41,8 @@ data class FrequencyDemandProvenance(val frequency: PlanningFrequencyProvenance,
     val actualMaterializedUnits: Int = 0,
     val incumbentRanking: List<EligibleIncumbentCandidate> = emptyList(),
     val retainedIncumbents: List<CapacityCandidateTrace> = emptyList(),
-    val expansionSelectedKeys: Set<String> = emptySet()) {
+    val expansionSelectedKeys: Set<String> = emptySet(),
+    val boundedMaterialAllocation: BoundedMaterialAllocationTrace? = null) {
     val capacityRejected: List<CapacityCandidateTrace> get() = candidates.filter {
         it.rejectionReason == CandidateRejectionReason.FINITE_CAPACITY && it.remainingUnits > 0
     }.sortedBy { it.originalRank }
@@ -57,6 +58,7 @@ data class FrequencyDemandProvenance(val frequency: PlanningFrequencyProvenance,
         .put("computedCapacityUnits", computedCapacity.finalControllableUnits)
         .put("actualMaterializedUnits", actualMaterializedUnits)
         .put("baseAuthorized", AuthorizedSchedulingTrace(baseAuthorized, emptyList()).toJson())
+        .apply { boundedMaterialAllocation?.let { put("boundedMaterialAllocation", it.toJson()) } }
 }
 
 internal fun capacityCandidateTrace(snapshot: PlanningHistorySnapshot, state: AthletePlanningState,

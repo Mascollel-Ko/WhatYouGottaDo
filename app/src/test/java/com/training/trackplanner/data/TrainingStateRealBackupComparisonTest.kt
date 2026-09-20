@@ -311,6 +311,16 @@ class TrainingStateRealBackupComparisonTest {
                     assertEquals(RegionalTrainingDecision.HOLD_FOR_RECOVERY, trace.trainingDecision)
                 }
             }
+            val bounded = requireNotNull(ab.experimental.personalizedDecision?.frequencyDemand?.boundedMaterialAllocation)
+            assertEquals("total unfunded legitimate demand", (bounded.totalLegitimateDemand - bounded.fundedDemand).coerceAtLeast(0),
+                bounded.toJson().getInt("deferredLegitimateDemandRemaining"))
+            bounded.owners.forEach { owner ->
+                assertTrue("${owner.owner}: funded exceeds legitimate maximum", owner.finalFundedUnits <= owner.maximumUnits)
+                assertTrue("${owner.owner}: materialized exceeds funded", owner.materializedUnits <= owner.finalFundedUnits)
+            }
+            assertEquals("bounded audit physical count", ab.experimental.items.filter { it.weekNumber == 1 }.sumOf { it.setPrescriptions.size },
+                bounded.materializedDemand)
+            assertTrue("experimental completion must not invent semantic owners", ab.experimental.personalizedDecision?.residualCompletion?.additions.orEmpty().isEmpty())
             System.getenv("WGTD_CONTROL_BASELINE_PATH")?.let { baselinePath ->
                 val before = JSONObject(File(baselinePath).readText()).getJSONObject("finalAuditA")
                 val after = report.getJSONObject("finalAuditA")

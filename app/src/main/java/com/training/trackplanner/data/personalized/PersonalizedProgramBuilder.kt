@@ -353,7 +353,7 @@ class PersonalizedProgramBuilder(
                 check(units <= prescription.sets.size) { "REGIONAL_AUTHORIZATION_OVERRUN: $owner week=$week units=$units authorized=${prescription.sets.size}" }
             }
         }
-        return result
+        return observeBoundedMaterialDemand(result)
     }
 
     private fun buildBeforeReflow(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, gaps: List<AdaptationGap>, intent: BlockIntent,
@@ -504,7 +504,9 @@ class PersonalizedProgramBuilder(
             minOf(envelope.finalControllableUnits,
                 if (capacityExpanded) maxOf(continuityDemand, coreReserve + (materialCandidates.firstOrNull()?.targetSets ?: 0)) else continuityDemand)
             else envelope.finalControllableUnits
-        val finite = FiniteExecutionAllocator.allocate(capacity, continuityDemand, materialCandidates.map(PlannedExercise::targetSets), share, coreReserve,
+        val bounded = regionalTargetPlan?.let { BoundedMaterialDemandAllocation(snapshot, state, request, materialCandidates,
+            it, generationPrescriptions, capacity, continuityDemand, coreReserve) }
+        val finite = bounded?.finite ?: FiniteExecutionAllocator.allocate(capacity, continuityDemand, materialCandidates.map(PlannedExercise::targetSets), share, coreReserve,
             materialCandidates.indices.filterTo(mutableSetOf()) {
                 val item = materialCandidates[it]
                 snapshot.activityKind(item.stableKey) == PlannedActivityKind.RESISTANCE &&
@@ -537,7 +539,9 @@ class PersonalizedProgramBuilder(
             .associate { it.toPair() }, continuityDemand)
         val originalContinuity = continuityPlanner.select(state, transitions, originalAllocations.filterKeys { it in anchorWeights }, days) +
             performanceContinuity.map { it.copy(targetSets = originalAllocations[it.stableKey] ?: it.targetSets) }
-        val candidates = capacityCandidateTrace(snapshot, state,
+        val candidates = bounded?.let { allocation -> allocation.candidates + capacityCandidateTrace(snapshot, state,
+            originalContinuity.map { it to true } + optionalCandidates.map { it to false }, selected, generationPrescriptions)
+            .map { it.copy(originalRank = it.originalRank + allocation.candidates.size) } } ?: capacityCandidateTrace(snapshot, state,
             materialCandidates.map { it to false } + originalContinuity.map { it to true } + optionalCandidates.map { it to false },
             selected, generationPrescriptions,
             authorizedPrescriptionFor = regionalTargetPlan?.let { plan -> { item -> plan.authorizedPrescriptionFor(item) } })
@@ -547,8 +551,9 @@ class PersonalizedProgramBuilder(
         val allocator = SplitAwareContinuityAllocation(generationPrescriptions, progress, placementContext, performanceMetrics)
         val regionalAuthorized = if (regionalTargetPlan != null && authorizedOverride == null) {
             selected.mapIndexed { index, item ->
-                val prescription = regionalTargetPlan.authorizedPrescriptionFor(item)
-                    ?: generationPrescriptions.prescribe(snapshot, state.strengthIntent, item, item.style)
+                val prescription = if (index >= continuity.size && item.material) requireNotNull(bounded).prescriptionFor(item)
+                    else regionalTargetPlan.authorizedPrescriptionFor(item)
+                        ?: generationPrescriptions.prescribe(snapshot, state.strengthIntent, item, item.style)
                 AuthorizedSchedulingDemand("authorized_$index", item, prescription, index < continuity.size)
             }
         } else null
@@ -683,7 +688,12 @@ class PersonalizedProgramBuilder(
             weeklyFrequencyEvidence = frequency.recommendation,
             frequencyDemand = FrequencyDemandProvenance(frequency, candidates, placement.trace.authorized, envelope,
                 plannedResistanceSets + plannedDrillBouts + plannedAthleticBouts,
-                state.fullEligibleIncumbentRanking, retained)
+                state.fullEligibleIncumbentRanking, retained,
+                boundedMaterialAllocation = bounded?.let { BoundedMaterialAllocationTrace(capacity,
+                    it.bounds.filter { bound -> bound.rejection == null }.sumOf { bound -> bound.maximumUnits } +
+                        candidates.filter { candidate -> candidate.continuity || !candidate.item.material }.sumOf { candidate -> candidate.requestedUnits } +
+                        (if (frequency.explicitIncrease) retained.sumOf { candidate -> candidate.requestedUnits } else 0),
+                    it.bounds) })
         )
         // INITIAL SKELETON: all existing selection, placement, repair, validation and fingerprinting end here.
         val initialSkeleton = repaired.copy(personalizedDecision = decision)
@@ -696,7 +706,7 @@ class PersonalizedProgramBuilder(
         }
         val completion = ResidualCompletion(generationPrescriptions, progress).complete(initialSkeleton, snapshot, state, gaps,
             authorized, envelope, postProcessAtoms, postProcessSources, explicitWeeklyDays, snapshot.planDayProjection, postProcessOrigins,
-            regionalTargetPlan?.authorizedPrescriptionBySelectionRole?.keys.orEmpty())
+            regionalTargetPlan?.authorizedPrescriptionBySelectionRole?.keys.orEmpty(), exactAuthorizationOnly = bounded != null)
         val completedWeek = completion.skeleton.items.filter { it.weekNumber == 1 }
         fun completedUnits(kind: PlannedActivityKind) = completedWeek.filter { snapshot.activityKind(it.exerciseStableKey) == kind }
             .sumOf { it.setPrescriptions.size }
@@ -720,23 +730,23 @@ class PersonalizedProgramBuilder(
                 athleticPerformance = domains.athleticPerformance.copy(finalBouts = completedAthletic)
             ) }
         )
-        if (finish != null) return finish(completion.copy(skeleton = completion.skeleton.copy(personalizedDecision = decision.copy(
+        if (finish != null) return finish(completion.copy(skeleton = observeBoundedMaterialDemand(completion.skeleton.copy(personalizedDecision = decision.copy(
             authorizedScheduling = completion.skeleton.personalizedDecision?.authorizedScheduling,
             residualCompletion = completion.trace,
             planningBudget = finalizedBudget,
-            weeklyFrequency = completion.skeleton.request.weeklyTrainingDays))))
+            weeklyFrequency = completion.skeleton.request.weeklyTrainingDays)))))
         // The second stage owns only placement. Its fail-safe is CompletedPlan, never InitialSkeleton.
         progress.report(PersonalizedPlannerStage.BALANCE)
         val rebalanced = BoundedDayRebalancer().rebalance(completion, snapshot, state, snapshot.planDayProjection,
             RebalanceEvaluationCounts(performanceMetrics = performanceMetrics))
-        return rebalanced.skeleton.copy(personalizedDecision = decision.copy(
+        return observeBoundedMaterialDemand(rebalanced.skeleton.copy(personalizedDecision = decision.copy(
             authorizedScheduling = completion.skeleton.personalizedDecision?.authorizedScheduling,
             residualCompletion = completion.trace,
             dayRebalancing = rebalanced.trace,
             frequencyDemand = decision.frequencyDemand?.copy(actualMaterializedUnits = completedWeek.sumOf { it.setPrescriptions.size }),
             // Existing execution trace remains the initial allocation audit; display counts describe the completed plan.
             planningBudget = finalizedBudget,
-            weeklyFrequency = completion.skeleton.request.weeklyTrainingDays))
+            weeklyFrequency = completion.skeleton.request.weeklyTrainingDays)))
     }
 
 
