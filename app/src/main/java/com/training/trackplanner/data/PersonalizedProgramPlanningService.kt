@@ -1,6 +1,7 @@
 package com.training.trackplanner.data
 
 import com.training.trackplanner.analysis.badminton.CanonicalBadmintonObjectiveCatalog
+import com.training.trackplanner.analysis.core.CanonicalCoreCatalog
 import com.training.trackplanner.analysis.fatigue.DailyFatigueCalculator
 import com.training.trackplanner.analysis.readiness.TodayReadinessEngine
 import com.training.trackplanner.analysis.readiness.TodayReadinessEngineInput
@@ -78,6 +79,8 @@ internal class PersonalizedProgramPlanningService(
     private val tissueProjectionProvider: suspend (LocalDate) -> com.training.trackplanner.data.personalized.PlanWeekTissueProjection? = { null },
     private val performancePrescriptions: Map<String, com.training.trackplanner.data.personalized.PerformancePrescriptionAuthority> = emptyMap(),
     private val physicalQualityCatalog: CanonicalExercisePhysicalQualityCatalog = CanonicalExercisePhysicalQualityCatalog.EMPTY,
+    private val canonicalMovementRelations: List<CanonicalMetadataRelation> = emptyList(),
+    private val canonicalCoreCatalog: CanonicalCoreCatalog = CanonicalCoreCatalog.EMPTY,
     private val athleteNeedsProfileEngine: AthleteNeedsProfileEngine = AthleteNeedsProfileEngine(),
     private val snapshotBuilder: PlanningHistorySnapshotBuilder = PlanningHistorySnapshotBuilder(),
     private val stateBuilder: AthletePlanningStateBuilder = AthletePlanningStateBuilder(),
@@ -97,7 +100,7 @@ internal class PersonalizedProgramPlanningService(
     ): PersonalizedPlanningPreflight {
         progress.report(PersonalizedPlannerStage.HISTORY)
         val preferences = readPreferences()
-        val snapshot = buildSnapshot(cutoff, metadata, preferences)
+        val snapshot = buildSnapshot(cutoff, metadata, preferences, includeStimulusExposureLedger = false)
         progress.report(PersonalizedPlannerStage.PATTERNS)
         val state = stateBuilder.build(snapshot, PersonalizedPlanningAnswers())
         return PersonalizedPlanningPreflight(
@@ -123,7 +126,7 @@ internal class PersonalizedProgramPlanningService(
         require(missingAnswers.isEmpty()) { "사전 확인 답변이 누락됐습니다: ${missingAnswers.joinToString()}" }
         progress.report(PersonalizedPlannerStage.HISTORY)
         val preferences = readPreferences()
-        val snapshot = buildSnapshot(preflight.cutoff, metadata, preferences)
+        val snapshot = buildSnapshot(preflight.cutoff, metadata, preferences, includeStimulusExposureLedger = true)
         progress.report(PersonalizedPlannerStage.PATTERNS)
         val state = stateBuilder.build(snapshot, answers)
         require(state.strengthIntent != StrengthIntent.UNRESOLVED && state.badmintonIntent != BadmintonPlanningIntent.UNRESOLVED &&
@@ -339,7 +342,8 @@ internal class PersonalizedProgramPlanningService(
     private suspend fun buildSnapshot(
         cutoff: LocalDate,
         metadata: Map<String, RuntimeExerciseMetadata>,
-        preferences: PersonalizedPlanningPreferences
+        preferences: PersonalizedPlanningPreferences,
+        includeStimulusExposureLedger: Boolean = false
     ): com.training.trackplanner.data.personalized.PlanningHistorySnapshot {
         val history = workoutDao.entriesWithSetsUntil(cutoff.toString())
         val exercises = exerciseDao.allExercises()
@@ -382,7 +386,22 @@ internal class PersonalizedProgramPlanningService(
         val roleCatalog = exerciseRoleRelationDao?.let { dao ->
             ExerciseRoleRelationCatalog.of(dao.allTrainingRoles(), dao.allProgramSlotCapabilities())
         } ?: ExerciseRoleRelationCatalog.EMPTY
-        val snapshot = snapshotBuilder.build(cutoff, history, exercises, metadata, badmintonCatalog, profile, preferences, canonicalStrength, recovery, roleCatalog)
+        val baseSnapshot = snapshotBuilder.build(cutoff, history, exercises, metadata, badmintonCatalog, profile, preferences, canonicalStrength, recovery, roleCatalog)
+        val snapshot = if (includeStimulusExposureLedger) {
+            baseSnapshot.copy(
+                stimulusExposureLedger = com.training.trackplanner.data.personalized.StimulusExposureLedgerBuilder().build(
+                    cutoff = cutoff,
+                    history = history,
+                    exercises = baseSnapshot.exercises,
+                    metadata = metadata,
+                    physicalQualityCatalog = physicalQualityCatalog,
+                    movementRelations = canonicalMovementRelations,
+                    coreCatalog = canonicalCoreCatalog,
+                    badmintonCatalog = badmintonCatalog,
+                    exerciseRoleCatalog = roleCatalog
+                )
+            )
+        } else baseSnapshot
         return snapshot.copy(performancePrescriptions = performancePrescriptions,
             strengthPerformanceRegistry = strengthPerformanceRegistry,
             planWeekTissueProjection = tissueProjectionProvider(cutoff),

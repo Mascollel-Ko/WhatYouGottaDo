@@ -373,6 +373,8 @@ class TrainingRepository internal constructor(
         strengthPerformanceRegistry = strengthPerformanceRegistry,
         canonicalOfiAxisProfiles = canonicalOfiAxisProfiles,
         physicalQualityCatalog = canonicalMetadataRepository.physicalQualityCatalog(),
+        canonicalMovementRelations = canonicalMetadataRepository.movementRelations(),
+        canonicalCoreCatalog = canonicalCoreCatalog,
         exerciseRoleRelationDao = exerciseRoleRelationDao,
         tissueStateProvider = { cutoff ->
             val endOfDay = cutoff.plusDays(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() - 1

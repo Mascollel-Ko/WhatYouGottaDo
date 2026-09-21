@@ -220,7 +220,9 @@ data class PlanningHistorySnapshot(
     val weekAnnotations: Map<LocalDate, WeeklyContextAnnotation> = emptyMap(),
     val planDayProjection: PlanDayProjection? = null,
     val planWeekTissueProjection: PlanWeekTissueProjection? = null,
-    val strengthPerformanceRegistry: com.training.trackplanner.analysis.strengthperformance.StrengthPerformanceRegistry? = null
+    val strengthPerformanceRegistry: com.training.trackplanner.analysis.strengthperformance.StrengthPerformanceRegistry? = null,
+    /** Phase A shadow evidence; immutable and deliberately excluded from persisted decisions. */
+    val stimulusExposureLedger: StimulusExposureLedger = StimulusExposureLedger.EMPTY
 ) {
     val historyStart: LocalDate get() = allConfirmedSets.minOf(PlanningSetRecord::date)
     val historyDays: Int get() = java.time.temporal.ChronoUnit.DAYS.between(historyStart, cutoff).toInt() + 1

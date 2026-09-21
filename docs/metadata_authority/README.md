@@ -64,6 +64,30 @@ authority. The exporter carries it through unchanged and includes its row
 count and hash in `canonical_v1/manifest.json`; review that asset alongside
 the workbook and commit both together.
 
+## Phase A stimulus-exposure shadow boundary
+
+`StimulusExposureLedger` is a transient Phase A planning snapshot. It reads
+the existing physical-quality catalog, `MOVEMENT_PATTERN`/
+`MOVEMENT_EVENT` relations, intrinsic bootstrap laterality, core profiles, and
+badminton objective catalog without introducing a new stimulus ontology. The
+runtime window is exactly cutoff-relative days `0..55` (56 days). It resolves
+one immutable facet profile per stableKey and retains one source observation
+per confirmed set; a set that matches several facets is queried through the
+same source identity and is never expanded into facet rows. Generic court
+sessions use a separate entry-level observation channel with the existing
+badminton practice-load policy.
+
+Queries are bounded linear folds over the transient observations and use
+cutoff-relative windows `0..6`, `0..27`, `28..55`, and `0..55`. A session
+occurrence is `(date, sessionStableKey)` and remains distinct from the unique
+training-day count. There is deliberately no universal cross-stimulus unit or
+combined total. `prepare()`/preflight does not construct the ledger;
+`generatePrepared()` constructs it once from the history it already loaded.
+The ledger is not persisted, serialized into `PersonalizedPlanningDecision`,
+or consumed by the existing selector, scheduler, prescription, regional
+authority, AthleteNeedsProfile, or TargetStimulusPlan paths. Those existing
+planner authorities remain unchanged in Phase A.
+
 ## Korean display terminology authority
 
 `30_METADATA_DISPLAY_LABELS` is the human-editable authority for metadata

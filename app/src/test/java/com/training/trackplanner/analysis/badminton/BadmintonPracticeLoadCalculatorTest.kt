@@ -135,6 +135,25 @@ class BadmintonPracticeLoadCalculatorTest {
         assertEquals(16.0, weekly.durationMinutes, 0.0001)
     }
 
+    @Test
+    fun perEntryContributionsSumToTheExistingRawPolicy() {
+        val exercise = exercise("ex_ae9ecdbc")
+        val inputs = listOf(
+            record(exercise, date, listOf(set(300))),
+            record(exercise, date.plusDays(1), listOf(set(600, rpe = 8.0))),
+            record(exercise, date.plusDays(2), listOf(set(120, confirmed = false)))
+        )
+        val calculator = calculator(exercise)
+        val contributions = calculator.entryContributions(inputs, mapOf(exercise.stableKey to exercise))
+        assertEquals(2, contributions.size)
+        assertEquals(
+            calculator.calculateRaw(inputs, mapOf(exercise.stableKey to exercise)),
+            contributions.sumOf { it.practiceLoad },
+            0.0001
+        )
+        assertEquals(15.0, contributions.sumOf { it.durationMinutes }, 0.0001)
+    }
+
     private fun calculator(exercise: Exercise): BadmintonPracticeLoadCalculator {
         val metadata = RuntimeExerciseMetadataDefaults.forIdentity(exercise.stableKey, exercise.name)
             .copy(activityKind = "SPORT_SESSION")

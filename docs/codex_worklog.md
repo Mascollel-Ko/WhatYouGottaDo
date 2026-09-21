@@ -1,5 +1,14 @@
 # Codex Worklog
 
+## 2026-09-21 — Phase A canonical stimulus-exposure shadow ledger
+
+- Start SHA: `c6b048bf724b81aa7728b1d1b9ff571e1a46d0e2`; fetched and verified clean `main` before implementation. The user explicitly authorized the requested `main` push.
+- Added a transient `StimulusExposureLedger` built only during `generatePrepared()`. It bounds history to cutoff-relative days 0..55, resolves one canonical facet profile per stable key, stores one observation per confirmed set, keeps generic court entries in a separate entry-level channel, and preserves `(date, sessionStableKey)` session occurrences plus distinct training days. The ledger is not consumed by planner authorities and is not persisted or serialized.
+- Canonical facets are sourced only from the existing physical-quality catalog, MOVEMENT_PATTERN/MOVEMENT_EVENT relations, intrinsic exercise laterality, the core catalog, and the badminton objective catalog. Integrity records CONSISTENT/PARTIAL/CONFLICT and laterality contradictions without repairing them. Existing badminton practice-load arithmetic is reused through lossless per-entry contributions.
+- Added sentinel coverage for independent facet queries, bilateral/unilateral lower work, vertical/horizontal pull, posterior-chain hinge, trunk patterns, court separation, reactive SSC, leg-curl hypertrophy, source identity reuse, bounded history, profile reuse, sessions, and training days. Added a regression proving per-entry court contributions sum to the existing raw calculator.
+- Verification: direct Kotlin compilation of all changed production/test sources passed; direct JUnit execution passed 12/12 tests; protocol documentation validator passed (9 families / 36 protocols); `git diff --check` passed. The focused Gradle test task and full planner suite could not start because this Windows environment's Gradle daemon failed with `java.io.IOException: Unable to establish loopback connection`. The unrelated metadata-authority Python suite is also blocked by the existing Windows CRLF/hash mismatch for the canonical badminton CSV; no metadata authority file was changed.
+- Updated the metadata/planner protocol index, PROGRAM-BUILDER overview to 3.29.0, metadata-authority documentation, and this worklog. No app-version bump or planner-output authority was mixed into the implementation.
+
 ## 2026-09-21 — Canonical physical-quality and movement metadata repair
 
 - Start SHA: `f76776c8189327acd427a10ffdd1768b0e08a674`; fetched `origin/main`, confirmed a clean current main, and kept this repair local without pushing.

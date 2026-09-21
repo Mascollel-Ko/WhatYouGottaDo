@@ -3,13 +3,20 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.28.0 |
+| Protocol version | 3.29.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 62078a92 |
+| Last audited commit | c6b048bf |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
+
+### 3.29.0 — Phase A canonical stimulus-exposure shadow ledger
+
+- `PlanningHistorySnapshot` carries a transient `StimulusExposureLedger` only on the actual `generatePrepared()` path. Preflight/`prepare()` leaves it empty, and generation builds it once from the already loaded history.
+- The ledger materializes exactly cutoff-relative days `0..55`. It resolves canonical facet profiles once per stableKey and keeps one auditable observation per confirmed `WorkoutSet`; physical quality, movement pattern/event, laterality, core, and badminton objective facets remain queryable views of that same observation.
+- Generic court sessions use a separate entry observation with `(date, sessionStableKey)`, confirmed duration, effective RPE, and the existing badminton practice-load policy. Resistance, structured badminton, athletic performance, and court channels never share a universal stimulus unit.
+- Facet filters are conjunctive across facets and OR within an accepted facet set. Summaries use cutoff-relative `0..6`, `0..27`, `28..55`, and `0..55` windows. The ledger is transient and is not persisted or consumed by selection, scheduling, prescription, regional authority, AthleteNeedsProfile, or TargetStimulusPlan.
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 

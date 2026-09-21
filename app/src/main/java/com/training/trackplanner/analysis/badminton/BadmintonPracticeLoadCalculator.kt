@@ -21,6 +21,13 @@ data class BadmintonPracticeWeekPoint(
     val confidence: AnalysisConfidence
 )
 
+data class BadmintonPracticeEntryContribution(
+    val entryId: Long,
+    val durationMinutes: Double,
+    val effectiveRpe: Double?,
+    val practiceLoad: Double
+)
+
 class BadmintonPracticeLoadCalculator(
     private val runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY
 ) {
@@ -61,28 +68,34 @@ class BadmintonPracticeLoadCalculator(
         exerciseMap: Map<String, Exercise>
     ): Double = contribution(entriesWithSets, exerciseMap).load
 
+    /** Per-entry form of the same policy used by calculateRaw; summing it is lossless. */
+    fun entryContributions(
+        entriesWithSets: List<WorkoutEntryWithSets>,
+        exerciseMap: Map<String, Exercise>
+    ): List<BadmintonPracticeEntryContribution> = entriesWithSets.mapNotNull { record ->
+        val exercise = exerciseMap[record.entry.exerciseStableKey] ?: return@mapNotNull null
+        val activityKind = runtimeMetadataCatalog.resolve(exercise)?.activityKind
+            ?.takeIf(String::isNotBlank)
+            ?: exercise.activityKind
+        if (!BadmintonPracticeCatalog.admits(record.entry.exerciseStableKey, activityKind)) return@mapNotNull null
+        val confirmedSets = record.sets.filter { set -> set.confirmed }
+        val durationMinutes = confirmedSets.sumOf { set -> set.seconds.coerceAtLeast(0) } / 60.0
+        if (durationMinutes <= 0.0) return@mapNotNull null
+        val effectiveRpe = confirmedSets.mapNotNull { it.rpe }.takeIf(List<Double>::isNotEmpty)?.average() ?: record.entry.rpe
+        BadmintonPracticeEntryContribution(
+            entryId = record.entry.id,
+            durationMinutes = durationMinutes,
+            effectiveRpe = effectiveRpe,
+            practiceLoad = durationMinutes * badmintonIntensityFactor(effectiveRpe)
+        )
+    }
+
     private fun contribution(
         entriesWithSets: List<WorkoutEntryWithSets>,
         exerciseMap: Map<String, Exercise>
     ): PracticeContribution {
-        var load = 0.0
-        var durationMinutes = 0.0
-        entriesWithSets.forEach { record ->
-            val exercise = exerciseMap[record.entry.exerciseStableKey] ?: return@forEach
-            val activityKind = runtimeMetadataCatalog.resolve(exercise)?.activityKind
-                ?.takeIf(String::isNotBlank)
-                ?: exercise.activityKind
-            if (!BadmintonPracticeCatalog.admits(record.entry.exerciseStableKey, activityKind)) return@forEach
-
-            val confirmedSets = record.sets.filter { set -> set.confirmed }
-            val recordMinutes = confirmedSets.sumOf { set -> set.seconds.coerceAtLeast(0) } / 60.0
-            if (recordMinutes <= 0.0) return@forEach
-            val setRpe = confirmedSets.mapNotNull { set -> set.rpe }
-            val effectiveRpe = setRpe.takeIf(List<Double>::isNotEmpty)?.average() ?: record.entry.rpe
-            durationMinutes += recordMinutes
-            load += recordMinutes * badmintonIntensityFactor(effectiveRpe)
-        }
-        return PracticeContribution(load, durationMinutes)
+        val entries = entryContributions(entriesWithSets, exerciseMap)
+        return PracticeContribution(entries.sumOf { it.practiceLoad }, entries.sumOf { it.durationMinutes })
     }
 
     private fun badmintonIntensityFactor(rpe: Double?): Double = when {

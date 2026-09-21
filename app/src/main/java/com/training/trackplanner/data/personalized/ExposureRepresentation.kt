@@ -4,13 +4,31 @@ import com.training.trackplanner.analysis.badminton.BadmintonObjective
 import com.training.trackplanner.analysis.core.AnalysisStimulusRpePolicy
 import com.training.trackplanner.data.ProgramSlotCapability
 import com.training.trackplanner.data.ProgressMetricRuntimeBehavior
+import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.ExerciseRoleRelationCatalog
+import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.TrainingRole
 import java.time.LocalDate
 
 class PlannerActivityDomainResolver {
     fun resolve(snapshot: PlanningHistorySnapshot, stableKey: String): PlannedActivityKind {
-        val metadata = snapshot.metadata[stableKey] ?: return PlannedActivityKind.OTHER
-        if (metadata.activityKind == "SPORT_SESSION" || snapshot.exercises[stableKey]?.activityKind == "SPORT_SESSION") {
+        return resolve(
+            exercise = snapshot.exercises[stableKey],
+            metadata = snapshot.metadata[stableKey],
+            exerciseRoleCatalog = snapshot.exerciseRoleCatalog,
+            supportiveObjectives = snapshot.badmintonSupportiveObjectives[stableKey].orEmpty()
+        )
+    }
+
+    /** Same canonical domain resolution for bounded shadow consumers without a full snapshot. */
+    fun resolve(
+        exercise: Exercise?,
+        metadata: RuntimeExerciseMetadata?,
+        exerciseRoleCatalog: ExerciseRoleRelationCatalog = ExerciseRoleRelationCatalog.EMPTY,
+        supportiveObjectives: Set<String> = emptySet()
+    ): PlannedActivityKind {
+        if (metadata == null) return PlannedActivityKind.OTHER
+        if (metadata.activityKind == "SPORT_SESSION" || exercise?.activityKind == "SPORT_SESSION") {
             return PlannedActivityKind.GENERIC_COURT_SESSION
         }
         if (metadata.activityKind != "EXERCISE") return PlannedActivityKind.OTHER
@@ -20,8 +38,9 @@ class PlannerActivityDomainResolver {
             metadata.badmintonTransferLevel == "DIRECT"
         ) return PlannedActivityKind.STRUCTURED_BADMINTON_DRILL
 
-        val roles = snapshot.exerciseRoleCatalog.trainingRoles(stableKey)
-        val capabilities = snapshot.exerciseRoleCatalog.programSlotCapabilities(stableKey)
+        val stableKey = metadata.stableKey
+        val roles = exerciseRoleCatalog.trainingRoles(stableKey)
+        val capabilities = exerciseRoleCatalog.programSlotCapabilities(stableKey)
         val strengthAuthority = roles.any { it == TrainingRole.STRENGTH || it == TrainingRole.HYPERTROPHY } ||
             capabilities.any { it == ProgramSlotCapability.MAIN_STRENGTH_SLOT || it == ProgramSlotCapability.SECONDARY_STRENGTH_SLOT || it == ProgramSlotCapability.ACCESSORY_SLOT } ||
             "STRENGTH_PROGRESS" in metadata.analysisEligibility || "HYPERTROPHY_VOLUME" in metadata.analysisEligibility
@@ -41,7 +60,7 @@ class PlannerActivityDomainResolver {
         if (strengthAuthority || loadBased) return PlannedActivityKind.RESISTANCE
         // Explicit objective assistance with stability authority is executable performance work,
         // not a resistance set or a DIRECT objective relation.
-        if (snapshot.badmintonSupportiveObjectives[stableKey].orEmpty().isNotEmpty() &&
+        if (supportiveObjectives.isNotEmpty() &&
             (TrainingRole.STABILITY in roles || ProgramSlotCapability.STABILITY_SLOT in capabilities ||
                 metadata.programSlot in setOf("CORE_STABILITY", "TRUNK_ANTI_ROTATION_STABILITY") ||
                 "BADMINTON_SUPPORTIVE" in metadata.analysisEligibility)
