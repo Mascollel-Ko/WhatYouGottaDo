@@ -1,6 +1,8 @@
 package com.training.trackplanner.data.personalized
 
 import androidx.test.core.app.ApplicationProvider
+import com.training.trackplanner.analysis.badminton.BadmintonObjective
+import com.training.trackplanner.analysis.badminton.BadmintonObjectiveTransferLevel
 import com.training.trackplanner.data.CanonicalExerciseMetadataRepository
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.ExerciseRoleRelationCatalog
@@ -180,14 +182,20 @@ class StimulusExposureLedgerCanonicalIntegrationTest {
         assertEquals(3, evidence.qualityEvidence.getValue(TrainableQuality.STRENGTH).current28d.directUnits)
         assertEquals(2, evidence.qualityEvidence.getValue(TrainableQuality.HYPERTROPHY).current28d.directUnits)
         assertTrue(evidence.currentStrengthStableKeys.containsAll(setOf("ex_e2efd0fe", "ex_ab468462", "ex_e159d15a")))
+        assertTrue(ledger.facetProfilesByStableKey.getValue("ex_e2efd0fe").badmintonObjectives.any {
+            it.objective == BadmintonObjective.DECELERATION &&
+                it.transferLevel == BadmintonObjectiveTransferLevel.SUPPORTIVE
+        })
+        assertTrue(evidence.taskEvidence.getValue("DECELERATION").current28d.supportiveUnits > 0)
         assertTrue(evidence.courtContext.current28d.sessions > 0)
         assertTrue(evidence.courtContext.current28d.durationMinutes > 0.0)
-        assertTrue(evidence.taskEvidence.values.all { it.current28d.directUnits == 0 && it.current28d.supportiveUnits == 0 })
         val withoutCourt = StimulusNeedEvidenceIndexBuilder().build(
             snapshot.copy(stimulusExposureLedger = ledger.copy(courtObservations = emptyList()))
         )
         assertEquals(withoutCourt.qualityEvidence, evidence.qualityEvidence)
         assertEquals(withoutCourt.taskEvidence, evidence.taskEvidence)
+        assertEquals(0, withoutCourt.courtContext.current28d.sessions)
+        assertEquals(0.0, withoutCourt.courtContext.current28d.durationMinutes, 0.0)
     }
 
     private fun record(id: Long, exercise: Exercise, dayOffset: Long, reps: Int = 8): WorkoutEntryWithSets {
