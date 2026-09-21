@@ -60,12 +60,13 @@ class AthleteStimulusNeedTest {
         val request = ProgramSkeletonRequest("audit", ProgramGoal.BODYBUILDING, 3, 60, emptySet(), "", .5, "AUTO", ProgramPeriodizationType.AUTO, 1)
         fun plan(rows: List<ProgramSkeletonItem>) = com.training.trackplanner.data.GeneratedProgramSkeleton("audit", 7, request, request.periodizationType, emptyList(), rows)
         val audit = FinalStimulusNeedAudit().audit(plan(afterRows), snapshot, CanonicalExercisePhysicalQualityCatalog.EMPTY, plan(listOf(beforeRow)))
-        assertEquals(6, audit.qualityBefore.getValue(TrainableQuality.STRENGTH).directUnits)
-        assertEquals(6, audit.qualityAfter.getValue(TrainableQuality.STRENGTH).directUnits)
-        assertEquals(1, audit.qualityBefore.getValue(TrainableQuality.STRENGTH).directSessions)
-        assertEquals(2, audit.qualityAfter.getValue(TrainableQuality.STRENGTH).directSessions)
-        assertEquals(1, audit.qualityDeltas.getValue(TrainableQuality.STRENGTH).directSessionsBefore)
-        assertEquals(2, audit.qualityDeltas.getValue(TrainableQuality.STRENGTH).directSessionsAfter)
+        val reflow = audit.finalReflowDistribution!!
+        assertEquals(6, reflow.qualityBefore.getValue(TrainableQuality.STRENGTH).directUnits)
+        assertEquals(6, audit.finalQualityCoverage.getValue(TrainableQuality.STRENGTH).directUnits)
+        assertEquals(1, reflow.qualityBefore.getValue(TrainableQuality.STRENGTH).directSessions)
+        assertEquals(2, reflow.qualityAfter.getValue(TrainableQuality.STRENGTH).directSessions)
+        assertEquals(1, reflow.qualityDeltas.getValue(TrainableQuality.STRENGTH).directSessionsBefore)
+        assertEquals(2, reflow.qualityDeltas.getValue(TrainableQuality.STRENGTH).directSessionsAfter)
     }
 
     @Test
@@ -161,6 +162,50 @@ class AthleteStimulusNeedTest {
     }
 
     @Test
+    fun strengthResponseUsesOnlyDirectStrengthLikeStableKeysWithEnoughObservations() {
+        val keys = listOf("direct-strength", "supportive-strength", "direct-hypertrophy", "single-strength")
+        val profiles = mapOf(
+            "direct-strength" to profile("direct-strength", relation("strength", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY)),
+            "supportive-strength" to profile("supportive-strength", relation("support", TrainableQuality.STRENGTH, StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY)),
+            "direct-hypertrophy" to profile("direct-hypertrophy", relation("hypertrophy", TrainableQuality.HYPERTROPHY, StimulusCapabilityLevel.DIRECT_CAPABILITY)),
+            "single-strength" to profile("single-strength", relation("single", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY))
+        )
+        val observations = listOf(
+            observation("direct-strength", 1, cutoff, "direct-a", 5),
+            observation("direct-strength", 2, cutoff.minusDays(7), "direct-b", 5),
+            observation("supportive-strength", 3, cutoff, "supportive-a", 5),
+            observation("supportive-strength", 4, cutoff.minusDays(7), "supportive-b", 5),
+            observation("direct-hypertrophy", 5, cutoff, "hypertrophy-a", 12),
+            observation("direct-hypertrophy", 6, cutoff.minusDays(7), "hypertrophy-b", 12),
+            observation("single-strength", 7, cutoff, "single-a", 5)
+        )
+        val signals = mapOf(
+            "direct-strength" to CanonicalStrengthSignal(100.0, 3.0, 2, "TEST"),
+            "supportive-strength" to CanonicalStrengthSignal(100.0, -100.0, 2, "TEST"),
+            "direct-hypertrophy" to CanonicalStrengthSignal(100.0, -100.0, 2, "TEST"),
+            "single-strength" to CanonicalStrengthSignal(100.0, -100.0, 1, "TEST")
+        )
+        val snapshot = snapshot(keys, observations, profiles, canonicalStrengthSignals = signals)
+        val need = AthleteStimulusNeedEngine().analyze(snapshot, AthletePlanningStateBuilder().build(snapshot, PersonalizedPlanningAnswers()))
+            .qualityNeeds.single { it.quality == TrainableQuality.STRENGTH }
+        assertEquals(TrainingResponseState.POSITIVE_RESPONSE, need.response)
+    }
+
+    @Test
+    fun oneSourceObservationFeedsPowerAndRfdAsSeparateViews() {
+        val profile = profile("power-source", relation("power", TrainableQuality.POWER, StimulusCapabilityLevel.DIRECT_CAPABILITY),
+            extraPhysical = relation("rfd", TrainableQuality.RAPID_FORCE_PRODUCTION, StimulusCapabilityLevel.DIRECT_CAPABILITY))
+        val observation = observation("power-source", 1, cutoff, "power-session", 3, PlannedActivityKind.ATHLETIC_PERFORMANCE_DRILL)
+        val snapshot = snapshot(listOf("power-source"), listOf(observation), mapOf("power-source" to profile))
+        val index = StimulusNeedEvidenceIndexBuilder().build(snapshot)
+        assertEquals(1, index.qualityEvidence.getValue(TrainableQuality.POWER).current28d.directUnits)
+        assertEquals(1, index.qualityEvidence.getValue(TrainableQuality.RAPID_FORCE_PRODUCTION).current28d.directUnits)
+        assertEquals(1, snapshot.stimulusExposureLedger.setObservations.size)
+        assertEquals(1, snapshot.stimulusExposureLedger.summary(StimulusFacetFilter(quality = TrainableQuality.POWER)).confirmedSets)
+        assertEquals(1, snapshot.stimulusExposureLedger.summary(StimulusFacetFilter(quality = TrainableQuality.RAPID_FORCE_PRODUCTION)).confirmedSets)
+    }
+
+    @Test
     fun supportivePrescriptionExclusionHasOnlySupportiveReason() {
         val p = profile("support", relation("support", TrainableQuality.STRENGTH, StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY))
         val s = snapshot(listOf("support"), listOf(observation("support", 1, cutoff, "support", 12)), mapOf("support" to p))
@@ -225,7 +270,7 @@ class AthleteStimulusNeedTest {
         val s = snapshot(listOf("s"), emptyList(), emptyMap())
         val audit = FinalStimulusNeedAudit().audit(simplePlan(item("row", 1, List(1) { ProgramSetPrescription(1, 5, 50.0, 0) })), s)
         assertEquals("NO_FINAL_REFLOW_MOVES", audit.reflowAuditStatus)
-        assertTrue(audit.qualityDeltas.values.all { it.directUnitsBefore == it.directUnitsAfter && it.directSessionsBefore == it.directSessionsAfter })
+        assertTrue(audit.finalReflowDistribution!!.qualityDeltas.values.all { it.directUnitsBefore == it.directUnitsAfter && it.directSessionsBefore == it.directSessionsAfter })
     }
 
     @Test
@@ -240,7 +285,7 @@ class AthleteStimulusNeedTest {
         )
         val audit = FinalStimulusNeedAudit().audit(plan, s)
         assertEquals("PRE_REFLOW_RECONSTRUCTION_UNAVAILABLE", audit.reflowAuditStatus)
-        assertTrue(audit.qualityDeltas.isEmpty())
+        assertTrue(audit.finalReflowDistribution!!.qualityDeltas.isEmpty())
     }
 
     @Test
@@ -285,7 +330,8 @@ class AthleteStimulusNeedTest {
 
     private fun snapshot(keys: List<String>, observations: List<StimulusSetObservation>, profiles: Map<String, CanonicalStimulusFacetProfile>,
         preferences: PersonalizedPlanningPreferences = PersonalizedPlanningPreferences(strengthIntent = StrengthIntent.STRENGTH_PRIORITY, badmintonIntent = BadmintonPlanningIntent.DISABLED,
-            freeWeightWillingness = FreeWeightWillingness.WILLING), ledgerCutoff: LocalDate? = cutoff): PlanningHistorySnapshot {
+            freeWeightWillingness = FreeWeightWillingness.WILLING), ledgerCutoff: LocalDate? = cutoff,
+        canonicalStrengthSignals: Map<String, CanonicalStrengthSignal> = emptyMap()): PlanningHistorySnapshot {
         val exercises = keys.associateWith { Exercise(it, it, "STRENGTH", equipment = "BODYWEIGHT") }
         val metadata = exercises.mapValues { (_, exercise) -> RuntimeExerciseMetadataDefaults.forExercise(exercise).copy(
             activityKind = "EXERCISE", planningEligibility = "PROGRAM_SELECTABLE", programSlot = "MAIN_LOWER_STRENGTH",
@@ -293,7 +339,8 @@ class AthleteStimulusNeedTest {
         val sets = if (observations.isEmpty()) listOf(PlanningSetRecord(cutoff, "s", "s", "STRENGTH", 1, 5, 50.0, 0, null))
         else observations.map { PlanningSetRecord(it.source.date, it.source.stableKey, it.source.stableKey, "STRENGTH", it.source.setIndex ?: 1, it.reps, it.weightKg, it.seconds, it.rpe) }
         return PlanningHistorySnapshot(cutoff, sets, exercises, metadata, emptyMap(), "STRENGTH_GAIN", 1.0, 0.0,
-            preferences, stimulusExposureLedger = StimulusExposureLedger(profiles, observations, emptyList(), ledgerCutoff))
+            preferences, canonicalStrengthSignals = canonicalStrengthSignals,
+            stimulusExposureLedger = StimulusExposureLedger(profiles, observations, emptyList(), ledgerCutoff))
     }
 
     private fun profile(key: String, relation: ExercisePhysicalQualityRelation, objectives: List<CanonicalBadmintonObjectiveRelation> = emptyList(), extraPhysical: ExercisePhysicalQualityRelation? = null) =

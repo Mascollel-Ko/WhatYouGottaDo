@@ -14,8 +14,20 @@ class BoundedDayRebalancerTest {
         val result = BoundedDayRebalancer { false }.rebalance(
             completed(underloadRows()), snapshot, f.state(snapshot), f.safe, counts)
         assertTrue(counts.candidates > 0)
-        assertTrue(performance.dayProjectionCalls < counts.candidates)
+        assertEquals(0, performance.candidateDayProjectionChecks)
         assertEquals(0, result.trace.actions.size)
+    }
+
+    @Test fun positiveCandidateProjectionMetricCountsOnlySurvivingCheapGates() {
+        val performance = PlannerPerformanceMetrics()
+        val counts = RebalanceEvaluationCounts(performanceMetrics = performance)
+        val input = completed(underloadRows())
+        val expected = run(input)
+        val actual = BoundedDayRebalancer().rebalance(input, snapshot, f.state(snapshot), f.safe, counts)
+        assertTrue(counts.candidates > 0)
+        assertTrue(performance.candidateDayProjectionChecks > 0)
+        assertEquals(expected.skeleton, actual.skeleton)
+        assertEquals(expected.trace.actions, actual.trace.actions)
     }
 
     @Test fun candidateEvaluationReusesUnaffectedDayMetrics() {

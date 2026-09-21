@@ -3,13 +3,20 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.31.0 |
+| Protocol version | 3.32.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
 | Last audited commit | c6b048bf |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
+
+### 3.32.0 — Phase B1 final CI and correctness closeout
+
+- `BoundedDayRebalancer` keeps the Stage A cheap-gate ordering and now exposes an observation-only `candidateDayProjectionChecks` metric. It counts only candidates that survive the cheap gates and reach canonical destination feasibility; baseline day metrics, cache reuse and final validation are excluded. The candidate comparator, accepted actions, OFI threshold and generated program remain unchanged.
+- `FinalStimulusNeedAuditResult` has explicit full-program `finalQualityCoverage` and `finalTaskCoverage` fields. Representative-week before/after distribution and deltas live only under `finalReflowDistribution`, and compact JSON nests that reflow scope instead of exposing mixed-scope aliases.
+- A production `PostSplitWeeklyReflow` integration test attaches the real trace to the final plan and proves exact reverse reconstruction against the true pre-reflow representative week and the actual post-reflow layout.
+- A Robolectric B1 integration test loads canonical metadata, builds the Phase A ledger, constructs a real `PlanningHistorySnapshot`, and verifies canonical sentinel evidence, generic court separation, and the B1 evidence index without synthetic facet reconstruction. B1 unit coverage also locks direct-strength response eligibility and the one-source POWER/RFD multi-view contract.
 
 ### 3.31.0 — ledger-backed stimulus-need correctness closeout
 

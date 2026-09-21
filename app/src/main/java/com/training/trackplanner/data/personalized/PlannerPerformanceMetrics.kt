@@ -12,6 +12,8 @@ internal class PlannerPerformanceMetrics {
     var initialPlacementSearchNodes: Int = 0
     var initialPlacementLegalChecks: Int = 0
     var dayProjectionCalls: Int = 0
+    /** Candidate-specific canonical day projection gates; baseline/metric projections are excluded. */
+    var candidateDayProjectionChecks: Int = 0
     var weekTissueProjectionCalls: Int = 0
 
     var conditionalSplitParents: Int = 0
@@ -37,6 +39,7 @@ internal class PlannerPerformanceMetrics {
         initialPlacementSearchNodes = 0
         initialPlacementLegalChecks = 0
         dayProjectionCalls = 0
+        candidateDayProjectionChecks = 0
         weekTissueProjectionCalls = 0
         conditionalSplitParents = 0
         fullTrials = 0
@@ -61,6 +64,7 @@ internal class PlannerPerformanceMetrics {
         "initialPlacementSearchNodes" to initialPlacementSearchNodes,
         "initialPlacementLegalChecks" to initialPlacementLegalChecks,
         "dayProjectionCalls" to dayProjectionCalls,
+        "candidateDayProjectionChecks" to candidateDayProjectionChecks,
         "weekTissueProjectionCalls" to weekTissueProjectionCalls,
         "conditionalSplitParents" to conditionalSplitParents,
         "fullTrials" to fullTrials,

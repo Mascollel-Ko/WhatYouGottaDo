@@ -118,7 +118,79 @@ class StimulusExposureLedgerCanonicalIntegrationTest {
         assertFalse(ledger.query(unilateralLowerStrength).any { it.source.stableKey == "ex_ae9ecdbc" })
     }
 
-    private fun record(id: Long, exercise: Exercise, dayOffset: Long): WorkoutEntryWithSets {
+    @Test
+    fun canonicalLedgerFeedsB1EvidenceAndKeepsGenericCourtSeparate() {
+        val exercises = repository.exercises(includeHistory = true).associateBy(Exercise::stableKey)
+        val metadata = repository.runtimeMetadataCatalog().all().associateBy(RuntimeExerciseMetadata::stableKey)
+        val history = listOf(
+            "ex_e2efd0fe", // Bulgarian split squat
+            "ex_a091b9fe", // single-leg leg press
+            "ex_ab468462", // ordinary leg press
+            "ex_e159d15a", // inverted row
+            "ex_8824026f", // one-leg leg curl
+            "ex_ae9ecdbc"  // generic badminton session
+        ).mapIndexed { index, stableKey ->
+            val reps = if (stableKey in setOf("ex_a091b9fe", "ex_8824026f")) 8 else 5
+            record(index.toLong() + 20, exercises.getValue(stableKey), index.toLong(), reps)
+        }
+        val ledger = StimulusExposureLedgerBuilder().build(
+            cutoff = cutoff,
+            history = history,
+            exercises = exercises,
+            metadata = metadata,
+            physicalQualityCatalog = repository.physicalQualityCatalog(),
+            movementRelations = repository.movementRelations(),
+            coreCatalog = repository.coreCatalog(),
+            badmintonCatalog = repository.badmintonObjectiveCatalog(),
+            exerciseRoleCatalog = ExerciseRoleRelationCatalog.of(
+                repository.trainingRoleRelations(), repository.programSlotCapabilityRelations()
+            )
+        )
+        val snapshot = PlanningHistorySnapshot(
+            cutoff = cutoff,
+            allConfirmedSets = history.flatMap { item ->
+                item.sets.filter { it.confirmed }.map { set ->
+                    PlanningSetRecord(
+                        date = LocalDate.parse(item.entry.date),
+                        stableKey = item.entry.exerciseStableKey,
+                        exerciseName = item.entry.exerciseName,
+                        category = item.entry.category,
+                        setIndex = set.setIndex,
+                        reps = set.reps,
+                        weightKg = set.weightKg,
+                        seconds = set.seconds,
+                        rpe = set.rpe ?: item.entry.rpe
+                    )
+                }
+            },
+            exercises = exercises,
+            metadata = metadata,
+            badmintonObjectives = emptyMap(),
+            profilePrimaryGoal = "STRENGTH_GAIN",
+            strengthTrainingYears = 1.0,
+            badmintonTrainingYears = 0.0,
+            preferences = PersonalizedPlanningPreferences(
+                strengthIntent = StrengthIntent.STRENGTH_PRIORITY,
+                badmintonIntent = BadmintonPlanningIntent.ENABLED,
+                freeWeightWillingness = FreeWeightWillingness.WILLING
+            ),
+            stimulusExposureLedger = ledger
+        )
+        val evidence = StimulusNeedEvidenceIndexBuilder().build(snapshot)
+        assertEquals(3, evidence.qualityEvidence.getValue(TrainableQuality.STRENGTH).current28d.directUnits)
+        assertEquals(2, evidence.qualityEvidence.getValue(TrainableQuality.HYPERTROPHY).current28d.directUnits)
+        assertTrue(evidence.currentStrengthStableKeys.containsAll(setOf("ex_e2efd0fe", "ex_ab468462", "ex_e159d15a")))
+        assertTrue(evidence.courtContext.current28d.sessions > 0)
+        assertTrue(evidence.courtContext.current28d.durationMinutes > 0.0)
+        assertTrue(evidence.taskEvidence.values.all { it.current28d.directUnits == 0 && it.current28d.supportiveUnits == 0 })
+        val withoutCourt = StimulusNeedEvidenceIndexBuilder().build(
+            snapshot.copy(stimulusExposureLedger = ledger.copy(courtObservations = emptyList()))
+        )
+        assertEquals(withoutCourt.qualityEvidence, evidence.qualityEvidence)
+        assertEquals(withoutCourt.taskEvidence, evidence.taskEvidence)
+    }
+
+    private fun record(id: Long, exercise: Exercise, dayOffset: Long, reps: Int = 8): WorkoutEntryWithSets {
         val entry = WorkoutEntry(
             id = id,
             date = cutoff.minusDays(dayOffset).toString(),
@@ -132,7 +204,7 @@ class StimulusExposureLedgerCanonicalIntegrationTest {
             id = id * 10,
             entryId = id,
             setIndex = 1,
-            reps = 8,
+            reps = reps,
             weightKg = 50.0,
             seconds = if (exercise.stableKey == "ex_ae9ecdbc") 600 else 0,
             confirmed = true,

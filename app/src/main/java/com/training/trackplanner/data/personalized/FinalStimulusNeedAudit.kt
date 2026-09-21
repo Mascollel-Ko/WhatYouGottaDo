@@ -53,20 +53,13 @@ data class FinalStimulusReflowDistributionAudit(
 )
 
 data class FinalStimulusNeedAuditResult(
-    /** Legacy fields remain readable; the exact reflow boundary is under finalReflowDistribution. */
-    val qualityBefore: Map<TrainableQuality, FinalStimulusNeedEvidence> = emptyMap(),
-    val qualityAfter: Map<TrainableQuality, FinalStimulusNeedEvidence> = emptyMap(),
-    val taskBefore: Map<String, FinalStimulusNeedEvidence> = emptyMap(),
-    val taskAfter: Map<String, FinalStimulusNeedEvidence> = emptyMap(),
-    val qualityDeltas: Map<TrainableQuality, FinalStimulusNeedDelta> = emptyMap(),
-    val taskDeltas: Map<String, FinalStimulusNeedDelta> = emptyMap(),
+    /** Full final generated program coverage across every week. */
+    val finalQualityCoverage: Map<TrainableQuality, FinalStimulusNeedEvidence> = emptyMap(),
+    val finalTaskCoverage: Map<String, FinalStimulusNeedEvidence> = emptyMap(),
     val shadowOnly: Boolean = true,
     val prescriptionAuthority: Boolean = false,
     val finalReflowDistribution: FinalStimulusReflowDistributionAudit? = null
 ) {
-    /** Full final-program coverage, distinct from the representative-week reflow boundary. */
-    val finalQualityCoverage: Map<TrainableQuality, FinalStimulusNeedEvidence> get() = qualityAfter
-    val finalTaskCoverage: Map<String, FinalStimulusNeedEvidence> get() = taskAfter
     val reflowAuditStatus: String? get() = finalReflowDistribution?.status
 }
 
@@ -109,12 +102,8 @@ class FinalStimulusNeedAudit {
             }
         }
         return FinalStimulusNeedAuditResult(
-            qualityBefore = reflow.qualityBefore,
-            qualityAfter = finalCoverage.first,
-            taskBefore = reflow.taskBefore,
-            taskAfter = finalCoverage.second,
-            qualityDeltas = reflow.qualityDeltas,
-            taskDeltas = reflow.taskDeltas,
+            finalQualityCoverage = finalCoverage.first,
+            finalTaskCoverage = finalCoverage.second,
             finalReflowDistribution = reflow
         )
     }
@@ -305,19 +294,20 @@ internal fun FinalStimulusNeedAuditResult.toCompactJson(): JSONObject {
         deltaJson(delta).put("task", task)
     })
     val reflow = finalReflowDistribution
+    fun reflowJson(value: FinalStimulusReflowDistributionAudit?) = value?.let {
+        JSONObject()
+            .put("status", it.status)
+            .put("qualityBefore", qualityMap(it.qualityBefore))
+            .put("qualityAfter", qualityMap(it.qualityAfter))
+            .put("taskBefore", taskMap(it.taskBefore))
+            .put("taskAfter", taskMap(it.taskAfter))
+            .put("qualityDeltas", qualityDeltasJson(it.qualityDeltas))
+            .put("taskDeltas", taskDeltasJson(it.taskDeltas))
+    }
     return JSONObject()
         .put("shadowOnly", shadowOnly)
         .put("prescriptionAuthority", prescriptionAuthority)
         .put("finalQualityCoverage", qualityMap(finalQualityCoverage))
         .put("finalTaskCoverage", taskMap(finalTaskCoverage))
-        // Keep the prior names readable for existing consumers while exposing the corrected scope.
-        .put("qualityAfter", qualityMap(finalQualityCoverage))
-        .put("taskAfter", taskMap(finalTaskCoverage))
-        .put("reflowAuditStatus", reflow?.status)
-        .put("qualityBefore", qualityMap(reflow?.qualityBefore.orEmpty()))
-        .put("taskBefore", taskMap(reflow?.taskBefore.orEmpty()))
-        .put("qualityReflowDeltas", qualityDeltasJson(reflow?.qualityDeltas.orEmpty()))
-        .put("taskReflowDeltas", taskDeltasJson(reflow?.taskDeltas.orEmpty()))
-        .put("qualityDeltas", qualityDeltasJson(qualityDeltas))
-        .put("taskDeltas", taskDeltasJson(taskDeltas))
+        .put("finalReflowDistribution", reflowJson(reflow))
 }

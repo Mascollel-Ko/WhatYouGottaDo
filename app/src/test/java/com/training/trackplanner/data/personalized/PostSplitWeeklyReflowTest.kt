@@ -239,6 +239,58 @@ class PostSplitWeeklyReflowTest {
         reporter.report(PersonalizedPlannerStage.COMPLETE)
         assertEquals(listOf(98,100),updates.takeLast(2).map { it.percent })
     }
+
+    @Test fun productionReflowTraceReconstructsTheExactRepresentativeStimulusState() {
+        val initial = plan()
+        val base = snapshot()
+        val rowProfile = CanonicalStimulusFacetProfile(
+            stableKey = "row",
+            physicalQualities = listOf(ExercisePhysicalQualityRelation(
+                relationId = "row-strength",
+                exerciseStableKey = "row",
+                qualityId = TrainableQuality.STRENGTH,
+                relationLevel = StimulusCapabilityLevel.DIRECT_CAPABILITY,
+                regionQualifier = PhysicalQualityRegion.UPPER_PULL,
+                modeQualifier = PhysicalQualityMode.PULL,
+                prescriptionDependent = true,
+                provenance = "TEST",
+                evidenceRelationKeys = setOf("TEST"),
+                reviewStatus = "PASS",
+                notes = "TEST"
+            )),
+            integrity = StimulusFacetIntegrity.CONSISTENT
+        )
+        val instrumented = base.copy(
+            stimulusExposureLedger = StimulusExposureLedger(
+                facetProfilesByStableKey = mapOf("row" to rowProfile),
+                setObservations = emptyList(),
+                courtObservations = emptyList(),
+                cutoff = base.cutoff
+            )
+        )
+        val reviewed = PostSplitWeeklyReflow().review(initial, instrumented, f.state(instrumented))
+        assertTrue(reviewed.trace.moves.isNotEmpty())
+        val productionPlan = reviewed.skeleton.copy(
+            personalizedDecision = reviewed.skeleton.personalizedDecision?.copy(postSplitReflow = reviewed.trace)
+        )
+        val audited = FinalStimulusNeedAudit().audit(productionPlan, instrumented)
+        val reflow = audited.finalReflowDistribution!!
+        assertEquals("RECONSTRUCTED_FROM_POST_SPLIT_TRACE", reflow.status)
+
+        val truePre = FinalStimulusNeedAudit().audit(initial, instrumented).finalReflowDistribution!!
+        val postWithoutTrace = productionPlan.copy(
+            personalizedDecision = productionPlan.personalizedDecision?.copy(postSplitReflow = null)
+        )
+        val truePost = FinalStimulusNeedAudit().audit(postWithoutTrace, instrumented).finalReflowDistribution!!
+        assertEquals(truePre.qualityBefore, reflow.qualityBefore)
+        assertEquals(truePre.taskBefore, reflow.taskBefore)
+        assertEquals(truePost.qualityBefore, reflow.qualityAfter)
+        assertEquals(truePost.taskBefore, reflow.taskAfter)
+        assertEquals(
+            reflow.qualityBefore.values.sumOf { it.directUnits },
+            reflow.qualityAfter.values.sumOf { it.directUnits }
+        )
+    }
     @Test fun sameKeyAndCalendarSpacingRejectOtherwiseAttractiveDestinations() {
         val original=plan()
         val second=original.copy(items=original.items + original.items.filter { it.exerciseStableKey=="row" }.map {

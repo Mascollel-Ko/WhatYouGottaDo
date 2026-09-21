@@ -191,6 +191,9 @@ internal class BoundedDayRebalancer(private val additionalGate: (List<ProgramSke
                 // structural and spacing checks above are cheaper and cannot change its result.
                 for (day in affected) {
                     if (day == destination || reverse != null) {
+                        // This is the exact candidate validation event. Baseline day metrics,
+                        // reused metrics, and final validation are intentionally not counted.
+                        counts.performanceMetrics?.let { it.candidateDayProjectionChecks++ }
                         if (!load(tentative.filter { it.dayOfWeek == day }).feasible) return rejected("DESTINATION_OFI_OR_AXIS")
                     }
                 }
