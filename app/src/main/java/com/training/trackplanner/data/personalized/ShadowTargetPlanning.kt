@@ -419,11 +419,8 @@ class QualityDoseHistoryAnalyzer {
         )
     }
 
-    private fun prescriptionCompatible(quality: TrainableQuality, row: PlanningSetRecord): Boolean = when (quality) {
-        TrainableQuality.STRENGTH -> provisionalRealizedStimulusClass(row) == RealizedStimulusClass.STRENGTH_LIKE
-        TrainableQuality.HYPERTROPHY -> provisionalRealizedStimulusClass(row) == RealizedStimulusClass.HYPERTROPHY_LIKE
-        else -> true
-    }
+    private fun prescriptionCompatible(quality: TrainableQuality, row: PlanningSetRecord): Boolean =
+        stimulusPrescriptionCompatible(quality, provisionalRealizedStimulusClass(row))
 
     private fun directFrequency(exposureWeeks: Int, eligibleWeeks: Int): Double? =
         if (eligibleWeeks == 0) null else exposureWeeks.toDouble() / eligibleWeeks.toDouble()

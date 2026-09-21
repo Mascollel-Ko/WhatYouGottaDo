@@ -221,7 +221,7 @@ data class PlanningHistorySnapshot(
     val planDayProjection: PlanDayProjection? = null,
     val planWeekTissueProjection: PlanWeekTissueProjection? = null,
     val strengthPerformanceRegistry: com.training.trackplanner.analysis.strengthperformance.StrengthPerformanceRegistry? = null,
-    /** Phase A shadow evidence; immutable and deliberately excluded from persisted decisions. */
+    /** Phase A/B2 shadow evidence; immutable and deliberately excluded from planner authority. */
     val stimulusExposureLedger: StimulusExposureLedger = StimulusExposureLedger.EMPTY
 ) {
     val historyStart: LocalDate get() = allConfirmedSets.minOf(PlanningSetRecord::date)

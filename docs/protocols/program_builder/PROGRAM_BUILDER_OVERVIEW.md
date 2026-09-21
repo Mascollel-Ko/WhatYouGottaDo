@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.32.0 |
+| Protocol version | 3.33.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
@@ -17,6 +17,12 @@
 - `FinalStimulusNeedAuditResult` has explicit full-program `finalQualityCoverage` and `finalTaskCoverage` fields. Representative-week before/after distribution and deltas live only under `finalReflowDistribution`, and compact JSON nests that reflow scope instead of exposing mixed-scope aliases.
 - A production `PostSplitWeeklyReflow` integration test attaches the real trace to the final plan and proves exact reverse reconstruction against the true pre-reflow representative week and the actual post-reflow layout.
 - A Robolectric B1 integration test loads canonical metadata, builds the Phase A ledger, constructs a real `PlanningHistorySnapshot`, and verifies canonical sentinel evidence, generic court separation, and the B1 evidence index without synthetic facet reconstruction. B1 unit coverage also locks direct-strength response eligibility and the one-source POWER/RFD multi-view contract.
+
+### 3.33.0 — Phase B2 ledger-backed quality-dose shadow history
+
+- `LedgerBackedQualityDoseHistoryAnalyzer` reads the same transient `StimulusExposureLedger` source observations as B1. It preserves the reviewed eight completed ISO-week baseline, fallback, quantile, frequency, minimum-data and confidence rules while recording per-quality weekly direct/supportive units, `(date, sessionStableKey)` sessions, training days, and prescription-incompatible exclusions. DIRECT capability owns an observation when DIRECT and SUPPORTIVE relations overlap; generic court remains a separate context channel.
+- The actual generation path still loads workout history once and builds one ledger. The ledger starts at `min(cutoff - 55 days, oldest completed ISO-week start)` so a Monday or midweek cutoff cannot truncate the oldest completed baseline week. B1 query windows remain exactly `0..6`, `0..27`, `28..55`, and `0..55` relative to the cutoff.
+- The ledger-backed result is attached only to the existing shadow/audit profile with explicit legacy-comparison reason codes and compact JSON. `QualityDoseHistory`, `TrainingDecisionPortfolio`, `TargetStimulusPlan`, comparison, regional logic, selection, prescription, placement, OFI, tissue, Room schema, backup and cloud authorities remain unchanged.
 
 ### 3.31.0 — ledger-backed stimulus-need correctness closeout
 

@@ -29,6 +29,8 @@ import com.training.trackplanner.data.personalized.AthleteStimulusNeedEngine
 import com.training.trackplanner.data.personalized.FinalStimulusNeedAudit
 import com.training.trackplanner.data.personalized.toCompactJson
 import com.training.trackplanner.data.personalized.QualityDoseHistoryAnalyzer
+import com.training.trackplanner.data.personalized.LedgerBackedQualityDoseHistoryAnalyzer
+import com.training.trackplanner.data.personalized.qualityDoseHistoryHorizon
 import com.training.trackplanner.data.personalized.TargetPlanComparisonEngine
 import com.training.trackplanner.data.personalized.TargetStimulusPlanEngine
 import com.training.trackplanner.data.personalized.TrainingDecisionPortfolioEngine
@@ -155,16 +157,21 @@ internal class PersonalizedProgramPlanningService(
         val legacyNeeds = athleteNeedsProfileEngine.analyze(snapshot, state, physicalQualityCatalog)
         val stimulusNeeds = athleteStimulusNeedEngine.analyze(snapshot, state)
         val finalStimulusAudit = FinalStimulusNeedAudit().audit(generated, snapshot, physicalQualityCatalog)
+        val doseHistoryAnalyzer = QualityDoseHistoryAnalyzer()
+        val doseHistory = doseHistoryAnalyzer.analyze(snapshot, state, physicalQualityCatalog)
+        val ledgerDoseHistory = LedgerBackedQualityDoseHistoryAnalyzer().analyze(snapshot, state, doseHistory)
         val withShadowNeeds = generated.copy(
             personalizedDecision = generated.personalizedDecision?.copy(
                 athleteNeedsProfile = legacyNeeds,
-                athleteStimulusNeedProfile = stimulusNeeds.copy(finalAudit = finalStimulusAudit)
+                athleteStimulusNeedProfile = stimulusNeeds.copy(
+                    finalAudit = finalStimulusAudit,
+                    qualityDoseHistoryShadow = ledgerDoseHistory
+                )
             )
         )
         val decision = withShadowNeeds.personalizedDecision
         val needs = decision?.athleteNeedsProfile
         if (decision != null && needs != null) {
-            val doseHistory = QualityDoseHistoryAnalyzer().analyze(snapshot, state, physicalQualityCatalog)
             val portfolio = TrainingDecisionPortfolioEngine().build(needs, doseHistory)
             val targetPlan = TargetStimulusPlanEngine().build(portfolio, doseHistory)
             val comparison = TargetPlanComparisonEngine().compare(targetPlan, withShadowNeeds, snapshot, physicalQualityCatalog)
@@ -406,7 +413,8 @@ internal class PersonalizedProgramPlanningService(
                     movementRelations = canonicalMovementRelations,
                     coreCatalog = canonicalCoreCatalog,
                     badmintonCatalog = badmintonCatalog,
-                    exerciseRoleCatalog = roleCatalog
+                    exerciseRoleCatalog = roleCatalog,
+                    historyStart = qualityDoseHistoryHorizon(cutoff).ledgerStart
                 )
             )
         } else baseSnapshot

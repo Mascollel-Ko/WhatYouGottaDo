@@ -198,6 +198,61 @@ class StimulusExposureLedgerCanonicalIntegrationTest {
         assertEquals(0.0, withoutCourt.courtContext.current28d.durationMinutes, 0.0)
     }
 
+    @Test
+    fun canonicalLedgerBackedDoseHistoryUsesExtendedCompletedWeekCoverage() {
+        val exercises = repository.exercises(includeHistory = true).associateBy(Exercise::stableKey)
+        val metadata = repository.runtimeMetadataCatalog().all().associateBy(RuntimeExerciseMetadata::stableKey)
+        val horizon = qualityDoseHistoryHorizon(cutoff)
+        val history = listOf(55L, 48L, 41L, 34L).mapIndexed { index, offset ->
+            record(index.toLong() + 80, exercises.getValue("ex_e2efd0fe"), offset, reps = 5)
+        } + record(100, exercises.getValue("ex_ae9ecdbc"), 0)
+        val ledger = StimulusExposureLedgerBuilder().build(
+            cutoff = cutoff,
+            history = history,
+            exercises = exercises,
+            metadata = metadata,
+            physicalQualityCatalog = repository.physicalQualityCatalog(),
+            movementRelations = repository.movementRelations(),
+            coreCatalog = repository.coreCatalog(),
+            badmintonCatalog = repository.badmintonObjectiveCatalog(),
+            exerciseRoleCatalog = ExerciseRoleRelationCatalog.of(
+                repository.trainingRoleRelations(), repository.programSlotCapabilityRelations()
+            ),
+            historyStart = horizon.ledgerStart
+        )
+        val snapshot = PlanningHistorySnapshot(
+            cutoff = cutoff,
+            allConfirmedSets = history.map { item ->
+                val set = item.sets.single()
+                PlanningSetRecord(LocalDate.parse(item.entry.date), item.entry.exerciseStableKey, item.entry.exerciseName,
+                    item.entry.category, set.setIndex, set.reps, set.weightKg, set.seconds, set.rpe)
+            },
+            exercises = exercises,
+            metadata = metadata,
+            badmintonObjectives = emptyMap(),
+            profilePrimaryGoal = "STRENGTH_GAIN",
+            strengthTrainingYears = 1.0,
+            badmintonTrainingYears = 0.0,
+            preferences = PersonalizedPlanningPreferences(),
+            stimulusExposureLedger = ledger
+        )
+        val state = AthletePlanningState(
+            ObservedTrainingBehavior.UNKNOWN, StrengthExposure.PRESENT, StrengthIntent.STRENGTH_PRIORITY,
+            BadmintonPlanningIntent.DISABLED, FreeWeightWillingness.UNRESOLVED, "MIXED", 56, 3.0, 0.0,
+            0.0, 1.0, emptyList(), StrengthProgrammingStyle.UNRESOLVED, PlanningConfidence.LOW, 0,
+            "NONE", PlanningConfidence.MODERATE
+        )
+        val legacy = QualityDoseHistoryAnalyzer().analyze(snapshot, state, repository.physicalQualityCatalog())
+        val shadow = LedgerBackedQualityDoseHistoryAnalyzer().analyze(snapshot, state, legacy)
+        val strength = shadow.bands.getValue(TrainableQuality.STRENGTH)
+
+        assertEquals(horizon.ledgerStart, ledger.historyStart)
+        assertEquals(4, shadow.weeklyEvidence.getValue(TrainableQuality.STRENGTH).count { it.directUnits > 0 })
+        assertEquals(4, strength.directExposureWeekCount)
+        assertTrue(shadow.reasonCodes.contains("LEDGER_HORIZON_EXTENDED_FOR_COMPLETED_ISO_WEEK_BASELINE"))
+        assertTrue(shadow.reasonCodes.contains("GENERIC_COURT_EXCLUDED_FROM_QUALITY_DOSE"))
+    }
+
     private fun record(id: Long, exercise: Exercise, dayOffset: Long, reps: Int = 8): WorkoutEntryWithSets {
         val entry = WorkoutEntry(
             id = id,

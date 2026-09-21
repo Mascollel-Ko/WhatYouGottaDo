@@ -82,7 +82,9 @@ data class AthleteStimulusNeedProfile(
     val shadowOnly: Boolean = true,
     val prescriptionAuthority: Boolean = false,
     val reasonCodes: List<String> = emptyList(),
-    val finalAudit: FinalStimulusNeedAuditResult? = null
+    val finalAudit: FinalStimulusNeedAuditResult? = null,
+    /** Phase B2 shadow comparison; it never supplies planner authority. */
+    val qualityDoseHistoryShadow: LedgerBackedQualityDoseHistory? = null
 )
 
 internal data class StimulusNeedEvidenceIndex(
@@ -511,4 +513,5 @@ internal fun AthleteStimulusNeedProfile.toCompactJson(): JSONObject = JSONObject
         .put("currentTrainingDays", courtContext.current28d.trainingDays)
         .put("currentDurationMinutes", courtContext.current28d.durationMinutes)
         .put("currentPracticeLoad", courtContext.current28d.practiceLoad))
+    .put("qualityDoseHistoryShadow", qualityDoseHistoryShadow?.toCompactJson())
     .put("finalAudit", finalAudit?.toCompactJson())

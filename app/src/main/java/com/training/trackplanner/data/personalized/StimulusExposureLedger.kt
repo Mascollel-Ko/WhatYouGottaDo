@@ -152,7 +152,9 @@ data class StimulusExposureLedger(
     val facetProfilesByStableKey: Map<String, CanonicalStimulusFacetProfile>,
     val setObservations: List<StimulusSetObservation>,
     val courtObservations: List<CourtExposureObservation>,
-    val cutoff: LocalDate? = null
+    val cutoff: LocalDate? = null,
+    /** Transient source coverage start; B1 queries continue to use cutoff-relative windows. */
+    val historyStart: LocalDate? = null
 ) {
     companion object {
         val EMPTY = StimulusExposureLedger(emptyMap(), emptyList(), emptyList())
@@ -258,7 +260,8 @@ class StimulusExposureLedgerBuilder(
         movementRelations: List<CanonicalMetadataRelation>,
         coreCatalog: CanonicalCoreCatalog,
         badmintonCatalog: CanonicalBadmintonObjectiveCatalog,
-        exerciseRoleCatalog: ExerciseRoleRelationCatalog = ExerciseRoleRelationCatalog.EMPTY
+        exerciseRoleCatalog: ExerciseRoleRelationCatalog = ExerciseRoleRelationCatalog.EMPTY,
+        historyStart: LocalDate? = null
     ): StimulusExposureLedger = build(
         cutoff = cutoff,
         history = history,
@@ -268,7 +271,8 @@ class StimulusExposureLedgerBuilder(
         movementRelations = movementRelations,
         coreCatalog = coreCatalog,
         badmintonCatalog = badmintonCatalog,
-        exerciseRoleCatalog = exerciseRoleCatalog
+        exerciseRoleCatalog = exerciseRoleCatalog,
+        historyStart = historyStart
     )
 
     fun build(
@@ -280,9 +284,10 @@ class StimulusExposureLedgerBuilder(
         movementRelations: List<CanonicalMetadataRelation>,
         coreCatalog: CanonicalCoreCatalog,
         badmintonCatalog: CanonicalBadmintonObjectiveCatalog,
-        exerciseRoleCatalog: ExerciseRoleRelationCatalog = ExerciseRoleRelationCatalog.EMPTY
+        exerciseRoleCatalog: ExerciseRoleRelationCatalog = ExerciseRoleRelationCatalog.EMPTY,
+        historyStart: LocalDate? = null
     ): StimulusExposureLedger {
-        val windowStart = cutoff.minusDays(55)
+        val windowStart = (historyStart ?: cutoff.minusDays(55)).coerceAtMost(cutoff)
         val boundedHistory = history.mapNotNull { record ->
             val date = runCatching { LocalDate.parse(record.entry.date) }.getOrNull()
             if (date == null || date.isBefore(windowStart) || date.isAfter(cutoff)) null else date to record
@@ -361,7 +366,7 @@ class StimulusExposureLedgerBuilder(
                 )
             }
         }
-        return StimulusExposureLedger(profiles.toMap(), sets.toList(), courts.toList(), cutoff)
+        return StimulusExposureLedger(profiles.toMap(), sets.toList(), courts.toList(), cutoff, windowStart)
     }
 
     private fun profileFor(
