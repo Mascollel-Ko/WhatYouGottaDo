@@ -71,7 +71,7 @@ class CanonicalExerciseMetadataRepositoryTest {
 
     @Test
     fun canonicalRepositoryExposesEveryProductionMetadataDomain() {
-        assertEquals(2248, repository.movementRelations().size)
+        assertEquals(2249, repository.movementRelations().size)
         assertEquals(797, repository.muscleRelations().size)
         assertEquals(3913, repository.ofiRelations().size)
         assertEquals(241, repository.recoveryProfiles().size)
@@ -86,8 +86,8 @@ class CanonicalExerciseMetadataRepositoryTest {
     @Test
     fun physicalQualityRelationsUseRuntimeAuthorityAndKeepLayersSeparate() {
         val catalog = repository.physicalQualityCatalog()
-        assertEquals(265, catalog.allRelations().size)
-        assertEquals(176, catalog.allRelations().mapTo(mutableSetOf()) { it.exerciseStableKey }.size)
+        assertEquals(279, catalog.allRelations().size)
+        assertEquals(180, catalog.allRelations().mapTo(mutableSetOf()) { it.exerciseStableKey }.size)
         assertTrue(catalog.allRelations().all { it.prescriptionDependent })
         assertTrue(catalog.allRelations().all { it.regionQualifier in PhysicalQualityRegion.entries })
         assertTrue(catalog.allRelations().all { it.modeQualifier in PhysicalQualityMode.entries })
@@ -131,6 +131,38 @@ class CanonicalExerciseMetadataRepositoryTest {
         })
         assertTrue(catalog.relations("ex_708e64ce").any { it.qualityId == TrainableQuality.HYPERTROPHY })
 
+        val lungeStrengthKeys = setOf(
+            "ex_1052e9fa", "ex_64644b5e", "ex_7ce96a7a", "ex_b4b198de",
+            "ex_c8bcf3ce", "ex_e2efd0fe", "ex_e3715c0b", "ex_f2a79d37"
+        )
+        lungeStrengthKeys.forEach { stableKey ->
+            assertTrue(catalog.relations(stableKey).any {
+                it.qualityId == TrainableQuality.STRENGTH &&
+                    it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY &&
+                    it.regionQualifier == PhysicalQualityRegion.LOWER &&
+                    it.modeQualifier == PhysicalQualityMode.SQUAT
+            })
+        }
+        listOf("ex_69a56484", "ex_704cbf1a").forEach { stableKey ->
+            assertTrue(catalog.relations(stableKey).any {
+                it.qualityId == TrainableQuality.STRENGTH &&
+                    it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY &&
+                    it.regionQualifier == PhysicalQualityRegion.UNILATERAL_LOWER &&
+                    it.modeQualifier == PhysicalQualityMode.UNILATERAL
+            })
+        }
+        listOf("ex_ab468462", "ex_a091b9fe").forEach { stableKey ->
+            assertEquals(
+                setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY),
+                catalog.relations(stableKey).mapTo(mutableSetOf()) { it.qualityId }
+            )
+            assertTrue(catalog.relations(stableKey).all {
+                it.regionQualifier == PhysicalQualityRegion.LOWER && it.modeQualifier == PhysicalQualityMode.SQUAT
+            })
+        }
+        assertEquals(setOf(TrainableQuality.HYPERTROPHY), catalog.relations("ex_8824026f").mapTo(mutableSetOf()) { it.qualityId })
+        assertTrue(catalog.relations("ex_d5bdffe1").isEmpty())
+
         listOf("band_pallof_press", "cable_pallof_press", "ex_a44ae2ca", "ex_f6d43398", "band_woodchop")
             .forEach { stableKey -> assertTrue(catalog.relations(stableKey).isEmpty()) }
         listOf("ex_1c7f2342", "ex_33841b88", "ex_bc84eb7f", "ex_c5f4c242")
@@ -140,6 +172,13 @@ class CanonicalExerciseMetadataRepositoryTest {
             assertTrue(catalog.relations(stableKey).isEmpty())
         }
         assertTrue(catalog.relations("kettlebell_halo").isEmpty())
+
+        val bootstrap = repository.exercises(includeHistory = true).associateBy(Exercise::stableKey)
+        assertEquals("UNILATERAL", bootstrap.getValue("ex_e2efd0fe").laterality)
+        assertEquals("BILATERAL", bootstrap.getValue("ex_ab468462").laterality)
+        assertEquals("UNILATERAL", bootstrap.getValue("ex_a091b9fe").laterality)
+        assertEquals("UNILATERAL", bootstrap.getValue("ex_8824026f").laterality)
+        assertTrue("UNILATERAL_LOWER" in bootstrap.getValue("ex_e2efd0fe").balanceContributionTags.split(','))
     }
 
     @Test
@@ -173,6 +212,8 @@ class CanonicalExerciseMetadataRepositoryTest {
         )
         assertTrue("TRUNK_ROTATION" in patterns.getValue("band_lift"))
         assertFalse("ANTI_ROTATION" in patterns.getValue("barbell_back_squat"))
+        assertTrue("HORIZONTAL_PULL" in patterns.getValue("ex_e159d15a"))
+        assertFalse("VERTICAL_PULL" in patterns.getValue("ex_e159d15a"))
     }
 
     @Test

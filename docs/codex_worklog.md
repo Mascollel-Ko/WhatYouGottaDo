@@ -1,5 +1,13 @@
 # Codex Worklog
 
+## 2026-09-21 — Canonical physical-quality and movement metadata repair
+
+- Start SHA: `f76776c8189327acd427a10ffdd1768b0e08a674`; fetched `origin/main`, confirmed a clean current main, and kept this repair local without pushing.
+- Scope is canonical metadata only: the workbook remains the authoring source for the Bulgarian bootstrap laterality/tag and the inverted-row movement relation; the separately reviewed physical-quality asset adds 14 PASS direct-capability rows for the eight lunge/split-squat variants, two unilateral step variants, and two leg-press variants. Core and badminton relation ownership remains unchanged, and the one-leg leg curl remains untouched.
+- The exporter now carries the separately reviewed physical-quality asset through deterministic generation and manifests its row count/hash, preventing a canonical export from dropping that reviewed relation layer. Generated bootstrap, movement relations, display-resource manifest, and canonical manifest were regenerated together.
+- Final verification: authority validator PASS; deterministic exporter `--check` PASS; Python metadata suite 12/12 PASS; focused Android suite 49/49 PASS across `CanonicalExerciseMetadataRepositoryTest`, `CanonicalAnalysisAuthorityTest`, `PostGenerationAuthorityFreezeTest`, `PersonalizedPlannerParityTest`, `RegionalAuthorityBoundsTest`, and `BoundedMaterialDemandTest`; protocol documentation validator PASS (9 families / 36 protocols); `git diff --check` PASS.
+- `TrainingRepository` loads the repaired physical-quality catalog into `PersonalizedProgramPlanningService` for the existing shadow analysis path. No selector, scheduling, prescription, or production planner implementation changed; the parity and authority-freeze regressions remain green.
+
 ## 2026-09-20 — Experimental capacity permits work; bounded demand authorizes it
 
 - Start SHA: `62078a92ff936e37e1705a85a8e3b61ec75dbc0f`; fresh fetch, local main equals origin/main, clean before adding regressions. Protocol at start: 3.27.0.

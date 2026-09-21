@@ -59,6 +59,11 @@ The exporter is deterministic: stable primary-key sorting, UTF-8, LF
 newlines, no timestamps, and a SHA-256 manifest. Generated CSV/JSON assets
 must not be hand-edited.
 
+`physical_quality_relations.csv` is a separately reviewed domain-relation
+authority. The exporter carries it through unchanged and includes its row
+count and hash in `canonical_v1/manifest.json`; review that asset alongside
+the workbook and commit both together.
+
 ## Korean display terminology authority
 
 `30_METADATA_DISPLAY_LABELS` is the human-editable authority for metadata

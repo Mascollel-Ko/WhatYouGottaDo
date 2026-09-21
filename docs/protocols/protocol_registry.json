@@ -1710,7 +1710,7 @@
       "familyId": "DATA_PORTABILITY",
       "titleKo": "메타데이터 분석 계약",
       "titleEn": "Metadata Analysis Contract",
-      "currentVersion": "2.9.0",
+      "currentVersion": "2.9.1",
       "status": "ACTIVE",
       "implementationStatus": "PARTIALLY_IMPLEMENTED",
       "evidenceProfile": [
@@ -1718,8 +1718,8 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "data_portability/METADATA_ANALYSIS_CONTRACT_PHASE_0_1.md",
-      "implementedFromAppVersion": "v0.5.0.16 shadow baseline; role split from v0.5.0.21; bundled authority cutover from v0.5.0.22; Korean display authority from v0.5.0.23; explicit override authority from v0.5.0.25; fieldKey routing from v0.5.0.26; canonical normalization from v0.5.0.32; core/objective analysis cutover from v0.5.0.33; physical-quality capability asset and atomic qualifier audit 2026-09; AthleteNeedsProfile shadow semantics correction; weekly/exposure-week and prescription-aware target history; frequency-aware shadow target comparison 2026-09; hardened regional diagnosis and experimental A/B target authority 2026-09",
-      "lastAuditedCommit": "532d2343cafd9e54924dc52350c6e108893b4b07",
+      "implementedFromAppVersion": "v0.5.0.16 shadow baseline; role split from v0.5.0.21; bundled authority cutover from v0.5.0.22; Korean display authority from v0.5.0.23; explicit override authority from v0.5.0.25; fieldKey routing from v0.5.0.26; canonical normalization from v0.5.0.32; core/objective analysis cutover from v0.5.0.33; physical-quality capability asset and atomic qualifier audit 2026-09; canonical physical-quality/movement repair and deterministic separately reviewed relation export 2026-09-21; AthleteNeedsProfile shadow semantics correction; weekly/exposure-week and prescription-aware target history; frequency-aware shadow target comparison 2026-09; hardened regional diagnosis and experimental A/B target authority 2026-09",
+      "lastAuditedCommit": "cc51fe092ab14ed59d1245754050f83bc3e1b0bf",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/contracts/AnalysisContractModels.kt",
         "app/src/main/java/com/training/trackplanner/analysis/contracts/AnalysisContractAssetLoader.kt",

@@ -3,14 +3,14 @@
 | 항목 | 값 |
 |---|---|
 | Protocol ID | DATA-METADATA-ANALYSIS-CONTRACT |
-| Protocol version | 2.9.0 |
+| Protocol version | 2.9.1 |
 | Status | ACTIVE |
 | Implementation status | PARTIALLY_IMPLEMENTED |
-| Implemented from app version | v0.5.0.16 shadow baseline; role split from v0.5.0.21; bundled authority cutover from v0.5.0.22; Korean display authority from v0.5.0.23; explicit override authority from v0.5.0.25; fieldKey routing from v0.5.0.26; canonical normalization from v0.5.0.32; core/objective analysis cutover from v0.5.0.33; explicit semantic-authority closeout from v0.5.0.37; orthogonal physical-quality membership and AthleteNeedsProfile shadow from 2026-09 |
-| Last audited commit | 532d2343cafd9e54924dc52350c6e108893b4b07 |
+| Implemented from app version | v0.5.0.16 shadow baseline; role split from v0.5.0.21; bundled authority cutover from v0.5.0.22; Korean display authority from v0.5.0.23; explicit override authority from v0.5.0.25; fieldKey routing from v0.5.0.26; canonical normalization from v0.5.0.32; core/objective analysis cutover from v0.5.0.33; explicit semantic-authority closeout from v0.5.0.37; orthogonal physical-quality membership and AthleteNeedsProfile shadow from 2026-09; canonical lunge/leg-press/inverted-row relation repair and deterministic separately reviewed relation export from 2026-09-21 |
+| Last audited commit | cc51fe092ab14ed59d1245754050f83bc3e1b0bf |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 
-## 2.9.0 Regional diagnosis hardening and experimental target contract
+## 2.9.1 Canonical relation repair and deterministic reviewed-asset export
 
 The regional requirement resolver uses canonical/base regional priority as
 importance evidence and keeps it independent from current exposure and
@@ -205,7 +205,9 @@ The selectable audit is recorded in
 orthogonal: `hasGeneralQuality`, `hasCoreRelation`, `hasSportTaskRelation`,
 and `hasRecoveryPrehabRelation` are independent flags. `primarySemanticLayer`
 is display/audit context only and never suppresses another relation. The
-coverage counts and overlaps are in
+exporter carries the separately reviewed physical-quality asset into the
+canonical output without changing its reviewed row order and includes its
+count/hash in the canonical manifest. The coverage counts and overlaps are in
 `docs/audits/physical_quality_coverage_report.md`.
 
 `AthleteNeedsProfile` is a shadow-only analysis trace. It reads the canonical

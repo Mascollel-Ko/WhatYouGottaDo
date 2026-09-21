@@ -72,6 +72,7 @@ class MetadataAuthorityTest(unittest.TestCase):
             self.assertEqual(first_files, second_files)
             self.assertNotIn(Path("assets/tissue_load_relations.csv"), first_files)
             self.assertIn(Path("assets/exercise_bootstrap.csv"), first_files)
+            self.assertIn(Path("assets/physical_quality_relations.csv"), first_files)
             self.assertIn(Path("assets/metadata_display_labels_ko.csv"), first_files)
             self.assertIn(Path("res/values/metadata_display_catalog.xml"), first_files)
             for relative in first_files:

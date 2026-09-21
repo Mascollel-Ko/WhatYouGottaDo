@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import filecmp
 import html
 import shutil
@@ -243,6 +244,24 @@ def export(
         ["relationId"],
         PRODUCTION_ACTIVE,
     )
+
+    # Physical-quality capability rows are a separately reviewed domain asset,
+    # rather than a workbook sheet. Keep their reviewed ordering and include
+    # the asset in the same deterministic manifest/export contract.
+    physical_source = ROOT / "app/src/main/assets/metadata/canonical_v1/physical_quality_relations.csv"
+    if physical_source.exists():
+        physical_target = output / physical_source.name
+        shutil.copy2(physical_source, physical_target)
+        with physical_source.open(encoding="utf-8-sig", newline="") as source:
+            physical_rows = list(csv.DictReader(source))
+        files.append({
+            "path": physical_source.name,
+            "rowCount": len(physical_rows),
+            "sha256": sha256(physical_target),
+            "primaryKey": ["relationId"],
+            "scope": PRODUCTION_ACTIVE,
+        })
+        counts["physicalQualityRelationRows"] = len(physical_rows)
 
     manifest = {
         "schemaVersion": 1,
