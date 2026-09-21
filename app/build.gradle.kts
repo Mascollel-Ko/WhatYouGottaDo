@@ -50,8 +50,8 @@ android {
         applicationId = "com.whatyougottado.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 501004
-        versionName = "0.5.1.4"
+        versionCode = 501005
+        versionName = "0.5.1.5"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "GIT_COMMIT_SHA", "\"$gitCommitSha\"")
         buildConfigField("String", "SUPABASE_URL", quoteBuildConfig(
