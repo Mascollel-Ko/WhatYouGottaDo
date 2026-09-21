@@ -140,16 +140,22 @@ internal class StimulusNeedEvidenceIndexBuilder {
                     }
                 }
                 if (observation.activityKind in STRUCTURED_TASK_EVIDENCE_KINDS) {
-                    profile.badmintonObjectives.forEach { relation ->
-                        if (relation.objective.name !in reviewedTasks) return@forEach
-                        when (relation.transferLevel) {
-                            BadmintonObjectiveTransferLevel.DIRECT -> tasks.getValue(relation.objective.name)
-                                .add(age, observation.source.date, observation.source.sessionStableKey, direct = true, supportive = false, compatible = true)
-                            BadmintonObjectiveTransferLevel.SUPPORTIVE -> tasks.getValue(relation.objective.name)
-                                .add(age, observation.source.date, observation.source.sessionStableKey, direct = false, supportive = true, compatible = true)
-                            else -> Unit
+                    // A source observation contributes at most once to each objective view.
+                    // Canonical metadata may contain duplicate/future-compatible relations, so
+                    // resolve DIRECT precedence before crediting the accumulator.
+                    profile.badmintonObjectives
+                        .filter { it.objective.name in reviewedTasks }
+                        .groupBy { it.objective.name }
+                        .forEach { (objective, relations) ->
+                            val direct = relations.any { it.transferLevel == BadmintonObjectiveTransferLevel.DIRECT }
+                            val supportive = !direct && relations.any { it.transferLevel == BadmintonObjectiveTransferLevel.SUPPORTIVE }
+                            if (direct || supportive) {
+                                tasks.getValue(objective).add(
+                                    age, observation.source.date, observation.source.sessionStableKey,
+                                    direct = direct, supportive = supportive, compatible = true
+                                )
+                            }
                         }
-                    }
                 }
             }
         }
@@ -202,8 +208,11 @@ internal class StimulusNeedEvidenceIndexBuilder {
             val context = windows.getValue(Window.CONTEXT).toEvidence()
             val evidenceReasons = linkedSetOf<String>()
             if (current.directUnits == 0 && current.supportiveUnits > 0) evidenceReasons += "SUPPORTIVE_EVIDENCE_ONLY"
-            if (current.excludedDirectByPrescriptionUnits > 0 || current.excludedSupportiveByPrescriptionUnits > 0) {
+            if (current.excludedDirectByPrescriptionUnits > 0) {
                 evidenceReasons += "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE"
+            }
+            if (current.excludedSupportiveByPrescriptionUnits > 0) {
+                evidenceReasons += "SUPPORTIVE_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE"
             }
             if (quality != null && quality !in PRESCRIPTION_GATED_QUALITIES) {
                 evidenceReasons += "CANONICAL_CAPABILITY_PROXY_REALIZED_STIMULUS_AUTHORITY_UNAVAILABLE"
@@ -216,7 +225,7 @@ internal class StimulusNeedEvidenceIndexBuilder {
                 context56d = context,
                 currentDirectActiveBins = directBins.size,
                 currentExposure = exposureState(current.directUnits, prior.directUnits, current.directSessions),
-                confidence = confidence(current, prior, context, snapshot),
+                confidence = confidence(current, prior, context, snapshot, taskPolicy = task != null),
                 reasonCodes = mergedReasons
             )
         }
@@ -300,10 +309,11 @@ internal class StimulusNeedEvidenceIndexBuilder {
         }
 
         fun confidence(current: StimulusWindowEvidence, prior: StimulusWindowEvidence, context: StimulusWindowEvidence,
-            snapshot: PlanningHistorySnapshot): PlanningConfidence = when {
+            snapshot: PlanningHistorySnapshot, taskPolicy: Boolean): PlanningConfidence = when {
             snapshot.allConfirmedSets.minOfOrNull(PlanningSetRecord::date)?.let { ChronoUnit.DAYS.between(it, snapshot.cutoff).toInt() + 1 }?.let { it < 28 } == true -> PlanningConfidence.LOW
             context.eligibleUnits < 2 -> PlanningConfidence.LOW
-            current.eligibleUnits >= 3 && prior.eligibleUnits > 0 -> PlanningConfidence.HIGH
+            taskPolicy && current.eligibleUnits >= 3 -> PlanningConfidence.MODERATE
+            !taskPolicy && current.eligibleUnits >= 3 && prior.eligibleUnits > 0 -> PlanningConfidence.HIGH
             else -> PlanningConfidence.MODERATE
         }
     }
@@ -340,7 +350,7 @@ internal class AthleteStimulusNeedEngine(
                 else -> TrainingNeedDecision.MAINTAIN
             }
             AthleteStimulusTaskNeed(task, relevance, exposure, TrainingResponseState.INSUFFICIENT_EVIDENCE, decision,
-                taskConfidence(exposure, snapshot), state.badmintonObjectiveRepresentations.firstOrNull { it.objective == task }?.currentWeighted28d ?: 0.0,
+                exposure.confidence, state.badmintonObjectiveRepresentations.firstOrNull { it.objective == task }?.currentWeighted28d ?: 0.0,
                 buildList {
                     addAll(exposure.reasonCodes)
                     add("TASK_REQUIREMENT_ORDINAL_ONLY")
@@ -433,6 +443,7 @@ internal class AthleteStimulusNeedEngine(
     private fun decide(relevance: NeedRelevance, exposure: ExposureState, response: TrainingResponseState): TrainingNeedDecision = when {
         relevance == NeedRelevance.UNKNOWN -> TrainingNeedDecision.UNKNOWN
         relevance in setOf(NeedRelevance.NONE, NeedRelevance.LOW) -> TrainingNeedDecision.NO_EXTRA_NEED
+        exposure == ExposureState.UNKNOWN -> TrainingNeedDecision.UNKNOWN
         exposure in setOf(ExposureState.ABSENT, ExposureState.LOW) && response in setOf(TrainingResponseState.INSUFFICIENT_EVIDENCE, TrainingResponseState.STABLE_RESPONSE) -> TrainingNeedDecision.DEVELOP
         exposure in setOf(ExposureState.ESTABLISHED, ExposureState.HIGH) && response == TrainingResponseState.POSITIVE_RESPONSE -> TrainingNeedDecision.MAINTAIN_OR_PROGRESS
         exposure in setOf(ExposureState.ESTABLISHED, ExposureState.HIGH) && response == TrainingResponseState.NEGATIVE_RESPONSE -> TrainingNeedDecision.REDUCE
@@ -451,14 +462,6 @@ internal class AthleteStimulusNeedEngine(
         if (quality != TrainableQuality.STRENGTH) add("CANONICAL_OUTCOME_AUTHORITY_UNAVAILABLE")
         if (quality in setOf(TrainableQuality.POWER, TrainableQuality.RAPID_FORCE_PRODUCTION, TrainableQuality.REACTIVE_STRENGTH_SSC)) add("PERFORMANCE_TEST_REQUIRED_FOR_RESPONSE")
     }
-
-    private fun taskConfidence(exposure: StimulusExposureEvidence, snapshot: PlanningHistorySnapshot): PlanningConfidence {
-        val historyDays = snapshot.allConfirmedSets.minOfOrNull(PlanningSetRecord::date)?.let { ChronoUnit.DAYS.between(it, snapshot.cutoff).toInt() + 1 } ?: 0
-        return if (!indexableHistory(historyDays) || exposure.context56d.eligibleUnits < 2) PlanningConfidence.LOW
-        else if (exposure.current28d.eligibleUnits >= 3) PlanningConfidence.MODERATE else PlanningConfidence.LOW
-    }
-
-    private fun indexableHistory(days: Int) = days >= 28
 
     private fun executionModifiers(snapshot: PlanningHistorySnapshot, state: AthletePlanningState): List<ExecutionModifierTrace> = buildList {
         val restricted = snapshot.recoverySignals.tissueRestrictedStableKeys

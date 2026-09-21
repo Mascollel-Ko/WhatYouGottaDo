@@ -3,13 +3,20 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.30.0 |
+| Protocol version | 3.31.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
 | Last audited commit | c6b048bf |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
+
+### 3.31.0 — ledger-backed stimulus-need correctness closeout
+
+- Task evidence groups canonical badminton relations by exact objective once per source observation or actual planned set. `DIRECT` wins over `SUPPORTIVE`; `GENERAL`, `LOW`, and `NONE` never satisfy a reviewed task.
+- Unavailable or cutoff-mismatched ledger evidence remains `UNKNOWN` for relevant qualities and tasks; a valid empty ledger is `ABSENT` and can produce `DEVELOP` under the existing matrix. Direct and supportive prescription-incompatibility reasons remain separate.
+- Final-program coverage is computed across the complete final plan. Final-reflow distribution is a separate representative-week comparison reconstructed by reverse-applying the exact `PostSplitWeeklyReflow` move trace, with safe unavailable and no-move statuses; no duplicate pre-final skeleton is persisted.
+- Quality and task confidence are owned by their respective exposure evidence objects, and the need confidence is copied from that evidence without a divergent recalculation. The ledger-backed profile remains shadow-only; legacy `AthleteNeedsProfile` remains the sole production Need authority.
 
 ### 3.30.0 — candidate validation ordering and ledger-backed shadow needs
 

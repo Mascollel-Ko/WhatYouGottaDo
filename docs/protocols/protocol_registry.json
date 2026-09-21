@@ -1377,7 +1377,7 @@
       "familyId": "PROGRAM_BUILDER",
       "titleKo": "자동·기록 기반 프로그램 생성 개요",
       "titleEn": "Automatic and Record-Based Program Builder Overview",
-      "currentVersion": "3.30.0",
+      "currentVersion": "3.31.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [

@@ -68,6 +68,20 @@ class ResidualCompletionTest {
         val result = f.complete(initial, authorized(), listOf(gap))
         assertEquals(initial, result.skeleton); assertTrue(result.trace.additions.isEmpty())
     }
+
+    @Test fun `exact restoration zero residual fast path skips flexible projection`() {
+        val initial = f.plan(listOf(f.row("press", 1, 8), f.row("squat", 3)))
+        var projectionCalls = 0
+        val result = f.complete(initial, authorized(), listOf(gap), projection = PlanDayProjection {
+            projectionCalls++
+            StandaloneDayLoad(0, emptyList())
+        })
+        assertEquals(0, projectionCalls)
+        assertEquals(initial, result.skeleton)
+        assertTrue(result.trace.additions.isEmpty())
+        assertTrue(result.trace.residuals.all { it.residual <= PLANNING_EPSILON })
+        assertEquals(personalizedProgramFingerprint(initial.request, initial.items), result.trace.completedFingerprint)
+    }
     @Test fun `sparse trigger is strictly both units AND time below half`() {
         val initial = f.plan(listOf(f.row("press", 1, 8), f.row("row", 3, 2, 400), f.row("other", 5, 5, 1)))
         val auth = authorized() + listOf(f.authorized(snapshot, f.source("row", 2), true), f.authorized(snapshot, f.source("other", 5), true))

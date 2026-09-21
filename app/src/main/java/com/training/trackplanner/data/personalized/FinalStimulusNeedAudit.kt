@@ -19,6 +19,7 @@ data class FinalStimulusNeedEvidence(
     val directExposureWeeks: Int = 0,
     val supportiveExposureWeeks: Int = 0,
     val incompatibleDirectCapabilityUnits: Int = 0,
+    val incompatibleSupportiveCapabilityUnits: Int = 0,
     val reasonCodes: List<String> = emptyList()
 ) {
     val directPlannedUnits: Int get() = directUnits
@@ -40,7 +41,19 @@ data class FinalStimulusNeedDelta(
     val supportiveSessionsAfter: Int
 )
 
+/** Distribution comparison at the exact pre/post PostSplitWeeklyReflow boundary. */
+data class FinalStimulusReflowDistributionAudit(
+    val status: String,
+    val qualityBefore: Map<TrainableQuality, FinalStimulusNeedEvidence> = emptyMap(),
+    val qualityAfter: Map<TrainableQuality, FinalStimulusNeedEvidence> = emptyMap(),
+    val taskBefore: Map<String, FinalStimulusNeedEvidence> = emptyMap(),
+    val taskAfter: Map<String, FinalStimulusNeedEvidence> = emptyMap(),
+    val qualityDeltas: Map<TrainableQuality, FinalStimulusNeedDelta> = emptyMap(),
+    val taskDeltas: Map<String, FinalStimulusNeedDelta> = emptyMap()
+)
+
 data class FinalStimulusNeedAuditResult(
+    /** Legacy fields remain readable; the exact reflow boundary is under finalReflowDistribution. */
     val qualityBefore: Map<TrainableQuality, FinalStimulusNeedEvidence> = emptyMap(),
     val qualityAfter: Map<TrainableQuality, FinalStimulusNeedEvidence> = emptyMap(),
     val taskBefore: Map<String, FinalStimulusNeedEvidence> = emptyMap(),
@@ -48,8 +61,14 @@ data class FinalStimulusNeedAuditResult(
     val qualityDeltas: Map<TrainableQuality, FinalStimulusNeedDelta> = emptyMap(),
     val taskDeltas: Map<String, FinalStimulusNeedDelta> = emptyMap(),
     val shadowOnly: Boolean = true,
-    val prescriptionAuthority: Boolean = false
-)
+    val prescriptionAuthority: Boolean = false,
+    val finalReflowDistribution: FinalStimulusReflowDistributionAudit? = null
+) {
+    /** Full final-program coverage, distinct from the representative-week reflow boundary. */
+    val finalQualityCoverage: Map<TrainableQuality, FinalStimulusNeedEvidence> get() = qualityAfter
+    val finalTaskCoverage: Map<String, FinalStimulusNeedEvidence> get() = taskAfter
+    val reflowAuditStatus: String? get() = finalReflowDistribution?.status
+}
 
 /** One linear traversal of actual final set prescriptions; no OFI/tissue projection is invoked. */
 class FinalStimulusNeedAudit {
@@ -59,15 +78,79 @@ class FinalStimulusNeedAudit {
         physicalQualityCatalog: CanonicalExercisePhysicalQualityCatalog = CanonicalExercisePhysicalQualityCatalog.EMPTY,
         beforePlan: GeneratedProgramSkeleton? = null
     ): FinalStimulusNeedAuditResult {
-        val after = summarize(finalPlan.items, snapshot, physicalQualityCatalog)
-        val before = beforePlan?.let { summarize(it.items, snapshot, physicalQualityCatalog) }
-        val qualityDeltas = if (before == null) emptyMap() else qualityDelta(before.first, after.first)
-        val taskDeltas = if (before == null) emptyMap() else taskDelta(before.second, after.second)
+        val finalCoverage = summarize(finalPlan.items, snapshot, physicalQualityCatalog)
+        val reflow = when {
+            beforePlan != null -> {
+                val before = summarize(beforePlan.items, snapshot, physicalQualityCatalog)
+                distribution("PRE_REFLOW_PLAN_PROVIDED", before, finalCoverage)
+            }
+            finalPlan.personalizedDecision?.postSplitReflow == null -> {
+                val representative = summarize(finalPlan.items.filter { it.weekNumber == 1 }, snapshot, physicalQualityCatalog)
+                distribution("NO_FINAL_REFLOW_MOVES", representative, representative)
+            }
+            finalPlan.personalizedDecision.postSplitReflow.moves.isEmpty() ||
+                finalPlan.personalizedDecision.postSplitReflow.state == "NOT_APPLICABLE_NO_MANDATORY_SPLIT" -> {
+                val representative = summarize(finalPlan.items.filter { it.weekNumber == 1 }, snapshot, physicalQualityCatalog)
+                distribution("NO_FINAL_REFLOW_MOVES", representative, representative)
+            }
+            else -> {
+                val trace = finalPlan.personalizedDecision.postSplitReflow
+                val after = summarize(finalPlan.items.filter { it.weekNumber == 1 }, snapshot, physicalQualityCatalog)
+                val beforeRows = reconstructBeforeRepresentative(finalPlan, trace.moves)
+                if (beforeRows == null) {
+                    FinalStimulusReflowDistributionAudit("PRE_REFLOW_RECONSTRUCTION_UNAVAILABLE")
+                } else {
+                    distribution(
+                        "RECONSTRUCTED_FROM_POST_SPLIT_TRACE",
+                        summarize(beforeRows, snapshot, physicalQualityCatalog),
+                        after
+                    )
+                }
+            }
+        }
         return FinalStimulusNeedAuditResult(
-            qualityBefore = before?.first.orEmpty(), qualityAfter = after.first,
-            taskBefore = before?.second.orEmpty(), taskAfter = after.second,
-            qualityDeltas = qualityDeltas, taskDeltas = taskDeltas
+            qualityBefore = reflow.qualityBefore,
+            qualityAfter = finalCoverage.first,
+            taskBefore = reflow.taskBefore,
+            taskAfter = finalCoverage.second,
+            qualityDeltas = reflow.qualityDeltas,
+            taskDeltas = reflow.taskDeltas,
+            finalReflowDistribution = reflow
         )
+    }
+
+    private fun distribution(
+        status: String,
+        before: Pair<Map<TrainableQuality, FinalStimulusNeedEvidence>, Map<String, FinalStimulusNeedEvidence>>,
+        after: Pair<Map<TrainableQuality, FinalStimulusNeedEvidence>, Map<String, FinalStimulusNeedEvidence>>
+    ): FinalStimulusReflowDistributionAudit = FinalStimulusReflowDistributionAudit(
+        status = status,
+        qualityBefore = before.first,
+        qualityAfter = after.first,
+        taskBefore = before.second,
+        taskAfter = after.second,
+        qualityDeltas = qualityDelta(before.first, after.first),
+        taskDeltas = taskDelta(before.second, after.second)
+    )
+
+    /** Reverse-applies the exact moves recorded by PostSplitWeeklyReflow. */
+    private fun reconstructBeforeRepresentative(
+        finalPlan: GeneratedProgramSkeleton,
+        moves: List<PostSplitMove>
+    ): List<ProgramSkeletonItem>? {
+        val rows = finalPlan.items.filter { it.weekNumber == 1 }
+        if (rows.isEmpty() || rows.groupingBy { it.localId }.eachCount().values.any { it != 1 }) return null
+        val reconstructed = rows.toMutableList()
+        for (move in moves.asReversed()) {
+            if (move.from == move.to) return null
+            val matches = reconstructed.withIndex().filter { it.value.localId == move.localId }
+            if (matches.size != 1) return null
+            val index = matches.single().index
+            val row = reconstructed[index]
+            if (row.exerciseStableKey != move.stableKey || row.dayOfWeek != move.to) return null
+            reconstructed[index] = row.copy(dayOfWeek = move.from)
+        }
+        return reconstructed.toList()
     }
 
     private fun summarize(
@@ -91,37 +174,41 @@ class FinalStimulusNeedAudit {
                 physical.groupBy(ExercisePhysicalQualityRelation::qualityId).forEach { (quality, relations) ->
                     val direct = relations.any { it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY }
                     val supportive = !direct && relations.any { it.relationLevel == StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY }
-                    if (!direct && !supportive) return@forEach
-                    val compatible = stimulusPrescriptionCompatible(quality, realized)
-                    qualities.getValue(quality).add(session, direct, supportive, compatible, quality)
+                    if (direct || supportive) {
+                        qualities.getValue(quality).add(session, direct, supportive,
+                            stimulusPrescriptionCompatible(quality, realized), quality)
+                    }
                 }
                 if (structured) {
-                    if (profile != null) badminton.filter { it.objective.name in tasks }.forEach { relation ->
-                        when (relation.transferLevel) {
-                            BadmintonObjectiveTransferLevel.DIRECT -> tasks.getValue(relation.objective.name).add(session, true, false, true, null)
-                            BadmintonObjectiveTransferLevel.SUPPORTIVE -> tasks.getValue(relation.objective.name).add(session, false, true, true, null)
-                            else -> Unit
-                        }
-                    }
-                    else {
-                        // The snapshot keeps the reviewed transfer maps even for planned exercises
-                        // that were absent from historical ledger profiles.
-                        snapshot.badmintonDirectObjectives[item.exerciseStableKey].orEmpty().filter { it in tasks }
-                            .forEach { tasks.getValue(it).add(session, true, false, true, null) }
+                    if (profile != null) {
+                        // Resolve one tier per actual set/objective before crediting the set.
+                        badminton.filter { it.objective.name in tasks }
+                            .groupBy { it.objective.name }
+                            .forEach { (objective, relations) ->
+                                val direct = relations.any { it.transferLevel == BadmintonObjectiveTransferLevel.DIRECT }
+                                val supportive = !direct && relations.any { it.transferLevel == BadmintonObjectiveTransferLevel.SUPPORTIVE }
+                                if (direct || supportive) tasks.getValue(objective).add(session, direct, supportive, true, null)
+                            }
+                    } else {
+                        // The fallback maps already encode direct precedence; preserve it per set.
+                        val directObjectives = snapshot.badmintonDirectObjectives[item.exerciseStableKey].orEmpty()
+                        directObjectives.filter { it in tasks }.forEach { tasks.getValue(it).add(session, true, false, true, null) }
                         snapshot.badmintonSupportiveObjectives[item.exerciseStableKey].orEmpty()
-                            .filter { it in tasks && it !in snapshot.badmintonDirectObjectives[item.exerciseStableKey].orEmpty() }
+                            .filter { it in tasks && it !in directObjectives }
                             .forEach { tasks.getValue(it).add(session, false, true, true, null) }
                     }
                 }
             }
         }
-        return qualities.mapValues { (_, accumulator) -> accumulator.evidence() } to tasks.mapValues { (_, accumulator) -> accumulator.evidence() }
+        return qualities.mapValues { (_, accumulator) -> accumulator.evidence() } to
+            tasks.mapValues { (_, accumulator) -> accumulator.evidence() }
     }
 
     private class Accumulator {
         var direct = 0
         var supportive = 0
         var incompatibleDirect = 0
+        var incompatibleSupportive = 0
         var proxyCoverage = false
         val directSessions = linkedSetOf<Pair<Int, Int>>()
         val supportiveSessions = linkedSetOf<Pair<Int, Int>>()
@@ -142,19 +229,21 @@ class FinalStimulusNeedAudit {
                     supportiveSessions += session
                     supportiveWeeks += session.first
                 }
+                supportiveRelation -> incompatibleSupportive++
             }
         }
 
         fun evidence(): FinalStimulusNeedEvidence {
             val reasons = buildList {
                 if (direct == 0 && supportive > 0) add("SUPPORTIVE_ONLY_FINAL_COVERAGE")
-                if (direct == 0 && supportive == 0 && incompatibleDirect == 0) add("NO_DIRECT_FINAL_COVERAGE")
+                if (direct == 0 && supportive == 0 && incompatibleDirect == 0 && incompatibleSupportive == 0) add("NO_DIRECT_FINAL_COVERAGE")
                 if (incompatibleDirect > 0) add("DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE")
+                if (incompatibleSupportive > 0) add("SUPPORTIVE_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE")
                 if (direct > 0) add("DIRECT_FINAL_COVERAGE_PRESENT")
                 if (proxyCoverage) add("CAPABILITY_PROXY_FINAL_COVERAGE")
             }
             return FinalStimulusNeedEvidence(direct, supportive, directSessions.size, supportiveSessions.size,
-                directWeeks.size, supportiveWeeks.size, incompatibleDirect, reasons)
+                directWeeks.size, supportiveWeeks.size, incompatibleDirect, incompatibleSupportive, reasons)
         }
     }
 
@@ -187,30 +276,48 @@ class FinalStimulusNeedAudit {
     }
 }
 
-internal fun FinalStimulusNeedAuditResult.toCompactJson(): JSONObject = JSONObject()
-    .put("shadowOnly", shadowOnly)
-    .put("prescriptionAuthority", prescriptionAuthority)
-    .put("qualityAfter", JSONArray(qualityAfter.map { (quality, evidence) -> JSONObject()
-        .put("quality", quality.name).put("directUnits", evidence.directUnits)
-        .put("supportiveUnits", evidence.supportiveUnits).put("directSessions", evidence.directSessions)
+internal fun FinalStimulusNeedAuditResult.toCompactJson(): JSONObject {
+    fun evidenceJson(evidence: FinalStimulusNeedEvidence) = JSONObject()
+        .put("directUnits", evidence.directUnits)
+        .put("supportiveUnits", evidence.supportiveUnits)
+        .put("directSessions", evidence.directSessions)
         .put("supportiveSessions", evidence.supportiveSessions)
         .put("directExposureWeeks", evidence.directExposureWeeks)
         .put("supportiveExposureWeeks", evidence.supportiveExposureWeeks)
         .put("incompatibleDirectCapabilityUnits", evidence.incompatibleDirectCapabilityUnits)
+        .put("incompatibleSupportiveCapabilityUnits", evidence.incompatibleSupportiveCapabilityUnits)
         .put("reasonCodes", JSONArray(evidence.reasonCodes))
-    }))
-    .put("taskAfter", JSONArray(taskAfter.map { (task, evidence) -> JSONObject()
-        .put("task", task).put("directUnits", evidence.directUnits).put("supportiveUnits", evidence.supportiveUnits)
-        .put("directSessions", evidence.directSessions).put("supportiveSessions", evidence.supportiveSessions)
-        .put("directExposureWeeks", evidence.directExposureWeeks)
-        .put("supportiveExposureWeeks", evidence.supportiveExposureWeeks)
-        .put("reasonCodes", JSONArray(evidence.reasonCodes))
-    }))
-    .put("qualityDeltas", JSONArray(qualityDeltas.map { (quality, delta) -> JSONObject()
-        .put("quality", quality.name).put("directUnitsBefore", delta.directUnitsBefore).put("directUnitsAfter", delta.directUnitsAfter)
+    fun deltaJson(delta: FinalStimulusNeedDelta) = JSONObject()
+        .put("directUnitsBefore", delta.directUnitsBefore).put("directUnitsAfter", delta.directUnitsAfter)
+        .put("supportiveUnitsBefore", delta.supportiveUnitsBefore).put("supportiveUnitsAfter", delta.supportiveUnitsAfter)
         .put("directSessionsBefore", delta.directSessionsBefore).put("directSessionsAfter", delta.directSessionsAfter)
-    }))
-    .put("taskDeltas", JSONArray(taskDeltas.map { (task, delta) -> JSONObject()
-        .put("task", task).put("directUnitsBefore", delta.directUnitsBefore).put("directUnitsAfter", delta.directUnitsAfter)
-        .put("directSessionsBefore", delta.directSessionsBefore).put("directSessionsAfter", delta.directSessionsAfter)
-    }))
+        .put("supportiveSessionsBefore", delta.supportiveSessionsBefore).put("supportiveSessionsAfter", delta.supportiveSessionsAfter)
+    fun qualityMap(map: Map<TrainableQuality, FinalStimulusNeedEvidence>) = JSONArray(map.map { (quality, evidence) ->
+        evidenceJson(evidence).put("quality", quality.name)
+    })
+    fun taskMap(map: Map<String, FinalStimulusNeedEvidence>) = JSONArray(map.map { (task, evidence) ->
+        evidenceJson(evidence).put("task", task)
+    })
+    fun qualityDeltasJson(map: Map<TrainableQuality, FinalStimulusNeedDelta>) = JSONArray(map.map { (quality, delta) ->
+        deltaJson(delta).put("quality", quality.name)
+    })
+    fun taskDeltasJson(map: Map<String, FinalStimulusNeedDelta>) = JSONArray(map.map { (task, delta) ->
+        deltaJson(delta).put("task", task)
+    })
+    val reflow = finalReflowDistribution
+    return JSONObject()
+        .put("shadowOnly", shadowOnly)
+        .put("prescriptionAuthority", prescriptionAuthority)
+        .put("finalQualityCoverage", qualityMap(finalQualityCoverage))
+        .put("finalTaskCoverage", taskMap(finalTaskCoverage))
+        // Keep the prior names readable for existing consumers while exposing the corrected scope.
+        .put("qualityAfter", qualityMap(finalQualityCoverage))
+        .put("taskAfter", taskMap(finalTaskCoverage))
+        .put("reflowAuditStatus", reflow?.status)
+        .put("qualityBefore", qualityMap(reflow?.qualityBefore.orEmpty()))
+        .put("taskBefore", taskMap(reflow?.taskBefore.orEmpty()))
+        .put("qualityReflowDeltas", qualityDeltasJson(reflow?.qualityDeltas.orEmpty()))
+        .put("taskReflowDeltas", taskDeltasJson(reflow?.taskDeltas.orEmpty()))
+        .put("qualityDeltas", qualityDeltasJson(qualityDeltas))
+        .put("taskDeltas", taskDeltasJson(taskDeltas))
+}
