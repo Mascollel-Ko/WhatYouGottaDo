@@ -182,12 +182,18 @@ internal class BoundedDayRebalancer(private val additionalGate: (List<ProgramSke
                     // The one-way source may remain hard-constrained; both swap destinations must pass.
                     if (day == destination || reverse != null) {
                         if (items.sumOf(::plannedSeconds) > skeleton.request.sessionMinutes * 60) return rejected("SESSION_TIME")
-                        if (!load(items).feasible) return rejected("DESTINATION_OFI_OR_AXIS")
                     }
                 }
                 if (maxLower(tentative) > lowerBefore) return rejected("LOWER_STRESS_CONCENTRATION")
                 if (!PrimaryStrengthAnchorSpacingPolicy.allowedRows(tentative,primaryKeys)) return rejected("PRIMARY_ANCHOR_CALENDAR_SPACING")
                 if (!additionalGate(tentative)) return rejected("ADDITIONAL_PLACEMENT_GATE")
+                // Keep the canonical day projection as the final candidate gate. All exact
+                // structural and spacing checks above are cheaper and cannot change its result.
+                for (day in affected) {
+                    if (day == destination || reverse != null) {
+                        if (!load(tentative.filter { it.dayOfWeek == day }).feasible) return rejected("DESTINATION_OFI_OR_AXIS")
+                    }
+                }
                 // Only source and destination days can change. Reuse the already computed metrics
                 // for every other day while preserving the exact candidate ordering and objectives.
                 val nextMetrics = metrics(tentative, currentMetrics, affected)

@@ -224,6 +224,27 @@ internal class ResidualCompletion(private val prescriptions: PersonalizedPrescri
             additions += ResidualAddition(row.localId, residual.id, row.exerciseStableKey, day, row.setCount,
                 row.weightSource, projection.evaluate(dayRows(day)).ofi, demand.residuals(rows), before)
         }
+        fun finalizeCompletion(addedDay: Boolean): CompletionResult {
+            val completed = week.mirror(initial, rows, schedule).let { if (addedDay) it.copy(request = it.request.copy(
+                weeklyTrainingDays = it.request.weeklyTrainingDays + 1)) else it }
+            require(ProgramProjectionValidator().errors(completed, state.genericCourtLoad).isEmpty())
+            val trace = ResidualCompletionTrace("POST_GENERATION_RESIDUAL_COMPLETION", personalizedProgramFingerprint(initial.request, initial.items),
+                personalizedProgramFingerprint(completed.request, completed.items), snapshot.cutoff.plusDays(1).toString(),
+                referenceUnits, referenceSeconds, demand.authorizedUnits, demand.residuals(rows), additions, addedDay,
+                exact?.shortfalls(rows).orEmpty(), exact?.actions.orEmpty())
+            sourceByAtom.putAll(exact?.sources.orEmpty())
+            val newAtoms = rows.filter { it.localId !in week.atomByLocalId }.map { it.localId }
+            val completedAtoms = completed.items.associate { row -> row.localId to
+                (week.atomByLocalId[row.localId] ?: newAtoms.first { row.localId == "residual_${row.weekNumber}_$it" }) }
+            val withOrigins = completed.copy(personalizedDecision = completed.personalizedDecision?.let { decision -> decision.copy(
+                authorizedScheduling = decision.authorizedScheduling?.copy(localOrigins = completedAtoms.mapNotNull { (id, atom) ->
+                    (exact?.origins?.get(atom) ?: origins?.get(atom))?.let { id to it }
+                }.toMap())) })
+            return CompletionResult(withOrigins, trace, RepresentativeWeek.derive(withOrigins, completedAtoms), sourceByAtom, demand)
+        }
+        // Exact restoration may fully cover every authorized residual. Retain the final validator
+        // and trace, but skip selector and projection work when nothing remains to add.
+        if (demand.residuals(rows).all { it.residual <= PLANNING_EPSILON }) return finalizeCompletion(addedDay = false)
         var addedDay = false
         // Existing +1 eligibility: unfixed, below five, funded residual and no hard-feasible existing-day completion.
         val newDayResiduals = rankedResiduals().filter { residual -> days.none { feasible(residual, it) != null } }.map { it.id }.toSet()
@@ -277,22 +298,7 @@ internal class ResidualCompletion(private val prescriptions: PersonalizedPrescri
                 break
             }
         }
-        val completed = week.mirror(initial, rows, schedule).let { if (addedDay) it.copy(request = it.request.copy(
-            weeklyTrainingDays = it.request.weeklyTrainingDays + 1)) else it }
-        require(ProgramProjectionValidator().errors(completed, state.genericCourtLoad).isEmpty())
-        val trace = ResidualCompletionTrace("POST_GENERATION_RESIDUAL_COMPLETION", personalizedProgramFingerprint(initial.request, initial.items),
-            personalizedProgramFingerprint(completed.request, completed.items), snapshot.cutoff.plusDays(1).toString(),
-            referenceUnits, referenceSeconds, demand.authorizedUnits, demand.residuals(rows), additions, addedDay,
-            exact?.shortfalls(rows).orEmpty(), exact?.actions.orEmpty())
-        sourceByAtom.putAll(exact?.sources.orEmpty())
-        val newAtoms = rows.filter { it.localId !in week.atomByLocalId }.map { it.localId }
-        val completedAtoms = completed.items.associate { row -> row.localId to
-            (week.atomByLocalId[row.localId] ?: newAtoms.first { row.localId == "residual_${row.weekNumber}_$it" }) }
-        val withOrigins = completed.copy(personalizedDecision = completed.personalizedDecision?.let { decision -> decision.copy(
-            authorizedScheduling = decision.authorizedScheduling?.copy(localOrigins = completedAtoms.mapNotNull { (id, atom) ->
-                (exact?.origins?.get(atom) ?: origins?.get(atom))?.let { id to it }
-            }.toMap())) })
-        return CompletionResult(withOrigins, trace, RepresentativeWeek.derive(withOrigins, completedAtoms), sourceByAtom, demand)
+        return finalizeCompletion(addedDay)
     }
 }
 

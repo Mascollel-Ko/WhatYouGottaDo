@@ -8,6 +8,16 @@ import org.json.JSONObject
 import java.io.File
 
 class BoundedDayRebalancerTest {
+    @Test fun cheapCandidateGatesAvoidDayProjectionWork() {
+        val performance = PlannerPerformanceMetrics()
+        val counts = RebalanceEvaluationCounts(performanceMetrics = performance)
+        val result = BoundedDayRebalancer { false }.rebalance(
+            completed(underloadRows()), snapshot, f.state(snapshot), f.safe, counts)
+        assertTrue(counts.candidates > 0)
+        assertTrue(performance.dayProjectionCalls < counts.candidates)
+        assertEquals(0, result.trace.actions.size)
+    }
+
     @Test fun candidateEvaluationReusesUnaffectedDayMetrics() {
         val counts = RebalanceEvaluationCounts()
         BoundedDayRebalancer().rebalance(completed(underloadRows()), snapshot, f.state(snapshot), f.safe, counts)
