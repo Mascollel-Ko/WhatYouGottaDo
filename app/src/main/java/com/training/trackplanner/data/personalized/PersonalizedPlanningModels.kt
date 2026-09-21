@@ -355,6 +355,8 @@ data class PersonalizedPlanningDecision(
     val courtInterference: Double = 0.0,
     /** Shadow/audit trace only. It has no prescription or selection authority. */
     val athleteNeedsProfile: AthleteNeedsProfile? = null,
+    /** Ledger-backed shadow/audit trace only. Existing planner authorities must not consume it. */
+    val athleteStimulusNeedProfile: AthleteStimulusNeedProfile? = null,
     /** Additive shadow layers; existing planner consumers must not read these fields. */
     val trainingDecisionPortfolio: TrainingDecisionPortfolio? = null,
     val targetStimulusPlan: TargetStimulusPlan? = null,

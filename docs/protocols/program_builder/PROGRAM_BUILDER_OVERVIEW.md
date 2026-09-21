@@ -3,13 +3,19 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.29.0 |
+| Protocol version | 3.30.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
 | Last audited commit | c6b048bf |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
+
+### 3.30.0 — candidate validation ordering and ledger-backed shadow needs
+
+- Stage A moves exact identity, structure, same-key, time, lower-stress, primary-spacing and additional placement rejects ahead of the canonical day projection in `BoundedDayRebalancer`; the comparator, winner, OFI authority, connective-tissue authority, and generated-program fingerprints remain unchanged. The zero-residual `ResidualCompletion` path still runs final validation and preserves exact origins. Planner metrics are request-scoped observation only.
+- Stage B adds `StimulusNeedEvidenceIndexBuilder → AthleteStimulusNeedEngine → AthleteStimulusNeedProfile` over the already-built 56-day `StimulusExposureLedger`. DIRECT capability owns need satisfaction; SUPPORTIVE evidence stays separate; STRENGTH/HYPERTROPHY require compatible realized rep classes; other qualities remain capability proxies; generic court remains a separate context channel; historical sessions use `(date, sessionStableKey)`.
+- `FinalStimulusNeedAudit` reads actual `setPrescriptions` after residual completion, day rebalancing and weekly reflow. It reports planned units, session occurrences, exposure weeks, incompatible direct capability and before/after distribution deltas without changing the plan. The profile is shadow/audit only and is not consumed by legacy selection, dosing, target, regional, prescription, placement, Room, backup or cloud authorities. B2 baseline migration remains out of scope.
 
 ### 3.29.0 — Phase A canonical stimulus-exposure shadow ledger
 

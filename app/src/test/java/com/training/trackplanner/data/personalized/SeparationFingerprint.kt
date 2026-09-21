@@ -38,7 +38,7 @@ private fun separationCanonical(value: Any?): String = when (value) {
             // These are additive authority/audit traces.  The a53f419 golden
             // intentionally continues to compare placement and prescriptions.
             "courtBaselineLoad", "recentCourtLoad", "courtDeviation", "lowerNegativeEvidence", "courtInterference",
-            "athleteNeedsProfile", "trainingDecisionPortfolio", "targetStimulusPlan", "targetPlanComparison",
+            "athleteNeedsProfile", "athleteStimulusNeedProfile", "trainingDecisionPortfolio", "targetStimulusPlan", "targetPlanComparison",
             "regionalBottleneckDiagnosis", "programEmphasisLabels", "regionalPlanningAuthorityMode",
             "regionalTrainingDecisions", "regionalStimulusTargets", "regionalAuthorityTraces"
         ) ||

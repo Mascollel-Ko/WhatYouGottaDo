@@ -25,6 +25,9 @@ import com.training.trackplanner.data.personalized.PersonalizedPlannerProgressRe
 import com.training.trackplanner.data.personalized.PersonalizedPlannerStage
 import com.training.trackplanner.data.personalized.PlanningHistorySnapshotBuilder
 import com.training.trackplanner.data.personalized.AthleteNeedsProfileEngine
+import com.training.trackplanner.data.personalized.AthleteStimulusNeedEngine
+import com.training.trackplanner.data.personalized.FinalStimulusNeedAudit
+import com.training.trackplanner.data.personalized.toCompactJson
 import com.training.trackplanner.data.personalized.QualityDoseHistoryAnalyzer
 import com.training.trackplanner.data.personalized.TargetPlanComparisonEngine
 import com.training.trackplanner.data.personalized.TargetStimulusPlanEngine
@@ -82,6 +85,7 @@ internal class PersonalizedProgramPlanningService(
     private val canonicalMovementRelations: List<CanonicalMetadataRelation> = emptyList(),
     private val canonicalCoreCatalog: CanonicalCoreCatalog = CanonicalCoreCatalog.EMPTY,
     private val athleteNeedsProfileEngine: AthleteNeedsProfileEngine = AthleteNeedsProfileEngine(),
+    private val athleteStimulusNeedEngine: AthleteStimulusNeedEngine = AthleteStimulusNeedEngine(),
     private val snapshotBuilder: PlanningHistorySnapshotBuilder = PlanningHistorySnapshotBuilder(),
     private val stateBuilder: AthletePlanningStateBuilder = AthletePlanningStateBuilder(),
     private val questionPolicy: PlanningQuestionPolicy = PlanningQuestionPolicy(),
@@ -148,9 +152,13 @@ internal class PersonalizedProgramPlanningService(
                     com.training.trackplanner.data.personalized.PlanningFrequencySource.EXPLICIT_USER
                 else com.training.trackplanner.data.personalized.PlanningFrequencySource.AUTO), progress = progress)
         progress.report(PersonalizedPlannerStage.FINAL)
+        val legacyNeeds = athleteNeedsProfileEngine.analyze(snapshot, state, physicalQualityCatalog)
+        val stimulusNeeds = athleteStimulusNeedEngine.analyze(snapshot, state)
+        val finalStimulusAudit = FinalStimulusNeedAudit().audit(generated, snapshot, physicalQualityCatalog)
         val withShadowNeeds = generated.copy(
             personalizedDecision = generated.personalizedDecision?.copy(
-                athleteNeedsProfile = athleteNeedsProfileEngine.analyze(snapshot, state, physicalQualityCatalog)
+                athleteNeedsProfile = legacyNeeds,
+                athleteStimulusNeedProfile = stimulusNeeds.copy(finalAudit = finalStimulusAudit)
             )
         )
         val decision = withShadowNeeds.personalizedDecision
@@ -615,6 +623,7 @@ internal class PersonalizedProgramPlanningService(
                 .put("reasonCodes", JSONArray(modifier.reasonCodes))
             }))
         })
+        .put("athleteStimulusNeedProfile", athleteStimulusNeedProfile?.toCompactJson())
         .put("objectiveExposure", JSONObject(objectiveExposure))
         .put("trainingStateAssessment", trainingStateAssessment?.toJson())
         .put("weeklyFrequencyEvidence", weeklyFrequencyEvidence?.toJson())

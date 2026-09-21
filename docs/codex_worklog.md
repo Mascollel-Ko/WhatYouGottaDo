@@ -1,5 +1,11 @@
 # Codex Worklog
 
+## 2026-09-21 — Stage A candidate gates and Stage B shadow stimulus needs
+
+- Starting SHA for the two-stage task: `adc9d232220a20de3ad39561336a4535575479cd`; `origin/main` was fetched and the working tree was clean. Stage A was committed separately as `648db25d` and reorders exact rebalancer gates before canonical day projection while preserving the comparator and winner. `ResidualCompletion` now returns early only after exact restoration when every residual is zero, while retaining final validation, trace and origins.
+- Stage B adds `StimulusNeedEvidenceIndexBuilder`, `AthleteStimulusNeedEngine`, `AthleteStimulusNeedProfile`, and `FinalStimulusNeedAudit`. The index folds the existing 56-day ledger once for quality/task evidence and once for court context; DIRECT and SUPPORTIVE remain separate, strength/hypertrophy are prescription-compatible, and planned audit evidence reads actual `setPrescriptions` after all post-generation reflow. The profile is attached to `PersonalizedPlanningDecision` as shadow JSON only; legacy `athleteNeedsProfile` remains the sole downstream production authority.
+- Focused source compilation and direct Stage B tests are recorded with the final commit. Gradle remains blocked in this Windows environment by the existing Java loopback failure before task execution; no app version, Room schema, backup/cloud contract or generated-program authority was changed.
+
 ## 2026-09-21 — Phase A closeout correction
 
 - Added a canonical resolver-equivalence regression covering every runtime metadata entry. The snapshot overload still delegates to the explicit exercise/metadata/catalogue path, with no production branch or predicate changes; the freeze hash and explanatory comment were updated together.
