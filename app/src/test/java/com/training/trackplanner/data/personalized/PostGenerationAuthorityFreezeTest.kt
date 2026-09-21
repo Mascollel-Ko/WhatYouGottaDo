@@ -18,7 +18,10 @@ class PostGenerationAuthorityFreezeTest {
             // Domain-separated volume and court-deviation trace are the approved
             // changes in this follow-up; keep the remaining authorities frozen.
             "AthletePlanningStateBuilder.kt" to "1e2f9e50cf77b92cb111bd2a6a2e59fc41e620be5e6cdfaa198c3777d8a9ad8d",
-            "ExposureRepresentation.kt" to "c50938180f863a2316a8dff8eba21b49afce5cda295eb1ace7c7a7322408e4e8",
+            // Approved Phase A closeout correction: the snapshot resolver delegates to the
+            // explicit-argument resolver; classification branch order/predicates remain
+            // unchanged, and production uses the explicit overload only in the shadow ledger.
+            "ExposureRepresentation.kt" to "fd0e5b041f83fa5d6cc512cf8713a1daed5d58c69d7169757663d78f1582b368",
             "PersonalizedDecisionComponents.kt" to "66c6acc65bc46f5bc957d8f4f8b57f072b44d2a621f060edabe5d047aed89958",
             "ExecutionAllocationPlanner.kt" to "b1aae9692671a78a40dba4cb30cfd1bb274a1a533f2c4294852d61641fbe3e41",
             "PerformancePrescriptionResolver.kt" to "48eda34c9e390ca109bbb1e19e7a8ac79802f01f60c25470f92c8eb7f87063be",

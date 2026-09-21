@@ -49,10 +49,10 @@ class StimulusExposureLedgerTest {
             profile("weighted_pull_up", qualities = listOf(pq("strength", TrainableQuality.STRENGTH, PhysicalQualityRegion.UPPER_PULL, PhysicalQualityMode.PULL)), patterns = setOf("VERTICAL_PULL")),
             profile("chest_supported_row", qualities = listOf(pq("strength", TrainableQuality.STRENGTH, PhysicalQualityRegion.UPPER_PULL, PhysicalQualityMode.PULL)), patterns = setOf("HORIZONTAL_PULL")),
             profile("back_squat", qualities = listOf(pq("strength", TrainableQuality.STRENGTH, PhysicalQualityRegion.LOWER, PhysicalQualityMode.SQUAT, relationId = "back-squat")), laterality = "BILATERAL", patterns = setOf("SQUAT")),
-            profile("bulgarian_split_squat", qualities = listOf(pq("strength", TrainableQuality.STRENGTH, PhysicalQualityRegion.UNILATERAL_LOWER, PhysicalQualityMode.UNILATERAL, relationId = "bulgarian")), laterality = "UNILATERAL", patterns = setOf("LUNGE")),
+            profile("bulgarian_split_squat", qualities = listOf(pq("strength", TrainableQuality.STRENGTH, PhysicalQualityRegion.LOWER, PhysicalQualityMode.SQUAT, relationId = "bulgarian")), laterality = "UNILATERAL", patterns = setOf("LUNGE")),
             profile("deadlift", qualities = listOf(pq("strength", TrainableQuality.STRENGTH, PhysicalQualityRegion.POSTERIOR_CHAIN, PhysicalQualityMode.HINGE, relationId = "deadlift")), patterns = setOf("HINGE")),
             profile("rdl", qualities = listOf(pq("strength", TrainableQuality.STRENGTH, PhysicalQualityRegion.POSTERIOR_CHAIN, PhysicalQualityMode.HINGE, relationId = "rdl")), patterns = setOf("HINGE")),
-            profile("single_leg_press", qualities = listOf(pq("strength", TrainableQuality.STRENGTH, PhysicalQualityRegion.UNILATERAL_LOWER, PhysicalQualityMode.UNILATERAL, relationId = "single-leg-press")), laterality = "UNILATERAL", patterns = setOf("LEG_PRESS")),
+            profile("single_leg_press", qualities = listOf(pq("strength", TrainableQuality.STRENGTH, PhysicalQualityRegion.LOWER, PhysicalQualityMode.SQUAT, relationId = "single-leg-press")), laterality = "UNILATERAL", patterns = setOf("SQUAT")),
             profile("dead_bug", patterns = setOf("ANTI_EXTENSION", "DYNAMIC_TRUNK_STABILIZATION")),
             profile("pallof", patterns = setOf("ANTI_ROTATION")),
             profile("calf_raise", qualities = listOf(pq("strength", TrainableQuality.STRENGTH, PhysicalQualityRegion.ANKLE, PhysicalQualityMode.GENERAL, relationId = "calf"))),
@@ -69,9 +69,9 @@ class StimulusExposureLedgerTest {
         assertFalse(ledger.query(StimulusFacetFilter(movementPatterns = setOf("VERTICAL_PULL"))).any { it.source.stableKey == "chest_supported_row" })
         assertEquals("back_squat", ledger.query(StimulusFacetFilter(quality = TrainableQuality.STRENGTH, acceptedRegions = setOf(PhysicalQualityRegion.LOWER), laterality = setOf("BILATERAL"))).single().source.stableKey)
         assertFalse(ledger.query(StimulusFacetFilter(quality = TrainableQuality.STRENGTH, laterality = setOf("UNILATERAL"))).any { it.source.stableKey == "back_squat" })
-        assertEquals("bulgarian_split_squat", ledger.query(StimulusFacetFilter(quality = TrainableQuality.STRENGTH, acceptedRegions = setOf(PhysicalQualityRegion.UNILATERAL_LOWER), laterality = setOf("UNILATERAL"), movementPatterns = setOf("LUNGE"))).single().source.stableKey)
+        val unilateralLower = ledger.query(StimulusFacetFilter(quality = TrainableQuality.STRENGTH, acceptedRegions = setOf(PhysicalQualityRegion.LOWER, PhysicalQualityRegion.UNILATERAL_LOWER), laterality = setOf("UNILATERAL")))
+        assertEquals(setOf("bulgarian_split_squat", "single_leg_press"), unilateralLower.map { it.source.stableKey }.toSet())
         assertEquals(setOf("deadlift", "rdl"), ledger.query(StimulusFacetFilter(acceptedRegions = setOf(PhysicalQualityRegion.POSTERIOR_CHAIN), acceptedModes = setOf(PhysicalQualityMode.HINGE))).map { it.source.stableKey }.toSet())
-        assertEquals("single_leg_press", ledger.query(StimulusFacetFilter(quality = TrainableQuality.STRENGTH, acceptedRegions = setOf(PhysicalQualityRegion.UNILATERAL_LOWER), laterality = setOf("UNILATERAL"), movementPatterns = setOf("LEG_PRESS"))).single().source.stableKey)
         val deadBug = ledger.query(StimulusFacetFilter(movementPatterns = setOf("ANTI_EXTENSION", "DYNAMIC_TRUNK_STABILIZATION")))
         assertEquals(1, deadBug.size)
         assertEquals("dead_bug", deadBug.single().source.stableKey)

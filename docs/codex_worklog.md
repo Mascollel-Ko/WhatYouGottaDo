@@ -1,5 +1,12 @@
 # Codex Worklog
 
+## 2026-09-21 — Phase A closeout correction
+
+- Added a canonical resolver-equivalence regression covering every runtime metadata entry. The snapshot overload still delegates to the explicit exercise/metadata/catalogue path, with no production branch or predicate changes; the freeze hash and explanatory comment were updated together.
+- Recomputed the semantic metadata revision from the current canonical assets after the physical-quality repair: `253e407b1150b7c6938981f75c9e84044381d4dc2c4bab2f9447ad0e1b504724`. The display revision and semantic/display projection hashes remain unchanged.
+- Replaced the synthetic ledger sentinel assumptions with a real Robolectric integration test over the canonical repository. It covers Bulgarian and single-leg press unilateral lower work, ordinary leg press bilateral identity, inverted-row horizontal pull, one-leg-curl hypertrophy without SSC, and generic badminton court separation; power/RFD identity remains covered by the existing tests.
+- Official Gradle execution remains blocked in this Windows environment by the daemon loopback failure (`java.io.IOException: Unable to establish loopback connection`). A direct Robolectric revision calculation over the current source assets and `git diff --check` were completed; final test/build outcomes are recorded with the delivery.
+
 ## 2026-09-21 — Phase A canonical stimulus-exposure shadow ledger
 
 - Start SHA: `c6b048bf724b81aa7728b1d1b9ff571e1a46d0e2`; fetched and verified clean `main` before implementation. The user explicitly authorized the requested `main` push.
