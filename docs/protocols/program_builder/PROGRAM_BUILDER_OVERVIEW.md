@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.38.0 |
+| Protocol version | 3.39.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 9ecc383ebd46b444a4e6338225dc8db02f0b9b18 |
+| Last audited commit | 0f22dd1e8ff35403bd1e851fee37055361846b4f |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -964,3 +964,10 @@ Post-audit boundary notes
 - B1 exposes coverage and classified/unclassified source units. B2 keeps incomplete weeks visible but excludes them from exact quantiles; B3 stays direction-only for a partial baseline, and B4 numeric authority requires complete classification coverage.
 - Evidence basis is typed through B1–B5: Strength/Hypertrophy use `REALIZED_PRESCRIPTION_CLASSIFIED`, other qualities use `CANONICAL_CAPABILITY_PROXY`, tasks use `CANONICAL_TASK_RELATION`, and unknown authority uses `UNCLASSIFIED`. Proxy `WITHIN_BAND` means similar capability exposure, not confirmed physiological adequacy. Phase B6 must introduce a separately reviewed realization model before claiming target-compatible prescription authority.
 - B5 uses immutable history indexes with unchanged lexicographic ranking. Probe compatibility is separate from final skeleton materialization, and `directIdentityVerifiedAtSelection` derives from `coveredTargetIds` for the selected or reused identity. No-selection verification is nullable.
+
+### 3.39.0 — A–B5 observability and evidence-authority closeout
+
+- B2 distinguishes `COMPLETE`, `PARTIAL_UNCLASSIFIED`, `NO_ELIGIBLE_CLASSIFIED_HISTORY`, and `UNAVAILABLE`. Only non-excluded, source-bearing completed weeks participate in observability, evidence-basis aggregation, and classification-complete counts; empty and excluded weeks remain visible in the audit without creating a reviewed zero.
+- B1 treats incomplete current or prior classification as partial comparison coverage, with current-window-only exposure-state fallback and no exact current/prior ratio interpretation. B3 carries `ledgerAvailable`, `baselineObservability`, `observedPersonalDirectBaseline`, and `numericBaselineUsable` as separate facts and authority decisions.
+- B4 consumes B3 baseline authority and confidence without recomputing them from raw B2 bands. Numeric target envelopes remain shadow targets; only exposure-week distribution and frequency diagnostics are reference-only. Task evidence basis propagates from B1 through B3 and B4.
+- `StimulusSetObservation` now requires explicit classification authority. Dedicated observability regression tests cover reviewed zero, no history, excluded and incomplete weeks, prior-window uncertainty, task-basis propagation, and B3/B4 authority consistency. Phase B6 remains deferred.
