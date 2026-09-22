@@ -35,6 +35,25 @@ class StimulusSelectionServiceIntegrationTest {
                 )
             )
             val cutoff = LocalDate.of(2026, 9, 20)
+            val historyExercise = db.exerciseDao().allExercises().first()
+            val historyEntryId = db.workoutDao().insertEntry(
+                WorkoutEntry(
+                    date = cutoff.minusDays(7).toString(),
+                    exerciseStableKey = historyExercise.stableKey,
+                    exerciseName = historyExercise.name,
+                    category = historyExercise.category,
+                    sessionStableKey = "b5-service-history"
+                )
+            )
+            db.workoutDao().insertSet(
+                WorkoutSet(
+                    entryId = historyEntryId,
+                    setIndex = 1,
+                    reps = 8,
+                    weightKg = 40.0,
+                    confirmed = true
+                )
+            )
             val request = ProgramSkeletonRequest(
                 name = "B5 service integration",
                 goal = ProgramGoal.STRENGTH,

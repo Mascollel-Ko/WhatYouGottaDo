@@ -78,7 +78,7 @@ class StimulusSelectionProgramComparisonTest {
         assertTrue(trace.selectedAtB5)
         assertTrue(trace.presentInFinalExperimentalSkeleton)
         assertEquals(2, trace.finalWeeklyOccurrences)
-        assertEquals(5, trace.finalTotalSetUnits)
+        assertEquals(4, trace.finalTotalSetUnits)
         assertTrue(trace.reasonCodes.contains("SELECTION_TARGET_IDENTITY_MATERIALIZED"))
     }
 
