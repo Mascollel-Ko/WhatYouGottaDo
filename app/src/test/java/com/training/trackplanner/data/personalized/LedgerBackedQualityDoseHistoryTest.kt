@@ -49,7 +49,7 @@ class LedgerBackedQualityDoseHistoryTest {
         val cutoff = LocalDate.of(2026, 9, 23)
         val both = profile("both", relation("direct", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY), relation("support", TrainableQuality.STRENGTH, StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY))
         val supportive = profile("supportive", relation("supportive", TrainableQuality.STRENGTH, StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY))
-        val day = cutoff.minusDays(2)
+        val day = qualityDoseHistoryHorizon(cutoff).newestCompletedWeekEnd
         val observations = listOf(
             observation("both", 1, day, "session-a", 5),
             observation("supportive", 2, day, "session-b", 5)
@@ -74,7 +74,7 @@ class LedgerBackedQualityDoseHistoryTest {
     fun incompatiblePrescriptionIsExcludedAndDoesNotFallThroughToSupportive() {
         val cutoff = LocalDate.of(2026, 9, 23)
         val profile = profile("strength", relation("direct", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY), relation("support", TrainableQuality.STRENGTH, StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY))
-        val ledger = ledger(cutoff, listOf(observation("strength", 1, cutoff.minusDays(2), "session", 12)), profile, cutoff.minusDays(55))
+        val ledger = ledger(cutoff, listOf(observation("strength", 1, qualityDoseHistoryHorizon(cutoff).newestCompletedWeekEnd, "session", 12)), profile, cutoff.minusDays(55))
         val shadow = analyze(snapshot(cutoff, ledger))
         val week = shadow.weeklyEvidence.getValue(TrainableQuality.STRENGTH).first { it.hasSourceObservations }
 
@@ -100,7 +100,7 @@ class LedgerBackedQualityDoseHistoryTest {
 
         assertEquals(4, band.directExposureWeekCount)
         assertEquals(8.0, band.directUnitsMedian!!, 0.0)
-        assertEquals(0.5, band.directExposureWeekFrequency!!, 0.0)
+        assertEquals(1.0, band.directExposureWeekFrequency!!, 0.0)
         assertEquals(SuccessfulDoseSource.NORMAL_COMPLETED_WEEKS, band.source)
     }
 

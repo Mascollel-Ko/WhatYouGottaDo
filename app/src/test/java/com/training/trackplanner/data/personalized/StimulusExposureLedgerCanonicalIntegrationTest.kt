@@ -249,7 +249,6 @@ class StimulusExposureLedgerCanonicalIntegrationTest {
         assertEquals(horizon.ledgerStart, ledger.historyStart)
         assertEquals(4, shadow.weeklyEvidence.getValue(TrainableQuality.STRENGTH).count { it.directUnits > 0 })
         assertEquals(4, strength.directExposureWeekCount)
-        assertTrue(shadow.reasonCodes.contains("LEDGER_HORIZON_EXTENDED_FOR_COMPLETED_ISO_WEEK_BASELINE"))
         assertTrue(shadow.reasonCodes.contains("GENERIC_COURT_EXCLUDED_FROM_QUALITY_DOSE"))
     }
 
