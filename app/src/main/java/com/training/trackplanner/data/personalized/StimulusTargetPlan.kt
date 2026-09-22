@@ -41,7 +41,9 @@ data class StimulusQualityTarget(
     val reasonCodes: List<String>,
     val evidence: List<String>,
     val baselineAvailable: Boolean = false,
-    val hasPersonalDirectBaseline: Boolean = false
+    val hasPersonalDirectBaseline: Boolean = false,
+    val evidenceBasis: StimulusEvidenceBasis = evidenceBasisForQuality(quality),
+    val prescriptionRealizationAuthority: Boolean = evidenceBasis == StimulusEvidenceBasis.REALIZED_PRESCRIPTION_CLASSIFIED
 )
 
 data class StimulusTaskTarget(
@@ -52,7 +54,9 @@ data class StimulusTaskTarget(
     val reasonCodes: List<String>,
     val evidence: List<String>,
     val weeklyDirectUnitsTarget: StimulusTargetRange? = null,
-    val weeklyDirectSessionsTarget: StimulusTargetRange? = null
+    val weeklyDirectSessionsTarget: StimulusTargetRange? = null,
+    val evidenceBasis: StimulusEvidenceBasis = StimulusEvidenceBasis.CANONICAL_TASK_RELATION,
+    val prescriptionRealizationAuthority: Boolean = false
 )
 
 enum class StimulusTargetComparisonStatus { MATCH, DIFFERENT, UNAVAILABLE }
@@ -114,7 +118,9 @@ data class StimulusQualityControlProgramAudit(
     val exposureWeekFrequencyReference: Double?,
     val plannedExposureWeekFrequency: Double?,
     val exposureWeekFrequencyDelta: Double?,
-    val reasonCodes: List<String>
+    val reasonCodes: List<String>,
+    val evidenceBasis: StimulusEvidenceBasis = StimulusEvidenceBasis.UNCLASSIFIED,
+    val prescriptionRealizationAuthority: Boolean = false
 ) {
     val unitStatus: StimulusTargetControlStatus get() = weeklyDirectUnitsStatus
     val sessionStatus: StimulusTargetControlStatus get() = weeklyDirectSessionsStatus
@@ -126,7 +132,9 @@ data class StimulusTaskControlProgramAudit(
     val numericAuthority: StimulusTargetNumericAuthority,
     val plannedDirectUnits: Double?,
     val status: StimulusTargetControlStatus,
-    val reasonCodes: List<String>
+    val reasonCodes: List<String>,
+    val evidenceBasis: StimulusEvidenceBasis = StimulusEvidenceBasis.CANONICAL_TASK_RELATION,
+    val prescriptionRealizationAuthority: Boolean = false
 )
 
 data class StimulusTargetControlProgramAudit(
@@ -231,6 +239,9 @@ class StimulusTargetPlanEngine {
                 add("MALFORMED_OR_INCOMPLETE_PERSONAL_BASELINE")
                 add("PERSONAL_BASELINE_NUMERIC_AUTHORITY_UNAVAILABLE")
             }
+            if (decision.evidenceBasis == StimulusEvidenceBasis.CANONICAL_CAPABILITY_PROXY) {
+                add("CAPABILITY_PROXY_TARGET_NOT_REALIZED_PRESCRIPTION_AUTHORITY")
+            }
         }
         return StimulusQualityTarget(
             quality = decision.quality,
@@ -251,7 +262,9 @@ class StimulusTargetPlanEngine {
                 "b4QualityTargetsAreNonAdditive=true"
             ),
             baselineAvailable = baseline.available,
-            hasPersonalDirectBaseline = band?.hasPersonalDirectBaseline == true
+            hasPersonalDirectBaseline = band?.hasPersonalDirectBaseline == true,
+            evidenceBasis = decision.evidenceBasis,
+            prescriptionRealizationAuthority = decision.evidenceBasis == StimulusEvidenceBasis.REALIZED_PRESCRIPTION_CLASSIFIED
         )
     }
 
@@ -279,7 +292,9 @@ class StimulusTargetPlanEngine {
             priority = decision.priority,
             numericAuthority = authority,
             reasonCodes = reasons.toList(),
-            evidence = decision.evidence + "b4NumericAuthority=${authority.name}"
+            evidence = decision.evidence + "b4NumericAuthority=${authority.name}",
+            evidenceBasis = decision.evidenceBasis,
+            prescriptionRealizationAuthority = false
         )
     }
 
@@ -508,6 +523,9 @@ class StimulusTargetControlProgramAuditEngine {
                 reasons += "DISTRIBUTION_CHANGE_REQUIRED"
                 reasons += "DISTRIBUTION_AUTHORITY_DEFERRED"
             }
+            if (target.evidenceBasis == StimulusEvidenceBasis.CANONICAL_CAPABILITY_PROXY) {
+                reasons += "CAPABILITY_PROXY_BAND_COMPARISON_NOT_REALIZED_STIMULUS"
+            }
             if (finalAudit == null) reasons += "FINAL_PROGRAM_AUDIT_UNAVAILABLE"
             StimulusQualityControlProgramAudit(
                 quality = target.quality,
@@ -522,7 +540,9 @@ class StimulusTargetControlProgramAuditEngine {
                 exposureWeekFrequencyReference = target.exposureWeekFrequencyReference,
                 plannedExposureWeekFrequency = plannedFrequency,
                 exposureWeekFrequencyDelta = if (target.exposureWeekFrequencyReference != null && plannedFrequency != null) plannedFrequency - target.exposureWeekFrequencyReference else null,
-                reasonCodes = reasons.toList()
+                reasonCodes = reasons.toList(),
+                evidenceBasis = target.evidenceBasis,
+                prescriptionRealizationAuthority = target.prescriptionRealizationAuthority
             )
         }
         val taskAudits = plan.taskTargets.map { target ->
@@ -541,7 +561,7 @@ class StimulusTargetControlProgramAuditEngine {
                     StimulusTargetNumericAuthority.UNRESOLVED -> StimulusTargetControlStatus.UNRESOLVED
                     else -> if (target.strategy == StimulusDoseStrategy.REDISTRIBUTE_DIRECTION_ONLY) StimulusTargetControlStatus.DISTRIBUTION_COMPARISON_DEFERRED
                     else if ((evidence?.directUnits ?: 0) > 0) StimulusTargetControlStatus.DIRECT_PRESENT else StimulusTargetControlStatus.DIRECT_ABSENT
-                }, reasons.toList())
+                }, reasons.toList(), target.evidenceBasis, target.prescriptionRealizationAuthority)
         }
         return StimulusTargetControlProgramAudit(horizon, qualityAudits, taskAudits)
     }
@@ -584,6 +604,8 @@ internal fun StimulusTargetPlan.toCompactJson(): JSONObject = JSONObject()
         .put("numericAuthority", target.numericAuthority.name).put("baselineSource", target.baselineSource?.name)
         .put("baselineConfidence", target.baselineConfidence?.name)
         .put("baselineAvailable", target.baselineAvailable).put("hasPersonalDirectBaseline", target.hasPersonalDirectBaseline)
+        .put("evidenceBasis", target.evidenceBasis.name)
+        .put("prescriptionRealizationAuthority", target.prescriptionRealizationAuthority)
         .put("weeklyDirectUnitsTarget", target.weeklyDirectUnitsTarget?.toJson())
         .put("weeklyDirectSessionsTarget", target.weeklyDirectSessionsTarget?.toJson())
         .put("exposureWeekDirectUnitsReference", target.exposureWeekDirectUnitsReference?.toJson())
@@ -594,6 +616,8 @@ internal fun StimulusTargetPlan.toCompactJson(): JSONObject = JSONObject()
     .put("taskTargets", JSONArray(taskTargets.map { target -> JSONObject()
         .put("task", target.task).put("strategy", target.strategy.name).put("priority", target.priority.name)
         .put("numericAuthority", target.numericAuthority.name)
+        .put("evidenceBasis", target.evidenceBasis.name)
+        .put("prescriptionRealizationAuthority", target.prescriptionRealizationAuthority)
         .put("weeklyDirectUnitsTarget", target.weeklyDirectUnitsTarget?.toJson())
         .put("weeklyDirectSessionsTarget", target.weeklyDirectSessionsTarget?.toJson())
         .put("reasonCodes", JSONArray(target.reasonCodes)).put("evidence", JSONArray(target.evidence))
@@ -624,6 +648,8 @@ private fun StimulusTargetControlProgramAudit.toJson() = JSONObject()
     .put("placementAuthority", placementAuthority).put("schedulingAuthority", schedulingAuthority)
     .put("qualityAudits", JSONArray(qualityAudits.map { JSONObject()
         .put("quality", it.quality.name).put("strategy", it.strategy.name).put("numericAuthority", it.numericAuthority.name)
+        .put("evidenceBasis", it.evidenceBasis.name)
+        .put("prescriptionRealizationAuthority", it.prescriptionRealizationAuthority)
         .put("plannedWeeklyDirectUnits", it.plannedWeeklyDirectUnits).put("weeklyDirectUnitsStatus", it.weeklyDirectUnitsStatus.name)
         .put("plannedWeeklyDirectSessions", it.plannedWeeklyDirectSessions).put("weeklyDirectSessionsStatus", it.weeklyDirectSessionsStatus.name)
         .put("exposureWeekFrequencyReference", it.exposureWeekFrequencyReference)
@@ -634,5 +660,7 @@ private fun StimulusTargetControlProgramAudit.toJson() = JSONObject()
     .put("taskAudits", JSONArray(taskAudits.map { JSONObject()
         .put("task", it.task).put("strategy", it.strategy.name).put("numericAuthority", it.numericAuthority.name)
         .put("plannedDirectUnits", it.plannedDirectUnits).put("status", it.status.name)
+        .put("evidenceBasis", it.evidenceBasis.name)
+        .put("prescriptionRealizationAuthority", it.prescriptionRealizationAuthority)
         .put("reasonCodes", JSONArray(it.reasonCodes))
     }))

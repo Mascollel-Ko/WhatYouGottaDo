@@ -41,7 +41,9 @@ data class StimulusQualityTrainingDecision(
     val baselineDirectSessionsMedian: Double?,
     val baselineExposureWeekFrequency: Double?,
     val reasonCodes: List<String>,
-    val evidence: List<String>
+    val evidence: List<String>,
+    val evidenceBasis: StimulusEvidenceBasis = evidenceBasisForQuality(quality),
+    val baselineObservability: DoseBaselineObservability = DoseBaselineObservability.UNAVAILABLE
 )
 
 data class StimulusTaskTrainingDecision(
@@ -53,7 +55,8 @@ data class StimulusTaskTrainingDecision(
     val needConfidence: PlanningConfidence,
     val numericBaselineAuthority: Boolean = false,
     val reasonCodes: List<String>,
-    val evidence: List<String>
+    val evidence: List<String>,
+    val evidenceBasis: StimulusEvidenceBasis = StimulusEvidenceBasis.CANONICAL_TASK_RELATION
 )
 
 data class StimulusQualityPortfolioComparison(
@@ -117,8 +120,12 @@ internal class StimulusTrainingDecisionPortfolioEngine {
         val qualities = profile.qualityNeeds.map { need ->
             val band = baseline.bands[need.quality]
             val available = baseline.available
-            val hasDirect = available && band?.hasPersonalDirectBaseline == true
-            val strategy = qualityStrategy(need.decision, available, hasDirect)
+            val observability = baseline.baselineObservability[need.quality]
+                ?: if (available) DoseBaselineObservability.COMPLETE else DoseBaselineObservability.UNAVAILABLE
+            val basis = baseline.evidenceBasis[need.quality] ?: evidenceBasisForQuality(need.quality)
+            val numericallyInterpretable = available && observability == DoseBaselineObservability.COMPLETE
+            val hasDirect = numericallyInterpretable && band?.hasPersonalDirectBaseline == true
+            val strategy = qualityStrategy(need.decision, available, hasDirect, observability)
             val reasonCodes = buildList {
                 addAll(need.reasonCodes)
                 add("NEED_${need.decision.name}")
@@ -128,6 +135,11 @@ internal class StimulusTrainingDecisionPortfolioEngine {
                     hasDirect -> "PERSONAL_DIRECT"
                     else -> "NO_PERSONAL_DIRECT"
                 }}")
+                add("EVIDENCE_BASIS_${basis.name}")
+                add("BASELINE_OBSERVABILITY_${observability.name}")
+                if (observability == DoseBaselineObservability.PARTIAL_UNCLASSIFIED) {
+                    add("CLASSIFICATION_INCOMPLETE_BASELINE_DIRECTION_ONLY")
+                }
                 if (!available) {
                     add("PERSONAL_BASELINE_UNAVAILABLE")
                     add("CANONICAL_BASELINE_UNAVAILABLE")
@@ -173,6 +185,8 @@ internal class StimulusTrainingDecisionPortfolioEngine {
                 band?.directSessionsMedian?.let { add("baselineDirectSessionsMedian=$it") }
                 band?.directExposureWeekFrequency?.let { add("baselineExposureWeekFrequency=$it") }
                 add("baselineEligibleWeekCount=${band?.eligibleWeekCount ?: 0}")
+                add("evidenceBasis=${basis.name}")
+                add("baselineObservability=${observability.name}")
             }
             StimulusQualityTrainingDecision(
                 quality = need.quality,
@@ -181,7 +195,9 @@ internal class StimulusTrainingDecisionPortfolioEngine {
                 strategy = strategy,
                 priority = priority(need.relevance, need.decision),
                 needConfidence = need.confidence,
-                baselineConfidence = band?.confidence?.takeIf { available },
+                baselineConfidence = band?.confidence?.takeIf { available }?.let {
+                    if (observability == DoseBaselineObservability.PARTIAL_UNCLASSIFIED) PlanningConfidence.LOW else it
+                },
                 baselineAvailable = available,
                 hasPersonalDirectBaseline = hasDirect,
                 baselineSource = band?.source?.takeIf { available },
@@ -190,7 +206,9 @@ internal class StimulusTrainingDecisionPortfolioEngine {
                 baselineDirectSessionsMedian = band?.directSessionsMedian,
                 baselineExposureWeekFrequency = band?.directExposureWeekFrequency,
                 reasonCodes = reasonCodes,
-                evidence = evidence
+                evidence = evidence,
+                evidenceBasis = basis,
+                baselineObservability = observability
             )
         }
         val tasks = profile.sportTaskNeeds.map { need ->
@@ -210,7 +228,8 @@ internal class StimulusTrainingDecisionPortfolioEngine {
                 priority = priority(need.relevance, need.decision),
                 needConfidence = need.confidence,
                 reasonCodes = reasons,
-                evidence = need.evidence + "numericBaselineAuthority=false"
+                evidence = need.evidence + "numericBaselineAuthority=false",
+                evidenceBasis = StimulusEvidenceBasis.CANONICAL_TASK_RELATION
             )
         }
         return StimulusTrainingDecisionPortfolio(
@@ -226,20 +245,25 @@ internal class StimulusTrainingDecisionPortfolioEngine {
     private fun qualityStrategy(
         decision: TrainingNeedDecision,
         baselineAvailable: Boolean,
-        hasDirectBaseline: Boolean
+        hasDirectBaseline: Boolean,
+        baselineObservability: DoseBaselineObservability
     ): StimulusDoseStrategy = when (decision) {
         TrainingNeedDecision.UNKNOWN, TrainingNeedDecision.PROGRESS -> StimulusDoseStrategy.UNRESOLVED
         TrainingNeedDecision.NO_EXTRA_NEED -> StimulusDoseStrategy.NO_MINIMUM_TARGET
         TrainingNeedDecision.DEVELOP -> when {
+            baselineObservability == DoseBaselineObservability.PARTIAL_UNCLASSIFIED -> StimulusDoseStrategy.DEVELOP_DIRECT_STIMULUS_DIRECTION_ONLY
             !baselineAvailable -> StimulusDoseStrategy.DEVELOP_DIRECT_STIMULUS_DIRECTION_ONLY
             hasDirectBaseline -> StimulusDoseStrategy.RESTORE_PERSONAL_BASELINE
             else -> StimulusDoseStrategy.INTRODUCE_DIRECT_STIMULUS
         }
-        TrainingNeedDecision.MAINTAIN -> if (hasDirectBaseline) StimulusDoseStrategy.HOLD_PERSONAL_BASELINE
+        TrainingNeedDecision.MAINTAIN -> if (baselineObservability == DoseBaselineObservability.PARTIAL_UNCLASSIFIED) StimulusDoseStrategy.MAINTAIN_DIRECT_STIMULUS_DIRECTION_ONLY
+        else if (hasDirectBaseline) StimulusDoseStrategy.HOLD_PERSONAL_BASELINE
         else StimulusDoseStrategy.MAINTAIN_DIRECT_STIMULUS_DIRECTION_ONLY
-        TrainingNeedDecision.MAINTAIN_OR_PROGRESS -> if (hasDirectBaseline) StimulusDoseStrategy.HOLD_PERSONAL_BASELINE_ALLOW_PROGRESSION
+        TrainingNeedDecision.MAINTAIN_OR_PROGRESS -> if (baselineObservability == DoseBaselineObservability.PARTIAL_UNCLASSIFIED) StimulusDoseStrategy.MAINTAIN_DIRECT_STIMULUS_ALLOW_PROGRESSION_DIRECTION_ONLY
+        else if (hasDirectBaseline) StimulusDoseStrategy.HOLD_PERSONAL_BASELINE_ALLOW_PROGRESSION
         else StimulusDoseStrategy.MAINTAIN_DIRECT_STIMULUS_ALLOW_PROGRESSION_DIRECTION_ONLY
-        TrainingNeedDecision.REDISTRIBUTE -> if (hasDirectBaseline) StimulusDoseStrategy.REDISTRIBUTE_PERSONAL_BASELINE
+        TrainingNeedDecision.REDISTRIBUTE -> if (baselineObservability == DoseBaselineObservability.PARTIAL_UNCLASSIFIED) StimulusDoseStrategy.REDISTRIBUTE_DIRECTION_ONLY
+        else if (hasDirectBaseline) StimulusDoseStrategy.REDISTRIBUTE_PERSONAL_BASELINE
         else StimulusDoseStrategy.REDISTRIBUTE_DIRECTION_ONLY
         TrainingNeedDecision.REDUCE -> StimulusDoseStrategy.REDUCE_OR_RESTRUCTURE
     }
@@ -400,6 +424,8 @@ internal fun StimulusTrainingDecisionPortfolio.toCompactJson(): JSONObject = JSO
         .put("baselineDirectUnitsMedian", decision.baselineDirectUnitsMedian)
         .put("baselineDirectSessionsMedian", decision.baselineDirectSessionsMedian)
         .put("baselineExposureWeekFrequency", decision.baselineExposureWeekFrequency)
+        .put("evidenceBasis", decision.evidenceBasis.name)
+        .put("baselineObservability", decision.baselineObservability.name)
         .put("reasonCodes", JSONArray(decision.reasonCodes)).put("evidence", JSONArray(decision.evidence))
     }))
     .put("taskDecisions", JSONArray(taskDecisions.map { decision -> JSONObject()
@@ -407,6 +433,7 @@ internal fun StimulusTrainingDecisionPortfolio.toCompactJson(): JSONObject = JSO
         .put("needDecision", decision.needDecision.name).put("strategy", decision.strategy.name)
         .put("priority", decision.priority.name).put("needConfidence", decision.needConfidence.name)
         .put("numericBaselineAuthority", decision.numericBaselineAuthority)
+        .put("evidenceBasis", decision.evidenceBasis.name)
         .put("reasonCodes", JSONArray(decision.reasonCodes)).put("evidence", JSONArray(decision.evidence))
     }))
     .put("comparison", comparison?.toCompactJson())

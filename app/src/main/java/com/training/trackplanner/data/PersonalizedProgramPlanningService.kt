@@ -94,6 +94,7 @@ internal class PersonalizedProgramPlanningService(
     private val physicalQualityCatalog: CanonicalExercisePhysicalQualityCatalog = CanonicalExercisePhysicalQualityCatalog.EMPTY,
     private val canonicalMovementRelations: List<CanonicalMetadataRelation> = emptyList(),
     private val canonicalCoreCatalog: CanonicalCoreCatalog = CanonicalCoreCatalog.EMPTY,
+    private val reviewedCanonicalStableKeys: Set<String> = emptySet(),
     private val athleteNeedsProfileEngine: AthleteNeedsProfileEngine = AthleteNeedsProfileEngine(),
     private val athleteStimulusNeedEngine: AthleteStimulusNeedEngine = AthleteStimulusNeedEngine(),
     private val snapshotBuilder: PlanningHistorySnapshotBuilder = PlanningHistorySnapshotBuilder(),
@@ -521,7 +522,8 @@ internal class PersonalizedProgramPlanningService(
                     coreCatalog = canonicalCoreCatalog,
                     badmintonCatalog = badmintonCatalog,
                     exerciseRoleCatalog = roleCatalog,
-                    historyStart = qualityDoseHistoryHorizon(cutoff).ledgerStart
+                    historyStart = qualityDoseHistoryHorizon(cutoff).ledgerStart,
+                    reviewedCanonicalStableKeys = reviewedCanonicalStableKeys
                 )
             )
         } else baseSnapshot

@@ -19,7 +19,9 @@ data class StimulusWindowEvidence(
     val directTrainingDays: Int = 0,
     val supportiveTrainingDays: Int = 0,
     val excludedDirectByPrescriptionUnits: Int = 0,
-    val excludedSupportiveByPrescriptionUnits: Int = 0
+    val excludedSupportiveByPrescriptionUnits: Int = 0,
+    val classifiedSourceUnits: Int = 0,
+    val unclassifiedSourceUnits: Int = 0
 ) {
     val eligibleUnits: Int get() = directUnits + supportiveUnits
 }
@@ -32,7 +34,11 @@ data class StimulusExposureEvidence(
     val currentDirectActiveBins: Int = 0,
     val currentExposure: ExposureState = ExposureState.UNKNOWN,
     val confidence: PlanningConfidence = PlanningConfidence.LOW,
-    val reasonCodes: List<String> = emptyList()
+    val reasonCodes: List<String> = emptyList(),
+    val coverage: StimulusEvidenceCoverage = StimulusEvidenceCoverage.UNAVAILABLE,
+    val classifiedSourceUnits: Int = 0,
+    val unclassifiedSourceUnits: Int = 0,
+    val evidenceBasis: StimulusEvidenceBasis = StimulusEvidenceBasis.UNCLASSIFIED
 )
 
 data class CourtWindowEvidence(
@@ -124,16 +130,21 @@ internal class StimulusNeedEvidenceIndexBuilder {
         if (available) {
             // One fold over the source observations. A source set can enter several quality/task
             // views, but never more than once within a view.
-            ledger.setObservations.forEach { observation ->
+            ledger.setObservations.forEach observationLoop@{ observation ->
                 val age = ChronoUnit.DAYS.between(observation.source.date, snapshot.cutoff).toInt()
-                if (age !in 0..55) return@forEach
+                if (age !in 0..55) return@observationLoop
                 val profile = ledger.facetProfilesByStableKey[observation.facetProfileKey]
                 if (profile == null) {
                     reasonCodes += "FACET_PROFILE_UNAVAILABLE"
-                    return@forEach
+                    return@observationLoop
                 }
                 profile.issues.forEach { reasonCodes += it.code }
                 val relationsByQuality = profile.physicalQualities.groupBy(ExercisePhysicalQualityRelation::qualityId)
+                if (observation.activityKind in STRUCTURED_TASK_EVIDENCE_KINDS) {
+                    quality.values.forEach { it.observeClassification(age, observation, observation.classificationAuthority) }
+                    tasks.values.forEach { it.observeClassification(age, observation, observation.classificationAuthority) }
+                }
+                if (observation.classificationAuthority == StimulusClassificationAuthority.UNCLASSIFIED) return@observationLoop
                 relationsByQuality.forEach { (qualityId, relations) ->
                     val direct = relations.any { it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY }
                     val supportive = !direct && relations.any { it.relationLevel == StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY }
@@ -175,7 +186,7 @@ internal class StimulusNeedEvidenceIndexBuilder {
             }
         }
         val qualityEvidence = quality.mapValues { (qualityId, accumulator) ->
-            accumulator.evidence(snapshot, available, reasonCodes, qualityId)
+            accumulator.evidence(snapshot, available, reasonCodes, qualityId = qualityId)
         }
         val taskEvidence = tasks.mapValues { (task, accumulator) ->
             accumulator.evidence(snapshot, available, reasonCodes, task = task)
@@ -194,6 +205,12 @@ internal class StimulusNeedEvidenceIndexBuilder {
         private val windows = Window.values().associateWith { WindowBucket() }.toMutableMap()
         private val directBins = linkedSetOf<Int>()
 
+        fun observeClassification(age: Int, observation: StimulusSetObservation, authority: StimulusClassificationAuthority) {
+            windows.forEach { (window, bucket) ->
+                if (age in window.range) bucket.observeClassification(authority)
+            }
+        }
+
         fun add(age: Int, date: LocalDate, session: String, direct: Boolean, supportive: Boolean, compatible: Boolean) {
             windows.forEach { (window, bucket) ->
                 if (age !in window.range) return@forEach
@@ -206,7 +223,9 @@ internal class StimulusNeedEvidenceIndexBuilder {
             if (!available) return StimulusExposureEvidence(
                 currentExposure = ExposureState.UNKNOWN,
                 confidence = PlanningConfidence.LOW,
-                reasonCodes = reasons.toList()
+                reasonCodes = reasons.toList(),
+                coverage = StimulusEvidenceCoverage.UNAVAILABLE,
+                evidenceBasis = quality?.let(::evidenceBasisForQuality) ?: StimulusEvidenceBasis.CANONICAL_TASK_RELATION
             )
             val recent = windows.getValue(Window.RECENT).toEvidence()
             val current = windows.getValue(Window.CURRENT).toEvidence()
@@ -223,16 +242,38 @@ internal class StimulusNeedEvidenceIndexBuilder {
             if (quality != null && quality !in PRESCRIPTION_GATED_QUALITIES) {
                 evidenceReasons += "CANONICAL_CAPABILITY_PROXY_REALIZED_STIMULUS_AUTHORITY_UNAVAILABLE"
             }
+            if (current.unclassifiedSourceUnits > 0) {
+                evidenceReasons += "UNCLASSIFIED_STIMULUS_SOURCE_PRESENT"
+                if (current.directUnits == 0 && current.supportiveUnits == 0) {
+                    evidenceReasons += "ZERO_EXPOSURE_NOT_CONFIRMED_DUE_TO_UNCLASSIFIED_SOURCE"
+                } else {
+                    evidenceReasons += "PARTIAL_CLASSIFICATION_EXPOSURE_UNDERCOUNT_POSSIBLE"
+                }
+            } else if (current.classifiedSourceUnits > 0 && current.directUnits == 0 && current.supportiveUnits == 0) {
+                evidenceReasons += "REVIEWED_CANONICAL_ZERO_EXPOSURE"
+            }
             val mergedReasons = (reasons + evidenceReasons).toList()
+            val coverage = if (current.unclassifiedSourceUnits > 0) StimulusEvidenceCoverage.PARTIAL else StimulusEvidenceCoverage.COMPLETE
+            val basis = if (current.unclassifiedSourceUnits > 0 && current.directUnits == 0 && current.supportiveUnits == 0) {
+                StimulusEvidenceBasis.UNCLASSIFIED
+            } else quality?.let(::evidenceBasisForQuality) ?: StimulusEvidenceBasis.CANONICAL_TASK_RELATION
+            val observedExposure = if (current.unclassifiedSourceUnits > 0 && current.directUnits == 0 && current.supportiveUnits == 0) {
+                ExposureState.UNKNOWN
+            } else exposureState(current.directUnits, prior.directUnits, current.directSessions)
             return StimulusExposureEvidence(
                 recent7d = recent,
                 current28d = current,
                 prior28d = prior,
                 context56d = context,
                 currentDirectActiveBins = directBins.size,
-                currentExposure = exposureState(current.directUnits, prior.directUnits, current.directSessions),
-                confidence = confidence(current, prior, context, snapshot, taskPolicy = task != null),
-                reasonCodes = mergedReasons
+                currentExposure = observedExposure,
+                confidence = if (coverage == StimulusEvidenceCoverage.PARTIAL) PlanningConfidence.LOW
+                else confidence(current, prior, context, snapshot, taskPolicy = task != null),
+                reasonCodes = mergedReasons,
+                coverage = coverage,
+                classifiedSourceUnits = current.classifiedSourceUnits,
+                unclassifiedSourceUnits = current.unclassifiedSourceUnits,
+                evidenceBasis = basis
             )
         }
     }
@@ -242,10 +283,17 @@ internal class StimulusNeedEvidenceIndexBuilder {
         var supportiveUnits = 0
         var excludedDirect = 0
         var excludedSupportive = 0
+        var classifiedSourceUnits = 0
+        var unclassifiedSourceUnits = 0
         val directSessions = linkedSetOf<Pair<LocalDate, String>>()
         val supportiveSessions = linkedSetOf<Pair<LocalDate, String>>()
         val directDays = linkedSetOf<LocalDate>()
         val supportiveDays = linkedSetOf<LocalDate>()
+
+        fun observeClassification(authority: StimulusClassificationAuthority) {
+            if (authority == StimulusClassificationAuthority.UNCLASSIFIED) unclassifiedSourceUnits++
+            else classifiedSourceUnits++
+        }
 
         fun add(date: LocalDate, session: String, direct: Boolean, supportive: Boolean, compatible: Boolean) {
             when {
@@ -265,7 +313,8 @@ internal class StimulusNeedEvidenceIndexBuilder {
         }
 
         fun toEvidence() = StimulusWindowEvidence(directUnits, supportiveUnits, directSessions.size,
-            supportiveSessions.size, directDays.size, supportiveDays.size, excludedDirect, excludedSupportive)
+            supportiveSessions.size, directDays.size, supportiveDays.size, excludedDirect, excludedSupportive,
+            classifiedSourceUnits, unclassifiedSourceUnits)
     }
 
     private class CourtAccumulator {
@@ -500,6 +549,10 @@ internal fun AthleteStimulusNeedProfile.toCompactJson(): JSONObject = JSONObject
         .put("current28dDirectUnits", need.exposure.current28d.directUnits)
         .put("current28dSupportiveUnits", need.exposure.current28d.supportiveUnits)
         .put("prior28dDirectUnits", need.exposure.prior28d.directUnits)
+        .put("coverage", need.exposure.coverage.name)
+        .put("classifiedSourceUnits", need.exposure.classifiedSourceUnits)
+        .put("unclassifiedSourceUnits", need.exposure.unclassifiedSourceUnits)
+        .put("evidenceBasis", need.exposure.evidenceBasis.name)
         .put("activeBins", need.exposure.currentDirectActiveBins)
         .put("reasonCodes", JSONArray(need.reasonCodes))
     }))
@@ -509,6 +562,10 @@ internal fun AthleteStimulusNeedProfile.toCompactJson(): JSONObject = JSONObject
         .put("confidence", need.confidence.name)
         .put("directUnits", need.exposure.current28d.directUnits)
         .put("supportiveUnits", need.exposure.current28d.supportiveUnits)
+        .put("coverage", need.exposure.coverage.name)
+        .put("classifiedSourceUnits", need.exposure.classifiedSourceUnits)
+        .put("unclassifiedSourceUnits", need.exposure.unclassifiedSourceUnits)
+        .put("evidenceBasis", need.exposure.evidenceBasis.name)
         .put("sportContextLoad", need.sportContextLoad)
         .put("reasonCodes", JSONArray(need.reasonCodes))
     }))

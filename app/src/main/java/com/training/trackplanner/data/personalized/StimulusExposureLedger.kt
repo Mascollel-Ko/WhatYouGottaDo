@@ -71,7 +71,8 @@ data class StimulusSetObservation(
     val seconds: Int,
     val rpe: Double?,
     val realizedPrescriptionClass: RealizedStimulusClass,
-    val facetProfileKey: String
+    val facetProfileKey: String,
+    val classificationAuthority: StimulusClassificationAuthority = StimulusClassificationAuthority.REVIEWED_CANONICAL
 ) {
     val sourceRef: StimulusSourceRef get() = source
 }
@@ -154,7 +155,8 @@ data class StimulusExposureLedger(
     val courtObservations: List<CourtExposureObservation>,
     val cutoff: LocalDate? = null,
     /** Transient source coverage start; B1 queries continue to use cutoff-relative windows. */
-    val historyStart: LocalDate? = null
+    val historyStart: LocalDate? = null,
+    val reviewedCanonicalStableKeys: Set<String> = emptySet()
 ) {
     companion object {
         val EMPTY = StimulusExposureLedger(emptyMap(), emptyList(), emptyList())
@@ -200,6 +202,7 @@ data class StimulusExposureLedger(
             val age = age(observation.source.date)
             if (age !in window.minimumAgeDays..window.maximumAgeDays) continue
             val profile = facetProfilesByStableKey[observation.facetProfileKey] ?: continue
+            if (observation.classificationAuthority == StimulusClassificationAuthority.UNCLASSIFIED) continue
             if (!filter.matches(profile, observation.activityKind)) continue
             confirmedSets++
             sessionOccurrences += observation.source.date to observation.source.sessionStableKey
@@ -261,7 +264,8 @@ class StimulusExposureLedgerBuilder(
         coreCatalog: CanonicalCoreCatalog,
         badmintonCatalog: CanonicalBadmintonObjectiveCatalog,
         exerciseRoleCatalog: ExerciseRoleRelationCatalog = ExerciseRoleRelationCatalog.EMPTY,
-        historyStart: LocalDate? = null
+        historyStart: LocalDate? = null,
+        reviewedCanonicalStableKeys: Set<String> = emptySet()
     ): StimulusExposureLedger = build(
         cutoff = cutoff,
         history = history,
@@ -272,7 +276,8 @@ class StimulusExposureLedgerBuilder(
         coreCatalog = coreCatalog,
         badmintonCatalog = badmintonCatalog,
         exerciseRoleCatalog = exerciseRoleCatalog,
-        historyStart = historyStart
+        historyStart = historyStart,
+        reviewedCanonicalStableKeys = reviewedCanonicalStableKeys
     )
 
     fun build(
@@ -285,7 +290,8 @@ class StimulusExposureLedgerBuilder(
         coreCatalog: CanonicalCoreCatalog,
         badmintonCatalog: CanonicalBadmintonObjectiveCatalog,
         exerciseRoleCatalog: ExerciseRoleRelationCatalog = ExerciseRoleRelationCatalog.EMPTY,
-        historyStart: LocalDate? = null
+        historyStart: LocalDate? = null,
+        reviewedCanonicalStableKeys: Set<String> = emptySet()
     ): StimulusExposureLedger {
         val windowStart = (historyStart ?: cutoff.minusDays(55)).coerceAtMost(cutoff)
         val boundedHistory = history.mapNotNull { record ->
@@ -293,6 +299,17 @@ class StimulusExposureLedgerBuilder(
             if (date == null || date.isBefore(windowStart) || date.isAfter(cutoff)) null else date to record
         }
         val exerciseMap = exercises
+        val explicitReviewedKeys = reviewedCanonicalStableKeys.mapTo(linkedSetOf()) { it.trim().lowercase(Locale.ROOT) }
+        // Direct builder callers from older shadow tests may not yet have the repository set.
+        // Relation-bearing keys are a conservative compatibility fallback; production passes
+        // the complete repository identity set, including history-only identities.
+        val fallbackReviewedKeys = buildSet {
+            addAll(physicalQualityCatalog.allRelations().map { it.exerciseStableKey.lowercase(Locale.ROOT) })
+            addAll(movementRelations.flatMap { listOf(it.exerciseStableKey, it.sourceStableKey) }
+                .filter(String::isNotBlank).map { it.lowercase(Locale.ROOT) })
+            addAll(badmintonCatalog.allRelations().map { it.exerciseStableKey.lowercase(Locale.ROOT) })
+        }
+        val reviewedKeys = if (explicitReviewedKeys.isNotEmpty()) explicitReviewedKeys else fallbackReviewedKeys
         val functionalMovementByStableKey = movementRelations.asSequence()
             .filter { relation ->
                 relation.domain == CanonicalRelationDomain.MOVEMENT &&
@@ -351,8 +368,14 @@ class StimulusExposureLedgerBuilder(
                 }
                 return@forEach
             }
-            val meaningful = activity != PlannedActivityKind.OTHER || profile.hasCanonicalFacet
-            if (!meaningful) return@forEach
+            val authority = if (stableKey.lowercase(Locale.ROOT) in reviewedKeys) {
+                StimulusClassificationAuthority.REVIEWED_CANONICAL
+            } else {
+                StimulusClassificationAuthority.UNCLASSIFIED
+            }
+            if (activity == PlannedActivityKind.OTHER && stableKey !in exerciseMap && stableKey !in metadata) return@forEach
+            // Preserve confirmed non-court source observations even when no reviewed facet exists.
+            // They remain outside canonical direct/supportive counts through the explicit authority.
             record.sets.filter { it.confirmed }.forEach { set ->
                 sets += StimulusSetObservation(
                     source = StimulusSourceRef(record.entry.id, record.entry.backupSourceId, set.id, set.setIndex, record.entry.sessionStableKey, date, stableKey),
@@ -362,11 +385,12 @@ class StimulusExposureLedgerBuilder(
                     seconds = set.seconds,
                     rpe = set.rpe ?: record.entry.rpe,
                     realizedPrescriptionClass = provisionalRealizedStimulusClass(set.reps),
-                    facetProfileKey = profile.stableKey
+                    facetProfileKey = profile.stableKey,
+                    classificationAuthority = authority
                 )
             }
         }
-        return StimulusExposureLedger(profiles.toMap(), sets.toList(), courts.toList(), cutoff, windowStart)
+        return StimulusExposureLedger(profiles.toMap(), sets.toList(), courts.toList(), cutoff, windowStart, reviewedKeys)
     }
 
     private fun profileFor(

@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.37.0 |
+| Protocol version | 3.38.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | pending B5 verification commit |
+| Last audited commit | post-audit semantic hardening |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -950,3 +950,17 @@ general-quality memberships are orthogonal.
 - `1.0.1` (2026-07-28): program seed, generation spec와 future entry의
   exercise reference를 canonical stableKey-only로 고정했습니다.
 - `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.
+
+Post-audit boundary notes
+
+- A reviewed canonical identity with no relation for a quality is reviewed non-membership and may establish a valid zero. A custom or otherwise unclassified identity with no relation is unresolved exposure, not a zero.
+- B2 exact personal quantiles use classification-complete completed weeks only. Incomplete weeks remain in the audit and cannot authorize numeric baseline values.
+- Evidence basis is explicit: Strength and Hypertrophy are realized-prescription classified; other current qualities are canonical capability proxies; sport tasks are canonical task relations. Proxy `WITHIN_BAND` means similar canonical capability exposure, never confirmed physiological adequacy.
+- Phase B6 must not create target-compatible prescription authority for a capability-proxy target until a separately reviewed realization model exists. This task does not implement B6.
+
+### 3.38.0 — A–B5 post-audit semantic hardening
+
+- Phase A records each confirmed non-court source set once with explicit `REVIEWED_CANONICAL` or `UNCLASSIFIED` authority. Reviewed canonical non-membership may establish a valid zero; an unclassified/custom identity never silently establishes zero. Generic court remains a separate context channel.
+- B1 exposes coverage and classified/unclassified source units. B2 keeps incomplete weeks visible but excludes them from exact quantiles; B3 stays direction-only for a partial baseline, and B4 numeric authority requires complete classification coverage.
+- Evidence basis is typed through B1–B5: Strength/Hypertrophy use `REALIZED_PRESCRIPTION_CLASSIFIED`, other qualities use `CANONICAL_CAPABILITY_PROXY`, tasks use `CANONICAL_TASK_RELATION`, and unknown authority uses `UNCLASSIFIED`. Proxy `WITHIN_BAND` means similar capability exposure, not confirmed physiological adequacy. Phase B6 must introduce a separately reviewed realization model before claiming target-compatible prescription authority.
+- B5 uses immutable history indexes with unchanged lexicographic ranking. Probe compatibility is separate from final skeleton materialization, and `directIdentityVerifiedAtSelection` derives from `coveredTargetIds` for the selected or reused identity. No-selection verification is nullable.

@@ -35,7 +35,12 @@ data class StimulusSelectedCandidate(
     val selectionReasons: List<String>,
     val currentPrescriptionCompatibility: String,
     val targetSetsFromExistingPrescription: Int,
-    val selectionRole: String
+    val selectionRole: String,
+    val probePrescriptionCompatibility: SelectionProbePrescriptionCompatibility = when (currentPrescriptionCompatibility) {
+        "PRESCRIPTION_COMPATIBILITY_GAP_DEFERRED_TO_B6" -> SelectionProbePrescriptionCompatibility.REALIZED_INCOMPATIBLE
+        else -> runCatching { SelectionProbePrescriptionCompatibility.valueOf(currentPrescriptionCompatibility) }
+            .getOrDefault(SelectionProbePrescriptionCompatibility.REALIZATION_UNCLASSIFIED)
+    }
 )
 
 data class StimulusCandidateSelectionTrace(
@@ -82,12 +87,14 @@ data class StimulusCandidateMaterializationTrace(
     val targetId: String,
     val selectedStableKey: String?,
     val selectedAtB5: Boolean,
+    val directIdentityVerifiedAtSelection: Boolean? = null,
     val presentInFinalExperimentalSkeleton: Boolean,
     val finalWeeklyOccurrences: Int,
     val finalTotalSetUnits: Int,
-    val directIdentityStillValid: Boolean,
+    val directIdentityStillValid: Boolean = presentInFinalExperimentalSkeleton && directIdentityVerifiedAtSelection == true,
     val realizedTargetStatus: String?,
-    val reasonCodes: List<String>
+    val reasonCodes: List<String>,
+    val evidenceBasis: StimulusEvidenceBasis = StimulusEvidenceBasis.UNCLASSIFIED
 )
 
 data class StimulusSelectionProgramComparison(
@@ -114,7 +121,7 @@ data class StimulusSelectionProgramComparison(
 private data class MaterializedCandidate(
     val item: PlannedExercise,
     val prescription: PlannedPrescription,
-    val compatibility: String,
+    val compatibility: SelectionProbePrescriptionCompatibility,
     val rejectionReasons: Map<String, String>
 )
 
@@ -134,6 +141,13 @@ class StimulusTargetCandidateSelector(
         physicalQualityCatalog: CanonicalExercisePhysicalQualityCatalog
     ): StimulusCandidateSelectionPlan {
         val controlKeys = control.items.mapTo(linkedSetOf(), ProgramSkeletonItem::exerciseStableKey)
+        val historyByStableKey = snapshot.allConfirmedSets.groupBy(PlanningSetRecord::stableKey)
+        val historyIndex = HistoryIndex(
+            historyByStableKey = historyByStableKey,
+            historyStableKeys = historyByStableKey.keys,
+            strengthCompatibleHistoryKeys = historyByStableKey.filterValues { rows -> rows.any { compatibleHistory(TrainableQuality.STRENGTH, provisionalRealizedStimulusClass(it)) } }.keys,
+            hypertrophyCompatibleHistoryKeys = historyByStableKey.filterValues { rows -> rows.any { compatibleHistory(TrainableQuality.HYPERTROPHY, provisionalRealizedStimulusClass(it)) } }.keys
+        )
         val selected = linkedMapOf<String, StimulusSelectedCandidate>()
         val candidateItems = linkedMapOf<String, PlannedExercise>()
         val deferred = linkedMapOf<String, String>()
@@ -174,7 +188,7 @@ class StimulusTargetCandidateSelector(
                 return@forEach
             }
 
-            val ranked = eligibleCandidates(intent, controlKeys, selected.keys, snapshot, state, request, physicalQualityCatalog)
+            val ranked = eligibleCandidates(intent, controlKeys, selected.keys, snapshot, state, request, physicalQualityCatalog, historyIndex)
             val pool = ranked.map { it.key }
             val rejections = linkedMapOf<String, String>()
             var materialized: MaterializedCandidate? = null
@@ -203,15 +217,19 @@ class StimulusTargetCandidateSelector(
                 coveredTargetIds = setOf(intent.targetId),
                 primaryTargetId = intent.targetId,
                 selectionReasons = listOf("B4_TARGET_REQUESTED_IDENTITY", "B5_TARGET_SETS_FROM_EXISTING_PRESCRIPTION_NOT_TARGET_AUTHORITY"),
-                currentPrescriptionCompatibility = chosen.compatibility,
+                currentPrescriptionCompatibility = when (chosen.compatibility) {
+                    SelectionProbePrescriptionCompatibility.REALIZED_INCOMPATIBLE -> "PRESCRIPTION_COMPATIBILITY_GAP_DEFERRED_TO_B6"
+                    else -> chosen.compatibility.name
+                },
                 targetSetsFromExistingPrescription = chosen.prescription.sets.size,
-                selectionRole = item.role
+                selectionRole = item.role,
+                probePrescriptionCompatibility = chosen.compatibility
             )
             selected[item.stableKey] = selectedCandidate
             audit[item.stableKey] = "B5_SELECTED_CANONICAL_IDENTITY"
             traces += trace(
                 intent, emptyList(), true, pool, item.stableKey, null, rejections,
-                listOf("SELECTION_IDENTITY_PRESENT", chosen.compatibility, "B5_TARGET_SETS_FROM_EXISTING_PRESCRIPTION_NOT_TARGET_AUTHORITY")
+                listOf("SELECTION_IDENTITY_PRESENT", chosen.compatibility.name, "B5_TARGET_SETS_FROM_EXISTING_PRESCRIPTION_NOT_TARGET_AUTHORITY")
             )
         }
 
@@ -245,6 +263,13 @@ class StimulusTargetCandidateSelector(
     private data class CandidateKey(val key: String, val targetCompatibleHistory: Boolean, val history: Boolean, val freeWeightCompatible: Boolean,
         val highConfidence: Boolean, val redundant: Boolean)
 
+    private data class HistoryIndex(
+        val historyByStableKey: Map<String, List<PlanningSetRecord>>,
+        val historyStableKeys: Set<String>,
+        val strengthCompatibleHistoryKeys: Set<String>,
+        val hypertrophyCompatibleHistoryKeys: Set<String>
+    )
+
     private fun eligibleCandidates(
         intent: StimulusSelectionTarget,
         controlKeys: Set<String>,
@@ -252,7 +277,8 @@ class StimulusTargetCandidateSelector(
         snapshot: PlanningHistorySnapshot,
         state: AthletePlanningState,
         request: ProgramSkeletonRequest,
-        physicalQualityCatalog: CanonicalExercisePhysicalQualityCatalog
+        physicalQualityCatalog: CanonicalExercisePhysicalQualityCatalog,
+        historyIndex: HistoryIndex
     ): List<CandidateKey> {
         val keys = snapshot.exercises.keys.asSequence().filter { key ->
             when (intent) {
@@ -267,20 +293,21 @@ class StimulusTargetCandidateSelector(
             .filter { key -> key !in request.excludedExerciseStableKeys }
             .filter { key -> key !in snapshot.recoverySignals.tissueRestrictedStableKeys }
             .filter { key -> equipmentCompatible(snapshot, key, request) }
-            .filter { key -> freeWeightAllowed(snapshot, state, key) }
+            .filter { key -> freeWeightAllowed(snapshot, state, key, historyIndex.historyStableKeys) }
             .filterNot { snapshot.activityKind(it) == PlannedActivityKind.GENERIC_COURT_SESSION }
             .map { key ->
-                val historyRows = snapshot.allConfirmedSets.filter { it.stableKey == key }
                 val targetCompatible = when (intent) {
-                    is StimulusSelectionTarget.Quality -> intent.target.quality in TARGET_CLASSIFIED_QUALITIES && historyRows.any {
-                        compatibleHistory(intent.target.quality, provisionalRealizedStimulusClass(it))
+                    is StimulusSelectionTarget.Quality -> when (intent.target.quality) {
+                        TrainableQuality.STRENGTH -> key in historyIndex.strengthCompatibleHistoryKeys
+                        TrainableQuality.HYPERTROPHY -> key in historyIndex.hypertrophyCompatibleHistoryKeys
+                        else -> false
                     }
                     is StimulusSelectionTarget.Task -> false
                 }
                 CandidateKey(
                     key = key,
                     targetCompatibleHistory = targetCompatible,
-                    history = historyRows.isNotEmpty(),
+                    history = key in historyIndex.historyStableKeys,
                     freeWeightCompatible = state.freeWeightWillingness != FreeWeightWillingness.PREFER_FAMILIAR || !snapshot.isFreeWeight(key),
                     highConfidence = snapshot.metadata[key]?.sourceConfidenceLevel == "HIGH",
                     redundant = redundancyGroup(snapshot, key).isNotBlank() &&
@@ -318,14 +345,19 @@ class StimulusTargetCandidateSelector(
             representedObjectives = if (intent is StimulusSelectionTarget.Task) setOf(intent.target.task) else emptySet()
         )
         val compatibility = when (intent) {
-            is StimulusSelectionTarget.Quality -> when (intent.target.quality) {
-                TrainableQuality.STRENGTH -> if (prescription.sets.all { provisionalRealizedStimulusClass(it.reps) == RealizedStimulusClass.STRENGTH_LIKE })
-                    "SELECTION_TARGET_IDENTITY_MATERIALIZED" else "PRESCRIPTION_COMPATIBILITY_GAP_DEFERRED_TO_B6"
-                TrainableQuality.HYPERTROPHY -> if (prescription.sets.all { provisionalRealizedStimulusClass(it.reps) == RealizedStimulusClass.HYPERTROPHY_LIKE })
-                    "SELECTION_TARGET_IDENTITY_MATERIALIZED" else "PRESCRIPTION_COMPATIBILITY_GAP_DEFERRED_TO_B6"
-                else -> "SELECTION_TARGET_IDENTITY_MATERIALIZED"
+            is StimulusSelectionTarget.Quality -> when (intent.target.evidenceBasis) {
+                StimulusEvidenceBasis.REALIZED_PRESCRIPTION_CLASSIFIED -> if (
+                    (intent.target.quality == TrainableQuality.STRENGTH &&
+                        prescription.sets.all { provisionalRealizedStimulusClass(it.reps) == RealizedStimulusClass.STRENGTH_LIKE }) ||
+                    (intent.target.quality == TrainableQuality.HYPERTROPHY &&
+                        prescription.sets.all { provisionalRealizedStimulusClass(it.reps) == RealizedStimulusClass.HYPERTROPHY_LIKE })
+                )
+                    SelectionProbePrescriptionCompatibility.REALIZED_COMPATIBLE else SelectionProbePrescriptionCompatibility.REALIZED_INCOMPATIBLE
+                StimulusEvidenceBasis.CANONICAL_CAPABILITY_PROXY,
+                StimulusEvidenceBasis.UNCLASSIFIED -> SelectionProbePrescriptionCompatibility.REALIZATION_UNCLASSIFIED
+                StimulusEvidenceBasis.CANONICAL_TASK_RELATION -> SelectionProbePrescriptionCompatibility.REALIZATION_UNCLASSIFIED
             }
-            is StimulusSelectionTarget.Task -> "SELECTION_TARGET_IDENTITY_MATERIALIZED"
+            is StimulusSelectionTarget.Task -> SelectionProbePrescriptionCompatibility.DIRECTIONAL_TASK_IDENTITY_ONLY
         }
         return MaterializedCandidateResult.Success(MaterializedCandidate(item, prescription, compatibility, emptyMap()))
     }
@@ -394,9 +426,9 @@ class StimulusTargetCandidateSelector(
         return equipment.all { it == "BODYWEIGHT" || it in request.availableEquipment }
     }
 
-    private fun freeWeightAllowed(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, key: String): Boolean {
+    private fun freeWeightAllowed(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, key: String, historyStableKeys: Set<String>): Boolean {
         if (state.freeWeightWillingness !in setOf(FreeWeightWillingness.AVOID, FreeWeightWillingness.UNRESOLVED)) return true
-        return !snapshot.isFreeWeight(key) || snapshot.allConfirmedSets.any { it.stableKey == key }
+        return !snapshot.isFreeWeight(key) || key in historyStableKeys
     }
 
     private fun redundancyGroup(snapshot: PlanningHistorySnapshot, key: String): String = snapshot.metadata[key]?.redundancyGroup.orEmpty()
@@ -454,6 +486,7 @@ class StimulusSelectionProgramComparisonEngine {
             val finalRows = effectiveIdentity?.let { key -> experimental.items.filter { it.exerciseStableKey == key } }.orEmpty()
             val present = finalRows.isNotEmpty()
             val candidate = effectiveIdentity?.let { key -> selectionPlan.selectedCandidates.firstOrNull { it.stableKey == key } }
+            val directVerified = effectiveIdentity?.let { candidate?.coveredTargetIds?.contains(trace.targetId) == true }
             val realizedStatus = realizedTargetStatus(targetPlan, experimentalAudit, trace.targetId)
             val reasons = linkedSetOf<String>()
             if (!selectedAtB5) {
@@ -464,7 +497,7 @@ class StimulusSelectionProgramComparisonEngine {
                 }
             } else if (present) {
                 reasons += "SELECTION_TARGET_IDENTITY_MATERIALIZED"
-                if (candidate?.currentPrescriptionCompatibility == "PRESCRIPTION_COMPATIBILITY_GAP_DEFERRED_TO_B6" &&
+                if (candidate?.probePrescriptionCompatibility == SelectionProbePrescriptionCompatibility.REALIZED_INCOMPATIBLE &&
                     realizedStatus in UNMET_REALIZATION_STATUSES
                 ) {
                     reasons += "TARGET_REALIZATION_STILL_UNMET"
@@ -478,12 +511,19 @@ class StimulusSelectionProgramComparisonEngine {
                 targetId = trace.targetId,
                 selectedStableKey = effectiveIdentity,
                 selectedAtB5 = selectedAtB5,
+                directIdentityVerifiedAtSelection = directVerified,
                 presentInFinalExperimentalSkeleton = present,
                 finalWeeklyOccurrences = finalRows.map { it.weekNumber to it.dayOfWeek }.distinct().size,
                 finalTotalSetUnits = finalRows.sumOf { it.setPrescriptions.size },
-                directIdentityStillValid = selectedAtB5,
+                directIdentityStillValid = present && directVerified == true,
                 realizedTargetStatus = realizedStatus,
-                reasonCodes = reasons.toList()
+                reasonCodes = reasons.toList(),
+                evidenceBasis = when {
+                    trace.targetId.startsWith("QUALITY:") -> targetPlan.qualityTargets.firstOrNull { "QUALITY:${it.quality.name}" == trace.targetId }?.evidenceBasis
+                        ?: StimulusEvidenceBasis.UNCLASSIFIED
+                    trace.targetId.startsWith("TASK:") -> StimulusEvidenceBasis.CANONICAL_TASK_RELATION
+                    else -> StimulusEvidenceBasis.UNCLASSIFIED
+                }
             )
         }
         return StimulusSelectionProgramComparison(
@@ -545,6 +585,7 @@ internal fun StimulusCandidateSelectionPlan.toCompactJson(): JSONObject = JSONOb
         .put("primaryTargetId", candidate.primaryTargetId)
         .put("selectionReasons", JSONArray(candidate.selectionReasons))
         .put("currentPrescriptionCompatibility", candidate.currentPrescriptionCompatibility)
+        .put("probePrescriptionCompatibility", candidate.probePrescriptionCompatibility.name)
         .put("targetSetsFromExistingPrescription", candidate.targetSetsFromExistingPrescription)
         .put("selectionRole", candidate.selectionRole)
     }))
@@ -571,10 +612,12 @@ internal fun StimulusSelectionProgramComparison.toCompactJson(): JSONObject = JS
         .put("targetId", trace.targetId)
         .put("effectiveSelectedStableKey", trace.selectedStableKey)
         .put("selectedAtB5", trace.selectedAtB5)
+        .put("directIdentityVerifiedAtSelection", trace.directIdentityVerifiedAtSelection)
         .put("presentInFinalExperimentalSkeleton", trace.presentInFinalExperimentalSkeleton)
         .put("finalWeeklyOccurrences", trace.finalWeeklyOccurrences)
         .put("finalTotalSetUnits", trace.finalTotalSetUnits)
         .put("directIdentityStillValid", trace.directIdentityStillValid)
+        .put("evidenceBasis", trace.evidenceBasis.name)
         .put("realizedTargetStatus", trace.realizedTargetStatus)
         .put("reasonCodes", JSONArray(trace.reasonCodes))
     }))
