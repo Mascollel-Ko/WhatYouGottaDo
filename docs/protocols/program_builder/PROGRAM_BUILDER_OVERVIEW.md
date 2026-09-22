@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.33.0 |
+| Protocol version | 3.34.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
@@ -23,6 +23,12 @@
 - `LedgerBackedQualityDoseHistoryAnalyzer` reads the same transient `StimulusExposureLedger` source observations as B1. It preserves the reviewed eight completed ISO-week baseline, fallback, quantile, frequency, minimum-data and confidence rules while recording per-quality weekly direct/supportive units, `(date, sessionStableKey)` sessions, training days, and prescription-incompatible exclusions. DIRECT capability owns an observation when DIRECT and SUPPORTIVE relations overlap; generic court remains a separate context channel.
 - The actual generation path still loads workout history once and builds one ledger. The ledger starts at `min(cutoff - 55 days, oldest completed ISO-week start)` so a Monday or midweek cutoff cannot truncate the oldest completed baseline week. B1 query windows remain exactly `0..6`, `0..27`, `28..55`, and `0..55` relative to the cutoff.
 - The ledger-backed result is attached only to the existing shadow/audit profile with explicit legacy-comparison reason codes and compact JSON. `QualityDoseHistory`, `TrainingDecisionPortfolio`, `TargetStimulusPlan`, comparison, regional logic, selection, prescription, placement, OFI, tissue, Room schema, backup and cloud authorities remain unchanged.
+
+### 3.34.0 — Phase B3 canonical training decision portfolio shadow
+
+- `StimulusTrainingDecisionPortfolioEngine` consumes only the B1 `AthleteStimulusNeedProfile` decisions and the B2 `LedgerBackedQualityDoseHistory` summaries. It distinguishes a ledger-backed personal direct baseline, valid completed-week evidence without a personal direct baseline, and an unavailable ledger without scanning raw history, observations, metadata or task history again.
+- Quality strategies preserve the legacy priority policy while making baseline semantics explicit: restore or hold a personal baseline when one exists, introduce or maintain a direct-stimulus direction when it does not, keep redistribution and reduction directional, and leave unknown/progress decisions unresolved. Need confidence and baseline confidence remain separate; supportive-only evidence never becomes a direct baseline.
+- Task decisions remain directional and carry `numericBaselineAuthority=false` with no completed-week task baseline. The portfolio and its per-quality/per-task comparison are attached to `AthleteStimulusNeedProfile.trainingDecisionPortfolioShadow` as compact observation data. `TrainingDecisionPortfolio`, `TargetStimulusPlan`, selection, prescription, placement, frequency, OFI, tissue, reflow and production output remain unchanged; B4 target generation is out of scope.
 
 ### 3.31.0 — ledger-backed stimulus-need correctness closeout
 

@@ -34,6 +34,8 @@ import com.training.trackplanner.data.personalized.qualityDoseHistoryHorizon
 import com.training.trackplanner.data.personalized.TargetPlanComparisonEngine
 import com.training.trackplanner.data.personalized.TargetStimulusPlanEngine
 import com.training.trackplanner.data.personalized.TrainingDecisionPortfolioEngine
+import com.training.trackplanner.data.personalized.StimulusTrainingDecisionPortfolioEngine
+import com.training.trackplanner.data.personalized.StimulusTrainingDecisionPortfolioComparisonEngine
 import com.training.trackplanner.data.personalized.NeedRelevance
 import com.training.trackplanner.data.personalized.RegionalBottleneckDiagnosisEngine
 import com.training.trackplanner.data.personalized.RegionalEvidenceIndexBuilder
@@ -155,24 +157,32 @@ internal class PersonalizedProgramPlanningService(
                 else com.training.trackplanner.data.personalized.PlanningFrequencySource.AUTO), progress = progress)
         progress.report(PersonalizedPlannerStage.FINAL)
         val legacyNeeds = athleteNeedsProfileEngine.analyze(snapshot, state, physicalQualityCatalog)
-        val stimulusNeeds = athleteStimulusNeedEngine.analyze(snapshot, state)
-        val finalStimulusAudit = FinalStimulusNeedAudit().audit(generated, snapshot, physicalQualityCatalog)
         val doseHistoryAnalyzer = QualityDoseHistoryAnalyzer()
         val doseHistory = doseHistoryAnalyzer.analyze(snapshot, state, physicalQualityCatalog)
+        val stimulusNeeds = athleteStimulusNeedEngine.analyze(snapshot, state)
+        val finalStimulusAudit = FinalStimulusNeedAudit().audit(generated, snapshot, physicalQualityCatalog)
         val ledgerDoseHistory = LedgerBackedQualityDoseHistoryAnalyzer().analyze(snapshot, state, doseHistory)
+        // B3 consumes the already-built B1/B2 summaries. It is attached as a separate
+        // observation-only portfolio and never enters the legacy target-plan chain.
+        val stimulusPortfolio = StimulusTrainingDecisionPortfolioEngine().build(stimulusNeeds, ledgerDoseHistory)
+        val legacyPortfolio = TrainingDecisionPortfolioEngine().build(legacyNeeds, doseHistory)
+        val stimulusPortfolioComparison = StimulusTrainingDecisionPortfolioComparisonEngine()
+            .compare(legacyPortfolio, stimulusPortfolio, ledgerDoseHistory, doseHistory)
+        val stimulusPortfolioWithComparison = stimulusPortfolio.copy(comparison = stimulusPortfolioComparison)
         val withShadowNeeds = generated.copy(
             personalizedDecision = generated.personalizedDecision?.copy(
                 athleteNeedsProfile = legacyNeeds,
                 athleteStimulusNeedProfile = stimulusNeeds.copy(
                     finalAudit = finalStimulusAudit,
-                    qualityDoseHistoryShadow = ledgerDoseHistory
+                    qualityDoseHistoryShadow = ledgerDoseHistory,
+                    trainingDecisionPortfolioShadow = stimulusPortfolioWithComparison
                 )
             )
         )
         val decision = withShadowNeeds.personalizedDecision
         val needs = decision?.athleteNeedsProfile
         if (decision != null && needs != null) {
-            val portfolio = TrainingDecisionPortfolioEngine().build(needs, doseHistory)
+            val portfolio = legacyPortfolio
             val targetPlan = TargetStimulusPlanEngine().build(portfolio, doseHistory)
             val comparison = TargetPlanComparisonEngine().compare(targetPlan, withShadowNeeds, snapshot, physicalQualityCatalog)
             val regionalIndex = RegionalEvidenceIndexBuilder().build(snapshot, state, physicalQualityCatalog)
