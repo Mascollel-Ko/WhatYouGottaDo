@@ -72,7 +72,7 @@ data class StimulusSetObservation(
     val rpe: Double?,
     val realizedPrescriptionClass: RealizedStimulusClass,
     val facetProfileKey: String,
-    val classificationAuthority: StimulusClassificationAuthority = StimulusClassificationAuthority.REVIEWED_CANONICAL
+    val classificationAuthority: StimulusClassificationAuthority
 ) {
     val sourceRef: StimulusSourceRef get() = source
 }

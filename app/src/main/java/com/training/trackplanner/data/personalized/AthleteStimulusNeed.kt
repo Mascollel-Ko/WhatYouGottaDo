@@ -254,13 +254,26 @@ internal class StimulusNeedEvidenceIndexBuilder {
             } else if (current.classifiedSourceUnits > 0 && current.directUnits == 0 && current.supportiveUnits == 0) {
                 evidenceReasons += "REVIEWED_CANONICAL_ZERO_EXPOSURE"
             }
+            val currentClassificationComplete = current.unclassifiedSourceUnits == 0
+            val priorClassificationComplete = prior.unclassifiedSourceUnits == 0
+            val comparisonClassificationComplete = currentClassificationComplete && priorClassificationComplete
+            if (!priorClassificationComplete) {
+                evidenceReasons += "PRIOR_WINDOW_CLASSIFICATION_INCOMPLETE"
+                evidenceReasons += "CURRENT_PRIOR_TREND_COMPARISON_WITHHELD"
+                evidenceReasons += "PARTIAL_CLASSIFICATION_EXPOSURE_UNDERCOUNT_POSSIBLE"
+            }
+            if (!comparisonClassificationComplete && current.directUnits + current.supportiveUnits > 0) {
+                evidenceReasons += "CURRENT_WINDOW_ONLY_EXPOSURE_STATE_USED"
+            }
             val mergedReasons = (reasons + evidenceReasons).toList()
-            val coverage = if (current.unclassifiedSourceUnits > 0) StimulusEvidenceCoverage.PARTIAL else StimulusEvidenceCoverage.COMPLETE
+            val coverage = if (!comparisonClassificationComplete) StimulusEvidenceCoverage.PARTIAL else StimulusEvidenceCoverage.COMPLETE
             val basis = if (current.unclassifiedSourceUnits > 0 && current.directUnits == 0 && current.supportiveUnits == 0) {
                 StimulusEvidenceBasis.UNCLASSIFIED
             } else quality?.let(::evidenceBasisForQuality) ?: StimulusEvidenceBasis.CANONICAL_TASK_RELATION
             val observedExposure = if (current.unclassifiedSourceUnits > 0 && current.directUnits == 0 && current.supportiveUnits == 0) {
                 ExposureState.UNKNOWN
+            } else if (!comparisonClassificationComplete) {
+                currentOnlyExposureState(current.directUnits, current.directSessions)
             } else exposureState(current.directUnits, prior.directUnits, current.directSessions)
             return StimulusExposureEvidence(
                 recent7d = recent,
@@ -374,6 +387,12 @@ internal class StimulusNeedEvidenceIndexBuilder {
             prior == 0 && sessions <= 1 -> ExposureState.LOW
             prior > 0 && current < prior * 0.5 -> ExposureState.LOW
             prior > 0 && current > prior * 1.5 -> ExposureState.HIGH
+            sessions >= 2 || current >= 3 -> ExposureState.ESTABLISHED
+            else -> ExposureState.LOW
+        }
+
+        fun currentOnlyExposureState(current: Int, sessions: Int): ExposureState = when {
+            current == 0 -> ExposureState.ABSENT
             sessions >= 2 || current >= 3 -> ExposureState.ESTABLISHED
             else -> ExposureState.LOW
         }

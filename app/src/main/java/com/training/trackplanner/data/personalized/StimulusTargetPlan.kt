@@ -42,6 +42,7 @@ data class StimulusQualityTarget(
     val evidence: List<String>,
     val baselineAvailable: Boolean = false,
     val hasPersonalDirectBaseline: Boolean = false,
+    val numericBaselineUsable: Boolean = false,
     val evidenceBasis: StimulusEvidenceBasis = evidenceBasisForQuality(quality),
     val prescriptionRealizationAuthority: Boolean = evidenceBasis == StimulusEvidenceBasis.REALIZED_PRESCRIPTION_CLASSIFIED
 )
@@ -185,11 +186,11 @@ class StimulusTargetPlanEngine {
         baseline: LedgerBackedQualityDoseHistory
     ): StimulusQualityTarget {
         val band = baseline.bands[decision.quality]
-        val baselineUsable = baseline.available && band?.hasPersonalDirectBaseline == true
+        val baselineUsable = decision.numericBaselineUsable
         val weeklyUnits = band?.weeklyUnitsRange()
         val weeklySessions = band?.weeklySessionsRange()
         val weeklyValid = baselineUsable && weeklyUnits != null && weeklySessions != null
-        val authority = numericAuthority(decision.strategy, baseline.available, baselineUsable, weeklyValid)
+        val authority = numericAuthority(decision.strategy, decision.baselineAvailable, baselineUsable, weeklyValid)
         val numeric = authority == StimulusTargetNumericAuthority.PERSONAL_SUCCESSFUL_DOSE ||
             authority == StimulusTargetNumericAuthority.PERSONAL_RESTORE_BASELINE
         val exposureUnits = band?.exposureUnitsRangeOrNull()
@@ -233,7 +234,7 @@ class StimulusTargetPlanEngine {
                 add("EXPOSURE_WEEK_REFERENCE_NOT_AVAILABLE")
                 add("FINAL_PROGRAM_EXPOSURE_WEEK_DISTRIBUTION_NOT_AVAILABLE_IN_B4")
             } else if (numeric) {
-                add("REFERENCE_ONLY_IN_B4")
+                add("EXPOSURE_WEEK_DISTRIBUTION_REFERENCE_ONLY_IN_B4")
             }
             if (band != null && baselineUsable && !weeklyValid) {
                 add("MALFORMED_OR_INCOMPLETE_PERSONAL_BASELINE")
@@ -248,8 +249,8 @@ class StimulusTargetPlanEngine {
             strategy = decision.strategy,
             priority = decision.priority,
             numericAuthority = authority,
-            baselineSource = band?.source?.takeIf { baseline.available },
-            baselineConfidence = band?.confidence?.takeIf { baseline.available },
+            baselineSource = decision.baselineSource,
+            baselineConfidence = decision.baselineConfidence,
             weeklyDirectUnitsTarget = weeklyUnits.takeIf { numeric },
             weeklyDirectSessionsTarget = weeklySessions.takeIf { numeric },
             exposureWeekDirectUnitsReference = exposureUnits.takeIf { numeric },
@@ -258,11 +259,14 @@ class StimulusTargetPlanEngine {
             reasonCodes = reasons.toList(),
             evidence = decision.evidence + listOf(
                 "b4NumericAuthority=${authority.name}",
-                "b4WeeklyTargetIsReferenceOnly=${numeric}",
+                "b4WeeklyTargetNumericAuthority=${authority.name}",
+                "b4WeeklyTargetShadowOnly=true",
+                "b4ExposureWeekDistributionReferenceOnly=${numeric && (exposureUnits != null || exposureSessions != null || frequency != null)}",
                 "b4QualityTargetsAreNonAdditive=true"
             ),
-            baselineAvailable = baseline.available,
-            hasPersonalDirectBaseline = band?.hasPersonalDirectBaseline == true,
+            baselineAvailable = decision.baselineAvailable,
+            hasPersonalDirectBaseline = decision.observedPersonalDirectBaseline,
+            numericBaselineUsable = decision.numericBaselineUsable,
             evidenceBasis = decision.evidenceBasis,
             prescriptionRealizationAuthority = decision.evidenceBasis == StimulusEvidenceBasis.REALIZED_PRESCRIPTION_CLASSIFIED
         )
@@ -517,7 +521,7 @@ class StimulusTargetControlProgramAuditEngine {
                     StimulusTargetNumericAuthority.PERSONAL_SUCCESSFUL_DOSE,
                     StimulusTargetNumericAuthority.PERSONAL_RESTORE_BASELINE
                 )) reasons += "FINAL_PROGRAM_EXPOSURE_WEEK_DISTRIBUTION_NOT_AVAILABLE_IN_B4"
-            if (target.exposureWeekFrequencyReference != null && plannedFrequency != null) reasons += "EXPOSURE_FREQUENCY_IS_REFERENCE_ONLY_IN_B4"
+            if (target.exposureWeekFrequencyReference != null && plannedFrequency != null) reasons += "EXPOSURE_WEEK_DISTRIBUTION_REFERENCE_ONLY_IN_B4"
             if (target.strategy == StimulusDoseStrategy.REDISTRIBUTE_DIRECTION_ONLY) reasons += "DISTRIBUTION_COMPARISON_DEFERRED"
             if (target.strategy == StimulusDoseStrategy.REDISTRIBUTE_PERSONAL_BASELINE) {
                 reasons += "DISTRIBUTION_CHANGE_REQUIRED"
@@ -604,6 +608,7 @@ internal fun StimulusTargetPlan.toCompactJson(): JSONObject = JSONObject()
         .put("numericAuthority", target.numericAuthority.name).put("baselineSource", target.baselineSource?.name)
         .put("baselineConfidence", target.baselineConfidence?.name)
         .put("baselineAvailable", target.baselineAvailable).put("hasPersonalDirectBaseline", target.hasPersonalDirectBaseline)
+        .put("numericBaselineUsable", target.numericBaselineUsable)
         .put("evidenceBasis", target.evidenceBasis.name)
         .put("prescriptionRealizationAuthority", target.prescriptionRealizationAuthority)
         .put("weeklyDirectUnitsTarget", target.weeklyDirectUnitsTarget?.toJson())

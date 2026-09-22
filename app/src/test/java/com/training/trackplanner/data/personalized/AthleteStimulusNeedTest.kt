@@ -351,7 +351,8 @@ class AthleteStimulusNeedTest {
 
     private fun observation(key: String, id: Long, date: LocalDate, session: String, reps: Int, activity: PlannedActivityKind = PlannedActivityKind.RESISTANCE) = StimulusSetObservation(
         StimulusSourceRef(id, "backup-$id", id, 1, session, date, key), activity, reps, 50.0, 0, 8.0,
-        if (reps in 1..6) RealizedStimulusClass.STRENGTH_LIKE else if (reps in 7..15) RealizedStimulusClass.HYPERTROPHY_LIKE else RealizedStimulusClass.AMBIGUOUS_REALIZED_STIMULUS, key)
+        if (reps in 1..6) RealizedStimulusClass.STRENGTH_LIKE else if (reps in 7..15) RealizedStimulusClass.HYPERTROPHY_LIKE else RealizedStimulusClass.AMBIGUOUS_REALIZED_STIMULUS, key,
+        StimulusClassificationAuthority.REVIEWED_CANONICAL)
 
     private fun objectiveRelation(id: String, objective: BadmintonObjective, level: BadmintonObjectiveTransferLevel) =
         CanonicalBadmintonObjectiveRelation(id, "drill", objective, level, "TEST", setOf("TEST"), "Synthetic future-compatible relation")

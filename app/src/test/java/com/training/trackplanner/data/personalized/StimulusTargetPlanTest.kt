@@ -173,7 +173,7 @@ class StimulusTargetPlanTest {
         assertEquals(StimulusTargetControlStatus.WITHIN_BAND, quality.weeklyDirectUnitsStatus)
         assertEquals(StimulusTargetControlStatus.WITHIN_BAND, quality.weeklyDirectSessionsStatus)
         assertEquals(1.0, requireNotNull(quality.plannedExposureWeekFrequency), 0.0)
-        assertTrue(quality.reasonCodes.contains("EXPOSURE_FREQUENCY_IS_REFERENCE_ONLY_IN_B4"))
+        assertTrue(quality.reasonCodes.contains("EXPOSURE_WEEK_DISTRIBUTION_REFERENCE_ONLY_IN_B4"))
     }
 
     private fun portfolio(strategy: StimulusDoseStrategy): StimulusTrainingDecisionPortfolio = StimulusTrainingDecisionPortfolio(

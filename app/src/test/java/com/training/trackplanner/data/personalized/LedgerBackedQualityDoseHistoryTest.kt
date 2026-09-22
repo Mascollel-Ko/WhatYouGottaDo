@@ -169,7 +169,8 @@ class LedgerBackedQualityDoseHistoryTest {
             reps in 7..15 -> RealizedStimulusClass.HYPERTROPHY_LIKE
             else -> RealizedStimulusClass.AMBIGUOUS_REALIZED_STIMULUS
         },
-        facetProfileKey = key
+        facetProfileKey = key,
+        classificationAuthority = StimulusClassificationAuthority.REVIEWED_CANONICAL
     )
 
     private fun emptyState() = AthletePlanningState(

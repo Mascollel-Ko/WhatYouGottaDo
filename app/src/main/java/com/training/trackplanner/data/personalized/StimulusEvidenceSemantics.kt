@@ -17,7 +17,12 @@ enum class StimulusEvidenceBasis {
 }
 
 /** Whether a B2 weekly distribution can establish an exact numeric baseline. */
-enum class DoseBaselineObservability { COMPLETE, PARTIAL_UNCLASSIFIED, UNAVAILABLE }
+enum class DoseBaselineObservability {
+    COMPLETE,
+    PARTIAL_UNCLASSIFIED,
+    NO_ELIGIBLE_CLASSIFIED_HISTORY,
+    UNAVAILABLE
+}
 
 /** Compatibility of the existing prescription probe; this is not final materialization. */
 enum class SelectionProbePrescriptionCompatibility {

@@ -91,7 +91,10 @@ data class LedgerBackedQualityDoseHistory(
     val baselineObservability: Map<TrainableQuality, DoseBaselineObservability> = emptyMap(),
     val evidenceBasis: Map<TrainableQuality, StimulusEvidenceBasis> = emptyMap(),
     val classificationCompleteWeekCount: Int = 0,
-    val classificationIncompleteWeekCount: Int = 0
+    val classificationIncompleteWeekCount: Int = 0,
+    val classificationCompleteSourceWeekCount: Map<TrainableQuality, Int> = emptyMap(),
+    val classificationIncompleteSourceWeekCount: Map<TrainableQuality, Int> = emptyMap(),
+    val emptyCompletedWeekCount: Int = 0
 )
 
 internal fun LedgerBackedQualityDoseHistory.toCompactJson(): JSONObject = JSONObject()
@@ -108,6 +111,7 @@ internal fun LedgerBackedQualityDoseHistory.toCompactJson(): JSONObject = JSONOb
     .put("excludedWeekCount", excludedWeekCount)
     .put("classificationCompleteWeekCount", classificationCompleteWeekCount)
     .put("classificationIncompleteWeekCount", classificationIncompleteWeekCount)
+    .put("emptyCompletedWeekCount", emptyCompletedWeekCount)
     .put("qualities", JSONArray(TrainableQuality.entries.map { quality ->
         val band = bands[quality]
         val comparison = comparisons[quality]
@@ -123,8 +127,11 @@ internal fun LedgerBackedQualityDoseHistory.toCompactJson(): JSONObject = JSONOb
             .put("comparisonStatus", comparison?.status?.name)
             .put("baselineObservability", baselineObservability[quality]?.name)
             .put("evidenceBasis", evidenceBasis[quality]?.name)
-            .put("classificationCompleteWeekCount", weeklyEvidence[quality].orEmpty().count { it.classificationComplete })
-            .put("classificationIncompleteWeekCount", weeklyEvidence[quality].orEmpty().count { !it.classificationComplete })
+            .put("classificationCompleteSourceWeekCount", classificationCompleteSourceWeekCount[quality] ?: 0)
+            .put("classificationIncompleteSourceWeekCount", classificationIncompleteSourceWeekCount[quality] ?: 0)
+            .put("classificationCompleteWeekCount", classificationCompleteSourceWeekCount[quality] ?: 0)
+            .put("classificationIncompleteWeekCount", classificationIncompleteSourceWeekCount[quality] ?: 0)
+            .put("emptyCompletedWeekCount", weeklyEvidence[quality].orEmpty().count { !it.excludedFromBaseline && !it.hasSourceObservations })
             .put("comparisonReasonCodes", JSONArray(comparison?.reasonCodes.orEmpty()))
             .put("weeklyEvidence", JSONArray(weeklyEvidence[quality].orEmpty().map { week ->
                 JSONObject()
@@ -195,9 +202,7 @@ internal class LedgerBackedQualityDoseHistoryAnalyzer {
             sourceObservationCount++
             week.sourceObservationCount++
             if (observation.activityKind in RELEVANT_SOURCE_KINDS) {
-                TrainableQuality.entries.forEach { quality ->
-                    week.observeClassification(quality, observation.classificationAuthority)
-                }
+                week.observeClassification(observation.classificationAuthority)
             }
             val profile = ledger.facetProfilesByStableKey[observation.facetProfileKey]
             if (profile == null) return@observationLoop
@@ -220,6 +225,9 @@ internal class LedgerBackedQualityDoseHistoryAnalyzer {
         }
 
         val weekly = TrainableQuality.entries.associateWith { quality -> weeks.map { it.evidence(quality) } }
+        val baselineRelevantSourceWeeks = weekly.mapValues { (_, evidence) ->
+            evidence.filter { !it.excludedFromBaseline && it.hasSourceObservations }
+        }
         val bands = TrainableQuality.entries.associateWith { quality ->
             val all = weekly.getValue(quality).filter(QualityDoseWeekEvidence::eligibleForNumericBaseline)
             val recentStart = snapshot.cutoff.minusDays(27).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
@@ -238,7 +246,7 @@ internal class LedgerBackedQualityDoseHistoryAnalyzer {
         }
         if (ledger.courtObservations.isNotEmpty()) reasons += "COURT_RETAINED_AS_SEPARATE_CONTEXT_CHANNEL"
         if (sourceObservationCount == 0) reasons += "NO_CANONICAL_SET_OBSERVATIONS_IN_COMPLETED_WEEKS"
-        if (weekly.values.flatten().any { it.unclassifiedRelevantUnits > 0 }) {
+        if (baselineRelevantSourceWeeks.values.flatten().any { it.unclassifiedRelevantUnits > 0 }) {
             reasons += "UNCLASSIFIED_SOURCE_EXCLUDED_FROM_NUMERIC_BASELINE"
         }
         TrainableQuality.entries.filter { it !in PRESCRIPTION_GATED_QUALITIES }.forEach {
@@ -248,11 +256,37 @@ internal class LedgerBackedQualityDoseHistoryAnalyzer {
             compare(quality, legacyHistory.bands[quality], bands.getValue(quality), weekly.getValue(quality), horizon, snapshot.cutoff)
         }
         val observability = TrainableQuality.entries.associateWith { quality ->
+            val sourceWeeks = baselineRelevantSourceWeeks.getValue(quality)
             when {
-                weekly.getValue(quality).any { it.unclassifiedRelevantUnits > 0 } -> DoseBaselineObservability.PARTIAL_UNCLASSIFIED
+                sourceWeeks.isEmpty() -> DoseBaselineObservability.NO_ELIGIBLE_CLASSIFIED_HISTORY
+                sourceWeeks.any { it.unclassifiedRelevantUnits > 0 } -> DoseBaselineObservability.PARTIAL_UNCLASSIFIED
                 else -> DoseBaselineObservability.COMPLETE
             }
         }
+        if (observability.values.any { it == DoseBaselineObservability.NO_ELIGIBLE_CLASSIFIED_HISTORY }) {
+            reasons += "NO_ELIGIBLE_CLASSIFIED_BASELINE_HISTORY"
+        }
+        if (observability.values.any { it == DoseBaselineObservability.PARTIAL_UNCLASSIFIED }) {
+            reasons += "PARTIAL_UNCLASSIFIED_BASELINE_HISTORY"
+        }
+        val evidenceBasis = TrainableQuality.entries.associateWith { quality ->
+            val sourceWeeks = baselineRelevantSourceWeeks.getValue(quality)
+            if (sourceWeeks.isNotEmpty() && sourceWeeks.all {
+                    it.unclassifiedRelevantUnits > 0 && it.classifiedSourceUnits == 0 &&
+                        it.directUnits == 0 && it.supportiveUnits == 0
+                }) {
+                StimulusEvidenceBasis.UNCLASSIFIED
+            } else evidenceBasisForQuality(quality)
+        }
+        val completeSourceWeekCounts = baselineRelevantSourceWeeks.mapValues { (_, sourceWeeks) ->
+            sourceWeeks.count { it.classificationComplete }
+        }
+        val incompleteSourceWeekCounts = baselineRelevantSourceWeeks.mapValues { (_, sourceWeeks) ->
+            sourceWeeks.count { !it.classificationComplete }
+        }
+        val globalCompleteSourceWeekCount = completeSourceWeekCounts.values.toSet().singleOrNull() ?: 0
+        val globalIncompleteSourceWeekCount = incompleteSourceWeekCounts.values.toSet().singleOrNull() ?: 0
+        val emptyCompletedWeekCount = weeks.count { !it.excludedFromBaseline && !it.hasRelevantSourceObservations }
         return LedgerBackedQualityDoseHistory(
             bands = bands,
             weeklyEvidence = weekly,
@@ -263,14 +297,12 @@ internal class LedgerBackedQualityDoseHistoryAnalyzer {
             available = true,
             reasonCodes = reasons.toList(),
             baselineObservability = observability,
-            evidenceBasis = TrainableQuality.entries.associateWith { quality ->
-                val evidence = weekly.getValue(quality)
-                if (evidence.isNotEmpty() && evidence.all { it.unclassifiedRelevantUnits > 0 && it.directUnits == 0 && it.supportiveUnits == 0 }) {
-                    StimulusEvidenceBasis.UNCLASSIFIED
-                } else evidenceBasisForQuality(quality)
-            },
-            classificationCompleteWeekCount = weekly.values.firstOrNull()?.count { it.classificationComplete } ?: 0,
-            classificationIncompleteWeekCount = weekly.values.firstOrNull()?.count { !it.classificationComplete } ?: 0
+            evidenceBasis = evidenceBasis,
+            classificationCompleteWeekCount = globalCompleteSourceWeekCount,
+            classificationIncompleteWeekCount = globalIncompleteSourceWeekCount,
+            classificationCompleteSourceWeekCount = completeSourceWeekCounts,
+            classificationIncompleteSourceWeekCount = incompleteSourceWeekCounts,
+            emptyCompletedWeekCount = emptyCompletedWeekCount
         )
     }
 
@@ -309,9 +341,15 @@ internal class LedgerBackedQualityDoseHistoryAnalyzer {
     ) {
         private val byQuality = mutableMapOf<TrainableQuality, MutableEvidence>()
         var sourceObservationCount: Int = 0
+        private var classifiedRelevantUnits: Int = 0
+        private var unclassifiedRelevantUnits: Int = 0
 
-        fun observeClassification(quality: TrainableQuality, authority: StimulusClassificationAuthority) {
-            byQuality.getOrPut(quality) { MutableEvidence() }.observeClassification(authority)
+        val hasRelevantSourceObservations: Boolean
+            get() = classifiedRelevantUnits + unclassifiedRelevantUnits > 0
+
+        fun observeClassification(authority: StimulusClassificationAuthority) {
+            if (authority == StimulusClassificationAuthority.UNCLASSIFIED) unclassifiedRelevantUnits++
+            else classifiedRelevantUnits++
         }
 
         fun add(quality: TrainableQuality, date: LocalDate, sessionStableKey: String, direct: Boolean,
@@ -324,7 +362,7 @@ internal class LedgerBackedQualityDoseHistoryAnalyzer {
         fun evidence(quality: TrainableQuality): QualityDoseWeekEvidence {
             val value = byQuality[quality] ?: MutableEvidence()
             return value.toEvidence(start, end, excludedFromBaseline,
-                value.classifiedSourceUnits + value.unclassifiedRelevantUnits > 0, quality)
+                hasRelevantSourceObservations, quality, classifiedRelevantUnits, unclassifiedRelevantUnits)
         }
     }
 
@@ -334,17 +372,10 @@ internal class LedgerBackedQualityDoseHistoryAnalyzer {
         var excludedDirect = 0
         var excludedSupportive = 0
         var precedenceResolved = 0
-        var classifiedSourceUnits = 0
-        var unclassifiedRelevantUnits = 0
         val directSessions = linkedSetOf<Pair<LocalDate, String>>()
         val supportiveSessions = linkedSetOf<Pair<LocalDate, String>>()
         val directDays = linkedSetOf<LocalDate>()
         val supportiveDays = linkedSetOf<LocalDate>()
-
-        fun observeClassification(authority: StimulusClassificationAuthority) {
-            if (authority == StimulusClassificationAuthority.UNCLASSIFIED) unclassifiedRelevantUnits++
-            else classifiedSourceUnits++
-        }
 
         fun add(date: LocalDate, session: String, direct: Boolean, supportive: Boolean, compatible: Boolean, precedenceResolved: Boolean) {
             if (precedenceResolved) this.precedenceResolved++
@@ -364,7 +395,15 @@ internal class LedgerBackedQualityDoseHistoryAnalyzer {
             }
         }
 
-        fun toEvidence(start: LocalDate, end: LocalDate, excluded: Boolean, hasSource: Boolean, quality: TrainableQuality) = QualityDoseWeekEvidence(
+        fun toEvidence(
+            start: LocalDate,
+            end: LocalDate,
+            excluded: Boolean,
+            hasSource: Boolean,
+            quality: TrainableQuality,
+            classifiedSourceUnits: Int,
+            unclassifiedRelevantUnits: Int
+        ) = QualityDoseWeekEvidence(
             start = start,
             end = end,
             excludedFromBaseline = excluded,

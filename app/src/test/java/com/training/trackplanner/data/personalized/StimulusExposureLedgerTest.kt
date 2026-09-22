@@ -169,7 +169,8 @@ class StimulusExposureLedgerTest {
         StimulusSourceRef(entryId, "backup-$entryId", setId, setId?.toInt(), session, date, key)
 
     private fun setObservation(source: StimulusSourceRef, activity: PlannedActivityKind) =
-        StimulusSetObservation(source, activity, 5, 50.0, 0, 8.0, RealizedStimulusClass.STRENGTH_LIKE, source.stableKey)
+        StimulusSetObservation(source, activity, 5, 50.0, 0, 8.0, RealizedStimulusClass.STRENGTH_LIKE, source.stableKey,
+            StimulusClassificationAuthority.REVIEWED_CANONICAL)
 
     private fun record(id: Long, date: LocalDate, key: String, sets: List<WorkoutSet>) =
         WorkoutEntryWithSets(
