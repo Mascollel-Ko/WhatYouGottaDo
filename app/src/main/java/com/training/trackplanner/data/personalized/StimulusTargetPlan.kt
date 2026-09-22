@@ -189,7 +189,7 @@ class StimulusTargetPlanEngine {
         val frequency = band?.directExposureWeekFrequency?.takeIf { it.isFinite() && it >= 0.0 }
         val reasons = linkedSetOf<String>().apply {
             addAll(decision.reasonCodes)
-            baseline.comparisons[decision.quality]?.reasonCodes?.let(reasons::addAll)
+            baseline.comparisons[decision.quality]?.reasonCodes?.let { addAll(it) }
             add("B4_TARGET_IS_OBSERVED_PERSONAL_EXPOSURE_NOT_OPTIMALITY")
             add("QUALITY_TARGET_ENVELOPES_ARE_NON_ADDITIVE")
             when (authority) {
