@@ -266,7 +266,7 @@ class StimulusExposureLedgerCanonicalIntegrationTest {
         assertEquals(StimulusTargetRange(1.0, 1.0, 1.0), strengthTarget.weeklyDirectSessionsTarget)
         assertEquals(StimulusTargetRange(4.0, 4.0, 4.0), strengthTarget.exposureWeekDirectUnitsReference)
         assertEquals(StimulusTargetRange(1.0, 1.0, 1.0), strengthTarget.exposureWeekDirectSessionsReference)
-        assertEquals(1.0, strengthTarget.exposureWeekFrequencyReference, 0.0)
+        assertEquals(1.0, requireNotNull(strengthTarget.exposureWeekFrequencyReference), 0.0)
         assertTrue(portfolio.shadowOnly)
         assertFalse(portfolio.prescriptionAuthority)
         assertFalse(portfolio.selectionAuthority)

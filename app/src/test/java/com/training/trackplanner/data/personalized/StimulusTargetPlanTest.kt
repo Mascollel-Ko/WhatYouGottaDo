@@ -49,7 +49,7 @@ class StimulusTargetPlanTest {
         assertEquals(StimulusTargetRange(1.0, 2.0, 3.0), target.weeklyDirectSessionsTarget)
         assertEquals(StimulusTargetRange(5.0, 7.0, 10.0), target.exposureWeekDirectUnitsReference)
         assertEquals(StimulusTargetRange(1.0, 2.0, 2.0), target.exposureWeekDirectSessionsReference)
-        assertEquals(0.75, target.exposureWeekFrequencyReference, 0.0)
+        assertEquals(0.75, requireNotNull(target.exposureWeekFrequencyReference), 0.0)
     }
 
     @Test
@@ -168,11 +168,11 @@ class StimulusTargetPlanTest {
             planningHorizonWeeks = 2
         )
         val quality = audit.qualityAudits.single()
-        assertEquals(6.0, quality.plannedWeeklyDirectUnits, 0.0)
-        assertEquals(2.0, quality.plannedWeeklyDirectSessions, 0.0)
+        assertEquals(6.0, requireNotNull(quality.plannedWeeklyDirectUnits), 0.0)
+        assertEquals(2.0, requireNotNull(quality.plannedWeeklyDirectSessions), 0.0)
         assertEquals(StimulusTargetControlStatus.WITHIN_BAND, quality.weeklyDirectUnitsStatus)
         assertEquals(StimulusTargetControlStatus.WITHIN_BAND, quality.weeklyDirectSessionsStatus)
-        assertEquals(1.0, quality.plannedExposureWeekFrequency, 0.0)
+        assertEquals(1.0, requireNotNull(quality.plannedExposureWeekFrequency), 0.0)
         assertTrue(quality.reasonCodes.contains("EXPOSURE_FREQUENCY_IS_REFERENCE_ONLY_IN_B4"))
     }
 
