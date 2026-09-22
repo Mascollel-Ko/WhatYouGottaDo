@@ -186,7 +186,10 @@ class StimulusTargetPlanEngine {
         baseline: LedgerBackedQualityDoseHistory
     ): StimulusQualityTarget {
         val band = baseline.bands[decision.quality]
-        val baselineUsable = decision.numericBaselineUsable
+        // B4 consumes B3's authority decision, while retaining a defensive check against
+        // stale/inconsistent hand-built portfolios and an unavailable backing ledger.
+        val baselineUsable = decision.numericBaselineUsable &&
+            baseline.available && band?.hasPersonalDirectBaseline == true
         val weeklyUnits = band?.weeklyUnitsRange()
         val weeklySessions = band?.weeklySessionsRange()
         val weeklyValid = baselineUsable && weeklyUnits != null && weeklySessions != null
