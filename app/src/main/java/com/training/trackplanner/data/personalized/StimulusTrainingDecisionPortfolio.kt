@@ -93,7 +93,8 @@ data class StimulusPortfolioComparison(
     val qualityDifferenceCount: Int get() = qualityComparisons.count { it.status == StimulusPortfolioComparisonStatus.DIFFERENT }
     val taskMatchCount: Int get() = taskComparisons.count { it.status == StimulusPortfolioComparisonStatus.MATCH }
     val taskDifferenceCount: Int get() = taskComparisons.count { it.status == StimulusPortfolioComparisonStatus.DIFFERENT }
-    val unavailableCount: Int get() = (qualityComparisons + taskComparisons).count { it.status == StimulusPortfolioComparisonStatus.UNAVAILABLE }
+    val unavailableCount: Int get() = qualityComparisons.count { it.status == StimulusPortfolioComparisonStatus.UNAVAILABLE } +
+        taskComparisons.count { it.status == StimulusPortfolioComparisonStatus.UNAVAILABLE }
 }
 
 data class StimulusTrainingDecisionPortfolio(
