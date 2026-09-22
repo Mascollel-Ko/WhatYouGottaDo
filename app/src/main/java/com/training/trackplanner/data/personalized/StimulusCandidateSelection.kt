@@ -170,7 +170,7 @@ class StimulusTargetCandidateSelector(
                     materialized = result.value
                     break
                 }
-                rejections[candidate.key] = result.reason
+                rejections[candidate.key] = (result as MaterializedCandidateResult.Failure).reason
             }
             val chosen = materialized
             if (chosen == null) {
