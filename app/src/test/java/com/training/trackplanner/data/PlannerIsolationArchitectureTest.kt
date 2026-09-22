@@ -41,7 +41,9 @@ class PlannerIsolationArchitectureTest {
                 declarations[packages.getValue(file) + "." + it.groupValues[1]] = file
             }
             // Follow imported/top-level bridge functions too, not only class constructors.
-            Regex("(?m)^(?:(?:internal|public|private|suspend|inline|tailrec)\\s+)*fun\\s+(?:[\\w<>?]+\\.)?(\\w+)\\s*\\(")
+            // Private helpers cannot be referenced across files; treating them as package-wide
+            // declarations creates false transitive edges from unrelated record code.
+            Regex("(?m)^(?:(?:internal|public|suspend|inline|tailrec)\\s+)*fun\\s+(?:[\\w<>?]+\\.)?(\\w+)\\s*\\(")
                 .findAll(content).forEach { declarations[packages.getValue(file) + "." + it.groupValues[1]] = file }
         }
         val queue = ArrayDeque(files.filter { it.invariantSeparatorsPath.contains("/data/personalized/") })
