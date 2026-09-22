@@ -344,7 +344,8 @@ internal class StimulusTrainingDecisionPortfolioComparisonEngine {
         else if (!needMatches) reasons += "PRIORITY_CHANGED_WITH_CANONICAL_NEED"
         val oldSemantic = taskSemantic(old.action)
         if (oldSemantic == current.strategy) reasons += "ACTION_SEMANTICS_MATCH"
-        else reasons += "ACTION_CHANGED_BY_CANONICAL_BASELINE"
+        else if (!needMatches) reasons += "ACTION_CHANGED_BY_CANONICAL_NEED"
+        else reasons += "ACTION_DIRECTIONAL_SEMANTICS_DIFFER"
         val status = if (needMatches && priorityMatches && oldSemantic == current.strategy)
             StimulusPortfolioComparisonStatus.MATCH else StimulusPortfolioComparisonStatus.DIFFERENT
         return StimulusTaskPortfolioComparison(current.task, status, old.needDecision, current.needDecision,

@@ -245,11 +245,24 @@ class StimulusExposureLedgerCanonicalIntegrationTest {
         val legacy = QualityDoseHistoryAnalyzer().analyze(snapshot, state, repository.physicalQualityCatalog())
         val shadow = LedgerBackedQualityDoseHistoryAnalyzer().analyze(snapshot, state, legacy)
         val strength = shadow.bands.getValue(TrainableQuality.STRENGTH)
+        val needProfile = AthleteStimulusNeedEngine().analyze(snapshot, state)
+        val strengthNeed = needProfile.qualityNeeds.single { it.quality == TrainableQuality.STRENGTH }
+        val portfolio = StimulusTrainingDecisionPortfolioEngine().build(needProfile, shadow)
+        val strengthDecision = portfolio.qualityDecisions.single { it.quality == TrainableQuality.STRENGTH }
 
         assertEquals(horizon.ledgerStart, ledger.historyStart)
         assertEquals(4, shadow.weeklyEvidence.getValue(TrainableQuality.STRENGTH).count { it.directUnits > 0 })
         assertEquals(4, strength.directExposureWeekCount)
         assertTrue(shadow.reasonCodes.contains("GENERIC_COURT_EXCLUDED_FROM_QUALITY_DOSE"))
+        assertEquals(TrainingNeedDecision.DEVELOP, strengthNeed.decision)
+        assertTrue(shadow.available)
+        assertTrue(strength.hasPersonalDirectBaseline)
+        assertEquals(SuccessfulDoseSource.NORMAL_COMPLETED_WEEKS, strength.source)
+        assertEquals(StimulusDoseStrategy.RESTORE_PERSONAL_BASELINE, strengthDecision.strategy)
+        assertTrue(portfolio.shadowOnly)
+        assertFalse(portfolio.prescriptionAuthority)
+        assertFalse(portfolio.selectionAuthority)
+        assertFalse(portfolio.placementAuthority)
     }
 
     private fun record(id: Long, exercise: Exercise, dayOffset: Long, reps: Int = 8): WorkoutEntryWithSets {

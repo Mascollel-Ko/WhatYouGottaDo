@@ -74,14 +74,65 @@ class StimulusTrainingDecisionPortfolioTest {
 
     @Test
     fun tasksRemainDirectionalAndNeverGainNumericBaselineAuthority() {
-        TrainingNeedDecision.entries.forEach { need ->
+        val expected = mapOf(
+            TrainingNeedDecision.UNKNOWN to StimulusDoseStrategy.UNRESOLVED,
+            TrainingNeedDecision.PROGRESS to StimulusDoseStrategy.UNRESOLVED,
+            TrainingNeedDecision.NO_EXTRA_NEED to StimulusDoseStrategy.NO_MINIMUM_TARGET,
+            TrainingNeedDecision.DEVELOP to StimulusDoseStrategy.INTRODUCE_DIRECT_STIMULUS,
+            TrainingNeedDecision.MAINTAIN to StimulusDoseStrategy.MAINTAIN_DIRECT_STIMULUS_DIRECTION_ONLY,
+            TrainingNeedDecision.MAINTAIN_OR_PROGRESS to StimulusDoseStrategy.MAINTAIN_DIRECT_STIMULUS_ALLOW_PROGRESSION_DIRECTION_ONLY,
+            TrainingNeedDecision.REDISTRIBUTE to StimulusDoseStrategy.REDISTRIBUTE_DIRECTION_ONLY,
+            TrainingNeedDecision.REDUCE to StimulusDoseStrategy.REDUCE_OR_RESTRUCTURE
+        )
+        expected.forEach { (need, strategy) ->
             val decision = StimulusTrainingDecisionPortfolioEngine().build(
                 profile(TrainingNeedDecision.NO_EXTRA_NEED, taskDecision = need), directBaseline()
             ).taskDecisions.single()
+            assertEquals(strategy, decision.strategy)
             assertFalse(decision.numericBaselineAuthority)
             assertTrue(decision.reasonCodes.contains("NO_LEDGER_BACKED_COMPLETED_WEEK_TASK_BASELINE_IN_B3"))
             assertTrue(decision.reasonCodes.contains("TASK_REMAINS_DIRECTION_ONLY"))
         }
+    }
+
+    @Test
+    fun taskComparisonAttributesNeedDifferenceToCanonicalNeedAndKeepsBaselineOut() {
+        val legacy = TrainingDecisionPortfolio(
+            qualityDecisions = emptyList(),
+            taskDecisions = listOf(TaskTrainingDecision(
+                task = "TASK", needDecision = TrainingNeedDecision.MAINTAIN,
+                action = TargetStimulusAction.HOLD_SUCCESSFUL_DOSE,
+                priority = TargetPriority.MAINTENANCE, confidence = PlanningConfidence.HIGH,
+                explicitUserTaskPriority = false, reasonCodes = emptyList(), evidence = emptyList()
+            )), unresolved = emptyList()
+        )
+        val canonical = build(TrainingNeedDecision.NO_EXTRA_NEED, directBaseline(), taskDecision = TrainingNeedDecision.DEVELOP)
+        val comparison = StimulusTrainingDecisionPortfolioComparisonEngine()
+            .compare(legacy, canonical, directBaseline()).taskComparisons.single()
+        assertEquals(StimulusPortfolioComparisonStatus.DIFFERENT, comparison.status)
+        assertTrue(comparison.reasonCodes.contains("NEED_DECISION_CHANGED_BY_LEDGER_SEMANTICS"))
+        assertTrue(comparison.reasonCodes.contains("ACTION_CHANGED_BY_CANONICAL_NEED"))
+        assertFalse(comparison.reasonCodes.contains("ACTION_CHANGED_BY_CANONICAL_BASELINE"))
+        assertFalse(canonical.taskDecisions.single().numericBaselineAuthority)
+    }
+
+    @Test
+    fun taskComparisonReportsDirectionalSemanticMatch() {
+        val legacy = TrainingDecisionPortfolio(
+            qualityDecisions = emptyList(),
+            taskDecisions = listOf(TaskTrainingDecision(
+                task = "TASK", needDecision = TrainingNeedDecision.MAINTAIN,
+                action = TargetStimulusAction.HOLD_SUCCESSFUL_DOSE,
+                priority = TargetPriority.MAINTENANCE, confidence = PlanningConfidence.HIGH,
+                explicitUserTaskPriority = false, reasonCodes = emptyList(), evidence = emptyList()
+            )), unresolved = emptyList()
+        )
+        val canonical = build(TrainingNeedDecision.NO_EXTRA_NEED, directBaseline(), taskDecision = TrainingNeedDecision.MAINTAIN)
+        val comparison = StimulusTrainingDecisionPortfolioComparisonEngine()
+            .compare(legacy, canonical, directBaseline()).taskComparisons.single()
+        assertEquals(StimulusPortfolioComparisonStatus.MATCH, comparison.status)
+        assertTrue(comparison.reasonCodes.contains("ACTION_SEMANTICS_MATCH"))
+        assertTrue(comparison.reasonCodes.contains("TASK_REMAINS_DIRECTION_ONLY"))
     }
 
     @Test
