@@ -186,7 +186,7 @@ internal class StimulusNeedEvidenceIndexBuilder {
             }
         }
         val qualityEvidence = quality.mapValues { (qualityId, accumulator) ->
-            accumulator.evidence(snapshot, available, reasonCodes, qualityId = qualityId)
+            accumulator.evidence(snapshot, available, reasonCodes, quality = qualityId)
         }
         val taskEvidence = tasks.mapValues { (task, accumulator) ->
             accumulator.evidence(snapshot, available, reasonCodes, task = task)
