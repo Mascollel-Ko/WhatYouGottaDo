@@ -31,29 +31,36 @@ class StimulusSelectionServiceIntegrationTest {
                 InitialUserProfile(
                     primaryGoal = "STRENGTH_GAIN",
                     strengthTrainingYears = 2.0,
-                    badmintonTrainingYears = 0.0
+                    badmintonTrainingYears = 0.0,
+                    strengthSessionsPerWeek = 3.0,
+                    strengthMinutesPerSession = 60,
+                    habitualTrainingIntensity = "NORMAL"
                 )
             )
             val cutoff = LocalDate.of(2026, 9, 20)
-            val historyExercise = requireNotNull(db.exerciseDao().findByStableKey("barbell_back_squat"))
-            val historyEntryId = db.workoutDao().insertEntry(
-                WorkoutEntry(
-                    date = cutoff.minusDays(7).toString(),
-                    exerciseStableKey = historyExercise.stableKey,
-                    exerciseName = historyExercise.name,
-                    category = historyExercise.category,
-                    sessionStableKey = "b5-service-history"
-                )
-            )
-            db.workoutDao().insertSet(
-                WorkoutSet(
-                    entryId = historyEntryId,
-                    setIndex = 1,
-                    reps = 8,
-                    weightKg = 40.0,
-                    confirmed = true
-                )
-            )
+            listOf("barbell_back_squat", "barbell_bench_press", "barbell_deadlift").forEachIndexed { exerciseIndex, stableKey ->
+                val historyExercise = requireNotNull(db.exerciseDao().findByStableKey(stableKey))
+                listOf(7L, 14L, 21L, 28L).forEachIndexed { weekIndex, daysAgo ->
+                    val historyEntryId = db.workoutDao().insertEntry(
+                        WorkoutEntry(
+                            date = cutoff.minusDays(daysAgo).toString(),
+                            exerciseStableKey = historyExercise.stableKey,
+                            exerciseName = historyExercise.name,
+                            category = historyExercise.category,
+                            sessionStableKey = "b5-service-history-$exerciseIndex-$weekIndex"
+                        )
+                    )
+                    db.workoutDao().insertSet(
+                        WorkoutSet(
+                            entryId = historyEntryId,
+                            setIndex = 1,
+                            reps = 8,
+                            weightKg = 40.0 + exerciseIndex,
+                            confirmed = true
+                        )
+                    )
+                }
+            }
             val request = ProgramSkeletonRequest(
                 name = "B5 service integration",
                 goal = ProgramGoal.STRENGTH,
