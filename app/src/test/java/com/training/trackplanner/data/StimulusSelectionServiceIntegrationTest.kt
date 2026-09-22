@@ -80,13 +80,16 @@ class StimulusSelectionServiceIntegrationTest {
                 explicitSessionMinutes = 60
             )
             val preflight = repository.preparePersonalizedProgram(request, constraints, cutoff)
-            val answers = PersonalizedPlanningAnswers(
-                mapOf(
-                    QUESTION_STRENGTH_INTENT to StrengthIntent.STRENGTH_PRIORITY.name,
-                    QUESTION_BADMINTON_INTENT to BadmintonPlanningIntent.DISABLED.name,
-                    QUESTION_FREE_WEIGHT to FreeWeightWillingness.WILLING.name
-                )
-            )
+            val answers = PersonalizedPlanningAnswers(preflight.questions.associate { question ->
+                question.id to when (question.id) {
+                    QUESTION_STRENGTH_INTENT -> StrengthIntent.STRENGTH_PRIORITY.name
+                    QUESTION_BADMINTON_INTENT -> BadmintonPlanningIntent.DISABLED.name
+                    QUESTION_FREE_WEIGHT -> FreeWeightWillingness.WILLING.name
+                    QUESTION_INTERRUPTION_CAUSE, QUESTION_INTERRUPTION_FREQUENCY -> "UNSURE"
+                    else -> if (question.id.startsWith("INTERRUPTION_CAUSE_")) "UNKNOWN"
+                    else error("Unexpected personalized question: ${question.id}")
+                }
+            })
             val editor = field(repository, "exerciseMetadataEditorService") as ExerciseMetadataEditorService
             val metadata = editor.resolvedRuntimeMetadataByExerciseStableKey()
             assertTrue("canonical metadata must be seeded", metadata.isNotEmpty())
