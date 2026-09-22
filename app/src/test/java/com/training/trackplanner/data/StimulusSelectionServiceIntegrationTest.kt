@@ -29,9 +29,9 @@ class StimulusSelectionServiceIntegrationTest {
             repository.seedIfNeeded()
             db.initialUserProfileDao().upsert(
                 InitialUserProfile(
-                    primaryGoal = "STRENGTH_GAIN",
+                    primaryGoal = "BADMINTON_PERFORMANCE",
                     strengthTrainingYears = 2.0,
-                    badmintonTrainingYears = 0.0,
+                    badmintonTrainingYears = 2.0,
                     strengthSessionsPerWeek = 3.0,
                     strengthMinutesPerSession = 60,
                     habitualTrainingIntensity = "NORMAL"
@@ -63,7 +63,7 @@ class StimulusSelectionServiceIntegrationTest {
             }
             val request = ProgramSkeletonRequest(
                 name = "B5 service integration",
-                goal = ProgramGoal.STRENGTH,
+                goal = ProgramGoal.BADMINTON_SUPPORT,
                 weeklyTrainingDays = 3,
                 sessionMinutes = 60,
                 availableEquipment = emptySet(),
@@ -74,7 +74,7 @@ class StimulusSelectionServiceIntegrationTest {
                 durationWeeks = 2
             )
             val constraints = PersonalizedGenerationConstraints(
-                explicitGoal = ProgramGoal.STRENGTH,
+                explicitGoal = ProgramGoal.BADMINTON_SUPPORT,
                 explicitWeeklyTrainingDays = 3,
                 explicitDurationWeeks = 2,
                 explicitSessionMinutes = 60
@@ -83,7 +83,7 @@ class StimulusSelectionServiceIntegrationTest {
             val answers = PersonalizedPlanningAnswers(preflight.questions.associate { question ->
                 question.id to when (question.id) {
                     QUESTION_STRENGTH_INTENT -> StrengthIntent.STRENGTH_PRIORITY.name
-                    QUESTION_BADMINTON_INTENT -> BadmintonPlanningIntent.DISABLED.name
+                    QUESTION_BADMINTON_INTENT -> BadmintonPlanningIntent.ENABLED.name
                     QUESTION_FREE_WEIGHT -> FreeWeightWillingness.WILLING.name
                     QUESTION_INTERRUPTION_CAUSE, QUESTION_INTERRUPTION_FREQUENCY -> "UNSURE"
                     else -> if (question.id.startsWith("INTERRUPTION_CAUSE_")) "UNKNOWN"
