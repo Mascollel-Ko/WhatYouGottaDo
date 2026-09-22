@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.35.0 |
+| Protocol version | 3.36.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
@@ -35,6 +35,13 @@
 - `StimulusTargetPlanEngine` consumes only the B3 `StimulusTrainingDecisionPortfolio` and B2 `LedgerBackedQualityDoseHistory`. It maps personal-baseline strategies to exact Q25/median/Q75 weekly direct-unit and direct-session envelopes, preserves exposure-week bands and frequency as reference-only data, and never adds progression or reduction multipliers.
 - `StimulusTargetNumericAuthority` distinguishes `PERSONAL_SUCCESSFUL_DOSE`, `PERSONAL_RESTORE_BASELINE`, `DIRECTION_ONLY`, `NONE`, and `UNRESOLVED`. Novel, unavailable, malformed, supportive-only, reduced/restructured, and task decisions remain nonnumeric; task baselines are never adopted. Quality target envelopes are independent semantic views and are non-additive.
 - `StimulusTargetPlan` is attached to `AthleteStimulusNeedProfile.stimulusTargetPlanShadow`. Its legacy comparison and current-program audit are observation-only: final coverage is normalized by planning horizon, frequency is a reference delta, exposure-week distribution medians are not fabricated, and no audit result gates or reruns generation. The legacy `TrainingDecisionPortfolio → TargetStimulusPlan` path, selection, prescription, scheduling, placement, OFI, tissue, reflow and generated output remain unchanged; B5 target coverage and candidate funding are out of scope.
+
+### 3.36.0 — Phase B5 canonical target-aware selection shadow
+
+- `StimulusTargetCandidateSelector` consumes only the B4 `StimulusTargetPlan` and produces a deterministic identity proposal for the explicit `CANONICAL_SELECTION` comparison pass. Targets are ordered lexicographically by priority and target ID; candidates require a direct physical-quality relation or a direct badminton task relation, and generic court sessions, supportive-only relations, assessment-only keys, excluded/equipment-incompatible keys, tissue-restricted keys and unresolved metadata are rejected.
+- Candidate ranking is lexicographic: target-compatible Strength/Hypertrophy history from the shared provisional realized-stimulus classifier, any personal history, free-weight compatibility, HIGH metadata confidence, lower redundancy against CONTROL/previous selections, then stable key. There is no weighted score. A direct CONTROL identity suppresses a new candidate even when a realized dose or prescription-shape gap remains; one identity can cover multiple targets.
+- B5 may select identity only. It never authorizes reps, load, RPE, progression, placement, scheduling, or target-compatible prescription. `targetSets` is copied from the existing `PersonalizedPrescriptionPlanner` probe solely to preserve existing downstream feasibility and is labelled `B5_TARGET_SETS_FROM_EXISTING_PRESCRIPTION_NOT_TARGET_AUTHORITY`; prescription compatibility gaps remain B6 work. Reduction, redistribution-direction-only, no-minimum and unresolved targets do not create new identity demand.
+- `generatePreparedStimulusSelectionComparison` builds unchanged CONTROL once, injects only the B5 `MaterialDemand` through the existing `PersonalizedProgramBuilder`, and returns a separate in-memory CANONICAL_SELECTION skeleton plus B4/current-program and final-program audits. No regional experiment, second normal-generation program, persistence, preview routing or overall winner is introduced. B6 remains responsible for prescription realization and compatibility.
 
 ### 3.31.0 — ledger-backed stimulus-need correctness closeout
 

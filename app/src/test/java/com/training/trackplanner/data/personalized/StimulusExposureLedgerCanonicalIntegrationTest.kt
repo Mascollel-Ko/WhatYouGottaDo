@@ -6,8 +6,13 @@ import com.training.trackplanner.analysis.badminton.BadmintonObjectiveTransferLe
 import com.training.trackplanner.data.CanonicalExerciseMetadataRepository
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.ExerciseRoleRelationCatalog
+import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.PhysicalQualityMode
 import com.training.trackplanner.data.PhysicalQualityRegion
+import com.training.trackplanner.data.ProgramGoal
+import com.training.trackplanner.data.ProgramPeriodizationType
+import com.training.trackplanner.data.ProgramSkeletonRequest
+import com.training.trackplanner.data.ProgramWeekPlan
 import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.StimulusCapabilityLevel
 import com.training.trackplanner.data.TrainableQuality
@@ -276,6 +281,39 @@ class StimulusExposureLedgerCanonicalIntegrationTest {
         assertFalse(targetPlan.selectionAuthority)
         assertFalse(targetPlan.placementAuthority)
         assertFalse(targetPlan.schedulingAuthority)
+
+        val selectionRequest = ProgramSkeletonRequest(
+            name = "canonical-b5-integration",
+            goal = ProgramGoal.STRENGTH,
+            weeklyTrainingDays = 3,
+            sessionMinutes = 60,
+            availableEquipment = emptySet(),
+            excludedExerciseText = "",
+            badmintonTransferRatio = .5,
+            sportStrengthRatio = "AUTO",
+            periodizationType = ProgramPeriodizationType.AUTO,
+            durationWeeks = 2
+        )
+        val control = GeneratedProgramSkeleton(
+            suggestedName = selectionRequest.name,
+            durationDays = 14,
+            request = selectionRequest,
+            periodizationType = selectionRequest.periodizationType,
+            weekPlans = listOf(ProgramWeekPlan(1, "TEST", 1.0, 1.0, 2, 8.0, 2, 0, false)),
+            items = emptyList()
+        )
+        val selection = StimulusTargetCandidateSelector().build(
+            targetPlan = targetPlan,
+            control = control,
+            snapshot = snapshot,
+            state = state.copy(freeWeightWillingness = FreeWeightWillingness.WILLING),
+            request = selectionRequest,
+            physicalQualityCatalog = repository.physicalQualityCatalog()
+        )
+        assertTrue(selection.traces.isNotEmpty())
+        assertTrue(selection.traces.flatMap { it.candidatePool }.none { it == "ex_ae9ecdbc" })
+        assertTrue(selection.selectedCandidates.all { it.stableKey != "ex_ae9ecdbc" })
+        assertTrue(selection.selectedCandidates.all { it.targetSetsFromExistingPrescription > 0 })
     }
 
     private fun record(id: Long, exercise: Exercise, dayOffset: Long, reps: Int = 8): WorkoutEntryWithSets {
