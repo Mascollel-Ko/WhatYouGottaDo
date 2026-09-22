@@ -70,7 +70,7 @@ class StimulusSelectionProgramComparisonTest {
         )
         val comparison = StimulusSelectionProgramComparisonEngine().compare(
             skeleton(request, item(key, 1, 2)),
-            skeleton(request, item(key, 1, 3, day = 2)),
+            skeleton(request, item(key, 1, day = 1), item(key, 3, day = 2)),
             StimulusTargetPlan(emptyList(), emptyList(), emptyList()), selection, null, null
         )
         val trace = comparison.materializationTraces.single()
@@ -161,11 +161,11 @@ class StimulusSelectionProgramComparisonTest {
         setPrescriptions = List(sets) { index -> ProgramSetPrescription(index + 1, 8, 0.0, 0) }
     )
 
-    private fun skeleton(request: ProgramSkeletonRequest, item: ProgramSkeletonItem) = GeneratedProgramSkeleton(
+    private fun skeleton(request: ProgramSkeletonRequest, vararg items: ProgramSkeletonItem) = GeneratedProgramSkeleton(
         suggestedName = request.name, durationDays = request.durationWeeks * 7, request = request,
         periodizationType = request.periodizationType,
         weekPlans = listOf(ProgramWeekPlan(1, "TEST", 1.0, 1.0, 2, 8.0, 2, 0, false)),
-        items = listOf(item)
+        items = items.toList()
     )
 
     private fun JSONArray.toList(): List<Any> = (0 until length()).map(::get)
