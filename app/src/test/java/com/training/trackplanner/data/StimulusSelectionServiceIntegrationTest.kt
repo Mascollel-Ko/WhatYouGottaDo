@@ -35,7 +35,7 @@ class StimulusSelectionServiceIntegrationTest {
                 )
             )
             val cutoff = LocalDate.of(2026, 9, 20)
-            val historyExercise = db.exerciseDao().allExercises().first()
+            val historyExercise = requireNotNull(db.exerciseDao().findByStableKey("barbell_back_squat"))
             val historyEntryId = db.workoutDao().insertEntry(
                 WorkoutEntry(
                     date = cutoff.minusDays(7).toString(),
