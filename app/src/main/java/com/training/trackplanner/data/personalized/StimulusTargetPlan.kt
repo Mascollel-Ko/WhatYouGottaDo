@@ -193,7 +193,12 @@ class StimulusTargetPlanEngine {
         val weeklyUnits = band?.weeklyUnitsRange()
         val weeklySessions = band?.weeklySessionsRange()
         val weeklyValid = baselineUsable && weeklyUnits != null && weeklySessions != null
-        val authority = numericAuthority(decision.strategy, decision.baselineAvailable, baselineUsable, weeklyValid)
+        val authority = numericAuthority(
+            decision.strategy,
+            decision.baselineAvailable && baseline.available,
+            baselineUsable,
+            weeklyValid
+        )
         val numeric = authority == StimulusTargetNumericAuthority.PERSONAL_SUCCESSFUL_DOSE ||
             authority == StimulusTargetNumericAuthority.PERSONAL_RESTORE_BASELINE
         val exposureUnits = band?.exposureUnitsRangeOrNull()
