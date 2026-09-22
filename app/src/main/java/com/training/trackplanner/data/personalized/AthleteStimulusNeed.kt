@@ -126,6 +126,7 @@ internal class StimulusNeedEvidenceIndexBuilder {
         val quality = TrainableQuality.entries.associateWith { ExposureAccumulator() }.toMutableMap()
         val reviewedTasks = CanonicalPerformanceTaskQualityRequirements.rows.map { it.task }.toSet()
         val tasks = reviewedTasks.associateWith { ExposureAccumulator() }.toMutableMap()
+        val classification = Window.values().associateWith { ClassificationCounts() }
         val strengthStableKeys = linkedSetOf<String>()
         if (available) {
             // One fold over the source observations. A source set can enter several quality/task
@@ -141,8 +142,9 @@ internal class StimulusNeedEvidenceIndexBuilder {
                 profile.issues.forEach { reasonCodes += it.code }
                 val relationsByQuality = profile.physicalQualities.groupBy(ExercisePhysicalQualityRelation::qualityId)
                 if (observation.activityKind in STRUCTURED_TASK_EVIDENCE_KINDS) {
-                    quality.values.forEach { it.observeClassification(age, observation, observation.classificationAuthority) }
-                    tasks.values.forEach { it.observeClassification(age, observation, observation.classificationAuthority) }
+                    classification.forEach { (window, counts) ->
+                        if (age in window.range) counts.observe(observation.classificationAuthority)
+                    }
                 }
                 if (observation.classificationAuthority == StimulusClassificationAuthority.UNCLASSIFIED) return@observationLoop
                 relationsByQuality.forEach { (qualityId, relations) ->
@@ -176,6 +178,8 @@ internal class StimulusNeedEvidenceIndexBuilder {
                 }
             }
         }
+        quality.values.forEach { it.applyClassification(classification) }
+        tasks.values.forEach { it.applyClassification(classification) }
         val courts = CourtAccumulator()
         if (available) {
             // Court is its own context channel; it never enters a quality or task bucket.
@@ -205,10 +209,8 @@ internal class StimulusNeedEvidenceIndexBuilder {
         private val windows = Window.values().associateWith { WindowBucket() }.toMutableMap()
         private val directBins = linkedSetOf<Int>()
 
-        fun observeClassification(age: Int, observation: StimulusSetObservation, authority: StimulusClassificationAuthority) {
-            windows.forEach { (window, bucket) ->
-                if (age in window.range) bucket.observeClassification(authority)
-            }
+        fun applyClassification(classification: Map<Window, ClassificationCounts>) {
+            windows.forEach { (window, bucket) -> bucket.applyClassification(classification.getValue(window)) }
         }
 
         fun add(age: Int, date: LocalDate, session: String, direct: Boolean, supportive: Boolean, compatible: Boolean) {
@@ -295,6 +297,11 @@ internal class StimulusNeedEvidenceIndexBuilder {
             else classifiedSourceUnits++
         }
 
+        fun applyClassification(counts: ClassificationCounts) {
+            classifiedSourceUnits = counts.classified
+            unclassifiedSourceUnits = counts.unclassified
+        }
+
         fun add(date: LocalDate, session: String, direct: Boolean, supportive: Boolean, compatible: Boolean) {
             when {
                 direct && compatible -> {
@@ -315,6 +322,14 @@ internal class StimulusNeedEvidenceIndexBuilder {
         fun toEvidence() = StimulusWindowEvidence(directUnits, supportiveUnits, directSessions.size,
             supportiveSessions.size, directDays.size, supportiveDays.size, excludedDirect, excludedSupportive,
             classifiedSourceUnits, unclassifiedSourceUnits)
+    }
+
+    private class ClassificationCounts {
+        var classified = 0
+        var unclassified = 0
+        fun observe(authority: StimulusClassificationAuthority) {
+            if (authority == StimulusClassificationAuthority.UNCLASSIFIED) unclassified++ else classified++
+        }
     }
 
     private class CourtAccumulator {
