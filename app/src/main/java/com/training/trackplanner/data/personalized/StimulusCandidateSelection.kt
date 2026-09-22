@@ -77,6 +77,19 @@ data class StimulusSelectionProgramDifference(
     val prescriptionShapeChanged: Boolean
 )
 
+/** Observation of what happened to a B5 identity after the existing builder finished. */
+data class StimulusCandidateMaterializationTrace(
+    val targetId: String,
+    val selectedStableKey: String?,
+    val selectedAtB5: Boolean,
+    val presentInFinalExperimentalSkeleton: Boolean,
+    val finalWeeklyOccurrences: Int,
+    val finalTotalSetUnits: Int,
+    val directIdentityStillValid: Boolean,
+    val realizedTargetStatus: String?,
+    val reasonCodes: List<String>
+)
+
 data class StimulusSelectionProgramComparison(
     val control: GeneratedProgramSkeleton,
     val experimental: GeneratedProgramSkeleton,
@@ -90,6 +103,7 @@ data class StimulusSelectionProgramComparison(
     val addedStableKeys: Set<String>,
     val removedStableKeys: Set<String>,
     val sharedStableKeys: Set<String>,
+    val materializationTraces: List<StimulusCandidateMaterializationTrace> = emptyList(),
     val winner: String? = null
 ) {
     init {
@@ -434,6 +448,44 @@ class StimulusSelectionProgramComparisonEngine {
             else StimulusSelectionProgramDifference(key.first, key.second, key.third, old?.exerciseStableKey, next?.exerciseStableKey,
                 old?.exerciseName, next?.exerciseName, old?.prescription != next?.prescription || old?.setPrescriptions != next?.setPrescriptions)
         }
+        val materializationTraces = selectionPlan.traces.map { trace ->
+            val effectiveIdentity = trace.selectedStableKey ?: trace.coveredByPreviouslySelectedStableKey
+            val selectedAtB5 = effectiveIdentity != null
+            val finalRows = effectiveIdentity?.let { key -> experimental.items.filter { it.exerciseStableKey == key } }.orEmpty()
+            val present = finalRows.isNotEmpty()
+            val candidate = effectiveIdentity?.let { key -> selectionPlan.selectedCandidates.firstOrNull { it.stableKey == key } }
+            val realizedStatus = realizedTargetStatus(targetPlan, experimentalAudit, trace.targetId)
+            val reasons = linkedSetOf<String>()
+            if (!selectedAtB5) {
+                if (trace.reasonCodes.contains("DIRECT_CAPABILITY_IDENTITY_ALREADY_PRESENT")) {
+                    reasons += "CONTROL_DIRECT_IDENTITY_ALREADY_PRESENT"
+                } else if (!trace.selectionRequired || trace.reasonCodes.any { it in NO_SELECTION_REASON_CODES }) {
+                    reasons += "SELECTION_NOT_REQUESTED"
+                }
+            } else if (present) {
+                reasons += "SELECTION_TARGET_IDENTITY_MATERIALIZED"
+                if (candidate?.currentPrescriptionCompatibility == "PRESCRIPTION_COMPATIBILITY_GAP_DEFERRED_TO_B6" &&
+                    realizedStatus in UNMET_REALIZATION_STATUSES
+                ) {
+                    reasons += "TARGET_REALIZATION_STILL_UNMET"
+                    reasons += "PRESCRIPTION_COMPATIBILITY_GAP_DEFERRED_TO_B6"
+                }
+            } else {
+                reasons += "CANDIDATE_SELECTED_BUT_NOT_MATERIALIZED"
+            }
+            reasons += trace.reasonCodes.filter { it !in setOf("SELECTION_IDENTITY_PRESENT") }
+            StimulusCandidateMaterializationTrace(
+                targetId = trace.targetId,
+                selectedStableKey = effectiveIdentity,
+                selectedAtB5 = selectedAtB5,
+                presentInFinalExperimentalSkeleton = present,
+                finalWeeklyOccurrences = finalRows.map { it.weekNumber to it.dayOfWeek }.distinct().size,
+                finalTotalSetUnits = finalRows.sumOf { it.setPrescriptions.size },
+                directIdentityStillValid = selectedAtB5,
+                realizedTargetStatus = realizedStatus,
+                reasonCodes = reasons.toList()
+            )
+        }
         return StimulusSelectionProgramComparison(
             control = control,
             experimental = experimental,
@@ -446,7 +498,37 @@ class StimulusSelectionProgramComparisonEngine {
             experimentalStableKeys = experimentalKeys,
             addedStableKeys = experimentalKeys - controlKeys,
             removedStableKeys = controlKeys - experimentalKeys,
-            sharedStableKeys = controlKeys intersect experimentalKeys
+            sharedStableKeys = controlKeys intersect experimentalKeys,
+            materializationTraces = materializationTraces
+        )
+    }
+
+    private fun realizedTargetStatus(
+        targetPlan: StimulusTargetPlan,
+        audit: StimulusTargetControlProgramAudit?,
+        targetId: String
+    ): String? = when {
+        targetId.startsWith("QUALITY:") -> targetPlan.qualityTargets
+            .firstOrNull { "QUALITY:${it.quality.name}" == targetId }
+            ?.let { target -> audit?.qualityAudits?.firstOrNull { it.quality == target.quality }?.weeklyDirectUnitsStatus?.name }
+        targetId.startsWith("TASK:") -> targetPlan.taskTargets
+            .firstOrNull { "TASK:${it.task}" == targetId }
+            ?.let { target -> audit?.taskAudits?.firstOrNull { it.task == target.task }?.status?.name }
+        else -> null
+    }
+
+    private companion object {
+        val UNMET_REALIZATION_STATUSES = setOf(
+            StimulusTargetControlStatus.DIRECT_ABSENT.name,
+            StimulusTargetControlStatus.BELOW_BAND.name,
+            StimulusTargetControlStatus.UNRESOLVED.name
+        )
+        val NO_SELECTION_REASON_CODES = setOf(
+            "NO_MINIMUM_TARGET",
+            "REDUCTION_DOES_NOT_AUTHORIZE_NEW_EXERCISE",
+            "DISTRIBUTION_AUTHORITY_DEFERRED",
+            "TARGET_UNRESOLVED",
+            "TARGET_SELECTION_NOT_AUTHORIZED_BY_B5_STRATEGY"
         )
     }
 }
@@ -485,6 +567,17 @@ internal fun StimulusSelectionProgramComparison.toCompactJson(): JSONObject = JS
     .put("addedStableKeys", JSONArray(addedStableKeys.sorted()))
     .put("removedStableKeys", JSONArray(removedStableKeys.sorted()))
     .put("sharedStableKeys", JSONArray(sharedStableKeys.sorted()))
+    .put("materializationTraces", JSONArray(materializationTraces.map { trace -> JSONObject()
+        .put("targetId", trace.targetId)
+        .put("effectiveSelectedStableKey", trace.selectedStableKey)
+        .put("selectedAtB5", trace.selectedAtB5)
+        .put("presentInFinalExperimentalSkeleton", trace.presentInFinalExperimentalSkeleton)
+        .put("finalWeeklyOccurrences", trace.finalWeeklyOccurrences)
+        .put("finalTotalSetUnits", trace.finalTotalSetUnits)
+        .put("directIdentityStillValid", trace.directIdentityStillValid)
+        .put("realizedTargetStatus", trace.realizedTargetStatus)
+        .put("reasonCodes", JSONArray(trace.reasonCodes))
+    }))
     .put("winner", winner)
     .put("selectionPlan", selectionPlan.toCompactJson())
     .put("differences", JSONArray(differences.map { difference -> JSONObject()

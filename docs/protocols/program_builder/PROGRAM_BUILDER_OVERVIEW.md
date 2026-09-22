@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.36.0 |
+| Protocol version | 3.37.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | e13c7fbb |
+| Last audited commit | pending B5 verification commit |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -42,6 +42,12 @@
 - Candidate ranking is lexicographic: target-compatible Strength/Hypertrophy history from the shared provisional realized-stimulus classifier, any personal history, free-weight compatibility, HIGH metadata confidence, lower redundancy against CONTROL/previous selections, then stable key. There is no weighted score. A direct CONTROL identity suppresses a new candidate even when a realized dose or prescription-shape gap remains; one identity can cover multiple targets.
 - B5 may select identity only. It never authorizes reps, load, RPE, progression, placement, scheduling, or target-compatible prescription. `targetSets` is copied from the existing `PersonalizedPrescriptionPlanner` probe solely to preserve existing downstream feasibility and is labelled `B5_TARGET_SETS_FROM_EXISTING_PRESCRIPTION_NOT_TARGET_AUTHORITY`; prescription compatibility gaps remain B6 work. Reduction, redistribution-direction-only, no-minimum and unresolved targets do not create new identity demand.
 - `generatePreparedStimulusSelectionComparison` builds unchanged CONTROL once, injects only the B5 `MaterialDemand` through the existing `PersonalizedProgramBuilder`, and returns a separate in-memory CANONICAL_SELECTION skeleton plus B4/current-program and final-program audits. No regional experiment, second normal-generation program, persistence, preview routing or overall winner is introduced. B6 remains responsible for prescription realization and compatibility.
+
+### 3.37.0 — Phase B5 service verification and final materialization reconciliation
+
+- A Robolectric service integration test seeds the real in-memory Room repository and canonical runtime metadata, invokes `PersonalizedProgramPlanningService.generatePreparedStimulusSelectionComparison` through the repository's actual service instance, and proves that standalone `generatePrepared` is the CONTROL fingerprint and row source. The fixture uses one cutoff, request, and explicit answers for both paths and requires a non-empty B5 selection.
+- `StimulusCandidateMaterializationTrace` is a final observation on `StimulusSelectionProgramComparison`. It resolves `selectedStableKey ?: coveredByPreviouslySelectedStableKey`, records B5 selection, final-skeleton presence, distinct `(week, day)` occurrences, final `setPrescriptions.size` units, and the existing experimental audit status. It emits explicit materialized, absent, control-direct, not-requested, and no-winner traces without changing the original B5 selection traces.
+- Materialization reconciliation is a read-only pass over the already-built experimental skeleton and already-produced audit. It performs no extra program build, DAO query, history scan, audit, persistence, preview route, or regional experiment. A selected identity with a remaining prescription compatibility gap is reported as `TARGET_REALIZATION_STILL_UNMET` / `PRESCRIPTION_COMPATIBILITY_GAP_DEFERRED_TO_B6`; B6 owns compatibility realization.
 
 ### 3.31.0 — ledger-backed stimulus-need correctness closeout
 
