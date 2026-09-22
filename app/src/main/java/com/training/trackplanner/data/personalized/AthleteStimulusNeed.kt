@@ -86,7 +86,9 @@ data class AthleteStimulusNeedProfile(
     /** Phase B2 shadow comparison; it never supplies planner authority. */
     val qualityDoseHistoryShadow: LedgerBackedQualityDoseHistory? = null,
     /** Phase B3 canonical decision portfolio; it is observation-only and separate from legacy. */
-    val trainingDecisionPortfolioShadow: StimulusTrainingDecisionPortfolio? = null
+    val trainingDecisionPortfolioShadow: StimulusTrainingDecisionPortfolio? = null,
+    /** Phase B4 canonical target envelope; it never enters the legacy target planner. */
+    val stimulusTargetPlanShadow: StimulusTargetPlan? = null
 )
 
 internal data class StimulusNeedEvidenceIndex(
@@ -517,4 +519,5 @@ internal fun AthleteStimulusNeedProfile.toCompactJson(): JSONObject = JSONObject
         .put("currentPracticeLoad", courtContext.current28d.practiceLoad))
     .put("qualityDoseHistoryShadow", qualityDoseHistoryShadow?.toCompactJson())
     .put("trainingDecisionPortfolioShadow", trainingDecisionPortfolioShadow?.toCompactJson())
+    .put("stimulusTargetPlanShadow", stimulusTargetPlanShadow?.toCompactJson())
     .put("finalAudit", finalAudit?.toCompactJson())

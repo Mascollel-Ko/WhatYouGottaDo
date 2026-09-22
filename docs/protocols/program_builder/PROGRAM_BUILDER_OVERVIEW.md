@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.34.0 |
+| Protocol version | 3.35.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
@@ -29,6 +29,12 @@
 - `StimulusTrainingDecisionPortfolioEngine` consumes only the B1 `AthleteStimulusNeedProfile` decisions and the B2 `LedgerBackedQualityDoseHistory` summaries. It distinguishes a ledger-backed personal direct baseline, valid completed-week evidence without a personal direct baseline, and an unavailable ledger without scanning raw history, observations, metadata or task history again.
 - Quality strategies preserve the legacy priority policy while making baseline semantics explicit: restore or hold a personal baseline when one exists, introduce or maintain a direct-stimulus direction when it does not, keep redistribution and reduction directional, and leave unknown/progress decisions unresolved. Need confidence and baseline confidence remain separate; supportive-only evidence never becomes a direct baseline.
 - Task decisions remain directional and carry `numericBaselineAuthority=false` with no completed-week task baseline. Task comparison differences are attributed to canonical Need or explicit directional semantic difference; they are never attributed to a nonexistent canonical task baseline. The portfolio and its per-quality/per-task comparison are attached to `AthleteStimulusNeedProfile.trainingDecisionPortfolioShadow` as compact observation data. Real canonical metadata coverage now exercises `CanonicalExerciseMetadataRepository → StimulusExposureLedger → B1 Need → B2 baseline → B3 strategy`; `TrainingDecisionPortfolio`, `TargetStimulusPlan`, selection, prescription, placement, frequency, OFI, tissue, reflow and production output remain unchanged; B4 target generation is out of scope.
+
+### 3.35.0 — Phase B4 canonical stimulus target plan shadow
+
+- `StimulusTargetPlanEngine` consumes only the B3 `StimulusTrainingDecisionPortfolio` and B2 `LedgerBackedQualityDoseHistory`. It maps personal-baseline strategies to exact Q25/median/Q75 weekly direct-unit and direct-session envelopes, preserves exposure-week bands and frequency as reference-only data, and never adds progression or reduction multipliers.
+- `StimulusTargetNumericAuthority` distinguishes `PERSONAL_SUCCESSFUL_DOSE`, `PERSONAL_RESTORE_BASELINE`, `DIRECTION_ONLY`, `NONE`, and `UNRESOLVED`. Novel, unavailable, malformed, supportive-only, reduced/restructured, and task decisions remain nonnumeric; task baselines are never adopted. Quality target envelopes are independent semantic views and are non-additive.
+- `StimulusTargetPlan` is attached to `AthleteStimulusNeedProfile.stimulusTargetPlanShadow`. Its legacy comparison and current-program audit are observation-only: final coverage is normalized by planning horizon, frequency is a reference delta, exposure-week distribution medians are not fabricated, and no audit result gates or reruns generation. The legacy `TrainingDecisionPortfolio → TargetStimulusPlan` path, selection, prescription, scheduling, placement, OFI, tissue, reflow and generated output remain unchanged; B5 target coverage and candidate funding are out of scope.
 
 ### 3.31.0 — ledger-backed stimulus-need correctness closeout
 

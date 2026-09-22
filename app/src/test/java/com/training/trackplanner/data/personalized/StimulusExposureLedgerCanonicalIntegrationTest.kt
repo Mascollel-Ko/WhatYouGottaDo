@@ -249,6 +249,8 @@ class StimulusExposureLedgerCanonicalIntegrationTest {
         val strengthNeed = needProfile.qualityNeeds.single { it.quality == TrainableQuality.STRENGTH }
         val portfolio = StimulusTrainingDecisionPortfolioEngine().build(needProfile, shadow)
         val strengthDecision = portfolio.qualityDecisions.single { it.quality == TrainableQuality.STRENGTH }
+        val targetPlan = StimulusTargetPlanEngine().build(portfolio, shadow)
+        val strengthTarget = targetPlan.qualityTargets.single { it.quality == TrainableQuality.STRENGTH }
 
         assertEquals(horizon.ledgerStart, ledger.historyStart)
         assertEquals(4, shadow.weeklyEvidence.getValue(TrainableQuality.STRENGTH).count { it.directUnits > 0 })
@@ -259,10 +261,21 @@ class StimulusExposureLedgerCanonicalIntegrationTest {
         assertTrue(strength.hasPersonalDirectBaseline)
         assertEquals(SuccessfulDoseSource.NORMAL_COMPLETED_WEEKS, strength.source)
         assertEquals(StimulusDoseStrategy.RESTORE_PERSONAL_BASELINE, strengthDecision.strategy)
+        assertEquals(StimulusTargetNumericAuthority.PERSONAL_RESTORE_BASELINE, strengthTarget.numericAuthority)
+        assertEquals(StimulusTargetRange(4.0, 4.0, 4.0), strengthTarget.weeklyDirectUnitsTarget)
+        assertEquals(StimulusTargetRange(1.0, 1.0, 1.0), strengthTarget.weeklyDirectSessionsTarget)
+        assertEquals(StimulusTargetRange(4.0, 4.0, 4.0), strengthTarget.exposureWeekDirectUnitsReference)
+        assertEquals(StimulusTargetRange(1.0, 1.0, 1.0), strengthTarget.exposureWeekDirectSessionsReference)
+        assertEquals(1.0, strengthTarget.exposureWeekFrequencyReference, 0.0)
         assertTrue(portfolio.shadowOnly)
         assertFalse(portfolio.prescriptionAuthority)
         assertFalse(portfolio.selectionAuthority)
         assertFalse(portfolio.placementAuthority)
+        assertTrue(targetPlan.shadowOnly)
+        assertFalse(targetPlan.prescriptionAuthority)
+        assertFalse(targetPlan.selectionAuthority)
+        assertFalse(targetPlan.placementAuthority)
+        assertFalse(targetPlan.schedulingAuthority)
     }
 
     private fun record(id: Long, exercise: Exercise, dayOffset: Long, reps: Int = 8): WorkoutEntryWithSets {

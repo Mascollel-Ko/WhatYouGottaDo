@@ -36,6 +36,9 @@ import com.training.trackplanner.data.personalized.TargetStimulusPlanEngine
 import com.training.trackplanner.data.personalized.TrainingDecisionPortfolioEngine
 import com.training.trackplanner.data.personalized.StimulusTrainingDecisionPortfolioEngine
 import com.training.trackplanner.data.personalized.StimulusTrainingDecisionPortfolioComparisonEngine
+import com.training.trackplanner.data.personalized.StimulusTargetPlanEngine
+import com.training.trackplanner.data.personalized.StimulusTargetPlanComparisonEngine
+import com.training.trackplanner.data.personalized.StimulusTargetControlProgramAuditEngine
 import com.training.trackplanner.data.personalized.NeedRelevance
 import com.training.trackplanner.data.personalized.RegionalBottleneckDiagnosisEngine
 import com.training.trackplanner.data.personalized.RegionalEvidenceIndexBuilder
@@ -165,6 +168,14 @@ internal class PersonalizedProgramPlanningService(
         // B3 consumes the already-built B1/B2 summaries. It is attached as a separate
         // observation-only portfolio and never enters the legacy target-plan chain.
         val stimulusPortfolio = StimulusTrainingDecisionPortfolioEngine().build(stimulusNeeds, ledgerDoseHistory)
+        val stimulusTargetPlan = StimulusTargetPlanEngine().build(stimulusPortfolio, ledgerDoseHistory)
+        val stimulusTargetPlanWithAudit = stimulusTargetPlan.copy(
+            controlProgramAudit = StimulusTargetControlProgramAuditEngine().audit(
+                stimulusTargetPlan,
+                finalStimulusAudit,
+                generated.request.durationWeeks
+            )
+        )
         val legacyPortfolio = TrainingDecisionPortfolioEngine().build(legacyNeeds, doseHistory)
         val stimulusPortfolioComparison = StimulusTrainingDecisionPortfolioComparisonEngine()
             .compare(legacyPortfolio, stimulusPortfolio, ledgerDoseHistory, doseHistory)
@@ -175,7 +186,8 @@ internal class PersonalizedProgramPlanningService(
                 athleteStimulusNeedProfile = stimulusNeeds.copy(
                     finalAudit = finalStimulusAudit,
                     qualityDoseHistoryShadow = ledgerDoseHistory,
-                    trainingDecisionPortfolioShadow = stimulusPortfolioWithComparison
+                    trainingDecisionPortfolioShadow = stimulusPortfolioWithComparison,
+                    stimulusTargetPlanShadow = stimulusTargetPlanWithAudit
                 )
             )
         )
@@ -184,6 +196,17 @@ internal class PersonalizedProgramPlanningService(
         if (decision != null && needs != null) {
             val portfolio = legacyPortfolio
             val targetPlan = TargetStimulusPlanEngine().build(portfolio, doseHistory)
+            val stimulusTargetComparison = StimulusTargetPlanComparisonEngine()
+                .compare(targetPlan, stimulusTargetPlanWithAudit)
+            val withTargetComparison = withShadowNeeds.copy(
+                personalizedDecision = withShadowNeeds.personalizedDecision?.copy(
+                    athleteStimulusNeedProfile = withShadowNeeds.personalizedDecision?.athleteStimulusNeedProfile?.copy(
+                        stimulusTargetPlanShadow = stimulusTargetPlanWithAudit.copy(
+                            legacyComparison = stimulusTargetComparison
+                        )
+                    )
+                )
+            )
             val comparison = TargetPlanComparisonEngine().compare(targetPlan, withShadowNeeds, snapshot, physicalQualityCatalog)
             val regionalIndex = RegionalEvidenceIndexBuilder().build(snapshot, state, physicalQualityCatalog)
             val strengthRequirement = needs.qualityNeeds.firstOrNull { it.quality == com.training.trackplanner.data.TrainableQuality.STRENGTH }?.relevance
@@ -217,8 +240,8 @@ internal class PersonalizedProgramPlanningService(
                 lowerSportRegions
             )
             val programEmphasis = ProgramEmphasisProjector().project(withShadowNeeds, snapshot, physicalQualityCatalog)
-            return com.training.trackplanner.data.personalized.bindSplitParentProgression(withShadowNeeds.copy(
-                personalizedDecision = decision.copy(
+            return com.training.trackplanner.data.personalized.bindSplitParentProgression(withTargetComparison.copy(
+                personalizedDecision = withTargetComparison.personalizedDecision!!.copy(
                     trainingDecisionPortfolio = portfolio,
                     targetStimulusPlan = targetPlan,
                     targetPlanComparison = comparison,
