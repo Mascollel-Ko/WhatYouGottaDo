@@ -55,7 +55,7 @@ class StimulusSelectionServiceIntegrationTest {
             val cutoff = LocalDate.of(2026, 9, 20)
             listOf("barbell_back_squat").forEachIndexed { exerciseIndex, stableKey ->
                 val historyExercise = requireNotNull(db.exerciseDao().findByStableKey(stableKey))
-                listOf(7L, 14L, 21L, 28L).forEachIndexed { weekIndex, daysAgo ->
+                listOf(7L, 9L, 14L, 16L, 21L, 23L, 28L, 30L).forEachIndexed { weekIndex, daysAgo ->
                     val historyEntryId = db.workoutDao().insertEntry(
                         WorkoutEntry(
                             date = cutoff.minusDays(daysAgo).toString(),
@@ -71,7 +71,7 @@ class StimulusSelectionServiceIntegrationTest {
                             setIndex = 1,
                             // Keep the latest prescription outside the reviewed Strength
                             // band while older weeks establish a classified direct baseline.
-                            reps = if (weekIndex == 0) 8 else 5,
+                            reps = if (daysAgo == 7L) 8 else 5,
                             weightKg = 40.0 + exerciseIndex,
                             confirmed = true,
                             rpe = 8.0
@@ -173,7 +173,7 @@ class StimulusSelectionServiceIntegrationTest {
                 it.status == StimulusPrescriptionResolutionStatus.SAFE_TARGET_COMPATIBLE_PRESCRIPTION_RESOLVED
             }
             if (resolved == null) error(
-                "B6 service diagnostics: targets=${comparison.targetPlan?.qualityTargets?.map { it.quality to (it.evidenceBasis to it.numericAuthority) }} " +
+                "B6 service diagnostics: targets=${comparison.targetPlan?.qualityTargets?.map { it.quality to (it.strategy to (it.evidenceBasis to it.numericAuthority)) }} " +
                     "selected=${comparison.selectionPlan.selectedCandidates.map { it.stableKey to it.selectionRole }} " +
                     "traces=${comparison.selectionPlan.traces.map { it.targetId to (it.controlDirectCapabilityIdentities to it.selectedStableKey) }} " +
                     "resolutions=${comparison.prescriptionRealizationPlan?.resolutions?.map { it.targetId to (it.status to it.reasonCodes) }}"
