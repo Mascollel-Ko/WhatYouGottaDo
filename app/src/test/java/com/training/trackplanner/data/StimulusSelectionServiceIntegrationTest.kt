@@ -158,6 +158,7 @@ class StimulusSelectionServiceIntegrationTest {
             assertTrue("canonical metadata must be seeded", metadata.isNotEmpty())
             val standalone = repository.generatePreparedPersonalizedProgram(preflight, answers)
             val comparison = service.generatePreparedStimulusSelectionComparison(preflight, answers, metadata)
+            println("B7 integration diagnostics: standaloneFingerprint=${personalizedProgramFingerprint(standalone.request, standalone.items)} controlFingerprint=${personalizedProgramFingerprint(comparison.control.request, comparison.control.items)} readiness=${comparison.experimentalReadinessAudit} realization=${comparison.prescriptionRealizationPlan} selected=${comparison.selectionPlan.selectedCandidates.size} traces=${comparison.materializationTraces.size}")
 
             assertEquals(
                 personalizedProgramFingerprint(standalone.request, standalone.items),
