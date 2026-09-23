@@ -1,6 +1,11 @@
 package com.training.trackplanner.data.personalized
 
+import com.training.trackplanner.data.GeneratedProgramSkeleton
+import com.training.trackplanner.data.ProgramGoal
+import com.training.trackplanner.data.ProgramPeriodizationType
 import com.training.trackplanner.data.ProgramSetPrescription
+import com.training.trackplanner.data.ProgramSkeletonItem
+import com.training.trackplanner.data.ProgramSkeletonRequest
 import com.training.trackplanner.data.TrainableQuality
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
@@ -39,10 +44,102 @@ class StimulusPrescriptionMaterializationTest {
         materialDemand = MaterialDemand(emptyList(), emptyMap(), emptyMap())
     )
 
-    private fun prescription(reps: Int, load: Double) = PlannedPrescription(
-        text = "test", sets = List(2) { ProgramSetPrescription(it + 1, reps, load, 0) },
+    private fun prescription(reps: Int, load: Double, sets: Int = 2) = PlannedPrescription(
+        text = "test", sets = List(sets) { ProgramSetPrescription(it + 1, reps, load, 0) },
         restSeconds = 120, weightSource = "TEST"
     )
+
+    private fun experimental(weeks: List<Int>, authorized: PlannedPrescription, mutateWeek: Int? = null) =
+        GeneratedProgramSkeleton(
+            suggestedName = "B6 test", durationDays = weeks.size * 7,
+            request = ProgramSkeletonRequest(
+                name = "B6 test", goal = ProgramGoal.STRENGTH, weeklyTrainingDays = 4,
+                sessionMinutes = 60, availableEquipment = setOf("BARBELL"), excludedExerciseText = "",
+                badmintonTransferRatio = 0.0, sportStrengthRatio = "BALANCED",
+                periodizationType = ProgramPeriodizationType.AUTO, durationWeeks = weeks.size
+            ), periodizationType = ProgramPeriodizationType.AUTO, weekPlans = emptyList(),
+            items = weeks.flatMap { week ->
+                val sets = if (week == mutateWeek) authorized.sets.map { it.copy(reps = it.reps + 1) } else authorized.sets
+                if (week < 0) emptyList() else listOf(
+                    ProgramSkeletonItem(
+                        localId = "b6-$week", weekNumber = week, dayOfWeek = 1, orderIndex = 0,
+                        exerciseStableKey = key, exerciseName = "Squat", category = "STRENGTH",
+                        restSeconds = authorized.restSeconds, prescription = authorized.text,
+                        setCount = sets.size, reps = sets.firstOrNull()?.reps ?: 0,
+                        weightKg = sets.firstOrNull()?.weightKg ?: 0.0, seconds = 0,
+                        selectionReason = "test", weightSource = authorized.weightSource,
+                        stableKey = key, selectionRole = role, setPrescriptions = sets
+                    )
+                )
+            }
+        )
+
+    private fun auditPlan(authorized: PlannedPrescription) = StimulusPrescriptionAuthorizationPlan(listOf(
+        StimulusPrescriptionAuthorization(
+            targetId = "QUALITY:STRENGTH", quality = TrainableQuality.STRENGTH,
+            owner = StimulusPrescriptionOwner(key, role, "B5_SELECTION"),
+            source = StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE,
+            inputPrescription = authorized, plannedCompatibility = null,
+            authorizedPrescription = authorized,
+            status = StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE
+        )
+    ))
+
+    private fun auditWithWeeks(counts: List<Int>, mutateWeek: Int? = null): StimulusPrescriptionMaterializationAudit {
+        val authorized = prescription(5, 80.0, sets = 3)
+        val skeleton = experimental(counts.indices.map { it + 1 }, authorized).copy(
+            items = counts.mapIndexedNotNull { index, count ->
+                if (count == 0) null else {
+                    val sets = authorized.sets.take(count).map { set ->
+                        if (index + 1 == mutateWeek) set.copy(reps = set.reps + 1) else set
+                    }
+                    ProgramSkeletonItem(
+                        localId = "audit-$index", weekNumber = index + 1, dayOfWeek = 1, orderIndex = 0,
+                        exerciseStableKey = key, exerciseName = "Squat", category = "STRENGTH",
+                        restSeconds = authorized.restSeconds, prescription = authorized.text,
+                        setCount = sets.size, reps = sets.first().reps, weightKg = sets.first().weightKg,
+                        seconds = 0, selectionReason = "test", weightSource = authorized.weightSource,
+                        stableKey = key, selectionRole = role, setPrescriptions = sets
+                    )
+                }
+            }
+        )
+        return StimulusPrescriptionMaterializationAuditEngine().audit(auditPlan(authorized), skeleton, snapshot).single()
+    }
+
+    @Test
+    fun materializationAuditCoversEveryExpectedWeekAndUsesConservativeHorizonSemantics() {
+        assertEquals(StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED, auditWithWeeks(listOf(3, 3, 3, 3)).state)
+        assertEquals(StimulusPrescriptionMaterializationState.PARTIALLY_MATERIALIZED, auditWithWeeks(listOf(3, 3, 2, 3)).state)
+        val missing = auditWithWeeks(listOf(3, 3, 0, 3))
+        assertEquals(StimulusPrescriptionMaterializationState.PARTIALLY_MATERIALIZED, missing.state)
+        assertEquals(1, missing.missingWeekCount)
+        assertEquals(4, missing.weeklyAudits.size)
+        assertEquals(3, missing.minimumWeeklyMaterializedUnits)
+        assertEquals(3, missing.totalShortfallUnits)
+        assertEquals(StimulusPrescriptionMaterializationState.NOT_MATERIALIZED, auditWithWeeks(listOf(0, 0, 0, 0)).state)
+        assertEquals(StimulusPrescriptionMaterializationState.INVARIANT_FAILURE, auditWithWeeks(listOf(3, 4, 3, 3)).state)
+        assertEquals(StimulusPrescriptionMaterializationState.INVARIANT_FAILURE, auditWithWeeks(listOf(3, 3, 3, 3), mutateWeek = 2).state)
+    }
+
+    @Test
+    fun nonExecutableAuthorizationDoesNotCreateWeeklyShortfall() {
+        val plan = StimulusPrescriptionAuthorizationPlan(listOf(
+            StimulusPrescriptionAuthorization(
+                targetId = "QUALITY:HYPERTROPHY", quality = TrainableQuality.HYPERTROPHY,
+                owner = null, source = null, inputPrescription = null, plannedCompatibility = null,
+                authorizedPrescription = null,
+                status = StimulusPrescriptionAuthorizationStatus.NO_EXECUTABLE_AUTHORIZATION,
+                reasonCodes = listOf("PROPOSAL_NOT_EXECUTABLE_NO_LOAD_AUTHORITY")
+            )
+        ))
+        val audit = StimulusPrescriptionMaterializationAuditEngine().audit(
+            plan, experimental(listOf(1, 2, 3, 4), prescription(8, 0.0)), snapshot
+        ).single()
+        assertEquals(StimulusPrescriptionMaterializationState.NOT_MATERIALIZED, audit.state)
+        assertEquals(0, audit.totalShortfallUnits)
+        assertTrue(audit.weeklyAudits.all { it.authorizedSetUnits == 0 && it.shortfall == 0 })
+    }
 
     @Test
     fun strengthAuthorizationMaterializesOnlyAnExactOwnerAndAllowsPrefixSubset() {

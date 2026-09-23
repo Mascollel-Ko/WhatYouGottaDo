@@ -73,6 +73,31 @@ data class StimulusPrescriptionMaterializationAudit(
     val overrun: Int,
     val prescriptionPreservedOrSubset: Boolean,
     val state: StimulusPrescriptionMaterializationState,
+    val reasonCodes: List<String> = emptyList(),
+    /** One row for every expected program week, including weeks with no owner row. */
+    val weeklyAudits: List<StimulusPrescriptionWeekMaterializationAudit> = emptyList(),
+    /** Conservative minimum across the complete expected horizon. */
+    val minimumWeeklyMaterializedUnits: Int = materializedWeeklySetUnits,
+    val minimumWeeklyCompatibleUnits: Int = targetCompatibleMaterializedUnits,
+    val maximumWeeklyShortfall: Int = shortfall,
+    val maximumWeeklyOverrun: Int = overrun,
+    val fullyMaterializedWeekCount: Int = 0,
+    val partiallyMaterializedWeekCount: Int = 0,
+    val missingWeekCount: Int = 0,
+    val totalAuthorizedUnits: Int = authorizedWeeklySetUnits,
+    val totalMaterializedUnits: Int = materializedWeeklySetUnits,
+    val totalCompatibleUnits: Int = targetCompatibleMaterializedUnits,
+    val totalShortfallUnits: Int = shortfall
+)
+
+data class StimulusPrescriptionWeekMaterializationAudit(
+    val weekNumber: Int,
+    val authorizedSetUnits: Int,
+    val materializedSetUnits: Int,
+    val targetCompatibleMaterializedUnits: Int,
+    val shortfall: Int,
+    val overrun: Int,
+    val prescriptionPreservedOrSubset: Boolean,
     val reasonCodes: List<String> = emptyList()
 )
 
@@ -154,9 +179,22 @@ class StimulusPrescriptionMaterializationAuditEngine(
         experimental: GeneratedProgramSkeleton,
         snapshot: PlanningHistorySnapshot
     ): List<StimulusPrescriptionMaterializationAudit> = plan.authorizations.map { authorization ->
+        val expectedWeeks = (1..experimental.request.durationWeeks.coerceAtLeast(1)).toList()
         val owner = authorization.owner
         val authorized = authorization.authorizedPrescription
         if (owner == null || authorized == null) {
+            val weekly = expectedWeeks.map { week ->
+                StimulusPrescriptionWeekMaterializationAudit(
+                    weekNumber = week,
+                    authorizedSetUnits = 0,
+                    materializedSetUnits = 0,
+                    targetCompatibleMaterializedUnits = 0,
+                    shortfall = 0,
+                    overrun = 0,
+                    prescriptionPreservedOrSubset = true,
+                    reasonCodes = authorization.reasonCodes + "NO_EXECUTABLE_AUTHORIZATION"
+                )
+            }
             return@map StimulusPrescriptionMaterializationAudit(
                 targetId = authorization.targetId,
                 quality = authorization.quality,
@@ -168,42 +206,85 @@ class StimulusPrescriptionMaterializationAuditEngine(
                 overrun = 0,
                 prescriptionPreservedOrSubset = true,
                 state = StimulusPrescriptionMaterializationState.NOT_MATERIALIZED,
-                reasonCodes = authorization.reasonCodes + "NO_EXECUTABLE_AUTHORIZATION"
+                reasonCodes = authorization.reasonCodes + "NO_EXECUTABLE_AUTHORIZATION",
+                weeklyAudits = weekly,
+                fullyMaterializedWeekCount = 0,
+                partiallyMaterializedWeekCount = 0,
+                missingWeekCount = 0,
+                totalAuthorizedUnits = 0,
+                totalMaterializedUnits = 0,
+                totalCompatibleUnits = 0,
+                totalShortfallUnits = 0
             )
         }
         val rowsByWeek = experimental.items.filter { it.exerciseStableKey == owner.stableKey && it.selectionRole == owner.selectionRole }
             .groupBy(ProgramSkeletonItem::weekNumber)
-        val weeklyUnits = rowsByWeek.values.map { rows -> rows.sumOf { it.setPrescriptions.size } }
-        val materialized = weeklyUnits.maxOrNull() ?: 0
-        val overrun = weeklyUnits.maxOfOrNull { (it - authorized.sets.size).coerceAtLeast(0) } ?: 0
-        val compatible = authorization.quality?.let { quality ->
-            rowsByWeek.values.maxOfOrNull { rows ->
-                rows.sumOf { row ->
-                    val planned = PlannedPrescription(row.prescription, row.setPrescriptions, row.restSeconds, row.weightSource)
-                    if (plannedResolver.compatibility(quality, planned, snapshot, owner.stableKey).status == PlannedStimulusCompatibilityStatus.COMPATIBLE_CONDITIONAL_ON_EFFORT) {
-                        row.setPrescriptions.size
-                    } else 0
-                }
-            } ?: 0
-        } ?: 0
-        val preserved = rowsByWeek.values.flatten().all { row ->
-            val expected = authorized.sets.take(row.setPrescriptions.size).mapIndexed { index, set -> set.copy(setIndex = index + 1) }
-            row.setPrescriptions == expected
+        val weeklyAudits = expectedWeeks.map { week ->
+            val rows = rowsByWeek[week].orEmpty()
+            val materialized = rows.sumOf { it.setPrescriptions.size }
+            val overrun = (materialized - authorized.sets.size).coerceAtLeast(0)
+            val compatible = authorization.quality?.let { quality -> rows.sumOf { row ->
+                val planned = PlannedPrescription(row.prescription, row.setPrescriptions, row.restSeconds, row.weightSource)
+                if (plannedResolver.compatibility(quality, planned, snapshot, owner.stableKey).status == PlannedStimulusCompatibilityStatus.COMPATIBLE_CONDITIONAL_ON_EFFORT) row.setPrescriptions.size else 0
+            } } ?: 0
+            val preserved = rows.all { row ->
+                val expected = authorized.sets.take(row.setPrescriptions.size).mapIndexed { index, set -> set.copy(setIndex = index + 1) }
+                row.setPrescriptions == expected
+            }
+            val shortfall = (authorized.sets.size - materialized).coerceAtLeast(0)
+            buildList {
+                if (shortfall > 0) add(if (materialized == 0) "B6_AUTHORIZATION_MISSING_WEEK" else "B6_AUTHORIZATION_SHORTFALL")
+                if (overrun > 0) add("B6_AUTHORIZATION_OVERRUN")
+                if (!preserved) add("B6_PRESCRIPTION_NOT_PRESERVED")
+                if (compatible < materialized) add("B6_TARGET_COMPATIBILITY_SHORTFALL")
+                if (authorization.source == StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE) add("B5_SELECTION_PROBE_AUTHORIZED")
+            }.let { reasons ->
+                StimulusPrescriptionWeekMaterializationAudit(week, authorized.sets.size, materialized, compatible, shortfall, overrun, preserved, reasons)
+            }
         }
-        val shortfall = (authorized.sets.size - materialized).coerceAtLeast(0)
+        val materialized = weeklyAudits.sumOf { it.materializedSetUnits }
+        val compatible = weeklyAudits.sumOf { it.targetCompatibleMaterializedUnits }
+        val shortfall = weeklyAudits.maxOfOrNull { it.shortfall } ?: 0
+        val overrun = weeklyAudits.maxOfOrNull { it.overrun } ?: 0
+        val preserved = weeklyAudits.all { it.prescriptionPreservedOrSubset }
+        val fully = weeklyAudits.count { it.materializedSetUnits == it.authorizedSetUnits && it.targetCompatibleMaterializedUnits == it.materializedSetUnits && it.overrun == 0 && it.prescriptionPreservedOrSubset }
+        val partial = weeklyAudits.count {
+            it.materializedSetUnits > 0 &&
+                !(it.materializedSetUnits == it.authorizedSetUnits &&
+                    it.targetCompatibleMaterializedUnits == it.materializedSetUnits &&
+                    it.overrun == 0 && it.prescriptionPreservedOrSubset)
+        }
+        val missing = weeklyAudits.count { it.materializedSetUnits == 0 && it.authorizedSetUnits > 0 }
         val reasons = buildList {
             if (shortfall > 0) add("B6_AUTHORIZATION_SHORTFALL")
+            if (missing > 0) add("B6_AUTHORIZATION_MISSING_WEEK")
             if (overrun > 0) add("B6_AUTHORIZATION_OVERRUN")
             if (!preserved) add("B6_PRESCRIPTION_NOT_PRESERVED")
+            if (compatible < materialized) add("B6_TARGET_COMPATIBILITY_SHORTFALL")
             if (authorization.source == StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE) add("B5_SELECTION_PROBE_AUTHORIZED")
         }
         val state = when {
             overrun > 0 || !preserved -> StimulusPrescriptionMaterializationState.INVARIANT_FAILURE
             materialized == 0 -> StimulusPrescriptionMaterializationState.NOT_MATERIALIZED
-            shortfall > 0 -> StimulusPrescriptionMaterializationState.PARTIALLY_MATERIALIZED
+            shortfall > 0 || compatible < materialized -> StimulusPrescriptionMaterializationState.PARTIALLY_MATERIALIZED
             else -> StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED
         }
         StimulusPrescriptionMaterializationAudit(authorization.targetId, authorization.quality, owner,
-            authorized.sets.size, materialized, compatible, shortfall, overrun, preserved, state, reasons)
+            authorized.sets.size,
+            weeklyAudits.minOfOrNull { it.materializedSetUnits } ?: 0,
+            weeklyAudits.minOfOrNull { it.targetCompatibleMaterializedUnits } ?: 0,
+            shortfall, overrun, preserved, state, reasons,
+            weeklyAudits = weeklyAudits,
+            minimumWeeklyMaterializedUnits = weeklyAudits.minOfOrNull { it.materializedSetUnits } ?: 0,
+            minimumWeeklyCompatibleUnits = weeklyAudits.minOfOrNull { it.targetCompatibleMaterializedUnits } ?: 0,
+            maximumWeeklyShortfall = shortfall,
+            maximumWeeklyOverrun = overrun,
+            fullyMaterializedWeekCount = fully,
+            partiallyMaterializedWeekCount = partial,
+            missingWeekCount = missing,
+            totalAuthorizedUnits = authorized.sets.size * expectedWeeks.size,
+            totalMaterializedUnits = materialized,
+            totalCompatibleUnits = compatible,
+            totalShortfallUnits = weeklyAudits.sumOf { it.shortfall })
     }
 }
