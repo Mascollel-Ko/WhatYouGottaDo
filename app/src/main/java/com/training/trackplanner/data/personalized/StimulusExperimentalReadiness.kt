@@ -196,6 +196,18 @@ class StimulusExperimentalReadinessAuditEngine {
                 StimulusExperimentalChangeAttribution(key, null, StimulusExperimentalChangeAttributionSource.UNEXPLAINED, reasonCodes = listOf("UNEXPLAINED_ADDED_IDENTITY"))
             }
         }
+        comparison.selectionPlan.selectedCandidates
+            .filter { it.stableKey in comparison.sharedStableKeys }
+            .sortedBy { it.stableKey }
+            .forEach { candidate ->
+                result += StimulusExperimentalChangeAttribution(
+                    stableKey = candidate.stableKey,
+                    selectionRole = candidate.selectionRole,
+                    source = StimulusExperimentalChangeAttributionSource.B5_REUSED_IDENTITY,
+                    targetIds = candidate.coveredTargetIds.toList().sorted(),
+                    reasonCodes = listOf("B5_REUSED_IDENTITY")
+                )
+            }
         comparison.removedStableKeys.sorted().forEach { key ->
             val traces = comparison.materializationTraces.filter { it.selectedStableKey == key }
             result += if (comparison.differences.any { it.controlStableKey == key }) {
@@ -309,13 +321,24 @@ class StimulusExperimentalReadinessAuditEngine {
 
     private fun compareDistances(cu: Double?, eu: Double?, cs: Double?, es: Double?): StimulusExperimentalTargetOutcomeStatus {
         if (cu == null || eu == null || ((cs == null) != (es == null))) return StimulusExperimentalTargetOutcomeStatus.INCONCLUSIVE
-        val before = cu + (cs ?: 0.0)
-        val after = eu + (es ?: 0.0)
+        val dimensions = buildList {
+            add(compareDistance(cu, eu))
+            if (cs != null && es != null) add(compareDistance(cs, es))
+        }
+        val improved = dimensions.count { it == StimulusExperimentalTargetOutcomeStatus.IMPROVED }
+        val regressed = dimensions.count { it == StimulusExperimentalTargetOutcomeStatus.REGRESSED }
         return when {
-            after < before -> StimulusExperimentalTargetOutcomeStatus.IMPROVED
-            after > before -> StimulusExperimentalTargetOutcomeStatus.REGRESSED
+            improved > 0 && regressed > 0 -> StimulusExperimentalTargetOutcomeStatus.INCONCLUSIVE
+            regressed > 0 -> StimulusExperimentalTargetOutcomeStatus.REGRESSED
+            improved > 0 -> StimulusExperimentalTargetOutcomeStatus.IMPROVED
             else -> StimulusExperimentalTargetOutcomeStatus.UNCHANGED
         }
+    }
+
+    private fun compareDistance(control: Double, experimental: Double): StimulusExperimentalTargetOutcomeStatus = when {
+        experimental < control -> StimulusExperimentalTargetOutcomeStatus.IMPROVED
+        experimental > control -> StimulusExperimentalTargetOutcomeStatus.REGRESSED
+        else -> StimulusExperimentalTargetOutcomeStatus.UNCHANGED
     }
 
     private fun distance(range: StimulusTargetRange, value: Double): Double = when {
