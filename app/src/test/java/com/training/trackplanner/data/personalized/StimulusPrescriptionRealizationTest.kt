@@ -108,6 +108,7 @@ class StimulusPrescriptionRealizationTest {
             targetId = "QUALITY:STRENGTH", strategy = StimulusDoseStrategy.INTRODUCE_DIRECT_STIMULUS,
             priority = TargetPriority.PRIMARY, controlDirectCapabilityIdentities = listOf(key),
             selectionRequired = false, candidatePool = emptyList(), selectedStableKey = null,
+            coveredByPreviouslySelectedStableKey = null,
             reasonCodes = listOf("DIRECT_CAPABILITY_IDENTITY_ALREADY_PRESENT")
         )
         val result = StimulusPrescriptionRealizationPlanEngine().build(
