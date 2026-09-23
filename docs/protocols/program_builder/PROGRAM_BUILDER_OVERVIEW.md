@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.41.0 |
+| Protocol version | 3.41.1 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 62874883c754752dbbfc9db9d3cfabffe3c7416c |
+| Last audited commit | 02129023dd309426a14d5aa86e326058102f617e |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -22,6 +22,12 @@
 - B6.2 performs exactly one unchanged CONTROL `generatePrepared()` build and one in-memory EXPERIMENTAL build. Before the experimental builder starts, a typed authorization plan consumes the B6.1 compatibility/proposal oracle. Owners are always the exact `(stableKey, selectionRole)` identity; ambiguous owners fail closed.
 - Only Strength can receive an executable exact prescription. Hypertrophy remains `NO_EXECUTABLE_AUTHORIZATION` because no load authority is introduced, and capability-proxy qualities remain non-prescriptive. The generic builder seam accepts only an authorized prescription or a downstream prefix subset, preserving sets, reps, load, rest and weight source.
 - Experimental allocation, frequency expansion and residual completion are subset-only and carry a hard per-week maximum. A final materialization audit reports authorized units, materialized units, compatible units, shortfall, overrun, preserved/subset status and typed state. No post-feasibility rewrite, persistence, preview routing or overall winner is enabled; the authorization plan and audits remain `shadowOnly=true` and `productionAuthority=false`.
+
+### 3.41.1 — B6.2 multi-week materialization audit closure
+
+- The B6.2 audit now materializes one typed weekly row for every expected week in the request horizon. An executable authorization with no owner row records zero materialized units and an explicit shortfall for that week; non-executable authorizations record zero weekly authorization and never fabricate a shortfall.
+- Aggregate materialization is conservative across the full horizon: the minimum weekly materialized and compatible units, maximum weekly shortfall and overrun, full/partial/missing week counts, and summed totals are all exposed in the typed audit and compact payload. No single strong week can hide a missing or partial week.
+- `FULLY_MATERIALIZED` requires every expected week to be full, compatible, preserved/subset and within authorization. Any overrun or prescription mutation is `INVARIANT_FAILURE`; otherwise some materialization with a shortfall is `PARTIALLY_MATERIALIZED`, and zero executable materialization is `NOT_MATERIALIZED`. The correction is shadow-only and does not change generation or production authority.
 
 ### 3.32.0 — Phase B1 final CI and correctness closeout
 

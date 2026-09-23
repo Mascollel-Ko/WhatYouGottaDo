@@ -1,5 +1,11 @@
 # Codex Worklog
 
+## 2026-09-24 — B6.2 multi-week materialization audit closeout (Gate A)
+
+- Starting verified main SHA: `ced4258ce7144a3fc32f6f0cbaf35bdadc9bc282`, protocol `3.41.0`. Gate A implementation/test commits are `26eca1b4`, `2cf9bf83`, and `02129023`; the final audited implementation SHA is `02129023dd309426a14d5aa86e326058102f617e`.
+- The typed `StimulusPrescriptionWeekMaterializationAudit` now covers every expected request week. Executable owners report zero materialization and explicit shortfall when a week is absent; non-executable authorizations report zero weekly authorization without fake shortfall. Aggregate materialization uses conservative minimum weekly units/compatibility, maximum shortfall/overrun, full/partial/missing counts, and summed totals. Any overrun or prescription mutation is invariant failure; full status requires every week to be full, compatible and preserved.
+- Focused coverage exercises all-full, partial, missing, all-absent, overrun, mutation and non-executable cases. Hosted CI `35917470932` passed the full debug workflow in 10m59s: `2,001 tests completed, 0 failed, 4 skipped`; debug APK assembly and signer verification passed. Artifact `WhatYouGottaDo-debug-apk` id `10775548798`, zip digest `sha256:0d32973ee0490b26b5600847ac4b20d20f98f6f595ae32849f55765dcc2c3292`. Local Gradle remains blocked before task execution by Windows Java `Unable to establish loopback connection`; the documentation bump is protocol `3.41.1`.
+
 ## 2026-09-23 — Phase B6.2 experimental pre-feasibility materialization closeout
 
 - Starting verified main SHA: `9a3d32c61c6bc2cb1e4f534096d352d1b052717b`, with Gate A protocol `3.40.3`. B6.2 implementation commits are `938d4c976967968f382b4e983a22a3895accbe03`, `bc68b56107a4637b68adecab46fd8d2d1b4bd469`, `14659ad02065b8bf897a5d1482e4d74efb2d4c0a`, `6d3be94ce56af48aeb462e3017c0bd0716c67b13`, and `62874883c754752dbbfc9db9d3cfabffe3c7416c`; the protocol documentation/registry closeout is version `3.41.0`.
