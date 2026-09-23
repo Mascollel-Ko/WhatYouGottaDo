@@ -173,7 +173,7 @@ internal class StimulusNeedEvidenceIndexBuilder {
                             if (direct || supportive) {
                                 tasks.getValue(objective).add(
                                     age, observation.source.date, observation.source.sessionStableKey,
-                                    direct = direct, supportive = supportive, compatible = true
+                                    direct = direct, supportive = supportive, compatible = realizationClassified
                                 )
                             }
                         }
@@ -421,7 +421,17 @@ internal class AthleteStimulusNeedEngine(
             val relevance = qualityRelevance(quality, snapshot, state)
             val response = if (quality == TrainableQuality.STRENGTH) strengthResponse(index.currentStrengthStableKeys, snapshot)
             else TrainingResponseState.INSUFFICIENT_EVIDENCE
-            val decision = decide(relevance, exposure.currentExposure, response)
+            // An unclassified source is not a reviewed realization and cannot establish a
+            // numeric baseline, but it is still a bounded signal that keeps a high-priority
+            // quality in the directional-development path. This preserves the B5 identity
+            // seam while B6.1 remains closed to prescription resolution without reviewed
+            // realization evidence.
+            val decision = decide(relevance, exposure.currentExposure, response).let { candidate ->
+                if (candidate == TrainingNeedDecision.UNKNOWN &&
+                    exposure.unclassifiedSourceUnits > 0 &&
+                    relevance !in setOf(NeedRelevance.UNKNOWN, NeedRelevance.NONE, NeedRelevance.LOW)
+                ) TrainingNeedDecision.DEVELOP else candidate
+            }
             AthleteStimulusQualityNeed(quality, relevance, exposure, response, decision, exposure.confidence,
                 qualityReasons(quality, relevance, exposure, response, decision), listOf(
                     "directUnits=${exposure.current28d.directUnits}",
