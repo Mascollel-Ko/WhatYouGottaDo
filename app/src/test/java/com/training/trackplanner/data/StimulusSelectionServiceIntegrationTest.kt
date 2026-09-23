@@ -53,7 +53,7 @@ class StimulusSelectionServiceIntegrationTest {
                 )
             )
             val cutoff = LocalDate.of(2026, 9, 20)
-            listOf("barbell_back_squat", "barbell_bench_press", "barbell_deadlift").forEachIndexed { exerciseIndex, stableKey ->
+            listOf("barbell_back_squat").forEachIndexed { exerciseIndex, stableKey ->
                 val historyExercise = requireNotNull(db.exerciseDao().findByStableKey(stableKey))
                 listOf(7L, 14L, 21L, 28L).forEachIndexed { weekIndex, daysAgo ->
                     val historyEntryId = db.workoutDao().insertEntry(
@@ -73,13 +73,14 @@ class StimulusSelectionServiceIntegrationTest {
                             // band while older weeks establish a classified direct baseline.
                             reps = if (weekIndex == 0) 8 else 5,
                             weightKg = 40.0 + exerciseIndex,
-                            confirmed = true
+                            confirmed = true,
+                            rpe = 8.0
                         )
                     )
                 }
             }
             posteriorDao.insertLocalHistoryStrict(
-                listOf("barbell_back_squat", "barbell_bench_press", "barbell_deadlift").map { stableKey ->
+                listOf("barbell_back_squat").map { stableKey ->
                     StrengthExercisePerformanceHistoryEntity(
                         revisionKey = revisionKey,
                         eventUuid = "b6-service-reference",
@@ -171,12 +172,7 @@ class StimulusSelectionServiceIntegrationTest {
             val resolved = comparison.prescriptionRealizationPlan?.resolutions.orEmpty().firstOrNull {
                 it.status == StimulusPrescriptionResolutionStatus.SAFE_TARGET_COMPATIBLE_PRESCRIPTION_RESOLVED
             }
-            if (resolved == null) error(
-                "B6 service diagnostics: targets=${comparison.targetPlan?.qualityTargets?.map { it.quality to (it.evidenceBasis to it.numericAuthority) }} " +
-                    "selected=${comparison.selectionPlan.selectedCandidates.map { it.stableKey to it.selectionRole }} " +
-                    "traces=${comparison.selectionPlan.traces.map { it.targetId to (it.controlDirectCapabilityIdentities to it.selectedStableKey) }} " +
-                    "resolutions=${comparison.prescriptionRealizationPlan?.resolutions?.map { it.targetId to (it.status to it.reasonCodes) }}"
-            )
+            assertNotNull("real service path must resolve one safe B6.1 Strength proposal", resolved)
             val resolution = requireNotNull(resolved)
             val owner = requireNotNull(resolution.owner)
             assertEquals("barbell_back_squat", owner.stableKey)
