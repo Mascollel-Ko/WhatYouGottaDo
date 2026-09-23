@@ -616,10 +616,6 @@ internal fun realizedPrescriptionCompatible(quality: TrainableQuality, realized:
 internal fun capabilityProxyCompatible(authority: StimulusClassificationAuthority): Boolean =
     authority == StimulusClassificationAuthority.REVIEWED_CANONICAL
 
-@Deprecated("Use realizedPrescriptionCompatible or capabilityProxyCompatible with explicit authority")
-internal fun stimulusEvidenceCompatible(quality: TrainableQuality, realized: RealizedStimulusClassification): Boolean =
-    quality in setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY) && realizedPrescriptionCompatible(quality, realized)
-
 internal fun AthleteStimulusNeedProfile.toCompactJson(): JSONObject = JSONObject()
     .put("generatedAtCutoff", generatedAtCutoff.toString())
     .put("shadowOnly", shadowOnly)
