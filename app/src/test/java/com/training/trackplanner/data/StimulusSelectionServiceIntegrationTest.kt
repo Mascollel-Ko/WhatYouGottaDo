@@ -74,7 +74,7 @@ class StimulusSelectionServiceIntegrationTest {
                                 // recent 8-rep sets are reviewed non-realization for Strength,
                                 // leaving the materialized 40 kg load compatible by intensity
                                 // while making its rep prescription incompatible.
-                            reps = if (daysAgo >= 49L) 5 else 8,
+                            reps = if (daysAgo >= 42L) 5 else 8,
                                 weightKg = 40.0 + exerciseIndex,
                                 confirmed = true,
                                 rpe = 8.0
