@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.41.1 |
+| Protocol version | 3.42.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 02129023dd309426a14d5aa86e326058102f617e |
+| Last audited commit | 5b0c5caca5e6154e5c4cfa42bfbe7032844d5c76 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -22,6 +22,13 @@
 - B6.2 performs exactly one unchanged CONTROL `generatePrepared()` build and one in-memory EXPERIMENTAL build. Before the experimental builder starts, a typed authorization plan consumes the B6.1 compatibility/proposal oracle. Owners are always the exact `(stableKey, selectionRole)` identity; ambiguous owners fail closed.
 - Only Strength can receive an executable exact prescription. Hypertrophy remains `NO_EXECUTABLE_AUTHORIZATION` because no load authority is introduced, and capability-proxy qualities remain non-prescriptive. The generic builder seam accepts only an authorized prescription or a downstream prefix subset, preserving sets, reps, load, rest and weight source.
 - Experimental allocation, frequency expansion and residual completion are subset-only and carry a hard per-week maximum. A final materialization audit reports authorized units, materialized units, compatible units, shortfall, overrun, preserved/subset status and typed state. No post-feasibility rewrite, persistence, preview routing or overall winner is enabled; the authorization plan and audits remain `shadowOnly=true` and `productionAuthority=false`.
+
+### 3.42.0 — B7 shadow experimental cutover-readiness adjudication
+
+- B7 consumes the existing B6.2 CONTROL/EXPERIMENTAL comparison and its typed materialization and authorization audits exactly once. It attaches a typed readiness audit to `StimulusSelectionProgramComparison` without a third build, rerun, persistence write, winner selection or production mutation; `shadowOnly=true`, `productionAuthority=false` and `winner=null` remain explicit.
+- Readiness is fail-closed across materialization integrity, B5 identity provenance, exact B6 prescription authorization, causal removals and collateral regressions. Missing authority or unresolved evidence yields `INCONCLUSIVE`; non-executable targets are recorded as `NO_AUTHORITY`/not applicable and do not fail readiness by themselves. Direct identity reuse, downstream displacement and unexplained changes remain separately attributed.
+- Numeric targets compare independent weekly-unit and session distances to the B4 target range; no weighted score or cross-dimension collapse is allowed. Direction-only targets use direct presence. The typed status is `ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW`, `NOT_ELIGIBLE`, `INCONCLUSIVE` or `NO_MATERIAL_CHANGE`, and every target outcome plus attribution is serialized in the compact comparison payload.
+- Focused engine coverage and a real Room/service integration test verify improved, regressed, direction-only, invariant, unresolved and no-material-change outcomes. The implementation remains an experimental adjudication seam; it does not activate a cutover.
 
 ### 3.41.1 — B6.2 multi-week materialization audit closure
 

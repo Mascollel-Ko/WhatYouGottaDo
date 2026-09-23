@@ -1,5 +1,12 @@
 # Codex Worklog
 
+## 2026-09-24 — B7 shadow experimental cutover-readiness closeout (Gate B)
+
+- Gate B followed the green B6.2 Gate A. Starting main SHA was `ced4258ce7144a3fc32f6f0cbaf35bdadc9bc282`; B7 implementation/test commits are `9e78dd05`, `12394150`, `e948562e`, `dd500d54`, `4ea27fc4`, `6b8f83e9`, `a34f1f24` and `5b0c5cac`, with final audited implementation SHA `5b0c5caca5e6154e5c4cfa42bfbe7032844d5c76`.
+- `StimulusExperimentalReadinessAuditEngine` consumes the existing B6.2 comparison once and attaches typed readiness outcomes and causal attributions. Numeric weekly-unit and session distances are evaluated independently against the B4 target range; direction-only targets use direct presence. B5 identity provenance, exact B6 authorization, materialization integrity, unresolved authority and collateral regression gates fail closed, while non-executable targets remain typed non-failures. The result is always shadow-only with `winner=null` and `productionAuthority=false`.
+- Focused readiness tests cover improved, regressed, direction-only, invariant/provenance failure, unresolved and no-material-change outcomes. A real Room/service integration test verifies the audit is present on the prepared comparison. No third build or rerun is introduced.
+- Hosted CI `35927317714` passed the full debug workflow: `2,006 tests completed, 0 failed, 4 skipped`; debug APK assembly and signer verification passed. Artifact `WhatYouGottaDo-debug-apk` id `10780022891`, zip digest `sha256:6d3ae4e2e7063add83d3ee12011d27d96ac2e37ee4fce862ffc45177dc2e818c`. Local Gradle remains blocked before task execution by Windows Java `Unable to establish loopback connection`; the documentation bump is protocol `3.42.0`.
+
 ## 2026-09-24 — B6.2 multi-week materialization audit closeout (Gate A)
 
 - Starting verified main SHA: `ced4258ce7144a3fc32f6f0cbaf35bdadc9bc282`, protocol `3.41.0`. Gate A implementation/test commits are `26eca1b4`, `2cf9bf83`, and `02129023`; the final audited implementation SHA is `02129023dd309426a14d5aa86e326058102f617e`.
