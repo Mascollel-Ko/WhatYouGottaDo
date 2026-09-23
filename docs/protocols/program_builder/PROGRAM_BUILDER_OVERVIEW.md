@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.40.1 |
+| Protocol version | 3.40.2 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 7a8b5e396ca7dd0b653f5327726dd5ada41c1381 |
+| Last audited commit | fc554cdc5ab147c2d27d20688daf3e9de723e3da |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -985,3 +985,8 @@ Post-audit boundary notes
 - Strength and Hypertrophy use the reviewed realization classifier. POWER, RFD, SSC, endurance, cardio and mobility use canonical source authority plus direct/supportive relation evidence and remain independent of the resistance realization state. Reviewed failing gates are `REVIEWED_NON_REALIZATION`; missing authority or required input is `UNCLASSIFIED`; reviewed out-of-model rep bands and known low-load/low-effort sets are reviewed zeros.
 - Hypertrophy accepts a valid reviewed RPE gate without an independent 1RM. When RPE is missing, an independent reference and reviewed curve may establish implied RIR ≤3. Invalid or unresolved external load remains unclassified. Earlier-session reference fallback uses `posteriorLogMean` only after `baselineEstablishedAfter`; current exact-session lookup alone may use `priorLogMean` with `baselineEstablishedBefore`.
 - B6.1 evaluates typed planned compatibility from the already materialized CONTROL/CANONICAL_SELECTION comparison. It uses the exact `(stableKey, selectionRole)` owner, supports CONTROL-existing direct identities with explicit provenance and ambiguity statuses, requires current Strength load ≥70% of the exercise-local canonical posterior, preserves set count, and never auto-increases load. It no longer accepts fabricated realized-classification maps or performs another program build. The provisional Hypertrophy `8 reps / 0 kg` proposal remains shadow-only.
+### 3.40.2 — B6 quality observability and end-to-end closeout
+
+- Quality observability is relation-specific. A canonical source with no DIRECT or SUPPORTIVE physical-quality relation is IRRELEVANT to every quality view; it does not create a reviewed zero, incomplete unit, or numeric baseline. Independent task relations remain available to task evidence.
+- Strength and Hypertrophy classify a relevant source as complete only when the source is reviewed and the realization status is `REALIZED` or `REVIEWED_NON_REALIZATION`; realization `UNCLASSIFIED` increments that quality's unclassified relevant units and makes its coverage partial. Capability-proxy qualities remain complete from reviewed source identity and relation alone, even when Strength/Hypertrophy realization is unresolved. `REVIEWED_NON_REALIZATION` remains a valid reviewed zero.
+- B1 and B2 share the typed quality-observation classification helper, so `classifiedSourceUnits`, `unclassifiedSourceUnits`, `unclassifiedRelevantUnits`, `classificationComplete`, `hasSourceObservations`, `eligibleForNumericBaseline`, `DoseBaselineObservability`, and `StimulusEvidenceCoverage` retain quality-specific meaning. B6.1 real service wiring now has a deterministic safe-resolution regression fixture, CONTROL-existing owner matrix coverage, and explicit 69.9/70.0/80.0% planned Strength boundary tests.
