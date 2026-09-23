@@ -1,5 +1,12 @@
 # Codex Worklog
 
+## 2026-09-23 — B6.1 realization-semantics correction (Gate A)
+
+- Gate A started from verified `main` `9a3d32c61c6bc2cb1e4f534096d352d1b052717b`. The implementation/test commit is `da84601229ccee403900671188789a7a0c2cd7be`; a follow-up compatibility correction is `0dda7ebeb52468698f0af780bebed72b86f99c92`. The final audited implementation SHA recorded by the protocol is the Gate A implementation commit `da84601229ccee403900671188789a7a0c2cd7be`.
+- `StimulusExposureLedger` now uses raw `weightKg` only when the governed semantics are `EXTERNAL_LOAD`, `MACHINE_STACK_LOAD`, or `IMPLEMENT_TOTAL_LOAD`. Bodyweight, weighted-bodyweight, assistance and fraction semantics remain unresolved when the canonical resolver cannot supply mechanical load, so the B6 classifier produces `UNCLASSIFIED` rather than a fabricated realization.
+- B1 and B2 now consume the same typed `QualityObservationDisposition`: compatible realization credits exposure, reviewed non-realization increments the relevant prescription-exclusion counter, and `UNCLASSIFIED` leaves both exposure and exclusion counters unchanged. The existing direct/supportive precedence and capability-proxy source-authority rules remain intact.
+- Hosted CI `35887039039` passed after the correction: `testDebugUnitTest` completed 1,997 tests with 0 failures and 4 skips; debug APK assembly and signer verification passed; artifact `WhatYouGottaDo-debug-apk` id `10763896974`. Local Gradle remains blocked before task execution by the Windows Java `Unable to establish loopback connection` failure. Protocol documentation is bumped to `3.40.3` in the following documentation commit.
+
 ## 2026-09-23 — Phase B6.0/B6.1 quality observability closeout
 
 - Starting main SHA: `a6472b7658d2ae72a15784cdb9a8acc6dcf6fb1f`; protocol `3.40.1`. Implementation commits are `f5fb758c` (shared quality-specific B1/B2 classification and relation relevance), `f2962d40` (B6 owner and service regression coverage), `aea2e919` (planned-boundary correction), `6cc93d45` (reviewed baseline fixture), `a7bc2157` (canonical single-owner service fixture), `f4f8999c` (temporary diagnostics), `de14fb21` (reviewed effort fixture and diagnostic workflow revert), `190f9777` (reviewed baseline week span), `c6b05efa` (materialized safe-proposal assertion), and `fc554cdc` (final service fixture and normal CI workflow). The final protocol documentation bump is `3.40.2`.

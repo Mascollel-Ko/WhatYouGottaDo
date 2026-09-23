@@ -3,13 +3,19 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.40.2 |
+| Protocol version | 3.40.3 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | fc554cdc5ab147c2d27d20688daf3e9de723e3da |
+| Last audited commit | da84601229ccee403900671188789a7a0c2cd7be |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
+
+### 3.40.3 — B6.1 realization-semantics correction
+
+- Mechanical raw-weight fallback is allowed only for `EXTERNAL_LOAD`, `MACHINE_STACK_LOAD`, and `IMPLEMENT_TOTAL_LOAD`. Bodyweight, weighted-bodyweight, assistance, and fraction semantics remain unresolved when their governed resolver cannot provide a mechanical load; they are therefore `UNCLASSIFIED` and never become a reviewed zero through the raw `weightKg` field.
+- B1 and B2 share one typed quality disposition. A reviewed compatible realization credits direct/supportive exposure; a reviewed non-realization records a prescription exclusion; `UNCLASSIFIED` records incomplete evidence without increasing excluded-by-prescription counters or emitting incompatibility reasons. Capability-proxy qualities continue to use reviewed canonical source identity.
+- The correction is fail-closed and shadow-only. B6.1 remains the sole realization oracle for the later experimental B6.2 seam; normal program generation and production authority are unchanged.
 
 ### 3.32.0 — Phase B1 final CI and correctness closeout
 
