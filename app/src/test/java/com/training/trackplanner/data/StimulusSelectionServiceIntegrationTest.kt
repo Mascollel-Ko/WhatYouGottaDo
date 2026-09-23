@@ -109,6 +109,15 @@ class StimulusSelectionServiceIntegrationTest {
                     )
                 }
             )
+            val service = field(repository, "personalizedProgramPlanningService") as PersonalizedProgramPlanningService
+            val physicalQualityCatalog = field(service, "physicalQualityCatalog") as CanonicalExercisePhysicalQualityCatalog
+            val editor = field(repository, "exerciseMetadataEditorService") as ExerciseMetadataEditorService
+            val metadata = editor.resolvedRuntimeMetadataByExerciseStableKey()
+            val excludedStrengthKeys = metadata.keys.filter { stableKey ->
+                stableKey != "barbell_back_squat" && physicalQualityCatalog.relations(stableKey).any {
+                    it.qualityId == TrainableQuality.STRENGTH && it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY
+                }
+            }.toSet()
             val request = ProgramSkeletonRequest(
                 name = "B5 service integration",
                 goal = ProgramGoal.BADMINTON_SUPPORT,
@@ -119,7 +128,8 @@ class StimulusSelectionServiceIntegrationTest {
                 badmintonTransferRatio = 0.5,
                 sportStrengthRatio = "AUTO",
                 periodizationType = ProgramPeriodizationType.AUTO,
-                durationWeeks = 2
+                durationWeeks = 2,
+                excludedExerciseStableKeys = excludedStrengthKeys
             )
             val constraints = PersonalizedGenerationConstraints(
                 explicitGoal = ProgramGoal.BADMINTON_SUPPORT,
@@ -138,14 +148,9 @@ class StimulusSelectionServiceIntegrationTest {
                     else error("Unexpected personalized question: ${question.id}")
                 }
             })
-            val editor = field(repository, "exerciseMetadataEditorService") as ExerciseMetadataEditorService
-            val metadata = editor.resolvedRuntimeMetadataByExerciseStableKey()
-            println("B6_SERVICE_METADATA size=${metadata.size}")
             assertTrue("canonical metadata must be seeded", metadata.isNotEmpty())
             val standalone = repository.generatePreparedPersonalizedProgram(preflight, answers)
-            val service = field(repository, "personalizedProgramPlanningService") as PersonalizedProgramPlanningService
             val comparison = service.generatePreparedStimulusSelectionComparison(preflight, answers, metadata)
-            println("B6_SERVICE_CONTROL standaloneItems=${standalone.items.size} comparisonItems=${comparison.control.items.size} selected=${comparison.selectionPlan.selectedCandidates.map { it.stableKey to it.selectionRole }} resolutions=${comparison.prescriptionRealizationPlan?.resolutions?.map { it.targetId to it.status }}")
 
             assertEquals(
                 personalizedProgramFingerprint(standalone.request, standalone.items),
@@ -166,12 +171,14 @@ class StimulusSelectionServiceIntegrationTest {
             val resolved = comparison.prescriptionRealizationPlan?.resolutions.orEmpty().firstOrNull {
                 it.status == StimulusPrescriptionResolutionStatus.SAFE_TARGET_COMPATIBLE_PRESCRIPTION_RESOLVED
             }
-            println("B6_SERVICE statuses=${comparison.prescriptionRealizationPlan?.resolutions?.map { it.targetId to (it.status to it.owner) }} selected=${comparison.selectionPlan.selectedCandidates.map { it.stableKey to it.selectionRole }}")
             assertNotNull("real service path must resolve one safe B6.1 Strength proposal", resolved)
             val resolution = requireNotNull(resolved)
             val owner = requireNotNull(resolution.owner)
-            assertTrue(owner.stableKey in setOf("barbell_back_squat", "barbell_bench_press", "barbell_deadlift"))
-            assertTrue(owner.selectionRole.isNotBlank())
+            assertEquals("barbell_back_squat", owner.stableKey)
+            assertEquals(
+                comparison.control.items.first { it.exerciseStableKey == "barbell_back_squat" }.selectionRole,
+                owner.selectionRole
+            )
             assertEquals(resolution.currentPrescription?.sets?.size, resolution.proposedPrescription?.sets?.size)
             assertTrue(resolution.proposedPrescription?.sets?.all { it.reps in 1..6 } == true)
             val reference = requireNotNull(resolution.plannedCompatibility?.reference1RmKg)
@@ -188,7 +195,6 @@ class StimulusSelectionServiceIntegrationTest {
                 assertTrue(trace.finalWeeklyOccurrences >= 0)
                 assertTrue(trace.finalTotalSetUnits >= 0)
             }
-            println("B5_SERVICE_SELECTION selected=${comparison.selectionPlan.selectedCandidates.map { it.stableKey }} traces=${comparison.materializationTraces}")
         } finally {
             db.close()
         }
