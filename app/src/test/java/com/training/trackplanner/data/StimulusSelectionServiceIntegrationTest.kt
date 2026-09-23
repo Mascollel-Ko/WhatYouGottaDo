@@ -69,7 +69,9 @@ class StimulusSelectionServiceIntegrationTest {
                         WorkoutSet(
                             entryId = historyEntryId,
                             setIndex = 1,
-                            reps = 8,
+                            // Keep the latest prescription outside the reviewed Strength
+                            // band while older weeks establish a classified direct baseline.
+                            reps = if (weekIndex == 0) 8 else 5,
                             weightKg = 40.0 + exerciseIndex,
                             confirmed = true
                         )

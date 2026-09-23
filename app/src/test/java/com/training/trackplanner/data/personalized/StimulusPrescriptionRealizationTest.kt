@@ -211,7 +211,7 @@ class StimulusPrescriptionRealizationTest {
         assertEquals(PlannedStimulusCompatibilityStatus.COMPATIBLE_CONDITIONAL_ON_EFFORT, seventy.plannedCompatibility?.status)
         assertEquals(StimulusPrescriptionResolutionStatus.ALREADY_TARGET_COMPATIBLE, seventy.status)
 
-        assertEquals(PlannedStimulusCompatibilityStatus.COMPATIBLE_CONDITIONAL_ON_EFFORT, resolve(8, 80.0).plannedCompatibility?.status)
+        assertEquals(PlannedStimulusCompatibilityStatus.INCOMPATIBLE, resolve(8, 80.0).plannedCompatibility?.status)
         assertEquals(StimulusPrescriptionResolutionStatus.NO_SAFE_TARGET_COMPATIBLE_PRESCRIPTION, resolve(8, 60.0).status)
         val eighty = resolve(8, 80.0)
         assertEquals(5, eighty.proposedPrescription?.sets?.first()?.reps)
