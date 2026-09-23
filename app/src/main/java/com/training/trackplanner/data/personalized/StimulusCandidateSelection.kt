@@ -640,7 +640,7 @@ internal fun StimulusSelectionProgramComparison.toCompactJson(): JSONObject = JS
                 .put("ownerStableKey", authorization.owner?.stableKey).put("ownerSelectionRole", authorization.owner?.selectionRole)
                 .put("source", authorization.source?.name).put("status", authorization.status.name)
                 .put("reasonCodes", JSONArray(authorization.reasonCodes))
-            } }))
+            }))
     })
     .put("prescriptionMaterializationAudits", JSONArray(prescriptionMaterializationAudits.map { audit -> JSONObject()
         .put("targetId", audit.targetId).put("quality", audit.quality?.name)
