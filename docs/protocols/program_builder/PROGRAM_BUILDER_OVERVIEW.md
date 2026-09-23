@@ -7,7 +7,7 @@
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | a19080533067db4087ecdf5ec444a3f28977d24c |
+| Last audited commit | 7a8b5e396ca7dd0b653f5327726dd5ada41c1381 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -956,7 +956,7 @@ Post-audit boundary notes
 - A reviewed canonical identity with no relation for a quality is reviewed non-membership and may establish a valid zero. A custom or otherwise unclassified identity with no relation is unresolved exposure, not a zero.
 - B2 exact personal quantiles use classification-complete completed weeks only. Incomplete weeks remain in the audit and cannot authorize numeric baseline values.
 - Evidence basis is explicit: Strength and Hypertrophy are realized-prescription classified; other current qualities are canonical capability proxies; sport tasks are canonical task relations. Proxy `WITHIN_BAND` means similar canonical capability exposure, never confirmed physiological adequacy.
-- Phase B6 must not create target-compatible prescription authority for a capability-proxy target until a separately reviewed realization model exists. This task does not implement B6.
+- B6.1 does not create target-compatible prescription authority for capability-proxy targets. Strength/Hypertrophy planned compatibility remains a separate shadow result, and B6.2 plus production prescription cutover remain out of scope.
 
 ### 3.38.0 — A–B5 post-audit semantic hardening
 
