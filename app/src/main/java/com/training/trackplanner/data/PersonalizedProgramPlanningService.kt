@@ -27,6 +27,7 @@ import com.training.trackplanner.data.personalized.PlanningHistorySnapshotBuilde
 import com.training.trackplanner.data.personalized.AthleteNeedsProfileEngine
 import com.training.trackplanner.data.personalized.AthleteStimulusNeedEngine
 import com.training.trackplanner.data.personalized.FinalStimulusNeedAudit
+import com.training.trackplanner.data.personalized.StimulusExperimentalReadinessAuditEngine
 import com.training.trackplanner.data.personalized.toCompactJson
 import com.training.trackplanner.data.personalized.QualityDoseHistoryAnalyzer
 import com.training.trackplanner.data.personalized.LedgerBackedQualityDoseHistoryAnalyzer
