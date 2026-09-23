@@ -70,10 +70,12 @@ class StimulusSelectionServiceIntegrationTest {
                             WorkoutSet(
                                 entryId = historyEntryId,
                                 setIndex = setIndex,
-                                // Keep the materialized 40 kg prescription below the newer
-                                // canonical reference while every historical set remains reviewed.
-                            reps = 5,
-                                weightKg = if (daysAgo <= 9L) 30.0 else 40.0 + exerciseIndex,
+                                // Keep two older completed weeks in the reviewed Strength band;
+                                // recent 8-rep sets are reviewed non-realization for Strength,
+                                // leaving the materialized 40 kg load compatible by intensity
+                                // while making its rep prescription incompatible.
+                            reps = if (daysAgo >= 49L) 5 else 8,
+                                weightKg = 40.0 + exerciseIndex,
                                 confirmed = true,
                                 rpe = 8.0
                             )
