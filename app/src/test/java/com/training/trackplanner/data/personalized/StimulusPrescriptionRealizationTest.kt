@@ -15,7 +15,10 @@ class StimulusPrescriptionRealizationTest {
         cutoff = LocalDate.of(2026, 9, 23), allConfirmedSets = emptyList(), exercises = emptyMap(),
         metadata = emptyMap(), badmintonObjectives = emptyMap(), profilePrimaryGoal = "MIXED",
         strengthTrainingYears = 1.0, badmintonTrainingYears = 0.0, preferences = PersonalizedPlanningPreferences(),
-        canonicalStrengthSignals = mapOf(key to CanonicalStrengthSignal(posteriorMedianKg = 100.0, observationCount = 2))
+        canonicalStrengthSignals = mapOf(
+            key to CanonicalStrengthSignal(posteriorMedianKg = 100.0, observationCount = 2),
+            "other" to CanonicalStrengthSignal(posteriorMedianKg = 100.0, observationCount = 2)
+        )
     )
 
     private fun target(quality: TrainableQuality, authority: StimulusTargetNumericAuthority = StimulusTargetNumericAuthority.PERSONAL_SUCCESSFUL_DOSE) = StimulusQualityTarget(
@@ -201,10 +204,10 @@ class StimulusPrescriptionRealizationTest {
             selection(candidate()), snapshot, mapOf(owner() to prescription(reps, load))
         ).resolutions.single()
 
-        assertEquals(PlannedStimulusCompatibilityStatus.INCOMPATIBLE, resolve(8, 69.9).plannedCompatibility?.status)
-        assertEquals(StimulusPrescriptionResolutionStatus.NO_SAFE_TARGET_COMPATIBLE_PRESCRIPTION, resolve(8, 69.9).status)
+        assertEquals(PlannedStimulusCompatibilityStatus.INCOMPATIBLE, resolve(5, 69.9).plannedCompatibility?.status)
+        assertEquals(StimulusPrescriptionResolutionStatus.NO_SAFE_TARGET_COMPATIBLE_PRESCRIPTION, resolve(5, 69.9).status)
 
-        val seventy = resolve(8, 70.0)
+        val seventy = resolve(5, 70.0)
         assertEquals(PlannedStimulusCompatibilityStatus.COMPATIBLE_CONDITIONAL_ON_EFFORT, seventy.plannedCompatibility?.status)
         assertEquals(StimulusPrescriptionResolutionStatus.SAFE_TARGET_COMPATIBLE_PRESCRIPTION_RESOLVED, seventy.status)
         assertTrue(seventy.proposedPrescription?.sets?.all { it.weightKg >= 70.0 } == true)

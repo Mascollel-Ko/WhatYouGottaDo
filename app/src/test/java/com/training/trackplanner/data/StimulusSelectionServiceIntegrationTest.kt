@@ -162,6 +162,7 @@ class StimulusSelectionServiceIntegrationTest {
             val resolved = comparison.prescriptionRealizationPlan?.resolutions.orEmpty().firstOrNull {
                 it.status == StimulusPrescriptionResolutionStatus.SAFE_TARGET_COMPATIBLE_PRESCRIPTION_RESOLVED
             }
+            println("B6_SERVICE statuses=${comparison.prescriptionRealizationPlan?.resolutions?.map { it.targetId to (it.status to it.owner) }} selected=${comparison.selectionPlan.selectedCandidates.map { it.stableKey to it.selectionRole }}")
             assertNotNull("real service path must resolve one safe B6.1 Strength proposal", resolved)
             val resolution = requireNotNull(resolved)
             val owner = requireNotNull(resolution.owner)
