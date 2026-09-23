@@ -171,7 +171,12 @@ class StimulusSelectionServiceIntegrationTest {
             val resolved = comparison.prescriptionRealizationPlan?.resolutions.orEmpty().firstOrNull {
                 it.status == StimulusPrescriptionResolutionStatus.SAFE_TARGET_COMPATIBLE_PRESCRIPTION_RESOLVED
             }
-            assertNotNull("real service path must resolve one safe B6.1 Strength proposal", resolved)
+            if (resolved == null) error(
+                "B6 service diagnostics: targets=${comparison.targetPlan?.qualityTargets?.map { it.quality to (it.evidenceBasis to it.numericAuthority) }} " +
+                    "selected=${comparison.selectionPlan.selectedCandidates.map { it.stableKey to it.selectionRole }} " +
+                    "traces=${comparison.selectionPlan.traces.map { it.targetId to (it.controlDirectCapabilityIdentities to it.selectedStableKey) }} " +
+                    "resolutions=${comparison.prescriptionRealizationPlan?.resolutions?.map { it.targetId to (it.status to it.reasonCodes) }}"
+            )
             val resolution = requireNotNull(resolved)
             val owner = requireNotNull(resolution.owner)
             assertEquals("barbell_back_squat", owner.stableKey)
