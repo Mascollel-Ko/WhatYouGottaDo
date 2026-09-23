@@ -138,10 +138,12 @@ class StimulusSelectionServiceIntegrationTest {
             })
             val editor = field(repository, "exerciseMetadataEditorService") as ExerciseMetadataEditorService
             val metadata = editor.resolvedRuntimeMetadataByExerciseStableKey()
+            println("B6_SERVICE_METADATA size=${metadata.size}")
             assertTrue("canonical metadata must be seeded", metadata.isNotEmpty())
             val standalone = repository.generatePreparedPersonalizedProgram(preflight, answers)
             val service = field(repository, "personalizedProgramPlanningService") as PersonalizedProgramPlanningService
             val comparison = service.generatePreparedStimulusSelectionComparison(preflight, answers, metadata)
+            println("B6_SERVICE_CONTROL standaloneItems=${standalone.items.size} comparisonItems=${comparison.control.items.size} selected=${comparison.selectionPlan.selectedCandidates.map { it.stableKey to it.selectionRole }} resolutions=${comparison.prescriptionRealizationPlan?.resolutions?.map { it.targetId to it.status }}")
 
             assertEquals(
                 personalizedProgramFingerprint(standalone.request, standalone.items),
