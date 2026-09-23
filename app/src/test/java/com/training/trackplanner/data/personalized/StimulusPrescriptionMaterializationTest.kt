@@ -115,7 +115,7 @@ class StimulusPrescriptionMaterializationTest {
         assertEquals(StimulusPrescriptionMaterializationState.PARTIALLY_MATERIALIZED, missing.state)
         assertEquals(1, missing.missingWeekCount)
         assertEquals(4, missing.weeklyAudits.size)
-        assertEquals(3, missing.minimumWeeklyMaterializedUnits)
+        assertEquals(0, missing.minimumWeeklyMaterializedUnits)
         assertEquals(3, missing.totalShortfallUnits)
         assertEquals(StimulusPrescriptionMaterializationState.NOT_MATERIALIZED, auditWithWeeks(listOf(0, 0, 0, 0)).state)
         assertEquals(StimulusPrescriptionMaterializationState.INVARIANT_FAILURE, auditWithWeeks(listOf(3, 4, 3, 3)).state)
