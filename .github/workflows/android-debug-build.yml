@@ -173,3 +173,10 @@ jobs:
           name: WhatYouGottaDo-debug-apk
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+
+      - name: Upload unit test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-diagnostics
+          path: app/build/test-results/testDebugUnitTest
