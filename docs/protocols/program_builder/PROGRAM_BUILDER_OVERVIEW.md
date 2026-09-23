@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.40.3 |
+| Protocol version | 3.41.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | da84601229ccee403900671188789a7a0c2cd7be |
+| Last audited commit | 62874883c754752dbbfc9db9d3cfabffe3c7416c |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -16,6 +16,12 @@
 - Mechanical raw-weight fallback is allowed only for `EXTERNAL_LOAD`, `MACHINE_STACK_LOAD`, and `IMPLEMENT_TOTAL_LOAD`. Bodyweight, weighted-bodyweight, assistance, and fraction semantics remain unresolved when their governed resolver cannot provide a mechanical load; they are therefore `UNCLASSIFIED` and never become a reviewed zero through the raw `weightKg` field.
 - B1 and B2 share one typed quality disposition. A reviewed compatible realization credits direct/supportive exposure; a reviewed non-realization records a prescription exclusion; `UNCLASSIFIED` records incomplete evidence without increasing excluded-by-prescription counters or emitting incompatibility reasons. Capability-proxy qualities continue to use reviewed canonical source identity.
 - The correction is fail-closed and shadow-only. B6.1 remains the sole realization oracle for the later experimental B6.2 seam; normal program generation and production authority are unchanged.
+
+### 3.41.0 — Phase B6.2 experimental pre-feasibility prescription materialization
+
+- B6.2 performs exactly one unchanged CONTROL `generatePrepared()` build and one in-memory EXPERIMENTAL build. Before the experimental builder starts, a typed authorization plan consumes the B6.1 compatibility/proposal oracle. Owners are always the exact `(stableKey, selectionRole)` identity; ambiguous owners fail closed.
+- Only Strength can receive an executable exact prescription. Hypertrophy remains `NO_EXECUTABLE_AUTHORIZATION` because no load authority is introduced, and capability-proxy qualities remain non-prescriptive. The generic builder seam accepts only an authorized prescription or a downstream prefix subset, preserving sets, reps, load, rest and weight source.
+- Experimental allocation, frequency expansion and residual completion are subset-only and carry a hard per-week maximum. A final materialization audit reports authorized units, materialized units, compatible units, shortfall, overrun, preserved/subset status and typed state. No post-feasibility rewrite, persistence, preview routing or overall winner is enabled; the authorization plan and audits remain `shadowOnly=true` and `productionAuthority=false`.
 
 ### 3.32.0 — Phase B1 final CI and correctness closeout
 

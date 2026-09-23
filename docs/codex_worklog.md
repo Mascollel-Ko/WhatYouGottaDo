@@ -1,5 +1,12 @@
 # Codex Worklog
 
+## 2026-09-23 — Phase B6.2 experimental pre-feasibility materialization closeout
+
+- Starting verified main SHA: `9a3d32c61c6bc2cb1e4f534096d352d1b052717b`, with Gate A protocol `3.40.3`. B6.2 implementation commits are `938d4c976967968f382b4e983a22a3895accbe03`, `bc68b56107a4637b68adecab46fd8d2d1b4bd469`, `14659ad02065b8bf897a5d1482e4d74efb2d4c0a`, `6d3be94ce56af48aeb462e3017c0bd0716c67b13`, and `62874883c754752dbbfc9db9d3cfabffe3c7416c`; the protocol documentation/registry closeout is version `3.41.0`.
+- B6.2 performs exactly one unchanged CONTROL `generatePrepared()` build and one in-memory EXPERIMENTAL builder build. A typed authorization plan consumes the B6.1 compatibility/proposal oracle, owns exact `(stableKey, selectionRole)` identities, and fails closed on ambiguity. Only Strength receives executable exact prescriptions; Hypertrophy and capability proxies remain typed non-executable authorizations. The generic seam accepts authorized prescriptions or downstream prefix subsets only, preserving sets, reps, load, rest and weight source.
+- Experimental frequency expansion and residual completion are subset-only under a hard per-week maximum. Final typed audits report authorization, materialization, compatibility, shortfall, overrun, preserved/subset state and non-executable outcomes. The comparison remains shadow-only (`shadowOnly=true`, `productionAuthority=false`, `winner=null`), with no persistence, preview routing, post-feasibility rewrite or production mutation.
+- Hosted CI `35892916329` passed the complete test/build workflow: 1,999 tests, 0 failures, 4 skips; debug APK assembly and signer verification passed. Artifact `WhatYouGottaDo-debug-apk` id `10765383936`, zip digest `sha256:27cf61a528f8d4405e9ff273263f68e93c20144da37dbb9a30721c6897d8dabd`; downloaded APK SHA-256 `F56C203161A65693A3D4BDAD4C1BFF11228EBFE77746A316F9D65F3091B8D8D8`. Local Gradle remains blocked before task execution by Windows Java `Unable to establish loopback connection`; `git diff --check` passed.
+
 ## 2026-09-23 — B6.1 realization-semantics correction (Gate A)
 
 - Gate A started from verified `main` `9a3d32c61c6bc2cb1e4f534096d352d1b052717b`. The implementation/test commit is `da84601229ccee403900671188789a7a0c2cd7be`; a follow-up compatibility correction is `0dda7ebeb52468698f0af780bebed72b86f99c92`. The final audited implementation SHA recorded by the protocol is the Gate A implementation commit `da84601229ccee403900671188789a7a0c2cd7be`.
