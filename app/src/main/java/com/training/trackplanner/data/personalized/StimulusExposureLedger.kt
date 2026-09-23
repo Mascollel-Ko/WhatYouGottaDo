@@ -409,7 +409,7 @@ class StimulusExposureLedgerBuilder(
                 val target = strengthPerformanceRegistry?.directTarget(stableKey)
                 val semantics = target?.loadSemantics ?: com.training.trackplanner.analysis.strengthperformance.StrengthLoadSemantics.EXTERNAL_LOAD
                 val resolvedLoad = strengthLoadResolver?.resolve(date, set, semantics)?.totalLoadKg
-                    ?: set.weightKg.takeIf { it.isFinite() && it > 0.0 }
+                    ?: set.weightKg.takeIf { it.isFinite() && it > 0.0 && semantics.rawLoadIsResolvedMechanicalLoad }
                 val reviewedRealization = if (!b6ClassifierEnabled) legacyClassification(
                     provisionalRealizedStimulusClass(set.reps), authority
                 ) else RealizedStimulusClassifier.classify(

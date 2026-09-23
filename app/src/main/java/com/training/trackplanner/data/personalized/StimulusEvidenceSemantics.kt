@@ -12,6 +12,14 @@ enum class QualityObservationClassification {
     IRRELEVANT
 }
 
+/** Typed disposition used by both B1 and B2 dose accumulators. */
+enum class QualityObservationDisposition {
+    COMPATIBLE_REALIZATION,
+    REVIEWED_NON_REALIZATION,
+    UNCLASSIFIED,
+    IRRELEVANT
+}
+
 /** Completeness of the source evidence relevant to one quality or task view. */
 enum class StimulusEvidenceCoverage { COMPLETE, PARTIAL, UNAVAILABLE }
 
@@ -67,4 +75,26 @@ internal fun qualityObservationClassification(
         }
     }
     return QualityObservationClassification.CLASSIFIED
+}
+
+/**
+ * Keeps reviewed incompatibility separate from missing realization authority. An unresolved
+ * Strength/Hypertrophy load or effort gate is incomplete evidence; it is never a reviewed zero.
+ */
+internal fun qualityObservationDisposition(
+    quality: TrainableQuality,
+    observation: StimulusSetObservation,
+    hasCanonicalRelation: Boolean
+): QualityObservationDisposition {
+    val classification = qualityObservationClassification(quality, observation, hasCanonicalRelation)
+    if (classification == QualityObservationClassification.IRRELEVANT) return QualityObservationDisposition.IRRELEVANT
+    if (classification == QualityObservationClassification.UNCLASSIFIED) return QualityObservationDisposition.UNCLASSIFIED
+    if (quality == TrainableQuality.STRENGTH || quality == TrainableQuality.HYPERTROPHY) {
+        return when (observation.realizedStimulusClassification.status) {
+            RealizedStimulusStatus.REALIZED -> QualityObservationDisposition.COMPATIBLE_REALIZATION
+            RealizedStimulusStatus.REVIEWED_NON_REALIZATION -> QualityObservationDisposition.REVIEWED_NON_REALIZATION
+            RealizedStimulusStatus.UNCLASSIFIED -> QualityObservationDisposition.UNCLASSIFIED
+        }
+    }
+    return QualityObservationDisposition.COMPATIBLE_REALIZATION
 }

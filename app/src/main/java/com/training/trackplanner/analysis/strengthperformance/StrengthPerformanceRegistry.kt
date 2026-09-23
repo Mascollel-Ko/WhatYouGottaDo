@@ -15,7 +15,11 @@ enum class StrengthLoadSemantics {
     BODYWEIGHT_MINUS_ASSISTANCE,
     BODYWEIGHT_FRACTION_PLUS_ADDED_LOAD,
     MACHINE_STACK_LOAD,
-    IMPLEMENT_TOTAL_LOAD
+    IMPLEMENT_TOTAL_LOAD;
+
+    /** Raw set weight is already the governed mechanical load for these semantics. */
+    val rawLoadIsResolvedMechanicalLoad: Boolean
+        get() = this == EXTERNAL_LOAD || this == MACHINE_STACK_LOAD || this == IMPLEMENT_TOTAL_LOAD
 }
 
 enum class DirectObservationPolicy {

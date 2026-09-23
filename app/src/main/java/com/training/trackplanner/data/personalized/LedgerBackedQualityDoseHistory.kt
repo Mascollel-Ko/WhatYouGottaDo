@@ -213,17 +213,14 @@ internal class LedgerBackedQualityDoseHistoryAnalyzer {
                     hasCanonicalRelation = true
                 )
                 week.observeClassification(quality, classification)
-                val compatible = if (quality in PRESCRIPTION_GATED_QUALITIES) {
-                    classification == QualityObservationClassification.CLASSIFIED &&
-                        realizedPrescriptionCompatible(quality, observation.realizedStimulusClassification)
-                } else capabilityProxyCompatible(observation.classificationAuthority)
+                val disposition = qualityObservationDisposition(quality, observation, hasCanonicalRelation = true)
                 week.add(
                     quality = quality,
                     date = observation.source.date,
                     sessionStableKey = observation.source.sessionStableKey,
                     direct = direct,
                     supportive = supportive,
-                    compatible = compatible,
+                    disposition = disposition,
                     precedenceResolved = direct && relations.any { it.relationLevel == StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY }
                 )
             }
@@ -362,9 +359,9 @@ internal class LedgerBackedQualityDoseHistoryAnalyzer {
         }
 
         fun add(quality: TrainableQuality, date: LocalDate, sessionStableKey: String, direct: Boolean,
-            supportive: Boolean, compatible: Boolean, precedenceResolved: Boolean) {
+            supportive: Boolean, disposition: QualityObservationDisposition, precedenceResolved: Boolean) {
             byQuality.getOrPut(quality) { MutableEvidence() }.add(
-                date, sessionStableKey, direct, supportive, compatible, precedenceResolved
+                date, sessionStableKey, direct, supportive, disposition, precedenceResolved
             )
         }
 
@@ -387,21 +384,22 @@ internal class LedgerBackedQualityDoseHistoryAnalyzer {
         val directDays = linkedSetOf<LocalDate>()
         val supportiveDays = linkedSetOf<LocalDate>()
 
-        fun add(date: LocalDate, session: String, direct: Boolean, supportive: Boolean, compatible: Boolean, precedenceResolved: Boolean) {
+        fun add(date: LocalDate, session: String, direct: Boolean, supportive: Boolean,
+            disposition: QualityObservationDisposition, precedenceResolved: Boolean) {
             if (precedenceResolved) this.precedenceResolved++
             when {
-                direct && compatible -> {
+                disposition == QualityObservationDisposition.COMPATIBLE_REALIZATION && direct -> {
                     directUnits++
                     directSessions += date to session
                     directDays += date
                 }
-                direct -> excludedDirect++
-                supportive && compatible -> {
+                disposition == QualityObservationDisposition.REVIEWED_NON_REALIZATION && direct -> excludedDirect++
+                disposition == QualityObservationDisposition.COMPATIBLE_REALIZATION && supportive -> {
                     supportiveUnits++
                     supportiveSessions += date to session
                     supportiveDays += date
                 }
-                supportive -> excludedSupportive++
+                disposition == QualityObservationDisposition.REVIEWED_NON_REALIZATION && supportive -> excludedSupportive++
             }
         }
 

@@ -86,6 +86,26 @@ class StrengthPerformanceLikelihoodTest {
     }
 
     @Test
+    fun `raw load fallback is limited to governed mechanical-load semantics`() {
+        val set = set(id = 44, reps = 5, weight = 10.0, rpe = 8.0)
+        val resolver = StrengthPerformanceLoadResolver(emptyList(), emptyList(), null)
+        assertEquals(10.0, resolver.resolve(LocalDate.parse("2026-07-20"), set, StrengthLoadSemantics.EXTERNAL_LOAD).totalLoadKg!!, 0.0)
+        assertTrue(StrengthLoadSemantics.EXTERNAL_LOAD.rawLoadIsResolvedMechanicalLoad)
+        assertTrue(StrengthLoadSemantics.MACHINE_STACK_LOAD.rawLoadIsResolvedMechanicalLoad)
+        assertTrue(StrengthLoadSemantics.IMPLEMENT_TOTAL_LOAD.rawLoadIsResolvedMechanicalLoad)
+
+        listOf(
+            StrengthLoadSemantics.BODYWEIGHT_PLUS_ADDED_LOAD,
+            StrengthLoadSemantics.BODYWEIGHT_MINUS_ASSISTANCE,
+            StrengthLoadSemantics.BODYWEIGHT_FRACTION_PLUS_ADDED_LOAD
+        ).forEach { semantics ->
+            val unresolved = resolver.resolve(LocalDate.parse("2026-07-20"), set, semantics)
+            assertNull("$semantics must remain unresolved without bodyweight", unresolved.totalLoadKg)
+            assertFalse(semantics.rawLoadIsResolvedMechanicalLoad)
+        }
+    }
+
+    @Test
     fun `one rep RPE 10 is direct while lower and missing RPE are lower bounds`() {
         val curve = curves.resolve("barbell_bench_press")
         val loadResolver = StrengthPerformanceLoadResolver(emptyList(), emptyList(), null)

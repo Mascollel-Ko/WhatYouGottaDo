@@ -159,15 +159,11 @@ internal class StimulusNeedEvidenceIndexBuilder {
                         hasCanonicalRelation = true
                     )
                     accumulator.observeClassification(age, classification)
-                    val compatible = if (qualityId in PRESCRIPTION_GATED_QUALITIES) {
-                        classification == QualityObservationClassification.CLASSIFIED &&
-                            realizedPrescriptionCompatible(qualityId, observation.realizedStimulusClassification)
-                    } else {
-                        capabilityProxyCompatible(observation.classificationAuthority)
-                    }
+                    val disposition = qualityObservationDisposition(qualityId, observation, hasCanonicalRelation = true)
                     accumulator.add(age, observation.source.date, observation.source.sessionStableKey,
-                        direct = direct, supportive = supportive, compatible = compatible)
-                    if (qualityId == TrainableQuality.STRENGTH && direct && compatible && age in 0..27) {
+                        direct = direct, supportive = supportive, disposition = disposition)
+                    if (qualityId == TrainableQuality.STRENGTH && direct &&
+                        disposition == QualityObservationDisposition.COMPATIBLE_REALIZATION && age in 0..27) {
                         strengthStableKeys += observation.source.stableKey
                     }
                 }
@@ -185,7 +181,9 @@ internal class StimulusNeedEvidenceIndexBuilder {
                                 tasks.getValue(objective).add(
                                     age, observation.source.date, observation.source.sessionStableKey,
                                     direct = direct, supportive = supportive,
-                                    compatible = capabilityProxyCompatible(observation.classificationAuthority)
+                                    disposition = if (capabilityProxyCompatible(observation.classificationAuthority)) {
+                                        QualityObservationDisposition.COMPATIBLE_REALIZATION
+                                    } else QualityObservationDisposition.UNCLASSIFIED
                                 )
                             }
                         }
@@ -233,12 +231,13 @@ internal class StimulusNeedEvidenceIndexBuilder {
             }
         }
 
-        fun add(age: Int, date: LocalDate, session: String, direct: Boolean, supportive: Boolean, compatible: Boolean) {
+        fun add(age: Int, date: LocalDate, session: String, direct: Boolean, supportive: Boolean,
+            disposition: QualityObservationDisposition) {
             windows.forEach { (window, bucket) ->
                 if (age !in window.range) return@forEach
-                bucket.add(date, session, direct, supportive, compatible)
+                bucket.add(date, session, direct, supportive, disposition)
             }
-            if (direct && compatible && age in 0..27) directBins += age / 7
+            if (direct && disposition == QualityObservationDisposition.COMPATIBLE_REALIZATION && age in 0..27) directBins += age / 7
         }
 
         fun evidence(snapshot: PlanningHistorySnapshot, available: Boolean, reasons: Set<String>, quality: TrainableQuality? = null, task: String? = null): StimulusExposureEvidence {
@@ -335,20 +334,21 @@ internal class StimulusNeedEvidenceIndexBuilder {
             unclassifiedSourceUnits = counts.unclassified
         }
 
-        fun add(date: LocalDate, session: String, direct: Boolean, supportive: Boolean, compatible: Boolean) {
+        fun add(date: LocalDate, session: String, direct: Boolean, supportive: Boolean,
+            disposition: QualityObservationDisposition) {
             when {
-                direct && compatible -> {
+                disposition == QualityObservationDisposition.COMPATIBLE_REALIZATION && direct -> {
                     directUnits++
                     directSessions += date to session
                     directDays += date
                 }
-                direct -> excludedDirect++
-                supportive && compatible -> {
+                disposition == QualityObservationDisposition.REVIEWED_NON_REALIZATION && direct -> excludedDirect++
+                disposition == QualityObservationDisposition.COMPATIBLE_REALIZATION && supportive -> {
                     supportiveUnits++
                     supportiveSessions += date to session
                     supportiveDays += date
                 }
-                supportive -> excludedSupportive++
+                disposition == QualityObservationDisposition.REVIEWED_NON_REALIZATION && supportive -> excludedSupportive++
             }
         }
 

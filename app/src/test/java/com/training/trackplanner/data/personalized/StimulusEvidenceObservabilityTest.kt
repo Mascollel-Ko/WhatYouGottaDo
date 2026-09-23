@@ -191,6 +191,8 @@ class StimulusEvidenceObservabilityTest {
         assertEquals(0, strength.classifiedSourceUnits)
         assertEquals(1, strength.unclassifiedSourceUnits)
         assertEquals(0, strength.current28d.directUnits)
+        assertEquals(0, strength.current28d.excludedDirectByPrescriptionUnits)
+        assertFalse(strength.reasonCodes.any { it.contains("PRESCRIPTION_INCOMPATIBLE") })
         assertEquals(1, power.classifiedSourceUnits)
         assertEquals(0, power.unclassifiedSourceUnits)
         assertEquals(1, power.current28d.directUnits)
