@@ -44,7 +44,7 @@ class StimulusSelectionServiceIntegrationTest {
             }
             db.initialUserProfileDao().upsert(
                 InitialUserProfile(
-                    primaryGoal = "BADMINTON_PERFORMANCE",
+                    primaryGoal = "STRENGTH_GAIN",
                     strengthTrainingYears = 2.0,
                     badmintonTrainingYears = 2.0,
                     strengthSessionsPerWeek = 3.0,
@@ -55,7 +55,7 @@ class StimulusSelectionServiceIntegrationTest {
             val cutoff = LocalDate.of(2026, 9, 20)
             listOf("barbell_back_squat").forEachIndexed { exerciseIndex, stableKey ->
                 val historyExercise = requireNotNull(db.exerciseDao().findByStableKey(stableKey))
-                listOf(7L, 9L, 14L, 16L, 21L, 23L, 28L, 30L).forEachIndexed { weekIndex, daysAgo ->
+                listOf(7L, 9L, 14L, 16L, 21L, 23L, 28L, 30L, 35L, 37L, 42L, 44L, 49L, 51L).forEachIndexed { weekIndex, daysAgo ->
                     val historyEntryId = db.workoutDao().insertEntry(
                         WorkoutEntry(
                             date = cutoff.minusDays(daysAgo).toString(),
@@ -65,18 +65,20 @@ class StimulusSelectionServiceIntegrationTest {
                             sessionStableKey = "b5-service-history-$exerciseIndex-$weekIndex"
                         )
                     )
-                    db.workoutDao().insertSet(
-                        WorkoutSet(
-                            entryId = historyEntryId,
-                            setIndex = 1,
-                            // Keep the latest prescription outside the reviewed Strength
-                            // band while older weeks establish a classified direct baseline.
-                            reps = if (daysAgo == 7L) 8 else 5,
-                            weightKg = 40.0 + exerciseIndex,
-                            confirmed = true,
-                            rpe = 8.0
+                    (1..3).forEach { setIndex ->
+                        db.workoutDao().insertSet(
+                            WorkoutSet(
+                                entryId = historyEntryId,
+                                setIndex = setIndex,
+                                // Keep the latest prescription outside the reviewed Strength
+                                // band while older weeks establish a classified direct baseline.
+                                reps = if (daysAgo == 7L) 8 else 5,
+                                weightKg = 40.0 + exerciseIndex,
+                                confirmed = true,
+                                rpe = 8.0
+                            )
                         )
-                    )
+                    }
                 }
             }
             posteriorDao.insertLocalHistoryStrict(
