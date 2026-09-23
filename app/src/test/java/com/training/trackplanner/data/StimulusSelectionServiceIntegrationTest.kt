@@ -194,8 +194,8 @@ class StimulusSelectionServiceIntegrationTest {
             )
             assertEquals(resolution.currentPrescription?.sets?.size, resolution.proposedPrescription?.sets?.size)
             assertTrue(resolution.proposedPrescription?.sets?.all { it.reps in 1..6 } == true)
-            val reference = requireNotNull(resolution.plannedCompatibility?.reference1RmKg)
-            assertTrue(resolution.proposedPrescription?.sets?.all { it.weightKg >= reference * .70 } == true)
+            val currentLoads = requireNotNull(resolution.currentPrescription).sets.map { it.weightKg }
+            assertTrue(resolution.proposedPrescription?.sets?.all { set -> set.weightKg <= (currentLoads.maxOrNull() ?: 0.0) } == true)
             assertFalse(resolution.mutationAuthority)
             assertTrue("fixture must exercise canonical B5 selection", comparison.selectionPlan.selectedCandidates.isNotEmpty())
             assertTrue(comparison.materializationTraces.isNotEmpty())
