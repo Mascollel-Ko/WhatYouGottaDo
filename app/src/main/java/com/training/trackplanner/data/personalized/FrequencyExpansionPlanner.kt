@@ -69,8 +69,13 @@ internal class FrequencyExpansionPlanner(private val prescriptions: Personalized
     private val performanceMetrics: PlannerPerformanceMetrics? = null) {
     fun expand(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, request: ProgramSkeletonRequest,
         base: GeneratedProgramSkeleton, frequency: PlanningFrequencyProvenance,
-        place: (List<AuthorizedSchedulingDemand>, WeeklyCapacityEnvelope) -> CompletionResult,
-        exactPrescriptionAuthorizationProvider: ExactPrescriptionAuthorizationProvider? = null): GeneratedProgramSkeleton {
+        place: (List<AuthorizedSchedulingDemand>, WeeklyCapacityEnvelope) -> CompletionResult): GeneratedProgramSkeleton =
+        expand(snapshot, state, request, base, frequency, null, place)
+
+    fun expand(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, request: ProgramSkeletonRequest,
+        base: GeneratedProgramSkeleton, frequency: PlanningFrequencyProvenance,
+        exactPrescriptionAuthorizationProvider: ExactPrescriptionAuthorizationProvider?,
+        place: (List<AuthorizedSchedulingDemand>, WeeklyCapacityEnvelope) -> CompletionResult): GeneratedProgramSkeleton {
         require(frequency.explicitIncrease)
         val baseDecision = requireNotNull(base.personalizedDecision)
         val provenance = requireNotNull(baseDecision.frequencyDemand)

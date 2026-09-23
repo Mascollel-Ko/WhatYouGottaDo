@@ -389,6 +389,7 @@ class PersonalizedProgramBuilder(
             regionalTargetPlan = regionalTargetPlan, exactPrescriptionAuthorizationProvider = exactPrescriptionAuthorizationProvider)
         progress.report(PersonalizedPlannerStage.EXPANSION)
         return FrequencyExpansionPlanner(generationPrescriptions, performanceMetrics).expand(snapshot, state, request, base, frequency,
+            exactPrescriptionAuthorizationProvider,
             { authorized, capacity ->
             progress.report(PersonalizedPlannerStage.EXPANSION_RECHECK)
             var result: CompletionResult? = null
@@ -400,7 +401,7 @@ class PersonalizedProgramBuilder(
                 it.skeleton
             }
             checkNotNull(result)
-        }, exactPrescriptionAuthorizationProvider)
+        })
     }
 
     private fun buildCore(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, gaps: List<AdaptationGap>, intent: BlockIntent,
