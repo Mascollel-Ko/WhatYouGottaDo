@@ -14,8 +14,12 @@ import com.training.trackplanner.data.PhysicalQualityMode
 import com.training.trackplanner.data.PhysicalQualityRegion
 import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
+import com.training.trackplanner.data.StimulusCapabilityLevel
 import com.training.trackplanner.data.TrainableQuality
 import com.training.trackplanner.data.WorkoutEntryWithSets
+import com.training.trackplanner.analysis.strengthperformance.StrengthPerformanceLoadResolver
+import com.training.trackplanner.analysis.strengthperformance.StrengthPerformanceRegistry
+import com.training.trackplanner.data.StrengthExercisePerformanceHistoryEntity
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import java.util.Locale
@@ -72,7 +76,10 @@ data class StimulusSetObservation(
     val rpe: Double?,
     val realizedPrescriptionClass: RealizedStimulusClass,
     val facetProfileKey: String,
-    val classificationAuthority: StimulusClassificationAuthority
+    val classificationAuthority: StimulusClassificationAuthority,
+    /** B6 reviewed realization authority. Defaults preserve older shadow fixtures only. */
+    val realizedStimulusClassification: RealizedStimulusClassification =
+        legacyClassification(realizedPrescriptionClass, classificationAuthority)
 ) {
     val sourceRef: StimulusSourceRef get() = source
 }
@@ -211,10 +218,10 @@ data class StimulusExposureLedger(
             val relations = profile.physicalQualities
             if (relations.any { it.relationLevel.name == "DIRECT_CAPABILITY" && filter.matchesPhysicalRelation(it) }) direct++
             if (relations.any { it.relationLevel.name == "SUPPORTIVE_CAPABILITY" && filter.matchesPhysicalRelation(it) }) supportive++
-            when (observation.realizedPrescriptionClass) {
-                RealizedStimulusClass.STRENGTH_LIKE -> strengthLike++
-                RealizedStimulusClass.HYPERTROPHY_LIKE -> hypertrophyLike++
-                RealizedStimulusClass.AMBIGUOUS_REALIZED_STIMULUS -> ambiguous++
+            when (observation.realizedStimulusClassification.kind) {
+                RealizedStimulusKind.STRENGTH_LIKE -> strengthLike++
+                RealizedStimulusKind.HYPERTROPHY_LIKE -> hypertrophyLike++
+                RealizedStimulusKind.NONE -> ambiguous++
             }
         }
         var durationMinutes = 0.0
@@ -252,7 +259,10 @@ data class StimulusExposureLedger(
 /** Builds the Phase A bounded ledger from already loaded workout history. */
 class StimulusExposureLedgerBuilder(
     private val activityDomainResolver: PlannerActivityDomainResolver = PlannerActivityDomainResolver(),
-    private val practiceLoadCalculatorFactory: (RuntimeExerciseMetadataCatalog) -> BadmintonPracticeLoadCalculator = ::BadmintonPracticeLoadCalculator
+    private val practiceLoadCalculatorFactory: (RuntimeExerciseMetadataCatalog) -> BadmintonPracticeLoadCalculator = ::BadmintonPracticeLoadCalculator,
+    private val strengthLoadResolver: StrengthPerformanceLoadResolver? = null,
+    private val strengthPerformanceRegistry: StrengthPerformanceRegistry? = null,
+    private val strengthReferenceIndex: CanonicalStrengthReferenceIndex = CanonicalStrengthReferenceIndex(emptyList())
 ) {
     fun build(
         cutoff: LocalDate,
@@ -265,7 +275,9 @@ class StimulusExposureLedgerBuilder(
         badmintonCatalog: CanonicalBadmintonObjectiveCatalog,
         exerciseRoleCatalog: ExerciseRoleRelationCatalog = ExerciseRoleRelationCatalog.EMPTY,
         historyStart: LocalDate? = null,
-        reviewedCanonicalStableKeys: Set<String> = emptySet()
+        reviewedCanonicalStableKeys: Set<String> = emptySet(),
+        strengthPerformanceHistory: List<StrengthExercisePerformanceHistoryEntity> = emptyList(),
+        reviewedNonRealizationSetIds: Set<Long> = emptySet()
     ): StimulusExposureLedger = build(
         cutoff = cutoff,
         history = history,
@@ -277,7 +289,9 @@ class StimulusExposureLedgerBuilder(
         badmintonCatalog = badmintonCatalog,
         exerciseRoleCatalog = exerciseRoleCatalog,
         historyStart = historyStart,
-        reviewedCanonicalStableKeys = reviewedCanonicalStableKeys
+        reviewedCanonicalStableKeys = reviewedCanonicalStableKeys,
+        strengthPerformanceHistory = strengthPerformanceHistory,
+        reviewedNonRealizationSetIds = reviewedNonRealizationSetIds
     )
 
     fun build(
@@ -291,8 +305,13 @@ class StimulusExposureLedgerBuilder(
         badmintonCatalog: CanonicalBadmintonObjectiveCatalog,
         exerciseRoleCatalog: ExerciseRoleRelationCatalog = ExerciseRoleRelationCatalog.EMPTY,
         historyStart: LocalDate? = null,
-        reviewedCanonicalStableKeys: Set<String> = emptySet()
+        reviewedCanonicalStableKeys: Set<String> = emptySet(),
+        strengthPerformanceHistory: List<StrengthExercisePerformanceHistoryEntity> = emptyList(),
+        reviewedNonRealizationSetIds: Set<Long> = emptySet()
     ): StimulusExposureLedger {
+        val referenceIndex = if (strengthPerformanceHistory.isEmpty()) strengthReferenceIndex
+        else CanonicalStrengthReferenceIndex(strengthPerformanceHistory)
+        val b6ClassifierEnabled = strengthLoadResolver != null || strengthPerformanceHistory.isNotEmpty()
         val windowStart = (historyStart ?: cutoff.minusDays(55)).coerceAtMost(cutoff)
         val boundedHistory = history.mapNotNull { record ->
             val date = runCatching { LocalDate.parse(record.entry.date) }.getOrNull()
@@ -377,6 +396,33 @@ class StimulusExposureLedgerBuilder(
             // Preserve confirmed non-court source observations even when no reviewed facet exists.
             // They remain outside canonical direct/supportive counts through the explicit authority.
             record.sets.filter { it.confirmed }.forEach { set ->
+                val directQualities = profile.physicalQualities
+                    .filter { it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY }
+                    .mapTo(linkedSetOf()) { it.qualityId }
+                val target = strengthPerformanceRegistry?.directTarget(stableKey)
+                val semantics = target?.loadSemantics ?: com.training.trackplanner.analysis.strengthperformance.StrengthLoadSemantics.EXTERNAL_LOAD
+                val resolvedLoad = strengthLoadResolver?.resolve(date, set, semantics)?.totalLoadKg
+                    ?: set.weightKg.takeIf { it.isFinite() && it > 0.0 }
+                val reviewedRealization = if (!b6ClassifierEnabled) legacyClassification(
+                    provisionalRealizedStimulusClass(set.reps), authority
+                ) else RealizedStimulusClassifier.classify(
+                    RealizedStimulusInput(
+                        stableKey = stableKey,
+                        date = date,
+                        sessionStableKey = record.entry.sessionStableKey,
+                        activityKind = activity,
+                        reps = set.reps,
+                        resolvedLoadKg = resolvedLoad,
+                        rpe = set.rpe ?: record.entry.rpe,
+                        directQualities = directQualities,
+                        reviewedIdentity = authority == StimulusClassificationAuthority.REVIEWED_CANONICAL,
+                        reviewedNonRealization = set.id in reviewedNonRealizationSetIds,
+                        reference1RmKg = referenceIndex.reference1RmKg(stableKey, date, record.entry.sessionStableKey),
+                        loadSemantics = semantics
+                    )
+                )
+                val realizationAuthority = if (reviewedRealization.authority == RealizedStimulusAuthority.REVIEWED) authority
+                else StimulusClassificationAuthority.UNCLASSIFIED
                 sets += StimulusSetObservation(
                     source = StimulusSourceRef(record.entry.id, record.entry.backupSourceId, set.id, set.setIndex, record.entry.sessionStableKey, date, stableKey),
                     activityKind = activity,
@@ -384,9 +430,10 @@ class StimulusExposureLedgerBuilder(
                     weightKg = set.weightKg,
                     seconds = set.seconds,
                     rpe = set.rpe ?: record.entry.rpe,
-                    realizedPrescriptionClass = provisionalRealizedStimulusClass(set.reps),
+                    realizedPrescriptionClass = reviewedRealization.toLegacyClass(),
                     facetProfileKey = profile.stableKey,
-                    classificationAuthority = authority
+                    classificationAuthority = realizationAuthority,
+                    realizedStimulusClassification = reviewedRealization
                 )
             }
         }

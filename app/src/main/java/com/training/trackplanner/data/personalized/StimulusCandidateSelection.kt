@@ -111,6 +111,7 @@ data class StimulusSelectionProgramComparison(
     val removedStableKeys: Set<String>,
     val sharedStableKeys: Set<String>,
     val materializationTraces: List<StimulusCandidateMaterializationTrace> = emptyList(),
+    val prescriptionRealizationPlan: StimulusPrescriptionRealizationPlan? = null,
     val winner: String? = null
 ) {
     init {
@@ -145,8 +146,8 @@ class StimulusTargetCandidateSelector(
         val historyIndex = HistoryIndex(
             historyByStableKey = historyByStableKey,
             historyStableKeys = historyByStableKey.keys,
-            strengthCompatibleHistoryKeys = historyByStableKey.filterValues { rows -> rows.any { compatibleHistory(TrainableQuality.STRENGTH, provisionalRealizedStimulusClass(it)) } }.keys,
-            hypertrophyCompatibleHistoryKeys = historyByStableKey.filterValues { rows -> rows.any { compatibleHistory(TrainableQuality.HYPERTROPHY, provisionalRealizedStimulusClass(it)) } }.keys
+            strengthCompatibleHistoryKeys = historyByStableKey.filterValues { rows -> rows.any { historyCompatible(snapshot, TrainableQuality.STRENGTH, it) } }.keys,
+            hypertrophyCompatibleHistoryKeys = historyByStableKey.filterValues { rows -> rows.any { historyCompatible(snapshot, TrainableQuality.HYPERTROPHY, it) } }.keys
         )
         val selected = linkedMapOf<String, StimulusSelectedCandidate>()
         val candidateItems = linkedMapOf<String, PlannedExercise>()
@@ -419,6 +420,10 @@ class StimulusTargetCandidateSelector(
         TrainableQuality.HYPERTROPHY -> realized == RealizedStimulusClass.HYPERTROPHY_LIKE
         else -> false
     }
+
+    private fun historyCompatible(snapshot: PlanningHistorySnapshot, quality: TrainableQuality, row: PlanningSetRecord): Boolean =
+        if (snapshot.stimulusExposureLedger.setObservations.isEmpty()) compatibleHistory(quality, provisionalRealizedStimulusClass(row))
+        else stimulusEvidenceCompatible(quality, snapshot.reviewedRealization(row))
 
     private fun equipmentCompatible(snapshot: PlanningHistorySnapshot, key: String, request: ProgramSkeletonRequest): Boolean {
         if (request.availableEquipment.isEmpty()) return true

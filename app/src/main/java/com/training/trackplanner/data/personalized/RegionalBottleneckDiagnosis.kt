@@ -261,7 +261,7 @@ class RegionalEvidenceIndexBuilder {
             val relations = relationByKey[row.stableKey].orEmpty()
             if (relations.isEmpty()) return@forEach
             indexedRows++
-            val realized = provisionalRealizedStimulusClass(row)
+            val realized = snapshot.historyRealizedKind(row)
             val doseSeen = linkedSetOf<TrainableQuality>()
             var specificStrengthRelation = false
             relations.forEach { relation ->
@@ -269,7 +269,7 @@ class RegionalEvidenceIndexBuilder {
                     relation.qualityId !in setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY) ||
                     !regionQualifierMatches(movement, relation.regionQualifier)) return@forEach
                 when (relation.qualityId) {
-                    TrainableQuality.STRENGTH -> if (realized == RealizedStimulusClass.STRENGTH_LIKE) {
+                    TrainableQuality.STRENGTH -> if (realized == RealizedStimulusKind.STRENGTH_LIKE) {
                         if (doseSeen.add(relation.qualityId)) {
                             strength.getValue(movement).add(row, weekStart, age)
                             if (age in 0..27) strengthKeys.getValue(movement).add(row.stableKey)

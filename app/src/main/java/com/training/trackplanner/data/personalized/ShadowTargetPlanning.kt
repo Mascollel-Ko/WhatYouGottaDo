@@ -314,11 +314,11 @@ class QualityDoseHistoryAnalyzer {
         fun values(weeks: List<WeekSlice>) = weeks.map { week ->
             val direct = week.rows.filter { row -> relationByKey[row.stableKey].orEmpty().any {
                 it.qualityId == quality && it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY &&
-                    prescriptionCompatible(quality, row)
+                    prescriptionCompatible(quality, row, snapshot)
             } }
             val supportive = week.rows.filter { row -> relationByKey[row.stableKey].orEmpty().any {
                 it.qualityId == quality && it.relationLevel == StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY &&
-                    prescriptionCompatible(quality, row)
+                    prescriptionCompatible(quality, row, snapshot)
             } }
             DoseValues(direct.size.toDouble(), direct.map { it.date }.toSet().size.toDouble(),
                 supportive.size.toDouble(), supportive.map { it.date }.toSet().size.toDouble())
@@ -419,8 +419,9 @@ class QualityDoseHistoryAnalyzer {
         )
     }
 
-    private fun prescriptionCompatible(quality: TrainableQuality, row: PlanningSetRecord): Boolean =
-        stimulusPrescriptionCompatible(quality, provisionalRealizedStimulusClass(row))
+    private fun prescriptionCompatible(quality: TrainableQuality, row: PlanningSetRecord, snapshot: PlanningHistorySnapshot): Boolean =
+        if (snapshot.stimulusExposureLedger.setObservations.isEmpty()) prescriptionShapeCompatible(quality, row.reps)
+        else stimulusEvidenceCompatible(quality, snapshot.reviewedRealization(row))
 
     private fun directFrequency(exposureWeeks: Int, eligibleWeeks: Int): Double? =
         if (eligibleWeeks == 0) null else exposureWeeks.toDouble() / eligibleWeeks.toDouble()

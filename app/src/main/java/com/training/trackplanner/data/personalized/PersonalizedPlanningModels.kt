@@ -221,6 +221,8 @@ data class PlanningHistorySnapshot(
     val planDayProjection: PlanDayProjection? = null,
     val planWeekTissueProjection: PlanWeekTissueProjection? = null,
     val strengthPerformanceRegistry: com.training.trackplanner.analysis.strengthperformance.StrengthPerformanceRegistry? = null,
+    /** Immutable local posterior history already loaded for the planning cutoff. */
+    val strengthPerformanceHistory: List<com.training.trackplanner.data.StrengthExercisePerformanceHistoryEntity> = emptyList(),
     /** Phase A/B2 shadow evidence; immutable and deliberately excluded from planner authority. */
     val stimulusExposureLedger: StimulusExposureLedger = StimulusExposureLedger.EMPTY
 ) {

@@ -42,6 +42,7 @@ import com.training.trackplanner.data.personalized.StimulusTargetControlProgramA
 import com.training.trackplanner.data.personalized.StimulusTargetCandidateSelector
 import com.training.trackplanner.data.personalized.StimulusSelectionProgramComparison
 import com.training.trackplanner.data.personalized.StimulusSelectionProgramComparisonEngine
+import com.training.trackplanner.data.personalized.StimulusPrescriptionRealizationPlanEngine
 import com.training.trackplanner.data.personalized.NeedRelevance
 import com.training.trackplanner.data.personalized.RegionalBottleneckDiagnosisEngine
 import com.training.trackplanner.data.personalized.RegionalEvidenceIndexBuilder
@@ -75,6 +76,8 @@ import org.json.JSONObject
 import java.time.LocalDate
 import java.util.UUID
 import kotlin.math.exp
+import com.training.trackplanner.analysis.strengthperformance.StrengthPerformanceLoadResolver
+import com.training.trackplanner.data.personalized.CanonicalStrengthReferenceIndex
 
 internal class PersonalizedProgramPlanningService(
     private val exerciseDao: ExerciseDao,
@@ -435,7 +438,7 @@ internal class PersonalizedProgramPlanningService(
             experimentalFinalAudit,
             request.durationWeeks
         )
-        return StimulusSelectionProgramComparisonEngine().compare(
+        val comparison = StimulusSelectionProgramComparisonEngine().compare(
             control = control,
             experimental = experimental,
             targetPlan = targetPlan,
@@ -443,6 +446,19 @@ internal class PersonalizedProgramPlanningService(
             controlAudit = targetPlan.controlProgramAudit,
             experimentalAudit = experimentalAudit
         )
+        val prescriptionPlan = StimulusPrescriptionRealizationPlanEngine().build(
+            targetPlan = targetPlan,
+            selectionPlan = selectionPlan,
+            snapshot = snapshot
+        )
+        val controlWithPlan = control.copy(
+            personalizedDecision = control.personalizedDecision?.copy(
+                athleteStimulusNeedProfile = control.personalizedDecision?.athleteStimulusNeedProfile?.copy(
+                    stimulusPrescriptionRealizationPlanShadow = prescriptionPlan
+                )
+            )
+        )
+        return comparison.copy(control = controlWithPlan, prescriptionRealizationPlan = prescriptionPlan)
     }
 
     /** Compatibility wrapper for callers that have not yet adopted the two-phase API. */
@@ -511,8 +527,12 @@ internal class PersonalizedProgramPlanningService(
         } ?: ExerciseRoleRelationCatalog.EMPTY
         val baseSnapshot = snapshotBuilder.build(cutoff, history, exercises, metadata, badmintonCatalog, profile, preferences, canonicalStrength, recovery, roleCatalog)
         val snapshot = if (includeStimulusExposureLedger) {
+            val loadResolver = StrengthPerformanceLoadResolver(dailyMetrics, checkIns, profile)
             baseSnapshot.copy(
-                stimulusExposureLedger = com.training.trackplanner.data.personalized.StimulusExposureLedgerBuilder().build(
+                stimulusExposureLedger = com.training.trackplanner.data.personalized.StimulusExposureLedgerBuilder(
+                    strengthLoadResolver = loadResolver,
+                    strengthPerformanceRegistry = strengthPerformanceRegistry
+                ).build(
                     cutoff = cutoff,
                     history = history,
                     exercises = baseSnapshot.exercises,
@@ -523,12 +543,14 @@ internal class PersonalizedProgramPlanningService(
                     badmintonCatalog = badmintonCatalog,
                     exerciseRoleCatalog = roleCatalog,
                     historyStart = qualityDoseHistoryHorizon(cutoff).ledgerStart,
-                    reviewedCanonicalStableKeys = reviewedCanonicalStableKeys
+                    reviewedCanonicalStableKeys = reviewedCanonicalStableKeys,
+                    strengthPerformanceHistory = posteriorHistory
                 )
             )
         } else baseSnapshot
         return snapshot.copy(performancePrescriptions = performancePrescriptions,
             strengthPerformanceRegistry = strengthPerformanceRegistry,
+            strengthPerformanceHistory = posteriorHistory,
             planWeekTissueProjection = tissueProjectionProvider(cutoff),
             planDayProjection = com.training.trackplanner.data.personalized.PlanDayOfiProjection(cutoff,
                 DailyFatigueCalculator(runtimeCatalog, canonicalOfiAxisProfiles,

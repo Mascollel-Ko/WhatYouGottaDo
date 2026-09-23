@@ -94,7 +94,9 @@ data class AthleteStimulusNeedProfile(
     /** Phase B3 canonical decision portfolio; it is observation-only and separate from legacy. */
     val trainingDecisionPortfolioShadow: StimulusTrainingDecisionPortfolio? = null,
     /** Phase B4 canonical target envelope; it never enters the legacy target planner. */
-    val stimulusTargetPlanShadow: StimulusTargetPlan? = null
+    val stimulusTargetPlanShadow: StimulusTargetPlan? = null,
+    /** Phase B6.1 typed prescription proposal; shadow-only and never generation authority. */
+    val stimulusPrescriptionRealizationPlanShadow: StimulusPrescriptionRealizationPlan? = null
 )
 
 internal data class StimulusNeedEvidenceIndex(
@@ -151,7 +153,7 @@ internal class StimulusNeedEvidenceIndexBuilder {
                     val direct = relations.any { it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY }
                     val supportive = !direct && relations.any { it.relationLevel == StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY }
                     if (!direct && !supportive) return@forEach
-                    val compatible = stimulusPrescriptionCompatible(qualityId, observation.realizedPrescriptionClass)
+                    val compatible = stimulusEvidenceCompatible(qualityId, observation.realizedStimulusClassification)
                     quality.getValue(qualityId).add(age, observation.source.date, observation.source.sessionStableKey,
                         direct = direct, supportive = supportive, compatible = compatible)
                     if (qualityId == TrainableQuality.STRENGTH && direct && compatible && age in 0..27) {
@@ -569,10 +571,25 @@ internal fun stimulusPrescriptionCompatible(quality: TrainableQuality, realized:
     else -> true
 }
 
+/** Planned prescription shape only; it is never historical realized-stimulus authority. */
+internal fun prescriptionShapeCompatible(quality: TrainableQuality, reps: Int): Boolean = when (quality) {
+    TrainableQuality.STRENGTH -> reps in 1..6
+    TrainableQuality.HYPERTROPHY -> reps in 7..15
+    else -> true
+}
+
+/** B6 reviewed realization compatibility; capability proxies remain evidence-only. */
+internal fun stimulusEvidenceCompatible(quality: TrainableQuality, realized: RealizedStimulusClassification): Boolean = when (quality) {
+    TrainableQuality.STRENGTH -> realized.isRealized && realized.kind == RealizedStimulusKind.STRENGTH_LIKE
+    TrainableQuality.HYPERTROPHY -> realized.isRealized && realized.kind == RealizedStimulusKind.HYPERTROPHY_LIKE
+    else -> realized.authority == RealizedStimulusAuthority.REVIEWED
+}
+
 internal fun AthleteStimulusNeedProfile.toCompactJson(): JSONObject = JSONObject()
     .put("generatedAtCutoff", generatedAtCutoff.toString())
     .put("shadowOnly", shadowOnly)
     .put("prescriptionAuthority", prescriptionAuthority)
+    .put("stimulusPrescriptionRealizationPlanShadow", stimulusPrescriptionRealizationPlanShadow?.toCompactJson())
     .put("unresolved", JSONArray(unresolved))
     .put("reasonCodes", JSONArray(reasonCodes))
     .put("qualityNeeds", JSONArray(qualityNeeds.map { need -> JSONObject()

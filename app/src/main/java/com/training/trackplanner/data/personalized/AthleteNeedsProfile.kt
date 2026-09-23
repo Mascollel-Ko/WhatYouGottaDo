@@ -228,7 +228,7 @@ class AthleteNeedsProfileEngine(
             val relations = physicalRelations[row.stableKey].orEmpty()
             relations.forEach { relation ->
                 val bucket = qualityBuckets.getValue(relation.qualityId)
-                bucket.add(row, relation, age)
+                bucket.add(row, relation, age, snapshot)
             }
             val activityKind = snapshot.activityKind(row.stableKey)
             if (activityKind in STRUCTURED_TASK_EVIDENCE_KINDS) {
@@ -455,8 +455,11 @@ class AthleteNeedsProfileEngine(
 
     private inner class MutableQualityBucket {
         private val records = mutableListOf<QualityObservation>()
-        fun add(row: PlanningSetRecord, relation: ExercisePhysicalQualityRelation, age: Int) {
-            records += QualityObservation(row, relation.relationLevel, age, provisionalRealizedStimulusClass(row))
+        fun add(row: PlanningSetRecord, relation: ExercisePhysicalQualityRelation, age: Int, snapshot: PlanningHistorySnapshot) {
+            val realized = if (snapshot.stimulusExposureLedger.setObservations.isEmpty()) {
+                provisionalRealizedStimulusClass(row)
+            } else snapshot.reviewedRealization(row).toLegacyClass()
+            records += QualityObservation(row, relation.relationLevel, age, realized)
         }
         fun currentStableKeys(): Set<String> = records.asSequence()
             .filter { it.age in 0..27 }

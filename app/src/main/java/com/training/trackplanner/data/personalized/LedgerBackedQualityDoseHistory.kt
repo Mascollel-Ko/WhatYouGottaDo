@@ -211,7 +211,7 @@ internal class LedgerBackedQualityDoseHistoryAnalyzer {
                 val direct = relations.any { it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY }
                 val supportive = !direct && relations.any { it.relationLevel == StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY }
                 if (!direct && !supportive) return@forEach
-                val compatible = stimulusPrescriptionCompatible(quality, observation.realizedPrescriptionClass)
+                val compatible = stimulusEvidenceCompatible(quality, observation.realizedStimulusClassification)
                 week.add(
                     quality = quality,
                     date = observation.source.date,

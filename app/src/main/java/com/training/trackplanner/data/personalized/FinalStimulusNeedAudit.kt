@@ -159,13 +159,12 @@ class FinalStimulusNeedAudit {
             val structured = snapshot.activityKind(item.exerciseStableKey) in STRUCTURED_TASK_KINDS
             sets.forEach { set ->
                 val session = item.weekNumber to item.dayOfWeek
-                val realized = provisionalRealizedStimulusClass(set.reps)
                 physical.groupBy(ExercisePhysicalQualityRelation::qualityId).forEach { (quality, relations) ->
                     val direct = relations.any { it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY }
                     val supportive = !direct && relations.any { it.relationLevel == StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY }
                     if (direct || supportive) {
                         qualities.getValue(quality).add(session, direct, supportive,
-                            stimulusPrescriptionCompatible(quality, realized), quality)
+                            prescriptionShapeCompatible(quality, set.reps), quality)
                     }
                 }
                 if (structured) {

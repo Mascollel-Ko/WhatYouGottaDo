@@ -432,7 +432,7 @@ class RegionalTargetCandidateSelector {
     private fun prescriptionCompatible(snapshot: PlanningHistorySnapshot, key: String, quality: TrainableQuality): Boolean {
         val rows = snapshot.allConfirmedSets.filter { it.stableKey == key }
         return when (quality) {
-            TrainableQuality.STRENGTH -> rows.any { provisionalRealizedStimulusClass(it) == RealizedStimulusClass.STRENGTH_LIKE && it.weightKg > 0.0 } ||
+            TrainableQuality.STRENGTH -> rows.any { snapshot.historyRealizedKind(it) == RealizedStimulusKind.STRENGTH_LIKE && it.weightKg > 0.0 } ||
                 snapshot.canonicalStrengthSignals[key]?.observationCount?.let { it >= 2 } == true
             TrainableQuality.HYPERTROPHY -> true
             else -> false
@@ -441,8 +441,8 @@ class RegionalTargetCandidateSelector {
 
     private fun qualityCompatibleHistory(snapshot: PlanningHistorySnapshot, key: String, quality: TrainableQuality): Boolean =
         snapshot.allConfirmedSets.any { it.stableKey == key && when (quality) {
-            TrainableQuality.STRENGTH -> provisionalRealizedStimulusClass(it) == RealizedStimulusClass.STRENGTH_LIKE
-            TrainableQuality.HYPERTROPHY -> provisionalRealizedStimulusClass(it) == RealizedStimulusClass.HYPERTROPHY_LIKE
+            TrainableQuality.STRENGTH -> snapshot.historyRealizedKind(it) == RealizedStimulusKind.STRENGTH_LIKE
+            TrainableQuality.HYPERTROPHY -> snapshot.historyRealizedKind(it) == RealizedStimulusKind.HYPERTROPHY_LIKE
             else -> false
         } }
 
@@ -659,7 +659,7 @@ class RegionalTargetPrescriptionResolver(
         val history = snapshot.allConfirmedSets.filter { it.stableKey == item.stableKey }
         val canonicalPrescription = canonical.prescribe(snapshot, snapshot.preferences.strengthIntent ?: StrengthIntent.MIXED, item, item.style)
         return when (target.quality) {
-            TrainableQuality.HYPERTROPHY -> resolveHypertrophy(history, canonicalPrescription, requestedSets)
+            TrainableQuality.HYPERTROPHY -> resolveHypertrophy(history, canonicalPrescription, snapshot, requestedSets)
             TrainableQuality.STRENGTH -> resolveStrength(history, canonicalPrescription, snapshot, item, requestedSets)
             else -> Resolution(null, listOf("UNSUPPORTED_TARGET_QUALITY"))
         }
@@ -668,9 +668,10 @@ class RegionalTargetPrescriptionResolver(
     private fun resolveHypertrophy(
         history: List<PlanningSetRecord>,
         canonicalPrescription: PlannedPrescription,
+        snapshot: PlanningHistorySnapshot,
         requestedSets: Int
     ): Resolution {
-        val compatible = history.filter { provisionalRealizedStimulusClass(it) == RealizedStimulusClass.HYPERTROPHY_LIKE }
+        val compatible = history.filter { snapshot.historyRealizedKind(it) == RealizedStimulusKind.HYPERTROPHY_LIKE }
             .maxWithOrNull(compareBy<PlanningSetRecord> { it.date }.thenBy { it.setIndex })
         if (compatible != null) {
             return Resolution(
@@ -717,7 +718,7 @@ class RegionalTargetPrescriptionResolver(
         requestedSets: Int
     ): Resolution {
         val compatible = history.filter {
-            provisionalRealizedStimulusClass(it) == RealizedStimulusClass.STRENGTH_LIKE && it.weightKg > 0.0
+            it.reps in 1..6 && it.weightKg > 0.0
         }.maxWithOrNull(compareBy<PlanningSetRecord> { it.date }.thenBy { it.setIndex })
         if (compatible != null) {
             return Resolution(
