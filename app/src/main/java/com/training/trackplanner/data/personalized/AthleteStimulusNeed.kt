@@ -143,6 +143,11 @@ internal class StimulusNeedEvidenceIndexBuilder {
                 }
                 profile.issues.forEach { reasonCodes += it.code }
                 val relationsByQuality = profile.physicalQualities.groupBy(ExercisePhysicalQualityRelation::qualityId)
+                if (relationsByQuality.isEmpty()) {
+                    TrainableQuality.entries.forEach { qualityId ->
+                        quality.getValue(qualityId).observeClassification(age, observation.classificationAuthority)
+                    }
+                }
                 if (observation.activityKind in STRUCTURED_TASK_EVIDENCE_KINDS) {
                     classification.forEach { (window, counts) ->
                         if (age in window.range) counts.observe(observation.classificationAuthority)

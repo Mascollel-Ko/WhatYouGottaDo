@@ -123,7 +123,13 @@ object RealizedStimulusClassifier {
             RealizedStimulusKind.HYPERTROPHY_LIKE -> TrainableQuality.HYPERTROPHY
             RealizedStimulusKind.NONE -> return RealizedStimulusClassification.reviewedNonRealization()
         }
-        if (requiredQuality !in input.directQualities) return RealizedStimulusClassification.reviewedNonRealization("DIRECT_QUALITY_RELATION_REQUIRED")
+        if (requiredQuality !in input.directQualities) {
+            return if (input.directQualities.any { it in setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY) }) {
+                RealizedStimulusClassification.reviewedNonRealization("DIRECT_QUALITY_RELATION_REQUIRED")
+            } else {
+                unclassified("DIRECT_QUALITY_RELATION_REQUIRED")
+            }
+        }
         val load = input.resolvedLoadKg?.takeIf { it.isFinite() && it > 0.0 }
             ?: return unclassified("RESOLVED_LOAD_UNAVAILABLE")
         val reference = input.reference1RmKg?.takeIf { it.isFinite() && it > 0.0 }

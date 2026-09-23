@@ -203,6 +203,11 @@ internal class LedgerBackedQualityDoseHistoryAnalyzer {
             week.sourceObservationCount++
             val profile = ledger.facetProfilesByStableKey[observation.facetProfileKey]
             if (profile == null) return@observationLoop
+            if (profile.physicalQualities.isEmpty()) {
+                TrainableQuality.entries.forEach { quality ->
+                    week.observeClassification(quality, observation.classificationAuthority)
+                }
+            }
             profile.physicalQualities.groupBy(ExercisePhysicalQualityRelation::qualityId).forEach { (quality, relations) ->
                 val direct = relations.any { it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY }
                 val supportive = !direct && relations.any { it.relationLevel == StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY }
