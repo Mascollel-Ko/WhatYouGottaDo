@@ -87,7 +87,9 @@ class StimulusSelectionServiceIntegrationTest {
                         revisionKey = revisionKey,
                         eventUuid = "b6-service-reference",
                         sessionKey = "b6-service-reference-session",
-                        sessionDate = cutoff.minusDays(1).toString(),
+                        // The reviewed reference must precede every observed session so the
+                        // canonical classifier can independently validate the historical loads.
+                        sessionDate = cutoff.minusDays(60).toString(),
                         exerciseStableKey = stableKey,
                         priorLogMean = ln(50.0),
                         priorLogVariance = 0.1,
