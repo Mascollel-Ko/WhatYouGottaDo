@@ -161,10 +161,17 @@ class FinalStimulusNeedAudit {
                 val session = item.weekNumber to item.dayOfWeek
                 physical.groupBy(ExercisePhysicalQualityRelation::qualityId).forEach { (quality, relations) ->
                     val direct = relations.any { it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY }
-                    val supportive = !direct && relations.any { it.relationLevel == StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY }
+                        val supportive = !direct && relations.any { it.relationLevel == StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY }
                     if (direct || supportive) {
+                        val compatible = if (quality in setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY)) {
+                            prescriptionShapeCompatible(quality, set.reps)
+                        } else {
+                            // Capability proxies are canonical relation evidence; they do not
+                            // inherit the resistance rep-band gate used by B6 realization.
+                            true
+                        }
                         qualities.getValue(quality).add(session, direct, supportive,
-                            prescriptionShapeCompatible(quality, set.reps), quality)
+                            compatible, quality)
                     }
                 }
                 if (structured) {

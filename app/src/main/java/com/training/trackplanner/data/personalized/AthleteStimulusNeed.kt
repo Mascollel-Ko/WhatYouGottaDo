@@ -153,8 +153,14 @@ internal class StimulusNeedEvidenceIndexBuilder {
                     val direct = relations.any { it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY }
                     val supportive = !direct && relations.any { it.relationLevel == StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY }
                     if (!direct && !supportive) return@forEach
-                    val compatible = realizationClassified && stimulusEvidenceCompatible(qualityId, observation.realizedStimulusClassification)
-                    quality.getValue(qualityId).add(age, observation.source.date, observation.source.sessionStableKey,
+                    val accumulator = quality.getValue(qualityId)
+                    accumulator.observeClassification(age, observation.classificationAuthority)
+                    val compatible = if (qualityId in PRESCRIPTION_GATED_QUALITIES) {
+                        realizationClassified && realizedPrescriptionCompatible(qualityId, observation.realizedStimulusClassification)
+                    } else {
+                        capabilityProxyCompatible(observation.classificationAuthority)
+                    }
+                    accumulator.add(age, observation.source.date, observation.source.sessionStableKey,
                         direct = direct, supportive = supportive, compatible = compatible)
                     if (qualityId == TrainableQuality.STRENGTH && direct && compatible && age in 0..27) {
                         strengthStableKeys += observation.source.stableKey
@@ -168,19 +174,19 @@ internal class StimulusNeedEvidenceIndexBuilder {
                         .filter { it.objective.name in reviewedTasks }
                         .groupBy { it.objective.name }
                         .forEach { (objective, relations) ->
-                            val direct = relations.any { it.transferLevel == BadmintonObjectiveTransferLevel.DIRECT }
+                    val direct = relations.any { it.transferLevel == BadmintonObjectiveTransferLevel.DIRECT }
                             val supportive = !direct && relations.any { it.transferLevel == BadmintonObjectiveTransferLevel.SUPPORTIVE }
                             if (direct || supportive) {
                                 tasks.getValue(objective).add(
                                     age, observation.source.date, observation.source.sessionStableKey,
-                                    direct = direct, supportive = supportive, compatible = realizationClassified
+                                    direct = direct, supportive = supportive,
+                                    compatible = capabilityProxyCompatible(observation.classificationAuthority)
                                 )
                             }
                         }
                 }
             }
         }
-        quality.values.forEach { it.applyClassification(classification) }
         tasks.values.forEach { it.applyClassification(classification) }
         val courts = CourtAccumulator()
         if (available) {
@@ -215,6 +221,12 @@ internal class StimulusNeedEvidenceIndexBuilder {
             windows.forEach { (window, bucket) -> bucket.applyClassification(classification.getValue(window)) }
         }
 
+        fun observeClassification(age: Int, authority: StimulusClassificationAuthority) {
+            windows.forEach { (window, bucket) ->
+                if (age in window.range) bucket.observeClassification(authority)
+            }
+        }
+
         fun add(age: Int, date: LocalDate, session: String, direct: Boolean, supportive: Boolean, compatible: Boolean) {
             windows.forEach { (window, bucket) ->
                 if (age !in window.range) return@forEach
@@ -244,7 +256,7 @@ internal class StimulusNeedEvidenceIndexBuilder {
                 evidenceReasons += "SUPPORTIVE_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE"
             }
             if (quality != null && quality !in PRESCRIPTION_GATED_QUALITIES) {
-                evidenceReasons += "CANONICAL_CAPABILITY_PROXY_REALIZED_STIMULUS_AUTHORITY_UNAVAILABLE"
+                evidenceReasons += "CANONICAL_CAPABILITY_PROXY_SOURCE_AUTHORITY_ONLY"
             }
             if (current.unclassifiedSourceUnits > 0) {
                 evidenceReasons += "UNCLASSIFIED_STIMULUS_SOURCE_PRESENT"
@@ -588,12 +600,20 @@ internal fun prescriptionShapeCompatible(quality: TrainableQuality, reps: Int): 
     else -> true
 }
 
-/** B6 reviewed realization compatibility; capability proxies remain evidence-only. */
-internal fun stimulusEvidenceCompatible(quality: TrainableQuality, realized: RealizedStimulusClassification): Boolean = when (quality) {
+/** B6 reviewed realization compatibility for the two qualities with a realization gate. */
+internal fun realizedPrescriptionCompatible(quality: TrainableQuality, realized: RealizedStimulusClassification): Boolean = when (quality) {
     TrainableQuality.STRENGTH -> realized.isRealized && realized.kind == RealizedStimulusKind.STRENGTH_LIKE
     TrainableQuality.HYPERTROPHY -> realized.isRealized && realized.kind == RealizedStimulusKind.HYPERTROPHY_LIKE
-    else -> realized.authority == RealizedStimulusAuthority.REVIEWED
+    else -> false
 }
+
+/** Capability proxies use canonical source identity and relation authority only. */
+internal fun capabilityProxyCompatible(authority: StimulusClassificationAuthority): Boolean =
+    authority == StimulusClassificationAuthority.REVIEWED_CANONICAL
+
+@Deprecated("Use realizedPrescriptionCompatible or capabilityProxyCompatible with explicit authority")
+internal fun stimulusEvidenceCompatible(quality: TrainableQuality, realized: RealizedStimulusClassification): Boolean =
+    quality in setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY) && realizedPrescriptionCompatible(quality, realized)
 
 internal fun AthleteStimulusNeedProfile.toCompactJson(): JSONObject = JSONObject()
     .put("generatedAtCutoff", generatedAtCutoff.toString())

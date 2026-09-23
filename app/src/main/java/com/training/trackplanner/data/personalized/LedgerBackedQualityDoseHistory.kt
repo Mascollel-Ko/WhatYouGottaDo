@@ -201,17 +201,17 @@ internal class LedgerBackedQualityDoseHistoryAnalyzer {
             val week = weekByStart[weekStart] ?: return@observationLoop
             sourceObservationCount++
             week.sourceObservationCount++
-            if (observation.activityKind in RELEVANT_SOURCE_KINDS) {
-                week.observeClassification(observation.classificationAuthority)
-            }
             val profile = ledger.facetProfilesByStableKey[observation.facetProfileKey]
             if (profile == null) return@observationLoop
-            if (observation.classificationAuthority == StimulusClassificationAuthority.UNCLASSIFIED) return@observationLoop
             profile.physicalQualities.groupBy(ExercisePhysicalQualityRelation::qualityId).forEach { (quality, relations) ->
                 val direct = relations.any { it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY }
                 val supportive = !direct && relations.any { it.relationLevel == StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY }
                 if (!direct && !supportive) return@forEach
-                val compatible = stimulusEvidenceCompatible(quality, observation.realizedStimulusClassification)
+                week.observeClassification(quality, observation.classificationAuthority)
+                val compatible = if (quality in PRESCRIPTION_GATED_QUALITIES) {
+                    observation.classificationAuthority != StimulusClassificationAuthority.UNCLASSIFIED &&
+                        realizedPrescriptionCompatible(quality, observation.realizedStimulusClassification)
+                } else capabilityProxyCompatible(observation.classificationAuthority)
                 week.add(
                     quality = quality,
                     date = observation.source.date,
@@ -250,7 +250,7 @@ internal class LedgerBackedQualityDoseHistoryAnalyzer {
             reasons += "UNCLASSIFIED_SOURCE_EXCLUDED_FROM_NUMERIC_BASELINE"
         }
         TrainableQuality.entries.filter { it !in PRESCRIPTION_GATED_QUALITIES }.forEach {
-            reasons += "${it.name}_CANONICAL_CAPABILITY_PROXY_REALIZED_STIMULUS_AUTHORITY_UNAVAILABLE"
+            reasons += "${it.name}_CANONICAL_CAPABILITY_PROXY_SOURCE_AUTHORITY_ONLY"
         }
         val comparisons = TrainableQuality.entries.associateWith { quality ->
             compare(quality, legacyHistory.bands[quality], bands.getValue(quality), weekly.getValue(quality), horizon, snapshot.cutoff)
@@ -341,15 +341,18 @@ internal class LedgerBackedQualityDoseHistoryAnalyzer {
     ) {
         private val byQuality = mutableMapOf<TrainableQuality, MutableEvidence>()
         var sourceObservationCount: Int = 0
-        private var classifiedRelevantUnits: Int = 0
-        private var unclassifiedRelevantUnits: Int = 0
+        private val classifiedRelevantUnits = mutableMapOf<TrainableQuality, Int>()
+        private val unclassifiedRelevantUnits = mutableMapOf<TrainableQuality, Int>()
 
         val hasRelevantSourceObservations: Boolean
-            get() = classifiedRelevantUnits + unclassifiedRelevantUnits > 0
+            get() = classifiedRelevantUnits.values.sum() + unclassifiedRelevantUnits.values.sum() > 0
 
-        fun observeClassification(authority: StimulusClassificationAuthority) {
-            if (authority == StimulusClassificationAuthority.UNCLASSIFIED) unclassifiedRelevantUnits++
-            else classifiedRelevantUnits++
+        fun observeClassification(quality: TrainableQuality, authority: StimulusClassificationAuthority) {
+            if (authority == StimulusClassificationAuthority.UNCLASSIFIED) {
+                unclassifiedRelevantUnits[quality] = unclassifiedRelevantUnits.getOrDefault(quality, 0) + 1
+            } else {
+                classifiedRelevantUnits[quality] = classifiedRelevantUnits.getOrDefault(quality, 0) + 1
+            }
         }
 
         fun add(quality: TrainableQuality, date: LocalDate, sessionStableKey: String, direct: Boolean,
@@ -362,7 +365,8 @@ internal class LedgerBackedQualityDoseHistoryAnalyzer {
         fun evidence(quality: TrainableQuality): QualityDoseWeekEvidence {
             val value = byQuality[quality] ?: MutableEvidence()
             return value.toEvidence(start, end, excludedFromBaseline,
-                hasRelevantSourceObservations, quality, classifiedRelevantUnits, unclassifiedRelevantUnits)
+                classifiedRelevantUnits.getOrDefault(quality, 0) + unclassifiedRelevantUnits.getOrDefault(quality, 0) > 0,
+                quality, classifiedRelevantUnits.getOrDefault(quality, 0), unclassifiedRelevantUnits.getOrDefault(quality, 0))
         }
     }
 

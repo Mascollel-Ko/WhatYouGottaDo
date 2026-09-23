@@ -425,7 +425,9 @@ class StimulusTargetCandidateSelector(
 
     private fun historyCompatible(snapshot: PlanningHistorySnapshot, quality: TrainableQuality, row: PlanningSetRecord): Boolean =
         if (snapshot.stimulusExposureLedger.setObservations.isEmpty()) compatibleHistory(quality, provisionalRealizedStimulusClass(row))
-        else stimulusEvidenceCompatible(quality, snapshot.reviewedRealization(row))
+        else if (quality in setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY)) {
+            realizedPrescriptionCompatible(quality, snapshot.reviewedRealization(row))
+        } else capabilityProxyCompatible(snapshot.reviewedSourceAuthority(row))
 
     private fun equipmentCompatible(snapshot: PlanningHistorySnapshot, key: String, request: ProgramSkeletonRequest): Boolean {
         if (request.availableEquipment.isEmpty()) return true

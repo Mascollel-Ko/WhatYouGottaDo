@@ -95,10 +95,15 @@ class CanonicalStrengthReferenceIndex(rows: List<StrengthExercisePerformanceHist
             }
         }
         val row = exact ?: ordered.lastOrNull {
-            it.exerciseStableKey == stableKey && it.baselineEstablishedBefore &&
-                LocalDate.parse(it.sessionDate).isBefore(date)
+            it.exerciseStableKey == stableKey &&
+                LocalDate.parse(it.sessionDate).isBefore(date) &&
+                it.baselineEstablishedAfter
         }
-        return row?.priorLogMean?.let(::exp)?.takeIf { it.isFinite() && it > 0.0 }
+        return if (exact != null) {
+            exact.priorLogMean.let(::exp).takeIf { it.isFinite() && it > 0.0 }
+        } else {
+            row?.posteriorLogMean?.let(::exp)?.takeIf { it.isFinite() && it > 0.0 }
+        }
     }
 }
 
@@ -111,34 +116,40 @@ object RealizedStimulusClassifier {
         val kind = when (input.reps) {
             in 1..6 -> RealizedStimulusKind.STRENGTH_LIKE
             in 7..15 -> RealizedStimulusKind.HYPERTROPHY_LIKE
-            else -> return unclassified("REPS_OUTSIDE_REVIEWED_STIMULUS_RANGE")
+            else -> return RealizedStimulusClassification.reviewedNonRealization("REPS_OUTSIDE_REVIEWED_STIMULUS_RANGE")
         }
         val requiredQuality = when (kind) {
             RealizedStimulusKind.STRENGTH_LIKE -> TrainableQuality.STRENGTH
             RealizedStimulusKind.HYPERTROPHY_LIKE -> TrainableQuality.HYPERTROPHY
             RealizedStimulusKind.NONE -> return RealizedStimulusClassification.reviewedNonRealization()
         }
-        if (requiredQuality !in input.directQualities) return unclassified("DIRECT_QUALITY_RELATION_REQUIRED")
+        if (requiredQuality !in input.directQualities) return RealizedStimulusClassification.reviewedNonRealization("DIRECT_QUALITY_RELATION_REQUIRED")
         val load = input.resolvedLoadKg?.takeIf { it.isFinite() && it > 0.0 }
             ?: return unclassified("RESOLVED_LOAD_UNAVAILABLE")
         val reference = input.reference1RmKg?.takeIf { it.isFinite() && it > 0.0 }
-            ?: return unclassified("INDEPENDENT_REFERENCE_1RM_UNAVAILABLE")
-        val relative = load / reference
-        if (!relative.isFinite()) return unclassified("RELATIVE_INTENSITY_UNAVAILABLE")
-        if (kind == RealizedStimulusKind.STRENGTH_LIKE && relative < 0.70) {
-            return unclassified("STRENGTH_LOAD_BELOW_70_PERCENT_REFERENCE_1RM")
+        val relative = reference?.let { load / it }
+        if (relative != null && !relative.isFinite()) return unclassified("RELATIVE_INTENSITY_UNAVAILABLE")
+        if (kind == RealizedStimulusKind.STRENGTH_LIKE && reference == null) {
+            return unclassified("INDEPENDENT_REFERENCE_1RM_UNAVAILABLE")
         }
-        val rir = input.impliedRir ?: input.curve?.let { curve ->
-            curve.profile.invert(relative).repetitions?.let { failureReps ->
+        if (kind == RealizedStimulusKind.STRENGTH_LIKE && relative != null && relative < 0.70) {
+            return RealizedStimulusClassification.reviewedNonRealization("STRENGTH_LOAD_BELOW_70_PERCENT_REFERENCE_1RM")
+        }
+        val rir = input.impliedRir ?: relative?.let { relativeIntensity -> input.curve?.let { curve ->
+            curve.profile.invert(relativeIntensity).repetitions?.let { failureReps ->
                 floor((failureReps - input.reps).coerceAtLeast(0.0))
             }
-        }
+        } }
         val effortSatisfied = when {
             input.rpe?.isFinite() == true -> input.rpe >= if (kind == RealizedStimulusKind.STRENGTH_LIKE) 6.0 else 7.0
             rir?.isFinite() == true -> rir <= if (kind == RealizedStimulusKind.STRENGTH_LIKE) 4.0 else 3.0
-            else -> false
+            else -> null
         }
-        if (!effortSatisfied) return unclassified("EFFORT_THRESHOLD_UNRESOLVED")
+        if (effortSatisfied == false) return RealizedStimulusClassification.reviewedNonRealization("EFFORT_THRESHOLD_NOT_MET")
+        if (effortSatisfied == null) return unclassified("EFFORT_AUTHORITY_UNAVAILABLE")
+        if (kind == RealizedStimulusKind.HYPERTROPHY_LIKE && reference == null && input.rpe?.isFinite() != true) {
+            return unclassified("INDEPENDENT_REFERENCE_1RM_OR_RPE_REQUIRED")
+        }
         return RealizedStimulusClassification(
             kind = kind,
             status = RealizedStimulusStatus.REALIZED,
@@ -182,6 +193,11 @@ internal fun PlanningHistorySnapshot.reviewedRealization(row: PlanningSetRecord)
     stimulusExposureLedger.setObservations.firstOrNull {
         it.source.stableKey == row.stableKey && it.source.date == row.date && it.source.setIndex == row.setIndex
     }?.realizedStimulusClassification ?: RealizedStimulusClassification.UNCLASSIFIED
+
+internal fun PlanningHistorySnapshot.reviewedSourceAuthority(row: PlanningSetRecord): StimulusClassificationAuthority =
+    stimulusExposureLedger.setObservations.firstOrNull {
+        it.source.stableKey == row.stableKey && it.source.date == row.date && it.source.setIndex == row.setIndex
+    }?.classificationAuthority ?: StimulusClassificationAuthority.UNCLASSIFIED
 
 internal fun PlanningHistorySnapshot.historyRealizedKind(row: PlanningSetRecord): RealizedStimulusKind =
     if (stimulusExposureLedger.setObservations.isEmpty()) {

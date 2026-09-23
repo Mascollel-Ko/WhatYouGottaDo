@@ -446,10 +446,30 @@ internal class PersonalizedProgramPlanningService(
             controlAudit = targetPlan.controlProgramAudit,
             experimentalAudit = experimentalAudit
         )
+        // Build one read-only owner side table from the already materialized A/B programs.
+        // B6.1 must inspect this comparison; it must not regenerate a third program.
+        val ownerKeys = buildSet {
+            selectionPlan.selectedCandidates.forEach { add(StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole)) }
+            selectionPlan.traces.flatMap { it.controlDirectCapabilityIdentities }.forEach { stableKey ->
+                control.items.filter { it.exerciseStableKey == stableKey }.forEach { item ->
+                    add(StimulusPrescriptionOwnerIdentity(item.exerciseStableKey, item.selectionRole))
+                }
+            }
+        }
+        val materializedPrescriptions = (experimental.items + control.items)
+            .asSequence()
+            .map { item ->
+                StimulusPrescriptionOwnerIdentity(item.exerciseStableKey, item.selectionRole) to
+                    PlannedPrescription(item.prescription, item.setPrescriptions, item.restSeconds, item.weightSource)
+            }
+            .filter { it.first in ownerKeys }
+            .toList()
+            .associateBy({ it.first }, { it.second })
         val prescriptionPlan = StimulusPrescriptionRealizationPlanEngine().build(
             targetPlan = targetPlan,
             selectionPlan = selectionPlan,
-            snapshot = snapshot
+            snapshot = snapshot,
+            currentPrescriptions = materializedPrescriptions
         )
         val controlWithPlan = control.copy(
             personalizedDecision = control.personalizedDecision?.copy(

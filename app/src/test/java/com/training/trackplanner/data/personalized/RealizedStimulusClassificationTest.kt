@@ -62,23 +62,23 @@ class RealizedStimulusClassificationTest {
     }
 
     @Test
-    fun referenceIndexUsesExactPriorAndNeverFutureRows() {
+    fun referenceIndexUsesExactPriorAndEarlierPosteriorWithoutFutureLeakage() {
         val index = CanonicalStrengthReferenceIndex(listOf(
-            row("prior", "2026-09-22", "key", 4.0, true),
+            row("prior", "2026-09-22", "key", 4.0, true, posterior = 4.4),
             row("future", "2026-09-24", "key", 5.0, true),
             row("same", "2026-09-23", "session", 4.6, true)
         ))
         assertEquals(kotlin.math.exp(4.6), index.reference1RmKg("key", date, "session")!!, 0.001)
-        assertEquals(kotlin.math.exp(4.0), index.reference1RmKg("key", date, "other")!!, 0.001)
+        assertEquals(kotlin.math.exp(4.4), index.reference1RmKg("key", date, "other")!!, 0.001)
         assertEquals(null, index.reference1RmKg("key", LocalDate.of(2026, 9, 21), "other"))
     }
 
-    private fun row(event: String, date: String, session: String, prior: Double, baseline: Boolean) =
+    private fun row(event: String, date: String, session: String, prior: Double, baseline: Boolean, posterior: Double = prior) =
         StrengthExercisePerformanceHistoryEntity(
             revisionKey = "revision", eventUuid = event, sessionKey = session, sessionDate = date,
             exerciseStableKey = "key", priorLogMean = prior, priorLogVariance = 0.1,
             sessionLikelihoodLogMean = null, sessionLikelihoodLogVariance = null, sessionLikelihoodProper = true,
-            innovationResidualLog = null, innovationVariance = null, posteriorLogMean = prior,
+            innovationResidualLog = null, innovationVariance = null, posteriorLogMean = posterior,
             posteriorLogVariance = 0.1, posteriorMeanIncrementLog = 0.0, transitionDays = 1,
             baselineEstablishedBefore = baseline, baselineEstablishedAfter = baseline,
             proxyTransferEligible = false, proxyTransferApplied = false, modelVersion = "test",

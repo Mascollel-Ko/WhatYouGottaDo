@@ -145,7 +145,9 @@ data class StimulusExposureSummary(
     val provisionalHypertrophyLikeSets: Int,
     val ambiguousPrescriptionSets: Int,
     val durationMinutes: Double = 0.0,
-    val practiceLoad: Double = 0.0
+    val practiceLoad: Double = 0.0,
+    val reviewedNonRealizationSets: Int = 0,
+    val unclassifiedSourceSets: Int = 0
 )
 
 /**
@@ -202,6 +204,8 @@ data class StimulusExposureLedger(
         var strengthLike = 0
         var hypertrophyLike = 0
         var ambiguous = 0
+        var reviewedNonRealization = 0
+        var unclassifiedSource = 0
         val sessionOccurrences = HashSet<Pair<LocalDate, String>>()
         val trainingDays = HashSet<LocalDate>()
         val activeBins = HashSet<Int>()
@@ -209,9 +213,10 @@ data class StimulusExposureLedger(
             val age = age(observation.source.date)
             if (age !in window.minimumAgeDays..window.maximumAgeDays) continue
             val profile = facetProfilesByStableKey[observation.facetProfileKey] ?: continue
-            if (observation.classificationAuthority == StimulusClassificationAuthority.UNCLASSIFIED) continue
             if (!filter.matches(profile, observation.activityKind)) continue
             confirmedSets++
+            if (observation.classificationAuthority == StimulusClassificationAuthority.UNCLASSIFIED) unclassifiedSource++
+            if (observation.realizedStimulusClassification.status == RealizedStimulusStatus.REVIEWED_NON_REALIZATION) reviewedNonRealization++
             sessionOccurrences += observation.source.date to observation.source.sessionStableKey
             trainingDays += observation.source.date
             activeBins += age / 7
@@ -249,7 +254,9 @@ data class StimulusExposureLedger(
             provisionalHypertrophyLikeSets = hypertrophyLike,
             ambiguousPrescriptionSets = ambiguous,
             durationMinutes = durationMinutes,
-            practiceLoad = practiceLoad
+            practiceLoad = practiceLoad,
+            reviewedNonRealizationSets = reviewedNonRealization,
+            unclassifiedSourceSets = unclassifiedSource
         )
     }
 
@@ -421,8 +428,6 @@ class StimulusExposureLedgerBuilder(
                         loadSemantics = semantics
                     )
                 )
-                val realizationAuthority = if (reviewedRealization.authority == RealizedStimulusAuthority.REVIEWED) authority
-                else StimulusClassificationAuthority.UNCLASSIFIED
                 sets += StimulusSetObservation(
                     source = StimulusSourceRef(record.entry.id, record.entry.backupSourceId, set.id, set.setIndex, record.entry.sessionStableKey, date, stableKey),
                     activityKind = activity,
@@ -432,7 +437,7 @@ class StimulusExposureLedgerBuilder(
                     rpe = set.rpe ?: record.entry.rpe,
                     realizedPrescriptionClass = reviewedRealization.toLegacyClass(),
                     facetProfileKey = profile.stableKey,
-                    classificationAuthority = realizationAuthority,
+                    classificationAuthority = authority,
                     realizedStimulusClassification = reviewedRealization
                 )
             }

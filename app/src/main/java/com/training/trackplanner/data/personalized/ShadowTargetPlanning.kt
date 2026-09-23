@@ -421,7 +421,9 @@ class QualityDoseHistoryAnalyzer {
 
     private fun prescriptionCompatible(quality: TrainableQuality, row: PlanningSetRecord, snapshot: PlanningHistorySnapshot): Boolean =
         if (snapshot.stimulusExposureLedger.setObservations.isEmpty()) prescriptionShapeCompatible(quality, row.reps)
-        else stimulusEvidenceCompatible(quality, snapshot.reviewedRealization(row))
+        else if (quality in setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY)) {
+            realizedPrescriptionCompatible(quality, snapshot.reviewedRealization(row))
+        } else capabilityProxyCompatible(snapshot.reviewedSourceAuthority(row))
 
     private fun directFrequency(exposureWeeks: Int, eligibleWeeks: Int): Double? =
         if (eligibleWeeks == 0) null else exposureWeeks.toDouble() / eligibleWeeks.toDouble()
