@@ -45,6 +45,8 @@ import com.training.trackplanner.data.personalized.StimulusSelectionProgramCompa
 import com.training.trackplanner.data.personalized.StimulusPrescriptionRealizationPlanEngine
 import com.training.trackplanner.data.personalized.StimulusPrescriptionOwnerIdentity
 import com.training.trackplanner.data.personalized.PlannedPrescription
+import com.training.trackplanner.data.personalized.StimulusPrescriptionAuthorizationEngine
+import com.training.trackplanner.data.personalized.StimulusPrescriptionMaterializationAuditEngine
 import com.training.trackplanner.data.personalized.NeedRelevance
 import com.training.trackplanner.data.personalized.RegionalBottleneckDiagnosisEngine
 import com.training.trackplanner.data.personalized.RegionalEvidenceIndexBuilder

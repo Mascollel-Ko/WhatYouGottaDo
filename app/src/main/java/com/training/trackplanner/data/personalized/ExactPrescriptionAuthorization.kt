@@ -6,11 +6,14 @@ package com.training.trackplanner.data.personalized
  * sets.
  */
 fun interface ExactPrescriptionAuthorizationProvider {
-    fun authorizedPrescriptionFor(item: PlannedExercise, requestedSets: Int = item.targetSets): PlannedPrescription?
+    fun authorizedPrescriptionFor(item: PlannedExercise, requestedSets: Int): PlannedPrescription?
 
     val authorizedOwners: Map<StimulusPrescriptionOwnerIdentity, PlannedPrescription>
         get() = emptyMap()
 }
+
+internal fun ExactPrescriptionAuthorizationProvider.authorizedPrescriptionFor(item: PlannedExercise): PlannedPrescription? =
+    authorizedPrescriptionFor(item, item.targetSets)
 
 internal fun ExactPrescriptionAuthorizationProvider.prefixFor(
     item: PlannedExercise,
