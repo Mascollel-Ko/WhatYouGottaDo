@@ -73,7 +73,7 @@ class StimulusSelectionServiceIntegrationTest {
                                 // Keep the materialized 40 kg prescription below the newer
                                 // canonical reference while every historical set remains reviewed.
                             reps = 5,
-                                weightKg = if (daysAgo == 7L) 30.0 else 40.0 + exerciseIndex,
+                                weightKg = if (daysAgo <= 9L) 30.0 else 40.0 + exerciseIndex,
                                 confirmed = true,
                                 rpe = 8.0
                             )
