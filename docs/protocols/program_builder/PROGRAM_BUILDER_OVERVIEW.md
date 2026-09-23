@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.39.0 |
+| Protocol version | 3.40.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 0c697b5067e65baacdae309acbabed069c56c9ba |
+| Last audited commit | a366637ffc95a97ea11fa831c1b342d135b504c2 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -971,3 +971,10 @@ Post-audit boundary notes
 - B1 treats incomplete current or prior classification as partial comparison coverage, with current-window-only exposure-state fallback and no exact current/prior ratio interpretation. B3 carries `ledgerAvailable`, `baselineObservability`, `observedPersonalDirectBaseline`, and `numericBaselineUsable` as separate facts and authority decisions.
 - B4 consumes B3 baseline authority and confidence without recomputing them from raw B2 bands. Numeric target envelopes remain shadow targets; only exposure-week distribution and frequency diagnostics are reference-only. Task evidence basis propagates from B1 through B3 and B4.
 - `StimulusSetObservation` now requires explicit classification authority. Dedicated observability regression tests cover reviewed zero, no history, excluded and incomplete weeks, prior-window uncertainty, task-basis propagation, and B3/B4 authority consistency. Phase B6 remains deferred.
+
+### 3.40.0 — Phase B6.0 reviewed realization and B6.1 shadow prescription resolution
+
+- B6.0 replaces reps-only historical Strength/Hypertrophy authority with `RealizedStimulusClassifier`. A set must have a reviewed canonical identity, resistance activity, a direct canonical Strength or Hypertrophy relation, the reviewed `1..6` or `7..15` rep band, an independently resolved load/reference pair, and the applicable effort gate (`RPE ≥6` / implied `RIR ≤4` for Strength; `RPE ≥7` / implied `RIR ≤3` for Hypertrophy). Strength additionally requires load `≥70%` of the independent reference 1RM. Missing reference, load, effort, direct relation, or reviewed identity is typed `UNCLASSIFIED`; reviewed non-realization is a distinct reviewed zero state.
+- `CanonicalStrengthReferenceIndex` uses same-session `priorLogMean` only when `baselineEstablishedBefore` is true, otherwise strictly earlier history. It never uses a same-set/current posterior denominator or future history. Existing `StrengthPerformanceLoadResolver`, registry load semantics, reviewed repetition curves and the already-loaded local posterior history are reused once per planning snapshot.
+- B1/B2, historical regional checks and snapshot-backed shadow consumers read the typed classification. POWER/RFD/SSC and other capability relations remain capability-proxy evidence and cannot become realized prescription authority. The existing reps-only helper remains only as a planned-shape/legacy-fixture compatibility description.
+- B6.1 adds `StimulusPrescriptionRealizationPlanEngine` and typed resolutions keyed by B5 `targetId` plus exact `stableKey`/`selectionRole`. It reports current/probe prescriptions, typed effort targets, owner/evidence/strategy/numeric authority, proposed Strength-safe or Hypertrophy `8 reps / 0 kg` shadow prescriptions, and explicit fail-closed statuses. It has separate B6 shadow authority with `mutationAuthority=false`; it does not mutate programs, persistence, fingerprints, set counts, scheduling, progression, normal generation, or choose a winner. B6.2 and production prescription cutover remain out of scope.

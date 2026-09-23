@@ -148,12 +148,12 @@ internal class StimulusNeedEvidenceIndexBuilder {
                         if (age in window.range) counts.observe(observation.classificationAuthority)
                     }
                 }
-                if (observation.classificationAuthority == StimulusClassificationAuthority.UNCLASSIFIED) return@observationLoop
+                val realizationClassified = observation.classificationAuthority != StimulusClassificationAuthority.UNCLASSIFIED
                 relationsByQuality.forEach { (qualityId, relations) ->
                     val direct = relations.any { it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY }
                     val supportive = !direct && relations.any { it.relationLevel == StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY }
                     if (!direct && !supportive) return@forEach
-                    val compatible = stimulusEvidenceCompatible(qualityId, observation.realizedStimulusClassification)
+                    val compatible = realizationClassified && stimulusEvidenceCompatible(qualityId, observation.realizedStimulusClassification)
                     quality.getValue(qualityId).add(age, observation.source.date, observation.source.sessionStableKey,
                         direct = direct, supportive = supportive, compatible = compatible)
                     if (qualityId == TrainableQuality.STRENGTH && direct && compatible && age in 0..27) {
