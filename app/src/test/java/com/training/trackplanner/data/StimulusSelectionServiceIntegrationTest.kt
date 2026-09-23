@@ -175,6 +175,8 @@ class StimulusSelectionServiceIntegrationTest {
             }
             if (resolved == null) error(
                 "B6 service diagnostics: targets=${comparison.targetPlan?.qualityTargets?.map { it.quality to (it.strategy to (it.evidenceBasis to it.numericAuthority)) }} " +
+                    "bands=${comparison.targetPlan?.qualityTargets?.map { it.quality to (it.baseline?.source to (it.baseline?.eligibleWeekCount to it.baseline?.directExposureWeekCount)) }} " +
+                    "control=${comparison.control.items.map { it.exerciseStableKey to (it.selectionRole to it.setPrescriptions.map { set -> set.reps to set.weightKg }) }} " +
                     "selected=${comparison.selectionPlan.selectedCandidates.map { it.stableKey to it.selectionRole }} " +
                     "traces=${comparison.selectionPlan.traces.map { it.targetId to (it.controlDirectCapabilityIdentities to it.selectedStableKey) }} " +
                     "resolutions=${comparison.prescriptionRealizationPlan?.resolutions?.map { it.targetId to (it.status to it.reasonCodes) }}"
