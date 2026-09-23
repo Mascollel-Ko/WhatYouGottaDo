@@ -483,7 +483,13 @@ internal class PersonalizedProgramPlanningService(
                 )
             )
         )
-        return comparison.copy(control = controlWithPlan, prescriptionRealizationPlan = prescriptionPlan)
+        val enrichedComparison = comparison.copy(
+            control = controlWithPlan,
+            prescriptionRealizationPlan = prescriptionPlan
+        )
+        return enrichedComparison.copy(
+            experimentalReadinessAudit = StimulusExperimentalReadinessAuditEngine().audit(enrichedComparison)
+        )
     }
 
     /**
