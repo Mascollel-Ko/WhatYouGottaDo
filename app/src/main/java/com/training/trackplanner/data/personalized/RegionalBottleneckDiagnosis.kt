@@ -288,13 +288,13 @@ class RegionalEvidenceIndexBuilder {
                             }
                         }
                     }
-                    TrainableQuality.HYPERTROPHY -> if (realized == RealizedStimulusClass.HYPERTROPHY_LIKE) {
+                    TrainableQuality.HYPERTROPHY -> if (realized == RealizedStimulusKind.HYPERTROPHY_LIKE) {
                         if (doseSeen.add(relation.qualityId)) hypertrophy.getValue(movement).add(row, weekStart, age)
                     }
                     else -> Unit
                 }
             }
-            if (specificStrengthRelation && realized == RealizedStimulusClass.STRENGTH_LIKE) {
+            if (specificStrengthRelation && realized == RealizedStimulusKind.STRENGTH_LIKE) {
                 if (age in 0..27) { specificCurrent[movement] = specificCurrent.getValue(movement) + 1; specificCurrentDates.getValue(movement) += row.date }
                 if (age in 28..55) { specificPrevious[movement] = specificPrevious.getValue(movement) + 1; specificPreviousDates.getValue(movement) += row.date }
             }

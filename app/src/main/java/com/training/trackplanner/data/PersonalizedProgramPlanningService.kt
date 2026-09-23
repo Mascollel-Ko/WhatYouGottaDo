@@ -497,6 +497,7 @@ internal class PersonalizedProgramPlanningService(
         val revision = strengthPosteriorDao.revision(StrengthModelRevisionPolicy.CURRENT_REVISION_KEY)
             ?.takeIf { it.status == StrengthModelRevisionPolicy.STATUS_ACTIVE && StrengthModelRevisionPolicy.isCompatible(it) }
         val posteriorHistory = revision?.let { strengthPosteriorDao.historyForRevision(it.revisionKey) }.orEmpty()
+        val strengthPerformanceHistory = revision?.let { strengthPosteriorDao.localHistory(it.revisionKey) }.orEmpty()
         val ofiSeries = DailyFatigueCalculator(
             runtimeCatalog,
             canonicalOfiAxisProfiles,
@@ -544,13 +545,13 @@ internal class PersonalizedProgramPlanningService(
                     exerciseRoleCatalog = roleCatalog,
                     historyStart = qualityDoseHistoryHorizon(cutoff).ledgerStart,
                     reviewedCanonicalStableKeys = reviewedCanonicalStableKeys,
-                    strengthPerformanceHistory = posteriorHistory
+                    strengthPerformanceHistory = strengthPerformanceHistory
                 )
             )
         } else baseSnapshot
         return snapshot.copy(performancePrescriptions = performancePrescriptions,
             strengthPerformanceRegistry = strengthPerformanceRegistry,
-            strengthPerformanceHistory = posteriorHistory,
+            strengthPerformanceHistory = strengthPerformanceHistory,
             planWeekTissueProjection = tissueProjectionProvider(cutoff),
             planDayProjection = com.training.trackplanner.data.personalized.PlanDayOfiProjection(cutoff,
                 DailyFatigueCalculator(runtimeCatalog, canonicalOfiAxisProfiles,
