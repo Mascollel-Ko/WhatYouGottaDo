@@ -328,6 +328,8 @@ class PersonalizedProgramBuilder(
     /** Last generation's observation-only counters, exposed for diagnostics/tests. */
     internal var lastPerformanceMetrics: Map<String, Int> = emptyMap()
         private set
+    /** Scoped experimental authority; kept out of the legacy reflective buildCore seam. */
+    private var activeExactPrescriptionAuthorizationProvider: ExactPrescriptionAuthorizationProvider? = null
 
     fun build(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, gaps: List<AdaptationGap>, intent: BlockIntent, horizon: Int, request: ProgramSkeletonRequest, answers: PersonalizedPlanningAnswers, priorDecisionId: String?, explicitWeeklyDays: Boolean = true,
         frequency: PlanningFrequencyProvenance = PlanningFrequencyProvenance(WeeklyDosePlanner().resolve(state, state.anchors.size + gaps.size),
@@ -340,9 +342,15 @@ class PersonalizedProgramBuilder(
         val memo = PlanningComputationMemo(performanceMetrics)
         val memoSnapshot = memo.wrap(snapshot)
         val generationPrescriptions = prescriptionPlanner.scopedTo(memo)
-        val placed = buildBeforeReflow(memoSnapshot, state, gaps, intent, horizon, request, answers, priorDecisionId, explicitWeeklyDays,
-            frequency, progress, generationPrescriptions, performanceMetrics, materialDemandOverride, regionalTargetPlan,
-            exactPrescriptionAuthorizationProvider)
+        val previousExactAuthorization = activeExactPrescriptionAuthorizationProvider
+        activeExactPrescriptionAuthorizationProvider = exactPrescriptionAuthorizationProvider
+        val placed = try {
+            buildBeforeReflow(memoSnapshot, state, gaps, intent, horizon, request, answers, priorDecisionId, explicitWeeklyDays,
+                frequency, progress, generationPrescriptions, performanceMetrics, materialDemandOverride, regionalTargetPlan,
+                exactPrescriptionAuthorizationProvider)
+        } finally {
+            activeExactPrescriptionAuthorizationProvider = previousExactAuthorization
+        }
         val reviewed = PostSplitWeeklyReflow().review(placed, memoSnapshot, state, progress,
             ReflowEvaluationCounts(performanceMetrics = performanceMetrics))
         val result = if (reviewed.trace.state == "NOT_APPLICABLE_NO_MANDATORY_SPLIT") placed
@@ -378,7 +386,7 @@ class PersonalizedProgramBuilder(
         if (!frequency.explicitIncrease) return buildCore(snapshot, state, gaps, intent, horizon, request, answers, priorDecisionId,
             explicitWeeklyDays, frequency, progress = progress, generationPrescriptions = generationPrescriptions,
             performanceMetrics = performanceMetrics, materialDemandOverride = materialDemandOverride,
-            regionalTargetPlan = regionalTargetPlan, exactPrescriptionAuthorizationProvider = exactPrescriptionAuthorizationProvider)
+            regionalTargetPlan = regionalTargetPlan)
         // BASE is fully evaluated before expansion. Its nested work must not consume expansion's milestone range.
         val baseProgress = PersonalizedPlannerProgressReporter { stage ->
             progress.report(if (stage.percent > 50) PersonalizedPlannerStage.BASE_REVIEW else stage)
@@ -386,7 +394,7 @@ class PersonalizedProgramBuilder(
         val base = buildCore(snapshot, state, gaps, intent, horizon, request.copy(weeklyTrainingDays = frequency.algorithmRecommendedDays),
             answers, priorDecisionId, true, frequency, progress = baseProgress, generationPrescriptions = generationPrescriptions,
             performanceMetrics = performanceMetrics, materialDemandOverride = materialDemandOverride,
-            regionalTargetPlan = regionalTargetPlan, exactPrescriptionAuthorizationProvider = exactPrescriptionAuthorizationProvider)
+            regionalTargetPlan = regionalTargetPlan)
         progress.report(PersonalizedPlannerStage.EXPANSION)
         return FrequencyExpansionPlanner(generationPrescriptions, performanceMetrics).expand(snapshot, state, request, base, frequency,
             exactPrescriptionAuthorizationProvider,
@@ -396,7 +404,7 @@ class PersonalizedProgramBuilder(
             buildCore(snapshot, state, gaps, intent, horizon, request, answers, priorDecisionId, true, frequency, authorized, capacity,
                 progress = PersonalizedPlannerProgressReporter { progress.report(PersonalizedPlannerStage.EXPANSION_RECHECK) }, generationPrescriptions = generationPrescriptions,
                 performanceMetrics = performanceMetrics, materialDemandOverride = materialDemandOverride,
-                regionalTargetPlan = regionalTargetPlan, exactPrescriptionAuthorizationProvider = exactPrescriptionAuthorizationProvider) {
+                regionalTargetPlan = regionalTargetPlan) {
                 result = it
                 it.skeleton
             }
@@ -413,8 +421,8 @@ class PersonalizedProgramBuilder(
         performanceMetrics: PlannerPerformanceMetrics = PlannerPerformanceMetrics(),
         materialDemandOverride: MaterialDemand? = null,
         regionalTargetPlan: RegionalExperimentalTargetPlan? = null,
-        exactPrescriptionAuthorizationProvider: ExactPrescriptionAuthorizationProvider? = null,
         finish: ((CompletionResult) -> GeneratedProgramSkeleton)? = null): GeneratedProgramSkeleton {
+        val exactPrescriptionAuthorizationProvider = activeExactPrescriptionAuthorizationProvider
         progress.report(PersonalizedPlannerStage.DEMAND)
         val transitionPlanner = AdaptationTransitionPlanner()
         val transitions = state.anchors.associate { anchor -> anchor.stableKey to transitionPlanner.decide(anchor, state, gaps) }
