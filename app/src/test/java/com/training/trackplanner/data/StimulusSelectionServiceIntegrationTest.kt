@@ -89,7 +89,7 @@ class StimulusSelectionServiceIntegrationTest {
                         sessionKey = "b6-service-reference-session",
                         // The reviewed reference must precede every observed session so the
                         // canonical classifier can independently validate the historical loads.
-                        sessionDate = cutoff.minusDays(60).toString(),
+                        sessionDate = cutoff.minusDays(55).toString(),
                         exerciseStableKey = stableKey,
                         priorLogMean = ln(50.0),
                         priorLogVariance = 0.1,
