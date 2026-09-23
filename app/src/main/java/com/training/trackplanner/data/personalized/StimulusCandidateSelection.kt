@@ -114,6 +114,7 @@ data class StimulusSelectionProgramComparison(
     val prescriptionRealizationPlan: StimulusPrescriptionRealizationPlan? = null,
     val prescriptionAuthorizationPlan: StimulusPrescriptionAuthorizationPlan? = null,
     val prescriptionMaterializationAudits: List<StimulusPrescriptionMaterializationAudit> = emptyList(),
+    val experimentalReadinessAudit: StimulusExperimentalReadinessAudit? = null,
     val winner: String? = null
 ) {
     init {
@@ -633,6 +634,7 @@ internal fun StimulusSelectionProgramComparison.toCompactJson(): JSONObject = JS
         .put("reasonCodes", JSONArray(trace.reasonCodes))
     }))
     .put("winner", winner)
+    .put("experimentalReadinessAudit", experimentalReadinessAudit?.toJson())
     .put("prescriptionAuthorizationPlan", prescriptionAuthorizationPlan?.let { plan ->
         JSONObject().put("shadowOnly", plan.shadowOnly).put("productionAuthority", plan.productionAuthority)
             .put("authorizations", JSONArray(plan.authorizations.map { authorization -> JSONObject()

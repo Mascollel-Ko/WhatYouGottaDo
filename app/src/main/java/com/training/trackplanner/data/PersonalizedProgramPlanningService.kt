@@ -567,9 +567,12 @@ internal class PersonalizedProgramPlanningService(
         val materializationAudits = StimulusPrescriptionMaterializationAuditEngine().audit(
             authorizationPlan, experimental, snapshot
         )
-        return comparison.copy(
+        val enrichedComparison = comparison.copy(
             prescriptionAuthorizationPlan = authorizationPlan,
             prescriptionMaterializationAudits = materializationAudits
+        )
+        return enrichedComparison.copy(
+            experimentalReadinessAudit = StimulusExperimentalReadinessAuditEngine().audit(enrichedComparison)
         )
     }
 
