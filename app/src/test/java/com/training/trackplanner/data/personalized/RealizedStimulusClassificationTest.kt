@@ -30,9 +30,11 @@ class RealizedStimulusClassificationTest {
     @Test
     fun strengthSixBoundaryExamplesAreFailClosed() {
         assertTrue(RealizedStimulusClassifier.classify(input(6)).isRealized)
-        assertFalse(RealizedStimulusClassifier.classify(input(5, load = 69.9)).isRealized)
+        assertEquals(RealizedStimulusStatus.REVIEWED_NON_REALIZATION,
+            RealizedStimulusClassifier.classify(input(5, load = 69.9)).status)
         assertFalse(RealizedStimulusClassifier.classify(input(5, reference = null)).isRealized)
-        assertFalse(RealizedStimulusClassifier.classify(input(5, rpe = 5.9)).isRealized)
+        assertEquals(RealizedStimulusStatus.REVIEWED_NON_REALIZATION,
+            RealizedStimulusClassifier.classify(input(5, rpe = 5.9)).status)
         assertTrue(RealizedStimulusClassifier.classify(input(5, rpe = null, impliedRir = 4.0)).isRealized)
         assertEquals(RealizedStimulusKind.STRENGTH_LIKE, RealizedStimulusClassifier.classify(input(1)).kind)
     }
@@ -40,10 +42,13 @@ class RealizedStimulusClassificationTest {
     @Test
     fun hypertrophyFiveBoundaryExamplesUseItsOwnEffortGate() {
         assertTrue(RealizedStimulusClassifier.classify(input(7)).isRealized)
-        assertFalse(RealizedStimulusClassifier.classify(input(8, rpe = 6.9)).isRealized)
+        assertEquals(RealizedStimulusStatus.REVIEWED_NON_REALIZATION,
+            RealizedStimulusClassifier.classify(input(8, rpe = 6.9)).status)
         assertTrue(RealizedStimulusClassifier.classify(input(8, rpe = null, impliedRir = 3.0)).isRealized)
+        assertTrue(RealizedStimulusClassifier.classify(input(8, reference = null, rpe = 8.0)).isRealized)
         assertFalse(RealizedStimulusClassifier.classify(input(8, load = null)).isRealized)
-        assertFalse(RealizedStimulusClassifier.classify(input(16)).isRealized)
+        assertEquals(RealizedStimulusStatus.REVIEWED_NON_REALIZATION,
+            RealizedStimulusClassifier.classify(input(16)).status)
     }
 
     @Test

@@ -230,17 +230,16 @@ class RegionalStimulusCreditProjector {
             val region = snapshot.movementCoverage(item.exerciseStableKey)
             if (region == MovementCoverage.OTHER) return@forEach
             item.setPrescriptions.forEach { set ->
-                val realized = when {
-                    provisionalRealizedStimulusClass(set.reps) == RealizedStimulusClass.STRENGTH_LIKE -> TrainableQuality.STRENGTH
-                    provisionalRealizedStimulusClass(set.reps) == RealizedStimulusClass.HYPERTROPHY_LIKE -> TrainableQuality.HYPERTROPHY
-                    else -> null
-                } ?: return@forEach
                 catalog.relations(item.exerciseStableKey).filter {
-                    it.qualityId == realized && it.relationLevel.name == "DIRECT_CAPABILITY" &&
+                    it.relationLevel.name == "DIRECT_CAPABILITY" &&
                         regionQualifierMatches(region, it.regionQualifier)
                 }.forEach {
-                    val key = region to realized
-                    val value = rows.getOrPut(key) { MutableRegionalPlannedStimulus(region, realized) }
+                    val compatible = if (it.qualityId in setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY)) {
+                        prescriptionShapeCompatible(it.qualityId, set.reps)
+                    } else true
+                    if (!compatible) return@forEach
+                    val key = region to it.qualityId
+                    val value = rows.getOrPut(key) { MutableRegionalPlannedStimulus(region, it.qualityId) }
                     value.units++
                     value.weeks += item.weekNumber
                 }

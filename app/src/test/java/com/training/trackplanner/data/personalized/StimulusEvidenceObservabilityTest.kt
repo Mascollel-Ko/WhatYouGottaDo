@@ -150,6 +150,30 @@ class StimulusEvidenceObservabilityTest {
         assertFalse(target.prescriptionRealizationAuthority)
     }
 
+    @Test
+    fun reviewedSourceSeparatesStrengthRealizationFromCapabilityProxy() {
+        val horizon = qualityDoseHistoryHorizon(cutoff)
+        val source = observation("mixed", 99, horizon.newestCompletedWeekEnd, StimulusClassificationAuthority.REVIEWED_CANONICAL)
+            .copy(realizedStimulusClassification = RealizedStimulusClassification.UNCLASSIFIED)
+        val profile = profile("mixed").copy(physicalQualities = listOf(
+            relation("mixed-strength", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY),
+            relation("mixed-power", TrainableQuality.POWER, StimulusCapabilityLevel.DIRECT_CAPABILITY)
+        ))
+        val snapshot = snapshot(ledger(listOf(source), mapOf("mixed" to profile)))
+        val evidence = StimulusNeedEvidenceIndexBuilder().build(snapshot)
+        val strength = evidence.qualityEvidence.getValue(TrainableQuality.STRENGTH)
+        val power = evidence.qualityEvidence.getValue(TrainableQuality.POWER)
+        assertEquals(1, strength.classifiedSourceUnits)
+        assertEquals(0, strength.current28d.directUnits)
+        assertEquals(1, power.classifiedSourceUnits)
+        assertEquals(1, power.current28d.directUnits)
+        assertEquals(StimulusEvidenceCoverage.COMPLETE, power.coverage)
+
+        val baseline = analyze(snapshot)
+        assertEquals(0, baseline.weeklyEvidence.getValue(TrainableQuality.STRENGTH).sumOf { it.directUnits })
+        assertTrue(baseline.weeklyEvidence.getValue(TrainableQuality.POWER).sumOf { it.directUnits } > 0)
+    }
+
     private fun analyze(snapshot: PlanningHistorySnapshot, state: AthletePlanningState = emptyState()) =
         LedgerBackedQualityDoseHistoryAnalyzer().analyze(
             snapshot, state,
