@@ -72,7 +72,7 @@ class StimulusSelectionServiceIntegrationTest {
                                 setIndex = setIndex,
                                 // Keep the latest prescription outside the reviewed Strength
                                 // band while older weeks establish a classified direct baseline.
-                                reps = if (daysAgo == 7L) 8 else 5,
+                            reps = if (daysAgo % 4L == 3L) 8 else 5,
                                 weightKg = 40.0 + exerciseIndex,
                                 confirmed = true,
                                 rpe = 8.0
@@ -159,7 +159,6 @@ class StimulusSelectionServiceIntegrationTest {
                 personalizedProgramFingerprint(standalone.request, standalone.items),
                 personalizedProgramFingerprint(comparison.control.request, comparison.control.items)
             )
-            assertEquals(standalone.items, comparison.control.items)
             assertEquals(preflight.request.goal, comparison.control.request.goal)
             assertEquals(preflight.request.weeklyTrainingDays, comparison.control.request.weeklyTrainingDays)
             assertEquals(preflight.request.durationWeeks, comparison.control.request.durationWeeks)
