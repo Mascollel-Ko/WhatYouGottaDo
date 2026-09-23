@@ -572,8 +572,26 @@ internal class PersonalizedProgramPlanningService(
             prescriptionAuthorizationPlan = authorizationPlan,
             prescriptionMaterializationAudits = materializationAudits
         )
-        return enrichedComparison.copy(
-            experimentalReadinessAudit = StimulusExperimentalReadinessAuditEngine().audit(enrichedComparison)
+        val readinessAudit = StimulusExperimentalReadinessAuditEngine().audit(enrichedComparison)
+        return StimulusSelectionProgramComparison(
+            control = enrichedComparison.control,
+            experimental = enrichedComparison.experimental,
+            targetPlan = enrichedComparison.targetPlan,
+            selectionPlan = enrichedComparison.selectionPlan,
+            controlAudit = enrichedComparison.controlAudit,
+            experimentalAudit = enrichedComparison.experimentalAudit,
+            differences = enrichedComparison.differences,
+            controlStableKeys = enrichedComparison.controlStableKeys,
+            experimentalStableKeys = enrichedComparison.experimentalStableKeys,
+            addedStableKeys = enrichedComparison.addedStableKeys,
+            removedStableKeys = enrichedComparison.removedStableKeys,
+            sharedStableKeys = enrichedComparison.sharedStableKeys,
+            materializationTraces = enrichedComparison.materializationTraces,
+            prescriptionRealizationPlan = enrichedComparison.prescriptionRealizationPlan,
+            prescriptionAuthorizationPlan = enrichedComparison.prescriptionAuthorizationPlan,
+            prescriptionMaterializationAudits = enrichedComparison.prescriptionMaterializationAudits,
+            experimentalReadinessAudit = readinessAudit,
+            winner = null
         )
     }
 
