@@ -136,14 +136,21 @@ class StimulusPrescriptionRealizationPlanEngine(
         if (ownerOptions.isEmpty()) return base(StimulusPrescriptionResolutionStatus.OWNER_UNRESOLVED,
             listOf(if (candidates.isEmpty()) "CONTROL_DIRECT_IDENTITY_OWNER_UNRESOLVED" else "B5_OWNER_NOT_SELECTED"))
 
+        fun probeFor(identity: StimulusPrescriptionOwnerIdentity): PlannedPrescription? {
+            val item = selectionPlan.materialDemand.candidates.firstOrNull { it.stableKey == identity.stableKey } ?: return null
+            val style = if (target.quality == TrainableQuality.STRENGTH) StrengthProgrammingStyle.STRAIGHT_STRENGTH_SETS
+            else StrengthProgrammingStyle.TOP_SET_HYPERTROPHY
+            return prescriptions.prescribe(snapshot, StrengthIntent.MIXED, item, style)
+        }
         val evaluated = ownerOptions.mapNotNull { (identity, source) ->
-            val prescription = currentPrescriptions[identity] ?: return@mapNotNull null
-            val compatibility = plannedCompatibility(target.quality, prescription, snapshot, identity.stableKey)
-            Triple(identity, source, Pair(prescription, compatibility))
+            val current = currentPrescriptions[identity]
+            val effective = current ?: probeFor(identity) ?: return@mapNotNull null
+            val compatibility = plannedCompatibility(target.quality, effective, snapshot, identity.stableKey)
+            Triple(identity, source, Triple(current, effective, compatibility))
         }
         if (evaluated.isEmpty()) return base(StimulusPrescriptionResolutionStatus.OWNER_UNRESOLVED,
             listOf("MATERIALIZED_OWNER_PRESCRIPTION_UNAVAILABLE"))
-        val compatible = evaluated.filter { it.third.second.status == PlannedStimulusCompatibilityStatus.COMPATIBLE_CONDITIONAL_ON_EFFORT }
+        val compatible = evaluated.filter { it.third.third.status == PlannedStimulusCompatibilityStatus.COMPATIBLE_CONDITIONAL_ON_EFFORT }
         if (compatible.size > 1) return base(StimulusPrescriptionResolutionStatus.ALREADY_TARGET_COMPATIBLE,
             listOf("ALREADY_TARGET_COMPATIBLE", "MULTIPLE_COMPATIBLE_EXISTING_IDENTITIES_NO_ARBITRARY_SELECTION"))
         val selected = when {
@@ -162,29 +169,30 @@ class StimulusPrescriptionRealizationPlanEngine(
         val identity = selected.first
         val source = selected.second
         val current = selected.third.first
-        val compatibility = selected.third.second
+        val effective = selected.third.second
+        val compatibility = selected.third.third
         val owner = StimulusPrescriptionOwner(identity.stableKey, identity.selectionRole, source)
         val effort = target.quality.effortTarget()
         if (compatibility.status == PlannedStimulusCompatibilityStatus.COMPATIBLE_CONDITIONAL_ON_EFFORT) {
-            val proposal = StimulusTargetCompatiblePrescription(current.sets, effort,
+            val proposal = StimulusTargetCompatiblePrescription(effective.sets, effort,
                 "EXISTING_TYPED_PLANNED_AUTHORITY", "CURRENT_PLANNED_PRESCRIPTION_ALREADY_COMPATIBLE")
             return base(StimulusPrescriptionResolutionStatus.ALREADY_TARGET_COMPATIBLE,
-                listOf("CURRENT_PLANNED_PRESCRIPTION_COMPATIBLE_CONDITIONAL_ON_EFFORT"), owner, current, current, compatibility, proposal)
+                listOf("CURRENT_PLANNED_PRESCRIPTION_COMPATIBLE_CONDITIONAL_ON_EFFORT"), owner, current, effective, compatibility, proposal)
         }
         if (compatibility.status == PlannedStimulusCompatibilityStatus.UNRESOLVED) return base(
             StimulusPrescriptionResolutionStatus.NO_SAFE_TARGET_COMPATIBLE_PRESCRIPTION,
-            compatibility.reasonCodes.ifEmpty { listOf("PLANNED_COMPATIBILITY_UNRESOLVED") }, owner, current, current, compatibility)
+            compatibility.reasonCodes.ifEmpty { listOf("PLANNED_COMPATIBILITY_UNRESOLVED") }, owner, current, effective, compatibility)
         if (target.numericAuthority in setOf(
                 StimulusTargetNumericAuthority.NONE,
                 StimulusTargetNumericAuthority.DIRECTION_ONLY,
                 StimulusTargetNumericAuthority.UNRESOLVED
             )) return base(StimulusPrescriptionResolutionStatus.NO_PRESCRIPTION_CHANGE_AUTHORIZED,
-            listOf("B4_NUMERIC_AUTHORITY_DOES_NOT_AUTHORIZE_B6_CHANGE"), owner, current, current, compatibility)
-        val proposed = propose(target.quality, current, snapshot, identity.stableKey, effort)
+            listOf("B4_NUMERIC_AUTHORITY_DOES_NOT_AUTHORIZE_B6_CHANGE"), owner, current, effective, compatibility)
+        val proposed = propose(target.quality, effective, snapshot, identity.stableKey, effort)
             ?: return base(StimulusPrescriptionResolutionStatus.NO_SAFE_TARGET_COMPATIBLE_PRESCRIPTION,
-                listOf("SAFE_LOAD_OR_EFFORT_AUTHORITY_UNAVAILABLE"), owner, current, current, compatibility)
+                listOf("SAFE_LOAD_OR_EFFORT_AUTHORITY_UNAVAILABLE"), owner, current, effective, compatibility)
         return base(StimulusPrescriptionResolutionStatus.SAFE_TARGET_COMPATIBLE_PRESCRIPTION_RESOLVED,
-            listOf("SHADOW_PROPOSAL_ONLY", "B5_OWNER_STABLE_KEY_AND_SELECTION_ROLE_PRESERVED"), owner, current, current, compatibility, proposed)
+            listOf("SHADOW_PROPOSAL_ONLY", "B5_OWNER_STABLE_KEY_AND_SELECTION_ROLE_PRESERVED"), owner, current, effective, compatibility, proposed)
     }
 
     private fun plannedCompatibility(
