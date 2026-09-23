@@ -151,8 +151,19 @@ class StimulusPrescriptionRealizationPlanEngine(
         if (evaluated.isEmpty()) return base(StimulusPrescriptionResolutionStatus.OWNER_UNRESOLVED,
             listOf("MATERIALIZED_OWNER_PRESCRIPTION_UNAVAILABLE"))
         val compatible = evaluated.filter { it.third.third.status == PlannedStimulusCompatibilityStatus.COMPATIBLE_CONDITIONAL_ON_EFFORT }
-        if (compatible.size > 1) return base(StimulusPrescriptionResolutionStatus.ALREADY_TARGET_COMPATIBLE,
-            listOf("ALREADY_TARGET_COMPATIBLE", "MULTIPLE_COMPATIBLE_EXISTING_IDENTITIES_NO_ARBITRARY_SELECTION"))
+        if (compatible.size > 1) {
+            return if (candidates.isNotEmpty()) {
+                base(
+                    StimulusPrescriptionResolutionStatus.AMBIGUOUS_OWNER,
+                    listOf("MULTIPLE_B5_IDENTITIES_WITHOUT_EXACT_OWNER", "NO_ARBITRARY_B5_OWNER_SELECTION")
+                )
+            } else {
+                base(
+                    StimulusPrescriptionResolutionStatus.ALREADY_TARGET_COMPATIBLE,
+                    listOf("ALREADY_TARGET_COMPATIBLE", "MULTIPLE_COMPATIBLE_EXISTING_IDENTITIES_NO_ARBITRARY_SELECTION")
+                )
+            }
+        }
         val selected = when {
             compatible.size == 1 -> compatible.single()
             evaluated.size == 1 -> evaluated.single()

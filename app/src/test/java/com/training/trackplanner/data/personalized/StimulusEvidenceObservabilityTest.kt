@@ -20,20 +20,45 @@ class StimulusEvidenceObservabilityTest {
     private val cutoff = LocalDate.of(2026, 9, 23)
 
     @Test
-    fun reviewedSourceWithoutDirectRelationIsAValidZeroButNotANumericBaseline() {
+    fun reviewedSourceWithoutPhysicalQualityRelationIsIrrelevantToQualityViews() {
         val horizon = qualityDoseHistoryHorizon(cutoff)
         val ledger = ledger(listOf(observation("reviewed-zero", 1, horizon.newestCompletedWeekEnd,
             StimulusClassificationAuthority.REVIEWED_CANONICAL)), mapOf("reviewed-zero" to profile("reviewed-zero")))
-        val baseline = analyze(snapshot(ledger))
+        val snapshot = snapshot(ledger)
+        val evidence = StimulusNeedEvidenceIndexBuilder().build(snapshot)
+        TrainableQuality.entries.forEach { quality ->
+            val value = evidence.qualityEvidence.getValue(quality)
+            assertEquals(0, value.current28d.classifiedSourceUnits)
+            assertEquals(0, value.current28d.unclassifiedSourceUnits)
+            assertEquals(0, value.current28d.directUnits)
+            assertEquals(0, value.current28d.supportiveUnits)
+        }
+        val baseline = analyze(snapshot)
+        TrainableQuality.entries.forEach { quality ->
+            assertEquals(DoseBaselineObservability.NO_ELIGIBLE_CLASSIFIED_HISTORY,
+                baseline.baselineObservability.getValue(quality))
+            assertTrue(baseline.weeklyEvidence.getValue(quality).all { !it.hasSourceObservations })
+        }
+    }
+
+    @Test
+    fun reviewedNonRealizationIsAValidStrengthZero() {
+        val horizon = qualityDoseHistoryHorizon(cutoff)
+        val key = "reviewed-zero"
+        val reviewedZero = observation(key, 1, horizon.newestCompletedWeekEnd,
+            StimulusClassificationAuthority.REVIEWED_CANONICAL).copy(
+            realizedStimulusClassification = RealizedStimulusClassification.reviewedNonRealization()
+        )
+        val relationProfile = profile(key, relation(key, TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY))
+        val baseline = analyze(snapshot(ledger(listOf(reviewedZero), mapOf(key to relationProfile))))
+        val week = baseline.weeklyEvidence.getValue(TrainableQuality.STRENGTH).first { it.hasSourceObservations }
+        assertEquals(1, week.classifiedSourceUnits)
+        assertEquals(0, week.unclassifiedRelevantUnits)
+        assertEquals(0, week.directUnits)
+        assertEquals(1, week.excludedDirectByPrescriptionUnits)
+        assertTrue(week.classificationComplete)
+        assertTrue(week.eligibleForNumericBaseline)
         assertEquals(DoseBaselineObservability.COMPLETE, baseline.baselineObservability.getValue(TrainableQuality.STRENGTH))
-        assertEquals(1, baseline.classificationCompleteSourceWeekCount.getValue(TrainableQuality.STRENGTH))
-        assertEquals(0, baseline.classificationIncompleteSourceWeekCount.getValue(TrainableQuality.STRENGTH))
-        val decision = portfolio(TrainingNeedDecision.DEVELOP, baseline).qualityDecisions.single()
-        assertFalse(decision.observedPersonalDirectBaseline)
-        assertFalse(decision.numericBaselineUsable)
-        assertEquals(StimulusDoseStrategy.INTRODUCE_DIRECT_STIMULUS, decision.strategy)
-        assertTrue(decision.reasonCodes.contains("VALID_REVIEWED_ZERO_BASELINE_HISTORY"))
-        assertTrue(decision.reasonCodes.contains("NO_PERSONAL_DIRECT_BASELINE"))
     }
 
     @Test
@@ -163,15 +188,36 @@ class StimulusEvidenceObservabilityTest {
         val evidence = StimulusNeedEvidenceIndexBuilder().build(snapshot)
         val strength = evidence.qualityEvidence.getValue(TrainableQuality.STRENGTH)
         val power = evidence.qualityEvidence.getValue(TrainableQuality.POWER)
-        assertEquals(1, strength.classifiedSourceUnits)
+        assertEquals(0, strength.classifiedSourceUnits)
+        assertEquals(1, strength.unclassifiedSourceUnits)
         assertEquals(0, strength.current28d.directUnits)
         assertEquals(1, power.classifiedSourceUnits)
+        assertEquals(0, power.unclassifiedSourceUnits)
         assertEquals(1, power.current28d.directUnits)
         assertEquals(StimulusEvidenceCoverage.COMPLETE, power.coverage)
 
         val baseline = analyze(snapshot)
         assertEquals(0, baseline.weeklyEvidence.getValue(TrainableQuality.STRENGTH).sumOf { it.directUnits })
+        assertEquals(1, baseline.weeklyEvidence.getValue(TrainableQuality.STRENGTH).sumOf { it.unclassifiedRelevantUnits })
+        assertEquals(DoseBaselineObservability.PARTIAL_UNCLASSIFIED,
+            baseline.baselineObservability.getValue(TrainableQuality.STRENGTH))
         assertTrue(baseline.weeklyEvidence.getValue(TrainableQuality.POWER).sumOf { it.directUnits } > 0)
+        assertEquals(DoseBaselineObservability.COMPLETE, baseline.baselineObservability.getValue(TrainableQuality.POWER))
+    }
+
+    @Test
+    fun taskRelationRemainsIndependentWhenPhysicalQualityRelationIsAbsent() {
+        val horizon = qualityDoseHistoryHorizon(cutoff)
+        val taskProfile = profile("task-only", objectives = listOf(
+            CanonicalBadmintonObjectiveRelation("task-only", "task-only", BadmintonObjective.DECELERATION,
+                BadmintonObjectiveTransferLevel.DIRECT, "TEST", setOf("TEST"), "TEST")
+        ))
+        val source = observation("task-only", 1, horizon.newestCompletedWeekEnd,
+            StimulusClassificationAuthority.REVIEWED_CANONICAL, PlannedActivityKind.STRUCTURED_BADMINTON_DRILL)
+        val snapshot = snapshot(ledger(listOf(source), mapOf("task-only" to taskProfile)))
+        val evidence = StimulusNeedEvidenceIndexBuilder().build(snapshot)
+        assertEquals(1, evidence.taskEvidence.getValue(BadmintonObjective.DECELERATION.name).current28d.directUnits)
+        assertTrue(TrainableQuality.entries.all { evidence.qualityEvidence.getValue(it).current28d.classifiedSourceUnits == 0 })
     }
 
     private fun analyze(snapshot: PlanningHistorySnapshot, state: AthletePlanningState = emptyState()) =

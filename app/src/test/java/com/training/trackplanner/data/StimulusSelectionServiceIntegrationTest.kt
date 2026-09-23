@@ -14,6 +14,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.time.LocalDate
+import kotlin.math.ln
 
 /** Exercises the real repository/service orchestration for the explicit B5 A/B path. */
 @RunWith(RobolectricTestRunner::class)
@@ -27,6 +28,20 @@ class StimulusSelectionServiceIntegrationTest {
         try {
             val repository = TrainingRepository(db, context)
             repository.seedIfNeeded()
+            val posteriorDao = db.strengthPosteriorDao()
+            val revisionKey = StrengthModelRevisionPolicy.CURRENT_REVISION_KEY
+            if (posteriorDao.revision(revisionKey) == null) {
+                posteriorDao.insertRevisionStrict(
+                    StrengthModelRevisionPolicy.current(1L, null).copy(
+                        status = StrengthModelRevisionPolicy.STATUS_ACTIVE,
+                        rebuildCompletedAt = 1L
+                    )
+                )
+            } else {
+                posteriorDao.updateRevisionStatus(
+                    revisionKey, StrengthModelRevisionPolicy.STATUS_ACTIVE, 1L, null, null
+                )
+            }
             db.initialUserProfileDao().upsert(
                 InitialUserProfile(
                     primaryGoal = "BADMINTON_PERFORMANCE",
@@ -61,6 +76,37 @@ class StimulusSelectionServiceIntegrationTest {
                     )
                 }
             }
+            posteriorDao.insertLocalHistoryStrict(
+                listOf("barbell_back_squat", "barbell_bench_press", "barbell_deadlift").map { stableKey ->
+                    StrengthExercisePerformanceHistoryEntity(
+                        revisionKey = revisionKey,
+                        eventUuid = "b6-service-reference",
+                        sessionKey = "b6-service-reference-session",
+                        sessionDate = cutoff.minusDays(1).toString(),
+                        exerciseStableKey = stableKey,
+                        priorLogMean = ln(50.0),
+                        priorLogVariance = 0.1,
+                        sessionLikelihoodLogMean = null,
+                        sessionLikelihoodLogVariance = null,
+                        sessionLikelihoodProper = true,
+                        innovationResidualLog = null,
+                        innovationVariance = null,
+                        posteriorLogMean = ln(50.0),
+                        posteriorLogVariance = 0.1,
+                        posteriorMeanIncrementLog = 0.0,
+                        transitionDays = 1L,
+                        baselineEstablishedBefore = true,
+                        baselineEstablishedAfter = true,
+                        proxyTransferEligible = false,
+                        proxyTransferApplied = false,
+                        modelVersion = "B6_TEST",
+                        curveVersion = "B6_TEST",
+                        rirPolicyVersion = "B6_TEST",
+                        evidenceFingerprint = "b6-service-reference-$stableKey",
+                        createdAt = 1L
+                    )
+                }
+            )
             val request = ProgramSkeletonRequest(
                 name = "B5 service integration",
                 goal = ProgramGoal.BADMINTON_SUPPORT,
@@ -113,6 +159,19 @@ class StimulusSelectionServiceIntegrationTest {
             assertTrue(comparison.prescriptionRealizationPlan?.shadowOnly == true)
             assertFalse(comparison.prescriptionRealizationPlan?.mutationAuthority == true)
             assertTrue(comparison.prescriptionRealizationPlan?.resolutions.orEmpty().all { !it.mutationAuthority })
+            val resolved = comparison.prescriptionRealizationPlan?.resolutions.orEmpty().firstOrNull {
+                it.status == StimulusPrescriptionResolutionStatus.SAFE_TARGET_COMPATIBLE_PRESCRIPTION_RESOLVED
+            }
+            assertNotNull("real service path must resolve one safe B6.1 Strength proposal", resolved)
+            val resolution = requireNotNull(resolved)
+            val owner = requireNotNull(resolution.owner)
+            assertTrue(owner.stableKey in setOf("barbell_back_squat", "barbell_bench_press", "barbell_deadlift"))
+            assertTrue(owner.selectionRole.isNotBlank())
+            assertEquals(resolution.currentPrescription?.sets?.size, resolution.proposedPrescription?.sets?.size)
+            assertTrue(resolution.proposedPrescription?.sets?.all { it.reps in 1..6 } == true)
+            val reference = requireNotNull(resolution.plannedCompatibility?.reference1RmKg)
+            assertTrue(resolution.proposedPrescription?.sets?.all { it.weightKg >= reference * .70 } == true)
+            assertFalse(resolution.mutationAuthority)
             assertTrue("fixture must exercise canonical B5 selection", comparison.selectionPlan.selectedCandidates.isNotEmpty())
             assertTrue(comparison.materializationTraces.isNotEmpty())
             assertTrue(comparison.experimental.items.isNotEmpty())

@@ -143,25 +143,25 @@ internal class StimulusNeedEvidenceIndexBuilder {
                 }
                 profile.issues.forEach { reasonCodes += it.code }
                 val relationsByQuality = profile.physicalQualities.groupBy(ExercisePhysicalQualityRelation::qualityId)
-                if (relationsByQuality.isEmpty()) {
-                    TrainableQuality.entries.forEach { qualityId ->
-                        quality.getValue(qualityId).observeClassification(age, observation.classificationAuthority)
-                    }
-                }
                 if (observation.activityKind in STRUCTURED_TASK_EVIDENCE_KINDS) {
                     classification.forEach { (window, counts) ->
                         if (age in window.range) counts.observe(observation.classificationAuthority)
                     }
                 }
-                val realizationClassified = observation.classificationAuthority != StimulusClassificationAuthority.UNCLASSIFIED
                 relationsByQuality.forEach { (qualityId, relations) ->
                     val direct = relations.any { it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY }
                     val supportive = !direct && relations.any { it.relationLevel == StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY }
                     if (!direct && !supportive) return@forEach
                     val accumulator = quality.getValue(qualityId)
-                    accumulator.observeClassification(age, observation.classificationAuthority)
+                    val classification = qualityObservationClassification(
+                        qualityId,
+                        observation,
+                        hasCanonicalRelation = true
+                    )
+                    accumulator.observeClassification(age, classification)
                     val compatible = if (qualityId in PRESCRIPTION_GATED_QUALITIES) {
-                        realizationClassified && realizedPrescriptionCompatible(qualityId, observation.realizedStimulusClassification)
+                        classification == QualityObservationClassification.CLASSIFIED &&
+                            realizedPrescriptionCompatible(qualityId, observation.realizedStimulusClassification)
                     } else {
                         capabilityProxyCompatible(observation.classificationAuthority)
                     }
@@ -226,9 +226,10 @@ internal class StimulusNeedEvidenceIndexBuilder {
             windows.forEach { (window, bucket) -> bucket.applyClassification(classification.getValue(window)) }
         }
 
-        fun observeClassification(age: Int, authority: StimulusClassificationAuthority) {
+        fun observeClassification(age: Int, classification: QualityObservationClassification) {
+            if (classification == QualityObservationClassification.IRRELEVANT) return
             windows.forEach { (window, bucket) ->
-                if (age in window.range) bucket.observeClassification(authority)
+                if (age in window.range) bucket.observeClassification(classification)
             }
         }
 
@@ -324,8 +325,8 @@ internal class StimulusNeedEvidenceIndexBuilder {
         val directDays = linkedSetOf<LocalDate>()
         val supportiveDays = linkedSetOf<LocalDate>()
 
-        fun observeClassification(authority: StimulusClassificationAuthority) {
-            if (authority == StimulusClassificationAuthority.UNCLASSIFIED) unclassifiedSourceUnits++
+        fun observeClassification(classification: QualityObservationClassification) {
+            if (classification == QualityObservationClassification.UNCLASSIFIED) unclassifiedSourceUnits++
             else classifiedSourceUnits++
         }
 

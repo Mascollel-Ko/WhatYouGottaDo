@@ -121,6 +121,103 @@ class StimulusPrescriptionRealizationTest {
     }
 
     @Test
+    fun multipleControlIdentitiesUseTheOnlyCompatibleOwner() {
+        val trace = StimulusCandidateSelectionTrace(
+            targetId = "QUALITY:STRENGTH", strategy = StimulusDoseStrategy.INTRODUCE_DIRECT_STIMULUS,
+            priority = TargetPriority.PRIMARY, controlDirectCapabilityIdentities = listOf(key, "other"),
+            selectionRequired = false, candidatePool = emptyList(), selectedStableKey = null,
+            coveredByPreviouslySelectedStableKey = null, reasonCodes = emptyList()
+        )
+        val result = StimulusPrescriptionRealizationPlanEngine().build(
+            StimulusTargetPlan(listOf(target(TrainableQuality.STRENGTH)), emptyList(), emptyList()),
+            selection(traces = listOf(trace)), snapshot,
+            mapOf(
+                owner("A") to prescription(8, 80.0),
+                StimulusPrescriptionOwnerIdentity("other", "B") to prescription(5, 80.0)
+            )
+        ).resolutions.single()
+        assertEquals(StimulusPrescriptionResolutionStatus.ALREADY_TARGET_COMPATIBLE, result.status)
+        assertEquals("other", result.owner?.stableKey)
+        assertEquals("B", result.owner?.selectionRole)
+    }
+
+    @Test
+    fun multipleCompatibleControlIdentitiesRemainAmbiguousWithoutArbitraryOwner() {
+        val trace = StimulusCandidateSelectionTrace(
+            targetId = "QUALITY:STRENGTH", strategy = StimulusDoseStrategy.INTRODUCE_DIRECT_STIMULUS,
+            priority = TargetPriority.PRIMARY, controlDirectCapabilityIdentities = listOf(key, "other"),
+            selectionRequired = false, candidatePool = emptyList(), selectedStableKey = null,
+            coveredByPreviouslySelectedStableKey = null, reasonCodes = emptyList()
+        )
+        val result = StimulusPrescriptionRealizationPlanEngine().build(
+            StimulusTargetPlan(listOf(target(TrainableQuality.STRENGTH)), emptyList(), emptyList()),
+            selection(traces = listOf(trace)), snapshot,
+            mapOf(
+                owner("A") to prescription(5, 80.0),
+                StimulusPrescriptionOwnerIdentity("other", "B") to prescription(5, 80.0)
+            )
+        ).resolutions.single()
+        assertEquals(StimulusPrescriptionResolutionStatus.ALREADY_TARGET_COMPATIBLE, result.status)
+        assertEquals(null, result.owner)
+        assertTrue(result.reasonCodes.contains("MULTIPLE_COMPATIBLE_EXISTING_IDENTITIES_NO_ARBITRARY_SELECTION"))
+    }
+
+    @Test
+    fun incompatibleControlIdentitiesRemainAmbiguousAndCannotPropose() {
+        val trace = StimulusCandidateSelectionTrace(
+            targetId = "QUALITY:STRENGTH", strategy = StimulusDoseStrategy.INTRODUCE_DIRECT_STIMULUS,
+            priority = TargetPriority.PRIMARY, controlDirectCapabilityIdentities = listOf(key, "other"),
+            selectionRequired = false, candidatePool = emptyList(), selectedStableKey = null,
+            coveredByPreviouslySelectedStableKey = null, reasonCodes = emptyList()
+        )
+        val result = StimulusPrescriptionRealizationPlanEngine().build(
+            StimulusTargetPlan(listOf(target(TrainableQuality.STRENGTH)), emptyList(), emptyList()),
+            selection(traces = listOf(trace)), snapshot,
+            mapOf(
+                owner("A") to prescription(8, 60.0),
+                StimulusPrescriptionOwnerIdentity("other", "B") to prescription(8, 60.0)
+            )
+        ).resolutions.single()
+        assertEquals(StimulusPrescriptionResolutionStatus.AMBIGUOUS_EXISTING_REALIZATION_OWNER, result.status)
+        assertEquals(null, result.proposedPrescription)
+    }
+
+    @Test
+    fun multipleB5CompatibleIdentitiesFailClosedWithoutArbitrarySelection() {
+        val result = StimulusPrescriptionRealizationPlanEngine().build(
+            StimulusTargetPlan(listOf(target(TrainableQuality.STRENGTH)), emptyList(), emptyList()),
+            selection(candidate("A"), candidate("B")), snapshot,
+            mapOf(owner("A") to prescription(5, 80.0), owner("B") to prescription(5, 80.0))
+        ).resolutions.single()
+        assertEquals(StimulusPrescriptionResolutionStatus.AMBIGUOUS_OWNER, result.status)
+        assertEquals(null, result.owner)
+        assertTrue(result.reasonCodes.contains("NO_ARBITRARY_B5_OWNER_SELECTION"))
+    }
+
+    @Test
+    fun plannedStrengthCompatibilityHonorsSeventyPercentBoundaryAndNeverRaisesLoad() {
+        fun resolve(reps: Int, load: Double) = StimulusPrescriptionRealizationPlanEngine().build(
+            StimulusTargetPlan(listOf(target(TrainableQuality.STRENGTH)), emptyList(), emptyList()),
+            selection(candidate()), snapshot, mapOf(owner() to prescription(reps, load))
+        ).resolutions.single()
+
+        assertEquals(PlannedStimulusCompatibilityStatus.INCOMPATIBLE, resolve(8, 69.9).plannedCompatibility?.status)
+        assertEquals(StimulusPrescriptionResolutionStatus.NO_SAFE_TARGET_COMPATIBLE_PRESCRIPTION, resolve(8, 69.9).status)
+
+        val seventy = resolve(8, 70.0)
+        assertEquals(PlannedStimulusCompatibilityStatus.COMPATIBLE_CONDITIONAL_ON_EFFORT, seventy.plannedCompatibility?.status)
+        assertEquals(StimulusPrescriptionResolutionStatus.SAFE_TARGET_COMPATIBLE_PRESCRIPTION_RESOLVED, seventy.status)
+        assertTrue(seventy.proposedPrescription?.sets?.all { it.weightKg >= 70.0 } == true)
+        assertEquals(2, seventy.proposedPrescription?.sets?.size)
+
+        assertEquals(PlannedStimulusCompatibilityStatus.COMPATIBLE_CONDITIONAL_ON_EFFORT, resolve(8, 80.0).plannedCompatibility?.status)
+        assertEquals(StimulusPrescriptionResolutionStatus.NO_SAFE_TARGET_COMPATIBLE_PRESCRIPTION, resolve(8, 60.0).status)
+        val eighty = resolve(8, 80.0)
+        assertEquals(5, eighty.proposedPrescription?.sets?.first()?.reps)
+        assertEquals(80.0, eighty.proposedPrescription?.sets?.first()?.weightKg ?: -1.0, .001)
+    }
+
+    @Test
     fun proxyAndAmbiguousOwnerAreExplicitlyUnavailable() {
         val power = StimulusPrescriptionRealizationPlanEngine().build(
             StimulusTargetPlan(listOf(target(TrainableQuality.POWER)), emptyList(), emptyList()), selection(candidate()), snapshot

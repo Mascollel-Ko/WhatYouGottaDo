@@ -203,18 +203,18 @@ internal class LedgerBackedQualityDoseHistoryAnalyzer {
             week.sourceObservationCount++
             val profile = ledger.facetProfilesByStableKey[observation.facetProfileKey]
             if (profile == null) return@observationLoop
-            if (profile.physicalQualities.isEmpty()) {
-                TrainableQuality.entries.forEach { quality ->
-                    week.observeClassification(quality, observation.classificationAuthority)
-                }
-            }
             profile.physicalQualities.groupBy(ExercisePhysicalQualityRelation::qualityId).forEach { (quality, relations) ->
                 val direct = relations.any { it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY }
                 val supportive = !direct && relations.any { it.relationLevel == StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY }
                 if (!direct && !supportive) return@forEach
-                week.observeClassification(quality, observation.classificationAuthority)
+                val classification = qualityObservationClassification(
+                    quality,
+                    observation,
+                    hasCanonicalRelation = true
+                )
+                week.observeClassification(quality, classification)
                 val compatible = if (quality in PRESCRIPTION_GATED_QUALITIES) {
-                    observation.classificationAuthority != StimulusClassificationAuthority.UNCLASSIFIED &&
+                    classification == QualityObservationClassification.CLASSIFIED &&
                         realizedPrescriptionCompatible(quality, observation.realizedStimulusClassification)
                 } else capabilityProxyCompatible(observation.classificationAuthority)
                 week.add(
@@ -352,8 +352,9 @@ internal class LedgerBackedQualityDoseHistoryAnalyzer {
         val hasRelevantSourceObservations: Boolean
             get() = classifiedRelevantUnits.values.sum() + unclassifiedRelevantUnits.values.sum() > 0
 
-        fun observeClassification(quality: TrainableQuality, authority: StimulusClassificationAuthority) {
-            if (authority == StimulusClassificationAuthority.UNCLASSIFIED) {
+        fun observeClassification(quality: TrainableQuality, classification: QualityObservationClassification) {
+            if (classification == QualityObservationClassification.IRRELEVANT) return
+            if (classification == QualityObservationClassification.UNCLASSIFIED) {
                 unclassifiedRelevantUnits[quality] = unclassifiedRelevantUnits.getOrDefault(quality, 0) + 1
             } else {
                 classifiedRelevantUnits[quality] = classifiedRelevantUnits.getOrDefault(quality, 0) + 1
