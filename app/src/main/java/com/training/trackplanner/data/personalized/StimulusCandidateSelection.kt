@@ -381,7 +381,9 @@ class StimulusTargetCandidateSelector(
     }
 
     private fun selectionAllowed(intent: StimulusSelectionTarget): Boolean = when (intent) {
-        is StimulusSelectionTarget.Quality -> intent.strategy in QUALITY_SELECTION_STRATEGIES
+        is StimulusSelectionTarget.Quality -> intent.strategy in QUALITY_SELECTION_STRATEGIES ||
+            (intent.strategy == StimulusDoseStrategy.REDISTRIBUTE_DIRECTION_ONLY &&
+                intent.target.evidenceBasis == StimulusEvidenceBasis.REALIZED_PRESCRIPTION_CLASSIFIED)
         is StimulusSelectionTarget.Task -> intent.strategy in TASK_SELECTION_STRATEGIES
     }
 

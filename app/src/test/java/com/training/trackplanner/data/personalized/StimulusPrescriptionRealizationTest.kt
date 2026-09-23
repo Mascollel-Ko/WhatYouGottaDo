@@ -76,7 +76,7 @@ class StimulusPrescriptionRealizationTest {
             StimulusTargetPlan(listOf(target(TrainableQuality.STRENGTH)), emptyList(), emptyList()),
             selection(candidate()), snapshot, mapOf(key to prescription(5, 0.0)), mapOf(key to listOf(RealizedStimulusClassification.UNCLASSIFIED))
         ).resolutions.single()
-        assertEquals(StimulusPrescriptionResolutionStatus.REALIZATION_MODEL_UNAVAILABLE, result.status)
+        assertEquals(StimulusPrescriptionResolutionStatus.NO_SAFE_TARGET_COMPATIBLE_PRESCRIPTION, result.status)
     }
 
     @Test
