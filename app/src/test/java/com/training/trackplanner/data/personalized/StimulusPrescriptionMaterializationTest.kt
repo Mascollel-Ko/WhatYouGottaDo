@@ -90,7 +90,7 @@ class StimulusPrescriptionMaterializationTest {
         val skeleton = experimental(counts.indices.map { it + 1 }, authorized).copy(
             items = counts.mapIndexedNotNull { index, count ->
                 if (count == 0) null else {
-                    val sets = authorized.sets.take(count).map { set ->
+                    val sets = List(count) { setIndex -> authorized.sets[setIndex % authorized.sets.size].copy(setIndex = setIndex + 1) }.map { set ->
                         if (index + 1 == mutateWeek) set.copy(reps = set.reps + 1) else set
                     }
                     ProgramSkeletonItem(
