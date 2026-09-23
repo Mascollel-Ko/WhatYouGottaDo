@@ -73,7 +73,7 @@ class StimulusSelectionServiceIntegrationTest {
                                 // Keep the materialized 40 kg prescription below the newer
                                 // canonical reference while every historical set remains reviewed.
                             reps = 5,
-                                weightKg = 40.0 + exerciseIndex,
+                                weightKg = if (daysAgo == 7L) 30.0 else 40.0 + exerciseIndex,
                                 confirmed = true,
                                 rpe = 8.0
                             )
@@ -82,38 +82,36 @@ class StimulusSelectionServiceIntegrationTest {
                 }
             }
             posteriorDao.insertLocalHistoryStrict(
-                listOf("barbell_back_squat").flatMap { stableKey ->
-                    // The earlier reviewed reference classifies the historical 40 kg sets;
-                    // the newer posterior is the official service comparison denominator.
-                    listOf(-55L to 50.0, -1L to 60.0).mapIndexed { index, (daysAgo, mean) ->
-                        StrengthExercisePerformanceHistoryEntity(
-                            revisionKey = revisionKey,
-                            eventUuid = "b6-service-reference-$index",
-                            sessionKey = "b6-service-reference-session-$index",
-                            sessionDate = cutoff.minusDays(daysAgo).toString(),
-                            exerciseStableKey = stableKey,
-                            priorLogMean = ln(mean),
-                            priorLogVariance = 0.1,
-                            sessionLikelihoodLogMean = null,
-                            sessionLikelihoodLogVariance = null,
-                            sessionLikelihoodProper = true,
-                            innovationResidualLog = null,
-                            innovationVariance = null,
-                            posteriorLogMean = ln(mean),
-                            posteriorLogVariance = 0.1,
-                            posteriorMeanIncrementLog = 0.0,
-                            transitionDays = 1L,
-                            baselineEstablishedBefore = index == 0,
-                            baselineEstablishedAfter = index == 0,
-                            proxyTransferEligible = false,
-                            proxyTransferApplied = false,
-                            modelVersion = "B6_TEST",
-                            curveVersion = "B6_TEST",
-                            rirPolicyVersion = "B6_TEST",
-                            evidenceFingerprint = "b6-service-reference-$stableKey-$index",
-                            createdAt = index.toLong() + 1L
-                        )
-                    }
+                listOf("barbell_back_squat").map { stableKey ->
+                    StrengthExercisePerformanceHistoryEntity(
+                        revisionKey = revisionKey,
+                        eventUuid = "b6-service-reference",
+                        sessionKey = "b6-service-reference-session",
+                        // The reviewed reference must precede every observed session so the
+                        // canonical classifier can independently validate the historical loads.
+                        sessionDate = cutoff.minusDays(55).toString(),
+                        exerciseStableKey = stableKey,
+                        priorLogMean = ln(50.0),
+                        priorLogVariance = 0.1,
+                        sessionLikelihoodLogMean = null,
+                        sessionLikelihoodLogVariance = null,
+                        sessionLikelihoodProper = true,
+                        innovationResidualLog = null,
+                        innovationVariance = null,
+                        posteriorLogMean = ln(50.0),
+                        posteriorLogVariance = 0.1,
+                        posteriorMeanIncrementLog = 0.0,
+                        transitionDays = 1L,
+                        baselineEstablishedBefore = true,
+                        baselineEstablishedAfter = true,
+                        proxyTransferEligible = false,
+                        proxyTransferApplied = false,
+                        modelVersion = "B6_TEST",
+                        curveVersion = "B6_TEST",
+                        rirPolicyVersion = "B6_TEST",
+                        evidenceFingerprint = "b6-service-reference-$stableKey",
+                        createdAt = 1L
+                    )
                 }
             )
             val service = field(repository, "personalizedProgramPlanningService") as PersonalizedProgramPlanningService
