@@ -81,7 +81,8 @@ data class StimulusPrescriptionRealizationPlan(
 
 /** B6.1 shadow resolver. Planned compatibility is calculated from materialized prescriptions. */
 class StimulusPrescriptionRealizationPlanEngine(
-    private val prescriptions: PersonalizedPrescriptionPlanner = PersonalizedPrescriptionPlanner()
+    private val prescriptions: PersonalizedPrescriptionPlanner = PersonalizedPrescriptionPlanner(),
+    private val plannedResolver: StimulusPlannedPrescriptionResolver = StimulusPlannedPrescriptionResolver()
 ) {
     fun build(
         targetPlan: StimulusTargetPlan,
@@ -145,7 +146,7 @@ class StimulusPrescriptionRealizationPlanEngine(
         val evaluated = ownerOptions.mapNotNull { (identity, source) ->
             val current = currentPrescriptions[identity]
             val effective = current ?: probeFor(identity) ?: return@mapNotNull null
-            val compatibility = plannedCompatibility(target.quality, effective, snapshot, identity.stableKey)
+            val compatibility = plannedResolver.compatibility(target.quality, effective, snapshot, identity.stableKey)
             Triple(identity, source, Triple(current, effective, compatibility))
         }
         if (evaluated.isEmpty()) return base(StimulusPrescriptionResolutionStatus.OWNER_UNRESOLVED,
@@ -199,7 +200,7 @@ class StimulusPrescriptionRealizationPlanEngine(
                 StimulusTargetNumericAuthority.UNRESOLVED
             )) return base(StimulusPrescriptionResolutionStatus.NO_PRESCRIPTION_CHANGE_AUTHORIZED,
             listOf("B4_NUMERIC_AUTHORITY_DOES_NOT_AUTHORIZE_B6_CHANGE"), owner, current, effective, compatibility)
-        val proposed = propose(target.quality, effective, snapshot, identity.stableKey, effort)
+        val proposed = plannedResolver.safeProposal(target.quality, effective, snapshot, identity.stableKey, effort)
             ?: return base(StimulusPrescriptionResolutionStatus.NO_SAFE_TARGET_COMPATIBLE_PRESCRIPTION,
                 listOf("SAFE_LOAD_OR_EFFORT_AUTHORITY_UNAVAILABLE"), owner, current, effective, compatibility)
         return base(StimulusPrescriptionResolutionStatus.SAFE_TARGET_COMPATIBLE_PRESCRIPTION_RESOLVED,
@@ -211,37 +212,7 @@ class StimulusPrescriptionRealizationPlanEngine(
         prescription: PlannedPrescription,
         snapshot: PlanningHistorySnapshot,
         stableKey: String
-    ): PlannedStimulusCompatibility {
-        if (prescription.sets.isEmpty()) return PlannedStimulusCompatibility(quality, PlannedStimulusCompatibilityStatus.UNRESOLVED,
-            reasonCodes = listOf("PLANNED_SET_PRESCRIPTION_EMPTY"))
-        val repsCompatible = prescription.sets.all { set -> when (quality) {
-            TrainableQuality.STRENGTH -> set.reps in 1..6
-            TrainableQuality.HYPERTROPHY -> set.reps in 7..15
-            else -> false
-        } }
-        if (!repsCompatible) return PlannedStimulusCompatibility(quality, PlannedStimulusCompatibilityStatus.INCOMPATIBLE,
-            reasonCodes = listOf("PLANNED_REPS_OUTSIDE_${quality.name}_MODEL"))
-        val reference = snapshot.canonicalStrengthSignals[stableKey]?.posteriorMedianKg
-            ?.takeIf { it.isFinite() && it > 0.0 }
-        val loads = prescription.sets.map { it.weightKg }
-        if (quality == TrainableQuality.STRENGTH) {
-            if (reference == null) return PlannedStimulusCompatibility(quality, PlannedStimulusCompatibilityStatus.UNRESOLVED,
-                reasonCodes = listOf("CANONICAL_POSTERIOR_REFERENCE_UNAVAILABLE"))
-            val relative = loads.filter { it.isFinite() && it > 0.0 }.minOrNull()?.div(reference)
-                ?: return PlannedStimulusCompatibility(quality, PlannedStimulusCompatibilityStatus.UNRESOLVED,
-                    reference1RmKg = reference, reasonCodes = listOf("PLANNED_LOAD_UNAVAILABLE"))
-            return PlannedStimulusCompatibility(quality,
-                if (relative >= .70) PlannedStimulusCompatibilityStatus.COMPATIBLE_CONDITIONAL_ON_EFFORT
-                else PlannedStimulusCompatibilityStatus.INCOMPATIBLE,
-                reference1RmKg = reference, relativeIntensity = relative,
-                reasonCodes = if (relative < .70) listOf("PLANNED_LOAD_BELOW_70_PERCENT_REFERENCE_1RM") else emptyList())
-        }
-        val validLoad = loads.all { it.isFinite() && (it > 0.0 || prescription.weightSource.startsWith("PROVISIONAL")) }
-        if (!validLoad) return PlannedStimulusCompatibility(quality, PlannedStimulusCompatibilityStatus.UNRESOLVED,
-            reasonCodes = listOf("PLANNED_RESISTANCE_LOAD_UNAVAILABLE"))
-        return PlannedStimulusCompatibility(quality, PlannedStimulusCompatibilityStatus.COMPATIBLE_CONDITIONAL_ON_EFFORT,
-            reference1RmKg = reference)
-    }
+    ): PlannedStimulusCompatibility = plannedResolver.compatibility(quality, prescription, snapshot, stableKey)
 
     private fun propose(
         quality: TrainableQuality,
@@ -249,29 +220,7 @@ class StimulusPrescriptionRealizationPlanEngine(
         snapshot: PlanningHistorySnapshot,
         stableKey: String,
         effort: StimulusEffortTarget
-    ): StimulusTargetCompatiblePrescription? {
-        val count = current.sets.size
-        if (count == 0) return null
-        return when (quality) {
-            TrainableQuality.STRENGTH -> {
-                val reference = snapshot.canonicalStrengthSignals[stableKey]?.posteriorMedianKg
-                    ?.takeIf { it.isFinite() && it > 0.0 } ?: return null
-                val load = current.sets.map { it.weightKg }.filter { it.isFinite() && it > 0.0 }.minOrNull() ?: return null
-                if (load / reference < .70) return null
-                StimulusTargetCompatiblePrescription(
-                    sets = List(count) { index -> ProgramSetPrescription(index + 1, 5, round(load * 2) / 2, 0) },
-                    effortTarget = effort, numericAuthority = "SAFE_CANONICAL_STRENGTH_LOAD",
-                    source = "B6_SHADOW_STRENGTH_RESOLUTION"
-                )
-            }
-            TrainableQuality.HYPERTROPHY -> StimulusTargetCompatiblePrescription(
-                sets = List(count) { index -> ProgramSetPrescription(index + 1, 8, 0.0, 0) },
-                effortTarget = effort, numericAuthority = "PROVISIONAL_8_REPS_ZERO_LOAD",
-                source = "B6_SHADOW_HYPERTROPHY_PROVISIONAL"
-            )
-            else -> null
-        }
-    }
+    ): StimulusTargetCompatiblePrescription? = plannedResolver.safeProposal(quality, current, snapshot, stableKey, effort)
 
     private fun TrainableQuality.effortTarget() = when (this) {
         TrainableQuality.STRENGTH -> StimulusEffortTarget(6.0, 4)

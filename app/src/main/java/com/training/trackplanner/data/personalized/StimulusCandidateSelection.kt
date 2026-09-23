@@ -112,6 +112,8 @@ data class StimulusSelectionProgramComparison(
     val sharedStableKeys: Set<String>,
     val materializationTraces: List<StimulusCandidateMaterializationTrace> = emptyList(),
     val prescriptionRealizationPlan: StimulusPrescriptionRealizationPlan? = null,
+    val prescriptionAuthorizationPlan: StimulusPrescriptionAuthorizationPlan? = null,
+    val prescriptionMaterializationAudits: List<StimulusPrescriptionMaterializationAudit> = emptyList(),
     val winner: String? = null
 ) {
     init {
@@ -631,6 +633,25 @@ internal fun StimulusSelectionProgramComparison.toCompactJson(): JSONObject = JS
         .put("reasonCodes", JSONArray(trace.reasonCodes))
     }))
     .put("winner", winner)
+    .put("prescriptionAuthorizationPlan", prescriptionAuthorizationPlan?.let { plan ->
+        JSONObject().put("shadowOnly", plan.shadowOnly).put("productionAuthority", plan.productionAuthority)
+            .put("authorizations", JSONArray(plan.authorizations.map { authorization -> JSONObject()
+                .put("targetId", authorization.targetId).put("quality", authorization.quality?.name)
+                .put("ownerStableKey", authorization.owner?.stableKey).put("ownerSelectionRole", authorization.owner?.selectionRole)
+                .put("source", authorization.source?.name).put("status", authorization.status.name)
+                .put("reasonCodes", JSONArray(authorization.reasonCodes))
+            } }))
+    })
+    .put("prescriptionMaterializationAudits", JSONArray(prescriptionMaterializationAudits.map { audit -> JSONObject()
+        .put("targetId", audit.targetId).put("quality", audit.quality?.name)
+        .put("ownerStableKey", audit.owner?.stableKey).put("ownerSelectionRole", audit.owner?.selectionRole)
+        .put("authorizedWeeklySetUnits", audit.authorizedWeeklySetUnits)
+        .put("materializedWeeklySetUnits", audit.materializedWeeklySetUnits)
+        .put("targetCompatibleMaterializedUnits", audit.targetCompatibleMaterializedUnits)
+        .put("shortfall", audit.shortfall).put("overrun", audit.overrun)
+        .put("prescriptionPreservedOrSubset", audit.prescriptionPreservedOrSubset)
+        .put("state", audit.state.name).put("reasonCodes", JSONArray(audit.reasonCodes))
+    }))
     .put("selectionPlan", selectionPlan.toCompactJson())
     .put("differences", JSONArray(differences.map { difference -> JSONObject()
         .put("week", difference.week)

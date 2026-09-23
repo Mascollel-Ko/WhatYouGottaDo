@@ -483,6 +483,94 @@ internal class PersonalizedProgramPlanningService(
         return comparison.copy(control = controlWithPlan, prescriptionRealizationPlan = prescriptionPlan)
     }
 
+    /**
+     * Test/dev-only Phase B6.2 path. It performs exactly one unchanged CONTROL build and one
+     * EXPERIMENTAL build. Exact Strength prescriptions are authorized from B4/B5 plus the
+     * already-built CONTROL owner table before the experimental builder starts.
+     */
+    internal suspend fun generatePreparedStimulusPrescriptionMaterializationComparison(
+        preflight: PersonalizedPlanningPreflight,
+        answers: PersonalizedPlanningAnswers,
+        metadata: Map<String, RuntimeExerciseMetadata>,
+        progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE
+    ): StimulusSelectionProgramComparison {
+        val preferences = readPreferences()
+        val control = generatePrepared(preflight, answers, metadata, progress)
+        val targetPlan = requireNotNull(control.personalizedDecision?.athleteStimulusNeedProfile?.stimulusTargetPlanShadow) {
+            "B6.2_REQUIRES_CANONICAL_B4_TARGET_PLAN"
+        }
+        val snapshot = buildSnapshot(preflight.cutoff, metadata, preferences, includeStimulusExposureLedger = true)
+        val state = stateBuilder.build(snapshot, answers)
+        require(state.strengthIntent != StrengthIntent.UNRESOLVED && state.badmintonIntent != BadmintonPlanningIntent.UNRESOLVED &&
+            state.freeWeightWillingness != FreeWeightWillingness.UNRESOLVED) { "UNRESOLVED_PLANNING_INTENT_REQUIRES_PREFLIGHT" }
+        val gaps = gapAnalyzer.analyze(snapshot, state)
+        val intent = blockPlanner.decide(state, gaps)
+        val frequencyEvidence = WeeklyDosePlanner().resolve(state, state.anchors.size + gaps.size)
+        val request = control.request
+        val selectionPlan = StimulusTargetCandidateSelector().build(
+            targetPlan = targetPlan,
+            control = control,
+            snapshot = snapshot,
+            state = state,
+            request = request,
+            physicalQualityCatalog = physicalQualityCatalog
+        )
+        val controlPrescriptions = control.items.asSequence()
+            .map { item ->
+                StimulusPrescriptionOwnerIdentity(item.exerciseStableKey, item.selectionRole) to
+                    PlannedPrescription(item.prescription, item.setPrescriptions, item.restSeconds, item.weightSource)
+            }.distinct().toList().toMap()
+        val authorizationPlan = StimulusPrescriptionAuthorizationEngine().build(
+            targetPlan = targetPlan,
+            selectionPlan = selectionPlan,
+            snapshot = snapshot,
+            controlPrescriptions = controlPrescriptions
+        )
+        val priorId = appMetaDao.latestByPrefix("$DECISION_PREFIX%")?.value?.let(::decisionIdFromJson)
+        val experimental = programBuilder.build(
+            snapshot = snapshot,
+            state = state,
+            gaps = gaps,
+            intent = intent,
+            horizon = request.durationWeeks,
+            request = request,
+            answers = answers,
+            priorDecisionId = priorId,
+            explicitWeeklyDays = preflight.constraints.explicitWeeklyTrainingDays != null,
+            frequency = com.training.trackplanner.data.personalized.PlanningFrequencyProvenance(
+                frequencyEvidence,
+                request.weeklyTrainingDays,
+                if (preflight.constraints.explicitWeeklyTrainingDays != null)
+                    com.training.trackplanner.data.personalized.PlanningFrequencySource.EXPLICIT_USER
+                else com.training.trackplanner.data.personalized.PlanningFrequencySource.AUTO
+            ),
+            progress = progress,
+            materialDemandOverride = selectionPlan.materialDemand,
+            exactPrescriptionAuthorizationProvider = authorizationPlan.provider()
+        )
+        val experimentalFinalAudit = FinalStimulusNeedAudit().audit(experimental, snapshot, physicalQualityCatalog)
+        val experimentalAudit = StimulusTargetControlProgramAuditEngine().audit(
+            targetPlan,
+            experimentalFinalAudit,
+            request.durationWeeks
+        )
+        val comparison = StimulusSelectionProgramComparisonEngine().compare(
+            control = control,
+            experimental = experimental,
+            targetPlan = targetPlan,
+            selectionPlan = selectionPlan,
+            controlAudit = targetPlan.controlProgramAudit,
+            experimentalAudit = experimentalAudit
+        )
+        val materializationAudits = StimulusPrescriptionMaterializationAuditEngine().audit(
+            authorizationPlan, experimental, snapshot
+        )
+        return comparison.copy(
+            prescriptionAuthorizationPlan = authorizationPlan,
+            prescriptionMaterializationAudits = materializationAudits
+        )
+    }
+
     /** Compatibility wrapper for callers that have not yet adopted the two-phase API. */
     suspend fun generate(
         request: ProgramSkeletonRequest,

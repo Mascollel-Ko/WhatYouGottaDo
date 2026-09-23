@@ -327,6 +327,20 @@ data class RegionalExperimentalTargetPlan(
     }
 }
 
+/** Adapts the existing regional exact-prescription authority to the generic mechanical seam. */
+internal fun RegionalExperimentalTargetPlan.asExactPrescriptionAuthorizationProvider(): ExactPrescriptionAuthorizationProvider {
+    val plan = this
+    return object : ExactPrescriptionAuthorizationProvider {
+        override val authorizedOwners: Map<StimulusPrescriptionOwnerIdentity, PlannedPrescription> =
+            plan.authorizedPrescriptionBySelectionRole.mapKeys { (owner, _) ->
+                StimulusPrescriptionOwnerIdentity(owner.stableKey, owner.selectionRole)
+            }
+
+        override fun authorizedPrescriptionFor(item: PlannedExercise, requestedSets: Int): PlannedPrescription? =
+            plan.authorizedPrescriptionFor(item, requestedSets)
+    }
+}
+
 /** Candidate selection is typed by MovementCoverage and TrainableQuality. */
 class RegionalTargetCandidateSelector {
     data class Selection(

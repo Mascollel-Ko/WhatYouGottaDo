@@ -45,9 +45,11 @@ data class FrequencyExpansionTrace(val algorithmRecommendedDays: Int, val userSe
 
 /** Only the original candidate's existing flexible prescription may release an unfunded portion. */
 internal fun frequencyPortion(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, candidate: CapacityCandidateTrace,
-    limit: Int, prescriptions: PersonalizedPrescriptionPlanner): PlannedPrescription? {
+    limit: Int, prescriptions: PersonalizedPrescriptionPlanner,
+    exactPrescriptionAuthorizationProvider: ExactPrescriptionAuthorizationProvider? = null): PlannedPrescription? {
     val remainder = candidate.prescription.sets.drop(candidate.fundedBaseUnits)
     if (remainder.isEmpty() || limit <= 0) return null
+    exactPrescriptionAuthorizationProvider?.prefixFor(candidate.item, minOf(limit, candidate.prescription.sets.size))?.let { return it }
     if (candidate.fundedBaseUnits == 0 && remainder.size <= limit) return candidate.prescription
     if (candidate.prescriptionAuthority == PrescriptionAuthoritySource.REGIONAL_TARGET_AUTHORIZED) {
         return candidate.prescription.copy(sets = remainder.take(limit).mapIndexed { index, set -> set.copy(setIndex = index + 1) })
@@ -67,7 +69,8 @@ internal class FrequencyExpansionPlanner(private val prescriptions: Personalized
     private val performanceMetrics: PlannerPerformanceMetrics? = null) {
     fun expand(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, request: ProgramSkeletonRequest,
         base: GeneratedProgramSkeleton, frequency: PlanningFrequencyProvenance,
-        place: (List<AuthorizedSchedulingDemand>, WeeklyCapacityEnvelope) -> CompletionResult): GeneratedProgramSkeleton {
+        place: (List<AuthorizedSchedulingDemand>, WeeklyCapacityEnvelope) -> CompletionResult,
+        exactPrescriptionAuthorizationProvider: ExactPrescriptionAuthorizationProvider? = null): GeneratedProgramSkeleton {
         require(frequency.explicitIncrease)
         val baseDecision = requireNotNull(base.personalizedDecision)
         val provenance = requireNotNull(baseDecision.frequencyDemand)
@@ -98,7 +101,8 @@ internal class FrequencyExpansionPlanner(private val prescriptions: Personalized
                 postProcessTissueAllowed(snapshot, state, key) &&
                 (request.availableEquipment.isEmpty() || equipment.all { it == "BODYWEIGHT" || it in request.availableEquipment })
             val remaining = ceiling - b - expansion.sumOf { it.prescription.sets.size }
-            val rx = if (eligible) frequencyPortion(snapshot, state, candidate, remaining, prescriptions) else null
+            val rx = if (eligible) frequencyPortion(snapshot, state, candidate, remaining, prescriptions,
+                exactPrescriptionAuthorizationProvider) else null
             val reason = when {
                 !eligible -> "OTHER_EXISTING_HARD_GATE"
                 remaining <= 0 -> if (capacity.finalControllableUnits <= target) "USER_DAY_CAPACITY_LIMIT" else "EXPANSION_CEILING"

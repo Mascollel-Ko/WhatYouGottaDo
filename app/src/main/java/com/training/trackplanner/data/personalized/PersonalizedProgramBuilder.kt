@@ -334,13 +334,15 @@ class PersonalizedProgramBuilder(
             request.weeklyTrainingDays, if (explicitWeeklyDays) PlanningFrequencySource.EXPLICIT_USER else PlanningFrequencySource.AUTO),
         progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE,
         materialDemandOverride: MaterialDemand? = null,
-        regionalTargetPlan: RegionalExperimentalTargetPlan? = null): GeneratedProgramSkeleton {
+        regionalTargetPlan: RegionalExperimentalTargetPlan? = null,
+        exactPrescriptionAuthorizationProvider: ExactPrescriptionAuthorizationProvider? = null): GeneratedProgramSkeleton {
         val performanceMetrics = PlannerPerformanceMetrics()
         val memo = PlanningComputationMemo(performanceMetrics)
         val memoSnapshot = memo.wrap(snapshot)
         val generationPrescriptions = prescriptionPlanner.scopedTo(memo)
         val placed = buildBeforeReflow(memoSnapshot, state, gaps, intent, horizon, request, answers, priorDecisionId, explicitWeeklyDays,
-            frequency, progress, generationPrescriptions, performanceMetrics, materialDemandOverride, regionalTargetPlan)
+            frequency, progress, generationPrescriptions, performanceMetrics, materialDemandOverride, regionalTargetPlan,
+            exactPrescriptionAuthorizationProvider)
         val reviewed = PostSplitWeeklyReflow().review(placed, memoSnapshot, state, progress,
             ReflowEvaluationCounts(performanceMetrics = performanceMetrics))
         val result = if (reviewed.trace.state == "NOT_APPLICABLE_NO_MANDATORY_SPLIT") placed
@@ -353,6 +355,15 @@ class PersonalizedProgramBuilder(
                 check(units <= prescription.sets.size) { "REGIONAL_AUTHORIZATION_OVERRUN: $owner week=$week units=$units authorized=${prescription.sets.size}" }
             }
         }
+        exactPrescriptionAuthorizationProvider?.authorizedOwners?.forEach { (owner, prescription) ->
+            result.items.groupBy { it.weekNumber }.forEach { (week, rows) ->
+                val units = rows.filter { it.exerciseStableKey == owner.stableKey && it.selectionRole == owner.selectionRole }
+                    .sumOf { it.setPrescriptions.size }
+                check(units <= prescription.sets.size) {
+                    "B6_AUTHORIZATION_OVERRUN: $owner week=$week units=$units authorized=${prescription.sets.size}"
+                }
+            }
+        }
         return observeBoundedMaterialDemand(result)
     }
 
@@ -362,11 +373,12 @@ class PersonalizedProgramBuilder(
         generationPrescriptions: PersonalizedPrescriptionPlanner,
         performanceMetrics: PlannerPerformanceMetrics,
         materialDemandOverride: MaterialDemand?,
-        regionalTargetPlan: RegionalExperimentalTargetPlan?): GeneratedProgramSkeleton {
+        regionalTargetPlan: RegionalExperimentalTargetPlan?,
+        exactPrescriptionAuthorizationProvider: ExactPrescriptionAuthorizationProvider?): GeneratedProgramSkeleton {
         if (!frequency.explicitIncrease) return buildCore(snapshot, state, gaps, intent, horizon, request, answers, priorDecisionId,
             explicitWeeklyDays, frequency, progress = progress, generationPrescriptions = generationPrescriptions,
             performanceMetrics = performanceMetrics, materialDemandOverride = materialDemandOverride,
-            regionalTargetPlan = regionalTargetPlan)
+            regionalTargetPlan = regionalTargetPlan, exactPrescriptionAuthorizationProvider = exactPrescriptionAuthorizationProvider)
         // BASE is fully evaluated before expansion. Its nested work must not consume expansion's milestone range.
         val baseProgress = PersonalizedPlannerProgressReporter { stage ->
             progress.report(if (stage.percent > 50) PersonalizedPlannerStage.BASE_REVIEW else stage)
@@ -374,20 +386,21 @@ class PersonalizedProgramBuilder(
         val base = buildCore(snapshot, state, gaps, intent, horizon, request.copy(weeklyTrainingDays = frequency.algorithmRecommendedDays),
             answers, priorDecisionId, true, frequency, progress = baseProgress, generationPrescriptions = generationPrescriptions,
             performanceMetrics = performanceMetrics, materialDemandOverride = materialDemandOverride,
-            regionalTargetPlan = regionalTargetPlan)
+            regionalTargetPlan = regionalTargetPlan, exactPrescriptionAuthorizationProvider = exactPrescriptionAuthorizationProvider)
         progress.report(PersonalizedPlannerStage.EXPANSION)
-        return FrequencyExpansionPlanner(generationPrescriptions, performanceMetrics).expand(snapshot, state, request, base, frequency) { authorized, capacity ->
+        return FrequencyExpansionPlanner(generationPrescriptions, performanceMetrics).expand(snapshot, state, request, base, frequency,
+            { authorized, capacity ->
             progress.report(PersonalizedPlannerStage.EXPANSION_RECHECK)
             var result: CompletionResult? = null
             buildCore(snapshot, state, gaps, intent, horizon, request, answers, priorDecisionId, true, frequency, authorized, capacity,
                 progress = PersonalizedPlannerProgressReporter { progress.report(PersonalizedPlannerStage.EXPANSION_RECHECK) }, generationPrescriptions = generationPrescriptions,
                 performanceMetrics = performanceMetrics, materialDemandOverride = materialDemandOverride,
-                regionalTargetPlan = regionalTargetPlan) {
+                regionalTargetPlan = regionalTargetPlan, exactPrescriptionAuthorizationProvider = exactPrescriptionAuthorizationProvider) {
                 result = it
                 it.skeleton
             }
             checkNotNull(result)
-        }
+        }, exactPrescriptionAuthorizationProvider)
     }
 
     private fun buildCore(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, gaps: List<AdaptationGap>, intent: BlockIntent,
@@ -399,6 +412,7 @@ class PersonalizedProgramBuilder(
         performanceMetrics: PlannerPerformanceMetrics = PlannerPerformanceMetrics(),
         materialDemandOverride: MaterialDemand? = null,
         regionalTargetPlan: RegionalExperimentalTargetPlan? = null,
+        exactPrescriptionAuthorizationProvider: ExactPrescriptionAuthorizationProvider? = null,
         finish: ((CompletionResult) -> GeneratedProgramSkeleton)? = null): GeneratedProgramSkeleton {
         progress.report(PersonalizedPlannerStage.DEMAND)
         val transitionPlanner = AdaptationTransitionPlanner()
@@ -544,7 +558,8 @@ class PersonalizedProgramBuilder(
             .map { it.copy(originalRank = it.originalRank + allocation.candidates.size) } } ?: capacityCandidateTrace(snapshot, state,
             materialCandidates.map { it to false } + originalContinuity.map { it to true } + optionalCandidates.map { it to false },
             selected, generationPrescriptions,
-            authorizedPrescriptionFor = regionalTargetPlan?.let { plan -> { item -> plan.authorizedPrescriptionFor(item) } })
+            authorizedPrescriptionFor = exactPrescriptionAuthorizationProvider?.let { provider -> { item -> provider.prefixFor(item) } }
+                ?: regionalTargetPlan?.let { plan -> { item -> plan.authorizedPrescriptionFor(item) } })
         val retained = retainedIncumbentSupply(snapshot, state, gaps, request, candidates, generationPrescriptions)
         require(selected.isNotEmpty()) { "NO_EXECUTABLE_PLANNING_DEMAND" }
         progress.report(PersonalizedPlannerStage.PLACEMENT)
@@ -557,9 +572,17 @@ class PersonalizedProgramBuilder(
                 AuthorizedSchedulingDemand("authorized_$index", item, prescription, index < continuity.size)
             }
         } else null
+        val exactAuthorized = if (exactPrescriptionAuthorizationProvider != null && authorizedOverride == null && regionalAuthorized == null) {
+            selected.mapIndexed { index, item ->
+                val prescription = exactPrescriptionAuthorizationProvider.prefixFor(item)
+                    ?: generationPrescriptions.prescribe(snapshot, state.strengthIntent, item, item.style)
+                AuthorizedSchedulingDemand("authorized_$index", item, prescription, index < continuity.size)
+            }
+        } else null
         val placement = when {
             authorizedOverride != null -> allocator.allocateAuthorized(snapshot, state, authorizedOverride, days, request.sessionMinutes, request)
             regionalAuthorized != null -> allocator.allocateAuthorized(snapshot, state, regionalAuthorized, days, request.sessionMinutes, request)
+            exactAuthorized != null -> allocator.allocateAuthorized(snapshot, state, exactAuthorized, days, request.sessionMinutes, request)
             else -> allocator.allocate(snapshot, state, continuity, gapItems, optional, days, request.sessionMinutes, request)
         }
         progress.report(PersonalizedPlannerStage.FEASIBILITY)
@@ -706,7 +729,8 @@ class PersonalizedProgramBuilder(
         }
         val completion = ResidualCompletion(generationPrescriptions, progress).complete(initialSkeleton, snapshot, state, gaps,
             authorized, envelope, postProcessAtoms, postProcessSources, explicitWeeklyDays, snapshot.planDayProjection, postProcessOrigins,
-            regionalTargetPlan?.authorizedPrescriptionBySelectionRole?.keys.orEmpty(), exactAuthorizationOnly = bounded != null)
+            regionalTargetPlan?.authorizedPrescriptionBySelectionRole?.keys.orEmpty(),
+            exactAuthorizationOnly = bounded != null || exactPrescriptionAuthorizationProvider != null)
         val completedWeek = completion.skeleton.items.filter { it.weekNumber == 1 }
         fun completedUnits(kind: PlannedActivityKind) = completedWeek.filter { snapshot.activityKind(it.exerciseStableKey) == kind }
             .sumOf { it.setPrescriptions.size }
