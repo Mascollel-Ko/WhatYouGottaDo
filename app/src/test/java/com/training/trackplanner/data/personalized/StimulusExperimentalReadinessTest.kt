@@ -62,6 +62,10 @@ class StimulusExperimentalReadinessTest {
     @Test
     fun b6InvariantFailureAndUnexplainedIdentityFailClosed() {
         val comparison = comparison(
+            controlUnits = 2.0,
+            experimentalUnits = 4.0,
+            controlSessions = 1.0,
+            experimentalSessions = 2.0,
             materialization = listOf(StimulusPrescriptionMaterializationAudit(
                 targetId = "QUALITY:STRENGTH", quality = TrainableQuality.STRENGTH, owner = null,
                 authorizedWeeklySetUnits = 1, materializedWeeklySetUnits = 1, targetCompatibleMaterializedUnits = 1,

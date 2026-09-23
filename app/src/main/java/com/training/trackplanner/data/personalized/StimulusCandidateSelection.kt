@@ -120,6 +120,10 @@ data class StimulusSelectionProgramComparison(
     init {
         require(winner == null) { "B5 comparison must not select an overall winner" }
     }
+
+    /** B7 vocabulary alias for downstream shadow consumers. */
+    val experimentalCutoverReadinessAudit: StimulusExperimentalReadinessAudit?
+        get() = experimentalReadinessAudit
 }
 
 private data class MaterializedCandidate(
