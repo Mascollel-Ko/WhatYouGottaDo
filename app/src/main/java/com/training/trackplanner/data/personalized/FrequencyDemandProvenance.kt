@@ -63,8 +63,8 @@ data class FrequencyDemandProvenance(val frequency: PlanningFrequencyProvenance,
 
 internal fun capacityCandidateTrace(snapshot: PlanningHistorySnapshot, state: AthletePlanningState,
     originals: List<Pair<PlannedExercise, Boolean>>, funded: List<PlannedExercise>, prescriptions: PersonalizedPrescriptionPlanner,
-    authorizedPrescriptionFor: ((PlannedExercise) -> PlannedPrescription?)? = null,
-    authorizedPrescriptionSource: PrescriptionAuthoritySource = PrescriptionAuthoritySource.REGIONAL_TARGET_AUTHORIZED
+    authorizedPrescriptionSource: PrescriptionAuthoritySource = PrescriptionAuthoritySource.REGIONAL_TARGET_AUTHORIZED,
+    authorizedPrescriptionFor: ((PlannedExercise) -> PlannedPrescription?)? = null
 ): List<CapacityCandidateTrace> = originals.mapIndexed { index, (original, continuity) ->
     val regionalPrescription = authorizedPrescriptionFor?.invoke(original)
     val originalPrescription = regionalPrescription ?: prescriptions.prescribe(snapshot, state.strengthIntent, original, original.style)

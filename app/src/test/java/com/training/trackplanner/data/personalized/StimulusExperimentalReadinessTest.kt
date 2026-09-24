@@ -130,6 +130,8 @@ class StimulusExperimentalReadinessTest {
         )
         fun run(duplicate: Boolean): StimulusExperimentalReadinessAudit {
             val comparison = comparison(
+                controlUnits = 2.0, experimentalUnits = 4.0,
+                controlSessions = 2.0, experimentalSessions = 2.0,
                 controlItems = controlRows, experimentalItems = splitRows(duplicate),
                 authorizationPlan = StimulusPrescriptionAuthorizationPlan(listOf(
                     StimulusPrescriptionAuthorization(
