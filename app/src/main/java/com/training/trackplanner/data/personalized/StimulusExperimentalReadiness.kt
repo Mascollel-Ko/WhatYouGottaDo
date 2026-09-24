@@ -48,6 +48,23 @@ data class StimulusExperimentalChangeAttribution(
     val selectionRole: String?,
     val source: StimulusExperimentalChangeAttributionSource,
     val targetIds: List<String> = emptyList(),
+    val reasonCodes: List<String> = emptyList(),
+    val evidenceSources: List<String> = emptyList()
+)
+
+/**
+ * Owner-local causal evidence for one removed CONTROL identity. Global B5/B6 change evidence
+ * is intentionally separate from the capacity, placement and disappearance fields below.
+ */
+data class StimulusRemovalCausalEvidence(
+    val stableKey: String,
+    val selectionRole: String?,
+    val governedExperimentalChangeExists: Boolean,
+    val removedOwnerHasCapacityOrPlacementEvidence: Boolean,
+    val removedOwnerHasDisappearanceEvidence: Boolean,
+    val removedOwnerWasDirectB5Action: Boolean,
+    val contradictoryProvenance: Boolean,
+    val evidenceSources: List<String> = emptyList(),
     val reasonCodes: List<String> = emptyList()
 )
 
@@ -191,12 +208,17 @@ class StimulusExperimentalReadinessAuditEngine {
         attributions: List<StimulusExperimentalChangeAttribution>
     ): Set<String> {
         val selectedTargets = comparison.selectionPlan.selectedCandidates
-            .filter { it.stableKey in comparison.addedStableKeys || it.stableKey in comparison.sharedStableKeys }
+            .filter {
+                StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) in comparison.addedOwnerIdentities ||
+                    StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) in comparison.sharedOwnerIdentities
+            }
             .flatMap { it.coveredTargetIds }
         val attributed = attributions.flatMap { it.targetIds }
         val fromTraces = comparison.materializationTraces
             .filter {
-                it.selectedStableKey?.let { key -> key in comparison.addedStableKeys || key in comparison.sharedStableKeys } == true
+                val key = it.selectedStableKey ?: return@filter false
+                val identity = it.selectionRole?.let { role -> StimulusPrescriptionOwnerIdentity(key, role) }
+                identity != null && (identity in comparison.addedOwnerIdentities || identity in comparison.sharedOwnerIdentities)
             }
             .map { it.targetId }
         val result = (selectedTargets + attributed + fromTraces).toSet()
@@ -208,24 +230,29 @@ class StimulusExperimentalReadinessAuditEngine {
 
     private fun attributeChanges(comparison: StimulusSelectionProgramComparison): List<StimulusExperimentalChangeAttribution> {
         val result = mutableListOf<StimulusExperimentalChangeAttribution>()
-        val selected = comparison.selectionPlan.selectedCandidates.associateBy { it.stableKey }
-        comparison.addedStableKeys.sorted().forEach { key ->
-            val candidate = selected[key]
+        val selected = comparison.selectionPlan.selectedCandidates.associateBy {
+            StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole)
+        }
+        comparison.addedOwnerIdentities.sortedWith(compareBy({ it.stableKey }, { it.selectionRole })).forEach { identity ->
+            val candidate = selected[identity]
             result += if (candidate != null) {
                 StimulusExperimentalChangeAttribution(
-                    stableKey = key,
-                    selectionRole = candidate.selectionRole,
+                    stableKey = identity.stableKey,
+                    selectionRole = identity.selectionRole,
                     source = StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY,
                     targetIds = candidate.coveredTargetIds.toList().sorted(),
                     reasonCodes = listOf("B5_SELECTED_IDENTITY_ADDED")
                 )
             } else {
-                StimulusExperimentalChangeAttribution(key, null, StimulusExperimentalChangeAttributionSource.UNEXPLAINED, reasonCodes = listOf("UNEXPLAINED_ADDED_IDENTITY"))
+                StimulusExperimentalChangeAttribution(identity.stableKey, identity.selectionRole, StimulusExperimentalChangeAttributionSource.UNEXPLAINED,
+                    reasonCodes = listOf("UNEXPLAINED_ADDED_IDENTITY"))
             }
         }
         comparison.selectionPlan.selectedCandidates
-            .filter { it.stableKey in comparison.sharedStableKeys }
-            .sortedBy { it.stableKey }
+            .filter {
+                StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) in comparison.sharedOwnerIdentities
+            }
+            .sortedWith(compareBy({ it.stableKey }, { it.selectionRole }))
             .forEach { candidate ->
                 result += StimulusExperimentalChangeAttribution(
                     stableKey = candidate.stableKey,
@@ -235,32 +262,29 @@ class StimulusExperimentalReadinessAuditEngine {
                     reasonCodes = listOf("B5_REUSED_IDENTITY")
                 )
             }
-        comparison.removedStableKeys.sorted().forEach { key ->
-            val traces = comparison.materializationTraces.filter { it.selectedStableKey == key }
-            val evidenceCodes = (traces.flatMap { it.reasonCodes } +
-                comparison.selectionPlan.traces.flatMap { it.reasonCodes } +
-                comparison.selectionPlan.traces.flatMap { it.candidateRejectionReasons.values }).toSet()
-            val governedMaterialChange = comparison.addedStableKeys.any { selected[it] != null } ||
-                evidenceCodes.any { it.startsWith("B5_") || it.startsWith("B6_") }
-            val finiteCapacityOrPlacementChanged = evidenceCodes.any { code ->
-                code.contains("CAPACITY", ignoreCase = true) || code.contains("PLACEMENT", ignoreCase = true) ||
-                    code.contains("REFLOW", ignoreCase = true) || code.contains("DISPLAC", ignoreCase = true)
-            }
-            val disappearedThroughMachinery = evidenceCodes.any { code ->
-                code.contains("NOT_MATERIALIZED", ignoreCase = true) || code.contains("REMOVED", ignoreCase = true) ||
-                    code.contains("DISPLAC", ignoreCase = true)
-            }
-            val directB5Action = selected[key] != null
+        comparison.removedOwnerIdentities.sortedWith(compareBy({ it.stableKey }, { it.selectionRole })).forEach { identity ->
+            val evidence = removalCausalEvidence(comparison, identity, selected)
+            val targetIds = evidenceOwnerTargetIds(comparison, identity)
             result += when {
-                governedMaterialChange && finiteCapacityOrPlacementChanged && disappearedThroughMachinery && !directB5Action ->
-                    StimulusExperimentalChangeAttribution(key, null, StimulusExperimentalChangeAttributionSource.DOWNSTREAM_CONSTRAINT_DISPLACEMENT,
-                        traces.map { it.targetId }.distinct().sorted(), listOf("REMOVED_IDENTITY_ATTRIBUTED_TO_DOWNSTREAM_CONSTRAINT"))
-                governedMaterialChange && !directB5Action ->
-                    StimulusExperimentalChangeAttribution(key, null, StimulusExperimentalChangeAttributionSource.INCONCLUSIVE_DISPLACEMENT,
-                        traces.map { it.targetId }.distinct().sorted(), listOf("REMOVAL_CAUSALITY_UNPROVEN"))
+                evidence.governedExperimentalChangeExists &&
+                    evidence.removedOwnerHasCapacityOrPlacementEvidence &&
+                    evidence.removedOwnerHasDisappearanceEvidence &&
+                    !evidence.removedOwnerWasDirectB5Action &&
+                    !evidence.contradictoryProvenance ->
+                    StimulusExperimentalChangeAttribution(identity.stableKey, identity.selectionRole,
+                        StimulusExperimentalChangeAttributionSource.DOWNSTREAM_CONSTRAINT_DISPLACEMENT,
+                        targetIds, listOf("REMOVED_IDENTITY_ATTRIBUTED_TO_DOWNSTREAM_CONSTRAINT"), evidence.evidenceSources)
+                evidence.governedExperimentalChangeExists &&
+                    evidence.removedOwnerHasCapacityOrPlacementEvidence &&
+                    !evidence.removedOwnerWasDirectB5Action &&
+                    !evidence.contradictoryProvenance ->
+                    StimulusExperimentalChangeAttribution(identity.stableKey, identity.selectionRole,
+                        StimulusExperimentalChangeAttributionSource.INCONCLUSIVE_DISPLACEMENT,
+                        targetIds, listOf("REMOVAL_CAUSALITY_UNPROVEN"), evidence.evidenceSources)
                 else ->
-                    StimulusExperimentalChangeAttribution(key, null, StimulusExperimentalChangeAttributionSource.UNEXPLAINED,
-                        reasonCodes = listOf("UNEXPLAINED_REMOVED_IDENTITY"))
+                    StimulusExperimentalChangeAttribution(identity.stableKey, identity.selectionRole,
+                        StimulusExperimentalChangeAttributionSource.UNEXPLAINED,
+                        targetIds, listOf("UNEXPLAINED_REMOVED_IDENTITY"), evidence.evidenceSources)
             }
         }
         val authByOwner = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty()
@@ -291,6 +315,115 @@ class StimulusExperimentalReadinessAuditEngine {
         }
         return result
     }
+
+    private fun removalCausalEvidence(
+        comparison: StimulusSelectionProgramComparison,
+        identity: StimulusPrescriptionOwnerIdentity,
+        selected: Map<StimulusPrescriptionOwnerIdentity, StimulusSelectedCandidate>
+    ): StimulusRemovalCausalEvidence {
+        val selectionTraces = comparison.selectionPlan.traces.filter { trace ->
+            traceOwnerMatches(trace, identity, comparison)
+        }
+        val materializationTraces = comparison.materializationTraces.filter { trace ->
+            traceOwnerMatches(trace, identity, comparison)
+        }
+        val localReasonCodes = buildList {
+            selectionTraces.forEach { trace ->
+                val selectedOrReused =
+                    (trace.selectedStableKey == identity.stableKey &&
+                        roleMatches(trace.selectedSelectionRole, identity.selectionRole, comparison, identity.stableKey)) ||
+                        (trace.coveredByPreviouslySelectedStableKey == identity.stableKey &&
+                            roleMatches(trace.coveredByPreviouslySelectedSelectionRole, identity.selectionRole, comparison, identity.stableKey))
+                if (selectedOrReused) addAll(trace.reasonCodes)
+                trace.candidateRejectionReasons[identity.stableKey]?.let { reason ->
+                    if (roleMatches(trace.candidateSelectionRoles[identity.stableKey], identity.selectionRole, comparison, identity.stableKey)) add(reason)
+                }
+            }
+            materializationTraces.forEach { addAll(it.reasonCodes) }
+        }.distinct()
+        val governedByB5 = comparison.addedOwnerIdentities.any { selected[it] != null }
+        val governedByB6 = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().any { authorization ->
+            authorization.owner != null && authorization.authorizedPrescription != null &&
+                authorization.status in setOf(
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR
+                )
+        }
+        val capacityOrPlacement = localReasonCodes.any(::isCapacityOrPlacementEvidence)
+        val disappearance = localReasonCodes.any(::isDisappearanceEvidence)
+        val directB5Action = selected.containsKey(identity) || selectionTraces.any {
+            (it.selectedStableKey == identity.stableKey && roleMatches(it.selectedSelectionRole, identity.selectionRole, comparison, identity.stableKey))
+        }
+        val contradictory = localReasonCodes.any(::isContradictoryProvenance)
+        val sources = buildList {
+            if (selectionTraces.isNotEmpty()) add("B5_SELECTION_TRACE_OWNER_LOCAL")
+            if (materializationTraces.isNotEmpty()) add("FINAL_MATERIALIZATION_TRACE_OWNER_LOCAL")
+            if (capacityOrPlacement) add("OWNER_LOCAL_CAPACITY_OR_PLACEMENT")
+            if (disappearance) add("OWNER_LOCAL_DISAPPEARANCE")
+        }.distinct()
+        return StimulusRemovalCausalEvidence(
+            stableKey = identity.stableKey,
+            selectionRole = identity.selectionRole,
+            governedExperimentalChangeExists = governedByB5 || governedByB6,
+            removedOwnerHasCapacityOrPlacementEvidence = capacityOrPlacement,
+            removedOwnerHasDisappearanceEvidence = disappearance,
+            removedOwnerWasDirectB5Action = directB5Action,
+            contradictoryProvenance = contradictory,
+            evidenceSources = sources,
+            reasonCodes = localReasonCodes
+        )
+    }
+
+    private fun evidenceOwnerTargetIds(
+        comparison: StimulusSelectionProgramComparison,
+        identity: StimulusPrescriptionOwnerIdentity
+    ): List<String> = (comparison.selectionPlan.traces.filter { traceOwnerMatches(it, identity, comparison) }.map { it.targetId } +
+        comparison.materializationTraces.filter { traceOwnerMatches(it, identity, comparison) }.map { it.targetId }).distinct().sorted()
+
+    private fun traceOwnerMatches(
+        trace: StimulusCandidateSelectionTrace,
+        identity: StimulusPrescriptionOwnerIdentity,
+        comparison: StimulusSelectionProgramComparison
+    ): Boolean {
+        val selectedMatch = trace.selectedStableKey == identity.stableKey &&
+            roleMatches(trace.selectedSelectionRole, identity.selectionRole, comparison, identity.stableKey)
+        val reusedMatch = trace.coveredByPreviouslySelectedStableKey == identity.stableKey &&
+            roleMatches(trace.coveredByPreviouslySelectedSelectionRole, identity.selectionRole, comparison, identity.stableKey)
+        val rejectedMatch = trace.candidateRejectionReasons.containsKey(identity.stableKey) &&
+            roleMatches(trace.candidateSelectionRoles[identity.stableKey], identity.selectionRole, comparison, identity.stableKey)
+        return selectedMatch || reusedMatch || rejectedMatch
+    }
+
+    private fun traceOwnerMatches(
+        trace: StimulusCandidateMaterializationTrace,
+        identity: StimulusPrescriptionOwnerIdentity,
+        comparison: StimulusSelectionProgramComparison
+    ): Boolean = trace.selectedStableKey == identity.stableKey &&
+        roleMatches(trace.selectionRole, identity.selectionRole, comparison, identity.stableKey)
+
+    private fun roleMatches(
+        traceRole: String?,
+        expectedRole: String,
+        comparison: StimulusSelectionProgramComparison,
+        stableKey: String
+    ): Boolean = traceRole == expectedRole ||
+        (traceRole == null &&
+            comparison.controlOwnerIdentities.count { it.stableKey == stableKey } <= 1 &&
+            comparison.experimentalOwnerIdentities.count { it.stableKey == stableKey } <= 1)
+
+    private fun isCapacityOrPlacementEvidence(code: String): Boolean =
+        code.contains("CAPACITY", ignoreCase = true) || code.contains("PLACEMENT", ignoreCase = true) ||
+            code.contains("REFLOW", ignoreCase = true) || code.contains("DISPLAC", ignoreCase = true) ||
+            code.contains("CONSTRAINED_MACHINERY", ignoreCase = true)
+
+    private fun isDisappearanceEvidence(code: String): Boolean =
+        code.contains("NOT_MATERIALIZED", ignoreCase = true) || code.contains("REMOVED", ignoreCase = true) ||
+            code.contains("DISPLAC", ignoreCase = true) || code.contains("UNFUNDED", ignoreCase = true) ||
+            code.contains("DEFER", ignoreCase = true) || code.contains("DISAPPEAR", ignoreCase = true)
+
+    private fun isContradictoryProvenance(code: String): Boolean =
+        code.contains("DIRECT_B5_ACTION", ignoreCase = true) || code == "SELECTION_TARGET_IDENTITY_MATERIALIZED" ||
+            code == "CONTROL_DIRECT_IDENTITY_ALREADY_PRESENT"
 
     private fun targetOutcomes(comparison: StimulusSelectionProgramComparison, affected: Set<String>): List<StimulusExperimentalTargetOutcome> =
         comparison.targetPlan.qualityTargets.map { target ->
@@ -433,4 +566,5 @@ internal fun StimulusExperimentalReadinessAudit.toJson(): JSONObject = JSONObjec
     .put("changeAttributions", JSONArray(changeAttributions.map { attribution -> JSONObject()
         .put("stableKey", attribution.stableKey).put("selectionRole", attribution.selectionRole).put("source", attribution.source.name)
         .put("targetIds", JSONArray(attribution.targetIds)).put("reasonCodes", JSONArray(attribution.reasonCodes))
+        .put("evidenceSources", JSONArray(attribution.evidenceSources))
     }))

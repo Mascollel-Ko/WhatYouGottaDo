@@ -53,7 +53,12 @@ data class StimulusCandidateSelectionTrace(
     val selectedStableKey: String?,
     val coveredByPreviouslySelectedStableKey: String?,
     val candidateRejectionReasons: Map<String, String> = emptyMap(),
-    val reasonCodes: List<String> = emptyList()
+    val reasonCodes: List<String> = emptyList(),
+    /** Exact B5 owner identity when the selected/reused trace exposes it. */
+    val selectedSelectionRole: String? = null,
+    val coveredByPreviouslySelectedSelectionRole: String? = null,
+    /** Role for each rejected candidate when the producer knows the exact probe role. */
+    val candidateSelectionRoles: Map<String, String> = emptyMap()
 )
 
 /**
@@ -94,7 +99,9 @@ data class StimulusCandidateMaterializationTrace(
     val directIdentityStillValid: Boolean = presentInFinalExperimentalSkeleton && directIdentityVerifiedAtSelection == true,
     val realizedTargetStatus: String?,
     val reasonCodes: List<String>,
-    val evidenceBasis: StimulusEvidenceBasis = StimulusEvidenceBasis.UNCLASSIFIED
+    val evidenceBasis: StimulusEvidenceBasis = StimulusEvidenceBasis.UNCLASSIFIED,
+    /** Exact B5 owner role when the producer has one. */
+    val selectionRole: String? = null
 )
 
 data class StimulusSelectionProgramComparison(
@@ -124,6 +131,18 @@ data class StimulusSelectionProgramComparison(
     /** B7 vocabulary alias for downstream shadow consumers. */
     val experimentalCutoverReadinessAudit: StimulusExperimentalReadinessAudit?
         get() = experimentalReadinessAudit
+
+    /** Exact owner identities retained alongside the stableKey summaries for B7 provenance. */
+    val controlOwnerIdentities: Set<StimulusPrescriptionOwnerIdentity>
+        get() = control.items.mapTo(linkedSetOf()) { StimulusPrescriptionOwnerIdentity(it.exerciseStableKey, it.selectionRole) }
+    val experimentalOwnerIdentities: Set<StimulusPrescriptionOwnerIdentity>
+        get() = experimental.items.mapTo(linkedSetOf()) { StimulusPrescriptionOwnerIdentity(it.exerciseStableKey, it.selectionRole) }
+    val addedOwnerIdentities: Set<StimulusPrescriptionOwnerIdentity>
+        get() = experimentalOwnerIdentities - controlOwnerIdentities
+    val removedOwnerIdentities: Set<StimulusPrescriptionOwnerIdentity>
+        get() = controlOwnerIdentities - experimentalOwnerIdentities
+    val sharedOwnerIdentities: Set<StimulusPrescriptionOwnerIdentity>
+        get() = controlOwnerIdentities intersect experimentalOwnerIdentities
 }
 
 private data class MaterializedCandidate(
@@ -184,7 +203,8 @@ class StimulusTargetCandidateSelector(
                 selected[reusable.stableKey] = merged
                 traces += trace(
                     intent, emptyList(), false, emptyList(), null, reusable.stableKey,
-                    emptyMap(), listOf("TARGET_COVERED_BY_ALREADY_SELECTED_IDENTITY", realizedGapCode(intent))
+                    emptyMap(), listOf("TARGET_COVERED_BY_ALREADY_SELECTED_IDENTITY", realizedGapCode(intent)),
+                    reusedRole = reusable.selectionRole
                 )
                 return@forEach
             }
@@ -199,6 +219,7 @@ class StimulusTargetCandidateSelector(
             val ranked = eligibleCandidates(intent, controlKeys, selected.keys, snapshot, state, request, physicalQualityCatalog, historyIndex)
             val pool = ranked.map { it.key }
             val rejections = linkedMapOf<String, String>()
+            val rejectionRoles = linkedMapOf<String, String>()
             var materialized: MaterializedCandidate? = null
             for (candidate in ranked) {
                 val result = materialize(intent, candidate.key, snapshot, state, request)
@@ -207,13 +228,14 @@ class StimulusTargetCandidateSelector(
                     break
                 }
                 rejections[candidate.key] = (result as MaterializedCandidateResult.Failure).reason
+                rejectionRoles[candidate.key] = roleFor(intent)
             }
             val chosen = materialized
             if (chosen == null) {
                 val reason = if (pool.isEmpty()) "TARGET_REQUIRES_SELECTION_BUT_NO_MATERIALIZABLE_CANDIDATE"
                 else "TARGET_REQUIRES_SELECTION_BUT_NO_MATERIALIZABLE_CANDIDATE"
                 deferred[intent.targetId] = reason
-                traces += trace(intent, emptyList(), true, pool, null, null, rejections, listOf(reason))
+                traces += trace(intent, emptyList(), true, pool, null, null, rejections, listOf(reason), candidateRoles = rejectionRoles)
                 return@forEach
             }
             val item = chosen.item
@@ -237,7 +259,9 @@ class StimulusTargetCandidateSelector(
             audit[item.stableKey] = "B5_SELECTED_CANONICAL_IDENTITY"
             traces += trace(
                 intent, emptyList(), true, pool, item.stableKey, null, rejections,
-                listOf("SELECTION_IDENTITY_PRESENT", chosen.compatibility.name, "B5_TARGET_SETS_FROM_EXISTING_PRESCRIPTION_NOT_TARGET_AUTHORITY")
+                listOf("SELECTION_IDENTITY_PRESENT", chosen.compatibility.name, "B5_TARGET_SETS_FROM_EXISTING_PRESCRIPTION_NOT_TARGET_AUTHORITY"),
+                selectedRole = item.role,
+                candidateRoles = rejections.keys.associateWith { roleFor(intent) }
             )
         }
 
@@ -254,7 +278,10 @@ class StimulusTargetCandidateSelector(
         selected: String?,
         reused: String?,
         rejections: Map<String, String>,
-        reasons: List<String>
+        reasons: List<String>,
+        selectedRole: String? = null,
+        reusedRole: String? = null,
+        candidateRoles: Map<String, String> = emptyMap()
     ) = StimulusCandidateSelectionTrace(
         targetId = intent.targetId,
         strategy = intent.strategy,
@@ -265,8 +292,14 @@ class StimulusTargetCandidateSelector(
         selectedStableKey = selected,
         coveredByPreviouslySelectedStableKey = reused,
         candidateRejectionReasons = rejections,
-        reasonCodes = reasons.distinct()
+        reasonCodes = reasons.distinct(),
+        selectedSelectionRole = selectedRole,
+        coveredByPreviouslySelectedSelectionRole = reusedRole,
+        candidateSelectionRoles = candidateRoles
     )
+
+    private fun roleFor(intent: StimulusSelectionTarget): String =
+        "CANONICAL_STIMULUS_${intent.targetId.replace(':', '_')}"
 
     private data class CandidateKey(val key: String, val targetCompatibleHistory: Boolean, val history: Boolean, val freeWeightCompatible: Boolean,
         val highConfidence: Boolean, val redundant: Boolean)
@@ -339,7 +372,7 @@ class StimulusTargetCandidateSelector(
         state: AthletePlanningState,
         request: ProgramSkeletonRequest
     ): MaterializedCandidateResult {
-        val role = "CANONICAL_STIMULUS_${intent.targetId.replace(':', '_')}"
+        val role = roleFor(intent)
         val probe = PlannedExercise(key, role, "B5 canonical identity probe", priorityBridge(intent.priority), style = StrengthProgrammingStyle.NONE)
         val prescription = runCatching {
             prescriptionPlanner.prescribe(snapshot, state.strengthIntent, probe, StrengthProgrammingStyle.NONE)
@@ -498,10 +531,17 @@ class StimulusSelectionProgramComparisonEngine {
         }
         val materializationTraces = selectionPlan.traces.map { trace ->
             val effectiveIdentity = trace.selectedStableKey ?: trace.coveredByPreviouslySelectedStableKey
+            val effectiveRole = trace.selectedSelectionRole ?: trace.coveredByPreviouslySelectedSelectionRole
             val selectedAtB5 = effectiveIdentity != null
-            val finalRows = effectiveIdentity?.let { key -> experimental.items.filter { it.exerciseStableKey == key } }.orEmpty()
+            val finalRows = effectiveIdentity?.let { key ->
+                experimental.items.filter { item ->
+                    item.exerciseStableKey == key && (effectiveRole == null || item.selectionRole == effectiveRole)
+                }
+            }.orEmpty()
             val present = finalRows.isNotEmpty()
-            val candidate = effectiveIdentity?.let { key -> selectionPlan.selectedCandidates.firstOrNull { it.stableKey == key } }
+            val candidate = effectiveIdentity?.let { key -> selectionPlan.selectedCandidates.firstOrNull {
+                it.stableKey == key && (effectiveRole == null || it.selectionRole == effectiveRole)
+            } }
             val directVerified = effectiveIdentity?.let { candidate?.coveredTargetIds?.contains(trace.targetId) == true }
             val realizedStatus = realizedTargetStatus(targetPlan, experimentalAudit, trace.targetId)
             val reasons = linkedSetOf<String>()
@@ -539,7 +579,8 @@ class StimulusSelectionProgramComparisonEngine {
                         ?: StimulusEvidenceBasis.UNCLASSIFIED
                     trace.targetId.startsWith("TASK:") -> StimulusEvidenceBasis.CANONICAL_TASK_RELATION
                     else -> StimulusEvidenceBasis.UNCLASSIFIED
-                }
+                },
+                selectionRole = effectiveRole
             )
         }
         return StimulusSelectionProgramComparison(
@@ -609,8 +650,11 @@ internal fun StimulusCandidateSelectionPlan.toCompactJson(): JSONObject = JSONOb
         .put("targetId", trace.targetId).put("strategy", trace.strategy.name).put("priority", trace.priority.name)
         .put("controlDirectCapabilityIdentities", JSONArray(trace.controlDirectCapabilityIdentities))
         .put("selectionRequired", trace.selectionRequired).put("candidatePool", JSONArray(trace.candidatePool))
-        .put("selectedStableKey", trace.selectedStableKey).put("coveredByPreviouslySelectedStableKey", trace.coveredByPreviouslySelectedStableKey)
+        .put("selectedStableKey", trace.selectedStableKey).put("selectedSelectionRole", trace.selectedSelectionRole)
+        .put("coveredByPreviouslySelectedStableKey", trace.coveredByPreviouslySelectedStableKey)
+        .put("coveredByPreviouslySelectedSelectionRole", trace.coveredByPreviouslySelectedSelectionRole)
         .put("candidateRejectionReasons", JSONObject(trace.candidateRejectionReasons))
+        .put("candidateSelectionRoles", JSONObject(trace.candidateSelectionRoles))
         .put("reasonCodes", JSONArray(trace.reasonCodes))
     }))
     .put("materialDemand", JSONObject()
@@ -624,9 +668,19 @@ internal fun StimulusSelectionProgramComparison.toCompactJson(): JSONObject = JS
     .put("addedStableKeys", JSONArray(addedStableKeys.sorted()))
     .put("removedStableKeys", JSONArray(removedStableKeys.sorted()))
     .put("sharedStableKeys", JSONArray(sharedStableKeys.sorted()))
+    .put("addedOwnerIdentities", JSONArray(addedOwnerIdentities.sortedWith(compareBy({ it.stableKey }, { it.selectionRole })).map {
+        JSONObject().put("stableKey", it.stableKey).put("selectionRole", it.selectionRole)
+    }))
+    .put("removedOwnerIdentities", JSONArray(removedOwnerIdentities.sortedWith(compareBy({ it.stableKey }, { it.selectionRole })).map {
+        JSONObject().put("stableKey", it.stableKey).put("selectionRole", it.selectionRole)
+    }))
+    .put("sharedOwnerIdentities", JSONArray(sharedOwnerIdentities.sortedWith(compareBy({ it.stableKey }, { it.selectionRole })).map {
+        JSONObject().put("stableKey", it.stableKey).put("selectionRole", it.selectionRole)
+    }))
     .put("materializationTraces", JSONArray(materializationTraces.map { trace -> JSONObject()
         .put("targetId", trace.targetId)
         .put("effectiveSelectedStableKey", trace.selectedStableKey)
+        .put("selectionRole", trace.selectionRole)
         .put("selectedAtB5", trace.selectedAtB5)
         .put("directIdentityVerifiedAtSelection", trace.directIdentityVerifiedAtSelection)
         .put("presentInFinalExperimentalSkeleton", trace.presentInFinalExperimentalSkeleton)
