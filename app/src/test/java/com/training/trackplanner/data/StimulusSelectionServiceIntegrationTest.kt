@@ -157,8 +157,9 @@ class StimulusSelectionServiceIntegrationTest {
             })
             assertTrue("canonical metadata must be seeded", metadata.isNotEmpty())
             val standalone = repository.generatePreparedPersonalizedProgram(preflight, answers)
+            val comparison = service.generatePreparedStimulusSelectionComparison(preflight, answers, metadata)
             val evaluation = service.generatePreparedStimulusProductionCutoverEvaluation(preflight, answers, metadata)
-            val comparison = evaluation.comparison
+            val b8Comparison = evaluation.comparison
 
             assertEquals(
                 "control fingerprint must remain unchanged",
@@ -206,14 +207,14 @@ class StimulusSelectionServiceIntegrationTest {
                 evaluation.cutoverAuthority.status in StimulusProductionCutoverAuthorityStatus.entries
             )
             assertEquals(StimulusProductionCutoverScope.STRENGTH_V1, evaluation.cutoverAuthority.scope)
-            assertEquals(comparison.experimentalReadinessAudit?.status, evaluation.cutoverAuthority.b7Status)
+            assertEquals(b8Comparison.experimentalReadinessAudit?.status, evaluation.cutoverAuthority.b7Status)
             assertFalse(evaluation.cutoverAuthority.routingActive)
             assertFalse(evaluation.cutoverAuthority.productionMutationAuthority)
-            assertEquals(evaluation.cutoverAuthority, comparison.productionCutoverAuthority)
+            assertEquals(evaluation.cutoverAuthority, b8Comparison.productionCutoverAuthority)
             assertEquals(
                 "normal repository must continue to return CONTROL",
                 personalizedProgramFingerprint(standalone.request, standalone.items),
-                personalizedProgramFingerprint(comparison.control.request, comparison.control.items)
+                personalizedProgramFingerprint(b8Comparison.control.request, b8Comparison.control.items)
             )
             assertFalse(comparison.selectionPlan.prescriptionAuthority)
             assertEquals(
@@ -237,16 +238,16 @@ class StimulusSelectionServiceIntegrationTest {
 
             // Reusing the real B6.2 comparison with one CONTROL owner removed proves that B8's
             // narrower first-cutover boundary rejects a valid B7 candidate without routing it.
-            val removedOwner = comparison.control.items.firstOrNull()
+            val removedOwner = b8Comparison.control.items.firstOrNull()
             if (removedOwner != null) {
-                val blocked = comparison.copy(
-                    experimental = comparison.experimental.copy(
-                        items = comparison.experimental.items.filterNot {
+                val blocked = b8Comparison.copy(
+                    experimental = b8Comparison.experimental.copy(
+                        items = b8Comparison.experimental.items.filterNot {
                             it.exerciseStableKey == removedOwner.exerciseStableKey &&
                                 it.selectionRole == removedOwner.selectionRole
                         }
                     ),
-                    experimentalReadinessAudit = comparison.experimentalReadinessAudit?.copy(
+                    experimentalReadinessAudit = b8Comparison.experimentalReadinessAudit?.copy(
                         status = StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW
                     )
                 )
