@@ -166,6 +166,8 @@ class StimulusExperimentalReadinessTest {
     @Test
     fun removedIdentityRequiresCausalEvidenceBeforeDisplacementAttribution() {
         val audit = StimulusExperimentalReadinessAuditEngine().audit(comparison(
+            controlUnits = 2.0, experimentalUnits = 4.0,
+            controlSessions = 2.0, experimentalSessions = 2.0,
             selectedCandidate = StimulusSelectedCandidate("candidate", setOf("QUALITY:STRENGTH"), "QUALITY:STRENGTH",
                 listOf("B5"), "REALIZATION_UNCLASSIFIED", 2, "STRENGTH")
         ))
