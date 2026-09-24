@@ -20,7 +20,9 @@ class StimulusExperimentalReadinessTest {
             controlUnits = 2.0,
             experimentalUnits = 4.0,
             controlSessions = 1.0,
-            experimentalSessions = 2.0
+            experimentalSessions = 2.0,
+            controlItems = listOf(item("candidate").copy(dayOfWeek = 2)),
+            experimentalItems = listOf(item("candidate").copy(dayOfWeek = 1))
         )
         val audit = StimulusExperimentalReadinessAuditEngine().audit(comparison)
         assertEquals(StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW, audit.status)
@@ -62,7 +64,9 @@ class StimulusExperimentalReadinessTest {
             controlUnitsStatus = StimulusTargetControlStatus.DIRECT_ABSENT,
             experimentalUnitsStatus = StimulusTargetControlStatus.DIRECT_PRESENT,
             controlSessionsStatus = StimulusTargetControlStatus.DIRECT_ABSENT,
-            experimentalSessionsStatus = StimulusTargetControlStatus.DIRECT_PRESENT
+            experimentalSessionsStatus = StimulusTargetControlStatus.DIRECT_PRESENT,
+            controlItems = listOf(item("candidate").copy(dayOfWeek = 2)),
+            experimentalItems = listOf(item("candidate").copy(dayOfWeek = 1))
         )
         val audit = StimulusExperimentalReadinessAuditEngine().audit(comparison)
         assertEquals(StimulusExperimentalTargetOutcomeStatus.IMPROVED, audit.targetOutcomes.single().status)
