@@ -180,6 +180,13 @@ class StimulusProductionFailureBoundaryTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val db = Room.inMemoryDatabaseBuilder(context, TrainingDatabase::class.java)
             .allowMainThreadQueries().build()
+        db.exerciseDao().insertExercise(
+            Exercise(
+                stableKey = "barbell_back_squat",
+                name = "Back Squat",
+                category = "STRENGTH"
+            )
+        )
         val repository = TrainingRepository(db, context)
         val service = repository.javaClass.getDeclaredField("personalizedProgramPlanningService")
             .apply { isAccessible = true }
