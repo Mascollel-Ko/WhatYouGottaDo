@@ -82,7 +82,9 @@ class StimulusExperimentalReadinessTest {
             controlUnitsStatus = StimulusTargetControlStatus.DIRECT_ABSENT,
             experimentalUnitsStatus = StimulusTargetControlStatus.DIRECT_PRESENT,
             controlSessionsStatus = StimulusTargetControlStatus.DISTRIBUTION_COMPARISON_DEFERRED,
-            experimentalSessionsStatus = StimulusTargetControlStatus.DIRECT_PRESENT
+            experimentalSessionsStatus = StimulusTargetControlStatus.DIRECT_PRESENT,
+            controlItems = listOf(item("candidate").copy(dayOfWeek = 2)),
+            experimentalItems = listOf(item("candidate").copy(dayOfWeek = 1))
         ))
         assertEquals(StimulusExperimentalTargetOutcomeStatus.INCONCLUSIVE, audit.targetOutcomes.single().status)
         assertEquals(StimulusExperimentalReadinessStatus.INCONCLUSIVE, audit.status)
@@ -118,7 +120,7 @@ class StimulusExperimentalReadinessTest {
 
         val unresolved = comparison(controlUnits = null, experimentalUnits = null, controlSessions = null, experimentalSessions = null)
         val unresolvedAudit = StimulusExperimentalReadinessAuditEngine().audit(unresolved)
-        assertEquals(StimulusExperimentalReadinessStatus.INCONCLUSIVE, unresolvedAudit.status)
+        assertEquals(StimulusExperimentalReadinessStatus.NOT_ELIGIBLE, unresolvedAudit.status)
         assertEquals(StimulusExperimentalTargetOutcomeStatus.INCONCLUSIVE, unresolvedAudit.targetOutcomes.single().status)
     }
 
@@ -248,7 +250,7 @@ class StimulusExperimentalReadinessTest {
     fun sameStableKeyDifferentRoleUsesExactRemovedOwnerIdentity() {
         val audit = StimulusExperimentalReadinessAuditEngine().audit(comparison(
             controlItems = listOf(item("squat").copy(selectionRole = "PRIMARY_STRENGTH")),
-            experimentalItems = listOf(item("squat").copy(selectionRole = "SUPPORT")),
+            experimentalItems = listOf(item("squat").copy(selectionRole = "SUPPORT", dayOfWeek = 2)),
             selectedCandidate = selectedCandidate("squat", "SUPPORT")
         ))
         assertTrue(audit.changeAttributions.any {
