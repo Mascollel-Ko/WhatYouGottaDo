@@ -80,6 +80,15 @@ class StimulusProductionCutoverAuthorityAuditEngine {
         reasons += b6IntegrityReasons(comparison)
 
         val materialOwners = materialOwnerIdentities(comparison)
+        if (materialOwners.isEmpty()) {
+            return control(
+                comparison,
+                listOf(
+                    "B8_CUTOVER_V1_EMPTY_MATERIAL_AUTHORITY",
+                    "B8_CUTOVER_V1_UPSTREAM_INCONSISTENCY"
+                )
+            )
+        }
         if (materialOwners.isNotEmpty()) {
             val nonStrength = materialOwners.flatMap { identity ->
                 materialAttributionsFor(comparison, identity).flatMap { attribution ->
@@ -104,6 +113,10 @@ class StimulusProductionCutoverAuthorityAuditEngine {
                     if (validation.isEmpty()) authorized += identity
                 }
             }
+        }
+
+        if (authorized.isEmpty()) {
+            reasons += "B8_CUTOVER_V1_EMPTY_MATERIAL_AUTHORITY"
         }
 
         val parityFailures = unrelatedControlParityFailures(comparison, authorized)
@@ -144,10 +157,7 @@ class StimulusProductionCutoverAuthorityAuditEngine {
         if (target == null || strengthTargetId !in candidateTargets || strengthTargetId !in selectedTraceTargets && selectedTraceTargets.isNotEmpty()) {
             reasons += "B8_CUTOVER_V1_ADDED_OWNER_WITHOUT_EXACT_B5_AUTHORITY"
         }
-        if (target == null || target.numericAuthority == StimulusTargetNumericAuthority.UNRESOLVED ||
-            target.strategy == StimulusDoseStrategy.UNRESOLVED || strengthTargetId in comparison.targetPlan.unresolved) {
-            reasons += "B8_CUTOVER_V1_UPSTREAM_INCONSISTENCY"
-        }
+        strengthTargetAuthorityReason(comparison, strengthTargetId)?.let(reasons::add)
 
         val attribution = materialAttributionsFor(comparison, identity)
             .firstOrNull { it.source == StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY }
@@ -159,6 +169,7 @@ class StimulusProductionCutoverAuthorityAuditEngine {
         if (!isExecutableStrengthAuthorization(auth)) {
             reasons += "B8_CUTOVER_V1_PRESCRIPTION_CHANGE_WITHOUT_EXACT_B6_AUTHORITY"
         }
+        strengthTargetAuthorityReason(comparison, auth?.targetId)?.let(reasons::add)
         if (!fullMaterialization(comparison, identity)) {
             reasons += "B8_CUTOVER_V1_REQUIRES_FULL_B6_MATERIALIZATION"
         }
@@ -218,6 +229,28 @@ class StimulusProductionCutoverAuthorityAuditEngine {
             StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
             StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR
         )
+
+    private fun strengthTargetAuthorityReason(
+        comparison: StimulusSelectionProgramComparison,
+        targetId: String?
+    ): String? {
+        if (targetId == null) return "B8_CUTOVER_V1_UPSTREAM_INCONSISTENCY"
+        val target = comparison.targetPlan.qualityTargets.firstOrNull {
+            "QUALITY:${it.quality.name}" == targetId
+        }
+        if (target == null || target.strategy == StimulusDoseStrategy.UNRESOLVED || targetId in comparison.targetPlan.unresolved) {
+            return "B8_CUTOVER_V1_UPSTREAM_INCONSISTENCY"
+        }
+        if (target.quality != TrainableQuality.STRENGTH ||
+            target.numericAuthority in setOf(
+                StimulusTargetNumericAuthority.NONE,
+                StimulusTargetNumericAuthority.UNRESOLVED
+            )
+        ) {
+            return "B8_CUTOVER_V1_STRENGTH_TARGET_HAS_NO_NUMERIC_AUTHORITY"
+        }
+        return null
+    }
 
     private fun fullMaterialization(
         comparison: StimulusSelectionProgramComparison,
