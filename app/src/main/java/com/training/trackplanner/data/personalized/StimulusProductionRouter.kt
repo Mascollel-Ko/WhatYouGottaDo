@@ -54,11 +54,30 @@ internal data class StimulusProductionBuildCounts(
 internal class MutableStimulusProductionBuildCounts {
     var controlBuilds: Int = 0
     var experimentalBuilds: Int = 0
-    fun snapshot() = StimulusProductionBuildCounts(controlBuilds, experimentalBuilds, thirdBuilds = 0)
+    private var programBuildInvocations: Int = 0
+
+    fun recordControlBuild() {
+        controlBuilds += 1
+        programBuildInvocations += 1
+    }
+
+    fun recordExperimentalBuild() {
+        experimentalBuilds += 1
+        programBuildInvocations += 1
+    }
+
+    fun snapshot(): StimulusProductionBuildCounts = StimulusProductionBuildCounts(
+        controlBuilds = controlBuilds,
+        experimentalBuilds = experimentalBuilds,
+        thirdBuilds = (programBuildInvocations - controlBuilds - experimentalBuilds).coerceAtLeast(0)
+    )
 }
 
 /** Recognized failure boundary for the optional experimental/cutover branch after CONTROL exists. */
-internal class StimulusProductionEvaluationFailure(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
+internal class StimulusProductionEvaluationFailure(
+    val reasonCode: String,
+    cause: Throwable? = null
+) : RuntimeException(reasonCode, cause)
 
 /**
  * B9 only selects one of the already-built B6.2 programs. It has no builder, persistence,

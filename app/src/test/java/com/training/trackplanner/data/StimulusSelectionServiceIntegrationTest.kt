@@ -9,11 +9,13 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.json.JSONObject
 import java.time.LocalDate
 import kotlin.math.ln
 
@@ -309,6 +311,7 @@ class StimulusSelectionServiceIntegrationTest {
                     personalizedProgramFingerprint(blocked.control.request, blocked.control.items),
                     personalizedProgramFingerprint(blockedRoute.program.request, blockedRoute.program.items)
                 )
+                assertSame(blocked.control, blockedRoute.program)
                 assertEquals(StimulusProductionProgramSource.CONTROL, blockedRoute.decision.selectedSource)
             }
             val rollback = StimulusProductionRouter().route(
@@ -322,7 +325,19 @@ class StimulusSelectionServiceIntegrationTest {
                 personalizedProgramFingerprint(b8Comparison.control.request, b8Comparison.control.items),
                 personalizedProgramFingerprint(rollback.program.request, rollback.program.items)
             )
+            assertSame("CONTROL_ONLY must return the original production CONTROL object", b8Comparison.control, rollback.program)
             assertFalse(rollback.decision.productionRoutingActive)
+
+            val savedRollbackId = repository.saveGeneratedProgram(null, rollback.program)
+            assertTrue(savedRollbackId > 0)
+            val persistedDecision = JSONObject(
+                requireNotNull(db.appMetaDao().latestByPrefix("${PersonalizedProgramPlanningService.DECISION_PREFIX}%")).value
+            )
+            val persistedStimulusProfile = persistedDecision.optJSONObject("athleteStimulusNeedProfile")
+            assertTrue(
+                "B9 evaluation must not persist comparison-only realization diagnostics",
+                persistedStimulusProfile == null || !persistedStimulusProfile.has("stimulusPrescriptionRealizationPlanShadow")
+            )
         } finally {
             db.close()
         }

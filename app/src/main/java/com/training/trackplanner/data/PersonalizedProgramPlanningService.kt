@@ -81,6 +81,7 @@ import org.json.JSONObject
 import java.time.LocalDate
 import java.util.UUID
 import kotlin.math.exp
+import kotlinx.coroutines.CancellationException
 import com.training.trackplanner.analysis.strengthperformance.StrengthPerformanceLoadResolver
 import com.training.trackplanner.data.personalized.CanonicalStrengthReferenceIndex
 
@@ -476,15 +477,7 @@ internal class PersonalizedProgramPlanningService(
             snapshot = snapshot,
             currentPrescriptions = materializedPrescriptions
         )
-        val controlWithPlan = control.copy(
-            personalizedDecision = control.personalizedDecision?.copy(
-                athleteStimulusNeedProfile = control.personalizedDecision?.athleteStimulusNeedProfile?.copy(
-                    stimulusPrescriptionRealizationPlanShadow = prescriptionPlan
-                )
-            )
-        )
         val enrichedComparison = comparison.copy(
-            control = controlWithPlan,
             prescriptionRealizationPlan = prescriptionPlan
         )
         return enrichedComparison.copy(
@@ -507,7 +500,7 @@ internal class PersonalizedProgramPlanningService(
     ): StimulusSelectionProgramComparison {
         val preferences = readPreferences()
         val control = controlOverride ?: generatePrepared(preflight, answers, metadata, progress).also {
-            productionBuildCounts?.let { it.controlBuilds += 1 }
+            productionBuildCounts?.recordControlBuild()
         }
         val targetPlan = control.personalizedDecision?.athleteStimulusNeedProfile?.stimulusTargetPlanShadow
             ?: if (productionBuildCounts != null) {
@@ -554,7 +547,7 @@ internal class PersonalizedProgramPlanningService(
         )
         val priorId = appMetaDao.latestByPrefix("$DECISION_PREFIX%")?.value?.let(::decisionIdFromJson)
         val experimental = try {
-            productionBuildCounts?.let { it.experimentalBuilds += 1 }
+            productionBuildCounts?.recordExperimentalBuild()
             programBuilder.build(
                 snapshot = snapshot,
                 state = state,
@@ -576,14 +569,12 @@ internal class PersonalizedProgramPlanningService(
                 materialDemandOverride = selectionPlan.materialDemand,
                 exactPrescriptionAuthorizationProvider = authorizationPlan.provider()
             )
+        } catch (error: CancellationException) {
+            throw error
         } catch (error: IllegalArgumentException) {
-            throw com.training.trackplanner.data.personalized.StimulusProductionEvaluationFailure(
-                "B9_EXPERIMENTAL_GENERATION_FAILED", error
-            )
+            throw expectedExperimentalFailureOrRethrow(error)
         } catch (error: IllegalStateException) {
-            throw com.training.trackplanner.data.personalized.StimulusProductionEvaluationFailure(
-                "B9_EXPERIMENTAL_GENERATION_FAILED", error
-            )
+            throw expectedExperimentalFailureOrRethrow(error)
         }
         val experimentalFinalAudit = FinalStimulusNeedAudit().audit(experimental, snapshot, physicalQualityCatalog)
         val experimentalAudit = StimulusTargetControlProgramAuditEngine().audit(
@@ -625,15 +616,7 @@ internal class PersonalizedProgramPlanningService(
             snapshot = snapshot,
             currentPrescriptions = materializedPrescriptions
         )
-        val controlWithPlan = control.copy(
-            personalizedDecision = control.personalizedDecision?.copy(
-                athleteStimulusNeedProfile = control.personalizedDecision?.athleteStimulusNeedProfile?.copy(
-                    stimulusPrescriptionRealizationPlanShadow = prescriptionPlan
-                )
-            )
-        )
         val enrichedComparison = comparison.copy(
-            control = controlWithPlan,
             prescriptionRealizationPlan = prescriptionPlan,
             prescriptionAuthorizationPlan = authorizationPlan,
             prescriptionMaterializationAudits = materializationAudits
@@ -704,15 +687,16 @@ internal class PersonalizedProgramPlanningService(
             com.training.trackplanner.data.personalized.StimulusProductionRoutingPolicy.defaultMode
     ): com.training.trackplanner.data.personalized.StimulusProductionGenerationResult {
         val buildCounts = com.training.trackplanner.data.personalized.MutableStimulusProductionBuildCounts()
-        val control = generatePrepared(preflight, answers, metadata, progress).also {
-            buildCounts.controlBuilds += 1
+        val productionProgress = com.training.trackplanner.data.personalized.ProductionGenerationProgressMapper(progress)
+        val control = generatePrepared(preflight, answers, metadata, productionProgress.controlReporter()).also {
+            buildCounts.recordControlBuild()
         }
         val evaluation = try {
             generatePreparedStimulusProductionCutoverEvaluation(
                 preflight = preflight,
                 answers = answers,
                 metadata = metadata,
-                progress = progress,
+                progress = productionProgress.experimentalReporter(),
                 controlOverride = control,
                 productionBuildCounts = buildCounts
             )
@@ -725,6 +709,9 @@ internal class PersonalizedProgramPlanningService(
                 reasonCodes = listOf("B9_UPSTREAM_EVALUATION_FAILED_CONTROL_FALLBACK"),
                 productionRoutingActive = false
             )
+            productionProgress.reportSelection()
+            productionProgress.reportValidationComplete()
+            productionProgress.reportComplete()
             return com.training.trackplanner.data.personalized.StimulusProductionGenerationResult(
                 program = control,
                 routeDecision = fallback,
@@ -737,6 +724,9 @@ internal class PersonalizedProgramPlanningService(
             authority = evaluation.cutoverAuthority,
             mode = routingMode
         )
+        productionProgress.reportSelection()
+        productionProgress.reportValidationComplete()
+        productionProgress.reportComplete()
         return com.training.trackplanner.data.personalized.StimulusProductionGenerationResult(
             program = routed.program,
             routeDecision = routed.decision,
@@ -750,6 +740,26 @@ internal class PersonalizedProgramPlanningService(
         comparison: com.training.trackplanner.data.personalized.StimulusSelectionProgramComparison
     ): com.training.trackplanner.data.personalized.StimulusProductionCutoverAuthorityDecision =
         com.training.trackplanner.data.personalized.StimulusProductionCutoverAuthorityAuditEngine().audit(comparison)
+
+    /**
+     * Only bounded canonical-materialization failures are recoverable after CONTROL exists.
+     * Generic argument/state failures remain programmer/data errors and must reach the caller.
+     */
+    private fun expectedExperimentalFailureOrRethrow(
+        error: RuntimeException
+    ): com.training.trackplanner.data.personalized.StimulusProductionEvaluationFailure {
+        val reason = error.message.orEmpty().substringBefore(':').trim()
+        val expected = reason == "NO_EXECUTABLE_PLANNING_DEMAND" ||
+            reason == "FINAL_CANONICAL_VALIDATION" ||
+            reason.startsWith("B6_AUTHORIZATION_") ||
+            reason.startsWith("REGIONAL_AUTHORIZATION_") ||
+            reason.startsWith("MATERIAL_AUTHORIZATION_")
+        if (!expected) throw error
+        return com.training.trackplanner.data.personalized.StimulusProductionEvaluationFailure(
+            reasonCode = "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+            cause = error
+        )
+    }
 
     /** Compatibility wrapper for callers that have not yet adopted the two-phase API. */
     suspend fun generate(
