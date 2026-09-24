@@ -164,6 +164,35 @@ class StimulusPrescriptionMaterializationTest {
     }
 
     @Test
+    fun heterogeneousRowsAreValidatedAsAWeeklyMultisetSubset() {
+        val authorized = PlannedPrescription("heterogeneous", listOf(
+            ProgramSetPrescription(1, 5, 80.0, 0),
+            ProgramSetPrescription(2, 5, 75.0, 0),
+            ProgramSetPrescription(3, 5, 70.0, 0)
+        ), 120, "TEST")
+        fun row(id: String, sets: List<ProgramSetPrescription>) = ProgramSkeletonItem(
+            localId = id, weekNumber = 1, dayOfWeek = if (id == "monday") 1 else 4, orderIndex = 0,
+            exerciseStableKey = key, exerciseName = "Squat", category = "STRENGTH", restSeconds = 120,
+            prescription = "diagnostic text may differ", setCount = sets.size, reps = sets.first().reps,
+            weightKg = sets.first().weightKg, seconds = 0, selectionReason = "test", weightSource = "TEST",
+            stableKey = key, selectionRole = role, setPrescriptions = sets
+        )
+        fun audit(rows: List<ProgramSkeletonItem>) = StimulusPrescriptionMaterializationAuditEngine().audit(
+            auditPlan(authorized), experimental(listOf(1), authorized).copy(items = rows), snapshot
+        ).single()
+        val split = audit(listOf(row("monday", listOf(authorized.sets[0])), row("thursday", authorized.sets.drop(1))))
+        assertEquals(StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED, split.state)
+        assertTrue(split.prescriptionPreservedOrSubset)
+        val duplicate = audit(listOf(row("monday", listOf(authorized.sets[0])), row("thursday", listOf(authorized.sets[0], authorized.sets[1]))))
+        assertEquals(StimulusPrescriptionMaterializationState.INVARIANT_FAILURE, duplicate.state)
+        assertTrue(duplicate.reasonCodes.contains("B6_AUTHORIZED_SET_REUSED"))
+        assertTrue(duplicate.reasonCodes.contains("B6_AUTHORIZED_SET_MULTIPLICITY_EXCEEDED"))
+        val unauthorized = audit(listOf(row("monday", listOf(authorized.sets[0])), row("thursday", listOf(authorized.sets[2].copy(weightKg = 72.5)))))
+        assertEquals(StimulusPrescriptionMaterializationState.INVARIANT_FAILURE, unauthorized.state)
+        assertTrue(unauthorized.reasonCodes.contains("B6_UNAUTHORIZED_SET_CONTENT"))
+    }
+
+    @Test
     fun authorizationEngineUsesB61RulesAndKeepsHypertrophyAndProxiesNonExecutable() {
         val engine = StimulusPrescriptionAuthorizationEngine()
         val strengthPlan = engine.build(

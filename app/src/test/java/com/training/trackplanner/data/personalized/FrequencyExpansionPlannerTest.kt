@@ -146,6 +146,30 @@ class FrequencyExpansionPlannerTest {
         assertNull(frequencyPortion(snapshot, state, candidate.copy(prescription = candidate.prescription.copy(
             sets = candidate.prescription.sets.mapIndexed { index, set -> set.copy(weightKg = index * 10.0) })), 2, prescriptions))
     }
+
+    @Test fun exactAuthorizationExpansionConsumesOnlyTheFundedOffsetRemainder() {
+        val item = f.source("press", 3)
+        val authorized = PlannedPrescription("heterogeneous", listOf(
+            ProgramSetPrescription(1, 5, 80.0, 0),
+            ProgramSetPrescription(2, 5, 75.0, 0),
+            ProgramSetPrescription(3, 5, 70.0, 0)
+        ), 120, "TEST_EXACT")
+        val provider = object : ExactPrescriptionAuthorizationProvider {
+            override val authorizedOwners = mapOf(
+                StimulusPrescriptionOwnerIdentity(item.stableKey, item.role) to authorized
+            )
+            override fun authorizedPrescriptionFor(item: PlannedExercise, requestedSets: Int): PlannedPrescription? =
+                authorized.takeIf { item.stableKey == "press" }
+        }
+        val candidate = CapacityCandidateTrace(4, item, authorized, 1, true, CandidateRejectionReason.FINITE_CAPACITY)
+        val firstRemainder = frequencyPortion(snapshot(), f.state(snapshot()), candidate, 5, PersonalizedPrescriptionPlanner(), provider)
+        assertEquals(listOf(75.0, 70.0), firstRemainder!!.sets.map { it.weightKg })
+        val finalRemainder = frequencyPortion(snapshot(), f.state(snapshot()), candidate.copy(fundedBaseUnits = 2), 5,
+            PersonalizedPrescriptionPlanner(), provider)
+        assertEquals(listOf(70.0), finalRemainder!!.sets.map { it.weightKg })
+        assertNull(frequencyPortion(snapshot(), f.state(snapshot()), candidate.copy(fundedBaseUnits = 3), 5,
+            PersonalizedPrescriptionPlanner(), provider))
+    }
     @Test fun identicalPartialUnitsKeepExplicitParentRatherThanTakingBaseIdentityByDayOrder() {
         val source = f.source("press", 2)
         val base = AuthorizedSchedulingDemand("base", source, f.rx(2), true)
