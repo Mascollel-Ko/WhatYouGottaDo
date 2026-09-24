@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.43.0 |
+| Protocol version | 3.43.1 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 4033d8381ef9cb16ba4e625123c9a9eb830ad34b |
+| Last audited commit | 556868a608b97169032fcee27e237953ca3bfa86 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -46,6 +46,12 @@
 - B8 consumes the existing B7 readiness audit and the same B6.2 CONTROL/EXPERIMENTAL comparison once. It evaluates only the `STRENGTH_V1` scope and emits a typed in-memory `StimulusProductionCutoverAuthorityDecision`; it does not rebuild, rerun, persist, route, mutate production, add a feature flag, or select a winner.
 - `AUTHORIZED_FOR_BOUNDED_CUTOVER` requires B7 `ELIGIBLE`, exact `(stableKey, selectionRole)` identity, exact B5 selected-role provenance, exact B6 executable Strength authorization, complete all-week B6 materialization, preserved prescription fields, unchanged weekday schedule, and no collateral, unexplained, removed-owner, or inconclusive evidence. Added and shared Strength owners are sorted deterministically; owner removals are always `CONTROL_REQUIRED`.
 - B7 `NOT_ELIGIBLE`, `INCONCLUSIVE`, and `NO_MATERIAL_CHANGE` map to `CONTROL_REQUIRED`, `INCONCLUSIVE`, and `NO_MATERIAL_CHANGE`. Non-Strength changes remain out of scope only when they are incidental and harmless; any material non-Strength attribution is a control requirement. Routing and production mutation authority remain `false`, the normal `generatePrepared` path remains CONTROL, and the compact JSON is diagnostic only.
+
+### 3.43.1 — B8.1 pre-activation closeout
+
+- The real Room/service entry point now exercises the complete bounded Strength path through `generatePreparedStimulusProductionCutoverEvaluation(...)`: B4 target authority, exact B5 owner provenance, executable B6 `AUTHORIZED_SAFE_REPAIR`, all-week `FULLY_MATERIALIZED` materialization with zero shortfall/overrun and preserved/subset prescriptions, B7 `ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW`, and the final B8 `AUTHORIZED_FOR_BOUNDED_CUTOVER` decision for the exact `barbell_back_squat` owner.
+- B8 fails closed when B7 is eligible but the material owner set is empty, and it never authorizes an empty validated owner list. Strength targets with numeric authority `NONE` or `UNRESOLVED` are rejected on both added and shared material-owner paths with explicit `B8_CUTOVER_V1_STRENGTH_TARGET_HAS_NO_NUMERIC_AUTHORITY` evidence; valid direction-only authority remains supported.
+- The closeout adds no routing, activation flag, persistence, schema, or third build. The normal `generatePrepared` path remains CONTROL, `routingActive=false`, `productionMutationAuthority=false`, and the typed decision remains diagnostic and in-memory.
 
 ### 3.41.1 — B6.2 multi-week materialization audit closure
 
