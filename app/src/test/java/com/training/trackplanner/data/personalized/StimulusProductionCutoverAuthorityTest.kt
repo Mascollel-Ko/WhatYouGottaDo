@@ -200,7 +200,6 @@ class StimulusProductionCutoverAuthorityTest {
             materialization = materialization("squat", "PRIMARY"),
             target = qualityTarget(TrainableQuality.STRENGTH, StimulusTargetNumericAuthority.NONE)
         ))
-        System.err.println("B8_SHARED_NONE_DECISION=$decision")
         assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, decision.status)
         assertTrue(decision.reasonCodes.contains("B8_CUTOVER_V1_STRENGTH_TARGET_HAS_NO_NUMERIC_AUTHORITY"))
         assertTrue(decision.authorizedOwnerIdentities.isEmpty())
