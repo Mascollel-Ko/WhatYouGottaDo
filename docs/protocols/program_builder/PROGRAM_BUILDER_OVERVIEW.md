@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.42.1 |
+| Protocol version | 3.42.2 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | f7195c59e45c785d26065cf4f375f94716d161f3 |
+| Last audited commit | 8b657be90f89b370df70d04502f6a45057a1aa8b |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -34,6 +34,12 @@
 
 - Exact experimental prescription expansion now consumes only the authorized funded slice. Frequency candidates use the remaining authorized offset and cannot recycle an earlier set or silently clip a heterogeneous authorization. Weekly materialization validates the flattened per-week multiset as a subset of the same `(stableKey, selectionRole)` authorization, preserving reps, weight, seconds, rest and weight source while allowing day split/reflow. Duplicate, over-multiplicity and unauthorized content emit explicit `B6_AUTHORIZED_SET_REUSED`, `B6_AUTHORIZED_SET_MULTIPLICITY_EXCEEDED` and `B6_UNAUTHORIZED_SET_CONTENT` reasons and invalidate the materialization.
 - B7 reuses that shared validator and propagates its integrity reasons. Known authorization violations are not `INCONCLUSIVE`; mixed numeric dimensions resolve regression before improvement, while deferred direction remains inconclusive. Removed identities require governed B5/B6 trace evidence plus explicit displacement and disappearance evidence; an unexplained or unproven removal cannot make the comparison eligible. The CONTROL production fingerprint remains the parity oracle, and the entire path remains shadow-only with `winner=null` and `productionAuthority=false`.
+
+### 3.42.2 — B7 owner-local removed-identity provenance
+
+- Removed CONTROL attribution now uses exact `(stableKey, selectionRole)` owner identities wherever the traces expose a role. B5 selection and materialization traces retain the selected/reused role and rejected-candidate role map; the comparison exposes exact added, removed and shared owner sets alongside the stableKey compatibility summaries.
+- Global B5/B6 material change may establish that constrained work existed, but capacity, placement, reflow and disappearance evidence is read only from traces associated with the removed owner. An unrelated candidate's global reason codes cannot prove another owner's displacement. Proven owner-local participation plus owner-local disappearance yields `DOWNSTREAM_CONSTRAINT_DISPLACEMENT`; governed participation without a local removal result yields `INCONCLUSIVE_DISPLACEMENT` / `REMOVAL_CAUSALITY_UNPROVEN`; no governed causal path yields `UNEXPLAINED` / `UNEXPLAINED_REMOVED_IDENTITY` and `NOT_ELIGIBLE`.
+- Same-stableKey role changes remain exact, and an added identity cannot borrow B5 authority from another role. B6 exact funded slices, weekly multiset subset validation, numeric regression precedence, CONTROL fingerprint parity, one CONTROL plus one EXPERIMENTAL build, `winner=null`, `productionAuthority=false`, and the normal `generatePrepared` path remain unchanged. No production cutover is enabled.
 
 ### 3.41.1 — B6.2 multi-week materialization audit closure
 
