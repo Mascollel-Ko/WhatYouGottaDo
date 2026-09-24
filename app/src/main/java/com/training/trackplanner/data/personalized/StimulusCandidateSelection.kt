@@ -122,7 +122,9 @@ data class StimulusSelectionProgramComparison(
     val prescriptionAuthorizationPlan: StimulusPrescriptionAuthorizationPlan? = null,
     val prescriptionMaterializationAudits: List<StimulusPrescriptionMaterializationAudit> = emptyList(),
     val experimentalReadinessAudit: StimulusExperimentalReadinessAudit? = null,
-    val winner: String? = null
+    val winner: String? = null,
+    /** B8 is attached only by the explicit internal evaluation entry point. */
+    val productionCutoverAuthority: StimulusProductionCutoverAuthorityDecision? = null
 ) {
     init {
         require(winner == null) { "B5 comparison must not select an overall winner" }
@@ -693,6 +695,7 @@ internal fun StimulusSelectionProgramComparison.toCompactJson(): JSONObject = JS
     }))
     .put("winner", winner)
     .put("experimentalReadinessAudit", experimentalReadinessAudit?.toJson())
+    .put("productionCutoverAuthority", productionCutoverAuthority?.toJson())
     .put("prescriptionAuthorizationPlan", prescriptionAuthorizationPlan?.let { plan ->
         JSONObject().put("shadowOnly", plan.shadowOnly).put("productionAuthority", plan.productionAuthority)
             .put("authorizations", JSONArray(plan.authorizations.map { authorization -> JSONObject()

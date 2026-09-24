@@ -601,6 +601,38 @@ internal class PersonalizedProgramPlanningService(
         )
     }
 
+    /**
+     * Test/dev-only B8.0 evaluation. B6.2 builds CONTROL and EXPERIMENTAL exactly once; B8
+     * consumes that existing comparison and only returns a future cutover authority decision.
+     * The normal repository path remains CONTROL and no experimental object is persisted or
+     * routed from this entry point.
+     */
+    internal suspend fun generatePreparedStimulusProductionCutoverEvaluation(
+        preflight: PersonalizedPlanningPreflight,
+        answers: PersonalizedPlanningAnswers,
+        metadata: Map<String, RuntimeExerciseMetadata>,
+        progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE
+    ): com.training.trackplanner.data.personalized.StimulusProductionCutoverEvaluation {
+        val comparison = generatePreparedStimulusPrescriptionMaterializationComparison(
+            preflight = preflight,
+            answers = answers,
+            metadata = metadata,
+            progress = progress
+        )
+        val authority = com.training.trackplanner.data.personalized.StimulusProductionCutoverAuthorityAuditEngine()
+            .audit(comparison)
+        return com.training.trackplanner.data.personalized.StimulusProductionCutoverEvaluation(
+            comparison = comparison.copy(productionCutoverAuthority = authority),
+            cutoverAuthority = authority
+        )
+    }
+
+    /** Pure B8 seam for tests and diagnostics that already hold the B6/B7 comparison. */
+    internal fun evaluateStimulusProductionCutover(
+        comparison: com.training.trackplanner.data.personalized.StimulusSelectionProgramComparison
+    ): com.training.trackplanner.data.personalized.StimulusProductionCutoverAuthorityDecision =
+        com.training.trackplanner.data.personalized.StimulusProductionCutoverAuthorityAuditEngine().audit(comparison)
+
     /** Compatibility wrapper for callers that have not yet adopted the two-phase API. */
     suspend fun generate(
         request: ProgramSkeletonRequest,
