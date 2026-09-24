@@ -162,6 +162,11 @@ class StimulusSelectionServiceIntegrationTest {
             val comparison = requireNotNull(production.comparison)
             val b8Comparison = comparison
             val evaluation = requireNotNull(comparison.productionCutoverAuthority)
+            System.err.println("B9_DIAG_DECISION=${production.routeDecision}")
+            System.err.println("B9_DIAG_B8=$evaluation")
+            System.err.println("B9_DIAG_PROGRAM=${personalizedProgramFingerprint(standalone.request, standalone.items)}")
+            System.err.println("B9_DIAG_EXPERIMENTAL=${personalizedProgramFingerprint(comparison.experimental.request, comparison.experimental.items)}")
+            System.err.println("B9_DIAG_CONTROL=${personalizedProgramFingerprint(comparison.control.request, comparison.control.items)}")
 
             assertEquals(
                 "activated production must return the existing experimental fingerprint",
