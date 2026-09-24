@@ -43,7 +43,8 @@ internal data class ReflowEvaluationCounts(var candidates: Int = 0, var dayProje
 internal class PostSplitWeeklyReflow {
     fun review(plan: GeneratedProgramSkeleton,snapshot: PlanningHistorySnapshot,state: AthletePlanningState,
         progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE,
-        counts: ReflowEvaluationCounts = ReflowEvaluationCounts()): PostSplitReflowResult {
+        counts: ReflowEvaluationCounts = ReflowEvaluationCounts(),
+        canonicalFailureEmitter: ((StimulusCanonicalEvaluationFailureReason, String?) -> Nothing)? = null): PostSplitReflowResult {
         val fingerprint=personalizedProgramFingerprint(plan.request,plan.items)
         val authority=plan.personalizedDecision?.authorizedScheduling
         val parents=authority?.authorized.orEmpty().filter { ContinuitySplitPolicy.mandatory(snapshot,it) }.map { it.id }
@@ -57,8 +58,15 @@ internal class PostSplitWeeklyReflow {
         val execution = ReflowProgress(progress)
         return try {
             run(plan,snapshot,state,requireNotNull(authority),materializedParents,fixed,counts,execution).also { execution.complete() }
+        } catch(error: kotlinx.coroutines.CancellationException) {
+            throw error
+        } catch(error: StimulusCanonicalEvaluationFailure) {
+            throw error
         } catch(error: Exception) {
-            if(error is java.util.concurrent.CancellationException) throw error
+            // The legacy review path keeps its safe-unchanged behavior. The
+            // production canonical path opts into a strict boundary so
+            // unexpected programmer/data failures propagate unchanged.
+            if (canonicalFailureEmitter != null) throw error
             unchanged("FAILED_SAFE_UNCHANGED",error.message ?: error.javaClass.simpleName)
         }
     }
@@ -216,7 +224,14 @@ internal class PostSplitWeeklyReflow {
         check(result.items.filter { it.localId in fixed }==plan.items.filter { it.localId in fixed })
         check(result.personalizedDecision?.authorizedScheduling==authority)
         val priorErrors = ProgramProjectionValidator().errors(plan)
-        check(ProgramProjectionValidator().errors(result).all { it in priorErrors }) { "FINAL_CANONICAL_VALIDATION" }
+        val finalErrorsPreserved = ProgramProjectionValidator().errors(result).all { it in priorErrors }
+        if (!finalErrorsPreserved) {
+            canonicalFailureEmitter?.invoke(
+                StimulusCanonicalEvaluationFailureReason.FINAL_CANONICAL_VALIDATION,
+                null
+            )
+            check(finalErrorsPreserved) { "FINAL_CANONICAL_VALIDATION" }
+        }
         check(PrimaryStrengthAnchorSpacingPolicy.allowedRows(result.items,primary))
         check(qBefore==qAfter)
         val trace=PostSplitReflowTrace(if(moves.isEmpty()) "REVIEWED_NO_BENEFICIAL_LEGAL_MOVE" else "APPLIED",parents,fixed,

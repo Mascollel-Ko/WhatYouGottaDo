@@ -330,6 +330,8 @@ class PersonalizedProgramBuilder(
         private set
     /** Scoped experimental authority; kept out of the legacy reflective buildCore seam. */
     private var activeExactPrescriptionAuthorizationProvider: ExactPrescriptionAuthorizationProvider? = null
+    /** Optional typed failure translation used only by the production canonical branch. */
+    private var activeCanonicalFailureEmitter: ((StimulusCanonicalEvaluationFailureReason, String?) -> Nothing)? = null
 
     fun build(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, gaps: List<AdaptationGap>, intent: BlockIntent, horizon: Int, request: ProgramSkeletonRequest, answers: PersonalizedPlanningAnswers, priorDecisionId: String?, explicitWeeklyDays: Boolean = true,
         frequency: PlanningFrequencyProvenance = PlanningFrequencyProvenance(WeeklyDosePlanner().resolve(state, state.anchors.size + gaps.size),
@@ -337,22 +339,26 @@ class PersonalizedProgramBuilder(
         progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE,
         materialDemandOverride: MaterialDemand? = null,
         regionalTargetPlan: RegionalExperimentalTargetPlan? = null,
-        exactPrescriptionAuthorizationProvider: ExactPrescriptionAuthorizationProvider? = null): GeneratedProgramSkeleton {
+        exactPrescriptionAuthorizationProvider: ExactPrescriptionAuthorizationProvider? = null,
+        canonicalFailureEmitter: ((StimulusCanonicalEvaluationFailureReason, String?) -> Nothing)? = null): GeneratedProgramSkeleton {
         val performanceMetrics = PlannerPerformanceMetrics()
         val memo = PlanningComputationMemo(performanceMetrics)
         val memoSnapshot = memo.wrap(snapshot)
         val generationPrescriptions = prescriptionPlanner.scopedTo(memo)
         val previousExactAuthorization = activeExactPrescriptionAuthorizationProvider
+        val previousCanonicalFailureEmitter = activeCanonicalFailureEmitter
         activeExactPrescriptionAuthorizationProvider = exactPrescriptionAuthorizationProvider
+        activeCanonicalFailureEmitter = canonicalFailureEmitter
         val placed = try {
             buildBeforeReflow(memoSnapshot, state, gaps, intent, horizon, request, answers, priorDecisionId, explicitWeeklyDays,
                 frequency, progress, generationPrescriptions, performanceMetrics, materialDemandOverride, regionalTargetPlan,
                 exactPrescriptionAuthorizationProvider)
         } finally {
             activeExactPrescriptionAuthorizationProvider = previousExactAuthorization
+            activeCanonicalFailureEmitter = previousCanonicalFailureEmitter
         }
         val reviewed = PostSplitWeeklyReflow().review(placed, memoSnapshot, state, progress,
-            ReflowEvaluationCounts(performanceMetrics = performanceMetrics))
+            ReflowEvaluationCounts(performanceMetrics = performanceMetrics), canonicalFailureEmitter)
         val result = if (reviewed.trace.state == "NOT_APPLICABLE_NO_MANDATORY_SPLIT") placed
             else reviewed.skeleton.copy(personalizedDecision = reviewed.skeleton.personalizedDecision?.copy(postSplitReflow = reviewed.trace))
         lastPerformanceMetrics = performanceMetrics.asMap()
@@ -360,15 +366,29 @@ class PersonalizedProgramBuilder(
         regionalTargetPlan?.authorizedPrescriptionBySelectionRole?.forEach { (owner, prescription) ->
             result.items.groupBy { it.weekNumber }.forEach { (week, rows) ->
                 val units = rows.filter { regionalSelectionIdentity(result, it) == owner }.sumOf { it.setPrescriptions.size }
-                check(units <= prescription.sets.size) { "REGIONAL_AUTHORIZATION_OVERRUN: $owner week=$week units=$units authorized=${prescription.sets.size}" }
+                if (units > prescription.sets.size) {
+                    canonicalFailureEmitter?.invoke(
+                        StimulusCanonicalEvaluationFailureReason.REGIONAL_AUTHORIZATION_FAILURE,
+                        "REGIONAL_AUTHORIZATION_OVERRUN"
+                    )
+                    check(units <= prescription.sets.size) {
+                        "REGIONAL_AUTHORIZATION_OVERRUN: $owner week=$week units=$units authorized=${prescription.sets.size}"
+                    }
+                }
             }
         }
         exactPrescriptionAuthorizationProvider?.authorizedOwners?.forEach { (owner, prescription) ->
             result.items.groupBy { it.weekNumber }.forEach { (week, rows) ->
                 val units = rows.filter { it.exerciseStableKey == owner.stableKey && it.selectionRole == owner.selectionRole }
                     .sumOf { it.setPrescriptions.size }
-                check(units <= prescription.sets.size) {
-                    "B6_AUTHORIZATION_OVERRUN: $owner week=$week units=$units authorized=${prescription.sets.size}"
+                if (units > prescription.sets.size) {
+                    canonicalFailureEmitter?.invoke(
+                        StimulusCanonicalEvaluationFailureReason.B6_AUTHORIZATION_FAILURE,
+                        "B6_AUTHORIZATION_OVERRUN"
+                    )
+                    check(units <= prescription.sets.size) {
+                        "B6_AUTHORIZATION_OVERRUN: $owner week=$week units=$units authorized=${prescription.sets.size}"
+                    }
                 }
             }
         }
@@ -528,7 +548,7 @@ class PersonalizedProgramBuilder(
                 if (capacityExpanded) maxOf(continuityDemand, coreReserve + (materialCandidates.firstOrNull()?.targetSets ?: 0)) else continuityDemand)
             else envelope.finalControllableUnits
         val bounded = regionalTargetPlan?.let { BoundedMaterialDemandAllocation(snapshot, state, request, materialCandidates,
-            it, generationPrescriptions, capacity, continuityDemand, coreReserve) }
+            it, generationPrescriptions, capacity, continuityDemand, coreReserve, activeCanonicalFailureEmitter) }
         val finite = bounded?.finite ?: FiniteExecutionAllocator.allocate(capacity, continuityDemand, materialCandidates.map(PlannedExercise::targetSets), share, coreReserve,
             materialCandidates.indices.filterTo(mutableSetOf()) {
                 val item = materialCandidates[it]
@@ -574,7 +594,13 @@ class PersonalizedProgramBuilder(
                 PrescriptionAuthoritySource.EXPERIMENTAL_MATERIAL_AUTHORIZED
             } else PrescriptionAuthoritySource.REGIONAL_TARGET_AUTHORIZED)
         val retained = retainedIncumbentSupply(snapshot, state, gaps, request, candidates, generationPrescriptions)
-        require(selected.isNotEmpty()) { "NO_EXECUTABLE_PLANNING_DEMAND" }
+        if (selected.isEmpty()) {
+            activeCanonicalFailureEmitter?.invoke(
+                StimulusCanonicalEvaluationFailureReason.NO_EXECUTABLE_PLANNING_DEMAND,
+                null
+            )
+            require(selected.isNotEmpty()) { "NO_EXECUTABLE_PLANNING_DEMAND" }
+        }
         progress.report(PersonalizedPlannerStage.PLACEMENT)
         val allocator = SplitAwareContinuityAllocation(generationPrescriptions, progress, placementContext, performanceMetrics)
         val regionalAuthorized = if (regionalTargetPlan != null && authorizedOverride == null) {
@@ -739,6 +765,7 @@ class PersonalizedProgramBuilder(
             placement.trace.authorized.map { AuthorizedPrescription(it.id, it.item, it.prescription, it.continuity) }
         } catch (failure: Exception) {
             if (failure is java.util.concurrent.CancellationException) throw failure
+            if (activeCanonicalFailureEmitter != null) throw failure
             return initialSkeleton.copy(personalizedDecision = decision.copy(residualCompletion = ResidualCompletionTrace(
                 "POST_PROCESS_FAILED_SAFE_AUTHORIZED_PRESCRIPTION", fingerprint, fingerprint, snapshot.cutoff.plusDays(1).toString())))
         }
