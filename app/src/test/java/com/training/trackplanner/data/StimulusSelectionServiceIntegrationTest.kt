@@ -8,6 +8,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -156,13 +157,19 @@ class StimulusSelectionServiceIntegrationTest {
                 }
             })
             assertTrue("canonical metadata must be seeded", metadata.isNotEmpty())
-            val standalone = repository.generatePreparedPersonalizedProgram(preflight, answers)
-            val comparison = service.generatePreparedStimulusSelectionComparison(preflight, answers, metadata)
-            val evaluation = service.generatePreparedStimulusProductionCutoverEvaluation(preflight, answers, metadata)
-            val b8Comparison = evaluation.comparison
+            val production = repository.generatePreparedPersonalizedProgramEvaluation(preflight, answers)
+            val standalone = production.program
+            val comparison = requireNotNull(production.comparison)
+            val b8Comparison = comparison
+            val evaluation = requireNotNull(comparison.productionCutoverAuthority)
 
             assertEquals(
-                "control fingerprint must remain unchanged",
+                "activated production must return the existing experimental fingerprint",
+                personalizedProgramFingerprint(standalone.request, standalone.items),
+                personalizedProgramFingerprint(comparison.experimental.request, comparison.experimental.items)
+            )
+            assertNotEquals(
+                "activated production must not return CONTROL in the authorized fixture",
                 personalizedProgramFingerprint(standalone.request, standalone.items),
                 personalizedProgramFingerprint(comparison.control.request, comparison.control.items)
             )
@@ -203,13 +210,13 @@ class StimulusSelectionServiceIntegrationTest {
             assertTrue(comparison.winner == null)
             assertFalse(comparison.selectionPlan.productionSelectionAuthority)
             assertEquals(
-                "real Room/service path must reach bounded Strength authorization: ${evaluation.cutoverAuthority}",
+                "real Room/service path must reach bounded Strength authorization: $evaluation",
                 StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER,
-                evaluation.cutoverAuthority.status
+                evaluation.status
             )
-            assertEquals(StimulusProductionCutoverScope.STRENGTH_V1, evaluation.cutoverAuthority.scope)
-            assertTrue(evaluation.cutoverAuthority.authorizedOwnerIdentities.isNotEmpty())
-            val authorizedIdentity = evaluation.cutoverAuthority.authorizedOwnerIdentities.single()
+            assertEquals(StimulusProductionCutoverScope.STRENGTH_V1, evaluation.scope)
+            assertTrue(evaluation.authorizedOwnerIdentities.isNotEmpty())
+            val authorizedIdentity = evaluation.authorizedOwnerIdentities.single()
             assertEquals("barbell_back_squat", authorizedIdentity.stableKey)
             assertEquals(b8Comparison.experimentalReadinessAudit?.status, evaluation.cutoverAuthority.b7Status)
             assertEquals(
@@ -242,13 +249,18 @@ class StimulusSelectionServiceIntegrationTest {
                         it.source == StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION
                 }
             )
-            assertFalse(evaluation.cutoverAuthority.routingActive)
-            assertFalse(evaluation.cutoverAuthority.productionMutationAuthority)
-            assertEquals(evaluation.cutoverAuthority, b8Comparison.productionCutoverAuthority)
+            assertFalse(evaluation.routingActive)
+            assertFalse(evaluation.productionMutationAuthority)
+            assertEquals(evaluation, b8Comparison.productionCutoverAuthority)
+            assertEquals(StimulusProductionProgramSource.B8_STRENGTH_V1, production.routeDecision.selectedSource)
+            assertTrue(production.routeDecision.productionRoutingActive)
+            assertEquals(listOf("B9_B8_STRENGTH_V1_ROUTED"), production.routeDecision.reasonCodes)
+            assertEquals(1, production.buildCounts.controlBuilds)
+            assertEquals(1, production.buildCounts.experimentalBuilds)
+            assertEquals(0, production.buildCounts.thirdBuilds)
             assertEquals(
-                "normal repository must continue to return CONTROL",
-                personalizedProgramFingerprint(standalone.request, standalone.items),
-                personalizedProgramFingerprint(b8Comparison.control.request, b8Comparison.control.items)
+                personalizedProgramFingerprint(b8Comparison.experimental.request, b8Comparison.experimental.items),
+                personalizedProgramFingerprint(standalone.request, standalone.items)
             )
             assertFalse(comparison.selectionPlan.prescriptionAuthority)
             assertEquals(
@@ -288,7 +300,29 @@ class StimulusSelectionServiceIntegrationTest {
                 val blockedDecision = StimulusProductionCutoverAuthorityAuditEngine().audit(blocked)
                 assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, blockedDecision.status)
                 assertTrue(blockedDecision.reasonCodes.contains("B8_CUTOVER_V1_CONTROL_OWNER_REMOVAL_NOT_ALLOWED"))
+                val blockedRoute = StimulusProductionRouter().route(
+                    blocked,
+                    blockedDecision,
+                    StimulusProductionRoutingMode.B8_STRENGTH_V1_ACTIVE
+                )
+                assertEquals(
+                    personalizedProgramFingerprint(blocked.control.request, blocked.control.items),
+                    personalizedProgramFingerprint(blockedRoute.program.request, blockedRoute.program.items)
+                )
+                assertEquals(StimulusProductionProgramSource.CONTROL, blockedRoute.decision.selectedSource)
             }
+            val rollback = StimulusProductionRouter().route(
+                b8Comparison,
+                evaluation,
+                StimulusProductionRoutingMode.CONTROL_ONLY
+            )
+            assertEquals(StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER, rollback.decision.b8Status)
+            assertEquals(StimulusProductionProgramSource.CONTROL, rollback.decision.selectedSource)
+            assertEquals(
+                personalizedProgramFingerprint(b8Comparison.control.request, b8Comparison.control.items),
+                personalizedProgramFingerprint(rollback.program.request, rollback.program.items)
+            )
+            assertFalse(rollback.decision.productionRoutingActive)
         } finally {
             db.close()
         }

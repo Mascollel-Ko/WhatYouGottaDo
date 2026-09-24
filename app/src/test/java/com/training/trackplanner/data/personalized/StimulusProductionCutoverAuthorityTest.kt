@@ -10,6 +10,7 @@ import com.training.trackplanner.data.ProgramWeekPlan
 import com.training.trackplanner.data.TrainableQuality
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -204,6 +205,95 @@ class StimulusProductionCutoverAuthorityTest {
         assertTrue(decision.reasonCodes.contains("B8_CUTOVER_V1_STRENGTH_TARGET_HAS_NO_NUMERIC_AUTHORITY"))
         assertTrue(decision.authorizedOwnerIdentities.isEmpty())
     }
+
+    @Test
+    fun b9AuthorizedActiveRoutesTheExistingExperimentalSkeleton() {
+        val comparison = authorizedComparison()
+        val authority = engine().audit(comparison)
+        val result = StimulusProductionRouter().route(
+            comparison, authority, StimulusProductionRoutingMode.B8_STRENGTH_V1_ACTIVE
+        )
+        assertSame(comparison.experimental, result.program)
+        assertEquals(StimulusProductionProgramSource.B8_STRENGTH_V1, result.decision.selectedSource)
+        assertEquals(listOf("B9_B8_STRENGTH_V1_ROUTED"), result.decision.reasonCodes)
+        assertTrue(result.decision.productionRoutingActive)
+    }
+
+    @Test
+    fun b9ControlOnlyIsAnExplicitKillSwitchEvenWhenB8IsAuthorized() {
+        val comparison = authorizedComparison()
+        val authority = engine().audit(comparison)
+        val result = StimulusProductionRouter().route(
+            comparison, authority, StimulusProductionRoutingMode.CONTROL_ONLY
+        )
+        assertSame(comparison.control, result.program)
+        assertEquals(StimulusProductionProgramSource.CONTROL, result.decision.selectedSource)
+        assertEquals(listOf("B9_CONTROL_ONLY_POLICY"), result.decision.reasonCodes)
+        assertFalse(result.decision.productionRoutingActive)
+        assertEquals(StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER, result.decision.b8Status)
+    }
+
+    @Test
+    fun b9StatusMatrixAlwaysFallsBackToTheExistingControlSkeleton() {
+        val comparison = authorizedComparison()
+        listOf(
+            StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED to "B9_B8_CONTROL_REQUIRED",
+            StimulusProductionCutoverAuthorityStatus.INCONCLUSIVE to "B9_B8_INCONCLUSIVE",
+            StimulusProductionCutoverAuthorityStatus.NO_MATERIAL_CHANGE to "B9_B8_NO_MATERIAL_CHANGE"
+        ).forEach { (status, reason) ->
+            val authority = StimulusProductionCutoverAuthorityDecision(
+                status = status,
+                scope = StimulusProductionCutoverScope.STRENGTH_V1,
+                authorizedOwnerIdentities = emptyList(),
+                reasonCodes = emptyList(),
+                b7Status = StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW
+            )
+            val result = StimulusProductionRouter().route(
+                comparison, authority, StimulusProductionRoutingMode.B8_STRENGTH_V1_ACTIVE
+            )
+            assertSame(comparison.control, result.program)
+            assertEquals(listOf(reason), result.decision.reasonCodes)
+            assertFalse(result.decision.productionRoutingActive)
+        }
+    }
+
+    @Test
+    fun b9MalformedAuthorizedAuthorityWithEmptyOwnersFailsClosed() {
+        val comparison = authorizedComparison()
+        val authority = StimulusProductionCutoverAuthorityDecision(
+            status = StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER,
+            scope = StimulusProductionCutoverScope.STRENGTH_V1,
+            authorizedOwnerIdentities = emptyList(),
+            reasonCodes = listOf("B8_STRENGTH_V1_AUTHORIZED"),
+            b7Status = StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW
+        )
+        val result = StimulusProductionRouter().route(
+            comparison, authority, StimulusProductionRoutingMode.B8_STRENGTH_V1_ACTIVE
+        )
+        assertSame(comparison.control, result.program)
+        assertEquals(listOf("B9_B8_EMPTY_AUTHORIZED_OWNER_SET"), result.decision.reasonCodes)
+        assertFalse(result.decision.productionRoutingActive)
+    }
+
+    @Test
+    fun b9MissingAuthorityFallsBackToControl() {
+        val comparison = authorizedComparison()
+        val result = StimulusProductionRouter().route(
+            comparison, null, StimulusProductionRoutingMode.B8_STRENGTH_V1_ACTIVE
+        )
+        assertSame(comparison.control, result.program)
+        assertEquals(listOf("B9_B8_AUTHORITY_MISSING"), result.decision.reasonCodes)
+    }
+
+    private fun authorizedComparison() = comparison(
+        controlItems = listOf(item("base", "BASE")),
+        experimentalItems = listOf(item("base", "BASE"), item("squat", "ROLE_A")),
+        selected = selected("squat", "ROLE_A"),
+        traces = listOf(trace("squat", "ROLE_A")),
+        attribution = attribution("squat", "ROLE_A", StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY),
+        authorization = authorization("squat", "ROLE_A", StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR),
+        materialization = materialization("squat", "ROLE_A")
+    )
 
     private fun engine() = StimulusProductionCutoverAuthorityAuditEngine()
 
