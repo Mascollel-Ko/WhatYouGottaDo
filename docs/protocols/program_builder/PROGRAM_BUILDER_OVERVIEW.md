@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.42.2 |
+| Protocol version | 3.43.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 8b657be90f89b370df70d04502f6a45057a1aa8b |
+| Last audited commit | 4033d8381ef9cb16ba4e625123c9a9eb830ad34b |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -40,6 +40,12 @@
 - Removed CONTROL attribution now uses exact `(stableKey, selectionRole)` owner identities wherever the traces expose a role. B5 selection and materialization traces retain the selected/reused role and rejected-candidate role map; the comparison exposes exact added, removed and shared owner sets alongside the stableKey compatibility summaries.
 - Global B5/B6 material change may establish that constrained work existed, but capacity, placement, reflow and disappearance evidence is read only from traces associated with the removed owner. An unrelated candidate's global reason codes cannot prove another owner's displacement. Proven owner-local participation plus owner-local disappearance yields `DOWNSTREAM_CONSTRAINT_DISPLACEMENT`; governed participation without a local removal result yields `INCONCLUSIVE_DISPLACEMENT` / `REMOVAL_CAUSALITY_UNPROVEN`; no governed causal path yields `UNEXPLAINED` / `UNEXPLAINED_REMOVED_IDENTITY` and `NOT_ELIGIBLE`.
 - Same-stableKey role changes remain exact, and an added identity cannot borrow B5 authority from another role. B6 exact funded slices, weekly multiset subset validation, numeric regression precedence, CONTROL fingerprint parity, one CONTROL plus one EXPERIMENTAL build, `winner=null`, `productionAuthority=false`, and the normal `generatePrepared` path remain unchanged. No production cutover is enabled.
+
+### 3.43.0 — B8.0 bounded production cutover authority gate
+
+- B8 consumes the existing B7 readiness audit and the same B6.2 CONTROL/EXPERIMENTAL comparison once. It evaluates only the `STRENGTH_V1` scope and emits a typed in-memory `StimulusProductionCutoverAuthorityDecision`; it does not rebuild, rerun, persist, route, mutate production, add a feature flag, or select a winner.
+- `AUTHORIZED_FOR_BOUNDED_CUTOVER` requires B7 `ELIGIBLE`, exact `(stableKey, selectionRole)` identity, exact B5 selected-role provenance, exact B6 executable Strength authorization, complete all-week B6 materialization, preserved prescription fields, unchanged weekday schedule, and no collateral, unexplained, removed-owner, or inconclusive evidence. Added and shared Strength owners are sorted deterministically; owner removals are always `CONTROL_REQUIRED`.
+- B7 `NOT_ELIGIBLE`, `INCONCLUSIVE`, and `NO_MATERIAL_CHANGE` map to `CONTROL_REQUIRED`, `INCONCLUSIVE`, and `NO_MATERIAL_CHANGE`. Non-Strength changes remain out of scope only when they are incidental and harmless; any material non-Strength attribution is a control requirement. Routing and production mutation authority remain `false`, the normal `generatePrepared` path remains CONTROL, and the compact JSON is diagnostic only.
 
 ### 3.41.1 — B6.2 multi-week materialization audit closure
 
