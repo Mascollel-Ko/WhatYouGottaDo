@@ -81,13 +81,8 @@ class StimulusProductionCutoverAuthorityAuditEngine {
 
         val materialOwners = materialOwnerIdentities(comparison)
         if (materialOwners.isEmpty()) {
-            return control(
-                comparison,
-                listOf(
-                    "B8_CUTOVER_V1_EMPTY_MATERIAL_AUTHORITY",
-                    "B8_CUTOVER_V1_UPSTREAM_INCONSISTENCY"
-                )
-            )
+            reasons += "B8_CUTOVER_V1_EMPTY_MATERIAL_AUTHORITY"
+            reasons += "B8_CUTOVER_V1_UPSTREAM_INCONSISTENCY"
         }
         if (materialOwners.isNotEmpty()) {
             val nonStrength = materialOwners.flatMap { identity ->

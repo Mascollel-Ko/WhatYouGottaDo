@@ -160,6 +160,8 @@ class StimulusSelectionServiceIntegrationTest {
             val comparison = service.generatePreparedStimulusSelectionComparison(preflight, answers, metadata)
             val evaluation = service.generatePreparedStimulusProductionCutoverEvaluation(preflight, answers, metadata)
             val b8Comparison = evaluation.comparison
+            System.err.println("B8_REAL_SERVICE_DECISION=${evaluation.cutoverAuthority}")
+            System.err.println("B8_REAL_SERVICE_B7=${b8Comparison.experimentalReadinessAudit}")
 
             assertEquals(
                 "control fingerprint must remain unchanged",
