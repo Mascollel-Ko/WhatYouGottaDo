@@ -57,7 +57,8 @@ internal class PostSplitWeeklyReflow {
         progress.report(PersonalizedPlannerStage.POST_SPLIT_REFLOW)
         val execution = ReflowProgress(progress)
         return try {
-            run(plan,snapshot,state,requireNotNull(authority),materializedParents,fixed,counts,execution).also { execution.complete() }
+            run(plan,snapshot,state,requireNotNull(authority),materializedParents,fixed,counts,execution,canonicalFailureEmitter)
+                .also { execution.complete() }
         } catch(error: kotlinx.coroutines.CancellationException) {
             throw error
         } catch(error: StimulusCanonicalEvaluationFailure) {
@@ -72,7 +73,9 @@ internal class PostSplitWeeklyReflow {
     }
 
     private fun run(plan: GeneratedProgramSkeleton,snapshot: PlanningHistorySnapshot,state: AthletePlanningState,
-        authority: AuthorizedSchedulingTrace,parents: List<String>,fixed: List<String>,counts: ReflowEvaluationCounts,execution: ReflowProgress): PostSplitReflowResult {
+        authority: AuthorizedSchedulingTrace,parents: List<String>,fixed: List<String>,counts: ReflowEvaluationCounts,
+        execution: ReflowProgress,
+        canonicalFailureEmitter: ((StimulusCanonicalEvaluationFailureReason, String?) -> Nothing)?): PostSplitReflowResult {
         val projection=requireNotNull(snapshot.planDayProjection) { "MISSING_CANONICAL_OFI_PROJECTION" }
         val tissueProjection=requireNotNull(snapshot.planWeekTissueProjection) { "MISSING_CANONICAL_TISSUE_PROJECTION" }
         // RepresentativeWeek verifies these positional atoms have exactly isomorphic per-week immutable content.
@@ -196,7 +199,8 @@ internal class PostSplitWeeklyReflow {
                     execution.validating(round,++validated,candidates.size)
                 }
             } ?: return finish(plan,week,initial,rows,authority,parents,fixed,primary,moves,rejected,
-                initialObjective,objective(rows),metrics(initial),metrics(rows),initialQcr,qcr(rows),tissue(rows),timeRef,ofiRef,"FINITE_LOCAL_OPTIMUM",execution)
+            initialObjective,objective(rows),metrics(initial),metrics(rows),initialQcr,qcr(rows),tissue(rows),timeRef,ofiRef,"FINITE_LOCAL_OPTIMUM",execution,
+                canonicalFailureEmitter)
             check(visited.add(selected.rows.map { it.localId to it.dayOfWeek })) { "REFLOW_CYCLE" }
             check(immutable(selected.rows)==immutable(initial)) { "REFLOW_IMMUTABLE_MUTATION" }
             check(selected.rows.filter { it.localId in fixed }==initial.filter { it.localId in fixed }) { "REFLOW_SPLIT_CHANGED" }
@@ -207,13 +211,15 @@ internal class PostSplitWeeklyReflow {
             execution.moved()
         }
         return finish(plan,week,initial,rows,authority,parents,fixed,primary,moves,rejected,
-            initialObjective,objective(rows),metrics(initial),metrics(rows),initialQcr,qcr(rows),tissue(rows),timeRef,ofiRef,"BOUNDED_128_MOVE_LIMIT",execution)
+            initialObjective,objective(rows),metrics(initial),metrics(rows),initialQcr,qcr(rows),tissue(rows),timeRef,ofiRef,"BOUNDED_128_MOVE_LIMIT",execution,
+            canonicalFailureEmitter)
     }
 
     private fun finish(plan: GeneratedProgramSkeleton,week: RepresentativeWeek,initial: List<ProgramSkeletonItem>,rows: List<ProgramSkeletonItem>,
         authority: AuthorizedSchedulingTrace,parents: List<String>,fixed: List<String>,primary: Set<String>,moves: List<PostSplitMove>,rejections: Map<String,Int>,
         initialObjective: PostSplitObjective,finalObjective: PostSplitObjective,initialDays: List<BalanceDay>,finalDays: List<BalanceDay>,
-        qBefore: String,qAfter: String,tissue: PlannedTissueWeek,timeRef: Double,ofiRef: Double,diagnostic: String,execution: ReflowProgress): PostSplitReflowResult {
+        qBefore: String,qAfter: String,tissue: PlannedTissueWeek,timeRef: Double,ofiRef: Double,diagnostic: String,execution: ReflowProgress,
+        canonicalFailureEmitter: ((StimulusCanonicalEvaluationFailureReason, String?) -> Nothing)?): PostSplitReflowResult {
         execution.finalizing()
         val assignment=rows.associateBy { week.atomByLocalId.getValue(it.localId) }
         // Preserve each week's own immutable fields/bindings, not the representative row's copies.
