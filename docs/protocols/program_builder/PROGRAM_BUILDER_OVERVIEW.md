@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.42.0 |
+| Protocol version | 3.42.1 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 5b0c5caca5e6154e5c4cfa42bfbe7032844d5c76 |
+| Last audited commit | f7195c59e45c785d26065cf4f375f94716d161f3 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -29,6 +29,11 @@
 - Readiness is fail-closed across materialization integrity, B5 identity provenance, exact B6 prescription authorization, causal removals and collateral regressions. Missing authority or unresolved evidence yields `INCONCLUSIVE`; non-executable targets are recorded as `NO_AUTHORITY`/not applicable and do not fail readiness by themselves. Direct identity reuse, downstream displacement and unexplained changes remain separately attributed.
 - Numeric targets compare independent weekly-unit and session distances to the B4 target range; no weighted score or cross-dimension collapse is allowed. Direction-only targets use direct presence. The typed status is `ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW`, `NOT_ELIGIBLE`, `INCONCLUSIVE` or `NO_MATERIAL_CHANGE`, and every target outcome plus attribution is serialized in the compact comparison payload.
 - Focused engine coverage and a real Room/service integration test verify improved, regressed, direction-only, invariant, unresolved and no-material-change outcomes. The implementation remains an experimental adjudication seam; it does not activate a cutover.
+
+### 3.42.1 — B6/B7 authorization and provenance correction closeout
+
+- Exact experimental prescription expansion now consumes only the authorized funded slice. Frequency candidates use the remaining authorized offset and cannot recycle an earlier set or silently clip a heterogeneous authorization. Weekly materialization validates the flattened per-week multiset as a subset of the same `(stableKey, selectionRole)` authorization, preserving reps, weight, seconds, rest and weight source while allowing day split/reflow. Duplicate, over-multiplicity and unauthorized content emit explicit `B6_AUTHORIZED_SET_REUSED`, `B6_AUTHORIZED_SET_MULTIPLICITY_EXCEEDED` and `B6_UNAUTHORIZED_SET_CONTENT` reasons and invalidate the materialization.
+- B7 reuses that shared validator and propagates its integrity reasons. Known authorization violations are not `INCONCLUSIVE`; mixed numeric dimensions resolve regression before improvement, while deferred direction remains inconclusive. Removed identities require governed B5/B6 trace evidence plus explicit displacement and disappearance evidence; an unexplained or unproven removal cannot make the comparison eligible. The CONTROL production fingerprint remains the parity oracle, and the entire path remains shadow-only with `winner=null` and `productionAuthority=false`.
 
 ### 3.41.1 — B6.2 multi-week materialization audit closure
 

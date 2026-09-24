@@ -1,5 +1,12 @@
 # Codex Worklog
 
+## 2026-09-24 — B6/B7 authorization and provenance correction closeout (protocol 3.42.1)
+
+- Starting verified `main` was `371dd04c13e83452d22f15200a574c2e5ccc01ee`. Implementation commits were `b0804b42` (exact authorized prescription slices), `aef8a953` (regional authority call shape), and `f7195c59` (readiness fixture alignment); focused test commits were `6f8e4bfe` (funded-offset/subset/readiness coverage) and `644f9771` (removal-provenance fixture completion). The final audited implementation/test SHA is `f7195c59e45c785d26065cf4f375f94716d161f3`.
+- Frequency expansion now consumes only the remaining authorized funded offset. Weekly materialization and B7 use one shared validator for flattened per-week multiset subset semantics, preserving reps, weight/load, seconds, rest, weight source, stable identity and selection role. Reuse, multiplicity overflow and unauthorized content emit explicit `B6_AUTHORIZED_SET_REUSED`, `B6_AUTHORIZED_SET_MULTIPLICITY_EXCEEDED` and `B6_UNAUTHORIZED_SET_CONTENT` reasons. B7 now propagates those known violations, requires governed displacement evidence for removed identities, prioritizes regression over improvement for mixed numeric dimensions, and leaves deferred direction inconclusive.
+- Hosted CI `35975002079` passed the complete debug workflow: `2,012 tests completed, 0 failed, 4 skipped`; Community/Cloud contracts, protocol validation, whitespace, debug APK assembly, signer verification and upload all passed. Artifact `WhatYouGottaDo-debug-apk` id `10798326078`; uploaded zip digest `sha256:98442cdf33c8f811422760feab21b1e73e39bc7cf0e5f74965afb3b8e9513465`. Local Windows Gradle remains blocked before task execution by `Unable to establish loopback connection`.
+- CONTROL fingerprint parity remains intact, build count remains one CONTROL plus one in-memory EXPERIMENTAL build, `winner=null`, `productionAuthority=false`, and normal `generatePrepared` remains unchanged. No production cutover or routing flag was enabled.
+
 ## 2026-09-24 — B7 shadow experimental cutover-readiness closeout (Gate B)
 
 - Gate B followed the green B6.2 Gate A. Starting main SHA was `ced4258ce7144a3fc32f6f0cbaf35bdadc9bc282`; B7 implementation/test commits are `9e78dd05`, `12394150`, `e948562e`, `dd500d54`, `4ea27fc4`, `6b8f83e9`, `a34f1f24` and `5b0c5cac`, with final audited implementation SHA `5b0c5caca5e6154e5c4cfa42bfbe7032844d5c76`.
