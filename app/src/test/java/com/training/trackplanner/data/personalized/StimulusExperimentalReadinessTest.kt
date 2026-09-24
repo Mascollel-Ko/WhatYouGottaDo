@@ -176,8 +176,102 @@ class StimulusExperimentalReadinessTest {
                 listOf("B5"), "REALIZATION_UNCLASSIFIED", 2, "STRENGTH")
         ))
         val removal = audit.changeAttributions.first { it.stableKey == "control" }
+        assertEquals(StimulusExperimentalChangeAttributionSource.UNEXPLAINED, removal.source)
+        assertEquals(StimulusExperimentalReadinessStatus.NOT_ELIGIBLE, audit.status)
+    }
+
+    @Test
+    fun unrelatedGlobalCapacityEvidenceCannotProveRemovedOwnerDisplacement() {
+        val candidate = selectedCandidate("C", "CANONICAL_STIMULUS_QUALITY_STRENGTH")
+        val audit = StimulusExperimentalReadinessAuditEngine().audit(comparison(
+            controlItems = listOf(item("A").copy(selectionRole = "PRIMARY"), item("B")),
+            experimentalItems = listOf(item("B"), item("C").copy(selectionRole = "CANONICAL_STIMULUS_QUALITY_STRENGTH")),
+            selectedCandidate = candidate,
+            selectionTraces = listOf(selectionTrace("C", "CANONICAL_STIMULUS_QUALITY_STRENGTH", listOf("CAPACITY", "PLACEMENT")))
+        ))
+        val removal = audit.changeAttributions.first { it.stableKey == "A" }
+        assertEquals(StimulusExperimentalChangeAttributionSource.UNEXPLAINED, removal.source)
+        assertTrue(audit.reasonCodes.contains("CHANGE_PROVENANCE_UNCLOSED"))
+        assertEquals(StimulusExperimentalReadinessStatus.NOT_ELIGIBLE, audit.status)
+    }
+
+    @Test
+    fun exactOwnerLocalDisplacementEvidenceClosesRemovalAttribution() {
+        val audit = StimulusExperimentalReadinessAuditEngine().audit(comparison(
+            controlItems = listOf(item("A").copy(selectionRole = "PRIMARY"), item("B")),
+            experimentalItems = listOf(item("B"), item("C").copy(selectionRole = "CANONICAL_STIMULUS_QUALITY_STRENGTH")),
+            selectedCandidate = selectedCandidate("C", "CANONICAL_STIMULUS_QUALITY_STRENGTH"),
+            selectionTraces = listOf(selectionTrace("C", "CANONICAL_STIMULUS_QUALITY_STRENGTH", listOf("B5_SELECTED_IDENTITY"))),
+            materializationTraces = listOf(ownerMaterializationTrace(
+                stableKey = "A", role = "PRIMARY", reasonCodes = listOf("CAPACITY", "PLACEMENT", "NOT_MATERIALIZED")
+            ))
+        ))
+        val removal = audit.changeAttributions.first { it.stableKey == "A" }
+        assertEquals(StimulusExperimentalChangeAttributionSource.DOWNSTREAM_CONSTRAINT_DISPLACEMENT, removal.source)
+        assertEquals("PRIMARY", removal.selectionRole)
+        assertEquals(StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW, audit.status)
+    }
+
+    @Test
+    fun ownerLocalParticipationWithoutRemovalProofIsInconclusive() {
+        val audit = StimulusExperimentalReadinessAuditEngine().audit(comparison(
+            controlItems = listOf(item("A").copy(selectionRole = "PRIMARY"), item("B")),
+            experimentalItems = listOf(item("B"), item("C").copy(selectionRole = "CANONICAL_STIMULUS_QUALITY_STRENGTH")),
+            selectedCandidate = selectedCandidate("C", "CANONICAL_STIMULUS_QUALITY_STRENGTH"),
+            selectionTraces = listOf(selectionTrace("C", "CANONICAL_STIMULUS_QUALITY_STRENGTH", listOf("B5_SELECTED_IDENTITY"))),
+            materializationTraces = listOf(ownerMaterializationTrace(
+                stableKey = "A", role = "PRIMARY", reasonCodes = listOf("CAPACITY")
+            ))
+        ))
+        val removal = audit.changeAttributions.first { it.stableKey == "A" }
         assertEquals(StimulusExperimentalChangeAttributionSource.INCONCLUSIVE_DISPLACEMENT, removal.source)
         assertEquals(StimulusExperimentalReadinessStatus.INCONCLUSIVE, audit.status)
+        assertTrue(audit.reasonCodes.contains("REMOVAL_CAUSALITY_UNPROVEN"))
+    }
+
+    @Test
+    fun ownerLocalEvidenceWithoutGovernedChangeIsUnexplained() {
+        val audit = StimulusExperimentalReadinessAuditEngine().audit(comparison(
+            controlItems = listOf(item("A").copy(selectionRole = "PRIMARY")),
+            experimentalItems = listOf(item("B")),
+            selectedCandidate = null,
+            materializationTraces = listOf(ownerMaterializationTrace(
+                stableKey = "A", role = "PRIMARY", reasonCodes = listOf("CAPACITY", "NOT_MATERIALIZED")
+            ))
+        ))
+        val removal = audit.changeAttributions.first { it.stableKey == "A" }
+        assertEquals(StimulusExperimentalChangeAttributionSource.UNEXPLAINED, removal.source)
+        assertEquals(StimulusExperimentalReadinessStatus.NOT_ELIGIBLE, audit.status)
+    }
+
+    @Test
+    fun sameStableKeyDifferentRoleUsesExactRemovedOwnerIdentity() {
+        val audit = StimulusExperimentalReadinessAuditEngine().audit(comparison(
+            controlItems = listOf(item("squat").copy(selectionRole = "PRIMARY_STRENGTH")),
+            experimentalItems = listOf(item("squat").copy(selectionRole = "SUPPORT")),
+            selectedCandidate = selectedCandidate("squat", "SUPPORT")
+        ))
+        assertTrue(audit.changeAttributions.any {
+            it.stableKey == "squat" && it.selectionRole == "PRIMARY_STRENGTH" &&
+                it.source == StimulusExperimentalChangeAttributionSource.UNEXPLAINED
+        })
+        assertTrue(audit.changeAttributions.any {
+            it.stableKey == "squat" && it.selectionRole == "SUPPORT" &&
+                it.source == StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY
+        })
+    }
+
+    @Test
+    fun addedStableKeyWithWrongSelectionRoleCannotBorrowB5Authority() {
+        val audit = StimulusExperimentalReadinessAuditEngine().audit(comparison(
+            controlItems = listOf(item("control")),
+            experimentalItems = listOf(item("X").copy(selectionRole = "ROLE_B")),
+            selectedCandidate = selectedCandidate("X", "ROLE_A")
+        ))
+        val addition = audit.changeAttributions.first { it.stableKey == "X" }
+        assertEquals(StimulusExperimentalChangeAttributionSource.UNEXPLAINED, addition.source)
+        assertEquals("ROLE_B", addition.selectionRole)
+        assertEquals(StimulusExperimentalReadinessStatus.NOT_ELIGIBLE, audit.status)
     }
 
     private fun comparison(
@@ -195,7 +289,9 @@ class StimulusExperimentalReadinessTest {
         sameIdentity: Boolean = false,
         controlItems: List<ProgramSkeletonItem>? = null,
         experimentalItems: List<ProgramSkeletonItem>? = null,
-        authorizationPlan: StimulusPrescriptionAuthorizationPlan? = null
+        authorizationPlan: StimulusPrescriptionAuthorizationPlan? = null,
+        selectionTraces: List<StimulusCandidateSelectionTrace> = emptyList(),
+        materializationTraces: List<StimulusCandidateMaterializationTrace>? = null
     ): StimulusSelectionProgramComparison {
         val request = ProgramSkeletonRequest("readiness", ProgramGoal.STRENGTH, 1, 60, emptySet(), "", .5, "AUTO", ProgramPeriodizationType.AUTO, 2)
         val controlKey = if (sameIdentity) "candidate" else "control"
@@ -205,14 +301,34 @@ class StimulusExperimentalReadinessTest {
         val controlAudit = StimulusTargetControlProgramAudit(1, listOf(qualityAudit(target, controlUnits, controlSessions, controlUnitsStatus, controlSessionsStatus)), emptyList())
         val experimentalAudit = StimulusTargetControlProgramAudit(1, listOf(qualityAudit(target, experimentalUnits, experimentalSessions, experimentalUnitsStatus, experimentalSessionsStatus)), emptyList())
         val selection = StimulusCandidateSelectionPlan(
-            selectedCandidates = listOfNotNull(selectedCandidate), traces = emptyList(),
+            selectedCandidates = listOfNotNull(selectedCandidate), traces = selectionTraces,
             materialDemand = MaterialDemand(emptyList(), emptyMap(), emptyMap())
         )
-        return StimulusSelectionProgramComparisonEngine().compare(control, experimental, targetPlan, selection, controlAudit, experimentalAudit).copy(
+        val comparison = StimulusSelectionProgramComparisonEngine().compare(control, experimental, targetPlan, selection, controlAudit, experimentalAudit)
+        return comparison.copy(
             prescriptionAuthorizationPlan = authorizationPlan,
-            prescriptionMaterializationAudits = materialization
+            prescriptionMaterializationAudits = materialization,
+            materializationTraces = materializationTraces ?: comparison.materializationTraces
         )
     }
+
+    private fun selectedCandidate(key: String, role: String) = StimulusSelectedCandidate(
+        key, setOf("QUALITY:STRENGTH"), "QUALITY:STRENGTH", listOf("B5"),
+        "REALIZATION_UNCLASSIFIED", 2, role
+    )
+
+    private fun selectionTrace(key: String, role: String, reasons: List<String>) = StimulusCandidateSelectionTrace(
+        targetId = "QUALITY:STRENGTH", strategy = StimulusDoseStrategy.INTRODUCE_DIRECT_STIMULUS,
+        priority = TargetPriority.PRIMARY, controlDirectCapabilityIdentities = emptyList(), selectionRequired = true,
+        candidatePool = listOf(key), selectedStableKey = key, coveredByPreviouslySelectedStableKey = null,
+        reasonCodes = reasons, selectedSelectionRole = role
+    )
+
+    private fun ownerMaterializationTrace(stableKey: String, role: String, reasonCodes: List<String>) = StimulusCandidateMaterializationTrace(
+        targetId = "QUALITY:STRENGTH", selectedStableKey = stableKey, selectedAtB5 = false,
+        presentInFinalExperimentalSkeleton = false, finalWeeklyOccurrences = 0, finalTotalSetUnits = 0,
+        realizedTargetStatus = null, reasonCodes = reasonCodes, selectionRole = role
+    )
 
     private fun heterogeneousAuthorization() = PlannedPrescription("heterogeneous", listOf(
         ProgramSetPrescription(1, 5, 80.0, 0), ProgramSetPrescription(2, 5, 75.0, 0), ProgramSetPrescription(3, 5, 70.0, 0)

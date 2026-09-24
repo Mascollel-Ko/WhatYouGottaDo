@@ -201,6 +201,19 @@ class StimulusSelectionServiceIntegrationTest {
             assertTrue(comparison.winner == null)
             assertFalse(comparison.selectionPlan.productionSelectionAuthority)
             assertFalse(comparison.selectionPlan.prescriptionAuthority)
+            assertEquals(
+                comparison.control.items.map { StimulusPrescriptionOwnerIdentity(it.exerciseStableKey, it.selectionRole) }.toSet(),
+                comparison.controlOwnerIdentities
+            )
+            assertEquals(
+                comparison.experimental.items.map { StimulusPrescriptionOwnerIdentity(it.exerciseStableKey, it.selectionRole) }.toSet(),
+                comparison.experimentalOwnerIdentities
+            )
+            comparison.experimentalReadinessAudit?.changeAttributions.orEmpty()
+                .filter { it.stableKey in comparison.removedStableKeys }
+                .forEach { attribution ->
+                    assertNotNull("removed owner attribution must retain exact role", attribution.selectionRole)
+                }
             comparison.materializationTraces.forEach { trace ->
                 assertEquals(trace.selectedStableKey != null, trace.selectedAtB5)
                 assertTrue(trace.finalWeeklyOccurrences >= 0)
