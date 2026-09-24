@@ -85,6 +85,12 @@ class StimulusProductionCutoverAuthorityAuditEngine {
             reasons += "B8_CUTOVER_V1_UPSTREAM_INCONSISTENCY"
         }
         if (materialOwners.isNotEmpty()) {
+            materialOwners.forEach { identity ->
+                val authorization = exactAuthorization(comparison, identity)
+                val targetId = authorization?.targetId
+                    ?: if (identity in comparison.addedOwnerIdentities) "QUALITY:${TrainableQuality.STRENGTH.name}" else null
+                strengthTargetAuthorityReason(comparison, targetId)?.let(reasons::add)
+            }
             val nonStrength = materialOwners.flatMap { identity ->
                 materialAttributionsFor(comparison, identity).flatMap { attribution ->
                     attribution.targetIds.filterNot(::isStrengthTarget)
