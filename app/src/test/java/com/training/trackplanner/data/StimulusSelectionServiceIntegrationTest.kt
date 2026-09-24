@@ -202,6 +202,7 @@ class StimulusSelectionServiceIntegrationTest {
             assertTrue(comparison.winner == null)
             assertFalse(comparison.selectionPlan.productionSelectionAuthority)
             assertEquals(
+                "B8 status=${evaluation.cutoverAuthority.status} reasons=${evaluation.cutoverAuthority.reasonCodes} b7=${evaluation.cutoverAuthority.b7Status}",
                 StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER,
                 evaluation.cutoverAuthority.status
             )
