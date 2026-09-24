@@ -276,10 +276,10 @@ class StimulusExperimentalReadinessTest {
 
     private fun comparison(
         target: StimulusQualityTarget = qualityTarget(StimulusTargetNumericAuthority.PERSONAL_SUCCESSFUL_DOSE, StimulusTargetRange(4.0, 5.0, 6.0)),
-        controlUnits: Double?,
-        experimentalUnits: Double?,
-        controlSessions: Double?,
-        experimentalSessions: Double?,
+        controlUnits: Double? = 2.0,
+        experimentalUnits: Double? = 4.0,
+        controlSessions: Double? = 2.0,
+        experimentalSessions: Double? = 2.0,
         controlUnitsStatus: StimulusTargetControlStatus = StimulusTargetControlStatus.BELOW_BAND,
         experimentalUnitsStatus: StimulusTargetControlStatus = StimulusTargetControlStatus.WITHIN_BAND,
         controlSessionsStatus: StimulusTargetControlStatus = StimulusTargetControlStatus.BELOW_BAND,
