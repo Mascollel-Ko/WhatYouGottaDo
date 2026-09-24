@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.44.0 |
+| Protocol version | 3.44.1 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | ee21a91d5de38dc2da4a8a122a30207612d88821 |
+| Last audited commit | 54cd41d3da19224f243fbc8e5af67db208ea604b |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -58,6 +58,12 @@
 - B8 remains the authority oracle and is semantically unchanged. The distinct pure `StimulusProductionRouter` consumes the already-built B6.2 `comparison.control`, `comparison.experimental`, and B8 decision; it has no DAO, Room, snapshot, builder, or B1–B8 engine access and cannot construct a hybrid or third skeleton.
 - The internal production policy defaults to `B8_STRENGTH_V1_ACTIVE`; only the complete contract `B8.status=AUTHORIZED_FOR_BOUNDED_CUTOVER`, `scope=STRENGTH_V1`, non-empty authorized owners, B7 `ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW`, and B8 `routingActive=false`/`productionMutationAuthority=false` routes the intact existing EXPERIMENTAL skeleton. Every other status, missing or malformed authority, wrong scope, or empty owner set returns the intact CONTROL skeleton with deterministic B9 reason codes.
 - `CONTROL_ONLY` remains the typed one-line emergency rollback policy. B9 runs only for a newly generated program, keeps `winner=null`, leaves B8 routing and mutation flags false, and uses one CONTROL build plus one in-memory EXPERIMENTAL build; routing itself performs zero builds. Existing saved programs, preview/save flow, session links, persistence, backup formats, Room schema and other qualities remain unchanged.
+
+### 3.44.1 — B9.1 production operational hardening
+
+- Production progress is now mapped at the orchestration boundary into one monotonic user-facing operation: the original CONTROL pass occupies a bounded base band, the canonical EXPERIMENTAL pass occupies the forward band, and final authority/routing work reaches validation and completion only after the selected skeleton exists. Builder stage percentages and standalone builder tests are unchanged; no technical B8/B9 terminology or time estimate is exposed.
+- B6/B7/B8 realization evidence remains in the in-memory comparison, while every B9 CONTROL route returns the original production CONTROL object. The comparison-only realization plan is therefore not copied into CONTROL decision metadata and cannot be persisted by preview/save fallback.
+- The optional canonical branch has a narrow typed fallback boundary. Known bounded materialization failures may return the already-valid CONTROL object; `CancellationException`, unexpected programmer/data-system failures, and CONTROL-generation failures propagate through the existing runner failure/cancellation path. B9 routing rules, B8 authority semantics, Strength-only scope, build-count invariants, persistence formats and schemas are unchanged.
 
 ### 3.41.1 — B6.2 multi-week materialization audit closure
 
