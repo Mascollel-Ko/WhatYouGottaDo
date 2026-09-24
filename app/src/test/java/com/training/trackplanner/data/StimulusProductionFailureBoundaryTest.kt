@@ -176,7 +176,7 @@ class StimulusProductionFailureBoundaryTest {
         val control: GeneratedProgramSkeleton
     )
 
-    private fun fixture(): Fixture {
+    private suspend fun fixture(): Fixture {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val db = Room.inMemoryDatabaseBuilder(context, TrainingDatabase::class.java)
             .allowMainThreadQueries().build()
