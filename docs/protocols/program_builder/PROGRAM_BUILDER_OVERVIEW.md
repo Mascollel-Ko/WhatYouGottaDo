@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.44.1 |
+| Protocol version | 3.44.2 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 54cd41d3da19224f243fbc8e5af67db208ea604b |
+| Last audited commit | a76fb20e4662d72721590401e5822e2c48347e02 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -64,6 +64,12 @@
 - Production progress is now mapped at the orchestration boundary into one monotonic user-facing operation: the original CONTROL pass occupies a bounded base band, the canonical EXPERIMENTAL pass occupies the forward band, and final authority/routing work reaches validation and completion only after the selected skeleton exists. Builder stage percentages and standalone builder tests are unchanged; no technical B8/B9 terminology or time estimate is exposed.
 - B6/B7/B8 realization evidence remains in the in-memory comparison, while every B9 CONTROL route returns the original production CONTROL object. The comparison-only realization plan is therefore not copied into CONTROL decision metadata and cannot be persisted by preview/save fallback.
 - The optional canonical branch has a narrow typed fallback boundary. Known bounded materialization failures may return the already-valid CONTROL object; `CancellationException`, unexpected programmer/data-system failures, and CONTROL-generation failures propagate through the existing runner failure/cancellation path. B9 routing rules, B8 authority semantics, Strength-only scope, build-count invariants, persistence formats and schemas are unchanged.
+
+### 3.44.2 — B9.2 typed failure-boundary closeout
+
+- Production canonical fallback now consumes `StimulusCanonicalEvaluationFailure` and its enumerated reason, then adapts that typed failure once to the orchestration-level `StimulusProductionEvaluationFailure`. Recovery no longer parses `RuntimeException.message`, `substringBefore(':')`, or authorization message prefixes. Known bounded sites cover executable-demand absence, final canonical validation, and B6/regional/material authorization failures; ordinary CONTROL invariants keep their existing behavior.
+- The production seam rethrows `CancellationException`, unexpected `IllegalStateException`/`IllegalArgumentException`, null/data-system failures, and CONTROL-generation failures. Only an explicitly typed bounded canonical failure may return the already-valid original CONTROL object, with the existing fallback reason, monotonic completion path, and unchanged build accounting.
+- Focused orchestration coverage injects typed expected failure, cancellation, unexpected state/argument failures, and CONTROL failure; it verifies CONTROL identity, persistence purity, no completion after failure, and the `1 / 0 / 0` pre-builder fallback count. B8 authority semantics, the B9 routing matrix, Strength-v1 scope, progress bands, CONTROL_ONLY rollback, persistence/schema contracts, and the real authorized Strength fixture remain unchanged.
 
 ### 3.41.1 — B6.2 multi-week materialization audit closure
 
