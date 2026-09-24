@@ -127,7 +127,7 @@ class StimulusSelectionServiceIntegrationTest {
             }.toSet()
             val request = ProgramSkeletonRequest(
                 name = "B5 service integration",
-                goal = ProgramGoal.BADMINTON_SUPPORT,
+                goal = ProgramGoal.STRENGTH,
                 weeklyTrainingDays = 3,
                 sessionMinutes = 60,
                 availableEquipment = emptySet(),
@@ -139,7 +139,7 @@ class StimulusSelectionServiceIntegrationTest {
                 excludedExerciseStableKeys = excludedStrengthKeys
             )
             val constraints = PersonalizedGenerationConstraints(
-                explicitGoal = ProgramGoal.BADMINTON_SUPPORT,
+                explicitGoal = ProgramGoal.STRENGTH,
                 explicitWeeklyTrainingDays = 3,
                 explicitDurationWeeks = 2,
                 explicitSessionMinutes = 60
@@ -148,7 +148,7 @@ class StimulusSelectionServiceIntegrationTest {
             val answers = PersonalizedPlanningAnswers(preflight.questions.associate { question ->
                 question.id to when (question.id) {
                     QUESTION_STRENGTH_INTENT -> StrengthIntent.STRENGTH_PRIORITY.name
-                    QUESTION_BADMINTON_INTENT -> BadmintonPlanningIntent.ENABLED.name
+                    QUESTION_BADMINTON_INTENT -> BadmintonPlanningIntent.DISABLED.name
                     QUESTION_FREE_WEIGHT -> FreeWeightWillingness.WILLING.name
                     QUESTION_INTERRUPTION_CAUSE, QUESTION_INTERRUPTION_FREQUENCY -> "UNSURE"
                     else -> if (question.id.startsWith("INTERRUPTION_CAUSE_")) "UNKNOWN"
