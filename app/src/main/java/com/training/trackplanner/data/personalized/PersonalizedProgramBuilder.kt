@@ -567,8 +567,12 @@ class PersonalizedProgramBuilder(
             .map { it.copy(originalRank = it.originalRank + allocation.candidates.size) } } ?: capacityCandidateTrace(snapshot, state,
             materialCandidates.map { it to false } + originalContinuity.map { it to true } + optionalCandidates.map { it to false },
             selected, generationPrescriptions,
-            authorizedPrescriptionFor = exactPrescriptionAuthorizationProvider?.let { provider -> { item -> provider.prefixFor(item) } }
-                ?: regionalTargetPlan?.let { plan -> { item -> plan.authorizedPrescriptionFor(item) } })
+            authorizedPrescriptionFor = exactPrescriptionAuthorizationProvider?.let { provider -> { item ->
+                provider.authorizedOwners[StimulusPrescriptionOwnerIdentity(item.stableKey, item.role)] ?: provider.prefixFor(item)
+            } } ?: regionalTargetPlan?.let { plan -> { item -> plan.authorizedPrescriptionFor(item) } },
+            authorizedPrescriptionSource = if (exactPrescriptionAuthorizationProvider != null) {
+                PrescriptionAuthoritySource.EXPERIMENTAL_MATERIAL_AUTHORIZED
+            } else PrescriptionAuthoritySource.REGIONAL_TARGET_AUTHORIZED)
         val retained = retainedIncumbentSupply(snapshot, state, gaps, request, candidates, generationPrescriptions)
         require(selected.isNotEmpty()) { "NO_EXECUTABLE_PLANNING_DEMAND" }
         progress.report(PersonalizedPlannerStage.PLACEMENT)
@@ -583,7 +587,9 @@ class PersonalizedProgramBuilder(
         } else null
         val exactAuthorized = if (exactPrescriptionAuthorizationProvider != null && authorizedOverride == null && regionalAuthorized == null) {
             selected.mapIndexed { index, item ->
-                val prescription = exactPrescriptionAuthorizationProvider.prefixFor(item)
+                val prescription = exactPrescriptionAuthorizationProvider.authorizedOwners[
+                    StimulusPrescriptionOwnerIdentity(item.stableKey, item.role)
+                ] ?: exactPrescriptionAuthorizationProvider.prefixFor(item)
                     ?: generationPrescriptions.prescribe(snapshot, state.strengthIntent, item, item.style)
                 AuthorizedSchedulingDemand("authorized_$index", item, prescription, index < continuity.size)
             }

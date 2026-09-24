@@ -223,19 +223,18 @@ class StimulusPrescriptionMaterializationAuditEngine(
             val rows = rowsByWeek[week].orEmpty()
             val materialized = rows.sumOf { it.setPrescriptions.size }
             val overrun = (materialized - authorized.sets.size).coerceAtLeast(0)
+            val subsetValidation = validateAuthorizedWeeklySubset(rows, authorized, owner.stableKey, owner.selectionRole)
             val compatible = authorization.quality?.let { quality -> rows.sumOf { row ->
                 val planned = PlannedPrescription(row.prescription, row.setPrescriptions, row.restSeconds, row.weightSource)
                 if (plannedResolver.compatibility(quality, planned, snapshot, owner.stableKey).status == PlannedStimulusCompatibilityStatus.COMPATIBLE_CONDITIONAL_ON_EFFORT) row.setPrescriptions.size else 0
             } } ?: 0
-            val preserved = rows.all { row ->
-                val expected = authorized.sets.take(row.setPrescriptions.size).mapIndexed { index, set -> set.copy(setIndex = index + 1) }
-                row.setPrescriptions == expected
-            }
+            val preserved = subsetValidation.valid
             val shortfall = (authorized.sets.size - materialized).coerceAtLeast(0)
             buildList {
                 if (shortfall > 0) add(if (materialized == 0) "B6_AUTHORIZATION_MISSING_WEEK" else "B6_AUTHORIZATION_SHORTFALL")
                 if (overrun > 0) add("B6_AUTHORIZATION_OVERRUN")
                 if (!preserved) add("B6_PRESCRIPTION_NOT_PRESERVED")
+                addAll(subsetValidation.reasonCodes)
                 if (compatible < materialized) add("B6_TARGET_COMPATIBILITY_SHORTFALL")
                 if (authorization.source == StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE) add("B5_SELECTION_PROBE_AUTHORIZED")
             }.let { reasons ->
@@ -261,6 +260,7 @@ class StimulusPrescriptionMaterializationAuditEngine(
             if (overrun > 0) add("B6_AUTHORIZATION_OVERRUN")
             if (!preserved) add("B6_PRESCRIPTION_NOT_PRESERVED")
             if (compatible < materialized) add("B6_TARGET_COMPATIBILITY_SHORTFALL")
+            addAll(weeklyAudits.flatMap { it.reasonCodes }.filter { it.startsWith("B6_") })
             if (authorization.source == StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE) add("B5_SELECTION_PROBE_AUTHORIZED")
         }
         val state = when {

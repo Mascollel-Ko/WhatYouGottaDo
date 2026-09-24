@@ -28,6 +28,7 @@ enum class StimulusExperimentalChangeAttributionSource {
     B6_EXISTING_OWNER_PRESCRIPTION,
     B6_SAFE_REPAIRED_PRESCRIPTION,
     DOWNSTREAM_CONSTRAINT_DISPLACEMENT,
+    INCONCLUSIVE_DISPLACEMENT,
     UNEXPLAINED
 }
 
@@ -65,6 +66,16 @@ data class StimulusExperimentalReadinessAudit(
     val winner: String? get() = null
 }
 
+private val B6_INTEGRITY_REASON_CODES = setOf(
+    "B6_AUTHORIZED_SET_REUSED",
+    "B6_AUTHORIZED_SET_MULTIPLICITY_EXCEEDED",
+    "B6_UNAUTHORIZED_SET_CONTENT",
+    "B6_UNAUTHORIZED_SET_IDENTITY",
+    "B6_PRESCRIPTION_AUTHORITY_MISMATCH",
+    "B6_PRESCRIPTION_NOT_PRESERVED",
+    "B6_PRESCRIPTION_MUTATION"
+)
+
 /**
  * Adjudicates the already-built B6.2 comparison. This class deliberately accepts no builder,
  * DAO, snapshot or request and therefore cannot trigger a third build or rerun an earlier phase.
@@ -91,18 +102,35 @@ class StimulusExperimentalReadinessAuditEngine {
             if (audit.state == StimulusPrescriptionMaterializationState.INVARIANT_FAILURE) {
                 integrityReasons += "B6_MATERIALIZATION_INVARIANT_FAILURE"
             }
+            integrityReasons += audit.reasonCodes.filter { it in B6_INTEGRITY_REASON_CODES }
+            integrityReasons += audit.weeklyAudits.flatMap { it.reasonCodes }.filter { it in B6_INTEGRITY_REASON_CODES }
             if (audit.overrun > 0 || audit.maximumWeeklyOverrun > 0) integrityReasons += "B6_AUTHORIZATION_OVERRUN"
             if (!audit.prescriptionPreservedOrSubset) integrityReasons += "B6_PRESCRIPTION_MUTATION"
             if (audit.weeklyAudits.any { !it.prescriptionPreservedOrSubset }) integrityReasons += "B6_PRESCRIPTION_MUTATION"
         }
+        val experimentalRowsByIdentity = comparison.experimental.items.groupBy {
+            StimulusPrescriptionOwnerIdentity(it.exerciseStableKey, it.selectionRole)
+        }
+        comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().forEach { authorization ->
+            val owner = authorization.owner ?: return@forEach
+            val authorized = authorization.authorizedPrescription ?: return@forEach
+            val validation = validateAuthorizedWeeklySubset(
+                experimentalRowsByIdentity[StimulusPrescriptionOwnerIdentity(owner.stableKey, owner.selectionRole)].orEmpty(),
+                authorized, owner.stableKey, owner.selectionRole
+            )
+            if (!validation.valid) integrityReasons += validation.reasonCodes
+        }
         val attributions = attributeChanges(comparison)
-        val provenanceClosed = attributions.none { it.source == StimulusExperimentalChangeAttributionSource.UNEXPLAINED }
+        val hasUnexplainedProvenance = attributions.any { it.source == StimulusExperimentalChangeAttributionSource.UNEXPLAINED }
+        val hasInconclusiveProvenance = attributions.any { it.source == StimulusExperimentalChangeAttributionSource.INCONCLUSIVE_DISPLACEMENT }
+        val provenanceClosed = !hasUnexplainedProvenance && !hasInconclusiveProvenance
         val affectedTargets = affectedTargetIds(comparison, attributions)
         val outcomes = targetOutcomes(comparison, affectedTargets)
         val collateralRegressionFree = outcomes.none { !it.directlyAffected && it.status == StimulusExperimentalTargetOutcomeStatus.REGRESSED }
         val reasons = linkedSetOf<String>().apply {
             addAll(integrityReasons)
             if (!provenanceClosed) add("CHANGE_PROVENANCE_UNCLOSED")
+            if (hasInconclusiveProvenance) add("REMOVAL_CAUSALITY_UNPROVEN")
             if (!collateralRegressionFree) add("COLLATERAL_TARGET_REGRESSION")
             if (outcomes.any { it.status == StimulusExperimentalTargetOutcomeStatus.NO_AUTHORITY && it.directlyAffected }) {
                 add("AFFECTED_TARGET_HAS_NO_AUTHORITY")
@@ -119,12 +147,12 @@ class StimulusExperimentalReadinessAuditEngine {
         }
         val status = when {
             integrityReasons.isNotEmpty() -> StimulusExperimentalReadinessStatus.NOT_ELIGIBLE
-            !provenanceClosed -> StimulusExperimentalReadinessStatus.NOT_ELIGIBLE
+            hasUnexplainedProvenance -> StimulusExperimentalReadinessStatus.NOT_ELIGIBLE
             !collateralRegressionFree -> StimulusExperimentalReadinessStatus.NOT_ELIGIBLE
             outcomes.any { it.status == StimulusExperimentalTargetOutcomeStatus.NO_AUTHORITY && it.directlyAffected } -> StimulusExperimentalReadinessStatus.NOT_ELIGIBLE
             outcomes.any { it.status == StimulusExperimentalTargetOutcomeStatus.REGRESSED } -> StimulusExperimentalReadinessStatus.NOT_ELIGIBLE
             outcomes.any { it.status == StimulusExperimentalTargetOutcomeStatus.UNCHANGED && it.directlyAffected && it.reasonCodes.contains("TARGET_UNMET") } -> StimulusExperimentalReadinessStatus.NOT_ELIGIBLE
-            outcomes.any { it.status == StimulusExperimentalTargetOutcomeStatus.INCONCLUSIVE && it.directlyAffected } -> StimulusExperimentalReadinessStatus.INCONCLUSIVE
+            hasInconclusiveProvenance || outcomes.any { it.status == StimulusExperimentalTargetOutcomeStatus.INCONCLUSIVE && it.directlyAffected } -> StimulusExperimentalReadinessStatus.INCONCLUSIVE
             else -> StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW
         }
         return StimulusExperimentalReadinessAudit(
@@ -141,10 +169,9 @@ class StimulusExperimentalReadinessAuditEngine {
     }
 
     private fun noMaterialChange(comparison: StimulusSelectionProgramComparison): Boolean =
-        comparison.control.items == comparison.experimental.items &&
-            comparison.control.weekPlans == comparison.experimental.weekPlans &&
-            comparison.control.weekDaySchedule == comparison.experimental.weekDaySchedule &&
-            comparison.differences.isEmpty() && comparison.addedStableKeys.isEmpty() && comparison.removedStableKeys.isEmpty()
+        personalizedProgramFingerprint(comparison.control.request, comparison.control.items) ==
+            personalizedProgramFingerprint(comparison.experimental.request, comparison.experimental.items) &&
+            comparison.control.weekDaySchedule == comparison.experimental.weekDaySchedule
 
     private fun failed(comparison: StimulusSelectionProgramComparison, reason: String) =
         StimulusExperimentalReadinessAudit(
@@ -210,11 +237,30 @@ class StimulusExperimentalReadinessAuditEngine {
             }
         comparison.removedStableKeys.sorted().forEach { key ->
             val traces = comparison.materializationTraces.filter { it.selectedStableKey == key }
-            result += if (comparison.differences.any { it.controlStableKey == key }) {
-                StimulusExperimentalChangeAttribution(key, null, StimulusExperimentalChangeAttributionSource.DOWNSTREAM_CONSTRAINT_DISPLACEMENT,
-                    traces.map { it.targetId }.distinct().sorted(), listOf("REMOVED_IDENTITY_ATTRIBUTED_TO_DOWNSTREAM_CONSTRAINT"))
-            } else {
-                StimulusExperimentalChangeAttribution(key, null, StimulusExperimentalChangeAttributionSource.UNEXPLAINED, reasonCodes = listOf("UNEXPLAINED_REMOVED_IDENTITY"))
+            val evidenceCodes = (traces.flatMap { it.reasonCodes } +
+                comparison.selectionPlan.traces.flatMap { it.reasonCodes } +
+                comparison.selectionPlan.traces.flatMap { it.candidateRejectionReasons.values }).toSet()
+            val governedMaterialChange = comparison.addedStableKeys.any { selected[it] != null } ||
+                evidenceCodes.any { it.startsWith("B5_") || it.startsWith("B6_") }
+            val finiteCapacityOrPlacementChanged = evidenceCodes.any { code ->
+                code.contains("CAPACITY", ignoreCase = true) || code.contains("PLACEMENT", ignoreCase = true) ||
+                    code.contains("REFLOW", ignoreCase = true) || code.contains("DISPLAC", ignoreCase = true)
+            }
+            val disappearedThroughMachinery = evidenceCodes.any { code ->
+                code.contains("NOT_MATERIALIZED", ignoreCase = true) || code.contains("REMOVED", ignoreCase = true) ||
+                    code.contains("DISPLAC", ignoreCase = true)
+            }
+            val directB5Action = selected[key] != null
+            result += when {
+                governedMaterialChange && finiteCapacityOrPlacementChanged && disappearedThroughMachinery && !directB5Action ->
+                    StimulusExperimentalChangeAttribution(key, null, StimulusExperimentalChangeAttributionSource.DOWNSTREAM_CONSTRAINT_DISPLACEMENT,
+                        traces.map { it.targetId }.distinct().sorted(), listOf("REMOVED_IDENTITY_ATTRIBUTED_TO_DOWNSTREAM_CONSTRAINT"))
+                governedMaterialChange && !directB5Action ->
+                    StimulusExperimentalChangeAttribution(key, null, StimulusExperimentalChangeAttributionSource.INCONCLUSIVE_DISPLACEMENT,
+                        traces.map { it.targetId }.distinct().sorted(), listOf("REMOVAL_CAUSALITY_UNPROVEN"))
+                else ->
+                    StimulusExperimentalChangeAttribution(key, null, StimulusExperimentalChangeAttributionSource.UNEXPLAINED,
+                        reasonCodes = listOf("UNEXPLAINED_REMOVED_IDENTITY"))
             }
         }
         val authByOwner = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty()
@@ -227,13 +273,21 @@ class StimulusExperimentalReadinessAuditEngine {
             if (before == after) return@forEach
             val auth = authByOwner[identity]
             val authorized = auth?.authorizedPrescription
+            val subsetValidation = authorized?.let {
+                validateAuthorizedWeeklySubset(experimentalByIdentity.getValue(identity), it, identity.stableKey, identity.selectionRole)
+            }
             val source = when {
-                auth?.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR && authorized != null && after.all { it.isPrefixOf(authorized) } -> StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION
-                auth?.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE && authorized != null && after.all { it.isPrefixOf(authorized) } -> StimulusExperimentalChangeAttributionSource.B6_EXISTING_OWNER_PRESCRIPTION
+                auth?.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR && authorized != null && subsetValidation?.valid == true -> StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION
+                auth?.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE && authorized != null && subsetValidation?.valid == true -> StimulusExperimentalChangeAttributionSource.B6_EXISTING_OWNER_PRESCRIPTION
                 else -> StimulusExperimentalChangeAttributionSource.UNEXPLAINED
             }
+            val reasonCodes = when {
+                source == StimulusExperimentalChangeAttributionSource.UNEXPLAINED ->
+                    listOf("UNEXPLAINED_PRESCRIPTION_CHANGE") + subsetValidation?.reasonCodes.orEmpty()
+                else -> listOf("B6_AUTHORIZED_PRESCRIPTION_CHANGE")
+            }
             result += StimulusExperimentalChangeAttribution(identity.stableKey, identity.selectionRole, source,
-                auth?.targetId?.let(::listOf).orEmpty(), if (source == StimulusExperimentalChangeAttributionSource.UNEXPLAINED) listOf("UNEXPLAINED_PRESCRIPTION_CHANGE") else listOf("B6_AUTHORIZED_PRESCRIPTION_CHANGE"))
+                auth?.targetId?.let(::listOf).orEmpty(), reasonCodes)
         }
         return result
     }
@@ -308,9 +362,21 @@ class StimulusExperimentalReadinessAuditEngine {
         return StimulusExperimentalTargetOutcome(id, status, affected, cu, eu, reasonCodes = if (status == StimulusExperimentalTargetOutcomeStatus.UNCHANGED && eu > 0.0) listOf("TARGET_UNMET") else emptyList())
     }
 
-    private fun directionOutcome(id: String, affected: Boolean, cu: StimulusTargetControlStatus?, eu: StimulusTargetControlStatus?, cs: StimulusTargetControlStatus?, es: StimulusTargetControlStatus?) =
-        StimulusExperimentalTargetOutcome(id, directionStatus(if (cu == StimulusTargetControlStatus.DIRECT_PRESENT || cs == StimulusTargetControlStatus.DIRECT_PRESENT) StimulusTargetControlStatus.DIRECT_PRESENT else cu, if (eu == StimulusTargetControlStatus.DIRECT_PRESENT || es == StimulusTargetControlStatus.DIRECT_PRESENT) StimulusTargetControlStatus.DIRECT_PRESENT else eu), affected,
-            reasonCodes = if (eu == StimulusTargetControlStatus.DISTRIBUTION_COMPARISON_DEFERRED || es == StimulusTargetControlStatus.DISTRIBUTION_COMPARISON_DEFERRED) listOf("DISTRIBUTION_COMPARISON_DEFERRED") else emptyList())
+    private fun directionOutcome(id: String, affected: Boolean, cu: StimulusTargetControlStatus?, eu: StimulusTargetControlStatus?, cs: StimulusTargetControlStatus?, es: StimulusTargetControlStatus?): StimulusExperimentalTargetOutcome {
+        if (listOf(cu, eu, cs, es).any { it == StimulusTargetControlStatus.DISTRIBUTION_COMPARISON_DEFERRED }) {
+            return StimulusExperimentalTargetOutcome(id, StimulusExperimentalTargetOutcomeStatus.INCONCLUSIVE, affected,
+                reasonCodes = listOf("DISTRIBUTION_COMPARISON_DEFERRED"))
+        }
+        val control = if (cu == StimulusTargetControlStatus.DIRECT_PRESENT || cs == StimulusTargetControlStatus.DIRECT_PRESENT) {
+            StimulusTargetControlStatus.DIRECT_PRESENT
+        } else cu ?: cs
+        val experimental = if (eu == StimulusTargetControlStatus.DIRECT_PRESENT || es == StimulusTargetControlStatus.DIRECT_PRESENT) {
+            StimulusTargetControlStatus.DIRECT_PRESENT
+        } else eu ?: es
+        val status = directionStatus(control, experimental)
+        return StimulusExperimentalTargetOutcome(id, status, affected,
+            reasonCodes = if (status == StimulusExperimentalTargetOutcomeStatus.UNCHANGED && experimental != StimulusTargetControlStatus.DIRECT_PRESENT) listOf("TARGET_UNMET") else emptyList())
+    }
 
     private fun directionStatus(control: StimulusTargetControlStatus?, experimental: StimulusTargetControlStatus?): StimulusExperimentalTargetOutcomeStatus = when {
         control == StimulusTargetControlStatus.DISTRIBUTION_COMPARISON_DEFERRED || experimental == StimulusTargetControlStatus.DISTRIBUTION_COMPARISON_DEFERRED -> StimulusExperimentalTargetOutcomeStatus.INCONCLUSIVE
@@ -328,7 +394,6 @@ class StimulusExperimentalReadinessAuditEngine {
         val improved = dimensions.count { it == StimulusExperimentalTargetOutcomeStatus.IMPROVED }
         val regressed = dimensions.count { it == StimulusExperimentalTargetOutcomeStatus.REGRESSED }
         return when {
-            improved > 0 && regressed > 0 -> StimulusExperimentalTargetOutcomeStatus.INCONCLUSIVE
             regressed > 0 -> StimulusExperimentalTargetOutcomeStatus.REGRESSED
             improved > 0 -> StimulusExperimentalTargetOutcomeStatus.IMPROVED
             else -> StimulusExperimentalTargetOutcomeStatus.UNCHANGED
@@ -349,9 +414,6 @@ class StimulusExperimentalReadinessAuditEngine {
 
     private fun prescription(item: ProgramSkeletonItem) = PlannedPrescription(item.prescription, item.setPrescriptions, item.restSeconds, item.weightSource)
 
-    private fun PlannedPrescription.isPrefixOf(authorized: PlannedPrescription): Boolean =
-        text == authorized.text && restSeconds == authorized.restSeconds && weightSource == authorized.weightSource &&
-            sets.size <= authorized.sets.size && sets == authorized.sets.take(sets.size).mapIndexed { index, set -> set.copy(setIndex = index + 1) }
 }
 
 internal fun StimulusExperimentalReadinessAudit.toJson(): JSONObject = JSONObject()

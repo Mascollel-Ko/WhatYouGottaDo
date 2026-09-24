@@ -47,9 +47,21 @@ data class FrequencyExpansionTrace(val algorithmRecommendedDays: Int, val userSe
 internal fun frequencyPortion(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, candidate: CapacityCandidateTrace,
     limit: Int, prescriptions: PersonalizedPrescriptionPlanner,
     exactPrescriptionAuthorizationProvider: ExactPrescriptionAuthorizationProvider? = null): PlannedPrescription? {
+    if (limit <= 0) return null
+    val exactIdentity = exactPrescriptionAuthorizationProvider?.authorizedOwners?.get(
+        StimulusPrescriptionOwnerIdentity(candidate.item.stableKey, candidate.item.role)
+    )
+    if (exactIdentity != null) {
+        val remaining = (exactIdentity.sets.size - candidate.fundedBaseUnits).coerceAtLeast(0)
+        if (remaining == 0) return null
+        return exactPrescriptionAuthorizationProvider.sliceFor(
+            candidate.item,
+            candidate.fundedBaseUnits,
+            minOf(limit, remaining)
+        )
+    }
     val remainder = candidate.prescription.sets.drop(candidate.fundedBaseUnits)
-    if (remainder.isEmpty() || limit <= 0) return null
-    exactPrescriptionAuthorizationProvider?.prefixFor(candidate.item, minOf(limit, candidate.prescription.sets.size))?.let { return it }
+    if (remainder.isEmpty()) return null
     if (candidate.fundedBaseUnits == 0 && remainder.size <= limit) return candidate.prescription
     if (candidate.prescriptionAuthority == PrescriptionAuthoritySource.REGIONAL_TARGET_AUTHORIZED) {
         return candidate.prescription.copy(sets = remainder.take(limit).mapIndexed { index, set -> set.copy(setIndex = index + 1) })
