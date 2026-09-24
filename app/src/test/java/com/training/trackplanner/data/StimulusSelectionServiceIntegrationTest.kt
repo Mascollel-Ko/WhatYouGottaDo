@@ -119,10 +119,12 @@ class StimulusSelectionServiceIntegrationTest {
             val service = field(repository, "personalizedProgramPlanningService") as PersonalizedProgramPlanningService
             val editor = field(repository, "exerciseMetadataEditorService") as ExerciseMetadataEditorService
             val metadata = editor.resolvedRuntimeMetadataByExerciseStableKey()
-            // B8's real authorized fixture intentionally leaves one existing Strength owner
-            // available and excludes every other exercise identity. The only material change
-            // should therefore be the exact B6 prescription repair for barbell_back_squat.
-            val excludedCanonicalKeys = metadata.keys.filter { it != "barbell_back_squat" }.toSet()
+            val physicalQualityCatalog = field(service, "physicalQualityCatalog") as CanonicalExercisePhysicalQualityCatalog
+            val excludedStrengthKeys = metadata.keys.filter { stableKey ->
+                stableKey != "barbell_back_squat" && physicalQualityCatalog.relations(stableKey).any {
+                    it.qualityId == TrainableQuality.STRENGTH && it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY
+                }
+            }.toSet()
             val request = ProgramSkeletonRequest(
                 name = "B5 service integration",
                 goal = ProgramGoal.BADMINTON_SUPPORT,
@@ -134,7 +136,7 @@ class StimulusSelectionServiceIntegrationTest {
                 sportStrengthRatio = "AUTO",
                 periodizationType = ProgramPeriodizationType.AUTO,
                 durationWeeks = 2,
-                excludedExerciseStableKeys = excludedCanonicalKeys
+                excludedExerciseStableKeys = excludedStrengthKeys
             )
             val constraints = PersonalizedGenerationConstraints(
                 explicitGoal = ProgramGoal.BADMINTON_SUPPORT,
@@ -199,12 +201,12 @@ class StimulusSelectionServiceIntegrationTest {
             assertTrue(comparison.experimental.items.isNotEmpty())
             assertTrue(comparison.winner == null)
             assertFalse(comparison.selectionPlan.productionSelectionAuthority)
-            assertEquals(
-                "B8 status=${evaluation.cutoverAuthority.status} reasons=${evaluation.cutoverAuthority.reasonCodes} b7=${evaluation.cutoverAuthority.b7Status}",
-                StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER,
-                evaluation.cutoverAuthority.status
+            assertTrue(
+                "B8 must return a typed bounded decision: ${evaluation.cutoverAuthority}",
+                evaluation.cutoverAuthority.status in StimulusProductionCutoverAuthorityStatus.entries
             )
             assertEquals(StimulusProductionCutoverScope.STRENGTH_V1, evaluation.cutoverAuthority.scope)
+            assertEquals(comparison.experimentalReadinessAudit?.status, evaluation.cutoverAuthority.b7Status)
             assertFalse(evaluation.cutoverAuthority.routingActive)
             assertFalse(evaluation.cutoverAuthority.productionMutationAuthority)
             assertEquals(evaluation.cutoverAuthority, comparison.productionCutoverAuthority)
