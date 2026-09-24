@@ -218,7 +218,7 @@ class StimulusSelectionServiceIntegrationTest {
             assertTrue(evaluation.authorizedOwnerIdentities.isNotEmpty())
             val authorizedIdentity = evaluation.authorizedOwnerIdentities.single()
             assertEquals("barbell_back_squat", authorizedIdentity.stableKey)
-            assertEquals(b8Comparison.experimentalReadinessAudit?.status, evaluation.cutoverAuthority.b7Status)
+            assertEquals(b8Comparison.experimentalReadinessAudit?.status, evaluation.b7Status)
             assertEquals(
                 StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW,
                 b8Comparison.experimentalReadinessAudit?.status
