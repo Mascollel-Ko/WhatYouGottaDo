@@ -1139,10 +1139,23 @@ class TrainingRepository internal constructor(
         answers: PersonalizedPlanningAnswers,
         progress: com.training.trackplanner.data.personalized.PersonalizedPlannerProgressReporter = com.training.trackplanner.data.personalized.PersonalizedPlannerProgressReporter.NONE
     ): GeneratedProgramSkeleton = withContext(Dispatchers.IO) {
-        personalizedProgramPlanningService.generatePrepared(
+        generatePreparedPersonalizedProgramEvaluation(preflight, answers, progress).program
+    }
+
+    /** Internal production seam exposing B9 diagnostics without changing public consumers. */
+    internal suspend fun generatePreparedPersonalizedProgramEvaluation(
+        preflight: PersonalizedPlanningPreflight,
+        answers: PersonalizedPlanningAnswers,
+        progress: com.training.trackplanner.data.personalized.PersonalizedPlannerProgressReporter = com.training.trackplanner.data.personalized.PersonalizedPlannerProgressReporter.NONE,
+        routingMode: com.training.trackplanner.data.personalized.StimulusProductionRoutingMode =
+            com.training.trackplanner.data.personalized.StimulusProductionRoutingPolicy.defaultMode
+    ): com.training.trackplanner.data.personalized.StimulusProductionGenerationResult = withContext(Dispatchers.IO) {
+        personalizedProgramPlanningService.generatePreparedProduction(
             preflight = preflight,
             answers = answers,
-            metadata = exerciseMetadataEditorService.resolvedRuntimeMetadataByExerciseStableKey(), progress = progress
+            metadata = exerciseMetadataEditorService.resolvedRuntimeMetadataByExerciseStableKey(),
+            progress = progress,
+            routingMode = routingMode
         )
     }
 

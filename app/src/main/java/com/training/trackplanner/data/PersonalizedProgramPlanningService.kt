@@ -501,17 +501,34 @@ internal class PersonalizedProgramPlanningService(
         preflight: PersonalizedPlanningPreflight,
         answers: PersonalizedPlanningAnswers,
         metadata: Map<String, RuntimeExerciseMetadata>,
-        progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE
+        progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE,
+        controlOverride: GeneratedProgramSkeleton? = null,
+        productionBuildCounts: com.training.trackplanner.data.personalized.MutableStimulusProductionBuildCounts? = null
     ): StimulusSelectionProgramComparison {
         val preferences = readPreferences()
-        val control = generatePrepared(preflight, answers, metadata, progress)
-        val targetPlan = requireNotNull(control.personalizedDecision?.athleteStimulusNeedProfile?.stimulusTargetPlanShadow) {
-            "B6.2_REQUIRES_CANONICAL_B4_TARGET_PLAN"
+        val control = controlOverride ?: generatePrepared(preflight, answers, metadata, progress).also {
+            productionBuildCounts?.let { it.controlBuilds += 1 }
         }
+        val targetPlan = control.personalizedDecision?.athleteStimulusNeedProfile?.stimulusTargetPlanShadow
+            ?: if (productionBuildCounts != null) {
+                throw com.training.trackplanner.data.personalized.StimulusProductionEvaluationFailure(
+                    "B9_B4_TARGET_PLAN_MISSING"
+                )
+            } else {
+                error("B6.2_REQUIRES_CANONICAL_B4_TARGET_PLAN")
+            }
         val snapshot = buildSnapshot(preflight.cutoff, metadata, preferences, includeStimulusExposureLedger = true)
         val state = stateBuilder.build(snapshot, answers)
-        require(state.strengthIntent != StrengthIntent.UNRESOLVED && state.badmintonIntent != BadmintonPlanningIntent.UNRESOLVED &&
-            state.freeWeightWillingness != FreeWeightWillingness.UNRESOLVED) { "UNRESOLVED_PLANNING_INTENT_REQUIRES_PREFLIGHT" }
+        if (state.strengthIntent == StrengthIntent.UNRESOLVED || state.badmintonIntent == BadmintonPlanningIntent.UNRESOLVED ||
+            state.freeWeightWillingness == FreeWeightWillingness.UNRESOLVED
+        ) {
+            if (productionBuildCounts != null) {
+                throw com.training.trackplanner.data.personalized.StimulusProductionEvaluationFailure(
+                    "B9_B5_INPUT_UNRESOLVED"
+                )
+            }
+            error("UNRESOLVED_PLANNING_INTENT_REQUIRES_PREFLIGHT")
+        }
         val gaps = gapAnalyzer.analyze(snapshot, state)
         val intent = blockPlanner.decide(state, gaps)
         val frequencyEvidence = WeeklyDosePlanner().resolve(state, state.anchors.size + gaps.size)
@@ -536,27 +553,38 @@ internal class PersonalizedProgramPlanningService(
             controlPrescriptions = controlPrescriptions
         )
         val priorId = appMetaDao.latestByPrefix("$DECISION_PREFIX%")?.value?.let(::decisionIdFromJson)
-        val experimental = programBuilder.build(
-            snapshot = snapshot,
-            state = state,
-            gaps = gaps,
-            intent = intent,
-            horizon = request.durationWeeks,
-            request = request,
-            answers = answers,
-            priorDecisionId = priorId,
-            explicitWeeklyDays = preflight.constraints.explicitWeeklyTrainingDays != null,
-            frequency = com.training.trackplanner.data.personalized.PlanningFrequencyProvenance(
-                frequencyEvidence,
-                request.weeklyTrainingDays,
-                if (preflight.constraints.explicitWeeklyTrainingDays != null)
-                    com.training.trackplanner.data.personalized.PlanningFrequencySource.EXPLICIT_USER
-                else com.training.trackplanner.data.personalized.PlanningFrequencySource.AUTO
-            ),
-            progress = progress,
-            materialDemandOverride = selectionPlan.materialDemand,
-            exactPrescriptionAuthorizationProvider = authorizationPlan.provider()
-        )
+        val experimental = try {
+            productionBuildCounts?.let { it.experimentalBuilds += 1 }
+            programBuilder.build(
+                snapshot = snapshot,
+                state = state,
+                gaps = gaps,
+                intent = intent,
+                horizon = request.durationWeeks,
+                request = request,
+                answers = answers,
+                priorDecisionId = priorId,
+                explicitWeeklyDays = preflight.constraints.explicitWeeklyTrainingDays != null,
+                frequency = com.training.trackplanner.data.personalized.PlanningFrequencyProvenance(
+                    frequencyEvidence,
+                    request.weeklyTrainingDays,
+                    if (preflight.constraints.explicitWeeklyTrainingDays != null)
+                        com.training.trackplanner.data.personalized.PlanningFrequencySource.EXPLICIT_USER
+                    else com.training.trackplanner.data.personalized.PlanningFrequencySource.AUTO
+                ),
+                progress = progress,
+                materialDemandOverride = selectionPlan.materialDemand,
+                exactPrescriptionAuthorizationProvider = authorizationPlan.provider()
+            )
+        } catch (error: IllegalArgumentException) {
+            throw com.training.trackplanner.data.personalized.StimulusProductionEvaluationFailure(
+                "B9_EXPERIMENTAL_GENERATION_FAILED", error
+            )
+        } catch (error: IllegalStateException) {
+            throw com.training.trackplanner.data.personalized.StimulusProductionEvaluationFailure(
+                "B9_EXPERIMENTAL_GENERATION_FAILED", error
+            )
+        }
         val experimentalFinalAudit = FinalStimulusNeedAudit().audit(experimental, snapshot, physicalQualityCatalog)
         val experimentalAudit = StimulusTargetControlProgramAuditEngine().audit(
             targetPlan,
@@ -604,26 +632,84 @@ internal class PersonalizedProgramPlanningService(
     /**
      * Test/dev-only B8.0 evaluation. B6.2 builds CONTROL and EXPERIMENTAL exactly once; B8
      * consumes that existing comparison and only returns a future cutover authority decision.
-     * The normal repository path remains CONTROL and no experimental object is persisted or
-     * routed from this entry point.
+     * B9 consumes this result separately; this method itself remains an authority evaluation
+     * seam and does not route or persist the experimental object.
      */
     internal suspend fun generatePreparedStimulusProductionCutoverEvaluation(
         preflight: PersonalizedPlanningPreflight,
         answers: PersonalizedPlanningAnswers,
         metadata: Map<String, RuntimeExerciseMetadata>,
-        progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE
+        progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE,
+        controlOverride: GeneratedProgramSkeleton? = null,
+        productionBuildCounts: com.training.trackplanner.data.personalized.MutableStimulusProductionBuildCounts? = null
     ): com.training.trackplanner.data.personalized.StimulusProductionCutoverEvaluation {
         val comparison = generatePreparedStimulusPrescriptionMaterializationComparison(
             preflight = preflight,
             answers = answers,
             metadata = metadata,
-            progress = progress
+            progress = progress,
+            controlOverride = controlOverride,
+            productionBuildCounts = productionBuildCounts
         )
         val authority = com.training.trackplanner.data.personalized.StimulusProductionCutoverAuthorityAuditEngine()
             .audit(comparison)
         return com.training.trackplanner.data.personalized.StimulusProductionCutoverEvaluation(
             comparison = comparison.copy(productionCutoverAuthority = authority),
             cutoverAuthority = authority
+        )
+    }
+
+    /**
+     * Production entry point for a prepared personalized generation. CONTROL is materialized
+     * once, the existing B6.2/B7/B8 branch reuses that object, and B9 selects an intact program.
+     */
+    internal suspend fun generatePreparedProduction(
+        preflight: PersonalizedPlanningPreflight,
+        answers: PersonalizedPlanningAnswers,
+        metadata: Map<String, RuntimeExerciseMetadata>,
+        progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE,
+        routingMode: com.training.trackplanner.data.personalized.StimulusProductionRoutingMode =
+            com.training.trackplanner.data.personalized.StimulusProductionRoutingPolicy.defaultMode
+    ): com.training.trackplanner.data.personalized.StimulusProductionGenerationResult {
+        val buildCounts = com.training.trackplanner.data.personalized.MutableStimulusProductionBuildCounts()
+        val control = generatePrepared(preflight, answers, metadata, progress).also {
+            buildCounts.controlBuilds += 1
+        }
+        val evaluation = try {
+            generatePreparedStimulusProductionCutoverEvaluation(
+                preflight = preflight,
+                answers = answers,
+                metadata = metadata,
+                progress = progress,
+                controlOverride = control,
+                productionBuildCounts = buildCounts
+            )
+        } catch (failure: com.training.trackplanner.data.personalized.StimulusProductionEvaluationFailure) {
+            val fallback = com.training.trackplanner.data.personalized.StimulusProductionRoutingDecision(
+                mode = routingMode,
+                selectedSource = com.training.trackplanner.data.personalized.StimulusProductionProgramSource.CONTROL,
+                b8Status = null,
+                b8Scope = null,
+                reasonCodes = listOf("B9_UPSTREAM_EVALUATION_FAILED_CONTROL_FALLBACK"),
+                productionRoutingActive = false
+            )
+            return com.training.trackplanner.data.personalized.StimulusProductionGenerationResult(
+                program = control,
+                routeDecision = fallback,
+                comparison = null,
+                buildCounts = buildCounts.snapshot()
+            )
+        }
+        val routed = com.training.trackplanner.data.personalized.StimulusProductionRouter().route(
+            comparison = evaluation.comparison,
+            authority = evaluation.cutoverAuthority,
+            mode = routingMode
+        )
+        return com.training.trackplanner.data.personalized.StimulusProductionGenerationResult(
+            program = routed.program,
+            routeDecision = routed.decision,
+            comparison = evaluation.comparison,
+            buildCounts = buildCounts.snapshot()
         )
     }
 
@@ -647,7 +733,7 @@ internal class PersonalizedProgramPlanningService(
             question.options.none { it.value == answers.values[question.id] && it.value != "UNRESOLVED" }
         }
         return if (unanswered.isNotEmpty()) PersonalizedPlanningOutcome.Questions(unanswered)
-        else PersonalizedPlanningOutcome.Generated(generatePrepared(preflight, answers, metadata, progress))
+        else PersonalizedPlanningOutcome.Generated(generatePreparedProduction(preflight, answers, metadata, progress).program)
     }
 
     private suspend fun buildSnapshot(

@@ -105,8 +105,9 @@ class StimulusProductionCutoverAuthorityAuditEngine {
         materialOwners.sortedWith(OWNER_ORDER).forEach { identity ->
             when {
                 identity in comparison.addedOwnerIdentities -> {
-                    reasons += validateAddedOwner(comparison, identity)
-                    if (validateAddedOwner(comparison, identity).isEmpty()) authorized += identity
+                    val validation = validateAddedOwner(comparison, identity)
+                    reasons += validation
+                    if (validation.isEmpty()) authorized += identity
                 }
                 identity in comparison.sharedOwnerIdentities -> {
                     val validation = validateSharedOwner(comparison, identity)
