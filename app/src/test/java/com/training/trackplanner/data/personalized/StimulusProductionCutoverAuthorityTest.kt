@@ -141,6 +141,70 @@ class StimulusProductionCutoverAuthorityTest {
         assertEquals(decision.reasonCodes.sorted(), decision.reasonCodes)
     }
 
+    @Test
+    fun eligibleWithoutMaterialOwnerFailsClosedAsUpstreamInconsistency() {
+        val decision = engine().audit(comparison(
+            controlItems = listOf(item("squat", "PRIMARY")),
+            experimentalItems = listOf(item("squat", "PRIMARY")),
+            b7 = eligibleAudit(emptyList())
+        ))
+        assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, decision.status)
+        assertTrue(decision.reasonCodes.contains("B8_CUTOVER_V1_EMPTY_MATERIAL_AUTHORITY"))
+        assertTrue(decision.reasonCodes.contains("B8_CUTOVER_V1_UPSTREAM_INCONSISTENCY"))
+        assertTrue(decision.authorizedOwnerIdentities.isEmpty())
+        assertFalse(decision.routingActive)
+        assertFalse(decision.productionMutationAuthority)
+    }
+
+    @Test
+    fun b4NoneNumericAuthorityFailsClosedAtB8Boundary() {
+        val decision = engine().audit(comparison(
+            controlItems = listOf(item("base", "BASE")),
+            experimentalItems = listOf(item("base", "BASE"), item("squat", "ROLE_A")),
+            selected = selected("squat", "ROLE_A"),
+            traces = listOf(trace("squat", "ROLE_A")),
+            attribution = attribution("squat", "ROLE_A", StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY),
+            authorization = authorization("squat", "ROLE_A", StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR),
+            materialization = materialization("squat", "ROLE_A"),
+            target = qualityTarget(TrainableQuality.STRENGTH, StimulusTargetNumericAuthority.NONE)
+        ))
+        assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, decision.status)
+        assertTrue(decision.reasonCodes.contains("B8_CUTOVER_V1_STRENGTH_TARGET_HAS_NO_NUMERIC_AUTHORITY"))
+        assertTrue(decision.authorizedOwnerIdentities.isEmpty())
+    }
+
+    @Test
+    fun b4UnresolvedNumericAuthorityFailsClosedAtB8Boundary() {
+        val decision = engine().audit(comparison(
+            controlItems = listOf(item("base", "BASE")),
+            experimentalItems = listOf(item("base", "BASE"), item("squat", "ROLE_A")),
+            selected = selected("squat", "ROLE_A"),
+            traces = listOf(trace("squat", "ROLE_A")),
+            attribution = attribution("squat", "ROLE_A", StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY),
+            authorization = authorization("squat", "ROLE_A", StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR),
+            materialization = materialization("squat", "ROLE_A"),
+            target = qualityTarget(TrainableQuality.STRENGTH, StimulusTargetNumericAuthority.UNRESOLVED)
+        ))
+        assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, decision.status)
+        assertTrue(decision.reasonCodes.contains("B8_CUTOVER_V1_STRENGTH_TARGET_HAS_NO_NUMERIC_AUTHORITY"))
+        assertTrue(decision.authorizedOwnerIdentities.isEmpty())
+    }
+
+    @Test
+    fun sharedStrengthRepairAlsoRejectsMissingNumericAuthority() {
+        val decision = engine().audit(comparison(
+            controlItems = listOf(item("squat", "PRIMARY", reps = 8)),
+            experimentalItems = listOf(item("squat", "PRIMARY", reps = 5)),
+            attribution = attribution("squat", "PRIMARY", StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION),
+            authorization = authorization("squat", "PRIMARY", StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR),
+            materialization = materialization("squat", "PRIMARY"),
+            target = qualityTarget(TrainableQuality.STRENGTH, StimulusTargetNumericAuthority.NONE)
+        ))
+        assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, decision.status)
+        assertTrue(decision.reasonCodes.contains("B8_CUTOVER_V1_STRENGTH_TARGET_HAS_NO_NUMERIC_AUTHORITY"))
+        assertTrue(decision.authorizedOwnerIdentities.isEmpty())
+    }
+
     private fun engine() = StimulusProductionCutoverAuthorityAuditEngine()
 
     private fun comparison(
@@ -208,9 +272,12 @@ class StimulusProductionCutoverAuthorityTest {
         ))
     )
 
-    private fun qualityTarget(quality: TrainableQuality) = StimulusQualityTarget(
+    private fun qualityTarget(
+        quality: TrainableQuality,
+        numericAuthority: StimulusTargetNumericAuthority = StimulusTargetNumericAuthority.PERSONAL_SUCCESSFUL_DOSE
+    ) = StimulusQualityTarget(
         quality = quality, strategy = StimulusDoseStrategy.INTRODUCE_DIRECT_STIMULUS, priority = TargetPriority.PRIMARY,
-        numericAuthority = StimulusTargetNumericAuthority.PERSONAL_SUCCESSFUL_DOSE, baselineSource = null, baselineConfidence = null,
+        numericAuthority = numericAuthority, baselineSource = null, baselineConfidence = null,
         weeklyDirectUnitsTarget = StimulusTargetRange(1.0, 2.0, 4.0), weeklyDirectSessionsTarget = StimulusTargetRange(1.0, 1.0, 2.0),
         exposureWeekDirectUnitsReference = null, exposureWeekDirectSessionsReference = null, exposureWeekFrequencyReference = null,
         reasonCodes = emptyList(), evidence = emptyList()

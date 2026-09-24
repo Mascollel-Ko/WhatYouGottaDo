@@ -202,12 +202,46 @@ class StimulusSelectionServiceIntegrationTest {
             assertTrue(comparison.experimental.items.isNotEmpty())
             assertTrue(comparison.winner == null)
             assertFalse(comparison.selectionPlan.productionSelectionAuthority)
-            assertTrue(
-                "B8 must return a typed bounded decision: ${evaluation.cutoverAuthority}",
-                evaluation.cutoverAuthority.status in StimulusProductionCutoverAuthorityStatus.entries
+            assertEquals(
+                "real Room/service path must reach bounded Strength authorization: ${evaluation.cutoverAuthority}",
+                StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER,
+                evaluation.cutoverAuthority.status
             )
             assertEquals(StimulusProductionCutoverScope.STRENGTH_V1, evaluation.cutoverAuthority.scope)
+            assertTrue(evaluation.cutoverAuthority.authorizedOwnerIdentities.isNotEmpty())
+            val authorizedIdentity = evaluation.cutoverAuthority.authorizedOwnerIdentities.single()
+            assertEquals("barbell_back_squat", authorizedIdentity.stableKey)
             assertEquals(b8Comparison.experimentalReadinessAudit?.status, evaluation.cutoverAuthority.b7Status)
+            assertEquals(
+                StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW,
+                b8Comparison.experimentalReadinessAudit?.status
+            )
+            val strengthTarget = b8Comparison.targetPlan.qualityTargets.single { it.quality == TrainableQuality.STRENGTH }
+            assertTrue(strengthTarget.numericAuthority !in setOf(StimulusTargetNumericAuthority.NONE, StimulusTargetNumericAuthority.UNRESOLVED))
+            val b6Authorization = requireNotNull(b8Comparison.prescriptionAuthorizationPlan).authorizations.single {
+                it.owner?.stableKey == authorizedIdentity.stableKey && it.owner?.selectionRole == authorizedIdentity.selectionRole
+            }
+            assertEquals(TrainableQuality.STRENGTH, b6Authorization.quality)
+            assertEquals(StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR, b6Authorization.status)
+            val b6Materialization = b8Comparison.prescriptionMaterializationAudits.single {
+                it.owner?.stableKey == authorizedIdentity.stableKey && it.owner?.selectionRole == authorizedIdentity.selectionRole
+            }
+            assertEquals(StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED, b6Materialization.state)
+            assertEquals(0, b6Materialization.shortfall)
+            assertEquals(0, b6Materialization.overrun)
+            assertTrue(b6Materialization.prescriptionPreservedOrSubset)
+            assertEquals(b8Comparison.experimental.request.durationWeeks, b6Materialization.weeklyAudits.size)
+            assertTrue(b6Materialization.weeklyAudits.all {
+                it.shortfall == 0 && it.overrun == 0 && it.prescriptionPreservedOrSubset &&
+                    it.targetCompatibleMaterializedUnits == it.materializedSetUnits
+            })
+            assertTrue(
+                b8Comparison.experimentalReadinessAudit?.changeAttributions.orEmpty().any {
+                    it.stableKey == authorizedIdentity.stableKey &&
+                        it.selectionRole == authorizedIdentity.selectionRole &&
+                        it.source == StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION
+                }
+            )
             assertFalse(evaluation.cutoverAuthority.routingActive)
             assertFalse(evaluation.cutoverAuthority.productionMutationAuthority)
             assertEquals(evaluation.cutoverAuthority, b8Comparison.productionCutoverAuthority)
