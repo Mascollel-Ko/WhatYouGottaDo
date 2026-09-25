@@ -185,5 +185,8 @@ registerConnectiveTissuePriorTask(
 
 // Temporary CI diagnostics for the B10 service regression; remove after the hosted run.
 tasks.withType<Test>().configureEach {
-    testLogging.showStandardStreams = true
+    testLogging {
+        showStandardStreams = true
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+    }
 }
