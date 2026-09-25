@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.44.2 |
+| Protocol version | 3.45.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | a76fb20e4662d72721590401e5822e2c48347e02 |
+| Last audited commit | df90072de50ddfcf8098154eddfac5662e7939db |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -70,6 +70,13 @@
 - Production canonical fallback now consumes `StimulusCanonicalEvaluationFailure` and its enumerated reason, then adapts that typed failure once to the orchestration-level `StimulusProductionEvaluationFailure`. Recovery no longer parses `RuntimeException.message`, `substringBefore(':')`, or authorization message prefixes. Known bounded sites cover executable-demand absence, final canonical validation, and B6/regional/material authorization failures; ordinary CONTROL invariants keep their existing behavior.
 - The production seam rethrows `CancellationException`, unexpected `IllegalStateException`/`IllegalArgumentException`, null/data-system failures, and CONTROL-generation failures. Only an explicitly typed bounded canonical failure may return the already-valid original CONTROL object, with the existing fallback reason, monotonic completion path, and unchanged build accounting.
 - Focused orchestration coverage injects typed expected failure, cancellation, unexpected state/argument failures, and CONTROL failure; it verifies CONTROL identity, persistence purity, no completion after failure, and the `1 / 0 / 0` pre-builder fallback count. B8 authority semantics, the B9 routing matrix, Strength-v1 scope, progress bands, CONTROL_ONLY rollback, persistence/schema contracts, and the real authorized Strength fixture remain unchanged.
+
+### 3.45.0 — B10.0 executable Hypertrophy prescription authority shadow
+
+- Hypertrophy now uses the existing reviewed realization model: direct 7–15-repetition resistance sets require canonical effort evidence (RPE ≥7 or implied RIR ≤3), positive exercise-local resolved load, reviewed identity and direct Hypertrophy relation. Missing effort or load remains `UNCLASSIFIED`/unresolved; below-threshold effort remains reviewed non-realization. Strength keeps its independent 1RM and 70%/1–6-repetition rules.
+- B10 reuses the existing B4 numeric target authority, B5 exact `(stableKey, selectionRole)` owner identity, B6.1 planned compatibility and canonical Hypertrophy effort target, and B6.2 funded-set multiset/full-horizon materialization audit. Compatible owners are `AUTHORIZED_EXISTING_COMPATIBLE`; compatible-load repairs are `AUTHORIZED_SAFE_REPAIR`. `NONE`, `DIRECTION_ONLY`, `UNRESOLVED`, unavailable effort/load, role mismatches and exercise-local load mismatches remain non-executable.
+- Provisional 8-repetition/0-kg planner shapes are never executable. Hypertrophy repair preserves the exact owner-local load, set count, rest, seconds and weight-source fields while bringing reps into the already-governed 7–15 band; no generic 5–30 rule, fabricated effort field, cross-exercise load, schema field or third build is introduced.
+- B10 remains shadow-only. B7 may observe Hypertrophy materialization, but B8 production scope remains `STRENGTH_V1` and rejects material non-Strength change with `B8_CUTOVER_V1_NON_STRENGTH_CHANGE_OUT_OF_SCOPE`; B9 continues to route such cases to CONTROL. Strength authorization, build counts (`1 / 1 / 0`) and progress bands remain unchanged.
 
 ### 3.41.1 — B6.2 multi-week materialization audit closure
 
