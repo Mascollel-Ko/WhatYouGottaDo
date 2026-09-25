@@ -197,7 +197,10 @@ class StimulusProductionCutoverAuthorityAuditEngine {
             reasons += "B8_CUTOVER_V1_UPSTREAM_INCONSISTENCY"
         }
         val attributions = materialAttributionsFor(comparison, identity)
-        if (attributions.none {\r\n                it.source == StimulusExperimentalChangeAttributionSource.B6_EXISTING_OWNER_PRESCRIPTION ||\r\n                    it.source == StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION\r\n            }) {
+        if (attributions.none {
+                it.source == StimulusExperimentalChangeAttributionSource.B6_EXISTING_OWNER_PRESCRIPTION ||
+                    it.source == StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION
+            }) {
             reasons += "B8_CUTOVER_V1_PROVENANCE_NOT_CLOSED"
         }
         if (attributions.filter(::isMaterialAttribution).any { attribution ->
