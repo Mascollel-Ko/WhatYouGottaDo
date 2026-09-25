@@ -261,7 +261,8 @@ class StimulusProductionCutoverAuthorityAuditEngine {
     ): Boolean {
         val audits = comparison.prescriptionMaterializationAudits.filter {
             val owner = it.owner ?: return@filter false
-            owner.stableKey == identity.stableKey && owner.selectionRole == identity.selectionRole
+            owner.stableKey == identity.stableKey && owner.selectionRole == identity.selectionRole &&
+                it.quality == TrainableQuality.STRENGTH
         }
         if (audits.size != 1) return false
         val audit = audits.single()
