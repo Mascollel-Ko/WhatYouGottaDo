@@ -220,7 +220,8 @@ class StimulusProductionCutoverAuthorityAuditEngine {
     ): StimulusPrescriptionAuthorization? {
         val matches = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().filter {
             val owner = it.owner ?: return@filter false
-            owner.stableKey == identity.stableKey && owner.selectionRole == identity.selectionRole
+            owner.stableKey == identity.stableKey && owner.selectionRole == identity.selectionRole &&
+                it.quality == TrainableQuality.STRENGTH
         }
         return matches.singleOrNull()
     }
