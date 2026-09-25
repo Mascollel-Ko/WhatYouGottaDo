@@ -92,7 +92,7 @@ class StimulusProductionCutoverAuthorityAuditEngine {
                 strengthTargetAuthorityReason(comparison, targetId)?.let(reasons::add)
             }
             val nonStrength = materialOwners.flatMap { identity ->
-                materialAttributionsFor(comparison, identity).flatMap { attribution ->
+                materialAttributionsFor(comparison, identity).filter(::isMaterialAttribution).flatMap { attribution ->
                     attribution.targetIds.filterNot(::isStrengthTarget)
                 }
             }.distinct().sorted()
@@ -197,15 +197,12 @@ class StimulusProductionCutoverAuthorityAuditEngine {
             reasons += "B8_CUTOVER_V1_UPSTREAM_INCONSISTENCY"
         }
         val attributions = materialAttributionsFor(comparison, identity)
-        if (attributions.none {
-                it.source == StimulusExperimentalChangeAttributionSource.B6_EXISTING_OWNER_PRESCRIPTION ||
-                    it.source == StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION
-            }) {
+        if (attributions.none {\r\n                it.source == StimulusExperimentalChangeAttributionSource.B6_EXISTING_OWNER_PRESCRIPTION ||\r\n                    it.source == StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION\r\n            }) {
             reasons += "B8_CUTOVER_V1_PROVENANCE_NOT_CLOSED"
         }
-        if (attributions.any { attribution ->
-                attribution.targetIds.any { !isStrengthTarget(it) }
-            }) {
+        if (attributions.filter(::isMaterialAttribution).any { attribution ->
+            attribution.targetIds.any { !isStrengthTarget(it) }
+        }) {
             reasons += "B8_CUTOVER_V1_NON_STRENGTH_CHANGE_OUT_OF_SCOPE"
         }
         if (!fullMaterialization(comparison, identity)) {
@@ -317,6 +314,13 @@ class StimulusProductionCutoverAuthorityAuditEngine {
     ): List<StimulusExperimentalChangeAttribution> = comparison.experimentalReadinessAudit?.changeAttributions.orEmpty().filter {
         it.stableKey == identity.stableKey && it.selectionRole == identity.selectionRole
     }
+
+    private fun isMaterialAttribution(attribution: StimulusExperimentalChangeAttribution): Boolean =
+        attribution.source in setOf(
+            StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY,
+            StimulusExperimentalChangeAttributionSource.B6_EXISTING_OWNER_PRESCRIPTION,
+            StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION
+        )
 
     private fun unrelatedControlParityFailures(
         comparison: StimulusSelectionProgramComparison,
