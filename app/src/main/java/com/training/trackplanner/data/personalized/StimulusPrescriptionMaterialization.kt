@@ -158,7 +158,7 @@ class StimulusPrescriptionAuthorizationEngine(
                 listOf(if (target.quality == TrainableQuality.HYPERTROPHY) "HYPERTROPHY_PRESCRIPTION_ALREADY_COMPATIBLE" else "EXISTING_COMPATIBLE_PRESCRIPTION"))
             resolution.status == StimulusPrescriptionResolutionStatus.SAFE_TARGET_COMPATIBLE_PRESCRIPTION_RESOLVED &&
                 resolution.owner != null && input != null && resolution.proposedPrescription != null &&
-                executableHypertrophyPrescription(target, resolution.proposedPrescription) -> {
+                executableHypertrophySets(target, resolution.proposedPrescription.sets) -> {
                 val proposal = resolution.proposedPrescription
                 val authorized = input.copy(sets = proposal.sets)
                 StimulusPrescriptionAuthorization(targetId, target.quality, resolution.owner, source, input,
@@ -181,8 +181,13 @@ class StimulusPrescriptionAuthorizationEngine(
     private fun executableHypertrophyPrescription(
         target: StimulusQualityTarget,
         prescription: PlannedPrescription
+    ): Boolean = executableHypertrophySets(target, prescription.sets)
+
+    private fun executableHypertrophySets(
+        target: StimulusQualityTarget,
+        sets: List<com.training.trackplanner.data.ProgramSetPrescription>
     ): Boolean = target.quality != TrainableQuality.HYPERTROPHY || (
-        prescription.sets.isNotEmpty() && prescription.sets.all { set ->
+        sets.isNotEmpty() && sets.all { set ->
             set.reps in 7..15 && set.weightKg.isFinite() && set.weightKg > 0.0
         }
     )
