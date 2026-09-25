@@ -80,7 +80,10 @@ class StimulusSelectionServiceIntegrationTest {
                             reps = if (daysAgo >= 42L) 5 else 8,
                                 weightKg = 40.0 + exerciseIndex,
                                 confirmed = true,
-                                rpe = 8.0
+                                // The recent 8-rep rows remain a Strength-incompatible
+                                // prescription shape, but are deliberately too easy for the
+                                // Hypertrophy shadow so this fixture isolates the Strength path.
+                                rpe = if (daysAgo >= 42L) 8.0 else 6.0
                             )
                         )
                     }
