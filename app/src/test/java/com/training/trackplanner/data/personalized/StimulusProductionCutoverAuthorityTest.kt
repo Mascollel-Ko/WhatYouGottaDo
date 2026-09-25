@@ -82,6 +82,17 @@ class StimulusProductionCutoverAuthorityTest {
         assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, outOfScope.status)
         assertTrue(outOfScope.reasonCodes.contains("B8_CUTOVER_V1_NON_STRENGTH_CHANGE_OUT_OF_SCOPE"))
 
+        val hypertrophyOutOfScope = engine().audit(comparison(
+            controlItems = listOf(item("base", "BASE")), experimentalItems = listOf(item("base", "BASE"), item("hypertrophy", "ROLE_H")),
+            selected = selected("hypertrophy", "ROLE_H", "QUALITY:HYPERTROPHY"), traces = listOf(trace("hypertrophy", "ROLE_H", "QUALITY:HYPERTROPHY")),
+            target = qualityTarget(TrainableQuality.HYPERTROPHY),
+            attribution = attribution("hypertrophy", "ROLE_H", StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY, "QUALITY:HYPERTROPHY"),
+            authorization = authorization("hypertrophy", "ROLE_H", StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR, TrainableQuality.HYPERTROPHY),
+            materialization = materialization("hypertrophy", "ROLE_H", quality = TrainableQuality.HYPERTROPHY)
+        ))
+        assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, hypertrophyOutOfScope.status)
+        assertTrue(hypertrophyOutOfScope.reasonCodes.contains("B8_CUTOVER_V1_NON_STRENGTH_CHANGE_OUT_OF_SCOPE"))
+
         val incidental = engine().audit(comparison(
             controlItems = listOf(item("base", "BASE")), experimentalItems = listOf(item("base", "BASE"), item("squat", "ROLE_A")),
             selected = selected("squat", "ROLE_A"), traces = listOf(trace("squat", "ROLE_A")),
@@ -344,14 +355,14 @@ class StimulusProductionCutoverAuthorityTest {
         StimulusExperimentalChangeAttribution(key, role, source, targetIds.toList().ifEmpty { listOf("QUALITY:STRENGTH") })
     )
 
-    private fun authorization(key: String, role: String, status: StimulusPrescriptionAuthorizationStatus) = StimulusPrescriptionAuthorization(
-        targetId = "QUALITY:STRENGTH", quality = TrainableQuality.STRENGTH,
+    private fun authorization(key: String, role: String, status: StimulusPrescriptionAuthorizationStatus, quality: TrainableQuality = TrainableQuality.STRENGTH) = StimulusPrescriptionAuthorization(
+        targetId = "QUALITY:${quality.name}", quality = quality,
         owner = StimulusPrescriptionOwner(key, role), source = StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE,
         inputPrescription = planned(8), plannedCompatibility = null, authorizedPrescription = planned(5), status = status
     )
 
-    private fun materialization(key: String, role: String, full: Boolean = true, reasonCodes: List<String> = emptyList()) = StimulusPrescriptionMaterializationAudit(
-        targetId = "QUALITY:STRENGTH", quality = TrainableQuality.STRENGTH, owner = StimulusPrescriptionOwner(key, role),
+    private fun materialization(key: String, role: String, full: Boolean = true, reasonCodes: List<String> = emptyList(), quality: TrainableQuality = TrainableQuality.STRENGTH) = StimulusPrescriptionMaterializationAudit(
+        targetId = "QUALITY:${quality.name}", quality = quality, owner = StimulusPrescriptionOwner(key, role),
         authorizedWeeklySetUnits = 2, materializedWeeklySetUnits = if (full) 2 else 1, targetCompatibleMaterializedUnits = if (full) 2 else 1,
         shortfall = if (full) 0 else 1, overrun = 0, prescriptionPreservedOrSubset = true,
         state = if (full) StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED else StimulusPrescriptionMaterializationState.PARTIALLY_MATERIALIZED,
