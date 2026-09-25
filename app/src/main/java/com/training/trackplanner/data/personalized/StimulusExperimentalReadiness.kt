@@ -288,30 +288,38 @@ class StimulusExperimentalReadinessAuditEngine {
             }
         }
         val authByOwner = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty()
-            .filter { it.owner != null }.associateBy { StimulusPrescriptionOwnerIdentity(it.owner!!.stableKey, it.owner!!.selectionRole) }
+            .filter { it.owner != null }
+            .groupBy { StimulusPrescriptionOwnerIdentity(it.owner!!.stableKey, it.owner!!.selectionRole) }
         val controlByIdentity = comparison.control.items.groupBy { StimulusPrescriptionOwnerIdentity(it.exerciseStableKey, it.selectionRole) }
         val experimentalByIdentity = comparison.experimental.items.groupBy { StimulusPrescriptionOwnerIdentity(it.exerciseStableKey, it.selectionRole) }
         (controlByIdentity.keys intersect experimentalByIdentity.keys).sortedWith(compareBy<StimulusPrescriptionOwnerIdentity>({ it.stableKey }, { it.selectionRole })).forEach { identity ->
             val before = controlByIdentity.getValue(identity).map(::prescription)
             val after = experimentalByIdentity.getValue(identity).map(::prescription)
             if (before == after) return@forEach
-            val auth = authByOwner[identity]
-            val authorized = auth?.authorizedPrescription
-            val subsetValidation = authorized?.let {
-                validateAuthorizedWeeklySubset(experimentalByIdentity.getValue(identity), it, identity.stableKey, identity.selectionRole)
+            val executableAuthorizations = authByOwner[identity].orEmpty().mapNotNull { authorization ->
+                val authorized = authorization.authorizedPrescription ?: return@mapNotNull null
+                if (authorization.status !in setOf(
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE
+                    )) return@mapNotNull null
+                val subsetValidation = validateAuthorizedWeeklySubset(
+                    experimentalByIdentity.getValue(identity), authorized, identity.stableKey, identity.selectionRole
+                )
+                if (!subsetValidation.valid) return@mapNotNull null
+                authorization to authorized
             }
             val source = when {
-                auth?.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR && authorized != null && subsetValidation?.valid == true -> StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION
-                auth?.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE && authorized != null && subsetValidation?.valid == true -> StimulusExperimentalChangeAttributionSource.B6_EXISTING_OWNER_PRESCRIPTION
+                executableAuthorizations.any { it.first.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR } -> StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION
+                executableAuthorizations.any { it.first.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE } -> StimulusExperimentalChangeAttributionSource.B6_EXISTING_OWNER_PRESCRIPTION
                 else -> StimulusExperimentalChangeAttributionSource.UNEXPLAINED
             }
             val reasonCodes = when {
                 source == StimulusExperimentalChangeAttributionSource.UNEXPLAINED ->
-                    listOf("UNEXPLAINED_PRESCRIPTION_CHANGE") + subsetValidation?.reasonCodes.orEmpty()
+                    listOf("UNEXPLAINED_PRESCRIPTION_CHANGE")
                 else -> listOf("B6_AUTHORIZED_PRESCRIPTION_CHANGE")
             }
             result += StimulusExperimentalChangeAttribution(identity.stableKey, identity.selectionRole, source,
-                auth?.targetId?.let(::listOf).orEmpty(), reasonCodes)
+                executableAuthorizations.map { it.first.targetId }.distinct().sorted(), reasonCodes)
         }
         return result
     }
