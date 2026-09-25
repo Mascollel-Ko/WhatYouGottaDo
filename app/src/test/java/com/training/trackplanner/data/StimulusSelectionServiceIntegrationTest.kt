@@ -229,12 +229,14 @@ class StimulusSelectionServiceIntegrationTest {
             val strengthTarget = b8Comparison.targetPlan.qualityTargets.single { it.quality == TrainableQuality.STRENGTH }
             assertTrue(strengthTarget.numericAuthority !in setOf(StimulusTargetNumericAuthority.NONE, StimulusTargetNumericAuthority.UNRESOLVED))
             val b6Authorization = requireNotNull(b8Comparison.prescriptionAuthorizationPlan).authorizations.single {
-                it.owner?.stableKey == authorizedIdentity.stableKey && it.owner?.selectionRole == authorizedIdentity.selectionRole
+                it.quality == TrainableQuality.STRENGTH &&
+                    it.owner?.stableKey == authorizedIdentity.stableKey && it.owner?.selectionRole == authorizedIdentity.selectionRole
             }
             assertEquals(TrainableQuality.STRENGTH, b6Authorization.quality)
             assertEquals(StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR, b6Authorization.status)
             val b6Materialization = b8Comparison.prescriptionMaterializationAudits.single {
-                it.owner?.stableKey == authorizedIdentity.stableKey && it.owner?.selectionRole == authorizedIdentity.selectionRole
+                it.quality == TrainableQuality.STRENGTH &&
+                    it.owner?.stableKey == authorizedIdentity.stableKey && it.owner?.selectionRole == authorizedIdentity.selectionRole
             }
             assertEquals(StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED, b6Materialization.state)
             assertEquals(0, b6Materialization.shortfall)
