@@ -74,13 +74,12 @@ class StimulusSelectionServiceIntegrationTest {
                                 entryId = historyEntryId,
                                 setIndex = setIndex,
                                 // Keep two older completed weeks in the reviewed Strength band;
-                                // recent 8-rep sets remain below the canonical Hypertrophy effort gate
-                                // (RPE 6), while making the planned Strength prescription require repair.
+                                // Recent 8-rep sets preserve the original Strength service fixture,
+                                // making the planned Strength prescription require repair.
                                 reps = if (daysAgo >= 42L) 5 else 8,
                                 weightKg = 40.0 + exerciseIndex,
                                 confirmed = true,
-                                // RPE 6 is below the canonical Hypertrophy realization threshold.
-                                rpe = if (daysAgo >= 42L) 8.0 else 6.0
+                                rpe = 8.0
                             )
                         )
                     }
