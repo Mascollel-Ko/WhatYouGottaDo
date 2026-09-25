@@ -711,16 +711,10 @@ class RegionalTargetPrescriptionResolver(
                 listOf("HYPERTROPHY_CANONICAL_OR_PROVISIONAL_PATH")
             )
         }
-        // A novel eligible accessory may be represented provisionally, but never by inventing a load.
-        return Resolution(
-            PlannedPrescription(
-                text = "Target-compatible hypertrophy provisional RPE prescription",
-                sets = List(requestedSets) { index -> ProgramSetPrescription(index + 1, 8, 0.0, 0) },
-                restSeconds = canonicalPrescription.restSeconds,
-                weightSource = "TARGET_COMPATIBLE_PROVISIONAL_RPE_NO_INVENTED_LOAD"
-            ),
-            listOf("HYPERTROPHY_PROVISIONAL_RPE_NO_INVENTED_LOAD")
-        )
+        // A novel eligible accessory has no exercise-local load authority. Keep the target
+        // unresolved instead of manufacturing an 8-rep/0-kg prescription that downstream
+        // materialization could mistake for funded Hypertrophy work.
+        return Resolution(null, listOf("HYPERTROPHY_PROVISIONAL_RPE_NO_INVENTED_LOAD_UNRESOLVED"))
     }
 
     private fun resolveStrength(

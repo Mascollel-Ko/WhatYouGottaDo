@@ -36,7 +36,9 @@ class StimulusPlannedPrescriptionResolver {
                 reference1RmKg = reference, relativeIntensity = relative,
                 reasonCodes = if (relative < .70) listOf("PLANNED_LOAD_BELOW_70_PERCENT_REFERENCE_1RM") else emptyList())
         }
-        val validLoad = loads.all { it.isFinite() && (it > 0.0 || prescription.weightSource.startsWith("PROVISIONAL")) }
+        // A provisional zero is a planner display fallback, not an exercise-local mechanical
+        // load authority.  B6.1 must keep it unresolved so B6.2 cannot fund a fabricated set.
+        val validLoad = loads.all { it.isFinite() && it > 0.0 }
         if (!validLoad) return PlannedStimulusCompatibility(quality, PlannedStimulusCompatibilityStatus.UNRESOLVED,
             reasonCodes = listOf("PLANNED_RESISTANCE_LOAD_UNAVAILABLE"))
         return PlannedStimulusCompatibility(quality,
@@ -64,11 +66,17 @@ class StimulusPlannedPrescriptionResolver {
                     source = "B6_SHADOW_STRENGTH_RESOLUTION"
                 )
             }
-            TrainableQuality.HYPERTROPHY -> StimulusTargetCompatiblePrescription(
-                sets = List(count) { index -> ProgramSetPrescription(index + 1, 8, 0.0, 0) },
-                effortTarget = effort, numericAuthority = "PROVISIONAL_8_REPS_ZERO_LOAD",
-                source = "B6_SHADOW_HYPERTROPHY_PROVISIONAL"
-            )
+            TrainableQuality.HYPERTROPHY -> {
+                val loads = current.sets.map { it.weightKg }
+                if (loads.any { !it.isFinite() || it <= 0.0 }) return null
+                StimulusTargetCompatiblePrescription(
+                    // Keep every exercise-local load, rest and timed field. Only bring reps into
+                    // the already-governed 7..15 Hypertrophy realization band.
+                    sets = current.sets.map { set -> set.copy(reps = set.reps.coerceIn(7, 15)) },
+                    effortTarget = effort, numericAuthority = "SAFE_CANONICAL_HYPERTROPHY_LOAD",
+                    source = "B6_SHADOW_HYPERTROPHY_RESOLUTION"
+                )
+            }
             else -> null
         }
     }

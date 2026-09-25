@@ -125,14 +125,26 @@ class StimulusPrescriptionAuthorizationEngine(
         resolution: StimulusPrescriptionResolution?
     ): StimulusPrescriptionAuthorization {
         val targetId = "QUALITY:${target.quality.name}"
-        if (target.quality != TrainableQuality.STRENGTH) {
+        if (target.quality == TrainableQuality.HYPERTROPHY && target.numericAuthority in setOf(
+                StimulusTargetNumericAuthority.NONE,
+                StimulusTargetNumericAuthority.DIRECTION_ONLY,
+                StimulusTargetNumericAuthority.UNRESOLVED
+            )) {
+            return StimulusPrescriptionAuthorization(
+                targetId, target.quality, resolution?.owner,
+                resolution?.owner?.let { sourceFor(it.source) },
+                resolution?.currentPrescription ?: resolution?.probePrescription,
+                resolution?.plannedCompatibility, null,
+                StimulusPrescriptionAuthorizationStatus.NO_EXECUTABLE_AUTHORIZATION,
+                listOf("HYPERTROPHY_TARGET_NUMERIC_AUTHORITY_UNAVAILABLE")
+            )
+        }
+        if (target.quality != TrainableQuality.STRENGTH && target.quality != TrainableQuality.HYPERTROPHY) {
             return StimulusPrescriptionAuthorization(targetId, target.quality, resolution?.owner,
                 resolution?.owner?.let { sourceFor(it.source) }, resolution?.currentPrescription ?: resolution?.probePrescription,
                 resolution?.plannedCompatibility, null,
-                if (target.quality == TrainableQuality.HYPERTROPHY) StimulusPrescriptionAuthorizationStatus.NO_EXECUTABLE_AUTHORIZATION
-                else StimulusPrescriptionAuthorizationStatus.MODEL_UNAVAILABLE,
-                if (target.quality == TrainableQuality.HYPERTROPHY) listOf("PROPOSAL_NOT_EXECUTABLE_NO_LOAD_AUTHORITY")
-                else listOf("CAPABILITY_PROXY_QUALITY_NON_PRESCRIPTIVE"))
+                StimulusPrescriptionAuthorizationStatus.MODEL_UNAVAILABLE,
+                listOf("CAPABILITY_PROXY_QUALITY_NON_PRESCRIPTIVE"))
         }
         if (resolution == null) return StimulusPrescriptionAuthorization(targetId, target.quality, null, null, null, null, null,
             StimulusPrescriptionAuthorizationStatus.MODEL_UNAVAILABLE, listOf("STRENGTH_REALIZATION_RESOLUTION_UNAVAILABLE"))
@@ -140,18 +152,19 @@ class StimulusPrescriptionAuthorizationEngine(
         val input = resolution.currentPrescription ?: resolution.probePrescription
         return when {
             resolution.status == StimulusPrescriptionResolutionStatus.ALREADY_TARGET_COMPATIBLE &&
-                resolution.owner != null && input != null -> StimulusPrescriptionAuthorization(targetId, target.quality,
+                resolution.owner != null && input != null && executableHypertrophyPrescription(target, input) -> StimulusPrescriptionAuthorization(targetId, target.quality,
                 resolution.owner, source, input, resolution.plannedCompatibility, input,
                 StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
-                listOf("EXISTING_COMPATIBLE_PRESCRIPTION"))
+                listOf(if (target.quality == TrainableQuality.HYPERTROPHY) "HYPERTROPHY_PRESCRIPTION_ALREADY_COMPATIBLE" else "EXISTING_COMPATIBLE_PRESCRIPTION"))
             resolution.status == StimulusPrescriptionResolutionStatus.SAFE_TARGET_COMPATIBLE_PRESCRIPTION_RESOLVED &&
-                resolution.owner != null && input != null && resolution.proposedPrescription != null -> {
+                resolution.owner != null && input != null && resolution.proposedPrescription != null &&
+                executableHypertrophyPrescription(target, resolution.proposedPrescription) -> {
                 val proposal = resolution.proposedPrescription
                 val authorized = input.copy(sets = proposal.sets)
                 StimulusPrescriptionAuthorization(targetId, target.quality, resolution.owner, source, input,
                     resolution.plannedCompatibility, authorized,
                     StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
-                    listOf("SAFE_REPAIRED_PRESCRIPTION"))
+                    listOf(if (target.quality == TrainableQuality.HYPERTROPHY) "HYPERTROPHY_SAFE_REPAIR_RESOLVED" else "SAFE_REPAIRED_PRESCRIPTION"))
             }
             resolution.status in setOf(
                 StimulusPrescriptionResolutionStatus.AMBIGUOUS_OWNER,
@@ -164,6 +177,15 @@ class StimulusPrescriptionAuthorizationEngine(
                 resolution.reasonCodes.ifEmpty { listOf("NO_EXECUTABLE_STRENGTH_AUTHORIZATION") })
         }
     }
+
+    private fun executableHypertrophyPrescription(
+        target: StimulusQualityTarget,
+        prescription: PlannedPrescription
+    ): Boolean = target.quality != TrainableQuality.HYPERTROPHY || (
+        prescription.sets.isNotEmpty() && prescription.sets.all { set ->
+            set.reps in 7..15 && set.weightKg.isFinite() && set.weightKg > 0.0
+        }
+    )
 
     private fun sourceFor(value: String): StimulusPrescriptionAuthorizationSource = when {
         value == "B5_SELECTION" -> StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE

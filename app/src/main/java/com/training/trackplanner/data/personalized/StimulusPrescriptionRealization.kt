@@ -185,6 +185,15 @@ class StimulusPrescriptionRealizationPlanEngine(
         val compatibility = selected.third.third
         val owner = StimulusPrescriptionOwner(identity.stableKey, identity.selectionRole, source)
         val effort = target.quality.effortTarget()
+        if (target.quality == TrainableQuality.HYPERTROPHY && target.numericAuthority in setOf(
+                StimulusTargetNumericAuthority.NONE,
+                StimulusTargetNumericAuthority.DIRECTION_ONLY,
+                StimulusTargetNumericAuthority.UNRESOLVED
+            )) return base(
+            StimulusPrescriptionResolutionStatus.NO_PRESCRIPTION_CHANGE_AUTHORIZED,
+            listOf("HYPERTROPHY_TARGET_NUMERIC_AUTHORITY_UNAVAILABLE"),
+            owner, current, effective, compatibility
+        )
         if (compatibility.status == PlannedStimulusCompatibilityStatus.COMPATIBLE_CONDITIONAL_ON_EFFORT) {
             val proposal = StimulusTargetCompatiblePrescription(effective.sets, effort,
                 "EXISTING_TYPED_PLANNED_AUTHORITY", "CURRENT_PLANNED_PRESCRIPTION_ALREADY_COMPATIBLE")

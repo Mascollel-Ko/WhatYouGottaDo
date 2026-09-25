@@ -52,6 +52,14 @@ class RealizedStimulusClassificationTest {
     }
 
     @Test
+    fun hypertrophyUnknownEffortRemainsUnclassified() {
+        val result = RealizedStimulusClassifier.classify(input(8, rpe = null, impliedRir = null))
+        assertEquals(RealizedStimulusStatus.UNCLASSIFIED, result.status)
+        assertEquals(listOf("EFFORT_AUTHORITY_UNAVAILABLE"), result.reasonCodes)
+        assertFalse(result.isRealized)
+    }
+
+    @Test
     fun reviewedNonRealizationIsDistinctFromUnclassified() {
         val warmup = RealizedStimulusClassifier.classify(input(8).copy(reviewedNonRealization = true))
         assertEquals(RealizedStimulusStatus.REVIEWED_NON_REALIZATION, warmup.status)

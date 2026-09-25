@@ -490,7 +490,9 @@ internal class PersonalizedProgramPlanningService(
     /**
      * Test/dev-only Phase B6.2 path. It performs exactly one unchanged CONTROL build and one
      * EXPERIMENTAL build. Exact Strength prescriptions are authorized from B4/B5 plus the
-     * already-built CONTROL owner table before the experimental builder starts.
+     * already-built CONTROL owner table before the experimental builder starts. Strength and
+     * Hypertrophy are the only executable prescription qualities; Hypertrophy remains shadow-only
+     * and cannot cross the B8 STRENGTH_V1 production boundary.
      */
     internal suspend fun generatePreparedStimulusPrescriptionMaterializationComparison(
         preflight: PersonalizedPlanningPreflight,

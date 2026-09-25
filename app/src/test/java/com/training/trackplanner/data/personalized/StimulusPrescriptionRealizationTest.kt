@@ -93,7 +93,7 @@ class StimulusPrescriptionRealizationTest {
     }
 
     @Test
-    fun hypertrophyKeepsEightRepZeroLoadProvisionalPath() {
+    fun hypertrophySafeRepairUsesExactOwnerLocalLoadAndGovernedRepBand() {
         val hTarget = target(TrainableQuality.HYPERTROPHY)
         val hCandidate = candidate().copy(coveredTargetIds = setOf("QUALITY:HYPERTROPHY"), primaryTargetId = "QUALITY:HYPERTROPHY")
         val result = StimulusPrescriptionRealizationPlanEngine().build(
@@ -101,8 +101,63 @@ class StimulusPrescriptionRealizationTest {
             mapOf(owner() to prescription(4, 60.0))
         ).resolutions.single()
         assertEquals(StimulusPrescriptionResolutionStatus.SAFE_TARGET_COMPATIBLE_PRESCRIPTION_RESOLVED, result.status)
-        assertEquals("PROVISIONAL_8_REPS_ZERO_LOAD", result.proposedPrescription?.numericAuthority)
-        assertTrue(result.proposedPrescription?.sets?.all { it.reps == 8 && it.weightKg == 0.0 } == true)
+        assertEquals("SAFE_CANONICAL_HYPERTROPHY_LOAD", result.proposedPrescription?.numericAuthority)
+        assertTrue(result.proposedPrescription?.sets?.all { it.reps in 7..15 && it.weightKg == 60.0 } == true)
+    }
+
+    @Test
+    fun hypertrophyExistingCompatibleOwnerIsExecutableWhenB4IsNumeric() {
+        val hTarget = target(TrainableQuality.HYPERTROPHY)
+        val hCandidate = candidate().copy(coveredTargetIds = setOf("QUALITY:HYPERTROPHY"), primaryTargetId = "QUALITY:HYPERTROPHY")
+        val result = StimulusPrescriptionRealizationPlanEngine().build(
+            StimulusTargetPlan(listOf(hTarget), emptyList(), emptyList()), selection(hCandidate), snapshot,
+            mapOf(owner() to prescription(8, 60.0))
+        ).resolutions.single()
+        assertEquals(StimulusPrescriptionResolutionStatus.ALREADY_TARGET_COMPATIBLE, result.status)
+        assertEquals(PlannedStimulusCompatibilityStatus.COMPATIBLE_CONDITIONAL_ON_EFFORT, result.plannedCompatibility?.status)
+        assertEquals(owner().stableKey, result.owner?.stableKey)
+        assertEquals(owner().selectionRole, result.owner?.selectionRole)
+    }
+
+    @Test
+    fun hypertrophyProvisionalZeroLoadIsUnresolvedAndCannotExecute() {
+        val hTarget = target(TrainableQuality.HYPERTROPHY)
+        val hCandidate = candidate().copy(coveredTargetIds = setOf("QUALITY:HYPERTROPHY"), primaryTargetId = "QUALITY:HYPERTROPHY")
+        val result = StimulusPrescriptionRealizationPlanEngine().build(
+            StimulusTargetPlan(listOf(hTarget), emptyList(), emptyList()), selection(hCandidate), snapshot,
+            mapOf(owner() to prescription(8, 0.0, "PROVISIONAL_RPE_NO_INVENTED_LOAD"))
+        ).resolutions.single()
+        assertEquals(StimulusPrescriptionResolutionStatus.NO_SAFE_TARGET_COMPATIBLE_PRESCRIPTION, result.status)
+        assertEquals(PlannedStimulusCompatibilityStatus.UNRESOLVED, result.plannedCompatibility?.status)
+        assertTrue(result.proposedPrescription == null)
+    }
+
+    @Test
+    fun hypertrophyNumericAuthorityIsRequiredEvenForCompatibleOwner() {
+        val hTarget = target(TrainableQuality.HYPERTROPHY, StimulusTargetNumericAuthority.NONE)
+        val hCandidate = candidate().copy(coveredTargetIds = setOf("QUALITY:HYPERTROPHY"), primaryTargetId = "QUALITY:HYPERTROPHY")
+        val result = StimulusPrescriptionRealizationPlanEngine().build(
+            StimulusTargetPlan(listOf(hTarget), emptyList(), emptyList()), selection(hCandidate), snapshot,
+            mapOf(owner() to prescription(8, 60.0))
+        ).resolutions.single()
+        assertEquals(StimulusPrescriptionResolutionStatus.NO_PRESCRIPTION_CHANGE_AUTHORIZED, result.status)
+        assertTrue(result.reasonCodes.contains("HYPERTROPHY_TARGET_NUMERIC_AUTHORITY_UNAVAILABLE"))
+    }
+
+    @Test
+    fun hypertrophyOwnerRoleAndExerciseLoadCannotBeBorrowed() {
+        val hTarget = target(TrainableQuality.HYPERTROPHY)
+        val hCandidate = candidate().copy(coveredTargetIds = setOf("QUALITY:HYPERTROPHY"), primaryTargetId = "QUALITY:HYPERTROPHY")
+        val wrongRole = StimulusPrescriptionRealizationPlanEngine().build(
+            StimulusTargetPlan(listOf(hTarget), emptyList(), emptyList()), selection(hCandidate), snapshot,
+            mapOf(owner("OTHER_ROLE") to prescription(8, 60.0))
+        ).resolutions.single()
+        assertEquals(StimulusPrescriptionResolutionStatus.OWNER_UNRESOLVED, wrongRole.status)
+        val wrongExercise = StimulusPrescriptionRealizationPlanEngine().build(
+            StimulusTargetPlan(listOf(hTarget), emptyList(), emptyList()), selection(hCandidate), snapshot,
+            mapOf(StimulusPrescriptionOwnerIdentity("other", "B5_ROLE") to prescription(8, 60.0))
+        ).resolutions.single()
+        assertEquals(StimulusPrescriptionResolutionStatus.OWNER_UNRESOLVED, wrongExercise.status)
     }
 
     @Test

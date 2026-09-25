@@ -193,7 +193,7 @@ class StimulusPrescriptionMaterializationTest {
     }
 
     @Test
-    fun authorizationEngineUsesB61RulesAndKeepsHypertrophyAndProxiesNonExecutable() {
+    fun authorizationEngineUsesB61RulesAndAuthorizesExactHypertrophyOwnersButKeepsProxiesNonExecutable() {
         val engine = StimulusPrescriptionAuthorizationEngine()
         val strengthPlan = engine.build(
             StimulusTargetPlan(listOf(target(TrainableQuality.STRENGTH)), emptyList(), emptyList()),
@@ -201,6 +201,16 @@ class StimulusPrescriptionMaterializationTest {
         )
         assertEquals(StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR, strengthPlan.authorizations.single().status)
         assertEquals(5, strengthPlan.authorizations.single().authorizedPrescription?.sets?.first()?.reps)
+
+        val hypertrophy = engine.build(
+            StimulusTargetPlan(listOf(target(TrainableQuality.HYPERTROPHY)), emptyList(), emptyList()),
+            selection(candidate(TrainableQuality.HYPERTROPHY)), snapshot,
+            mapOf(StimulusPrescriptionOwnerIdentity(key, role) to prescription(8, 60.0))
+        )
+        assertEquals(StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+            hypertrophy.authorizations.single().status)
+        assertEquals(TrainableQuality.HYPERTROPHY, hypertrophy.authorizations.single().quality)
+        assertTrue(hypertrophy.authorizedOwners.containsKey(StimulusPrescriptionOwnerIdentity(key, role)))
 
         val nonExecutable = engine.build(
             StimulusTargetPlan(listOf(target(TrainableQuality.HYPERTROPHY), target(TrainableQuality.POWER)), emptyList(), emptyList()),
@@ -212,5 +222,63 @@ class StimulusPrescriptionMaterializationTest {
             nonExecutable.authorizations.first { it.quality == TrainableQuality.HYPERTROPHY }.status)
         assertEquals(StimulusPrescriptionAuthorizationStatus.MODEL_UNAVAILABLE,
             nonExecutable.authorizations.first { it.quality == TrainableQuality.POWER }.status)
+    }
+
+    @Test
+    fun hypertrophySafeRepairMaterializesAcrossTheFullHorizon() {
+        val engine = StimulusPrescriptionAuthorizationEngine()
+        val plan = engine.build(
+            StimulusTargetPlan(listOf(target(TrainableQuality.HYPERTROPHY)), emptyList(), emptyList()),
+            selection(candidate(TrainableQuality.HYPERTROPHY)), snapshot,
+            mapOf(StimulusPrescriptionOwnerIdentity(key, role) to prescription(4, 60.0))
+        )
+        val authorization = plan.authorizations.single()
+        assertEquals(StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR, authorization.status)
+        assertTrue(authorization.authorizedPrescription?.sets?.all { it.reps in 7..15 && it.weightKg == 60.0 } == true)
+        val audit = StimulusPrescriptionMaterializationAuditEngine().audit(
+            plan, experimental(listOf(1, 2, 3, 4), requireNotNull(authorization.authorizedPrescription)), snapshot
+        ).single()
+        assertEquals(StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED, audit.state)
+        assertEquals(4, audit.weeklyAudits.size)
+        assertTrue(audit.weeklyAudits.all { it.shortfall == 0 && it.overrun == 0 && it.targetCompatibleMaterializedUnits == it.materializedSetUnits })
+    }
+
+    @Test
+    fun hypertrophyWithoutNumericAuthorityDoesNotMaterialize() {
+        val plan = StimulusPrescriptionAuthorizationEngine().build(
+            StimulusTargetPlan(listOf(target(TrainableQuality.HYPERTROPHY).copy(numericAuthority = StimulusTargetNumericAuthority.NONE)), emptyList(), emptyList()),
+            selection(candidate(TrainableQuality.HYPERTROPHY)), snapshot,
+            mapOf(StimulusPrescriptionOwnerIdentity(key, role) to prescription(8, 60.0))
+        )
+        assertEquals(StimulusPrescriptionAuthorizationStatus.NO_EXECUTABLE_AUTHORIZATION, plan.authorizations.single().status)
+        val audit = StimulusPrescriptionMaterializationAuditEngine().audit(plan, experimental(listOf(1, 2), prescription(8, 60.0)), snapshot).single()
+        assertEquals(StimulusPrescriptionMaterializationState.NOT_MATERIALIZED, audit.state)
+        assertTrue(audit.weeklyAudits.all { it.authorizedSetUnits == 0 && it.shortfall == 0 })
+    }
+
+    @Test
+    fun hypertrophyReusesTheSameFundedMultisetIntegrityRules() {
+        val authorized = prescription(8, 60.0, sets = 3)
+        val plan = StimulusPrescriptionAuthorizationPlan(listOf(
+            StimulusPrescriptionAuthorization(
+                targetId = "QUALITY:HYPERTROPHY", quality = TrainableQuality.HYPERTROPHY,
+                owner = StimulusPrescriptionOwner(key, role, "B5_SELECTION"),
+                source = StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE,
+                inputPrescription = authorized, plannedCompatibility = null,
+                authorizedPrescription = authorized,
+                status = StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE
+            )
+        ))
+        val duplicate = experimental(listOf(1), authorized).copy(
+            items = listOf(
+                experimental(listOf(1), authorized).items.single().copy(
+                    setPrescriptions = listOf(authorized.sets[0], authorized.sets[0], authorized.sets[1], authorized.sets[2])
+                )
+            )
+        )
+        val audit = StimulusPrescriptionMaterializationAuditEngine().audit(plan, duplicate, snapshot).single()
+        assertEquals(StimulusPrescriptionMaterializationState.INVARIANT_FAILURE, audit.state)
+        assertTrue(audit.reasonCodes.contains("B6_AUTHORIZED_SET_REUSED"))
+        assertTrue(audit.reasonCodes.contains("B6_AUTHORIZED_SET_MULTIPLICITY_EXCEEDED"))
     }
 }
