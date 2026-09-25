@@ -168,7 +168,7 @@ class StimulusSelectionServiceIntegrationTest {
             val comparison = requireNotNull(production.comparison)
             val b8Comparison = comparison
             val evaluation = requireNotNull(comparison.productionCutoverAuthority)
-            println("B10_DEBUG evaluationStatus=${evaluation.status} reasons=${evaluation.reasonCodes} b7=${evaluation.b7Status} attributions=${comparison.experimentalReadinessAudit?.changeAttributions} authorizations=${comparison.prescriptionAuthorizationPlan?.authorizations}")
+            throw AssertionError("B10_DEBUG evaluation=${evaluation.status} reasons=${evaluation.reasonCodes} b7=${evaluation.b7Status} b7Reasons=${comparison.experimentalReadinessAudit?.reasonCodes} outcomes=${comparison.experimentalReadinessAudit?.targetOutcomes?.map { it.targetId to (it.status to it.reasonCodes) }} attributions=${comparison.experimentalReadinessAudit?.changeAttributions?.map { it.stableKey to (it.selectionRole to (it.source to it.targetIds)) }} authorizations=${comparison.prescriptionAuthorizationPlan?.authorizations?.map { it.owner to (it.quality to (it.status to it.targetId)) }} materials=${comparison.prescriptionMaterializationAudits.map { it.owner to (it.state to it.reasonCodes) }}")
 
             assertEquals(
                 "activated production must return the existing experimental fingerprint",
