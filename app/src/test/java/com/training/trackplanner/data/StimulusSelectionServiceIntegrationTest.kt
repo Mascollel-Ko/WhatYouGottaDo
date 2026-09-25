@@ -76,14 +76,12 @@ class StimulusSelectionServiceIntegrationTest {
                                 entryId = historyEntryId,
                                 setIndex = setIndex,
                                 // Keep two older completed weeks in the reviewed Strength band;
-                                // recent 16-rep sets are outside both reviewed Strength and Hypertrophy bands,
-                                // leaving the materialized 40 kg load compatible by intensity
-                                // while making its rep prescription incompatible.
-                            reps = if (daysAgo >= 42L) 5 else 16,
+                                // recent 8-rep sets remain below the canonical Hypertrophy effort gate
+                                // (RPE 6), while making the planned Strength prescription require repair.
+                                reps = if (daysAgo >= 42L) 5 else 8,
                                 weightKg = 40.0 + exerciseIndex,
                                 confirmed = true,
-                                // The recent 16-rep rows remain outside both reviewed prescription bands.
-                                // so this fixture isolates the Strength path from the Hypertrophy shadow.
+                                // RPE 6 is below the canonical Hypertrophy realization threshold.
                                 rpe = if (daysAgo >= 42L) 8.0 else 6.0
                             )
                         )
@@ -168,7 +166,6 @@ class StimulusSelectionServiceIntegrationTest {
             val comparison = requireNotNull(production.comparison)
             val b8Comparison = comparison
             val evaluation = requireNotNull(comparison.productionCutoverAuthority)
-            throw AssertionError("B10_DEBUG evaluation=${evaluation.status} reasons=${evaluation.reasonCodes} b7=${evaluation.b7Status} b7Reasons=${comparison.experimentalReadinessAudit?.reasonCodes} outcomes=${comparison.experimentalReadinessAudit?.targetOutcomes?.map { it.targetId to (it.status to it.reasonCodes) }} attributions=${comparison.experimentalReadinessAudit?.changeAttributions?.map { it.stableKey to (it.selectionRole to (it.source to it.targetIds)) }} authorizations=${comparison.prescriptionAuthorizationPlan?.authorizations?.map { it.owner to (it.quality to (it.status to it.targetId)) }} materials=${comparison.prescriptionMaterializationAudits.map { it.owner to (it.state to it.reasonCodes) }}")
 
             assertEquals(
                 "activated production must return the existing experimental fingerprint",
