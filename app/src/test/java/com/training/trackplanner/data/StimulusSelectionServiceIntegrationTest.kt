@@ -31,6 +31,8 @@ class StimulusSelectionServiceIntegrationTest {
         try {
             val repository = TrainingRepository(db, context)
             repository.seedIfNeeded()
+            // Keep this Strength regression fixture independent of seeded workout history.
+            db.workoutDao().allEntries().forEach { entry -> db.workoutDao().deleteEntryById(entry.id) }
             val posteriorDao = db.strengthPosteriorDao()
             val revisionKey = StrengthModelRevisionPolicy.CURRENT_REVISION_KEY
             if (posteriorDao.revision(revisionKey) == null) {
