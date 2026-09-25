@@ -74,15 +74,14 @@ class StimulusSelectionServiceIntegrationTest {
                                 entryId = historyEntryId,
                                 setIndex = setIndex,
                                 // Keep two older completed weeks in the reviewed Strength band;
-                                // recent 8-rep sets are reviewed non-realization for Strength,
+                                // recent 16-rep sets are outside both reviewed Strength and Hypertrophy bands,
                                 // leaving the materialized 40 kg load compatible by intensity
                                 // while making its rep prescription incompatible.
-                            reps = if (daysAgo >= 42L) 5 else 8,
+                            reps = if (daysAgo >= 42L) 5 else 16,
                                 weightKg = 40.0 + exerciseIndex,
                                 confirmed = true,
-                                // The recent 8-rep rows remain a Strength-incompatible
-                                // prescription shape, but are deliberately too easy for the
-                                // Hypertrophy shadow so this fixture isolates the Strength path.
+                                // The recent 16-rep rows remain outside both reviewed prescription bands.
+                                // so this fixture isolates the Strength path from the Hypertrophy shadow.
                                 rpe = if (daysAgo >= 42L) 8.0 else 6.0
                             )
                         )
