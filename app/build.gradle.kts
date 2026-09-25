@@ -182,3 +182,8 @@ registerConnectiveTissuePriorTask(
     name = "validateConnectiveTissuePriorBaselines",
     command = "validate"
 )
+
+// Temporary CI diagnostics for the B10 service regression; remove after the hosted run.
+tasks.withType<Test>().configureEach {
+    testLogging.showStandardStreams = true
+}
