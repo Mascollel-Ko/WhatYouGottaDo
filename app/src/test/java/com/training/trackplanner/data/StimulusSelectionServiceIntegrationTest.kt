@@ -31,8 +31,6 @@ class StimulusSelectionServiceIntegrationTest {
         try {
             val repository = TrainingRepository(db, context)
             repository.seedIfNeeded()
-            // Remove seeded workout history so this Strength regression fixture cannot inherit a Hypertrophy baseline.
-            db.workoutDao().allEntries().forEach { entry -> db.workoutDao().deleteEntryById(entry.id) }
             val posteriorDao = db.strengthPosteriorDao()
             val revisionKey = StrengthModelRevisionPolicy.CURRENT_REVISION_KEY
             if (posteriorDao.revision(revisionKey) == null) {
@@ -166,7 +164,6 @@ class StimulusSelectionServiceIntegrationTest {
             val comparison = requireNotNull(production.comparison)
             val b8Comparison = comparison
             val evaluation = requireNotNull(comparison.productionCutoverAuthority)
-            throw AssertionError("B10_DEBUG evaluation=${evaluation.status} reasons=${evaluation.reasonCodes} b7=${evaluation.b7Status} attributions=${comparison.experimentalReadinessAudit?.changeAttributions?.map { it.stableKey to (it.selectionRole to (it.source to it.targetIds)) }} authorizations=${comparison.prescriptionAuthorizationPlan?.authorizations?.map { it.owner to (it.quality to (it.status to it.targetId)) }} materials=${comparison.prescriptionMaterializationAudits.map { it.owner to (it.state to it.reasonCodes) }}")
 
             assertEquals(
                 "activated production must return the existing experimental fingerprint",
