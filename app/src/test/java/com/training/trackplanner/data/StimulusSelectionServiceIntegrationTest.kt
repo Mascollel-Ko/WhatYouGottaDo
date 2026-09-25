@@ -168,6 +168,7 @@ class StimulusSelectionServiceIntegrationTest {
             val comparison = requireNotNull(production.comparison)
             val b8Comparison = comparison
             val evaluation = requireNotNull(comparison.productionCutoverAuthority)
+            println("B10_DEBUG evaluationStatus=${evaluation.status} reasons=${evaluation.reasonCodes} b7=${evaluation.b7Status} attributions=${comparison.experimentalReadinessAudit?.changeAttributions} authorizations=${comparison.prescriptionAuthorizationPlan?.authorizations}")
 
             assertEquals(
                 "activated production must return the existing experimental fingerprint",
