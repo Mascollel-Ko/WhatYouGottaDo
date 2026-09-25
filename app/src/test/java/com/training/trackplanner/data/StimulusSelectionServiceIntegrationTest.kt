@@ -31,6 +31,8 @@ class StimulusSelectionServiceIntegrationTest {
         try {
             val repository = TrainingRepository(db, context)
             repository.seedIfNeeded()
+            // Remove seeded workout history so this Strength regression fixture cannot inherit a Hypertrophy baseline.
+            db.workoutDao().allEntries().forEach { entry -> db.workoutDao().deleteEntryById(entry.id) }
             val posteriorDao = db.strengthPosteriorDao()
             val revisionKey = StrengthModelRevisionPolicy.CURRENT_REVISION_KEY
             if (posteriorDao.revision(revisionKey) == null) {
