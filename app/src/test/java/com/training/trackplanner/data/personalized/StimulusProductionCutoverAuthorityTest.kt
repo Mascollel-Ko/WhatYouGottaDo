@@ -104,6 +104,47 @@ class StimulusProductionCutoverAuthorityTest {
     }
 
     @Test
+    fun nonMaterialHypertrophyAuthorityOnSharedOwnerDoesNotPoisonStrengthCutover() {
+        val decision = engine().audit(comparison(
+            controlItems = listOf(item("squat", "PRIMARY", reps = 8)),
+            experimentalItems = listOf(item("squat", "PRIMARY", reps = 5)),
+            selected = selected("squat", "PRIMARY", "QUALITY:STRENGTH", "QUALITY:HYPERTROPHY"),
+            traces = listOf(trace("squat", "PRIMARY")),
+            attribution = attribution("squat", "PRIMARY", StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION, "QUALITY:STRENGTH"),
+            authorizations = listOf(
+                authorization("squat", "PRIMARY", StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR, TrainableQuality.STRENGTH),
+                authorization("squat", "PRIMARY", StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE, TrainableQuality.HYPERTROPHY)
+            ),
+            materializations = listOf(
+                materialization("squat", "PRIMARY", quality = TrainableQuality.STRENGTH),
+                materialization("squat", "PRIMARY", quality = TrainableQuality.HYPERTROPHY)
+            )
+        ))
+        assertEquals(StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER, decision.status)
+    }
+
+    @Test
+    fun materialHypertrophyAttributionOnSharedOwnerBlocksStrengthCutover() {
+        val decision = engine().audit(comparison(
+            controlItems = listOf(item("squat", "PRIMARY", reps = 8)),
+            experimentalItems = listOf(item("squat", "PRIMARY", reps = 5)),
+            selected = selected("squat", "PRIMARY", "QUALITY:STRENGTH", "QUALITY:HYPERTROPHY"),
+            traces = listOf(trace("squat", "PRIMARY")),
+            attribution = attribution("squat", "PRIMARY", StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION, "QUALITY:STRENGTH", "QUALITY:HYPERTROPHY"),
+            authorizations = listOf(
+                authorization("squat", "PRIMARY", StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR, TrainableQuality.STRENGTH),
+                authorization("squat", "PRIMARY", StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE, TrainableQuality.HYPERTROPHY)
+            ),
+            materializations = listOf(
+                materialization("squat", "PRIMARY", quality = TrainableQuality.STRENGTH),
+                materialization("squat", "PRIMARY", quality = TrainableQuality.HYPERTROPHY)
+            )
+        ))
+        assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, decision.status)
+        assertTrue(decision.reasonCodes.contains("B8_CUTOVER_V1_NON_STRENGTH_CHANGE_OUT_OF_SCOPE"))
+    }
+
+    @Test
     fun unrelatedOwnerMovementAndScheduleChangeAreRejected() {
         val moved = engine().audit(comparison(
             controlItems = listOf(item("base", "BASE", day = 1)), experimentalItems = listOf(item("base", "BASE", day = 2)),
@@ -316,6 +357,8 @@ class StimulusProductionCutoverAuthorityTest {
         attribution: List<StimulusExperimentalChangeAttribution> = emptyList(),
         authorization: StimulusPrescriptionAuthorization? = null,
         materialization: StimulusPrescriptionMaterializationAudit? = null,
+        authorizations: List<StimulusPrescriptionAuthorization> = emptyList(),
+        materializations: List<StimulusPrescriptionMaterializationAudit> = emptyList(),
         target: StimulusQualityTarget = qualityTarget(TrainableQuality.STRENGTH),
         b7: StimulusExperimentalReadinessAudit = eligibleAudit(attribution),
         scheduleChanged: Boolean = false
@@ -329,8 +372,10 @@ class StimulusProductionCutoverAuthorityTest {
         )
         return comparison.copy(
             experimentalReadinessAudit = b7,
-            prescriptionAuthorizationPlan = authorization?.let { StimulusPrescriptionAuthorizationPlan(listOf(it)) },
-            prescriptionMaterializationAudits = materialization?.let { listOf(it) }.orEmpty()
+            prescriptionAuthorizationPlan = StimulusPrescriptionAuthorizationPlan(
+                (authorizations + listOfNotNull(authorization)).distinct()
+            ).takeIf { it.authorizations.isNotEmpty() },
+            prescriptionMaterializationAudits = (materializations + listOfNotNull(materialization)).distinct()
         )
     }
 
