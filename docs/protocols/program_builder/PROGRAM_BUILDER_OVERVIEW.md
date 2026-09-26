@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.45.2 |
+| Protocol version | 3.46.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 88ed34c4460c5e3195aae3ceff9e393823daec39 |
+| Last audited commit | d0a429f2 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1076,3 +1076,10 @@ Post-audit boundary notes
 - Quality observability is relation-specific. A canonical source with no DIRECT or SUPPORTIVE physical-quality relation is IRRELEVANT to every quality view; it does not create a reviewed zero, incomplete unit, or numeric baseline. Independent task relations remain available to task evidence.
 - Strength and Hypertrophy classify a relevant source as complete only when the source is reviewed and the realization status is `REALIZED` or `REVIEWED_NON_REALIZATION`; realization `UNCLASSIFIED` increments that quality's unclassified relevant units and makes its coverage partial. Capability-proxy qualities remain complete from reviewed source identity and relation alone, even when Strength/Hypertrophy realization is unresolved. `REVIEWED_NON_REALIZATION` remains a valid reviewed zero.
 - B1 and B2 share the typed quality-observation classification helper, so `classifiedSourceUnits`, `unclassifiedSourceUnits`, `unclassifiedRelevantUnits`, `classificationComplete`, `hasSourceObservations`, `eligibleForNumericBaseline`, `DoseBaselineObservability`, and `StimulusEvidenceCoverage` retain quality-specific meaning. B6.1 real service wiring now has a deterministic safe-resolution regression fixture, CONTROL-existing owner matrix coverage, and explicit 69.9/70.0/80.0% planned Strength boundary tests.
+
+### 3.46.0 — B11.0 executable effort prescription contract
+
+- `ProgramSetPrescription.targetRpeMin` is an appended nullable canonical minimum-RPE field. Values are accepted only when finite and within the governed `1.0..10.0` range; legacy rows and payloads remain null. Room version 35 adds nullable `targetRpeMin`, `originalTargetRpeMin`, and `plannedTargetRpeMin` columns through the explicit 34→35 migration.
+- B6 Hypertrophy safe repairs and compatible funded sets carry canonical minimum RPE `7.0`. A funded Hypertrophy authorization is `FULLY_ENCODED` only when every authorized set contains a valid target; provisional `8 reps / 0 kg` remains non-executable. Planned targets flow through applied program sets, progression originals/plans, edits and kg progression while actual `WorkoutSet.rpe` remains an independent recorded observation.
+- CSV program backups, community snapshots, progression wire/backup rows, fingerprints and exact prescription subset semantics preserve the optional target with old-payload compatibility. Compact plan preview and record provenance display one common planned RPE per exercise or per-set labels for mixed targets, with no label for all-null targets and no prepopulation of actual RPE.
+- The contract is additive and append-only for positional constructors. Manual sets receive null targets, existing set edits preserve them, and target-aware content fingerprints do not change owner identity/signatures or the Strength-only B8/B9 production boundary. No `HYPERTROPHY_V1` route, third build, or production mutation is introduced.
