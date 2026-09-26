@@ -53,15 +53,13 @@ internal fun frequencyPortion(snapshot: PlanningHistorySnapshot, state: AthleteP
         ?: exactPrescriptionAuthorizationProvider?.let { provider ->
             if (owner in provider.conflictingOwners) StimulusPrescriptionOwnerExecutionDisposition.EXCLUDE_CONFLICTING_ADDITION else null
         }
-    if (disposition in setOf(
-            StimulusPrescriptionOwnerExecutionDisposition.EXCLUDE_CONFLICTING_ADDITION,
-            StimulusPrescriptionOwnerExecutionDisposition.NO_EXECUTABLE_AUTHORITY
-        )) return null
+    if (disposition == StimulusPrescriptionOwnerExecutionDisposition.EXCLUDE_CONFLICTING_ADDITION) return null
     val exactIdentity = when (disposition) {
         StimulusPrescriptionOwnerExecutionDisposition.PRESERVE_CONTROL_OWNER ->
             exactPrescriptionAuthorizationProvider?.controlPrescriptions?.get(owner)
         else -> exactPrescriptionAuthorizationProvider?.authorizedOwners?.get(owner)
     }
+    if (disposition == StimulusPrescriptionOwnerExecutionDisposition.PRESERVE_CONTROL_OWNER && exactIdentity == null) return null
     if (exactIdentity != null) {
         val remaining = (exactIdentity.sets.size - candidate.fundedBaseUnits).coerceAtLeast(0)
         if (remaining == 0) return null

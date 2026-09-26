@@ -69,11 +69,11 @@ internal fun ExactPrescriptionAuthorizationProvider.resolveOwnerPrescription(
                 ?: ExactOwnerPrescriptionResolution.NoExactAuthority
         StimulusPrescriptionOwnerExecutionDisposition.PRESERVE_CONTROL_OWNER ->
             controlPrescriptions[identity]?.let(ExactOwnerPrescriptionResolution::PreserveControl)
-                ?: ExactOwnerPrescriptionResolution.NoExecutableAuthority
+                ?: ExactOwnerPrescriptionResolution.ExcludeConflictingAddition
         StimulusPrescriptionOwnerExecutionDisposition.EXCLUDE_CONFLICTING_ADDITION ->
             ExactOwnerPrescriptionResolution.ExcludeConflictingAddition
         StimulusPrescriptionOwnerExecutionDisposition.NO_EXECUTABLE_AUTHORITY ->
-            ExactOwnerPrescriptionResolution.NoExecutableAuthority
+            ExactOwnerPrescriptionResolution.NoExactAuthority
     }
 }
 
