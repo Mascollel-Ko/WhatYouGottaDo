@@ -410,30 +410,7 @@ class StimulusSelectionServiceIntegrationTest {
             })
             val production = repository.generatePreparedPersonalizedProgramEvaluation(preflight, answers)
             val comparison = requireNotNull(production.comparison)
-            val hTarget = comparison.targetPlan.qualityTargets.firstOrNull { it.quality == TrainableQuality.HYPERTROPHY }
-            assertNotNull("real B4 Hypertrophy target", hTarget)
-            assertTrue("real B4 Hypertrophy target must have numeric authority", hTarget!!.numericAuthority !in setOf(StimulusTargetNumericAuthority.NONE, StimulusTargetNumericAuthority.UNRESOLVED))
-            val hAuthorization = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().firstOrNull {
-                it.quality == TrainableQuality.HYPERTROPHY && it.status in setOf(
-                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
-                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR
-                )
-            }
-            assertNotNull("real B6 Hypertrophy authorization", hAuthorization)
-            val h = requireNotNull(hAuthorization)
-            assertNotNull("real B5 owner", h.owner)
-            assertTrue(h.authorizedPrescription?.sets?.all { it.reps in 7..15 && it.weightKg > 0.0 } == true)
-            assertEquals(StimulusPrescriptionExecutionAuthority.CONDITIONAL_ON_UNPERSISTED_EFFORT, h.executionAuthority)
-            val hMaterialization = comparison.prescriptionMaterializationAudits.first { it.targetId == "QUALITY:HYPERTROPHY" && it.owner?.stableKey == h.owner?.stableKey }
-            assertEquals(StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED, hMaterialization.state)
-            assertEquals(StimulusPrescriptionExecutionAuthority.CONDITIONAL_ON_UNPERSISTED_EFFORT, hMaterialization.executionAuthority)
-            assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, comparison.productionCutoverAuthority?.status)
-            assertTrue(comparison.productionCutoverAuthority?.reasonCodes.orEmpty().contains("B8_CUTOVER_V1_NON_STRENGTH_CHANGE_OUT_OF_SCOPE"))
-            assertEquals(StimulusProductionProgramSource.CONTROL, production.routeDecision.selectedSource)
-            assertEquals(personalizedProgramFingerprint(comparison.control.request, comparison.control.items), personalizedProgramFingerprint(production.program.request, production.program.items))
-            assertEquals(1, production.buildCounts.controlBuilds)
-            assertEquals(1, production.buildCounts.experimentalBuilds)
-            assertEquals(0, production.buildCounts.thirdBuilds)
+            assertHypertrophyServiceResult(production, comparison)
         } finally {
             db.close()
         }
@@ -450,5 +427,35 @@ class StimulusSelectionServiceIntegrationTest {
                     it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY
             }
         )
+    }
+
+    private fun assertHypertrophyServiceResult(
+        production: StimulusProductionGenerationResult,
+        comparison: StimulusSelectionProgramComparison
+    ) {
+        val hTarget = comparison.targetPlan.qualityTargets.firstOrNull { it.quality == TrainableQuality.HYPERTROPHY }
+        assertNotNull("real B4 Hypertrophy target", hTarget)
+        assertTrue("real B4 Hypertrophy target must have numeric authority", hTarget!!.numericAuthority !in setOf(StimulusTargetNumericAuthority.NONE, StimulusTargetNumericAuthority.UNRESOLVED))
+        val hAuthorization = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().firstOrNull {
+            it.quality == TrainableQuality.HYPERTROPHY && it.status in setOf(
+                StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR
+            )
+        }
+        assertNotNull("real B6 Hypertrophy authorization", hAuthorization)
+        val h = requireNotNull(hAuthorization)
+        assertNotNull("real B5 owner", h.owner)
+        assertTrue(h.authorizedPrescription?.sets?.all { it.reps in 7..15 && it.weightKg > 0.0 } == true)
+        assertEquals(StimulusPrescriptionExecutionAuthority.CONDITIONAL_ON_UNPERSISTED_EFFORT, h.executionAuthority)
+        val hMaterialization = comparison.prescriptionMaterializationAudits.first { it.targetId == "QUALITY:HYPERTROPHY" && it.owner?.stableKey == h.owner?.stableKey }
+        assertEquals(StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED, hMaterialization.state)
+        assertEquals(StimulusPrescriptionExecutionAuthority.CONDITIONAL_ON_UNPERSISTED_EFFORT, hMaterialization.executionAuthority)
+        assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, comparison.productionCutoverAuthority?.status)
+        assertTrue(comparison.productionCutoverAuthority?.reasonCodes.orEmpty().contains("B8_CUTOVER_V1_NON_STRENGTH_CHANGE_OUT_OF_SCOPE"))
+        assertEquals(StimulusProductionProgramSource.CONTROL, production.routeDecision.selectedSource)
+        assertEquals(personalizedProgramFingerprint(comparison.control.request, comparison.control.items), personalizedProgramFingerprint(production.program.request, production.program.items))
+        assertEquals(1, production.buildCounts.controlBuilds)
+        assertEquals(1, production.buildCounts.experimentalBuilds)
+        assertEquals(0, production.buildCounts.thirdBuilds)
     }
 }
