@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.45.1 |
+| Protocol version | 3.45.2 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 1edd70063770fc2f38dd93b39e9551920f6435a0 |
+| Last audited commit | 88ed34c4460c5e3195aae3ceff9e393823daec39 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -84,6 +84,12 @@
 - Same-owner multi-quality arbitration is deterministic and order-independent. Identical semantic prescriptions share one owner projection without duplicating physical sets; distinct prescriptions produce `CONFLICTING_MULTI_QUALITY_AUTHORITY` with `B6_MULTI_QUALITY_OWNER_PRESCRIPTION_CONFLICT` and `B6_MULTI_QUALITY_DISTINCT_OWNER_REQUIRED`, so the builder fails closed instead of applying map order or a quality priority.
 - B7 target attribution and B8 exact Strength authorization/materialization remain quality-specific. Non-material Hypertrophy authority does not block an otherwise valid Strength cutover; material Hypertrophy attribution remains outside `STRENGTH_V1` and yields `B8_CUTOVER_V1_NON_STRENGTH_CHANGE_OUT_OF_SCOPE`. B9 therefore continues to route Hypertrophy material changes to CONTROL.
 - A real Room/service Hypertrophy chain now proves reviewed history through B2, numeric B4 authority, exact B5 ownership, executable B6 safe repair, full-horizon materialization and the shadow-only B8/B9 boundary. Hypertrophy materialization is `FULLY_MATERIALIZED` structurally but `CONDITIONAL_ON_UNPERSISTED_EFFORT` because the current generated-program schema does not persist RPE/RIR authority. No `HYPERTROPHY_V1`, Room migration, backup change or third build was introduced.
+
+### 3.45.2 — B10.2 owner-local multi-quality conflict localization
+
+- Same-owner Strength/Hypertrophy conflicts now produce an explicit owner execution disposition: executable exact authority, preserve the exact CONTROL owner, exclude a conflicting new addition, or no executable authority. This is an owner-local execution decision, not quality priority or arbitration; the lossless `(stableKey, selectionRole, quality)` rows, conflict diagnostics and distinct-owner reason codes remain intact.
+- A conflicted owner already present in CONTROL is scheduled only with its exact CONTROL prescription, preserving the stable key, role, set multiset, reps, load, seconds, rest and weight source. A conflicted new owner is excluded from EXPERIMENTAL and cannot fall through owner lookup, prefix slicing, capacity tracing, frequency expansion or generic planner prescription. Ordinary absence and global canonical invariant failures retain their existing typed behavior.
+- Conflict materialization audits are `NOT_MATERIALIZED` with zero authorized/materialized units and `B6_MULTI_QUALITY_OWNER_PRESCRIPTION_CONFLICT` evidence; preserved CONTROL rows do not count as executed B6 authority. B7 omits non-material conflict attribution, so an independent valid Strength owner can still reach `AUTHORIZED_FOR_BOUNDED_CUTOVER` and route through B9 `B8_STRENGTH_V1`; conflict-only comparisons produce `NO_MATERIAL_CHANGE` and remain on CONTROL. The implementation remains Strength-only for production cutover, with no `HYPERTROPHY_V1`, persistence/schema change or third build.
 
 ### 3.41.1 — B6.2 multi-week materialization audit closure
 
