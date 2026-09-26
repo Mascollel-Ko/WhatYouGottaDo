@@ -352,6 +352,7 @@ class TrainingRepository internal constructor(
     val progressionItems = db.programProgressionDao().observeItems()
     val programWorkoutLinks = db.programProgressionDao().observeLinks()
     val progressionSuggestions = db.programProgressionDao().observeSuggestions()
+    val programPrescriptions = db.programProgressionDao().observePrescriptions()
     suspend fun refreshProgression() = withContext(Dispatchers.IO) { programProgressionService.refresh() }
     suspend fun configureProgression(itemId: Long, linkMode: ProgressionLinkMode, trackId: String?, role: ProgressionRole, mode: ProgressionMode, rule: ProgressionRule) = cloudMutation(CloudMutationScope.PROGRAMS) {
         programProgressionService.configure(itemId, linkMode, trackId, role, mode, rule)

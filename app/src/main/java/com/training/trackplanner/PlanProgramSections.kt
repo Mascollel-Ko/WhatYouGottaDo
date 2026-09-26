@@ -25,6 +25,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.data.ProgramSetPrescription
 import com.training.trackplanner.data.ProgramSetPrescriptionResolver
+import com.training.trackplanner.data.plannedRpeLabel
+import com.training.trackplanner.data.programEffortDisplay
 import com.training.trackplanner.data.TrainingProgram
 import com.training.trackplanner.data.TrainingProgramItem
 import com.training.trackplanner.data.TrainingProgramItemSet
@@ -117,14 +119,19 @@ private fun programPrescriptionLines(
     storedSets: List<TrainingProgramItemSet>
 ): List<String> {
     val sets = ProgramSetPrescriptionResolver.resolve(item, storedSets)
+    val effort = programEffortDisplay(sets)
     val uniform = sets.map { Triple(it.reps, it.weightKg, it.seconds) }.distinct().size == 1
     return if (uniform) {
         listOf(
             "${pluralStringResource(R.plurals.set_count, sets.size, sets.size)} · " +
-                sets.first().displayText()
+                sets.first().displayText() + effort.commonTargetRpeMin.plannedRpeSuffix()
         )
     } else {
-        sets.map { set -> "${stringResource(R.string.set_ordinal, set.setIndex)} · ${set.displayText()}" }
+        sets.mapIndexed { index, set ->
+            val suffix = effort.commonTargetRpeMin?.plannedRpeSuffix()
+                ?: effort.perSetTargetRpeMin.getOrNull(index).plannedRpeSuffix()
+            "${stringResource(R.string.set_ordinal, set.setIndex)} · ${set.displayText()}${if (index == 0) suffix else if (effort.commonTargetRpeMin != null) "" else suffix}"
+        }
     }
 }
 
@@ -135,6 +142,8 @@ private fun ProgramSetPrescription.displayText(): String =
         if (weightKg > 0.0) add("${formatDecimal(weightKg)}kg")
         if (seconds > 0) add(stringResource(R.string.seconds_short, seconds))
     }.ifEmpty { listOf(stringResource(R.string.prescription_none)) }.joinToString(" · ")
+
+private fun Double?.plannedRpeSuffix(): String = plannedRpeLabel(this)?.let { " · $it" }.orEmpty()
 
 
 @Composable

@@ -141,7 +141,9 @@ data class ProgramPrescriptionSet(
     val plannedKg: Double = originalKg,
     val plannedSeconds: Int = originalSeconds,
     val plannedSetIndex: Int? = setIndex,
-    val originalExists: Boolean = true
+    val originalExists: Boolean = true,
+    val originalTargetRpeMin: Double? = null,
+    val plannedTargetRpeMin: Double? = originalTargetRpeMin
 )
 
 /** Evidence and resolution are immutable history; superseded/stale rows are retained. */
@@ -180,6 +182,7 @@ interface ProgramProgressionDao {
     @Query("SELECT * FROM program_applications") suspend fun applications(): List<ProgramApplication>
     @Query("SELECT * FROM program_workout_links") suspend fun links(): List<ProgramWorkoutLink>
     @Query("SELECT * FROM program_prescription_sets") suspend fun prescriptions(): List<ProgramPrescriptionSet>
+    @Query("SELECT * FROM program_prescription_sets") fun observePrescriptions(): Flow<List<ProgramPrescriptionSet>>
     @Query("SELECT * FROM progression_suggestions") suspend fun suggestions(): List<ProgressionSuggestion>
     @Query("SELECT * FROM program_progression_tracks") fun observeTracks(): Flow<List<ProgramProgressionTrack>>
     @Query("SELECT * FROM program_progression_items") fun observeItems(): Flow<List<ProgramProgressionItem>>

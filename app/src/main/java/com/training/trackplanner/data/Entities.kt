@@ -334,7 +334,8 @@ data class TrainingProgramItemSet(
     val setIndex: Int,
     val reps: Int = 0,
     val weightKg: Double = 0.0,
-    val seconds: Int = 0
+    val seconds: Int = 0,
+    val targetRpeMin: Double? = null
 )
 
 @Entity(

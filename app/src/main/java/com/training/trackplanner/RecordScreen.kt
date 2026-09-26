@@ -68,6 +68,7 @@ internal fun RecordScreen(
     val exercises by viewModel.exercises.collectAsState()
     val programLinks by viewModel.programWorkoutLinks.collectAsState(emptyList())
     val progressionSuggestions by viewModel.progressionSuggestions.collectAsState(emptyList())
+    val programPrescriptions by viewModel.programPrescriptions.collectAsState(emptyList())
     val timerState by restTimerSessionController.state.collectAsState()
     val context = LocalContext.current
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
@@ -376,7 +377,7 @@ internal fun RecordScreen(
                         programLinks.firstOrNull { it.entryId == entryWithSets.entry.id }?.let { link ->
                             ProgramRecordProvenance(link, progressionSuggestions.lastOrNull {
                                 it.targetEntryId == link.entryId && it.resolution == com.training.trackplanner.data.ProgressionResolution.PENDING
-                            }, viewModel::resolveProgression)
+                            }, programPrescriptions.filter { it.entryId == link.entryId }, viewModel::resolveProgression)
                         }
                     }
                 )

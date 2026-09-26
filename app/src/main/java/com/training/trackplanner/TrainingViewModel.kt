@@ -512,6 +512,7 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     val progressionItems = repository.progressionItems
     val programWorkoutLinks = repository.programWorkoutLinks
     val progressionSuggestions = repository.progressionSuggestions
+    val programPrescriptions = repository.programPrescriptions
     fun refreshProgression() { viewModelScope.launch { repository.refreshProgression() } }
     fun configureProgression(itemId: Long, linkMode: com.training.trackplanner.data.ProgressionLinkMode,
         trackId: String?, role: com.training.trackplanner.data.ProgressionRole,

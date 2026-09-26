@@ -3,6 +3,7 @@ package com.training.trackplanner.data.personalized
 import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.ProgramSkeletonItem
 import com.training.trackplanner.data.TrainableQuality
+import com.training.trackplanner.data.validatedTargetRpeMin
 
 enum class StimulusPrescriptionAuthorizationSource {
     CONTROL_EXISTING_DIRECT_IDENTITY,
@@ -28,9 +29,12 @@ data class StimulusPrescriptionAuthorization(
     val authorizedPrescription: PlannedPrescription?,
     val status: StimulusPrescriptionAuthorizationStatus,
     val reasonCodes: List<String> = emptyList(),
-    val executionAuthority: StimulusPrescriptionExecutionAuthority = when (quality) {
-        TrainableQuality.HYPERTROPHY -> StimulusPrescriptionExecutionAuthority.CONDITIONAL_ON_UNPERSISTED_EFFORT
-        TrainableQuality.STRENGTH -> StimulusPrescriptionExecutionAuthority.FULLY_ENCODED
+    val executionAuthority: StimulusPrescriptionExecutionAuthority = when {
+        quality == TrainableQuality.HYPERTROPHY && authorizedPrescription?.sets?.isNotEmpty() == true &&
+            authorizedPrescription.sets.all { it.targetRpeMin.validatedTargetRpeMin() != null } ->
+            StimulusPrescriptionExecutionAuthority.FULLY_ENCODED
+        quality == TrainableQuality.HYPERTROPHY -> StimulusPrescriptionExecutionAuthority.CONDITIONAL_ON_UNPERSISTED_EFFORT
+        quality == TrainableQuality.STRENGTH -> StimulusPrescriptionExecutionAuthority.FULLY_ENCODED
         else -> StimulusPrescriptionExecutionAuthority.UNRESOLVED
     },
     val shadowOnly: Boolean = true,
@@ -247,12 +251,29 @@ class StimulusPrescriptionAuthorizationEngine(
             StimulusPrescriptionAuthorizationStatus.MODEL_UNAVAILABLE, listOf("STRENGTH_REALIZATION_RESOLUTION_UNAVAILABLE"))
         val source = resolution.owner?.let { sourceFor(it.source) }
         val input = resolution.currentPrescription ?: resolution.probePrescription
+        val effort = when (target.quality) {
+            TrainableQuality.STRENGTH -> StimulusEffortTarget(6.0, 4)
+            TrainableQuality.HYPERTROPHY -> StimulusEffortTarget(7.0, 3)
+            else -> StimulusEffortTarget(0.0, Int.MAX_VALUE)
+        }
+        fun executableInput(value: PlannedPrescription): PlannedPrescription = if (target.quality == TrainableQuality.HYPERTROPHY) {
+            value.copy(sets = value.sets.map { set -> set.copy(targetRpeMin = effort.minimumRpe.validatedTargetRpeMin()) })
+        } else value
+        fun executionAuthority(value: PlannedPrescription?): StimulusPrescriptionExecutionAuthority =
+            if (target.quality == TrainableQuality.HYPERTROPHY && value?.sets?.isNotEmpty() == true &&
+                value.sets.all { it.targetRpeMin.validatedTargetRpeMin() != null }) StimulusPrescriptionExecutionAuthority.FULLY_ENCODED
+            else when (target.quality) {
+                TrainableQuality.HYPERTROPHY -> StimulusPrescriptionExecutionAuthority.CONDITIONAL_ON_UNPERSISTED_EFFORT
+                TrainableQuality.STRENGTH -> StimulusPrescriptionExecutionAuthority.FULLY_ENCODED
+                else -> StimulusPrescriptionExecutionAuthority.UNRESOLVED
+            }
         return when {
             resolution.status == StimulusPrescriptionResolutionStatus.ALREADY_TARGET_COMPATIBLE &&
                 resolution.owner != null && input != null && executableHypertrophyPrescription(target, input) -> StimulusPrescriptionAuthorization(targetId, target.quality,
-                resolution.owner, source, input, resolution.plannedCompatibility, input,
+                resolution.owner, source, input, resolution.plannedCompatibility, executableInput(input),
                 StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
-                listOf(if (target.quality == TrainableQuality.HYPERTROPHY) "HYPERTROPHY_PRESCRIPTION_ALREADY_COMPATIBLE" else "EXISTING_COMPATIBLE_PRESCRIPTION"))
+                listOf(if (target.quality == TrainableQuality.HYPERTROPHY) "HYPERTROPHY_PRESCRIPTION_ALREADY_COMPATIBLE" else "EXISTING_COMPATIBLE_PRESCRIPTION"),
+                executionAuthority(executableInput(input)))
             resolution.status == StimulusPrescriptionResolutionStatus.SAFE_TARGET_COMPATIBLE_PRESCRIPTION_RESOLVED &&
                 resolution.owner != null && input != null && resolution.proposedPrescription != null &&
                 executableHypertrophySets(target, resolution.proposedPrescription.sets) -> {
@@ -261,7 +282,8 @@ class StimulusPrescriptionAuthorizationEngine(
                 StimulusPrescriptionAuthorization(targetId, target.quality, resolution.owner, source, input,
                     resolution.plannedCompatibility, authorized,
                     StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
-                    listOf(if (target.quality == TrainableQuality.HYPERTROPHY) "HYPERTROPHY_SAFE_REPAIR_RESOLVED" else "SAFE_REPAIRED_PRESCRIPTION"))
+                    listOf(if (target.quality == TrainableQuality.HYPERTROPHY) "HYPERTROPHY_SAFE_REPAIR_RESOLVED" else "SAFE_REPAIRED_PRESCRIPTION"),
+                    executionAuthority(authorized))
             }
             resolution.status in setOf(
                 StimulusPrescriptionResolutionStatus.AMBIGUOUS_OWNER,

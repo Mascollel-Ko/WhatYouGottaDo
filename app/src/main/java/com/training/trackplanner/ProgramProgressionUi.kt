@@ -198,11 +198,25 @@ private fun ProgressionNumberField(label: Int, value: String, onChange: (String)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ProgramRecordProvenance(link: ProgramWorkoutLink, suggestion: ProgressionSuggestion?,
+    plannedPrescriptions: List<ProgramPrescriptionSet> = emptyList(),
     resolve: (String, ProgressionResolution, Double?, (Boolean) -> Unit) -> Unit) {
     var details by remember { mutableStateOf(false) }
     var showSuggestion by remember { mutableStateOf(false) }
     var stale by remember { mutableStateOf(false) }
     AssistChip(onClick = { details = true }, label = { MaterialText(stringResource(R.string.progression_program), maxLines = 1) })
+    val targets = plannedPrescriptions.map { it.plannedTargetRpeMin }.distinct()
+    val commonTarget = targets.singleOrNull()?.takeIf { targets.all { target -> target != null } }
+    if (commonTarget != null) {
+        MaterialText("계획 ${plannedRpeLabel(commonTarget)}", style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+    } else if (targets.any { it != null }) {
+        plannedPrescriptions.sortedBy { it.plannedSetIndex ?: it.setIndex }.forEach { target ->
+            plannedRpeLabel(target.plannedTargetRpeMin)?.let {
+                MaterialText("세트 ${target.plannedSetIndex ?: target.setIndex}: $it", style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
     if (suggestion?.resolution == ProgressionResolution.PENDING) {
         TextButton(onClick = { showSuggestion = true }, contentPadding = PaddingValues(0.dp), modifier = Modifier.fillMaxWidth()) {
             MaterialText(stringResource(R.string.progression_pending), maxLines = 1, overflow = TextOverflow.Ellipsis)

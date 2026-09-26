@@ -113,7 +113,19 @@ internal class ProgramProgressionService(
             if (binding?.linkMode == ProgressionLinkMode.OFF) ProgressionMode.OFF else track?.mode ?: ProgressionMode.OFF,
             track?.basePolicy ?: ProgressionBase.REVIEW, track?.anchorSetIndex,
             track?.needsReview ?: false, track?.rule ?: ProgressionRule()))
-        sets.forEach { dao.putPrescription(ProgramPrescriptionSet(entryId, it.setIndex, it.reps, it.weightKg, it.seconds)) }
+        sets.forEach {
+            dao.putPrescription(
+                ProgramPrescriptionSet(
+                    entryId = entryId,
+                    setIndex = it.setIndex,
+                    originalReps = it.reps,
+                    originalKg = it.weightKg,
+                    originalSeconds = it.seconds,
+                    originalTargetRpeMin = it.targetRpeMin.validatedTargetRpeMin(),
+                    plannedTargetRpeMin = it.targetRpeMin.validatedTargetRpeMin()
+                )
+            )
+        }
     }
 
     suspend fun relocate(link: ProgramWorkoutLink, prescriptions: List<ProgramPrescriptionSet>, newEntryId: Long) {
@@ -141,8 +153,20 @@ internal class ProgramProgressionService(
             return
         }
         val nextSourceIndex = (dao.prescriptions(set.entryId).maxOfOrNull { it.setIndex } ?: 0) + 1
-        dao.putPrescription(ProgramPrescriptionSet(set.entryId, nextSourceIndex, 0, 0.0, 0,
-            set.reps, set.weightKg, set.seconds, set.setIndex, originalExists = false))
+        dao.putPrescription(ProgramPrescriptionSet(
+            entryId = set.entryId,
+            setIndex = nextSourceIndex,
+            originalReps = 0,
+            originalKg = 0.0,
+            originalSeconds = 0,
+            plannedReps = set.reps,
+            plannedKg = set.weightKg,
+            plannedSeconds = set.seconds,
+            plannedSetIndex = set.setIndex,
+            originalExists = false,
+            originalTargetRpeMin = null,
+            plannedTargetRpeMin = null
+        ))
     }
 
     suspend fun beforeSetRemoved(set: WorkoutSet) {

@@ -151,7 +151,8 @@ internal object BackupPreflightValidator {
                     set.reps < 0 ||
                         !set.weightKg.isFinite() ||
                         set.weightKg < 0.0 ||
-                        set.seconds < 0
+                        set.seconds < 0 ||
+                        (set.targetRpeMin != null && (!set.targetRpeMin.isFinite() || set.targetRpeMin !in 1.0..10.0))
                 }.forEach { set ->
                     errors += DataTransferDiagnostic(
                         code = DataTransferDiagnosticCodes.ORPHAN_PROGRAM_ITEM,

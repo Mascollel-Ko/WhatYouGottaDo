@@ -2,6 +2,7 @@ package com.training.trackplanner.data.personalized
 
 import com.training.trackplanner.data.ProgramSetPrescription
 import com.training.trackplanner.data.TrainableQuality
+import com.training.trackplanner.data.validatedTargetRpeMin
 import kotlin.math.round
 
 /** Single governed source of truth for B6 planned Strength/Hypertrophy compatibility. */
@@ -72,7 +73,7 @@ class StimulusPlannedPrescriptionResolver {
                 StimulusTargetCompatiblePrescription(
                     // Keep every exercise-local load, rest and timed field. Only bring reps into
                     // the already-governed 7..15 Hypertrophy realization band.
-                    sets = current.sets.map { set -> set.copy(reps = set.reps.coerceIn(7, 15)) },
+                    sets = current.sets.map { set -> set.copy(reps = set.reps.coerceIn(7, 15), targetRpeMin = effort.minimumRpe.validatedTargetRpeMin()) },
                     effortTarget = effort, numericAuthority = "SAFE_CANONICAL_HYPERTROPHY_LOAD",
                     source = "B6_SHADOW_HYPERTROPHY_RESOLUTION"
                 )

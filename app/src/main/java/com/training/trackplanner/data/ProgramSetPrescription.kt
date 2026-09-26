@@ -4,8 +4,16 @@ data class ProgramSetPrescription(
     val setIndex: Int,
     val reps: Int,
     val weightKg: Double,
-    val seconds: Int
+    val seconds: Int,
+    val targetRpeMin: Double? = null
 )
+
+internal fun Double?.validatedTargetRpeMin(): Double? = this?.takeIf { it.isFinite() && it in 1.0..10.0 }
+
+internal fun Double.canonicalTargetRpeFingerprint(): String =
+    java.math.BigDecimal.valueOf(this).stripTrailingZeros().toPlainString()
+
+internal fun ProgramSetPrescription.validated(): ProgramSetPrescription = copy(targetRpeMin = targetRpeMin.validatedTargetRpeMin())
 
 internal object ProgramSetPrescriptionResolver {
     fun resolve(
@@ -16,7 +24,7 @@ internal object ProgramSetPrescriptionResolver {
             .sortedWith(compareBy<TrainingProgramItemSet> { it.setIndex }.thenBy { it.id })
             .takeIf(List<TrainingProgramItemSet>::isNotEmpty)
             ?.mapIndexed { index, set ->
-                ProgramSetPrescription(index + 1, set.reps, set.weightKg, set.seconds)
+                ProgramSetPrescription(index + 1, set.reps, set.weightKg, set.seconds, set.targetRpeMin.validatedTargetRpeMin())
             }
             ?: List(item.setCount.coerceAtLeast(1)) { index ->
                 ProgramSetPrescription(index + 1, item.reps, item.weightKg, item.seconds)

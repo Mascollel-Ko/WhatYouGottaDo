@@ -60,6 +60,7 @@ internal object ProgramProgressionBackup {
                 "execution_prescription" -> ProgramProgressionWireCodec.programPrescriptionSet(json).let {
                     require(it.setIndex > 0 && listOf(it.originalKg, it.plannedKg).all { kg -> kg.isFinite() && kg >= 0 })
                     require(it.originalReps >= 0 && it.plannedReps >= 0 && it.originalSeconds >= 0 && it.plannedSeconds >= 0)
+                    require(listOfNotNull(it.originalTargetRpeMin, it.plannedTargetRpeMin).all { rpe -> rpe.isFinite() && rpe in 1.0..10.0 })
                     require(it.plannedSetIndex == null || it.plannedSetIndex > 0)
                     require(json.getString("entrySourceId").isNotBlank()); "${json.getString("entrySourceId")}:${it.setIndex}"
                 }

@@ -36,7 +36,8 @@ data class AuthorizedSchedulingTrace(val authorized: List<AuthorizedSchedulingDe
             .put("authorizedDemandId", origin.authorizedDemandId).put("splitGroupId", origin.splitGroupId).put("splitChunkIndex", origin.splitChunkIndex)) } })
 }
 internal fun auditSets(sets: List<ProgramSetPrescription>) = JSONArray(sets.map { JSONObject().put("index", it.setIndex)
-    .put("reps", it.reps).put("weightKg", it.weightKg).put("seconds", it.seconds) })
+    .put("reps", it.reps).put("weightKg", it.weightKg).put("seconds", it.seconds)
+    .put("targetRpeMin", it.targetRpeMin) })
 internal fun auditPlannedItem(item: ProgramSkeletonItem) = JSONObject().put("localId", item.localId).put("stableKey", item.exerciseStableKey)
     .put("name", item.exerciseName).put("day", item.dayOfWeek).put("sets", item.setCount).put("prescription", item.prescription)
     .put("prescriptionSource", item.weightSource).put("restSeconds", item.restSeconds).put("seconds", plannedSeconds(item))

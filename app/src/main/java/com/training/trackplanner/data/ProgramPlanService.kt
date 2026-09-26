@@ -55,7 +55,7 @@ internal class ProgramPlanService(
             items.sortedWith(compareBy(TrainingProgramItem::weekNumber, TrainingProgramItem::dayOfWeek, TrainingProgramItem::orderIndex, TrainingProgramItem::exerciseStableKey)).forEach { item ->
                 append('\n').append(listOf(item.weekNumber, item.dayOfWeek, item.orderIndex, item.exerciseStableKey, item.restSeconds, item.prescription).joinToString("|"))
                 sets[item.id].orEmpty().sortedBy(TrainingProgramItemSet::setIndex).forEach { set ->
-                    append('|').append("${set.setIndex}:${set.reps}:${set.weightKg}:${set.seconds}")
+                    append('|').append("${set.setIndex}:${set.reps}:${set.weightKg}:${set.seconds}:${set.targetRpeMin?.canonicalRpeFingerprint() ?: ""}")
                 }
             }
         }
@@ -419,6 +419,9 @@ internal class ProgramPlanService(
     }
 }
 
+private fun Double.canonicalRpeFingerprint(): String = java.math.BigDecimal.valueOf(this)
+    .stripTrailingZeros().toPlainString()
+
 private fun normalizedDateRange(firstDate: String, secondDate: String): Pair<LocalDate, LocalDate> {
     val first = LocalDate.parse(firstDate)
     val second = LocalDate.parse(secondDate)
@@ -431,7 +434,8 @@ private fun ProgramSetPrescription.toEntity(programItemId: Long): TrainingProgra
         setIndex = setIndex,
         reps = reps,
         weightKg = weightKg,
-        seconds = seconds
+        seconds = seconds,
+        targetRpeMin = targetRpeMin.validatedTargetRpeMin()
     )
 
 internal fun ProgramSkeletonItem.toTrainingProgramItem(programId: Long): TrainingProgramItem {

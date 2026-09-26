@@ -154,6 +154,10 @@ internal fun validateAuthorizedWeeklySubset(
                 if (available <= 0) {
                     if (authorized.sets.any { it.semanticKey() == key }) {
                         reasons += "B6_AUTHORIZED_SET_REUSED"
+                    } else if (authorized.sets.any {
+                            it.reps == set.reps && it.weightKg == set.weightKg && it.seconds == set.seconds
+                        }) {
+                        reasons += "B6_EFFORT_TARGET_NOT_PRESERVED"
                     } else {
                         reasons += "B6_UNAUTHORIZED_SET_CONTENT"
                     }
@@ -168,4 +172,4 @@ internal fun validateAuthorizedWeeklySubset(
 }
 
 private fun com.training.trackplanner.data.ProgramSetPrescription.semanticKey(): String =
-    "$reps|$weightKg|$seconds"
+    "$reps|$weightKg|$seconds|${targetRpeMin?.let { java.math.BigDecimal.valueOf(it).stripTrailingZeros().toPlainString() }.orEmpty()}"

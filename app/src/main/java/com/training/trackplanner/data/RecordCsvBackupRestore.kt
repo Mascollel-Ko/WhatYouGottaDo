@@ -208,7 +208,8 @@ data class ProgramBackupItemSet(
     val setIndex: Int,
     val reps: Int,
     val weightKg: Double,
-    val seconds: Int
+    val seconds: Int,
+    val targetRpeMin: Double? = null
 )
 
 data class RestoreProgramSnapshot(
@@ -552,7 +553,8 @@ object RecordCsvBackupRestore {
                         "program_item_set_index" to set.setIndex.toString(),
                         "reps" to set.reps.toString(),
                         "weight_kg" to set.weightKg.formatNumber(),
-                        "seconds" to set.seconds.toString()
+                        "seconds" to set.seconds.toString(),
+                        "target_rpe_min" to set.targetRpeMin?.formatNumber().orEmpty()
                     )
                 )
             }
@@ -1188,7 +1190,8 @@ object RecordCsvBackupRestore {
                         setIndex = row.requiredInt(index, "program_item_set_index", rowType),
                         reps = row.requiredInt(index, "reps", rowType),
                         weightKg = row.requiredDouble(index, "weight_kg", rowType),
-                        seconds = row.requiredInt(index, "seconds", rowType)
+                        seconds = row.requiredInt(index, "seconds", rowType),
+                        targetRpeMin = row.safeDouble(index, "target_rpe_min")?.validatedTargetRpeMin()
                     )
                     return@forEachIndexed
                 }
@@ -1919,6 +1922,7 @@ object RecordCsvBackupRestore {
                 set.weightKg.isFinite() &&
                 set.weightKg >= 0.0 &&
                 set.seconds >= 0
+                && (set.targetRpeMin == null || set.targetRpeMin.isFinite() && set.targetRpeMin in 1.0..10.0)
         }) { "Invalid program item set values in authoritative snapshot." }
         sets.groupBy { set ->
             listOf(

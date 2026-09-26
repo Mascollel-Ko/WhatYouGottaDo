@@ -352,8 +352,8 @@ class StimulusPrescriptionMaterializationTest {
     }
 
     @Test
-    fun hypertrophyMaterializationExposesConditionalEffortExecutionAuthority() {
-        val shared = prescription(8, 60.0)
+    fun hypertrophyMaterializationExposesEncodedEffortExecutionAuthority() {
+        val shared = prescription(8, 60.0).copy(sets = prescription(8, 60.0).sets.map { it.copy(targetRpeMin = 7.0) })
         val plan = StimulusPrescriptionAuthorizationPlan(listOf(
             StimulusPrescriptionAuthorization(
                 targetId = "QUALITY:HYPERTROPHY", quality = TrainableQuality.HYPERTROPHY,
@@ -362,9 +362,9 @@ class StimulusPrescriptionMaterializationTest {
                 status = StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE
             )
         ))
-        assertEquals(StimulusPrescriptionExecutionAuthority.CONDITIONAL_ON_UNPERSISTED_EFFORT, plan.authorizations.single().executionAuthority)
+        assertEquals(StimulusPrescriptionExecutionAuthority.FULLY_ENCODED, plan.authorizations.single().executionAuthority)
         val audit = StimulusPrescriptionMaterializationAuditEngine().audit(plan, experimental(listOf(1), shared), snapshot).single()
-        assertEquals(StimulusPrescriptionExecutionAuthority.CONDITIONAL_ON_UNPERSISTED_EFFORT, audit.executionAuthority)
+        assertEquals(StimulusPrescriptionExecutionAuthority.FULLY_ENCODED, audit.executionAuthority)
     }
 
     @Test

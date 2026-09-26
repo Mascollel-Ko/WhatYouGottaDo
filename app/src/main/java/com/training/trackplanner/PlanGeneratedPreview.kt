@@ -35,6 +35,8 @@ import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.ProgramSkeletonItem
 import com.training.trackplanner.data.ProgramSetPrescription
 import com.training.trackplanner.data.ProgramSetPrescriptionResolver
+import com.training.trackplanner.data.plannedRpeLabel
+import com.training.trackplanner.data.programEffortDisplay
 import com.training.trackplanner.data.ExerciseMetadataAdapter
 import com.training.trackplanner.data.ProgressMetricRuntimeBehavior
 import com.training.trackplanner.data.RuntimeExerciseMetadata
@@ -402,17 +404,20 @@ private fun List<ProgramSetPrescription>.updated(
 @Composable
 private fun programSetSummaryLines(item: ProgramSkeletonItem): List<String> {
     val sets = ProgramSetPrescriptionResolver.resolve(item)
+    val effort = programEffortDisplay(sets)
     val rest = item.restSeconds.takeIf { it > 0 }
         ?.let { stringResource(R.string.rest_seconds_suffix, it) }
         .orEmpty()
     if (sets.map { Triple(it.reps, it.weightKg, it.seconds) }.distinct().size == 1) {
         return listOf(
-            "${pluralStringResource(R.plurals.set_count, sets.size, sets.size)} · " +
-                "${sets.first().displayText()}$rest"
+                "${pluralStringResource(R.plurals.set_count, sets.size, sets.size)} · " +
+                "${sets.first().displayText()}$rest${effort.commonTargetRpeMin.plannedRpeSuffix()}"
         )
     }
-    return sets.map { set ->
-        "${stringResource(R.string.set_ordinal, set.setIndex)} · ${set.displayText()}$rest"
+    return sets.mapIndexed { index, set ->
+        val suffix = effort.commonTargetRpeMin?.plannedRpeSuffix()
+            ?: effort.perSetTargetRpeMin.getOrNull(index).plannedRpeSuffix()
+        "${stringResource(R.string.set_ordinal, set.setIndex)} · ${set.displayText()}$rest${if (index == 0) suffix else if (effort.commonTargetRpeMin != null) "" else suffix}"
     }
 }
 
@@ -423,6 +428,8 @@ private fun ProgramSetPrescription.displayText(): String =
         if (weightKg > 0.0) add("${formatDecimal(weightKg)}kg")
         if (seconds > 0) add(stringResource(R.string.seconds_short, seconds))
     }.ifEmpty { listOf(stringResource(R.string.prescription_none)) }.joinToString(" · ")
+
+private fun Double?.plannedRpeSuffix(): String = plannedRpeLabel(this)?.let { " · $it" }.orEmpty()
 
 private fun draftItemForExercise(
     exercise: Exercise,

@@ -6,6 +6,7 @@ import com.training.trackplanner.data.ProgramSkeletonRequest
 import com.training.trackplanner.data.ProgramSkeletonItem
 import com.training.trackplanner.data.ProgramSetPrescription
 import com.training.trackplanner.data.TrainableQuality
+import com.training.trackplanner.data.canonicalTargetRpeFingerprint
 import kotlin.math.max
 import kotlin.math.roundToInt
 
@@ -623,8 +624,8 @@ class RegionalAuthorityProgramComparison {
         traces: List<RegionalAuthorityTrace>,
         counters: RegionalAuthorityCounters
     ): RegionalProgramComparison {
-        val a = control.items.map { listOf(it.weekNumber, it.dayOfWeek, it.exerciseStableKey, it.setPrescriptions.joinToString { set -> "${set.reps}:${set.weightKg}:${set.seconds}" }) }
-        val b = experimental.items.map { listOf(it.weekNumber, it.dayOfWeek, it.exerciseStableKey, it.setPrescriptions.joinToString { set -> "${set.reps}:${set.weightKg}:${set.seconds}" }) }
+        val a = control.items.map { listOf(it.weekNumber, it.dayOfWeek, it.exerciseStableKey, it.setPrescriptions.joinToString { set -> "${set.reps}:${set.weightKg}:${set.seconds}:${set.targetRpeMin?.canonicalTargetRpeFingerprint().orEmpty()}" }) }
+        val b = experimental.items.map { listOf(it.weekNumber, it.dayOfWeek, it.exerciseStableKey, it.setPrescriptions.joinToString { set -> "${set.reps}:${set.weightKg}:${set.seconds}:${set.targetRpeMin?.canonicalTargetRpeFingerprint().orEmpty()}" }) }
         val differences = buildList {
             if (a != b) add("FINAL_SKELETON_CHANGED")
             traces.filter { it.selectedStableKey != null && it.residualDose > 0 }.forEach { add("${it.region.name}:${it.trainingDecision.name}:${it.selectedStableKey}") }
@@ -690,7 +691,7 @@ class RegionalTargetPrescriptionResolver(
             return Resolution(
                 PlannedPrescription(
                     text = "Target-compatible hypertrophy personal history",
-                    sets = List(requestedSets) { index -> ProgramSetPrescription(index + 1, compatible.reps, compatible.weightKg, compatible.seconds) },
+                    sets = List(requestedSets) { index -> ProgramSetPrescription(index + 1, compatible.reps, compatible.weightKg, compatible.seconds, targetRpeMin = 7.0) },
                     restSeconds = canonicalPrescription.restSeconds,
                     weightSource = "TARGET_COMPATIBLE_PERSONAL_HISTORY"
                 ),
@@ -704,7 +705,7 @@ class RegionalTargetPrescriptionResolver(
             return Resolution(
                 canonicalPrescription.copy(
                     sets = List(requestedSets) { index ->
-                        canonicalPrescription.sets[index % canonicalPrescription.sets.size].copy(setIndex = index + 1)
+                        canonicalPrescription.sets[index % canonicalPrescription.sets.size].copy(setIndex = index + 1, targetRpeMin = 7.0)
                     },
                     weightSource = if (source != null) "TARGET_COMPATIBLE_CANONICAL_HISTORY" else "TARGET_COMPATIBLE_PROVISIONAL_RPE_NO_INVENTED_LOAD"
                 ),
@@ -715,7 +716,7 @@ class RegionalTargetPrescriptionResolver(
         return Resolution(
             PlannedPrescription(
                 text = "Target-compatible hypertrophy provisional RPE prescription",
-                sets = List(requestedSets) { index -> ProgramSetPrescription(index + 1, 8, 0.0, 0) },
+                sets = List(requestedSets) { index -> ProgramSetPrescription(index + 1, 8, 0.0, 0, targetRpeMin = 7.0) },
                 restSeconds = canonicalPrescription.restSeconds,
                 weightSource = "TARGET_COMPATIBLE_PROVISIONAL_RPE_NO_INVENTED_LOAD"
             ),

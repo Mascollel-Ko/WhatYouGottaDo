@@ -39,7 +39,8 @@ internal object CommunityProgramSnapshotCodec {
                             .put("setIndex", set.setIndex)
                             .put("reps", set.reps)
                             .put("weightKg", set.weightKg)
-                            .put("seconds", set.seconds))
+                            .put("seconds", set.seconds)
+                            .putNullable("targetRpeMin", set.targetRpeMin))
                     }
                 }))
         }
@@ -151,7 +152,8 @@ internal object CommunityProgramSnapshotCodec {
                         setIndex = set.optInt("setIndex", setIndex + 1),
                         reps = set.optInt("reps"),
                         weightKg = set.optDouble("weightKg"),
-                        seconds = set.optInt("seconds")
+                        seconds = set.optInt("seconds"),
+                        targetRpeMin = if (set.has("targetRpeMin") && !set.isNull("targetRpeMin")) set.optDouble("targetRpeMin").validatedTargetRpeMin() else null
                     )
                 }
                 if (rows.isNotEmpty()) db.programDao().insertProgramItemSets(rows)

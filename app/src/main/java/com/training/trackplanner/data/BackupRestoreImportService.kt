@@ -649,7 +649,8 @@ internal class BackupRestoreImportService(
                             setIndex = set.setIndex,
                             reps = set.reps,
                             weightKg = set.weightKg,
-                            seconds = set.seconds
+                            seconds = set.seconds,
+                            targetRpeMin = set.targetRpeMin
                         )
                     )
                 )

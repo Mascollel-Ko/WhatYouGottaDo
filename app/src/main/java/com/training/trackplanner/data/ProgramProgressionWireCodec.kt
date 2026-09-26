@@ -162,9 +162,11 @@ internal object ProgramProgressionWireCodec {
         .put("originalReps", value.originalReps)
         .put("originalKg", value.originalKg)
         .put("originalSeconds", value.originalSeconds)
+        .put("originalTargetRpeMin", value.originalTargetRpeMin ?: JSONObject.NULL)
         .put("plannedReps", value.plannedReps)
         .put("plannedKg", value.plannedKg)
         .put("plannedSeconds", value.plannedSeconds)
+        .put("plannedTargetRpeMin", value.plannedTargetRpeMin ?: JSONObject.NULL)
 
     fun programPrescriptionSet(json: JSONObject): ProgramPrescriptionSet = ProgramPrescriptionSet(
         plannedSetIndex = if (json.isNull("plannedSetIndex")) null else json.getInt("plannedSetIndex"),
@@ -174,9 +176,11 @@ internal object ProgramProgressionWireCodec {
         originalReps = json.getInt("originalReps"),
         originalKg = json.getDouble("originalKg"),
         originalSeconds = json.getInt("originalSeconds"),
+        originalTargetRpeMin = if (json.isNull("originalTargetRpeMin")) null else json.optDouble("originalTargetRpeMin").validatedTargetRpeMin(),
         plannedReps = json.getInt("plannedReps"),
         plannedKg = json.getDouble("plannedKg"),
-        plannedSeconds = json.getInt("plannedSeconds")
+        plannedSeconds = json.getInt("plannedSeconds"),
+        plannedTargetRpeMin = if (json.isNull("plannedTargetRpeMin")) null else json.optDouble("plannedTargetRpeMin").validatedTargetRpeMin()
     )
 
     fun encode(value: ProgressionSuggestion): JSONObject = JSONObject()
