@@ -424,4 +424,83 @@ class StimulusPrescriptionMaterializationTest {
         assertTrue(audit.all { it.totalAuthorizedUnits == 0 && it.totalMaterializedUnits == 0 })
         assertTrue(audit.all { it.reasonCodes.contains("B6_MULTI_QUALITY_OWNER_PRESCRIPTION_CONFLICT") })
     }
+
+    @Test
+    fun preservedButInsufficientHypertrophyEffortIsNotFullyEncoded() {
+        val lowEffort = prescription(10, 60.0).copy(
+            sets = prescription(10, 60.0).sets.map { it.copy(targetRpeMin = 6.0) }
+        )
+        val plan = StimulusPrescriptionAuthorizationPlan(listOf(
+            StimulusPrescriptionAuthorization(
+                targetId = "QUALITY:HYPERTROPHY", quality = TrainableQuality.HYPERTROPHY,
+                owner = StimulusPrescriptionOwner(key, role),
+                source = StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE,
+                inputPrescription = lowEffort, plannedCompatibility = null,
+                authorizedPrescription = lowEffort,
+                status = StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE
+            )
+        ))
+        val audit = StimulusPrescriptionMaterializationAuditEngine().audit(
+            plan, experimental(listOf(1), lowEffort), snapshot
+        ).single()
+
+        assertEquals(StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED, audit.state)
+        assertTrue(audit.prescriptionPreservedOrSubset)
+        assertEquals(
+            StimulusPrescriptionExecutionAuthority.CONDITIONAL_ON_UNPERSISTED_EFFORT,
+            audit.executionAuthority
+        )
+        assertTrue(audit.reasonCodes.contains("B6_EFFORT_TARGET_BELOW_CANONICAL_MINIMUM"))
+    }
+
+    @Test
+    fun missingEffortTargetRemainsAnExactPrescriptionPreservationFailure() {
+        val authorized = prescription(10, 60.0).copy(
+            sets = prescription(10, 60.0).sets.map { it.copy(targetRpeMin = 7.0) }
+        )
+        val missing = authorized.copy(sets = authorized.sets.map { it.copy(targetRpeMin = null) })
+        val plan = StimulusPrescriptionAuthorizationPlan(listOf(
+            StimulusPrescriptionAuthorization(
+                targetId = "QUALITY:HYPERTROPHY", quality = TrainableQuality.HYPERTROPHY,
+                owner = StimulusPrescriptionOwner(key, role),
+                source = StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE,
+                inputPrescription = authorized, plannedCompatibility = null,
+                authorizedPrescription = authorized,
+                status = StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE
+            )
+        ))
+        val audit = StimulusPrescriptionMaterializationAuditEngine().audit(
+            plan, experimental(listOf(1), missing), snapshot
+        ).single()
+
+        assertEquals(StimulusPrescriptionMaterializationState.INVARIANT_FAILURE, audit.state)
+        assertTrue(!audit.prescriptionPreservedOrSubset)
+        assertTrue(audit.reasonCodes.contains("B6_EFFORT_TARGET_NOT_PRESERVED"))
+    }
+
+    @Test
+    fun differentButSufficientEffortTargetDoesNotRelaxExactAuthorization() {
+        val authorized = prescription(10, 60.0).copy(
+            sets = prescription(10, 60.0).sets.map { it.copy(targetRpeMin = 7.0) }
+        )
+        val strongerTarget = authorized.copy(sets = authorized.sets.map { it.copy(targetRpeMin = 8.0) })
+        val plan = StimulusPrescriptionAuthorizationPlan(listOf(
+            StimulusPrescriptionAuthorization(
+                targetId = "QUALITY:HYPERTROPHY", quality = TrainableQuality.HYPERTROPHY,
+                owner = StimulusPrescriptionOwner(key, role),
+                source = StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE,
+                inputPrescription = authorized, plannedCompatibility = null,
+                authorizedPrescription = authorized,
+                status = StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE
+            )
+        ))
+        val audit = StimulusPrescriptionMaterializationAuditEngine().audit(
+            plan, experimental(listOf(1), strongerTarget), snapshot
+        ).single()
+
+        assertEquals(StimulusPrescriptionMaterializationState.INVARIANT_FAILURE, audit.state)
+        assertTrue(!audit.prescriptionPreservedOrSubset)
+        assertEquals(StimulusPrescriptionExecutionAuthority.FULLY_ENCODED, audit.executionAuthority)
+        assertTrue(audit.reasonCodes.contains("B6_EFFORT_TARGET_NOT_PRESERVED"))
+    }
 }

@@ -29,14 +29,7 @@ data class StimulusPrescriptionAuthorization(
     val authorizedPrescription: PlannedPrescription?,
     val status: StimulusPrescriptionAuthorizationStatus,
     val reasonCodes: List<String> = emptyList(),
-    val executionAuthority: StimulusPrescriptionExecutionAuthority = when {
-        quality == TrainableQuality.HYPERTROPHY && authorizedPrescription?.sets?.isNotEmpty() == true &&
-            authorizedPrescription.sets.all { it.targetRpeMin.validatedTargetRpeMin() != null } ->
-            StimulusPrescriptionExecutionAuthority.FULLY_ENCODED
-        quality == TrainableQuality.HYPERTROPHY -> StimulusPrescriptionExecutionAuthority.CONDITIONAL_ON_UNPERSISTED_EFFORT
-        quality == TrainableQuality.STRENGTH -> StimulusPrescriptionExecutionAuthority.FULLY_ENCODED
-        else -> StimulusPrescriptionExecutionAuthority.UNRESOLVED
-    },
+    val executionAuthority: StimulusPrescriptionExecutionAuthority = canonicalExecutionAuthority(quality, authorizedPrescription),
     val shadowOnly: Boolean = true,
     val productionAuthority: Boolean = false
 )
@@ -251,22 +244,12 @@ class StimulusPrescriptionAuthorizationEngine(
             StimulusPrescriptionAuthorizationStatus.MODEL_UNAVAILABLE, listOf("STRENGTH_REALIZATION_RESOLUTION_UNAVAILABLE"))
         val source = resolution.owner?.let { sourceFor(it.source) }
         val input = resolution.currentPrescription ?: resolution.probePrescription
-        val effort = when (target.quality) {
-            TrainableQuality.STRENGTH -> StimulusEffortTarget(6.0, 4)
-            TrainableQuality.HYPERTROPHY -> StimulusEffortTarget(7.0, 3)
-            else -> StimulusEffortTarget(0.0, Int.MAX_VALUE)
-        }
+        val effort = target.quality.canonicalEffortTarget()
         fun executableInput(value: PlannedPrescription): PlannedPrescription = if (target.quality == TrainableQuality.HYPERTROPHY) {
             value.copy(sets = value.sets.map { set -> set.copy(targetRpeMin = effort.minimumRpe.validatedTargetRpeMin()) })
         } else value
         fun executionAuthority(value: PlannedPrescription?): StimulusPrescriptionExecutionAuthority =
-            if (target.quality == TrainableQuality.HYPERTROPHY && value?.sets?.isNotEmpty() == true &&
-                value.sets.all { it.targetRpeMin.validatedTargetRpeMin() != null }) StimulusPrescriptionExecutionAuthority.FULLY_ENCODED
-            else when (target.quality) {
-                TrainableQuality.HYPERTROPHY -> StimulusPrescriptionExecutionAuthority.CONDITIONAL_ON_UNPERSISTED_EFFORT
-                TrainableQuality.STRENGTH -> StimulusPrescriptionExecutionAuthority.FULLY_ENCODED
-                else -> StimulusPrescriptionExecutionAuthority.UNRESOLVED
-            }
+            canonicalExecutionAuthority(target.quality, value)
         return when {
             resolution.status == StimulusPrescriptionResolutionStatus.ALREADY_TARGET_COMPATIBLE &&
                 resolution.owner != null && input != null && executableHypertrophyPrescription(target, input) -> StimulusPrescriptionAuthorization(targetId, target.quality,
@@ -328,6 +311,7 @@ class StimulusPrescriptionMaterializationAuditEngine(
         val expectedWeeks = (1..experimental.request.durationWeeks.coerceAtLeast(1)).toList()
         val owner = authorization.owner
         val authorized = authorization.authorizedPrescription
+        val effectiveExecutionAuthority = canonicalExecutionAuthority(authorization.quality, authorized)
         val ownerIdentity = owner?.let { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }
         if (ownerIdentity != null && ownerIdentity in plan.conflictingOwners) {
             val conflictReasons = (authorization.reasonCodes +
@@ -357,7 +341,7 @@ class StimulusPrescriptionMaterializationAuditEngine(
                 prescriptionPreservedOrSubset = true,
                 state = StimulusPrescriptionMaterializationState.NOT_MATERIALIZED,
                 reasonCodes = conflictReasons,
-                executionAuthority = authorization.executionAuthority,
+                executionAuthority = effectiveExecutionAuthority,
                 weeklyAudits = weekly,
                 fullyMaterializedWeekCount = 0,
                 partiallyMaterializedWeekCount = 0,
@@ -393,7 +377,7 @@ class StimulusPrescriptionMaterializationAuditEngine(
                 prescriptionPreservedOrSubset = true,
                 state = StimulusPrescriptionMaterializationState.NOT_MATERIALIZED,
                 reasonCodes = authorization.reasonCodes + "NO_EXECUTABLE_AUTHORIZATION",
-                executionAuthority = authorization.executionAuthority,
+                executionAuthority = effectiveExecutionAuthority,
                 weeklyAudits = weekly,
                 fullyMaterializedWeekCount = 0,
                 partiallyMaterializedWeekCount = 0,
@@ -448,6 +432,9 @@ class StimulusPrescriptionMaterializationAuditEngine(
             if (!preserved) add("B6_PRESCRIPTION_NOT_PRESERVED")
             if (compatible < materialized) add("B6_TARGET_COMPATIBILITY_SHORTFALL")
             addAll(weeklyAudits.flatMap { it.reasonCodes }.filter { it.startsWith("B6_") })
+            authorization.quality?.takeIf { it == TrainableQuality.HYPERTROPHY }?.let { quality ->
+                authorized.effortInsufficiencyReason(quality.canonicalEffortTarget())?.let(::add)
+            }
             if (authorization.source == StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE) add("B5_SELECTION_PROBE_AUTHORIZED")
         }
         val state = when {
@@ -460,7 +447,7 @@ class StimulusPrescriptionMaterializationAuditEngine(
             authorized.sets.size,
             weeklyAudits.minOfOrNull { it.materializedSetUnits } ?: 0,
             weeklyAudits.minOfOrNull { it.targetCompatibleMaterializedUnits } ?: 0,
-            shortfall, overrun, preserved, state, reasons, authorization.executionAuthority,
+            shortfall, overrun, preserved, state, reasons, effectiveExecutionAuthority,
             weeklyAudits = weeklyAudits,
             minimumWeeklyMaterializedUnits = weeklyAudits.minOfOrNull { it.materializedSetUnits } ?: 0,
             minimumWeeklyCompatibleUnits = weeklyAudits.minOfOrNull { it.targetCompatibleMaterializedUnits } ?: 0,

@@ -230,7 +230,7 @@ class StimulusPrescriptionRealizationPlanEngine(
         val effective = selected.third.second
         val compatibility = selected.third.third
         val owner = StimulusPrescriptionOwner(identity.stableKey, identity.selectionRole, source)
-        val effort = target.quality.effortTarget()
+        val effort = target.quality.canonicalEffortTarget()
         if (target.quality == TrainableQuality.HYPERTROPHY && target.numericAuthority in setOf(
                 StimulusTargetNumericAuthority.NONE,
                 StimulusTargetNumericAuthority.DIRECTION_ONLY,
@@ -277,11 +277,6 @@ class StimulusPrescriptionRealizationPlanEngine(
         effort: StimulusEffortTarget
     ): StimulusTargetCompatiblePrescription? = plannedResolver.safeProposal(quality, current, snapshot, stableKey, effort)
 
-    private fun TrainableQuality.effortTarget() = when (this) {
-        TrainableQuality.STRENGTH -> StimulusEffortTarget(6.0, 4)
-        TrainableQuality.HYPERTROPHY -> StimulusEffortTarget(7.0, 3)
-        else -> StimulusEffortTarget(0.0, Int.MAX_VALUE)
-    }
 }
 
 internal fun StimulusPrescriptionRealizationPlan.toCompactJson(): JSONObject = JSONObject()
