@@ -145,6 +145,71 @@ class StimulusProductionCutoverAuthorityTest {
     }
 
     @Test
+    fun localizedConflictPreservesExistingOwnerAndIndependentStrengthOwnerReachesB8AndB9() {
+        val conflict = StimulusPrescriptionOwnerIdentity("squat", "CONFLICT")
+        val independent = StimulusPrescriptionOwnerIdentity("press", "PRIMARY")
+        val raw = comparison(
+            controlItems = listOf(item("base", "BASE"), item("squat", "CONFLICT", reps = 8), item("press", "PRIMARY", reps = 8)),
+            experimentalItems = listOf(item("base", "BASE"), item("squat", "CONFLICT", reps = 8), item("press", "PRIMARY", reps = 5)),
+            selected = selected("press", "PRIMARY"), traces = listOf(trace("press", "PRIMARY")),
+            authorizations = listOf(
+                authorization("squat", "CONFLICT", StimulusPrescriptionAuthorizationStatus.CONFLICTING_MULTI_QUALITY_AUTHORITY, TrainableQuality.STRENGTH),
+                authorization("squat", "CONFLICT", StimulusPrescriptionAuthorizationStatus.CONFLICTING_MULTI_QUALITY_AUTHORITY, TrainableQuality.HYPERTROPHY),
+                authorization("press", "PRIMARY", StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR, TrainableQuality.STRENGTH)
+            ),
+            materializations = listOf(
+                materialization("squat", "CONFLICT", nonMaterialized = true, reasonCodes = listOf("B6_MULTI_QUALITY_OWNER_PRESCRIPTION_CONFLICT"), quality = TrainableQuality.STRENGTH),
+                materialization("squat", "CONFLICT", nonMaterialized = true, reasonCodes = listOf("B6_MULTI_QUALITY_OWNER_PRESCRIPTION_CONFLICT"), quality = TrainableQuality.HYPERTROPHY),
+                materialization("press", "PRIMARY", quality = TrainableQuality.STRENGTH)
+            )
+        )
+        // B7 has already closed provenance for the independent Strength owner; the
+        // unchanged conflict owner intentionally has no material attribution row.
+        val b7 = eligibleAudit(attribution("press", "PRIMARY", StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION))
+        assertEquals(StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW, b7.status)
+        assertTrue(b7.changeAttributions.none { it.stableKey == conflict.stableKey && it.selectionRole == conflict.selectionRole })
+        assertTrue(raw.prescriptionAuthorizationPlan!!.authorizations.filter { it.owner?.stableKey == conflict.stableKey }.all {
+            it.status == StimulusPrescriptionAuthorizationStatus.CONFLICTING_MULTI_QUALITY_AUTHORITY
+        })
+        assertTrue(raw.prescriptionMaterializationAudits.filter { it.owner?.stableKey == conflict.stableKey }.all {
+            it.state == StimulusPrescriptionMaterializationState.NOT_MATERIALIZED &&
+                "B6_MULTI_QUALITY_OWNER_PRESCRIPTION_CONFLICT" in it.reasonCodes
+        })
+
+        val compared = raw.copy(experimentalReadinessAudit = b7)
+        val b8 = engine().audit(compared)
+        assertEquals(StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER, b8.status)
+        assertEquals(listOf(independent), b8.authorizedOwnerIdentities)
+        val b9 = StimulusProductionRouter().route(compared, b8, StimulusProductionRoutingMode.B8_STRENGTH_V1_ACTIVE)
+        assertEquals(StimulusProductionProgramSource.B8_STRENGTH_V1, b9.decision.selectedSource)
+        assertSame(compared.experimental, b9.program)
+    }
+
+    @Test
+    fun conflictOnlyProducesNoMaterialChangeAndB9RemainsOnControl() {
+        val raw = comparison(
+            controlItems = listOf(item("squat", "CONFLICT", reps = 8)),
+            experimentalItems = listOf(item("squat", "CONFLICT", reps = 8)),
+            authorizations = listOf(
+                authorization("squat", "CONFLICT", StimulusPrescriptionAuthorizationStatus.CONFLICTING_MULTI_QUALITY_AUTHORITY, TrainableQuality.STRENGTH),
+                authorization("squat", "CONFLICT", StimulusPrescriptionAuthorizationStatus.CONFLICTING_MULTI_QUALITY_AUTHORITY, TrainableQuality.HYPERTROPHY)
+            ),
+            materializations = listOf(
+                materialization("squat", "CONFLICT", nonMaterialized = true, reasonCodes = listOf("B6_MULTI_QUALITY_OWNER_PRESCRIPTION_CONFLICT"), quality = TrainableQuality.STRENGTH),
+                materialization("squat", "CONFLICT", nonMaterialized = true, reasonCodes = listOf("B6_MULTI_QUALITY_OWNER_PRESCRIPTION_CONFLICT"), quality = TrainableQuality.HYPERTROPHY)
+            )
+        )
+        val b7 = StimulusExperimentalReadinessAuditEngine().audit(raw)
+        assertEquals(StimulusExperimentalReadinessStatus.NO_MATERIAL_CHANGE, b7.status)
+        val compared = raw.copy(experimentalReadinessAudit = b7)
+        val b8 = engine().audit(compared)
+        assertEquals(StimulusProductionCutoverAuthorityStatus.NO_MATERIAL_CHANGE, b8.status)
+        val b9 = StimulusProductionRouter().route(compared, b8, StimulusProductionRoutingMode.B8_STRENGTH_V1_ACTIVE)
+        assertEquals(StimulusProductionProgramSource.CONTROL, b9.decision.selectedSource)
+        assertSame(compared.control, b9.program)
+    }
+
+    @Test
     fun unrelatedOwnerMovementAndScheduleChangeAreRejected() {
         val moved = engine().audit(comparison(
             controlItems = listOf(item("base", "BASE", day = 1)), experimentalItems = listOf(item("base", "BASE", day = 2)),
@@ -406,14 +471,22 @@ class StimulusProductionCutoverAuthorityTest {
         inputPrescription = planned(8), plannedCompatibility = null, authorizedPrescription = planned(5), status = status
     )
 
-    private fun materialization(key: String, role: String, full: Boolean = true, reasonCodes: List<String> = emptyList(), quality: TrainableQuality = TrainableQuality.STRENGTH) = StimulusPrescriptionMaterializationAudit(
+    private fun materialization(key: String, role: String, full: Boolean = true, reasonCodes: List<String> = emptyList(), quality: TrainableQuality = TrainableQuality.STRENGTH, nonMaterialized: Boolean = false) = StimulusPrescriptionMaterializationAudit(
         targetId = "QUALITY:${quality.name}", quality = quality, owner = StimulusPrescriptionOwner(key, role),
-        authorizedWeeklySetUnits = 2, materializedWeeklySetUnits = if (full) 2 else 1, targetCompatibleMaterializedUnits = if (full) 2 else 1,
-        shortfall = if (full) 0 else 1, overrun = 0, prescriptionPreservedOrSubset = true,
-        state = if (full) StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED else StimulusPrescriptionMaterializationState.PARTIALLY_MATERIALIZED,
+        authorizedWeeklySetUnits = if (nonMaterialized) 0 else 2,
+        materializedWeeklySetUnits = if (nonMaterialized) 0 else if (full) 2 else 1,
+        targetCompatibleMaterializedUnits = if (nonMaterialized) 0 else if (full) 2 else 1,
+        shortfall = if (nonMaterialized || full) 0 else 1, overrun = 0, prescriptionPreservedOrSubset = true,
+        state = when {
+            nonMaterialized -> StimulusPrescriptionMaterializationState.NOT_MATERIALIZED
+            full -> StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED
+            else -> StimulusPrescriptionMaterializationState.PARTIALLY_MATERIALIZED
+        },
         reasonCodes = reasonCodes, weeklyAudits = listOf(StimulusPrescriptionWeekMaterializationAudit(
-            weekNumber = 1, authorizedSetUnits = 2, materializedSetUnits = if (full) 2 else 1,
-            targetCompatibleMaterializedUnits = if (full) 2 else 1, shortfall = if (full) 0 else 1, overrun = 0,
+            weekNumber = 1, authorizedSetUnits = if (nonMaterialized) 0 else 2,
+            materializedSetUnits = if (nonMaterialized) 0 else if (full) 2 else 1,
+            targetCompatibleMaterializedUnits = if (nonMaterialized) 0 else if (full) 2 else 1,
+            shortfall = if (nonMaterialized || full) 0 else 1, overrun = 0,
             prescriptionPreservedOrSubset = true
         ))
     )

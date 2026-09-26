@@ -366,4 +366,62 @@ class StimulusPrescriptionMaterializationTest {
         val audit = StimulusPrescriptionMaterializationAuditEngine().audit(plan, experimental(listOf(1), shared), snapshot).single()
         assertEquals(StimulusPrescriptionExecutionAuthority.CONDITIONAL_ON_UNPERSISTED_EFFORT, audit.executionAuthority)
     }
+
+    @Test
+    fun conflictingExistingOwnerPreservesControlAndNeverProjectsEitherQuality() {
+        val owner = StimulusPrescriptionOwner(key, role, "B5_SELECTION")
+        val control = prescription(6, 70.0)
+        val strength = prescription(5, 80.0)
+        val hypertrophy = prescription(8, 60.0)
+        fun authorization(quality: TrainableQuality, value: PlannedPrescription) = StimulusPrescriptionAuthorization(
+            targetId = "QUALITY:${quality.name}", quality = quality, owner = owner,
+            source = StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE,
+            inputPrescription = value, plannedCompatibility = null, authorizedPrescription = value,
+            status = StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE
+        )
+        val plan = StimulusPrescriptionAuthorizationPlan(
+            listOf(
+                authorization(TrainableQuality.STRENGTH, strength),
+                authorization(TrainableQuality.HYPERTROPHY, hypertrophy)
+            ),
+            controlPrescriptions = mapOf(StimulusPrescriptionOwnerIdentity(key, role) to control)
+        )
+        val identity = StimulusPrescriptionOwnerIdentity(key, role)
+        assertEquals(StimulusPrescriptionOwnerExecutionDisposition.PRESERVE_CONTROL_OWNER, plan.ownerExecutionDispositions.getValue(identity))
+        assertTrue(plan.authorizedOwners.isEmpty())
+        assertEquals(
+            ExactOwnerPrescriptionResolution.PreserveControl(control),
+            plan.provider().resolveOwnerPrescription(PlannedExercise(key, role, "test", 1, targetSets = 2))
+        )
+        assertEquals(strength, plan.authorizedPrescriptions.getValue(StimulusPrescriptionAuthorityIdentity(key, role, TrainableQuality.STRENGTH)))
+        assertEquals(hypertrophy, plan.authorizedPrescriptions.getValue(StimulusPrescriptionAuthorityIdentity(key, role, TrainableQuality.HYPERTROPHY)))
+    }
+
+    @Test
+    fun conflictingNewOwnerIsExcludedAndConflictAuditCannotClaimMaterialization() {
+        val owner = StimulusPrescriptionOwner(key, role, "B5_SELECTION")
+        fun authorization(quality: TrainableQuality, reps: Int, load: Double) = StimulusPrescriptionAuthorization(
+            targetId = "QUALITY:${quality.name}", quality = quality, owner = owner,
+            source = StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE,
+            inputPrescription = prescription(reps, load), plannedCompatibility = null,
+            authorizedPrescription = prescription(reps, load),
+            status = StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE
+        )
+        val plan = StimulusPrescriptionAuthorizationPlan(listOf(
+            authorization(TrainableQuality.STRENGTH, 5, 80.0),
+            authorization(TrainableQuality.HYPERTROPHY, 8, 60.0)
+        ))
+        val item = PlannedExercise(key, role, "test", 1, targetSets = 2)
+        assertEquals(StimulusPrescriptionOwnerExecutionDisposition.EXCLUDE_CONFLICTING_ADDITION,
+            plan.ownerExecutionDispositions.getValue(StimulusPrescriptionOwnerIdentity(key, role)))
+        assertEquals(ExactOwnerPrescriptionResolution.ExcludeConflictingAddition, plan.provider().resolveOwnerPrescription(item))
+        assertTrue(plan.authorizations.all { it.reasonCodes.contains("B6_MULTI_QUALITY_OWNER_PRESCRIPTION_CONFLICT") || it.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE })
+        val audit = StimulusPrescriptionMaterializationAuditEngine().audit(
+            plan, experimental(listOf(1, 2), prescription(8, 60.0)), snapshot
+        )
+        assertEquals(2, audit.size)
+        assertTrue(audit.all { it.state == StimulusPrescriptionMaterializationState.NOT_MATERIALIZED })
+        assertTrue(audit.all { it.totalAuthorizedUnits == 0 && it.totalMaterializedUnits == 0 })
+        assertTrue(audit.all { it.reasonCodes.contains("B6_MULTI_QUALITY_OWNER_PRESCRIPTION_CONFLICT") })
+    }
 }
