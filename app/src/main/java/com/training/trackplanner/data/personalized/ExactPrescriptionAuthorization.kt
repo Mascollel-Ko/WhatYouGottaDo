@@ -67,7 +67,7 @@ internal fun ExactPrescriptionAuthorizationProvider.sliceFor(
     if (startOffset < 0 || requestedSets < 0) return null
     val authorized = authorizedPrescriptions[
         StimulusPrescriptionAuthorityIdentity(item.stableKey, item.role, quality)
-    ] ?: authorizedPrescriptionFor(item, quality, item.targetSets) ?: return null
+    ] ?: return null
     if (startOffset > authorized.sets.size || startOffset + requestedSets > authorized.sets.size) return null
     return authorized.copy(sets = authorized.sets.drop(startOffset).take(requestedSets)
         .mapIndexed { index, set -> set.copy(setIndex = index + 1) })
