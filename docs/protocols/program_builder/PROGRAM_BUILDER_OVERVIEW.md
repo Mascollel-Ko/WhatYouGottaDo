@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.45.0 |
+| Protocol version | 3.45.1 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | df90072de50ddfcf8098154eddfac5662e7939db |
+| Last audited commit | 1edd70063770fc2f38dd93b39e9551920f6435a0 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -77,6 +77,13 @@
 - B10 reuses the existing B4 numeric target authority, B5 exact `(stableKey, selectionRole)` owner identity, B6.1 planned compatibility and canonical Hypertrophy effort target, and B6.2 funded-set multiset/full-horizon materialization audit. Compatible owners are `AUTHORIZED_EXISTING_COMPATIBLE`; compatible-load repairs are `AUTHORIZED_SAFE_REPAIR`. `NONE`, `DIRECTION_ONLY`, `UNRESOLVED`, unavailable effort/load, role mismatches and exercise-local load mismatches remain non-executable.
 - Provisional 8-repetition/0-kg planner shapes are never executable. Hypertrophy repair preserves the exact owner-local load, set count, rest, seconds and weight-source fields while bringing reps into the already-governed 7–15 band; no generic 5–30 rule, fabricated effort field, cross-exercise load, schema field or third build is introduced.
 - B10 remains shadow-only. B7 may observe Hypertrophy materialization, but B8 production scope remains `STRENGTH_V1` and rejects material non-Strength change with `B8_CUTOVER_V1_NON_STRENGTH_CHANGE_OUT_OF_SCOPE`; B9 continues to route such cases to CONTROL. Strength authorization, build counts (`1 / 1 / 0`) and progress bands remain unchanged.
+
+### 3.45.1 — B10.1 multi-quality exact prescription authority closeout
+
+- Executable prescription authority is now keyed by the exact `(stableKey, selectionRole, quality)` identity. The B5 owner identity remains `(stableKey, selectionRole)`, while the lossless authority table preserves separate Strength and Hypertrophy rows. Quality-aware provider lookup and funded `sliceFor`/`prefixFor` helpers cannot borrow another quality's prescription.
+- Same-owner multi-quality arbitration is deterministic and order-independent. Identical semantic prescriptions share one owner projection without duplicating physical sets; distinct prescriptions produce `CONFLICTING_MULTI_QUALITY_AUTHORITY` with `B6_MULTI_QUALITY_OWNER_PRESCRIPTION_CONFLICT` and `B6_MULTI_QUALITY_DISTINCT_OWNER_REQUIRED`, so the builder fails closed instead of applying map order or a quality priority.
+- B7 target attribution and B8 exact Strength authorization/materialization remain quality-specific. Non-material Hypertrophy authority does not block an otherwise valid Strength cutover; material Hypertrophy attribution remains outside `STRENGTH_V1` and yields `B8_CUTOVER_V1_NON_STRENGTH_CHANGE_OUT_OF_SCOPE`. B9 therefore continues to route Hypertrophy material changes to CONTROL.
+- A real Room/service Hypertrophy chain now proves reviewed history through B2, numeric B4 authority, exact B5 ownership, executable B6 safe repair, full-horizon materialization and the shadow-only B8/B9 boundary. Hypertrophy materialization is `FULLY_MATERIALIZED` structurally but `CONDITIONAL_ON_UNPERSISTED_EFFORT` because the current generated-program schema does not persist RPE/RIR authority. No `HYPERTROPHY_V1`, Room migration, backup change or third build was introduced.
 
 ### 3.41.1 — B6.2 multi-week materialization audit closure
 
