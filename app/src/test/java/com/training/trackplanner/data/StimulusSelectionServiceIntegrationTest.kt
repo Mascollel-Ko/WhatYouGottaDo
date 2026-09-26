@@ -374,7 +374,11 @@ class StimulusSelectionServiceIntegrationTest {
                         sessionStableKey = "b101-hypertrophy-history-$index")
                 )
                 (1..3).forEach { setIndex ->
-                    db.workoutDao().insertSet(WorkoutSet(entryId = entryId, setIndex = setIndex, reps = 10,
+                    // Recent lower-rep work makes the control skeleton require a
+                    // Hypertrophy repair while the older reviewed 10-rep sessions
+                    // retain a real B2/B4 Hypertrophy baseline.
+                    val reps = if (daysAgo <= 23L) 5 else 10
+                    db.workoutDao().insertSet(WorkoutSet(entryId = entryId, setIndex = setIndex, reps = reps,
                         weightKg = 12.5, confirmed = true, rpe = 8.0))
                 }
             }
