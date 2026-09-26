@@ -55,7 +55,8 @@ internal class ProgramPlanService(
             items.sortedWith(compareBy(TrainingProgramItem::weekNumber, TrainingProgramItem::dayOfWeek, TrainingProgramItem::orderIndex, TrainingProgramItem::exerciseStableKey)).forEach { item ->
                 append('\n').append(listOf(item.weekNumber, item.dayOfWeek, item.orderIndex, item.exerciseStableKey, item.restSeconds, item.prescription).joinToString("|"))
                 sets[item.id].orEmpty().sortedBy(TrainingProgramItemSet::setIndex).forEach { set ->
-                    append('|').append("${set.setIndex}:${set.reps}:${set.weightKg}:${set.seconds}:${set.targetRpeMin?.canonicalRpeFingerprint() ?: ""}")
+                    append('|').append("${set.setIndex}:${set.reps}:${set.weightKg}:${set.seconds}")
+                    set.targetRpeMin?.let { append(':').append(it.canonicalRpeFingerprint()) }
                 }
             }
         }

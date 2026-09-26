@@ -6,7 +6,6 @@ import com.training.trackplanner.data.ProgramSetPrescription
 import com.training.trackplanner.data.ProgramSkeletonItem
 import com.training.trackplanner.data.ProgramSkeletonRequest
 import com.training.trackplanner.data.ProgramWeekPlan
-import com.training.trackplanner.data.canonicalTargetRpeFingerprint
 import java.security.MessageDigest
 import java.util.UUID
 import kotlin.math.round
@@ -888,11 +887,14 @@ internal fun personalizedProgramFingerprint(request: ProgramSkeletonRequest, ite
     val source = buildString {
         append(listOf(request.name, request.goal.name, request.durationWeeks, request.weeklyTrainingDays, request.sessionMinutes).joinToString("|"))
         items.sortedWith(compareBy(ProgramSkeletonItem::weekNumber, ProgramSkeletonItem::dayOfWeek, ProgramSkeletonItem::orderIndex, ProgramSkeletonItem::exerciseStableKey)).forEach { item ->
-            append('\n').append(listOf(item.weekNumber, item.dayOfWeek, item.orderIndex, item.exerciseStableKey, item.restSeconds, item.prescription, item.setPrescriptions.joinToString { "${it.reps}:${it.weightKg}:${it.seconds}:${it.targetRpeMin?.canonicalTargetRpeFingerprint().orEmpty()}" }).joinToString("|"))
+            append('\n').append(listOf(item.weekNumber, item.dayOfWeek, item.orderIndex, item.exerciseStableKey, item.restSeconds, item.prescription, item.setPrescriptions.joinToString { "${it.reps}:${it.weightKg}:${it.seconds}" + it.targetRpeMin?.let { target -> ":${targetRpeFingerprint(target)}" }.orEmpty() }).joinToString("|"))
         }
     }
     return MessageDigest.getInstance("SHA-256").digest(source.toByteArray()).joinToString("") { "%02x".format(it) }
 }
+
+private fun targetRpeFingerprint(value: Double): String =
+    java.math.BigDecimal.valueOf(value).stripTrailingZeros().toPlainString()
 
 
 private fun List<PlanningSetRecord>.countLastSession(): Int {

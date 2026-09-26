@@ -1,6 +1,7 @@
 package com.training.trackplanner.data.personalized
 
 import com.training.trackplanner.data.GeneratedProgramSkeleton
+import com.training.trackplanner.data.ProgramSetPrescription
 import java.lang.reflect.Modifier
 import java.security.MessageDigest
 import java.time.temporal.TemporalAccessor
@@ -32,8 +33,13 @@ private fun separationCanonical(value: Any?): String = when (value) {
     is Iterable<*> -> value.joinToString(prefix = "[", postfix = "]") { separationCanonical(it) }
     // The a53f419 golden owns the complete INITIAL result, before these additive post-process audit fields.
     // All pre-existing decision fields, items and prescriptions remain in the golden comparison.
-    else -> value.javaClass.declaredFields.filterNot { it.isSynthetic || Modifier.isStatic(it.modifiers) ||
-        value is PersonalizedPlanningDecision && it.name in setOf(
+    else -> value.javaClass.declaredFields.filterNot {
+        if (it.isSynthetic || Modifier.isStatic(it.modifiers)) {
+            true
+        } else if (value is ProgramSetPrescription && it.name == "targetRpeMin") {
+            it.isAccessible = true
+            it.get(value) == null
+        } else value is PersonalizedPlanningDecision && it.name in setOf(
             "residualCompletion", "dayRebalancing", "authorizedScheduling", "frequencyDemand", "frequencyExpansion", "postSplitReflow",
             // These are additive authority/audit traces.  The a53f419 golden
             // intentionally continues to compare placement and prescriptions.

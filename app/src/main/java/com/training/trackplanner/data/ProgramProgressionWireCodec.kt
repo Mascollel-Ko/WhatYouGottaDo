@@ -162,11 +162,13 @@ internal object ProgramProgressionWireCodec {
         .put("originalReps", value.originalReps)
         .put("originalKg", value.originalKg)
         .put("originalSeconds", value.originalSeconds)
-        .put("originalTargetRpeMin", value.originalTargetRpeMin ?: JSONObject.NULL)
         .put("plannedReps", value.plannedReps)
         .put("plannedKg", value.plannedKg)
         .put("plannedSeconds", value.plannedSeconds)
-        .put("plannedTargetRpeMin", value.plannedTargetRpeMin ?: JSONObject.NULL)
+        .also { json ->
+            value.originalTargetRpeMin?.let { json.put("originalTargetRpeMin", it) }
+            value.plannedTargetRpeMin?.let { json.put("plannedTargetRpeMin", it) }
+        }
 
     fun programPrescriptionSet(json: JSONObject): ProgramPrescriptionSet = ProgramPrescriptionSet(
         plannedSetIndex = if (json.isNull("plannedSetIndex")) null else json.getInt("plannedSetIndex"),

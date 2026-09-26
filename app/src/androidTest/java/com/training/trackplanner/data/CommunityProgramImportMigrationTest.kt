@@ -24,7 +24,8 @@ class CommunityProgramImportMigrationTest {
             "community-program-import-migration",
             34,
             true,
-            TrainingDatabase.MIGRATION_33_34
+            TrainingDatabase.MIGRATION_33_34,
+            TrainingDatabase.MIGRATION_34_35
         ).use { database ->
             database.query("SELECT COUNT(*) FROM training_programs").use { cursor ->
                 check(cursor.moveToFirst())
