@@ -100,8 +100,12 @@ data class StimulusPrescriptionAuthorizationPlan(
         override fun authorizedPrescriptionFor(item: PlannedExercise, requestedSets: Int): PlannedPrescription? =
             authorizedOwners[StimulusPrescriptionOwnerIdentity(item.stableKey, item.role)]
 
-        override fun authorizedPrescriptionFor(item: PlannedExercise, quality: TrainableQuality, requestedSets: Int): PlannedPrescription? =
-            prefixFor(item, quality, requestedSets)
+        override fun authorizedPrescriptionFor(item: PlannedExercise, quality: TrainableQuality, requestedSets: Int): PlannedPrescription? {
+            if (requestedSets < 0) return null
+            val prescription = authorizedPrescriptions[StimulusPrescriptionAuthorityIdentity(item.stableKey, item.role, quality)] ?: return null
+            if (requestedSets > prescription.sets.size) return null
+            return prescription.copy(sets = prescription.sets.take(requestedSets).mapIndexed { index, set -> set.copy(setIndex = index + 1) })
+        }
     }
 }
 
