@@ -129,6 +129,10 @@ class StimulusExperimentalReadinessAuditEngine {
             StimulusPrescriptionOwnerIdentity(it.exerciseStableKey, it.selectionRole)
         }
         comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().forEach { authorization ->
+            // A competing-quality owner is intentionally non-executable. Its retained authority
+            // rows remain in diagnostics, but validating CONTROL-preserved rows against either
+            // conflicting proposal would turn an owner-local disposition into global B6 failure.
+            if (authorization.status == StimulusPrescriptionAuthorizationStatus.CONFLICTING_MULTI_QUALITY_AUTHORITY) return@forEach
             val owner = authorization.owner ?: return@forEach
             val authorized = authorization.authorizedPrescription ?: return@forEach
             val validation = validateAuthorizedWeeklySubset(

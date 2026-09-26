@@ -48,17 +48,25 @@ internal fun frequencyPortion(snapshot: PlanningHistorySnapshot, state: AthleteP
     limit: Int, prescriptions: PersonalizedPrescriptionPlanner,
     exactPrescriptionAuthorizationProvider: ExactPrescriptionAuthorizationProvider? = null): PlannedPrescription? {
     if (limit <= 0) return null
-    val exactIdentity = exactPrescriptionAuthorizationProvider?.authorizedOwners?.get(
-        StimulusPrescriptionOwnerIdentity(candidate.item.stableKey, candidate.item.role)
-    )
+    val owner = StimulusPrescriptionOwnerIdentity(candidate.item.stableKey, candidate.item.role)
+    val disposition = exactPrescriptionAuthorizationProvider?.ownerExecutionDispositions?.get(owner)
+        ?: exactPrescriptionAuthorizationProvider?.let { provider ->
+            if (owner in provider.conflictingOwners) StimulusPrescriptionOwnerExecutionDisposition.EXCLUDE_CONFLICTING_ADDITION else null
+        }
+    if (disposition in setOf(
+            StimulusPrescriptionOwnerExecutionDisposition.EXCLUDE_CONFLICTING_ADDITION,
+            StimulusPrescriptionOwnerExecutionDisposition.NO_EXECUTABLE_AUTHORITY
+        )) return null
+    val exactIdentity = when (disposition) {
+        StimulusPrescriptionOwnerExecutionDisposition.PRESERVE_CONTROL_OWNER ->
+            exactPrescriptionAuthorizationProvider?.controlPrescriptions?.get(owner)
+        else -> exactPrescriptionAuthorizationProvider?.authorizedOwners?.get(owner)
+    }
     if (exactIdentity != null) {
         val remaining = (exactIdentity.sets.size - candidate.fundedBaseUnits).coerceAtLeast(0)
         if (remaining == 0) return null
-        return exactPrescriptionAuthorizationProvider.sliceFor(
-            candidate.item,
-            candidate.fundedBaseUnits,
-            minOf(limit, remaining)
-        )
+        return exactIdentity.copy(sets = exactIdentity.sets.drop(candidate.fundedBaseUnits).take(minOf(limit, remaining))
+            .mapIndexed { index, set -> set.copy(setIndex = index + 1) })
     }
     val remainder = candidate.prescription.sets.drop(candidate.fundedBaseUnits)
     if (remainder.isEmpty()) return null

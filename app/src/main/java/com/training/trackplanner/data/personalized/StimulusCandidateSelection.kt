@@ -697,7 +697,10 @@ internal fun StimulusSelectionProgramComparison.toCompactJson(): JSONObject = JS
     .put("experimentalReadinessAudit", experimentalReadinessAudit?.toJson())
     .put("productionCutoverAuthority", productionCutoverAuthority?.toJson())
     .put("prescriptionAuthorizationPlan", prescriptionAuthorizationPlan?.let { plan ->
-        JSONObject().put("shadowOnly", plan.shadowOnly).put("productionAuthority", plan.productionAuthority)
+            JSONObject().put("shadowOnly", plan.shadowOnly).put("productionAuthority", plan.productionAuthority)
+            .put("ownerExecutionDispositions", JSONArray(plan.ownerExecutionDispositions.entries.sortedWith(compareBy({ it.key.stableKey }, { it.key.selectionRole })).map { (owner, disposition) -> JSONObject()
+                .put("stableKey", owner.stableKey).put("selectionRole", owner.selectionRole).put("disposition", disposition.name)
+            }))
             .put("multiQualityResolutions", JSONArray(plan.multiQualityResolutions.values.sortedWith(compareBy({ it.owner.stableKey }, { it.owner.selectionRole })).map { resolution -> JSONObject()
                 .put("stableKey", resolution.owner.stableKey).put("selectionRole", resolution.owner.selectionRole)
                 .put("status", resolution.status.name)

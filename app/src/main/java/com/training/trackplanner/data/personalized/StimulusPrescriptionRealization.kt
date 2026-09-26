@@ -63,6 +63,19 @@ enum class StimulusPrescriptionExecutionAuthority {
     UNRESOLVED
 }
 
+/**
+ * Builder action for one exact B5 owner after B6 quality arbitration. This is deliberately
+ * separate from [StimulusMultiQualityPrescriptionResolutionStatus]: arbitration describes the
+ * authority rows, while this disposition describes what the single experimental build may do
+ * with that owner.
+ */
+enum class StimulusPrescriptionOwnerExecutionDisposition {
+    EXECUTABLE_EXACT_AUTHORITY,
+    PRESERVE_CONTROL_OWNER,
+    EXCLUDE_CONFLICTING_ADDITION,
+    NO_EXECUTABLE_AUTHORITY
+}
+
 data class StimulusEffortTarget(
     val minimumRpe: Double,
     val maximumImpliedRir: Int,

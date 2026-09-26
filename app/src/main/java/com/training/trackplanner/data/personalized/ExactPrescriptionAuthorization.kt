@@ -32,10 +32,49 @@ fun interface ExactPrescriptionAuthorizationProvider {
     val multiQualityResolutions: Map<StimulusPrescriptionOwnerIdentity, StimulusMultiQualityPrescriptionResolution>
         get() = emptyMap()
 
+    /** Owner-local B6 execution decisions. A conflict must not look like ordinary absence. */
+    val ownerExecutionDispositions: Map<StimulusPrescriptionOwnerIdentity, StimulusPrescriptionOwnerExecutionDisposition>
+        get() = emptyMap()
+
+    /** Exact CONTROL owner prescriptions used only for PRESERVE_CONTROL_OWNER dispositions. */
+    val controlPrescriptions: Map<StimulusPrescriptionOwnerIdentity, PlannedPrescription>
+        get() = emptyMap()
+
     val conflictingOwners: Set<StimulusPrescriptionOwnerIdentity>
         get() = multiQualityResolutions.filterValues {
             it.status == StimulusMultiQualityPrescriptionResolutionStatus.CONFLICTING_MULTI_QUALITY_AUTHORITY
         }.keys
+}
+
+/** Typed owner lookup keeps a known conflict distinct from an ordinary missing authority row. */
+internal sealed interface ExactOwnerPrescriptionResolution {
+    data class Authorized(val prescription: PlannedPrescription) : ExactOwnerPrescriptionResolution
+    data class PreserveControl(val prescription: PlannedPrescription) : ExactOwnerPrescriptionResolution
+    object ExcludeConflictingAddition : ExactOwnerPrescriptionResolution
+    object NoExecutableAuthority : ExactOwnerPrescriptionResolution
+    object NoExactAuthority : ExactOwnerPrescriptionResolution
+}
+
+internal fun ExactPrescriptionAuthorizationProvider.resolveOwnerPrescription(
+    item: PlannedExercise
+): ExactOwnerPrescriptionResolution {
+    val identity = StimulusPrescriptionOwnerIdentity(item.stableKey, item.role)
+    return when (ownerExecutionDispositions[identity] ?:
+        if (identity in conflictingOwners) StimulusPrescriptionOwnerExecutionDisposition.EXCLUDE_CONFLICTING_ADDITION
+        else if (identity in authorizedOwners) StimulusPrescriptionOwnerExecutionDisposition.EXECUTABLE_EXACT_AUTHORITY
+        else StimulusPrescriptionOwnerExecutionDisposition.NO_EXECUTABLE_AUTHORITY) {
+        StimulusPrescriptionOwnerExecutionDisposition.EXECUTABLE_EXACT_AUTHORITY ->
+            authorizedOwners[identity]?.let(ExactOwnerPrescriptionResolution::Authorized)
+                ?: prefixFor(item)?.let(ExactOwnerPrescriptionResolution::Authorized)
+                ?: ExactOwnerPrescriptionResolution.NoExactAuthority
+        StimulusPrescriptionOwnerExecutionDisposition.PRESERVE_CONTROL_OWNER ->
+            controlPrescriptions[identity]?.let(ExactOwnerPrescriptionResolution::PreserveControl)
+                ?: ExactOwnerPrescriptionResolution.NoExecutableAuthority
+        StimulusPrescriptionOwnerExecutionDisposition.EXCLUDE_CONFLICTING_ADDITION ->
+            ExactOwnerPrescriptionResolution.ExcludeConflictingAddition
+        StimulusPrescriptionOwnerExecutionDisposition.NO_EXECUTABLE_AUTHORITY ->
+            ExactOwnerPrescriptionResolution.NoExecutableAuthority
+    }
 }
 
 internal fun ExactPrescriptionAuthorizationProvider.authorizedPrescriptionFor(item: PlannedExercise): PlannedPrescription? =

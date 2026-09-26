@@ -569,13 +569,20 @@ class PersonalizedProgramBuilder(
         val allocations = incumbentAllocations.filterKeys { it in anchorWeights }
         val days = request.weeklyTrainingDays.coerceIn(2, 5)
         val placementContext = PlacementContext(snapshot, state, days, request.sessionMinutes)
-        val continuity = authorizedOverride?.filter { it.continuity }?.map { it.item } ?: (continuityPlanner.select(state, transitions, allocations, days) +
-            performanceContinuity.mapNotNull { item -> incumbentAllocations[item.stableKey]?.let { item.copy(targetSets = it) } })
-        val gapItems = authorizedOverride?.filter { !it.continuity && it.item.material }?.map { it.item } ?: materialCandidates.mapIndexedNotNull { index, item ->
+        val excludedConflictingOwners = exactPrescriptionAuthorizationProvider?.ownerExecutionDispositions
+            ?.filterValues { it == StimulusPrescriptionOwnerExecutionDisposition.EXCLUDE_CONFLICTING_ADDITION }
+            ?.keys.orEmpty()
+        fun isExecutableOwner(item: PlannedExercise): Boolean =
+            StimulusPrescriptionOwnerIdentity(item.stableKey, item.role) !in excludedConflictingOwners
+        val continuity = (authorizedOverride?.filter { it.continuity }?.map { it.item } ?: (continuityPlanner.select(state, transitions, allocations, days) +
+            performanceContinuity.mapNotNull { item -> incumbentAllocations[item.stableKey]?.let { item.copy(targetSets = it) } }))
+            .filter(::isExecutableOwner)
+        val gapItems = (authorizedOverride?.filter { !it.continuity && it.item.material }?.map { it.item } ?: materialCandidates.mapIndexedNotNull { index, item ->
             finite.material[index].takeIf { it > 0 }?.let { item.copy(targetSets = it) }
-        }
+        }).filter(::isExecutableOwner)
         val spare = capacity - finite.continuity - finite.material.sum()
-        val optional = authorizedOverride?.filter { !it.continuity && !it.item.material }?.map { it.item } ?: optionalCandidates.filter { it.targetSets <= spare }
+        val optional = (authorizedOverride?.filter { !it.continuity && !it.item.material }?.map { it.item } ?: optionalCandidates.filter { it.targetSets <= spare })
+            .filter(::isExecutableOwner)
         val selected = continuity + gapItems + optional
         // Capture original demand before finite capacity is allowed to erase it. No selection changes in this trace stage.
         val originalAllocations = proportionalAllocation(incumbentWeights.entries.sortedByDescending { it.value }
@@ -588,13 +595,19 @@ class PersonalizedProgramBuilder(
             materialCandidates.map { it to false } + originalContinuity.map { it to true } + optionalCandidates.map { it to false },
             selected, generationPrescriptions,
             authorizedPrescriptionFor = exactPrescriptionAuthorizationProvider?.let { provider -> { item ->
-                provider.authorizedOwners[StimulusPrescriptionOwnerIdentity(item.stableKey, item.role)] ?: provider.prefixFor(item)
+                when (val resolution = provider.resolveOwnerPrescription(item)) {
+                    is ExactOwnerPrescriptionResolution.Authorized -> resolution.prescription
+                    is ExactOwnerPrescriptionResolution.PreserveControl -> resolution.prescription
+                    ExactOwnerPrescriptionResolution.ExcludeConflictingAddition,
+                    ExactOwnerPrescriptionResolution.NoExecutableAuthority,
+                    ExactOwnerPrescriptionResolution.NoExactAuthority -> null
+                }
             } } ?: regionalTargetPlan?.let { plan -> { item -> plan.authorizedPrescriptionFor(item) } },
             authorizedPrescriptionSource = if (exactPrescriptionAuthorizationProvider != null) {
                 PrescriptionAuthoritySource.EXPERIMENTAL_MATERIAL_AUTHORIZED
             } else PrescriptionAuthoritySource.REGIONAL_TARGET_AUTHORIZED)
         val retained = retainedIncumbentSupply(snapshot, state, gaps, request, candidates, generationPrescriptions)
-        if (selected.isEmpty()) {
+        if (selected.isEmpty() && excludedConflictingOwners.isEmpty()) {
             activeCanonicalFailureEmitter?.invoke(
                 StimulusCanonicalEvaluationFailureReason.NO_EXECUTABLE_PLANNING_DEMAND,
                 null
@@ -612,19 +625,21 @@ class PersonalizedProgramBuilder(
             }
         } else null
         val exactAuthorized = if (exactPrescriptionAuthorizationProvider != null && authorizedOverride == null && regionalAuthorized == null) {
-            selected.mapIndexed { index, item ->
-                val identity = StimulusPrescriptionOwnerIdentity(item.stableKey, item.role)
-                if (identity in exactPrescriptionAuthorizationProvider.conflictingOwners) {
-                    activeCanonicalFailureEmitter?.invoke(
-                        StimulusCanonicalEvaluationFailureReason.B6_AUTHORIZATION_FAILURE,
-                        "B6_MULTI_QUALITY_OWNER_PRESCRIPTION_CONFLICT"
-                    )
-                    error("B6_MULTI_QUALITY_OWNER_PRESCRIPTION_CONFLICT: $identity")
+            selected.mapIndexedNotNull { index, item ->
+                when (val resolution = exactPrescriptionAuthorizationProvider.resolveOwnerPrescription(item)) {
+                    is ExactOwnerPrescriptionResolution.ExcludeConflictingAddition -> null
+                    is ExactOwnerPrescriptionResolution.PreserveControl ->
+                        AuthorizedSchedulingDemand("authorized_$index", item, resolution.prescription, index < continuity.size)
+                    is ExactOwnerPrescriptionResolution.Authorized ->
+                        AuthorizedSchedulingDemand("authorized_$index", item, resolution.prescription, index < continuity.size)
+                    ExactOwnerPrescriptionResolution.NoExecutableAuthority -> null
+                    ExactOwnerPrescriptionResolution.NoExactAuthority ->
+                        AuthorizedSchedulingDemand(
+                            "authorized_$index", item,
+                            generationPrescriptions.prescribe(snapshot, state.strengthIntent, item, item.style),
+                            index < continuity.size
+                        )
                 }
-                val prescription = exactPrescriptionAuthorizationProvider.authorizedOwners[identity]
-                    ?: exactPrescriptionAuthorizationProvider.prefixFor(item)
-                    ?: generationPrescriptions.prescribe(snapshot, state.strengthIntent, item, item.style)
-                AuthorizedSchedulingDemand("authorized_$index", item, prescription, index < continuity.size)
             }
         } else null
         val placement = when {

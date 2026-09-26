@@ -12,6 +12,7 @@ enum class StimulusPrescriptionAuthorizationSource {
 enum class StimulusPrescriptionAuthorizationStatus {
     AUTHORIZED_EXISTING_COMPATIBLE,
     AUTHORIZED_SAFE_REPAIR,
+    CONFLICTING_MULTI_QUALITY_AUTHORITY,
     NO_EXECUTABLE_AUTHORIZATION,
     AMBIGUOUS_OWNER,
     MODEL_UNAVAILABLE
@@ -39,7 +40,9 @@ data class StimulusPrescriptionAuthorization(
 data class StimulusPrescriptionAuthorizationPlan(
     val authorizations: List<StimulusPrescriptionAuthorization>,
     val shadowOnly: Boolean = true,
-    val productionAuthority: Boolean = false
+    val productionAuthority: Boolean = false,
+    /** Exact CONTROL owner index used to localize conflicts before the one EXPERIMENTAL build. */
+    val controlPrescriptions: Map<StimulusPrescriptionOwnerIdentity, PlannedPrescription> = emptyMap()
 ) {
     private val executableAuthorizations: List<StimulusPrescriptionAuthorization> = authorizations
         .mapNotNull { authorization ->
@@ -47,7 +50,8 @@ data class StimulusPrescriptionAuthorizationPlan(
             val prescription = authorization.authorizedPrescription ?: return@mapNotNull null
             if (authorization.status !in setOf(
                     StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
-                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
+                    StimulusPrescriptionAuthorizationStatus.CONFLICTING_MULTI_QUALITY_AUTHORITY
                 ) || authorization.quality == null) return@mapNotNull null
             authorization
         }
@@ -92,10 +96,32 @@ data class StimulusPrescriptionAuthorizationPlan(
             resolution.sharedPrescription?.let { owner to it }
         }.toMap()
 
+    val ownerExecutionDispositions: Map<StimulusPrescriptionOwnerIdentity, StimulusPrescriptionOwnerExecutionDisposition> =
+        multiQualityResolutions.mapValues { (owner, resolution) ->
+            when (resolution.status) {
+                StimulusMultiQualityPrescriptionResolutionStatus.SINGLE_EXECUTABLE_AUTHORITY,
+                StimulusMultiQualityPrescriptionResolutionStatus.IDENTICAL_MULTI_QUALITY_AUTHORITY,
+                StimulusMultiQualityPrescriptionResolutionStatus.COMPATIBLE_SHARED_PRESCRIPTION ->
+                    StimulusPrescriptionOwnerExecutionDisposition.EXECUTABLE_EXACT_AUTHORITY
+                StimulusMultiQualityPrescriptionResolutionStatus.CONFLICTING_MULTI_QUALITY_AUTHORITY ->
+                    if (owner in controlPrescriptions) StimulusPrescriptionOwnerExecutionDisposition.PRESERVE_CONTROL_OWNER
+                    else StimulusPrescriptionOwnerExecutionDisposition.EXCLUDE_CONFLICTING_ADDITION
+                StimulusMultiQualityPrescriptionResolutionStatus.NO_EXECUTABLE_AUTHORITY ->
+                    StimulusPrescriptionOwnerExecutionDisposition.NO_EXECUTABLE_AUTHORITY
+            }
+        }
+
+    val conflictingOwners: Set<StimulusPrescriptionOwnerIdentity>
+        get() = multiQualityResolutions.filterValues {
+            it.status == StimulusMultiQualityPrescriptionResolutionStatus.CONFLICTING_MULTI_QUALITY_AUTHORITY
+        }.keys
+
     fun provider(): ExactPrescriptionAuthorizationProvider = object : ExactPrescriptionAuthorizationProvider {
         override val authorizedOwners: Map<StimulusPrescriptionOwnerIdentity, PlannedPrescription> = this@StimulusPrescriptionAuthorizationPlan.authorizedOwners
         override val authorizedPrescriptions: Map<StimulusPrescriptionAuthorityIdentity, PlannedPrescription> = this@StimulusPrescriptionAuthorizationPlan.authorizedPrescriptions
         override val multiQualityResolutions: Map<StimulusPrescriptionOwnerIdentity, StimulusMultiQualityPrescriptionResolution> = this@StimulusPrescriptionAuthorizationPlan.multiQualityResolutions
+        override val ownerExecutionDispositions: Map<StimulusPrescriptionOwnerIdentity, StimulusPrescriptionOwnerExecutionDisposition> = this@StimulusPrescriptionAuthorizationPlan.ownerExecutionDispositions
+        override val controlPrescriptions: Map<StimulusPrescriptionOwnerIdentity, PlannedPrescription> = this@StimulusPrescriptionAuthorizationPlan.controlPrescriptions
 
         override fun authorizedPrescriptionFor(item: PlannedExercise, requestedSets: Int): PlannedPrescription? =
             authorizedOwners[StimulusPrescriptionOwnerIdentity(item.stableKey, item.role)]
@@ -172,7 +198,23 @@ class StimulusPrescriptionAuthorizationEngine(
             val resolution = realization.resolutions.firstOrNull { it.targetId == targetId }
             authorizationFor(target, resolution)
         }
-        return StimulusPrescriptionAuthorizationPlan(authorizations)
+        // First retain all executable quality rows to determine owner-local arbitration, then
+        // mark both rows of a real conflict as typed non-executable authority. The rows remain
+        // lossless and auditable; only the builder disposition is localized downstream.
+        val preliminary = StimulusPrescriptionAuthorizationPlan(authorizations, controlPrescriptions = controlPrescriptions)
+        val localized = authorizations.map { authorization ->
+            val owner = authorization.owner?.let { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }
+            if (owner != null && owner in preliminary.conflictingOwners && authorization.status in setOf(
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR
+                )) {
+                authorization.copy(
+                    status = StimulusPrescriptionAuthorizationStatus.CONFLICTING_MULTI_QUALITY_AUTHORITY,
+                    reasonCodes = (authorization.reasonCodes + preliminary.multiQualityResolutions.getValue(owner).reasonCodes).distinct()
+                )
+            } else authorization
+        }
+        return StimulusPrescriptionAuthorizationPlan(localized, controlPrescriptions = controlPrescriptions)
     }
 
     private fun authorizationFor(
@@ -264,6 +306,46 @@ class StimulusPrescriptionMaterializationAuditEngine(
         val expectedWeeks = (1..experimental.request.durationWeeks.coerceAtLeast(1)).toList()
         val owner = authorization.owner
         val authorized = authorization.authorizedPrescription
+        val ownerIdentity = owner?.let { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }
+        if (ownerIdentity != null && ownerIdentity in plan.conflictingOwners) {
+            val conflictReasons = (authorization.reasonCodes +
+                "B6_MULTI_QUALITY_OWNER_PRESCRIPTION_CONFLICT" +
+                "B6_MULTI_QUALITY_DISTINCT_OWNER_REQUIRED").distinct()
+            val weekly = expectedWeeks.map { week ->
+                StimulusPrescriptionWeekMaterializationAudit(
+                    weekNumber = week,
+                    authorizedSetUnits = 0,
+                    materializedSetUnits = 0,
+                    targetCompatibleMaterializedUnits = 0,
+                    shortfall = 0,
+                    overrun = 0,
+                    prescriptionPreservedOrSubset = true,
+                    reasonCodes = conflictReasons
+                )
+            }
+            return@map StimulusPrescriptionMaterializationAudit(
+                targetId = authorization.targetId,
+                quality = authorization.quality,
+                owner = owner,
+                authorizedWeeklySetUnits = 0,
+                materializedWeeklySetUnits = 0,
+                targetCompatibleMaterializedUnits = 0,
+                shortfall = 0,
+                overrun = 0,
+                prescriptionPreservedOrSubset = true,
+                state = StimulusPrescriptionMaterializationState.NOT_MATERIALIZED,
+                reasonCodes = conflictReasons,
+                executionAuthority = authorization.executionAuthority,
+                weeklyAudits = weekly,
+                fullyMaterializedWeekCount = 0,
+                partiallyMaterializedWeekCount = 0,
+                missingWeekCount = 0,
+                totalAuthorizedUnits = 0,
+                totalMaterializedUnits = 0,
+                totalCompatibleUnits = 0,
+                totalShortfallUnits = 0
+            )
+        }
         if (owner == null || authorized == null) {
             val weekly = expectedWeeks.map { week ->
                 StimulusPrescriptionWeekMaterializationAudit(
