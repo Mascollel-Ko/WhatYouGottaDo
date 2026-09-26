@@ -380,6 +380,7 @@ class StimulusSelectionServiceIntegrationTest {
             val metadata = editor.resolvedRuntimeMetadataByExerciseStableKey()
             val service = field(repository, "personalizedProgramPlanningService") as PersonalizedProgramPlanningService
             val catalog = field(service, "physicalQualityCatalog") as CanonicalExercisePhysicalQualityCatalog
+            System.err.println("B101 catalogH=" + catalog.relations(stableKey).map { it.qualityId to it.relationLevel })
             assertTrue(catalog.relations(stableKey).any { it.qualityId == TrainableQuality.HYPERTROPHY && it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY })
             val excluded = metadata.keys.filter { key ->
                 key != stableKey && catalog.relations(key).any {
@@ -409,6 +410,7 @@ class StimulusSelectionServiceIntegrationTest {
             val production = repository.generatePreparedPersonalizedProgramEvaluation(preflight, answers)
             val comparison = requireNotNull(production.comparison)
             val hTarget = comparison.targetPlan.qualityTargets.firstOrNull { it.quality == TrainableQuality.HYPERTROPHY }
+            System.err.println("B101 target=" + hTarget)
             assertNotNull("real B4 Hypertrophy target", hTarget)
             assertTrue("real B4 Hypertrophy target must have numeric authority", hTarget!!.numericAuthority !in setOf(StimulusTargetNumericAuthority.NONE, StimulusTargetNumericAuthority.UNRESOLVED))
             val hAuthorization = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().firstOrNull {
@@ -417,15 +419,18 @@ class StimulusSelectionServiceIntegrationTest {
                     StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR
                 )
             }
+            System.err.println("B101 auth=" + hAuthorization + " all=" + comparison.prescriptionAuthorizationPlan?.authorizations)
             assertNotNull("real B6 Hypertrophy authorization", hAuthorization)
             val h = requireNotNull(hAuthorization)
             assertNotNull("real B5 owner", h.owner)
             assertTrue(h.authorizedPrescription?.sets?.all { it.reps in 7..15 && it.weightKg > 0.0 } == true)
             assertEquals(StimulusPrescriptionExecutionAuthority.CONDITIONAL_ON_UNPERSISTED_EFFORT, h.executionAuthority)
             val hMaterialization = comparison.prescriptionMaterializationAudits.first { it.targetId == "QUALITY:HYPERTROPHY" && it.owner?.stableKey == h.owner?.stableKey }
+            System.err.println("B101 materialization=" + hMaterialization)
             assertEquals(StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED, hMaterialization.state)
             assertEquals(StimulusPrescriptionExecutionAuthority.CONDITIONAL_ON_UNPERSISTED_EFFORT, hMaterialization.executionAuthority)
             assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, comparison.productionCutoverAuthority?.status)
+            System.err.println("B101 b8=" + comparison.productionCutoverAuthority)
             assertTrue(comparison.productionCutoverAuthority?.reasonCodes.orEmpty().contains("B8_CUTOVER_V1_NON_STRENGTH_CHANGE_OUT_OF_SCOPE"))
             assertEquals(StimulusProductionProgramSource.CONTROL, production.routeDecision.selectedSource)
             assertEquals(personalizedProgramFingerprint(comparison.control.request, comparison.control.items), personalizedProgramFingerprint(production.program.request, production.program.items))
