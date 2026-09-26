@@ -346,6 +346,97 @@ class StimulusSelectionServiceIntegrationTest {
         }
     }
 
+    @Test
+    fun realServiceHypertrophyChainIsExecutableButRemainsShadowOnly() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val db = Room.inMemoryDatabaseBuilder(context, TrainingDatabase::class.java)
+            .allowMainThreadQueries().build()
+        try {
+            val repository = TrainingRepository(db, context)
+            repository.seedIfNeeded()
+            db.workoutDao().allEntries().forEach { entry -> db.workoutDao().deleteEntryById(entry.id) }
+            db.initialUserProfileDao().upsert(
+                InitialUserProfile(
+                    primaryGoal = "HYPERTROPHY_PHYSIQUE", strengthTrainingYears = 2.0,
+                    badmintonTrainingYears = 0.0, strengthSessionsPerWeek = 3.0,
+                    strengthMinutesPerSession = 60, habitualTrainingIntensity = "NORMAL"
+                )
+            )
+            val cutoff = LocalDate.of(2026, 9, 20)
+            val stableKey = "cable_rear_delt_fly"
+            val exercise = requireNotNull(db.exerciseDao().findByStableKey(stableKey))
+            listOf(7L, 9L, 14L, 16L, 21L, 23L, 28L, 30L, 35L, 37L, 42L, 44L).forEachIndexed { index, daysAgo ->
+                val entryId = db.workoutDao().insertEntry(
+                    WorkoutEntry(date = cutoff.minusDays(daysAgo).toString(), exerciseStableKey = exercise.stableKey,
+                        exerciseName = exercise.name, category = exercise.category,
+                        sessionStableKey = "b101-hypertrophy-history-$index")
+                )
+                (1..3).forEach { setIndex ->
+                    db.workoutDao().insertSet(WorkoutSet(entryId = entryId, setIndex = setIndex, reps = 10,
+                        weightKg = 12.5, confirmed = true, rpe = 8.0))
+                }
+            }
+            val editor = field(repository, "exerciseMetadataEditorService") as ExerciseMetadataEditorService
+            val metadata = editor.resolvedRuntimeMetadataByExerciseStableKey()
+            val service = field(repository, "personalizedProgramPlanningService") as PersonalizedProgramPlanningService
+            val catalog = field(service, "physicalQualityCatalog") as CanonicalExercisePhysicalQualityCatalog
+            assertTrue(catalog.relations(stableKey).any { it.qualityId == TrainableQuality.HYPERTROPHY && it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY })
+            val excluded = metadata.keys.filter { key ->
+                key != stableKey && catalog.relations(key).any {
+                    it.qualityId == TrainableQuality.HYPERTROPHY && it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY
+                }
+            }.toSet()
+            val request = ProgramSkeletonRequest(
+                name = "B10.1 service hypertrophy", goal = ProgramGoal.BODYBUILDING, weeklyTrainingDays = 3,
+                sessionMinutes = 60, availableEquipment = setOf("CABLE"), excludedExerciseText = "",
+                badmintonTransferRatio = 0.0, sportStrengthRatio = "AUTO", periodizationType = ProgramPeriodizationType.AUTO,
+                durationWeeks = 2, excludedExerciseStableKeys = excluded
+            )
+            val constraints = PersonalizedGenerationConstraints(
+                explicitGoal = ProgramGoal.BODYBUILDING, explicitWeeklyTrainingDays = 3,
+                explicitDurationWeeks = 2, explicitSessionMinutes = 60
+            )
+            val preflight = repository.preparePersonalizedProgram(request, constraints, cutoff)
+            val answers = PersonalizedPlanningAnswers(preflight.questions.associate { question ->
+                question.id to when (question.id) {
+                    QUESTION_STRENGTH_INTENT -> StrengthIntent.HYPERTROPHY_PRIORITY.name
+                    QUESTION_BADMINTON_INTENT -> BadmintonPlanningIntent.DISABLED.name
+                    QUESTION_FREE_WEIGHT -> FreeWeightWillingness.WILLING.name
+                    QUESTION_INTERRUPTION_CAUSE, QUESTION_INTERRUPTION_FREQUENCY -> "UNSURE"
+                    else -> if (question.id.startsWith("INTERRUPTION_CAUSE_")) "UNKNOWN" else error("Unexpected personalized question: ${question.id}")
+                }
+            })
+            val production = repository.generatePreparedPersonalizedProgramEvaluation(preflight, answers)
+            val comparison = requireNotNull(production.comparison)
+            val hTarget = comparison.targetPlan.qualityTargets.firstOrNull { it.quality == TrainableQuality.HYPERTROPHY }
+            assertNotNull("real B4 Hypertrophy target", hTarget)
+            assertTrue("real B4 Hypertrophy target must have numeric authority", hTarget!!.numericAuthority !in setOf(StimulusTargetNumericAuthority.NONE, StimulusTargetNumericAuthority.UNRESOLVED))
+            val hAuthorization = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().firstOrNull {
+                it.quality == TrainableQuality.HYPERTROPHY && it.status in setOf(
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR
+                )
+            }
+            assertNotNull("real B6 Hypertrophy authorization", hAuthorization)
+            val h = requireNotNull(hAuthorization)
+            assertNotNull("real B5 owner", h.owner)
+            assertTrue(h.authorizedPrescription?.sets?.all { it.reps in 7..15 && it.weightKg > 0.0 } == true)
+            assertEquals(StimulusPrescriptionExecutionAuthority.CONDITIONAL_ON_UNPERSISTED_EFFORT, h.executionAuthority)
+            val hMaterialization = comparison.prescriptionMaterializationAudits.first { it.targetId == "QUALITY:HYPERTROPHY" && it.owner?.stableKey == h.owner?.stableKey }
+            assertEquals(StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED, hMaterialization.state)
+            assertEquals(StimulusPrescriptionExecutionAuthority.CONDITIONAL_ON_UNPERSISTED_EFFORT, hMaterialization.executionAuthority)
+            assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, comparison.productionCutoverAuthority?.status)
+            assertTrue(comparison.productionCutoverAuthority?.reasonCodes.orEmpty().contains("B8_CUTOVER_V1_NON_STRENGTH_CHANGE_OUT_OF_SCOPE"))
+            assertEquals(StimulusProductionProgramSource.CONTROL, production.routeDecision.selectedSource)
+            assertEquals(personalizedProgramFingerprint(comparison.control.request, comparison.control.items), personalizedProgramFingerprint(production.program.request, production.program.items))
+            assertEquals(1, production.buildCounts.controlBuilds)
+            assertEquals(1, production.buildCounts.experimentalBuilds)
+            assertEquals(0, production.buildCounts.thirdBuilds)
+        } finally {
+            db.close()
+        }
+    }
+
     private fun field(target: Any, name: String): Any =
         requireNotNull(target.javaClass.getDeclaredField(name).apply { isAccessible = true }.get(target))
 }
