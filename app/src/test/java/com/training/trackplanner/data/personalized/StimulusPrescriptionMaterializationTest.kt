@@ -281,4 +281,89 @@ class StimulusPrescriptionMaterializationTest {
         assertTrue(audit.reasonCodes.contains("B6_AUTHORIZED_SET_REUSED"))
         assertTrue(audit.reasonCodes.contains("B6_AUTHORIZED_SET_MULTIPLICITY_EXCEEDED"))
     }
+
+    @Test
+    fun multiQualityAuthorityIsLosslessAndConflictsFailClosedRegardlessOfInputOrder() {
+        val owner = StimulusPrescriptionOwner(key, role, "B5_SELECTION")
+        val strength = prescription(5, 80.0)
+        val hypertrophy = prescription(8, 80.0)
+        fun authorization(quality: TrainableQuality, value: PlannedPrescription) = StimulusPrescriptionAuthorization(
+            targetId = "QUALITY:${quality.name}", quality = quality, owner = owner,
+            source = StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE,
+            inputPrescription = value, plannedCompatibility = null, authorizedPrescription = value,
+            status = StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE
+        )
+        fun plan(rows: List<StimulusPrescriptionAuthorization>) = StimulusPrescriptionAuthorizationPlan(rows)
+        val first = plan(listOf(authorization(TrainableQuality.STRENGTH, strength), authorization(TrainableQuality.HYPERTROPHY, hypertrophy)))
+        val reversed = plan(listOf(authorization(TrainableQuality.HYPERTROPHY, hypertrophy), authorization(TrainableQuality.STRENGTH, strength)))
+        val identityStrength = StimulusPrescriptionAuthorityIdentity(key, role, TrainableQuality.STRENGTH)
+        val identityHypertrophy = StimulusPrescriptionAuthorityIdentity(key, role, TrainableQuality.HYPERTROPHY)
+        assertEquals(strength, first.authorizedPrescriptions.getValue(identityStrength))
+        assertEquals(hypertrophy, first.authorizedPrescriptions.getValue(identityHypertrophy))
+        assertEquals(first.authorizedPrescriptions, reversed.authorizedPrescriptions)
+        assertEquals(
+            StimulusMultiQualityPrescriptionResolutionStatus.CONFLICTING_MULTI_QUALITY_AUTHORITY,
+            first.multiQualityResolutions.getValue(StimulusPrescriptionOwnerIdentity(key, role)).status
+        )
+        assertTrue(first.multiQualityResolutions.getValue(StimulusPrescriptionOwnerIdentity(key, role)).reasonCodes.contains("B6_MULTI_QUALITY_OWNER_PRESCRIPTION_CONFLICT"))
+        assertTrue(first.authorizedOwners.isEmpty())
+        assertNull(first.provider().authorizedPrescriptionFor(PlannedExercise(key, role, "test", 1, targetSets = 2)))
+    }
+
+    @Test
+    fun qualitySpecificLookupAndFundedSliceCannotBorrowAcrossQualities() {
+        val owner = StimulusPrescriptionOwner(key, role, "B5_SELECTION")
+        val strength = prescription(5, 80.0, sets = 3)
+        val hypertrophy = prescription(8, 60.0, sets = 3)
+        fun authorization(quality: TrainableQuality, value: PlannedPrescription) = StimulusPrescriptionAuthorization(
+            targetId = "QUALITY:${quality.name}", quality = quality, owner = owner,
+            source = StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE,
+            inputPrescription = value, plannedCompatibility = null, authorizedPrescription = value,
+            status = StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE
+        )
+        val provider = StimulusPrescriptionAuthorizationPlan(listOf(
+            authorization(TrainableQuality.STRENGTH, strength), authorization(TrainableQuality.HYPERTROPHY, hypertrophy)
+        )).provider()
+        val item = PlannedExercise(key, role, "test", 1, targetSets = 2)
+        assertEquals(strength, provider.authorizedPrescriptionFor(item, TrainableQuality.STRENGTH, 3))
+        assertEquals(hypertrophy, provider.authorizedPrescriptionFor(item, TrainableQuality.HYPERTROPHY, 3))
+        assertEquals(80.0, provider.sliceFor(item, TrainableQuality.STRENGTH, 1, 1)!!.sets.single().weightKg, 0.0)
+        assertEquals(60.0, provider.sliceFor(item, TrainableQuality.HYPERTROPHY, 1, 1)!!.sets.single().weightKg, 0.0)
+        assertNull(provider.authorizedPrescriptionFor(item.copy(role = "OTHER"), TrainableQuality.HYPERTROPHY, 3))
+    }
+
+    @Test
+    fun identicalMultiQualityAuthorityUsesOneSharedOwnerPrescriptionWithoutDuplication() {
+        val owner = StimulusPrescriptionOwner(key, role, "B5_SELECTION")
+        val shared = prescription(8, 60.0)
+        fun authorization(quality: TrainableQuality) = StimulusPrescriptionAuthorization(
+            targetId = "QUALITY:${quality.name}", quality = quality, owner = owner,
+            source = StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE,
+            inputPrescription = shared, plannedCompatibility = null, authorizedPrescription = shared,
+            status = StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE
+        )
+        val plan = StimulusPrescriptionAuthorizationPlan(listOf(
+            authorization(TrainableQuality.HYPERTROPHY), authorization(TrainableQuality.STRENGTH)
+        ))
+        val resolution = plan.multiQualityResolutions.getValue(StimulusPrescriptionOwnerIdentity(key, role))
+        assertEquals(StimulusMultiQualityPrescriptionResolutionStatus.IDENTICAL_MULTI_QUALITY_AUTHORITY, resolution.status)
+        assertEquals(shared, plan.authorizedOwners.getValue(StimulusPrescriptionOwnerIdentity(key, role)))
+        assertEquals(2, plan.authorizedPrescriptions.size)
+    }
+
+    @Test
+    fun hypertrophyMaterializationExposesConditionalEffortExecutionAuthority() {
+        val shared = prescription(8, 60.0)
+        val plan = StimulusPrescriptionAuthorizationPlan(listOf(
+            StimulusPrescriptionAuthorization(
+                targetId = "QUALITY:HYPERTROPHY", quality = TrainableQuality.HYPERTROPHY,
+                owner = StimulusPrescriptionOwner(key, role), source = StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE,
+                inputPrescription = shared, plannedCompatibility = null, authorizedPrescription = shared,
+                status = StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE
+            )
+        ))
+        assertEquals(StimulusPrescriptionExecutionAuthority.CONDITIONAL_ON_UNPERSISTED_EFFORT, plan.authorizations.single().executionAuthority)
+        val audit = StimulusPrescriptionMaterializationAuditEngine().audit(plan, experimental(listOf(1), shared), snapshot).single()
+        assertEquals(StimulusPrescriptionExecutionAuthority.CONDITIONAL_ON_UNPERSISTED_EFFORT, audit.executionAuthority)
+    }
 }

@@ -30,6 +30,39 @@ data class StimulusPrescriptionOwnerIdentity(
     val selectionRole: String
 )
 
+/** Exact executable authority identity. B5 ownership intentionally remains owner-only. */
+data class StimulusPrescriptionAuthorityIdentity(
+    val stableKey: String,
+    val selectionRole: String,
+    val quality: TrainableQuality
+) {
+    val owner: StimulusPrescriptionOwnerIdentity
+        get() = StimulusPrescriptionOwnerIdentity(stableKey, selectionRole)
+}
+
+enum class StimulusMultiQualityPrescriptionResolutionStatus {
+    SINGLE_EXECUTABLE_AUTHORITY,
+    IDENTICAL_MULTI_QUALITY_AUTHORITY,
+    COMPATIBLE_SHARED_PRESCRIPTION,
+    CONFLICTING_MULTI_QUALITY_AUTHORITY,
+    NO_EXECUTABLE_AUTHORITY
+}
+
+data class StimulusMultiQualityPrescriptionResolution(
+    val owner: StimulusPrescriptionOwnerIdentity,
+    val status: StimulusMultiQualityPrescriptionResolutionStatus,
+    val authorityIdentities: List<StimulusPrescriptionAuthorityIdentity> = emptyList(),
+    val sharedPrescription: PlannedPrescription? = null,
+    val reasonCodes: List<String> = emptyList()
+)
+
+/** Structural materialization is distinct from whether effort is persisted/enforceable. */
+enum class StimulusPrescriptionExecutionAuthority {
+    FULLY_ENCODED,
+    CONDITIONAL_ON_UNPERSISTED_EFFORT,
+    UNRESOLVED
+}
+
 data class StimulusEffortTarget(
     val minimumRpe: Double,
     val maximumImpliedRir: Int,

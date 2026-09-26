@@ -613,9 +613,16 @@ class PersonalizedProgramBuilder(
         } else null
         val exactAuthorized = if (exactPrescriptionAuthorizationProvider != null && authorizedOverride == null && regionalAuthorized == null) {
             selected.mapIndexed { index, item ->
-                val prescription = exactPrescriptionAuthorizationProvider.authorizedOwners[
-                    StimulusPrescriptionOwnerIdentity(item.stableKey, item.role)
-                ] ?: exactPrescriptionAuthorizationProvider.prefixFor(item)
+                val identity = StimulusPrescriptionOwnerIdentity(item.stableKey, item.role)
+                if (identity in exactPrescriptionAuthorizationProvider.conflictingOwners) {
+                    activeCanonicalFailureEmitter?.invoke(
+                        StimulusCanonicalEvaluationFailureReason.B6_AUTHORIZATION_FAILURE,
+                        "B6_MULTI_QUALITY_OWNER_PRESCRIPTION_CONFLICT"
+                    )
+                    error("B6_MULTI_QUALITY_OWNER_PRESCRIPTION_CONFLICT: $identity")
+                }
+                val prescription = exactPrescriptionAuthorizationProvider.authorizedOwners[identity]
+                    ?: exactPrescriptionAuthorizationProvider.prefixFor(item)
                     ?: generationPrescriptions.prescribe(snapshot, state.strengthIntent, item, item.style)
                 AuthorizedSchedulingDemand("authorized_$index", item, prescription, index < continuity.size)
             }
