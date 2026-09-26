@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.46.0 |
+| Protocol version | 3.46.1 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | cf82d1a6 |
+| Last audited commit | 032ae7cc |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1083,3 +1083,10 @@ Post-audit boundary notes
 - B6 Hypertrophy safe repairs and compatible funded sets carry canonical minimum RPE `7.0`. A funded Hypertrophy authorization is `FULLY_ENCODED` only when every authorized set contains a valid target; provisional `8 reps / 0 kg` remains non-executable. Planned targets flow through applied program sets, progression originals/plans, edits and kg progression while actual `WorkoutSet.rpe` remains an independent recorded observation.
 - CSV program backups, community snapshots, progression wire/backup rows, fingerprints and exact prescription subset semantics preserve the optional target with old-payload compatibility. Compact plan preview and record provenance display one common planned RPE per exercise or per-set labels for mixed targets, with no label for all-null targets and no prepopulation of actual RPE.
 - The contract is additive and append-only for positional constructors. Manual sets receive null targets, existing set edits preserve them, and target-aware content fingerprints do not change owner identity/signatures or the Strength-only B8/B9 production boundary. No `HYPERTROPHY_V1` route, third build, or production mutation is introduced.
+
+### 3.46.1 — B11.1 executable effort threshold semantic closeout
+
+- B11.1 separates numeric RPE validity from quality-specific effort sufficiency. `validatedTargetRpeMin()` continues to accept only finite values in the governed `1.0..10.0` domain; it does not decide whether a target is sufficient for a quality.
+- The canonical effort policy is centralized in `StimulusEffortPolicy.kt`. A Hypertrophy prescription is `FULLY_ENCODED` only when every funded set contains a valid persisted minimum-RPE target at or above the canonical Hypertrophy threshold (`7.0`, inclusive). Null, invalid, `6.9`, and `6.0` targets remain conservative/non-fully-encoded; `7.0` and `8.0` are sufficient. One insufficient funded set makes the whole prescription insufficient.
+- Exact prescription preservation remains separate from effort sufficiency. Preserving the same insufficient target can retain the exact materialized shape while still reporting conservative execution authority, and a different sufficient target such as `8.0` does not relax exact authorized-prescription matching. Missing targets continue to report `B6_EFFORT_TARGET_NOT_PRESERVED`; below-threshold persisted targets report the deterministic canonical-minimum diagnostic.
+- Normal B6 generation still emits Hypertrophy minimum RPE `7.0`; safe repair remains fully encoded. Room remains v35, with no schema or backup change, UI/editor change, actual-RPE change, migration, new build, `HYPERTROPHY_V1` scope, or production routing change. Hypertrophy remains shadow-only and the Strength/B8/B9, B9.2, and B10.2 boundaries remain unchanged.
