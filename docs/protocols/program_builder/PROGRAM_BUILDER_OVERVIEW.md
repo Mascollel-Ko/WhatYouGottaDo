@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.47.1 |
+| Protocol version | 3.48.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 59f91f7a5a960565f16e6bcc55c09bce0fac2177 |
+| Last audited commit | 9ddb8dfbf5f2ed1b54eafc0e9f7876431717be05 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1104,3 +1104,10 @@ Post-audit boundary notes
 - The remaining B6 integrity failures remain global blockers, including materialization invariant failure, authorization overrun/shortfall/missing week, prescription non-preservation/mutation/authority mismatch, and ownerless true invariants. A non-material H effort error cannot poison Strength, a non-material Strength effort error cannot poison H, and same-owner dual-quality diagnostics remain isolated unless the diagnostic quality is material for the audited scope. Material cross-quality attribution and B10.2 conflict localization remain blocking.
 - Added-owner validation now uses `CutoverScopePolicy.addedOwnerB5Reason`; missing H candidates emit only `B8_HYPERTROPHY_V1_ADDED_OWNER_WITHOUT_EXACT_B5_AUTHORITY`, while the default `audit(comparison)` API remains Strength and emits the existing Strength reason. No H B9 route/source/default changed.
 - B12.1 added paired positive/negative cross-quality isolation, global-invariant blocking, same-owner dual-quality coverage, H/Strength missing-candidate reason assertions and the existing real Strength/H fixtures. Room remains v35; no schema, DAO, persistence, backup, UI, migration, or third build changed.
+
+### 3.48.0 — B13.0 combined Strength–Hypertrophy B8 authority
+
+- B13.0 adds the bounded `STRENGTH_HYPERTROPHY_V1` B8 scope. It is eligible only when B7 material attributions contain both `QUALITY:STRENGTH` and `QUALITY:HYPERTROPHY`; every material owner-quality requirement independently reuses the established B4/B5/B6 and full-materialization gates.
+- Material quality is derived only from B7 attribution target IDs. Material Power, RFD, SSC, Endurance, Cardio, Mobility, task, or unknown targets remain out of scope. Non-material cross-quality effort diagnostics retain B12.1 owner-and-quality isolation, while global B6 integrity failures remain global.
+- B8 decisions now preserve lossless `authorizedAuthorityIdentities` (`stableKey`, `selectionRole`, `quality`) alongside the legacy owner-only list. Owners and owner-quality identities are deterministic and failures expose neither partial list. Same-owner conflicting multi-quality authority remains governed by B10.1/B10.2.
+- B13.0 does not add a B9 combined mode or source. The existing Strength-only routing default remains `B8_STRENGTH_V1_ACTIVE`; a valid combined authority is therefore rejected by current B9 with `B9_B8_SCOPE_MISMATCH` and routes CONTROL.
