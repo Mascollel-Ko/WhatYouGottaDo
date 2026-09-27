@@ -454,10 +454,29 @@ class StimulusSelectionServiceIntegrationTest {
         val hMaterialization = comparison.prescriptionMaterializationAudits.first { it.targetId == "QUALITY:HYPERTROPHY" && it.owner?.stableKey == h.owner?.stableKey }
         assertEquals(StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED, hMaterialization.state)
         assertEquals(StimulusPrescriptionExecutionAuthority.FULLY_ENCODED, hMaterialization.executionAuthority)
+
+        val hDecision = StimulusProductionCutoverAuthorityAuditEngine().audit(
+            comparison,
+            StimulusProductionCutoverScope.HYPERTROPHY_V1
+        )
+        assertEquals(StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER, hDecision.status)
+        assertEquals(StimulusProductionCutoverScope.HYPERTROPHY_V1, hDecision.scope)
+        assertEquals(listOf("B8_HYPERTROPHY_V1_AUTHORIZED"), hDecision.reasonCodes)
+        assertEquals(
+            setOf(StimulusPrescriptionOwnerIdentity(h.owner!!.stableKey, h.owner!!.selectionRole)),
+            hDecision.authorizedOwnerIdentities.toSet()
+        )
+
+        // The service still evaluates and routes production through the Strength-only B9 path.
+        // A valid H B8 authority is therefore deliberately held at CONTROL until a later B9 scope.
         assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, comparison.productionCutoverAuthority?.status)
+        assertEquals(StimulusProductionCutoverScope.STRENGTH_V1, comparison.productionCutoverAuthority?.scope)
         assertTrue(comparison.productionCutoverAuthority?.reasonCodes.orEmpty().contains("B8_CUTOVER_V1_NON_STRENGTH_CHANGE_OUT_OF_SCOPE"))
         assertEquals(StimulusProductionProgramSource.CONTROL, production.routeDecision.selectedSource)
-        assertEquals(personalizedProgramFingerprint(comparison.control.request, comparison.control.items), personalizedProgramFingerprint(production.program.request, production.program.items))
+        val controlFingerprint = personalizedProgramFingerprint(comparison.control.request, comparison.control.items)
+        val experimentalFingerprint = personalizedProgramFingerprint(comparison.experimental.request, comparison.experimental.items)
+        assertNotEquals(controlFingerprint, experimentalFingerprint)
+        assertEquals(controlFingerprint, personalizedProgramFingerprint(production.program.request, production.program.items))
         assertEquals(1, production.buildCounts.controlBuilds)
         assertEquals(1, production.buildCounts.experimentalBuilds)
         assertEquals(0, production.buildCounts.thirdBuilds)
