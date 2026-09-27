@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.48.0 |
+| Protocol version | 3.48.1 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 9ddb8dfbf5f2ed1b54eafc0e9f7876431717be05 |
+| Last audited commit | 2313e4fe7b8f619fc15ead2645924cf7833eabdf |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1111,3 +1111,10 @@ Post-audit boundary notes
 - Material quality is derived only from B7 attribution target IDs. Material Power, RFD, SSC, Endurance, Cardio, Mobility, task, or unknown targets remain out of scope. Non-material cross-quality effort diagnostics retain B12.1 owner-and-quality isolation, while global B6 integrity failures remain global.
 - B8 decisions now preserve lossless `authorizedAuthorityIdentities` (`stableKey`, `selectionRole`, `quality`) alongside the legacy owner-only list. Owners and owner-quality identities are deterministic and failures expose neither partial list. Same-owner conflicting multi-quality authority remains governed by B10.1/B10.2.
 - B13.0 does not add a B9 combined mode or source. The existing Strength-only routing default remains `B8_STRENGTH_V1_ACTIVE`; a valid combined authority is therefore rejected by current B9 with `B9_B8_SCOPE_MISMATCH` and routes CONTROL.
+
+### 3.48.1 — B13.1 production-boundary integrity and build-accounting hardening
+
+- B7 now collects and adjudicates all B6 materialization integrity evidence before applying the semantic `NO_MATERIAL_CHANGE` shortcut. A true invariant or authorization violation therefore yields `NOT_ELIGIBLE` with `materializationIntegrityPassed=false` and its concrete B6 reason codes, even when CONTROL and EXPERIMENTAL fingerprints are equal. Expected owner-local multi-quality conflict localization remains a clean `NO_MATERIAL_CHANGE` when no materialization corruption is present; B8 maps B7 `NOT_ELIGIBLE` to `CONTROL_REQUIRED`, and B9 remains CONTROL-only for that outcome.
+- Production build accounting records a typed invocation (`CONTROL`, `EXPERIMENTAL`, or `OTHER`) at the actual program-build boundary. Diagnostics expose `totalBuildInvocations`, categorized counts, and `thirdBuilds`/`otherBuilds`; the normal path is exactly one CONTROL plus one EXPERIMENTAL invocation (total 2, third 0), while a deliberate pure seam invocation is observable as OTHER without running a third production build. Audits, routing, fingerprints, snapshots, DAO work, and persistence are excluded from the count.
+- Owner-only funded slices preserve exact `(stableKey, selectionRole)` authority. A non-zero offset requires a complete authorized owner map; a callback that can provide only a truncated prefix fails closed. Offset zero retains the prefix convenience behavior, quality-specific authority remains keyed by `(stableKey, selectionRole, quality)`, and bounds are checked without integer overflow. No cross-quality borrow, regeneration, wrapping, restart, inference, or silent clipping is permitted.
+- B13.1 is a production-boundary hardening release only. Strength-v1 remains the sole active B9 source; Hypertrophy-v1 and combined Strength–Hypertrophy authority remain shadow/authority-only, `CONTROL_ONLY` rollback remains intact, Room stays v35, and no DAO, backup, wire, UI, persistence-schema, hybrid, or third-build path is introduced.
