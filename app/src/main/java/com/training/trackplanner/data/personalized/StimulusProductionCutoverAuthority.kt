@@ -156,7 +156,7 @@ class StimulusProductionCutoverAuthorityAuditEngine {
         val candidate = comparison.selectionPlan.selectedCandidates.firstOrNull {
             it.stableKey == identity.stableKey && it.selectionRole == identity.selectionRole
         }
-        if (candidate == null) reasons += "B8_CUTOVER_V1_ADDED_OWNER_WITHOUT_EXACT_B5_AUTHORITY"
+        if (candidate == null) reasons += policy.addedOwnerB5Reason
 
         val target = comparison.targetPlan.qualityTargets.firstOrNull { "QUALITY:${it.quality.name}" == policy.targetId }
         val candidateTargets = candidate?.coveredTargetIds.orEmpty()
@@ -345,7 +345,12 @@ class StimulusProductionCutoverAuthorityAuditEngine {
         )
         comparison.prescriptionMaterializationAudits.forEach { audit ->
             val ownerIdentity = audit.owner?.let { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }
-            val includeEffortDiagnostics = policy.scope == StimulusProductionCutoverScope.STRENGTH_V1 || ownerIdentity in materialOwners
+            val includeEffortDiagnostics = includeQualitySpecificDiagnostic(
+                policy = policy,
+                ownerIdentity = ownerIdentity,
+                rowQuality = audit.quality,
+                materialOwners = materialOwners
+            )
             if (audit.state == StimulusPrescriptionMaterializationState.INVARIANT_FAILURE) add("B6_MATERIALIZATION_INVARIANT_FAILURE")
             addAll(audit.reasonCodes.filter { it in known && (includeEffortDiagnostics || it !in effortIntegrityReasons) })
             addAll(audit.weeklyAudits.flatMap { it.reasonCodes }.filter { it in known && (includeEffortDiagnostics || it !in effortIntegrityReasons) })
@@ -357,10 +362,22 @@ class StimulusProductionCutoverAuthorityAuditEngine {
         }
         comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().forEach { authorization ->
             val ownerIdentity = authorization.owner?.let { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }
-            val includeEffortDiagnostics = policy.scope == StimulusProductionCutoverScope.STRENGTH_V1 || ownerIdentity in materialOwners
+            val includeEffortDiagnostics = includeQualitySpecificDiagnostic(
+                policy = policy,
+                ownerIdentity = ownerIdentity,
+                rowQuality = authorization.quality,
+                materialOwners = materialOwners
+            )
             addAll(authorization.reasonCodes.filter { it in known && (includeEffortDiagnostics || it !in effortIntegrityReasons) })
         }
     }
+
+    private fun includeQualitySpecificDiagnostic(
+        policy: CutoverScopePolicy,
+        ownerIdentity: StimulusPrescriptionOwnerIdentity?,
+        rowQuality: TrainableQuality?,
+        materialOwners: Set<StimulusPrescriptionOwnerIdentity>
+    ): Boolean = ownerIdentity != null && ownerIdentity in materialOwners && rowQuality == policy.quality
 
     private fun materialOwnerIdentities(comparison: StimulusSelectionProgramComparison): Set<StimulusPrescriptionOwnerIdentity> = buildSet {
         addAll(comparison.addedOwnerIdentities)
