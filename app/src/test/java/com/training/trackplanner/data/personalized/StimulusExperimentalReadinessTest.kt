@@ -125,6 +125,61 @@ class StimulusExperimentalReadinessTest {
     }
 
     @Test
+    fun equalProgramsWithTrueB6IntegrityViolationDoNotBypassB7AndBlockB8AndB9() {
+        val comparison = comparison(
+            controlUnits = 4.0, experimentalUnits = 4.0,
+            controlSessions = 2.0, experimentalSessions = 2.0,
+            sameIdentity = true,
+            materialization = listOf(StimulusPrescriptionMaterializationAudit(
+                targetId = "QUALITY:STRENGTH", quality = TrainableQuality.STRENGTH, owner = null,
+                authorizedWeeklySetUnits = 2, materializedWeeklySetUnits = 2, targetCompatibleMaterializedUnits = 2,
+                shortfall = 0, overrun = 1, prescriptionPreservedOrSubset = true,
+                state = StimulusPrescriptionMaterializationState.INVARIANT_FAILURE,
+                reasonCodes = listOf("B6_AUTHORIZED_SET_REUSED")
+            ))
+        )
+        val b7 = StimulusExperimentalReadinessAuditEngine().audit(comparison)
+        assertEquals(StimulusExperimentalReadinessStatus.NOT_ELIGIBLE, b7.status)
+        assertFalse(b7.materializationIntegrityPassed)
+        assertTrue(b7.reasonCodes.contains("B6_AUTHORIZED_SET_REUSED"))
+        val withB7 = comparison.copy(experimentalReadinessAudit = b7)
+        val b8 = StimulusProductionCutoverAuthorityAuditEngine().audit(withB7)
+        assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, b8.status)
+        val b9 = StimulusProductionRouter().route(
+            withB7, b8, StimulusProductionRoutingMode.B8_STRENGTH_V1_ACTIVE
+        )
+        assertEquals(StimulusProductionProgramSource.CONTROL, b9.decision.selectedSource)
+    }
+
+    @Test
+    fun conflictOnlyEqualProgramsRemainNoMaterialChangeAndControlRoutes() {
+        val owner = StimulusPrescriptionOwner("candidate", "STRENGTH", "B5_SELECTION")
+        fun authorization(quality: TrainableQuality, reps: Int) = StimulusPrescriptionAuthorization(
+            targetId = "QUALITY:${quality.name}", quality = quality, owner = owner,
+            source = StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE,
+            inputPrescription = heterogeneousAuthorization(), plannedCompatibility = null,
+            authorizedPrescription = heterogeneousAuthorization().copy(sets = heterogeneousAuthorization().sets.map { it.copy(reps = reps) }),
+            status = StimulusPrescriptionAuthorizationStatus.CONFLICTING_MULTI_QUALITY_AUTHORITY
+        )
+        val comparison = comparison(
+            sameIdentity = true,
+            authorizationPlan = StimulusPrescriptionAuthorizationPlan(listOf(
+                authorization(TrainableQuality.STRENGTH, 5),
+                authorization(TrainableQuality.HYPERTROPHY, 8)
+            ))
+        )
+        val b7 = StimulusExperimentalReadinessAuditEngine().audit(comparison)
+        assertEquals(StimulusExperimentalReadinessStatus.NO_MATERIAL_CHANGE, b7.status)
+        val withB7 = comparison.copy(experimentalReadinessAudit = b7)
+        val b8 = StimulusProductionCutoverAuthorityAuditEngine().audit(withB7)
+        assertEquals(StimulusProductionCutoverAuthorityStatus.NO_MATERIAL_CHANGE, b8.status)
+        val b9 = StimulusProductionRouter().route(
+            withB7, b8, StimulusProductionRoutingMode.B8_STRENGTH_V1_ACTIVE
+        )
+        assertEquals(StimulusProductionProgramSource.CONTROL, b9.decision.selectedSource)
+    }
+
+    @Test
     fun heterogeneousSplitClosesB7PrescriptionProvenanceButDuplicatedPrefixDoesNot() {
         val authorized = heterogeneousAuthorization()
         val controlRows = listOf(item("candidate"))

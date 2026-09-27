@@ -262,6 +262,7 @@ class StimulusSelectionServiceIntegrationTest {
             assertEquals(listOf("B9_B8_STRENGTH_V1_ROUTED"), production.routeDecision.reasonCodes)
             assertEquals(1, production.buildCounts.controlBuilds)
             assertEquals(1, production.buildCounts.experimentalBuilds)
+            assertEquals(2, production.buildCounts.totalBuildInvocations)
             assertEquals(0, production.buildCounts.thirdBuilds)
             assertEquals(
                 personalizedProgramFingerprint(b8Comparison.experimental.request, b8Comparison.experimental.items),
@@ -479,6 +480,7 @@ class StimulusSelectionServiceIntegrationTest {
         assertEquals(controlFingerprint, personalizedProgramFingerprint(production.program.request, production.program.items))
         assertEquals(1, production.buildCounts.controlBuilds)
         assertEquals(1, production.buildCounts.experimentalBuilds)
+        assertEquals(2, production.buildCounts.totalBuildInvocations)
         assertEquals(0, production.buildCounts.thirdBuilds)
     }
 }

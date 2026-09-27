@@ -56,6 +56,7 @@ class StimulusProductionFailureBoundaryTest {
             assertEquals(listOf("B9_UPSTREAM_EVALUATION_FAILED_CONTROL_FALLBACK"), result.routeDecision.reasonCodes)
             assertEquals(1, result.buildCounts.controlBuilds)
             assertEquals(0, result.buildCounts.experimentalBuilds)
+            assertEquals(1, result.buildCounts.totalBuildInvocations)
             assertEquals(0, result.buildCounts.thirdBuilds)
             assertEquals(updates.map { it.percent }.sorted(), updates.map { it.percent })
             assertEquals(100, updates.last().percent)

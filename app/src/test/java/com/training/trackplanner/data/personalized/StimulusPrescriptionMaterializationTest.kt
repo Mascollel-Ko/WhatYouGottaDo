@@ -164,6 +164,56 @@ class StimulusPrescriptionMaterializationTest {
     }
 
     @Test
+    fun ownerOffsetSliceUsesTheCompleteAuthorizationMap() {
+        val item = PlannedExercise(key, role, "test", 1, targetSets = 2)
+        val authorized = prescription(5, 80.0, sets = 3)
+        val provider = object : ExactPrescriptionAuthorizationProvider {
+            override val authorizedOwners = mapOf(StimulusPrescriptionOwnerIdentity(key, role) to authorized)
+            override fun authorizedPrescriptionFor(item: PlannedExercise, requestedSets: Int): PlannedPrescription? =
+                authorizedOwners[StimulusPrescriptionOwnerIdentity(item.stableKey, item.role)]
+        }
+        val suffix = provider.sliceFor(item, startOffset = 1, requestedSets = 2)
+        assertEquals(listOf(5, 5), suffix?.sets?.map { it.reps })
+    }
+
+    @Test
+    fun ownerOffsetSliceFailsClosedWhenCallbackOnlyProvidesTruncatedPrefixes() {
+        val item = PlannedExercise(key, role, "test", 1, targetSets = 2)
+        val authorized = prescription(5, 80.0, sets = 3)
+        val provider = object : ExactPrescriptionAuthorizationProvider {
+            override fun authorizedPrescriptionFor(item: PlannedExercise, requestedSets: Int): PlannedPrescription? =
+                authorized.copy(sets = authorized.sets.take(requestedSets))
+        }
+        assertNull(provider.sliceFor(item, startOffset = 1, requestedSets = 1))
+        assertEquals(2, provider.prefixFor(item, requestedSets = 2)?.sets?.size)
+    }
+
+    @Test
+    fun ownerPrefixOffsetZeroRemainsAvailableForCallbackProviders() {
+        val item = PlannedExercise(key, role, "test", 1, targetSets = 2)
+        val authorized = prescription(5, 80.0, sets = 3)
+        val provider = object : ExactPrescriptionAuthorizationProvider {
+            override fun authorizedPrescriptionFor(item: PlannedExercise, requestedSets: Int): PlannedPrescription? =
+                authorized.copy(sets = authorized.sets.take(requestedSets))
+        }
+        assertEquals(listOf(5, 5), provider.sliceFor(item, startOffset = 0, requestedSets = 2)?.sets?.map { it.reps })
+    }
+
+    @Test
+    fun ownerQualityOffsetSliceCannotBorrowAnotherQualityAuthority() {
+        val item = PlannedExercise(key, role, "test", 1, targetSets = 2)
+        val strength = prescription(5, 80.0, sets = 3)
+        val provider = object : ExactPrescriptionAuthorizationProvider {
+            override fun authorizedPrescriptionFor(item: PlannedExercise, requestedSets: Int): PlannedPrescription? = null
+            override val authorizedPrescriptions = mapOf(
+                StimulusPrescriptionAuthorityIdentity(key, role, TrainableQuality.STRENGTH) to strength
+            )
+        }
+        assertEquals(80.0, provider.sliceFor(item, TrainableQuality.STRENGTH, 1, 1)!!.sets.single().weightKg, 0.0)
+        assertNull(provider.sliceFor(item, TrainableQuality.HYPERTROPHY, 1, 1))
+    }
+
+    @Test
     fun heterogeneousRowsAreValidatedAsAWeeklyMultisetSubset() {
         val authorized = PlannedPrescription("heterogeneous", listOf(
             ProgramSetPrescription(1, 5, 80.0, 0),
