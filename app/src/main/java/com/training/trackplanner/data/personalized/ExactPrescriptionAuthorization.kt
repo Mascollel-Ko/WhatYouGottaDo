@@ -88,10 +88,14 @@ internal fun ExactPrescriptionAuthorizationProvider.sliceFor(
 ): PlannedPrescription? {
     if (startOffset < 0 || requestedSets < 0) return null
     val identity = StimulusPrescriptionOwnerIdentity(item.stableKey, item.role)
-    val authorized = authorizedOwners[identity]
-        ?: authorizedPrescriptionFor(item, item.targetSets)
-        ?: return null
-    if (startOffset > authorized.sets.size || startOffset + requestedSets > authorized.sets.size) return null
+    // A non-zero offset is safe only when the provider exposes the complete owner
+    // authorization. A callback may legally return a truncated prefix, so it cannot
+    // establish the funded suffix boundary and must fail closed for offset slices.
+    val authorizedCandidate = authorizedOwners[identity]
+        ?: if (startOffset == 0) authorizedPrescriptionFor(item, item.targetSets) else null
+    if (authorizedCandidate == null) return null
+    val authorized: PlannedPrescription = authorizedCandidate
+    if (startOffset > authorized.sets.size || requestedSets > authorized.sets.size - startOffset) return null
     return authorized.copy(sets = authorized.sets.drop(startOffset).take(requestedSets)
         .mapIndexed { index, set -> set.copy(setIndex = index + 1) })
 }
@@ -107,7 +111,7 @@ internal fun ExactPrescriptionAuthorizationProvider.sliceFor(
     val authorized = authorizedPrescriptions[
         StimulusPrescriptionAuthorityIdentity(item.stableKey, item.role, quality)
     ] ?: return null
-    if (startOffset > authorized.sets.size || startOffset + requestedSets > authorized.sets.size) return null
+    if (startOffset > authorized.sets.size || requestedSets > authorized.sets.size - startOffset) return null
     return authorized.copy(sets = authorized.sets.drop(startOffset).take(requestedSets)
         .mapIndexed { index, set -> set.copy(setIndex = index + 1) })
 }
