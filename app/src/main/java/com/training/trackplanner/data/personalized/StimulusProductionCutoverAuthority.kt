@@ -7,7 +7,8 @@ import org.json.JSONObject
 
 /** The deliberately narrow first production-cutover boundary. */
 enum class StimulusProductionCutoverScope {
-    STRENGTH_V1
+    STRENGTH_V1,
+    HYPERTROPHY_V1
 }
 
 enum class StimulusProductionCutoverAuthorityStatus {
@@ -27,8 +28,8 @@ data class StimulusProductionCutoverAuthorityDecision(
     val productionMutationAuthority: Boolean = false
 ) {
     init {
-        require(!routingActive) { "B8.0 must never activate routing" }
-        require(!productionMutationAuthority) { "B8.0 must never mutate production" }
+        require(!routingActive) { "B8 bounded authority must never activate routing" }
+        require(!productionMutationAuthority) { "B8 bounded authority must never mutate production" }
     }
 }
 
@@ -41,21 +42,28 @@ data class StimulusProductionCutoverEvaluation(
 }
 
 /**
- * B8.0 is a pure, fail-closed consumer of the existing B6.2/B7 comparison. It does not have
+ * B8 is a pure, fail-closed consumer of the existing B6.2/B7 comparison. It does not have
  * access to a builder, DAO, snapshot or request, so it cannot rerun any upstream phase.
  */
 class StimulusProductionCutoverAuthorityAuditEngine {
-    fun audit(comparison: StimulusSelectionProgramComparison): StimulusProductionCutoverAuthorityDecision {
+    fun audit(comparison: StimulusSelectionProgramComparison): StimulusProductionCutoverAuthorityDecision =
+        audit(comparison, StimulusProductionCutoverScope.STRENGTH_V1)
+
+    fun audit(
+        comparison: StimulusSelectionProgramComparison,
+        scope: StimulusProductionCutoverScope
+    ): StimulusProductionCutoverAuthorityDecision {
+        val policy = scopePolicy(scope)
         val b7 = comparison.experimentalReadinessAudit
-            ?: return control(comparison, "B8_B7_AUDIT_MISSING")
+            ?: return control(comparison, policy, "B8_B7_AUDIT_MISSING")
 
         when (b7.status) {
             StimulusExperimentalReadinessStatus.NOT_ELIGIBLE ->
-                return control(comparison, "B8_B7_NOT_ELIGIBLE")
+                return control(comparison, policy, "B8_B7_NOT_ELIGIBLE")
             StimulusExperimentalReadinessStatus.INCONCLUSIVE ->
-                return inconclusive(comparison, "B8_B7_INCONCLUSIVE")
+                return inconclusive(comparison, policy, "B8_B7_INCONCLUSIVE")
             StimulusExperimentalReadinessStatus.NO_MATERIAL_CHANGE ->
-                return noMaterialChange(b7.status)
+                return noMaterialChange(policy, b7.status)
             StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW -> Unit
         }
 
@@ -77,27 +85,26 @@ class StimulusProductionCutoverAuthorityAuditEngine {
         if (comparison.control.weekDaySchedule != comparison.experimental.weekDaySchedule) {
             reasons += "B8_CUTOVER_V1_WEEKDAY_SCHEDULE_CHANGED"
         }
-        reasons += b6IntegrityReasons(comparison)
-
         val materialOwners = materialOwnerIdentities(comparison)
+        reasons += b6IntegrityReasons(comparison, policy, materialOwners)
         if (materialOwners.isEmpty()) {
             reasons += "B8_CUTOVER_V1_EMPTY_MATERIAL_AUTHORITY"
             reasons += "B8_CUTOVER_V1_UPSTREAM_INCONSISTENCY"
         }
         if (materialOwners.isNotEmpty()) {
             materialOwners.forEach { identity ->
-                val authorization = exactAuthorization(comparison, identity)
+                val authorization = exactAuthorization(comparison, identity, policy)
                 val targetId = authorization?.targetId
-                    ?: if (identity in comparison.addedOwnerIdentities) "QUALITY:${TrainableQuality.STRENGTH.name}" else null
-                strengthTargetAuthorityReason(comparison, targetId)?.let(reasons::add)
+                    ?: if (identity in comparison.addedOwnerIdentities) policy.targetId else null
+                targetAuthorityReason(comparison, targetId, policy)?.let(reasons::add)
             }
-            val nonStrength = materialOwners.flatMap { identity ->
+            val nonTarget = materialOwners.flatMap { identity ->
                 materialAttributionsFor(comparison, identity).filter(::isMaterialAttribution).flatMap { attribution ->
-                    attribution.targetIds.filterNot(::isStrengthTarget)
+                    attribution.targetIds.filterNot { it == policy.targetId }
                 }
             }.distinct().sorted()
-            if (nonStrength.isNotEmpty()) {
-                reasons += "B8_CUTOVER_V1_NON_STRENGTH_CHANGE_OUT_OF_SCOPE"
+            if (nonTarget.isNotEmpty()) {
+                reasons += policy.nonQualityChangeReason
             }
         }
 
@@ -105,12 +112,12 @@ class StimulusProductionCutoverAuthorityAuditEngine {
         materialOwners.sortedWith(OWNER_ORDER).forEach { identity ->
             when {
                 identity in comparison.addedOwnerIdentities -> {
-                    val validation = validateAddedOwner(comparison, identity)
+                    val validation = validateAddedOwner(comparison, identity, policy)
                     reasons += validation
                     if (validation.isEmpty()) authorized += identity
                 }
                 identity in comparison.sharedOwnerIdentities -> {
-                    val validation = validateSharedOwner(comparison, identity)
+                    val validation = validateSharedOwner(comparison, identity, policy)
                     reasons += validation
                     if (validation.isEmpty()) authorized += identity
                 }
@@ -130,19 +137,20 @@ class StimulusProductionCutoverAuthorityAuditEngine {
         return if (normalizedReasons.isEmpty()) {
             StimulusProductionCutoverAuthorityDecision(
                 status = StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER,
-                scope = StimulusProductionCutoverScope.STRENGTH_V1,
+                scope = policy.scope,
                 authorizedOwnerIdentities = authorized.toList().sortedWith(OWNER_ORDER),
-                reasonCodes = listOf("B8_STRENGTH_V1_AUTHORIZED"),
+                reasonCodes = listOf(policy.authorizedReason),
                 b7Status = b7.status
             )
         } else {
-            control(comparison, normalizedReasons)
+            control(comparison, policy, normalizedReasons)
         }
     }
 
     private fun validateAddedOwner(
         comparison: StimulusSelectionProgramComparison,
-        identity: StimulusPrescriptionOwnerIdentity
+        identity: StimulusPrescriptionOwnerIdentity,
+        policy: CutoverScopePolicy
     ): List<String> {
         val reasons = linkedSetOf<String>()
         val candidate = comparison.selectionPlan.selectedCandidates.firstOrNull {
@@ -150,37 +158,38 @@ class StimulusProductionCutoverAuthorityAuditEngine {
         }
         if (candidate == null) reasons += "B8_CUTOVER_V1_ADDED_OWNER_WITHOUT_EXACT_B5_AUTHORITY"
 
-        val strengthTargetId = "QUALITY:${TrainableQuality.STRENGTH.name}"
-        val target = comparison.targetPlan.qualityTargets.firstOrNull { "QUALITY:${it.quality.name}" == strengthTargetId }
+        val target = comparison.targetPlan.qualityTargets.firstOrNull { "QUALITY:${it.quality.name}" == policy.targetId }
         val candidateTargets = candidate?.coveredTargetIds.orEmpty()
         val selectedTraceTargets = comparison.selectionPlan.traces
             .filter { trace -> trace.selectedStableKey == identity.stableKey && trace.selectedSelectionRole == identity.selectionRole }
             .map { it.targetId }
-        if (target == null || strengthTargetId !in candidateTargets || strengthTargetId !in selectedTraceTargets && selectedTraceTargets.isNotEmpty()) {
-            reasons += "B8_CUTOVER_V1_ADDED_OWNER_WITHOUT_EXACT_B5_AUTHORITY"
+        if (target == null || policy.targetId !in candidateTargets || policy.targetId !in selectedTraceTargets) {
+            reasons += policy.addedOwnerB5Reason
         }
-        strengthTargetAuthorityReason(comparison, strengthTargetId)?.let(reasons::add)
+        targetAuthorityReason(comparison, policy.targetId, policy)?.let(reasons::add)
 
         val attribution = materialAttributionsFor(comparison, identity)
             .firstOrNull { it.source == StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY }
-        if (attribution == null || attribution.targetIds.any { !isStrengthTarget(it) }) {
-            reasons += "B8_CUTOVER_V1_ADDED_OWNER_WITHOUT_EXACT_B5_AUTHORITY"
+        if (attribution == null || policy.targetId !in attribution.targetIds) {
+            reasons += policy.addedOwnerB5Reason
         }
 
-        val auth = exactAuthorization(comparison, identity)
-        if (!isExecutableStrengthAuthorization(auth)) {
-            reasons += "B8_CUTOVER_V1_PRESCRIPTION_CHANGE_WITHOUT_EXACT_B6_AUTHORITY"
+        val auth = exactAuthorization(comparison, identity, policy)
+        if (!isExecutableAuthorization(auth, policy)) {
+            reasons += policy.prescriptionAuthorityReason
         }
-        strengthTargetAuthorityReason(comparison, auth?.targetId)?.let(reasons::add)
-        if (!fullMaterialization(comparison, identity)) {
-            reasons += "B8_CUTOVER_V1_REQUIRES_FULL_B6_MATERIALIZATION"
+        executionAuthorityReason(auth, policy)?.let(reasons::add)
+        targetAuthorityReason(comparison, auth?.targetId, policy)?.let(reasons::add)
+        if (!fullMaterialization(comparison, identity, policy)) {
+            reasons += policy.materializationReason
         }
         return reasons.toList()
     }
 
     private fun validateSharedOwner(
         comparison: StimulusSelectionProgramComparison,
-        identity: StimulusPrescriptionOwnerIdentity
+        identity: StimulusPrescriptionOwnerIdentity,
+        policy: CutoverScopePolicy
     ): List<String> {
         val before = ownerRows(comparison.control, identity)
         val after = ownerRows(comparison.experimental, identity)
@@ -189,11 +198,13 @@ class StimulusProductionCutoverAuthorityAuditEngine {
         if (placementSignature(before) != placementSignature(after)) {
             reasons += "B8_CUTOVER_V1_UNRELATED_CONTROL_MUTATION"
         }
-        val auth = exactAuthorization(comparison, identity)
-        if (!isExecutableStrengthAuthorization(auth)) {
-            reasons += "B8_CUTOVER_V1_PRESCRIPTION_CHANGE_WITHOUT_EXACT_B6_AUTHORITY"
+        val auth = exactAuthorization(comparison, identity, policy)
+        if (!isExecutableAuthorization(auth, policy)) {
+            reasons += policy.prescriptionAuthorityReason
         }
-        if (auth?.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE) {
+        executionAuthorityReason(auth, policy)?.let(reasons::add)
+        if (policy.scope == StimulusProductionCutoverScope.STRENGTH_V1 &&
+            auth?.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE) {
             reasons += "B8_CUTOVER_V1_UPSTREAM_INCONSISTENCY"
         }
         val attributions = materialAttributionsFor(comparison, identity)
@@ -204,39 +215,65 @@ class StimulusProductionCutoverAuthorityAuditEngine {
             reasons += "B8_CUTOVER_V1_PROVENANCE_NOT_CLOSED"
         }
         if (attributions.filter(::isMaterialAttribution).any { attribution ->
-            attribution.targetIds.any { !isStrengthTarget(it) }
+            attribution.targetIds.any { it != policy.targetId }
         }) {
-            reasons += "B8_CUTOVER_V1_NON_STRENGTH_CHANGE_OUT_OF_SCOPE"
+            reasons += policy.nonQualityChangeReason
         }
-        if (!fullMaterialization(comparison, identity)) {
-            reasons += "B8_CUTOVER_V1_REQUIRES_FULL_B6_MATERIALIZATION"
+        if (!fullMaterialization(comparison, identity, policy)) {
+            reasons += policy.materializationReason
         }
         return reasons.toList()
     }
 
     private fun exactAuthorization(
         comparison: StimulusSelectionProgramComparison,
-        identity: StimulusPrescriptionOwnerIdentity
+        identity: StimulusPrescriptionOwnerIdentity,
+        policy: CutoverScopePolicy
     ): StimulusPrescriptionAuthorization? {
         val matches = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().filter {
             val owner = it.owner ?: return@filter false
             owner.stableKey == identity.stableKey && owner.selectionRole == identity.selectionRole &&
-                it.quality == TrainableQuality.STRENGTH
+                it.quality == policy.quality
         }
         return matches.singleOrNull()
     }
 
-    private fun isExecutableStrengthAuthorization(authorization: StimulusPrescriptionAuthorization?): Boolean =
-        authorization != null && authorization.quality == TrainableQuality.STRENGTH &&
+    private fun isExecutableAuthorization(
+        authorization: StimulusPrescriptionAuthorization?,
+        policy: CutoverScopePolicy
+    ): Boolean = authorization != null && authorization.quality == policy.quality &&
             authorization.authorizedPrescription != null && authorization.status in setOf(
             StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
             StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR
-        )
+        ) && (policy.scope != StimulusProductionCutoverScope.HYPERTROPHY_V1 ||
+            canonicalExecutionAuthority(policy.quality, authorization.authorizedPrescription) == StimulusPrescriptionExecutionAuthority.FULLY_ENCODED &&
+            authorization.authorizedPrescription.sets.isNotEmpty() && authorization.authorizedPrescription.sets.all { set ->
+                set.reps in 7..15 && set.weightKg.isFinite() && set.weightKg > 0.0
+            })
 
-    private fun strengthTargetAuthorityReason(
+    private fun executionAuthorityReason(
+        authorization: StimulusPrescriptionAuthorization?,
+        policy: CutoverScopePolicy
+    ): String? = if (
+        policy.scope == StimulusProductionCutoverScope.HYPERTROPHY_V1 &&
+        authorization != null &&
+        canonicalExecutionAuthority(policy.quality, authorization.authorizedPrescription) != StimulusPrescriptionExecutionAuthority.FULLY_ENCODED
+    ) policy.effortAuthorityReason else null
+
+    private fun targetAuthorityReason(
         comparison: StimulusSelectionProgramComparison,
-        targetId: String?
+        targetId: String?,
+        policy: CutoverScopePolicy
     ): String? {
+        if (policy.scope == StimulusProductionCutoverScope.HYPERTROPHY_V1) {
+            val target = comparison.targetPlan.qualityTargets.firstOrNull { "QUALITY:${it.quality.name}" == targetId }
+            return if (target == null || target.quality != policy.quality ||
+                target.strategy == StimulusDoseStrategy.UNRESOLVED || targetId in comparison.targetPlan.unresolved ||
+                target.numericAuthority !in setOf(
+                    StimulusTargetNumericAuthority.PERSONAL_SUCCESSFUL_DOSE,
+                    StimulusTargetNumericAuthority.PERSONAL_RESTORE_BASELINE
+                )) policy.targetNoNumericReason else null
+        }
         if (targetId == null) return "B8_CUTOVER_V1_UPSTREAM_INCONSISTENCY"
         val target = comparison.targetPlan.qualityTargets.firstOrNull {
             "QUALITY:${it.quality.name}" == targetId
@@ -250,22 +287,25 @@ class StimulusProductionCutoverAuthorityAuditEngine {
                 StimulusTargetNumericAuthority.UNRESOLVED
             )
         ) {
-            return "B8_CUTOVER_V1_STRENGTH_TARGET_HAS_NO_NUMERIC_AUTHORITY"
+            return policy.targetNoNumericReason
         }
         return null
     }
 
     private fun fullMaterialization(
         comparison: StimulusSelectionProgramComparison,
-        identity: StimulusPrescriptionOwnerIdentity
+        identity: StimulusPrescriptionOwnerIdentity,
+        policy: CutoverScopePolicy
     ): Boolean {
         val audits = comparison.prescriptionMaterializationAudits.filter {
             val owner = it.owner ?: return@filter false
             owner.stableKey == identity.stableKey && owner.selectionRole == identity.selectionRole &&
-                it.quality == TrainableQuality.STRENGTH
+                it.quality == policy.quality
         }
         if (audits.size != 1) return false
         val audit = audits.single()
+        if (policy.scope == StimulusProductionCutoverScope.HYPERTROPHY_V1 &&
+            audit.executionAuthority != StimulusPrescriptionExecutionAuthority.FULLY_ENCODED) return false
         val expectedWeeks = comparison.experimental.request.durationWeeks.coerceAtLeast(1)
         if (audit.state != StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED ||
             audit.weeklyAudits.size != expectedWeeks ||
@@ -277,7 +317,11 @@ class StimulusProductionCutoverAuthorityAuditEngine {
         } && audit.shortfall == 0 && audit.overrun == 0 && audit.prescriptionPreservedOrSubset
     }
 
-    private fun b6IntegrityReasons(comparison: StimulusSelectionProgramComparison): Set<String> = buildSet {
+    private fun b6IntegrityReasons(
+        comparison: StimulusSelectionProgramComparison,
+        policy: CutoverScopePolicy,
+        materialOwners: Set<StimulusPrescriptionOwnerIdentity>
+    ): Set<String> = buildSet {
         val known = setOf(
             "B6_AUTHORIZED_SET_REUSED",
             "B6_AUTHORIZED_SET_MULTIPLICITY_EXCEEDED",
@@ -289,12 +333,22 @@ class StimulusProductionCutoverAuthorityAuditEngine {
             "B6_PRESCRIPTION_NOT_PRESERVED",
             "B6_PRESCRIPTION_MUTATION",
             "B6_PRESCRIPTION_AUTHORITY_MISMATCH",
-            "B6_MATERIALIZATION_INVARIANT_FAILURE"
+            "B6_MATERIALIZATION_INVARIANT_FAILURE",
+            "B6_EFFORT_TARGET_NOT_PRESERVED",
+            "B6_EFFORT_TARGET_BELOW_CANONICAL_MINIMUM",
+            "B6_EFFORT_TARGET_MISSING"
+        )
+        val effortIntegrityReasons = setOf(
+            "B6_EFFORT_TARGET_NOT_PRESERVED",
+            "B6_EFFORT_TARGET_BELOW_CANONICAL_MINIMUM",
+            "B6_EFFORT_TARGET_MISSING"
         )
         comparison.prescriptionMaterializationAudits.forEach { audit ->
+            val ownerIdentity = audit.owner?.let { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }
+            val includeEffortDiagnostics = policy.scope == StimulusProductionCutoverScope.STRENGTH_V1 || ownerIdentity in materialOwners
             if (audit.state == StimulusPrescriptionMaterializationState.INVARIANT_FAILURE) add("B6_MATERIALIZATION_INVARIANT_FAILURE")
-            addAll(audit.reasonCodes.filter { it in known })
-            addAll(audit.weeklyAudits.flatMap { it.reasonCodes }.filter { it in known })
+            addAll(audit.reasonCodes.filter { it in known && (includeEffortDiagnostics || it !in effortIntegrityReasons) })
+            addAll(audit.weeklyAudits.flatMap { it.reasonCodes }.filter { it in known && (includeEffortDiagnostics || it !in effortIntegrityReasons) })
             if (audit.overrun > 0 || audit.maximumWeeklyOverrun > 0) add("B6_AUTHORIZATION_OVERRUN")
             if (audit.shortfall > 0 || audit.maximumWeeklyShortfall > 0) add("B6_AUTHORIZATION_SHORTFALL")
             if (!audit.prescriptionPreservedOrSubset || audit.weeklyAudits.any { !it.prescriptionPreservedOrSubset }) {
@@ -302,7 +356,9 @@ class StimulusProductionCutoverAuthorityAuditEngine {
             }
         }
         comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().forEach { authorization ->
-            addAll(authorization.reasonCodes.filter { it in known })
+            val ownerIdentity = authorization.owner?.let { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }
+            val includeEffortDiagnostics = policy.scope == StimulusProductionCutoverScope.STRENGTH_V1 || ownerIdentity in materialOwners
+            addAll(authorization.reasonCodes.filter { it in known && (includeEffortDiagnostics || it !in effortIntegrityReasons) })
         }
     }
 
@@ -375,33 +431,31 @@ class StimulusProductionCutoverAuthorityAuditEngine {
 
     private fun placementSignature(rows: List<OwnerRow>) = rows.map { listOf(it.weekNumber, it.dayOfWeek, it.orderIndex, it.stableKey, it.selectionRole) }
 
-    private fun isStrengthTarget(targetId: String): Boolean = targetId == "QUALITY:${TrainableQuality.STRENGTH.name}"
+    private fun control(comparison: StimulusSelectionProgramComparison, policy: CutoverScopePolicy, reason: String) =
+        control(comparison, policy, listOf(reason))
 
-    private fun control(comparison: StimulusSelectionProgramComparison, reason: String) =
-        control(comparison, listOf(reason))
-
-    private fun control(comparison: StimulusSelectionProgramComparison, reasons: List<String>) =
+    private fun control(comparison: StimulusSelectionProgramComparison, policy: CutoverScopePolicy, reasons: List<String>) =
         StimulusProductionCutoverAuthorityDecision(
             status = StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED,
-            scope = StimulusProductionCutoverScope.STRENGTH_V1,
+            scope = policy.scope,
             authorizedOwnerIdentities = emptyList(),
             reasonCodes = reasons.distinct().sorted(),
             b7Status = comparison.experimentalReadinessAudit?.status ?: StimulusExperimentalReadinessStatus.NOT_ELIGIBLE
         )
 
-    private fun inconclusive(comparison: StimulusSelectionProgramComparison, reason: String) =
+    private fun inconclusive(comparison: StimulusSelectionProgramComparison, policy: CutoverScopePolicy, reason: String) =
         StimulusProductionCutoverAuthorityDecision(
             status = StimulusProductionCutoverAuthorityStatus.INCONCLUSIVE,
-            scope = StimulusProductionCutoverScope.STRENGTH_V1,
+            scope = policy.scope,
             authorizedOwnerIdentities = emptyList(),
             reasonCodes = listOf(reason),
             b7Status = comparison.experimentalReadinessAudit?.status ?: StimulusExperimentalReadinessStatus.INCONCLUSIVE
         )
 
-    private fun noMaterialChange(b7Status: StimulusExperimentalReadinessStatus) =
+    private fun noMaterialChange(policy: CutoverScopePolicy, b7Status: StimulusExperimentalReadinessStatus) =
         StimulusProductionCutoverAuthorityDecision(
             status = StimulusProductionCutoverAuthorityStatus.NO_MATERIAL_CHANGE,
-            scope = StimulusProductionCutoverScope.STRENGTH_V1,
+            scope = policy.scope,
             authorizedOwnerIdentities = emptyList(),
             reasonCodes = listOf("B8_NO_MATERIAL_CHANGE"),
             b7Status = b7Status
@@ -409,8 +463,48 @@ class StimulusProductionCutoverAuthorityAuditEngine {
 
     private companion object {
         val OWNER_ORDER = compareBy<StimulusPrescriptionOwnerIdentity>({ it.stableKey }, { it.selectionRole })
+
+        fun scopePolicy(scope: StimulusProductionCutoverScope): CutoverScopePolicy = when (scope) {
+            StimulusProductionCutoverScope.STRENGTH_V1 -> CutoverScopePolicy(
+                scope = scope,
+                quality = TrainableQuality.STRENGTH,
+                targetId = "QUALITY:STRENGTH",
+                authorizedReason = "B8_STRENGTH_V1_AUTHORIZED",
+                targetNoNumericReason = "B8_CUTOVER_V1_STRENGTH_TARGET_HAS_NO_NUMERIC_AUTHORITY",
+                addedOwnerB5Reason = "B8_CUTOVER_V1_ADDED_OWNER_WITHOUT_EXACT_B5_AUTHORITY",
+                prescriptionAuthorityReason = "B8_CUTOVER_V1_PRESCRIPTION_CHANGE_WITHOUT_EXACT_B6_AUTHORITY",
+                effortAuthorityReason = "B8_CUTOVER_V1_EFFORT_NOT_FULLY_ENCODED",
+                materializationReason = "B8_CUTOVER_V1_REQUIRES_FULL_B6_MATERIALIZATION",
+                nonQualityChangeReason = "B8_CUTOVER_V1_NON_STRENGTH_CHANGE_OUT_OF_SCOPE"
+            )
+            StimulusProductionCutoverScope.HYPERTROPHY_V1 -> CutoverScopePolicy(
+                scope = scope,
+                quality = TrainableQuality.HYPERTROPHY,
+                targetId = "QUALITY:HYPERTROPHY",
+                authorizedReason = "B8_HYPERTROPHY_V1_AUTHORIZED",
+                targetNoNumericReason = "B8_HYPERTROPHY_V1_TARGET_HAS_NO_NUMERIC_AUTHORITY",
+                addedOwnerB5Reason = "B8_HYPERTROPHY_V1_ADDED_OWNER_WITHOUT_EXACT_B5_AUTHORITY",
+                prescriptionAuthorityReason = "B8_HYPERTROPHY_V1_PRESCRIPTION_CHANGE_WITHOUT_EXACT_B6_AUTHORITY",
+                effortAuthorityReason = "B8_HYPERTROPHY_V1_EFFORT_NOT_FULLY_ENCODED",
+                materializationReason = "B8_HYPERTROPHY_V1_REQUIRES_FULL_B6_MATERIALIZATION",
+                nonQualityChangeReason = "B8_HYPERTROPHY_V1_NON_HYPERTROPHY_CHANGE_OUT_OF_SCOPE"
+            )
+        }
     }
 }
+
+private data class CutoverScopePolicy(
+    val scope: StimulusProductionCutoverScope,
+    val quality: TrainableQuality,
+    val targetId: String,
+    val authorizedReason: String,
+    val targetNoNumericReason: String,
+    val addedOwnerB5Reason: String,
+    val prescriptionAuthorityReason: String,
+    val effortAuthorityReason: String,
+    val materializationReason: String,
+    val nonQualityChangeReason: String
+)
 
 /** Compatibility spelling for callers that prefer the shorter engine name. */
 typealias StimulusProductionCutoverAuthorityEngine = StimulusProductionCutoverAuthorityAuditEngine
