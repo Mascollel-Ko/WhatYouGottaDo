@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.47.0 |
+| Protocol version | 3.47.1 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | e735b984a914e92ae30772e04f7f259a2e420aca |
+| Last audited commit | 59f91f7a5a960565f16e6bcc55c09bce0fac2177 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1097,3 +1097,10 @@ Post-audit boundary notes
 - Hypertrophy-specific authority requires a canonical `QUALITY:HYPERTROPHY` B4 target with `PERSONAL_SUCCESSFUL_DOSE` or `PERSONAL_RESTORE_BASELINE` numeric authority; exact B5 candidate/role/covered-target/trace and `B5_SELECTED_IDENTITY` attribution for additions; exactly one quality-specific B6 authorization in `AUTHORIZED_EXISTING_COMPATIBLE` or `AUTHORIZED_SAFE_REPAIR`; canonical `FULLY_ENCODED` execution authority with positive load and 7–15 repetitions; and one complete, full-horizon `FULLY_MATERIALIZED` audit with zero shortfall/overrun, preserved/subset prescriptions and target-compatible units equal to materialized units. RPE targets are exact prescription semantics, so missing/below-threshold effort and `7 → 8` mutations remain control-required even when both values are numerically sufficient.
 - H material attribution is restricted to `QUALITY:HYPERTROPHY`. Material Strength, Power, RFD, Endurance or other-quality changes use `B8_HYPERTROPHY_V1_NON_HYPERTROPHY_CHANGE_OUT_OF_SCOPE`; non-material other-quality authority and localized unrelated conflicts do not poison an otherwise valid H owner. Provisional `8 reps / 0 kg`, conflicting owners, partial horizons and B6 effort integrity reasons (`B6_EFFORT_TARGET_NOT_PRESERVED`, `B6_EFFORT_TARGET_BELOW_CANONICAL_MINIMUM`, `B6_EFFORT_TARGET_MISSING`) remain non-authoritative.
 - `HYPERTROPHY_V1` is authority-only. No H B9 routing mode or production source exists; `B8_STRENGTH_V1_ACTIVE` remains the default router mode, and a valid H decision passed to the current router is explicitly held at CONTROL by the scope-mismatch boundary. The real `cable_rear_delt_fly` Room/service fixture now proves H B8 authorization while preserving CONTROL routing, distinct CONTROL/EXPERIMENTAL fingerprints, one CONTROL plus one EXPERIMENTAL build and zero third builds. Strength-v1 behavior and its production route remain unchanged. No DAO, persistence, backup, UI, target-RPE schema or migration change was introduced; Room remains v35.
+
+### 3.47.1 — B12.1 cutover scope isolation closeout
+
+- B12.1 narrows B6 effort-integrity attribution in `StimulusProductionCutoverAuthorityAuditEngine`: `B6_EFFORT_TARGET_NOT_PRESERVED`, `B6_EFFORT_TARGET_BELOW_CANONICAL_MINIMUM`, and `B6_EFFORT_TARGET_MISSING` are considered only when the diagnostic row has a material owner and its quality equals the selected `CutoverScopePolicy.quality`. Strength no longer imports every effort diagnostic globally; Hypertrophy applies the same owner-and-quality boundary.
+- The remaining B6 integrity failures remain global blockers, including materialization invariant failure, authorization overrun/shortfall/missing week, prescription non-preservation/mutation/authority mismatch, and ownerless true invariants. A non-material H effort error cannot poison Strength, a non-material Strength effort error cannot poison H, and same-owner dual-quality diagnostics remain isolated unless the diagnostic quality is material for the audited scope. Material cross-quality attribution and B10.2 conflict localization remain blocking.
+- Added-owner validation now uses `CutoverScopePolicy.addedOwnerB5Reason`; missing H candidates emit only `B8_HYPERTROPHY_V1_ADDED_OWNER_WITHOUT_EXACT_B5_AUTHORITY`, while the default `audit(comparison)` API remains Strength and emits the existing Strength reason. No H B9 route/source/default changed.
+- B12.1 added paired positive/negative cross-quality isolation, global-invariant blocking, same-owner dual-quality coverage, H/Strength missing-candidate reason assertions and the existing real Strength/H fixtures. Room remains v35; no schema, DAO, persistence, backup, UI, migration, or third build changed.
