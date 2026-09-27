@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.46.1 |
+| Protocol version | 3.47.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 032ae7cc |
+| Last audited commit | e735b984 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1090,3 +1090,10 @@ Post-audit boundary notes
 - The canonical effort policy is centralized in `StimulusEffortPolicy.kt`. A Hypertrophy prescription is `FULLY_ENCODED` only when every funded set contains a valid persisted minimum-RPE target at or above the canonical Hypertrophy threshold (`7.0`, inclusive). Null, invalid, `6.9`, and `6.0` targets remain conservative/non-fully-encoded; `7.0` and `8.0` are sufficient. One insufficient funded set makes the whole prescription insufficient.
 - Exact prescription preservation remains separate from effort sufficiency. Preserving the same insufficient target can retain the exact materialized shape while still reporting conservative execution authority, and a different sufficient target such as `8.0` does not relax exact authorized-prescription matching. Missing targets continue to report `B6_EFFORT_TARGET_NOT_PRESERVED`; below-threshold persisted targets report the deterministic canonical-minimum diagnostic.
 - Normal B6 generation still emits Hypertrophy minimum RPE `7.0`; safe repair remains fully encoded. Room remains v35, with no schema or backup change, UI/editor change, actual-RPE change, migration, new build, `HYPERTROPHY_V1` scope, or production routing change. Hypertrophy remains shadow-only and the Strength/B8/B9, B9.2, and B10.2 boundaries remain unchanged.
+
+### 3.47.0 — B12.0 bounded Hypertrophy-v1 production cutover authority
+
+- B12.0 adds `StimulusProductionCutoverScope.HYPERTROPHY_V1` to the single B8 authority engine. The scope consumes the existing B4–B7 comparison and may authorize only the exact material Hypertrophy owners: added owners or shared `(stableKey, selectionRole)` rows whose CONTROL and EXPERIMENTAL rows differ. Common B8 gates remain fail-closed: eligible B7 readiness, closed provenance, no unexplained displacement or collateral/target regression, no owner removal, unchanged weekday schedule, clean B6 integrity, non-empty material authority and exact unrelated CONTROL parity.
+- Hypertrophy-specific authority requires a canonical `QUALITY:HYPERTROPHY` B4 target with `PERSONAL_SUCCESSFUL_DOSE` or `PERSONAL_RESTORE_BASELINE` numeric authority; exact B5 candidate/role/covered-target/trace and `B5_SELECTED_IDENTITY` attribution for additions; exactly one quality-specific B6 authorization in `AUTHORIZED_EXISTING_COMPATIBLE` or `AUTHORIZED_SAFE_REPAIR`; canonical `FULLY_ENCODED` execution authority with positive load and 7–15 repetitions; and one complete, full-horizon `FULLY_MATERIALIZED` audit with zero shortfall/overrun, preserved/subset prescriptions and target-compatible units equal to materialized units. RPE targets are exact prescription semantics, so missing/below-threshold effort and `7 → 8` mutations remain control-required even when both values are numerically sufficient.
+- H material attribution is restricted to `QUALITY:HYPERTROPHY`. Material Strength, Power, RFD, Endurance or other-quality changes use `B8_HYPERTROPHY_V1_NON_HYPERTROPHY_CHANGE_OUT_OF_SCOPE`; non-material other-quality authority and localized unrelated conflicts do not poison an otherwise valid H owner. Provisional `8 reps / 0 kg`, conflicting owners, partial horizons and B6 effort integrity reasons (`B6_EFFORT_TARGET_NOT_PRESERVED`, `B6_EFFORT_TARGET_BELOW_CANONICAL_MINIMUM`, `B6_EFFORT_TARGET_MISSING`) remain non-authoritative.
+- `HYPERTROPHY_V1` is authority-only. No H B9 routing mode or production source exists; `B8_STRENGTH_V1_ACTIVE` remains the default router mode, and a valid H decision passed to the current router is explicitly held at CONTROL by the scope-mismatch boundary. The real `cable_rear_delt_fly` Room/service fixture now proves H B8 authorization while preserving CONTROL routing, distinct CONTROL/EXPERIMENTAL fingerprints, one CONTROL plus one EXPERIMENTAL build and zero third builds. Strength-v1 behavior and its production route remain unchanged. No DAO, persistence, backup, UI, target-RPE schema or migration change was introduced; Room remains v35.
