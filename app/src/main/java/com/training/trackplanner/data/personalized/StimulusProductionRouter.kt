@@ -46,30 +46,52 @@ internal data class StimulusProductionGenerationResult(
 )
 
 internal data class StimulusProductionBuildCounts(
+    val totalBuildInvocations: Int,
     val controlBuilds: Int,
     val experimentalBuilds: Int,
     val thirdBuilds: Int
-)
+) {
+    /** Alias used by diagnostics that describe unclassified invocations as "other". */
+    val otherBuilds: Int get() = thirdBuilds
+}
+
+/** The only program-build invocation kinds recognized by the production boundary. */
+internal enum class StimulusProductionBuildKind {
+    CONTROL,
+    EXPERIMENTAL,
+    OTHER
+}
 
 internal class MutableStimulusProductionBuildCounts {
+    private var totalBuildInvocations: Int = 0
     var controlBuilds: Int = 0
     var experimentalBuilds: Int = 0
-    private var programBuildInvocations: Int = 0
+    private var otherBuilds: Int = 0
 
+    /** Record at the actual program-builder invocation boundary, before the call is entered. */
+    fun recordProgramBuildInvocation(kind: StimulusProductionBuildKind) {
+        totalBuildInvocations += 1
+        when (kind) {
+            StimulusProductionBuildKind.CONTROL -> controlBuilds += 1
+            StimulusProductionBuildKind.EXPERIMENTAL -> experimentalBuilds += 1
+            StimulusProductionBuildKind.OTHER -> otherBuilds += 1
+        }
+    }
+
+    /** Compatibility helpers retain the old test seam while using the typed boundary. */
     fun recordControlBuild() {
-        controlBuilds += 1
-        programBuildInvocations += 1
+        recordProgramBuildInvocation(StimulusProductionBuildKind.CONTROL)
     }
 
     fun recordExperimentalBuild() {
-        experimentalBuilds += 1
-        programBuildInvocations += 1
+        recordProgramBuildInvocation(StimulusProductionBuildKind.EXPERIMENTAL)
     }
 
     fun snapshot(): StimulusProductionBuildCounts = StimulusProductionBuildCounts(
+        totalBuildInvocations = totalBuildInvocations,
         controlBuilds = controlBuilds,
         experimentalBuilds = experimentalBuilds,
-        thirdBuilds = (programBuildInvocations - controlBuilds - experimentalBuilds).coerceAtLeast(0)
+        thirdBuilds = otherBuilds
     )
 }
 

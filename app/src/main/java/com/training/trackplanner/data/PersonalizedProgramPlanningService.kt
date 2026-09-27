@@ -503,8 +503,13 @@ internal class PersonalizedProgramPlanningService(
         productionBuildCounts: com.training.trackplanner.data.personalized.MutableStimulusProductionBuildCounts? = null
     ): StimulusSelectionProgramComparison {
         val preferences = readPreferences()
-        val control = controlOverride ?: generatePrepared(preflight, answers, metadata, progress).also {
-            productionBuildCounts?.recordControlBuild()
+        val control = if (controlOverride != null) {
+            controlOverride
+        } else {
+            productionBuildCounts?.recordProgramBuildInvocation(
+                com.training.trackplanner.data.personalized.StimulusProductionBuildKind.CONTROL
+            )
+            generatePrepared(preflight, answers, metadata, progress)
         }
         val targetPlan = control.personalizedDecision?.athleteStimulusNeedProfile?.stimulusTargetPlanShadow
             ?: if (productionBuildCounts != null) {
@@ -551,7 +556,9 @@ internal class PersonalizedProgramPlanningService(
         )
         val priorId = appMetaDao.latestByPrefix("$DECISION_PREFIX%")?.value?.let(::decisionIdFromJson)
         val experimental = try {
-            productionBuildCounts?.recordExperimentalBuild()
+            productionBuildCounts?.recordProgramBuildInvocation(
+                com.training.trackplanner.data.personalized.StimulusProductionBuildKind.EXPERIMENTAL
+            )
             programBuilder.build(
                 snapshot = snapshot,
                 state = state,
@@ -695,10 +702,11 @@ internal class PersonalizedProgramPlanningService(
     ): com.training.trackplanner.data.personalized.StimulusProductionGenerationResult {
         val buildCounts = com.training.trackplanner.data.personalized.MutableStimulusProductionBuildCounts()
         val productionProgress = com.training.trackplanner.data.personalized.ProductionGenerationProgressMapper(progress)
-        val control = (controlGenerationOverride?.invoke()
-            ?: generatePrepared(preflight, answers, metadata, productionProgress.controlReporter())).also {
-            buildCounts.recordControlBuild()
-        }
+        buildCounts.recordProgramBuildInvocation(
+            com.training.trackplanner.data.personalized.StimulusProductionBuildKind.CONTROL
+        )
+        val control = controlGenerationOverride?.invoke()
+            ?: generatePrepared(preflight, answers, metadata, productionProgress.controlReporter())
         val evaluation = try {
             try {
                 experimentalGenerationOverride?.invoke() ?: generatePreparedStimulusProductionCutoverEvaluation(
