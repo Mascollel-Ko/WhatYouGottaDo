@@ -114,13 +114,58 @@ class StimulusProductionCutoverAuthorityTest {
             authorizations = listOf(
                 authorization("squat", "PRIMARY", StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR, TrainableQuality.STRENGTH),
                 authorization("squat", "PRIMARY", StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE, TrainableQuality.HYPERTROPHY)
+                    .copy(reasonCodes = listOf("B6_EFFORT_TARGET_MISSING"))
             ),
             materializations = listOf(
                 materialization("squat", "PRIMARY", quality = TrainableQuality.STRENGTH),
-                materialization("squat", "PRIMARY", quality = TrainableQuality.HYPERTROPHY)
+                materialization("squat", "PRIMARY", quality = TrainableQuality.HYPERTROPHY, reasonCodes = listOf("B6_EFFORT_TARGET_MISSING"))
             )
         ))
         assertEquals(StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER, decision.status)
+    }
+
+    @Test
+    fun unrelatedNonMaterialHypertrophyEffortDiagnosticDoesNotPoisonStrengthCutover() {
+        val compared = comparison(
+            controlItems = listOf(item("base", "BASE"), item("press", "H")),
+            experimentalItems = listOf(item("base", "BASE"), item("press", "H"), item("squat", "ROLE_A", reps = 5)),
+            selected = selected("squat", "ROLE_A"), traces = listOf(trace("squat", "ROLE_A")),
+            attribution = attribution("squat", "ROLE_A", StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY),
+            authorizations = listOf(
+                authorization("squat", "ROLE_A", StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR),
+                authorization("press", "H", StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE, TrainableQuality.HYPERTROPHY)
+                    .copy(reasonCodes = listOf("B6_EFFORT_TARGET_MISSING"))
+            ),
+            materializations = listOf(
+                materialization("squat", "ROLE_A"),
+                materialization("press", "H", quality = TrainableQuality.HYPERTROPHY, reasonCodes = listOf("B6_EFFORT_TARGET_MISSING"))
+            )
+        )
+        val decision = engine().audit(compared)
+        assertEquals(StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER, decision.status)
+        assertFalse(decision.reasonCodes.contains("B6_EFFORT_TARGET_MISSING"))
+    }
+
+    @Test
+    fun unrelatedGlobalMaterializationInvariantStillBlocksStrengthCutover() {
+        val decision = engine().audit(comparison(
+            controlItems = listOf(item("base", "BASE"), item("press", "H")),
+            experimentalItems = listOf(item("base", "BASE"), item("press", "H"), item("squat", "ROLE_A", reps = 5)),
+            selected = selected("squat", "ROLE_A"), traces = listOf(trace("squat", "ROLE_A")),
+            attribution = attribution("squat", "ROLE_A", StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY),
+            authorizations = listOf(
+                authorization("squat", "ROLE_A", StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR),
+                authorization("press", "H", StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE, TrainableQuality.HYPERTROPHY)
+            ),
+            materializations = listOf(
+                materialization("squat", "ROLE_A"),
+                materialization("press", "H", quality = TrainableQuality.HYPERTROPHY)
+                    .copy(state = StimulusPrescriptionMaterializationState.INVARIANT_FAILURE,
+                        reasonCodes = listOf("B6_MATERIALIZATION_INVARIANT_FAILURE"))
+            )
+        ))
+        assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, decision.status)
+        assertTrue(decision.reasonCodes.contains("B6_MATERIALIZATION_INVARIANT_FAILURE"))
     }
 
     @Test
@@ -257,6 +302,13 @@ class StimulusProductionCutoverAuthorityTest {
         assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, decision.status)
         assertTrue(decision.reasonCodes.contains("B8_CUTOVER_V1_ADDED_OWNER_WITHOUT_EXACT_B5_AUTHORITY"))
         assertEquals(decision.reasonCodes.sorted(), decision.reasonCodes)
+    }
+
+    @Test
+    fun defaultAuditApiRemainsStrengthScope() {
+        val decision = engine().audit(authorizedComparison())
+        assertEquals(StimulusProductionCutoverScope.STRENGTH_V1, decision.scope)
+        assertEquals(StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER, decision.status)
     }
 
     @Test

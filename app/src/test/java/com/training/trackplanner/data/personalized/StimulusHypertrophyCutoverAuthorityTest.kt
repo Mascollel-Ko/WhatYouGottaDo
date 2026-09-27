@@ -56,6 +56,14 @@ class StimulusHypertrophyCutoverAuthorityTest {
     }
 
     @Test
+    fun missingAddedHypertrophyCandidateUsesHypertrophySpecificB5Reason() {
+        val decision = audit(addedHypertrophyComparison(includeExactB5 = false))
+        assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, decision.status)
+        assertTrue(decision.reasonCodes.contains("B8_HYPERTROPHY_V1_ADDED_OWNER_WITHOUT_EXACT_B5_AUTHORITY"))
+        assertFalse(decision.reasonCodes.contains("B8_CUTOVER_V1_ADDED_OWNER_WITHOUT_EXACT_B5_AUTHORITY"))
+    }
+
+    @Test
     fun directionOnlyNoneAndUnresolvedNumericAuthorityAreRejected() {
         listOf(
             StimulusTargetNumericAuthority.NONE,
@@ -179,7 +187,14 @@ class StimulusHypertrophyCutoverAuthorityTest {
             experimental = item("lateral_raise", "PRIMARY", reps = 10, targetRpeMin = 7.0),
             additionalControlItems = listOf(item("squat", "S")),
             additionalExperimentalItems = listOf(item("squat", "S")),
-            additionalAuthorizations = listOf(authorization("squat", "S", StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR, quality = TrainableQuality.STRENGTH)),
+            additionalAuthorizations = listOf(
+                authorization("squat", "S", StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR, quality = TrainableQuality.STRENGTH)
+                    .copy(reasonCodes = listOf("B6_EFFORT_TARGET_BELOW_CANONICAL_MINIMUM"))
+            ),
+            additionalMaterializations = listOf(
+                materialization("squat", "S", quality = TrainableQuality.STRENGTH, authorized = planned(8, null),
+                    reasonCodes = listOf("B6_EFFORT_TARGET_BELOW_CANONICAL_MINIMUM"))
+            ),
             attributionSource = StimulusExperimentalChangeAttributionSource.B6_EXISTING_OWNER_PRESCRIPTION
         )
         assertEquals(StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER, audit(comparison).status)
@@ -256,7 +271,8 @@ class StimulusHypertrophyCutoverAuthorityTest {
         targetAuthority: StimulusTargetNumericAuthority = StimulusTargetNumericAuthority.PERSONAL_SUCCESSFUL_DOSE,
         additionalControlItems: List<ProgramSkeletonItem> = emptyList(),
         additionalExperimentalItems: List<ProgramSkeletonItem> = emptyList(),
-        additionalAuthorizations: List<StimulusPrescriptionAuthorization> = emptyList()
+        additionalAuthorizations: List<StimulusPrescriptionAuthorization> = emptyList(),
+        additionalMaterializations: List<StimulusPrescriptionMaterializationAudit> = emptyList()
     ): StimulusSelectionProgramComparison = comparison(
         controlItems = listOf(control) + additionalControlItems,
         experimentalItems = listOf(experimental) + additionalExperimentalItems,
@@ -269,16 +285,16 @@ class StimulusHypertrophyCutoverAuthorityTest {
             authorized = planned(experimental.reps, authorizedTarget, authorizedWeightKg),
             full = materializationFull, state = materializationState, reasonCodes = materializationReasonCodes,
             executionAuthority = canonicalExecutionAuthority(TrainableQuality.HYPERTROPHY, planned(experimental.reps, authorizedTarget, authorizedWeightKg))
-        )),
+        )) + additionalMaterializations,
         targets = listOf(qualityTarget(TrainableQuality.HYPERTROPHY, targetAuthority)),
         attributions = listOf(StimulusExperimentalChangeAttribution("lateral_raise", "PRIMARY", attributionSource, listOf("QUALITY:HYPERTROPHY")))
     )
 
-    private fun addedHypertrophyComparison() = comparison(
+    private fun addedHypertrophyComparison(includeExactB5: Boolean = true) = comparison(
         controlItems = listOf(item("base", "BASE")),
         experimentalItems = listOf(item("base", "BASE"), item("lateral_raise", "HYPERTROPHY", reps = 10, targetRpeMin = 7.0)),
-        selected = selected("lateral_raise", "HYPERTROPHY", "QUALITY:HYPERTROPHY"),
-        traces = listOf(trace("lateral_raise", "HYPERTROPHY", "QUALITY:HYPERTROPHY")),
+        selected = selected("lateral_raise", "HYPERTROPHY", "QUALITY:HYPERTROPHY").takeIf { includeExactB5 },
+        traces = if (includeExactB5) listOf(trace("lateral_raise", "HYPERTROPHY", "QUALITY:HYPERTROPHY")) else emptyList(),
         attributions = listOf(StimulusExperimentalChangeAttribution("lateral_raise", "HYPERTROPHY", StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY, listOf("QUALITY:HYPERTROPHY"))),
         authorizations = listOf(authorization("lateral_raise", "HYPERTROPHY", StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR, inputReps = 10, inputTarget = null, authorizedReps = 10, authorizedTarget = 7.0)),
         materializations = listOf(materialization("lateral_raise", "HYPERTROPHY", quality = TrainableQuality.HYPERTROPHY, authorized = planned(10, 7.0)))
