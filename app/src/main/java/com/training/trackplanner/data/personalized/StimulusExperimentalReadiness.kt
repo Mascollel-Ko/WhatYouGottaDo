@@ -102,29 +102,9 @@ class StimulusExperimentalReadinessAuditEngine {
         if (comparison.winner != null) {
             return failed(comparison, "B5_WINNER_MUST_REMAIN_NULL")
         }
-        if (noMaterialChange(comparison)) {
-            return StimulusExperimentalReadinessAudit(
-                status = StimulusExperimentalReadinessStatus.NO_MATERIAL_CHANGE,
-                materializationIntegrityPassed = true,
-                changeProvenanceClosed = true,
-                collateralRegressionFree = true,
-                reasonCodes = listOf("NO_MATERIAL_CHANGE"),
-                shadowOnly = true,
-                productionAuthority = false
-            )
-        }
-
-        val integrityReasons = linkedSetOf<String>()
-        comparison.prescriptionMaterializationAudits.forEach { audit ->
-            if (audit.state == StimulusPrescriptionMaterializationState.INVARIANT_FAILURE) {
-                integrityReasons += "B6_MATERIALIZATION_INVARIANT_FAILURE"
-            }
-            integrityReasons += audit.reasonCodes.filter { it in B6_INTEGRITY_REASON_CODES }
-            integrityReasons += audit.weeklyAudits.flatMap { it.reasonCodes }.filter { it in B6_INTEGRITY_REASON_CODES }
-            if (audit.overrun > 0 || audit.maximumWeeklyOverrun > 0) integrityReasons += "B6_AUTHORIZATION_OVERRUN"
-            if (!audit.prescriptionPreservedOrSubset) integrityReasons += "B6_PRESCRIPTION_MUTATION"
-            if (audit.weeklyAudits.any { !it.prescriptionPreservedOrSubset }) integrityReasons += "B6_PRESCRIPTION_MUTATION"
-        }
+        // B6 integrity is adjudicated before the semantic no-change shortcut. A malformed
+        // experimental object can be byte-for-byte equal to CONTROL and must still fail closed.
+        val integrityReasons = materializationIntegrityReasons(comparison)
         val experimentalRowsByIdentity = comparison.experimental.items.groupBy {
             StimulusPrescriptionOwnerIdentity(it.exerciseStableKey, it.selectionRole)
         }
@@ -141,6 +121,18 @@ class StimulusExperimentalReadinessAuditEngine {
             )
             if (!validation.valid) integrityReasons += validation.reasonCodes
         }
+        if (integrityReasons.isEmpty() && noMaterialChange(comparison)) {
+            return StimulusExperimentalReadinessAudit(
+                status = StimulusExperimentalReadinessStatus.NO_MATERIAL_CHANGE,
+                materializationIntegrityPassed = true,
+                changeProvenanceClosed = true,
+                collateralRegressionFree = true,
+                reasonCodes = listOf("NO_MATERIAL_CHANGE"),
+                shadowOnly = true,
+                productionAuthority = false
+            )
+        }
+
         val attributions = attributeChanges(comparison)
         val hasUnexplainedProvenance = attributions.any { it.source == StimulusExperimentalChangeAttributionSource.UNEXPLAINED }
         val hasInconclusiveProvenance = attributions.any { it.source == StimulusExperimentalChangeAttributionSource.INCONCLUSIVE_DISPLACEMENT }
@@ -187,6 +179,23 @@ class StimulusExperimentalReadinessAuditEngine {
             shadowOnly = true,
             productionAuthority = false
         )
+    }
+
+    private fun materializationIntegrityReasons(
+        comparison: StimulusSelectionProgramComparison
+    ): LinkedHashSet<String> {
+        val integrityReasons = linkedSetOf<String>()
+        comparison.prescriptionMaterializationAudits.forEach { audit ->
+            if (audit.state == StimulusPrescriptionMaterializationState.INVARIANT_FAILURE) {
+                integrityReasons += "B6_MATERIALIZATION_INVARIANT_FAILURE"
+            }
+            integrityReasons += audit.reasonCodes.filter { it in B6_INTEGRITY_REASON_CODES }
+            integrityReasons += audit.weeklyAudits.flatMap { it.reasonCodes }.filter { it in B6_INTEGRITY_REASON_CODES }
+            if (audit.overrun > 0 || audit.maximumWeeklyOverrun > 0) integrityReasons += "B6_AUTHORIZATION_OVERRUN"
+            if (!audit.prescriptionPreservedOrSubset) integrityReasons += "B6_PRESCRIPTION_MUTATION"
+            if (audit.weeklyAudits.any { !it.prescriptionPreservedOrSubset }) integrityReasons += "B6_PRESCRIPTION_MUTATION"
+        }
+        return integrityReasons
     }
 
     private fun noMaterialChange(comparison: StimulusSelectionProgramComparison): Boolean =
