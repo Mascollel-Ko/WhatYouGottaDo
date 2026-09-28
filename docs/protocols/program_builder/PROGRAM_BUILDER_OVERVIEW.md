@@ -7,7 +7,7 @@
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 2ed4af97e7fc315e04f0463a6f9ad8bf520b3434 |
+| Last audited commit | 257d36f33c73ee9826028705bdeb0d69702c3f28 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1125,3 +1125,10 @@ Post-audit boundary notes
 - B9 now defaults to a bounded single-quality mode that routes a complete B8 Strength or Hypertrophy authority to the already-built EXPERIMENTAL skeleton. `B8_STRENGTH_V1_ACTIVE` remains a narrower Strength-only rollback and `CONTROL_ONLY` remains the complete rollback. Combined Strength+Hypertrophy authority remains CONTROL with no combined production source or active mode; unsupported qualities remain CONTROL.
 - B9 verifies the lossless `(stableKey, selectionRole, quality)` authority identities exactly against the authorized physical-owner list, rejects foreign, missing, duplicate or mismatched identities, and centralizes mode/source compatibility for `productionRoutingActive`. H authority requirements, exact target-RPE semantics, B7/B13.1 integrity ordering and typed failure boundaries remain unchanged.
 - Real Strength and Hypertrophy production continue to use exactly one CONTROL and one EXPERIMENTAL build (`total=2`, `third/other=0`); routing performs no build and no B1–B8 rerun. Room v35, DAO, persistence, backup/wire formats, UI and physiological policy remain unchanged.
+
+### B14.1 production-quality audit (protocol remains 3.49.0)
+
+- The real Room/service audit corpus covers three Strength successes (`barbell_back_squat`, `barbell_bench_press`, `chest_supported_row_machine`) and four Hypertrophy successes (`dumbbell_goblet_squat`, `ex_1dbee10e` machine chest press, `cable_rear_delt_fly`, `cable_hip_adduction`). Each case resolves one single-quality material scope, preserves the exact B5 selection role and B6 prescription authorization, passes B7/B8, routes the existing EXPERIMENTAL skeleton through B9, and records exactly `CONTROL=1`, `EXPERIMENTAL=1`, `TOTAL=2`, `OTHER=0`.
+- The test-only deterministic report records CONTROL/EXPERIMENTAL owner rows, material attributions and target IDs, B7/B8/B9 status, and build counts. Structural checks cover duration, exclusions, duplicate rows, authorized prescriptions, placement and unrelated-owner parity; no subjective program score or runtime telemetry was added.
+- The fail-closed corpus covers a real Strength no-reviewed-history fallback, no-material, unsupported and third-quality attribution, partial or missing provenance, combined Strength+Hypertrophy (resolver identifies `STRENGTH_HYPERTROPHY_V1`, B9 returns `B9_B8_COMBINED_SCOPE_NOT_ACTIVE`), malformed lossless authority identities, `CONTROL_ONLY`, and legacy Strength-only mode. Combined and unsupported qualities remain CONTROL.
+- No production defect was found and no production behavior or protocol version changed. The remaining corpus gap is that the service fixture uses the reviewed seeded catalog identities available in this repository; broader user-history diversity remains a future audit input. B15 combined production routing is intentionally outside this closeout.
