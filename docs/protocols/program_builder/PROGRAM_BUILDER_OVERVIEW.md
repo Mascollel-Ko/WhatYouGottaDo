@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.49.0 |
+| Protocol version | 3.50.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 257d36f33c73ee9826028705bdeb0d69702c3f28 |
+| Last audited commit | c7a92345b8126471ae572d145f5ad4802b2c9752 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1132,3 +1132,10 @@ Post-audit boundary notes
 - The test-only deterministic report records CONTROL/EXPERIMENTAL owner rows, material attributions and target IDs, B7/B8/B9 status, and build counts. Structural checks cover duration, exclusions, duplicate rows, authorized prescriptions, placement and unrelated-owner parity; no subjective program score or runtime telemetry was added.
 - The fail-closed corpus covers a real Strength no-reviewed-history fallback, no-material, unsupported and third-quality attribution, partial or missing provenance, combined Strength+Hypertrophy (resolver identifies `STRENGTH_HYPERTROPHY_V1`, B9 returns `B9_B8_COMBINED_SCOPE_NOT_ACTIVE`), malformed lossless authority identities, `CONTROL_ONLY`, and legacy Strength-only mode. Combined and unsupported qualities remain CONTROL.
 - No production defect was found and no production behavior or protocol version changed. The remaining corpus gap is that the service fixture uses the reviewed seeded catalog identities available in this repository; broader user-history diversity remains a future audit input. B15 combined production routing is intentionally outside this closeout.
+
+### 3.50.0 — B15.0 bounded combined Strength–Hypertrophy production routing
+
+- B9 adds `B8_STRENGTH_HYPERTROPHY_V1_ACTIVE` and `B8_STRENGTH_HYPERTROPHY_V1`. The default production mode now permits Strength-only, Hypertrophy-only and the bounded combined scope; `B8_STRENGTH_V1_ACTIVE`, the prior single-quality mode and `CONTROL_ONLY` remain explicit rollback modes.
+- Combined routing validates the exact lossless `(stableKey, selectionRole, quality)` authority set from material B7 attribution and upstream B6 authorization/materialization. It requires unique owners and authority identities, both Strength and Hypertrophy, fully executable upstream prescriptions, fully materialized horizons, encoded Hypertrophy effort/load authority, no unsupported quality, no partial authority and no B10/B13 conflicting owner. Missing, reused, diagnostic, unresolved or unknown provenance fails closed to CONTROL.
+- A valid combined authority returns the existing B6.2 EXPERIMENTAL skeleton by identity and emits `B9_B8_STRENGTH_HYPERTROPHY_V1_ROUTED`. Older modes retain `B9_B8_COMBINED_SCOPE_NOT_ACTIVE`; `CONTROL_ONLY` remains the top rollback. Production generation remains one CONTROL plus one EXPERIMENTAL build with no merge, rebuild or third program.
+- Real Room/service fixtures cover lower Strength with upper Hypertrophy and upper Strength with lower Hypertrophy owner pairs, while focused routing coverage covers partial, duplicate, third-quality, provenance, conflict and rollback failures. No schema, DAO, persistence, backup, UI, candidate, split, frequency or non-S/H authority policy changed.
