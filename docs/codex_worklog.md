@@ -7877,3 +7877,8 @@ The focused run included the real-backup comparison with its external private in
 - Local verification used `JAVA_TOOL_OPTIONS=-Djdk.net.unixdomain.tmpdir=C:\GradleIpc` with `C:\GradleIpc` present. `:app:compileDebugUnitTestKotlin` passed. Focused routing, authority, B7 readiness, materialization, build-accounting, failure-boundary and real Strength/Hypertrophy service suites passed (**101 tests, 0 failures, 0 skips**).
 - The full local `:app:testDebugUnitTest` remains the known Windows JBR/Robolectric native-runtime risk from B13.1 and must be distinguished from application assertions if reproduced; hosted CI is authoritative for the full suite.
 - No Room/schema/DAO/migration/backup/wire/UI/physiological-policy changes were made; Room remains v35.
+
+### B14.0 hosted verification record
+
+- Hosted Android Debug Build run [`36402497218`](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/36402497218) on final implementation/docs HEAD `4cb6eaaa32fac63ed6c6858da7d55b242e58b83d` passed in 10m41s. Job `108863412265` passed canonical protocol validation (9 families, 36 protocols), Community/Cloud contracts, whitespace checks, the full `:app:testDebugUnitTest` task, debug APK assembly, CI signer verification and artifact upload. The workflow log does not expose a numeric unit-test count; no count is guessed here.
+- Uploaded artifact `WhatYouGottaDo-debug-apk` is artifact ID `10961585884`, size `64,908,804` bytes, with API-reported ZIP digest `sha256:f9070502227e3e4250e2c23f8182e49eba297f8eeffcec63a7903208526db457`. Downloaded `app-debug.apk` SHA-256: `A206391E9EFA9AF442BBF3DA832711C78AB916EC46AF1F3F2E4D2FE984E9C288`.
