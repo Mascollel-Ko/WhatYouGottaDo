@@ -77,8 +77,27 @@ class StimulusCombinedCutoverAuthorityTest {
         val authority = audit(comparison)
         val routed = StimulusProductionRouter().route(comparison, authority, StimulusProductionRoutingMode.B8_STRENGTH_V1_ACTIVE)
         assertEquals(StimulusProductionProgramSource.CONTROL, routed.decision.selectedSource)
-        assertEquals(listOf("B9_B8_SCOPE_MISMATCH"), routed.decision.reasonCodes)
+        assertEquals(listOf("B9_B8_COMBINED_SCOPE_NOT_ACTIVE"), routed.decision.reasonCodes)
         assertFalse(routed.decision.productionRoutingActive)
+    }
+
+    @Test
+    fun materialScopeResolverUsesOnlyGovernedMaterialQualityAttribution() {
+        val resolver = StimulusProductionMaterialScopeResolver()
+        assertEquals(StimulusProductionCutoverScope.STRENGTH_V1, resolver.resolve(strengthOnly()))
+        assertEquals(StimulusProductionCutoverScope.HYPERTROPHY_V1, resolver.resolve(hypertrophyOnly()))
+        assertEquals(StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1, resolver.resolve(mixedComparison()))
+        val unsupported = strengthOnly().copy(
+            experimentalReadinessAudit = strengthOnly().experimentalReadinessAudit!!.copy(
+                changeAttributions = listOf(
+                    StimulusExperimentalChangeAttribution(
+                        "squat", "S", StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION,
+                        listOf("QUALITY:POWER")
+                    )
+                )
+            )
+        )
+        assertEquals(null, resolver.resolve(unsupported))
     }
 
     private val engine = StimulusProductionCutoverAuthorityAuditEngine()

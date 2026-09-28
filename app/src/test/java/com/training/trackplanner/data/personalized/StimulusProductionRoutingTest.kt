@@ -24,6 +24,63 @@ class StimulusProductionRoutingTest {
     }
 
     @Test
+    fun singleQualityModeRoutesHypertrophyByLosslessAuthorityIdentity() {
+        val comparison = comparison()
+        val authority = authority().copy(
+            scope = StimulusProductionCutoverScope.HYPERTROPHY_V1,
+            reasonCodes = listOf("B8_HYPERTROPHY_V1_AUTHORIZED"),
+            authorizedAuthorityIdentities = listOf(
+                StimulusPrescriptionAuthorityIdentity("squat", "PRIMARY", com.training.trackplanner.data.TrainableQuality.HYPERTROPHY)
+            )
+        )
+        val result = StimulusProductionRouter().route(
+            comparison, authority,
+            StimulusProductionRoutingMode.B8_SINGLE_QUALITY_STRENGTH_HYPERTROPHY_V1_ACTIVE
+        )
+        assertSame(comparison.experimental, result.program)
+        assertEquals(StimulusProductionProgramSource.B8_HYPERTROPHY_V1, result.decision.selectedSource)
+        assertTrue(result.decision.productionRoutingActive)
+        assertEquals(listOf("B9_B8_HYPERTROPHY_V1_ROUTED"), result.decision.reasonCodes)
+    }
+
+    @Test
+    fun singleQualityModeKeepsCombinedAuthorityAtControl() {
+        val comparison = comparison()
+        val authority = authority().copy(scope = StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1)
+        val result = StimulusProductionRouter().route(
+            comparison, authority,
+            StimulusProductionRoutingMode.B8_SINGLE_QUALITY_STRENGTH_HYPERTROPHY_V1_ACTIVE
+        )
+        assertSame(comparison.control, result.program)
+        assertEquals(StimulusProductionProgramSource.CONTROL, result.decision.selectedSource)
+        assertEquals(listOf("B9_B8_COMBINED_SCOPE_NOT_ACTIVE"), result.decision.reasonCodes)
+        assertFalse(result.decision.productionRoutingActive)
+    }
+
+    @Test
+    fun missingLosslessAuthorityIdentityFailsClosed() {
+        val comparison = comparison()
+        val malformed = authority()
+        val result = StimulusProductionRouter().route(
+            comparison, malformed.copy(authorizedAuthorityIdentities = emptyList()),
+            StimulusProductionRoutingMode.B8_SINGLE_QUALITY_STRENGTH_HYPERTROPHY_V1_ACTIVE
+        )
+        assertSame(comparison.control, result.program)
+        assertEquals(listOf("B9_B8_AUTHORITY_IDENTITY_MISMATCH"), result.decision.reasonCodes)
+    }
+
+    @Test
+    fun malformedB8RoutingFlagsFailClosed() {
+        val comparison = comparison()
+        val malformed = authority().copy(routingActive = true)
+        val result = StimulusProductionRouter().route(
+            comparison, malformed, StimulusProductionRoutingMode.B8_SINGLE_QUALITY_STRENGTH_HYPERTROPHY_V1_ACTIVE
+        )
+        assertSame(comparison.control, result.program)
+        assertEquals(listOf("B9_B8_CONTRACT_INCONSISTENCY"), result.decision.reasonCodes)
+    }
+
+    @Test
     fun controlOnlyRoutesControlAsEmergencyRollback() {
         val comparison = comparison()
         val result = StimulusProductionRouter().route(comparison, authority(), StimulusProductionRoutingMode.CONTROL_ONLY)
@@ -62,7 +119,10 @@ class StimulusProductionRoutingTest {
         scope = StimulusProductionCutoverScope.STRENGTH_V1,
         authorizedOwnerIdentities = listOf(StimulusPrescriptionOwnerIdentity("squat", "PRIMARY")),
         reasonCodes = listOf("B8_STRENGTH_V1_AUTHORIZED"),
-        b7Status = StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW
+        b7Status = StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW,
+        authorizedAuthorityIdentities = listOf(
+            StimulusPrescriptionAuthorityIdentity("squat", "PRIMARY", com.training.trackplanner.data.TrainableQuality.STRENGTH)
+        )
     )
 
     private fun comparison(): StimulusSelectionProgramComparison {

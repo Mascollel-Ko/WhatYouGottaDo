@@ -29,10 +29,8 @@ data class StimulusProductionCutoverAuthorityDecision(
     val productionMutationAuthority: Boolean = false,
     val authorizedAuthorityIdentities: List<StimulusPrescriptionAuthorityIdentity> = emptyList()
 ) {
-    init {
-        require(!routingActive) { "B8 bounded authority must never activate routing" }
-        require(!productionMutationAuthority) { "B8 bounded authority must never mutate production" }
-    }
+    // B8 normally emits both flags as false. The B9 selector still validates them so malformed
+    // diagnostics fail closed with a typed contract-inconsistency reason instead of throwing.
 }
 
 /** Result of the internal B8 evaluation. The experimental object is already built by B6.2. */

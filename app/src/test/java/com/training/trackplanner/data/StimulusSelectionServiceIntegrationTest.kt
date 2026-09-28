@@ -468,19 +468,27 @@ class StimulusSelectionServiceIntegrationTest {
             hDecision.authorizedOwnerIdentities.toSet()
         )
 
-        // The service still evaluates and routes production through the Strength-only B9 path.
-        // A valid H B8 authority is therefore deliberately held at CONTROL until a later B9 scope.
-        assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, comparison.productionCutoverAuthority?.status)
-        assertEquals(StimulusProductionCutoverScope.STRENGTH_V1, comparison.productionCutoverAuthority?.scope)
-        assertTrue(comparison.productionCutoverAuthority?.reasonCodes.orEmpty().contains("B8_CUTOVER_V1_NON_STRENGTH_CHANGE_OUT_OF_SCOPE"))
-        assertEquals(StimulusProductionProgramSource.CONTROL, production.routeDecision.selectedSource)
+        assertEquals(StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER, comparison.productionCutoverAuthority?.status)
+        assertEquals(StimulusProductionCutoverScope.HYPERTROPHY_V1, comparison.productionCutoverAuthority?.scope)
+        assertEquals(StimulusProductionProgramSource.B8_HYPERTROPHY_V1, production.routeDecision.selectedSource)
+        assertTrue(production.routeDecision.productionRoutingActive)
+        assertSame(comparison.experimental, production.program)
         val controlFingerprint = personalizedProgramFingerprint(comparison.control.request, comparison.control.items)
         val experimentalFingerprint = personalizedProgramFingerprint(comparison.experimental.request, comparison.experimental.items)
         assertNotEquals(controlFingerprint, experimentalFingerprint)
-        assertEquals(controlFingerprint, personalizedProgramFingerprint(production.program.request, production.program.items))
+        assertEquals(experimentalFingerprint, personalizedProgramFingerprint(production.program.request, production.program.items))
         assertEquals(1, production.buildCounts.controlBuilds)
         assertEquals(1, production.buildCounts.experimentalBuilds)
         assertEquals(2, production.buildCounts.totalBuildInvocations)
         assertEquals(0, production.buildCounts.thirdBuilds)
+
+        val legacyRollback = StimulusProductionRouter().route(
+            comparison,
+            requireNotNull(comparison.productionCutoverAuthority),
+            StimulusProductionRoutingMode.B8_STRENGTH_V1_ACTIVE
+        )
+        assertEquals(StimulusProductionProgramSource.CONTROL, legacyRollback.decision.selectedSource)
+        assertFalse(legacyRollback.decision.productionRoutingActive)
+        assertSame(comparison.control, legacyRollback.program)
     }
 }

@@ -678,8 +678,10 @@ internal class PersonalizedProgramPlanningService(
             controlOverride = controlOverride,
             productionBuildCounts = productionBuildCounts
         )
+        val resolvedScope = com.training.trackplanner.data.personalized.StimulusProductionMaterialScopeResolver()
+            .resolve(comparison)
         val authority = com.training.trackplanner.data.personalized.StimulusProductionCutoverAuthorityAuditEngine()
-            .audit(comparison)
+            .audit(comparison, resolvedScope ?: com.training.trackplanner.data.personalized.StimulusProductionCutoverScope.STRENGTH_V1)
         return com.training.trackplanner.data.personalized.StimulusProductionCutoverEvaluation(
             comparison = comparison.copy(productionCutoverAuthority = authority),
             cutoverAuthority = authority
@@ -702,11 +704,13 @@ internal class PersonalizedProgramPlanningService(
     ): com.training.trackplanner.data.personalized.StimulusProductionGenerationResult {
         val buildCounts = com.training.trackplanner.data.personalized.MutableStimulusProductionBuildCounts()
         val productionProgress = com.training.trackplanner.data.personalized.ProductionGenerationProgressMapper(progress)
-        buildCounts.recordProgramBuildInvocation(
-            com.training.trackplanner.data.personalized.StimulusProductionBuildKind.CONTROL
-        )
         val control = controlGenerationOverride?.invoke()
-            ?: generatePrepared(preflight, answers, metadata, productionProgress.controlReporter())
+            ?: run {
+                buildCounts.recordProgramBuildInvocation(
+                    com.training.trackplanner.data.personalized.StimulusProductionBuildKind.CONTROL
+                )
+                generatePrepared(preflight, answers, metadata, productionProgress.controlReporter())
+            }
         val evaluation = try {
             try {
                 experimentalGenerationOverride?.invoke() ?: generatePreparedStimulusProductionCutoverEvaluation(
@@ -759,7 +763,11 @@ internal class PersonalizedProgramPlanningService(
     internal fun evaluateStimulusProductionCutover(
         comparison: com.training.trackplanner.data.personalized.StimulusSelectionProgramComparison
     ): com.training.trackplanner.data.personalized.StimulusProductionCutoverAuthorityDecision =
-        com.training.trackplanner.data.personalized.StimulusProductionCutoverAuthorityAuditEngine().audit(comparison)
+        com.training.trackplanner.data.personalized.StimulusProductionCutoverAuthorityAuditEngine().audit(
+            comparison,
+            com.training.trackplanner.data.personalized.StimulusProductionMaterialScopeResolver().resolve(comparison)
+                ?: com.training.trackplanner.data.personalized.StimulusProductionCutoverScope.STRENGTH_V1
+        )
 
     private fun canonicalEvaluationFailure(
         failure: StimulusCanonicalEvaluationFailure
