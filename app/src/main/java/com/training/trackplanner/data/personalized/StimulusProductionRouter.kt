@@ -1,22 +1,25 @@
 package com.training.trackplanner.data.personalized
 
 import com.training.trackplanner.data.GeneratedProgramSkeleton
+import com.training.trackplanner.data.TrainableQuality
 
 /** Internal production policy; switch this single line to CONTROL_ONLY for emergency rollback. */
 object StimulusProductionRoutingPolicy {
-    val defaultMode: StimulusProductionRoutingMode = StimulusProductionRoutingMode.B8_SINGLE_QUALITY_STRENGTH_HYPERTROPHY_V1_ACTIVE
+    val defaultMode: StimulusProductionRoutingMode = StimulusProductionRoutingMode.B8_STRENGTH_HYPERTROPHY_V1_ACTIVE
 }
 
 enum class StimulusProductionRoutingMode {
     CONTROL_ONLY,
     B8_STRENGTH_V1_ACTIVE,
-    B8_SINGLE_QUALITY_STRENGTH_HYPERTROPHY_V1_ACTIVE
+    B8_SINGLE_QUALITY_STRENGTH_HYPERTROPHY_V1_ACTIVE,
+    B8_STRENGTH_HYPERTROPHY_V1_ACTIVE
 }
 
 enum class StimulusProductionProgramSource {
     CONTROL,
     B8_STRENGTH_V1,
-    B8_HYPERTROPHY_V1
+    B8_HYPERTROPHY_V1,
+    B8_STRENGTH_HYPERTROPHY_V1
 }
 
 data class StimulusProductionRoutingDecision(
@@ -40,6 +43,10 @@ internal fun StimulusProductionRoutingMode.permits(source: StimulusProductionPro
     StimulusProductionRoutingMode.B8_SINGLE_QUALITY_STRENGTH_HYPERTROPHY_V1_ACTIVE ->
         source == StimulusProductionProgramSource.B8_STRENGTH_V1 ||
             source == StimulusProductionProgramSource.B8_HYPERTROPHY_V1
+    StimulusProductionRoutingMode.B8_STRENGTH_HYPERTROPHY_V1_ACTIVE ->
+        source == StimulusProductionProgramSource.B8_STRENGTH_V1 ||
+            source == StimulusProductionProgramSource.B8_HYPERTROPHY_V1 ||
+            source == StimulusProductionProgramSource.B8_STRENGTH_HYPERTROPHY_V1
 }
 
 data class StimulusProductionRouteResult(
@@ -129,11 +136,13 @@ class StimulusProductionRouter {
             authority.status == StimulusProductionCutoverAuthorityStatus.NO_MATERIAL_CHANGE -> "B9_B8_NO_MATERIAL_CHANGE"
             authority.status != StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER ->
                 "B9_B8_CONTRACT_INCONSISTENCY"
-            authority.scope == StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1 ->
+            authority.scope == StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1 &&
+                !mode.permits(StimulusProductionProgramSource.B8_STRENGTH_HYPERTROPHY_V1) ->
                 "B9_B8_COMBINED_SCOPE_NOT_ACTIVE"
             authority.scope !in setOf(
                 StimulusProductionCutoverScope.STRENGTH_V1,
-                StimulusProductionCutoverScope.HYPERTROPHY_V1
+                StimulusProductionCutoverScope.HYPERTROPHY_V1,
+                StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1
             ) -> "B9_B8_SCOPE_MISMATCH"
             !mode.permits(sourceForScope(authority.scope)) -> "B9_B8_SCOPE_MISMATCH"
             authority.authorizedOwnerIdentities.isEmpty() -> "B9_B8_EMPTY_AUTHORIZED_OWNER_SET"
@@ -141,7 +150,25 @@ class StimulusProductionRouter {
                 "B9_B8_AUTHORITY_IDENTITY_MISMATCH"
             authority.authorizedAuthorityIdentities.size != authority.authorizedAuthorityIdentities.distinct().size ->
                 "B9_B8_AUTHORITY_IDENTITY_MISMATCH"
-            authority.authorizedAuthorityIdentities.toSet() != expectedAuthorityIdentities(authority) ->
+            authority.authorizedAuthorityIdentities.toSet() != expectedAuthorityIdentities(comparison, authority) ->
+                "B9_B8_AUTHORITY_IDENTITY_MISMATCH"
+            authority.scope == StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1 &&
+                authority.authorizedAuthorityIdentities.any { it.quality !in setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY) } ->
+                "B9_B8_AUTHORITY_IDENTITY_MISMATCH"
+            authority.scope == StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1 &&
+                authority.authorizedAuthorityIdentities.map { it.quality }.toSet() !=
+                    setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY) ->
+                "B9_B8_AUTHORITY_IDENTITY_MISMATCH"
+            authority.scope == StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1 &&
+                combinedHasUnsupportedAttributionQuality(comparison) ->
+                "B9_B8_AUTHORITY_IDENTITY_MISMATCH"
+            authority.scope == StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1 &&
+                combinedAuthorityHasFailedUpstreamQuality(comparison, authority) ->
+                "B9_B8_AUTHORITY_IDENTITY_MISMATCH"
+            authority.scope == StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1 &&
+                comparison.prescriptionAuthorizationPlan?.conflictingOwners.orEmpty().any { owner ->
+                    owner in authority.authorizedOwnerIdentities
+                } ->
                 "B9_B8_AUTHORITY_IDENTITY_MISMATCH"
             authority.b7Status != StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW ->
                 "B9_B8_CONTRACT_INCONSISTENCY"
@@ -161,6 +188,8 @@ class StimulusProductionRouter {
                 when (source) {
                     StimulusProductionProgramSource.B8_STRENGTH_V1 -> "B9_B8_STRENGTH_V1_ROUTED"
                     StimulusProductionProgramSource.B8_HYPERTROPHY_V1 -> "B9_B8_HYPERTROPHY_V1_ROUTED"
+                    StimulusProductionProgramSource.B8_STRENGTH_HYPERTROPHY_V1 ->
+                        "B9_B8_STRENGTH_HYPERTROPHY_V1_ROUTED"
                     StimulusProductionProgramSource.CONTROL -> "B9_B8_CONTROL_REQUIRED"
                 }
             ),
@@ -189,19 +218,115 @@ class StimulusProductionRouter {
     private fun sourceForScope(scope: StimulusProductionCutoverScope): StimulusProductionProgramSource = when (scope) {
         StimulusProductionCutoverScope.STRENGTH_V1 -> StimulusProductionProgramSource.B8_STRENGTH_V1
         StimulusProductionCutoverScope.HYPERTROPHY_V1 -> StimulusProductionProgramSource.B8_HYPERTROPHY_V1
-        StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1 -> StimulusProductionProgramSource.CONTROL
+        StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1 -> StimulusProductionProgramSource.B8_STRENGTH_HYPERTROPHY_V1
     }
 
     private fun expectedAuthorityIdentities(
+        comparison: StimulusSelectionProgramComparison,
         authority: StimulusProductionCutoverAuthorityDecision
-    ): Set<StimulusPrescriptionAuthorityIdentity> = authority.authorizedOwnerIdentities.map {
-        StimulusPrescriptionAuthorityIdentity(it.stableKey, it.selectionRole, when (authority.scope) {
-            StimulusProductionCutoverScope.STRENGTH_V1 -> com.training.trackplanner.data.TrainableQuality.STRENGTH
-            StimulusProductionCutoverScope.HYPERTROPHY_V1 -> com.training.trackplanner.data.TrainableQuality.HYPERTROPHY
-            StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1 ->
-                error("combined scope cannot be routed as a single-quality source")
-        })
-    }.toSet()
+    ): Set<StimulusPrescriptionAuthorityIdentity> = when (authority.scope) {
+        StimulusProductionCutoverScope.STRENGTH_V1 -> authority.authorizedOwnerIdentities.map {
+            StimulusPrescriptionAuthorityIdentity(it.stableKey, it.selectionRole, TrainableQuality.STRENGTH)
+        }.toSet()
+        StimulusProductionCutoverScope.HYPERTROPHY_V1 -> authority.authorizedOwnerIdentities.map {
+            StimulusPrescriptionAuthorityIdentity(it.stableKey, it.selectionRole, TrainableQuality.HYPERTROPHY)
+        }.toSet()
+        StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1 -> combinedExpectedAuthorityIdentities(comparison)
+    }
+
+    /**
+     * B9 validates the lossless B8 identity set from the upstream material provenance. It does
+     * not infer a quality from scope or stableKey: each material attribution contributes its
+     * exact QUALITY target to the owner/role identity.
+     */
+    private fun combinedExpectedAuthorityIdentities(
+        comparison: StimulusSelectionProgramComparison
+    ): Set<StimulusPrescriptionAuthorityIdentity> {
+        val materialOwners = materialOwnerIdentities(comparison)
+        return comparison.experimentalReadinessAudit?.changeAttributions.orEmpty()
+            .asSequence()
+            .filter { attribution ->
+                attribution.source in MATERIAL_ATTRIBUTION_SOURCES &&
+                    attribution.stableKey != null && attribution.selectionRole != null &&
+                    StimulusPrescriptionOwnerIdentity(attribution.stableKey, attribution.selectionRole) in materialOwners
+            }
+            .flatMap { attribution ->
+                val owner = StimulusPrescriptionOwnerIdentity(requireNotNull(attribution.stableKey), requireNotNull(attribution.selectionRole))
+                attribution.targetIds.asSequence().mapNotNull { targetId ->
+                    val quality = when (targetId) {
+                        "QUALITY:STRENGTH" -> TrainableQuality.STRENGTH
+                        "QUALITY:HYPERTROPHY" -> TrainableQuality.HYPERTROPHY
+                        else -> null
+                    }
+                    quality?.let { StimulusPrescriptionAuthorityIdentity(owner.stableKey, owner.selectionRole, it) }
+                }
+            }
+            .toSet()
+    }
+
+    private fun combinedAuthorityHasFailedUpstreamQuality(
+        comparison: StimulusSelectionProgramComparison,
+        authority: StimulusProductionCutoverAuthorityDecision
+    ): Boolean {
+        val expected = combinedExpectedAuthorityIdentities(comparison)
+        if (expected.isEmpty()) return true
+        val authorized = authority.authorizedAuthorityIdentities.toSet()
+        return expected.any { identity ->
+            val owner = StimulusPrescriptionOwnerIdentity(identity.stableKey, identity.selectionRole)
+            val authorization = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().filter {
+                val candidateOwner = it.owner ?: return@filter false
+                candidateOwner.stableKey == identity.stableKey &&
+                    candidateOwner.selectionRole == identity.selectionRole &&
+                    it.quality == identity.quality
+            }
+            val materializations = comparison.prescriptionMaterializationAudits.filter {
+                val candidateOwner = it.owner ?: return@filter false
+                candidateOwner.stableKey == identity.stableKey &&
+                    candidateOwner.selectionRole == identity.selectionRole &&
+                    it.quality == identity.quality
+            }
+            identity !in authorized || authorization.size != 1 ||
+            authorization.single().status !in setOf(
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR
+                ) || materializations.size != 1 ||
+                materializations.single().state != StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED ||
+                (identity.quality == TrainableQuality.HYPERTROPHY &&
+                    (authorization.single().executionAuthority != StimulusPrescriptionExecutionAuthority.FULLY_ENCODED ||
+                        materializations.single().executionAuthority != StimulusPrescriptionExecutionAuthority.FULLY_ENCODED))
+        }
+    }
+
+    private fun combinedHasUnsupportedAttributionQuality(
+        comparison: StimulusSelectionProgramComparison
+    ): Boolean = comparison.experimentalReadinessAudit?.changeAttributions.orEmpty()
+        .filter { attribution ->
+            attribution.source in MATERIAL_ATTRIBUTION_SOURCES &&
+                attribution.stableKey != null && attribution.selectionRole != null
+        }
+        .flatMap { it.targetIds }
+        .any { targetId -> targetId !in setOf("QUALITY:STRENGTH", "QUALITY:HYPERTROPHY") }
+
+    private fun materialOwnerIdentities(comparison: StimulusSelectionProgramComparison): Set<StimulusPrescriptionOwnerIdentity> = buildSet {
+        addAll(comparison.addedOwnerIdentities)
+        comparison.sharedOwnerIdentities.forEach { identity ->
+            val controlRows = comparison.control.items.filter {
+                it.exerciseStableKey == identity.stableKey && it.selectionRole == identity.selectionRole
+            }
+            val experimentalRows = comparison.experimental.items.filter {
+                it.exerciseStableKey == identity.stableKey && it.selectionRole == identity.selectionRole
+            }
+            if (controlRows != experimentalRows) add(identity)
+        }
+    }
+
+    private companion object {
+        val MATERIAL_ATTRIBUTION_SOURCES = setOf(
+            StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY,
+            StimulusExperimentalChangeAttributionSource.B6_EXISTING_OWNER_PRESCRIPTION,
+            StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION
+        )
+    }
 }
 
 /**

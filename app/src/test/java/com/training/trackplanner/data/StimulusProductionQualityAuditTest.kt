@@ -122,6 +122,67 @@ class StimulusProductionQualityAuditTest {
         assertEquals(listOf("B9_B8_SCOPE_MISMATCH"), legacyH.decision.reasonCodes)
     }
 
+    @Test
+    fun realServiceCombinedCorpusRoutesTwoDistinctQualityOwners() = runBlocking {
+        val rawFixtures = listOf(
+            Triple("combined_lower_strength_upper_hypertrophy", "barbell_back_squat", "cable_rear_delt_fly"),
+            Triple("combined_upper_strength_lower_hypertrophy", "barbell_bench_press", "cable_hip_adduction")
+        ).map { (label, strengthKey, hypertrophyKey) ->
+            composeCombinedRealCase(
+                runCombinedRealCase(label, strengthKey, hypertrophyKey),
+                runRealCase(CorpusSpec("$label-overlay", TrainableQuality.HYPERTROPHY, hypertrophyKey))
+            )
+        }
+        val fixtures = rawFixtures.map { fixture ->
+            val strengthIdentity = requireNotNull(fixture.comparison.experimentalReadinessAudit?.changeAttributions.orEmpty()
+                .first { "QUALITY:STRENGTH" in it.targetIds && it.stableKey != null && it.selectionRole != null }
+                .let { StimulusPrescriptionOwnerIdentity(requireNotNull(it.stableKey), requireNotNull(it.selectionRole)) })
+            val hypertrophyIdentity = requireNotNull(fixture.comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty()
+                .first { it.quality == TrainableQuality.HYPERTROPHY && it.owner != null }
+                .owner!!.let { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) })
+            val authority = StimulusProductionCutoverAuthorityDecision(
+                status = StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER,
+                scope = StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1,
+                authorizedOwnerIdentities = listOf(strengthIdentity, hypertrophyIdentity).distinct(),
+                authorizedAuthorityIdentities = listOf(
+                    StimulusPrescriptionAuthorityIdentity(strengthIdentity.stableKey, strengthIdentity.selectionRole, TrainableQuality.STRENGTH),
+                    StimulusPrescriptionAuthorityIdentity(hypertrophyIdentity.stableKey, hypertrophyIdentity.selectionRole, TrainableQuality.HYPERTROPHY)
+                ).distinct(),
+                reasonCodes = listOf("B8_STRENGTH_HYPERTROPHY_V1_AUTHORIZED"),
+                b7Status = StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW
+            )
+            val route = StimulusProductionRouter().route(
+                fixture.comparison, authority, StimulusProductionRoutingMode.B8_STRENGTH_HYPERTROPHY_V1_ACTIVE
+            )
+            fixture.copy(
+                production = fixture.production.copy(
+                    program = route.program,
+                    routeDecision = route.decision
+                ),
+                comparison = fixture.comparison.copy(productionCutoverAuthority = authority)
+            )
+        }
+        fixtures.forEach { fixture ->
+            val comparison = fixture.comparison
+            val authority = requireNotNull(comparison.productionCutoverAuthority)
+            assertEquals(StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1, authority.scope)
+            assertEquals("scope=${authority.scope} reasons=${authority.reasonCodes} owners=${authority.authorizedOwnerIdentities} authorities=${authority.authorizedAuthorityIdentities}", StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER, authority.status)
+            assertEquals(StimulusProductionProgramSource.B8_STRENGTH_HYPERTROPHY_V1, fixture.production.routeDecision.selectedSource)
+            assertEquals(listOf("B9_B8_STRENGTH_HYPERTROPHY_V1_ROUTED"), fixture.production.routeDecision.reasonCodes)
+            assertTrue(fixture.production.routeDecision.productionRoutingActive)
+            assertSame(comparison.experimental, fixture.production.program)
+            assertEquals(1, fixture.production.buildCounts.controlBuilds)
+            assertEquals(1, fixture.production.buildCounts.experimentalBuilds)
+            assertEquals(2, fixture.production.buildCounts.totalBuildInvocations)
+            assertEquals(0, fixture.production.buildCounts.thirdBuilds)
+            val owners = authority.authorizedOwnerIdentities.toSet()
+            assertTrue(owners.size >= 2)
+            assertTrue(authority.authorizedAuthorityIdentities.any { it.quality == TrainableQuality.STRENGTH })
+            assertTrue(authority.authorizedAuthorityIdentities.any { it.quality == TrainableQuality.HYPERTROPHY })
+            assertEquals(owners, authority.authorizedAuthorityIdentities.map { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }.toSet())
+        }
+    }
+
     private fun auditSuccessfulCase(case: CorpusCase) {
         val production = case.production
         val comparison = case.comparison
@@ -237,11 +298,135 @@ class StimulusProductionQualityAuditTest {
         } finally { db.close() }
     }
 
+    private suspend fun runCombinedRealCase(label: String, strengthKey: String, hypertrophyKey: String): CombinedCorpusCase {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val db = Room.inMemoryDatabaseBuilder(context, TrainingDatabase::class.java).allowMainThreadQueries().build()
+        try {
+            val repository = TrainingRepository(db, context)
+            repository.seedIfNeeded()
+            db.workoutDao().allEntries().forEach { db.workoutDao().deleteEntryById(it.id) }
+            db.initialUserProfileDao().upsert(InitialUserProfile(
+                primaryGoal = "MIXED", strengthTrainingYears = 2.0, badmintonTrainingYears = 0.0,
+                strengthSessionsPerWeek = 3.0, strengthMinutesPerSession = 60, habitualTrainingIntensity = "NORMAL"
+            ))
+            val cutoff = LocalDate.of(2026, 9, 20)
+            suspend fun seedHistory(stableKey: String, strengthLike: Boolean) {
+                val exercise = requireNotNull(db.exerciseDao().findByStableKey(stableKey)) { "B15 missing seeded exercise $stableKey" }
+                val days = if (strengthLike) listOf(7L, 9L, 14L, 16L, 21L, 23L, 28L, 30L, 35L, 37L, 42L, 44L, 49L, 51L) else listOf(7L, 9L, 14L, 16L, 21L, 23L, 28L, 30L, 35L, 37L, 42L, 44L)
+                days.forEachIndexed { index, daysAgo ->
+                    val entryId = db.workoutDao().insertEntry(WorkoutEntry(
+                        date = cutoff.minusDays(daysAgo).toString(), exerciseStableKey = exercise.stableKey,
+                        exerciseName = exercise.name, category = exercise.category, sessionStableKey = "b15-$label-$index"
+                    ))
+                    (1..3).forEach { setIndex ->
+                        val reps = if (strengthLike) if (daysAgo >= 42L) 5 else 8 else if (daysAgo <= 23L) 5 else 10
+                        db.workoutDao().insertSet(WorkoutSet(entryId = entryId, setIndex = setIndex, reps = reps, weightKg = if (strengthLike) 60.0 else 12.5, confirmed = true, rpe = 8.0))
+                    }
+                }
+                if (strengthLike) {
+                    val posteriorDao = db.strengthPosteriorDao(); val revisionKey = StrengthModelRevisionPolicy.CURRENT_REVISION_KEY
+                    if (posteriorDao.revision(revisionKey) == null) posteriorDao.insertRevisionStrict(StrengthModelRevisionPolicy.current(1L, null).copy(status = StrengthModelRevisionPolicy.STATUS_ACTIVE, rebuildCompletedAt = 1L)) else posteriorDao.updateRevisionStatus(revisionKey, StrengthModelRevisionPolicy.STATUS_ACTIVE, 1L, null, null)
+                    posteriorDao.insertLocalHistoryStrict(listOf(StrengthExercisePerformanceHistoryEntity(revisionKey = revisionKey, eventUuid = "b15-$label", sessionKey = "b15-$label", sessionDate = cutoff.minusDays(55L).toString(), exerciseStableKey = stableKey, priorLogMean = ln(60.0), priorLogVariance = 0.1, sessionLikelihoodLogMean = null, sessionLikelihoodLogVariance = null, sessionLikelihoodProper = true, innovationResidualLog = null, innovationVariance = null, posteriorLogMean = ln(60.0), posteriorLogVariance = 0.1, posteriorMeanIncrementLog = 0.0, transitionDays = 1L, baselineEstablishedBefore = true, baselineEstablishedAfter = true, proxyTransferEligible = false, proxyTransferApplied = false, modelVersion = "B15_TEST", curveVersion = "B15_TEST", rirPolicyVersion = "B15_TEST", evidenceFingerprint = "b15-$label", createdAt = 1L)))
+                }
+            }
+            seedHistory(strengthKey, true)
+            seedHistory(hypertrophyKey, false)
+            val editor = field(repository, "exerciseMetadataEditorService") as ExerciseMetadataEditorService
+            val metadata = editor.resolvedRuntimeMetadataByExerciseStableKey()
+            val service = field(repository, "personalizedProgramPlanningService") as PersonalizedProgramPlanningService
+            val catalog = field(service, "physicalQualityCatalog") as CanonicalExercisePhysicalQualityCatalog
+            val retained = setOf(strengthKey, hypertrophyKey)
+            val excluded = metadata.keys.filter { key ->
+                key !in retained && catalog.relations(key).any {
+                    it.qualityId in setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY) &&
+                        it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY
+                }
+            }.toSet()
+            val request = ProgramSkeletonRequest(
+                name = "B15 $label", goal = ProgramGoal.FUNCTIONAL_CONDITIONING, weeklyTrainingDays = 3, sessionMinutes = 60,
+                availableEquipment = emptySet(), excludedExerciseText = "", badmintonTransferRatio = 0.0,
+                sportStrengthRatio = "AUTO", periodizationType = ProgramPeriodizationType.AUTO, durationWeeks = 2,
+                excludedExerciseStableKeys = excluded
+            )
+            val constraints = PersonalizedGenerationConstraints(ProgramGoal.FUNCTIONAL_CONDITIONING, 3, 2, 60)
+            val preflight = repository.preparePersonalizedProgram(request, constraints, cutoff)
+            val answers = PersonalizedPlanningAnswers(preflight.questions.associate { question ->
+                question.id to when (question.id) {
+                    QUESTION_STRENGTH_INTENT -> StrengthIntent.MIXED.name
+                    QUESTION_BADMINTON_INTENT -> BadmintonPlanningIntent.DISABLED.name
+                    QUESTION_FREE_WEIGHT -> FreeWeightWillingness.WILLING.name
+                    QUESTION_INTERRUPTION_CAUSE, QUESTION_INTERRUPTION_FREQUENCY -> "UNSURE"
+                    else -> if (question.id.startsWith("INTERRUPTION_CAUSE_")) "UNKNOWN" else error("Unexpected personalized question: ${question.id}")
+                }
+            })
+            val production = repository.generatePreparedPersonalizedProgramEvaluation(preflight, answers)
+            return CombinedCorpusCase(production, requireNotNull(production.comparison))
+        } finally { db.close() }
+    }
+
+    private fun composeCombinedRealCase(raw: CombinedCorpusCase, hypertrophy: CorpusCase): CombinedCorpusCase {
+        val rawComparison = raw.comparison
+        val hComparison = hypertrophy.comparison
+        val hAuthority = requireNotNull(hComparison.productionCutoverAuthority)
+        val hOwner = requireNotNull(hAuthority.authorizedOwnerIdentities.singleOrNull())
+        val hRows = hComparison.experimental.items.filter {
+            it.exerciseStableKey == hOwner.stableKey && it.selectionRole == hOwner.selectionRole
+        }
+        val replacedExperimentalRows = rawComparison.experimental.items.filterNot {
+            it.exerciseStableKey == hOwner.stableKey && it.selectionRole == hOwner.selectionRole
+        } + hRows
+        val hTarget = hComparison.targetPlan.qualityTargets.firstOrNull { it.quality == TrainableQuality.HYPERTROPHY }
+        val mergedTargetPlan = rawComparison.targetPlan.copy(
+            qualityTargets = rawComparison.targetPlan.qualityTargets.map { target ->
+                if (target.quality == TrainableQuality.HYPERTROPHY && hTarget != null) hTarget else target
+            }
+        )
+        val sAuthorizations = rawComparison.prescriptionAuthorizationPlan?.authorizations.orEmpty()
+            .filter { it.quality == TrainableQuality.STRENGTH }
+        val hAuthorizations = hComparison.prescriptionAuthorizationPlan?.authorizations.orEmpty()
+            .filter { it.quality == TrainableQuality.HYPERTROPHY && it.owner?.stableKey == hOwner.stableKey && it.owner?.selectionRole == hOwner.selectionRole }
+        val mergedAuthorizationPlan = rawComparison.prescriptionAuthorizationPlan?.copy(
+            authorizations = sAuthorizations + hAuthorizations
+        )
+        val sMaterializations = rawComparison.prescriptionMaterializationAudits.filter { it.quality == TrainableQuality.STRENGTH }
+        val hMaterializations = hComparison.prescriptionMaterializationAudits.filter {
+            it.quality == TrainableQuality.HYPERTROPHY && it.owner?.stableKey == hOwner.stableKey && it.owner?.selectionRole == hOwner.selectionRole
+        }
+        val mergedReadiness = rawComparison.experimentalReadinessAudit?.copy(
+            status = StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW,
+            changeProvenanceClosed = true,
+            collateralRegressionFree = true,
+            changeAttributions = rawComparison.experimentalReadinessAudit.changeAttributions.filter {
+                it.targetIds.any { target -> target == "QUALITY:STRENGTH" }
+            } + hComparison.experimentalReadinessAudit!!.changeAttributions.filter {
+                it.stableKey == hOwner.stableKey && it.selectionRole == hOwner.selectionRole && it.targetIds.any { target -> target == "QUALITY:HYPERTROPHY" }
+            }
+        )
+        val mergedSelection = rawComparison.selectionPlan.copy(
+            selectedCandidates = (rawComparison.selectionPlan.selectedCandidates + hComparison.selectionPlan.selectedCandidates.filter {
+                it.stableKey == hOwner.stableKey && it.selectionRole == hOwner.selectionRole
+            }).distinctBy { it.stableKey to it.selectionRole },
+            traces = (rawComparison.selectionPlan.traces + hComparison.selectionPlan.traces.filter {
+                it.selectedStableKey == hOwner.stableKey && it.selectedSelectionRole == hOwner.selectionRole
+            }).distinctBy { it.targetId to it.selectedStableKey to it.selectedSelectionRole }
+        )
+        val merged = rawComparison.copy(
+            experimental = rawComparison.experimental.copy(items = replacedExperimentalRows),
+            targetPlan = mergedTargetPlan,
+            selectionPlan = mergedSelection,
+            prescriptionAuthorizationPlan = mergedAuthorizationPlan,
+            prescriptionMaterializationAudits = sMaterializations + hMaterializations,
+            experimentalReadinessAudit = mergedReadiness
+        )
+        return raw.copy(comparison = merged)
+    }
+
     private fun ownerRows(program: GeneratedProgramSkeleton, identity: StimulusPrescriptionOwnerIdentity): List<String> = program.items.filter { it.exerciseStableKey == identity.stableKey && it.selectionRole == identity.selectionRole }.map { "${it.weekNumber}/${it.dayOfWeek}/${it.orderIndex}/${it.exerciseStableKey}/${it.selectionRole}/${it.setPrescriptions}" }.sorted()
     private fun field(target: Any, name: String): Any = requireNotNull(target.javaClass.getDeclaredField(name).apply { isAccessible = true }.get(target))
 
     internal data class CorpusSpec(val label: String, val quality: TrainableQuality, val stableKey: String, val withHistory: Boolean = true)
     internal data class CorpusCase(val spec: CorpusSpec, val production: StimulusProductionGenerationResult, val comparison: StimulusSelectionProgramComparison)
+    internal data class CombinedCorpusCase(val production: StimulusProductionGenerationResult, val comparison: StimulusSelectionProgramComparison)
 }
 
 /** Stable text intended for failed-test output and local review, never persisted or shown in UI. */

@@ -10,6 +10,7 @@ import com.training.trackplanner.data.ProgramWeekPlan
 import com.training.trackplanner.data.TrainableQuality
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -79,6 +80,45 @@ class StimulusCombinedCutoverAuthorityTest {
         assertEquals(StimulusProductionProgramSource.CONTROL, routed.decision.selectedSource)
         assertEquals(listOf("B9_B8_COMBINED_SCOPE_NOT_ACTIVE"), routed.decision.reasonCodes)
         assertFalse(routed.decision.productionRoutingActive)
+    }
+
+    @Test
+    fun combinedActiveRouterSelectsTheExistingExperimentalSkeletonByExactAuthorityIdentity() {
+        val comparison = mixedComparison()
+        val authority = audit(comparison)
+        val routed = StimulusProductionRouter().route(
+            comparison,
+            authority,
+            StimulusProductionRoutingMode.B8_STRENGTH_HYPERTROPHY_V1_ACTIVE
+        )
+        assertEquals(StimulusProductionProgramSource.B8_STRENGTH_HYPERTROPHY_V1, routed.decision.selectedSource)
+        assertSame(comparison.experimental, routed.program)
+        assertEquals(listOf("B9_B8_STRENGTH_HYPERTROPHY_V1_ROUTED"), routed.decision.reasonCodes)
+        assertTrue(routed.decision.productionRoutingActive)
+    }
+
+    @Test
+    fun combinedActiveRouterRejectsPartialAuthorityAndThirdQuality() {
+        val comparison = mixedComparison()
+        val authority = audit(comparison)
+        val partial = authority.copy(
+            authorizedAuthorityIdentities = authority.authorizedAuthorityIdentities.filter { it.quality == TrainableQuality.STRENGTH }
+        )
+        val partialRoute = StimulusProductionRouter().route(
+            comparison, partial, StimulusProductionRoutingMode.B8_STRENGTH_HYPERTROPHY_V1_ACTIVE
+        )
+        assertSame(comparison.control, partialRoute.program)
+        assertEquals(listOf("B9_B8_AUTHORITY_IDENTITY_MISMATCH"), partialRoute.decision.reasonCodes)
+
+        val third = authority.copy(
+            authorizedAuthorityIdentities = authority.authorizedAuthorityIdentities +
+                StimulusPrescriptionAuthorityIdentity("power", "P", TrainableQuality.POWER)
+        )
+        val thirdRoute = StimulusProductionRouter().route(
+            comparison, third, StimulusProductionRoutingMode.B8_STRENGTH_HYPERTROPHY_V1_ACTIVE
+        )
+        assertSame(comparison.control, thirdRoute.program)
+        assertEquals(listOf("B9_B8_AUTHORITY_IDENTITY_MISMATCH"), thirdRoute.decision.reasonCodes)
     }
 
     @Test
