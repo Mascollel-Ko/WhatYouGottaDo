@@ -7882,3 +7882,8 @@ The focused run included the real-backup comparison with its external private in
 
 - Hosted Android Debug Build run [`36402497218`](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/36402497218) on final implementation/docs HEAD `4cb6eaaa32fac63ed6c6858da7d55b242e58b83d` passed in 10m41s. Job `108863412265` passed canonical protocol validation (9 families, 36 protocols), Community/Cloud contracts, whitespace checks, the full `:app:testDebugUnitTest` task, debug APK assembly, CI signer verification and artifact upload. The workflow log does not expose a numeric unit-test count; no count is guessed here.
 - Uploaded artifact `WhatYouGottaDo-debug-apk` is artifact ID `10961585884`, size `64,908,804` bytes, with API-reported ZIP digest `sha256:f9070502227e3e4250e2c23f8182e49eba297f8eeffcec63a7903208526db457`. Downloaded `app-debug.apk` SHA-256: `A206391E9EFA9AF442BBF3DA832711C78AB916EC46AF1F3F2E4D2FE984E9C288`.
+
+### B14.0 final documentation-head hosted verification
+
+- Final documentation-head run [`36403883459`](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/36403883459) on `4624dd8fdfe72b6d73e48c7b5a744b0c8b9bb3d0` passed in 9m20s; job `108867875402` passed protocol validation, Community/Cloud contracts, whitespace, full debug unit tests, APK assembly, signer verification and artifact upload.
+- Final artifact `WhatYouGottaDo-debug-apk` is ID `10961991154`, size `64,909,507` bytes, API ZIP digest `sha256:bc65064c195aeaead74987b90b6f197d8c920a6b9600095ab9330f29b61bfdbb`; downloaded APK SHA-256 `B4CA9942406AC8231D267BF10BE55A2A17D10CC6A31739EBB33697AB91F8062C`.
