@@ -348,7 +348,7 @@ class StimulusSelectionServiceIntegrationTest {
     }
 
     @Test
-    fun realServiceHypertrophyChainIsExecutableButRemainsShadowOnly() = runBlocking {
+    fun realServiceHypertrophyChainRoutesAuthorizedProductionProgram() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val db = Room.inMemoryDatabaseBuilder(context, TrainingDatabase::class.java)
             .allowMainThreadQueries().build()
