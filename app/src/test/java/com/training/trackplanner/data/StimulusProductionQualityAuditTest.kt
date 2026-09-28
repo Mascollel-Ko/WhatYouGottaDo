@@ -73,10 +73,13 @@ class StimulusProductionQualityAuditTest {
         )
         val missingProvenance = h.comparison.copy(experimentalReadinessAudit = audit.copy(changeAttributions = emptyList()))
         assertNull(resolver.resolve(missingProvenance))
+        assertEquals(StimulusProductionScopeResolutionStatus.MISSING_PROVENANCE, resolver.resolveDetailed(missingProvenance).status)
         val partialProvenance = h.comparison.copy(experimentalReadinessAudit = audit.copy(changeAttributions = audit.changeAttributions.drop(1)))
         assertNull(resolver.resolve(partialProvenance))
+        assertTrue(resolver.resolveDetailed(partialProvenance).reasonCodes.any { it.contains("PROVENANCE") })
         val unsupported = h.comparison.copy(experimentalReadinessAudit = audit.copy(changeAttributions = listOf(attribution(listOf("QUALITY:POWER")))))
         assertNull(resolver.resolve(unsupported))
+        assertTrue("UNSUPPORTED_QUALITY_POWER" in resolver.resolveDetailed(unsupported).reasonCodes)
         val combined = h.comparison.copy(
             targetPlan = h.comparison.targetPlan.copy(
                 qualityTargets = h.comparison.targetPlan.qualityTargets + h.comparison.targetPlan.qualityTargets.single { it.quality == TrainableQuality.HYPERTROPHY }.copy(quality = TrainableQuality.STRENGTH)
@@ -99,7 +102,70 @@ class StimulusProductionQualityAuditTest {
         val thirdQuality = h.comparison.copy(experimentalReadinessAudit = audit.copy(changeAttributions = listOf(attribution(listOf("QUALITY:HYPERTROPHY", "QUALITY:POWER")))))
         assertNull(resolver.resolve(thirdQuality))
 
+        val fullyGovernedPower = unsupported.copy(targetPlan = unsupported.targetPlan.copy(
+            qualityTargets = unsupported.targetPlan.qualityTargets.filter { it.quality != TrainableQuality.POWER } +
+                unsupported.targetPlan.qualityTargets.first().copy(quality = TrainableQuality.POWER)
+        ))
+        assertEquals(StimulusProductionScopeResolutionStatus.UNSUPPORTED_QUALITY, resolver.resolveDetailed(fullyGovernedPower).status)
+        (TrainableQuality.entries - setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY)).forEach { quality ->
+            val probe = h.comparison.copy(
+                targetPlan = h.comparison.targetPlan.copy(qualityTargets = listOf(h.comparison.targetPlan.qualityTargets.first().copy(quality = quality))),
+                experimentalReadinessAudit = audit.copy(changeAttributions = listOf(attribution(listOf("QUALITY:${quality.name}"))))
+            )
+            val detail = resolver.resolveDetailed(probe)
+            assertNull(detail.scope)
+            assertEquals(setOf(quality), detail.materialQualities)
+            assertEquals(StimulusProductionScopeResolutionStatus.UNSUPPORTED_QUALITY, detail.status)
+            assertTrue("UNSUPPORTED_QUALITY_${quality.name}" in detail.reasonCodes)
+        }
+        val unknown = h.comparison.copy(experimentalReadinessAudit = audit.copy(changeAttributions = listOf(attribution(listOf("QUALITY:NOT_A_QUALITY")))))
+        assertEquals(setOf("QUALITY:NOT_A_QUALITY"), resolver.resolveDetailed(unknown).unknownTargetIds)
+        assertEquals(StimulusProductionScopeResolutionStatus.UNKNOWN_TARGET, resolver.resolveDetailed(unknown).status)
+        val three = fullyGovernedPower.copy(experimentalReadinessAudit = audit.copy(changeAttributions = listOf(attribution(listOf("QUALITY:STRENGTH", "QUALITY:HYPERTROPHY", "QUALITY:POWER")))))
+        assertTrue("THIRD_QUALITY_PRESENT" in resolver.resolveDetailed(three).reasonCodes)
+        val partial = h.comparison.copy(
+            experimental = h.comparison.experimental.copy(items = h.comparison.experimental.items + h.comparison.experimental.items.first().copy(exerciseStableKey = "unattributed-owner")),
+            experimentalReadinessAudit = audit
+        )
+        assertEquals(StimulusProductionScopeResolutionStatus.PARTIAL_PROVENANCE, resolver.resolveDetailed(partial).status)
+        assertTrue(resolver.resolveDetailed(partial).unattributedOwnerIdentities.any { it.stableKey == "unattributed-owner" })
+        assertEquals(StimulusProductionScopeResolutionStatus.NO_MATERIAL, resolver.resolveDetailed(noMaterial).status)
+        listOf(h.comparison, noMaterial, missingProvenance, partialProvenance, unsupported, combined, thirdQuality, fullyGovernedPower, unknown, three, partial).forEach { comparison ->
+            val before = resolver.resolve(comparison)
+            val detail = resolver.resolveDetailed(comparison)
+            assertEquals(before, detail.scope)
+            val b8 = StimulusProductionCutoverAuthorityAuditEngine().audit(comparison, before ?: StimulusProductionCutoverScope.STRENGTH_V1)
+            val route = StimulusProductionRouter().route(comparison, b8, StimulusProductionRoutingPolicy.defaultMode)
+            val observed = h.production.copy(program = route.program, routeDecision = route.decision, comparison = comparison.copy(productionCutoverAuthority = b8))
+            val reasons = route.decision.reasonCodes.toList()
+            observed.diagnostics
+            assertEquals(reasons, observed.routeDecision.reasonCodes)
+            assertSame(route.program, observed.program)
+        }
+
         val authority = requireNotNull(h.comparison.productionCutoverAuthority)
+        fun stage(comparison: StimulusSelectionProgramComparison, b8: StimulusProductionCutoverAuthorityDecision = authority,
+                  mode: StimulusProductionRoutingMode = StimulusProductionRoutingPolicy.defaultMode): StimulusProductionFallbackStage? {
+            val route = StimulusProductionRouter().route(comparison, b8, mode)
+            return StimulusProductionDiagnostics.observe(comparison.copy(productionCutoverAuthority = b8), route.decision).primaryFallbackStage
+        }
+        assertNull(stage(h.comparison))
+        assertEquals(StimulusProductionFallbackStage.CONTROL_POLICY, stage(h.comparison, mode = StimulusProductionRoutingMode.CONTROL_ONLY))
+        val denied = authority.copy(status = StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED)
+        assertEquals(StimulusProductionFallbackStage.SCOPE_RESOLUTION, stage(missingProvenance, denied))
+        assertEquals(StimulusProductionFallbackStage.NO_MATERIAL_CHANGE, stage(noMaterial, denied))
+        assertEquals(StimulusProductionFallbackStage.B6_EXECUTION_AUTHORITY, stage(h.comparison.copy(experimentalReadinessAudit = audit.copy(materializationIntegrityPassed = false)), denied))
+        val unresolvedExecution = h.comparison.copy(prescriptionAuthorizationPlan = requireNotNull(h.comparison.prescriptionAuthorizationPlan).let { plan ->
+            plan.copy(authorizations = plan.authorizations.map { if (it.quality == TrainableQuality.HYPERTROPHY) it.copy(executionAuthority = StimulusPrescriptionExecutionAuthority.UNRESOLVED) else it })
+        })
+        assertEquals(StimulusProductionFallbackStage.B6_EXECUTION_AUTHORITY, stage(unresolvedExecution, denied))
+        val partialExecution = h.comparison.copy(prescriptionMaterializationAudits = h.comparison.prescriptionMaterializationAudits.map {
+            if (it.quality == TrainableQuality.HYPERTROPHY) it.copy(state = StimulusPrescriptionMaterializationState.PARTIALLY_MATERIALIZED) else it
+        })
+        assertEquals(StimulusProductionFallbackStage.B6_EXECUTION_AUTHORITY, stage(partialExecution, denied))
+        assertEquals(StimulusProductionFallbackStage.B7_READINESS, stage(h.comparison.copy(experimentalReadinessAudit = audit.copy(status = StimulusExperimentalReadinessStatus.NOT_ELIGIBLE)), denied))
+        assertEquals(StimulusProductionFallbackStage.B8_CUTOVER_AUTHORITY, stage(h.comparison, denied))
+        assertEquals(StimulusProductionFallbackStage.B9_ROUTING_CONTRACT, stage(h.comparison, authority.copy(authorizedAuthorityIdentities = emptyList())))
         listOf(
             authority.copy(authorizedAuthorityIdentities = emptyList()),
             authority.copy(authorizedAuthorityIdentities = authority.authorizedAuthorityIdentities + authority.authorizedAuthorityIdentities.single()),

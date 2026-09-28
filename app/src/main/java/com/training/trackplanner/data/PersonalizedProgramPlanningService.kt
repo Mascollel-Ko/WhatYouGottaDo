@@ -488,11 +488,11 @@ internal class PersonalizedProgramPlanningService(
     }
 
     /**
-     * Test/dev-only Phase B6.2 path. It performs exactly one unchanged CONTROL build and one
+     * Shared Phase B6.2 production/evaluation path. It performs one CONTROL build and one
      * EXPERIMENTAL build. Exact Strength prescriptions are authorized from B4/B5 plus the
      * already-built CONTROL owner table before the experimental builder starts. Strength and
-     * Hypertrophy are the only executable prescription qualities; Hypertrophy remains shadow-only
-     * and cannot cross the B8 STRENGTH_V1 production boundary.
+     * Hypertrophy are the only executable prescription qualities. B8/B9 separately validate
+     * and select bounded single-quality or combined production authority.
      */
     internal suspend fun generatePreparedStimulusPrescriptionMaterializationComparison(
         preflight: PersonalizedPlanningPreflight,
@@ -657,8 +657,8 @@ internal class PersonalizedProgramPlanningService(
     }
 
     /**
-     * Test/dev-only B8.0 evaluation. B6.2 builds CONTROL and EXPERIMENTAL exactly once; B8
-     * consumes that existing comparison and only returns a future cutover authority decision.
+     * Shared B8 evaluation. B6.2 builds CONTROL and EXPERIMENTAL exactly once; B8
+     * consumes that existing comparison and returns a bounded cutover authority decision.
      * B9 consumes this result separately; this method itself remains an authority evaluation
      * seam and does not route or persist the experimental object.
      */
@@ -740,7 +740,11 @@ internal class PersonalizedProgramPlanningService(
                 program = control,
                 routeDecision = fallback,
                 comparison = null,
-                buildCounts = buildCounts.snapshot()
+                buildCounts = buildCounts.snapshot(),
+                upstreamFailureReason = failure.reasonCode,
+                upstreamFailureDetails = (failure.cause as? StimulusCanonicalEvaluationFailure)?.let {
+                    listOfNotNull(it.reason.name, it.detailCode)
+                }.orEmpty()
             )
         }
         val routed = com.training.trackplanner.data.personalized.StimulusProductionRouter().route(

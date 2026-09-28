@@ -110,6 +110,16 @@ jobs:
           SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
         run: ./gradlew testDebugUnitTest -Pgoogle.webClientId="$GOOGLE_WEB_CLIENT_ID" -Psupabase.publishableKey="$SUPABASE_PUBLISHABLE_KEY"
 
+      - name: Upload production coverage and unit test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Stimulus-production-coverage
+          path: |
+            app/build/reports/stimulus-production-coverage.txt
+            app/build/test-results/testDebugUnitTest/*.xml
+          if-no-files-found: warn
+
       - name: Assemble debug APK
         env:
           ANDROID_CI_KEYSTORE_PATH: ${{ runner.temp }}/whatyougottado-ci-debug.jks

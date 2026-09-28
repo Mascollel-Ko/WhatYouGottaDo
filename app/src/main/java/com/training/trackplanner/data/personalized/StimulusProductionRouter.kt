@@ -59,8 +59,15 @@ internal data class StimulusProductionGenerationResult(
     val program: GeneratedProgramSkeleton,
     val routeDecision: StimulusProductionRoutingDecision,
     val comparison: StimulusSelectionProgramComparison?,
-    val buildCounts: StimulusProductionBuildCounts
-)
+    val buildCounts: StimulusProductionBuildCounts,
+    val upstreamFailureReason: String? = null,
+    val upstreamFailureDetails: List<String> = emptyList()
+) {
+    val diagnostics: StimulusProductionDiagnostics
+        get() = StimulusProductionDiagnostics.observe(comparison, routeDecision, upstreamFailureReason).let {
+            it.copy(secondaryReasonCodes = (it.secondaryReasonCodes + upstreamFailureDetails).distinct().sorted())
+        }
+}
 
 internal data class StimulusProductionBuildCounts(
     val totalBuildInvocations: Int,
@@ -335,6 +342,10 @@ class StimulusProductionRouter {
  * rows that were not materially executed.
  */
 class StimulusProductionMaterialScopeResolver {
+    /** Diagnostic companion; [resolve] remains the unchanged production scope contract. */
+    fun resolveDetailed(comparison: StimulusSelectionProgramComparison): StimulusProductionScopeResolution =
+        observeProductionScope(comparison, resolve(comparison))
+
     fun resolve(comparison: StimulusSelectionProgramComparison): StimulusProductionCutoverScope? {
         val audit = comparison.experimentalReadinessAudit ?: return null
         val materialOwners = buildSet {
