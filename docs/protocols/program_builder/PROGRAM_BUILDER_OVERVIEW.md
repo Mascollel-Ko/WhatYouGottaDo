@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.48.1 |
+| Protocol version | 3.49.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 2313e4fe7b8f619fc15ead2645924cf7833eabdf |
+| Last audited commit | 2ed4af97e7fc315e04f0463a6f9ad8bf520b3434 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1118,3 +1118,10 @@ Post-audit boundary notes
 - Production build accounting records a typed invocation (`CONTROL`, `EXPERIMENTAL`, or `OTHER`) at the actual program-build boundary. Diagnostics expose `totalBuildInvocations`, categorized counts, and `thirdBuilds`/`otherBuilds`; the normal path is exactly one CONTROL plus one EXPERIMENTAL invocation (total 2, third 0), while a deliberate pure seam invocation is observable as OTHER without running a third production build. Audits, routing, fingerprints, snapshots, DAO work, and persistence are excluded from the count.
 - Owner-only funded slices preserve exact `(stableKey, selectionRole)` authority. A non-zero offset requires a complete authorized owner map; a callback that can provide only a truncated prefix fails closed. Offset zero retains the prefix convenience behavior, quality-specific authority remains keyed by `(stableKey, selectionRole, quality)`, and bounds are checked without integer overflow. No cross-quality borrow, regeneration, wrapping, restart, inference, or silent clipping is permitted.
 - B13.1 is a production-boundary hardening release only. Strength-v1 remains the sole active B9 source; Hypertrophy-v1 and combined Strength–Hypertrophy authority remain shadow/authority-only, `CONTROL_ONLY` rollback remains intact, Room stays v35, and no DAO, backup, wire, UI, persistence-schema, hybrid, or third-build path is introduced.
+
+### 3.49.0 — B14.0 bounded single-quality Hypertrophy production routing activation
+
+- Production scope is resolved deterministically from actual material B7 provenance using only `B5_SELECTED_IDENTITY`, `B6_EXISTING_OWNER_PRESCRIPTION`, and `B6_SAFE_REPAIRED_PRESCRIPTION` attributions. Strength-only resolves to `STRENGTH_V1`, Hypertrophy-only to `HYPERTROPHY_V1`, both to authority-only `STRENGTH_HYPERTROPHY_V1`, and unsupported, task, unknown, ambiguous or unclosed material provenance fails closed. Conflict-only rows that were not materially executed cannot manufacture a second quality.
+- B9 now defaults to a bounded single-quality mode that routes a complete B8 Strength or Hypertrophy authority to the already-built EXPERIMENTAL skeleton. `B8_STRENGTH_V1_ACTIVE` remains a narrower Strength-only rollback and `CONTROL_ONLY` remains the complete rollback. Combined Strength+Hypertrophy authority remains CONTROL with no combined production source or active mode; unsupported qualities remain CONTROL.
+- B9 verifies the lossless `(stableKey, selectionRole, quality)` authority identities exactly against the authorized physical-owner list, rejects foreign, missing, duplicate or mismatched identities, and centralizes mode/source compatibility for `productionRoutingActive`. H authority requirements, exact target-RPE semantics, B7/B13.1 integrity ordering and typed failure boundaries remain unchanged.
+- Real Strength and Hypertrophy production continue to use exactly one CONTROL and one EXPERIMENTAL build (`total=2`, `third/other=0`); routing performs no build and no B1–B8 rerun. Room v35, DAO, persistence, backup/wire formats, UI and physiological policy remain unchanged.
