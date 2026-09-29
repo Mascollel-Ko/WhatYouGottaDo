@@ -319,11 +319,6 @@ class ProgramRepairPolicy {
     }
 }
 
-internal data class PersonalizedProgramBuildArtifacts(
-    val program: GeneratedProgramSkeleton,
-    val incumbentSeed: StimulusIncumbentIdentitySeed
-)
-
 class PersonalizedProgramBuilder(
     private val continuityPlanner: ExerciseContinuityPlanner = ExerciseContinuityPlanner(),
     private val prescriptionPlanner: PersonalizedPrescriptionPlanner = PersonalizedPrescriptionPlanner(),
@@ -932,3 +927,8 @@ private fun List<PlanningSetRecord>.countLastSession(): Int {
 }
 
 private fun Double.clean(): String = if (this % 1.0 == 0.0) toInt().toString() else toString()
+
+internal data class PersonalizedProgramBuildArtifacts(
+    val program: GeneratedProgramSkeleton,
+    val incumbentSeed: StimulusIncumbentIdentitySeed
+)
