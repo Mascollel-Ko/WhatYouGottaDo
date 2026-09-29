@@ -7,7 +7,7 @@
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 8d51e65bdc68960b86c46fa0b3f7829963085cfa |
+| Last audited commit | 783b94e628bcf1da5e949f3c8d8c3a0a55a000c0 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1186,3 +1186,13 @@ Post-audit boundary notes
 - Tests compare baseline values and map iteration order with the legacy projection across the complete 29-persona builder matrix, representative personas, prepared-service and frequency-expansion builds; they cover role losslessness, all prescription fields, collision behavior, authorization and realization parity, multi-quality conflict parity, preserved existing-owner disposition, source boundaries, and C1-C4 regressions. The 27-case real-service report remains byte-identical at SHA-256 `67f8feb8ca6f0a74b060ef234f0c710ac89550cced647bb5b4e0357bc2d61d63`; routing and build counts remain unchanged.
 - C5 implementation/test commit is `8d51e65bdc68960b86c46fa0b3f7829963085cfa`. Protocol remains `3.50.0`; this source-boundary refactor changes no observable production semantics, schema, persistence, UI, authority policy, or routing.
 - Hosted Android CI run [`36621916521`](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/36621916521) passed on the implementation/test commit: all 2,148 unit tests completed with 0 failures, 0 errors and 4 skips; protocol validation, Community/Cloud contracts, whitespace checks, coverage upload, APK assembly, signer verification and APK upload passed. Coverage and APK artifact details are recorded in `docs/production_coverage_audit.md`.
+
+### Phase C6 — B6 post-build realization source independence (protocol remains 3.50.0)
+
+- After the EXPERIMENTAL build, B6 now constructs realization inputs from the B5 selection plan, C4 `StimulusIncumbentIdentitySeed`, C5 `StimulusIncumbentPrescriptionBaseline`, and EXPERIMENTAL materialized rows. Normal realization no longer reads `control.items`, `control.request`, or `control.personalizedDecision`; CONTROL remains available to the existing comparison, fingerprint, safety, routing, and rollback paths.
+- Direct stable-key traces resolve to exact `(stableKey, selectionRole)` identities through the finalized seed. The pure `StimulusRealizationPrescriptionInputs` projection preserves legacy owner-set order and the `(experimental rows + incumbent rows).associateBy()` key order and values. EXPERIMENTAL rows are inserted first and incumbent baseline values overwrite matching owners last, retaining incumbent-over-experimental precedence; new experimental owners remain present.
+- Parity tests cover repeated rows, selected/incumbent overlap, multiple roles under one stable key, exact merged-map order and values, incumbent wins, new-owner retention, and deep equality of Strength, Hypertrophy, combined, and direct-incumbent realization plans. B6 authorization is unchanged and the normal builder count remains `CONTROL=1`, `EXPERIMENTAL=1`, `TOTAL=2`, `THIRD=0`.
+- The local 27-case report remains byte-identical at SHA-256 `67f8feb8ca6f0a74b060ef234f0c710ac89550cced647bb5b4e0357bc2d61d63`: 22 generated, 5 preflight rejects; source totals CONTROL 18, Strength 3, Hypertrophy 1, combined 0; primary fallback counts no material 14, scope 3, B6 execution authority 1. Routing changed: **NO**.
+- Implementation/test commit is `783b94e628bcf1da5e949f3c8d8c3a0a55a000c0`. Protocol remains `3.50.0`; no prescription, authority, routing, persistence, schema, backup, or UI behavior changed.
+- Local compilation and the focused C1-C6/B6-B9/service/coverage suite passed: 117 tests, 0 failures, 0 errors, 0 skips. The full local unit run ended after 4m31s when JBR 21 crashed in `robolectric-nativeruntime.dll+0x5c22` with `EXCEPTION_ACCESS_VIOLATION`; this is a native test-worker failure, not an assertion failure. Hosted full-suite results are recorded in `docs/production_coverage_audit.md`.
+- Hosted Android Debug Build run [`36632454346`](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/36632454346) passed on `783b94e628bcf1da5e949f3c8d8c3a0a55a000c0` in 13m10s: 2,150 tests, 0 failures/errors, 4 skips; coverage, APK assembly, signer validation, and artifact upload all passed. Artifact details are recorded in `docs/production_coverage_audit.md`.

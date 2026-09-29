@@ -468,3 +468,65 @@ SHA-256 `4d43bd4c9eef70b527b51e4a8d02d4d52cf79256528d67a07d2f74aa88c8773d`. APK 
 `83e2db8560d99e36c7af9213e77ee2f582500bfebd98b280ac4682fa24cb2401`; downloaded `app-debug.apk`
 is 68,526,771 bytes with SHA-256
 `D6E15A0AE44DAB25ED84F3417A2DB0621147977C4A989D31B0C4D560D9D1044A`.
+
+## Phase C6 — B6 post-build realization source independence
+
+C6 started from verified `main` `ed56b611ff939ad722d7a82b093ef977d1e32ac5`; its implementation/test
+commit is `783b94e628bcf1da5e949f3c8d8c3a0a55a000c0`. Protocol remains `3.50.0`. After the
+EXPERIMENTAL builder returns, normal B6 realization consumes the B5 selection plan, C4 incumbent
+identity seed, C5 prescription baseline, and EXPERIMENTAL rows. It no longer reads
+`control.items`, `control.request`, or `control.personalizedDecision` to assemble realization
+inputs. Existing CONTROL comparison, fingerprint, safety, routing, and rollback uses remain.
+
+`StimulusRealizationPrescriptionInputs` restores the exact legacy owner set and prescription map.
+Direct stable-key traces resolve through `StimulusIncumbentIdentitySeed` to full
+`(stableKey, selectionRole)` identities; finalized baseline-key order retains the legacy direct
+owner insertion order. Experimental materializations are inserted first, then the C5 incumbent
+map is applied last, so the incumbent still overrides a colliding experimental prescription.
+New experimental-only owners survive, and map key order matches the original combined-row
+`associateBy()` projection.
+
+The new parity test compares owner-set order, merged map keys/order/values, incumbent-overrides-
+experimental behavior, new-owner retention, role separation under one stable key, and complete
+realization-plan equality for Strength, Hypertrophy, combined, and direct-incumbent cases. The
+source-boundary test verifies normal B6 passes the typed seed, baseline, and EXPERIMENTAL rows and
+does not read `control.items` or `control.request` in the realization path. Authorization and
+build accounting are unchanged at CONTROL 1 / EXPERIMENTAL 1 / TOTAL 2 / THIRD 0.
+
+Local verification on 2026-09-30 used the process setting
+`JAVA_TOOL_OPTIONS=-Djdk.net.unixdomain.tmpdir=C:\GradleIpc`; the directory exists. Gradle 9.3.0
+used Temurin 17.0.20.1 as launcher and JetBrains JBR 21.0.11+1-1163.116-jcef for its daemon and
+test worker. Pre-change compile smoke and post-change `:app:compileDebugKotlin
+:app:compileDebugUnitTestKotlin --no-daemon` passed. The focused C1-C6, B6-B9, service, and
+coverage suite passed 117 tests with 0 failures, 0 errors, and 0 skips. Protocol documentation
+validation passed (9 families, 36 protocols), Community/Cloud contract tests passed 9/9, and
+`git diff --check` passed. The 27-case coverage report is byte-identical to the baseline at
+SHA-256 `67f8feb8ca6f0a74b060ef234f0c710ac89550cced647bb5b4e0357bc2d61d63`.
+
+The full local `:app:testDebugUnitTest --no-daemon` attempt is incomplete, not a pass. It exited
+after 4m31s when the Windows JBR 21 worker hit `EXCEPTION_ACCESS_VIOLATION` in
+`robolectric-nativeruntime.dll+0x5c22`, followed by a worker connection reset. No test assertion
+failure was reported before the native crash; hosted Linux CI is the full-suite result.
+
+### C6 hosted verification
+
+Hosted Android Debug Build run
+[`36632454346`](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/36632454346) passed
+on implementation/test commit `783b94e628bcf1da5e949f3c8d8c3a0a55a000c0` in 13m10s. Protocol
+validation (9 families, 36 protocols), Community/Cloud contracts (9/9), whitespace checks, the
+full debug unit suite, production coverage upload, APK assembly, signer verification, and APK
+upload all passed. Downloaded JUnit results contain 340 XML files, 2,150 tests, 0 failures,
+0 errors, and 4 skips.
+
+The hosted 27-case report matches the expected baseline SHA-256
+`67f8feb8ca6f0a74b060ef234f0c710ac89550cced647bb5b4e0357bc2d61d63`: 27 total, 22 generated,
+5 preflight rejects; source totals CONTROL 18, Strength 3, Hypertrophy 1, combined 0; primary
+fallback counts no material 14, scope 3, and B6 execution authority 1. All generated cases
+retain `CONTROL=1`, `EXPERIMENTAL=1`, `TOTAL=2`, `THIRD=0`; routing changed: NO.
+
+Coverage artifact `Stimulus-production-coverage` is ID `11062768027`, 289,134 bytes, archive
+SHA-256 `61e73da9a13abcc1949217d12528c320c9fe41faa78d5351bc23eafb88dd9bc9`. APK artifact
+`WhatYouGottaDo-debug-apk` is ID `11063267784`, 64,938,691 bytes, archive SHA-256
+`09e995a10d627d9b9a736d2958d18b52c549521397cdb897533fb68be069f623`; downloaded `app-debug.apk`
+is 68,526,771 bytes with SHA-256
+`EF71EC80FC7CB18D84B909F41F405F39EF9F05CDF579DD999A0F0E05720870F0`.
