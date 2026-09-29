@@ -572,28 +572,17 @@ internal class PersonalizedProgramPlanningService(
         )
         // Build one read-only owner side table from the already materialized A/B programs.
         // B6.1 must inspect this comparison; it must not regenerate a third program.
-        val ownerKeys = buildSet {
-            selectionPlan.selectedCandidates.forEach { add(StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole)) }
-            selectionPlan.traces.flatMap { it.controlDirectCapabilityIdentities }.forEach { stableKey ->
-                control.items.filter { it.exerciseStableKey == stableKey }.forEach { item ->
-                    add(StimulusPrescriptionOwnerIdentity(item.exerciseStableKey, item.selectionRole))
-                }
-            }
-        }
-        val materializedPrescriptions = (experimental.items + control.items)
-            .asSequence()
-            .map { item ->
-                StimulusPrescriptionOwnerIdentity(item.exerciseStableKey, item.selectionRole) to
-                    PlannedPrescription(item.prescription, item.setPrescriptions, item.restSeconds, item.weightSource)
-            }
-            .filter { it.first in ownerKeys }
-            .toList()
-            .associateBy({ it.first }, { it.second })
+        val realizationInputs = com.training.trackplanner.data.personalized.buildStimulusRealizationPrescriptionInputs(
+            selectionPlan = selectionPlan,
+            incumbentSeed = prepared.incumbentSeed,
+            prescriptionBaseline = prepared.prescriptionBaseline,
+            experimentalItems = experimental.items
+        )
         val prescriptionPlan = StimulusPrescriptionRealizationPlanEngine().build(
             targetPlan = targetPlan,
             selectionPlan = selectionPlan,
             snapshot = snapshot,
-            currentPrescriptions = materializedPrescriptions
+            currentPrescriptions = realizationInputs.currentPrescriptions
         )
         val enrichedComparison = comparison.copy(
             prescriptionRealizationPlan = prescriptionPlan
@@ -701,28 +690,17 @@ internal class PersonalizedProgramPlanningService(
         val materializationAudits = StimulusPrescriptionMaterializationAuditEngine().audit(
             authorizationPlan, experimental, snapshot
         )
-        val ownerKeys = buildSet {
-            selectionPlan.selectedCandidates.forEach { add(StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole)) }
-            selectionPlan.traces.flatMap { it.controlDirectCapabilityIdentities }.forEach { stableKey ->
-                control.items.filter { it.exerciseStableKey == stableKey }.forEach { item ->
-                    add(StimulusPrescriptionOwnerIdentity(item.exerciseStableKey, item.selectionRole))
-                }
-            }
-        }
-        val materializedPrescriptions = (experimental.items + control.items)
-            .asSequence()
-            .map { item ->
-                StimulusPrescriptionOwnerIdentity(item.exerciseStableKey, item.selectionRole) to
-                    PlannedPrescription(item.prescription, item.setPrescriptions, item.restSeconds, item.weightSource)
-            }
-            .filter { it.first in ownerKeys }
-            .toList()
-            .associateBy({ it.first }, { it.second })
+        val realizationInputs = com.training.trackplanner.data.personalized.buildStimulusRealizationPrescriptionInputs(
+            selectionPlan = selectionPlan,
+            incumbentSeed = incumbentSeed,
+            prescriptionBaseline = prescriptionBaseline,
+            experimentalItems = experimental.items
+        )
         val prescriptionPlan = StimulusPrescriptionRealizationPlanEngine().build(
             targetPlan = targetPlan,
             selectionPlan = selectionPlan,
             snapshot = snapshot,
-            currentPrescriptions = materializedPrescriptions
+            currentPrescriptions = realizationInputs.currentPrescriptions
         )
         val enrichedComparison = comparison.copy(
             prescriptionRealizationPlan = prescriptionPlan,
