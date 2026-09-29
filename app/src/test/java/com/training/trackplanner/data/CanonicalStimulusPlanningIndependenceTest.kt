@@ -119,7 +119,7 @@ class CanonicalStimulusPlanningIndependenceTest {
                 resolved.frequencyProvenance,
                 comparison.experimental.personalizedDecision?.frequencyDemand?.frequency)
             assertEquals("B6 audit horizon must use the resolved request",
-                resolved.request.durationWeeks, comparison.experimentalAudit.planningHorizonWeeks)
+                resolved.request.durationWeeks, requireNotNull(comparison.experimentalAudit).planningHorizonWeeks)
             assertTrue("the intentionally conflicting CONTROL mirror cannot establish request parity",
                 comparison.control.request != comparison.experimental.request)
             result

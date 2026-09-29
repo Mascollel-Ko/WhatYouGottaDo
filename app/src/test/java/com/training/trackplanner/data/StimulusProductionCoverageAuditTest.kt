@@ -103,7 +103,7 @@ class StimulusProductionCoverageAuditTest {
             val resolved = comparison.control.request
             assertEquals("${spec.label} complete request parity", resolved, comparison.experimental.request)
             assertEquals("${spec.label} audit horizon", resolved.durationWeeks,
-                comparison.experimentalAudit.planningHorizonWeeks)
+                requireNotNull(comparison.experimentalAudit).planningHorizonWeeks)
             val frequency = requireNotNull(comparison.experimental.personalizedDecision?.frequencyDemand?.frequency)
             assertEquals("${spec.label} frequency request days", resolved.weeklyTrainingDays, frequency.resolvedUserDays)
             assertEquals("${spec.label} frequency source",
