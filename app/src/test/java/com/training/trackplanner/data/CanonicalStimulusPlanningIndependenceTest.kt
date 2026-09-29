@@ -159,6 +159,7 @@ class CanonicalStimulusPlanningIndependenceTest {
                 resolvedRequest = preparedRequest.request,
                 frequencyProvenance = preparedRequest.frequencyProvenance,
                 incumbentSeed = preparedBundle.incumbentSeed,
+                prescriptionBaseline = preparedBundle.prescriptionBaseline,
                 controlOverride = altered, productionBuildCounts = counts)
             assertSame(input.targetPlan, actual.targetPlan)
             assertTrue(actual.selectionPlan.traces.any { it.targetId == "QUALITY:HYPERTROPHY" })

@@ -46,10 +46,20 @@ class PersonalizedPlannerParityTest {
                 val expectedOwners = finalRows.distinct().sortedWith(
                     compareBy(StimulusIncumbentIdentity::stableKey, StimulusIncumbentIdentity::selectionRole)
                 )
+                val legacyPrescriptionProjection = artifacts.program.items.asSequence()
+                    .map { item ->
+                        StimulusPrescriptionOwnerIdentity(item.exerciseStableKey, item.selectionRole) to
+                            PlannedPrescription(item.prescription, item.setPrescriptions, item.restSeconds, item.weightSource)
+                    }.distinct().toList().toMap()
 
                 assertEquals(name, legacyProjection, artifacts.incumbentSeed)
                 assertEquals(name, expectedOwners, artifacts.incumbentSeed.owners)
                 assertEquals(name, artifacts.incumbentSeed.owners.size, artifacts.incumbentSeed.owners.distinct().size)
+                assertEquals(name, legacyPrescriptionProjection, artifacts.prescriptionBaseline.prescriptions)
+                assertEquals(name, legacyPrescriptionProjection.keys.toList(), artifacts.prescriptionBaseline.prescriptions.keys.toList())
+                assertEquals(name, artifacts.incumbentSeed.owners.map {
+                    StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole)
+                }.toSet(), artifacts.prescriptionBaseline.prescriptions.keys)
             }
     }
 
@@ -82,7 +92,17 @@ class PersonalizedPlannerParityTest {
             val duration = PlanningHorizonPlanner().choose(state, gaps)
             val days = WeeklyDosePlanner().chooseDays(state, state.anchors.size + gaps.size)
             val request = ProgramSkeletonRequest(name, state.programGoal, days, 90, emptySet(), "", .5, "AUTO", ProgramPeriodizationType.AUTO, duration)
-            val first = PersonalizedProgramBuilder().build(snapshot, state, gaps, intent, duration, request, PersonalizedPlanningAnswers(), null)
+            val firstArtifacts = PersonalizedProgramBuilder().buildWithArtifacts(snapshot, state, gaps, intent, duration, request, PersonalizedPlanningAnswers(), null)
+            val first = firstArtifacts.program
+            val legacyPrescriptionProjection = first.items.asSequence()
+                .map { item ->
+                    StimulusPrescriptionOwnerIdentity(item.exerciseStableKey, item.selectionRole) to
+                        PlannedPrescription(item.prescription, item.setPrescriptions, item.restSeconds, item.weightSource)
+                }.distinct().toList().toMap()
+            assertEquals("$name legacy B6 prescription projection", legacyPrescriptionProjection,
+                firstArtifacts.prescriptionBaseline.prescriptions)
+            assertEquals("$name legacy B6 owner iteration order", legacyPrescriptionProjection.keys.toList(),
+                firstArtifacts.prescriptionBaseline.prescriptions.keys.toList())
             val stages = mutableListOf<PersonalizedPlannerStage>()
             val second = PersonalizedProgramBuilder().build(snapshot, state, gaps, intent, duration, request, PersonalizedPlanningAnswers(), null,
                 progress = PersonalizedPlannerProgressReporter { stages += it })

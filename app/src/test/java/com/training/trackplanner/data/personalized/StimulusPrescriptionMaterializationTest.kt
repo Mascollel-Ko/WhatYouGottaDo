@@ -245,6 +245,22 @@ class StimulusPrescriptionMaterializationTest {
     @Test
     fun authorizationEngineUsesB61RulesAndAuthorizesExactHypertrophyOwnersButKeepsProxiesNonExecutable() {
         val engine = StimulusPrescriptionAuthorizationEngine()
+        val strengthOwner = StimulusPrescriptionOwnerIdentity(key, role)
+        val currentStrengthPrescription = prescription(8, 80.0)
+        val typedBaseline = StimulusIncumbentPrescriptionBaseline.fromFinalizedRows(
+            listOf(StimulusFinalizedPrescriptionRow(strengthOwner, currentStrengthPrescription))
+        )
+        val legacyBaseline = listOf(strengthOwner to currentStrengthPrescription).distinct().toList().toMap()
+        val strengthTargetPlan = StimulusTargetPlan(listOf(target(TrainableQuality.STRENGTH)), emptyList(), emptyList())
+        val strengthSelection = selection(candidate())
+        assertEquals(
+            engine.build(strengthTargetPlan, strengthSelection, snapshot, legacyBaseline),
+            engine.build(strengthTargetPlan, strengthSelection, snapshot, typedBaseline.prescriptions)
+        )
+        assertEquals(
+            StimulusPrescriptionRealizationPlanEngine().build(strengthTargetPlan, strengthSelection, snapshot, legacyBaseline),
+            StimulusPrescriptionRealizationPlanEngine().build(strengthTargetPlan, strengthSelection, snapshot, typedBaseline.prescriptions)
+        )
         val strengthPlan = engine.build(
             StimulusTargetPlan(listOf(target(TrainableQuality.STRENGTH)), emptyList(), emptyList()),
             selection(candidate()), snapshot, mapOf(StimulusPrescriptionOwnerIdentity(key, role) to prescription(8, 80.0))
@@ -423,6 +439,11 @@ class StimulusPrescriptionMaterializationTest {
         val control = prescription(6, 70.0)
         val strength = prescription(5, 80.0)
         val hypertrophy = prescription(8, 60.0)
+        val identity = StimulusPrescriptionOwnerIdentity(key, role)
+        val typedBaseline = StimulusIncumbentPrescriptionBaseline.fromFinalizedRows(
+            listOf(StimulusFinalizedPrescriptionRow(identity, control))
+        )
+        val legacyBaseline = listOf(identity to control).distinct().toList().toMap()
         fun authorization(quality: TrainableQuality, value: PlannedPrescription) = StimulusPrescriptionAuthorization(
             targetId = "QUALITY:${quality.name}", quality = quality, owner = owner,
             source = StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE,
@@ -434,9 +455,16 @@ class StimulusPrescriptionMaterializationTest {
                 authorization(TrainableQuality.STRENGTH, strength),
                 authorization(TrainableQuality.HYPERTROPHY, hypertrophy)
             ),
-            controlPrescriptions = mapOf(StimulusPrescriptionOwnerIdentity(key, role) to control)
+            controlPrescriptions = typedBaseline.prescriptions
         )
-        val identity = StimulusPrescriptionOwnerIdentity(key, role)
+        val legacyPlan = StimulusPrescriptionAuthorizationPlan(
+            listOf(
+                authorization(TrainableQuality.STRENGTH, strength),
+                authorization(TrainableQuality.HYPERTROPHY, hypertrophy)
+            ),
+            controlPrescriptions = legacyBaseline
+        )
+        assertEquals(legacyPlan, plan)
         assertEquals(StimulusPrescriptionOwnerExecutionDisposition.PRESERVE_CONTROL_OWNER, plan.ownerExecutionDispositions.getValue(identity))
         assertTrue(plan.authorizedOwners.isEmpty())
         assertEquals(

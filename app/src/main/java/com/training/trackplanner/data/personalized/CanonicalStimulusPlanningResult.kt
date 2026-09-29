@@ -29,14 +29,16 @@ internal data class CanonicalPreparedProgram(
     val program: com.training.trackplanner.data.GeneratedProgramSkeleton,
     val planningOutcome: CanonicalPlanningOutcome,
     val resolvedRequest: ResolvedPreparedProgramRequest,
-    val incumbentSeed: StimulusIncumbentIdentitySeed
+    val incumbentSeed: StimulusIncumbentIdentitySeed,
+    val prescriptionBaseline: StimulusIncumbentPrescriptionBaseline
 ) {
     constructor(
         program: com.training.trackplanner.data.GeneratedProgramSkeleton,
         planning: CanonicalStimulusPlanningResult,
         resolvedRequest: ResolvedPreparedProgramRequest,
-        incumbentSeed: StimulusIncumbentIdentitySeed
-    ) : this(program, CanonicalPlanningOutcome.Success(planning), resolvedRequest, incumbentSeed)
+        incumbentSeed: StimulusIncumbentIdentitySeed,
+        prescriptionBaseline: StimulusIncumbentPrescriptionBaseline
+    ) : this(program, CanonicalPlanningOutcome.Success(planning), resolvedRequest, incumbentSeed, prescriptionBaseline)
 
     /** Rethrow only at the existing production evaluation boundary, with CONTROL available. */
     val canonicalPlanning: CanonicalStimulusPlanningResult

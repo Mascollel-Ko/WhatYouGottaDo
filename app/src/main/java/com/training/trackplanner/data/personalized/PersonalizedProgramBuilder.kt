@@ -410,13 +410,21 @@ class PersonalizedProgramBuilder(
             }
         }
         val finalizedProgram = observeBoundedMaterialDemand(result)
-        val finalizedItems = finalizedProgram.items
+        // `observeBoundedMaterialDemand` only updates decision diagnostics. Project both canonical
+        // sibling inputs from the builder's finalized prescription rows, never from the program object.
+        val finalizedPrescriptionRows = result.items.map { item ->
+            StimulusFinalizedPrescriptionRow(
+                StimulusPrescriptionOwnerIdentity(item.exerciseStableKey, item.selectionRole),
+                PlannedPrescription(item.prescription, item.setPrescriptions, item.restSeconds, item.weightSource)
+            )
+        }
         val incumbentSeed = StimulusIncumbentIdentitySeed.fromFinalizedOwners(
-            finalizedItems.map { item ->
-                StimulusIncumbentIdentity(item.exerciseStableKey, item.selectionRole)
+            finalizedPrescriptionRows.map { row ->
+                StimulusIncumbentIdentity(row.owner.stableKey, row.owner.selectionRole)
             }
         )
-        return PersonalizedProgramBuildArtifacts(finalizedProgram, incumbentSeed)
+        val prescriptionBaseline = StimulusIncumbentPrescriptionBaseline.fromFinalizedRows(finalizedPrescriptionRows)
+        return PersonalizedProgramBuildArtifacts(finalizedProgram, incumbentSeed, prescriptionBaseline)
     }
 
     private fun buildBeforeReflow(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, gaps: List<AdaptationGap>, intent: BlockIntent,
@@ -930,5 +938,6 @@ private fun Double.clean(): String = if (this % 1.0 == 0.0) toInt().toString() e
 
 internal data class PersonalizedProgramBuildArtifacts(
     val program: GeneratedProgramSkeleton,
-    val incumbentSeed: StimulusIncumbentIdentitySeed
+    val incumbentSeed: StimulusIncumbentIdentitySeed,
+    val prescriptionBaseline: StimulusIncumbentPrescriptionBaseline
 )

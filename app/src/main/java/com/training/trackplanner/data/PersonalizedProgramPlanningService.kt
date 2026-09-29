@@ -44,6 +44,7 @@ import com.training.trackplanner.data.personalized.StimulusTargetPlanComparisonE
 import com.training.trackplanner.data.personalized.StimulusTargetControlProgramAuditEngine
 import com.training.trackplanner.data.personalized.StimulusTargetCandidateSelector
 import com.training.trackplanner.data.personalized.StimulusIncumbentIdentitySeed
+import com.training.trackplanner.data.personalized.StimulusIncumbentPrescriptionBaseline
 import com.training.trackplanner.data.personalized.StimulusSelectionProgramComparison
 import com.training.trackplanner.data.personalized.StimulusSelectionProgramComparisonEngine
 import com.training.trackplanner.data.personalized.StimulusPrescriptionRealizationPlanEngine
@@ -210,7 +211,8 @@ internal class PersonalizedProgramPlanningService(
                 com.training.trackplanner.data.personalized.bindSplitParentProgression(generated),
                 com.training.trackplanner.data.personalized.CanonicalPlanningOutcome.ExpectedFailure(failure),
                 resolvedProgramRequest,
-                generatedArtifacts.incumbentSeed
+                generatedArtifacts.incumbentSeed,
+                generatedArtifacts.prescriptionBaseline
             )
         }
         val finalStimulusAudit = FinalStimulusNeedAudit().audit(generated, snapshot, physicalQualityCatalog)
@@ -298,10 +300,11 @@ internal class PersonalizedProgramPlanningService(
                     regionalBottleneckDiagnosis = regionalDiagnosis,
                     programEmphasisLabels = programEmphasis
                 )
-            )), canonicalWithControlAudit, resolvedProgramRequest, generatedArtifacts.incumbentSeed)
+            )), canonicalWithControlAudit, resolvedProgramRequest, generatedArtifacts.incumbentSeed,
+                generatedArtifacts.prescriptionBaseline)
         }
         return CanonicalPreparedProgram(com.training.trackplanner.data.personalized.bindSplitParentProgression(withShadowNeeds), canonicalWithControlAudit,
-            resolvedProgramRequest, generatedArtifacts.incumbentSeed)
+            resolvedProgramRequest, generatedArtifacts.incumbentSeed, generatedArtifacts.prescriptionBaseline)
     }
 
     private fun resolvePreparedProgramRequest(
@@ -374,7 +377,8 @@ internal class PersonalizedProgramPlanningService(
             control,
             canonicalWithAudit,
             resolvedRequest,
-            StimulusIncumbentIdentitySeed.fromControl(control)
+            StimulusIncumbentIdentitySeed.fromControl(control),
+            StimulusIncumbentPrescriptionBaseline.fromControl(control)
         )
     }
 
@@ -615,6 +619,7 @@ internal class PersonalizedProgramPlanningService(
         resolvedRequest: ProgramSkeletonRequest,
         frequencyProvenance: com.training.trackplanner.data.personalized.PlanningFrequencyProvenance,
         incumbentSeed: StimulusIncumbentIdentitySeed,
+        prescriptionBaseline: StimulusIncumbentPrescriptionBaseline,
         controlOverride: GeneratedProgramSkeleton,
         productionBuildCounts: com.training.trackplanner.data.personalized.MutableStimulusProductionBuildCounts? = null
     ): StimulusSelectionProgramComparison {
@@ -643,16 +648,12 @@ internal class PersonalizedProgramPlanningService(
             request = resolvedRequest,
             physicalQualityCatalog = physicalQualityCatalog
         )
-        val controlPrescriptions = control.items.asSequence()
-            .map { item ->
-                StimulusPrescriptionOwnerIdentity(item.exerciseStableKey, item.selectionRole) to
-                    PlannedPrescription(item.prescription, item.setPrescriptions, item.restSeconds, item.weightSource)
-            }.distinct().toList().toMap()
+        val currentPrescriptions = prescriptionBaseline.prescriptions
         val authorizationPlan = StimulusPrescriptionAuthorizationEngine().build(
             targetPlan = targetPlan,
             selectionPlan = selectionPlan,
             snapshot = snapshot,
-            controlPrescriptions = controlPrescriptions
+            controlPrescriptions = currentPrescriptions
         )
         val priorId = appMetaDao.latestByPrefix("$DECISION_PREFIX%")?.value?.let(::decisionIdFromJson)
         val experimental = try {
@@ -766,6 +767,7 @@ internal class PersonalizedProgramPlanningService(
         resolvedRequest: ProgramSkeletonRequest,
         frequencyProvenance: com.training.trackplanner.data.personalized.PlanningFrequencyProvenance,
         incumbentSeed: StimulusIncumbentIdentitySeed,
+        prescriptionBaseline: StimulusIncumbentPrescriptionBaseline,
         controlOverride: GeneratedProgramSkeleton,
         productionBuildCounts: com.training.trackplanner.data.personalized.MutableStimulusProductionBuildCounts? = null
     ): com.training.trackplanner.data.personalized.StimulusProductionCutoverEvaluation {
@@ -778,6 +780,7 @@ internal class PersonalizedProgramPlanningService(
             resolvedRequest = resolvedRequest,
             frequencyProvenance = frequencyProvenance,
             incumbentSeed = incumbentSeed,
+            prescriptionBaseline = prescriptionBaseline,
             controlOverride = controlOverride,
             productionBuildCounts = productionBuildCounts
         )
@@ -829,6 +832,7 @@ internal class PersonalizedProgramPlanningService(
                         resolvedRequest = prepared.resolvedRequest.request,
                         frequencyProvenance = prepared.resolvedRequest.frequencyProvenance,
                         incumbentSeed = prepared.incumbentSeed,
+                        prescriptionBaseline = prepared.prescriptionBaseline,
                         controlOverride = control,
                         productionBuildCounts = buildCounts
                     )

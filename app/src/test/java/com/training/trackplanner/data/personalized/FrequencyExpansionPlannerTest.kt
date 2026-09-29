@@ -101,6 +101,8 @@ class FrequencyExpansionPlannerTest {
         assertTrue(artifacts.program.personalizedDecision!!.frequencyDemand!!.frequency.toJson()
             .getBoolean("expansionActivated"))
         assertEquals(StimulusIncumbentIdentitySeed.fromControl(artifacts.program), artifacts.incumbentSeed)
+        assertEquals(StimulusIncumbentPrescriptionBaseline.fromControl(artifacts.program).prescriptions,
+            artifacts.prescriptionBaseline.prescriptions)
         val finalOwners = artifacts.program.items.map {
             StimulusIncumbentIdentity(it.exerciseStableKey, it.selectionRole)
         }.distinct().sortedWith(compareBy(StimulusIncumbentIdentity::stableKey, StimulusIncumbentIdentity::selectionRole))
