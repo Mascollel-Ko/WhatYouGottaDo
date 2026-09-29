@@ -7,7 +7,7 @@
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | b2543ed0f1ab830273d099e3badf84676256421e |
+| Last audited commit | 8d51e65bdc68960b86c46fa0b3f7829963085cfa |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1177,3 +1177,12 @@ Post-audit boundary notes
 - B6 still derives its current prescription baseline from `control.items`. B7/B8/B9 comparison, fingerprints, rollback, routing and the existing two-build boundary are unchanged: `CONTROL=1`, `EXPERIMENTAL=1`, `TOTAL=2`, `THIRD=0`. The 27-case report remains byte-identical to the C2 baseline (SHA-256 `67f8feb8ca6f0a74b060ef234f0c710ac89550cced647bb5b4e0357bc2d61d63`); routing changed: **NO**.
 - Protocol version remains `3.50.0`; this is an architecture-only seed-source refactor and does not change production behavior.
 - Hosted Android CI passed on implementation/test commit `b2543ed0f1ab830273d099e3badf84676256421e`: all 2,146 unit tests completed with 0 failures, 0 errors and 4 skips; production coverage, debug APK assembly and signer verification passed. The run and artifact hashes are recorded in `docs/production_coverage_audit.md`.
+
+### Phase C5 — finalized builder prescription state as the B6 baseline source (protocol remains 3.50.0)
+
+- `PersonalizedProgramBuildArtifacts` now returns the finalized CONTROL skeleton, the C4 B5 incumbent seed, and a typed `StimulusIncumbentPrescriptionBaseline`. The seed and baseline are sibling projections from the same finalized builder prescription rows after completion, placement/rebalancing, frequency expansion, `PostSplitWeeklyReflow`, authorization validation, and bounded-demand observation; the program object's items are not their downstream source.
+- The baseline contains only `Map<StimulusPrescriptionOwnerIdentity, PlannedPrescription>`. Its key is the full `(stableKey, selectionRole)` pair, and `PlannedPrescription` retains exact text, ordered set prescriptions (including target RPE), rest seconds, and weight source. Projection deliberately preserves the legacy `distinct().toList().toMap()` behavior: exact duplicate pairs collapse, distinct roles stay separate, and the last distinct prescription for a repeated owner wins without moving its insertion position.
+- `CanonicalPreparedProgram` carries the baseline explicitly into the required B6 argument. Normal B6 no longer reads `control.items` to construct its current-prescription input and has no CONTROL fallback; remaining CONTROL reads support comparison, materialization diagnostics, and rollback. Only the named injected-CONTROL test adapter uses `fromControl()` for compatibility fixtures. B6 authorization/realization, B7/B8/B9 comparators and routing, persisted diagnostics, and the two-build boundary remain unchanged.
+- Tests compare baseline values and map iteration order with the legacy projection across the complete 29-persona builder matrix, representative personas, prepared-service and frequency-expansion builds; they cover role losslessness, all prescription fields, collision behavior, authorization and realization parity, multi-quality conflict parity, preserved existing-owner disposition, source boundaries, and C1-C4 regressions. The 27-case real-service report remains byte-identical at SHA-256 `67f8feb8ca6f0a74b060ef234f0c710ac89550cced647bb5b4e0357bc2d61d63`; routing and build counts remain unchanged.
+- C5 implementation/test commit is `8d51e65bdc68960b86c46fa0b3f7829963085cfa`. Protocol remains `3.50.0`; this source-boundary refactor changes no observable production semantics, schema, persistence, UI, authority policy, or routing.
+- Hosted Android CI run [`36621916521`](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/36621916521) passed on the implementation/test commit: all 2,148 unit tests completed with 0 failures, 0 errors and 4 skips; protocol validation, Community/Cloud contracts, whitespace checks, coverage upload, APK assembly, signer verification and APK upload passed. Coverage and APK artifact details are recorded in `docs/production_coverage_audit.md`.

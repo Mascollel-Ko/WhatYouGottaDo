@@ -408,3 +408,63 @@ APK artifact `WhatYouGottaDo-debug-apk` is ID `11037894237`, 64,939,134 bytes,
 archive SHA-256 `a62b72e0bedc723bfacabaca511555c5ef85fde285fa0f33c2f69f2afc9c9e9f`.
 Downloaded `app-debug.apk` SHA-256 is
 `5B7B65B9C98E98ED58654F37091F2239D056794B3DE24C0A493BE3D1C03407BD`.
+
+## Phase C5 — finalized builder prescription source for B6
+
+C5 started from verified `main` `15da3b79bc33d912c1c6ca14a2293020e5a32c24` and was implemented in
+`8d51e65bdc68960b86c46fa0b3f7829963085cfa`. Protocol remains `3.50.0`. The build artifact now
+contains a typed `StimulusIncumbentPrescriptionBaseline` alongside the program and B5 identity
+seed. Both canonical values project from the builder's finalized prescription rows after the
+post-split reflow, authorization checks, and bounded-demand observation. Normal B6 receives the
+required baseline explicitly; it does not read `control.items` to create that baseline or fall
+back to CONTROL. The one `fromControl()` baseline compatibility projection exists only in the
+named injected-CONTROL test adapter.
+
+The baseline preserves the old `distinct().toList().toMap()` semantics exactly, including
+insertion order, removal of exact duplicate pairs, separate `(stableKey, selectionRole)` entries,
+and last-distinct-value wins for conflicting prescriptions under one owner. `PlannedPrescription`
+equality preserves text, ordered set fields (including target effort), rest seconds, and weight
+source. Authorization, realization, conflict localization, and `PRESERVE_CONTROL_OWNER` tests
+compare typed and legacy projections. The full 29-persona builder parity matrix and a real
+frequency-expansion case verify artifact equality and owner-role consistency. Normal production
+build accounting remains CONTROL 1 / EXPERIMENTAL 1 / TOTAL 2 / THIRD 0. C1-C4 boundaries,
+comparator/rollback behavior, and routing remain unchanged.
+
+Local verification on 2026-09-30 used user
+`JAVA_TOOL_OPTIONS=-Djdk.net.unixdomain.tmpdir=C:\GradleIpc`; the path exists. Gradle 9.3.0
+used Temurin 17.0.20.1 as launcher and JetBrains JBR 21.0.11+1-1163.116-jcef for the Gradle/test
+JVM. Initial compile smoke, post-change `:app:compileDebugKotlin :app:compileDebugUnitTestKotlin
+--no-daemon`, and the focused C5/C4/B6/service/29-persona/coverage suite passed. The focused run
+contained 68 tests, 0 failures, 0 errors, and 0 skips. Protocol validation passed (9 families,
+36 protocols), Community/Cloud contracts passed 9/9, and `git diff --check` passed. The local
+27-case coverage file has SHA-256
+`67f8feb8ca6f0a74b060ef234f0c710ac89550cced647bb5b4e0357bc2d61d63`.
+
+The full local `:app:testDebugUnitTest --no-daemon` attempt is incomplete, not a pass. It exited
+after 4m51s when the Windows JBR test worker hit `EXCEPTION_ACCESS_VIOLATION` in
+`robolectric-nativeruntime.dll+0x5c22`; Gradle then reported the worker connection reset. Partial
+JUnit output contained 259 XML suites and 1,430 completed tests, 0 assertion failures, 0 errors,
+and 3 skips. This matches the previously observed Robolectric native crash; hosted Linux CI is
+the full-suite result.
+
+### C5 hosted verification
+
+Hosted Android Debug Build run
+[`36621916521`](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/36621916521) passed
+on implementation/test commit `8d51e65bdc68960b86c46fa0b3f7829963085cfa` in 12m14s. Protocol
+validation (9 families, 36 protocols), Community/Cloud contracts (9/9), whitespace checks,
+all debug unit tests, coverage upload, APK assembly, signer verification and APK upload passed.
+Downloaded JUnit results contain 339 XML files, 2,148 tests, 0 failures, 0 errors and 4 skips.
+
+The hosted 27-case report matches the C2 baseline byte-for-byte at SHA-256
+`67f8feb8ca6f0a74b060ef234f0c710ac89550cced647bb5b4e0357bc2d61d63`: 27 total, 22 generated,
+5 preflight rejects; source totals CONTROL 18, Strength 3, Hypertrophy 1, combined 0; primary
+fallback counts no material 14, scope 3 and B6 execution 1. Generated cases retain
+`CONTROL=1`, `EXPERIMENTAL=1`, `TOTAL=2`, `THIRD=0`; routing and fingerprints are unchanged.
+
+Coverage artifact `Stimulus-production-coverage` is ID `11059107245`, 288,443 bytes, archive
+SHA-256 `4d43bd4c9eef70b527b51e4a8d02d4d52cf79256528d67a07d2f74aa88c8773d`. APK artifact
+`WhatYouGottaDo-debug-apk` is ID `11059002504`, 64,938,484 bytes, archive SHA-256
+`83e2db8560d99e36c7af9213e77ee2f582500bfebd98b280ac4682fa24cb2401`; downloaded `app-debug.apk`
+is 68,526,771 bytes with SHA-256
+`D6E15A0AE44DAB25ED84F3417A2DB0621147977C4A989D31B0C4D560D9D1044A`.
