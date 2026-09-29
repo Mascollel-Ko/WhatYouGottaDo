@@ -182,17 +182,13 @@ internal class PersonalizedProgramPlanningService(
         val gaps = gapAnalyzer.analyze(snapshot, state)
         val intent = blockPlanner.decide(state, gaps)
         val frequencyEvidence = WeeklyDosePlanner().resolve(state, state.anchors.size + gaps.size)
-        val recommendedDays = frequencyEvidence.recommendedDays
-        val recommendedHorizon = horizonPlanner.choose(state, gaps, intent)
+        val resolvedProgramRequest = resolvePreparedProgramRequest(preflight, state, gaps, intent, frequencyEvidence)
         val constraints = preflight.constraints
-        val personalizedRequest = resolvePersonalizedRequest(preflight.request, constraints, state.programGoal, recommendedDays, recommendedHorizon)
+        val personalizedRequest = resolvedProgramRequest.request
         val priorId = appMetaDao.latestByPrefix("$DECISION_PREFIX%")?.value?.let(::decisionIdFromJson)
         val generated = programBuilder.build(snapshot, state, gaps, intent, personalizedRequest.durationWeeks, personalizedRequest, answers, priorId,
             explicitWeeklyDays = constraints.explicitWeeklyTrainingDays != null,
-            frequency = com.training.trackplanner.data.personalized.PlanningFrequencyProvenance(frequencyEvidence,
-                personalizedRequest.weeklyTrainingDays, if (constraints.explicitWeeklyTrainingDays != null)
-                    com.training.trackplanner.data.personalized.PlanningFrequencySource.EXPLICIT_USER
-                else com.training.trackplanner.data.personalized.PlanningFrequencySource.AUTO), progress = progress)
+            frequency = resolvedProgramRequest.frequencyProvenance, progress = progress)
         progress.report(PersonalizedPlannerStage.FINAL)
         val legacyNeeds = athleteNeedsProfileEngine.analyze(snapshot, state, physicalQualityCatalog)
         val doseHistoryAnalyzer = QualityDoseHistoryAnalyzer()
@@ -200,11 +196,18 @@ internal class PersonalizedProgramPlanningService(
         // B1-B4 need only snapshot/state/history. Keep CONTROL available before
         // evaluating them so expected failures reach the existing fallback boundary.
         val canonicalPlanning = try {
+            if (generated.request != personalizedRequest) {
+                throw StimulusCanonicalEvaluationFailure(
+                    StimulusCanonicalEvaluationFailureReason.RESOLVED_REQUEST_PARITY,
+                    detailCode = "CONTROL_REQUEST_DIFFERS_FROM_RESOLVED_REQUEST"
+                )
+            }
             canonicalPlanningComputation(snapshot, state, doseHistory)
         } catch (failure: StimulusCanonicalEvaluationFailure) {
             return CanonicalPreparedProgram(
                 com.training.trackplanner.data.personalized.bindSplitParentProgression(generated),
-                com.training.trackplanner.data.personalized.CanonicalPlanningOutcome.ExpectedFailure(failure)
+                com.training.trackplanner.data.personalized.CanonicalPlanningOutcome.ExpectedFailure(failure),
+                resolvedProgramRequest
             )
         }
         val finalStimulusAudit = FinalStimulusNeedAudit().audit(generated, snapshot, physicalQualityCatalog)
@@ -216,7 +219,7 @@ internal class PersonalizedProgramPlanningService(
             StimulusTargetControlProgramAuditEngine().audit(
                 stimulusTargetPlan,
                 finalStimulusAudit,
-                generated.request.durationWeeks
+                personalizedRequest.durationWeeks
             )
         )
         val stimulusTargetPlanWithAudit = canonicalWithControlAudit.targetPlanCompatibilityMirror()
@@ -292,9 +295,36 @@ internal class PersonalizedProgramPlanningService(
                     regionalBottleneckDiagnosis = regionalDiagnosis,
                     programEmphasisLabels = programEmphasis
                 )
-            )), canonicalWithControlAudit)
+            )), canonicalWithControlAudit, resolvedProgramRequest)
         }
-        return CanonicalPreparedProgram(com.training.trackplanner.data.personalized.bindSplitParentProgression(withShadowNeeds), canonicalWithControlAudit)
+        return CanonicalPreparedProgram(com.training.trackplanner.data.personalized.bindSplitParentProgression(withShadowNeeds), canonicalWithControlAudit,
+            resolvedProgramRequest)
+    }
+
+    private fun resolvePreparedProgramRequest(
+        preflight: PersonalizedPlanningPreflight,
+        state: com.training.trackplanner.data.personalized.AthletePlanningState,
+        gaps: List<com.training.trackplanner.data.personalized.AdaptationGap>,
+        intent: com.training.trackplanner.data.personalized.BlockIntent,
+        frequencyEvidence: com.training.trackplanner.data.personalized.WeeklyFrequencyEvidence
+    ): com.training.trackplanner.data.personalized.ResolvedPreparedProgramRequest {
+        val request = resolvePersonalizedRequest(
+            preflight.request,
+            preflight.constraints,
+            state.programGoal,
+            frequencyEvidence.recommendedDays,
+            horizonPlanner.choose(state, gaps, intent)
+        )
+        return com.training.trackplanner.data.personalized.ResolvedPreparedProgramRequest(
+            request = request,
+            frequencyProvenance = com.training.trackplanner.data.personalized.PlanningFrequencyProvenance(
+                recommendation = frequencyEvidence,
+                resolvedUserDays = request.weeklyTrainingDays,
+                source = if (preflight.constraints.explicitWeeklyTrainingDays != null)
+                    com.training.trackplanner.data.personalized.PlanningFrequencySource.EXPLICIT_USER
+                else com.training.trackplanner.data.personalized.PlanningFrequencySource.AUTO
+            )
+        )
     }
 
     /** Computes B1/B2/B3/B4 from canonical inputs without creating a program skeleton. */
@@ -322,17 +352,22 @@ internal class PersonalizedProgramPlanningService(
         answers: PersonalizedPlanningAnswers,
         metadata: Map<String, RuntimeExerciseMetadata>,
         control: GeneratedProgramSkeleton
-    ): CanonicalStimulusPlanningResult {
+    ): CanonicalPreparedProgram {
         val preferences = readPreferences()
         val snapshot = buildSnapshot(preflight.cutoff, metadata, preferences, includeStimulusExposureLedger = true)
         val state = stateBuilder.build(snapshot, answers)
         require(state.strengthIntent != StrengthIntent.UNRESOLVED && state.badmintonIntent != BadmintonPlanningIntent.UNRESOLVED &&
             state.freeWeightWillingness != FreeWeightWillingness.UNRESOLVED) { "UNRESOLVED_PLANNING_INTENT_REQUIRES_PREFLIGHT" }
+        val gaps = gapAnalyzer.analyze(snapshot, state)
+        val intent = blockPlanner.decide(state, gaps)
+        val frequencyEvidence = WeeklyDosePlanner().resolve(state, state.anchors.size + gaps.size)
+        val resolvedRequest = resolvePreparedProgramRequest(preflight, state, gaps, intent, frequencyEvidence)
         val canonical = buildCanonicalStimulusPlanningResult(snapshot, state)
         val finalAudit = FinalStimulusNeedAudit().audit(control, snapshot, physicalQualityCatalog)
-        return canonical.withControlProgramAudit(
-            StimulusTargetControlProgramAuditEngine().audit(canonical.targetPlan, finalAudit, control.request.durationWeeks)
+        val canonicalWithAudit = canonical.withControlProgramAudit(
+            StimulusTargetControlProgramAuditEngine().audit(canonical.targetPlan, finalAudit, resolvedRequest.request.durationWeeks)
         )
+        return CanonicalPreparedProgram(control, canonicalWithAudit, resolvedRequest)
     }
 
     /** Test/audit seam proving B1-B4 can be calculated without constructing CONTROL. */
@@ -369,11 +404,8 @@ internal class PersonalizedProgramPlanningService(
         val gaps = gapAnalyzer.analyze(snapshot, state)
         val intent = blockPlanner.decide(state, gaps)
         val frequencyEvidence = WeeklyDosePlanner().resolve(state, state.anchors.size + gaps.size)
-        val constraints = preflight.constraints
-        val request = resolvePersonalizedRequest(
-            preflight.request, constraints, state.programGoal, frequencyEvidence.recommendedDays,
-            horizonPlanner.choose(state, gaps, intent)
-        )
+        val resolvedRequest = resolvePreparedProgramRequest(preflight, state, gaps, intent, frequencyEvidence)
+        val request = resolvedRequest.request
         val regionalIndex = RegionalEvidenceIndexBuilder().build(snapshot, state, physicalQualityCatalog)
         val needs = control.personalizedDecision?.athleteNeedsProfile
         val strengthRequirement = needs?.qualityNeeds
@@ -400,12 +432,9 @@ internal class PersonalizedProgramPlanningService(
         val priorId = appMetaDao.latestByPrefix("$DECISION_PREFIX%")?.value?.let(::decisionIdFromJson)
         val experimental = programBuilder.build(
             snapshot, state, gaps, intent, request.durationWeeks, request, answers, priorId,
-            explicitWeeklyDays = constraints.explicitWeeklyTrainingDays != null,
-            frequency = com.training.trackplanner.data.personalized.PlanningFrequencyProvenance(
-                frequencyEvidence, request.weeklyTrainingDays,
-                if (constraints.explicitWeeklyTrainingDays != null) com.training.trackplanner.data.personalized.PlanningFrequencySource.EXPLICIT_USER
-                else com.training.trackplanner.data.personalized.PlanningFrequencySource.AUTO
-            ),
+            explicitWeeklyDays = resolvedRequest.frequencyProvenance.source ==
+                com.training.trackplanner.data.personalized.PlanningFrequencySource.EXPLICIT_USER,
+            frequency = resolvedRequest.frequencyProvenance,
             progress = progress,
             materialDemandOverride = regionalDemand.demand,
             regionalTargetPlan = regionalDemand.targetPlan
@@ -490,8 +519,7 @@ internal class PersonalizedProgramPlanningService(
             state.freeWeightWillingness != FreeWeightWillingness.UNRESOLVED) { "UNRESOLVED_PLANNING_INTENT_REQUIRES_PREFLIGHT" }
         val gaps = gapAnalyzer.analyze(snapshot, state)
         val intent = blockPlanner.decide(state, gaps)
-        val frequencyEvidence = WeeklyDosePlanner().resolve(state, state.anchors.size + gaps.size)
-        val request = control.request
+        val request = prepared.resolvedRequest.request
         val selectionPlan = StimulusTargetCandidateSelector().build(
             targetPlan = targetPlan,
             control = control,
@@ -510,14 +538,9 @@ internal class PersonalizedProgramPlanningService(
             request = request,
             answers = answers,
             priorDecisionId = priorId,
-            explicitWeeklyDays = preflight.constraints.explicitWeeklyTrainingDays != null,
-            frequency = com.training.trackplanner.data.personalized.PlanningFrequencyProvenance(
-                frequencyEvidence,
-                request.weeklyTrainingDays,
-                if (preflight.constraints.explicitWeeklyTrainingDays != null)
-                    com.training.trackplanner.data.personalized.PlanningFrequencySource.EXPLICIT_USER
-                else com.training.trackplanner.data.personalized.PlanningFrequencySource.AUTO
-            ),
+            explicitWeeklyDays = prepared.resolvedRequest.frequencyProvenance.source ==
+                com.training.trackplanner.data.personalized.PlanningFrequencySource.EXPLICIT_USER,
+            frequency = prepared.resolvedRequest.frequencyProvenance,
             progress = progress,
             materialDemandOverride = selectionPlan.materialDemand
         )
@@ -581,6 +604,8 @@ internal class PersonalizedProgramPlanningService(
         metadata: Map<String, RuntimeExerciseMetadata>,
         progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE,
         canonicalPlanning: CanonicalStimulusPlanningResult,
+        resolvedRequest: ProgramSkeletonRequest,
+        frequencyProvenance: com.training.trackplanner.data.personalized.PlanningFrequencyProvenance,
         controlOverride: GeneratedProgramSkeleton,
         productionBuildCounts: com.training.trackplanner.data.personalized.MutableStimulusProductionBuildCounts? = null
     ): StimulusSelectionProgramComparison {
@@ -601,14 +626,12 @@ internal class PersonalizedProgramPlanningService(
         }
         val gaps = gapAnalyzer.analyze(snapshot, state)
         val intent = blockPlanner.decide(state, gaps)
-        val frequencyEvidence = WeeklyDosePlanner().resolve(state, state.anchors.size + gaps.size)
-        val request = control.request
         val selectionPlan = StimulusTargetCandidateSelector().build(
             targetPlan = targetPlan,
             control = control,
             snapshot = snapshot,
             state = state,
-            request = request,
+            request = resolvedRequest,
             physicalQualityCatalog = physicalQualityCatalog
         )
         val controlPrescriptions = control.items.asSequence()
@@ -632,18 +655,13 @@ internal class PersonalizedProgramPlanningService(
                 state = state,
                 gaps = gaps,
                 intent = intent,
-                horizon = request.durationWeeks,
-                request = request,
+                horizon = resolvedRequest.durationWeeks,
+                request = resolvedRequest,
                 answers = answers,
                 priorDecisionId = priorId,
-                explicitWeeklyDays = preflight.constraints.explicitWeeklyTrainingDays != null,
-                frequency = com.training.trackplanner.data.personalized.PlanningFrequencyProvenance(
-                    frequencyEvidence,
-                    request.weeklyTrainingDays,
-                    if (preflight.constraints.explicitWeeklyTrainingDays != null)
-                        com.training.trackplanner.data.personalized.PlanningFrequencySource.EXPLICIT_USER
-                    else com.training.trackplanner.data.personalized.PlanningFrequencySource.AUTO
-                ),
+                explicitWeeklyDays = frequencyProvenance.source ==
+                    com.training.trackplanner.data.personalized.PlanningFrequencySource.EXPLICIT_USER,
+                frequency = frequencyProvenance,
                 progress = progress,
                 materialDemandOverride = selectionPlan.materialDemand,
                 exactPrescriptionAuthorizationProvider = authorizationPlan.provider(),
@@ -660,7 +678,7 @@ internal class PersonalizedProgramPlanningService(
         val experimentalAudit = StimulusTargetControlProgramAuditEngine().audit(
             targetPlan,
             experimentalFinalAudit,
-            request.durationWeeks
+            resolvedRequest.durationWeeks
         )
         val comparison = StimulusSelectionProgramComparisonEngine().compare(
             control = control,
@@ -736,6 +754,8 @@ internal class PersonalizedProgramPlanningService(
         metadata: Map<String, RuntimeExerciseMetadata>,
         progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE,
         canonicalPlanning: CanonicalStimulusPlanningResult,
+        resolvedRequest: ProgramSkeletonRequest,
+        frequencyProvenance: com.training.trackplanner.data.personalized.PlanningFrequencyProvenance,
         controlOverride: GeneratedProgramSkeleton,
         productionBuildCounts: com.training.trackplanner.data.personalized.MutableStimulusProductionBuildCounts? = null
     ): com.training.trackplanner.data.personalized.StimulusProductionCutoverEvaluation {
@@ -745,6 +765,8 @@ internal class PersonalizedProgramPlanningService(
             metadata = metadata,
             progress = progress,
             canonicalPlanning = canonicalPlanning,
+            resolvedRequest = resolvedRequest,
+            frequencyProvenance = frequencyProvenance,
             controlOverride = controlOverride,
             productionBuildCounts = productionBuildCounts
         )
@@ -785,14 +807,16 @@ internal class PersonalizedProgramPlanningService(
         val evaluation = try {
             try {
                 experimentalGenerationOverride?.invoke() ?: run {
-                    val canonicalPlanning = preparedControl?.canonicalPlanning
+                    val prepared = preparedControl
                         ?: buildCanonicalPlanningForExistingControl(preflight, answers, metadata, control)
                     generatePreparedStimulusProductionCutoverEvaluation(
                         preflight = preflight,
                         answers = answers,
                         metadata = metadata,
                         progress = productionProgress.experimentalReporter(),
-                        canonicalPlanning = canonicalPlanning,
+                        canonicalPlanning = prepared.canonicalPlanning,
+                        resolvedRequest = prepared.resolvedRequest.request,
+                        frequencyProvenance = prepared.resolvedRequest.frequencyProvenance,
                         controlOverride = control,
                         productionBuildCounts = buildCounts
                     )

@@ -12,7 +12,8 @@ internal enum class StimulusCanonicalEvaluationFailureReason {
     FINAL_CANONICAL_VALIDATION,
     B6_AUTHORIZATION_FAILURE,
     REGIONAL_AUTHORIZATION_FAILURE,
-    MATERIAL_AUTHORIZATION_FAILURE
+    MATERIAL_AUTHORIZATION_FAILURE,
+    RESOLVED_REQUEST_PARITY
 }
 
 internal class StimulusCanonicalEvaluationFailure(

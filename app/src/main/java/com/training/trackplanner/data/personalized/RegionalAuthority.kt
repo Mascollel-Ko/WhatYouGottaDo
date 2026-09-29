@@ -502,14 +502,6 @@ class RegionalExperimentalMaterialDemandBuilder(
         control: GeneratedProgramSkeleton,
         snapshot: PlanningHistorySnapshot,
         state: AthletePlanningState,
-        catalog: CanonicalExercisePhysicalQualityCatalog
-    ): RegionalExperimentalMaterialDemand = build(diagnoses, control, snapshot, state, control.request, catalog)
-
-    fun build(
-        diagnoses: List<RegionalBottleneckDiagnosis>,
-        control: GeneratedProgramSkeleton,
-        snapshot: PlanningHistorySnapshot,
-        state: AthletePlanningState,
         request: ProgramSkeletonRequest,
         catalog: CanonicalExercisePhysicalQualityCatalog
     ): RegionalExperimentalMaterialDemand {

@@ -26,7 +26,8 @@ class StimulusProductionCoverageAuditTest {
         val label: String, val quality: TrainableQuality, val stableKey: String,
         val profileGoal: String, val goal: ProgramGoal, val intent: StrengthIntent,
         val badminton: Boolean, val history: String, val days: Int, val minutes: Int,
-        val equipment: Set<String>, val isolateOwner: Boolean = false
+        val equipment: Set<String>, val isolateOwner: Boolean = false,
+        val explicitWeeklyDays: Boolean = true, val explicitDuration: Boolean = true
     )
 
     @Test
@@ -62,6 +63,8 @@ class StimulusProductionCoverageAuditTest {
             if (comparison != null) {
                 assertEquals(spec.label, 1, result.buildCounts.experimentalBuilds)
                 assertEquals(spec.label, 2, result.buildCounts.totalBuildInvocations)
+                assertEquals("${spec.label} CONTROL and EXPERIMENTAL must use the same complete request",
+                    comparison.control.request, comparison.experimental.request)
                 assertSame(if (result.routeDecision.productionRoutingActive) comparison.experimental else comparison.control, result.program)
                 assertEquals(StimulusProductionMaterialScopeResolver().resolve(comparison), result.diagnostics.scopeResolution?.scope)
             }
@@ -74,6 +77,43 @@ class StimulusProductionCoverageAuditTest {
         requireNotNull(path.parentFile).mkdirs()
         path.writeText(report)
         println(report)
+    }
+
+    @Test
+    fun resolvedRequestParityCoversExplicitAndInferredInputs() = runBlocking {
+        val cases = listOf(
+            CoverageSpec("request_strength_explicit", TrainableQuality.STRENGTH, "barbell_back_squat", "STRENGTH_GAIN",
+                ProgramGoal.STRENGTH, StrengthIntent.STRENGTH_PRIORITY, false, "reviewed", 2, 30,
+                setOf("BARBELL", "DUMBBELL", "BENCH", "RACK"), explicitWeeklyDays = true, explicitDuration = true),
+            CoverageSpec("request_hypertrophy_inferred", TrainableQuality.HYPERTROPHY, "cable_rear_delt_fly", "HYPERTROPHY_PHYSIQUE",
+                ProgramGoal.BODYBUILDING, StrengthIntent.HYPERTROPHY_PRIORITY, false, "reviewed", 3, 60,
+                setOf("MACHINE", "CABLE"), explicitWeeklyDays = false, explicitDuration = false),
+            CoverageSpec("request_mixed_inferred_duration", TrainableQuality.STRENGTH, "barbell_back_squat", "MIXED",
+                ProgramGoal.FUNCTIONAL_CONDITIONING, StrengthIntent.MIXED, false, "mixed", 4, 90,
+                emptySet(), explicitWeeklyDays = true, explicitDuration = false),
+            CoverageSpec("request_badminton_inferred_days", TrainableQuality.STRENGTH, "barbell_back_squat", "MIXED",
+                ProgramGoal.BADMINTON_SUPPORT, StrengthIntent.MIXED, true, "reviewed", 5, 30,
+                emptySet(), explicitWeeklyDays = false, explicitDuration = true)
+        )
+        cases.forEach { spec ->
+            val result = requireNotNull(runCase(spec) { service, preflight, answers, metadata ->
+                service.generatePreparedProduction(preflight, answers, metadata)
+            })
+            val comparison = requireNotNull(result.comparison)
+            val resolved = comparison.control.request
+            assertEquals("${spec.label} complete request parity", resolved, comparison.experimental.request)
+            assertEquals("${spec.label} audit horizon", resolved.durationWeeks,
+                comparison.experimentalAudit.planningHorizonWeeks)
+            val frequency = requireNotNull(comparison.experimental.personalizedDecision?.frequencyDemand?.frequency)
+            assertEquals("${spec.label} frequency request days", resolved.weeklyTrainingDays, frequency.resolvedUserDays)
+            assertEquals("${spec.label} frequency source",
+                if (spec.explicitWeeklyDays) PlanningFrequencySource.EXPLICIT_USER else PlanningFrequencySource.AUTO,
+                frequency.source)
+            assertEquals("${spec.label} session minutes", spec.minutes, resolved.sessionMinutes)
+            assertTrue("${spec.label} days stay in the bounded range", resolved.weeklyTrainingDays in 2..5)
+            assertTrue("${spec.label} duration stays in the bounded horizon", resolved.durationWeeks in 2..6)
+            if (spec.explicitDuration) assertEquals("${spec.label} explicit duration", 2, resolved.durationWeeks)
+        }
     }
 
     private fun render(records: List<Pair<CoverageSpec, StimulusProductionGenerationResult?>>): String = buildString {
@@ -181,7 +221,12 @@ class StimulusProductionCoverageAuditTest {
                 sportStrengthRatio = "AUTO", periodizationType = ProgramPeriodizationType.AUTO,
                 durationWeeks = 2, excludedExerciseStableKeys = excluded
             )
-            val constraints = PersonalizedGenerationConstraints(goal, spec.days, 2, spec.minutes)
+            val constraints = PersonalizedGenerationConstraints(
+                explicitGoal = goal,
+                explicitWeeklyTrainingDays = spec.days.takeIf { spec.explicitWeeklyDays },
+                explicitDurationWeeks = if (spec.explicitDuration) 2 else null,
+                explicitSessionMinutes = spec.minutes
+            )
             val preflight = try {
                 repository.preparePersonalizedProgram(request, constraints, cutoff)
             } catch (failure: IllegalArgumentException) {

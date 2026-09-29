@@ -187,6 +187,8 @@ class StimulusSelectionServiceIntegrationTest {
                 answers = answers,
                 metadata = metadata,
                 canonicalPlanning = prepared.canonicalPlanning,
+                resolvedRequest = prepared.resolvedRequest.request,
+                frequencyProvenance = prepared.resolvedRequest.frequencyProvenance,
                 controlOverride = mismatchedMirror,
                 productionBuildCounts = MutableStimulusProductionBuildCounts()
             )

@@ -81,6 +81,52 @@ class CanonicalStimulusPlanningIndependenceTest {
     @Test fun missingTargetPlanDoesNotAffectB5B6() = hostIndependence("target")
     @Test fun explicitHypertrophyWinsOverStrengthMirror() = hostIndependence("mismatch")
 
+    @Test fun b5AndB6UseResolvedRequestWhenControlRequestConflicts() = runBlocking {
+        val spec = spec("c2_request_conflict", h = true).copy(equipment = setOf("CABLE"))
+        StimulusProductionCoverageAuditTest().runCase(spec) { service, preflight, answers, metadata ->
+            val prepared = service.generatePreparedWithCanonicalPlanning(preflight, answers, metadata)
+            val resolved = prepared.resolvedRequest
+            val ownerKey = spec.stableKey
+            assertTrue("the upstream request must allow the isolated H owner", ownerKey !in resolved.request.excludedExerciseStableKeys)
+            val conflictingControlRequest = resolved.request.copy(
+                goal = ProgramGoal.STRENGTH,
+                weeklyTrainingDays = 2,
+                durationWeeks = 6,
+                sessionMinutes = 30,
+                availableEquipment = emptySet(),
+                excludedExerciseStableKeys = resolved.request.excludedExerciseStableKeys + ownerKey
+            )
+            val conflictingControl = prepared.program.copy(
+                request = conflictingControlRequest,
+                items = prepared.program.items.filterNot { it.exerciseStableKey == ownerKey }
+            )
+            val result = service.generatePreparedProduction(
+                preflight = preflight,
+                answers = answers,
+                metadata = metadata,
+                controlGenerationOverride = { conflictingControl }
+            )
+            val comparison = requireNotNull(result.comparison)
+            assertEquals("B6 must use the resolved upstream request as a whole", resolved.request, comparison.experimental.request)
+            assertEquals(resolved.request.weeklyTrainingDays, comparison.experimental.request.weeklyTrainingDays)
+            assertEquals(resolved.request.durationWeeks, comparison.experimental.request.durationWeeks)
+            assertEquals(resolved.request.sessionMinutes, comparison.experimental.request.sessionMinutes)
+            assertTrue("B5 must select the only request-eligible H owner",
+                comparison.selectionPlan.selectedCandidates.any {
+                    it.stableKey == ownerKey && "QUALITY:HYPERTROPHY" in it.coveredTargetIds
+                })
+            assertEquals("B6 frequency provenance must follow resolved upstream days",
+                resolved.frequencyProvenance,
+                comparison.experimental.personalizedDecision?.frequencyDemand?.frequency)
+            assertEquals("B6 audit horizon must use the resolved request",
+                resolved.request.durationWeeks, comparison.experimentalAudit.planningHorizonWeeks)
+            assertTrue("the intentionally conflicting CONTROL mirror cannot establish request parity",
+                comparison.control.request != comparison.experimental.request)
+            result
+        }
+        Unit
+    }
+
     private fun hostIndependence(remove: String) = runBlocking {
         StimulusProductionCoverageAuditTest().runCase(spec("c1_host_$remove", h = true)) { service, preflight, answers, metadata ->
             var canonical: CanonicalStimulusPlanningResult? = null
@@ -106,8 +152,12 @@ class CanonicalStimulusPlanningIndependenceTest {
             })
             val input = if (remove == "mismatch") hOnly else explicit
             val counts = MutableStimulusProductionBuildCounts()
+            val preparedRequest = service.generatePreparedWithCanonicalPlanning(preflight, answers, metadata).resolvedRequest
             val actual = service.generatePreparedStimulusPrescriptionMaterializationComparison(
-                preflight, answers, metadata, canonicalPlanning = input, controlOverride = altered, productionBuildCounts = counts)
+                preflight, answers, metadata, canonicalPlanning = input,
+                resolvedRequest = preparedRequest.request,
+                frequencyProvenance = preparedRequest.frequencyProvenance,
+                controlOverride = altered, productionBuildCounts = counts)
             assertSame(input.targetPlan, actual.targetPlan)
             assertTrue(actual.selectionPlan.traces.any { it.targetId == "QUALITY:HYPERTROPHY" })
             if (remove == "mismatch") {
