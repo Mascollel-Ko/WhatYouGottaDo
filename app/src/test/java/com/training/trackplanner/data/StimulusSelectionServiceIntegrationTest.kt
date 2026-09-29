@@ -160,6 +160,38 @@ class StimulusSelectionServiceIntegrationTest {
                 }
             })
             assertTrue("canonical metadata must be seeded", metadata.isNotEmpty())
+            val independentCanonical = service.buildCanonicalStimulusPlanningForPrepared(preflight, answers, metadata)
+            val prepared = service.generatePreparedWithCanonicalPlanning(preflight, answers, metadata)
+            val mirror = requireNotNull(prepared.program.personalizedDecision?.athleteStimulusNeedProfile)
+            assertEquals("B1 parity", independentCanonical.athleteStimulusNeedProfile.qualityNeeds, mirror.qualityNeeds)
+            assertEquals("B2 parity", independentCanonical.qualityDoseHistory, mirror.qualityDoseHistoryShadow)
+            assertEquals("B3 parity", independentCanonical.decisionPortfolio, mirror.trainingDecisionPortfolioShadow?.copy(comparison = null))
+            assertEquals("B4 quality parity", independentCanonical.targetPlan.qualityTargets, mirror.stimulusTargetPlanShadow?.qualityTargets)
+            assertEquals("B4 task parity", independentCanonical.targetPlan.taskTargets, mirror.stimulusTargetPlanShadow?.taskTargets)
+            assertEquals("B4 unresolved parity", independentCanonical.targetPlan.unresolved, mirror.stimulusTargetPlanShadow?.unresolved)
+
+            val mismatchedMirror = requireNotNull(prepared.program.personalizedDecision).let { decision ->
+                prepared.program.copy(
+                    personalizedDecision = decision.copy(
+                        athleteStimulusNeedProfile = mirror.copy(
+                            stimulusTargetPlanShadow = requireNotNull(mirror.stimulusTargetPlanShadow).copy(
+                                qualityTargets = emptyList(), taskTargets = emptyList(), unresolved = listOf("INTENTIONAL_MIRROR_MISMATCH"),
+                                controlProgramAudit = null
+                            )
+                        )
+                    )
+                )
+            }
+            val mismatchComparison = service.generatePreparedStimulusPrescriptionMaterializationComparison(
+                preflight = preflight,
+                answers = answers,
+                metadata = metadata,
+                canonicalPlanning = prepared.canonicalPlanning,
+                controlOverride = mismatchedMirror,
+                productionBuildCounts = MutableStimulusProductionBuildCounts()
+            )
+            assertEquals("B6 must use explicit canonical result", prepared.canonicalPlanning.targetPlan, mismatchComparison.targetPlan)
+            assertTrue("explicit canonical target plan must survive mirror mismatch", mismatchComparison.targetPlan.qualityTargets.isNotEmpty())
             val production = repository.generatePreparedPersonalizedProgramEvaluation(preflight, answers)
             val standalone = production.program
             val comparison = requireNotNull(production.comparison)
