@@ -22,7 +22,7 @@ import kotlin.math.ln
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28])
 class StimulusProductionCoverageAuditTest {
-    private data class CoverageSpec(
+    internal data class CoverageSpec(
         val label: String, val quality: TrainableQuality, val stableKey: String,
         val profileGoal: String, val goal: ProgramGoal, val intent: StrengthIntent,
         val badminton: Boolean, val history: String, val days: Int, val minutes: Int,
@@ -128,7 +128,11 @@ class StimulusProductionCoverageAuditTest {
         }
     }
 
-    private suspend fun runCase(spec: CoverageSpec): StimulusProductionGenerationResult? {
+    internal suspend fun runCase(
+        spec: CoverageSpec,
+        evaluate: (suspend (PersonalizedProgramPlanningService, PersonalizedPlanningPreflight, PersonalizedPlanningAnswers,
+            Map<String, RuntimeExerciseMetadata>) -> StimulusProductionGenerationResult)? = null
+    ): StimulusProductionGenerationResult? {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val db = Room.inMemoryDatabaseBuilder(context, TrainingDatabase::class.java).allowMainThreadQueries().build()
         try {
@@ -193,7 +197,8 @@ class StimulusProductionCoverageAuditTest {
                 QUESTION_INTERRUPTION_CAUSE, QUESTION_INTERRUPTION_FREQUENCY -> "UNSURE"
                 else -> if (question.id.startsWith("INTERRUPTION_CAUSE_")) "UNKNOWN" else error("Unexpected personalized question: ${question.id}")
             } })
-            val production = repository.generatePreparedPersonalizedProgramEvaluation(preflight, answers)
+            val production = evaluate?.invoke(service, preflight, answers, metadata)
+                ?: repository.generatePreparedPersonalizedProgramEvaluation(preflight, answers)
             return production
         } finally { db.close() }
     }

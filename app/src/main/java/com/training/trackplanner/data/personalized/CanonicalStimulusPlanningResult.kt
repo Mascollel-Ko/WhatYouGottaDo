@@ -22,7 +22,25 @@ data class CanonicalStimulusPlanningResult(
 }
 
 /** One CONTROL skeleton paired with the independent canonical planning result. */
+internal typealias CanonicalStimulusPlanningComputation =
+    (PlanningHistorySnapshot, AthletePlanningState, QualityDoseHistory) -> CanonicalStimulusPlanningResult
+
 internal data class CanonicalPreparedProgram(
     val program: com.training.trackplanner.data.GeneratedProgramSkeleton,
+    val planningOutcome: CanonicalPlanningOutcome
+) {
+    constructor(program: com.training.trackplanner.data.GeneratedProgramSkeleton, planning: CanonicalStimulusPlanningResult) :
+        this(program, CanonicalPlanningOutcome.Success(planning))
+
+    /** Rethrow only at the existing production evaluation boundary, with CONTROL available. */
     val canonicalPlanning: CanonicalStimulusPlanningResult
-)
+        get() = when (val outcome = planningOutcome) {
+            is CanonicalPlanningOutcome.Success -> outcome.result
+            is CanonicalPlanningOutcome.ExpectedFailure -> throw outcome.failure
+        }
+}
+
+internal sealed interface CanonicalPlanningOutcome {
+    data class Success(val result: CanonicalStimulusPlanningResult) : CanonicalPlanningOutcome
+    data class ExpectedFailure(val failure: StimulusCanonicalEvaluationFailure) : CanonicalPlanningOutcome
+}
