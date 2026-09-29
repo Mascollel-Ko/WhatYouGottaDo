@@ -304,7 +304,7 @@ class StimulusExposureLedgerCanonicalIntegrationTest {
         )
         val selection = StimulusTargetCandidateSelector().build(
             targetPlan = targetPlan,
-            control = control,
+            incumbentSeed = StimulusIncumbentIdentitySeed.fromControl(control),
             snapshot = snapshot,
             state = state.copy(freeWeightWillingness = FreeWeightWillingness.WILLING),
             request = selectionRequest,

@@ -156,20 +156,21 @@ private data class MaterializedCandidate(
 
 /**
  * Deterministic B5 identity selector. It reads B4 targets and canonical relations, but never
- * recalculates Need, baseline, strategy, dose, or a target-compatible prescription.
+ * recalculates Need, baseline, strategy, dose, or a target-compatible prescription. CONTROL can
+ * remain the seed source, but the selector receives only typed incumbent identities.
  */
 class StimulusTargetCandidateSelector(
     private val prescriptionPlanner: PersonalizedPrescriptionPlanner = PersonalizedPrescriptionPlanner()
 ) {
     fun build(
         targetPlan: StimulusTargetPlan,
-        control: GeneratedProgramSkeleton,
+        incumbentSeed: StimulusIncumbentIdentitySeed,
         snapshot: PlanningHistorySnapshot,
         state: AthletePlanningState,
         request: ProgramSkeletonRequest,
         physicalQualityCatalog: CanonicalExercisePhysicalQualityCatalog
     ): StimulusCandidateSelectionPlan {
-        val controlKeys = control.items.mapTo(linkedSetOf(), ProgramSkeletonItem::exerciseStableKey)
+        val controlKeys = incumbentSeed.stableKeys
         val historyByStableKey = snapshot.allConfirmedSets.groupBy(PlanningSetRecord::stableKey)
         val historyIndex = HistoryIndex(
             historyByStableKey = historyByStableKey,

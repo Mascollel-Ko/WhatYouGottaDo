@@ -17,7 +17,9 @@ import com.training.trackplanner.data.TrainableQuality
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class StimulusTargetCandidateSelectorTest {
@@ -69,6 +71,100 @@ class StimulusTargetCandidateSelectorTest {
         assertEquals(listOf("existing"), trace.controlDirectCapabilityIdentities)
         assertTrue(trace.reasonCodes.contains("REALIZED_STIMULUS_GAP_DEFERRED_TO_B6"))
         assertTrue(result.selectedCandidates.isEmpty())
+    }
+
+    @Test
+    fun typedSeedMatchesLegacyControlKeyProjectionAndCompleteSelectionPlan() {
+        val existing = exercise("existing")
+        val fixture = fixture(listOf(existing), listOf(relation("existing")))
+        val control = skeleton(fixture.request, listOf(
+            item("existing", 1, role = "MAIN"),
+            item("existing", 2, role = "MAIN", week = 2),
+            item("existing", 3, role = "ACCESSORY")
+        ))
+        val legacyControlKeys = control.items.mapTo(linkedSetOf(), ProgramSkeletonItem::exerciseStableKey)
+        val incumbentSeed = StimulusIncumbentIdentitySeed.fromControl(control)
+
+        assertEquals(legacyControlKeys, incumbentSeed.stableKeys)
+        assertEquals(
+            setOf(StimulusIncumbentIdentity("existing", "MAIN"), StimulusIncumbentIdentity("existing", "ACCESSORY")),
+            incumbentSeed.owners.toSet()
+        )
+        val actual = StimulusTargetCandidateSelector().build(
+            qualityPlan(), incumbentSeed, fixture.snapshot, fixture.state, fixture.request, fixture.catalog
+        )
+        val expectedTrace = StimulusCandidateSelectionTrace(
+            targetId = "QUALITY:STRENGTH",
+            strategy = StimulusDoseStrategy.HOLD_PERSONAL_BASELINE,
+            priority = TargetPriority.PRIMARY,
+            controlDirectCapabilityIdentities = listOf("existing"),
+            selectionRequired = false,
+            candidatePool = emptyList(),
+            selectedStableKey = null,
+            coveredByPreviouslySelectedStableKey = null,
+            reasonCodes = listOf("DIRECT_CAPABILITY_IDENTITY_ALREADY_PRESENT", "REALIZED_STIMULUS_GAP_DEFERRED_TO_B6")
+        )
+        assertEquals(
+            StimulusCandidateSelectionPlan(
+                selectedCandidates = emptyList(),
+                traces = listOf(expectedTrace),
+                materialDemand = MaterialDemand(emptyList(), emptyMap(), emptyMap())
+            ),
+            actual
+        )
+    }
+
+    @Test
+    fun selectorRunsAfterControlObjectIsDiscardedAndHasNoProgramObjectParameter() {
+        val candidate = exercise("candidate")
+        val fixture = fixture(listOf(candidate), listOf(relation("candidate")))
+        var control: GeneratedProgramSkeleton? = skeleton(fixture.request, listOf(item("old", 1, role = "MAIN")))
+        val seed = StimulusIncumbentIdentitySeed.fromControl(requireNotNull(control))
+        control = null
+
+        assertNull(control)
+        val build = StimulusTargetCandidateSelector::class.java.methods.single { it.name == "build" }
+        assertFalse(build.parameterTypes.any { it == GeneratedProgramSkeleton::class.java || it == ProgramSkeletonItem::class.java })
+        val result = StimulusTargetCandidateSelector().build(
+            qualityPlan(), seed, fixture.snapshot, fixture.state, fixture.request, fixture.catalog
+        )
+        assertEquals(listOf("candidate"), result.selectedCandidates.map { it.stableKey })
+        assertEquals("CANONICAL_STIMULUS_QUALITY_STRENGTH", result.selectedCandidates.single().selectionRole)
+    }
+
+    @Test
+    fun malformedSeedRejectsBlankStableKeyAndDuplicateOwnerButAllowsBlankLegacyRole() {
+        assertThrows(IllegalArgumentException::class.java) {
+            StimulusIncumbentIdentity(" ", "MAIN")
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            StimulusIncumbentIdentitySeed(listOf(
+                StimulusIncumbentIdentity("lift", "MAIN"),
+                StimulusIncumbentIdentity("lift", "MAIN")
+            ))
+        }
+        // ProgramSkeletonItem's existing role default is the empty string; role is preserved verbatim.
+        assertEquals(listOf(StimulusIncumbentIdentity("legacy", "")),
+            StimulusIncumbentIdentitySeed.fromControl(skeleton(request(), listOf(item("legacy", 1)))).owners)
+    }
+
+    @Test
+    fun sameStableKeyWithDifferentSelectionRolesIsNeverCollapsed() {
+        val seed = StimulusIncumbentIdentitySeed(listOf(
+            StimulusIncumbentIdentity("shared", "MAIN"),
+            StimulusIncumbentIdentity("shared", "ACCESSORY")
+        ))
+        assertEquals(2, seed.owners.size)
+        assertEquals(setOf("shared"), seed.stableKeys)
+    }
+
+    @Test
+    fun incumbentIdentityHasNoMetadataFieldsThatCouldConflictForOneOwner() {
+        assertEquals(
+            listOf("selectionRole", "stableKey"),
+            StimulusIncumbentIdentity::class.java.declaredFields.map { it.name }
+                .filterNot { it.startsWith("\$") }.sorted()
+        )
     }
 
     @Test
@@ -159,9 +255,11 @@ class StimulusTargetCandidateSelectorTest {
         assertTrue(comparison.differences.isNotEmpty())
     }
 
-    private fun select(plan: StimulusTargetPlan, fixture: Fixture, controlItems: List<Exercise>): StimulusCandidateSelectionPlan =
-        StimulusTargetCandidateSelector().build(plan, skeleton(fixture.request, controlItems.mapIndexed { index, exercise -> item(exercise.stableKey, index + 1) }),
+    private fun select(plan: StimulusTargetPlan, fixture: Fixture, controlItems: List<Exercise>): StimulusCandidateSelectionPlan {
+        val control = skeleton(fixture.request, controlItems.mapIndexed { index, exercise -> item(exercise.stableKey, index + 1) })
+        return StimulusTargetCandidateSelector().build(plan, StimulusIncumbentIdentitySeed.fromControl(control),
             fixture.snapshot, fixture.state, fixture.request, fixture.catalog)
+    }
 
     private fun qualityPlan(): StimulusTargetPlan = StimulusTargetPlan(
         qualityTargets = listOf(target(TrainableQuality.STRENGTH, TargetPriority.PRIMARY)),
@@ -214,10 +312,10 @@ class StimulusTargetCandidateSelectorTest {
 
     private fun request() = ProgramSkeletonRequest("test", ProgramGoal.STRENGTH, 3, 60, emptySet(), "", .5, "AUTO", ProgramPeriodizationType.AUTO, 2)
 
-    private fun item(key: String, order: Int) = ProgramSkeletonItem(
-        localId = "$key-$order", weekNumber = 1, dayOfWeek = 1, orderIndex = order, exerciseStableKey = key,
+    private fun item(key: String, order: Int, role: String = "", week: Int = 1) = ProgramSkeletonItem(
+        localId = "$key-$order-$week-$role", weekNumber = week, dayOfWeek = 1, orderIndex = order, exerciseStableKey = key,
         exerciseName = key, category = "STRENGTH", restSeconds = 90, prescription = "8 reps", setCount = 2,
-        reps = 8, weightKg = 0.0, seconds = 0, selectionReason = "test", weightSource = "TEST"
+        reps = 8, weightKg = 0.0, seconds = 0, selectionReason = "test", weightSource = "TEST", selectionRole = role
     )
 
     private fun skeleton(request: ProgramSkeletonRequest, items: List<ProgramSkeletonItem>) = GeneratedProgramSkeleton(

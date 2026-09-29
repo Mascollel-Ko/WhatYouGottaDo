@@ -43,6 +43,7 @@ import com.training.trackplanner.data.personalized.StimulusTargetPlanEngine
 import com.training.trackplanner.data.personalized.StimulusTargetPlanComparisonEngine
 import com.training.trackplanner.data.personalized.StimulusTargetControlProgramAuditEngine
 import com.training.trackplanner.data.personalized.StimulusTargetCandidateSelector
+import com.training.trackplanner.data.personalized.StimulusIncumbentIdentitySeed
 import com.training.trackplanner.data.personalized.StimulusSelectionProgramComparison
 import com.training.trackplanner.data.personalized.StimulusSelectionProgramComparisonEngine
 import com.training.trackplanner.data.personalized.StimulusPrescriptionRealizationPlanEngine
@@ -522,7 +523,7 @@ internal class PersonalizedProgramPlanningService(
         val request = prepared.resolvedRequest.request
         val selectionPlan = StimulusTargetCandidateSelector().build(
             targetPlan = targetPlan,
-            control = control,
+            incumbentSeed = StimulusIncumbentIdentitySeed.fromControl(control),
             snapshot = snapshot,
             state = state,
             request = request,
@@ -628,7 +629,7 @@ internal class PersonalizedProgramPlanningService(
         val intent = blockPlanner.decide(state, gaps)
         val selectionPlan = StimulusTargetCandidateSelector().build(
             targetPlan = targetPlan,
-            control = control,
+            incumbentSeed = StimulusIncumbentIdentitySeed.fromControl(control),
             snapshot = snapshot,
             state = state,
             request = resolvedRequest,
