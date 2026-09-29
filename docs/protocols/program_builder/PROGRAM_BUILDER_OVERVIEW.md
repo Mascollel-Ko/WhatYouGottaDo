@@ -7,7 +7,7 @@
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 06edd22003d7ef36192c688e62ac936ec063a5ea |
+| Last audited commit | f28e2748d7d58509b1ad7ff249aedb2a6996e36c |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1150,6 +1150,13 @@ Post-audit boundary notes
 ### Phase C1 — independent canonical B1–B4 planning result (protocol remains 3.50.0)
 
 - `CanonicalStimulusPlanningResult` now owns the typed B1/B2/B3/B4 output: the athlete stimulus need profile, ledger-backed quality-dose history, decision portfolio and target plan. It is independently computable from snapshot/state without a `GeneratedProgramSkeleton`. Production invokes it once after CONTROL materializes, preserving the existing typed fallback boundary. Canonical planning result no longer depends on CONTROL as its data host.
-- CONTROL still builds first and continues to supply the retained request dependency, B5 identity seed, B6 current-prescription baseline and B7/B8/B9 comparator/rollback evidence. Existing `personalizedDecision` canonical shadow fields remain as a compatibility mirror for persistence/diagnostics.
+- CONTROL still builds first and continues to supply the B5 identity seed, B6 current-prescription baseline and B7/B8/B9 comparator/rollback evidence. C2 removes its retained request dependency; existing `personalizedDecision` canonical shadow fields remain as a compatibility mirror for persistence/diagnostics.
 - B5 and B6 receive the explicit canonical result and no longer recover `stimulusTargetPlanShadow` from `CONTROL.personalizedDecision`. A post-materialization B4 control audit is carried separately as comparator diagnostics. CONTROL/EXPERIMENTAL build accounting remains `1/1/2/0`; no routing, authority, schema, persistence or policy surface changed.
 - Real Room/service parity covers full B1–B4 values against the pre-C1 producer chain and compatibility mirror in six contexts. Regressions remove each host level and supply conflicting S/H mirrors to prove explicit input remains authoritative for B5/B6. Typed computation failures return CONTROL; cancellation/unexpected exceptions propagate. Progress remains monotonic with one completion on success or expected fallback.
+
+### Phase C2 — independent canonical request (protocol remains 3.50.0)
+
+- `ResolvedPreparedProgramRequest` carries the full `ProgramSkeletonRequest` and `PlanningFrequencyProvenance` alongside, but outside, `CanonicalStimulusPlanningResult`. It is resolved once from the frozen preflight request/constraints and prepared state, gaps, block intent, frequency evidence and chosen horizon.
+- CONTROL receives the same resolved request it previously received. B5 selection, B6 selection/materialization, the EXPERIMENTAL builder and its horizon audit now receive that request explicitly; B6 has no nullable fallback to `control.request`. A normal CONTROL request mismatch is a typed `RESOLVED_REQUEST_PARITY` failure handled by the existing fail-closed CONTROL fallback.
+- `GeneratedProgramSkeleton.request` remains for compatibility, persistence and parity diagnostics. CONTROL items still seed B5 identities and provide the B6 current-prescription baseline. Remaining `control.request` reads are diagnostic/comparator fingerprint uses; B7/B8/B9 routing, schema, persistence and build counts are unchanged.
+- Whole-request parity and request-sensitive B5/B6 integration tests cover Strength, Hypertrophy, mixed and badminton contexts; weekly days 2–5, 30/60/90-minute sessions and explicit/inferred weekly-day and duration constraints. See `docs/production_coverage_audit.md` for the dependency ledger and hosted result.

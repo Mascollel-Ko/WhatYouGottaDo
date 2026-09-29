@@ -146,7 +146,8 @@ exclusive primary-stage counts never overlap.
 | CONTROL is built first | INPUT_SEED_DEPENDENCY | `generatePreparedProduction` builds CONTROL before experimental evaluation. Recognized failure can stop before the second invocation; successful comparison paths build 1+1. |
 | Canonical target plan available only through CONTROL | REMOVED_CANONICAL_DATA_HOST_DEPENDENCY | `CanonicalStimulusPlanningResult` owns the B1/B2/B3/B4 result and is passed explicitly to B5/B6. CONTROL still receives `stimulusTargetPlanShadow` as a compatibility mirror, but canonical evaluation does not read that mirror. |
 | CONTROL canonical compatibility mirror | CANONICAL_DATA_MIRROR_DEPENDENCY | Existing diagnostics, persistence and UI-facing decision payloads may continue to expose `control.personalizedDecision.athleteStimulusNeedProfile`; it is a compatibility representation and is not the B5/B6 source of truth. |
-| EXPERIMENTAL request | REQUEST_DEPENDENCY | Materialization comparison uses `val request = control.request` for duration, weekly days and builder request. |
+| CONTROL request mirror | SAFETY_COMPARATOR / PERSISTENCE_MIRROR | `GeneratedProgramSkeleton.request` remains for compatibility, persistence and parity diagnostics; canonical B5/B6/EXPERIMENTAL planning does not read it. |
+| B5/B6/EXPERIMENTAL request | REMOVED_CONTROL_REQUEST_DEPENDENCY | `resolvePreparedProgramRequest(...)` resolves the complete request and frequency provenance from preflight request/constraints plus prepared state, gaps, block intent, frequency evidence and horizon. The prepared orchestration value passes it explicitly to B5 and B6; normal CONTROL generation must match it or enter the typed fail-closed boundary. |
 | B5 identity selection | INPUT_SEED_DEPENDENCY | Selector consumes CONTROL stable keys/direct-capability identities to avoid additions and to form reuse/reference traces. It is not merely a post-generation comparison. |
 | B6 current prescriptions | PRESCRIPTION_BASELINE_DEPENDENCY | `control.items` creates the exact owner/role prescription table passed into authorization and conflict localization before EXPERIMENTAL build. |
 | B7 collateral and B8/B9 safety | SAFETY_COMPARATOR_ONLY | B7 compares prescriptions, removed owners, target distances and fingerprints; B8 checks schedule/owner parity; B9 selects original CONTROL or EXPERIMENTAL. |
@@ -154,14 +155,15 @@ exclusive primary-stage counts never overlap.
 These anchors are in `PersonalizedProgramPlanningService.kt`,
 `StimulusCandidateSelection.kt`, `StimulusPrescriptionMaterialization.kt`,
 `StimulusExperimentalReadiness.kt` and `StimulusProductionCutoverAuthority.kt`.
-The remaining request/seed/baseline seams are potential migration steps; no dependency is labeled
+The B5 seed and B6 baseline remain intentional dependencies; no dependency is labeled
 `TEMPORARY_MIGRATION_DEPENDENCY` merely on that assumption. CONTROL remains an
-essential request/seed/baseline input and a safety comparator/rollback program,
-but its compatibility mirror is no longer the canonical B1-B4 source of truth.
+essential seed/baseline input and a safety comparator/rollback program, while its request field
+is a compatibility mirror and diagnostic/comparator input only. Its compatibility mirror is also
+no longer the canonical B1-B4 source of truth.
 
 ## Phase C1 — canonical planning ownership and data-flow independence
 
-The C1 seam keeps protocol `3.50.0` and all production behavior unchanged. Before C1,
+The C1 seam keeps protocol `3.50.0` and production behavior unchanged. Before C1,
 `generatePrepared()` built CONTROL first, calculated B1/B2/B3/B4, mirrored the result into
 `control.personalizedDecision.athleteStimulusNeedProfile`, and B5/B6 recovered the target
 plan from `control.personalizedDecision.athleteStimulusNeedProfile.stimulusTargetPlanShadow`.
@@ -184,8 +186,8 @@ B3 + B2 -> StimulusTargetPlanEngine (B4)
        - targetPlan
 ```
 
-CONTROL is still built and remains the source for the explicitly retained request,
-B5 identity seed and B6 current-prescription baseline. After CONTROL materialization,
+CONTROL is still built and remains the source for the B5 identity seed and B6
+current-prescription baseline. After CONTROL materialization,
 its final audit is attached to the typed result as comparator diagnostics, and the existing
 `personalizedDecision` shadow fields are populated as a persistence-compatible mirror.
 B5 and B6 consume the explicit `CanonicalStimulusPlanningResult.targetPlan`; they do not
@@ -222,8 +224,8 @@ B1–B4 are computed once per production generation. The legacy dose-history ana
 is shared between B2 comparison and legacy diagnostics, avoiding a second analysis.
 The existing experimental path still rereads preferences/rebuilds snapshot, state,
 gaps, intent and frequency, and performs its own final materialization audit. Those
-residual computations predate C1; they are recorded here without redesigning the
-retained request, seed or baseline dependencies.
+residual computations predate C1; C2 changes only the request source while retaining
+the seed and baseline dependencies.
 
 `CanonicalStimulusPlanningIndependenceTest` compares complete B1–B4 data classes
 against the pre-C1 engine chain on Strength, H, S+H, badminton/performance, sparse,
@@ -240,3 +242,50 @@ tests cover a single production computation, real 1/1/2/0 build accounting,
 monotonic progress with one completion, typed computation failure, cancellation,
 and unexpected argument/state exceptions. The unmodified 27-case routing corpus
 is rerun separately and compared with the pre-C1 hosted artifact.
+
+## Phase C2 — canonical request independence
+
+C2 keeps protocol `3.50.0`. Before C2, production B5 selection and the B6/EXPERIMENTAL
+builder read `control.request`, so CONTROL acted as the request source as well as the
+intentional identity seed and current-prescription baseline. C2 resolves one complete
+`ProgramSkeletonRequest` plus `PlanningFrequencyProvenance` from the frozen preflight request
+and constraints, prepared state, gaps, block intent, frequency evidence and selected horizon.
+That request bundle belongs to `CanonicalPreparedProgram` orchestration, not to
+`CanonicalStimulusPlanningResult`.
+
+```text
+preflight.request + constraints + prepared state/gaps/intent/frequency/horizon
+  -> resolvePersonalizedRequest(...)
+  -> ResolvedPreparedProgramRequest(request, frequencyProvenance)
+       -> unchanged CONTROL builder arguments
+       -> B5 candidate selector
+       -> B6 selector and EXPERIMENTAL builder
+       -> B6 horizon audit
+```
+
+Normal CONTROL and EXPERIMENTAL requests are compared as complete data classes. A mismatch
+between the built CONTROL request and the prepared resolved request is a typed
+`RESOLVED_REQUEST_PARITY` failure and uses the existing CONTROL fallback boundary. B5 and B6
+have no nullable request fallback and never recover request shape from CONTROL. The persisted
+`GeneratedProgramSkeleton.request` remains intact; remaining `control.request` reads are confined
+to B7/production diagnostics and safety/comparator fingerprints. CONTROL stable keys/direct
+identities still seed B5, `control.items` still supply the B6 prescription baseline, and B7/B8/B9
+continue to use the same comparison, rollback object and routing boundary.
+
+Request regressions assert whole-request parity over the existing 27-case Strength, H, mixed
+and badminton corpus (including weekly days 2–5 and session lengths 30/60/90), plus explicit and
+inferred weekly-day/duration combinations. A conflicting CONTROL request intentionally changes
+goal, days, duration, minutes, equipment and exclusions while B5 is forced to search for its
+isolated H owner; assertions verify B5 selects from the upstream request and B6 uses its exact
+days, duration, session length, frequency provenance and audit horizon. Corpus report aggregates,
+program routing decisions and build counts remain byte-for-byte comparable to the pre-C2 baseline.
+
+Hosted Android CI run [`36544683613`](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/36544683613)
+passed with 337 JUnit XML files, 2,138 tests, 0 failures, 0 errors and 4 skips. Both new request
+regressions passed. The 27-case report is byte-identical to the pre-C2 `main` artifact from run
+`36539189749` (SHA-256 `67f8feb8ca6f0a74b060ef234f0c710ac89550cced647bb5b4e0357bc2d61d63`):
+22 generated, 5 preflight rejects; CONTROL 18, Strength 3, Hypertrophy 1, combined 0; primary
+fallback no material 14, scope 3, B6 execution 1; routes and 1/1/2/0 build counts unchanged.
+Protocol documentation validation, Community/Cloud contracts, APK assembly and CI signer
+verification also passed. The generated APK is SHA-256
+`B377A50A6E11EBFA7ED6A5CD5E0741A3FE0BC9BFE5924ACF1502BD97FD6F5BE7`.
