@@ -7,7 +7,7 @@
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | f4b4eac48840031d9512dfdad1848e2ec1f52311 |
+| Last audited commit | 06edd22003d7ef36192c688e62ac936ec063a5ea |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1146,3 +1146,10 @@ Post-audit boundary notes
 - The real-service coverage corpus measures original generation results over intent, history, weekly days, time and equipment axes. It excludes composed B15 routing successes from the measured aggregate. See the [code-based stage matrix, coverage results and legacy dependency audit](../../production_coverage_audit.md).
 - The executed corpus contained 27 cases: 22 generated and 5 existing no-confirmed-history preflight rejections. Generated results were CONTROL 18, Strength 3, Hypertrophy 1 and combined 0. Primary fallback counts were no material 14, scope resolution 3 and B6 execution authority 1; unsupported material blockers were POWER 2 and SSC 2. Generated cases preserved `CONTROL=1`, `EXPERIMENTAL=1`, `TOTAL=2`, `THIRD=0`.
 - Nullable scope semantics, rollback modes, the build invocation boundaries and selected program identity are unchanged. No additional quality, persistence schema or user-facing behavior is activated.
+
+### Phase C1 — independent canonical B1–B4 planning result (protocol remains 3.50.0)
+
+- `CanonicalStimulusPlanningResult` now owns the typed B1/B2/B3/B4 output: the athlete stimulus need profile, ledger-backed quality-dose history, decision portfolio and target plan. It is independently computable from snapshot/state without a `GeneratedProgramSkeleton`. Production invokes it once after CONTROL materializes, preserving the existing typed fallback boundary. Canonical planning result no longer depends on CONTROL as its data host.
+- CONTROL still builds first and continues to supply the retained request dependency, B5 identity seed, B6 current-prescription baseline and B7/B8/B9 comparator/rollback evidence. Existing `personalizedDecision` canonical shadow fields remain as a compatibility mirror for persistence/diagnostics.
+- B5 and B6 receive the explicit canonical result and no longer recover `stimulusTargetPlanShadow` from `CONTROL.personalizedDecision`. A post-materialization B4 control audit is carried separately as comparator diagnostics. CONTROL/EXPERIMENTAL build accounting remains `1/1/2/0`; no routing, authority, schema, persistence or policy surface changed.
+- Real Room/service parity covers full B1–B4 values against the pre-C1 producer chain and compatibility mirror in six contexts. Regressions remove each host level and supply conflicting S/H mirrors to prove explicit input remains authoritative for B5/B6. Typed computation failures return CONTROL; cancellation/unexpected exceptions propagate. Progress remains monotonic with one completion on success or expected fallback.

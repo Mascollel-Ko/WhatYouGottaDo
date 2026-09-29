@@ -124,7 +124,7 @@ The executed corpus produced 27 total cases: 22 generated cases and 5
 selected Strength 3 times, Hypertrophy once, combined zero times and CONTROL
 18 times. The exclusive primary fallback counts were `NO_MATERIAL_CHANGE 14`,
 `SCOPE_RESOLUTION 3` and `B6_EXECUTION_AUTHORITY 1`; no upstream, B7, B8 or B9
-primary failure occurred in this corpus. The remaining three generated cases
+primary failure occurred in this corpus. The remaining four generated cases
 were successful production routes. Every generated case recorded
 `CONTROL=1`, `EXPERIMENTAL=1`, `TOTAL=2`, `THIRD=0`.
 
@@ -144,7 +144,8 @@ exclusive primary-stage counts never overlap.
 | Dependency | Classification | Code evidence and implication |
 |---|---|---|
 | CONTROL is built first | INPUT_SEED_DEPENDENCY | `generatePreparedProduction` builds CONTROL before experimental evaluation. Recognized failure can stop before the second invocation; successful comparison paths build 1+1. |
-| Canonical target plan stored in CONTROL | CANONICAL_DATA_HOST_DEPENDENCY | `generatePrepared` computes B1/B2/B3/B4 and attaches `stimulusTargetPlanShadow`; materialization comparison extracts it from `control.personalizedDecision`. Missing plan aborts canonical evaluation. |
+| Canonical target plan stored in CONTROL | REMOVED_CANONICAL_DATA_HOST_DEPENDENCY | `CanonicalStimulusPlanningResult` owns the B1/B2/B3/B4 result and is passed explicitly to B5/B6. CONTROL still receives `stimulusTargetPlanShadow` as a compatibility mirror, but canonical evaluation does not read that mirror. |
+| CONTROL canonical compatibility mirror | CANONICAL_DATA_MIRROR_DEPENDENCY | Existing diagnostics, persistence and UI-facing decision payloads may continue to expose `control.personalizedDecision.athleteStimulusNeedProfile`; it is a compatibility representation and is not the B5/B6 source of truth. |
 | EXPERIMENTAL request | REQUEST_DEPENDENCY | Materialization comparison uses `val request = control.request` for duration, weekly days and builder request. |
 | B5 identity selection | INPUT_SEED_DEPENDENCY | Selector consumes CONTROL stable keys/direct-capability identities to avoid additions and to form reuse/reference traces. It is not merely a post-generation comparison. |
 | B6 current prescriptions | PRESCRIPTION_BASELINE_DEPENDENCY | `control.items` creates the exact owner/role prescription table passed into authorization and conflict localization before EXPERIMENTAL build. |
@@ -153,7 +154,89 @@ exclusive primary-stage counts never overlap.
 These anchors are in `PersonalizedProgramPlanningService.kt`,
 `StimulusCandidateSelection.kt`, `StimulusPrescriptionMaterialization.kt`,
 `StimulusExperimentalReadiness.kt` and `StimulusProductionCutoverAuthority.kt`.
-The target data host and request plumbing are potential migration seams, but the
-code does not establish that they are temporary; no dependency is labeled
-`TEMPORARY_MIGRATION_DEPENDENCY` merely on that assumption. CONTROL is currently
-both an essential canonical input and a safety comparator/rollback program.
+The remaining request/seed/baseline seams are potential migration steps; no dependency is labeled
+`TEMPORARY_MIGRATION_DEPENDENCY` merely on that assumption. CONTROL remains an
+essential request/seed/baseline input and a safety comparator/rollback program,
+but it is no longer the canonical B1-B4 data host.
+
+## Phase C1 — canonical planning ownership and data-flow independence
+
+The C1 seam keeps protocol `3.50.0` and all production behavior unchanged. Before C1,
+`generatePrepared()` built CONTROL first, calculated B1/B2/B3/B4, mirrored the result into
+`control.personalizedDecision.athleteStimulusNeedProfile`, and B5/B6 recovered the target
+plan from `control.personalizedDecision.athleteStimulusNeedProfile.stimulusTargetPlanShadow`.
+
+The canonical path now calculates the following typed result once from the shared
+prepared snapshot and planning state. The pure computation takes no CONTROL argument.
+Production invokes it after the first CONTROL build so an expected canonical failure
+can return the already-built CONTROL through the existing evaluation boundary:
+
+```text
+PlanningHistorySnapshot + AthletePlanningState
+  -> AthleteStimulusNeedEngine (B1 needs)
+  -> LedgerBackedQualityDoseHistoryAnalyzer (B2 history; shared legacy dose for comparison)
+B1 + B2 -> StimulusTrainingDecisionPortfolioEngine (B3)
+B3 + B2 -> StimulusTargetPlanEngine (B4)
+  -> CanonicalStimulusPlanningResult
+       - athleteStimulusNeedProfile
+       - qualityDoseHistory
+       - decisionPortfolio
+       - targetPlan
+```
+
+CONTROL is still built and remains the source for the explicitly retained request,
+B5 identity seed and B6 current-prescription baseline. After CONTROL materialization,
+its final audit is attached to the typed result as comparator diagnostics, and the existing
+`personalizedDecision` shadow fields are populated as a persistence-compatible mirror.
+B5 and B6 consume the explicit `CanonicalStimulusPlanningResult.targetPlan`; they do not
+read the CONTROL mirror. B7/B8/B9 continue to consume the existing comparison and CONTROL
+rollback/comparator fields. No CONTROL, EXPERIMENTAL or third-build boundary changed.
+
+Ownership and use, traced in `PersonalizedProgramPlanningService`:
+
+| Value | Producer / owner | Downstream role |
+|---|---|---|
+| B1 need profile | `buildCanonicalStimulusPlanningResult` calls `AthleteStimulusNeedEngine.analyze(snapshot, state)`; independent result owns it | Input to B3; mirrored for diagnostics/persistence |
+| B2 dose history | Same seam calls `LedgerBackedQualityDoseHistoryAnalyzer.analyze(snapshot, state, legacyDoseHistory)` | Input to B3/B4; includes dose evidence and baselines |
+| B3 portfolio | Same seam calls `StimulusTrainingDecisionPortfolioEngine.build(B1, B2)` | Input to B4; legacy comparison is mirror-only diagnostics |
+| B4 target plan | Same seam calls `StimulusTargetPlanEngine.build(B3, B2)` | Explicit actual B5 selection and B6 authorization/realization input |
+| `FinalStimulusNeedAudit` | Audits materialized CONTROL using its items and snapshot | Diagnostics/comparator input, never upstream input to B1–B4 |
+| `controlProgramAudit` | B4 plus final materialized audit and horizon | Read-only comparator diagnostics on the independent result, also mirrored |
+| `stimulusTargetPlanShadow` | `generatePreparedWithCanonicalPlanning` attaches the same result plus legacy/control comparisons | Compatibility mirror only; B5/B6 do not recover canonical inputs from it |
+
+Before C1, `generatePrepared` owned the local B1–B4 values only until it returned
+CONTROL. Downstream consumers then recovered B4 from the nested mirror. Now
+`CanonicalPreparedProgram` pairs CONTROL with a separately owned canonical outcome;
+the canonical aggregate itself has no skeleton, program key, routing decision or
+mutable authority. B6/B8 require both the explicit result and existing CONTROL;
+there is no optional mirror fallback or hidden extra CONTROL build.
+
+Expected `StimulusCanonicalEvaluationFailure` during independent computation is
+retained as a typed outcome until production can rethrow it inside the existing
+canonical failure boundary. It returns the built CONTROL and completes progress once.
+That failed computation has no canonical mirror to attach. Standalone generation
+rethrows; cancellation and unexpected exceptions propagate directly in all paths.
+There is no broad production catch and no retry or additional program build.
+
+B1–B4 are computed once per production generation. The legacy dose-history analysis
+is shared between B2 comparison and legacy diagnostics, avoiding a second analysis.
+The existing experimental path still rereads preferences/rebuilds snapshot, state,
+gaps, intent and frequency, and performs its own final materialization audit. Those
+residual computations predate C1; they are recorded here without redesigning the
+retained request, seed or baseline dependencies.
+
+`CanonicalStimulusPlanningIndependenceTest` compares complete B1–B4 data classes
+against the pre-C1 engine chain on Strength, H, S+H, badminton/performance, sparse,
+and reviewed eight-week inputs. It also compares the independently computed result
+against all compatibility mirror fields, normalizing only attached diagnostics.
+Equality includes evidence, reasons, unresolved markers, target quality, strategy,
+priority, numeric authority and weekly ranges. This is a refactor parity oracle,
+not a claim that engine policy is permanently frozen.
+
+Separate regressions remove the entire decision, need profile, or B4 mirror and
+compare B5 selections, B6 authorizations and final program fingerprints. A deliberately
+Strength-only mirror with explicit H-only targets verifies source of truth. Other
+tests cover a single production computation, real 1/1/2/0 build accounting,
+monotonic progress with one completion, typed computation failure, cancellation,
+and unexpected argument/state exceptions. The unmodified 27-case routing corpus
+is rerun separately and compared with the pre-C1 hosted artifact.
