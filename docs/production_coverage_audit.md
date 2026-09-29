@@ -144,7 +144,7 @@ exclusive primary-stage counts never overlap.
 | Dependency | Classification | Code evidence and implication |
 |---|---|---|
 | CONTROL is built first | INPUT_SEED_DEPENDENCY | `generatePreparedProduction` builds CONTROL before experimental evaluation. Recognized failure can stop before the second invocation; successful comparison paths build 1+1. |
-| Canonical target plan stored in CONTROL | REMOVED_CANONICAL_DATA_HOST_DEPENDENCY | `CanonicalStimulusPlanningResult` owns the B1/B2/B3/B4 result and is passed explicitly to B5/B6. CONTROL still receives `stimulusTargetPlanShadow` as a compatibility mirror, but canonical evaluation does not read that mirror. |
+| Canonical target plan available only through CONTROL | REMOVED_CANONICAL_DATA_HOST_DEPENDENCY | `CanonicalStimulusPlanningResult` owns the B1/B2/B3/B4 result and is passed explicitly to B5/B6. CONTROL still receives `stimulusTargetPlanShadow` as a compatibility mirror, but canonical evaluation does not read that mirror. |
 | CONTROL canonical compatibility mirror | CANONICAL_DATA_MIRROR_DEPENDENCY | Existing diagnostics, persistence and UI-facing decision payloads may continue to expose `control.personalizedDecision.athleteStimulusNeedProfile`; it is a compatibility representation and is not the B5/B6 source of truth. |
 | EXPERIMENTAL request | REQUEST_DEPENDENCY | Materialization comparison uses `val request = control.request` for duration, weekly days and builder request. |
 | B5 identity selection | INPUT_SEED_DEPENDENCY | Selector consumes CONTROL stable keys/direct-capability identities to avoid additions and to form reuse/reference traces. It is not merely a post-generation comparison. |
@@ -157,7 +157,7 @@ These anchors are in `PersonalizedProgramPlanningService.kt`,
 The remaining request/seed/baseline seams are potential migration steps; no dependency is labeled
 `TEMPORARY_MIGRATION_DEPENDENCY` merely on that assumption. CONTROL remains an
 essential request/seed/baseline input and a safety comparator/rollback program,
-but it is no longer the canonical B1-B4 data host.
+but its compatibility mirror is no longer the canonical B1-B4 source of truth.
 
 ## Phase C1 — canonical planning ownership and data-flow independence
 
