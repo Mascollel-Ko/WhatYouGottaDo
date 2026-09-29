@@ -187,9 +187,10 @@ internal class PersonalizedProgramPlanningService(
         val constraints = preflight.constraints
         val personalizedRequest = resolvedProgramRequest.request
         val priorId = appMetaDao.latestByPrefix("$DECISION_PREFIX%")?.value?.let(::decisionIdFromJson)
-        val generated = programBuilder.build(snapshot, state, gaps, intent, personalizedRequest.durationWeeks, personalizedRequest, answers, priorId,
+        val generatedArtifacts = programBuilder.buildWithArtifacts(snapshot, state, gaps, intent, personalizedRequest.durationWeeks, personalizedRequest, answers, priorId,
             explicitWeeklyDays = constraints.explicitWeeklyTrainingDays != null,
             frequency = resolvedProgramRequest.frequencyProvenance, progress = progress)
+        val generated = generatedArtifacts.program
         progress.report(PersonalizedPlannerStage.FINAL)
         val legacyNeeds = athleteNeedsProfileEngine.analyze(snapshot, state, physicalQualityCatalog)
         val doseHistoryAnalyzer = QualityDoseHistoryAnalyzer()
@@ -208,7 +209,8 @@ internal class PersonalizedProgramPlanningService(
             return CanonicalPreparedProgram(
                 com.training.trackplanner.data.personalized.bindSplitParentProgression(generated),
                 com.training.trackplanner.data.personalized.CanonicalPlanningOutcome.ExpectedFailure(failure),
-                resolvedProgramRequest
+                resolvedProgramRequest,
+                generatedArtifacts.incumbentSeed
             )
         }
         val finalStimulusAudit = FinalStimulusNeedAudit().audit(generated, snapshot, physicalQualityCatalog)
@@ -296,10 +298,10 @@ internal class PersonalizedProgramPlanningService(
                     regionalBottleneckDiagnosis = regionalDiagnosis,
                     programEmphasisLabels = programEmphasis
                 )
-            )), canonicalWithControlAudit, resolvedProgramRequest)
+            )), canonicalWithControlAudit, resolvedProgramRequest, generatedArtifacts.incumbentSeed)
         }
         return CanonicalPreparedProgram(com.training.trackplanner.data.personalized.bindSplitParentProgression(withShadowNeeds), canonicalWithControlAudit,
-            resolvedProgramRequest)
+            resolvedProgramRequest, generatedArtifacts.incumbentSeed)
     }
 
     private fun resolvePreparedProgramRequest(
@@ -347,8 +349,8 @@ internal class PersonalizedProgramPlanningService(
         )
     }
 
-    /** Test seam for an injected CONTROL skeleton; canonical B1-B4 still has no CONTROL input. */
-    private suspend fun buildCanonicalPlanningForExistingControl(
+    /** Test-only adapter for a skeleton injected through controlGenerationOverride. */
+    private suspend fun buildCanonicalPlanningForInjectedControlTestAdapter(
         preflight: PersonalizedPlanningPreflight,
         answers: PersonalizedPlanningAnswers,
         metadata: Map<String, RuntimeExerciseMetadata>,
@@ -368,7 +370,12 @@ internal class PersonalizedProgramPlanningService(
         val canonicalWithAudit = canonical.withControlProgramAudit(
             StimulusTargetControlProgramAuditEngine().audit(canonical.targetPlan, finalAudit, resolvedRequest.request.durationWeeks)
         )
-        return CanonicalPreparedProgram(control, canonicalWithAudit, resolvedRequest)
+        return CanonicalPreparedProgram(
+            control,
+            canonicalWithAudit,
+            resolvedRequest,
+            StimulusIncumbentIdentitySeed.fromControl(control)
+        )
     }
 
     /** Test/audit seam proving B1-B4 can be calculated without constructing CONTROL. */
@@ -523,7 +530,7 @@ internal class PersonalizedProgramPlanningService(
         val request = prepared.resolvedRequest.request
         val selectionPlan = StimulusTargetCandidateSelector().build(
             targetPlan = targetPlan,
-            incumbentSeed = StimulusIncumbentIdentitySeed.fromControl(control),
+            incumbentSeed = prepared.incumbentSeed,
             snapshot = snapshot,
             state = state,
             request = request,
@@ -607,6 +614,7 @@ internal class PersonalizedProgramPlanningService(
         canonicalPlanning: CanonicalStimulusPlanningResult,
         resolvedRequest: ProgramSkeletonRequest,
         frequencyProvenance: com.training.trackplanner.data.personalized.PlanningFrequencyProvenance,
+        incumbentSeed: StimulusIncumbentIdentitySeed,
         controlOverride: GeneratedProgramSkeleton,
         productionBuildCounts: com.training.trackplanner.data.personalized.MutableStimulusProductionBuildCounts? = null
     ): StimulusSelectionProgramComparison {
@@ -629,7 +637,7 @@ internal class PersonalizedProgramPlanningService(
         val intent = blockPlanner.decide(state, gaps)
         val selectionPlan = StimulusTargetCandidateSelector().build(
             targetPlan = targetPlan,
-            incumbentSeed = StimulusIncumbentIdentitySeed.fromControl(control),
+            incumbentSeed = incumbentSeed,
             snapshot = snapshot,
             state = state,
             request = resolvedRequest,
@@ -757,6 +765,7 @@ internal class PersonalizedProgramPlanningService(
         canonicalPlanning: CanonicalStimulusPlanningResult,
         resolvedRequest: ProgramSkeletonRequest,
         frequencyProvenance: com.training.trackplanner.data.personalized.PlanningFrequencyProvenance,
+        incumbentSeed: StimulusIncumbentIdentitySeed,
         controlOverride: GeneratedProgramSkeleton,
         productionBuildCounts: com.training.trackplanner.data.personalized.MutableStimulusProductionBuildCounts? = null
     ): com.training.trackplanner.data.personalized.StimulusProductionCutoverEvaluation {
@@ -768,6 +777,7 @@ internal class PersonalizedProgramPlanningService(
             canonicalPlanning = canonicalPlanning,
             resolvedRequest = resolvedRequest,
             frequencyProvenance = frequencyProvenance,
+            incumbentSeed = incumbentSeed,
             controlOverride = controlOverride,
             productionBuildCounts = productionBuildCounts
         )
@@ -809,7 +819,7 @@ internal class PersonalizedProgramPlanningService(
             try {
                 experimentalGenerationOverride?.invoke() ?: run {
                     val prepared = preparedControl
-                        ?: buildCanonicalPlanningForExistingControl(preflight, answers, metadata, control)
+                        ?: buildCanonicalPlanningForInjectedControlTestAdapter(preflight, answers, metadata, control)
                     generatePreparedStimulusProductionCutoverEvaluation(
                         preflight = preflight,
                         answers = answers,
@@ -818,6 +828,7 @@ internal class PersonalizedProgramPlanningService(
                         canonicalPlanning = prepared.canonicalPlanning,
                         resolvedRequest = prepared.resolvedRequest.request,
                         frequencyProvenance = prepared.resolvedRequest.frequencyProvenance,
+                        incumbentSeed = prepared.incumbentSeed,
                         controlOverride = control,
                         productionBuildCounts = buildCounts
                     )

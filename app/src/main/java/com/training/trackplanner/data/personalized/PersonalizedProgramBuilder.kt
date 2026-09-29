@@ -319,6 +319,11 @@ class ProgramRepairPolicy {
     }
 }
 
+internal data class PersonalizedProgramBuildArtifacts(
+    val program: GeneratedProgramSkeleton,
+    val incumbentSeed: StimulusIncumbentIdentitySeed
+)
+
 class PersonalizedProgramBuilder(
     private val continuityPlanner: ExerciseContinuityPlanner = ExerciseContinuityPlanner(),
     private val prescriptionPlanner: PersonalizedPrescriptionPlanner = PersonalizedPrescriptionPlanner(),
@@ -340,7 +345,24 @@ class PersonalizedProgramBuilder(
         materialDemandOverride: MaterialDemand? = null,
         regionalTargetPlan: RegionalExperimentalTargetPlan? = null,
         exactPrescriptionAuthorizationProvider: ExactPrescriptionAuthorizationProvider? = null,
-        canonicalFailureEmitter: ((StimulusCanonicalEvaluationFailureReason, String?) -> Nothing)? = null): GeneratedProgramSkeleton {
+        canonicalFailureEmitter: ((StimulusCanonicalEvaluationFailureReason, String?) -> Nothing)? = null): GeneratedProgramSkeleton =
+        buildWithArtifacts(snapshot, state, gaps, intent, horizon, request, answers, priorDecisionId, explicitWeeklyDays,
+            frequency, progress, materialDemandOverride, regionalTargetPlan, exactPrescriptionAuthorizationProvider,
+            canonicalFailureEmitter).program
+
+    /**
+     * Builds the final CONTROL skeleton and the B5 seed from the same completed owner state.
+     * The seed is captured only after completion, rebalancing, frequency expansion and post-split
+     * reflow have finished, so it never projects an intermediate/raw skeleton.
+     */
+    internal fun buildWithArtifacts(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, gaps: List<AdaptationGap>, intent: BlockIntent, horizon: Int, request: ProgramSkeletonRequest, answers: PersonalizedPlanningAnswers, priorDecisionId: String?, explicitWeeklyDays: Boolean = true,
+        frequency: PlanningFrequencyProvenance = PlanningFrequencyProvenance(WeeklyDosePlanner().resolve(state, state.anchors.size + gaps.size),
+            request.weeklyTrainingDays, if (explicitWeeklyDays) PlanningFrequencySource.EXPLICIT_USER else PlanningFrequencySource.AUTO),
+        progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE,
+        materialDemandOverride: MaterialDemand? = null,
+        regionalTargetPlan: RegionalExperimentalTargetPlan? = null,
+        exactPrescriptionAuthorizationProvider: ExactPrescriptionAuthorizationProvider? = null,
+        canonicalFailureEmitter: ((StimulusCanonicalEvaluationFailureReason, String?) -> Nothing)? = null): PersonalizedProgramBuildArtifacts {
         val performanceMetrics = PlannerPerformanceMetrics()
         val memo = PlanningComputationMemo(performanceMetrics)
         val memoSnapshot = memo.wrap(snapshot)
@@ -392,7 +414,14 @@ class PersonalizedProgramBuilder(
                 }
             }
         }
-        return observeBoundedMaterialDemand(result)
+        val finalizedProgram = observeBoundedMaterialDemand(result)
+        val finalizedItems = finalizedProgram.items
+        val incumbentSeed = StimulusIncumbentIdentitySeed.fromFinalizedOwners(
+            finalizedItems.map { item ->
+                StimulusIncumbentIdentity(item.exerciseStableKey, item.selectionRole)
+            }
+        )
+        return PersonalizedProgramBuildArtifacts(finalizedProgram, incumbentSeed)
     }
 
     private fun buildBeforeReflow(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, gaps: List<AdaptationGap>, intent: BlockIntent,

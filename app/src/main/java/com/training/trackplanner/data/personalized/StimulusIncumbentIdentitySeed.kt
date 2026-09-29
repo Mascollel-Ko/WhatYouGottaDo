@@ -27,10 +27,16 @@ data class StimulusIncumbentIdentitySeed(
     companion object {
         /** One-way projection from CONTROL. Repeated weekly rows collapse, distinct roles do not. */
         fun fromControl(control: GeneratedProgramSkeleton): StimulusIncumbentIdentitySeed =
+            fromFinalizedOwners(control.items.map { item ->
+                StimulusIncumbentIdentity(item.exerciseStableKey, item.selectionRole)
+            })
+
+        /** Builds the B5 projection from an already-finalized builder owner state. */
+        fun fromFinalizedOwners(owners: Iterable<StimulusIncumbentIdentity>): StimulusIncumbentIdentitySeed =
             StimulusIncumbentIdentitySeed(
-                owners = control.items.map { item ->
-                    StimulusIncumbentIdentity(item.exerciseStableKey, item.selectionRole)
-                }.distinct().sortedWith(compareBy(StimulusIncumbentIdentity::stableKey, StimulusIncumbentIdentity::selectionRole))
+                owners = owners.distinct().sortedWith(
+                    compareBy(StimulusIncumbentIdentity::stableKey, StimulusIncumbentIdentity::selectionRole)
+                )
             )
     }
 }

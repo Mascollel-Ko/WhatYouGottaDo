@@ -24,6 +24,36 @@ class PersonalizedPlannerParityTest {
     private val styleAnalyzer = StrengthProgrammingStyleAnalyzer()
 
     @Test
+    fun `builder artifacts retain exact distinct owner identities from the finalized control`() {
+        listOf("01_bodybuilding_badminton", "21_stable_five_week_horizon", "24_top_set_backoff_strength")
+            .forEachIndexed { fixtureIndex, name ->
+                val snapshot = rawSnapshotFor(name, fixtureIndex)
+                val state = AthletePlanningStateBuilder().build(snapshot, PersonalizedPlanningAnswers())
+                val gaps = AdaptationGapAnalyzer().analyze(snapshot, state)
+                val intent = BlockIntentPlanner().decide(state, gaps)
+                val horizon = PlanningHorizonPlanner().choose(state, gaps)
+                val days = WeeklyDosePlanner().chooseDays(state, state.anchors.size + gaps.size)
+                val request = ProgramSkeletonRequest(
+                    name, state.programGoal, days, 90, emptySet(), "", .5, "AUTO", ProgramPeriodizationType.AUTO, horizon
+                )
+                val artifacts = PersonalizedProgramBuilder().buildWithArtifacts(
+                    snapshot, state, gaps, intent, horizon, request, PersonalizedPlanningAnswers(), null
+                )
+                val legacyProjection = StimulusIncumbentIdentitySeed.fromControl(artifacts.program)
+                val finalRows = artifacts.program.items.map { item ->
+                    StimulusIncumbentIdentity(item.exerciseStableKey, item.selectionRole)
+                }
+                val expectedOwners = finalRows.distinct().sortedWith(
+                    compareBy(StimulusIncumbentIdentity::stableKey, StimulusIncumbentIdentity::selectionRole)
+                )
+
+                assertEquals(name, legacyProjection, artifacts.incumbentSeed)
+                assertEquals(name, expectedOwners, artifacts.incumbentSeed.owners)
+                assertEquals(name, artifacts.incumbentSeed.owners.size, artifacts.incumbentSeed.owners.distinct().size)
+            }
+    }
+
+    @Test
     fun `v08 parity matrix runs all 29 named personas from raw history through final skeleton`() {
         val names = listOf(
             "01_bodybuilding_badminton", "02_badminton_machine", "03_novice_machine", "04_no_lower_non_badminton",

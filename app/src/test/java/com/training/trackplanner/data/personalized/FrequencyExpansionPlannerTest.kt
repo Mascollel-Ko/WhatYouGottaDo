@@ -73,6 +73,40 @@ class FrequencyExpansionPlannerTest {
             assertEquals(equal.weekDaySchedule, it.weekDaySchedule)
         }
     }
+
+    @Test fun finalizedBuilderArtifactsIncludeFrequencyExpandedOwners() {
+        val snapshot = snapshot().copy(planDayProjection = f.safe)
+        val state = f.state(snapshot)
+        val gaps = AdaptationGapAnalyzer().analyze(snapshot, state)
+        val intent = BlockIntentPlanner().decide(state, gaps)
+        val horizon = PlanningHorizonPlanner().choose(state, gaps)
+        val recommendedDays = 3
+        val provenance = PlanningFrequencyProvenance(
+            WeeklyDosePlanner().resolve(state, state.anchors.size + gaps.size).copy(recommendedDays = recommendedDays),
+            resolvedUserDays = recommendedDays + 1,
+            source = PlanningFrequencySource.EXPLICIT_USER
+        )
+        val request = ProgramSkeletonRequest(
+            "frequency_artifacts", state.programGoal, provenance.resolvedUserDays, 60, emptySet(), "", .5,
+            "AUTO", ProgramPeriodizationType.AUTO, horizon
+        )
+
+        val artifacts = PersonalizedProgramBuilder().buildWithArtifacts(
+            snapshot, state, gaps, intent, horizon, request, PersonalizedPlanningAnswers(), null,
+            explicitWeeklyDays = true,
+            frequency = provenance
+        )
+
+        assertNotNull(artifacts.program.personalizedDecision?.frequencyExpansion)
+        assertTrue(artifacts.program.personalizedDecision!!.frequencyDemand!!.frequency.toJson()
+            .getBoolean("expansionActivated"))
+        assertEquals(StimulusIncumbentIdentitySeed.fromControl(artifacts.program), artifacts.incumbentSeed)
+        val finalOwners = artifacts.program.items.map {
+            StimulusIncumbentIdentity(it.exerciseStableKey, it.selectionRole)
+        }.distinct().sortedWith(compareBy(StimulusIncumbentIdentity::stableKey, StimulusIncumbentIdentity::selectionRole))
+        assertEquals(finalOwners, artifacts.incumbentSeed.owners)
+    }
+
     @Test fun frequencyReleasesOriginalRankedDemandWithoutScalingBase() {
         val four = expand(4).personalizedDecision!!.frequencyExpansion!!
         val fivePlan = expand(5)

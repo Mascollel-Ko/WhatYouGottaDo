@@ -162,6 +162,11 @@ class StimulusSelectionServiceIntegrationTest {
             assertTrue("canonical metadata must be seeded", metadata.isNotEmpty())
             val independentCanonical = service.buildCanonicalStimulusPlanningForPrepared(preflight, answers, metadata)
             val prepared = service.generatePreparedWithCanonicalPlanning(preflight, answers, metadata)
+            assertEquals(
+                "the prepared B5 seed must exactly match the finalized CONTROL owner projection",
+                com.training.trackplanner.data.personalized.StimulusIncumbentIdentitySeed.fromControl(prepared.program),
+                prepared.incumbentSeed
+            )
             val mirror = requireNotNull(prepared.program.personalizedDecision?.athleteStimulusNeedProfile)
             assertEquals("B1 parity", independentCanonical.athleteStimulusNeedProfile.qualityNeeds, mirror.qualityNeeds)
             assertEquals("B2 parity", independentCanonical.qualityDoseHistory, mirror.qualityDoseHistoryShadow)
@@ -189,6 +194,7 @@ class StimulusSelectionServiceIntegrationTest {
                 canonicalPlanning = prepared.canonicalPlanning,
                 resolvedRequest = prepared.resolvedRequest.request,
                 frequencyProvenance = prepared.resolvedRequest.frequencyProvenance,
+                incumbentSeed = prepared.incumbentSeed,
                 controlOverride = mismatchedMirror,
                 productionBuildCounts = MutableStimulusProductionBuildCounts()
             )

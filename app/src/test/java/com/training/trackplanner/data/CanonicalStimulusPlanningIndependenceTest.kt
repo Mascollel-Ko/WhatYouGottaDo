@@ -152,11 +152,13 @@ class CanonicalStimulusPlanningIndependenceTest {
             })
             val input = if (remove == "mismatch") hOnly else explicit
             val counts = MutableStimulusProductionBuildCounts()
-            val preparedRequest = service.generatePreparedWithCanonicalPlanning(preflight, answers, metadata).resolvedRequest
+            val preparedBundle = service.generatePreparedWithCanonicalPlanning(preflight, answers, metadata)
+            val preparedRequest = preparedBundle.resolvedRequest
             val actual = service.generatePreparedStimulusPrescriptionMaterializationComparison(
                 preflight, answers, metadata, canonicalPlanning = input,
                 resolvedRequest = preparedRequest.request,
                 frequencyProvenance = preparedRequest.frequencyProvenance,
+                incumbentSeed = preparedBundle.incumbentSeed,
                 controlOverride = altered, productionBuildCounts = counts)
             assertSame(input.targetPlan, actual.targetPlan)
             assertTrue(actual.selectionPlan.traces.any { it.targetId == "QUALITY:HYPERTROPHY" })
