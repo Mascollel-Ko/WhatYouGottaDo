@@ -343,3 +343,68 @@ artifact is ID `11028614936` (285,505 bytes; ZIP digest
 is ID `11030400264` (64,939,706 bytes; ZIP digest
 `sha256:5862667e46c62f0184e4fa99d1368969c69e4c836d4dbc89c14ffa10715d3b2c`); the downloaded
 `app-debug.apk` SHA-256 is `6E821134E31D516F33C07B046088E17F96C55655759AD3AED861064579FD6456`.
+
+## Phase C4 — finalized builder owner state for B5 seed
+
+C4 started from verified `main` `e5efeaef3b10d060d8d58772874f4824a9f00b32` and its implementation/test
+commit is `b2543ed0f1ab830273d099e3badf84676256421e`. It retains protocol `3.50.0` and changes only the source boundary for B5's typed
+incumbent seed. `PersonalizedProgramBuilder.buildWithArtifacts()` produces the
+final CONTROL program and seed together from the same finalized `(stableKey,
+selectionRole)` owner state, after completion, placement/rebalancing, frequency
+expansion, `PostSplitWeeklyReflow` and authorization validation. The compatibility
+`build()` method delegates to this seam once and returns its program.
+
+The regular prepared-production path stores the builder seed in
+`CanonicalPreparedProgram` and explicitly passes it through B5, B6, B8 and B9.
+There are zero `fromControl()` projections in normal production. The one remaining
+service projection is confined to the named injected-CONTROL test adapter. The B6
+prescription baseline still reads `control.items`; B7/B8/B9 comparisons,
+fingerprints, rollback and routing remain unchanged. C1 canonical planning, C2
+request independence and C3's seed-only selector contract remain covered.
+
+Parity tests compare the builder artifact to the legacy final-CONTROL projection
+across multiple personas, a real prepared-service fixture and a frequency-expanded
+builder case. The frequency test verifies expansion has completed before the exact
+owner set comparison. The source-boundary test verifies capture follows the
+post-split reflow call. Owner identity remains the exact pair: repeated rows of one
+pair collapse, while two roles under one stable key remain separate.
+
+Local verification on 2026-09-29 used process/user
+`JAVA_TOOL_OPTIONS=-Djdk.net.unixdomain.tmpdir=C:\GradleIpc`; the path exists.
+The Gradle launcher was Temurin 17.0.20.1 and the actual Gradle/test JVM was
+JetBrains JBR 21.0.11+1-1163.116-jcef. Initial compile smoke, post-change main and
+unit-test compilation, and the focused C4/C1/C2/C3/B5-B9/service/coverage suite
+passed. The focused suite contained 129 tests with 0 failures, 0 errors and 0 skips.
+The local 27-case coverage report is byte-identical to the C2 baseline at SHA-256
+`67f8feb8ca6f0a74b060ef234f0c710ac89550cced647bb5b4e0357bc2d61d63`.
+
+The full local `:app:testDebugUnitTest --no-daemon` run is incomplete, not a pass.
+It exited after 4m33s when the Windows JBR test worker hit `EXCEPTION_ACCESS_VIOLATION`
+in `robolectric-nativeruntime.dll+0x5c22`; Gradle then reported the worker connection
+reset. The partial XML corpus had 259 suites, 1,430 completed tests, 0 assertion
+failures, 0 errors and 3 skips. This is a Robolectric native crash, not an
+application assertion failure. Hosted Linux CI is authoritative for the complete
+suite.
+
+### C4 hosted verification
+
+Hosted Android Debug Build run [`36576447742`](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/36576447742)
+on implementation/test commit `b2543ed0f1ab830273d099e3badf84676256421e` passed in
+13m18s. Protocol validation (9 families, 36 protocols), Community/Cloud contracts
+(9/9), whitespace checks, all debug unit tests, production coverage upload, APK
+assembly, signer verification and APK upload passed. Downloaded JUnit results
+contain 338 XML files, 2,146 tests, 0 failures, 0 errors and 4 skips.
+
+The hosted production report is byte-identical to the C2 baseline at SHA-256
+`67f8feb8ca6f0a74b060ef234f0c710ac89550cced647bb5b4e0357bc2d61d63`. It retains 27
+cases (22 generated, 5 preflight rejects), source totals CONTROL 18, Strength 3,
+Hypertrophy 1, combined 0; primary fallback counts no material 14, scope 3 and B6
+execution authority 1. Every generated case retains `CONTROL=1`, `EXPERIMENTAL=1`,
+`TOTAL=2`, `THIRD=0`; routing and fingerprints are unchanged.
+
+Coverage artifact `Stimulus-production-coverage` is ID `11036944398`, 286,579 bytes,
+archive SHA-256 `ef6064eb9cd49b259c9f46e1f42b296b7223160e0371db7c5013de682ffc88be`.
+APK artifact `WhatYouGottaDo-debug-apk` is ID `11037894237`, 64,939,134 bytes,
+archive SHA-256 `a62b72e0bedc723bfacabaca511555c5ef85fde285fa0f33c2f69f2afc9c9e9f`.
+Downloaded `app-debug.apk` SHA-256 is
+`5B7B65B9C98E98ED58654F37091F2239D056794B3DE24C0A493BE3D1C03407BD`.

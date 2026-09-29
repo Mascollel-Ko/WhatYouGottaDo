@@ -7,7 +7,7 @@
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 58bda835ee8fbba4cda9e533ed3544d5ec5f4def |
+| Last audited commit | b2543ed0f1ab830273d099e3badf84676256421e |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1168,3 +1168,12 @@ Post-audit boundary notes
 - B5 retains its previous distinct stable-key set semantics and `controlDirectCapabilityIdentities` trace contract. Direct capability is still resolved from the canonical snapshot/catalog. B6 still builds its current-prescription baseline from `control.items`; B7/B8/B9 keep the same CONTROL comparison and rollback program.
 - Seed projection parity covers the complete selection plan and trace, and a minimal-seed test discards CONTROL before calling B5. C1 canonical B1–B4 ownership and C2 request independence remain covered. The real 27-case report is byte-identical to the C2 baseline (SHA-256 `67f8feb8ca6f0a74b060ef234f0c710ac89550cced647bb5b4e0357bc2d61d63`); output fingerprints, routes and `CONTROL=1`, `EXPERIMENTAL=1`, `TOTAL=2`, `THIRD=0` remain unchanged.
 - C3 removes the B5 whole-program dependency, but the incumbent seed is still CONTROL-derived. B5 seed source independence is **not** complete. B6 prescription-baseline independence is also out of scope; see `docs/production_coverage_audit.md` for the dependency audit and next seam.
+
+### Phase C4 — finalized builder owner state as the B5 seed source (protocol remains 3.50.0)
+
+- `PersonalizedProgramBuilder.buildWithArtifacts()` returns the finalized CONTROL skeleton and `StimulusIncumbentIdentitySeed` together. It derives the seed directly from finalized `(stableKey, selectionRole)` owner rows after completion, rebalancing, frequency expansion, `PostSplitWeeklyReflow`, authorization checks and bounded-demand observation. The existing `build()` contract delegates once and returns only `.program`.
+- `CanonicalPreparedProgram` retains the typed seed from that single builder invocation. B5 selection and the B5/B6/B8/B9 call chain pass the prepared seed explicitly; the production path has zero `StimulusIncumbentIdentitySeed.fromControl()` calls. The only service projection is isolated in the named injected-CONTROL test adapter.
+- Repeated rows collapse by the full owner pair, distinct roles for one stable key remain distinct, and empty roles retain their existing model semantics. Builder-artifact tests compare the seed exactly with the legacy final-CONTROL projection over multiple real personas and an explicit frequency-expansion build. Service integration and source-boundary tests cover the normal path and reflow capture point. C1 canonical planning ownership, C2 resolved-request independence and C3 selector input isolation remain intact.
+- B6 still derives its current prescription baseline from `control.items`. B7/B8/B9 comparison, fingerprints, rollback, routing and the existing two-build boundary are unchanged: `CONTROL=1`, `EXPERIMENTAL=1`, `TOTAL=2`, `THIRD=0`. The 27-case report remains byte-identical to the C2 baseline (SHA-256 `67f8feb8ca6f0a74b060ef234f0c710ac89550cced647bb5b4e0357bc2d61d63`); routing changed: **NO**.
+- Protocol version remains `3.50.0`; this is an architecture-only seed-source refactor and does not change production behavior.
+- Hosted Android CI passed on implementation/test commit `b2543ed0f1ab830273d099e3badf84676256421e`: all 2,146 unit tests completed with 0 failures, 0 errors and 4 skips; production coverage, debug APK assembly and signer verification passed. The run and artifact hashes are recorded in `docs/production_coverage_audit.md`.

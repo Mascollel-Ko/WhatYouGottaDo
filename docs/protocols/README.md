@@ -207,4 +207,4 @@ remains unchanged.
 
 B15.0 (`3.50.0`) activates bounded combined Strength+Hypertrophy production routing from exact upstream material provenance. Strength-only, Hypertrophy-only and combined routes select only the existing EXPERIMENTAL skeleton under their permitted modes; partial, conflicting, unsupported, unresolved and malformed authority remains CONTROL. The two-build invariant and rollback modes remain enforced.
 
-Phase C3 (3.50.0) passes only (stableKey, selectionRole) incumbent identities into B5. CONTROL remains the seed source; B6 prescription-baseline independence, comparator/rollback changes and any production behavior change are outside this phase.
+Phase C3 (3.50.0) passes only `(stableKey, selectionRole)` incumbent identities into B5. Phase C4 derives that seed from the finalized owner state inside the one CONTROL builder invocation and carries it through the prepared B5/B6 path; normal production no longer projects the seed from CONTROL. B6 prescription baseline remains CONTROL-derived. Comparator/rollback changes and production behavior changes remain outside C4.
