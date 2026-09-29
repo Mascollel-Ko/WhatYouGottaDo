@@ -7,7 +7,7 @@
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | f28e2748d7d58509b1ad7ff249aedb2a6996e36c |
+| Last audited commit | 58bda835ee8fbba4cda9e533ed3544d5ec5f4def |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1160,3 +1160,11 @@ Post-audit boundary notes
 - CONTROL receives the same resolved request it previously received. B5 selection, B6 selection/materialization, the EXPERIMENTAL builder and its horizon audit now receive that request explicitly; B6 has no nullable fallback to `control.request`. A normal CONTROL request mismatch is a typed `RESOLVED_REQUEST_PARITY` failure handled by the existing fail-closed CONTROL fallback.
 - `GeneratedProgramSkeleton.request` remains for compatibility, persistence and parity diagnostics. CONTROL items still seed B5 identities and provide the B6 current-prescription baseline. Remaining `control.request` reads are diagnostic/comparator fingerprint uses; B7/B8/B9 routing, schema, persistence and build counts are unchanged.
 - Whole-request parity and request-sensitive B5/B6 integration tests cover Strength, Hypertrophy, mixed and badminton contexts; weekly days 2–5, 30/60/90-minute sessions and explicit/inferred weekly-day and duration constraints. See `docs/production_coverage_audit.md` for the dependency ledger and hosted result.
+
+### Phase C3 — typed B5 incumbent identity seed (protocol remains 3.50.0)
+
+- Before C3, B5 accepted the complete CONTROL `GeneratedProgramSkeleton` and projected `control.items.exerciseStableKey` into its incumbent key set. After C3, an explicit one-way extractor maps CONTROL to `StimulusIncumbentIdentitySeed`, then the B5 selector receives only that typed seed. `StimulusTargetCandidateSelector.build` no longer accepts or reads a generated program or program item.
+- The seed contains only owner identity pairs `(stableKey, selectionRole)`. Repeated weekly rows for the same owner pair collapse, but two roles for one stable key remain separate. Blank stable keys and duplicate seed owner pairs fail closed; a blank selection role remains valid because the existing program-item model permits it. No prescription, request, decision, routing, candidate or program object is carried.
+- B5 retains its previous distinct stable-key set semantics and `controlDirectCapabilityIdentities` trace contract. Direct capability is still resolved from the canonical snapshot/catalog. B6 still builds its current-prescription baseline from `control.items`; B7/B8/B9 keep the same CONTROL comparison and rollback program.
+- Seed projection parity covers the complete selection plan and trace, and a minimal-seed test discards CONTROL before calling B5. C1 canonical B1–B4 ownership and C2 request independence remain covered. The real 27-case report is byte-identical to the C2 baseline (SHA-256 `67f8feb8ca6f0a74b060ef234f0c710ac89550cced647bb5b4e0357bc2d61d63`); output fingerprints, routes and `CONTROL=1`, `EXPERIMENTAL=1`, `TOTAL=2`, `THIRD=0` remain unchanged.
+- C3 removes the B5 whole-program dependency, but the incumbent seed is still CONTROL-derived. B5 seed source independence is **not** complete. B6 prescription-baseline independence is also out of scope; see `docs/production_coverage_audit.md` for the dependency audit and next seam.

@@ -289,3 +289,57 @@ fallback no material 14, scope 3, B6 execution 1; routes and 1/1/2/0 build count
 Protocol documentation validation, Community/Cloud contracts, APK assembly and CI signer
 verification also passed. The generated APK is SHA-256
 `B377A50A6E11EBFA7ED6A5CD5E0741A3FE0BC9BFE5924ACF1502BD97FD6F5BE7`.
+
+## Phase C3 — typed B5 incumbent identity seed
+
+C3 keeps protocol `3.50.0`. Before C3, `StimulusTargetCandidateSelector` received the
+complete CONTROL `GeneratedProgramSkeleton` and read only its incumbent stable-key set.
+After C3, `StimulusIncumbentIdentitySeed.fromControl(control)` performs the explicit
+one-way projection `CONTROL → typed seed → B5`. The selector receives neither the
+generated program nor a `ProgramSkeletonItem`.
+
+The seed holds owner identities `(stableKey, selectionRole)`. Repeated weekly rows for
+one exact pair are deduplicated, while distinct roles sharing a stable key remain
+separate. This retains B6/B7 provenance without passing prescription data to B5. The
+selector derives the same stable-key set as before, so `controlDirectCapabilityIdentities`
+remains a sorted list of unique stable keys. Canonical snapshot/catalog relations still
+decide direct quality capability; request and eligibility gates remain separate inputs.
+
+This is a representation boundary only. The CONTROL-derived incumbent seed remains the
+B5 source, so B5 seed source independence is **NO**. B6 still builds
+`currentPrescriptions` from the CONTROL items and its prescriptions. B7/B8/B9 retain
+the same CONTROL comparator, fingerprints and rollback object. B1–B4 continue to use
+`CanonicalStimulusPlanningResult`, while B5/B6 requests continue to use
+`ResolvedPreparedProgramRequest`.
+
+The C3 regressions compare the complete selection plan and trace against the prior
+CONTROL stable-key projection, run B5 after discarding CONTROL, reject a blank stable key
+and duplicate owner pair, and preserve a shared stable key with distinct roles. The
+identity type has no additional metadata fields, so conflicting duplicate metadata
+cannot be represented. Existing empty `selectionRole` values remain valid under the
+current model.
+
+The local real Room/service coverage report remains byte-identical to the C2 baseline:
+SHA-256 `67f8feb8ca6f0a74b060ef234f0c710ac89550cced647bb5b4e0357bc2d61d63`. It retains
+27 cases (22 generated, 5 preflight rejects), routing totals CONTROL 18, Strength 3,
+Hypertrophy 1, combined 0; primary fallback counts no material 14, scope 3 and B6
+execution 1; each generated case records `CONTROL=1`, `EXPERIMENTAL=1`, `TOTAL=2`,
+`THIRD=0`. Production fingerprints and routing are unchanged.
+
+The next smallest independence seam is the B5 seed source: B5 now consumes an identity-only
+contract, while B6 still needs the richer exact CONTROL prescription baseline. C3 does not
+implement that next seam or change the B6 baseline.
+
+### C3 hosted verification
+
+Hosted Android Debug Build run [`36560234974`](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/36560234974)
+passed on implementation/test commit `58bda835ee8fbba4cda9e533ed3544d5ec5f4def`. The full
+unit-test task passed with 337 JUnit XML files, 2,143 tests, 0 failures, 0 errors and 4 skips;
+protocol validation, Community/Cloud contracts, whitespace checks, coverage upload, APK assembly
+and CI signer verification also passed. Its coverage report is byte-identical to the C2 baseline
+(SHA-256 `67f8feb8ca6f0a74b060ef234f0c710ac89550cced647bb5b4e0357bc2d61d63`). The coverage
+artifact is ID `11028614936` (285,505 bytes; ZIP digest
+`sha256:782baee2a6256aac3b61db1c9353b2e8b62c0de975a392703bffdee3a15c87f9`). The APK artifact
+is ID `11030400264` (64,939,706 bytes; ZIP digest
+`sha256:5862667e46c62f0184e4fa99d1368969c69e4c836d4dbc89c14ffa10715d3b2c`); the downloaded
+`app-debug.apk` SHA-256 is `6E821134E31D516F33C07B046088E17F96C55655759AD3AED861064579FD6456`.
