@@ -161,83 +161,35 @@ class StimulusPrescriptionRealizationTest {
     }
 
     @Test
-    fun controlExistingDirectIdentityGetsExplicitOwnerProvenance() {
+    fun historyIdentityWithoutB5SelectionCannotAuthorizePrescription() {
         val trace = StimulusCandidateSelectionTrace(
             targetId = "QUALITY:STRENGTH", strategy = StimulusDoseStrategy.INTRODUCE_DIRECT_STIMULUS,
-            priority = TargetPriority.PRIMARY, controlDirectCapabilityIdentities = listOf(key),
+            priority = TargetPriority.PRIMARY, historyDirectCapabilityIdentities = listOf(key),
             selectionRequired = false, candidatePool = emptyList(), selectedStableKey = null,
             coveredByPreviouslySelectedStableKey = null,
-            reasonCodes = listOf("DIRECT_CAPABILITY_IDENTITY_ALREADY_PRESENT")
+            reasonCodes = listOf("TARGET_SELECTION_NOT_AUTHORIZED_BY_B5_STRATEGY")
         )
         val result = StimulusPrescriptionRealizationPlanEngine().build(
             StimulusTargetPlan(listOf(target(TrainableQuality.STRENGTH)), emptyList(), emptyList()),
-            selection(traces = listOf(trace)), snapshot, mapOf(owner("CONTROL_ROLE") to prescription(5, 80.0))
+            selection(traces = listOf(trace)), snapshot, mapOf(owner("CONTROL_ROLE") to prescription(5, 80.0)),
+            historyBackedOwners = setOf(owner("CONTROL_ROLE"))
         ).resolutions.single()
-        assertEquals(StimulusPrescriptionResolutionStatus.ALREADY_TARGET_COMPATIBLE, result.status)
-        assertEquals("CONTROL_EXISTING_DIRECT_IDENTITY", result.owner?.source)
-        assertEquals("CONTROL_ROLE", result.owner?.selectionRole)
-    }
-
-    @Test
-    fun multipleControlIdentitiesUseTheOnlyCompatibleOwner() {
-        val trace = StimulusCandidateSelectionTrace(
-            targetId = "QUALITY:STRENGTH", strategy = StimulusDoseStrategy.INTRODUCE_DIRECT_STIMULUS,
-            priority = TargetPriority.PRIMARY, controlDirectCapabilityIdentities = listOf(key, "other"),
-            selectionRequired = false, candidatePool = emptyList(), selectedStableKey = null,
-            coveredByPreviouslySelectedStableKey = null, reasonCodes = emptyList()
-        )
-        val result = StimulusPrescriptionRealizationPlanEngine().build(
-            StimulusTargetPlan(listOf(target(TrainableQuality.STRENGTH)), emptyList(), emptyList()),
-            selection(traces = listOf(trace)), snapshot,
-            mapOf(
-                owner("A") to prescription(8, 80.0),
-                StimulusPrescriptionOwnerIdentity("other", "B") to prescription(5, 80.0)
-            )
-        ).resolutions.single()
-        assertEquals(StimulusPrescriptionResolutionStatus.ALREADY_TARGET_COMPATIBLE, result.status)
-        assertEquals("other", result.owner?.stableKey)
-        assertEquals("B", result.owner?.selectionRole)
-    }
-
-    @Test
-    fun multipleCompatibleControlIdentitiesRemainAmbiguousWithoutArbitraryOwner() {
-        val trace = StimulusCandidateSelectionTrace(
-            targetId = "QUALITY:STRENGTH", strategy = StimulusDoseStrategy.INTRODUCE_DIRECT_STIMULUS,
-            priority = TargetPriority.PRIMARY, controlDirectCapabilityIdentities = listOf(key, "other"),
-            selectionRequired = false, candidatePool = emptyList(), selectedStableKey = null,
-            coveredByPreviouslySelectedStableKey = null, reasonCodes = emptyList()
-        )
-        val result = StimulusPrescriptionRealizationPlanEngine().build(
-            StimulusTargetPlan(listOf(target(TrainableQuality.STRENGTH)), emptyList(), emptyList()),
-            selection(traces = listOf(trace)), snapshot,
-            mapOf(
-                owner("A") to prescription(5, 80.0),
-                StimulusPrescriptionOwnerIdentity("other", "B") to prescription(5, 80.0)
-            )
-        ).resolutions.single()
-        assertEquals(StimulusPrescriptionResolutionStatus.ALREADY_TARGET_COMPATIBLE, result.status)
+        assertEquals(StimulusPrescriptionResolutionStatus.OWNER_UNRESOLVED, result.status)
         assertEquals(null, result.owner)
-        assertTrue(result.reasonCodes.contains("MULTIPLE_COMPATIBLE_EXISTING_IDENTITIES_NO_ARBITRARY_SELECTION"))
+        assertTrue(result.reasonCodes.contains("B5_OWNER_NOT_SELECTED"))
     }
 
     @Test
-    fun incompatibleControlIdentitiesRemainAmbiguousAndCannotPropose() {
-        val trace = StimulusCandidateSelectionTrace(
-            targetId = "QUALITY:STRENGTH", strategy = StimulusDoseStrategy.INTRODUCE_DIRECT_STIMULUS,
-            priority = TargetPriority.PRIMARY, controlDirectCapabilityIdentities = listOf(key, "other"),
-            selectionRequired = false, candidatePool = emptyList(), selectedStableKey = null,
-            coveredByPreviouslySelectedStableKey = null, reasonCodes = emptyList()
-        )
+    fun actualHistoryBackedB5OwnerGetsCanonicalPrescriptionProvenance() {
         val result = StimulusPrescriptionRealizationPlanEngine().build(
             StimulusTargetPlan(listOf(target(TrainableQuality.STRENGTH)), emptyList(), emptyList()),
-            selection(traces = listOf(trace)), snapshot,
-            mapOf(
-                owner("A") to prescription(8, 60.0),
-                StimulusPrescriptionOwnerIdentity("other", "B") to prescription(8, 60.0)
-            )
+            selection(candidate("CANONICAL_STIMULUS_QUALITY_STRENGTH")), snapshot,
+            mapOf(owner("CANONICAL_STIMULUS_QUALITY_STRENGTH") to prescription(5, 80.0)),
+            historyBackedOwners = setOf(owner("CANONICAL_STIMULUS_QUALITY_STRENGTH"))
         ).resolutions.single()
-        assertEquals(StimulusPrescriptionResolutionStatus.AMBIGUOUS_EXISTING_REALIZATION_OWNER, result.status)
-        assertEquals(null, result.proposedPrescription)
+        assertEquals(StimulusPrescriptionResolutionStatus.ALREADY_TARGET_COMPATIBLE, result.status)
+        assertEquals("CANONICAL_HISTORY_PRESCRIPTION", result.owner?.source)
+        assertEquals("CANONICAL_STIMULUS_QUALITY_STRENGTH", result.owner?.selectionRole)
     }
 
     @Test

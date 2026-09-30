@@ -63,7 +63,7 @@ class StimulusSelectionProgramComparisonTest {
             selected = StimulusSelectedCandidate(key, setOf("QUALITY:STRENGTH"), "QUALITY:STRENGTH", emptyList(), "EXISTING", 2, "B5"),
             trace = StimulusCandidateSelectionTrace(
                 targetId = "QUALITY:STRENGTH", strategy = StimulusDoseStrategy.INTRODUCE_DIRECT_STIMULUS,
-                priority = TargetPriority.PRIMARY, controlDirectCapabilityIdentities = emptyList(),
+                priority = TargetPriority.PRIMARY, historyDirectCapabilityIdentities = emptyList(),
                 selectionRequired = true, candidatePool = listOf(key), selectedStableKey = key,
                 coveredByPreviouslySelectedStableKey = null
             )

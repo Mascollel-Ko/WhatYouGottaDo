@@ -294,17 +294,8 @@ class StimulusExposureLedgerCanonicalIntegrationTest {
             periodizationType = ProgramPeriodizationType.AUTO,
             durationWeeks = 2
         )
-        val control = GeneratedProgramSkeleton(
-            suggestedName = selectionRequest.name,
-            durationDays = 14,
-            request = selectionRequest,
-            periodizationType = selectionRequest.periodizationType,
-            weekPlans = listOf(ProgramWeekPlan(1, "TEST", 1.0, 1.0, 2, 8.0, 2, 0, false)),
-            items = emptyList()
-        )
         val selection = StimulusTargetCandidateSelector().build(
             targetPlan = targetPlan,
-            incumbentSeed = StimulusIncumbentIdentitySeed.fromControl(control),
             snapshot = snapshot,
             state = state.copy(freeWeightWillingness = FreeWeightWillingness.WILLING),
             request = selectionRequest,

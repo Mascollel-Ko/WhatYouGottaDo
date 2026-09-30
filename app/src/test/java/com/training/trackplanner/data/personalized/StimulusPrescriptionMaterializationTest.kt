@@ -455,20 +455,22 @@ class StimulusPrescriptionMaterializationTest {
                 authorization(TrainableQuality.STRENGTH, strength),
                 authorization(TrainableQuality.HYPERTROPHY, hypertrophy)
             ),
-            controlPrescriptions = typedBaseline.prescriptions
+            canonicalPrescriptions = typedBaseline.prescriptions,
+            historyBackedOwners = setOf(identity)
         )
         val legacyPlan = StimulusPrescriptionAuthorizationPlan(
             listOf(
                 authorization(TrainableQuality.STRENGTH, strength),
                 authorization(TrainableQuality.HYPERTROPHY, hypertrophy)
             ),
-            controlPrescriptions = legacyBaseline
+            canonicalPrescriptions = legacyBaseline,
+            historyBackedOwners = setOf(identity)
         )
         assertEquals(legacyPlan, plan)
-        assertEquals(StimulusPrescriptionOwnerExecutionDisposition.PRESERVE_CONTROL_OWNER, plan.ownerExecutionDispositions.getValue(identity))
+        assertEquals(StimulusPrescriptionOwnerExecutionDisposition.PRESERVE_INCUMBENT_OWNER, plan.ownerExecutionDispositions.getValue(identity))
         assertTrue(plan.authorizedOwners.isEmpty())
         assertEquals(
-            ExactOwnerPrescriptionResolution.PreserveControl(control),
+            ExactOwnerPrescriptionResolution.PreserveIncumbent(control),
             plan.provider().resolveOwnerPrescription(PlannedExercise(key, role, "test", 1, targetSets = 2))
         )
         assertEquals(strength, plan.authorizedPrescriptions.getValue(StimulusPrescriptionAuthorityIdentity(key, role, TrainableQuality.STRENGTH)))

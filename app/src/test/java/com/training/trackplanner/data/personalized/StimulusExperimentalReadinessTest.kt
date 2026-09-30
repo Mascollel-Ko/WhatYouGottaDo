@@ -376,7 +376,7 @@ class StimulusExperimentalReadinessTest {
 
     private fun selectionTrace(key: String, role: String, reasons: List<String>) = StimulusCandidateSelectionTrace(
         targetId = "QUALITY:STRENGTH", strategy = StimulusDoseStrategy.INTRODUCE_DIRECT_STIMULUS,
-        priority = TargetPriority.PRIMARY, controlDirectCapabilityIdentities = emptyList(), selectionRequired = true,
+        priority = TargetPriority.PRIMARY, historyDirectCapabilityIdentities = emptyList(), selectionRequired = true,
         candidatePool = listOf(key), selectedStableKey = key, coveredByPreviouslySelectedStableKey = null,
         reasonCodes = reasons, selectedSelectionRole = role
     )

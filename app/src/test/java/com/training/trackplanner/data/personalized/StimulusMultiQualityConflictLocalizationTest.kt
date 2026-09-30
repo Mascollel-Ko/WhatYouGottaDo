@@ -45,7 +45,7 @@ class StimulusMultiQualityConflictLocalizationTest {
             StimulusPrescriptionAuthorization(
                 targetId = "QUALITY:${quality.name}", quality = quality,
                 owner = StimulusPrescriptionOwner(identity.stableKey, identity.selectionRole),
-                source = StimulusPrescriptionAuthorizationSource.CONTROL_EXISTING_DIRECT_IDENTITY,
+                source = StimulusPrescriptionAuthorizationSource.CANONICAL_HISTORY_PRESCRIPTION,
                 inputPrescription = controlPrescription,
                 plannedCompatibility = null,
                 authorizedPrescription = controlPrescription.copy(
@@ -59,9 +59,10 @@ class StimulusMultiQualityConflictLocalizationTest {
                 authorization(com.training.trackplanner.data.TrainableQuality.STRENGTH, 5, 80.0),
                 authorization(com.training.trackplanner.data.TrainableQuality.HYPERTROPHY, 8, 60.0)
             ),
-            controlPrescriptions = mapOf(identity to controlPrescription)
+            canonicalPrescriptions = mapOf(identity to controlPrescription),
+            historyBackedOwners = setOf(identity)
         )
-        assertEquals(StimulusPrescriptionOwnerExecutionDisposition.PRESERVE_CONTROL_OWNER,
+        assertEquals(StimulusPrescriptionOwnerExecutionDisposition.PRESERVE_INCUMBENT_OWNER,
             authorizationPlan.ownerExecutionDispositions.getValue(identity))
         var globalFailure = false
         val experimental = builder.build(

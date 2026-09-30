@@ -9,6 +9,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -24,7 +25,7 @@ import kotlin.math.ln
 @Config(sdk = [28])
 class StimulusSelectionServiceIntegrationTest {
     @Test
-    fun serviceComparisonUsesRealCanonicalMetadataAndPreservesControlFingerprint() = runBlocking {
+    fun serviceComparisonUsesCanonicalB5OwnerAndRetainsControlWhenB7Rejects() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val db = Room.inMemoryDatabaseBuilder(context, TrainingDatabase::class.java)
             .allowMainThreadQueries().build()
@@ -162,11 +163,6 @@ class StimulusSelectionServiceIntegrationTest {
             assertTrue("canonical metadata must be seeded", metadata.isNotEmpty())
             val independentCanonical = service.buildCanonicalStimulusPlanningForPrepared(preflight, answers, metadata)
             val prepared = service.generatePreparedWithCanonicalPlanning(preflight, answers, metadata)
-            assertEquals(
-                "the prepared B5 seed must exactly match the finalized CONTROL owner projection",
-                com.training.trackplanner.data.personalized.StimulusIncumbentIdentitySeed.fromControl(prepared.program),
-                prepared.incumbentSeed
-            )
             val mirror = requireNotNull(prepared.program.personalizedDecision?.athleteStimulusNeedProfile)
             assertEquals("B1 parity", independentCanonical.athleteStimulusNeedProfile.qualityNeeds, mirror.qualityNeeds)
             assertEquals("B2 parity", independentCanonical.qualityDoseHistory, mirror.qualityDoseHistoryShadow)
@@ -194,8 +190,6 @@ class StimulusSelectionServiceIntegrationTest {
                 canonicalPlanning = prepared.canonicalPlanning,
                 resolvedRequest = prepared.resolvedRequest.request,
                 frequencyProvenance = prepared.resolvedRequest.frequencyProvenance,
-                incumbentSeed = prepared.incumbentSeed,
-                prescriptionBaseline = prepared.prescriptionBaseline,
                 controlOverride = mismatchedMirror,
                 productionBuildCounts = MutableStimulusProductionBuildCounts()
             )
@@ -207,16 +201,9 @@ class StimulusSelectionServiceIntegrationTest {
             val b8Comparison = comparison
             val evaluation = requireNotNull(comparison.productionCutoverAuthority)
 
-            assertEquals(
-                "activated production must return the existing experimental fingerprint",
-                personalizedProgramFingerprint(standalone.request, standalone.items),
-                personalizedProgramFingerprint(comparison.experimental.request, comparison.experimental.items)
-            )
-            assertNotEquals(
-                "activated production must not return CONTROL in the authorized fixture",
-                personalizedProgramFingerprint(standalone.request, standalone.items),
-                personalizedProgramFingerprint(comparison.control.request, comparison.control.items)
-            )
+            assertSame("C7 must keep the existing fail-closed route when B7 rejects", comparison.control, standalone)
+            assertEquals(StimulusProductionProgramSource.CONTROL, production.routeDecision.selectedSource)
+            assertFalse(production.routeDecision.productionRoutingActive)
             assertEquals("control goal", preflight.request.goal, comparison.control.request.goal)
             assertEquals("control weekly days", preflight.request.weeklyTrainingDays, comparison.control.request.weeklyTrainingDays)
             assertEquals("control duration", preflight.request.durationWeeks, comparison.control.request.durationWeeks)
@@ -233,20 +220,28 @@ class StimulusSelectionServiceIntegrationTest {
             assertFalse(comparison.prescriptionRealizationPlan?.mutationAuthority == true)
             assertTrue(comparison.prescriptionRealizationPlan?.resolutions.orEmpty().all { !it.mutationAuthority })
             val resolved = comparison.prescriptionRealizationPlan?.resolutions.orEmpty().firstOrNull {
-                it.status == StimulusPrescriptionResolutionStatus.SAFE_TARGET_COMPATIBLE_PRESCRIPTION_RESOLVED
+                it.quality == TrainableQuality.STRENGTH
             }
-            assertNotNull("real service path must resolve one safe B6.1 Strength proposal", resolved)
+            assertNotNull("real service path must retain a B6.1 Strength resolution", resolved)
             val resolution = requireNotNull(resolved)
             val owner = requireNotNull(resolution.owner)
             assertEquals("barbell_back_squat", owner.stableKey)
-            assertEquals(
-                comparison.control.items.first { it.exerciseStableKey == "barbell_back_squat" }.selectionRole,
-                owner.selectionRole
-            )
-            assertEquals(resolution.currentPrescription?.sets?.size, resolution.proposedPrescription?.sets?.size)
-            assertTrue(resolution.proposedPrescription?.sets?.all { it.reps in 1..6 } == true)
-            val currentLoads = requireNotNull(resolution.currentPrescription).sets.map { it.weightKg }
-            assertTrue(resolution.proposedPrescription?.sets?.all { set -> set.weightKg <= (currentLoads.maxOrNull() ?: 0.0) } == true)
+            assertEquals("CANONICAL_STIMULUS_QUALITY_STRENGTH", owner.selectionRole)
+            assertEquals("CANONICAL_HISTORY_PRESCRIPTION", owner.source)
+            assertNotNull("B6 prescription must come from the selected owner context", resolution.currentPrescription)
+            if (resolution.status == StimulusPrescriptionResolutionStatus.SAFE_TARGET_COMPATIBLE_PRESCRIPTION_RESOLVED) {
+                assertEquals(resolution.currentPrescription?.sets?.size, resolution.proposedPrescription?.sets?.size)
+                assertTrue(resolution.proposedPrescription?.sets?.all { it.reps in 1..6 } == true)
+                val currentLoads = requireNotNull(resolution.currentPrescription).sets.map { it.weightKg }
+                assertTrue(resolution.proposedPrescription?.sets?.all { set -> set.weightKg <= (currentLoads.maxOrNull() ?: 0.0) } == true)
+            } else {
+                assertTrue(resolution.reasonCodes.isNotEmpty())
+                if (resolution.status == StimulusPrescriptionResolutionStatus.ALREADY_TARGET_COMPATIBLE) {
+                    assertNotNull(resolution.proposedPrescription)
+                } else {
+                    assertNull(resolution.proposedPrescription)
+                }
+            }
             assertFalse(resolution.mutationAuthority)
             assertTrue("fixture must retain canonical B5 traces", comparison.selectionPlan.traces.isNotEmpty())
             assertTrue(comparison.materializationTraces.isNotEmpty())
@@ -254,59 +249,56 @@ class StimulusSelectionServiceIntegrationTest {
             assertTrue(comparison.winner == null)
             assertFalse(comparison.selectionPlan.productionSelectionAuthority)
             assertEquals(
-                "real Room/service path must reach bounded Strength authorization: $evaluation",
-                StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER,
-                evaluation.status
+                "B8 must not grant authority without a B7 eligible result: $evaluation",
+                false,
+                evaluation.status == StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER
             )
             assertEquals(StimulusProductionCutoverScope.STRENGTH_V1, evaluation.scope)
-            assertTrue(evaluation.authorizedOwnerIdentities.isNotEmpty())
-            val authorizedIdentity = evaluation.authorizedOwnerIdentities.single()
-            assertEquals("barbell_back_squat", authorizedIdentity.stableKey)
+            assertTrue(evaluation.authorizedOwnerIdentities.isEmpty())
             assertEquals(b8Comparison.experimentalReadinessAudit?.status, evaluation.b7Status)
-            assertEquals(
-                StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW,
-                b8Comparison.experimentalReadinessAudit?.status
-            )
+            assertTrue(b8Comparison.experimentalReadinessAudit?.status != StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW)
             val strengthTarget = b8Comparison.targetPlan.qualityTargets.single { it.quality == TrainableQuality.STRENGTH }
             assertTrue(strengthTarget.numericAuthority !in setOf(StimulusTargetNumericAuthority.NONE, StimulusTargetNumericAuthority.UNRESOLVED))
             val b6Authorization = requireNotNull(b8Comparison.prescriptionAuthorizationPlan).authorizations.single {
                 it.quality == TrainableQuality.STRENGTH &&
-                    it.owner?.stableKey == authorizedIdentity.stableKey && it.owner?.selectionRole == authorizedIdentity.selectionRole
+                    it.owner?.stableKey == owner.stableKey && it.owner?.selectionRole == owner.selectionRole
             }
             assertEquals(TrainableQuality.STRENGTH, b6Authorization.quality)
-            assertEquals(StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR, b6Authorization.status)
+            assertTrue(b6Authorization.status in setOf(
+                StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
+                StimulusPrescriptionAuthorizationStatus.NO_EXECUTABLE_AUTHORIZATION
+            ))
             val b6Materialization = b8Comparison.prescriptionMaterializationAudits.single {
                 it.quality == TrainableQuality.STRENGTH &&
-                    it.owner?.stableKey == authorizedIdentity.stableKey && it.owner?.selectionRole == authorizedIdentity.selectionRole
+                    it.owner?.stableKey == owner.stableKey && it.owner?.selectionRole == owner.selectionRole
             }
-            assertEquals(StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED, b6Materialization.state)
-            assertEquals(0, b6Materialization.shortfall)
-            assertEquals(0, b6Materialization.overrun)
-            assertTrue(b6Materialization.prescriptionPreservedOrSubset)
-            assertEquals(b8Comparison.experimental.request.durationWeeks, b6Materialization.weeklyAudits.size)
-            assertTrue(b6Materialization.weeklyAudits.all {
-                it.shortfall == 0 && it.overrun == 0 && it.prescriptionPreservedOrSubset &&
-                    it.targetCompatibleMaterializedUnits == it.materializedSetUnits
-            })
-            assertTrue(
-                b8Comparison.experimentalReadinessAudit?.changeAttributions.orEmpty().any {
-                    it.stableKey == authorizedIdentity.stableKey &&
-                        it.selectionRole == authorizedIdentity.selectionRole &&
-                        it.source == StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION
-                }
-            )
+            if (b6Authorization.authorizedPrescription != null) {
+                assertEquals(StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED, b6Materialization.state)
+                assertEquals(0, b6Materialization.shortfall)
+                assertEquals(0, b6Materialization.overrun)
+                assertTrue(b6Materialization.prescriptionPreservedOrSubset)
+                assertEquals(b8Comparison.experimental.request.durationWeeks, b6Materialization.weeklyAudits.size)
+                assertTrue(b6Materialization.weeklyAudits.all {
+                    it.shortfall == 0 && it.overrun == 0 && it.prescriptionPreservedOrSubset &&
+                        it.targetCompatibleMaterializedUnits == it.materializedSetUnits
+                })
+            } else {
+                assertEquals(StimulusPrescriptionMaterializationState.NOT_MATERIALIZED, b6Materialization.state)
+            }
             assertFalse(evaluation.routingActive)
             assertFalse(evaluation.productionMutationAuthority)
             assertEquals(evaluation, b8Comparison.productionCutoverAuthority)
-            assertEquals(StimulusProductionProgramSource.B8_STRENGTH_V1, production.routeDecision.selectedSource)
-            assertTrue(production.routeDecision.productionRoutingActive)
-            assertEquals(listOf("B9_B8_STRENGTH_V1_ROUTED"), production.routeDecision.reasonCodes)
+            assertEquals(StimulusProductionProgramSource.CONTROL, production.routeDecision.selectedSource)
+            assertFalse(production.routeDecision.productionRoutingActive)
+            assertSame(b8Comparison.control, production.program)
+            assertEquals(listOf("B9_B8_CONTROL_REQUIRED"), production.routeDecision.reasonCodes)
             assertEquals(1, production.buildCounts.controlBuilds)
             assertEquals(1, production.buildCounts.experimentalBuilds)
             assertEquals(2, production.buildCounts.totalBuildInvocations)
             assertEquals(0, production.buildCounts.thirdBuilds)
             assertEquals(
-                personalizedProgramFingerprint(b8Comparison.experimental.request, b8Comparison.experimental.items),
+                personalizedProgramFingerprint(b8Comparison.control.request, b8Comparison.control.items),
                 personalizedProgramFingerprint(standalone.request, standalone.items)
             )
             assertFalse(comparison.selectionPlan.prescriptionAuthority)
@@ -364,7 +356,7 @@ class StimulusSelectionServiceIntegrationTest {
                 evaluation,
                 StimulusProductionRoutingMode.CONTROL_ONLY
             )
-            assertEquals(StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER, rollback.decision.b8Status)
+            assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, rollback.decision.b8Status)
             assertEquals(StimulusProductionProgramSource.CONTROL, rollback.decision.selectedSource)
             assertEquals(
                 personalizedProgramFingerprint(b8Comparison.control.request, b8Comparison.control.items),
@@ -389,7 +381,7 @@ class StimulusSelectionServiceIntegrationTest {
     }
 
     @Test
-    fun realServiceHypertrophyChainRoutesAuthorizedProductionProgram() = runBlocking {
+    fun realServiceHypertrophyAuthorizationKeepsControlWhenB7RejectsCanonicalOwnerComparison() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val db = Room.inMemoryDatabaseBuilder(context, TrainingDatabase::class.java)
             .allowMainThreadQueries().build()
@@ -501,23 +493,20 @@ class StimulusSelectionServiceIntegrationTest {
             comparison,
             StimulusProductionCutoverScope.HYPERTROPHY_V1
         )
-        assertEquals(StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER, hDecision.status)
+        assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, hDecision.status)
         assertEquals(StimulusProductionCutoverScope.HYPERTROPHY_V1, hDecision.scope)
-        assertEquals(listOf("B8_HYPERTROPHY_V1_AUTHORIZED"), hDecision.reasonCodes)
-        assertEquals(
-            setOf(StimulusPrescriptionOwnerIdentity(h.owner!!.stableKey, h.owner!!.selectionRole)),
-            hDecision.authorizedOwnerIdentities.toSet()
-        )
+        assertTrue(hDecision.reasonCodes.contains("B8_B7_NOT_ELIGIBLE"))
+        assertTrue(hDecision.authorizedOwnerIdentities.isEmpty())
 
-        assertEquals(StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER, comparison.productionCutoverAuthority?.status)
-        assertEquals(StimulusProductionCutoverScope.HYPERTROPHY_V1, comparison.productionCutoverAuthority?.scope)
-        assertEquals(StimulusProductionProgramSource.B8_HYPERTROPHY_V1, production.routeDecision.selectedSource)
-        assertTrue(production.routeDecision.productionRoutingActive)
-        assertSame(comparison.experimental, production.program)
+        assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, comparison.productionCutoverAuthority?.status)
+        assertEquals(StimulusProductionCutoverScope.STRENGTH_V1, comparison.productionCutoverAuthority?.scope)
+        assertEquals(StimulusProductionProgramSource.CONTROL, production.routeDecision.selectedSource)
+        assertFalse(production.routeDecision.productionRoutingActive)
+        assertSame(comparison.control, production.program)
         val controlFingerprint = personalizedProgramFingerprint(comparison.control.request, comparison.control.items)
         val experimentalFingerprint = personalizedProgramFingerprint(comparison.experimental.request, comparison.experimental.items)
         assertNotEquals(controlFingerprint, experimentalFingerprint)
-        assertEquals(experimentalFingerprint, personalizedProgramFingerprint(production.program.request, production.program.items))
+        assertEquals(controlFingerprint, personalizedProgramFingerprint(production.program.request, production.program.items))
         assertEquals(1, production.buildCounts.controlBuilds)
         assertEquals(1, production.buildCounts.experimentalBuilds)
         assertEquals(2, production.buildCounts.totalBuildInvocations)

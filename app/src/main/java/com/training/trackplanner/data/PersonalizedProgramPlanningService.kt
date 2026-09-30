@@ -43,8 +43,6 @@ import com.training.trackplanner.data.personalized.StimulusTargetPlanEngine
 import com.training.trackplanner.data.personalized.StimulusTargetPlanComparisonEngine
 import com.training.trackplanner.data.personalized.StimulusTargetControlProgramAuditEngine
 import com.training.trackplanner.data.personalized.StimulusTargetCandidateSelector
-import com.training.trackplanner.data.personalized.StimulusIncumbentIdentitySeed
-import com.training.trackplanner.data.personalized.StimulusIncumbentPrescriptionBaseline
 import com.training.trackplanner.data.personalized.StimulusSelectionProgramComparison
 import com.training.trackplanner.data.personalized.StimulusSelectionProgramComparisonEngine
 import com.training.trackplanner.data.personalized.StimulusPrescriptionRealizationPlanEngine
@@ -188,10 +186,9 @@ internal class PersonalizedProgramPlanningService(
         val constraints = preflight.constraints
         val personalizedRequest = resolvedProgramRequest.request
         val priorId = appMetaDao.latestByPrefix("$DECISION_PREFIX%")?.value?.let(::decisionIdFromJson)
-        val generatedArtifacts = programBuilder.buildWithArtifacts(snapshot, state, gaps, intent, personalizedRequest.durationWeeks, personalizedRequest, answers, priorId,
+        val generated = programBuilder.build(snapshot, state, gaps, intent, personalizedRequest.durationWeeks, personalizedRequest, answers, priorId,
             explicitWeeklyDays = constraints.explicitWeeklyTrainingDays != null,
             frequency = resolvedProgramRequest.frequencyProvenance, progress = progress)
-        val generated = generatedArtifacts.program
         progress.report(PersonalizedPlannerStage.FINAL)
         val legacyNeeds = athleteNeedsProfileEngine.analyze(snapshot, state, physicalQualityCatalog)
         val doseHistoryAnalyzer = QualityDoseHistoryAnalyzer()
@@ -210,9 +207,7 @@ internal class PersonalizedProgramPlanningService(
             return CanonicalPreparedProgram(
                 com.training.trackplanner.data.personalized.bindSplitParentProgression(generated),
                 com.training.trackplanner.data.personalized.CanonicalPlanningOutcome.ExpectedFailure(failure),
-                resolvedProgramRequest,
-                generatedArtifacts.incumbentSeed,
-                generatedArtifacts.prescriptionBaseline
+                resolvedProgramRequest
             )
         }
         val finalStimulusAudit = FinalStimulusNeedAudit().audit(generated, snapshot, physicalQualityCatalog)
@@ -300,11 +295,10 @@ internal class PersonalizedProgramPlanningService(
                     regionalBottleneckDiagnosis = regionalDiagnosis,
                     programEmphasisLabels = programEmphasis
                 )
-            )), canonicalWithControlAudit, resolvedProgramRequest, generatedArtifacts.incumbentSeed,
-                generatedArtifacts.prescriptionBaseline)
+            )), canonicalWithControlAudit, resolvedProgramRequest)
         }
         return CanonicalPreparedProgram(com.training.trackplanner.data.personalized.bindSplitParentProgression(withShadowNeeds), canonicalWithControlAudit,
-            resolvedProgramRequest, generatedArtifacts.incumbentSeed, generatedArtifacts.prescriptionBaseline)
+            resolvedProgramRequest)
     }
 
     private fun resolvePreparedProgramRequest(
@@ -376,9 +370,7 @@ internal class PersonalizedProgramPlanningService(
         return CanonicalPreparedProgram(
             control,
             canonicalWithAudit,
-            resolvedRequest,
-            StimulusIncumbentIdentitySeed.fromControl(control),
-            StimulusIncumbentPrescriptionBaseline.fromControl(control)
+            resolvedRequest
         )
     }
 
@@ -534,7 +526,6 @@ internal class PersonalizedProgramPlanningService(
         val request = prepared.resolvedRequest.request
         val selectionPlan = StimulusTargetCandidateSelector().build(
             targetPlan = targetPlan,
-            incumbentSeed = prepared.incumbentSeed,
             snapshot = snapshot,
             state = state,
             request = request,
@@ -570,19 +561,22 @@ internal class PersonalizedProgramPlanningService(
             controlAudit = canonicalPlanning.controlProgramAudit,
             experimentalAudit = experimentalAudit
         )
-        // Build one read-only owner side table from the already materialized A/B programs.
-        // B6.1 must inspect this comparison; it must not regenerate a third program.
+        // B6 derives current prescriptions from B5 owners and actual snapshot history. Final
+        // EXPERIMENTAL rows remain the materialization result; no third program is generated.
+        val canonicalPrescriptionContext = com.training.trackplanner.data.personalized.buildCanonicalPrescriptionContext(
+            targetPlan, selectionPlan, snapshot, state.strengthIntent
+        )
         val realizationInputs = com.training.trackplanner.data.personalized.buildStimulusRealizationPrescriptionInputs(
             selectionPlan = selectionPlan,
-            incumbentSeed = prepared.incumbentSeed,
-            prescriptionBaseline = prepared.prescriptionBaseline,
+            canonicalPrescriptionContext = canonicalPrescriptionContext,
             experimentalItems = experimental.items
         )
         val prescriptionPlan = StimulusPrescriptionRealizationPlanEngine().build(
             targetPlan = targetPlan,
             selectionPlan = selectionPlan,
             snapshot = snapshot,
-            currentPrescriptions = realizationInputs.currentPrescriptions
+            currentPrescriptions = realizationInputs.currentPrescriptions,
+            historyBackedOwners = canonicalPrescriptionContext.historyBackedOwners
         )
         val enrichedComparison = comparison.copy(
             prescriptionRealizationPlan = prescriptionPlan
@@ -595,7 +589,7 @@ internal class PersonalizedProgramPlanningService(
     /**
      * Shared Phase B6.2 production/evaluation path. It reuses the required CONTROL and
      * performs one EXPERIMENTAL build. Exact Strength prescriptions are authorized from B4/B5 plus the
-     * already-built CONTROL owner table before the experimental builder starts. Strength and
+     * actual-history canonical prescription context before the experimental builder starts. Strength and
      * Hypertrophy are the only executable prescription qualities. B8/B9 separately validate
      * and select bounded single-quality or combined production authority.
      */
@@ -607,8 +601,6 @@ internal class PersonalizedProgramPlanningService(
         canonicalPlanning: CanonicalStimulusPlanningResult,
         resolvedRequest: ProgramSkeletonRequest,
         frequencyProvenance: com.training.trackplanner.data.personalized.PlanningFrequencyProvenance,
-        incumbentSeed: StimulusIncumbentIdentitySeed,
-        prescriptionBaseline: StimulusIncumbentPrescriptionBaseline,
         controlOverride: GeneratedProgramSkeleton,
         productionBuildCounts: com.training.trackplanner.data.personalized.MutableStimulusProductionBuildCounts? = null
     ): StimulusSelectionProgramComparison {
@@ -631,18 +623,22 @@ internal class PersonalizedProgramPlanningService(
         val intent = blockPlanner.decide(state, gaps)
         val selectionPlan = StimulusTargetCandidateSelector().build(
             targetPlan = targetPlan,
-            incumbentSeed = incumbentSeed,
             snapshot = snapshot,
             state = state,
             request = resolvedRequest,
             physicalQualityCatalog = physicalQualityCatalog
         )
-        val currentPrescriptions = prescriptionBaseline.prescriptions
+        val canonicalPrescriptionContext = com.training.trackplanner.data.personalized.buildCanonicalPrescriptionContext(
+            targetPlan = targetPlan,
+            selectionPlan = selectionPlan,
+            snapshot = snapshot,
+            strengthIntent = state.strengthIntent
+        )
         val authorizationPlan = StimulusPrescriptionAuthorizationEngine().build(
             targetPlan = targetPlan,
             selectionPlan = selectionPlan,
             snapshot = snapshot,
-            controlPrescriptions = currentPrescriptions
+            canonicalPrescriptionContext = canonicalPrescriptionContext
         )
         val priorId = appMetaDao.latestByPrefix("$DECISION_PREFIX%")?.value?.let(::decisionIdFromJson)
         val experimental = try {
@@ -692,15 +688,15 @@ internal class PersonalizedProgramPlanningService(
         )
         val realizationInputs = com.training.trackplanner.data.personalized.buildStimulusRealizationPrescriptionInputs(
             selectionPlan = selectionPlan,
-            incumbentSeed = incumbentSeed,
-            prescriptionBaseline = prescriptionBaseline,
+            canonicalPrescriptionContext = canonicalPrescriptionContext,
             experimentalItems = experimental.items
         )
         val prescriptionPlan = StimulusPrescriptionRealizationPlanEngine().build(
             targetPlan = targetPlan,
             selectionPlan = selectionPlan,
             snapshot = snapshot,
-            currentPrescriptions = realizationInputs.currentPrescriptions
+            currentPrescriptions = realizationInputs.currentPrescriptions,
+            historyBackedOwners = canonicalPrescriptionContext.historyBackedOwners
         )
         val enrichedComparison = comparison.copy(
             prescriptionRealizationPlan = prescriptionPlan,
@@ -744,8 +740,6 @@ internal class PersonalizedProgramPlanningService(
         canonicalPlanning: CanonicalStimulusPlanningResult,
         resolvedRequest: ProgramSkeletonRequest,
         frequencyProvenance: com.training.trackplanner.data.personalized.PlanningFrequencyProvenance,
-        incumbentSeed: StimulusIncumbentIdentitySeed,
-        prescriptionBaseline: StimulusIncumbentPrescriptionBaseline,
         controlOverride: GeneratedProgramSkeleton,
         productionBuildCounts: com.training.trackplanner.data.personalized.MutableStimulusProductionBuildCounts? = null
     ): com.training.trackplanner.data.personalized.StimulusProductionCutoverEvaluation {
@@ -757,8 +751,6 @@ internal class PersonalizedProgramPlanningService(
             canonicalPlanning = canonicalPlanning,
             resolvedRequest = resolvedRequest,
             frequencyProvenance = frequencyProvenance,
-            incumbentSeed = incumbentSeed,
-            prescriptionBaseline = prescriptionBaseline,
             controlOverride = controlOverride,
             productionBuildCounts = productionBuildCounts
         )
@@ -809,8 +801,6 @@ internal class PersonalizedProgramPlanningService(
                         canonicalPlanning = prepared.canonicalPlanning,
                         resolvedRequest = prepared.resolvedRequest.request,
                         frequencyProvenance = prepared.resolvedRequest.frequencyProvenance,
-                        incumbentSeed = prepared.incumbentSeed,
-                        prescriptionBaseline = prepared.prescriptionBaseline,
                         controlOverride = control,
                         productionBuildCounts = buildCounts
                     )

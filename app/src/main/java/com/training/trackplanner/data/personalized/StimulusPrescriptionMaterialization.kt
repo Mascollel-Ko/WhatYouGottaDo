@@ -6,7 +6,7 @@ import com.training.trackplanner.data.TrainableQuality
 import com.training.trackplanner.data.validatedTargetRpeMin
 
 enum class StimulusPrescriptionAuthorizationSource {
-    CONTROL_EXISTING_DIRECT_IDENTITY,
+    CANONICAL_HISTORY_PRESCRIPTION,
     B5_SELECTION_PROBE
 }
 
@@ -38,8 +38,9 @@ data class StimulusPrescriptionAuthorizationPlan(
     val authorizations: List<StimulusPrescriptionAuthorization>,
     val shadowOnly: Boolean = true,
     val productionAuthority: Boolean = false,
-    /** Exact CONTROL owner index used to localize conflicts before the one EXPERIMENTAL build. */
-    val controlPrescriptions: Map<StimulusPrescriptionOwnerIdentity, PlannedPrescription> = emptyMap()
+    /** Canonical B5 owner prescriptions; only history-backed owners may be preserved on conflict. */
+    val canonicalPrescriptions: Map<StimulusPrescriptionOwnerIdentity, PlannedPrescription> = emptyMap(),
+    val historyBackedOwners: Set<StimulusPrescriptionOwnerIdentity> = emptySet()
 ) {
     private val executableAuthorizations: List<StimulusPrescriptionAuthorization> = authorizations
         .mapNotNull { authorization ->
@@ -101,7 +102,7 @@ data class StimulusPrescriptionAuthorizationPlan(
                 StimulusMultiQualityPrescriptionResolutionStatus.COMPATIBLE_SHARED_PRESCRIPTION ->
                     StimulusPrescriptionOwnerExecutionDisposition.EXECUTABLE_EXACT_AUTHORITY
                 StimulusMultiQualityPrescriptionResolutionStatus.CONFLICTING_MULTI_QUALITY_AUTHORITY ->
-                    if (owner in controlPrescriptions) StimulusPrescriptionOwnerExecutionDisposition.PRESERVE_CONTROL_OWNER
+                    if (owner in historyBackedOwners) StimulusPrescriptionOwnerExecutionDisposition.PRESERVE_INCUMBENT_OWNER
                     else StimulusPrescriptionOwnerExecutionDisposition.EXCLUDE_CONFLICTING_ADDITION
                 StimulusMultiQualityPrescriptionResolutionStatus.NO_EXECUTABLE_AUTHORITY ->
                     StimulusPrescriptionOwnerExecutionDisposition.NO_EXECUTABLE_AUTHORITY
@@ -118,7 +119,7 @@ data class StimulusPrescriptionAuthorizationPlan(
         override val authorizedPrescriptions: Map<StimulusPrescriptionAuthorityIdentity, PlannedPrescription> = this@StimulusPrescriptionAuthorizationPlan.authorizedPrescriptions
         override val multiQualityResolutions: Map<StimulusPrescriptionOwnerIdentity, StimulusMultiQualityPrescriptionResolution> = this@StimulusPrescriptionAuthorizationPlan.multiQualityResolutions
         override val ownerExecutionDispositions: Map<StimulusPrescriptionOwnerIdentity, StimulusPrescriptionOwnerExecutionDisposition> = this@StimulusPrescriptionAuthorizationPlan.ownerExecutionDispositions
-        override val controlPrescriptions: Map<StimulusPrescriptionOwnerIdentity, PlannedPrescription> = this@StimulusPrescriptionAuthorizationPlan.controlPrescriptions
+        override val canonicalPrescriptions: Map<StimulusPrescriptionOwnerIdentity, PlannedPrescription> = this@StimulusPrescriptionAuthorizationPlan.canonicalPrescriptions
 
         override fun authorizedPrescriptionFor(item: PlannedExercise, requestedSets: Int): PlannedPrescription? =
             authorizedOwners[StimulusPrescriptionOwnerIdentity(item.stableKey, item.role)]
@@ -183,13 +184,30 @@ data class StimulusPrescriptionWeekMaterializationAudit(
 class StimulusPrescriptionAuthorizationEngine(
     private val realizationEngine: StimulusPrescriptionRealizationPlanEngine = StimulusPrescriptionRealizationPlanEngine()
 ) {
-    fun build(
+    /** Map adapter for focused mechanism tests; production passes the typed actual-history context. */
+    internal fun build(
         targetPlan: StimulusTargetPlan,
         selectionPlan: StimulusCandidateSelectionPlan,
         snapshot: PlanningHistorySnapshot,
-        controlPrescriptions: Map<StimulusPrescriptionOwnerIdentity, PlannedPrescription>
+        canonicalPrescriptions: Map<StimulusPrescriptionOwnerIdentity, PlannedPrescription>
+    ): StimulusPrescriptionAuthorizationPlan = build(
+        targetPlan,
+        selectionPlan,
+        snapshot,
+        CanonicalPrescriptionContext(canonicalPrescriptions, canonicalPrescriptions.keys)
+    )
+
+    internal fun build(
+        targetPlan: StimulusTargetPlan,
+        selectionPlan: StimulusCandidateSelectionPlan,
+        snapshot: PlanningHistorySnapshot,
+        canonicalPrescriptionContext: CanonicalPrescriptionContext
     ): StimulusPrescriptionAuthorizationPlan {
-        val realization = realizationEngine.build(targetPlan, selectionPlan, snapshot, controlPrescriptions)
+        val realization = realizationEngine.build(
+            targetPlan, selectionPlan, snapshot,
+            canonicalPrescriptionContext.prescriptions,
+            canonicalPrescriptionContext.historyBackedOwners
+        )
         val authorizations = targetPlan.qualityTargets.map { target ->
             val targetId = "QUALITY:${target.quality.name}"
             val resolution = realization.resolutions.firstOrNull { it.targetId == targetId }
@@ -198,7 +216,11 @@ class StimulusPrescriptionAuthorizationEngine(
         // First retain all executable quality rows to determine owner-local arbitration, then
         // mark both rows of a real conflict as typed non-executable authority. The rows remain
         // lossless and auditable; only the builder disposition is localized downstream.
-        val preliminary = StimulusPrescriptionAuthorizationPlan(authorizations, controlPrescriptions = controlPrescriptions)
+        val preliminary = StimulusPrescriptionAuthorizationPlan(
+            authorizations,
+            canonicalPrescriptions = canonicalPrescriptionContext.prescriptions,
+            historyBackedOwners = canonicalPrescriptionContext.historyBackedOwners
+        )
         val localized = authorizations.map { authorization ->
             val owner = authorization.owner?.let { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }
             if (owner != null && owner in preliminary.conflictingOwners && authorization.status in setOf(
@@ -211,7 +233,11 @@ class StimulusPrescriptionAuthorizationEngine(
                 )
             } else authorization
         }
-        return StimulusPrescriptionAuthorizationPlan(localized, controlPrescriptions = controlPrescriptions)
+        return StimulusPrescriptionAuthorizationPlan(
+            localized,
+            canonicalPrescriptions = canonicalPrescriptionContext.prescriptions,
+            historyBackedOwners = canonicalPrescriptionContext.historyBackedOwners
+        )
     }
 
     private fun authorizationFor(
@@ -296,7 +322,7 @@ class StimulusPrescriptionAuthorizationEngine(
 
     private fun sourceFor(value: String): StimulusPrescriptionAuthorizationSource = when {
         value == "B5_SELECTION" -> StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE
-        else -> StimulusPrescriptionAuthorizationSource.CONTROL_EXISTING_DIRECT_IDENTITY
+        else -> StimulusPrescriptionAuthorizationSource.CANONICAL_HISTORY_PRESCRIPTION
     }
 }
 

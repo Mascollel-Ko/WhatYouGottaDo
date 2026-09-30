@@ -58,7 +58,79 @@ class StimulusTargetCandidateSelectorTest {
     }
 
     @Test
-    fun existingControlIdentityDoesNotTriggerAnotherExerciseForDoseGap() {
+    fun repeatedRecentCompatibleDirectHistoryWinsContinuityRanking() {
+        val recent = exercise("recent_squat")
+        val fresh = exercise("fresh_squat")
+        val cutoff = LocalDate.of(2026, 9, 20)
+        val fixture = fixture(
+            exercises = listOf(fresh, recent),
+            relations = listOf(relation("fresh_squat"), relation("recent_squat")),
+            history = listOf(
+                PlanningSetRecord(cutoff.minusDays(7), "recent_squat", "recent squat", "STRENGTH", 1, 5, 80.0, 0, 8.0),
+                PlanningSetRecord(cutoff.minusDays(14), "recent_squat", "recent squat", "STRENGTH", 1, 5, 80.0, 0, 8.0)
+            )
+        )
+
+        val result = select(qualityPlan(), fixture, emptyList())
+        assertEquals("recent_squat", result.selectedCandidates.single().stableKey)
+        assertEquals(listOf("recent_squat"), result.traces.single().historyDirectCapabilityIdentities)
+    }
+
+    @Test
+    fun historyOlderThanSixtyDaysDoesNotReceiveCurrentContinuityPriority() {
+        val old = exercise("z_old_squat")
+        val fresh = exercise("a_fresh_squat")
+        val cutoff = LocalDate.of(2026, 9, 20)
+        val fixture = fixture(
+            exercises = listOf(old, fresh),
+            relations = listOf(relation("z_old_squat"), relation("a_fresh_squat")),
+            history = listOf(PlanningSetRecord(cutoff.minusDays(65), "z_old_squat", "old squat", "STRENGTH", 1, 5, 80.0, 0, 8.0))
+        )
+
+        val result = select(qualityPlan(), fixture, emptyList())
+        assertEquals("a_fresh_squat", result.selectedCandidates.single().stableKey)
+        assertTrue(result.traces.single().historyDirectCapabilityIdentities.isEmpty())
+    }
+
+    @Test
+    fun recentButPrescriptionIncompatibleHistoryIsNotClassifiedAsStrengthCompatible() {
+        val incompatible = exercise("a_incompatible_squat")
+        val fresh = exercise("z_fresh_squat")
+        val fixture = fixture(
+            exercises = listOf(incompatible, fresh),
+            relations = listOf(relation("a_incompatible_squat"), relation("z_fresh_squat")),
+            history = listOf(PlanningSetRecord(LocalDate.of(2026, 9, 10), "a_incompatible_squat", "incompatible squat", "STRENGTH", 1, 10, 80.0, 0, 8.0))
+        )
+
+        val result = select(qualityPlan(), fixture, emptyList())
+        assertEquals("a_incompatible_squat", result.selectedCandidates.single().stableKey)
+        assertEquals(SelectionProbePrescriptionCompatibility.REALIZED_INCOMPATIBLE,
+            result.selectedCandidates.single().probePrescriptionCompatibility)
+    }
+
+    @Test
+    fun tissueRestrictionOverridesRecentContinuityAndNoHistorySelectionIsDeterministic() {
+        val restricted = exercise("a_restricted_squat")
+        val safe = exercise("z_safe_squat")
+        val cutoff = LocalDate.of(2026, 9, 20)
+        val base = fixture(
+            exercises = listOf(restricted, safe),
+            relations = listOf(relation("a_restricted_squat"), relation("z_safe_squat")),
+            history = listOf(PlanningSetRecord(cutoff.minusDays(3), "a_restricted_squat", "restricted squat", "STRENGTH", 1, 5, 80.0, 0, 8.0))
+        )
+        val tissueRestricted = base.copy(snapshot = base.snapshot.copy(
+            recoverySignals = PlanningRecoverySignals(tissueRestrictedStableKeys = setOf("a_restricted_squat"))
+        ))
+        val gated = select(qualityPlan(), tissueRestricted, emptyList())
+        assertEquals("z_safe_squat", gated.selectedCandidates.single().stableKey)
+        assertFalse(gated.traces.single().candidatePool.contains("a_restricted_squat"))
+
+        val noHistory = fixture(listOf(safe, exercise("b_squat")), listOf(relation("z_safe_squat"), relation("b_squat")))
+        assertEquals(select(qualityPlan(), noHistory, emptyList()), select(qualityPlan(), noHistory, emptyList()))
+    }
+
+    @Test
+    fun controlIdentityCannotSuppressCanonicalSelectionForDoseGap() {
         val existing = exercise("existing")
         val replacement = exercise("replacement")
         val fixture = fixture(
@@ -67,14 +139,14 @@ class StimulusTargetCandidateSelectorTest {
         )
         val result = select(qualityPlan(), fixture, listOf(existing))
         val trace = result.traces.single()
-        assertFalse(trace.selectionRequired)
-        assertEquals(listOf("existing"), trace.controlDirectCapabilityIdentities)
-        assertTrue(trace.reasonCodes.contains("REALIZED_STIMULUS_GAP_DEFERRED_TO_B6"))
-        assertTrue(result.selectedCandidates.isEmpty())
+        assertTrue(trace.selectionRequired)
+        assertTrue(trace.historyDirectCapabilityIdentities.isEmpty())
+        assertEquals("existing", result.selectedCandidates.single().stableKey)
+        assertTrue(trace.reasonCodes.contains("SELECTION_IDENTITY_PRESENT"))
     }
 
     @Test
-    fun typedSeedMatchesLegacyControlKeyProjectionAndCompleteSelectionPlan() {
+    fun canonicalSelectorHasNoLegacySeedAndAlwaysBuildsFromTargetAndHistory() {
         val existing = exercise("existing")
         val fixture = fixture(listOf(existing), listOf(relation("existing")))
         val control = skeleton(fixture.request, listOf(
@@ -82,36 +154,13 @@ class StimulusTargetCandidateSelectorTest {
             item("existing", 2, role = "MAIN", week = 2),
             item("existing", 3, role = "ACCESSORY")
         ))
-        val legacyControlKeys = control.items.mapTo(linkedSetOf(), ProgramSkeletonItem::exerciseStableKey)
-        val incumbentSeed = StimulusIncumbentIdentitySeed.fromControl(control)
-
-        assertEquals(legacyControlKeys, incumbentSeed.stableKeys)
-        assertEquals(
-            setOf(StimulusIncumbentIdentity("existing", "MAIN"), StimulusIncumbentIdentity("existing", "ACCESSORY")),
-            incumbentSeed.owners.toSet()
-        )
+        assertEquals(setOf("existing"), control.items.mapTo(linkedSetOf(), ProgramSkeletonItem::exerciseStableKey))
         val actual = StimulusTargetCandidateSelector().build(
-            qualityPlan(), incumbentSeed, fixture.snapshot, fixture.state, fixture.request, fixture.catalog
+            qualityPlan(), fixture.snapshot, fixture.state, fixture.request, fixture.catalog
         )
-        val expectedTrace = StimulusCandidateSelectionTrace(
-            targetId = "QUALITY:STRENGTH",
-            strategy = StimulusDoseStrategy.HOLD_PERSONAL_BASELINE,
-            priority = TargetPriority.PRIMARY,
-            controlDirectCapabilityIdentities = listOf("existing"),
-            selectionRequired = false,
-            candidatePool = emptyList(),
-            selectedStableKey = null,
-            coveredByPreviouslySelectedStableKey = null,
-            reasonCodes = listOf("DIRECT_CAPABILITY_IDENTITY_ALREADY_PRESENT", "REALIZED_STIMULUS_GAP_DEFERRED_TO_B6")
-        )
-        assertEquals(
-            StimulusCandidateSelectionPlan(
-                selectedCandidates = emptyList(),
-                traces = listOf(expectedTrace),
-                materialDemand = MaterialDemand(emptyList(), emptyMap(), emptyMap())
-            ),
-            actual
-        )
+        assertEquals("existing", actual.selectedCandidates.single().stableKey)
+        assertEquals("CANONICAL_STIMULUS_QUALITY_STRENGTH", actual.selectedCandidates.single().selectionRole)
+        assertTrue(actual.traces.single().selectionRequired)
     }
 
     @Test
@@ -119,14 +168,14 @@ class StimulusTargetCandidateSelectorTest {
         val candidate = exercise("candidate")
         val fixture = fixture(listOf(candidate), listOf(relation("candidate")))
         var control: GeneratedProgramSkeleton? = skeleton(fixture.request, listOf(item("old", 1, role = "MAIN")))
-        val seed = StimulusIncumbentIdentitySeed.fromControl(requireNotNull(control))
+        assertEquals(setOf("old"), requireNotNull(control).items.mapTo(linkedSetOf(), ProgramSkeletonItem::exerciseStableKey))
         control = null
 
         assertNull(control)
         val build = StimulusTargetCandidateSelector::class.java.methods.single { it.name == "build" }
         assertFalse(build.parameterTypes.any { it == GeneratedProgramSkeleton::class.java || it == ProgramSkeletonItem::class.java })
         val result = StimulusTargetCandidateSelector().build(
-            qualityPlan(), seed, fixture.snapshot, fixture.state, fixture.request, fixture.catalog
+            qualityPlan(), fixture.snapshot, fixture.state, fixture.request, fixture.catalog
         )
         assertEquals(listOf("candidate"), result.selectedCandidates.map { it.stableKey })
         assertEquals("CANONICAL_STIMULUS_QUALITY_STRENGTH", result.selectedCandidates.single().selectionRole)
@@ -187,6 +236,35 @@ class StimulusTargetCandidateSelectorTest {
         assertEquals(listOf("shared"), result.selectedCandidates.map { it.stableKey })
         assertEquals(setOf("QUALITY:POWER", "QUALITY:RAPID_FORCE_PRODUCTION"), result.selectedCandidates.single().coveredTargetIds)
         assertTrue(result.traces[1].reasonCodes.contains("TARGET_COVERED_BY_ALREADY_SELECTED_IDENTITY"))
+    }
+
+    @Test
+    fun selectedIdentityRedundancyAvoidsUnnecessaryDuplicateGroup() {
+        val first = exercise("first_power")
+        val redundant = exercise("a_redundant_rfd")
+        val independent = exercise("z_independent_rfd")
+        val fixture = fixture(
+            exercises = listOf(first, redundant, independent),
+            relations = listOf(
+                relation("first_power", quality = TrainableQuality.POWER),
+                relation("a_redundant_rfd", quality = TrainableQuality.RAPID_FORCE_PRODUCTION),
+                relation("z_independent_rfd", quality = TrainableQuality.RAPID_FORCE_PRODUCTION)
+            )
+        )
+        val metadata = fixture.snapshot.metadata.toMutableMap()
+        metadata["first_power"] = metadata.getValue("first_power").copy(redundancyGroup = "BARBELL_LOWER")
+        metadata["a_redundant_rfd"] = metadata.getValue("a_redundant_rfd").copy(redundancyGroup = "BARBELL_LOWER")
+        metadata["z_independent_rfd"] = metadata.getValue("z_independent_rfd").copy(redundancyGroup = "JUMP")
+        val withRedundancy = fixture.copy(snapshot = fixture.snapshot.copy(metadata = metadata))
+        val plan = StimulusTargetPlan(
+            qualityTargets = listOf(
+                target(TrainableQuality.POWER, TargetPriority.PRIMARY),
+                target(TrainableQuality.RAPID_FORCE_PRODUCTION, TargetPriority.SECONDARY)
+            ), taskTargets = emptyList(), unresolved = emptyList()
+        )
+
+        val selected = select(plan, withRedundancy, emptyList())
+        assertEquals(listOf("first_power", "z_independent_rfd"), selected.selectedCandidates.map { it.stableKey })
     }
 
     @Test
@@ -255,11 +333,9 @@ class StimulusTargetCandidateSelectorTest {
         assertTrue(comparison.differences.isNotEmpty())
     }
 
-    private fun select(plan: StimulusTargetPlan, fixture: Fixture, controlItems: List<Exercise>): StimulusCandidateSelectionPlan {
-        val control = skeleton(fixture.request, controlItems.mapIndexed { index, exercise -> item(exercise.stableKey, index + 1) })
-        return StimulusTargetCandidateSelector().build(plan, StimulusIncumbentIdentitySeed.fromControl(control),
-            fixture.snapshot, fixture.state, fixture.request, fixture.catalog)
-    }
+    @Suppress("UNUSED_PARAMETER")
+    private fun select(plan: StimulusTargetPlan, fixture: Fixture, controlItems: List<Exercise>): StimulusCandidateSelectionPlan =
+        StimulusTargetCandidateSelector().build(plan, fixture.snapshot, fixture.state, fixture.request, fixture.catalog)
 
     private fun qualityPlan(): StimulusTargetPlan = StimulusTargetPlan(
         qualityTargets = listOf(target(TrainableQuality.STRENGTH, TargetPriority.PRIMARY)),

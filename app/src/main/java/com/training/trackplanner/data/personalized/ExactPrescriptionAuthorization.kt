@@ -36,8 +36,8 @@ fun interface ExactPrescriptionAuthorizationProvider {
     val ownerExecutionDispositions: Map<StimulusPrescriptionOwnerIdentity, StimulusPrescriptionOwnerExecutionDisposition>
         get() = emptyMap()
 
-    /** Exact CONTROL owner prescriptions used only for PRESERVE_CONTROL_OWNER dispositions. */
-    val controlPrescriptions: Map<StimulusPrescriptionOwnerIdentity, PlannedPrescription>
+    /** Actual-history prescriptions used only for PRESERVE_INCUMBENT_OWNER dispositions. */
+    val canonicalPrescriptions: Map<StimulusPrescriptionOwnerIdentity, PlannedPrescription>
         get() = emptyMap()
 
     val conflictingOwners: Set<StimulusPrescriptionOwnerIdentity>
@@ -49,7 +49,7 @@ fun interface ExactPrescriptionAuthorizationProvider {
 /** Typed owner lookup keeps a known conflict distinct from an ordinary missing authority row. */
 internal sealed interface ExactOwnerPrescriptionResolution {
     data class Authorized(val prescription: PlannedPrescription) : ExactOwnerPrescriptionResolution
-    data class PreserveControl(val prescription: PlannedPrescription) : ExactOwnerPrescriptionResolution
+    data class PreserveIncumbent(val prescription: PlannedPrescription) : ExactOwnerPrescriptionResolution
     object ExcludeConflictingAddition : ExactOwnerPrescriptionResolution
     object NoExecutableAuthority : ExactOwnerPrescriptionResolution
     object NoExactAuthority : ExactOwnerPrescriptionResolution
@@ -67,8 +67,8 @@ internal fun ExactPrescriptionAuthorizationProvider.resolveOwnerPrescription(
             authorizedOwners[identity]?.let(ExactOwnerPrescriptionResolution::Authorized)
                 ?: prefixFor(item)?.let(ExactOwnerPrescriptionResolution::Authorized)
                 ?: ExactOwnerPrescriptionResolution.NoExactAuthority
-        StimulusPrescriptionOwnerExecutionDisposition.PRESERVE_CONTROL_OWNER ->
-            controlPrescriptions[identity]?.let(ExactOwnerPrescriptionResolution::PreserveControl)
+        StimulusPrescriptionOwnerExecutionDisposition.PRESERVE_INCUMBENT_OWNER ->
+            canonicalPrescriptions[identity]?.let(ExactOwnerPrescriptionResolution::PreserveIncumbent)
                 ?: ExactOwnerPrescriptionResolution.ExcludeConflictingAddition
         StimulusPrescriptionOwnerExecutionDisposition.EXCLUDE_CONFLICTING_ADDITION ->
             ExactOwnerPrescriptionResolution.ExcludeConflictingAddition

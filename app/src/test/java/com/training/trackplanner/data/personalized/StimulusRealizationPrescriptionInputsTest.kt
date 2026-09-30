@@ -1,5 +1,6 @@
 package com.training.trackplanner.data.personalized
 
+import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.ProgramSetPrescription
 import com.training.trackplanner.data.ProgramSkeletonItem
 import com.training.trackplanner.data.TrainableQuality
@@ -10,77 +11,12 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class StimulusRealizationPrescriptionInputsTest {
-    private val directKey = "direct.exercise"
-    private val sharedKey = "shared.exercise"
-    private val newKey = "new.exercise"
+    private val key = "barbell_back_squat"
+    private val role = "CANONICAL_STIMULUS_QUALITY_STRENGTH"
+    private val owner = StimulusPrescriptionOwnerIdentity(key, role)
 
-    private fun item(
-        key: String,
-        role: String,
-        reps: Int,
-        weight: Double,
-        label: String,
-        weightSource: String = "TEST"
-    ) = ProgramSkeletonItem(
-        localId = label,
-        weekNumber = 1,
-        dayOfWeek = 1,
-        orderIndex = 1,
-        exerciseStableKey = key,
-        exerciseName = label,
-        category = "STRENGTH",
-        restSeconds = 120,
-        prescription = "$label prescription",
-        setCount = 2,
-        reps = reps,
-        weightKg = weight,
-        seconds = 0,
-        selectionReason = label,
-        weightSource = weightSource,
-        stableKey = key,
-        selectionRole = role,
-        setPrescriptions = listOf(
-            ProgramSetPrescription(1, reps, weight, 0),
-            ProgramSetPrescription(2, reps, weight, 0)
-        )
-    )
-
-    private fun planned(item: ProgramSkeletonItem) = PlannedPrescription(
-        text = item.prescription,
-        sets = item.setPrescriptions,
-        restSeconds = item.restSeconds,
-        weightSource = item.weightSource
-    )
-
-    private val controlItems = listOf(
-        item(directKey, "MAIN", 5, 90.0, "direct main", "CONTROL"),
-        item(sharedKey, "MAIN", 5, 85.0, "shared main", "CONTROL"),
-        item(sharedKey, "ACCESSORY", 12, 30.0, "shared accessory", "CONTROL"),
-        item(sharedKey, "ACCESSORY", 12, 30.0, "shared accessory", "CONTROL")
-    )
-
-    private val experimentalItems = listOf(
-        item(newKey, "PRIMARY", 8, 50.0, "new first", "EXPERIMENTAL_FIRST"),
-        item(newKey, "PRIMARY", 8, 55.0, "new final", "EXPERIMENTAL_FINAL"),
-        item(sharedKey, "MAIN", 5, 110.0, "shared main experimental", "EXPERIMENTAL"),
-        item(sharedKey, "ACCESSORY", 10, 40.0, "shared accessory experimental", "EXPERIMENTAL"),
-        item("non-owner.exercise", "OTHER", 8, 25.0, "filtered", "EXPERIMENTAL")
-    )
-
-    private val incumbentSeed = StimulusIncumbentIdentitySeed.fromFinalizedOwners(
-        controlItems.map { StimulusIncumbentIdentity(it.exerciseStableKey, it.selectionRole) }
-    )
-    private val prescriptionBaseline = StimulusIncumbentPrescriptionBaseline.fromFinalizedRows(
-        controlItems.map {
-            StimulusFinalizedPrescriptionRow(
-                StimulusPrescriptionOwnerIdentity(it.exerciseStableKey, it.selectionRole),
-                planned(it)
-            )
-        }
-    )
-
-    private fun target(quality: TrainableQuality) = StimulusQualityTarget(
-        quality = quality,
+    private fun target() = StimulusQualityTarget(
+        quality = TrainableQuality.STRENGTH,
         strategy = StimulusDoseStrategy.INTRODUCE_DIRECT_STIMULUS,
         priority = TargetPriority.PRIMARY,
         numericAuthority = StimulusTargetNumericAuthority.PERSONAL_SUCCESSFUL_DOSE,
@@ -95,151 +31,88 @@ class StimulusRealizationPrescriptionInputsTest {
         evidence = emptyList()
     )
 
-    private fun candidate(key: String, role: String, targetId: String) = StimulusSelectedCandidate(
-        stableKey = key,
-        coveredTargetIds = setOf(targetId),
-        primaryTargetId = targetId,
-        selectionReasons = emptyList(),
-        currentPrescriptionCompatibility = "REALIZED_INCOMPATIBLE",
-        targetSetsFromExistingPrescription = 2,
-        selectionRole = role,
-        probePrescriptionCompatibility = SelectionProbePrescriptionCompatibility.REALIZED_INCOMPATIBLE
+    private fun selectionPlan(key: String = this.key) = StimulusCandidateSelectionPlan(
+        selectedCandidates = listOf(StimulusSelectedCandidate(
+            stableKey = key,
+            coveredTargetIds = setOf("QUALITY:STRENGTH"),
+            primaryTargetId = "QUALITY:STRENGTH",
+            selectionReasons = listOf("B4_TARGET_REQUESTED_IDENTITY"),
+            currentPrescriptionCompatibility = "REALIZATION_UNCLASSIFIED",
+            targetSetsFromExistingPrescription = 2,
+            selectionRole = role
+        )),
+        traces = emptyList(),
+        materialDemand = MaterialDemand(
+            candidates = listOf(PlannedExercise(key, role, "B5 selected owner", 100, targetSets = 2)),
+            deferred = emptyMap(),
+            audit = emptyMap()
+        )
     )
 
-    private val selectionPlan = StimulusCandidateSelectionPlan(
-        selectedCandidates = listOf(
-            candidate(sharedKey, "MAIN", "QUALITY:STRENGTH"),
-            candidate(newKey, "PRIMARY", "QUALITY:HYPERTROPHY")
-        ),
-        traces = listOf(
-            StimulusCandidateSelectionTrace(
-                targetId = "QUALITY:STRENGTH",
-                strategy = StimulusDoseStrategy.INTRODUCE_DIRECT_STIMULUS,
-                priority = TargetPriority.PRIMARY,
-                controlDirectCapabilityIdentities = listOf(directKey, sharedKey, directKey),
-                selectionRequired = false,
-                candidatePool = emptyList(),
-                selectedStableKey = null,
-                coveredByPreviouslySelectedStableKey = null
-            )
-        ),
-        materialDemand = MaterialDemand(emptyList(), emptyMap(), emptyMap())
+    private fun snapshot(history: List<PlanningSetRecord>) = PlanningHistorySnapshot(
+        cutoff = LocalDate.of(2026, 9, 30),
+        allConfirmedSets = history,
+        exercises = mapOf(key to Exercise(key, "Barbell Back Squat", "STRENGTH", "RESISTANCE", "BARBELL")),
+        metadata = emptyMap(),
+        badmintonObjectives = emptyMap(),
+        profilePrimaryGoal = "STRENGTH_GAIN",
+        strengthTrainingYears = 2.0,
+        badmintonTrainingYears = 0.0,
+        preferences = PersonalizedPlanningPreferences(
+            StrengthIntent.STRENGTH_PRIORITY, BadmintonPlanningIntent.DISABLED, FreeWeightWillingness.WILLING
+        )
     )
 
-    private fun legacyOwnerKeys(): Set<StimulusPrescriptionOwnerIdentity> = buildSet {
-        selectionPlan.selectedCandidates.forEach { candidate ->
-            add(StimulusPrescriptionOwnerIdentity(candidate.stableKey, candidate.selectionRole))
-        }
-        selectionPlan.traces.flatMap { it.controlDirectCapabilityIdentities }.forEach { stableKey ->
-            controlItems.filter { it.exerciseStableKey == stableKey }.forEach { item ->
-                add(StimulusPrescriptionOwnerIdentity(item.exerciseStableKey, item.selectionRole))
-            }
-        }
-    }
+    @Test
+    fun canonicalPrescriptionContextUsesSelectedOwnerAndActualHistoryOnly() {
+        val actualHistory = listOf(
+            PlanningSetRecord(LocalDate.of(2026, 9, 25), key, "Back Squat", "STRENGTH", 1, 5, 100.0, 0, 8.0),
+            PlanningSetRecord(LocalDate.of(2026, 9, 25), key, "Back Squat", "STRENGTH", 2, 5, 100.0, 0, 8.0)
+        )
+        val context = buildCanonicalPrescriptionContext(
+            StimulusTargetPlan(listOf(target()), emptyList(), emptyList()),
+            selectionPlan(), snapshot(actualHistory), StrengthIntent.STRENGTH_PRIORITY
+        )
+        val prescription = context.prescriptions.getValue(owner)
 
-    private fun legacyCurrentPrescriptions(): Map<StimulusPrescriptionOwnerIdentity, PlannedPrescription> {
-        val ownerKeys = legacyOwnerKeys()
-        return (experimentalItems + controlItems)
-            .asSequence()
-            .map { item -> StimulusPrescriptionOwnerIdentity(item.exerciseStableKey, item.selectionRole) to planned(item) }
-            .filter { it.first in ownerKeys }
-            .toList()
-            .associateBy({ it.first }, { it.second })
+        assertEquals(setOf(owner), context.prescriptions.keys)
+        assertEquals(setOf(owner), context.historyBackedOwners)
+        assertTrue(prescription.sets.isNotEmpty())
+        assertTrue(prescription.sets.all { it.reps == 5 && it.weightKg == 100.0 })
+        assertTrue(prescription.weightSource.startsWith("CANONICAL_POSTERIOR_"))
     }
 
     @Test
-    fun ownerAndMergedPrescriptionInputsMatchLegacyValuesAndIterationOrder() {
-        val legacyOwners = legacyOwnerKeys()
-        val legacyPrescriptions = legacyCurrentPrescriptions()
-        val actual = buildStimulusRealizationPrescriptionInputs(
-            selectionPlan = selectionPlan,
-            incumbentSeed = incumbentSeed,
-            prescriptionBaseline = prescriptionBaseline,
-            experimentalItems = experimentalItems
+    fun noHistoryContextKeepsTheExistingProvisionalPrescriptionWithoutInventingLoad() {
+        val context = buildCanonicalPrescriptionContext(
+            StimulusTargetPlan(listOf(target()), emptyList(), emptyList()),
+            selectionPlan(), snapshot(emptyList()), StrengthIntent.STRENGTH_PRIORITY
         )
+        val prescription = context.prescriptions.getValue(owner)
 
-        assertEquals(legacyOwners, actual.ownerKeys)
-        assertEquals(legacyOwners.toList(), actual.ownerKeys.toList())
-        assertEquals(legacyPrescriptions, actual.currentPrescriptions)
-        assertEquals(legacyPrescriptions.keys.toList(), actual.currentPrescriptions.keys.toList())
-        assertEquals(
-            listOf(
-                StimulusPrescriptionOwnerIdentity(sharedKey, "MAIN"),
-                StimulusPrescriptionOwnerIdentity(newKey, "PRIMARY"),
-                StimulusPrescriptionOwnerIdentity(directKey, "MAIN"),
-                StimulusPrescriptionOwnerIdentity(sharedKey, "ACCESSORY")
-            ),
-            actual.ownerKeys.toList()
-        )
-        assertEquals(
-            listOf(
-                StimulusPrescriptionOwnerIdentity(newKey, "PRIMARY"),
-                StimulusPrescriptionOwnerIdentity(sharedKey, "MAIN"),
-                StimulusPrescriptionOwnerIdentity(sharedKey, "ACCESSORY"),
-                StimulusPrescriptionOwnerIdentity(directKey, "MAIN")
-            ),
-            actual.currentPrescriptions.keys.toList()
-        )
-        assertEquals(planned(controlItems[1]), actual.currentPrescriptions.getValue(StimulusPrescriptionOwnerIdentity(sharedKey, "MAIN")))
-        assertEquals(planned(controlItems[2]), actual.currentPrescriptions.getValue(StimulusPrescriptionOwnerIdentity(sharedKey, "ACCESSORY")))
-        assertEquals(planned(experimentalItems[1]), actual.currentPrescriptions.getValue(StimulusPrescriptionOwnerIdentity(newKey, "PRIMARY")))
-        assertFalse(actual.currentPrescriptions.containsKey(StimulusPrescriptionOwnerIdentity("non-owner.exercise", "OTHER")))
-        assertTrue(incumbentSeed.owners.contains(StimulusIncumbentIdentity(sharedKey, "MAIN")))
-        assertTrue(incumbentSeed.owners.contains(StimulusIncumbentIdentity(sharedKey, "ACCESSORY")))
+        assertTrue(context.historyBackedOwners.isEmpty())
+        assertTrue(prescription.sets.all { it.reps == 8 && it.weightKg == 0.0 })
+        assertEquals("PROVISIONAL_RPE_NO_INVENTED_LOAD", prescription.weightSource)
     }
 
     @Test
-    fun completeRealizationPlansRemainEqualForSingleAndCombinedTargetPlans() {
-        val snapshot = PlanningHistorySnapshot(
-            cutoff = LocalDate.of(2026, 9, 23),
-            allConfirmedSets = emptyList(),
-            exercises = emptyMap(),
-            metadata = emptyMap(),
-            badmintonObjectives = emptyMap(),
-            profilePrimaryGoal = "MIXED",
-            strengthTrainingYears = 1.0,
-            badmintonTrainingYears = 0.0,
-            preferences = PersonalizedPlanningPreferences(),
-            canonicalStrengthSignals = mapOf(
-                directKey to CanonicalStrengthSignal(100.0, observationCount = 2),
-                sharedKey to CanonicalStrengthSignal(100.0, observationCount = 2),
-                newKey to CanonicalStrengthSignal(100.0, observationCount = 2)
-            )
+    fun realizationUsesOnlyB5OwnersAndFinalExperimentalMaterialization() {
+        val planned = PlannedPrescription("history", listOf(ProgramSetPrescription(1, 5, 100.0, 0)), 180, "HISTORY")
+        val context = CanonicalPrescriptionContext(mapOf(owner to planned), setOf(owner))
+        val materialized = ProgramSkeletonItem(
+            localId = "row", weekNumber = 1, dayOfWeek = 1, orderIndex = 1,
+            exerciseStableKey = key, exerciseName = "Back Squat", category = "STRENGTH", restSeconds = 180,
+            prescription = "experimental", setCount = 1, reps = 4, weightKg = 105.0, seconds = 0,
+            selectionReason = "B6", weightSource = "AUTHORIZED", stableKey = key, selectionRole = role,
+            setPrescriptions = listOf(ProgramSetPrescription(1, 4, 105.0, 0))
         )
-        val targetPlans = listOf(
-            StimulusTargetPlan(listOf(target(TrainableQuality.STRENGTH)), emptyList(), emptyList()),
-            StimulusTargetPlan(listOf(target(TrainableQuality.HYPERTROPHY)), emptyList(), emptyList()),
-            StimulusTargetPlan(
-                listOf(target(TrainableQuality.STRENGTH), target(TrainableQuality.HYPERTROPHY)),
-                emptyList(),
-                emptyList()
-            )
-        )
-        val actualInputs = buildStimulusRealizationPrescriptionInputs(
-            selectionPlan = selectionPlan,
-            incumbentSeed = incumbentSeed,
-            prescriptionBaseline = prescriptionBaseline,
-            experimentalItems = experimentalItems
-        )
-        val engine = StimulusPrescriptionRealizationPlanEngine()
+        val unrelated = materialized.copy(exerciseStableKey = "unselected", stableKey = "unselected", selectionRole = "OTHER")
+        val actual = buildStimulusRealizationPrescriptionInputs(selectionPlan(), context, listOf(materialized, unrelated))
 
-        targetPlans.forEach { targetPlan ->
-            assertEquals(
-                engine.build(targetPlan, selectionPlan, snapshot, legacyCurrentPrescriptions()),
-                engine.build(targetPlan, selectionPlan, snapshot, actualInputs.currentPrescriptions)
-            )
-        }
-
-        val directSelection = selectionPlan.copy(
-            selectedCandidates = emptyList(),
-            traces = listOf(selectionPlan.traces.single().copy(controlDirectCapabilityIdentities = listOf(directKey)))
-        )
-        val directTarget = targetPlans.first()
-        val directLegacy = legacyCurrentPrescriptions().filterKeys { it.stableKey == directKey }
-        val directActual = actualInputs.currentPrescriptions.filterKeys { it.stableKey == directKey }
-        val legacyResolution = engine.build(directTarget, directSelection, snapshot, directLegacy).resolutions.single()
-        val actualResolution = engine.build(directTarget, directSelection, snapshot, directActual).resolutions.single()
-        assertEquals(legacyResolution, actualResolution)
-        assertEquals("CONTROL_EXISTING_DIRECT_IDENTITY", actualResolution.owner?.source)
+        assertEquals(setOf(owner), actual.ownerKeys)
+        assertEquals(setOf(owner), actual.currentPrescriptions.keys)
+        assertEquals("AUTHORIZED", actual.currentPrescriptions.getValue(owner).weightSource)
+        assertEquals(4, actual.currentPrescriptions.getValue(owner).sets.single().reps)
+        assertFalse(actual.currentPrescriptions.containsKey(StimulusPrescriptionOwnerIdentity("unselected", "OTHER")))
     }
 }

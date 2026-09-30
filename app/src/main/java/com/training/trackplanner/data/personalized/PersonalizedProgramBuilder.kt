@@ -629,7 +629,7 @@ class PersonalizedProgramBuilder(
             authorizedPrescriptionFor = exactPrescriptionAuthorizationProvider?.let { provider -> { item ->
                 when (val resolution = provider.resolveOwnerPrescription(item)) {
                     is ExactOwnerPrescriptionResolution.Authorized -> resolution.prescription
-                    is ExactOwnerPrescriptionResolution.PreserveControl -> resolution.prescription
+                    is ExactOwnerPrescriptionResolution.PreserveIncumbent -> resolution.prescription
                     ExactOwnerPrescriptionResolution.ExcludeConflictingAddition,
                     ExactOwnerPrescriptionResolution.NoExecutableAuthority,
                     ExactOwnerPrescriptionResolution.NoExactAuthority -> null
@@ -660,7 +660,7 @@ class PersonalizedProgramBuilder(
             selected.mapIndexedNotNull { index, item ->
                 when (val resolution = exactPrescriptionAuthorizationProvider.resolveOwnerPrescription(item)) {
                     is ExactOwnerPrescriptionResolution.ExcludeConflictingAddition -> null
-                    is ExactOwnerPrescriptionResolution.PreserveControl ->
+                    is ExactOwnerPrescriptionResolution.PreserveIncumbent ->
                         AuthorizedSchedulingDemand("authorized_$index", item, resolution.prescription, index < continuity.size)
                     is ExactOwnerPrescriptionResolution.Authorized ->
                         AuthorizedSchedulingDemand("authorized_$index", item, resolution.prescription, index < continuity.size)

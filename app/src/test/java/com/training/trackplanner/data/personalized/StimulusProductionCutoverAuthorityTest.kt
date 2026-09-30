@@ -509,7 +509,7 @@ class StimulusProductionCutoverAuthorityTest {
 
     private fun trace(key: String, role: String, targetId: String = "QUALITY:STRENGTH") = StimulusCandidateSelectionTrace(
         targetId = targetId, strategy = StimulusDoseStrategy.INTRODUCE_DIRECT_STIMULUS, priority = TargetPriority.PRIMARY,
-        controlDirectCapabilityIdentities = emptyList(), selectionRequired = true, candidatePool = listOf(key), selectedStableKey = key,
+        historyDirectCapabilityIdentities = emptyList(), selectionRequired = true, candidatePool = listOf(key), selectedStableKey = key,
         coveredByPreviouslySelectedStableKey = null, reasonCodes = listOf("SELECTION_IDENTITY_PRESENT"), selectedSelectionRole = role
     )
 

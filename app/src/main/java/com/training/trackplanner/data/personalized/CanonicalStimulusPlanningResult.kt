@@ -28,17 +28,13 @@ internal typealias CanonicalStimulusPlanningComputation =
 internal data class CanonicalPreparedProgram(
     val program: com.training.trackplanner.data.GeneratedProgramSkeleton,
     val planningOutcome: CanonicalPlanningOutcome,
-    val resolvedRequest: ResolvedPreparedProgramRequest,
-    val incumbentSeed: StimulusIncumbentIdentitySeed,
-    val prescriptionBaseline: StimulusIncumbentPrescriptionBaseline
+    val resolvedRequest: ResolvedPreparedProgramRequest
 ) {
     constructor(
         program: com.training.trackplanner.data.GeneratedProgramSkeleton,
         planning: CanonicalStimulusPlanningResult,
-        resolvedRequest: ResolvedPreparedProgramRequest,
-        incumbentSeed: StimulusIncumbentIdentitySeed,
-        prescriptionBaseline: StimulusIncumbentPrescriptionBaseline
-    ) : this(program, CanonicalPlanningOutcome.Success(planning), resolvedRequest, incumbentSeed, prescriptionBaseline)
+        resolvedRequest: ResolvedPreparedProgramRequest
+    ) : this(program, CanonicalPlanningOutcome.Success(planning), resolvedRequest)
 
     /** Rethrow only at the existing production evaluation boundary, with CONTROL available. */
     val canonicalPlanning: CanonicalStimulusPlanningResult

@@ -2,56 +2,80 @@ package com.training.trackplanner.data.personalized
 
 import com.training.trackplanner.data.ProgramSkeletonItem
 
-/** Exact owner scope and current prescriptions consumed by the post-build B6 realization pass. */
+/** B6's current prescription evidence derived only from selected B5 owners and actual history. */
+internal data class CanonicalPrescriptionContext(
+    val prescriptions: Map<StimulusPrescriptionOwnerIdentity, PlannedPrescription>,
+    val historyBackedOwners: Set<StimulusPrescriptionOwnerIdentity>
+) {
+    companion object {
+        val EMPTY = CanonicalPrescriptionContext(emptyMap(), emptySet())
+    }
+}
+
+/** Exact owner scope and the already materialized canonical prescriptions used by B6 realization. */
 internal data class StimulusRealizationPrescriptionInputs(
     val ownerKeys: Set<StimulusPrescriptionOwnerIdentity>,
     val currentPrescriptions: Map<StimulusPrescriptionOwnerIdentity, PlannedPrescription>
 )
 
 /**
- * Recreates B6's legacy experimental-first `associateBy()` view using only the B5 seed, C5
- * incumbent baseline, and EXPERIMENTAL materialized rows. The incumbent map is merged last so
- * an existing owner continues to override its EXPERIMENTAL row exactly as before.
+ * Builds B6 inputs from B5-selected owners and the same history-aware planner used by the
+ * builder. The CONTROL program and its projected seed/baseline never enter this boundary.
+ */
+internal fun buildCanonicalPrescriptionContext(
+    targetPlan: StimulusTargetPlan,
+    selectionPlan: StimulusCandidateSelectionPlan,
+    snapshot: PlanningHistorySnapshot,
+    strengthIntent: StrengthIntent,
+    prescriptionPlanner: PersonalizedPrescriptionPlanner = PersonalizedPrescriptionPlanner()
+): CanonicalPrescriptionContext {
+    val qualityOwnerKeys = targetPlan.qualityTargets.flatMapTo(linkedSetOf()) { target ->
+        val targetId = "QUALITY:${target.quality.name}"
+        selectionPlan.selectedCandidates.filter { targetId in it.coveredTargetIds }.map {
+            StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole)
+        }
+    }
+    val prescriptions = linkedMapOf<StimulusPrescriptionOwnerIdentity, PlannedPrescription>()
+    val historyBacked = linkedSetOf<StimulusPrescriptionOwnerIdentity>()
+    selectionPlan.selectedCandidates.forEach { candidate ->
+        val identity = StimulusPrescriptionOwnerIdentity(candidate.stableKey, candidate.selectionRole)
+        if (identity !in qualityOwnerKeys) return@forEach
+        val plannedItem = selectionPlan.materialDemand.candidates.firstOrNull { it.stableKey == candidate.stableKey }
+            ?: PlannedExercise(candidate.stableKey, candidate.selectionRole, "B5 canonical owner", 0)
+        val canonicalItem = plannedItem.copy(role = candidate.selectionRole)
+        prescriptions[identity] = prescriptionPlanner.prescribe(
+            snapshot, strengthIntent, canonicalItem, StrengthProgrammingStyle.NONE
+        )
+        if (snapshot.allConfirmedSets.any { it.stableKey == candidate.stableKey }) historyBacked += identity
+    }
+    return CanonicalPrescriptionContext(
+        prescriptions = prescriptions,
+        historyBackedOwners = historyBacked
+    )
+}
+
+/**
+ * Retains the exact B5 owner set and uses finalized EXPERIMENTAL rows as the realization view.
+ * If an owner did not materialize, its canonical history/provisional planner row remains the
+ * read-only fallback for diagnostics.
  */
 internal fun buildStimulusRealizationPrescriptionInputs(
     selectionPlan: StimulusCandidateSelectionPlan,
-    incumbentSeed: StimulusIncumbentIdentitySeed,
-    prescriptionBaseline: StimulusIncumbentPrescriptionBaseline,
+    canonicalPrescriptionContext: CanonicalPrescriptionContext,
     experimentalItems: Iterable<ProgramSkeletonItem>
 ): StimulusRealizationPrescriptionInputs {
-    val ownerKeys = linkedSetOf<StimulusPrescriptionOwnerIdentity>()
-    selectionPlan.selectedCandidates.forEach { candidate ->
-        ownerKeys += StimulusPrescriptionOwnerIdentity(candidate.stableKey, candidate.selectionRole)
+    val ownerKeys = selectionPlan.selectedCandidates.mapTo(linkedSetOf()) { candidate ->
+        StimulusPrescriptionOwnerIdentity(candidate.stableKey, candidate.selectionRole)
     }
-
-    val seededOwners = incumbentSeed.owners.associateBy { owner ->
-        StimulusPrescriptionOwnerIdentity(owner.stableKey, owner.selectionRole)
-    }
-    val directStableKeys = selectionPlan.traces.flatMap { it.controlDirectCapabilityIdentities }
-    for (stableKey in directStableKeys) {
-        // The seed is the identity source. Walk baseline key order within each stable key to
-        // retain the legacy control.items filter order even though the seed itself is sorted.
-        for (baselineOwner in prescriptionBaseline.prescriptions.keys) {
-            if (baselineOwner.stableKey != stableKey) continue
-            val seededOwner = seededOwners[baselineOwner] ?: continue
-            ownerKeys += StimulusPrescriptionOwnerIdentity(seededOwner.stableKey, seededOwner.selectionRole)
+    val materialized = experimentalItems.asSequence().map { item ->
+        StimulusPrescriptionOwnerIdentity(item.exerciseStableKey, item.selectionRole) to
+            PlannedPrescription(item.prescription, item.setPrescriptions, item.restSeconds, item.weightSource)
+    }.filter { it.first in ownerKeys }.toList().toMap()
+    val prescriptions = linkedMapOf<StimulusPrescriptionOwnerIdentity, PlannedPrescription>().apply {
+        canonicalPrescriptionContext.prescriptions.filterKeys { it in ownerKeys }.forEach { (owner, prescription) ->
+            put(owner, prescription)
         }
+        putAll(materialized)
     }
-
-    val experimentalPrescriptions = experimentalItems.asSequence()
-        .map { item ->
-            StimulusPrescriptionOwnerIdentity(item.exerciseStableKey, item.selectionRole) to
-                PlannedPrescription(item.prescription, item.setPrescriptions, item.restSeconds, item.weightSource)
-        }
-        .filter { it.first in ownerKeys }
-        .toList()
-        .associateBy({ it.first }, { it.second })
-
-    val currentPrescriptions = linkedMapOf<StimulusPrescriptionOwnerIdentity, PlannedPrescription>().apply {
-        putAll(experimentalPrescriptions)
-        prescriptionBaseline.prescriptions.forEach { (owner, prescription) ->
-            if (owner in ownerKeys) put(owner, prescription)
-        }
-    }
-    return StimulusRealizationPrescriptionInputs(ownerKeys, currentPrescriptions)
+    return StimulusRealizationPrescriptionInputs(ownerKeys, prescriptions)
 }

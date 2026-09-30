@@ -71,7 +71,7 @@ enum class StimulusPrescriptionExecutionAuthority {
  */
 enum class StimulusPrescriptionOwnerExecutionDisposition {
     EXECUTABLE_EXACT_AUTHORITY,
-    PRESERVE_CONTROL_OWNER,
+    PRESERVE_INCUMBENT_OWNER,
     EXCLUDE_CONFLICTING_ADDITION,
     NO_EXECUTABLE_AUTHORITY
 }
@@ -134,12 +134,13 @@ class StimulusPrescriptionRealizationPlanEngine(
         targetPlan: StimulusTargetPlan,
         selectionPlan: StimulusCandidateSelectionPlan,
         snapshot: PlanningHistorySnapshot,
-        currentPrescriptions: Map<StimulusPrescriptionOwnerIdentity, PlannedPrescription> = emptyMap()
+        currentPrescriptions: Map<StimulusPrescriptionOwnerIdentity, PlannedPrescription> = emptyMap(),
+        historyBackedOwners: Set<StimulusPrescriptionOwnerIdentity> = emptySet()
     ): StimulusPrescriptionRealizationPlan = StimulusPrescriptionRealizationPlan(
         targetPlan.qualityTargets.map { target ->
             val targetId = "QUALITY:${target.quality.name}"
             val candidates = selectionPlan.selectedCandidates.filter { targetId in it.coveredTargetIds }
-            resolveTarget(targetId, target, candidates, selectionPlan, snapshot, currentPrescriptions)
+            resolveTarget(targetId, target, candidates, selectionPlan, snapshot, currentPrescriptions, historyBackedOwners)
         }
     )
 
@@ -149,7 +150,8 @@ class StimulusPrescriptionRealizationPlanEngine(
         candidates: List<StimulusSelectedCandidate>,
         selectionPlan: StimulusCandidateSelectionPlan,
         snapshot: PlanningHistorySnapshot,
-        currentPrescriptions: Map<StimulusPrescriptionOwnerIdentity, PlannedPrescription>
+        currentPrescriptions: Map<StimulusPrescriptionOwnerIdentity, PlannedPrescription>,
+        historyBackedOwners: Set<StimulusPrescriptionOwnerIdentity>
     ): StimulusPrescriptionResolution {
         fun base(
             status: StimulusPrescriptionResolutionStatus,
@@ -171,17 +173,15 @@ class StimulusPrescriptionRealizationPlanEngine(
         ) return base(StimulusPrescriptionResolutionStatus.REALIZATION_MODEL_UNAVAILABLE,
             listOf("REALIZATION_MODEL_UNAVAILABLE_FOR_TARGET"))
 
-        val trace = selectionPlan.traces.firstOrNull { it.targetId == targetId }
         val ownerOptions = when {
             candidates.isNotEmpty() -> candidates.map { candidate ->
-                StimulusPrescriptionOwnerIdentity(candidate.stableKey, candidate.selectionRole) to "B5_SELECTION"
+                val identity = StimulusPrescriptionOwnerIdentity(candidate.stableKey, candidate.selectionRole)
+                identity to if (identity in historyBackedOwners) "CANONICAL_HISTORY_PRESCRIPTION" else "B5_SELECTION"
             }
-            else -> trace?.controlDirectCapabilityIdentities.orEmpty().flatMap { stableKey ->
-                currentPrescriptions.keys.filter { it.stableKey == stableKey }.map { it to "CONTROL_EXISTING_DIRECT_IDENTITY" }
-            }
+            else -> emptyList()
         }.distinct()
         if (ownerOptions.isEmpty()) return base(StimulusPrescriptionResolutionStatus.OWNER_UNRESOLVED,
-            listOf(if (candidates.isEmpty()) "CONTROL_DIRECT_IDENTITY_OWNER_UNRESOLVED" else "B5_OWNER_NOT_SELECTED"))
+            listOf("B5_OWNER_NOT_SELECTED"))
 
         fun probeFor(identity: StimulusPrescriptionOwnerIdentity): PlannedPrescription? {
             val item = selectionPlan.materialDemand.candidates.firstOrNull { it.stableKey == identity.stableKey } ?: return null

@@ -32,6 +32,81 @@ class CanonicalStimulusPlanningIndependenceTest {
     @Test fun sparseHistoryParity() = parity(spec("c1_sparse", history = "sparse"))
     @Test fun reviewedEightWeekHistoryParity() = parity(spec("c1_eight_week", history = "mixed"))
 
+    @Test fun controlIdentityAndPrescriptionPerturbationsDoNotChangeCanonicalB1ToB6() = runBlocking {
+        StimulusProductionCoverageAuditTest().runCase(spec("c7_control_perturbation", mixed = true, history = "mixed")) {
+                service, preflight, answers, metadata ->
+            val prepared = service.generatePreparedWithCanonicalPlanning(preflight, answers, metadata)
+            val canonical = prepared.canonicalPlanning
+            val source = prepared.program.items
+            assertTrue("fixture needs a control skeleton to perturb", source.isNotEmpty())
+            val controlA = prepared.program.copy(items = source.take(4).mapIndexed { index, row ->
+                val key = listOf("barbell_back_squat", "weighted_pull_up", "romanian_deadlift")[index % 3]
+                val prescription = listOf(5, 4, 6).get(index % 3)
+                row.copy(
+                    exerciseStableKey = key,
+                    stableKey = key,
+                    exerciseName = key,
+                    selectionRole = "CONTROL_A_$index",
+                    prescription = "$prescription reps · control A",
+                    reps = prescription,
+                    weightKg = 80.0 + index,
+                    setPrescriptions = listOf(ProgramSetPrescription(1, prescription, 80.0 + index, 0))
+                )
+            })
+            val controlB = prepared.program.copy(items = source.take(4).mapIndexed { index, row ->
+                val key = listOf("machine_chest_fly", "leg_extension", "unrelated_curl")[index % 3]
+                val prescription = listOf(15, 12, 10)[index % 3]
+                row.copy(
+                    exerciseStableKey = key,
+                    stableKey = key,
+                    exerciseName = key,
+                    selectionRole = "CONTROL_B_$index",
+                    prescription = "$prescription reps · control B",
+                    reps = prescription,
+                    weightKg = 10.0 + index,
+                    setPrescriptions = listOf(ProgramSetPrescription(1, prescription, 10.0 + index, 0))
+                )
+            })
+            assertNotEquals(controlA.items.map { it.exerciseStableKey }, controlB.items.map { it.exerciseStableKey })
+            assertNotEquals(controlA.items.map { it.setPrescriptions }, controlB.items.map { it.setPrescriptions })
+
+            suspend fun evaluate(control: GeneratedProgramSkeleton) = service.generatePreparedStimulusPrescriptionMaterializationComparison(
+                preflight = preflight,
+                answers = answers,
+                metadata = metadata,
+                canonicalPlanning = canonical,
+                resolvedRequest = prepared.resolvedRequest.request,
+                frequencyProvenance = prepared.resolvedRequest.frequencyProvenance,
+                controlOverride = control,
+                productionBuildCounts = MutableStimulusProductionBuildCounts()
+            )
+            val a = evaluate(controlA)
+            val b = evaluate(controlB)
+
+            val standaloneCanonical = service.buildCanonicalStimulusPlanningForPrepared(preflight, answers, metadata)
+            assertEquals(standaloneCanonical.athleteStimulusNeedProfile, canonical.athleteStimulusNeedProfile)
+            assertEquals(standaloneCanonical.qualityDoseHistory, canonical.qualityDoseHistory)
+            assertEquals(standaloneCanonical.decisionPortfolio, canonical.decisionPortfolio)
+            assertEquals(standaloneCanonical.targetPlan, canonical.targetPlan)
+            assertEquals(a.selectionPlan, b.selectionPlan)
+            assertEquals(a.prescriptionAuthorizationPlan, b.prescriptionAuthorizationPlan)
+            assertEquals(a.prescriptionRealizationPlan, b.prescriptionRealizationPlan)
+            assertEquals(
+                personalizedProgramFingerprint(a.experimental.request, a.experimental.items),
+                personalizedProgramFingerprint(b.experimental.request, b.experimental.items)
+            )
+            listOf(a, b).forEach { comparison ->
+                assertTrue(comparison.experimentalReadinessAudit?.shadowOnly == true)
+                assertFalse(comparison.experimentalReadinessAudit?.productionAuthority == true)
+                assertNull(comparison.experimentalReadinessAudit?.winner)
+                assertFalse(comparison.productionCutoverAuthority?.routingActive == true)
+                assertFalse(comparison.productionCutoverAuthority?.productionMutationAuthority == true)
+            }
+            service.generatePreparedProduction(preflight, answers, metadata)
+        }
+        Unit
+    }
+
     private fun parity(spec: StimulusProductionCoverageAuditTest.CoverageSpec) = runBlocking {
         StimulusProductionCoverageAuditTest().runCase(spec) { service, preflight, answers, metadata ->
             // No program has been constructed by this seam, and no CONTROL argument exists.
@@ -158,8 +233,6 @@ class CanonicalStimulusPlanningIndependenceTest {
                 preflight, answers, metadata, canonicalPlanning = input,
                 resolvedRequest = preparedRequest.request,
                 frequencyProvenance = preparedRequest.frequencyProvenance,
-                incumbentSeed = preparedBundle.incumbentSeed,
-                prescriptionBaseline = preparedBundle.prescriptionBaseline,
                 controlOverride = altered, productionBuildCounts = counts)
             assertSame(input.targetPlan, actual.targetPlan)
             assertTrue(actual.selectionPlan.traces.any { it.targetId == "QUALITY:HYPERTROPHY" })

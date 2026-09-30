@@ -47,7 +47,7 @@ data class StimulusCandidateSelectionTrace(
     val targetId: String,
     val strategy: StimulusDoseStrategy,
     val priority: TargetPriority,
-    val controlDirectCapabilityIdentities: List<String>,
+    val historyDirectCapabilityIdentities: List<String>,
     val selectionRequired: Boolean,
     val candidatePool: List<String>,
     val selectedStableKey: String?,
@@ -155,28 +155,34 @@ private data class MaterializedCandidate(
 )
 
 /**
- * Deterministic B5 identity selector. It reads B4 targets and canonical relations, but never
- * recalculates Need, baseline, strategy, dose, or a target-compatible prescription. CONTROL can
- * remain the seed source, but the selector receives only typed incumbent identities.
+ * Deterministic B5 identity selector. It reads B4 targets, canonical relations and actual-history
+ * continuity, but never recalculates Need, baseline, strategy, dose, or a target-compatible
+ * prescription. CONTROL identities are outside this selector's input boundary.
  */
 class StimulusTargetCandidateSelector(
     private val prescriptionPlanner: PersonalizedPrescriptionPlanner = PersonalizedPrescriptionPlanner()
 ) {
     fun build(
         targetPlan: StimulusTargetPlan,
-        incumbentSeed: StimulusIncumbentIdentitySeed,
         snapshot: PlanningHistorySnapshot,
         state: AthletePlanningState,
         request: ProgramSkeletonRequest,
         physicalQualityCatalog: CanonicalExercisePhysicalQualityCatalog
     ): StimulusCandidateSelectionPlan {
-        val controlKeys = incumbentSeed.stableKeys
-        val historyByStableKey = snapshot.allConfirmedSets.groupBy(PlanningSetRecord::stableKey)
+        val contextStart = snapshot.cutoff.minusDays(55)
+        val currentStart = snapshot.cutoff.minusDays(27)
+        val contextHistory = snapshot.allConfirmedSets.filter { !it.date.isBefore(contextStart) }
+        val historyByStableKey = contextHistory.groupBy(PlanningSetRecord::stableKey)
         val historyIndex = HistoryIndex(
             historyByStableKey = historyByStableKey,
-            historyStableKeys = historyByStableKey.keys,
+            recentHistoryStableKeys = historyByStableKey.filterValues { rows -> rows.any { !it.date.isBefore(currentStart) } }.keys,
+            contextHistoryStableKeys = historyByStableKey.keys,
             strengthCompatibleHistoryKeys = historyByStableKey.filterValues { rows -> rows.any { historyCompatible(snapshot, TrainableQuality.STRENGTH, it) } }.keys,
-            hypertrophyCompatibleHistoryKeys = historyByStableKey.filterValues { rows -> rows.any { historyCompatible(snapshot, TrainableQuality.HYPERTROPHY, it) } }.keys
+            hypertrophyCompatibleHistoryKeys = historyByStableKey.filterValues { rows -> rows.any { historyCompatible(snapshot, TrainableQuality.HYPERTROPHY, it) } }.keys,
+            anchorStableKeys = state.anchors.mapTo(linkedSetOf(), UserAnchor::stableKey),
+            recentSessionCountByStableKey = historyByStableKey.mapValues { (_, rows) ->
+                rows.filter { !it.date.isBefore(currentStart) }.map(PlanningSetRecord::date).distinct().size
+            }
         )
         val selected = linkedMapOf<String, StimulusSelectedCandidate>()
         val candidateItems = linkedMapOf<String, PlannedExercise>()
@@ -189,14 +195,7 @@ class StimulusTargetCandidateSelector(
         )
 
         targets.forEach { intent ->
-            val controlIdentities = controlIdentities(intent, controlKeys, snapshot, physicalQualityCatalog)
-            if (controlIdentities.isNotEmpty()) {
-                traces += trace(
-                    intent, controlIdentities, false, emptyList(), null, null,
-                    emptyMap(), listOf("DIRECT_CAPABILITY_IDENTITY_ALREADY_PRESENT", realizedGapCode(intent))
-                )
-                return@forEach
-            }
+            val historyIdentities = historyDirectCapabilityIdentities(intent, historyIndex.contextHistoryStableKeys, snapshot, physicalQualityCatalog)
 
             val reusable = selected.values.firstOrNull { selectedCandidate ->
                 directlyCovers(intent, selectedCandidate.stableKey, snapshot, physicalQualityCatalog)
@@ -205,7 +204,7 @@ class StimulusTargetCandidateSelector(
                 val merged = reusable.copy(coveredTargetIds = reusable.coveredTargetIds + intent.targetId)
                 selected[reusable.stableKey] = merged
                 traces += trace(
-                    intent, emptyList(), false, emptyList(), null, reusable.stableKey,
+                    intent, historyIdentities, false, emptyList(), null, reusable.stableKey,
                     emptyMap(), listOf("TARGET_COVERED_BY_ALREADY_SELECTED_IDENTITY", realizedGapCode(intent)),
                     reusedRole = reusable.selectionRole
                 )
@@ -215,11 +214,11 @@ class StimulusTargetCandidateSelector(
             if (!selectionAllowed(intent)) {
                 val reason = noSelectionReason(intent)
                 deferred[intent.targetId] = reason
-                traces += trace(intent, emptyList(), false, emptyList(), null, null, emptyMap(), listOf(reason))
+                traces += trace(intent, historyIdentities, false, emptyList(), null, null, emptyMap(), listOf(reason))
                 return@forEach
             }
 
-            val ranked = eligibleCandidates(intent, controlKeys, selected.keys, snapshot, state, request, physicalQualityCatalog, historyIndex)
+            val ranked = eligibleCandidates(intent, selected.keys, snapshot, state, request, physicalQualityCatalog, historyIndex)
             val pool = ranked.map { it.key }
             val rejections = linkedMapOf<String, String>()
             val rejectionRoles = linkedMapOf<String, String>()
@@ -238,7 +237,7 @@ class StimulusTargetCandidateSelector(
                 val reason = if (pool.isEmpty()) "TARGET_REQUIRES_SELECTION_BUT_NO_MATERIALIZABLE_CANDIDATE"
                 else "TARGET_REQUIRES_SELECTION_BUT_NO_MATERIALIZABLE_CANDIDATE"
                 deferred[intent.targetId] = reason
-                traces += trace(intent, emptyList(), true, pool, null, null, rejections, listOf(reason), candidateRoles = rejectionRoles)
+                traces += trace(intent, historyIdentities, true, pool, null, null, rejections, listOf(reason), candidateRoles = rejectionRoles)
                 return@forEach
             }
             val item = chosen.item
@@ -261,7 +260,7 @@ class StimulusTargetCandidateSelector(
             selected[item.stableKey] = selectedCandidate
             audit[item.stableKey] = "B5_SELECTED_CANONICAL_IDENTITY"
             traces += trace(
-                intent, emptyList(), true, pool, item.stableKey, null, rejections,
+                intent, historyIdentities, true, pool, item.stableKey, null, rejections,
                 listOf("SELECTION_IDENTITY_PRESENT", chosen.compatibility.name, "B5_TARGET_SETS_FROM_EXISTING_PRESCRIPTION_NOT_TARGET_AUTHORITY"),
                 selectedRole = item.role,
                 candidateRoles = rejections.keys.associateWith { roleFor(intent) }
@@ -275,7 +274,7 @@ class StimulusTargetCandidateSelector(
 
     private fun trace(
         intent: StimulusSelectionTarget,
-        controlIdentities: List<String>,
+        historyIdentities: List<String>,
         required: Boolean,
         pool: List<String>,
         selected: String?,
@@ -289,7 +288,7 @@ class StimulusTargetCandidateSelector(
         targetId = intent.targetId,
         strategy = intent.strategy,
         priority = intent.priority,
-        controlDirectCapabilityIdentities = controlIdentities,
+        historyDirectCapabilityIdentities = historyIdentities,
         selectionRequired = required,
         candidatePool = pool,
         selectedStableKey = selected,
@@ -304,19 +303,30 @@ class StimulusTargetCandidateSelector(
     private fun roleFor(intent: StimulusSelectionTarget): String =
         "CANONICAL_STIMULUS_${intent.targetId.replace(':', '_')}"
 
-    private data class CandidateKey(val key: String, val targetCompatibleHistory: Boolean, val history: Boolean, val freeWeightCompatible: Boolean,
-        val highConfidence: Boolean, val redundant: Boolean)
+    private data class CandidateKey(
+        val key: String,
+        val targetCompatibleHistory: Boolean,
+        val recentHistory: Boolean,
+        val contextHistory: Boolean,
+        val anchorContinuity: Boolean,
+        val repeatedRecentSessions: Int,
+        val freeWeightCompatible: Boolean,
+        val highConfidence: Boolean,
+        val redundant: Boolean
+    )
 
     private data class HistoryIndex(
         val historyByStableKey: Map<String, List<PlanningSetRecord>>,
-        val historyStableKeys: Set<String>,
+        val recentHistoryStableKeys: Set<String>,
+        val contextHistoryStableKeys: Set<String>,
         val strengthCompatibleHistoryKeys: Set<String>,
-        val hypertrophyCompatibleHistoryKeys: Set<String>
+        val hypertrophyCompatibleHistoryKeys: Set<String>,
+        val anchorStableKeys: Set<String>,
+        val recentSessionCountByStableKey: Map<String, Int>
     )
 
     private fun eligibleCandidates(
         intent: StimulusSelectionTarget,
-        controlKeys: Set<String>,
         selectedKeys: Set<String>,
         snapshot: PlanningHistorySnapshot,
         state: AthletePlanningState,
@@ -337,7 +347,7 @@ class StimulusTargetCandidateSelector(
             .filter { key -> key !in request.excludedExerciseStableKeys }
             .filter { key -> key !in snapshot.recoverySignals.tissueRestrictedStableKeys }
             .filter { key -> equipmentCompatible(snapshot, key, request) }
-            .filter { key -> freeWeightAllowed(snapshot, state, key, historyIndex.historyStableKeys) }
+            .filter { key -> freeWeightAllowed(snapshot, state, key, historyIndex.contextHistoryStableKeys) }
             .filterNot { snapshot.activityKind(it) == PlannedActivityKind.GENERIC_COURT_SESSION }
             .map { key ->
                 val targetCompatible = when (intent) {
@@ -351,16 +361,22 @@ class StimulusTargetCandidateSelector(
                 CandidateKey(
                     key = key,
                     targetCompatibleHistory = targetCompatible,
-                    history = key in historyIndex.historyStableKeys,
+                    recentHistory = key in historyIndex.recentHistoryStableKeys,
+                    contextHistory = key in historyIndex.contextHistoryStableKeys,
+                    anchorContinuity = key in historyIndex.anchorStableKeys && key in historyIndex.contextHistoryStableKeys,
+                    repeatedRecentSessions = historyIndex.recentSessionCountByStableKey[key] ?: 0,
                     freeWeightCompatible = state.freeWeightWillingness != FreeWeightWillingness.PREFER_FAMILIAR || !snapshot.isFreeWeight(key),
                     highConfidence = snapshot.metadata[key]?.sourceConfidenceLevel == "HIGH",
                     redundant = redundancyGroup(snapshot, key).isNotBlank() &&
-                        (controlKeys + selectedKeys).any { existingKey -> redundancyGroup(snapshot, existingKey) == redundancyGroup(snapshot, key) }
+                        selectedKeys.any { existingKey -> redundancyGroup(snapshot, existingKey) == redundancyGroup(snapshot, key) }
                 )
             }.toList()
         return keys.sortedWith(
             compareByDescending<CandidateKey> { it.targetCompatibleHistory }
-                .thenByDescending { it.history }
+                .thenByDescending { it.recentHistory }
+                .thenByDescending { it.contextHistory }
+                .thenByDescending { it.anchorContinuity }
+                .thenByDescending { it.repeatedRecentSessions }
                 .thenByDescending { it.freeWeightCompatible }
                 .thenByDescending { it.highConfidence }
                 .thenBy { it.redundant }
@@ -411,7 +427,7 @@ class StimulusTargetCandidateSelector(
         data class Failure(val reason: String) : MaterializedCandidateResult
     }
 
-    private fun controlIdentities(intent: StimulusSelectionTarget, keys: Set<String>, snapshot: PlanningHistorySnapshot,
+    private fun historyDirectCapabilityIdentities(intent: StimulusSelectionTarget, keys: Set<String>, snapshot: PlanningHistorySnapshot,
         catalog: CanonicalExercisePhysicalQualityCatalog): List<String> = keys.filter { directlyCovers(intent, it, snapshot, catalog) }.sorted()
 
     private fun directlyCovers(intent: StimulusSelectionTarget, key: String, snapshot: PlanningHistorySnapshot,
@@ -549,9 +565,7 @@ class StimulusSelectionProgramComparisonEngine {
             val realizedStatus = realizedTargetStatus(targetPlan, experimentalAudit, trace.targetId)
             val reasons = linkedSetOf<String>()
             if (!selectedAtB5) {
-                if (trace.reasonCodes.contains("DIRECT_CAPABILITY_IDENTITY_ALREADY_PRESENT")) {
-                    reasons += "CONTROL_DIRECT_IDENTITY_ALREADY_PRESENT"
-                } else if (!trace.selectionRequired || trace.reasonCodes.any { it in NO_SELECTION_REASON_CODES }) {
+                if (!trace.selectionRequired || trace.reasonCodes.any { it in NO_SELECTION_REASON_CODES }) {
                     reasons += "SELECTION_NOT_REQUESTED"
                 }
             } else if (present) {
@@ -651,7 +665,7 @@ internal fun StimulusCandidateSelectionPlan.toCompactJson(): JSONObject = JSONOb
     }))
     .put("traces", JSONArray(traces.map { trace -> JSONObject()
         .put("targetId", trace.targetId).put("strategy", trace.strategy.name).put("priority", trace.priority.name)
-        .put("controlDirectCapabilityIdentities", JSONArray(trace.controlDirectCapabilityIdentities))
+        .put("historyDirectCapabilityIdentities", JSONArray(trace.historyDirectCapabilityIdentities))
         .put("selectionRequired", trace.selectionRequired).put("candidatePool", JSONArray(trace.candidatePool))
         .put("selectedStableKey", trace.selectedStableKey).put("selectedSelectionRole", trace.selectedSelectionRole)
         .put("coveredByPreviouslySelectedStableKey", trace.coveredByPreviouslySelectedStableKey)
