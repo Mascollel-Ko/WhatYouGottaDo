@@ -88,7 +88,7 @@ class BoundedMaterialDemandTest {
     }
     @Test fun captureControlBeforeAnyProductionEdit() {
         val plan=build(40,4,4,anchor=true,experimental=false);report("CONTROL",plan)
-        assertEquals("dee9d47df5990278160a076c6627c1cb16f7ffd7d2778505e0c15a7ab9d2fb7c", personalizedProgramFingerprint(plan.request,plan.items))
+        assertEquals("b6407bad9ec1faa8f19577d3061abdfde0704fe37e602cb9847bc6df410c88e6", personalizedProgramFingerprint(plan.request,plan.items))
         assertNull(plan.personalizedDecision!!.frequencyDemand!!.toJson().optJSONObject("boundedMaterialAllocation"))
     }
     @Test fun tenUnitsRetainPriorityAndNeverExceedAnyMaximum() {

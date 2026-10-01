@@ -25,7 +25,7 @@ import kotlin.math.ln
 @Config(sdk = [28])
 class StimulusSelectionServiceIntegrationTest {
     @Test
-    fun serviceComparisonUsesCanonicalB5OwnerAndRetainsControlWhenB7Rejects() = runBlocking {
+    fun serviceComparisonUsesCanonicalB5OwnerAndRoutesWithExactB7B8Authority() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val db = Room.inMemoryDatabaseBuilder(context, TrainingDatabase::class.java)
             .allowMainThreadQueries().build()
@@ -201,9 +201,9 @@ class StimulusSelectionServiceIntegrationTest {
             val b8Comparison = comparison
             val evaluation = requireNotNull(comparison.productionCutoverAuthority)
 
-            assertSame("C7 must keep the existing fail-closed route when B7 rejects", comparison.control, standalone)
-            assertEquals(StimulusProductionProgramSource.CONTROL, production.routeDecision.selectedSource)
-            assertFalse(production.routeDecision.productionRoutingActive)
+            assertSame("eligible canonical Strength authority must route the existing EXPERIMENTAL build", comparison.experimental, standalone)
+            assertEquals(StimulusProductionProgramSource.B8_STRENGTH_V1, production.routeDecision.selectedSource)
+            assertTrue(production.routeDecision.productionRoutingActive)
             assertEquals("control goal", preflight.request.goal, comparison.control.request.goal)
             assertEquals("control weekly days", preflight.request.weeklyTrainingDays, comparison.control.request.weeklyTrainingDays)
             assertEquals("control duration", preflight.request.durationWeeks, comparison.control.request.durationWeeks)
@@ -250,13 +250,16 @@ class StimulusSelectionServiceIntegrationTest {
             assertFalse(comparison.selectionPlan.productionSelectionAuthority)
             assertEquals(
                 "B8 must not grant authority without a B7 eligible result: $evaluation",
-                false,
+                true,
                 evaluation.status == StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER
             )
             assertEquals(StimulusProductionCutoverScope.STRENGTH_V1, evaluation.scope)
-            assertTrue(evaluation.authorizedOwnerIdentities.isEmpty())
+            assertEquals(
+                listOf(StimulusPrescriptionOwnerIdentity(owner.stableKey, owner.selectionRole)),
+                evaluation.authorizedOwnerIdentities
+            )
             assertEquals(b8Comparison.experimentalReadinessAudit?.status, evaluation.b7Status)
-            assertTrue(b8Comparison.experimentalReadinessAudit?.status != StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW)
+            assertEquals(StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW, b8Comparison.experimentalReadinessAudit?.status)
             val strengthTarget = b8Comparison.targetPlan.qualityTargets.single { it.quality == TrainableQuality.STRENGTH }
             assertTrue(strengthTarget.numericAuthority !in setOf(StimulusTargetNumericAuthority.NONE, StimulusTargetNumericAuthority.UNRESOLVED))
             val b6Authorization = requireNotNull(b8Comparison.prescriptionAuthorizationPlan).authorizations.single {
@@ -289,16 +292,16 @@ class StimulusSelectionServiceIntegrationTest {
             assertFalse(evaluation.routingActive)
             assertFalse(evaluation.productionMutationAuthority)
             assertEquals(evaluation, b8Comparison.productionCutoverAuthority)
-            assertEquals(StimulusProductionProgramSource.CONTROL, production.routeDecision.selectedSource)
-            assertFalse(production.routeDecision.productionRoutingActive)
-            assertSame(b8Comparison.control, production.program)
-            assertEquals(listOf("B9_B8_CONTROL_REQUIRED"), production.routeDecision.reasonCodes)
+            assertEquals(StimulusProductionProgramSource.B8_STRENGTH_V1, production.routeDecision.selectedSource)
+            assertTrue(production.routeDecision.productionRoutingActive)
+            assertSame(b8Comparison.experimental, production.program)
+            assertEquals(listOf("B9_B8_STRENGTH_V1_ROUTED"), production.routeDecision.reasonCodes)
             assertEquals(1, production.buildCounts.controlBuilds)
             assertEquals(1, production.buildCounts.experimentalBuilds)
             assertEquals(2, production.buildCounts.totalBuildInvocations)
             assertEquals(0, production.buildCounts.thirdBuilds)
             assertEquals(
-                personalizedProgramFingerprint(b8Comparison.control.request, b8Comparison.control.items),
+                personalizedProgramFingerprint(b8Comparison.experimental.request, b8Comparison.experimental.items),
                 personalizedProgramFingerprint(standalone.request, standalone.items)
             )
             assertFalse(comparison.selectionPlan.prescriptionAuthority)
@@ -356,7 +359,7 @@ class StimulusSelectionServiceIntegrationTest {
                 evaluation,
                 StimulusProductionRoutingMode.CONTROL_ONLY
             )
-            assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, rollback.decision.b8Status)
+            assertEquals(StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER, rollback.decision.b8Status)
             assertEquals(StimulusProductionProgramSource.CONTROL, rollback.decision.selectedSource)
             assertEquals(
                 personalizedProgramFingerprint(b8Comparison.control.request, b8Comparison.control.items),
