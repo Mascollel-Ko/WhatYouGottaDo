@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.50.0 |
+| Protocol version | 3.51.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 783b94e628bcf1da5e949f3c8d8c3a0a55a000c0 |
+| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.14.3 |
+| Last audited commit | fc010865ae637cd4d8b81b9ff53dee1f2e85655d |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1196,3 +1196,12 @@ Post-audit boundary notes
 - Implementation/test commit is `783b94e628bcf1da5e949f3c8d8c3a0a55a000c0`. Protocol remains `3.50.0`; no prescription, authority, routing, persistence, schema, backup, or UI behavior changed.
 - Local compilation and the focused C1-C6/B6-B9/service/coverage suite passed: 117 tests, 0 failures, 0 errors, 0 skips. The full local unit run ended after 4m31s when JBR 21 crashed in `robolectric-nativeruntime.dll+0x5c22` with `EXCEPTION_ACCESS_VIOLATION`; this is a native test-worker failure, not an assertion failure. Hosted full-suite results are recorded in `docs/production_coverage_audit.md`.
 - Hosted Android Debug Build run [`36632454346`](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/36632454346) passed on `783b94e628bcf1da5e949f3c8d8c3a0a55a000c0` in 13m10s: 2,150 tests, 0 failures/errors, 4 skips; coverage, APK assembly, signer validation, and artifact upload all passed. Artifact details are recorded in `docs/production_coverage_audit.md`.
+
+### Phase C7 — canonical B5/B6 authority cutover (protocol 3.51.0)
+
+- The canonical B1–B4 exposure, need, personal successful-dose, strategy, and numeric target authorities remain unchanged. B5 selects only exercises that implement B4 targets; actual completed history is continuity and compatibility evidence, not stimulus-dose authority. B6 resolves prescriptions only for exact B4/B5 owners, using target-compatible reviewed actual history and the existing canonical prescription policy.
+- The normal B5/B6 path no longer consumes the legacy/CONTROL-derived `StimulusIncumbentIdentitySeed` or `StimulusIncumbentPrescriptionBaseline`. CONTROL remains the comparison input to B7/B8/B9 safety, routing, and rollback. Missing exact provenance, incompatible history, or unavailable safe prescription authority remains fail-closed.
+- C6 byte parity is no longer a success condition. The new 27-case audit records current CONTROL and EXPERIMENTAL identities, B4 targets, B5 owners, B6 authority, B7/B8 result, B9 route, and build accounting. The C6 baseline SHA-256 is `67f8feb8ca6f0a74b060ef234f0c710ac89550cced647bb5b4e0357bc2d61d63`; C7 report SHA-256 is `818e8fa6f67164eeaae0c938273a777d645874cf0eecd17f1e1795dc811434d9`. Three generated cases changed route from C6; 21 generated cases route to CONTROL and one reviewed Strength case passes existing B7/B8 authority and uses the existing B9 route. No third build occurs.
+- Runtime protocol is `RECORD_BASED_PLANNER_0.14.3_KOTLIN_1`. C7 focused tests cover CONTROL perturbation independence, actual-history compatibility, target eligibility, B6 realization inputs, and B7/B8/B9 safety. Detailed per-case output and local/Hosted CI results are in `docs/c7_behavior_audit.md`.
+- Implementation/test commit: `fc010865ae637cd4d8b81b9ff53dee1f2e85655d` (with core C7 implementation in `ac83b1ec02412ccceb15e23791a5cead82a075a6`). The C7 behavior/protocol documentation is version `3.51.0`; no unrelated app version was changed.
+- Hosted Android Debug Build run [`36806675542`](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/36806675542) passed on the implementation/test commit: 2,159 tests, 0 failures, 0 errors, 4 skips; protocol validation, contracts, coverage upload, debug APK assembly, signer validation, and artifact upload passed. The docs-only commit will be validated separately.
