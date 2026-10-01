@@ -82,13 +82,14 @@ class StimulusProductionCutoverAuthorityAuditEngine {
         if (b7.targetOutcomes.any { it.status == StimulusExperimentalTargetOutcomeStatus.REGRESSED }) {
             reasons += "B8_CUTOVER_V1_COLLATERAL_REGRESSION"
         }
-        if (comparison.removedOwnerIdentities.isNotEmpty()) {
+        val materialOwners = materialOwnerIdentities(comparison)
+        val roleReplacements = canonicalRoleReplacementControlOwners(comparison, materialOwners)
+        if ((comparison.removedOwnerIdentities - roleReplacements).isNotEmpty()) {
             reasons += "B8_CUTOVER_V1_CONTROL_OWNER_REMOVAL_NOT_ALLOWED"
         }
         if (comparison.control.weekDaySchedule != comparison.experimental.weekDaySchedule) {
             reasons += "B8_CUTOVER_V1_WEEKDAY_SCHEDULE_CHANGED"
         }
-        val materialOwners = materialOwnerIdentities(comparison)
         reasons += b6IntegrityReasons(comparison, policy, materialOwners)
         if (materialOwners.isEmpty()) {
             reasons += "B8_CUTOVER_V1_EMPTY_MATERIAL_AUTHORITY"
@@ -180,10 +181,11 @@ class StimulusProductionCutoverAuthorityAuditEngine {
         if (b7.targetOutcomes.any { it.status == StimulusExperimentalTargetOutcomeStatus.REGRESSED }) {
             reasons += "B8_CUTOVER_V1_COLLATERAL_REGRESSION"
         }
-        if (comparison.removedOwnerIdentities.isNotEmpty()) reasons += "B8_CUTOVER_V1_CONTROL_OWNER_REMOVAL_NOT_ALLOWED"
+        val materialOwners = materialOwnerIdentities(comparison)
+        val roleReplacements = canonicalRoleReplacementControlOwners(comparison, materialOwners)
+        if ((comparison.removedOwnerIdentities - roleReplacements).isNotEmpty()) reasons += "B8_CUTOVER_V1_CONTROL_OWNER_REMOVAL_NOT_ALLOWED"
         if (comparison.control.weekDaySchedule != comparison.experimental.weekDaySchedule) reasons += "B8_CUTOVER_V1_WEEKDAY_SCHEDULE_CHANGED"
 
-        val materialOwners = materialOwnerIdentities(comparison)
         val allowedTargets = setOf("QUALITY:STRENGTH", "QUALITY:HYPERTROPHY")
         val requiredQualities = linkedMapOf<StimulusPrescriptionOwnerIdentity, Set<TrainableQuality>>()
         materialOwners.forEach { identity ->
@@ -515,8 +517,98 @@ class StimulusProductionCutoverAuthorityAuditEngine {
     private fun unrelatedControlParityFailures(
         comparison: StimulusSelectionProgramComparison,
         authorized: Set<StimulusPrescriptionOwnerIdentity>
-    ): Boolean = comparison.controlOwnerIdentities.any { identity ->
-        identity !in authorized && ownerRows(comparison.control, identity) != ownerRows(comparison.experimental, identity)
+    ): Boolean {
+        val allowedDifferences = authorized + canonicalRoleReplacementControlOwners(comparison, authorized) +
+            authorizedDownstreamConstraintControlOwners(comparison, authorized)
+        return comparison.controlOwnerIdentities.any { identity ->
+            identity !in allowedDifferences && ownerRows(comparison.control, identity) != ownerRows(comparison.experimental, identity)
+        }
+    }
+
+    /** B5 may replace a legacy CONTROL role for the same exercise only with exact B6 authority. */
+    private fun canonicalRoleReplacementControlOwners(
+        comparison: StimulusSelectionProgramComparison,
+        eligibleCanonicalOwners: Set<StimulusPrescriptionOwnerIdentity>
+    ): Set<StimulusPrescriptionOwnerIdentity> {
+        val attributions = comparison.experimentalReadinessAudit?.changeAttributions.orEmpty().filter {
+            it.source == StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY &&
+                "B5_CANONICAL_OWNER_REPLACED_CONTROL_ROLE" in it.reasonCodes
+        }
+        return attributions.mapNotNullTo(linkedSetOf()) { attribution ->
+            val old = StimulusPrescriptionOwnerIdentity(attribution.stableKey ?: return@mapNotNullTo null,
+                attribution.selectionRole ?: return@mapNotNullTo null)
+            if (old !in comparison.removedOwnerIdentities) return@mapNotNullTo null
+            val replacement = eligibleCanonicalOwners.firstOrNull { candidate ->
+                candidate.stableKey == old.stableKey && candidate != old && candidate in comparison.addedOwnerIdentities &&
+                    comparison.selectionPlan.selectedCandidates.any {
+                        it.stableKey == candidate.stableKey && it.selectionRole == candidate.selectionRole &&
+                            attribution.targetIds.any { targetId -> targetId in it.coveredTargetIds }
+                    } && comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().any { authorization ->
+                        authorization.owner?.let { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) == candidate } == true &&
+                            authorization.targetId in attribution.targetIds && authorization.authorizedPrescription != null &&
+                            authorization.status in setOf(
+                                StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                                StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR
+                            )
+                    }
+            }
+            old.takeIf { replacement != null }
+        }
+    }
+
+    /** Accept only B7-verified same-slot set-prefix reductions with explicit builder constraint evidence. */
+    private fun authorizedDownstreamConstraintControlOwners(
+        comparison: StimulusSelectionProgramComparison,
+        authorized: Set<StimulusPrescriptionOwnerIdentity>
+    ): Set<StimulusPrescriptionOwnerIdentity> {
+        val targetIds = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().filter { authorization ->
+            val owner = authorization.owner ?: return@filter false
+            StimulusPrescriptionOwnerIdentity(owner.stableKey, owner.selectionRole) in authorized &&
+                authorization.authorizedPrescription != null && authorization.status in setOf(
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR
+                )
+        }.mapTo(linkedSetOf(), StimulusPrescriptionAuthorization::targetId)
+        if (targetIds.isEmpty()) return emptySet()
+        return comparison.experimentalReadinessAudit?.changeAttributions.orEmpty().mapNotNullTo(linkedSetOf()) { attribution ->
+            if (attribution.source != StimulusExperimentalChangeAttributionSource.DOWNSTREAM_CONSTRAINT_DISPLACEMENT ||
+                "OWNER_LOCAL_CONSTRAINED_SET_SUBSET" !in attribution.reasonCodes ||
+                !attribution.targetIds.all { it in targetIds }
+            ) return@mapNotNullTo null
+            val identity = StimulusPrescriptionOwnerIdentity(attribution.stableKey ?: return@mapNotNullTo null,
+                attribution.selectionRole ?: return@mapNotNullTo null)
+            val constrained = comparison.experimental.personalizedDecision?.planningBudget?.execution
+                ?.constrainedOwnerStableKeys.orEmpty()
+            identity.takeIf {
+                it in comparison.sharedOwnerIdentities && it.stableKey in constrained && exactSetPrefixReduction(comparison, it)
+            }
+        }
+    }
+
+    private fun exactSetPrefixReduction(
+        comparison: StimulusSelectionProgramComparison,
+        identity: StimulusPrescriptionOwnerIdentity
+    ): Boolean {
+        val control = comparison.control.items.filter {
+            it.exerciseStableKey == identity.stableKey && it.selectionRole == identity.selectionRole
+        }.associateBy { Triple(it.weekNumber, it.dayOfWeek, it.orderIndex) }
+        val experimental = comparison.experimental.items.filter {
+            it.exerciseStableKey == identity.stableKey && it.selectionRole == identity.selectionRole
+        }.associateBy { Triple(it.weekNumber, it.dayOfWeek, it.orderIndex) }
+        if (control.isEmpty() || control.keys != experimental.keys) return false
+        var reduced = false
+        for ((slot, before) in control) {
+            val after = experimental.getValue(slot)
+            if (before.setPrescriptions == after.setPrescriptions && before.setCount == after.setCount) continue
+            val exactPrefix = after.setPrescriptions.size < before.setPrescriptions.size &&
+                before.setPrescriptions.take(after.setPrescriptions.size) == after.setPrescriptions &&
+                after.setCount == after.setPrescriptions.size && before.prescription == after.prescription &&
+                before.restSeconds == after.restSeconds && before.weightSource == after.weightSource &&
+                before.reps == after.reps && before.weightKg == after.weightKg && before.seconds == after.seconds
+            if (!exactPrefix) return false
+            reduced = true
+        }
+        return reduced
     }
 
     private data class OwnerRow(

@@ -319,6 +319,30 @@ class StimulusExperimentalReadinessTest {
     }
 
     @Test
+    fun canonicalB5RoleReplacementRequiresExactB6Authorization() {
+        val newOwner = StimulusPrescriptionOwner("squat", "CANONICAL_STIMULUS_QUALITY_STRENGTH", "CANONICAL_HISTORY_PRESCRIPTION")
+        val current = item("squat")
+        val authorized = PlannedPrescription(current.prescription, current.setPrescriptions, current.restSeconds, current.weightSource)
+        val audit = StimulusExperimentalReadinessAuditEngine().audit(comparison(
+            controlItems = listOf(current.copy(selectionRole = "LEGACY_PRIMARY_STRENGTH")),
+            experimentalItems = listOf(current.copy(selectionRole = newOwner.selectionRole)),
+            selectedCandidate = selectedCandidate("squat", newOwner.selectionRole),
+            authorizationPlan = StimulusPrescriptionAuthorizationPlan(listOf(
+                StimulusPrescriptionAuthorization(
+                    targetId = "QUALITY:STRENGTH", quality = TrainableQuality.STRENGTH, owner = newOwner,
+                    source = StimulusPrescriptionAuthorizationSource.CANONICAL_HISTORY_PRESCRIPTION,
+                    inputPrescription = authorized, plannedCompatibility = null, authorizedPrescription = authorized,
+                    status = StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE
+                )
+            ))
+        ))
+        val replacement = audit.changeAttributions.first { it.selectionRole == "LEGACY_PRIMARY_STRENGTH" }
+        assertEquals(StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY, replacement.source)
+        assertEquals(listOf("QUALITY:STRENGTH"), replacement.targetIds)
+        assertTrue(audit.changeProvenanceClosed)
+    }
+
+    @Test
     fun addedStableKeyWithWrongSelectionRoleCannotBorrowB5Authority() {
         val audit = StimulusExperimentalReadinessAuditEngine().audit(comparison(
             controlItems = listOf(item("control")),

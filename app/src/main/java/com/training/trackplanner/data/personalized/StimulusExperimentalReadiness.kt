@@ -201,7 +201,8 @@ class StimulusExperimentalReadinessAuditEngine {
     private fun noMaterialChange(comparison: StimulusSelectionProgramComparison): Boolean =
         personalizedProgramFingerprint(comparison.control.request, comparison.control.items) ==
             personalizedProgramFingerprint(comparison.experimental.request, comparison.experimental.items) &&
-            comparison.control.weekDaySchedule == comparison.experimental.weekDaySchedule
+            comparison.control.weekDaySchedule == comparison.experimental.weekDaySchedule &&
+            comparison.controlOwnerIdentities == comparison.experimentalOwnerIdentities
 
     private fun failed(comparison: StimulusSelectionProgramComparison, reason: String) =
         StimulusExperimentalReadinessAudit(
@@ -278,7 +279,14 @@ class StimulusExperimentalReadinessAuditEngine {
         comparison.removedOwnerIdentities.sortedWith(compareBy({ it.stableKey }, { it.selectionRole })).forEach { identity ->
             val evidence = removalCausalEvidence(comparison, identity, selected)
             val targetIds = evidenceOwnerTargetIds(comparison, identity)
+            val canonicalReplacementTargets = canonicalReplacementTargetIds(comparison, identity, selected)
             result += when {
+                canonicalReplacementTargets.isNotEmpty() ->
+                    StimulusExperimentalChangeAttribution(identity.stableKey, identity.selectionRole,
+                        StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY,
+                        canonicalReplacementTargets,
+                        listOf("B5_CANONICAL_OWNER_REPLACED_CONTROL_ROLE"),
+                        listOf("SAME_STABLE_KEY_SELECTED_BY_B5", "EXACT_B6_AUTHORIZATION_FOR_REPLACEMENT"))
                 evidence.governedExperimentalChangeExists &&
                     evidence.removedOwnerHasCapacityOrPlacementEvidence &&
                     evidence.removedOwnerHasDisappearanceEvidence &&
@@ -309,6 +317,7 @@ class StimulusExperimentalReadinessAuditEngine {
             val before = controlByIdentity.getValue(identity).map(::prescription)
             val after = experimentalByIdentity.getValue(identity).map(::prescription)
             if (before == after) return@forEach
+            val downstreamTargets = constrainedDownstreamTargetIds(comparison, identity)
             val executableAuthorizations = authByOwner[identity].orEmpty().mapNotNull { authorization ->
                 val authorized = authorization.authorizedPrescription ?: return@mapNotNull null
                 if (authorization.status !in setOf(
@@ -322,19 +331,127 @@ class StimulusExperimentalReadinessAuditEngine {
                 authorization to authorized
             }
             val source = when {
+                downstreamTargets.isNotEmpty() -> StimulusExperimentalChangeAttributionSource.DOWNSTREAM_CONSTRAINT_DISPLACEMENT
                 executableAuthorizations.any { it.first.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR } -> StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION
                 executableAuthorizations.any { it.first.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE } -> StimulusExperimentalChangeAttributionSource.B6_EXISTING_OWNER_PRESCRIPTION
                 else -> StimulusExperimentalChangeAttributionSource.UNEXPLAINED
             }
             val reasonCodes = when {
+                source == StimulusExperimentalChangeAttributionSource.DOWNSTREAM_CONSTRAINT_DISPLACEMENT ->
+                    listOf("OWNER_LOCAL_CONSTRAINED_SET_SUBSET", "B5_TARGET_REMAINS_B6_AUTHORIZED")
                 source == StimulusExperimentalChangeAttributionSource.UNEXPLAINED ->
                     listOf("UNEXPLAINED_PRESCRIPTION_CHANGE")
                 else -> listOf("B6_AUTHORIZED_PRESCRIPTION_CHANGE")
             }
             result += StimulusExperimentalChangeAttribution(identity.stableKey, identity.selectionRole, source,
-                executableAuthorizations.map { it.first.targetId }.distinct().sorted(), reasonCodes)
+                if (downstreamTargets.isNotEmpty()) downstreamTargets else executableAuthorizations.map { it.first.targetId }.distinct().sorted(),
+                reasonCodes,
+                if (downstreamTargets.isNotEmpty()) listOf("EXPERIMENTAL_OWNER_CONSTRAINT_TRACE", "CONTROL_PRESCRIPTION_IS_EXACT_SET_SUPERSET") else emptyList())
         }
         return result
+    }
+
+    /** Owner-local bounded displacement requires an explicit allocator trace and an exact set-prefix reduction. */
+    private fun constrainedDownstreamTargetIds(
+        comparison: StimulusSelectionProgramComparison,
+        identity: StimulusPrescriptionOwnerIdentity
+    ): List<String> {
+        val constrained = comparison.experimental.personalizedDecision?.planningBudget?.execution
+            ?.constrainedOwnerStableKeys.orEmpty()
+        if (identity.stableKey !in constrained || !isExactSetPrefixReduction(comparison, identity)) return emptyList()
+        val authorizedTargets = comparison.selectionPlan.selectedCandidates.asSequence()
+            .filter { candidate ->
+                StimulusPrescriptionOwnerIdentity(candidate.stableKey, candidate.selectionRole) in comparison.addedOwnerIdentities
+            }
+            .flatMap { candidate ->
+                comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().asSequence()
+                    .filter { authorization ->
+                        val owner = authorization.owner ?: return@filter false
+                        StimulusPrescriptionOwnerIdentity(owner.stableKey, owner.selectionRole) ==
+                            StimulusPrescriptionOwnerIdentity(candidate.stableKey, candidate.selectionRole) &&
+                            authorization.targetId in candidate.coveredTargetIds &&
+                            authorization.authorizedPrescription != null && authorization.status in setOf(
+                                StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                                StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR
+                            )
+                    }
+                    .map { it.targetId }
+            }
+            .distinct()
+            .sorted()
+            .toList()
+        // Multiple authorized targets cannot be causally distinguished by the current builder trace.
+        return authorizedTargets.singleOrNull()?.let(::listOf).orEmpty()
+    }
+
+    private fun isExactSetPrefixReduction(
+        comparison: StimulusSelectionProgramComparison,
+        identity: StimulusPrescriptionOwnerIdentity
+    ): Boolean {
+        val control = comparison.control.items.filter {
+            it.exerciseStableKey == identity.stableKey && it.selectionRole == identity.selectionRole
+        }.associateBy { Triple(it.weekNumber, it.dayOfWeek, it.orderIndex) }
+        val experimental = comparison.experimental.items.filter {
+            it.exerciseStableKey == identity.stableKey && it.selectionRole == identity.selectionRole
+        }.associateBy { Triple(it.weekNumber, it.dayOfWeek, it.orderIndex) }
+        if (control.isEmpty() || control.keys != experimental.keys) return false
+        var reduced = false
+        for ((slot, before) in control) {
+            val after = experimental.getValue(slot)
+            if (before.setPrescriptions == after.setPrescriptions && before.setCount == after.setCount) continue
+            val exactPrefix = after.setPrescriptions.size < before.setPrescriptions.size &&
+                before.setPrescriptions.take(after.setPrescriptions.size) == after.setPrescriptions &&
+                after.setCount == after.setPrescriptions.size &&
+                before.prescription == after.prescription && before.restSeconds == after.restSeconds &&
+                before.weightSource == after.weightSource && before.reps == after.reps &&
+                before.weightKg == after.weightKg && before.seconds == after.seconds
+            if (!exactPrefix) return false
+            reduced = true
+        }
+        return reduced
+    }
+
+    /**
+     * A canonical B5 owner may take over the exact exercise key previously emitted under a
+     * legacy role. Treat that owner-role replacement as target-governed only when the new exact
+     * owner has executable B6 authorization; same-key coincidence alone remains unexplained.
+     */
+    private fun canonicalReplacementTargetIds(
+        comparison: StimulusSelectionProgramComparison,
+        removed: StimulusPrescriptionOwnerIdentity,
+        selected: Map<StimulusPrescriptionOwnerIdentity, StimulusSelectedCandidate>
+    ): List<String> {
+        val authorizedTargets = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty()
+            .filter { authorization ->
+                val owner = authorization.owner ?: return@filter false
+                owner.stableKey == removed.stableKey &&
+                    authorization.authorizedPrescription != null &&
+                    authorization.status in setOf(
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR
+                    )
+            }
+            .mapTo(linkedSetOf(), StimulusPrescriptionAuthorization::targetId)
+        return selected.values.asSequence()
+            .filter { it.stableKey == removed.stableKey }
+            .flatMap { candidate ->
+                val owner = StimulusPrescriptionOwnerIdentity(candidate.stableKey, candidate.selectionRole)
+                val exactAuthorizationTargets = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty()
+                    .filter { authorization ->
+                        authorization.owner?.let {
+                            StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) == owner
+                        } == true && authorization.authorizedPrescription != null &&
+                            authorization.status in setOf(
+                                StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                                StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR
+                            )
+                    }
+                    .map { it.targetId }
+                candidate.coveredTargetIds.asSequence().filter { it in authorizedTargets && it in exactAuthorizationTargets }
+            }
+            .distinct()
+            .sorted()
+            .toList()
     }
 
     private fun removalCausalEvidence(
@@ -443,8 +560,7 @@ class StimulusExperimentalReadinessAuditEngine {
             code.contains("DEFER", ignoreCase = true) || code.contains("DISAPPEAR", ignoreCase = true)
 
     private fun isContradictoryProvenance(code: String): Boolean =
-        code.contains("DIRECT_B5_ACTION", ignoreCase = true) || code == "SELECTION_TARGET_IDENTITY_MATERIALIZED" ||
-            code == "CONTROL_DIRECT_IDENTITY_ALREADY_PRESENT"
+        code.contains("DIRECT_B5_ACTION", ignoreCase = true) || code == "SELECTION_TARGET_IDENTITY_MATERIALIZED"
 
     private fun targetOutcomes(comparison: StimulusSelectionProgramComparison, affected: Set<String>): List<StimulusExperimentalTargetOutcome> =
         comparison.targetPlan.qualityTargets.map { target ->

@@ -239,6 +239,32 @@ class StimulusTargetCandidateSelectorTest {
     }
 
     @Test
+    fun noMinimumTargetCannotBorrowAnIdentitySelectedForAnotherQuality() {
+        val shared = exercise("shared")
+        val fixture = fixture(
+            exercises = listOf(shared),
+            relations = listOf(
+                relation("shared", quality = TrainableQuality.HYPERTROPHY),
+                relation("shared", quality = TrainableQuality.STRENGTH)
+            )
+        )
+        val plan = StimulusTargetPlan(
+            qualityTargets = listOf(
+                target(TrainableQuality.HYPERTROPHY, TargetPriority.PRIMARY),
+                target(TrainableQuality.STRENGTH, TargetPriority.SECONDARY,
+                    StimulusDoseStrategy.NO_MINIMUM_TARGET, StimulusTargetNumericAuthority.NONE)
+            ), taskTargets = emptyList(), unresolved = emptyList()
+        )
+
+        val result = select(plan, fixture, emptyList())
+
+        assertEquals(setOf("QUALITY:HYPERTROPHY"), result.selectedCandidates.single().coveredTargetIds)
+        assertFalse(result.traces.last().selectionRequired)
+        assertNull(result.traces.last().selectedStableKey)
+        assertTrue(result.traces.last().reasonCodes.contains("NO_MINIMUM_TARGET"))
+    }
+
+    @Test
     fun selectedIdentityRedundancyAvoidsUnnecessaryDuplicateGroup() {
         val first = exercise("first_power")
         val redundant = exercise("a_redundant_rfd")

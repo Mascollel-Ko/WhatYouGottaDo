@@ -662,31 +662,27 @@ class RegionalTargetPrescriptionResolver(
         ) return Resolution(null, listOf("NO_NUMERIC_TARGET_OR_NO_ADD_AUTHORITY"))
 
         val requestedSets = item.targetSets.coerceAtLeast(1)
-        val history = snapshot.allConfirmedSets.filter { it.stableKey == item.stableKey }
         val canonicalPrescription = canonical.prescribe(snapshot, snapshot.preferences.strengthIntent ?: StrengthIntent.MIXED, item, item.style)
         return when (target.quality) {
-            TrainableQuality.HYPERTROPHY -> resolveHypertrophy(history, canonicalPrescription, snapshot, requestedSets)
-            TrainableQuality.STRENGTH -> resolveStrength(history, canonicalPrescription, snapshot, item, requestedSets)
+            TrainableQuality.HYPERTROPHY -> resolveHypertrophy(canonicalPrescription, snapshot, item, requestedSets)
+            TrainableQuality.STRENGTH -> resolveStrength(canonicalPrescription, snapshot, item, requestedSets)
             else -> Resolution(null, listOf("UNSUPPORTED_TARGET_QUALITY"))
         }
     }
 
     private fun resolveHypertrophy(
-        history: List<PlanningSetRecord>,
         canonicalPrescription: PlannedPrescription,
         snapshot: PlanningHistorySnapshot,
+        item: PlannedExercise,
         requestedSets: Int
     ): Resolution {
-        val compatible = history.filter { snapshot.historyRealizedKind(it) == RealizedStimulusKind.HYPERTROPHY_LIKE }
-            .maxWithOrNull(compareBy<PlanningSetRecord> { it.date }.thenBy { it.setIndex })
-        if (compatible != null) {
+        val personalHistoryPrescription = targetCompatiblePersonalHistoryPrescription(
+            TrainableQuality.HYPERTROPHY, item, snapshot, requestedSets, canonicalPrescription.restSeconds,
+            requireReviewedAuthority = false, weightSourceOverride = "TARGET_COMPATIBLE_PERSONAL_HISTORY"
+        )
+        if (personalHistoryPrescription != null) {
             return Resolution(
-                PlannedPrescription(
-                    text = "Target-compatible hypertrophy personal history",
-                    sets = List(requestedSets) { index -> ProgramSetPrescription(index + 1, compatible.reps, compatible.weightKg, compatible.seconds, targetRpeMin = 7.0) },
-                    restSeconds = canonicalPrescription.restSeconds,
-                    weightSource = "TARGET_COMPATIBLE_PERSONAL_HISTORY"
-                ),
+                personalHistoryPrescription,
                 listOf("HYPERTROPHY_PERSONAL_HISTORY_7_15")
             )
         }
@@ -717,23 +713,18 @@ class RegionalTargetPrescriptionResolver(
     }
 
     private fun resolveStrength(
-        history: List<PlanningSetRecord>,
         canonicalPrescription: PlannedPrescription,
         snapshot: PlanningHistorySnapshot,
         item: PlannedExercise,
         requestedSets: Int
     ): Resolution {
-        val compatible = history.filter {
-            it.reps in 1..6 && it.weightKg > 0.0
-        }.maxWithOrNull(compareBy<PlanningSetRecord> { it.date }.thenBy { it.setIndex })
-        if (compatible != null) {
+        val personalHistoryPrescription = targetCompatiblePersonalHistoryPrescription(
+            TrainableQuality.STRENGTH, item, snapshot, requestedSets, canonicalPrescription.restSeconds,
+            requireReviewedAuthority = false
+        )
+        if (personalHistoryPrescription != null) {
             return Resolution(
-                PlannedPrescription(
-                    text = "Target-compatible strength personal history",
-                    sets = List(requestedSets) { index -> ProgramSetPrescription(index + 1, compatible.reps, compatible.weightKg, compatible.seconds) },
-                    restSeconds = canonicalPrescription.restSeconds,
-                    weightSource = "TARGET_COMPATIBLE_PERSONAL_STRENGTH_HISTORY"
-                ),
+                personalHistoryPrescription,
                 listOf("STRENGTH_PERSONAL_HISTORY_1_6")
             )
         }

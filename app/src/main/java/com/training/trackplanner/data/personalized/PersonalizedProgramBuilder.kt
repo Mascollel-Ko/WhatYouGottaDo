@@ -506,10 +506,16 @@ class PersonalizedProgramBuilder(
         } ?: baseDemand
         val demand = when {
             regionalTargetPlan != null -> mergeTypedMaterialDemand(ownedBaseDemand, regionalTargetPlan.demand, regionalTargetPlan.authorizedPrescriptionBySelectionRole.keys)
-            materialDemandOverride != null -> mergeTypedMaterialDemand(baseDemand, materialDemandOverride, emptySet())
+            // Canonical B5 owns every selected target identity. Keep the builder's independent
+            // non-target demand, but replace a same-exercise generic owner with B5's exact
+            // owner role so the typed B6 authorization survives materialization.
+            materialDemandOverride != null -> mergeCanonicalMaterialDemand(baseDemand, materialDemandOverride)
             else -> baseDemand
         }
         val materialKeys = demand.candidates.filter(PlannedExercise::material).mapTo(mutableSetOf(), PlannedExercise::stableKey)
+        val canonicalB5StableKeys = if (regionalTargetPlan == null) {
+            materialDemandOverride?.candidates?.mapTo(linkedSetOf(), PlannedExercise::stableKey).orEmpty()
+        } else emptySet()
         val provisionalResistance = ResistanceVolumePlanner.plan(snapshot, state, request, Int.MAX_VALUE, anchorFallbackResistance)
         val baselineResistance = schedulingBaselineResistance
         val resistanceContinuityDemand = schedulingContinuityDemand
@@ -530,6 +536,11 @@ class PersonalizedProgramBuilder(
                     targetSets = count, material = false)
             }
         val continuityDemand = resistanceContinuityDemand + performanceContinuity.sumOf(PlannedExercise::targetSets)
+        val anchorWeights = state.anchors.associate { anchor ->
+            val weeks = (state.styleFeaturesByAnchor[anchor.stableKey]?.weeksObserved ?: 1).coerceAtLeast(1)
+            val transition = transitions.getValue(anchor.stableKey)
+            anchor.stableKey to maxOf(.20, anchor.sets.toDouble() / weeks) * maxOf(.25, transition.continuityScore) * transition.localDoseFactor
+        }
         val materialCandidates = demand.candidates.filter(PlannedExercise::material).sortedWith(
             compareByDescending<PlannedExercise> { snapshot.activityKind(it.stableKey) == PlannedActivityKind.RESISTANCE }
                 .thenByDescending { it.priority }.thenBy { it.stableKey })
@@ -575,7 +586,13 @@ class PersonalizedProgramBuilder(
         // volume authorization and does not turn unused budget into filler.
         val coreReserve = if (state.anchors.isEmpty()) 0 else
             minOf(continuityDemand, state.anchors.size).coerceAtLeast(1)
-        val capacity = if (envelope.historicalSessionObservationCount < 4)
+        val capacity = if (canonicalB5StableKeys.isNotEmpty()) {
+            // Keep the canonical planner's complete continuity allocation alongside B5/B6
+            // demand when the measured session-time envelope allows it. B5 owners that replace
+            // a continuity key are removed from that lane below, so their target prescription
+            // occupies the same exercise demand instead of displacing unrelated owners.
+            minOf(envelope.finalControllableUnits, continuityDemand + materialRequested)
+        } else if (envelope.historicalSessionObservationCount < 4)
             minOf(envelope.finalControllableUnits,
                 if (capacityExpanded) maxOf(continuityDemand, coreReserve + (materialCandidates.firstOrNull()?.targetSets ?: 0)) else continuityDemand)
             else envelope.finalControllableUnits
@@ -587,17 +604,22 @@ class PersonalizedProgramBuilder(
                 snapshot.activityKind(item.stableKey) == PlannedActivityKind.RESISTANCE &&
                     RegionalSelectionIdentity(item.stableKey, item.role) !in regionalTargetPlan?.authorizedPrescriptionBySelectionRole.orEmpty()
             })
-        val anchorWeights = state.anchors.associate { anchor ->
-            val weeks = (state.styleFeaturesByAnchor[anchor.stableKey]?.weeksObserved ?: 1).coerceAtLeast(1)
-            val transition = transitions.getValue(anchor.stableKey)
-            anchor.stableKey to maxOf(.20, anchor.sets.toDouble() / weeks) * maxOf(.25, transition.continuityScore) * transition.localDoseFactor
-        }
         // Keep the established continuity allocator as the final scheduling
         // authority.  Domain budgets authorize independently; placement still
         // receives the same finite, canonical continuity demand ordering.
         val incumbentWeights = anchorWeights + performanceContinuity.associate { it.stableKey to it.targetSets.toDouble() }
         val incumbentAllocations = proportionalAllocation(incumbentWeights.entries.sortedByDescending { it.value }
             .take(finite.continuity).associate { it.toPair() }, finite.continuity)
+        val fullContinuityAllocations = proportionalAllocation(incumbentWeights.entries.sortedByDescending { it.value }
+            .associate { it.toPair() }, continuityDemand)
+        val finiteConstrainedOwners = buildSet {
+            materialCandidates.forEachIndexed { index, item ->
+                if (finite.material[index] < item.targetSets) add(item.stableKey)
+            }
+            fullContinuityAllocations.forEach { (key, requested) ->
+                if ((incumbentAllocations[key] ?: 0) < requested) add(key)
+            }
+        }
         val allocations = incumbentAllocations.filterKeys { it in anchorWeights }
         val days = request.weeklyTrainingDays.coerceIn(2, 5)
         val placementContext = PlacementContext(snapshot, state, days, request.sessionMinutes)
@@ -608,6 +630,7 @@ class PersonalizedProgramBuilder(
             StimulusPrescriptionOwnerIdentity(item.stableKey, item.role) !in excludedConflictingOwners
         val continuity = (authorizedOverride?.filter { it.continuity }?.map { it.item } ?: (continuityPlanner.select(state, transitions, allocations, days) +
             performanceContinuity.mapNotNull { item -> incumbentAllocations[item.stableKey]?.let { item.copy(targetSets = it) } }))
+            .filterNot { it.stableKey in canonicalB5StableKeys }
             .filter(::isExecutableOwner)
         val gapItems = (authorizedOverride?.filter { !it.continuity && it.item.material }?.map { it.item } ?: materialCandidates.mapIndexedNotNull { index, item ->
             finite.material[index].takeIf { it > 0 }?.let { item.copy(targetSets = it) }
@@ -619,7 +642,8 @@ class PersonalizedProgramBuilder(
         // Capture original demand before finite capacity is allowed to erase it. No selection changes in this trace stage.
         val originalAllocations = proportionalAllocation(incumbentWeights.entries.sortedByDescending { it.value }
             .associate { it.toPair() }, continuityDemand)
-        val originalContinuity = continuityPlanner.select(state, transitions, originalAllocations.filterKeys { it in anchorWeights }, days) +
+        val originalContinuity = continuityPlanner.select(state, transitions, originalAllocations.filterKeys { it in anchorWeights }, days)
+            .filterNot { it.stableKey in canonicalB5StableKeys } +
             performanceContinuity.map { it.copy(targetSets = originalAllocations[it.stableKey] ?: it.targetSets) }
         val candidates = bounded?.let { allocation -> allocation.candidates + capacityCandidateTrace(snapshot, state,
             originalContinuity.map { it to true } + optionalCandidates.map { it to false }, selected, generationPrescriptions)
@@ -779,7 +803,11 @@ class PersonalizedProgramBuilder(
                 prescriptionSources = timed.associate { it.item.stableKey to it.prescription.weightSource },
                 supportiveGapCodesByStableKey = materializedGaps.filter { it.supportiveGapCodes().isNotEmpty() }
                     .associate { it.stableKey to it.supportiveGapCodes() },
-                scheduleTiers = timed.associate { it.item.stableKey to it.item.scheduleTier() }
+                scheduleTiers = timed.associate { it.item.stableKey to it.item.scheduleTier() },
+                constrainedOwnerStableKeys = finiteConstrainedOwners + selected.groupBy(PlannedExercise::stableKey)
+                    .filter { (key, owners) ->
+                        owners.sumOf(PlannedExercise::targetSets) > firstWeek.filter { it.exerciseStableKey == key }.sumOf(ProgramSkeletonItem::setCount)
+                    }.keys + placementDeferred.mapTo(linkedSetOf()) { it.item.stableKey }
             )
         )
         val fingerprint = personalizedProgramFingerprint(repaired.request, repaired.items)
@@ -923,6 +951,15 @@ internal fun personalizedProgramFingerprint(request: ProgramSkeletonRequest, ite
         }
     }
     return MessageDigest.getInstance("SHA-256").digest(source.toByteArray()).joinToString("") { "%02x".format(it) }
+}
+
+private fun mergeCanonicalMaterialDemand(base: MaterialDemand, canonical: MaterialDemand): MaterialDemand {
+    val canonicalKeys = canonical.candidates.mapTo(linkedSetOf(), PlannedExercise::stableKey)
+    return MaterialDemand(
+        candidates = base.candidates.filterNot { it.stableKey in canonicalKeys } + canonical.candidates,
+        deferred = base.deferred + canonical.deferred,
+        audit = base.audit + canonical.audit
+    )
 }
 
 private fun targetRpeFingerprint(value: Double): String =

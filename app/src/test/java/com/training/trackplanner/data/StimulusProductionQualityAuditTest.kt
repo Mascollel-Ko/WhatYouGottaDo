@@ -18,7 +18,7 @@ import org.robolectric.annotation.Config
 import java.time.LocalDate
 import kotlin.math.ln
 
-/** B14.1 audit corpus: real Room/service cases plus fail-closed routing probes. */
+/** C7 audit corpus: canonical B5/B6 authority plus unchanged B7/B8 fail-closed routing. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28])
 class StimulusProductionQualityAuditTest {
@@ -38,7 +38,7 @@ class StimulusProductionQualityAuditTest {
 
         assertEquals(3, strength.size)
         assertEquals(4, hypertrophy.size)
-        (strength + hypertrophy).forEach { auditSuccessfulCase(it) }
+        (strength + hypertrophy).forEach { auditC7Case(it) }
 
         val fallback = runRealCase(CorpusSpec("strength_without_reviewed_history", TrainableQuality.STRENGTH, "barbell_back_squat", withHistory = false))
         assertEquals(StimulusProductionProgramSource.CONTROL, fallback.production.routeDecision.selectedSource)
@@ -65,7 +65,9 @@ class StimulusProductionQualityAuditTest {
         assertEquals(listOf("B9_B8_CONTROL_REQUIRED"), noMaterialRoute.decision.reasonCodes)
 
         val audit = requireNotNull(h.comparison.experimentalReadinessAudit)
-        val owner = requireNotNull(h.comparison.productionCutoverAuthority).authorizedOwnerIdentities.single()
+        val owner = requireNotNull(h.comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty()
+            .single { it.quality == TrainableQuality.HYPERTROPHY && it.authorizedPrescription != null }.owner)
+            .let { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }
         fun attribution(targetIds: List<String>) = StimulusExperimentalChangeAttribution(
             stableKey = owner.stableKey, selectionRole = owner.selectionRole,
             source = StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION,
@@ -84,9 +86,16 @@ class StimulusProductionQualityAuditTest {
             targetPlan = h.comparison.targetPlan.copy(
                 qualityTargets = h.comparison.targetPlan.qualityTargets + h.comparison.targetPlan.qualityTargets.single { it.quality == TrainableQuality.HYPERTROPHY }.copy(quality = TrainableQuality.STRENGTH)
             ),
-            experimentalReadinessAudit = audit.copy(changeAttributions = listOf(attribution(listOf("QUALITY:STRENGTH", "QUALITY:HYPERTROPHY"))))
+            experimentalReadinessAudit = audit.copy(
+                status = StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW,
+                changeAttributions = listOf(attribution(listOf("QUALITY:STRENGTH", "QUALITY:HYPERTROPHY"))),
+                changeProvenanceClosed = true,
+                collateralRegressionFree = true,
+                reasonCodes = emptyList()
+            )
         )
-        assertEquals(StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1, resolver.resolve(combined))
+        assertNull("C7 scope resolution must reject a combined target with incomplete owner provenance", resolver.resolve(combined))
+        assertEquals(StimulusProductionScopeResolutionStatus.PARTIAL_PROVENANCE, resolver.resolveDetailed(combined).status)
         val combinedAuthority = StimulusProductionCutoverAuthorityDecision(
             status = StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER,
             scope = StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1,
@@ -106,7 +115,9 @@ class StimulusProductionQualityAuditTest {
             qualityTargets = unsupported.targetPlan.qualityTargets.filter { it.quality != TrainableQuality.POWER } +
                 unsupported.targetPlan.qualityTargets.first().copy(quality = TrainableQuality.POWER)
         ))
-        assertEquals(StimulusProductionScopeResolutionStatus.UNSUPPORTED_QUALITY, resolver.resolveDetailed(fullyGovernedPower).status)
+        val fullyGovernedPowerScope = resolver.resolveDetailed(fullyGovernedPower)
+        assertEquals(StimulusProductionScopeResolutionStatus.PARTIAL_PROVENANCE, fullyGovernedPowerScope.status)
+        assertTrue("UNSUPPORTED_QUALITY_POWER" in fullyGovernedPowerScope.reasonCodes)
         (TrainableQuality.entries - setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY)).forEach { quality ->
             val probe = h.comparison.copy(
                 targetPlan = h.comparison.targetPlan.copy(qualityTargets = listOf(h.comparison.targetPlan.qualityTargets.first().copy(quality = quality))),
@@ -115,12 +126,13 @@ class StimulusProductionQualityAuditTest {
             val detail = resolver.resolveDetailed(probe)
             assertNull(detail.scope)
             assertEquals(setOf(quality), detail.materialQualities)
-            assertEquals(StimulusProductionScopeResolutionStatus.UNSUPPORTED_QUALITY, detail.status)
+            assertEquals(StimulusProductionScopeResolutionStatus.PARTIAL_PROVENANCE, detail.status)
             assertTrue("UNSUPPORTED_QUALITY_${quality.name}" in detail.reasonCodes)
         }
         val unknown = h.comparison.copy(experimentalReadinessAudit = audit.copy(changeAttributions = listOf(attribution(listOf("QUALITY:NOT_A_QUALITY")))))
         assertEquals(setOf("QUALITY:NOT_A_QUALITY"), resolver.resolveDetailed(unknown).unknownTargetIds)
-        assertEquals(StimulusProductionScopeResolutionStatus.UNKNOWN_TARGET, resolver.resolveDetailed(unknown).status)
+        assertEquals(StimulusProductionScopeResolutionStatus.PARTIAL_PROVENANCE, resolver.resolveDetailed(unknown).status)
+        assertTrue("UNKNOWN_TARGET_ID" in resolver.resolveDetailed(unknown).reasonCodes)
         val three = fullyGovernedPower.copy(experimentalReadinessAudit = audit.copy(changeAttributions = listOf(attribution(listOf("QUALITY:STRENGTH", "QUALITY:HYPERTROPHY", "QUALITY:POWER")))))
         assertTrue("THIRD_QUALITY_PRESENT" in resolver.resolveDetailed(three).reasonCodes)
         val partial = h.comparison.copy(
@@ -143,46 +155,86 @@ class StimulusProductionQualityAuditTest {
             assertSame(route.program, observed.program)
         }
 
-        val authority = requireNotNull(h.comparison.productionCutoverAuthority)
+        // The real C7 output above is required to fail closed. Build a clean comparator from the
+        // same B5/B6 result, with CONTROL differing only by the exact authorized B5 owner, so
+        // downstream router diagnostics can exercise each B6/B7/B8/B9 boundary independently.
+        val cleanControl = h.comparison.experimental.copy(items = h.comparison.experimental.items.filterNot {
+            it.exerciseStableKey == owner.stableKey && it.selectionRole == owner.selectionRole
+        })
+        val positiveBase = StimulusSelectionProgramComparisonEngine().compare(
+            control = cleanControl,
+            experimental = h.comparison.experimental,
+            targetPlan = h.comparison.targetPlan,
+            selectionPlan = h.comparison.selectionPlan,
+            controlAudit = h.comparison.controlAudit,
+            experimentalAudit = h.comparison.experimentalAudit
+        ).copy(
+            prescriptionRealizationPlan = h.comparison.prescriptionRealizationPlan,
+            prescriptionAuthorizationPlan = h.comparison.prescriptionAuthorizationPlan,
+            prescriptionMaterializationAudits = h.comparison.prescriptionMaterializationAudits
+        )
+        val positiveB7 = StimulusExperimentalReadinessAuditEngine().audit(positiveBase)
+        val positiveComparison = positiveBase.copy(experimentalReadinessAudit = positiveB7)
+        assertEquals(StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW, positiveB7.status)
+        val noMaterialRoutingProbe = positiveComparison.copy(
+            experimental = positiveComparison.control,
+            experimentalReadinessAudit = positiveB7.copy(
+                status = StimulusExperimentalReadinessStatus.NO_MATERIAL_CHANGE,
+                changeAttributions = emptyList(),
+                reasonCodes = listOf("NO_MATERIAL_CHANGE")
+            )
+        )
+        // B8 decision mutation behavior is covered by the dedicated authority tests. Supply a
+        // matching typed decision here to isolate the B9 router contract from this C7 corpus.
+        val authority = StimulusProductionCutoverAuthorityDecision(
+            status = StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER,
+            scope = StimulusProductionCutoverScope.HYPERTROPHY_V1,
+            authorizedOwnerIdentities = listOf(owner),
+            reasonCodes = listOf("B8_HYPERTROPHY_V1_AUTHORIZED"),
+            b7Status = positiveB7.status,
+            authorizedAuthorityIdentities = listOf(
+                StimulusPrescriptionAuthorityIdentity(owner.stableKey, owner.selectionRole, TrainableQuality.HYPERTROPHY)
+            )
+        )
         fun stage(comparison: StimulusSelectionProgramComparison, b8: StimulusProductionCutoverAuthorityDecision = authority,
                   mode: StimulusProductionRoutingMode = StimulusProductionRoutingPolicy.defaultMode): StimulusProductionFallbackStage? {
             val route = StimulusProductionRouter().route(comparison, b8, mode)
             return StimulusProductionDiagnostics.observe(comparison.copy(productionCutoverAuthority = b8), route.decision).primaryFallbackStage
         }
-        assertNull(stage(h.comparison))
-        assertEquals(StimulusProductionFallbackStage.CONTROL_POLICY, stage(h.comparison, mode = StimulusProductionRoutingMode.CONTROL_ONLY))
+        assertNull(stage(positiveComparison))
+        assertEquals(StimulusProductionFallbackStage.CONTROL_POLICY, stage(positiveComparison, mode = StimulusProductionRoutingMode.CONTROL_ONLY))
         val denied = authority.copy(status = StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED)
         assertEquals(StimulusProductionFallbackStage.SCOPE_RESOLUTION, stage(missingProvenance, denied))
-        assertEquals(StimulusProductionFallbackStage.NO_MATERIAL_CHANGE, stage(noMaterial, denied))
-        assertEquals(StimulusProductionFallbackStage.B6_EXECUTION_AUTHORITY, stage(h.comparison.copy(experimentalReadinessAudit = audit.copy(materializationIntegrityPassed = false)), denied))
-        val unresolvedExecution = h.comparison.copy(prescriptionAuthorizationPlan = requireNotNull(h.comparison.prescriptionAuthorizationPlan).let { plan ->
+        assertEquals(StimulusProductionFallbackStage.NO_MATERIAL_CHANGE, stage(noMaterialRoutingProbe, denied))
+        assertEquals(StimulusProductionFallbackStage.B6_EXECUTION_AUTHORITY, stage(positiveComparison.copy(experimentalReadinessAudit = positiveB7.copy(materializationIntegrityPassed = false)), denied))
+        val unresolvedExecution = positiveComparison.copy(prescriptionAuthorizationPlan = requireNotNull(positiveComparison.prescriptionAuthorizationPlan).let { plan ->
             plan.copy(authorizations = plan.authorizations.map { if (it.quality == TrainableQuality.HYPERTROPHY) it.copy(executionAuthority = StimulusPrescriptionExecutionAuthority.UNRESOLVED) else it })
         })
         assertEquals(StimulusProductionFallbackStage.B6_EXECUTION_AUTHORITY, stage(unresolvedExecution, denied))
-        val partialExecution = h.comparison.copy(prescriptionMaterializationAudits = h.comparison.prescriptionMaterializationAudits.map {
+        val partialExecution = positiveComparison.copy(prescriptionMaterializationAudits = positiveComparison.prescriptionMaterializationAudits.map {
             if (it.quality == TrainableQuality.HYPERTROPHY) it.copy(state = StimulusPrescriptionMaterializationState.PARTIALLY_MATERIALIZED) else it
         })
         assertEquals(StimulusProductionFallbackStage.B6_EXECUTION_AUTHORITY, stage(partialExecution, denied))
-        assertEquals(StimulusProductionFallbackStage.B7_READINESS, stage(h.comparison.copy(experimentalReadinessAudit = audit.copy(status = StimulusExperimentalReadinessStatus.NOT_ELIGIBLE)), denied))
-        assertEquals(StimulusProductionFallbackStage.B8_CUTOVER_AUTHORITY, stage(h.comparison, denied))
-        assertEquals(StimulusProductionFallbackStage.B9_ROUTING_CONTRACT, stage(h.comparison, authority.copy(authorizedAuthorityIdentities = emptyList())))
+        assertEquals(StimulusProductionFallbackStage.B7_READINESS, stage(positiveComparison.copy(experimentalReadinessAudit = positiveB7.copy(status = StimulusExperimentalReadinessStatus.NOT_ELIGIBLE)), denied))
+        assertEquals(StimulusProductionFallbackStage.B8_CUTOVER_AUTHORITY, stage(positiveComparison, denied))
+        assertEquals(StimulusProductionFallbackStage.B9_ROUTING_CONTRACT, stage(positiveComparison, authority.copy(authorizedAuthorityIdentities = emptyList())))
         listOf(
             authority.copy(authorizedAuthorityIdentities = emptyList()),
             authority.copy(authorizedAuthorityIdentities = authority.authorizedAuthorityIdentities + authority.authorizedAuthorityIdentities.single()),
             authority.copy(authorizedAuthorityIdentities = listOf(StimulusPrescriptionAuthorityIdentity(owner.stableKey, owner.selectionRole, TrainableQuality.STRENGTH))),
             authority.copy(authorizedAuthorityIdentities = listOf(StimulusPrescriptionAuthorityIdentity("other", owner.selectionRole, TrainableQuality.HYPERTROPHY)))
         ).forEach { malformed ->
-            val routed = StimulusProductionRouter().route(h.comparison, malformed, StimulusProductionRoutingMode.B8_SINGLE_QUALITY_STRENGTH_HYPERTROPHY_V1_ACTIVE)
+            val routed = StimulusProductionRouter().route(positiveComparison, malformed, StimulusProductionRoutingMode.B8_SINGLE_QUALITY_STRENGTH_HYPERTROPHY_V1_ACTIVE)
             assertEquals(StimulusProductionProgramSource.CONTROL, routed.decision.selectedSource)
             assertEquals(listOf("B9_B8_AUTHORITY_IDENTITY_MISMATCH"), routed.decision.reasonCodes)
         }
 
-        val rollback = StimulusProductionRouter().route(h.comparison, authority, StimulusProductionRoutingMode.CONTROL_ONLY)
-        assertSame(h.comparison.control, rollback.program)
+        val rollback = StimulusProductionRouter().route(positiveComparison, authority, StimulusProductionRoutingMode.CONTROL_ONLY)
+        assertSame(positiveComparison.control, rollback.program)
         assertFalse(rollback.decision.productionRoutingActive)
 
         val legacyStrength = runRealCase(CorpusSpec("legacy_strength", TrainableQuality.STRENGTH, "barbell_back_squat"))
-        val legacyH = StimulusProductionRouter().route(h.comparison, authority, StimulusProductionRoutingMode.B8_STRENGTH_V1_ACTIVE)
+        val legacyH = StimulusProductionRouter().route(positiveComparison, authority, StimulusProductionRoutingMode.B8_STRENGTH_V1_ACTIVE)
         assertEquals(StimulusProductionProgramSource.B8_STRENGTH_V1, legacyStrength.production.routeDecision.selectedSource)
         assertEquals(StimulusProductionProgramSource.CONTROL, legacyH.decision.selectedSource)
         assertEquals(listOf("B9_B8_SCOPE_MISMATCH"), legacyH.decision.reasonCodes)
@@ -253,10 +305,31 @@ class StimulusProductionQualityAuditTest {
         val production = case.production
         val comparison = case.comparison
         val authority = requireNotNull(comparison.productionCutoverAuthority)
+        val unexplainedRows = comparison.experimentalReadinessAudit?.changeAttributions.orEmpty()
+            .filter { it.source == StimulusExperimentalChangeAttributionSource.UNEXPLAINED }
+            .mapNotNull { attribution ->
+                val key = attribution.stableKey ?: return@mapNotNull null
+                val role = attribution.selectionRole ?: return@mapNotNull null
+                val identity = StimulusPrescriptionOwnerIdentity(key, role)
+                "$identity control=${ownerRows(comparison.control, identity)} experimental=${ownerRows(comparison.experimental, identity)}"
+            }
         val expectedSource = if (case.spec.quality == TrainableQuality.STRENGTH) StimulusProductionProgramSource.B8_STRENGTH_V1 else StimulusProductionProgramSource.B8_HYPERTROPHY_V1
         val expectedScope = if (case.spec.quality == TrainableQuality.STRENGTH) StimulusProductionCutoverScope.STRENGTH_V1 else StimulusProductionCutoverScope.HYPERTROPHY_V1
-        assertEquals(expectedScope, authority.scope)
-        assertEquals(StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER, authority.status)
+        assertEquals(
+            "case=${case.spec.label} authority=$authority selected=${comparison.selectionPlan.selectedCandidates} " +
+                "b6=${comparison.prescriptionAuthorizationPlan?.authorizations} " +
+                "b7=${comparison.experimentalReadinessAudit}",
+            expectedScope, authority.scope
+        )
+        assertEquals(
+            "C7 canonical authorization missing for ${case.spec.label}: authority=$authority " +
+                "b6=${comparison.prescriptionAuthorizationPlan?.authorizations} " +
+                "realization=${comparison.prescriptionRealizationPlan?.resolutions} " +
+                "readiness=${comparison.experimentalReadinessAudit} " +
+                "materialization=${comparison.prescriptionMaterializationAudits} " +
+                "unexplainedRows=$unexplainedRows",
+            StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER, authority.status
+        )
         assertEquals(expectedSource, production.routeDecision.selectedSource)
         assertTrue(production.routeDecision.productionRoutingActive)
         assertEquals(listOf(if (case.spec.quality == TrainableQuality.STRENGTH) "B9_B8_STRENGTH_V1_ROUTED" else "B9_B8_HYPERTROPHY_V1_ROUTED"), production.routeDecision.reasonCodes)
@@ -283,7 +356,27 @@ class StimulusProductionQualityAuditTest {
         }
         assertTrue(attributions.isNotEmpty())
         assertTrue(attributions.all { "QUALITY:$quality" in it.targetIds })
-        val unrelated = comparison.controlOwnerIdentities.filter { it !in materialOwners }
+        val constrained = comparison.experimentalReadinessAudit.changeAttributions.filter {
+            it.source == StimulusExperimentalChangeAttributionSource.DOWNSTREAM_CONSTRAINT_DISPLACEMENT
+        }
+        val executionTrace = comparison.experimental.personalizedDecision?.planningBudget?.execution
+        assertTrue(constrained.all {
+            "OWNER_LOCAL_CONSTRAINED_SET_SUBSET" in it.reasonCodes &&
+                "EXPERIMENTAL_OWNER_CONSTRAINT_TRACE" in it.evidenceSources &&
+                it.stableKey in executionTrace?.constrainedOwnerStableKeys.orEmpty()
+        })
+        // A B5-selected canonical owner can replace the old CONTROL role for the same exercise,
+        // while B7 may separately attribute an exact set-prefix reduction caused by an explicit
+        // builder constraint. Every other owner must remain byte-identical.
+        val materialOwnerKeys = materialOwners.mapTo(linkedSetOf(), StimulusPrescriptionOwnerIdentity::stableKey)
+        val constrainedOwners = constrained.mapNotNullTo(linkedSetOf()) { attribution ->
+            val key = attribution.stableKey ?: return@mapNotNullTo null
+            val role = attribution.selectionRole ?: return@mapNotNullTo null
+            StimulusPrescriptionOwnerIdentity(key, role)
+        }
+        val unrelated = comparison.controlOwnerIdentities.filter {
+            it.stableKey !in materialOwnerKeys && it !in constrainedOwners
+        }
         unrelated.forEach { identity -> assertEquals(ownerRows(comparison.control, identity), ownerRows(comparison.experimental, identity)) }
         assertTrue(comparison.prescriptionMaterializationAudits.filter { it.owner?.let { o -> StimulusPrescriptionOwnerIdentity(o.stableKey, o.selectionRole) in materialOwners } == true }.all { it.shortfall == 0 && it.overrun == 0 && it.prescriptionPreservedOrSubset })
         if (quality == TrainableQuality.HYPERTROPHY) {
@@ -293,6 +386,52 @@ class StimulusProductionQualityAuditTest {
             assertEquals(StimulusPrescriptionExecutionAuthority.FULLY_ENCODED, authorization.executionAuthority)
         }
         println("B14.1 CORPUS\n${StimulusProductionAuditReport.render(case)}")
+    }
+
+    private fun auditC7Case(case: CorpusCase) {
+        val comparison = case.comparison
+        val targetId = "QUALITY:${case.spec.quality.name}"
+        val selected = comparison.selectionPlan.selectedCandidates.filter { targetId in it.coveredTargetIds }
+        assertTrue("${case.spec.label}: B4 target did not reach B5", selected.isNotEmpty())
+        val authorizations = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().filter { authorization ->
+            authorization.quality == case.spec.quality && authorization.targetId == targetId &&
+                authorization.owner?.let { owner -> selected.any {
+                    it.stableKey == owner.stableKey && it.selectionRole == owner.selectionRole
+                } } == true && authorization.authorizedPrescription != null && authorization.status in setOf(
+                StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR
+            )
+        }
+        assertTrue("${case.spec.label}: no exact B5/B6 authority", authorizations.isNotEmpty())
+        assertEquals(1, case.production.buildCounts.controlBuilds)
+        assertEquals(1, case.production.buildCounts.experimentalBuilds)
+        assertEquals(2, case.production.buildCounts.totalBuildInvocations)
+        assertEquals(0, case.production.buildCounts.thirdBuilds)
+        val authority = requireNotNull(comparison.productionCutoverAuthority)
+        if (authority.status == StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER) {
+            auditSuccessfulCase(case)
+            return
+        }
+
+        // C7 no longer treats legacy parity as a routing condition. Where an unrelated
+        // owner change cannot be proven by the existing B7 evidence, retain CONTROL.
+        val readiness = requireNotNull(comparison.experimentalReadinessAudit)
+        assertEquals(StimulusExperimentalReadinessStatus.NOT_ELIGIBLE, readiness.status)
+        assertTrue("${case.spec.label}: fallback lacks an explicit provenance failure",
+            "CHANGE_PROVENANCE_UNCLOSED" in readiness.reasonCodes)
+        assertTrue("${case.spec.label}: B7 did not identify the unresolved owner",
+            readiness.changeAttributions.any { it.source == StimulusExperimentalChangeAttributionSource.UNEXPLAINED })
+        assertTrue(readiness.shadowOnly)
+        assertFalse(readiness.productionAuthority)
+        assertNull(readiness.winner)
+        assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, authority.status)
+        assertTrue("B8_B7_NOT_ELIGIBLE" in authority.reasonCodes)
+        assertSame(comparison.control, case.production.program)
+        assertEquals(StimulusProductionProgramSource.CONTROL, case.production.routeDecision.selectedSource)
+        assertFalse(case.production.routeDecision.productionRoutingActive)
+        val uniqueRows = comparison.experimental.items.map { listOf(it.weekNumber, it.dayOfWeek, it.orderIndex, it.exerciseStableKey, it.selectionRole) }
+        assertEquals(uniqueRows.size, uniqueRows.toSet().size)
+        assertTrue(comparison.experimental.items.none { it.exerciseStableKey in comparison.experimental.request.excludedExerciseStableKeys })
     }
 
     private suspend fun runRealCase(spec: CorpusSpec): CorpusCase {
@@ -433,10 +572,11 @@ class StimulusProductionQualityAuditTest {
     private fun composeCombinedRealCase(raw: CombinedCorpusCase, hypertrophy: CorpusCase): CombinedCorpusCase {
         val rawComparison = raw.comparison
         val hComparison = hypertrophy.comparison
-        val hAuthority = requireNotNull(hComparison.productionCutoverAuthority)
-        val hOwner = requireNotNull(hAuthority.authorizedOwnerIdentities.singleOrNull())
+        val hOwner = requireNotNull(hComparison.prescriptionAuthorizationPlan?.authorizations.orEmpty()
+            .single { it.quality == TrainableQuality.HYPERTROPHY && it.authorizedPrescription != null }.owner)
+            .let { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }
         val hRows = hComparison.experimental.items.filter {
-            it.exerciseStableKey == hOwner.stableKey && it.selectionRole == hOwner.selectionRole
+                it.exerciseStableKey == hOwner.stableKey && it.selectionRole == hOwner.selectionRole
         }
         val replacedExperimentalRows = rawComparison.experimental.items.filterNot {
             it.exerciseStableKey == hOwner.stableKey && it.selectionRole == hOwner.selectionRole

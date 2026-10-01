@@ -22,8 +22,20 @@ class StimulusPlannedPrescriptionResolver {
         } }
         if (!repsCompatible) return PlannedStimulusCompatibility(quality, PlannedStimulusCompatibilityStatus.INCOMPATIBLE,
             reasonCodes = listOf("PLANNED_REPS_OUTSIDE_${quality.name}_MODEL"))
-        val reference = snapshot.canonicalStrengthSignals[stableKey]?.posteriorMedianKg
+        val canonicalReference = snapshot.canonicalStrengthSignals[stableKey]
+            ?.takeIf { quality != TrainableQuality.STRENGTH || it.observationCount >= 2 }
+            ?.posteriorMedianKg
             ?.takeIf { it.isFinite() && it > 0.0 }
+        val reviewedHistory = if (quality == TrainableQuality.STRENGTH) {
+            latestTargetCompatiblePersonalSet(quality, stableKey, snapshot, requireReviewedAuthority = true)
+        } else null
+        val exactReviewedHistory = reviewedHistory?.takeIf { history ->
+            prescription.weightSource == "TARGET_COMPATIBLE_PERSONAL_STRENGTH_HISTORY" &&
+                prescription.sets.all { set ->
+                    set.reps == history.record.reps && set.weightKg == history.resolvedLoadKg && set.seconds == history.record.seconds
+                }
+        }
+        val reference = canonicalReference ?: exactReviewedHistory?.reference1RmKg
         val loads = prescription.sets.map { it.weightKg }
         if (quality == TrainableQuality.STRENGTH) {
             if (reference == null) return PlannedStimulusCompatibility(quality, PlannedStimulusCompatibilityStatus.UNRESOLVED,
@@ -57,7 +69,9 @@ class StimulusPlannedPrescriptionResolver {
         if (count == 0) return null
         return when (quality) {
             TrainableQuality.STRENGTH -> {
-                val reference = snapshot.canonicalStrengthSignals[stableKey]?.posteriorMedianKg
+                val reference = snapshot.canonicalStrengthSignals[stableKey]
+                    ?.takeIf { it.observationCount >= 2 }
+                    ?.posteriorMedianKg
                     ?.takeIf { it.isFinite() && it > 0.0 } ?: return null
                 val load = current.sets.map { it.weightKg }.filter { it.isFinite() && it > 0.0 }.minOrNull() ?: return null
                 if (load / reference < .70) return null

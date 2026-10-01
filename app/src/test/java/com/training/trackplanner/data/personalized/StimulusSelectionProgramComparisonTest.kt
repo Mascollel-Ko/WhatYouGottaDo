@@ -91,7 +91,7 @@ class StimulusSelectionProgramComparisonTest {
             traces = listOf(
                 StimulusCandidateSelectionTrace("QUALITY:STRENGTH", StimulusDoseStrategy.INTRODUCE_DIRECT_STIMULUS, TargetPriority.PRIMARY, emptyList(), true, listOf("missing"), "missing", null),
                 StimulusCandidateSelectionTrace("QUALITY:HYPERTROPHY", StimulusDoseStrategy.INTRODUCE_DIRECT_STIMULUS, TargetPriority.SECONDARY, emptyList(), false, emptyList(), null, reused),
-                StimulusCandidateSelectionTrace("TASK:CONTROL", StimulusDoseStrategy.HOLD_PERSONAL_BASELINE, TargetPriority.MAINTENANCE, listOf("control"), false, emptyList(), null, null, reasonCodes = listOf("DIRECT_CAPABILITY_IDENTITY_ALREADY_PRESENT"))
+                StimulusCandidateSelectionTrace("TASK:CONTROL", StimulusDoseStrategy.NO_MINIMUM_TARGET, TargetPriority.MAINTENANCE, listOf("control"), false, emptyList(), null, null, reasonCodes = listOf("NO_MINIMUM_TARGET"))
             ),
             materialDemand = MaterialDemand(emptyList(), emptyMap(), emptyMap())
         )
@@ -102,7 +102,7 @@ class StimulusSelectionProgramComparisonTest {
         assertTrue(comparison.materializationTraces[0].reasonCodes.contains("CANDIDATE_SELECTED_BUT_NOT_MATERIALIZED"))
         assertEquals(reused, comparison.materializationTraces[1].selectedStableKey)
         assertTrue(comparison.materializationTraces[1].reasonCodes.contains("SELECTION_TARGET_IDENTITY_MATERIALIZED"))
-        assertTrue(comparison.materializationTraces[2].reasonCodes.contains("CONTROL_DIRECT_IDENTITY_ALREADY_PRESENT"))
+        assertTrue(comparison.materializationTraces[2].reasonCodes.contains("SELECTION_NOT_REQUESTED"))
         assertTrue(comparison.materializationTraces[2].selectedStableKey == null)
         assertTrue(comparison.winner == null)
     }

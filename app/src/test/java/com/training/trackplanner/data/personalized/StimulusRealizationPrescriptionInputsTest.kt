@@ -15,8 +15,8 @@ class StimulusRealizationPrescriptionInputsTest {
     private val role = "CANONICAL_STIMULUS_QUALITY_STRENGTH"
     private val owner = StimulusPrescriptionOwnerIdentity(key, role)
 
-    private fun target() = StimulusQualityTarget(
-        quality = TrainableQuality.STRENGTH,
+    private fun target(quality: TrainableQuality = TrainableQuality.STRENGTH) = StimulusQualityTarget(
+        quality = quality,
         strategy = StimulusDoseStrategy.INTRODUCE_DIRECT_STIMULUS,
         priority = TargetPriority.PRIMARY,
         numericAuthority = StimulusTargetNumericAuthority.PERSONAL_SUCCESSFUL_DOSE,
@@ -31,11 +31,15 @@ class StimulusRealizationPrescriptionInputsTest {
         evidence = emptyList()
     )
 
-    private fun selectionPlan(key: String = this.key) = StimulusCandidateSelectionPlan(
+    private fun selectionPlan(
+        key: String = this.key,
+        quality: TrainableQuality = TrainableQuality.STRENGTH,
+        role: String = if (quality == TrainableQuality.STRENGTH) this.role else "CANONICAL_STIMULUS_QUALITY_${quality.name}"
+    ) = StimulusCandidateSelectionPlan(
         selectedCandidates = listOf(StimulusSelectedCandidate(
             stableKey = key,
-            coveredTargetIds = setOf("QUALITY:STRENGTH"),
-            primaryTargetId = "QUALITY:STRENGTH",
+            coveredTargetIds = setOf("QUALITY:${quality.name}"),
+            primaryTargetId = "QUALITY:${quality.name}",
             selectionReasons = listOf("B4_TARGET_REQUESTED_IDENTITY"),
             currentPrescriptionCompatibility = "REALIZATION_UNCLASSIFIED",
             targetSetsFromExistingPrescription = 2,
@@ -49,7 +53,11 @@ class StimulusRealizationPrescriptionInputsTest {
         )
     )
 
-    private fun snapshot(history: List<PlanningSetRecord>) = PlanningHistorySnapshot(
+    private fun snapshot(
+        history: List<PlanningSetRecord>,
+        reviewed: Boolean = false,
+        canonicalStrengthSignals: Map<String, CanonicalStrengthSignal> = emptyMap()
+    ) = PlanningHistorySnapshot(
         cutoff = LocalDate.of(2026, 9, 30),
         allConfirmedSets = history,
         exercises = mapOf(key to Exercise(key, "Barbell Back Squat", "STRENGTH", "RESISTANCE", "BARBELL")),
@@ -60,26 +68,120 @@ class StimulusRealizationPrescriptionInputsTest {
         badmintonTrainingYears = 0.0,
         preferences = PersonalizedPlanningPreferences(
             StrengthIntent.STRENGTH_PRIORITY, BadmintonPlanningIntent.DISABLED, FreeWeightWillingness.WILLING
-        )
+        ),
+        canonicalStrengthSignals = canonicalStrengthSignals,
+        stimulusExposureLedger = if (reviewed) StimulusExposureLedger(
+            facetProfilesByStableKey = emptyMap(),
+            setObservations = history.mapIndexed { index, row ->
+                val qualityKind = when (row.reps) {
+                    in 1..6 -> RealizedStimulusKind.STRENGTH_LIKE
+                    in 7..15 -> RealizedStimulusKind.HYPERTROPHY_LIKE
+                    else -> RealizedStimulusKind.NONE
+                }
+                val quality = when (qualityKind) {
+                    RealizedStimulusKind.STRENGTH_LIKE -> TrainableQuality.STRENGTH
+                    RealizedStimulusKind.HYPERTROPHY_LIKE -> TrainableQuality.HYPERTROPHY
+                    RealizedStimulusKind.NONE -> TrainableQuality.POWER
+                }
+                StimulusSetObservation(
+                    source = StimulusSourceRef(index.toLong() + 1L, "reviewed-${index + 1}", index.toLong() + 1L,
+                        row.setIndex, "reviewed-${row.date}", row.date, row.stableKey),
+                    activityKind = PlannedActivityKind.RESISTANCE,
+                    reps = row.reps,
+                    weightKg = row.weightKg,
+                    seconds = row.seconds,
+                    rpe = row.rpe,
+                    realizedPrescriptionClass = when (qualityKind) {
+                        RealizedStimulusKind.STRENGTH_LIKE -> RealizedStimulusClass.STRENGTH_LIKE
+                        RealizedStimulusKind.HYPERTROPHY_LIKE -> RealizedStimulusClass.HYPERTROPHY_LIKE
+                        RealizedStimulusKind.NONE -> RealizedStimulusClass.AMBIGUOUS_REALIZED_STIMULUS
+                    },
+                    facetProfileKey = key,
+                    classificationAuthority = StimulusClassificationAuthority.REVIEWED_CANONICAL,
+                    realizedStimulusClassification = RealizedStimulusClassification(
+                        kind = qualityKind,
+                        status = if (qualityKind == RealizedStimulusKind.NONE) RealizedStimulusStatus.REVIEWED_NON_REALIZATION else RealizedStimulusStatus.REALIZED,
+                        authority = RealizedStimulusAuthority.REVIEWED,
+                        resolvedLoadKg = row.weightKg.takeIf { it > 0.0 },
+                        reference1RmKg = if (qualityKind == RealizedStimulusKind.STRENGTH_LIKE) 50.0 else null,
+                        relativeIntensity = if (qualityKind == RealizedStimulusKind.STRENGTH_LIKE) row.weightKg / 50.0 else null,
+                        observedRpe = row.rpe,
+                        impliedRir = 2.0,
+                        reasonCodes = listOf("TEST_REVIEWED_REALIZATION")
+                    )
+                )
+            },
+            courtObservations = emptyList(), cutoff = LocalDate.of(2026, 9, 30)
+        ) else StimulusExposureLedger.EMPTY
     )
 
     @Test
     fun canonicalPrescriptionContextUsesSelectedOwnerAndActualHistoryOnly() {
         val actualHistory = listOf(
-            PlanningSetRecord(LocalDate.of(2026, 9, 25), key, "Back Squat", "STRENGTH", 1, 5, 100.0, 0, 8.0),
-            PlanningSetRecord(LocalDate.of(2026, 9, 25), key, "Back Squat", "STRENGTH", 2, 5, 100.0, 0, 8.0)
+            PlanningSetRecord(LocalDate.of(2026, 9, 25), key, "Back Squat", "STRENGTH", 1, 8, 40.0, 0, 8.0),
+            PlanningSetRecord(LocalDate.of(2026, 9, 25), key, "Back Squat", "STRENGTH", 2, 8, 40.0, 0, 8.0),
+            PlanningSetRecord(LocalDate.of(2026, 9, 5), key, "Back Squat", "STRENGTH", 1, 5, 40.0, 3, 8.0),
+            PlanningSetRecord(LocalDate.of(2026, 9, 5), key, "Back Squat", "STRENGTH", 2, 5, 40.0, 3, 8.0)
         )
         val context = buildCanonicalPrescriptionContext(
             StimulusTargetPlan(listOf(target()), emptyList(), emptyList()),
-            selectionPlan(), snapshot(actualHistory), StrengthIntent.STRENGTH_PRIORITY
+            selectionPlan(), snapshot(actualHistory, reviewed = true,
+                canonicalStrengthSignals = mapOf(key to CanonicalStrengthSignal(50.0, observationCount = 2))),
+            StrengthIntent.STRENGTH_PRIORITY
         )
         val prescription = context.prescriptions.getValue(owner)
 
         assertEquals(setOf(owner), context.prescriptions.keys)
         assertEquals(setOf(owner), context.historyBackedOwners)
         assertTrue(prescription.sets.isNotEmpty())
-        assertTrue(prescription.sets.all { it.reps == 5 && it.weightKg == 100.0 })
-        assertTrue(prescription.weightSource.startsWith("CANONICAL_POSTERIOR_"))
+        assertTrue(prescription.sets.all { it.reps == 5 && it.weightKg == 40.0 && it.seconds == 3 })
+        assertEquals("TARGET_COMPATIBLE_PERSONAL_STRENGTH_HISTORY", prescription.weightSource)
+        assertTrue(context.historyBackedAuthorities.contains(
+            StimulusPrescriptionAuthorityIdentity(key, role, TrainableQuality.STRENGTH)
+        ))
+    }
+
+    @Test
+    fun hypertrophyContextPrefersReviewedSameExerciseHistoryOverRecentIncompatibleSets() {
+        val hRole = "CANONICAL_STIMULUS_QUALITY_HYPERTROPHY"
+        val actualHistory = listOf(
+            PlanningSetRecord(LocalDate.of(2026, 9, 25), key, "Back Squat", "STRENGTH", 1, 5, 40.0, 0, 8.0),
+            PlanningSetRecord(LocalDate.of(2026, 9, 5), key, "Back Squat", "STRENGTH", 1, 10, 35.0, 2, 8.0)
+        )
+        val context = buildCanonicalPrescriptionContext(
+            StimulusTargetPlan(listOf(target(TrainableQuality.HYPERTROPHY)), emptyList(), emptyList()),
+            selectionPlan(quality = TrainableQuality.HYPERTROPHY, role = hRole),
+            snapshot(actualHistory, reviewed = true), StrengthIntent.HYPERTROPHY_PRIORITY
+        )
+        val identity = StimulusPrescriptionOwnerIdentity(key, hRole)
+        val authority = StimulusPrescriptionAuthorityIdentity(key, hRole, TrainableQuality.HYPERTROPHY)
+        val prescription = context.prescriptionsByQuality.getValue(authority)
+
+        assertTrue(prescription.sets.all { it.reps == 10 && it.weightKg == 35.0 && it.seconds == 2 && it.targetRpeMin == 7.0 })
+        assertEquals("TARGET_COMPATIBLE_PERSONAL_HYPERTROPHY_HISTORY", prescription.weightSource)
+        assertTrue(identity in context.historyBackedOwners)
+        assertTrue(authority in context.historyBackedAuthorities)
+    }
+
+    @Test
+    fun incompatibleOnlyHistoryDoesNotBecomeStrengthHistoryAuthorityWithoutCanonicalStrengthSupport() {
+        val onlyHypertrophyHistory = listOf(
+            PlanningSetRecord(LocalDate.of(2026, 9, 25), key, "Back Squat", "STRENGTH", 1, 10, 40.0, 0, 8.0)
+        )
+        val context = buildCanonicalPrescriptionContext(
+            StimulusTargetPlan(listOf(target()), emptyList(), emptyList()),
+            selectionPlan(), snapshot(onlyHypertrophyHistory, reviewed = true), StrengthIntent.STRENGTH_PRIORITY
+        )
+        val identity = StimulusPrescriptionAuthorityIdentity(key, role, TrainableQuality.STRENGTH)
+        val authorization = StimulusPrescriptionAuthorizationEngine().build(
+            StimulusTargetPlan(listOf(target()), emptyList(), emptyList()),
+            selectionPlan(), snapshot(onlyHypertrophyHistory, reviewed = true), context
+        ).authorizations.single()
+
+        assertTrue(context.historyBackedOwners.isEmpty())
+        assertTrue(identity !in context.historyBackedAuthorities)
+        assertEquals(StimulusPrescriptionAuthorizationStatus.NO_EXECUTABLE_AUTHORIZATION, authorization.status)
+        assertTrue(authorization.reasonCodes.any { it == "CANONICAL_POSTERIOR_REFERENCE_UNAVAILABLE" })
     }
 
     @Test
@@ -98,7 +200,9 @@ class StimulusRealizationPrescriptionInputsTest {
     @Test
     fun realizationUsesOnlyB5OwnersAndFinalExperimentalMaterialization() {
         val planned = PlannedPrescription("history", listOf(ProgramSetPrescription(1, 5, 100.0, 0)), 180, "HISTORY")
-        val context = CanonicalPrescriptionContext(mapOf(owner to planned), setOf(owner))
+        val context = CanonicalPrescriptionContext(mapOf(owner to planned), setOf(owner), mapOf(
+            StimulusPrescriptionAuthorityIdentity(key, role, TrainableQuality.STRENGTH) to planned
+        ), setOf(StimulusPrescriptionAuthorityIdentity(key, role, TrainableQuality.STRENGTH)))
         val materialized = ProgramSkeletonItem(
             localId = "row", weekNumber = 1, dayOfWeek = 1, orderIndex = 1,
             exerciseStableKey = key, exerciseName = "Back Squat", category = "STRENGTH", restSeconds = 180,
@@ -113,6 +217,7 @@ class StimulusRealizationPrescriptionInputsTest {
         assertEquals(setOf(owner), actual.currentPrescriptions.keys)
         assertEquals("AUTHORIZED", actual.currentPrescriptions.getValue(owner).weightSource)
         assertEquals(4, actual.currentPrescriptions.getValue(owner).sets.single().reps)
+        assertEquals("AUTHORIZED", actual.currentPrescriptionsByQuality.values.single().weightSource)
         assertFalse(actual.currentPrescriptions.containsKey(StimulusPrescriptionOwnerIdentity("unselected", "OTHER")))
     }
 }

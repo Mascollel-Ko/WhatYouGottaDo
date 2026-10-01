@@ -39,7 +39,9 @@ data class ExecutionAllocationTrace(
     val representedGapCodesByStableKey: Map<String, Set<String>>,
     val prescriptionSources: Map<String, String>,
     val supportiveGapCodesByStableKey: Map<String, Set<String>> = emptyMap(),
-    val scheduleTiers: Map<String, ScheduleTier> = emptyMap()
+    val scheduleTiers: Map<String, ScheduleTier> = emptyMap(),
+    /** Stable keys whose requested builder demand was constrained before final materialization. */
+    val constrainedOwnerStableKeys: Set<String> = emptySet()
 ) {
     fun toJson(): JSONObject = JSONObject()
         .put("capacity", JSONObject()
@@ -93,6 +95,7 @@ data class ExecutionAllocationTrace(
         .put("supportiveGapCodesByStableKey", JSONObject().apply {
             supportiveGapCodesByStableKey.forEach { (key, codes) -> put(key, JSONArray(codes.toList())) }
         })
+        .put("constrainedOwnerStableKeys", JSONArray(constrainedOwnerStableKeys.sorted()))
 }
 
 data class TimedPlannedExercise(val item: PlannedExercise, val prescription: PlannedPrescription) {

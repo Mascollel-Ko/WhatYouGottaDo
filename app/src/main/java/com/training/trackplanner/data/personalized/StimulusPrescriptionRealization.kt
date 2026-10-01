@@ -135,12 +135,15 @@ class StimulusPrescriptionRealizationPlanEngine(
         selectionPlan: StimulusCandidateSelectionPlan,
         snapshot: PlanningHistorySnapshot,
         currentPrescriptions: Map<StimulusPrescriptionOwnerIdentity, PlannedPrescription> = emptyMap(),
-        historyBackedOwners: Set<StimulusPrescriptionOwnerIdentity> = emptySet()
+        historyBackedOwners: Set<StimulusPrescriptionOwnerIdentity> = emptySet(),
+        currentPrescriptionsByQuality: Map<StimulusPrescriptionAuthorityIdentity, PlannedPrescription> = emptyMap(),
+        historyBackedAuthorities: Set<StimulusPrescriptionAuthorityIdentity> = emptySet()
     ): StimulusPrescriptionRealizationPlan = StimulusPrescriptionRealizationPlan(
         targetPlan.qualityTargets.map { target ->
             val targetId = "QUALITY:${target.quality.name}"
             val candidates = selectionPlan.selectedCandidates.filter { targetId in it.coveredTargetIds }
-            resolveTarget(targetId, target, candidates, selectionPlan, snapshot, currentPrescriptions, historyBackedOwners)
+            resolveTarget(targetId, target, candidates, selectionPlan, snapshot, currentPrescriptions, historyBackedOwners,
+                currentPrescriptionsByQuality, historyBackedAuthorities)
         }
     )
 
@@ -151,7 +154,9 @@ class StimulusPrescriptionRealizationPlanEngine(
         selectionPlan: StimulusCandidateSelectionPlan,
         snapshot: PlanningHistorySnapshot,
         currentPrescriptions: Map<StimulusPrescriptionOwnerIdentity, PlannedPrescription>,
-        historyBackedOwners: Set<StimulusPrescriptionOwnerIdentity>
+        historyBackedOwners: Set<StimulusPrescriptionOwnerIdentity>,
+        currentPrescriptionsByQuality: Map<StimulusPrescriptionAuthorityIdentity, PlannedPrescription>,
+        historyBackedAuthorities: Set<StimulusPrescriptionAuthorityIdentity>
     ): StimulusPrescriptionResolution {
         fun base(
             status: StimulusPrescriptionResolutionStatus,
@@ -176,7 +181,10 @@ class StimulusPrescriptionRealizationPlanEngine(
         val ownerOptions = when {
             candidates.isNotEmpty() -> candidates.map { candidate ->
                 val identity = StimulusPrescriptionOwnerIdentity(candidate.stableKey, candidate.selectionRole)
-                identity to if (identity in historyBackedOwners) "CANONICAL_HISTORY_PRESCRIPTION" else "B5_SELECTION"
+                val authority = StimulusPrescriptionAuthorityIdentity(identity.stableKey, identity.selectionRole, target.quality)
+                identity to if (authority in historyBackedAuthorities ||
+                    (historyBackedAuthorities.isEmpty() && identity in historyBackedOwners)
+                ) "CANONICAL_HISTORY_PRESCRIPTION" else "B5_SELECTION"
             }
             else -> emptyList()
         }.distinct()
@@ -190,7 +198,8 @@ class StimulusPrescriptionRealizationPlanEngine(
             return prescriptions.prescribe(snapshot, StrengthIntent.MIXED, item, style)
         }
         val evaluated = ownerOptions.mapNotNull { (identity, source) ->
-            val current = currentPrescriptions[identity]
+            val authority = StimulusPrescriptionAuthorityIdentity(identity.stableKey, identity.selectionRole, target.quality)
+            val current = currentPrescriptionsByQuality[authority] ?: currentPrescriptions[identity]
             val effective = current ?: probeFor(identity) ?: return@mapNotNull null
             val compatibility = plannedResolver.compatibility(target.quality, effective, snapshot, identity.stableKey)
             Triple(identity, source, Triple(current, effective, compatibility))

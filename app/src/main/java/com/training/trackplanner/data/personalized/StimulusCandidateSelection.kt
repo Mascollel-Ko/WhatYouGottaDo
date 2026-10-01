@@ -197,6 +197,13 @@ class StimulusTargetCandidateSelector(
         targets.forEach { intent ->
             val historyIdentities = historyDirectCapabilityIdentities(intent, historyIndex.contextHistoryStableKeys, snapshot, physicalQualityCatalog)
 
+            if (!selectionAllowed(intent)) {
+                val reason = noSelectionReason(intent)
+                deferred[intent.targetId] = reason
+                traces += trace(intent, historyIdentities, false, emptyList(), null, null, emptyMap(), listOf(reason))
+                return@forEach
+            }
+
             val reusable = selected.values.firstOrNull { selectedCandidate ->
                 directlyCovers(intent, selectedCandidate.stableKey, snapshot, physicalQualityCatalog)
             }
@@ -208,13 +215,6 @@ class StimulusTargetCandidateSelector(
                     emptyMap(), listOf("TARGET_COVERED_BY_ALREADY_SELECTED_IDENTITY", realizedGapCode(intent)),
                     reusedRole = reusable.selectionRole
                 )
-                return@forEach
-            }
-
-            if (!selectionAllowed(intent)) {
-                val reason = noSelectionReason(intent)
-                deferred[intent.targetId] = reason
-                traces += trace(intent, historyIdentities, false, emptyList(), null, null, emptyMap(), listOf(reason))
                 return@forEach
             }
 

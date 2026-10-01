@@ -576,7 +576,9 @@ internal class PersonalizedProgramPlanningService(
             selectionPlan = selectionPlan,
             snapshot = snapshot,
             currentPrescriptions = realizationInputs.currentPrescriptions,
-            historyBackedOwners = canonicalPrescriptionContext.historyBackedOwners
+            historyBackedOwners = canonicalPrescriptionContext.historyBackedOwners,
+            currentPrescriptionsByQuality = realizationInputs.currentPrescriptionsByQuality,
+            historyBackedAuthorities = canonicalPrescriptionContext.historyBackedAuthorities
         )
         val enrichedComparison = comparison.copy(
             prescriptionRealizationPlan = prescriptionPlan
@@ -696,7 +698,9 @@ internal class PersonalizedProgramPlanningService(
             selectionPlan = selectionPlan,
             snapshot = snapshot,
             currentPrescriptions = realizationInputs.currentPrescriptions,
-            historyBackedOwners = canonicalPrescriptionContext.historyBackedOwners
+            historyBackedOwners = canonicalPrescriptionContext.historyBackedOwners,
+            currentPrescriptionsByQuality = realizationInputs.currentPrescriptionsByQuality,
+            historyBackedAuthorities = canonicalPrescriptionContext.historyBackedAuthorities
         )
         val enrichedComparison = comparison.copy(
             prescriptionRealizationPlan = prescriptionPlan,

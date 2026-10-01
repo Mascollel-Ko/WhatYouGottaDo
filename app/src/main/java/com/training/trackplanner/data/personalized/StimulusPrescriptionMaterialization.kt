@@ -206,7 +206,9 @@ class StimulusPrescriptionAuthorizationEngine(
         val realization = realizationEngine.build(
             targetPlan, selectionPlan, snapshot,
             canonicalPrescriptionContext.prescriptions,
-            canonicalPrescriptionContext.historyBackedOwners
+            canonicalPrescriptionContext.historyBackedOwners,
+            currentPrescriptionsByQuality = canonicalPrescriptionContext.prescriptionsByQuality,
+            historyBackedAuthorities = canonicalPrescriptionContext.historyBackedAuthorities
         )
         val authorizations = targetPlan.qualityTargets.map { target ->
             val targetId = "QUALITY:${target.quality.name}"
