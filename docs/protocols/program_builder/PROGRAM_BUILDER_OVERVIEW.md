@@ -7,7 +7,7 @@
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.14.3 |
-| Last audited commit | fc010865ae637cd4d8b81b9ff53dee1f2e85655d |
+| Last audited commit | 8b79ceee7b5c7987daa621c43ab2a2734daa1203 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1205,3 +1205,11 @@ Post-audit boundary notes
 - Runtime protocol is `RECORD_BASED_PLANNER_0.14.3_KOTLIN_1`. C7 focused tests cover CONTROL perturbation independence, actual-history compatibility, target eligibility, B6 realization inputs, and B7/B8/B9 safety. Detailed per-case output and local/Hosted CI results are in `docs/c7_behavior_audit.md`.
 - Implementation/test commit: `fc010865ae637cd4d8b81b9ff53dee1f2e85655d` (with core C7 implementation in `ac83b1ec02412ccceb15e23791a5cead82a075a6`). The C7 behavior/protocol documentation is version `3.51.0`; no unrelated app version was changed.
 - Hosted Android Debug Build run [`36806675542`](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/36806675542) passed on the implementation/test commit: 2,159 tests, 0 failures, 0 errors, 4 skips; protocol validation, contracts, coverage upload, debug APK assembly, signer validation, and artifact upload passed. The docs-only commit will be validated separately.
+
+### Phase C8 — canonical-first production ordering (protocol 3.51.0 retained)
+
+- Normal production now prepares the shared snapshot/state/request once, completes B1–B4, B5, B6 pre-authorization, the single EXPERIMENTAL build, and B6 post-materialization before constructing CONTROL. CONTROL is then built once from the same prepared context and used for late request parity, compatibility/audit mirrors, comparison, safety, and rollback. The B5/B6 inputs and B7/B8/B9 policies are unchanged.
+- `PreparedCanonicalGenerationContext` carries only shared canonical inputs and the B1–B4 outcome. `CanonicalExperimentalGeneration` carries the completed experimental artifact and B5/B6 outputs without any CONTROL skeleton or diagnostics. The normal production path no longer depends on a CONTROL-first compatibility helper. Expected typed canonical/production failures still build one late CONTROL and fall back; cancellation and unexpected programming errors propagate.
+- C7 semantic parity is preserved: the 27-case report remains byte-identical to C7 at SHA-256 `818e8fa6f67164eeaae0c938273a777d645874cf0eecd17f1e1795dc811434d9`; routes remain CONTROL 21, B8 Strength 1, Hypertrophy 0, combined 0. Build counts remain CONTROL 1 / EXPERIMENTAL 1 / TOTAL 2 / THIRD 0 for generated cases. Progress maps canonical/experimental/late CONTROL into monotonic ranges and emits completion only after selection and validation.
+- C8 implementation/test commit: `8b79ceee7b5c7987daa621c43ab2a2734daa1203`. Protocol remains `3.51.0`, runtime remains `RECORD_BASED_PLANNER_0.14.3_KOTLIN_1`, and app version remains `0.5.1.5`. Detailed order, failure, identity, parity, local test, Hosted CI, and artifact evidence is in [`docs/c8_control_ordering_audit.md`](../../c8_control_ordering_audit.md).
+- Hosted Android Debug Build run [`36887651269`](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/36887651269) passed on the C8 implementation/test commit: 2,162 tests, 0 failures, 0 errors, 4 skips; protocol validation, contracts, whitespace, full unit tests, coverage upload, APK assembly, signer verification, and APK upload all passed. The final docs-only commit is validated separately.
