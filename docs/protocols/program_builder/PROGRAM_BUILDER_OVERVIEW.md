@@ -7,7 +7,7 @@
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.14.3 |
-| Last audited commit | 8b79ceee7b5c7987daa621c43ab2a2734daa1203 |
+| Last audited commit | e882999c2a15a37faae9c854a5b5b74db077708a |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1212,4 +1212,11 @@ Post-audit boundary notes
 - `PreparedCanonicalGenerationContext` carries only shared canonical inputs and the B1–B4 outcome. `CanonicalExperimentalGeneration` carries the completed experimental artifact and B5/B6 outputs without any CONTROL skeleton or diagnostics. The normal production path no longer depends on a CONTROL-first compatibility helper. Expected typed canonical/production failures still build one late CONTROL and fall back; cancellation and unexpected programming errors propagate.
 - C7 semantic parity is preserved: the 27-case report remains byte-identical to C7 at SHA-256 `818e8fa6f67164eeaae0c938273a777d645874cf0eecd17f1e1795dc811434d9`; routes remain CONTROL 21, B8 Strength 1, Hypertrophy 0, combined 0. Build counts remain CONTROL 1 / EXPERIMENTAL 1 / TOTAL 2 / THIRD 0 for generated cases. Progress maps canonical/experimental/late CONTROL into monotonic ranges and emits completion only after selection and validation.
 - C8 implementation/test commit: `8b79ceee7b5c7987daa621c43ab2a2734daa1203`. Protocol remains `3.51.0`, runtime remains `RECORD_BASED_PLANNER_0.14.3_KOTLIN_1`, and app version remains `0.5.1.5`. Detailed order, failure, identity, parity, local test, Hosted CI, and artifact evidence is in [`docs/c8_control_ordering_audit.md`](../../c8_control_ordering_audit.md).
+
+### Phase C9 — exact canonical change-provenance proof (protocol 3.51.0 retained)
+
+- B7 canonical role replacement and shared-owner prescription attribution require exact B5 owner/target coverage, matching executable B6 owner/quality/target authority, and valid nonempty EXPERIMENTAL weekly subset materialization. Unrelated roles, target/quality mismatches, conflicting owners and contradictory disappearance traces fail closed. Existing compatible/repair and downstream-prefix attribution sources are retained.
+- The 27-case audit found no provable false-negative fallback: 22 generated cases remain CONTROL=21 / Strength=1 / H=0 / Combined=0, with five unchanged no-history rejections. `reviewed_hypertrophy_isolated` already explains the fly replacement but has an unproven posterior-chain set reduction and partial placement provenance; it correctly stays CONTROL. B7 CHANGE_PROVENANCE_UNCLOSED remains 14. No H exception or gate relaxation was added.
+- B1–B6, B8/B9, C8 ordering, CONTROL perturbation independence and build accounting are unchanged. Protocol `3.51.0`, runtime `RECORD_BASED_PLANNER_0.14.3_KOTLIN_1` and app `0.5.1.5` are retained because valid production behavior did not change.
+- Green implementation/test commit: `e882999c2a15a37faae9c854a5b5b74db077708a`; Hosted full suite: 2,171 tests, 0 failures, 0 errors, 4 skips. Exact before/after evidence, local Windows failures and CI/artifacts are in [the C9 audit](../../c9_provenance_closure_audit.md).
 - Hosted Android Debug Build run [`36887651269`](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/36887651269) passed on the C8 implementation/test commit: 2,162 tests, 0 failures, 0 errors, 4 skips; protocol validation, contracts, whitespace, full unit tests, coverage upload, APK assembly, signer verification, and APK upload all passed. The final docs-only commit is validated separately.
