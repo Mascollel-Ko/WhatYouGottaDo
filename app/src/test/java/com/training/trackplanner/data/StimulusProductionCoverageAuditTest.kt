@@ -76,7 +76,113 @@ class StimulusProductionCoverageAuditTest {
         val path = java.io.File("build/reports/stimulus-production-coverage.txt")
         requireNotNull(path.parentFile).mkdirs()
         path.writeText(report)
+        java.io.File("build/reports/c9-provenance-census.txt").writeText(renderProvenance(records))
         println(report)
+        assertC9CorpusBoundaries(records)
+    }
+
+    private fun assertC9CorpusBoundaries(records: List<Pair<CoverageSpec, StimulusProductionGenerationResult?>>) {
+        assertEquals(27, records.size)
+        assertEquals(5, records.count { it.second == null })
+        records.forEach { (spec, result) ->
+            if (result != null) assertEquals("No unreviewed route expansion: ${spec.label}",
+                if (spec.label == "reviewed_strength_isolated") StimulusProductionProgramSource.B8_STRENGTH_V1
+                else StimulusProductionProgramSource.CONTROL, result.routeDecision.selectedSource)
+        }
+        val h = requireNotNull(records.single { it.first.label == "reviewed_hypertrophy_isolated" }.second)
+        val c = requireNotNull(h.comparison)
+        val audit = requireNotNull(c.experimentalReadinessAudit)
+        assertTrue(audit.materializationIntegrityPassed)
+        assertTrue(audit.collateralRegressionFree)
+        assertFalse(audit.changeProvenanceClosed)
+        assertEquals(listOf("CHANGE_PROVENANCE_UNCLOSED"), audit.reasonCodes)
+        val unresolved = audit.changeAttributions.single { it.source == StimulusExperimentalChangeAttributionSource.UNEXPLAINED }
+        assertEquals("ex_284ecca6", unresolved.stableKey)
+        assertEquals("COVERAGE_POSTERIOR_CHAIN", unresolved.selectionRole)
+        assertEquals(listOf("UNEXPLAINED_PRESCRIPTION_CHANGE"), unresolved.reasonCodes)
+        assertFalse(c.selectionPlan.selectedCandidates.any { it.stableKey == unresolved.stableKey && it.selectionRole == unresolved.selectionRole })
+        assertFalse(c.prescriptionAuthorizationPlan!!.authorizations.any { it.owner?.stableKey == unresolved.stableKey })
+        assertFalse(unresolved.stableKey in c.experimental.personalizedDecision?.planningBudget?.execution?.constrainedOwnerStableKeys.orEmpty())
+        assertTrue(audit.changeAttributions.any { it.stableKey == "cable_rear_delt_fly" &&
+            "B5_CANONICAL_OWNER_REPLACED_CONTROL_ROLE" in it.reasonCodes && it.targetIds == listOf("QUALITY:HYPERTROPHY") })
+    }
+
+    @Test
+    fun c9ExactPrefixReductionRequiresOwnerLocalAllocatorTrace() = runBlocking {
+        // Synthetic seam test only: the unchanged real fixture above MUST remain CONTROL.
+        val spec = CoverageSpec("c9_allocator_boundary", TrainableQuality.HYPERTROPHY, "cable_rear_delt_fly",
+            "HYPERTROPHY_PHYSIQUE", ProgramGoal.BODYBUILDING, StrengthIntent.HYPERTROPHY_PRIORITY,
+            false, "reviewed", 3, 60, emptySet(), true)
+        val c = requireNotNull(requireNotNull(runCase(spec)).comparison)
+        val owner = StimulusPrescriptionOwnerIdentity("ex_284ecca6", "COVERAGE_POSTERIOR_CHAIN")
+        val before = c.control.items.filter { it.exerciseStableKey == owner.stableKey && it.selectionRole == owner.selectionRole }
+            .associateBy { Triple(it.weekNumber, it.dayOfWeek, it.orderIndex) }
+        val decision = requireNotNull(c.experimental.personalizedDecision)
+        val budget = requireNotNull(decision.planningBudget)
+        val execution = requireNotNull(budget.execution)
+        fun audit(trace: Boolean, mutateRest: Boolean) = StimulusExperimentalReadinessAuditEngine().audit(c.copy(
+            experimental = c.experimental.copy(
+                items = c.experimental.items.map { row ->
+                    if (row.exerciseStableKey == owner.stableKey && row.selectionRole == owner.selectionRole) {
+                        val old = before.getValue(Triple(row.weekNumber, row.dayOfWeek, row.orderIndex))
+                        assertEquals(old.setPrescriptions.take(row.setCount), row.setPrescriptions)
+                        row.copy(prescription = old.prescription, restSeconds = if (mutateRest) old.restSeconds + 1 else old.restSeconds)
+                    } else row
+                },
+                personalizedDecision = decision.copy(planningBudget = budget.copy(execution = execution.copy(
+                    constrainedOwnerStableKeys = if (trace) execution.constrainedOwnerStableKeys + owner.stableKey
+                        else execution.constrainedOwnerStableKeys - owner.stableKey
+                )))
+            )
+        )).changeAttributions.single { it.stableKey == owner.stableKey && it.selectionRole == owner.selectionRole }
+        val exact = audit(trace = true, mutateRest = false)
+        assertEquals(StimulusExperimentalChangeAttributionSource.DOWNSTREAM_CONSTRAINT_DISPLACEMENT, exact.source)
+        assertEquals(listOf("QUALITY:HYPERTROPHY"), exact.targetIds)
+        assertTrue("OWNER_LOCAL_CONSTRAINED_SET_SUBSET" in exact.reasonCodes)
+        assertEquals(StimulusExperimentalChangeAttributionSource.UNEXPLAINED, audit(trace = false, mutateRest = false).source)
+        assertEquals(StimulusExperimentalChangeAttributionSource.UNEXPLAINED, audit(trace = true, mutateRest = true).source)
+    }
+
+    /** C9 diagnostic: actual service objects, before any attribution/golden changes. */
+    private fun renderProvenance(records: List<Pair<CoverageSpec, StimulusProductionGenerationResult?>>): String = buildString {
+        val generated = records.mapNotNull { (spec, result) -> result?.let { spec to it } }
+        appendLine("generated=${generated.size} rejected=${records.size - generated.size}")
+        appendLine("routes=" + generated.groupingBy { it.second.routeDecision.selectedSource }.eachCount())
+        appendLine("B7 counts=" + generated.flatMap { it.second.comparison?.experimentalReadinessAudit?.reasonCodes.orEmpty() }.groupingBy { it }.eachCount().toSortedMap())
+        appendLine("B8 counts=" + generated.flatMap { it.second.comparison?.productionCutoverAuthority?.reasonCodes.orEmpty() }.groupingBy { it }.eachCount().toSortedMap())
+        generated.sortedBy { it.first.label }.forEach { (spec, result) ->
+            val c = requireNotNull(result.comparison)
+            fun identity(row: ProgramSkeletonItem) = StimulusPrescriptionOwnerIdentity(row.exerciseStableKey, row.selectionRole)
+            val before = c.control.items.groupBy(::identity)
+            val after = c.experimental.items.groupBy(::identity)
+            fun prescriptions(rows: List<ProgramSkeletonItem>) = rows.map {
+                PlannedPrescription(it.prescription, it.setPrescriptions, it.restSeconds, it.weightSource)
+            }
+            appendLine("CASE ${spec.label}")
+            appendLine("B4=${c.targetPlan}")
+            appendLine("B5=${c.selectionPlan.selectedCandidates}")
+            appendLine("B6=${c.prescriptionAuthorizationPlan}")
+            appendLine("CONTROL owners=${before.keys}")
+            appendLine("EXPERIMENTAL owners=${after.keys}")
+            appendLine("added=${after.keys - before.keys}")
+            appendLine("removed=${before.keys - after.keys}")
+            appendLine("shared=${before.keys intersect after.keys}")
+            appendLine("prescriptionChanged=" + (before.keys intersect after.keys).filter { prescriptions(before.getValue(it)) != prescriptions(after.getValue(it)) })
+            appendLine("B7=${c.experimentalReadinessAudit}")
+            appendLine("B8=${c.productionCutoverAuthority}")
+            appendLine("route=${result.routeDecision.selectedSource} builds=${result.buildCounts}")
+            appendLine("materialization=${c.prescriptionMaterializationAudits}")
+            appendLine("realization=${c.prescriptionRealizationPlan}")
+            appendLine("selectionTraces=${c.selectionPlan.traces}")
+            appendLine("materializationTraces=${c.materializationTraces}")
+            appendLine("allocator=${c.experimental.personalizedDecision?.planningBudget?.execution}")
+            listOf("CONTROL" to c.control, "EXPERIMENTAL" to c.experimental).forEach { (label, program) ->
+                appendLine("$label schedule=${program.weekDaySchedule}")
+                program.items.forEach { row ->
+                    appendLine("$label row owner=${identity(row)} slot=${row.weekNumber}/${row.dayOfWeek}/${row.orderIndex} sets=${row.setPrescriptions} rest=${row.restSeconds} weightSource=${row.weightSource} prescription=${row.prescription} setCount=${row.setCount} reps=${row.reps} weight=${row.weightKg} seconds=${row.seconds}")
+                }
+            }
+        }
     }
 
     @Test

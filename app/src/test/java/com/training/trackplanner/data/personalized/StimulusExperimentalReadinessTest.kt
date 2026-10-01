@@ -355,6 +355,125 @@ class StimulusExperimentalReadinessTest {
         assertEquals(StimulusExperimentalReadinessStatus.NOT_ELIGIBLE, audit.status)
     }
 
+    @Test
+    fun c9ExactReusedOwnerUsesCompatibleOrRepairAuthorityLocally() {
+        for ((status, source) in listOf(
+            StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE to StimulusExperimentalChangeAttributionSource.B6_EXISTING_OWNER_PRESCRIPTION,
+            StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR to StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION
+        )) {
+            val c = c9Fixture(replacement = false, status = status)
+            val audit = StimulusExperimentalReadinessAuditEngine().audit(c)
+            assertTrue(audit.toString(), audit.changeProvenanceClosed)
+            val change = audit.changeAttributions.single { it.source == source }
+            assertEquals("squat", change.stableKey)
+            assertEquals("CANONICAL_STIMULUS_QUALITY_STRENGTH", change.selectionRole)
+            assertEquals(listOf("QUALITY:STRENGTH"), change.targetIds)
+        }
+    }
+
+    @Test
+    fun c9ReplacementRequiresB6AndValidMaterializedPrescription() {
+        val good = c9Fixture()
+        assertTrue(StimulusExperimentalReadinessAuditEngine().audit(good).changeProvenanceClosed)
+        c9AssertUnclosed(good.copy(prescriptionAuthorizationPlan = null))
+        val bad = good.experimental.copy(items = good.experimental.items.map { row ->
+            row.copy(setPrescriptions = row.setPrescriptions.map { it.copy(weightKg = 999.0) })
+        })
+        c9AssertUnclosed(good.copy(experimental = bad))
+    }
+
+    @Test
+    fun c9UnrelatedRoleCannotBorrowSameKeyReplacementAuthority() {
+        c9AssertUnclosed(c9Fixture(role = "UNRELATED_SUPPORT"))
+    }
+
+    @Test
+    fun c9TargetAndQualityMustAgreeForReplacementAndReusedPrescription() {
+        for (replacement in listOf(true, false)) {
+            val c = c9Fixture(replacement = replacement)
+            val plan = requireNotNull(c.prescriptionAuthorizationPlan)
+            c9AssertUnclosed(c.copy(prescriptionAuthorizationPlan = plan.copy(authorizations = plan.authorizations.map {
+                it.copy(targetId = "QUALITY:HYPERTROPHY")
+            })))
+            c9AssertUnclosed(c.copy(selectionPlan = c.selectionPlan.copy(selectedCandidates = c.selectionPlan.selectedCandidates.map {
+                it.copy(coveredTargetIds = setOf("QUALITY:HYPERTROPHY"))
+            })))
+        }
+    }
+
+    @Test
+    fun c9ConflictingQualityAuthorityCannotCloseAnyOwnerChange() {
+        for (replacement in listOf(true, false)) {
+            val c = c9Fixture(replacement = replacement)
+            val plan = requireNotNull(c.prescriptionAuthorizationPlan)
+            val strength = plan.authorizations.single()
+            val hypertrophy = strength.copy(targetId = "QUALITY:HYPERTROPHY", quality = TrainableQuality.HYPERTROPHY,
+                authorizedPrescription = strength.authorizedPrescription!!.copy(sets = strength.authorizedPrescription.sets.map {
+                    it.copy(reps = 12, targetRpeMin = 7.0)
+                }))
+            c9AssertUnclosed(c.copy(prescriptionAuthorizationPlan = plan.copy(authorizations = listOf(strength, hypertrophy))))
+        }
+    }
+
+    @Test
+    fun c9ReplacementRejectsContradictoryDisappearanceTrace() {
+        val c = c9Fixture()
+        c9AssertUnclosed(c.copy(materializationTraces = c.materializationTraces + ownerMaterializationTrace(
+            "squat", "LEGACY_PRIMARY_STRENGTH", listOf("SELECTION_TARGET_IDENTITY_MATERIALIZED")
+        )))
+    }
+
+    @Test
+    fun c9UnrelatedRemovedOwnerStillNeedsDisappearanceEvidence() {
+        val c = c9Fixture()
+        val control = c.control.copy(items = c.control.items + item("curl").copy(selectionRole = "ACCESSORY"))
+        val recomputed = StimulusSelectionProgramComparisonEngine().compare(control, c.experimental,
+            c.targetPlan, c.selectionPlan, c.controlAudit, c.experimentalAudit)
+            .copy(prescriptionAuthorizationPlan = c.prescriptionAuthorizationPlan)
+        val audit = c9AssertUnclosed(recomputed)
+        assertEquals(StimulusExperimentalChangeAttributionSource.UNEXPLAINED,
+            audit.changeAttributions.single { it.stableKey == "curl" }.source)
+    }
+
+    @Test
+    fun c9OwnerAuthorityDoesNotExplainAnotherOwnersPrescription() {
+        val c = c9Fixture()
+        val control = c.control.copy(items = c.control.items + item("curl"))
+        val experimental = c.experimental.copy(items = c.experimental.items + item("curl").copy(restSeconds = 240))
+        val recomputed = StimulusSelectionProgramComparisonEngine().compare(control, experimental,
+            c.targetPlan, c.selectionPlan, c.controlAudit, c.experimentalAudit)
+            .copy(prescriptionAuthorizationPlan = c.prescriptionAuthorizationPlan)
+        val audit = c9AssertUnclosed(recomputed)
+        assertTrue(audit.changeAttributions.any { it.stableKey == "curl" && "UNEXPLAINED_PRESCRIPTION_CHANGE" in it.reasonCodes })
+    }
+
+    private fun c9AssertUnclosed(c: StimulusSelectionProgramComparison): StimulusExperimentalReadinessAudit {
+        val audit = StimulusExperimentalReadinessAuditEngine().audit(c)
+        assertFalse(audit.toString(), audit.changeProvenanceClosed)
+        assertTrue(audit.reasonCodes.contains("CHANGE_PROVENANCE_UNCLOSED"))
+        assertTrue(audit.changeAttributions.any { it.source == StimulusExperimentalChangeAttributionSource.UNEXPLAINED ||
+            it.source == StimulusExperimentalChangeAttributionSource.INCONCLUSIVE_DISPLACEMENT })
+        return audit
+    }
+
+    private fun c9Fixture(
+        replacement: Boolean = true,
+        role: String = "CANONICAL_STIMULUS_QUALITY_STRENGTH",
+        status: StimulusPrescriptionAuthorizationStatus = StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE
+    ): StimulusSelectionProgramComparison {
+        val before = item("squat").copy(selectionRole = if (replacement) "LEGACY_PRIMARY_STRENGTH" else role)
+        val after = item("squat").copy(selectionRole = role, restSeconds = 120)
+        val authorized = PlannedPrescription(after.prescription, after.setPrescriptions, after.restSeconds, after.weightSource)
+        return comparison(controlItems = listOf(before), experimentalItems = listOf(after),
+            selectedCandidate = selectedCandidate("squat", role),
+            authorizationPlan = StimulusPrescriptionAuthorizationPlan(listOf(StimulusPrescriptionAuthorization(
+                targetId = "QUALITY:STRENGTH", quality = TrainableQuality.STRENGTH,
+                owner = StimulusPrescriptionOwner("squat", role),
+                source = StimulusPrescriptionAuthorizationSource.CANONICAL_HISTORY_PRESCRIPTION,
+                inputPrescription = authorized, plannedCompatibility = null, authorizedPrescription = authorized, status = status
+            ))))
+    }
+
     private fun comparison(
         target: StimulusQualityTarget = qualityTarget(StimulusTargetNumericAuthority.PERSONAL_SUCCESSFUL_DOSE, StimulusTargetRange(4.0, 5.0, 6.0)),
         controlUnits: Double? = 2.0,
