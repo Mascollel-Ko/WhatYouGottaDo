@@ -66,5 +66,29 @@ class StimulusIncumbentSeedSourceBoundaryTest {
         assertFalse(b6.contains("prescriptionBaseline"))
         assertFalse(b6.contains("controlPrescriptions"))
         assertTrue(b6.contains("StimulusSelectionProgramComparisonEngine().compare("))
+
+        val productionStart = service.indexOf("internal suspend fun generatePreparedProduction(")
+        val productionEnd = service.indexOf("internal fun evaluateStimulusProductionCutover(", productionStart)
+        val production = service.substring(productionStart, productionEnd)
+        assertFalse("normal production must not depend on the CONTROL-first compatibility helper",
+            production.contains("generatePreparedWithCanonicalPlanning("))
+        assertFalse("normal production must not call the combined B6/control helper",
+            production.contains("generatePreparedStimulusProductionCutoverEvaluation("))
+        val prepare = production.indexOf("val context = prepareCanonicalGenerationContext(")
+        val experimental = production.indexOf("buildCanonicalExperimentalGeneration(", prepare)
+        val control = production.indexOf("val control = materializeLateControl(", experimental)
+        val comparison = production.indexOf("compareCanonicalExperimentalWithControl(", control)
+        assertTrue(prepare >= 0 && experimental > prepare && control > experimental && comparison > control)
+
+        val canonicalModels = code("app/src/main/java/com/training/trackplanner/data/personalized/PreparedCanonicalGeneration.kt")
+        val contextStart = canonicalModels.indexOf("internal data class PreparedCanonicalGenerationContext(")
+        val contextEnd = canonicalModels.indexOf("internal data class CanonicalExperimentalGeneration", contextStart)
+        val contextFields = canonicalModels.substring(contextStart, contextEnd)
+        listOf("control:", "controlProgram", "incumbentSeed", "prescriptionBaseline", "b7Decision", "b8Decision", "routingResult")
+            .forEach { forbidden -> assertFalse("prepared context cannot contain $forbidden", contextFields.contains(forbidden)) }
+        val artifactStart = canonicalModels.indexOf("internal data class CanonicalExperimentalGeneration(")
+        val artifactEnd = canonicalModels.indexOf("internal enum class ProductionGenerationPhase", artifactStart)
+        val artifactFields = canonicalModels.substring(artifactStart, artifactEnd)
+        assertFalse("canonical experimental artifact cannot contain CONTROL", artifactFields.contains("control"))
     }
 }

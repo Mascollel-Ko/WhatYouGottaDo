@@ -52,6 +52,7 @@ import com.training.trackplanner.data.personalized.StimulusPrescriptionAuthoriza
 import com.training.trackplanner.data.personalized.StimulusPrescriptionMaterializationAuditEngine
 import com.training.trackplanner.data.personalized.CanonicalStimulusPlanningResult
 import com.training.trackplanner.data.personalized.CanonicalPreparedProgram
+import com.training.trackplanner.data.personalized.CanonicalPlanningOutcome
 import com.training.trackplanner.data.personalized.NeedRelevance
 import com.training.trackplanner.data.personalized.RegionalBottleneckDiagnosisEngine
 import com.training.trackplanner.data.personalized.RegionalEvidenceIndexBuilder
@@ -90,6 +91,10 @@ import com.training.trackplanner.analysis.strengthperformance.StrengthPerformanc
 import com.training.trackplanner.data.personalized.CanonicalStrengthReferenceIndex
 import com.training.trackplanner.data.personalized.StimulusCanonicalEvaluationFailure
 import com.training.trackplanner.data.personalized.StimulusCanonicalEvaluationFailureReason
+import com.training.trackplanner.data.personalized.PreparedCanonicalGenerationContext
+import com.training.trackplanner.data.personalized.CanonicalExperimentalGeneration
+import com.training.trackplanner.data.personalized.ProductionGenerationPhase
+import com.training.trackplanner.data.personalized.ProductionGenerationObservation
 
 internal class PersonalizedProgramPlanningService(
     private val exerciseDao: ExerciseDao,
@@ -157,7 +162,7 @@ internal class PersonalizedProgramPlanningService(
         return prepared.program
     }
 
-    /** Builds CONTROL and its independent B1-B4 canonical planning result together. */
+    /** Compatibility API returning a paired CONTROL/B1-B4 result; production uses the C8 prepared context. */
     internal suspend fun generatePreparedWithCanonicalPlanning(
         preflight: PersonalizedPlanningPreflight,
         answers: PersonalizedPlanningAnswers,
@@ -193,17 +198,22 @@ internal class PersonalizedProgramPlanningService(
         val legacyNeeds = athleteNeedsProfileEngine.analyze(snapshot, state, physicalQualityCatalog)
         val doseHistoryAnalyzer = QualityDoseHistoryAnalyzer()
         val doseHistory = doseHistoryAnalyzer.analyze(snapshot, state, physicalQualityCatalog)
-        // B1-B4 need only snapshot/state/history. Keep CONTROL available before
-        // evaluating them so expected failures reach the existing fallback boundary.
+        // This compatibility API still returns a CONTROL skeleton alongside B1-B4. Normal
+        // production uses prepareCanonicalGenerationContext and completes B1-B6 before CONTROL.
         val canonicalPlanning = try {
-            if (generated.request != personalizedRequest) {
-                throw StimulusCanonicalEvaluationFailure(
-                    StimulusCanonicalEvaluationFailureReason.RESOLVED_REQUEST_PARITY,
-                    detailCode = "CONTROL_REQUEST_DIFFERS_FROM_RESOLVED_REQUEST"
-                )
-            }
             canonicalPlanningComputation(snapshot, state, doseHistory)
         } catch (failure: StimulusCanonicalEvaluationFailure) {
+            return CanonicalPreparedProgram(
+                com.training.trackplanner.data.personalized.bindSplitParentProgression(generated),
+                com.training.trackplanner.data.personalized.CanonicalPlanningOutcome.ExpectedFailure(failure),
+                resolvedProgramRequest
+            )
+        }
+        if (generated.request != personalizedRequest) {
+            val failure = StimulusCanonicalEvaluationFailure(
+                StimulusCanonicalEvaluationFailureReason.RESOLVED_REQUEST_PARITY,
+                detailCode = "CONTROL_REQUEST_DIFFERS_FROM_RESOLVED_REQUEST"
+            )
             return CanonicalPreparedProgram(
                 com.training.trackplanner.data.personalized.bindSplitParentProgression(generated),
                 com.training.trackplanner.data.personalized.CanonicalPlanningOutcome.ExpectedFailure(failure),
@@ -346,32 +356,320 @@ internal class PersonalizedProgramPlanningService(
         )
     }
 
-    /** Test-only adapter for a skeleton injected through controlGenerationOverride. */
-    private suspend fun buildCanonicalPlanningForInjectedControlTestAdapter(
+    /** Prepares every input shared by canonical EXPERIMENTAL and late CONTROL exactly once. */
+    private suspend fun prepareCanonicalGenerationContext(
         preflight: PersonalizedPlanningPreflight,
         answers: PersonalizedPlanningAnswers,
         metadata: Map<String, RuntimeExerciseMetadata>,
-        control: GeneratedProgramSkeleton
-    ): CanonicalPreparedProgram {
+        progress: PersonalizedPlannerProgressReporter,
+        canonicalPlanningComputation: CanonicalStimulusPlanningComputation
+    ): PreparedCanonicalGenerationContext {
+        progress.report(PersonalizedPlannerStage.INPUT)
+        val missingAnswers = preflight.questions.filter { question ->
+            question.options.none { it.value == answers.values[question.id] && it.value != "UNRESOLVED" }
+        }.map(PersonalizedPlanningQuestion::id)
+        require(missingAnswers.isEmpty()) { "사전 확인 답변이 누락됐습니다: ${missingAnswers.joinToString()}" }
+
+        progress.report(PersonalizedPlannerStage.HISTORY)
         val preferences = readPreferences()
         val snapshot = buildSnapshot(preflight.cutoff, metadata, preferences, includeStimulusExposureLedger = true)
+        progress.report(PersonalizedPlannerStage.PATTERNS)
         val state = stateBuilder.build(snapshot, answers)
-        require(state.strengthIntent != StrengthIntent.UNRESOLVED && state.badmintonIntent != BadmintonPlanningIntent.UNRESOLVED &&
-            state.freeWeightWillingness != FreeWeightWillingness.UNRESOLVED) { "UNRESOLVED_PLANNING_INTENT_REQUIRES_PREFLIGHT" }
+        require(state.strengthIntent != StrengthIntent.UNRESOLVED &&
+            state.badmintonIntent != BadmintonPlanningIntent.UNRESOLVED &&
+            state.freeWeightWillingness != FreeWeightWillingness.UNRESOLVED
+        ) { "UNRESOLVED_PLANNING_INTENT_REQUIRES_PREFLIGHT" }
+        persistAnswers(answers, snapshot.profilePrimaryGoal)
+
+        progress.report(PersonalizedPlannerStage.ADAPTATION)
         val gaps = gapAnalyzer.analyze(snapshot, state)
         val intent = blockPlanner.decide(state, gaps)
         val frequencyEvidence = WeeklyDosePlanner().resolve(state, state.anchors.size + gaps.size)
         val resolvedRequest = resolvePreparedProgramRequest(preflight, state, gaps, intent, frequencyEvidence)
-        val canonical = buildCanonicalStimulusPlanningResult(snapshot, state)
-        val finalAudit = FinalStimulusNeedAudit().audit(control, snapshot, physicalQualityCatalog)
-        val canonicalWithAudit = canonical.withControlProgramAudit(
-            StimulusTargetControlProgramAuditEngine().audit(canonical.targetPlan, finalAudit, resolvedRequest.request.durationWeeks)
+        val priorId = appMetaDao.latestByPrefix("$DECISION_PREFIX%")?.value?.let(::decisionIdFromJson)
+
+        // Keep the pre-C8 compatibility diagnostics independent of any generated skeleton.
+        val legacyNeeds = athleteNeedsProfileEngine.analyze(snapshot, state, physicalQualityCatalog)
+        val legacyDoseHistory = QualityDoseHistoryAnalyzer().analyze(snapshot, state, physicalQualityCatalog)
+        val canonicalOutcome = try {
+            CanonicalPlanningOutcome.Success(canonicalPlanningComputation(snapshot, state, legacyDoseHistory))
+        } catch (failure: StimulusCanonicalEvaluationFailure) {
+            CanonicalPlanningOutcome.ExpectedFailure(failure)
+        }
+        return PreparedCanonicalGenerationContext(
+            snapshot = snapshot,
+            state = state,
+            gaps = gaps,
+            intent = intent,
+            resolvedRequest = resolvedRequest,
+            priorDecisionId = priorId,
+            legacyNeeds = legacyNeeds,
+            legacyDoseHistory = legacyDoseHistory,
+            canonicalPlanningOutcome = canonicalOutcome
         )
+    }
+
+    /** Runs B5 and B6, including EXPERIMENTAL post-materialization audits, without CONTROL. */
+    private suspend fun buildCanonicalExperimentalGeneration(
+        context: PreparedCanonicalGenerationContext,
+        answers: PersonalizedPlanningAnswers,
+        progress: PersonalizedPlannerProgressReporter,
+        productionBuildCounts: com.training.trackplanner.data.personalized.MutableStimulusProductionBuildCounts,
+        observe: (ProductionGenerationPhase) -> Unit,
+        experimentalProgramBuildOverride: (suspend () -> GeneratedProgramSkeleton)?
+    ): CanonicalExperimentalGeneration {
+        val canonicalPlanning = (context.canonicalPlanningOutcome as? CanonicalPlanningOutcome.Success)?.result
+            ?: throw requireNotNull((context.canonicalPlanningOutcome as? CanonicalPlanningOutcome.ExpectedFailure)?.failure)
+        val targetPlan = canonicalPlanning.targetPlan
+        val resolved = context.resolvedRequest
+        val selectionPlan = StimulusTargetCandidateSelector().build(
+            targetPlan = targetPlan,
+            snapshot = context.snapshot,
+            state = context.state,
+            request = resolved.request,
+            physicalQualityCatalog = physicalQualityCatalog
+        )
+        observe(ProductionGenerationPhase.B5_COMPLETE)
+        val prescriptionContext = com.training.trackplanner.data.personalized.buildCanonicalPrescriptionContext(
+            targetPlan = targetPlan,
+            selectionPlan = selectionPlan,
+            snapshot = context.snapshot,
+            strengthIntent = context.state.strengthIntent
+        )
+        val authorizationPlan = StimulusPrescriptionAuthorizationEngine().build(
+            targetPlan = targetPlan,
+            selectionPlan = selectionPlan,
+            snapshot = context.snapshot,
+            canonicalPrescriptionContext = prescriptionContext
+        )
+        observe(ProductionGenerationPhase.B6_PRE_AUTHORITY_COMPLETE)
+
+        observe(ProductionGenerationPhase.EXPERIMENTAL_BUILD)
+        val experimental = try {
+            productionBuildCounts.recordProgramBuildInvocation(
+                com.training.trackplanner.data.personalized.StimulusProductionBuildKind.EXPERIMENTAL
+            )
+            experimentalProgramBuildOverride?.invoke() ?: programBuilder.build(
+                snapshot = context.snapshot,
+                state = context.state,
+                gaps = context.gaps,
+                intent = context.intent,
+                horizon = resolved.request.durationWeeks,
+                request = resolved.request,
+                answers = answers,
+                priorDecisionId = context.priorDecisionId,
+                explicitWeeklyDays = resolved.frequencyProvenance.source ==
+                    com.training.trackplanner.data.personalized.PlanningFrequencySource.EXPLICIT_USER,
+                frequency = resolved.frequencyProvenance,
+                progress = progress,
+                materialDemandOverride = selectionPlan.materialDemand,
+                exactPrescriptionAuthorizationProvider = authorizationPlan.provider(),
+                canonicalFailureEmitter = { reason, detailCode ->
+                    throw StimulusCanonicalEvaluationFailure(reason, detailCode)
+                }
+            )
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: StimulusCanonicalEvaluationFailure) {
+            throw canonicalEvaluationFailure(error)
+        }
+
+        val finalAudit = FinalStimulusNeedAudit().audit(experimental, context.snapshot, physicalQualityCatalog)
+        val experimentalAudit = StimulusTargetControlProgramAuditEngine().audit(
+            targetPlan,
+            finalAudit,
+            resolved.request.durationWeeks
+        )
+        val materializationAudits = StimulusPrescriptionMaterializationAuditEngine().audit(
+            authorizationPlan,
+            experimental,
+            context.snapshot
+        )
+        val realizationInputs = com.training.trackplanner.data.personalized.buildStimulusRealizationPrescriptionInputs(
+            selectionPlan = selectionPlan,
+            canonicalPrescriptionContext = prescriptionContext,
+            experimentalItems = experimental.items
+        )
+        val realizationPlan = StimulusPrescriptionRealizationPlanEngine().build(
+            targetPlan = targetPlan,
+            selectionPlan = selectionPlan,
+            snapshot = context.snapshot,
+            currentPrescriptions = realizationInputs.currentPrescriptions,
+            historyBackedOwners = prescriptionContext.historyBackedOwners,
+            currentPrescriptionsByQuality = realizationInputs.currentPrescriptionsByQuality,
+            historyBackedAuthorities = prescriptionContext.historyBackedAuthorities
+        )
+        observe(ProductionGenerationPhase.B6_POST_MATERIALIZATION_COMPLETE)
+        return CanonicalExperimentalGeneration(
+            program = experimental,
+            selectionPlan = selectionPlan,
+            prescriptionContext = prescriptionContext,
+            authorizationPlan = authorizationPlan,
+            experimentalAudit = experimentalAudit,
+            prescriptionRealizationPlan = realizationPlan,
+            materializationAudits = materializationAudits
+        )
+    }
+
+    /** Builds CONTROL only after the canonical artifact is complete. */
+    private suspend fun materializeLateControl(
+        context: PreparedCanonicalGenerationContext,
+        answers: PersonalizedPlanningAnswers,
+        progress: PersonalizedPlannerProgressReporter,
+        productionBuildCounts: com.training.trackplanner.data.personalized.MutableStimulusProductionBuildCounts,
+        controlGenerationOverride: (suspend () -> GeneratedProgramSkeleton)?,
+        observe: (ProductionGenerationPhase) -> Unit
+    ): GeneratedProgramSkeleton {
+        observe(ProductionGenerationPhase.CONTROL_BUILD)
+        if (controlGenerationOverride != null) return controlGenerationOverride()
+        productionBuildCounts.recordProgramBuildInvocation(
+            com.training.trackplanner.data.personalized.StimulusProductionBuildKind.CONTROL
+        )
+        val resolved = context.resolvedRequest
+        return programBuilder.build(
+            snapshot = context.snapshot,
+            state = context.state,
+            gaps = context.gaps,
+            intent = context.intent,
+            horizon = resolved.request.durationWeeks,
+            request = resolved.request,
+            answers = answers,
+            priorDecisionId = context.priorDecisionId,
+            explicitWeeklyDays = resolved.frequencyProvenance.source ==
+                com.training.trackplanner.data.personalized.PlanningFrequencySource.EXPLICIT_USER,
+            frequency = resolved.frequencyProvenance,
+            progress = progress
+        )
+    }
+
+    /** CONTROL parity and the historical compatibility mirrors are late diagnostics only. */
+    private fun attachLateControlCompatibilityMirrors(
+        control: GeneratedProgramSkeleton,
+        context: PreparedCanonicalGenerationContext,
+        canonicalPlanning: CanonicalStimulusPlanningResult
+    ): CanonicalPreparedProgram {
+        val request = context.resolvedRequest.request
+        if (control.request != request) {
+            val failure = StimulusCanonicalEvaluationFailure(
+                StimulusCanonicalEvaluationFailureReason.RESOLVED_REQUEST_PARITY,
+                detailCode = "CONTROL_REQUEST_DIFFERS_FROM_RESOLVED_REQUEST"
+            )
+            return CanonicalPreparedProgram(
+                com.training.trackplanner.data.personalized.bindSplitParentProgression(control),
+                CanonicalPlanningOutcome.ExpectedFailure(failure),
+                context.resolvedRequest
+            )
+        }
+
+        val finalAudit = FinalStimulusNeedAudit().audit(control, context.snapshot, physicalQualityCatalog)
+        val canonicalWithControlAudit = canonicalPlanning.withControlProgramAudit(
+            StimulusTargetControlProgramAuditEngine().audit(
+                canonicalPlanning.targetPlan,
+                finalAudit,
+                request.durationWeeks
+            )
+        )
+        val targetPlanWithAudit = canonicalWithControlAudit.targetPlanCompatibilityMirror()
+        val legacyPortfolio = TrainingDecisionPortfolioEngine().build(context.legacyNeeds, context.legacyDoseHistory)
+        val stimulusPortfolioComparison = StimulusTrainingDecisionPortfolioComparisonEngine().compare(
+            legacyPortfolio,
+            canonicalPlanning.decisionPortfolio,
+            canonicalPlanning.qualityDoseHistory,
+            context.legacyDoseHistory
+        )
+        val stimulusPortfolioWithComparison = canonicalPlanning.decisionPortfolio.copy(comparison = stimulusPortfolioComparison)
+        val withShadowNeeds = control.copy(
+            personalizedDecision = control.personalizedDecision?.copy(
+                athleteNeedsProfile = context.legacyNeeds,
+                athleteStimulusNeedProfile = canonicalPlanning.athleteStimulusNeedProfile.copy(
+                    finalAudit = finalAudit,
+                    qualityDoseHistoryShadow = canonicalPlanning.qualityDoseHistory,
+                    trainingDecisionPortfolioShadow = stimulusPortfolioWithComparison,
+                    stimulusTargetPlanShadow = targetPlanWithAudit
+                )
+            )
+        )
+        val decision = withShadowNeeds.personalizedDecision
+        val needs = decision?.athleteNeedsProfile
+        if (decision != null && needs != null) {
+            val targetPlan = TargetStimulusPlanEngine().build(legacyPortfolio, context.legacyDoseHistory)
+            val stimulusTargetComparison = StimulusTargetPlanComparisonEngine().compare(targetPlan, targetPlanWithAudit)
+            val withTargetComparison = withShadowNeeds.copy(
+                personalizedDecision = withShadowNeeds.personalizedDecision?.copy(
+                    athleteStimulusNeedProfile = withShadowNeeds.personalizedDecision?.athleteStimulusNeedProfile?.copy(
+                        stimulusTargetPlanShadow = targetPlanWithAudit.copy(legacyComparison = stimulusTargetComparison)
+                    )
+                )
+            )
+            val comparison = TargetPlanComparisonEngine().compare(
+                targetPlan, withShadowNeeds, context.snapshot, physicalQualityCatalog
+            )
+            val regionalIndex = RegionalEvidenceIndexBuilder().build(context.snapshot, context.state, physicalQualityCatalog)
+            val strengthRequirement = needs.qualityNeeds.firstOrNull {
+                it.quality == com.training.trackplanner.data.TrainableQuality.STRENGTH
+            }?.relevance ?: NeedRelevance.UNKNOWN
+            val regionalRequirements = RegionalStrengthRequirementResolver().resolve(
+                strengthRequirement, context.state.movementRepresentations
+            )
+            val localizedTissue = context.snapshot.recoverySignals.tissueRestrictedStableKeys
+                .map(context.snapshot::movementCoverage)
+                .filter { it != MovementCoverage.OTHER }
+                .toSet()
+            val systemicRecovery = (
+                context.snapshot.recoverySignals.readinessStatus in setOf("CAUTION", "FATIGUED", "LIMITED") ||
+                    (context.snapshot.recoverySignals.overallFatigueIndex ?: 0) >= 70 ||
+                    context.state.trainingStateAssessment?.globalHardRestriction == true ||
+                    (context.snapshot.recoverySignals.tissueStatus in setOf("VERY_HIGH", "BLOCKED") && localizedTissue.isEmpty())
+                )
+            val lowerSportRegions = setOf(MovementCoverage.LOWER_KNEE, MovementCoverage.POSTERIOR_CHAIN, MovementCoverage.CALVES)
+            val sportInterference = context.state.courtDeviation > 0.0 &&
+                context.state.lowerNegativeEvidence > 0.0 && context.state.courtInterference > 0.0
+            val regionalDiagnosis = RegionalBottleneckDiagnosisEngine().analyze(
+                regionalIndex, regionalRequirements, systemicRecovery, sportInterference,
+                localizedTissue.associateWith { true }, lowerSportRegions
+            )
+            val programEmphasis = ProgramEmphasisProjector().project(withShadowNeeds, context.snapshot, physicalQualityCatalog)
+            val mirrored = withTargetComparison.copy(
+                personalizedDecision = withTargetComparison.personalizedDecision!!.copy(
+                    trainingDecisionPortfolio = legacyPortfolio,
+                    targetStimulusPlan = targetPlan,
+                    targetPlanComparison = comparison,
+                    regionalBottleneckDiagnosis = regionalDiagnosis,
+                    programEmphasisLabels = programEmphasis
+                )
+            )
+            return CanonicalPreparedProgram(
+                com.training.trackplanner.data.personalized.bindSplitParentProgression(mirrored),
+                canonicalWithControlAudit,
+                context.resolvedRequest
+            )
+        }
         return CanonicalPreparedProgram(
-            control,
-            canonicalWithAudit,
-            resolvedRequest
+            com.training.trackplanner.data.personalized.bindSplitParentProgression(withShadowNeeds),
+            canonicalWithControlAudit,
+            context.resolvedRequest
         )
+    }
+
+    /** First point at which a completed CONTROL and completed canonical artifact meet. */
+    private fun compareCanonicalExperimentalWithControl(
+        control: GeneratedProgramSkeleton,
+        canonicalPlanning: CanonicalStimulusPlanningResult,
+        experimental: CanonicalExperimentalGeneration
+    ): StimulusSelectionProgramComparison {
+        val comparison = StimulusSelectionProgramComparisonEngine().compare(
+            control = control,
+            experimental = experimental.program,
+            targetPlan = canonicalPlanning.targetPlan,
+            selectionPlan = experimental.selectionPlan,
+            controlAudit = canonicalPlanning.controlProgramAudit,
+            experimentalAudit = experimental.experimentalAudit
+        ).copy(
+            prescriptionRealizationPlan = experimental.prescriptionRealizationPlan,
+            prescriptionAuthorizationPlan = experimental.authorizationPlan,
+            prescriptionMaterializationAudits = experimental.materializationAudits
+        )
+        return comparison.copy(experimentalReadinessAudit = StimulusExperimentalReadinessAuditEngine().audit(comparison))
     }
 
     /** Test/audit seam proving B1-B4 can be calculated without constructing CONTROL. */
@@ -589,11 +887,8 @@ internal class PersonalizedProgramPlanningService(
     }
 
     /**
-     * Shared Phase B6.2 production/evaluation path. It reuses the required CONTROL and
-     * performs one EXPERIMENTAL build. Exact Strength prescriptions are authorized from B4/B5 plus the
-     * actual-history canonical prescription context before the experimental builder starts. Strength and
-     * Hypertrophy are the only executable prescription qualities. B8/B9 separately validate
-     * and select bounded single-quality or combined production authority.
+     * Compatibility evaluation seam for callers that already supply CONTROL. Normal production
+     * uses buildCanonicalExperimentalGeneration and does not call this combined helper.
      */
     internal suspend fun generatePreparedStimulusPrescriptionMaterializationComparison(
         preflight: PersonalizedPlanningPreflight,
@@ -730,12 +1025,7 @@ internal class PersonalizedProgramPlanningService(
         )
     }
 
-    /**
-     * Shared B8 evaluation. B6.2 reuses CONTROL and builds EXPERIMENTAL exactly once; B8
-     * consumes that existing comparison and returns a bounded cutover authority decision.
-     * B9 consumes this result separately; this method itself remains an authority evaluation
-     * seam and does not route or persist the experimental object.
-     */
+    /** Compatibility wrapper around the combined-control comparison seam for audits/tests. */
     internal suspend fun generatePreparedStimulusProductionCutoverEvaluation(
         preflight: PersonalizedPlanningPreflight,
         answers: PersonalizedPlanningAnswers,
@@ -769,8 +1059,8 @@ internal class PersonalizedProgramPlanningService(
     }
 
     /**
-     * Production entry point for a prepared personalized generation. CONTROL is materialized
-     * once, the existing B6.2/B7/B8 branch reuses that object, and B9 selects an intact program.
+     * Production order is canonical preparation and the complete EXPERIMENTAL artifact first,
+     * followed by one late CONTROL materialization, comparison, B7/B8 and intact-object B9.
      */
     internal suspend fun generatePreparedProduction(
         preflight: PersonalizedPlanningPreflight,
@@ -780,66 +1070,131 @@ internal class PersonalizedProgramPlanningService(
         routingMode: com.training.trackplanner.data.personalized.StimulusProductionRoutingMode =
             com.training.trackplanner.data.personalized.StimulusProductionRoutingPolicy.defaultMode,
         controlGenerationOverride: (suspend () -> GeneratedProgramSkeleton)? = null,
-        experimentalGenerationOverride: (suspend () -> com.training.trackplanner.data.personalized.StimulusProductionCutoverEvaluation)? = null,
-        canonicalPlanningComputation: CanonicalStimulusPlanningComputation = ::buildCanonicalStimulusPlanningResult
+        canonicalPlanningComputation: CanonicalStimulusPlanningComputation = ::buildCanonicalStimulusPlanningResult,
+        productionGenerationObserver: ((ProductionGenerationObservation) -> Unit)? = null,
+        experimentalProgramBuildOverride: (suspend () -> GeneratedProgramSkeleton)? = null
     ): com.training.trackplanner.data.personalized.StimulusProductionGenerationResult {
         val buildCounts = com.training.trackplanner.data.personalized.MutableStimulusProductionBuildCounts()
         val productionProgress = com.training.trackplanner.data.personalized.ProductionGenerationProgressMapper(progress)
-        val preparedControl = if (controlGenerationOverride == null) run {
-                buildCounts.recordProgramBuildInvocation(
-                    com.training.trackplanner.data.personalized.StimulusProductionBuildKind.CONTROL
-                )
-                generatePreparedWithCanonicalPlanning(preflight, answers, metadata, productionProgress.controlReporter(), canonicalPlanningComputation)
-            } else null
-        val control = controlGenerationOverride?.invoke() ?: requireNotNull(preparedControl).program
-        val evaluation = try {
-            try {
-                experimentalGenerationOverride?.invoke() ?: run {
-                    val prepared = preparedControl
-                        ?: buildCanonicalPlanningForInjectedControlTestAdapter(preflight, answers, metadata, control)
-                    generatePreparedStimulusProductionCutoverEvaluation(
-                        preflight = preflight,
-                        answers = answers,
-                        metadata = metadata,
-                        progress = productionProgress.experimentalReporter(),
-                        canonicalPlanning = prepared.canonicalPlanning,
-                        resolvedRequest = prepared.resolvedRequest.request,
-                        frequencyProvenance = prepared.resolvedRequest.frequencyProvenance,
-                        controlOverride = control,
-                        productionBuildCounts = buildCounts
-                    )
-                }
-            } catch (failure: StimulusCanonicalEvaluationFailure) {
-                throw canonicalEvaluationFailure(failure)
-            }
-        } catch (failure: com.training.trackplanner.data.personalized.StimulusProductionEvaluationFailure) {
-            val fallback = com.training.trackplanner.data.personalized.StimulusProductionRoutingDecision(
+        val context = prepareCanonicalGenerationContext(
+            preflight = preflight,
+            answers = answers,
+            metadata = metadata,
+            progress = productionProgress.canonicalReporter(),
+            canonicalPlanningComputation = canonicalPlanningComputation
+        )
+        fun observe(phase: ProductionGenerationPhase) {
+            productionGenerationObserver?.invoke(ProductionGenerationObservation(phase, context))
+        }
+        observe(ProductionGenerationPhase.CANONICAL_PREPARED)
+
+        fun fallback(
+            control: GeneratedProgramSkeleton,
+            failure: com.training.trackplanner.data.personalized.StimulusProductionEvaluationFailure
+        ) = com.training.trackplanner.data.personalized.StimulusProductionGenerationResult(
+            program = control,
+            routeDecision = com.training.trackplanner.data.personalized.StimulusProductionRoutingDecision(
                 mode = routingMode,
                 selectedSource = com.training.trackplanner.data.personalized.StimulusProductionProgramSource.CONTROL,
                 b8Status = null,
                 b8Scope = null,
                 reasonCodes = listOf("B9_UPSTREAM_EVALUATION_FAILED_CONTROL_FALLBACK"),
                 productionRoutingActive = false
-            )
+            ),
+            comparison = null,
+            buildCounts = buildCounts.snapshot(),
+            upstreamFailureReason = failure.reasonCode,
+            upstreamFailureDetails = (failure.cause as? StimulusCanonicalEvaluationFailure)?.let {
+                listOfNotNull(it.reason.name, it.detailCode)
+            }.orEmpty()
+        ).also {
             productionProgress.reportSelection()
             productionProgress.reportValidationComplete()
             productionProgress.reportComplete()
-            return com.training.trackplanner.data.personalized.StimulusProductionGenerationResult(
-                program = control,
-                routeDecision = fallback,
-                comparison = null,
-                buildCounts = buildCounts.snapshot(),
-                upstreamFailureReason = failure.reasonCode,
-                upstreamFailureDetails = (failure.cause as? StimulusCanonicalEvaluationFailure)?.let {
-                    listOfNotNull(it.reason.name, it.detailCode)
-                }.orEmpty()
+        }
+
+        val canonicalPlanning = when (val outcome = context.canonicalPlanningOutcome) {
+            is CanonicalPlanningOutcome.Success -> outcome.result
+            is CanonicalPlanningOutcome.ExpectedFailure -> {
+                val control = materializeLateControl(
+                    context, answers, productionProgress.controlReporter(), buildCounts, controlGenerationOverride, ::observe
+                )
+                val failure = canonicalEvaluationFailure(outcome.failure)
+                return fallback(com.training.trackplanner.data.personalized.bindSplitParentProgression(control), failure)
+            }
+        }
+
+        val experimental = try {
+            buildCanonicalExperimentalGeneration(
+                context = context,
+                answers = answers,
+                progress = productionProgress.experimentalReporter(),
+                productionBuildCounts = buildCounts,
+                observe = ::observe,
+                experimentalProgramBuildOverride = experimentalProgramBuildOverride
             )
+        } catch (failure: CancellationException) {
+            throw failure
+        } catch (failure: StimulusCanonicalEvaluationFailure) {
+            val control = materializeLateControl(
+                context, answers, productionProgress.controlReporter(), buildCounts, controlGenerationOverride, ::observe
+            )
+            val late = attachLateControlCompatibilityMirrors(control, context, canonicalPlanning)
+            val controlFailure = late.planningOutcome as? CanonicalPlanningOutcome.ExpectedFailure
+            if (controlFailure != null) return fallback(late.program, canonicalEvaluationFailure(controlFailure.failure))
+            return fallback(late.program, canonicalEvaluationFailure(failure))
+        } catch (failure: com.training.trackplanner.data.personalized.StimulusProductionEvaluationFailure) {
+            val control = materializeLateControl(
+                context, answers, productionProgress.controlReporter(), buildCounts, controlGenerationOverride, ::observe
+            )
+            val late = attachLateControlCompatibilityMirrors(control, context, canonicalPlanning)
+            val controlFailure = late.planningOutcome as? CanonicalPlanningOutcome.ExpectedFailure
+            if (controlFailure != null) return fallback(late.program, canonicalEvaluationFailure(controlFailure.failure))
+            return fallback(late.program, failure)
+        }
+
+        val control = materializeLateControl(
+            context = context,
+            answers = answers,
+            progress = productionProgress.controlReporter(),
+            productionBuildCounts = buildCounts,
+            controlGenerationOverride = controlGenerationOverride,
+            observe = ::observe
+        )
+        val preparedControl = attachLateControlCompatibilityMirrors(control, context, canonicalPlanning)
+        val parityFailure = (preparedControl.planningOutcome as? CanonicalPlanningOutcome.ExpectedFailure)?.failure
+        if (parityFailure != null) return fallback(preparedControl.program, canonicalEvaluationFailure(parityFailure))
+        observe(ProductionGenerationPhase.CONTROL_AUDIT)
+
+        val evaluation = try {
+            val comparison = compareCanonicalExperimentalWithControl(
+                preparedControl.program,
+                preparedControl.canonicalPlanning,
+                experimental
+            )
+            observe(ProductionGenerationPhase.COMPARISON)
+            observe(ProductionGenerationPhase.B7)
+            val scope = com.training.trackplanner.data.personalized.StimulusProductionMaterialScopeResolver().resolve(comparison)
+            val authority = com.training.trackplanner.data.personalized.StimulusProductionCutoverAuthorityAuditEngine()
+                .audit(comparison, scope ?: com.training.trackplanner.data.personalized.StimulusProductionCutoverScope.STRENGTH_V1)
+            observe(ProductionGenerationPhase.B8)
+            com.training.trackplanner.data.personalized.StimulusProductionCutoverEvaluation(
+                comparison = comparison.copy(productionCutoverAuthority = authority),
+                cutoverAuthority = authority
+            )
+        } catch (failure: CancellationException) {
+            throw failure
+        } catch (failure: StimulusCanonicalEvaluationFailure) {
+            return fallback(preparedControl.program, canonicalEvaluationFailure(failure))
+        } catch (failure: com.training.trackplanner.data.personalized.StimulusProductionEvaluationFailure) {
+            return fallback(preparedControl.program, failure)
         }
         val routed = com.training.trackplanner.data.personalized.StimulusProductionRouter().route(
             comparison = evaluation.comparison,
             authority = evaluation.cutoverAuthority,
             mode = routingMode
         )
+        observe(ProductionGenerationPhase.B9)
         productionProgress.reportSelection()
         productionProgress.reportValidationComplete()
         productionProgress.reportComplete()

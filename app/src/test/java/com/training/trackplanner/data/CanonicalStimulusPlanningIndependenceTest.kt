@@ -181,22 +181,63 @@ class CanonicalStimulusPlanningIndependenceTest {
                 metadata = metadata,
                 controlGenerationOverride = { conflictingControl }
             )
-            val comparison = requireNotNull(result.comparison)
-            assertEquals("B6 must use the resolved upstream request as a whole", resolved.request, comparison.experimental.request)
-            assertEquals(resolved.request.weeklyTrainingDays, comparison.experimental.request.weeklyTrainingDays)
-            assertEquals(resolved.request.durationWeeks, comparison.experimental.request.durationWeeks)
-            assertEquals(resolved.request.sessionMinutes, comparison.experimental.request.sessionMinutes)
-            assertTrue("B5 must select the only request-eligible H owner",
-                comparison.selectionPlan.selectedCandidates.any {
-                    it.stableKey == ownerKey && "QUALITY:HYPERTROPHY" in it.coveredTargetIds
-                })
-            assertEquals("B6 frequency provenance must follow resolved upstream days",
-                resolved.frequencyProvenance,
-                comparison.experimental.personalizedDecision?.frequencyDemand?.frequency)
-            assertEquals("B6 audit horizon must use the resolved request",
-                resolved.request.durationWeeks, requireNotNull(comparison.experimentalAudit).planningHorizonWeeks)
-            assertTrue("the intentionally conflicting CONTROL mirror cannot establish request parity",
-                comparison.control.request != comparison.experimental.request)
+            assertNull("a late CONTROL request mismatch fails closed after canonical materialization", result.comparison)
+            assertEquals(StimulusProductionProgramSource.CONTROL, result.routeDecision.selectedSource)
+            assertEquals("B9_EXPECTED_CANONICAL_EVALUATION_FAILURE", result.upstreamFailureReason)
+            assertTrue("typed parity reason is preserved", "RESOLVED_REQUEST_PARITY" in result.diagnostics.secondaryReasonCodes)
+            assertTrue("typed parity detail is preserved", "CONTROL_REQUEST_DIFFERS_FROM_RESOLVED_REQUEST" in result.diagnostics.secondaryReasonCodes)
+            result
+        }
+        Unit
+    }
+
+    @Test fun productionCompletesCanonicalAndMaterializedB6BeforeLateControl() = runBlocking {
+        val spec = spec("reviewed_strength_isolated")
+        StimulusProductionCoverageAuditTest().runCase(spec) { service, preflight, answers, metadata ->
+            val observations = mutableListOf<ProductionGenerationObservation>()
+            val result = service.generatePreparedProduction(
+                preflight = preflight,
+                answers = answers,
+                metadata = metadata,
+                productionGenerationObserver = observations::add
+            )
+            val phases = observations.map { it.phase }
+            fun index(phase: ProductionGenerationPhase) = phases.indexOf(phase).also { assertTrue("missing phase $phase: $phases", it >= 0) }
+            assertTrue(index(ProductionGenerationPhase.CANONICAL_PREPARED) < index(ProductionGenerationPhase.B5_COMPLETE))
+            assertTrue(index(ProductionGenerationPhase.B5_COMPLETE) < index(ProductionGenerationPhase.B6_PRE_AUTHORITY_COMPLETE))
+            assertTrue(index(ProductionGenerationPhase.B6_PRE_AUTHORITY_COMPLETE) < index(ProductionGenerationPhase.EXPERIMENTAL_BUILD))
+            assertTrue(index(ProductionGenerationPhase.EXPERIMENTAL_BUILD) < index(ProductionGenerationPhase.B6_POST_MATERIALIZATION_COMPLETE))
+            assertTrue(index(ProductionGenerationPhase.B6_POST_MATERIALIZATION_COMPLETE) < index(ProductionGenerationPhase.CONTROL_BUILD))
+            assertTrue(index(ProductionGenerationPhase.CONTROL_BUILD) < index(ProductionGenerationPhase.CONTROL_AUDIT))
+            assertTrue(index(ProductionGenerationPhase.CONTROL_AUDIT) < index(ProductionGenerationPhase.COMPARISON))
+            assertTrue(index(ProductionGenerationPhase.COMPARISON) < index(ProductionGenerationPhase.B7))
+            assertTrue(index(ProductionGenerationPhase.B7) < index(ProductionGenerationPhase.B8))
+            assertTrue(index(ProductionGenerationPhase.B8) < index(ProductionGenerationPhase.B9))
+            val context = observations.first().context
+            assertTrue("all stages carry the same prepared snapshot/state/request context", observations.all { it.context === context })
+            assertEquals(1, result.buildCounts.controlBuilds)
+            assertEquals(1, result.buildCounts.experimentalBuilds)
+            assertEquals(2, result.buildCounts.totalBuildInvocations)
+            assertEquals(0, result.buildCounts.thirdBuilds)
+            assertEquals(StimulusProductionProgramSource.B8_STRENGTH_V1, result.routeDecision.selectedSource)
+            assertSame(requireNotNull(result.comparison).experimental, result.program)
+            result
+        }
+        Unit
+    }
+
+    @Test fun controlFallbackFixtureStillBuildsCanonicalArtifactFirst() = runBlocking {
+        val spec = spec("reviewed_hypertrophy_isolated", h = true)
+        StimulusProductionCoverageAuditTest().runCase(spec) { service, preflight, answers, metadata ->
+            val phases = mutableListOf<ProductionGenerationPhase>()
+            val result = service.generatePreparedProduction(
+                preflight, answers, metadata,
+                productionGenerationObserver = { phases += it.phase }
+            )
+            assertTrue(phases.indexOf(ProductionGenerationPhase.B6_POST_MATERIALIZATION_COMPLETE) <
+                phases.indexOf(ProductionGenerationPhase.CONTROL_BUILD))
+            assertEquals(StimulusProductionProgramSource.CONTROL, result.routeDecision.selectedSource)
+            assertSame(requireNotNull(result.comparison).control, result.program)
             result
         }
         Unit
@@ -262,7 +303,7 @@ class CanonicalStimulusPlanningIndependenceTest {
             val updates = mutableListOf<Int>()
             val result = service.generatePreparedProduction(preflight, answers, metadata, reporter(updates),
                 canonicalPlanningComputation = { snapshot, state, dose ->
-                    assertEquals("CONTROL completes its mapped build before canonical evaluation", 45, updates.last())
+                    assertTrue("canonical planning precedes late CONTROL", updates.last() < 69)
                     computations++
                     service.buildCanonicalStimulusPlanningResult(snapshot, state, dose)
                 })
@@ -277,8 +318,10 @@ class CanonicalStimulusPlanningIndependenceTest {
     @Test fun expectedIndependentPlanningFailureFallsBackAndCompletes() = runBlocking {
         StimulusProductionCoverageAuditTest().runCase(spec("c1_expected_failure")) { service, preflight, answers, metadata ->
             val updates = mutableListOf<Int>()
+            val phases = mutableListOf<ProductionGenerationPhase>()
             var attempts = 0
             val result = service.generatePreparedProduction(preflight, answers, metadata, reporter(updates),
+                productionGenerationObserver = { phases += it.phase },
                 canonicalPlanningComputation = { _, _, _ ->
                     attempts++
                     throw StimulusCanonicalEvaluationFailure(StimulusCanonicalEvaluationFailureReason.FINAL_CANONICAL_VALIDATION, "C1_TEST_FAILURE")
@@ -292,6 +335,8 @@ class CanonicalStimulusPlanningIndependenceTest {
             assertTrue("C1_TEST_FAILURE" in result.diagnostics.secondaryReasonCodes)
             assertEquals(StimulusProductionFallbackStage.UPSTREAM_EVALUATION_FAILURE, result.diagnostics.primaryFallbackStage)
             assertBuilds(result, 1, 0)
+            assertTrue(phases.indexOf(ProductionGenerationPhase.CANONICAL_PREPARED) < phases.indexOf(ProductionGenerationPhase.CONTROL_BUILD))
+            assertFalse(ProductionGenerationPhase.EXPERIMENTAL_BUILD in phases)
             assertProgress(updates, completed = true)
             result
         }

@@ -3,7 +3,7 @@ package com.training.trackplanner.data.personalized
 import kotlin.math.roundToInt
 
 /**
- * Maps the two internal planner passes onto one user-facing generation operation.
+ * Maps canonical preparation, EXPERIMENTAL, and late CONTROL work onto one user-facing generation.
  *
  * The builder keeps its existing stage semantics. This adapter is only used by the
  * production orchestration seam, so standalone builder progress remains unchanged.
@@ -13,9 +13,11 @@ internal class ProductionGenerationProgressMapper(
 ) {
     private var lastPercent = Int.MIN_VALUE
 
-    fun controlReporter(): PersonalizedPlannerProgressReporter = phaseReporter(5, 45)
+    fun canonicalReporter(): PersonalizedPlannerProgressReporter = phaseReporter(5, 34)
 
-    fun experimentalReporter(): PersonalizedPlannerProgressReporter = phaseReporter(46, 92)
+    fun experimentalReporter(): PersonalizedPlannerProgressReporter = phaseReporter(35, 68)
+
+    fun controlReporter(): PersonalizedPlannerProgressReporter = phaseReporter(69, 90)
 
     fun reportSelection() = emit(93, PersonalizedPlannerStage.FINAL.message)
 

@@ -15,6 +15,11 @@ import com.training.trackplanner.data.personalized.StimulusProductionProgramSour
 import com.training.trackplanner.data.personalized.StrengthIntent
 import com.training.trackplanner.data.personalized.FreeWeightWillingness
 import com.training.trackplanner.data.personalized.StimulusProductionRoutingMode
+import com.training.trackplanner.data.personalized.ProductionGenerationObservation
+import com.training.trackplanner.data.personalized.ProductionGenerationPhase
+import com.training.trackplanner.data.personalized.QUESTION_STRENGTH_INTENT
+import com.training.trackplanner.data.personalized.QUESTION_BADMINTON_INTENT
+import com.training.trackplanner.data.personalized.QUESTION_FREE_WEIGHT
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
@@ -36,13 +41,21 @@ class StimulusProductionFailureBoundaryTest {
         val fixture = fixture()
         try {
             val updates = mutableListOf<PersonalizedPlannerProgress>()
+            val observations = mutableListOf<ProductionGenerationObservation>()
+            var preparedRequest: ProgramSkeletonRequest? = null
             val result = fixture.service.generatePreparedProduction(
                 preflight = fixture.preflight,
-                answers = PersonalizedPlanningAnswers(),
+                answers = fixture.answers,
                 metadata = emptyMap(),
                 progress = reporter(updates),
-                controlGenerationOverride = { fixture.control },
-                experimentalGenerationOverride = {
+                productionGenerationObserver = { observation ->
+                    observations += observation
+                    if (observation.phase == ProductionGenerationPhase.CANONICAL_PREPARED) {
+                        preparedRequest = observation.context.resolvedRequest.request
+                    }
+                },
+                controlGenerationOverride = { fixture.control.copy(request = requireNotNull(preparedRequest)) },
+                experimentalProgramBuildOverride = {
                     throw StimulusCanonicalEvaluationFailure(
                         StimulusCanonicalEvaluationFailureReason.NO_EXECUTABLE_PLANNING_DEMAND,
                         detailCode = "wording-independent-detail"
@@ -50,7 +63,7 @@ class StimulusProductionFailureBoundaryTest {
                 }
             )
 
-            assertSame(fixture.control, result.program)
+            assertTrue("CONTROL fallback keeps the late materialized skeleton", result.program.items.isNotEmpty())
             assertEquals(StimulusProductionProgramSource.CONTROL, result.routeDecision.selectedSource)
             assertFalse(result.routeDecision.productionRoutingActive)
             assertEquals(listOf("B9_UPSTREAM_EVALUATION_FAILED_CONTROL_FALLBACK"), result.routeDecision.reasonCodes)
@@ -58,9 +71,13 @@ class StimulusProductionFailureBoundaryTest {
             assertTrue("NO_EXECUTABLE_PLANNING_DEMAND" in result.diagnostics.secondaryReasonCodes)
             assertTrue("wording-independent-detail" in result.diagnostics.secondaryReasonCodes)
             assertEquals(0, result.buildCounts.controlBuilds)
-            assertEquals(0, result.buildCounts.experimentalBuilds)
-            assertEquals(0, result.buildCounts.totalBuildInvocations)
+            assertEquals(1, result.buildCounts.experimentalBuilds)
+            assertEquals(1, result.buildCounts.totalBuildInvocations)
             assertEquals(0, result.buildCounts.thirdBuilds)
+            val phases = observations.map { it.phase }
+            assertTrue(phases.indexOf(ProductionGenerationPhase.B6_PRE_AUTHORITY_COMPLETE) < phases.indexOf(ProductionGenerationPhase.EXPERIMENTAL_BUILD))
+            assertTrue(phases.indexOf(ProductionGenerationPhase.EXPERIMENTAL_BUILD) < phases.indexOf(ProductionGenerationPhase.CONTROL_BUILD))
+            assertFalse(ProductionGenerationPhase.B6_POST_MATERIALIZATION_COMPLETE in phases)
             assertEquals(updates.map { it.percent }.sorted(), updates.map { it.percent })
             assertEquals(100, updates.last().percent)
             assertEquals(1, updates.count { it.percent == 100 })
@@ -84,22 +101,62 @@ class StimulusProductionFailureBoundaryTest {
     }
 
     @Test
+    fun expectedExperimentalFailureBuildsExactlyOneLateControl() = runBlocking {
+        val spec = StimulusProductionCoverageAuditTest.CoverageSpec(
+            label = "c8_expected_experimental_failure",
+            quality = com.training.trackplanner.data.TrainableQuality.STRENGTH,
+            stableKey = "barbell_back_squat",
+            profileGoal = "STRENGTH_GAIN",
+            goal = ProgramGoal.STRENGTH,
+            intent = StrengthIntent.STRENGTH_PRIORITY,
+            badminton = false,
+            history = "reviewed",
+            days = 3,
+            minutes = 60,
+            equipment = emptySet(),
+            isolateOwner = true
+        )
+        val result = requireNotNull(StimulusProductionCoverageAuditTest().runCase(spec) { service, preflight, answers, metadata ->
+            service.generatePreparedProduction(
+                preflight = preflight,
+                answers = answers,
+                metadata = metadata,
+                experimentalProgramBuildOverride = {
+                    throw StimulusCanonicalEvaluationFailure(
+                        StimulusCanonicalEvaluationFailureReason.NO_EXECUTABLE_PLANNING_DEMAND,
+                        detailCode = "C8_EXPECTED_EXPERIMENTAL_FAILURE"
+                    )
+                }
+            )
+        })
+        assertEquals(StimulusProductionProgramSource.CONTROL, result.routeDecision.selectedSource)
+        assertEquals(1, result.buildCounts.controlBuilds)
+        assertEquals(1, result.buildCounts.experimentalBuilds)
+        assertEquals(2, result.buildCounts.totalBuildInvocations)
+        assertEquals(0, result.buildCounts.thirdBuilds)
+        assertTrue("C8_EXPECTED_EXPERIMENTAL_FAILURE" in result.diagnostics.secondaryReasonCodes)
+    }
+
+    @Test
     fun cancellationPropagatesAndDoesNotComplete() = runBlocking {
         val fixture = fixture()
         try {
             val updates = mutableListOf<PersonalizedPlannerProgress>()
+            val observations = mutableListOf<ProductionGenerationObservation>()
             val cancellation = CancellationException("cancel canonical evaluation")
             val thrown = captureThrowable {
                 fixture.service.generatePreparedProduction(
                     fixture.preflight,
-                    PersonalizedPlanningAnswers(),
+                    fixture.answers,
                     emptyMap(),
                     reporter(updates),
-                    controlGenerationOverride = { fixture.control },
-                    experimentalGenerationOverride = { throw cancellation }
+                    productionGenerationObserver = observations::add,
+                    experimentalProgramBuildOverride = { throw cancellation }
                 )
             }
             assertSame(cancellation, thrown)
+            assertTrue(ProductionGenerationPhase.EXPERIMENTAL_BUILD in observations.map { it.phase })
+            assertFalse(ProductionGenerationPhase.CONTROL_BUILD in observations.map { it.phase })
             assertTrue(updates.none { it.percent == 100 })
         } finally {
             fixture.db.close()
@@ -117,25 +174,25 @@ class StimulusProductionFailureBoundaryTest {
     }
 
     @Test
-    fun controlFailurePropagatesBeforeCanonicalBranch() = runBlocking {
+    fun controlFailurePropagatesAfterCanonicalArtifactCompletes() = runBlocking {
         val fixture = fixture()
         try {
-            var experimentalAttempted = false
+            val observations = mutableListOf<ProductionGenerationObservation>()
             val controlFailure = IllegalStateException("CONTROL_BUILDER_FAILED")
             val thrown = captureThrowable {
                 fixture.service.generatePreparedProduction(
                     fixture.preflight,
-                    PersonalizedPlanningAnswers(),
+                    fixture.answers,
                     emptyMap(),
+                    productionGenerationObserver = observations::add,
                     controlGenerationOverride = { throw controlFailure },
-                    experimentalGenerationOverride = {
-                        experimentalAttempted = true
-                        error("canonical branch must not run")
-                    }
+                    experimentalProgramBuildOverride = { fixture.control }
                 )
             }
             assertSame(controlFailure, thrown)
-            assertFalse(experimentalAttempted)
+            val phases = observations.map { it.phase }
+            assertTrue(phases.indexOf(ProductionGenerationPhase.B6_POST_MATERIALIZATION_COMPLETE) <
+                phases.indexOf(ProductionGenerationPhase.CONTROL_BUILD))
         } finally {
             fixture.db.close()
         }
@@ -147,10 +204,9 @@ class StimulusProductionFailureBoundaryTest {
             val thrown = captureThrowable {
                 fixture.service.generatePreparedProduction(
                     fixture.preflight,
-                    PersonalizedPlanningAnswers(),
+                    fixture.answers,
                     emptyMap(),
-                    controlGenerationOverride = { fixture.control },
-                    experimentalGenerationOverride = { throw failure }
+                    experimentalProgramBuildOverride = { throw failure }
                 )
             }
             assertSame(failure, thrown)
@@ -177,6 +233,7 @@ class StimulusProductionFailureBoundaryTest {
         val repository: TrainingRepository,
         val service: PersonalizedProgramPlanningService,
         val preflight: PersonalizedPlanningPreflight,
+        val answers: PersonalizedPlanningAnswers,
         val control: GeneratedProgramSkeleton
     )
 
@@ -191,6 +248,36 @@ class StimulusProductionFailureBoundaryTest {
                 category = "STRENGTH"
             )
         )
+        db.initialUserProfileDao().upsert(
+            InitialUserProfile(
+                primaryGoal = "STRENGTH_GAIN",
+                strengthTrainingYears = 2.0,
+                strengthSessionsPerWeek = 3.0,
+                strengthMinutesPerSession = 60,
+                habitualTrainingIntensity = "NORMAL"
+            )
+        )
+        val historyEntryId = db.workoutDao().insertEntry(
+            WorkoutEntry(
+                date = LocalDate.of(2026, 9, 13).toString(),
+                exerciseStableKey = "barbell_back_squat",
+                exerciseName = "Back Squat",
+                category = "STRENGTH",
+                sessionStableKey = "c8-production-failure-fixture"
+            )
+        )
+        (1..3).forEach { setIndex ->
+            db.workoutDao().insertSet(
+                WorkoutSet(
+                    entryId = historyEntryId,
+                    setIndex = setIndex,
+                    reps = 5,
+                    weightKg = 70.0,
+                    confirmed = true,
+                    rpe = 8.0
+                )
+            )
+        }
         val repository = TrainingRepository(db, context)
         val service = repository.javaClass.getDeclaredField("personalizedProgramPlanningService")
             .apply { isAccessible = true }
@@ -249,6 +336,13 @@ class StimulusProductionFailureBoundaryTest {
             ),
             weekDaySchedule = mapOf(1 to setOf(1))
         )
-        return Fixture(db, repository, service, preflight, control)
+        val answers = PersonalizedPlanningAnswers(
+            mapOf(
+                QUESTION_STRENGTH_INTENT to StrengthIntent.STRENGTH_PRIORITY.name,
+                QUESTION_BADMINTON_INTENT to BadmintonPlanningIntent.DISABLED.name,
+                QUESTION_FREE_WEIGHT to FreeWeightWillingness.WILLING.name
+            )
+        )
+        return Fixture(db, repository, service, preflight, answers, control)
     }
 }
