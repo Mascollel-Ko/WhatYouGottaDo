@@ -101,6 +101,16 @@ class BoundedDayRebalancerTest {
         assertEquals("TIME_UNDERLOAD_FALLBACK", result.trace.actions.single().route)
         assertEquals("TIME_UNDERLOAD_FALLBACK", result.trace.actions.single().toJson().getString("route"))
         assertEquals(frozenContent(input.skeleton), frozenContent(result.skeleton))
+        assertTrue(result.trace.ownerAllocationProvenance.isNotEmpty())
+        assertTrue(result.trace.ownerAllocationProvenance.all { event ->
+            event.stage == OwnerAllocationStage.BOUNDED_DAY_REBALANCER &&
+                event.action in setOf(OwnerAllocationAction.PLACEMENT_MOVED, OwnerAllocationAction.ORDER_CHANGED) &&
+                event.before?.setCount == event.after?.setCount &&
+                event.before?.setPrescriptions == event.after?.setPrescriptions &&
+                event.before?.prescription == event.after?.prescription &&
+                result.trace.actions.any { action -> event.owner.stableKey in action.stableKeys &&
+                    event.before?.day == action.sourceDay && event.after?.day == action.destinationDay }
+        })
         assertEquals(result, run(input))
     }
     @Test fun `underload destinations ascend before donors descend and restart after each move`() {

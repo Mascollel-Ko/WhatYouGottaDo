@@ -26,7 +26,8 @@ data class ResidualCompletionTrace(val state: String, val initialFingerprint: St
     val completedFingerprint: String, val projectionDate: String, val referenceUnits: Double = 0.0,
     val referenceSeconds: Double = 0.0, val authorizedUnits: Int = 0, val residuals: List<PlanningResidual> = emptyList(),
     val additions: List<ResidualAddition> = emptyList(), val addedDay: Boolean = false,
-    val exactShortfalls: List<ExactPrescriptionShortfall> = emptyList(), val restorations: List<ExactRestorationAction> = emptyList()) {
+    val exactShortfalls: List<ExactPrescriptionShortfall> = emptyList(), val restorations: List<ExactRestorationAction> = emptyList(),
+    val ownerAllocationProvenance: List<OwnerAllocationProvenance> = emptyList()) {
     fun toJson(): JSONObject = JSONObject().put("state", state).put("initialFingerprint", initialFingerprint)
         .put("completedFingerprint", completedFingerprint).put("projectionDate", projectionDate)
         .put("demandBoundary", "AUTHORIZED_POST_CAPACITY_PRE_PLACEMENT_DEMAND")
@@ -35,6 +36,7 @@ data class ResidualCompletionTrace(val state: String, val initialFingerprint: St
         .put("addedDay", addedDay)
         .put("exactShortfalls", JSONArray(exactShortfalls.map { it.toJson() }))
         .put("restorations", JSONArray(restorations.map { it.toJson() }))
+        .put("ownerAllocationProvenance", JSONArray(ownerAllocationProvenance.deterministicOwnerOrder().map { it.toJson() }))
 }
 
 internal data class AuthorizedPrescription(val id: String, val item: PlannedExercise, val prescription: PlannedPrescription, val continuity: Boolean)
@@ -143,6 +145,7 @@ internal class ResidualCompletion(private val prescriptions: PersonalizedPrescri
             if (envelope.historicalSessionObservationCount >= 4) envelope.historicalSessionSecondsMedian
             else planningMedian(nonEmpty.map { it.sumOf(::plannedSeconds).toDouble() }))
         val additions = mutableListOf<ResidualAddition>()
+        val ownerProvenance = mutableListOf<OwnerAllocationProvenance>()
         val exact = origins?.let { ExactAuthorizedRestoration(snapshot, state, initial.request, authorized,
             minOf(demand.authorizedUnits, envelope.finalControllableUnits), projection, demand, week.atomByLocalId, it, rows, progress, prescriptions) }
         if (exact != null) rows = exact.restore(rows, days)
@@ -223,6 +226,12 @@ internal class ResidualCompletion(private val prescriptions: PersonalizedPrescri
             sourceByAtom[row.localId] = source
             additions += ResidualAddition(row.localId, residual.id, row.exerciseStableKey, day, row.setCount,
                 row.weightSource, projection.evaluate(dayRows(day)).ofi, demand.residuals(rows), before)
+            ownerProvenance += OwnerAllocationProvenance(
+                StimulusPrescriptionOwnerIdentity(row.exerciseStableKey, row.selectionRole),
+                OwnerAllocationStage.RESIDUAL_COMPLETION, OwnerAllocationAction.ADDED, null,
+                ownerAllocationState(row), OwnerAllocationCause.MATERIAL_DEMAND,
+                evidenceCodes = listOf("ACCEPTED_SEMANTIC_RESIDUAL_ADDITION", residual.id)
+            )
         }
         fun finalizeCompletion(addedDay: Boolean): CompletionResult {
             val completed = week.mirror(initial, rows, schedule).let { if (addedDay) it.copy(request = it.request.copy(
@@ -231,7 +240,9 @@ internal class ResidualCompletion(private val prescriptions: PersonalizedPrescri
             val trace = ResidualCompletionTrace("POST_GENERATION_RESIDUAL_COMPLETION", personalizedProgramFingerprint(initial.request, initial.items),
                 personalizedProgramFingerprint(completed.request, completed.items), snapshot.cutoff.plusDays(1).toString(),
                 referenceUnits, referenceSeconds, demand.authorizedUnits, demand.residuals(rows), additions, addedDay,
-                exact?.shortfalls(rows).orEmpty(), exact?.actions.orEmpty())
+                exact?.shortfalls(rows).orEmpty(), exact?.actions.orEmpty(),
+                expandMirroredOwnerProvenance(ownerProvenance + exact?.actions.orEmpty().flatMap { it.ownerAllocationProvenance },
+                    schedule.filterKeys { it in 1..initial.request.durationWeeks }))
             sourceByAtom.putAll(exact?.sources.orEmpty())
             val newAtoms = rows.filter { it.localId !in week.atomByLocalId }.map { it.localId }
             val completedAtoms = completed.items.associate { row -> row.localId to

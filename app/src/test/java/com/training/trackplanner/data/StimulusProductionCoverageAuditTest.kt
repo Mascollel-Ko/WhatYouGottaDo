@@ -108,7 +108,7 @@ class StimulusProductionCoverageAuditTest {
     }
 
     @Test
-    fun c9ExactPrefixReductionRequiresOwnerLocalAllocatorTrace() = runBlocking {
+    fun c10ExactPrefixReductionRequiresTypedOwnerAndCauseEdge() = runBlocking {
         // Synthetic seam test only: the unchanged real fixture above MUST remain CONTROL.
         val spec = CoverageSpec("c9_allocator_boundary", TrainableQuality.HYPERTROPHY, "cable_rear_delt_fly",
             "HYPERTROPHY_PHYSIQUE", ProgramGoal.BODYBUILDING, StrengthIntent.HYPERTROPHY_PRIORITY,
@@ -120,27 +120,72 @@ class StimulusProductionCoverageAuditTest {
         val decision = requireNotNull(c.experimental.personalizedDecision)
         val budget = requireNotNull(decision.planningBudget)
         val execution = requireNotNull(budget.execution)
-        fun audit(trace: Boolean, mutateRest: Boolean) = StimulusExperimentalReadinessAuditEngine().audit(c.copy(
-            experimental = c.experimental.copy(
-                items = c.experimental.items.map { row ->
+        val targetId = "QUALITY:HYPERTROPHY"
+        val causeCandidate = c.selectionPlan.selectedCandidates.single { candidate ->
+            StimulusPrescriptionOwnerIdentity(candidate.stableKey, candidate.selectionRole) in c.addedOwnerIdentities &&
+                targetId in candidate.coveredTargetIds
+        }
+        val causeOwner = StimulusPrescriptionOwnerIdentity(causeCandidate.stableKey, causeCandidate.selectionRole)
+        val causeDemandId = requireNotNull(decision.authorizedScheduling).authorized.single {
+            StimulusPrescriptionOwnerIdentity(it.item.stableKey, it.item.role) == causeOwner
+        }.id
+        fun audit(emitAllocatorEvent: Boolean, emitEdge: Boolean = emitAllocatorEvent,
+            eventRole: String = owner.selectionRole, edgeDisplaced: StimulusPrescriptionOwnerIdentity = owner,
+            mutateRest: Boolean = false, mutatePrescription: Boolean = false): StimulusExperimentalChangeAttribution {
+            val changedRows = c.experimental.items.map { row ->
                     if (row.exerciseStableKey == owner.stableKey && row.selectionRole == owner.selectionRole) {
                         val old = before.getValue(Triple(row.weekNumber, row.dayOfWeek, row.orderIndex))
                         assertEquals(old.setPrescriptions.take(row.setCount), row.setPrescriptions)
-                        row.copy(prescription = old.prescription, restSeconds = if (mutateRest) old.restSeconds + 1 else old.restSeconds)
+                        row.copy(prescription = if (mutatePrescription) old.prescription + " changed" else old.prescription,
+                            restSeconds = if (mutateRest) old.restSeconds + 1 else old.restSeconds)
                     } else row
-                },
+                }
+            val ownerRows = changedRows.filter { it.exerciseStableKey == owner.stableKey && it.selectionRole == owner.selectionRole }
+            val typedEvents = if (!emitAllocatorEvent) emptyList() else ownerRows.mapNotNull { after ->
+                val old = before[Triple(after.weekNumber, after.dayOfWeek, after.orderIndex)] ?: return@mapNotNull null
+                if (old.setCount == after.setCount) return@mapNotNull null
+                val beforeState = OwnerAllocationState(old.weekNumber, old.dayOfWeek, old.orderIndex, old.setCount,
+                    old.setPrescriptions, old.prescription, eventRole)
+                val afterState = OwnerAllocationState(after.weekNumber, after.dayOfWeek, after.orderIndex, after.setCount,
+                    after.setPrescriptions, after.prescription, eventRole)
+                OwnerAllocationProvenance(owner.copy(selectionRole = eventRole), OwnerAllocationStage.FINITE_EXECUTION_ALLOCATION,
+                    OwnerAllocationAction.SET_COUNT_REDUCED, beforeState, afterState, OwnerAllocationCause.CAPACITY_LIMIT,
+                    authorizedDemandIds = setOf("test-displaced-demand"), evidenceCodes = listOf("TEST_EMITTED_AT_ALLOCATOR"))
+            }
+            val typedEdges = if (!emitEdge) emptyList() else typedEvents.mapNotNull { event ->
+                OwnerDisplacementEdge(causeOwner, edgeDisplaced, event.stage, event.cause,
+                    requireNotNull(event.before).setCount - requireNotNull(event.after).setCount,
+                    week = event.before.week, targetIds = setOf(targetId), qualities = setOf("HYPERTROPHY"),
+                    authorizedDemandIds = setOf(causeDemandId), mutationSequence = event.mutationSequence)
+            }
+            val audit = StimulusExperimentalReadinessAuditEngine().audit(c.copy(
+            experimental = c.experimental.copy(
+                items = changedRows,
                 personalizedDecision = decision.copy(planningBudget = budget.copy(execution = execution.copy(
-                    constrainedOwnerStableKeys = if (trace) execution.constrainedOwnerStableKeys + owner.stableKey
-                        else execution.constrainedOwnerStableKeys - owner.stableKey
+                    constrainedOwnerStableKeys = execution.constrainedOwnerStableKeys + owner.stableKey,
+                    ownerAllocationProvenance = typedEvents,
+                    ownerDisplacementEdges = typedEdges
                 )))
             )
-        )).changeAttributions.single { it.stableKey == owner.stableKey && it.selectionRole == owner.selectionRole }
-        val exact = audit(trace = true, mutateRest = false)
+        ))
+            return audit.changeAttributions.single { it.stableKey == owner.stableKey && it.selectionRole == owner.selectionRole }
+        }
+        val exact = audit(emitAllocatorEvent = true)
         assertEquals(StimulusExperimentalChangeAttributionSource.DOWNSTREAM_CONSTRAINT_DISPLACEMENT, exact.source)
-        assertEquals(listOf("QUALITY:HYPERTROPHY"), exact.targetIds)
+        assertEquals(listOf(targetId), exact.targetIds)
         assertTrue("OWNER_LOCAL_CONSTRAINED_SET_SUBSET" in exact.reasonCodes)
-        assertEquals(StimulusExperimentalChangeAttributionSource.UNEXPLAINED, audit(trace = false, mutateRest = false).source)
-        assertEquals(StimulusExperimentalChangeAttributionSource.UNEXPLAINED, audit(trace = true, mutateRest = true).source)
+        assertEquals(StimulusExperimentalChangeAttributionSource.UNEXPLAINED,
+            audit(emitAllocatorEvent = false, emitEdge = false).source) // legacy stableKey field cannot fabricate capacity proof
+        assertEquals(StimulusExperimentalChangeAttributionSource.UNEXPLAINED,
+            audit(emitAllocatorEvent = true, emitEdge = false).source) // exact mutation alone does not name its cause owner
+        assertEquals(StimulusExperimentalChangeAttributionSource.UNEXPLAINED,
+            audit(emitAllocatorEvent = true, eventRole = "OTHER_ROLE").source)
+        assertEquals(StimulusExperimentalChangeAttributionSource.UNEXPLAINED,
+            audit(emitAllocatorEvent = true, edgeDisplaced = owner.copy(stableKey = "other_owner")).source)
+        assertEquals(StimulusExperimentalChangeAttributionSource.UNEXPLAINED,
+            audit(emitAllocatorEvent = true, mutateRest = true).source)
+        assertEquals(StimulusExperimentalChangeAttributionSource.UNEXPLAINED,
+            audit(emitAllocatorEvent = true, mutatePrescription = true).source)
     }
 
     /** C9 diagnostic: actual service objects, before any attribution/golden changes. */
@@ -150,6 +195,7 @@ class StimulusProductionCoverageAuditTest {
         appendLine("routes=" + generated.groupingBy { it.second.routeDecision.selectedSource }.eachCount())
         appendLine("B7 counts=" + generated.flatMap { it.second.comparison?.experimentalReadinessAudit?.reasonCodes.orEmpty() }.groupingBy { it }.eachCount().toSortedMap())
         appendLine("B8 counts=" + generated.flatMap { it.second.comparison?.productionCutoverAuthority?.reasonCodes.orEmpty() }.groupingBy { it }.eachCount().toSortedMap())
+        appendLine("C10 origin trace coverage (${renderC10TraceCoverage(records)})")
         generated.sortedBy { it.first.label }.forEach { (spec, result) ->
             val c = requireNotNull(result.comparison)
             fun identity(row: ProgramSkeletonItem) = StimulusPrescriptionOwnerIdentity(row.exerciseStableKey, row.selectionRole)
@@ -183,6 +229,120 @@ class StimulusProductionCoverageAuditTest {
                 }
             }
         }
+    }
+
+    private fun renderC10TraceCoverage(records: List<Pair<CoverageSpec, StimulusProductionGenerationResult?>>): String {
+        data class Delta(val caseId: String, val comparison: StimulusSelectionProgramComparison, val kind: String,
+            val owner: StimulusPrescriptionOwnerIdentity, val week: Int,
+            val before: List<ProgramSkeletonItem>, val after: List<ProgramSkeletonItem>)
+        val totals = sortedMapOf<String, Int>()
+        val exact = sortedMapOf<String, Int>()
+        val deltas = mutableListOf<Delta>()
+        records.forEach { (spec, result) -> result?.comparison?.let { comparison ->
+            fun byOwnerWeek(rows: List<ProgramSkeletonItem>) = rows.groupBy {
+                StimulusPrescriptionOwnerIdentity(it.exerciseStableKey, it.selectionRole) to it.weekNumber
+            }
+            val before = byOwnerWeek(comparison.control.items)
+            val after = byOwnerWeek(comparison.experimental.items)
+            (before.keys + after.keys).distinct().sortedWith(compareBy({ it.first.stableKey }, { it.first.selectionRole }, { it.second }))
+                .forEach { (owner, week) ->
+                    val oldRows = before[owner to week].orEmpty().sortedWith(compareBy({ it.dayOfWeek }, { it.orderIndex }, { it.localId }))
+                    val newRows = after[owner to week].orEmpty().sortedWith(compareBy({ it.dayOfWeek }, { it.orderIndex }, { it.localId }))
+                    val kind = when {
+                        oldRows.isEmpty() && newRows.isNotEmpty() -> "added_owner"
+                        oldRows.isNotEmpty() && newRows.isEmpty() -> "removed_owner"
+                        oldRows.sumOf { it.setCount } != newRows.sumOf { it.setCount } -> "set_change"
+                        oldRows.map { it.prescription to it.setPrescriptions } != newRows.map { it.prescription to it.setPrescriptions } -> "prescription_change"
+                        oldRows.map { it.dayOfWeek to it.orderIndex } != newRows.map { it.dayOfWeek to it.orderIndex } &&
+                            oldRows.map { it.dayOfWeek } != newRows.map { it.dayOfWeek } -> "placement_move"
+                        oldRows.map { it.orderIndex } != newRows.map { it.orderIndex } -> "order_change"
+                        else -> null
+                    } ?: return@forEach
+                    val delta = Delta(spec.label, comparison, kind, owner, week, oldRows, newRows)
+                    deltas += delta
+                    totals[kind] = (totals[kind] ?: 0) + 1
+                }
+        } }
+        fun stateMatches(state: OwnerAllocationState?, row: ProgramSkeletonItem, owner: StimulusPrescriptionOwnerIdentity): Boolean =
+            state != null && state.selectionRole == owner.selectionRole && state.week == row.weekNumber &&
+                (state.day == null || state.day == row.dayOfWeek) && (state.order == null || state.order == row.orderIndex) &&
+                state.setCount == row.setCount && state.setPrescriptions == row.setPrescriptions && state.prescription == row.prescription
+        fun materialMatches(state: OwnerAllocationState?, row: ProgramSkeletonItem, owner: StimulusPrescriptionOwnerIdentity): Boolean =
+            state != null && state.selectionRole == owner.selectionRole && state.week == row.weekNumber &&
+                state.setCount == row.setCount && state.setPrescriptions == row.setPrescriptions && state.prescription == row.prescription
+        fun placementMatches(state: OwnerAllocationState?, row: ProgramSkeletonItem, owner: StimulusPrescriptionOwnerIdentity,
+            includeOrder: Boolean): Boolean = state != null && state.selectionRole == owner.selectionRole && state.week == row.weekNumber &&
+            state.day == row.dayOfWeek && (!includeOrder || state.order == row.orderIndex) && state.setCount == row.setCount &&
+            state.setPrescriptions == row.setPrescriptions && state.prescription == row.prescription
+        fun trace(program: GeneratedProgramSkeleton) = program.personalizedDecision?.planningBudget?.execution?.ownerAllocationProvenance.orEmpty()
+        fun exactOrigin(delta: Delta, comparison: StimulusSelectionProgramComparison): Boolean {
+            val beforeTrace = trace(comparison.control)
+            val afterTrace = trace(comparison.experimental)
+            return when (delta.kind) {
+                "added_owner" -> afterTrace.any { event -> event.owner == delta.owner &&
+                    event.action in setOf(OwnerAllocationAction.ADDED, OwnerAllocationAction.FREQUENCY_REPLICATED,
+                        OwnerAllocationAction.PLACEMENT_ASSIGNED) && delta.after.any { row -> materialMatches(event.after, row, delta.owner) } }
+                "removed_owner" -> afterTrace.any { event -> event.owner == delta.owner && event.action == OwnerAllocationAction.REMOVED &&
+                    event.after == null && delta.before.any { row -> stateMatches(event.before, row, delta.owner) } }
+                "set_change" -> {
+                    val events = beforeTrace + afterTrace
+                    events.any { event -> event.owner == delta.owner &&
+                    event.action in setOf(OwnerAllocationAction.SET_COUNT_REDUCED, OwnerAllocationAction.SET_COUNT_EXPANDED) &&
+                    delta.before.any { old -> stateMatches(event.before, old, delta.owner) } &&
+                    delta.after.any { new -> stateMatches(event.after, new, delta.owner) } } ||
+                    events.any { reverse -> reverse.owner == delta.owner &&
+                        reverse.action in setOf(OwnerAllocationAction.SET_COUNT_REDUCED, OwnerAllocationAction.SET_COUNT_EXPANDED) &&
+                        delta.after.any { new -> stateMatches(reverse.before, new, delta.owner) } &&
+                        delta.before.any { old -> stateMatches(reverse.after, old, delta.owner) } }
+                }
+                "prescription_change" -> (beforeTrace + afterTrace).any { event -> event.owner == delta.owner &&
+                    event.action == OwnerAllocationAction.PRESCRIPTION_CHANGED &&
+                    delta.before.any { old -> stateMatches(event.before, old, delta.owner) } &&
+                    delta.after.any { new -> stateMatches(event.after, new, delta.owner) } }
+                "placement_move" -> beforeTrace.any { event -> event.owner == delta.owner &&
+                    event.action in setOf(OwnerAllocationAction.PLACEMENT_ASSIGNED, OwnerAllocationAction.PLACEMENT_MOVED,
+                        OwnerAllocationAction.ORDER_CHANGED) && delta.before.any { row -> placementMatches(event.after, row, delta.owner, false) } } &&
+                    afterTrace.any { event -> event.owner == delta.owner &&
+                        event.action in setOf(OwnerAllocationAction.PLACEMENT_ASSIGNED, OwnerAllocationAction.PLACEMENT_MOVED,
+                            OwnerAllocationAction.ORDER_CHANGED) && delta.after.any { row -> placementMatches(event.after, row, delta.owner, false) } }
+                "order_change" -> beforeTrace.any { event -> event.owner == delta.owner &&
+                    event.action in setOf(OwnerAllocationAction.PLACEMENT_ASSIGNED, OwnerAllocationAction.PLACEMENT_MOVED,
+                        OwnerAllocationAction.ORDER_CHANGED) && delta.before.any { row -> placementMatches(event.after, row, delta.owner, true) } } &&
+                    afterTrace.any { event -> event.owner == delta.owner &&
+                        event.action in setOf(OwnerAllocationAction.PLACEMENT_ASSIGNED, OwnerAllocationAction.PLACEMENT_MOVED,
+                            OwnerAllocationAction.ORDER_CHANGED) && delta.after.any { row -> placementMatches(event.after, row, delta.owner, true) } }
+                else -> false
+            }
+        }
+        val unproven = mutableListOf<String>()
+        deltas.forEach { delta ->
+            if (exactOrigin(delta, delta.comparison)) exact[delta.kind] = (exact[delta.kind] ?: 0) + 1
+            else {
+                val decision = delta.comparison.experimental.personalizedDecision
+                val selectedAtB5 = delta.owner in delta.comparison.selectionPlan.selectedCandidates.map {
+                    StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole)
+                }
+                val inFiniteDemand = delta.owner in decision?.frequencyDemand?.candidates.orEmpty().map {
+                    StimulusPrescriptionOwnerIdentity(it.item.stableKey, it.item.role)
+                }
+                val authorizedForScheduling = delta.owner in decision?.authorizedScheduling?.authorized.orEmpty().map {
+                    StimulusPrescriptionOwnerIdentity(it.item.stableKey, it.item.role)
+                }
+                val boundary = when {
+                    authorizedForScheduling -> "owner_reached_authorized_scheduling"
+                    inFiniteDemand -> "owner_reached_finite_demand_not_authorized_for_scheduling"
+                    selectedAtB5 -> "b5_selected_before_finite_demand"
+                    else -> "no_exact_owner_in_exp_b5_or_finite_demand"
+                }
+                unproven += "${delta.caseId}:${delta.kind}:${delta.owner.stableKey}#${delta.owner.selectionRole}:w${delta.week}[$boundary]"
+            }
+        }
+        val categories = listOf("added_owner", "removed_owner", "set_change", "prescription_change", "placement_move", "order_change")
+        val counts = categories.joinToString("; ") { kind ->
+            val count = totals[kind] ?: 0
+            "$kind=$count/${exact[kind] ?: 0}/${count - (exact[kind] ?: 0)}"
+        }
+        return "$counts; unproven=${unproven.joinToString(",")}"
     }
 
     @Test

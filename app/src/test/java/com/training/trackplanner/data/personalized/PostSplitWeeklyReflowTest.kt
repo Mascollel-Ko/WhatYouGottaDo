@@ -28,6 +28,16 @@ class PostSplitWeeklyReflowTest {
         assertEquals(reference.trace.qcrAfterJson,optimized.trace.qcrAfterJson)
         assertEquals(reference.trace.fixedChunkIds,optimized.trace.fixedChunkIds)
         assertTrue(optimized.trace.moves.isNotEmpty())
+        assertTrue(optimized.trace.ownerAllocationProvenance.isNotEmpty())
+        assertTrue(optimized.trace.ownerAllocationProvenance.all { event ->
+            event.stage == OwnerAllocationStage.POST_SPLIT_WEEKLY_REFLOW &&
+                event.action in setOf(OwnerAllocationAction.PLACEMENT_MOVED, OwnerAllocationAction.ORDER_CHANGED) &&
+                event.before?.setCount == event.after?.setCount &&
+                event.before?.setPrescriptions == event.after?.setPrescriptions &&
+                event.before?.prescription == event.after?.prescription &&
+                optimized.trace.moves.any { move -> move.stableKey == event.owner.stableKey &&
+                    move.from == event.before?.day && move.to == event.after?.day }
+        })
         assertEquals(eager.candidates,lazy.candidates)
         assertEquals(eager.acceptedActions,lazy.acceptedActions)
         assertTrue(lazy.tissueProjections<eager.tissueProjections)
@@ -46,6 +56,10 @@ class PostSplitWeeklyReflowTest {
         assertEquals(fallback.trace.moves,actual.trace.moves)
         assertTrue(actual.trace.moves.isNotEmpty())
         assertNotEquals(best,actual.trace.moves.first())
+        if (actual.trace.moves.none { it.stableKey == best.stableKey && it.from == best.from && it.to == best.to }) {
+            assertTrue(actual.trace.ownerAllocationProvenance.none { event -> event.owner.stableKey == best.stableKey &&
+                event.before?.day == best.from && event.after?.day == best.to })
+        }
         assertTrue(actual.trace.rejections.getOrDefault("CHRONOLOGICAL_TISSUE",0)>0)
         assertTrue(rejectedLazy.tissueProjections<rejectedEager.tissueProjections)
         println("REFLOW_COUNTS rejectedBest before=$rejectedEager after=$rejectedLazy")

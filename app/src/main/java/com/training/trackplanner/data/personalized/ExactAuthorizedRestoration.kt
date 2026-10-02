@@ -12,11 +12,12 @@ data class ExactPrescriptionShortfall(val authorizedDemandId: String, val stable
 }
 data class ExactRestorationAction(val authorizedDemandId: String, val before: Int, val after: Int,
     val rows: List<ProgramSkeletonItem>, val residualsBefore: List<PlanningResidual>, val residualsAfter: List<PlanningResidual>,
-    val ofiGate: String = "PASS") {
+    val ofiGate: String = "PASS", val ownerAllocationProvenance: List<OwnerAllocationProvenance> = emptyList()) {
     fun toJson() = JSONObject().put("action", "RESTORE_EXACT").put("authorizedDemandId", authorizedDemandId)
         .put("beforeShortfall", before).put("afterShortfall", after).put("rows", JSONArray(rows.map(::auditPlannedItem)))
         .put("timeGate", "PASS").put("ofiGate", ofiGate).put("tissueGate", "CANONICAL_CURRENT_RESTRICTIONS_PASS")
         .put("residualsBefore", JSONArray(residualsBefore.map { it.toJson() })).put("residualsAfter", JSONArray(residualsAfter.map { it.toJson() }))
+        .put("ownerAllocationProvenance", JSONArray(ownerAllocationProvenance.deterministicOwnerOrder().map { it.toJson() }))
 }
 
 /** Parent provenance, not key matching, owns exact materialization. No prescription is reissued. */
@@ -125,11 +126,46 @@ internal class ExactAuthorizedRestoration(private val snapshot: PlanningHistoryS
                 val atom = atomByLocalId[row.localId] ?: row.localId
                 origins[atom] = origin; sources[atom] = parent.item
             }
+            val owner = StimulusPrescriptionOwnerIdentity(parent.item.stableKey, parent.item.role)
+            val exactEvents = buildList {
+                val oldByLocalId = old.associateBy(ProgramSkeletonItem::localId)
+                restored.forEach { (row, _) ->
+                    val previous = oldByLocalId[row.localId]
+                    val cause = if (mandatory) OwnerAllocationCause.MANDATORY_CONTINUITY else OwnerAllocationCause.AUTHORIZED_SET_LIMIT
+                    if (previous == null) {
+                        add(OwnerAllocationProvenance(owner, OwnerAllocationStage.EXACT_PRESCRIPTION_FUNDED_MATERIALIZATION,
+                            OwnerAllocationAction.ADDED, null, ownerAllocationState(row), cause,
+                            authorizedDemandIds = setOf(parent.id), evidenceCodes = listOf("ACCEPTED_EXACT_AUTHORIZED_RESTORATION")))
+                    } else {
+                        val beforeState = ownerAllocationState(previous)
+                        val afterState = ownerAllocationState(row)
+                        if (previous.setPrescriptions.size != row.setPrescriptions.size) add(OwnerAllocationProvenance(owner,
+                            OwnerAllocationStage.EXACT_PRESCRIPTION_FUNDED_MATERIALIZATION,
+                            if (row.setPrescriptions.size > previous.setPrescriptions.size) OwnerAllocationAction.SET_COUNT_EXPANDED
+                            else OwnerAllocationAction.SET_COUNT_REDUCED,
+                            beforeState, afterState, cause, authorizedDemandIds = setOf(parent.id),
+                            evidenceCodes = listOf("ACCEPTED_EXACT_AUTHORIZED_RESTORATION")))
+                        if (previous.dayOfWeek != row.dayOfWeek) add(OwnerAllocationProvenance(owner,
+                            OwnerAllocationStage.EXACT_PRESCRIPTION_FUNDED_MATERIALIZATION, OwnerAllocationAction.PLACEMENT_MOVED,
+                            beforeState, afterState, cause, authorizedDemandIds = setOf(parent.id),
+                            evidenceCodes = listOf("ACCEPTED_EXACT_AUTHORIZED_RESTORATION")))
+                        else if (previous.orderIndex != row.orderIndex) add(OwnerAllocationProvenance(owner,
+                            OwnerAllocationStage.EXACT_PRESCRIPTION_FUNDED_MATERIALIZATION, OwnerAllocationAction.ORDER_CHANGED,
+                            beforeState, afterState, cause, authorizedDemandIds = setOf(parent.id),
+                            evidenceCodes = listOf("ACCEPTED_EXACT_AUTHORIZED_RESTORATION")))
+                        if (previous.setPrescriptions != row.setPrescriptions || previous.prescription != row.prescription ||
+                            previous.restSeconds != row.restSeconds || previous.weightSource != row.weightSource) add(OwnerAllocationProvenance(owner,
+                            OwnerAllocationStage.EXACT_PRESCRIPTION_FUNDED_MATERIALIZATION, OwnerAllocationAction.PRESCRIPTION_CHANGED,
+                            beforeState, afterState, cause, authorizedDemandIds = setOf(parent.id),
+                            evidenceCodes = listOf("ACCEPTED_EXACT_AUTHORIZED_RESTORATION")))
+                    }
+                }
+            }
             actions += ExactRestorationAction(parent.id, parent.prescription.sets.size - count,
                 parent.prescription.sets.size - restored.sumOf { it.first.setPrescriptions.size },
                 restored.map { it.first }, before, demand.residuals(rows),
                 if (mandatory && restored.any { restoredRow -> !projection.evaluate(rows.filter { it.dayOfWeek == restoredRow.first.dayOfWeek }).feasible })
-                    "ADVISORY_AUTHORIZED_HIGH_SET_SPLIT" else "PASS")
+                    "ADVISORY_AUTHORIZED_HIGH_SET_SPLIT" else "PASS", exactEvents)
         }
         } while (rows.sumOf { it.setPrescriptions.size } > unitsBefore)
         return rows

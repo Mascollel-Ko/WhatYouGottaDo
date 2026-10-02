@@ -346,32 +346,56 @@ class StimulusExperimentalReadinessAuditEngine {
         comparison: StimulusSelectionProgramComparison,
         identity: StimulusPrescriptionOwnerIdentity
     ): List<String> {
-        val constrained = comparison.experimental.personalizedDecision?.planningBudget?.execution
-            ?.constrainedOwnerStableKeys.orEmpty()
-        if (identity.stableKey !in constrained || !isExactSetPrefixReduction(comparison, identity)) return emptyList()
-        val authorizedTargets = comparison.selectionPlan.selectedCandidates.asSequence()
-            .filter { candidate ->
-                StimulusPrescriptionOwnerIdentity(candidate.stableKey, candidate.selectionRole) in comparison.addedOwnerIdentities
+        val execution = comparison.experimental.personalizedDecision?.planningBudget?.execution ?: return emptyList()
+        val events = execution.ownerAllocationProvenance
+        val edges = execution.ownerDisplacementEdges
+        if (events.isEmpty() || edges.isEmpty() || !isExactSetPrefixReduction(comparison, identity)) return emptyList()
+
+        val controlBySlot = comparison.control.items.filter {
+            it.exerciseStableKey == identity.stableKey && it.selectionRole == identity.selectionRole
+        }.associateBy { Triple(it.weekNumber, it.dayOfWeek, it.orderIndex) }
+        val experimentalBySlot = comparison.experimental.items.filter {
+            it.exerciseStableKey == identity.stableKey && it.selectionRole == identity.selectionRole
+        }.associateBy { Triple(it.weekNumber, it.dayOfWeek, it.orderIndex) }
+        if (controlBySlot.isEmpty() || controlBySlot.keys != experimentalBySlot.keys) return emptyList()
+        val changedSlots = controlBySlot.keys.filter { slot ->
+            val before = controlBySlot.getValue(slot)
+            val after = experimentalBySlot.getValue(slot)
+            before.setCount != after.setCount || before.setPrescriptions != after.setPrescriptions
+        }
+        if (changedSlots.isEmpty()) return emptyList()
+
+        val selectedCauseOwners = comparison.selectionPlan.selectedCandidates.asSequence()
+            .mapNotNull candidateLoop@ { candidate ->
+                val causeOwner = StimulusPrescriptionOwnerIdentity(candidate.stableKey, candidate.selectionRole)
+                if (causeOwner !in comparison.addedOwnerIdentities) return@candidateLoop null
+                val demandIds = comparison.experimental.personalizedDecision?.authorizedScheduling?.authorized.orEmpty()
+                    .filter { StimulusPrescriptionOwnerIdentity(it.item.stableKey, it.item.role) == causeOwner }
+                    .mapTo(sortedSetOf()) { it.id }
+                if (demandIds.isEmpty()) return@candidateLoop null
+                candidate.coveredTargetIds.asSequence().mapNotNull targetLoop@ { targetId ->
+                    val authorizations = exactExecutableChangeAuthorizations(comparison, causeOwner, candidate)
+                        .filter { it.targetId == targetId }
+                    if (authorizations.isEmpty()) return@targetLoop null
+                    Triple(causeOwner, targetId, demandIds)
+                }.toList()
+            }.flatten().toList()
+
+        return selectedCauseOwners.mapNotNull { (causeOwner, targetId, causeDemandIds) ->
+            val quality = targetId.takeIf { it.startsWith("QUALITY:") }?.removePrefix("QUALITY:")
+                ?: return@mapNotNull null
+            val everyChangedSlotProven = changedSlots.all { slot ->
+                val before = controlBySlot.getValue(slot)
+                val after = experimentalBySlot.getValue(slot)
+                val beforeState = ownerAllocationState(before)
+                val afterState = ownerAllocationState(after)
+                val matchingEdges = edges.filter { edge -> edge.causeOwner == causeOwner && edge.displacedOwner == identity &&
+                    edge.targetIds.contains(targetId) && edge.qualities.contains(quality) &&
+                    edge.authorizedDemandIds.any { it in causeDemandIds } }
+                hasExactOwnerDisplacementProof(events, matchingEdges, causeOwner, identity, beforeState, afterState)
             }
-            .flatMap { candidate ->
-                comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().asSequence()
-                    .filter { authorization ->
-                        val owner = authorization.owner ?: return@filter false
-                        StimulusPrescriptionOwnerIdentity(owner.stableKey, owner.selectionRole) ==
-                            StimulusPrescriptionOwnerIdentity(candidate.stableKey, candidate.selectionRole) &&
-                            authorization.targetId in candidate.coveredTargetIds &&
-                            authorization.authorizedPrescription != null && authorization.status in setOf(
-                                StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
-                                StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR
-                            )
-                    }
-                    .map { it.targetId }
-            }
-            .distinct()
-            .sorted()
-            .toList()
-        // Multiple authorized targets cannot be causally distinguished by the current builder trace.
-        return authorizedTargets.singleOrNull()?.let(::listOf).orEmpty()
+            targetId.takeIf { everyChangedSlotProven }
+        }.distinct().sorted()
     }
 
     private fun isExactSetPrefixReduction(

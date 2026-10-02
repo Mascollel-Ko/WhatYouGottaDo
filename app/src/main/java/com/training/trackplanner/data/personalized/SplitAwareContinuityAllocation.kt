@@ -12,7 +12,8 @@ data class ContinuitySplitDecision(val authorizedDemandId: String, val eligible:
     val failureReasons: Set<SplitPlacementFailure> = emptySet(), val ofiWarnings: List<SplitOfiWarning> = emptyList())
 data class AuthorizedSchedulingTrace(val authorized: List<AuthorizedSchedulingDemand>, val decisions: List<ContinuitySplitDecision>,
     val origins: Map<String, AuthorizedAtomOrigin> = emptyMap(), val initialWeek: List<ProgramSkeletonItem> = emptyList(),
-    val localOrigins: Map<String, AuthorizedAtomOrigin> = emptyMap()) {
+    val localOrigins: Map<String, AuthorizedAtomOrigin> = emptyMap(),
+    val ownerAllocationProvenance: List<OwnerAllocationProvenance> = emptyList()) {
     fun toJson() = JSONObject().put("demandBoundary", "AUTHORIZED_POST_CAPACITY_PRE_PLACEMENT_DEMAND")
         .put("authorized", JSONArray(authorized.map { demand -> JSONObject().put("authorizedDemandId", demand.id)
             .put("stableKey", demand.item.stableKey).put("continuity", demand.continuity)
@@ -34,6 +35,7 @@ data class AuthorizedSchedulingTrace(val authorized: List<AuthorizedSchedulingDe
         .put("initialWeek", JSONArray(initialWeek.map(::auditPlannedItem)))
         .put("localOrigins", JSONObject().apply { localOrigins.forEach { (id, origin) -> put(id, JSONObject()
             .put("authorizedDemandId", origin.authorizedDemandId).put("splitGroupId", origin.splitGroupId).put("splitChunkIndex", origin.splitChunkIndex)) } })
+        .put("ownerAllocationProvenance", JSONArray(ownerAllocationProvenance.deterministicOwnerOrder().map { it.toJson() }))
 }
 internal fun auditSets(sets: List<ProgramSetPrescription>) = JSONArray(sets.map { JSONObject().put("index", it.setIndex)
     .put("reps", it.reps).put("weightKg", it.weightKg).put("seconds", it.seconds)
@@ -78,26 +80,60 @@ internal class SplitAwareContinuityAllocation(private val prescriptions: Persona
     private fun context(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, days: Int, minutes: Int): PlacementContext =
         placementContext ?: PlacementContext(snapshot, state, days, minutes)
 
+    private fun placementProvenanceSink(
+        authorized: List<AuthorizedSchedulingDemand>,
+        events: MutableList<OwnerAllocationProvenance>
+    ): (WeeklyOwnerPlacementMutation) -> Unit = { mutation ->
+        val item = mutation.timed.item
+        val demand = authorized.firstOrNull { it.item === item }
+            ?: authorized.singleOrNull { it.item.stableKey == item.stableKey && it.item.role == item.role &&
+                it.item.styleVariant == item.styleVariant && it.item.representedGapCodes == item.representedGapCodes }
+        if (demand != null) {
+            val before = ownerAllocationState(null, mutation.beforeDay, mutation.beforeOrder,
+                demand.prescription.sets.size, demand.prescription.sets, demand.prescription.text, item.role)
+            val after = mutation.afterDay?.let { ownerAllocationState(null, it, mutation.afterOrder,
+                demand.prescription.sets.size, demand.prescription.sets, demand.prescription.text, item.role) }
+            val action = when {
+                after == null -> OwnerAllocationAction.REMOVED
+                mutation.beforeDay == null -> OwnerAllocationAction.PLACEMENT_ASSIGNED
+                mutation.beforeDay != mutation.afterDay -> OwnerAllocationAction.PLACEMENT_MOVED
+                else -> OwnerAllocationAction.ORDER_CHANGED
+            }
+            events += OwnerAllocationProvenance(StimulusPrescriptionOwnerIdentity(item.stableKey, item.role),
+                mutation.stage, action, before, after, mutation.cause,
+                authorizedDemandIds = setOf(demand.id), evidenceCodes = listOf("ACCEPTED_WEEKLY_PLACEMENT"),
+                mutationSequence = events.size)
+        }
+    }
+
     fun allocateAuthorized(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, authorized: List<AuthorizedSchedulingDemand>,
         days: Int, minutes: Int, request: ProgramSkeletonRequest): SplitAwareAllocation {
         val placement = context(snapshot, state, days, minutes)
+        val ownerProvenance = mutableListOf<OwnerAllocationProvenance>()
+        val capture = placementProvenanceSink(authorized, ownerProvenance)
         val result = TimedWeeklyPlacementPlanner().distribute(authorized.map { TimedPlannedExercise(it.item, it.prescription) },
             days, minutes, snapshot, state.trainingStateAssessment?.sustainable?.robustSchedule == true,
             isMain = { item -> MainSchedulingPolicy.role(item, authorized.any { it.item == item && it.continuity }) == com.training.trackplanner.data.ProgressionRole.MAIN },
-            planningState = state, context = placement, metrics = performanceMetrics)
-        return improve(snapshot, state, authorized, TimedExecutionAllocation(result.first, result.second), days, minutes, request)
+            planningState = state, context = placement, metrics = performanceMetrics, ownerMutationSink = capture)
+        return improve(snapshot, state, authorized, TimedExecutionAllocation(result.first, result.second), days, minutes, request,
+            ownerProvenance)
     }
     fun allocate(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, continuity: List<PlannedExercise>,
         material: List<PlannedExercise>, optional: List<PlannedExercise>, days: Int, minutes: Int, request: ProgramSkeletonRequest? = null): SplitAwareAllocation {
         val authorized = (continuity + material + optional).mapIndexed { index, item -> AuthorizedSchedulingDemand("authorized_$index", item,
             prescriptions.prescribe(snapshot, state.strengthIntent, item, item.style), index < continuity.size) }
+        val placementProvenance = mutableListOf<OwnerAllocationProvenance>()
         val baseline = TimedExecutionAllocationPlanner(prescriptions, context(snapshot, state, days, minutes), performanceMetrics)
-            .allocate(snapshot, state, continuity, material, optional, days, minutes)
-        return improve(snapshot, state, authorized, baseline, days, minutes, request)
+            .allocate(snapshot, state, continuity, material, optional, days, minutes,
+                placementProvenanceSink(authorized, placementProvenance))
+        return improve(snapshot, state, authorized, baseline, days, minutes, request,
+            baseline.ownerAllocationProvenance + placementProvenance)
     }
 
     internal fun improve(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, authorized: List<AuthorizedSchedulingDemand>,
-        baseline: TimedExecutionAllocation, days: Int, minutes: Int, request: ProgramSkeletonRequest? = null): SplitAwareAllocation {
+        baseline: TimedExecutionAllocation, days: Int, minutes: Int, request: ProgramSkeletonRequest? = null,
+        ownerProvenance: List<OwnerAllocationProvenance> = emptyList()): SplitAwareAllocation {
+        val ownerProvenanceEvents = ownerProvenance.toMutableList()
         progress.report(PersonalizedPlannerStage.DISTRIBUTION)
         fun origin(row: TimedPlannedExercise): AuthorizedAtomOrigin {
             val parent = authorized.firstOrNull { it.item === row.item }
@@ -137,6 +173,76 @@ internal class SplitAwareContinuityAllocation(private val prescriptions: Persona
             }?.feasible == false }) return null
             return layout
         }
+        data class PlacedRow(val day: Int, val order: Int, val atom: AuthorizedTimedAtom)
+        fun acceptedLayoutProvenance(
+            before: Map<Int, List<AuthorizedTimedAtom>>,
+            after: Map<Int, List<AuthorizedTimedAtom>>,
+            stage: OwnerAllocationStage,
+            cause: OwnerAllocationCause
+        ): List<OwnerAllocationProvenance> {
+            fun rowsByDemand(layout: Map<Int, List<AuthorizedTimedAtom>>) = layout.flatMap { (day, rows) ->
+                rows.mapIndexed { index, atom -> PlacedRow(day, index + 1, atom) }
+            }.groupBy { it.atom.origin.authorizedDemandId }
+            fun mergedState(demand: AuthorizedSchedulingDemand, rows: List<PlacedRow>, week: Int? = null): OwnerAllocationState {
+                val sets = rows.sortedWith(compareBy({ it.atom.origin.splitChunkIndex ?: -1 }, { it.order }))
+                    .flatMap { it.atom.timed.prescription.sets }.mapIndexed { index, set -> set.copy(setIndex = index + 1) }
+                return ownerAllocationState(week, null, null, sets.size, sets,
+                    rows.sortedBy { it.order }.joinToString(" | ") { it.atom.timed.prescription.text }.ifBlank { demand.prescription.text },
+                    demand.item.role)
+            }
+            fun rowState(row: PlacedRow): OwnerAllocationState = ownerAllocationState(null, row.day, row.order,
+                row.atom.timed.prescription.sets.size, row.atom.timed.prescription.sets,
+                row.atom.timed.prescription.text, row.atom.timed.item.role)
+            val oldByDemand = rowsByDemand(before)
+            val newByDemand = rowsByDemand(after)
+            val byId = authorized.associateBy { it.id }
+            val events = mutableListOf<OwnerAllocationProvenance>()
+            (oldByDemand.keys + newByDemand.keys).distinct().sorted().forEach { demandId ->
+                val demand = byId[demandId] ?: return@forEach
+                val oldRows = oldByDemand[demandId].orEmpty().sortedWith(compareBy({ it.day }, { it.order }))
+                val newRows = newByDemand[demandId].orEmpty().sortedWith(compareBy({ it.day }, { it.order }))
+                if (oldRows.map { it.day to (it.order to it.atom.timed.prescription) } ==
+                    newRows.map { it.day to (it.order to it.atom.timed.prescription) }) return@forEach
+                val identity = StimulusPrescriptionOwnerIdentity(demand.item.stableKey, demand.item.role)
+                val oldState = mergedState(demand, oldRows)
+                val newState = mergedState(demand, newRows)
+                if (oldRows.isEmpty() && newRows.isNotEmpty()) events += OwnerAllocationProvenance(identity, stage,
+                    OwnerAllocationAction.ADDED, null, newState, cause, authorizedDemandIds = setOf(demandId),
+                    evidenceCodes = listOf("ACCEPTED_SPLIT_AWARE_OWNER_LAYOUT"), mutationSequence = events.size)
+                else if (newRows.isEmpty() && oldRows.isNotEmpty()) events += OwnerAllocationProvenance(identity, stage,
+                    OwnerAllocationAction.REMOVED, oldState, null, cause, authorizedDemandIds = setOf(demandId),
+                    evidenceCodes = listOf("ACCEPTED_SPLIT_AWARE_OWNER_LAYOUT"), mutationSequence = events.size)
+                else if (oldState.setCount != newState.setCount) events += OwnerAllocationProvenance(identity, stage,
+                    if (newState.setCount < oldState.setCount) OwnerAllocationAction.SET_COUNT_REDUCED
+                    else OwnerAllocationAction.SET_COUNT_EXPANDED, oldState, newState, cause,
+                    authorizedDemandIds = setOf(demandId), evidenceCodes = listOf("ACCEPTED_SPLIT_AWARE_OWNER_LAYOUT"),
+                    mutationSequence = events.size)
+                else if (oldState.setPrescriptions != newState.setPrescriptions || oldState.prescription != newState.prescription) {
+                    events += OwnerAllocationProvenance(identity, stage, OwnerAllocationAction.PRESCRIPTION_CHANGED,
+                        oldState, newState, cause, authorizedDemandIds = setOf(demandId),
+                        evidenceCodes = listOf("ACCEPTED_SPLIT_AWARE_OWNER_LAYOUT"), mutationSequence = events.size)
+                }
+                val unmatchedOld = oldRows.toMutableList()
+                newRows.forEach { next ->
+                    val match = unmatchedOld.indexOfFirst { old ->
+                        old.atom.timed.item.styleVariant == next.atom.timed.item.styleVariant &&
+                            old.atom.origin.splitChunkIndex == next.atom.origin.splitChunkIndex &&
+                            old.atom.timed.prescription.sets == next.atom.timed.prescription.sets
+                    }
+                    if (match >= 0) {
+                        val old = unmatchedOld.removeAt(match)
+                        if (old.day != next.day || old.order != next.order) events += OwnerAllocationProvenance(identity, stage,
+                            if (old.day != next.day) OwnerAllocationAction.PLACEMENT_MOVED else OwnerAllocationAction.ORDER_CHANGED,
+                            rowState(old), rowState(next), cause, authorizedDemandIds = setOf(demandId),
+                            evidenceCodes = listOf("ACCEPTED_SPLIT_AWARE_OWNER_LAYOUT"), mutationSequence = events.size)
+                    } else events += OwnerAllocationProvenance(identity, stage, OwnerAllocationAction.PLACEMENT_ASSIGNED,
+                        oldState.takeIf { oldRows.isNotEmpty() }, rowState(next), cause,
+                        authorizedDemandIds = setOf(demandId), evidenceCodes = listOf("ACCEPTED_SPLIT_AWARE_OWNER_LAYOUT"),
+                        mutationSequence = events.size)
+                }
+            }
+            return events
+        }
         for (parent in authorized.filter { it.continuity }.sortedWith(compareByDescending<AuthorizedSchedulingDemand> { it.item.priority }.thenBy { it.id })) {
             val eligible = ContinuitySplitPolicy.eligible(snapshot, parent)
             val equipment = snapshot.exercises[parent.item.stableKey]?.equipment.orEmpty().split('|', ',').map(String::trim).filter(String::isNotBlank)
@@ -149,8 +255,11 @@ internal class SplitAwareContinuityAllocation(private val prescriptions: Persona
                 continue
             }
             if (ContinuitySplitPolicy.mandatory(snapshot, parent)) {
+                val beforePlacement = placed
                 val result = MandatoryContinuityPlacement(snapshot, state, days, minutes, performanceMetrics)
                     .place(parent, placed, prescriptions)
+                ownerProvenanceEvents += acceptedLayoutProvenance(beforePlacement, result.days,
+                    OwnerAllocationStage.MANDATORY_CONTINUITY_PLACEMENT, OwnerAllocationCause.MANDATORY_CONTINUITY)
                 placed = result.days
                 val materialized = result.days.values.flatten().filter { it.origin.authorizedDemandId == parent.id }.sumOf { it.timed.prescription.sets.size }
                 decisions += ContinuitySplitDecision(parent.id, true, ContinuitySplitPolicy.template(parent.prescription.sets.size, days),
@@ -176,7 +285,10 @@ internal class SplitAwareContinuityAllocation(private val prescriptions: Persona
             } else null
             val chooseSplit = split != null && (full == null || maximum(split) < maximum(full) && maxLower(split) <= maxLower(full))
             // An infeasible split never replaces the existing safe allocation; ties prefer full unsplit.
-            placed = when { chooseSplit -> split!!; full != null -> full; else -> placed }
+            val acceptedLayout = when { chooseSplit -> split!!; full != null -> full; else -> placed }
+            if (acceptedLayout !== placed) ownerProvenanceEvents += acceptedLayoutProvenance(placed, acceptedLayout,
+                OwnerAllocationStage.SPLIT_AWARE_CONTINUITY_ALLOCATION, OwnerAllocationCause.OWNER_PRIORITY)
+            placed = acceptedLayout
             decisions += ContinuitySplitDecision(parent.id, true, ContinuitySplitPolicy.template(parent.prescription.sets.size),
                 when { chooseSplit && full == null -> "SPLIT_FULL_AUTHORIZED_COVERAGE"; chooseSplit -> "SPLIT_LOWER_MAX_DAY_SECONDS"
                     full != null -> "UNSPLIT_PREFERRED"; else -> "EXISTING_SAFE_REDUCTION_OR_DEFER" })
@@ -185,6 +297,7 @@ internal class SplitAwareContinuityAllocation(private val prescriptions: Persona
         check(authorized.all { (totals[it.id] ?: 0) <= it.prescription.sets.size }) { "SPLIT_AUTHORIZED_SET_INFLATION" }
         val deferred = baseline.deferred.filter { row -> val id = origin(row).authorizedDemandId
             (totals[id] ?: 0) < authorized.single { it.id == id }.prescription.sets.size }
-        return SplitAwareAllocation(placed, deferred, AuthorizedSchedulingTrace(authorized, decisions))
+        return SplitAwareAllocation(placed, deferred, AuthorizedSchedulingTrace(authorized, decisions,
+            ownerAllocationProvenance = ownerProvenanceEvents.deterministicOwnerOrder()))
     }
 }
