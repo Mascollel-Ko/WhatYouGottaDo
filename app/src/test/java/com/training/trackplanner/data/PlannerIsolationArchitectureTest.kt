@@ -8,7 +8,8 @@ class PlannerIsolationArchitectureTest {
     private val root = generateSequence(File(System.getProperty("user.dir")).absoluteFile, File::getParentFile)
         .first { File(it, "settings.gradle.kts").isFile }
     private val source = File(root, "app/src/main/java/com/training/trackplanner")
-    private fun text(path: String) = File(source, path).readText()
+    private fun normalized(text: String) = text.replace("\r\n", "\n")
+    private fun text(path: String) = normalized(File(source, path).readText())
 
     @Test fun frozenPlannerImportsOnlyOwnTypesIdentityDaoAndNeutralRowNoticePrimitives() {
         val allowed = setOf("Exercise", "ExerciseDao", "ProgramSetPrescription", "ProgramOptimizationSummary",
@@ -18,7 +19,7 @@ class PlannerIsolationArchitectureTest {
             "GeneratedProgramSkeleton", "ProgramSkeletonItem", "progressionStyle", "progressionVariant",
             "progressionAnchorSetIndex", "progressionBinding", "progressionSessions")
         File(source, "data/program/legacy").walkTopDown().filter { it.extension == "kt" }.forEach { file ->
-            val content = file.readText()
+            val content = normalized(file.readText())
             // Historical strengthProgressionGroup is metadata, not an execution dependency.
             assertFalse("${file.name}: progression dependency", Regex(
                 "ProgramExecutionDraft|LegacyProgressionDraft|ProgramProgression|ProgressionTrack|ProgressionRule|ProgressionRole|ProgressionMode|ProgressionLink"
@@ -33,7 +34,7 @@ class PlannerIsolationArchitectureTest {
 
     @Test fun recordBasedTransitiveSourceDependenciesCannotReachFrozenPlanningInternals() {
         val files = source.walkTopDown().filter { it.extension == "kt" }.toList()
-        val contents = files.associateWith(File::readText)
+        val contents = files.associateWith { normalized(it.readText()) }
         val packages = contents.mapValues { Regex("(?m)^package ([\\w.]+)").find(it.value.removePrefix("\uFEFF"))!!.groupValues[1] }
         val declarations = mutableMapOf<String, File>()
         contents.forEach { (file, content) ->
