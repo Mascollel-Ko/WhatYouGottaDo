@@ -59,9 +59,10 @@ class C10OriginMutationInvestigationTest {
                 it.cause == OwnerAllocationCause.CAPACITY_SHARE_ALLOCATION &&
                 "FINITE_ALLOCATOR_SHARED_UNIT_ALLOCATION" in it.evidenceCodes
         })
-        assertFalse(experimentalTrace.ownerAllocationProvenance.any {
-            it.owner == owner && it.action == OwnerAllocationAction.SET_COUNT_REDUCED
-        })
+        assertFalse(experimentalTrace.ownerAllocationProvenance.any { event -> event.owner == owner && event.action in setOf(
+            OwnerAllocationAction.SET_COUNT_REDUCED, OwnerAllocationAction.SET_COUNT_EXPANDED,
+            OwnerAllocationAction.PRESCRIPTION_CHANGED
+        ) })
         assertTrue(experimentalTrace.ownerDisplacementEdges.none { it.displacedOwner == owner })
 
         // The independent core delta is first assigned by the initial weekly placement policy.
