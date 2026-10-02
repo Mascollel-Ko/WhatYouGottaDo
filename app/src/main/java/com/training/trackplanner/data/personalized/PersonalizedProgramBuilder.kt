@@ -292,32 +292,44 @@ class ProgramProjectionValidator {
 }
 
 class ProgramRepairPolicy {
+    internal fun repairWithProvenance(
+        skeleton: GeneratedProgramSkeleton,
+        errors: List<String>,
+        retentionPriorityByLocalId: Map<String, Int> = emptyMap(),
+        genericCourtLoad: Double = skeleton.personalizedDecision?.genericCourtLoad ?: 0.0,
+        authorizedDemandIdsByLocalId: Map<String, String> = emptyMap()
+    ): ProgramRepairResult {
+        if (errors.isEmpty()) return ProgramRepairResult(skeleton, emptyList())
+        val secondsLimit = skeleton.request.sessionMinutes * 60
+        val removed = mutableListOf<OwnerAllocationProvenance>()
+        val reduced = skeleton.items.groupBy { it.weekNumber to it.dayOfWeek }.values.flatMap { day ->
+            var used = 0
+            day.sortedWith(compareByDescending<ProgramSkeletonItem> { retentionPriorityByLocalId[it.localId] ?: 0 }
+                .thenBy(ProgramSkeletonItem::orderIndex).thenBy(ProgramSkeletonItem::localId))
+                .filter { item ->
+                    val fits = used + item.estimatedDurationSeconds <= secondsLimit
+                    if (fits) used += item.estimatedDurationSeconds else removed += OwnerAllocationProvenance(
+                        StimulusPrescriptionOwnerIdentity(item.exerciseStableKey, item.selectionRole),
+                        OwnerAllocationStage.PROGRAM_REPAIR, OwnerAllocationAction.REMOVED,
+                        ownerAllocationState(item), null, OwnerAllocationCause.SESSION_TIME_LIMIT,
+                        authorizedDemandIds = authorizedDemandIdsByLocalId[item.localId]?.let(::setOf).orEmpty(),
+                        evidenceCodes = listOf("PROGRAM_REPAIR_SESSION_TIME_FIT"))
+                    fits
+                }.sortedBy(ProgramSkeletonItem::orderIndex)
+        }
+        return ProgramRepairResult(skeleton.copy(items = reduced), removed.deterministicOwnerOrder())
+    }
+
     fun repair(
         skeleton: GeneratedProgramSkeleton,
         errors: List<String>,
         retentionPriorityByLocalId: Map<String, Int> = emptyMap(),
         genericCourtLoad: Double = skeleton.personalizedDecision?.genericCourtLoad ?: 0.0
-    ): GeneratedProgramSkeleton {
-        if (errors.isEmpty()) return skeleton
-        val secondsLimit = skeleton.request.sessionMinutes * 60
-        val reduced = skeleton.items
-            .groupBy { it.weekNumber to it.dayOfWeek }
-            .values
-            .flatMap { day ->
-                var used = 0
-                day.sortedWith(
-                    compareByDescending<ProgramSkeletonItem> { retentionPriorityByLocalId[it.localId] ?: 0 }
-                        .thenBy(ProgramSkeletonItem::orderIndex)
-                        .thenBy(ProgramSkeletonItem::localId)
-                ).filter { item ->
-                    val fits = used + item.estimatedDurationSeconds <= secondsLimit
-                    if (fits) used += item.estimatedDurationSeconds
-                    fits
-                }.sortedBy(ProgramSkeletonItem::orderIndex)
-            }
-        return skeleton.copy(items = reduced)
-    }
+    ): GeneratedProgramSkeleton = repairWithProvenance(skeleton, errors, retentionPriorityByLocalId, genericCourtLoad).skeleton
 }
+
+internal data class ProgramRepairResult(val skeleton: GeneratedProgramSkeleton,
+    val ownerAllocationProvenance: List<OwnerAllocationProvenance>)
 
 class PersonalizedProgramBuilder(
     private val continuityPlanner: ExerciseContinuityPlanner = ExerciseContinuityPlanner(),
@@ -377,7 +389,11 @@ class PersonalizedProgramBuilder(
         val reviewed = PostSplitWeeklyReflow().review(placed, memoSnapshot, state, progress,
             ReflowEvaluationCounts(performanceMetrics = performanceMetrics), canonicalFailureEmitter)
         val result = if (reviewed.trace.state == "NOT_APPLICABLE_NO_MANDATORY_SPLIT") placed
-            else reviewed.skeleton.copy(personalizedDecision = reviewed.skeleton.personalizedDecision?.copy(postSplitReflow = reviewed.trace))
+            else reviewed.skeleton.copy(personalizedDecision = reviewed.skeleton.personalizedDecision?.let { decision -> decision.copy(
+                postSplitReflow = reviewed.trace,
+                planningBudget = decision.planningBudget?.withOwnerAllocationProvenance(reviewed.trace.ownerAllocationProvenance,
+                    exactPrescriptionAuthorizationProvider)
+            ) })
         lastPerformanceMetrics = performanceMetrics.asMap()
         // Assert the immutable authority after every placement/restoration/reflow stage; never trim the result.
         regionalTargetPlan?.authorizedPrescriptionBySelectionRole?.forEach { (owner, prescription) ->
@@ -603,7 +619,7 @@ class PersonalizedProgramBuilder(
                 val item = materialCandidates[it]
                 snapshot.activityKind(item.stableKey) == PlannedActivityKind.RESISTANCE &&
                     RegionalSelectionIdentity(item.stableKey, item.role) !in regionalTargetPlan?.authorizedPrescriptionBySelectionRole.orEmpty()
-            })
+            }, materialCandidates.map { StimulusPrescriptionOwnerIdentity(it.stableKey, it.role) })
         // Keep the established continuity allocator as the final scheduling
         // authority.  Domain budgets authorize independently; placement still
         // receives the same finite, canonical continuity demand ordering.
@@ -632,9 +648,38 @@ class PersonalizedProgramBuilder(
             performanceContinuity.mapNotNull { item -> incumbentAllocations[item.stableKey]?.let { item.copy(targetSets = it) } }))
             .filterNot { it.stableKey in canonicalB5StableKeys }
             .filter(::isExecutableOwner)
-        val gapItems = (authorizedOverride?.filter { !it.continuity && it.item.material }?.map { it.item } ?: materialCandidates.mapIndexedNotNull { index, item ->
-            finite.material[index].takeIf { it > 0 }?.let { item.copy(targetSets = it) }
-        }).filter(::isExecutableOwner)
+        val executableOwnerIdentities = materialCandidates.filter(::isExecutableOwner)
+            .mapTo(linkedSetOf()) { StimulusPrescriptionOwnerIdentity(it.stableKey, it.role) }
+        val finiteOwnerProvenance = if (authorizedOverride == null) finite.ownerAllocationProvenance
+            .filter { it.owner in executableOwnerIdentities } else emptyList()
+        var nextFiniteDemandIndex = continuity.size
+        val gapItems = if (authorizedOverride != null) {
+            authorizedOverride.filter { !it.continuity && it.item.material }.map { it.item }
+        } else materialCandidates.mapIndexedNotNull { index, item ->
+            val allocatedSets = finite.material[index]
+            if (allocatedSets == 0) null else {
+                val selectedItem = item.copy(targetSets = allocatedSets)
+                if (!isExecutableOwner(selectedItem)) null else {
+                    val authorizedDemandId = "authorized_${nextFiniteDemandIndex++}"
+                    selectedItem
+                }
+            }
+        }
+        val finiteOwnerEventsByDemand = gapItems.mapIndexed { index, item ->
+            StimulusPrescriptionOwnerIdentity(item.stableKey, item.role) to "authorized_${continuity.size + index}"
+        }.toMap()
+        val finiteOwnerEvents = finiteOwnerProvenance.map { event ->
+            val authorities = exactPrescriptionAuthorizationProvider?.authorizedPrescriptions?.keys.orEmpty()
+                .filter { it.owner == event.owner }
+            event.copy(
+                before = event.before?.copy(week = null),
+                after = event.after?.copy(week = null),
+                qualities = event.qualities + authorities.map { it.quality.name },
+                authorizedDemandIds = finiteOwnerEventsByDemand[event.owner]?.let(::setOf).orEmpty()
+            )
+        }.flatMap { event ->
+            (1..horizon).map { week -> event.copy(before = event.before?.copy(week = week), after = event.after?.copy(week = week)) }
+        }
         val spare = capacity - finite.continuity - finite.material.sum()
         val optional = (authorizedOverride?.filter { !it.continuity && !it.item.material }?.map { it.item } ?: optionalCandidates.filter { it.targetSets <= spare })
             .filter(::isExecutableOwner)
@@ -711,6 +756,36 @@ class PersonalizedProgramBuilder(
         val performanceItems = selected.filter { snapshot.activityKind(it.stableKey) in PERFORMANCE_ACTIVITY_KINDS }
         val targetResistance = resistanceBudget.resistanceTargetSets
         val schedule = RecordBasedReviewedPolicy.defaultSchedule(horizon, days)
+        val materialOwnerProvenance = demand.ownerAllocationProvenance.flatMap { event ->
+            (1..horizon).map { week -> event.copy(before = event.before?.copy(week = week), after = event.after?.copy(week = week)) }
+        }.deterministicOwnerOrder()
+        val placementOwnerProvenance = expandLogicalPlacementProvenance(placement.trace.ownerAllocationProvenance, schedule,
+            emittedWeeks = (1..horizon).toSet())
+            .map { it.withExactAuthority(exactPrescriptionAuthorizationProvider) }
+        val exactFiniteOwnerProvenance = finiteOwnerEvents.map { event ->
+            val sourceItem = materialCandidates.singleOrNull {
+                it.stableKey == event.owner.stableKey && it.role == event.owner.selectionRole
+            }
+            val allocatedDemand = event.authorizedDemandIds.singleOrNull()?.let { demandId ->
+                placement.trace.authorized.singleOrNull { it.id == demandId }
+            }
+            fun exactState(template: OwnerAllocationState?, count: Int, item: PlannedExercise?, accepted: PlannedPrescription?): OwnerAllocationState? {
+                if (template == null || item == null) return template
+                val authorizedKeys = exactPrescriptionAuthorizationProvider?.authorizedPrescriptions?.keys.orEmpty()
+                    .filter { it.owner == event.owner }
+                val prescription = if (authorizedKeys.isNotEmpty()) {
+                    exactPrescriptionAuthorizationProvider?.authorizedPrescriptionFor(item.copy(targetSets = count), count)
+                } else generationPrescriptions.prescribe(snapshot, state.strengthIntent, item.copy(targetSets = count), item.style)
+                val resolved = accepted ?: prescription
+                return template.copy(setCount = count, setPrescriptions = resolved?.sets.orEmpty(),
+                    prescription = resolved?.text, selectionRole = event.owner.selectionRole)
+            }
+            val requestedCount = requireNotNull(event.before).setCount
+            event.copy(
+                before = exactState(event.before, requestedCount, sourceItem, null),
+                after = event.after?.let { exactState(it, it.setCount, allocatedDemand?.item, allocatedDemand?.prescription) }
+            ).withExactAuthority(exactPrescriptionAuthorizationProvider)
+        }.deterministicOwnerOrder()
         val retentionPriorities = mutableMapOf<String, Int>()
         val postProcessAtoms = mutableMapOf<String, String>()
         val postProcessSources = mutableMapOf<String, PlannedExercise>()
@@ -757,7 +832,9 @@ class PersonalizedProgramBuilder(
             items = items, weekDaySchedule = schedule, warnings = intent.constraints, optimizationSummary = ProgramOptimizationSummary(), templateId = "RECORD_BASED_PERSONALIZED_V0120", representativeTemplate = false,
             personalizedDecision = null
         )
-        val repaired = repairPolicy.repair(rawSkeleton, validator.errors(rawSkeleton, state.genericCourtLoad), retentionPriorities, state.genericCourtLoad)
+        val repairResult = repairPolicy.repairWithProvenance(rawSkeleton, validator.errors(rawSkeleton, state.genericCourtLoad),
+            retentionPriorities, state.genericCourtLoad, postProcessAtoms.mapValues { (_, atom) -> postProcessOrigins.getValue(atom).authorizedDemandId })
+        val repaired = repairResult.skeleton
         val remaining = validator.errors(repaired, state.genericCourtLoad)
         require(remaining.isEmpty()) { remaining.joinToString(" ") }
         val firstWeek = repaired.items.filter { it.weekNumber == 1 }
@@ -807,7 +884,9 @@ class PersonalizedProgramBuilder(
                 constrainedOwnerStableKeys = finiteConstrainedOwners + selected.groupBy(PlannedExercise::stableKey)
                     .filter { (key, owners) ->
                         owners.sumOf(PlannedExercise::targetSets) > firstWeek.filter { it.exerciseStableKey == key }.sumOf(ProgramSkeletonItem::setCount)
-                    }.keys + placementDeferred.mapTo(linkedSetOf()) { it.item.stableKey }
+                    }.keys + placementDeferred.mapTo(linkedSetOf()) { it.item.stableKey },
+                ownerAllocationProvenance = (materialOwnerProvenance + exactFiniteOwnerProvenance + placementOwnerProvenance + repairResult.ownerAllocationProvenance)
+                    .map { it.withExactAuthority(exactPrescriptionAuthorizationProvider) }.deterministicOwnerOrder()
             )
         )
         val fingerprint = personalizedProgramFingerprint(repaired.request, repaired.items)
@@ -826,7 +905,8 @@ class PersonalizedProgramBuilder(
             lowerNegativeEvidence = state.lowerNegativeEvidence,
             courtInterference = state.courtInterference,
             authorizedScheduling = placement.trace.copy(origins = postProcessOrigins, initialWeek = firstWeek,
-                localOrigins = postProcessAtoms.mapValues { postProcessOrigins.getValue(it.value) }),
+                localOrigins = postProcessAtoms.mapValues { postProcessOrigins.getValue(it.value) },
+                ownerAllocationProvenance = placementOwnerProvenance),
             movementRepresentations = state.movementRepresentations,
             badmintonObjectiveRepresentations = state.badmintonObjectiveRepresentations,
             adaptationGaps = gaps,
@@ -881,7 +961,8 @@ class PersonalizedProgramBuilder(
         if (finish != null) return finish(completion.copy(skeleton = observeBoundedMaterialDemand(completion.skeleton.copy(personalizedDecision = decision.copy(
             authorizedScheduling = completion.skeleton.personalizedDecision?.authorizedScheduling,
             residualCompletion = completion.trace,
-            planningBudget = finalizedBudget,
+            planningBudget = finalizedBudget.withOwnerAllocationProvenance(completion.trace.ownerAllocationProvenance,
+                exactPrescriptionAuthorizationProvider),
             weeklyFrequency = completion.skeleton.request.weeklyTrainingDays)))))
         // The second stage owns only placement. Its fail-safe is CompletedPlan, never InitialSkeleton.
         progress.report(PersonalizedPlannerStage.BALANCE)
@@ -893,7 +974,9 @@ class PersonalizedProgramBuilder(
             dayRebalancing = rebalanced.trace,
             frequencyDemand = decision.frequencyDemand?.copy(actualMaterializedUnits = completedWeek.sumOf { it.setPrescriptions.size }),
             // Existing execution trace remains the initial allocation audit; display counts describe the completed plan.
-            planningBudget = finalizedBudget,
+            planningBudget = finalizedBudget.withOwnerAllocationProvenance(
+                completion.trace.ownerAllocationProvenance + rebalanced.trace.ownerAllocationProvenance,
+                exactPrescriptionAuthorizationProvider),
             weeklyFrequency = completion.skeleton.request.weeklyTrainingDays)))
     }
 

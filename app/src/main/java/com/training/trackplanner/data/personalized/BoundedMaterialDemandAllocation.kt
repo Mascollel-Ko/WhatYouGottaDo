@@ -87,8 +87,24 @@ internal class BoundedMaterialDemandAllocation(snapshot: PlanningHistorySnapshot
                 selectedPrescriptions[MaterialDemandOwner.of(candidate.item)] = rx
             }
         }
+        val acceptedOwnerEvents = originals.mapIndexedNotNull { index, (candidate, _, _) ->
+            val requested = candidate.item.targetSets
+            val allocated = funded[index]
+            if (requested == allocated) return@mapIndexedNotNull null
+            val owner = StimulusPrescriptionOwnerIdentity(candidate.item.stableKey, candidate.item.role)
+            OwnerAllocationProvenance(owner, OwnerAllocationStage.FINITE_EXECUTION_ALLOCATION,
+                when {
+                    allocated == 0 -> OwnerAllocationAction.REMOVED
+                    allocated < requested -> OwnerAllocationAction.SET_COUNT_REDUCED
+                    else -> OwnerAllocationAction.SET_COUNT_EXPANDED
+                },
+                ownerAllocationState(null, null, null, requested, emptyList(), null, owner.selectionRole),
+                allocated.takeIf { it > 0 }?.let { ownerAllocationState(null, null, null, it, emptyList(), null, owner.selectionRole) },
+                if (allocated > requested) OwnerAllocationCause.CAPACITY_SHARE_ALLOCATION else OwnerAllocationCause.CAPACITY_LIMIT,
+                evidenceCodes = listOf("BOUNDED_MATERIAL_ACCEPTED_FUNDING"))
+        }.deterministicOwnerOrder()
         finite = FiniteAllocation(minOf(continuityDemand, (capacity - funded.sum()).coerceAtLeast(0)), funded.toList(),
-            originals.indices.filter { funded[it] < originals[it].first.requestedUnits })
+            originals.indices.filter { funded[it] < originals[it].first.requestedUnits }, acceptedOwnerEvents)
         candidates = originals.mapIndexed { index, (candidate, _, rejection) -> candidate.copy(fundedBaseUnits = funded[index],
             rejectionReason = if (rejection != null) candidate.rejectionReason
                 else if (funded[index] < candidate.requestedUnits) CandidateRejectionReason.FINITE_CAPACITY else CandidateRejectionReason.FUNDED) }

@@ -22,7 +22,8 @@ data class PostSplitReflowTrace(val state: String,val parentIds: List<String>,va
     val initialObjective: PostSplitObjective? = null,val finalObjective: PostSplitObjective? = null,
     val moves: List<PostSplitMove> = emptyList(),val rejections: Map<String,Int> = emptyMap(),val spacingJson: String = "[]",
     val qcrBeforeJson: String = "[]",val qcrAfterJson: String = "[]",val tissue: PlannedTissueWeek? = null,val diagnostic: String = "",
-    val timeReference: Double = 0.0,val ofiReference: Double = 0.0) {
+    val timeReference: Double = 0.0,val ofiReference: Double = 0.0,
+    val ownerAllocationProvenance: List<OwnerAllocationProvenance> = emptyList()) {
     fun toJson() = JSONObject().put("state",state).put("mandatoryParentIds",JSONArray(parentIds)).put("protectedSplitChunkLocalIds",JSONArray(fixedChunkIds))
         .put("initialFingerprint",initialFingerprint).put("finalFingerprint",finalFingerprint)
         .put("initialDays",JSONArray(initialDays.map { it.toJson() })).put("finalDays",JSONArray(finalDays.map { it.toJson() }))
@@ -31,6 +32,7 @@ data class PostSplitReflowTrace(val state: String,val parentIds: List<String>,va
         .put("qcrBefore",JSONArray(qcrBeforeJson)).put("qcrAfter",JSONArray(qcrAfterJson)).put("qcrUnchanged",qcrBeforeJson==qcrAfterJson)
         .put("chronologicalTissue",tissue?.toJson()).put("diagnostic",diagnostic).put("timeReference",timeReference).put("ofiReference",ofiReference)
         .put("ofiGate",if(moves.isEmpty()) "NO_ACCEPTED_MOVE" else "EVERY_DESTINATION_PASS; EXISTING_OTHER_DAY_WARNINGS_RETAINED")
+        .put("ownerAllocationProvenance",JSONArray(ownerAllocationProvenance.deterministicOwnerOrder().map { it.toJson() }))
 }
 internal data class PostSplitReflowResult(val skeleton: GeneratedProgramSkeleton,val trace: PostSplitReflowTrace)
 
@@ -151,7 +153,7 @@ internal class PostSplitWeeklyReflow {
         val initialQcr=qcr(initial)
         var rows=initial
         val initialObjective=objective(initial)
-        val moves=mutableListOf<PostSplitMove>(); val rejected=sortedMapOf<String,Int>()
+        val moves=mutableListOf<PostSplitMove>(); val ownerProvenance=mutableListOf<OwnerAllocationProvenance>(); val rejected=sortedMapOf<String,Int>()
         fun reject(reason: String) { rejected[reason]=(rejected[reason] ?: 0)+1 }
         val visited=mutableSetOf(rows.map { it.localId to it.dayOfWeek })
         data class Candidate(val rows: List<ProgramSkeletonItem>,val move: PostSplitMove,val priority: Int)
@@ -198,7 +200,7 @@ internal class PostSplitWeeklyReflow {
                     if(!it) reject("CHRONOLOGICAL_TISSUE")
                     execution.validating(round,++validated,candidates.size)
                 }
-            } ?: return finish(plan,week,initial,rows,authority,parents,fixed,primary,moves,rejected,
+            } ?: return finish(plan,week,initial,rows,authority,parents,fixed,primary,moves,ownerProvenance,rejected,
             initialObjective,objective(rows),metrics(initial),metrics(rows),initialQcr,qcr(rows),tissue(rows),timeRef,ofiRef,"FINITE_LOCAL_OPTIMUM",execution,
                 canonicalFailureEmitter)
             check(visited.add(selected.rows.map { it.localId to it.dayOfWeek })) { "REFLOW_CYCLE" }
@@ -207,16 +209,36 @@ internal class PostSplitWeeklyReflow {
             check(qcr(selected.rows)==initialQcr) { "REFLOW_QCR_CHANGED" }
             counts.acceptedActions++
             counts.performanceMetrics?.let { it.acceptedMoves++ }
+            val beforeRow = rows.single { it.localId == selected.move.localId }
+            val afterRow = selected.rows.single { it.localId == selected.move.localId }
+            val sourceAtom = week.atomByLocalId.getValue(beforeRow.localId)
+            val origin = authority.localOrigins[beforeRow.localId]
+            plan.items.filter { week.atomByLocalId[it.localId] == sourceAtom }.forEach { originalRow ->
+                val actualDays = plan.weekDaySchedule.getValue(originalRow.weekNumber).sorted()
+                val beforeState = ownerAllocationState(originalRow.copy(
+                    dayOfWeek = actualDays[week.days.indexOf(beforeRow.dayOfWeek)], orderIndex = beforeRow.orderIndex))
+                val afterState = ownerAllocationState(originalRow.copy(
+                    dayOfWeek = actualDays[week.days.indexOf(afterRow.dayOfWeek)], orderIndex = afterRow.orderIndex))
+                ownerProvenance += OwnerAllocationProvenance(
+                    StimulusPrescriptionOwnerIdentity(originalRow.exerciseStableKey, originalRow.selectionRole),
+                    OwnerAllocationStage.POST_SPLIT_WEEKLY_REFLOW,
+                    if (beforeState.day != afterState.day) OwnerAllocationAction.PLACEMENT_MOVED else OwnerAllocationAction.ORDER_CHANGED,
+                    beforeState, afterState, OwnerAllocationCause.POST_SPLIT_REFLOW,
+                    authorizedDemandIds = authority.localOrigins[originalRow.localId]?.let { setOf(it.authorizedDemandId) }.orEmpty(),
+                    evidenceCodes = listOf("ACCEPTED_POST_SPLIT_MOVE")
+                )
+            }
             rows=selected.rows; moves+=selected.move
             execution.moved()
         }
-        return finish(plan,week,initial,rows,authority,parents,fixed,primary,moves,rejected,
+        return finish(plan,week,initial,rows,authority,parents,fixed,primary,moves,ownerProvenance,rejected,
             initialObjective,objective(rows),metrics(initial),metrics(rows),initialQcr,qcr(rows),tissue(rows),timeRef,ofiRef,"BOUNDED_128_MOVE_LIMIT",execution,
             canonicalFailureEmitter)
     }
 
     private fun finish(plan: GeneratedProgramSkeleton,week: RepresentativeWeek,initial: List<ProgramSkeletonItem>,rows: List<ProgramSkeletonItem>,
-        authority: AuthorizedSchedulingTrace,parents: List<String>,fixed: List<String>,primary: Set<String>,moves: List<PostSplitMove>,rejections: Map<String,Int>,
+        authority: AuthorizedSchedulingTrace,parents: List<String>,fixed: List<String>,primary: Set<String>,moves: List<PostSplitMove>,
+        ownerProvenance: List<OwnerAllocationProvenance>,rejections: Map<String,Int>,
         initialObjective: PostSplitObjective,finalObjective: PostSplitObjective,initialDays: List<BalanceDay>,finalDays: List<BalanceDay>,
         qBefore: String,qAfter: String,tissue: PlannedTissueWeek,timeRef: Double,ofiRef: Double,diagnostic: String,execution: ReflowProgress,
         canonicalFailureEmitter: ((StimulusCanonicalEvaluationFailureReason, String?) -> Nothing)?): PostSplitReflowResult {
@@ -242,7 +264,8 @@ internal class PostSplitWeeklyReflow {
         check(qBefore==qAfter)
         val trace=PostSplitReflowTrace(if(moves.isEmpty()) "REVIEWED_NO_BENEFICIAL_LEGAL_MOVE" else "APPLIED",parents,fixed,
             personalizedProgramFingerprint(plan.request,plan.items),personalizedProgramFingerprint(result.request,result.items),initialDays,finalDays,
-            initialObjective,finalObjective,moves,rejections,PrimaryStrengthAnchorSpacingPolicy.audit(rows,primary).toString(),qBefore,qAfter,tissue,diagnostic,timeRef,ofiRef)
+            initialObjective,finalObjective,moves,rejections,PrimaryStrengthAnchorSpacingPolicy.audit(rows,primary).toString(),qBefore,qAfter,tissue,diagnostic,timeRef,ofiRef,
+            ownerProvenance.deterministicOwnerOrder())
         return PostSplitReflowResult(result,trace)
     }
 }

@@ -41,7 +41,11 @@ data class ExecutionAllocationTrace(
     val supportiveGapCodesByStableKey: Map<String, Set<String>> = emptyMap(),
     val scheduleTiers: Map<String, ScheduleTier> = emptyMap(),
     /** Stable keys whose requested builder demand was constrained before final materialization. */
-    val constrainedOwnerStableKeys: Set<String> = emptySet()
+    val constrainedOwnerStableKeys: Set<String> = emptySet(),
+    /** Owner/role-local causal events emitted by the mutation stages and carried to B7. */
+    val ownerAllocationProvenance: List<OwnerAllocationProvenance> = emptyList(),
+    /** Empty unless a source allocator explicitly identified both sides of displacement. */
+    val ownerDisplacementEdges: List<OwnerDisplacementEdge> = emptyList()
 ) {
     fun toJson(): JSONObject = JSONObject()
         .put("capacity", JSONObject()
@@ -96,6 +100,11 @@ data class ExecutionAllocationTrace(
             supportiveGapCodesByStableKey.forEach { (key, codes) -> put(key, JSONArray(codes.toList())) }
         })
         .put("constrainedOwnerStableKeys", JSONArray(constrainedOwnerStableKeys.sorted()))
+        .put("ownerAllocationProvenance", JSONArray(ownerAllocationProvenance.deterministicOwnerOrder().map { it.toJson() }))
+        .put("ownerDisplacementEdges", JSONArray(ownerDisplacementEdges.sortedWith(compareBy(
+            { it.causeOwner.stableKey }, { it.causeOwner.selectionRole }, { it.displacedOwner.stableKey },
+            { it.displacedOwner.selectionRole }, { it.stage.ordinal }, { it.reason.ordinal }, { it.week ?: 0 }, { it.displacedUnits }
+        )).map { it.toJson() }))
 }
 
 data class TimedPlannedExercise(val item: PlannedExercise, val prescription: PlannedPrescription) {
@@ -105,7 +114,8 @@ data class TimedPlannedExercise(val item: PlannedExercise, val prescription: Pla
 
 data class TimedExecutionAllocation(
     val days: Map<Int, List<TimedPlannedExercise>>,
-    val deferred: List<TimedPlannedExercise>
+    val deferred: List<TimedPlannedExercise>,
+    val ownerAllocationProvenance: List<OwnerAllocationProvenance> = emptyList()
 )
 
 /** Funds executable material work before discretionary continuity, using exact prescriptions.
@@ -117,7 +127,8 @@ internal class TimedExecutionAllocationPlanner(
     private val performanceMetrics: PlannerPerformanceMetrics? = null,
 ) {
     fun allocate(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, continuity: List<PlannedExercise>,
-                 material: List<PlannedExercise>, optional: List<PlannedExercise>, days: Int, minutes: Int): TimedExecutionAllocation {
+                 material: List<PlannedExercise>, optional: List<PlannedExercise>, days: Int, minutes: Int,
+                 ownerMutationSink: ((WeeklyOwnerPlacementMutation) -> Unit)? = null): TimedExecutionAllocation {
         val funded = mutableListOf<PlannedExercise>()
         val deferred = mutableListOf<TimedPlannedExercise>()
         val context = placementContext ?: PlacementContext(snapshot, state, days, minutes)
@@ -157,16 +168,37 @@ internal class TimedExecutionAllocationPlanner(
         val placement = TimedWeeklyPlacementPlanner().distribute(funded.map(::timed), days, minutes, snapshot,
             state.trainingStateAssessment?.sustainable?.robustSchedule == true,
             isMain = { MainSchedulingPolicy.role(it, it in continuity) == com.training.trackplanner.data.ProgressionRole.MAIN },
-            planningState = state, context = context, metrics = performanceMetrics)
+            planningState = state, context = context, metrics = performanceMetrics,
+            ownerMutationSink = ownerMutationSink)
         check(placement.second.isEmpty())
-        return TimedExecutionAllocation(placement.first, deferred)
+        val fundedByDemand = funded.associateBy { Triple(it.stableKey, it.role, it.styleVariant) }
+        val ownerEvents = (continuity + material + optional).mapNotNull { requested ->
+            val accepted = fundedByDemand[Triple(requested.stableKey, requested.role, requested.styleVariant)]
+            if (accepted?.targetSets == requested.targetSets) return@mapNotNull null
+            val beforeRx = timed(requested).prescription
+            val afterRx = accepted?.let(::timed)?.prescription
+            val owner = StimulusPrescriptionOwnerIdentity(requested.stableKey, requested.role)
+            OwnerAllocationProvenance(owner, OwnerAllocationStage.TIMED_EXECUTION_ALLOCATION,
+                when {
+                    accepted == null -> OwnerAllocationAction.REMOVED
+                    accepted.targetSets < requested.targetSets -> OwnerAllocationAction.SET_COUNT_REDUCED
+                    else -> OwnerAllocationAction.SET_COUNT_EXPANDED
+                },
+                ownerAllocationState(null, null, null, requested.targetSets, beforeRx.sets, beforeRx.text, requested.role),
+                accepted?.let { ownerAllocationState(null, null, null, it.targetSets, requireNotNull(afterRx).sets,
+                    afterRx.text, it.role) },
+                OwnerAllocationCause.CAPACITY_LIMIT,
+                evidenceCodes = listOf("TIMED_ALLOCATOR_ACCEPTED_FUNDING"))
+        }.deterministicOwnerOrder()
+        return TimedExecutionAllocation(placement.first, deferred, ownerEvents)
     }
 }
 
 data class MaterialDemand(
     val candidates: List<PlannedExercise>,
     val deferred: Map<String, String>,
-    val audit: Map<String, String>
+    val audit: Map<String, String>,
+    val ownerAllocationProvenance: List<OwnerAllocationProvenance> = emptyList()
 )
 
 class MaterialDemandResolver(private val prescriptions: PersonalizedPrescriptionPlanner = PersonalizedPrescriptionPlanner()) {
@@ -190,6 +222,7 @@ class MaterialDemandResolver(private val prescriptions: PersonalizedPrescription
             reason == null
         }
         val selected = linkedMapOf<String, PlannedExercise>()
+        val ownerProvenance = mutableListOf<OwnerAllocationProvenance>()
         val represented = mutableSetOf<String>()
         val selectedQualities = mutableSetOf<String>()
         val deferred = linkedMapOf<String, String>()
@@ -228,7 +261,28 @@ class MaterialDemandResolver(private val prescriptions: PersonalizedPrescription
                 }.mapTo(linkedSetOf(), AdaptationGap::code)
                 val existing = selected[choice.stableKey]
                 val owner = existing?.takeIf { it.material && !choice.material } ?: choice
-                selected[choice.stableKey] = owner.copy(representedGapCodes = covered + existing?.representedGapCodes.orEmpty())
+                val resolvedOwner = owner.copy(representedGapCodes = covered + existing?.representedGapCodes.orEmpty())
+                val ownerIdentity = StimulusPrescriptionOwnerIdentity(resolvedOwner.stableKey, resolvedOwner.role)
+                if (existing == null) {
+                    val rx = prescriptions.prescribe(snapshot, state.strengthIntent, resolvedOwner, resolvedOwner.style)
+                    ownerProvenance += OwnerAllocationProvenance(ownerIdentity, OwnerAllocationStage.MATERIAL_DEMAND,
+                        OwnerAllocationAction.ADDED, null,
+                        ownerAllocationState(null, null, null, rx.sets.size, rx.sets, rx.text, resolvedOwner.role),
+                        OwnerAllocationCause.MATERIAL_DEMAND, evidenceCodes = listOf("MATERIAL_DEMAND_SELECTED"))
+                } else if (StimulusPrescriptionOwnerIdentity(existing.stableKey, existing.role) != ownerIdentity) {
+                    val beforeRx = prescriptions.prescribe(snapshot, state.strengthIntent, existing, existing.style)
+                    ownerProvenance += OwnerAllocationProvenance(
+                        StimulusPrescriptionOwnerIdentity(existing.stableKey, existing.role), OwnerAllocationStage.MATERIAL_DEMAND,
+                        OwnerAllocationAction.REMOVED, ownerAllocationState(null, null, null, beforeRx.sets.size,
+                            beforeRx.sets, beforeRx.text, existing.role), null, OwnerAllocationCause.MATERIAL_DEMAND,
+                        evidenceCodes = listOf("MATERIAL_DEMAND_OWNER_REPLACED"))
+                    val afterRx = prescriptions.prescribe(snapshot, state.strengthIntent, resolvedOwner, resolvedOwner.style)
+                    ownerProvenance += OwnerAllocationProvenance(ownerIdentity, OwnerAllocationStage.MATERIAL_DEMAND,
+                        OwnerAllocationAction.ADDED, null,
+                        ownerAllocationState(null, null, null, afterRx.sets.size, afterRx.sets, afterRx.text, resolvedOwner.role),
+                        OwnerAllocationCause.MATERIAL_DEMAND, evidenceCodes = listOf("MATERIAL_DEMAND_OWNER_REPLACEMENT"))
+                }
+                selected[choice.stableKey] = resolvedOwner
                 // Supportive exposure remains useful demand, but cannot close another DIRECT gap.
                 represented += covered.filter { it == gap.code || objectiveFromGap(it) in choice.representedObjectives }
                 selectedQualities += quality(choice)
@@ -249,7 +303,7 @@ class MaterialDemandResolver(private val prescriptions: PersonalizedPrescription
                 else -> "REDUNDANT_OR_INELIGIBLE_CANDIDATE"
             })
         }
-        return MaterialDemand(selected.values.toList(), deferred, audit)
+        return MaterialDemand(selected.values.toList(), deferred, audit, ownerProvenance.deterministicOwnerOrder())
     }
 
     private fun objectiveFromGap(code: String): String = listOf("BADMINTON_DROP_", "BADMINTON_UNDERREPRESENTED_", "BADMINTON_DEVELOP_")
@@ -257,10 +311,17 @@ class MaterialDemandResolver(private val prescriptions: PersonalizedPrescription
 }
 
 /** Pure finite allocation kernel shared by all activity domains; independently golden-tested. */
-data class FiniteAllocation(val continuity: Int, val material: List<Int>, val deferred: List<Int>)
+data class FiniteAllocation(
+    val continuity: Int,
+    val material: List<Int>,
+    val deferred: List<Int>,
+    val ownerAllocationProvenance: List<OwnerAllocationProvenance> = emptyList()
+)
 object FiniteExecutionAllocator {
     fun allocate(capacity: Int, continuityDemand: Int, minimums: List<Int>, share: Double, coreReserve: Int,
-                 flexible: Set<Int> = minimums.indices.toSet()): FiniteAllocation {
+                 flexible: Set<Int> = minimums.indices.toSet(),
+                 ownerIdentities: List<StimulusPrescriptionOwnerIdentity> = emptyList()): FiniteAllocation {
+        require(ownerIdentities.isEmpty() || ownerIdentities.size == minimums.size)
         val reserve = minOf(coreReserve, continuityDemand, capacity)
         val selected = mutableListOf<Int>()
         var spent = 0
@@ -276,7 +337,22 @@ object FiniteExecutionAllocator {
             material[expandable[cursor++ % expandable.size]]++
         }
         val continuity = minOf(continuityDemand, (capacity - material.sum()).coerceAtLeast(0))
-        return FiniteAllocation(continuity, material, minimums.indices.filter { material[it] == 0 })
+        val ownerEvents = if (ownerIdentities.isEmpty()) emptyList() else minimums.mapIndexedNotNull { index, requested ->
+            val allocated = material[index]
+            if (allocated == requested) return@mapIndexedNotNull null
+            val owner = ownerIdentities[index]
+            OwnerAllocationProvenance(owner, OwnerAllocationStage.FINITE_EXECUTION_ALLOCATION,
+                when {
+                    allocated == 0 -> OwnerAllocationAction.REMOVED
+                    allocated < requested -> OwnerAllocationAction.SET_COUNT_REDUCED
+                    else -> OwnerAllocationAction.SET_COUNT_EXPANDED
+                },
+                ownerAllocationState(null, null, null, requested, emptyList(), null, owner.selectionRole),
+                allocated.takeIf { it > 0 }?.let { ownerAllocationState(null, null, null, it, emptyList(), null, owner.selectionRole) },
+                if (allocated > requested) OwnerAllocationCause.CAPACITY_SHARE_ALLOCATION else OwnerAllocationCause.CAPACITY_LIMIT,
+                evidenceCodes = listOf(if (allocated > requested) "FINITE_ALLOCATOR_SHARED_UNIT_ALLOCATION" else "FINITE_ALLOCATOR_CAPACITY_BOUNDARY"))
+        }.deterministicOwnerOrder()
+        return FiniteAllocation(continuity, material, minimums.indices.filter { material[it] == 0 }, ownerEvents)
     }
 }
 
@@ -339,8 +415,10 @@ internal class TimedWeeklyPlacementPlanner {
         planningState: AthletePlanningState? = null,
         context: PlacementContext? = null,
         metrics: PlannerPerformanceMetrics? = null,
+        ownerMutationSink: ((WeeklyOwnerPlacementMutation) -> Unit)? = null,
     ): Pair<Map<Int, List<TimedPlannedExercise>>, List<TimedPlannedExercise>> {
-        val greedy = distributeGreedy(items, days, sessionMinutes, snapshot, robustSchedule, context, metrics)
+        val greedy = distributeGreedy(items, days, sessionMinutes, snapshot, robustSchedule, context, metrics,
+            ownerMutationSink)
         val reviewed = InitialMainPlacement.review(
             greedy.first,
             sessionMinutes,
@@ -351,6 +429,17 @@ internal class TimedWeeklyPlacementPlanner {
             context = context,
             performanceMetrics = metrics,
         )
+        if (ownerMutationSink != null) {
+            val before = java.util.IdentityHashMap<TimedPlannedExercise, Pair<Int, Int>>()
+            greedy.first.forEach { (day, rows) -> rows.forEachIndexed { index, row -> before[row] = day to index + 1 } }
+            reviewed.forEach { (day, rows) -> rows.forEachIndexed { index, row ->
+                val old = before[row] ?: return@forEachIndexed
+                val next = day to index + 1
+                if (old != next) ownerMutationSink(WeeklyOwnerPlacementMutation(row, old.first, old.second,
+                    next.first, next.second, OwnerAllocationStage.INITIAL_MAIN_PLACEMENT,
+                    OwnerAllocationCause.INITIAL_MAIN_PLACEMENT_OBJECTIVE))
+            } }
+        }
         return reviewed to greedy.second
     }
 
@@ -367,6 +456,7 @@ internal class TimedWeeklyPlacementPlanner {
         robustSchedule: Boolean = false,
         context: PlacementContext? = null,
         metrics: PlannerPerformanceMetrics? = null,
+        ownerMutationSink: ((WeeklyOwnerPlacementMutation) -> Unit)? = null,
     ): Pair<Map<Int, List<TimedPlannedExercise>>, List<TimedPlannedExercise>> {
         metrics?.let {
             it.weeklyPlacementCalls++
@@ -409,7 +499,16 @@ internal class TimedWeeklyPlacementPlanner {
                 }
             }.thenBy { it.value.sumOf { atom(it).estimatedSeconds } }
                 .thenBy { it.key })
-            if (target == null) deferred += row else target.value += row
+            if (target == null) {
+                deferred += row
+                ownerMutationSink?.invoke(WeeklyOwnerPlacementMutation(row, null, null, null, null,
+                    OwnerAllocationStage.TIMED_EXECUTION_ALLOCATION, OwnerAllocationCause.SESSION_TIME_LIMIT))
+            } else {
+                val order = target.value.size + 1
+                target.value += row
+                ownerMutationSink?.invoke(WeeklyOwnerPlacementMutation(row, null, null, target.key, order,
+                    OwnerAllocationStage.INITIAL_WEEKLY_PLACEMENT, OwnerAllocationCause.INITIAL_PLACEMENT_POLICY))
+            }
         }
         return buckets to deferred
     }

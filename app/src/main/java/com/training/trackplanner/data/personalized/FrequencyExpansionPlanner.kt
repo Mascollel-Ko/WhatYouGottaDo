@@ -26,7 +26,8 @@ data class FrequencyExpansionTrace(val algorithmRecommendedDays: Int, val userSe
     val capacityRejectedCandidates: List<CapacityCandidateTrace>, val expansionAttempts: List<FrequencyExpansionAction>,
     val initialExpandedUnits: Int, val finalExpandedUnits: Int, val rollbackActions: List<FrequencyExpansionAction>,
     val unitOrigins: List<FrequencyUnitOrigin>, val actualFinalMaterializedUnits: Int,
-    val tissueProjection: PlannedTissueWeek?, val dayLoads: List<Pair<Int, StandaloneDayLoad>>, val diagnostic: String) {
+    val tissueProjection: PlannedTissueWeek?, val dayLoads: List<Pair<Int, StandaloneDayLoad>>, val diagnostic: String,
+    val ownerAllocationProvenance: List<OwnerAllocationProvenance> = emptyList()) {
     val expansionActivated: Boolean get() = true
     val frequencyRatio: Double get() = userSelectedDays.toDouble() / algorithmRecommendedDays
     fun toJson() = JSONObject().put("algorithmRecommendedDays", algorithmRecommendedDays).put("userSelectedDays", userSelectedDays)
@@ -38,6 +39,7 @@ data class FrequencyExpansionTrace(val algorithmRecommendedDays: Int, val userSe
         .put("initialExpandedUnits", initialExpandedUnits).put("finalExpandedUnits", finalExpandedUnits)
         .put("actualAuthorizedUnits", baseAuthorizedUnits + finalExpandedUnits).put("actualFinalMaterializedUnits", actualFinalMaterializedUnits)
         .put("rollbackActions", JSONArray(rollbackActions.map { it.toJson() })).put("unitOrigins", JSONArray(unitOrigins.map { it.toJson() }))
+        .put("ownerAllocationProvenance", JSONArray(ownerAllocationProvenance.deterministicOwnerOrder().map { it.toJson() }))
         .put("tissueProjection", tissueProjection?.toJson()).put("diagnostic", diagnostic)
         .put("days", JSONArray(dayLoads.map { (day, load) -> JSONObject().put("day", day).put("ofi", load.ofi)
             .put("feasible", load.feasible).put("cautionReasons", JSONArray(load.cautionReasons)) }))
@@ -146,10 +148,14 @@ internal class FrequencyExpansionPlanner(private val prescriptions: Personalized
         var finalOrigins: List<FrequencyUnitOrigin> = emptyList()
         var finalTissue: PlannedTissueWeek? = null
         var finalLoads: List<Pair<Int, StandaloneDayLoad>> = emptyList()
+        val acceptedFrequencyMoves = mutableListOf<OwnerAllocationProvenance>()
+        val frequencyRollbackEvents = mutableListOf<OwnerAllocationProvenance>()
         val tissueCache = mutableMapOf<Pair<List<ProgramSkeletonItem>, Double>, PlannedTissueWeek>()
         val loadCache = mutableMapOf<List<ProgramSkeletonItem>, StandaloneDayLoad>()
+        data class FrequencyGateFailure(val code: String, val cause: OwnerAllocationCause)
         // Every failed pass removes at least one expansion unit; no recursive repair.
         while (true) {
+            val passFrequencyMoves = mutableListOf<OwnerAllocationProvenance>()
             val authorized = baseDemand + expansion
             var completion = place(authorized, capacity)
             val targetRpe = completion.skeleton.weekPlans.firstOrNull { it.weekIndex == 1 }?.targetRpeMax ?: Double.NaN
@@ -162,12 +168,16 @@ internal class FrequencyExpansionPlanner(private val prescriptions: Personalized
                     val key = items.sortedBy { it.localId }.map { it.copy(dayOfWeek = 1, orderIndex = 0) }
                     day to loadCache.getOrPut(key) { projection.evaluate(items) }
                 } }
-            fun failure(rows: List<ProgramSkeletonItem>): String? {
-                if (!PrimaryStrengthAnchorSpacingPolicy.allowedRows(rows,primaryKeys)) return "PRIMARY_ANCHOR_CALENDAR_SPACING"
+            fun failure(rows: List<ProgramSkeletonItem>): FrequencyGateFailure? {
+                if (!PrimaryStrengthAnchorSpacingPolicy.allowedRows(rows,primaryKeys)) return FrequencyGateFailure(
+                    "PRIMARY_ANCHOR_CALENDAR_SPACING", OwnerAllocationCause.HARD_GATE)
                 if (rows.groupBy { it.dayOfWeek }.any { (_, items) -> items.sumOf(::plannedSeconds) > request.sessionMinutes * 60 ||
-                        items.map { it.exerciseStableKey }.distinct().size != items.size }) return "SESSION_TIME_OR_COLLISION"
-                if (snapshot.planDayProjection == null || loads(rows).any { !it.second.feasible }) return "OFI_CONSTRAINT"
-                if (tissue(rows)?.feasible != true) return "TISSUE_RECOVERY_CONSTRAINT"
+                        items.map { it.exerciseStableKey }.distinct().size != items.size }) return FrequencyGateFailure(
+                    "SESSION_TIME_OR_COLLISION", OwnerAllocationCause.SESSION_TIME_LIMIT)
+                if (snapshot.planDayProjection == null || loads(rows).any { !it.second.feasible }) return FrequencyGateFailure(
+                    "OFI_CONSTRAINT", OwnerAllocationCause.OFI_GATE)
+                if (tissue(rows)?.feasible != true) return FrequencyGateFailure(
+                    "TISSUE_RECOVERY_CONSTRAINT", OwnerAllocationCause.TISSUE_GATE)
                 return null
             }
             var week = completion.week
@@ -193,10 +203,20 @@ internal class FrequencyExpansionPlanner(private val prescriptions: Personalized
                                 .groupBy { it.dayOfWeek }.values.flatMap { items -> items.sortedWith(compareBy({ it.orderIndex }, { it.localId }))
                                     .mapIndexed { index, item -> item.copy(orderIndex = index + 1) } }
                             if (!seen.add(trial.map { it.localId to it.dayOfWeek })) continue
-                            val rejected = failure(trial) ?: if (origins(trial) == null) "PRESCRIPTION_INTEGRITY" else null
+                            val rejected = failure(trial) ?: if (origins(trial) == null) FrequencyGateFailure(
+                                "PRESCRIPTION_INTEGRITY", OwnerAllocationCause.HARD_GATE) else null
                             attempts += FrequencyExpansionAction(units.first().originalRank ?: 0, row.exerciseStableKey, units.size,
-                                if (rejected == null) "RELOCATED" else "RELOCATION_REJECTED", rejected ?: "ALL_CANONICAL_GATES_PASS", row.dayOfWeek, day)
-                            if (rejected == null) { rows = trial; moved = true; break }
+                                if (rejected == null) "RELOCATED" else "RELOCATION_REJECTED", rejected?.code ?: "ALL_CANONICAL_GATES_PASS", row.dayOfWeek, day)
+                            if (rejected == null) {
+                                val movedRow = trial.single { it.localId == row.localId }
+                                passFrequencyMoves += OwnerAllocationProvenance(
+                                    StimulusPrescriptionOwnerIdentity(row.exerciseStableKey, row.selectionRole),
+                                    OwnerAllocationStage.FREQUENCY_EXPANSION, OwnerAllocationAction.PLACEMENT_MOVED,
+                                    ownerAllocationState(row), ownerAllocationState(movedRow), OwnerAllocationCause.FREQUENCY_EXPANSION,
+                                    authorizedDemandIds = units.mapTo(sortedSetOf()) { it.authorizedDemandId },
+                                    evidenceCodes = listOf("ACCEPTED_FREQUENCY_ONLY_RELOCATION"))
+                                rows = trial; moved = true; break
+                            }
                         }
                         if (moved) break
                     }
@@ -213,7 +233,9 @@ internal class FrequencyExpansionPlanner(private val prescriptions: Personalized
             origin = origins(rows)
             val placedByOwner = origin.orEmpty().groupingBy { it.authorizedDemandId }.eachCount()
             val exact = origin != null && authorized.all { placedByOwner[it.id] == it.prescription.sets.size }
-            val rejected = if (!exact) "BASE_OR_EXPANSION_EXACT_SHORTFALL" else failure(rows)
+            val rejected: FrequencyGateFailure? = if (!exact) FrequencyGateFailure(
+                "BASE_OR_EXPANSION_EXACT_SHORTFALL", OwnerAllocationCause.HARD_GATE
+            ) else failure(rows)
             if (rejected == null || expansion.isEmpty()) {
                 if (!exact || rows.sumOf { it.setPrescriptions.size } < provenance.actualMaterializedUnits) {
                     // Independent BASE shortfalls are not repaired by deleting BASE to make expansion appear feasible.
@@ -229,27 +251,66 @@ internal class FrequencyExpansionPlanner(private val prescriptions: Personalized
                     finalOrigins = frequencyUnitOrigins(rows, completion, baseDemand).orEmpty()
                 } else {
                     finalOrigins = origin.orEmpty()
-                    if (rejected != null) diagnostic = "BASE_INDEPENDENT_$rejected"
+                    if (rejected != null) diagnostic = "BASE_INDEPENDENT_${rejected.code}"
                 }
                 finalTissue = tissue(rows); finalLoads = loads(rows)
+                val retainedFrequencyIds = finalOrigins.filter {
+                    it.fundingSource == PlanningFundingSource.USER_FREQUENCY_EXPANSION
+                }.mapTo(sortedSetOf()) { it.authorizedDemandId }
+                acceptedFrequencyMoves += passFrequencyMoves.filter { event ->
+                    event.authorizedDemandIds.any { it in retainedFrequencyIds }
+                }
                 break
             }
-            diagnostic = rejected
+            diagnostic = rejected.code
             val last = expansion.last()
             val candidate = queue.first { it.originalRank == last.originalRank }
             val reduced = frequencyPortion(snapshot, state, candidate, last.prescription.sets.size - 1, prescriptions)
             expansion.removeAt(expansion.lastIndex)
             if (reduced != null) expansion += last.copy(item = last.item.copy(targetSets = reduced.sets.size), prescription = reduced)
+            val rollbackCause = rejected.cause
+            val rollbackOwner = StimulusPrescriptionOwnerIdentity(last.item.stableKey, last.item.role)
+            frequencyRollbackEvents += OwnerAllocationProvenance(rollbackOwner, OwnerAllocationStage.FREQUENCY_EXPANSION,
+                if (reduced == null) OwnerAllocationAction.FREQUENCY_DROPPED else OwnerAllocationAction.SET_COUNT_REDUCED,
+                ownerAllocationState(null, null, null, last.prescription.sets.size, last.prescription.sets,
+                    last.prescription.text, rollbackOwner.selectionRole),
+                reduced?.let { ownerAllocationState(null, null, null, it.sets.size, it.sets, it.text, rollbackOwner.selectionRole) },
+                rollbackCause, authorizedDemandIds = setOf(last.id), evidenceCodes = listOf("ACCEPTED_FREQUENCY_ROLLBACK",
+                    rollbackCause.name), mutationSequence = frequencyRollbackEvents.size)
             rollbacks += FrequencyExpansionAction(requireNotNull(last.originalRank), last.item.stableKey,
-                last.prescription.sets.size - (reduced?.sets?.size ?: 0), if (reduced == null) "DROPPED" else "REDUCED", rejected)
+                last.prescription.sets.size - (reduced?.sets?.size ?: 0), if (reduced == null) "DROPPED" else "REDUCED", rejected.code)
             check(expansion.sumOf { it.prescription.sets.size } < authorized.drop(baseDemand.size).sumOf { it.prescription.sets.size })
         }
         val finalRows = result.items.filter { it.weekNumber == 1 }
         val actual = finalRows.sumOf { it.setPrescriptions.size }
         check(actual >= provenance.actualMaterializedUnits) { "EXPANSION_MUST_NOT_REDUCE_BASE" }
+        val acceptedFrequencyDemandIds = finalOrigins.filter { it.fundingSource == PlanningFundingSource.USER_FREQUENCY_EXPANSION }
+            .mapTo(sortedSetOf()) { it.authorizedDemandId }
+        val acceptedFrequencyEvents = if (acceptedFrequencyDemandIds.isEmpty()) emptyList() else {
+            val finalDecision = result.personalizedDecision
+            val finalAuthorization = finalDecision?.authorizedScheduling
+            val authorizedById = finalAuthorization?.authorized.orEmpty().associateBy { it.id }
+            val baseRows = base.items.groupBy { Triple(it.weekNumber, StimulusPrescriptionOwnerIdentity(it.exerciseStableKey,
+                it.selectionRole), it.progressionVariant) }
+            result.items.mapNotNull { row ->
+                val origin = finalAuthorization?.localOrigins?.get(row.localId) ?: return@mapNotNull null
+                if (origin.authorizedDemandId !in acceptedFrequencyDemandIds ||
+                    authorizedById[origin.authorizedDemandId]?.fundingSource != PlanningFundingSource.USER_FREQUENCY_EXPANSION) return@mapNotNull null
+                val identity = StimulusPrescriptionOwnerIdentity(row.exerciseStableKey, row.selectionRole)
+                val before = baseRows[Triple(row.weekNumber, identity, row.progressionVariant)]?.singleOrNull()
+                OwnerAllocationProvenance(identity, OwnerAllocationStage.FREQUENCY_EXPANSION,
+                    if (before == null) OwnerAllocationAction.FREQUENCY_REPLICATED
+                    else if (row.setCount != before.setCount) OwnerAllocationAction.SET_COUNT_EXPANDED
+                    else OwnerAllocationAction.FREQUENCY_REPLICATED,
+                    before?.let(::ownerAllocationState), ownerAllocationState(row), OwnerAllocationCause.FREQUENCY_EXPANSION,
+                    authorizedDemandIds = setOf(origin.authorizedDemandId), evidenceCodes = listOf("ACCEPTED_FREQUENCY_UNIT_ORIGIN"))
+            }
+        }
+        val frequencyOwnerProvenance = (acceptedFrequencyMoves + acceptedFrequencyEvents + frequencyRollbackEvents)
+            .deterministicOwnerOrder()
         val trace = FrequencyExpansionTrace(frequency.algorithmRecommendedDays, frequency.resolvedUserDays, b, target,
             capacity.finalControllableUnits, ceiling, queue, attempts, initialExtra, expansion.sumOf { it.prescription.sets.size },
-            rollbacks, finalOrigins, actual, finalTissue, finalLoads, diagnostic)
+            rollbacks, finalOrigins, actual, finalTissue, finalLoads, diagnostic, frequencyOwnerProvenance)
         val decision = requireNotNull(result.personalizedDecision)
         fun count(kind: PlannedActivityKind) = finalRows.filter { snapshot.activityKind(it.exerciseStableKey) == kind }.sumOf { it.setPrescriptions.size }
         return result.copy(personalizedDecision = decision.copy(frequencyDemand = provenance.copy(actualMaterializedUnits = actual,
@@ -258,7 +319,19 @@ internal class FrequencyExpansionPlanner(private val prescriptions: Personalized
             planningBudget = decision.planningBudget?.let { it.copy(plannedResistanceSets = count(PlannedActivityKind.RESISTANCE),
                 plannedStructuredBadmintonBouts = count(PlannedActivityKind.STRUCTURED_BADMINTON_DRILL),
                 plannedAthleticPerformanceBouts = count(PlannedActivityKind.ATHLETIC_PERFORMANCE_DRILL),
-                execution = it.execution?.copy(capacity = capacity)) }))
+                execution = it.execution?.let { execution ->
+                    val baseAllocationEvents = baseDecision.planningBudget?.execution?.ownerAllocationProvenance.orEmpty()
+                        .filter { event -> event.stage == OwnerAllocationStage.FINITE_EXECUTION_ALLOCATION }
+                    val baseDisplacementEdges = baseDecision.planningBudget?.execution?.ownerDisplacementEdges.orEmpty()
+                    execution.copy(capacity = capacity,
+                        ownerAllocationProvenance = (baseAllocationEvents + execution.ownerAllocationProvenance + frequencyOwnerProvenance)
+                            .distinct().deterministicOwnerOrder(),
+                        ownerDisplacementEdges = (baseDisplacementEdges + execution.ownerDisplacementEdges)
+                            .distinct().sortedWith(compareBy({ edge -> edge.causeOwner.stableKey }, { edge -> edge.causeOwner.selectionRole },
+                                { edge -> edge.displacedOwner.stableKey }, { edge -> edge.displacedOwner.selectionRole },
+                                { edge -> edge.stage.ordinal }, { edge -> edge.reason.ordinal }, { edge -> edge.week ?: 0 },
+                                { edge -> edge.displacedUnits })))
+                }) }))
     }
 }
 

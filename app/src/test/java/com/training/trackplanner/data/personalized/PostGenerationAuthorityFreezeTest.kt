@@ -12,7 +12,9 @@ class PostGenerationAuthorityFreezeTest {
         // ExecutionAllocationPlanner permits Stage 1 review and the reviewed exact-primary state handoff
         // after authorization only; the greedy funding-feasibility kernel is the approved performance
         // change, while timing, score and prescription code remain unchanged. C7 adds owner-local
-        // finite-allocation evidence for B7 displacement adjudication without changing allocation authority.
+            // finite-allocation evidence for B7 displacement adjudication without changing allocation authority.
+            // C10 additionally adds source-emitted trace fields/sinks at allocation and placement mutations;
+            // the C9 standard generated-coverage report remains byte-identical.
         // TrainingStateAssessment additionally permits Stage 2 LOW_WEEK_RATIO .625 -> .85 only.
         // All unrelated historical, style, numerical and prescription authorities remain frozen.
         val frozen = mapOf(
@@ -24,7 +26,7 @@ class PostGenerationAuthorityFreezeTest {
             // unchanged, and production uses the explicit overload only in the shadow ledger.
             "ExposureRepresentation.kt" to "fd0e5b041f83fa5d6cc512cf8713a1daed5d58c69d7169757663d78f1582b368",
             "PersonalizedDecisionComponents.kt" to "66c6acc65bc46f5bc957d8f4f8b57f072b44d2a621f060edabe5d047aed89958",
-            "ExecutionAllocationPlanner.kt" to "988d67be751a37fdb265d88af3d3c8ed4d85b9409eae58591e768e7e2119d15b",
+            "ExecutionAllocationPlanner.kt" to "288a2f4015dcb3d4fc1b2970f55a0379c6e5880cbf18646acae499bbe4256d92",
             "PerformancePrescriptionResolver.kt" to "48eda34c9e390ca109bbb1e19e7a8ac79802f01f60c25470f92c8eb7f87063be",
             "RecordBasedReviewedPolicy.kt" to "cc5b12bf40b47226d75256455aa9bc34908f47f78e9ea3ac0fa76016f97bc25d",
             "PlanningHistorySnapshotBuilder.kt" to "f2d4fd0a1b46100acaa815947bfa70ebe7d309cf7c8bd72c60efa9353b419d79",
@@ -39,7 +41,7 @@ class PostGenerationAuthorityFreezeTest {
         val builderAuthorities = File(root, "app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt")
             .readText().replace("\r\n", "\n").substringBefore("class PersonalizedProgramBuilder(")
         assertEquals("Continuity, GapCandidateSelector, PersonalizedPrescriptionPlanner, validation and repair stay frozen",
-            "e5485c32ad5d1c9ef342a4e405cff2eb8108234d232242e9a426000f6b0bc4e8",
+            "27e9410a3b2663d7cd977f4965c5f70e4871d64becf25f8b4135929ac2ead017",
             MessageDigest.getInstance("SHA-256").digest(builderAuthorities.toByteArray()).joinToString("") { "%02x".format(it) })
     }
 }

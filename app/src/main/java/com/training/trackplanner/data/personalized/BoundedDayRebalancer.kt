@@ -44,7 +44,8 @@ data class DayRebalancingTrace(val balanceState: String, val preRebalanceFingerp
     val timeReference: Double, val ofiReference: Double, val initialDays: List<BalanceDay>, val finalDays: List<BalanceDay>,
     val initialObjective: BalanceObjective, val finalObjective: BalanceObjective, val actions: List<BalanceAction>,
     val diagnostic: String = "", val primaryBefore: StrengthPrimaryObjective? = null,
-    val primaryAfter: StrengthPrimaryObjective? = null, val primaryRejections: Map<String, Int> = emptyMap()) {
+    val primaryAfter: StrengthPrimaryObjective? = null, val primaryRejections: Map<String, Int> = emptyMap(),
+    val ownerAllocationProvenance: List<OwnerAllocationProvenance> = emptyList()) {
     fun toJson(): JSONObject = JSONObject().put("balanceState", balanceState).put("preRebalanceFingerprint", preRebalanceFingerprint)
         .put("finalFingerprint", finalFingerprint).put("timeReference", timeReference).put("ofiReference", ofiReference)
         .put("ofiRatioState", if (ofiReference > 0) "ENABLED" else "OFI_RATIO_BALANCING_DISABLED")
@@ -54,6 +55,7 @@ data class DayRebalancingTrace(val balanceState: String, val preRebalanceFingerp
         .put("primaryOverlapBefore",primaryBefore?.overlap).put("primaryOverlapAfter",primaryAfter?.overlap)
         .put("primaryMaximumBefore",primaryBefore?.maximumPerDay).put("primaryMaximumAfter",primaryAfter?.maximumPerDay)
         .put("primaryRejections",JSONObject(primaryRejections))
+        .put("ownerAllocationProvenance",JSONArray(ownerAllocationProvenance.deterministicOwnerOrder().map { it.toJson() }))
 }
 
 internal fun balanceObjective(days: List<BalanceDay>): BalanceObjective {
@@ -152,6 +154,7 @@ internal class BoundedDayRebalancer(private val additionalGate: (List<ProgramSke
         val initialMetrics = currentMetrics
         val initialObjective = balanceObjective(initialMetrics)
         val actions = mutableListOf<BalanceAction>()
+        val ownerProvenance = mutableListOf<OwnerAllocationProvenance>()
         val primaryRejections = sortedMapOf<String,Int>()
         val visited = mutableSetOf(rows.associate { atom(it) to it.dayOfWeek })
         val candidateOrder = compareBy<RebalanceCandidate> { strengthPrimary(it.rows) }.thenBy { it.action.afterObjective }.thenBy { it.movementCost }
@@ -267,6 +270,25 @@ internal class BoundedDayRebalancer(private val additionalGate: (List<ProgramSke
             }
             val accepted = best ?: break
             check(visited.add(accepted.rows.associate { atom(it) to it.dayOfWeek })) { "REBALANCE_CYCLE" }
+            accepted.action.atomIds.forEach { movedAtom ->
+                val before = rows.single { atom(it) == movedAtom }
+                val after = accepted.rows.single { atom(it) == movedAtom }
+                val action = if (before.dayOfWeek != after.dayOfWeek) OwnerAllocationAction.PLACEMENT_MOVED
+                    else OwnerAllocationAction.ORDER_CHANGED
+                skeleton.items.filter { week.atomByLocalId[it.localId] == movedAtom }.forEach { originalRow ->
+                    val actualDays = skeleton.weekDaySchedule.getValue(originalRow.weekNumber).sorted()
+                    val beforeRow = originalRow.copy(dayOfWeek = actualDays[week.days.indexOf(before.dayOfWeek)], orderIndex = before.orderIndex)
+                    val afterRow = originalRow.copy(dayOfWeek = actualDays[week.days.indexOf(after.dayOfWeek)], orderIndex = after.orderIndex)
+                    val origin = skeleton.personalizedDecision?.authorizedScheduling?.localOrigins?.get(originalRow.localId)
+                    ownerProvenance += OwnerAllocationProvenance(
+                        StimulusPrescriptionOwnerIdentity(originalRow.exerciseStableKey, originalRow.selectionRole),
+                        OwnerAllocationStage.BOUNDED_DAY_REBALANCER, action,
+                        ownerAllocationState(beforeRow), ownerAllocationState(afterRow), OwnerAllocationCause.REBALANCE_OBJECTIVE,
+                        authorizedDemandIds = origin?.let { setOf(it.authorizedDemandId) }.orEmpty(),
+                        evidenceCodes = listOf("ACCEPTED_BALANCE_ACTION", accepted.action.actionType)
+                    )
+                }
+            }
             rows = accepted.rows; currentMetrics = accepted.metrics; actions += accepted.action
             counts.performanceMetrics?.let { it.acceptedMoves++ }
         }
@@ -287,6 +309,7 @@ internal class BoundedDayRebalancer(private val additionalGate: (List<ProgramSke
         return RebalancingResult(result, DayRebalancingTrace(status, personalizedProgramFingerprint(skeleton.request, skeleton.items),
             personalizedProgramFingerprint(result.request, result.items), timeReference, ofiReference, initialMetrics, currentMetrics,
             initialObjective, finalObjective, actions, if (finalObjective.bandViolationCount > 0) "UNRESOLVED_BALANCE_CONSTRAINT" else "",
-            strengthPrimary(original),strengthPrimary(rows),primaryRejections))
+            strengthPrimary(original),strengthPrimary(rows),primaryRejections,
+            ownerAllocationProvenance = ownerProvenance.deterministicOwnerOrder()))
     }
 }

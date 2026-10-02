@@ -7,7 +7,7 @@
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.14.3 |
-| Last audited commit | e882999c2a15a37faae9c854a5b5b74db077708a |
+| Last audited commit | ccb9360522826892d881e1166af84cee7a7b586a |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1220,3 +1220,11 @@ Post-audit boundary notes
 - B1–B6, B8/B9, C8 ordering, CONTROL perturbation independence and build accounting are unchanged. Protocol `3.51.0`, runtime `RECORD_BASED_PLANNER_0.14.3_KOTLIN_1` and app `0.5.1.5` are retained because valid production behavior did not change.
 - Green implementation/test commit: `e882999c2a15a37faae9c854a5b5b74db077708a`; Hosted full suite: 2,171 tests, 0 failures, 0 errors, 4 skips. Exact before/after evidence, local Windows failures and CI/artifacts are in [the C9 audit](../../c9_provenance_closure_audit.md).
 - Hosted Android Debug Build run [`36887651269`](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/36887651269) passed on the C8 implementation/test commit: 2,162 tests, 0 failures, 0 errors, 4 skips; protocol validation, contracts, whitespace, full unit tests, coverage upload, APK assembly, signer verification, and APK upload all passed. The final docs-only commit is validated separately.
+
+### Phase C10 — origin-emitted builder/allocator causal provenance (protocol 3.51.0 retained)
+
+- Builder and allocator mutation stages now emit owner-local typed provenance using exact `(stableKey, selectionRole)` identity and lossless accepted before/after state. The trace reaches the final execution audit and B7 input; `constrainedOwnerStableKeys` remains compatibility data only. Rejected search candidates do not enter final provenance.
+- The H fixture’s apparent posterior-chain `3 → 2` difference is not an EXPERIMENTAL reduction: `FiniteExecutionAllocator.allocate` emits CONTROL’s actual `2 → 3` shared-unit expansion, while EXPERIMENTAL stays at its two-set demand. No displaced-owner edge exists, so the H route remains CONTROL. The independent core schedule difference originates at accepted `TimedWeeklyPlacementPlanner.distributeGreedy` placement; B8 placement parity is unchanged.
+- Across 22 generated cases, exact origin coverage is 100/100 added owners, 2/2 set changes, 90/90 placement moves, and 14/14 order changes. The 34 unproven removals are upstream owners absent from EXP B5/finite demand; no synthetic deletion trace was created. `CHANGE_PROVENANCE_UNCLOSED` stays 14; routes stay CONTROL 21 / Strength 1 / H 0 / Combined 0.
+- Standard coverage remains byte-identical at SHA-256 `818E8FA6F67164EEAAE0C938273A777D645874CF0EECD17F1E1795DC811434D9`. B1–B6, program contents, C8 order, build accounting, and CONTROL-late comparison remain unchanged. Protocol/runtime/app versions remain `3.51.0` / `RECORD_BASED_PLANNER_0.14.3_KOTLIN_1` / `0.5.1.5`.
+- C10 implementation/test commit: `ccb9360522826892d881e1166af84cee7a7b586a`. Hosted CI run [36968488029](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/36968488029) passed all checks: 2,175 tests, 0 failures, 0 errors, and 4 skips. The APK is 68,608,691 bytes with SHA-256 `5F9D51E13826C024E6858D81B3133D0C8D8306620701BE00C3A263DBB5FC3017`. The source-stage matrix, H-fixture timeline, exact trace census, B7 conditions, negative/positive tests, local Windows Robolectric failure, and artifact details are recorded in [`docs/c10_allocator_provenance_audit.md`](../../c10_allocator_provenance_audit.md).
