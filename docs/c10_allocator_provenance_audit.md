@@ -5,9 +5,10 @@
 - PR #1 merged at `2026-10-02T00:20:15Z`; merged C9 main and C10 start SHA: `c3ae813cdab94994ab150af8075cc00d75981af3`.
 - C9 implementation/test SHA remains the pre-C10 audit reference: `e882999c2a15a37faae9c854a5b5b74db077708a`.
 - C10 implementation/test SHA: `ccb9360522826892d881e1166af84cee7a7b586a` (includes the H-fixture no-set-mutation assertion and accepted residual day-remap instrumentation).
-- Final C10 implementation/test SHA: `ccb9360522826892d881e1166af84cee7a7b586a`. The docs-only closeout HEAD is recorded in the completion report and PR #2; this audit cannot embed its own commit object ID.
+- Final C10 implementation/test SHA: `ccb9360522826892d881e1166af84cee7a7b586a`.
+- Docs-only audit-closeout SHA: `3944e774ead236b1de9a1ff4bd261ad4f077d4cc`; it passed full Hosted CI run `36970078524`. The final metadata-recording commit SHA and its run are reported in the completion record because an audit file cannot embed its own Git object ID.
 - Program Builder Protocol remains `3.51.0`; planner runtime remains `RECORD_BASED_PLANNER_0.14.3_KOTLIN_1`; app remains `0.5.1.5`.
-- `lastAuditedCommit` will point to the green C10 implementation/test SHA above, not the docs-only closeout.
+- `lastAuditedCommit` points to the green C10 implementation/test SHA above, not the docs-only closeout.
 - C10 separates causal provenance from B4 target authority, B5 owner identity authority, B6 prescription authority, and B8 production authority. A trace explains an accepted change; it does not authorize it.
 
 ## Mutation-stage source audit
@@ -135,4 +136,7 @@ Because no new production route or generated program behavior is opened, protoco
 - Final implementation/test SHA `ccb9360522826892d881e1166af84cee7a7b586a`: [Hosted CI run 36968488029](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/36968488029) passed every step: protocol validation, Community/Cloud contracts, whitespace, full unit tests, coverage upload, `assembleDebug`, signer validation, and APK upload. JUnit reports total **2,175 tests, 0 failures, 0 errors, 4 skips**.
 - APK artifact ID `11209774997`, archive size 65,024,196 bytes, archive digest `sha256:7cf762682c18a703867948e37b2244c52af5c44a85f86329afd18807dba0beba`. Extracted `app-debug.apk`: 68,608,691 bytes; SHA-256 `5F9D51E13826C024E6858D81B3133D0C8D8306620701BE00C3A263DBB5FC3017`.
 - Coverage artifact ID `11210239476`, archive size 465,460 bytes, archive digest `sha256:2f02684ae68de6d8a6dd9bccb2f92d3ffa0107b408c4307cc1f01c7d7060d6d8`. Its corpus remains 27 total / 22 generated / 5 rejected, with CONTROL 21 / Strength 1 / H 0 / Combined 0 and B7 `CHANGE_PROVENANCE_UNCLOSED=14`.
-- Docs-only final HEAD/run and its artifacts: pending closeout. The final SHA and final docs-only CI result will be recorded in the completion report after the closeout commit and Hosted CI.
+- Docs-only audit-closeout run `36970078524` on `3944e774ead236b1de9a1ff4bd261ad4f077d4cc` passed protocol validation, Community/Cloud contracts, whitespace, full unit tests, coverage upload, APK assembly, signer verification, and APK upload. JUnit reports **2,175 tests, 0 failures, 0 errors, 4 skips**.
+- Docs-closeout APK artifact ID `11210989632`, archive size 65,024,228 bytes, archive digest `sha256:c3221c499db7527a0ef50a06276018ef931a9b08703a60b28d87146afb57c515`; extracted APK 68,608,691 bytes, SHA-256 `9BF555C3E6261D315319EDAD862E031EC5D424673D366A899BD395D489487810`. Its APK digest differs from the implementation-run APK because the Android `BuildConfig` embeds the current `GITHUB_SHA`; standard program coverage is unchanged.
+- Docs-closeout coverage artifact ID `11211601492`, archive size 465,464 bytes, archive digest `sha256:d66113143a4b5f841207e49ef47ebf3a47697b98a65fc67cdb7f720b6cce278f`. The standard generated coverage file matches both the C9 baseline and implementation run at SHA-256 `818E8FA6F67164EEAAE0C938273A777D645874CF0EECD17F1E1795DC811434D9`.
+- Final metadata-recording docs commit and its own Hosted CI run will be verified after this audit update; the exact resulting final HEAD and artifact metadata are in the completion report.
