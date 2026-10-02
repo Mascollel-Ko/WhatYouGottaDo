@@ -334,7 +334,8 @@ class StimulusExperimentalReadinessTest {
                     inputPrescription = authorized, plannedCompatibility = null, authorizedPrescription = authorized,
                     status = StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE
                 )
-            ))
+            )),
+            exactB5Disposition = true
         ))
         val replacement = audit.changeAttributions.first { it.selectionRole == "LEGACY_PRIMARY_STRENGTH" }
         assertEquals(StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY, replacement.source)
@@ -466,6 +467,7 @@ class StimulusExperimentalReadinessTest {
         val authorized = PlannedPrescription(after.prescription, after.setPrescriptions, after.restSeconds, after.weightSource)
         return comparison(controlItems = listOf(before), experimentalItems = listOf(after),
             selectedCandidate = selectedCandidate("squat", role),
+            exactB5Disposition = replacement,
             authorizationPlan = StimulusPrescriptionAuthorizationPlan(listOf(StimulusPrescriptionAuthorization(
                 targetId = "QUALITY:STRENGTH", quality = TrainableQuality.STRENGTH,
                 owner = StimulusPrescriptionOwner("squat", role),
@@ -491,7 +493,8 @@ class StimulusExperimentalReadinessTest {
         experimentalItems: List<ProgramSkeletonItem>? = null,
         authorizationPlan: StimulusPrescriptionAuthorizationPlan? = null,
         selectionTraces: List<StimulusCandidateSelectionTrace> = emptyList(),
-        materializationTraces: List<StimulusCandidateMaterializationTrace>? = null
+        materializationTraces: List<StimulusCandidateMaterializationTrace>? = null,
+        exactB5Disposition: Boolean = false
     ): StimulusSelectionProgramComparison {
         val request = ProgramSkeletonRequest("readiness", ProgramGoal.STRENGTH, 1, 60, emptySet(), "", .5, "AUTO", ProgramPeriodizationType.AUTO, 2)
         val controlKey = if (sameIdentity) "candidate" else "control"
@@ -502,7 +505,19 @@ class StimulusExperimentalReadinessTest {
         val experimentalAudit = StimulusTargetControlProgramAudit(1, listOf(qualityAudit(target, experimentalUnits, experimentalSessions, experimentalUnitsStatus, experimentalSessionsStatus)), emptyList())
         val selection = StimulusCandidateSelectionPlan(
             selectedCandidates = listOfNotNull(selectedCandidate), traces = selectionTraces,
-            materialDemand = MaterialDemand(emptyList(), emptyMap(), emptyMap())
+            materialDemand = MaterialDemand(emptyList(), emptyMap(), emptyMap()),
+            candidateDispositionIndex = if (exactB5Disposition && selectedCandidate != null) {
+                val disposition = StimulusCandidateDisposition(
+                    targetId = "QUALITY:STRENGTH",
+                    stableKey = selectedCandidate.stableKey,
+                    canonicalSelectionRole = selectedCandidate.selectionRole,
+                    directTargetCandidate = true,
+                    selectionRequired = true,
+                    status = StimulusCandidateDispositionStatus.SELECTED,
+                    reasons = emptyList()
+                )
+                StimulusCandidateDispositionIndex(listOf(disposition))
+            } else StimulusCandidateDispositionIndex()
         )
         val comparison = StimulusSelectionProgramComparisonEngine().compare(control, experimental, targetPlan, selection, controlAudit, experimentalAudit)
         return comparison.copy(

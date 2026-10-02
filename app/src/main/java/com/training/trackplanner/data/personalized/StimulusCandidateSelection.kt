@@ -61,6 +61,111 @@ data class StimulusCandidateSelectionTrace(
     val candidateSelectionRoles: Map<String, String> = emptyMap()
 )
 
+enum class StimulusCandidateDispositionStatus {
+    SELECTED,
+    REUSED_FOR_TARGET,
+    INELIGIBLE,
+    ELIGIBLE_NOT_SELECTED,
+    MATERIALIZATION_FAILED,
+    SELECTION_NOT_REQUIRED,
+    TARGET_ALREADY_COVERED,
+    NOT_RELEVANT_TO_TARGET,
+    UNPROVEN
+}
+
+enum class StimulusCandidateDispositionReason {
+    NO_DIRECT_CAPABILITY,
+    ASSESSMENT_ONLY,
+    TASK_ACTIVITY_NOT_SELECTABLE,
+    PLANNING_NOT_SELECTABLE,
+    EXPLICIT_PROFILE_RESTRICTION,
+    USER_EXCLUDED,
+    TISSUE_RESTRICTED,
+    EQUIPMENT_UNAVAILABLE,
+    FREE_WEIGHT_POLICY,
+    GENERIC_COURT_ACTIVITY,
+    NO_MINIMUM_TARGET,
+    REDUCTION_DOES_NOT_AUTHORIZE_SELECTION,
+    DISTRIBUTION_ONLY,
+    TARGET_UNRESOLVED,
+    STRATEGY_DOES_NOT_AUTHORIZE_SELECTION,
+    LOWER_RANK_THAN_SELECTED_CANDIDATE,
+    REDUNDANT_WITH_SELECTED_OWNER,
+    DETERMINISTIC_STABLE_KEY_TIE_BREAK,
+    TARGET_ALREADY_COVERED_BY_SELECTED_OWNER,
+    NO_SAFE_PRESCRIPTION_AUTHORITY,
+    MINIMUM_PRESCRIPTION_EXCEEDS_SESSION_TIME
+}
+
+enum class StimulusCandidateRankingField {
+    TARGET_COMPATIBLE_HISTORY,
+    RECENT_HISTORY,
+    CONTEXT_HISTORY,
+    ANCHOR_CONTINUITY,
+    REPEATED_RECENT_SESSIONS,
+    FREE_WEIGHT_COMPATIBLE,
+    HIGH_CONFIDENCE,
+    REDUNDANT,
+    STABLE_KEY
+}
+
+/** The exact lexicographic B5 tuple; values are observations, not a new score. */
+data class StimulusCandidateRankingTuple(
+    val targetCompatibleHistory: Boolean,
+    val recentHistory: Boolean,
+    val contextHistory: Boolean,
+    val anchorContinuity: Boolean,
+    val repeatedRecentSessions: Int,
+    val freeWeightCompatible: Boolean,
+    val highConfidence: Boolean,
+    val redundant: Boolean,
+    val stableKey: String
+)
+
+/** Transient B5-only disposition for one canonical target and catalog identity. */
+data class StimulusCandidateDisposition(
+    val targetId: String,
+    val stableKey: String,
+    val canonicalSelectionRole: String,
+    val directTargetCandidate: Boolean,
+    val selectionRequired: Boolean,
+    val status: StimulusCandidateDispositionStatus,
+    val reasons: List<StimulusCandidateDispositionReason>,
+    val candidateRanking: StimulusCandidateRankingTuple? = null,
+    val selectedInstead: StimulusPrescriptionOwnerIdentity? = null,
+    val selectedInsteadRanking: StimulusCandidateRankingTuple? = null,
+    val firstDifferingField: StimulusCandidateRankingField? = null,
+    val targetCoveredBySelectedOwner: Boolean = false
+)
+
+data class StimulusCandidateDispositionIndex(val entries: List<StimulusCandidateDisposition> = emptyList()) {
+    fun forStableKey(stableKey: String): List<StimulusCandidateDisposition> =
+        entries.filter { it.stableKey == stableKey }
+}
+
+enum class StimulusNonSelectionClassification {
+    CANONICAL_REPLACEMENT,
+    OUTRANKED_FOR_RELEVANT_TARGET,
+    TARGET_ALREADY_COVERED,
+    INELIGIBLE_FOR_CURRENT_TARGET,
+    NO_CURRENT_B4_SELECTION_DEMAND,
+    MATERIALIZATION_FAILED,
+    UNPROVEN
+}
+
+data class StimulusTargetNonSelectionProvenance(
+    val targetId: String,
+    val classification: StimulusNonSelectionClassification,
+    val disposition: StimulusCandidateDisposition
+)
+
+/** CONTROL role is attached only after B5 completes, at the late comparison boundary. */
+data class StimulusNonSelectionProvenance(
+    val omittedControlOwner: StimulusPrescriptionOwnerIdentity,
+    val classification: StimulusNonSelectionClassification,
+    val targetEvidence: List<StimulusTargetNonSelectionProvenance>
+)
+
 /**
  * B5 proposal only. Its MaterialDemand is consumed exclusively by the explicit comparison
  * entry point; normal production generation never reads this object.
@@ -73,7 +178,9 @@ data class StimulusCandidateSelectionPlan(
     val productionSelectionAuthority: Boolean = false,
     val prescriptionAuthority: Boolean = false,
     val placementAuthority: Boolean = false,
-    val schedulingAuthority: Boolean = false
+    val schedulingAuthority: Boolean = false,
+    /** In-memory diagnostic only; excluded from compact persistence/backup serialization. */
+    val candidateDispositionIndex: StimulusCandidateDispositionIndex = StimulusCandidateDispositionIndex()
 )
 
 data class StimulusSelectionProgramDifference(
@@ -124,7 +231,9 @@ data class StimulusSelectionProgramComparison(
     val experimentalReadinessAudit: StimulusExperimentalReadinessAudit? = null,
     val winner: String? = null,
     /** B8 is attached only by the explicit internal evaluation entry point. */
-    val productionCutoverAuthority: StimulusProductionCutoverAuthorityDecision? = null
+    val productionCutoverAuthority: StimulusProductionCutoverAuthorityDecision? = null,
+    /** Late comparison diagnostics; CONTROL never enters the B5 disposition index. */
+    val nonSelectionProvenance: List<StimulusNonSelectionProvenance> = emptyList()
 ) {
     init {
         require(winner == null) { "B5 comparison must not select an overall winner" }
@@ -189,6 +298,7 @@ class StimulusTargetCandidateSelector(
         val deferred = linkedMapOf<String, String>()
         val audit = linkedMapOf<String, String>()
         val traces = mutableListOf<StimulusCandidateSelectionTrace>()
+        val dispositionContexts = mutableListOf<TargetDispositionContext>()
         val targets = (targetPlan.qualityTargets.map(StimulusSelectionTarget::Quality) +
             targetPlan.taskTargets.map(StimulusSelectionTarget::Task)).sortedWith(
             compareBy<StimulusSelectionTarget> { priorityRank(it.priority) }.thenBy { it.targetId }
@@ -201,6 +311,7 @@ class StimulusTargetCandidateSelector(
                 val reason = noSelectionReason(intent)
                 deferred[intent.targetId] = reason
                 traces += trace(intent, historyIdentities, false, emptyList(), null, null, emptyMap(), listOf(reason))
+                dispositionContexts += TargetDispositionContext(intent, selectionRequired = false)
                 return@forEach
             }
 
@@ -214,6 +325,12 @@ class StimulusTargetCandidateSelector(
                     intent, historyIdentities, false, emptyList(), null, reusable.stableKey,
                     emptyMap(), listOf("TARGET_COVERED_BY_ALREADY_SELECTED_IDENTITY", realizedGapCode(intent)),
                     reusedRole = reusable.selectionRole
+                )
+                dispositionContexts += TargetDispositionContext(
+                    intent = intent,
+                    selectionRequired = false,
+                    selectedInstead = StimulusPrescriptionOwnerIdentity(reusable.stableKey, reusable.selectionRole),
+                    targetCoveredBySelectedOwner = true
                 )
                 return@forEach
             }
@@ -238,6 +355,12 @@ class StimulusTargetCandidateSelector(
                 else "TARGET_REQUIRES_SELECTION_BUT_NO_MATERIALIZABLE_CANDIDATE"
                 deferred[intent.targetId] = reason
                 traces += trace(intent, historyIdentities, true, pool, null, null, rejections, listOf(reason), candidateRoles = rejectionRoles)
+                dispositionContexts += TargetDispositionContext(
+                    intent = intent,
+                    selectionRequired = true,
+                    rankedCandidates = ranked,
+                    materializationFailures = rejections
+                )
                 return@forEach
             }
             val item = chosen.item
@@ -265,11 +388,24 @@ class StimulusTargetCandidateSelector(
                 selectedRole = item.role,
                 candidateRoles = rejections.keys.associateWith { roleFor(intent) }
             )
+            dispositionContexts += TargetDispositionContext(
+                intent = intent,
+                selectionRequired = true,
+                rankedCandidates = ranked,
+                selectedInstead = StimulusPrescriptionOwnerIdentity(item.stableKey, item.role),
+                materializationFailures = rejections
+            )
         }
 
         val unresolvedDemand = deferred.mapValues { it.value }
         val materialDemand = MaterialDemand(candidateItems.values.toList(), unresolvedDemand, audit)
-        return StimulusCandidateSelectionPlan(selected.values.toList(), traces, materialDemand)
+        val dispositionIndex = buildDispositionIndex(
+            dispositionContexts, snapshot, state, request, physicalQualityCatalog, historyIndex
+        )
+        return StimulusCandidateSelectionPlan(
+            selected.values.toList(), traces, materialDemand,
+            candidateDispositionIndex = dispositionIndex
+        )
     }
 
     private fun trace(
@@ -323,6 +459,15 @@ class StimulusTargetCandidateSelector(
         val hypertrophyCompatibleHistoryKeys: Set<String>,
         val anchorStableKeys: Set<String>,
         val recentSessionCountByStableKey: Map<String, Int>
+    )
+
+    private data class TargetDispositionContext(
+        val intent: StimulusSelectionTarget,
+        val selectionRequired: Boolean,
+        val rankedCandidates: List<CandidateKey> = emptyList(),
+        val selectedInstead: StimulusPrescriptionOwnerIdentity? = null,
+        val materializationFailures: Map<String, String> = emptyMap(),
+        val targetCoveredBySelectedOwner: Boolean = false
     )
 
     private fun eligibleCandidates(
@@ -382,6 +527,204 @@ class StimulusTargetCandidateSelector(
                 .thenBy { it.redundant }
                 .thenBy { it.key }
         )
+    }
+
+    private fun buildDispositionIndex(
+        contexts: List<TargetDispositionContext>,
+        snapshot: PlanningHistorySnapshot,
+        state: AthletePlanningState,
+        request: ProgramSkeletonRequest,
+        physicalQualityCatalog: CanonicalExercisePhysicalQualityCatalog,
+        historyIndex: HistoryIndex
+    ): StimulusCandidateDispositionIndex {
+        val entries = contexts.flatMap { context ->
+            val intent = context.intent
+            val ranked = context.rankedCandidates.associateBy(CandidateKey::key)
+            val selectedRanking = context.selectedInstead?.stableKey?.let(ranked::get)?.toRankingTuple()
+            snapshot.exercises.keys.sorted().map { key ->
+                val rawDirectTarget = when (intent) {
+                    is StimulusSelectionTarget.Quality -> physicalQualityCatalog.relations(key).any {
+                        it.qualityId == intent.target.quality && it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY
+                    }
+                    is StimulusSelectionTarget.Task -> intent.target.task in snapshot.badmintonDirectObjectives[key].orEmpty()
+                }
+                if (!rawDirectTarget) {
+                    return@map StimulusCandidateDisposition(
+                        targetId = intent.targetId,
+                        stableKey = key,
+                        canonicalSelectionRole = roleFor(intent),
+                        directTargetCandidate = false,
+                        selectionRequired = context.selectionRequired,
+                        status = StimulusCandidateDispositionStatus.NOT_RELEVANT_TO_TARGET,
+                        reasons = listOf(StimulusCandidateDispositionReason.NO_DIRECT_CAPABILITY),
+                        targetCoveredBySelectedOwner = context.targetCoveredBySelectedOwner
+                    )
+                }
+                if (!context.selectionRequired && context.targetCoveredBySelectedOwner) {
+                    val reused = context.selectedInstead
+                    return@map StimulusCandidateDisposition(
+                        targetId = intent.targetId,
+                        stableKey = key,
+                        canonicalSelectionRole = roleFor(intent),
+                        directTargetCandidate = true,
+                        selectionRequired = false,
+                        status = if (reused?.stableKey == key) StimulusCandidateDispositionStatus.REUSED_FOR_TARGET
+                            else StimulusCandidateDispositionStatus.TARGET_ALREADY_COVERED,
+                        reasons = listOf(StimulusCandidateDispositionReason.TARGET_ALREADY_COVERED_BY_SELECTED_OWNER),
+                        selectedInstead = reused,
+                        targetCoveredBySelectedOwner = true
+                    )
+                }
+                if (!context.selectionRequired) {
+                    return@map StimulusCandidateDisposition(
+                        targetId = intent.targetId,
+                        stableKey = key,
+                        canonicalSelectionRole = roleFor(intent),
+                        directTargetCandidate = true,
+                        selectionRequired = false,
+                        status = StimulusCandidateDispositionStatus.SELECTION_NOT_REQUIRED,
+                        reasons = listOf(noSelectionReason(intent).toDispositionReason()),
+                        targetCoveredBySelectedOwner = false
+                    )
+                }
+
+                val gateReasons = eligibilityReasons(intent, key, snapshot, state, request, physicalQualityCatalog,
+                    historyIndex.contextHistoryStableKeys)
+                if (gateReasons.isNotEmpty()) {
+                    return@map StimulusCandidateDisposition(
+                        targetId = intent.targetId,
+                        stableKey = key,
+                        canonicalSelectionRole = roleFor(intent),
+                        directTargetCandidate = true,
+                        selectionRequired = true,
+                        status = StimulusCandidateDispositionStatus.INELIGIBLE,
+                        reasons = gateReasons
+                    )
+                }
+
+                val candidate = ranked[key]
+                val selectedInstead = context.selectedInstead
+                when {
+                    selectedInstead?.stableKey == key && selectedInstead.selectionRole == roleFor(intent) ->
+                        StimulusCandidateDisposition(
+                            targetId = intent.targetId,
+                            stableKey = key,
+                            canonicalSelectionRole = roleFor(intent),
+                            directTargetCandidate = true,
+                            selectionRequired = true,
+                            status = StimulusCandidateDispositionStatus.SELECTED,
+                            reasons = emptyList(),
+                            candidateRanking = candidate?.toRankingTuple()
+                        )
+                    key in context.materializationFailures -> {
+                        val failure = context.materializationFailures.getValue(key).toDispositionReason()
+                        StimulusCandidateDisposition(
+                            targetId = intent.targetId,
+                            stableKey = key,
+                            canonicalSelectionRole = roleFor(intent),
+                            directTargetCandidate = true,
+                            selectionRequired = true,
+                            status = StimulusCandidateDispositionStatus.MATERIALIZATION_FAILED,
+                            reasons = listOf(failure),
+                            candidateRanking = candidate?.toRankingTuple(),
+                            selectedInstead = selectedInstead,
+                            selectedInsteadRanking = selectedRanking,
+                            firstDifferingField = candidate?.let { selectedRanking?.let { winner -> firstDifferingField(it.toRankingTuple(), winner) } }
+                        )
+                    }
+                    else -> {
+                        val candidateTuple = candidate?.toRankingTuple()
+                        val field = candidateTuple?.let { tuple -> selectedRanking?.let { winner -> firstDifferingField(tuple, winner) } }
+                        val explanation = when (field) {
+                            StimulusCandidateRankingField.STABLE_KEY -> StimulusCandidateDispositionReason.DETERMINISTIC_STABLE_KEY_TIE_BREAK
+                            StimulusCandidateRankingField.REDUNDANT -> StimulusCandidateDispositionReason.REDUNDANT_WITH_SELECTED_OWNER
+                            else -> StimulusCandidateDispositionReason.LOWER_RANK_THAN_SELECTED_CANDIDATE
+                        }
+                        StimulusCandidateDisposition(
+                            targetId = intent.targetId,
+                            stableKey = key,
+                            canonicalSelectionRole = roleFor(intent),
+                            directTargetCandidate = true,
+                            selectionRequired = true,
+                            status = if (candidate == null) StimulusCandidateDispositionStatus.UNPROVEN
+                                else StimulusCandidateDispositionStatus.ELIGIBLE_NOT_SELECTED,
+                            reasons = listOf(explanation),
+                            candidateRanking = candidateTuple,
+                            selectedInstead = selectedInstead,
+                            selectedInsteadRanking = selectedRanking,
+                            firstDifferingField = field
+                        )
+                    }
+                }
+            }
+        }.sortedWith(compareBy<StimulusCandidateDisposition> { it.targetId }.thenBy { it.stableKey })
+        return StimulusCandidateDispositionIndex(entries)
+    }
+
+    /** Mirrors the selector's existing gate sequence and names only gates it actually evaluates. */
+    private fun eligibilityReasons(
+        intent: StimulusSelectionTarget,
+        key: String,
+        snapshot: PlanningHistorySnapshot,
+        state: AthletePlanningState,
+        request: ProgramSkeletonRequest,
+        physicalQualityCatalog: CanonicalExercisePhysicalQualityCatalog,
+        contextHistoryStableKeys: Set<String>
+    ): List<StimulusCandidateDispositionReason> = buildList {
+        when (intent) {
+            is StimulusSelectionTarget.Quality -> if (physicalQualityCatalog.isAssessmentOnly(key)) {
+                add(StimulusCandidateDispositionReason.ASSESSMENT_ONLY)
+            }
+            is StimulusSelectionTarget.Task -> {
+                val activity = snapshot.activityKind(key)
+                if (activity !in TASK_ACTIVITY_KINDS) {
+                    add(StimulusCandidateDispositionReason.TASK_ACTIVITY_NOT_SELECTABLE)
+                }
+            }
+        }
+        if (snapshot.metadata[key]?.planningEligibility !in SELECTABLE_ELIGIBILITY) {
+            add(StimulusCandidateDispositionReason.PLANNING_NOT_SELECTABLE)
+        }
+        if (snapshot.explicitlyRestricted(key)) add(StimulusCandidateDispositionReason.EXPLICIT_PROFILE_RESTRICTION)
+        if (key in request.excludedExerciseStableKeys) add(StimulusCandidateDispositionReason.USER_EXCLUDED)
+        if (key in snapshot.recoverySignals.tissueRestrictedStableKeys) add(StimulusCandidateDispositionReason.TISSUE_RESTRICTED)
+        if (!equipmentCompatible(snapshot, key, request)) add(StimulusCandidateDispositionReason.EQUIPMENT_UNAVAILABLE)
+        if (!freeWeightAllowed(snapshot, state, key, contextHistoryStableKeys)) add(StimulusCandidateDispositionReason.FREE_WEIGHT_POLICY)
+        if (intent is StimulusSelectionTarget.Quality && snapshot.activityKind(key) == PlannedActivityKind.GENERIC_COURT_SESSION) {
+            add(StimulusCandidateDispositionReason.GENERIC_COURT_ACTIVITY)
+        }
+    }.distinct()
+
+    private fun CandidateKey.toRankingTuple() = StimulusCandidateRankingTuple(
+        targetCompatibleHistory, recentHistory, contextHistory, anchorContinuity,
+        repeatedRecentSessions, freeWeightCompatible, highConfidence, redundant, key
+    )
+
+    private fun firstDifferingField(
+        candidate: StimulusCandidateRankingTuple,
+        selected: StimulusCandidateRankingTuple
+    ): StimulusCandidateRankingField? = when {
+        candidate.targetCompatibleHistory != selected.targetCompatibleHistory -> StimulusCandidateRankingField.TARGET_COMPATIBLE_HISTORY
+        candidate.recentHistory != selected.recentHistory -> StimulusCandidateRankingField.RECENT_HISTORY
+        candidate.contextHistory != selected.contextHistory -> StimulusCandidateRankingField.CONTEXT_HISTORY
+        candidate.anchorContinuity != selected.anchorContinuity -> StimulusCandidateRankingField.ANCHOR_CONTINUITY
+        candidate.repeatedRecentSessions != selected.repeatedRecentSessions -> StimulusCandidateRankingField.REPEATED_RECENT_SESSIONS
+        candidate.freeWeightCompatible != selected.freeWeightCompatible -> StimulusCandidateRankingField.FREE_WEIGHT_COMPATIBLE
+        candidate.highConfidence != selected.highConfidence -> StimulusCandidateRankingField.HIGH_CONFIDENCE
+        candidate.redundant != selected.redundant -> StimulusCandidateRankingField.REDUNDANT
+        candidate.stableKey != selected.stableKey -> StimulusCandidateRankingField.STABLE_KEY
+        else -> null
+    }
+
+    private fun String.toDispositionReason(): StimulusCandidateDispositionReason = when (this) {
+        "NO_SAFE_PRESCRIPTION_AUTHORITY" -> StimulusCandidateDispositionReason.NO_SAFE_PRESCRIPTION_AUTHORITY
+        "MINIMUM_PRESCRIPTION_EXCEEDS_SESSION_TIME" -> StimulusCandidateDispositionReason.MINIMUM_PRESCRIPTION_EXCEEDS_SESSION_TIME
+        "NO_MINIMUM_TARGET" -> StimulusCandidateDispositionReason.NO_MINIMUM_TARGET
+        "REDUCTION_DOES_NOT_AUTHORIZE_NEW_EXERCISE" -> StimulusCandidateDispositionReason.REDUCTION_DOES_NOT_AUTHORIZE_SELECTION
+        "DISTRIBUTION_AUTHORITY_DEFERRED" -> StimulusCandidateDispositionReason.DISTRIBUTION_ONLY
+        "TARGET_UNRESOLVED" -> StimulusCandidateDispositionReason.TARGET_UNRESOLVED
+        "TARGET_SELECTION_NOT_AUTHORIZED_BY_B5_STRATEGY" -> StimulusCandidateDispositionReason.STRATEGY_DOES_NOT_AUTHORIZE_SELECTION
+        else -> StimulusCandidateDispositionReason.STRATEGY_DOES_NOT_AUTHORIZE_SELECTION
     }
 
     private fun materialize(
@@ -600,6 +943,37 @@ class StimulusSelectionProgramComparisonEngine {
                 selectionRole = effectiveRole
             )
         }
+        val nonSelectionProvenance = (control.items.map {
+            StimulusPrescriptionOwnerIdentity(it.exerciseStableKey, it.selectionRole)
+        }.toSet() - experimental.items.map {
+            StimulusPrescriptionOwnerIdentity(it.exerciseStableKey, it.selectionRole)
+        }.toSet()).sortedWith(compareBy({ it.stableKey }, { it.selectionRole })).map { omittedOwner ->
+            val targetEvidence = selectionPlan.candidateDispositionIndex.forStableKey(omittedOwner.stableKey)
+                .map { disposition ->
+                    StimulusTargetNonSelectionProvenance(
+                        targetId = disposition.targetId,
+                        classification = disposition.toNonSelectionClassification(),
+                        disposition = disposition
+                    )
+                }
+            val ownerClassification = when {
+                targetEvidence.any { it.classification == StimulusNonSelectionClassification.CANONICAL_REPLACEMENT } ->
+                    StimulusNonSelectionClassification.CANONICAL_REPLACEMENT
+                targetEvidence.any { it.classification == StimulusNonSelectionClassification.OUTRANKED_FOR_RELEVANT_TARGET } ->
+                    StimulusNonSelectionClassification.OUTRANKED_FOR_RELEVANT_TARGET
+                targetEvidence.any { it.classification == StimulusNonSelectionClassification.TARGET_ALREADY_COVERED } ->
+                    StimulusNonSelectionClassification.TARGET_ALREADY_COVERED
+                targetEvidence.any { it.classification == StimulusNonSelectionClassification.MATERIALIZATION_FAILED } ->
+                    StimulusNonSelectionClassification.MATERIALIZATION_FAILED
+                targetEvidence.any { it.classification == StimulusNonSelectionClassification.INELIGIBLE_FOR_CURRENT_TARGET } ->
+                    StimulusNonSelectionClassification.INELIGIBLE_FOR_CURRENT_TARGET
+                targetEvidence.isEmpty() && selectionPlan.traces.isEmpty() ||
+                    targetEvidence.isNotEmpty() && targetEvidence.all { it.classification == StimulusNonSelectionClassification.NO_CURRENT_B4_SELECTION_DEMAND } ->
+                    StimulusNonSelectionClassification.NO_CURRENT_B4_SELECTION_DEMAND
+                else -> StimulusNonSelectionClassification.UNPROVEN
+            }
+            StimulusNonSelectionProvenance(omittedOwner, ownerClassification, targetEvidence)
+        }
         return StimulusSelectionProgramComparison(
             control = control,
             experimental = experimental,
@@ -613,7 +987,8 @@ class StimulusSelectionProgramComparisonEngine {
             addedStableKeys = experimentalKeys - controlKeys,
             removedStableKeys = controlKeys - experimentalKeys,
             sharedStableKeys = controlKeys intersect experimentalKeys,
-            materializationTraces = materializationTraces
+            materializationTraces = materializationTraces,
+            nonSelectionProvenance = nonSelectionProvenance
         )
     }
 
@@ -644,6 +1019,25 @@ class StimulusSelectionProgramComparisonEngine {
             "TARGET_UNRESOLVED",
             "TARGET_SELECTION_NOT_AUTHORIZED_BY_B5_STRATEGY"
         )
+    }
+}
+
+private fun StimulusCandidateDisposition.toNonSelectionClassification(): StimulusNonSelectionClassification = when {
+    targetCoveredBySelectedOwner -> StimulusNonSelectionClassification.TARGET_ALREADY_COVERED
+    else -> when (status) {
+        StimulusCandidateDispositionStatus.SELECTED,
+        StimulusCandidateDispositionStatus.REUSED_FOR_TARGET -> StimulusNonSelectionClassification.CANONICAL_REPLACEMENT
+        StimulusCandidateDispositionStatus.INELIGIBLE -> StimulusNonSelectionClassification.INELIGIBLE_FOR_CURRENT_TARGET
+        StimulusCandidateDispositionStatus.ELIGIBLE_NOT_SELECTED -> if (selectedInstead != null && firstDifferingField != null)
+            StimulusNonSelectionClassification.OUTRANKED_FOR_RELEVANT_TARGET
+        else StimulusNonSelectionClassification.UNPROVEN
+        StimulusCandidateDispositionStatus.MATERIALIZATION_FAILED -> StimulusNonSelectionClassification.MATERIALIZATION_FAILED
+        StimulusCandidateDispositionStatus.SELECTION_NOT_REQUIRED -> StimulusNonSelectionClassification.NO_CURRENT_B4_SELECTION_DEMAND
+        StimulusCandidateDispositionStatus.TARGET_ALREADY_COVERED -> StimulusNonSelectionClassification.TARGET_ALREADY_COVERED
+        StimulusCandidateDispositionStatus.NOT_RELEVANT_TO_TARGET -> if (selectionRequired)
+            StimulusNonSelectionClassification.INELIGIBLE_FOR_CURRENT_TARGET
+        else StimulusNonSelectionClassification.NO_CURRENT_B4_SELECTION_DEMAND
+        StimulusCandidateDispositionStatus.UNPROVEN -> StimulusNonSelectionClassification.UNPROVEN
     }
 }
 

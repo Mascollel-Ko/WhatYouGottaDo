@@ -447,8 +447,24 @@ class StimulusExperimentalReadinessAuditEngine {
         // A same-key set of alternative roles cannot establish which one replaced this owner.
         val replacement = replacements.singleOrNull() ?: return emptyList()
         val owner = StimulusPrescriptionOwnerIdentity(replacement.stableKey, replacement.selectionRole)
+        val omission = comparison.nonSelectionProvenance.singleOrNull { it.omittedControlOwner == removed }
+            ?: return emptyList()
+        val exactB5Targets = omission.targetEvidence.asSequence()
+            .filter { evidence ->
+                val disposition = evidence.disposition
+                evidence.classification == StimulusNonSelectionClassification.CANONICAL_REPLACEMENT &&
+                    disposition.status == StimulusCandidateDispositionStatus.SELECTED &&
+                    disposition.directTargetCandidate && disposition.stableKey == removed.stableKey &&
+                    disposition.canonicalSelectionRole == replacement.selectionRole &&
+                    disposition in comparison.selectionPlan.candidateDispositionIndex.entries
+            }
+            .map { it.targetId }
+            .toSet()
         return exactExecutableChangeAuthorizations(comparison, owner, replacement)
-            .filter { replacement.selectionRole == "CANONICAL_STIMULUS_${it.targetId.replace(':', '_')}" }
+            .filter {
+                it.targetId in exactB5Targets &&
+                    replacement.selectionRole == "CANONICAL_STIMULUS_${it.targetId.replace(':', '_')}"
+            }
             .map { it.targetId }.distinct().sorted()
     }
 

@@ -73,6 +73,7 @@ class StimulusProductionCoverageAuditTest {
         }
         val report = render(records)
         assertEquals(report, render(records.reversed()))
+        assertEquals(renderProvenance(records), renderProvenance(records.reversed()))
         val path = java.io.File("build/reports/stimulus-production-coverage.txt")
         requireNotNull(path.parentFile).mkdirs()
         path.writeText(report)
@@ -84,6 +85,19 @@ class StimulusProductionCoverageAuditTest {
     private fun assertC9CorpusBoundaries(records: List<Pair<CoverageSpec, StimulusProductionGenerationResult?>>) {
         assertEquals(27, records.size)
         assertEquals(5, records.count { it.second == null })
+        val omissions = records.mapNotNull { (spec, result) -> result?.comparison?.let { spec to it } }
+            .flatMap { (spec, comparison) -> comparison.nonSelectionProvenance.map { spec.label to it } }
+        assertEquals(17, omissions.size)
+        assertEquals(mapOf(StimulusNonSelectionClassification.CANONICAL_REPLACEMENT to 17),
+            omissions.groupingBy { it.second.classification }.eachCount())
+        val omissionWeeks = omissions.sumOf { (caseId, omission) ->
+            val comparison = requireNotNull(records.single { it.first.label == caseId }.second?.comparison)
+            comparison.control.items.filter {
+                it.exerciseStableKey == omission.omittedControlOwner.stableKey &&
+                    it.selectionRole == omission.omittedControlOwner.selectionRole
+            }.map { it.weekNumber }.distinct().size
+        }
+        assertEquals(34, omissionWeeks)
         records.forEach { (spec, result) ->
             if (result != null) assertEquals("No unreviewed route expansion: ${spec.label}",
                 if (spec.label == "reviewed_strength_isolated") StimulusProductionProgramSource.B8_STRENGTH_V1
@@ -105,6 +119,26 @@ class StimulusProductionCoverageAuditTest {
         assertFalse(unresolved.stableKey in c.experimental.personalizedDecision?.planningBudget?.execution?.constrainedOwnerStableKeys.orEmpty())
         assertTrue(audit.changeAttributions.any { it.stableKey == "cable_rear_delt_fly" &&
             "B5_CANONICAL_OWNER_REPLACED_CONTROL_ROLE" in it.reasonCodes && it.targetIds == listOf("QUALITY:HYPERTROPHY") })
+        val legacyFly = StimulusPrescriptionOwnerIdentity("cable_rear_delt_fly", "STYLE_MEDIUM_HORIZONTAL_PULL")
+        val flyOmission = c.nonSelectionProvenance.single { it.omittedControlOwner == legacyFly }
+        assertEquals(StimulusNonSelectionClassification.CANONICAL_REPLACEMENT, flyOmission.classification)
+        val exactFlyDisposition = flyOmission.targetEvidence.single { it.targetId == "QUALITY:HYPERTROPHY" }.disposition
+        assertEquals(StimulusCandidateDispositionStatus.SELECTED, exactFlyDisposition.status)
+        assertEquals(legacyFly.stableKey, exactFlyDisposition.stableKey)
+        assertEquals("CANONICAL_STIMULUS_QUALITY_HYPERTROPHY", exactFlyDisposition.canonicalSelectionRole)
+        val withoutTypedOmissionEvidence = c.copy(
+            selectionPlan = c.selectionPlan.copy(candidateDispositionIndex = StimulusCandidateDispositionIndex(
+                c.selectionPlan.candidateDispositionIndex.entries - exactFlyDisposition
+            )),
+            nonSelectionProvenance = c.nonSelectionProvenance.map { omission ->
+                if (omission.omittedControlOwner != legacyFly) omission else omission.copy(
+                    targetEvidence = omission.targetEvidence.filterNot { it.disposition == exactFlyDisposition }
+                )
+            }
+        )
+        val withoutTypedAudit = StimulusExperimentalReadinessAuditEngine().audit(withoutTypedOmissionEvidence)
+        assertEquals(StimulusExperimentalChangeAttributionSource.UNEXPLAINED,
+            withoutTypedAudit.changeAttributions.single { it.stableKey == legacyFly.stableKey && it.selectionRole == legacyFly.selectionRole }.source)
     }
 
     @Test
@@ -196,6 +230,31 @@ class StimulusProductionCoverageAuditTest {
         appendLine("B7 counts=" + generated.flatMap { it.second.comparison?.experimentalReadinessAudit?.reasonCodes.orEmpty() }.groupingBy { it }.eachCount().toSortedMap())
         appendLine("B8 counts=" + generated.flatMap { it.second.comparison?.productionCutoverAuthority?.reasonCodes.orEmpty() }.groupingBy { it }.eachCount().toSortedMap())
         appendLine("C10 origin trace coverage (${renderC10TraceCoverage(records)})")
+        val omissions = generated.flatMap { (spec, result) -> requireNotNull(result.comparison).nonSelectionProvenance.map { spec.label to it } }
+        appendLine("C11 unique omitted CONTROL owner classifications=" + omissions.groupingBy { it.second.classification }.eachCount().toSortedMap())
+        val weeklyOmissions = generated.flatMap { (spec, result) ->
+            val comparison = requireNotNull(result.comparison)
+            comparison.nonSelectionProvenance.flatMap { omission ->
+                comparison.control.items.filter {
+                    it.exerciseStableKey == omission.omittedControlOwner.stableKey &&
+                        it.selectionRole == omission.omittedControlOwner.selectionRole
+                }.map { it.weekNumber }.distinct().map { week -> omission.classification }
+            }
+        }
+        appendLine("C11 removed owner-week classifications=" + weeklyOmissions.groupingBy { it }.eachCount().toSortedMap())
+        omissions.sortedWith(compareBy({ it.first }, { it.second.omittedControlOwner.stableKey }, { it.second.omittedControlOwner.selectionRole }))
+            .forEach { (caseId, omission) ->
+                appendLine("C11 omitted case=$caseId owner=${omission.omittedControlOwner} classification=${omission.classification}")
+                omission.targetEvidence.forEach { target ->
+                    val d = target.disposition
+                    appendLine("  target=${target.targetId} classification=${target.classification} direct=${d.directTargetCandidate} selectionRequired=${d.selectionRequired} status=${d.status} reasons=${d.reasons} selectedInstead=${d.selectedInstead} candidateTuple=${d.candidateRanking} selectedTuple=${d.selectedInsteadRanking} firstDifference=${d.firstDifferingField}")
+                }
+            }
+        generated.singleOrNull { it.first.label == "reviewed_hypertrophy_isolated" }?.second?.comparison?.let { h ->
+            listOf("ex_284ecca6", "ex_28347c1f").forEach { key ->
+                appendLine("C11 H owner diagnostic stableKey=$key disposition=${h.selectionPlan.candidateDispositionIndex.forStableKey(key)}")
+            }
+        }
         generated.sortedBy { it.first.label }.forEach { (spec, result) ->
             val c = requireNotNull(result.comparison)
             fun identity(row: ProgramSkeletonItem) = StimulusPrescriptionOwnerIdentity(row.exerciseStableKey, row.selectionRole)
@@ -238,7 +297,7 @@ class StimulusProductionCoverageAuditTest {
         val totals = sortedMapOf<String, Int>()
         val exact = sortedMapOf<String, Int>()
         val deltas = mutableListOf<Delta>()
-        records.forEach { (spec, result) -> result?.comparison?.let { comparison ->
+        records.sortedBy { it.first.label }.forEach { (spec, result) -> result?.comparison?.let { comparison ->
             fun byOwnerWeek(rows: List<ProgramSkeletonItem>) = rows.groupBy {
                 StimulusPrescriptionOwnerIdentity(it.exerciseStableKey, it.selectionRole) to it.weekNumber
             }

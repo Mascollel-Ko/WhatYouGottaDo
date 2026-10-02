@@ -7,7 +7,7 @@
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.14.3 |
-| Last audited commit | ccb9360522826892d881e1166af84cee7a7b586a |
+| Last audited commit | a4e897077811b1f6cb953114912242ccc03fa3d7 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1228,3 +1228,11 @@ Post-audit boundary notes
 - Across 22 generated cases, exact origin coverage is 100/100 added owners, 2/2 set changes, 90/90 placement moves, and 14/14 order changes. The 34 unproven removals are upstream owners absent from EXP B5/finite demand; no synthetic deletion trace was created. `CHANGE_PROVENANCE_UNCLOSED` stays 14; routes stay CONTROL 21 / Strength 1 / H 0 / Combined 0.
 - Standard coverage remains byte-identical at SHA-256 `818E8FA6F67164EEAAE0C938273A777D645874CF0EECD17F1E1795DC811434D9`. B1–B6, program contents, C8 order, build accounting, and CONTROL-late comparison remain unchanged. Protocol/runtime/app versions remain `3.51.0` / `RECORD_BASED_PLANNER_0.14.3_KOTLIN_1` / `0.5.1.5`.
 - C10 implementation/test commit: `ccb9360522826892d881e1166af84cee7a7b586a`. Hosted CI run [36968488029](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/36968488029) passed all checks: 2,175 tests, 0 failures, 0 errors, and 4 skips. The APK is 68,608,691 bytes with SHA-256 `5F9D51E13826C024E6858D81B3133D0C8D8306620701BE00C3A263DBB5FC3017`. The source-stage matrix, H-fixture timeline, exact trace census, B7 conditions, negative/positive tests, local Windows Robolectric failure, and artifact details are recorded in [`docs/c10_allocator_provenance_audit.md`](../../c10_allocator_provenance_audit.md).
+
+### Phase C11 — B5 non-selection provenance (protocol 3.51.0 retained)
+
+- B5 now exposes a deterministic, transient per-target candidate disposition index with exact `(stableKey, selectionRole)`, actual eligibility dispositions, and the existing lexicographic ranking tuple plus first differing field. It is constructed without CONTROL input and does not change B4 targets, B5 ordering/results, material demand, B6 authority, or program contents.
+- The late CONTROL comparison associates exact omitted owner/role identities with the already-produced B5 evidence. B7 may use only an exact same-key canonical replacement disposition as one input; exact B6 authority, materialization, target outcome, collateral safety, and B8 gates remain mandatory. Non-selection explanations alone do not authorize removal.
+- Across the 27-case corpus, 34 removed owner-week rows reduce to 17 exact owner/role pairs, each with a same-key canonical replacement for at least one current B4 direct target. Target-level diagnostics separately retain no-demand, already-covered, and stable-key-tie outcomes. B7 remains `CHANGE_PROVENANCE_UNCLOSED=14`, `AFFECTED_TARGET_REMAINS_UNMET=9`, `TARGET_REGRESSED=1`; routes remain CONTROL 21 / Strength 1 / Hypertrophy 0 / Combined 0.
+- The H fly replacement remains explained, while `ex_284ecca6` and `ex_28347c1f` are not direct candidates for the H target. The posterior-chain set delta remains unproven, and placement parity remains unchanged. Standard coverage SHA-256 remains `818E8FA6F67164EEAAE0C938273A777D645874CF0EECD17F1E1795DC811434D9`.
+- C11 implementation/test commit: `a4e897077811b1f6cb953114912242ccc03fa3d7`. Detailed per-owner classifications, comparator proof, parity, negative/positive tests, local Windows test limitation, and Hosted CI/artifact records are in [`docs/c11_b5_nonselection_provenance_audit.md`](../../c11_b5_nonselection_provenance_audit.md). The final documentation HEAD is validated by its own Hosted CI run.
