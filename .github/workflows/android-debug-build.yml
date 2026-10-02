@@ -118,6 +118,7 @@ jobs:
           path: |
             app/build/reports/stimulus-production-coverage.txt
             app/build/reports/c9-provenance-census.txt
+            app/build/reports/c12-control-fallback-census.json
             app/build/test-results/testDebugUnitTest/*.xml
           if-no-files-found: warn
 

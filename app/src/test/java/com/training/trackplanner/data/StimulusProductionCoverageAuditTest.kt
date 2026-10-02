@@ -78,8 +78,27 @@ class StimulusProductionCoverageAuditTest {
         requireNotNull(path.parentFile).mkdirs()
         path.writeText(report)
         java.io.File("build/reports/c9-provenance-census.txt").writeText(renderProvenance(records))
+        val c12Census = renderC12ControlFallbackCensus(records, report, "527e0c0bd29c4793e6eac8b1eda1f064893ec794")
+        assertEquals(c12Census, renderC12ControlFallbackCensus(records.reversed(), report, "527e0c0bd29c4793e6eac8b1eda1f064893ec794"))
+        java.io.File("build/reports/c12-control-fallback-census.json").writeText(c12Census)
+        val coverageSha = java.security.MessageDigest.getInstance("SHA-256")
+            .digest(report.toByteArray(Charsets.UTF_8)).joinToString("") { "%02X".format(it) }
+        assertEquals("818E8FA6F67164EEAAE0C938273A777D645874CF0EECD17F1E1795DC811434D9", coverageSha)
         println(report)
         assertC9CorpusBoundaries(records)
+        val generated = records.mapNotNull { (spec, result) -> result?.let { spec to it } }
+        assertEquals(21, generated.count { it.second.routeDecision.selectedSource == StimulusProductionProgramSource.CONTROL })
+        assertEquals(1, generated.count { it.second.routeDecision.selectedSource == StimulusProductionProgramSource.B8_STRENGTH_V1 })
+        assertEquals(0, generated.count { it.second.routeDecision.selectedSource in setOf(
+            StimulusProductionProgramSource.B8_HYPERTROPHY_V1,
+            StimulusProductionProgramSource.B8_STRENGTH_HYPERTROPHY_V1
+        ) })
+        val control = generated.filter { it.second.routeDecision.selectedSource == StimulusProductionProgramSource.CONTROL }
+        val b7ReasonCounts = control.flatMap { it.second.comparison?.experimentalReadinessAudit?.reasonCodes.orEmpty() }
+            .groupingBy { it }.eachCount()
+        assertEquals(14, b7ReasonCounts["CHANGE_PROVENANCE_UNCLOSED"])
+        assertEquals(9, b7ReasonCounts["AFFECTED_TARGET_REMAINS_UNMET"])
+        assertEquals(1, b7ReasonCounts["TARGET_REGRESSED"])
     }
 
     private fun assertC9CorpusBoundaries(records: List<Pair<CoverageSpec, StimulusProductionGenerationResult?>>) {
