@@ -7,7 +7,7 @@
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.14.3 |
-| Last audited commit | 4afb822427ad7d6e9f5493a70d1025d02ea3edaf |
+| Last audited commit | 853eb8fb1518fa62ec815c86fe95b9175dc2bbf0 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1243,3 +1243,11 @@ Post-audit boundary notes
 - All 21 CONTROL fallbacks remain CONTROL; the existing Strength positive case remains `B8_STRENGTH_V1`. Primary causes are target outcome failure (10), B6 prescription authority (8), B5 identity authority (2), and provenance-only (1). There are zero potential false-negative gate candidates. B7 remains 14 provenance-unclosed, 9 affected-target-unmet, and 1 target-regressed. Standard coverage SHA-256 remains `818E8FA6F67164EEAAE0C938273A777D645874CF0EECD17F1E1795DC811434D9`.
 - Protocol `3.51.0`, runtime `RECORD_BASED_PLANNER_0.14.3_KOTLIN_1`, and app `0.5.1.5` remain unchanged. C12 implementation/test commit `4afb822427ad7d6e9f5493a70d1025d02ea3edaf` is the `lastAuditedCommit`; its full case dossiers and local/Hosted CI evidence are in [`docs/c12_control_fallback_root_cause_audit.md`](../../c12_control_fallback_root_cause_audit.md).
 - Hosted Android Debug Build run [37024237706](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/37024237706) passed on the implementation/test commit: 2,189 tests, 0 failures, 0 errors, 4 skips, plus protocol validation, contracts, whitespace, coverage upload, APK assembly, signer validation, and APK upload. The final docs-only HEAD is validated separately.
+
+### Phase C13 — canonical program quality gap diagnosis (protocol 3.51.0 retained)
+
+- C13 adds test-side canonical B1–B4 recomputation and a deterministic JSON census for the 22 generated corpus cases. It traces the 10 primary target shortfalls and 8 C12-primary B6 cases through exact B5 owner-quality identities, B6 authority and realization, materialization, final direct-set classification, target outcome, B7/B8, and B9. The canonical target plan matches the live comparison path in all 22 generated cases; CONTROL is not an input to the recomputation.
+- No production behavior, target/ranking/authority policy, B7/B8 gate, program content, scope, or route changed. Routes remain CONTROL 21 / Strength 1 / Hypertrophy 0 / Combined 0; B7 remains provenance-unclosed 14, target-unmet 9, regressed 1. The standard coverage SHA-256 remains `818E8FA6F67164EEAAE0C938273A777D645874CF0EECD17F1E1795DC811434D9`; protocol/runtime/app remain `3.51.0` / `RECORD_BASED_PLANNER_0.14.3_KOTLIN_1` / `0.5.1.5`.
+- C13 found nine Strength targets with an observed B2 median of zero and a valid B4 `[0,0,6]` envelope; eight Strength INTRODUCE targets are direction-only and fail because the final plan contains zero direct-compatible Strength work. Seven exact B6 owner-target rows fail before materialization: five REP_RANGE_INCOMPATIBLE, one TARGET_DOSE_WITHOUT_PRESCRIPTION, and one MODEL_UNAVAILABLE_TRUE_GAP. No partial materialization or target-accounting false negative was found; potential gate-relaxation candidates remain zero.
+- C13 implementation/test commit `853eb8fb1518fa62ec815c86fe95b9175dc2bbf0` is the `lastAuditedCommit`. The detailed case census, shortfall and B6 classifications, repetition/funnel data, zero-baseline and direction-only findings, parity, and CI/artifact evidence are in [`docs/c13_canonical_program_quality_gap_audit.md`](../../c13_canonical_program_quality_gap_audit.md).
+- Hosted Android Debug Build run [37046551592](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/37046551592) passed on the implementation/test commit: 2,199 tests, 0 failures, 0 errors, 4 skips; protocol validation, Community/Cloud contracts, whitespace, coverage upload, debug APK assembly, signer validation, and APK upload all passed. The final docs-only HEAD is validated separately.
