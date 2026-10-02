@@ -117,6 +117,7 @@ jobs:
           name: Stimulus-production-coverage
           path: |
             app/build/reports/stimulus-production-coverage.txt
+            app/build/reports/c9-provenance-census.txt
             app/build/test-results/testDebugUnitTest/*.xml
           if-no-files-found: warn
 
