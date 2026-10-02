@@ -38,6 +38,9 @@ class StimulusTargetCandidateSelectorTest {
         val result = select(plan, fixture, emptyList())
         assertEquals(listOf("direct"), result.materialDemand.candidates.map { it.stableKey })
         assertFalse(result.traces.single().candidatePool.contains("supportive"))
+        val supportiveDisposition = result.candidateDispositionIndex.entries.single { it.stableKey == "supportive" }
+        assertEquals(StimulusCandidateDispositionStatus.NOT_RELEVANT_TO_TARGET, supportiveDisposition.status)
+        assertEquals(listOf(StimulusCandidateDispositionReason.NO_DIRECT_CAPABILITY), supportiveDisposition.reasons)
     }
 
     @Test
@@ -55,6 +58,139 @@ class StimulusTargetCandidateSelectorTest {
         val result = select(qualityPlan(), fixture, emptyList())
         assertEquals("familiar", result.selectedCandidates.single().stableKey)
         assertTrue(result.traces.single().reasonCodes.contains("SELECTION_IDENTITY_PRESENT"))
+        val omitted = result.candidateDispositionIndex.entries.single { it.targetId == "QUALITY:STRENGTH" && it.stableKey == "generic" }
+        assertEquals(StimulusCandidateDispositionStatus.ELIGIBLE_NOT_SELECTED, omitted.status)
+        assertEquals("familiar", omitted.selectedInstead?.stableKey)
+        assertEquals(StimulusCandidateRankingField.TARGET_COMPATIBLE_HISTORY, omitted.firstDifferingField)
+        assertEquals(StimulusCandidateDispositionReason.LOWER_RANK_THAN_SELECTED_CANDIDATE, omitted.reasons.single())
+    }
+
+    @Test
+    fun stableKeyTieBreakIsExplicitAndDispositionOrderIsDeterministic() {
+        val fixture = fixture(
+            exercises = listOf(exercise("z_candidate"), exercise("a_candidate")),
+            relations = listOf(relation("z_candidate"), relation("a_candidate"))
+        )
+        val first = select(qualityPlan(), fixture, emptyList())
+        val second = select(qualityPlan(), fixture, emptyList())
+        assertEquals(first.candidateDispositionIndex, second.candidateDispositionIndex)
+        assertEquals("a_candidate", first.selectedCandidates.single().stableKey)
+        val omitted = first.candidateDispositionIndex.entries.single { it.stableKey == "z_candidate" }
+        assertEquals(StimulusCandidateDispositionStatus.ELIGIBLE_NOT_SELECTED, omitted.status)
+        assertEquals(StimulusCandidateRankingField.STABLE_KEY, omitted.firstDifferingField)
+        assertEquals(StimulusCandidateDispositionReason.DETERMINISTIC_STABLE_KEY_TIE_BREAK, omitted.reasons.single())
+        assertEquals(omitted.candidateRanking?.copy(stableKey = "a_candidate"), omitted.selectedInsteadRanking)
+    }
+
+    @Test
+    fun noMinimumAndExcludedOwnersReceiveTypedNonSelectionReasons() {
+        val candidate = exercise("candidate")
+        val fixture = fixture(listOf(candidate), listOf(relation("candidate")))
+        val noDemandPlan = qualityPlan().copy(qualityTargets = listOf(target(
+            TrainableQuality.STRENGTH, TargetPriority.PRIMARY, StimulusDoseStrategy.NO_MINIMUM_TARGET,
+            StimulusTargetNumericAuthority.NONE
+        )))
+        val noDemand = select(noDemandPlan, fixture, emptyList()).candidateDispositionIndex.entries.single()
+        assertEquals(StimulusCandidateDispositionStatus.SELECTION_NOT_REQUIRED, noDemand.status)
+        assertEquals(StimulusCandidateDispositionReason.NO_MINIMUM_TARGET, noDemand.reasons.single())
+
+        val excluded = select(qualityPlan(), fixture.copy(request = fixture.request.copy(
+            excludedExerciseStableKeys = setOf("candidate")
+        )), emptyList()).candidateDispositionIndex.entries.single()
+        assertEquals(StimulusCandidateDispositionStatus.INELIGIBLE, excluded.status)
+        assertTrue(StimulusCandidateDispositionReason.USER_EXCLUDED in excluded.reasons)
+    }
+
+    @Test
+    fun selectedOwnerCanCoverAnotherTargetWithoutSelectingASecondRole() {
+        val dual = exercise("dual_capability")
+        val fixture = fixture(listOf(dual), listOf(
+            relation("dual_capability", quality = TrainableQuality.STRENGTH),
+            relation("dual_capability", quality = TrainableQuality.POWER)
+        ))
+        val plan = StimulusTargetPlan(
+            qualityTargets = listOf(
+                target(TrainableQuality.STRENGTH, TargetPriority.PRIMARY),
+                target(TrainableQuality.POWER, TargetPriority.SECONDARY)
+            ), taskTargets = emptyList(), unresolved = emptyList()
+        )
+        val result = select(plan, fixture, emptyList())
+        assertEquals(1, result.selectedCandidates.size)
+        val covered = result.candidateDispositionIndex.entries.single { it.targetId == "QUALITY:POWER" && it.stableKey == "dual_capability" }
+        assertEquals(StimulusCandidateDispositionStatus.REUSED_FOR_TARGET, covered.status)
+        assertEquals("CANONICAL_STIMULUS_QUALITY_STRENGTH", covered.selectedInstead?.selectionRole)
+        assertTrue(covered.targetCoveredBySelectedOwner)
+    }
+
+    @Test
+    fun materializationFailureIsNotReportedAsAnEligibilityOrRankingOutcome() {
+        val candidate = exercise("too_slow")
+        val fixture = fixture(listOf(candidate), listOf(relation("too_slow")))
+            .copy(request = request().copy(sessionMinutes = 0))
+        val result = select(qualityPlan(), fixture, emptyList())
+        val disposition = result.candidateDispositionIndex.entries.single()
+        assertEquals(StimulusCandidateDispositionStatus.MATERIALIZATION_FAILED, disposition.status)
+        assertEquals(StimulusCandidateDispositionReason.MINIMUM_PRESCRIPTION_EXCEEDS_SESSION_TIME, disposition.reasons.single())
+        assertNull(disposition.selectedInstead)
+    }
+
+    @Test
+    fun lateComparisonAttachesControlRoleOnlyToExactCanonicalReplacementEvidence() {
+        val request = request()
+        val control = skeleton(request, listOf(item("same_exercise", 1, "LEGACY_ROLE")))
+        val experimental = skeleton(request, listOf(item("same_exercise", 1, "CANONICAL_STIMULUS_QUALITY_STRENGTH")))
+        val targetId = "QUALITY:STRENGTH"
+        val disposition = StimulusCandidateDisposition(
+            targetId = targetId,
+            stableKey = "same_exercise",
+            canonicalSelectionRole = "CANONICAL_STIMULUS_QUALITY_STRENGTH",
+            directTargetCandidate = true,
+            selectionRequired = true,
+            status = StimulusCandidateDispositionStatus.SELECTED,
+            reasons = emptyList()
+        )
+        val plan = StimulusCandidateSelectionPlan(
+            emptyList(), emptyList(), MaterialDemand(emptyList(), emptyMap(), emptyMap()),
+            candidateDispositionIndex = StimulusCandidateDispositionIndex(listOf(disposition))
+        )
+        val comparison = StimulusSelectionProgramComparisonEngine().compare(control, experimental, qualityPlan(), plan, null, null)
+        val provenance = comparison.nonSelectionProvenance.single()
+        assertEquals(StimulusPrescriptionOwnerIdentity("same_exercise", "LEGACY_ROLE"), provenance.omittedControlOwner)
+        assertEquals(StimulusNonSelectionClassification.CANONICAL_REPLACEMENT, provenance.classification)
+        assertEquals(targetId, provenance.targetEvidence.single().targetId)
+        assertEquals("CANONICAL_STIMULUS_QUALITY_STRENGTH", provenance.targetEvidence.single().disposition.canonicalSelectionRole)
+    }
+
+    @Test
+    fun lateComparisonClassifiesExactTargetAlreadyCoveredWithoutGrantingAuthority() {
+        val request = request()
+        val control = skeleton(request, listOf(item("legacy_owner", 1, "LEGACY_ROLE")))
+        val selectedOwner = StimulusPrescriptionOwnerIdentity("selected_owner", "CANONICAL_STIMULUS_QUALITY_STRENGTH")
+        val experimental = skeleton(request, listOf(item(selectedOwner.stableKey, 1, selectedOwner.selectionRole)))
+        val disposition = StimulusCandidateDisposition(
+            targetId = "QUALITY:STRENGTH",
+            stableKey = "legacy_owner",
+            canonicalSelectionRole = "CANONICAL_STIMULUS_QUALITY_STRENGTH",
+            directTargetCandidate = true,
+            selectionRequired = false,
+            status = StimulusCandidateDispositionStatus.TARGET_ALREADY_COVERED,
+            reasons = listOf(StimulusCandidateDispositionReason.TARGET_ALREADY_COVERED_BY_SELECTED_OWNER),
+            selectedInstead = selectedOwner,
+            targetCoveredBySelectedOwner = true
+        )
+        val plan = StimulusCandidateSelectionPlan(
+            selectedCandidates = listOf(StimulusSelectedCandidate(
+                selectedOwner.stableKey, setOf("QUALITY:STRENGTH"), "QUALITY:STRENGTH", listOf("B5"),
+                "REALIZATION_UNCLASSIFIED", 2, selectedOwner.selectionRole
+            )),
+            traces = emptyList(),
+            materialDemand = MaterialDemand(emptyList(), emptyMap(), emptyMap()),
+            candidateDispositionIndex = StimulusCandidateDispositionIndex(listOf(disposition))
+        )
+        val result = StimulusSelectionProgramComparisonEngine().compare(control, experimental, qualityPlan(), plan, null, null)
+        val provenance = result.nonSelectionProvenance.single()
+        assertEquals(StimulusNonSelectionClassification.TARGET_ALREADY_COVERED, provenance.classification)
+        assertEquals(selectedOwner, provenance.targetEvidence.single().disposition.selectedInstead)
     }
 
     @Test
@@ -143,6 +279,8 @@ class StimulusTargetCandidateSelectorTest {
         assertTrue(trace.historyDirectCapabilityIdentities.isEmpty())
         assertEquals("existing", result.selectedCandidates.single().stableKey)
         assertTrue(trace.reasonCodes.contains("SELECTION_IDENTITY_PRESENT"))
+        assertEquals(select(qualityPlan(), fixture, emptyList()).candidateDispositionIndex,
+            result.candidateDispositionIndex)
     }
 
     @Test
@@ -327,6 +465,9 @@ class StimulusTargetCandidateSelectorTest {
         assertTrue(result.selectedCandidates.isEmpty())
         assertTrue(result.traces.single().candidatePool.isEmpty())
         assertTrue(result.traces.single().reasonCodes.contains("TARGET_REQUIRES_SELECTION_BUT_NO_MATERIALIZABLE_CANDIDATE"))
+        val disposition = result.candidateDispositionIndex.entries.single()
+        assertEquals(StimulusCandidateDispositionStatus.INELIGIBLE, disposition.status)
+        assertEquals(StimulusCandidateDispositionReason.TASK_ACTIVITY_NOT_SELECTABLE, disposition.reasons.single())
     }
 
     @Test
