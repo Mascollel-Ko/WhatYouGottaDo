@@ -149,6 +149,24 @@ internal class ResidualCompletion(private val prescriptions: PersonalizedPrescri
         val exact = origins?.let { ExactAuthorizedRestoration(snapshot, state, initial.request, authorized,
             minOf(demand.authorizedUnits, envelope.finalControllableUnits), projection, demand, week.atomByLocalId, it, rows, progress, prescriptions) }
         if (exact != null) rows = exact.restore(rows, days)
+        fun captureAcceptedDayRemap(beforeRows: List<ProgramSkeletonItem>, afterRows: List<ProgramSkeletonItem>) {
+            val afterByLocalId = afterRows.associateBy(ProgramSkeletonItem::localId)
+            beforeRows.forEach { before ->
+                val after = afterByLocalId[before.localId] ?: return@forEach
+                if (before.dayOfWeek == after.dayOfWeek && before.orderIndex == after.orderIndex) return@forEach
+                val atom = week.atomByLocalId[before.localId]
+                val identity = StimulusPrescriptionOwnerIdentity(before.exerciseStableKey, before.selectionRole)
+                val demandId = atom?.let { origins?.get(it)?.authorizedDemandId ?: exact?.origins?.get(it)?.authorizedDemandId }
+                    ?: authorized.singleOrNull { StimulusPrescriptionOwnerIdentity(it.item.stableKey, it.item.role) == identity }?.id
+                ownerProvenance += OwnerAllocationProvenance(
+                    identity,
+                    OwnerAllocationStage.RESIDUAL_COMPLETION,
+                    if (before.dayOfWeek != after.dayOfWeek) OwnerAllocationAction.PLACEMENT_MOVED else OwnerAllocationAction.ORDER_CHANGED,
+                    ownerAllocationState(before), ownerAllocationState(after), OwnerAllocationCause.RESIDUAL_COMPLETION,
+                    authorizedDemandIds = demandId?.let(::setOf).orEmpty(),
+                    evidenceCodes = listOf("ACCEPTED_ADDED_DAY_SCHEDULE_REMAP"), mutationSequence = ownerProvenance.size)
+            }
+        }
         fun dayRows(day: Int) = rows.filter { it.dayOfWeek == day }
         fun unitFill(day: Int) = if (referenceUnits > 0) dayRows(day).sumOf { it.setPrescriptions.size } / referenceUnits else 1.0
         fun timeFill(day: Int) = if (referenceSeconds > 0) dayRows(day).sumOf(::plannedSeconds) / referenceSeconds else 1.0
@@ -267,7 +285,10 @@ internal class ResidualCompletion(private val prescriptions: PersonalizedPrescri
                 val remapped = rows.map { it.copy(dayOfWeek = proposedDays[days.indexOf(it.dayOfWeek)]) }
                 val restored = if (PrimaryStrengthAnchorSpacingPolicy.allowedRows(remapped, primaryKeys))
                     exact.restore(remapped, proposedDays, newDayResiduals) else remapped
-                if (restored != remapped) { rows = restored; days = proposedDays; schedule = proposed; addedDay = true }
+                if (restored != remapped) {
+                    captureAcceptedDayRemap(rows, remapped)
+                    rows = restored; days = proposedDays; schedule = proposed; addedDay = true
+                }
             }
         }
         while (true) {
@@ -296,11 +317,13 @@ internal class ResidualCompletion(private val prescriptions: PersonalizedPrescri
                 if (!PrimaryStrengthAnchorSpacingPolicy.allowedRows(rows, primaryKeys)) { rows = oldRows; continue }
                 val restored = exact?.restore(rows, proposedDays, setOf(residual.id))
                 if (restored != null && restored != rows) {
+                    captureAcceptedDayRemap(oldRows, rows)
                     rows = restored; days = proposedDays; schedule = proposed; addedDay = true; break
                 }
                 val candidate = feasible(residual, newDay)
                 if (candidate == null) { rows = oldRows; continue }
                 days = proposedDays; schedule = proposed
+                captureAcceptedDayRemap(oldRows, rows)
                 accept(residual, newDay, candidate); addedDay = true
                 while (sparse(newDay)) {
                     val next = rankedResiduals().firstNotNullOfOrNull { remaining -> feasible(remaining, newDay)?.let { remaining to it } } ?: break

@@ -153,6 +153,26 @@ class ResidualCompletionTest {
         val blocked = f.complete(initial, auth, listOf(gap), fixed = false, projection = PlanDayProjection { StandaloneDayLoad(87, emptyList()) })
         assertFalse(blocked.trace.addedDay)
     }
+    @Test fun `accepted plus one day remap emits exact owner placement provenance`() {
+        val initial = f.plan(listOf(f.row("press", 1, 2), f.row("squat", 1, 2), f.row("squat", 5, 2, id = "squat5")),
+            days = listOf(1, 5))
+        val authorized = listOf(f.authorized(snapshot, f.source("press", 2), true),
+            f.authorized(snapshot, f.source("squat", 8, gap.code)))
+        val result = f.complete(initial, authorized, listOf(gap), fixed = false)
+        assertTrue(result.trace.addedDay)
+        assertEquals(RecordBasedReviewedPolicy.defaultSchedule(3, 3), result.skeleton.weekDaySchedule)
+        val moves = result.trace.ownerAllocationProvenance.filter { event ->
+            event.stage == OwnerAllocationStage.RESIDUAL_COMPLETION && event.action == OwnerAllocationAction.PLACEMENT_MOVED &&
+                event.before?.week == 1 && event.before?.day == 5 && event.after?.week == 1 && event.after?.day == 3
+        }
+        assertTrue(moves.isNotEmpty())
+        assertTrue("set counts changed: $moves", moves.all { event -> event.before?.setCount == event.after?.setCount })
+        assertTrue("set prescriptions changed: $moves", moves.all { event -> event.before?.setPrescriptions == event.after?.setPrescriptions })
+        assertTrue("prescriptions changed: $moves", moves.all { event -> event.before?.prescription == event.after?.prescription })
+        assertTrue("cause or demand missing: $moves", moves.all { event ->
+            event.cause == OwnerAllocationCause.RESIDUAL_COMPLETION && event.authorizedDemandIds.isNotEmpty()
+        })
+    }
     @Test fun `non sparse but feasible existing day prevents plus one`() {
         val initial = f.plan(listOf(f.row("press", 1, 8), f.row("row", 3, 8), f.row("other", 5, 8)))
         val auth = authorized() + listOf(f.authorized(snapshot, f.source("row", 8), true), f.authorized(snapshot, f.source("other", 8), true))
