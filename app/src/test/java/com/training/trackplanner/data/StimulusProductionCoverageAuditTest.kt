@@ -51,12 +51,16 @@ class StimulusProductionCoverageAuditTest {
             CoverageSpec("reviewed_strength_isolated", TrainableQuality.STRENGTH, "barbell_back_squat", "STRENGTH_GAIN", ProgramGoal.STRENGTH, StrengthIntent.STRENGTH_PRIORITY, false, "reviewed", 3, 60, emptySet(), true),
             CoverageSpec("reviewed_hypertrophy_isolated", TrainableQuality.HYPERTROPHY, "cable_rear_delt_fly", "HYPERTROPHY_PHYSIQUE", ProgramGoal.BODYBUILDING, StrengthIntent.HYPERTROPHY_PRIORITY, false, "reviewed", 3, 60, emptySet(), true)
         )
+        val canonicalPlanningByCase = linkedMapOf<String, CanonicalStimulusPlanningResult>()
         val records = specs.map { spec ->
-            val result = runCase(spec)
+            val result = runCase(spec, observeCanonicalPlanning = { planning ->
+                canonicalPlanningByCase[spec.label] = planning
+            })
             if (result == null) {
                 assertEquals("Only the real no-history precondition may reject this corpus", "none", spec.history)
                 return@map spec to null
             }
+            requireNotNull(canonicalPlanningByCase[spec.label]) { "${spec.label} missing CONTROL-independent B1-B4 evidence" }
             val comparison = result.comparison
             assertEquals(spec.label, 1, result.buildCounts.controlBuilds)
             assertEquals(spec.label, 0, result.buildCounts.thirdBuilds)
@@ -81,6 +85,76 @@ class StimulusProductionCoverageAuditTest {
         val c12Census = renderC12ControlFallbackCensus(records, report, "527e0c0bd29c4793e6eac8b1eda1f064893ec794")
         assertEquals(c12Census, renderC12ControlFallbackCensus(records.reversed(), report, "527e0c0bd29c4793e6eac8b1eda1f064893ec794"))
         java.io.File("build/reports/c12-control-fallback-census.json").writeText(c12Census)
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val physicalQualityCatalog = CanonicalExerciseMetadataRepositoryProvider.get(context).physicalQualityCatalog()
+        val c13Census = renderC13CanonicalQualityGapCensus(
+            records,
+            report,
+            c12MergeHead = "14157618c803c16927257c9f00aa0e6c586fd5c5",
+            c13StartHead = "14157618c803c16927257c9f00aa0e6c586fd5c5",
+            canonicalPlanningByCase = canonicalPlanningByCase,
+            catalog = physicalQualityCatalog
+        )
+        assertEquals(c13Census, renderC13CanonicalQualityGapCensus(
+            records.reversed(), report,
+            c12MergeHead = "14157618c803c16927257c9f00aa0e6c586fd5c5",
+            c13StartHead = "14157618c803c16927257c9f00aa0e6c586fd5c5",
+            canonicalPlanningByCase = canonicalPlanningByCase,
+            catalog = physicalQualityCatalog
+        ))
+        val c13File = java.io.File("build/reports/c13-canonical-quality-gap-census.json")
+        c13File.writeText(c13Census)
+        val c13Json = org.json.JSONObject(c13Census)
+        assertEquals("818E8FA6F67164EEAAE0C938273A777D645874CF0EECD17F1E1795DC811434D9",
+            c13Json.getString("standardCoverageSha256"))
+        assertEquals(22, c13Json.getJSONObject("corpus").getInt("generated"))
+        assertEquals(5, c13Json.getJSONObject("corpus").getInt("preflightRejected"))
+        assertEquals(5, c13Json.getJSONObject("corpus").getJSONArray("preflightRejections").length())
+        assertEquals(listOf("B1-B6", "EXPERIMENTAL", "CONTROL", "COMPARISON", "B7", "B8", "B9"),
+            (0 until c13Json.getJSONArray("phaseOrdering").length()).map { c13Json.getJSONArray("phaseOrdering").getString(it) })
+        assertEquals(21, c13Json.getJSONObject("corpus").getJSONObject("routes").getInt("CONTROL"))
+        assertEquals(1, c13Json.getJSONObject("corpus").getJSONObject("routes").getInt("B8_STRENGTH_V1"))
+        assertEquals(10, c13Json.getJSONObject("caseCohorts").getInt("targetNotSatisfiedPrimaryCount"))
+        assertEquals(8, c13Json.getJSONObject("caseCohorts").getInt("B6AuthorityIncompletePrimaryCount"))
+        assertEquals(0, c13Json.getJSONObject("caseCohorts").getJSONArray("overlap").length())
+        assertEquals(10, c13Json.getJSONArray("targetGapDossiers").length())
+        assertEquals(9, c13Json.getJSONObject("targetGapRootCauseCounts").getInt("TARGET_HAS_NO_EXECUTABLE_B6"))
+        assertEquals(1, c13Json.getJSONObject("targetGapRootCauseCounts").getInt("TARGET_REGRESSED"))
+        assertEquals(8, c13Json.getJSONArray("primaryB6Dossiers").length())
+        assertEquals(6, (0 until c13Json.getJSONArray("primaryB6Dossiers").length()).count { index ->
+            c13Json.getJSONArray("primaryB6Dossiers").getJSONObject(index)
+                .getBoolean("B6ActuallyIncompleteForSelectedTarget")
+        })
+        assertEquals(9, c13Json.getInt("primaryB6OwnerTargetRows"))
+        assertEquals(7, c13Json.getInt("primaryB6FailedOwnerTargetRows"))
+        assertEquals(5, c13Json.getJSONObject("primaryB6FailureCauseCounts")
+            .getJSONObject("REP_RANGE_INCOMPATIBLE").getInt("ownerTargetRows"))
+        assertEquals(1, c13Json.getJSONObject("primaryB6FailureCauseCounts")
+            .getJSONObject("TARGET_DOSE_WITHOUT_PRESCRIPTION").getInt("ownerTargetRows"))
+        assertEquals(1, c13Json.getJSONObject("primaryB6FailureCauseCounts")
+            .getJSONObject("MODEL_UNAVAILABLE_TRUE_GAP").getInt("ownerTargetRows"))
+        val qualityFunnel = c13Json.getJSONObject("selectedOwnerQualityFunnel").getJSONObject("rows")
+        assertEquals(17, qualityFunnel.getJSONObject("STRENGTH").getInt("B4TargetRequested"))
+        assertEquals(5, qualityFunnel.getJSONObject("HYPERTROPHY").getInt("B4TargetRequested"))
+        assertEquals(4, qualityFunnel.getJSONObject("POWER").getInt("B4TargetRequested"))
+        assertEquals(3, qualityFunnel.getJSONObject("STRENGTH").getInt("B6ExecutableExact"))
+        assertEquals(2, qualityFunnel.getJSONObject("HYPERTROPHY").getInt("B6ExecutableExact"))
+        assertEquals(3, qualityFunnel.getJSONObject("STRENGTH").getInt("finalTargetCompatibleAfterFullMaterialization"))
+        assertEquals(1, qualityFunnel.getJSONObject("HYPERTROPHY").getInt("finalTargetCompatibleAfterFullMaterialization"))
+        val c13Cases = c13Json.getJSONArray("cases")
+        assertEquals(22, c13Cases.length())
+        (0 until c13Cases.length()).forEach { index ->
+            val case = c13Cases.getJSONObject(index)
+            assertEquals("CONTROL_FREE_PREPARED_INPUT_RECOMPUTATION", case.getString("B1ThroughB3ProfileSource"))
+            assertEquals("comparison.targetPlan", case.getString("B4TargetSource"))
+            assertTrue(case.getBoolean("canonicalPlanningProfileAvailable"))
+            assertTrue(case.getBoolean("canonicalTargetPlanRecomputedMatchesLive"))
+            assertTrue(case.has("B5_nonSelectionProvenance"))
+            assertTrue(case.has("B5_selectedCandidateDispositions"))
+            assertTrue(case.has("b7Integrity"))
+            assertTrue(case.has("b8Scope"))
+            assertTrue(case.has("removedOwnerIdentities"))
+        }
         val coverageSha = java.security.MessageDigest.getInstance("SHA-256")
             .digest(report.toByteArray(Charsets.UTF_8)).joinToString("") { "%02X".format(it) }
         assertEquals("818E8FA6F67164EEAAE0C938273A777D645874CF0EECD17F1E1795DC811434D9", coverageSha)
@@ -522,6 +596,7 @@ class StimulusProductionCoverageAuditTest {
 
     internal suspend fun runCase(
         spec: CoverageSpec,
+        observeCanonicalPlanning: (suspend (CanonicalStimulusPlanningResult) -> Unit)? = null,
         evaluate: (suspend (PersonalizedProgramPlanningService, PersonalizedPlanningPreflight, PersonalizedPlanningAnswers,
             Map<String, RuntimeExerciseMetadata>) -> StimulusProductionGenerationResult)? = null
     ): StimulusProductionGenerationResult? {
@@ -594,6 +669,7 @@ class StimulusProductionCoverageAuditTest {
                 QUESTION_INTERRUPTION_CAUSE, QUESTION_INTERRUPTION_FREQUENCY -> "UNSURE"
                 else -> if (question.id.startsWith("INTERRUPTION_CAUSE_")) "UNKNOWN" else error("Unexpected personalized question: ${question.id}")
             } })
+            observeCanonicalPlanning?.invoke(service.buildCanonicalStimulusPlanningForPrepared(preflight, answers, metadata))
             val production = evaluate?.invoke(service, preflight, answers, metadata)
                 ?: repository.generatePreparedPersonalizedProgramEvaluation(preflight, answers)
             return production
