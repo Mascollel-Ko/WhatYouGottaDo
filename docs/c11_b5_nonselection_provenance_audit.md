@@ -49,6 +49,10 @@ The coverage audit contains 27 cases: 22 generated and 5 preflight rejected. It 
 
 For the pair-level census, a pair is classified as `CANONICAL_REPLACEMENT` if at least one exact current B4 direct target selected the same stable key under its canonical role. Under that explicit aggregation rule, counts are `CANONICAL_REPLACEMENT=17`; `OUTRANKED_FOR_RELEVANT_TARGET=0`; `TARGET_ALREADY_COVERED=0`; `INELIGIBLE_FOR_CURRENT_TARGET=0`; `NO_CURRENT_B4_SELECTION_DEMAND=0`; `MATERIALIZATION_FAILED=0`; `UNPROVEN=0`. The counts sum to 17 exact owner/role pairs. At target level, no-minimum, already-covered, and one stable-key-tie outranking dispositions remain visible as listed above. The week-expanded census is 34 pair-level `CANONICAL_REPLACEMENT` explanations. None is, by itself, B7 removal authority.
 
+Across the 36 direct owner/target rows, target-level counts are `CANONICAL_REPLACEMENT=17`, `NO_CURRENT_B4_SELECTION_DEMAND=12`, `TARGET_ALREADY_COVERED=6`, and `OUTRANKED_FOR_RELEVANT_TARGET=1`; ineligible, materialization-failed, and unproven rows are all 0. The single outranking row is the exact acceleration tie documented for `ex_421ba24b` above.
+
+The C10 source-mutation census remains `removed owner 34 / exact builder-removal trace 0 / unproven 34`: these CONTROL-only rows never entered the EXPERIMENTAL builder as exact B5 demand, so no builder removal event exists to trace. C11 explains the upstream B5 selection disposition; it does not synthesize a builder deletion, retroactively convert B5 absence into a mutation, or clear those C10 origin-trace gaps.
+
 ### Hypertrophy owners with unresolved C10 deltas
 
 - `ex_284ecca6#COVERAGE_POSTERIOR_CHAIN`: for `QUALITY:HYPERTROPHY`, disposition is `NOT_RELEVANT_TO_TARGET / NO_DIRECT_CAPABILITY`. The C10 final 3-versus-2 comparison was not a B5 omission explanation or a new H target. The original C10 trace shows CONTROL's exact allocator expansion from 2 to 3 and EXPERIMENTAL's unchanged two-set demand; no displacement edge exists. The set delta remains unproven for B7.
