@@ -96,6 +96,17 @@ class StimulusProductionCoverageAuditTest {
         val c15File = java.io.File("build/reports/c15-cold-start-strength-calibration-census.json")
         requireNotNull(c15File.parentFile).mkdirs()
         c15File.writeText(c15Census)
+        val c16Census = renderC16B8ResidualBlockerCensus(
+            records,
+            c15MergeMainHead = "caa3e8d07f52462ec009e31aad406fa0c7b18aea",
+            c16StartHead = "caa3e8d07f52462ec009e31aad406fa0c7b18aea"
+        )
+        assertEquals(c16Census, renderC16B8ResidualBlockerCensus(
+            records.reversed(),
+            c15MergeMainHead = "caa3e8d07f52462ec009e31aad406fa0c7b18aea",
+            c16StartHead = "caa3e8d07f52462ec009e31aad406fa0c7b18aea"
+        ))
+        java.io.File("build/reports/c16-b8-residual-blocker-census.json").writeText(c16Census)
         val c15 = org.json.JSONObject(c15Census)
         assertEquals(27, c15.getJSONObject("corpus").getInt("totalCases"))
         assertEquals(22, c15.getJSONObject("corpus").getInt("generated"))
