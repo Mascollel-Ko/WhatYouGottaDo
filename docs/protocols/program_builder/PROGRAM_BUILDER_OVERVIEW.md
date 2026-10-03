@@ -7,7 +7,7 @@
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.14.3 |
-| Last audited commit | 853eb8fb1518fa62ec815c86fe95b9175dc2bbf0 |
+| Last audited commit | 8c06e53d451c07c88b4aa48edf13ed11f65ce8e5 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1251,3 +1251,13 @@ Post-audit boundary notes
 - C13 found nine Strength targets with an observed B2 median of zero and a valid B4 `[0,0,6]` envelope; eight Strength INTRODUCE targets are direction-only and fail because the final plan contains zero direct-compatible Strength work. Seven exact B6 owner-target rows fail before materialization: five REP_RANGE_INCOMPATIBLE, one TARGET_DOSE_WITHOUT_PRESCRIPTION, and one MODEL_UNAVAILABLE_TRUE_GAP. No partial materialization or target-accounting false negative was found; potential gate-relaxation candidates remain zero.
 - C13 implementation/test commit `853eb8fb1518fa62ec815c86fe95b9175dc2bbf0` is the `lastAuditedCommit`. The detailed case census, shortfall and B6 classifications, repetition/funnel data, zero-baseline and direction-only findings, parity, and CI/artifact evidence are in [`docs/c13_canonical_program_quality_gap_audit.md`](../../c13_canonical_program_quality_gap_audit.md).
 - Hosted Android Debug Build run [37046551592](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/37046551592) passed on the implementation/test commit: 2,199 tests, 0 failures, 0 errors, 4 skips; protocol validation, Community/Cloud contracts, whitespace, coverage upload, debug APK assembly, signer validation, and APK upload all passed. The final docs-only HEAD is validated separately.
+
+### Phase C14 — same-owner Strength capacity and training-load separation (protocol 3.51.0 retained)
+
+- C14 adds a transient shadow proposal that keeps the exact-owner capacity reference, repetition-max ceiling, conservative training load, and actual calibration evidence in separate typed models. It reuses the canonical same-exercise posterior, reviewed repetition curve, RPE/RIR policy, and existing progression path; no second 1RM estimator or cross-exercise load transfer is introduced.
+- The five C13 `REP_RANGE_INCOMPATIBLE` rows have no exact-owner capacity signal in the corpus. All five remain unavailable, and all eight Strength `DIRECTION_ONLY` cases remain without numeric B6 authority. No new B6 authority is consumed; B7/B8 gates, generated programs, routes, and scope remain unchanged.
+- The personal curve snapshot is filtered at the planning cutoff. The example test distinguishes a 100 kg capacity reference, an 85–90 kg five-rep ceiling, and a separate conservative 70–75 kg training load at target RPE 6.5.
+- Routes remain CONTROL 21 / Strength 1 / Hypertrophy 0 / Combined 0; standard coverage SHA-256 remains `818E8FA6F67164EEAAE0C938273A777D645874CF0EECD17F1E1795DC811434D9`. Protocol/runtime/app remain `3.51.0` / `RECORD_BASED_PLANNER_0.14.3_KOTLIN_1` / `0.5.1.5`.
+- C14 implementation commit `ec9c6a30c9e0e02cddc63c3beedc185bd75b1fb7` adds the shadow model; test follow-up `8c06e53d451c07c88b4aa48edf13ed11f65ce8e5` adds explicit Power and unresolved load-semantics refusal checks and is the `lastAuditedCommit`.
+- Hosted Android Debug Build run [37091261981](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/37091261981) passed on the audited implementation/test head: 2,212 tests, 0 failures, 0 errors, 4 skips; protocol validation, Community/Cloud contracts, whitespace, coverage upload, debug APK assembly, signer validation, and APK upload passed. The final documentation HEAD is checked separately.
+- The exact owner dossiers, shadow census, research review, cutoff test, local validation, and artifact checksums are in [`docs/c14_personal_strength_training_load_authority_audit.md`](../../c14_personal_strength_training_load_authority_audit.md).
