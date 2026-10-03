@@ -7,7 +7,7 @@
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.14.4 |
-| Last audited commit | 8c06e53d451c07c88b4aa48edf13ed11f65ce8e5 |
+| Last audited commit | 4d589cb3a371c2e8359332e320d375d7e0ad9a92 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1269,4 +1269,5 @@ Post-audit boundary notes
 - The distinct `B8_STRENGTH_CALIBRATION_V1` route requires its own B7/B8 evidence and blocks confirmation until the user supplies the required load. Existing `B8_STRENGTH_V1` numeric-load requirements are unchanged. Blank planned sets are excluded from completed-work analysis; confirmed user-entered loads use the normal same-owner history and later C14 path.
 - C15 routes are CONTROL 20 / Strength V1 1 / Strength Calibration 1 / Hypertrophy 0 / Combined 0. Of the five prior `REP_RANGE_INCOMPATIBLE` rows, all receive a valid cold-start shape and full materialization, but only `persona2_reviewed` passes B8. Eight direction-only cases remain blocked without invented set demand. B7 counts are provenance-unclosed 11 / target-unmet 9 / regressed 1.
 - Protocol/runtime/app versions are `3.52.0` / `RECORD_BASED_PLANNER_0.14.4_KOTLIN_1` / `0.5.1.5`. The standard coverage SHA-256 changes to `55CD3C4E9E58B700ED4577A6C0CE0A99FD847F552A334B45FD0815E6FC8825AB` with the one bounded calibration route; phase order remains B1-B6 → EXPERIMENTAL → CONTROL → comparison → B7 → B8 → B9, with no third build.
-- The detailed evidence and validation record is maintained in the Phase C15 audit dossier.
+- C15 implementation/test commit `4d589cb3a371c2e8359332e320d375d7e0ad9a92` is the `lastAuditedCommit`; the detailed evidence and validation record is in [`docs/c15_cold_start_strength_calibration_audit.md`](../../c15_cold_start_strength_calibration_audit.md).
+- Hosted Android Debug Build run [37108587556](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/37108587556) passed on that implementation/test commit: 2,225 tests, 0 failures, 0 errors, 4 skips; protocol validation, Community/Cloud contracts, whitespace, coverage upload, APK assembly, signer validation, and APK upload passed. The final docs-only HEAD is checked separately.
