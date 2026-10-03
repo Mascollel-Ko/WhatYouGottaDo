@@ -114,6 +114,8 @@ data class StimulusPrescriptionResolution(
     val effortTarget: StimulusEffortTarget? = proposedPrescription?.effortTarget,
     val status: StimulusPrescriptionResolutionStatus,
     val reasonCodes: List<String> = emptyList(),
+    /** C14 diagnostic-only capacity-to-training-load proposal; never grants B6 authority itself. */
+    val strengthTrainingLoadShadow: StrengthTrainingLoadResolution? = null,
     val mutationAuthority: Boolean = false,
     val authority: StimulusPrescriptionResolutionAuthority = StimulusPrescriptionResolutionAuthority.SHADOW_ONLY
 )
@@ -165,12 +167,14 @@ class StimulusPrescriptionRealizationPlanEngine(
             current: PlannedPrescription? = null,
             probe: PlannedPrescription? = current,
             compatibility: PlannedStimulusCompatibility? = null,
-            proposal: StimulusTargetCompatiblePrescription? = null
+            proposal: StimulusTargetCompatiblePrescription? = null,
+            strengthShadow: StrengthTrainingLoadResolution? = null
         ) = StimulusPrescriptionResolution(
             targetId = targetId, quality = target.quality, evidenceBasis = target.evidenceBasis,
             strategy = target.strategy, numericAuthority = target.numericAuthority, owner = owner,
             currentPrescription = current, probePrescription = probe, plannedCompatibility = compatibility,
-            proposedPrescription = proposal, status = status, reasonCodes = reasons, mutationAuthority = false
+            proposedPrescription = proposal, status = status, reasonCodes = reasons,
+            strengthTrainingLoadShadow = strengthShadow, mutationAuthority = false
         )
 
         if (target.quality !in setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY) ||
@@ -265,10 +269,21 @@ class StimulusPrescriptionRealizationPlanEngine(
             )) return base(StimulusPrescriptionResolutionStatus.NO_PRESCRIPTION_CHANGE_AUTHORIZED,
             listOf("B4_NUMERIC_AUTHORITY_DOES_NOT_AUTHORIZE_B6_CHANGE"), owner, current, effective, compatibility)
         val proposed = plannedResolver.safeProposal(target.quality, effective, snapshot, identity.stableKey, effort)
-            ?: return base(StimulusPrescriptionResolutionStatus.NO_SAFE_TARGET_COMPATIBLE_PRESCRIPTION,
-                listOf("SAFE_LOAD_OR_EFFORT_AUTHORITY_UNAVAILABLE"), owner, current, effective, compatibility)
+        val strengthShadow = if (target.quality == TrainableQuality.STRENGTH) {
+            val selectedB5Candidate = candidates.singleOrNull {
+                it.stableKey == identity.stableKey && it.selectionRole == identity.selectionRole &&
+                    targetId in it.coveredTargetIds
+            }
+            selectedB5Candidate?.let {
+                StrengthTrainingLoadAuthorityResolver().resolve(snapshot, target, it, effective.sets.size)
+            }
+        } else null
+        if (proposed == null) return base(StimulusPrescriptionResolutionStatus.NO_SAFE_TARGET_COMPATIBLE_PRESCRIPTION,
+            listOf("SAFE_LOAD_OR_EFFORT_AUTHORITY_UNAVAILABLE"), owner, current, effective, compatibility,
+            strengthShadow = strengthShadow)
         return base(StimulusPrescriptionResolutionStatus.SAFE_TARGET_COMPATIBLE_PRESCRIPTION_RESOLVED,
-            listOf("SHADOW_PROPOSAL_ONLY", "B5_OWNER_STABLE_KEY_AND_SELECTION_ROLE_PRESERVED"), owner, current, effective, compatibility, proposed)
+            listOf("SHADOW_PROPOSAL_ONLY", "B5_OWNER_STABLE_KEY_AND_SELECTION_ROLE_PRESERVED"), owner, current, effective, compatibility, proposed,
+            strengthShadow)
     }
 
     private fun plannedCompatibility(

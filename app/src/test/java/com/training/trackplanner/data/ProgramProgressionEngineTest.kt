@@ -30,6 +30,20 @@ class ProgramProgressionEngineTest {
         val result = ProgressionEngine.evaluate(link(2), listOf(session(1)), false)
         assertEquals(ProgressionDirection.INCREASE, result.direction); assertEquals(142.5, result.kg!!, 0.0)
     }
+    @Test fun actualEffortCalibratesAnInferredStrengthExposureThroughExistingProgressionPolicy() {
+        val target = link(2)
+        val planned = 72.5
+        val easier = ProgressionEngine.evaluate(target, listOf(session(1, actual = planned, planned = planned, rpe = 5.0)), false)
+        val onTarget = ProgressionEngine.evaluate(target, listOf(session(1, actual = planned, planned = planned, rpe = 6.5)), false)
+        val harder = ProgressionEngine.evaluate(target, listOf(session(1, actual = planned, planned = planned, rpe = 9.0)), false)
+
+        assertEquals(ProgressionDirection.INCREASE, easier.direction)
+        assertEquals(ProgressionDirection.INCREASE, onTarget.direction)
+        assertEquals(ProgressionDirection.HOLD, harder.direction)
+        assertNotNull(easier.kg)
+        assertNotNull(onTarget.kg)
+        assertEquals(planned, harder.kg!!, 0.0)
+    }
     @Test fun actual137Point5IsBaselineNotPlanned140() {
         val result = ProgressionEngine.evaluate(link(2), listOf(session(1, actual = 137.5)), false)
         assertEquals(137.5, result.kg!!, 0.0); assertEquals(ProgressionDirection.HOLD, result.direction)

@@ -120,6 +120,7 @@ jobs:
             app/build/reports/c9-provenance-census.txt
             app/build/reports/c12-control-fallback-census.json
             app/build/reports/c13-canonical-quality-gap-census.json
+            app/build/reports/c14-strength-capacity-training-load-census.json
             app/build/test-results/testDebugUnitTest/*.xml
           if-no-files-found: warn
 

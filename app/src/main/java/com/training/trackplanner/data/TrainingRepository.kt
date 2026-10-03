@@ -372,6 +372,8 @@ class TrainingRepository internal constructor(
         dailyCheckInDao = dailyCheckInDao,
         strengthPosteriorDao = strengthPosteriorDao,
         strengthPerformanceRegistry = strengthPerformanceRegistry,
+        repetitionCurveRegistry = repetitionCurveRegistry,
+        rpeRirPolicy = rpeRirPolicy,
         canonicalOfiAxisProfiles = canonicalOfiAxisProfiles,
         physicalQualityCatalog = canonicalMetadataRepository.physicalQualityCatalog(),
         canonicalMovementRelations = canonicalMetadataRepository.movementRelations(),

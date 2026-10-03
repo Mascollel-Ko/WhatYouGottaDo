@@ -88,6 +88,7 @@ import java.util.UUID
 import kotlin.math.exp
 import kotlinx.coroutines.CancellationException
 import com.training.trackplanner.analysis.strengthperformance.StrengthPerformanceLoadResolver
+import com.training.trackplanner.analysis.strengthperformance.toPosterior
 import com.training.trackplanner.data.personalized.CanonicalStrengthReferenceIndex
 import com.training.trackplanner.data.personalized.StimulusCanonicalEvaluationFailure
 import com.training.trackplanner.data.personalized.StimulusCanonicalEvaluationFailureReason
@@ -106,6 +107,8 @@ internal class PersonalizedProgramPlanningService(
     private val dailyCheckInDao: DailyCheckInDao,
     private val strengthPosteriorDao: StrengthPosteriorDao,
     private val strengthPerformanceRegistry: com.training.trackplanner.analysis.strengthperformance.StrengthPerformanceRegistry,
+    private val repetitionCurveRegistry: com.training.trackplanner.analysis.strengthperformance.curve.RepetitionCurveRegistry,
+    private val rpeRirPolicy: com.training.trackplanner.analysis.strengthperformance.RpeRirPolicy,
     private val canonicalOfiAxisProfiles: Map<String, CanonicalOfiAxisProfile>,
     private val exerciseRoleRelationDao: ExerciseRoleRelationDao? = null,
     private val tissueStateProvider: suspend (LocalDate) -> com.training.trackplanner.analysis.tissue.TissueCurrentState? = { null },
@@ -1261,6 +1264,21 @@ internal class PersonalizedProgramPlanningService(
             ?.takeIf { it.status == StrengthModelRevisionPolicy.STATUS_ACTIVE && StrengthModelRevisionPolicy.isCompatible(it) }
         val posteriorHistory = revision?.let { strengthPosteriorDao.historyForRevision(it.revisionKey) }.orEmpty()
         val strengthPerformanceHistory = revision?.let { strengthPosteriorDao.localHistory(it.revisionKey) }.orEmpty()
+        val strengthPersonalCurveTheta = revision?.let { activeRevision ->
+            strengthPersonalCurveThetaAsOf(
+                revisionKey = activeRevision.revisionKey,
+                cutoff = cutoff,
+                records = strengthPosteriorDao.allCurvePosteriors().mapNotNull { entity ->
+                    runCatching {
+                        StrengthPersonalCurveThetaRecord(
+                            subjectKey = entity.curveSubjectKey,
+                            updatedAtMillis = entity.updatedAt,
+                            meanTheta = entity.toPosterior().meanTheta
+                        )
+                    }.getOrNull()
+                }
+            )
+        }.orEmpty()
         val ofiSeries = DailyFatigueCalculator(
             runtimeCatalog,
             canonicalOfiAxisProfiles,
@@ -1314,6 +1332,9 @@ internal class PersonalizedProgramPlanningService(
         } else baseSnapshot
         return snapshot.copy(performancePrescriptions = performancePrescriptions,
             strengthPerformanceRegistry = strengthPerformanceRegistry,
+            repetitionCurveRegistry = repetitionCurveRegistry,
+            rpeRirPolicy = rpeRirPolicy,
+            strengthPersonalCurveTheta = strengthPersonalCurveTheta,
             strengthPerformanceHistory = strengthPerformanceHistory,
             planWeekTissueProjection = tissueProjectionProvider(cutoff),
             planDayProjection = com.training.trackplanner.data.personalized.PlanDayOfiProjection(cutoff,
@@ -1673,6 +1694,35 @@ internal fun canonicalStrengthSignalsForWindow(
             posteriorMedianKg = last,
             posteriorChangePercent = first?.takeIf { it > 0.0 }?.let { (last / it - 1.0) * 100.0 },
             observationCount = ordered.size,
-            source = "CANONICAL_EXERCISE_LOCAL_POSTERIOR:$revisionKey"
+            source = "CANONICAL_EXERCISE_LOCAL_POSTERIOR:$revisionKey",
+            posteriorLogVariance = ordered.last().posteriorLogVariance,
+            referenceDate = LocalDate.parse(ordered.last().sessionDate),
+            twoSidedObservationCount = ordered.count { it.sessionLikelihoodProper },
+            baselineEstablished = ordered.last().baselineEstablishedAfter
         )
     }
+
+internal data class StrengthPersonalCurveThetaRecord(
+    val subjectKey: String,
+    val updatedAtMillis: Long,
+    val meanTheta: Double
+)
+
+internal fun strengthPersonalCurveThetaAsOf(
+    revisionKey: String,
+    cutoff: LocalDate,
+    records: List<StrengthPersonalCurveThetaRecord>,
+    zoneId: java.time.ZoneId = java.time.ZoneId.systemDefault()
+): Map<String, Double> {
+    val cutoffExclusive = cutoff.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli()
+    val prefix = "$revisionKey|"
+    return records.asSequence()
+        .filter { it.subjectKey.startsWith(prefix) }
+        .filter { it.updatedAtMillis < cutoffExclusive }
+        .mapNotNull { record ->
+            val stableSubject = record.subjectKey.removePrefix(prefix)
+            record.meanTheta.takeIf(Double::isFinite)?.let { stableSubject to it }
+        }
+        .sortedBy { it.first }
+        .toMap()
+}
