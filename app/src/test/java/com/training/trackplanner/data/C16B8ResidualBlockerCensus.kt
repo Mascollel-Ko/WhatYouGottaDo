@@ -58,7 +58,7 @@ internal fun renderC16B8ResidualBlockerCensus(
         if (before != after && isEmpty()) add("otherSkeletonMetadata")
     }
 
-    fun deltaLedger(comparison: StimulusSelectionProgramComparison): JSONArray {
+    fun deltaLedger(comparison: StimulusSelectionProgramComparison): List<JSONObject> {
         val control = comparison.control.items
         val experimental = comparison.experimental.items
         val owners = (comparison.controlOwnerIdentities + comparison.experimentalOwnerIdentities)
@@ -106,11 +106,11 @@ internal fun renderC16B8ResidualBlockerCensus(
                     .put("beforeOwnerRowCount", beforeRows.size).put("afterOwnerRowCount", afterRows.size)
             }
         }
-        return JSONArray(deltas.sortedWith(compareBy<JSONObject>({ it.getJSONObject("owner").getString("stableKey") },
+        return deltas.sortedWith(compareBy<JSONObject>({ it.getJSONObject("owner").getString("stableKey") },
             { it.getJSONObject("owner").getString("selectionRole") }, { it.getString("kind") },
             { it.optJSONObject("before")?.optInt("week") ?: it.optJSONObject("after")?.optInt("week") ?: 0 },
             { it.optJSONObject("before")?.optInt("day") ?: it.optJSONObject("after")?.optInt("day") ?: 0 },
-            { it.optJSONObject("before")?.optInt("order") ?: it.optJSONObject("after")?.optInt("order") ?: 0 })))
+            { it.optJSONObject("before")?.optInt("order") ?: it.optJSONObject("after")?.optInt("order") ?: 0 }))
     }
 
     fun ownerEvidence(comparison: StimulusSelectionProgramComparison): JSONArray {
@@ -258,7 +258,7 @@ internal fun renderC16B8ResidualBlockerCensus(
                 .put("reasonCount", comparison.productionCutoverAuthority?.reasonCodes.orEmpty().size))
             .put("authorizedCalibrationDeltaCount", calibrationDelta.size)
             .put("residualDeltaCount", residual.size)
-            .put("deltaLedger", deltas)
+            .put("deltaLedger", JSONArray(deltas))
             .put("ownerEvidence", ownerEvidence(comparison))
     }
 
