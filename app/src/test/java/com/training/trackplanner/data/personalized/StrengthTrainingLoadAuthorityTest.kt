@@ -206,11 +206,26 @@ class StrengthTrainingLoadAuthorityTest {
         val snapshot = snapshot(specs = listOf(SetSpec(5, 78.0, 8.0, 7), SetSpec(5, 78.0, 8.0, 14)))
         val directionTarget = target(StimulusTargetNumericAuthority.DIRECTION_ONLY)
         val hypertrophyTarget = target(quality = TrainableQuality.HYPERTROPHY)
+        val powerTarget = target(quality = TrainableQuality.POWER)
         val directionOnly = resolver.resolve(snapshot, directionTarget, b5Selected(directionTarget), 2)
         val hypertrophy = resolver.resolve(snapshot, hypertrophyTarget, b5Selected(hypertrophyTarget), 2)
+        val power = resolver.resolve(snapshot, powerTarget, b5Selected(powerTarget), 2)
 
         assertEquals(StrengthTrainingLoadUnavailableReason.B4_DOSE_AUTHORITY_UNAVAILABLE, directionOnly.unavailableReasons.single())
         assertEquals(StrengthTrainingLoadUnavailableReason.WRONG_QUALITY, hypertrophy.unavailableReasons.single())
+        assertEquals(StrengthTrainingLoadUnavailableReason.WRONG_QUALITY, power.unavailableReasons.single())
+    }
+
+    @Test
+    fun missingOwnerLoadSemanticsFailsClosedBeforeCapacityLookup() {
+        val snapshot = snapshot(specs = listOf(SetSpec(5, 78.0, 8.0, 7), SetSpec(5, 78.0, 8.0, 14)))
+        val ownerWithoutSemantics = StimulusPrescriptionOwnerIdentity("unmodeled_strength_owner", role)
+
+        val result = resolver.resolve(snapshot, target(), b5Selected(target(), ownerWithoutSemantics), requestedSetCount = 2)
+
+        assertEquals(StrengthTrainingLoadUnavailableReason.OWNER_LOAD_SEMANTICS_UNRESOLVED,
+            result.unavailableReasons.single())
+        assertFalse(result.available)
     }
 
     @Test
