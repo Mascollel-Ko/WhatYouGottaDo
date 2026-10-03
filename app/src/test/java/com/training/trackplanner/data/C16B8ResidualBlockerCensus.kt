@@ -19,7 +19,7 @@ internal fun renderC16B8ResidualBlockerCensus(
 
     fun setJson(set: ProgramSetPrescription) = JSONObject()
         .put("setIndex", set.setIndex).put("reps", set.reps).put("weightKg", set.weightKg)
-        .put("seconds", set.seconds).put("targetRpe", set.targetRpeMin ?: JSONObject.NULL)
+        .put("seconds", set.seconds).put("targetRpeMin", set.targetRpeMin ?: JSONObject.NULL)
         .put("loadState", set.loadState.name)
 
     fun rowJson(row: ProgramSkeletonItem) = JSONObject()
@@ -173,6 +173,154 @@ internal fun renderC16B8ResidualBlockerCensus(
         })
     }
 
+    fun approvedCalibrationRoleReplacement(
+        comparison: StimulusSelectionProgramComparison,
+        delta: JSONObject,
+        calibrationOwner: StimulusPrescriptionOwnerIdentity?
+    ): Boolean {
+        if (calibrationOwner == null || delta.optString("kind") != "ROW_REMOVED") return false
+        val before = delta.optJSONObject("before") ?: return false
+        val omittedOwner = StimulusPrescriptionOwnerIdentity(
+            before.getJSONObject("owner").getString("stableKey"),
+            before.getJSONObject("owner").getString("selectionRole")
+        )
+        if (omittedOwner.stableKey != calibrationOwner.stableKey || omittedOwner == calibrationOwner) return false
+        val hasExactReplacement = comparison.nonSelectionProvenance.any { omission ->
+            omission.omittedControlOwner == omittedOwner &&
+                omission.classification == StimulusNonSelectionClassification.CANONICAL_REPLACEMENT &&
+                omission.targetEvidence.any { evidence ->
+                    evidence.targetId == "QUALITY:STRENGTH" &&
+                        evidence.classification == StimulusNonSelectionClassification.CANONICAL_REPLACEMENT &&
+                        evidence.disposition.status == StimulusCandidateDispositionStatus.SELECTED
+                }
+        }
+        val exactB5 = comparison.selectionPlan.selectedCandidates.any {
+            it.stableKey == calibrationOwner.stableKey && it.selectionRole == calibrationOwner.selectionRole &&
+                "QUALITY:STRENGTH" in it.coveredTargetIds
+        }
+        val exactB6 = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().any {
+            it.owner?.let { owner -> owner.stableKey == calibrationOwner.stableKey && owner.selectionRole == calibrationOwner.selectionRole } == true &&
+                it.quality == TrainableQuality.STRENGTH &&
+                it.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION &&
+                it.executionAuthority == StimulusPrescriptionExecutionAuthority.REQUIRES_USER_LOAD_INPUT
+        }
+        val fullyMaterialized = comparison.prescriptionMaterializationAudits.any {
+            it.owner?.let { owner -> owner.stableKey == calibrationOwner.stableKey && owner.selectionRole == calibrationOwner.selectionRole } == true &&
+                it.quality == TrainableQuality.STRENGTH && it.state == StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED
+        }
+        val exactReplacementAttribution = comparison.experimentalReadinessAudit?.changeAttributions.orEmpty().any {
+            it.source == StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY &&
+                it.stableKey == omittedOwner.stableKey && it.selectionRole == omittedOwner.selectionRole &&
+                "QUALITY:STRENGTH" in it.targetIds && "B5_CANONICAL_OWNER_REPLACED_CONTROL_ROLE" in it.reasonCodes
+        }
+        return hasExactReplacement && exactB5 && exactB6 && fullyMaterialized && exactReplacementAttribution
+    }
+
+    fun actualBlockerClassification(
+        comparison: StimulusSelectionProgramComparison,
+        residual: List<JSONObject>,
+        ownerEvidence: JSONArray
+    ): JSONObject {
+        val b8Rejected = comparison.productionCutoverAuthority?.status !=
+            StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER
+        fun evidence(owner: StimulusPrescriptionOwnerIdentity): JSONObject? =
+            (0 until ownerEvidence.length()).asSequence().map { ownerEvidence.getJSONObject(it) }.firstOrNull {
+                val found = it.getJSONObject("owner")
+                found.getString("stableKey") == owner.stableKey && found.getString("selectionRole") == owner.selectionRole
+            }
+        val placementOwners = residual.filter { it.optString("kind") == "PLACEMENT_OR_ROW_CHANGE" }
+            .mapNotNull { delta -> delta.optJSONObject("owner")?.let { StimulusPrescriptionOwnerIdentity(it.getString("stableKey"), it.getString("selectionRole")) } }
+            .distinct().sortedWith(compareBy({ it.stableKey }, { it.selectionRole }))
+            .filter { owner -> evidence(owner)?.let { !it.optBoolean("B5Selected") && it.getJSONArray("B6").length() == 0 } == true }
+        val powerAdditions = residual.filter { it.optString("kind") == "ROW_ADDED" }.mapNotNull { delta ->
+            val ownerJson = delta.optJSONObject("owner") ?: return@mapNotNull null
+            val owner = StimulusPrescriptionOwnerIdentity(ownerJson.getString("stableKey"), ownerJson.getString("selectionRole"))
+            val ownerInfo = evidence(owner) ?: return@mapNotNull null
+            val powerB4 = comparison.targetPlan.qualityTargets.firstOrNull { it.quality == TrainableQuality.POWER }
+            val selectedForPower = ownerInfo.getJSONArray("B5Targets").let { targets ->
+                (0 until targets.length()).any { targets.getString(it) == "QUALITY:POWER" }
+            }
+            val hasPowerB6 = ownerInfo.getJSONArray("B6").let { authorities ->
+                (0 until authorities.length()).any { authorities.getJSONObject(it).optString("quality") == "POWER" }
+            }
+            if (selectedForPower && !hasPowerB6 && powerB4 != null &&
+                powerB4.numericAuthority == StimulusTargetNumericAuthority.DIRECTION_ONLY) owner else null
+        }.distinct().sortedWith(compareBy({ it.stableKey }, { it.selectionRole }))
+        val calibrationAuthorization = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().firstOrNull {
+            it.quality == TrainableQuality.STRENGTH && it.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
+        }
+        val calibrationOwner = calibrationAuthorization?.owner?.let { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }
+        val calibrationMaterialization = calibrationOwner?.let { owner -> comparison.prescriptionMaterializationAudits.firstOrNull {
+            it.owner?.let { it.stableKey == owner.stableKey && it.selectionRole == owner.selectionRole } == true &&
+                it.quality == TrainableQuality.STRENGTH
+        } }
+        val strengthTarget = comparison.targetPlan.qualityTargets.firstOrNull { it.quality == TrainableQuality.STRENGTH }
+        val scope = StimulusProductionMaterialScopeResolver().resolveDetailed(comparison)
+        val targetOutcomes = comparison.experimentalReadinessAudit?.targetOutcomes.orEmpty()
+        val targetOutcomesAccepted = targetOutcomes.isNotEmpty() && targetOutcomes.all {
+            it.status in setOf(StimulusExperimentalTargetOutcomeStatus.IMPROVED,
+                StimulusExperimentalTargetOutcomeStatus.UNCHANGED, StimulusExperimentalTargetOutcomeStatus.NOT_APPLICABLE)
+        } && targetOutcomes.any { it.targetId == "QUALITY:STRENGTH" && it.status in setOf(
+            StimulusExperimentalTargetOutcomeStatus.IMPROVED, StimulusExperimentalTargetOutcomeStatus.UNCHANGED) }
+        val strictFalseNegativeProof = b8Rejected && residual.isEmpty() && placementOwners.isEmpty() && powerAdditions.isEmpty() &&
+            strengthTarget?.numericAuthority in setOf(StimulusTargetNumericAuthority.PERSONAL_SUCCESSFUL_DOSE,
+                StimulusTargetNumericAuthority.PERSONAL_RESTORE_BASELINE) &&
+            calibrationOwner != null && comparison.selectionPlan.selectedCandidates.any {
+                it.stableKey == calibrationOwner.stableKey && it.selectionRole == calibrationOwner.selectionRole &&
+                    "QUALITY:STRENGTH" in it.coveredTargetIds
+            } && calibrationAuthorization?.executionAuthority == StimulusPrescriptionExecutionAuthority.REQUIRES_USER_LOAD_INPUT &&
+            calibrationAuthorization?.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION &&
+            calibrationMaterialization?.state == StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED &&
+            targetOutcomesAccepted && comparison.experimentalReadinessAudit?.collateralRegressionFree == true &&
+            comparison.experimentalReadinessAudit?.changeProvenanceClosed == true &&
+            scope?.scope == StimulusProductionCutoverScope.STRENGTH_CALIBRATION_V1 &&
+            comparison.control.weekDaySchedule == comparison.experimental.weekDaySchedule
+
+        val root = when {
+            !b8Rejected && residual.isEmpty() -> JSONObject().put("type", "EXPECTED_CALIBRATION_CUTOVER")
+                .put("owners", JSONArray()).put("finding", "The exact calibration delta is the only material change and B8 authorized the calibration route.")
+            powerAdditions.isNotEmpty() -> JSONObject().put("type", "UNAUTHORIZED_NON_STRENGTH_CHANGE")
+                .put("owners", JSONArray(powerAdditions.map(::ownerJson)))
+                .put("finding", "B5 selected a POWER owner for a DIRECTION_ONLY B4 target, but no exact executable B6 POWER authority exists; the generated POWER rows are outside Strength Calibration authority.")
+            placementOwners.isNotEmpty() -> JSONObject().put("type", "UNAUTHORIZED_PLACEMENT_CHANGE")
+                .put("owners", JSONArray(placementOwners.map(::ownerJson)))
+                .put("finding", "The exact shared owner placement differs from CONTROL, has no exact B5 selection authority or B6 prescription authority, and has no B7 material attribution. C10 records EXP placement assignment (and accepted rebalancer moves where present), but no target-governed causal edge.")
+            comparison.experimentalReadinessAudit?.changeProvenanceClosed != true -> JSONObject().put("type", "PROVENANCE_ONLY_GAP")
+                .put("owners", JSONArray()).put("finding", "No independently attributable residual owner mutation was classified.")
+            strictFalseNegativeProof -> JSONObject().put("type", "POTENTIAL_B8_FALSE_NEGATIVE")
+                .put("owners", JSONArray()).put("finding", "All C16 material and authority predicates are closed but B8 rejected the calibration route.")
+            residual.isEmpty() -> JSONObject().put("type", "B8_REJECTION_WITH_MISSING_CUTOVER_PREDICATE")
+                .put("owners", JSONArray()).put("finding", "The delta ledger is empty, but at least one independent authority, outcome, provenance, scope, or schedule predicate is not proven.")
+            else -> JSONObject().put("type", "OTHER_RESIDUAL_MATERIAL_CHANGE")
+                .put("owners", JSONArray()).put("finding", "Residual material changes remain and require owner-level review.")
+        }
+        val secondary = JSONArray()
+        if (placementOwners.isNotEmpty() && root.optString("type") != "UNAUTHORIZED_PLACEMENT_CHANGE") {
+            secondary.put(JSONObject().put("type", "UNAUTHORIZED_PLACEMENT_CHANGE").put("owners", JSONArray(placementOwners.map(::ownerJson))))
+        }
+        if (comparison.removedOwnerIdentities.any { removed -> approvedCalibrationRoleReplacement(comparison,
+                JSONObject().put("kind", "ROW_REMOVED").put("before", JSONObject().put("owner", ownerJson(removed))),
+                comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().firstOrNull {
+                    it.quality == TrainableQuality.STRENGTH && it.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
+                }?.owner?.let { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }
+            ) }) {
+            secondary.put(JSONObject().put("type", "CANONICAL_ROLE_REPLACEMENT").put("finding", "Exact C11 canonical replacement for Strength is authorized; this is an expected C15 delta, not a residual blocker."))
+        }
+        if (comparison.experimentalReadinessAudit?.changeProvenanceClosed == false) {
+            secondary.put(JSONObject().put("type", "PROVENANCE_PARTIAL").put("finding", "B7 does not attribute all residual changed owners; this is a downstream manifestation of the owner/placement gaps above."))
+        }
+        return JSONObject().put("primaryRootBlocker", root)
+            .put("secondaryBlockers", secondary)
+            .put("primaryDisposition", when (root.optString("type")) {
+                "EXPECTED_CALIBRATION_CUTOVER" -> "EXPECTED_CALIBRATION_CUTOVER"
+                "POTENTIAL_B8_FALSE_NEGATIVE" -> "POTENTIAL_B8_FALSE_NEGATIVE"
+                "PROVENANCE_ONLY_GAP" -> "AUDIT_OR_PROVENANCE_GAP"
+                else -> "TRUE_SAFETY_BLOCK"
+            })
+            .put("potentialFalseNegativeEligible", root.optString("type") == "POTENTIAL_B8_FALSE_NEGATIVE" && residual.isEmpty() &&
+                comparison.experimentalReadinessAudit?.changeProvenanceClosed == true && placementOwners.isEmpty() && powerAdditions.isEmpty())
+    }
+
     fun caseJson(spec: StimulusProductionCoverageAuditTest.CoverageSpec, result: StimulusProductionGenerationResult): JSONObject {
         val comparison = requireNotNull(result.comparison)
         val resolution = result.diagnostics.scopeResolution
@@ -181,6 +329,7 @@ internal fun renderC16B8ResidualBlockerCensus(
         }
         val exactOwner = coldStartAuthority?.owner?.let { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }
         val deltas = deltaLedger(comparison)
+        val evidence = ownerEvidence(comparison)
         val calibrationDelta = deltas.filter { delta ->
             val owner = delta.optJSONObject("owner") ?: return@filter false
             if (owner.optString("stableKey") != exactOwner?.stableKey ||
@@ -201,7 +350,7 @@ internal fun renderC16B8ResidualBlockerCensus(
                     actual.optInt("setIndex") == expected.setIndex && actual.optInt("reps") == expected.reps &&
                         actual.optDouble("weightKg", Double.NaN) == expected.weightKg &&
                         actual.optInt("seconds") == expected.seconds &&
-                        actual.optDouble("targetRpe", Double.NaN) == (expected.targetRpeMin ?: Double.NaN) &&
+                        actual.optDouble("targetRpeMin", Double.NaN) == (expected.targetRpeMin ?: Double.NaN) &&
                         actual.optString("loadState") == expected.loadState.name
                 }
             if (!exactMaterializedShape) return@filter false
@@ -216,15 +365,24 @@ internal fun renderC16B8ResidualBlockerCensus(
             }
         }
         calibrationDelta.forEach { it.put("c16Classification", "EXPECTED_C15_CALIBRATION_DELTA") }
+        val approvedRoleReplacementDeltas = deltas.filter { delta ->
+            approvedCalibrationRoleReplacement(comparison, delta, exactOwner)
+        }
+        approvedRoleReplacementDeltas.forEach {
+            it.put("c16Classification", "EXPECTED_C15_CALIBRATION_DELTA")
+                .put("calibrationDeltaBasis", "EXACT_C11_CANONICAL_ROLE_REPLACEMENT")
+        }
         val materialDeltas = deltas.filter { it.optString("kind") !in setOf("OWNER_ADDED", "OWNER_REMOVED") }
-        materialDeltas.filterNot { it in calibrationDelta }.forEach { delta ->
+        materialDeltas.filterNot { it in calibrationDelta || it in approvedRoleReplacementDeltas }.forEach { delta ->
             delta.put("c16Classification", when {
                 delta.optString("kind") == "ROW_ADDED" -> "ROW_ADDED_REQUIRES_EXACT_B5_B6_TARGET_AUDIT"
                 delta.optString("kind") == "ROW_REMOVED" -> "ROW_REMOVED_REQUIRES_C11_AND_B8_REMOVAL_AUDIT"
                 else -> "RESIDUAL_MATERIAL_FIELD_DELTA"
             })
         }
-        val residual = materialDeltas.filterNot { it in calibrationDelta }
+        val allAuthorizedCalibrationDeltas = calibrationDelta + approvedRoleReplacementDeltas
+        val residual = materialDeltas.filterNot { it in allAuthorizedCalibrationDeltas }
+        val blockerClassification = actualBlockerClassification(comparison, residual, evidence)
         return JSONObject().put("case", spec.label).put("route", result.routeDecision.selectedSource.name)
             .put("calibrationOwner", exactOwner?.let(::ownerJson) ?: JSONObject.NULL)
             .put("CONTROL_rows", JSONArray(comparison.control.items.sortedWith(compareBy(
@@ -237,6 +395,12 @@ internal fun renderC16B8ResidualBlockerCensus(
                 JSONObject().put("strategy", it.strategy.name).put("numericAuthority", it.numericAuthority.name)
                     .put("targetId", "QUALITY:STRENGTH")
             } ?: JSONObject.NULL)
+            .put("B4Targets", JSONArray(comparison.targetPlan.qualityTargets.sortedBy { it.quality.name }.map {
+                JSONObject().put("targetId", "QUALITY:${it.quality.name}").put("strategy", it.strategy.name)
+                    .put("numericAuthority", it.numericAuthority.name).put("targetUnits", it.weeklyDirectUnitsTarget?.let { range ->
+                        JSONObject().put("min", range.min).put("preferred", range.preferred).put("max", range.max)
+                    } ?: JSONObject.NULL)
+            }))
             .put("selectedB5StrengthOwners", JSONArray(comparison.selectionPlan.selectedCandidates.filter {
                 "QUALITY:STRENGTH" in it.coveredTargetIds
             }.map { ownerJson(StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole)) }))
@@ -256,10 +420,11 @@ internal fun renderC16B8ResidualBlockerCensus(
                 .put("status", comparison.productionCutoverAuthority?.status?.name ?: JSONObject.NULL)
                 .put("reasons", JSONArray(comparison.productionCutoverAuthority?.reasonCodes.orEmpty().sorted()))
                 .put("reasonCount", comparison.productionCutoverAuthority?.reasonCodes.orEmpty().size))
-            .put("authorizedCalibrationDeltaCount", calibrationDelta.size)
+            .put("authorizedCalibrationDeltaCount", allAuthorizedCalibrationDeltas.size)
             .put("residualDeltaCount", residual.size)
+            .put("rootClassification", blockerClassification)
             .put("deltaLedger", JSONArray(deltas))
-            .put("ownerEvidence", ownerEvidence(comparison))
+            .put("ownerEvidence", evidence)
     }
 
     val cases = selected.map { (spec, result) -> caseJson(spec, requireNotNull(result)) }
