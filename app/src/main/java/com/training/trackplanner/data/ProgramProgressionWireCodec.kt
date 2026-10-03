@@ -162,12 +162,18 @@ internal object ProgramProgressionWireCodec {
         .put("originalReps", value.originalReps)
         .put("originalKg", value.originalKg)
         .put("originalSeconds", value.originalSeconds)
-        .put("originalLoadState", value.originalLoadState.name)
         .put("plannedReps", value.plannedReps)
         .put("plannedKg", value.plannedKg)
         .put("plannedSeconds", value.plannedSeconds)
-        .put("plannedLoadState", value.plannedLoadState.name)
         .also { json ->
+            // Preserve the historical wire shape for ordinary rows; legacy absence
+            // already decodes as EXPLICIT_LOAD. Only persist C15's non-default state.
+            if (value.originalLoadState != ProgramLoadState.EXPLICIT_LOAD) {
+                json.put("originalLoadState", value.originalLoadState.name)
+            }
+            if (value.plannedLoadState != ProgramLoadState.EXPLICIT_LOAD) {
+                json.put("plannedLoadState", value.plannedLoadState.name)
+            }
             value.originalTargetRpeMin?.let { json.put("originalTargetRpeMin", it) }
             value.plannedTargetRpeMin?.let { json.put("plannedTargetRpeMin", it) }
         }

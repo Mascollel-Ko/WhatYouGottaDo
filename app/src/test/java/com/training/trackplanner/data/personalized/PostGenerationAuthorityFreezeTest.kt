@@ -16,6 +16,8 @@ class PostGenerationAuthorityFreezeTest {
             // C10 additionally adds source-emitted trace fields/sinks at allocation and placement mutations;
             // the C9 standard generated-coverage report remains byte-identical.
         // TrainingStateAssessment additionally permits Stage 2 LOW_WEEK_RATIO .625 -> .85 only.
+        // C15 makes unresolved calibration rows ineligible as observed planning history;
+        // it does not change any historical authority for completed, load-resolved sets.
         // All unrelated historical, style, numerical and prescription authorities remain frozen.
         val frozen = mapOf(
             // Domain-separated volume and court-deviation trace are the approved
@@ -29,7 +31,7 @@ class PostGenerationAuthorityFreezeTest {
             "ExecutionAllocationPlanner.kt" to "288a2f4015dcb3d4fc1b2970f55a0379c6e5880cbf18646acae499bbe4256d92",
             "PerformancePrescriptionResolver.kt" to "48eda34c9e390ca109bbb1e19e7a8ac79802f01f60c25470f92c8eb7f87063be",
             "RecordBasedReviewedPolicy.kt" to "cc5b12bf40b47226d75256455aa9bc34908f47f78e9ea3ac0fa76016f97bc25d",
-            "PlanningHistorySnapshotBuilder.kt" to "f2d4fd0a1b46100acaa815947bfa70ebe7d309cf7c8bd72c60efa9353b419d79",
+            "PlanningHistorySnapshotBuilder.kt" to "8cb9bd8c1be966e4878d2fa7cb3bf72ea0f722c7a565ac38a728323da755ddc3",
             "TrainingStateAssessment.kt" to "9027cb6d45422fc2cdecafa19fbec34a8b8fcba8c14cc594058d15e802e53bf2",
             "TrainingStateRouting.kt" to "d086f1008c2247bda65e33b5db2277fc962a0ea666163dfe0f46e119a434b5f7"
         )
