@@ -18,7 +18,7 @@ internal object CommunityWeeklySummaryCalculator {
         val inRange = entries.filter { row ->
             runCatching { LocalDate.parse(row.entry.date) }.getOrNull()?.let { it in start..end } == true
         }
-        val confirmed = inRange.filter { row -> row.sets.any(WorkoutSet::confirmed) }
+        val confirmed = inRange.filter { row -> row.sets.any(WorkoutSet::isAnalysisEligibleCompletedSet) }
         val badmintonCalculator = BadmintonPracticeLoadCalculator(runtimeMetadata)
         val badmintonRows = confirmed.filter { row ->
             val exercise = exerciseMap[row.entry.exerciseStableKey] ?: return@filter false
@@ -44,7 +44,7 @@ internal object CommunityWeeklySummaryCalculator {
             .put("weekEnd", end.toString())
             .put("trainingDays", trainingDays)
             .put("strengthSessionCount", strengthSessionKeys.size)
-            .put("confirmedStrengthSetCount", strengthRows.sumOf { row -> row.sets.count(WorkoutSet::confirmed) })
+            .put("confirmedStrengthSetCount", strengthRows.sumOf { row -> row.sets.count(WorkoutSet::isAnalysisEligibleCompletedSet) })
             .put("badmintonSessionCount", badmintonSessionKeys.size)
             .put("badmintonMinutes", badmintonMinutes)
     }

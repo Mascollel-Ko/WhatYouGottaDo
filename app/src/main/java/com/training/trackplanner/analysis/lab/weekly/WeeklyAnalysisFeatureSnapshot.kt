@@ -14,6 +14,7 @@ import com.training.trackplanner.data.DailyMetric
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.InitialUserProfile
 import com.training.trackplanner.data.WorkoutEntryWithSets
+import com.training.trackplanner.data.isAnalysisEligibleCompletedSet
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.temporal.TemporalAdjusters
@@ -282,7 +283,7 @@ internal object WeeklyAnalysisFeatureSnapshotBuilder {
                     record.entry.exerciseStableKey == stableKey && weekStart(date) == week
                 }
                 val confirmed = records.flatMap { (date, record) ->
-                    record.sets.filter { it.confirmed }.map { Triple(date, record, it) }
+                    record.sets.filter { it.isAnalysisEligibleCompletedSet() }.map { Triple(date, record, it) }
                 }
                 val exercise = exerciseByKey[stableKey]
                 val rpeValues = confirmed.mapNotNull { (_, record, set) -> set.rpe ?: record.entry.rpe }

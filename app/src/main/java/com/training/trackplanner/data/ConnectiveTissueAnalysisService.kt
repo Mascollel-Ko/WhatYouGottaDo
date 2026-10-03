@@ -144,7 +144,7 @@ internal class ConnectiveTissueAnalysisService(
         exerciseDao.allExercises().associateBy(Exercise::stableKey), workoutDao.entriesWithSetsUntil(cutoff.toString()))
 
     private fun recordsFrom(input: Input, rows: List<WorkoutEntryWithSets>): List<TissueWorkoutRecord> = rows.mapNotNull { record ->
-        if (record.sets.none(WorkoutSet::confirmed)) return@mapNotNull null
+        if (record.sets.none(WorkoutSet::isAnalysisEligibleCompletedSet)) return@mapNotNull null
         val exercise = input.exercises[record.entry.exerciseStableKey] ?: return@mapNotNull null
         val bodyWeightKg = BodyweightEffectiveLoadCalculator.bodyWeightFor(record.entry.date, input.metrics, input.profile)
         TissueWorkoutRecord.from(record, exercise, bodyWeightKg)

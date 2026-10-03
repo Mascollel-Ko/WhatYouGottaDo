@@ -166,6 +166,14 @@ internal object ProgramProgressionWireCodec {
         .put("plannedKg", value.plannedKg)
         .put("plannedSeconds", value.plannedSeconds)
         .also { json ->
+            // Preserve the historical wire shape for ordinary rows; legacy absence
+            // already decodes as EXPLICIT_LOAD. Only persist C15's non-default state.
+            if (value.originalLoadState != ProgramLoadState.EXPLICIT_LOAD) {
+                json.put("originalLoadState", value.originalLoadState.name)
+            }
+            if (value.plannedLoadState != ProgramLoadState.EXPLICIT_LOAD) {
+                json.put("plannedLoadState", value.plannedLoadState.name)
+            }
             value.originalTargetRpeMin?.let { json.put("originalTargetRpeMin", it) }
             value.plannedTargetRpeMin?.let { json.put("plannedTargetRpeMin", it) }
         }
@@ -178,10 +186,14 @@ internal object ProgramProgressionWireCodec {
         originalReps = json.getInt("originalReps"),
         originalKg = json.getDouble("originalKg"),
         originalSeconds = json.getInt("originalSeconds"),
+        originalLoadState = json.optString("originalLoadState").takeIf(String::isNotBlank)
+            ?.let { runCatching { ProgramLoadState.valueOf(it) }.getOrNull() } ?: ProgramLoadState.EXPLICIT_LOAD,
         originalTargetRpeMin = if (json.isNull("originalTargetRpeMin")) null else json.optDouble("originalTargetRpeMin").validatedTargetRpeMin(),
         plannedReps = json.getInt("plannedReps"),
         plannedKg = json.getDouble("plannedKg"),
         plannedSeconds = json.getInt("plannedSeconds"),
+        plannedLoadState = json.optString("plannedLoadState").takeIf(String::isNotBlank)
+            ?.let { runCatching { ProgramLoadState.valueOf(it) }.getOrNull() } ?: ProgramLoadState.EXPLICIT_LOAD,
         plannedTargetRpeMin = if (json.isNull("plannedTargetRpeMin")) null else json.optDouble("plannedTargetRpeMin").validatedTargetRpeMin()
     )
 

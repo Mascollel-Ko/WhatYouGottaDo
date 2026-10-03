@@ -13,6 +13,7 @@ enum class StimulusPrescriptionAuthorizationSource {
 enum class StimulusPrescriptionAuthorizationStatus {
     AUTHORIZED_EXISTING_COMPATIBLE,
     AUTHORIZED_SAFE_REPAIR,
+    AUTHORIZED_COLD_START_USER_CALIBRATION,
     CONFLICTING_MULTI_QUALITY_AUTHORITY,
     NO_EXECUTABLE_AUTHORIZATION,
     AMBIGUOUS_OWNER,
@@ -30,6 +31,7 @@ data class StimulusPrescriptionAuthorization(
     val status: StimulusPrescriptionAuthorizationStatus,
     val reasonCodes: List<String> = emptyList(),
     val executionAuthority: StimulusPrescriptionExecutionAuthority = canonicalExecutionAuthority(quality, authorizedPrescription),
+    val coldStartCalibration: ColdStartStrengthCalibrationProposal? = null,
     val shadowOnly: Boolean = true,
     val productionAuthority: Boolean = false
 )
@@ -49,6 +51,7 @@ data class StimulusPrescriptionAuthorizationPlan(
             if (authorization.status !in setOf(
                     StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
                     StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION,
                     StimulusPrescriptionAuthorizationStatus.CONFLICTING_MULTI_QUALITY_AUTHORITY
                 ) || authorization.quality == null) return@mapNotNull null
             authorization
@@ -227,7 +230,8 @@ class StimulusPrescriptionAuthorizationEngine(
             val owner = authorization.owner?.let { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }
             if (owner != null && owner in preliminary.conflictingOwners && authorization.status in setOf(
                     StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
-                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
                 )) {
                 authorization.copy(
                     status = StimulusPrescriptionAuthorizationStatus.CONFLICTING_MULTI_QUALITY_AUTHORITY,
@@ -295,6 +299,25 @@ class StimulusPrescriptionAuthorizationEngine(
                     StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
                     listOf(if (target.quality == TrainableQuality.HYPERTROPHY) "HYPERTROPHY_SAFE_REPAIR_RESOLVED" else "SAFE_REPAIRED_PRESCRIPTION"),
                     executionAuthority(authorized))
+            }
+            resolution.status == StimulusPrescriptionResolutionStatus.COLD_START_USER_CALIBRATION_RESOLVED &&
+                resolution.owner != null && input != null && resolution.coldStartStrengthCalibration?.available == true &&
+                target.quality == TrainableQuality.STRENGTH -> {
+                val coldStart = requireNotNull(resolution.coldStartStrengthCalibration.proposal)
+                val authorized = input.copy(
+                    text = "${coldStart.setCount}세트 × ${coldStart.repetitions}회 · RPE ${coldStart.targetRpe} · 중량 직접 선택",
+                    sets = coldStart.sets,
+                    restSeconds = coldStart.restSeconds,
+                    weightSource = "COLD_START_USER_CALIBRATION"
+                )
+                StimulusPrescriptionAuthorization(
+                    targetId, target.quality, resolution.owner, source, input,
+                    resolution.plannedCompatibility, authorized,
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION,
+                    coldStart.reasonCodes,
+                    StimulusPrescriptionExecutionAuthority.REQUIRES_USER_LOAD_INPUT,
+                    coldStartCalibration = coldStart
+                )
             }
             resolution.status in setOf(
                 StimulusPrescriptionResolutionStatus.AMBIGUOUS_OWNER,
@@ -425,7 +448,12 @@ class StimulusPrescriptionMaterializationAuditEngine(
             val subsetValidation = validateAuthorizedWeeklySubset(rows, authorized, owner.stableKey, owner.selectionRole)
             val compatible = authorization.quality?.let { quality -> rows.sumOf { row ->
                 val planned = PlannedPrescription(row.prescription, row.setPrescriptions, row.restSeconds, row.weightSource)
-                if (plannedResolver.compatibility(quality, planned, snapshot, owner.stableKey).status == PlannedStimulusCompatibilityStatus.COMPATIBLE_CONDITIONAL_ON_EFFORT) row.setPrescriptions.size else 0
+                val compatibility = plannedResolver.compatibility(quality, planned, snapshot, owner.stableKey)
+                val calibrationCompatible = authorization.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION &&
+                    compatibility.status == PlannedStimulusCompatibilityStatus.COMPATIBLE_REQUIRES_USER_LOAD_INPUT
+                if (compatibility.status == PlannedStimulusCompatibilityStatus.COMPATIBLE_CONDITIONAL_ON_EFFORT || calibrationCompatible) {
+                    row.setPrescriptions.size
+                } else 0
             } } ?: 0
             val preserved = subsetValidation.valid
             val shortfall = (authorized.sets.size - materialized).coerceAtLeast(0)

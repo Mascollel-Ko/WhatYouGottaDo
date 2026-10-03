@@ -14,7 +14,8 @@ enum class StimulusPrescriptionResolutionStatus {
     OWNER_UNRESOLVED,
     AMBIGUOUS_OWNER,
     AMBIGUOUS_EXISTING_REALIZATION_OWNER,
-    NO_PRESCRIPTION_CHANGE_AUTHORIZED
+    NO_PRESCRIPTION_CHANGE_AUTHORIZED,
+    COLD_START_USER_CALIBRATION_RESOLVED
 }
 
 enum class StimulusPrescriptionResolutionAuthority { SHADOW_ONLY }
@@ -59,6 +60,7 @@ data class StimulusMultiQualityPrescriptionResolution(
 /** Structural materialization is distinct from whether effort is persisted/enforceable. */
 enum class StimulusPrescriptionExecutionAuthority {
     FULLY_ENCODED,
+    REQUIRES_USER_LOAD_INPUT,
     CONDITIONAL_ON_UNPERSISTED_EFFORT,
     UNRESOLVED
 }
@@ -82,7 +84,12 @@ data class StimulusEffortTarget(
     val source: String = "B6_REVIEWED_EFFORT_GATE"
 )
 
-enum class PlannedStimulusCompatibilityStatus { COMPATIBLE_CONDITIONAL_ON_EFFORT, INCOMPATIBLE, UNRESOLVED }
+enum class PlannedStimulusCompatibilityStatus {
+    COMPATIBLE_CONDITIONAL_ON_EFFORT,
+    COMPATIBLE_REQUIRES_USER_LOAD_INPUT,
+    INCOMPATIBLE,
+    UNRESOLVED
+}
 
 data class PlannedStimulusCompatibility(
     val quality: TrainableQuality,
@@ -116,6 +123,7 @@ data class StimulusPrescriptionResolution(
     val reasonCodes: List<String> = emptyList(),
     /** C14 diagnostic-only capacity-to-training-load proposal; never grants B6 authority itself. */
     val strengthTrainingLoadShadow: StrengthTrainingLoadResolution? = null,
+    val coldStartStrengthCalibration: ColdStartStrengthCalibrationResolution? = null,
     val mutationAuthority: Boolean = false,
     val authority: StimulusPrescriptionResolutionAuthority = StimulusPrescriptionResolutionAuthority.SHADOW_ONLY
 )
@@ -168,13 +176,14 @@ class StimulusPrescriptionRealizationPlanEngine(
             probe: PlannedPrescription? = current,
             compatibility: PlannedStimulusCompatibility? = null,
             proposal: StimulusTargetCompatiblePrescription? = null,
-            strengthShadow: StrengthTrainingLoadResolution? = null
+            strengthShadow: StrengthTrainingLoadResolution? = null,
+            coldStart: ColdStartStrengthCalibrationResolution? = null
         ) = StimulusPrescriptionResolution(
             targetId = targetId, quality = target.quality, evidenceBasis = target.evidenceBasis,
             strategy = target.strategy, numericAuthority = target.numericAuthority, owner = owner,
             currentPrescription = current, probePrescription = probe, plannedCompatibility = compatibility,
             proposedPrescription = proposal, status = status, reasonCodes = reasons,
-            strengthTrainingLoadShadow = strengthShadow, mutationAuthority = false
+            strengthTrainingLoadShadow = strengthShadow, coldStartStrengthCalibration = coldStart, mutationAuthority = false
         )
 
         if (target.quality !in setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY) ||
@@ -269,18 +278,42 @@ class StimulusPrescriptionRealizationPlanEngine(
             )) return base(StimulusPrescriptionResolutionStatus.NO_PRESCRIPTION_CHANGE_AUTHORIZED,
             listOf("B4_NUMERIC_AUTHORITY_DOES_NOT_AUTHORIZE_B6_CHANGE"), owner, current, effective, compatibility)
         val proposed = plannedResolver.safeProposal(target.quality, effective, snapshot, identity.stableKey, effort)
-        val strengthShadow = if (target.quality == TrainableQuality.STRENGTH) {
-            val selectedB5Candidate = candidates.singleOrNull {
+        val selectedB5Candidate = candidates.singleOrNull {
                 it.stableKey == identity.stableKey && it.selectionRole == identity.selectionRole &&
                     targetId in it.coveredTargetIds
             }
+        val strengthShadow = if (target.quality == TrainableQuality.STRENGTH) {
             selectedB5Candidate?.let {
                 StrengthTrainingLoadAuthorityResolver().resolve(snapshot, target, it, effective.sets.size)
             }
         } else null
-        if (proposed == null) return base(StimulusPrescriptionResolutionStatus.NO_SAFE_TARGET_COMPATIBLE_PRESCRIPTION,
-            listOf("SAFE_LOAD_OR_EFFORT_AUTHORITY_UNAVAILABLE"), owner, current, effective, compatibility,
-            strengthShadow = strengthShadow)
+        if (proposed == null) {
+            if (target.quality == TrainableQuality.STRENGTH && strengthShadow != null) {
+                val demand = selectionPlan.materialDemand.candidates.singleOrNull {
+                    it.stableKey == identity.stableKey && it.role == identity.selectionRole
+                }
+                val coldStart = selectedB5Candidate?.let { candidate ->
+                    ColdStartStrengthCalibrationResolver().resolve(
+                        target = target,
+                        selectedCandidate = candidate,
+                        b4AuthorizedSetCount = demand?.targetSets ?: 0,
+                        currentProbeSetCount = effective.sets.size,
+                        restSeconds = effective.restSeconds,
+                        c14 = strengthShadow
+                    )
+                }
+                if (coldStart?.available == true) return base(
+                    StimulusPrescriptionResolutionStatus.COLD_START_USER_CALIBRATION_RESOLVED,
+                    coldStart.proposal!!.reasonCodes,
+                    owner, current, effective, compatibility,
+                    strengthShadow = strengthShadow,
+                    coldStart = coldStart
+                )
+            }
+            return base(StimulusPrescriptionResolutionStatus.NO_SAFE_TARGET_COMPATIBLE_PRESCRIPTION,
+                listOf("SAFE_LOAD_OR_EFFORT_AUTHORITY_UNAVAILABLE"), owner, current, effective, compatibility,
+                strengthShadow = strengthShadow)
+        }
         return base(StimulusPrescriptionResolutionStatus.SAFE_TARGET_COMPATIBLE_PRESCRIPTION_RESOLVED,
             listOf("SHADOW_PROPOSAL_ONLY", "B5_OWNER_STABLE_KEY_AND_SELECTION_ROLE_PRESERVED"), owner, current, effective, compatibility, proposed,
             strengthShadow)

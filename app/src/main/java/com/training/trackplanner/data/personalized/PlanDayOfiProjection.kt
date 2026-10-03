@@ -25,7 +25,7 @@ class PlanDayOfiProjection(
 ) : PlanDayProjection {
     val projectionDate: LocalDate = cutoff.plusDays(1)
     private val history = history.filter { runCatching { LocalDate.parse(it.entry.date) <= cutoff }.getOrDefault(false) }
-        .map { it.copy(sets = it.sets.filter(WorkoutSet::confirmed)) }
+        .map { it.copy(sets = it.sets.filter(WorkoutSet::isAnalysisEligibleCompletedSet)) }
     private val metrics = metrics.filter { runCatching { LocalDate.parse(it.date) <= cutoff }.getOrDefault(false) }
     private val preparedHistory = calculator.prepareProjection(exercises, history, profile, metrics)
     internal fun syntheticRows(items: List<ProgramSkeletonItem>): List<WorkoutEntryWithSets> = items.mapIndexed { index, item ->

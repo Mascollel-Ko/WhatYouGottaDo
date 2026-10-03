@@ -253,7 +253,8 @@ internal fun WorkoutEntryCard(
                                 !set.manualWeight &&
                                 !set.confirmed
                         }.forEach { set ->
-                            onUpdateSet(set.copy(weightKg = suggestion.kg, manualWeight = true).edit(WEIGHT))
+                            onUpdateSet(set.copy(weightKg = suggestion.kg, manualWeight = true,
+                                loadState = com.training.trackplanner.data.ProgramLoadState.EXPLICIT_LOAD).edit(WEIGHT))
                         }
                         pendingWeightSuggestion = null
                     },
@@ -261,6 +262,13 @@ internal fun WorkoutEntryCard(
                 )
             }
             programProvenance()
+            if (sets.any { it.loadState == com.training.trackplanner.data.ProgramLoadState.USER_CALIBRATION_REQUIRED }) {
+                Text(
+                    text = stringResource(R.string.cold_start_strength_guidance),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             HorizontalDivider()
             sets.forEach { set ->
                 Box(

@@ -407,7 +407,7 @@ class StrengthPosteriorUpdateCoordinator(
             revisionKey,
             StrengthCompletionFingerprint.build(date, records, exercises)
         )
-        val confirmedCount = records.sumOf { record -> record.sets.count(WorkoutSet::confirmed) }
+        val confirmedCount = records.sumOf { record -> record.sets.count(WorkoutSet::isAnalysisEligibleCompletedSet) }
         if (confirmedCount == 0) return null
         val eventUuid = UUID.nameUUIDFromBytes(
             "strength-posterior-event-v2|$revisionKey|$completionFingerprint".toByteArray(StandardCharsets.UTF_8)
@@ -458,7 +458,7 @@ object StrengthCompletionFingerprint {
                 .thenBy { record -> exercisesById[record.entry.exerciseStableKey]?.stableKey.orEmpty() }
                 .thenBy { record -> record.entry.createdAt }
         ).forEachIndexed { entryIndex, record ->
-            val confirmed = record.sets.filter(WorkoutSet::confirmed).sortedWith(
+            val confirmed = record.sets.filter(WorkoutSet::isAnalysisEligibleCompletedSet).sortedWith(
                 compareBy(WorkoutSet::setIndex, WorkoutSet::reps, WorkoutSet::weightKg, WorkoutSet::seconds)
             )
             if (confirmed.isEmpty()) return@forEachIndexed

@@ -50,6 +50,7 @@ import androidx.compose.ui.zIndex
 import com.training.trackplanner.data.RecordEntryOrdering
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.WorkoutSet
+import com.training.trackplanner.data.isAnalysisEligibleCompletedSet
 import java.time.LocalDate
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -199,7 +200,7 @@ internal fun RecordScreen(
             exercises = exercises.filter { exercise -> exercise.isActive },
             onDismiss = { showExercisePicker = false },
             onSelect = { exercise ->
-                val hadConfirmedSet = entries.any { record -> record.sets.any(WorkoutSet::confirmed) }
+                val hadConfirmedSet = entries.any { record -> record.sets.any(WorkoutSet::isAnalysisEligibleCompletedSet) }
                 viewModel.addWorkout(selectedDate, exercise.stableKey) { addedEntryId ->
                     pendingAddedAfterConfirmed = hadConfirmedSet
                     pendingAddedEntryId = addedEntryId

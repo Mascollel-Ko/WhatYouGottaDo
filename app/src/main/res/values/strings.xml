@@ -482,4 +482,7 @@
     <string name="community_update">게시본 업데이트</string>
     <string name="community_import_duplicate_title">이미 가져온 프로그램</string>
     <string name="community_import_duplicate_message">이미 가져온 프로그램입니다. 다시 가져올까요?</string>
+    <string name="cold_start_choose_weight">중량 직접 선택</string>
+    <string name="cold_start_choose_weight_compact">직접 선택</string>
+    <string name="cold_start_strength_guidance">첫 기록이 없어 중량을 직접 선택합니다. RPE 6–7 정도의 여유 있는 중량으로 시작하세요.</string>
 </resources>

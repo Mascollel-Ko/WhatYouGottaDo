@@ -5,6 +5,7 @@ import com.training.trackplanner.analysis.strengthperformance.curve.ResolvedRepe
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.WorkoutSet
+import com.training.trackplanner.data.ProgramLoadState
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.time.LocalDate
@@ -238,6 +239,9 @@ object StrengthSetLikelihoodBuilder {
         curve: ResolvedRepetitionCurve,
         rirPolicy: RpeRirPolicy
     ): StrengthSetLikelihoodBuildResult {
+        if (set.loadState == ProgramLoadState.USER_CALIBRATION_REQUIRED) {
+            return excluded(set, StrengthObservationType.UNRESOLVED_LOAD, "USER_CALIBRATION_REQUIRED")
+        }
         if (!set.confirmed || set.reps < 0) {
             return excluded(set, StrengthObservationType.EXCLUDED_INVALID_SET, "INVALID_OR_UNCONFIRMED_SET")
         }

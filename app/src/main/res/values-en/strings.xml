@@ -473,4 +473,7 @@
     <string name="community_update">Update publication</string>
     <string name="community_import_duplicate_title">Already added</string>
     <string name="community_import_duplicate_message">You already added this program. Add another copy?</string>
+    <string name="cold_start_choose_weight">Choose weight</string>
+    <string name="cold_start_choose_weight_compact">Choose</string>
+    <string name="cold_start_strength_guidance">No prior load is available for this exercise. Start with a comfortable load around RPE 6–7.</string>
 </resources>

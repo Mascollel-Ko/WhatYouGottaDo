@@ -9,6 +9,7 @@ import com.training.trackplanner.data.ExerciseRoleRelationCatalog
 import com.training.trackplanner.data.InitialUserProfile
 import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.WorkoutEntryWithSets
+import com.training.trackplanner.data.isAnalysisEligibleCompletedSet
 import java.time.LocalDate
 import java.time.DayOfWeek
 import java.time.temporal.TemporalAdjusters
@@ -31,7 +32,7 @@ class PlanningHistorySnapshotBuilder {
             .filter { runCatching { LocalDate.parse(it.entry.date) }.getOrNull()?.let { date -> !date.isAfter(cutoff) } == true }
             .flatMap { record ->
                 val date = LocalDate.parse(record.entry.date)
-                record.sets.asSequence().filter { it.confirmed }.map { set ->
+                record.sets.asSequence().filter { it.isAnalysisEligibleCompletedSet() }.map { set ->
                     PlanningSetRecord(
                         date = date,
                         stableKey = record.entry.exerciseStableKey,

@@ -8,6 +8,7 @@ import org.json.JSONObject
 /** The deliberately narrow first production-cutover boundary. */
 enum class StimulusProductionCutoverScope {
     STRENGTH_V1,
+    STRENGTH_CALIBRATION_V1,
     HYPERTROPHY_V1,
     STRENGTH_HYPERTROPHY_V1
 }
@@ -284,10 +285,10 @@ class StimulusProductionCutoverAuthorityAuditEngine {
         }
 
         val auth = exactAuthorization(comparison, identity, policy)
-        if (!isExecutableAuthorization(auth, policy)) {
+        if (!isExecutableAuthorization(comparison, auth, policy)) {
             reasons += policy.prescriptionAuthorityReason
         }
-        executionAuthorityReason(auth, policy)?.let(reasons::add)
+        executionAuthorityReason(comparison, auth, policy)?.let(reasons::add)
         targetAuthorityReason(comparison, auth?.targetId, policy)?.let(reasons::add)
         if (!fullMaterialization(comparison, identity, policy)) {
             reasons += policy.materializationReason
@@ -309,10 +310,10 @@ class StimulusProductionCutoverAuthorityAuditEngine {
             reasons += "B8_CUTOVER_V1_UNRELATED_CONTROL_MUTATION"
         }
         val auth = exactAuthorization(comparison, identity, policy)
-        if (!isExecutableAuthorization(auth, policy)) {
+        if (!isExecutableAuthorization(comparison, auth, policy)) {
             reasons += policy.prescriptionAuthorityReason
         }
-        executionAuthorityReason(auth, policy)?.let(reasons::add)
+        executionAuthorityReason(comparison, auth, policy)?.let(reasons::add)
         if (policy.scope == StimulusProductionCutoverScope.STRENGTH_V1 &&
             auth?.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE) {
             reasons += "B8_CUTOVER_V1_UPSTREAM_INCONSISTENCY"
@@ -320,7 +321,8 @@ class StimulusProductionCutoverAuthorityAuditEngine {
         val attributions = materialAttributionsFor(comparison, identity)
         if (attributions.none {
                 it.source == StimulusExperimentalChangeAttributionSource.B6_EXISTING_OWNER_PRESCRIPTION ||
-                    it.source == StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION
+                    it.source == StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION ||
+                    it.source == StimulusExperimentalChangeAttributionSource.B6_COLD_START_USER_CALIBRATION
             }) {
             reasons += "B8_CUTOVER_V1_PROVENANCE_NOT_CLOSED"
         }
@@ -349,22 +351,29 @@ class StimulusProductionCutoverAuthorityAuditEngine {
     }
 
     private fun isExecutableAuthorization(
+        comparison: StimulusSelectionProgramComparison,
         authorization: StimulusPrescriptionAuthorization?,
         policy: CutoverScopePolicy
     ): Boolean = authorization != null && authorization.quality == policy.quality &&
-            authorization.authorizedPrescription != null && authorization.status in setOf(
-            StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
-            StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR
-        ) && (policy.scope != StimulusProductionCutoverScope.HYPERTROPHY_V1 ||
+            authorization.authorizedPrescription != null && when (policy.scope) {
+                StimulusProductionCutoverScope.STRENGTH_CALIBRATION_V1 -> validColdStartAuthorization(comparison, authorization)
+                else -> authorization.status in setOf(
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR
+                )
+            } && (policy.scope != StimulusProductionCutoverScope.HYPERTROPHY_V1 ||
             canonicalExecutionAuthority(policy.quality, authorization.authorizedPrescription) == StimulusPrescriptionExecutionAuthority.FULLY_ENCODED &&
             authorization.authorizedPrescription.sets.isNotEmpty() && authorization.authorizedPrescription.sets.all { set ->
                 set.reps in 7..15 && set.weightKg.isFinite() && set.weightKg > 0.0
             })
 
     private fun executionAuthorityReason(
+        comparison: StimulusSelectionProgramComparison,
         authorization: StimulusPrescriptionAuthorization?,
         policy: CutoverScopePolicy
-    ): String? = if (
+    ): String? = if (policy.scope == StimulusProductionCutoverScope.STRENGTH_CALIBRATION_V1 &&
+        authorization != null && !validColdStartAuthorization(comparison, authorization)
+    ) "B8_STRENGTH_CALIBRATION_V1_AUTHORITY_INVALID" else if (
         policy.scope == StimulusProductionCutoverScope.HYPERTROPHY_V1 &&
         authorization != null &&
         canonicalExecutionAuthority(policy.quality, authorization.authorizedPrescription) != StimulusPrescriptionExecutionAuthority.FULLY_ENCODED
@@ -375,6 +384,15 @@ class StimulusProductionCutoverAuthorityAuditEngine {
         targetId: String?,
         policy: CutoverScopePolicy
     ): String? {
+        if (policy.scope == StimulusProductionCutoverScope.STRENGTH_CALIBRATION_V1) {
+            val target = comparison.targetPlan.qualityTargets.firstOrNull { "QUALITY:${it.quality.name}" == targetId }
+            return if (target == null || target.quality != TrainableQuality.STRENGTH ||
+                target.strategy == StimulusDoseStrategy.UNRESOLVED || targetId in comparison.targetPlan.unresolved ||
+                target.numericAuthority !in setOf(
+                    StimulusTargetNumericAuthority.PERSONAL_SUCCESSFUL_DOSE,
+                    StimulusTargetNumericAuthority.PERSONAL_RESTORE_BASELINE
+                )) "B8_STRENGTH_CALIBRATION_V1_REQUIRES_NUMERIC_DOSE" else null
+        }
         if (policy.scope == StimulusProductionCutoverScope.HYPERTROPHY_V1) {
             val target = comparison.targetPlan.qualityTargets.firstOrNull { "QUALITY:${it.quality.name}" == targetId }
             return if (target == null || target.quality != policy.quality ||
@@ -414,6 +432,16 @@ class StimulusProductionCutoverAuthorityAuditEngine {
         }
         if (audits.size != 1) return false
         val audit = audits.single()
+        if (policy.scope == StimulusProductionCutoverScope.STRENGTH_CALIBRATION_V1) {
+            if (audit.executionAuthority != StimulusPrescriptionExecutionAuthority.REQUIRES_USER_LOAD_INPUT) return false
+            val authorization = exactAuthorization(comparison, identity, policy) ?: return false
+            if (!validColdStartAuthorization(comparison, authorization)) return false
+            val authorizedSets = authorization.authorizedPrescription?.sets ?: return false
+            val rows = comparison.experimental.items.filter {
+                it.exerciseStableKey == identity.stableKey && it.selectionRole == identity.selectionRole
+            }
+            if (rows.isEmpty() || rows.any { row -> row.setPrescriptions != authorizedSets }) return false
+        }
         if (policy.scope == StimulusProductionCutoverScope.HYPERTROPHY_V1 &&
             audit.executionAuthority != StimulusPrescriptionExecutionAuthority.FULLY_ENCODED) return false
         val expectedWeeks = comparison.experimental.request.durationWeeks.coerceAtLeast(1)
@@ -425,6 +453,32 @@ class StimulusProductionCutoverAuthorityAuditEngine {
                 week.prescriptionPreservedOrSubset &&
                 week.targetCompatibleMaterializedUnits == week.materializedSetUnits
         } && audit.shortfall == 0 && audit.overrun == 0 && audit.prescriptionPreservedOrSubset
+    }
+
+    private fun validColdStartAuthorization(
+        comparison: StimulusSelectionProgramComparison,
+        authorization: StimulusPrescriptionAuthorization
+    ): Boolean {
+        val proposal = authorization.coldStartCalibration ?: return false
+        val prescription = authorization.authorizedPrescription ?: return false
+        val owner = authorization.owner ?: return false
+        return authorization.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION &&
+            authorization.quality == TrainableQuality.STRENGTH && authorization.targetId == "QUALITY:STRENGTH" &&
+            authorization.executionAuthority == StimulusPrescriptionExecutionAuthority.REQUIRES_USER_LOAD_INPUT &&
+            proposal.owner == StimulusPrescriptionOwnerIdentity(owner.stableKey, owner.selectionRole) &&
+            proposal.quality == TrainableQuality.STRENGTH &&
+            proposal.loadState == com.training.trackplanner.data.ProgramLoadState.USER_CALIBRATION_REQUIRED &&
+            proposal.ownerHistoryStatus == ColdStartStrengthOwnerHistoryStatus.EXACT_OWNER_STRENGTH_SIGNAL_MISSING &&
+            proposal.setCount > 0 && proposal.repetitions == 6 && proposal.targetRpe == 6.5 &&
+            proposal.restSeconds == prescription.restSeconds &&
+            comparison.selectionPlan.materialDemand.candidates.any {
+                it.stableKey == owner.stableKey && it.role == owner.selectionRole && it.targetSets == proposal.setCount
+            } &&
+            prescription.sets.size == proposal.setCount && prescription.sets.all {
+                it.reps == proposal.repetitions && it.weightKg == 0.0 &&
+                    it.loadState == com.training.trackplanner.data.ProgramLoadState.USER_CALIBRATION_REQUIRED &&
+                    it.targetRpeMin == proposal.targetRpe && it.seconds == 0
+            }
     }
 
     private fun b6IntegrityReasons(
@@ -511,7 +565,8 @@ class StimulusProductionCutoverAuthorityAuditEngine {
         attribution.source in setOf(
             StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY,
             StimulusExperimentalChangeAttributionSource.B6_EXISTING_OWNER_PRESCRIPTION,
-            StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION
+            StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION,
+            StimulusExperimentalChangeAttributionSource.B6_COLD_START_USER_CALIBRATION
         )
 
     private fun unrelatedControlParityFailures(
@@ -548,7 +603,8 @@ class StimulusProductionCutoverAuthorityAuditEngine {
                             authorization.targetId in attribution.targetIds && authorization.authorizedPrescription != null &&
                             authorization.status in setOf(
                                 StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
-                                StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR
+                                StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
+                                StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
                             )
                     }
             }
@@ -704,6 +760,18 @@ class StimulusProductionCutoverAuthorityAuditEngine {
                 effortAuthorityReason = "B8_CUTOVER_V1_EFFORT_NOT_FULLY_ENCODED",
                 materializationReason = "B8_CUTOVER_V1_REQUIRES_FULL_B6_MATERIALIZATION",
                 nonQualityChangeReason = "B8_CUTOVER_V1_NON_STRENGTH_CHANGE_OUT_OF_SCOPE"
+            )
+            StimulusProductionCutoverScope.STRENGTH_CALIBRATION_V1 -> CutoverScopePolicy(
+                scope = scope,
+                quality = TrainableQuality.STRENGTH,
+                targetId = "QUALITY:STRENGTH",
+                authorizedReason = "B8_STRENGTH_CALIBRATION_V1_AUTHORIZED",
+                targetNoNumericReason = "B8_STRENGTH_CALIBRATION_V1_REQUIRES_NUMERIC_DOSE",
+                addedOwnerB5Reason = "B8_STRENGTH_CALIBRATION_V1_EXACT_B5_REQUIRED",
+                prescriptionAuthorityReason = "B8_STRENGTH_CALIBRATION_V1_EXACT_B6_REQUIRED",
+                effortAuthorityReason = "B8_STRENGTH_CALIBRATION_V1_EFFORT_REQUIRED",
+                materializationReason = "B8_STRENGTH_CALIBRATION_V1_SHAPE_MATERIALIZATION_REQUIRED",
+                nonQualityChangeReason = "B8_STRENGTH_CALIBRATION_V1_STRENGTH_ONLY"
             )
             StimulusProductionCutoverScope.HYPERTROPHY_V1 -> CutoverScopePolicy(
                 scope = scope,

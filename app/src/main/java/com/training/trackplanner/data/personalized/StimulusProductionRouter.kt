@@ -18,6 +18,7 @@ enum class StimulusProductionRoutingMode {
 enum class StimulusProductionProgramSource {
     CONTROL,
     B8_STRENGTH_V1,
+    B8_STRENGTH_CALIBRATION_V1,
     B8_HYPERTROPHY_V1,
     B8_STRENGTH_HYPERTROPHY_V1
 }
@@ -45,6 +46,7 @@ internal fun StimulusProductionRoutingMode.permits(source: StimulusProductionPro
             source == StimulusProductionProgramSource.B8_HYPERTROPHY_V1
     StimulusProductionRoutingMode.B8_STRENGTH_HYPERTROPHY_V1_ACTIVE ->
         source == StimulusProductionProgramSource.B8_STRENGTH_V1 ||
+            source == StimulusProductionProgramSource.B8_STRENGTH_CALIBRATION_V1 ||
             source == StimulusProductionProgramSource.B8_HYPERTROPHY_V1 ||
             source == StimulusProductionProgramSource.B8_STRENGTH_HYPERTROPHY_V1
 }
@@ -148,6 +150,7 @@ class StimulusProductionRouter {
                 "B9_B8_COMBINED_SCOPE_NOT_ACTIVE"
             authority.scope !in setOf(
                 StimulusProductionCutoverScope.STRENGTH_V1,
+                StimulusProductionCutoverScope.STRENGTH_CALIBRATION_V1,
                 StimulusProductionCutoverScope.HYPERTROPHY_V1,
                 StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1
             ) -> "B9_B8_SCOPE_MISMATCH"
@@ -194,6 +197,7 @@ class StimulusProductionRouter {
             reasonCodes = listOf(
                 when (source) {
                     StimulusProductionProgramSource.B8_STRENGTH_V1 -> "B9_B8_STRENGTH_V1_ROUTED"
+                    StimulusProductionProgramSource.B8_STRENGTH_CALIBRATION_V1 -> "B9_B8_STRENGTH_CALIBRATION_V1_ROUTED"
                     StimulusProductionProgramSource.B8_HYPERTROPHY_V1 -> "B9_B8_HYPERTROPHY_V1_ROUTED"
                     StimulusProductionProgramSource.B8_STRENGTH_HYPERTROPHY_V1 ->
                         "B9_B8_STRENGTH_HYPERTROPHY_V1_ROUTED"
@@ -224,6 +228,7 @@ class StimulusProductionRouter {
 
     private fun sourceForScope(scope: StimulusProductionCutoverScope): StimulusProductionProgramSource = when (scope) {
         StimulusProductionCutoverScope.STRENGTH_V1 -> StimulusProductionProgramSource.B8_STRENGTH_V1
+        StimulusProductionCutoverScope.STRENGTH_CALIBRATION_V1 -> StimulusProductionProgramSource.B8_STRENGTH_CALIBRATION_V1
         StimulusProductionCutoverScope.HYPERTROPHY_V1 -> StimulusProductionProgramSource.B8_HYPERTROPHY_V1
         StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1 -> StimulusProductionProgramSource.B8_STRENGTH_HYPERTROPHY_V1
     }
@@ -233,6 +238,9 @@ class StimulusProductionRouter {
         authority: StimulusProductionCutoverAuthorityDecision
     ): Set<StimulusPrescriptionAuthorityIdentity> = when (authority.scope) {
         StimulusProductionCutoverScope.STRENGTH_V1 -> authority.authorizedOwnerIdentities.map {
+            StimulusPrescriptionAuthorityIdentity(it.stableKey, it.selectionRole, TrainableQuality.STRENGTH)
+        }.toSet()
+        StimulusProductionCutoverScope.STRENGTH_CALIBRATION_V1 -> authority.authorizedOwnerIdentities.map {
             StimulusPrescriptionAuthorityIdentity(it.stableKey, it.selectionRole, TrainableQuality.STRENGTH)
         }.toSet()
         StimulusProductionCutoverScope.HYPERTROPHY_V1 -> authority.authorizedOwnerIdentities.map {
@@ -331,7 +339,8 @@ class StimulusProductionRouter {
         val MATERIAL_ATTRIBUTION_SOURCES = setOf(
             StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY,
             StimulusExperimentalChangeAttributionSource.B6_EXISTING_OWNER_PRESCRIPTION,
-            StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION
+            StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION,
+            StimulusExperimentalChangeAttributionSource.B6_COLD_START_USER_CALIBRATION
         )
     }
 }
@@ -365,7 +374,8 @@ class StimulusProductionMaterialScopeResolver {
         val materialSources = setOf(
             StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY,
             StimulusExperimentalChangeAttributionSource.B6_EXISTING_OWNER_PRESCRIPTION,
-            StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION
+            StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION,
+            StimulusExperimentalChangeAttributionSource.B6_COLD_START_USER_CALIBRATION
         )
         val attributions = audit.changeAttributions.filter { attribution ->
             attribution.source in materialSources &&
@@ -393,6 +403,18 @@ class StimulusProductionMaterialScopeResolver {
                 else -> return null
             }
         }.toSet()
+        if (targetQualities == setOf(com.training.trackplanner.data.TrainableQuality.STRENGTH)) {
+            val calibrationOwners = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty()
+                .filter { authorization ->
+                    val owner = authorization.owner ?: return@filter false
+                    StimulusPrescriptionOwnerIdentity(owner.stableKey, owner.selectionRole) in materialOwners &&
+                        authorization.quality == com.training.trackplanner.data.TrainableQuality.STRENGTH &&
+                        authorization.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION &&
+                        authorization.coldStartCalibration?.owner == StimulusPrescriptionOwnerIdentity(owner.stableKey, owner.selectionRole)
+                }.map { StimulusPrescriptionOwnerIdentity(requireNotNull(it.owner).stableKey, requireNotNull(it.owner).selectionRole) }
+                .toSet()
+            if (calibrationOwners == materialOwners) return StimulusProductionCutoverScope.STRENGTH_CALIBRATION_V1
+        }
         return when (targetQualities) {
             setOf(com.training.trackplanner.data.TrainableQuality.STRENGTH) ->
                 StimulusProductionCutoverScope.STRENGTH_V1

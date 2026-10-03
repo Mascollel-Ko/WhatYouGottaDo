@@ -299,6 +299,7 @@ interface WorkoutDao {
         WHERE workout_entries.exerciseStableKey = :exerciseStableKey
           AND workout_entries.date <= :targetDate
           AND workout_sets.confirmed = 1
+          AND workout_sets.loadState != 'USER_CALIBRATION_REQUIRED'
         ORDER BY workout_entries.date DESC,
                  COALESCE(
                      workout_entries.performedAt,
@@ -329,7 +330,7 @@ interface WorkoutDao {
     @Query("SELECT COUNT(*) FROM workout_sets WHERE entryId = :entryId")
     suspend fun setCount(entryId: Long): Int
 
-    @Query("SELECT COUNT(*) FROM workout_sets WHERE entryId = :entryId AND confirmed = 1")
+    @Query("SELECT COUNT(*) FROM workout_sets WHERE entryId = :entryId AND confirmed = 1 AND loadState != 'USER_CALIBRATION_REQUIRED'")
     suspend fun confirmedCountForEntry(entryId: Long): Int
 
     @Query(
@@ -338,6 +339,7 @@ interface WorkoutDao {
         FROM workout_sets
         INNER JOIN workout_entries ON workout_entries.id = workout_sets.entryId
         WHERE workout_entries.date IN (:dates) AND workout_sets.confirmed = 1
+          AND workout_sets.loadState != 'USER_CALIBRATION_REQUIRED'
         """
     )
     suspend fun countConfirmedSetsOnDates(dates: List<String>): Int

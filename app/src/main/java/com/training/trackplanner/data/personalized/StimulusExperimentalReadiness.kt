@@ -27,6 +27,7 @@ enum class StimulusExperimentalChangeAttributionSource {
     B5_REUSED_IDENTITY,
     B6_EXISTING_OWNER_PRESCRIPTION,
     B6_SAFE_REPAIRED_PRESCRIPTION,
+    B6_COLD_START_USER_CALIBRATION,
     DOWNSTREAM_CONSTRAINT_DISPLACEMENT,
     INCONCLUSIVE_DISPLACEMENT,
     UNEXPLAINED
@@ -320,6 +321,8 @@ class StimulusExperimentalReadinessAuditEngine {
             val executableAuthorizations = exactExecutableChangeAuthorizations(comparison, identity, selected[identity])
             val source = when {
                 downstreamTargets.isNotEmpty() -> StimulusExperimentalChangeAttributionSource.DOWNSTREAM_CONSTRAINT_DISPLACEMENT
+                executableAuthorizations.any { it.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION } ->
+                    StimulusExperimentalChangeAttributionSource.B6_COLD_START_USER_CALIBRATION
                 executableAuthorizations.any { it.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR } -> StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION
                 executableAuthorizations.any { it.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE } -> StimulusExperimentalChangeAttributionSource.B6_EXISTING_OWNER_PRESCRIPTION
                 else -> StimulusExperimentalChangeAttributionSource.UNEXPLAINED
@@ -329,6 +332,8 @@ class StimulusExperimentalReadinessAuditEngine {
                     listOf("OWNER_LOCAL_CONSTRAINED_SET_SUBSET", "B5_TARGET_REMAINS_B6_AUTHORIZED")
                 source == StimulusExperimentalChangeAttributionSource.UNEXPLAINED ->
                     listOf("UNEXPLAINED_PRESCRIPTION_CHANGE")
+                source == StimulusExperimentalChangeAttributionSource.B6_COLD_START_USER_CALIBRATION ->
+                    listOf("B6_COLD_START_SHAPE_AUTHORITY_LOAD_REQUIRES_USER_INPUT")
                 else -> listOf("B6_AUTHORIZED_PRESCRIPTION_CHANGE")
             }
             result += StimulusExperimentalChangeAttribution(identity.stableKey, identity.selectionRole, source,
@@ -497,9 +502,13 @@ class StimulusExperimentalReadinessAuditEngine {
                 comparison.targetPlan.qualityTargets.any { it.quality == quality } &&
                 authorization.status in setOf(
                     StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
-                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR
-                ) && authorization.executionAuthority == StimulusPrescriptionExecutionAuthority.FULLY_ENCODED &&
-                canonicalExecutionAuthority(quality, authorized) == StimulusPrescriptionExecutionAuthority.FULLY_ENCODED &&
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
+                ) && authorization.executionAuthority == canonicalExecutionAuthority(quality, authorized) &&
+                (authorization.executionAuthority == StimulusPrescriptionExecutionAuthority.FULLY_ENCODED ||
+                    authorization.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION &&
+                        authorization.executionAuthority == StimulusPrescriptionExecutionAuthority.REQUIRES_USER_LOAD_INPUT &&
+                        authorization.coldStartCalibration?.owner == identity) &&
                 validateAuthorizedWeeklySubset(rows, authorized, identity.stableKey, identity.selectionRole).valid
         }
     }
@@ -534,7 +543,8 @@ class StimulusExperimentalReadinessAuditEngine {
             authorization.owner != null && authorization.authorizedPrescription != null &&
                 authorization.status in setOf(
                     StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
-                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
                 )
         }
         val capacityOrPlacement = localReasonCodes.any(::isCapacityOrPlacementEvidence)

@@ -121,6 +121,8 @@ internal class ProgramProgressionService(
                     originalReps = it.reps,
                     originalKg = it.weightKg,
                     originalSeconds = it.seconds,
+                    originalLoadState = it.loadState,
+                    plannedLoadState = it.loadState,
                     originalTargetRpeMin = it.targetRpeMin.validatedTargetRpeMin(),
                     plannedTargetRpeMin = it.targetRpeMin.validatedTargetRpeMin()
                 )
@@ -140,9 +142,11 @@ internal class ProgramProgressionService(
 
     /** Called before editing an unconfirmed plan. The first confirmation freezes its targets. */
     suspend fun beforeSetUpdate(old: WorkoutSet?, next: WorkoutSet) {
-        if (old == null || old.confirmed || next.confirmed || workouts.confirmedCountForEntry(next.entryId) > 0) return
+        if (old == null || old.isAnalysisEligibleCompletedSet() || next.isAnalysisEligibleCompletedSet() ||
+            workouts.confirmedCountForEntry(next.entryId) > 0) return
         dao.prescriptions(next.entryId).firstOrNull { it.plannedSetIndex == next.setIndex }?.let {
-            dao.putPrescription(it.copy(plannedReps = next.reps, plannedKg = next.weightKg, plannedSeconds = next.seconds))
+            dao.putPrescription(it.copy(plannedReps = next.reps, plannedKg = next.weightKg, plannedSeconds = next.seconds,
+                plannedLoadState = next.loadState, plannedTargetRpeMin = next.targetRpeMin.validatedTargetRpeMin()))
         }
     }
 
@@ -162,10 +166,11 @@ internal class ProgramProgressionService(
             plannedReps = set.reps,
             plannedKg = set.weightKg,
             plannedSeconds = set.seconds,
+            plannedLoadState = set.loadState,
             plannedSetIndex = set.setIndex,
             originalExists = false,
             originalTargetRpeMin = null,
-            plannedTargetRpeMin = null
+            plannedTargetRpeMin = set.targetRpeMin.validatedTargetRpeMin()
         ))
     }
 

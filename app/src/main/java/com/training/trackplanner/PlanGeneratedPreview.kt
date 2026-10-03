@@ -34,6 +34,7 @@ import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.ProgramSkeletonItem
 import com.training.trackplanner.data.ProgramSetPrescription
+import com.training.trackplanner.data.ProgramLoadState
 import com.training.trackplanner.data.ProgramSetPrescriptionResolver
 import com.training.trackplanner.data.plannedRpeLabel
 import com.training.trackplanner.data.programEffortDisplay
@@ -338,11 +339,13 @@ private fun ProgramDraftItemDialog(
                         ProgramDecimalField(
                             Modifier.weight(1f),
                             "중량",
-                            formatDecimal(set.weightKg),
+                            if (set.loadState == ProgramLoadState.USER_CALIBRATION_REQUIRED) "" else formatDecimal(set.weightKg),
                             onChange = { value ->
+                                val weight = (value.toDoubleOrNull() ?: 0.0).coerceAtLeast(0.0)
                                 sets = sets.updated(
                                     index,
-                                    set.copy(weightKg = (value.toDoubleOrNull() ?: 0.0).coerceAtLeast(0.0))
+                                    set.copy(weightKg = weight,
+                                        loadState = if (weight > 0.0) ProgramLoadState.EXPLICIT_LOAD else set.loadState)
                                 )
                             },
                             suffix = stringResource(R.string.program_unit_kg)
@@ -408,7 +411,7 @@ private fun programSetSummaryLines(item: ProgramSkeletonItem): List<String> {
     val rest = item.restSeconds.takeIf { it > 0 }
         ?.let { stringResource(R.string.rest_seconds_suffix, it) }
         .orEmpty()
-    if (sets.map { Triple(it.reps, it.weightKg, it.seconds) }.distinct().size == 1) {
+    if (sets.map { listOf(it.reps, it.weightKg, it.seconds, it.loadState) }.distinct().size == 1) {
         return listOf(
                 "${pluralStringResource(R.plurals.set_count, sets.size, sets.size)} · " +
                 "${sets.first().displayText()}$rest${effort.commonTargetRpeMin.plannedRpeSuffix()}"
@@ -425,7 +428,12 @@ private fun programSetSummaryLines(item: ProgramSkeletonItem): List<String> {
 private fun ProgramSetPrescription.displayText(): String =
     buildList {
         if (reps > 0) add(pluralStringResource(R.plurals.repetition_count, reps, reps))
-        if (weightKg > 0.0) add("${formatDecimal(weightKg)}kg")
+        when (loadState) {
+            ProgramLoadState.USER_CALIBRATION_REQUIRED -> add(stringResource(R.string.cold_start_choose_weight))
+            ProgramLoadState.NOT_APPLICABLE -> Unit
+            ProgramLoadState.EXPLICIT_LOAD -> if (weightKg > 0.0) add("${formatDecimal(weightKg)}kg")
+            ProgramLoadState.REAL_ZERO_LOAD -> add("${formatDecimal(weightKg)}kg")
+        }
         if (seconds > 0) add(stringResource(R.string.seconds_short, seconds))
     }.ifEmpty { listOf(stringResource(R.string.prescription_none)) }.joinToString(" · ")
 

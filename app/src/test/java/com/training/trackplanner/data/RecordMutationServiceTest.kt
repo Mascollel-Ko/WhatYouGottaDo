@@ -62,6 +62,44 @@ class RecordMutationServiceTest {
     }
 
     @Test
+    fun coldStartSetRequiresUserLoadBeforeConfirmationAndThenStoresActualObservation() = runBlocking {
+        val db = newDatabase()
+        val exercise = addExercise(db, "barbell_bench_press", "벤치프레스")
+        val entryId = db.workoutDao().insertEntry(
+            WorkoutEntry(
+                date = "2026-07-10", exerciseStableKey = exercise.stableKey,
+                exerciseName = exercise.name, category = exercise.category
+            )
+        )
+        db.workoutDao().insertSet(WorkoutSet(
+            entryId = entryId, setIndex = 1, reps = 6, weightKg = 0.0,
+            loadState = ProgramLoadState.USER_CALIBRATION_REQUIRED, targetRpeMin = 6.5
+        ))
+        val mutation = service(db)
+        val blank = db.workoutDao().setsForEntry(entryId).single()
+
+        assertEquals(null, mutation.updateSet(blank.copy(confirmed = true).edit(RecordSetField.CONFIRMATION)))
+        assertFalse(db.workoutDao().setsForEntry(entryId).single().confirmed)
+
+        assertEquals(null, mutation.updateSet(blank.copy(
+            loadState = ProgramLoadState.EXPLICIT_LOAD, confirmed = true
+        ).edit(RecordSetField.WEIGHT, RecordSetField.CONFIRMATION)))
+        assertFalse(db.workoutDao().setsForEntry(entryId).single().confirmed)
+
+        mutation.updateSet(blank.copy(weightKg = 50.0, loadState = ProgramLoadState.EXPLICIT_LOAD).edit(RecordSetField.WEIGHT))
+        val entered = db.workoutDao().setsForEntry(entryId).single()
+        assertEquals(50.0, entered.weightKg, 0.0)
+        assertEquals(ProgramLoadState.EXPLICIT_LOAD, entered.loadState)
+        assertEquals(6.5, entered.targetRpeMin ?: 0.0, 0.0)
+        mutation.updateSet(entered.copy(confirmed = true, rpe = 6.5).edit(RecordSetField.CONFIRMATION, RecordSetField.RPE))
+
+        val completed = db.workoutDao().setsForEntry(entryId).single()
+        assertTrue(completed.confirmed)
+        assertEquals(50.0, completed.weightKg, 0.0)
+        assertEquals(6.5, completed.rpe ?: 0.0, 0.0)
+    }
+
+    @Test
     fun latestConfirmedQueryUsesDatePerformanceEntryAndSetOrdering() = runBlocking {
         val db = newDatabase()
         val exercise = addExercise(db, "barbell_back_squat", "스쿼트")

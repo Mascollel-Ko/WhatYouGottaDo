@@ -45,6 +45,14 @@ data class RuntimeExerciseMetadataEntity(
 
 class RuntimeMetadataTypeConverters {
     @TypeConverter
+    fun programLoadStateToString(state: ProgramLoadState): String = state.name
+
+    @TypeConverter
+    fun stringToProgramLoadState(stored: String): ProgramLoadState =
+        runCatching { ProgramLoadState.valueOf(stored) }
+            .getOrDefault(ProgramLoadState.USER_CALIBRATION_REQUIRED)
+
+    @TypeConverter
     fun tokenFieldToString(field: MetadataTokenField): String =
         field.raw + RAW_VALUES_SEPARATOR + field.values.joinToString(VALUE_SEPARATOR)
 

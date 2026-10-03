@@ -7,6 +7,7 @@ import com.training.trackplanner.data.DailyCheckIn
 import com.training.trackplanner.data.DailyMetric
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.InitialUserProfile
+import com.training.trackplanner.data.ProgramLoadState
 import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.WorkoutSet
@@ -103,6 +104,23 @@ class StrengthPerformanceLikelihoodTest {
             assertNull("$semantics must remain unresolved without bodyweight", unresolved.totalLoadKg)
             assertFalse(semantics.rawLoadIsResolvedMechanicalLoad)
         }
+    }
+
+    @Test
+    fun `calibration-required plans are never strength load observations even if malformed as confirmed`() {
+        val source = set(id = 45, reps = 6, weight = 50.0, rpe = 6.5).copy(
+            loadState = ProgramLoadState.USER_CALIBRATION_REQUIRED
+        )
+        val resolver = StrengthPerformanceLoadResolver(emptyList(), emptyList(), null)
+        val resolved = resolver.resolve(LocalDate.parse("2026-07-20"), source, StrengthLoadSemantics.EXTERNAL_LOAD)
+        assertFalse(resolved.isResolved)
+        assertNull(resolved.totalLoadKg)
+
+        val likelihood = StrengthSetLikelihoodBuilder.buildResult(
+            source, null, resolved, curves.resolve("barbell_bench_press"), rirPolicy
+        )
+        assertNull(likelihood.evidence)
+        assertEquals(StrengthObservationType.UNRESOLVED_LOAD, likelihood.exclusionType)
     }
 
     @Test

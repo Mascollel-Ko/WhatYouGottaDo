@@ -24,6 +24,9 @@ internal fun canonicalExecutionAuthority(
     quality: TrainableQuality?,
     prescription: PlannedPrescription?
 ): StimulusPrescriptionExecutionAuthority = when {
+    quality == TrainableQuality.STRENGTH && prescription?.sets?.isNotEmpty() == true &&
+        prescription.sets.all { it.loadState == com.training.trackplanner.data.ProgramLoadState.USER_CALIBRATION_REQUIRED } ->
+        StimulusPrescriptionExecutionAuthority.REQUIRES_USER_LOAD_INPUT
     quality == TrainableQuality.HYPERTROPHY &&
         prescription?.fullyEncodesEffort(quality.canonicalEffortTarget()) == true ->
         StimulusPrescriptionExecutionAuthority.FULLY_ENCODED

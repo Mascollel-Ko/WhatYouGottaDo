@@ -7,7 +7,9 @@ import com.training.trackplanner.data.ProgramSetPrescription
 import com.training.trackplanner.data.ProgramSkeletonItem
 import com.training.trackplanner.data.ProgramSkeletonRequest
 import com.training.trackplanner.data.ProgramWeekPlan
+import com.training.trackplanner.data.ProgramLoadState
 import com.training.trackplanner.data.TrainableQuality
+import com.training.trackplanner.analysis.strengthperformance.StrengthLoadSemantics
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
@@ -15,6 +17,88 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class StimulusProductionCutoverAuthorityTest {
+    @Test
+    fun coldStartHasSeparateB8ScopeAndCannotMasqueradeAsStrengthV1() {
+        val b5 = selected("bench", "CANONICAL_STIMULUS_QUALITY_STRENGTH")
+        val trace = trace("bench", "CANONICAL_STIMULUS_QUALITY_STRENGTH")
+        val coldAuth = coldStartAuthorization("bench", "CANONICAL_STIMULUS_QUALITY_STRENGTH")
+        val experimentalItem = item("bench", "CANONICAL_STIMULUS_QUALITY_STRENGTH", reps = 6).copy(
+            prescription = "2 sets × 6 reps · RPE 6.5 · choose weight",
+            weightKg = 0.0,
+            weightSource = "COLD_START_USER_CALIBRATION",
+            setPrescriptions = coldAuth.authorizedPrescription!!.sets
+        )
+        val coldMaterialization = materialization("bench", "CANONICAL_STIMULUS_QUALITY_STRENGTH")
+            .copy(executionAuthority = StimulusPrescriptionExecutionAuthority.REQUIRES_USER_LOAD_INPUT)
+        val compared = comparison(
+            controlItems = listOf(item("base", "BASE")),
+            experimentalItems = listOf(item("base", "BASE"), experimentalItem),
+            selected = b5,
+            traces = listOf(trace),
+            attribution = attribution("bench", "CANONICAL_STIMULUS_QUALITY_STRENGTH",
+                StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY),
+            authorization = coldAuth,
+            materialization = coldMaterialization,
+            materialDemand = listOf(PlannedExercise(
+                stableKey = "bench", role = "CANONICAL_STIMULUS_QUALITY_STRENGTH", reason = "B4 numeric demand",
+                priority = 1, targetSets = 2
+            ))
+        )
+
+        val scope = StimulusProductionCutoverScope.STRENGTH_CALIBRATION_V1
+        val b8 = engine().audit(compared, scope)
+        assertEquals(StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER, b8.status)
+        assertEquals(scope, StimulusProductionMaterialScopeResolver().resolve(compared))
+        val route = StimulusProductionRouter().route(
+            compared, b8, StimulusProductionRoutingMode.B8_STRENGTH_HYPERTROPHY_V1_ACTIVE
+        )
+        assertEquals(StimulusProductionProgramSource.B8_STRENGTH_CALIBRATION_V1, route.decision.selectedSource)
+        assertSame(compared.experimental, route.program)
+
+        val ordinaryStrength = engine().audit(compared, StimulusProductionCutoverScope.STRENGTH_V1)
+        assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, ordinaryStrength.status)
+        assertTrue(ordinaryStrength.reasonCodes.contains("B8_CUTOVER_V1_PRESCRIPTION_CHANGE_WITHOUT_EXACT_B6_AUTHORITY"))
+
+        val unclosedProvenance = compared.copy(experimentalReadinessAudit =
+            requireNotNull(compared.experimentalReadinessAudit).copy(
+                status = StimulusExperimentalReadinessStatus.NOT_ELIGIBLE,
+                changeProvenanceClosed = false,
+                reasonCodes = listOf("CHANGE_PROVENANCE_UNCLOSED")
+            )
+        )
+        val rejected = engine().audit(unclosedProvenance, scope)
+        assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, rejected.status)
+        assertFalse(rejected.routingActive)
+        assertFalse(rejected.productionMutationAuthority)
+    }
+
+    @Test
+    fun directionOnlyDoseCannotUseColdStartB8Scope() {
+        val selected = selected("bench", "CANONICAL_STIMULUS_QUALITY_STRENGTH")
+        val authorization = coldStartAuthorization("bench", "CANONICAL_STIMULUS_QUALITY_STRENGTH")
+        val comparison = comparison(
+            controlItems = listOf(item("base", "BASE")),
+            experimentalItems = listOf(item("base", "BASE"), item("bench", "CANONICAL_STIMULUS_QUALITY_STRENGTH", reps = 6).copy(
+                weightKg = 0.0, weightSource = "COLD_START_USER_CALIBRATION", setPrescriptions = authorization.authorizedPrescription!!.sets
+            )),
+            selected = selected,
+            traces = listOf(trace("bench", "CANONICAL_STIMULUS_QUALITY_STRENGTH")),
+            attribution = attribution("bench", "CANONICAL_STIMULUS_QUALITY_STRENGTH", StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY),
+            authorization = authorization,
+            materialization = materialization("bench", "CANONICAL_STIMULUS_QUALITY_STRENGTH").copy(
+                executionAuthority = StimulusPrescriptionExecutionAuthority.REQUIRES_USER_LOAD_INPUT
+            ),
+            target = qualityTarget(TrainableQuality.STRENGTH, StimulusTargetNumericAuthority.DIRECTION_ONLY),
+            materialDemand = listOf(PlannedExercise(
+                stableKey = "bench", role = "CANONICAL_STIMULUS_QUALITY_STRENGTH", reason = "B4 direction",
+                priority = 1, targetSets = 2
+            ))
+        )
+        val result = engine().audit(comparison, StimulusProductionCutoverScope.STRENGTH_CALIBRATION_V1)
+        assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, result.status)
+        assertTrue(result.reasonCodes.contains("B8_STRENGTH_CALIBRATION_V1_REQUIRES_NUMERIC_DOSE"))
+    }
+
     @Test
     fun eligibleSameOwnerStrengthRepairIsAuthorized() {
         val control = item("squat", "PRIMARY", reps = 8)
@@ -478,12 +562,13 @@ class StimulusProductionCutoverAuthorityTest {
         materializations: List<StimulusPrescriptionMaterializationAudit> = emptyList(),
         target: StimulusQualityTarget = qualityTarget(TrainableQuality.STRENGTH),
         b7: StimulusExperimentalReadinessAudit = eligibleAudit(attribution),
-        scheduleChanged: Boolean = false
+        scheduleChanged: Boolean = false,
+        materialDemand: List<PlannedExercise> = emptyList()
     ): StimulusSelectionProgramComparison {
         val request = ProgramSkeletonRequest("B8", ProgramGoal.STRENGTH, 1, 60, emptySet(), "", .5, "AUTO", ProgramPeriodizationType.AUTO, 1)
         val control = skeleton(request, controlItems, scheduleChanged = false)
         val experimental = skeleton(request, experimentalItems, scheduleChanged = scheduleChanged)
-        val selection = StimulusCandidateSelectionPlan(listOfNotNull(selected), traces, MaterialDemand(emptyList(), emptyMap(), emptyMap()))
+        val selection = StimulusCandidateSelectionPlan(listOfNotNull(selected), traces, MaterialDemand(materialDemand, emptyMap(), emptyMap()))
         val comparison = StimulusSelectionProgramComparisonEngine().compare(
             control, experimental, StimulusTargetPlan(listOf(target), emptyList(), emptyList()), selection, null, null
         )
@@ -522,6 +607,34 @@ class StimulusProductionCutoverAuthorityTest {
         owner = StimulusPrescriptionOwner(key, role), source = StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE,
         inputPrescription = planned(8), plannedCompatibility = null, authorizedPrescription = planned(5), status = status
     )
+
+    private fun coldStartAuthorization(key: String, role: String): StimulusPrescriptionAuthorization {
+        val owner = StimulusPrescriptionOwnerIdentity(key, role)
+        val sets = List(2) { index -> ProgramSetPrescription(
+            setIndex = index + 1, reps = 6, weightKg = 0.0, seconds = 0,
+            targetRpeMin = 6.5, loadState = ProgramLoadState.USER_CALIBRATION_REQUIRED
+        ) }
+        val proposal = ColdStartStrengthCalibrationProposal(
+            owner = owner, quality = TrainableQuality.STRENGTH, setCount = 2, repetitions = 6, targetRpe = 6.5, restSeconds = 120,
+            loadState = ProgramLoadState.USER_CALIBRATION_REQUIRED, loadSemantics = StrengthLoadSemantics.EXTERNAL_LOAD,
+            ownerHistoryStatus = ColdStartStrengthOwnerHistoryStatus.EXACT_OWNER_STRENGTH_SIGNAL_MISSING,
+            authoritySource = ColdStartStrengthCalibrationAuthoritySource.B4_B5_NUMERIC_STRENGTH_DEMAND,
+            reasonCodes = listOf("COLD_START_EXACT_OWNER_HISTORY_ABSENT"), sets = sets
+        )
+        val prescription = PlannedPrescription("6 reps · choose weight", sets, 120, "COLD_START_USER_CALIBRATION")
+        return StimulusPrescriptionAuthorization(
+            targetId = "QUALITY:STRENGTH", quality = TrainableQuality.STRENGTH,
+            owner = StimulusPrescriptionOwner(key, role), source = StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE,
+            inputPrescription = planned(8), plannedCompatibility = PlannedStimulusCompatibility(
+                TrainableQuality.STRENGTH, PlannedStimulusCompatibilityStatus.COMPATIBLE_REQUIRES_USER_LOAD_INPUT
+            ),
+            authorizedPrescription = prescription,
+            status = StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION,
+            reasonCodes = proposal.reasonCodes,
+            executionAuthority = StimulusPrescriptionExecutionAuthority.REQUIRES_USER_LOAD_INPUT,
+            coldStartCalibration = proposal
+        )
+    }
 
     private fun materialization(key: String, role: String, full: Boolean = true, reasonCodes: List<String> = emptyList(), quality: TrainableQuality = TrainableQuality.STRENGTH, nonMaterialized: Boolean = false) = StimulusPrescriptionMaterializationAudit(
         targetId = "QUALITY:${quality.name}", quality = quality, owner = StimulusPrescriptionOwner(key, role),

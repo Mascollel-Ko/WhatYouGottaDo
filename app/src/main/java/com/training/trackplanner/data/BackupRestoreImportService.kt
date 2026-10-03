@@ -327,7 +327,9 @@ internal class BackupRestoreImportService(
                             confirmed = row.setConfirmed,
                             manualWeight = row.setManualWeight ?: (row.weightKg > 0.0),
                             rpe = row.rpe,
-                            restSecondsOverride = row.setRestSecondsOverride
+                            restSecondsOverride = row.setRestSecondsOverride,
+                            loadState = row.setLoadState ?: ProgramLoadState.EXPLICIT_LOAD,
+                            targetRpeMin = row.targetRpeMin.validatedTargetRpeMin()
                         )
                     )
                     setCount += 1
@@ -650,7 +652,8 @@ internal class BackupRestoreImportService(
                             reps = set.reps,
                             weightKg = set.weightKg,
                             seconds = set.seconds,
-                            targetRpeMin = set.targetRpeMin
+                            targetRpeMin = set.targetRpeMin,
+                            loadState = set.loadState
                         )
                     )
                 )

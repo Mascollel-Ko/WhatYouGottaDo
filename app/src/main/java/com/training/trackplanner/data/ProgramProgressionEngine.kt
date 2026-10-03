@@ -48,7 +48,7 @@ data class ProgressionSession(
             it.reps >= target.plannedReps && it.weightKg >= target.plannedKg && it.seconds >= target.plannedSeconds
         } == true
     }
-    fun base(): Double? = ProgressionEngine.base(actual.filter { it.confirmed }, link.basePolicy, link.anchorSetIndex)
+    fun base(): Double? = ProgressionEngine.base(actual.filter { it.isAnalysisEligibleCompletedSet() }, link.basePolicy, link.anchorSetIndex)
     fun judgmentRpe(rule: ProgressionRule): Double? {
         val sets = if (link.basePolicy == ProgressionBase.ANCHOR || rule.rpePolicy == ProgressionRpePolicy.ANCHOR)
             actual.filter { it.setIndex == link.anchorSetIndex } else actual

@@ -397,6 +397,7 @@ internal fun copyBulkSetValues(
     target.copy(
         reps = source.reps,
         weightKg = source.weightKg,
+        loadState = source.loadState,
         seconds = source.seconds,
         manualWeight = source.manualWeight,
         rpe = source.rpe,

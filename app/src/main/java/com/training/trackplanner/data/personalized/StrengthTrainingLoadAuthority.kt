@@ -10,6 +10,8 @@ import kotlin.math.floor
 import org.json.JSONArray
 import org.json.JSONObject
 
+internal const val CANONICAL_STRENGTH_SELECTION_ROLE = "CANONICAL_STIMULUS_QUALITY_STRENGTH"
+
 enum class StrengthCapacityEvidenceTier {
     DIRECT_PERSONAL_STRENGTH,
     PERSONAL_CURVE_INFERRED,
@@ -541,7 +543,6 @@ class StrengthTrainingLoadAuthorityResolver {
         const val FIRST_EXPOSURE_TARGET_RPE = 6.5
         private const val MIN_STRENGTH_REFERENCE_FRACTION = 0.70
         private const val MIN_DIRECT_SESSIONS = 2
-        private const val CANONICAL_STRENGTH_SELECTION_ROLE = "CANONICAL_STIMULUS_QUALITY_STRENGTH"
     }
 }
 

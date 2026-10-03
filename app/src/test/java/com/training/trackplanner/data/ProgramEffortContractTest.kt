@@ -41,8 +41,15 @@ class ProgramEffortContractTest {
             originalTargetRpeMin = 7.0,
             plannedTargetRpeMin = 8.0
         )
-        val restored = ProgramProgressionWireCodec.programPrescriptionSet(ProgramProgressionWireCodec.encode(current))
+        val currentWire = ProgramProgressionWireCodec.encode(current)
+        assertTrue(!currentWire.has("originalLoadState"))
+        assertTrue(!currentWire.has("plannedLoadState"))
+        val restored = ProgramProgressionWireCodec.programPrescriptionSet(currentWire)
         assertEquals(current, restored)
+        val calibration = current.copy(plannedLoadState = ProgramLoadState.USER_CALIBRATION_REQUIRED)
+        val calibrationWire = ProgramProgressionWireCodec.encode(calibration)
+        assertEquals(ProgramLoadState.USER_CALIBRATION_REQUIRED.name, calibrationWire.getString("plannedLoadState"))
+        assertEquals(calibration, ProgramProgressionWireCodec.programPrescriptionSet(calibrationWire))
         val old = ProgramProgressionWireCodec.programPrescriptionSet(JSONObject()
             .put("plannedSetIndex", 2)
             .put("originalExists", true)
