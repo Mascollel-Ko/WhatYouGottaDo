@@ -20,11 +20,16 @@ class PlanWeekTissueProjectionTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
     private val zone = ZoneId.of("Asia/Seoul")
     private val cutoff = LocalDate.of(2026, 9, 3)
-    private suspend fun withService(block: suspend (ConnectiveTissueAnalysisService, TrainingDatabase) -> Unit) {
+    private suspend fun withService(
+        exerciseKeys: List<String> = listOf("barbell_back_squat", "barbell_bench_press", "romanian_deadlift", "ex_eb636bac"),
+        bodyWeightKg: Double? = null,
+        block: suspend (ConnectiveTissueAnalysisService, TrainingDatabase) -> Unit
+    ) {
         val db = Room.inMemoryDatabaseBuilder(context, TrainingDatabase::class.java).allowMainThreadQueries().build()
         try {
-            listOf("barbell_back_squat", "barbell_bench_press", "romanian_deadlift", "ex_eb636bac").forEach {
+            exerciseKeys.forEach {
                 db.exerciseDao().insertExercise(Exercise(stableKey = it, name = it, category = "근력운동")) }
+            if (bodyWeightKg != null) db.initialUserProfileDao().upsert(InitialUserProfile(bodyWeightKg = bodyWeightKg))
             block(ConnectiveTissueAnalysisService(context, db.exerciseDao(), db.workoutDao(), db.dailyMetricDao(),
                 db.initialUserProfileDao(), db.dailyCheckInDao(), zone), db)
         } finally { db.close() }
@@ -93,6 +98,53 @@ class PlanWeekTissueProjectionTest {
             val summaryOmissions = mixed.after!!.loadUnits.filter { it.key.loadUnitStableKey in exposed }.any { unit ->
                 unit.contributors.none { it.exerciseStableKey == "ex_eb636bac" } }
             assertTrue("Fixture must exercise a real top-contributor omission", summaryOmissions)
+        }
+    }
+
+    @Test fun c18WeightedTissueKeysProjectWhenTheirReviewedDoseInputsAreAvailable() = runBlocking {
+        val keys = listOf(
+            "barbell_romanian_deadlift",
+            "dumbbell_chest_supported_row",
+            "barbell_reverse_curl",
+            "dumbbell_lying_triceps_extension"
+        )
+        withService(exerciseKeys = keys) { service, _ ->
+            val rows = keys.mapIndexed { index, key ->
+                val load = 20.0
+                row(key, index + 1, 2).copy(
+                    weightKg = load,
+                    weightSource = "C18_VALID_RECORDED_LOAD",
+                    setPrescriptions = (1..2).map { setIndex -> ProgramSetPrescription(setIndex, 8, load, 0) }
+                )
+            }
+            val projection = service.planProjection(cutoff).evaluate(rows, 8.0)
+            assertEquals(keys.size, projection.days.size)
+            projection.days.forEach { day ->
+                assertTrue(day.toJson().toString(), day.unresolvedKeys.isEmpty())
+                assertTrue(day.toJson().toString(), day.after!!.loadUnits.any { it.rawResidual.upper > 0.0 })
+            }
+        }
+    }
+
+    @Test fun birdDogIsStillUnresolvedWithBodyweightUntilExactRcvCoefficientIsJoined() = runBlocking {
+        val key = "ex_28347c1f"
+        withService(exerciseKeys = listOf(key), bodyWeightKg = 80.0) { service, _ ->
+            val row = row(key, 1, 2).copy(
+                weightKg = 0.0,
+                weightSource = "BODYWEIGHT_REPS",
+                setPrescriptions = (1..2).map { setIndex -> ProgramSetPrescription(setIndex, 8, 0.0, 0) }
+            )
+            val projection = service.planProjection(cutoff).evaluate(listOf(row), 8.0)
+            assertEquals(setOf(key), projection.days.single().unresolvedKeys)
+        }
+    }
+
+    @Test fun unknownExactKeyRemainsUnresolvedEvenWithPositiveWeight() = runBlocking {
+        val key = "fake_unknown_exercise"
+        withService(exerciseKeys = listOf(key)) { service, _ ->
+            val projected = service.planProjection(cutoff).evaluate(listOf(row(key, 1, 2)), 8.0)
+            assertEquals(setOf(key), projected.days.single().unresolvedKeys)
+            assertTrue(projected.days.single().blockedUnits.isEmpty())
         }
     }
 }

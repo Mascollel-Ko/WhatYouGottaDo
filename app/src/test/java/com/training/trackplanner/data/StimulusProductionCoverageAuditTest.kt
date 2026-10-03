@@ -148,6 +148,38 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(2, org.json.JSONObject(c17Census).getJSONObject("positiveReference").getInt("authorizedCalibrationRows"))
         assertEquals(0, org.json.JSONObject(c17Census).getJSONObject("positiveReference")
             .getJSONObject("sharedOwnerPlacementMetrics").getInt("movedOwnerRows"))
+        val c18Census = C18TissueIncumbentPlacementCensus.render(
+            c17Census,
+            CanonicalExerciseMetadataRepository(ApplicationProvider.getApplicationContext()),
+            c17MergeSha = "bb8dfca386b8fd296417185a9c105ac2b5e94b0f",
+            c18StartSha = "bb8dfca386b8fd296417185a9c105ac2b5e94b0f"
+        )
+        assertEquals(c18Census, C18TissueIncumbentPlacementCensus.render(
+            c17Census,
+            CanonicalExerciseMetadataRepository(ApplicationProvider.getApplicationContext()),
+            c17MergeSha = "bb8dfca386b8fd296417185a9c105ac2b5e94b0f",
+            c18StartSha = "bb8dfca386b8fd296417185a9c105ac2b5e94b0f"
+        ))
+        java.io.File("build/reports/c18-tissue-incumbent-placement-census.json").writeText(c18Census)
+        val c18Json = org.json.JSONObject(c18Census)
+        val c18Summary = c18Json.getJSONObject("summary")
+        assertEquals(32, c18Summary.getInt("placementDeltas"))
+        assertEquals(16, c18Summary.getInt("uniqueCaseOwnerRolePairs"))
+        assertEquals(12, c18Summary.getInt("priorPlacementValid"))
+        assertEquals(2, c18Summary.getInt("priorPlacementHardInvalid"))
+        assertEquals(18, c18Summary.getInt("stillUnresolved"))
+        assertEquals(0, c18Summary.getInt("actualDisplacementAuthorityProven"))
+        assertEquals(12, c18Summary.getInt("syntheticIncumbentShadowKeep"))
+        assertEquals(2, c18Summary.getInt("syntheticIncumbentShadowMove"))
+        assertEquals(18, c18Summary.getInt("syntheticIncumbentShadowNoDecision"))
+        val c18TissueKeys = c18Json.getJSONArray("tissueKeys")
+        assertEquals(5, c18TissueKeys.length())
+        (0 until c18TissueKeys.length()).map(c18TissueKeys::getJSONObject).forEach { row ->
+            assertTrue(row.getString("stableKey"), row.getBoolean("canonicalMetadataRowExists"))
+            assertTrue(row.getString("stableKey"), row.getBoolean("planningMetadataExists"))
+            assertTrue(row.getString("stableKey"), row.getBoolean("runtimeJoinExists"))
+            assertFalse(row.getString("stableKey"), row.getBoolean("safeToTreatAsZeroLoad"))
+        }
         val c17Cases = org.json.JSONObject(c17Census).getJSONArray("cases")
         (0 until c17Cases.length()).map(c17Cases::getJSONObject).flatMap { case ->
             val deltas = case.getJSONArray("deltas")
