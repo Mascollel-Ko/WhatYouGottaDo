@@ -1,5 +1,6 @@
 package com.training.trackplanner
 
+import com.training.trackplanner.data.ProgramLoadState
 import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutSet
 import org.junit.Assert.assertEquals
@@ -69,6 +70,17 @@ class RecordBulkEditTest {
         val copied = copyBulkSetValues(source, target, includeStatus = true)
 
         assertTrue(copied.confirmed)
+    }
+
+    @Test
+    fun sameExerciseCopyTransfersEnteredWeightOutOfCalibrationRequiredState() {
+        val source = set(weightKg = 50.0).copy(loadState = ProgramLoadState.EXPLICIT_LOAD)
+        val target = set(weightKg = 0.0).copy(loadState = ProgramLoadState.USER_CALIBRATION_REQUIRED)
+
+        val copied = copyBulkSetValues(source, target, includeStatus = false)
+
+        assertEquals(50.0, copied.weightKg, 0.0)
+        assertEquals(ProgramLoadState.EXPLICIT_LOAD, copied.loadState)
     }
 
     private fun set(
