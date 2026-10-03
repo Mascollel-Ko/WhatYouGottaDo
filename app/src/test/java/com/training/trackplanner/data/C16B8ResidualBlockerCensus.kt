@@ -298,23 +298,35 @@ internal fun renderC16B8ResidualBlockerCensus(
         if (placementOwners.isNotEmpty() && root.optString("type") != "UNAUTHORIZED_PLACEMENT_CHANGE") {
             secondary.put(JSONObject().put("type", "UNAUTHORIZED_PLACEMENT_CHANGE").put("owners", JSONArray(placementOwners.map(::ownerJson))))
         }
+        if (scope?.reasonCodes?.contains("MATERIAL_PROVENANCE_PARTIAL") == true) {
+            secondary.put(JSONObject().put("type", "MATERIAL_SCOPE_PROVENANCE_GAP")
+                .put("owners", JSONArray(scope.unattributedOwnerIdentities.sortedWith(compareBy({ it.stableKey }, { it.selectionRole })).map(::ownerJson)))
+                .put("finding", "C10 origin events exist for the final EXP placements, but B7 has no exact material target attribution for these changed shared owners; B8 therefore cannot resolve a calibration-only scope."))
+        }
+        val expectedCalibrationNotes = JSONArray()
         if (comparison.removedOwnerIdentities.any { removed -> approvedCalibrationRoleReplacement(comparison,
                 JSONObject().put("kind", "ROW_REMOVED").put("before", JSONObject().put("owner", ownerJson(removed))),
                 comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().firstOrNull {
                     it.quality == TrainableQuality.STRENGTH && it.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
                 }?.owner?.let { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }
             ) }) {
-            secondary.put(JSONObject().put("type", "CANONICAL_ROLE_REPLACEMENT").put("finding", "Exact C11 canonical replacement for Strength is authorized; this is an expected C15 delta, not a residual blocker."))
+            expectedCalibrationNotes.put(JSONObject().put("type", "CANONICAL_ROLE_REPLACEMENT")
+                .put("finding", "Exact C11 canonical replacement for Strength is authorized; this is an expected C15 delta, not a residual blocker."))
         }
         if (comparison.experimentalReadinessAudit?.changeProvenanceClosed == false) {
             secondary.put(JSONObject().put("type", "PROVENANCE_PARTIAL").put("finding", "B7 does not attribute all residual changed owners; this is a downstream manifestation of the owner/placement gaps above."))
         }
         return JSONObject().put("primaryRootBlocker", root)
             .put("secondaryBlockers", secondary)
+            .put("expectedCalibrationNotes", expectedCalibrationNotes)
+            .put("scopeResolutionStatus", scope?.status?.name ?: JSONObject.NULL)
+            .put("scopeResolutionReasons", JSONArray(scope?.reasonCodes.orEmpty().sorted()))
+            .put("B8Reasons", JSONArray(comparison.productionCutoverAuthority?.reasonCodes.orEmpty().sorted()))
             .put("primaryDisposition", when (root.optString("type")) {
                 "EXPECTED_CALIBRATION_CUTOVER" -> "EXPECTED_CALIBRATION_CUTOVER"
                 "POTENTIAL_B8_FALSE_NEGATIVE" -> "POTENTIAL_B8_FALSE_NEGATIVE"
                 "PROVENANCE_ONLY_GAP" -> "AUDIT_OR_PROVENANCE_GAP"
+                "UNAUTHORIZED_NON_STRENGTH_CHANGE" -> "CURRENT_SCOPE_LIMITATION"
                 else -> "TRUE_SAFETY_BLOCK"
             })
             .put("potentialFalseNegativeEligible", root.optString("type") == "POTENTIAL_B8_FALSE_NEGATIVE" && residual.isEmpty() &&

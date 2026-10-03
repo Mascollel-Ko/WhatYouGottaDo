@@ -121,11 +121,14 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(0, c16Case("persona2_reviewed").getInt("residualDeltaCount"))
         assertEquals("EXPECTED_CALIBRATION_CUTOVER", c16Case("persona2_reviewed")
             .getJSONObject("rootClassification").getString("primaryDisposition"))
-        listOf("persona0_mixed", "persona0_reviewed", "persona3_reviewed", "persona4_mixed").forEach { name ->
+        listOf("persona0_mixed", "persona0_reviewed", "persona4_mixed").forEach { name ->
             val root = c16Case(name).getJSONObject("rootClassification")
-            assertEquals("TRUE_SAFETY_BLOCK", "$name disposition", root.getString("primaryDisposition"))
+            assertEquals("$name disposition", "TRUE_SAFETY_BLOCK", root.getString("primaryDisposition"))
             assertFalse("$name is not an exact false negative", root.getBoolean("potentialFalseNegativeEligible"))
         }
+        assertEquals("CURRENT_SCOPE_LIMITATION", c16Case("persona3_reviewed")
+            .getJSONObject("rootClassification").getString("primaryDisposition"))
+        assertFalse(c16Case("persona3_reviewed").getJSONObject("rootClassification").getBoolean("potentialFalseNegativeEligible"))
         assertEquals("UNAUTHORIZED_NON_STRENGTH_CHANGE", c16Case("persona3_reviewed")
             .getJSONObject("rootClassification").getJSONObject("primaryRootBlocker").getString("type"))
         assertEquals("UNAUTHORIZED_PLACEMENT_CHANGE", c16Case("persona0_mixed")
