@@ -75,6 +75,7 @@ class StimulusProductionCoverageAuditTest {
             assertEquals(!result.routeDecision.productionRoutingActive, result.diagnostics.primaryFallbackStage != null)
             spec to result
         }
+        val generated = records.mapNotNull { (spec, result) -> result?.let { spec to it } }
         val report = render(records)
         assertEquals(report, render(records.reversed()))
         assertEquals(renderProvenance(records), renderProvenance(records.reversed()))
@@ -158,9 +159,45 @@ class StimulusProductionCoverageAuditTest {
         val coverageSha = java.security.MessageDigest.getInstance("SHA-256")
             .digest(report.toByteArray(Charsets.UTF_8)).joinToString("") { "%02X".format(it) }
         assertEquals("818E8FA6F67164EEAAE0C938273A777D645874CF0EECD17F1E1795DC811434D9", coverageSha)
+        val c14Census = renderC14StrengthTrainingLoadCensus(
+            records,
+            report,
+            c13MergeHead = "f43e6f8e32bd4d8e4317b353dda88d211498a5a8",
+            c14StartHead = "f43e6f8e32bd4d8e4317b353dda88d211498a5a8"
+        )
+        assertEquals(c14Census, renderC14StrengthTrainingLoadCensus(
+            records.reversed(), report,
+            c13MergeHead = "f43e6f8e32bd4d8e4317b353dda88d211498a5a8",
+            c14StartHead = "f43e6f8e32bd4d8e4317b353dda88d211498a5a8"
+        ))
+        java.io.File("build/reports/c14-strength-capacity-training-load-census.json").writeText(c14Census)
+        val c14Json = org.json.JSONObject(c14Census)
+        assertEquals("818E8FA6F67164EEAAE0C938273A777D645874CF0EECD17F1E1795DC811434D9",
+            c14Json.getString("standardCoverageSha256"))
+        assertEquals(27, c14Json.getJSONObject("corpus").getInt("totalCases"))
+        assertEquals(22, c14Json.getJSONObject("corpus").getInt("generated"))
+        assertEquals(5, c14Json.getJSONObject("corpus").getInt("preflightRejected"))
+        assertEquals(21, c14Json.getJSONObject("corpus").getJSONObject("routes").getInt("CONTROL"))
+        assertEquals(1, c14Json.getJSONObject("corpus").getJSONObject("routes").getInt("Strength"))
+        assertFalse(c14Json.getJSONObject("C14A").getBoolean("productionB6Consumption"))
+        assertFalse(c14Json.getJSONObject("C14A").getBoolean("routesChanged"))
+        assertEquals(5, c14Json.getJSONObject("C14A").getJSONArray("fiveRepRangeCases").length())
+        assertEquals(8, c14Json.getJSONObject("C14B").getInt("directionOnlyCaseCount"))
+        assertFalse(c14Json.getJSONObject("C14B").getBoolean("productionB6AuthorityActivated"))
+        assertFalse(c14Json.getJSONObject("C14B").getBoolean("directionOnlyCalibrationAuthorized"))
+        val fiveC14Rows = c14Json.getJSONObject("C14A").getJSONArray("fiveRepRangeCases")
+        assertTrue((0 until fiveC14Rows.length()).all { index ->
+            val row = fiveC14Rows.getJSONObject(index)
+            row.getJSONObject("owner").getString("stableKey") != row.getJSONObject("fixtureHistoryInput").getString("stableKey") &&
+                row.getJSONObject("shadow").getJSONArray("ownerLocalObservations").length() == 0 &&
+                row.getJSONObject("shadow").getJSONArray("unavailableReasons").getString(0) ==
+                    StrengthTrainingLoadUnavailableReason.EXACT_OWNER_STRENGTH_SIGNAL_MISSING.name
+        })
+        val serializationProbe = generated.first { it.first.label == "reviewed_strength_isolated" }.second
+            .comparison!!.prescriptionRealizationPlan!!.toCompactJson().toString()
+        assertFalse(serializationProbe.contains("c14StrengthTrainingLoadShadow"))
         println(report)
         assertC9CorpusBoundaries(records)
-        val generated = records.mapNotNull { (spec, result) -> result?.let { spec to it } }
         assertEquals(21, generated.count { it.second.routeDecision.selectedSource == StimulusProductionProgramSource.CONTROL })
         assertEquals(1, generated.count { it.second.routeDecision.selectedSource == StimulusProductionProgramSource.B8_STRENGTH_V1 })
         assertEquals(0, generated.count { it.second.routeDecision.selectedSource in setOf(

@@ -68,7 +68,15 @@ data class CanonicalStrengthSignal(
     val posteriorMedianKg: Double? = null,
     val posteriorChangePercent: Double? = null,
     val observationCount: Int = 0,
-    val source: String = "UNKNOWN"
+    val source: String = "UNKNOWN",
+    /** Exact-owner local posterior uncertainty. Transient planning evidence, not persisted truth. */
+    val posteriorLogVariance: Double? = null,
+    /** Latest exact-owner posterior observation inside the canonical reference window. */
+    val referenceDate: LocalDate? = null,
+    /** Local posterior observations with a two-sided likelihood, excluding censored-only evidence. */
+    val twoSidedObservationCount: Int = 0,
+    /** Whether the local exercise-specific baseline was established by the canonical engine. */
+    val baselineEstablished: Boolean = false
 )
 
 data class PlanningRecoverySignals(
@@ -221,6 +229,11 @@ data class PlanningHistorySnapshot(
     val planDayProjection: PlanDayProjection? = null,
     val planWeekTissueProjection: PlanWeekTissueProjection? = null,
     val strengthPerformanceRegistry: com.training.trackplanner.analysis.strengthperformance.StrengthPerformanceRegistry? = null,
+    /** Existing reviewed curve/RIR machinery used by the canonical strength posterior. */
+    val repetitionCurveRegistry: com.training.trackplanner.analysis.strengthperformance.curve.RepetitionCurveRegistry? = null,
+    val rpeRirPolicy: com.training.trackplanner.analysis.strengthperformance.RpeRirPolicy? = null,
+    /** Personal curve posterior means keyed by the canonical curve subject key. */
+    val strengthPersonalCurveTheta: Map<String, Double> = emptyMap(),
     /** Immutable local posterior history already loaded for the planning cutoff. */
     val strengthPerformanceHistory: List<com.training.trackplanner.data.StrengthExercisePerformanceHistoryEntity> = emptyList(),
     /** Phase A/B2 shadow evidence; immutable and deliberately excluded from planner authority. */
