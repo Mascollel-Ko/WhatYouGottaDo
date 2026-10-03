@@ -11,6 +11,7 @@ import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.WorkoutSet
+import com.training.trackplanner.data.isAnalysisEligibleCompletedSet
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import kotlin.math.max
@@ -109,7 +110,7 @@ class DailyFatigueCalculator(
         dailyMetrics: List<DailyMetric>
     ): RecordContext? {
         val date = runCatching { LocalDate.parse(record.entry.date) }.getOrNull() ?: return null
-        val confirmedSets = record.sets.filter { it.confirmed }
+        val confirmedSets = record.sets.filter { it.isAnalysisEligibleCompletedSet() }
         val exercise = exerciseMap[record.entry.exerciseStableKey] ?: return null
         if (confirmedSets.isEmpty()) return null
         val metadata = ResolvedFatigueMetadata.from(exercise, metadataCatalog.resolve(exercise))

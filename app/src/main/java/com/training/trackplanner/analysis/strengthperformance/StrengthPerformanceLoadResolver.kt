@@ -4,6 +4,7 @@ import com.training.trackplanner.data.DailyCheckIn
 import com.training.trackplanner.data.DailyMetric
 import com.training.trackplanner.data.InitialUserProfile
 import com.training.trackplanner.data.WorkoutSet
+import com.training.trackplanner.data.ProgramLoadState
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
@@ -49,6 +50,9 @@ class StrengthPerformanceLoadResolver(
     }
 
     fun resolve(date: LocalDate, set: WorkoutSet, semantics: StrengthLoadSemantics): ResolvedStrengthLoad {
+        if (set.loadState == ProgramLoadState.USER_CALIBRATION_REQUIRED) {
+            return unresolved(set.weightKg, semantics)
+        }
         val rawLoad = set.weightKg.takeIf { value -> value.isFinite() && value >= 0.0 }
             ?: return unresolved(set.weightKg, semantics)
         if (semantics in EXTERNAL_SEMANTICS) {

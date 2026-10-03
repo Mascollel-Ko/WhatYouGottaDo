@@ -2,6 +2,7 @@ package com.training.trackplanner.analysis.coach
 
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.WorkoutEntryWithSets
+import com.training.trackplanner.data.isAnalysisEligibleCompletedSet
 import java.time.LocalDate
 import kotlin.math.abs
 
@@ -19,7 +20,7 @@ class RpeAutoregulationAnalyzer {
                 ?: record.entry.backupSourceId?.takeIf(String::isNotBlank)?.let { "unresolved-backup:$it" }
                 ?: record.entry.id.takeIf { it > 0L }?.let { "unresolved-workout-entry:$it" }
                 ?: "unresolved:${record.entry.date}:${record.entry.displayOrder}:${record.entry.createdAt}"
-            record.sets.filter { it.confirmed }.mapNotNull { set ->
+            record.sets.filter { it.isAnalysisEligibleCompletedSet() }.mapNotNull { set ->
                 val rpe = set.rpe ?: record.entry.rpe ?: return@mapNotNull null
                 RpeObservation(
                     date = date,

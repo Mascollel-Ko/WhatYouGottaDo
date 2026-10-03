@@ -162,9 +162,11 @@ internal object ProgramProgressionWireCodec {
         .put("originalReps", value.originalReps)
         .put("originalKg", value.originalKg)
         .put("originalSeconds", value.originalSeconds)
+        .put("originalLoadState", value.originalLoadState.name)
         .put("plannedReps", value.plannedReps)
         .put("plannedKg", value.plannedKg)
         .put("plannedSeconds", value.plannedSeconds)
+        .put("plannedLoadState", value.plannedLoadState.name)
         .also { json ->
             value.originalTargetRpeMin?.let { json.put("originalTargetRpeMin", it) }
             value.plannedTargetRpeMin?.let { json.put("plannedTargetRpeMin", it) }
@@ -178,10 +180,14 @@ internal object ProgramProgressionWireCodec {
         originalReps = json.getInt("originalReps"),
         originalKg = json.getDouble("originalKg"),
         originalSeconds = json.getInt("originalSeconds"),
+        originalLoadState = json.optString("originalLoadState").takeIf(String::isNotBlank)
+            ?.let { runCatching { ProgramLoadState.valueOf(it) }.getOrNull() } ?: ProgramLoadState.EXPLICIT_LOAD,
         originalTargetRpeMin = if (json.isNull("originalTargetRpeMin")) null else json.optDouble("originalTargetRpeMin").validatedTargetRpeMin(),
         plannedReps = json.getInt("plannedReps"),
         plannedKg = json.getDouble("plannedKg"),
         plannedSeconds = json.getInt("plannedSeconds"),
+        plannedLoadState = json.optString("plannedLoadState").takeIf(String::isNotBlank)
+            ?.let { runCatching { ProgramLoadState.valueOf(it) }.getOrNull() } ?: ProgramLoadState.EXPLICIT_LOAD,
         plannedTargetRpeMin = if (json.isNull("plannedTargetRpeMin")) null else json.optDouble("plannedTargetRpeMin").validatedTargetRpeMin()
     )
 

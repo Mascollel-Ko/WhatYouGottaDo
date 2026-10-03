@@ -148,7 +148,7 @@ internal class CalendarRecordService(
             } catch (error: DateTimeException) {
                 throw IllegalArgumentException("dayCount overflows LocalDate", error)
             }
-            ShiftedPlan(record, targetDate, record.sets.filterNot(WorkoutSet::confirmed))
+            ShiftedPlan(record, targetDate, record.sets.filterNot(WorkoutSet::isAnalysisEligibleCompletedSet))
         }
         val affectedDates = shifted.flatMap { listOf(it.source.entry.date, it.targetDate) }.distinct()
 
@@ -157,7 +157,7 @@ internal class CalendarRecordService(
             val progressionPrescriptions = db.programProgressionDao().prescriptions().groupBy { it.entryId }
             shifted.forEach { item ->
                 item.plannedSets.forEach { workoutDao.deleteSet(it) }
-                val confirmed = item.source.sets.filter(WorkoutSet::confirmed).sortedBy(WorkoutSet::setIndex)
+                val confirmed = item.source.sets.filter(WorkoutSet::isAnalysisEligibleCompletedSet).sortedBy(WorkoutSet::setIndex)
                 if (confirmed.isEmpty()) {
                     workoutDao.deleteEntryById(item.source.entry.id)
                 } else {
@@ -175,7 +175,7 @@ internal class CalendarRecordService(
                 items.sortedWith(compareBy({ it.source.entry.date }, { it.source.entry.createdAt }, { it.source.entry.id }))
                     .forEach { item ->
                         beforePlanShiftInsert(insertIndex++)
-                        val sourceHadConfirmed = item.source.sets.any(WorkoutSet::confirmed)
+                        val sourceHadConfirmed = item.source.sets.any(WorkoutSet::isAnalysisEligibleCompletedSet)
                         val entryId = workoutDao.insertEntry(
                             item.source.entry.copy(
                                 id = 0,

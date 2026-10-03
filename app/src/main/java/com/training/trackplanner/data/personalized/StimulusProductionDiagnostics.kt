@@ -3,7 +3,7 @@ package com.training.trackplanner.data.personalized
 import com.training.trackplanner.data.TrainableQuality
 
 enum class StimulusProductionScopeResolutionStatus {
-    RESOLVED_STRENGTH, RESOLVED_HYPERTROPHY, RESOLVED_STRENGTH_HYPERTROPHY,
+    RESOLVED_STRENGTH, RESOLVED_STRENGTH_CALIBRATION, RESOLVED_HYPERTROPHY, RESOLVED_STRENGTH_HYPERTROPHY,
     NO_MATERIAL, MISSING_PROVENANCE, PARTIAL_PROVENANCE, UNKNOWN_TARGET,
     UNSUPPORTED_QUALITY, AMBIGUOUS_MATERIAL_SCOPE
 }
@@ -36,7 +36,8 @@ internal fun observeProductionScope(
     val attributions = audit?.changeAttributions.orEmpty().filter {
         it.source in setOf(StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY,
             StimulusExperimentalChangeAttributionSource.B6_EXISTING_OWNER_PRESCRIPTION,
-            StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION) &&
+            StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION,
+            StimulusExperimentalChangeAttributionSource.B6_COLD_START_USER_CALIBRATION) &&
             it.stableKey != null && it.selectionRole != null &&
             StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) in owners
     }
@@ -67,6 +68,7 @@ internal fun observeProductionScope(
     if (targetIds.any { id -> id in governed && !id.startsWith("QUALITY:") }) reasons += "UNSUPPORTED_TARGET_COMBINATION"
     val status = when {
         scope == StimulusProductionCutoverScope.STRENGTH_V1 -> StimulusProductionScopeResolutionStatus.RESOLVED_STRENGTH
+        scope == StimulusProductionCutoverScope.STRENGTH_CALIBRATION_V1 -> StimulusProductionScopeResolutionStatus.RESOLVED_STRENGTH_CALIBRATION
         scope == StimulusProductionCutoverScope.HYPERTROPHY_V1 -> StimulusProductionScopeResolutionStatus.RESOLVED_HYPERTROPHY
         scope == StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1 -> StimulusProductionScopeResolutionStatus.RESOLVED_STRENGTH_HYPERTROPHY
         audit == null -> StimulusProductionScopeResolutionStatus.MISSING_PROVENANCE
@@ -119,7 +121,10 @@ internal data class StimulusProductionDiagnostics(
                         (StimulusPrescriptionOwnerIdentity(owner.stableKey, owner.selectionRole) in resolution?.materialOwnerIdentities.orEmpty() && quality in resolution?.materialQualities.orEmpty())) && (authorization.status !in setOf(
                     StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
                     StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR) ||
-                    authorization.executionAuthority != StimulusPrescriptionExecutionAuthority.FULLY_ENCODED)
+                    authorization.executionAuthority != StimulusPrescriptionExecutionAuthority.FULLY_ENCODED) &&
+                        !(resolution?.scope == StimulusProductionCutoverScope.STRENGTH_CALIBRATION_V1 &&
+                            authorization.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION &&
+                            authorization.executionAuthority == StimulusPrescriptionExecutionAuthority.REQUIRES_USER_LOAD_INPUT)
             }
             val failedMaterializations = comparison?.prescriptionMaterializationAudits.orEmpty().filter { materialization ->
                 val owner = materialization.owner
@@ -128,7 +133,10 @@ internal data class StimulusProductionDiagnostics(
                     (StimulusPrescriptionAuthorityIdentity(owner.stableKey, owner.selectionRole, quality) in resolution?.materialAuthorityIdentities.orEmpty() ||
                         (StimulusPrescriptionOwnerIdentity(owner.stableKey, owner.selectionRole) in resolution?.materialOwnerIdentities.orEmpty() && quality in resolution?.materialQualities.orEmpty())) &&
                     (materialization.state != StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED ||
-                        materialization.executionAuthority != StimulusPrescriptionExecutionAuthority.FULLY_ENCODED)
+                        materialization.executionAuthority != StimulusPrescriptionExecutionAuthority.FULLY_ENCODED) &&
+                    !(resolution?.scope == StimulusProductionCutoverScope.STRENGTH_CALIBRATION_V1 &&
+                        materialization.state == StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED &&
+                        materialization.executionAuthority == StimulusPrescriptionExecutionAuthority.REQUIRES_USER_LOAD_INPUT)
             }
             val primary = when {
                 route.selectedSource != StimulusProductionProgramSource.CONTROL -> null

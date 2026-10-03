@@ -163,7 +163,9 @@ data class WorkoutSet(
     val confirmed: Boolean = false,
     val manualWeight: Boolean = false,
     val rpe: Double? = null,
-    val restSecondsOverride: Int? = null
+    val restSecondsOverride: Int? = null,
+    val loadState: ProgramLoadState = ProgramLoadState.EXPLICIT_LOAD,
+    val targetRpeMin: Double? = null
 )
 
 @Entity(tableName = "daily_metrics")
@@ -335,7 +337,8 @@ data class TrainingProgramItemSet(
     val reps: Int = 0,
     val weightKg: Double = 0.0,
     val seconds: Int = 0,
-    val targetRpeMin: Double? = null
+    val targetRpeMin: Double? = null,
+    val loadState: ProgramLoadState = ProgramLoadState.EXPLICIT_LOAD
 )
 
 @Entity(

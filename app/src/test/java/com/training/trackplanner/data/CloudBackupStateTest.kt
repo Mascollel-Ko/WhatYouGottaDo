@@ -243,6 +243,11 @@ class CloudBackupStateTest {
             File("app/schemas/com.training.trackplanner.data.TrainingDatabase/32.json")).first { it.exists() }
         val schema = JSONObject(schemaFile.readText()).getJSONObject("database").getJSONArray("entities")
         val tables = (0 until schema.length()).map { schema.getJSONObject(it).getString("tableName") }
+        val originalColumnsByTable = (0 until schema.length()).associate { index ->
+            val entity = schema.getJSONObject(index)
+            val fields = entity.getJSONArray("fields")
+            entity.getString("tableName") to (0 until fields.length()).map { fields.getJSONObject(it).getString("columnName") }
+        }
         val helper = FrameworkSQLiteOpenHelperFactory().create(SupportSQLiteOpenHelper.Configuration.builder(context)
             .name(name).callback(object : SupportSQLiteOpenHelper.Callback(32) {
                 override fun onCreate(db: SupportSQLiteDatabase) {
@@ -270,16 +275,19 @@ class CloudBackupStateTest {
                 override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
             }).build())
         fun snapshot(db: SupportSQLiteDatabase) = tables.associateWith { table ->
-            db.query("SELECT * FROM `$table` ORDER BY rowid").use { c -> buildList {
+            val columns = originalColumnsByTable.getValue(table).joinToString { "`$it`" }
+            db.query("SELECT $columns FROM `$table` ORDER BY rowid").use { c -> buildList {
                 while (c.moveToNext()) add((0 until c.columnCount).map { if (c.isNull(it)) null else c.getString(it) })
             } }
         }
         val before = snapshot(helper.writableDatabase); helper.close()
         val db = Room.databaseBuilder(context, TrainingDatabase::class.java, name).allowMainThreadQueries()
-            .addMigrations(MIGRATION_32_33, TrainingDatabase.MIGRATION_33_34, TrainingDatabase.MIGRATION_34_35).build()
+            .addMigrations(MIGRATION_32_33, TrainingDatabase.MIGRATION_33_34, TrainingDatabase.MIGRATION_34_35,
+                TrainingDatabase.MIGRATION_35_36).build()
         try {
             val state = state(db)
             assertEquals(before, snapshot(db.openHelper.writableDatabase))
+            assertEquals(ProgramLoadState.EXPLICIT_LOAD, db.workoutDao().findSetById(1L)?.loadState)
             UUID.fromString(state.installId); assertNull(state.localBaseBackupId); assertNull(state.accountUserId)
             assertNull(state.lastSuccessfulBackupId); assertNull(state.lastLocalChangeAt)
             assertEquals(1L, state.localRevision); assertTrue(state.cloudBackupPending)

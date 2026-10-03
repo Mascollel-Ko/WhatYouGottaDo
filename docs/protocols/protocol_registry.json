@@ -1377,7 +1377,7 @@
       "familyId": "PROGRAM_BUILDER",
       "titleKo": "자동·기록 기반 프로그램 생성 개요",
       "titleEn": "Automatic and Record-Based Program Builder Overview",
-      "currentVersion": "3.51.0",
+      "currentVersion": "3.52.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1492,7 +1492,13 @@
         "app/src/test/java/com/training/trackplanner/data/ProgramEffortPersistenceTest.kt",
         "app/src/main/java/com/training/trackplanner/data/personalized/StimulusRealizationPrescriptionInputs.kt",
         "app/src/main/java/com/training/trackplanner/data/personalized/StimulusExperimentalReadiness.kt",
-        "docs/c10_allocator_provenance_audit.md"
+        "docs/c10_allocator_provenance_audit.md",
+        "app/src/main/java/com/training/trackplanner/data/ProgramLoadState.kt",
+        "app/src/main/java/com/training/trackplanner/data/personalized/ColdStartStrengthCalibration.kt",
+        "app/src/main/java/com/training/trackplanner/data/RecordMutationService.kt",
+        "app/src/main/java/com/training/trackplanner/PlanGeneratedPreview.kt",
+        "app/src/main/java/com/training/trackplanner/RecordEntryCard.kt",
+        "app/src/main/java/com/training/trackplanner/RecordSetRow.kt"
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/data/StimulusSelectionServiceIntegrationTest.kt",
@@ -1570,7 +1576,14 @@
         "app/src/test/java/com/training/trackplanner/data/personalized/StimulusExperimentalReadinessTest.kt",
         "app/src/test/java/com/training/trackplanner/data/StimulusProductionCoverageAuditTest.kt",
         "app/src/test/java/com/training/trackplanner/data/personalized/OwnerAllocationProvenanceTest.kt",
-        "app/src/test/java/com/training/trackplanner/data/C10OriginMutationInvestigationTest.kt"
+        "app/src/test/java/com/training/trackplanner/data/C10OriginMutationInvestigationTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/personalized/ColdStartStrengthCalibrationTest.kt",
+        "app/src/test/java/com/training/trackplanner/RecordSetEditUiTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/RecordMutationServiceTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/ProgramEffortPersistenceTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/ProgramEffortMigrationTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/RecordCsvBackupRestoreTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/CommunityProgramSnapshotCodecTest.kt"
       ],
       "authorityAssets": [
         "app/src/main/assets/training_settings_seed.csv",

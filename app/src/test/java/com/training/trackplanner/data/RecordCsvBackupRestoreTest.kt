@@ -100,6 +100,35 @@ class RecordCsvBackupRestoreTest {
     }
 
     @Test
+    fun coldStartLoadIntentAndEffortSurviveCsvWhileInvalidConfirmationFailsClosed() {
+        val entry = WorkoutEntry(
+            id = 11, date = "2026-06-15", exerciseStableKey = "barbell_bench_press",
+            exerciseName = "벤치프레스", category = "근력운동"
+        )
+        val set = WorkoutSet(
+            id = 12, entryId = 11, setIndex = 1, reps = 6, weightKg = 0.0,
+            loadState = ProgramLoadState.USER_CALIBRATION_REQUIRED, targetRpeMin = 6.5
+        )
+        val csv = RecordCsvBackupRestore.buildRestoreCsv(
+            entriesWithSets = listOf(WorkoutEntryWithSets(entry, listOf(set))),
+            metrics = emptyList()
+        )
+        val restored = RecordCsvBackupRestore.parse(csv) as RecordCsvImportData.Restore
+        assertEquals(ProgramLoadState.USER_CALIBRATION_REQUIRED, restored.setRows.single().setLoadState)
+        assertEquals(6.5, restored.setRows.single().targetRpeMin ?: 0.0, 0.0)
+        assertFalse(restored.setRows.single().setConfirmed)
+
+        val malformed = RecordCsvBackupRestore.buildRestoreCsv(
+            entriesWithSets = listOf(WorkoutEntryWithSets(entry, listOf(set.copy(confirmed = true)))),
+            metrics = emptyList()
+        )
+        val failedClosed = RecordCsvBackupRestore.parse(malformed) as RecordCsvImportData.Restore
+        assertFalse(failedClosed.setRows.single().confirmed)
+        assertFalse(failedClosed.setRows.single().setConfirmed)
+        assertEquals(ProgramLoadState.USER_CALIBRATION_REQUIRED, failedClosed.setRows.single().setLoadState)
+    }
+
+    @Test
     fun restoreCsvExportsAndParsesExerciseMasterRows() {
         val exercise = Exercise(
             name = "Test Squat",

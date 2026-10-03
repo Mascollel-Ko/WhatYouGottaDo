@@ -7,6 +7,7 @@ import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 import com.training.trackplanner.data.WorkoutEntryWithSets
+import com.training.trackplanner.data.isAnalysisEligibleCompletedSet
 import java.time.LocalDate
 import java.util.Locale
 
@@ -31,7 +32,7 @@ class CourtDurationRecoveryAnalyzer {
                 val exercise = exerciseById[record.entry.exerciseStableKey] ?: return@mapNotNull null
                 val metadata = runtimeMetadataCatalog.resolve(exercise) ?: return@mapNotNull null
                 if (!metadata.isCourtSession()) return@mapNotNull null
-                val seconds = record.sets.filter { it.confirmed }.sumOf { it.seconds }
+                val seconds = record.sets.filter { it.isAnalysisEligibleCompletedSet() }.sumOf { it.seconds }
                 if (seconds <= 0) return@mapNotNull null
                 date to seconds / 60.0
             }

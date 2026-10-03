@@ -41,6 +41,7 @@ import com.training.trackplanner.data.RecordSetEdit
 import com.training.trackplanner.data.RecordSetField.*
 import com.training.trackplanner.data.edit
 import com.training.trackplanner.data.WorkoutSet
+import com.training.trackplanner.data.ProgramLoadState
 
 
 @Composable
@@ -59,7 +60,9 @@ internal fun WorkoutSetRow(
     onStartRestTimer: (WorkoutSet, Int) -> Unit
 ) {
     var repsText by rememberSaveable(set.id) { mutableStateOf(set.reps.toString()) }
-    var weightText by rememberSaveable(set.id) { mutableStateOf(formatDecimal(set.weightKg)) }
+    var weightText by rememberSaveable(set.id, set.loadState) {
+        mutableStateOf(if (set.loadState == ProgramLoadState.USER_CALIBRATION_REQUIRED) "" else formatDecimal(set.weightKg))
+    }
     var secondsText by rememberSaveable(set.id) { mutableStateOf(set.seconds.toString()) }
     var sportHoursText by rememberSaveable(set.id) { mutableStateOf(totalDurationToHoursMinutes(set.seconds).hours.toString()) }
     var sportMinutesText by rememberSaveable(set.id) { mutableStateOf(totalDurationToHoursMinutes(set.seconds).minutes.toString()) }
@@ -74,9 +77,9 @@ internal fun WorkoutSetRow(
     val effectiveRestSeconds = set.restSecondsOverride ?: entry.restSeconds
     val isTimerTarget = timerState.targetEntryId == entry.id && timerState.targetSetId == set.id
 
-    LaunchedEffect(set.reps, set.weightKg, set.seconds) {
+    LaunchedEffect(set.reps, set.weightKg, set.seconds, set.loadState) {
         if (!repsFocused) repsText = set.reps.toString()
-        if (!weightFocused) weightText = formatDecimal(set.weightKg)
+        if (!weightFocused) weightText = if (set.loadState == ProgramLoadState.USER_CALIBRATION_REQUIRED) "" else formatDecimal(set.weightKg)
         if (!secondsFocused) secondsText = set.seconds.toString()
         if (!sportDurationFocused) {
             val parts = totalDurationToHoursMinutes(set.seconds)
@@ -137,7 +140,8 @@ internal fun WorkoutSetRow(
                 val updated = when (field) {
                     SetEditField.Weight -> {
                         val kg = value.toDoubleOrNull() ?: 0.0
-                        set.copy(weightKg = kg, manualWeight = value.isNotBlank())
+                        set.copy(weightKg = kg, manualWeight = value.isNotBlank(),
+                            loadState = if (kg > 0.0) ProgramLoadState.EXPLICIT_LOAD else set.loadState)
                     }
                     SetEditField.Reps -> set.copy(reps = value.toIntOrNull() ?: 0)
                     SetEditField.Seconds -> set.copy(seconds = value.toIntOrNull() ?: 0)
@@ -274,8 +278,9 @@ internal fun WorkoutSetRow(
                     }
                 )
                 if (showWeight) {
+                    Column(modifier = Modifier.width(68.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     CompactNumberField(
-                        modifier = Modifier.width(62.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         value = weightText,
                         suffix = "kg",
                         keyboardType = KeyboardType.Decimal,
@@ -286,7 +291,8 @@ internal fun WorkoutSetRow(
                                     onUpdateSet(
                                         set.copy(
                                             weightKg = kg,
-                                            manualWeight = true
+                                            manualWeight = true,
+                                            loadState = if (kg > 0.0) ProgramLoadState.EXPLICIT_LOAD else set.loadState
                                         ).edit(WEIGHT)
                                     )
                                     if (kg > 0.0 && kg != set.weightKg) {
@@ -299,6 +305,9 @@ internal fun WorkoutSetRow(
                             weightFocused = focused
                             weightText = if (focused) {
                                 NumericInputTextPolicy.onFocus(weightText)
+                            } else if (set.loadState == ProgramLoadState.USER_CALIBRATION_REQUIRED &&
+                                (weightText.toDoubleOrNull() ?: 0.0) <= 0.0) {
+                                ""
                             } else {
                                 NumericInputTextPolicy.onBlur(weightText).also { restored ->
                                     if (restored == "0") {
@@ -308,6 +317,15 @@ internal fun WorkoutSetRow(
                             }
                         }
                     )
+                    if (set.loadState == ProgramLoadState.USER_CALIBRATION_REQUIRED) {
+                        Text(
+                        text = stringResource(R.string.cold_start_choose_weight_compact),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1
+                        )
+                    }
+                    }
                 } else if (isSportDurationInput) {
                     CompactNumberField(
                         modifier = Modifier.width(62.dp),
@@ -378,9 +396,11 @@ internal fun WorkoutSetRow(
                     Checkbox(
                         modifier = Modifier.size(40.dp),
                         checked = set.confirmed,
-                        enabled = !isSportDurationInput || set.seconds > 0 || set.confirmed,
+                        enabled = (!isSportDurationInput || set.seconds > 0 || set.confirmed) &&
+                            (set.loadState != ProgramLoadState.USER_CALIBRATION_REQUIRED || set.confirmed),
                         onCheckedChange = { checked ->
-                            if (checked && isSportDurationInput && set.seconds <= 0) return@Checkbox
+                            if (checked && (isSportDurationInput && set.seconds <= 0 ||
+                                    set.loadState == ProgramLoadState.USER_CALIBRATION_REQUIRED)) return@Checkbox
                             val updated = set.copy(confirmed = checked)
                             onUpdateSet(updated.edit(CONFIRMATION))
                             if (checked && !set.confirmed && effectiveRestSeconds > 0) {

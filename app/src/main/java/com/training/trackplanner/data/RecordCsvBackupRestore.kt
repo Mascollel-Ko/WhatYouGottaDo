@@ -178,7 +178,9 @@ data class RestoreSetRow(
     val entryFirstConfirmedAt: Long? = null,
     val entryPerformedAt: Long? = null,
     val setManualWeight: Boolean? = null,
-    val setRestSecondsOverride: Int? = null
+    val setRestSecondsOverride: Int? = null,
+    val setLoadState: ProgramLoadState? = null,
+    val targetRpeMin: Double? = null
 )
 
 data class ProgramBackupItem(
@@ -209,7 +211,8 @@ data class ProgramBackupItemSet(
     val reps: Int,
     val weightKg: Double,
     val seconds: Int,
-    val targetRpeMin: Double? = null
+    val targetRpeMin: Double? = null,
+    val loadState: ProgramLoadState = ProgramLoadState.EXPLICIT_LOAD
 )
 
 data class RestoreProgramSnapshot(
@@ -269,6 +272,7 @@ object RecordCsvBackupRestore {
         "set_confirmed",
         "set_manual_weight",
         "set_rest_seconds_override",
+        "set_load_state",
         "reps",
         "weight_kg",
         "seconds",
@@ -394,6 +398,8 @@ object RecordCsvBackupRestore {
         "program_training_slot",
         "program_day_intensity",
         "program_weight_source",
+        "target_rpe_min",
+        "program_set_load_state",
         "program_tombstone_deleted_at",
         "program_tombstone_seed_version"
     )
@@ -554,7 +560,8 @@ object RecordCsvBackupRestore {
                         "reps" to set.reps.toString(),
                         "weight_kg" to set.weightKg.formatNumber(),
                         "seconds" to set.seconds.toString(),
-                        "target_rpe_min" to set.targetRpeMin?.formatNumber().orEmpty()
+                        "target_rpe_min" to set.targetRpeMin?.formatNumber().orEmpty(),
+                        "program_set_load_state" to set.loadState.name
                     )
                 )
             }
@@ -826,6 +833,8 @@ object RecordCsvBackupRestore {
                                 "set_confirmed" to set.confirmed.toCsvBool(),
                                 "set_manual_weight" to set.manualWeight.toCsvBool(),
                                 "set_rest_seconds_override" to set.restSecondsOverride?.toString().orEmpty(),
+                                "set_load_state" to set.loadState.name,
+                                "target_rpe_min" to set.targetRpeMin?.formatNumber().orEmpty(),
                                 "reps" to set.reps.toString(),
                                 "weight_kg" to set.weightKg.formatNumber(),
                                 "seconds" to set.seconds.toString(),
@@ -1191,7 +1200,10 @@ object RecordCsvBackupRestore {
                         reps = row.requiredInt(index, "reps", rowType),
                         weightKg = row.requiredDouble(index, "weight_kg", rowType),
                         seconds = row.requiredInt(index, "seconds", rowType),
-                        targetRpeMin = row.safeDouble(index, "target_rpe_min")?.validatedTargetRpeMin()
+                        targetRpeMin = row.safeDouble(index, "target_rpe_min")?.validatedTargetRpeMin(),
+                        loadState = row.value(index, "program_set_load_state").takeIf(String::isNotBlank)
+                            ?.let { runCatching { ProgramLoadState.valueOf(it) }.getOrNull() }
+                            ?: ProgramLoadState.EXPLICIT_LOAD
                     )
                     return@forEachIndexed
                 }
@@ -1424,37 +1436,50 @@ object RecordCsvBackupRestore {
                     sleepHours = row.safeSleepHours(index),
                     bodyWeightKg = row.safeDouble(index, "body_weight_kg")
                 )
-                "set" -> setRows += RestoreSetRow(
-                    date = date,
-                    entryKey = row.value(index, "entry_key").ifBlank { "fallback-$date-$rowIndex" },
-                    entryOrder = row.safeInt(index, "entry_order") ?: rowIndex + 1,
-                    exerciseName = row.value(index, "exercise_name").ifBlank { "CSV 복원 운동" },
-                    stableKey = row.value(index, "stable_key"),
-                    category = row.value(index, "category").ifBlank { "근력운동" },
-                    confirmed = row.safeBool(index, "confirmed") ?: true,
-                    restSeconds = row.safeInt(index, "rest_seconds") ?: 60,
-                    rpe = row.safeDouble(index, "rpe"),
-                    maxReps = row.safeInt(index, "max_reps"),
-                    notes = row.value(index, "notes"),
-                    setIndex = row.safeInt(index, "set_index") ?: 1,
-                    setConfirmed = row.safeBool(index, "set_confirmed")
+                "set" -> {
+                    val rowWeight = row.safeDouble(index, "weight_kg") ?: 0.0
+                    val rowLoadState = row.value(index, "set_load_state").takeIf(String::isNotBlank)
+                        ?.let { runCatching { ProgramLoadState.valueOf(it) }.getOrNull() }
+                        ?: ProgramLoadState.EXPLICIT_LOAD
+                    val hasRequiredLoad = rowLoadState != ProgramLoadState.USER_CALIBRATION_REQUIRED || rowWeight > 0.0
+                    val entryConfirmed = (row.safeBool(index, "confirmed") ?: true) && hasRequiredLoad
+                    val setConfirmed = (row.safeBool(index, "set_confirmed")
                         ?: row.safeBool(index, "confirmed")
-                        ?: true,
-                    reps = row.safeInt(index, "reps") ?: 0,
-                    weightKg = row.safeDouble(index, "weight_kg") ?: 0.0,
-                    seconds = row.safeInt(index, "seconds") ?: 0,
-                    sleepHours = row.safeSleepHours(index),
-                    bodyWeightKg = row.safeDouble(index, "body_weight_kg"),
-                    entrySourceId = row.value(index, "entry_source_id").ifBlank { null },
-                    sessionStableKey = row.value(index, "session_stable_key").ifBlank { null },
-                    entryCreatedAt = row.safeLong(index, "entry_created_at"),
-                    entryCompletedAt = row.safeLong(index, "entry_completed_at"),
-                    entryDisplayOrder = row.safeInt(index, "entry_display_order"),
-                    entryFirstConfirmedAt = row.safeLong(index, "entry_first_confirmed_at"),
-                    entryPerformedAt = row.safeLong(index, "entry_performed_at"),
-                    setManualWeight = row.safeBool(index, "set_manual_weight"),
-                    setRestSecondsOverride = row.safeInt(index, "set_rest_seconds_override")
-                )
+                        ?: true) && hasRequiredLoad
+                    if (!hasRequiredLoad) warnings += 1
+                    setRows += RestoreSetRow(
+                        date = date,
+                        entryKey = row.value(index, "entry_key").ifBlank { "fallback-$date-$rowIndex" },
+                        entryOrder = row.safeInt(index, "entry_order") ?: rowIndex + 1,
+                        exerciseName = row.value(index, "exercise_name").ifBlank { "CSV 복원 운동" },
+                        stableKey = row.value(index, "stable_key"),
+                        category = row.value(index, "category").ifBlank { "근력운동" },
+                        confirmed = entryConfirmed,
+                        restSeconds = row.safeInt(index, "rest_seconds") ?: 60,
+                        rpe = row.safeDouble(index, "rpe"),
+                        maxReps = row.safeInt(index, "max_reps"),
+                        notes = row.value(index, "notes"),
+                        setIndex = row.safeInt(index, "set_index") ?: 1,
+                        setConfirmed = setConfirmed,
+                        reps = row.safeInt(index, "reps") ?: 0,
+                        weightKg = rowWeight,
+                        seconds = row.safeInt(index, "seconds") ?: 0,
+                        sleepHours = row.safeSleepHours(index),
+                        bodyWeightKg = row.safeDouble(index, "body_weight_kg"),
+                        entrySourceId = row.value(index, "entry_source_id").ifBlank { null },
+                        sessionStableKey = row.value(index, "session_stable_key").ifBlank { null },
+                        entryCreatedAt = row.safeLong(index, "entry_created_at"),
+                        entryCompletedAt = row.safeLong(index, "entry_completed_at"),
+                        entryDisplayOrder = row.safeInt(index, "entry_display_order"),
+                        entryFirstConfirmedAt = row.safeLong(index, "entry_first_confirmed_at"),
+                        entryPerformedAt = row.safeLong(index, "entry_performed_at"),
+                        setManualWeight = row.safeBool(index, "set_manual_weight"),
+                        setRestSecondsOverride = row.safeInt(index, "set_rest_seconds_override"),
+                        setLoadState = if (rowLoadState == ProgramLoadState.USER_CALIBRATION_REQUIRED && rowWeight > 0.0)
+                            ProgramLoadState.EXPLICIT_LOAD else rowLoadState,
+                        targetRpeMin = row.safeDouble(index, "target_rpe_min")?.validatedTargetRpeMin()
+                    )
+                }
                 "check_in" -> {
                     val candidate = RestoreCheckInRow(
                         date = date,

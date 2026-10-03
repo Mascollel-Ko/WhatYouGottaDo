@@ -45,7 +45,10 @@ class CommunityProgramSnapshotCodecTest {
                 weightKg = 80.0
             )
         )
-        source.programDao().insertProgramItemSets(listOf(TrainingProgramItemSet(programItemId = itemId, setIndex = 1, reps = 5, weightKg = 80.0)))
+        source.programDao().insertProgramItemSets(listOf(TrainingProgramItemSet(
+            programItemId = itemId, setIndex = 1, reps = 5, weightKg = 0.0,
+            targetRpeMin = 6.5, loadState = ProgramLoadState.USER_CALIBRATION_REQUIRED
+        )))
         val program = source.programDao().findProgram(sourceProgramId)!!
         val track = ProgramProgressionTrack(programStableKey = program.stableKey, exerciseStableKey = "squat", label = "Main")
         source.programProgressionDao().putTrack(track)
@@ -69,6 +72,9 @@ class CommunityProgramSnapshotCodecTest {
         assertNotEquals(program.stableKey, restoredProgram.stableKey)
         assertEquals(listOf("squat"), restored.programDao().itemsForProgram(restoredId).map { it.exerciseStableKey })
         assertEquals(1, restored.programDao().programItemSetsForProgram(restoredId).size)
+        assertEquals(ProgramLoadState.USER_CALIBRATION_REQUIRED,
+            restored.programDao().programItemSetsForProgram(restoredId).single().loadState)
+        assertEquals(6.5, restored.programDao().programItemSetsForProgram(restoredId).single().targetRpeMin ?: 0.0, 0.0)
         assertEquals(restoredProgram.stableKey, restored.programProgressionDao().tracks().single().programStableKey)
         assertEquals(restoredId, restored.programDao().itemsForProgram(restoredId).single().programId)
         assertEquals("public-program-1", restored.communityProgramImportDao().findBySourcePublicProgramId("public-program-1")?.sourcePublicProgramId)

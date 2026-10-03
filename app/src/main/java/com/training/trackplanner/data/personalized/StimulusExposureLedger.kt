@@ -379,7 +379,9 @@ class StimulusExposureLedgerBuilder(
                     .mapTo(mutableSetOf()) { it.objective.name }
             )
             if (activity == PlannedActivityKind.GENERIC_COURT_SESSION) {
-                val confirmed = record.sets.filter { it.confirmed }
+                val confirmed = record.sets.filter {
+                    it.confirmed && it.loadState != com.training.trackplanner.data.ProgramLoadState.USER_CALIBRATION_REQUIRED
+                }
                 val duration = confirmed.sumOf { it.seconds.coerceAtLeast(0) } / 60.0
                 if (duration > 0.0) {
                     val effectiveRpe = confirmed.mapNotNull { it.rpe }.takeIf(List<Double>::isNotEmpty)?.average() ?: record.entry.rpe
@@ -402,7 +404,9 @@ class StimulusExposureLedgerBuilder(
             if (activity == PlannedActivityKind.OTHER && stableKey !in exerciseMap && stableKey !in metadata) return@forEach
             // Preserve confirmed non-court source observations even when no reviewed facet exists.
             // They remain outside canonical direct/supportive counts through the explicit authority.
-            record.sets.filter { it.confirmed }.forEach { set ->
+            record.sets.filter {
+                it.confirmed && it.loadState != com.training.trackplanner.data.ProgramLoadState.USER_CALIBRATION_REQUIRED
+            }.forEach { set ->
                 val directQualities = profile.physicalQualities
                     .filter { it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY }
                     .mapTo(linkedSetOf()) { it.qualityId }

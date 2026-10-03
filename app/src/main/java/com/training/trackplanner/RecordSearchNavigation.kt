@@ -2,6 +2,7 @@ package com.training.trackplanner
 
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.WorkoutSet
+import com.training.trackplanner.data.isAnalysisEligibleCompletedSet
 
 internal data class RecordSearchJumpRequest(
     val date: String,
@@ -26,7 +27,7 @@ internal object RecordSearchNavigation {
     ): Long? {
         if (request.date != selectedDate) return null
         return records.firstOrNull { record ->
-            record.sets.any(WorkoutSet::confirmed) &&
+            record.sets.any(WorkoutSet::isAnalysisEligibleCompletedSet) &&
                 sequenceOf(
                     record.entry.exerciseName,
                     currentExerciseNames[record.entry.exerciseStableKey].orEmpty()

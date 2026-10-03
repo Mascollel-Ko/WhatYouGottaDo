@@ -5,7 +5,8 @@ data class ProgramSetPrescription(
     val reps: Int,
     val weightKg: Double,
     val seconds: Int,
-    val targetRpeMin: Double? = null
+    val targetRpeMin: Double? = null,
+    val loadState: ProgramLoadState = ProgramLoadState.EXPLICIT_LOAD
 )
 
 internal fun Double?.validatedTargetRpeMin(): Double? = this?.takeIf { it.isFinite() && it in 1.0..10.0 }
@@ -24,7 +25,8 @@ internal object ProgramSetPrescriptionResolver {
             .sortedWith(compareBy<TrainingProgramItemSet> { it.setIndex }.thenBy { it.id })
             .takeIf(List<TrainingProgramItemSet>::isNotEmpty)
             ?.mapIndexed { index, set ->
-                ProgramSetPrescription(index + 1, set.reps, set.weightKg, set.seconds, set.targetRpeMin.validatedTargetRpeMin())
+                ProgramSetPrescription(index + 1, set.reps, set.weightKg, set.seconds,
+                    set.targetRpeMin.validatedTargetRpeMin(), set.loadState)
             }
             ?: List(item.setCount.coerceAtLeast(1)) { index ->
                 ProgramSetPrescription(index + 1, item.reps, item.weightKg, item.seconds)

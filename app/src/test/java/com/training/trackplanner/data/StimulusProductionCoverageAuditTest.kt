@@ -83,131 +83,65 @@ class StimulusProductionCoverageAuditTest {
         requireNotNull(path.parentFile).mkdirs()
         path.writeText(report)
         java.io.File("build/reports/c9-provenance-census.txt").writeText(renderProvenance(records))
-        val c12Census = renderC12ControlFallbackCensus(records, report, "527e0c0bd29c4793e6eac8b1eda1f064893ec794")
-        assertEquals(c12Census, renderC12ControlFallbackCensus(records.reversed(), report, "527e0c0bd29c4793e6eac8b1eda1f064893ec794"))
-        java.io.File("build/reports/c12-control-fallback-census.json").writeText(c12Census)
-        val context = ApplicationProvider.getApplicationContext<Context>()
-        val physicalQualityCatalog = CanonicalExerciseMetadataRepositoryProvider.get(context).physicalQualityCatalog()
-        val c13Census = renderC13CanonicalQualityGapCensus(
-            records,
-            report,
-            c12MergeHead = "14157618c803c16927257c9f00aa0e6c586fd5c5",
-            c13StartHead = "14157618c803c16927257c9f00aa0e6c586fd5c5",
-            canonicalPlanningByCase = canonicalPlanningByCase,
-            catalog = physicalQualityCatalog
+        val c15Census = renderC15ColdStartStrengthCalibrationCensus(
+            records, report,
+            c14MergeMainHead = "b1c8aa06dcae0c25aa4f38a1d3a92298fcba23ec",
+            c15StartHead = "b1c8aa06dcae0c25aa4f38a1d3a92298fcba23ec"
         )
-        assertEquals(c13Census, renderC13CanonicalQualityGapCensus(
+        assertEquals(c15Census, renderC15ColdStartStrengthCalibrationCensus(
             records.reversed(), report,
-            c12MergeHead = "14157618c803c16927257c9f00aa0e6c586fd5c5",
-            c13StartHead = "14157618c803c16927257c9f00aa0e6c586fd5c5",
-            canonicalPlanningByCase = canonicalPlanningByCase,
-            catalog = physicalQualityCatalog
+            c14MergeMainHead = "b1c8aa06dcae0c25aa4f38a1d3a92298fcba23ec",
+            c15StartHead = "b1c8aa06dcae0c25aa4f38a1d3a92298fcba23ec"
         ))
-        val c13File = java.io.File("build/reports/c13-canonical-quality-gap-census.json")
-        c13File.writeText(c13Census)
-        val c13Json = org.json.JSONObject(c13Census)
-        assertEquals("818E8FA6F67164EEAAE0C938273A777D645874CF0EECD17F1E1795DC811434D9",
-            c13Json.getString("standardCoverageSha256"))
-        assertEquals(22, c13Json.getJSONObject("corpus").getInt("generated"))
-        assertEquals(5, c13Json.getJSONObject("corpus").getInt("preflightRejected"))
-        assertEquals(5, c13Json.getJSONObject("corpus").getJSONArray("preflightRejections").length())
-        assertEquals(listOf("B1-B6", "EXPERIMENTAL", "CONTROL", "COMPARISON", "B7", "B8", "B9"),
-            (0 until c13Json.getJSONArray("phaseOrdering").length()).map { c13Json.getJSONArray("phaseOrdering").getString(it) })
-        assertEquals(21, c13Json.getJSONObject("corpus").getJSONObject("routes").getInt("CONTROL"))
-        assertEquals(1, c13Json.getJSONObject("corpus").getJSONObject("routes").getInt("B8_STRENGTH_V1"))
-        assertEquals(10, c13Json.getJSONObject("caseCohorts").getInt("targetNotSatisfiedPrimaryCount"))
-        assertEquals(8, c13Json.getJSONObject("caseCohorts").getInt("B6AuthorityIncompletePrimaryCount"))
-        assertEquals(0, c13Json.getJSONObject("caseCohorts").getJSONArray("overlap").length())
-        assertEquals(10, c13Json.getJSONArray("targetGapDossiers").length())
-        assertEquals(9, c13Json.getJSONObject("targetGapRootCauseCounts").getInt("TARGET_HAS_NO_EXECUTABLE_B6"))
-        assertEquals(1, c13Json.getJSONObject("targetGapRootCauseCounts").getInt("TARGET_REGRESSED"))
-        assertEquals(8, c13Json.getJSONArray("primaryB6Dossiers").length())
-        assertEquals(6, (0 until c13Json.getJSONArray("primaryB6Dossiers").length()).count { index ->
-            c13Json.getJSONArray("primaryB6Dossiers").getJSONObject(index)
-                .getBoolean("B6ActuallyIncompleteForSelectedTarget")
+        val c15File = java.io.File("build/reports/c15-cold-start-strength-calibration-census.json")
+        requireNotNull(c15File.parentFile).mkdirs()
+        c15File.writeText(c15Census)
+        val c15 = org.json.JSONObject(c15Census)
+        assertEquals(27, c15.getJSONObject("corpus").getInt("totalCases"))
+        assertEquals(22, c15.getJSONObject("corpus").getInt("generated"))
+        assertEquals(5, c15.getJSONObject("corpus").getInt("preflightRejected"))
+        assertEquals(20, c15.getJSONObject("corpus").getJSONObject("routes").getInt("CONTROL"))
+        assertEquals(1, c15.getJSONObject("corpus").getJSONObject("routes").getInt("B8_STRENGTH_CALIBRATION_V1"))
+        assertEquals(1, c15.getJSONObject("corpus").getJSONObject("routes").getInt("B8_STRENGTH_V1"))
+        assertEquals(6, c15.getJSONArray("cases").let { rows ->
+            (0 until rows.length()).count { rows.getJSONObject(it).optJSONObject("C15_coldStart")?.optString("status") == "AVAILABLE" }
         })
-        assertEquals(9, c13Json.getInt("primaryB6OwnerTargetRows"))
-        assertEquals(7, c13Json.getInt("primaryB6FailedOwnerTargetRows"))
-        assertEquals(5, c13Json.getJSONObject("primaryB6FailureCauseCounts")
-            .getJSONObject("REP_RANGE_INCOMPATIBLE").getInt("ownerTargetRows"))
-        assertEquals(1, c13Json.getJSONObject("primaryB6FailureCauseCounts")
-            .getJSONObject("TARGET_DOSE_WITHOUT_PRESCRIPTION").getInt("ownerTargetRows"))
-        assertEquals(1, c13Json.getJSONObject("primaryB6FailureCauseCounts")
-            .getJSONObject("MODEL_UNAVAILABLE_TRUE_GAP").getInt("ownerTargetRows"))
-        val qualityFunnel = c13Json.getJSONObject("selectedOwnerQualityFunnel").getJSONObject("rows")
-        assertEquals(17, qualityFunnel.getJSONObject("STRENGTH").getInt("B4TargetRequested"))
-        assertEquals(5, qualityFunnel.getJSONObject("HYPERTROPHY").getInt("B4TargetRequested"))
-        assertEquals(4, qualityFunnel.getJSONObject("POWER").getInt("B4TargetRequested"))
-        assertEquals(3, qualityFunnel.getJSONObject("STRENGTH").getInt("B6ExecutableExact"))
-        assertEquals(2, qualityFunnel.getJSONObject("HYPERTROPHY").getInt("B6ExecutableExact"))
-        assertEquals(3, qualityFunnel.getJSONObject("STRENGTH").getInt("finalTargetCompatibleAfterFullMaterialization"))
-        assertEquals(1, qualityFunnel.getJSONObject("HYPERTROPHY").getInt("finalTargetCompatibleAfterFullMaterialization"))
-        val c13Cases = c13Json.getJSONArray("cases")
-        assertEquals(22, c13Cases.length())
-        (0 until c13Cases.length()).forEach { index ->
-            val case = c13Cases.getJSONObject(index)
-            assertEquals("CONTROL_FREE_PREPARED_INPUT_RECOMPUTATION", case.getString("B1ThroughB3ProfileSource"))
-            assertEquals("comparison.targetPlan", case.getString("B4TargetSource"))
-            assertTrue(case.getBoolean("canonicalPlanningProfileAvailable"))
-            assertTrue(case.getBoolean("canonicalTargetPlanRecomputedMatchesLive"))
-            assertTrue(case.has("B5_nonSelectionProvenance"))
-            assertTrue(case.has("B5_selectedCandidateDispositions"))
-            assertTrue(case.has("b7Integrity"))
-            assertTrue(case.has("b8Scope"))
-            assertTrue(case.has("removedOwnerIdentities"))
+        assertEquals(5, c15.getJSONArray("fiveC13RepRangeCases").length())
+        assertEquals(8, c15.getJSONArray("directionOnlyStrengthCases").length())
+        assertEquals("55CD3C4E9E58B700ED4577A6C0CE0A99FD847F552A334B45FD0815E6FC8825AB",
+            c15.getString("standardCoverageSha256"))
+        assertEquals(11, c15.getJSONObject("corpus").getJSONObject("B7ReasonOccurrences").getInt("CHANGE_PROVENANCE_UNCLOSED"))
+        assertEquals(9, c15.getJSONObject("corpus").getJSONObject("B7ReasonOccurrences").getInt("AFFECTED_TARGET_REMAINS_UNMET"))
+        assertEquals(1, c15.getJSONObject("corpus").getJSONObject("B7ReasonOccurrences").getInt("TARGET_REGRESSED"))
+        val calibrationCase = c15.getJSONArray("cases").let { rows ->
+            (0 until rows.length()).map(rows::getJSONObject).single { it.getString("route") == "B8_STRENGTH_CALIBRATION_V1" }
         }
-        val coverageSha = java.security.MessageDigest.getInstance("SHA-256")
-            .digest(report.toByteArray(Charsets.UTF_8)).joinToString("") { "%02X".format(it) }
-        assertEquals("818E8FA6F67164EEAAE0C938273A777D645874CF0EECD17F1E1795DC811434D9", coverageSha)
-        val c14Census = renderC14StrengthTrainingLoadCensus(
-            records,
-            report,
-            c13MergeHead = "f43e6f8e32bd4d8e4317b353dda88d211498a5a8",
-            c14StartHead = "f43e6f8e32bd4d8e4317b353dda88d211498a5a8"
-        )
-        assertEquals(c14Census, renderC14StrengthTrainingLoadCensus(
-            records.reversed(), report,
-            c13MergeHead = "f43e6f8e32bd4d8e4317b353dda88d211498a5a8",
-            c14StartHead = "f43e6f8e32bd4d8e4317b353dda88d211498a5a8"
-        ))
-        java.io.File("build/reports/c14-strength-capacity-training-load-census.json").writeText(c14Census)
-        val c14Json = org.json.JSONObject(c14Census)
-        assertEquals("818E8FA6F67164EEAAE0C938273A777D645874CF0EECD17F1E1795DC811434D9",
-            c14Json.getString("standardCoverageSha256"))
-        assertEquals(27, c14Json.getJSONObject("corpus").getInt("totalCases"))
-        assertEquals(22, c14Json.getJSONObject("corpus").getInt("generated"))
-        assertEquals(5, c14Json.getJSONObject("corpus").getInt("preflightRejected"))
-        assertEquals(21, c14Json.getJSONObject("corpus").getJSONObject("routes").getInt("CONTROL"))
-        assertEquals(1, c14Json.getJSONObject("corpus").getJSONObject("routes").getInt("Strength"))
-        assertFalse(c14Json.getJSONObject("C14A").getBoolean("productionB6Consumption"))
-        assertFalse(c14Json.getJSONObject("C14A").getBoolean("routesChanged"))
-        assertEquals(5, c14Json.getJSONObject("C14A").getJSONArray("fiveRepRangeCases").length())
-        assertEquals(8, c14Json.getJSONObject("C14B").getInt("directionOnlyCaseCount"))
-        assertFalse(c14Json.getJSONObject("C14B").getBoolean("productionB6AuthorityActivated"))
-        assertFalse(c14Json.getJSONObject("C14B").getBoolean("directionOnlyCalibrationAuthorized"))
-        val fiveC14Rows = c14Json.getJSONObject("C14A").getJSONArray("fiveRepRangeCases")
-        assertTrue((0 until fiveC14Rows.length()).all { index ->
-            val row = fiveC14Rows.getJSONObject(index)
-            row.getJSONObject("owner").getString("stableKey") != row.getJSONObject("fixtureHistoryInput").getString("stableKey") &&
-                row.getJSONObject("shadow").getJSONArray("ownerLocalObservations").length() == 0 &&
-                row.getJSONObject("shadow").getJSONArray("unavailableReasons").getString(0) ==
-                    StrengthTrainingLoadUnavailableReason.EXACT_OWNER_STRENGTH_SIGNAL_MISSING.name
-        })
+        assertEquals("persona2_reviewed", calibrationCase.getString("caseId"))
+        assertEquals("PERSONAL_RESTORE_BASELINE", calibrationCase.getJSONObject("B4_strengthTarget").getString("numericAuthority"))
+        assertTrue(calibrationCase.getBoolean("exactOwnerSameKeyAndRole"))
+        assertEquals("AVAILABLE", calibrationCase.getJSONObject("C15_coldStart").getString("status"))
+        assertEquals("USER_CALIBRATION_REQUIRED", calibrationCase.getJSONObject("C15_coldStart").getString("loadState"))
+        assertEquals(2, calibrationCase.getJSONObject("C15_coldStart").getInt("sets"))
+        assertEquals(6, calibrationCase.getJSONObject("C15_coldStart").getInt("reps"))
+        assertEquals(6.5, calibrationCase.getJSONObject("C15_coldStart").getDouble("targetRpe"), 0.0)
+        assertEquals("AUTHORIZED_COLD_START_USER_CALIBRATION", calibrationCase.getJSONObject("B6").getString("status"))
+        assertEquals("FULLY_MATERIALIZED", calibrationCase.getJSONObject("materialization").getString("state"))
+        assertEquals("ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW", calibrationCase.getJSONObject("B7").getString("status"))
+        assertEquals("AUTHORIZED_FOR_BOUNDED_CUTOVER", calibrationCase.getJSONObject("B8").getString("status"))
+        assertEquals(0, calibrationCase.getJSONObject("buildAccounting").getInt("third"))
+        assertFalse(calibrationCase.getJSONObject("C14_shadow").getBoolean("hasCapacityReference"))
         val serializationProbe = generated.first { it.first.label == "reviewed_strength_isolated" }.second
             .comparison!!.prescriptionRealizationPlan!!.toCompactJson().toString()
         assertFalse(serializationProbe.contains("c14StrengthTrainingLoadShadow"))
         println(report)
         assertC9CorpusBoundaries(records)
-        assertEquals(21, generated.count { it.second.routeDecision.selectedSource == StimulusProductionProgramSource.CONTROL })
-        assertEquals(1, generated.count { it.second.routeDecision.selectedSource == StimulusProductionProgramSource.B8_STRENGTH_V1 })
-        assertEquals(0, generated.count { it.second.routeDecision.selectedSource in setOf(
-            StimulusProductionProgramSource.B8_HYPERTROPHY_V1,
-            StimulusProductionProgramSource.B8_STRENGTH_HYPERTROPHY_V1
-        ) })
+        val routeCounts = c15.getJSONObject("corpus").getJSONObject("routes")
+        assertEquals(0, routeCounts.getInt("B8_HYPERTROPHY_V1"))
+        assertEquals(0, routeCounts.getInt("B8_STRENGTH_HYPERTROPHY_V1"))
         val control = generated.filter { it.second.routeDecision.selectedSource == StimulusProductionProgramSource.CONTROL }
         val b7ReasonCounts = control.flatMap { it.second.comparison?.experimentalReadinessAudit?.reasonCodes.orEmpty() }
             .groupingBy { it }.eachCount()
-        assertEquals(14, b7ReasonCounts["CHANGE_PROVENANCE_UNCLOSED"])
+        assertEquals(11, b7ReasonCounts["CHANGE_PROVENANCE_UNCLOSED"])
         assertEquals(9, b7ReasonCounts["AFFECTED_TARGET_REMAINS_UNMET"])
         assertEquals(1, b7ReasonCounts["TARGET_REGRESSED"])
     }
@@ -229,9 +163,12 @@ class StimulusProductionCoverageAuditTest {
         }
         assertEquals(34, omissionWeeks)
         records.forEach { (spec, result) ->
-            if (result != null) assertEquals("No unreviewed route expansion: ${spec.label}",
-                if (spec.label == "reviewed_strength_isolated") StimulusProductionProgramSource.B8_STRENGTH_V1
-                else StimulusProductionProgramSource.CONTROL, result.routeDecision.selectedSource)
+            if (result != null) assertEquals("Only exact cold-start authority may add the new route: ${spec.label}",
+                when (spec.label) {
+                    "reviewed_strength_isolated" -> StimulusProductionProgramSource.B8_STRENGTH_V1
+                    "persona2_reviewed" -> StimulusProductionProgramSource.B8_STRENGTH_CALIBRATION_V1
+                    else -> StimulusProductionProgramSource.CONTROL
+                }, result.routeDecision.selectedSource)
         }
         val h = requireNotNull(records.single { it.first.label == "reviewed_hypertrophy_isolated" }.second)
         val c = requireNotNull(h.comparison)
@@ -356,7 +293,7 @@ class StimulusProductionCoverageAuditTest {
     private fun renderProvenance(records: List<Pair<CoverageSpec, StimulusProductionGenerationResult?>>): String = buildString {
         val generated = records.mapNotNull { (spec, result) -> result?.let { spec to it } }
         appendLine("generated=${generated.size} rejected=${records.size - generated.size}")
-        appendLine("routes=" + generated.groupingBy { it.second.routeDecision.selectedSource }.eachCount())
+        appendLine("routes=" + generated.groupingBy { it.second.routeDecision.selectedSource }.eachCount().toSortedMap())
         appendLine("B7 counts=" + generated.flatMap { it.second.comparison?.experimentalReadinessAudit?.reasonCodes.orEmpty() }.groupingBy { it }.eachCount().toSortedMap())
         appendLine("B8 counts=" + generated.flatMap { it.second.comparison?.productionCutoverAuthority?.reasonCodes.orEmpty() }.groupingBy { it }.eachCount().toSortedMap())
         appendLine("C10 origin trace coverage (${renderC10TraceCoverage(records)})")

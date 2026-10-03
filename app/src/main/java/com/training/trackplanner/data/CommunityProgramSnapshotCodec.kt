@@ -40,6 +40,7 @@ internal object CommunityProgramSnapshotCodec {
                             .put("reps", set.reps)
                             .put("weightKg", set.weightKg)
                             .put("seconds", set.seconds)
+                            .put("loadState", set.loadState.name)
                             .putNullable("targetRpeMin", set.targetRpeMin))
                     }
                 }))
@@ -153,6 +154,9 @@ internal object CommunityProgramSnapshotCodec {
                         reps = set.optInt("reps"),
                         weightKg = set.optDouble("weightKg"),
                         seconds = set.optInt("seconds"),
+                        loadState = set.optString("loadState").takeIf(String::isNotBlank)
+                            ?.let { runCatching { ProgramLoadState.valueOf(it) }.getOrNull() }
+                            ?: ProgramLoadState.EXPLICIT_LOAD,
                         targetRpeMin = if (set.has("targetRpeMin") && !set.isNull("targetRpeMin")) set.optDouble("targetRpeMin").validatedTargetRpeMin() else null
                     )
                 }

@@ -22,6 +22,15 @@ class StimulusPlannedPrescriptionResolver {
         } }
         if (!repsCompatible) return PlannedStimulusCompatibility(quality, PlannedStimulusCompatibilityStatus.INCOMPATIBLE,
             reasonCodes = listOf("PLANNED_REPS_OUTSIDE_${quality.name}_MODEL"))
+        if (quality == TrainableQuality.STRENGTH && prescription.sets.all {
+                it.loadState == com.training.trackplanner.data.ProgramLoadState.USER_CALIBRATION_REQUIRED &&
+                    it.weightKg == 0.0 && it.seconds == 0 &&
+                    it.targetRpeMin.validatedTargetRpeMin()?.let { rpe -> rpe >= 6.0 } == true
+            }) return PlannedStimulusCompatibility(
+            quality,
+            PlannedStimulusCompatibilityStatus.COMPATIBLE_REQUIRES_USER_LOAD_INPUT,
+            reasonCodes = listOf("LOAD_INTENTIONALLY_REQUIRES_USER_CALIBRATION")
+        )
         val canonicalReference = snapshot.canonicalStrengthSignals[stableKey]
             ?.takeIf { quality != TrainableQuality.STRENGTH || it.observationCount >= 2 }
             ?.posteriorMedianKg

@@ -89,7 +89,9 @@ internal data class RestoreWorkoutGraph(
                 row.seconds,
                 row.rpe,
                 row.setManualWeight,
-                row.setRestSecondsOverride
+                row.setRestSecondsOverride,
+                row.setLoadState,
+                row.targetRpeMin
             ).joinToString("|")
         }
     ).joinToString("\u001f")
@@ -377,7 +379,7 @@ internal fun WorkoutEntryWithSets.toRestoreGraph(): RestoreWorkoutGraph = Restor
             exerciseName = entry.exerciseName,
             stableKey = entry.exerciseStableKey,
             category = entry.category,
-            confirmed = sets.any(WorkoutSet::confirmed),
+            confirmed = sets.any(WorkoutSet::isAnalysisEligibleCompletedSet),
             restSeconds = entry.restSeconds,
             rpe = set.rpe ?: entry.rpe,
             maxReps = entry.maxReps,
@@ -397,7 +399,9 @@ internal fun WorkoutEntryWithSets.toRestoreGraph(): RestoreWorkoutGraph = Restor
             entryFirstConfirmedAt = entry.firstConfirmedAt,
             entryPerformedAt = entry.performedAt,
             setManualWeight = set.manualWeight,
-            setRestSecondsOverride = set.restSecondsOverride
+            setRestSecondsOverride = set.restSecondsOverride,
+            setLoadState = set.loadState,
+            targetRpeMin = set.targetRpeMin
         )
     }
 )

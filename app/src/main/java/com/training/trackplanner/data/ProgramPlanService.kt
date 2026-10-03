@@ -291,7 +291,9 @@ internal class ProgramPlanService(
                             weightKg = set.weightKg,
                             seconds = set.seconds,
                             confirmed = false,
-                            manualWeight = set.weightKg > 0.0
+                            manualWeight = set.weightKg > 0.0,
+                            loadState = set.loadState,
+                            targetRpeMin = set.targetRpeMin.validatedTargetRpeMin()
                         )
                     )
                 }
@@ -312,7 +314,7 @@ internal class ProgramPlanService(
             durationDays = ChronoUnit.DAYS.between(range.first, range.second).toInt() + 1,
             entryCount = entries.size,
             setCount = sets.size,
-            confirmedSetCount = sets.count(WorkoutSet::confirmed),
+            confirmedSetCount = sets.count(WorkoutSet::isAnalysisEligibleCompletedSet),
             unconfirmedSetCount = sets.count { !it.confirmed },
             defaultName = "${range.first.format(PROGRAM_NAME_DATE)}~" +
                 "${range.second.format(PROGRAM_NAME_DATE)} 기록 프로그램"
@@ -362,7 +364,8 @@ internal class ProgramPlanService(
                         val prescriptions = row.sets
                             .sortedWith(compareBy<WorkoutSet> { it.setIndex }.thenBy { it.id })
                             .mapIndexed { index, set ->
-                                ProgramSetPrescription(index + 1, set.reps, set.weightKg, set.seconds)
+                                ProgramSetPrescription(index + 1, set.reps, set.weightKg, set.seconds,
+                                    targetRpeMin = set.targetRpeMin.validatedTargetRpeMin(), loadState = set.loadState)
                             }
                         val summary = ProgramSetPrescriptionResolver.summarize(prescriptions)
                         val itemId = programDao.insertProgramItem(
@@ -436,7 +439,8 @@ private fun ProgramSetPrescription.toEntity(programItemId: Long): TrainingProgra
         reps = reps,
         weightKg = weightKg,
         seconds = seconds,
-        targetRpeMin = targetRpeMin.validatedTargetRpeMin()
+        targetRpeMin = targetRpeMin.validatedTargetRpeMin(),
+        loadState = loadState
     )
 
 internal fun ProgramSkeletonItem.toTrainingProgramItem(programId: Long): TrainingProgramItem {

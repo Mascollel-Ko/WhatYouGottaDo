@@ -16,7 +16,7 @@ internal class RecordMutationService(
             val beforeInsert = normalizeDisplayOrder(date)
             val previousSet = workoutDao.latestConfirmedSetForExerciseAtOrBefore(exercise.stableKey, date)
             val latestConfirmedEntryId = beforeInsert
-                .filter { record -> record.sets.any(WorkoutSet::confirmed) }
+                .filter { record -> record.sets.any(WorkoutSet::isAnalysisEligibleCompletedSet) }
                 .maxByOrNull { record ->
                     record.entry.completedAt ?: record.entry.firstConfirmedAt ?: record.entry.createdAt
                 }
@@ -42,7 +42,9 @@ internal class RecordMutationService(
                     default.copy(
                         reps = source.reps,
                         weightKg = source.weightKg,
-                        manualWeight = source.manualWeight
+                        manualWeight = source.manualWeight,
+                        loadState = source.loadState,
+                        targetRpeMin = source.targetRpeMin
                     )
                 } ?: default
             }
@@ -104,6 +106,12 @@ internal class RecordMutationService(
         val current = workoutDao.findSetById(edit.values.id) ?: return@withTransaction null
         val set = edit.applyTo(current)
         val entry = workoutDao.findEntryById(set.entryId) ?: return@withTransaction null
+        if (RecordSetField.CONFIRMATION in edit.fields && set.confirmed) {
+            val calibrationLoadStillMissing = set.loadState == ProgramLoadState.USER_CALIBRATION_REQUIRED ||
+                current.loadState == ProgramLoadState.USER_CALIBRATION_REQUIRED &&
+                (set.loadState != ProgramLoadState.EXPLICIT_LOAD || !set.weightKg.isFinite() || set.weightKg <= 0.0)
+            if (calibrationLoadStillMissing) return@withTransaction null
+        }
         if (set == current) {
             val completion = StrengthSessionCompletionDetector.state(workoutDao, entry.date)
             return@withTransaction RecordSetMutationResult(entry.date, completion, completion, false, false)

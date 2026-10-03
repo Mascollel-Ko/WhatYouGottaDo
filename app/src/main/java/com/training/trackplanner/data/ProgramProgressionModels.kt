@@ -143,7 +143,9 @@ data class ProgramPrescriptionSet(
     val plannedSetIndex: Int? = setIndex,
     val originalExists: Boolean = true,
     val originalTargetRpeMin: Double? = null,
-    val plannedTargetRpeMin: Double? = originalTargetRpeMin
+    val plannedTargetRpeMin: Double? = originalTargetRpeMin,
+    val originalLoadState: ProgramLoadState = ProgramLoadState.EXPLICIT_LOAD,
+    val plannedLoadState: ProgramLoadState = originalLoadState
 )
 
 /** Evidence and resolution are immutable history; superseded/stale rows are retained. */

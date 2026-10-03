@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.51.0 |
+| Protocol version | 3.52.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.14.3 |
+| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.14.4 |
 | Last audited commit | 8c06e53d451c07c88b4aa48edf13ed11f65ce8e5 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
@@ -1261,3 +1261,12 @@ Post-audit boundary notes
 - C14 implementation commit `ec9c6a30c9e0e02cddc63c3beedc185bd75b1fb7` adds the shadow model; test follow-up `8c06e53d451c07c88b4aa48edf13ed11f65ce8e5` adds explicit Power and unresolved load-semantics refusal checks and is the `lastAuditedCommit`.
 - Hosted Android Debug Build run [37091261981](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/37091261981) passed on the audited implementation/test head: 2,212 tests, 0 failures, 0 errors, 4 skips; protocol validation, Community/Cloud contracts, whitespace, coverage upload, debug APK assembly, signer validation, and APK upload passed. The final documentation HEAD is checked separately.
 - The exact owner dossiers, shadow census, research review, cutoff test, local validation, and artifact checksums are in [`docs/c14_personal_strength_training_load_authority_audit.md`](../../c14_personal_strength_training_load_authority_audit.md).
+
+### Phase C15 — cold-start Strength load calibration (protocol 3.52.0)
+
+- `ProgramLoadState` distinguishes explicit numeric load, user calibration required, real zero load, and not-applicable. The legacy non-null numeric field remains for compatibility; calibration-required state is not interpreted as a real `0 kg` load.
+- When exact same-owner C14 capacity evidence is absent specifically because the owner has no Strength signal, a new B6 calibration authority may use exact numeric B4 set demand, exact B5 canonical Strength identity, known mechanical load semantics, six Strength reps when no personal Strength rep pattern exists, and target RPE 6.5. It grants no kilogram authority and materializes with `USER_CALIBRATION_REQUIRED`.
+- The distinct `B8_STRENGTH_CALIBRATION_V1` route requires its own B7/B8 evidence and blocks confirmation until the user supplies the required load. Existing `B8_STRENGTH_V1` numeric-load requirements are unchanged. Blank planned sets are excluded from completed-work analysis; confirmed user-entered loads use the normal same-owner history and later C14 path.
+- C15 routes are CONTROL 20 / Strength V1 1 / Strength Calibration 1 / Hypertrophy 0 / Combined 0. Of the five prior `REP_RANGE_INCOMPATIBLE` rows, all receive a valid cold-start shape and full materialization, but only `persona2_reviewed` passes B8. Eight direction-only cases remain blocked without invented set demand. B7 counts are provenance-unclosed 11 / target-unmet 9 / regressed 1.
+- Protocol/runtime/app versions are `3.52.0` / `RECORD_BASED_PLANNER_0.14.4_KOTLIN_1` / `0.5.1.5`. The standard coverage SHA-256 changes to `55CD3C4E9E58B700ED4577A6C0CE0A99FD847F552A334B45FD0815E6FC8825AB` with the one bounded calibration route; phase order remains B1-B6 → EXPERIMENTAL → CONTROL → comparison → B7 → B8 → B9, with no third build.
+- The detailed evidence and validation record is maintained in the Phase C15 audit dossier.
