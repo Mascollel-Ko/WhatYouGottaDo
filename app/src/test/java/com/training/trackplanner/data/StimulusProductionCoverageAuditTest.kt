@@ -4,7 +4,9 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.training.trackplanner.data.personalized.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -52,9 +54,23 @@ class StimulusProductionCoverageAuditTest {
             CoverageSpec("reviewed_hypertrophy_isolated", TrainableQuality.HYPERTROPHY, "cable_rear_delt_fly", "HYPERTROPHY_PHYSIQUE", ProgramGoal.BODYBUILDING, StrengthIntent.HYPERTROPHY_PRIORITY, false, "reviewed", 3, 60, emptySet(), true)
         )
         val canonicalPlanningByCase = linkedMapOf<String, CanonicalStimulusPlanningResult>()
+        val productionContextByCase = linkedMapOf<String, PreparedCanonicalGenerationContext>()
         val records = specs.map { spec ->
             val result = runCase(spec, observeCanonicalPlanning = { planning ->
                 canonicalPlanningByCase[spec.label] = planning
+            }, evaluate = { service, preflight, answers, metadata ->
+                withContext(Dispatchers.IO) {
+                    service.generatePreparedProduction(
+                        preflight = preflight,
+                        answers = answers,
+                        metadata = metadata,
+                        productionGenerationObserver = { observation ->
+                            if (observation.phase == ProductionGenerationPhase.CANONICAL_PREPARED) {
+                                productionContextByCase[spec.label] = observation.context
+                            }
+                        }
+                    )
+                }
             })
             if (result == null) {
                 assertEquals("Only the real no-history precondition may reject this corpus", "none", spec.history)
@@ -107,6 +123,44 @@ class StimulusProductionCoverageAuditTest {
             c16StartHead = "caa3e8d07f52462ec009e31aad406fa0c7b18aea"
         ))
         java.io.File("build/reports/c16-b8-residual-blocker-census.json").writeText(c16Census)
+        val c17Census = C17PlacementCausalityCensus.render(
+            records,
+            productionContextByCase,
+            c16Census,
+            c16MergeSha = "128cdf2c359a5cc82a25984924175897586b7624",
+            c17StartSha = "128cdf2c359a5cc82a25984924175897586b7624"
+        )
+        java.io.File("build/reports/c17-placement-causality-census.json").writeText(c17Census)
+        assertEquals(c17Census, C17PlacementCausalityCensus.render(
+            records.reversed(),
+            productionContextByCase,
+            c16Census,
+            c16MergeSha = "128cdf2c359a5cc82a25984924175897586b7624",
+            c17StartSha = "128cdf2c359a5cc82a25984924175897586b7624"
+        ))
+        val c17Summary = org.json.JSONObject(c17Census).getJSONObject("summary")
+        assertEquals(32, c17Summary.getInt("placementDeltas"))
+        assertEquals(16, c17Summary.getInt("caseOwnerRolePairs"))
+        assertEquals(12, c17Summary.getInt("unnecessaryPlacementDrift"))
+        assertEquals(20, c17Summary.getInt("unresolved"))
+        assertEquals(0, c17Summary.getInt("necessaryAuthorizedDisplacementCandidates"))
+        assertEquals(4, c17Summary.getInt("boundedDayRebalancerAcceptedEvents"))
+        assertEquals(2, org.json.JSONObject(c17Census).getJSONObject("positiveReference").getInt("authorizedCalibrationRows"))
+        assertEquals(0, org.json.JSONObject(c17Census).getJSONObject("positiveReference")
+            .getJSONObject("sharedOwnerPlacementMetrics").getInt("movedOwnerRows"))
+        val c17Cases = org.json.JSONObject(c17Census).getJSONArray("cases")
+        (0 until c17Cases.length()).map(c17Cases::getJSONObject).flatMap { case ->
+            val deltas = case.getJSONArray("deltas")
+            (0 until deltas.length()).map(deltas::getJSONObject)
+        }
+            .forEach { delta ->
+                assertTrue(delta.getBoolean("materialParity"))
+                assertFalse(delta.getBoolean("b5Selected"))
+                assertEquals(0, delta.getJSONArray("b5TargetRelations").length())
+                assertEquals(0, delta.getJSONArray("b6Authorities").length())
+                assertEquals(0, delta.getJSONArray("directCausalDisplacementEdges").length())
+            }
+        println("C17_PLACEMENT_CENSUS=${c17Summary}")
         val c16Cases = org.json.JSONObject(c16Census).getJSONArray("cases")
         fun c16Case(name: String) = (0 until c16Cases.length()).map { c16Cases.getJSONObject(it) }.single { it.getString("case") == name }
         assertEquals(2, c16Case("persona0_mixed").getInt("authorizedCalibrationDeltaCount"))

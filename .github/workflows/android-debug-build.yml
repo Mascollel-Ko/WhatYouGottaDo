@@ -120,6 +120,7 @@ jobs:
             app/build/reports/c9-provenance-census.txt
             app/build/reports/c15-cold-start-strength-calibration-census.json
             app/build/reports/c16-b8-residual-blocker-census.json
+            app/build/reports/c17-placement-causality-census.json
             app/build/test-results/testDebugUnitTest/*.xml
           if-no-files-found: warn
 
