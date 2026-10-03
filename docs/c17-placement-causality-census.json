@@ -13807,6 +13807,116 @@
       "materialParity": true,
       "materialization": [],
       "origin": {
+        "acceptedOwnerPlacementEvents": [
+          {
+            "action": "PLACEMENT_ASSIGNED",
+            "after": {
+              "day": 1,
+              "order": 2,
+              "prescription": "40 kg × 8회 × 6세트 · RPE 8–9 · HOLD",
+              "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
+              "setCount": 6,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 3,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 4,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 5,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 6,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                }
+              ],
+              "week": 1
+            },
+            "authorizedDemandIds": [
+              "authorized_0"
+            ],
+            "before": {
+              "prescription": "40 kg × 8회 × 6세트 · RPE 8–9 · HOLD",
+              "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
+              "setCount": 6,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 3,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 4,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 5,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 6,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                }
+              ],
+              "week": 1
+            },
+            "cause": "INITIAL_PLACEMENT_POLICY",
+            "evidenceCodes": [
+              "ACCEPTED_WEEKLY_PLACEMENT"
+            ],
+            "mutationSequence": 2,
+            "owner": {
+              "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
+              "stableKey": "barbell_back_squat"
+            },
+            "qualities": [],
+            "stage": "INITIAL_WEEKLY_PLACEMENT",
+            "targetIds": []
+          }
+        ],
         "action": "PLACEMENT_ASSIGNED",
         "authorizedDemandIds": [
           "authorized_0"
@@ -13815,10 +13925,103 @@
         "evidenceCodes": [
           "ACCEPTED_WEEKLY_PLACEMENT"
         ],
+        "finalPlacementStage": "INITIAL_WEEKLY_PLACEMENT",
+        "firstEventAfter": {
+          "day": 1,
+          "order": 2,
+          "prescription": "40 kg × 8회 × 6세트 · RPE 8–9 · HOLD",
+          "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
+          "setCount": 6,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 3,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 4,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 5,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 6,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            }
+          ],
+          "week": 1
+        },
+        "firstEventBefore": {
+          "prescription": "40 kg × 8회 × 6세트 · RPE 8–9 · HOLD",
+          "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
+          "setCount": 6,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 3,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 4,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 5,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 6,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            }
+          ],
+          "week": 1
+        },
         "mutationSequence": 2,
-        "qualities": [],
         "stage": "INITIAL_WEEKLY_PLACEMENT",
-        "targetIds": []
+        "triggerOwner": null,
+        "triggerQualities": [],
+        "triggerSelectionRole": null,
+        "triggerTargetIds": []
       },
       "owner": {
         "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
@@ -13944,6 +14147,80 @@
       "materialParity": true,
       "materialization": [],
       "origin": {
+        "acceptedOwnerPlacementEvents": [
+          {
+            "action": "PLACEMENT_ASSIGNED",
+            "after": {
+              "day": 3,
+              "order": 2,
+              "prescription": "12.5 kg × 10회 × 3세트 · RPE 8–9 · HOLD",
+              "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL",
+              "setCount": 3,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 10,
+                  "seconds": 0,
+                  "weightKg": 12.5
+                },
+                {
+                  "index": 2,
+                  "reps": 10,
+                  "seconds": 0,
+                  "weightKg": 12.5
+                },
+                {
+                  "index": 3,
+                  "reps": 10,
+                  "seconds": 0,
+                  "weightKg": 12.5
+                }
+              ],
+              "week": 1
+            },
+            "authorizedDemandIds": [
+              "authorized_1"
+            ],
+            "before": {
+              "prescription": "12.5 kg × 10회 × 3세트 · RPE 8–9 · HOLD",
+              "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL",
+              "setCount": 3,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 10,
+                  "seconds": 0,
+                  "weightKg": 12.5
+                },
+                {
+                  "index": 2,
+                  "reps": 10,
+                  "seconds": 0,
+                  "weightKg": 12.5
+                },
+                {
+                  "index": 3,
+                  "reps": 10,
+                  "seconds": 0,
+                  "weightKg": 12.5
+                }
+              ],
+              "week": 1
+            },
+            "cause": "INITIAL_PLACEMENT_POLICY",
+            "evidenceCodes": [
+              "ACCEPTED_WEEKLY_PLACEMENT"
+            ],
+            "mutationSequence": 3,
+            "owner": {
+              "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL",
+              "stableKey": "cable_rear_delt_fly"
+            },
+            "qualities": [],
+            "stage": "INITIAL_WEEKLY_PLACEMENT",
+            "targetIds": []
+          }
+        ],
         "action": "PLACEMENT_ASSIGNED",
         "authorizedDemandIds": [
           "authorized_1"
@@ -13952,10 +14229,67 @@
         "evidenceCodes": [
           "ACCEPTED_WEEKLY_PLACEMENT"
         ],
+        "finalPlacementStage": "INITIAL_WEEKLY_PLACEMENT",
+        "firstEventAfter": {
+          "day": 3,
+          "order": 2,
+          "prescription": "12.5 kg × 10회 × 3세트 · RPE 8–9 · HOLD",
+          "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL",
+          "setCount": 3,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 10,
+              "seconds": 0,
+              "weightKg": 12.5
+            },
+            {
+              "index": 2,
+              "reps": 10,
+              "seconds": 0,
+              "weightKg": 12.5
+            },
+            {
+              "index": 3,
+              "reps": 10,
+              "seconds": 0,
+              "weightKg": 12.5
+            }
+          ],
+          "week": 1
+        },
+        "firstEventBefore": {
+          "prescription": "12.5 kg × 10회 × 3세트 · RPE 8–9 · HOLD",
+          "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL",
+          "setCount": 3,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 10,
+              "seconds": 0,
+              "weightKg": 12.5
+            },
+            {
+              "index": 2,
+              "reps": 10,
+              "seconds": 0,
+              "weightKg": 12.5
+            },
+            {
+              "index": 3,
+              "reps": 10,
+              "seconds": 0,
+              "weightKg": 12.5
+            }
+          ],
+          "week": 1
+        },
         "mutationSequence": 3,
-        "qualities": [],
         "stage": "INITIAL_WEEKLY_PLACEMENT",
-        "targetIds": []
+        "triggerOwner": null,
+        "triggerQualities": [],
+        "triggerSelectionRole": null,
+        "triggerTargetIds": []
       },
       "owner": {
         "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL",
@@ -14069,6 +14403,68 @@
       "materialParity": true,
       "materialization": [],
       "origin": {
+        "acceptedOwnerPlacementEvents": [
+          {
+            "action": "PLACEMENT_ASSIGNED",
+            "after": {
+              "day": 3,
+              "order": 3,
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_CORE_DIRECT",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 1
+            },
+            "authorizedDemandIds": [
+              "authorized_4"
+            ],
+            "before": {
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_CORE_DIRECT",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 1
+            },
+            "cause": "INITIAL_PLACEMENT_POLICY",
+            "evidenceCodes": [
+              "ACCEPTED_WEEKLY_PLACEMENT"
+            ],
+            "mutationSequence": 4,
+            "owner": {
+              "selectionRole": "COVERAGE_CORE_DIRECT",
+              "stableKey": "ex_28347c1f"
+            },
+            "qualities": [],
+            "stage": "INITIAL_WEEKLY_PLACEMENT",
+            "targetIds": []
+          }
+        ],
         "action": "PLACEMENT_ASSIGNED",
         "authorizedDemandIds": [
           "authorized_4"
@@ -14077,10 +14473,55 @@
         "evidenceCodes": [
           "ACCEPTED_WEEKLY_PLACEMENT"
         ],
+        "finalPlacementStage": "INITIAL_WEEKLY_PLACEMENT",
+        "firstEventAfter": {
+          "day": 3,
+          "order": 3,
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_CORE_DIRECT",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 1
+        },
+        "firstEventBefore": {
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_CORE_DIRECT",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 1
+        },
         "mutationSequence": 4,
-        "qualities": [],
         "stage": "INITIAL_WEEKLY_PLACEMENT",
-        "targetIds": []
+        "triggerOwner": null,
+        "triggerQualities": [],
+        "triggerSelectionRole": null,
+        "triggerTargetIds": []
       },
       "owner": {
         "selectionRole": "COVERAGE_CORE_DIRECT",
@@ -14250,6 +14691,116 @@
       "materialParity": true,
       "materialization": [],
       "origin": {
+        "acceptedOwnerPlacementEvents": [
+          {
+            "action": "PLACEMENT_ASSIGNED",
+            "after": {
+              "day": 1,
+              "order": 2,
+              "prescription": "40 kg × 8회 × 6세트 · RPE 8–9 · HOLD",
+              "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
+              "setCount": 6,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 3,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 4,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 5,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 6,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                }
+              ],
+              "week": 2
+            },
+            "authorizedDemandIds": [
+              "authorized_0"
+            ],
+            "before": {
+              "prescription": "40 kg × 8회 × 6세트 · RPE 8–9 · HOLD",
+              "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
+              "setCount": 6,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 3,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 4,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 5,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 6,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                }
+              ],
+              "week": 2
+            },
+            "cause": "INITIAL_PLACEMENT_POLICY",
+            "evidenceCodes": [
+              "ACCEPTED_WEEKLY_PLACEMENT"
+            ],
+            "mutationSequence": 2,
+            "owner": {
+              "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
+              "stableKey": "barbell_back_squat"
+            },
+            "qualities": [],
+            "stage": "INITIAL_WEEKLY_PLACEMENT",
+            "targetIds": []
+          }
+        ],
         "action": "PLACEMENT_ASSIGNED",
         "authorizedDemandIds": [
           "authorized_0"
@@ -14258,10 +14809,103 @@
         "evidenceCodes": [
           "ACCEPTED_WEEKLY_PLACEMENT"
         ],
+        "finalPlacementStage": "INITIAL_WEEKLY_PLACEMENT",
+        "firstEventAfter": {
+          "day": 1,
+          "order": 2,
+          "prescription": "40 kg × 8회 × 6세트 · RPE 8–9 · HOLD",
+          "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
+          "setCount": 6,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 3,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 4,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 5,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 6,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            }
+          ],
+          "week": 2
+        },
+        "firstEventBefore": {
+          "prescription": "40 kg × 8회 × 6세트 · RPE 8–9 · HOLD",
+          "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
+          "setCount": 6,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 3,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 4,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 5,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 6,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            }
+          ],
+          "week": 2
+        },
         "mutationSequence": 2,
-        "qualities": [],
         "stage": "INITIAL_WEEKLY_PLACEMENT",
-        "targetIds": []
+        "triggerOwner": null,
+        "triggerQualities": [],
+        "triggerSelectionRole": null,
+        "triggerTargetIds": []
       },
       "owner": {
         "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
@@ -14387,6 +15031,80 @@
       "materialParity": true,
       "materialization": [],
       "origin": {
+        "acceptedOwnerPlacementEvents": [
+          {
+            "action": "PLACEMENT_ASSIGNED",
+            "after": {
+              "day": 3,
+              "order": 2,
+              "prescription": "12.5 kg × 10회 × 3세트 · RPE 8–9 · HOLD",
+              "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL",
+              "setCount": 3,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 10,
+                  "seconds": 0,
+                  "weightKg": 12.5
+                },
+                {
+                  "index": 2,
+                  "reps": 10,
+                  "seconds": 0,
+                  "weightKg": 12.5
+                },
+                {
+                  "index": 3,
+                  "reps": 10,
+                  "seconds": 0,
+                  "weightKg": 12.5
+                }
+              ],
+              "week": 2
+            },
+            "authorizedDemandIds": [
+              "authorized_1"
+            ],
+            "before": {
+              "prescription": "12.5 kg × 10회 × 3세트 · RPE 8–9 · HOLD",
+              "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL",
+              "setCount": 3,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 10,
+                  "seconds": 0,
+                  "weightKg": 12.5
+                },
+                {
+                  "index": 2,
+                  "reps": 10,
+                  "seconds": 0,
+                  "weightKg": 12.5
+                },
+                {
+                  "index": 3,
+                  "reps": 10,
+                  "seconds": 0,
+                  "weightKg": 12.5
+                }
+              ],
+              "week": 2
+            },
+            "cause": "INITIAL_PLACEMENT_POLICY",
+            "evidenceCodes": [
+              "ACCEPTED_WEEKLY_PLACEMENT"
+            ],
+            "mutationSequence": 3,
+            "owner": {
+              "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL",
+              "stableKey": "cable_rear_delt_fly"
+            },
+            "qualities": [],
+            "stage": "INITIAL_WEEKLY_PLACEMENT",
+            "targetIds": []
+          }
+        ],
         "action": "PLACEMENT_ASSIGNED",
         "authorizedDemandIds": [
           "authorized_1"
@@ -14395,10 +15113,67 @@
         "evidenceCodes": [
           "ACCEPTED_WEEKLY_PLACEMENT"
         ],
+        "finalPlacementStage": "INITIAL_WEEKLY_PLACEMENT",
+        "firstEventAfter": {
+          "day": 3,
+          "order": 2,
+          "prescription": "12.5 kg × 10회 × 3세트 · RPE 8–9 · HOLD",
+          "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL",
+          "setCount": 3,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 10,
+              "seconds": 0,
+              "weightKg": 12.5
+            },
+            {
+              "index": 2,
+              "reps": 10,
+              "seconds": 0,
+              "weightKg": 12.5
+            },
+            {
+              "index": 3,
+              "reps": 10,
+              "seconds": 0,
+              "weightKg": 12.5
+            }
+          ],
+          "week": 2
+        },
+        "firstEventBefore": {
+          "prescription": "12.5 kg × 10회 × 3세트 · RPE 8–9 · HOLD",
+          "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL",
+          "setCount": 3,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 10,
+              "seconds": 0,
+              "weightKg": 12.5
+            },
+            {
+              "index": 2,
+              "reps": 10,
+              "seconds": 0,
+              "weightKg": 12.5
+            },
+            {
+              "index": 3,
+              "reps": 10,
+              "seconds": 0,
+              "weightKg": 12.5
+            }
+          ],
+          "week": 2
+        },
         "mutationSequence": 3,
-        "qualities": [],
         "stage": "INITIAL_WEEKLY_PLACEMENT",
-        "targetIds": []
+        "triggerOwner": null,
+        "triggerQualities": [],
+        "triggerSelectionRole": null,
+        "triggerTargetIds": []
       },
       "owner": {
         "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL",
@@ -14512,6 +15287,68 @@
       "materialParity": true,
       "materialization": [],
       "origin": {
+        "acceptedOwnerPlacementEvents": [
+          {
+            "action": "PLACEMENT_ASSIGNED",
+            "after": {
+              "day": 3,
+              "order": 3,
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_CORE_DIRECT",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 2
+            },
+            "authorizedDemandIds": [
+              "authorized_4"
+            ],
+            "before": {
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_CORE_DIRECT",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 2
+            },
+            "cause": "INITIAL_PLACEMENT_POLICY",
+            "evidenceCodes": [
+              "ACCEPTED_WEEKLY_PLACEMENT"
+            ],
+            "mutationSequence": 4,
+            "owner": {
+              "selectionRole": "COVERAGE_CORE_DIRECT",
+              "stableKey": "ex_28347c1f"
+            },
+            "qualities": [],
+            "stage": "INITIAL_WEEKLY_PLACEMENT",
+            "targetIds": []
+          }
+        ],
         "action": "PLACEMENT_ASSIGNED",
         "authorizedDemandIds": [
           "authorized_4"
@@ -14520,10 +15357,55 @@
         "evidenceCodes": [
           "ACCEPTED_WEEKLY_PLACEMENT"
         ],
+        "finalPlacementStage": "INITIAL_WEEKLY_PLACEMENT",
+        "firstEventAfter": {
+          "day": 3,
+          "order": 3,
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_CORE_DIRECT",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 2
+        },
+        "firstEventBefore": {
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_CORE_DIRECT",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 2
+        },
         "mutationSequence": 4,
-        "qualities": [],
         "stage": "INITIAL_WEEKLY_PLACEMENT",
-        "targetIds": []
+        "triggerOwner": null,
+        "triggerQualities": [],
+        "triggerSelectionRole": null,
+        "triggerTargetIds": []
       },
       "owner": {
         "selectionRole": "COVERAGE_CORE_DIRECT",
@@ -14639,6 +15521,68 @@
       "materialParity": true,
       "materialization": [],
       "origin": {
+        "acceptedOwnerPlacementEvents": [
+          {
+            "action": "PLACEMENT_ASSIGNED",
+            "after": {
+              "day": 1,
+              "order": 1,
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 1
+            },
+            "authorizedDemandIds": [
+              "authorized_2"
+            ],
+            "before": {
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 1
+            },
+            "cause": "INITIAL_PLACEMENT_POLICY",
+            "evidenceCodes": [
+              "ACCEPTED_WEEKLY_PLACEMENT"
+            ],
+            "mutationSequence": 0,
+            "owner": {
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+              "stableKey": "barbell_romanian_deadlift"
+            },
+            "qualities": [],
+            "stage": "INITIAL_WEEKLY_PLACEMENT",
+            "targetIds": []
+          }
+        ],
         "action": "PLACEMENT_ASSIGNED",
         "authorizedDemandIds": [
           "authorized_2"
@@ -14647,10 +15591,55 @@
         "evidenceCodes": [
           "ACCEPTED_WEEKLY_PLACEMENT"
         ],
+        "finalPlacementStage": "INITIAL_WEEKLY_PLACEMENT",
+        "firstEventAfter": {
+          "day": 1,
+          "order": 1,
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 1
+        },
+        "firstEventBefore": {
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 1
+        },
         "mutationSequence": 0,
-        "qualities": [],
         "stage": "INITIAL_WEEKLY_PLACEMENT",
-        "targetIds": []
+        "triggerOwner": null,
+        "triggerQualities": [],
+        "triggerSelectionRole": null,
+        "triggerTargetIds": []
       },
       "owner": {
         "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
@@ -14766,6 +15755,68 @@
       "materialParity": true,
       "materialization": [],
       "origin": {
+        "acceptedOwnerPlacementEvents": [
+          {
+            "action": "PLACEMENT_ASSIGNED",
+            "after": {
+              "day": 2,
+              "order": 1,
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_UPPER_PULL",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 1
+            },
+            "authorizedDemandIds": [
+              "authorized_3"
+            ],
+            "before": {
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_UPPER_PULL",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 1
+            },
+            "cause": "INITIAL_PLACEMENT_POLICY",
+            "evidenceCodes": [
+              "ACCEPTED_WEEKLY_PLACEMENT"
+            ],
+            "mutationSequence": 1,
+            "owner": {
+              "selectionRole": "COVERAGE_UPPER_PULL",
+              "stableKey": "dumbbell_chest_supported_row"
+            },
+            "qualities": [],
+            "stage": "INITIAL_WEEKLY_PLACEMENT",
+            "targetIds": []
+          }
+        ],
         "action": "PLACEMENT_ASSIGNED",
         "authorizedDemandIds": [
           "authorized_3"
@@ -14774,10 +15825,55 @@
         "evidenceCodes": [
           "ACCEPTED_WEEKLY_PLACEMENT"
         ],
+        "finalPlacementStage": "INITIAL_WEEKLY_PLACEMENT",
+        "firstEventAfter": {
+          "day": 2,
+          "order": 1,
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_UPPER_PULL",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 1
+        },
+        "firstEventBefore": {
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_UPPER_PULL",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 1
+        },
         "mutationSequence": 1,
-        "qualities": [],
         "stage": "INITIAL_WEEKLY_PLACEMENT",
-        "targetIds": []
+        "triggerOwner": null,
+        "triggerQualities": [],
+        "triggerSelectionRole": null,
+        "triggerTargetIds": []
       },
       "owner": {
         "selectionRole": "COVERAGE_UPPER_PULL",
@@ -14893,6 +15989,68 @@
       "materialParity": true,
       "materialization": [],
       "origin": {
+        "acceptedOwnerPlacementEvents": [
+          {
+            "action": "PLACEMENT_ASSIGNED",
+            "after": {
+              "day": 1,
+              "order": 1,
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 2
+            },
+            "authorizedDemandIds": [
+              "authorized_2"
+            ],
+            "before": {
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 2
+            },
+            "cause": "INITIAL_PLACEMENT_POLICY",
+            "evidenceCodes": [
+              "ACCEPTED_WEEKLY_PLACEMENT"
+            ],
+            "mutationSequence": 0,
+            "owner": {
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+              "stableKey": "barbell_romanian_deadlift"
+            },
+            "qualities": [],
+            "stage": "INITIAL_WEEKLY_PLACEMENT",
+            "targetIds": []
+          }
+        ],
         "action": "PLACEMENT_ASSIGNED",
         "authorizedDemandIds": [
           "authorized_2"
@@ -14901,10 +16059,55 @@
         "evidenceCodes": [
           "ACCEPTED_WEEKLY_PLACEMENT"
         ],
+        "finalPlacementStage": "INITIAL_WEEKLY_PLACEMENT",
+        "firstEventAfter": {
+          "day": 1,
+          "order": 1,
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 2
+        },
+        "firstEventBefore": {
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 2
+        },
         "mutationSequence": 0,
-        "qualities": [],
         "stage": "INITIAL_WEEKLY_PLACEMENT",
-        "targetIds": []
+        "triggerOwner": null,
+        "triggerQualities": [],
+        "triggerSelectionRole": null,
+        "triggerTargetIds": []
       },
       "owner": {
         "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
@@ -15020,6 +16223,68 @@
       "materialParity": true,
       "materialization": [],
       "origin": {
+        "acceptedOwnerPlacementEvents": [
+          {
+            "action": "PLACEMENT_ASSIGNED",
+            "after": {
+              "day": 2,
+              "order": 1,
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_UPPER_PULL",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 2
+            },
+            "authorizedDemandIds": [
+              "authorized_3"
+            ],
+            "before": {
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_UPPER_PULL",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 2
+            },
+            "cause": "INITIAL_PLACEMENT_POLICY",
+            "evidenceCodes": [
+              "ACCEPTED_WEEKLY_PLACEMENT"
+            ],
+            "mutationSequence": 1,
+            "owner": {
+              "selectionRole": "COVERAGE_UPPER_PULL",
+              "stableKey": "dumbbell_chest_supported_row"
+            },
+            "qualities": [],
+            "stage": "INITIAL_WEEKLY_PLACEMENT",
+            "targetIds": []
+          }
+        ],
         "action": "PLACEMENT_ASSIGNED",
         "authorizedDemandIds": [
           "authorized_3"
@@ -15028,10 +16293,55 @@
         "evidenceCodes": [
           "ACCEPTED_WEEKLY_PLACEMENT"
         ],
+        "finalPlacementStage": "INITIAL_WEEKLY_PLACEMENT",
+        "firstEventAfter": {
+          "day": 2,
+          "order": 1,
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_UPPER_PULL",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 2
+        },
+        "firstEventBefore": {
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_UPPER_PULL",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 2
+        },
         "mutationSequence": 1,
-        "qualities": [],
         "stage": "INITIAL_WEEKLY_PLACEMENT",
-        "targetIds": []
+        "triggerOwner": null,
+        "triggerQualities": [],
+        "triggerSelectionRole": null,
+        "triggerTargetIds": []
       },
       "owner": {
         "selectionRole": "COVERAGE_UPPER_PULL",
@@ -15205,6 +16515,116 @@
       "materialParity": true,
       "materialization": [],
       "origin": {
+        "acceptedOwnerPlacementEvents": [
+          {
+            "action": "PLACEMENT_ASSIGNED",
+            "after": {
+              "day": 4,
+              "order": 1,
+              "prescription": "40 kg × 8회 × 6세트 · RPE 8–9 · HOLD",
+              "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
+              "setCount": 6,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 3,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 4,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 5,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 6,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                }
+              ],
+              "week": 1
+            },
+            "authorizedDemandIds": [
+              "authorized_0"
+            ],
+            "before": {
+              "prescription": "40 kg × 8회 × 6세트 · RPE 8–9 · HOLD",
+              "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
+              "setCount": 6,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 3,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 4,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 5,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 6,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                }
+              ],
+              "week": 1
+            },
+            "cause": "INITIAL_PLACEMENT_POLICY",
+            "evidenceCodes": [
+              "ACCEPTED_WEEKLY_PLACEMENT"
+            ],
+            "mutationSequence": 2,
+            "owner": {
+              "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
+              "stableKey": "barbell_back_squat"
+            },
+            "qualities": [],
+            "stage": "INITIAL_WEEKLY_PLACEMENT",
+            "targetIds": []
+          }
+        ],
         "action": "PLACEMENT_ASSIGNED",
         "authorizedDemandIds": [
           "authorized_0"
@@ -15213,10 +16633,103 @@
         "evidenceCodes": [
           "ACCEPTED_WEEKLY_PLACEMENT"
         ],
+        "finalPlacementStage": "INITIAL_WEEKLY_PLACEMENT",
+        "firstEventAfter": {
+          "day": 4,
+          "order": 1,
+          "prescription": "40 kg × 8회 × 6세트 · RPE 8–9 · HOLD",
+          "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
+          "setCount": 6,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 3,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 4,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 5,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 6,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            }
+          ],
+          "week": 1
+        },
+        "firstEventBefore": {
+          "prescription": "40 kg × 8회 × 6세트 · RPE 8–9 · HOLD",
+          "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
+          "setCount": 6,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 3,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 4,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 5,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 6,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            }
+          ],
+          "week": 1
+        },
         "mutationSequence": 2,
-        "qualities": [],
         "stage": "INITIAL_WEEKLY_PLACEMENT",
-        "targetIds": []
+        "triggerOwner": null,
+        "triggerQualities": [],
+        "triggerSelectionRole": null,
+        "triggerTargetIds": []
       },
       "owner": {
         "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
@@ -15348,6 +16861,68 @@
       "materialParity": true,
       "materialization": [],
       "origin": {
+        "acceptedOwnerPlacementEvents": [
+          {
+            "action": "PLACEMENT_ASSIGNED",
+            "after": {
+              "day": 1,
+              "order": 1,
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 1
+            },
+            "authorizedDemandIds": [
+              "authorized_1"
+            ],
+            "before": {
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 1
+            },
+            "cause": "INITIAL_PLACEMENT_POLICY",
+            "evidenceCodes": [
+              "ACCEPTED_WEEKLY_PLACEMENT"
+            ],
+            "mutationSequence": 0,
+            "owner": {
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+              "stableKey": "barbell_romanian_deadlift"
+            },
+            "qualities": [],
+            "stage": "INITIAL_WEEKLY_PLACEMENT",
+            "targetIds": []
+          }
+        ],
         "action": "PLACEMENT_ASSIGNED",
         "authorizedDemandIds": [
           "authorized_1"
@@ -15356,10 +16931,55 @@
         "evidenceCodes": [
           "ACCEPTED_WEEKLY_PLACEMENT"
         ],
+        "finalPlacementStage": "INITIAL_WEEKLY_PLACEMENT",
+        "firstEventAfter": {
+          "day": 1,
+          "order": 1,
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 1
+        },
+        "firstEventBefore": {
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 1
+        },
         "mutationSequence": 0,
-        "qualities": [],
         "stage": "INITIAL_WEEKLY_PLACEMENT",
-        "targetIds": []
+        "triggerOwner": null,
+        "triggerQualities": [],
+        "triggerSelectionRole": null,
+        "triggerTargetIds": []
       },
       "owner": {
         "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
@@ -15495,6 +17115,68 @@
       "materialParity": true,
       "materialization": [],
       "origin": {
+        "acceptedOwnerPlacementEvents": [
+          {
+            "action": "PLACEMENT_ASSIGNED",
+            "after": {
+              "day": 2,
+              "order": 1,
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_UPPER_PULL",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 1
+            },
+            "authorizedDemandIds": [
+              "authorized_2"
+            ],
+            "before": {
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_UPPER_PULL",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 1
+            },
+            "cause": "INITIAL_PLACEMENT_POLICY",
+            "evidenceCodes": [
+              "ACCEPTED_WEEKLY_PLACEMENT"
+            ],
+            "mutationSequence": 1,
+            "owner": {
+              "selectionRole": "COVERAGE_UPPER_PULL",
+              "stableKey": "dumbbell_chest_supported_row"
+            },
+            "qualities": [],
+            "stage": "INITIAL_WEEKLY_PLACEMENT",
+            "targetIds": []
+          }
+        ],
         "action": "PLACEMENT_ASSIGNED",
         "authorizedDemandIds": [
           "authorized_2"
@@ -15503,10 +17185,55 @@
         "evidenceCodes": [
           "ACCEPTED_WEEKLY_PLACEMENT"
         ],
+        "finalPlacementStage": "INITIAL_WEEKLY_PLACEMENT",
+        "firstEventAfter": {
+          "day": 2,
+          "order": 1,
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_UPPER_PULL",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 1
+        },
+        "firstEventBefore": {
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_UPPER_PULL",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 1
+        },
         "mutationSequence": 1,
-        "qualities": [],
         "stage": "INITIAL_WEEKLY_PLACEMENT",
-        "targetIds": []
+        "triggerOwner": null,
+        "triggerQualities": [],
+        "triggerSelectionRole": null,
+        "triggerTargetIds": []
       },
       "owner": {
         "selectionRole": "COVERAGE_UPPER_PULL",
@@ -15641,6 +17368,68 @@
       "materialParity": true,
       "materialization": [],
       "origin": {
+        "acceptedOwnerPlacementEvents": [
+          {
+            "action": "PLACEMENT_ASSIGNED",
+            "after": {
+              "day": 6,
+              "order": 1,
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_CORE_DIRECT",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 1
+            },
+            "authorizedDemandIds": [
+              "authorized_4"
+            ],
+            "before": {
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_CORE_DIRECT",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 1
+            },
+            "cause": "INITIAL_PLACEMENT_POLICY",
+            "evidenceCodes": [
+              "ACCEPTED_WEEKLY_PLACEMENT"
+            ],
+            "mutationSequence": 3,
+            "owner": {
+              "selectionRole": "COVERAGE_CORE_DIRECT",
+              "stableKey": "ex_28347c1f"
+            },
+            "qualities": [],
+            "stage": "INITIAL_WEEKLY_PLACEMENT",
+            "targetIds": []
+          }
+        ],
         "action": "PLACEMENT_ASSIGNED",
         "authorizedDemandIds": [
           "authorized_4"
@@ -15649,10 +17438,55 @@
         "evidenceCodes": [
           "ACCEPTED_WEEKLY_PLACEMENT"
         ],
+        "finalPlacementStage": "INITIAL_WEEKLY_PLACEMENT",
+        "firstEventAfter": {
+          "day": 6,
+          "order": 1,
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_CORE_DIRECT",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 1
+        },
+        "firstEventBefore": {
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_CORE_DIRECT",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 1
+        },
         "mutationSequence": 3,
-        "qualities": [],
         "stage": "INITIAL_WEEKLY_PLACEMENT",
-        "targetIds": []
+        "triggerOwner": null,
+        "triggerQualities": [],
+        "triggerSelectionRole": null,
+        "triggerTargetIds": []
       },
       "owner": {
         "selectionRole": "COVERAGE_CORE_DIRECT",
@@ -15841,6 +17675,116 @@
       "materialParity": true,
       "materialization": [],
       "origin": {
+        "acceptedOwnerPlacementEvents": [
+          {
+            "action": "PLACEMENT_ASSIGNED",
+            "after": {
+              "day": 4,
+              "order": 1,
+              "prescription": "40 kg × 8회 × 6세트 · RPE 8–9 · HOLD",
+              "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
+              "setCount": 6,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 3,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 4,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 5,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 6,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                }
+              ],
+              "week": 2
+            },
+            "authorizedDemandIds": [
+              "authorized_0"
+            ],
+            "before": {
+              "prescription": "40 kg × 8회 × 6세트 · RPE 8–9 · HOLD",
+              "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
+              "setCount": 6,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 3,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 4,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 5,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 6,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                }
+              ],
+              "week": 2
+            },
+            "cause": "INITIAL_PLACEMENT_POLICY",
+            "evidenceCodes": [
+              "ACCEPTED_WEEKLY_PLACEMENT"
+            ],
+            "mutationSequence": 2,
+            "owner": {
+              "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
+              "stableKey": "barbell_back_squat"
+            },
+            "qualities": [],
+            "stage": "INITIAL_WEEKLY_PLACEMENT",
+            "targetIds": []
+          }
+        ],
         "action": "PLACEMENT_ASSIGNED",
         "authorizedDemandIds": [
           "authorized_0"
@@ -15849,10 +17793,103 @@
         "evidenceCodes": [
           "ACCEPTED_WEEKLY_PLACEMENT"
         ],
+        "finalPlacementStage": "INITIAL_WEEKLY_PLACEMENT",
+        "firstEventAfter": {
+          "day": 4,
+          "order": 1,
+          "prescription": "40 kg × 8회 × 6세트 · RPE 8–9 · HOLD",
+          "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
+          "setCount": 6,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 3,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 4,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 5,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 6,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            }
+          ],
+          "week": 2
+        },
+        "firstEventBefore": {
+          "prescription": "40 kg × 8회 × 6세트 · RPE 8–9 · HOLD",
+          "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
+          "setCount": 6,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 3,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 4,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 5,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 6,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            }
+          ],
+          "week": 2
+        },
         "mutationSequence": 2,
-        "qualities": [],
         "stage": "INITIAL_WEEKLY_PLACEMENT",
-        "targetIds": []
+        "triggerOwner": null,
+        "triggerQualities": [],
+        "triggerSelectionRole": null,
+        "triggerTargetIds": []
       },
       "owner": {
         "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
@@ -15984,6 +18021,68 @@
       "materialParity": true,
       "materialization": [],
       "origin": {
+        "acceptedOwnerPlacementEvents": [
+          {
+            "action": "PLACEMENT_ASSIGNED",
+            "after": {
+              "day": 1,
+              "order": 1,
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 2
+            },
+            "authorizedDemandIds": [
+              "authorized_1"
+            ],
+            "before": {
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 2
+            },
+            "cause": "INITIAL_PLACEMENT_POLICY",
+            "evidenceCodes": [
+              "ACCEPTED_WEEKLY_PLACEMENT"
+            ],
+            "mutationSequence": 0,
+            "owner": {
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+              "stableKey": "barbell_romanian_deadlift"
+            },
+            "qualities": [],
+            "stage": "INITIAL_WEEKLY_PLACEMENT",
+            "targetIds": []
+          }
+        ],
         "action": "PLACEMENT_ASSIGNED",
         "authorizedDemandIds": [
           "authorized_1"
@@ -15992,10 +18091,55 @@
         "evidenceCodes": [
           "ACCEPTED_WEEKLY_PLACEMENT"
         ],
+        "finalPlacementStage": "INITIAL_WEEKLY_PLACEMENT",
+        "firstEventAfter": {
+          "day": 1,
+          "order": 1,
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 2
+        },
+        "firstEventBefore": {
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 2
+        },
         "mutationSequence": 0,
-        "qualities": [],
         "stage": "INITIAL_WEEKLY_PLACEMENT",
-        "targetIds": []
+        "triggerOwner": null,
+        "triggerQualities": [],
+        "triggerSelectionRole": null,
+        "triggerTargetIds": []
       },
       "owner": {
         "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
@@ -16131,6 +18275,68 @@
       "materialParity": true,
       "materialization": [],
       "origin": {
+        "acceptedOwnerPlacementEvents": [
+          {
+            "action": "PLACEMENT_ASSIGNED",
+            "after": {
+              "day": 2,
+              "order": 1,
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_UPPER_PULL",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 2
+            },
+            "authorizedDemandIds": [
+              "authorized_2"
+            ],
+            "before": {
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_UPPER_PULL",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 2
+            },
+            "cause": "INITIAL_PLACEMENT_POLICY",
+            "evidenceCodes": [
+              "ACCEPTED_WEEKLY_PLACEMENT"
+            ],
+            "mutationSequence": 1,
+            "owner": {
+              "selectionRole": "COVERAGE_UPPER_PULL",
+              "stableKey": "dumbbell_chest_supported_row"
+            },
+            "qualities": [],
+            "stage": "INITIAL_WEEKLY_PLACEMENT",
+            "targetIds": []
+          }
+        ],
         "action": "PLACEMENT_ASSIGNED",
         "authorizedDemandIds": [
           "authorized_2"
@@ -16139,10 +18345,55 @@
         "evidenceCodes": [
           "ACCEPTED_WEEKLY_PLACEMENT"
         ],
+        "finalPlacementStage": "INITIAL_WEEKLY_PLACEMENT",
+        "firstEventAfter": {
+          "day": 2,
+          "order": 1,
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_UPPER_PULL",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 2
+        },
+        "firstEventBefore": {
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_UPPER_PULL",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 2
+        },
         "mutationSequence": 1,
-        "qualities": [],
         "stage": "INITIAL_WEEKLY_PLACEMENT",
-        "targetIds": []
+        "triggerOwner": null,
+        "triggerQualities": [],
+        "triggerSelectionRole": null,
+        "triggerTargetIds": []
       },
       "owner": {
         "selectionRole": "COVERAGE_UPPER_PULL",
@@ -16277,6 +18528,68 @@
       "materialParity": true,
       "materialization": [],
       "origin": {
+        "acceptedOwnerPlacementEvents": [
+          {
+            "action": "PLACEMENT_ASSIGNED",
+            "after": {
+              "day": 6,
+              "order": 1,
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_CORE_DIRECT",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 2
+            },
+            "authorizedDemandIds": [
+              "authorized_4"
+            ],
+            "before": {
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_CORE_DIRECT",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 2
+            },
+            "cause": "INITIAL_PLACEMENT_POLICY",
+            "evidenceCodes": [
+              "ACCEPTED_WEEKLY_PLACEMENT"
+            ],
+            "mutationSequence": 3,
+            "owner": {
+              "selectionRole": "COVERAGE_CORE_DIRECT",
+              "stableKey": "ex_28347c1f"
+            },
+            "qualities": [],
+            "stage": "INITIAL_WEEKLY_PLACEMENT",
+            "targetIds": []
+          }
+        ],
         "action": "PLACEMENT_ASSIGNED",
         "authorizedDemandIds": [
           "authorized_4"
@@ -16285,10 +18598,55 @@
         "evidenceCodes": [
           "ACCEPTED_WEEKLY_PLACEMENT"
         ],
+        "finalPlacementStage": "INITIAL_WEEKLY_PLACEMENT",
+        "firstEventAfter": {
+          "day": 6,
+          "order": 1,
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_CORE_DIRECT",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 2
+        },
+        "firstEventBefore": {
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_CORE_DIRECT",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 2
+        },
         "mutationSequence": 3,
-        "qualities": [],
         "stage": "INITIAL_WEEKLY_PLACEMENT",
-        "targetIds": []
+        "triggerOwner": null,
+        "triggerQualities": [],
+        "triggerSelectionRole": null,
+        "triggerTargetIds": []
       },
       "owner": {
         "selectionRole": "COVERAGE_CORE_DIRECT",
@@ -16475,6 +18833,116 @@
       "materialParity": true,
       "materialization": [],
       "origin": {
+        "acceptedOwnerPlacementEvents": [
+          {
+            "action": "PLACEMENT_ASSIGNED",
+            "after": {
+              "day": 3,
+              "order": 1,
+              "prescription": "40 kg × 8회 × 6세트 · RPE 8–9 · HOLD",
+              "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
+              "setCount": 6,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 3,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 4,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 5,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 6,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                }
+              ],
+              "week": 1
+            },
+            "authorizedDemandIds": [
+              "authorized_0"
+            ],
+            "before": {
+              "prescription": "40 kg × 8회 × 6세트 · RPE 8–9 · HOLD",
+              "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
+              "setCount": 6,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 3,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 4,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 5,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 6,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                }
+              ],
+              "week": 1
+            },
+            "cause": "INITIAL_PLACEMENT_POLICY",
+            "evidenceCodes": [
+              "ACCEPTED_WEEKLY_PLACEMENT"
+            ],
+            "mutationSequence": 1,
+            "owner": {
+              "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
+              "stableKey": "barbell_back_squat"
+            },
+            "qualities": [],
+            "stage": "INITIAL_WEEKLY_PLACEMENT",
+            "targetIds": []
+          }
+        ],
         "action": "PLACEMENT_ASSIGNED",
         "authorizedDemandIds": [
           "authorized_0"
@@ -16483,10 +18951,103 @@
         "evidenceCodes": [
           "ACCEPTED_WEEKLY_PLACEMENT"
         ],
+        "finalPlacementStage": "INITIAL_WEEKLY_PLACEMENT",
+        "firstEventAfter": {
+          "day": 3,
+          "order": 1,
+          "prescription": "40 kg × 8회 × 6세트 · RPE 8–9 · HOLD",
+          "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
+          "setCount": 6,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 3,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 4,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 5,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 6,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            }
+          ],
+          "week": 1
+        },
+        "firstEventBefore": {
+          "prescription": "40 kg × 8회 × 6세트 · RPE 8–9 · HOLD",
+          "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
+          "setCount": 6,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 3,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 4,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 5,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 6,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            }
+          ],
+          "week": 1
+        },
         "mutationSequence": 1,
-        "qualities": [],
         "stage": "INITIAL_WEEKLY_PLACEMENT",
-        "targetIds": []
+        "triggerOwner": null,
+        "triggerQualities": [],
+        "triggerSelectionRole": null,
+        "triggerTargetIds": []
       },
       "owner": {
         "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
@@ -16602,6 +19163,68 @@
       "materialParity": true,
       "materialization": [],
       "origin": {
+        "acceptedOwnerPlacementEvents": [
+          {
+            "action": "PLACEMENT_ASSIGNED",
+            "after": {
+              "day": 1,
+              "order": 3,
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_ARMS_BICEPS",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 1
+            },
+            "authorizedDemandIds": [
+              "authorized_4"
+            ],
+            "before": {
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_ARMS_BICEPS",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 1
+            },
+            "cause": "INITIAL_PLACEMENT_POLICY",
+            "evidenceCodes": [
+              "ACCEPTED_WEEKLY_PLACEMENT"
+            ],
+            "mutationSequence": 3,
+            "owner": {
+              "selectionRole": "COVERAGE_ARMS_BICEPS",
+              "stableKey": "barbell_reverse_curl"
+            },
+            "qualities": [],
+            "stage": "INITIAL_WEEKLY_PLACEMENT",
+            "targetIds": []
+          }
+        ],
         "action": "PLACEMENT_ASSIGNED",
         "authorizedDemandIds": [
           "authorized_4"
@@ -16610,10 +19233,55 @@
         "evidenceCodes": [
           "ACCEPTED_WEEKLY_PLACEMENT"
         ],
+        "finalPlacementStage": "INITIAL_WEEKLY_PLACEMENT",
+        "firstEventAfter": {
+          "day": 1,
+          "order": 3,
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_ARMS_BICEPS",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 1
+        },
+        "firstEventBefore": {
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_ARMS_BICEPS",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 1
+        },
         "mutationSequence": 3,
-        "qualities": [],
         "stage": "INITIAL_WEEKLY_PLACEMENT",
-        "targetIds": []
+        "triggerOwner": null,
+        "triggerQualities": [],
+        "triggerSelectionRole": null,
+        "triggerTargetIds": []
       },
       "owner": {
         "selectionRole": "COVERAGE_ARMS_BICEPS",
@@ -16731,6 +19399,68 @@
       "materialParity": true,
       "materialization": [],
       "origin": {
+        "acceptedOwnerPlacementEvents": [
+          {
+            "action": "PLACEMENT_ASSIGNED",
+            "after": {
+              "day": 1,
+              "order": 1,
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 1
+            },
+            "authorizedDemandIds": [
+              "authorized_2"
+            ],
+            "before": {
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 1
+            },
+            "cause": "INITIAL_PLACEMENT_POLICY",
+            "evidenceCodes": [
+              "ACCEPTED_WEEKLY_PLACEMENT"
+            ],
+            "mutationSequence": 0,
+            "owner": {
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+              "stableKey": "barbell_romanian_deadlift"
+            },
+            "qualities": [],
+            "stage": "INITIAL_WEEKLY_PLACEMENT",
+            "targetIds": []
+          }
+        ],
         "action": "PLACEMENT_ASSIGNED",
         "authorizedDemandIds": [
           "authorized_2"
@@ -16739,10 +19469,55 @@
         "evidenceCodes": [
           "ACCEPTED_WEEKLY_PLACEMENT"
         ],
+        "finalPlacementStage": "INITIAL_WEEKLY_PLACEMENT",
+        "firstEventAfter": {
+          "day": 1,
+          "order": 1,
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 1
+        },
+        "firstEventBefore": {
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 1
+        },
         "mutationSequence": 0,
-        "qualities": [],
         "stage": "INITIAL_WEEKLY_PLACEMENT",
-        "targetIds": []
+        "triggerOwner": null,
+        "triggerQualities": [],
+        "triggerSelectionRole": null,
+        "triggerTargetIds": []
       },
       "owner": {
         "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
@@ -16872,6 +19647,80 @@
       "materialParity": true,
       "materialization": [],
       "origin": {
+        "acceptedOwnerPlacementEvents": [
+          {
+            "action": "PLACEMENT_ASSIGNED",
+            "after": {
+              "day": 1,
+              "order": 2,
+              "prescription": "12.5 kg × 10회 × 3세트 · RPE 8–9 · HOLD",
+              "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL",
+              "setCount": 3,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 10,
+                  "seconds": 0,
+                  "weightKg": 12.5
+                },
+                {
+                  "index": 2,
+                  "reps": 10,
+                  "seconds": 0,
+                  "weightKg": 12.5
+                },
+                {
+                  "index": 3,
+                  "reps": 10,
+                  "seconds": 0,
+                  "weightKg": 12.5
+                }
+              ],
+              "week": 1
+            },
+            "authorizedDemandIds": [
+              "authorized_1"
+            ],
+            "before": {
+              "prescription": "12.5 kg × 10회 × 3세트 · RPE 8–9 · HOLD",
+              "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL",
+              "setCount": 3,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 10,
+                  "seconds": 0,
+                  "weightKg": 12.5
+                },
+                {
+                  "index": 2,
+                  "reps": 10,
+                  "seconds": 0,
+                  "weightKg": 12.5
+                },
+                {
+                  "index": 3,
+                  "reps": 10,
+                  "seconds": 0,
+                  "weightKg": 12.5
+                }
+              ],
+              "week": 1
+            },
+            "cause": "INITIAL_PLACEMENT_POLICY",
+            "evidenceCodes": [
+              "ACCEPTED_WEEKLY_PLACEMENT"
+            ],
+            "mutationSequence": 2,
+            "owner": {
+              "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL",
+              "stableKey": "cable_rear_delt_fly"
+            },
+            "qualities": [],
+            "stage": "INITIAL_WEEKLY_PLACEMENT",
+            "targetIds": []
+          }
+        ],
         "action": "PLACEMENT_ASSIGNED",
         "authorizedDemandIds": [
           "authorized_1"
@@ -16880,10 +19729,67 @@
         "evidenceCodes": [
           "ACCEPTED_WEEKLY_PLACEMENT"
         ],
+        "finalPlacementStage": "INITIAL_WEEKLY_PLACEMENT",
+        "firstEventAfter": {
+          "day": 1,
+          "order": 2,
+          "prescription": "12.5 kg × 10회 × 3세트 · RPE 8–9 · HOLD",
+          "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL",
+          "setCount": 3,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 10,
+              "seconds": 0,
+              "weightKg": 12.5
+            },
+            {
+              "index": 2,
+              "reps": 10,
+              "seconds": 0,
+              "weightKg": 12.5
+            },
+            {
+              "index": 3,
+              "reps": 10,
+              "seconds": 0,
+              "weightKg": 12.5
+            }
+          ],
+          "week": 1
+        },
+        "firstEventBefore": {
+          "prescription": "12.5 kg × 10회 × 3세트 · RPE 8–9 · HOLD",
+          "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL",
+          "setCount": 3,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 10,
+              "seconds": 0,
+              "weightKg": 12.5
+            },
+            {
+              "index": 2,
+              "reps": 10,
+              "seconds": 0,
+              "weightKg": 12.5
+            },
+            {
+              "index": 3,
+              "reps": 10,
+              "seconds": 0,
+              "weightKg": 12.5
+            }
+          ],
+          "week": 1
+        },
         "mutationSequence": 2,
-        "qualities": [],
         "stage": "INITIAL_WEEKLY_PLACEMENT",
-        "targetIds": []
+        "triggerOwner": null,
+        "triggerQualities": [],
+        "triggerSelectionRole": null,
+        "triggerTargetIds": []
       },
       "owner": {
         "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL",
@@ -16999,6 +19905,68 @@
       "materialParity": true,
       "materialization": [],
       "origin": {
+        "acceptedOwnerPlacementEvents": [
+          {
+            "action": "PLACEMENT_ASSIGNED",
+            "after": {
+              "day": 1,
+              "order": 4,
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_ARMS_TRICEPS",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 1
+            },
+            "authorizedDemandIds": [
+              "authorized_5"
+            ],
+            "before": {
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_ARMS_TRICEPS",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 1
+            },
+            "cause": "INITIAL_PLACEMENT_POLICY",
+            "evidenceCodes": [
+              "ACCEPTED_WEEKLY_PLACEMENT"
+            ],
+            "mutationSequence": 4,
+            "owner": {
+              "selectionRole": "COVERAGE_ARMS_TRICEPS",
+              "stableKey": "dumbbell_lying_triceps_extension"
+            },
+            "qualities": [],
+            "stage": "INITIAL_WEEKLY_PLACEMENT",
+            "targetIds": []
+          }
+        ],
         "action": "PLACEMENT_ASSIGNED",
         "authorizedDemandIds": [
           "authorized_5"
@@ -17007,10 +19975,55 @@
         "evidenceCodes": [
           "ACCEPTED_WEEKLY_PLACEMENT"
         ],
+        "finalPlacementStage": "INITIAL_WEEKLY_PLACEMENT",
+        "firstEventAfter": {
+          "day": 1,
+          "order": 4,
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_ARMS_TRICEPS",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 1
+        },
+        "firstEventBefore": {
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_ARMS_TRICEPS",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 1
+        },
         "mutationSequence": 4,
-        "qualities": [],
         "stage": "INITIAL_WEEKLY_PLACEMENT",
-        "targetIds": []
+        "triggerOwner": null,
+        "triggerQualities": [],
+        "triggerSelectionRole": null,
+        "triggerTargetIds": []
       },
       "owner": {
         "selectionRole": "COVERAGE_ARMS_TRICEPS",
@@ -17128,6 +20141,131 @@
       "materialParity": true,
       "materialization": [],
       "origin": {
+        "acceptedOwnerPlacementEvents": [
+          {
+            "action": "PLACEMENT_ASSIGNED",
+            "after": {
+              "day": 1,
+              "order": 5,
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_CORE_DIRECT",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 1
+            },
+            "authorizedDemandIds": [
+              "authorized_6"
+            ],
+            "before": {
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_CORE_DIRECT",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 1
+            },
+            "cause": "INITIAL_PLACEMENT_POLICY",
+            "evidenceCodes": [
+              "ACCEPTED_WEEKLY_PLACEMENT"
+            ],
+            "mutationSequence": 5,
+            "owner": {
+              "selectionRole": "COVERAGE_CORE_DIRECT",
+              "stableKey": "ex_28347c1f"
+            },
+            "qualities": [],
+            "stage": "INITIAL_WEEKLY_PLACEMENT",
+            "targetIds": []
+          },
+          {
+            "action": "PLACEMENT_MOVED",
+            "after": {
+              "day": 3,
+              "order": 2,
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_CORE_DIRECT",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 1
+            },
+            "authorizedDemandIds": [
+              "authorized_6"
+            ],
+            "before": {
+              "day": 1,
+              "order": 5,
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_CORE_DIRECT",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 1
+            },
+            "cause": "REBALANCE_OBJECTIVE",
+            "evidenceCodes": [
+              "ACCEPTED_BALANCE_ACTION",
+              "MOVE"
+            ],
+            "mutationSequence": 0,
+            "owner": {
+              "selectionRole": "COVERAGE_CORE_DIRECT",
+              "stableKey": "ex_28347c1f"
+            },
+            "qualities": [],
+            "stage": "BOUNDED_DAY_REBALANCER",
+            "targetIds": []
+          }
+        ],
         "action": "PLACEMENT_ASSIGNED",
         "authorizedDemandIds": [
           "authorized_6"
@@ -17136,10 +20274,55 @@
         "evidenceCodes": [
           "ACCEPTED_WEEKLY_PLACEMENT"
         ],
+        "finalPlacementStage": "BOUNDED_DAY_REBALANCER",
+        "firstEventAfter": {
+          "day": 1,
+          "order": 5,
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_CORE_DIRECT",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 1
+        },
+        "firstEventBefore": {
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_CORE_DIRECT",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 1
+        },
         "mutationSequence": 5,
-        "qualities": [],
         "stage": "INITIAL_WEEKLY_PLACEMENT",
-        "targetIds": []
+        "triggerOwner": null,
+        "triggerQualities": [],
+        "triggerSelectionRole": null,
+        "triggerTargetIds": []
       },
       "owner": {
         "selectionRole": "COVERAGE_CORE_DIRECT",
@@ -17313,6 +20496,131 @@
       "materialParity": true,
       "materialization": [],
       "origin": {
+        "acceptedOwnerPlacementEvents": [
+          {
+            "action": "PLACEMENT_ASSIGNED",
+            "after": {
+              "day": 1,
+              "order": 6,
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_CALVES",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 1
+            },
+            "authorizedDemandIds": [
+              "authorized_7"
+            ],
+            "before": {
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_CALVES",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 1
+            },
+            "cause": "INITIAL_PLACEMENT_POLICY",
+            "evidenceCodes": [
+              "ACCEPTED_WEEKLY_PLACEMENT"
+            ],
+            "mutationSequence": 6,
+            "owner": {
+              "selectionRole": "COVERAGE_CALVES",
+              "stableKey": "ex_5ca7133f"
+            },
+            "qualities": [],
+            "stage": "INITIAL_WEEKLY_PLACEMENT",
+            "targetIds": []
+          },
+          {
+            "action": "PLACEMENT_MOVED",
+            "after": {
+              "day": 5,
+              "order": 2,
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_CALVES",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 1
+            },
+            "authorizedDemandIds": [
+              "authorized_7"
+            ],
+            "before": {
+              "day": 1,
+              "order": 6,
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_CALVES",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 1
+            },
+            "cause": "REBALANCE_OBJECTIVE",
+            "evidenceCodes": [
+              "ACCEPTED_BALANCE_ACTION",
+              "MOVE"
+            ],
+            "mutationSequence": 0,
+            "owner": {
+              "selectionRole": "COVERAGE_CALVES",
+              "stableKey": "ex_5ca7133f"
+            },
+            "qualities": [],
+            "stage": "BOUNDED_DAY_REBALANCER",
+            "targetIds": []
+          }
+        ],
         "action": "PLACEMENT_ASSIGNED",
         "authorizedDemandIds": [
           "authorized_7"
@@ -17321,10 +20629,55 @@
         "evidenceCodes": [
           "ACCEPTED_WEEKLY_PLACEMENT"
         ],
+        "finalPlacementStage": "BOUNDED_DAY_REBALANCER",
+        "firstEventAfter": {
+          "day": 1,
+          "order": 6,
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_CALVES",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 1
+        },
+        "firstEventBefore": {
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_CALVES",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 1
+        },
         "mutationSequence": 6,
-        "qualities": [],
         "stage": "INITIAL_WEEKLY_PLACEMENT",
-        "targetIds": []
+        "triggerOwner": null,
+        "triggerQualities": [],
+        "triggerSelectionRole": null,
+        "triggerTargetIds": []
       },
       "owner": {
         "selectionRole": "COVERAGE_CALVES",
@@ -17552,6 +20905,116 @@
       "materialParity": true,
       "materialization": [],
       "origin": {
+        "acceptedOwnerPlacementEvents": [
+          {
+            "action": "PLACEMENT_ASSIGNED",
+            "after": {
+              "day": 3,
+              "order": 1,
+              "prescription": "40 kg × 8회 × 6세트 · RPE 8–9 · HOLD",
+              "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
+              "setCount": 6,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 3,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 4,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 5,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 6,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                }
+              ],
+              "week": 2
+            },
+            "authorizedDemandIds": [
+              "authorized_0"
+            ],
+            "before": {
+              "prescription": "40 kg × 8회 × 6세트 · RPE 8–9 · HOLD",
+              "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
+              "setCount": 6,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 3,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 4,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 5,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                },
+                {
+                  "index": 6,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 40
+                }
+              ],
+              "week": 2
+            },
+            "cause": "INITIAL_PLACEMENT_POLICY",
+            "evidenceCodes": [
+              "ACCEPTED_WEEKLY_PLACEMENT"
+            ],
+            "mutationSequence": 1,
+            "owner": {
+              "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
+              "stableKey": "barbell_back_squat"
+            },
+            "qualities": [],
+            "stage": "INITIAL_WEEKLY_PLACEMENT",
+            "targetIds": []
+          }
+        ],
         "action": "PLACEMENT_ASSIGNED",
         "authorizedDemandIds": [
           "authorized_0"
@@ -17560,10 +21023,103 @@
         "evidenceCodes": [
           "ACCEPTED_WEEKLY_PLACEMENT"
         ],
+        "finalPlacementStage": "INITIAL_WEEKLY_PLACEMENT",
+        "firstEventAfter": {
+          "day": 3,
+          "order": 1,
+          "prescription": "40 kg × 8회 × 6세트 · RPE 8–9 · HOLD",
+          "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
+          "setCount": 6,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 3,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 4,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 5,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 6,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            }
+          ],
+          "week": 2
+        },
+        "firstEventBefore": {
+          "prescription": "40 kg × 8회 × 6세트 · RPE 8–9 · HOLD",
+          "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
+          "setCount": 6,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 3,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 4,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 5,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            },
+            {
+              "index": 6,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 40
+            }
+          ],
+          "week": 2
+        },
         "mutationSequence": 1,
-        "qualities": [],
         "stage": "INITIAL_WEEKLY_PLACEMENT",
-        "targetIds": []
+        "triggerOwner": null,
+        "triggerQualities": [],
+        "triggerSelectionRole": null,
+        "triggerTargetIds": []
       },
       "owner": {
         "selectionRole": "STYLE_HEAVY_LOWER_KNEE",
@@ -17679,6 +21235,68 @@
       "materialParity": true,
       "materialization": [],
       "origin": {
+        "acceptedOwnerPlacementEvents": [
+          {
+            "action": "PLACEMENT_ASSIGNED",
+            "after": {
+              "day": 1,
+              "order": 3,
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_ARMS_BICEPS",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 2
+            },
+            "authorizedDemandIds": [
+              "authorized_4"
+            ],
+            "before": {
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_ARMS_BICEPS",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 2
+            },
+            "cause": "INITIAL_PLACEMENT_POLICY",
+            "evidenceCodes": [
+              "ACCEPTED_WEEKLY_PLACEMENT"
+            ],
+            "mutationSequence": 3,
+            "owner": {
+              "selectionRole": "COVERAGE_ARMS_BICEPS",
+              "stableKey": "barbell_reverse_curl"
+            },
+            "qualities": [],
+            "stage": "INITIAL_WEEKLY_PLACEMENT",
+            "targetIds": []
+          }
+        ],
         "action": "PLACEMENT_ASSIGNED",
         "authorizedDemandIds": [
           "authorized_4"
@@ -17687,10 +21305,55 @@
         "evidenceCodes": [
           "ACCEPTED_WEEKLY_PLACEMENT"
         ],
+        "finalPlacementStage": "INITIAL_WEEKLY_PLACEMENT",
+        "firstEventAfter": {
+          "day": 1,
+          "order": 3,
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_ARMS_BICEPS",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 2
+        },
+        "firstEventBefore": {
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_ARMS_BICEPS",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 2
+        },
         "mutationSequence": 3,
-        "qualities": [],
         "stage": "INITIAL_WEEKLY_PLACEMENT",
-        "targetIds": []
+        "triggerOwner": null,
+        "triggerQualities": [],
+        "triggerSelectionRole": null,
+        "triggerTargetIds": []
       },
       "owner": {
         "selectionRole": "COVERAGE_ARMS_BICEPS",
@@ -17808,6 +21471,68 @@
       "materialParity": true,
       "materialization": [],
       "origin": {
+        "acceptedOwnerPlacementEvents": [
+          {
+            "action": "PLACEMENT_ASSIGNED",
+            "after": {
+              "day": 1,
+              "order": 1,
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 2
+            },
+            "authorizedDemandIds": [
+              "authorized_2"
+            ],
+            "before": {
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 2
+            },
+            "cause": "INITIAL_PLACEMENT_POLICY",
+            "evidenceCodes": [
+              "ACCEPTED_WEEKLY_PLACEMENT"
+            ],
+            "mutationSequence": 0,
+            "owner": {
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+              "stableKey": "barbell_romanian_deadlift"
+            },
+            "qualities": [],
+            "stage": "INITIAL_WEEKLY_PLACEMENT",
+            "targetIds": []
+          }
+        ],
         "action": "PLACEMENT_ASSIGNED",
         "authorizedDemandIds": [
           "authorized_2"
@@ -17816,10 +21541,55 @@
         "evidenceCodes": [
           "ACCEPTED_WEEKLY_PLACEMENT"
         ],
+        "finalPlacementStage": "INITIAL_WEEKLY_PLACEMENT",
+        "firstEventAfter": {
+          "day": 1,
+          "order": 1,
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 2
+        },
+        "firstEventBefore": {
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 2
+        },
         "mutationSequence": 0,
-        "qualities": [],
         "stage": "INITIAL_WEEKLY_PLACEMENT",
-        "targetIds": []
+        "triggerOwner": null,
+        "triggerQualities": [],
+        "triggerSelectionRole": null,
+        "triggerTargetIds": []
       },
       "owner": {
         "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
@@ -17949,6 +21719,80 @@
       "materialParity": true,
       "materialization": [],
       "origin": {
+        "acceptedOwnerPlacementEvents": [
+          {
+            "action": "PLACEMENT_ASSIGNED",
+            "after": {
+              "day": 1,
+              "order": 2,
+              "prescription": "12.5 kg × 10회 × 3세트 · RPE 8–9 · HOLD",
+              "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL",
+              "setCount": 3,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 10,
+                  "seconds": 0,
+                  "weightKg": 12.5
+                },
+                {
+                  "index": 2,
+                  "reps": 10,
+                  "seconds": 0,
+                  "weightKg": 12.5
+                },
+                {
+                  "index": 3,
+                  "reps": 10,
+                  "seconds": 0,
+                  "weightKg": 12.5
+                }
+              ],
+              "week": 2
+            },
+            "authorizedDemandIds": [
+              "authorized_1"
+            ],
+            "before": {
+              "prescription": "12.5 kg × 10회 × 3세트 · RPE 8–9 · HOLD",
+              "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL",
+              "setCount": 3,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 10,
+                  "seconds": 0,
+                  "weightKg": 12.5
+                },
+                {
+                  "index": 2,
+                  "reps": 10,
+                  "seconds": 0,
+                  "weightKg": 12.5
+                },
+                {
+                  "index": 3,
+                  "reps": 10,
+                  "seconds": 0,
+                  "weightKg": 12.5
+                }
+              ],
+              "week": 2
+            },
+            "cause": "INITIAL_PLACEMENT_POLICY",
+            "evidenceCodes": [
+              "ACCEPTED_WEEKLY_PLACEMENT"
+            ],
+            "mutationSequence": 2,
+            "owner": {
+              "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL",
+              "stableKey": "cable_rear_delt_fly"
+            },
+            "qualities": [],
+            "stage": "INITIAL_WEEKLY_PLACEMENT",
+            "targetIds": []
+          }
+        ],
         "action": "PLACEMENT_ASSIGNED",
         "authorizedDemandIds": [
           "authorized_1"
@@ -17957,10 +21801,67 @@
         "evidenceCodes": [
           "ACCEPTED_WEEKLY_PLACEMENT"
         ],
+        "finalPlacementStage": "INITIAL_WEEKLY_PLACEMENT",
+        "firstEventAfter": {
+          "day": 1,
+          "order": 2,
+          "prescription": "12.5 kg × 10회 × 3세트 · RPE 8–9 · HOLD",
+          "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL",
+          "setCount": 3,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 10,
+              "seconds": 0,
+              "weightKg": 12.5
+            },
+            {
+              "index": 2,
+              "reps": 10,
+              "seconds": 0,
+              "weightKg": 12.5
+            },
+            {
+              "index": 3,
+              "reps": 10,
+              "seconds": 0,
+              "weightKg": 12.5
+            }
+          ],
+          "week": 2
+        },
+        "firstEventBefore": {
+          "prescription": "12.5 kg × 10회 × 3세트 · RPE 8–9 · HOLD",
+          "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL",
+          "setCount": 3,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 10,
+              "seconds": 0,
+              "weightKg": 12.5
+            },
+            {
+              "index": 2,
+              "reps": 10,
+              "seconds": 0,
+              "weightKg": 12.5
+            },
+            {
+              "index": 3,
+              "reps": 10,
+              "seconds": 0,
+              "weightKg": 12.5
+            }
+          ],
+          "week": 2
+        },
         "mutationSequence": 2,
-        "qualities": [],
         "stage": "INITIAL_WEEKLY_PLACEMENT",
-        "targetIds": []
+        "triggerOwner": null,
+        "triggerQualities": [],
+        "triggerSelectionRole": null,
+        "triggerTargetIds": []
       },
       "owner": {
         "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL",
@@ -18076,6 +21977,68 @@
       "materialParity": true,
       "materialization": [],
       "origin": {
+        "acceptedOwnerPlacementEvents": [
+          {
+            "action": "PLACEMENT_ASSIGNED",
+            "after": {
+              "day": 1,
+              "order": 4,
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_ARMS_TRICEPS",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 2
+            },
+            "authorizedDemandIds": [
+              "authorized_5"
+            ],
+            "before": {
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_ARMS_TRICEPS",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 2
+            },
+            "cause": "INITIAL_PLACEMENT_POLICY",
+            "evidenceCodes": [
+              "ACCEPTED_WEEKLY_PLACEMENT"
+            ],
+            "mutationSequence": 4,
+            "owner": {
+              "selectionRole": "COVERAGE_ARMS_TRICEPS",
+              "stableKey": "dumbbell_lying_triceps_extension"
+            },
+            "qualities": [],
+            "stage": "INITIAL_WEEKLY_PLACEMENT",
+            "targetIds": []
+          }
+        ],
         "action": "PLACEMENT_ASSIGNED",
         "authorizedDemandIds": [
           "authorized_5"
@@ -18084,10 +22047,55 @@
         "evidenceCodes": [
           "ACCEPTED_WEEKLY_PLACEMENT"
         ],
+        "finalPlacementStage": "INITIAL_WEEKLY_PLACEMENT",
+        "firstEventAfter": {
+          "day": 1,
+          "order": 4,
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_ARMS_TRICEPS",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 2
+        },
+        "firstEventBefore": {
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_ARMS_TRICEPS",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 2
+        },
         "mutationSequence": 4,
-        "qualities": [],
         "stage": "INITIAL_WEEKLY_PLACEMENT",
-        "targetIds": []
+        "triggerOwner": null,
+        "triggerQualities": [],
+        "triggerSelectionRole": null,
+        "triggerTargetIds": []
       },
       "owner": {
         "selectionRole": "COVERAGE_ARMS_TRICEPS",
@@ -18205,6 +22213,131 @@
       "materialParity": true,
       "materialization": [],
       "origin": {
+        "acceptedOwnerPlacementEvents": [
+          {
+            "action": "PLACEMENT_ASSIGNED",
+            "after": {
+              "day": 1,
+              "order": 5,
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_CORE_DIRECT",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 2
+            },
+            "authorizedDemandIds": [
+              "authorized_6"
+            ],
+            "before": {
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_CORE_DIRECT",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 2
+            },
+            "cause": "INITIAL_PLACEMENT_POLICY",
+            "evidenceCodes": [
+              "ACCEPTED_WEEKLY_PLACEMENT"
+            ],
+            "mutationSequence": 5,
+            "owner": {
+              "selectionRole": "COVERAGE_CORE_DIRECT",
+              "stableKey": "ex_28347c1f"
+            },
+            "qualities": [],
+            "stage": "INITIAL_WEEKLY_PLACEMENT",
+            "targetIds": []
+          },
+          {
+            "action": "PLACEMENT_MOVED",
+            "after": {
+              "day": 3,
+              "order": 2,
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_CORE_DIRECT",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 2
+            },
+            "authorizedDemandIds": [
+              "authorized_6"
+            ],
+            "before": {
+              "day": 1,
+              "order": 5,
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_CORE_DIRECT",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 2
+            },
+            "cause": "REBALANCE_OBJECTIVE",
+            "evidenceCodes": [
+              "ACCEPTED_BALANCE_ACTION",
+              "MOVE"
+            ],
+            "mutationSequence": 0,
+            "owner": {
+              "selectionRole": "COVERAGE_CORE_DIRECT",
+              "stableKey": "ex_28347c1f"
+            },
+            "qualities": [],
+            "stage": "BOUNDED_DAY_REBALANCER",
+            "targetIds": []
+          }
+        ],
         "action": "PLACEMENT_ASSIGNED",
         "authorizedDemandIds": [
           "authorized_6"
@@ -18213,10 +22346,55 @@
         "evidenceCodes": [
           "ACCEPTED_WEEKLY_PLACEMENT"
         ],
+        "finalPlacementStage": "BOUNDED_DAY_REBALANCER",
+        "firstEventAfter": {
+          "day": 1,
+          "order": 5,
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_CORE_DIRECT",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 2
+        },
+        "firstEventBefore": {
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_CORE_DIRECT",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 2
+        },
         "mutationSequence": 5,
-        "qualities": [],
         "stage": "INITIAL_WEEKLY_PLACEMENT",
-        "targetIds": []
+        "triggerOwner": null,
+        "triggerQualities": [],
+        "triggerSelectionRole": null,
+        "triggerTargetIds": []
       },
       "owner": {
         "selectionRole": "COVERAGE_CORE_DIRECT",
@@ -18390,6 +22568,131 @@
       "materialParity": true,
       "materialization": [],
       "origin": {
+        "acceptedOwnerPlacementEvents": [
+          {
+            "action": "PLACEMENT_ASSIGNED",
+            "after": {
+              "day": 1,
+              "order": 6,
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_CALVES",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 2
+            },
+            "authorizedDemandIds": [
+              "authorized_7"
+            ],
+            "before": {
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_CALVES",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 2
+            },
+            "cause": "INITIAL_PLACEMENT_POLICY",
+            "evidenceCodes": [
+              "ACCEPTED_WEEKLY_PLACEMENT"
+            ],
+            "mutationSequence": 6,
+            "owner": {
+              "selectionRole": "COVERAGE_CALVES",
+              "stableKey": "ex_5ca7133f"
+            },
+            "qualities": [],
+            "stage": "INITIAL_WEEKLY_PLACEMENT",
+            "targetIds": []
+          },
+          {
+            "action": "PLACEMENT_MOVED",
+            "after": {
+              "day": 5,
+              "order": 2,
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_CALVES",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 2
+            },
+            "authorizedDemandIds": [
+              "authorized_7"
+            ],
+            "before": {
+              "day": 1,
+              "order": 6,
+              "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+              "selectionRole": "COVERAGE_CALVES",
+              "setCount": 2,
+              "setPrescriptions": [
+                {
+                  "index": 1,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                },
+                {
+                  "index": 2,
+                  "reps": 8,
+                  "seconds": 0,
+                  "weightKg": 0
+                }
+              ],
+              "week": 2
+            },
+            "cause": "REBALANCE_OBJECTIVE",
+            "evidenceCodes": [
+              "ACCEPTED_BALANCE_ACTION",
+              "MOVE"
+            ],
+            "mutationSequence": 0,
+            "owner": {
+              "selectionRole": "COVERAGE_CALVES",
+              "stableKey": "ex_5ca7133f"
+            },
+            "qualities": [],
+            "stage": "BOUNDED_DAY_REBALANCER",
+            "targetIds": []
+          }
+        ],
         "action": "PLACEMENT_ASSIGNED",
         "authorizedDemandIds": [
           "authorized_7"
@@ -18398,10 +22701,55 @@
         "evidenceCodes": [
           "ACCEPTED_WEEKLY_PLACEMENT"
         ],
+        "finalPlacementStage": "BOUNDED_DAY_REBALANCER",
+        "firstEventAfter": {
+          "day": 1,
+          "order": 6,
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_CALVES",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 2
+        },
+        "firstEventBefore": {
+          "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+          "selectionRole": "COVERAGE_CALVES",
+          "setCount": 2,
+          "setPrescriptions": [
+            {
+              "index": 1,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            },
+            {
+              "index": 2,
+              "reps": 8,
+              "seconds": 0,
+              "weightKg": 0
+            }
+          ],
+          "week": 2
+        },
         "mutationSequence": 6,
-        "qualities": [],
         "stage": "INITIAL_WEEKLY_PLACEMENT",
-        "targetIds": []
+        "triggerOwner": null,
+        "triggerQualities": [],
+        "triggerSelectionRole": null,
+        "triggerTargetIds": []
       },
       "owner": {
         "selectionRole": "COVERAGE_CALVES",
