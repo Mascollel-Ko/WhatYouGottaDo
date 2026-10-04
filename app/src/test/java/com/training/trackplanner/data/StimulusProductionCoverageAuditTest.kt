@@ -58,8 +58,9 @@ class StimulusProductionCoverageAuditTest {
     fun measureUnmodifiedServiceCoverage() = runBlocking {
         // Snapshot the small exact-key metadata facts before generating the memory-heavy corpus.
         // The census must not reparse all canonical tissue assets after the production runs.
+        val canonicalMetadataRepository = CanonicalExerciseMetadataRepository(ApplicationProvider.getApplicationContext())
         val c18TissueAuthoritySnapshot = C18TissueIncumbentPlacementCensus.captureTissueAuthoritySnapshot(
-            CanonicalExerciseMetadataRepository(ApplicationProvider.getApplicationContext())
+            canonicalMetadataRepository
         )
         val histories = listOf("none", "sparse", "recent", "reviewed", "mixed")
         val equipment = listOf(setOf("BARBELL", "DUMBBELL", "BENCH", "RACK"), setOf("MACHINE", "CABLE"), emptySet())
@@ -217,6 +218,35 @@ class StimulusProductionCoverageAuditTest {
             c20StartSha = "46a166499dc2136c73d22e66670d6232d59c21b4"
         )
         java.io.File("build/reports/c20-live-incumbent-stability-census.json").writeText(c20Census)
+        val c21PowerCensus = C21PowerDoseAuthorityCensus.render(
+            records = records,
+            planningByCase = canonicalPlanningByCase,
+            contextByCase = productionContextByCase,
+            metadataRepository = canonicalMetadataRepository
+        )
+        assertEquals(c21PowerCensus, C21PowerDoseAuthorityCensus.render(
+            records.reversed(), canonicalPlanningByCase, productionContextByCase, canonicalMetadataRepository
+        ))
+        java.io.File("build/reports/c21-power-dose-authority-census.json").writeText(c21PowerCensus)
+        val c21Json = org.json.JSONObject(c21PowerCensus)
+        assertEquals(27, c21Json.getJSONObject("counts").getInt("corpusCases"))
+        assertEquals(22, c21Json.getJSONObject("counts").getInt("generatedCases"))
+        assertEquals(5, c21Json.getJSONObject("counts").getInt("preflightRejected"))
+        assertEquals(22, c21Json.getJSONObject("counts").getInt("powerTargets"))
+        assertEquals(4, c21Json.getJSONObject("counts").getInt("directionOnlyBefore"))
+        assertEquals(0, c21Json.getJSONObject("counts").getInt("numericPowerAuthorityAfter"))
+        assertEquals(0, c21Json.getJSONObject("counts").getInt("reviewedStarterAuthority"))
+        assertEquals(8, c21Json.getJSONObject("counts").getInt("generatedPowerRowsBeforeC21Suppression"))
+        assertEquals("POWER_REMAINS_DIRECTION_ONLY", c21Json.getString("policyConclusion"))
+        val c21Persona3 = c21Json.getJSONObject("persona3Reviewed")
+        assertEquals("DEVELOP_DIRECT_STIMULUS_DIRECTION_ONLY", c21Persona3.getJSONObject("powerTarget").getString("strategy"))
+        assertEquals("DIRECTION_ONLY", c21Persona3.getJSONObject("powerTarget").getString("numericAuthority"))
+        assertEquals("ex_314df428", c21Persona3.getJSONObject("selectedOwner").getString("stableKey"))
+        assertEquals("CANONICAL_STIMULUS_QUALITY_POWER", c21Persona3.getJSONObject("selectedOwner").getString("selectionRole"))
+        assertEquals(0, c21Persona3.getInt("exactOwnerPersonalHistoryCount"))
+        assertEquals(2, c21Persona3.getInt("currentPowerRows"))
+        assertEquals("MODEL_UNAVAILABLE", c21Persona3.getString("currentB6Status"))
+        assertTrue(c21Persona3.getJSONArray("currentB6ReasonCodes").toString().contains("CAPABILITY_PROXY_QUALITY_NON_PRESCRIPTIVE"))
         assertEquals(c20Census, C20LiveIncumbentStabilityCensus.render(
             c18Census = c18Census,
             records = records.reversed(),
