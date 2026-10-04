@@ -6,7 +6,7 @@
 - C21 start: `69a58df6c210924cafbe7fc6ab478b8cba517c94`.
 - C21A audit/test commit: `266537f942e582a104f6f1a2556fe7000deceba2`.
 - C21 implementation/test commit and `lastAuditedCommit`: `0bd67e9cff3de1bf7d12aa803445e6df773657e5`.
-- Final audited commit: pending final documentation commit and Hosted CI.
+- C21 `lastAuditedCommit`: `0bd67e9cff3de1bf7d12aa803445e6df773657e` (implementation/test commit; documentation-only commits do not replace it).
 - C20 protocol/runtime/app: `3.55.0` / `RECORD_BASED_PLANNER_0.14.7_KOTLIN_1` / `0.5.1.5`.
 - Verified C20 merged-main CI: run `37219120715`, success; 2,273 tests, 0 failures, 0 errors, 4 skips. Protocol, Community/Cloud contracts, whitespace, tests, coverage, APK assembly, signer validation, and artifact upload all passed.
 - C20 route baseline: CONTROL 20, Strength V1 1, Strength Calibration 1, Hypertrophy 0, Combined 0.
@@ -69,7 +69,7 @@ The final deterministic report is [`c21-power-dose-authority-census.json`](c21-p
 
 The eight legacy rows are all removed from `persona3_mixed`, `persona3_recent`, `persona3_reviewed`, and `persona3_sparse`. In `persona3_reviewed`, the exact B5 Power owner remains selected for the direction-only target, while B6 still reports `MODEL_UNAVAILABLE / CAPABILITY_PROXY_QUALITY_NON_PRESCRIPTIVE`, materialization remains absent, and the route remains CONTROL. `persona3_mixed` routes through its independently valid Strength Calibration authority; this does not authorize Power. The unsupported Power rows are not preserved as incumbents; removal also changes two RDL incumbent feasibility results from hard-invalid to unresolved because their previous recovery finding depended on the unauthorized Power rows. C20 keeps those RDLs unanchored.
 
-Hosted CI must still validate the pushed implementation/test commit and final documentation head. The implementation commit is the intended `lastAuditedCommit`; the docs-only commit must not replace it.
+The implementation/test commit is the `lastAuditedCommit`; documentation-only commits do not replace the audited code SHA. The implementation run is linked in the validation record, and PR #13's latest check validates the final audit and census revision.
 
 ## Exact `persona3_reviewed` disposition
 
