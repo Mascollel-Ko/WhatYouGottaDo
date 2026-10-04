@@ -254,24 +254,76 @@ internal object C21PowerDoseAuthorityCensus {
         val persona3PowerTarget = persona3Comparison?.targetPlan?.qualityTargets?.firstOrNull { it.quality == TrainableQuality.POWER }
         val powerRouteRows = records.mapNotNull { (spec, result) -> result?.comparison?.let { spec.label to it } }
             .filter { (_, comparison) -> comparison.selectionPlan.selectedCandidates.any { "QUALITY:POWER" in it.coveredTargetIds } }
+        fun hasPowerB6Authority(comparison: StimulusSelectionProgramComparison) =
+            comparison.prescriptionAuthorizationPlan?.authorizations?.any {
+                it.quality == TrainableQuality.POWER && it.authorizedPrescription != null
+            } == true
+        val b7EligiblePowerCases = powerRouteRows.count { (_, comparison) ->
+            comparison.experimentalReadinessAudit?.status == StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW
+        }
+        val b8AuthorizedPowerCases = powerRouteRows.count { (_, comparison) ->
+            hasPowerB6Authority(comparison) && comparison.productionCutoverAuthority?.status ==
+                StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER
+        }
+        val powerRoutedCases = records.count { (_, result) ->
+            val comparison = result?.comparison
+            result?.routeDecision?.selectedSource != null &&
+                result.routeDecision.selectedSource != StimulusProductionProgramSource.CONTROL &&
+                comparison != null && hasPowerB6Authority(comparison)
+        }
+        val powerTargetsTotal = records.count { (_, result) ->
+            result?.comparison?.targetPlan?.qualityTargets?.any { it.quality == TrainableQuality.POWER } == true
+        }
+        val routedResults = records.mapNotNull { it.second }
+        val routeCounts = routedResults.groupingBy { it.routeDecision.selectedSource.name }.eachCount()
+        val b7ReasonCounts = routedResults.flatMap { it.comparison?.experimentalReadinessAudit?.reasonCodes.orEmpty() }
+            .groupingBy { it }.eachCount()
+        val incumbentRows = routedResults.flatMap { it.incumbentPlacementShadow?.rows.orEmpty() }
+        val incumbentFeasibilityCounts = incumbentRows.groupingBy { it.feasibility.name }.eachCount()
 
         val root = JSONObject()
-            .put("schema", "c21-power-dose-authority-census-v1")
+            .put("schema", "c21-power-dose-authority-census-v2")
             .put("baselineMain", "69a58df6c210924cafbe7fc6ab478b8cba517c94")
             .put("startHead", "69a58df6c210924cafbe7fc6ab478b8cba517c94")
+            .put("versions", JSONObject().put("protocol", "3.56.0")
+                .put("runtime", "RECORD_BASED_PLANNER_0.14.8_KOTLIN_1").put("app", "0.5.1.5"))
+            .put("standardCoverageSha256", "5BD1E9430352618C6C42F399ED28B8A065908CEDCA8F4448924BD9301CB44BD1")
             .put("policyConclusion", "POWER_REMAINS_DIRECTION_ONLY")
+            .put("routeSnapshot", JSONObject()
+                .put("CONTROL", routeCounts[StimulusProductionProgramSource.CONTROL.name] ?: 0)
+                .put("STRENGTH_V1", routeCounts[StimulusProductionProgramSource.B8_STRENGTH_V1.name] ?: 0)
+                .put("STRENGTH_CALIBRATION_V1", routeCounts[StimulusProductionProgramSource.B8_STRENGTH_CALIBRATION_V1.name] ?: 0)
+                .put("HYPERTROPHY", routeCounts[StimulusProductionProgramSource.B8_HYPERTROPHY_V1.name] ?: 0)
+                .put("COMBINED", routeCounts[StimulusProductionProgramSource.B8_STRENGTH_HYPERTROPHY_V1.name] ?: 0))
+            .put("b7ReasonOccurrences", JSONObject()
+                .put("CHANGE_PROVENANCE_UNCLOSED", b7ReasonCounts["CHANGE_PROVENANCE_UNCLOSED"] ?: 0)
+                .put("AFFECTED_TARGET_REMAINS_UNMET", b7ReasonCounts["AFFECTED_TARGET_REMAINS_UNMET"] ?: 0)
+                .put("TARGET_REGRESSED", b7ReasonCounts["TARGET_REGRESSED"] ?: 0))
+            .put("c20LiveIncumbentFeasibility", JSONObject()
+                .put("HARD_VALID", incumbentFeasibilityCounts[CanonicalIncumbentFeasibility.HARD_VALID.name] ?: 0)
+                .put("HARD_INVALID", incumbentFeasibilityCounts[CanonicalIncumbentFeasibility.HARD_INVALID.name] ?: 0)
+                .put("UNRESOLVED", incumbentFeasibilityCounts[CanonicalIncumbentFeasibility.UNRESOLVED.name] ?: 0)
+                .put("preservedHardValidRows", routedResults.sumOf { it.incumbentPlacementPreservations.size })
+                .put("hardInvalidOrUnresolvedForcedPreserved", routedResults.sumOf { result ->
+                    result.incumbentPlacementPreservations.count { it.feasibility.status != CanonicalIncumbentFeasibility.HARD_VALID }
+                }))
             .put("counts", JSONObject()
                 .put("corpusCases", records.size).put("preflightRejected", records.count { it.second == null })
-                .put("generatedCases", generatedCount).put("powerTargets", generatedCount)
+                .put("generatedCases", generatedCount).put("powerTargets", powerTargetsTotal)
+                .put("powerTargetsTotal", powerTargetsTotal)
                 .put("directionOnlyBefore", directionOnlyBefore).put("numericPowerAuthorityAfter", numericPowerAfter)
                 .put("personalHistoryAuthority", personalHistoryAuthorities)
                 .put("reviewedStarterAuthority", reviewedStarterAuthorities)
                 .put("stillDirectionOnly", stillDirectionOnly)
                 .put("fullyMaterializedPower", fullyMaterializedPower)
+                .put("b7EligiblePowerCases", b7EligiblePowerCases)
+                .put("b8AuthorizedPowerCases", b8AuthorizedPowerCases)
+                .put("powerRoutedCases", powerRoutedCases)
                 .put("exactB5PowerOwnerRows", selectedPowerOwnerRows)
                 .put("uniqueExactB5PowerOwners", powerRouteRows.flatMap { (_, comparison) -> comparison.selectionPlan.selectedCandidates
                     .filter { "QUALITY:POWER" in it.coveredTargetIds }.map { "${it.stableKey}#${it.selectionRole}" } }.distinct().size)
-                .put("generatedPowerRowsBeforeC21Suppression", generatedPowerRows)
+                .put("generatedPowerRowsAfterAuthorityFilter", generatedPowerRows)
+                .put("preC21BaselineGeneratedPowerRows", 8)
                 .put("exactOwnerDirectPowerObservationIds", JSONArray(exactOwnerPowerObservationIds.sorted()))
             )
             .put("reviewedRuleSource", JSONObject()
@@ -294,7 +346,7 @@ internal object C21PowerDoseAuthorityCensus {
                     val key = comparison.selectionPlan.selectedCandidates.firstOrNull { "QUALITY:POWER" in it.coveredTargetIds }?.stableKey
                     key?.let { stable -> contextByCase["persona3_reviewed"]?.snapshot?.allConfirmedSets?.count { it.stableKey == stable } } ?: 0
                 } ?: 0)
-                .put("currentPowerRows", persona3Comparison?.experimental?.items?.count { item ->
+                .put("currentPowerRowsAfterAuthorityFilter", persona3Comparison?.experimental?.items?.count { item ->
                     item.exerciseStableKey == POWER_OWNER_KEY && item.selectionRole == "CANONICAL_STIMULUS_QUALITY_POWER"
                 } ?: 0)
                 .put("currentB6Status", persona3Comparison?.prescriptionAuthorizationPlan?.authorizations?.firstOrNull { it.targetId == "QUALITY:POWER" }?.status?.name)
