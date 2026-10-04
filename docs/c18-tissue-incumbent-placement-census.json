@@ -40,12 +40,14 @@
         "https:\/\/pmc.ncbi.nlm.nih.gov\/articles\/PMC7345922\/"
       ],
       "projectionBefore": "UNRESOLVED_NO_POSITIVE_EXPOSURE",
-      "rootCause": "CANONICAL_BODYWEIGHT_COEFFICIENT_EXISTS_BUT_RUNTIME_DOSE_JOIN_OMITS_IT; C17_CORPUS_ALSO_HAS_NO_BODYWEIGHT",
+      "rootCause": "PROJECTION_ADAPTER_OMISSION_FIXED; C17_CORPUS_ALSO_HAS_NO_BODYWEIGHT",
+      "repairResult": "EXACT_CANONICAL_COEFFICIENT_CONSUMED_BY_RUNTIME",
       "projectedWeightKg": 0,
       "projectedLoadSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
       "c17ProjectionOccurrences": 6,
-      "repairApplied": false,
-      "projectionAfter": "UNRESOLVED_LOAD_INPUT",
+      "repairApplied": true,
+      "projectionAfter": "UNRESOLVED_REQUIRED_BODYWEIGHT_ABSENT",
+      "projectionWithRequiredInput": "RESOLVED_WITH_BODYWEIGHT_AND_ZERO_ADDED_LOAD_AFTER_EXACT_COEFFICIENT_REPAIR",
       "safeToTreatAsZeroLoad": false
     },
     {
@@ -80,12 +82,14 @@
         "https:\/\/pubmed.ncbi.nlm.nih.gov\/32147242\/"
       ],
       "projectionBefore": "UNRESOLVED_NO_POSITIVE_EXPOSURE",
-      "rootCause": "WEIGHTED_DOSE_HAS_ONLY_PROVISIONAL_NO_INVENTED_LOAD_ZERO",
+      "rootCause": "REQUIRED_RECORDED_LOAD_INPUT_ABSENT",
+      "repairResult": "NO_METADATA_REPAIR_REQUIRED",
       "projectedWeightKg": 0,
       "projectedLoadSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
       "c17ProjectionOccurrences": 6,
       "repairApplied": false,
-      "projectionAfter": "UNRESOLVED_LOAD_INPUT",
+      "projectionAfter": "UNRESOLVED_REQUIRED_WEIGHTED_LOAD_ABSENT",
+      "projectionWithRequiredInput": "RESOLVED_WITH_VALID_RECORDED_WEIGHTED_LOAD",
       "safeToTreatAsZeroLoad": false
     },
     {
@@ -129,12 +133,14 @@
         "https:\/\/pubmed.ncbi.nlm.nih.gov\/24947920\/"
       ],
       "projectionBefore": "UNRESOLVED_NO_POSITIVE_EXPOSURE",
-      "rootCause": "WEIGHTED_DOSE_HAS_ONLY_PROVISIONAL_NO_INVENTED_LOAD_ZERO",
+      "rootCause": "REQUIRED_RECORDED_LOAD_INPUT_ABSENT",
+      "repairResult": "NO_METADATA_REPAIR_REQUIRED",
       "projectedWeightKg": 0,
       "projectedLoadSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
       "c17ProjectionOccurrences": 4,
       "repairApplied": false,
-      "projectionAfter": "UNRESOLVED_LOAD_INPUT",
+      "projectionAfter": "UNRESOLVED_REQUIRED_WEIGHTED_LOAD_ABSENT",
+      "projectionWithRequiredInput": "RESOLVED_WITH_VALID_RECORDED_WEIGHTED_LOAD",
       "safeToTreatAsZeroLoad": false
     },
     {
@@ -170,12 +176,14 @@
         "https:\/\/pubmed.ncbi.nlm.nih.gov\/7775488\/"
       ],
       "projectionBefore": "UNRESOLVED_NO_POSITIVE_EXPOSURE",
-      "rootCause": "WEIGHTED_DOSE_HAS_ONLY_PROVISIONAL_NO_INVENTED_LOAD_ZERO",
+      "rootCause": "REQUIRED_RECORDED_LOAD_INPUT_ABSENT",
+      "repairResult": "NO_METADATA_REPAIR_REQUIRED",
       "projectedWeightKg": 0,
       "projectedLoadSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
       "c17ProjectionOccurrences": 2,
       "repairApplied": false,
-      "projectionAfter": "UNRESOLVED_LOAD_INPUT",
+      "projectionAfter": "UNRESOLVED_REQUIRED_WEIGHTED_LOAD_ABSENT",
+      "projectionWithRequiredInput": "RESOLVED_WITH_VALID_RECORDED_WEIGHTED_LOAD",
       "safeToTreatAsZeroLoad": false
     },
     {
@@ -204,12 +212,14 @@
         "https:\/\/pubmed.ncbi.nlm.nih.gov\/35819335\/"
       ],
       "projectionBefore": "UNRESOLVED_NO_POSITIVE_EXPOSURE",
-      "rootCause": "WEIGHTED_DOSE_HAS_ONLY_PROVISIONAL_NO_INVENTED_LOAD_ZERO",
+      "rootCause": "REQUIRED_RECORDED_LOAD_INPUT_ABSENT",
+      "repairResult": "NO_METADATA_REPAIR_REQUIRED",
       "projectedWeightKg": 0,
       "projectedLoadSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
       "c17ProjectionOccurrences": 2,
       "repairApplied": false,
-      "projectionAfter": "UNRESOLVED_LOAD_INPUT",
+      "projectionAfter": "UNRESOLVED_REQUIRED_WEIGHTED_LOAD_ABSENT",
+      "projectionWithRequiredInput": "RESOLVED_WITH_VALID_RECORDED_WEIGHTED_LOAD",
       "safeToTreatAsZeroLoad": false
     }
   ],
@@ -15553,6 +15563,9 @@
     "syntheticIncumbentShadowMove": 2,
     "syntheticIncumbentShadowNoDecision": 18,
     "unresolvedTissueKeys": 5,
+    "currentCorpusInputUnresolvedTissueKeys": 5,
+    "resolvedWithRequiredInput": 5,
+    "exactBodyweightAdapterRepairs": 1,
     "originStageCounts": {
       "INITIAL_WEEKLY_PLACEMENT": 32
     }

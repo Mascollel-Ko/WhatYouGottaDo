@@ -3,6 +3,7 @@ package com.training.trackplanner.analysis.tissue
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutSet
+import com.training.trackplanner.analysis.features.BodyweightLoadProfileAuthority
 import java.io.File
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -366,7 +367,7 @@ internal class ConnectiveTissuePriorGenerator(private val root: Path) {
                                 entryId = index + 1L,
                                 setIndex = 0,
                                 reps = 10,
-                                weightKg = 40.0,
+                                weightKg = syntheticLoadKg(stableKey),
                                 seconds = 60,
                                 confirmed = true,
                                 rpe = rpe
@@ -380,6 +381,17 @@ internal class ConnectiveTissuePriorGenerator(private val root: Path) {
                 .filter { it.initialExposure > NUMERICAL_ZERO }
                 .sortedWith(compareBy({ it.exerciseStableKey }, { it.key.loadUnitStableKey }, { it.key.loadDimension }))
         }
+
+    /** Synthetic priors use only load inputs supported by the exact exercise authority. */
+    private fun syntheticLoadKg(stableKey: String): Double {
+        val exerciseRows = catalog.authorityRows.filter { it.exerciseStableKey == stableKey }
+        val doseBasis = exerciseRows.map(TissueRcvAuthorityRow::doseBasis).distinct().singleOrNull()
+        val coefficientOnlyBodyweight = doseBasis == "BODYWEIGHT_REPETITION" &&
+            stableKey !in catalog.exerciseDoseProfiles &&
+            BodyweightLoadProfileAuthority.resolve(stableKey) == null &&
+            exerciseRows.any { it.bodyWeightCoefficient != null }
+        return if (coefficientOnlyBodyweight) 0.0 else 40.0
+    }
 
     private fun assignProfiles(): Map<String, String> {
         val result = catalog.loadUnits.values.associate { unit ->

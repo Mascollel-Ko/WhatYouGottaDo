@@ -79,6 +79,48 @@ class TissueRcvContextModifierTest {
     }
 
     @Test
+    fun exactBirdDogRcvCoefficientResolvesOnlyBodyweightOnlySets() {
+        val birdDog = record("ex_28347c1f", "버드독").copy(
+            sets = listOf(1, 2).map { setIndex ->
+                WorkoutSet(
+                    id = setIndex.toLong(),
+                    entryId = 1,
+                    setIndex = setIndex,
+                    reps = 8,
+                    weightKg = 0.0,
+                    seconds = 0,
+                    confirmed = true
+                )
+            },
+            bodyWeightKg = 80.0
+        )
+        val result = TissueRcvEventLedgerBuilder(catalog, ZoneOffset.UTC).build(listOf(birdDog))
+
+        assertTrue(result.diagnostics.toString(), result.diagnostics.none { it.contains("missing") })
+        assertEquals(14, result.events.size)
+        result.events.forEach { event -> assertEquals(320.0, event.rawDose, 0.0) }
+    }
+
+    @Test
+    fun exactBirdDogCoefficientDoesNotInventAddedLoadOrBodyweight() {
+        val base = record("ex_28347c1f", "버드독").copy(
+            sets = listOf(WorkoutSet(1, 1, 1, 8, 0.0, 0, true)),
+            bodyWeightKg = null
+        )
+        val missingBodyweight = TissueRcvEventLedgerBuilder(catalog, ZoneOffset.UTC).build(listOf(base))
+        assertTrue(missingBodyweight.events.isEmpty())
+        assertTrue(missingBodyweight.diagnostics.any { it.contains("bodyweight") })
+
+        val unresolvedLoad = base.copy(
+            sets = listOf(WorkoutSet(1, 1, 1, 8, 5.0, 0, true)),
+            bodyWeightKg = 80.0
+        )
+        val missingLoadSemantics = TissueRcvEventLedgerBuilder(catalog, ZoneOffset.UTC).build(listOf(unresolvedLoad))
+        assertTrue(missingLoadSemantics.events.isEmpty())
+        assertTrue(missingLoadSemantics.diagnostics.any { it.contains("added-load or assistance semantics") })
+    }
+
+    @Test
     fun duplicateAuthorityComponentRowsStillApplyContextExactlyOnce() {
         val duplicate = catalog.authorityRows.single {
             it.exerciseStableKey == "ex_ae9ecdbc" &&

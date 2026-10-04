@@ -126,13 +126,36 @@ class PlanWeekTissueProjectionTest {
         }
     }
 
-    @Test fun birdDogIsStillUnresolvedWithBodyweightUntilExactRcvCoefficientIsJoined() = runBlocking {
+    @Test fun birdDogUsesExactRcvCoefficientWhenBodyweightAndZeroAddedLoadAreAvailable() = runBlocking {
         val key = "ex_28347c1f"
         withService(exerciseKeys = listOf(key), bodyWeightKg = 80.0) { service, _ ->
             val row = row(key, 1, 2).copy(
                 weightKg = 0.0,
                 weightSource = "BODYWEIGHT_REPS",
                 setPrescriptions = (1..2).map { setIndex -> ProgramSetPrescription(setIndex, 8, 0.0, 0) }
+            )
+            val projection = service.planProjection(cutoff).evaluate(listOf(row), 8.0)
+            assertTrue(projection.days.single().toJson().toString(), projection.days.single().unresolvedKeys.isEmpty())
+            assertTrue(projection.days.single().after!!.loadUnits.any { it.rawResidual.upper > 0.0 })
+        }
+    }
+
+    @Test fun birdDogRemainsUnresolvedWhenBodyweightIsMissingOrAddedLoadSemanticsAreUnknown() = runBlocking {
+        val key = "ex_28347c1f"
+        withService(exerciseKeys = listOf(key)) { service, _ ->
+            val row = row(key, 1, 2).copy(
+                weightKg = 0.0,
+                weightSource = "BODYWEIGHT_REPS",
+                setPrescriptions = (1..2).map { setIndex -> ProgramSetPrescription(setIndex, 8, 0.0, 0) }
+            )
+            val projection = service.planProjection(cutoff).evaluate(listOf(row), 8.0)
+            assertEquals(setOf(key), projection.days.single().unresolvedKeys)
+        }
+        withService(exerciseKeys = listOf(key), bodyWeightKg = 80.0) { service, _ ->
+            val row = row(key, 1, 2).copy(
+                weightKg = 5.0,
+                weightSource = "UNRESOLVED_ADDED_OR_ASSISTANCE_LOAD",
+                setPrescriptions = (1..2).map { setIndex -> ProgramSetPrescription(setIndex, 8, 5.0, 0) }
             )
             val projection = service.planProjection(cutoff).evaluate(listOf(row), 8.0)
             assertEquals(setOf(key), projection.days.single().unresolvedKeys)

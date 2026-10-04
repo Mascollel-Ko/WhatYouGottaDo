@@ -178,6 +178,9 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(12, c18Summary.getInt("syntheticIncumbentShadowKeep"))
         assertEquals(2, c18Summary.getInt("syntheticIncumbentShadowMove"))
         assertEquals(18, c18Summary.getInt("syntheticIncumbentShadowNoDecision"))
+        assertEquals(5, c18Summary.getInt("currentCorpusInputUnresolvedTissueKeys"))
+        assertEquals(5, c18Summary.getInt("resolvedWithRequiredInput"))
+        assertEquals(1, c18Summary.getInt("exactBodyweightAdapterRepairs"))
         val c18TissueKeys = c18Json.getJSONArray("tissueKeys")
         assertEquals(5, c18TissueKeys.length())
         (0 until c18TissueKeys.length()).map(c18TissueKeys::getJSONObject).forEach { row ->
@@ -185,6 +188,7 @@ class StimulusProductionCoverageAuditTest {
             assertTrue(row.getString("stableKey"), row.getBoolean("planningMetadataExists"))
             assertTrue(row.getString("stableKey"), row.getBoolean("runtimeJoinExists"))
             assertFalse(row.getString("stableKey"), row.getBoolean("safeToTreatAsZeroLoad"))
+            assertTrue(row.getString("stableKey"), row.getString("projectionWithRequiredInput").startsWith("RESOLVED_"))
         }
         val c17Cases = org.json.JSONObject(c17Census).getJSONArray("cases")
         (0 until c17Cases.length()).map(c17Cases::getJSONObject).flatMap { case ->

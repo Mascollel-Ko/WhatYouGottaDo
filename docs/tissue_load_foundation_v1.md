@@ -248,6 +248,12 @@ approve or reinterpret the historical C2/C3/C4 research ledgers above.
 - Legacy OFI arithmetic and its five axes are unchanged. Readiness and
   ProgramBuilder do not consume connective-tissue state.
 
+### Exact bodyweight coefficient projection (RCV-EXPOSURE-1.2)
+
+- For an exact `BODYWEIGHT_REPETITION` RCV exercise/load-unit group, runtime dose resolution can consume the group's reviewed `bodyWeightCoefficient` when neither an exact exercise dose profile nor an exact bodyweight-load profile applies.
+- This coefficient path requires a finite positive bodyweight and recorded zero added load. The derived dose is the coefficient-adjusted bodyweight multiplied by confirmed repetitions. Nonzero load without an exact added-load/assistance rule remains unresolved; missing bodyweight also remains unresolved.
+- Exact exercise-specific dose profiles and the existing bodyweight-load profiles retain their prior precedence and behavior. No tissue relations, recovery formula, RCV thresholds, or coefficients were authored or changed in C18. Unknown stable keys remain unresolved.
+
 ### Runtime file responsibility map
 
 - `TissueRcvAssetModels.kt` / `TissueRcvAssetRepository.kt`: typed authority

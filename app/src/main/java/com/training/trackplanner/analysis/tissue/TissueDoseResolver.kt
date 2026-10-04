@@ -1,13 +1,15 @@
 package com.training.trackplanner.analysis.tissue
 
 import com.training.trackplanner.analysis.features.BodyweightEffectiveLoadCalculator
+import com.training.trackplanner.analysis.features.BodyweightLoadProfileAuthority
 import com.training.trackplanner.analysis.features.DurationHoldLoadCalculator
 
 object TissueDoseResolver {
     fun resolve(
         record: TissueWorkoutRecord,
         basis: TissueDoseBasis,
-        exactProfile: TissueExerciseDoseProfile? = null
+        exactProfile: TissueExerciseDoseProfile? = null,
+        rcvBodyweightAuthority: TissueRcvBodyweightDoseAuthority? = null
     ): TissueDoseResolution {
         val sets = record.sets.filter { it.confirmed }
         if (sets.isEmpty()) return missing("No confirmed sets are available.")
@@ -21,6 +23,33 @@ object TissueDoseResolver {
                 status = TissueDoseResolutionStatus.DERIVED_FROM_CURRENT_RECORD
             )
             TissueDoseBasis.EFFECTIVE_BODYWEIGHT_REPETITIONS -> {
+                if (rcvBodyweightAuthority != null &&
+                    BodyweightLoadProfileAuthority.resolve(record.exercise.stableKey) == null
+                ) {
+                    require(record.exercise.stableKey == rcvBodyweightAuthority.exerciseStableKey) {
+                        "RCV bodyweight authority stable key does not match the workout record."
+                    }
+                    require(rcvBodyweightAuthority.loadUnitStableKey.isNotBlank())
+                    val coefficient = rcvBodyweightAuthority.bodyWeightCoefficient
+                    if (!coefficient.isFinite() || coefficient <= 0.0) {
+                        return missing("Exact RCV bodyweight coefficient is invalid.")
+                    }
+                    if (sets.any { it.weightKg != 0.0 }) {
+                        return missing("Exact RCV bodyweight coefficient does not define added-load or assistance semantics.")
+                    }
+                    val bodyWeightKg = record.bodyWeightKg
+                        ?.takeIf { it.isFinite() && it > 0.0 }
+                        ?: return missing("Exact RCV bodyweight dose requires valid body weight.")
+                    val effectiveBodyweightKg = bodyWeightKg * coefficient
+                    if (!effectiveBodyweightKg.isFinite() || effectiveBodyweightKg <= 0.0) {
+                        return missing("Exact RCV effective bodyweight load is invalid.")
+                    }
+                    return TissueDoseResolution(
+                        resolvedDose = sets.sumOf { it.reps * effectiveBodyweightKg },
+                        status = TissueDoseResolutionStatus.DERIVED_FROM_CURRENT_RECORD,
+                        diagnostics = listOf("Exact exercise/load-unit RCV bodyweight coefficient applied.")
+                    )
+                }
                 if (record.bodyWeightKg == null) return missing("Effective bodyweight dose requires body weight.")
                 TissueDoseResolution(
                     resolvedDose = sets.sumOf {

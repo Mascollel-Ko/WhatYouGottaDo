@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.52.0 |
+| Protocol version | 3.53.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.14.4 |
+| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.14.5 |
 | Last audited commit | 4d589cb3a371c2e8359332e320d375d7e0ad9a92 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
@@ -1271,3 +1271,9 @@ Post-audit boundary notes
 - Protocol/runtime/app versions are `3.52.0` / `RECORD_BASED_PLANNER_0.14.4_KOTLIN_1` / `0.5.1.5`. The standard coverage SHA-256 changes to `55CD3C4E9E58B700ED4577A6C0CE0A99FD847F552A334B45FD0815E6FC8825AB` with the one bounded calibration route; phase order remains B1-B6 → EXPERIMENTAL → CONTROL → comparison → B7 → B8 → B9, with no third build.
 - C15 implementation/test commit `4d589cb3a371c2e8359332e320d375d7e0ad9a92` is the `lastAuditedCommit`; the detailed evidence and validation record is in [`docs/c15_cold_start_strength_calibration_audit.md`](../../c15_cold_start_strength_calibration_audit.md).
 - Hosted Android Debug Build run [37108587556](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/37108587556) passed on that implementation/test commit: 2,225 tests, 0 failures, 0 errors, 4 skips; protocol validation, Community/Cloud contracts, whitespace, coverage upload, APK assembly, signer validation, and APK upload passed. The final docs-only HEAD is checked separately.
+
+### Phase C18 — exact canonical tissue projection input (protocol 3.53.0)
+
+- The RCV runtime now consumes an exact exercise/load-unit `bodyWeightCoefficient` for bodyweight-repetition records when no more specific exercise dose or bodyweight-load profile exists. It requires valid bodyweight and a zero-added-load record; added-load/assistance semantics remain unresolved without exact authority. Weighted movements still require a valid recorded load.
+- The coefficient is a tissue-analysis input only. It does not select an exercise, change B4/B5/B6, alter placement ranking, authorize displacement, relax B7/B8, or add Power/Combined authority. Unknown identities and incomplete required inputs remain unresolved.
+- Protocol/runtime/app are `3.53.0` / `RECORD_BASED_PLANNER_0.14.5_KOTLIN_1` / `0.5.1.5`. C18 reruns the 32-row C17 counterfactual without changing production placement behavior; the C18 audit records feasibility limits and the incumbent shadow source boundary.

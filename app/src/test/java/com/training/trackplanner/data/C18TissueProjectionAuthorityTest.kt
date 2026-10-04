@@ -71,11 +71,12 @@ class C18TissueProjectionAuthorityTest {
         }
     }
 
-    @Test fun birdDogRcvBodyweightCoefficientIsNotJoinedToTheRuntimeBodyweightResolver() {
+    @Test fun birdDogRcvBodyweightCoefficientIsAvailableAsExactRuntimeAuthority() {
         val tissue = TissueRcvAssetRepository.fromAssets(context).catalog
-        val coefficients = tissue.authorityRows.filter { it.exerciseStableKey == "ex_28347c1f" }
-            .mapNotNull { it.bodyWeightCoefficient }.distinct()
+        val rows = tissue.authorityRows.filter { it.exerciseStableKey == "ex_28347c1f" }
+        val coefficients = rows.map { it.bodyWeightCoefficient }.distinct()
         assertEquals(listOf(0.25), coefficients)
+        assertTrue(rows.all { it.doseBasis == "BODYWEIGHT_REPETITION" })
         assertNull(BodyweightLoadProfileAuthority.resolve("ex_28347c1f"))
     }
 

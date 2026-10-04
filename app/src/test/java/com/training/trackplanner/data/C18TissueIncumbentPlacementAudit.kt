@@ -250,7 +250,8 @@ internal object C18TissueIncumbentPlacementCensus {
         val cases = casesInput.map { case -> caseSummary(case, rootDeltas) }
         val classifications = rows.toJsonObjects().groupingBy { it.getString("priorPlacementClassification") }.eachCount()
         val originCounts = rootDeltas.groupingBy { it.getJSONObject("origin").getString("stage") }.eachCount().toSortedMap()
-        val unresolvedCount = tissueAudit.toJsonObjects().count { it.getString("projectionAfter") == "UNRESOLVED_LOAD_INPUT" }
+        val tissueRows = tissueAudit.toJsonObjects()
+        val unresolvedCount = tissueRows.count { it.getString("projectionAfter").startsWith("UNRESOLVED_REQUIRED_") }
         val output = JSONObject()
             .put("schema", "c18-tissue-incumbent-placement-census-v1")
             .put("c17MergeSha", c17MergeSha)
@@ -284,6 +285,9 @@ internal object C18TissueIncumbentPlacementCensus {
                 .put("syntheticIncumbentShadowMove", rows.toJsonObjects().count { it.getString("incumbentShadowRecommendation") == C18IncumbentRecommendation.MOVE_INCUMBENT_HARD_INVALID.name })
                 .put("syntheticIncumbentShadowNoDecision", rows.toJsonObjects().count { it.getString("incumbentShadowRecommendation") == C18IncumbentRecommendation.NO_ELIGIBLE_INCUMBENT.name })
                 .put("unresolvedTissueKeys", unresolvedCount)
+                .put("currentCorpusInputUnresolvedTissueKeys", unresolvedCount)
+                .put("resolvedWithRequiredInput", tissueRows.count { it.getString("projectionWithRequiredInput").startsWith("RESOLVED_") })
+                .put("exactBodyweightAdapterRepairs", tissueRows.count { it.getBoolean("repairApplied") })
                 .put("originStageCounts", JSONObject(originCounts)))
         return output.toString(2)
     }
@@ -331,8 +335,18 @@ internal object C18TissueIncumbentPlacementCensus {
         val before = first?.getJSONObject("before")
         val basis = snapshot.tissueDoseBasis
         val bodyweight = basis == "BODYWEIGHT_REPETITION"
-        val rootCause = if (bodyweight) "CANONICAL_BODYWEIGHT_COEFFICIENT_EXISTS_BUT_RUNTIME_DOSE_JOIN_OMITS_IT; C17_CORPUS_ALSO_HAS_NO_BODYWEIGHT"
-            else "WEIGHTED_DOSE_HAS_ONLY_PROVISIONAL_NO_INVENTED_LOAD_ZERO"
+        val rootCause = if (bodyweight) "PROJECTION_ADAPTER_OMISSION_FIXED; C17_CORPUS_ALSO_HAS_NO_BODYWEIGHT"
+            else "REQUIRED_RECORDED_LOAD_INPUT_ABSENT"
+        val positiveInputProjection = when {
+            bodyweight -> "RESOLVED_WITH_BODYWEIGHT_AND_ZERO_ADDED_LOAD_AFTER_EXACT_COEFFICIENT_REPAIR"
+            snapshot.tissueDoseBasis == "WEIGHTED_REPETITION" -> "RESOLVED_WITH_VALID_RECORDED_WEIGHTED_LOAD"
+            else -> "NOT_VALIDATED"
+        }
+        val currentInputResult = when {
+            observed.isEmpty() -> "NO_C17_UNRESOLVED_ROW"
+            bodyweight -> "UNRESOLVED_REQUIRED_BODYWEIGHT_ABSENT"
+            else -> "UNRESOLVED_REQUIRED_WEIGHTED_LOAD_ABSENT"
+        }
         return JSONObject()
             .put("stableKey", key)
             .put("canonicalName", snapshot.canonicalName)
@@ -351,11 +365,13 @@ internal object C18TissueIncumbentPlacementCensus {
             .put("relationSources", JSONArray(snapshot.relationSources))
             .put("projectionBefore", if (observed.isNotEmpty()) "UNRESOLVED_NO_POSITIVE_EXPOSURE" else "NO_C17_UNRESOLVED_ROW")
             .put("rootCause", rootCause)
+            .put("repairResult", if (bodyweight) "EXACT_CANONICAL_COEFFICIENT_CONSUMED_BY_RUNTIME" else "NO_METADATA_REPAIR_REQUIRED")
             .put("projectedWeightKg", before?.optDouble("weightKg") ?: JSONObject.NULL)
             .put("projectedLoadSource", before?.optString("loadSource").orEmpty())
             .put("c17ProjectionOccurrences", observed.size)
-            .put("repairApplied", false)
-            .put("projectionAfter", if (observed.isNotEmpty()) "UNRESOLVED_LOAD_INPUT" else "NOT_APPLICABLE")
+            .put("repairApplied", bodyweight)
+            .put("projectionAfter", currentInputResult)
+            .put("projectionWithRequiredInput", positiveInputProjection)
             .put("safeToTreatAsZeroLoad", false)
     }
 
