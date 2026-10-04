@@ -7,7 +7,7 @@
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.14.7 |
-| Last audited commit | 0bd67e9cff3de1bf7d12aa803445e6df773657e5 |
+| Last audited commit | 400b4aa2a644a509a43763d7943c296eac23d825 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1304,4 +1304,4 @@ Post-audit boundary notes
 - The eight legacy `3×5/side` rows are removed. Power remains direction-only and has no executable Power materialization, Power B8 authority, or Power route. `persona3_mixed` can use the existing Strength Calibration route with no Power rows; `persona3_reviewed` remains CONTROL.
 - C20 incumbents are re-evaluated against the output without unauthorized Power: 12 remain hard-valid, 0 are hard-invalid, and 20 remain unresolved; only the 12 proven hard-valid rows are preserved. Routes are CONTROL 19 / Strength V1 1 / Strength Calibration 2 / Hypertrophy 0 / Combined 0. B7 remains provenance-unclosed 11 / target-unmet 9 / regressed 1.
 - C21 advances the protocol/runtime to `3.56.0` / `RECORD_BASED_PLANNER_0.14.8_KOTLIN_1`. Persisted C20 (`3.55.0` / runtime `0.14.7`) and C19 (`3.54.0` / runtime `0.14.6`) programs remain valid incumbent sources. App remains `0.5.1.5`. The standard coverage SHA-256 changes to `5BD1E9430352618C6C42F399ED28B8A065908CEDCA8F4448924BD9301CB44BD1` because unauthorized Power rows are no longer emitted.
-- C21 implementation/test commit `0bd67e9cff3de1bf7d12aa803445e6df773657e` is the `lastAuditedCommit`. Hosted run [37230591031](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/37230591031) passed 2,278 tests (0 failures, 0 errors, 4 skips), protocol/contracts/whitespace checks, coverage upload, APK assembly, signer validation, and APK upload. The exact Power evidence and per-case census are in [`docs/c21_power_dose_and_execution_authority_audit.md`](../../c21_power_dose_and_execution_authority_audit.md) and [`docs/c21-power-dose-authority-census.json`](../../c21-power-dose-authority-census.json).
+- C21 implementation/test commit `400b4aa2a644a509a43763d7943c296eac23d825` is the `lastAuditedCommit`; it includes a CONTROL Power-row perturbation test proving B4/B5/B6/EXPERIMENTAL Power authority is CONTROL-independent. Hosted run [37233984414](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/37233984414) passed 2,279 tests (0 failures, 0 errors, 4 skips), protocol/contracts/whitespace checks, coverage upload, APK assembly, signer validation, and APK upload. The exact Power evidence and per-case census are in [`docs/c21_power_dose_and_execution_authority_audit.md`](../../c21_power_dose_and_execution_authority_audit.md) and [`docs/c21-power-dose-authority-census.json`](../../c21-power-dose-authority-census.json).

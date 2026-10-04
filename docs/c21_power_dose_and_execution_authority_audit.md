@@ -5,8 +5,8 @@
 - C20 merge: `69a58df6c210924cafbe7fc6ab478b8cba517c94` (PR #12; merged 2026-10-04 17:04:18 UTC).
 - C21 start: `69a58df6c210924cafbe7fc6ab478b8cba517c94`.
 - C21A audit/test commit: `266537f942e582a104f6f1a2556fe7000deceba2`.
-- C21 implementation/test commit and `lastAuditedCommit`: `0bd67e9cff3de1bf7d12aa803445e6df773657e5`.
-- C21 `lastAuditedCommit`: `0bd67e9cff3de1bf7d12aa803445e6df773657e` (implementation/test commit; documentation-only commits do not replace it).
+- C21 initial implementation/test commit: `0bd67e9cff3de1bf7d12aa803445e6df773657e5`.
+- C21 final implementation/test commit and `lastAuditedCommit`: `400b4aa2a644a509a43763d7943c296eac23d825` (includes the explicit CONTROL Power-row perturbation test; documentation-only commits do not replace it).
 - C20 protocol/runtime/app: `3.55.0` / `RECORD_BASED_PLANNER_0.14.7_KOTLIN_1` / `0.5.1.5`.
 - Verified C20 merged-main CI: run `37219120715`, success; 2,273 tests, 0 failures, 0 errors, 4 skips. Protocol, Community/Cloud contracts, whitespace, tests, coverage, APK assembly, signer validation, and artifact upload all passed.
 - C20 route baseline: CONTROL 20, Strength V1 1, Strength Calibration 1, Hypertrophy 0, Combined 0.
@@ -63,7 +63,7 @@ B7 remains provenance-unclosed 11, target-unmet 9, target-regressed 1. B8 was no
 
 The standard production coverage checksum changed from C20's `55CD3C4E9E58B700ED4577A6C0CE0A99FD847F552A334B45FD0815E6FC8825AB` to `5BD1E9430352618C6C42F399ED28B8A065908CEDCA8F4448924BD9301CB44BD1` because the 8 unauthorized Power rows were removed. This is the intended output delta. Protocol/runtime were bumped to `3.56.0` / `RECORD_BASED_PLANNER_0.14.8_KOTLIN_1`; app remains `0.5.1.5`. The incumbent source-contract index accepts C19 and C20 protocol/runtime pairs so the version bump does not discard persisted incumbent continuity.
 
-Local compile smoke passed for `:app:compileDebugKotlin :app:compileDebugUnitTestKotlin`. The full local unit suite passed: 2,278 tests, 0 failures, 0 errors, 4 skips. The first full attempt found eight failures in `BoundedMaterialDemandTest`, whose private reflection helper still called `buildCore` with its pre-C21 argument count; the helper was updated to pass the new empty exact-Power-owner set, its focused suite passed, and the full rerun passed. Protocol documentation validation passed. Focused C21/C20 tests and this full suite use the external Gradle worker-restart init script; it is not part of the repository.
+Local compile smoke passed for `:app:compileDebugKotlin :app:compileDebugUnitTestKotlin`. The full local unit suite passed: 2,279 tests, 0 failures, 0 errors, 4 skips. The first full attempt found eight failures in `BoundedMaterialDemandTest`, whose private reflection helper still called `buildCore` with its pre-C21 argument count; the helper was updated to pass the new empty exact-Power-owner set, its focused suite passed, and the full rerun passed. An additional test perturbs only late CONTROL Power rows and verifies B4 Power targets, B5 owners, B6 authority, and EXP material remain identical. Protocol documentation validation passed. Focused C21/C20 tests and this full suite use the external Gradle worker-restart init script; it is not part of the repository.
 
 The final deterministic report is [`c21-power-dose-authority-census.json`](c21-power-dose-authority-census.json), SHA-256 `EFC2C14F7248FB17BE99CF52BF07E02BE51FA46BF3924BB10521F181F7E7BECB`. It records 27 corpus cases, 22 generated, 5 preflight rejected, 22 Power targets, 4 direction-only targets, 4 exact B5 owner rows, 0 numeric/personal/reviewed-starter Power authorities, 0 materialized Power rows, and 0 Power-authorized/routed cases. The coverage SHA is `5BD1E9430352618C6C42F399ED28B8A065908CEDCA8F4448924BD9301CB44BD1`. C20 feasibility after the output correction is 12 HARD_VALID / 0 HARD_INVALID / 20 UNRESOLVED, with 12 preserved and 0 non-valid anchors forced. Routes are CONTROL 19 / Strength V1 1 / Strength Calibration 2 / H 0 / Combined 0; B7 remains 11 / 9 / 1.
 
@@ -100,11 +100,11 @@ The C20 placement pass still runs in its established location after EXPERIMENTAL
 | C21 synthetic boundary tests | Pass: missing exact B6 defers; exact B6 retains; same key/wrong role does not borrow; nonmaterial owner is not deferred |
 | Focused production/continuity tests | Pass: coverage audit, incumbent index, B5/B6 material-demand boundary |
 | Local compile | Pass: `compileDebugKotlin` and `compileDebugUnitTestKotlin` |
-| Local full unit suite | Pass: 2,278 tests, 0 failures, 0 errors, 4 skips |
+| Local full unit suite | Pass: 2,279 tests, 0 failures, 0 errors, 4 skips, including CONTROL Power-row perturbation |
 | Protocol documentation validator | Pass: 9 families, 36 protocols |
 | `git diff --check` | Pass before implementation commit |
-| Hosted implementation CI | Pass: [run 37230591031](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/37230591031), 2,278 tests, 0 failures, 0 errors, 4 skips; protocol, Community/Cloud contracts, whitespace, coverage upload, APK assembly, signer validation, and APK upload all succeeded |
+| Hosted implementation/test CI | Pass: [run 37233984414](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/37233984414), final implementation/test SHA `400b4aa2a644a509a43763d7943c296eac23d825`; 2,279 tests, 0 failures, 0 errors, 4 skips; protocol, Community/Cloud contracts, whitespace, coverage upload, APK assembly, signer validation, and APK upload all succeeded |
 
 The post-filter machine report is linked above. Its SHA-256 is `EFC2C14F7248FB17BE99CF52BF07E02BE51FA46BF3924BB10521F181F7E7BECB`. Post-filter production coverage is `5BD1E9430352618C6C42F399ED28B8A065908CEDCA8F4448924BD9301CB44BD1`; the change from the C20 checksum is exactly the omission of eight unauthorized Power rows. C21 keeps the application version at `0.5.1.5` and introduces no Room migration.
 
-Hosted run 37230591031 uploaded coverage artifact `Stimulus-production-coverage` (artifact ID `11313856973`) and debug APK artifact `WhatYouGottaDo-debug-apk` (artifact ID `11314136349`). The APK is 68,757,703 bytes with SHA-256 `56577DCBBE674D33B5FC7280C012DCB4F025DBB1BC69CEFA98000805BE53FC60`. The PR implementation head was `0bd67e9cff3de1bf7d12aa803445e6df773657e5`; after this report and raw census are committed, final documentation CI remains required.
+Hosted run 37233984414 uploaded coverage artifact `Stimulus-production-coverage` (artifact ID `11314354432`) and debug APK artifact `WhatYouGottaDo-debug-apk` (artifact ID `11314769080`). The APK is 68,757,703 bytes with SHA-256 `1A01B6F0D4839582C0F4194E4268ECE8BE5270B7A4E04E21137299F37CEBDB87`. The PR head at that run was `400b4aa2a644a509a43763d7943c296eac23d825`. Final documentation HEAD is validated separately.
