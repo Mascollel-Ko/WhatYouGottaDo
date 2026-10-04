@@ -1,0 +1,3188 @@
+{
+  "schema": "c20-live-incumbent-stability-census-v1",
+  "c19MergeSha": "46a166499dc2136c73d22e66670d6232d59c21b4",
+  "c20StartSha": "46a166499dc2136c73d22e66670d6232d59c21b4",
+  "sourceSnapshot": {
+    "sourceType": "CURRENT_PERSISTED_PROGRAM",
+    "token": "DETERMINISTIC_SHA256_OF_PROGRAM_ITEMS_AND_SETS",
+    "updatedAtSufficient": false,
+    "freshnessVerifiedDuringSave": "see stale-source tests"
+  },
+  "liveFeasibility": {
+    "hardValidCount": 12,
+    "hardInvalidCount": 2,
+    "unresolvedCount": 18,
+    "projectionCalls": 35,
+    "dayOfiProjectionCalls": 238,
+    "tissueProjectionCalls": 76,
+    "cacheHits": 0,
+    "generationScopedProjectionCache": false
+  },
+  "shadowPlacement": {
+    "activatedCases": {
+      "persona0_mixed": "ACTIVATED",
+      "persona0_reviewed": "NO_ELIGIBLE_HARD_VALID_ANCHORS",
+      "persona3_reviewed": "ACTIVATED",
+      "persona4_mixed": "ACTIVATED"
+    },
+    "preservedHardValidRows": 12,
+    "hardInvalidRowsForcedPreserved": 0,
+    "unresolvedRowsForcedPreserved": 0,
+    "combinedAnchorSetConflicts": 0,
+    "productionPlacementChanged": true,
+    "sharedPlacementDeltaBefore": 32,
+    "sharedPlacementDeltaAfter": 20,
+    "totalDayDistanceBefore": 62,
+    "totalDayDistanceAfter": 42,
+    "orderOnlyChangesBefore": 2,
+    "orderOnlyChangesAfter": 0
+  },
+  "caseRows": [
+    {
+      "case": "persona0_mixed",
+      "route": "CONTROL",
+      "b7Reasons": [],
+      "b8Reasons": [
+        "B8_CUTOVER_V1_EMPTY_MATERIAL_AUTHORITY",
+        "B8_CUTOVER_V1_PRESCRIPTION_CHANGE_WITHOUT_EXACT_B6_AUTHORITY",
+        "B8_CUTOVER_V1_PROVENANCE_NOT_CLOSED",
+        "B8_CUTOVER_V1_REQUIRES_FULL_B6_MATERIALIZATION",
+        "B8_CUTOVER_V1_UNRELATED_CONTROL_MUTATION",
+        "B8_CUTOVER_V1_UPSTREAM_INCONSISTENCY"
+      ],
+      "activationStatus": "ACTIVATED",
+      "activationDetails": [],
+      "preservationEvents": [
+        {
+          "owner": {
+            "stableKey": "barbell_back_squat",
+            "selectionRole": "STYLE_HEAVY_LOWER_KNEE"
+          },
+          "week": 1,
+          "from": {
+            "day": 1,
+            "order": 2
+          },
+          "to": {
+            "day": 3,
+            "order": 1
+          },
+          "lineage": "c20_fixture_persona0_mixed",
+          "snapshotToken": "63c36683bb3a4e9f0bd12a02ae58df014a1606a0346bb845562df2a0d2168ca5",
+          "feasibility": {
+            "status": "HARD_VALID",
+            "hardReasons": [],
+            "unresolvedReasons": [],
+            "details": []
+          }
+        },
+        {
+          "owner": {
+            "stableKey": "barbell_back_squat",
+            "selectionRole": "STYLE_HEAVY_LOWER_KNEE"
+          },
+          "week": 2,
+          "from": {
+            "day": 1,
+            "order": 2
+          },
+          "to": {
+            "day": 3,
+            "order": 1
+          },
+          "lineage": "c20_fixture_persona0_mixed",
+          "snapshotToken": "63c36683bb3a4e9f0bd12a02ae58df014a1606a0346bb845562df2a0d2168ca5",
+          "feasibility": {
+            "status": "HARD_VALID",
+            "hardReasons": [],
+            "unresolvedReasons": [],
+            "details": []
+          }
+        },
+        {
+          "owner": {
+            "stableKey": "cable_rear_delt_fly",
+            "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL"
+          },
+          "week": 1,
+          "from": {
+            "day": 3,
+            "order": 2
+          },
+          "to": {
+            "day": 1,
+            "order": 2
+          },
+          "lineage": "c20_fixture_persona0_mixed",
+          "snapshotToken": "63c36683bb3a4e9f0bd12a02ae58df014a1606a0346bb845562df2a0d2168ca5",
+          "feasibility": {
+            "status": "HARD_VALID",
+            "hardReasons": [],
+            "unresolvedReasons": [],
+            "details": []
+          }
+        },
+        {
+          "owner": {
+            "stableKey": "cable_rear_delt_fly",
+            "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL"
+          },
+          "week": 2,
+          "from": {
+            "day": 3,
+            "order": 2
+          },
+          "to": {
+            "day": 1,
+            "order": 2
+          },
+          "lineage": "c20_fixture_persona0_mixed",
+          "snapshotToken": "63c36683bb3a4e9f0bd12a02ae58df014a1606a0346bb845562df2a0d2168ca5",
+          "feasibility": {
+            "status": "HARD_VALID",
+            "hardReasons": [],
+            "unresolvedReasons": [],
+            "details": []
+          }
+        }
+      ],
+      "liveFeasibility": {
+        "HARD_VALID": 4,
+        "HARD_INVALID": 0,
+        "UNRESOLVED": 2
+      },
+      "combinedAnchorFeasibility": {
+        "status": "HARD_VALID",
+        "hardReasons": [],
+        "unresolvedReasons": [],
+        "details": []
+      },
+      "combinedAnchorSetConflict": false,
+      "allShadowPlacementChanges": [
+        {
+          "localId": "personalized_1_1_1_barbell_back_squat",
+          "owner": {
+            "stableKey": "barbell_back_squat",
+            "selectionRole": "STYLE_HEAVY_LOWER_KNEE"
+          },
+          "week": 1,
+          "from": {
+            "day": 1,
+            "order": 2
+          },
+          "to": {
+            "day": 3,
+            "order": 1
+          },
+          "isExactHardValidAnchor": true
+        },
+        {
+          "localId": "personalized_1_2_0_ex_32eb8457",
+          "owner": {
+            "stableKey": "ex_32eb8457",
+            "selectionRole": "CANONICAL_STIMULUS_QUALITY_STRENGTH"
+          },
+          "week": 1,
+          "from": {
+            "day": 3,
+            "order": 1
+          },
+          "to": {
+            "day": 3,
+            "order": 2
+          },
+          "isExactHardValidAnchor": false
+        },
+        {
+          "localId": "personalized_1_2_1_cable_rear_delt_fly",
+          "owner": {
+            "stableKey": "cable_rear_delt_fly",
+            "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL"
+          },
+          "week": 1,
+          "from": {
+            "day": 3,
+            "order": 2
+          },
+          "to": {
+            "day": 1,
+            "order": 2
+          },
+          "isExactHardValidAnchor": true
+        },
+        {
+          "localId": "personalized_2_1_1_barbell_back_squat",
+          "owner": {
+            "stableKey": "barbell_back_squat",
+            "selectionRole": "STYLE_HEAVY_LOWER_KNEE"
+          },
+          "week": 2,
+          "from": {
+            "day": 1,
+            "order": 2
+          },
+          "to": {
+            "day": 3,
+            "order": 1
+          },
+          "isExactHardValidAnchor": true
+        },
+        {
+          "localId": "personalized_2_2_0_ex_32eb8457",
+          "owner": {
+            "stableKey": "ex_32eb8457",
+            "selectionRole": "CANONICAL_STIMULUS_QUALITY_STRENGTH"
+          },
+          "week": 2,
+          "from": {
+            "day": 3,
+            "order": 1
+          },
+          "to": {
+            "day": 3,
+            "order": 2
+          },
+          "isExactHardValidAnchor": false
+        },
+        {
+          "localId": "personalized_2_2_1_cable_rear_delt_fly",
+          "owner": {
+            "stableKey": "cable_rear_delt_fly",
+            "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL"
+          },
+          "week": 2,
+          "from": {
+            "day": 3,
+            "order": 2
+          },
+          "to": {
+            "day": 1,
+            "order": 2
+          },
+          "isExactHardValidAnchor": true
+        }
+      ],
+      "projectionCalls": 7,
+      "dayOfiProjectionCalls": 32,
+      "tissueProjectionCalls": 16,
+      "productionPlacementChanged": true,
+      "incumbentRows": [
+        {
+          "case": "persona0_mixed",
+          "week": 1,
+          "owner": {
+            "stableKey": "barbell_back_squat",
+            "selectionRole": "STYLE_HEAVY_LOWER_KNEE"
+          },
+          "lineage": "c20_fixture_persona0_mixed",
+          "incumbent": {
+            "day": 3,
+            "order": 1
+          },
+          "productionBefore": {
+            "day": 1,
+            "order": 2
+          },
+          "productionAfter": {
+            "day": 3,
+            "order": 1
+          },
+          "liveFeasibility": {
+            "status": "HARD_VALID",
+            "hardReasons": [],
+            "unresolvedReasons": [],
+            "details": []
+          },
+          "shadowRecommendation": "PRESERVE_INCUMBENT",
+          "shadowPlacement": {
+            "day": 3,
+            "order": 1
+          },
+          "productionChanged": true,
+          "sourceSnapshotFreshAtGeneration": true
+        },
+        {
+          "case": "persona0_mixed",
+          "week": 1,
+          "owner": {
+            "stableKey": "cable_rear_delt_fly",
+            "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL"
+          },
+          "lineage": "c20_fixture_persona0_mixed",
+          "incumbent": {
+            "day": 1,
+            "order": 2
+          },
+          "productionBefore": {
+            "day": 3,
+            "order": 2
+          },
+          "productionAfter": {
+            "day": 1,
+            "order": 2
+          },
+          "liveFeasibility": {
+            "status": "HARD_VALID",
+            "hardReasons": [],
+            "unresolvedReasons": [],
+            "details": []
+          },
+          "shadowRecommendation": "PRESERVE_INCUMBENT",
+          "shadowPlacement": {
+            "day": 1,
+            "order": 2
+          },
+          "productionChanged": true,
+          "sourceSnapshotFreshAtGeneration": true
+        },
+        {
+          "case": "persona0_mixed",
+          "week": 1,
+          "owner": {
+            "stableKey": "ex_28347c1f",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          "lineage": "c20_fixture_persona0_mixed",
+          "incumbent": {
+            "day": 1,
+            "order": 3
+          },
+          "productionBefore": {
+            "day": 3,
+            "order": 3
+          },
+          "productionAfter": {
+            "day": 3,
+            "order": 3
+          },
+          "liveFeasibility": {
+            "status": "UNRESOLVED",
+            "hardReasons": [],
+            "unresolvedReasons": [
+              "TISSUE_INPUT_UNRESOLVED"
+            ],
+            "details": [
+              "TISSUE_INPUT_UNRESOLVED:week=1:day=1:keys=[ex_28347c1f]"
+            ]
+          },
+          "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+          "shadowPlacement": {
+            "day": 3,
+            "order": 3
+          },
+          "productionChanged": false,
+          "sourceSnapshotFreshAtGeneration": true
+        },
+        {
+          "case": "persona0_mixed",
+          "week": 2,
+          "owner": {
+            "stableKey": "barbell_back_squat",
+            "selectionRole": "STYLE_HEAVY_LOWER_KNEE"
+          },
+          "lineage": "c20_fixture_persona0_mixed",
+          "incumbent": {
+            "day": 3,
+            "order": 1
+          },
+          "productionBefore": {
+            "day": 1,
+            "order": 2
+          },
+          "productionAfter": {
+            "day": 3,
+            "order": 1
+          },
+          "liveFeasibility": {
+            "status": "HARD_VALID",
+            "hardReasons": [],
+            "unresolvedReasons": [],
+            "details": []
+          },
+          "shadowRecommendation": "PRESERVE_INCUMBENT",
+          "shadowPlacement": {
+            "day": 3,
+            "order": 1
+          },
+          "productionChanged": true,
+          "sourceSnapshotFreshAtGeneration": true
+        },
+        {
+          "case": "persona0_mixed",
+          "week": 2,
+          "owner": {
+            "stableKey": "cable_rear_delt_fly",
+            "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL"
+          },
+          "lineage": "c20_fixture_persona0_mixed",
+          "incumbent": {
+            "day": 1,
+            "order": 2
+          },
+          "productionBefore": {
+            "day": 3,
+            "order": 2
+          },
+          "productionAfter": {
+            "day": 1,
+            "order": 2
+          },
+          "liveFeasibility": {
+            "status": "HARD_VALID",
+            "hardReasons": [],
+            "unresolvedReasons": [],
+            "details": []
+          },
+          "shadowRecommendation": "PRESERVE_INCUMBENT",
+          "shadowPlacement": {
+            "day": 1,
+            "order": 2
+          },
+          "productionChanged": true,
+          "sourceSnapshotFreshAtGeneration": true
+        },
+        {
+          "case": "persona0_mixed",
+          "week": 2,
+          "owner": {
+            "stableKey": "ex_28347c1f",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          "lineage": "c20_fixture_persona0_mixed",
+          "incumbent": {
+            "day": 1,
+            "order": 3
+          },
+          "productionBefore": {
+            "day": 3,
+            "order": 3
+          },
+          "productionAfter": {
+            "day": 3,
+            "order": 3
+          },
+          "liveFeasibility": {
+            "status": "UNRESOLVED",
+            "hardReasons": [],
+            "unresolvedReasons": [
+              "TISSUE_INPUT_UNRESOLVED"
+            ],
+            "details": [
+              "TISSUE_INPUT_UNRESOLVED:week=2:day=1:keys=[ex_28347c1f]"
+            ]
+          },
+          "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+          "shadowPlacement": {
+            "day": 3,
+            "order": 3
+          },
+          "productionChanged": false,
+          "sourceSnapshotFreshAtGeneration": true
+        }
+      ]
+    },
+    {
+      "case": "persona0_reviewed",
+      "route": "CONTROL",
+      "b7Reasons": [],
+      "b8Reasons": [
+        "B8_CUTOVER_V1_EMPTY_MATERIAL_AUTHORITY",
+        "B8_CUTOVER_V1_PRESCRIPTION_CHANGE_WITHOUT_EXACT_B6_AUTHORITY",
+        "B8_CUTOVER_V1_PROVENANCE_NOT_CLOSED",
+        "B8_CUTOVER_V1_REQUIRES_FULL_B6_MATERIALIZATION",
+        "B8_CUTOVER_V1_UNRELATED_CONTROL_MUTATION",
+        "B8_CUTOVER_V1_UPSTREAM_INCONSISTENCY"
+      ],
+      "activationStatus": "NO_ELIGIBLE_HARD_VALID_ANCHORS",
+      "activationDetails": [],
+      "preservationEvents": [],
+      "liveFeasibility": {
+        "HARD_VALID": 0,
+        "HARD_INVALID": 0,
+        "UNRESOLVED": 4
+      },
+      "combinedAnchorFeasibility": {
+        "status": "HARD_VALID",
+        "hardReasons": [],
+        "unresolvedReasons": [],
+        "details": []
+      },
+      "combinedAnchorSetConflict": false,
+      "allShadowPlacementChanges": [],
+      "projectionCalls": 4,
+      "dayOfiProjectionCalls": 36,
+      "tissueProjectionCalls": 8,
+      "productionPlacementChanged": false,
+      "incumbentRows": [
+        {
+          "case": "persona0_reviewed",
+          "week": 1,
+          "owner": {
+            "stableKey": "barbell_romanian_deadlift",
+            "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+          },
+          "lineage": "c20_fixture_persona0_reviewed",
+          "incumbent": {
+            "day": 2,
+            "order": 1
+          },
+          "productionBefore": {
+            "day": 1,
+            "order": 1
+          },
+          "productionAfter": {
+            "day": 1,
+            "order": 1
+          },
+          "liveFeasibility": {
+            "status": "UNRESOLVED",
+            "hardReasons": [],
+            "unresolvedReasons": [
+              "TISSUE_INPUT_UNRESOLVED"
+            ],
+            "details": [
+              "TISSUE_INPUT_UNRESOLVED:week=1:day=2:keys=[barbell_romanian_deadlift]"
+            ]
+          },
+          "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+          "shadowPlacement": {
+            "day": 1,
+            "order": 1
+          },
+          "productionChanged": false,
+          "sourceSnapshotFreshAtGeneration": true
+        },
+        {
+          "case": "persona0_reviewed",
+          "week": 1,
+          "owner": {
+            "stableKey": "dumbbell_chest_supported_row",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          "lineage": "c20_fixture_persona0_reviewed",
+          "incumbent": {
+            "day": 4,
+            "order": 1
+          },
+          "productionBefore": {
+            "day": 2,
+            "order": 1
+          },
+          "productionAfter": {
+            "day": 2,
+            "order": 1
+          },
+          "liveFeasibility": {
+            "status": "UNRESOLVED",
+            "hardReasons": [],
+            "unresolvedReasons": [
+              "TISSUE_INPUT_UNRESOLVED"
+            ],
+            "details": [
+              "TISSUE_INPUT_UNRESOLVED:week=1:day=4:keys=[dumbbell_chest_supported_row]"
+            ]
+          },
+          "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+          "shadowPlacement": {
+            "day": 2,
+            "order": 1
+          },
+          "productionChanged": false,
+          "sourceSnapshotFreshAtGeneration": true
+        },
+        {
+          "case": "persona0_reviewed",
+          "week": 2,
+          "owner": {
+            "stableKey": "barbell_romanian_deadlift",
+            "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+          },
+          "lineage": "c20_fixture_persona0_reviewed",
+          "incumbent": {
+            "day": 2,
+            "order": 1
+          },
+          "productionBefore": {
+            "day": 1,
+            "order": 1
+          },
+          "productionAfter": {
+            "day": 1,
+            "order": 1
+          },
+          "liveFeasibility": {
+            "status": "UNRESOLVED",
+            "hardReasons": [],
+            "unresolvedReasons": [
+              "TISSUE_INPUT_UNRESOLVED"
+            ],
+            "details": [
+              "TISSUE_INPUT_UNRESOLVED:week=2:day=2:keys=[barbell_romanian_deadlift]"
+            ]
+          },
+          "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+          "shadowPlacement": {
+            "day": 1,
+            "order": 1
+          },
+          "productionChanged": false,
+          "sourceSnapshotFreshAtGeneration": true
+        },
+        {
+          "case": "persona0_reviewed",
+          "week": 2,
+          "owner": {
+            "stableKey": "dumbbell_chest_supported_row",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          "lineage": "c20_fixture_persona0_reviewed",
+          "incumbent": {
+            "day": 4,
+            "order": 1
+          },
+          "productionBefore": {
+            "day": 2,
+            "order": 1
+          },
+          "productionAfter": {
+            "day": 2,
+            "order": 1
+          },
+          "liveFeasibility": {
+            "status": "UNRESOLVED",
+            "hardReasons": [],
+            "unresolvedReasons": [
+              "TISSUE_INPUT_UNRESOLVED"
+            ],
+            "details": [
+              "TISSUE_INPUT_UNRESOLVED:week=2:day=4:keys=[dumbbell_chest_supported_row]"
+            ]
+          },
+          "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+          "shadowPlacement": {
+            "day": 2,
+            "order": 1
+          },
+          "productionChanged": false,
+          "sourceSnapshotFreshAtGeneration": true
+        }
+      ]
+    },
+    {
+      "case": "persona3_reviewed",
+      "route": "CONTROL",
+      "b7Reasons": [],
+      "b8Reasons": [
+        "B8_CUTOVER_V1_ADDED_OWNER_WITHOUT_EXACT_B5_AUTHORITY",
+        "B8_CUTOVER_V1_EMPTY_MATERIAL_AUTHORITY",
+        "B8_CUTOVER_V1_NON_STRENGTH_CHANGE_OUT_OF_SCOPE",
+        "B8_CUTOVER_V1_PRESCRIPTION_CHANGE_WITHOUT_EXACT_B6_AUTHORITY",
+        "B8_CUTOVER_V1_PROVENANCE_NOT_CLOSED",
+        "B8_CUTOVER_V1_REQUIRES_FULL_B6_MATERIALIZATION",
+        "B8_CUTOVER_V1_UNRELATED_CONTROL_MUTATION",
+        "B8_CUTOVER_V1_UPSTREAM_INCONSISTENCY"
+      ],
+      "activationStatus": "ACTIVATED",
+      "activationDetails": [],
+      "preservationEvents": [
+        {
+          "owner": {
+            "stableKey": "barbell_back_squat",
+            "selectionRole": "STYLE_HEAVY_LOWER_KNEE"
+          },
+          "week": 1,
+          "from": {
+            "day": 4,
+            "order": 1
+          },
+          "to": {
+            "day": 6,
+            "order": 1
+          },
+          "lineage": "c20_fixture_persona3_reviewed",
+          "snapshotToken": "556a20a4c7aaffca392693df12d42a714a8b8468fb787d9e2b2e0e6811520988",
+          "feasibility": {
+            "status": "HARD_VALID",
+            "hardReasons": [],
+            "unresolvedReasons": [],
+            "details": []
+          }
+        },
+        {
+          "owner": {
+            "stableKey": "barbell_back_squat",
+            "selectionRole": "STYLE_HEAVY_LOWER_KNEE"
+          },
+          "week": 2,
+          "from": {
+            "day": 4,
+            "order": 1
+          },
+          "to": {
+            "day": 6,
+            "order": 1
+          },
+          "lineage": "c20_fixture_persona3_reviewed",
+          "snapshotToken": "556a20a4c7aaffca392693df12d42a714a8b8468fb787d9e2b2e0e6811520988",
+          "feasibility": {
+            "status": "HARD_VALID",
+            "hardReasons": [],
+            "unresolvedReasons": [],
+            "details": []
+          }
+        }
+      ],
+      "liveFeasibility": {
+        "HARD_VALID": 2,
+        "HARD_INVALID": 2,
+        "UNRESOLVED": 4
+      },
+      "combinedAnchorFeasibility": {
+        "status": "HARD_VALID",
+        "hardReasons": [],
+        "unresolvedReasons": [],
+        "details": []
+      },
+      "combinedAnchorSetConflict": false,
+      "allShadowPlacementChanges": [
+        {
+          "localId": "personalized_1_3_0_barbell_back_squat",
+          "owner": {
+            "stableKey": "barbell_back_squat",
+            "selectionRole": "STYLE_HEAVY_LOWER_KNEE"
+          },
+          "week": 1,
+          "from": {
+            "day": 4,
+            "order": 1
+          },
+          "to": {
+            "day": 6,
+            "order": 1
+          },
+          "isExactHardValidAnchor": true
+        },
+        {
+          "localId": "personalized_1_4_0_ex_28347c1f",
+          "owner": {
+            "stableKey": "ex_28347c1f",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          "week": 1,
+          "from": {
+            "day": 6,
+            "order": 1
+          },
+          "to": {
+            "day": 6,
+            "order": 2
+          },
+          "isExactHardValidAnchor": false
+        },
+        {
+          "localId": "personalized_2_3_0_barbell_back_squat",
+          "owner": {
+            "stableKey": "barbell_back_squat",
+            "selectionRole": "STYLE_HEAVY_LOWER_KNEE"
+          },
+          "week": 2,
+          "from": {
+            "day": 4,
+            "order": 1
+          },
+          "to": {
+            "day": 6,
+            "order": 1
+          },
+          "isExactHardValidAnchor": true
+        },
+        {
+          "localId": "personalized_2_4_0_ex_28347c1f",
+          "owner": {
+            "stableKey": "ex_28347c1f",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          "week": 2,
+          "from": {
+            "day": 6,
+            "order": 1
+          },
+          "to": {
+            "day": 6,
+            "order": 2
+          },
+          "isExactHardValidAnchor": false
+        }
+      ],
+      "projectionCalls": 9,
+      "dayOfiProjectionCalls": 74,
+      "tissueProjectionCalls": 20,
+      "productionPlacementChanged": true,
+      "incumbentRows": [
+        {
+          "case": "persona3_reviewed",
+          "week": 1,
+          "owner": {
+            "stableKey": "barbell_back_squat",
+            "selectionRole": "STYLE_HEAVY_LOWER_KNEE"
+          },
+          "lineage": "c20_fixture_persona3_reviewed",
+          "incumbent": {
+            "day": 6,
+            "order": 1
+          },
+          "productionBefore": {
+            "day": 4,
+            "order": 1
+          },
+          "productionAfter": {
+            "day": 6,
+            "order": 1
+          },
+          "liveFeasibility": {
+            "status": "HARD_VALID",
+            "hardReasons": [],
+            "unresolvedReasons": [],
+            "details": []
+          },
+          "shadowRecommendation": "PRESERVE_INCUMBENT",
+          "shadowPlacement": {
+            "day": 6,
+            "order": 1
+          },
+          "productionChanged": true,
+          "sourceSnapshotFreshAtGeneration": true
+        },
+        {
+          "case": "persona3_reviewed",
+          "week": 1,
+          "owner": {
+            "stableKey": "barbell_romanian_deadlift",
+            "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+          },
+          "lineage": "c20_fixture_persona3_reviewed",
+          "incumbent": {
+            "day": 2,
+            "order": 1
+          },
+          "productionBefore": {
+            "day": 1,
+            "order": 1
+          },
+          "productionAfter": {
+            "day": 1,
+            "order": 1
+          },
+          "liveFeasibility": {
+            "status": "HARD_INVALID",
+            "hardReasons": [
+              "DAY_OFI_OR_AXIS_GATE"
+            ],
+            "unresolvedReasons": [
+              "TISSUE_INPUT_UNRESOLVED"
+            ],
+            "details": [
+              "DAY_OFI_OR_AXIS_GATE:week=1:day=2:ofi=94:axes=[97, 86, 100, 76, 76, 100]:cautions=[RECOVERY_DEBT_HIGH]",
+              "TISSUE_INPUT_UNRESOLVED:week=1:day=2:keys=[barbell_romanian_deadlift]"
+            ]
+          },
+          "shadowRecommendation": "INCUMBENT_REJECTED_HARD_CONSTRAINT",
+          "shadowPlacement": {
+            "day": 1,
+            "order": 1
+          },
+          "productionChanged": false,
+          "sourceSnapshotFreshAtGeneration": true
+        },
+        {
+          "case": "persona3_reviewed",
+          "week": 1,
+          "owner": {
+            "stableKey": "dumbbell_chest_supported_row",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          "lineage": "c20_fixture_persona3_reviewed",
+          "incumbent": {
+            "day": 4,
+            "order": 1
+          },
+          "productionBefore": {
+            "day": 2,
+            "order": 1
+          },
+          "productionAfter": {
+            "day": 2,
+            "order": 1
+          },
+          "liveFeasibility": {
+            "status": "UNRESOLVED",
+            "hardReasons": [],
+            "unresolvedReasons": [
+              "TISSUE_INPUT_UNRESOLVED"
+            ],
+            "details": [
+              "TISSUE_INPUT_UNRESOLVED:week=1:day=4:keys=[dumbbell_chest_supported_row]"
+            ]
+          },
+          "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+          "shadowPlacement": {
+            "day": 2,
+            "order": 1
+          },
+          "productionChanged": false,
+          "sourceSnapshotFreshAtGeneration": true
+        },
+        {
+          "case": "persona3_reviewed",
+          "week": 1,
+          "owner": {
+            "stableKey": "ex_28347c1f",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          "lineage": "c20_fixture_persona3_reviewed",
+          "incumbent": {
+            "day": 1,
+            "order": 1
+          },
+          "productionBefore": {
+            "day": 6,
+            "order": 1
+          },
+          "productionAfter": {
+            "day": 6,
+            "order": 2
+          },
+          "liveFeasibility": {
+            "status": "UNRESOLVED",
+            "hardReasons": [],
+            "unresolvedReasons": [
+              "TISSUE_INPUT_UNRESOLVED"
+            ],
+            "details": [
+              "TISSUE_INPUT_UNRESOLVED:week=1:day=1:keys=[ex_28347c1f]"
+            ]
+          },
+          "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+          "shadowPlacement": {
+            "day": 6,
+            "order": 2
+          },
+          "productionChanged": true,
+          "sourceSnapshotFreshAtGeneration": true
+        },
+        {
+          "case": "persona3_reviewed",
+          "week": 2,
+          "owner": {
+            "stableKey": "barbell_back_squat",
+            "selectionRole": "STYLE_HEAVY_LOWER_KNEE"
+          },
+          "lineage": "c20_fixture_persona3_reviewed",
+          "incumbent": {
+            "day": 6,
+            "order": 1
+          },
+          "productionBefore": {
+            "day": 4,
+            "order": 1
+          },
+          "productionAfter": {
+            "day": 6,
+            "order": 1
+          },
+          "liveFeasibility": {
+            "status": "HARD_VALID",
+            "hardReasons": [],
+            "unresolvedReasons": [],
+            "details": []
+          },
+          "shadowRecommendation": "PRESERVE_INCUMBENT",
+          "shadowPlacement": {
+            "day": 6,
+            "order": 1
+          },
+          "productionChanged": true,
+          "sourceSnapshotFreshAtGeneration": true
+        },
+        {
+          "case": "persona3_reviewed",
+          "week": 2,
+          "owner": {
+            "stableKey": "barbell_romanian_deadlift",
+            "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+          },
+          "lineage": "c20_fixture_persona3_reviewed",
+          "incumbent": {
+            "day": 2,
+            "order": 1
+          },
+          "productionBefore": {
+            "day": 1,
+            "order": 1
+          },
+          "productionAfter": {
+            "day": 1,
+            "order": 1
+          },
+          "liveFeasibility": {
+            "status": "HARD_INVALID",
+            "hardReasons": [
+              "DAY_OFI_OR_AXIS_GATE"
+            ],
+            "unresolvedReasons": [
+              "TISSUE_INPUT_UNRESOLVED"
+            ],
+            "details": [
+              "DAY_OFI_OR_AXIS_GATE:week=2:day=2:ofi=94:axes=[97, 86, 100, 76, 76, 100]:cautions=[RECOVERY_DEBT_HIGH]",
+              "TISSUE_INPUT_UNRESOLVED:week=2:day=2:keys=[barbell_romanian_deadlift]"
+            ]
+          },
+          "shadowRecommendation": "INCUMBENT_REJECTED_HARD_CONSTRAINT",
+          "shadowPlacement": {
+            "day": 1,
+            "order": 1
+          },
+          "productionChanged": false,
+          "sourceSnapshotFreshAtGeneration": true
+        },
+        {
+          "case": "persona3_reviewed",
+          "week": 2,
+          "owner": {
+            "stableKey": "dumbbell_chest_supported_row",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          "lineage": "c20_fixture_persona3_reviewed",
+          "incumbent": {
+            "day": 4,
+            "order": 1
+          },
+          "productionBefore": {
+            "day": 2,
+            "order": 1
+          },
+          "productionAfter": {
+            "day": 2,
+            "order": 1
+          },
+          "liveFeasibility": {
+            "status": "UNRESOLVED",
+            "hardReasons": [],
+            "unresolvedReasons": [
+              "TISSUE_INPUT_UNRESOLVED"
+            ],
+            "details": [
+              "TISSUE_INPUT_UNRESOLVED:week=2:day=4:keys=[dumbbell_chest_supported_row]"
+            ]
+          },
+          "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+          "shadowPlacement": {
+            "day": 2,
+            "order": 1
+          },
+          "productionChanged": false,
+          "sourceSnapshotFreshAtGeneration": true
+        },
+        {
+          "case": "persona3_reviewed",
+          "week": 2,
+          "owner": {
+            "stableKey": "ex_28347c1f",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          "lineage": "c20_fixture_persona3_reviewed",
+          "incumbent": {
+            "day": 1,
+            "order": 1
+          },
+          "productionBefore": {
+            "day": 6,
+            "order": 1
+          },
+          "productionAfter": {
+            "day": 6,
+            "order": 2
+          },
+          "liveFeasibility": {
+            "status": "UNRESOLVED",
+            "hardReasons": [],
+            "unresolvedReasons": [
+              "TISSUE_INPUT_UNRESOLVED"
+            ],
+            "details": [
+              "TISSUE_INPUT_UNRESOLVED:week=2:day=1:keys=[ex_28347c1f]"
+            ]
+          },
+          "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+          "shadowPlacement": {
+            "day": 6,
+            "order": 2
+          },
+          "productionChanged": true,
+          "sourceSnapshotFreshAtGeneration": true
+        }
+      ]
+    },
+    {
+      "case": "persona4_mixed",
+      "route": "CONTROL",
+      "b7Reasons": [],
+      "b8Reasons": [
+        "B8_CUTOVER_V1_EMPTY_MATERIAL_AUTHORITY",
+        "B8_CUTOVER_V1_PRESCRIPTION_CHANGE_WITHOUT_EXACT_B6_AUTHORITY",
+        "B8_CUTOVER_V1_PROVENANCE_NOT_CLOSED",
+        "B8_CUTOVER_V1_REQUIRES_FULL_B6_MATERIALIZATION",
+        "B8_CUTOVER_V1_UNRELATED_CONTROL_MUTATION",
+        "B8_CUTOVER_V1_UPSTREAM_INCONSISTENCY"
+      ],
+      "activationStatus": "ACTIVATED",
+      "activationDetails": [],
+      "preservationEvents": [
+        {
+          "owner": {
+            "stableKey": "barbell_back_squat",
+            "selectionRole": "STYLE_HEAVY_LOWER_KNEE"
+          },
+          "week": 1,
+          "from": {
+            "day": 3,
+            "order": 1
+          },
+          "to": {
+            "day": 1,
+            "order": 2
+          },
+          "lineage": "c20_fixture_persona4_mixed",
+          "snapshotToken": "dc0c07f13c2d11610f5ff0d730d3f3b6f421f484ecee7e5ee97d3d5d543e7a5c",
+          "feasibility": {
+            "status": "HARD_VALID",
+            "hardReasons": [],
+            "unresolvedReasons": [],
+            "details": []
+          }
+        },
+        {
+          "owner": {
+            "stableKey": "barbell_back_squat",
+            "selectionRole": "STYLE_HEAVY_LOWER_KNEE"
+          },
+          "week": 2,
+          "from": {
+            "day": 3,
+            "order": 1
+          },
+          "to": {
+            "day": 1,
+            "order": 2
+          },
+          "lineage": "c20_fixture_persona4_mixed",
+          "snapshotToken": "dc0c07f13c2d11610f5ff0d730d3f3b6f421f484ecee7e5ee97d3d5d543e7a5c",
+          "feasibility": {
+            "status": "HARD_VALID",
+            "hardReasons": [],
+            "unresolvedReasons": [],
+            "details": []
+          }
+        },
+        {
+          "owner": {
+            "stableKey": "cable_rear_delt_fly",
+            "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL"
+          },
+          "week": 1,
+          "from": {
+            "day": 1,
+            "order": 2
+          },
+          "to": {
+            "day": 3,
+            "order": 2
+          },
+          "lineage": "c20_fixture_persona4_mixed",
+          "snapshotToken": "dc0c07f13c2d11610f5ff0d730d3f3b6f421f484ecee7e5ee97d3d5d543e7a5c",
+          "feasibility": {
+            "status": "HARD_VALID",
+            "hardReasons": [],
+            "unresolvedReasons": [],
+            "details": []
+          }
+        },
+        {
+          "owner": {
+            "stableKey": "cable_rear_delt_fly",
+            "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL"
+          },
+          "week": 2,
+          "from": {
+            "day": 1,
+            "order": 2
+          },
+          "to": {
+            "day": 3,
+            "order": 2
+          },
+          "lineage": "c20_fixture_persona4_mixed",
+          "snapshotToken": "dc0c07f13c2d11610f5ff0d730d3f3b6f421f484ecee7e5ee97d3d5d543e7a5c",
+          "feasibility": {
+            "status": "HARD_VALID",
+            "hardReasons": [],
+            "unresolvedReasons": [],
+            "details": []
+          }
+        },
+        {
+          "owner": {
+            "stableKey": "ex_5ca7133f",
+            "selectionRole": "COVERAGE_CALVES"
+          },
+          "week": 1,
+          "from": {
+            "day": 5,
+            "order": 2
+          },
+          "to": {
+            "day": 5,
+            "order": 1
+          },
+          "lineage": "c20_fixture_persona4_mixed",
+          "snapshotToken": "dc0c07f13c2d11610f5ff0d730d3f3b6f421f484ecee7e5ee97d3d5d543e7a5c",
+          "feasibility": {
+            "status": "HARD_VALID",
+            "hardReasons": [],
+            "unresolvedReasons": [],
+            "details": []
+          }
+        },
+        {
+          "owner": {
+            "stableKey": "ex_5ca7133f",
+            "selectionRole": "COVERAGE_CALVES"
+          },
+          "week": 2,
+          "from": {
+            "day": 5,
+            "order": 2
+          },
+          "to": {
+            "day": 5,
+            "order": 1
+          },
+          "lineage": "c20_fixture_persona4_mixed",
+          "snapshotToken": "dc0c07f13c2d11610f5ff0d730d3f3b6f421f484ecee7e5ee97d3d5d543e7a5c",
+          "feasibility": {
+            "status": "HARD_VALID",
+            "hardReasons": [],
+            "unresolvedReasons": [],
+            "details": []
+          }
+        }
+      ],
+      "liveFeasibility": {
+        "HARD_VALID": 6,
+        "HARD_INVALID": 0,
+        "UNRESOLVED": 8
+      },
+      "combinedAnchorFeasibility": {
+        "status": "HARD_VALID",
+        "hardReasons": [],
+        "unresolvedReasons": [],
+        "details": []
+      },
+      "combinedAnchorSetConflict": false,
+      "allShadowPlacementChanges": [
+        {
+          "localId": "personalized_1_1_1_cable_rear_delt_fly",
+          "owner": {
+            "stableKey": "cable_rear_delt_fly",
+            "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL"
+          },
+          "week": 1,
+          "from": {
+            "day": 1,
+            "order": 2
+          },
+          "to": {
+            "day": 3,
+            "order": 2
+          },
+          "isExactHardValidAnchor": true
+        },
+        {
+          "localId": "personalized_1_1_4_ex_28347c1f",
+          "owner": {
+            "stableKey": "ex_28347c1f",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          "week": 1,
+          "from": {
+            "day": 3,
+            "order": 2
+          },
+          "to": {
+            "day": 3,
+            "order": 1
+          },
+          "isExactHardValidAnchor": false
+        },
+        {
+          "localId": "personalized_1_1_5_ex_5ca7133f",
+          "owner": {
+            "stableKey": "ex_5ca7133f",
+            "selectionRole": "COVERAGE_CALVES"
+          },
+          "week": 1,
+          "from": {
+            "day": 5,
+            "order": 2
+          },
+          "to": {
+            "day": 5,
+            "order": 1
+          },
+          "isExactHardValidAnchor": true
+        },
+        {
+          "localId": "personalized_1_2_0_barbell_back_squat",
+          "owner": {
+            "stableKey": "barbell_back_squat",
+            "selectionRole": "STYLE_HEAVY_LOWER_KNEE"
+          },
+          "week": 1,
+          "from": {
+            "day": 3,
+            "order": 1
+          },
+          "to": {
+            "day": 1,
+            "order": 2
+          },
+          "isExactHardValidAnchor": true
+        },
+        {
+          "localId": "personalized_1_2_1_barbell_bench_press",
+          "owner": {
+            "stableKey": "barbell_bench_press",
+            "selectionRole": "CANONICAL_STIMULUS_QUALITY_STRENGTH"
+          },
+          "week": 1,
+          "from": {
+            "day": 5,
+            "order": 1
+          },
+          "to": {
+            "day": 5,
+            "order": 2
+          },
+          "isExactHardValidAnchor": false
+        },
+        {
+          "localId": "personalized_2_1_1_cable_rear_delt_fly",
+          "owner": {
+            "stableKey": "cable_rear_delt_fly",
+            "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL"
+          },
+          "week": 2,
+          "from": {
+            "day": 1,
+            "order": 2
+          },
+          "to": {
+            "day": 3,
+            "order": 2
+          },
+          "isExactHardValidAnchor": true
+        },
+        {
+          "localId": "personalized_2_1_4_ex_28347c1f",
+          "owner": {
+            "stableKey": "ex_28347c1f",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          "week": 2,
+          "from": {
+            "day": 3,
+            "order": 2
+          },
+          "to": {
+            "day": 3,
+            "order": 1
+          },
+          "isExactHardValidAnchor": false
+        },
+        {
+          "localId": "personalized_2_1_5_ex_5ca7133f",
+          "owner": {
+            "stableKey": "ex_5ca7133f",
+            "selectionRole": "COVERAGE_CALVES"
+          },
+          "week": 2,
+          "from": {
+            "day": 5,
+            "order": 2
+          },
+          "to": {
+            "day": 5,
+            "order": 1
+          },
+          "isExactHardValidAnchor": true
+        },
+        {
+          "localId": "personalized_2_2_0_barbell_back_squat",
+          "owner": {
+            "stableKey": "barbell_back_squat",
+            "selectionRole": "STYLE_HEAVY_LOWER_KNEE"
+          },
+          "week": 2,
+          "from": {
+            "day": 3,
+            "order": 1
+          },
+          "to": {
+            "day": 1,
+            "order": 2
+          },
+          "isExactHardValidAnchor": true
+        },
+        {
+          "localId": "personalized_2_2_1_barbell_bench_press",
+          "owner": {
+            "stableKey": "barbell_bench_press",
+            "selectionRole": "CANONICAL_STIMULUS_QUALITY_STRENGTH"
+          },
+          "week": 2,
+          "from": {
+            "day": 5,
+            "order": 1
+          },
+          "to": {
+            "day": 5,
+            "order": 2
+          },
+          "isExactHardValidAnchor": false
+        }
+      ],
+      "projectionCalls": 15,
+      "dayOfiProjectionCalls": 96,
+      "tissueProjectionCalls": 32,
+      "productionPlacementChanged": true,
+      "incumbentRows": [
+        {
+          "case": "persona4_mixed",
+          "week": 1,
+          "owner": {
+            "stableKey": "barbell_back_squat",
+            "selectionRole": "STYLE_HEAVY_LOWER_KNEE"
+          },
+          "lineage": "c20_fixture_persona4_mixed",
+          "incumbent": {
+            "day": 1,
+            "order": 2
+          },
+          "productionBefore": {
+            "day": 3,
+            "order": 1
+          },
+          "productionAfter": {
+            "day": 1,
+            "order": 2
+          },
+          "liveFeasibility": {
+            "status": "HARD_VALID",
+            "hardReasons": [],
+            "unresolvedReasons": [],
+            "details": []
+          },
+          "shadowRecommendation": "PRESERVE_INCUMBENT",
+          "shadowPlacement": {
+            "day": 1,
+            "order": 2
+          },
+          "productionChanged": true,
+          "sourceSnapshotFreshAtGeneration": true
+        },
+        {
+          "case": "persona4_mixed",
+          "week": 1,
+          "owner": {
+            "stableKey": "barbell_reverse_curl",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          "lineage": "c20_fixture_persona4_mixed",
+          "incumbent": {
+            "day": 3,
+            "order": 3
+          },
+          "productionBefore": {
+            "day": 1,
+            "order": 3
+          },
+          "productionAfter": {
+            "day": 1,
+            "order": 3
+          },
+          "liveFeasibility": {
+            "status": "UNRESOLVED",
+            "hardReasons": [],
+            "unresolvedReasons": [
+              "TISSUE_INPUT_UNRESOLVED"
+            ],
+            "details": [
+              "TISSUE_INPUT_UNRESOLVED:week=1:day=3:keys=[barbell_reverse_curl]"
+            ]
+          },
+          "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+          "shadowPlacement": {
+            "day": 1,
+            "order": 3
+          },
+          "productionChanged": false,
+          "sourceSnapshotFreshAtGeneration": true
+        },
+        {
+          "case": "persona4_mixed",
+          "week": 1,
+          "owner": {
+            "stableKey": "barbell_romanian_deadlift",
+            "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+          },
+          "lineage": "c20_fixture_persona4_mixed",
+          "incumbent": {
+            "day": 3,
+            "order": 1
+          },
+          "productionBefore": {
+            "day": 1,
+            "order": 1
+          },
+          "productionAfter": {
+            "day": 1,
+            "order": 1
+          },
+          "liveFeasibility": {
+            "status": "UNRESOLVED",
+            "hardReasons": [],
+            "unresolvedReasons": [
+              "TISSUE_INPUT_UNRESOLVED"
+            ],
+            "details": [
+              "TISSUE_INPUT_UNRESOLVED:week=1:day=3:keys=[barbell_romanian_deadlift]"
+            ]
+          },
+          "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+          "shadowPlacement": {
+            "day": 1,
+            "order": 1
+          },
+          "productionChanged": false,
+          "sourceSnapshotFreshAtGeneration": true
+        },
+        {
+          "case": "persona4_mixed",
+          "week": 1,
+          "owner": {
+            "stableKey": "cable_rear_delt_fly",
+            "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL"
+          },
+          "lineage": "c20_fixture_persona4_mixed",
+          "incumbent": {
+            "day": 3,
+            "order": 2
+          },
+          "productionBefore": {
+            "day": 1,
+            "order": 2
+          },
+          "productionAfter": {
+            "day": 3,
+            "order": 2
+          },
+          "liveFeasibility": {
+            "status": "HARD_VALID",
+            "hardReasons": [],
+            "unresolvedReasons": [],
+            "details": []
+          },
+          "shadowRecommendation": "PRESERVE_INCUMBENT",
+          "shadowPlacement": {
+            "day": 3,
+            "order": 2
+          },
+          "productionChanged": true,
+          "sourceSnapshotFreshAtGeneration": true
+        },
+        {
+          "case": "persona4_mixed",
+          "week": 1,
+          "owner": {
+            "stableKey": "dumbbell_lying_triceps_extension",
+            "selectionRole": "COVERAGE_ARMS_TRICEPS"
+          },
+          "lineage": "c20_fixture_persona4_mixed",
+          "incumbent": {
+            "day": 3,
+            "order": 4
+          },
+          "productionBefore": {
+            "day": 1,
+            "order": 4
+          },
+          "productionAfter": {
+            "day": 1,
+            "order": 4
+          },
+          "liveFeasibility": {
+            "status": "UNRESOLVED",
+            "hardReasons": [],
+            "unresolvedReasons": [
+              "TISSUE_INPUT_UNRESOLVED"
+            ],
+            "details": [
+              "TISSUE_INPUT_UNRESOLVED:week=1:day=3:keys=[dumbbell_lying_triceps_extension]"
+            ]
+          },
+          "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+          "shadowPlacement": {
+            "day": 1,
+            "order": 4
+          },
+          "productionChanged": false,
+          "sourceSnapshotFreshAtGeneration": true
+        },
+        {
+          "case": "persona4_mixed",
+          "week": 1,
+          "owner": {
+            "stableKey": "ex_28347c1f",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          "lineage": "c20_fixture_persona4_mixed",
+          "incumbent": {
+            "day": 1,
+            "order": 3
+          },
+          "productionBefore": {
+            "day": 3,
+            "order": 2
+          },
+          "productionAfter": {
+            "day": 3,
+            "order": 1
+          },
+          "liveFeasibility": {
+            "status": "UNRESOLVED",
+            "hardReasons": [],
+            "unresolvedReasons": [
+              "TISSUE_INPUT_UNRESOLVED"
+            ],
+            "details": [
+              "TISSUE_INPUT_UNRESOLVED:week=1:day=1:keys=[ex_28347c1f]"
+            ]
+          },
+          "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+          "shadowPlacement": {
+            "day": 3,
+            "order": 1
+          },
+          "productionChanged": true,
+          "sourceSnapshotFreshAtGeneration": true
+        },
+        {
+          "case": "persona4_mixed",
+          "week": 1,
+          "owner": {
+            "stableKey": "ex_5ca7133f",
+            "selectionRole": "COVERAGE_CALVES"
+          },
+          "lineage": "c20_fixture_persona4_mixed",
+          "incumbent": {
+            "day": 5,
+            "order": 1
+          },
+          "productionBefore": {
+            "day": 5,
+            "order": 2
+          },
+          "productionAfter": {
+            "day": 5,
+            "order": 1
+          },
+          "liveFeasibility": {
+            "status": "HARD_VALID",
+            "hardReasons": [],
+            "unresolvedReasons": [],
+            "details": []
+          },
+          "shadowRecommendation": "PRESERVE_INCUMBENT",
+          "shadowPlacement": {
+            "day": 5,
+            "order": 1
+          },
+          "productionChanged": true,
+          "sourceSnapshotFreshAtGeneration": true
+        },
+        {
+          "case": "persona4_mixed",
+          "week": 2,
+          "owner": {
+            "stableKey": "barbell_back_squat",
+            "selectionRole": "STYLE_HEAVY_LOWER_KNEE"
+          },
+          "lineage": "c20_fixture_persona4_mixed",
+          "incumbent": {
+            "day": 1,
+            "order": 2
+          },
+          "productionBefore": {
+            "day": 3,
+            "order": 1
+          },
+          "productionAfter": {
+            "day": 1,
+            "order": 2
+          },
+          "liveFeasibility": {
+            "status": "HARD_VALID",
+            "hardReasons": [],
+            "unresolvedReasons": [],
+            "details": []
+          },
+          "shadowRecommendation": "PRESERVE_INCUMBENT",
+          "shadowPlacement": {
+            "day": 1,
+            "order": 2
+          },
+          "productionChanged": true,
+          "sourceSnapshotFreshAtGeneration": true
+        },
+        {
+          "case": "persona4_mixed",
+          "week": 2,
+          "owner": {
+            "stableKey": "barbell_reverse_curl",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          "lineage": "c20_fixture_persona4_mixed",
+          "incumbent": {
+            "day": 3,
+            "order": 3
+          },
+          "productionBefore": {
+            "day": 1,
+            "order": 3
+          },
+          "productionAfter": {
+            "day": 1,
+            "order": 3
+          },
+          "liveFeasibility": {
+            "status": "UNRESOLVED",
+            "hardReasons": [],
+            "unresolvedReasons": [
+              "TISSUE_INPUT_UNRESOLVED"
+            ],
+            "details": [
+              "TISSUE_INPUT_UNRESOLVED:week=2:day=3:keys=[barbell_reverse_curl]"
+            ]
+          },
+          "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+          "shadowPlacement": {
+            "day": 1,
+            "order": 3
+          },
+          "productionChanged": false,
+          "sourceSnapshotFreshAtGeneration": true
+        },
+        {
+          "case": "persona4_mixed",
+          "week": 2,
+          "owner": {
+            "stableKey": "barbell_romanian_deadlift",
+            "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+          },
+          "lineage": "c20_fixture_persona4_mixed",
+          "incumbent": {
+            "day": 3,
+            "order": 1
+          },
+          "productionBefore": {
+            "day": 1,
+            "order": 1
+          },
+          "productionAfter": {
+            "day": 1,
+            "order": 1
+          },
+          "liveFeasibility": {
+            "status": "UNRESOLVED",
+            "hardReasons": [],
+            "unresolvedReasons": [
+              "TISSUE_INPUT_UNRESOLVED"
+            ],
+            "details": [
+              "TISSUE_INPUT_UNRESOLVED:week=2:day=3:keys=[barbell_romanian_deadlift]"
+            ]
+          },
+          "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+          "shadowPlacement": {
+            "day": 1,
+            "order": 1
+          },
+          "productionChanged": false,
+          "sourceSnapshotFreshAtGeneration": true
+        },
+        {
+          "case": "persona4_mixed",
+          "week": 2,
+          "owner": {
+            "stableKey": "cable_rear_delt_fly",
+            "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL"
+          },
+          "lineage": "c20_fixture_persona4_mixed",
+          "incumbent": {
+            "day": 3,
+            "order": 2
+          },
+          "productionBefore": {
+            "day": 1,
+            "order": 2
+          },
+          "productionAfter": {
+            "day": 3,
+            "order": 2
+          },
+          "liveFeasibility": {
+            "status": "HARD_VALID",
+            "hardReasons": [],
+            "unresolvedReasons": [],
+            "details": []
+          },
+          "shadowRecommendation": "PRESERVE_INCUMBENT",
+          "shadowPlacement": {
+            "day": 3,
+            "order": 2
+          },
+          "productionChanged": true,
+          "sourceSnapshotFreshAtGeneration": true
+        },
+        {
+          "case": "persona4_mixed",
+          "week": 2,
+          "owner": {
+            "stableKey": "dumbbell_lying_triceps_extension",
+            "selectionRole": "COVERAGE_ARMS_TRICEPS"
+          },
+          "lineage": "c20_fixture_persona4_mixed",
+          "incumbent": {
+            "day": 3,
+            "order": 4
+          },
+          "productionBefore": {
+            "day": 1,
+            "order": 4
+          },
+          "productionAfter": {
+            "day": 1,
+            "order": 4
+          },
+          "liveFeasibility": {
+            "status": "UNRESOLVED",
+            "hardReasons": [],
+            "unresolvedReasons": [
+              "TISSUE_INPUT_UNRESOLVED"
+            ],
+            "details": [
+              "TISSUE_INPUT_UNRESOLVED:week=2:day=3:keys=[dumbbell_lying_triceps_extension]"
+            ]
+          },
+          "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+          "shadowPlacement": {
+            "day": 1,
+            "order": 4
+          },
+          "productionChanged": false,
+          "sourceSnapshotFreshAtGeneration": true
+        },
+        {
+          "case": "persona4_mixed",
+          "week": 2,
+          "owner": {
+            "stableKey": "ex_28347c1f",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          "lineage": "c20_fixture_persona4_mixed",
+          "incumbent": {
+            "day": 1,
+            "order": 3
+          },
+          "productionBefore": {
+            "day": 3,
+            "order": 2
+          },
+          "productionAfter": {
+            "day": 3,
+            "order": 1
+          },
+          "liveFeasibility": {
+            "status": "UNRESOLVED",
+            "hardReasons": [],
+            "unresolvedReasons": [
+              "TISSUE_INPUT_UNRESOLVED"
+            ],
+            "details": [
+              "TISSUE_INPUT_UNRESOLVED:week=2:day=1:keys=[ex_28347c1f]"
+            ]
+          },
+          "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+          "shadowPlacement": {
+            "day": 3,
+            "order": 1
+          },
+          "productionChanged": true,
+          "sourceSnapshotFreshAtGeneration": true
+        },
+        {
+          "case": "persona4_mixed",
+          "week": 2,
+          "owner": {
+            "stableKey": "ex_5ca7133f",
+            "selectionRole": "COVERAGE_CALVES"
+          },
+          "lineage": "c20_fixture_persona4_mixed",
+          "incumbent": {
+            "day": 5,
+            "order": 1
+          },
+          "productionBefore": {
+            "day": 5,
+            "order": 2
+          },
+          "productionAfter": {
+            "day": 5,
+            "order": 1
+          },
+          "liveFeasibility": {
+            "status": "HARD_VALID",
+            "hardReasons": [],
+            "unresolvedReasons": [],
+            "details": []
+          },
+          "shadowRecommendation": "PRESERVE_INCUMBENT",
+          "shadowPlacement": {
+            "day": 5,
+            "order": 1
+          },
+          "productionChanged": true,
+          "sourceSnapshotFreshAtGeneration": true
+        }
+      ]
+    }
+  ],
+  "placementRows": [
+    {
+      "case": "persona0_mixed",
+      "week": 1,
+      "owner": {
+        "stableKey": "barbell_back_squat",
+        "selectionRole": "STYLE_HEAVY_LOWER_KNEE"
+      },
+      "lineage": "c20_fixture_persona0_mixed",
+      "incumbent": {
+        "day": 3,
+        "order": 1
+      },
+      "productionBefore": {
+        "day": 1,
+        "order": 2
+      },
+      "productionAfter": {
+        "day": 3,
+        "order": 1
+      },
+      "liveFeasibility": {
+        "status": "HARD_VALID",
+        "hardReasons": [],
+        "unresolvedReasons": [],
+        "details": []
+      },
+      "shadowRecommendation": "PRESERVE_INCUMBENT",
+      "shadowPlacement": {
+        "day": 3,
+        "order": 1
+      },
+      "productionChanged": true,
+      "sourceSnapshotFreshAtGeneration": true
+    },
+    {
+      "case": "persona0_mixed",
+      "week": 1,
+      "owner": {
+        "stableKey": "cable_rear_delt_fly",
+        "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL"
+      },
+      "lineage": "c20_fixture_persona0_mixed",
+      "incumbent": {
+        "day": 1,
+        "order": 2
+      },
+      "productionBefore": {
+        "day": 3,
+        "order": 2
+      },
+      "productionAfter": {
+        "day": 1,
+        "order": 2
+      },
+      "liveFeasibility": {
+        "status": "HARD_VALID",
+        "hardReasons": [],
+        "unresolvedReasons": [],
+        "details": []
+      },
+      "shadowRecommendation": "PRESERVE_INCUMBENT",
+      "shadowPlacement": {
+        "day": 1,
+        "order": 2
+      },
+      "productionChanged": true,
+      "sourceSnapshotFreshAtGeneration": true
+    },
+    {
+      "case": "persona0_mixed",
+      "week": 1,
+      "owner": {
+        "stableKey": "ex_28347c1f",
+        "selectionRole": "COVERAGE_CORE_DIRECT"
+      },
+      "lineage": "c20_fixture_persona0_mixed",
+      "incumbent": {
+        "day": 1,
+        "order": 3
+      },
+      "productionBefore": {
+        "day": 3,
+        "order": 3
+      },
+      "productionAfter": {
+        "day": 3,
+        "order": 3
+      },
+      "liveFeasibility": {
+        "status": "UNRESOLVED",
+        "hardReasons": [],
+        "unresolvedReasons": [
+          "TISSUE_INPUT_UNRESOLVED"
+        ],
+        "details": [
+          "TISSUE_INPUT_UNRESOLVED:week=1:day=1:keys=[ex_28347c1f]"
+        ]
+      },
+      "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+      "shadowPlacement": {
+        "day": 3,
+        "order": 3
+      },
+      "productionChanged": false,
+      "sourceSnapshotFreshAtGeneration": true
+    },
+    {
+      "case": "persona0_mixed",
+      "week": 2,
+      "owner": {
+        "stableKey": "barbell_back_squat",
+        "selectionRole": "STYLE_HEAVY_LOWER_KNEE"
+      },
+      "lineage": "c20_fixture_persona0_mixed",
+      "incumbent": {
+        "day": 3,
+        "order": 1
+      },
+      "productionBefore": {
+        "day": 1,
+        "order": 2
+      },
+      "productionAfter": {
+        "day": 3,
+        "order": 1
+      },
+      "liveFeasibility": {
+        "status": "HARD_VALID",
+        "hardReasons": [],
+        "unresolvedReasons": [],
+        "details": []
+      },
+      "shadowRecommendation": "PRESERVE_INCUMBENT",
+      "shadowPlacement": {
+        "day": 3,
+        "order": 1
+      },
+      "productionChanged": true,
+      "sourceSnapshotFreshAtGeneration": true
+    },
+    {
+      "case": "persona0_mixed",
+      "week": 2,
+      "owner": {
+        "stableKey": "cable_rear_delt_fly",
+        "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL"
+      },
+      "lineage": "c20_fixture_persona0_mixed",
+      "incumbent": {
+        "day": 1,
+        "order": 2
+      },
+      "productionBefore": {
+        "day": 3,
+        "order": 2
+      },
+      "productionAfter": {
+        "day": 1,
+        "order": 2
+      },
+      "liveFeasibility": {
+        "status": "HARD_VALID",
+        "hardReasons": [],
+        "unresolvedReasons": [],
+        "details": []
+      },
+      "shadowRecommendation": "PRESERVE_INCUMBENT",
+      "shadowPlacement": {
+        "day": 1,
+        "order": 2
+      },
+      "productionChanged": true,
+      "sourceSnapshotFreshAtGeneration": true
+    },
+    {
+      "case": "persona0_mixed",
+      "week": 2,
+      "owner": {
+        "stableKey": "ex_28347c1f",
+        "selectionRole": "COVERAGE_CORE_DIRECT"
+      },
+      "lineage": "c20_fixture_persona0_mixed",
+      "incumbent": {
+        "day": 1,
+        "order": 3
+      },
+      "productionBefore": {
+        "day": 3,
+        "order": 3
+      },
+      "productionAfter": {
+        "day": 3,
+        "order": 3
+      },
+      "liveFeasibility": {
+        "status": "UNRESOLVED",
+        "hardReasons": [],
+        "unresolvedReasons": [
+          "TISSUE_INPUT_UNRESOLVED"
+        ],
+        "details": [
+          "TISSUE_INPUT_UNRESOLVED:week=2:day=1:keys=[ex_28347c1f]"
+        ]
+      },
+      "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+      "shadowPlacement": {
+        "day": 3,
+        "order": 3
+      },
+      "productionChanged": false,
+      "sourceSnapshotFreshAtGeneration": true
+    },
+    {
+      "case": "persona0_reviewed",
+      "week": 1,
+      "owner": {
+        "stableKey": "barbell_romanian_deadlift",
+        "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+      },
+      "lineage": "c20_fixture_persona0_reviewed",
+      "incumbent": {
+        "day": 2,
+        "order": 1
+      },
+      "productionBefore": {
+        "day": 1,
+        "order": 1
+      },
+      "productionAfter": {
+        "day": 1,
+        "order": 1
+      },
+      "liveFeasibility": {
+        "status": "UNRESOLVED",
+        "hardReasons": [],
+        "unresolvedReasons": [
+          "TISSUE_INPUT_UNRESOLVED"
+        ],
+        "details": [
+          "TISSUE_INPUT_UNRESOLVED:week=1:day=2:keys=[barbell_romanian_deadlift]"
+        ]
+      },
+      "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+      "shadowPlacement": {
+        "day": 1,
+        "order": 1
+      },
+      "productionChanged": false,
+      "sourceSnapshotFreshAtGeneration": true
+    },
+    {
+      "case": "persona0_reviewed",
+      "week": 1,
+      "owner": {
+        "stableKey": "dumbbell_chest_supported_row",
+        "selectionRole": "COVERAGE_UPPER_PULL"
+      },
+      "lineage": "c20_fixture_persona0_reviewed",
+      "incumbent": {
+        "day": 4,
+        "order": 1
+      },
+      "productionBefore": {
+        "day": 2,
+        "order": 1
+      },
+      "productionAfter": {
+        "day": 2,
+        "order": 1
+      },
+      "liveFeasibility": {
+        "status": "UNRESOLVED",
+        "hardReasons": [],
+        "unresolvedReasons": [
+          "TISSUE_INPUT_UNRESOLVED"
+        ],
+        "details": [
+          "TISSUE_INPUT_UNRESOLVED:week=1:day=4:keys=[dumbbell_chest_supported_row]"
+        ]
+      },
+      "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+      "shadowPlacement": {
+        "day": 2,
+        "order": 1
+      },
+      "productionChanged": false,
+      "sourceSnapshotFreshAtGeneration": true
+    },
+    {
+      "case": "persona0_reviewed",
+      "week": 2,
+      "owner": {
+        "stableKey": "barbell_romanian_deadlift",
+        "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+      },
+      "lineage": "c20_fixture_persona0_reviewed",
+      "incumbent": {
+        "day": 2,
+        "order": 1
+      },
+      "productionBefore": {
+        "day": 1,
+        "order": 1
+      },
+      "productionAfter": {
+        "day": 1,
+        "order": 1
+      },
+      "liveFeasibility": {
+        "status": "UNRESOLVED",
+        "hardReasons": [],
+        "unresolvedReasons": [
+          "TISSUE_INPUT_UNRESOLVED"
+        ],
+        "details": [
+          "TISSUE_INPUT_UNRESOLVED:week=2:day=2:keys=[barbell_romanian_deadlift]"
+        ]
+      },
+      "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+      "shadowPlacement": {
+        "day": 1,
+        "order": 1
+      },
+      "productionChanged": false,
+      "sourceSnapshotFreshAtGeneration": true
+    },
+    {
+      "case": "persona0_reviewed",
+      "week": 2,
+      "owner": {
+        "stableKey": "dumbbell_chest_supported_row",
+        "selectionRole": "COVERAGE_UPPER_PULL"
+      },
+      "lineage": "c20_fixture_persona0_reviewed",
+      "incumbent": {
+        "day": 4,
+        "order": 1
+      },
+      "productionBefore": {
+        "day": 2,
+        "order": 1
+      },
+      "productionAfter": {
+        "day": 2,
+        "order": 1
+      },
+      "liveFeasibility": {
+        "status": "UNRESOLVED",
+        "hardReasons": [],
+        "unresolvedReasons": [
+          "TISSUE_INPUT_UNRESOLVED"
+        ],
+        "details": [
+          "TISSUE_INPUT_UNRESOLVED:week=2:day=4:keys=[dumbbell_chest_supported_row]"
+        ]
+      },
+      "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+      "shadowPlacement": {
+        "day": 2,
+        "order": 1
+      },
+      "productionChanged": false,
+      "sourceSnapshotFreshAtGeneration": true
+    },
+    {
+      "case": "persona3_reviewed",
+      "week": 1,
+      "owner": {
+        "stableKey": "barbell_back_squat",
+        "selectionRole": "STYLE_HEAVY_LOWER_KNEE"
+      },
+      "lineage": "c20_fixture_persona3_reviewed",
+      "incumbent": {
+        "day": 6,
+        "order": 1
+      },
+      "productionBefore": {
+        "day": 4,
+        "order": 1
+      },
+      "productionAfter": {
+        "day": 6,
+        "order": 1
+      },
+      "liveFeasibility": {
+        "status": "HARD_VALID",
+        "hardReasons": [],
+        "unresolvedReasons": [],
+        "details": []
+      },
+      "shadowRecommendation": "PRESERVE_INCUMBENT",
+      "shadowPlacement": {
+        "day": 6,
+        "order": 1
+      },
+      "productionChanged": true,
+      "sourceSnapshotFreshAtGeneration": true
+    },
+    {
+      "case": "persona3_reviewed",
+      "week": 1,
+      "owner": {
+        "stableKey": "barbell_romanian_deadlift",
+        "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+      },
+      "lineage": "c20_fixture_persona3_reviewed",
+      "incumbent": {
+        "day": 2,
+        "order": 1
+      },
+      "productionBefore": {
+        "day": 1,
+        "order": 1
+      },
+      "productionAfter": {
+        "day": 1,
+        "order": 1
+      },
+      "liveFeasibility": {
+        "status": "HARD_INVALID",
+        "hardReasons": [
+          "DAY_OFI_OR_AXIS_GATE"
+        ],
+        "unresolvedReasons": [
+          "TISSUE_INPUT_UNRESOLVED"
+        ],
+        "details": [
+          "DAY_OFI_OR_AXIS_GATE:week=1:day=2:ofi=94:axes=[97, 86, 100, 76, 76, 100]:cautions=[RECOVERY_DEBT_HIGH]",
+          "TISSUE_INPUT_UNRESOLVED:week=1:day=2:keys=[barbell_romanian_deadlift]"
+        ]
+      },
+      "shadowRecommendation": "INCUMBENT_REJECTED_HARD_CONSTRAINT",
+      "shadowPlacement": {
+        "day": 1,
+        "order": 1
+      },
+      "productionChanged": false,
+      "sourceSnapshotFreshAtGeneration": true
+    },
+    {
+      "case": "persona3_reviewed",
+      "week": 1,
+      "owner": {
+        "stableKey": "dumbbell_chest_supported_row",
+        "selectionRole": "COVERAGE_UPPER_PULL"
+      },
+      "lineage": "c20_fixture_persona3_reviewed",
+      "incumbent": {
+        "day": 4,
+        "order": 1
+      },
+      "productionBefore": {
+        "day": 2,
+        "order": 1
+      },
+      "productionAfter": {
+        "day": 2,
+        "order": 1
+      },
+      "liveFeasibility": {
+        "status": "UNRESOLVED",
+        "hardReasons": [],
+        "unresolvedReasons": [
+          "TISSUE_INPUT_UNRESOLVED"
+        ],
+        "details": [
+          "TISSUE_INPUT_UNRESOLVED:week=1:day=4:keys=[dumbbell_chest_supported_row]"
+        ]
+      },
+      "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+      "shadowPlacement": {
+        "day": 2,
+        "order": 1
+      },
+      "productionChanged": false,
+      "sourceSnapshotFreshAtGeneration": true
+    },
+    {
+      "case": "persona3_reviewed",
+      "week": 1,
+      "owner": {
+        "stableKey": "ex_28347c1f",
+        "selectionRole": "COVERAGE_CORE_DIRECT"
+      },
+      "lineage": "c20_fixture_persona3_reviewed",
+      "incumbent": {
+        "day": 1,
+        "order": 1
+      },
+      "productionBefore": {
+        "day": 6,
+        "order": 1
+      },
+      "productionAfter": {
+        "day": 6,
+        "order": 2
+      },
+      "liveFeasibility": {
+        "status": "UNRESOLVED",
+        "hardReasons": [],
+        "unresolvedReasons": [
+          "TISSUE_INPUT_UNRESOLVED"
+        ],
+        "details": [
+          "TISSUE_INPUT_UNRESOLVED:week=1:day=1:keys=[ex_28347c1f]"
+        ]
+      },
+      "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+      "shadowPlacement": {
+        "day": 6,
+        "order": 2
+      },
+      "productionChanged": true,
+      "sourceSnapshotFreshAtGeneration": true
+    },
+    {
+      "case": "persona3_reviewed",
+      "week": 2,
+      "owner": {
+        "stableKey": "barbell_back_squat",
+        "selectionRole": "STYLE_HEAVY_LOWER_KNEE"
+      },
+      "lineage": "c20_fixture_persona3_reviewed",
+      "incumbent": {
+        "day": 6,
+        "order": 1
+      },
+      "productionBefore": {
+        "day": 4,
+        "order": 1
+      },
+      "productionAfter": {
+        "day": 6,
+        "order": 1
+      },
+      "liveFeasibility": {
+        "status": "HARD_VALID",
+        "hardReasons": [],
+        "unresolvedReasons": [],
+        "details": []
+      },
+      "shadowRecommendation": "PRESERVE_INCUMBENT",
+      "shadowPlacement": {
+        "day": 6,
+        "order": 1
+      },
+      "productionChanged": true,
+      "sourceSnapshotFreshAtGeneration": true
+    },
+    {
+      "case": "persona3_reviewed",
+      "week": 2,
+      "owner": {
+        "stableKey": "barbell_romanian_deadlift",
+        "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+      },
+      "lineage": "c20_fixture_persona3_reviewed",
+      "incumbent": {
+        "day": 2,
+        "order": 1
+      },
+      "productionBefore": {
+        "day": 1,
+        "order": 1
+      },
+      "productionAfter": {
+        "day": 1,
+        "order": 1
+      },
+      "liveFeasibility": {
+        "status": "HARD_INVALID",
+        "hardReasons": [
+          "DAY_OFI_OR_AXIS_GATE"
+        ],
+        "unresolvedReasons": [
+          "TISSUE_INPUT_UNRESOLVED"
+        ],
+        "details": [
+          "DAY_OFI_OR_AXIS_GATE:week=2:day=2:ofi=94:axes=[97, 86, 100, 76, 76, 100]:cautions=[RECOVERY_DEBT_HIGH]",
+          "TISSUE_INPUT_UNRESOLVED:week=2:day=2:keys=[barbell_romanian_deadlift]"
+        ]
+      },
+      "shadowRecommendation": "INCUMBENT_REJECTED_HARD_CONSTRAINT",
+      "shadowPlacement": {
+        "day": 1,
+        "order": 1
+      },
+      "productionChanged": false,
+      "sourceSnapshotFreshAtGeneration": true
+    },
+    {
+      "case": "persona3_reviewed",
+      "week": 2,
+      "owner": {
+        "stableKey": "dumbbell_chest_supported_row",
+        "selectionRole": "COVERAGE_UPPER_PULL"
+      },
+      "lineage": "c20_fixture_persona3_reviewed",
+      "incumbent": {
+        "day": 4,
+        "order": 1
+      },
+      "productionBefore": {
+        "day": 2,
+        "order": 1
+      },
+      "productionAfter": {
+        "day": 2,
+        "order": 1
+      },
+      "liveFeasibility": {
+        "status": "UNRESOLVED",
+        "hardReasons": [],
+        "unresolvedReasons": [
+          "TISSUE_INPUT_UNRESOLVED"
+        ],
+        "details": [
+          "TISSUE_INPUT_UNRESOLVED:week=2:day=4:keys=[dumbbell_chest_supported_row]"
+        ]
+      },
+      "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+      "shadowPlacement": {
+        "day": 2,
+        "order": 1
+      },
+      "productionChanged": false,
+      "sourceSnapshotFreshAtGeneration": true
+    },
+    {
+      "case": "persona3_reviewed",
+      "week": 2,
+      "owner": {
+        "stableKey": "ex_28347c1f",
+        "selectionRole": "COVERAGE_CORE_DIRECT"
+      },
+      "lineage": "c20_fixture_persona3_reviewed",
+      "incumbent": {
+        "day": 1,
+        "order": 1
+      },
+      "productionBefore": {
+        "day": 6,
+        "order": 1
+      },
+      "productionAfter": {
+        "day": 6,
+        "order": 2
+      },
+      "liveFeasibility": {
+        "status": "UNRESOLVED",
+        "hardReasons": [],
+        "unresolvedReasons": [
+          "TISSUE_INPUT_UNRESOLVED"
+        ],
+        "details": [
+          "TISSUE_INPUT_UNRESOLVED:week=2:day=1:keys=[ex_28347c1f]"
+        ]
+      },
+      "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+      "shadowPlacement": {
+        "day": 6,
+        "order": 2
+      },
+      "productionChanged": true,
+      "sourceSnapshotFreshAtGeneration": true
+    },
+    {
+      "case": "persona4_mixed",
+      "week": 1,
+      "owner": {
+        "stableKey": "barbell_back_squat",
+        "selectionRole": "STYLE_HEAVY_LOWER_KNEE"
+      },
+      "lineage": "c20_fixture_persona4_mixed",
+      "incumbent": {
+        "day": 1,
+        "order": 2
+      },
+      "productionBefore": {
+        "day": 3,
+        "order": 1
+      },
+      "productionAfter": {
+        "day": 1,
+        "order": 2
+      },
+      "liveFeasibility": {
+        "status": "HARD_VALID",
+        "hardReasons": [],
+        "unresolvedReasons": [],
+        "details": []
+      },
+      "shadowRecommendation": "PRESERVE_INCUMBENT",
+      "shadowPlacement": {
+        "day": 1,
+        "order": 2
+      },
+      "productionChanged": true,
+      "sourceSnapshotFreshAtGeneration": true
+    },
+    {
+      "case": "persona4_mixed",
+      "week": 1,
+      "owner": {
+        "stableKey": "barbell_reverse_curl",
+        "selectionRole": "COVERAGE_ARMS_BICEPS"
+      },
+      "lineage": "c20_fixture_persona4_mixed",
+      "incumbent": {
+        "day": 3,
+        "order": 3
+      },
+      "productionBefore": {
+        "day": 1,
+        "order": 3
+      },
+      "productionAfter": {
+        "day": 1,
+        "order": 3
+      },
+      "liveFeasibility": {
+        "status": "UNRESOLVED",
+        "hardReasons": [],
+        "unresolvedReasons": [
+          "TISSUE_INPUT_UNRESOLVED"
+        ],
+        "details": [
+          "TISSUE_INPUT_UNRESOLVED:week=1:day=3:keys=[barbell_reverse_curl]"
+        ]
+      },
+      "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+      "shadowPlacement": {
+        "day": 1,
+        "order": 3
+      },
+      "productionChanged": false,
+      "sourceSnapshotFreshAtGeneration": true
+    },
+    {
+      "case": "persona4_mixed",
+      "week": 1,
+      "owner": {
+        "stableKey": "barbell_romanian_deadlift",
+        "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+      },
+      "lineage": "c20_fixture_persona4_mixed",
+      "incumbent": {
+        "day": 3,
+        "order": 1
+      },
+      "productionBefore": {
+        "day": 1,
+        "order": 1
+      },
+      "productionAfter": {
+        "day": 1,
+        "order": 1
+      },
+      "liveFeasibility": {
+        "status": "UNRESOLVED",
+        "hardReasons": [],
+        "unresolvedReasons": [
+          "TISSUE_INPUT_UNRESOLVED"
+        ],
+        "details": [
+          "TISSUE_INPUT_UNRESOLVED:week=1:day=3:keys=[barbell_romanian_deadlift]"
+        ]
+      },
+      "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+      "shadowPlacement": {
+        "day": 1,
+        "order": 1
+      },
+      "productionChanged": false,
+      "sourceSnapshotFreshAtGeneration": true
+    },
+    {
+      "case": "persona4_mixed",
+      "week": 1,
+      "owner": {
+        "stableKey": "cable_rear_delt_fly",
+        "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL"
+      },
+      "lineage": "c20_fixture_persona4_mixed",
+      "incumbent": {
+        "day": 3,
+        "order": 2
+      },
+      "productionBefore": {
+        "day": 1,
+        "order": 2
+      },
+      "productionAfter": {
+        "day": 3,
+        "order": 2
+      },
+      "liveFeasibility": {
+        "status": "HARD_VALID",
+        "hardReasons": [],
+        "unresolvedReasons": [],
+        "details": []
+      },
+      "shadowRecommendation": "PRESERVE_INCUMBENT",
+      "shadowPlacement": {
+        "day": 3,
+        "order": 2
+      },
+      "productionChanged": true,
+      "sourceSnapshotFreshAtGeneration": true
+    },
+    {
+      "case": "persona4_mixed",
+      "week": 1,
+      "owner": {
+        "stableKey": "dumbbell_lying_triceps_extension",
+        "selectionRole": "COVERAGE_ARMS_TRICEPS"
+      },
+      "lineage": "c20_fixture_persona4_mixed",
+      "incumbent": {
+        "day": 3,
+        "order": 4
+      },
+      "productionBefore": {
+        "day": 1,
+        "order": 4
+      },
+      "productionAfter": {
+        "day": 1,
+        "order": 4
+      },
+      "liveFeasibility": {
+        "status": "UNRESOLVED",
+        "hardReasons": [],
+        "unresolvedReasons": [
+          "TISSUE_INPUT_UNRESOLVED"
+        ],
+        "details": [
+          "TISSUE_INPUT_UNRESOLVED:week=1:day=3:keys=[dumbbell_lying_triceps_extension]"
+        ]
+      },
+      "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+      "shadowPlacement": {
+        "day": 1,
+        "order": 4
+      },
+      "productionChanged": false,
+      "sourceSnapshotFreshAtGeneration": true
+    },
+    {
+      "case": "persona4_mixed",
+      "week": 1,
+      "owner": {
+        "stableKey": "ex_28347c1f",
+        "selectionRole": "COVERAGE_CORE_DIRECT"
+      },
+      "lineage": "c20_fixture_persona4_mixed",
+      "incumbent": {
+        "day": 1,
+        "order": 3
+      },
+      "productionBefore": {
+        "day": 3,
+        "order": 2
+      },
+      "productionAfter": {
+        "day": 3,
+        "order": 1
+      },
+      "liveFeasibility": {
+        "status": "UNRESOLVED",
+        "hardReasons": [],
+        "unresolvedReasons": [
+          "TISSUE_INPUT_UNRESOLVED"
+        ],
+        "details": [
+          "TISSUE_INPUT_UNRESOLVED:week=1:day=1:keys=[ex_28347c1f]"
+        ]
+      },
+      "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+      "shadowPlacement": {
+        "day": 3,
+        "order": 1
+      },
+      "productionChanged": true,
+      "sourceSnapshotFreshAtGeneration": true
+    },
+    {
+      "case": "persona4_mixed",
+      "week": 1,
+      "owner": {
+        "stableKey": "ex_5ca7133f",
+        "selectionRole": "COVERAGE_CALVES"
+      },
+      "lineage": "c20_fixture_persona4_mixed",
+      "incumbent": {
+        "day": 5,
+        "order": 1
+      },
+      "productionBefore": {
+        "day": 5,
+        "order": 2
+      },
+      "productionAfter": {
+        "day": 5,
+        "order": 1
+      },
+      "liveFeasibility": {
+        "status": "HARD_VALID",
+        "hardReasons": [],
+        "unresolvedReasons": [],
+        "details": []
+      },
+      "shadowRecommendation": "PRESERVE_INCUMBENT",
+      "shadowPlacement": {
+        "day": 5,
+        "order": 1
+      },
+      "productionChanged": true,
+      "sourceSnapshotFreshAtGeneration": true
+    },
+    {
+      "case": "persona4_mixed",
+      "week": 2,
+      "owner": {
+        "stableKey": "barbell_back_squat",
+        "selectionRole": "STYLE_HEAVY_LOWER_KNEE"
+      },
+      "lineage": "c20_fixture_persona4_mixed",
+      "incumbent": {
+        "day": 1,
+        "order": 2
+      },
+      "productionBefore": {
+        "day": 3,
+        "order": 1
+      },
+      "productionAfter": {
+        "day": 1,
+        "order": 2
+      },
+      "liveFeasibility": {
+        "status": "HARD_VALID",
+        "hardReasons": [],
+        "unresolvedReasons": [],
+        "details": []
+      },
+      "shadowRecommendation": "PRESERVE_INCUMBENT",
+      "shadowPlacement": {
+        "day": 1,
+        "order": 2
+      },
+      "productionChanged": true,
+      "sourceSnapshotFreshAtGeneration": true
+    },
+    {
+      "case": "persona4_mixed",
+      "week": 2,
+      "owner": {
+        "stableKey": "barbell_reverse_curl",
+        "selectionRole": "COVERAGE_ARMS_BICEPS"
+      },
+      "lineage": "c20_fixture_persona4_mixed",
+      "incumbent": {
+        "day": 3,
+        "order": 3
+      },
+      "productionBefore": {
+        "day": 1,
+        "order": 3
+      },
+      "productionAfter": {
+        "day": 1,
+        "order": 3
+      },
+      "liveFeasibility": {
+        "status": "UNRESOLVED",
+        "hardReasons": [],
+        "unresolvedReasons": [
+          "TISSUE_INPUT_UNRESOLVED"
+        ],
+        "details": [
+          "TISSUE_INPUT_UNRESOLVED:week=2:day=3:keys=[barbell_reverse_curl]"
+        ]
+      },
+      "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+      "shadowPlacement": {
+        "day": 1,
+        "order": 3
+      },
+      "productionChanged": false,
+      "sourceSnapshotFreshAtGeneration": true
+    },
+    {
+      "case": "persona4_mixed",
+      "week": 2,
+      "owner": {
+        "stableKey": "barbell_romanian_deadlift",
+        "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+      },
+      "lineage": "c20_fixture_persona4_mixed",
+      "incumbent": {
+        "day": 3,
+        "order": 1
+      },
+      "productionBefore": {
+        "day": 1,
+        "order": 1
+      },
+      "productionAfter": {
+        "day": 1,
+        "order": 1
+      },
+      "liveFeasibility": {
+        "status": "UNRESOLVED",
+        "hardReasons": [],
+        "unresolvedReasons": [
+          "TISSUE_INPUT_UNRESOLVED"
+        ],
+        "details": [
+          "TISSUE_INPUT_UNRESOLVED:week=2:day=3:keys=[barbell_romanian_deadlift]"
+        ]
+      },
+      "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+      "shadowPlacement": {
+        "day": 1,
+        "order": 1
+      },
+      "productionChanged": false,
+      "sourceSnapshotFreshAtGeneration": true
+    },
+    {
+      "case": "persona4_mixed",
+      "week": 2,
+      "owner": {
+        "stableKey": "cable_rear_delt_fly",
+        "selectionRole": "STYLE_HEAVY_HORIZONTAL_PULL"
+      },
+      "lineage": "c20_fixture_persona4_mixed",
+      "incumbent": {
+        "day": 3,
+        "order": 2
+      },
+      "productionBefore": {
+        "day": 1,
+        "order": 2
+      },
+      "productionAfter": {
+        "day": 3,
+        "order": 2
+      },
+      "liveFeasibility": {
+        "status": "HARD_VALID",
+        "hardReasons": [],
+        "unresolvedReasons": [],
+        "details": []
+      },
+      "shadowRecommendation": "PRESERVE_INCUMBENT",
+      "shadowPlacement": {
+        "day": 3,
+        "order": 2
+      },
+      "productionChanged": true,
+      "sourceSnapshotFreshAtGeneration": true
+    },
+    {
+      "case": "persona4_mixed",
+      "week": 2,
+      "owner": {
+        "stableKey": "dumbbell_lying_triceps_extension",
+        "selectionRole": "COVERAGE_ARMS_TRICEPS"
+      },
+      "lineage": "c20_fixture_persona4_mixed",
+      "incumbent": {
+        "day": 3,
+        "order": 4
+      },
+      "productionBefore": {
+        "day": 1,
+        "order": 4
+      },
+      "productionAfter": {
+        "day": 1,
+        "order": 4
+      },
+      "liveFeasibility": {
+        "status": "UNRESOLVED",
+        "hardReasons": [],
+        "unresolvedReasons": [
+          "TISSUE_INPUT_UNRESOLVED"
+        ],
+        "details": [
+          "TISSUE_INPUT_UNRESOLVED:week=2:day=3:keys=[dumbbell_lying_triceps_extension]"
+        ]
+      },
+      "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+      "shadowPlacement": {
+        "day": 1,
+        "order": 4
+      },
+      "productionChanged": false,
+      "sourceSnapshotFreshAtGeneration": true
+    },
+    {
+      "case": "persona4_mixed",
+      "week": 2,
+      "owner": {
+        "stableKey": "ex_28347c1f",
+        "selectionRole": "COVERAGE_CORE_DIRECT"
+      },
+      "lineage": "c20_fixture_persona4_mixed",
+      "incumbent": {
+        "day": 1,
+        "order": 3
+      },
+      "productionBefore": {
+        "day": 3,
+        "order": 2
+      },
+      "productionAfter": {
+        "day": 3,
+        "order": 1
+      },
+      "liveFeasibility": {
+        "status": "UNRESOLVED",
+        "hardReasons": [],
+        "unresolvedReasons": [
+          "TISSUE_INPUT_UNRESOLVED"
+        ],
+        "details": [
+          "TISSUE_INPUT_UNRESOLVED:week=2:day=1:keys=[ex_28347c1f]"
+        ]
+      },
+      "shadowRecommendation": "NO_DECISION_UNRESOLVED",
+      "shadowPlacement": {
+        "day": 3,
+        "order": 1
+      },
+      "productionChanged": true,
+      "sourceSnapshotFreshAtGeneration": true
+    },
+    {
+      "case": "persona4_mixed",
+      "week": 2,
+      "owner": {
+        "stableKey": "ex_5ca7133f",
+        "selectionRole": "COVERAGE_CALVES"
+      },
+      "lineage": "c20_fixture_persona4_mixed",
+      "incumbent": {
+        "day": 5,
+        "order": 1
+      },
+      "productionBefore": {
+        "day": 5,
+        "order": 2
+      },
+      "productionAfter": {
+        "day": 5,
+        "order": 1
+      },
+      "liveFeasibility": {
+        "status": "HARD_VALID",
+        "hardReasons": [],
+        "unresolvedReasons": [],
+        "details": []
+      },
+      "shadowRecommendation": "PRESERVE_INCUMBENT",
+      "shadowPlacement": {
+        "day": 5,
+        "order": 1
+      },
+      "productionChanged": true,
+      "sourceSnapshotFreshAtGeneration": true
+    }
+  ],
+  "positiveReference": {
+    "case": "persona2_reviewed",
+    "route": "B8_STRENGTH_CALIBRATION_V1",
+    "activationStatus": "SOURCE_UNAVAILABLE",
+    "sharedOwnerRows": 14,
+    "sharedOwnerRowsPlacementUnchanged": 14,
+    "preservationEvents": 0,
+    "calibrationRows": 2
+  },
+  "routeSnapshot": {
+    "CONTROL": 20,
+    "B8_STRENGTH_V1": 1,
+    "B8_STRENGTH_CALIBRATION_V1": 1,
+    "B8_HYPERTROPHY_V1": 0,
+    "B8_STRENGTH_HYPERTROPHY_V1": 0,
+    "b7ProvenanceUnclosed": 11,
+    "b7TargetUnmet": 9,
+    "b7TargetRegressed": 1
+  },
+  "summary": {
+    "placementRows": 32,
+    "HARD_VALID": 12,
+    "HARD_INVALID": 2,
+    "UNRESOLVED": 18,
+    "preservedHardValidRows": 12,
+    "hardInvalidRowsForcedPreserved": 0,
+    "unresolvedRowsForcedPreserved": 0,
+    "combinedAnchorSetConflicts": 0,
+    "productionPlacementChanged": true,
+    "sharedPlacementDeltaBefore": 32,
+    "sharedPlacementDeltaAfter": 20
+  }
+}

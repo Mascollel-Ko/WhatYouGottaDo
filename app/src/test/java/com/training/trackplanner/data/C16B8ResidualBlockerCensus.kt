@@ -334,7 +334,7 @@ internal fun renderC16B8ResidualBlockerCensus(
     }
 
     fun caseJson(spec: StimulusProductionCoverageAuditTest.CoverageSpec, result: StimulusProductionGenerationResult): JSONObject {
-        val comparison = requireNotNull(result.comparison)
+        val comparison = c20PreActivationComparison(result)
         val resolution = result.diagnostics.scopeResolution
         val coldStartAuthority = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().singleOrNull {
             it.quality == TrainableQuality.STRENGTH && it.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION

@@ -34,13 +34,19 @@ internal object C17PlacementCausalityCensus {
         val priorCases = priorCensus.getJSONArray("cases")
         val selected = records.filter { it.first.label in targetCases }.associateBy { it.first.label }
         require(selected.keys == targetCases) { "C17 requires exactly the four C16 blocked cases" }
+        fun comparisonFor(caseId: String) = c20PreActivationComparison(
+            requireNotNull(selected[caseId]?.second) { "$caseId missing production result" }
+        )
         val outputCases = JSONArray()
         val allMoves = mutableListOf<Move>()
 
         targetCases.sorted().forEach { caseId ->
             val record = selected.getValue(caseId)
             val result = requireNotNull(record.second) { "$caseId was unexpectedly preflight-rejected" }
-            val comparison = requireNotNull(result.comparison) { "$caseId missing C16 comparison" }
+            // C20 may update final placements after the canonical EXP build. C17 is a historical
+            // audit of that pre-activation builder output, so keep its regression census pinned
+            // to the exact rows captured before C20 activation.
+            val comparison = c20PreActivationComparison(result)
             val context = requireNotNull(contexts[caseId]) { "$caseId missing canonical placement context" }
             val priorCase = (0 until priorCases.length()).map(priorCases::getJSONObject).single { it.getString("case") == caseId }
             val rawPlacementDeltas = priorCase.getJSONArray("deltaLedger").toList<JSONObject>().filter { delta ->
@@ -229,10 +235,10 @@ internal object C17PlacementCausalityCensus {
 
         val classifications = allMoves.groupBy { move ->
             val assessment = counterfactual(
-                requireNotNull(selected[move.caseId]?.second?.comparison).experimental,
-                requireNotNull(selected[move.caseId]?.second?.comparison).control,
-                requireNotNull(selected[move.caseId]?.second?.comparison).control.items.mapNotNull { control ->
-                    requireNotNull(selected[move.caseId]?.second?.comparison).experimental.items.singleOrNull {
+                comparisonFor(move.caseId).experimental,
+                comparisonFor(move.caseId).control,
+                comparisonFor(move.caseId).control.items.mapNotNull { control ->
+                    comparisonFor(move.caseId).experimental.items.singleOrNull {
                         it.weekNumber == control.weekNumber && it.exerciseStableKey == control.exerciseStableKey &&
                             it.selectionRole == control.selectionRole
                     }?.let { RowKey(control.weekNumber, control.exerciseStableKey, control.selectionRole) to control }
@@ -243,7 +249,7 @@ internal object C17PlacementCausalityCensus {
         val positiveResult = requireNotNull(records.singleOrNull { it.first.label == "persona2_reviewed" }?.second) {
             "C17 requires the positive persona2_reviewed reference"
         }
-        val positiveComparison = requireNotNull(positiveResult.comparison)
+        val positiveComparison = c20PreActivationComparison(positiveResult)
         val positiveMetrics = sharedPlacementMetrics(positiveComparison.control.items, positiveComparison.experimental.items)
         val positiveOwner = priorCases.let { cases ->
             (0 until cases.length()).map(cases::getJSONObject).single { it.getString("case") == "persona2_reviewed" }
@@ -264,14 +270,14 @@ internal object C17PlacementCausalityCensus {
                 .put("unresolved", classifications["UNRESOLVED_NO_PROVEN_AUTHORIZED_DISPLACEMENT"]?.size ?: 0)
                 .put("placementEventStageCounts", JSONObject(allMoves.flatMap { move ->
                     val result = requireNotNull(selected[move.caseId]?.second)
-                    result.comparison!!.experimental.personalizedDecision?.planningBudget?.execution
+                    c20PreActivationComparison(result).experimental.personalizedDecision?.planningBudget?.execution
                         ?.ownerAllocationProvenance.orEmpty().filter { it.owner.stableKey == move.key.stableKey &&
                             it.owner.selectionRole == move.key.role && it.after?.week == move.key.week &&
                         it.action in setOf(OwnerAllocationAction.PLACEMENT_ASSIGNED, OwnerAllocationAction.PLACEMENT_MOVED,
                                 OwnerAllocationAction.ORDER_CHANGED) }.map { it.stage.name }
                 }.groupingBy { it }.eachCount().toSortedMap().mapValues { it.value }))
                 .put("boundedDayRebalancerAcceptedEvents", allMoves.sumOf { move ->
-                    requireNotNull(selected[move.caseId]?.second).comparison!!.experimental.personalizedDecision
+                    comparisonFor(move.caseId).experimental.personalizedDecision
                         ?.planningBudget?.execution?.ownerAllocationProvenance.orEmpty().count {
                             it.owner.stableKey == move.key.stableKey && it.owner.selectionRole == move.key.role &&
                                 it.after?.week == move.key.week && it.stage == OwnerAllocationStage.BOUNDED_DAY_REBALANCER &&
@@ -280,7 +286,7 @@ internal object C17PlacementCausalityCensus {
                 }))
                 .put("sharedOwnerPlacementMetrics", sharedPlacementMetrics(
                     targetCases.sorted().flatMap { caseId ->
-                        val comparison = requireNotNull(selected[caseId]?.second?.comparison)
+                        val comparison = comparisonFor(caseId)
                         comparison.control.items.mapNotNull { before ->
                             comparison.experimental.items.singleOrNull { after -> after.weekNumber == before.weekNumber &&
                                 after.exerciseStableKey == before.exerciseStableKey && after.selectionRole == before.selectionRole

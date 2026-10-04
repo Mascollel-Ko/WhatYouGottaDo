@@ -164,5 +164,7 @@ data class GeneratedProgramSkeleton(
     val templateId: String = "POLICY_FALLBACK",
     val representativeTemplate: Boolean = false,
     val personalizedDecision: PersonalizedPlanningDecision? = null,
-    val progressionSessions: List<DraftProgressionSession> = emptyList()
+    val progressionSessions: List<DraftProgressionSession> = emptyList(),
+    /** Transient source token; never serialized as program authority. Checked before replacing an incumbent. */
+    internal val incumbentSourceSnapshotToken: CanonicalIncumbentSourceSnapshotToken? = null
 )
