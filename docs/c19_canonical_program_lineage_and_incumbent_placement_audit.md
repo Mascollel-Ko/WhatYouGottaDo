@@ -7,8 +7,8 @@
 - C18 ready-for-review: 2026-10-04 03:16:25 UTC
 - C18 merged: 2026-10-04 03:16:49 UTC
 - C18 merged-main Hosted CI: run 37173616256, SUCCESS; 2,258 tests, 0 failures, 0 errors, 4 skips
-- C19 implementation/test commit: pending commit and Hosted CI
-- C19 final HEAD: pending final documentation commit and Hosted CI
+- C19 implementation/test commit / `lastAuditedCommit`: `fa9c88d294bed3275cd7c58e392034e641ac3912`
+- C19 final source/test HEAD: `fa9c88d294bed3275cd7c58e392034e641ac3912`; final documentation HEAD is reported by the closeout commit and separately CI-verified.
 
 ## Persistence and identity audit
 
@@ -86,7 +86,11 @@ Tests cover exact identity and deterministic order, same-key/different-role sepa
 
 Local Gradle environment: process JAVA_TOOL_OPTIONS was set to -Djdk.net.unixdomain.tmpdir=C:\GradleIpc -Djava.net.preferIPv4Stack=true; the user-level value was -Djdk.net.unixdomain.tmpdir=C:\GradleIpc; C:\GradleIpc existed; Gradle 9.3.0 ran with the repository’s configured JetBrains Java 21 daemon. The first full local attempt stopped at 1,501 completed tests after one stale test assertion pinned Room 36 and a Robolectric native SQLite access violation during WorkManager enqueue. After updating the schema assertion to 37, a full run using a temporary external Gradle init script that restarted test workers every 75 tests passed: 2,268 tests, 0 failures, 0 errors, 4 skips. The temporary init script is not in the repository. The explicit compile command also passed.
 
-Protocol validation and whitespace check are pending the final C19 audit fields; Community/Cloud contract tests passed 9/9. Implementation Hosted CI and final documentation Hosted CI are pending.
+Protocol validation passed for 9 families / 36 protocols. Community/Cloud contracts passed 9/9 and `git diff --check` passed. Full local `:app:testDebugUnitTest` passed 2,268 tests, 0 failures, 0 errors, and 4 skips using the temporary worker-restart init script; the explicit compile tasks passed in that run. The latest read uses one Room transaction for the program and item snapshot.
+
+Implementation/test Hosted CI run [37180702110](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/37180702110) passed all steps on `fa9c88d294bed3275cd7c58e392034e641ac3912`: protocol validation, Community/Cloud contracts, whitespace, 2,268 tests (0 failures, 0 errors, 4 skips), coverage upload, APK assembly, signer validation, and APK upload. The standard coverage artifact SHA-256 is `55CD3C4E9E58B700ED4577A6C0CE0A99FD847F552A334B45FD0815E6FC8825AB`. The C19 census artifact is 21,393 bytes with SHA-256 `4D0B07BDBEB808613F37C798CD1DCF58B24C816C1BB36D9B3FD9D5C904A3A537`. The APK is 68,708,551 bytes with SHA-256 `C3FCDF3B109C11C07CEAA472F275C383BB86D338DEEE7AFB76901A20FCF949DF`.
+
+The final documentation HEAD is verified by PR #11's documentation-closeout Hosted CI check. `lastAuditedCommit` remains the implementation/test SHA above; the audit text and protocol registry are documentation metadata rather than implementation evidence.
 
 ## C20 prerequisites
 

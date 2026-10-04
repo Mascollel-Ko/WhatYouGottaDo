@@ -7,7 +7,7 @@
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.14.6 |
-| Last audited commit | afb5a6a3c382d327d12ee98b3d3cc1a2220dd33b |
+| Last audited commit | fa9c88d294bed3275cd7c58e392034e641ac3912 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1285,3 +1285,4 @@ Post-audit boundary notes
 - A generation request for an existing program loads a small immutable snapshot before planning. It contains only exact `(stableKey, selectionRole, week) → (day, order)` rows from that same program lineage. Legacy rows without a role, incompatible source versions, and duplicate exact owner-week rows fail closed. Backups preserve the role and source versions; Room migration 36→37 adds nullable fields without manufacturing historical authority.
 - The snapshot is diagnostic-only in C19. It is passed after canonical input preparation and evaluated after EXPERIMENTAL materialization but before late CONTROL; hard feasibility without proof remains unresolved. It does not change real placement output, B1-B6, routes, B7/B8, or build count.
 - C19 validation details and census are recorded in `docs/c19_canonical_program_lineage_and_incumbent_placement_audit.md`.
+- C19 implementation/test commit `fa9c88d294bed3275cd7c58e392034e641ac3912` is the `lastAuditedCommit`. Hosted run [37180702110](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/37180702110) passed 2,268 tests (0 failures, 0 errors, 4 skips), protocol/contracts/whitespace checks, coverage upload, APK assembly, signer validation, and upload. C18 standard coverage SHA-256 remains `55CD3C4E9E58B700ED4577A6C0CE0A99FD847F552A334B45FD0815E6FC8825AB`.
