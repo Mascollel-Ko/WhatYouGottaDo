@@ -503,7 +503,11 @@ private fun ProgramEditorScreen(
         val frozenAnswers = answers.toMap()
         val confirmed = personalizedRetry.confirm(preflight, frozenAnswers)
         pendingPersonalizedPreflight = null
-        viewModel.generatePreparedPersonalizedProgram(confirmed.preflight, confirmed.answers) { generated ->
+        viewModel.generatePreparedPersonalizedProgram(
+            preflight = confirmed.preflight,
+            answers = confirmed.answers,
+            existingProgramId = program?.id
+        ) { generated ->
             personalizedRetry.clear()
             val request = currentRequest()
             legacyAutoDraft = null
@@ -1159,6 +1163,7 @@ internal fun skeletonFromProgram(snapshot: ProgramEditorSnapshot): GeneratedProg
                 seconds = item.seconds,
                 selectionReason = "기존 프로그램",
                 weightSource = metadata.weightSource,
+                selectionRole = item.selectionRole.orEmpty(),
                 trainingSlot = metadata.trainingSlot,
                 dayIntensity = metadata.dayIntensity,
                 setPrescriptions = ProgramSetPrescriptionResolver.resolve(

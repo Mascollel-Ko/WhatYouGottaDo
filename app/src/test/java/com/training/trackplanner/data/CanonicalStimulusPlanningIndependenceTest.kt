@@ -32,6 +32,66 @@ class CanonicalStimulusPlanningIndependenceTest {
     @Test fun sparseHistoryParity() = parity(spec("c1_sparse", history = "sparse"))
     @Test fun reviewedEightWeekHistoryParity() = parity(spec("c1_eight_week", history = "mixed"))
 
+    @Test fun persistedIncumbentShadowAndExperimentalOutputIgnorePerturbedControl() = runBlocking {
+        StimulusProductionCoverageAuditTest().runCase(spec("c19_incumbent_control_perturb", mixed = true, history = "mixed")) {
+                service, preflight, answers, metadata ->
+            val prepared = service.generatePreparedWithCanonicalPlanning(preflight, answers, metadata)
+            val anchorRow = prepared.program.items.firstOrNull { it.selectionRole.isNotBlank() }
+                ?: error("fixture requires one exact canonical owner for the immutable incumbent input")
+            val persistedProgram = TrainingProgram(
+                id = 901,
+                stableKey = "c19-control-independent-lineage",
+                name = "Persisted accepted plan",
+                durationDays = prepared.program.durationDays,
+                canonicalBuilderProtocolVersion = CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION,
+                canonicalPlannerRuntimeVersion = PERSONALIZED_PLANNER_PROTOCOL
+            )
+            val persistedRow = anchorRow.toTrainingProgramItem(persistedProgram.id)
+            val incumbent = CanonicalIncumbentPlacementIndex.fromPersistedProgram(
+                persistedProgram, persistedProgram.id, listOf(persistedRow)
+            )
+            assertEquals(CanonicalIncumbentIndexStatus.AVAILABLE, incumbent.status)
+
+            val source = prepared.program.items
+            val controlA = prepared.program.copy(items = source.take(4).mapIndexed { index, row ->
+                row.copy(exerciseStableKey = "control-a-$index", stableKey = "control-a-$index",
+                    exerciseName = "control-a-$index", selectionRole = "CONTROL_A_$index", reps = 5,
+                    prescription = "control A", weightKg = 90.0,
+                    setPrescriptions = listOf(ProgramSetPrescription(1, 5, 90.0, 0)))
+            })
+            val controlB = prepared.program.copy(items = source.take(4).mapIndexed { index, row ->
+                row.copy(exerciseStableKey = "control-b-$index", stableKey = "control-b-$index",
+                    exerciseName = "control-b-$index", selectionRole = "CONTROL_B_$index", reps = 12,
+                    prescription = "control B", weightKg = 15.0,
+                    setPrescriptions = listOf(ProgramSetPrescription(1, 12, 15.0, 0)))
+            })
+            assertNotEquals(controlA.items.map { it.exerciseStableKey }, controlB.items.map { it.exerciseStableKey })
+
+            suspend fun production(control: GeneratedProgramSkeleton) = service.generatePreparedProduction(
+                preflight = preflight,
+                answers = answers,
+                metadata = metadata,
+                controlGenerationOverride = { control },
+                incumbentPlacementIndex = incumbent
+            )
+            val a = production(controlA)
+            val b = production(controlB)
+            assertEquals(a.comparison?.experimental?.items, b.comparison?.experimental?.items)
+            assertEquals(a.comparison?.selectionPlan, b.comparison?.selectionPlan)
+            assertEquals(a.incumbentPlacementShadow, b.incumbentPlacementShadow)
+            listOf(a, b).forEach { result ->
+                // This fixture injects the late CONTROL comparator directly, so it does not
+                // invoke or count a second full CONTROL planner build.
+                assertEquals(0, result.buildCounts.controlBuilds)
+                assertEquals(1, result.buildCounts.experimentalBuilds)
+                assertEquals(1, result.buildCounts.totalBuildInvocations)
+                assertEquals(0, result.buildCounts.thirdBuilds)
+            }
+            b
+        }
+        Unit
+    }
+
     @Test fun controlIdentityAndPrescriptionPerturbationsDoNotChangeCanonicalB1ToB6() = runBlocking {
         StimulusProductionCoverageAuditTest().runCase(spec("c7_control_perturbation", mixed = true, history = "mixed")) {
                 service, preflight, answers, metadata ->

@@ -6,6 +6,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.security.MessageDigest
+import com.training.trackplanner.data.personalized.PERSONALIZED_PLANNER_PROTOCOL
 
 data class RecordRangeProgramSummary(
     val startDate: String,
@@ -46,6 +47,17 @@ internal class ProgramPlanService(
 
     suspend fun programStableKey(programId: Long): String? = programDao.findProgram(programId)?.stableKey
 
+    suspend fun canonicalIncumbentPlacementIndex(programId: Long?): CanonicalIncumbentPlacementIndex {
+        if (programId == null) {
+            return CanonicalIncumbentPlacementIndex.unavailable(CanonicalIncumbentIndexStatus.NO_EXISTING_PROGRAM)
+        }
+        return db.withTransaction {
+            val program = programDao.findProgram(programId)
+            val rows = program?.let { programDao.itemsForProgram(it.id) }.orEmpty()
+            CanonicalIncumbentPlacementIndex.fromPersistedProgram(program, programId, rows)
+        }
+    }
+
     suspend fun programFingerprint(programId: Long): String? {
         val program = programDao.findProgram(programId) ?: return null
         val items = programDao.itemsForProgram(programId)
@@ -53,7 +65,7 @@ internal class ProgramPlanService(
         val source = buildString {
             append(listOf(program.stableKey, program.name, program.goal, program.durationDays, program.weeklyTrainingDays, program.sessionMinutes).joinToString("|"))
             items.sortedWith(compareBy(TrainingProgramItem::weekNumber, TrainingProgramItem::dayOfWeek, TrainingProgramItem::orderIndex, TrainingProgramItem::exerciseStableKey)).forEach { item ->
-                append('\n').append(listOf(item.weekNumber, item.dayOfWeek, item.orderIndex, item.exerciseStableKey, item.restSeconds, item.prescription).joinToString("|"))
+                append('\n').append(listOf(item.weekNumber, item.dayOfWeek, item.orderIndex, item.exerciseStableKey, item.selectionRole, item.restSeconds, item.prescription).joinToString("|"))
                 sets[item.id].orEmpty().sortedBy(TrainingProgramItemSet::setIndex).forEach { set ->
                     append('|').append("${set.setIndex}:${set.reps}:${set.weightKg}:${set.seconds}")
                     set.targetRpeMin?.let { append(':').append(it.canonicalRpeFingerprint()) }
@@ -109,6 +121,10 @@ internal class ProgramPlanService(
         val now = System.currentTimeMillis()
         val request = skeleton.request
         val existing = existingProgramId?.let { programDao.findProgram(it) }
+        val canonicalDecision = skeleton.personalizedDecision
+        val exactCanonicalGeneration = canonicalDecision?.takeIf {
+            it.protocolVersion == PERSONALIZED_PLANNER_PROTOCOL
+        }
         val generated = mutableMapOf<Long, ProgramSkeletonItem>()
         val restored = mutableMapOf<Long, ProgramProgressionItem>()
         val program = TrainingProgram(
@@ -125,7 +141,15 @@ internal class ProgramPlanService(
             badmintonTransferRatio = request.badmintonTransferRatio,
             sportStrengthRatio = request.sportStrengthRatio,
             periodizationType = skeleton.periodizationType.name,
-            updatedAt = now
+            updatedAt = now,
+            canonicalBuilderProtocolVersion = when {
+                canonicalDecision != null -> exactCanonicalGeneration?.let { CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION }
+                else -> existing?.canonicalBuilderProtocolVersion
+            },
+            canonicalPlannerRuntimeVersion = when {
+                canonicalDecision != null -> exactCanonicalGeneration?.protocolVersion
+                else -> existing?.canonicalPlannerRuntimeVersion
+            }
         )
         val programId = if (existing != null) {
             programDao.updateProgram(program)
@@ -463,6 +487,7 @@ internal fun ProgramSkeletonItem.toTrainingProgramItem(programId: Long): Trainin
         seconds = summary.seconds,
         trainingSlot = trainingSlot.ifBlank { ProgramTrainingSlot.FULL_BODY_BADMINTON_SUPPORT.name },
         dayIntensity = dayIntensity.ifBlank { ProgramDayIntensity.MODERATE.name },
-        weightSource = weightSource.ifBlank { "MANUAL_OR_EXISTING" }
+        weightSource = weightSource.ifBlank { "MANUAL_OR_EXISTING" },
+        selectionRole = selectionRole.takeIf(String::isNotBlank)
     )
 }

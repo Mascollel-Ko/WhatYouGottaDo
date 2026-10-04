@@ -285,7 +285,9 @@ class WorkoutSessionIdentityTest {
         assertArrayEquals(canonical.csv.toByteArray(Charsets.UTF_8), canonical.utf8Bytes())
         val normalized = RecordCsvBackupRestore.parse(canonical.csv) as RecordCsvImportData.Restore
         assertEquals(14, normalized.manifest!!.formatVersion); assertEquals(13, normalized.backupSchemaVersion)
-        assertEquals(historical.programSnapshot, normalized.programSnapshot)
+        // Current backup schema 3 adds exact canonical role and source-version columns;
+        // restoring this v12 snapshot must preserve program content while upgrading it.
+        assertEquals(checkNotNull(historical.programSnapshot).copy(schemaVersion = checkNotNull(normalized.programSnapshot).schemaVersion), normalized.programSnapshot)
         assertEquals(historical.checkInRows.single().createdAt, normalized.checkInRows.single().createdAt)
         assertEquals(historical.toWorkoutGraphs().map { it.sourceId }.toSet(), normalized.toWorkoutGraphs().map { it.sourceId }.toSet())
         assertEquals(3, normalized.toWorkoutGraphs().map { it.sessionStableKey }.toSet().size)
@@ -339,7 +341,7 @@ class WorkoutSessionIdentityTest {
         assertEquals(historicalGraphs.associate { it.sourceId to it.contentToken() },
             normalized.toWorkoutGraphs().associate { it.sourceId to it.copy(sessionStableKey = null).contentToken() })
         assertEquals(historical.exerciseRows.map { it.stableKey }.toSet(), normalized.exerciseRows.map { it.stableKey }.toSet())
-        assertEquals(historical.programSnapshot, normalized.programSnapshot)
+        assertEquals(checkNotNull(historical.programSnapshot).copy(schemaVersion = checkNotNull(normalized.programSnapshot).schemaVersion), normalized.programSnapshot)
         assertEquals(historical.progressionRows, normalized.progressionRows)
         assertEquals(historical.metadataSnapshotRows, normalized.metadataSnapshotRows)
         assertEquals(historical.metadataUserOverrideRows, normalized.metadataUserOverrideRows)
@@ -426,7 +428,7 @@ class WorkoutSessionIdentityTest {
         helper.writableDatabase; helper.close()
         val db = Room.databaseBuilder(context, TrainingDatabase::class.java, name)
             .allowMainThreadQueries().addMigrations(MIGRATION_31_32, MIGRATION_32_33, TrainingDatabase.MIGRATION_33_34,
-                TrainingDatabase.MIGRATION_34_35, TrainingDatabase.MIGRATION_35_36).build().also { databases += it }
+                TrainingDatabase.MIGRATION_34_35, TrainingDatabase.MIGRATION_35_36, TrainingDatabase.MIGRATION_36_37).build().also { databases += it }
         val migrated = db.workoutDao().allEntriesWithSets().sortedBy { it.entry.id }
         assertEquals(3, migrated.size)
         assertEquals(migrated[0].entry.sessionStableKey, migrated[1].entry.sessionStableKey)

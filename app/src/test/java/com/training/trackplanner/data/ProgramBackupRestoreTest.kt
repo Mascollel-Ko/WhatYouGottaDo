@@ -107,7 +107,9 @@ class ProgramBackupRestoreTest {
                 excludedExerciseText = "통증, 점프",
                 badmintonTransferRatio = 0.6,
                 sportStrengthRatio = "AUTO",
-                periodizationType = "BADMINTON_WAVE"
+                periodizationType = "BADMINTON_WAVE",
+                canonicalBuilderProtocolVersion = "3.54.0",
+                canonicalPlannerRuntimeVersion = "RECORD_BASED_PLANNER_0.14.6_KOTLIN_1"
             )
         )
         val userProgramId = source.programDao().insertProgram(
@@ -136,7 +138,8 @@ class ProgramBackupRestoreTest {
                     seconds = 0,
                     trainingSlot = "LOWER_STRENGTH",
                     dayIntensity = "HARD",
-                    weightSource = "MANUAL_INPUT"
+                    weightSource = "MANUAL_INPUT",
+                    selectionRole = "CANONICAL_STIMULUS_QUALITY_STRENGTH"
                 )
         )
         source.programDao().insertProgramItemSets(
@@ -195,10 +198,13 @@ class ProgramBackupRestoreTest {
         assertEquals(2, target.programDao().countPrograms())
         assertNull(target.programDao().findProgramByStableKey("user_program_replace_me"))
         assertEquals("수정된, \"배드민턴\" 프로그램", target.programDao().findProgramByStableKey("3")?.name)
+        assertEquals("3.54.0", target.programDao().findProgramByStableKey("3")?.canonicalBuilderProtocolVersion)
+        assertEquals("RECORD_BASED_PLANNER_0.14.6_KOTLIN_1", target.programDao().findProgramByStableKey("3")?.canonicalPlannerRuntimeVersion)
         val restoredItems = target.programDao().allProgramItems()
         assertEquals(squat.stableKey, restoredItems.single { it.exerciseName == squat.name }.exerciseStableKey)
         assertTrue(restoredItems.single { it.exerciseName == squat.name }.prescription.contains("\n"))
         val restoredSquatItem = restoredItems.single { it.exerciseName == squat.name }
+        assertEquals("CANONICAL_STIMULUS_QUALITY_STRENGTH", restoredSquatItem.selectionRole)
         assertEquals(
             listOf(3 to 110.0, 5 to 100.5, 8 to 85.0, 8 to 85.0),
             target.programDao().programItemSetsForProgram(restoredSquatItem.programId)
@@ -596,7 +602,9 @@ class ProgramBackupRestoreTest {
                         program.excludedExerciseText,
                         program.badmintonTransferRatio,
                         program.sportStrengthRatio,
-                        program.periodizationType
+                        program.periodizationType,
+                        program.canonicalBuilderProtocolVersion,
+                        program.canonicalPlannerRuntimeVersion
                     ).joinToString("|")
                 )
             }
@@ -619,7 +627,8 @@ class ProgramBackupRestoreTest {
                         item.seconds,
                         item.trainingSlot,
                         item.dayIntensity,
-                        item.weightSource
+                        item.weightSource,
+                        item.selectionRole
                     ).joinToString("|")
                 )
             }
