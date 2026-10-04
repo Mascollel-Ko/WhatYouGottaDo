@@ -32,6 +32,29 @@ class StimulusProductionCoverageAuditTest {
     )
 
     @Test
+    fun hardValidIncumbentPlacementIsStableAcrossAcceptedRegeneration() = runBlocking {
+        val spec = CoverageSpec(
+            label = "persona0_mixed",
+            quality = TrainableQuality.STRENGTH,
+            stableKey = "barbell_back_squat",
+            profileGoal = "STRENGTH_GAIN",
+            goal = ProgramGoal.STRENGTH,
+            intent = StrengthIntent.STRENGTH_PRIORITY,
+            badminton = false,
+            history = "mixed",
+            days = 2,
+            minutes = 60,
+            equipment = setOf("MACHINE", "CABLE")
+        )
+        val result = runCase(
+            spec,
+            seedIncumbentPlacementFixture = true,
+            verifyRepeatedAcceptedRegeneration = true
+        )
+        assertNotNull(result)
+    }
+
+    @Test
     fun measureUnmodifiedServiceCoverage() = runBlocking {
         // Snapshot the small exact-key metadata facts before generating the memory-heavy corpus.
         // The census must not reparse all canonical tissue assets after the production runs.
@@ -193,6 +216,7 @@ class StimulusProductionCoverageAuditTest {
             c19MergeSha = "46a166499dc2136c73d22e66670d6232d59c21b4",
             c20StartSha = "46a166499dc2136c73d22e66670d6232d59c21b4"
         )
+        java.io.File("build/reports/c20-live-incumbent-stability-census.json").writeText(c20Census)
         assertEquals(c20Census, C20LiveIncumbentStabilityCensus.render(
             c18Census = c18Census,
             records = records.reversed(),
@@ -205,10 +229,56 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(2, c20Summary.getInt("HARD_INVALID"))
         assertEquals(18, c20Summary.getInt("UNRESOLVED"))
         assertEquals(12, c20Summary.getInt("preservedHardValidRows"))
-        assertEquals(0, c20Summary.getInt("hardInvalidRowsPreserved"))
+        assertEquals(0, c20Summary.getInt("hardInvalidRowsForcedPreserved"))
         assertEquals(0, c20Summary.getInt("unresolvedRowsForcedPreserved"))
         assertEquals(0, c20Summary.getInt("combinedAnchorSetConflicts"))
-        java.io.File("build/reports/c20-live-incumbent-stability-census.json").writeText(c20Census)
+        val c20PlacementMetrics = org.json.JSONObject(c20Census).getJSONObject("shadowPlacement")
+        assertEquals(32, c20PlacementMetrics.getInt("sharedPlacementDeltaBefore"))
+        assertEquals(20, c20PlacementMetrics.getInt("sharedPlacementDeltaAfter"))
+        assertEquals(62, c20PlacementMetrics.getInt("totalDayDistanceBefore"))
+        assertEquals(42, c20PlacementMetrics.getInt("totalDayDistanceAfter"))
+        val c20Routes = org.json.JSONObject(c20Census).getJSONObject("routeSnapshot")
+        assertEquals(20, c20Routes.getInt("CONTROL"))
+        assertEquals(1, c20Routes.getInt("B8_STRENGTH_V1"))
+        assertEquals(1, c20Routes.getInt("B8_STRENGTH_CALIBRATION_V1"))
+        assertEquals(0, c20Routes.getInt("B8_HYPERTROPHY_V1"))
+        assertEquals(0, c20Routes.getInt("B8_STRENGTH_HYPERTROPHY_V1"))
+        assertEquals(11, c20Routes.getInt("b7ProvenanceUnclosed"))
+        assertEquals(9, c20Routes.getInt("b7TargetUnmet"))
+        assertEquals(1, c20Routes.getInt("b7TargetRegressed"))
+        val c20CaseRows = org.json.JSONObject(c20Census).getJSONArray("caseRows")
+        fun c20Case(name: String) = (0 until c20CaseRows.length()).map { c20CaseRows.getJSONObject(it) }
+            .single { it.getString("case") == name }
+        assertEquals(4, c20Case("persona0_mixed").getJSONObject("liveFeasibility").getInt("HARD_VALID"))
+        assertEquals(0, c20Case("persona0_mixed").getJSONObject("liveFeasibility").getInt("HARD_INVALID"))
+        assertEquals(2, c20Case("persona0_mixed").getJSONObject("liveFeasibility").getInt("UNRESOLVED"))
+        assertEquals(0, c20Case("persona0_reviewed").getJSONObject("liveFeasibility").getInt("HARD_VALID"))
+        assertEquals(0, c20Case("persona0_reviewed").getJSONObject("liveFeasibility").getInt("HARD_INVALID"))
+        assertEquals(4, c20Case("persona0_reviewed").getJSONObject("liveFeasibility").getInt("UNRESOLVED"))
+        assertEquals(2, c20Case("persona3_reviewed").getJSONObject("liveFeasibility").getInt("HARD_VALID"))
+        assertEquals(2, c20Case("persona3_reviewed").getJSONObject("liveFeasibility").getInt("HARD_INVALID"))
+        assertEquals(4, c20Case("persona3_reviewed").getJSONObject("liveFeasibility").getInt("UNRESOLVED"))
+        assertEquals(6, c20Case("persona4_mixed").getJSONObject("liveFeasibility").getInt("HARD_VALID"))
+        assertEquals(0, c20Case("persona4_mixed").getJSONObject("liveFeasibility").getInt("HARD_INVALID"))
+        assertEquals(8, c20Case("persona4_mixed").getJSONObject("liveFeasibility").getInt("UNRESOLVED"))
+        assertEquals("ACTIVATED", c20Case("persona0_mixed").getString("activationStatus"))
+        assertEquals(4, c20Case("persona0_mixed").getJSONArray("preservationEvents").length())
+        assertTrue(c20Case("persona0_mixed").getBoolean("productionPlacementChanged"))
+        assertEquals("NO_ELIGIBLE_HARD_VALID_ANCHORS", c20Case("persona0_reviewed").getString("activationStatus"))
+        assertFalse(c20Case("persona0_reviewed").getBoolean("productionPlacementChanged"))
+        assertEquals("ACTIVATED", c20Case("persona3_reviewed").getString("activationStatus"))
+        assertEquals(2, c20Case("persona3_reviewed").getJSONArray("preservationEvents").length())
+        assertTrue(c20Case("persona3_reviewed").getBoolean("productionPlacementChanged"))
+        assertEquals("ACTIVATED", c20Case("persona4_mixed").getString("activationStatus"))
+        assertEquals(6, c20Case("persona4_mixed").getJSONArray("preservationEvents").length())
+        assertTrue(c20Case("persona4_mixed").getBoolean("productionPlacementChanged"))
+        val c20PositiveReference = org.json.JSONObject(c20Census).getJSONObject("positiveReference")
+        assertEquals("persona2_reviewed", c20PositiveReference.getString("case"))
+        assertEquals("B8_STRENGTH_CALIBRATION_V1", c20PositiveReference.getString("route"))
+        assertEquals(14, c20PositiveReference.getInt("sharedOwnerRows"))
+        assertEquals(14, c20PositiveReference.getInt("sharedOwnerRowsPlacementUnchanged"))
+        assertEquals(0, c20PositiveReference.getInt("preservationEvents"))
+        assertEquals(2, c20PositiveReference.getInt("calibrationRows"))
         val c18Json = org.json.JSONObject(c18Census)
         val c18Summary = c18Json.getJSONObject("summary")
         assertEquals(32, c18Summary.getInt("placementDeltas"))
@@ -746,6 +816,7 @@ class StimulusProductionCoverageAuditTest {
     internal suspend fun runCase(
         spec: CoverageSpec,
         seedIncumbentPlacementFixture: Boolean = false,
+        verifyRepeatedAcceptedRegeneration: Boolean = false,
         observeCanonicalPlanning: (suspend (CanonicalStimulusPlanningResult) -> Unit)? = null,
         evaluateWithIncumbent: (suspend (PersonalizedProgramPlanningService, PersonalizedPlanningPreflight,
             PersonalizedPlanningAnswers, Map<String, RuntimeExerciseMetadata>, CanonicalIncumbentPlacementIndex) -> StimulusProductionGenerationResult)? = null,
@@ -834,6 +905,29 @@ class StimulusProductionCoverageAuditTest {
             val production = evaluateWithIncumbent?.invoke(service, preflight, answers, metadata, incumbentIndex)
                 ?: evaluate?.invoke(service, preflight, answers, metadata)
                 ?: repository.generatePreparedPersonalizedProgramEvaluation(preflight, answers, existingProgramId = existingProgramId)
+            if (verifyRepeatedAcceptedRegeneration) {
+                val programId = requireNotNull(existingProgramId) { "C20 idempotence check requires a persisted incumbent source" }
+                fun placementFingerprint(result: StimulusProductionGenerationResult): List<String> =
+                    requireNotNull(result.comparison).experimental.items
+                        .sortedWith(compareBy(ProgramSkeletonItem::weekNumber, ProgramSkeletonItem::dayOfWeek,
+                            ProgramSkeletonItem::orderIndex, ProgramSkeletonItem::exerciseStableKey,
+                            ProgramSkeletonItem::selectionRole))
+                        .map { "${it.weekNumber}:${it.exerciseStableKey}#${it.selectionRole}:${it.dayOfWeek}/${it.orderIndex}" }
+                val expectedPlacement = placementFingerprint(production)
+                var accepted = production
+                repeat(2) {
+                    assertEquals(programId, repository.saveGeneratedProgram(programId, accepted.program))
+                    val refreshed = repository.generatePreparedPersonalizedProgramEvaluation(
+                        preflight, answers, existingProgramId = programId
+                    )
+                    assertEquals(1, refreshed.buildCounts.controlBuilds)
+                    assertEquals(1, refreshed.buildCounts.experimentalBuilds)
+                    assertEquals(2, refreshed.buildCounts.totalBuildInvocations)
+                    assertEquals(0, refreshed.buildCounts.thirdBuilds)
+                    assertEquals(expectedPlacement, placementFingerprint(refreshed))
+                    accepted = refreshed
+                }
+            }
             return production
         } finally { db.close() }
     }

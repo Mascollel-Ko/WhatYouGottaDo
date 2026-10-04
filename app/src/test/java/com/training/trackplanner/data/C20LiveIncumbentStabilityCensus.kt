@@ -1,6 +1,7 @@
 package com.training.trackplanner.data
 
 import com.training.trackplanner.data.personalized.StimulusProductionGenerationResult
+import com.training.trackplanner.data.personalized.StimulusPrescriptionAuthorizationStatus
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -30,11 +31,19 @@ internal object C20LiveIncumbentStabilityCensus {
             CanonicalIncumbentFeasibility.HARD_INVALID.name to 0,
             CanonicalIncumbentFeasibility.UNRESOLVED.name to 0
         )
-        var shadowPreserved = 0
-        var hardInvalidPreserved = 0
-        var unknownForcedPreserved = 0
+        var hardValidPreserved = 0
+        var hardInvalidForcedPreserved = 0
+        var unresolvedForcedPreserved = 0
+        var sharedPlacementDeltaBefore = 0
+        var sharedPlacementDeltaAfter = 0
+        var totalDayDistanceBefore = 0
+        var totalDayDistanceAfter = 0
+        var orderOnlyChangesBefore = 0
+        var orderOnlyChangesAfter = 0
         var combinedConflicts = 0
         var projectionCalls = 0
+        var dayOfiProjectionCalls = 0
+        var tissueProjectionCalls = 0
 
         targetCases.sorted().forEach { caseId ->
             val result = results.getValue(caseId)
@@ -45,9 +54,31 @@ internal object C20LiveIncumbentStabilityCensus {
             }
             require(result.program.incumbentSourceSnapshotToken != null) { "$caseId omitted the source snapshot token" }
             projectionCalls += shadow.projectionCallCount
+            dayOfiProjectionCalls += shadow.dayOfiProjectionCallCount
+            tissueProjectionCalls += shadow.tissueProjectionCallCount
             if (shadow.combinedAnchorSetConflict) combinedConflicts++
             val caseOldRows = oldRows.filter { it.getString("case") == caseId }
             val caseOutputRows = JSONArray()
+            var caseProductionPlacementChanged = false
+            val shadowById = shadow.shadowRows.associateBy { it.localId }
+            val allPlacementChanges = JSONArray()
+            shadow.productionRows.sortedBy { it.localId }.forEach { before ->
+                val after = shadowById[before.localId] ?: return@forEach
+                if (before.dayOfWeek != after.dayOfWeek || before.orderIndex != after.orderIndex) {
+                    allPlacementChanges.put(JSONObject()
+                        .put("localId", before.localId)
+                        .put("owner", JSONObject().put("stableKey", before.exerciseStableKey)
+                            .put("selectionRole", before.selectionRole))
+                        .put("week", before.weekNumber)
+                        .put("from", JSONObject().put("day", before.dayOfWeek).put("order", before.orderIndex))
+                        .put("to", JSONObject().put("day", after.dayOfWeek).put("order", after.orderIndex))
+                        .put("isExactHardValidAnchor", shadow.rows.any { row ->
+                            row.owner.stableKey == before.exerciseStableKey &&
+                                row.owner.selectionRole == before.selectionRole && row.week == before.weekNumber &&
+                                row.feasibility == CanonicalIncumbentFeasibility.HARD_VALID
+                        }))
+                }
+            }
             caseOldRows.forEach { prior ->
                 val owner = prior.getJSONObject("owner")
                 val week = prior.getInt("week")
@@ -61,29 +92,42 @@ internal object C20LiveIncumbentStabilityCensus {
                 val shadowPlacement = shadow.shadowRows.singleOrNull {
                     it.exerciseStableKey == stableKey && it.selectionRole == role && it.weekNumber == week
                 }
-                val keptAtPrior = shadowPlacement?.dayOfWeek == prior.getJSONObject("from").getInt("day") &&
-                    shadowPlacement.orderIndex == prior.getJSONObject("from").getInt("order")
-                if (live.feasibility == CanonicalIncumbentFeasibility.HARD_VALID && keptAtPrior) shadowPreserved++
-                if (live.feasibility == CanonicalIncumbentFeasibility.HARD_INVALID && keptAtPrior) hardInvalidPreserved++
-                if (live.feasibility == CanonicalIncumbentFeasibility.UNRESOLVED && keptAtPrior) unknownForcedPreserved++
-
                 val production = comparison.experimental.items.single {
                     it.weekNumber == week && it.exerciseStableKey == stableKey && it.selectionRole == role
                 }
+                val incumbentDay = prior.getJSONObject("from").getInt("day")
+                val incumbentOrder = prior.getJSONObject("from").getInt("order")
+                val beforeDay = live.productionDay
+                val beforeOrder = live.productionOrder
+                val afterDay = production.dayOfWeek
+                val afterOrder = production.orderIndex
+                if (beforeDay != afterDay || beforeOrder != afterOrder) caseProductionPlacementChanged = true
+                val wasChangedBefore = beforeDay != incumbentDay || beforeOrder != incumbentOrder
+                val isChangedAfter = afterDay != incumbentDay || afterOrder != incumbentOrder
+                if (wasChangedBefore) sharedPlacementDeltaBefore++
+                if (isChangedAfter) sharedPlacementDeltaAfter++
+                totalDayDistanceBefore += kotlin.math.abs(beforeDay - incumbentDay)
+                totalDayDistanceAfter += kotlin.math.abs(afterDay - incumbentDay)
+                if (wasChangedBefore && beforeDay == incumbentDay) orderOnlyChangesBefore++
+                if (isChangedAfter && afterDay == incumbentDay) orderOnlyChangesAfter++
+                val keptAtPrior = afterDay == incumbentDay && afterOrder == incumbentOrder
+                if (live.feasibility == CanonicalIncumbentFeasibility.HARD_VALID && keptAtPrior) hardValidPreserved++
+                if (live.feasibility == CanonicalIncumbentFeasibility.HARD_INVALID && wasChangedBefore && keptAtPrior) hardInvalidForcedPreserved++
+                if (live.feasibility == CanonicalIncumbentFeasibility.UNRESOLVED && wasChangedBefore && keptAtPrior) unresolvedForcedPreserved++
                 val rowJson = JSONObject()
                     .put("case", caseId)
                     .put("week", week)
                     .put("owner", JSONObject().put("stableKey", stableKey).put("selectionRole", role))
                     .put("lineage", shadow.sourceLineageId)
-                    .put("incumbent", JSONObject().put("day", prior.getJSONObject("from").getInt("day"))
-                        .put("order", prior.getJSONObject("from").getInt("order")))
-                    .put("production", JSONObject().put("day", production.dayOfWeek).put("order", production.orderIndex))
+                    .put("incumbent", JSONObject().put("day", incumbentDay).put("order", incumbentOrder))
+                    .put("productionBefore", JSONObject().put("day", beforeDay).put("order", beforeOrder))
+                    .put("productionAfter", JSONObject().put("day", afterDay).put("order", afterOrder))
                     .put("liveFeasibility", live.evidence?.toJson() ?: JSONObject().put("status", state))
                     .put("shadowRecommendation", live.recommendation.name)
                     .put("shadowPlacement", shadowPlacement?.let {
                         JSONObject().put("day", it.dayOfWeek).put("order", it.orderIndex)
                     } ?: JSONObject.NULL)
-                    .put("productionChanged", false)
+                    .put("productionChanged", beforeDay != afterDay || beforeOrder != afterOrder)
                     .put("sourceSnapshotFreshAtGeneration", true)
                 caseOutputRows.put(rowJson)
                 outputRows.put(rowJson)
@@ -93,18 +137,48 @@ internal object C20LiveIncumbentStabilityCensus {
                 .put("route", result.routeDecision.selectedSource.name)
                 .put("b7Reasons", JSONArray(comparison.experimentalReadinessAudit?.reasonCodes.orEmpty().sorted()))
                 .put("b8Reasons", JSONArray(comparison.productionCutoverAuthority?.reasonCodes.orEmpty().sorted()))
+                .put("activationStatus", result.incumbentPlacementActivationStatus?.name)
+                .put("activationDetails", JSONArray(result.incumbentPlacementActivationDetails.sorted()))
+                .put("preservationEvents", JSONArray(result.incumbentPlacementPreservations.map { event ->
+                    JSONObject().put("owner", JSONObject().put("stableKey", event.owner.stableKey)
+                        .put("selectionRole", event.owner.selectionRole))
+                        .put("week", event.week)
+                        .put("from", JSONObject().put("day", event.producedDay).put("order", event.producedOrder))
+                        .put("to", JSONObject().put("day", event.preservedDay).put("order", event.preservedOrder))
+                        .put("lineage", event.sourceLineageId.value)
+                        .put("snapshotToken", event.sourceSnapshotToken.value)
+                        .put("feasibility", event.feasibility.toJson())
+                }))
                 .put("liveFeasibility", JSONObject()
                     .put("HARD_VALID", caseOutputRows.objects().count { it.getJSONObject("liveFeasibility").getString("status") == "HARD_VALID" })
                     .put("HARD_INVALID", caseOutputRows.objects().count { it.getJSONObject("liveFeasibility").getString("status") == "HARD_INVALID" })
                     .put("UNRESOLVED", caseOutputRows.objects().count { it.getJSONObject("liveFeasibility").getString("status") == "UNRESOLVED" }))
                 .put("combinedAnchorFeasibility", shadow.combinedFeasibility?.toJson() ?: JSONObject.NULL)
                 .put("combinedAnchorSetConflict", shadow.combinedAnchorSetConflict)
-                .put("productionPlacementChanged", false)
+                .put("allShadowPlacementChanges", allPlacementChanges)
+                .put("projectionCalls", shadow.projectionCallCount)
+                .put("dayOfiProjectionCalls", shadow.dayOfiProjectionCallCount)
+                .put("tissueProjectionCalls", shadow.tissueProjectionCallCount)
+                .put("productionPlacementChanged", caseProductionPlacementChanged)
                 .put("incumbentRows", caseOutputRows))
         }
 
         val allGenerated = records.mapNotNull { it.second }
         val routes = allGenerated.groupingBy { it.routeDecision.selectedSource.name }.eachCount().toSortedMap()
+        val positiveReference = requireNotNull(records.singleOrNull { it.first.label == "persona2_reviewed" }?.second) {
+            "C20 requires the persona2_reviewed stable-insertion reference"
+        }
+        val positiveComparison = requireNotNull(positiveReference.comparison)
+        val positiveSharedRows = positiveComparison.control.items.mapNotNull { before ->
+            positiveComparison.experimental.items.singleOrNull { after ->
+                before.weekNumber == after.weekNumber && before.exerciseStableKey == after.exerciseStableKey &&
+                    before.selectionRole == after.selectionRole
+            }?.let { before to it }
+        }
+        fun b7Cases(reason: String) = allGenerated.count { result ->
+            reason in result.comparison?.experimentalReadinessAudit?.reasonCodes.orEmpty()
+        }
+        val activations = targetCases.sorted().associateWith { results.getValue(it).incumbentPlacementActivationStatus?.name }
         val output = JSONObject()
             .put("schema", "c20-live-incumbent-stability-census-v1")
             .put("c19MergeSha", c19MergeSha)
@@ -118,34 +192,62 @@ internal object C20LiveIncumbentStabilityCensus {
                 .put("hardValidCount", counts.getValue(CanonicalIncumbentFeasibility.HARD_VALID.name))
                 .put("hardInvalidCount", counts.getValue(CanonicalIncumbentFeasibility.HARD_INVALID.name))
                 .put("unresolvedCount", counts.getValue(CanonicalIncumbentFeasibility.UNRESOLVED.name))
-                .put("projectionCalls", projectionCalls))
+                .put("projectionCalls", projectionCalls)
+                .put("dayOfiProjectionCalls", dayOfiProjectionCalls)
+                .put("tissueProjectionCalls", tissueProjectionCalls)
+                .put("cacheHits", 0)
+                .put("generationScopedProjectionCache", false))
             .put("shadowPlacement", JSONObject()
-                .put("preservedHardValidRows", shadowPreserved)
-                .put("hardInvalidRowsPreserved", hardInvalidPreserved)
-                .put("unresolvedRowsForcedPreserved", unknownForcedPreserved)
+                .put("activatedCases", JSONObject(activations))
+                .put("preservedHardValidRows", hardValidPreserved)
+                .put("hardInvalidRowsForcedPreserved", hardInvalidForcedPreserved)
+                .put("unresolvedRowsForcedPreserved", unresolvedForcedPreserved)
                 .put("combinedAnchorSetConflicts", combinedConflicts)
-                .put("productionPlacementChanged", false))
+                .put("productionPlacementChanged", sharedPlacementDeltaBefore != sharedPlacementDeltaAfter)
+                .put("sharedPlacementDeltaBefore", sharedPlacementDeltaBefore)
+                .put("sharedPlacementDeltaAfter", sharedPlacementDeltaAfter)
+                .put("totalDayDistanceBefore", totalDayDistanceBefore)
+                .put("totalDayDistanceAfter", totalDayDistanceAfter)
+                .put("orderOnlyChangesBefore", orderOnlyChangesBefore)
+                .put("orderOnlyChangesAfter", orderOnlyChangesAfter))
             .put("caseRows", caseRows)
             .put("placementRows", outputRows)
+            .put("positiveReference", JSONObject()
+                .put("case", "persona2_reviewed")
+                .put("route", positiveReference.routeDecision.selectedSource.name)
+                .put("activationStatus", positiveReference.incumbentPlacementActivationStatus?.name)
+                .put("sharedOwnerRows", positiveSharedRows.size)
+                .put("sharedOwnerRowsPlacementUnchanged", positiveSharedRows.count { (before, after) ->
+                    before.dayOfWeek == after.dayOfWeek && before.orderIndex == after.orderIndex
+                })
+                .put("preservationEvents", positiveReference.incumbentPlacementPreservations.size)
+                .put("calibrationRows", positiveComparison.experimental.items.count { row ->
+                    positiveComparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().any { auth ->
+                        auth.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION &&
+                            auth.owner?.stableKey == row.exerciseStableKey && auth.owner.selectionRole == row.selectionRole
+                    }
+                }))
             .put("routeSnapshot", JSONObject()
                 .put("CONTROL", routes["CONTROL"] ?: 0)
                 .put("B8_STRENGTH_V1", routes["B8_STRENGTH_V1"] ?: 0)
                 .put("B8_STRENGTH_CALIBRATION_V1", routes["B8_STRENGTH_CALIBRATION_V1"] ?: 0)
                 .put("B8_HYPERTROPHY_V1", routes["B8_HYPERTROPHY_V1"] ?: 0)
                 .put("B8_STRENGTH_HYPERTROPHY_V1", routes["B8_STRENGTH_HYPERTROPHY_V1"] ?: 0)
-                .put("b7ProvenanceUnclosed", 11)
-                .put("b7TargetUnmet", 9)
-                .put("b7TargetRegressed", 1))
+                .put("b7ProvenanceUnclosed", b7Cases("CHANGE_PROVENANCE_UNCLOSED"))
+                .put("b7TargetUnmet", b7Cases("AFFECTED_TARGET_REMAINS_UNMET"))
+                .put("b7TargetRegressed", b7Cases("TARGET_REGRESSED")))
             .put("summary", JSONObject()
                 .put("placementRows", outputRows.length())
                 .put("HARD_VALID", counts.getValue(CanonicalIncumbentFeasibility.HARD_VALID.name))
                 .put("HARD_INVALID", counts.getValue(CanonicalIncumbentFeasibility.HARD_INVALID.name))
                 .put("UNRESOLVED", counts.getValue(CanonicalIncumbentFeasibility.UNRESOLVED.name))
-                .put("preservedHardValidRows", shadowPreserved)
-                .put("hardInvalidRowsPreserved", hardInvalidPreserved)
-                .put("unresolvedRowsForcedPreserved", unknownForcedPreserved)
+                .put("preservedHardValidRows", hardValidPreserved)
+                .put("hardInvalidRowsForcedPreserved", hardInvalidForcedPreserved)
+                .put("unresolvedRowsForcedPreserved", unresolvedForcedPreserved)
                 .put("combinedAnchorSetConflicts", combinedConflicts)
-                .put("productionPlacementChanged", false))
+                .put("productionPlacementChanged", sharedPlacementDeltaBefore != sharedPlacementDeltaAfter)
+                .put("sharedPlacementDeltaBefore", sharedPlacementDeltaBefore)
+                .put("sharedPlacementDeltaAfter", sharedPlacementDeltaAfter))
         return output.toString(2)
     }
 

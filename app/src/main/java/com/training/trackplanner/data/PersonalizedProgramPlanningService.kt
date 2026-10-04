@@ -1082,6 +1082,9 @@ internal class PersonalizedProgramPlanningService(
     ): com.training.trackplanner.data.personalized.StimulusProductionGenerationResult {
         val buildCounts = com.training.trackplanner.data.personalized.MutableStimulusProductionBuildCounts()
         var incumbentPlacementShadow: CanonicalIncumbentPlacementShadow? = null
+        var incumbentPlacementActivationStatus: CanonicalIncumbentActivationStatus? = null
+        var incumbentPlacementPreservations: List<CanonicalIncumbentPlacementPreservation> = emptyList()
+        var incumbentPlacementActivationDetails: List<String> = emptyList()
         val productionProgress = com.training.trackplanner.data.personalized.ProductionGenerationProgressMapper(progress)
         val context = prepareCanonicalGenerationContext(
             preflight = preflight,
@@ -1132,7 +1135,7 @@ internal class PersonalizedProgramPlanningService(
             }
         }
 
-        val experimental = try {
+        var experimental = try {
             buildCanonicalExperimentalGeneration(
                 context = context,
                 answers = answers,
@@ -1161,24 +1164,70 @@ internal class PersonalizedProgramPlanningService(
             return fallback(late.program, failure)
         }
 
-        // C20 evaluates exact incumbent positions against the current EXP rows and the same
-        // generation-scoped OFI/tissue projections used by placement review. This remains a
-        // shadow: no result is fed back into the completed production placement.
+        // C20 evaluates exact incumbent positions against current EXP rows and the same
+        // generation-scoped OFI/tissue projections used by placement review. Only the fully
+        // resolved, combined HARD_VALID exact anchors are applied. Invalid and unresolved rows
+        // retain the canonical planner's current placement.
+        val canonicalRowsBeforeIncumbentActivation = experimental.program.items
         val liveIncumbentFeasibility = CanonicalIncumbentPlacementFeasibilityEvaluator.evaluate(
             index = incumbentPlacementIndex,
             program = experimental.program,
             snapshot = context.snapshot,
             state = context.state
         )
+        val activation = CanonicalIncumbentPlacementActivator.activate(
+            index = incumbentPlacementIndex,
+            program = experimental.program,
+            feasibility = liveIncumbentFeasibility
+        )
+        incumbentPlacementActivationStatus = activation.status
+        incumbentPlacementPreservations = activation.preservations
+        incumbentPlacementActivationDetails = activation.rejectionDetails
+        if (activation.program !== experimental.program) {
+            val stabilizedProgram = activation.program
+            val finalAudit = FinalStimulusNeedAudit().audit(stabilizedProgram, context.snapshot, physicalQualityCatalog)
+            val experimentalAudit = StimulusTargetControlProgramAuditEngine().audit(
+                canonicalPlanning.targetPlan,
+                finalAudit,
+                context.resolvedRequest.request.durationWeeks
+            )
+            val materializationAudits = StimulusPrescriptionMaterializationAuditEngine().audit(
+                experimental.authorizationPlan,
+                stabilizedProgram,
+                context.snapshot
+            )
+            val realizationInputs = com.training.trackplanner.data.personalized.buildStimulusRealizationPrescriptionInputs(
+                selectionPlan = experimental.selectionPlan,
+                canonicalPrescriptionContext = experimental.prescriptionContext,
+                experimentalItems = stabilizedProgram.items
+            )
+            val realizationPlan = StimulusPrescriptionRealizationPlanEngine().build(
+                targetPlan = canonicalPlanning.targetPlan,
+                selectionPlan = experimental.selectionPlan,
+                snapshot = context.snapshot,
+                currentPrescriptions = realizationInputs.currentPrescriptions,
+                historyBackedOwners = experimental.prescriptionContext.historyBackedOwners,
+                currentPrescriptionsByQuality = realizationInputs.currentPrescriptionsByQuality,
+                historyBackedAuthorities = experimental.prescriptionContext.historyBackedAuthorities
+            )
+            experimental = experimental.copy(
+                program = stabilizedProgram,
+                experimentalAudit = experimentalAudit,
+                prescriptionRealizationPlan = realizationPlan,
+                materializationAudits = materializationAudits
+            )
+        }
         incumbentPlacementShadow = CanonicalIncumbentPlacementShadowEvaluator.evaluate(
             index = incumbentPlacementIndex,
-            currentRows = experimental.program.items,
+            currentRows = canonicalRowsBeforeIncumbentActivation,
             feasibilityByOwnerWeek = liveIncumbentFeasibility.byOwnerWeek.mapValues { it.value.status },
             evidenceByOwnerWeek = liveIncumbentFeasibility.byOwnerWeek,
             combinedFeasibility = liveIncumbentFeasibility.combinedHardValidAnchors,
             combinedAnchorSetConflict = liveIncumbentFeasibility.combinedAnchorSetConflict,
             shadowRows = liveIncumbentFeasibility.shadowRows,
-            projectionCallCount = liveIncumbentFeasibility.projectionCallCount
+            projectionCallCount = liveIncumbentFeasibility.projectionCallCount,
+            dayOfiProjectionCallCount = liveIncumbentFeasibility.dayOfiProjectionCallCount,
+            tissueProjectionCallCount = liveIncumbentFeasibility.tissueProjectionCallCount
         )
 
         val control = materializeLateControl(
@@ -1236,7 +1285,10 @@ internal class PersonalizedProgramPlanningService(
             routeDecision = routed.decision,
             comparison = evaluation.comparison,
             buildCounts = buildCounts.snapshot(),
-            incumbentPlacementShadow = incumbentPlacementShadow
+            incumbentPlacementShadow = incumbentPlacementShadow,
+            incumbentPlacementActivationStatus = incumbentPlacementActivationStatus,
+            incumbentPlacementPreservations = incumbentPlacementPreservations,
+            incumbentPlacementActivationDetails = incumbentPlacementActivationDetails
         )
     }
 
@@ -1473,7 +1525,9 @@ internal class PersonalizedProgramPlanningService(
         .put("constraints", JSONArray(constraints)).put("metadataAuthorityVersion", metadataAuthorityVersion).put("priorDecisionId", priorDecisionId)
         .put("userAnswers", JSONObject(userAnswers)).put("generatedProgramStableKey", generatedProgramStableKey)
         .put("originalGenerationFingerprint", originalGenerationFingerprint).put("userEditedAfterGeneration", userEditedAfterGeneration)
-        .put("finalSavedFingerprint", finalSavedFingerprint).put("recoverySignalCodes", JSONArray(recoverySignalCodes))
+        .put("finalSavedFingerprint", finalSavedFingerprint)
+        .put("canonicalPlacementFinalFingerprint", canonicalPlacementFinalFingerprint)
+        .put("recoverySignalCodes", JSONArray(recoverySignalCodes))
         .put("genericCourtLoad", genericCourtLoad)
         .put("courtBaselineLoad", courtBaselineLoad)
         .put("recentCourtLoad", recentCourtLoad)
@@ -1694,7 +1748,8 @@ internal class PersonalizedProgramPlanningService(
 }
 
 internal fun isPersonalizedProgramEdited(decision: PersonalizedPlanningDecision, finalFingerprint: String): Boolean =
-    (if (decision.postSplitReflow != null) decision.postSplitReflow.finalFingerprint
+    (decision.canonicalPlacementFinalFingerprint
+        ?: if (decision.postSplitReflow != null) decision.postSplitReflow.finalFingerprint
     else if (decision.frequencyExpansion != null) decision.originalGenerationFingerprint
     else decision.dayRebalancing?.finalFingerprint ?: decision.residualCompletion?.completedFingerprint ?: decision.originalGenerationFingerprint).let { generated ->
         generated.isNotBlank() && generated != finalFingerprint

@@ -9,7 +9,7 @@ import com.training.trackplanner.data.personalized.placementSessionFits
 import java.security.MessageDigest
 
 /** Current builder contract recorded on accepted canonical programs. */
-internal const val CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.54.0"
+internal const val CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.55.0"
 
 /** A typed view of TrainingProgram.stableKey; it is independent of exercise stable keys. */
 @JvmInline
@@ -125,7 +125,12 @@ internal data class CanonicalIncumbentPlacementIndex(
             if (builderVersion.isNullOrBlank() || runtimeVersion.isNullOrBlank()) {
                 return unavailable(CanonicalIncumbentIndexStatus.SOURCE_VERSION_UNKNOWN, sourceSnapshotToken)
             }
-            if (builderVersion != expectedBuilderProtocolVersion || runtimeVersion != expectedPlannerRuntimeVersion) {
+            val sourceContract = builderVersion to runtimeVersion
+            val supportedContracts = setOf(
+                expectedBuilderProtocolVersion to expectedPlannerRuntimeVersion,
+                C19_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION to C19_PERSONALIZED_PLANNER_PROTOCOL_VERSION
+            )
+            if (sourceContract !in supportedContracts) {
                 return unavailable(CanonicalIncumbentIndexStatus.SOURCE_VERSION_INCOMPATIBLE, sourceSnapshotToken)
             }
 
@@ -172,6 +177,10 @@ internal data class CanonicalIncumbentPlacementIndex(
         }
     }
 }
+
+/** C19 persisted exact lineage/roles before C20 changed placement behavior. */
+private const val C19_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.54.0"
+private const val C19_PERSONALIZED_PLANNER_PROTOCOL_VERSION = "RECORD_BASED_PLANNER_0.14.6_KOTLIN_1"
 
 /** Deterministic token over all persisted program/item/set state that a generated replacement can overwrite. */
 internal object CanonicalIncumbentSourceSnapshotFingerprint {
@@ -251,7 +260,11 @@ internal data class CanonicalIncumbentPlacementShadow(
     val shadowRows: List<ProgramSkeletonItem> = emptyList(),
     val projectionCallCount: Int = 0,
     val sourceLineageId: String? = null,
-    val sourceSnapshotToken: CanonicalIncumbentSourceSnapshotToken? = null
+    val sourceSnapshotToken: CanonicalIncumbentSourceSnapshotToken? = null,
+    /** Canonical EXP rows before C20 activation; retained for immutable audit comparisons. */
+    val productionRows: List<ProgramSkeletonItem> = emptyList(),
+    val dayOfiProjectionCallCount: Int = 0,
+    val tissueProjectionCallCount: Int = 0
 )
 
 /** Read-only shadow. It can report a recommendation only when an exact hard-feasibility result exists. */
@@ -264,12 +277,14 @@ internal object CanonicalIncumbentPlacementShadowEvaluator {
         combinedFeasibility: CanonicalIncumbentFeasibilityEvidence? = null,
         combinedAnchorSetConflict: Boolean = false,
         shadowRows: List<ProgramSkeletonItem> = currentRows,
-        projectionCallCount: Int = 0
+        projectionCallCount: Int = 0,
+        dayOfiProjectionCallCount: Int = 0,
+        tissueProjectionCallCount: Int = 0
     ): CanonicalIncumbentPlacementShadow {
         if (index.status != CanonicalIncumbentIndexStatus.AVAILABLE) {
             return CanonicalIncumbentPlacementShadow(index.status, emptyList(), combinedFeasibility,
                 combinedAnchorSetConflict, currentRows, projectionCallCount, index.source?.lineageId?.value,
-                index.sourceSnapshotToken)
+                index.sourceSnapshotToken, currentRows, dayOfiProjectionCallCount, tissueProjectionCallCount)
         }
         val current = currentRows.mapNotNull { row ->
             val role = row.selectionRole.takeIf(String::isNotBlank) ?: return@mapNotNull null
@@ -301,7 +316,7 @@ internal object CanonicalIncumbentPlacementShadowEvaluator {
         }.sortedWith(compareBy({ it.owner.stableKey }, { it.owner.selectionRole }, { it.week }))
         return CanonicalIncumbentPlacementShadow(index.status, rows, combinedFeasibility,
             combinedAnchorSetConflict, shadowRows, projectionCallCount, index.source?.lineageId?.value,
-            index.sourceSnapshotToken)
+            index.sourceSnapshotToken, currentRows, dayOfiProjectionCallCount, tissueProjectionCallCount)
     }
 }
 
@@ -344,11 +359,160 @@ internal data class CanonicalIncumbentLiveFeasibility(
     val combinedHardValidAnchors: CanonicalIncumbentFeasibilityEvidence,
     val combinedAnchorSetConflict: Boolean,
     val shadowRows: List<ProgramSkeletonItem>,
-    val projectionCallCount: Int
+    val projectionCallCount: Int,
+    val dayOfiProjectionCallCount: Int = 0,
+    val tissueProjectionCallCount: Int = 0
 )
+
+internal enum class CanonicalIncumbentActivationStatus {
+    ACTIVATED,
+    NO_ELIGIBLE_HARD_VALID_ANCHORS,
+    SOURCE_UNAVAILABLE,
+    SOURCE_SNAPSHOT_MISSING,
+    COMBINED_ANCHORS_NOT_HARD_VALID,
+    NON_ANCHOR_PLACEMENT_WOULD_CHANGE
+}
+
+internal data class CanonicalIncumbentPlacementActivation(
+    val status: CanonicalIncumbentActivationStatus,
+    val program: GeneratedProgramSkeleton,
+    val preservations: List<CanonicalIncumbentPlacementPreservation>,
+    val rejectionDetails: List<String> = emptyList()
+)
+
+/** Applies only the exact, live-proven hard-valid anchors. All other rows keep the canonical result. */
+internal object CanonicalIncumbentPlacementActivator {
+    fun activate(
+        index: CanonicalIncumbentPlacementIndex,
+        program: GeneratedProgramSkeleton,
+        feasibility: CanonicalIncumbentLiveFeasibility
+    ): CanonicalIncumbentPlacementActivation {
+        fun unchanged(status: CanonicalIncumbentActivationStatus, detail: String? = null) =
+            CanonicalIncumbentPlacementActivation(status, program, emptyList(), listOfNotNull(detail))
+
+        if (index.status != CanonicalIncumbentIndexStatus.AVAILABLE || index.source == null) {
+            return unchanged(CanonicalIncumbentActivationStatus.SOURCE_UNAVAILABLE)
+        }
+        val snapshotToken = index.sourceSnapshotToken
+            ?: return unchanged(CanonicalIncumbentActivationStatus.SOURCE_SNAPSHOT_MISSING)
+        if (feasibility.combinedAnchorSetConflict ||
+            feasibility.combinedHardValidAnchors.status != CanonicalIncumbentFeasibility.HARD_VALID
+        ) return unchanged(CanonicalIncumbentActivationStatus.COMBINED_ANCHORS_NOT_HARD_VALID)
+
+        val validKeys = feasibility.byOwnerWeek.entries
+            .filter { it.value.status == CanonicalIncumbentFeasibility.HARD_VALID }
+            .map { it.key }
+            .toSortedSet(compareBy({ it.owner.stableKey }, { it.owner.selectionRole }, { it.week }))
+        if (validKeys.isEmpty()) return unchanged(CanonicalIncumbentActivationStatus.NO_ELIGIBLE_HARD_VALID_ANCHORS)
+
+        val candidateById = feasibility.shadowRows.associateBy(ProgramSkeletonItem::localId)
+        val currentById = program.items.associateBy(ProgramSkeletonItem::localId)
+        if (candidateById.keys != currentById.keys || candidateById.size != feasibility.shadowRows.size ||
+            currentById.size != program.items.size
+        ) return unchanged(CanonicalIncumbentActivationStatus.NON_ANCHOR_PLACEMENT_WOULD_CHANGE, "ROW_IDENTITY_SET_CHANGED")
+
+        val changed = program.items.filter { before ->
+            val after = candidateById.getValue(before.localId)
+            before.dayOfWeek != after.dayOfWeek || before.orderIndex != after.orderIndex
+        }
+        val nonPlacementMutation = program.items.any { before ->
+            val after = candidateById.getValue(before.localId)
+            before.copy(dayOfWeek = after.dayOfWeek, orderIndex = after.orderIndex) != after
+        }
+        if (nonPlacementMutation) return unchanged(
+            CanonicalIncumbentActivationStatus.NON_ANCHOR_PLACEMENT_WOULD_CHANGE, "NON_PLACEMENT_FIELD_CHANGED"
+        )
+
+        val anchorDestinations = validKeys.mapNotNull { key ->
+            val incumbent = index.placement(key.owner, key.week) ?: return@mapNotNull null
+            Triple(key.week, incumbent.day, incumbent.order)
+        }.toSet()
+        val nonAnchorPlacementChangesAreExactSlotConflicts = changed.all { before ->
+            val key = CanonicalIncumbentOwnerWeek(CanonicalOwnerIdentity(before.exerciseStableKey, before.selectionRole), before.weekNumber)
+            if (key in validKeys) {
+                val incumbent = index.placement(key.owner, key.week) ?: return@all false
+                candidateById.getValue(before.localId).let { after ->
+                    after.dayOfWeek == incumbent.day && after.orderIndex == incumbent.order
+                }
+            } else {
+                val after = candidateById.getValue(before.localId)
+                // A continuity anchor may reserve an already occupied order slot. The shadow may
+                // move that exact colliding row's order within the same day so both rows remain
+                // distinct. It may not move an unrelated row across days or cause a wider cascade.
+                before.dayOfWeek == after.dayOfWeek && before.orderIndex != after.orderIndex &&
+                    Triple(before.weekNumber, before.dayOfWeek, before.orderIndex) in anchorDestinations
+            }
+        }
+        if (!nonAnchorPlacementChangesAreExactSlotConflicts) {
+            val details = changed.mapNotNull { before ->
+                val after = candidateById.getValue(before.localId)
+                val key = CanonicalIncumbentOwnerWeek(
+                    CanonicalOwnerIdentity(before.exerciseStableKey, before.selectionRole), before.weekNumber
+                )
+                if (key in validKeys) {
+                    val incumbent = index.placement(key.owner, key.week)
+                    if (incumbent == null || after.dayOfWeek != incumbent.day || after.orderIndex != incumbent.order) {
+                        "ANCHOR_NOT_AT_EXACT_INCUMBENT:${before.exerciseStableKey}#${before.selectionRole}:w${before.weekNumber}"
+                    } else null
+                } else if (before.dayOfWeek != after.dayOfWeek || before.orderIndex == after.orderIndex ||
+                    Triple(before.weekNumber, before.dayOfWeek, before.orderIndex) !in anchorDestinations
+                ) {
+                    "NON_ANCHOR_NOT_EXACT_SLOT_CONFLICT:${before.exerciseStableKey}#${before.selectionRole}:w${before.weekNumber}:${before.dayOfWeek}/${before.orderIndex}->${after.dayOfWeek}/${after.orderIndex}"
+                } else null
+            }.distinct().sorted()
+            return unchanged(CanonicalIncumbentActivationStatus.NON_ANCHOR_PLACEMENT_WOULD_CHANGE, details.joinToString(";"))
+        }
+        val duplicateFinalOrders = feasibility.shadowRows.groupBy { Triple(it.weekNumber, it.dayOfWeek, it.orderIndex) }
+            .filterValues { it.size > 1 }
+        if (duplicateFinalOrders.isNotEmpty()) {
+            return unchanged(CanonicalIncumbentActivationStatus.NON_ANCHOR_PLACEMENT_WOULD_CHANGE,
+                "DUPLICATE_FINAL_ORDER:${duplicateFinalOrders.keys.sortedWith(compareBy({ it.first }, { it.second }, { it.third }))}")
+        }
+
+        val preservations = changed.filter { before ->
+            CanonicalIncumbentOwnerWeek(
+                CanonicalOwnerIdentity(before.exerciseStableKey, before.selectionRole), before.weekNumber
+            ) in validKeys
+        }.map { before ->
+            val owner = CanonicalOwnerIdentity(before.exerciseStableKey, before.selectionRole)
+            val key = CanonicalIncumbentOwnerWeek(owner, before.weekNumber)
+            val incumbent = requireNotNull(index.placement(owner, before.weekNumber))
+            val evidence = requireNotNull(feasibility.byOwnerWeek[key])
+            CanonicalIncumbentPlacementPreservation(
+                owner = owner,
+                week = before.weekNumber,
+                producedDay = before.dayOfWeek,
+                producedOrder = before.orderIndex,
+                preservedDay = incumbent.day,
+                preservedOrder = incumbent.order,
+                sourceLineageId = incumbent.source.lineageId,
+                sourceSnapshotToken = snapshotToken,
+                feasibility = evidence
+            )
+        }.sortedWith(compareBy({ it.owner.stableKey }, { it.owner.selectionRole }, { it.week }))
+        val stabilized = if (preservations.isEmpty()) program else {
+            val finalFingerprint = com.training.trackplanner.data.personalized.personalizedProgramFingerprint(
+                program.request, feasibility.shadowRows
+            )
+            program.copy(
+                items = feasibility.shadowRows,
+                personalizedDecision = program.personalizedDecision?.copy(
+                    canonicalPlacementFinalFingerprint = finalFingerprint
+                )
+            )
+        }
+        return CanonicalIncumbentPlacementActivation(
+            status = CanonicalIncumbentActivationStatus.ACTIVATED,
+            program = stabilized,
+            preservations = preservations
+        )
+    }
+}
 
 /** Evaluates incumbent placements with the same OFI/tissue projections used by placement review. */
 internal object CanonicalIncumbentPlacementFeasibilityEvaluator {
+    private data class ProjectionCallCounts(var dayOfi: Int = 0, var tissue: Int = 0)
+
     fun evaluate(
         index: CanonicalIncumbentPlacementIndex,
         program: GeneratedProgramSkeleton,
@@ -367,6 +531,7 @@ internal object CanonicalIncumbentPlacementFeasibilityEvaluator {
         val keys = index.placements.map { CanonicalIncumbentOwnerWeek(it.owner, it.week) }.distinct()
             .sortedWith(compareBy({ it.owner.stableKey }, { it.owner.selectionRole }, { it.week }))
         var projectionCalls = 0
+        val projectionCallCounts = ProjectionCallCounts()
         val byOwner = linkedMapOf<CanonicalIncumbentOwnerWeek, CanonicalIncumbentFeasibilityEvidence>()
         keys.forEach { key ->
             val anchor = index.placement(key.owner, key.week) ?: return@forEach
@@ -377,7 +542,7 @@ internal object CanonicalIncumbentPlacementFeasibilityEvaluator {
                 else -> {
                     val candidate = applyPlacements(program.items, mapOf(key to (anchor.day to anchor.order)))
                     projectionCalls += 1
-                    evaluateCandidate(program, program.items, candidate, snapshot, state, setOf(key.week))
+                    evaluateCandidate(program, program.items, candidate, snapshot, state, setOf(key.week), projectionCallCounts)
                 }
             }
             if (result != null) byOwner[key] = result
@@ -390,14 +555,17 @@ internal object CanonicalIncumbentPlacementFeasibilityEvaluator {
         val combinedRows = applyPlacements(program.items, allAnchors)
         projectionCalls += if (allAnchors.isEmpty()) 0 else 1
         val combined = if (allAnchors.isEmpty()) evidence() else
-            evaluateCandidate(program, program.items, combinedRows, snapshot, state, hardValid.mapTo(sortedSetOf()) { it.week })
+            evaluateCandidate(program, program.items, combinedRows, snapshot, state,
+                hardValid.mapTo(sortedSetOf()) { it.week }, projectionCallCounts)
         val conflict = allAnchors.isNotEmpty() && combined.status != CanonicalIncumbentFeasibility.HARD_VALID
         return CanonicalIncumbentLiveFeasibility(
             byOwnerWeek = byOwner,
             combinedHardValidAnchors = combined,
             combinedAnchorSetConflict = conflict,
             shadowRows = if (conflict) program.items else combinedRows,
-            projectionCallCount = projectionCalls
+            projectionCallCount = projectionCalls,
+            dayOfiProjectionCallCount = projectionCallCounts.dayOfi,
+            tissueProjectionCallCount = projectionCallCounts.tissue
         )
     }
 
@@ -407,7 +575,8 @@ internal object CanonicalIncumbentPlacementFeasibilityEvaluator {
         candidateRows: List<ProgramSkeletonItem>,
         snapshot: PlanningHistorySnapshot,
         state: AthletePlanningState,
-        weeks: Set<Int>
+        weeks: Set<Int>,
+        projectionCallCounts: ProjectionCallCounts
     ): CanonicalIncumbentFeasibilityEvidence {
         val hard = linkedSetOf<CanonicalIncumbentHardConstraint>()
         val unresolved = linkedSetOf<CanonicalIncumbentUnresolvedConstraint>()
@@ -456,6 +625,7 @@ internal object CanonicalIncumbentPlacementFeasibilityEvaluator {
                 val candidateLoads = candidateWeek.groupBy { it.dayOfWeek }.toSortedMap().mapValues { (_, rows) ->
                     dayProjection.evaluate(rows.sortedBy(ProgramSkeletonItem::orderIndex))
                 }
+                projectionCallCounts.dayOfi += baselineLoads.size + candidateLoads.size
                 candidateLoads.forEach { (day, after) ->
                     val before = baselineLoads[day]
                     if (!after.feasible && before?.feasible != false) {
@@ -469,6 +639,7 @@ internal object CanonicalIncumbentPlacementFeasibilityEvaluator {
             if (tissueProjection == null) {
                 unresolved += CanonicalIncumbentUnresolvedConstraint.TISSUE_PROJECTION_UNAVAILABLE
             } else {
+                projectionCallCounts.tissue += 2
                 val before = tissueProjection.evaluate(baselineWeek, 8.5)
                 val after = tissueProjection.evaluate(candidateWeek, 8.5)
                 if (after.diagnostic != "CANONICAL_RCV_PROJECTION") {

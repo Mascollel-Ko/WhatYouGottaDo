@@ -3,6 +3,8 @@ package com.training.trackplanner.data.personalized
 import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.TrainableQuality
 import com.training.trackplanner.data.CanonicalIncumbentPlacementShadow
+import com.training.trackplanner.data.CanonicalIncumbentActivationStatus
+import com.training.trackplanner.data.CanonicalIncumbentPlacementPreservation
 
 /** Internal production policy; switch this single line to CONTROL_ONLY for emergency rollback. */
 object StimulusProductionRoutingPolicy {
@@ -65,7 +67,10 @@ internal data class StimulusProductionGenerationResult(
     val buildCounts: StimulusProductionBuildCounts,
     val upstreamFailureReason: String? = null,
     val upstreamFailureDetails: List<String> = emptyList(),
-    val incumbentPlacementShadow: CanonicalIncumbentPlacementShadow? = null
+    val incumbentPlacementShadow: CanonicalIncumbentPlacementShadow? = null,
+    val incumbentPlacementActivationStatus: CanonicalIncumbentActivationStatus? = null,
+    val incumbentPlacementPreservations: List<CanonicalIncumbentPlacementPreservation> = emptyList(),
+    val incumbentPlacementActivationDetails: List<String> = emptyList()
 ) {
     val diagnostics: StimulusProductionDiagnostics
         get() = StimulusProductionDiagnostics.observe(comparison, routeDecision, upstreamFailureReason).let {

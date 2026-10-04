@@ -8,7 +8,7 @@ import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.ProgramGoal
 import java.time.LocalDate
 
-internal const val PERSONALIZED_PLANNER_PROTOCOL = "RECORD_BASED_PLANNER_0.14.6_KOTLIN_1"
+internal const val PERSONALIZED_PLANNER_PROTOCOL = "RECORD_BASED_PLANNER_0.14.7_KOTLIN_1"
 internal const val PERSONALIZED_AUTHORITY_VERSION = "canonical-v1+reference-planner-v0.13.0-reviewed"
 
 enum class ObservedTrainingBehavior { HYPERTROPHY_DOMINANT, STRENGTH_DOMINANT, MIXED_STRENGTH_HYPERTROPHY, GENERAL_MIXED, UNKNOWN }
@@ -347,6 +347,8 @@ data class PersonalizedPlanningDecision(
     val originalGenerationFingerprint: String = "",
     val userEditedAfterGeneration: Boolean = false,
     val finalSavedFingerprint: String = "",
+    /** Final generated item fingerprint after C20's exact hard-valid incumbent placement pass. */
+    val canonicalPlacementFinalFingerprint: String? = null,
     val recoverySignalCodes: List<String> = emptyList(),
     val genericCourtLoad: Double = 0.0,
     val objectiveExposure: Map<String, Double> = emptyMap(),
