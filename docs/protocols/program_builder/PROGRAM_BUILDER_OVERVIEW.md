@@ -7,7 +7,7 @@
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.14.5 |
-| Last audited commit | 4d589cb3a371c2e8359332e320d375d7e0ad9a92 |
+| Last audited commit | afb5a6a3c382d327d12ee98b3d3cc1a2220dd33b |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1277,3 +1277,4 @@ Post-audit boundary notes
 - The RCV runtime now consumes an exact exercise/load-unit `bodyWeightCoefficient` for bodyweight-repetition records when no more specific exercise dose or bodyweight-load profile exists. It requires valid bodyweight and a zero-added-load record; added-load/assistance semantics remain unresolved without exact authority. Weighted movements still require a valid recorded load.
 - The coefficient is a tissue-analysis input only. It does not select an exercise, change B4/B5/B6, alter placement ranking, authorize displacement, relax B7/B8, or add Power/Combined authority. Unknown identities and incomplete required inputs remain unresolved.
 - Protocol/runtime/app are `3.53.0` / `RECORD_BASED_PLANNER_0.14.5_KOTLIN_1` / `0.5.1.5`. C18 reruns the 32-row C17 counterfactual without changing production placement behavior; the C18 audit records feasibility limits and the incumbent shadow source boundary.
+- C18 implementation/test commit `afb5a6a3c382d327d12ee98b3d3cc1a2220dd33b` is the `lastAuditedCommit`. Hosted run [37169513778](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/37169513778) passed 2,258 tests (0 failures/errors, 4 skips), protocol/contracts/whitespace checks, coverage, APK assembly, signer validation, and upload. Standard coverage SHA-256 is `55CD3C4E9E58B700ED4577A6C0CE0A99FD847F552A334B45FD0815E6FC8825AB`.

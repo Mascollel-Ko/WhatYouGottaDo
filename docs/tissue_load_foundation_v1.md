@@ -211,7 +211,7 @@ approve or reinterpret the historical C2/C3/C4 research ledgers above.
 
 ### Approved COD/deceleration context modifier
 
-- Runtime calculation contract `RCV-EXPOSURE-1.1` is:
+- Runtime calculation contract `RCV-EXPOSURE-1.2` is:
   `E0 = (M / 10) x D_normalized x I_selected x C_resolved`.
 - `C_resolved` is limited to additional exposure from repeated
   change-of-direction and rapid-deceleration contexts. It is resolved once by
