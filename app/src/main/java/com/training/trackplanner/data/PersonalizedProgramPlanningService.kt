@@ -467,6 +467,9 @@ internal class PersonalizedProgramPlanningService(
                 progress = progress,
                 materialDemandOverride = selectionPlan.materialDemand,
                 exactPrescriptionAuthorizationProvider = authorizationPlan.provider(),
+                canonicalB5PowerOwnerIdentities = selectionPlan.selectedCandidates
+                    .filter { "QUALITY:POWER" in it.coveredTargetIds }
+                    .mapTo(linkedSetOf()) { com.training.trackplanner.data.personalized.StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) },
                 canonicalFailureEmitter = { reason, detailCode ->
                     throw StimulusCanonicalEvaluationFailure(reason, detailCode)
                 }
@@ -960,6 +963,9 @@ internal class PersonalizedProgramPlanningService(
                 progress = progress,
                 materialDemandOverride = selectionPlan.materialDemand,
                 exactPrescriptionAuthorizationProvider = authorizationPlan.provider(),
+                canonicalB5PowerOwnerIdentities = selectionPlan.selectedCandidates
+                    .filter { "QUALITY:POWER" in it.coveredTargetIds }
+                    .mapTo(linkedSetOf()) { com.training.trackplanner.data.personalized.StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) },
                 canonicalFailureEmitter = { reason, detailCode ->
                     throw StimulusCanonicalEvaluationFailure(reason, detailCode)
                 }
