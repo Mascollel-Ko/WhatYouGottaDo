@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.54.0 |
+| Protocol version | 3.55.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.14.6 |
-| Last audited commit | fa9c88d294bed3275cd7c58e392034e641ac3912 |
+| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.14.7 |
+| Last audited commit | 6466b7d0cc237caf487cecb250e1a5ad91844566 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1286,3 +1286,12 @@ Post-audit boundary notes
 - The snapshot is diagnostic-only in C19. It is passed after canonical input preparation and evaluated after EXPERIMENTAL materialization but before late CONTROL; hard feasibility without proof remains unresolved. It does not change real placement output, B1-B6, routes, B7/B8, or build count.
 - C19 validation details and census are recorded in `docs/c19_canonical_program_lineage_and_incumbent_placement_audit.md`.
 - C19 implementation/test commit `fa9c88d294bed3275cd7c58e392034e641ac3912` is the `lastAuditedCommit`. Hosted run [37180702110](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/37180702110) passed 2,268 tests (0 failures, 0 errors, 4 skips), protocol/contracts/whitespace checks, coverage upload, APK assembly, signer validation, and upload. C18 standard coverage SHA-256 remains `55CD3C4E9E58B700ED4577A6C0CE0A99FD847F552A334B45FD0815E6FC8825AB`.
+
+### Phase C20 — live hard-valid incumbent placement preservation (protocol 3.55.0)
+
+- C20 carries C19's immutable current-program incumbent source token through save and rechecks its deterministic fingerprint inside the destructive-save transaction. Item and item-set changes that can bypass `updatedAt` are included, so a stale preview is rejected rather than overwriting newer state.
+- The real canonical feasibility path evaluates exact current-generation `(stableKey, selectionRole, week)` rows at their incumbent day/order using the new prescription and current canonical work. Only a combined, fully resolved `HARD_VALID` anchor set is restored after normal placement; hard-invalid and unresolved anchors remain unanchored. Conflicting order slots can only shift the exact same-day non-anchor row that occupies an anchor slot. Wider or non-placement changes fail closed.
+- C20 activates after EXPERIMENTAL placement and before CONTROL construction, then recomputes EXP target/materialization/realization audits. It reads no CONTROL/comparison/B7/B8 authority and does not change B4–B6, prescription, frequency, B7/B8 gates, Power, Combined, or build count. No Room migration was needed.
+- The 32-row census found 12 hard-valid, 2 hard-invalid, and 18 unresolved incumbents, with no combined hard-valid-set conflicts. Activation restores all 12 hard-valid rows; it preserves 0/2 hard-invalid and 0/18 unresolved rows. Shared placement deltas decline from 32 to 20, day distance from 62 to 42, and order-only changes from 2 to 0.
+- Routes remain CONTROL 20 / Strength V1 1 / Strength Calibration 1 / Hypertrophy 0 / Combined 0. B7 remains 11 provenance-unclosed / 9 target-unmet / 1 regressed. Standard production coverage SHA-256 is unchanged at `55CD3C4E9E58B700ED4577A6C0CE0A99FD847F552A334B45FD0815E6FC8825AB`.
+- C20 implementation/test commit `6466b7d0cc237caf487cecb250e1a5ad91844566` is the `lastAuditedCommit`. The detailed live evidence is in [`docs/c20_live_incumbent_stability_cutover_audit.md`](../../c20_live_incumbent_stability_cutover_audit.md), with the deterministic row-level census in [`docs/c20-live-incumbent-stability-census.json`](../../c20-live-incumbent-stability-census.json).
