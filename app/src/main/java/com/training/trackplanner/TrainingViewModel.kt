@@ -73,6 +73,7 @@ import com.training.trackplanner.data.TrainingProgramItem
 import com.training.trackplanner.data.TrainingProgramItemSet
 import com.training.trackplanner.data.TrainingProgram
 import com.training.trackplanner.data.TrainingRepository
+import com.training.trackplanner.data.StaleIncumbentSourceException
 import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.WorkoutSet
@@ -735,7 +736,18 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         onSaved: (Long) -> Unit
     ) {
         viewModelScope.launch {
-            onSaved(repository.saveGeneratedProgram(existingProgramId, skeleton))
+            runCatching { repository.saveGeneratedProgram(existingProgramId, skeleton) }
+                .onSuccess(onSaved)
+                .onFailure { error ->
+                    android.util.Log.w("ProgramSave", "Generated program was not saved", error)
+                    _programBuildProgress.value = ProgramBuildProgressState.Failed(
+                        if (error is StaleIncumbentSourceException) {
+                            "기존 프로그램이 생성 중 변경되었습니다. 최신 상태로 다시 생성해 주세요."
+                        } else {
+                            "프로그램을 저장하지 못했습니다. 다시 시도해 주세요."
+                        }
+                    )
+                }
         }
     }
 

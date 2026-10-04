@@ -19,6 +19,8 @@ data class RecordRangeProgramSummary(
     val defaultName: String
 )
 
+internal class StaleIncumbentSourceException(message: String) : IllegalStateException(message)
+
 internal class ProgramPlanService(
     private val db: TrainingDatabase,
     private val exerciseDao: ExerciseDao,
@@ -54,7 +56,11 @@ internal class ProgramPlanService(
         return db.withTransaction {
             val program = programDao.findProgram(programId)
             val rows = program?.let { programDao.itemsForProgram(it.id) }.orEmpty()
-            CanonicalIncumbentPlacementIndex.fromPersistedProgram(program, programId, rows)
+            val sets = program?.let { programDao.programItemSetsForProgram(it.id) }.orEmpty()
+            val token = program?.let { CanonicalIncumbentSourceSnapshotFingerprint.create(it, rows, sets) }
+            CanonicalIncumbentPlacementIndex.fromPersistedProgram(
+                program, programId, rows, sourceSnapshotToken = token
+            )
         }
     }
 
@@ -122,6 +128,17 @@ internal class ProgramPlanService(
         val request = skeleton.request
         val existing = existingProgramId?.let { programDao.findProgram(it) }
         val canonicalDecision = skeleton.personalizedDecision
+        if (existingProgramId != null && canonicalDecision != null) {
+            if (existing == null) {
+                throw StaleIncumbentSourceException("STALE_INCUMBENT_SOURCE: program was deleted during generation")
+            }
+            val expected = skeleton.incumbentSourceSnapshotToken
+                ?: throw StaleIncumbentSourceException("STALE_INCUMBENT_SOURCE: missing generation snapshot")
+            val rows = programDao.itemsForProgram(existing.id)
+            val sets = programDao.programItemSetsForProgram(existing.id)
+            val actual = CanonicalIncumbentSourceSnapshotFingerprint.create(existing, rows, sets)
+            if (actual != expected) throw StaleIncumbentSourceException("STALE_INCUMBENT_SOURCE: program changed during generation")
+        }
         val exactCanonicalGeneration = canonicalDecision?.takeIf {
             it.protocolVersion == PERSONALIZED_PLANNER_PROTOCOL
         }

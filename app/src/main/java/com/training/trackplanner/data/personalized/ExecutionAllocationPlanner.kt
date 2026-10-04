@@ -404,6 +404,9 @@ class ExecutionCapacityPlanner {
 }
 
 /** Prescriptions precede placement. No item-count or generic-court-count capacity rule. */
+internal fun placementSessionFits(currentSeconds: Int, incomingSeconds: Int, sessionMinutes: Int): Boolean =
+    currentSeconds + incomingSeconds <= sessionMinutes * 60
+
 internal class TimedWeeklyPlacementPlanner {
     fun distribute(
         items: List<TimedPlannedExercise>,
@@ -488,7 +491,9 @@ internal class TimedWeeklyPlacementPlanner {
             val sameKeyDays = buckets.filterValues { list -> list.any { it.item.stableKey == rowContext.stableKey } }.keys
             val target = buckets.entries.filter { entry ->
                 metrics?.let { it.candidateDayChecks++ }
-                entry.key !in sameKeyDays && entry.value.sumOf { it.estimatedSeconds } + rowContext.estimatedSeconds <= sessionMinutes * 60
+                entry.key !in sameKeyDays && placementSessionFits(
+                    entry.value.sumOf { it.estimatedSeconds }, rowContext.estimatedSeconds, sessionMinutes
+                )
             }.minWithOrNull(compareBy<Map.Entry<Int, MutableList<TimedPlannedExercise>>> {
                 if (rowContext.lowerStress) it.value.filter { atom(it).lowerStress }.sumOf { atom(it).estimatedSeconds } else 0
             }.thenBy {

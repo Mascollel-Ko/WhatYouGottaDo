@@ -7,6 +7,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -83,7 +84,11 @@ class CanonicalProgramIdentityPersistenceTest {
             canonicalBuilderProtocolVersion = CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION,
             canonicalPlannerRuntimeVersion = com.training.trackplanner.data.personalized.PERSONALIZED_PLANNER_PROTOCOL
         ))
-        val regeneratedId = service.saveGeneratedProgram(firstId, skeleton)
+        val originalSnapshot = service.canonicalIncumbentPlacementIndex(firstId).sourceSnapshotToken
+        assertNotNull(originalSnapshot)
+        val regeneratedId = service.saveGeneratedProgram(
+            firstId, skeleton.copy(incumbentSourceSnapshotToken = originalSnapshot)
+        )
         val regenerated = checkNotNull(db.programDao().findProgram(regeneratedId))
         assertEquals(firstId, regeneratedId)
         assertEquals(firstLineage, regenerated.stableKey)
@@ -98,6 +103,26 @@ class CanonicalProgramIdentityPersistenceTest {
         assertEquals(firstLineage, index.source?.lineageId?.value)
         assertEquals(2, index.placements.single().day)
         assertEquals(1, index.placements.single().order)
+
+        // Item edits can bypass TrainingProgram.updatedAt, so the source fingerprint must catch them.
+        val staleSnapshot = service.canonicalIncumbentPlacementIndex(regeneratedId).sourceSnapshotToken
+        db.programDao().updateProgramItemOrder(persistedItem.id, 2)
+        val staleFailure = runCatching {
+            service.saveGeneratedProgram(
+                regeneratedId, skeleton.copy(incumbentSourceSnapshotToken = staleSnapshot)
+            )
+        }.exceptionOrNull()
+        assertTrue(staleFailure is StaleIncumbentSourceException)
+
+        val freshSnapshot = service.canonicalIncumbentPlacementIndex(regeneratedId).sourceSnapshotToken
+        service.saveGeneratedProgram(regeneratedId, skeleton.copy(incumbentSourceSnapshotToken = freshSnapshot))
+
+        val deletedSnapshot = service.canonicalIncumbentPlacementIndex(regeneratedId).sourceSnapshotToken
+        service.deleteProgram(regeneratedId)
+        val deletedFailure = runCatching {
+            service.saveGeneratedProgram(regeneratedId, skeleton.copy(incumbentSourceSnapshotToken = deletedSnapshot))
+        }.exceptionOrNull()
+        assertTrue(deletedFailure is StaleIncumbentSourceException)
 
         val independentId = service.saveGeneratedProgram(null, skeleton)
         val independent = checkNotNull(db.programDao().findProgram(independentId))

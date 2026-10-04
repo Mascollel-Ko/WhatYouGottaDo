@@ -11,7 +11,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -61,14 +60,16 @@ class StimulusProductionCoverageAuditTest {
         val canonicalPlanningByCase = linkedMapOf<String, CanonicalStimulusPlanningResult>()
         val productionContextByCase = linkedMapOf<String, PreparedCanonicalGenerationContext>()
         val records = specs.map { spec ->
-            val result = runCase(spec, observeCanonicalPlanning = { planning ->
+            val result = runCase(spec, seedIncumbentPlacementFixture = spec.label in
+                setOf("persona0_mixed", "persona0_reviewed", "persona3_reviewed", "persona4_mixed"), observeCanonicalPlanning = { planning ->
                 canonicalPlanningByCase[spec.label] = planning
-            }, evaluate = { service, preflight, answers, metadata ->
+            }, evaluateWithIncumbent = { service, preflight, answers, metadata, incumbentIndex ->
                 withContext(Dispatchers.IO) {
                     service.generatePreparedProduction(
                         preflight = preflight,
                         answers = answers,
                         metadata = metadata,
+                        incumbentPlacementIndex = incumbentIndex,
                         productionGenerationObserver = { observation ->
                             if (observation.phase == ProductionGenerationPhase.CANONICAL_PREPARED) {
                                 productionContextByCase[spec.label] = observation.context
@@ -90,7 +91,8 @@ class StimulusProductionCoverageAuditTest {
                 assertEquals(spec.label, 2, result.buildCounts.totalBuildInvocations)
                 assertEquals("${spec.label} CONTROL and EXPERIMENTAL must use the same complete request",
                     comparison.control.request, comparison.experimental.request)
-                assertSame(if (result.routeDecision.productionRoutingActive) comparison.experimental else comparison.control, result.program)
+                val selected = if (result.routeDecision.productionRoutingActive) comparison.experimental else comparison.control
+                assertEquals(selected.copy(incumbentSourceSnapshotToken = result.program.incumbentSourceSnapshotToken), result.program)
                 assertEquals(StimulusProductionMaterialScopeResolver().resolve(comparison), result.diagnostics.scopeResolution?.scope)
             }
             assertEquals(!result.routeDecision.productionRoutingActive, result.diagnostics.primaryFallbackStage != null)
@@ -185,6 +187,28 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(9, c19Routes.getInt("b7TargetUnmet"))
         assertEquals(1, c19Routes.getInt("b7TargetRegressed"))
         java.io.File("build/reports/c19-program-lineage-incumbent-placement-census.json").writeText(c19Census)
+        val c20Census = C20LiveIncumbentStabilityCensus.render(
+            c18Census = c18Census,
+            records = records,
+            c19MergeSha = "46a166499dc2136c73d22e66670d6232d59c21b4",
+            c20StartSha = "46a166499dc2136c73d22e66670d6232d59c21b4"
+        )
+        assertEquals(c20Census, C20LiveIncumbentStabilityCensus.render(
+            c18Census = c18Census,
+            records = records.reversed(),
+            c19MergeSha = "46a166499dc2136c73d22e66670d6232d59c21b4",
+            c20StartSha = "46a166499dc2136c73d22e66670d6232d59c21b4"
+        ))
+        val c20Summary = org.json.JSONObject(c20Census).getJSONObject("summary")
+        assertEquals(32, c20Summary.getInt("placementRows"))
+        assertEquals(12, c20Summary.getInt("HARD_VALID"))
+        assertEquals(2, c20Summary.getInt("HARD_INVALID"))
+        assertEquals(18, c20Summary.getInt("UNRESOLVED"))
+        assertEquals(12, c20Summary.getInt("preservedHardValidRows"))
+        assertEquals(0, c20Summary.getInt("hardInvalidRowsPreserved"))
+        assertEquals(0, c20Summary.getInt("unresolvedRowsForcedPreserved"))
+        assertEquals(0, c20Summary.getInt("combinedAnchorSetConflicts"))
+        java.io.File("build/reports/c20-live-incumbent-stability-census.json").writeText(c20Census)
         val c18Json = org.json.JSONObject(c18Census)
         val c18Summary = c18Json.getJSONObject("summary")
         assertEquals(32, c18Summary.getInt("placementDeltas"))
@@ -721,7 +745,10 @@ class StimulusProductionCoverageAuditTest {
 
     internal suspend fun runCase(
         spec: CoverageSpec,
+        seedIncumbentPlacementFixture: Boolean = false,
         observeCanonicalPlanning: (suspend (CanonicalStimulusPlanningResult) -> Unit)? = null,
+        evaluateWithIncumbent: (suspend (PersonalizedProgramPlanningService, PersonalizedPlanningPreflight,
+            PersonalizedPlanningAnswers, Map<String, RuntimeExerciseMetadata>, CanonicalIncumbentPlacementIndex) -> StimulusProductionGenerationResult)? = null,
         evaluate: (suspend (PersonalizedProgramPlanningService, PersonalizedPlanningPreflight, PersonalizedPlanningAnswers,
             Map<String, RuntimeExerciseMetadata>) -> StimulusProductionGenerationResult)? = null
     ): StimulusProductionGenerationResult? {
@@ -794,12 +821,70 @@ class StimulusProductionCoverageAuditTest {
                 QUESTION_INTERRUPTION_CAUSE, QUESTION_INTERRUPTION_FREQUENCY -> "UNSURE"
                 else -> if (question.id.startsWith("INTERRUPTION_CAUSE_")) "UNKNOWN" else error("Unexpected personalized question: ${question.id}")
             } })
+            val existingProgramId = if (seedIncumbentPlacementFixture) {
+                seedIncumbentPlacementProgram(db, spec.label)
+            } else null
+            val incumbentIndex = if (existingProgramId == null) {
+                CanonicalIncumbentPlacementIndex.unavailable(CanonicalIncumbentIndexStatus.NO_EXISTING_PROGRAM)
+            } else {
+                val programPlanService = field(repository, "programPlanService") as ProgramPlanService
+                programPlanService.canonicalIncumbentPlacementIndex(existingProgramId)
+            }
             observeCanonicalPlanning?.invoke(service.buildCanonicalStimulusPlanningForPrepared(preflight, answers, metadata))
-            val production = evaluate?.invoke(service, preflight, answers, metadata)
-                ?: repository.generatePreparedPersonalizedProgramEvaluation(preflight, answers)
+            val production = evaluateWithIncumbent?.invoke(service, preflight, answers, metadata, incumbentIndex)
+                ?: evaluate?.invoke(service, preflight, answers, metadata)
+                ?: repository.generatePreparedPersonalizedProgramEvaluation(preflight, answers, existingProgramId = existingProgramId)
             return production
         } finally { db.close() }
     }
 
+    private suspend fun seedIncumbentPlacementProgram(db: TrainingDatabase, caseId: String): Long {
+        val c18 = org.json.JSONObject(repositoryFile("docs/c18-tissue-incumbent-placement-census.json").readText())
+        val rows = c18.getJSONArray("placementRows").let { array ->
+            (0 until array.length()).map(array::getJSONObject).filter { it.getString("case") == caseId }
+        }
+        require(rows.isNotEmpty()) { "C20 exact incumbent fixture missing for $caseId" }
+        val programId = db.programDao().insertProgram(TrainingProgram(
+            stableKey = "c20_fixture_$caseId",
+            name = "C20 incumbent fixture",
+            durationDays = 14,
+            weeklyTrainingDays = 3,
+            sessionMinutes = 60,
+            canonicalBuilderProtocolVersion = CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION,
+            canonicalPlannerRuntimeVersion = com.training.trackplanner.data.personalized.PERSONALIZED_PLANNER_PROTOCOL
+        ))
+        rows.sortedWith(compareBy({ it.getInt("week") }, { it.getJSONObject("owner").getString("stableKey") },
+            { it.getJSONObject("owner").getString("selectionRole") })).forEachIndexed { index, row ->
+            val owner = row.getJSONObject("owner")
+            val exercise = requireNotNull(db.exerciseDao().findByStableKey(owner.getString("stableKey")))
+            val from = row.getJSONObject("from")
+            db.programDao().insertProgramItem(TrainingProgramItem(
+                programId = programId,
+                weekNumber = row.getInt("week"),
+                dayOfWeek = from.getInt("day"),
+                orderIndex = from.getInt("order"),
+                exerciseStableKey = owner.getString("stableKey"),
+                exerciseName = exercise.name,
+                category = exercise.category,
+                restSeconds = 60,
+                prescription = "C20 fixture",
+                setCount = 2,
+                reps = 8,
+                selectionRole = owner.getString("selectionRole")
+            ))
+        }
+        return programId
+    }
+
     private fun field(target: Any, name: String): Any = requireNotNull(target.javaClass.getDeclaredField(name).apply { isAccessible = true }.get(target))
+
+    private fun repositoryFile(relativePath: String): java.io.File {
+        var directory: java.io.File? = java.io.File(System.getProperty("user.dir")).absoluteFile
+        repeat(8) {
+            val candidate = directory?.resolve(relativePath)
+            if (candidate?.isFile == true) return candidate
+            directory = directory?.parentFile
+        }
+        error("Repository fixture not found from ${System.getProperty("user.dir")}: $relativePath")
+    }
 }

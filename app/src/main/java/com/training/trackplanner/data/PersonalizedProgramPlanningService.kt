@@ -1099,7 +1099,7 @@ internal class PersonalizedProgramPlanningService(
             control: GeneratedProgramSkeleton,
             failure: com.training.trackplanner.data.personalized.StimulusProductionEvaluationFailure
         ) = com.training.trackplanner.data.personalized.StimulusProductionGenerationResult(
-            program = control,
+            program = control.copy(incumbentSourceSnapshotToken = incumbentPlacementIndex.sourceSnapshotToken),
             routeDecision = com.training.trackplanner.data.personalized.StimulusProductionRoutingDecision(
                 mode = routingMode,
                 selectedSource = com.training.trackplanner.data.personalized.StimulusProductionProgramSource.CONTROL,
@@ -1161,11 +1161,24 @@ internal class PersonalizedProgramPlanningService(
             return fallback(late.program, failure)
         }
 
-        // C19 shadow consumes the immutable persisted-program input after EXP is complete and
-        // before CONTROL is built. Missing hard-feasibility proof remains unresolved.
+        // C20 evaluates exact incumbent positions against the current EXP rows and the same
+        // generation-scoped OFI/tissue projections used by placement review. This remains a
+        // shadow: no result is fed back into the completed production placement.
+        val liveIncumbentFeasibility = CanonicalIncumbentPlacementFeasibilityEvaluator.evaluate(
+            index = incumbentPlacementIndex,
+            program = experimental.program,
+            snapshot = context.snapshot,
+            state = context.state
+        )
         incumbentPlacementShadow = CanonicalIncumbentPlacementShadowEvaluator.evaluate(
             index = incumbentPlacementIndex,
-            currentRows = experimental.program.items
+            currentRows = experimental.program.items,
+            feasibilityByOwnerWeek = liveIncumbentFeasibility.byOwnerWeek.mapValues { it.value.status },
+            evidenceByOwnerWeek = liveIncumbentFeasibility.byOwnerWeek,
+            combinedFeasibility = liveIncumbentFeasibility.combinedHardValidAnchors,
+            combinedAnchorSetConflict = liveIncumbentFeasibility.combinedAnchorSetConflict,
+            shadowRows = liveIncumbentFeasibility.shadowRows,
+            projectionCallCount = liveIncumbentFeasibility.projectionCallCount
         )
 
         val control = materializeLateControl(
@@ -1213,8 +1226,13 @@ internal class PersonalizedProgramPlanningService(
         productionProgress.reportSelection()
         productionProgress.reportValidationComplete()
         productionProgress.reportComplete()
+        val routedProgram = if (routed.program.incumbentSourceSnapshotToken == incumbentPlacementIndex.sourceSnapshotToken) {
+            routed.program
+        } else {
+            routed.program.copy(incumbentSourceSnapshotToken = incumbentPlacementIndex.sourceSnapshotToken)
+        }
         return com.training.trackplanner.data.personalized.StimulusProductionGenerationResult(
-            program = routed.program,
+            program = routedProgram,
             routeDecision = routed.decision,
             comparison = evaluation.comparison,
             buildCounts = buildCounts.snapshot(),
