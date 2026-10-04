@@ -24,7 +24,7 @@ data class TissuePriorRegistry(
 
 object TissuePriorRegistryParser {
     const val SCHEMA_VERSION = "1.0.0"
-    const val PROTOCOL_VERSION = "RCV-ALL-0.6|RCV-EXPOSURE-1.1"
+    const val PROTOCOL_VERSION = "RCV-ALL-0.6|RCV-EXPOSURE-1.2"
     const val EXPECTED_LOAD_UNIT_COUNT = 77
     const val EXPECTED_PROFILE_COUNT = 13
     private val stableKeyPattern = Regex("lu_[0-9a-f]{10}")

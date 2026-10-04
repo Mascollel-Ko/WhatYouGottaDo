@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "generatorVersion": "CT-PRIOR-GENERATOR-1.0.0",
-  "protocolVersion": "RCV-ALL-0.6|RCV-EXPOSURE-1.1",
+  "protocolVersion": "RCV-ALL-0.6|RCV-EXPOSURE-1.2",
   "referenceBodyWeightKg": 75.0,
   "bodyWeightGridKg": [50.0, 65.0, 75.0, 90.0, 105.0],
   "normalMultiplierClamp": [0.85, 1.15],

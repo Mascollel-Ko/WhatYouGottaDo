@@ -113,7 +113,7 @@ Representative scenario weights, shared prior profile, gap retention, weight ram
 - `app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_educational_info_v1.csv`
 - `app/src/main/assets/metadata/tissue_load_v1/connective_tissue_prior_baselines_v1.json`
 
-Prior registry는 77 units, 13 profiles, 24 hours, 936 quantile values와 file SHA-256 `891f9105aa67bd863fe65c100c810371ef52c1354ce586a878bc670020fd594a`를 유지합니다.
+Prior registry는 RCV `1.2` 기준 77 units, 13 profiles, 24 hours, 936 quantile values와 file SHA-256 `adfcf91b63df9b196f50a9789630444131f192928b3d3ebe3bf756aa732cdabc`를 사용합니다.
 
 ## 19. 관련 문서
 

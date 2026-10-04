@@ -52,8 +52,8 @@
     "POLICY_BOUNDED",
     "NEUTRAL_NOT_APPLICABLE"
   ],
-  "deterministicInputChecksum": "f182f2c81ff1efb7a9d4abcf3f51cd29c4ad33f0be5630bcbd463f59fd1c6bfa",
-  "deterministicOutputChecksum": "d6cafa9f4d4d061619cf368eb673e3d0df42bc3edc412f4bd875eb72b7dc928f",
+  "deterministicInputChecksum": "f95bc0140cd50c72116cb717e1f21caf7c5aed901bddd704ef4545b2e61b49c6",
+  "deterministicOutputChecksum": "1e581bf90184cee77c196530f0de8df1af8b836f121b355f7f0700dbe8266fc6",
   "evaluationTimeBuckets": [
     0,
     1,
@@ -398,7 +398,7 @@
     }
   ],
   "loadUnitCount": 77,
-  "mappingDataFingerprint": "56cbae35b4a557bb5bc97df734c3fd2972b1c07174f839109d7ddcdb77901a65",
+  "mappingDataFingerprint": "613646e2385100d7cda1fd69aae9f98703076057b73d5f17c8b5a86bbaf0a1f4",
   "priorProfileCount": 13,
   "profiles": [
     {
@@ -3212,8 +3212,8 @@
       "scenarioWeightSensitivityMaximumRelativeChange": 0.033248082
     }
   ],
-  "protocolVersion": "RCV-ALL-0.6|RCV-EXPOSURE-1.1",
-  "recoveryEngineFingerprint": "601febba937c75b00eb6a31aa1194e6f624f1c7ab52eae91eea0bf190d7562a2",
+  "protocolVersion": "RCV-ALL-0.6|RCV-EXPOSURE-1.2",
+  "recoveryEngineFingerprint": "347d3e89755094e7ecad4e981fe33b5ab1fd19962f45335a02d55591d25d867d",
   "scenarioCatalogVersion": "CT-PRIOR-SCENARIOS-1.0.0",
   "scenarioTemplateCount": 8,
   "schemaVersion": "1.0.0",

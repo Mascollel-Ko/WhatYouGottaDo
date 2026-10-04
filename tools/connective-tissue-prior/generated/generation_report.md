@@ -1,7 +1,7 @@
 # Connective-tissue prior-baseline generation report
 
 - Status: `DESIGNED / GENERATED / VALIDATED / NOT_YET_RUNTIME_ACTIVE`
-- Production protocol: `RCV-ALL-0.6|RCV-EXPOSURE-1.1`
+- Production protocol: `RCV-ALL-0.6|RCV-EXPOSURE-1.2`
 - Generator: `CT-PRIOR-GENERATOR-1.0.0`
 - Scenario catalogue: `CT-PRIOR-SCENARIOS-1.0.0`
 - Load units: `77` (100% explicit stable-key coverage)
@@ -12,11 +12,11 @@
 - Generated quantiles: `936`
 - Simulation validations: `13/13` profiles
 - Slower recovery retains more at 24 hours: `true`
-- Recovery-engine fingerprint: `601febba937c75b00eb6a31aa1194e6f624f1c7ab52eae91eea0bf190d7562a2`
-- Mapping-data fingerprint: `56cbae35b4a557bb5bc97df734c3fd2972b1c07174f839109d7ddcdb77901a65`
-- Deterministic input checksum: `f182f2c81ff1efb7a9d4abcf3f51cd29c4ad33f0be5630bcbd463f59fd1c6bfa`
-- Deterministic output checksum: `d6cafa9f4d4d061619cf368eb673e3d0df42bc3edc412f4bd875eb72b7dc928f`
-- Canonical registry SHA-256: `891f9105aa67bd863fe65c100c810371ef52c1354ce586a878bc670020fd594a`
+- Recovery-engine fingerprint: `347d3e89755094e7ecad4e981fe33b5ab1fd19962f45335a02d55591d25d867d`
+- Mapping-data fingerprint: `613646e2385100d7cda1fd69aae9f98703076057b73d5f17c8b5a86bbaf0a1f4`
+- Deterministic input checksum: `f95bc0140cd50c72116cb717e1f21caf7c5aed901bddd704ef4545b2e61b49c6`
+- Deterministic output checksum: `1e581bf90184cee77c196530f0de8df1af8b836f121b355f7f0700dbe8266fc6`
+- Canonical registry SHA-256: `adfcf91b63df9b196f50a9789630444131f192928b3d3ebe3bf756aa732cdabc`
 
 Scenario weights are product policy, not measured population prevalence.
 Boundaries use the positive residual distribution; a fully recovered zero state remains below Q30.

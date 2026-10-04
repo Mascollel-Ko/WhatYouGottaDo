@@ -27,6 +27,13 @@ data class TissueRcvAuthorityRow(
     val sourceRefs: List<String>
 )
 
+/** Exact RCV authority for converting a recorded bodyweight-only repetition set to effective load. */
+data class TissueRcvBodyweightDoseAuthority(
+    val exerciseStableKey: String,
+    val loadUnitStableKey: String,
+    val bodyWeightCoefficient: Double
+)
+
 data class TissueRcvExerciseProtocol(
     val exerciseStableKey: String,
     val exerciseName: String,

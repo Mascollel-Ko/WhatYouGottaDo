@@ -1,7 +1,7 @@
 package com.training.trackplanner.analysis.tissue
 
 const val TISSUE_COD_CONTEXT_POLICY_VERSION = "RCV-COD-CONTEXT-1.0"
-const val TISSUE_RCV_CALCULATION_VERSION = "RCV-EXPOSURE-1.1"
+const val TISSUE_RCV_CALCULATION_VERSION = "RCV-EXPOSURE-1.2"
 
 data class TissueCodContextExerciseTier(
     val exerciseStableKey: String,

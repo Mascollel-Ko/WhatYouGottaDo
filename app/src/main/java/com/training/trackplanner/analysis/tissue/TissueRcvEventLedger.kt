@@ -6,12 +6,18 @@ object TissueRcvDoseResolver {
     fun resolve(
         record: TissueWorkoutRecord,
         basis: String,
-        exactProfile: TissueExerciseDoseProfile? = null
+        exactProfile: TissueExerciseDoseProfile? = null,
+        bodyweightAuthority: TissueRcvBodyweightDoseAuthority? = null
     ): TissueDoseResolution = when (basis) {
         "WEIGHTED_REPETITION" ->
             TissueDoseResolver.resolve(record, TissueDoseBasis.EXTERNAL_LOAD_REPETITIONS, exactProfile)
         "BODYWEIGHT_REPETITION" ->
-            TissueDoseResolver.resolve(record, TissueDoseBasis.EFFECTIVE_BODYWEIGHT_REPETITIONS, exactProfile)
+            TissueDoseResolver.resolve(
+                record,
+                TissueDoseBasis.EFFECTIVE_BODYWEIGHT_REPETITIONS,
+                exactProfile,
+                bodyweightAuthority
+            )
         "LOAD_TIME" ->
             TissueDoseResolver.resolve(record, TissueDoseBasis.LOAD_TIME, exactProfile)
         "DURATION_HOLD", "HOLD_TIME" ->
@@ -125,13 +131,30 @@ class TissueRcvEventLedgerBuilder(
             compareBy<TissueWorkoutRecord>({ it.date }, { it.entry.id }, { it.exercise.stableKey })
         )
         val authorityByStableKey = catalog.authorityRows.groupBy(TissueRcvAuthorityRow::exerciseStableKey)
-        val rawDoseCache = mutableMapOf<Pair<Long, String>, TissueDoseResolution>()
-        fun dose(record: TissueWorkoutRecord, basis: String): TissueDoseResolution =
-            rawDoseCache.getOrPut(record.entry.id to basis) {
+        data class DoseCacheKey(
+            val entryId: Long,
+            val basis: String,
+            val loadUnitStableKey: String?,
+            val bodyWeightCoefficient: Double?
+        )
+        val rawDoseCache = mutableMapOf<DoseCacheKey, TissueDoseResolution>()
+        fun dose(
+            record: TissueWorkoutRecord,
+            basis: String,
+            bodyweightAuthority: TissueRcvBodyweightDoseAuthority? = null
+        ): TissueDoseResolution = rawDoseCache.getOrPut(
+            DoseCacheKey(
+                record.entry.id,
+                basis,
+                bodyweightAuthority?.loadUnitStableKey,
+                bodyweightAuthority?.bodyWeightCoefficient
+            )
+        ) {
                 TissueRcvDoseResolver.resolve(
                     record,
                     basis,
-                    catalog.exerciseDoseProfiles[record.exercise.stableKey]
+                    catalog.exerciseDoseProfiles[record.exercise.stableKey],
+                    bodyweightAuthority
                 )
             }
 
@@ -154,7 +177,34 @@ class TissueRcvEventLedgerBuilder(
                     diagnostics += "${record.entry.id}:${pair.first}: conflicting dose basis."
                     return@forEach
                 }
-                val resolvedDose = dose(record, basis)
+                val bodyweightAuthority = if (
+                    basis == "BODYWEIGHT_REPETITION" &&
+                    record.exercise.stableKey !in catalog.exerciseDoseProfiles
+                ) {
+                    val coefficients = group.map(TissueRcvAuthorityRow::bodyWeightCoefficient).distinct()
+                    if (coefficients.size > 1) {
+                        diagnostics += "${record.entry.id}:${pair.first}: conflicting exact bodyweight coefficients."
+                        return@forEach
+                    }
+                    if (coefficients.isEmpty()) {
+                        null
+                    } else {
+                        val coefficient = coefficients.single()
+                        when {
+                            coefficient == null -> null
+                            !coefficient.isFinite() || coefficient <= 0.0 -> {
+                                diagnostics += "${record.entry.id}:${pair.first}: invalid exact bodyweight coefficient."
+                                return@forEach
+                            }
+                            else -> TissueRcvBodyweightDoseAuthority(
+                                exerciseStableKey = record.exercise.stableKey,
+                                loadUnitStableKey = pair.first,
+                                bodyWeightCoefficient = coefficient
+                            )
+                        }
+                    }
+                } else null
+                val resolvedDose = dose(record, basis, bodyweightAuthority)
                 val rawDose = resolvedDose.resolvedDose
                 if (rawDose == null) {
                     diagnostics += "${record.entry.id}:${pair.first}: ${resolvedDose.diagnostics.joinToString()}"
@@ -166,7 +216,9 @@ class TissueRcvEventLedgerBuilder(
                     diagnostics += "${record.entry.id}:${pair.first}: ${effort.diagnostics.joinToString()}"
                     return@forEach
                 }
-                val reference = robustReference(ordered, record, basis, ::dose)
+                val reference = robustReference(ordered, record, basis, bodyweightAuthority) { historyRecord, historyBasis, authority ->
+                    dose(historyRecord, historyBasis, authority)
+                }
                 val normalizedDose = normalize(rawDose, reference)
                 val loadUnit = requireNotNull(catalog.loadUnits[pair.first])
                 val routing = requireNotNull(catalog.routing[loadUnit.recoveryClass])
@@ -227,12 +279,13 @@ class TissueRcvEventLedgerBuilder(
         records: List<TissueWorkoutRecord>,
         current: TissueWorkoutRecord,
         basis: String,
-        resolver: (TissueWorkoutRecord, String) -> TissueDoseResolution
+        bodyweightAuthority: TissueRcvBodyweightDoseAuthority?,
+        resolver: (TissueWorkoutRecord, String, TissueRcvBodyweightDoseAuthority?) -> TissueDoseResolution
     ): Double {
         val values = records.asSequence()
             .filter { it.exercise.stableKey == current.exercise.stableKey }
             .filter { !it.date.isAfter(current.date) && !it.date.isBefore(current.date.minusDays(55)) }
-            .mapNotNull { resolver(it, basis).resolvedDose }
+            .mapNotNull { resolver(it, basis, bodyweightAuthority).resolvedDose }
             .filter { it > 0.0 && it.isFinite() }
             .sorted()
             .toList()
