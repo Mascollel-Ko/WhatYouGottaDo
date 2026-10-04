@@ -1,6 +1,5 @@
 package com.training.trackplanner.data
 
-import com.training.trackplanner.analysis.tissue.TissueRcvCatalog
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -58,6 +57,24 @@ internal data class C18IncumbentIndexResult(
     val anchors: List<C18IncumbentAnchor>,
     val ambiguousOwnerWeeks: Set<Pair<C18CanonicalOwnerIdentity, Int>>,
     val omittedRowsWithoutExactRole: Int
+)
+
+internal data class C18TissueAuthoritySnapshot(
+    val stableKey: String,
+    val canonicalName: String?,
+    val canonicalMetadataRowExists: Boolean,
+    val planningMetadataExists: Boolean,
+    val planningEligibility: String?,
+    val tissueIndexExists: Boolean,
+    val tissueProtocolExists: Boolean,
+    val protocolMappingStatus: String?,
+    val tissueAuthorityRowCount: Int,
+    val tissueDoseBasis: String?,
+    val canonicalBodyWeightCoefficients: List<Double>,
+    val exactDoseProfileExists: Boolean,
+    val runtimeJoinExists: Boolean,
+    val exactLoadUnits: List<String>,
+    val relationSources: List<String>
 )
 
 internal enum class C18IncumbentRecommendation {
@@ -119,6 +136,15 @@ internal object C18CanonicalIncumbentPlacementShadow {
 
 /** Builds a deterministic diagnostic artifact from the real C17 counterfactual and exact assets. */
 internal object C18TissueIncumbentPlacementCensus {
+    private data class IncumbentFixtureRow(
+        val caseId: String,
+        val stableKey: String,
+        val selectionRole: String,
+        val week: Int,
+        val day: Int,
+        val order: Int
+    )
+
     private val tissueKeys = listOf(
         "ex_28347c1f",
         "barbell_romanian_deadlift",
@@ -128,36 +154,68 @@ internal object C18TissueIncumbentPlacementCensus {
     )
     private val negativeControls = listOf("barbell_back_squat", "cable_rear_delt_fly", "ex_5ca7133f")
 
+    /** Capture only small exact-key facts before the corpus test builds its large audit graph. */
+    fun captureTissueAuthoritySnapshot(canonical: CanonicalExerciseMetadataRepository): List<C18TissueAuthoritySnapshot> {
+        val runtime = canonical.runtimeMetadataCatalog()
+        val tissue = canonical.tissueRepository().catalog
+        return (tissueKeys + negativeControls).distinct().sorted().map { key ->
+            val identity = canonical.identity(key)
+            val planning = runtime.resolveByStableKey(key)
+            val protocol = tissue.protocols[key]
+            val authority = tissue.authorityRows.filter { it.exerciseStableKey == key }
+            val relationJoin = protocol != null && authority.isNotEmpty() && authority.all { row ->
+                row.loadUnitStableKey in tissue.loadUnits &&
+                    tissue.loadUnits[row.loadUnitStableKey]?.jointComplexStableKey in tissue.jointComplexes &&
+                    tissue.loadUnits[row.loadUnitStableKey]?.recoveryClass in tissue.routing
+            }
+            C18TissueAuthoritySnapshot(
+                stableKey = key,
+                canonicalName = identity?.exerciseName,
+                canonicalMetadataRowExists = identity != null,
+                planningMetadataExists = planning != null,
+                planningEligibility = planning?.planningEligibility,
+                tissueIndexExists = key in tissue.exerciseStableKeys,
+                tissueProtocolExists = protocol != null,
+                protocolMappingStatus = protocol?.mappingStatus,
+                tissueAuthorityRowCount = authority.size,
+                tissueDoseBasis = authority.map { it.doseBasis }.distinct().singleOrNull(),
+                canonicalBodyWeightCoefficients = authority.mapNotNull { it.bodyWeightCoefficient }.distinct().sorted(),
+                exactDoseProfileExists = key in tissue.exerciseDoseProfiles,
+                runtimeJoinExists = relationJoin,
+                exactLoadUnits = authority.map { it.loadUnitStableKey }.distinct().sorted(),
+                relationSources = authority.flatMap { it.sourceRefs }.distinct().sorted()
+            )
+        }
+    }
+
     fun render(
         c17Census: String,
-        canonical: CanonicalExerciseMetadataRepository,
+        tissueAuthoritySnapshot: List<C18TissueAuthoritySnapshot>,
         c17MergeSha: String,
         c18StartSha: String
     ): String {
         val input = JSONObject(c17Census)
-        val runtime = canonical.runtimeMetadataCatalog()
-        val tissue = canonical.tissueRepository().catalog
+        val tissueByKey = tissueAuthoritySnapshot.associateBy(C18TissueAuthoritySnapshot::stableKey)
         val casesInput = input.getJSONArray("cases").toJsonObjects()
         val rootDeltas = (if (input.has("deltas")) input.getJSONArray("deltas").toJsonObjects() else
             casesInput.flatMap { case -> case.getJSONArray("deltas").toJsonObjects().map { delta ->
                 normalizeDelta(delta, case.getString("case"))
             } })
-        val tissueAudit = JSONArray(tissueKeys.map { key -> tissueKeyAudit(key, canonical, runtime, tissue, rootDeltas) })
-        // These are explicit test fixtures only, constructed from the audit's pre-delta placement.
-        // Each case is a separate program; the production generator never reads comparator rows.
-        val anchorsByCaseOwnerWeek = rootDeltas.groupBy { it.getString("case") }.entries
-            .sortedBy { it.key }.flatMap { (caseId, caseDeltas) ->
+        val tissueAudit = JSONArray(tissueKeys.map { key ->
+            tissueKeyAudit(key, requireNotNull(tissueByKey[key]), rootDeltas)
+        })
+        // These are fixed test fixtures representing historical persisted canonical plans.
+        // They are deliberately independent of the CONTROL/EXPERIMENTAL comparison rows.
+        val anchorsByCaseOwnerWeek = explicitIncumbentFixture().groupBy(IncumbentFixtureRow::caseId).entries
+            .sortedBy { it.key }.flatMap { (caseId, fixtureRows) ->
                 val shadowSource = C18IncumbentProgramSource(
                     C18IncumbentSourceType.CURRENT_PERSISTED_PROGRAM,
-                    caseDeltas.first().getString("case").hashCode().toLong().and(0x7fffffff).coerceAtLeast(1L),
+                    1800L + listOf("persona0_mixed", "persona0_reviewed", "persona3_reviewed", "persona4_mixed").indexOf(caseId),
                     "c18-explicit-test-incumbent:$caseId",
                     "3.52.0", "RECORD_BASED_PLANNER_0.14.4_KOTLIN_1"
                 )
-                val shadowRows = caseDeltas.map { delta ->
-                    val owner = delta.getJSONObject("owner")
-                    val from = delta.getJSONObject("from")
-                    C18PersistedPlacementRow(owner.getString("stableKey"), owner.getString("selectionRole"),
-                        delta.getInt("week"), from.getInt("day"), from.getInt("order"))
+                val shadowRows = fixtureRows.map { row ->
+                    C18PersistedPlacementRow(row.stableKey, row.selectionRole, row.week, row.day, row.order)
                 }
                 val shadowOwners = shadowRows.mapTo(linkedSetOf()) {
                     C18CanonicalOwnerIdentity(it.stableKey, requireNotNull(it.selectionRole))
@@ -171,6 +229,15 @@ internal object C18TissueIncumbentPlacementCensus {
                     "${caseId}|${anchor.owner.stableKey}|${anchor.owner.selectionRole}|${anchor.week}" to anchor
                 }
             }.toMap()
+        rootDeltas.forEach { delta ->
+            val owner = delta.getJSONObject("owner")
+            val from = delta.getJSONObject("from")
+            val key = "${delta.getString("case")}|${owner.getString("stableKey")}|${owner.getString("selectionRole")}|${delta.getInt("week")}"
+            val fixture = anchorsByCaseOwnerWeek[key]
+            require(fixture != null && fixture.day == from.getInt("day") && fixture.order == from.getInt("order")) {
+                "C18 explicit incumbent fixture does not match the audited prior placement for $key"
+            }
+        }
         val rows = JSONArray(rootDeltas.sortedWith(compareBy<JSONObject>(
             { it.getString("case") }, { it.getInt("week") }, { it.getJSONObject("owner").getString("stableKey") },
             { it.getJSONObject("owner").getString("selectionRole") }
@@ -190,16 +257,14 @@ internal object C18TissueIncumbentPlacementCensus {
             .put("c18StartSha", c18StartSha)
             .put("tissueKeys", tissueAudit)
             .put("negativeControlKeys", JSONArray(negativeControls.map { key ->
-                val identity = canonical.identity(key)
-                val protocol = tissue.protocols[key]
-                val authorities = tissue.authorityRows.filter { it.exerciseStableKey == key }
+                val snapshot = requireNotNull(tissueByKey[key])
                 JSONObject().put("stableKey", key)
-                    .put("canonicalName", identity?.exerciseName)
-                    .put("metadataRow", identity != null)
-                    .put("runtimeRow", runtime.resolveByStableKey(key) != null)
-                    .put("tissueProtocol", protocol?.mappingStatus)
-                    .put("authorityRows", authorities.size)
-                    .put("exactLoadUnitsResolved", authorities.all { it.loadUnitStableKey in tissue.loadUnits })
+                    .put("canonicalName", snapshot.canonicalName)
+                    .put("metadataRow", snapshot.canonicalMetadataRowExists)
+                    .put("runtimeRow", snapshot.planningMetadataExists)
+                    .put("tissueProtocol", snapshot.protocolMappingStatus)
+                    .put("authorityRows", snapshot.tissueAuthorityRowCount)
+                    .put("exactLoadUnitsResolved", snapshot.runtimeJoinExists)
             }))
             .put("incumbentSourceAudit", incumbentSourceAudit())
             .put("placementRows", rows)
@@ -223,23 +288,40 @@ internal object C18TissueIncumbentPlacementCensus {
         return output.toString(2)
     }
 
+    /** Frozen test-only canonical incumbent inputs; no CONTROL object is read to construct them. */
+    private fun explicitIncumbentFixture(): List<IncumbentFixtureRow> {
+        data class PairPlacement(val caseId: String, val stableKey: String, val role: String, val day: Int, val order: Int)
+        val owners = listOf(
+            PairPlacement("persona0_mixed", "barbell_back_squat", "STYLE_HEAVY_LOWER_KNEE", 3, 1),
+            PairPlacement("persona0_mixed", "cable_rear_delt_fly", "STYLE_HEAVY_HORIZONTAL_PULL", 1, 2),
+            PairPlacement("persona0_mixed", "ex_28347c1f", "COVERAGE_CORE_DIRECT", 1, 3),
+            PairPlacement("persona0_reviewed", "barbell_romanian_deadlift", "COVERAGE_POSTERIOR_CHAIN", 2, 1),
+            PairPlacement("persona0_reviewed", "dumbbell_chest_supported_row", "COVERAGE_UPPER_PULL", 4, 1),
+            PairPlacement("persona3_reviewed", "barbell_back_squat", "STYLE_HEAVY_LOWER_KNEE", 6, 1),
+            PairPlacement("persona3_reviewed", "barbell_romanian_deadlift", "COVERAGE_POSTERIOR_CHAIN", 2, 1),
+            PairPlacement("persona3_reviewed", "dumbbell_chest_supported_row", "COVERAGE_UPPER_PULL", 4, 1),
+            PairPlacement("persona3_reviewed", "ex_28347c1f", "COVERAGE_CORE_DIRECT", 1, 1),
+            PairPlacement("persona4_mixed", "barbell_back_squat", "STYLE_HEAVY_LOWER_KNEE", 1, 2),
+            PairPlacement("persona4_mixed", "barbell_reverse_curl", "COVERAGE_ARMS_BICEPS", 3, 3),
+            PairPlacement("persona4_mixed", "barbell_romanian_deadlift", "COVERAGE_POSTERIOR_CHAIN", 3, 1),
+            PairPlacement("persona4_mixed", "cable_rear_delt_fly", "STYLE_HEAVY_HORIZONTAL_PULL", 3, 2),
+            PairPlacement("persona4_mixed", "dumbbell_lying_triceps_extension", "COVERAGE_ARMS_TRICEPS", 3, 4),
+            PairPlacement("persona4_mixed", "ex_28347c1f", "COVERAGE_CORE_DIRECT", 1, 3),
+            PairPlacement("persona4_mixed", "ex_5ca7133f", "COVERAGE_CALVES", 5, 1)
+        )
+        return owners.flatMap { owner -> (1..2).map { week ->
+            IncumbentFixtureRow(owner.caseId, owner.stableKey, owner.role, week, owner.day, owner.order)
+        } }.sortedWith(compareBy(
+            IncumbentFixtureRow::caseId, IncumbentFixtureRow::stableKey,
+            IncumbentFixtureRow::selectionRole, IncumbentFixtureRow::week
+        ))
+    }
+
     private fun tissueKeyAudit(
         key: String,
-        canonical: CanonicalExerciseMetadataRepository,
-        runtime: RuntimeExerciseMetadataCatalog,
-        tissue: TissueRcvCatalog,
+        snapshot: C18TissueAuthoritySnapshot,
         deltas: List<JSONObject>
     ): JSONObject {
-        val identity = canonical.identity(key)
-        val planning = runtime.resolveByStableKey(key)
-        val protocol = tissue.protocols[key]
-        val authority = tissue.authorityRows.filter { it.exerciseStableKey == key }
-        val indexPresent = key in tissue.exerciseStableKeys
-        val relationJoin = protocol != null && authority.isNotEmpty() && authority.all { row ->
-            row.loadUnitStableKey in tissue.loadUnits &&
-                tissue.loadUnits[row.loadUnitStableKey]?.jointComplexStableKey in tissue.jointComplexes &&
-                tissue.loadUnits[row.loadUnitStableKey]?.recoveryClass in tissue.routing
-        }
         val observed = deltas.filter { delta ->
             delta.getJSONObject("owner").getString("stableKey") == key &&
                 delta.getJSONObject("individualCounterfactual").getJSONArray("violations").toJsonStrings()
@@ -247,26 +329,26 @@ internal object C18TissueIncumbentPlacementCensus {
         }
         val first = observed.firstOrNull()
         val before = first?.getJSONObject("before")
-        val basis = authority.map { it.doseBasis }.distinct().singleOrNull()
+        val basis = snapshot.tissueDoseBasis
         val bodyweight = basis == "BODYWEIGHT_REPETITION"
         val rootCause = if (bodyweight) "CANONICAL_BODYWEIGHT_COEFFICIENT_EXISTS_BUT_RUNTIME_DOSE_JOIN_OMITS_IT; C17_CORPUS_ALSO_HAS_NO_BODYWEIGHT"
             else "WEIGHTED_DOSE_HAS_ONLY_PROVISIONAL_NO_INVENTED_LOAD_ZERO"
         return JSONObject()
             .put("stableKey", key)
-            .put("canonicalName", identity?.exerciseName)
-            .put("canonicalMetadataRowExists", identity != null)
-            .put("planningMetadataExists", planning != null)
-            .put("planningEligibility", planning?.planningEligibility)
-            .put("tissueIndexExists", indexPresent)
-            .put("tissueProtocolExists", protocol != null)
-            .put("protocolMappingStatus", protocol?.mappingStatus)
-            .put("tissueAuthorityRowCount", authority.size)
+            .put("canonicalName", snapshot.canonicalName)
+            .put("canonicalMetadataRowExists", snapshot.canonicalMetadataRowExists)
+            .put("planningMetadataExists", snapshot.planningMetadataExists)
+            .put("planningEligibility", snapshot.planningEligibility)
+            .put("tissueIndexExists", snapshot.tissueIndexExists)
+            .put("tissueProtocolExists", snapshot.tissueProtocolExists)
+            .put("protocolMappingStatus", snapshot.protocolMappingStatus)
+            .put("tissueAuthorityRowCount", snapshot.tissueAuthorityRowCount)
             .put("tissueDoseBasis", basis)
-            .put("canonicalBodyWeightCoefficients", JSONArray(authority.mapNotNull { it.bodyWeightCoefficient }.distinct().sorted()))
-            .put("exactDoseProfileExists", key in tissue.exerciseDoseProfiles)
-            .put("runtimeJoinExists", relationJoin)
-            .put("exactLoadUnits", JSONArray(authority.map { it.loadUnitStableKey }.distinct().sorted()))
-            .put("relationSources", JSONArray(authority.flatMap { it.sourceRefs }.distinct().sorted()))
+            .put("canonicalBodyWeightCoefficients", JSONArray(snapshot.canonicalBodyWeightCoefficients))
+            .put("exactDoseProfileExists", snapshot.exactDoseProfileExists)
+            .put("runtimeJoinExists", snapshot.runtimeJoinExists)
+            .put("exactLoadUnits", JSONArray(snapshot.exactLoadUnits))
+            .put("relationSources", JSONArray(snapshot.relationSources))
             .put("projectionBefore", if (observed.isNotEmpty()) "UNRESOLVED_NO_POSITIVE_EXPOSURE" else "NO_C17_UNRESOLVED_ROW")
             .put("rootCause", rootCause)
             .put("projectedWeightKg", before?.optDouble("weightKg") ?: JSONObject.NULL)
@@ -443,7 +525,7 @@ internal object C18TissueIncumbentPlacementCensus {
         .put("dateShiftAffectsProgramRelativeWeekDayOrder", false)
         .put("newPersistenceRequiredForShadow", false)
         .put("exactIncumbentAvailableFromCurrentProductionPath", false)
-        .put("reason", "Current storage has program-relative placement and stableKey, but no explicit role/source lineage; generation does not receive the existing program before building. C18 constructs separate typed synthetic incumbent inputs from the audited pre-delta placement rows for shadow testing only; production reads no CONTROL/comparison source.")
+        .put("reason", "Current storage has program-relative placement and stableKey, but no explicit role/source lineage; generation does not receive the existing program before building. C18 uses fixed typed historical-placement fixtures for shadow testing only; production reads no CONTROL/comparison source.")
 
     /** Adapts C17's in-test form and the checked-in human census form into one exact C18 ledger row. */
     private fun normalizeDelta(row: JSONObject, caseId: String): JSONObject {

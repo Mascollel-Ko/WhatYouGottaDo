@@ -34,6 +34,11 @@ class StimulusProductionCoverageAuditTest {
 
     @Test
     fun measureUnmodifiedServiceCoverage() = runBlocking {
+        // Snapshot the small exact-key metadata facts before generating the memory-heavy corpus.
+        // The census must not reparse all canonical tissue assets after the production runs.
+        val c18TissueAuthoritySnapshot = C18TissueIncumbentPlacementCensus.captureTissueAuthoritySnapshot(
+            CanonicalExerciseMetadataRepository(ApplicationProvider.getApplicationContext())
+        )
         val histories = listOf("none", "sparse", "recent", "reviewed", "mixed")
         val equipment = listOf(setOf("BARBELL", "DUMBBELL", "BENCH", "RACK"), setOf("MACHINE", "CABLE"), emptySet())
         val specs = (0..4).flatMap { persona -> histories.mapIndexed { historyIndex, history ->
@@ -150,14 +155,14 @@ class StimulusProductionCoverageAuditTest {
             .getJSONObject("sharedOwnerPlacementMetrics").getInt("movedOwnerRows"))
         val c18Census = C18TissueIncumbentPlacementCensus.render(
             c17Census,
-            CanonicalExerciseMetadataRepository(ApplicationProvider.getApplicationContext()),
+            c18TissueAuthoritySnapshot,
             c17MergeSha = "bb8dfca386b8fd296417185a9c105ac2b5e94b0f",
             c18StartSha = "bb8dfca386b8fd296417185a9c105ac2b5e94b0f"
         )
         assertTrue("C18 census retains gate evidence without duplicating full tissue-unit snapshots", c18Census.length < 2_000_000)
         assertEquals(c18Census, C18TissueIncumbentPlacementCensus.render(
             c17Census,
-            CanonicalExerciseMetadataRepository(ApplicationProvider.getApplicationContext()),
+            c18TissueAuthoritySnapshot,
             c17MergeSha = "bb8dfca386b8fd296417185a9c105ac2b5e94b0f",
             c18StartSha = "bb8dfca386b8fd296417185a9c105ac2b5e94b0f"
         ))
