@@ -154,6 +154,7 @@ class StimulusProductionCoverageAuditTest {
             c17MergeSha = "bb8dfca386b8fd296417185a9c105ac2b5e94b0f",
             c18StartSha = "bb8dfca386b8fd296417185a9c105ac2b5e94b0f"
         )
+        assertTrue("C18 census retains gate evidence without duplicating full tissue-unit snapshots", c18Census.length < 2_000_000)
         assertEquals(c18Census, C18TissueIncumbentPlacementCensus.render(
             c17Census,
             CanonicalExerciseMetadataRepository(ApplicationProvider.getApplicationContext()),

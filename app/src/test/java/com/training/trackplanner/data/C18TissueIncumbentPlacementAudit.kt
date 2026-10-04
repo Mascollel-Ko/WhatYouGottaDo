@@ -322,11 +322,57 @@ internal object C18TissueIncumbentPlacementCensus {
             .put("incumbentShadowRecommendation", recommendation.name)
             .put("individualCounterfactualValid", individual.getBoolean("valid"))
             .put("counterfactualViolations", JSONArray(violations))
-            .put("counterfactualDetails", individual.optJSONObject("details") ?: JSONObject.NULL)
+            .put("counterfactualDetails", individual.optJSONObject("details")?.let(::compactCounterfactualDetails) ?: JSONObject.NULL)
             .put("actualDisplacementEdges", directEdges)
             .put("actualDisplacementAuthorityProven", delta.getString("classification") == "NECESSARY_AUTHORIZED_DISPLACEMENT" && directEdges.length() > 0)
             .put("unsupportedPowerSensitivity", powerSensitivity ?: JSONObject.NULL)
             .put("c17Classification", delta.getString("classification"))
+    }
+
+    /** Retains exact gate inputs/results while excluding the repeated full tissue-unit snapshots. */
+    private fun compactCounterfactualDetails(details: JSONObject): JSONObject {
+        fun compactOfi(rows: JSONArray?): JSONArray = JSONArray(
+            rows?.toJsonObjects()?.map { row ->
+                JSONObject()
+                    .put("day", row.optInt("day"))
+                    .put("ofi", row.optInt("ofi"))
+                    .put("axisScores", row.optJSONArray("axisScores") ?: JSONArray())
+                    .put("cautionReasons", row.optJSONArray("cautionReasons") ?: JSONArray())
+                    .put("feasible", row.optBoolean("feasible"))
+            }.orEmpty()
+        )
+        fun compactTissue(value: JSONObject?): Any {
+            if (value == null) return JSONObject.NULL
+            val days = value.optJSONArray("days")?.toJsonObjects().orEmpty().map { day ->
+                JSONObject()
+                    .put("day", day.optInt("day"))
+                    .put("date", day.optString("date"))
+                    .put("feasible", day.optBoolean("feasible"))
+                    .put("blockedUnits", day.optJSONArray("blockedUnits") ?: JSONArray())
+                    .put("unresolvedKeys", day.optJSONArray("unresolvedKeys") ?: JSONArray())
+            }
+            return JSONObject()
+                .put("diagnostic", value.optString("diagnostic"))
+                .put("feasible", value.optBoolean("feasible"))
+                .put("days", JSONArray(days))
+        }
+        val weeks = details.optJSONArray("weekConstraintStates")?.toJsonObjects().orEmpty().map { week ->
+            JSONObject()
+                .put("week", week.optInt("week"))
+                .put("dayOfi", compactOfi(week.optJSONArray("dayOfi")))
+                .put("baselineDayOfi", compactOfi(week.optJSONArray("baselineDayOfi")))
+                .put("weekTissue", compactTissue(week.optJSONObject("weekTissue")))
+                .put("baselineWeekTissue", compactTissue(week.optJSONObject("baselineWeekTissue")))
+        }
+        return JSONObject()
+            .put("restoredOwnerRows", details.optJSONArray("restoredOwnerRows") ?: JSONArray())
+            .put("omittedOwnerRowsForSensitivity", details.optJSONArray("omittedOwnerRowsForSensitivity") ?: JSONArray())
+            .put("sessionSecondsByWeek", details.optJSONObject("sessionSecondsByWeek") ?: JSONObject())
+            .put("sessionCapacitySeconds", details.optInt("sessionCapacitySeconds"))
+            .put("weekConstraintStates", JSONArray(weeks))
+            .put("primarySpacingKeys", details.optJSONArray("primarySpacingKeys") ?: JSONArray())
+            .put("programProjectionErrors", details.optJSONArray("programProjectionErrors") ?: JSONArray())
+            .put("violations", details.optJSONArray("violations") ?: JSONArray())
     }
 
     private fun caseSummary(case: JSONObject, deltas: List<JSONObject>): JSONObject {
@@ -356,7 +402,7 @@ internal object C18TissueIncumbentPlacementCensus {
             .put("route", case.getString("route"))
             .put("placementDeltaCount", case.getInt("placementDeltaCount"))
             .put("fullSharedOwnerCounterfactualValid", case.getBoolean("fullSharedOwnerCounterfactualValid"))
-            .put("fullSharedOwnerCounterfactual", case.getJSONObject("fullSharedOwnerCounterfactual"))
+            .put("fullSharedOwnerCounterfactual", compactCounterfactualDetails(case.getJSONObject("fullSharedOwnerCounterfactual")))
             .put("sharedOwnerPlacementMetrics", case.getJSONObject("sharedOwnerPlacementMetrics"))
             .put("priorPlacementValidRows", caseDeltas.count { row ->
                 row.placementState() == C18PriorPlacementState.PRIOR_PLACEMENT_VALID.name
