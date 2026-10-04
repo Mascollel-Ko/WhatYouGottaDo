@@ -1,7 +1,6 @@
 package com.training.trackplanner.data
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -99,13 +98,15 @@ class C18CanonicalIncumbentPlacementShadowTest {
     }
 
     @Test
-    fun persistedRoomRowDoesNotClaimExplicitSelectionRoleOrGeneratorVersion() {
+    fun persistedRoomRowsAndProgramCarryExplicitCanonicalIdentity() {
         val persistedProperties = TrainingProgramItem::class.java.declaredFields.map { it.name }.toSet()
         assertTrue("exerciseStableKey" in persistedProperties)
         assertTrue("weekNumber" in persistedProperties && "dayOfWeek" in persistedProperties && "orderIndex" in persistedProperties)
-        assertFalse("selectionRole" in persistedProperties)
-        assertFalse("protocolVersion" in persistedProperties)
-        assertFalse("runtimeVersion" in persistedProperties)
+        assertTrue("selectionRole" in persistedProperties)
+        val programProperties = TrainingProgram::class.java.declaredFields.map { it.name }.toSet()
+        assertTrue("stableKey" in programProperties)
+        assertTrue("canonicalBuilderProtocolVersion" in programProperties)
+        assertTrue("canonicalPlannerRuntimeVersion" in programProperties)
     }
 
     @Test

@@ -42,6 +42,8 @@ class ProgramEffortMigrationTest {
                             }
                         }
                         db.execSQL("PRAGMA foreign_keys=OFF")
+                        db.execSQL("INSERT INTO training_programs (id,stableKey,name,durationDays,createdAt,goal,weeklyTrainingDays,sessionMinutes,availableEquipment,excludedExerciseText,badmintonTransferRatio,sportStrengthRatio,periodizationType,updatedAt) VALUES (7,'legacy-program','Legacy',14,1,'',3,45,'','','0.4','AUTO','',2)")
+                        db.execSQL("INSERT INTO training_program_items (id,programId,weekNumber,dayOfWeek,orderIndex,exerciseStableKey,exerciseName,category,restSeconds,prescription,setCount,reps,weightKg,seconds,trainingSlot,dayIntensity,weightSource) VALUES (8,7,1,2,1,'legacy-exercise','Legacy exercise','Strength',60,'2x8',2,8,20,0,NULL,NULL,NULL)")
                         db.execSQL("INSERT INTO training_program_item_sets (id,programItemId,setIndex,reps,weightKg,seconds) VALUES (1,1,1,8,60.0,0)")
                         db.execSQL("INSERT INTO program_prescription_sets (entryId,setIndex,originalReps,originalKg,originalSeconds,plannedReps,plannedKg,plannedSeconds,plannedSetIndex,originalExists) VALUES (2,1,8,60.0,0,8,60.0,0,1,1)")
                         db.execSQL("INSERT INTO workout_sets (id,entryId,setIndex,reps,weightKg,seconds,confirmed,manualWeight) VALUES (3,4,1,8,60.0,0,0,0)")
@@ -54,7 +56,7 @@ class ProgramEffortMigrationTest {
         val upgraded = Room.databaseBuilder(context, TrainingDatabase::class.java, name)
             .allowMainThreadQueries()
             .setJournalMode(androidx.room.RoomDatabase.JournalMode.TRUNCATE)
-            .addMigrations(TrainingDatabase.MIGRATION_34_35, TrainingDatabase.MIGRATION_35_36)
+            .addMigrations(TrainingDatabase.MIGRATION_34_35, TrainingDatabase.MIGRATION_35_36, TrainingDatabase.MIGRATION_36_37)
             .build()
         try {
             upgraded.openHelper.writableDatabase.query("SELECT targetRpeMin FROM training_program_item_sets WHERE id=1").use { cursor ->
@@ -74,6 +76,17 @@ class ProgramEffortMigrationTest {
             upgraded.openHelper.writableDatabase.query("SELECT loadState FROM training_program_item_sets WHERE id=1").use { cursor ->
                 check(cursor.moveToFirst())
                 assertEquals(ProgramLoadState.EXPLICIT_LOAD.name, cursor.getString(0))
+            }
+            upgraded.openHelper.writableDatabase.query("SELECT stableKey,canonicalBuilderProtocolVersion,canonicalPlannerRuntimeVersion FROM training_programs WHERE id=7").use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals("legacy-program", cursor.getString(0))
+                assertNull(cursor.getString(1))
+                assertNull(cursor.getString(2))
+            }
+            upgraded.openHelper.writableDatabase.query("SELECT exerciseStableKey,selectionRole FROM training_program_items WHERE id=8").use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals("legacy-exercise", cursor.getString(0))
+                assertNull(cursor.getString(1))
             }
             upgraded.openHelper.writableDatabase.query("SELECT originalLoadState,plannedLoadState FROM program_prescription_sets WHERE entryId=2").use { cursor ->
                 check(cursor.moveToFirst())

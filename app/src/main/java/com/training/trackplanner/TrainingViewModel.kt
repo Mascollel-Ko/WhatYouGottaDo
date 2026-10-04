@@ -675,12 +675,14 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     fun generatePersonalizedProgram(
         request: ProgramSkeletonRequest,
         answers: PersonalizedPlanningAnswers = PersonalizedPlanningAnswers(),
+        existingProgramId: Long? = null,
         onOutcome: (PersonalizedPlanningOutcome) -> Unit
     ) {
         val frozenAnswers = answers.copy(values = answers.values.toMap())
         personalizedGenerationRunner.launch({ progress ->
             repository.generatePersonalizedProgram(request, frozenAnswers,
-                PersonalizedGenerationConstraints(explicitSessionMinutes = request.sessionMinutes), progress = progress)
+                PersonalizedGenerationConstraints(explicitSessionMinutes = request.sessionMinutes), progress = progress,
+                existingProgramId = existingProgramId)
         }) { outcome ->
                 when (outcome) {
                     is PersonalizedPlanningOutcome.Questions -> _programBuildProgress.value = ProgramBuildProgressState.Idle
@@ -709,11 +711,12 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     fun generatePreparedPersonalizedProgram(
         preflight: PersonalizedPlanningPreflight,
         answers: PersonalizedPlanningAnswers,
+        existingProgramId: Long? = null,
         onResult: (GeneratedProgramSkeleton) -> Unit
     ) {
         val frozenAnswers = answers.copy(values = answers.values.toMap())
         personalizedGenerationRunner.launch({ progress ->
-            repository.generatePreparedPersonalizedProgram(preflight, frozenAnswers, progress)
+            repository.generatePreparedPersonalizedProgram(preflight, frozenAnswers, progress, existingProgramId)
         }) { generated ->
                 _programBuildProgress.value = ProgramBuildProgressState.Running(100, "프로그램 구성을 완료했습니다.")
                 _programBuildProgress.value = ProgramBuildProgressState.Completed(generated.optimizationSummary)

@@ -631,7 +631,8 @@ internal class BackupRestoreImportService(
                     seconds = item.seconds,
                     trainingSlot = item.trainingSlot,
                     dayIntensity = item.dayIntensity,
-                    weightSource = item.weightSource
+                    weightSource = item.weightSource,
+                    selectionRole = item.selectionRole
                 )
             )
         }

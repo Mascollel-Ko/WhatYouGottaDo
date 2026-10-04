@@ -199,7 +199,8 @@ data class ProgramBackupItem(
     val seconds: Int,
     val trainingSlot: String?,
     val dayIntensity: String?,
-    val weightSource: String?
+    val weightSource: String?,
+    val selectionRole: String? = null
 )
 
 data class ProgramBackupItemSet(
@@ -244,7 +245,7 @@ data class DailyTimeseriesRow(
 object RecordCsvBackupRestore {
     internal const val CURRENT_RESTORE_SCHEMA_VERSION = 13
     internal const val CURRENT_BACKUP_FORMAT_VERSION = 14
-    internal const val CURRENT_PROGRAM_BACKUP_SCHEMA_VERSION = 2
+    internal const val CURRENT_PROGRAM_BACKUP_SCHEMA_VERSION = 3
     internal const val EXPLICIT_METADATA_USER_OVERRIDES_CAPABILITY = "EXPLICIT_METADATA_USER_OVERRIDES_V1"
     private const val MANIFEST_PREFIX = "#WGTD_BACKUP_MANIFEST"
 
@@ -388,6 +389,8 @@ object RecordCsvBackupRestore {
         "program_badminton_transfer_ratio",
         "program_sport_strength_ratio",
         "program_periodization_type",
+        "program_canonical_builder_protocol_version",
+        "program_canonical_planner_runtime_version",
         "program_week_number",
         "program_day_of_week",
         "program_order_index",
@@ -398,6 +401,7 @@ object RecordCsvBackupRestore {
         "program_training_slot",
         "program_day_intensity",
         "program_weight_source",
+        "program_selection_role",
         "target_rpe_min",
         "program_set_load_state",
         "program_tombstone_deleted_at",
@@ -509,7 +513,9 @@ object RecordCsvBackupRestore {
                         "program_excluded_exercise_text" to program.excludedExerciseText,
                         "program_badminton_transfer_ratio" to program.badmintonTransferRatio.toString(),
                         "program_sport_strength_ratio" to program.sportStrengthRatio,
-                        "program_periodization_type" to program.periodizationType
+                        "program_periodization_type" to program.periodizationType,
+                        "program_canonical_builder_protocol_version" to program.canonicalBuilderProtocolVersion.orEmpty(),
+                        "program_canonical_planner_runtime_version" to program.canonicalPlannerRuntimeVersion.orEmpty()
                     )
                 )
             }
@@ -538,7 +544,8 @@ object RecordCsvBackupRestore {
                         "seconds" to item.seconds.toString(),
                         "program_training_slot" to item.trainingSlot.orEmpty(),
                         "program_day_intensity" to item.dayIntensity.orEmpty(),
-                        "program_weight_source" to item.weightSource.orEmpty()
+                        "program_weight_source" to item.weightSource.orEmpty(),
+                        "program_selection_role" to item.selectionRole.orEmpty()
                     )
                 )
             }
@@ -1165,6 +1172,8 @@ object RecordCsvBackupRestore {
                         ),
                         sportStrengthRatio = row.value(index, "program_sport_strength_ratio"),
                         periodizationType = row.value(index, "program_periodization_type"),
+                        canonicalBuilderProtocolVersion = row.value(index, "program_canonical_builder_protocol_version").ifBlank { null },
+                        canonicalPlannerRuntimeVersion = row.value(index, "program_canonical_planner_runtime_version").ifBlank { null },
                         updatedAt = row.requiredLong(index, "program_updated_at", rowType)
                     )
                     return@forEachIndexed
@@ -1186,7 +1195,8 @@ object RecordCsvBackupRestore {
                         seconds = row.requiredInt(index, "seconds", rowType),
                         trainingSlot = row.value(index, "program_training_slot").ifBlank { null },
                         dayIntensity = row.value(index, "program_day_intensity").ifBlank { null },
-                        weightSource = row.value(index, "program_weight_source").ifBlank { null }
+                        weightSource = row.value(index, "program_weight_source").ifBlank { null },
+                        selectionRole = row.value(index, "program_selection_role").ifBlank { null }
                     )
                     return@forEachIndexed
                 }

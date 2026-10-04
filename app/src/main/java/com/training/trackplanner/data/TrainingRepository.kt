@@ -1112,14 +1112,17 @@ class TrainingRepository internal constructor(
         answers: PersonalizedPlanningAnswers = PersonalizedPlanningAnswers(),
         constraints: PersonalizedGenerationConstraints = PersonalizedGenerationConstraints(explicitSessionMinutes = request.sessionMinutes),
         cutoff: LocalDate = LocalDate.now(),
-        progress: com.training.trackplanner.data.personalized.PersonalizedPlannerProgressReporter = com.training.trackplanner.data.personalized.PersonalizedPlannerProgressReporter.NONE
+        progress: com.training.trackplanner.data.personalized.PersonalizedPlannerProgressReporter = com.training.trackplanner.data.personalized.PersonalizedPlannerProgressReporter.NONE,
+        existingProgramId: Long? = null
     ): PersonalizedPlanningOutcome = withContext(Dispatchers.IO) {
+        val incumbentIndex = programPlanService.canonicalIncumbentPlacementIndex(existingProgramId)
         personalizedProgramPlanningService.generate(
             request = request,
             answers = answers,
             metadata = exerciseMetadataEditorService.resolvedRuntimeMetadataByExerciseStableKey(),
             constraints = constraints,
-            cutoff = cutoff, progress = progress
+            cutoff = cutoff, progress = progress,
+            incumbentPlacementIndex = incumbentIndex
         )
     }
 
@@ -1140,9 +1143,10 @@ class TrainingRepository internal constructor(
     suspend fun generatePreparedPersonalizedProgram(
         preflight: PersonalizedPlanningPreflight,
         answers: PersonalizedPlanningAnswers,
-        progress: com.training.trackplanner.data.personalized.PersonalizedPlannerProgressReporter = com.training.trackplanner.data.personalized.PersonalizedPlannerProgressReporter.NONE
+        progress: com.training.trackplanner.data.personalized.PersonalizedPlannerProgressReporter = com.training.trackplanner.data.personalized.PersonalizedPlannerProgressReporter.NONE,
+        existingProgramId: Long? = null
     ): GeneratedProgramSkeleton = withContext(Dispatchers.IO) {
-        generatePreparedPersonalizedProgramEvaluation(preflight, answers, progress).program
+        generatePreparedPersonalizedProgramEvaluation(preflight, answers, progress, existingProgramId = existingProgramId).program
     }
 
     /** Internal production seam exposing B9 diagnostics without changing public consumers. */
@@ -1151,14 +1155,17 @@ class TrainingRepository internal constructor(
         answers: PersonalizedPlanningAnswers,
         progress: com.training.trackplanner.data.personalized.PersonalizedPlannerProgressReporter = com.training.trackplanner.data.personalized.PersonalizedPlannerProgressReporter.NONE,
         routingMode: com.training.trackplanner.data.personalized.StimulusProductionRoutingMode =
-            com.training.trackplanner.data.personalized.StimulusProductionRoutingPolicy.defaultMode
+            com.training.trackplanner.data.personalized.StimulusProductionRoutingPolicy.defaultMode,
+        existingProgramId: Long? = null
     ): com.training.trackplanner.data.personalized.StimulusProductionGenerationResult = withContext(Dispatchers.IO) {
+        val incumbentIndex = programPlanService.canonicalIncumbentPlacementIndex(existingProgramId)
         personalizedProgramPlanningService.generatePreparedProduction(
             preflight = preflight,
             answers = answers,
             metadata = exerciseMetadataEditorService.resolvedRuntimeMetadataByExerciseStableKey(),
             progress = progress,
-            routingMode = routingMode
+            routingMode = routingMode,
+            incumbentPlacementIndex = incumbentIndex
         )
     }
 

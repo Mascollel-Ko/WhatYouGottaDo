@@ -1075,9 +1075,13 @@ internal class PersonalizedProgramPlanningService(
         controlGenerationOverride: (suspend () -> GeneratedProgramSkeleton)? = null,
         canonicalPlanningComputation: CanonicalStimulusPlanningComputation = ::buildCanonicalStimulusPlanningResult,
         productionGenerationObserver: ((ProductionGenerationObservation) -> Unit)? = null,
-        experimentalProgramBuildOverride: (suspend () -> GeneratedProgramSkeleton)? = null
+        experimentalProgramBuildOverride: (suspend () -> GeneratedProgramSkeleton)? = null,
+        incumbentPlacementIndex: CanonicalIncumbentPlacementIndex = CanonicalIncumbentPlacementIndex.unavailable(
+            CanonicalIncumbentIndexStatus.NO_EXISTING_PROGRAM
+        )
     ): com.training.trackplanner.data.personalized.StimulusProductionGenerationResult {
         val buildCounts = com.training.trackplanner.data.personalized.MutableStimulusProductionBuildCounts()
+        var incumbentPlacementShadow: CanonicalIncumbentPlacementShadow? = null
         val productionProgress = com.training.trackplanner.data.personalized.ProductionGenerationProgressMapper(progress)
         val context = prepareCanonicalGenerationContext(
             preflight = preflight,
@@ -1109,7 +1113,8 @@ internal class PersonalizedProgramPlanningService(
             upstreamFailureReason = failure.reasonCode,
             upstreamFailureDetails = (failure.cause as? StimulusCanonicalEvaluationFailure)?.let {
                 listOfNotNull(it.reason.name, it.detailCode)
-            }.orEmpty()
+            }.orEmpty(),
+            incumbentPlacementShadow = incumbentPlacementShadow
         ).also {
             productionProgress.reportSelection()
             productionProgress.reportValidationComplete()
@@ -1155,6 +1160,13 @@ internal class PersonalizedProgramPlanningService(
             if (controlFailure != null) return fallback(late.program, canonicalEvaluationFailure(controlFailure.failure))
             return fallback(late.program, failure)
         }
+
+        // C19 shadow consumes the immutable persisted-program input after EXP is complete and
+        // before CONTROL is built. Missing hard-feasibility proof remains unresolved.
+        incumbentPlacementShadow = CanonicalIncumbentPlacementShadowEvaluator.evaluate(
+            index = incumbentPlacementIndex,
+            currentRows = experimental.program.items
+        )
 
         val control = materializeLateControl(
             context = context,
@@ -1205,7 +1217,8 @@ internal class PersonalizedProgramPlanningService(
             program = routed.program,
             routeDecision = routed.decision,
             comparison = evaluation.comparison,
-            buildCounts = buildCounts.snapshot()
+            buildCounts = buildCounts.snapshot(),
+            incumbentPlacementShadow = incumbentPlacementShadow
         )
     }
 
@@ -1234,14 +1247,19 @@ internal class PersonalizedProgramPlanningService(
         metadata: Map<String, RuntimeExerciseMetadata>,
         cutoff: LocalDate = LocalDate.now(),
         constraints: PersonalizedGenerationConstraints = PersonalizedGenerationConstraints(explicitSessionMinutes = request.sessionMinutes),
-        progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE
+        progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE,
+        incumbentPlacementIndex: CanonicalIncumbentPlacementIndex = CanonicalIncumbentPlacementIndex.unavailable(
+            CanonicalIncumbentIndexStatus.NO_EXISTING_PROGRAM
+        )
     ): PersonalizedPlanningOutcome {
         val preflight = prepare(request, metadata, cutoff, constraints, progress)
         val unanswered = preflight.questions.filter { question ->
             question.options.none { it.value == answers.values[question.id] && it.value != "UNRESOLVED" }
         }
         return if (unanswered.isNotEmpty()) PersonalizedPlanningOutcome.Questions(unanswered)
-        else PersonalizedPlanningOutcome.Generated(generatePreparedProduction(preflight, answers, metadata, progress).program)
+        else PersonalizedPlanningOutcome.Generated(generatePreparedProduction(
+            preflight, answers, metadata, progress, incumbentPlacementIndex = incumbentPlacementIndex
+        ).program)
     }
 
     private suspend fun buildSnapshot(

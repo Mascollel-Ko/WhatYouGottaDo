@@ -254,7 +254,10 @@ data class TrainingProgram(
     val badmintonTransferRatio: Double = 0.4,
     val sportStrengthRatio: String = "AUTO",
     val periodizationType: String = "",
-    val updatedAt: Long = System.currentTimeMillis()
+    val updatedAt: Long = System.currentTimeMillis(),
+    /** Exact source contract for canonical incumbent extraction; null for legacy/manual programs. */
+    val canonicalBuilderProtocolVersion: String? = null,
+    val canonicalPlannerRuntimeVersion: String? = null
 )
 
 @Entity(
@@ -312,7 +315,9 @@ data class TrainingProgramItem(
     val seconds: Int = 0,
     val trainingSlot: String? = null,
     val dayIntensity: String? = null,
-    val weightSource: String? = null
+    val weightSource: String? = null,
+    /** Canonical B5 identity role. Legacy/manual rows remain null and cannot anchor incumbents. */
+    val selectionRole: String? = null
 )
 
 @Entity(
