@@ -28,7 +28,9 @@ class PostGenerationAuthorityFreezeTest {
             // unchanged, and production uses the explicit overload only in the shadow ledger.
             "ExposureRepresentation.kt" to "fd0e5b041f83fa5d6cc512cf8713a1daed5d58c69d7169757663d78f1582b368",
             "PersonalizedDecisionComponents.kt" to "66c6acc65bc46f5bc957d8f4f8b57f072b44d2a621f060edabe5d047aed89958",
-            "ExecutionAllocationPlanner.kt" to "288a2f4015dcb3d4fc1b2970f55a0379c6e5880cbf18646acae499bbe4256d92",
+            // C20 extracts the exact session-time predicate so the live incumbent feasibility
+            // evaluator calls the production placement bound instead of maintaining a duplicate.
+            "ExecutionAllocationPlanner.kt" to "3eeb5c937499367537134884143950c6d64a1fec59595a1de8646401c48b4644",
             "PerformancePrescriptionResolver.kt" to "48eda34c9e390ca109bbb1e19e7a8ac79802f01f60c25470f92c8eb7f87063be",
             "RecordBasedReviewedPolicy.kt" to "cc5b12bf40b47226d75256455aa9bc34908f47f78e9ea3ac0fa76016f97bc25d",
             "PlanningHistorySnapshotBuilder.kt" to "8cb9bd8c1be966e4878d2fa7cb3bf72ea0f722c7a565ac38a728323da755ddc3",
