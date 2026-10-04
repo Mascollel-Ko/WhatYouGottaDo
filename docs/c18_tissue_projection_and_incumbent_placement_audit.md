@@ -62,7 +62,46 @@ The exact per-case summary is:
 | `persona3_reviewed` | 8 | 2 | 2 | 4 | 1020 / 1800 sec | Restored day 2 OFI 71 with `RECOVERY_DEBT_HIGH`; Bird Dog, RDL, and chest-supported row also lack required inputs. |
 | `persona4_mixed` | 14 | 6 | 0 | 8 | 1200 / 5400 sec | Restored day 3 OFI 84 with `HIGH_FORCE_NEURAL_CAUTION` and `RECOVERY_DEBT_HIGH`; Bird Dog, RDL, reverse curl, and triceps extension lack required inputs. |
 
-The persona3 RDL sensitivity remains separate from production causality. With the actual case inputs, the restored day reports OFI 94 and `RECOVERY_DEBT_HIGH`, plus unresolved RDL tissue because no weighted load exists. Omitting unsupported Power in the sensitivity case clears that OFI finding but leaves the RDL tissue input unresolved. No source-emitted causal edge proves Power caused the actual placement move; C18 does not change Power semantics.
+The row-level reclassification is shown below; every row originated at `INITIAL_WEEKLY_PLACEMENT / PLACEMENT_ASSIGNED / INITIAL_PLACEMENT_POLICY`, and all 32 have `actualDisplacementAuthorityProven=false`. The linked JSON retains each row's full counterfactual violations and gate snapshots.
+
+All 32 rows retain exact material parity: set count, reps, load/load state, target effort, rest, and weekly frequency are unchanged. The differences are day/order placement only.
+
+| Case | Week | Exact owner and role | Old → EXP placement | C17 classification | C18 prior-placement result |
+|---|---:|---|---|---|---|
+| `persona0_mixed` | 1 | `barbell_back_squat#STYLE_HEAVY_LOWER_KNEE` | d3/o1 → d1/o2 | UNNECESSARY_PLACEMENT_DRIFT | PRIOR_PLACEMENT_VALID |
+| `persona0_mixed` | 2 | `barbell_back_squat#STYLE_HEAVY_LOWER_KNEE` | d3/o1 → d1/o2 | UNNECESSARY_PLACEMENT_DRIFT | PRIOR_PLACEMENT_VALID |
+| `persona0_mixed` | 1 | `cable_rear_delt_fly#STYLE_HEAVY_HORIZONTAL_PULL` | d1/o2 → d3/o2 | UNNECESSARY_PLACEMENT_DRIFT | PRIOR_PLACEMENT_VALID |
+| `persona0_mixed` | 2 | `cable_rear_delt_fly#STYLE_HEAVY_HORIZONTAL_PULL` | d1/o2 → d3/o2 | UNNECESSARY_PLACEMENT_DRIFT | PRIOR_PLACEMENT_VALID |
+| `persona0_mixed` | 1 | `ex_28347c1f#COVERAGE_CORE_DIRECT` | d1/o3 → d3/o3 | UNRESOLVED_NO_PROVEN_AUTHORIZED_DISPLACEMENT | STILL_UNRESOLVED |
+| `persona0_mixed` | 2 | `ex_28347c1f#COVERAGE_CORE_DIRECT` | d1/o3 → d3/o3 | UNRESOLVED_NO_PROVEN_AUTHORIZED_DISPLACEMENT | STILL_UNRESOLVED |
+| `persona0_reviewed` | 1 | `barbell_romanian_deadlift#COVERAGE_POSTERIOR_CHAIN` | d2/o1 → d1/o1 | UNRESOLVED_NO_PROVEN_AUTHORIZED_DISPLACEMENT | STILL_UNRESOLVED |
+| `persona0_reviewed` | 2 | `barbell_romanian_deadlift#COVERAGE_POSTERIOR_CHAIN` | d2/o1 → d1/o1 | UNRESOLVED_NO_PROVEN_AUTHORIZED_DISPLACEMENT | STILL_UNRESOLVED |
+| `persona0_reviewed` | 1 | `dumbbell_chest_supported_row#COVERAGE_UPPER_PULL` | d4/o1 → d2/o1 | UNRESOLVED_NO_PROVEN_AUTHORIZED_DISPLACEMENT | STILL_UNRESOLVED |
+| `persona0_reviewed` | 2 | `dumbbell_chest_supported_row#COVERAGE_UPPER_PULL` | d4/o1 → d2/o1 | UNRESOLVED_NO_PROVEN_AUTHORIZED_DISPLACEMENT | STILL_UNRESOLVED |
+| `persona3_reviewed` | 1 | `barbell_back_squat#STYLE_HEAVY_LOWER_KNEE` | d6/o1 → d4/o1 | UNNECESSARY_PLACEMENT_DRIFT | PRIOR_PLACEMENT_VALID |
+| `persona3_reviewed` | 2 | `barbell_back_squat#STYLE_HEAVY_LOWER_KNEE` | d6/o1 → d4/o1 | UNNECESSARY_PLACEMENT_DRIFT | PRIOR_PLACEMENT_VALID |
+| `persona3_reviewed` | 1 | `barbell_romanian_deadlift#COVERAGE_POSTERIOR_CHAIN` | d2/o1 → d1/o1 | UNRESOLVED_NO_PROVEN_AUTHORIZED_DISPLACEMENT | PRIOR_PLACEMENT_HARD_INVALID |
+| `persona3_reviewed` | 2 | `barbell_romanian_deadlift#COVERAGE_POSTERIOR_CHAIN` | d2/o1 → d1/o1 | UNRESOLVED_NO_PROVEN_AUTHORIZED_DISPLACEMENT | PRIOR_PLACEMENT_HARD_INVALID |
+| `persona3_reviewed` | 1 | `dumbbell_chest_supported_row#COVERAGE_UPPER_PULL` | d4/o1 → d2/o1 | UNRESOLVED_NO_PROVEN_AUTHORIZED_DISPLACEMENT | STILL_UNRESOLVED |
+| `persona3_reviewed` | 2 | `dumbbell_chest_supported_row#COVERAGE_UPPER_PULL` | d4/o1 → d2/o1 | UNRESOLVED_NO_PROVEN_AUTHORIZED_DISPLACEMENT | STILL_UNRESOLVED |
+| `persona3_reviewed` | 1 | `ex_28347c1f#COVERAGE_CORE_DIRECT` | d1/o1 → d6/o1 | UNRESOLVED_NO_PROVEN_AUTHORIZED_DISPLACEMENT | STILL_UNRESOLVED |
+| `persona3_reviewed` | 2 | `ex_28347c1f#COVERAGE_CORE_DIRECT` | d1/o1 → d6/o1 | UNRESOLVED_NO_PROVEN_AUTHORIZED_DISPLACEMENT | STILL_UNRESOLVED |
+| `persona4_mixed` | 1 | `barbell_back_squat#STYLE_HEAVY_LOWER_KNEE` | d1/o2 → d3/o1 | UNNECESSARY_PLACEMENT_DRIFT | PRIOR_PLACEMENT_VALID |
+| `persona4_mixed` | 2 | `barbell_back_squat#STYLE_HEAVY_LOWER_KNEE` | d1/o2 → d3/o1 | UNNECESSARY_PLACEMENT_DRIFT | PRIOR_PLACEMENT_VALID |
+| `persona4_mixed` | 1 | `barbell_reverse_curl#COVERAGE_ARMS_BICEPS` | d3/o3 → d1/o3 | UNRESOLVED_NO_PROVEN_AUTHORIZED_DISPLACEMENT | STILL_UNRESOLVED |
+| `persona4_mixed` | 2 | `barbell_reverse_curl#COVERAGE_ARMS_BICEPS` | d3/o3 → d1/o3 | UNRESOLVED_NO_PROVEN_AUTHORIZED_DISPLACEMENT | STILL_UNRESOLVED |
+| `persona4_mixed` | 1 | `barbell_romanian_deadlift#COVERAGE_POSTERIOR_CHAIN` | d3/o1 → d1/o1 | UNRESOLVED_NO_PROVEN_AUTHORIZED_DISPLACEMENT | STILL_UNRESOLVED |
+| `persona4_mixed` | 2 | `barbell_romanian_deadlift#COVERAGE_POSTERIOR_CHAIN` | d3/o1 → d1/o1 | UNRESOLVED_NO_PROVEN_AUTHORIZED_DISPLACEMENT | STILL_UNRESOLVED |
+| `persona4_mixed` | 1 | `cable_rear_delt_fly#STYLE_HEAVY_HORIZONTAL_PULL` | d3/o2 → d1/o2 | UNNECESSARY_PLACEMENT_DRIFT | PRIOR_PLACEMENT_VALID |
+| `persona4_mixed` | 2 | `cable_rear_delt_fly#STYLE_HEAVY_HORIZONTAL_PULL` | d3/o2 → d1/o2 | UNNECESSARY_PLACEMENT_DRIFT | PRIOR_PLACEMENT_VALID |
+| `persona4_mixed` | 1 | `dumbbell_lying_triceps_extension#COVERAGE_ARMS_TRICEPS` | d3/o4 → d1/o4 | UNRESOLVED_NO_PROVEN_AUTHORIZED_DISPLACEMENT | STILL_UNRESOLVED |
+| `persona4_mixed` | 2 | `dumbbell_lying_triceps_extension#COVERAGE_ARMS_TRICEPS` | d3/o4 → d1/o4 | UNRESOLVED_NO_PROVEN_AUTHORIZED_DISPLACEMENT | STILL_UNRESOLVED |
+| `persona4_mixed` | 1 | `ex_28347c1f#COVERAGE_CORE_DIRECT` | d1/o3 → d3/o2 | UNRESOLVED_NO_PROVEN_AUTHORIZED_DISPLACEMENT | STILL_UNRESOLVED |
+| `persona4_mixed` | 2 | `ex_28347c1f#COVERAGE_CORE_DIRECT` | d1/o3 → d3/o2 | UNRESOLVED_NO_PROVEN_AUTHORIZED_DISPLACEMENT | STILL_UNRESOLVED |
+| `persona4_mixed` | 1 | `ex_5ca7133f#COVERAGE_CALVES` | d5/o1 → d5/o2 | UNNECESSARY_PLACEMENT_DRIFT | PRIOR_PLACEMENT_VALID |
+| `persona4_mixed` | 2 | `ex_5ca7133f#COVERAGE_CALVES` | d5/o1 → d5/o2 | UNNECESSARY_PLACEMENT_DRIFT | PRIOR_PLACEMENT_VALID |
+
+The two persona3 RDL prior positions are hard-invalid under their restored-day OFI/recovery state; the tissue projection itself remains unresolved because no weighted RDL load exists. This OFI conclusion is independent of the tissue coefficient repair. The RDL sensitivity remains separate from production causality: with the actual case inputs, the restored day reports OFI 94 and `RECOVERY_DEBT_HIGH`. Omitting unsupported Power in the sensitivity case clears that OFI finding but leaves RDL tissue unresolved. No source-emitted causal edge proves Power caused the actual placement move; C18 does not change Power semantics.
 
 The four accepted `BOUNDED_DAY_REBALANCER` events in `persona4_mixed` (two core and two calves) still carry `REBALANCE_OBJECTIVE`. That records a soft score change, not a hard constraint. Calves remain unnecessary order drift. Core still has no displacement authority; the full restoration has an OFI finding on the other day and unresolved tissue inputs. Session-capacity overflow was absent in every full restore.
 
