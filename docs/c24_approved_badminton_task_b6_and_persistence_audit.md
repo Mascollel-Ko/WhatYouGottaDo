@@ -57,11 +57,15 @@ The C23 pre-C24 B7 census was provenance-unclosed 11, target-unmet 9, regressed 
 - C23 merged-main Hosted CI: run [37303461895](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/37303461895), success (protocol, contracts, whitespace, unit tests, coverage, APK assembly, signer, upload).
 - C24 start SHA: `9663bc7c078229adfb04f23dc66da0eb976778fe`.
 - C24 policy/persistence commit: `b9ed008a7d1f85412caad1224db7f37263d4b4c8`.
-- C24 Task B6 implementation/test commit (`lastAuditedCommit`): to be filled after its green Hosted CI.
-- C24 final documentation HEAD: to be filled after the final docs commit and CI.
+- C24 Task B6 implementation/test commit (`lastAuditedCommit`): `ee170d945fb798da4143ada83d86beb599797772`. Hosted Android Debug Build run [37329992117](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/37329992117) passed 2,307 tests (0 failures, 0 errors, 4 skips), protocol validation, Community/Cloud contracts, whitespace, coverage upload, APK assembly, signer validation, and APK upload.
+- The final documentation-only PR head is separately validated by Hosted CI on PR #16; `lastAuditedCommit` remains the implementation/test commit above.
+- Policy/persistence commit `b9ed008a7d1f85412caad1224db7f37263d4b4c8` passed Hosted run [37328195753](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/37328195753): 2,300 tests (0 failures, 0 errors, 4 skips), with protocol/contracts/whitespace, coverage, APK, signer, and upload green.
+- C23 PR #15 merged at `2026-10-05T11:31:14Z`: PR head `48973791e84da8db0fe503831f0e91c723aecaf5`, merge/main SHA `9663bc7c078229adfb04f23dc66da0eb976778fe`. Merged-main Hosted run [37303461895](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/37303461895) passed 2,296 tests (0 failures, 0 errors, 4 skips), with protocol/contracts/whitespace, coverage, APK, signer, and upload green.
+- Hosted B coverage artifact ID `11353554607` (uploaded ZIP SHA-256 `e99294be5a200e85fc49be4b0c828e82c7d10fa48191d1f979e89b01b020eef2`); Hosted APK artifact ID `11354303400`, APK size 68,823,239 bytes, APK SHA-256 `A8C162EC807ED52C48C08D0539E2CEF6FB13ACE4FBBDE88CCF87B8844AED5FD7`.
 - Standard production coverage SHA-256: `AC796426BEE789B00668744B11B0D5F3701A25037A0878CC1D60D709DAE3C15A`.
 - C24 machine census SHA-256: `74D74B57502C8C6F4EDC19AD7D461467F0E447DF350B3CF64D8CFA6ECFBBE0CF`.
 - Local compile succeeded; focused C20–C24 and persistence suites passed. The final worker-restarted `:app:testDebugUnitTest` run completed 2,307 tests with 0 failures, 0 errors, and 4 skips. An earlier non-restarted local attempt hit the known Robolectric native SQLite crash; the completed worker-restarted run did not.
-- Final Hosted CI run, coverage artifact, and APK artifact details are recorded after completion.
+- After C24, route counts remain CONTROL 19, Strength V1 1, Strength Calibration 2, Hypertrophy 0, Combined 0. B7 is 11 provenance-unclosed / 9 target-unmet / 1 regressed / 0 collateral regressions. Task rows are 8 in EXPERIMENTAL, while the selected route remains CONTROL because the task production scope is intentionally not part of B8.
+- Power numeric authority, executable Power B6, and Power material rows remain zero; Jump/Landing authority and material rows remain zero. C20 remains 12 HARD_VALID / 0 HARD_INVALID / 20 UNRESOLVED with no invalid or unresolved incumbent forced to remain. Build accounting remains one CONTROL + one EXPERIMENTAL, two total, zero third builds.
 
 The machine-readable, per-target and per-exposure census is [`c24-badminton-task-b6-persistence-census.json`](c24-badminton-task-b6-persistence-census.json).

@@ -7,7 +7,7 @@
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.1 |
-| Last audited commit | 79cf8614131cdecc50d7685da9f0faee2e9051da |
+| Last audited commit | ee170d945fb798da4143ada83d86beb599797772 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1334,3 +1334,4 @@ Post-audit boundary notes
 - C24 emits exact B6 task rows only after ordinary B5 selection. The corpus selected the six-corner and lateral owners in `persona3_recent`, producing four exposures per week across two weeks (eight rows total); the split-step policy remains available only to the normal exact B5 owner/role path and was not forced into the corpus. JUMP_LANDING remains unapproved. Power remains at zero numeric authority, executable Power B6, and material Power rows.
 - B7 consumes typed exact protocol provenance. No B7/B8 gate is relaxed, no badminton task cutover scope is added, and CONTROL remains the selected route for unsupported task material. C24 retains the C20 incumbent rule: hard-valid shared owners are preserved; unresolved or invalid rows are not forced to remain.
 - C24 audit and machine census: [`docs/c24_approved_badminton_task_b6_and_persistence_audit.md`](../../c24_approved_badminton_task_b6_and_persistence_audit.md), [`docs/c24-badminton-task-b6-persistence-census.json`](../../c24-badminton-task-b6-persistence-census.json). Protocol/runtime/app are `3.59.0` / `RECORD_BASED_PLANNER_0.15.1_KOTLIN_1` / `0.5.1.5`.
+- C24 implementation/test commit `ee170d945fb798da4143ada83d86beb599797772` is the `lastAuditedCommit`. Hosted run [37329992117](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/37329992117) passed 2,307 tests (0 failures, 0 errors, 4 skips), protocol/contracts/whitespace, coverage, APK assembly, signer validation, and upload. The final docs-only PR head is validated separately.
