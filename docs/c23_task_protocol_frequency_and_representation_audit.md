@@ -86,6 +86,7 @@ This exact stable key is reviewed in category DECELERATION and has B5 role `CANO
 - B7 is not modified. The current census records 11 provenance-unclosed, 9 unmet, 2 target-regressed including 1 collateral regression, matching the merged C22 census. Earlier phase notes that say one regression are stale relative to this verified C22 artifact.
 - Build accounting remains one CONTROL plus one EXPERIMENTAL build, two total, zero third builds; preflight is zero.
 - CONTROL output is not an input to protocol mapping, personal frequency, shape construction, or completeness. The census perturbation test verifies invariant task authorities and EXP output when comparator rows are changed.
+- Final local validation passed: compile, focused C23/coverage/C20 tests, and full unit tests (2,296 tests, 0 failures, 0 errors, 4 skips) using the existing repository-external worker-restart init script. The standard production coverage artifact SHA-256 is `4467C1510A07BBE901042E112D68826CD054384C023FCB07DEB3859D043C3EF8`; the machine census SHA-256 is `B8C00593E877609D73CE930433FCD2DFDF53F07A747273D5DBB65C02C405C640`.
 
 Protocol is 3.58.0 and runtime is `RECORD_BASED_PLANNER_0.15.0_KOTLIN_1`; app remains 0.5.1.5. The protocol/runtime contract was bumped because typed task protocol/frequency and prescription-shape contracts were added. No Room migration was made.
 
