@@ -144,6 +144,8 @@ data class ProgramSkeletonItem(
     val requestedTemplateSlot: String = "",
     val requiredTemplateAnchor: Boolean = false,
     val setPrescriptions: List<ProgramSetPrescription> = emptyList(),
+    /** Typed C24 task B6 contract serialized losslessly; null preserves all legacy row semantics. */
+    val taskProtocolSemanticsJson: String? = null,
     val progressionStyle: String = "",
     val progressionVariant: String = "",
     val progressionAnchorSetIndex: Int? = null,
@@ -165,6 +167,8 @@ data class GeneratedProgramSkeleton(
     val representativeTemplate: Boolean = false,
     val personalizedDecision: PersonalizedPlanningDecision? = null,
     val progressionSessions: List<DraftProgressionSession> = emptyList(),
+    /** Typed per-protocol weekly placement result; transient audit, not prescription authority. */
+    val taskProtocolFrequencyOutcomes: List<com.training.trackplanner.data.personalized.TaskProtocolWeeklyFrequencyOutcome> = emptyList(),
     /** Transient source token; never serialized as program authority. Checked before replacing an incumbent. */
     internal val incumbentSourceSnapshotToken: CanonicalIncumbentSourceSnapshotToken? = null
 )

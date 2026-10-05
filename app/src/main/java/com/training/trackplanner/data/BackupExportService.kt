@@ -248,7 +248,8 @@ internal class BackupExportService(
                 trainingSlot = item.trainingSlot,
                 dayIntensity = item.dayIntensity,
                 weightSource = item.weightSource,
-                selectionRole = item.selectionRole
+                selectionRole = item.selectionRole,
+                taskProtocolSemanticsJson = item.taskProtocolSemanticsJson
             )
         }
         val backupProgramItemSets = programItemSets.map { set ->

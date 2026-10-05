@@ -217,6 +217,30 @@ class ProgramBackupRestoreTest {
     }
 
     @Test
+    fun `approved task protocol semantics survive local backup restore`() = runBlocking {
+        val source = newDatabase()
+        source.exerciseDao().insertExercise(Exercise("ex_33841b88", "6코너 풋워크", "스포츠"))
+        val programId = source.programDao().insertProgram(TrainingProgram(
+            stableKey = "c24-task-program", name = "C24 task", durationDays = 7, createdAt = 1L, updatedAt = 2L
+        ))
+        val semantics = C24TaskProtocolTestFixture.sixCornerSemanticsJson()
+        source.programDao().insertProgramItem(TrainingProgramItem(
+            programId = programId, weekNumber = 1, dayOfWeek = 2, orderIndex = 1,
+            exerciseStableKey = "ex_33841b88", exerciseName = "6코너 풋워크", category = "스포츠",
+            restSeconds = 60, prescription = "display-only summary", setCount = 3, reps = 0,
+            weightKg = 0.0, seconds = 20, weightSource = "USER_APPROVED_PROJECT_POLICY",
+            selectionRole = "CANONICAL_STIMULUS_TASK_ACCELERATION", taskProtocolSemanticsJson = semantics
+        ))
+        val backup = exportBackup(repository(source))
+        val target = newDatabase()
+        val restored = repository(target).importRecordsBackup(writeBackup(backup))
+        assertEquals(1, restored.programItemCount)
+        val item = target.programDao().allProgramItems().single()
+        assertEquals(semantics, item.taskProtocolSemanticsJson)
+        assertEquals("CANONICAL_STIMULUS_TASK_ACCELERATION", item.selectionRole)
+    }
+
+    @Test
     fun `deleting a built in program persists tombstone through restore and later seeding`() = runBlocking {
         val seed = SeedData.programs(context).first { it.key == "10" }
         val source = newDatabase()

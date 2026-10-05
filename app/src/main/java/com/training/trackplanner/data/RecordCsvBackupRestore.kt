@@ -200,7 +200,8 @@ data class ProgramBackupItem(
     val trainingSlot: String?,
     val dayIntensity: String?,
     val weightSource: String?,
-    val selectionRole: String? = null
+    val selectionRole: String? = null,
+    val taskProtocolSemanticsJson: String? = null
 )
 
 data class ProgramBackupItemSet(
@@ -245,7 +246,7 @@ data class DailyTimeseriesRow(
 object RecordCsvBackupRestore {
     internal const val CURRENT_RESTORE_SCHEMA_VERSION = 13
     internal const val CURRENT_BACKUP_FORMAT_VERSION = 14
-    internal const val CURRENT_PROGRAM_BACKUP_SCHEMA_VERSION = 3
+    internal const val CURRENT_PROGRAM_BACKUP_SCHEMA_VERSION = 4
     internal const val EXPLICIT_METADATA_USER_OVERRIDES_CAPABILITY = "EXPLICIT_METADATA_USER_OVERRIDES_V1"
     private const val MANIFEST_PREFIX = "#WGTD_BACKUP_MANIFEST"
 
@@ -402,6 +403,7 @@ object RecordCsvBackupRestore {
         "program_day_intensity",
         "program_weight_source",
         "program_selection_role",
+        "program_task_protocol_semantics_json",
         "target_rpe_min",
         "program_set_load_state",
         "program_tombstone_deleted_at",
@@ -545,7 +547,8 @@ object RecordCsvBackupRestore {
                         "program_training_slot" to item.trainingSlot.orEmpty(),
                         "program_day_intensity" to item.dayIntensity.orEmpty(),
                         "program_weight_source" to item.weightSource.orEmpty(),
-                        "program_selection_role" to item.selectionRole.orEmpty()
+                        "program_selection_role" to item.selectionRole.orEmpty(),
+                        "program_task_protocol_semantics_json" to item.taskProtocolSemanticsJson.orEmpty()
                     )
                 )
             }
@@ -1196,7 +1199,8 @@ object RecordCsvBackupRestore {
                         trainingSlot = row.value(index, "program_training_slot").ifBlank { null },
                         dayIntensity = row.value(index, "program_day_intensity").ifBlank { null },
                         weightSource = row.value(index, "program_weight_source").ifBlank { null },
-                        selectionRole = row.value(index, "program_selection_role").ifBlank { null }
+                        selectionRole = row.value(index, "program_selection_role").ifBlank { null },
+                        taskProtocolSemanticsJson = row.value(index, "program_task_protocol_semantics_json").ifBlank { null }
                     )
                     return@forEachIndexed
                 }

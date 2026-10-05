@@ -33,6 +33,7 @@ internal object CommunityProgramSnapshotCodec {
                 .putNullable("trainingSlot", item.trainingSlot)
                 .putNullable("dayIntensity", item.dayIntensity)
                 .putNullable("weightSource", item.weightSource)
+                .putNullable("taskProtocolSemantics", item.taskProtocolSemanticsJson)
                 .put("sets", JSONArray().also { array ->
                     setsByItem[item.id].orEmpty().sortedBy(TrainingProgramItemSet::setIndex).forEach { set ->
                         array.put(JSONObject()
@@ -74,7 +75,7 @@ internal object CommunityProgramSnapshotCodec {
                     .put("signature", ProgramProgressionWireCodec.encode(binding.signature)))
             }
         JSONObject()
-            .put("schemaVersion", 1)
+            .put("schemaVersion", 2)
             .put("program", JSONObject()
                 .put("name", program.name)
                 .put("durationDays", program.durationDays)
@@ -141,7 +142,8 @@ internal object CommunityProgramSnapshotCodec {
                         seconds = row.optInt("seconds"),
                         trainingSlot = row.optString("trainingSlot").takeIf(String::isNotBlank),
                         dayIntensity = row.optString("dayIntensity").takeIf(String::isNotBlank),
-                        weightSource = row.optString("weightSource").takeIf(String::isNotBlank)
+                        weightSource = row.optString("weightSource").takeIf(String::isNotBlank),
+                        taskProtocolSemanticsJson = row.optString("taskProtocolSemantics").takeIf(String::isNotBlank)
                     )
                 )
                 itemIds += itemId
@@ -213,7 +215,7 @@ internal object CommunityProgramSnapshotCodec {
     }
 
     private fun validateSnapshot(snapshot: JSONObject): JSONObject {
-        require(snapshot.optInt("schemaVersion", -1) == 1) { "UNSUPPORTED_SNAPSHOT_VERSION" }
+        require(snapshot.optInt("schemaVersion", -1) in 1..2) { "UNSUPPORTED_SNAPSHOT_VERSION" }
         require(snapshot.has("program") && snapshot.optJSONArray("items") != null) { "INVALID_SNAPSHOT" }
         val items = snapshot.getJSONArray("items")
         require(items.length() in 1..1000) { "INVALID_SNAPSHOT" }

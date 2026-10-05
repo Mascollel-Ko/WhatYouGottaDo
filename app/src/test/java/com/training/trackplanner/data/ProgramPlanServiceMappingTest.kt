@@ -1,6 +1,7 @@
 package com.training.trackplanner.data
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ProgramPlanServiceMappingTest {
@@ -63,6 +64,23 @@ class ProgramPlanServiceMappingTest {
         assertEquals(ProgramTrainingSlot.FULL_BODY_BADMINTON_SUPPORT.name, stored.trainingSlot)
         assertEquals(ProgramDayIntensity.MODERATE.name, stored.dayIntensity)
         assertEquals("MANUAL_OR_EXISTING", stored.weightSource)
+    }
+
+    @Test
+    fun approvedTaskProtocolSemanticsPersistAsTypedJsonRatherThanDisplayText() {
+        val semantics = C24TaskProtocolTestFixture.sixCornerSemanticsJson()
+        val stored = ProgramSkeletonItem(
+            localId = "task", weekNumber = 1, dayOfWeek = 2, orderIndex = 1,
+            exerciseStableKey = "ex_33841b88", exerciseName = "6코너 풋워크", category = "스포츠",
+            restSeconds = 60, prescription = "3 라운드 × 10–20초 · 휴식 60초", setCount = 3,
+            reps = 0, weightKg = 0.0, seconds = 20, selectionReason = "approved task protocol",
+            weightSource = "USER_APPROVED_PROJECT_POLICY", stableKey = "ex_33841b88",
+            selectionRole = "CANONICAL_STIMULUS_TASK_ACCELERATION", taskProtocolSemanticsJson = semantics
+        ).toTrainingProgramItem(programId = 11)
+
+        assertEquals(semantics, stored.taskProtocolSemanticsJson)
+        assertTrue(stored.taskProtocolSemanticsJson!!.contains("DURATION_RANGE_SECONDS"))
+        assertTrue(stored.taskProtocolSemanticsJson!!.contains("USER_APPROVED_PROJECT_POLICY"))
     }
 
     @Test
