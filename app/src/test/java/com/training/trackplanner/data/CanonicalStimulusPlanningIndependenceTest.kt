@@ -246,6 +246,89 @@ class CanonicalStimulusPlanningIndependenceTest {
         Unit
     }
 
+    @Test fun controlTaskRowsCannotSourceTaskAuthorityOrExperimentalMaterial() = runBlocking {
+        val spec = StimulusProductionCoverageAuditTest.CoverageSpec(
+            label = "persona3_recent",
+            quality = TrainableQuality.STRENGTH,
+            stableKey = "barbell_back_squat",
+            profileGoal = "MIXED",
+            goal = ProgramGoal.BADMINTON_SUPPORT,
+            intent = StrengthIntent.MIXED,
+            badminton = true,
+            history = "recent",
+            days = 3,
+            minutes = 90,
+            equipment = emptySet(),
+            explicitWeeklyDays = false
+        )
+        StimulusProductionCoverageAuditTest().runCase(spec) { service, preflight, answers, metadata ->
+            val prepared = service.generatePreparedWithCanonicalPlanning(preflight, answers, metadata)
+            val source = prepared.program.items.firstOrNull() ?: error("fixture requires a CONTROL template row")
+            fun perturbedControl(setCount: Int, seconds: Int, suffix: String) = prepared.program.copy(
+                items = prepared.program.items.filterNot { it.selectionRole.startsWith("CANONICAL_STIMULUS_TASK_") } +
+                    listOf(
+                        "ex_33841b88" to "CANONICAL_STIMULUS_TASK_ACCELERATION",
+                        "ex_421ba24b" to "CANONICAL_STIMULUS_TASK_LUNGE_REACH"
+                    ).mapIndexed { index, (key, role) ->
+                        source.copy(
+                            localId = "c22-control-task-$suffix-$index",
+                            weekNumber = 1,
+                            dayOfWeek = index + 1,
+                            orderIndex = index + 1,
+                            exerciseStableKey = key,
+                            stableKey = key,
+                            exerciseName = "CONTROL-only task row",
+                            category = "ATHLETIC_PERFORMANCE_DRILL",
+                            selectionRole = role,
+                            setCount = setCount,
+                            reps = 0,
+                            seconds = seconds,
+                            weightKg = 0.0,
+                            restSeconds = 60,
+                            prescription = "CONTROL-only $setCount x $seconds sec",
+                            weightSource = "CONTROL_ONLY",
+                            setPrescriptions = (1..setCount).map { setIndex ->
+                                ProgramSetPrescription(setIndex, 0, 0.0, 0)
+                            }
+                        )
+                    }
+            )
+
+            val controlA = perturbedControl(setCount = 2, seconds = 10, suffix = "a")
+            val controlB = perturbedControl(setCount = 7, seconds = 42, suffix = "b")
+            assertNotEquals(controlA.items, controlB.items)
+
+            suspend fun evaluate(control: GeneratedProgramSkeleton) = service.generatePreparedProduction(
+                preflight = preflight,
+                answers = answers,
+                metadata = metadata,
+                controlGenerationOverride = { control }
+            )
+            val a = evaluate(controlA)
+            val b = evaluate(controlB)
+            val comparisonA = requireNotNull(a.comparison)
+            val comparisonB = requireNotNull(b.comparison)
+
+            assertEquals(comparisonA.targetPlan, comparisonB.targetPlan)
+            assertEquals(comparisonA.selectionPlan, comparisonB.selectionPlan)
+            val taskOwners = comparisonA.selectionPlan.selectedCandidates.filter { candidate ->
+                candidate.coveredTargetIds.any { it.startsWith("TASK:") }
+            }
+            assertTrue(taskOwners.any { it.stableKey == "ex_33841b88" })
+            assertTrue(taskOwners.any { it.stableKey == "ex_421ba24b" })
+            assertEquals(comparisonA.experimental.items, comparisonB.experimental.items)
+            assertTrue(comparisonA.experimental.items.none { it.selectionRole.startsWith("CANONICAL_STIMULUS_TASK_") })
+            listOf(a, b).forEach { result ->
+                assertEquals(0, result.buildCounts.controlBuilds)
+                assertEquals(1, result.buildCounts.experimentalBuilds)
+                assertEquals(1, result.buildCounts.totalBuildInvocations)
+                assertEquals(0, result.buildCounts.thirdBuilds)
+            }
+            b
+        }
+        Unit
+    }
+
     private fun parity(spec: StimulusProductionCoverageAuditTest.CoverageSpec) = runBlocking {
         StimulusProductionCoverageAuditTest().runCase(spec) { service, preflight, answers, metadata ->
             // No program has been constructed by this seam, and no CONTROL argument exists.
