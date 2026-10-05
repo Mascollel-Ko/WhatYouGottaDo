@@ -18,6 +18,10 @@ internal object RecordBasedReviewedPolicy {
         ReviewedBadmintonCategory.ROTATION_GENERATION to setOf("vipr_chop")
     )
 
+    /** Exact reviewed membership lookup; never infer it from a name, alias, or category similarity. */
+    fun reviewedCategory(stableKey: String): ReviewedBadmintonCategory? =
+        badmintonKeys.entries.firstOrNull { (_, keys) -> stableKey in keys }?.key
+
     fun defaultWeekdays(daysPerWeek: Int): List<Int> =
         when (daysPerWeek.coerceIn(3, 7)) {
             3 -> listOf(1, 3, 5)
@@ -41,21 +45,42 @@ internal object RecordBasedReviewedPolicy {
                 reps = 0,
                 seconds = 20,
                 restSeconds = 60,
-                text = "3라운드 x 10-20초"
+                text = "3라운드 x 10-20초",
+                taskShape = TaskPrescriptionShape(
+                    mode = TaskPrescriptionMode.DURATION_RANGE_SECONDS,
+                    setCount = 3,
+                    minSeconds = 10,
+                    maxSeconds = 20,
+                    restSeconds = 60
+                )
             )
             ReviewedBadmintonCategory.ACCELERATION,
             ReviewedBadmintonCategory.DECELERATION -> ReviewedPerformanceGuide(
                 setCount = 3,
                 reps = 5,
                 restSeconds = 75,
-                text = "3세트 x 5회/side"
+                text = "3세트 x 5회/side",
+                taskShape = TaskPrescriptionShape(
+                    mode = TaskPrescriptionMode.REPETITIONS_PER_SIDE,
+                    setCount = 3,
+                    reps = 5,
+                    laterality = TaskLateralitySemantics.PER_SIDE,
+                    restSeconds = 75
+                )
             )
             ReviewedBadmintonCategory.ANTI_ROTATION,
             ReviewedBadmintonCategory.ROTATION_GENERATION -> ReviewedPerformanceGuide(
                 setCount = 3,
                 reps = 10,
                 restSeconds = 60,
-                text = "3세트 x 8-12회"
+                text = "3세트 x 8-12회",
+                taskShape = TaskPrescriptionShape(
+                    mode = TaskPrescriptionMode.REPETITION_RANGE,
+                    setCount = 3,
+                    minReps = 8,
+                    maxReps = 12,
+                    restSeconds = 60
+                )
             )
         }
 
@@ -67,5 +92,7 @@ internal data class ReviewedPerformanceGuide(
     val seconds: Int = 0,
     val restSeconds: Int,
     val text: String,
+    /** Lossless within-session shape; scalar legacy fields remain compatibility-only. */
+    val taskShape: TaskPrescriptionShape,
     val weightSource: String = "RULE_TABLE"
 )

@@ -9,7 +9,7 @@ import com.training.trackplanner.data.personalized.placementSessionFits
 import java.security.MessageDigest
 
 /** Current builder contract recorded on accepted canonical programs. */
-internal const val CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.57.0"
+internal const val CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.58.0"
 
 /** A typed view of TrainingProgram.stableKey; it is independent of exercise stable keys. */
 @JvmInline
@@ -128,6 +128,7 @@ internal data class CanonicalIncumbentPlacementIndex(
             val sourceContract = builderVersion to runtimeVersion
             val supportedContracts = setOf(
                 expectedBuilderProtocolVersion to expectedPlannerRuntimeVersion,
+                C22_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION to C22_PERSONALIZED_PLANNER_PROTOCOL_VERSION,
                 C21_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION to C21_PERSONALIZED_PLANNER_PROTOCOL_VERSION,
                 C20_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION to C20_PERSONALIZED_PLANNER_PROTOCOL_VERSION,
                 C19_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION to C19_PERSONALIZED_PLANNER_PROTOCOL_VERSION
@@ -189,6 +190,9 @@ private const val C20_PERSONALIZED_PLANNER_PROTOCOL_VERSION = "RECORD_BASED_PLAN
 /** C21 source programs remain eligible after C22 closes the task-owner materialization boundary. */
 private const val C21_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.56.0"
 private const val C21_PERSONALIZED_PLANNER_PROTOCOL_VERSION = "RECORD_BASED_PLANNER_0.14.8_KOTLIN_1"
+/** C22 programs remain compatible incumbent sources after the C23 task-shape contract addition. */
+private const val C22_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.57.0"
+private const val C22_PERSONALIZED_PLANNER_PROTOCOL_VERSION = "RECORD_BASED_PLANNER_0.14.9_KOTLIN_1"
 
 /** Deterministic token over all persisted program/item/set state that a generated replacement can overwrite. */
 internal object CanonicalIncumbentSourceSnapshotFingerprint {

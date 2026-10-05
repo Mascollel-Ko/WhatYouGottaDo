@@ -18,6 +18,8 @@ class PostGenerationAuthorityFreezeTest {
         // TrainingStateAssessment additionally permits Stage 2 LOW_WEEK_RATIO .625 -> .85 only.
         // C15 makes unresolved calibration rows ineligible as observed planning history;
         // it does not change any historical authority for completed, load-resolved sets.
+        // C23 adds typed, lossless task-guide shapes beside the existing legacy scalar adapter;
+        // the adapter fields and resolver behavior remain byte/field compatible.
         // All unrelated historical, style, numerical and prescription authorities remain frozen.
         val frozen = mapOf(
             // Domain-separated volume and court-deviation trace are the approved
@@ -32,7 +34,7 @@ class PostGenerationAuthorityFreezeTest {
             // evaluator calls the production placement bound instead of maintaining a duplicate.
             "ExecutionAllocationPlanner.kt" to "3eeb5c937499367537134884143950c6d64a1fec59595a1de8646401c48b4644",
             "PerformancePrescriptionResolver.kt" to "48eda34c9e390ca109bbb1e19e7a8ac79802f01f60c25470f92c8eb7f87063be",
-            "RecordBasedReviewedPolicy.kt" to "cc5b12bf40b47226d75256455aa9bc34908f47f78e9ea3ac0fa76016f97bc25d",
+            "RecordBasedReviewedPolicy.kt" to "915be5354ac988774f740a366655d26f74cb3c8e2f820eecf63e8914b671ed08",
             "PlanningHistorySnapshotBuilder.kt" to "8cb9bd8c1be966e4878d2fa7cb3bf72ea0f722c7a565ac38a728323da755ddc3",
             "TrainingStateAssessment.kt" to "9027cb6d45422fc2cdecafa19fbec34a8b8fcba8c14cc594058d15e802e53bf2",
             "TrainingStateRouting.kt" to "d086f1008c2247bda65e33b5db2277fc962a0ea666163dfe0f46e119a434b5f7"
