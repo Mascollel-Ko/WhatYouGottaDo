@@ -37,6 +37,7 @@ internal object C22BadmintonTaskAuthorityCensus {
             "reviewedStarterAuthorities" to 0,
             "fullyEncodedTaskAuthorities" to 0,
             "materializedTaskRowsBefore" to 0,
+            "materializedTaskRowsAfter" to 0,
             "blockedPerSide" to 0,
             "blockedRange" to 0,
             "blockedFrequency" to 0,
@@ -154,7 +155,7 @@ internal object C22BadmintonTaskAuthorityCensus {
                 .filter { it.selectionRole.startsWith("CANONICAL_STIMULUS_TASK_") }
                 .sortedWith(compareBy({ it.weekNumber }, { it.dayOfWeek }, { it.orderIndex }, { it.exerciseStableKey }, { it.selectionRole }))
                 .forEach { item ->
-                    aggregate["materializedTaskRowsBefore"] = aggregate.getValue("materializedTaskRowsBefore") + 1
+                    aggregate["materializedTaskRowsAfter"] = aggregate.getValue("materializedTaskRowsAfter") + 1
                     val resolver = PerformancePrescriptionResolver.resolve(context.snapshot, item.exerciseStableKey)
                     materialRows += JSONObject()
                         .put("case", spec.label).put("week", item.weekNumber).put("day", item.dayOfWeek)
@@ -182,14 +183,35 @@ internal object C22BadmintonTaskAuthorityCensus {
                     .put("targetSetsFromExistingPrescription", it.targetSetsFromExistingPrescription)
                 }))
                 .put("b7", JSONObject().put("eligible", result.comparison.experimentalReadinessAudit?.status?.name)
-                    .put("reasonCodes", JSONArray(result.comparison.experimentalReadinessAudit?.reasonCodes.orEmpty().sorted())))
+                    .put("reasonCodes", JSONArray(result.comparison.experimentalReadinessAudit?.reasonCodes.orEmpty().sorted()))
+                    .put("targetOutcomes", JSONArray(result.comparison.experimentalReadinessAudit?.targetOutcomes.orEmpty()
+                        .sortedBy { it.targetId }.map { outcome -> JSONObject()
+                            .put("targetId", outcome.targetId).put("status", outcome.status.name)
+                            .put("reasonCodes", JSONArray(outcome.reasonCodes.sorted()))
+                        })))
                 .put("b8", JSONObject().put("status", result.comparison.productionCutoverAuthority?.status?.name)
                     .put("scope", result.comparison.productionCutoverAuthority?.scope?.name)
                     .put("reasonCodes", JSONArray(result.comparison.productionCutoverAuthority?.reasonCodes.orEmpty().sorted())))
                 .put("route", result.routeDecision.selectedSource.name)
+                .put("buildAccounting", JSONObject()
+                    .put("CONTROL", result.buildCounts.controlBuilds)
+                    .put("EXPERIMENTAL", result.buildCounts.experimentalBuilds)
+                    .put("TOTAL", result.buildCounts.totalBuildInvocations)
+                    .put("THIRD", result.buildCounts.thirdBuilds))
             caseRows.put(case)
         }
         aggregate["uniqueTaskOwners"] = uniqueOwners.size
+        val buildProfiles = records.mapNotNull { it.second }.groupingBy(StimulusProductionGenerationResult::buildCounts)
+            .eachCount().entries.sortedWith(compareBy({ it.key.controlBuilds }, { it.key.experimentalBuilds },
+                { it.key.totalBuildInvocations }, { it.key.thirdBuilds }))
+        val buildAccounting = JSONObject()
+            .put("generatedCaseProfiles", JSONArray(buildProfiles.map { (counts, cases) -> JSONObject()
+                .put("cases", cases).put("CONTROL", counts.controlBuilds)
+                .put("EXPERIMENTAL", counts.experimentalBuilds).put("TOTAL", counts.totalBuildInvocations)
+                .put("THIRD", counts.thirdBuilds)
+            }))
+            .put("preflightPerCase", JSONObject().put("CONTROL", 0).put("EXPERIMENTAL", 0)
+                .put("TOTAL", 0).put("THIRD", 0))
 
         val guideRows = JSONArray(RecordBasedReviewedPolicy.badmintonKeys.entries.sortedBy { it.key.name }.map { (category, keys) ->
             val guide = RecordBasedReviewedPolicy.badminton(category)
@@ -200,6 +222,8 @@ internal object C22BadmintonTaskAuthorityCensus {
                 .put("canonicalTaskMapping", "NONE_APPROVED")
                 .put("authorityClassification", "LEGACY_CATEGORY_GUIDANCE_AND_PERFORMANCE_FALLBACK_NOT_CANONICAL_TASK_B6")
         })
+        val beforeMaterialRows = preC22CMaterializedTaskRows ?: JSONArray(materialRows)
+        aggregate["materializedTaskRowsBefore"] = beforeMaterialRows.length()
         val taskMatrix = JSONArray(tasks.map { task ->
             val rows = targetRows.filter { it.getString("task") == task }
             val selected = ownerRows.filter { it.getString("task") == task }
@@ -224,15 +248,16 @@ internal object C22BadmintonTaskAuthorityCensus {
             .put("schema", "c22-badminton-task-authority-census-v1")
             .put("baselineMain", "3af7c7c7d96923b6218f4466506a278c3ac76f7f")
             .put("startHead", "3af7c7c7d96923b6218f4466506a278c3ac76f7f")
-            .put("versions", JSONObject().put("protocol", "3.56.0")
-                .put("runtime", "RECORD_BASED_PLANNER_0.14.8_KOTLIN_1").put("app", "0.5.1.5"))
-            .put("policyConclusion", "NO_EXECUTABLE_TASK_AUTHORITY; REMOVE_UNAUTHORIZED_B5_TASK_MATERIALIZATION")
+            .put("versions", JSONObject().put("protocol", "3.57.0")
+                .put("runtime", "RECORD_BASED_PLANNER_0.14.9_KOTLIN_1").put("app", "0.5.1.5"))
+            .put("policyConclusion", "NO_EXECUTABLE_TASK_AUTHORITY; UNAUTHORIZED_B5_TASK_MATERIALIZATION_REMOVED")
             .put("counts", JSONObject(aggregate as Map<*, *>))
+            .put("buildAccounting", buildAccounting)
             .put("taskMatrix", taskMatrix)
             .put("reviewedGuides", guideRows)
             .put("cases", caseRows)
             .put("ownerTaskMatrix", JSONArray(ownerRows.sortedWith(compareBy({ it.getString("case") }, { it.getString("stableKey") }, { it.getString("selectionRole") }, { it.getString("task") }))))
-            .put("materializedTaskRowsBefore", preC22CMaterializedTaskRows ?: JSONArray(materialRows))
+            .put("materializedTaskRowsBefore", beforeMaterialRows)
             .put("materializedTaskRowsAfter", JSONArray(materialRows.sortedWith(compareBy({ it.getString("case") }, { it.getInt("week") }, { it.getInt("day") }, { it.getInt("order") }, { it.getString("stableKey") }))))
             .put("routeSnapshot", JSONObject().apply {
                 val counts = records.mapNotNull { it.second?.routeDecision?.selectedSource?.name }.groupingBy { it }.eachCount()
@@ -248,6 +273,7 @@ internal object C22BadmintonTaskAuthorityCensus {
                 put("CHANGE_PROVENANCE_UNCLOSED", reasons["CHANGE_PROVENANCE_UNCLOSED"] ?: 0)
                 put("AFFECTED_TARGET_REMAINS_UNMET", reasons["AFFECTED_TARGET_REMAINS_UNMET"] ?: 0)
                 put("TARGET_REGRESSED", reasons["TARGET_REGRESSED"] ?: 0)
+                put("COLLATERAL_TARGET_REGRESSION", reasons["COLLATERAL_TARGET_REGRESSION"] ?: 0)
             })
             .put("powerRegression", JSONObject().put("numericPowerAuthority", 0)
                 .put("powerB6Executable", 0).put("powerMaterialRows", 0))

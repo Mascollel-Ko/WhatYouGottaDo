@@ -8,6 +8,7 @@ import org.junit.Test
 
 class CanonicalB5B6MaterialDemandBoundaryTest {
     private val powerOwner = StimulusPrescriptionOwnerIdentity("ex_314df428", "CANONICAL_STIMULUS_QUALITY_POWER")
+    private val taskOwner = StimulusPrescriptionOwnerIdentity("ex_33841b88", "CANONICAL_STIMULUS_TASK_ACCELERATION")
     private val unrelatedLegacyOwner = StimulusPrescriptionOwnerIdentity("legacy_drill", "PERFORMANCE_CONTINUITY")
 
     private fun item(owner: StimulusPrescriptionOwnerIdentity, material: Boolean = true) = PlannedExercise(
@@ -88,5 +89,47 @@ class CanonicalB5B6MaterialDemandBoundaryTest {
 
         assertEquals(listOf(nonMaterial), filtered.candidates)
         assertFalse(filtered.deferred.containsKey("${powerOwner.stableKey}#${powerOwner.selectionRole}"))
+    }
+
+    @Test
+    fun selectedTaskOwnerWithoutTaskB6IsDeferredBeforeLegacyFallbackMaterialization() {
+        val selectedTask = item(taskOwner)
+        val unrelated = item(unrelatedLegacyOwner)
+
+        val filtered = filterCanonicalB5TaskDemandWithoutExecutableB6(
+            demand(selectedTask, unrelated), setOf(taskOwner)
+        )
+
+        assertEquals(listOf(unrelated), filtered.candidates)
+        assertEquals(
+            CanonicalB5TaskMaterialDemandDeferral.NO_EXECUTABLE_TASK_B6_AUTHORITY.reasonCode,
+            filtered.deferred["${taskOwner.stableKey}#${taskOwner.selectionRole}"]
+        )
+        assertEquals(filtered.deferred, filtered.audit)
+    }
+
+    @Test
+    fun taskB5OwnerDoesNotTransferToSameStableKeyWithDifferentRole() {
+        val otherRole = item(taskOwner.copy(selectionRole = "CANONICAL_STIMULUS_QUALITY_POWER"))
+
+        val filtered = filterCanonicalB5TaskDemandWithoutExecutableB6(
+            demand(otherRole), setOf(taskOwner)
+        )
+
+        assertEquals(listOf(otherRole), filtered.candidates)
+        assertTrue(filtered.deferred.isEmpty())
+    }
+
+    @Test
+    fun taskB5DeferralLeavesNonMaterialDemandAndUnselectedTaskOwnersAlone() {
+        val nonMaterialSelected = item(taskOwner, material = false)
+        val unselectedTask = item(StimulusPrescriptionOwnerIdentity("other_drill", "CANONICAL_STIMULUS_TASK_FOOTWORK"))
+
+        val filtered = filterCanonicalB5TaskDemandWithoutExecutableB6(
+            demand(nonMaterialSelected, unselectedTask), setOf(taskOwner)
+        )
+
+        assertEquals(listOf(nonMaterialSelected, unselectedTask), filtered.candidates)
+        assertTrue(filtered.deferred.isEmpty())
     }
 }

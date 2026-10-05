@@ -210,7 +210,7 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(0, c19Routes.getInt("COMBINED"))
         assertEquals(11, c19Routes.getInt("b7ProvenanceUnclosed"))
         assertEquals(9, c19Routes.getInt("b7TargetUnmet"))
-        assertEquals(1, c19Routes.getInt("b7TargetRegressed"))
+        assertEquals(2, c19Routes.getInt("b7TargetRegressed"))
         java.io.File("build/reports/c19-program-lineage-incumbent-placement-census.json").writeText(c19Census)
         val c20Census = C20LiveIncumbentStabilityCensus.render(
             c18Census = c18Census,
@@ -272,21 +272,26 @@ class StimulusProductionCoverageAuditTest {
         val c21B7 = c21Json.getJSONObject("b7ReasonOccurrences")
         assertEquals(11, c21B7.getInt("CHANGE_PROVENANCE_UNCLOSED"))
         assertEquals(9, c21B7.getInt("AFFECTED_TARGET_REMAINS_UNMET"))
-        assertEquals(1, c21B7.getInt("TARGET_REGRESSED"))
+        assertEquals(2, c21B7.getInt("TARGET_REGRESSED"))
         val c21C20 = c21Json.getJSONObject("c20LiveIncumbentFeasibility")
         assertEquals(12, c21C20.getInt("HARD_VALID"))
         assertEquals(0, c21C20.getInt("HARD_INVALID"))
         assertEquals(20, c21C20.getInt("UNRESOLVED"))
         assertEquals(12, c21C20.getInt("preservedHardValidRows"))
         assertEquals(0, c21C20.getInt("hardInvalidOrUnresolvedForcedPreserved"))
+        val c22PreC22CMaterializedTaskRows = javaClass.classLoader!!
+            .getResourceAsStream("c22-task-materialization-before-authority-filter.json")!!
+            .bufferedReader().use { org.json.JSONArray(it.readText()) }
         val c22TaskCensus = C22BadmintonTaskAuthorityCensus.render(
             records = records,
             planningByCase = canonicalPlanningByCase,
             contextByCase = productionContextByCase,
-            metadataRepository = canonicalMetadataRepository
+            metadataRepository = canonicalMetadataRepository,
+            preC22CMaterializedTaskRows = c22PreC22CMaterializedTaskRows
         )
         assertEquals(c22TaskCensus, C22BadmintonTaskAuthorityCensus.render(
-            records.reversed(), canonicalPlanningByCase, productionContextByCase, canonicalMetadataRepository
+            records.reversed(), canonicalPlanningByCase, productionContextByCase, canonicalMetadataRepository,
+            c22PreC22CMaterializedTaskRows
         ))
         java.io.File("build/reports/c22-badminton-task-authority-census.json").writeText(c22TaskCensus)
         val c22 = org.json.JSONObject(c22TaskCensus)
@@ -304,24 +309,42 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(0, c22Counts.getInt("reviewedStarterAuthorities"))
         assertEquals(0, c22Counts.getInt("fullyEncodedTaskAuthorities"))
         assertEquals(4, c22Counts.getInt("materializedTaskRowsBefore"))
+        assertEquals(0, c22Counts.getInt("materializedTaskRowsAfter"))
         assertEquals(1, c22Counts.getInt("blockedPerSide"))
         assertEquals(4, c22Counts.getInt("blockedRange"))
         assertEquals(24, c22Counts.getInt("blockedFrequency"))
         assertEquals(5, c22Counts.getInt("blockedCategoryMismatch"))
         assertEquals(6, c22.getJSONArray("taskMatrix").length())
         assertEquals(4, c22.getJSONArray("materializedTaskRowsBefore").length())
-        assertEquals(4, c22.getJSONArray("materializedTaskRowsAfter").length())
+        assertEquals(0, c22.getJSONArray("materializedTaskRowsAfter").length())
+        assertEquals(0, records.mapNotNull { it.second?.comparison?.experimental }
+            .sumOf { program -> program.items.count { it.selectionRole.startsWith("CANONICAL_STIMULUS_TASK_") } })
         assertEquals(19, c22.getJSONObject("routeSnapshot").getInt("CONTROL"))
         assertEquals(1, c22.getJSONObject("routeSnapshot").getInt("STRENGTH_V1"))
         assertEquals(2, c22.getJSONObject("routeSnapshot").getInt("STRENGTH_CALIBRATION_V1"))
         assertEquals(11, c22.getJSONObject("b7ReasonOccurrences").getInt("CHANGE_PROVENANCE_UNCLOSED"))
         assertEquals(9, c22.getJSONObject("b7ReasonOccurrences").getInt("AFFECTED_TARGET_REMAINS_UNMET"))
-        assertEquals(1, c22.getJSONObject("b7ReasonOccurrences").getInt("TARGET_REGRESSED"))
+        assertEquals(2, c22.getJSONObject("b7ReasonOccurrences").getInt("TARGET_REGRESSED"))
+        assertEquals(1, c22.getJSONObject("b7ReasonOccurrences").getInt("COLLATERAL_TARGET_REGRESSION"))
+        val c22BuildProfile = c22.getJSONObject("buildAccounting").getJSONArray("generatedCaseProfiles")
+        assertEquals(1, c22BuildProfile.length())
+        assertEquals(22, c22BuildProfile.getJSONObject(0).getInt("cases"))
+        assertEquals(1, c22BuildProfile.getJSONObject(0).getInt("CONTROL"))
+        assertEquals(1, c22BuildProfile.getJSONObject(0).getInt("EXPERIMENTAL"))
+        assertEquals(2, c22BuildProfile.getJSONObject(0).getInt("TOTAL"))
+        assertEquals(0, c22BuildProfile.getJSONObject(0).getInt("THIRD"))
         val c22Persona3Recent = c22.getJSONArray("cases").let { rows ->
             (0 until rows.length()).map(rows::getJSONObject).single { it.getString("case") == "persona3_recent" }
         }
         assertEquals(2, c22Persona3Recent.getJSONArray("selectedTaskOwners").length())
         assertEquals("CONTROL", c22Persona3Recent.getString("route"))
+        val regressedPersona3Tasks = (0 until c22Persona3Recent.getJSONObject("b7").getJSONArray("targetOutcomes").length())
+            .map { c22Persona3Recent.getJSONObject("b7").getJSONArray("targetOutcomes").getJSONObject(it) }
+            .filter { it.getString("status") == "REGRESSED" }
+            .map { it.getString("targetId") }.toSet()
+        assertEquals(setOf(
+            "TASK:ACCELERATION", "TASK:DECELERATION", "TASK:FOOTWORK", "TASK:LUNGE_REACH", "TASK:REACTION"
+        ), regressedPersona3Tasks)
         val c22LegacyRows = c22.getJSONArray("materializedTaskRowsBefore")
         assertTrue((0 until c22LegacyRows.length()).map(c22LegacyRows::getJSONObject)
             .all { it.getString("authority") == "NO_EXACT_TASK_B6; LEGACY_PERFORMANCE_FALLBACK" })
@@ -358,7 +381,7 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(0, c20Routes.getInt("B8_STRENGTH_HYPERTROPHY_V1"))
         assertEquals(11, c20Routes.getInt("b7ProvenanceUnclosed"))
         assertEquals(9, c20Routes.getInt("b7TargetUnmet"))
-        assertEquals(1, c20Routes.getInt("b7TargetRegressed"))
+        assertEquals(2, c20Routes.getInt("b7TargetRegressed"))
         val c20CaseRows = org.json.JSONObject(c20Census).getJSONArray("caseRows")
         fun c20Case(name: String) = (0 until c20CaseRows.length()).map { c20CaseRows.getJSONObject(it) }
             .single { it.getString("case") == name }
@@ -466,11 +489,11 @@ class StimulusProductionCoverageAuditTest {
         })
         assertEquals(5, c15.getJSONArray("fiveC13RepRangeCases").length())
         assertEquals(8, c15.getJSONArray("directionOnlyStrengthCases").length())
-        assertEquals("5BD1E9430352618C6C42F399ED28B8A065908CEDCA8F4448924BD9301CB44BD1",
+        assertEquals("4467C1510A07BBE901042E112D68826CD054384C023FCB07DEB3859D043C3EF8",
             c15.getString("standardCoverageSha256"))
         assertEquals(11, c15.getJSONObject("corpus").getJSONObject("B7ReasonOccurrences").getInt("CHANGE_PROVENANCE_UNCLOSED"))
         assertEquals(9, c15.getJSONObject("corpus").getJSONObject("B7ReasonOccurrences").getInt("AFFECTED_TARGET_REMAINS_UNMET"))
-        assertEquals(1, c15.getJSONObject("corpus").getJSONObject("B7ReasonOccurrences").getInt("TARGET_REGRESSED"))
+        assertEquals(2, c15.getJSONObject("corpus").getJSONObject("B7ReasonOccurrences").getInt("TARGET_REGRESSED"))
         val calibrationCase = c15.getJSONArray("cases").let { rows ->
             (0 until rows.length()).map(rows::getJSONObject).single { it.getString("caseId") == "persona2_reviewed" }
         }
@@ -501,7 +524,7 @@ class StimulusProductionCoverageAuditTest {
             .groupingBy { it }.eachCount()
         assertEquals(11, b7ReasonCounts["CHANGE_PROVENANCE_UNCLOSED"])
         assertEquals(9, b7ReasonCounts["AFFECTED_TARGET_REMAINS_UNMET"])
-        assertEquals(1, b7ReasonCounts["TARGET_REGRESSED"])
+        assertEquals(2, b7ReasonCounts["TARGET_REGRESSED"])
     }
 
     private fun assertC9CorpusBoundaries(records: List<Pair<CoverageSpec, StimulusProductionGenerationResult?>>) {

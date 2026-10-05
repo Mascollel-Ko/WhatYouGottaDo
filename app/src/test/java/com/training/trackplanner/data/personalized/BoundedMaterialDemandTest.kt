@@ -41,7 +41,8 @@ class BoundedMaterialDemandTest {
         return method.invoke(PersonalizedProgramBuilder(), snapshot, state, gaps, BlockIntentPlanner().decide(state,gaps),
             request.durationWeeks, request, PersonalizedPlanningAnswers(), null, true, frequency,
             null, f.envelope(capacity), PersonalizedPrescriptionPlanner(), PersonalizedPlannerProgressReporter.NONE,
-            PlannerPerformanceMetrics(), if (experimental) null else demand, if (experimental) regional else null, emptySet<StimulusPrescriptionOwnerIdentity>(), null) as GeneratedProgramSkeleton
+            PlannerPerformanceMetrics(), if (experimental) null else demand, if (experimental) regional else null,
+            emptySet<StimulusPrescriptionOwnerIdentity>(), emptySet<StimulusPrescriptionOwnerIdentity>(), null) as GeneratedProgramSkeleton
     }
     private fun units(plan: GeneratedProgramSkeleton, role: String) = plan.items.filter {
         it.weekNumber==1 && it.selectionRole==role }.sumOf { it.setPrescriptions.size }
