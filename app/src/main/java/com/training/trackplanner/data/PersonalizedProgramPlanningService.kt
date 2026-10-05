@@ -470,6 +470,9 @@ internal class PersonalizedProgramPlanningService(
                 canonicalB5PowerOwnerIdentities = selectionPlan.selectedCandidates
                     .filter { "QUALITY:POWER" in it.coveredTargetIds }
                     .mapTo(linkedSetOf()) { com.training.trackplanner.data.personalized.StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) },
+                canonicalB5TaskOwnerIdentitiesWithoutExecutableB6 = selectionPlan.selectedCandidates
+                    .filter { candidate -> candidate.coveredTargetIds.any { it.startsWith("TASK:") } }
+                    .mapTo(linkedSetOf()) { com.training.trackplanner.data.personalized.StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) },
                 canonicalFailureEmitter = { reason, detailCode ->
                     throw StimulusCanonicalEvaluationFailure(reason, detailCode)
                 }
@@ -849,7 +852,10 @@ internal class PersonalizedProgramPlanningService(
                 com.training.trackplanner.data.personalized.PlanningFrequencySource.EXPLICIT_USER,
             frequency = prepared.resolvedRequest.frequencyProvenance,
             progress = progress,
-            materialDemandOverride = selectionPlan.materialDemand
+            materialDemandOverride = selectionPlan.materialDemand,
+            canonicalB5TaskOwnerIdentitiesWithoutExecutableB6 = selectionPlan.selectedCandidates
+                .filter { candidate -> candidate.coveredTargetIds.any { it.startsWith("TASK:") } }
+                .mapTo(linkedSetOf()) { com.training.trackplanner.data.personalized.StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }
         )
         val experimentalFinalAudit = FinalStimulusNeedAudit().audit(experimental, snapshot, physicalQualityCatalog)
         val experimentalAudit = StimulusTargetControlProgramAuditEngine().audit(
@@ -965,6 +971,9 @@ internal class PersonalizedProgramPlanningService(
                 exactPrescriptionAuthorizationProvider = authorizationPlan.provider(),
                 canonicalB5PowerOwnerIdentities = selectionPlan.selectedCandidates
                     .filter { "QUALITY:POWER" in it.coveredTargetIds }
+                    .mapTo(linkedSetOf()) { com.training.trackplanner.data.personalized.StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) },
+                canonicalB5TaskOwnerIdentitiesWithoutExecutableB6 = selectionPlan.selectedCandidates
+                    .filter { candidate -> candidate.coveredTargetIds.any { it.startsWith("TASK:") } }
                     .mapTo(linkedSetOf()) { com.training.trackplanner.data.personalized.StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) },
                 canonicalFailureEmitter = { reason, detailCode ->
                     throw StimulusCanonicalEvaluationFailure(reason, detailCode)
