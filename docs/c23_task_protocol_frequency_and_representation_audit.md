@@ -4,13 +4,15 @@
 
 C23 starts from the merged C22 main commit `392b6e6346ea08b9fc92f61ae99fd99b401793b2`. C22 had already removed the four legacy task rows without exact task B6 authority. This phase adds exact protocol-binding and weekly-frequency authority types, represents reviewed guide shapes losslessly, and evaluates task-authority completeness in shadow. It does not materialize task rows or change B7/B8 routing.
 
+The C23 implementation/test commit is `79cf8614131cdecc50d7685da9f0faee2e9051da`; it is the protocol's `lastAuditedCommit`. The final documentation HEAD is recorded in the PR and completion report after the final docs-only update.
+
 The corpus contains 132 task targets across 22 generated cases in the 27-case corpus; 24 targets remain direction-only. There are two exact B5 owner rows, five exact owner-role-task relationships after reused target coverage is accounted for, and two distinct owner-role identities. None of the 132 targets has a complete task authority. The result is 0 complete, 132 incomplete, 0 conflicting; no task material rows are produced.
 
 The machine-readable, deterministically ordered census is [c23-task-protocol-frequency-representation-census.json](c23-task-protocol-frequency-representation-census.json). It includes all target rows, exact reviewed category membership, canonical task relations, guide shapes, frequency decisions, three real-case dossiers, C20 regression state, routes, B7 summary, and build accounting.
 
 ## Exact protocol mapping
 
-The code now requires a binding keyed by the exact `stableKey`, `selectionRole`, canonical task, and reviewed category. A category label or direct relation alone cannot create a binding. The repository has no approved exact task-protocol binding, so every task has `NO_APPROVED_PROTOCOL_BINDING`; no label mapping was inferred.
+The code now requires a binding keyed by the exact `stableKey`, `selectionRole`, canonical task, and reviewed category. A category label or direct relation alone cannot create a binding. A reviewed binding may carry `weeklySessions` only when the approved protocol explicitly owns that numeric frequency; the reviewed-frequency value object rejects any value that does not exactly match its binding. The repository has no approved exact task-protocol binding, so every task has `NO_APPROVED_PROTOCOL_BINDING`; no label mapping was inferred.
 
 | Canonical task | Targets | Direction-only | Reviewed protocol result | Finding |
 |---|---:|---:|---|---|
@@ -36,7 +38,7 @@ These are exact policy membership and legacy category guide facts. They do not e
 
 ## Frequency authority
 
-No reviewed guide states sessions per week, and no existing B4 task target carries numeric weekly frequency. Default available weekdays describe scheduling availability only. They are not used as frequency authority.
+No reviewed guide states sessions per week, and no existing B4 task target carries numeric weekly frequency. Default available weekdays describe scheduling availability only. They are not used as frequency authority. The type boundary requires a reviewed frequency to be present on the exact protocol binding itself, so a within-session guide cannot be manually paired with an unrelated numeric sessions/week value.
 
 The new personal-frequency resolver accepts completed, direct task observations only for the exact `(stableKey, selectionRole, task)`. It requires at least two eligible completed weeks and two direct-exposure weeks, and it fails with `CONFLICT` if weekly session counts differ or duplicate week evidence disagrees. This is a conservative, typed evidence rule; it cannot infer a numeric count from sets, reps, duration, court exposure, another owner, or another role. No real corpus owner has matching persisted direct task history, so personal authorities are 0; reviewed frequency authorities are also 0. All 132 target rows have no numeric frequency authority.
 
@@ -63,17 +65,17 @@ For the six tasks, each has 22 corpus targets and four direction-only targets. E
 
 ### `ex_33841b88`
 
-This exact stable key is reviewed in category STEP and the selected B5 role is `CANONICAL_STIMULUS_TASK_ACCELERATION`. Its canonical relations are DIRECT for ACCELERATION, DECELERATION, FOOTWORK, and REACTION in the real `persona3_recent` case. ACCELERATION is its primary selection; DECELERATION, FOOTWORK, and REACTION are reused coverage. Reuse does not create protocol authority. The STEP guide is 3 rounds × 10–20 seconds with 60 seconds rest. The range is represented losslessly, but there is no approved STEP-to-task binding, weekly-frequency authority, load mode, or activity-kind context. Completeness is INCOMPLETE for each of the four task attributions.
+This exact stable key is reviewed in category STEP and the selected B5 role is `CANONICAL_STIMULUS_TASK_ACCELERATION`. Its canonical relations are DIRECT for ACCELERATION, DECELERATION, FOOTWORK, and REACTION in the real `persona3_recent` case. ACCELERATION is its primary selection; DECELERATION, FOOTWORK, and REACTION are reused coverage. Reuse does not create protocol authority. The STEP guide is 3 rounds × 10–20 seconds with 60 seconds rest. The range is represented losslessly, but there is no approved STEP-to-task binding, weekly-frequency authority, load mode, or activity-kind context. Exact personal direct task observations are 0 and the historical selection role is unavailable. Completeness is INCOMPLETE for each of the four task attributions.
 
 ### `ex_421ba24b`
 
-This exact stable key is reviewed in category DECELERATION and has B5 role `CANONICAL_STIMULUS_TASK_LUNGE_REACH`. Its LUNGE_REACH relation is DIRECT in `persona3_recent`, where LUNGE_REACH is the primary selection. The DECELERATION guide shape is 3 × 5 reps/side with 75 seconds rest. Per-side semantics are now represented losslessly; they are not converted to total reps. No approved DECELERATION-to-LUNGE_REACH binding, weekly-frequency authority, load mode, or activity-kind context exists, so task authority remains INCOMPLETE.
+This exact stable key is reviewed in category DECELERATION and has B5 role `CANONICAL_STIMULUS_TASK_LUNGE_REACH`. Its LUNGE_REACH relation is DIRECT in `persona3_recent`, where LUNGE_REACH is the primary selection. The DECELERATION guide shape is 3 × 5 reps/side with 75 seconds rest. Per-side semantics are now represented losslessly; they are not converted to total reps. Exact personal direct task observations are 0 and the historical selection role is unavailable. No approved DECELERATION-to-LUNGE_REACH binding, weekly-frequency authority, load mode, or activity-kind context exists, so task authority remains INCOMPLETE.
 
 ### Real corpus cases
 
-- `persona3_recent` has six task targets and two primary B5 owner rows. `ex_33841b88` is selected for ACCELERATION and reused for DECELERATION, FOOTWORK, and REACTION; `ex_421ba24b` is selected for LUNGE_REACH. JUMP_LANDING has no selected owner. All six task targets remain direction-only and incomplete. Its four pre-C22 task-shaped rows came from legacy fallback sources `CANONICAL_PROGRAM_8_2_57` and `CANONICAL_PROGRAM_3_1_7`, with 5 × 18 seconds and 4 × 15 seconds respectively. Those rows had no exact task B6 authority and remain removed: before 4, after 0.
-- `persona3_reviewed` has six direction-only task targets and no exact B5 task owner rows; all remain incomplete. Its route remains CONTROL.
-- `persona3_mixed` has six direction-only task targets and no exact B5 task owner rows; task material remains 0. The existing route is Strength Calibration under its separate Strength authority; no task route is asserted.
+- `persona3_recent` has six moderate-relevance DEVELOP task targets and two primary B5 owner rows. `ex_33841b88` is selected for ACCELERATION and reused for DECELERATION, FOOTWORK, and REACTION; `ex_421ba24b` is selected for LUNGE_REACH. JUMP_LANDING has no selected owner. All six B4 targets are direction-only and all six authorities remain incomplete. Its four pre-C22 task-shaped rows came from legacy fallback sources `CANONICAL_PROGRAM_8_2_57` and `CANONICAL_PROGRAM_3_1_7`, with 5 × 18 seconds and 4 × 15 seconds respectively. Those rows had no exact task B6 authority and remain removed: before 4, after 0. B7 is `NOT_ELIGIBLE` for unmet targets, unclosed provenance, collateral regression, and target regression; B8 remains `CONTROL_REQUIRED` (`B8_B7_NOT_ELIGIBLE`).
+- `persona3_reviewed` has six moderate-relevance DEVELOP, direction-only task targets and no exact B5 task owner rows; all remain incomplete. B7 is eligible for future cutover review, but B8 remains `CONTROL_REQUIRED` for empty material authority, prescription change without exact B6, incomplete provenance, missing full B6 materialization, unrelated comparator mutation, and upstream inconsistency. Its route remains CONTROL.
+- `persona3_mixed` has six moderate-relevance DEVELOP, direction-only task targets and no exact B5 task owner rows; task material remains 0. B7 is eligible and the existing `B8_STRENGTH_CALIBRATION_V1` route is authorized under its separate Strength authority. Task authority contributes no material or route authority.
 
 ## Safety and regression boundaries
 
@@ -85,7 +87,7 @@ This exact stable key is reviewed in category DECELERATION and has B5 role `CANO
 - Build accounting remains one CONTROL plus one EXPERIMENTAL build, two total, zero third builds; preflight is zero.
 - CONTROL output is not an input to protocol mapping, personal frequency, shape construction, or completeness. The census perturbation test verifies invariant task authorities and EXP output when comparator rows are changed.
 
-Protocol is 3.58.0 and runtime is `RECORD_BASED_PLANNER_0.15.0_KOTLIN_1`; app remains 0.5.1.5. The protocol/runtime contract was bumped because typed task protocol/frequency and prescription-shape contracts were added. No Room migration was made. `lastAuditedCommit` is set in the protocol registry after the implementation/test commit is created.
+Protocol is 3.58.0 and runtime is `RECORD_BASED_PLANNER_0.15.0_KOTLIN_1`; app remains 0.5.1.5. The protocol/runtime contract was bumped because typed task protocol/frequency and prescription-shape contracts were added. No Room migration was made.
 
 ## C24 prerequisites
 
