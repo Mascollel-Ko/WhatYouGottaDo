@@ -124,6 +124,7 @@ jobs:
             app/build/reports/c18-tissue-incumbent-placement-census.json
             app/build/reports/c19-program-lineage-incumbent-placement-census.json
             app/build/reports/c20-live-incumbent-stability-census.json
+            app/build/reports/c23-task-protocol-frequency-representation-census.json
             app/build/test-results/testDebugUnitTest/*.xml
           if-no-files-found: warn
 

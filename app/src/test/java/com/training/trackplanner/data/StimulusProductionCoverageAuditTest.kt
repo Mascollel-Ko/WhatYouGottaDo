@@ -353,6 +353,72 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(0, c22.getJSONObject("powerRegression").getInt("numericPowerAuthority"))
         assertEquals(0, c22.getJSONObject("powerRegression").getInt("powerB6Executable"))
         assertEquals(0, c22.getJSONObject("powerRegression").getInt("powerMaterialRows"))
+        val c23TaskCensus = C23TaskProtocolFrequencyCensus.render(
+            c22Census = c22TaskCensus,
+            metadataRepository = canonicalMetadataRepository,
+            c20Census = c20Census
+        )
+        assertEquals(c23TaskCensus, C23TaskProtocolFrequencyCensus.render(
+            c22TaskCensus, canonicalMetadataRepository, c20Census
+        ))
+        java.io.File("build/reports/c23-task-protocol-frequency-representation-census.json").writeText(c23TaskCensus)
+        val c23 = org.json.JSONObject(c23TaskCensus)
+        val c23Counts = c23.getJSONObject("counts")
+        assertEquals(27, c23Counts.getInt("corpusCases"))
+        assertEquals(132, c23Counts.getInt("taskTargetsTotal"))
+        assertEquals(24, c23Counts.getInt("directionOnlyTargets"))
+        assertEquals(2, c23Counts.getInt("exactB5TaskOwnerRows"))
+        assertEquals(2, c23Counts.getInt("uniqueTaskOwners"))
+        assertEquals(5, c23Counts.getInt("exactB5OwnerTaskPairs"))
+        assertEquals(5, c23Counts.getInt("directTaskRelations"))
+        assertEquals(0, c23Counts.getInt("supportiveTaskRelations"))
+        assertEquals(0, c23Counts.getInt("exactProtocolBindings"))
+        assertEquals(132, c23Counts.getInt("missingProtocolBindings"))
+        assertEquals(0, c23Counts.getInt("conflictingProtocolBindings"))
+        assertEquals(0, c23Counts.getInt("personalFrequencyAuthorities"))
+        assertEquals(0, c23Counts.getInt("reviewedFrequencyAuthorities"))
+        assertEquals(132, c23Counts.getInt("missingFrequencyAuthorities"))
+        assertEquals(0, c23Counts.getInt("existingB4NumericFrequencyTargets"))
+        assertEquals(0, c23Counts.getInt("completeTaskAuthorities"))
+        assertEquals(132, c23Counts.getInt("incompleteTaskAuthorities"))
+        assertEquals(0, c23Counts.getInt("conflictingTaskAuthorities"))
+        assertEquals(0, c23Counts.getInt("materializedTaskRows"))
+        assertEquals(2, c23Counts.getInt("perSideRepresentable"))
+        assertEquals(2, c23Counts.getInt("durationRangeRepresentable"))
+        assertEquals(2, c23Counts.getInt("repRangeRepresentable"))
+        val c23Mappings = c23.getJSONObject("taskProtocolBindings").getJSONArray("taskOutcomes")
+        assertEquals(6, c23Mappings.length())
+        assertTrue((0 until c23Mappings.length()).all {
+            c23Mappings.getJSONObject(it).getString("reviewedProtocolOutcome") == "NO_APPROVED_PROTOCOL_BINDING"
+        })
+        assertEquals(0, c23.getJSONArray("taskMaterialRowsAfter").length())
+        assertEquals(0, c23.getJSONObject("powerInvariant").getInt("numericAuthority"))
+        assertEquals(0, c23.getJSONObject("powerInvariant").getInt("executableB6"))
+        assertEquals(0, c23.getJSONObject("powerInvariant").getInt("materialRows"))
+        assertEquals(12, c23.getJSONObject("c20IncumbentRegression").getInt("HARD_VALID"))
+        assertEquals(0, c23.getJSONObject("c20IncumbentRegression").getInt("HARD_INVALID"))
+        assertEquals(20, c23.getJSONObject("c20IncumbentRegression").getInt("UNRESOLVED"))
+        assertFalse(c23.getJSONObject("productionChanges").getBoolean("taskB6Added"))
+        assertFalse(c23.getJSONObject("productionChanges").getBoolean("badmintonRouteAdded"))
+        val perturbedComparator = org.json.JSONObject(c22TaskCensus)
+        val perturbedCases = perturbedComparator.getJSONArray("cases")
+        for (index in 0 until perturbedCases.length()) {
+            perturbedCases.getJSONObject(index).put("controlTaskRows", org.json.JSONArray(listOf(
+                org.json.JSONObject().put("stableKey", "control-only-owner-$index")
+                    .put("selectionRole", "CONTROL_ONLY").put("reps", index + 3).put("day", index % 7 + 1)
+            )))
+        }
+        val c23AfterControlPerturbation = org.json.JSONObject(C23TaskProtocolFrequencyCensus.render(
+            perturbedComparator.toString(), canonicalMetadataRepository, c20Census
+        ))
+        assertEquals(c23.getJSONObject("taskProtocolBindings").toString(),
+            c23AfterControlPerturbation.getJSONObject("taskProtocolBindings").toString())
+        assertEquals(c23.getJSONObject("taskFrequencyAuthorities").toString(),
+            c23AfterControlPerturbation.getJSONObject("taskFrequencyAuthorities").toString())
+        assertEquals(c23.getJSONObject("taskPrescriptionRepresentations").toString(),
+            c23AfterControlPerturbation.getJSONObject("taskPrescriptionRepresentations").toString())
+        assertEquals(c23.getJSONArray("taskAuthorityCompleteness").toString(),
+            c23AfterControlPerturbation.getJSONArray("taskAuthorityCompleteness").toString())
         assertEquals(c20Census, C20LiveIncumbentStabilityCensus.render(
             c18Census = c18Census,
             records = records.reversed(),

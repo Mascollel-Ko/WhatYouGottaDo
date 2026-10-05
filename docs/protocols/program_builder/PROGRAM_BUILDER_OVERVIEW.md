@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.57.0 |
+| Protocol version | 3.58.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.14.7 |
+| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.0 |
 | Last audited commit | ba63aba9c7c5a26c4850d7036a4d97baca20de1d |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
@@ -1315,3 +1315,12 @@ Post-audit boundary notes
 - Protocol/runtime/app are `3.57.0` / `RECORD_BASED_PLANNER_0.14.9_KOTLIN_1` / `0.5.1.5`. Standard production coverage SHA-256 is `4467C1510A07BBE901042E112D68826CD054384C023FCB07DEB3859D043C3EF8`, reflecting removal of the four unauthorized task rows. No Room migration is required.
 - `lastAuditedCommit` is `ba63aba9c7c5a26c4850d7036a4d97baca20de1d`, which adds a persona3_recent CONTROL task-row perturbation test and asserts identical B4/B5/EXPERIMENTAL task results.
 - C22's exact task matrix, legacy-row before/after census, route/B7 snapshot, and rationale are recorded in [`docs/c22_badminton_task_prescription_authority_audit.md`](../../c22_badminton_task_prescription_authority_audit.md) and [`docs/c22-badminton-task-authority-census.json`](../../c22-badminton-task-authority-census.json).
+
+### Phase C23 — task protocol, frequency, and lossless shape foundation (protocol 3.58.0)
+
+- Task authority now requires an exact owner-role-task-reviewed-category protocol binding. No approved bindings currently exist; canonical relation level, reused target coverage, reviewed category labels, and display-name similarity cannot substitute for one.
+- Task weekly frequency is independently typed. Exact personal evidence requires repeated completed direct observations for the same stableKey, selectionRole, and task with stable sessions/week; reviewed within-session guides do not imply weekly frequency. No corpus task has numeric frequency authority.
+- Reviewed within-session guide shapes now have lossless typed forms for repetitions, repetitions per side, duration/ranges, repetition ranges, set/round count, rest, optional RPE, and explicit load/activity context. Existing category guide shapes lack load/activity context and remain non-executable.
+- C23 evaluates all 132 target rows in shadow: 0 complete, 132 incomplete, 0 conflicts. It emits no task material rows, adds no task B6 or task route, leaves B7/B8 untouched, and keeps Power numeric authority/B6/material rows at zero. C20 incumbent stability remains 12 hard-valid rows preserved, 0 hard-invalid, and 20 unresolved unanchored.
+- The existing saved program set schema is scalar and cannot persist per-side or range semantics. C23 uses transient typed shapes because no task rows are materialized; a C24 production materialization must establish a lossless persistence contract first. No Room, backup, Community, or Cloud schema changed in C23.
+- C23 audit and machine census: [`docs/c23_task_protocol_frequency_and_representation_audit.md`](../../c23_task_protocol_frequency_and_representation_audit.md), [`docs/c23-task-protocol-frequency-representation-census.json`](../../c23-task-protocol-frequency-representation-census.json). Protocol/runtime/app are `3.58.0` / `RECORD_BASED_PLANNER_0.15.0_KOTLIN_1` / `0.5.1.5`; routes remain CONTROL 19 / Strength V1 1 / Strength Calibration 2 / Hypertrophy 0 / Combined 0.
