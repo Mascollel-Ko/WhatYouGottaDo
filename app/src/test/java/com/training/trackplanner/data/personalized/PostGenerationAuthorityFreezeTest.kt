@@ -20,6 +20,8 @@ class PostGenerationAuthorityFreezeTest {
         // it does not change any historical authority for completed, load-resolved sets.
         // C23 adds typed, lossless task-guide shapes beside the existing legacy scalar adapter;
         // the adapter fields and resolver behavior remain byte/field compatible.
+        // C24 adds an exact approved-task prescription branch and task exposure fields before
+        // the builder; legacy prescription branches remain protected by this updated source hash.
         // All unrelated historical, style, numerical and prescription authorities remain frozen.
         val frozen = mapOf(
             // Domain-separated volume and court-deviation trace are the approved
@@ -47,7 +49,7 @@ class PostGenerationAuthorityFreezeTest {
         val builderAuthorities = File(root, "app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt")
             .readText().replace("\r\n", "\n").substringBefore("class PersonalizedProgramBuilder(")
         assertEquals("Continuity, GapCandidateSelector, PersonalizedPrescriptionPlanner, validation and repair stay frozen",
-            "27e9410a3b2663d7cd977f4965c5f70e4871d64becf25f8b4135929ac2ead017",
+            "1a60e30444b6180258f7beae24f61deeb4a6bac9aaf79da5e03483777f2842eb",
             MessageDigest.getInstance("SHA-256").digest(builderAuthorities.toByteArray()).joinToString("") { "%02x".format(it) })
     }
 }

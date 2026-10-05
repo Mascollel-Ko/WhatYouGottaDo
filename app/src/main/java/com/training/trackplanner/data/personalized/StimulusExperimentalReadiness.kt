@@ -28,6 +28,7 @@ enum class StimulusExperimentalChangeAttributionSource {
     B6_EXISTING_OWNER_PRESCRIPTION,
     B6_SAFE_REPAIRED_PRESCRIPTION,
     B6_COLD_START_USER_CALIBRATION,
+    B6_APPROVED_TASK_PROTOCOL,
     DOWNSTREAM_CONSTRAINT_DISPLACEMENT,
     INCONCLUSIVE_DISPLACEMENT,
     UNEXPLAINED
@@ -196,6 +197,50 @@ class StimulusExperimentalReadinessAuditEngine {
             if (!audit.prescriptionPreservedOrSubset) integrityReasons += "B6_PRESCRIPTION_MUTATION"
             if (audit.weeklyAudits.any { !it.prescriptionPreservedOrSubset }) integrityReasons += "B6_PRESCRIPTION_MUTATION"
         }
+        val selectedTaskOwners = comparison.selectionPlan.selectedCandidates
+            .filter { candidate -> candidate.coveredTargetIds.any { it.startsWith("TASK:") } }
+            .associateBy { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }
+        val rowsByOwner = comparison.experimental.items.groupBy {
+            StimulusPrescriptionOwnerIdentity(it.exerciseStableKey, it.selectionRole)
+        }
+        selectedTaskOwners.forEach { (owner, candidate) ->
+            val ownerRows = rowsByOwner[owner].orEmpty()
+            if (ownerRows.isNotEmpty() && ownerRows.any { it.taskProtocolSemanticsJson.isNullOrBlank() }) {
+                integrityReasons += "B6_TASK_PROTOCOL_AUTHORITY_REQUIRED"
+            }
+        }
+        comparison.experimental.items.filter { !it.taskProtocolSemanticsJson.isNullOrBlank() }.forEach { item ->
+            val owner = StimulusPrescriptionOwnerIdentity(item.exerciseStableKey, item.selectionRole)
+            val candidate = selectedTaskOwners[owner]
+            val metadata = runCatching {
+                TaskProtocolExposureMetadata.fromJsonString(requireNotNull(item.taskProtocolSemanticsJson))
+            }.getOrNull()
+            val b4Tasks = comparison.targetPlan.taskTargets.mapNotNullTo(linkedSetOf()) { target ->
+                runCatching { CanonicalTaskTarget.valueOf(target.task) }.getOrNull()
+            }
+            val valid = candidate != null && metadata != null && metadata.matchesMaterializedItem(
+                item = item,
+                actualActivityKind = metadata.authorization.materializationActivityKind,
+                currentB4Tasks = b4Tasks,
+                selectedPrimaryTargetId = candidate.primaryTargetId
+            )
+            if (!valid) integrityReasons += "B6_TASK_PROTOCOL_MATERIALIZATION_FAILURE"
+        }
+        selectedTaskOwners.keys.forEach { owner ->
+            val tagged = rowsByOwner[owner].orEmpty().filter { !it.taskProtocolSemanticsJson.isNullOrBlank() }
+            tagged.groupBy { it.weekNumber }.forEach { (week, rows) ->
+                val metadata = rows.mapNotNull { row -> runCatching {
+                    TaskProtocolExposureMetadata.fromJsonString(requireNotNull(row.taskProtocolSemanticsJson))
+                }.getOrNull() }
+                if (metadata.size != rows.size || metadata.map { it.exposureIndex }.distinct().size != metadata.size ||
+                    metadata.map { it.exposureIndex }.size != metadata.map { it.exposureIndex }.toSet().size ||
+                    metadata.mapIndexed { index, value -> value.exposureIndex to rows[index].dayOfWeek }
+                        .map { it.second }.distinct().size != rows.size ||
+                    metadata.any { it.exposureIndex !in 1..it.authorization.definition.weeklyExposures }) {
+                    integrityReasons += "B6_TASK_PROTOCOL_EXPOSURE_IDENTITY_FAILURE"
+                }
+            }
+        }
         return integrityReasons
     }
 
@@ -251,7 +296,17 @@ class StimulusExperimentalReadinessAuditEngine {
         comparison.addedOwnerIdentities.sortedWith(compareBy({ it.stableKey }, { it.selectionRole })).forEach { identity ->
             val candidate = selected[identity]
             result += if (candidate != null) {
-                StimulusExperimentalChangeAttribution(
+                val taskProtocol = exactTaskProtocolAttributions(comparison, identity, candidate)
+                if (taskProtocol.isNotEmpty()) StimulusExperimentalChangeAttribution(
+                    stableKey = identity.stableKey,
+                    selectionRole = identity.selectionRole,
+                    source = StimulusExperimentalChangeAttributionSource.B6_APPROVED_TASK_PROTOCOL,
+                    targetIds = taskProtocol.flatMap { it.authorization.attributedTasks }.distinct().sortedBy { it.ordinal }
+                        .map { "TASK:${it.name}" },
+                    reasonCodes = listOf("B6_USER_APPROVED_EXACT_TASK_PROTOCOL", "TASK_CREDIT_NON_ADDITIVE"),
+                    evidenceSources = listOf("EXACT_B4_TASK_TARGET", "EXACT_B5_OWNER_ROLE", "USER_APPROVED_PROJECT_POLICY",
+                        "LOSSLESS_TASK_PROTOCOL_SHAPE", "EXPERIMENTAL_MATERIALIZATION_MATCH")
+                ) else StimulusExperimentalChangeAttribution(
                     stableKey = identity.stableKey,
                     selectionRole = identity.selectionRole,
                     source = StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY,
@@ -318,9 +373,11 @@ class StimulusExperimentalReadinessAuditEngine {
             val after = experimentalByIdentity.getValue(identity).map(::prescription)
             if (before == after) return@forEach
             val downstreamTargets = constrainedDownstreamTargetIds(comparison, identity)
+            val taskProtocol = exactTaskProtocolAttributions(comparison, identity, selected[identity])
             val executableAuthorizations = exactExecutableChangeAuthorizations(comparison, identity, selected[identity])
             val source = when {
                 downstreamTargets.isNotEmpty() -> StimulusExperimentalChangeAttributionSource.DOWNSTREAM_CONSTRAINT_DISPLACEMENT
+                taskProtocol.isNotEmpty() -> StimulusExperimentalChangeAttributionSource.B6_APPROVED_TASK_PROTOCOL
                 executableAuthorizations.any { it.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION } ->
                     StimulusExperimentalChangeAttributionSource.B6_COLD_START_USER_CALIBRATION
                 executableAuthorizations.any { it.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR } -> StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION
@@ -334,12 +391,19 @@ class StimulusExperimentalReadinessAuditEngine {
                     listOf("UNEXPLAINED_PRESCRIPTION_CHANGE")
                 source == StimulusExperimentalChangeAttributionSource.B6_COLD_START_USER_CALIBRATION ->
                     listOf("B6_COLD_START_SHAPE_AUTHORITY_LOAD_REQUIRES_USER_INPUT")
+                source == StimulusExperimentalChangeAttributionSource.B6_APPROVED_TASK_PROTOCOL ->
+                    listOf("B6_USER_APPROVED_EXACT_TASK_PROTOCOL", "TASK_CREDIT_NON_ADDITIVE")
                 else -> listOf("B6_AUTHORIZED_PRESCRIPTION_CHANGE")
             }
             result += StimulusExperimentalChangeAttribution(identity.stableKey, identity.selectionRole, source,
-                if (downstreamTargets.isNotEmpty()) downstreamTargets else executableAuthorizations.map { it.targetId }.distinct().sorted(),
+                when {
+                    downstreamTargets.isNotEmpty() -> downstreamTargets
+                    taskProtocol.isNotEmpty() -> taskProtocol.flatMap { it.authorization.attributedTasks }.distinct().sortedBy { it.ordinal }.map { "TASK:${it.name}" }
+                    else -> executableAuthorizations.map { it.targetId }.distinct().sorted()
+                },
                 reasonCodes,
                 if (downstreamTargets.isNotEmpty()) listOf("EXPERIMENTAL_OWNER_CONSTRAINT_TRACE", "CONTROL_PRESCRIPTION_IS_EXACT_SET_SUPERSET")
+                else if (taskProtocol.isNotEmpty()) listOf("EXACT_B4_TASK_TARGET", "EXACT_B5_OWNER_ROLE", "USER_APPROVED_PROJECT_POLICY", "EXPERIMENTAL_MATERIALIZATION_MATCH")
                 else if (executableAuthorizations.isNotEmpty()) listOf("EXACT_B5_OWNER_TARGET_COVERAGE",
                     "EXACT_OWNER_QUALITY_TARGET_AUTHORITY", "EXPERIMENTAL_AUTHORIZED_WEEKLY_SUBSET") else emptyList())
         }
@@ -401,6 +465,43 @@ class StimulusExperimentalReadinessAuditEngine {
             }
             targetId.takeIf { everyChangedSlotProven }
         }.distinct().sorted()
+    }
+
+    private fun exactTaskProtocolAttributions(
+        comparison: StimulusSelectionProgramComparison,
+        identity: StimulusPrescriptionOwnerIdentity,
+        candidate: StimulusSelectedCandidate?
+    ): List<TaskProtocolExposureMetadata> {
+        if (candidate == null || StimulusPrescriptionOwnerIdentity(candidate.stableKey, candidate.selectionRole) != identity ||
+            !candidate.primaryTargetId.startsWith("TASK:")) return emptyList()
+        val rows = comparison.experimental.items.filter {
+            it.exerciseStableKey == identity.stableKey && it.selectionRole == identity.selectionRole
+        }
+        if (rows.isEmpty() || rows.any { it.taskProtocolSemanticsJson.isNullOrBlank() }) return emptyList()
+        val b4Tasks = comparison.targetPlan.taskTargets.mapNotNullTo(linkedSetOf()) { target ->
+            runCatching { CanonicalTaskTarget.valueOf(target.task) }.getOrNull()
+        }
+        val metadata = rows.mapNotNull { row -> runCatching {
+            TaskProtocolExposureMetadata.fromJsonString(requireNotNull(row.taskProtocolSemanticsJson))
+        }.getOrNull() }
+        if (metadata.size != rows.size || rows.indices.any { index ->
+                !metadata[index].matchesMaterializedItem(
+                    item = rows[index],
+                    actualActivityKind = metadata[index].authorization.materializationActivityKind,
+                    currentB4Tasks = b4Tasks,
+                    selectedPrimaryTargetId = candidate.primaryTargetId
+                )
+            }) return emptyList()
+        val definition = metadata.first().authorization.definition
+        if (metadata.any { it.authorization.definition.protocolId != definition.protocolId ||
+                it.authorization.attributedTasks != metadata.first().authorization.attributedTasks }) return emptyList()
+        val perWeek = rows.indices.groupBy { rows[it].weekNumber }
+        if (perWeek.values.any { indices ->
+                val weekMetadata = indices.map(metadata::get)
+                weekMetadata.map { it.exposureIndex }.distinct().size != weekMetadata.size ||
+                    indices.map { rows[it].dayOfWeek }.distinct().size != indices.size
+            }) return emptyList()
+        return metadata
     }
 
     private fun isExactSetPrefixReduction(

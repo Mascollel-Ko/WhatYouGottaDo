@@ -23,7 +23,11 @@ data class PlannedExercise(
     val representedGapCodes: Set<String> = emptySet(),
     val representedObjectives: Set<String> = emptySet(),
     val supportiveObjectives: Set<String> = emptySet(),
-    val material: Boolean = true
+    val material: Boolean = true,
+    /** Exact C24 task B6 grant; null for every non-task or deferred task owner. */
+    val taskProtocolAuthorization: TaskProtocolB6Authorization? = null,
+    /** One-based protocol exposure identity within a week; set only on a scheduled occurrence. */
+    val taskProtocolExposureIndex: Int? = null
 )
 
 class ExerciseContinuityPlanner {
@@ -215,6 +219,27 @@ class PersonalizedPrescriptionPlanner private constructor(private val computatio
         } ?: prescribeUncached(snapshot, strengthIntent, item, style)
 
     private fun prescribeUncached(snapshot: PlanningHistorySnapshot, strengthIntent: StrengthIntent, item: PlannedExercise, style: StrengthProgrammingStyle): PlannedPrescription {
+        item.taskProtocolAuthorization?.let { authorization ->
+            val definition = authorization.definition
+            val shape = definition.shape
+            require(item.stableKey == definition.stableKey && item.role == definition.selectionRole)
+            require(authorization.materializationActivityKind == snapshot.activityKind(item.stableKey))
+            require(shape.loadMode == TaskPrescriptionLoadMode.NO_EXTERNAL_LOAD)
+            val secondsForCapacity = when (shape.mode) {
+                TaskPrescriptionMode.DURATION_SECONDS -> requireNotNull(shape.seconds)
+                TaskPrescriptionMode.DURATION_RANGE_SECONDS -> requireNotNull(shape.maxSeconds)
+                else -> 0
+            }
+            val reps = shape.reps ?: 0
+            val sets = List(shape.setCount) { index -> ProgramSetPrescription(
+                setIndex = index + 1,
+                reps = reps,
+                weightKg = 0.0,
+                seconds = secondsForCapacity,
+                loadState = com.training.trackplanner.data.ProgramLoadState.NOT_APPLICABLE
+            ) }
+            return PlannedPrescription(shape.format(), sets, shape.restSeconds, definition.provenance.name)
+        }
         if (snapshot.activityKind(item.stableKey) in PERFORMANCE_ACTIVITY_KINDS) return PerformancePrescriptionResolver.prescribe(snapshot, item)
         val history = snapshot.allConfirmedSets.filter { it.stableKey == item.stableKey }
         val latestDate = history.maxByOrNull { it.date.toEpochDay() }?.date
@@ -750,20 +775,34 @@ class PersonalizedProgramBuilder(
             }
         } else null
         val exactAuthorized = if (exactPrescriptionAuthorizationProvider != null && authorizedOverride == null && regionalAuthorized == null) {
-            selected.mapIndexedNotNull { index, item ->
-                when (val resolution = exactPrescriptionAuthorizationProvider.resolveOwnerPrescription(item)) {
-                    is ExactOwnerPrescriptionResolution.ExcludeConflictingAddition -> null
-                    is ExactOwnerPrescriptionResolution.PreserveIncumbent ->
-                        AuthorizedSchedulingDemand("authorized_$index", item, resolution.prescription, index < continuity.size)
-                    is ExactOwnerPrescriptionResolution.Authorized ->
-                        AuthorizedSchedulingDemand("authorized_$index", item, resolution.prescription, index < continuity.size)
-                    ExactOwnerPrescriptionResolution.NoExecutableAuthority -> null
-                    ExactOwnerPrescriptionResolution.NoExactAuthority ->
+            selected.flatMapIndexed { index, item ->
+                item.taskProtocolAuthorization?.let { taskAuthorization ->
+                    val exposureIndices = item.taskProtocolExposureIndex?.let(::listOf) ?:
+                        (1..(item.targetSets / taskAuthorization.definition.shape.setCount)
+                            .coerceAtMost(taskAuthorization.definition.weeklyExposures)).toList()
+                    return@flatMapIndexed exposureIndices.map { exposureIndex ->
+                        val occurrence = item.copy(targetSets = taskAuthorization.definition.shape.setCount,
+                            taskProtocolExposureIndex = exposureIndex)
                         AuthorizedSchedulingDemand(
+                            "authorized_${index}_task_${exposureIndex}", occurrence,
+                            generationPrescriptions.prescribe(snapshot, state.strengthIntent, occurrence, occurrence.style),
+                            continuity = false
+                        )
+                    }
+                }
+                when (val resolution = exactPrescriptionAuthorizationProvider.resolveOwnerPrescription(item)) {
+                    is ExactOwnerPrescriptionResolution.ExcludeConflictingAddition -> emptyList()
+                    is ExactOwnerPrescriptionResolution.PreserveIncumbent ->
+                        listOf(AuthorizedSchedulingDemand("authorized_$index", item, resolution.prescription, index < continuity.size))
+                    is ExactOwnerPrescriptionResolution.Authorized ->
+                        listOf(AuthorizedSchedulingDemand("authorized_$index", item, resolution.prescription, index < continuity.size))
+                    ExactOwnerPrescriptionResolution.NoExecutableAuthority -> emptyList()
+                    ExactOwnerPrescriptionResolution.NoExactAuthority ->
+                        listOf(AuthorizedSchedulingDemand(
                             "authorized_$index", item,
                             generationPrescriptions.prescribe(snapshot, state.strengthIntent, item, item.style),
                             index < continuity.size
-                        )
+                        ))
                 }
             }
         } else null
@@ -844,7 +883,12 @@ class PersonalizedProgramBuilder(
                             metadataProgramSlot = meta?.programSlot.orEmpty(), redundancyGroup = meta?.redundancyGroup.orEmpty(), strengthProgressionGroup = meta?.strengthProgressionGroup.orEmpty(),
                             primaryStressProfile = meta?.primaryStressProfile.orEmpty(), stressMagnitudeHint = meta?.stressMagnitudeHint.orEmpty(), neuromuscularStressLevel = meta?.neuromuscularStressLevel.orEmpty(),
                             systemicMuscularStressLevel = meta?.systemicMuscularStressLevel.orEmpty(), localMuscularStressLevel = meta?.localMuscularStressLevel.orEmpty(), jointTendonImpactStressLevel = meta?.jointTendonImpactStressLevel.orEmpty(),
-                            movementFocusDemandLevel = meta?.movementFocusDemandLevel.orEmpty(), recoveryDurationClass = meta?.recoveryDurationClass.orEmpty(), badmintonTransferLevel = meta?.badmintonTransferLevel.orEmpty(), estimatedDurationSeconds = estimatedSeconds, setPrescriptions = rx.sets
+                            movementFocusDemandLevel = meta?.movementFocusDemandLevel.orEmpty(), recoveryDurationClass = meta?.recoveryDurationClass.orEmpty(), badmintonTransferLevel = meta?.badmintonTransferLevel.orEmpty(), estimatedDurationSeconds = estimatedSeconds, setPrescriptions = rx.sets,
+                            taskProtocolSemanticsJson = item.taskProtocolAuthorization?.let { authorization ->
+                                item.taskProtocolExposureIndex?.let { exposureIndex ->
+                                    TaskProtocolExposureMetadata(authorization, exposureIndex).toJsonString()
+                                }
+                            }
                         ))
                     }
                 }
@@ -1054,7 +1098,7 @@ internal fun personalizedProgramFingerprint(request: ProgramSkeletonRequest, ite
     val source = buildString {
         append(listOf(request.name, request.goal.name, request.durationWeeks, request.weeklyTrainingDays, request.sessionMinutes).joinToString("|"))
         items.sortedWith(compareBy(ProgramSkeletonItem::weekNumber, ProgramSkeletonItem::dayOfWeek, ProgramSkeletonItem::orderIndex, ProgramSkeletonItem::exerciseStableKey)).forEach { item ->
-            append('\n').append(listOf(item.weekNumber, item.dayOfWeek, item.orderIndex, item.exerciseStableKey, item.restSeconds, item.prescription, item.setPrescriptions.joinToString { "${it.reps}:${it.weightKg}:${it.seconds}" + it.targetRpeMin?.let { target -> ":${targetRpeFingerprint(target)}" }.orEmpty() }).joinToString("|"))
+            append('\n').append(listOf(item.weekNumber, item.dayOfWeek, item.orderIndex, item.exerciseStableKey, item.selectionRole, item.restSeconds, item.prescription, item.taskProtocolSemanticsJson, item.setPrescriptions.joinToString { "${it.reps}:${it.weightKg}:${it.seconds}:${it.loadState}" + it.targetRpeMin?.let { target -> ":${targetRpeFingerprint(target)}" }.orEmpty() }).joinToString("|"))
         }
     }
     return MessageDigest.getInstance("SHA-256").digest(source.toByteArray()).joinToString("") { "%02x".format(it) }
@@ -1144,6 +1188,28 @@ internal fun filterCanonicalB5TaskDemandWithoutExecutableB6(
         audit = demand.audit + ownerKeys,
         ownerAllocationProvenance = demand.ownerAllocationProvenance.filterNot { it.owner in deferredOwners }
     )
+}
+
+/** Attaches only exact C24 grants and counts targetSets as physical sets for weekly capacity. */
+internal fun applyTaskProtocolAuthorizations(
+    demand: MaterialDemand,
+    plan: TaskProtocolAuthorizationPlan
+): MaterialDemand {
+    if (plan.authorizedByOwner.isEmpty()) return demand
+    val candidates = demand.candidates.flatMap { candidate ->
+        val owner = StimulusPrescriptionOwnerIdentity(candidate.stableKey, candidate.role)
+        val grant = plan.authorizedByOwner[owner] ?: return@flatMap listOf(candidate)
+        (1..grant.definition.weeklyExposures).map { exposureIndex ->
+            candidate.copy(
+                targetSets = grant.definition.shape.setCount,
+                styleVariant = "TASK_PROTOCOL_EXPOSURE_$exposureIndex",
+                representedObjectives = grant.attributedTasks.mapTo(linkedSetOf()) { it.name },
+                taskProtocolAuthorization = grant,
+                taskProtocolExposureIndex = exposureIndex
+            )
+        }
+    }
+    return demand.copy(candidates = candidates)
 }
 
 private fun targetRpeFingerprint(value: Double): String =

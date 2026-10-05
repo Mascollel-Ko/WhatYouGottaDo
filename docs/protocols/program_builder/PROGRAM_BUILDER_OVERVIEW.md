@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.58.0 |
+| Protocol version | 3.59.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.0 |
+| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.1 |
 | Last audited commit | 79cf8614131cdecc50d7685da9f0faee2e9051da |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
@@ -1324,3 +1324,13 @@ Post-audit boundary notes
 - C23 evaluates all 132 target rows in shadow: 0 complete, 132 incomplete, 0 conflicts. It emits no task material rows, adds no task B6 or task route, leaves B7/B8 untouched, and keeps Power numeric authority/B6/material rows at zero. C20 incumbent stability remains 12 hard-valid rows preserved, 0 hard-invalid, and 20 unresolved unanchored.
 - The existing saved program set schema is scalar and cannot persist per-side or range semantics. C23 uses transient typed shapes because no task rows are materialized; a C24 production materialization must establish a lossless persistence contract first. No Room, backup, Community, or Cloud schema changed in C23.
 - C23 audit and machine census: [`docs/c23_task_protocol_frequency_and_representation_audit.md`](../../c23_task_protocol_frequency_and_representation_audit.md), [`docs/c23-task-protocol-frequency-representation-census.json`](../../c23-task-protocol-frequency-representation-census.json). Protocol/runtime/app are `3.58.0` / `RECORD_BASED_PLANNER_0.15.0_KOTLIN_1` / `0.5.1.5`; routes remain CONTROL 19 / Strength V1 1 / Strength Calibration 2 / Hypertrophy 0 / Combined 0.
+
+### Phase C24 — approved badminton task protocols and executable Task B6 (protocol 3.59.0)
+
+- C24 adds three exact, repository-owned protocol definitions with provenance `USER_APPROVED_PROJECT_POLICY`: six-corner footwork (`ex_33841b88#CANONICAL_STIMULUS_TASK_ACCELERATION`), lateral shuttle lunge (`ex_421ba24b#CANONICAL_STIMULUS_TASK_LUNGE_REACH`), and split-step reaction (`ex_8e69fc74#CANONICAL_STIMULUS_TASK_REACTION`). These are explicit bounded product choices, not claims of universally optimal training doses.
+- Runtime B6 requires the exact B4 direction-only primary task, selected B5 stableKey+selectionRole, and DIRECT canonical relations for each attributed task. Frequency belongs to the protocol at two exposures/week, never once per covered target. A physical row counts once for volume, capacity, fatigue, and placement; task credit is non-additive and capped.
+- Six-corner is 3 rounds × 10–20 seconds, rest 60 seconds; lateral shuttle is 3 sets × 5 reps/side, rest 75 seconds; split-step is 3 rounds × 10–20 seconds, rest 60 seconds. Each uses DRILL / NO_EXTERNAL_LOAD semantics and has no RPE. Duration ranges remain ranges in persistence; capacity planning uses the authorized maximum of 20 seconds.
+- Task protocol semantics persist as typed JSON on the existing program item (Room schema 38, additive migration 37→38), and round-trip through local backup/restore and Community snapshots. Program backup schema is 4 and Community snapshot schema is 2. Legacy records receive no inferred protocol, range, laterality, or task authority. The stale-incumbent fingerprint includes the task semantics field.
+- C24 emits exact B6 task rows only after ordinary B5 selection. The corpus selected the six-corner and lateral owners in `persona3_recent`, producing four exposures per week across two weeks (eight rows total); the split-step policy remains available only to the normal exact B5 owner/role path and was not forced into the corpus. JUMP_LANDING remains unapproved. Power remains at zero numeric authority, executable Power B6, and material Power rows.
+- B7 consumes typed exact protocol provenance. No B7/B8 gate is relaxed, no badminton task cutover scope is added, and CONTROL remains the selected route for unsupported task material. C24 retains the C20 incumbent rule: hard-valid shared owners are preserved; unresolved or invalid rows are not forced to remain.
+- C24 audit and machine census: [`docs/c24_approved_badminton_task_b6_and_persistence_audit.md`](../../c24_approved_badminton_task_b6_and_persistence_audit.md), [`docs/c24-badminton-task-b6-persistence-census.json`](../../c24-badminton-task-b6-persistence-census.json). Protocol/runtime/app are `3.59.0` / `RECORD_BASED_PLANNER_0.15.1_KOTLIN_1` / `0.5.1.5`.
