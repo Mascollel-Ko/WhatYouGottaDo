@@ -88,18 +88,53 @@ The current scalar prescription model cannot preserve the reviewed guide forms:
 
 Consequently all reviewed guides in this policy are coaching/legacy generation guidance for C22 purposes, not executable canonical task authority. No exact personal task dose can supersede them in this corpus.
 
-## C22C fallback boundary to implement
+## C22C exact-owner fallback boundary
 
-The production canonical path merges B5 `selectionPlan.materialDemand` into the builder. C21 already filters exact B5 Power owners without B6 before allocation, but it only receives the Power owner set. The two selected Task owners were therefore not filtered. `PersonalizedPrescriptionPlanner` dispatched the athletic performance rows to `PerformancePrescriptionResolver`, whose canonical seed lookup supplied numeric timing/set shapes. Thus B5 identity/probe metadata crossed into materialization without a task B6 grant.
+The production canonical path merges B5 `selectionPlan.materialDemand` into the builder. C21 already filters exact B5 Power owners without B6 before allocation, but it only received the Power owner set. The two selected Task owners were therefore not filtered. `PersonalizedPrescriptionPlanner` dispatched the athletic performance rows to `PerformancePrescriptionResolver`, whose canonical seed lookup supplied numeric timing/set shapes. Thus B5 identity/probe metadata crossed into materialization without a task B6 grant.
 
-C22C should add a fail-closed materialization boundary for exact B5 task-owner identities. With no task execution authority model, selected task owners should be deferred before allocation. The boundary must not convert `DIRECTION_ONLY` to numeric dose, affect unrelated owner roles, or change B5 selection. Exact repeated-history `PERFORMANCE_CONTINUITY` is a separate existing pathway; the selected C22 task owners have no exact-owner personal history, so it cannot reintroduce these rows in the current corpus.
+C22C passes exact selected `(stableKey, selectionRole)` task-owner identities from canonical B5 into the planner and defers only their material candidates before allocation when no task B6 authority exists. It records `B5_SELECTED_TASK_OWNER_NO_EXECUTABLE_TASK_B6_AUTHORITY`. A same-key/different-role owner, non-material candidate, and unselected task owner are retained. This changes neither B4 target meaning nor B5 selection. No task execution authority model exists, and the two selected owners have no exact-owner personal history, so the existing exact-owner `PERFORMANCE_CONTINUITY` path cannot reintroduce these rows in this corpus.
+
+The exact four-row removal is:
+
+| Owner | Weeks | Before material | Before source | After |
+|---|---|---|---|---|
+| `ex_33841b88#CANONICAL_STIMULUS_TASK_ACCELERATION` | 1, 2 | 4 × 15 sec, rest 60 sec | `CANONICAL_PROGRAM_3_1_7` | no row |
+| `ex_421ba24b#CANONICAL_STIMULUS_TASK_LUNGE_REACH` | 1, 2 | 5 × 18 sec, rest 60 sec | `CANONICAL_PROGRAM_8_2_57` | no row |
+
+These are the only pre-C22C task-role material rows in the 22 generated corpus cases. All four are deferred. No unauthorized task-shaped row remains in EXP. The `0` values in their old `weightKg` fields were legacy non-weighted placeholders; they were not elevated into a typed task load authority.
+
+## Three badminton-rich case results
+
+| Case | Task targets / B4 | Exact B5 task owners | EXP task rows after | B7/B8 and route |
+|---|---|---|---:|---|
+| `persona3_recent` | six task targets; task targets remain direction-only, with no numeric units or weekly frequency | `ex_33841b88#CANONICAL_STIMULUS_TASK_ACCELERATION` selected for Acceleration and reused for Deceleration, Footwork, Reaction; `ex_421ba24b#CANONICAL_STIMULUS_TASK_LUNGE_REACH` selected for Lunge Reach. Five owner/task relations are DIRECT; reuse does not create a separate dose authority. | 0 | The five previously fallback-backed task outcomes (Acceleration, Deceleration, Footwork, Lunge Reach, Reaction) become `REGRESSED`; Jump/Landing has no selected owner or material row. B8 remains `CONTROL_REQUIRED`; route remains CONTROL. This reports loss of unsupported material rather than hiding it. |
+| `persona3_reviewed` | six task needs are DEVELOP; B4 remains `DIRECTION_ONLY` without numeric frequency | no exact B5 task owner selected | 0 | task targets remain unmet/unchanged; Power remains without numeric B6 or material rows. No task cutover exists; route remains CONTROL. |
+| `persona3_mixed` | six task needs are DEVELOP; B4 remains `DIRECTION_ONLY` without numeric frequency | no exact B5 task owner selected | 0 | task targets remain unmet/unchanged; Power remains without numeric B6 or material rows. No task cutover exists; route remains CONTROL. |
+
+The selected-owner matrix is therefore narrow: one exact owner has DIRECT relations to four task targets, and another has one DIRECT relation to Lunge Reach. The first owner is selected only for Acceleration; the other three relations are reused coverage. Neither owner has exact personal task dose evidence, an approved reviewed category-to-task mapping, numeric B4 frequency, or a task B6. No prescription is authorized for either primary or reused targets.
 
 ## Routing, provenance, and safety
 
 C22 adds no task B6 or B8 scope. Strength, Strength Calibration, Hypertrophy, Combined, and Power authority are unchanged. The task cases remain under existing routing requirements; no task work is routed through Strength or Combined. The normal order remains B1–B6 → one EXPERIMENTAL generation/materialization → C20 incumbent stability → CONTROL → comparison → B7 → B8 → B9. No third planner build is added.
 
-The final report will record before/after task-role rows, route and B7 deltas, and confirm Power remains at zero numeric B6 authority and zero material rows. Any B7 count change must identify the exact removed owner/target rows; no B7 predicate will be modified.
+The final corpus keeps the route snapshot at CONTROL 19, Strength V1 1, Strength Calibration 2, Hypertrophy 0, Combined 0. C22 does not modify B7 or B8. B7 reason counts move from the C21 baseline 11 provenance-unclosed / 9 target-unmet / 1 target-regressed to 11 / 9 / 2, with one collateral-target-regression occurrence. The additional regressed case is `persona3_recent`: its five task outcomes now correctly expose that the former fallback rows were carrying the target. The pre-existing `persona1_reviewed` Hypertrophy regression remains. No gate is relaxed to mask either result.
 
-## C22A decision
+Power remains at 0 numeric authority, 0 executable Power B6, and 0 material Power rows. C20 incumbent checks remain 12 HARD_VALID / 0 HARD_INVALID / 20 UNRESOLVED, with all 12 valid rows preserved and 0 invalid or unresolved rows forced to remain. Build accounting is 22 generated cases at CONTROL 1 + EXPERIMENTAL 1 = 2 builds, THIRD 0; preflight cases use 0 builds.
 
-No badminton task is executable today with the complete repository-backed authority chain. C22A establishes that four seed-backed task rows lack exact task authority. C22C should remove those rows and leave all six B4 task targets without numeric dose/frequency authority. A later phase may add an exact task bridge only after it establishes an approved owner/category/task mapping, numeric frequency source, and lossless prescription representation. A task production route remains a separate future decision.
+Protocol/runtime/app advance to `3.57.0` / `RECORD_BASED_PLANNER_0.14.9_KOTLIN_1` / `0.5.1.5` because removing executable-looking material rows is a production planner behavior change. No Room migration or task prescription schema was added. Standard coverage changes from C21's `5BD1E9430352618C6C42F399ED28B8A065908CEDCA8F4448924BD9301CB44BD1` to `4467C1510A07BBE901042E112D68826CD054384C023FCB07DEB3859D043C3EF8`, exactly reflecting the removed unsupported task rows.
+
+## C22 verification and disposition
+
+- C22 start: `3af7c7c7d96923b6218f4466506a278c3ac76f7f`.
+- Audit commit: `380f586533b80d198ad49a0d56c55af83c7716a0` (C22A Hosted CI green, run `37254536552`).
+- Implementation commit: `c942ec0166225ed15aac159f0e574c0f1a60e510` (Hosted CI run `37258993580` green: 2,283 tests, 0 failures, 0 errors, 4 skips; protocol, Community/Cloud contracts, whitespace, coverage upload, APK assembly, signer, and APK upload all succeeded).
+- CONTROL task-row perturbation test commit: `ba63aba9c7c5a26c4850d7036a4d97baca20de1d` (focused local test passed; Hosted CI run `37260023637` green: 2,284 tests, 0 failures, 0 errors, 4 skips).
+- `lastAuditedCommit`: `ba63aba9c7c5a26c4850d7036a4d97baca20de1d`.
+- The machine-readable final census is [`c22-badminton-task-authority-census.json`](c22-badminton-task-authority-census.json), SHA-256 `2EF46E4A53D905108D3F9CEBACB78997A043A13DA2A6BE7F6B786EE68EE5B466`.
+- The final Hosted run passed protocol validation, Community/Cloud contracts, whitespace, full tests, coverage upload, APK assembly, signer validation, and APK upload. Artifacts: `Stimulus-production-coverage` (815,703 bytes) and `WhatYouGottaDo-debug-apk` (65,169,454 bytes zipped; contains `app-debug.apk`, 68,757,703 bytes, SHA-256 `669CCC4832E0BC0B9AFDBFD1B3208AB3A138456DDC2059E875AD714CB7D955B0`).
+- Local compile and focused tests passed. Full local unit tests at the implementation commit passed: 2,283 tests, 0 failures, 0 errors, 4 skips. The added single CONTROL-task perturbation integration test also passed locally; the final Hosted suite passed 2,284 tests, 0 failures, 0 errors, 4 skips.
+- C22 implementation adds no task B4 numeric authority, task B6, task route, reviewed-guide mapping, generic prescription, B8 predicate, or Power authority. Ordering and two-build accounting are unchanged.
+
+## C22 decision
+
+No badminton task is executable today with the complete repository-backed authority chain. The four seed-backed rows without exact task authority have been removed. All six task families remain without numeric dose/frequency authority. A later phase may add an exact task bridge only after it establishes an approved owner/category/task mapping, numeric frequency source, and lossless prescription representation. A task production route remains a separate future decision.

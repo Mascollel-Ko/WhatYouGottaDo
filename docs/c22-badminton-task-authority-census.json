@@ -3,11 +3,11 @@
   "baselineMain": "3af7c7c7d96923b6218f4466506a278c3ac76f7f",
   "startHead": "3af7c7c7d96923b6218f4466506a278c3ac76f7f",
   "versions": {
-    "protocol": "3.56.0",
-    "runtime": "RECORD_BASED_PLANNER_0.14.8_KOTLIN_1",
+    "protocol": "3.57.0",
+    "runtime": "RECORD_BASED_PLANNER_0.14.9_KOTLIN_1",
     "app": "0.5.1.5"
   },
-  "policyConclusion": "NO_EXECUTABLE_TASK_AUTHORITY; REMOVE_UNAUTHORIZED_B5_TASK_MATERIALIZATION",
+  "policyConclusion": "NO_EXECUTABLE_TASK_AUTHORITY; UNAUTHORIZED_B5_TASK_MATERIALIZATION_REMOVED",
   "counts": {
     "generatedCases": 22,
     "taskTargetsTotal": 132,
@@ -22,6 +22,7 @@
     "reviewedStarterAuthorities": 0,
     "fullyEncodedTaskAuthorities": 0,
     "materializedTaskRowsBefore": 4,
+    "materializedTaskRowsAfter": 0,
     "blockedPerSide": 1,
     "blockedRange": 4,
     "blockedFrequency": 24,
@@ -30,6 +31,23 @@
     "b7EligibleTaskCases": 0,
     "b8AuthorizedTaskCases": 0,
     "taskRoutedCases": 0
+  },
+  "buildAccounting": {
+    "generatedCaseProfiles": [
+      {
+        "cases": 22,
+        "CONTROL": 1,
+        "EXPERIMENTAL": 1,
+        "TOTAL": 2,
+        "THIRD": 0
+      }
+    ],
+    "preflightPerCase": {
+      "CONTROL": 0,
+      "EXPERIMENTAL": 0,
+      "TOTAL": 0,
+      "THIRD": 0
+    }
   },
   "taskMatrix": [
     {
@@ -617,7 +635,79 @@
       "selectedTaskOwners": [],
       "b7": {
         "eligible": "ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW",
-        "reasonCodes": []
+        "reasonCodes": [],
+        "targetOutcomes": [
+          {
+            "targetId": "QUALITY:CARDIORESPIRATORY_FITNESS",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:HYPERTROPHY",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MOBILITY_ROM",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MUSCULAR_ENDURANCE",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:POWER",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:RAPID_FORCE_PRODUCTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:REACTIVE_STRENGTH_SSC",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:STRENGTH",
+            "status": "UNCHANGED",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:ACCELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:DECELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:FOOTWORK",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:JUMP_LANDING",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:LUNGE_REACH",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:REACTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          }
+        ]
       },
       "b8": {
         "status": "CONTROL_REQUIRED",
@@ -631,7 +721,13 @@
           "B8_CUTOVER_V1_UPSTREAM_INCONSISTENCY"
         ]
       },
-      "route": "CONTROL"
+      "route": "CONTROL",
+      "buildAccounting": {
+        "CONTROL": 1,
+        "EXPERIMENTAL": 1,
+        "TOTAL": 2,
+        "THIRD": 0
+      }
     },
     {
       "case": "persona0_none",
@@ -907,6 +1003,80 @@
         "reasonCodes": [
           "AFFECTED_TARGET_REMAINS_UNMET",
           "CHANGE_PROVENANCE_UNCLOSED"
+        ],
+        "targetOutcomes": [
+          {
+            "targetId": "QUALITY:CARDIORESPIRATORY_FITNESS",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:HYPERTROPHY",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MOBILITY_ROM",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MUSCULAR_ENDURANCE",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:POWER",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:RAPID_FORCE_PRODUCTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:REACTIVE_STRENGTH_SSC",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:STRENGTH",
+            "status": "UNCHANGED",
+            "reasonCodes": [
+              "TARGET_UNMET"
+            ]
+          },
+          {
+            "targetId": "TASK:ACCELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:DECELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:FOOTWORK",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:JUMP_LANDING",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:LUNGE_REACH",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:REACTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          }
         ]
       },
       "b8": {
@@ -916,7 +1086,13 @@
           "B8_B7_NOT_ELIGIBLE"
         ]
       },
-      "route": "CONTROL"
+      "route": "CONTROL",
+      "buildAccounting": {
+        "CONTROL": 1,
+        "EXPERIMENTAL": 1,
+        "TOTAL": 2,
+        "THIRD": 0
+      }
     },
     {
       "case": "persona0_reviewed",
@@ -1184,7 +1360,79 @@
       "selectedTaskOwners": [],
       "b7": {
         "eligible": "ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW",
-        "reasonCodes": []
+        "reasonCodes": [],
+        "targetOutcomes": [
+          {
+            "targetId": "QUALITY:CARDIORESPIRATORY_FITNESS",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:HYPERTROPHY",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MOBILITY_ROM",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MUSCULAR_ENDURANCE",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:POWER",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:RAPID_FORCE_PRODUCTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:REACTIVE_STRENGTH_SSC",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:STRENGTH",
+            "status": "UNCHANGED",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:ACCELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:DECELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:FOOTWORK",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:JUMP_LANDING",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:LUNGE_REACH",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:REACTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          }
+        ]
       },
       "b8": {
         "status": "CONTROL_REQUIRED",
@@ -1198,7 +1446,13 @@
           "B8_CUTOVER_V1_UPSTREAM_INCONSISTENCY"
         ]
       },
-      "route": "CONTROL"
+      "route": "CONTROL",
+      "buildAccounting": {
+        "CONTROL": 1,
+        "EXPERIMENTAL": 1,
+        "TOTAL": 2,
+        "THIRD": 0
+      }
     },
     {
       "case": "persona0_sparse",
@@ -1469,6 +1723,80 @@
         "reasonCodes": [
           "AFFECTED_TARGET_REMAINS_UNMET",
           "CHANGE_PROVENANCE_UNCLOSED"
+        ],
+        "targetOutcomes": [
+          {
+            "targetId": "QUALITY:CARDIORESPIRATORY_FITNESS",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:HYPERTROPHY",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MOBILITY_ROM",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MUSCULAR_ENDURANCE",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:POWER",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:RAPID_FORCE_PRODUCTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:REACTIVE_STRENGTH_SSC",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:STRENGTH",
+            "status": "UNCHANGED",
+            "reasonCodes": [
+              "TARGET_UNMET"
+            ]
+          },
+          {
+            "targetId": "TASK:ACCELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:DECELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:FOOTWORK",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:JUMP_LANDING",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:LUNGE_REACH",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:REACTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          }
         ]
       },
       "b8": {
@@ -1478,7 +1806,13 @@
           "B8_B7_NOT_ELIGIBLE"
         ]
       },
-      "route": "CONTROL"
+      "route": "CONTROL",
+      "buildAccounting": {
+        "CONTROL": 1,
+        "EXPERIMENTAL": 1,
+        "TOTAL": 2,
+        "THIRD": 0
+      }
     },
     {
       "case": "persona1_mixed",
@@ -1749,6 +2083,80 @@
         "reasonCodes": [
           "AFFECTED_TARGET_REMAINS_UNMET",
           "CHANGE_PROVENANCE_UNCLOSED"
+        ],
+        "targetOutcomes": [
+          {
+            "targetId": "QUALITY:CARDIORESPIRATORY_FITNESS",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:HYPERTROPHY",
+            "status": "UNCHANGED",
+            "reasonCodes": [
+              "TARGET_UNMET"
+            ]
+          },
+          {
+            "targetId": "QUALITY:MOBILITY_ROM",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MUSCULAR_ENDURANCE",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:POWER",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:RAPID_FORCE_PRODUCTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:REACTIVE_STRENGTH_SSC",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:STRENGTH",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:ACCELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:DECELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:FOOTWORK",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:JUMP_LANDING",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:LUNGE_REACH",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:REACTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          }
         ]
       },
       "b8": {
@@ -1758,7 +2166,13 @@
           "B8_B7_NOT_ELIGIBLE"
         ]
       },
-      "route": "CONTROL"
+      "route": "CONTROL",
+      "buildAccounting": {
+        "CONTROL": 1,
+        "EXPERIMENTAL": 1,
+        "TOTAL": 2,
+        "THIRD": 0
+      }
     },
     {
       "case": "persona1_none",
@@ -2033,6 +2447,78 @@
         "eligible": "NOT_ELIGIBLE",
         "reasonCodes": [
           "CHANGE_PROVENANCE_UNCLOSED"
+        ],
+        "targetOutcomes": [
+          {
+            "targetId": "QUALITY:CARDIORESPIRATORY_FITNESS",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:HYPERTROPHY",
+            "status": "UNCHANGED",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MOBILITY_ROM",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MUSCULAR_ENDURANCE",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:POWER",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:RAPID_FORCE_PRODUCTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:REACTIVE_STRENGTH_SSC",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:STRENGTH",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:ACCELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:DECELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:FOOTWORK",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:JUMP_LANDING",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:LUNGE_REACH",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:REACTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          }
         ]
       },
       "b8": {
@@ -2042,7 +2528,13 @@
           "B8_B7_NOT_ELIGIBLE"
         ]
       },
-      "route": "CONTROL"
+      "route": "CONTROL",
+      "buildAccounting": {
+        "CONTROL": 1,
+        "EXPERIMENTAL": 1,
+        "TOTAL": 2,
+        "THIRD": 0
+      }
     },
     {
       "case": "persona1_reviewed",
@@ -2312,6 +2804,78 @@
         "eligible": "NOT_ELIGIBLE",
         "reasonCodes": [
           "TARGET_REGRESSED"
+        ],
+        "targetOutcomes": [
+          {
+            "targetId": "QUALITY:CARDIORESPIRATORY_FITNESS",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:HYPERTROPHY",
+            "status": "REGRESSED",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MOBILITY_ROM",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MUSCULAR_ENDURANCE",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:POWER",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:RAPID_FORCE_PRODUCTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:REACTIVE_STRENGTH_SSC",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:STRENGTH",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:ACCELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:DECELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:FOOTWORK",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:JUMP_LANDING",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:LUNGE_REACH",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:REACTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          }
         ]
       },
       "b8": {
@@ -2321,7 +2885,13 @@
           "B8_B7_NOT_ELIGIBLE"
         ]
       },
-      "route": "CONTROL"
+      "route": "CONTROL",
+      "buildAccounting": {
+        "CONTROL": 1,
+        "EXPERIMENTAL": 1,
+        "TOTAL": 2,
+        "THIRD": 0
+      }
     },
     {
       "case": "persona1_sparse",
@@ -2591,6 +3161,78 @@
         "eligible": "NOT_ELIGIBLE",
         "reasonCodes": [
           "CHANGE_PROVENANCE_UNCLOSED"
+        ],
+        "targetOutcomes": [
+          {
+            "targetId": "QUALITY:CARDIORESPIRATORY_FITNESS",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:HYPERTROPHY",
+            "status": "UNCHANGED",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MOBILITY_ROM",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MUSCULAR_ENDURANCE",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:POWER",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:RAPID_FORCE_PRODUCTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:REACTIVE_STRENGTH_SSC",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:STRENGTH",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:ACCELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:DECELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:FOOTWORK",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:JUMP_LANDING",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:LUNGE_REACH",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:REACTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          }
         ]
       },
       "b8": {
@@ -2600,7 +3242,13 @@
           "B8_B7_NOT_ELIGIBLE"
         ]
       },
-      "route": "CONTROL"
+      "route": "CONTROL",
+      "buildAccounting": {
+        "CONTROL": 1,
+        "EXPERIMENTAL": 1,
+        "TOTAL": 2,
+        "THIRD": 0
+      }
     },
     {
       "case": "persona2_mixed",
@@ -2868,7 +3516,79 @@
       "selectedTaskOwners": [],
       "b7": {
         "eligible": "ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW",
-        "reasonCodes": []
+        "reasonCodes": [],
+        "targetOutcomes": [
+          {
+            "targetId": "QUALITY:CARDIORESPIRATORY_FITNESS",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:HYPERTROPHY",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MOBILITY_ROM",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MUSCULAR_ENDURANCE",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:POWER",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:RAPID_FORCE_PRODUCTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:REACTIVE_STRENGTH_SSC",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:STRENGTH",
+            "status": "UNCHANGED",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:ACCELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:DECELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:FOOTWORK",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:JUMP_LANDING",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:LUNGE_REACH",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:REACTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          }
+        ]
       },
       "b8": {
         "status": "CONTROL_REQUIRED",
@@ -2881,7 +3601,13 @@
           "B8_CUTOVER_V1_UPSTREAM_INCONSISTENCY"
         ]
       },
-      "route": "CONTROL"
+      "route": "CONTROL",
+      "buildAccounting": {
+        "CONTROL": 1,
+        "EXPERIMENTAL": 1,
+        "TOTAL": 2,
+        "THIRD": 0
+      }
     },
     {
       "case": "persona2_none",
@@ -3157,6 +3883,80 @@
         "reasonCodes": [
           "AFFECTED_TARGET_REMAINS_UNMET",
           "CHANGE_PROVENANCE_UNCLOSED"
+        ],
+        "targetOutcomes": [
+          {
+            "targetId": "QUALITY:CARDIORESPIRATORY_FITNESS",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:HYPERTROPHY",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MOBILITY_ROM",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MUSCULAR_ENDURANCE",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:POWER",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:RAPID_FORCE_PRODUCTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:REACTIVE_STRENGTH_SSC",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:STRENGTH",
+            "status": "UNCHANGED",
+            "reasonCodes": [
+              "TARGET_UNMET"
+            ]
+          },
+          {
+            "targetId": "TASK:ACCELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:DECELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:FOOTWORK",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:JUMP_LANDING",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:LUNGE_REACH",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:REACTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          }
         ]
       },
       "b8": {
@@ -3166,7 +3966,13 @@
           "B8_B7_NOT_ELIGIBLE"
         ]
       },
-      "route": "CONTROL"
+      "route": "CONTROL",
+      "buildAccounting": {
+        "CONTROL": 1,
+        "EXPERIMENTAL": 1,
+        "TOTAL": 2,
+        "THIRD": 0
+      }
     },
     {
       "case": "persona2_reviewed",
@@ -3434,7 +4240,79 @@
       "selectedTaskOwners": [],
       "b7": {
         "eligible": "ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW",
-        "reasonCodes": []
+        "reasonCodes": [],
+        "targetOutcomes": [
+          {
+            "targetId": "QUALITY:CARDIORESPIRATORY_FITNESS",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:HYPERTROPHY",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MOBILITY_ROM",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MUSCULAR_ENDURANCE",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:POWER",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:RAPID_FORCE_PRODUCTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:REACTIVE_STRENGTH_SSC",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:STRENGTH",
+            "status": "UNCHANGED",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:ACCELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:DECELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:FOOTWORK",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:JUMP_LANDING",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:LUNGE_REACH",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:REACTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          }
+        ]
       },
       "b8": {
         "status": "AUTHORIZED_FOR_BOUNDED_CUTOVER",
@@ -3443,7 +4321,13 @@
           "B8_STRENGTH_CALIBRATION_V1_AUTHORIZED"
         ]
       },
-      "route": "B8_STRENGTH_CALIBRATION_V1"
+      "route": "B8_STRENGTH_CALIBRATION_V1",
+      "buildAccounting": {
+        "CONTROL": 1,
+        "EXPERIMENTAL": 1,
+        "TOTAL": 2,
+        "THIRD": 0
+      }
     },
     {
       "case": "persona2_sparse",
@@ -3714,6 +4598,80 @@
         "reasonCodes": [
           "AFFECTED_TARGET_REMAINS_UNMET",
           "CHANGE_PROVENANCE_UNCLOSED"
+        ],
+        "targetOutcomes": [
+          {
+            "targetId": "QUALITY:CARDIORESPIRATORY_FITNESS",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:HYPERTROPHY",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MOBILITY_ROM",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MUSCULAR_ENDURANCE",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:POWER",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:RAPID_FORCE_PRODUCTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:REACTIVE_STRENGTH_SSC",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:STRENGTH",
+            "status": "UNCHANGED",
+            "reasonCodes": [
+              "TARGET_UNMET"
+            ]
+          },
+          {
+            "targetId": "TASK:ACCELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:DECELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:FOOTWORK",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:JUMP_LANDING",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:LUNGE_REACH",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:REACTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          }
         ]
       },
       "b8": {
@@ -3723,7 +4681,13 @@
           "B8_B7_NOT_ELIGIBLE"
         ]
       },
-      "route": "CONTROL"
+      "route": "CONTROL",
+      "buildAccounting": {
+        "CONTROL": 1,
+        "EXPERIMENTAL": 1,
+        "TOTAL": 2,
+        "THIRD": 0
+      }
     },
     {
       "case": "persona3_mixed",
@@ -4009,7 +4973,93 @@
       "selectedTaskOwners": [],
       "b7": {
         "eligible": "ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW",
-        "reasonCodes": []
+        "reasonCodes": [],
+        "targetOutcomes": [
+          {
+            "targetId": "QUALITY:CARDIORESPIRATORY_FITNESS",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:HYPERTROPHY",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MOBILITY_ROM",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MUSCULAR_ENDURANCE",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:POWER",
+            "status": "UNCHANGED",
+            "reasonCodes": [
+              "TARGET_UNMET"
+            ]
+          },
+          {
+            "targetId": "QUALITY:RAPID_FORCE_PRODUCTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:REACTIVE_STRENGTH_SSC",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:STRENGTH",
+            "status": "UNCHANGED",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:ACCELERATION",
+            "status": "UNCHANGED",
+            "reasonCodes": [
+              "TARGET_UNMET"
+            ]
+          },
+          {
+            "targetId": "TASK:DECELERATION",
+            "status": "UNCHANGED",
+            "reasonCodes": [
+              "TARGET_UNMET"
+            ]
+          },
+          {
+            "targetId": "TASK:FOOTWORK",
+            "status": "UNCHANGED",
+            "reasonCodes": [
+              "TARGET_UNMET"
+            ]
+          },
+          {
+            "targetId": "TASK:JUMP_LANDING",
+            "status": "UNCHANGED",
+            "reasonCodes": [
+              "TARGET_UNMET"
+            ]
+          },
+          {
+            "targetId": "TASK:LUNGE_REACH",
+            "status": "UNCHANGED",
+            "reasonCodes": [
+              "TARGET_UNMET"
+            ]
+          },
+          {
+            "targetId": "TASK:REACTION",
+            "status": "UNCHANGED",
+            "reasonCodes": [
+              "TARGET_UNMET"
+            ]
+          }
+        ]
       },
       "b8": {
         "status": "AUTHORIZED_FOR_BOUNDED_CUTOVER",
@@ -4018,7 +5068,13 @@
           "B8_STRENGTH_CALIBRATION_V1_AUTHORIZED"
         ]
       },
-      "route": "B8_STRENGTH_CALIBRATION_V1"
+      "route": "B8_STRENGTH_CALIBRATION_V1",
+      "buildAccounting": {
+        "CONTROL": 1,
+        "EXPERIMENTAL": 1,
+        "TOTAL": 2,
+        "THIRD": 0
+      }
     },
     {
       "case": "persona3_none",
@@ -4100,7 +5156,7 @@
           ],
           "taskB6Authority": "NO_TASK_SPECIFIC_B6_AUTHORITY_MODEL",
           "taskOutcome": {
-            "status": "UNCHANGED",
+            "status": "REGRESSED",
             "reasonCodes": []
           }
         },
@@ -4175,7 +5231,7 @@
           ],
           "taskB6Authority": "NO_TASK_SPECIFIC_B6_AUTHORITY_MODEL",
           "taskOutcome": {
-            "status": "UNCHANGED",
+            "status": "REGRESSED",
             "reasonCodes": []
           }
         },
@@ -4250,7 +5306,7 @@
           ],
           "taskB6Authority": "NO_TASK_SPECIFIC_B6_AUTHORITY_MODEL",
           "taskOutcome": {
-            "status": "UNCHANGED",
+            "status": "REGRESSED",
             "reasonCodes": []
           }
         },
@@ -4371,7 +5427,7 @@
           ],
           "taskB6Authority": "NO_TASK_SPECIFIC_B6_AUTHORITY_MODEL",
           "taskOutcome": {
-            "status": "UNCHANGED",
+            "status": "REGRESSED",
             "reasonCodes": []
           }
         },
@@ -4446,7 +5502,7 @@
           ],
           "taskB6Authority": "NO_TASK_SPECIFIC_B6_AUTHORITY_MODEL",
           "taskOutcome": {
-            "status": "UNCHANGED",
+            "status": "REGRESSED",
             "reasonCodes": []
           }
         }
@@ -4488,7 +5544,87 @@
         "eligible": "NOT_ELIGIBLE",
         "reasonCodes": [
           "AFFECTED_TARGET_REMAINS_UNMET",
-          "CHANGE_PROVENANCE_UNCLOSED"
+          "CHANGE_PROVENANCE_UNCLOSED",
+          "COLLATERAL_TARGET_REGRESSION",
+          "TARGET_REGRESSED"
+        ],
+        "targetOutcomes": [
+          {
+            "targetId": "QUALITY:CARDIORESPIRATORY_FITNESS",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:HYPERTROPHY",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MOBILITY_ROM",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MUSCULAR_ENDURANCE",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:POWER",
+            "status": "UNCHANGED",
+            "reasonCodes": [
+              "TARGET_UNMET"
+            ]
+          },
+          {
+            "targetId": "QUALITY:RAPID_FORCE_PRODUCTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:REACTIVE_STRENGTH_SSC",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:STRENGTH",
+            "status": "UNCHANGED",
+            "reasonCodes": [
+              "TARGET_UNMET"
+            ]
+          },
+          {
+            "targetId": "TASK:ACCELERATION",
+            "status": "REGRESSED",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:DECELERATION",
+            "status": "REGRESSED",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:FOOTWORK",
+            "status": "REGRESSED",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:JUMP_LANDING",
+            "status": "UNCHANGED",
+            "reasonCodes": [
+              "TARGET_UNMET"
+            ]
+          },
+          {
+            "targetId": "TASK:LUNGE_REACH",
+            "status": "REGRESSED",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:REACTION",
+            "status": "REGRESSED",
+            "reasonCodes": []
+          }
         ]
       },
       "b8": {
@@ -4498,7 +5634,13 @@
           "B8_B7_NOT_ELIGIBLE"
         ]
       },
-      "route": "CONTROL"
+      "route": "CONTROL",
+      "buildAccounting": {
+        "CONTROL": 1,
+        "EXPERIMENTAL": 1,
+        "TOTAL": 2,
+        "THIRD": 0
+      }
     },
     {
       "case": "persona3_reviewed",
@@ -4784,7 +5926,93 @@
       "selectedTaskOwners": [],
       "b7": {
         "eligible": "ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW",
-        "reasonCodes": []
+        "reasonCodes": [],
+        "targetOutcomes": [
+          {
+            "targetId": "QUALITY:CARDIORESPIRATORY_FITNESS",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:HYPERTROPHY",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MOBILITY_ROM",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MUSCULAR_ENDURANCE",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:POWER",
+            "status": "UNCHANGED",
+            "reasonCodes": [
+              "TARGET_UNMET"
+            ]
+          },
+          {
+            "targetId": "QUALITY:RAPID_FORCE_PRODUCTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:REACTIVE_STRENGTH_SSC",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:STRENGTH",
+            "status": "UNCHANGED",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:ACCELERATION",
+            "status": "UNCHANGED",
+            "reasonCodes": [
+              "TARGET_UNMET"
+            ]
+          },
+          {
+            "targetId": "TASK:DECELERATION",
+            "status": "UNCHANGED",
+            "reasonCodes": [
+              "TARGET_UNMET"
+            ]
+          },
+          {
+            "targetId": "TASK:FOOTWORK",
+            "status": "UNCHANGED",
+            "reasonCodes": [
+              "TARGET_UNMET"
+            ]
+          },
+          {
+            "targetId": "TASK:JUMP_LANDING",
+            "status": "UNCHANGED",
+            "reasonCodes": [
+              "TARGET_UNMET"
+            ]
+          },
+          {
+            "targetId": "TASK:LUNGE_REACH",
+            "status": "UNCHANGED",
+            "reasonCodes": [
+              "TARGET_UNMET"
+            ]
+          },
+          {
+            "targetId": "TASK:REACTION",
+            "status": "UNCHANGED",
+            "reasonCodes": [
+              "TARGET_UNMET"
+            ]
+          }
+        ]
       },
       "b8": {
         "status": "CONTROL_REQUIRED",
@@ -4798,7 +6026,13 @@
           "B8_CUTOVER_V1_UPSTREAM_INCONSISTENCY"
         ]
       },
-      "route": "CONTROL"
+      "route": "CONTROL",
+      "buildAccounting": {
+        "CONTROL": 1,
+        "EXPERIMENTAL": 1,
+        "TOTAL": 2,
+        "THIRD": 0
+      }
     },
     {
       "case": "persona3_sparse",
@@ -5087,6 +6321,94 @@
         "reasonCodes": [
           "AFFECTED_TARGET_REMAINS_UNMET",
           "CHANGE_PROVENANCE_UNCLOSED"
+        ],
+        "targetOutcomes": [
+          {
+            "targetId": "QUALITY:CARDIORESPIRATORY_FITNESS",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:HYPERTROPHY",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MOBILITY_ROM",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MUSCULAR_ENDURANCE",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:POWER",
+            "status": "UNCHANGED",
+            "reasonCodes": [
+              "TARGET_UNMET"
+            ]
+          },
+          {
+            "targetId": "QUALITY:RAPID_FORCE_PRODUCTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:REACTIVE_STRENGTH_SSC",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:STRENGTH",
+            "status": "UNCHANGED",
+            "reasonCodes": [
+              "TARGET_UNMET"
+            ]
+          },
+          {
+            "targetId": "TASK:ACCELERATION",
+            "status": "UNCHANGED",
+            "reasonCodes": [
+              "TARGET_UNMET"
+            ]
+          },
+          {
+            "targetId": "TASK:DECELERATION",
+            "status": "UNCHANGED",
+            "reasonCodes": [
+              "TARGET_UNMET"
+            ]
+          },
+          {
+            "targetId": "TASK:FOOTWORK",
+            "status": "UNCHANGED",
+            "reasonCodes": [
+              "TARGET_UNMET"
+            ]
+          },
+          {
+            "targetId": "TASK:JUMP_LANDING",
+            "status": "UNCHANGED",
+            "reasonCodes": [
+              "TARGET_UNMET"
+            ]
+          },
+          {
+            "targetId": "TASK:LUNGE_REACH",
+            "status": "UNCHANGED",
+            "reasonCodes": [
+              "TARGET_UNMET"
+            ]
+          },
+          {
+            "targetId": "TASK:REACTION",
+            "status": "UNCHANGED",
+            "reasonCodes": [
+              "TARGET_UNMET"
+            ]
+          }
         ]
       },
       "b8": {
@@ -5096,7 +6418,13 @@
           "B8_B7_NOT_ELIGIBLE"
         ]
       },
-      "route": "CONTROL"
+      "route": "CONTROL",
+      "buildAccounting": {
+        "CONTROL": 1,
+        "EXPERIMENTAL": 1,
+        "TOTAL": 2,
+        "THIRD": 0
+      }
     },
     {
       "case": "persona4_mixed",
@@ -5364,7 +6692,79 @@
       "selectedTaskOwners": [],
       "b7": {
         "eligible": "ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW",
-        "reasonCodes": []
+        "reasonCodes": [],
+        "targetOutcomes": [
+          {
+            "targetId": "QUALITY:CARDIORESPIRATORY_FITNESS",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:HYPERTROPHY",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MOBILITY_ROM",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MUSCULAR_ENDURANCE",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:POWER",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:RAPID_FORCE_PRODUCTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:REACTIVE_STRENGTH_SSC",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:STRENGTH",
+            "status": "UNCHANGED",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:ACCELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:DECELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:FOOTWORK",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:JUMP_LANDING",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:LUNGE_REACH",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:REACTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          }
+        ]
       },
       "b8": {
         "status": "CONTROL_REQUIRED",
@@ -5378,7 +6778,13 @@
           "B8_CUTOVER_V1_UPSTREAM_INCONSISTENCY"
         ]
       },
-      "route": "CONTROL"
+      "route": "CONTROL",
+      "buildAccounting": {
+        "CONTROL": 1,
+        "EXPERIMENTAL": 1,
+        "TOTAL": 2,
+        "THIRD": 0
+      }
     },
     {
       "case": "persona4_none",
@@ -5653,6 +7059,80 @@
         "eligible": "NOT_ELIGIBLE",
         "reasonCodes": [
           "AFFECTED_TARGET_REMAINS_UNMET"
+        ],
+        "targetOutcomes": [
+          {
+            "targetId": "QUALITY:CARDIORESPIRATORY_FITNESS",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:HYPERTROPHY",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MOBILITY_ROM",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MUSCULAR_ENDURANCE",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:POWER",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:RAPID_FORCE_PRODUCTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:REACTIVE_STRENGTH_SSC",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:STRENGTH",
+            "status": "UNCHANGED",
+            "reasonCodes": [
+              "TARGET_UNMET"
+            ]
+          },
+          {
+            "targetId": "TASK:ACCELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:DECELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:FOOTWORK",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:JUMP_LANDING",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:LUNGE_REACH",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:REACTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          }
         ]
       },
       "b8": {
@@ -5662,7 +7142,13 @@
           "B8_B7_NOT_ELIGIBLE"
         ]
       },
-      "route": "CONTROL"
+      "route": "CONTROL",
+      "buildAccounting": {
+        "CONTROL": 1,
+        "EXPERIMENTAL": 1,
+        "TOTAL": 2,
+        "THIRD": 0
+      }
     },
     {
       "case": "persona4_reviewed",
@@ -5930,7 +7416,79 @@
       "selectedTaskOwners": [],
       "b7": {
         "eligible": "ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW",
-        "reasonCodes": []
+        "reasonCodes": [],
+        "targetOutcomes": [
+          {
+            "targetId": "QUALITY:CARDIORESPIRATORY_FITNESS",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:HYPERTROPHY",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MOBILITY_ROM",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MUSCULAR_ENDURANCE",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:POWER",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:RAPID_FORCE_PRODUCTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:REACTIVE_STRENGTH_SSC",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:STRENGTH",
+            "status": "UNCHANGED",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:ACCELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:DECELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:FOOTWORK",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:JUMP_LANDING",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:LUNGE_REACH",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:REACTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          }
+        ]
       },
       "b8": {
         "status": "CONTROL_REQUIRED",
@@ -5943,7 +7501,13 @@
           "B8_CUTOVER_V1_UPSTREAM_INCONSISTENCY"
         ]
       },
-      "route": "CONTROL"
+      "route": "CONTROL",
+      "buildAccounting": {
+        "CONTROL": 1,
+        "EXPERIMENTAL": 1,
+        "TOTAL": 2,
+        "THIRD": 0
+      }
     },
     {
       "case": "persona4_sparse",
@@ -6214,6 +7778,80 @@
         "reasonCodes": [
           "AFFECTED_TARGET_REMAINS_UNMET",
           "CHANGE_PROVENANCE_UNCLOSED"
+        ],
+        "targetOutcomes": [
+          {
+            "targetId": "QUALITY:CARDIORESPIRATORY_FITNESS",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:HYPERTROPHY",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MOBILITY_ROM",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MUSCULAR_ENDURANCE",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:POWER",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:RAPID_FORCE_PRODUCTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:REACTIVE_STRENGTH_SSC",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:STRENGTH",
+            "status": "UNCHANGED",
+            "reasonCodes": [
+              "TARGET_UNMET"
+            ]
+          },
+          {
+            "targetId": "TASK:ACCELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:DECELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:FOOTWORK",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:JUMP_LANDING",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:LUNGE_REACH",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:REACTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          }
         ]
       },
       "b8": {
@@ -6223,7 +7861,13 @@
           "B8_B7_NOT_ELIGIBLE"
         ]
       },
-      "route": "CONTROL"
+      "route": "CONTROL",
+      "buildAccounting": {
+        "CONTROL": 1,
+        "EXPERIMENTAL": 1,
+        "TOTAL": 2,
+        "THIRD": 0
+      }
     },
     {
       "case": "reviewed_hypertrophy_isolated",
@@ -6493,6 +8137,78 @@
         "eligible": "NOT_ELIGIBLE",
         "reasonCodes": [
           "CHANGE_PROVENANCE_UNCLOSED"
+        ],
+        "targetOutcomes": [
+          {
+            "targetId": "QUALITY:CARDIORESPIRATORY_FITNESS",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:HYPERTROPHY",
+            "status": "UNCHANGED",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MOBILITY_ROM",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MUSCULAR_ENDURANCE",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:POWER",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:RAPID_FORCE_PRODUCTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:REACTIVE_STRENGTH_SSC",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:STRENGTH",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:ACCELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:DECELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:FOOTWORK",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:JUMP_LANDING",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:LUNGE_REACH",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:REACTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          }
         ]
       },
       "b8": {
@@ -6502,7 +8218,13 @@
           "B8_B7_NOT_ELIGIBLE"
         ]
       },
-      "route": "CONTROL"
+      "route": "CONTROL",
+      "buildAccounting": {
+        "CONTROL": 1,
+        "EXPERIMENTAL": 1,
+        "TOTAL": 2,
+        "THIRD": 0
+      }
     },
     {
       "case": "reviewed_strength_isolated",
@@ -6770,7 +8492,79 @@
       "selectedTaskOwners": [],
       "b7": {
         "eligible": "ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW",
-        "reasonCodes": []
+        "reasonCodes": [],
+        "targetOutcomes": [
+          {
+            "targetId": "QUALITY:CARDIORESPIRATORY_FITNESS",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:HYPERTROPHY",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MOBILITY_ROM",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:MUSCULAR_ENDURANCE",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:POWER",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:RAPID_FORCE_PRODUCTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:REACTIVE_STRENGTH_SSC",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "QUALITY:STRENGTH",
+            "status": "UNCHANGED",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:ACCELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:DECELERATION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:FOOTWORK",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:JUMP_LANDING",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:LUNGE_REACH",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          },
+          {
+            "targetId": "TASK:REACTION",
+            "status": "NOT_APPLICABLE",
+            "reasonCodes": []
+          }
+        ]
       },
       "b8": {
         "status": "AUTHORIZED_FOR_BOUNDED_CUTOVER",
@@ -6779,7 +8573,13 @@
           "B8_STRENGTH_V1_AUTHORIZED"
         ]
       },
-      "route": "B8_STRENGTH_V1"
+      "route": "B8_STRENGTH_V1",
+      "buildAccounting": {
+        "CONTROL": 1,
+        "EXPERIMENTAL": 1,
+        "TOTAL": 2,
+        "THIRD": 0
+      }
     }
   ],
   "ownerTaskMatrix": [
@@ -7124,196 +8924,7 @@
       "authority": "NO_EXACT_TASK_B6; LEGACY_PERFORMANCE_FALLBACK"
     }
   ],
-  "materializedTaskRowsAfter": [
-    {
-      "case": "persona3_recent",
-      "week": 1,
-      "day": 1,
-      "order": 3,
-      "stableKey": "ex_421ba24b",
-      "selectionRole": "CANONICAL_STIMULUS_TASK_LUNGE_REACH",
-      "setCount": 5,
-      "reps": 0,
-      "seconds": 18,
-      "sets": [
-        {
-          "setIndex": 1,
-          "reps": 0,
-          "seconds": 18,
-          "weightKg": 0
-        },
-        {
-          "setIndex": 2,
-          "reps": 0,
-          "seconds": 18,
-          "weightKg": 0
-        },
-        {
-          "setIndex": 3,
-          "reps": 0,
-          "seconds": 18,
-          "weightKg": 0
-        },
-        {
-          "setIndex": 4,
-          "reps": 0,
-          "seconds": 18,
-          "weightKg": 0
-        },
-        {
-          "setIndex": 5,
-          "reps": 0,
-          "seconds": 18,
-          "weightKg": 0
-        }
-      ],
-      "restSeconds": 60,
-      "weightSource": "CANONICAL_PROGRAM_8_2_57",
-      "prescriptionText": "18초 x 5 · 좌우 감속",
-      "legacyResolverSource": "CANONICAL_PROGRAM_8_2_57",
-      "legacyResolverText": "18초 x 5 · 좌우 감속",
-      "exactB5TaskOwner": true,
-      "authority": "NO_EXACT_TASK_B6; LEGACY_PERFORMANCE_FALLBACK"
-    },
-    {
-      "case": "persona3_recent",
-      "week": 1,
-      "day": 3,
-      "order": 2,
-      "stableKey": "ex_33841b88",
-      "selectionRole": "CANONICAL_STIMULUS_TASK_ACCELERATION",
-      "setCount": 4,
-      "reps": 0,
-      "seconds": 15,
-      "sets": [
-        {
-          "setIndex": 1,
-          "reps": 0,
-          "seconds": 15,
-          "weightKg": 0
-        },
-        {
-          "setIndex": 2,
-          "reps": 0,
-          "seconds": 15,
-          "weightKg": 0
-        },
-        {
-          "setIndex": 3,
-          "reps": 0,
-          "seconds": 15,
-          "weightKg": 0
-        },
-        {
-          "setIndex": 4,
-          "reps": 0,
-          "seconds": 15,
-          "weightKg": 0
-        }
-      ],
-      "restSeconds": 60,
-      "weightSource": "CANONICAL_PROGRAM_3_1_7",
-      "prescriptionText": "15초 x 4 · 이동 후 균형 잡고 정지",
-      "legacyResolverSource": "CANONICAL_PROGRAM_3_1_7",
-      "legacyResolverText": "15초 x 4 · 이동 후 균형 잡고 정지",
-      "exactB5TaskOwner": true,
-      "authority": "NO_EXACT_TASK_B6; LEGACY_PERFORMANCE_FALLBACK"
-    },
-    {
-      "case": "persona3_recent",
-      "week": 2,
-      "day": 1,
-      "order": 3,
-      "stableKey": "ex_421ba24b",
-      "selectionRole": "CANONICAL_STIMULUS_TASK_LUNGE_REACH",
-      "setCount": 5,
-      "reps": 0,
-      "seconds": 18,
-      "sets": [
-        {
-          "setIndex": 1,
-          "reps": 0,
-          "seconds": 18,
-          "weightKg": 0
-        },
-        {
-          "setIndex": 2,
-          "reps": 0,
-          "seconds": 18,
-          "weightKg": 0
-        },
-        {
-          "setIndex": 3,
-          "reps": 0,
-          "seconds": 18,
-          "weightKg": 0
-        },
-        {
-          "setIndex": 4,
-          "reps": 0,
-          "seconds": 18,
-          "weightKg": 0
-        },
-        {
-          "setIndex": 5,
-          "reps": 0,
-          "seconds": 18,
-          "weightKg": 0
-        }
-      ],
-      "restSeconds": 60,
-      "weightSource": "CANONICAL_PROGRAM_8_2_57",
-      "prescriptionText": "18초 x 5 · 좌우 감속",
-      "legacyResolverSource": "CANONICAL_PROGRAM_8_2_57",
-      "legacyResolverText": "18초 x 5 · 좌우 감속",
-      "exactB5TaskOwner": true,
-      "authority": "NO_EXACT_TASK_B6; LEGACY_PERFORMANCE_FALLBACK"
-    },
-    {
-      "case": "persona3_recent",
-      "week": 2,
-      "day": 3,
-      "order": 2,
-      "stableKey": "ex_33841b88",
-      "selectionRole": "CANONICAL_STIMULUS_TASK_ACCELERATION",
-      "setCount": 4,
-      "reps": 0,
-      "seconds": 15,
-      "sets": [
-        {
-          "setIndex": 1,
-          "reps": 0,
-          "seconds": 15,
-          "weightKg": 0
-        },
-        {
-          "setIndex": 2,
-          "reps": 0,
-          "seconds": 15,
-          "weightKg": 0
-        },
-        {
-          "setIndex": 3,
-          "reps": 0,
-          "seconds": 15,
-          "weightKg": 0
-        },
-        {
-          "setIndex": 4,
-          "reps": 0,
-          "seconds": 15,
-          "weightKg": 0
-        }
-      ],
-      "restSeconds": 60,
-      "weightSource": "CANONICAL_PROGRAM_3_1_7",
-      "prescriptionText": "15초 x 4 · 이동 후 균형 잡고 정지",
-      "legacyResolverSource": "CANONICAL_PROGRAM_3_1_7",
-      "legacyResolverText": "15초 x 4 · 이동 후 균형 잡고 정지",
-      "exactB5TaskOwner": true,
-      "authority": "NO_EXACT_TASK_B6; LEGACY_PERFORMANCE_FALLBACK"
-    }
-  ],
+  "materializedTaskRowsAfter": [],
   "routeSnapshot": {
     "CONTROL": 19,
     "STRENGTH_V1": 1,
@@ -7324,7 +8935,8 @@
   "b7ReasonOccurrences": {
     "CHANGE_PROVENANCE_UNCLOSED": 11,
     "AFFECTED_TARGET_REMAINS_UNMET": 9,
-    "TARGET_REGRESSED": 1
+    "TARGET_REGRESSED": 2,
+    "COLLATERAL_TARGET_REGRESSION": 1
   },
   "powerRegression": {
     "numericPowerAuthority": 0,
@@ -7335,6 +8947,6 @@
     "taskExecutionAuthorityImplemented": false,
     "taskCutoverScopeAdded": false,
     "genericTaskPrescriptionAdded": false,
-    "productionFallbackFilterApplied": false
+    "productionFallbackFilterApplied": true
   }
 }

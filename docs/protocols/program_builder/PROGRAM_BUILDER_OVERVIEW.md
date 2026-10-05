@@ -7,7 +7,7 @@
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.14.7 |
-| Last audited commit | 400b4aa2a644a509a43763d7943c296eac23d825 |
+| Last audited commit | ba63aba9c7c5a26c4850d7036a4d97baca20de1d |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1313,4 +1313,5 @@ Post-audit boundary notes
 - Routes remain CONTROL 19 / Strength V1 1 / Strength Calibration 2 / Hypertrophy 0 / Combined 0. Power remains at zero numeric authority and zero material rows. C20 incumbent stability remains 12 hard-valid preserved, 0 hard-invalid, and 20 unresolved unanchored.
 - B7 remains 11 provenance-unclosed and 9 target-unmet; `TARGET_REGRESSED` occurrences rise from 1 to 2 because `persona3_recent` now correctly loses the unauthorized task material. Its five previously fallback-supported task outcomes are regressed and B7 keeps the case blocked; the existing Hypertrophy regression in `persona1_reviewed` is unchanged. No B7/B8 gate is modified.
 - Protocol/runtime/app are `3.57.0` / `RECORD_BASED_PLANNER_0.14.9_KOTLIN_1` / `0.5.1.5`. Standard production coverage SHA-256 is `4467C1510A07BBE901042E112D68826CD054384C023FCB07DEB3859D043C3EF8`, reflecting removal of the four unauthorized task rows. No Room migration is required.
+- `lastAuditedCommit` is `ba63aba9c7c5a26c4850d7036a4d97baca20de1d`, which adds a persona3_recent CONTROL task-row perturbation test and asserts identical B4/B5/EXPERIMENTAL task results.
 - C22's exact task matrix, legacy-row before/after census, route/B7 snapshot, and rationale are recorded in [`docs/c22_badminton_task_prescription_authority_audit.md`](../../c22_badminton_task_prescription_authority_audit.md) and [`docs/c22-badminton-task-authority-census.json`](../../c22-badminton-task-authority-census.json).
