@@ -352,9 +352,11 @@ class PersonalizedProgramBuilder(
         materialDemandOverride: MaterialDemand? = null,
         regionalTargetPlan: RegionalExperimentalTargetPlan? = null,
         exactPrescriptionAuthorizationProvider: ExactPrescriptionAuthorizationProvider? = null,
+        canonicalB5PowerOwnerIdentities: Set<StimulusPrescriptionOwnerIdentity> = emptySet(),
         canonicalFailureEmitter: ((StimulusCanonicalEvaluationFailureReason, String?) -> Nothing)? = null): GeneratedProgramSkeleton =
         buildWithArtifacts(snapshot, state, gaps, intent, horizon, request, answers, priorDecisionId, explicitWeeklyDays,
             frequency, progress, materialDemandOverride, regionalTargetPlan, exactPrescriptionAuthorizationProvider,
+            canonicalB5PowerOwnerIdentities,
             canonicalFailureEmitter).program
 
     /**
@@ -369,6 +371,7 @@ class PersonalizedProgramBuilder(
         materialDemandOverride: MaterialDemand? = null,
         regionalTargetPlan: RegionalExperimentalTargetPlan? = null,
         exactPrescriptionAuthorizationProvider: ExactPrescriptionAuthorizationProvider? = null,
+        canonicalB5PowerOwnerIdentities: Set<StimulusPrescriptionOwnerIdentity> = emptySet(),
         canonicalFailureEmitter: ((StimulusCanonicalEvaluationFailureReason, String?) -> Nothing)? = null): PersonalizedProgramBuildArtifacts {
         val performanceMetrics = PlannerPerformanceMetrics()
         val memo = PlanningComputationMemo(performanceMetrics)
@@ -381,7 +384,7 @@ class PersonalizedProgramBuilder(
         val placed = try {
             buildBeforeReflow(memoSnapshot, state, gaps, intent, horizon, request, answers, priorDecisionId, explicitWeeklyDays,
                 frequency, progress, generationPrescriptions, performanceMetrics, materialDemandOverride, regionalTargetPlan,
-                exactPrescriptionAuthorizationProvider)
+                exactPrescriptionAuthorizationProvider, canonicalB5PowerOwnerIdentities)
         } finally {
             activeExactPrescriptionAuthorizationProvider = previousExactAuthorization
             activeCanonicalFailureEmitter = previousCanonicalFailureEmitter
@@ -450,11 +453,12 @@ class PersonalizedProgramBuilder(
         performanceMetrics: PlannerPerformanceMetrics,
         materialDemandOverride: MaterialDemand?,
         regionalTargetPlan: RegionalExperimentalTargetPlan?,
-        exactPrescriptionAuthorizationProvider: ExactPrescriptionAuthorizationProvider?): GeneratedProgramSkeleton {
+        exactPrescriptionAuthorizationProvider: ExactPrescriptionAuthorizationProvider?,
+        canonicalB5PowerOwnerIdentities: Set<StimulusPrescriptionOwnerIdentity>): GeneratedProgramSkeleton {
         if (!frequency.explicitIncrease) return buildCore(snapshot, state, gaps, intent, horizon, request, answers, priorDecisionId,
             explicitWeeklyDays, frequency, progress = progress, generationPrescriptions = generationPrescriptions,
             performanceMetrics = performanceMetrics, materialDemandOverride = materialDemandOverride,
-            regionalTargetPlan = regionalTargetPlan)
+            regionalTargetPlan = regionalTargetPlan, canonicalB5PowerOwnerIdentities = canonicalB5PowerOwnerIdentities)
         // BASE is fully evaluated before expansion. Its nested work must not consume expansion's milestone range.
         val baseProgress = PersonalizedPlannerProgressReporter { stage ->
             progress.report(if (stage.percent > 50) PersonalizedPlannerStage.BASE_REVIEW else stage)
@@ -462,7 +466,7 @@ class PersonalizedProgramBuilder(
         val base = buildCore(snapshot, state, gaps, intent, horizon, request.copy(weeklyTrainingDays = frequency.algorithmRecommendedDays),
             answers, priorDecisionId, true, frequency, progress = baseProgress, generationPrescriptions = generationPrescriptions,
             performanceMetrics = performanceMetrics, materialDemandOverride = materialDemandOverride,
-            regionalTargetPlan = regionalTargetPlan)
+            regionalTargetPlan = regionalTargetPlan, canonicalB5PowerOwnerIdentities = canonicalB5PowerOwnerIdentities)
         progress.report(PersonalizedPlannerStage.EXPANSION)
         return FrequencyExpansionPlanner(generationPrescriptions, performanceMetrics).expand(snapshot, state, request, base, frequency,
             exactPrescriptionAuthorizationProvider,
@@ -472,7 +476,7 @@ class PersonalizedProgramBuilder(
             buildCore(snapshot, state, gaps, intent, horizon, request, answers, priorDecisionId, true, frequency, authorized, capacity,
                 progress = PersonalizedPlannerProgressReporter { progress.report(PersonalizedPlannerStage.EXPANSION_RECHECK) }, generationPrescriptions = generationPrescriptions,
                 performanceMetrics = performanceMetrics, materialDemandOverride = materialDemandOverride,
-                regionalTargetPlan = regionalTargetPlan) {
+                regionalTargetPlan = regionalTargetPlan, canonicalB5PowerOwnerIdentities = canonicalB5PowerOwnerIdentities) {
                 result = it
                 it.skeleton
             }
@@ -489,6 +493,7 @@ class PersonalizedProgramBuilder(
         performanceMetrics: PlannerPerformanceMetrics = PlannerPerformanceMetrics(),
         materialDemandOverride: MaterialDemand? = null,
         regionalTargetPlan: RegionalExperimentalTargetPlan? = null,
+        canonicalB5PowerOwnerIdentities: Set<StimulusPrescriptionOwnerIdentity> = emptySet(),
         finish: ((CompletionResult) -> GeneratedProgramSkeleton)? = null): GeneratedProgramSkeleton {
         val exactPrescriptionAuthorizationProvider = activeExactPrescriptionAuthorizationProvider
         progress.report(PersonalizedPlannerStage.DEMAND)
@@ -520,7 +525,7 @@ class PersonalizedProgramBuilder(
         val ownedBaseDemand = regionalTargetPlan?.let {
             RegionalMaterialDemandOwnershipFilter.filter(baseDemand, snapshot, state, it.ownedKeys, generationPrescriptions)
         } ?: baseDemand
-        val demand = when {
+        val mergedDemand = when {
             regionalTargetPlan != null -> mergeTypedMaterialDemand(ownedBaseDemand, regionalTargetPlan.demand, regionalTargetPlan.authorizedPrescriptionBySelectionRole.keys)
             // Canonical B5 owns every selected target identity. Keep the builder's independent
             // non-target demand, but replace a same-exercise generic owner with B5's exact
@@ -528,17 +533,24 @@ class PersonalizedProgramBuilder(
             materialDemandOverride != null -> mergeCanonicalMaterialDemand(baseDemand, materialDemandOverride)
             else -> baseDemand
         }
+        val demand = if (regionalTargetPlan == null && exactPrescriptionAuthorizationProvider != null && canonicalB5PowerOwnerIdentities.isNotEmpty()) {
+            filterCanonicalB5DemandWithoutExecutableB6(mergedDemand, canonicalB5PowerOwnerIdentities, exactPrescriptionAuthorizationProvider)
+        } else mergedDemand
         val materialKeys = demand.candidates.filter(PlannedExercise::material).mapTo(mutableSetOf(), PlannedExercise::stableKey)
         val canonicalB5StableKeys = if (regionalTargetPlan == null) {
             materialDemandOverride?.candidates?.mapTo(linkedSetOf(), PlannedExercise::stableKey).orEmpty()
         } else emptySet()
+        // A deferred Power target must not regain an executable-looking legacy row through the
+        // separate performance-continuity path. Other B5 qualities retain their existing behavior.
+        val canonicalB5PowerStableKeys = canonicalB5PowerOwnerIdentities.mapTo(linkedSetOf()) { it.stableKey }
         val provisionalResistance = ResistanceVolumePlanner.plan(snapshot, state, request, Int.MAX_VALUE, anchorFallbackResistance)
         val baselineResistance = schedulingBaselineResistance
         val resistanceContinuityDemand = schedulingContinuityDemand
         val performanceContinuity = snapshot.allConfirmedSets.filter {
             !it.date.isBefore(snapshot.cutoff.minusDays(27)) && !it.date.isAfter(snapshot.cutoff) &&
                 snapshot.activityKind(it.stableKey) in PERFORMANCE_ACTIVITY_KINDS &&
-                it.stableKey !in materialKeys && it.stableKey !in request.excludedExerciseStableKeys &&
+                it.stableKey !in materialKeys && it.stableKey !in canonicalB5PowerStableKeys &&
+                it.stableKey !in request.excludedExerciseStableKeys &&
                 !snapshot.explicitlyRestricted(it.stableKey) &&
                 (state.badmintonIntent == BadmintonPlanningIntent.ENABLED ||
                     snapshot.activityKind(it.stableKey) != PlannedActivityKind.STRUCTURED_BADMINTON_DRILL)
@@ -1042,6 +1054,49 @@ private fun mergeCanonicalMaterialDemand(base: MaterialDemand, canonical: Materi
         candidates = base.candidates.filterNot { it.stableKey in canonicalKeys } + canonical.candidates,
         deferred = base.deferred + canonical.deferred,
         audit = base.audit + canonical.audit
+    )
+}
+
+/** Stable diagnostic attached when a B5-selected owner has no exact executable B6 authority. */
+internal enum class CanonicalB5MaterialDemandDeferral(val reasonCode: String) {
+    NO_EXECUTABLE_EXACT_B6_AUTHORITY("B5_SELECTED_OWNER_NO_EXECUTABLE_EXACT_B6_AUTHORITY")
+}
+
+/**
+ * B5 establishes identity, not an executable prescription. In the production B5/B6 path, a
+ * selected material owner without exact B6 authority must be removed before budgeting and
+ * placement; it must not fall through to the generic legacy prescription resolver. Other
+ * demand and the existing explicit multi-quality conflict path are left untouched.
+ */
+internal fun filterCanonicalB5DemandWithoutExecutableB6(
+    demand: MaterialDemand,
+    canonicalB5Owners: Set<StimulusPrescriptionOwnerIdentity>,
+    provider: ExactPrescriptionAuthorizationProvider
+): MaterialDemand {
+    if (canonicalB5Owners.isEmpty()) return demand
+    val deferredOwners = demand.candidates.filter { candidate ->
+        if (!candidate.material) return@filter false
+        val identity = StimulusPrescriptionOwnerIdentity(candidate.stableKey, candidate.role)
+        if (identity !in canonicalB5Owners) return@filter false
+        when (provider.resolveOwnerPrescription(candidate)) {
+            is ExactOwnerPrescriptionResolution.Authorized,
+            is ExactOwnerPrescriptionResolution.PreserveIncumbent,
+            ExactOwnerPrescriptionResolution.ExcludeConflictingAddition -> false
+            ExactOwnerPrescriptionResolution.NoExecutableAuthority,
+            ExactOwnerPrescriptionResolution.NoExactAuthority -> true
+        }
+    }.mapTo(linkedSetOf()) { StimulusPrescriptionOwnerIdentity(it.stableKey, it.role) }
+    if (deferredOwners.isEmpty()) return demand
+
+    val reason = CanonicalB5MaterialDemandDeferral.NO_EXECUTABLE_EXACT_B6_AUTHORITY.reasonCode
+    val ownerKeys = deferredOwners.associate { owner -> "${owner.stableKey}#${owner.selectionRole}" to reason }
+    return demand.copy(
+        candidates = demand.candidates.filterNot { candidate ->
+            StimulusPrescriptionOwnerIdentity(candidate.stableKey, candidate.role) in deferredOwners
+        },
+        deferred = demand.deferred + ownerKeys,
+        audit = demand.audit + ownerKeys,
+        ownerAllocationProvenance = demand.ownerAllocationProvenance.filterNot { it.owner in deferredOwners }
     )
 }
 

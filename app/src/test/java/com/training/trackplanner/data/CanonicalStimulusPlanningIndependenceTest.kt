@@ -167,6 +167,85 @@ class CanonicalStimulusPlanningIndependenceTest {
         Unit
     }
 
+    @Test fun controlPowerRowsCannotSourcePowerAuthorityOrExperimentalMaterial() = runBlocking {
+        val spec = StimulusProductionCoverageAuditTest.CoverageSpec(
+            label = "c21_control_power_perturbation",
+            quality = TrainableQuality.STRENGTH,
+            stableKey = "barbell_back_squat",
+            profileGoal = "MIXED",
+            goal = ProgramGoal.BADMINTON_SUPPORT,
+            intent = StrengthIntent.MIXED,
+            badminton = true,
+            history = "reviewed",
+            days = 4,
+            minutes = 30,
+            equipment = setOf("BARBELL", "DUMBBELL", "BENCH", "RACK")
+        )
+        StimulusProductionCoverageAuditTest().runCase(spec) { service, preflight, answers, metadata ->
+            val prepared = service.generatePreparedWithCanonicalPlanning(preflight, answers, metadata)
+            val source = prepared.program.items.firstOrNull() ?: error("fixture requires a CONTROL template row")
+            val powerKey = "ex_314df428"
+            val powerRole = "CANONICAL_STIMULUS_QUALITY_POWER"
+            fun perturbedControl(setCount: Int, reps: Int, loadKg: Double, suffix: String) =
+                prepared.program.copy(items = prepared.program.items.filterNot {
+                    it.exerciseStableKey == powerKey && it.selectionRole == powerRole
+                } + (1..2).map { week ->
+                    source.copy(
+                        localId = "c21-control-power-$suffix-$week",
+                        weekNumber = week,
+                        dayOfWeek = 1,
+                        orderIndex = 1,
+                        exerciseStableKey = powerKey,
+                        stableKey = powerKey,
+                        exerciseName = "CONTROL Power perturbation",
+                        category = "POWER",
+                        selectionRole = powerRole,
+                        setCount = setCount,
+                        reps = reps,
+                        weightKg = loadKg,
+                        seconds = 0,
+                        restSeconds = 75,
+                        prescription = "CONTROL-only $setCount x $reps",
+                        weightSource = "CONTROL_ONLY",
+                        setPrescriptions = (1..setCount).map { setIndex ->
+                            ProgramSetPrescription(setIndex, reps, loadKg, 0)
+                        }
+                    )
+                })
+
+            val controlA = perturbedControl(setCount = 3, reps = 5, loadKg = 0.0, suffix = "a")
+            val controlB = perturbedControl(setCount = 2, reps = 9, loadKg = 42.0, suffix = "b")
+            assertNotEquals(controlA.items, controlB.items)
+
+            suspend fun evaluate(control: GeneratedProgramSkeleton) = service.generatePreparedProduction(
+                preflight = preflight,
+                answers = answers,
+                metadata = metadata,
+                controlGenerationOverride = { control }
+            )
+            val a = evaluate(controlA)
+            val b = evaluate(controlB)
+            val comparisonA = requireNotNull(a.comparison)
+            val comparisonB = requireNotNull(b.comparison)
+
+            assertEquals(comparisonA.targetPlan, comparisonB.targetPlan)
+            assertEquals(comparisonA.selectionPlan, comparisonB.selectionPlan)
+            assertEquals(comparisonA.prescriptionAuthorizationPlan, comparisonB.prescriptionAuthorizationPlan)
+            assertEquals(comparisonA.experimental.items, comparisonB.experimental.items)
+            assertTrue(comparisonA.targetPlan.qualityTargets.any { it.quality == TrainableQuality.POWER })
+            assertEquals(1, comparisonA.selectionPlan.selectedCandidates.count { "QUALITY:POWER" in it.coveredTargetIds })
+            assertTrue(comparisonA.experimental.items.none { it.exerciseStableKey == powerKey && it.selectionRole == powerRole })
+            listOf(a, b).forEach { result ->
+                assertEquals(0, result.buildCounts.controlBuilds)
+                assertEquals(1, result.buildCounts.experimentalBuilds)
+                assertEquals(1, result.buildCounts.totalBuildInvocations)
+                assertEquals(0, result.buildCounts.thirdBuilds)
+            }
+            b
+        }
+        Unit
+    }
+
     private fun parity(spec: StimulusProductionCoverageAuditTest.CoverageSpec) = runBlocking {
         StimulusProductionCoverageAuditTest().runCase(spec) { service, preflight, answers, metadata ->
             // No program has been constructed by this seam, and no CONTROL argument exists.

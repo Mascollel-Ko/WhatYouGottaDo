@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.55.0 |
+| Protocol version | 3.56.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.14.7 |
-| Last audited commit | 6466b7d0cc237caf487cecb250e1a5ad91844566 |
+| Last audited commit | 400b4aa2a644a509a43763d7943c296eac23d825 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1295,3 +1295,13 @@ Post-audit boundary notes
 - The 32-row census found 12 hard-valid, 2 hard-invalid, and 18 unresolved incumbents, with no combined hard-valid-set conflicts. Activation restores all 12 hard-valid rows; it preserves 0/2 hard-invalid and 0/18 unresolved rows. Shared placement deltas decline from 32 to 20, day distance from 62 to 42, and order-only changes from 2 to 0.
 - Routes remain CONTROL 20 / Strength V1 1 / Strength Calibration 1 / Hypertrophy 0 / Combined 0. B7 remains 11 provenance-unclosed / 9 target-unmet / 1 regressed. Standard production coverage SHA-256 is unchanged at `55CD3C4E9E58B700ED4577A6C0CE0A99FD847F552A334B45FD0815E6FC8825AB`.
 - C20 implementation/test commit `6466b7d0cc237caf487cecb250e1a5ad91844566` is the `lastAuditedCommit`. The detailed live evidence is in [`docs/c20_live_incumbent_stability_cutover_audit.md`](../../c20_live_incumbent_stability_cutover_audit.md), with the deterministic row-level census in [`docs/c20-live-incumbent-stability-census.json`](../../c20-live-incumbent-stability-census.json).
+
+
+### Phase C21 — Power dose authority boundary (protocol 3.56.0)
+
+- The exact reviewed DECELERATION guide is not a complete Power prescription authority: B4 remains direction-only without weekly dose/frequency, the exercise-to-task relation is supportive, the category guide is not exact owner-quality authority, and the executable set model cannot preserve `/side` laterality. No compatible owner-local Power dose history exists.
+- The canonical B5/B6 production boundary now omits an exact selected Power owner from material demand when B6 has no executable exact authority, and prevents that owner from re-entering through performance continuity. The deferred diagnostic is typed; B4, B5 ranking, B6 policy, B7/B8 gates, C20 incumbent stability, Power semantics, and Combined scope are unchanged.
+- The eight legacy `3×5/side` rows are removed. Power remains direction-only and has no executable Power materialization, Power B8 authority, or Power route. `persona3_mixed` can use the existing Strength Calibration route with no Power rows; `persona3_reviewed` remains CONTROL.
+- C20 incumbents are re-evaluated against the output without unauthorized Power: 12 remain hard-valid, 0 are hard-invalid, and 20 remain unresolved; only the 12 proven hard-valid rows are preserved. Routes are CONTROL 19 / Strength V1 1 / Strength Calibration 2 / Hypertrophy 0 / Combined 0. B7 remains provenance-unclosed 11 / target-unmet 9 / regressed 1.
+- C21 advances the protocol/runtime to `3.56.0` / `RECORD_BASED_PLANNER_0.14.8_KOTLIN_1`. Persisted C20 (`3.55.0` / runtime `0.14.7`) and C19 (`3.54.0` / runtime `0.14.6`) programs remain valid incumbent sources. App remains `0.5.1.5`. The standard coverage SHA-256 changes to `5BD1E9430352618C6C42F399ED28B8A065908CEDCA8F4448924BD9301CB44BD1` because unauthorized Power rows are no longer emitted.
+- C21 implementation/test commit `400b4aa2a644a509a43763d7943c296eac23d825` is the `lastAuditedCommit`; it includes a CONTROL Power-row perturbation test proving B4/B5/B6/EXPERIMENTAL Power authority is CONTROL-independent. Hosted run [37233984414](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/37233984414) passed 2,279 tests (0 failures, 0 errors, 4 skips), protocol/contracts/whitespace checks, coverage upload, APK assembly, signer validation, and APK upload. The exact Power evidence and per-case census are in [`docs/c21_power_dose_and_execution_authority_audit.md`](../../c21_power_dose_and_execution_authority_audit.md) and [`docs/c21-power-dose-authority-census.json`](../../c21-power-dose-authority-census.json).

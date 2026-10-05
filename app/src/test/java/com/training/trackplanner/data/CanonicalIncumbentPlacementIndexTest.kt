@@ -159,6 +159,22 @@ class CanonicalIncumbentPlacementIndexTest {
     }
 
     @Test
+    fun c20ExactPlacementContractRemainsEligibleAfterC21Bump() {
+        val c20 = program(
+            builder = "3.55.0",
+            runtime = "RECORD_BASED_PLANNER_0.14.7_KOTLIN_1"
+        )
+        val result = index(program = c20)
+        assertEquals(CanonicalIncumbentIndexStatus.AVAILABLE, result.status)
+        assertEquals(2, result.placement(owner, 1)?.day)
+
+        val mismatched = index(program = c20.copy(
+            canonicalPlannerRuntimeVersion = com.training.trackplanner.data.personalized.PERSONALIZED_PLANNER_PROTOCOL
+        ))
+        assertEquals(CanonicalIncumbentIndexStatus.SOURCE_VERSION_INCOMPATIBLE, mismatched.status)
+    }
+
+    @Test
     fun shadowOnlyUsesExactCurrentOwnerAndExplicitHardFeasibility() {
         val result = CanonicalIncumbentPlacementShadowEvaluator.evaluate(
             index(),
