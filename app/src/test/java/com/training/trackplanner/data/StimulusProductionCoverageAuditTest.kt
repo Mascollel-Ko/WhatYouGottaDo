@@ -279,6 +279,57 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(20, c21C20.getInt("UNRESOLVED"))
         assertEquals(12, c21C20.getInt("preservedHardValidRows"))
         assertEquals(0, c21C20.getInt("hardInvalidOrUnresolvedForcedPreserved"))
+        val c22TaskCensus = C22BadmintonTaskAuthorityCensus.render(
+            records = records,
+            planningByCase = canonicalPlanningByCase,
+            contextByCase = productionContextByCase,
+            metadataRepository = canonicalMetadataRepository
+        )
+        assertEquals(c22TaskCensus, C22BadmintonTaskAuthorityCensus.render(
+            records.reversed(), canonicalPlanningByCase, productionContextByCase, canonicalMetadataRepository
+        ))
+        java.io.File("build/reports/c22-badminton-task-authority-census.json").writeText(c22TaskCensus)
+        val c22 = org.json.JSONObject(c22TaskCensus)
+        val c22Counts = c22.getJSONObject("counts")
+        assertEquals(22, c22Counts.getInt("generatedCases"))
+        assertEquals(132, c22Counts.getInt("taskTargetsTotal"))
+        assertEquals(24, c22Counts.getInt("directionOnlyTaskTargets"))
+        assertEquals(2, c22Counts.getInt("exactB5TaskOwnerRows"))
+        assertEquals(2, c22Counts.getInt("uniqueTaskOwners"))
+        assertEquals(5, c22Counts.getInt("directTaskRelations"))
+        assertEquals(0, c22Counts.getInt("supportiveTaskRelations"))
+        assertEquals(0, c22Counts.getInt("reviewedGuideMatches"))
+        assertEquals(5, c22Counts.getInt("reviewedGuideMismatches"))
+        assertEquals(0, c22Counts.getInt("personalTaskAuthorities"))
+        assertEquals(0, c22Counts.getInt("reviewedStarterAuthorities"))
+        assertEquals(0, c22Counts.getInt("fullyEncodedTaskAuthorities"))
+        assertEquals(4, c22Counts.getInt("materializedTaskRowsBefore"))
+        assertEquals(1, c22Counts.getInt("blockedPerSide"))
+        assertEquals(4, c22Counts.getInt("blockedRange"))
+        assertEquals(24, c22Counts.getInt("blockedFrequency"))
+        assertEquals(5, c22Counts.getInt("blockedCategoryMismatch"))
+        assertEquals(6, c22.getJSONArray("taskMatrix").length())
+        assertEquals(4, c22.getJSONArray("materializedTaskRowsBefore").length())
+        assertEquals(4, c22.getJSONArray("materializedTaskRowsAfter").length())
+        assertEquals(19, c22.getJSONObject("routeSnapshot").getInt("CONTROL"))
+        assertEquals(1, c22.getJSONObject("routeSnapshot").getInt("STRENGTH_V1"))
+        assertEquals(2, c22.getJSONObject("routeSnapshot").getInt("STRENGTH_CALIBRATION_V1"))
+        assertEquals(11, c22.getJSONObject("b7ReasonOccurrences").getInt("CHANGE_PROVENANCE_UNCLOSED"))
+        assertEquals(9, c22.getJSONObject("b7ReasonOccurrences").getInt("AFFECTED_TARGET_REMAINS_UNMET"))
+        assertEquals(1, c22.getJSONObject("b7ReasonOccurrences").getInt("TARGET_REGRESSED"))
+        val c22Persona3Recent = c22.getJSONArray("cases").let { rows ->
+            (0 until rows.length()).map(rows::getJSONObject).single { it.getString("case") == "persona3_recent" }
+        }
+        assertEquals(2, c22Persona3Recent.getJSONArray("selectedTaskOwners").length())
+        assertEquals("CONTROL", c22Persona3Recent.getString("route"))
+        val c22LegacyRows = c22.getJSONArray("materializedTaskRowsBefore")
+        assertTrue((0 until c22LegacyRows.length()).map(c22LegacyRows::getJSONObject)
+            .all { it.getString("authority") == "NO_EXACT_TASK_B6; LEGACY_PERFORMANCE_FALLBACK" })
+        assertTrue((0 until c22LegacyRows.length()).map(c22LegacyRows::getJSONObject)
+            .all { it.getString("legacyResolverSource").startsWith("CANONICAL_PROGRAM_") })
+        assertEquals(0, c22.getJSONObject("powerRegression").getInt("numericPowerAuthority"))
+        assertEquals(0, c22.getJSONObject("powerRegression").getInt("powerB6Executable"))
+        assertEquals(0, c22.getJSONObject("powerRegression").getInt("powerMaterialRows"))
         assertEquals(c20Census, C20LiveIncumbentStabilityCensus.render(
             c18Census = c18Census,
             records = records.reversed(),

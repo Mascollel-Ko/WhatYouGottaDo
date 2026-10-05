@@ -1,0 +1,190 @@
+[
+  {
+    "case": "persona3_recent",
+    "week": 1,
+    "day": 1,
+    "order": 3,
+    "stableKey": "ex_421ba24b",
+    "selectionRole": "CANONICAL_STIMULUS_TASK_LUNGE_REACH",
+    "setCount": 5,
+    "reps": 0,
+    "seconds": 18,
+    "sets": [
+      {
+        "setIndex": 1,
+        "reps": 0,
+        "seconds": 18,
+        "weightKg": 0
+      },
+      {
+        "setIndex": 2,
+        "reps": 0,
+        "seconds": 18,
+        "weightKg": 0
+      },
+      {
+        "setIndex": 3,
+        "reps": 0,
+        "seconds": 18,
+        "weightKg": 0
+      },
+      {
+        "setIndex": 4,
+        "reps": 0,
+        "seconds": 18,
+        "weightKg": 0
+      },
+      {
+        "setIndex": 5,
+        "reps": 0,
+        "seconds": 18,
+        "weightKg": 0
+      }
+    ],
+    "restSeconds": 60,
+    "weightSource": "CANONICAL_PROGRAM_8_2_57",
+    "prescriptionText": "18초 x 5 · 좌우 감속",
+    "legacyResolverSource": "CANONICAL_PROGRAM_8_2_57",
+    "legacyResolverText": "18초 x 5 · 좌우 감속",
+    "exactB5TaskOwner": true,
+    "authority": "NO_EXACT_TASK_B6; LEGACY_PERFORMANCE_FALLBACK"
+  },
+  {
+    "case": "persona3_recent",
+    "week": 1,
+    "day": 3,
+    "order": 2,
+    "stableKey": "ex_33841b88",
+    "selectionRole": "CANONICAL_STIMULUS_TASK_ACCELERATION",
+    "setCount": 4,
+    "reps": 0,
+    "seconds": 15,
+    "sets": [
+      {
+        "setIndex": 1,
+        "reps": 0,
+        "seconds": 15,
+        "weightKg": 0
+      },
+      {
+        "setIndex": 2,
+        "reps": 0,
+        "seconds": 15,
+        "weightKg": 0
+      },
+      {
+        "setIndex": 3,
+        "reps": 0,
+        "seconds": 15,
+        "weightKg": 0
+      },
+      {
+        "setIndex": 4,
+        "reps": 0,
+        "seconds": 15,
+        "weightKg": 0
+      }
+    ],
+    "restSeconds": 60,
+    "weightSource": "CANONICAL_PROGRAM_3_1_7",
+    "prescriptionText": "15초 x 4 · 이동 후 균형 잡고 정지",
+    "legacyResolverSource": "CANONICAL_PROGRAM_3_1_7",
+    "legacyResolverText": "15초 x 4 · 이동 후 균형 잡고 정지",
+    "exactB5TaskOwner": true,
+    "authority": "NO_EXACT_TASK_B6; LEGACY_PERFORMANCE_FALLBACK"
+  },
+  {
+    "case": "persona3_recent",
+    "week": 2,
+    "day": 1,
+    "order": 3,
+    "stableKey": "ex_421ba24b",
+    "selectionRole": "CANONICAL_STIMULUS_TASK_LUNGE_REACH",
+    "setCount": 5,
+    "reps": 0,
+    "seconds": 18,
+    "sets": [
+      {
+        "setIndex": 1,
+        "reps": 0,
+        "seconds": 18,
+        "weightKg": 0
+      },
+      {
+        "setIndex": 2,
+        "reps": 0,
+        "seconds": 18,
+        "weightKg": 0
+      },
+      {
+        "setIndex": 3,
+        "reps": 0,
+        "seconds": 18,
+        "weightKg": 0
+      },
+      {
+        "setIndex": 4,
+        "reps": 0,
+        "seconds": 18,
+        "weightKg": 0
+      },
+      {
+        "setIndex": 5,
+        "reps": 0,
+        "seconds": 18,
+        "weightKg": 0
+      }
+    ],
+    "restSeconds": 60,
+    "weightSource": "CANONICAL_PROGRAM_8_2_57",
+    "prescriptionText": "18초 x 5 · 좌우 감속",
+    "legacyResolverSource": "CANONICAL_PROGRAM_8_2_57",
+    "legacyResolverText": "18초 x 5 · 좌우 감속",
+    "exactB5TaskOwner": true,
+    "authority": "NO_EXACT_TASK_B6; LEGACY_PERFORMANCE_FALLBACK"
+  },
+  {
+    "case": "persona3_recent",
+    "week": 2,
+    "day": 3,
+    "order": 2,
+    "stableKey": "ex_33841b88",
+    "selectionRole": "CANONICAL_STIMULUS_TASK_ACCELERATION",
+    "setCount": 4,
+    "reps": 0,
+    "seconds": 15,
+    "sets": [
+      {
+        "setIndex": 1,
+        "reps": 0,
+        "seconds": 15,
+        "weightKg": 0
+      },
+      {
+        "setIndex": 2,
+        "reps": 0,
+        "seconds": 15,
+        "weightKg": 0
+      },
+      {
+        "setIndex": 3,
+        "reps": 0,
+        "seconds": 15,
+        "weightKg": 0
+      },
+      {
+        "setIndex": 4,
+        "reps": 0,
+        "seconds": 15,
+        "weightKg": 0
+      }
+    ],
+    "restSeconds": 60,
+    "weightSource": "CANONICAL_PROGRAM_3_1_7",
+    "prescriptionText": "15초 x 4 · 이동 후 균형 잡고 정지",
+    "legacyResolverSource": "CANONICAL_PROGRAM_3_1_7",
+    "legacyResolverText": "15초 x 4 · 이동 후 균형 잡고 정지",
+    "exactB5TaskOwner": true,
+    "authority": "NO_EXACT_TASK_B6; LEGACY_PERFORMANCE_FALLBACK"
+  }
+]
