@@ -29,6 +29,9 @@ internal data class TaskFrequencyAuthority(
             TaskFrequencyAuthorityState.REVIEWED_PROTOCOL -> {
                 require(weeklySessions != null && weeklySessions > 0)
                 require(reviewedProtocolBinding != null && task == reviewedProtocolBinding.task)
+                require(reviewedProtocolBinding.weeklySessions == weeklySessions) {
+                    "Reviewed frequency must be explicitly supplied by its exact protocol binding."
+                }
                 require(sourceStableKey == reviewedProtocolBinding.stableKey &&
                     sourceSelectionRole == reviewedProtocolBinding.selectionRole)
             }

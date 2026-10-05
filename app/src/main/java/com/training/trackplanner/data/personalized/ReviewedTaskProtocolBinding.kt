@@ -11,9 +11,14 @@ internal data class ReviewedTaskProtocolBinding(
     val selectionRole: String,
     val task: CanonicalTaskTarget,
     val reviewedCategory: ReviewedBadmintonCategory,
-    val source: ReviewedTaskProtocolBindingSource
+    val source: ReviewedTaskProtocolBindingSource,
+    /** Null unless the approved protocol itself explicitly owns sessions per week. */
+    val weeklySessions: Int? = null
 ) {
-    init { require(stableKey.isNotBlank() && selectionRole.isNotBlank()) }
+    init {
+        require(stableKey.isNotBlank() && selectionRole.isNotBlank())
+        require(weeklySessions == null || weeklySessions > 0)
+    }
 }
 
 internal enum class ReviewedTaskProtocolBindingState {

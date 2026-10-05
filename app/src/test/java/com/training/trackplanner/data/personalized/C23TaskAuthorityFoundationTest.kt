@@ -14,7 +14,8 @@ class C23TaskAuthorityFoundationTest {
         selectionRole = "CANONICAL_STIMULUS_TASK_ACCELERATION",
         task = CanonicalTaskTarget.ACCELERATION,
         reviewedCategory = ReviewedBadmintonCategory.ACCELERATION,
-        source = ReviewedTaskProtocolBindingSource.PROJECT_APPROVED_EXACT_BINDING
+        source = ReviewedTaskProtocolBindingSource.PROJECT_APPROVED_EXACT_BINDING,
+        weeklySessions = 1
     )
 
     @Test
@@ -147,6 +148,25 @@ class C23TaskAuthorityFoundationTest {
         val result = PersonalTaskFrequencyAuthorityResolver.resolve(ExactTaskOwnerRef("owner_a", "TASK_ROLE_A"), task, observations)
         assertEquals(TaskFrequencyAuthorityState.CONFLICT, result.state)
         assertNull(result.weeklySessions)
+    }
+
+    @Test
+    fun `reviewed weekly frequency must be explicitly present on exact binding`() {
+        val withoutFrequency = exactBinding.copy(weeklySessions = null)
+        try {
+            TaskFrequencyAuthority(
+                state = TaskFrequencyAuthorityState.REVIEWED_PROTOCOL,
+                weeklySessions = 1,
+                sourceStableKey = withoutFrequency.stableKey,
+                sourceSelectionRole = withoutFrequency.selectionRole,
+                task = withoutFrequency.task,
+                reviewedProtocolBinding = withoutFrequency,
+                reasonCode = "TEST_UNSUPPORTED_REVIEWED_FREQUENCY"
+            )
+            throw AssertionError("Expected a reviewed binding without weekly frequency to be rejected")
+        } catch (_: IllegalArgumentException) {
+            // The within-session guide cannot silently turn into frequency authority.
+        }
     }
 
     @Test

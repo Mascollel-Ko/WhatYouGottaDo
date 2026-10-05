@@ -347,6 +347,7 @@ internal object C23TaskProtocolFrequencyCensus {
     private fun bindingJson(binding: ReviewedTaskProtocolBinding) = JSONObject()
         .put("stableKey", binding.stableKey).put("selectionRole", binding.selectionRole).put("task", binding.task.name)
         .put("reviewedCategory", binding.reviewedCategory.name).put("source", binding.source.name)
+        .put("weeklySessions", binding.weeklySessions ?: JSONObject.NULL)
 
     private fun bindingJson(resolution: ReviewedTaskProtocolBindingResolution) = JSONObject()
         .put("state", resolution.state.name).put("reasonCode", resolution.reasonCode)
