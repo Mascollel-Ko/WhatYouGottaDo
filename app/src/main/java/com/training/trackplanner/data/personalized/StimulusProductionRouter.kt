@@ -411,7 +411,7 @@ class StimulusProductionMaterialScopeResolver {
                 if (controlRows != experimentalRows) add(identity)
             }
         }
-        if (materialOwners.isEmpty() || comparison.removedOwnerIdentities.isNotEmpty()) return null
+        if (materialOwners.isEmpty()) return null
 
         val materialSources = setOf(
             StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY,
@@ -454,7 +454,8 @@ class StimulusProductionMaterialScopeResolver {
             val perOwner = attributions.groupBy {
                 StimulusPrescriptionOwnerIdentity(requireNotNull(it.stableKey), requireNotNull(it.selectionRole))
             }
-            if (parsedTasks.size == targetIds.size && targetIds.all { it in governedTaskIds } &&
+            if (comparison.removedOwnerIdentities.isEmpty() &&
+                parsedTasks.size == targetIds.size && targetIds.all { it in governedTaskIds } &&
                 attributedOwners == materialOwners && materialOwners.all { owner ->
                     perOwner[owner].orEmpty().isNotEmpty() && perOwner.getValue(owner).all {
                         it.source == StimulusExperimentalChangeAttributionSource.B6_APPROVED_TASK_PROTOCOL && it.targetIds.isNotEmpty()

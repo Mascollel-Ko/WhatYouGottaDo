@@ -678,7 +678,7 @@ class StimulusProductionCoverageAuditTest {
         })
         assertEquals(5, c15.getJSONArray("fiveC13RepRangeCases").length())
         assertEquals(8, c15.getJSONArray("directionOnlyStrengthCases").length())
-        assertEquals("DCB2E2E39FA8BB310272708F407B45BC7070283967A0A8C3B0336DB0EC9F5BEC",
+        assertEquals("1772FD236365E39E4012A3A1DEE1FFCBD190904E92F52C414F46372AF86D3178",
             c15.getString("standardCoverageSha256"))
         assertEquals(11, c15.getJSONObject("corpus").getJSONObject("B7ReasonOccurrences").getInt("CHANGE_PROVENANCE_UNCLOSED"))
         assertEquals(9, c15.getJSONObject("corpus").getJSONObject("B7ReasonOccurrences").getInt("AFFECTED_TARGET_REMAINS_UNMET"))
