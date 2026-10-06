@@ -10,7 +10,8 @@ enum class StimulusProductionCutoverScope {
     STRENGTH_V1,
     STRENGTH_CALIBRATION_V1,
     HYPERTROPHY_V1,
-    STRENGTH_HYPERTROPHY_V1
+    STRENGTH_HYPERTROPHY_V1,
+    BADMINTON_TASK_V1
 }
 
 enum class StimulusProductionCutoverAuthorityStatus {
@@ -20,6 +21,13 @@ enum class StimulusProductionCutoverAuthorityStatus {
     NO_MATERIAL_CHANGE
 }
 
+data class StimulusTaskProtocolAuthorityIdentity(
+    val protocolId: String,
+    val stableKey: String,
+    val selectionRole: String,
+    val authorizedTasks: Set<CanonicalTaskTarget>
+)
+
 data class StimulusProductionCutoverAuthorityDecision(
     val status: StimulusProductionCutoverAuthorityStatus,
     val scope: StimulusProductionCutoverScope,
@@ -28,7 +36,8 @@ data class StimulusProductionCutoverAuthorityDecision(
     val b7Status: StimulusExperimentalReadinessStatus,
     val routingActive: Boolean = false,
     val productionMutationAuthority: Boolean = false,
-    val authorizedAuthorityIdentities: List<StimulusPrescriptionAuthorityIdentity> = emptyList()
+    val authorizedAuthorityIdentities: List<StimulusPrescriptionAuthorityIdentity> = emptyList(),
+    val authorizedTaskProtocolIdentities: List<StimulusTaskProtocolAuthorityIdentity> = emptyList()
 ) {
     // B8 normally emits both flags as false. The B9 selector still validates them so malformed
     // diagnostics fail closed with a typed contract-inconsistency reason instead of throwing.
@@ -54,6 +63,9 @@ class StimulusProductionCutoverAuthorityAuditEngine {
         comparison: StimulusSelectionProgramComparison,
         scope: StimulusProductionCutoverScope
     ): StimulusProductionCutoverAuthorityDecision {
+        if (scope == StimulusProductionCutoverScope.BADMINTON_TASK_V1) {
+            return auditBadmintonTask(comparison)
+        }
         if (scope == StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1) {
             return auditCombined(comparison)
         }
@@ -156,6 +168,232 @@ class StimulusProductionCutoverAuthorityAuditEngine {
             control(comparison, policy, normalizedReasons)
         }
     }
+
+    /** Task-only cutover consumes exact C24 row grants and never routes task work through a quality B6. */
+    private fun auditBadmintonTask(
+        comparison: StimulusSelectionProgramComparison
+    ): StimulusProductionCutoverAuthorityDecision {
+        if (StimulusProductionMaterialScopeResolver().resolve(comparison) != StimulusProductionCutoverScope.BADMINTON_TASK_V1) {
+            return taskControl(comparison, "B8_BADMINTON_TASK_MATERIAL_SCOPE_MISMATCH")
+        }
+        val b7 = comparison.experimentalReadinessAudit
+            ?: return taskControl(comparison, "B8_BADMINTON_TASK_B7_AUDIT_MISSING")
+        when (b7.status) {
+            StimulusExperimentalReadinessStatus.NOT_ELIGIBLE ->
+                return taskControl(comparison, "B8_BADMINTON_TASK_B7_NOT_ELIGIBLE")
+            StimulusExperimentalReadinessStatus.INCONCLUSIVE ->
+                return taskInconclusive(comparison, "B8_BADMINTON_TASK_B7_INCONCLUSIVE")
+            StimulusExperimentalReadinessStatus.NO_MATERIAL_CHANGE ->
+                return StimulusProductionCutoverAuthorityDecision(
+                    status = StimulusProductionCutoverAuthorityStatus.NO_MATERIAL_CHANGE,
+                    scope = StimulusProductionCutoverScope.BADMINTON_TASK_V1,
+                    authorizedOwnerIdentities = emptyList(), reasonCodes = listOf("B8_NO_MATERIAL_CHANGE"), b7Status = b7.status
+                )
+            StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW -> Unit
+        }
+
+        val reasons = linkedSetOf<String>()
+        if (!b7.changeProvenanceClosed || b7.changeAttributions.any {
+                it.source == StimulusExperimentalChangeAttributionSource.UNEXPLAINED ||
+                    it.source == StimulusExperimentalChangeAttributionSource.INCONCLUSIVE_DISPLACEMENT
+            }) reasons += "B8_BADMINTON_TASK_PROVENANCE_NOT_CLOSED"
+        if (!b7.materializationIntegrityPassed) reasons += "B8_BADMINTON_TASK_MATERIALIZATION_NOT_INTEGRAL"
+        if (!b7.collateralRegressionFree || b7.targetOutcomes.any { it.status == StimulusExperimentalTargetOutcomeStatus.REGRESSED }) {
+            reasons += "B8_BADMINTON_TASK_COLLATERAL_OR_TARGET_REGRESSION"
+        }
+        if (comparison.removedOwnerIdentities.isNotEmpty()) reasons += "B8_BADMINTON_TASK_CONTROL_OWNER_REMOVAL_NOT_ALLOWED"
+        if (comparison.control.weekDaySchedule != comparison.experimental.weekDaySchedule) {
+            reasons += "B8_BADMINTON_TASK_WEEKDAY_SCHEDULE_CHANGED"
+        }
+        if (comparison.control.request != comparison.experimental.request ||
+            comparison.control.durationDays != comparison.experimental.durationDays ||
+            comparison.control.periodizationType != comparison.experimental.periodizationType
+        ) reasons += "B8_BADMINTON_TASK_PROGRAM_CONTRACT_CHANGED"
+        if (ProgramProjectionValidator().errors(comparison.experimental).isNotEmpty() ||
+            comparison.experimental.items.any { item ->
+                item.dayOfWeek !in comparison.experimental.weekDaySchedule[item.weekNumber].orEmpty()
+            }) reasons += "B8_BADMINTON_TASK_HARD_PROJECTION_INVALID"
+
+        val materialOwners = materialOwnerIdentities(comparison)
+        if (materialOwners.isEmpty()) reasons += "B8_BADMINTON_TASK_EMPTY_MATERIAL_SCOPE"
+        val attributedMaterial = b7.changeAttributions.filter { attribution ->
+            attribution.stableKey != null && attribution.selectionRole != null &&
+                StimulusPrescriptionOwnerIdentity(attribution.stableKey, attribution.selectionRole) in materialOwners &&
+                attribution.source in TASK_MATERIAL_ATTRIBUTION_SOURCES
+        }
+        val attributedOwners = attributedMaterial.map {
+            StimulusPrescriptionOwnerIdentity(requireNotNull(it.stableKey), requireNotNull(it.selectionRole))
+        }.toSet()
+        if (attributedOwners != materialOwners) reasons += "B8_BADMINTON_TASK_MATERIAL_PROVENANCE_INCOMPLETE"
+        if (attributedMaterial.any { attribution ->
+                attribution.source != StimulusExperimentalChangeAttributionSource.B6_APPROVED_TASK_PROTOCOL ||
+                    attribution.targetIds.isEmpty() || attribution.targetIds.any { !it.startsWith("TASK:") }
+            }) reasons += "B8_BADMINTON_TASK_FOREIGN_OR_UNAUTHORIZED_MATERIAL"
+        if (b7.changeAttributions.any { attribution ->
+                attribution.stableKey == null || attribution.selectionRole == null ||
+                    (attribution.stableKey to attribution.selectionRole).let { keyRole ->
+                        StimulusPrescriptionOwnerIdentity(keyRole.first, keyRole.second) in materialOwners
+                    } && attribution.source !in TASK_MATERIAL_ATTRIBUTION_SOURCES
+            }) reasons += "B8_BADMINTON_TASK_PROVENANCE_NOT_CLOSED"
+
+        val taskTargets = comparison.targetPlan.taskTargets.mapNotNull { target ->
+            runCatching { CanonicalTaskTarget.valueOf(target.task) }.getOrNull()
+        }.toSet()
+        if (taskTargets.size != comparison.targetPlan.taskTargets.size) reasons += "B8_BADMINTON_TASK_UNKNOWN_TARGET"
+        if (comparison.targetPlan.unresolved.any { it == "TASK:JUMP_LANDING" } || comparison.targetPlan.taskTargets.any {
+                it.task == CanonicalTaskTarget.JUMP_LANDING.name &&
+                    (it.strategy == StimulusDoseStrategy.UNRESOLVED || "TASK:JUMP_LANDING" in comparison.targetPlan.unresolved)
+            }) reasons += "B8_BADMINTON_TASK_UNRESOLVED_JUMP_LANDING_PRESENT"
+        if (comparison.targetPlan.qualityTargets.isNotEmpty() && materialOwners.any { owner ->
+                b7.changeAttributions.any { a -> a.stableKey == owner.stableKey && a.selectionRole == owner.selectionRole &&
+                    a.targetIds.any { it.startsWith("QUALITY:") } }
+            }) reasons += "B8_BADMINTON_TASK_FOREIGN_QUALITY_MATERIAL"
+
+        val protocols = mutableListOf<StimulusTaskProtocolAuthorityIdentity>()
+        materialOwners.sortedWith(OWNER_ORDER).forEach { owner ->
+            val ownerReasons = validateTaskOwner(comparison, owner, taskTargets)
+            reasons += ownerReasons
+            if (ownerReasons.isEmpty()) {
+                val metadata = taskProtocolMetadataForOwner(comparison.experimental, owner).first()
+                protocols += StimulusTaskProtocolAuthorityIdentity(
+                    protocolId = metadata.authorization.definition.protocolId,
+                    stableKey = owner.stableKey,
+                    selectionRole = owner.selectionRole,
+                    authorizedTasks = metadata.authorization.attributedTasks
+                )
+            }
+        }
+        val normalized = reasons.toList().distinct().sorted()
+        return if (normalized.isEmpty() && protocols.isNotEmpty()) {
+            StimulusProductionCutoverAuthorityDecision(
+                status = StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER,
+                scope = StimulusProductionCutoverScope.BADMINTON_TASK_V1,
+                authorizedOwnerIdentities = materialOwners.sortedWith(OWNER_ORDER),
+                authorizedTaskProtocolIdentities = protocols.distinct().sortedWith(TASK_PROTOCOL_AUTHORITY_ORDER),
+                reasonCodes = listOf("B8_BADMINTON_TASK_V1_AUTHORIZED"),
+                b7Status = b7.status
+            )
+        } else {
+            taskControl(comparison, normalized.ifEmpty { listOf("B8_BADMINTON_TASK_NO_EXACT_AUTHORITY") })
+        }
+    }
+
+    private fun validateTaskOwner(
+        comparison: StimulusSelectionProgramComparison,
+        owner: StimulusPrescriptionOwnerIdentity,
+        currentB4Tasks: Set<CanonicalTaskTarget>
+    ): List<String> {
+        val reasons = linkedSetOf<String>()
+        val rows = comparison.experimental.items.filter {
+            it.exerciseStableKey == owner.stableKey && it.selectionRole == owner.selectionRole
+        }
+        val decoded = rows.mapNotNull { row ->
+            val metadata = row.taskProtocolSemanticsJson?.let { raw ->
+                runCatching { TaskProtocolExposureMetadata.fromJsonString(raw) }.getOrNull()
+            }
+            metadata?.let { row to it }
+        }
+        if (rows.isEmpty() || decoded.size != rows.size) {
+            reasons += "B8_BADMINTON_TASK_B6_AUTHORITY_MISSING_OR_INVALID"
+            return reasons.toList()
+        }
+        val definitions = decoded.map { it.second.authorization.definition }.distinct()
+        if (definitions.size != 1) reasons += "B8_BADMINTON_TASK_PROTOCOL_IDENTITY_CONFLICT"
+        val definition = definitions.singleOrNull()
+        if (decoded.map { it.second.authorization.attributedTasks }.distinct().size != 1) {
+            reasons += "B8_BADMINTON_TASK_TARGET_ATTRIBUTION_CONFLICT"
+        }
+        if (definition == null || ApprovedBadmintonTaskProtocols.exact(
+                owner.stableKey, owner.selectionRole, definition.primaryTask
+            ) != definition || definition.provenance != TaskProtocolPolicyProvenance.USER_APPROVED_PROJECT_POLICY
+        ) reasons += "B8_BADMINTON_TASK_EXACT_APPROVED_PROTOCOL_REQUIRED"
+
+        val candidate = comparison.selectionPlan.selectedCandidates.singleOrNull {
+            it.stableKey == owner.stableKey && it.selectionRole == owner.selectionRole
+        }
+        val primaryTargetId = definition?.let { "TASK:${it.primaryTask.name}" }
+        if (candidate == null || candidate.primaryTargetId != primaryTargetId || primaryTargetId !in candidate.coveredTargetIds ||
+            comparison.selectionPlan.traces.none {
+                it.targetId == primaryTargetId && it.selectedStableKey == owner.stableKey &&
+                    it.selectedSelectionRole == owner.selectionRole
+            }) reasons += "B8_BADMINTON_TASK_EXACT_B5_OWNER_REQUIRED"
+        val primaryB4 = definition?.let { protocol -> comparison.targetPlan.taskTargets.singleOrNull { it.task == protocol.primaryTask.name } }
+        if (primaryB4 == null || primaryB4.strategy == StimulusDoseStrategy.UNRESOLVED ||
+            primaryB4.numericAuthority != StimulusTargetNumericAuthority.DIRECTION_ONLY ||
+            primaryTargetId in comparison.targetPlan.unresolved
+        ) reasons += "B8_BADMINTON_TASK_EXACT_B4_TARGET_REQUIRED"
+
+        val materialAttributions = comparison.experimentalReadinessAudit?.changeAttributions.orEmpty().filter {
+            it.stableKey == owner.stableKey && it.selectionRole == owner.selectionRole &&
+                it.source in TASK_MATERIAL_ATTRIBUTION_SOURCES
+        }
+        val attributedTargets = materialAttributions.flatMap { it.targetIds }.toSet()
+        val metadataTasks = decoded.flatMap { it.second.authorization.attributedTasks }.toSet()
+        if (materialAttributions.none { it.source == StimulusExperimentalChangeAttributionSource.B6_APPROVED_TASK_PROTOCOL } ||
+            materialAttributions.any { it.source != StimulusExperimentalChangeAttributionSource.B6_APPROVED_TASK_PROTOCOL } ||
+            attributedTargets != metadataTasks.map { "TASK:${it.name}" }.toSet()
+        ) reasons += "B8_BADMINTON_TASK_EXACT_B6_ATTRIBUTION_REQUIRED"
+        if (metadataTasks.isEmpty() || !metadataTasks.all { it in currentB4Tasks } ||
+            decoded.any { (row, metadata) ->
+                metadata.authorization.attributedTasks.any { task ->
+                    metadata.authorization.transferEvidence[task] != com.training.trackplanner.analysis.badminton.BadmintonObjectiveTransferLevel.DIRECT
+                } || metadata.authorization.status != TaskProtocolB6Status.AUTHORIZED_APPROVED_TASK_PROTOCOL ||
+                    !metadata.matchesMaterializedItem(
+                        item = row,
+                        actualActivityKind = metadata.authorization.materializationActivityKind,
+                        currentB4Tasks = currentB4Tasks,
+                        exactDirectTasks = metadata.authorization.attributedTasks,
+                        selectedPrimaryTargetId = primaryTargetId
+                    )
+            }) reasons += "B8_BADMINTON_TASK_DIRECT_RELATION_OR_MATERIALIZATION_INVALID"
+
+        val expectedFrequency = definition?.weeklyExposures
+        val outcomes = comparison.experimental.taskProtocolFrequencyOutcomes.filter {
+            it.stableKey == owner.stableKey && it.selectionRole == owner.selectionRole && it.protocolId == definition?.protocolId
+        }
+        val weeks = comparison.experimental.request.durationWeeks.coerceAtLeast(1)
+        if (expectedFrequency == null || outcomes.size != weeks ||
+            outcomes.map { it.week }.toSet() != (1..weeks).toSet() || outcomes.any {
+                it.status != TaskProtocolFrequencyStatus.SATISFIED || it.requestedExposures != expectedFrequency ||
+                    it.placedExposures != expectedFrequency || it.shortfall != 0 ||
+                    it.authority != TaskProtocolPolicyProvenance.USER_APPROVED_PROJECT_POLICY
+            }) reasons += "B8_BADMINTON_TASK_FREQUENCY_OR_PLACEMENT_SHORTFALL"
+
+        val rowsByWeek = decoded.groupBy { it.first.weekNumber }
+        if (rowsByWeek.keys != (1..weeks).toSet() || rowsByWeek.any { (_, weekRows) ->
+                val entries = weekRows.map { it.first to it.second.exposureIndex }
+                entries.size != expectedFrequency || entries.map { it.second }.toSet().size != entries.size ||
+                    entries.map { it.first.dayOfWeek }.toSet().size != entries.size ||
+                    entries.any { (row, _) -> row.dayOfWeek !in comparison.experimental.weekDaySchedule[row.weekNumber].orEmpty() }
+            }) reasons += "B8_BADMINTON_TASK_FREQUENCY_OR_PLACEMENT_SHORTFALL"
+        return reasons.toList()
+    }
+
+    private fun taskControl(
+        comparison: StimulusSelectionProgramComparison,
+        vararg reasonCodes: String
+    ) = taskControl(comparison, reasonCodes.toList())
+
+    private fun taskControl(
+        comparison: StimulusSelectionProgramComparison,
+        reasonCodes: List<String>
+    ) = StimulusProductionCutoverAuthorityDecision(
+        status = StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED,
+        scope = StimulusProductionCutoverScope.BADMINTON_TASK_V1,
+        authorizedOwnerIdentities = emptyList(),
+        reasonCodes = reasonCodes.distinct().sorted(),
+        b7Status = comparison.experimentalReadinessAudit?.status ?: StimulusExperimentalReadinessStatus.NOT_ELIGIBLE
+    )
+
+    private fun taskInconclusive(
+        comparison: StimulusSelectionProgramComparison,
+        reason: String
+    ) = StimulusProductionCutoverAuthorityDecision(
+        status = StimulusProductionCutoverAuthorityStatus.INCONCLUSIVE,
+        scope = StimulusProductionCutoverScope.BADMINTON_TASK_V1,
+        authorizedOwnerIdentities = emptyList(), reasonCodes = listOf(reason),
+        b7Status = comparison.experimentalReadinessAudit?.status ?: StimulusExperimentalReadinessStatus.INCONCLUSIVE
+    )
 
     private fun auditCombined(
         comparison: StimulusSelectionProgramComparison
@@ -741,6 +979,12 @@ class StimulusProductionCutoverAuthorityAuditEngine {
     private companion object {
         val OWNER_ORDER = compareBy<StimulusPrescriptionOwnerIdentity>({ it.stableKey }, { it.selectionRole })
         val AUTHORITY_ORDER = compareBy<StimulusPrescriptionAuthorityIdentity>({ it.stableKey }, { it.selectionRole }, { it.quality.name })
+        val TASK_PROTOCOL_AUTHORITY_ORDER = compareBy<StimulusTaskProtocolAuthorityIdentity>(
+            { it.protocolId }, { it.stableKey }, { it.selectionRole }
+        )
+        val TASK_MATERIAL_ATTRIBUTION_SOURCES = setOf(
+            StimulusExperimentalChangeAttributionSource.B6_APPROVED_TASK_PROTOCOL
+        )
 
         fun qualityPolicy(quality: TrainableQuality): CutoverScopePolicy = when (quality) {
             TrainableQuality.STRENGTH -> scopePolicy(StimulusProductionCutoverScope.STRENGTH_V1)
@@ -749,6 +993,7 @@ class StimulusProductionCutoverAuthorityAuditEngine {
         }
 
         fun scopePolicy(scope: StimulusProductionCutoverScope): CutoverScopePolicy = when (scope) {
+            StimulusProductionCutoverScope.BADMINTON_TASK_V1 -> error("Task scope does not use quality prescription policy")
             StimulusProductionCutoverScope.STRENGTH_V1 -> CutoverScopePolicy(
                 scope = scope,
                 quality = TrainableQuality.STRENGTH,
@@ -826,10 +1071,23 @@ internal fun StimulusProductionCutoverAuthorityDecision.toJson(): JSONObject = J
     .put("authorizedAuthorityIdentities", JSONArray(authorizedAuthorityIdentities.sortedWith(compareBy({ it.stableKey }, { it.selectionRole }, { it.quality.name })).map {
         JSONObject().put("stableKey", it.stableKey).put("selectionRole", it.selectionRole).put("quality", it.quality.name)
     }))
+    .put("authorizedTaskProtocolIdentities", JSONArray(authorizedTaskProtocolIdentities.sortedWith(compareBy({ it.protocolId }, { it.stableKey }, { it.selectionRole })).map {
+        JSONObject().put("protocolId", it.protocolId).put("stableKey", it.stableKey).put("selectionRole", it.selectionRole)
+            .put("authorizedTasks", JSONArray(it.authorizedTasks.map { task -> task.name }.sorted()))
+    }))
     .put("reasonCodes", JSONArray(reasonCodes.distinct().sorted()))
     .put("b7Status", b7Status.name)
     .put("routingActive", routingActive)
     .put("productionMutationAuthority", productionMutationAuthority)
+
+internal fun taskProtocolMetadataForOwner(
+    program: com.training.trackplanner.data.GeneratedProgramSkeleton,
+    owner: StimulusPrescriptionOwnerIdentity
+): List<TaskProtocolExposureMetadata> = program.items.asSequence().filter {
+    it.exerciseStableKey == owner.stableKey && it.selectionRole == owner.selectionRole
+}.mapNotNull { item ->
+    item.taskProtocolSemanticsJson?.let { raw -> runCatching { TaskProtocolExposureMetadata.fromJsonString(raw) }.getOrNull() }
+}.toList()
 
 internal fun StimulusProductionCutoverEvaluation.toCompactJson(): JSONObject = JSONObject()
     .put("comparison", comparison.toCompactJson())

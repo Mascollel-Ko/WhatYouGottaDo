@@ -451,6 +451,49 @@ class StimulusProductionCoverageAuditTest {
         }
         assertEquals(0, c24.getJSONObject("powerInvariant").getInt("numericPowerAuthority"))
         assertEquals(0, c24.getJSONObject("powerInvariant").getInt("executableB6"))
+        val persona3RecentServiceResult = requireNotNull(records.single { it.first.label == "persona3_recent" }.second)
+        val c25RoomBackedFixture = buildC25TaskOnlyComparison(persona3RecentServiceResult)
+        assertEquals(StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW,
+            c25RoomBackedFixture.experimentalReadinessAudit?.status)
+        assertEquals(StimulusProductionCutoverScope.BADMINTON_TASK_V1,
+            StimulusProductionMaterialScopeResolver().resolve(c25RoomBackedFixture))
+        val c25RoomBackedB8 = StimulusProductionCutoverAuthorityAuditEngine().audit(
+            c25RoomBackedFixture, StimulusProductionCutoverScope.BADMINTON_TASK_V1
+        )
+        assertEquals("${c25RoomBackedB8.reasonCodes}",
+            StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER, c25RoomBackedB8.status)
+        assertEquals(2, c25RoomBackedB8.authorizedTaskProtocolIdentities.size)
+        assertEquals(setOf("BADMINTON_SIX_CORNER_FOOTWORK_V1", "BADMINTON_LATERAL_SHUTTLE_LUNGE_V1"),
+            c25RoomBackedB8.authorizedTaskProtocolIdentities.map { it.protocolId }.toSet())
+        assertEquals(8, c25RoomBackedFixture.experimental.items.count { !it.taskProtocolSemanticsJson.isNullOrBlank() })
+        val c25RoomBackedRoute = StimulusProductionRouter().route(
+            c25RoomBackedFixture, c25RoomBackedB8, StimulusProductionRoutingPolicy.defaultMode
+        )
+        assertTrue(c25RoomBackedRoute.program === c25RoomBackedFixture.experimental)
+        assertEquals(StimulusProductionProgramSource.B8_BADMINTON_TASK_V1, c25RoomBackedRoute.decision.selectedSource)
+        val c25RoomBackedRollback = StimulusProductionRouter().route(
+            c25RoomBackedFixture, c25RoomBackedB8, StimulusProductionRoutingMode.CONTROL_ONLY
+        )
+        assertTrue(c25RoomBackedRollback.program === c25RoomBackedFixture.control)
+        assertEquals(StimulusProductionProgramSource.CONTROL, c25RoomBackedRollback.decision.selectedSource)
+        assertEquals(1, persona3RecentServiceResult.buildCounts.controlBuilds)
+        assertEquals(1, persona3RecentServiceResult.buildCounts.experimentalBuilds)
+        assertEquals(2, persona3RecentServiceResult.buildCounts.totalBuildInvocations)
+        assertEquals(0, persona3RecentServiceResult.buildCounts.thirdBuilds)
+        assertFalse(persona3RecentServiceResult.routeDecision.productionRoutingActive)
+
+        val c25Census = renderC25TaskCutoverCensus(records, c24Census, c20Census, c25RoomBackedFixture,
+            c25RoomBackedB8, c25RoomBackedRoute.decision, c25RoomBackedRollback.decision)
+        assertEquals(c25Census, renderC25TaskCutoverCensus(records.reversed(), c24Census, c20Census,
+            c25RoomBackedFixture, c25RoomBackedB8, c25RoomBackedRoute.decision, c25RoomBackedRollback.decision))
+        java.io.File("build/reports/c25-bounded-badminton-task-b8-census.json").writeText(c25Census)
+        val c25Json = org.json.JSONObject(c25Census)
+        assertEquals(0, c25Json.getJSONObject("summary").getInt("authorizedTaskCases"))
+        assertEquals(8, c25Json.getJSONObject("summary").getInt("persona3RecentTaskRows"))
+        assertEquals("CONTROL", c25Json.getJSONObject("persona3Recent").getString("route"))
+        assertEquals("AUTHORIZED_FOR_BOUNDED_CUTOVER", c25Json.getJSONObject("roomBackedPositiveFixture")
+            .getString("b8Status"))
+
         val c24Routes = c24.getJSONObject("routeSnapshot")
         assertEquals(27, c24Routes.keys().asSequence().map { c24Routes.getInt(it) }.sum())
         assertEquals(19, c24Routes.getInt("CONTROL"))
@@ -635,7 +678,7 @@ class StimulusProductionCoverageAuditTest {
         })
         assertEquals(5, c15.getJSONArray("fiveC13RepRangeCases").length())
         assertEquals(8, c15.getJSONArray("directionOnlyStrengthCases").length())
-        assertEquals("AC796426BEE789B00668744B11B0D5F3701A25037A0878CC1D60D709DAE3C15A",
+        assertEquals("1772FD236365E39E4012A3A1DEE1FFCBD190904E92F52C414F46372AF86D3178",
             c15.getString("standardCoverageSha256"))
         assertEquals(11, c15.getJSONObject("corpus").getJSONObject("B7ReasonOccurrences").getInt("CHANGE_PROVENANCE_UNCLOSED"))
         assertEquals(9, c15.getJSONObject("corpus").getJSONObject("B7ReasonOccurrences").getInt("AFFECTED_TARGET_REMAINS_UNMET"))
@@ -671,6 +714,164 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(11, b7ReasonCounts["CHANGE_PROVENANCE_UNCLOSED"])
         assertEquals(9, b7ReasonCounts["AFFECTED_TARGET_REMAINS_UNMET"])
         assertEquals(1, b7ReasonCounts["TARGET_REGRESSED"])
+    }
+
+    private data class C25TaskOnlyRoomFixture(
+        val comparison: StimulusSelectionProgramComparison,
+        val b8: StimulusProductionCutoverAuthorityDecision,
+        val route: StimulusProductionRoutingDecision,
+        val rollback: StimulusProductionRoutingDecision
+    )
+
+    /**
+     * Starts with the exact EXP skeleton produced through the real Room/service path. The
+     * comparator is then a test-only projection of that already-built skeleton with its
+     * governed task rows omitted, so the only material delta is the task B6 material itself.
+     * No planner/build service is called a third time and no CONTROL data supplies authority.
+     */
+    private fun buildC25TaskOnlyComparison(
+        serviceResult: StimulusProductionGenerationResult
+    ): StimulusSelectionProgramComparison {
+        val source = requireNotNull(serviceResult.comparison)
+        val experimental = source.experimental
+        val taskRows = experimental.items.filter { !it.taskProtocolSemanticsJson.isNullOrBlank() }
+        require(taskRows.isNotEmpty()) { "Room/service EXP result has no exact C24 task rows" }
+        val ownerSet = taskRows.mapTo(linkedSetOf()) {
+            StimulusPrescriptionOwnerIdentity(it.exerciseStableKey, it.selectionRole)
+        }
+        val decoded = taskRows.map { row ->
+            row to TaskProtocolExposureMetadata.fromJsonString(requireNotNull(row.taskProtocolSemanticsJson))
+        }
+        val tasks = decoded.flatMapTo(linkedSetOf()) { it.second.authorization.attributedTasks }
+        require(tasks.isNotEmpty() && CanonicalTaskTarget.JUMP_LANDING !in tasks)
+        val taskIds = tasks.mapTo(linkedSetOf()) { "TASK:${it.name}" }
+        val targets = source.targetPlan.taskTargets.filter { "TASK:${it.task}" in taskIds }
+        require(targets.map { "TASK:${it.task}" }.toSet() == taskIds)
+        val selected = source.selectionPlan.selectedCandidates.filter {
+            StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) in ownerSet
+        }
+        require(selected.map { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }.toSet() == ownerSet)
+        val traces = source.selectionPlan.traces.filter { it.targetId in taskIds }
+        val taskOnlySelection = source.selectionPlan.copy(selectedCandidates = selected, traces = traces)
+        val taskOnlyPlan = source.targetPlan.copy(qualityTargets = emptyList(), taskTargets = targets, unresolved = emptyList())
+        val comparator = experimental.copy(
+            items = experimental.items.filter { it.taskProtocolSemanticsJson.isNullOrBlank() },
+            taskProtocolFrequencyOutcomes = emptyList()
+        )
+        val raw = StimulusSelectionProgramComparisonEngine().compare(
+            control = comparator,
+            experimental = experimental,
+            targetPlan = taskOnlyPlan,
+            selectionPlan = taskOnlySelection,
+            controlAudit = source.controlAudit,
+            experimentalAudit = source.experimentalAudit
+        )
+        val b7 = StimulusExperimentalReadinessAuditEngine().audit(raw)
+        return raw.copy(experimentalReadinessAudit = b7)
+    }
+
+    private fun renderC25TaskCutoverCensus(
+        records: List<Pair<CoverageSpec, StimulusProductionGenerationResult?>>,
+        c24Census: String,
+        c20Census: String,
+        roomBackedFixture: StimulusSelectionProgramComparison,
+        roomBackedB8: StimulusProductionCutoverAuthorityDecision,
+        roomBackedRoute: StimulusProductionRoutingDecision,
+        roomBackedRollback: StimulusProductionRoutingDecision
+    ): String {
+        val jsonCases = records.mapNotNull { (spec, result) ->
+            result?.comparison?.let { comparison ->
+                val taskRows = comparison.experimental.items.filter { !it.taskProtocolSemanticsJson.isNullOrBlank() }
+                val materialScope = StimulusProductionMaterialScopeResolver().resolve(comparison)
+                org.json.JSONObject()
+                    .put("case", spec.label)
+                    .put("materialScope", materialScope?.name)
+                    .put("taskProtocolRows", taskRows.size)
+                    .put("scopeResolutionStatus", result.diagnostics.scopeResolution?.status?.name)
+                    .put("scopeResolutionReasons", org.json.JSONArray(
+                        result.diagnostics.scopeResolution?.reasonCodes.orEmpty().sorted()
+                    ))
+                    .put("powerMaterialRows", comparison.experimental.items.count {
+                        it.selectionRole == "CANONICAL_STIMULUS_QUALITY_POWER"
+                    })
+                    .put("jumpLandingMaterialRows", taskRows.count { row ->
+                        TaskProtocolExposureMetadata.fromJsonString(requireNotNull(row.taskProtocolSemanticsJson))
+                            .authorization.attributedTasks.contains(CanonicalTaskTarget.JUMP_LANDING)
+                    })
+                    .put("b7Status", comparison.experimentalReadinessAudit?.status?.name)
+                    .put("b7Reasons", org.json.JSONArray(comparison.experimentalReadinessAudit?.reasonCodes.orEmpty().sorted()))
+                    .put("b8Scope", comparison.productionCutoverAuthority?.scope?.name)
+                    .put("b8Status", comparison.productionCutoverAuthority?.status?.name)
+                    .put("b8Reasons", org.json.JSONArray(comparison.productionCutoverAuthority?.reasonCodes.orEmpty().sorted()))
+                    .put("route", result.routeDecision.selectedSource.name)
+                    .put("routeReasons", org.json.JSONArray(result.routeDecision.reasonCodes.sorted()))
+                    .put("builds", org.json.JSONObject()
+                        .put("control", result.buildCounts.controlBuilds)
+                        .put("experimental", result.buildCounts.experimentalBuilds)
+                        .put("total", result.buildCounts.totalBuildInvocations)
+                        .put("third", result.buildCounts.thirdBuilds))
+            }
+        }.sortedBy { it.getString("case") }
+        val routeCounts = jsonCases.groupingBy { it.getString("route") }.eachCount().toSortedMap()
+        val b8StatusCounts = jsonCases.groupingBy { it.optString("b8Status", "MISSING") }.eachCount().toSortedMap()
+        val b8ReasonCounts = jsonCases.flatMap { row ->
+            val reasons = row.getJSONArray("b8Reasons")
+            (0 until reasons.length()).map(reasons::getString)
+        }.groupingBy { it }.eachCount().toSortedMap()
+        val scopeStatusCounts = jsonCases.groupingBy { it.optString("scopeResolutionStatus", "MISSING") }.eachCount().toSortedMap()
+        val scopeReasonCounts = jsonCases.flatMap { row ->
+            val reasons = row.getJSONArray("scopeResolutionReasons")
+            (0 until reasons.length()).map(reasons::getString)
+        }.groupingBy { it }.eachCount().toSortedMap()
+        val c24 = org.json.JSONObject(c24Census)
+        val c20 = org.json.JSONObject(c20Census).getJSONObject("summary")
+        val persona = jsonCases.single { it.getString("case") == "persona3_recent" }
+        val summary = org.json.JSONObject()
+            .put("generatedCases", jsonCases.size)
+            .put("taskOnlyScopeCandidates", jsonCases.count { it.optString("materialScope") == "BADMINTON_TASK_V1" })
+            .put("authorizedTaskCases", jsonCases.count {
+                it.optString("b8Scope") == "BADMINTON_TASK_V1" &&
+                    it.optString("b8Status") == "AUTHORIZED_FOR_BOUNDED_CUTOVER"
+            })
+            .put("taskRouteCases", routeCounts[StimulusProductionProgramSource.B8_BADMINTON_TASK_V1.name] ?: 0)
+            .put("taskMaterialCases", jsonCases.count { it.getInt("taskProtocolRows") > 0 })
+            .put("persona3RecentTaskRows", persona.getInt("taskProtocolRows"))
+            .put("powerMaterialRows", jsonCases.sumOf { it.getInt("powerMaterialRows") })
+            .put("jumpLandingMaterialRows", jsonCases.sumOf { it.getInt("jumpLandingMaterialRows") })
+            .put("routes", org.json.JSONObject().also { obj -> routeCounts.forEach(obj::put) })
+            .put("b8StatusCounts", org.json.JSONObject().also { obj -> b8StatusCounts.forEach(obj::put) })
+            .put("b8ReasonOccurrences", org.json.JSONObject().also { obj -> b8ReasonCounts.forEach(obj::put) })
+            .put("scopeResolutionStatusCounts", org.json.JSONObject().also { obj -> scopeStatusCounts.forEach(obj::put) })
+            .put("scopeResolutionReasonOccurrences", org.json.JSONObject().also { obj -> scopeReasonCounts.forEach(obj::put) })
+            .put("buildAccounting", org.json.JSONObject().put("control", 1).put("experimental", 1).put("total", 2).put("third", 0))
+            .put("b7", c24.getJSONObject("b7Summary"))
+            .put("c20", org.json.JSONObject()
+                .put("hardValid", c20.getInt("HARD_VALID"))
+                .put("hardInvalid", c20.getInt("HARD_INVALID"))
+                .put("unresolved", c20.getInt("UNRESOLVED"))
+                .put("invalidOrUnresolvedForcedPreserved",
+                    c20.getInt("hardInvalidRowsForcedPreserved") + c20.getInt("unresolvedRowsForcedPreserved")))
+        val fixture = org.json.JSONObject()
+            .put("source", "PERSONA3_RECENT_REAL_ROOM_SERVICE_EXPERIMENTAL")
+            .put("syntheticComparator", "SAME_ALREADY_BUILT_EXPERIMENTAL_WITH_GOVERNED_TASK_ROWS_OMITTED")
+            .put("b7Status", roomBackedFixture.experimentalReadinessAudit?.status?.name)
+            .put("b7Reasons", org.json.JSONArray(roomBackedFixture.experimentalReadinessAudit?.reasonCodes.orEmpty().sorted()))
+            .put("b8Status", roomBackedB8.status.name)
+            .put("b8Scope", roomBackedB8.scope.name)
+            .put("b8Reasons", org.json.JSONArray(roomBackedB8.reasonCodes.sorted()))
+            .put("authorizedTaskOwners", roomBackedB8.authorizedTaskProtocolIdentities.size)
+            .put("route", roomBackedRoute.selectedSource.name)
+            .put("usesExperimentalObject", roomBackedRoute.selectedSource == StimulusProductionProgramSource.B8_BADMINTON_TASK_V1)
+            .put("rollback", roomBackedRollback.selectedSource.name)
+            .put("usesOriginalControlObject", roomBackedRollback.selectedSource == StimulusProductionProgramSource.CONTROL)
+            .put("builds", org.json.JSONObject().put("control", 1).put("experimental", 1).put("total", 2).put("third", 0))
+        return org.json.JSONObject()
+            .put("phase", "C25_BOUNDED_BADMINTON_TASK_ONLY_B8_CUTOVER")
+            .put("cases", org.json.JSONArray(jsonCases))
+            .put("summary", summary)
+            .put("persona3Recent", persona)
+            .put("roomBackedPositiveFixture", fixture)
+            .toString(2) + "\n"
     }
 
     private fun assertC9CorpusBoundaries(records: List<Pair<CoverageSpec, StimulusProductionGenerationResult?>>) {

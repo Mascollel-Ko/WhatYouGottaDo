@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.59.0 |
+| Protocol version | 3.60.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.1 |
-| Last audited commit | ee170d945fb798da4143ada83d86beb599797772 |
+| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.2 |
+| Last audited commit | 7c5d80bb9f7d849097cfe2cdd86903928d12106c |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1335,3 +1335,13 @@ Post-audit boundary notes
 - B7 consumes typed exact protocol provenance. No B7/B8 gate is relaxed, no badminton task cutover scope is added, and CONTROL remains the selected route for unsupported task material. C24 retains the C20 incumbent rule: hard-valid shared owners are preserved; unresolved or invalid rows are not forced to remain.
 - C24 audit and machine census: [`docs/c24_approved_badminton_task_b6_and_persistence_audit.md`](../../c24_approved_badminton_task_b6_and_persistence_audit.md), [`docs/c24-badminton-task-b6-persistence-census.json`](../../c24-badminton-task-b6-persistence-census.json). Protocol/runtime/app are `3.59.0` / `RECORD_BASED_PLANNER_0.15.1_KOTLIN_1` / `0.5.1.5`.
 - C24 implementation/test commit `ee170d945fb798da4143ada83d86beb599797772` is the `lastAuditedCommit`. Hosted run [37329992117](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/37329992117) passed 2,307 tests (0 failures, 0 errors, 4 skips), protocol/contracts/whitespace, coverage, APK assembly, signer validation, and upload. The final docs-only PR head is validated separately.
+
+### Phase C25 — bounded badminton Task-only production cutover (protocol 3.60.0)
+
+- The production material-scope resolver now recognizes a Task-only cutover from exact CONTROL/EXPERIMENTAL owner-role deltas and typed B7 `B6_APPROVED_TASK_PROTOCOL` provenance. B8 checks exact C24 policy/owner/role, B4/B5 authority, direct task relations, full lossless materialization, protocol-level frequency and placement, closed provenance, no removals or foreign material, unchanged request/schedule contract, and the existing hard program projection. Scope selection is deterministic and does not probe other B8 policies.
+- B9 routes only the already-built EXPERIMENTAL skeleton after exact Task B8 authorization. `CONTROL_ONLY` still returns the original CONTROL skeleton. No hybrid skeleton or third builder invocation is possible; standard build counts remain CONTROL 1 / EXPERIMENTAL 1 / TOTAL 2 / THIRD 0. Existing quality B8 rules and the C20 incumbent behavior are unchanged.
+- A dedicated Room/service test derives a pure Task-only comparison from the already-built `persona3_recent` EXP skeleton. B7, Task B8, B9 EXP object identity, CONTROL rollback identity, and two-build accounting pass. In the 22-case production corpus, there are zero pure Task-only scope candidates, so no new real case routes: CONTROL 19 / Strength V1 1 / Strength Calibration 2 / Hypertrophy 0 / Combined 0. `persona3_recent` remains CONTROL because its complete mixed comparison is B7-ineligible.
+- Task material remains eight approved C24 rows in `persona3_recent`; Power and JUMP_LANDING material remain zero. B7 remains provenance-unclosed 11 / target-unmet 9 / regressed 1. C20 remains 12 HARD_VALID / 0 HARD_INVALID / 20 UNRESOLVED, with zero invalid/unresolved incumbents forced to stay. No Room, backup, Community, or Cloud schema changed.
+- C25 audit and deterministic census: [`docs/c25_badminton_task_only_b8_cutover_audit.md`](../../c25_badminton_task_only_b8_cutover_audit.md) and [`docs/c25-bounded-badminton-task-b8-census.json`](../../c25-bounded-badminton-task-b8-census.json). Protocol/runtime/app are `3.60.0` / `RECORD_BASED_PLANNER_0.15.2_KOTLIN_1` / `0.5.1.5`; Room remains 38, program backup schema 4, restore schema 13, Community snapshot schema 2.
+- Standard production coverage report SHA-256 is `1772FD236365E39E4012A3A1DEE1FFCBD190904E92F52C414F46372AF86D3178`; its route-source summary now includes `B8_BADMINTON_TASK_V1=0`, with existing program coverage and route counts unchanged.
+- C25 implementation/test commit `7c5d80bb9f7d849097cfe2cdd86903928d12106c` is the `lastAuditedCommit`. The final Hosted CI result is recorded with the C25 PR and completion report.

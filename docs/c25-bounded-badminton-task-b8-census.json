@@ -1,0 +1,789 @@
+{
+  "phase": "C25_BOUNDED_BADMINTON_TASK_ONLY_B8_CUTOVER",
+  "cases": [
+    {
+      "case": "persona0_mixed",
+      "taskProtocolRows": 0,
+      "scopeResolutionStatus": "PARTIAL_PROVENANCE",
+      "scopeResolutionReasons": [
+        "MATERIAL_PROVENANCE_PARTIAL"
+      ],
+      "powerMaterialRows": 0,
+      "jumpLandingMaterialRows": 0,
+      "b7Status": "ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW",
+      "b7Reasons": [],
+      "b8Scope": "STRENGTH_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "b8Reasons": [
+        "B8_CUTOVER_V1_EMPTY_MATERIAL_AUTHORITY",
+        "B8_CUTOVER_V1_PRESCRIPTION_CHANGE_WITHOUT_EXACT_B6_AUTHORITY",
+        "B8_CUTOVER_V1_PROVENANCE_NOT_CLOSED",
+        "B8_CUTOVER_V1_REQUIRES_FULL_B6_MATERIALIZATION",
+        "B8_CUTOVER_V1_UNRELATED_CONTROL_MUTATION",
+        "B8_CUTOVER_V1_UPSTREAM_INCONSISTENCY"
+      ],
+      "route": "CONTROL",
+      "routeReasons": [
+        "B9_B8_CONTROL_REQUIRED"
+      ],
+      "builds": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona0_recent",
+      "taskProtocolRows": 0,
+      "scopeResolutionStatus": "PARTIAL_PROVENANCE",
+      "scopeResolutionReasons": [
+        "MATERIAL_PROVENANCE_PARTIAL",
+        "REMOVED_OWNER_CHANGE_PRESENT"
+      ],
+      "powerMaterialRows": 0,
+      "jumpLandingMaterialRows": 0,
+      "b7Status": "NOT_ELIGIBLE",
+      "b7Reasons": [
+        "AFFECTED_TARGET_REMAINS_UNMET",
+        "CHANGE_PROVENANCE_UNCLOSED"
+      ],
+      "b8Scope": "STRENGTH_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "b8Reasons": [
+        "B8_B7_NOT_ELIGIBLE"
+      ],
+      "route": "CONTROL",
+      "routeReasons": [
+        "B9_B8_CONTROL_REQUIRED"
+      ],
+      "builds": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona0_reviewed",
+      "taskProtocolRows": 0,
+      "scopeResolutionStatus": "PARTIAL_PROVENANCE",
+      "scopeResolutionReasons": [
+        "MATERIAL_PROVENANCE_PARTIAL",
+        "REMOVED_OWNER_CHANGE_PRESENT"
+      ],
+      "powerMaterialRows": 0,
+      "jumpLandingMaterialRows": 0,
+      "b7Status": "ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW",
+      "b7Reasons": [],
+      "b8Scope": "STRENGTH_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "b8Reasons": [
+        "B8_CUTOVER_V1_EMPTY_MATERIAL_AUTHORITY",
+        "B8_CUTOVER_V1_PRESCRIPTION_CHANGE_WITHOUT_EXACT_B6_AUTHORITY",
+        "B8_CUTOVER_V1_PROVENANCE_NOT_CLOSED",
+        "B8_CUTOVER_V1_REQUIRES_FULL_B6_MATERIALIZATION",
+        "B8_CUTOVER_V1_UNRELATED_CONTROL_MUTATION",
+        "B8_CUTOVER_V1_UPSTREAM_INCONSISTENCY"
+      ],
+      "route": "CONTROL",
+      "routeReasons": [
+        "B9_B8_CONTROL_REQUIRED"
+      ],
+      "builds": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona0_sparse",
+      "taskProtocolRows": 0,
+      "scopeResolutionStatus": "PARTIAL_PROVENANCE",
+      "scopeResolutionReasons": [
+        "MATERIAL_PROVENANCE_PARTIAL"
+      ],
+      "powerMaterialRows": 0,
+      "jumpLandingMaterialRows": 0,
+      "b7Status": "NOT_ELIGIBLE",
+      "b7Reasons": [
+        "AFFECTED_TARGET_REMAINS_UNMET",
+        "CHANGE_PROVENANCE_UNCLOSED"
+      ],
+      "b8Scope": "STRENGTH_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "b8Reasons": [
+        "B8_B7_NOT_ELIGIBLE"
+      ],
+      "route": "CONTROL",
+      "routeReasons": [
+        "B9_B8_CONTROL_REQUIRED"
+      ],
+      "builds": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona1_mixed",
+      "taskProtocolRows": 0,
+      "scopeResolutionStatus": "PARTIAL_PROVENANCE",
+      "scopeResolutionReasons": [
+        "MATERIAL_PROVENANCE_PARTIAL",
+        "REMOVED_OWNER_CHANGE_PRESENT"
+      ],
+      "powerMaterialRows": 0,
+      "jumpLandingMaterialRows": 0,
+      "b7Status": "NOT_ELIGIBLE",
+      "b7Reasons": [
+        "AFFECTED_TARGET_REMAINS_UNMET",
+        "CHANGE_PROVENANCE_UNCLOSED"
+      ],
+      "b8Scope": "STRENGTH_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "b8Reasons": [
+        "B8_B7_NOT_ELIGIBLE"
+      ],
+      "route": "CONTROL",
+      "routeReasons": [
+        "B9_B8_CONTROL_REQUIRED"
+      ],
+      "builds": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona1_recent",
+      "taskProtocolRows": 0,
+      "scopeResolutionStatus": "PARTIAL_PROVENANCE",
+      "scopeResolutionReasons": [
+        "MATERIAL_PROVENANCE_PARTIAL",
+        "REMOVED_OWNER_CHANGE_PRESENT"
+      ],
+      "powerMaterialRows": 0,
+      "jumpLandingMaterialRows": 0,
+      "b7Status": "NOT_ELIGIBLE",
+      "b7Reasons": [
+        "CHANGE_PROVENANCE_UNCLOSED"
+      ],
+      "b8Scope": "STRENGTH_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "b8Reasons": [
+        "B8_B7_NOT_ELIGIBLE"
+      ],
+      "route": "CONTROL",
+      "routeReasons": [
+        "B9_B8_CONTROL_REQUIRED"
+      ],
+      "builds": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona1_reviewed",
+      "taskProtocolRows": 0,
+      "scopeResolutionStatus": "PARTIAL_PROVENANCE",
+      "scopeResolutionReasons": [
+        "MATERIAL_PROVENANCE_PARTIAL",
+        "REMOVED_OWNER_CHANGE_PRESENT"
+      ],
+      "powerMaterialRows": 0,
+      "jumpLandingMaterialRows": 0,
+      "b7Status": "NOT_ELIGIBLE",
+      "b7Reasons": [
+        "TARGET_REGRESSED"
+      ],
+      "b8Scope": "STRENGTH_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "b8Reasons": [
+        "B8_B7_NOT_ELIGIBLE"
+      ],
+      "route": "CONTROL",
+      "routeReasons": [
+        "B9_B8_CONTROL_REQUIRED"
+      ],
+      "builds": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona1_sparse",
+      "taskProtocolRows": 0,
+      "scopeResolutionStatus": "PARTIAL_PROVENANCE",
+      "scopeResolutionReasons": [
+        "MATERIAL_PROVENANCE_PARTIAL",
+        "REMOVED_OWNER_CHANGE_PRESENT"
+      ],
+      "powerMaterialRows": 0,
+      "jumpLandingMaterialRows": 0,
+      "b7Status": "NOT_ELIGIBLE",
+      "b7Reasons": [
+        "CHANGE_PROVENANCE_UNCLOSED"
+      ],
+      "b8Scope": "STRENGTH_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "b8Reasons": [
+        "B8_B7_NOT_ELIGIBLE"
+      ],
+      "route": "CONTROL",
+      "routeReasons": [
+        "B9_B8_CONTROL_REQUIRED"
+      ],
+      "builds": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona2_mixed",
+      "taskProtocolRows": 0,
+      "scopeResolutionStatus": "PARTIAL_PROVENANCE",
+      "scopeResolutionReasons": [
+        "MATERIAL_PROVENANCE_PARTIAL",
+        "REMOVED_OWNER_CHANGE_PRESENT"
+      ],
+      "powerMaterialRows": 0,
+      "jumpLandingMaterialRows": 0,
+      "b7Status": "ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW",
+      "b7Reasons": [],
+      "b8Scope": "STRENGTH_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "b8Reasons": [
+        "B8_CUTOVER_V1_PRESCRIPTION_CHANGE_WITHOUT_EXACT_B6_AUTHORITY",
+        "B8_CUTOVER_V1_PROVENANCE_NOT_CLOSED",
+        "B8_CUTOVER_V1_REQUIRES_FULL_B6_MATERIALIZATION",
+        "B8_CUTOVER_V1_UNRELATED_CONTROL_MUTATION",
+        "B8_CUTOVER_V1_UPSTREAM_INCONSISTENCY"
+      ],
+      "route": "CONTROL",
+      "routeReasons": [
+        "B9_B8_CONTROL_REQUIRED"
+      ],
+      "builds": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona2_recent",
+      "taskProtocolRows": 0,
+      "scopeResolutionStatus": "PARTIAL_PROVENANCE",
+      "scopeResolutionReasons": [
+        "MATERIAL_PROVENANCE_PARTIAL",
+        "REMOVED_OWNER_CHANGE_PRESENT"
+      ],
+      "powerMaterialRows": 0,
+      "jumpLandingMaterialRows": 0,
+      "b7Status": "NOT_ELIGIBLE",
+      "b7Reasons": [
+        "AFFECTED_TARGET_REMAINS_UNMET",
+        "CHANGE_PROVENANCE_UNCLOSED"
+      ],
+      "b8Scope": "STRENGTH_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "b8Reasons": [
+        "B8_B7_NOT_ELIGIBLE"
+      ],
+      "route": "CONTROL",
+      "routeReasons": [
+        "B9_B8_CONTROL_REQUIRED"
+      ],
+      "builds": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona2_reviewed",
+      "materialScope": "STRENGTH_CALIBRATION_V1",
+      "taskProtocolRows": 0,
+      "scopeResolutionStatus": "RESOLVED_STRENGTH_CALIBRATION",
+      "scopeResolutionReasons": [],
+      "powerMaterialRows": 0,
+      "jumpLandingMaterialRows": 0,
+      "b7Status": "ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW",
+      "b7Reasons": [],
+      "b8Scope": "STRENGTH_CALIBRATION_V1",
+      "b8Status": "AUTHORIZED_FOR_BOUNDED_CUTOVER",
+      "b8Reasons": [
+        "B8_STRENGTH_CALIBRATION_V1_AUTHORIZED"
+      ],
+      "route": "B8_STRENGTH_CALIBRATION_V1",
+      "routeReasons": [
+        "B9_B8_STRENGTH_CALIBRATION_V1_ROUTED"
+      ],
+      "builds": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona2_sparse",
+      "taskProtocolRows": 0,
+      "scopeResolutionStatus": "PARTIAL_PROVENANCE",
+      "scopeResolutionReasons": [
+        "MATERIAL_PROVENANCE_PARTIAL"
+      ],
+      "powerMaterialRows": 0,
+      "jumpLandingMaterialRows": 0,
+      "b7Status": "NOT_ELIGIBLE",
+      "b7Reasons": [
+        "AFFECTED_TARGET_REMAINS_UNMET",
+        "CHANGE_PROVENANCE_UNCLOSED"
+      ],
+      "b8Scope": "STRENGTH_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "b8Reasons": [
+        "B8_B7_NOT_ELIGIBLE"
+      ],
+      "route": "CONTROL",
+      "routeReasons": [
+        "B9_B8_CONTROL_REQUIRED"
+      ],
+      "builds": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona3_mixed",
+      "materialScope": "STRENGTH_CALIBRATION_V1",
+      "taskProtocolRows": 0,
+      "scopeResolutionStatus": "RESOLVED_STRENGTH_CALIBRATION",
+      "scopeResolutionReasons": [],
+      "powerMaterialRows": 0,
+      "jumpLandingMaterialRows": 0,
+      "b7Status": "ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW",
+      "b7Reasons": [],
+      "b8Scope": "STRENGTH_CALIBRATION_V1",
+      "b8Status": "AUTHORIZED_FOR_BOUNDED_CUTOVER",
+      "b8Reasons": [
+        "B8_STRENGTH_CALIBRATION_V1_AUTHORIZED"
+      ],
+      "route": "B8_STRENGTH_CALIBRATION_V1",
+      "routeReasons": [
+        "B9_B8_STRENGTH_CALIBRATION_V1_ROUTED"
+      ],
+      "builds": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona3_recent",
+      "taskProtocolRows": 8,
+      "scopeResolutionStatus": "PARTIAL_PROVENANCE",
+      "scopeResolutionReasons": [
+        "MATERIAL_PROVENANCE_PARTIAL",
+        "MATERIAL_SCOPE_MIXED_OR_UNSUPPORTED",
+        "REMOVED_OWNER_CHANGE_PRESENT",
+        "UNSUPPORTED_TARGET_COMBINATION"
+      ],
+      "powerMaterialRows": 0,
+      "jumpLandingMaterialRows": 0,
+      "b7Status": "NOT_ELIGIBLE",
+      "b7Reasons": [
+        "AFFECTED_TARGET_REMAINS_UNMET",
+        "CHANGE_PROVENANCE_UNCLOSED"
+      ],
+      "b8Scope": "STRENGTH_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "b8Reasons": [
+        "B8_B7_NOT_ELIGIBLE"
+      ],
+      "route": "CONTROL",
+      "routeReasons": [
+        "B9_B8_CONTROL_REQUIRED"
+      ],
+      "builds": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona3_reviewed",
+      "taskProtocolRows": 0,
+      "scopeResolutionStatus": "PARTIAL_PROVENANCE",
+      "scopeResolutionReasons": [
+        "MATERIAL_PROVENANCE_PARTIAL",
+        "REMOVED_OWNER_CHANGE_PRESENT"
+      ],
+      "powerMaterialRows": 0,
+      "jumpLandingMaterialRows": 0,
+      "b7Status": "ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW",
+      "b7Reasons": [],
+      "b8Scope": "STRENGTH_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "b8Reasons": [
+        "B8_CUTOVER_V1_EMPTY_MATERIAL_AUTHORITY",
+        "B8_CUTOVER_V1_PRESCRIPTION_CHANGE_WITHOUT_EXACT_B6_AUTHORITY",
+        "B8_CUTOVER_V1_PROVENANCE_NOT_CLOSED",
+        "B8_CUTOVER_V1_REQUIRES_FULL_B6_MATERIALIZATION",
+        "B8_CUTOVER_V1_UNRELATED_CONTROL_MUTATION",
+        "B8_CUTOVER_V1_UPSTREAM_INCONSISTENCY"
+      ],
+      "route": "CONTROL",
+      "routeReasons": [
+        "B9_B8_CONTROL_REQUIRED"
+      ],
+      "builds": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona3_sparse",
+      "taskProtocolRows": 0,
+      "scopeResolutionStatus": "PARTIAL_PROVENANCE",
+      "scopeResolutionReasons": [
+        "MATERIAL_PROVENANCE_PARTIAL"
+      ],
+      "powerMaterialRows": 0,
+      "jumpLandingMaterialRows": 0,
+      "b7Status": "NOT_ELIGIBLE",
+      "b7Reasons": [
+        "AFFECTED_TARGET_REMAINS_UNMET",
+        "CHANGE_PROVENANCE_UNCLOSED"
+      ],
+      "b8Scope": "STRENGTH_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "b8Reasons": [
+        "B8_B7_NOT_ELIGIBLE"
+      ],
+      "route": "CONTROL",
+      "routeReasons": [
+        "B9_B8_CONTROL_REQUIRED"
+      ],
+      "builds": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona4_mixed",
+      "taskProtocolRows": 0,
+      "scopeResolutionStatus": "PARTIAL_PROVENANCE",
+      "scopeResolutionReasons": [
+        "MATERIAL_PROVENANCE_PARTIAL",
+        "REMOVED_OWNER_CHANGE_PRESENT"
+      ],
+      "powerMaterialRows": 0,
+      "jumpLandingMaterialRows": 0,
+      "b7Status": "ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW",
+      "b7Reasons": [],
+      "b8Scope": "STRENGTH_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "b8Reasons": [
+        "B8_CUTOVER_V1_EMPTY_MATERIAL_AUTHORITY",
+        "B8_CUTOVER_V1_PRESCRIPTION_CHANGE_WITHOUT_EXACT_B6_AUTHORITY",
+        "B8_CUTOVER_V1_PROVENANCE_NOT_CLOSED",
+        "B8_CUTOVER_V1_REQUIRES_FULL_B6_MATERIALIZATION",
+        "B8_CUTOVER_V1_UNRELATED_CONTROL_MUTATION",
+        "B8_CUTOVER_V1_UPSTREAM_INCONSISTENCY"
+      ],
+      "route": "CONTROL",
+      "routeReasons": [
+        "B9_B8_CONTROL_REQUIRED"
+      ],
+      "builds": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona4_recent",
+      "materialScope": "STRENGTH_V1",
+      "taskProtocolRows": 0,
+      "scopeResolutionStatus": "RESOLVED_STRENGTH",
+      "scopeResolutionReasons": [],
+      "powerMaterialRows": 0,
+      "jumpLandingMaterialRows": 0,
+      "b7Status": "NOT_ELIGIBLE",
+      "b7Reasons": [
+        "AFFECTED_TARGET_REMAINS_UNMET"
+      ],
+      "b8Scope": "STRENGTH_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "b8Reasons": [
+        "B8_B7_NOT_ELIGIBLE"
+      ],
+      "route": "CONTROL",
+      "routeReasons": [
+        "B9_B8_CONTROL_REQUIRED"
+      ],
+      "builds": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona4_reviewed",
+      "taskProtocolRows": 0,
+      "scopeResolutionStatus": "PARTIAL_PROVENANCE",
+      "scopeResolutionReasons": [
+        "MATERIAL_PROVENANCE_PARTIAL",
+        "REMOVED_OWNER_CHANGE_PRESENT"
+      ],
+      "powerMaterialRows": 0,
+      "jumpLandingMaterialRows": 0,
+      "b7Status": "ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW",
+      "b7Reasons": [],
+      "b8Scope": "STRENGTH_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "b8Reasons": [
+        "B8_CUTOVER_V1_PRESCRIPTION_CHANGE_WITHOUT_EXACT_B6_AUTHORITY",
+        "B8_CUTOVER_V1_PROVENANCE_NOT_CLOSED",
+        "B8_CUTOVER_V1_REQUIRES_FULL_B6_MATERIALIZATION",
+        "B8_CUTOVER_V1_UNRELATED_CONTROL_MUTATION",
+        "B8_CUTOVER_V1_UPSTREAM_INCONSISTENCY"
+      ],
+      "route": "CONTROL",
+      "routeReasons": [
+        "B9_B8_CONTROL_REQUIRED"
+      ],
+      "builds": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona4_sparse",
+      "taskProtocolRows": 0,
+      "scopeResolutionStatus": "PARTIAL_PROVENANCE",
+      "scopeResolutionReasons": [
+        "MATERIAL_PROVENANCE_PARTIAL",
+        "REMOVED_OWNER_CHANGE_PRESENT"
+      ],
+      "powerMaterialRows": 0,
+      "jumpLandingMaterialRows": 0,
+      "b7Status": "NOT_ELIGIBLE",
+      "b7Reasons": [
+        "AFFECTED_TARGET_REMAINS_UNMET",
+        "CHANGE_PROVENANCE_UNCLOSED"
+      ],
+      "b8Scope": "STRENGTH_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "b8Reasons": [
+        "B8_B7_NOT_ELIGIBLE"
+      ],
+      "route": "CONTROL",
+      "routeReasons": [
+        "B9_B8_CONTROL_REQUIRED"
+      ],
+      "builds": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "reviewed_hypertrophy_isolated",
+      "taskProtocolRows": 0,
+      "scopeResolutionStatus": "PARTIAL_PROVENANCE",
+      "scopeResolutionReasons": [
+        "MATERIAL_PROVENANCE_PARTIAL",
+        "REMOVED_OWNER_CHANGE_PRESENT"
+      ],
+      "powerMaterialRows": 0,
+      "jumpLandingMaterialRows": 0,
+      "b7Status": "NOT_ELIGIBLE",
+      "b7Reasons": [
+        "CHANGE_PROVENANCE_UNCLOSED"
+      ],
+      "b8Scope": "STRENGTH_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "b8Reasons": [
+        "B8_B7_NOT_ELIGIBLE"
+      ],
+      "route": "CONTROL",
+      "routeReasons": [
+        "B9_B8_CONTROL_REQUIRED"
+      ],
+      "builds": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "reviewed_strength_isolated",
+      "materialScope": "STRENGTH_V1",
+      "taskProtocolRows": 0,
+      "scopeResolutionStatus": "RESOLVED_STRENGTH",
+      "scopeResolutionReasons": [
+        "REMOVED_OWNER_CHANGE_PRESENT"
+      ],
+      "powerMaterialRows": 0,
+      "jumpLandingMaterialRows": 0,
+      "b7Status": "ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW",
+      "b7Reasons": [],
+      "b8Scope": "STRENGTH_V1",
+      "b8Status": "AUTHORIZED_FOR_BOUNDED_CUTOVER",
+      "b8Reasons": [
+        "B8_STRENGTH_V1_AUTHORIZED"
+      ],
+      "route": "B8_STRENGTH_V1",
+      "routeReasons": [
+        "B9_B8_STRENGTH_V1_ROUTED"
+      ],
+      "builds": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    }
+  ],
+  "summary": {
+    "generatedCases": 22,
+    "taskOnlyScopeCandidates": 0,
+    "authorizedTaskCases": 0,
+    "taskRouteCases": 0,
+    "taskMaterialCases": 1,
+    "persona3RecentTaskRows": 8,
+    "powerMaterialRows": 0,
+    "jumpLandingMaterialRows": 0,
+    "routes": {
+      "B8_STRENGTH_CALIBRATION_V1": 2,
+      "B8_STRENGTH_V1": 1,
+      "CONTROL": 19
+    },
+    "b8StatusCounts": {
+      "AUTHORIZED_FOR_BOUNDED_CUTOVER": 3,
+      "CONTROL_REQUIRED": 19
+    },
+    "b8ReasonOccurrences": {
+      "B8_B7_NOT_ELIGIBLE": 13,
+      "B8_CUTOVER_V1_EMPTY_MATERIAL_AUTHORITY": 4,
+      "B8_CUTOVER_V1_PRESCRIPTION_CHANGE_WITHOUT_EXACT_B6_AUTHORITY": 6,
+      "B8_CUTOVER_V1_PROVENANCE_NOT_CLOSED": 6,
+      "B8_CUTOVER_V1_REQUIRES_FULL_B6_MATERIALIZATION": 6,
+      "B8_CUTOVER_V1_UNRELATED_CONTROL_MUTATION": 6,
+      "B8_CUTOVER_V1_UPSTREAM_INCONSISTENCY": 6,
+      "B8_STRENGTH_CALIBRATION_V1_AUTHORIZED": 2,
+      "B8_STRENGTH_V1_AUTHORIZED": 1
+    },
+    "scopeResolutionStatusCounts": {
+      "PARTIAL_PROVENANCE": 18,
+      "RESOLVED_STRENGTH": 2,
+      "RESOLVED_STRENGTH_CALIBRATION": 2
+    },
+    "scopeResolutionReasonOccurrences": {
+      "MATERIAL_PROVENANCE_PARTIAL": 18,
+      "MATERIAL_SCOPE_MIXED_OR_UNSUPPORTED": 1,
+      "REMOVED_OWNER_CHANGE_PRESENT": 15,
+      "UNSUPPORTED_TARGET_COMBINATION": 1
+    },
+    "buildAccounting": {
+      "control": 1,
+      "experimental": 1,
+      "total": 2,
+      "third": 0
+    },
+    "b7": {
+      "provenanceUnclosed": 11,
+      "targetUnmet": 9,
+      "targetRegressed": 1,
+      "collateralRegressionCases": 0
+    },
+    "c20": {
+      "hardValid": 12,
+      "hardInvalid": 0,
+      "unresolved": 20,
+      "invalidOrUnresolvedForcedPreserved": 0
+    }
+  },
+  "persona3Recent": {
+    "case": "persona3_recent",
+    "taskProtocolRows": 8,
+    "scopeResolutionStatus": "PARTIAL_PROVENANCE",
+    "scopeResolutionReasons": [
+      "MATERIAL_PROVENANCE_PARTIAL",
+      "MATERIAL_SCOPE_MIXED_OR_UNSUPPORTED",
+      "REMOVED_OWNER_CHANGE_PRESENT",
+      "UNSUPPORTED_TARGET_COMBINATION"
+    ],
+    "powerMaterialRows": 0,
+    "jumpLandingMaterialRows": 0,
+    "b7Status": "NOT_ELIGIBLE",
+    "b7Reasons": [
+      "AFFECTED_TARGET_REMAINS_UNMET",
+      "CHANGE_PROVENANCE_UNCLOSED"
+    ],
+    "b8Scope": "STRENGTH_V1",
+    "b8Status": "CONTROL_REQUIRED",
+    "b8Reasons": [
+      "B8_B7_NOT_ELIGIBLE"
+    ],
+    "route": "CONTROL",
+    "routeReasons": [
+      "B9_B8_CONTROL_REQUIRED"
+    ],
+    "builds": {
+      "control": 1,
+      "experimental": 1,
+      "total": 2,
+      "third": 0
+    }
+  },
+  "roomBackedPositiveFixture": {
+    "source": "PERSONA3_RECENT_REAL_ROOM_SERVICE_EXPERIMENTAL",
+    "syntheticComparator": "SAME_ALREADY_BUILT_EXPERIMENTAL_WITH_GOVERNED_TASK_ROWS_OMITTED",
+    "b7Status": "ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW",
+    "b7Reasons": [],
+    "b8Status": "AUTHORIZED_FOR_BOUNDED_CUTOVER",
+    "b8Scope": "BADMINTON_TASK_V1",
+    "b8Reasons": [
+      "B8_BADMINTON_TASK_V1_AUTHORIZED"
+    ],
+    "authorizedTaskOwners": 2,
+    "route": "B8_BADMINTON_TASK_V1",
+    "usesExperimentalObject": true,
+    "rollback": "CONTROL",
+    "usesOriginalControlObject": true,
+    "builds": {
+      "control": 1,
+      "experimental": 1,
+      "total": 2,
+      "third": 0
+    }
+  }
+}
