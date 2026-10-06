@@ -619,6 +619,23 @@ class StimulusProductionCoverageAuditTest {
             .getInt("UNEXPLAINED_REMOVED_IDENTITY"))
         assertEquals(1, nextPhaseSummary.getJSONObject("unclosedAttributionReasonOccurrences")
             .getInt("UNEXPLAINED_PRESCRIPTION_CHANGE"))
+        val c27Census = C27SparseAddedIdentityCensus.render(
+            records, c26MainSha = "2d002b39d2ae105fbf4d831c8421ac736a8e27e4"
+        )
+        assertEquals(c27Census, C27SparseAddedIdentityCensus.render(
+            records.reversed(), c26MainSha = "2d002b39d2ae105fbf4d831c8421ac736a8e27e4"
+        ))
+        val c27Summary = org.json.JSONObject(c27Census).getJSONObject("summary")
+        assertEquals(22, c27Summary.getInt("unexplainedAddedIdentityAttributions"))
+        assertEquals(44, c27Summary.getInt("materializedOwnerWeekRows"))
+        assertEquals(0, c27Summary.getInt("b5SelectedAttributions"))
+        assertEquals(0, c27Summary.getInt("exactB6AuthorityAttributions"))
+        assertEquals(22, c27Summary.getInt("providerResolutionNoExactAuthority"))
+        assertEquals(0, c27Summary.getInt("c26DeniedQualitySetExactIntersection"))
+        java.io.File("build/reports/c27-sparse-added-identity-census.json").apply {
+            parentFile?.mkdirs()
+            writeText(c27Census)
+        }
         assertEquals(0, nextPhaseSummary.getInt("qualityAddedOwnerWeeksWithoutAuthorizedB6"))
         assertEquals(0, nextPhaseSummary.getJSONArray("qualityAddedOwnerWeeksWithoutAuthorizedB6Cases").length())
         assertEquals(7, nextPhaseSummary.getInt("b11CanonicalReplacementButB7UnclosedOwnerRows"))
