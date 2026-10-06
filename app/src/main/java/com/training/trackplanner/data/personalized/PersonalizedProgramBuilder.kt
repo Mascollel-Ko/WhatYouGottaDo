@@ -570,8 +570,14 @@ class PersonalizedProgramBuilder(
         val taskAuthorityFilteredDemand = if (regionalTargetPlan == null && canonicalB5TaskOwnerIdentitiesWithoutExecutableB6.isNotEmpty()) {
             filterCanonicalB5TaskDemandWithoutExecutableB6(mergedDemand, canonicalB5TaskOwnerIdentitiesWithoutExecutableB6)
         } else mergedDemand
-        val demand = if (regionalTargetPlan == null && exactPrescriptionAuthorizationProvider != null && canonicalB5PowerOwnerIdentities.isNotEmpty()) {
-            filterCanonicalB5DemandWithoutExecutableB6(taskAuthorityFilteredDemand, canonicalB5PowerOwnerIdentities, exactPrescriptionAuthorizationProvider)
+        val b5SelectedQualityOwners = exactPrescriptionAuthorizationProvider?.b5SelectedQualityOwners.orEmpty()
+        val canonicalB5OwnersRequiringExactQualityB6 = b5SelectedQualityOwners + canonicalB5PowerOwnerIdentities
+        val demand = if (regionalTargetPlan == null && exactPrescriptionAuthorizationProvider != null && canonicalB5OwnersRequiringExactQualityB6.isNotEmpty()) {
+            // Apply the same pre-allocation B6 boundary to every canonical B5 Quality owner,
+            // while retaining C21's explicit Power identity source. Filtering only Power let
+            // denied Strength/Hypertrophy candidates enter frequency expansion; replacing that
+            // source instead of unioning it would reopen the Power fallback.
+            filterCanonicalB5DemandWithoutExecutableB6(taskAuthorityFilteredDemand, canonicalB5OwnersRequiringExactQualityB6, exactPrescriptionAuthorizationProvider)
         } else taskAuthorityFilteredDemand
         val materialKeys = demand.candidates.filter(PlannedExercise::material).mapTo(mutableSetOf(), PlannedExercise::stableKey)
         val canonicalB5StableKeys = if (regionalTargetPlan == null) {

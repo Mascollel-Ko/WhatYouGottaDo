@@ -113,6 +113,51 @@ class StimulusExperimentalReadinessTest {
     }
 
     @Test
+    fun rejectedQualityB6CannotAccompanyNewOrChangedExecutableOwnerWeek() {
+        val role = "CANONICAL_STIMULUS_QUALITY_STRENGTH"
+        val owner = StimulusPrescriptionOwner("candidate", role)
+        val rejected = StimulusPrescriptionAuthorization(
+            targetId = "QUALITY:STRENGTH", quality = TrainableQuality.STRENGTH, owner = owner,
+            source = StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE,
+            inputPrescription = heterogeneousAuthorization(), plannedCompatibility = null,
+            authorizedPrescription = null,
+            status = StimulusPrescriptionAuthorizationStatus.NO_EXECUTABLE_AUTHORIZATION,
+            reasonCodes = listOf("B4_NUMERIC_AUTHORITY_DOES_NOT_AUTHORIZE_B6_CHANGE")
+        )
+        val plan = StimulusPrescriptionAuthorizationPlan(listOf(rejected))
+        val candidate = selectedCandidate("candidate", role)
+        val before = item("candidate").copy(selectionRole = role)
+        val after = before.copy(dayOfWeek = 3)
+        val added = StimulusExperimentalReadinessAuditEngine().audit(comparison(
+            controlItems = listOf(item("control")),
+            experimentalItems = listOf(after),
+            selectedCandidate = candidate,
+            authorizationPlan = plan
+        ))
+        assertEquals(StimulusExperimentalReadinessStatus.NOT_ELIGIBLE, added.status)
+        assertFalse(added.materializationIntegrityPassed)
+        assertTrue(added.reasonCodes.contains("B6_REJECTED_QUALITY_OWNER_WEEK_MATERIALIZED"))
+
+        val prescriptionChanged = after.copy(reps = 9, setPrescriptions = after.setPrescriptions.map { it.copy(reps = 9) })
+        val changed = StimulusExperimentalReadinessAuditEngine().audit(comparison(
+            controlItems = listOf(before),
+            experimentalItems = listOf(prescriptionChanged),
+            selectedCandidate = candidate,
+            authorizationPlan = plan
+        ))
+        assertTrue(changed.reasonCodes.contains("B6_REJECTED_QUALITY_OWNER_WEEK_MATERIALIZED"))
+
+        val placementOnly = StimulusExperimentalReadinessAuditEngine().audit(comparison(
+            controlItems = listOf(before),
+            experimentalItems = listOf(after),
+            selectedCandidate = candidate,
+            sameIdentity = true,
+            authorizationPlan = plan
+        ))
+        assertFalse(placementOnly.reasonCodes.contains("B6_REJECTED_QUALITY_OWNER_WEEK_MATERIALIZED"))
+    }
+
+    @Test
     fun noMaterialChangeIsExplicitAndUnresolvedAffectedEvidenceIsInconclusive() {
         val unchanged = comparison(controlUnits = 4.0, experimentalUnits = 4.0, controlSessions = 2.0, experimentalSessions = 2.0, sameIdentity = true)
         val unchangedAudit = StimulusExperimentalReadinessAuditEngine().audit(unchanged)

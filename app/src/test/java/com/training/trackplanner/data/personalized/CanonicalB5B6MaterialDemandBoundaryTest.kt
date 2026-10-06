@@ -1,6 +1,7 @@
 package com.training.trackplanner.data.personalized
 
 import com.training.trackplanner.data.ProgramSetPrescription
+import com.training.trackplanner.data.TrainableQuality
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -40,6 +41,44 @@ class CanonicalB5B6MaterialDemandBoundaryTest {
             filtered.deferred["${powerOwner.stableKey}#${powerOwner.selectionRole}"]
         )
         assertEquals(filtered.deferred, filtered.audit)
+    }
+
+    @Test
+    fun rejectedQualityFamiliesRemainB5IdentitiesAndAreDeferredBeforeFrequencyExpansion() {
+        val rejected = listOf(
+            "squat" to (TrainableQuality.STRENGTH to "CANONICAL_POSTERIOR_REFERENCE_UNAVAILABLE"),
+            "bench" to (TrainableQuality.STRENGTH to "B4_NUMERIC_AUTHORITY_DOES_NOT_AUTHORIZE_B6_CHANGE"),
+            "row" to (TrainableQuality.HYPERTROPHY to "HYPERTROPHY_TARGET_NUMERIC_AUTHORITY_UNAVAILABLE"),
+            "press" to (TrainableQuality.HYPERTROPHY to "PLANNED_RESISTANCE_LOAD_UNAVAILABLE")
+        ).map { (stableKey, evidence) ->
+            val (quality, refusal) = evidence
+            val role = "CANONICAL_STIMULUS_QUALITY_${quality.name}"
+            StimulusPrescriptionAuthorization(
+                targetId = "QUALITY:${quality.name}", quality = quality,
+                owner = StimulusPrescriptionOwner(stableKey, role),
+                source = StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE,
+                inputPrescription = null, plannedCompatibility = null, authorizedPrescription = null,
+                status = StimulusPrescriptionAuthorizationStatus.NO_EXECUTABLE_AUTHORIZATION,
+                reasonCodes = listOf(refusal)
+            )
+        }
+        val plan = StimulusPrescriptionAuthorizationPlan(rejected)
+        val selected = rejected.map { authorization ->
+            val owner = requireNotNull(authorization.owner)
+            StimulusPrescriptionOwnerIdentity(owner.stableKey, owner.selectionRole)
+        }.toSet()
+        assertEquals(selected, plan.provider().b5SelectedQualityOwners)
+
+        val sourceRows = rejected.map { authorization ->
+            val owner = requireNotNull(authorization.owner)
+            item(StimulusPrescriptionOwnerIdentity(owner.stableKey, owner.selectionRole))
+        }
+        val filtered = filterCanonicalB5DemandWithoutExecutableB6(
+            demand(*sourceRows.toTypedArray()), selected, plan.provider()
+        )
+        assertTrue(filtered.candidates.isEmpty())
+        assertEquals(selected.size, filtered.deferred.size)
+        assertEquals(selected.size, filtered.audit.size)
     }
 
     @Test

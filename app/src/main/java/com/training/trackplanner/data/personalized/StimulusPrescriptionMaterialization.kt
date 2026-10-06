@@ -122,6 +122,10 @@ data class StimulusPrescriptionAuthorizationPlan(
         override val authorizedPrescriptions: Map<StimulusPrescriptionAuthorityIdentity, PlannedPrescription> = this@StimulusPrescriptionAuthorizationPlan.authorizedPrescriptions
         override val multiQualityResolutions: Map<StimulusPrescriptionOwnerIdentity, StimulusMultiQualityPrescriptionResolution> = this@StimulusPrescriptionAuthorizationPlan.multiQualityResolutions
         override val ownerExecutionDispositions: Map<StimulusPrescriptionOwnerIdentity, StimulusPrescriptionOwnerExecutionDisposition> = this@StimulusPrescriptionAuthorizationPlan.ownerExecutionDispositions
+        override val b5SelectedQualityOwners: Set<StimulusPrescriptionOwnerIdentity> = authorizations.mapNotNullTo(linkedSetOf()) { authorization ->
+            val owner = authorization.owner ?: return@mapNotNullTo null
+            owner.takeIf { authorization.quality != null }?.let { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }
+        }
         override val canonicalPrescriptions: Map<StimulusPrescriptionOwnerIdentity, PlannedPrescription> = this@StimulusPrescriptionAuthorizationPlan.canonicalPrescriptions
 
         override fun authorizedPrescriptionFor(item: PlannedExercise, requestedSets: Int): PlannedPrescription? =
