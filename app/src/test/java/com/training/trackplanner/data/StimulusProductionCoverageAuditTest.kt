@@ -122,14 +122,11 @@ class StimulusProductionCoverageAuditTest {
             assertEquals(!result.routeDecision.productionRoutingActive, result.diagnostics.primaryFallbackStage != null)
             spec to result
         }
-        // C26 re-evaluates the real generated corpus after closing the B6/material boundary.
-        // Persist this early so a stale historical snapshot assertion cannot hide current evidence.
-        val currentC26Corpus = NextPhaseBottleneckCensus.render(records)
-        java.io.File("build/reports/c26-current-next-phase-corpus.json").apply {
-            parentFile?.mkdirs()
-            writeText(currentC26Corpus)
-        }
         val generated = records.mapNotNull { (spec, result) -> result?.let { spec to it } }
+        // Keep the old C25 snapshot parse in a separate stack frame. The two full corpus JSON
+        // documents are large; retaining both while the downstream audit objects are live made
+        // the Hosted runner's single coverage test exceed its memory limit.
+        assertC26RejectedQualityRowsAreNotMaterialized(records)
         val report = render(records)
         assertEquals(report, render(records.reversed()))
         assertEquals(renderProvenance(records), renderProvenance(records.reversed()))
@@ -626,63 +623,6 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(0, nextPhaseSummary.getJSONArray("qualityAddedOwnerWeeksWithoutAuthorizedB6Cases").length())
         assertEquals(7, nextPhaseSummary.getInt("b11CanonicalReplacementButB7UnclosedOwnerRows"))
         assertEquals(0, nextPhaseSummary.getJSONArray("taskRoleReplacementRowsWithExactApprovedTaskB6").length())
-        val c25BeforeC26 = org.json.JSONObject(repositoryFile("docs/next-phase-bottleneck-census.json").readText())
-        val c25RejectedQualityRows = c25BeforeC26.getJSONObject("summary")
-            .getJSONArray("qualityAddedOwnerWeeksWithoutAuthorizedB6Evidence")
-        assertEquals(22, c25RejectedQualityRows.length())
-        var c25B7AddedAttributionIntersection = 0
-        for (index in 0 until c25RejectedQualityRows.length()) {
-            val baselineRow = c25RejectedQualityRows.getJSONObject(index)
-            val caseName = baselineRow.getString("case")
-            val ownerJson = baselineRow.getJSONObject("owner")
-            val identity = StimulusPrescriptionOwnerIdentity(ownerJson.getString("stableKey"), ownerJson.getString("selectionRole"))
-            val week = baselineRow.getInt("week")
-            val beforeCase = c25BeforeC26.getJSONArray("cases").let { rows ->
-                (0 until rows.length()).map { rows.getJSONObject(it) }.single { it.getString("case") == caseName }
-            }
-            val beforeDelta = beforeCase.getJSONArray("materialDeltas").let { rows ->
-                (0 until rows.length()).map { rows.getJSONObject(it) }.single { delta ->
-                    delta.getString("kind") == "ADDED_OWNER" && delta.getInt("week") == week &&
-                        delta.getJSONObject("owner").getString("stableKey") == identity.stableKey &&
-                        delta.getJSONObject("owner").getString("selectionRole") == identity.selectionRole
-                }
-            }
-            val beforeExecutableRows = beforeDelta.getJSONArray("after")
-            assertEquals("C25 row was an actual scheduled prescription", 1, beforeExecutableRows.length())
-            assertTrue(beforeExecutableRows.getJSONObject(0).getInt("sets") > 0)
-            val baselineB7Added = beforeCase.getJSONObject("b7").getJSONArray("changeAttributions").let { rows ->
-                (0 until rows.length()).map { rows.getJSONObject(it) }.any { attribution ->
-                    attribution.optString("stableKey") == identity.stableKey &&
-                        attribution.optString("selectionRole") == identity.selectionRole &&
-                        attribution.getJSONArray("reasons").let { reasons ->
-                            (0 until reasons.length()).any { reasons.getString(it) == "UNEXPLAINED_ADDED_IDENTITY" }
-                        }
-                }
-            }
-            if (baselineB7Added) c25B7AddedAttributionIntersection++
-
-            val currentComparison = requireNotNull(records.single { it.first.label == caseName }.second?.comparison)
-            val currentAuthorization = currentComparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().single { authorization ->
-                authorization.owner?.let { it.stableKey == identity.stableKey && it.selectionRole == identity.selectionRole } == true &&
-                    authorization.quality != null
-            }
-            assertEquals(baselineRow.getString("b6Status"), currentAuthorization.status.name)
-            assertEquals(baselineRow.getJSONArray("b6Reasons").let { reasons ->
-                (0 until reasons.length()).map { reasons.getString(it) }.sorted()
-            }, currentAuthorization.reasonCodes.sorted())
-            val currentExecutableRows = currentComparison.experimental.items.filter {
-                it.exerciseStableKey == identity.stableKey && it.selectionRole == identity.selectionRole && it.weekNumber == week
-            }
-            assertTrue("B6-rejected owner-week must not be executable EXP material: $caseName w$week $identity", currentExecutableRows.isEmpty())
-            val currentDelta = currentComparison.addedOwnerIdentities.any { it == identity }
-            assertFalse("B6-rejected identity must not be an EXP added owner: $caseName $identity", currentDelta)
-            assertFalse(currentComparison.experimentalReadinessAudit?.changeAttributions.orEmpty().any { attribution ->
-                attribution.stableKey == identity.stableKey && attribution.selectionRole == identity.selectionRole &&
-                    "UNEXPLAINED_ADDED_IDENTITY" in attribution.reasonCodes
-            })
-        }
-        assertEquals("The rejected Quality rows and B7's unexplained added identities are disjoint", 0,
-            c25B7AddedAttributionIntersection)
         val persona3RecentCensus = nextPhaseJson.getJSONArray("cases").let { rows ->
             (0 until rows.length()).map { rows.getJSONObject(it) }.single { it.getString("case") == "persona3_recent" }
         }
@@ -933,6 +873,75 @@ class StimulusProductionCoverageAuditTest {
         assertTrue(b7ReasonCounts.keys.containsAll(setOf("CHANGE_PROVENANCE_UNCLOSED", "TARGET_REGRESSED")))
         assertFalse("B6-denied Quality additions no longer contribute affected unmet targets",
             b7ReasonCounts.containsKey("AFFECTED_TARGET_REMAINS_UNMET"))
+    }
+
+    private fun assertC26RejectedQualityRowsAreNotMaterialized(
+        records: List<Pair<CoverageSpec, StimulusProductionGenerationResult?>>
+    ) {
+        // Parse the prior census only in this helper's frame, before the current full census is
+        // rendered and parsed. Keeping both JSONObject trees live at once exceeded Hosted CI's
+        // memory budget even though the assertions themselves are small.
+        val c25BeforeC26 = org.json.JSONObject(repositoryFile("docs/next-phase-bottleneck-census.json").readText())
+        val rejectedRows = c25BeforeC26.getJSONObject("summary")
+            .getJSONArray("qualityAddedOwnerWeeksWithoutAuthorizedB6Evidence")
+        assertEquals(22, rejectedRows.length())
+        var unexplainedAddedIntersection = 0
+        val currentByCase = records.associateBy { it.first.label }
+        for (index in 0 until rejectedRows.length()) {
+            val baselineRow = rejectedRows.getJSONObject(index)
+            val caseName = baselineRow.getString("case")
+            val ownerJson = baselineRow.getJSONObject("owner")
+            val identity = StimulusPrescriptionOwnerIdentity(
+                ownerJson.getString("stableKey"), ownerJson.getString("selectionRole")
+            )
+            val week = baselineRow.getInt("week")
+            val beforeCase = c25BeforeC26.getJSONArray("cases").let { rows ->
+                (0 until rows.length()).map { rows.getJSONObject(it) }.single { it.getString("case") == caseName }
+            }
+            val beforeDelta = beforeCase.getJSONArray("materialDeltas").let { rows ->
+                (0 until rows.length()).map { rows.getJSONObject(it) }.single { delta ->
+                    delta.getString("kind") == "ADDED_OWNER" && delta.getInt("week") == week &&
+                        delta.getJSONObject("owner").getString("stableKey") == identity.stableKey &&
+                        delta.getJSONObject("owner").getString("selectionRole") == identity.selectionRole
+                }
+            }
+            val beforeExecutableRows = beforeDelta.getJSONArray("after")
+            assertEquals("C25 row was an actual scheduled prescription", 1, beforeExecutableRows.length())
+            assertTrue(beforeExecutableRows.getJSONObject(0).getInt("sets") > 0)
+
+            val baselineB7Added = beforeCase.getJSONObject("b7").getJSONArray("changeAttributions").let { rows ->
+                (0 until rows.length()).map { rows.getJSONObject(it) }.any { attribution ->
+                    attribution.optString("stableKey") == identity.stableKey &&
+                        attribution.optString("selectionRole") == identity.selectionRole &&
+                        attribution.getJSONArray("reasons").let { reasons ->
+                            (0 until reasons.length()).any { reasons.getString(it) == "UNEXPLAINED_ADDED_IDENTITY" }
+                        }
+                }
+            }
+            if (baselineB7Added) unexplainedAddedIntersection++
+
+            val currentComparison = requireNotNull(currentByCase[caseName]?.second?.comparison)
+            val currentAuthorization = currentComparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().single { authorization ->
+                authorization.owner?.let { it.stableKey == identity.stableKey && it.selectionRole == identity.selectionRole } == true &&
+                    authorization.quality != null
+            }
+            assertEquals(baselineRow.getString("b6Status"), currentAuthorization.status.name)
+            assertEquals(baselineRow.getJSONArray("b6Reasons").let { reasons ->
+                (0 until reasons.length()).map { reasons.getString(it) }.sorted()
+            }, currentAuthorization.reasonCodes.sorted())
+            val executableRows = currentComparison.experimental.items.filter {
+                it.exerciseStableKey == identity.stableKey && it.selectionRole == identity.selectionRole && it.weekNumber == week
+            }
+            assertTrue("B6-rejected owner-week must not be executable EXP material: $caseName w$week $identity",
+                executableRows.isEmpty())
+            assertFalse("B6-rejected identity must not be an EXP added owner: $caseName $identity",
+                currentComparison.addedOwnerIdentities.any { it == identity })
+            assertFalse(currentComparison.experimentalReadinessAudit?.changeAttributions.orEmpty().any { attribution ->
+                attribution.stableKey == identity.stableKey && attribution.selectionRole == identity.selectionRole &&
+                    "UNEXPLAINED_ADDED_IDENTITY" in attribution.reasonCodes
+            })
+        }
+        assertEquals("Rejected Quality rows and B7 unexplained additions are disjoint", 0, unexplainedAddedIntersection)
     }
 
     private data class C25TaskOnlyRoomFixture(
