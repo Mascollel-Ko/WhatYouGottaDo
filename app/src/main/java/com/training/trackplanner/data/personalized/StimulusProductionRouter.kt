@@ -23,7 +23,8 @@ enum class StimulusProductionProgramSource {
     B8_STRENGTH_V1,
     B8_STRENGTH_CALIBRATION_V1,
     B8_HYPERTROPHY_V1,
-    B8_STRENGTH_HYPERTROPHY_V1
+    B8_STRENGTH_HYPERTROPHY_V1,
+    B8_BADMINTON_TASK_V1
 }
 
 data class StimulusProductionRoutingDecision(
@@ -51,7 +52,8 @@ internal fun StimulusProductionRoutingMode.permits(source: StimulusProductionPro
         source == StimulusProductionProgramSource.B8_STRENGTH_V1 ||
             source == StimulusProductionProgramSource.B8_STRENGTH_CALIBRATION_V1 ||
             source == StimulusProductionProgramSource.B8_HYPERTROPHY_V1 ||
-            source == StimulusProductionProgramSource.B8_STRENGTH_HYPERTROPHY_V1
+            source == StimulusProductionProgramSource.B8_STRENGTH_HYPERTROPHY_V1 ||
+            source == StimulusProductionProgramSource.B8_BADMINTON_TASK_V1
 }
 
 data class StimulusProductionRouteResult(
@@ -155,11 +157,14 @@ class StimulusProductionRouter {
             authority.scope == StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1 &&
                 !mode.permits(StimulusProductionProgramSource.B8_STRENGTH_HYPERTROPHY_V1) ->
                 "B9_B8_COMBINED_SCOPE_NOT_ACTIVE"
+            authority.scope == StimulusProductionCutoverScope.BADMINTON_TASK_V1 &&
+                !mode.permits(StimulusProductionProgramSource.B8_BADMINTON_TASK_V1) -> "B9_B8_TASK_SCOPE_NOT_ACTIVE"
             authority.scope !in setOf(
                 StimulusProductionCutoverScope.STRENGTH_V1,
                 StimulusProductionCutoverScope.STRENGTH_CALIBRATION_V1,
                 StimulusProductionCutoverScope.HYPERTROPHY_V1,
-                StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1
+                StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1,
+                StimulusProductionCutoverScope.BADMINTON_TASK_V1
             ) -> "B9_B8_SCOPE_MISMATCH"
             !mode.permits(sourceForScope(authority.scope)) -> "B9_B8_SCOPE_MISMATCH"
             authority.authorizedOwnerIdentities.isEmpty() -> "B9_B8_EMPTY_AUTHORIZED_OWNER_SET"
@@ -169,6 +174,19 @@ class StimulusProductionRouter {
                 "B9_B8_AUTHORITY_IDENTITY_MISMATCH"
             authority.authorizedAuthorityIdentities.toSet() != expectedAuthorityIdentities(comparison, authority) ->
                 "B9_B8_AUTHORITY_IDENTITY_MISMATCH"
+            authority.scope == StimulusProductionCutoverScope.BADMINTON_TASK_V1 &&
+                authority.authorizedTaskProtocolIdentities.isEmpty() -> "B9_B8_TASK_AUTHORITY_IDENTITY_MISMATCH"
+            authority.authorizedTaskProtocolIdentities.size != authority.authorizedTaskProtocolIdentities.distinct().size ->
+                "B9_B8_TASK_AUTHORITY_IDENTITY_MISMATCH"
+            authority.scope == StimulusProductionCutoverScope.BADMINTON_TASK_V1 &&
+                authority.authorizedTaskProtocolIdentities.toSet() != expectedTaskProtocolIdentities(comparison) ->
+                "B9_B8_TASK_AUTHORITY_IDENTITY_MISMATCH"
+            authority.scope != StimulusProductionCutoverScope.BADMINTON_TASK_V1 &&
+                authority.authorizedTaskProtocolIdentities.isNotEmpty() -> "B9_B8_TASK_AUTHORITY_IDENTITY_MISMATCH"
+            authority.scope == StimulusProductionCutoverScope.BADMINTON_TASK_V1 &&
+                authority.authorizedOwnerIdentities.toSet() != authority.authorizedTaskProtocolIdentities.map {
+                    StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole)
+                }.toSet() -> "B9_B8_TASK_AUTHORITY_IDENTITY_MISMATCH"
             authority.scope == StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1 &&
                 authority.authorizedAuthorityIdentities.any { it.quality !in setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY) } ->
                 "B9_B8_AUTHORITY_IDENTITY_MISMATCH"
@@ -208,6 +226,7 @@ class StimulusProductionRouter {
                     StimulusProductionProgramSource.B8_HYPERTROPHY_V1 -> "B9_B8_HYPERTROPHY_V1_ROUTED"
                     StimulusProductionProgramSource.B8_STRENGTH_HYPERTROPHY_V1 ->
                         "B9_B8_STRENGTH_HYPERTROPHY_V1_ROUTED"
+                    StimulusProductionProgramSource.B8_BADMINTON_TASK_V1 -> "B9_B8_BADMINTON_TASK_V1_ROUTED"
                     StimulusProductionProgramSource.CONTROL -> "B9_B8_CONTROL_REQUIRED"
                 }
             ),
@@ -234,6 +253,7 @@ class StimulusProductionRouter {
     }
 
     private fun sourceForScope(scope: StimulusProductionCutoverScope): StimulusProductionProgramSource = when (scope) {
+        StimulusProductionCutoverScope.BADMINTON_TASK_V1 -> StimulusProductionProgramSource.B8_BADMINTON_TASK_V1
         StimulusProductionCutoverScope.STRENGTH_V1 -> StimulusProductionProgramSource.B8_STRENGTH_V1
         StimulusProductionCutoverScope.STRENGTH_CALIBRATION_V1 -> StimulusProductionProgramSource.B8_STRENGTH_CALIBRATION_V1
         StimulusProductionCutoverScope.HYPERTROPHY_V1 -> StimulusProductionProgramSource.B8_HYPERTROPHY_V1
@@ -244,6 +264,7 @@ class StimulusProductionRouter {
         comparison: StimulusSelectionProgramComparison,
         authority: StimulusProductionCutoverAuthorityDecision
     ): Set<StimulusPrescriptionAuthorityIdentity> = when (authority.scope) {
+        StimulusProductionCutoverScope.BADMINTON_TASK_V1 -> emptySet()
         StimulusProductionCutoverScope.STRENGTH_V1 -> authority.authorizedOwnerIdentities.map {
             StimulusPrescriptionAuthorityIdentity(it.stableKey, it.selectionRole, TrainableQuality.STRENGTH)
         }.toSet()
@@ -255,6 +276,19 @@ class StimulusProductionRouter {
         }.toSet()
         StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1 -> combinedExpectedAuthorityIdentities(comparison)
     }
+
+    private fun expectedTaskProtocolIdentities(
+        comparison: StimulusSelectionProgramComparison
+    ): Set<StimulusTaskProtocolAuthorityIdentity> = materialOwnerIdentities(comparison).mapNotNull { owner ->
+        val metadata = taskProtocolMetadataForOwner(comparison.experimental, owner)
+        val definitions = metadata.map { it.authorization.definition }.distinct()
+        val taskSets = metadata.map { it.authorization.attributedTasks }.distinct()
+        val definition = definitions.singleOrNull()?.takeIf {
+            ApprovedBadmintonTaskProtocols.exact(owner.stableKey, owner.selectionRole, it.primaryTask) == it
+        } ?: return@mapNotNull null
+        val tasks = taskSets.singleOrNull() ?: return@mapNotNull null
+        StimulusTaskProtocolAuthorityIdentity(definition.protocolId, owner.stableKey, owner.selectionRole, tasks)
+    }.toSet()
 
     /**
      * B9 validates the lossless B8 identity set from the upstream material provenance. It does
@@ -347,7 +381,8 @@ class StimulusProductionRouter {
             StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY,
             StimulusExperimentalChangeAttributionSource.B6_EXISTING_OWNER_PRESCRIPTION,
             StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION,
-            StimulusExperimentalChangeAttributionSource.B6_COLD_START_USER_CALIBRATION
+            StimulusExperimentalChangeAttributionSource.B6_COLD_START_USER_CALIBRATION,
+            StimulusExperimentalChangeAttributionSource.B6_APPROVED_TASK_PROTOCOL
         )
     }
 }
@@ -376,13 +411,14 @@ class StimulusProductionMaterialScopeResolver {
                 if (controlRows != experimentalRows) add(identity)
             }
         }
-        if (materialOwners.isEmpty()) return null
+        if (materialOwners.isEmpty() || comparison.removedOwnerIdentities.isNotEmpty()) return null
 
         val materialSources = setOf(
             StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY,
             StimulusExperimentalChangeAttributionSource.B6_EXISTING_OWNER_PRESCRIPTION,
             StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION,
-            StimulusExperimentalChangeAttributionSource.B6_COLD_START_USER_CALIBRATION
+            StimulusExperimentalChangeAttributionSource.B6_COLD_START_USER_CALIBRATION,
+            StimulusExperimentalChangeAttributionSource.B6_APPROVED_TASK_PROTOCOL
         )
         val attributions = audit.changeAttributions.filter { attribution ->
             attribution.source in materialSources &&
@@ -403,13 +439,32 @@ class StimulusProductionMaterialScopeResolver {
         val governedTargetIds = comparison.targetPlan.qualityTargets.mapTo(linkedSetOf()) { "QUALITY:${it.quality.name}" }
             .apply { addAll(comparison.targetPlan.taskTargets.map { "TASK:${it.task}" }) }
         if (targetIds.any { it !in governedTargetIds }) return null
-        val targetQualities = targetIds.map { targetId ->
+        val targetQualities = targetIds.mapNotNull { targetId ->
             when (targetId) {
                 "QUALITY:STRENGTH" -> com.training.trackplanner.data.TrainableQuality.STRENGTH
                 "QUALITY:HYPERTROPHY" -> com.training.trackplanner.data.TrainableQuality.HYPERTROPHY
-                else -> return null
+                else -> null
             }
         }.toSet()
+        if (targetQualities.isEmpty() && targetIds.all { it.startsWith("TASK:") }) {
+            val parsedTasks = targetIds.mapNotNull { id ->
+                runCatching { CanonicalTaskTarget.valueOf(id.removePrefix("TASK:")) }.getOrNull()
+            }
+            val governedTaskIds = comparison.targetPlan.taskTargets.map { "TASK:${it.task}" }.toSet()
+            val perOwner = attributions.groupBy {
+                StimulusPrescriptionOwnerIdentity(requireNotNull(it.stableKey), requireNotNull(it.selectionRole))
+            }
+            if (parsedTasks.size == targetIds.size && targetIds.all { it in governedTaskIds } &&
+                attributedOwners == materialOwners && materialOwners.all { owner ->
+                    perOwner[owner].orEmpty().isNotEmpty() && perOwner.getValue(owner).all {
+                        it.source == StimulusExperimentalChangeAttributionSource.B6_APPROVED_TASK_PROTOCOL && it.targetIds.isNotEmpty()
+                    }
+                }
+            ) return StimulusProductionCutoverScope.BADMINTON_TASK_V1
+            return null
+        }
+        // Mixed task/quality material and unknown target families resolve to no production scope.
+        if (targetIds.any { !it.startsWith("QUALITY:") }) return null
         if (targetQualities == setOf(com.training.trackplanner.data.TrainableQuality.STRENGTH)) {
             val calibrationOwners = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty()
                 .filter { authorization ->

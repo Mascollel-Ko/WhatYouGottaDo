@@ -4,6 +4,7 @@ import com.training.trackplanner.data.TrainableQuality
 
 enum class StimulusProductionScopeResolutionStatus {
     RESOLVED_STRENGTH, RESOLVED_STRENGTH_CALIBRATION, RESOLVED_HYPERTROPHY, RESOLVED_STRENGTH_HYPERTROPHY,
+    RESOLVED_BADMINTON_TASK,
     NO_MATERIAL, MISSING_PROVENANCE, PARTIAL_PROVENANCE, UNKNOWN_TARGET,
     UNSUPPORTED_QUALITY, AMBIGUOUS_MATERIAL_SCOPE
 }
@@ -17,7 +18,8 @@ data class StimulusProductionScopeResolution(
     val unknownTargetIds: Set<String>,
     val unattributedOwnerIdentities: Set<StimulusPrescriptionOwnerIdentity>,
     val removedOwnerIdentities: Set<StimulusPrescriptionOwnerIdentity>,
-    val materialAuthorityIdentities: Set<StimulusPrescriptionAuthorityIdentity>
+    val materialAuthorityIdentities: Set<StimulusPrescriptionAuthorityIdentity>,
+    val materialTaskProtocolIdentities: Set<StimulusTaskProtocolAuthorityIdentity> = emptySet()
 )
 
 /** Observation only. The nullable scope is supplied by the existing resolver, never inferred here. */
@@ -37,7 +39,8 @@ internal fun observeProductionScope(
         it.source in setOf(StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY,
             StimulusExperimentalChangeAttributionSource.B6_EXISTING_OWNER_PRESCRIPTION,
             StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION,
-            StimulusExperimentalChangeAttributionSource.B6_COLD_START_USER_CALIBRATION) &&
+            StimulusExperimentalChangeAttributionSource.B6_COLD_START_USER_CALIBRATION,
+            StimulusExperimentalChangeAttributionSource.B6_APPROVED_TASK_PROTOCOL) &&
             it.stableKey != null && it.selectionRole != null &&
             StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) in owners
     }
@@ -65,7 +68,8 @@ internal fun observeProductionScope(
     if (unknown.isNotEmpty()) reasons += "UNKNOWN_TARGET_ID"
     unsupported.forEach { reasons += "UNSUPPORTED_QUALITY_${it.name}" }
     if (qualities.containsAll(setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY)) && unsupported.isNotEmpty()) reasons += "THIRD_QUALITY_PRESENT"
-    if (targetIds.any { id -> id in governed && !id.startsWith("QUALITY:") }) reasons += "UNSUPPORTED_TARGET_COMBINATION"
+    if (scope != StimulusProductionCutoverScope.BADMINTON_TASK_V1 &&
+        targetIds.any { id -> id in governed && !id.startsWith("QUALITY:") }) reasons += "UNSUPPORTED_TARGET_COMBINATION"
     val status = when {
         scope == StimulusProductionCutoverScope.STRENGTH_V1 -> StimulusProductionScopeResolutionStatus.RESOLVED_STRENGTH
         scope == StimulusProductionCutoverScope.STRENGTH_CALIBRATION_V1 -> StimulusProductionScopeResolutionStatus.RESOLVED_STRENGTH_CALIBRATION
@@ -88,7 +92,29 @@ internal fun observeProductionScope(
             }
         }
     }.toSet()
-    return StimulusProductionScopeResolution(scope, status, qualities, owners + removed, reasons.toList(), unknown, owners - attributed, removed, identities)
+    val taskIdentities = owners.mapNotNull { owner ->
+        val metadata = taskProtocolMetadataForOwner(comparison.experimental, owner)
+        val definitions = metadata.map { it.authorization.definition }.distinct()
+        val tasks = metadata.map { it.authorization.attributedTasks }.distinct()
+        val definition = definitions.singleOrNull()?.takeIf {
+            ApprovedBadmintonTaskProtocols.exact(owner.stableKey, owner.selectionRole, it.primaryTask) == it
+        } ?: return@mapNotNull null
+        val authorizedTasks = tasks.singleOrNull() ?: return@mapNotNull null
+        StimulusTaskProtocolAuthorityIdentity(definition.protocolId, owner.stableKey, owner.selectionRole, authorizedTasks)
+    }.toSet()
+    if (targetIds.any { it.startsWith("TASK:") } && scope == null && targetIds.all { it in governed }) {
+        reasons += "MATERIAL_SCOPE_MIXED_OR_UNSUPPORTED"
+    }
+    val finalStatus = when {
+        scope == StimulusProductionCutoverScope.STRENGTH_V1 -> StimulusProductionScopeResolutionStatus.RESOLVED_STRENGTH
+        scope == StimulusProductionCutoverScope.STRENGTH_CALIBRATION_V1 -> StimulusProductionScopeResolutionStatus.RESOLVED_STRENGTH_CALIBRATION
+        scope == StimulusProductionCutoverScope.HYPERTROPHY_V1 -> StimulusProductionScopeResolutionStatus.RESOLVED_HYPERTROPHY
+        scope == StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1 -> StimulusProductionScopeResolutionStatus.RESOLVED_STRENGTH_HYPERTROPHY
+        scope == StimulusProductionCutoverScope.BADMINTON_TASK_V1 -> StimulusProductionScopeResolutionStatus.RESOLVED_BADMINTON_TASK
+        else -> status
+    }
+    return StimulusProductionScopeResolution(scope, finalStatus, qualities, owners + removed, reasons.toList(), unknown,
+        owners - attributed, removed, identities, taskIdentities)
 }
 
 enum class StimulusProductionFallbackStage {
