@@ -494,6 +494,66 @@ class StimulusProductionCoverageAuditTest {
         assertEquals("AUTHORIZED_FOR_BOUNDED_CUTOVER", c25Json.getJSONObject("roomBackedPositiveFixture")
             .getString("b8Status"))
 
+        val nextPhaseCensus = NextPhaseBottleneckCensus.render(records)
+        assertEquals(nextPhaseCensus, NextPhaseBottleneckCensus.render(records.reversed()))
+        val nextPhaseJson = org.json.JSONObject(nextPhaseCensus)
+        val nextPhaseSummary = nextPhaseJson.getJSONObject("summary")
+        assertEquals(22, nextPhaseSummary.getInt("generatedCases"))
+        assertEquals(19, nextPhaseSummary.getInt("controlCases"))
+        assertEquals(11, nextPhaseSummary.getJSONObject("b7ReasonOccurrencesAllGenerated")
+            .getInt("CHANGE_PROVENANCE_UNCLOSED"))
+        assertEquals(9, nextPhaseSummary.getJSONObject("b7ReasonOccurrencesAllGenerated")
+            .getInt("AFFECTED_TARGET_REMAINS_UNMET"))
+        assertEquals(1, nextPhaseSummary.getJSONObject("b7ReasonOccurrencesAllGenerated")
+            .getInt("TARGET_REGRESSED"))
+        assertEquals(0, nextPhaseSummary.getInt("casesWithMixedStrengthAndTaskMaterialOnlyBlockers"))
+        assertEquals(22, nextPhaseSummary.getJSONObject("unclosedAttributionReasonOccurrences")
+            .getInt("UNEXPLAINED_ADDED_IDENTITY"))
+        assertEquals(9, nextPhaseSummary.getJSONObject("unclosedAttributionReasonOccurrences")
+            .getInt("UNEXPLAINED_REMOVED_IDENTITY"))
+        assertEquals(1, nextPhaseSummary.getJSONObject("unclosedAttributionReasonOccurrences")
+            .getInt("UNEXPLAINED_PRESCRIPTION_CHANGE"))
+        assertEquals(22, nextPhaseSummary.getInt("qualityAddedOwnerWeeksWithoutAuthorizedB6"))
+        assertEquals(11, nextPhaseSummary.getJSONArray("qualityAddedOwnerWeeksWithoutAuthorizedB6Cases").length())
+        assertEquals(9, nextPhaseSummary.getInt("b11CanonicalReplacementButB7UnclosedOwnerRows"))
+        assertEquals(2, nextPhaseSummary.getJSONArray("taskRoleReplacementRowsWithExactApprovedTaskB6").length())
+        val persona3RecentCensus = nextPhaseJson.getJSONArray("cases").let { rows ->
+            (0 until rows.length()).map { rows.getJSONObject(it) }.single { it.getString("case") == "persona3_recent" }
+        }
+        assertEquals("CONTROL", persona3RecentCensus.getString("route"))
+        assertEquals(8, persona3RecentCensus.getJSONArray("taskMaterialRows").length())
+        assertEquals(listOf("QUALITY:STRENGTH"), persona3RecentCensus.getJSONObject("b7")
+            .getJSONArray("affectedUnmetTargets").let { rows -> (0 until rows.length()).map { rows.getString(it) } })
+        assertEquals(setOf("QUALITY:POWER", "QUALITY:STRENGTH", "TASK:JUMP_LANDING"),
+            persona3RecentCensus.getJSONObject("b7").getJSONArray("allUnmetTargetOutcomes")
+                .let { rows -> (0 until rows.length()).map { rows.getString(it) }.toSet() })
+        assertEquals(listOf("B8_B7_NOT_ELIGIBLE"), persona3RecentCensus.getJSONObject("b8")
+            .getJSONArray("reasons").let { rows -> (0 until rows.length()).map { rows.getString(it) } })
+        assertTrue(persona3RecentCensus.getJSONArray("materialDeltas").let { rows ->
+            (0 until rows.length()).map { rows.getJSONObject(it) }.any { delta ->
+                delta.getString("kind") == "ADDED_OWNER" &&
+                    delta.getJSONObject("owner").getString("stableKey") == "barbell_back_squat" &&
+                    delta.getJSONObject("owner").getString("selectionRole") == "CANONICAL_STIMULUS_QUALITY_STRENGTH"
+            }
+        })
+        assertTrue(persona3RecentCensus.getJSONArray("b6QualityAuthorities").let { rows ->
+            (0 until rows.length()).map { rows.getJSONObject(it) }.any { authority ->
+                authority.getString("target") == "QUALITY:STRENGTH" &&
+                    authority.getString("status") == "NO_EXECUTABLE_AUTHORIZATION" &&
+                    authority.getJSONArray("reasonCodes").let { reasons ->
+                        (0 until reasons.length()).any { reasons.getString(it) == "CANONICAL_POSTERIOR_REFERENCE_UNAVAILABLE" }
+                    }
+            }
+        })
+        val regressionCase = nextPhaseJson.getJSONArray("cases").let { rows ->
+            (0 until rows.length()).map { rows.getJSONObject(it) }.single { it.getString("case") == "persona1_reviewed" }
+        }
+        assertEquals(listOf("QUALITY:HYPERTROPHY"), regressionCase.getJSONObject("b7")
+            .getJSONArray("regressedTargets").let { rows -> (0 until rows.length()).map { rows.getString(it) } })
+        val bottleneckReport = java.io.File("build/reports/next-phase-bottleneck-census.json")
+        requireNotNull(bottleneckReport.parentFile).mkdirs()
+        bottleneckReport.writeText(nextPhaseCensus)
+
         val c24Routes = c24.getJSONObject("routeSnapshot")
         assertEquals(27, c24Routes.keys().asSequence().map { c24Routes.getInt(it) }.sum())
         assertEquals(19, c24Routes.getInt("CONTROL"))
