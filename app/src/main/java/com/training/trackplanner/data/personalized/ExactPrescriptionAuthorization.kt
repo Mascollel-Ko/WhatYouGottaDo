@@ -36,6 +36,10 @@ fun interface ExactPrescriptionAuthorizationProvider {
     val ownerExecutionDispositions: Map<StimulusPrescriptionOwnerIdentity, StimulusPrescriptionOwnerExecutionDisposition>
         get() = emptyMap()
 
+    /** Exact B5-selected Quality owners, including those for which B6 denied executable authority. */
+    val b5SelectedQualityOwners: Set<StimulusPrescriptionOwnerIdentity>
+        get() = emptySet()
+
     /** Actual-history prescriptions used only for PRESERVE_INCUMBENT_OWNER dispositions. */
     val canonicalPrescriptions: Map<StimulusPrescriptionOwnerIdentity, PlannedPrescription>
         get() = emptyMap()

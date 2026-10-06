@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.60.0 |
+| Protocol version | 3.61.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.2 |
-| Last audited commit | 7c5d80bb9f7d849097cfe2cdd86903928d12106c |
+| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.3 |
+| Last audited commit | b5d4550c4f4f44b52d89128fa9e70d16cce77a9b |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1345,3 +1345,13 @@ Post-audit boundary notes
 - C25 audit and deterministic census: [`docs/c25_badminton_task_only_b8_cutover_audit.md`](../../c25_badminton_task_only_b8_cutover_audit.md) and [`docs/c25-bounded-badminton-task-b8-census.json`](../../c25-bounded-badminton-task-b8-census.json). Protocol/runtime/app are `3.60.0` / `RECORD_BASED_PLANNER_0.15.2_KOTLIN_1` / `0.5.1.5`; Room remains 38, program backup schema 4, restore schema 13, Community snapshot schema 2.
 - Standard production coverage report SHA-256 is `1772FD236365E39E4012A3A1DEE1FFCBD190904E92F52C414F46372AF86D3178`; its route-source summary now includes `B8_BADMINTON_TASK_V1=0`, with existing program coverage and route counts unchanged.
 - C25 implementation/test commit `7c5d80bb9f7d849097cfe2cdd86903928d12106c` is the `lastAuditedCommit`. The final Hosted CI result is recorded with the C25 PR and completion report.
+
+### Phase C26 — B6-to-EXP materialization and B7 provenance consistency (protocol 3.61.0)
+
+- C25's 22 B6-denied Quality owner-week rows were actual scheduled `ProgramSkeletonItem`s and added material deltas, not diagnostic-only candidates. Their exact identities do not intersect the separate 22 `UNEXPLAINED_ADDED_IDENTITY` attributions.
+- C26 carries exact B5-selected Quality owner identities through the authorization provider and filters denied owners before allocation. Frequency expansion independently blocks generic re-prescription of a denied exact Quality owner. Authorized exact prescriptions, compatible incumbent preservation, and the existing explicit multi-quality conflict behavior remain available; C21's Power identity guard remains in the union and Power stays closed.
+- B7 checks actual CONTROL/EXPERIMENTAL row signatures and fails integrity if a denied Quality owner-week is newly added or its executable prescription changes. Placement/order-only movement and unchanged compatible material are not relabeled as dose changes.
+- B7/C10 replacement attribution now recognizes an exact C24 Task replacement only when stableKey and selectionRole, approved protocol, primary task, DIRECT relations, `USER_APPROVED_PROJECT_POLICY`, lossless materialization, and full per-week frequency/placement match. Replacement labels alone do not authorize the seven remaining Quality replacements.
+- The C26 22-row census reports 22 actual executable rows before and 0 afterward; B7's unexplained-added identity intersection is 0; both `persona3_recent` Task replacements close. Routes remain CONTROL 19 / Strength V1 1 / Strength Calibration 2 / Hypertrophy 0 / Combined 0. B7 counts are provenance 11 / affected-unmet 0 / regressed 1 / collateral regression 0. Power and JUMP_LANDING material remain zero; C20 remains 12 HARD_VALID / 0 HARD_INVALID / 20 UNRESOLVED; build accounting remains 1 CONTROL + 1 EXPERIMENTAL, no third build.
+- No Room, backup, restore, Community, or Cloud schema changed. Protocol/runtime/app are `3.61.0` / `RECORD_BASED_PLANNER_0.15.3_KOTLIN_1` / `0.5.1.5`.
+- C26 audit and exact row census: [`docs/c26_b6_exp_b7_consistency_hardening_audit.md`](../../c26_b6_exp_b7_consistency_hardening_audit.md) and [`docs/c26-b6-exp-b7-consistency-census.json`](../../c26-b6-exp-b7-consistency-census.json). C26 implementation/test commit `b5d4550c4f4f44b52d89128fa9e70d16cce77a9b` is the `lastAuditedCommit`; Hosted run [37453833659](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/37453833659) passed 2,313 tests, coverage, APK assembly, signer validation, and upload.

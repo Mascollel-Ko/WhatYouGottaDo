@@ -206,6 +206,36 @@ class FrequencyExpansionPlannerTest {
         assertNull(frequencyPortion(snapshot(), f.state(snapshot()), candidate.copy(fundedBaseUnits = 3), 5,
             PersonalizedPrescriptionPlanner(), provider))
     }
+
+    @Test fun rejectedB5QualityOwnerCannotReenterThroughGenericFrequencyPrescription() {
+        val item = f.source("press", 3)
+        val owner = StimulusPrescriptionOwnerIdentity(item.stableKey, item.role)
+        val candidate = CapacityCandidateTrace(4, item, f.rx(3), 0, true, CandidateRejectionReason.FINITE_CAPACITY)
+        val rejected = object : ExactPrescriptionAuthorizationProvider {
+            override fun authorizedPrescriptionFor(item: PlannedExercise, requestedSets: Int): PlannedPrescription? = null
+            override val b5SelectedQualityOwners = setOf(owner)
+            override val ownerExecutionDispositions = mapOf(
+                owner to StimulusPrescriptionOwnerExecutionDisposition.NO_EXECUTABLE_AUTHORITY
+            )
+        }
+        assertNull(frequencyPortion(snapshot(), f.state(snapshot()), candidate, 3,
+            PersonalizedPrescriptionPlanner(), rejected))
+
+        val executable = object : ExactPrescriptionAuthorizationProvider {
+            override val b5SelectedQualityOwners = setOf(owner)
+            override val ownerExecutionDispositions = mapOf(
+                owner to StimulusPrescriptionOwnerExecutionDisposition.EXECUTABLE_EXACT_AUTHORITY
+            )
+            override val authorizedOwners = mapOf(owner to f.rx(3))
+            override fun authorizedPrescriptionFor(item: PlannedExercise, requestedSets: Int): PlannedPrescription? {
+                val prescription = authorizedOwners[owner] ?: return null
+                if (requestedSets > prescription.sets.size) return null
+                return prescription.copy(sets = prescription.sets.take(requestedSets))
+            }
+        }
+        assertEquals(3, frequencyPortion(snapshot(), f.state(snapshot()), candidate, 3,
+            PersonalizedPrescriptionPlanner(), executable)?.sets?.size)
+    }
     @Test fun identicalPartialUnitsKeepExplicitParentRatherThanTakingBaseIdentityByDayOrder() {
         val source = f.source("press", 2)
         val base = AuthorizedSchedulingDemand("base", source, f.rx(2), true)

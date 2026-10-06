@@ -92,7 +92,19 @@ private val B6_INTEGRITY_REASON_CODES = setOf(
     "B6_UNAUTHORIZED_SET_IDENTITY",
     "B6_PRESCRIPTION_AUTHORITY_MISMATCH",
     "B6_PRESCRIPTION_NOT_PRESERVED",
-    "B6_PRESCRIPTION_MUTATION"
+    "B6_PRESCRIPTION_MUTATION",
+    "B6_REJECTED_QUALITY_OWNER_WEEK_MATERIALIZED"
+)
+
+private data class QualityPrescriptionSignature(
+    val prescription: String,
+    val setCount: Int,
+    val reps: Int,
+    val weightKg: Double,
+    val seconds: Int,
+    val restSeconds: Int,
+    val weightSource: String,
+    val setPrescriptions: List<com.training.trackplanner.data.ProgramSetPrescription>
 )
 
 /**
@@ -187,6 +199,7 @@ class StimulusExperimentalReadinessAuditEngine {
         comparison: StimulusSelectionProgramComparison
     ): LinkedHashSet<String> {
         val integrityReasons = linkedSetOf<String>()
+        integrityReasons += rejectedQualityMaterializationReasons(comparison)
         comparison.prescriptionMaterializationAudits.forEach { audit ->
             if (audit.state == StimulusPrescriptionMaterializationState.INVARIANT_FAILURE) {
                 integrityReasons += "B6_MATERIALIZATION_INVARIANT_FAILURE"
@@ -242,6 +255,60 @@ class StimulusExperimentalReadinessAuditEngine {
             }
         }
         return integrityReasons
+    }
+
+    /**
+     * A B5-selected Quality owner with a rejected B6 may remain unchanged in EXP, including a
+     * placement/order-only move. It may not add an owner-week or change its executable prescription.
+     * This is a B7 integrity alarm; the builder boundary must already have prevented the material.
+     */
+    private fun rejectedQualityMaterializationReasons(
+        comparison: StimulusSelectionProgramComparison
+    ): Set<String> {
+        val executableStatuses = setOf(
+            StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+            StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
+            StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
+        )
+        val before = comparison.control.items.groupBy {
+            StimulusPrescriptionOwnerIdentity(it.exerciseStableKey, it.selectionRole) to it.weekNumber
+        }
+        val after = comparison.experimental.items.groupBy {
+            StimulusPrescriptionOwnerIdentity(it.exerciseStableKey, it.selectionRole) to it.weekNumber
+        }
+        val reasons = linkedSetOf<String>()
+        comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().forEach { authorization ->
+            val owner = authorization.owner ?: return@forEach
+            if (authorization.quality == null || authorization.authorizedPrescription != null && authorization.status in executableStatuses) {
+                return@forEach
+            }
+            val identity = StimulusPrescriptionOwnerIdentity(owner.stableKey, owner.selectionRole)
+            val weeks = (before.keys + after.keys).asSequence()
+                .filter { it.first == identity }
+                .map { it.second }
+                .distinct()
+            weeks.forEach weekLoop@ { week ->
+                val beforeRows = before[identity to week].orEmpty()
+                val afterRows = after[identity to week].orEmpty()
+                if (afterRows.isEmpty()) return@weekLoop
+                fun signatures(rows: List<ProgramSkeletonItem>) = rows.map { row ->
+                    QualityPrescriptionSignature(
+                        prescription = row.prescription,
+                        setCount = row.setCount,
+                        reps = row.reps,
+                        weightKg = row.weightKg,
+                        seconds = row.seconds,
+                        restSeconds = row.restSeconds,
+                        weightSource = row.weightSource,
+                        setPrescriptions = row.setPrescriptions
+                    )
+                }.sortedBy { it.toString() }
+                if (beforeRows.isEmpty() || signatures(beforeRows) != signatures(afterRows)) {
+                    reasons += "B6_REJECTED_QUALITY_OWNER_WEEK_MATERIALIZED"
+                }
+            }
+        }
+        return reasons
     }
 
     private fun noMaterialChange(comparison: StimulusSelectionProgramComparison): Boolean =
@@ -342,9 +409,18 @@ class StimulusExperimentalReadinessAuditEngine {
                     StimulusExperimentalChangeAttribution(identity.stableKey, identity.selectionRole,
                         StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY,
                         canonicalReplacementTargets,
-                        listOf("B5_CANONICAL_OWNER_REPLACED_CONTROL_ROLE"),
-                        listOf("EXACT_B5_CANONICAL_REPLACEMENT_OWNER", "EXACT_B6_AUTHORIZATION_FOR_REPLACEMENT",
-                            "EXACT_OWNER_QUALITY_TARGET_AUTHORITY", "EXPERIMENTAL_AUTHORIZED_WEEKLY_SUBSET"))
+                        listOf("B5_CANONICAL_OWNER_REPLACED_CONTROL_ROLE") +
+                            if (canonicalReplacementTargets.any { it.startsWith("TASK:") }) {
+                                listOf("B6_APPROVED_TASK_PROTOCOL_REPLACEMENT", "TASK_CREDIT_NON_ADDITIVE")
+                            } else emptyList(),
+                        listOf("EXACT_B5_CANONICAL_REPLACEMENT_OWNER") +
+                            if (canonicalReplacementTargets.any { it.startsWith("TASK:") }) {
+                                listOf("EXACT_TASK_B6_AUTHORIZATION", "DIRECT_CANONICAL_TASK_RELATION",
+                                    "USER_APPROVED_PROJECT_POLICY", "LOSSLESS_TASK_MATERIALIZATION", "TASK_PROTOCOL_FREQUENCY_SATISFIED")
+                            } else {
+                                listOf("EXACT_B6_AUTHORIZATION_FOR_REPLACEMENT", "EXACT_OWNER_QUALITY_TARGET_AUTHORITY",
+                                    "EXPERIMENTAL_AUTHORIZED_WEEKLY_SUBSET")
+                            })
                 evidence.governedExperimentalChangeExists &&
                     evidence.removedOwnerHasCapacityOrPlacementEvidence &&
                     evidence.removedOwnerHasDisappearanceEvidence &&
@@ -566,12 +642,67 @@ class StimulusExperimentalReadinessAuditEngine {
             }
             .map { it.targetId }
             .toSet()
-        return exactExecutableChangeAuthorizations(comparison, owner, replacement)
+        val qualityTargets = exactExecutableChangeAuthorizations(comparison, owner, replacement)
             .filter {
-                it.targetId in exactB5Targets &&
+                it.targetId.startsWith("QUALITY:") && it.targetId in exactB5Targets &&
                     replacement.selectionRole == "CANONICAL_STIMULUS_${it.targetId.replace(':', '_')}"
             }
-            .map { it.targetId }.distinct().sorted()
+            .map { it.targetId }
+        val taskTargets = exactTaskReplacementTargetIds(comparison, removed, replacement, exactB5Targets)
+        return (qualityTargets + taskTargets).distinct().sorted()
+    }
+
+    /** Task role replacement has its own exact C24 B6 proof; Quality B6 rows cannot stand in for it. */
+    private fun exactTaskReplacementTargetIds(
+        comparison: StimulusSelectionProgramComparison,
+        removed: StimulusPrescriptionOwnerIdentity,
+        replacement: StimulusSelectedCandidate,
+        exactB5Targets: Set<String>
+    ): List<String> {
+        val primaryTargetId = replacement.primaryTargetId
+        if (!primaryTargetId.startsWith("TASK:") || primaryTargetId !in exactB5Targets ||
+            replacement.selectionRole != "CANONICAL_STIMULUS_${primaryTargetId.replace(':', '_')}" ||
+            primaryTargetId !in replacement.coveredTargetIds) return emptyList()
+        val task = runCatching { CanonicalTaskTarget.valueOf(primaryTargetId.removePrefix("TASK:")) }.getOrNull()
+            ?: return emptyList()
+        if (comparison.targetPlan.taskTargets.none { it.task == task.name }) return emptyList()
+        val identity = StimulusPrescriptionOwnerIdentity(replacement.stableKey, replacement.selectionRole)
+        val metadata = exactTaskProtocolAttributions(comparison, identity, replacement)
+        if (metadata.isEmpty()) return emptyList()
+        val authorization = metadata.first().authorization
+        val definition = authorization.definition
+        if (removed.stableKey != identity.stableKey ||
+            ApprovedBadmintonTaskProtocols.exact(identity.stableKey, identity.selectionRole, task) != definition ||
+            definition.primaryTask != task || authorization.status != TaskProtocolB6Status.AUTHORIZED_APPROVED_TASK_PROTOCOL ||
+            authorization.definition.provenance != TaskProtocolPolicyProvenance.USER_APPROVED_PROJECT_POLICY ||
+            authorization.attributedTasks != definition.authorizedTasks ||
+            authorization.transferEvidence.keys != definition.authorizedTasks ||
+            task !in authorization.attributedTasks ||
+            authorization.transferEvidence[task] != com.training.trackplanner.analysis.badminton.BadmintonObjectiveTransferLevel.DIRECT
+        ) return emptyList()
+
+        val weeks = (1..comparison.experimental.request.durationWeeks.coerceAtLeast(1)).toSet()
+        val ownerRows = comparison.experimental.items.filter {
+            it.exerciseStableKey == identity.stableKey && it.selectionRole == identity.selectionRole
+        }
+        if (ownerRows.map { it.weekNumber }.toSet() != weeks) return emptyList()
+        val byWeek = ownerRows.groupBy { it.weekNumber }
+        if (weeks.any { week ->
+                val weekRows = byWeek[week].orEmpty()
+                val indices = metadata.indices.filter { ownerRows[it].weekNumber == week }.map { metadata[it].exposureIndex }
+                weekRows.size != definition.weeklyExposures || indices.sorted() != (1..definition.weeklyExposures).toList() ||
+                    weekRows.map { it.dayOfWeek }.distinct().size != definition.weeklyExposures
+            }) return emptyList()
+        val frequency = comparison.experimental.taskProtocolFrequencyOutcomes.filter {
+            it.stableKey == identity.stableKey && it.selectionRole == identity.selectionRole && it.protocolId == definition.protocolId
+        }
+        if (frequency.size != weeks.size || frequency.map { it.week }.toSet() != weeks || frequency.any {
+                it.status != TaskProtocolFrequencyStatus.SATISFIED ||
+                    it.authority != TaskProtocolPolicyProvenance.USER_APPROVED_PROJECT_POLICY ||
+                    it.requestedExposures != definition.weeklyExposures ||
+                    it.placedExposures != definition.weeklyExposures || it.shortfall != 0
+            }) return emptyList()
+        return listOf(primaryTargetId)
     }
 
     /** Keep owner, quality and target joined until the exact experimental rows prove the prescription. */
