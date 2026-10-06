@@ -3,7 +3,9 @@
   "title": "B6-to-EXP Materialization and B7 Provenance Consistency Hardening",
   "baseline": {
     "c25MainSha": "89b454db30444a313afd58f147b6e9378594f27c",
-    "c25AuditCensus": "docs/next-phase-bottleneck-census.json"
+    "c25AuditCensus": "docs/next-phase-bottleneck-census.json",
+    "c26StartSha": "6a3f38320d2ded8c7220a9ea72ec613594017868",
+    "implementationTestSha": "b5d4550c4f4f44b52d89128fa9e70d16cce77a9b"
   },
   "method": {
     "before": "Frozen C25 corpus census with exact B6-denied owner/week rows and actual ProgramSkeletonItem material deltas.",
@@ -8027,7 +8029,363 @@
       ],
       "replacementAuthorization": "EXACT_C24_TASK_B6_USER_APPROVED_PROJECT_POLICY",
       "closed": true,
-      "approvedProtocolId": "BADMINTON_SIX_CORNER_FOOTWORK_V1"
+      "approvedProtocolId": "BADMINTON_SIX_CORNER_FOOTWORK_V1",
+      "exactTaskB6AndMaterializedRows": [
+        {
+          "stableKey": "ex_33841b88",
+          "selectionRole": "CANONICAL_STIMULUS_TASK_ACCELERATION",
+          "week": 1,
+          "day": 3,
+          "order": 2,
+          "sets": 3,
+          "reps": 0,
+          "seconds": 20,
+          "weightKg": 0,
+          "restSeconds": 60,
+          "weightSource": "USER_APPROVED_PROJECT_POLICY",
+          "prescription": "3 라운드 × 10–20초 · 휴식 60초",
+          "setPrescriptions": [
+            {
+              "set": 1,
+              "reps": 0,
+              "seconds": 20,
+              "weightKg": 0,
+              "rpe": null,
+              "loadState": "NOT_APPLICABLE"
+            },
+            {
+              "set": 2,
+              "reps": 0,
+              "seconds": 20,
+              "weightKg": 0,
+              "rpe": null,
+              "loadState": "NOT_APPLICABLE"
+            },
+            {
+              "set": 3,
+              "reps": 0,
+              "seconds": 20,
+              "weightKg": 0,
+              "rpe": null,
+              "loadState": "NOT_APPLICABLE"
+            }
+          ],
+          "taskProtocol": {
+            "schemaVersion": 1,
+            "status": "AUTHORIZED_APPROVED_TASK_PROTOCOL",
+            "activitySemantics": "DRILL",
+            "materializationActivityKind": "STRUCTURED_BADMINTON_DRILL",
+            "protocolId": "BADMINTON_SIX_CORNER_FOOTWORK_V1",
+            "policyVersion": "C24_USER_APPROVED_BADMINTON_TASK_POLICY_V1",
+            "policyProvenance": "USER_APPROVED_PROJECT_POLICY",
+            "stableKey": "ex_33841b88",
+            "selectionRole": "CANONICAL_STIMULUS_TASK_ACCELERATION",
+            "primaryTask": "ACCELERATION",
+            "authorizedTasks": [
+              "ACCELERATION",
+              "DECELERATION",
+              "FOOTWORK",
+              "REACTION"
+            ],
+            "transferEvidence": {
+              "ACCELERATION": "DIRECT",
+              "DECELERATION": "DIRECT",
+              "FOOTWORK": "DIRECT",
+              "REACTION": "DIRECT"
+            },
+            "weeklyExposures": 2,
+            "creditSemantics": "NON_ADDITIVE",
+            "exposureIndex": 1,
+            "shape": {
+              "mode": "DURATION_RANGE_SECONDS",
+              "setCount": 3,
+              "reps": null,
+              "minReps": null,
+              "maxReps": null,
+              "seconds": null,
+              "minSeconds": 10,
+              "maxSeconds": 20,
+              "laterality": "NOT_APPLICABLE",
+              "restSeconds": 60,
+              "loadMode": "NO_EXTERNAL_LOAD",
+              "activityKind": null,
+              "targetRpe": null
+            }
+          }
+        },
+        {
+          "stableKey": "ex_33841b88",
+          "selectionRole": "CANONICAL_STIMULUS_TASK_ACCELERATION",
+          "week": 1,
+          "day": 5,
+          "order": 3,
+          "sets": 3,
+          "reps": 0,
+          "seconds": 20,
+          "weightKg": 0,
+          "restSeconds": 60,
+          "weightSource": "USER_APPROVED_PROJECT_POLICY",
+          "prescription": "3 라운드 × 10–20초 · 휴식 60초",
+          "setPrescriptions": [
+            {
+              "set": 1,
+              "reps": 0,
+              "seconds": 20,
+              "weightKg": 0,
+              "rpe": null,
+              "loadState": "NOT_APPLICABLE"
+            },
+            {
+              "set": 2,
+              "reps": 0,
+              "seconds": 20,
+              "weightKg": 0,
+              "rpe": null,
+              "loadState": "NOT_APPLICABLE"
+            },
+            {
+              "set": 3,
+              "reps": 0,
+              "seconds": 20,
+              "weightKg": 0,
+              "rpe": null,
+              "loadState": "NOT_APPLICABLE"
+            }
+          ],
+          "taskProtocol": {
+            "schemaVersion": 1,
+            "status": "AUTHORIZED_APPROVED_TASK_PROTOCOL",
+            "activitySemantics": "DRILL",
+            "materializationActivityKind": "STRUCTURED_BADMINTON_DRILL",
+            "protocolId": "BADMINTON_SIX_CORNER_FOOTWORK_V1",
+            "policyVersion": "C24_USER_APPROVED_BADMINTON_TASK_POLICY_V1",
+            "policyProvenance": "USER_APPROVED_PROJECT_POLICY",
+            "stableKey": "ex_33841b88",
+            "selectionRole": "CANONICAL_STIMULUS_TASK_ACCELERATION",
+            "primaryTask": "ACCELERATION",
+            "authorizedTasks": [
+              "ACCELERATION",
+              "DECELERATION",
+              "FOOTWORK",
+              "REACTION"
+            ],
+            "transferEvidence": {
+              "ACCELERATION": "DIRECT",
+              "DECELERATION": "DIRECT",
+              "FOOTWORK": "DIRECT",
+              "REACTION": "DIRECT"
+            },
+            "weeklyExposures": 2,
+            "creditSemantics": "NON_ADDITIVE",
+            "exposureIndex": 2,
+            "shape": {
+              "mode": "DURATION_RANGE_SECONDS",
+              "setCount": 3,
+              "reps": null,
+              "minReps": null,
+              "maxReps": null,
+              "seconds": null,
+              "minSeconds": 10,
+              "maxSeconds": 20,
+              "laterality": "NOT_APPLICABLE",
+              "restSeconds": 60,
+              "loadMode": "NO_EXTERNAL_LOAD",
+              "activityKind": null,
+              "targetRpe": null
+            }
+          }
+        },
+        {
+          "stableKey": "ex_33841b88",
+          "selectionRole": "CANONICAL_STIMULUS_TASK_ACCELERATION",
+          "week": 2,
+          "day": 3,
+          "order": 2,
+          "sets": 3,
+          "reps": 0,
+          "seconds": 20,
+          "weightKg": 0,
+          "restSeconds": 60,
+          "weightSource": "USER_APPROVED_PROJECT_POLICY",
+          "prescription": "3 라운드 × 10–20초 · 휴식 60초",
+          "setPrescriptions": [
+            {
+              "set": 1,
+              "reps": 0,
+              "seconds": 20,
+              "weightKg": 0,
+              "rpe": null,
+              "loadState": "NOT_APPLICABLE"
+            },
+            {
+              "set": 2,
+              "reps": 0,
+              "seconds": 20,
+              "weightKg": 0,
+              "rpe": null,
+              "loadState": "NOT_APPLICABLE"
+            },
+            {
+              "set": 3,
+              "reps": 0,
+              "seconds": 20,
+              "weightKg": 0,
+              "rpe": null,
+              "loadState": "NOT_APPLICABLE"
+            }
+          ],
+          "taskProtocol": {
+            "schemaVersion": 1,
+            "status": "AUTHORIZED_APPROVED_TASK_PROTOCOL",
+            "activitySemantics": "DRILL",
+            "materializationActivityKind": "STRUCTURED_BADMINTON_DRILL",
+            "protocolId": "BADMINTON_SIX_CORNER_FOOTWORK_V1",
+            "policyVersion": "C24_USER_APPROVED_BADMINTON_TASK_POLICY_V1",
+            "policyProvenance": "USER_APPROVED_PROJECT_POLICY",
+            "stableKey": "ex_33841b88",
+            "selectionRole": "CANONICAL_STIMULUS_TASK_ACCELERATION",
+            "primaryTask": "ACCELERATION",
+            "authorizedTasks": [
+              "ACCELERATION",
+              "DECELERATION",
+              "FOOTWORK",
+              "REACTION"
+            ],
+            "transferEvidence": {
+              "ACCELERATION": "DIRECT",
+              "DECELERATION": "DIRECT",
+              "FOOTWORK": "DIRECT",
+              "REACTION": "DIRECT"
+            },
+            "weeklyExposures": 2,
+            "creditSemantics": "NON_ADDITIVE",
+            "exposureIndex": 1,
+            "shape": {
+              "mode": "DURATION_RANGE_SECONDS",
+              "setCount": 3,
+              "reps": null,
+              "minReps": null,
+              "maxReps": null,
+              "seconds": null,
+              "minSeconds": 10,
+              "maxSeconds": 20,
+              "laterality": "NOT_APPLICABLE",
+              "restSeconds": 60,
+              "loadMode": "NO_EXTERNAL_LOAD",
+              "activityKind": null,
+              "targetRpe": null
+            }
+          }
+        },
+        {
+          "stableKey": "ex_33841b88",
+          "selectionRole": "CANONICAL_STIMULUS_TASK_ACCELERATION",
+          "week": 2,
+          "day": 5,
+          "order": 3,
+          "sets": 3,
+          "reps": 0,
+          "seconds": 20,
+          "weightKg": 0,
+          "restSeconds": 60,
+          "weightSource": "USER_APPROVED_PROJECT_POLICY",
+          "prescription": "3 라운드 × 10–20초 · 휴식 60초",
+          "setPrescriptions": [
+            {
+              "set": 1,
+              "reps": 0,
+              "seconds": 20,
+              "weightKg": 0,
+              "rpe": null,
+              "loadState": "NOT_APPLICABLE"
+            },
+            {
+              "set": 2,
+              "reps": 0,
+              "seconds": 20,
+              "weightKg": 0,
+              "rpe": null,
+              "loadState": "NOT_APPLICABLE"
+            },
+            {
+              "set": 3,
+              "reps": 0,
+              "seconds": 20,
+              "weightKg": 0,
+              "rpe": null,
+              "loadState": "NOT_APPLICABLE"
+            }
+          ],
+          "taskProtocol": {
+            "schemaVersion": 1,
+            "status": "AUTHORIZED_APPROVED_TASK_PROTOCOL",
+            "activitySemantics": "DRILL",
+            "materializationActivityKind": "STRUCTURED_BADMINTON_DRILL",
+            "protocolId": "BADMINTON_SIX_CORNER_FOOTWORK_V1",
+            "policyVersion": "C24_USER_APPROVED_BADMINTON_TASK_POLICY_V1",
+            "policyProvenance": "USER_APPROVED_PROJECT_POLICY",
+            "stableKey": "ex_33841b88",
+            "selectionRole": "CANONICAL_STIMULUS_TASK_ACCELERATION",
+            "primaryTask": "ACCELERATION",
+            "authorizedTasks": [
+              "ACCELERATION",
+              "DECELERATION",
+              "FOOTWORK",
+              "REACTION"
+            ],
+            "transferEvidence": {
+              "ACCELERATION": "DIRECT",
+              "DECELERATION": "DIRECT",
+              "FOOTWORK": "DIRECT",
+              "REACTION": "DIRECT"
+            },
+            "weeklyExposures": 2,
+            "creditSemantics": "NON_ADDITIVE",
+            "exposureIndex": 2,
+            "shape": {
+              "mode": "DURATION_RANGE_SECONDS",
+              "setCount": 3,
+              "reps": null,
+              "minReps": null,
+              "maxReps": null,
+              "seconds": null,
+              "minSeconds": 10,
+              "maxSeconds": 20,
+              "laterality": "NOT_APPLICABLE",
+              "restSeconds": 60,
+              "loadMode": "NO_EXTERNAL_LOAD",
+              "activityKind": null,
+              "targetRpe": null
+            }
+          }
+        }
+      ],
+      "protocolFrequencyOutcomes": [
+        {
+          "protocolId": "BADMINTON_SIX_CORNER_FOOTWORK_V1",
+          "stableKey": "ex_33841b88",
+          "selectionRole": "CANONICAL_STIMULUS_TASK_ACCELERATION",
+          "week": 1,
+          "requested": 2,
+          "placed": 2,
+          "shortfall": 0,
+          "status": "SATISFIED",
+          "authority": "USER_APPROVED_PROJECT_POLICY",
+          "reason": "APPROVED_PROTOCOL_FREQUENCY_PLACED"
+        },
+        {
+          "protocolId": "BADMINTON_SIX_CORNER_FOOTWORK_V1",
+          "stableKey": "ex_33841b88",
+          "selectionRole": "CANONICAL_STIMULUS_TASK_ACCELERATION",
+          "week": 2,
+          "requested": 2,
+          "placed": 2,
+          "shortfall": 0,
+          "status": "SATISFIED",
+          "authority": "USER_APPROVED_PROJECT_POLICY",
+          "reason": "APPROVED_PROTOCOL_FREQUENCY_PLACED"
+        }
+      ]
     },
     {
       "case": "persona3_recent",
@@ -8064,7 +8422,347 @@
       ],
       "replacementAuthorization": "EXACT_C24_TASK_B6_USER_APPROVED_PROJECT_POLICY",
       "closed": true,
-      "approvedProtocolId": "BADMINTON_LATERAL_SHUTTLE_LUNGE_V1"
+      "approvedProtocolId": "BADMINTON_LATERAL_SHUTTLE_LUNGE_V1",
+      "exactTaskB6AndMaterializedRows": [
+        {
+          "stableKey": "ex_421ba24b",
+          "selectionRole": "CANONICAL_STIMULUS_TASK_LUNGE_REACH",
+          "week": 1,
+          "day": 1,
+          "order": 3,
+          "sets": 3,
+          "reps": 5,
+          "seconds": 0,
+          "weightKg": 0,
+          "restSeconds": 75,
+          "weightSource": "USER_APPROVED_PROJECT_POLICY",
+          "prescription": "3 세트 × 5회/side · 휴식 75초",
+          "setPrescriptions": [
+            {
+              "set": 1,
+              "reps": 5,
+              "seconds": 0,
+              "weightKg": 0,
+              "rpe": null,
+              "loadState": "NOT_APPLICABLE"
+            },
+            {
+              "set": 2,
+              "reps": 5,
+              "seconds": 0,
+              "weightKg": 0,
+              "rpe": null,
+              "loadState": "NOT_APPLICABLE"
+            },
+            {
+              "set": 3,
+              "reps": 5,
+              "seconds": 0,
+              "weightKg": 0,
+              "rpe": null,
+              "loadState": "NOT_APPLICABLE"
+            }
+          ],
+          "taskProtocol": {
+            "schemaVersion": 1,
+            "status": "AUTHORIZED_APPROVED_TASK_PROTOCOL",
+            "activitySemantics": "DRILL",
+            "materializationActivityKind": "STRUCTURED_BADMINTON_DRILL",
+            "protocolId": "BADMINTON_LATERAL_SHUTTLE_LUNGE_V1",
+            "policyVersion": "C24_USER_APPROVED_BADMINTON_TASK_POLICY_V1",
+            "policyProvenance": "USER_APPROVED_PROJECT_POLICY",
+            "stableKey": "ex_421ba24b",
+            "selectionRole": "CANONICAL_STIMULUS_TASK_LUNGE_REACH",
+            "primaryTask": "LUNGE_REACH",
+            "authorizedTasks": [
+              "DECELERATION",
+              "LUNGE_REACH"
+            ],
+            "transferEvidence": {
+              "DECELERATION": "DIRECT",
+              "LUNGE_REACH": "DIRECT"
+            },
+            "weeklyExposures": 2,
+            "creditSemantics": "NON_ADDITIVE",
+            "exposureIndex": 2,
+            "shape": {
+              "mode": "REPETITIONS_PER_SIDE",
+              "setCount": 3,
+              "reps": 5,
+              "minReps": null,
+              "maxReps": null,
+              "seconds": null,
+              "minSeconds": null,
+              "maxSeconds": null,
+              "laterality": "PER_SIDE",
+              "restSeconds": 75,
+              "loadMode": "NO_EXTERNAL_LOAD",
+              "activityKind": null,
+              "targetRpe": null
+            }
+          }
+        },
+        {
+          "stableKey": "ex_421ba24b",
+          "selectionRole": "CANONICAL_STIMULUS_TASK_LUNGE_REACH",
+          "week": 1,
+          "day": 5,
+          "order": 2,
+          "sets": 3,
+          "reps": 5,
+          "seconds": 0,
+          "weightKg": 0,
+          "restSeconds": 75,
+          "weightSource": "USER_APPROVED_PROJECT_POLICY",
+          "prescription": "3 세트 × 5회/side · 휴식 75초",
+          "setPrescriptions": [
+            {
+              "set": 1,
+              "reps": 5,
+              "seconds": 0,
+              "weightKg": 0,
+              "rpe": null,
+              "loadState": "NOT_APPLICABLE"
+            },
+            {
+              "set": 2,
+              "reps": 5,
+              "seconds": 0,
+              "weightKg": 0,
+              "rpe": null,
+              "loadState": "NOT_APPLICABLE"
+            },
+            {
+              "set": 3,
+              "reps": 5,
+              "seconds": 0,
+              "weightKg": 0,
+              "rpe": null,
+              "loadState": "NOT_APPLICABLE"
+            }
+          ],
+          "taskProtocol": {
+            "schemaVersion": 1,
+            "status": "AUTHORIZED_APPROVED_TASK_PROTOCOL",
+            "activitySemantics": "DRILL",
+            "materializationActivityKind": "STRUCTURED_BADMINTON_DRILL",
+            "protocolId": "BADMINTON_LATERAL_SHUTTLE_LUNGE_V1",
+            "policyVersion": "C24_USER_APPROVED_BADMINTON_TASK_POLICY_V1",
+            "policyProvenance": "USER_APPROVED_PROJECT_POLICY",
+            "stableKey": "ex_421ba24b",
+            "selectionRole": "CANONICAL_STIMULUS_TASK_LUNGE_REACH",
+            "primaryTask": "LUNGE_REACH",
+            "authorizedTasks": [
+              "DECELERATION",
+              "LUNGE_REACH"
+            ],
+            "transferEvidence": {
+              "DECELERATION": "DIRECT",
+              "LUNGE_REACH": "DIRECT"
+            },
+            "weeklyExposures": 2,
+            "creditSemantics": "NON_ADDITIVE",
+            "exposureIndex": 1,
+            "shape": {
+              "mode": "REPETITIONS_PER_SIDE",
+              "setCount": 3,
+              "reps": 5,
+              "minReps": null,
+              "maxReps": null,
+              "seconds": null,
+              "minSeconds": null,
+              "maxSeconds": null,
+              "laterality": "PER_SIDE",
+              "restSeconds": 75,
+              "loadMode": "NO_EXTERNAL_LOAD",
+              "activityKind": null,
+              "targetRpe": null
+            }
+          }
+        },
+        {
+          "stableKey": "ex_421ba24b",
+          "selectionRole": "CANONICAL_STIMULUS_TASK_LUNGE_REACH",
+          "week": 2,
+          "day": 1,
+          "order": 3,
+          "sets": 3,
+          "reps": 5,
+          "seconds": 0,
+          "weightKg": 0,
+          "restSeconds": 75,
+          "weightSource": "USER_APPROVED_PROJECT_POLICY",
+          "prescription": "3 세트 × 5회/side · 휴식 75초",
+          "setPrescriptions": [
+            {
+              "set": 1,
+              "reps": 5,
+              "seconds": 0,
+              "weightKg": 0,
+              "rpe": null,
+              "loadState": "NOT_APPLICABLE"
+            },
+            {
+              "set": 2,
+              "reps": 5,
+              "seconds": 0,
+              "weightKg": 0,
+              "rpe": null,
+              "loadState": "NOT_APPLICABLE"
+            },
+            {
+              "set": 3,
+              "reps": 5,
+              "seconds": 0,
+              "weightKg": 0,
+              "rpe": null,
+              "loadState": "NOT_APPLICABLE"
+            }
+          ],
+          "taskProtocol": {
+            "schemaVersion": 1,
+            "status": "AUTHORIZED_APPROVED_TASK_PROTOCOL",
+            "activitySemantics": "DRILL",
+            "materializationActivityKind": "STRUCTURED_BADMINTON_DRILL",
+            "protocolId": "BADMINTON_LATERAL_SHUTTLE_LUNGE_V1",
+            "policyVersion": "C24_USER_APPROVED_BADMINTON_TASK_POLICY_V1",
+            "policyProvenance": "USER_APPROVED_PROJECT_POLICY",
+            "stableKey": "ex_421ba24b",
+            "selectionRole": "CANONICAL_STIMULUS_TASK_LUNGE_REACH",
+            "primaryTask": "LUNGE_REACH",
+            "authorizedTasks": [
+              "DECELERATION",
+              "LUNGE_REACH"
+            ],
+            "transferEvidence": {
+              "DECELERATION": "DIRECT",
+              "LUNGE_REACH": "DIRECT"
+            },
+            "weeklyExposures": 2,
+            "creditSemantics": "NON_ADDITIVE",
+            "exposureIndex": 2,
+            "shape": {
+              "mode": "REPETITIONS_PER_SIDE",
+              "setCount": 3,
+              "reps": 5,
+              "minReps": null,
+              "maxReps": null,
+              "seconds": null,
+              "minSeconds": null,
+              "maxSeconds": null,
+              "laterality": "PER_SIDE",
+              "restSeconds": 75,
+              "loadMode": "NO_EXTERNAL_LOAD",
+              "activityKind": null,
+              "targetRpe": null
+            }
+          }
+        },
+        {
+          "stableKey": "ex_421ba24b",
+          "selectionRole": "CANONICAL_STIMULUS_TASK_LUNGE_REACH",
+          "week": 2,
+          "day": 5,
+          "order": 2,
+          "sets": 3,
+          "reps": 5,
+          "seconds": 0,
+          "weightKg": 0,
+          "restSeconds": 75,
+          "weightSource": "USER_APPROVED_PROJECT_POLICY",
+          "prescription": "3 세트 × 5회/side · 휴식 75초",
+          "setPrescriptions": [
+            {
+              "set": 1,
+              "reps": 5,
+              "seconds": 0,
+              "weightKg": 0,
+              "rpe": null,
+              "loadState": "NOT_APPLICABLE"
+            },
+            {
+              "set": 2,
+              "reps": 5,
+              "seconds": 0,
+              "weightKg": 0,
+              "rpe": null,
+              "loadState": "NOT_APPLICABLE"
+            },
+            {
+              "set": 3,
+              "reps": 5,
+              "seconds": 0,
+              "weightKg": 0,
+              "rpe": null,
+              "loadState": "NOT_APPLICABLE"
+            }
+          ],
+          "taskProtocol": {
+            "schemaVersion": 1,
+            "status": "AUTHORIZED_APPROVED_TASK_PROTOCOL",
+            "activitySemantics": "DRILL",
+            "materializationActivityKind": "STRUCTURED_BADMINTON_DRILL",
+            "protocolId": "BADMINTON_LATERAL_SHUTTLE_LUNGE_V1",
+            "policyVersion": "C24_USER_APPROVED_BADMINTON_TASK_POLICY_V1",
+            "policyProvenance": "USER_APPROVED_PROJECT_POLICY",
+            "stableKey": "ex_421ba24b",
+            "selectionRole": "CANONICAL_STIMULUS_TASK_LUNGE_REACH",
+            "primaryTask": "LUNGE_REACH",
+            "authorizedTasks": [
+              "DECELERATION",
+              "LUNGE_REACH"
+            ],
+            "transferEvidence": {
+              "DECELERATION": "DIRECT",
+              "LUNGE_REACH": "DIRECT"
+            },
+            "weeklyExposures": 2,
+            "creditSemantics": "NON_ADDITIVE",
+            "exposureIndex": 1,
+            "shape": {
+              "mode": "REPETITIONS_PER_SIDE",
+              "setCount": 3,
+              "reps": 5,
+              "minReps": null,
+              "maxReps": null,
+              "seconds": null,
+              "minSeconds": null,
+              "maxSeconds": null,
+              "laterality": "PER_SIDE",
+              "restSeconds": 75,
+              "loadMode": "NO_EXTERNAL_LOAD",
+              "activityKind": null,
+              "targetRpe": null
+            }
+          }
+        }
+      ],
+      "protocolFrequencyOutcomes": [
+        {
+          "protocolId": "BADMINTON_LATERAL_SHUTTLE_LUNGE_V1",
+          "stableKey": "ex_421ba24b",
+          "selectionRole": "CANONICAL_STIMULUS_TASK_LUNGE_REACH",
+          "week": 1,
+          "requested": 2,
+          "placed": 2,
+          "shortfall": 0,
+          "status": "SATISFIED",
+          "authority": "USER_APPROVED_PROJECT_POLICY",
+          "reason": "APPROVED_PROTOCOL_FREQUENCY_PLACED"
+        },
+        {
+          "protocolId": "BADMINTON_LATERAL_SHUTTLE_LUNGE_V1",
+          "stableKey": "ex_421ba24b",
+          "selectionRole": "CANONICAL_STIMULUS_TASK_LUNGE_REACH",
+          "week": 2,
+          "requested": 2,
+          "placed": 2,
+          "shortfall": 0,
+          "status": "SATISFIED",
+          "authority": "USER_APPROVED_PROJECT_POLICY",
+          "reason": "APPROVED_PROTOCOL_FREQUENCY_PLACED"
+        }
+      ]
     }
   ],
   "qualityReplacementRowsStillUnclosed": {
@@ -8372,6 +9070,30 @@
     "priorJbrAttempt": "Native access violation in robolectric-nativeruntime.dll+0x5c22 after 5m36s; no app assertion failure; superseded by completed worker-restarted run",
     "protocolValidation": "PASS (9 families / 36 protocols)",
     "communityCloudContracts": "PASS (9/9)",
-    "standardProductionCoverageSha256": "76F261F28C61E37668A204C8FBDFC107AE4B6233F2943BC942DC9CDE94FC5A5B"
+    "standardProductionCoverageSha256": "76F261F28C61E37668A204C8FBDFC107AE4B6233F2943BC942DC9CDE94FC5A5B",
+    "implementationTestSha": "b5d4550c4f4f44b52d89128fa9e70d16cce77a9b",
+    "hostedRun": {
+      "runId": 37453833659,
+      "result": "SUCCESS",
+      "tests": 2313,
+      "failures": 0,
+      "errors": 0,
+      "skips": 4,
+      "checks": [
+        "protocol validation",
+        "Community/Cloud contracts",
+        "whitespace",
+        "full unit tests",
+        "coverage upload",
+        "APK assembly",
+        "signer validation",
+        "artifact upload"
+      ]
+    },
+    "apkArtifact": {
+      "name": "WhatYouGottaDo-debug-apk",
+      "apkSizeBytes": 68839623,
+      "apkSha256": "71D744D622DE0C3D9A394CAD295BD0BBCA8FB07FDE5306CAB80D0720463AE590"
+    }
   }
 }

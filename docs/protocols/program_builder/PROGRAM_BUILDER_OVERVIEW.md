@@ -7,7 +7,7 @@
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.3 |
-| Last audited commit | 7c5d80bb9f7d849097cfe2cdd86903928d12106c |
+| Last audited commit | b5d4550c4f4f44b52d89128fa9e70d16cce77a9b |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1354,4 +1354,4 @@ Post-audit boundary notes
 - B7/C10 replacement attribution now recognizes an exact C24 Task replacement only when stableKey and selectionRole, approved protocol, primary task, DIRECT relations, `USER_APPROVED_PROJECT_POLICY`, lossless materialization, and full per-week frequency/placement match. Replacement labels alone do not authorize the seven remaining Quality replacements.
 - The C26 22-row census reports 22 actual executable rows before and 0 afterward; B7's unexplained-added identity intersection is 0; both `persona3_recent` Task replacements close. Routes remain CONTROL 19 / Strength V1 1 / Strength Calibration 2 / Hypertrophy 0 / Combined 0. B7 counts are provenance 11 / affected-unmet 0 / regressed 1 / collateral regression 0. Power and JUMP_LANDING material remain zero; C20 remains 12 HARD_VALID / 0 HARD_INVALID / 20 UNRESOLVED; build accounting remains 1 CONTROL + 1 EXPERIMENTAL, no third build.
 - No Room, backup, restore, Community, or Cloud schema changed. Protocol/runtime/app are `3.61.0` / `RECORD_BASED_PLANNER_0.15.3_KOTLIN_1` / `0.5.1.5`.
-- C26 audit and exact row census: [`docs/c26_b6_exp_b7_consistency_hardening_audit.md`](../../c26_b6_exp_b7_consistency_hardening_audit.md) and [`docs/c26-b6-exp-b7-consistency-census.json`](../../c26-b6-exp-b7-consistency-census.json). `lastAuditedCommit` is updated to the C26 implementation/test commit after it is created and Hosted CI is green.
+- C26 audit and exact row census: [`docs/c26_b6_exp_b7_consistency_hardening_audit.md`](../../c26_b6_exp_b7_consistency_hardening_audit.md) and [`docs/c26-b6-exp-b7-consistency-census.json`](../../c26-b6-exp-b7-consistency-census.json). C26 implementation/test commit `b5d4550c4f4f44b52d89128fa9e70d16cce77a9b` is the `lastAuditedCommit`; Hosted run [37453833659](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/37453833659) passed 2,313 tests, coverage, APK assembly, signer validation, and upload.
