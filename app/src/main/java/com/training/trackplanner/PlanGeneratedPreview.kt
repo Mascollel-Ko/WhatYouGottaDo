@@ -406,6 +406,9 @@ private fun List<ProgramSetPrescription>.updated(
 
 @Composable
 private fun programSetSummaryLines(item: ProgramSkeletonItem): List<String> {
+    if (!item.taskProtocolSemanticsJson.isNullOrBlank()) {
+        return listOf(item.prescription)
+    }
     val sets = ProgramSetPrescriptionResolver.resolve(item)
     val effort = programEffortDisplay(sets)
     val rest = item.restSeconds.takeIf { it > 0 }

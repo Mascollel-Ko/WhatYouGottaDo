@@ -317,7 +317,9 @@ data class TrainingProgramItem(
     val dayIntensity: String? = null,
     val weightSource: String? = null,
     /** Canonical B5 identity role. Legacy/manual rows remain null and cannot anchor incumbents. */
-    val selectionRole: String? = null
+    val selectionRole: String? = null,
+    /** Lossless approved task protocol semantics; null is the legacy scalar contract. */
+    val taskProtocolSemanticsJson: String? = null
 )
 
 @Entity(

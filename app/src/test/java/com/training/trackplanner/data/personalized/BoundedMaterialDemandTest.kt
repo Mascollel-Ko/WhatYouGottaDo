@@ -89,7 +89,9 @@ class BoundedMaterialDemandTest {
     }
     @Test fun captureControlBeforeAnyProductionEdit() {
         val plan=build(40,4,4,anchor=true,experimental=false);report("CONTROL",plan)
-        assertEquals("b6407bad9ec1faa8f19577d3061abdfde0704fe37e602cb9847bc6df410c88e6", personalizedProgramFingerprint(plan.request,plan.items))
+        // C24 extends the persisted-generation fingerprint with canonical role/load/task semantics;
+        // the CONTROL plan itself remains independent of the approved task protocol policy.
+        assertEquals("4d970184785e80436651fcdc63022ed8064a87f349ee50c399ecc2a8268c4197", personalizedProgramFingerprint(plan.request,plan.items))
         assertNull(plan.personalizedDecision!!.frequencyDemand!!.toJson().optJSONObject("boundedMaterialAllocation"))
     }
     @Test fun tenUnitsRetainPriorityAndNeverExceedAnyMaximum() {

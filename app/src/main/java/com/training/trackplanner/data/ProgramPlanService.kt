@@ -71,7 +71,7 @@ internal class ProgramPlanService(
         val source = buildString {
             append(listOf(program.stableKey, program.name, program.goal, program.durationDays, program.weeklyTrainingDays, program.sessionMinutes).joinToString("|"))
             items.sortedWith(compareBy(TrainingProgramItem::weekNumber, TrainingProgramItem::dayOfWeek, TrainingProgramItem::orderIndex, TrainingProgramItem::exerciseStableKey)).forEach { item ->
-                append('\n').append(listOf(item.weekNumber, item.dayOfWeek, item.orderIndex, item.exerciseStableKey, item.selectionRole, item.restSeconds, item.prescription).joinToString("|"))
+                append('\n').append(listOf(item.weekNumber, item.dayOfWeek, item.orderIndex, item.exerciseStableKey, item.selectionRole, item.restSeconds, item.prescription, item.taskProtocolSemanticsJson).joinToString("|"))
                 sets[item.id].orEmpty().sortedBy(TrainingProgramItemSet::setIndex).forEach { set ->
                     append('|').append("${set.setIndex}:${set.reps}:${set.weightKg}:${set.seconds}")
                     set.targetRpeMin?.let { append(':').append(it.canonicalRpeFingerprint()) }
@@ -505,6 +505,7 @@ internal fun ProgramSkeletonItem.toTrainingProgramItem(programId: Long): Trainin
         trainingSlot = trainingSlot.ifBlank { ProgramTrainingSlot.FULL_BODY_BADMINTON_SUPPORT.name },
         dayIntensity = dayIntensity.ifBlank { ProgramDayIntensity.MODERATE.name },
         weightSource = weightSource.ifBlank { "MANUAL_OR_EXISTING" },
-        selectionRole = selectionRole.takeIf(String::isNotBlank)
+        selectionRole = selectionRole.takeIf(String::isNotBlank),
+        taskProtocolSemanticsJson = taskProtocolSemanticsJson
     )
 }

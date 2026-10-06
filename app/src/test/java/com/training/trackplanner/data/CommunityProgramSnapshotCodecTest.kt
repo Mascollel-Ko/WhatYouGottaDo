@@ -61,6 +61,7 @@ class CommunityProgramSnapshotCodecTest {
         )
 
         val snapshot = CommunityProgramSnapshotCodec.export(source, sourceProgramId)
+        assertEquals(2, snapshot.getInt("schemaVersion"))
         val serialized = snapshot.toString()
         assertTrue(!serialized.contains("\"id\""))
         assertTrue(!serialized.contains("\"programId\""))
@@ -93,5 +94,23 @@ class CommunityProgramSnapshotCodecTest {
         assertEquals(0, db.programDao().countPrograms())
         assertThrows(IllegalArgumentException::class.java) { runBlocking { CommunityProgramSnapshotCodec.import(db, "public-program-invalid", invalid.put("schemaVersion", 99)) } }
         assertEquals(0, db.programDao().countPrograms())
+    }
+
+    @Test fun approvedTaskProtocolSemanticsRoundTripWithoutDisplayParsing() = runBlocking {
+        val source = database()
+        source.exerciseDao().insertExercise(Exercise("ex_33841b88", "6코너 풋워크", "스포츠"))
+        val programId = source.programDao().insertProgram(TrainingProgram(name = "Task protocol", durationDays = 7))
+        val semantics = C24TaskProtocolTestFixture.sixCornerSemanticsJson()
+        source.programDao().insertProgramItem(TrainingProgramItem(
+            programId = programId, weekNumber = 1, dayOfWeek = 2, orderIndex = 1,
+            exerciseStableKey = "ex_33841b88", exerciseName = "6코너 풋워크", category = "스포츠",
+            restSeconds = 60, prescription = "display may change", setCount = 3, reps = 0,
+            weightKg = 0.0, seconds = 20, selectionRole = "CANONICAL_STIMULUS_TASK_ACCELERATION",
+            taskProtocolSemanticsJson = semantics
+        ))
+        val exported = CommunityProgramSnapshotCodec.export(source, programId)
+        val restored = database()
+        val restoredId = CommunityProgramSnapshotCodec.import(restored, "c24-task", exported)
+        assertEquals(semantics, restored.programDao().itemsForProgram(restoredId).single().taskProtocolSemanticsJson)
     }
 }

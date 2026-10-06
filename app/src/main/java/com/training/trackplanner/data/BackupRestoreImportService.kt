@@ -632,7 +632,8 @@ internal class BackupRestoreImportService(
                     trainingSlot = item.trainingSlot,
                     dayIntensity = item.dayIntensity,
                     weightSource = item.weightSource,
-                    selectionRole = item.selectionRole
+                    selectionRole = item.selectionRole,
+                    taskProtocolSemanticsJson = item.taskProtocolSemanticsJson
                 )
             )
         }

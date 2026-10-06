@@ -9,7 +9,7 @@ import com.training.trackplanner.data.personalized.placementSessionFits
 import java.security.MessageDigest
 
 /** Current builder contract recorded on accepted canonical programs. */
-internal const val CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.58.0"
+internal const val CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.59.0"
 
 /** A typed view of TrainingProgram.stableKey; it is independent of exercise stable keys. */
 @JvmInline
@@ -128,6 +128,8 @@ internal data class CanonicalIncumbentPlacementIndex(
             val sourceContract = builderVersion to runtimeVersion
             val supportedContracts = setOf(
                 expectedBuilderProtocolVersion to expectedPlannerRuntimeVersion,
+                C24_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION to C24_PERSONALIZED_PLANNER_PROTOCOL_VERSION,
+                C23_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION to C23_PERSONALIZED_PLANNER_PROTOCOL_VERSION,
                 C22_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION to C22_PERSONALIZED_PLANNER_PROTOCOL_VERSION,
                 C21_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION to C21_PERSONALIZED_PLANNER_PROTOCOL_VERSION,
                 C20_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION to C20_PERSONALIZED_PLANNER_PROTOCOL_VERSION,
@@ -193,6 +195,10 @@ private const val C21_PERSONALIZED_PLANNER_PROTOCOL_VERSION = "RECORD_BASED_PLAN
 /** C22 programs remain compatible incumbent sources after the C23 task-shape contract addition. */
 private const val C22_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.57.0"
 private const val C22_PERSONALIZED_PLANNER_PROTOCOL_VERSION = "RECORD_BASED_PLANNER_0.14.9_KOTLIN_1"
+private const val C23_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.58.0"
+private const val C23_PERSONALIZED_PLANNER_PROTOCOL_VERSION = "RECORD_BASED_PLANNER_0.15.0_KOTLIN_1"
+private const val C24_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.59.0"
+private const val C24_PERSONALIZED_PLANNER_PROTOCOL_VERSION = "RECORD_BASED_PLANNER_0.15.1_KOTLIN_1"
 
 /** Deterministic token over all persisted program/item/set state that a generated replacement can overwrite. */
 internal object CanonicalIncumbentSourceSnapshotFingerprint {
@@ -228,7 +234,8 @@ internal object CanonicalIncumbentSourceSnapshotFingerprint {
             record("item", listOf(
                 row.id, row.programId, row.weekNumber, row.dayOfWeek, row.orderIndex, row.exerciseStableKey,
                 row.exerciseName, row.category, row.restSeconds, row.prescription, row.setCount, row.reps,
-                row.weightKg, row.seconds, row.trainingSlot, row.dayIntensity, row.weightSource, row.selectionRole
+            row.weightKg, row.seconds, row.trainingSlot, row.dayIntensity, row.weightSource, row.selectionRole,
+            row.taskProtocolSemanticsJson
             ))
             setsByItem[row.id].orEmpty().sortedBy(TrainingProgramItemSet::setIndex).forEach { set ->
                 record("set", listOf(set.id, set.programItemId, set.setIndex, set.reps, set.weightKg,

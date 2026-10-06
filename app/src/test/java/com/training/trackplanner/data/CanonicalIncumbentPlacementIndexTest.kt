@@ -32,7 +32,8 @@ class CanonicalIncumbentPlacementIndexTest {
         role: String? = owner.selectionRole,
         week: Int = 1,
         day: Int = 2,
-        order: Int = 1
+        order: Int = 1,
+        taskSemantics: String? = null
     ) = TrainingProgramItem(
         id = id,
         programId = programId,
@@ -42,7 +43,8 @@ class CanonicalIncumbentPlacementIndexTest {
         exerciseStableKey = stableKey,
         exerciseName = "Bench press",
         category = "STRENGTH",
-        selectionRole = role
+        selectionRole = role,
+        taskProtocolSemanticsJson = taskSemantics
     )
 
     private fun skeletonItem(
@@ -125,6 +127,17 @@ class CanonicalIncumbentPlacementIndexTest {
         assertEquals(setOf(CanonicalIncumbentOwnerWeek(owner, 1)), result.ambiguousOwnerWeeks)
         assertNull(result.placement(owner, 1))
         assertTrue(result.placements.isEmpty())
+    }
+
+    @Test
+    fun taskProtocolSemanticEditChangesStaleIncumbentSnapshotFingerprint() {
+        val first = CanonicalIncumbentSourceSnapshotFingerprint.create(
+            program(), listOf(item(taskSemantics = "{\"shape\":\"10-20 seconds\"}")), emptyList()
+        )
+        val changed = CanonicalIncumbentSourceSnapshotFingerprint.create(
+            program(), listOf(item(taskSemantics = "{\"shape\":\"20 seconds\"}")), emptyList()
+        )
+        assertTrue(first != changed)
     }
 
     @Test

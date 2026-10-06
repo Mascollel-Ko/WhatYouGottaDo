@@ -317,7 +317,14 @@ class CanonicalStimulusPlanningIndependenceTest {
             assertTrue(taskOwners.any { it.stableKey == "ex_33841b88" })
             assertTrue(taskOwners.any { it.stableKey == "ex_421ba24b" })
             assertEquals(comparisonA.experimental.items, comparisonB.experimental.items)
-            assertTrue(comparisonA.experimental.items.none { it.selectionRole.startsWith("CANONICAL_STIMULUS_TASK_") })
+            val experimentalTaskRows = comparisonA.experimental.items.filter {
+                it.selectionRole.startsWith("CANONICAL_STIMULUS_TASK_")
+            }
+            assertTrue(experimentalTaskRows.isNotEmpty())
+            assertTrue(experimentalTaskRows.all { row ->
+                !row.taskProtocolSemanticsJson.isNullOrBlank() &&
+                    runCatching { TaskProtocolExposureMetadata.fromJsonString(row.taskProtocolSemanticsJson!!) }.isSuccess
+            })
             listOf(a, b).forEach { result ->
                 assertEquals(0, result.buildCounts.controlBuilds)
                 assertEquals(1, result.buildCounts.experimentalBuilds)

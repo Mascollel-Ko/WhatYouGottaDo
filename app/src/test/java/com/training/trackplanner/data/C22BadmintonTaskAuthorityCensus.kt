@@ -153,6 +153,10 @@ internal object C22BadmintonTaskAuthorityCensus {
             }
             comparison.experimental.items
                 .filter { it.selectionRole.startsWith("CANONICAL_STIMULUS_TASK_") }
+                // C22 measured whether its legacy fallbacks survived the exact B6 filter. C24
+                // governed task-protocol rows are new authority and must not be mislabeled as
+                // restored C22 fallback material.
+                .filter { it.taskProtocolSemanticsJson.isNullOrBlank() }
                 .sortedWith(compareBy({ it.weekNumber }, { it.dayOfWeek }, { it.orderIndex }, { it.exerciseStableKey }, { it.selectionRole }))
                 .forEach { item ->
                     aggregate["materializedTaskRowsAfter"] = aggregate.getValue("materializedTaskRowsAfter") + 1

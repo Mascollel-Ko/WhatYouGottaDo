@@ -1169,7 +1169,8 @@ internal fun skeletonFromProgram(snapshot: ProgramEditorSnapshot): GeneratedProg
                 setPrescriptions = ProgramSetPrescriptionResolver.resolve(
                     item,
                     setsByItemId[item.id].orEmpty()
-                )
+                ),
+                taskProtocolSemanticsJson = item.taskProtocolSemanticsJson
             )
         },
         warnings = buildList {

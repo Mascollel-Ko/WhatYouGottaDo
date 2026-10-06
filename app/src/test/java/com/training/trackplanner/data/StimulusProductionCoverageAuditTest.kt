@@ -210,7 +210,9 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(0, c19Routes.getInt("COMBINED"))
         assertEquals(11, c19Routes.getInt("b7ProvenanceUnclosed"))
         assertEquals(9, c19Routes.getInt("b7TargetUnmet"))
-        assertEquals(2, c19Routes.getInt("b7TargetRegressed"))
+        // C24 exact task protocols can change task target outcomes before routing; this
+        // lineage audit still checks the same route/stability boundary, not stale B7 counts.
+        assertEquals(1, c19Routes.getInt("b7TargetRegressed"))
         java.io.File("build/reports/c19-program-lineage-incumbent-placement-census.json").writeText(c19Census)
         val c20Census = C20LiveIncumbentStabilityCensus.render(
             c18Census = c18Census,
@@ -272,7 +274,7 @@ class StimulusProductionCoverageAuditTest {
         val c21B7 = c21Json.getJSONObject("b7ReasonOccurrences")
         assertEquals(11, c21B7.getInt("CHANGE_PROVENANCE_UNCLOSED"))
         assertEquals(9, c21B7.getInt("AFFECTED_TARGET_REMAINS_UNMET"))
-        assertEquals(2, c21B7.getInt("TARGET_REGRESSED"))
+        assertEquals(1, c21B7.getInt("TARGET_REGRESSED"))
         val c21C20 = c21Json.getJSONObject("c20LiveIncumbentFeasibility")
         assertEquals(12, c21C20.getInt("HARD_VALID"))
         assertEquals(0, c21C20.getInt("HARD_INVALID"))
@@ -317,15 +319,15 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(6, c22.getJSONArray("taskMatrix").length())
         assertEquals(4, c22.getJSONArray("materializedTaskRowsBefore").length())
         assertEquals(0, c22.getJSONArray("materializedTaskRowsAfter").length())
-        assertEquals(0, records.mapNotNull { it.second?.comparison?.experimental }
-            .sumOf { program -> program.items.count { it.selectionRole.startsWith("CANONICAL_STIMULUS_TASK_") } })
+        val taskSelectionItems = records.mapNotNull { it.second?.comparison?.experimental }
+            .flatMap { program -> program.items.filter { it.selectionRole.startsWith("CANONICAL_STIMULUS_TASK_") } }
+        assertTrue(taskSelectionItems.isNotEmpty()) // C24 now materializes exact approved protocols.
+        assertTrue(taskSelectionItems.all { it.taskProtocolSemanticsJson != null }) // No legacy fallback rows.
         assertEquals(19, c22.getJSONObject("routeSnapshot").getInt("CONTROL"))
         assertEquals(1, c22.getJSONObject("routeSnapshot").getInt("STRENGTH_V1"))
         assertEquals(2, c22.getJSONObject("routeSnapshot").getInt("STRENGTH_CALIBRATION_V1"))
-        assertEquals(11, c22.getJSONObject("b7ReasonOccurrences").getInt("CHANGE_PROVENANCE_UNCLOSED"))
-        assertEquals(9, c22.getJSONObject("b7ReasonOccurrences").getInt("AFFECTED_TARGET_REMAINS_UNMET"))
-        assertEquals(2, c22.getJSONObject("b7ReasonOccurrences").getInt("TARGET_REGRESSED"))
-        assertEquals(1, c22.getJSONObject("b7ReasonOccurrences").getInt("COLLATERAL_TARGET_REGRESSION"))
+        // B7 is intentionally not frozen to the C22 snapshot: newly authorized C24
+        // task evidence may change the canonical target outcome without changing B7 rules.
         val c22BuildProfile = c22.getJSONObject("buildAccounting").getJSONArray("generatedCaseProfiles")
         assertEquals(1, c22BuildProfile.length())
         assertEquals(22, c22BuildProfile.getJSONObject(0).getInt("cases"))
@@ -338,13 +340,8 @@ class StimulusProductionCoverageAuditTest {
         }
         assertEquals(2, c22Persona3Recent.getJSONArray("selectedTaskOwners").length())
         assertEquals("CONTROL", c22Persona3Recent.getString("route"))
-        val regressedPersona3Tasks = (0 until c22Persona3Recent.getJSONObject("b7").getJSONArray("targetOutcomes").length())
-            .map { c22Persona3Recent.getJSONObject("b7").getJSONArray("targetOutcomes").getJSONObject(it) }
-            .filter { it.getString("status") == "REGRESSED" }
-            .map { it.getString("targetId") }.toSet()
-        assertEquals(setOf(
-            "TASK:ACCELERATION", "TASK:DECELERATION", "TASK:FOOTWORK", "TASK:LUNGE_REACH", "TASK:REACTION"
-        ), regressedPersona3Tasks)
+        // C22's four legacy rows are retained as before-state evidence below. Current
+        // target outcomes are measured in the C24 census after exact B6 materialization.
         val c22LegacyRows = c22.getJSONArray("materializedTaskRowsBefore")
         assertTrue((0 until c22LegacyRows.length()).map(c22LegacyRows::getJSONObject)
             .all { it.getString("authority") == "NO_EXACT_TASK_B6; LEGACY_PERFORMANCE_FALLBACK" })
@@ -400,6 +397,70 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(20, c23.getJSONObject("c20IncumbentRegression").getInt("UNRESOLVED"))
         assertFalse(c23.getJSONObject("productionChanges").getBoolean("taskB6Added"))
         assertFalse(c23.getJSONObject("productionChanges").getBoolean("badmintonRouteAdded"))
+        val c24Census = C24BadmintonTaskB6Census.render(
+            records = records,
+            c23Census = c23TaskCensus,
+            c21PowerCensus = c21PowerCensus,
+            c20Census = c20Census,
+            standardCoverageSha256 = org.json.JSONObject(c15Census).getString("standardCoverageSha256"),
+            metadataRepository = canonicalMetadataRepository
+        )
+        assertEquals(c24Census, C24BadmintonTaskB6Census.render(
+            records.reversed(), c23TaskCensus, c21PowerCensus, c20Census,
+            org.json.JSONObject(c15Census).getString("standardCoverageSha256"), canonicalMetadataRepository
+        ))
+        java.io.File("build/reports/c24-badminton-task-b6-persistence-census.json").writeText(c24Census)
+        val c24 = org.json.JSONObject(c24Census)
+        val c24Counts = c24.getJSONObject("counts")
+        assertEquals(27, c24Counts.getInt("corpusCases"))
+        assertEquals(132, c24Counts.getInt("taskTargetsTotal"))
+        assertEquals(2, c24Counts.getInt("exactApprovedBindingsUsed"))
+        assertEquals(2, c24Counts.getInt("authorizedTaskB6Owners"))
+        assertEquals(8, c24Counts.getInt("materializedTaskProtocolRows"))
+        assertEquals(0, c24Counts.getInt("untypedTaskMaterialRows"))
+        assertEquals(5, c24Counts.getInt("taskTargetsReceivingCredit"))
+        assertEquals(0, c24Counts.getInt("weeklyFrequencyShortfalls"))
+        assertEquals(0, c24Counts.getInt("placementShortfalls"))
+        assertEquals(0, c24Counts.getInt("unapprovedTaskOwnersDeferred"))
+        assertEquals(0, c24Counts.getInt("powerMaterialRows"))
+        assertEquals(0, c24Counts.getInt("jumpLandingMaterialRows"))
+        assertTrue(taskSelectionItems.all { item ->
+            runCatching { TaskProtocolExposureMetadata.fromJsonString(checkNotNull(item.taskProtocolSemanticsJson)) }.isSuccess
+        })
+        assertEquals(12, c24.getJSONObject("c20IncumbentRegression").getInt("HARD_VALID"))
+        assertEquals(0, c24.getJSONObject("c20IncumbentRegression").getInt("HARD_INVALID"))
+        assertEquals(20, c24.getJSONObject("c20IncumbentRegression").getInt("UNRESOLVED"))
+        assertEquals(0, c24.getJSONObject("c20IncumbentRegression").getInt("invalidOrUnresolvedForcedPreserved"))
+        val c24Persona3Recent = c24.getJSONObject("persona3Recent")
+        val c24RecentRows = c24Persona3Recent.getJSONArray("protocolRows")
+        val sixCornerRows = (0 until c24RecentRows.length()).map { c24RecentRows.getJSONObject(it) }
+            .filter { it.optString("protocolId") == "BADMINTON_SIX_CORNER_FOOTWORK_V1" }
+        val lateralRows = (0 until c24RecentRows.length()).map { c24RecentRows.getJSONObject(it) }
+            .filter { it.optString("protocolId") == "BADMINTON_LATERAL_SHUTTLE_LUNGE_V1" }
+        assertTrue(sixCornerRows.isNotEmpty())
+        assertTrue(sixCornerRows.all { it.getString("prescription") == "3 라운드 × 10–20초 · 휴식 60초" })
+        assertTrue(lateralRows.isNotEmpty())
+        assertTrue(lateralRows.all { it.getString("prescription") == "3 세트 × 5회/side · 휴식 75초" })
+        assertFalse(sixCornerRows.any { it.getString("prescription").contains("4 라운드") || it.getString("prescription").contains("15초") })
+        assertFalse(lateralRows.any { it.getString("prescription").contains("18초") })
+        listOf(sixCornerRows, lateralRows).forEach { protocolRows ->
+            protocolRows.groupBy { it.getInt("week") }.values.forEach { rows ->
+                assertEquals(2, rows.map { it.getInt("day") }.distinct().size)
+                assertEquals(setOf(1, 2), rows.map { it.getInt("exposureIndex") }.toSet())
+            }
+        }
+        assertEquals(0, c24.getJSONObject("powerInvariant").getInt("numericPowerAuthority"))
+        assertEquals(0, c24.getJSONObject("powerInvariant").getInt("executableB6"))
+        val c24Routes = c24.getJSONObject("routeSnapshot")
+        assertEquals(27, c24Routes.keys().asSequence().map { c24Routes.getInt(it) }.sum())
+        assertEquals(19, c24Routes.getInt("CONTROL"))
+        assertEquals(1, c24Routes.getInt("B8_STRENGTH_V1"))
+        assertEquals(2, c24Routes.getInt("B8_STRENGTH_CALIBRATION_V1"))
+        assertFalse(c24Routes.has("B8_BADMINTON_TASK_V1"))
+        assertEquals(11, c24.getJSONObject("b7Summary").getInt("provenanceUnclosed"))
+        assertEquals(9, c24.getJSONObject("b7Summary").getInt("targetUnmet"))
+        assertEquals(1, c24.getJSONObject("b7Summary").getInt("targetRegressed"))
+        assertEquals(0, c24.getJSONObject("b7Summary").getInt("collateralRegressionCases"))
         val perturbedComparator = org.json.JSONObject(c22TaskCensus)
         val perturbedCases = perturbedComparator.getJSONArray("cases")
         for (index in 0 until perturbedCases.length()) {
@@ -419,6 +480,25 @@ class StimulusProductionCoverageAuditTest {
             c23AfterControlPerturbation.getJSONObject("taskPrescriptionRepresentations").toString())
         assertEquals(c23.getJSONArray("taskAuthorityCompleteness").toString(),
             c23AfterControlPerturbation.getJSONArray("taskAuthorityCompleteness").toString())
+        val c24AfterControlPerturbation = org.json.JSONObject(C24BadmintonTaskB6Census.render(
+            records = records,
+            c23Census = c23AfterControlPerturbation.toString(),
+            c21PowerCensus = c21PowerCensus,
+            c20Census = c20Census,
+            standardCoverageSha256 = org.json.JSONObject(c15Census).getString("standardCoverageSha256"),
+            metadataRepository = canonicalMetadataRepository
+        ))
+        assertEquals(c24.getJSONArray("approvedProtocols").toString(),
+            c24AfterControlPerturbation.getJSONArray("approvedProtocols").toString())
+        assertEquals(c24.getJSONObject("routeSnapshot").toString(),
+            c24AfterControlPerturbation.getJSONObject("routeSnapshot").toString())
+        val c24ProtocolRows = c24.getJSONArray("cases").let { rows ->
+            (0 until rows.length()).map { rows.getJSONObject(it) }.map { it.optJSONArray("protocolRows")?.toString().orEmpty() }
+        }
+        val perturbedC24ProtocolRows = c24AfterControlPerturbation.getJSONArray("cases").let { rows ->
+            (0 until rows.length()).map { rows.getJSONObject(it) }.map { it.optJSONArray("protocolRows")?.toString().orEmpty() }
+        }
+        assertEquals(c24ProtocolRows, perturbedC24ProtocolRows)
         assertEquals(c20Census, C20LiveIncumbentStabilityCensus.render(
             c18Census = c18Census,
             records = records.reversed(),
@@ -447,7 +527,7 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(0, c20Routes.getInt("B8_STRENGTH_HYPERTROPHY_V1"))
         assertEquals(11, c20Routes.getInt("b7ProvenanceUnclosed"))
         assertEquals(9, c20Routes.getInt("b7TargetUnmet"))
-        assertEquals(2, c20Routes.getInt("b7TargetRegressed"))
+        assertEquals(1, c20Routes.getInt("b7TargetRegressed"))
         val c20CaseRows = org.json.JSONObject(c20Census).getJSONArray("caseRows")
         fun c20Case(name: String) = (0 until c20CaseRows.length()).map { c20CaseRows.getJSONObject(it) }
             .single { it.getString("case") == name }
@@ -555,11 +635,11 @@ class StimulusProductionCoverageAuditTest {
         })
         assertEquals(5, c15.getJSONArray("fiveC13RepRangeCases").length())
         assertEquals(8, c15.getJSONArray("directionOnlyStrengthCases").length())
-        assertEquals("4467C1510A07BBE901042E112D68826CD054384C023FCB07DEB3859D043C3EF8",
+        assertEquals("AC796426BEE789B00668744B11B0D5F3701A25037A0878CC1D60D709DAE3C15A",
             c15.getString("standardCoverageSha256"))
         assertEquals(11, c15.getJSONObject("corpus").getJSONObject("B7ReasonOccurrences").getInt("CHANGE_PROVENANCE_UNCLOSED"))
         assertEquals(9, c15.getJSONObject("corpus").getJSONObject("B7ReasonOccurrences").getInt("AFFECTED_TARGET_REMAINS_UNMET"))
-        assertEquals(2, c15.getJSONObject("corpus").getJSONObject("B7ReasonOccurrences").getInt("TARGET_REGRESSED"))
+        assertEquals(1, c15.getJSONObject("corpus").getJSONObject("B7ReasonOccurrences").getInt("TARGET_REGRESSED"))
         val calibrationCase = c15.getJSONArray("cases").let { rows ->
             (0 until rows.length()).map(rows::getJSONObject).single { it.getString("caseId") == "persona2_reviewed" }
         }
@@ -590,7 +670,7 @@ class StimulusProductionCoverageAuditTest {
             .groupingBy { it }.eachCount()
         assertEquals(11, b7ReasonCounts["CHANGE_PROVENANCE_UNCLOSED"])
         assertEquals(9, b7ReasonCounts["AFFECTED_TARGET_REMAINS_UNMET"])
-        assertEquals(2, b7ReasonCounts["TARGET_REGRESSED"])
+        assertEquals(1, b7ReasonCounts["TARGET_REGRESSED"])
     }
 
     private fun assertC9CorpusBoundaries(records: List<Pair<CoverageSpec, StimulusProductionGenerationResult?>>) {

@@ -157,9 +157,27 @@ class FinalStimulusNeedAudit {
             val physical = profile?.physicalQualities ?: physicalQualityCatalog.relations(item.exerciseStableKey)
             val badminton = profile?.badmintonObjectives.orEmpty()
             val structured = snapshot.activityKind(item.exerciseStableKey) in STRUCTURED_TASK_KINDS
+            val hasTaskProtocolSemantics = !item.taskProtocolSemanticsJson.isNullOrBlank()
+            val taskProtocol = item.taskProtocolSemanticsJson?.takeIf(String::isNotBlank)?.let { value ->
+                runCatching { TaskProtocolExposureMetadata.fromJsonString(value) }.getOrNull()
+            }
+            val validTaskProtocol = taskProtocol?.takeIf { metadata ->
+                val directTasks = snapshot.badmintonDirectObjectives[item.exerciseStableKey].orEmpty()
+                    .mapNotNull { runCatching { CanonicalTaskTarget.valueOf(it) }.getOrNull() }.toSet()
+                metadata.authorization.status == TaskProtocolB6Status.AUTHORIZED_APPROVED_TASK_PROTOCOL &&
+                    metadata.matchesMaterializedItem(
+                        item = item,
+                        actualActivityKind = snapshot.activityKind(item.exerciseStableKey),
+                        currentB4Tasks = metadata.authorization.attributedTasks,
+                        exactDirectTasks = directTasks
+                    )
+            }
             sets.forEach { set ->
                 val session = item.weekNumber to item.dayOfWeek
-                physical.groupBy(ExercisePhysicalQualityRelation::qualityId).forEach { (quality, relations) ->
+                // Exact C24 task protocols establish only their explicitly approved task
+                // attributions. A physical-quality metadata relation on the same drill is not
+                // a QUALITY B6 prescription grant (especially Power).
+                if (!hasTaskProtocolSemantics) physical.groupBy(ExercisePhysicalQualityRelation::qualityId).forEach { (quality, relations) ->
                     val direct = relations.any { it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY }
                         val supportive = !direct && relations.any { it.relationLevel == StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY }
                     if (direct || supportive) {
@@ -174,7 +192,7 @@ class FinalStimulusNeedAudit {
                             compatible, quality)
                     }
                 }
-                if (structured) {
+                if (structured && !hasTaskProtocolSemantics) {
                     if (profile != null) {
                         // Resolve one tier per actual set/objective before crediting the set.
                         badminton.filter { it.objective.name in tasks }
@@ -194,6 +212,18 @@ class FinalStimulusNeedAudit {
                     }
                 }
             }
+            if (hasTaskProtocolSemantics &&
+                snapshot.activityKind(item.exerciseStableKey) in STRUCTURED_TASK_KINDS + setOf(PlannedActivityKind.ATHLETIC_PERFORMANCE_DRILL) &&
+                validTaskProtocol != null) {
+                val authorization = validTaskProtocol.authorization
+                val session = item.weekNumber to item.dayOfWeek
+                authorization.attributedTasks.forEach { task ->
+                    tasks.getValue(task.name).addProtocolCredit(
+                        session = session,
+                        maximumWeeklyExposures = authorization.definition.weeklyExposures
+                    )
+                }
+            }
         }
         return qualities.mapValues { (_, accumulator) -> accumulator.evidence() } to
             tasks.mapValues { (_, accumulator) -> accumulator.evidence() }
@@ -209,6 +239,7 @@ class FinalStimulusNeedAudit {
         val supportiveSessions = linkedSetOf<Pair<Int, Int>>()
         val directWeeks = linkedSetOf<Int>()
         val supportiveWeeks = linkedSetOf<Int>()
+        private val protocolCreditLedger = TaskProtocolNonAdditiveCreditLedger()
 
         fun add(session: Pair<Int, Int>, directRelation: Boolean, supportiveRelation: Boolean, compatible: Boolean, quality: TrainableQuality?) {
             when {
@@ -226,6 +257,17 @@ class FinalStimulusNeedAudit {
                 }
                 supportiveRelation -> incompatibleSupportive++
             }
+        }
+
+        /** One physical protocol exposure gives at most one unit per task/session and is capped
+         * at the protocol's weekly frequency even when multiple approved protocols overlap. */
+        fun addProtocolCredit(session: Pair<Int, Int>, maximumWeeklyExposures: Int) {
+            if (session in directSessions) return
+            if (!protocolCreditLedger.credit(session, maximumWeeklyExposures)) return
+            direct++
+            directSessions += session
+            directWeeks += session.first
+            proxyCoverage = true
         }
 
         fun evidence(): FinalStimulusNeedEvidence {
@@ -268,6 +310,18 @@ class FinalStimulusNeedAudit {
             PlannedActivityKind.STRUCTURED_BADMINTON_DRILL,
             PlannedActivityKind.ATHLETIC_PERFORMANCE_DRILL
         )
+    }
+}
+
+/** Per-task union of protocol exposures: overlapping approved protocols cannot multiply credit. */
+internal class TaskProtocolNonAdditiveCreditLedger {
+    private val sessionsByWeek = mutableMapOf<Int, MutableSet<Int>>()
+
+    fun credit(session: Pair<Int, Int>, maximumWeeklyExposures: Int): Boolean {
+        require(maximumWeeklyExposures > 0)
+        val creditedDays = sessionsByWeek.getOrPut(session.first) { linkedSetOf() }
+        if (session.second in creditedDays || creditedDays.size >= maximumWeeklyExposures) return false
+        return creditedDays.add(session.second)
     }
 }
 

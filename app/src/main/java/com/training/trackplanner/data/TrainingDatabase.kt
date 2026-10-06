@@ -45,7 +45,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         StrengthProxyTransferHistoryEntity::class,
         CommunityProgramImport::class
     ],
-    version = 37,
+    version = 38,
     exportSchema = true
 )
 @TypeConverters(RuntimeMetadataTypeConverters::class)
@@ -865,6 +865,12 @@ abstract class TrainingDatabase : RoomDatabase() {
             }
         }
 
+        internal val MIGRATION_37_38 = object : Migration(37, 38) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `training_program_items` ADD COLUMN `taskProtocolSemanticsJson` TEXT")
+            }
+        }
+
         fun get(context: Context): TrainingDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -908,7 +914,8 @@ abstract class TrainingDatabase : RoomDatabase() {
                         MIGRATION_33_34,
                         MIGRATION_34_35,
                         MIGRATION_35_36,
-                        MIGRATION_36_37
+                        MIGRATION_36_37,
+                        MIGRATION_37_38
                     )
                     .build()
                     .also { instance = it }

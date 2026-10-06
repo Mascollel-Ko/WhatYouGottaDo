@@ -47,6 +47,9 @@ import com.training.trackplanner.data.personalized.StimulusSelectionProgramCompa
 import com.training.trackplanner.data.personalized.StimulusSelectionProgramComparisonEngine
 import com.training.trackplanner.data.personalized.StimulusPrescriptionRealizationPlanEngine
 import com.training.trackplanner.data.personalized.StimulusPrescriptionOwnerIdentity
+import com.training.trackplanner.data.personalized.TaskProtocolB6AuthorizationEngine
+import com.training.trackplanner.data.personalized.applyTaskProtocolAuthorizations
+import com.training.trackplanner.data.personalized.withTaskProtocolFrequencyOutcomes
 import com.training.trackplanner.data.personalized.PlannedPrescription
 import com.training.trackplanner.data.personalized.StimulusPrescriptionAuthorizationEngine
 import com.training.trackplanner.data.personalized.StimulusPrescriptionMaterializationAuditEngine
@@ -432,6 +435,12 @@ internal class PersonalizedProgramPlanningService(
             request = resolved.request,
             physicalQualityCatalog = physicalQualityCatalog
         )
+        val taskProtocolPlan = com.training.trackplanner.data.personalized.TaskProtocolB6AuthorizationEngine.build(
+            targetPlan, selectionPlan, context.snapshot
+        )
+        val taskProtocolDemand = com.training.trackplanner.data.personalized.applyTaskProtocolAuthorizations(
+            selectionPlan.materialDemand, taskProtocolPlan
+        )
         observe(ProductionGenerationPhase.B5_COMPLETE)
         val prescriptionContext = com.training.trackplanner.data.personalized.buildCanonicalPrescriptionContext(
             targetPlan = targetPlan,
@@ -448,7 +457,7 @@ internal class PersonalizedProgramPlanningService(
         observe(ProductionGenerationPhase.B6_PRE_AUTHORITY_COMPLETE)
 
         observe(ProductionGenerationPhase.EXPERIMENTAL_BUILD)
-        val experimental = try {
+        val generatedExperimental = try {
             productionBuildCounts.recordProgramBuildInvocation(
                 com.training.trackplanner.data.personalized.StimulusProductionBuildKind.EXPERIMENTAL
             )
@@ -465,13 +474,16 @@ internal class PersonalizedProgramPlanningService(
                     com.training.trackplanner.data.personalized.PlanningFrequencySource.EXPLICIT_USER,
                 frequency = resolved.frequencyProvenance,
                 progress = progress,
-                materialDemandOverride = selectionPlan.materialDemand,
+                materialDemandOverride = taskProtocolDemand,
                 exactPrescriptionAuthorizationProvider = authorizationPlan.provider(),
                 canonicalB5PowerOwnerIdentities = selectionPlan.selectedCandidates
                     .filter { "QUALITY:POWER" in it.coveredTargetIds }
                     .mapTo(linkedSetOf()) { com.training.trackplanner.data.personalized.StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) },
                 canonicalB5TaskOwnerIdentitiesWithoutExecutableB6 = selectionPlan.selectedCandidates
                     .filter { candidate -> candidate.coveredTargetIds.any { it.startsWith("TASK:") } }
+                    .filterNot { candidate ->
+                        com.training.trackplanner.data.personalized.StimulusPrescriptionOwnerIdentity(candidate.stableKey, candidate.selectionRole) in taskProtocolPlan.authorizedByOwner
+                    }
                     .mapTo(linkedSetOf()) { com.training.trackplanner.data.personalized.StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) },
                 canonicalFailureEmitter = { reason, detailCode ->
                     throw StimulusCanonicalEvaluationFailure(reason, detailCode)
@@ -482,6 +494,7 @@ internal class PersonalizedProgramPlanningService(
         } catch (error: StimulusCanonicalEvaluationFailure) {
             throw canonicalEvaluationFailure(error)
         }
+        val experimental = generatedExperimental.withTaskProtocolFrequencyOutcomes(taskProtocolPlan)
 
         val finalAudit = FinalStimulusNeedAudit().audit(experimental, context.snapshot, physicalQualityCatalog)
         val experimentalAudit = StimulusTargetControlProgramAuditEngine().audit(
@@ -838,8 +851,10 @@ internal class PersonalizedProgramPlanningService(
             request = request,
             physicalQualityCatalog = physicalQualityCatalog
         )
+        val taskProtocolPlan = TaskProtocolB6AuthorizationEngine.build(targetPlan, selectionPlan, snapshot)
+        val taskProtocolDemand = applyTaskProtocolAuthorizations(selectionPlan.materialDemand, taskProtocolPlan)
         val priorId = appMetaDao.latestByPrefix("$DECISION_PREFIX%")?.value?.let(::decisionIdFromJson)
-        val experimental = programBuilder.build(
+        val generatedExperimental = programBuilder.build(
             snapshot = snapshot,
             state = state,
             gaps = gaps,
@@ -852,11 +867,13 @@ internal class PersonalizedProgramPlanningService(
                 com.training.trackplanner.data.personalized.PlanningFrequencySource.EXPLICIT_USER,
             frequency = prepared.resolvedRequest.frequencyProvenance,
             progress = progress,
-            materialDemandOverride = selectionPlan.materialDemand,
+            materialDemandOverride = taskProtocolDemand,
             canonicalB5TaskOwnerIdentitiesWithoutExecutableB6 = selectionPlan.selectedCandidates
                 .filter { candidate -> candidate.coveredTargetIds.any { it.startsWith("TASK:") } }
+                .filterNot { candidate -> StimulusPrescriptionOwnerIdentity(candidate.stableKey, candidate.selectionRole) in taskProtocolPlan.authorizedByOwner }
                 .mapTo(linkedSetOf()) { com.training.trackplanner.data.personalized.StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }
         )
+        val experimental = generatedExperimental.withTaskProtocolFrequencyOutcomes(taskProtocolPlan)
         val experimentalFinalAudit = FinalStimulusNeedAudit().audit(experimental, snapshot, physicalQualityCatalog)
         val experimentalAudit = StimulusTargetControlProgramAuditEngine().audit(
             targetPlan,
@@ -937,6 +954,8 @@ internal class PersonalizedProgramPlanningService(
             request = resolvedRequest,
             physicalQualityCatalog = physicalQualityCatalog
         )
+        val taskProtocolPlan = TaskProtocolB6AuthorizationEngine.build(targetPlan, selectionPlan, snapshot)
+        val taskProtocolDemand = applyTaskProtocolAuthorizations(selectionPlan.materialDemand, taskProtocolPlan)
         val canonicalPrescriptionContext = com.training.trackplanner.data.personalized.buildCanonicalPrescriptionContext(
             targetPlan = targetPlan,
             selectionPlan = selectionPlan,
@@ -950,7 +969,7 @@ internal class PersonalizedProgramPlanningService(
             canonicalPrescriptionContext = canonicalPrescriptionContext
         )
         val priorId = appMetaDao.latestByPrefix("$DECISION_PREFIX%")?.value?.let(::decisionIdFromJson)
-        val experimental = try {
+        val generatedExperimental = try {
             productionBuildCounts?.recordProgramBuildInvocation(
                 com.training.trackplanner.data.personalized.StimulusProductionBuildKind.EXPERIMENTAL
             )
@@ -967,13 +986,14 @@ internal class PersonalizedProgramPlanningService(
                     com.training.trackplanner.data.personalized.PlanningFrequencySource.EXPLICIT_USER,
                 frequency = frequencyProvenance,
                 progress = progress,
-                materialDemandOverride = selectionPlan.materialDemand,
+                materialDemandOverride = taskProtocolDemand,
                 exactPrescriptionAuthorizationProvider = authorizationPlan.provider(),
                 canonicalB5PowerOwnerIdentities = selectionPlan.selectedCandidates
                     .filter { "QUALITY:POWER" in it.coveredTargetIds }
                     .mapTo(linkedSetOf()) { com.training.trackplanner.data.personalized.StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) },
                 canonicalB5TaskOwnerIdentitiesWithoutExecutableB6 = selectionPlan.selectedCandidates
                     .filter { candidate -> candidate.coveredTargetIds.any { it.startsWith("TASK:") } }
+                    .filterNot { candidate -> StimulusPrescriptionOwnerIdentity(candidate.stableKey, candidate.selectionRole) in taskProtocolPlan.authorizedByOwner }
                     .mapTo(linkedSetOf()) { com.training.trackplanner.data.personalized.StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) },
                 canonicalFailureEmitter = { reason, detailCode ->
                     throw StimulusCanonicalEvaluationFailure(reason, detailCode)
@@ -984,6 +1004,7 @@ internal class PersonalizedProgramPlanningService(
         } catch (error: StimulusCanonicalEvaluationFailure) {
             throw canonicalEvaluationFailure(error)
         }
+        val experimental = generatedExperimental.withTaskProtocolFrequencyOutcomes(taskProtocolPlan)
         val experimentalFinalAudit = FinalStimulusNeedAudit().audit(experimental, snapshot, physicalQualityCatalog)
         val experimentalAudit = StimulusTargetControlProgramAuditEngine().audit(
             targetPlan,
