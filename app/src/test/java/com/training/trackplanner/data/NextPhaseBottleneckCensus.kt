@@ -493,12 +493,12 @@ internal object NextPhaseBottleneckCensus {
             .put("phase", "NEXT_PHASE_BOTTLENECK_AUDIT")
             .put("source", "REAL_ROOM_SERVICE_CORPUS_FROM_STIMULUS_PRODUCTION_COVERAGE_AUDIT_TEST")
             .put("cases", JSONArray(cases))
-            .put("controlCases", JSONArray(controlCases))
+            .put("controlCaseNames", JSONArray(controlCases.map { it.getString("case") }))
             .put("summary", summary)
             .put("reasonCaseNames", reasonCases)
             .put("unclosedAttributionReasonOccurrences", objectCounts(unclosedReasons))
             .put("affectedUnmetTargetCounts", objectCounts(affectedUnmet))
-            .toString(2) + "\n"
+            .toString() + "\n"
     }
 
     private fun JSONArray.strings(): List<String> = (0 until length()).map { getString(it) }

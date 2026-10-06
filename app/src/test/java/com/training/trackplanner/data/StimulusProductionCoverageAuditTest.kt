@@ -494,9 +494,15 @@ class StimulusProductionCoverageAuditTest {
         assertEquals("AUTHORIZED_FOR_BOUNDED_CUTOVER", c25Json.getJSONObject("roomBackedPositiveFixture")
             .getString("b8Status"))
 
+        val determinismSample = records.filter { it.second?.comparison != null }.take(2)
+        val determinismSampleCensus = NextPhaseBottleneckCensus.render(determinismSample)
+        assertEquals(determinismSampleCensus, NextPhaseBottleneckCensus.render(determinismSample.reversed()))
         val nextPhaseCensus = NextPhaseBottleneckCensus.render(records)
-        assertEquals(nextPhaseCensus, NextPhaseBottleneckCensus.render(records.reversed()))
         val nextPhaseJson = org.json.JSONObject(nextPhaseCensus)
+        val orderedCaseNames = nextPhaseJson.getJSONArray("cases").let { rows ->
+            (0 until rows.length()).map { rows.getJSONObject(it).getString("case") }
+        }
+        assertEquals(orderedCaseNames.sorted(), orderedCaseNames)
         val nextPhaseSummary = nextPhaseJson.getJSONObject("summary")
         assertEquals(22, nextPhaseSummary.getInt("generatedCases"))
         assertEquals(19, nextPhaseSummary.getInt("controlCases"))

@@ -348,9 +348,10 @@ B11의 `CANONICAL_REPLACEMENT`만으로 제거를 승인하지는 않는다. B7�
 
 - C25 merge-main CI green: run `37417396504`; required protocol/contracts/whitespace/test/coverage/APK/signer/upload steps all green.
 - Merged-main Hosted CI의 `stimulus-production-coverage.txt` SHA-256은 `1772FD236365E39E4012A3A1DEE1FFCBD190904E92F52C414F46372AF86D3178`이다.
-- Local compile은 `:app:compileDebugKotlin :app:compileDebugUnitTestKotlin` 성공했다. Focused Room/service coverage audit도 통과했고 결정적 census를 생성했다.
+- Local compile은 `:app:compileDebugKotlin :app:compileDebugUnitTestKotlin` 성공했다. Focused Room/service coverage audit도 통과했고 결정적 census를 생성했다. JSON 크기 최적화 후 재실행한 focused test는 `BUILD SUCCESSFUL`이었다.
 - Local 전체 `:app:testDebugUnitTest`는 5분 38초 후 테스트 assertion 실패 없이 중단됐다. 268개 test suite에서 1,514 tests 완료, failures 0, errors 0, skips 3이 기록됐고, 다음 Room/WorkManager 경로에서 JBR 21.0.11+1-1163-jcef의 `robolectric-nativeruntime.dll+0x5c22`가 `EXCEPTION_ACCESS_VIOLATION (0xc0000005)`를 냈다. 문제 프레임은 Robolectric SQLite `nativePrepareStatement`였으며 Gradle Test Executor 1 종료로 전체 run은 incomplete다. 이를 pass로 집계하지 않는다. Hosted CI의 전체 run은 green이다.
+- Audit PR의 첫 Hosted 전체 run은 2,310 tests를 실행한 뒤 assertion failure 없이 census 직렬화 중 `JSONObject`에서 `OutOfMemoryError`가 났다. 중복 CONTROL 객체 배열을 제거하고 full-corpus 재렌더 결정을 작은 sample로 제한한 뒤 compact census 출력으로 peak allocation을 낮췄다. 최종 PR Hosted run 결과는 재검증 후 기록한다.
 - `JAVA_TOOL_OPTIONS` 사용자 설정은 `-Djdk.net.unixdomain.tmpdir=C:\GradleIpc`이고 `C:\GradleIpc`가 존재한다. 프로세스 환경에 값을 전달하지 않은 첫 확인은 loopback connection 오류였고, process-level 설정 후 Gradle compile과 focused suite는 성공했다.
 - Audit diagnostic은 기존 Room/service corpus 결과를 test side에서 렌더한다. planner 호출을 추가하지 않으며 CONTROL=1, EXPERIMENTAL=1, TOTAL=2, THIRD=0을 유지한다.
 - 이번 변경은 test/audit/documentation 전용이다. Production B4/B5/B6/B7/B8/B9, version, persistence schema, Power, JUMP_LANDING, Mixed scope, C20 incumbent behavior를 수정하지 않았다.
-- C25 census에는 22 generated cases (19 CONTROL 포함), exact B4/B5/B6, owner-week material delta before/after, B7 attribution/target outcomes, scope/B8/B9, build accounting가 들어 있다. SHA-256: `854dad43d43bcbc54ffa8ba828da4eaf374b7981595b75c0d6ed8e64be3750a2`.
+- C25 census에는 22 generated cases (19 CONTROL 포함), exact B4/B5/B6, owner-week material delta before/after, B7 attribution/target outcomes, scope/B8/B9, build accounting가 들어 있다. SHA-256: `05475A42C026915768AF708A51297D767139CF7E569DFCBBFB998B30AFAA85D4`.
