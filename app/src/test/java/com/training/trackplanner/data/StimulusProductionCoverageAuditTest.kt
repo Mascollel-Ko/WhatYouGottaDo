@@ -849,6 +849,67 @@ class StimulusProductionCoverageAuditTest {
             parentFile?.mkdirs()
             writeText(c30Census)
         }
+        val c31BeforeCensus = C31MovementB6AuthorityReuseCensus.render(
+            c29Census = c29Census,
+            canonicalPlanningByCase = canonicalPlanningByCase,
+            preparedContextByCase = productionContextByCase,
+            selectionPlanByCase = c30SelectionPlanByCase,
+            authorizationPlanByCase = c30AuthorizationPlanByCase,
+            experimentalByCase = records.mapNotNull { (spec, result) ->
+                result?.comparison?.experimental?.let { spec.label to it }
+            }.toMap(),
+            stage = "C31_AUTHORITY_REUSE_AUDIT",
+            startSha = "caea0d2def0fd3317b02101cc154b306ed5dc23c"
+        )
+        val c31BeforeSummary = org.json.JSONObject(c31BeforeCensus).getJSONObject("summary")
+        assertEquals(22, c31BeforeSummary.getInt("movementTargets"))
+        assertEquals(208, c31BeforeSummary.getInt("candidatePoolRows"))
+        assertEquals(0, c31BeforeSummary.getInt("movementCandidatesWithExistingQualityB6"))
+        assertEquals(0, c31BeforeSummary.getInt("exactSameOwnerAuthority"))
+        assertEquals(0, c31BeforeSummary.getInt("qualityNonAdditiveReuse"))
+        assertEquals(0, c31BeforeSummary.getInt("taskNonAdditiveReuse"))
+        assertEquals(0, c31BeforeSummary.getInt("sameStableKeyDifferentRole"))
+        assertEquals(0, c31BeforeSummary.getInt("historyBackedCandidate"))
+        assertEquals(0, c31BeforeSummary.getInt("userCalibrationCandidate"))
+        assertEquals(0, c31BeforeSummary.getInt("authorizedAlternative"))
+        assertEquals(22, c31BeforeSummary.getInt("genuineNoB6Policy"))
+        assertEquals(22, org.json.JSONObject(c31BeforeCensus).getJSONArray("targets").length())
+        assertTrue(org.json.JSONObject(c31BeforeCensus).getJSONArray("targets").let { rows ->
+            (0 until rows.length()).all { index ->
+                val row = rows.getJSONObject(index)
+                val qualityPool = row.getJSONArray("candidatePool")
+                val otherOwners = row.getJSONArray("sameCaseOtherCanonicalB5Owners")
+                val taskProtocols = row.getJSONArray("approvedTaskProtocolMovementOverlay")
+                val taskAuthorities = row.getJSONArray("sameCaseAuthorizedTaskB6Owners")
+                val allCandidatesLackQualityAuthority = (0 until qualityPool.length()).all {
+                    qualityPool.getJSONObject(it).getJSONArray("existingQualityAuthorities").length() == 0
+                }
+                val noOtherDirectAuthorizedMaterial = (0 until otherOwners.length()).all {
+                    val owner = otherOwners.getJSONObject(it)
+                    !owner.getBoolean("directMovementRelation") &&
+                        !owner.getBoolean("hasExactExecutableQualityB6") &&
+                        owner.getInt("materializedPhysicalRows") == 0
+                }
+                val noApprovedTaskDirectRelation = (0 until taskProtocols.length()).all {
+                    val protocol = taskProtocols.getJSONObject(it)
+                    !protocol.getBoolean("directMovementRelation") &&
+                        !protocol.getBoolean("stableKeyInMovementCandidatePool")
+                }
+                val noAuthorizedTaskMaterialCanSatisfy = (0 until taskAuthorities.length()).all {
+                    val authority = taskAuthorities.getJSONObject(it)
+                    !authority.getBoolean("directMovementRelation") && authority.getInt("materializedProtocolRows") == 0
+                }
+                allCandidatesLackQualityAuthority && noOtherDirectAuthorizedMaterial && noApprovedTaskDirectRelation &&
+                    noAuthorizedTaskMaterialCanSatisfy &&
+                    row.getJSONArray("taskAuthoritiesInMovementCandidatePool").length() == 0 &&
+                    row.getJSONArray("directMovementQualityRows").length() == 0 &&
+                    row.getJSONArray("directMovementTaskRows").length() == 0
+            }
+        })
+        java.io.File("build/reports/c31-movement-b6-authority-reuse-census-before.json").apply {
+            parentFile?.mkdirs()
+            writeText(c31BeforeCensus)
+        }
         assertEquals(0, nextPhaseSummary.getInt("qualityAddedOwnerWeeksWithoutAuthorizedB6"))
         assertEquals(0, nextPhaseSummary.getJSONArray("qualityAddedOwnerWeeksWithoutAuthorizedB6Cases").length())
         assertEquals(73, nextPhaseSummary.getInt("b11CanonicalReplacementButB7UnclosedOwnerRows"))

@@ -236,6 +236,44 @@ class StimulusTargetCandidateSelectorTest {
     }
 
     @Test
+    fun movementTargetDoesNotReuseSameStableKeyAuthorityFromDifferentRole() {
+        val candidate = exercise("dual_authorized_candidate")
+        val base = fixture(listOf(candidate), listOf(relation("dual_authorized_candidate")))
+        val snapshot = base.snapshot.copy(
+            canonicalStrengthSignals = mapOf("dual_authorized_candidate" to CanonicalStrengthSignal(100.0, observationCount = 2)),
+            metadata = base.snapshot.metadata.mapValues { (_, metadata) ->
+                metadata.copy(activityKind = "EXERCISE", programSlot = "CORE_STABILITY_ACCESSORY", progressMetricType = "LOAD_REPS",
+                    analysisEligibility = MetadataTokenField.parse("STRENGTH_PROGRESS"))
+            }
+        )
+        val movement = StimulusMovementTarget(
+            MovementCoverage.CORE_DIRECT, TargetPriority.PRIMARY,
+            reasonCodes = listOf("B4_MOVEMENT_TARGET_ADMITTED"), evidence = emptyList()
+        )
+        val strength = target(TrainableQuality.STRENGTH, TargetPriority.SECONDARY)
+        val targetPlan = StimulusTargetPlan(listOf(strength), emptyList(), emptyList(), movementTargets = listOf(movement))
+        val selection = StimulusTargetCandidateSelector().build(
+            targetPlan, snapshot, base.state, base.request, base.catalog
+        )
+        val selected = selection.selectedCandidates.single()
+        val differentRolePrescription = PlannedPrescription(
+            text = "2 x 5", sets = listOf(
+                ProgramSetPrescription(1, 5, 80.0, 0),
+                ProgramSetPrescription(2, 5, 80.0, 0)
+            ), restSeconds = 120, weightSource = "UNRELATED_ROLE_AUTHORITY"
+        )
+
+        val authorization = StimulusPrescriptionAuthorizationEngine().build(
+            targetPlan, selection, snapshot,
+            mapOf(StimulusPrescriptionOwnerIdentity(selected.stableKey, "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT") to differentRolePrescription)
+        )
+
+        assertEquals("CANONICAL_STIMULUS_QUALITY_STRENGTH", selected.selectionRole)
+        assertEquals(StimulusMovementB6Status.NO_EXECUTABLE_MOVEMENT_AUTHORITY,
+            authorization.movementAuthorizations.single().status)
+    }
+
+    @Test
     fun selectedOwnerCanCoverAnotherTargetWithoutSelectingASecondRole() {
         val dual = exercise("dual_capability")
         val fixture = fixture(listOf(dual), listOf(
