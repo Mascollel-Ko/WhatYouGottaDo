@@ -7,7 +7,7 @@
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.5 |
-| Last audited commit | acc0787f607b02e8e727e6c7f0daeffb40d3f334 |
+| Last audited commit | 1880d129478927c32b9dc04db91f6b82c2ec60de |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1373,4 +1373,4 @@ Post-audit boundary notes
 - B5 selects owners only after target admission using the canonical direct movement relation. B6 recognizes only exact, already-authorized same-owner/same-role Quality or approved Task material, without granting additional dose. Otherwise execution remains `POLICY_UNSUPPORTED`; there is no generic prescription fallback. The old MaterialDemandResolver remains candidate evidence and cannot independently admit movement work.
 - The C29 sparse set has 22 movement needs / 44 prior owner-weeks. All 22 are explicitly ADDRESS from existing actionable gap/pressure evidence, receive direction-only B4 targets, and receive canonical B5 owners; none has an exact movement dose authority, so executable movement rows remain 0. Zero exposure alone does not force ADDRESS, as tested. B7/B8 predicates and routing scope are unchanged.
 - C30 census and audit: [`docs/c30_movement_disposition_target_admission_audit.md`](../../c30_movement_disposition_target_admission_audit.md), [`docs/c30-movement-disposition-target-admission-census.json`](../../c30-movement-disposition-target-admission-census.json). App remains `0.5.1.5`; Room remains 38 without a persistence migration.
-- C30 implementation/test commit, after Hosted CI is green, is recorded as this protocol's `lastAuditedCommit`; docs-only closeout does not replace it.
+- C30 implementation/test commit `1880d129478927c32b9dc04db91f6b82c2ec60de` is this protocol's `lastAuditedCommit`. Hosted run [37614855371](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/37614855371) passed 2,338 tests (0 failures, 0 errors, 4 skips), protocol/contracts/whitespace validation, coverage upload, APK assembly, signer validation, and artifact upload. The final full-suite census observed 6,651 ms for 22 generated cases (302.3 ms mean, 262 ms median, 770 ms max); measurements vary by JVM/worker load, so this is treated as a possible latency increase rather than a stable benchmark. Coverage report SHA-256 is `7F08B15F0DAAA49F2693453870F10E18AB95583D9A646CAD7FDA409DDCFDC5E9`; census SHA-256 is `E3863C5B047937488D3F6CA1C49CE7F7DC6B65FD628E7364FB3E45FEC22B0CD1`; APK is 68,889,247 bytes with SHA-256 `0F53EF10D3752CC1D58258FE60FDFD48C3C2489FE94D0C2C1F95EB83C1299F56`.
