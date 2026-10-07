@@ -19,11 +19,43 @@ enum class StimulusDoseStrategy {
     REDISTRIBUTE_PERSONAL_BASELINE,
     REDISTRIBUTE_DIRECTION_ONLY,
     REDUCE_OR_RESTRUCTURE,
+    ADDRESS_MOVEMENT_COVERAGE_DIRECTION_ONLY,
     NO_MINIMUM_TARGET,
     UNRESOLVED
 }
 
 enum class StimulusPortfolioComparisonStatus { MATCH, DIFFERENT, UNAVAILABLE }
+
+enum class MovementNeedDisposition { ADDRESS, DEFER, EXCLUDE, UNRESOLVED }
+
+enum class MovementNeedDispositionReason {
+    ACTIONABLE_REPRESENTATION_GAP,
+    LOW_PRIORITY_GAP_DEFERRED,
+    GAP_DOES_NOT_CONTRIBUTE_TRANSITION_PRESSURE,
+    NO_ACTIONABLE_GAP_UNDER_EXISTING_POLICY,
+    RESISTANCE_FOUNDATIONAL_ONRAMP,
+    EXPLICIT_USER_MOVEMENT_RESTRICTION,
+    GLOBAL_RECOVERY_RESTRICTION,
+    UNSUPPORTED_MOVEMENT_IDENTITY,
+    INCONSISTENT_GAP_EVIDENCE
+}
+
+data class StimulusMovementTrainingDecision(
+    val movementCoverage: MovementCoverage?,
+    val sourceCoverageCode: String,
+    val relevance: NeedRelevance,
+    val disposition: MovementNeedDisposition,
+    val priority: TargetPriority,
+    val basePriority: RepresentationPriority,
+    val representationState: RepresentationState,
+    val evidenceConfidence: PlanningConfidence,
+    val currentExposure28d: Double,
+    val priorExposure28d: Double,
+    val gapPriority: MovementGapPriority?,
+    val contributesTransitionPressure: Boolean,
+    val reasonCodes: List<String>,
+    val evidence: List<String>
+)
 
 data class StimulusQualityTrainingDecision(
     val quality: TrainableQuality,
@@ -111,10 +143,11 @@ data class StimulusTrainingDecisionPortfolio(
     val shadowOnly: Boolean = true,
     val prescriptionAuthority: Boolean = false,
     val selectionAuthority: Boolean = false,
-    val placementAuthority: Boolean = false
+    val placementAuthority: Boolean = false,
+    val movementDecisions: List<StimulusMovementTrainingDecision> = emptyList()
 )
 
-/** Builds B3 in O(Q+T) from the two already summarized shadow objects. */
+/** Builds B3 in O(Q+T+M) from summarized quality/task/movement evidence. */
 internal class StimulusTrainingDecisionPortfolioEngine {
     fun build(
         profile: AthleteStimulusNeedProfile,
@@ -260,13 +293,78 @@ internal class StimulusTrainingDecisionPortfolioEngine {
                 evidenceBasis = need.exposure.evidenceBasis
             )
         }
+        val movements = profile.movementNeedEvidence.map { need ->
+            val dispositionReason = when {
+                need.movementCoverage == null -> MovementNeedDispositionReason.UNSUPPORTED_MOVEMENT_IDENTITY
+                need.explicitlyRestricted -> MovementNeedDispositionReason.EXPLICIT_USER_MOVEMENT_RESTRICTION
+                need.foundationalOnramp -> MovementNeedDispositionReason.RESISTANCE_FOUNDATIONAL_ONRAMP
+                need.globallyRestricted -> MovementNeedDispositionReason.GLOBAL_RECOVERY_RESTRICTION
+                !need.contributesTransitionPressure && need.gapPriority == null ->
+                    MovementNeedDispositionReason.NO_ACTIONABLE_GAP_UNDER_EXISTING_POLICY
+                need.contributesTransitionPressure && need.gapPriority == MovementGapPriority.LOW ->
+                    MovementNeedDispositionReason.LOW_PRIORITY_GAP_DEFERRED
+                need.contributesTransitionPressure && need.gapPriority in setOf(MovementGapPriority.HIGH, MovementGapPriority.MODERATE) ->
+                    MovementNeedDispositionReason.ACTIONABLE_REPRESENTATION_GAP
+                else -> MovementNeedDispositionReason.INCONSISTENT_GAP_EVIDENCE
+            }
+            val disposition = when (dispositionReason) {
+                MovementNeedDispositionReason.UNSUPPORTED_MOVEMENT_IDENTITY,
+                MovementNeedDispositionReason.INCONSISTENT_GAP_EVIDENCE -> MovementNeedDisposition.UNRESOLVED
+                MovementNeedDispositionReason.ACTIONABLE_REPRESENTATION_GAP -> MovementNeedDisposition.ADDRESS
+                MovementNeedDispositionReason.EXPLICIT_USER_MOVEMENT_RESTRICTION -> MovementNeedDisposition.EXCLUDE
+                else -> MovementNeedDisposition.DEFER
+            }
+            val priority = when (need.gapPriority) {
+                MovementGapPriority.HIGH -> TargetPriority.PRIMARY
+                MovementGapPriority.MODERATE -> TargetPriority.SECONDARY
+                MovementGapPriority.LOW -> TargetPriority.BACKGROUND
+                else -> if (need.movementCoverage == null) TargetPriority.UNRESOLVED else TargetPriority.NONE
+            }
+            val relevance = when (need.gapPriority) {
+                MovementGapPriority.HIGH -> NeedRelevance.HIGH
+                MovementGapPriority.MODERATE -> NeedRelevance.MODERATE
+                MovementGapPriority.LOW -> NeedRelevance.LOW
+                null -> if (need.movementCoverage == null) NeedRelevance.UNKNOWN else NeedRelevance.NONE
+            }
+            StimulusMovementTrainingDecision(
+                movementCoverage = need.movementCoverage,
+                sourceCoverageCode = need.sourceCoverageCode,
+                relevance = relevance,
+                disposition = disposition,
+                priority = priority,
+                basePriority = need.basePriority,
+                representationState = need.representationState,
+                evidenceConfidence = need.evidenceConfidence,
+                currentExposure28d = need.currentExposure28d,
+                priorExposure28d = need.priorExposure28d,
+                gapPriority = need.gapPriority,
+                contributesTransitionPressure = need.contributesTransitionPressure,
+                reasonCodes = (need.reasonCodes + "MOVEMENT_DISPOSITION_${disposition.name}" + dispositionReason.name).distinct(),
+                evidence = listOf(
+                    "basePriority=${need.basePriority.name}",
+                    "representationState=${need.representationState.name}",
+                    "evidenceConfidence=${need.evidenceConfidence.name}",
+                    "currentExposure28d=${need.currentExposure28d}",
+                    "priorExposure28d=${need.priorExposure28d}",
+                    "gapPriority=${need.gapPriority?.name ?: "NONE"}",
+                    "contributesTransitionPressure=${need.contributesTransitionPressure}",
+                    "foundationalOnramp=${need.foundationalOnramp}",
+                    "globallyRestricted=${need.globallyRestricted}",
+                    "explicitlyRestricted=${need.explicitlyRestricted}",
+                    "numericDoseAuthority=false"
+                )
+            )
+        }
         return StimulusTrainingDecisionPortfolio(
             qualityDecisions = qualities,
             taskDecisions = tasks,
+            movementDecisions = movements,
             unresolved = (qualities.filter { it.strategy == StimulusDoseStrategy.UNRESOLVED }
                 .map { "QUALITY_${it.quality.name}_UNRESOLVED" } +
                 tasks.filter { it.strategy == StimulusDoseStrategy.UNRESOLVED }
-                    .map { "TASK_${it.task}_UNRESOLVED" }).distinct()
+                    .map { "TASK_${it.task}_UNRESOLVED" } +
+                movements.filter { it.disposition == MovementNeedDisposition.UNRESOLVED }
+                    .map { "MOVEMENT_${it.sourceCoverageCode}_UNRESOLVED" }).distinct()
         )
     }
 
@@ -466,6 +564,25 @@ internal fun StimulusTrainingDecisionPortfolio.toCompactJson(): JSONObject = JSO
         .put("numericBaselineAuthority", decision.numericBaselineAuthority)
         .put("evidenceBasis", decision.evidenceBasis.name)
         .put("reasonCodes", JSONArray(decision.reasonCodes)).put("evidence", JSONArray(decision.evidence))
+    }))
+    .put("movementDecisions", JSONArray(movementDecisions.map { decision -> JSONObject()
+        .put("movementCoverage", decision.movementCoverage?.name)
+        .put("sourceCoverageCode", decision.sourceCoverageCode)
+        .put("relevance", decision.relevance.name)
+        .put("disposition", decision.disposition.name)
+        .put("priority", decision.priority.name)
+        .put("basePriority", decision.basePriority.name)
+        .put("representationState", decision.representationState.name)
+        .put("evidenceConfidence", decision.evidenceConfidence.name)
+        .put("currentExposure28d", decision.currentExposure28d)
+        .put("priorExposure28d", decision.priorExposure28d)
+        .put("gapPriority", decision.gapPriority?.name)
+        .put("contributesTransitionPressure", decision.contributesTransitionPressure)
+        .put("foundationalOnramp", decision.evidence.any { it == "foundationalOnramp=true" })
+        .put("globallyRestricted", decision.evidence.any { it == "globallyRestricted=true" })
+        .put("explicitlyRestricted", decision.evidence.any { it == "explicitlyRestricted=true" })
+        .put("reasonCodes", JSONArray(decision.reasonCodes))
+        .put("evidence", JSONArray(decision.evidence))
     }))
     .put("comparison", comparison?.toCompactJson())
 

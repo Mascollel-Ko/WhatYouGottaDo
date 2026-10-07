@@ -10,7 +10,9 @@ import com.training.trackplanner.data.ProgramGoal
 import com.training.trackplanner.data.ProgramPeriodizationType
 import com.training.trackplanner.data.ProgramSkeletonItem
 import com.training.trackplanner.data.ProgramSkeletonRequest
+import com.training.trackplanner.data.ProgramSetPrescription
 import com.training.trackplanner.data.ProgramWeekPlan
+import com.training.trackplanner.data.MetadataTokenField
 import com.training.trackplanner.data.RuntimeExerciseMetadataDefaults
 import com.training.trackplanner.data.StimulusCapabilityLevel
 import com.training.trackplanner.data.TrainableQuality
@@ -99,6 +101,138 @@ class StimulusTargetCandidateSelectorTest {
         )), emptyList()).candidateDispositionIndex.entries.single()
         assertEquals(StimulusCandidateDispositionStatus.INELIGIBLE, excluded.status)
         assertTrue(StimulusCandidateDispositionReason.USER_EXCLUDED in excluded.reasons)
+    }
+
+    @Test
+    fun admittedMovementTargetSelectsCanonicalB5OwnerButDoesNotInventDoseOrB6() {
+        val candidate = exercise("core_candidate")
+        val base = fixture(listOf(candidate), emptyList())
+        val snapshot = base.snapshot.copy(
+            canonicalStrengthSignals = mapOf("dual_authorized_candidate" to CanonicalStrengthSignal(100.0, observationCount = 2)),
+            metadata = base.snapshot.metadata.mapValues { (_, metadata) ->
+            metadata.copy(activityKind = "EXERCISE", programSlot = "CORE_STABILITY_ACCESSORY", progressMetricType = "LOAD_REPS",
+                analysisEligibility = MetadataTokenField.parse("STRENGTH_PROGRESS"))
+        })
+        val target = StimulusMovementTarget(
+            movementCoverage = MovementCoverage.CORE_DIRECT,
+            priority = TargetPriority.SECONDARY,
+            reasonCodes = listOf("B4_MOVEMENT_TARGET_ADMITTED"),
+            evidence = listOf("numericDoseAuthority=false")
+        )
+        val targetPlan = StimulusTargetPlan(emptyList(), emptyList(), emptyList(), movementTargets = listOf(target))
+        assertEquals(PlannedActivityKind.RESISTANCE, snapshot.activityKind("core_candidate"))
+        assertEquals(MovementCoverage.CORE_DIRECT, snapshot.movementCoverage("core_candidate"))
+        assertEquals("PROGRAM_SELECTABLE", snapshot.metadata.getValue("core_candidate").planningEligibility)
+
+        val selection = StimulusTargetCandidateSelector().build(
+            targetPlan, snapshot, base.state, base.request, CanonicalExercisePhysicalQualityCatalog.EMPTY
+        )
+        val selected = selection.selectedCandidates.single()
+        assertEquals("core_candidate", selected.stableKey)
+        assertEquals("CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT", selected.selectionRole)
+        assertEquals(0, selected.targetSetsFromExistingPrescription)
+        assertTrue(selection.materialDemand.candidates.isEmpty())
+
+        val authorization = StimulusPrescriptionAuthorizationEngine().build(
+            targetPlan, selection, snapshot, emptyMap()
+        ).movementAuthorizations.single()
+        assertEquals(StimulusMovementB6Status.NO_EXECUTABLE_MOVEMENT_AUTHORITY, authorization.status)
+        assertTrue(authorization.reasonCodes.contains("NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY"))
+        assertTrue(authorization.reasonCodes.contains("NO_APPROVED_MOVEMENT_DOSE_POLICY"))
+    }
+
+    @Test
+    fun canonicalUpperPullTargetAcceptsTheExistingVerticalPullAggregateRelation() {
+        val candidate = exercise("vertical_pull_owner")
+        val base = fixture(listOf(candidate), emptyList())
+        val snapshot = base.snapshot.copy(metadata = base.snapshot.metadata.mapValues { (_, metadata) ->
+            metadata.copy(activityKind = "EXERCISE", programSlot = "VERTICAL_PULL_STRENGTH", progressMetricType = "LOAD_REPS",
+                analysisEligibility = MetadataTokenField.parse("STRENGTH_PROGRESS"))
+        })
+        assertEquals(MovementCoverage.VERTICAL_PULL, snapshot.movementCoverage(candidate.stableKey))
+        val target = StimulusMovementTarget(
+            MovementCoverage.UPPER_PULL, TargetPriority.SECONDARY,
+            reasonCodes = listOf("B4_MOVEMENT_TARGET_ADMITTED"), evidence = emptyList()
+        )
+        val selection = StimulusTargetCandidateSelector().build(
+            StimulusTargetPlan(emptyList(), emptyList(), emptyList(), movementTargets = listOf(target)),
+            snapshot, base.state, base.request, base.catalog
+        )
+
+        assertEquals(candidate.stableKey, selection.traces.single().selectedStableKey)
+        assertEquals("CANONICAL_STIMULUS_MOVEMENT_UPPER_PULL", selection.selectedCandidates.single().selectionRole)
+        assertTrue(selection.materialDemand.candidates.isEmpty())
+    }
+
+    @Test
+    fun movementCandidateDoesNotSuppressLaterCanonicalQualitySelection() {
+        val candidate = exercise("dual_candidate")
+        val base = fixture(listOf(candidate), listOf(relation("dual_candidate")))
+        val snapshot = base.snapshot.copy(metadata = base.snapshot.metadata.mapValues { (_, metadata) ->
+            metadata.copy(activityKind = "EXERCISE", programSlot = "CORE_STABILITY_ACCESSORY", progressMetricType = "LOAD_REPS",
+                analysisEligibility = MetadataTokenField.parse("STRENGTH_PROGRESS"))
+        })
+        val movement = StimulusMovementTarget(
+            MovementCoverage.CORE_DIRECT, TargetPriority.PRIMARY,
+            reasonCodes = listOf("B4_MOVEMENT_TARGET_ADMITTED"), evidence = emptyList()
+        )
+        val strength = target(TrainableQuality.STRENGTH, TargetPriority.SECONDARY)
+        val targetPlan = StimulusTargetPlan(listOf(strength), emptyList(), emptyList(), movementTargets = listOf(movement))
+
+        val result = StimulusTargetCandidateSelector().build(
+            targetPlan, snapshot, base.state, base.request, base.catalog
+        )
+
+        val strengthTrace = result.traces.single { it.targetId == "QUALITY:STRENGTH" }
+        assertTrue(strengthTrace.selectionRequired)
+        assertEquals("dual_candidate", strengthTrace.selectedStableKey)
+        val movementTrace = result.traces.single { it.targetId == movement.targetId }
+        assertEquals("dual_candidate", movementTrace.selectedStableKey)
+        assertEquals("CANONICAL_STIMULUS_QUALITY_STRENGTH", movementTrace.selectedSelectionRole)
+        assertTrue(movementTrace.reasonCodes.contains("MOVEMENT_COVERED_BY_CANONICAL_B5_OWNER"))
+        assertEquals(setOf("QUALITY:STRENGTH", movement.targetId), result.selectedCandidates.single().coveredTargetIds)
+    }
+
+    @Test
+    fun movementTargetReusesOnlyTheExactAuthorizedQualityPrescription() {
+        val candidate = exercise("dual_authorized_candidate")
+        val base = fixture(listOf(candidate), listOf(relation("dual_authorized_candidate")))
+        val snapshot = base.snapshot.copy(
+            canonicalStrengthSignals = mapOf("dual_authorized_candidate" to CanonicalStrengthSignal(100.0, observationCount = 2)),
+            metadata = base.snapshot.metadata.mapValues { (_, metadata) ->
+                metadata.copy(activityKind = "EXERCISE", programSlot = "CORE_STABILITY_ACCESSORY", progressMetricType = "LOAD_REPS",
+                    analysisEligibility = MetadataTokenField.parse("STRENGTH_PROGRESS"))
+            }
+        )
+        val movement = StimulusMovementTarget(
+            MovementCoverage.CORE_DIRECT, TargetPriority.PRIMARY,
+            reasonCodes = listOf("B4_MOVEMENT_TARGET_ADMITTED"), evidence = emptyList()
+        )
+        val strength = target(TrainableQuality.STRENGTH, TargetPriority.SECONDARY)
+        val targetPlan = StimulusTargetPlan(listOf(strength), emptyList(), emptyList(), movementTargets = listOf(movement))
+        val selection = StimulusTargetCandidateSelector().build(
+            targetPlan, snapshot, base.state, base.request, base.catalog
+        )
+        val owner = selection.selectedCandidates.single()
+        assertEquals("dual_authorized_candidate", owner.stableKey)
+        assertEquals("CANONICAL_STIMULUS_QUALITY_STRENGTH", owner.selectionRole)
+        assertTrue(movement.targetId in owner.coveredTargetIds)
+
+        val exactPrescription = PlannedPrescription(
+            text = "2 x 5", sets = listOf(
+                ProgramSetPrescription(1, 5, 80.0, 0),
+                ProgramSetPrescription(2, 5, 80.0, 0)
+            ), restSeconds = 120, weightSource = "EXACT_TEST_AUTHORITY"
+        )
+        val authorization = StimulusPrescriptionAuthorizationEngine().build(
+            targetPlan, selection, snapshot,
+            mapOf(StimulusPrescriptionOwnerIdentity(owner.stableKey, owner.selectionRole) to exactPrescription)
+        )
+
+        val movementAuthorization = authorization.movementAuthorizations.single()
+        assertEquals(StimulusMovementB6Status.COVERED_BY_EXISTING_QUALITY_B6, movementAuthorization.status)
+        assertEquals("QUALITY:STRENGTH", movementAuthorization.existingAuthorityTargetId)
+        assertEquals(exactPrescription, authorization.authorizedPrescriptions.values.single())
     }
 
     @Test

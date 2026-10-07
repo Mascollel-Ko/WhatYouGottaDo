@@ -404,6 +404,16 @@ internal object NextPhaseBottleneckCensus {
                 } else null
             } }
         }
+        fun unclosedCanonicalReplacementRowsForTargetFamily(family: String): Int =
+            canonicalReplacementUnclosedRows.count { row ->
+                row.getJSONArray("b11TargetEvidence").let { evidence ->
+                    (0 until evidence.length()).any { index ->
+                        val target = evidence.getJSONObject(index)
+                        target.optString("classification") == "CANONICAL_REPLACEMENT" &&
+                            target.optString("target").startsWith("$family:")
+                    }
+                }
+            }
         val taskReplacementsWithExactProtocol = canonicalReplacementUnclosedRows.flatMap { removal ->
             val case = controlCases.single { it.getString("case") == removal.getString("case") }
             val owner = removal.getJSONObject("owner")
@@ -486,6 +496,9 @@ internal object NextPhaseBottleneckCensus {
             }.distinct().sorted()))
             .put("qualityAddedOwnerWeeksWithoutAuthorizedB6Evidence", JSONArray(unexecutableQualityAddedRows))
             .put("b11CanonicalReplacementButB7UnclosedOwnerRows", canonicalReplacementUnclosedRows.size)
+            .put("b11CanonicalReplacementButB7UnclosedMovementOwnerRows", unclosedCanonicalReplacementRowsForTargetFamily("MOVEMENT"))
+            .put("b11CanonicalReplacementButB7UnclosedQualityOwnerRows", unclosedCanonicalReplacementRowsForTargetFamily("QUALITY"))
+            .put("b11CanonicalReplacementButB7UnclosedTaskOwnerRows", unclosedCanonicalReplacementRowsForTargetFamily("TASK"))
             .put("taskRoleReplacementRowsWithExactApprovedTaskB6", JSONArray(taskReplacementsWithExactProtocol))
             .put("buildAccounting", JSONObject().put("controlPerGeneratedCase", 1)
                 .put("experimentalPerGeneratedCase", 1).put("totalPerGeneratedCase", 2).put("thirdPerGeneratedCase", 0))

@@ -20,6 +20,22 @@ enum class StimulusPrescriptionAuthorizationStatus {
     MODEL_UNAVAILABLE
 }
 
+enum class StimulusMovementB6Status {
+    COVERED_BY_EXISTING_QUALITY_B6,
+    COVERED_BY_APPROVED_TASK_B6,
+    NO_EXECUTABLE_MOVEMENT_AUTHORITY,
+    NO_B5_MOVEMENT_OWNER
+}
+
+/** B6 observes exact pre-existing authority for a shared owner; this grants no separate movement dose. */
+data class StimulusMovementB6Authorization(
+    val targetId: String,
+    val owner: StimulusPrescriptionOwnerIdentity?,
+    val status: StimulusMovementB6Status,
+    val reasonCodes: List<String>,
+    val existingAuthorityTargetId: String? = null
+)
+
 data class StimulusPrescriptionAuthorization(
     val targetId: String,
     val quality: TrainableQuality?,
@@ -43,7 +59,9 @@ data class StimulusPrescriptionAuthorizationPlan(
     val productionAuthority: Boolean = false,
     /** Canonical B5 owner prescriptions; only history-backed owners may be preserved on conflict. */
     val canonicalPrescriptions: Map<StimulusPrescriptionOwnerIdentity, PlannedPrescription> = emptyMap(),
-    val historyBackedOwners: Set<StimulusPrescriptionOwnerIdentity> = emptySet()
+    val historyBackedOwners: Set<StimulusPrescriptionOwnerIdentity> = emptySet(),
+    /** Movement targets may reuse an already-authorized physical row but never grant a new dose. */
+    val movementAuthorizations: List<StimulusMovementB6Authorization> = emptyList()
 ) {
     private val executableAuthorizations: List<StimulusPrescriptionAuthorization> = authorizations
         .mapNotNull { authorization ->
@@ -245,7 +263,8 @@ class StimulusPrescriptionAuthorizationEngine(
         targetPlan: StimulusTargetPlan,
         selectionPlan: StimulusCandidateSelectionPlan,
         snapshot: PlanningHistorySnapshot,
-        canonicalPrescriptionContext: CanonicalPrescriptionContext
+        canonicalPrescriptionContext: CanonicalPrescriptionContext,
+        approvedTaskB6Owners: Set<StimulusPrescriptionOwnerIdentity> = emptySet()
     ): StimulusPrescriptionAuthorizationPlan {
         val realization = realizationEngine.build(
             targetPlan, selectionPlan, snapshot,
@@ -283,8 +302,58 @@ class StimulusPrescriptionAuthorizationEngine(
         return StimulusPrescriptionAuthorizationPlan(
             localized,
             canonicalPrescriptions = canonicalPrescriptionContext.prescriptions,
-            historyBackedOwners = canonicalPrescriptionContext.historyBackedOwners
+            historyBackedOwners = canonicalPrescriptionContext.historyBackedOwners,
+            movementAuthorizations = movementB6Authorizations(targetPlan, selectionPlan, localized, approvedTaskB6Owners)
         )
+    }
+
+    private fun movementB6Authorizations(
+        targetPlan: StimulusTargetPlan,
+        selectionPlan: StimulusCandidateSelectionPlan,
+        qualityAuthorizations: List<StimulusPrescriptionAuthorization>,
+        approvedTaskB6Owners: Set<StimulusPrescriptionOwnerIdentity>
+    ): List<StimulusMovementB6Authorization> = targetPlan.movementTargets.map { target ->
+        val candidate = selectionPlan.selectedCandidates.firstOrNull { target.targetId in it.coveredTargetIds }
+        val owner = candidate?.let { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }
+        val qualityAuthority = owner?.let { selectedOwner -> qualityAuthorizations.firstOrNull { authorization ->
+            authorization.owner?.let { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) == selectedOwner } == true &&
+                authorization.authorizedPrescription != null && authorization.status in setOf(
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
+                )
+        } }
+        when {
+            owner == null -> StimulusMovementB6Authorization(
+                targetId = target.targetId,
+                owner = null,
+                status = StimulusMovementB6Status.NO_B5_MOVEMENT_OWNER,
+                reasonCodes = listOf("B6_NOT_REACHED_WITHOUT_EXACT_B5_MOVEMENT_OWNER")
+            )
+            qualityAuthority != null -> StimulusMovementB6Authorization(
+                targetId = target.targetId,
+                owner = owner,
+                status = StimulusMovementB6Status.COVERED_BY_EXISTING_QUALITY_B6,
+                reasonCodes = listOf("MOVEMENT_COVERAGE_REUSES_EXISTING_QUALITY_AUTHORIZED_ROW", "NO_ADDITIONAL_MOVEMENT_DOSE_GRANTED"),
+                existingAuthorityTargetId = qualityAuthority.targetId
+            )
+            owner in approvedTaskB6Owners -> StimulusMovementB6Authorization(
+                targetId = target.targetId,
+                owner = owner,
+                status = StimulusMovementB6Status.COVERED_BY_APPROVED_TASK_B6,
+                reasonCodes = listOf("MOVEMENT_COVERAGE_REUSES_APPROVED_TASK_ROW", "NO_ADDITIONAL_MOVEMENT_DOSE_GRANTED")
+            )
+            else -> StimulusMovementB6Authorization(
+                targetId = target.targetId,
+                owner = owner,
+                status = StimulusMovementB6Status.NO_EXECUTABLE_MOVEMENT_AUTHORITY,
+                reasonCodes = listOf(
+                    "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY",
+                    "NO_APPROVED_MOVEMENT_DOSE_POLICY",
+                    "MOVEMENT_TARGET_HAS_NO_NUMERIC_DOSE_AUTHORITY"
+                )
+            )
+        }
     }
 
     private fun authorizationFor(

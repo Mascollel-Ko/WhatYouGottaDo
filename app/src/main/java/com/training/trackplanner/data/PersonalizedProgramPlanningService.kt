@@ -43,6 +43,7 @@ import com.training.trackplanner.data.personalized.StimulusTargetPlanEngine
 import com.training.trackplanner.data.personalized.StimulusTargetPlanComparisonEngine
 import com.training.trackplanner.data.personalized.StimulusTargetControlProgramAuditEngine
 import com.training.trackplanner.data.personalized.StimulusTargetCandidateSelector
+import com.training.trackplanner.data.personalized.StimulusCandidateSelectionPlan
 import com.training.trackplanner.data.personalized.StimulusSelectionProgramComparison
 import com.training.trackplanner.data.personalized.StimulusSelectionProgramComparisonEngine
 import com.training.trackplanner.data.personalized.StimulusPrescriptionRealizationPlanEngine
@@ -52,6 +53,7 @@ import com.training.trackplanner.data.personalized.applyTaskProtocolAuthorizatio
 import com.training.trackplanner.data.personalized.withTaskProtocolFrequencyOutcomes
 import com.training.trackplanner.data.personalized.PlannedPrescription
 import com.training.trackplanner.data.personalized.StimulusPrescriptionAuthorizationEngine
+import com.training.trackplanner.data.personalized.StimulusPrescriptionAuthorizationPlan
 import com.training.trackplanner.data.personalized.StimulusPrescriptionMaterializationAuditEngine
 import com.training.trackplanner.data.personalized.CanonicalStimulusPlanningResult
 import com.training.trackplanner.data.personalized.CanonicalPreparedProgram
@@ -421,7 +423,7 @@ internal class PersonalizedProgramPlanningService(
         answers: PersonalizedPlanningAnswers,
         progress: PersonalizedPlannerProgressReporter,
         productionBuildCounts: com.training.trackplanner.data.personalized.MutableStimulusProductionBuildCounts,
-        observe: (ProductionGenerationPhase) -> Unit,
+        observe: (ProductionGenerationPhase, StimulusCandidateSelectionPlan?, StimulusPrescriptionAuthorizationPlan?) -> Unit,
         experimentalProgramBuildOverride: (suspend () -> GeneratedProgramSkeleton)?
     ): CanonicalExperimentalGeneration {
         val canonicalPlanning = (context.canonicalPlanningOutcome as? CanonicalPlanningOutcome.Success)?.result
@@ -441,7 +443,7 @@ internal class PersonalizedProgramPlanningService(
         val taskProtocolDemand = com.training.trackplanner.data.personalized.applyTaskProtocolAuthorizations(
             selectionPlan.materialDemand, taskProtocolPlan
         )
-        observe(ProductionGenerationPhase.B5_COMPLETE)
+        observe(ProductionGenerationPhase.B5_COMPLETE, selectionPlan, null)
         val prescriptionContext = com.training.trackplanner.data.personalized.buildCanonicalPrescriptionContext(
             targetPlan = targetPlan,
             selectionPlan = selectionPlan,
@@ -452,11 +454,12 @@ internal class PersonalizedProgramPlanningService(
             targetPlan = targetPlan,
             selectionPlan = selectionPlan,
             snapshot = context.snapshot,
-            canonicalPrescriptionContext = prescriptionContext
+            canonicalPrescriptionContext = prescriptionContext,
+            approvedTaskB6Owners = taskProtocolPlan.authorizedByOwner.keys
         )
-        observe(ProductionGenerationPhase.B6_PRE_AUTHORITY_COMPLETE)
+        observe(ProductionGenerationPhase.B6_PRE_AUTHORITY_COMPLETE, selectionPlan, authorizationPlan)
 
-        observe(ProductionGenerationPhase.EXPERIMENTAL_BUILD)
+        observe(ProductionGenerationPhase.EXPERIMENTAL_BUILD, selectionPlan, authorizationPlan)
         val generatedExperimental = try {
             productionBuildCounts.recordProgramBuildInvocation(
                 com.training.trackplanner.data.personalized.StimulusProductionBuildKind.EXPERIMENTAL
@@ -521,7 +524,7 @@ internal class PersonalizedProgramPlanningService(
             currentPrescriptionsByQuality = realizationInputs.currentPrescriptionsByQuality,
             historyBackedAuthorities = prescriptionContext.historyBackedAuthorities
         )
-        observe(ProductionGenerationPhase.B6_POST_MATERIALIZATION_COMPLETE)
+        observe(ProductionGenerationPhase.B6_POST_MATERIALIZATION_COMPLETE, selectionPlan, authorizationPlan)
         return CanonicalExperimentalGeneration(
             program = experimental,
             selectionPlan = selectionPlan,
@@ -966,7 +969,8 @@ internal class PersonalizedProgramPlanningService(
             targetPlan = targetPlan,
             selectionPlan = selectionPlan,
             snapshot = snapshot,
-            canonicalPrescriptionContext = canonicalPrescriptionContext
+            canonicalPrescriptionContext = canonicalPrescriptionContext,
+            approvedTaskB6Owners = taskProtocolPlan.authorizedByOwner.keys
         )
         val priorId = appMetaDao.latestByPrefix("$DECISION_PREFIX%")?.value?.let(::decisionIdFromJson)
         val generatedExperimental = try {
@@ -1129,8 +1133,12 @@ internal class PersonalizedProgramPlanningService(
             progress = productionProgress.canonicalReporter(),
             canonicalPlanningComputation = canonicalPlanningComputation
         )
-        fun observe(phase: ProductionGenerationPhase) {
-            productionGenerationObserver?.invoke(ProductionGenerationObservation(phase, context))
+        fun observe(
+            phase: ProductionGenerationPhase,
+            selectionPlan: StimulusCandidateSelectionPlan? = null,
+            authorizationPlan: StimulusPrescriptionAuthorizationPlan? = null
+        ) {
+            productionGenerationObserver?.invoke(ProductionGenerationObservation(phase, context, selectionPlan, authorizationPlan))
         }
         observe(ProductionGenerationPhase.CANONICAL_PREPARED)
 

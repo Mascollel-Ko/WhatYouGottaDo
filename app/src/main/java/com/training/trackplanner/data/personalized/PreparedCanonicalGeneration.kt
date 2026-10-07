@@ -43,5 +43,7 @@ internal enum class ProductionGenerationPhase {
 /** Internal diagnostic seam for behavioral ordering and shared-context tests. */
 internal data class ProductionGenerationObservation(
     val phase: ProductionGenerationPhase,
-    val context: PreparedCanonicalGenerationContext
+    val context: PreparedCanonicalGenerationContext,
+    val selectionPlan: StimulusCandidateSelectionPlan? = null,
+    val authorizationPlan: StimulusPrescriptionAuthorizationPlan? = null
 )

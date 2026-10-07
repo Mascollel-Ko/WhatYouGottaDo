@@ -334,6 +334,7 @@
     <string name="planning_summary_movement_posterior_chain">후면 사슬</string>
     <string name="planning_summary_movement_horizontal_push">수평 밀기</string>
     <string name="planning_summary_movement_horizontal_pull">수평 당기기</string>
+    <string name="planning_summary_movement_upper_pull">상체 당기기</string>
     <string name="planning_summary_movement_vertical_push">수직 밀기</string>
     <string name="planning_summary_movement_vertical_pull">수직 당기기</string>
     <string name="planning_summary_movement_core_direct">코어 직접 훈련</string>

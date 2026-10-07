@@ -266,7 +266,7 @@ class RegionalStimulusCreditProjector {
         MovementCoverage.CALVES -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.ANKLE, com.training.trackplanner.data.PhysicalQualityRegion.LOWER)
         MovementCoverage.HORIZONTAL_PUSH -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PUSH, com.training.trackplanner.data.PhysicalQualityRegion.CHEST, com.training.trackplanner.data.PhysicalQualityRegion.SHOULDERS, com.training.trackplanner.data.PhysicalQualityRegion.ARMS)
         MovementCoverage.VERTICAL_PUSH -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PUSH, com.training.trackplanner.data.PhysicalQualityRegion.SHOULDERS, com.training.trackplanner.data.PhysicalQualityRegion.ARMS)
-        MovementCoverage.HORIZONTAL_PULL, MovementCoverage.VERTICAL_PULL -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PULL, com.training.trackplanner.data.PhysicalQualityRegion.SHOULDERS, com.training.trackplanner.data.PhysicalQualityRegion.ARMS)
+        MovementCoverage.HORIZONTAL_PULL, MovementCoverage.VERTICAL_PULL, MovementCoverage.UPPER_PULL -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PULL, com.training.trackplanner.data.PhysicalQualityRegion.SHOULDERS, com.training.trackplanner.data.PhysicalQualityRegion.ARMS)
         else -> false
     }
 }
@@ -479,7 +479,7 @@ class RegionalTargetCandidateSelector {
         MovementCoverage.POSTERIOR_CHAIN -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.POSTERIOR_CHAIN, com.training.trackplanner.data.PhysicalQualityRegion.HAMSTRING, com.training.trackplanner.data.PhysicalQualityRegion.LOWER, com.training.trackplanner.data.PhysicalQualityRegion.UNILATERAL_LOWER)
         MovementCoverage.CALVES -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.ANKLE, com.training.trackplanner.data.PhysicalQualityRegion.LOWER)
         MovementCoverage.HORIZONTAL_PUSH, MovementCoverage.VERTICAL_PUSH -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PUSH, com.training.trackplanner.data.PhysicalQualityRegion.CHEST, com.training.trackplanner.data.PhysicalQualityRegion.SHOULDERS, com.training.trackplanner.data.PhysicalQualityRegion.ARMS)
-        MovementCoverage.HORIZONTAL_PULL, MovementCoverage.VERTICAL_PULL -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PULL, com.training.trackplanner.data.PhysicalQualityRegion.SHOULDERS, com.training.trackplanner.data.PhysicalQualityRegion.ARMS)
+        MovementCoverage.HORIZONTAL_PULL, MovementCoverage.VERTICAL_PULL, MovementCoverage.UPPER_PULL -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PULL, com.training.trackplanner.data.PhysicalQualityRegion.SHOULDERS, com.training.trackplanner.data.PhysicalQualityRegion.ARMS)
         else -> false
     }
 }
@@ -882,6 +882,6 @@ private fun regionalRegionQualifierMatches(
     MovementCoverage.POSTERIOR_CHAIN -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.POSTERIOR_CHAIN, com.training.trackplanner.data.PhysicalQualityRegion.HAMSTRING, com.training.trackplanner.data.PhysicalQualityRegion.LOWER, com.training.trackplanner.data.PhysicalQualityRegion.UNILATERAL_LOWER)
     MovementCoverage.CALVES -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.ANKLE, com.training.trackplanner.data.PhysicalQualityRegion.LOWER)
     MovementCoverage.HORIZONTAL_PUSH, MovementCoverage.VERTICAL_PUSH -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PUSH, com.training.trackplanner.data.PhysicalQualityRegion.CHEST, com.training.trackplanner.data.PhysicalQualityRegion.SHOULDERS, com.training.trackplanner.data.PhysicalQualityRegion.ARMS)
-    MovementCoverage.HORIZONTAL_PULL, MovementCoverage.VERTICAL_PULL -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PULL, com.training.trackplanner.data.PhysicalQualityRegion.SHOULDERS, com.training.trackplanner.data.PhysicalQualityRegion.ARMS)
+    MovementCoverage.HORIZONTAL_PULL, MovementCoverage.VERTICAL_PULL, MovementCoverage.UPPER_PULL -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PULL, com.training.trackplanner.data.PhysicalQualityRegion.SHOULDERS, com.training.trackplanner.data.PhysicalQualityRegion.ARMS)
     else -> false
 }

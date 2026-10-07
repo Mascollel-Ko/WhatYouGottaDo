@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.62.0 |
+| Protocol version | 3.63.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.4 |
-| Last audited commit | acc0787f607b02e8e727e6c7f0daeffb40d3f334 |
+| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.5 |
+| Last audited commit | 1880d129478927c32b9dc04db91f6b82c2ec60de |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1366,3 +1366,11 @@ Post-audit boundary notes
 - The 22 generated cases route CONTROL after this fail-closed change; five requests are preflight rejects. B7/B8 predicates are unchanged. C24's eight approved Task rows remain intact in the comparison; Power and JUMP_LANDING material remain zero. Current C20 replay evaluates 10 hard-valid rows, 0 hard-invalid, 0 unresolved, and 22 rows with no current authorized EXP owner; no invalid, unresolved, or unevaluated row is forced to remain. Each generated case still uses 1 CONTROL + 1 EXPERIMENTAL build, with 0 third builds.
 - C28 implementation details and the exact per-identity/owner-week recovery lineage are in [`docs/c28_material_demand_execution_authority_audit.md`](../../c28_material_demand_execution_authority_audit.md) and [`docs/c28-material-demand-execution-authority-census.json`](../../c28-material-demand-execution-authority-census.json). App remains `0.5.1.5`; Room remains 38, with no backup/restore/Community/Cloud schema changes.
 - C28 implementation/test commit `acc0787f607b02e8e727e6c7f0daeffb40d3f334` is the `lastAuditedCommit`. Final docs-head Hosted run [37574846631](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/37574846631) passed 2,329 tests (0 failures, 0 errors, 4 skips), coverage upload, APK assembly, signer validation, and artifact upload. Coverage report SHA-256 is `C7B885E365315E85261D080447E38FB139FC91263C061D4F2D4C96E63139A56C`; census SHA-256 is `FF759D0F85ACA4729F1234B9A919E2B82CAD5ABC560A31C349891FA6E3D61696`.
+
+### Phase C30 — movement disposition and canonical target admission (protocol 3.63.0)
+
+- Existing typed movement-gap priority and transition-pressure evidence now enter the canonical B3 decision portfolio. B3 explicitly returns ADDRESS, DEFER, EXCLUDE, or UNRESOLVED; only ADDRESS creates a deterministic B4 `MOVEMENT:<coverage>` target. That target is direction-only and carries evidence/reason codes, not numeric dose authority.
+- B5 selects owners only after target admission using the canonical direct movement relation. B6 recognizes only exact, already-authorized same-owner/same-role Quality or approved Task material, without granting additional dose. Otherwise execution remains `POLICY_UNSUPPORTED`; there is no generic prescription fallback. The old MaterialDemandResolver remains candidate evidence and cannot independently admit movement work.
+- The C29 sparse set has 22 movement needs / 44 prior owner-weeks. All 22 are explicitly ADDRESS from existing actionable gap/pressure evidence, receive direction-only B4 targets, and receive canonical B5 owners; none has an exact movement dose authority, so executable movement rows remain 0. Zero exposure alone does not force ADDRESS, as tested. B7/B8 predicates and routing scope are unchanged.
+- C30 census and audit: [`docs/c30_movement_disposition_target_admission_audit.md`](../../c30_movement_disposition_target_admission_audit.md), [`docs/c30-movement-disposition-target-admission-census.json`](../../c30-movement-disposition-target-admission-census.json). App remains `0.5.1.5`; Room remains 38 without a persistence migration.
+- C30 implementation/test commit `1880d129478927c32b9dc04db91f6b82c2ec60de` is this protocol's `lastAuditedCommit`. Hosted run [37614855371](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/37614855371) passed 2,338 tests (0 failures, 0 errors, 4 skips), protocol/contracts/whitespace validation, coverage upload, APK assembly, signer validation, and artifact upload. The final full-suite census observed 6,651 ms for 22 generated cases (302.3 ms mean, 262 ms median, 770 ms max); measurements vary by JVM/worker load, so this is treated as a possible latency increase rather than a stable benchmark. Coverage report SHA-256 is `7F08B15F0DAAA49F2693453870F10E18AB95583D9A646CAD7FDA409DDCFDC5E9`; census SHA-256 is `E3863C5B047937488D3F6CA1C49CE7F7DC6B65FD628E7364FB3E45FEC22B0CD1`; APK is 68,889,247 bytes with SHA-256 `0F53EF10D3752CC1D58258FE60FDFD48C3C2489FE94D0C2C1F95EB83C1299F56`.

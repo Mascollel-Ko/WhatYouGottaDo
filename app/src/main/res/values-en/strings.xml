@@ -103,6 +103,7 @@
     <string name="planning_summary_movement_calves">Calves</string>
     <string name="planning_summary_movement_core_direct">Direct core training</string>
     <string name="planning_summary_movement_horizontal_pull">Horizontal pull</string>
+    <string name="planning_summary_movement_upper_pull">Upper-body pull</string>
     <string name="planning_summary_movement_horizontal_push">Horizontal push</string>
     <string name="planning_summary_movement_lower_knee">Knee-dominant lower body</string>
     <string name="planning_summary_movement_other">Other movement</string>

@@ -201,6 +201,7 @@ private fun movementLabel(value: MovementCoverage): Int = when (value) {
     MovementCoverage.HORIZONTAL_PULL -> R.string.planning_summary_movement_horizontal_pull
     MovementCoverage.VERTICAL_PUSH -> R.string.planning_summary_movement_vertical_push
     MovementCoverage.VERTICAL_PULL -> R.string.planning_summary_movement_vertical_pull
+    MovementCoverage.UPPER_PULL -> R.string.planning_summary_movement_upper_pull
     MovementCoverage.CORE_DIRECT -> R.string.planning_summary_movement_core_direct
     MovementCoverage.CALVES -> R.string.planning_summary_movement_calves
     MovementCoverage.ARMS_BICEPS -> R.string.planning_summary_movement_arms_biceps

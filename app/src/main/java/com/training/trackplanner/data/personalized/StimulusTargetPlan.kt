@@ -60,6 +60,17 @@ data class StimulusTaskTarget(
     val prescriptionRealizationAuthority: Boolean = false
 )
 
+/** A B4 movement target admits a semantic coverage need, never a numeric prescription. */
+data class StimulusMovementTarget(
+    val movementCoverage: MovementCoverage,
+    val priority: TargetPriority,
+    val numericAuthority: StimulusTargetNumericAuthority = StimulusTargetNumericAuthority.DIRECTION_ONLY,
+    val reasonCodes: List<String>,
+    val evidence: List<String>
+) {
+    val targetId: String get() = "MOVEMENT:${movementCoverage.name}"
+}
+
 enum class StimulusTargetComparisonStatus { MATCH, DIFFERENT, UNAVAILABLE }
 
 data class StimulusQualityTargetComparison(
@@ -159,7 +170,8 @@ data class StimulusTargetPlan(
     val prescriptionAuthority: Boolean = false,
     val selectionAuthority: Boolean = false,
     val placementAuthority: Boolean = false,
-    val schedulingAuthority: Boolean = false
+    val schedulingAuthority: Boolean = false,
+    val movementTargets: List<StimulusMovementTarget> = emptyList()
 )
 
 /** Converts B3 decisions and B2 bands into an observation-only canonical target envelope. */
@@ -170,9 +182,28 @@ class StimulusTargetPlanEngine {
     ): StimulusTargetPlan {
         val qualityTargets = portfolio.qualityDecisions.map { decision -> buildQualityTarget(decision, baseline) }
         val taskTargets = portfolio.taskDecisions.map { decision -> buildTaskTarget(decision) }
+        val movementTargets = portfolio.movementDecisions.mapNotNull { decision ->
+            if (decision.disposition != MovementNeedDisposition.ADDRESS) return@mapNotNull null
+            val coverage = decision.movementCoverage ?: return@mapNotNull null
+            StimulusMovementTarget(
+                movementCoverage = coverage,
+                priority = decision.priority,
+                numericAuthority = StimulusTargetNumericAuthority.DIRECTION_ONLY,
+                reasonCodes = (decision.reasonCodes + "B4_MOVEMENT_TARGET_ADMITTED" +
+                    "MOVEMENT_TARGET_HAS_NO_NUMERIC_DOSE_AUTHORITY").distinct(),
+                evidence = decision.evidence + listOf(
+                    "movementNeedRelevance=${decision.relevance.name}",
+                    "movementCoverage=${coverage.name}",
+                    "b4NumericAuthority=DIRECTION_ONLY",
+                    "weeklyUnitsTarget=NONE",
+                    "weeklySessionsTarget=NONE"
+                )
+            )
+        }
         return StimulusTargetPlan(
             qualityTargets = qualityTargets,
             taskTargets = taskTargets,
+            movementTargets = movementTargets,
             unresolved = (portfolio.unresolved + qualityTargets.filter {
                 it.numericAuthority == StimulusTargetNumericAuthority.UNRESOLVED
             }.map { "QUALITY_${it.quality.name}_UNRESOLVED" } + taskTargets.filter {
@@ -335,7 +366,8 @@ class StimulusTargetPlanEngine {
         StimulusDoseStrategy.MAINTAIN_DIRECT_STIMULUS_DIRECTION_ONLY,
         StimulusDoseStrategy.MAINTAIN_DIRECT_STIMULUS_ALLOW_PROGRESSION_DIRECTION_ONLY,
         StimulusDoseStrategy.REDISTRIBUTE_DIRECTION_ONLY,
-        StimulusDoseStrategy.REDUCE_OR_RESTRUCTURE -> StimulusTargetNumericAuthority.DIRECTION_ONLY
+        StimulusDoseStrategy.REDUCE_OR_RESTRUCTURE,
+        StimulusDoseStrategy.ADDRESS_MOVEMENT_COVERAGE_DIRECTION_ONLY -> StimulusTargetNumericAuthority.DIRECTION_ONLY
     }
 
     private fun personalAuthority(
@@ -497,6 +529,7 @@ class StimulusTargetPlanComparisonEngine {
         StimulusDoseStrategy.REDISTRIBUTE_PERSONAL_BASELINE,
         StimulusDoseStrategy.REDISTRIBUTE_DIRECTION_ONLY -> TargetStimulusAction.REDISTRIBUTE_EXISTING_DOSE
         StimulusDoseStrategy.REDUCE_OR_RESTRUCTURE -> TargetStimulusAction.REDUCE_OR_RESTRUCTURE
+        StimulusDoseStrategy.ADDRESS_MOVEMENT_COVERAGE_DIRECTION_ONLY -> TargetStimulusAction.INTRODUCE_DIRECT_STIMULUS
         StimulusDoseStrategy.NO_MINIMUM_TARGET -> TargetStimulusAction.NO_MINIMUM_TARGET
         StimulusDoseStrategy.UNRESOLVED -> TargetStimulusAction.UNRESOLVED
     }
@@ -634,6 +667,16 @@ internal fun StimulusTargetPlan.toCompactJson(): JSONObject = JSONObject()
         .put("weeklyDirectUnitsTarget", target.weeklyDirectUnitsTarget?.toJson())
         .put("weeklyDirectSessionsTarget", target.weeklyDirectSessionsTarget?.toJson())
         .put("reasonCodes", JSONArray(target.reasonCodes)).put("evidence", JSONArray(target.evidence))
+    }))
+    .put("movementTargets", JSONArray(movementTargets.map { target -> JSONObject()
+        .put("targetId", target.targetId)
+        .put("movementCoverage", target.movementCoverage.name)
+        .put("priority", target.priority.name)
+        .put("numericAuthority", target.numericAuthority.name)
+        .put("weeklyUnitsTarget", JSONObject.NULL)
+        .put("weeklySessionsTarget", JSONObject.NULL)
+        .put("reasonCodes", JSONArray(target.reasonCodes))
+        .put("evidence", JSONArray(target.evidence))
     }))
     .put("legacyComparison", legacyComparison?.toJson())
     .put("controlProgramAudit", controlProgramAudit?.toJson())
