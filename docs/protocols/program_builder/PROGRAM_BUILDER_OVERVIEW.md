@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.61.0 |
+| Protocol version | 3.62.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.3 |
+| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.4 |
 | Last audited commit | b5d4550c4f4f44b52d89128fa9e70d16cce77a9b |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
@@ -1355,3 +1355,13 @@ Post-audit boundary notes
 - The C26 22-row census reports 22 actual executable rows before and 0 afterward; B7's unexplained-added identity intersection is 0; both `persona3_recent` Task replacements close. Routes remain CONTROL 19 / Strength V1 1 / Strength Calibration 2 / Hypertrophy 0 / Combined 0. B7 counts are provenance 11 / affected-unmet 0 / regressed 1 / collateral regression 0. Power and JUMP_LANDING material remain zero; C20 remains 12 HARD_VALID / 0 HARD_INVALID / 20 UNRESOLVED; build accounting remains 1 CONTROL + 1 EXPERIMENTAL, no third build.
 - No Room, backup, restore, Community, or Cloud schema changed. Protocol/runtime/app are `3.61.0` / `RECORD_BASED_PLANNER_0.15.3_KOTLIN_1` / `0.5.1.5`.
 - C26 audit and exact row census: [`docs/c26_b6_exp_b7_consistency_hardening_audit.md`](../../c26_b6_exp_b7_consistency_hardening_audit.md) and [`docs/c26-b6-exp-b7-consistency-census.json`](../../c26-b6-exp-b7-consistency-census.json). C26 implementation/test commit `b5d4550c4f4f44b52d89128fa9e70d16cce77a9b` is the `lastAuditedCommit`; Hosted run [37453833659](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/37453833659) passed 2,313 tests, coverage, APK assembly, signer validation, and upload.
+
+### Phase C28 — bounded material-demand authority recovery (protocol 3.62.0)
+
+- Material demand remains a `WHAT/WHY` decision: it identifies an unmet gap and ranks owner candidates, but it carries zero executable set demand in canonical EXP. Exact prescription authority is checked before allocation; a candidate or its origin alone cannot provide dose, load, effort, or frequency.
+- A missing exact authority is typed by cause and return stage. Owner-authority failure returns to the existing finite, ranked candidate list; each stableKey+selectionRole is tried at most once, and a replacement is accepted only with matching existing B5 selection and exact B6 (or an exact regional/task grant). Missing B4 target, history reference, and load input remain separate typed outcomes. Existing immutable B4/B5/B6 evaluation has already consumed available history/user input; absent new evidence remains unresolved for this generation and is reevaluated by the normal pipeline when a fresh request supplies it.
+- If the finite authority-backed alternatives are exhausted, the executable candidate is excluded before allocation, while its typed gap remains unresolved. The resolver also preserves a need when candidate selection finds no feasible owner. Downstream allocation, frequency completion, residual completion, reflow, and incumbent preservation cannot restore the denied candidate through a generic prescription fallback.
+- In the 22-case sparse corpus, 22 identities / 44 prior owner-weeks exhaust their existing finite authority-backed alternatives: original candidate authorized 0, reselected to an authorized owner 0, user input required 0, unresolved 22 identities / 44 owner-weeks, unauthorized EXP rows 0, and material deltas 0. A synthetic positive case proves exact-authorized reselection; history-reference and explicit-load tests exercise their existing typed paths. No dose rule, CONTROL-derived prescription, or frequency policy was added.
+- `reviewed_hypertrophy_isolated` no longer emits the unauthorized 2-set posterior-chain row, so its 3→2 prescription delta disappears without copying CONTROL's 3 sets. The need remains diagnostically visible. Seven Quality replacement rows remain fail-closed without executable B6.
+- The 22 generated cases route CONTROL after this fail-closed change; five requests are preflight rejects. B7/B8 predicates are unchanged. C24's eight approved Task rows remain intact in the comparison; Power and JUMP_LANDING material remain zero. Current C20 replay evaluates 10 hard-valid rows, 0 hard-invalid, 0 unresolved, and 22 rows with no current authorized EXP owner; no invalid, unresolved, or unevaluated row is forced to remain. Each generated case still uses 1 CONTROL + 1 EXPERIMENTAL build, with 0 third builds.
+- C28 implementation details and the exact per-identity/owner-week recovery lineage are in [`docs/c28_material_demand_execution_authority_audit.md`](../../c28_material_demand_execution_authority_audit.md) and [`docs/c28-material-demand-execution-authority-census.json`](../../c28-material-demand-execution-authority-census.json). App remains `0.5.1.5`; Room remains 38, with no backup/restore/Community/Cloud schema changes.
