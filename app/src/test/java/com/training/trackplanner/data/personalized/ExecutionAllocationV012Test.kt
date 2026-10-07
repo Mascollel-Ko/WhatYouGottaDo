@@ -27,6 +27,19 @@ class ExecutionAllocationV012Test {
         }
     }
 
+    @Test fun `candidate exhaustion preserves the unmet material demand as unresolved`() {
+        val source = history()
+        val state = AthletePlanningStateBuilder().build(source, PersonalizedPlanningAnswers())
+        val gap = AdaptationGap("UNSUPPORTED_REQUIRED_COVERAGE", "HIGH", "Required fixture need")
+
+        val demand = MaterialDemandResolver().resolve(source, state, listOf(gap), request())
+
+        assertTrue(demand.candidates.isEmpty())
+        assertTrue(demand.candidateAlternatives.isEmpty())
+        assertEquals(setOf(gap.code), demand.unresolvedGapCodes)
+        assertEquals("NO_FEASIBLE_PRESCRIPTION_OR_CANDIDATE", demand.deferred[gap.code])
+    }
+
     @Test fun `successful five sets buys high gap from incumbent when capacity binds`() {
         val result = FiniteExecutionAllocator.allocate(5, 5, listOf(2), .3, 1)
         assertEquals(3, result.continuity)

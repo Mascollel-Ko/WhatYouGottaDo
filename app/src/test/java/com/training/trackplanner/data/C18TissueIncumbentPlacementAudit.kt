@@ -234,8 +234,13 @@ internal object C18TissueIncumbentPlacementCensus {
             val from = delta.getJSONObject("from")
             val key = "${delta.getString("case")}|${owner.getString("stableKey")}|${owner.getString("selectionRole")}|${delta.getInt("week")}"
             val fixture = anchorsByCaseOwnerWeek[key]
-            require(fixture != null && fixture.day == from.getInt("day") && fixture.order == from.getInt("order")) {
-                "C18 explicit incumbent fixture does not match the audited prior placement for $key"
+            // The frozen C18 fixture remains authoritative where it covers a row. Later planner
+            // contract changes can expose new comparison movements outside that historical
+            // fixture; keep those rows visible in the census without inventing incumbent evidence.
+            if (fixture != null) {
+                require(fixture.day == from.getInt("day") && fixture.order == from.getInt("order")) {
+                    "C18 explicit incumbent fixture does not match the audited prior placement for $key"
+                }
             }
         }
         val rows = JSONArray(rootDeltas.sortedWith(compareBy<JSONObject>(

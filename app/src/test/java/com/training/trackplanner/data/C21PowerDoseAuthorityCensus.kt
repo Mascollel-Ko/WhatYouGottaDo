@@ -48,11 +48,38 @@ internal object C21PowerDoseAuthorityCensus {
                 return@forEach
             }
             generatedCount++
-            val comparison = requireNotNull(result.comparison) { "${spec.label}: no production comparison" }
             val planning = requireNotNull(planningByCase[spec.label]) { "${spec.label}: missing B1-B4 evidence" }
             val context = requireNotNull(contextByCase[spec.label]) { "${spec.label}: missing production source snapshot" }
             val powerNeed = planning.athleteStimulusNeedProfile.qualityNeeds.firstOrNull { it.quality == TrainableQuality.POWER }
             val powerDecision = planning.decisionPortfolio.qualityDecisions.firstOrNull { it.quality == TrainableQuality.POWER }
+            val comparison = result.comparison
+            if (comparison == null) {
+                // C28 may correctly leave a case with no executable canonical demand and
+                // fall back intact to CONTROL. Preserve its B1-B4 Power evidence in the
+                // audit without pretending B5/B6 or EXP comparison ran.
+                val powerTarget = planning.targetPlan.qualityTargets.firstOrNull { it.quality == TrainableQuality.POWER }
+                if (powerTarget?.numericAuthority == StimulusTargetNumericAuthority.DIRECTION_ONLY) {
+                    directionOnlyBefore++
+                    stillDirectionOnly++
+                }
+                row.put("evaluation", "CONTROL_FALLBACK_NO_EXECUTABLE_EXP_MATERIAL")
+                    .put("powerNeed", powerNeed?.let { JSONObject().put("relevance", it.relevance.name)
+                        .put("decision", it.decision.name).put("confidence", it.confidence.name)
+                        .put("reasonCodes", JSONArray(it.reasonCodes.sorted())) } ?: JSONObject.NULL)
+                    .put("powerTarget", powerTarget?.let { JSONObject().put("strategy", it.strategy.name)
+                        .put("numericAuthority", it.numericAuthority.name).put("reasonCodes", JSONArray(it.reasonCodes.sorted())) }
+                        ?: JSONObject.NULL)
+                    .put("selectedPowerOwners", JSONArray())
+                    .put("generatedPowerRows", JSONArray())
+                    .put("b6PowerResolution", JSONObject.NULL)
+                    .put("b6PowerAuthorization", JSONObject.NULL)
+                    .put("b6PowerMaterialization", JSONObject.NULL)
+                    .put("route", result.routeDecision.selectedSource.name)
+                    .put("upstreamFailureReason", result.upstreamFailureReason)
+                    .put("upstreamFailureDetails", JSONArray(result.upstreamFailureDetails))
+                caseRows.put(row)
+                return@forEach
+            }
             val powerTarget = comparison.targetPlan.qualityTargets.firstOrNull { it.quality == TrainableQuality.POWER }
             if (powerTarget?.numericAuthority == StimulusTargetNumericAuthority.DIRECTION_ONLY) directionOnlyBefore++
             if (powerTarget?.numericAuthority in setOf(
@@ -271,8 +298,9 @@ internal object C21PowerDoseAuthorityCensus {
                 result.routeDecision.selectedSource != StimulusProductionProgramSource.CONTROL &&
                 comparison != null && hasPowerB6Authority(comparison)
         }
-        val powerTargetsTotal = records.count { (_, result) ->
-            result?.comparison?.targetPlan?.qualityTargets?.any { it.quality == TrainableQuality.POWER } == true
+        val powerTargetsTotal = records.count { (spec, result) ->
+            (result?.comparison?.targetPlan ?: planningByCase[spec.label]?.targetPlan)
+                ?.qualityTargets?.any { it.quality == TrainableQuality.POWER } == true
         }
         val routedResults = records.mapNotNull { it.second }
         val routeCounts = routedResults.groupingBy { it.routeDecision.selectedSource.name }.eachCount()

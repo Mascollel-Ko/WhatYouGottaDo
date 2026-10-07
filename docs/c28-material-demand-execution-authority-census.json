@@ -1,0 +1,4841 @@
+{
+  "phase": "C28",
+  "title": "Material-demand execution authority boundary hardening",
+  "startSha": "f71e84f02dc69866089535e37fa1627096059590",
+  "before": {
+    "c27AddedIdentities": 22,
+    "c27ExecutableOwnerWeeks": 44,
+    "c26Baseline": {
+      "routes": {
+        "B8_STRENGTH_CALIBRATION_V1": 2,
+        "B8_STRENGTH_V1": 1,
+        "CONTROL": 19
+      },
+      "b7": {
+        "changeProvenanceUnclosed": 11,
+        "affectedTargetRemainsUnmet": 0,
+        "targetRegressed": 1
+      },
+      "provenanceAttributions": {
+        "UNEXPLAINED_ADDED_IDENTITY": 22,
+        "UNEXPLAINED_PRESCRIPTION_CHANGE": 1,
+        "UNEXPLAINED_REMOVED_IDENTITY": 7
+      },
+      "c20": {
+        "HARD_VALID": 12,
+        "HARD_INVALID": 0,
+        "UNRESOLVED": 20
+      },
+      "powerMaterialRows": 0,
+      "jumpLandingMaterialRows": 0,
+      "buildAccounting": {
+        "controlPerGeneratedCase": 1,
+        "experimentalPerGeneratedCase": 1,
+        "totalPerGeneratedCase": 2,
+        "thirdPerGeneratedCase": 0
+      },
+      "b6RejectedQuality": {
+        "beforeOwnerWeeks": 22,
+        "postFixExecutableRows": 0,
+        "postFixMaterialDeltas": 0,
+        "exactIntersectionWithSparseAttributions": 0
+      }
+    },
+    "b6RejectedQualitySparseIntersection": 0
+  },
+  "after": {
+    "routes": {
+      "CONTROL": 22
+    },
+    "generatedCases": 22,
+    "preflightRejectedCases": 5,
+    "b7CaseCounts": {
+      "CHANGE_PROVENANCE_UNCLOSED": 15,
+      "COLLATERAL_TARGET_REGRESSION": 1,
+      "TARGET_REGRESSED": 1
+    },
+    "b7ReasonOccurrences": {
+      "CHANGE_PROVENANCE_UNCLOSED": 15,
+      "COLLATERAL_TARGET_REGRESSION": 1,
+      "TARGET_REGRESSED": 1
+    },
+    "provenanceAttributionCounts": {
+      "B5_CANONICAL_OWNER_REPLACED_CONTROL_ROLE": 10,
+      "B5_SELECTED_IDENTITY_ADDED": 11,
+      "B6_APPROVED_TASK_PROTOCOL_REPLACEMENT": 2,
+      "B6_USER_APPROVED_EXACT_TASK_PROTOCOL": 2,
+      "TASK_CREDIT_NON_ADDITIVE": 4,
+      "UNEXPLAINED_PRESCRIPTION_CHANGE": 3,
+      "UNEXPLAINED_REMOVED_IDENTITY": 73
+    },
+    "c20": {
+      "placementRows": 32,
+      "HARD_VALID": 10,
+      "HARD_INVALID": 0,
+      "UNRESOLVED": 0,
+      "NOT_EVALUATED_NO_CURRENT_AUTHORIZED_OWNER": 22,
+      "preservedHardValidRows": 10,
+      "hardInvalidRowsForcedPreserved": 0,
+      "unresolvedRowsForcedPreserved": 0,
+      "combinedAnchorSetConflicts": 0,
+      "productionPlacementChanged": true,
+      "sharedPlacementDeltaBefore": 6,
+      "sharedPlacementDeltaAfter": 0
+    },
+    "buildAccounting": {
+      "control": 22,
+      "experimental": 22,
+      "total": 44,
+      "third": 0,
+      "generatedCases": 22,
+      "perGeneratedCase": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    "powerMaterialRows": 0,
+    "jumpLandingMaterialRows": 0,
+    "taskMaterialRows": 8
+  },
+  "summary": {
+    "sparseIdentities": 22,
+    "sparseOwnerWeeksBefore": 44,
+    "candidateOriginsPreserved": 22,
+    "noExactAuthority": 22,
+    "b5Selected": 0,
+    "originalCandidateAuthorized": 0,
+    "reselectedAuthorizedOwner": 0,
+    "userInputRequired": 0,
+    "unresolvedNoAuthority": 22,
+    "ownerWeekOriginalCandidateAuthorized": 0,
+    "ownerWeekReselectedAuthorized": 0,
+    "ownerWeekUserInputRequired": 0,
+    "ownerWeekUnresolvedNoAuthority": 44,
+    "ownerWeekStillUnauthorizedMaterialized": 0,
+    "c26DeniedQualitySparseIntersection": 0,
+    "candidateAlternativesWithZeroPrescriptionUnits": 22,
+    "executableRowsAfter": 0,
+    "unauthorizedExecutableOwnerWeeksAfter": 0,
+    "materialDeltaOwnerWeeksAfter": 0,
+    "unexplainedAddedAttributionsAfter": 0,
+    "frequencyCompletionResurrections": 0,
+    "reviewedHypertrophyExperimentalRowsAfter": 0,
+    "reviewedHypertrophyEvaluationFailedClosed": false,
+    "reviewedHypertrophyPrescriptionChangeBefore": 1,
+    "reviewedHypertrophyPrescriptionChangeAfter": false
+  },
+  "sparseIdentities": [
+    {
+      "case": "persona0_sparse",
+      "stableKey": "ex_1dbee10e",
+      "selectionRole": "COVERAGE_HORIZONTAL_PUSH",
+      "exercise": "머신 체스트프레스",
+      "ownerRoleType": "SUPPORTING_COVERAGE",
+      "beforeB6Status": "NO_EXACT_OWNER_DECISION",
+      "beforeB6Reasons": [],
+      "beforePrescriptionAuthority": "GENERIC_PROVISIONAL_FALLBACK",
+      "beforePrescriptionSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+      "beforeFrequencySource": "PROGRAM_HORIZON_WEEKS; no owner-specific B6 weekly frequency authority",
+      "beforeFirstProducedAt": {
+        "producerStage": "MaterialDemandResolver.resolve",
+        "candidateAudit": "MATERIALIZED_GAP",
+        "representedGapCodes": [
+          "HORIZONTAL_PUSH"
+        ],
+        "typedMaterialDemandEventRetained": false,
+        "originEventDropPoint": "mergeCanonicalMaterialDemand copies candidates\/deferred\/audit, not ownerAllocationProvenance",
+        "firstRetainedOwnerEventStage": "INITIAL_WEEKLY_PLACEMENT"
+      },
+      "beforeB7AttributionStatus": "UNEXPLAINED",
+      "candidateOrigin": {
+        "owner": {
+          "stableKey": "ex_1dbee10e",
+          "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+        },
+        "gapCodes": [
+          "HORIZONTAL_PUSH"
+        ],
+        "evidenceCodes": [
+          "MATERIAL_DEMAND_SELECTED"
+        ],
+        "authorityResolution": {
+          "status": "NO_SUPPORTED_AUTHORITY",
+          "reason": "OWNER_CANDIDATES_EXHAUSTED",
+          "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+          "originalOwner": {
+            "stableKey": "ex_1dbee10e",
+            "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+          },
+          "attemptedOwners": [
+            {
+              "stableKey": "ex_1dbee10e",
+              "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+            },
+            {
+              "stableKey": "ex_28902b13",
+              "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+            },
+            {
+              "stableKey": "ex_442617f6",
+              "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+            },
+            {
+              "stableKey": "ex_4c779df2",
+              "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+            },
+            {
+              "stableKey": "ex_6463edad",
+              "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+            },
+            {
+              "stableKey": "ex_73b0b63f",
+              "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+            },
+            {
+              "stableKey": "ex_debf6a8b",
+              "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+            },
+            {
+              "stableKey": "ex_fb67af37",
+              "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+            },
+            {
+              "stableKey": "machine_chest_fly",
+              "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+            }
+          ]
+        }
+      },
+      "candidateOriginPreserved": true,
+      "candidateDeferredReason": "MATERIAL_DEMAND_NO_EXACT_EXECUTABLE_PRESCRIPTION_AUTHORITY",
+      "candidateDemandTargetSets": 0,
+      "candidateAlternativesHaveZeroPrescriptionUnits": true,
+      "authorityResolution": {
+        "status": "NO_SUPPORTED_AUTHORITY",
+        "reason": "OWNER_CANDIDATES_EXHAUSTED",
+        "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+        "attemptedOwners": [
+          {
+            "stableKey": "ex_1dbee10e",
+            "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+          },
+          {
+            "stableKey": "ex_28902b13",
+            "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+          },
+          {
+            "stableKey": "ex_442617f6",
+            "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+          },
+          {
+            "stableKey": "ex_4c779df2",
+            "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+          },
+          {
+            "stableKey": "ex_6463edad",
+            "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+          },
+          {
+            "stableKey": "ex_73b0b63f",
+            "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+          },
+          {
+            "stableKey": "ex_debf6a8b",
+            "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+          },
+          {
+            "stableKey": "ex_fb67af37",
+            "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+          },
+          {
+            "stableKey": "machine_chest_fly",
+            "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+          }
+        ]
+      },
+      "recoveryOutcome": "UNRESOLVED_NO_AUTHORITY",
+      "missingAuthorityKind": "OWNER_CANDIDATES_EXHAUSTED",
+      "reResolutionStage": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+      "needGapCodes": [
+        "HORIZONTAL_PUSH"
+      ],
+      "unresolvedNeedGapCodes": [
+        "CORE_DIRECT",
+        "HORIZONTAL_PUSH",
+        "POSTERIOR_CHAIN",
+        "UPPER_PULL"
+      ],
+      "needRetainedOrResolvedByExactAuthority": true,
+      "needRemainsUnresolved": true,
+      "b5Selected": false,
+      "b6DecisionCount": 0,
+      "exactProviderResolution": "NoExactAuthority",
+      "rootCauseBefore": "NO_B6_BUT_MATERIALIZED",
+      "experimentalEvaluationFailedClosed": true,
+      "actualExecutableRowsAfter": 0,
+      "unexplainedAddedAttributionAfter": false
+    },
+    {
+      "case": "persona0_sparse",
+      "stableKey": "ex_28347c1f",
+      "selectionRole": "COVERAGE_CORE_DIRECT",
+      "exercise": "버드독",
+      "ownerRoleType": "SUPPORTING_COVERAGE",
+      "beforeB6Status": "NO_EXACT_OWNER_DECISION",
+      "beforeB6Reasons": [],
+      "beforePrescriptionAuthority": "GENERIC_PROVISIONAL_FALLBACK",
+      "beforePrescriptionSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+      "beforeFrequencySource": "PROGRAM_HORIZON_WEEKS; no owner-specific B6 weekly frequency authority",
+      "beforeFirstProducedAt": {
+        "producerStage": "MaterialDemandResolver.resolve",
+        "candidateAudit": "MATERIALIZED_GAP",
+        "representedGapCodes": [
+          "CORE_DIRECT"
+        ],
+        "typedMaterialDemandEventRetained": false,
+        "originEventDropPoint": "mergeCanonicalMaterialDemand copies candidates\/deferred\/audit, not ownerAllocationProvenance",
+        "firstRetainedOwnerEventStage": "INITIAL_WEEKLY_PLACEMENT"
+      },
+      "beforeB7AttributionStatus": "UNEXPLAINED",
+      "candidateOrigin": {
+        "owner": {
+          "stableKey": "ex_28347c1f",
+          "selectionRole": "COVERAGE_CORE_DIRECT"
+        },
+        "gapCodes": [
+          "CORE_DIRECT"
+        ],
+        "evidenceCodes": [
+          "MATERIAL_DEMAND_SELECTED"
+        ],
+        "authorityResolution": {
+          "status": "NO_SUPPORTED_AUTHORITY",
+          "reason": "OWNER_CANDIDATES_EXHAUSTED",
+          "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+          "originalOwner": {
+            "stableKey": "ex_28347c1f",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          "attemptedOwners": [
+            {
+              "stableKey": "ex_28347c1f",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_2a826c82",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_644e0f9d",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_a345e30b",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_a44ae2ca",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_a9b52886",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_d5bdffe1",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_f6d43398",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            }
+          ]
+        }
+      },
+      "candidateOriginPreserved": true,
+      "candidateDeferredReason": "MATERIAL_DEMAND_NO_EXACT_EXECUTABLE_PRESCRIPTION_AUTHORITY",
+      "candidateDemandTargetSets": 0,
+      "candidateAlternativesHaveZeroPrescriptionUnits": true,
+      "authorityResolution": {
+        "status": "NO_SUPPORTED_AUTHORITY",
+        "reason": "OWNER_CANDIDATES_EXHAUSTED",
+        "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+        "attemptedOwners": [
+          {
+            "stableKey": "ex_28347c1f",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_2a826c82",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_644e0f9d",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_a345e30b",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_a44ae2ca",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_a9b52886",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_d5bdffe1",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_f6d43398",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          }
+        ]
+      },
+      "recoveryOutcome": "UNRESOLVED_NO_AUTHORITY",
+      "missingAuthorityKind": "OWNER_CANDIDATES_EXHAUSTED",
+      "reResolutionStage": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+      "needGapCodes": [
+        "CORE_DIRECT"
+      ],
+      "unresolvedNeedGapCodes": [
+        "CORE_DIRECT",
+        "HORIZONTAL_PUSH",
+        "POSTERIOR_CHAIN",
+        "UPPER_PULL"
+      ],
+      "needRetainedOrResolvedByExactAuthority": true,
+      "needRemainsUnresolved": true,
+      "b5Selected": false,
+      "b6DecisionCount": 0,
+      "exactProviderResolution": "NoExactAuthority",
+      "rootCauseBefore": "NO_B6_BUT_MATERIALIZED",
+      "experimentalEvaluationFailedClosed": true,
+      "actualExecutableRowsAfter": 0,
+      "unexplainedAddedAttributionAfter": false
+    },
+    {
+      "case": "persona1_sparse",
+      "stableKey": "barbell_reverse_curl",
+      "selectionRole": "COVERAGE_ARMS_BICEPS",
+      "exercise": "바벨 리버스 컬",
+      "ownerRoleType": "SUPPORTING_COVERAGE",
+      "beforeB6Status": "NO_EXACT_OWNER_DECISION",
+      "beforeB6Reasons": [],
+      "beforePrescriptionAuthority": "GENERIC_PROVISIONAL_FALLBACK",
+      "beforePrescriptionSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+      "beforeFrequencySource": "PROGRAM_HORIZON_WEEKS; no owner-specific B6 weekly frequency authority",
+      "beforeFirstProducedAt": {
+        "producerStage": "MaterialDemandResolver.resolve",
+        "candidateAudit": "MATERIALIZED_GAP",
+        "representedGapCodes": [
+          "ARMS_BICEPS"
+        ],
+        "typedMaterialDemandEventRetained": false,
+        "originEventDropPoint": "mergeCanonicalMaterialDemand copies candidates\/deferred\/audit, not ownerAllocationProvenance",
+        "firstRetainedOwnerEventStage": "INITIAL_WEEKLY_PLACEMENT"
+      },
+      "beforeB7AttributionStatus": "UNEXPLAINED",
+      "candidateOrigin": {
+        "owner": {
+          "stableKey": "barbell_reverse_curl",
+          "selectionRole": "COVERAGE_ARMS_BICEPS"
+        },
+        "gapCodes": [
+          "ARMS_BICEPS"
+        ],
+        "evidenceCodes": [
+          "MATERIAL_DEMAND_SELECTED"
+        ],
+        "authorityResolution": {
+          "status": "NO_SUPPORTED_AUTHORITY",
+          "reason": "OWNER_CANDIDATES_EXHAUSTED",
+          "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+          "originalOwner": {
+            "stableKey": "barbell_reverse_curl",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          "attemptedOwners": [
+            {
+              "stableKey": "barbell_reverse_curl",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "dumbbell_preacher_curl",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "dumbbell_spider_curl",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "ex_281347da",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "ex_2892da5a",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "ex_85b2ac56",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "ex_86323ed6",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "ex_8633d8db",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "ex_b69ab702",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "ex_c62c0716",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "ex_d5048362",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            }
+          ]
+        }
+      },
+      "candidateOriginPreserved": true,
+      "candidateDeferredReason": "MATERIAL_DEMAND_NO_EXACT_EXECUTABLE_PRESCRIPTION_AUTHORITY",
+      "candidateDemandTargetSets": 0,
+      "candidateAlternativesHaveZeroPrescriptionUnits": true,
+      "authorityResolution": {
+        "status": "NO_SUPPORTED_AUTHORITY",
+        "reason": "OWNER_CANDIDATES_EXHAUSTED",
+        "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+        "attemptedOwners": [
+          {
+            "stableKey": "barbell_reverse_curl",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "dumbbell_preacher_curl",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "dumbbell_spider_curl",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "ex_281347da",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "ex_2892da5a",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "ex_85b2ac56",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "ex_86323ed6",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "ex_8633d8db",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "ex_b69ab702",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "ex_c62c0716",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "ex_d5048362",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          }
+        ]
+      },
+      "recoveryOutcome": "UNRESOLVED_NO_AUTHORITY",
+      "missingAuthorityKind": "OWNER_CANDIDATES_EXHAUSTED",
+      "reResolutionStage": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+      "needGapCodes": [
+        "ARMS_BICEPS"
+      ],
+      "unresolvedNeedGapCodes": [
+        "ARMS_BICEPS",
+        "ARMS_TRICEPS",
+        "CALVES",
+        "CORE_DIRECT",
+        "HORIZONTAL_PUSH",
+        "LOWER_KNEE",
+        "POSTERIOR_CHAIN"
+      ],
+      "needRetainedOrResolvedByExactAuthority": true,
+      "needRemainsUnresolved": true,
+      "b5Selected": false,
+      "b6DecisionCount": 0,
+      "exactProviderResolution": "NoExactAuthority",
+      "rootCauseBefore": "NO_B6_BUT_MATERIALIZED",
+      "experimentalEvaluationFailedClosed": true,
+      "actualExecutableRowsAfter": 0,
+      "unexplainedAddedAttributionAfter": false
+    },
+    {
+      "case": "persona1_sparse",
+      "stableKey": "barbell_romanian_deadlift",
+      "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+      "exercise": "루마니안 바벨 데드리프트",
+      "ownerRoleType": "SUPPORTING_COVERAGE",
+      "beforeB6Status": "NO_EXACT_OWNER_DECISION",
+      "beforeB6Reasons": [],
+      "beforePrescriptionAuthority": "GENERIC_PROVISIONAL_FALLBACK",
+      "beforePrescriptionSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+      "beforeFrequencySource": "PROGRAM_HORIZON_WEEKS; no owner-specific B6 weekly frequency authority",
+      "beforeFirstProducedAt": {
+        "producerStage": "MaterialDemandResolver.resolve",
+        "candidateAudit": "MATERIALIZED_GAP",
+        "representedGapCodes": [
+          "POSTERIOR_CHAIN"
+        ],
+        "typedMaterialDemandEventRetained": false,
+        "originEventDropPoint": "mergeCanonicalMaterialDemand copies candidates\/deferred\/audit, not ownerAllocationProvenance",
+        "firstRetainedOwnerEventStage": "INITIAL_WEEKLY_PLACEMENT"
+      },
+      "beforeB7AttributionStatus": "UNEXPLAINED",
+      "candidateOrigin": {
+        "owner": {
+          "stableKey": "barbell_romanian_deadlift",
+          "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+        },
+        "gapCodes": [
+          "POSTERIOR_CHAIN"
+        ],
+        "evidenceCodes": [
+          "MATERIAL_DEMAND_SELECTED"
+        ],
+        "authorityResolution": {
+          "status": "NO_SUPPORTED_AUTHORITY",
+          "reason": "OWNER_CANDIDATES_EXHAUSTED",
+          "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+          "originalOwner": {
+            "stableKey": "barbell_romanian_deadlift",
+            "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+          },
+          "attemptedOwners": [
+            {
+              "stableKey": "barbell_romanian_deadlift",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+            },
+            {
+              "stableKey": "dumbbell_romanian_deadlift",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+            },
+            {
+              "stableKey": "dumbbell_single_leg_rdl",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+            },
+            {
+              "stableKey": "single_leg_hip_bridge",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+            }
+          ]
+        }
+      },
+      "candidateOriginPreserved": true,
+      "candidateDeferredReason": "MATERIAL_DEMAND_NO_EXACT_EXECUTABLE_PRESCRIPTION_AUTHORITY",
+      "candidateDemandTargetSets": 0,
+      "candidateAlternativesHaveZeroPrescriptionUnits": true,
+      "authorityResolution": {
+        "status": "NO_SUPPORTED_AUTHORITY",
+        "reason": "OWNER_CANDIDATES_EXHAUSTED",
+        "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+        "attemptedOwners": [
+          {
+            "stableKey": "barbell_romanian_deadlift",
+            "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+          },
+          {
+            "stableKey": "dumbbell_romanian_deadlift",
+            "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+          },
+          {
+            "stableKey": "dumbbell_single_leg_rdl",
+            "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+          },
+          {
+            "stableKey": "single_leg_hip_bridge",
+            "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+          }
+        ]
+      },
+      "recoveryOutcome": "UNRESOLVED_NO_AUTHORITY",
+      "missingAuthorityKind": "OWNER_CANDIDATES_EXHAUSTED",
+      "reResolutionStage": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+      "needGapCodes": [
+        "POSTERIOR_CHAIN"
+      ],
+      "unresolvedNeedGapCodes": [
+        "ARMS_BICEPS",
+        "ARMS_TRICEPS",
+        "CALVES",
+        "CORE_DIRECT",
+        "HORIZONTAL_PUSH",
+        "LOWER_KNEE",
+        "POSTERIOR_CHAIN"
+      ],
+      "needRetainedOrResolvedByExactAuthority": true,
+      "needRemainsUnresolved": true,
+      "b5Selected": false,
+      "b6DecisionCount": 0,
+      "exactProviderResolution": "NoExactAuthority",
+      "rootCauseBefore": "NO_B6_BUT_MATERIALIZED",
+      "experimentalEvaluationFailedClosed": true,
+      "actualExecutableRowsAfter": 0,
+      "unexplainedAddedAttributionAfter": false
+    },
+    {
+      "case": "persona1_sparse",
+      "stableKey": "dumbbell_goblet_squat",
+      "selectionRole": "COVERAGE_LOWER_KNEE",
+      "exercise": "덤벨 고블릿 스쿼트",
+      "ownerRoleType": "SUPPORTING_COVERAGE",
+      "beforeB6Status": "NO_EXACT_OWNER_DECISION",
+      "beforeB6Reasons": [],
+      "beforePrescriptionAuthority": "GENERIC_PROVISIONAL_FALLBACK",
+      "beforePrescriptionSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+      "beforeFrequencySource": "PROGRAM_HORIZON_WEEKS; no owner-specific B6 weekly frequency authority",
+      "beforeFirstProducedAt": {
+        "producerStage": "MaterialDemandResolver.resolve",
+        "candidateAudit": "MATERIALIZED_GAP",
+        "representedGapCodes": [
+          "LOWER_KNEE"
+        ],
+        "typedMaterialDemandEventRetained": false,
+        "originEventDropPoint": "mergeCanonicalMaterialDemand copies candidates\/deferred\/audit, not ownerAllocationProvenance",
+        "firstRetainedOwnerEventStage": "INITIAL_WEEKLY_PLACEMENT"
+      },
+      "beforeB7AttributionStatus": "UNEXPLAINED",
+      "candidateOrigin": {
+        "owner": {
+          "stableKey": "dumbbell_goblet_squat",
+          "selectionRole": "COVERAGE_LOWER_KNEE"
+        },
+        "gapCodes": [
+          "LOWER_KNEE"
+        ],
+        "evidenceCodes": [
+          "MATERIAL_DEMAND_SELECTED"
+        ],
+        "authorityResolution": {
+          "status": "NO_SUPPORTED_AUTHORITY",
+          "reason": "OWNER_CANDIDATES_EXHAUSTED",
+          "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+          "originalOwner": {
+            "stableKey": "dumbbell_goblet_squat",
+            "selectionRole": "COVERAGE_LOWER_KNEE"
+          },
+          "attemptedOwners": [
+            {
+              "stableKey": "dumbbell_goblet_squat",
+              "selectionRole": "COVERAGE_LOWER_KNEE"
+            },
+            {
+              "stableKey": "ex_64661229",
+              "selectionRole": "COVERAGE_LOWER_KNEE"
+            },
+            {
+              "stableKey": "ex_c5043892",
+              "selectionRole": "COVERAGE_LOWER_KNEE"
+            },
+            {
+              "stableKey": "ex_d67e5761",
+              "selectionRole": "COVERAGE_LOWER_KNEE"
+            },
+            {
+              "stableKey": "ex_e2efd0fe",
+              "selectionRole": "COVERAGE_LOWER_KNEE"
+            },
+            {
+              "stableKey": "ex_ee378da7",
+              "selectionRole": "COVERAGE_LOWER_KNEE"
+            }
+          ]
+        }
+      },
+      "candidateOriginPreserved": true,
+      "candidateDeferredReason": "MATERIAL_DEMAND_NO_EXACT_EXECUTABLE_PRESCRIPTION_AUTHORITY",
+      "candidateDemandTargetSets": 0,
+      "candidateAlternativesHaveZeroPrescriptionUnits": true,
+      "authorityResolution": {
+        "status": "NO_SUPPORTED_AUTHORITY",
+        "reason": "OWNER_CANDIDATES_EXHAUSTED",
+        "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+        "attemptedOwners": [
+          {
+            "stableKey": "dumbbell_goblet_squat",
+            "selectionRole": "COVERAGE_LOWER_KNEE"
+          },
+          {
+            "stableKey": "ex_64661229",
+            "selectionRole": "COVERAGE_LOWER_KNEE"
+          },
+          {
+            "stableKey": "ex_c5043892",
+            "selectionRole": "COVERAGE_LOWER_KNEE"
+          },
+          {
+            "stableKey": "ex_d67e5761",
+            "selectionRole": "COVERAGE_LOWER_KNEE"
+          },
+          {
+            "stableKey": "ex_e2efd0fe",
+            "selectionRole": "COVERAGE_LOWER_KNEE"
+          },
+          {
+            "stableKey": "ex_ee378da7",
+            "selectionRole": "COVERAGE_LOWER_KNEE"
+          }
+        ]
+      },
+      "recoveryOutcome": "UNRESOLVED_NO_AUTHORITY",
+      "missingAuthorityKind": "OWNER_CANDIDATES_EXHAUSTED",
+      "reResolutionStage": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+      "needGapCodes": [
+        "LOWER_KNEE"
+      ],
+      "unresolvedNeedGapCodes": [
+        "ARMS_BICEPS",
+        "ARMS_TRICEPS",
+        "CALVES",
+        "CORE_DIRECT",
+        "HORIZONTAL_PUSH",
+        "LOWER_KNEE",
+        "POSTERIOR_CHAIN"
+      ],
+      "needRetainedOrResolvedByExactAuthority": true,
+      "needRemainsUnresolved": true,
+      "b5Selected": false,
+      "b6DecisionCount": 0,
+      "exactProviderResolution": "NoExactAuthority",
+      "rootCauseBefore": "NO_B6_BUT_MATERIALIZED",
+      "experimentalEvaluationFailedClosed": true,
+      "actualExecutableRowsAfter": 0,
+      "unexplainedAddedAttributionAfter": false
+    },
+    {
+      "case": "persona1_sparse",
+      "stableKey": "dumbbell_lying_triceps_extension",
+      "selectionRole": "COVERAGE_ARMS_TRICEPS",
+      "exercise": "덤벨 라잉 트라이셉스 익스텐션",
+      "ownerRoleType": "SUPPORTING_COVERAGE",
+      "beforeB6Status": "NO_EXACT_OWNER_DECISION",
+      "beforeB6Reasons": [],
+      "beforePrescriptionAuthority": "GENERIC_PROVISIONAL_FALLBACK",
+      "beforePrescriptionSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+      "beforeFrequencySource": "PROGRAM_HORIZON_WEEKS; no owner-specific B6 weekly frequency authority",
+      "beforeFirstProducedAt": {
+        "producerStage": "MaterialDemandResolver.resolve",
+        "candidateAudit": "MATERIALIZED_GAP",
+        "representedGapCodes": [
+          "ARMS_TRICEPS"
+        ],
+        "typedMaterialDemandEventRetained": false,
+        "originEventDropPoint": "mergeCanonicalMaterialDemand copies candidates\/deferred\/audit, not ownerAllocationProvenance",
+        "firstRetainedOwnerEventStage": "INITIAL_WEEKLY_PLACEMENT"
+      },
+      "beforeB7AttributionStatus": "UNEXPLAINED",
+      "candidateOrigin": {
+        "owner": {
+          "stableKey": "dumbbell_lying_triceps_extension",
+          "selectionRole": "COVERAGE_ARMS_TRICEPS"
+        },
+        "gapCodes": [
+          "ARMS_TRICEPS"
+        ],
+        "evidenceCodes": [
+          "MATERIAL_DEMAND_SELECTED"
+        ],
+        "authorityResolution": {
+          "status": "NO_SUPPORTED_AUTHORITY",
+          "reason": "OWNER_CANDIDATES_EXHAUSTED",
+          "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+          "originalOwner": {
+            "stableKey": "dumbbell_lying_triceps_extension",
+            "selectionRole": "COVERAGE_ARMS_TRICEPS"
+          },
+          "attemptedOwners": [
+            {
+              "stableKey": "dumbbell_lying_triceps_extension",
+              "selectionRole": "COVERAGE_ARMS_TRICEPS"
+            },
+            {
+              "stableKey": "dumbbell_overhead_triceps_extension",
+              "selectionRole": "COVERAGE_ARMS_TRICEPS"
+            },
+            {
+              "stableKey": "ex_da56a4fe",
+              "selectionRole": "COVERAGE_ARMS_TRICEPS"
+            },
+            {
+              "stableKey": "ex_deca2b61",
+              "selectionRole": "COVERAGE_ARMS_TRICEPS"
+            },
+            {
+              "stableKey": "ex_fdbdf454",
+              "selectionRole": "COVERAGE_ARMS_TRICEPS"
+            }
+          ]
+        }
+      },
+      "candidateOriginPreserved": true,
+      "candidateDeferredReason": "MATERIAL_DEMAND_NO_EXACT_EXECUTABLE_PRESCRIPTION_AUTHORITY",
+      "candidateDemandTargetSets": 0,
+      "candidateAlternativesHaveZeroPrescriptionUnits": true,
+      "authorityResolution": {
+        "status": "NO_SUPPORTED_AUTHORITY",
+        "reason": "OWNER_CANDIDATES_EXHAUSTED",
+        "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+        "attemptedOwners": [
+          {
+            "stableKey": "dumbbell_lying_triceps_extension",
+            "selectionRole": "COVERAGE_ARMS_TRICEPS"
+          },
+          {
+            "stableKey": "dumbbell_overhead_triceps_extension",
+            "selectionRole": "COVERAGE_ARMS_TRICEPS"
+          },
+          {
+            "stableKey": "ex_da56a4fe",
+            "selectionRole": "COVERAGE_ARMS_TRICEPS"
+          },
+          {
+            "stableKey": "ex_deca2b61",
+            "selectionRole": "COVERAGE_ARMS_TRICEPS"
+          },
+          {
+            "stableKey": "ex_fdbdf454",
+            "selectionRole": "COVERAGE_ARMS_TRICEPS"
+          }
+        ]
+      },
+      "recoveryOutcome": "UNRESOLVED_NO_AUTHORITY",
+      "missingAuthorityKind": "OWNER_CANDIDATES_EXHAUSTED",
+      "reResolutionStage": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+      "needGapCodes": [
+        "ARMS_TRICEPS"
+      ],
+      "unresolvedNeedGapCodes": [
+        "ARMS_BICEPS",
+        "ARMS_TRICEPS",
+        "CALVES",
+        "CORE_DIRECT",
+        "HORIZONTAL_PUSH",
+        "LOWER_KNEE",
+        "POSTERIOR_CHAIN"
+      ],
+      "needRetainedOrResolvedByExactAuthority": true,
+      "needRemainsUnresolved": true,
+      "b5Selected": false,
+      "b6DecisionCount": 0,
+      "exactProviderResolution": "NoExactAuthority",
+      "rootCauseBefore": "NO_B6_BUT_MATERIALIZED",
+      "experimentalEvaluationFailedClosed": true,
+      "actualExecutableRowsAfter": 0,
+      "unexplainedAddedAttributionAfter": false
+    },
+    {
+      "case": "persona1_sparse",
+      "stableKey": "ex_28347c1f",
+      "selectionRole": "COVERAGE_CORE_DIRECT",
+      "exercise": "버드독",
+      "ownerRoleType": "SUPPORTING_COVERAGE",
+      "beforeB6Status": "NO_EXACT_OWNER_DECISION",
+      "beforeB6Reasons": [],
+      "beforePrescriptionAuthority": "GENERIC_PROVISIONAL_FALLBACK",
+      "beforePrescriptionSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+      "beforeFrequencySource": "PROGRAM_HORIZON_WEEKS; no owner-specific B6 weekly frequency authority",
+      "beforeFirstProducedAt": {
+        "producerStage": "MaterialDemandResolver.resolve",
+        "candidateAudit": "MATERIALIZED_GAP",
+        "representedGapCodes": [
+          "CORE_DIRECT"
+        ],
+        "typedMaterialDemandEventRetained": false,
+        "originEventDropPoint": "mergeCanonicalMaterialDemand copies candidates\/deferred\/audit, not ownerAllocationProvenance",
+        "firstRetainedOwnerEventStage": "INITIAL_WEEKLY_PLACEMENT"
+      },
+      "beforeB7AttributionStatus": "UNEXPLAINED",
+      "candidateOrigin": {
+        "owner": {
+          "stableKey": "ex_28347c1f",
+          "selectionRole": "COVERAGE_CORE_DIRECT"
+        },
+        "gapCodes": [
+          "CORE_DIRECT"
+        ],
+        "evidenceCodes": [
+          "MATERIAL_DEMAND_SELECTED"
+        ],
+        "authorityResolution": {
+          "status": "NO_SUPPORTED_AUTHORITY",
+          "reason": "OWNER_CANDIDATES_EXHAUSTED",
+          "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+          "originalOwner": {
+            "stableKey": "ex_28347c1f",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          "attemptedOwners": [
+            {
+              "stableKey": "ex_28347c1f",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_2a826c82",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_644e0f9d",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_a345e30b",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_a44ae2ca",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_a8385c4a",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_a9b52886",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_d5bdffe1",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_f6d43398",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            }
+          ]
+        }
+      },
+      "candidateOriginPreserved": true,
+      "candidateDeferredReason": "MATERIAL_DEMAND_NO_EXACT_EXECUTABLE_PRESCRIPTION_AUTHORITY",
+      "candidateDemandTargetSets": 0,
+      "candidateAlternativesHaveZeroPrescriptionUnits": true,
+      "authorityResolution": {
+        "status": "NO_SUPPORTED_AUTHORITY",
+        "reason": "OWNER_CANDIDATES_EXHAUSTED",
+        "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+        "attemptedOwners": [
+          {
+            "stableKey": "ex_28347c1f",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_2a826c82",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_644e0f9d",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_a345e30b",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_a44ae2ca",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_a8385c4a",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_a9b52886",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_d5bdffe1",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_f6d43398",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          }
+        ]
+      },
+      "recoveryOutcome": "UNRESOLVED_NO_AUTHORITY",
+      "missingAuthorityKind": "OWNER_CANDIDATES_EXHAUSTED",
+      "reResolutionStage": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+      "needGapCodes": [
+        "CORE_DIRECT"
+      ],
+      "unresolvedNeedGapCodes": [
+        "ARMS_BICEPS",
+        "ARMS_TRICEPS",
+        "CALVES",
+        "CORE_DIRECT",
+        "HORIZONTAL_PUSH",
+        "LOWER_KNEE",
+        "POSTERIOR_CHAIN"
+      ],
+      "needRetainedOrResolvedByExactAuthority": true,
+      "needRemainsUnresolved": true,
+      "b5Selected": false,
+      "b6DecisionCount": 0,
+      "exactProviderResolution": "NoExactAuthority",
+      "rootCauseBefore": "NO_B6_BUT_MATERIALIZED",
+      "experimentalEvaluationFailedClosed": true,
+      "actualExecutableRowsAfter": 0,
+      "unexplainedAddedAttributionAfter": false
+    },
+    {
+      "case": "persona1_sparse",
+      "stableKey": "ex_5ca7133f",
+      "selectionRole": "COVERAGE_CALVES",
+      "exercise": "원레그 카프 레이즈",
+      "ownerRoleType": "SUPPORTING_COVERAGE",
+      "beforeB6Status": "NO_EXACT_OWNER_DECISION",
+      "beforeB6Reasons": [],
+      "beforePrescriptionAuthority": "GENERIC_PROVISIONAL_FALLBACK",
+      "beforePrescriptionSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+      "beforeFrequencySource": "PROGRAM_HORIZON_WEEKS; no owner-specific B6 weekly frequency authority",
+      "beforeFirstProducedAt": {
+        "producerStage": "MaterialDemandResolver.resolve",
+        "candidateAudit": "MATERIALIZED_GAP",
+        "representedGapCodes": [
+          "CALVES"
+        ],
+        "typedMaterialDemandEventRetained": false,
+        "originEventDropPoint": "mergeCanonicalMaterialDemand copies candidates\/deferred\/audit, not ownerAllocationProvenance",
+        "firstRetainedOwnerEventStage": "INITIAL_WEEKLY_PLACEMENT"
+      },
+      "beforeB7AttributionStatus": "UNEXPLAINED",
+      "candidateOrigin": {
+        "owner": {
+          "stableKey": "ex_5ca7133f",
+          "selectionRole": "COVERAGE_CALVES"
+        },
+        "gapCodes": [
+          "CALVES"
+        ],
+        "evidenceCodes": [
+          "MATERIAL_DEMAND_SELECTED"
+        ],
+        "authorityResolution": {
+          "status": "NO_SUPPORTED_AUTHORITY",
+          "reason": "OWNER_CANDIDATES_EXHAUSTED",
+          "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+          "originalOwner": {
+            "stableKey": "ex_5ca7133f",
+            "selectionRole": "COVERAGE_CALVES"
+          },
+          "attemptedOwners": [
+            {
+              "stableKey": "ex_5ca7133f",
+              "selectionRole": "COVERAGE_CALVES"
+            },
+            {
+              "stableKey": "standing_bodyweight_calf_raise",
+              "selectionRole": "COVERAGE_CALVES"
+            },
+            {
+              "stableKey": "standing_dumbbell_calf_raise",
+              "selectionRole": "COVERAGE_CALVES"
+            }
+          ]
+        }
+      },
+      "candidateOriginPreserved": true,
+      "candidateDeferredReason": "MATERIAL_DEMAND_NO_EXACT_EXECUTABLE_PRESCRIPTION_AUTHORITY",
+      "candidateDemandTargetSets": 0,
+      "candidateAlternativesHaveZeroPrescriptionUnits": true,
+      "authorityResolution": {
+        "status": "NO_SUPPORTED_AUTHORITY",
+        "reason": "OWNER_CANDIDATES_EXHAUSTED",
+        "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+        "attemptedOwners": [
+          {
+            "stableKey": "ex_5ca7133f",
+            "selectionRole": "COVERAGE_CALVES"
+          },
+          {
+            "stableKey": "standing_bodyweight_calf_raise",
+            "selectionRole": "COVERAGE_CALVES"
+          },
+          {
+            "stableKey": "standing_dumbbell_calf_raise",
+            "selectionRole": "COVERAGE_CALVES"
+          }
+        ]
+      },
+      "recoveryOutcome": "UNRESOLVED_NO_AUTHORITY",
+      "missingAuthorityKind": "OWNER_CANDIDATES_EXHAUSTED",
+      "reResolutionStage": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+      "needGapCodes": [
+        "CALVES"
+      ],
+      "unresolvedNeedGapCodes": [
+        "ARMS_BICEPS",
+        "ARMS_TRICEPS",
+        "CALVES",
+        "CORE_DIRECT",
+        "HORIZONTAL_PUSH",
+        "LOWER_KNEE",
+        "POSTERIOR_CHAIN"
+      ],
+      "needRetainedOrResolvedByExactAuthority": true,
+      "needRemainsUnresolved": true,
+      "b5Selected": false,
+      "b6DecisionCount": 0,
+      "exactProviderResolution": "NoExactAuthority",
+      "rootCauseBefore": "NO_B6_BUT_MATERIALIZED",
+      "experimentalEvaluationFailedClosed": true,
+      "actualExecutableRowsAfter": 0,
+      "unexplainedAddedAttributionAfter": false
+    },
+    {
+      "case": "persona2_sparse",
+      "stableKey": "barbell_deadlift",
+      "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+      "exercise": "데드리프트",
+      "ownerRoleType": "SUPPORTING_COVERAGE",
+      "beforeB6Status": "NO_EXACT_OWNER_DECISION",
+      "beforeB6Reasons": [],
+      "beforePrescriptionAuthority": "GENERIC_PROVISIONAL_FALLBACK",
+      "beforePrescriptionSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+      "beforeFrequencySource": "PROGRAM_HORIZON_WEEKS; no owner-specific B6 weekly frequency authority",
+      "beforeFirstProducedAt": {
+        "producerStage": "MaterialDemandResolver.resolve",
+        "candidateAudit": "MATERIALIZED_GAP",
+        "representedGapCodes": [
+          "POSTERIOR_CHAIN"
+        ],
+        "typedMaterialDemandEventRetained": false,
+        "originEventDropPoint": "mergeCanonicalMaterialDemand copies candidates\/deferred\/audit, not ownerAllocationProvenance",
+        "firstRetainedOwnerEventStage": "INITIAL_WEEKLY_PLACEMENT"
+      },
+      "beforeB7AttributionStatus": "UNEXPLAINED",
+      "candidateOrigin": {
+        "owner": {
+          "stableKey": "barbell_deadlift",
+          "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+        },
+        "gapCodes": [
+          "POSTERIOR_CHAIN"
+        ],
+        "evidenceCodes": [
+          "MATERIAL_DEMAND_SELECTED"
+        ],
+        "authorityResolution": {
+          "status": "NO_SUPPORTED_AUTHORITY",
+          "reason": "OWNER_CANDIDATES_EXHAUSTED",
+          "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+          "originalOwner": {
+            "stableKey": "barbell_deadlift",
+            "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+          },
+          "attemptedOwners": [
+            {
+              "stableKey": "barbell_deadlift",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+            },
+            {
+              "stableKey": "barbell_romanian_deadlift",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+            },
+            {
+              "stableKey": "dumbbell_romanian_deadlift",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+            },
+            {
+              "stableKey": "dumbbell_single_leg_rdl",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+            },
+            {
+              "stableKey": "ex_1cf51b6b",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+            },
+            {
+              "stableKey": "ex_2822ec2e",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+            },
+            {
+              "stableKey": "ex_284ecca6",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+            },
+            {
+              "stableKey": "ex_389920ab",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+            },
+            {
+              "stableKey": "ex_4c76dbb2",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+            },
+            {
+              "stableKey": "ex_721f7b5b",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+            },
+            {
+              "stableKey": "ex_8824026f",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+            },
+            {
+              "stableKey": "ex_b59bed7d",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+            },
+            {
+              "stableKey": "ex_e0b1e364",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+            },
+            {
+              "stableKey": "ex_fa34ddfe",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+            },
+            {
+              "stableKey": "kettlebell_single_leg_rdl",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+            },
+            {
+              "stableKey": "single_leg_hip_bridge",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+            }
+          ]
+        }
+      },
+      "candidateOriginPreserved": true,
+      "candidateDeferredReason": "MATERIAL_DEMAND_NO_EXACT_EXECUTABLE_PRESCRIPTION_AUTHORITY",
+      "candidateDemandTargetSets": 0,
+      "candidateAlternativesHaveZeroPrescriptionUnits": true,
+      "authorityResolution": {
+        "status": "NO_SUPPORTED_AUTHORITY",
+        "reason": "OWNER_CANDIDATES_EXHAUSTED",
+        "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+        "attemptedOwners": [
+          {
+            "stableKey": "barbell_deadlift",
+            "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+          },
+          {
+            "stableKey": "barbell_romanian_deadlift",
+            "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+          },
+          {
+            "stableKey": "dumbbell_romanian_deadlift",
+            "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+          },
+          {
+            "stableKey": "dumbbell_single_leg_rdl",
+            "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+          },
+          {
+            "stableKey": "ex_1cf51b6b",
+            "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+          },
+          {
+            "stableKey": "ex_2822ec2e",
+            "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+          },
+          {
+            "stableKey": "ex_284ecca6",
+            "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+          },
+          {
+            "stableKey": "ex_389920ab",
+            "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+          },
+          {
+            "stableKey": "ex_4c76dbb2",
+            "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+          },
+          {
+            "stableKey": "ex_721f7b5b",
+            "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+          },
+          {
+            "stableKey": "ex_8824026f",
+            "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+          },
+          {
+            "stableKey": "ex_b59bed7d",
+            "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+          },
+          {
+            "stableKey": "ex_e0b1e364",
+            "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+          },
+          {
+            "stableKey": "ex_fa34ddfe",
+            "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+          },
+          {
+            "stableKey": "kettlebell_single_leg_rdl",
+            "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+          },
+          {
+            "stableKey": "single_leg_hip_bridge",
+            "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+          }
+        ]
+      },
+      "recoveryOutcome": "UNRESOLVED_NO_AUTHORITY",
+      "missingAuthorityKind": "OWNER_CANDIDATES_EXHAUSTED",
+      "reResolutionStage": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+      "needGapCodes": [
+        "POSTERIOR_CHAIN"
+      ],
+      "unresolvedNeedGapCodes": [
+        "ARMS_BICEPS",
+        "ARMS_TRICEPS",
+        "CALVES",
+        "CORE_DIRECT",
+        "HORIZONTAL_PUSH",
+        "POSTERIOR_CHAIN",
+        "UPPER_PULL"
+      ],
+      "needRetainedOrResolvedByExactAuthority": true,
+      "needRemainsUnresolved": true,
+      "b5Selected": false,
+      "b6DecisionCount": 0,
+      "exactProviderResolution": "NoExactAuthority",
+      "rootCauseBefore": "NO_B6_BUT_MATERIALIZED",
+      "experimentalEvaluationFailedClosed": true,
+      "actualExecutableRowsAfter": 0,
+      "unexplainedAddedAttributionAfter": false
+    },
+    {
+      "case": "persona2_sparse",
+      "stableKey": "barbell_reverse_curl",
+      "selectionRole": "COVERAGE_ARMS_BICEPS",
+      "exercise": "바벨 리버스 컬",
+      "ownerRoleType": "SUPPORTING_COVERAGE",
+      "beforeB6Status": "NO_EXACT_OWNER_DECISION",
+      "beforeB6Reasons": [],
+      "beforePrescriptionAuthority": "GENERIC_PROVISIONAL_FALLBACK",
+      "beforePrescriptionSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+      "beforeFrequencySource": "PROGRAM_HORIZON_WEEKS; no owner-specific B6 weekly frequency authority",
+      "beforeFirstProducedAt": {
+        "producerStage": "MaterialDemandResolver.resolve",
+        "candidateAudit": "MATERIALIZED_GAP",
+        "representedGapCodes": [
+          "ARMS_BICEPS"
+        ],
+        "typedMaterialDemandEventRetained": false,
+        "originEventDropPoint": "mergeCanonicalMaterialDemand copies candidates\/deferred\/audit, not ownerAllocationProvenance",
+        "firstRetainedOwnerEventStage": "INITIAL_WEEKLY_PLACEMENT"
+      },
+      "beforeB7AttributionStatus": "UNEXPLAINED",
+      "candidateOrigin": {
+        "owner": {
+          "stableKey": "barbell_reverse_curl",
+          "selectionRole": "COVERAGE_ARMS_BICEPS"
+        },
+        "gapCodes": [
+          "ARMS_BICEPS"
+        ],
+        "evidenceCodes": [
+          "MATERIAL_DEMAND_SELECTED"
+        ],
+        "authorityResolution": {
+          "status": "NO_SUPPORTED_AUTHORITY",
+          "reason": "OWNER_CANDIDATES_EXHAUSTED",
+          "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+          "originalOwner": {
+            "stableKey": "barbell_reverse_curl",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          "attemptedOwners": [
+            {
+              "stableKey": "barbell_reverse_curl",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "dumbbell_preacher_curl",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "dumbbell_spider_curl",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "ex_281347da",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "ex_2892da5a",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "ex_3d5719de",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "ex_85b2ac56",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "ex_86323ed6",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "ex_8633d8db",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "ex_b69ab702",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "ex_c1a81cb2",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "ex_c62c0716",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "ex_d5048362",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "ex_e709eeda",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "ez_bar_preacher_curl",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "ez_bar_reverse_curl",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "ez_bar_spider_curl",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            }
+          ]
+        }
+      },
+      "candidateOriginPreserved": true,
+      "candidateDeferredReason": "MATERIAL_DEMAND_NO_EXACT_EXECUTABLE_PRESCRIPTION_AUTHORITY",
+      "candidateDemandTargetSets": 0,
+      "candidateAlternativesHaveZeroPrescriptionUnits": true,
+      "authorityResolution": {
+        "status": "NO_SUPPORTED_AUTHORITY",
+        "reason": "OWNER_CANDIDATES_EXHAUSTED",
+        "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+        "attemptedOwners": [
+          {
+            "stableKey": "barbell_reverse_curl",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "dumbbell_preacher_curl",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "dumbbell_spider_curl",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "ex_281347da",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "ex_2892da5a",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "ex_3d5719de",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "ex_85b2ac56",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "ex_86323ed6",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "ex_8633d8db",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "ex_b69ab702",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "ex_c1a81cb2",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "ex_c62c0716",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "ex_d5048362",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "ex_e709eeda",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "ez_bar_preacher_curl",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "ez_bar_reverse_curl",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "ez_bar_spider_curl",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          }
+        ]
+      },
+      "recoveryOutcome": "UNRESOLVED_NO_AUTHORITY",
+      "missingAuthorityKind": "OWNER_CANDIDATES_EXHAUSTED",
+      "reResolutionStage": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+      "needGapCodes": [
+        "ARMS_BICEPS"
+      ],
+      "unresolvedNeedGapCodes": [
+        "ARMS_BICEPS",
+        "ARMS_TRICEPS",
+        "CALVES",
+        "CORE_DIRECT",
+        "HORIZONTAL_PUSH",
+        "POSTERIOR_CHAIN",
+        "UPPER_PULL"
+      ],
+      "needRetainedOrResolvedByExactAuthority": true,
+      "needRemainsUnresolved": true,
+      "b5Selected": false,
+      "b6DecisionCount": 0,
+      "exactProviderResolution": "NoExactAuthority",
+      "rootCauseBefore": "NO_B6_BUT_MATERIALIZED",
+      "experimentalEvaluationFailedClosed": true,
+      "actualExecutableRowsAfter": 0,
+      "unexplainedAddedAttributionAfter": false
+    },
+    {
+      "case": "persona2_sparse",
+      "stableKey": "cable_overhead_triceps_extension",
+      "selectionRole": "COVERAGE_ARMS_TRICEPS",
+      "exercise": "케이블 오버헤드 트라이셉스 익스텐션",
+      "ownerRoleType": "SUPPORTING_COVERAGE",
+      "beforeB6Status": "NO_EXACT_OWNER_DECISION",
+      "beforeB6Reasons": [],
+      "beforePrescriptionAuthority": "GENERIC_PROVISIONAL_FALLBACK",
+      "beforePrescriptionSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+      "beforeFrequencySource": "PROGRAM_HORIZON_WEEKS; no owner-specific B6 weekly frequency authority",
+      "beforeFirstProducedAt": {
+        "producerStage": "MaterialDemandResolver.resolve",
+        "candidateAudit": "MATERIALIZED_GAP",
+        "representedGapCodes": [
+          "ARMS_TRICEPS"
+        ],
+        "typedMaterialDemandEventRetained": false,
+        "originEventDropPoint": "mergeCanonicalMaterialDemand copies candidates\/deferred\/audit, not ownerAllocationProvenance",
+        "firstRetainedOwnerEventStage": "INITIAL_WEEKLY_PLACEMENT"
+      },
+      "beforeB7AttributionStatus": "UNEXPLAINED",
+      "candidateOrigin": {
+        "owner": {
+          "stableKey": "cable_overhead_triceps_extension",
+          "selectionRole": "COVERAGE_ARMS_TRICEPS"
+        },
+        "gapCodes": [
+          "ARMS_TRICEPS"
+        ],
+        "evidenceCodes": [
+          "MATERIAL_DEMAND_SELECTED"
+        ],
+        "authorityResolution": {
+          "status": "NO_SUPPORTED_AUTHORITY",
+          "reason": "OWNER_CANDIDATES_EXHAUSTED",
+          "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+          "originalOwner": {
+            "stableKey": "cable_overhead_triceps_extension",
+            "selectionRole": "COVERAGE_ARMS_TRICEPS"
+          },
+          "attemptedOwners": [
+            {
+              "stableKey": "cable_overhead_triceps_extension",
+              "selectionRole": "COVERAGE_ARMS_TRICEPS"
+            },
+            {
+              "stableKey": "dumbbell_lying_triceps_extension",
+              "selectionRole": "COVERAGE_ARMS_TRICEPS"
+            },
+            {
+              "stableKey": "dumbbell_overhead_triceps_extension",
+              "selectionRole": "COVERAGE_ARMS_TRICEPS"
+            },
+            {
+              "stableKey": "ex_5322f2d1",
+              "selectionRole": "COVERAGE_ARMS_TRICEPS"
+            },
+            {
+              "stableKey": "ex_da56a4fe",
+              "selectionRole": "COVERAGE_ARMS_TRICEPS"
+            },
+            {
+              "stableKey": "ex_deca2b61",
+              "selectionRole": "COVERAGE_ARMS_TRICEPS"
+            },
+            {
+              "stableKey": "ex_eb636bac",
+              "selectionRole": "COVERAGE_ARMS_TRICEPS"
+            },
+            {
+              "stableKey": "ex_fa570291",
+              "selectionRole": "COVERAGE_ARMS_TRICEPS"
+            },
+            {
+              "stableKey": "ex_fdbdf454",
+              "selectionRole": "COVERAGE_ARMS_TRICEPS"
+            },
+            {
+              "stableKey": "ez_bar_lying_triceps_extension",
+              "selectionRole": "COVERAGE_ARMS_TRICEPS"
+            }
+          ]
+        }
+      },
+      "candidateOriginPreserved": true,
+      "candidateDeferredReason": "MATERIAL_DEMAND_NO_EXACT_EXECUTABLE_PRESCRIPTION_AUTHORITY",
+      "candidateDemandTargetSets": 0,
+      "candidateAlternativesHaveZeroPrescriptionUnits": true,
+      "authorityResolution": {
+        "status": "NO_SUPPORTED_AUTHORITY",
+        "reason": "OWNER_CANDIDATES_EXHAUSTED",
+        "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+        "attemptedOwners": [
+          {
+            "stableKey": "cable_overhead_triceps_extension",
+            "selectionRole": "COVERAGE_ARMS_TRICEPS"
+          },
+          {
+            "stableKey": "dumbbell_lying_triceps_extension",
+            "selectionRole": "COVERAGE_ARMS_TRICEPS"
+          },
+          {
+            "stableKey": "dumbbell_overhead_triceps_extension",
+            "selectionRole": "COVERAGE_ARMS_TRICEPS"
+          },
+          {
+            "stableKey": "ex_5322f2d1",
+            "selectionRole": "COVERAGE_ARMS_TRICEPS"
+          },
+          {
+            "stableKey": "ex_da56a4fe",
+            "selectionRole": "COVERAGE_ARMS_TRICEPS"
+          },
+          {
+            "stableKey": "ex_deca2b61",
+            "selectionRole": "COVERAGE_ARMS_TRICEPS"
+          },
+          {
+            "stableKey": "ex_eb636bac",
+            "selectionRole": "COVERAGE_ARMS_TRICEPS"
+          },
+          {
+            "stableKey": "ex_fa570291",
+            "selectionRole": "COVERAGE_ARMS_TRICEPS"
+          },
+          {
+            "stableKey": "ex_fdbdf454",
+            "selectionRole": "COVERAGE_ARMS_TRICEPS"
+          },
+          {
+            "stableKey": "ez_bar_lying_triceps_extension",
+            "selectionRole": "COVERAGE_ARMS_TRICEPS"
+          }
+        ]
+      },
+      "recoveryOutcome": "UNRESOLVED_NO_AUTHORITY",
+      "missingAuthorityKind": "OWNER_CANDIDATES_EXHAUSTED",
+      "reResolutionStage": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+      "needGapCodes": [
+        "ARMS_TRICEPS"
+      ],
+      "unresolvedNeedGapCodes": [
+        "ARMS_BICEPS",
+        "ARMS_TRICEPS",
+        "CALVES",
+        "CORE_DIRECT",
+        "HORIZONTAL_PUSH",
+        "POSTERIOR_CHAIN",
+        "UPPER_PULL"
+      ],
+      "needRetainedOrResolvedByExactAuthority": true,
+      "needRemainsUnresolved": true,
+      "b5Selected": false,
+      "b6DecisionCount": 0,
+      "exactProviderResolution": "NoExactAuthority",
+      "rootCauseBefore": "NO_B6_BUT_MATERIALIZED",
+      "experimentalEvaluationFailedClosed": true,
+      "actualExecutableRowsAfter": 0,
+      "unexplainedAddedAttributionAfter": false
+    },
+    {
+      "case": "persona2_sparse",
+      "stableKey": "cable_rear_delt_fly",
+      "selectionRole": "COVERAGE_UPPER_PULL",
+      "exercise": "케이블 리어델트 플라이",
+      "ownerRoleType": "SUPPORTING_COVERAGE",
+      "beforeB6Status": "NO_EXACT_OWNER_DECISION",
+      "beforeB6Reasons": [],
+      "beforePrescriptionAuthority": "GENERIC_PROVISIONAL_FALLBACK",
+      "beforePrescriptionSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+      "beforeFrequencySource": "PROGRAM_HORIZON_WEEKS; no owner-specific B6 weekly frequency authority",
+      "beforeFirstProducedAt": {
+        "producerStage": "MaterialDemandResolver.resolve",
+        "candidateAudit": "MATERIALIZED_GAP",
+        "representedGapCodes": [
+          "UPPER_PULL"
+        ],
+        "typedMaterialDemandEventRetained": false,
+        "originEventDropPoint": "mergeCanonicalMaterialDemand copies candidates\/deferred\/audit, not ownerAllocationProvenance",
+        "firstRetainedOwnerEventStage": "INITIAL_WEEKLY_PLACEMENT"
+      },
+      "beforeB7AttributionStatus": "UNEXPLAINED",
+      "candidateOrigin": {
+        "owner": {
+          "stableKey": "cable_rear_delt_fly",
+          "selectionRole": "COVERAGE_UPPER_PULL"
+        },
+        "gapCodes": [
+          "UPPER_PULL"
+        ],
+        "evidenceCodes": [
+          "MATERIAL_DEMAND_SELECTED"
+        ],
+        "authorityResolution": {
+          "status": "NO_SUPPORTED_AUTHORITY",
+          "reason": "OWNER_CANDIDATES_EXHAUSTED",
+          "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+          "originalOwner": {
+            "stableKey": "cable_rear_delt_fly",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          "attemptedOwners": [
+            {
+              "stableKey": "cable_rear_delt_fly",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "chest_supported_row_machine",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "dumbbell_chest_supported_row",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "dumbbell_rear_delt_fly",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_282a9d87",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_30a0e9aa",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_32eb8457",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_33d2da8e",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_3c3692aa",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_40fa57be",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_462c760e",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_6466fe77",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_6a966452",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_708e64ce",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_7deabeba",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_8e4bf08e",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_a60496be",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_a76f20b6",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_c365e5e2",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_ca5cce66",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_dc9e5953",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_de46b7f6",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_e159d15a",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_e1894690",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_e41e8dcf",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_e41f4c2b",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_e4f911bb",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_f459ad2a",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_fa31f7a6",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "gymnastic_ring_inverted_row",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "one_arm_gymnastic_ring_row",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "one_arm_suspension_trainer_row",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "suspension_trainer_inverted_row",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            }
+          ]
+        }
+      },
+      "candidateOriginPreserved": true,
+      "candidateDeferredReason": "MATERIAL_DEMAND_NO_EXACT_EXECUTABLE_PRESCRIPTION_AUTHORITY",
+      "candidateDemandTargetSets": 0,
+      "candidateAlternativesHaveZeroPrescriptionUnits": true,
+      "authorityResolution": {
+        "status": "NO_SUPPORTED_AUTHORITY",
+        "reason": "OWNER_CANDIDATES_EXHAUSTED",
+        "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+        "attemptedOwners": [
+          {
+            "stableKey": "cable_rear_delt_fly",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "chest_supported_row_machine",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "dumbbell_chest_supported_row",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "dumbbell_rear_delt_fly",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_282a9d87",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_30a0e9aa",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_32eb8457",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_33d2da8e",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_3c3692aa",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_40fa57be",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_462c760e",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_6466fe77",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_6a966452",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_708e64ce",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_7deabeba",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_8e4bf08e",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_a60496be",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_a76f20b6",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_c365e5e2",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_ca5cce66",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_dc9e5953",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_de46b7f6",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_e159d15a",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_e1894690",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_e41e8dcf",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_e41f4c2b",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_e4f911bb",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_f459ad2a",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_fa31f7a6",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "gymnastic_ring_inverted_row",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "one_arm_gymnastic_ring_row",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "one_arm_suspension_trainer_row",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "suspension_trainer_inverted_row",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          }
+        ]
+      },
+      "recoveryOutcome": "UNRESOLVED_NO_AUTHORITY",
+      "missingAuthorityKind": "OWNER_CANDIDATES_EXHAUSTED",
+      "reResolutionStage": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+      "needGapCodes": [
+        "UPPER_PULL"
+      ],
+      "unresolvedNeedGapCodes": [
+        "ARMS_BICEPS",
+        "ARMS_TRICEPS",
+        "CALVES",
+        "CORE_DIRECT",
+        "HORIZONTAL_PUSH",
+        "POSTERIOR_CHAIN",
+        "UPPER_PULL"
+      ],
+      "needRetainedOrResolvedByExactAuthority": true,
+      "needRemainsUnresolved": true,
+      "b5Selected": false,
+      "b6DecisionCount": 0,
+      "exactProviderResolution": "NoExactAuthority",
+      "rootCauseBefore": "NO_B6_BUT_MATERIALIZED",
+      "experimentalEvaluationFailedClosed": true,
+      "actualExecutableRowsAfter": 0,
+      "unexplainedAddedAttributionAfter": false
+    },
+    {
+      "case": "persona2_sparse",
+      "stableKey": "ex_28347c1f",
+      "selectionRole": "COVERAGE_CORE_DIRECT",
+      "exercise": "버드독",
+      "ownerRoleType": "SUPPORTING_COVERAGE",
+      "beforeB6Status": "NO_EXACT_OWNER_DECISION",
+      "beforeB6Reasons": [],
+      "beforePrescriptionAuthority": "GENERIC_PROVISIONAL_FALLBACK",
+      "beforePrescriptionSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+      "beforeFrequencySource": "PROGRAM_HORIZON_WEEKS; no owner-specific B6 weekly frequency authority",
+      "beforeFirstProducedAt": {
+        "producerStage": "MaterialDemandResolver.resolve",
+        "candidateAudit": "MATERIALIZED_GAP",
+        "representedGapCodes": [
+          "CORE_DIRECT"
+        ],
+        "typedMaterialDemandEventRetained": false,
+        "originEventDropPoint": "mergeCanonicalMaterialDemand copies candidates\/deferred\/audit, not ownerAllocationProvenance",
+        "firstRetainedOwnerEventStage": "INITIAL_WEEKLY_PLACEMENT"
+      },
+      "beforeB7AttributionStatus": "UNEXPLAINED",
+      "candidateOrigin": {
+        "owner": {
+          "stableKey": "ex_28347c1f",
+          "selectionRole": "COVERAGE_CORE_DIRECT"
+        },
+        "gapCodes": [
+          "CORE_DIRECT"
+        ],
+        "evidenceCodes": [
+          "MATERIAL_DEMAND_SELECTED"
+        ],
+        "authorityResolution": {
+          "status": "NO_SUPPORTED_AUTHORITY",
+          "reason": "OWNER_CANDIDATES_EXHAUSTED",
+          "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+          "originalOwner": {
+            "stableKey": "ex_28347c1f",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          "attemptedOwners": [
+            {
+              "stableKey": "ex_28347c1f",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_2a826c82",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_644e0f9d",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_a345e30b",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_a44ae2ca",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_a8385c4a",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_a9b52886",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_b3f447be",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_d5bdffe1",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_f6d43398",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            }
+          ]
+        }
+      },
+      "candidateOriginPreserved": true,
+      "candidateDeferredReason": "MATERIAL_DEMAND_NO_EXACT_EXECUTABLE_PRESCRIPTION_AUTHORITY",
+      "candidateDemandTargetSets": 0,
+      "candidateAlternativesHaveZeroPrescriptionUnits": true,
+      "authorityResolution": {
+        "status": "NO_SUPPORTED_AUTHORITY",
+        "reason": "OWNER_CANDIDATES_EXHAUSTED",
+        "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+        "attemptedOwners": [
+          {
+            "stableKey": "ex_28347c1f",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_2a826c82",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_644e0f9d",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_a345e30b",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_a44ae2ca",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_a8385c4a",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_a9b52886",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_b3f447be",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_d5bdffe1",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_f6d43398",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          }
+        ]
+      },
+      "recoveryOutcome": "UNRESOLVED_NO_AUTHORITY",
+      "missingAuthorityKind": "OWNER_CANDIDATES_EXHAUSTED",
+      "reResolutionStage": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+      "needGapCodes": [
+        "CORE_DIRECT"
+      ],
+      "unresolvedNeedGapCodes": [
+        "ARMS_BICEPS",
+        "ARMS_TRICEPS",
+        "CALVES",
+        "CORE_DIRECT",
+        "HORIZONTAL_PUSH",
+        "POSTERIOR_CHAIN",
+        "UPPER_PULL"
+      ],
+      "needRetainedOrResolvedByExactAuthority": true,
+      "needRemainsUnresolved": true,
+      "b5Selected": false,
+      "b6DecisionCount": 0,
+      "exactProviderResolution": "NoExactAuthority",
+      "rootCauseBefore": "NO_B6_BUT_MATERIALIZED",
+      "experimentalEvaluationFailedClosed": true,
+      "actualExecutableRowsAfter": 0,
+      "unexplainedAddedAttributionAfter": false
+    },
+    {
+      "case": "persona2_sparse",
+      "stableKey": "ex_5c8751d2",
+      "selectionRole": "COVERAGE_CALVES",
+      "exercise": "시티드 카프 레이즈",
+      "ownerRoleType": "SUPPORTING_COVERAGE",
+      "beforeB6Status": "NO_EXACT_OWNER_DECISION",
+      "beforeB6Reasons": [],
+      "beforePrescriptionAuthority": "GENERIC_PROVISIONAL_FALLBACK",
+      "beforePrescriptionSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+      "beforeFrequencySource": "PROGRAM_HORIZON_WEEKS; no owner-specific B6 weekly frequency authority",
+      "beforeFirstProducedAt": {
+        "producerStage": "MaterialDemandResolver.resolve",
+        "candidateAudit": "MATERIALIZED_GAP",
+        "representedGapCodes": [
+          "CALVES"
+        ],
+        "typedMaterialDemandEventRetained": false,
+        "originEventDropPoint": "mergeCanonicalMaterialDemand copies candidates\/deferred\/audit, not ownerAllocationProvenance",
+        "firstRetainedOwnerEventStage": "INITIAL_WEEKLY_PLACEMENT"
+      },
+      "beforeB7AttributionStatus": "UNEXPLAINED",
+      "candidateOrigin": {
+        "owner": {
+          "stableKey": "ex_5c8751d2",
+          "selectionRole": "COVERAGE_CALVES"
+        },
+        "gapCodes": [
+          "CALVES"
+        ],
+        "evidenceCodes": [
+          "MATERIAL_DEMAND_SELECTED"
+        ],
+        "authorityResolution": {
+          "status": "NO_SUPPORTED_AUTHORITY",
+          "reason": "OWNER_CANDIDATES_EXHAUSTED",
+          "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+          "originalOwner": {
+            "stableKey": "ex_5c8751d2",
+            "selectionRole": "COVERAGE_CALVES"
+          },
+          "attemptedOwners": [
+            {
+              "stableKey": "ex_5c8751d2",
+              "selectionRole": "COVERAGE_CALVES"
+            },
+            {
+              "stableKey": "ex_5ca7133f",
+              "selectionRole": "COVERAGE_CALVES"
+            },
+            {
+              "stableKey": "standing_bodyweight_calf_raise",
+              "selectionRole": "COVERAGE_CALVES"
+            },
+            {
+              "stableKey": "standing_calf_raise_machine",
+              "selectionRole": "COVERAGE_CALVES"
+            },
+            {
+              "stableKey": "standing_dumbbell_calf_raise",
+              "selectionRole": "COVERAGE_CALVES"
+            }
+          ]
+        }
+      },
+      "candidateOriginPreserved": true,
+      "candidateDeferredReason": "MATERIAL_DEMAND_NO_EXACT_EXECUTABLE_PRESCRIPTION_AUTHORITY",
+      "candidateDemandTargetSets": 0,
+      "candidateAlternativesHaveZeroPrescriptionUnits": true,
+      "authorityResolution": {
+        "status": "NO_SUPPORTED_AUTHORITY",
+        "reason": "OWNER_CANDIDATES_EXHAUSTED",
+        "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+        "attemptedOwners": [
+          {
+            "stableKey": "ex_5c8751d2",
+            "selectionRole": "COVERAGE_CALVES"
+          },
+          {
+            "stableKey": "ex_5ca7133f",
+            "selectionRole": "COVERAGE_CALVES"
+          },
+          {
+            "stableKey": "standing_bodyweight_calf_raise",
+            "selectionRole": "COVERAGE_CALVES"
+          },
+          {
+            "stableKey": "standing_calf_raise_machine",
+            "selectionRole": "COVERAGE_CALVES"
+          },
+          {
+            "stableKey": "standing_dumbbell_calf_raise",
+            "selectionRole": "COVERAGE_CALVES"
+          }
+        ]
+      },
+      "recoveryOutcome": "UNRESOLVED_NO_AUTHORITY",
+      "missingAuthorityKind": "OWNER_CANDIDATES_EXHAUSTED",
+      "reResolutionStage": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+      "needGapCodes": [
+        "CALVES"
+      ],
+      "unresolvedNeedGapCodes": [
+        "ARMS_BICEPS",
+        "ARMS_TRICEPS",
+        "CALVES",
+        "CORE_DIRECT",
+        "HORIZONTAL_PUSH",
+        "POSTERIOR_CHAIN",
+        "UPPER_PULL"
+      ],
+      "needRetainedOrResolvedByExactAuthority": true,
+      "needRemainsUnresolved": true,
+      "b5Selected": false,
+      "b6DecisionCount": 0,
+      "exactProviderResolution": "NoExactAuthority",
+      "rootCauseBefore": "NO_B6_BUT_MATERIALIZED",
+      "experimentalEvaluationFailedClosed": true,
+      "actualExecutableRowsAfter": 0,
+      "unexplainedAddedAttributionAfter": false
+    },
+    {
+      "case": "persona3_sparse",
+      "stableKey": "ex_1dbee10e",
+      "selectionRole": "COVERAGE_HORIZONTAL_PUSH",
+      "exercise": "머신 체스트프레스",
+      "ownerRoleType": "SUPPORTING_COVERAGE",
+      "beforeB6Status": "NO_EXACT_OWNER_DECISION",
+      "beforeB6Reasons": [],
+      "beforePrescriptionAuthority": "GENERIC_PROVISIONAL_FALLBACK",
+      "beforePrescriptionSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+      "beforeFrequencySource": "PROGRAM_HORIZON_WEEKS; no owner-specific B6 weekly frequency authority",
+      "beforeFirstProducedAt": {
+        "producerStage": "MaterialDemandResolver.resolve",
+        "candidateAudit": "MATERIALIZED_GAP",
+        "representedGapCodes": [
+          "HORIZONTAL_PUSH"
+        ],
+        "typedMaterialDemandEventRetained": false,
+        "originEventDropPoint": "mergeCanonicalMaterialDemand copies candidates\/deferred\/audit, not ownerAllocationProvenance",
+        "firstRetainedOwnerEventStage": "INITIAL_WEEKLY_PLACEMENT"
+      },
+      "beforeB7AttributionStatus": "UNEXPLAINED",
+      "candidateOrigin": {
+        "owner": {
+          "stableKey": "ex_1dbee10e",
+          "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+        },
+        "gapCodes": [
+          "HORIZONTAL_PUSH"
+        ],
+        "evidenceCodes": [
+          "MATERIAL_DEMAND_SELECTED"
+        ],
+        "authorityResolution": {
+          "status": "NO_SUPPORTED_AUTHORITY",
+          "reason": "OWNER_CANDIDATES_EXHAUSTED",
+          "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+          "originalOwner": {
+            "stableKey": "ex_1dbee10e",
+            "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+          },
+          "attemptedOwners": [
+            {
+              "stableKey": "ex_1dbee10e",
+              "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+            },
+            {
+              "stableKey": "ex_28902b13",
+              "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+            },
+            {
+              "stableKey": "ex_442617f6",
+              "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+            },
+            {
+              "stableKey": "ex_4c779df2",
+              "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+            },
+            {
+              "stableKey": "ex_6463edad",
+              "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+            },
+            {
+              "stableKey": "ex_73b0b63f",
+              "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+            },
+            {
+              "stableKey": "ex_debf6a8b",
+              "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+            },
+            {
+              "stableKey": "ex_fb67af37",
+              "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+            },
+            {
+              "stableKey": "machine_chest_fly",
+              "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+            }
+          ]
+        }
+      },
+      "candidateOriginPreserved": true,
+      "candidateDeferredReason": "MATERIAL_DEMAND_NO_EXACT_EXECUTABLE_PRESCRIPTION_AUTHORITY",
+      "candidateDemandTargetSets": 0,
+      "candidateAlternativesHaveZeroPrescriptionUnits": true,
+      "authorityResolution": {
+        "status": "NO_SUPPORTED_AUTHORITY",
+        "reason": "OWNER_CANDIDATES_EXHAUSTED",
+        "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+        "attemptedOwners": [
+          {
+            "stableKey": "ex_1dbee10e",
+            "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+          },
+          {
+            "stableKey": "ex_28902b13",
+            "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+          },
+          {
+            "stableKey": "ex_442617f6",
+            "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+          },
+          {
+            "stableKey": "ex_4c779df2",
+            "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+          },
+          {
+            "stableKey": "ex_6463edad",
+            "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+          },
+          {
+            "stableKey": "ex_73b0b63f",
+            "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+          },
+          {
+            "stableKey": "ex_debf6a8b",
+            "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+          },
+          {
+            "stableKey": "ex_fb67af37",
+            "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+          },
+          {
+            "stableKey": "machine_chest_fly",
+            "selectionRole": "COVERAGE_HORIZONTAL_PUSH"
+          }
+        ]
+      },
+      "recoveryOutcome": "UNRESOLVED_NO_AUTHORITY",
+      "missingAuthorityKind": "OWNER_CANDIDATES_EXHAUSTED",
+      "reResolutionStage": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+      "needGapCodes": [
+        "HORIZONTAL_PUSH"
+      ],
+      "unresolvedNeedGapCodes": [
+        "BADMINTON_FOUNDATIONAL_ONRAMP",
+        "CORE_DIRECT",
+        "HORIZONTAL_PUSH",
+        "POSTERIOR_CHAIN",
+        "UPPER_PULL"
+      ],
+      "needRetainedOrResolvedByExactAuthority": true,
+      "needRemainsUnresolved": true,
+      "b5Selected": false,
+      "b6DecisionCount": 0,
+      "exactProviderResolution": "NoExactAuthority",
+      "rootCauseBefore": "NO_B6_BUT_MATERIALIZED",
+      "experimentalEvaluationFailedClosed": true,
+      "actualExecutableRowsAfter": 0,
+      "unexplainedAddedAttributionAfter": false
+    },
+    {
+      "case": "persona3_sparse",
+      "stableKey": "ex_28347c1f",
+      "selectionRole": "COVERAGE_CORE_DIRECT",
+      "exercise": "버드독",
+      "ownerRoleType": "SUPPORTING_COVERAGE",
+      "beforeB6Status": "NO_EXACT_OWNER_DECISION",
+      "beforeB6Reasons": [],
+      "beforePrescriptionAuthority": "GENERIC_PROVISIONAL_FALLBACK",
+      "beforePrescriptionSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+      "beforeFrequencySource": "PROGRAM_HORIZON_WEEKS; no owner-specific B6 weekly frequency authority",
+      "beforeFirstProducedAt": {
+        "producerStage": "MaterialDemandResolver.resolve",
+        "candidateAudit": "MATERIALIZED_GAP",
+        "representedGapCodes": [
+          "CORE_DIRECT"
+        ],
+        "typedMaterialDemandEventRetained": false,
+        "originEventDropPoint": "mergeCanonicalMaterialDemand copies candidates\/deferred\/audit, not ownerAllocationProvenance",
+        "firstRetainedOwnerEventStage": "INITIAL_WEEKLY_PLACEMENT"
+      },
+      "beforeB7AttributionStatus": "UNEXPLAINED",
+      "candidateOrigin": {
+        "owner": {
+          "stableKey": "ex_28347c1f",
+          "selectionRole": "COVERAGE_CORE_DIRECT"
+        },
+        "gapCodes": [
+          "CORE_DIRECT"
+        ],
+        "evidenceCodes": [
+          "MATERIAL_DEMAND_SELECTED"
+        ],
+        "authorityResolution": {
+          "status": "NO_SUPPORTED_AUTHORITY",
+          "reason": "OWNER_CANDIDATES_EXHAUSTED",
+          "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+          "originalOwner": {
+            "stableKey": "ex_28347c1f",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          "attemptedOwners": [
+            {
+              "stableKey": "ex_28347c1f",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_2a826c82",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_644e0f9d",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_a345e30b",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_a44ae2ca",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_a9b52886",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_d5bdffe1",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_f6d43398",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            }
+          ]
+        }
+      },
+      "candidateOriginPreserved": true,
+      "candidateDeferredReason": "MATERIAL_DEMAND_NO_EXACT_EXECUTABLE_PRESCRIPTION_AUTHORITY",
+      "candidateDemandTargetSets": 0,
+      "candidateAlternativesHaveZeroPrescriptionUnits": true,
+      "authorityResolution": {
+        "status": "NO_SUPPORTED_AUTHORITY",
+        "reason": "OWNER_CANDIDATES_EXHAUSTED",
+        "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+        "attemptedOwners": [
+          {
+            "stableKey": "ex_28347c1f",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_2a826c82",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_644e0f9d",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_a345e30b",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_a44ae2ca",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_a9b52886",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_d5bdffe1",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_f6d43398",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          }
+        ]
+      },
+      "recoveryOutcome": "UNRESOLVED_NO_AUTHORITY",
+      "missingAuthorityKind": "OWNER_CANDIDATES_EXHAUSTED",
+      "reResolutionStage": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+      "needGapCodes": [
+        "CORE_DIRECT"
+      ],
+      "unresolvedNeedGapCodes": [
+        "BADMINTON_FOUNDATIONAL_ONRAMP",
+        "CORE_DIRECT",
+        "HORIZONTAL_PUSH",
+        "POSTERIOR_CHAIN",
+        "UPPER_PULL"
+      ],
+      "needRetainedOrResolvedByExactAuthority": true,
+      "needRemainsUnresolved": true,
+      "b5Selected": false,
+      "b6DecisionCount": 0,
+      "exactProviderResolution": "NoExactAuthority",
+      "rootCauseBefore": "NO_B6_BUT_MATERIALIZED",
+      "experimentalEvaluationFailedClosed": true,
+      "actualExecutableRowsAfter": 0,
+      "unexplainedAddedAttributionAfter": false
+    },
+    {
+      "case": "persona4_sparse",
+      "stableKey": "barbell_reverse_curl",
+      "selectionRole": "COVERAGE_ARMS_BICEPS",
+      "exercise": "바벨 리버스 컬",
+      "ownerRoleType": "SUPPORTING_COVERAGE",
+      "beforeB6Status": "NO_EXACT_OWNER_DECISION",
+      "beforeB6Reasons": [],
+      "beforePrescriptionAuthority": "GENERIC_PROVISIONAL_FALLBACK",
+      "beforePrescriptionSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+      "beforeFrequencySource": "PROGRAM_HORIZON_WEEKS; no owner-specific B6 weekly frequency authority",
+      "beforeFirstProducedAt": {
+        "producerStage": "MaterialDemandResolver.resolve",
+        "candidateAudit": "MATERIALIZED_GAP",
+        "representedGapCodes": [
+          "ARMS_BICEPS"
+        ],
+        "typedMaterialDemandEventRetained": false,
+        "originEventDropPoint": "mergeCanonicalMaterialDemand copies candidates\/deferred\/audit, not ownerAllocationProvenance",
+        "firstRetainedOwnerEventStage": "INITIAL_WEEKLY_PLACEMENT"
+      },
+      "beforeB7AttributionStatus": "UNEXPLAINED",
+      "candidateOrigin": {
+        "owner": {
+          "stableKey": "barbell_reverse_curl",
+          "selectionRole": "COVERAGE_ARMS_BICEPS"
+        },
+        "gapCodes": [
+          "ARMS_BICEPS"
+        ],
+        "evidenceCodes": [
+          "MATERIAL_DEMAND_SELECTED"
+        ],
+        "authorityResolution": {
+          "status": "NO_SUPPORTED_AUTHORITY",
+          "reason": "OWNER_CANDIDATES_EXHAUSTED",
+          "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+          "originalOwner": {
+            "stableKey": "barbell_reverse_curl",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          "attemptedOwners": [
+            {
+              "stableKey": "barbell_reverse_curl",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "dumbbell_preacher_curl",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "dumbbell_spider_curl",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "ex_281347da",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "ex_2892da5a",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "ex_85b2ac56",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "ex_86323ed6",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "ex_8633d8db",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "ex_b69ab702",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "ex_c62c0716",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            },
+            {
+              "stableKey": "ex_d5048362",
+              "selectionRole": "COVERAGE_ARMS_BICEPS"
+            }
+          ]
+        }
+      },
+      "candidateOriginPreserved": true,
+      "candidateDeferredReason": "MATERIAL_DEMAND_NO_EXACT_EXECUTABLE_PRESCRIPTION_AUTHORITY",
+      "candidateDemandTargetSets": 0,
+      "candidateAlternativesHaveZeroPrescriptionUnits": true,
+      "authorityResolution": {
+        "status": "NO_SUPPORTED_AUTHORITY",
+        "reason": "OWNER_CANDIDATES_EXHAUSTED",
+        "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+        "attemptedOwners": [
+          {
+            "stableKey": "barbell_reverse_curl",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "dumbbell_preacher_curl",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "dumbbell_spider_curl",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "ex_281347da",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "ex_2892da5a",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "ex_85b2ac56",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "ex_86323ed6",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "ex_8633d8db",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "ex_b69ab702",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "ex_c62c0716",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          },
+          {
+            "stableKey": "ex_d5048362",
+            "selectionRole": "COVERAGE_ARMS_BICEPS"
+          }
+        ]
+      },
+      "recoveryOutcome": "UNRESOLVED_NO_AUTHORITY",
+      "missingAuthorityKind": "OWNER_CANDIDATES_EXHAUSTED",
+      "reResolutionStage": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+      "needGapCodes": [
+        "ARMS_BICEPS"
+      ],
+      "unresolvedNeedGapCodes": [
+        "ARMS_BICEPS",
+        "ARMS_TRICEPS",
+        "CALVES",
+        "CORE_DIRECT",
+        "HORIZONTAL_PUSH",
+        "POSTERIOR_CHAIN",
+        "UPPER_PULL"
+      ],
+      "needRetainedOrResolvedByExactAuthority": true,
+      "needRemainsUnresolved": true,
+      "b5Selected": false,
+      "b6DecisionCount": 0,
+      "exactProviderResolution": "NoExactAuthority",
+      "rootCauseBefore": "NO_B6_BUT_MATERIALIZED",
+      "experimentalEvaluationFailedClosed": true,
+      "actualExecutableRowsAfter": 0,
+      "unexplainedAddedAttributionAfter": false
+    },
+    {
+      "case": "persona4_sparse",
+      "stableKey": "barbell_romanian_deadlift",
+      "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+      "exercise": "루마니안 바벨 데드리프트",
+      "ownerRoleType": "SUPPORTING_COVERAGE",
+      "beforeB6Status": "NO_EXACT_OWNER_DECISION",
+      "beforeB6Reasons": [],
+      "beforePrescriptionAuthority": "GENERIC_PROVISIONAL_FALLBACK",
+      "beforePrescriptionSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+      "beforeFrequencySource": "PROGRAM_HORIZON_WEEKS; no owner-specific B6 weekly frequency authority",
+      "beforeFirstProducedAt": {
+        "producerStage": "MaterialDemandResolver.resolve",
+        "candidateAudit": "MATERIALIZED_GAP",
+        "representedGapCodes": [
+          "POSTERIOR_CHAIN"
+        ],
+        "typedMaterialDemandEventRetained": false,
+        "originEventDropPoint": "mergeCanonicalMaterialDemand copies candidates\/deferred\/audit, not ownerAllocationProvenance",
+        "firstRetainedOwnerEventStage": "INITIAL_WEEKLY_PLACEMENT"
+      },
+      "beforeB7AttributionStatus": "UNEXPLAINED",
+      "candidateOrigin": {
+        "owner": {
+          "stableKey": "barbell_romanian_deadlift",
+          "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+        },
+        "gapCodes": [
+          "POSTERIOR_CHAIN"
+        ],
+        "evidenceCodes": [
+          "MATERIAL_DEMAND_SELECTED"
+        ],
+        "authorityResolution": {
+          "status": "NO_SUPPORTED_AUTHORITY",
+          "reason": "OWNER_CANDIDATES_EXHAUSTED",
+          "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+          "originalOwner": {
+            "stableKey": "barbell_romanian_deadlift",
+            "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+          },
+          "attemptedOwners": [
+            {
+              "stableKey": "barbell_romanian_deadlift",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+            },
+            {
+              "stableKey": "dumbbell_romanian_deadlift",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+            },
+            {
+              "stableKey": "dumbbell_single_leg_rdl",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+            },
+            {
+              "stableKey": "single_leg_hip_bridge",
+              "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+            }
+          ]
+        }
+      },
+      "candidateOriginPreserved": true,
+      "candidateDeferredReason": "MATERIAL_DEMAND_NO_EXACT_EXECUTABLE_PRESCRIPTION_AUTHORITY",
+      "candidateDemandTargetSets": 0,
+      "candidateAlternativesHaveZeroPrescriptionUnits": true,
+      "authorityResolution": {
+        "status": "NO_SUPPORTED_AUTHORITY",
+        "reason": "OWNER_CANDIDATES_EXHAUSTED",
+        "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+        "attemptedOwners": [
+          {
+            "stableKey": "barbell_romanian_deadlift",
+            "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+          },
+          {
+            "stableKey": "dumbbell_romanian_deadlift",
+            "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+          },
+          {
+            "stableKey": "dumbbell_single_leg_rdl",
+            "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+          },
+          {
+            "stableKey": "single_leg_hip_bridge",
+            "selectionRole": "COVERAGE_POSTERIOR_CHAIN"
+          }
+        ]
+      },
+      "recoveryOutcome": "UNRESOLVED_NO_AUTHORITY",
+      "missingAuthorityKind": "OWNER_CANDIDATES_EXHAUSTED",
+      "reResolutionStage": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+      "needGapCodes": [
+        "POSTERIOR_CHAIN"
+      ],
+      "unresolvedNeedGapCodes": [
+        "ARMS_BICEPS",
+        "ARMS_TRICEPS",
+        "CALVES",
+        "CORE_DIRECT",
+        "HORIZONTAL_PUSH",
+        "POSTERIOR_CHAIN",
+        "UPPER_PULL"
+      ],
+      "needRetainedOrResolvedByExactAuthority": true,
+      "needRemainsUnresolved": true,
+      "b5Selected": false,
+      "b6DecisionCount": 0,
+      "exactProviderResolution": "NoExactAuthority",
+      "rootCauseBefore": "NO_B6_BUT_MATERIALIZED",
+      "experimentalEvaluationFailedClosed": true,
+      "actualExecutableRowsAfter": 0,
+      "unexplainedAddedAttributionAfter": false
+    },
+    {
+      "case": "persona4_sparse",
+      "stableKey": "dumbbell_chest_supported_row",
+      "selectionRole": "COVERAGE_UPPER_PULL",
+      "exercise": "덤벨 체스트 서포티드 로우",
+      "ownerRoleType": "SUPPORTING_COVERAGE",
+      "beforeB6Status": "NO_EXACT_OWNER_DECISION",
+      "beforeB6Reasons": [],
+      "beforePrescriptionAuthority": "GENERIC_PROVISIONAL_FALLBACK",
+      "beforePrescriptionSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+      "beforeFrequencySource": "PROGRAM_HORIZON_WEEKS; no owner-specific B6 weekly frequency authority",
+      "beforeFirstProducedAt": {
+        "producerStage": "MaterialDemandResolver.resolve",
+        "candidateAudit": "MATERIALIZED_GAP",
+        "representedGapCodes": [
+          "UPPER_PULL"
+        ],
+        "typedMaterialDemandEventRetained": false,
+        "originEventDropPoint": "mergeCanonicalMaterialDemand copies candidates\/deferred\/audit, not ownerAllocationProvenance",
+        "firstRetainedOwnerEventStage": "INITIAL_WEEKLY_PLACEMENT"
+      },
+      "beforeB7AttributionStatus": "UNEXPLAINED",
+      "candidateOrigin": {
+        "owner": {
+          "stableKey": "dumbbell_chest_supported_row",
+          "selectionRole": "COVERAGE_UPPER_PULL"
+        },
+        "gapCodes": [
+          "UPPER_PULL"
+        ],
+        "evidenceCodes": [
+          "MATERIAL_DEMAND_SELECTED"
+        ],
+        "authorityResolution": {
+          "status": "NO_SUPPORTED_AUTHORITY",
+          "reason": "OWNER_CANDIDATES_EXHAUSTED",
+          "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+          "originalOwner": {
+            "stableKey": "dumbbell_chest_supported_row",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          "attemptedOwners": [
+            {
+              "stableKey": "dumbbell_chest_supported_row",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "dumbbell_rear_delt_fly",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_30a0e9aa",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_6466fe77",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_6a966452",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_708e64ce",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_8e4bf08e",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_de46b7f6",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_e159d15a",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_e1894690",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_e41e8dcf",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_e41f4c2b",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            },
+            {
+              "stableKey": "ex_e4f911bb",
+              "selectionRole": "COVERAGE_UPPER_PULL"
+            }
+          ]
+        }
+      },
+      "candidateOriginPreserved": true,
+      "candidateDeferredReason": "MATERIAL_DEMAND_NO_EXACT_EXECUTABLE_PRESCRIPTION_AUTHORITY",
+      "candidateDemandTargetSets": 0,
+      "candidateAlternativesHaveZeroPrescriptionUnits": true,
+      "authorityResolution": {
+        "status": "NO_SUPPORTED_AUTHORITY",
+        "reason": "OWNER_CANDIDATES_EXHAUSTED",
+        "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+        "attemptedOwners": [
+          {
+            "stableKey": "dumbbell_chest_supported_row",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "dumbbell_rear_delt_fly",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_30a0e9aa",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_6466fe77",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_6a966452",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_708e64ce",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_8e4bf08e",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_de46b7f6",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_e159d15a",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_e1894690",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_e41e8dcf",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_e41f4c2b",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          },
+          {
+            "stableKey": "ex_e4f911bb",
+            "selectionRole": "COVERAGE_UPPER_PULL"
+          }
+        ]
+      },
+      "recoveryOutcome": "UNRESOLVED_NO_AUTHORITY",
+      "missingAuthorityKind": "OWNER_CANDIDATES_EXHAUSTED",
+      "reResolutionStage": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+      "needGapCodes": [
+        "UPPER_PULL"
+      ],
+      "unresolvedNeedGapCodes": [
+        "ARMS_BICEPS",
+        "ARMS_TRICEPS",
+        "CALVES",
+        "CORE_DIRECT",
+        "HORIZONTAL_PUSH",
+        "POSTERIOR_CHAIN",
+        "UPPER_PULL"
+      ],
+      "needRetainedOrResolvedByExactAuthority": true,
+      "needRemainsUnresolved": true,
+      "b5Selected": false,
+      "b6DecisionCount": 0,
+      "exactProviderResolution": "NoExactAuthority",
+      "rootCauseBefore": "NO_B6_BUT_MATERIALIZED",
+      "experimentalEvaluationFailedClosed": true,
+      "actualExecutableRowsAfter": 0,
+      "unexplainedAddedAttributionAfter": false
+    },
+    {
+      "case": "persona4_sparse",
+      "stableKey": "dumbbell_lying_triceps_extension",
+      "selectionRole": "COVERAGE_ARMS_TRICEPS",
+      "exercise": "덤벨 라잉 트라이셉스 익스텐션",
+      "ownerRoleType": "SUPPORTING_COVERAGE",
+      "beforeB6Status": "NO_EXACT_OWNER_DECISION",
+      "beforeB6Reasons": [],
+      "beforePrescriptionAuthority": "GENERIC_PROVISIONAL_FALLBACK",
+      "beforePrescriptionSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+      "beforeFrequencySource": "PROGRAM_HORIZON_WEEKS; no owner-specific B6 weekly frequency authority",
+      "beforeFirstProducedAt": {
+        "producerStage": "MaterialDemandResolver.resolve",
+        "candidateAudit": "MATERIALIZED_GAP",
+        "representedGapCodes": [
+          "ARMS_TRICEPS"
+        ],
+        "typedMaterialDemandEventRetained": false,
+        "originEventDropPoint": "mergeCanonicalMaterialDemand copies candidates\/deferred\/audit, not ownerAllocationProvenance",
+        "firstRetainedOwnerEventStage": "INITIAL_WEEKLY_PLACEMENT"
+      },
+      "beforeB7AttributionStatus": "UNEXPLAINED",
+      "candidateOrigin": {
+        "owner": {
+          "stableKey": "dumbbell_lying_triceps_extension",
+          "selectionRole": "COVERAGE_ARMS_TRICEPS"
+        },
+        "gapCodes": [
+          "ARMS_TRICEPS"
+        ],
+        "evidenceCodes": [
+          "MATERIAL_DEMAND_SELECTED"
+        ],
+        "authorityResolution": {
+          "status": "NO_SUPPORTED_AUTHORITY",
+          "reason": "OWNER_CANDIDATES_EXHAUSTED",
+          "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+          "originalOwner": {
+            "stableKey": "dumbbell_lying_triceps_extension",
+            "selectionRole": "COVERAGE_ARMS_TRICEPS"
+          },
+          "attemptedOwners": [
+            {
+              "stableKey": "dumbbell_lying_triceps_extension",
+              "selectionRole": "COVERAGE_ARMS_TRICEPS"
+            },
+            {
+              "stableKey": "dumbbell_overhead_triceps_extension",
+              "selectionRole": "COVERAGE_ARMS_TRICEPS"
+            },
+            {
+              "stableKey": "ex_da56a4fe",
+              "selectionRole": "COVERAGE_ARMS_TRICEPS"
+            },
+            {
+              "stableKey": "ex_deca2b61",
+              "selectionRole": "COVERAGE_ARMS_TRICEPS"
+            },
+            {
+              "stableKey": "ex_fdbdf454",
+              "selectionRole": "COVERAGE_ARMS_TRICEPS"
+            }
+          ]
+        }
+      },
+      "candidateOriginPreserved": true,
+      "candidateDeferredReason": "MATERIAL_DEMAND_NO_EXACT_EXECUTABLE_PRESCRIPTION_AUTHORITY",
+      "candidateDemandTargetSets": 0,
+      "candidateAlternativesHaveZeroPrescriptionUnits": true,
+      "authorityResolution": {
+        "status": "NO_SUPPORTED_AUTHORITY",
+        "reason": "OWNER_CANDIDATES_EXHAUSTED",
+        "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+        "attemptedOwners": [
+          {
+            "stableKey": "dumbbell_lying_triceps_extension",
+            "selectionRole": "COVERAGE_ARMS_TRICEPS"
+          },
+          {
+            "stableKey": "dumbbell_overhead_triceps_extension",
+            "selectionRole": "COVERAGE_ARMS_TRICEPS"
+          },
+          {
+            "stableKey": "ex_da56a4fe",
+            "selectionRole": "COVERAGE_ARMS_TRICEPS"
+          },
+          {
+            "stableKey": "ex_deca2b61",
+            "selectionRole": "COVERAGE_ARMS_TRICEPS"
+          },
+          {
+            "stableKey": "ex_fdbdf454",
+            "selectionRole": "COVERAGE_ARMS_TRICEPS"
+          }
+        ]
+      },
+      "recoveryOutcome": "UNRESOLVED_NO_AUTHORITY",
+      "missingAuthorityKind": "OWNER_CANDIDATES_EXHAUSTED",
+      "reResolutionStage": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+      "needGapCodes": [
+        "ARMS_TRICEPS"
+      ],
+      "unresolvedNeedGapCodes": [
+        "ARMS_BICEPS",
+        "ARMS_TRICEPS",
+        "CALVES",
+        "CORE_DIRECT",
+        "HORIZONTAL_PUSH",
+        "POSTERIOR_CHAIN",
+        "UPPER_PULL"
+      ],
+      "needRetainedOrResolvedByExactAuthority": true,
+      "needRemainsUnresolved": true,
+      "b5Selected": false,
+      "b6DecisionCount": 0,
+      "exactProviderResolution": "NoExactAuthority",
+      "rootCauseBefore": "NO_B6_BUT_MATERIALIZED",
+      "experimentalEvaluationFailedClosed": true,
+      "actualExecutableRowsAfter": 0,
+      "unexplainedAddedAttributionAfter": false
+    },
+    {
+      "case": "persona4_sparse",
+      "stableKey": "ex_28347c1f",
+      "selectionRole": "COVERAGE_CORE_DIRECT",
+      "exercise": "버드독",
+      "ownerRoleType": "SUPPORTING_COVERAGE",
+      "beforeB6Status": "NO_EXACT_OWNER_DECISION",
+      "beforeB6Reasons": [],
+      "beforePrescriptionAuthority": "GENERIC_PROVISIONAL_FALLBACK",
+      "beforePrescriptionSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+      "beforeFrequencySource": "PROGRAM_HORIZON_WEEKS; no owner-specific B6 weekly frequency authority",
+      "beforeFirstProducedAt": {
+        "producerStage": "MaterialDemandResolver.resolve",
+        "candidateAudit": "MATERIALIZED_GAP",
+        "representedGapCodes": [
+          "CORE_DIRECT"
+        ],
+        "typedMaterialDemandEventRetained": false,
+        "originEventDropPoint": "mergeCanonicalMaterialDemand copies candidates\/deferred\/audit, not ownerAllocationProvenance",
+        "firstRetainedOwnerEventStage": "INITIAL_WEEKLY_PLACEMENT"
+      },
+      "beforeB7AttributionStatus": "UNEXPLAINED",
+      "candidateOrigin": {
+        "owner": {
+          "stableKey": "ex_28347c1f",
+          "selectionRole": "COVERAGE_CORE_DIRECT"
+        },
+        "gapCodes": [
+          "CORE_DIRECT"
+        ],
+        "evidenceCodes": [
+          "MATERIAL_DEMAND_SELECTED"
+        ],
+        "authorityResolution": {
+          "status": "NO_SUPPORTED_AUTHORITY",
+          "reason": "OWNER_CANDIDATES_EXHAUSTED",
+          "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+          "originalOwner": {
+            "stableKey": "ex_28347c1f",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          "attemptedOwners": [
+            {
+              "stableKey": "ex_28347c1f",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_2a826c82",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_644e0f9d",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_a345e30b",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_a44ae2ca",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_a8385c4a",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_a9b52886",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_d5bdffe1",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            },
+            {
+              "stableKey": "ex_f6d43398",
+              "selectionRole": "COVERAGE_CORE_DIRECT"
+            }
+          ]
+        }
+      },
+      "candidateOriginPreserved": true,
+      "candidateDeferredReason": "MATERIAL_DEMAND_NO_EXACT_EXECUTABLE_PRESCRIPTION_AUTHORITY",
+      "candidateDemandTargetSets": 0,
+      "candidateAlternativesHaveZeroPrescriptionUnits": true,
+      "authorityResolution": {
+        "status": "NO_SUPPORTED_AUTHORITY",
+        "reason": "OWNER_CANDIDATES_EXHAUSTED",
+        "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+        "attemptedOwners": [
+          {
+            "stableKey": "ex_28347c1f",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_2a826c82",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_644e0f9d",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_a345e30b",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_a44ae2ca",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_a8385c4a",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_a9b52886",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_d5bdffe1",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          },
+          {
+            "stableKey": "ex_f6d43398",
+            "selectionRole": "COVERAGE_CORE_DIRECT"
+          }
+        ]
+      },
+      "recoveryOutcome": "UNRESOLVED_NO_AUTHORITY",
+      "missingAuthorityKind": "OWNER_CANDIDATES_EXHAUSTED",
+      "reResolutionStage": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+      "needGapCodes": [
+        "CORE_DIRECT"
+      ],
+      "unresolvedNeedGapCodes": [
+        "ARMS_BICEPS",
+        "ARMS_TRICEPS",
+        "CALVES",
+        "CORE_DIRECT",
+        "HORIZONTAL_PUSH",
+        "POSTERIOR_CHAIN",
+        "UPPER_PULL"
+      ],
+      "needRetainedOrResolvedByExactAuthority": true,
+      "needRemainsUnresolved": true,
+      "b5Selected": false,
+      "b6DecisionCount": 0,
+      "exactProviderResolution": "NoExactAuthority",
+      "rootCauseBefore": "NO_B6_BUT_MATERIALIZED",
+      "experimentalEvaluationFailedClosed": true,
+      "actualExecutableRowsAfter": 0,
+      "unexplainedAddedAttributionAfter": false
+    },
+    {
+      "case": "persona4_sparse",
+      "stableKey": "ex_5ca7133f",
+      "selectionRole": "COVERAGE_CALVES",
+      "exercise": "원레그 카프 레이즈",
+      "ownerRoleType": "SUPPORTING_COVERAGE",
+      "beforeB6Status": "NO_EXACT_OWNER_DECISION",
+      "beforeB6Reasons": [],
+      "beforePrescriptionAuthority": "GENERIC_PROVISIONAL_FALLBACK",
+      "beforePrescriptionSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+      "beforeFrequencySource": "PROGRAM_HORIZON_WEEKS; no owner-specific B6 weekly frequency authority",
+      "beforeFirstProducedAt": {
+        "producerStage": "MaterialDemandResolver.resolve",
+        "candidateAudit": "MATERIALIZED_GAP",
+        "representedGapCodes": [
+          "CALVES"
+        ],
+        "typedMaterialDemandEventRetained": false,
+        "originEventDropPoint": "mergeCanonicalMaterialDemand copies candidates\/deferred\/audit, not ownerAllocationProvenance",
+        "firstRetainedOwnerEventStage": "INITIAL_WEEKLY_PLACEMENT"
+      },
+      "beforeB7AttributionStatus": "UNEXPLAINED",
+      "candidateOrigin": {
+        "owner": {
+          "stableKey": "ex_5ca7133f",
+          "selectionRole": "COVERAGE_CALVES"
+        },
+        "gapCodes": [
+          "CALVES"
+        ],
+        "evidenceCodes": [
+          "MATERIAL_DEMAND_SELECTED"
+        ],
+        "authorityResolution": {
+          "status": "NO_SUPPORTED_AUTHORITY",
+          "reason": "OWNER_CANDIDATES_EXHAUSTED",
+          "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+          "originalOwner": {
+            "stableKey": "ex_5ca7133f",
+            "selectionRole": "COVERAGE_CALVES"
+          },
+          "attemptedOwners": [
+            {
+              "stableKey": "ex_5ca7133f",
+              "selectionRole": "COVERAGE_CALVES"
+            },
+            {
+              "stableKey": "standing_bodyweight_calf_raise",
+              "selectionRole": "COVERAGE_CALVES"
+            },
+            {
+              "stableKey": "standing_dumbbell_calf_raise",
+              "selectionRole": "COVERAGE_CALVES"
+            }
+          ]
+        }
+      },
+      "candidateOriginPreserved": true,
+      "candidateDeferredReason": "MATERIAL_DEMAND_NO_EXACT_EXECUTABLE_PRESCRIPTION_AUTHORITY",
+      "candidateDemandTargetSets": 0,
+      "candidateAlternativesHaveZeroPrescriptionUnits": true,
+      "authorityResolution": {
+        "status": "NO_SUPPORTED_AUTHORITY",
+        "reason": "OWNER_CANDIDATES_EXHAUSTED",
+        "returnTarget": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+        "attemptedOwners": [
+          {
+            "stableKey": "ex_5ca7133f",
+            "selectionRole": "COVERAGE_CALVES"
+          },
+          {
+            "stableKey": "standing_bodyweight_calf_raise",
+            "selectionRole": "COVERAGE_CALVES"
+          },
+          {
+            "stableKey": "standing_dumbbell_calf_raise",
+            "selectionRole": "COVERAGE_CALVES"
+          }
+        ]
+      },
+      "recoveryOutcome": "UNRESOLVED_NO_AUTHORITY",
+      "missingAuthorityKind": "OWNER_CANDIDATES_EXHAUSTED",
+      "reResolutionStage": "MATERIAL_DEMAND_CANDIDATE_SELECTION",
+      "needGapCodes": [
+        "CALVES"
+      ],
+      "unresolvedNeedGapCodes": [
+        "ARMS_BICEPS",
+        "ARMS_TRICEPS",
+        "CALVES",
+        "CORE_DIRECT",
+        "HORIZONTAL_PUSH",
+        "POSTERIOR_CHAIN",
+        "UPPER_PULL"
+      ],
+      "needRetainedOrResolvedByExactAuthority": true,
+      "needRemainsUnresolved": true,
+      "b5Selected": false,
+      "b6DecisionCount": 0,
+      "exactProviderResolution": "NoExactAuthority",
+      "rootCauseBefore": "NO_B6_BUT_MATERIALIZED",
+      "experimentalEvaluationFailedClosed": true,
+      "actualExecutableRowsAfter": 0,
+      "unexplainedAddedAttributionAfter": false
+    }
+  ],
+  "sparseOwnerWeeks": [
+    {
+      "case": "persona0_sparse",
+      "week": 1,
+      "stableKey": "ex_1dbee10e",
+      "selectionRole": "COVERAGE_HORIZONTAL_PUSH",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona0_sparse",
+      "week": 2,
+      "stableKey": "ex_1dbee10e",
+      "selectionRole": "COVERAGE_HORIZONTAL_PUSH",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona0_sparse",
+      "week": 1,
+      "stableKey": "ex_28347c1f",
+      "selectionRole": "COVERAGE_CORE_DIRECT",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona0_sparse",
+      "week": 2,
+      "stableKey": "ex_28347c1f",
+      "selectionRole": "COVERAGE_CORE_DIRECT",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 1,
+      "stableKey": "barbell_reverse_curl",
+      "selectionRole": "COVERAGE_ARMS_BICEPS",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 2,
+      "stableKey": "barbell_reverse_curl",
+      "selectionRole": "COVERAGE_ARMS_BICEPS",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 1,
+      "stableKey": "barbell_romanian_deadlift",
+      "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 2,
+      "stableKey": "barbell_romanian_deadlift",
+      "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 1,
+      "stableKey": "dumbbell_goblet_squat",
+      "selectionRole": "COVERAGE_LOWER_KNEE",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 2,
+      "stableKey": "dumbbell_goblet_squat",
+      "selectionRole": "COVERAGE_LOWER_KNEE",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 1,
+      "stableKey": "dumbbell_lying_triceps_extension",
+      "selectionRole": "COVERAGE_ARMS_TRICEPS",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 2,
+      "stableKey": "dumbbell_lying_triceps_extension",
+      "selectionRole": "COVERAGE_ARMS_TRICEPS",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 1,
+      "stableKey": "ex_28347c1f",
+      "selectionRole": "COVERAGE_CORE_DIRECT",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 2,
+      "stableKey": "ex_28347c1f",
+      "selectionRole": "COVERAGE_CORE_DIRECT",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 1,
+      "stableKey": "ex_5ca7133f",
+      "selectionRole": "COVERAGE_CALVES",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 2,
+      "stableKey": "ex_5ca7133f",
+      "selectionRole": "COVERAGE_CALVES",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 1,
+      "stableKey": "barbell_deadlift",
+      "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 2,
+      "stableKey": "barbell_deadlift",
+      "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 1,
+      "stableKey": "barbell_reverse_curl",
+      "selectionRole": "COVERAGE_ARMS_BICEPS",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 2,
+      "stableKey": "barbell_reverse_curl",
+      "selectionRole": "COVERAGE_ARMS_BICEPS",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 1,
+      "stableKey": "cable_overhead_triceps_extension",
+      "selectionRole": "COVERAGE_ARMS_TRICEPS",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 2,
+      "stableKey": "cable_overhead_triceps_extension",
+      "selectionRole": "COVERAGE_ARMS_TRICEPS",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 1,
+      "stableKey": "cable_rear_delt_fly",
+      "selectionRole": "COVERAGE_UPPER_PULL",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 2,
+      "stableKey": "cable_rear_delt_fly",
+      "selectionRole": "COVERAGE_UPPER_PULL",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 1,
+      "stableKey": "ex_28347c1f",
+      "selectionRole": "COVERAGE_CORE_DIRECT",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 2,
+      "stableKey": "ex_28347c1f",
+      "selectionRole": "COVERAGE_CORE_DIRECT",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 1,
+      "stableKey": "ex_5c8751d2",
+      "selectionRole": "COVERAGE_CALVES",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 2,
+      "stableKey": "ex_5c8751d2",
+      "selectionRole": "COVERAGE_CALVES",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona3_sparse",
+      "week": 1,
+      "stableKey": "ex_1dbee10e",
+      "selectionRole": "COVERAGE_HORIZONTAL_PUSH",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona3_sparse",
+      "week": 2,
+      "stableKey": "ex_1dbee10e",
+      "selectionRole": "COVERAGE_HORIZONTAL_PUSH",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona3_sparse",
+      "week": 1,
+      "stableKey": "ex_28347c1f",
+      "selectionRole": "COVERAGE_CORE_DIRECT",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona3_sparse",
+      "week": 2,
+      "stableKey": "ex_28347c1f",
+      "selectionRole": "COVERAGE_CORE_DIRECT",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 1,
+      "stableKey": "barbell_reverse_curl",
+      "selectionRole": "COVERAGE_ARMS_BICEPS",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 2,
+      "stableKey": "barbell_reverse_curl",
+      "selectionRole": "COVERAGE_ARMS_BICEPS",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 1,
+      "stableKey": "barbell_romanian_deadlift",
+      "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 2,
+      "stableKey": "barbell_romanian_deadlift",
+      "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 1,
+      "stableKey": "dumbbell_chest_supported_row",
+      "selectionRole": "COVERAGE_UPPER_PULL",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 2,
+      "stableKey": "dumbbell_chest_supported_row",
+      "selectionRole": "COVERAGE_UPPER_PULL",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 1,
+      "stableKey": "dumbbell_lying_triceps_extension",
+      "selectionRole": "COVERAGE_ARMS_TRICEPS",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 2,
+      "stableKey": "dumbbell_lying_triceps_extension",
+      "selectionRole": "COVERAGE_ARMS_TRICEPS",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 1,
+      "stableKey": "ex_28347c1f",
+      "selectionRole": "COVERAGE_CORE_DIRECT",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 2,
+      "stableKey": "ex_28347c1f",
+      "selectionRole": "COVERAGE_CORE_DIRECT",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 1,
+      "stableKey": "ex_5ca7133f",
+      "selectionRole": "COVERAGE_CALVES",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 2,
+      "stableKey": "ex_5ca7133f",
+      "selectionRole": "COVERAGE_CALVES",
+      "beforeExecutableRow": true,
+      "beforePrescription": {
+        "setCount": 2,
+        "reps": 8,
+        "seconds": 0,
+        "weightKg": 0,
+        "restSeconds": 90,
+        "loadState": [
+          "EXPLICIT_LOAD"
+        ],
+        "targetRpeMin": [],
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD",
+        "displayPrescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)"
+      },
+      "controlPresentAfter": false,
+      "experimentalRowsAfter": 0,
+      "experimentalRowDetailsAfter": [],
+      "unauthorizedExecutableRowAfter": false,
+      "materialDeltaAfter": false,
+      "unexplainedAddedAttributionAfter": false,
+      "originPresentAfter": true,
+      "frequencyOrCompletionResurrected": false
+    }
+  ],
+  "reviewedHypertrophyPrescriptionChange": {
+    "case": "reviewed_hypertrophy_isolated",
+    "stableKey": "ex_284ecca6",
+    "selectionRole": "COVERAGE_POSTERIOR_CHAIN",
+    "beforeControlRows": [
+      {
+        "week": 1,
+        "sets": 3,
+        "prescription": "8–12회 × 3세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD"
+      },
+      {
+        "week": 2,
+        "sets": 3,
+        "prescription": "8–12회 × 3세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD"
+      }
+    ],
+    "beforeExperimentalRows": [
+      {
+        "week": 1,
+        "sets": 2,
+        "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD"
+      },
+      {
+        "week": 2,
+        "sets": 2,
+        "prescription": "8–12회 × 2세트 · RPE 6–8 (첫 세션에서 중량 확인)",
+        "weightSource": "PROVISIONAL_RPE_NO_INVENTED_LOAD"
+      }
+    ],
+    "afterExperimentalRows": [],
+    "afterCandidateOriginPreserved": true,
+    "experimentalEvaluationFailedClosed": false,
+    "afterExactB6": false
+  },
+  "qualityReplacementUnclosedRows": 7,
+  "productionBehaviorChanged": true,
+  "productionBehaviorChangedByCensus": false
+}

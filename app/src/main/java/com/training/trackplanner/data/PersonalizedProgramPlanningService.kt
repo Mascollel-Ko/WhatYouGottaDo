@@ -485,8 +485,8 @@ internal class PersonalizedProgramPlanningService(
                         com.training.trackplanner.data.personalized.StimulusPrescriptionOwnerIdentity(candidate.stableKey, candidate.selectionRole) in taskProtocolPlan.authorizedByOwner
                     }
                     .mapTo(linkedSetOf()) { com.training.trackplanner.data.personalized.StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) },
-                canonicalFailureEmitter = { reason, detailCode ->
-                    throw StimulusCanonicalEvaluationFailure(reason, detailCode)
+                canonicalFailureEmitter = { failure ->
+                    throw failure
                 }
             )
         } catch (error: CancellationException) {
@@ -995,8 +995,8 @@ internal class PersonalizedProgramPlanningService(
                     .filter { candidate -> candidate.coveredTargetIds.any { it.startsWith("TASK:") } }
                     .filterNot { candidate -> StimulusPrescriptionOwnerIdentity(candidate.stableKey, candidate.selectionRole) in taskProtocolPlan.authorizedByOwner }
                     .mapTo(linkedSetOf()) { com.training.trackplanner.data.personalized.StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) },
-                canonicalFailureEmitter = { reason, detailCode ->
-                    throw StimulusCanonicalEvaluationFailure(reason, detailCode)
+                canonicalFailureEmitter = { failure ->
+                    throw failure
                 }
             )
         } catch (error: CancellationException) {
@@ -1153,7 +1153,11 @@ internal class PersonalizedProgramPlanningService(
             upstreamFailureDetails = (failure.cause as? StimulusCanonicalEvaluationFailure)?.let {
                 listOfNotNull(it.reason.name, it.detailCode)
             }.orEmpty(),
-            incumbentPlacementShadow = incumbentPlacementShadow
+            incumbentPlacementShadow = incumbentPlacementShadow,
+            unresolvedMaterialDemandGaps = (failure.cause as? StimulusCanonicalEvaluationFailure)
+                ?.unresolvedMaterialDemandGaps.orEmpty(),
+            materialDemandAuthorityResolutions = (failure.cause as? StimulusCanonicalEvaluationFailure)
+                ?.materialDemandAuthorityResolutions.orEmpty()
         ).also {
             productionProgress.reportSelection()
             productionProgress.reportValidationComplete()

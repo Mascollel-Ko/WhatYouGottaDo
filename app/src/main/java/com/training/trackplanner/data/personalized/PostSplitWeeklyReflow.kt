@@ -46,7 +46,7 @@ internal class PostSplitWeeklyReflow {
     fun review(plan: GeneratedProgramSkeleton,snapshot: PlanningHistorySnapshot,state: AthletePlanningState,
         progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE,
         counts: ReflowEvaluationCounts = ReflowEvaluationCounts(),
-        canonicalFailureEmitter: ((StimulusCanonicalEvaluationFailureReason, String?) -> Nothing)? = null): PostSplitReflowResult {
+        canonicalFailureEmitter: ((StimulusCanonicalEvaluationFailure) -> Nothing)? = null): PostSplitReflowResult {
         val fingerprint=personalizedProgramFingerprint(plan.request,plan.items)
         val authority=plan.personalizedDecision?.authorizedScheduling
         val parents=authority?.authorized.orEmpty().filter { ContinuitySplitPolicy.mandatory(snapshot,it) }.map { it.id }
@@ -77,7 +77,7 @@ internal class PostSplitWeeklyReflow {
     private fun run(plan: GeneratedProgramSkeleton,snapshot: PlanningHistorySnapshot,state: AthletePlanningState,
         authority: AuthorizedSchedulingTrace,parents: List<String>,fixed: List<String>,counts: ReflowEvaluationCounts,
         execution: ReflowProgress,
-        canonicalFailureEmitter: ((StimulusCanonicalEvaluationFailureReason, String?) -> Nothing)?): PostSplitReflowResult {
+        canonicalFailureEmitter: ((StimulusCanonicalEvaluationFailure) -> Nothing)?): PostSplitReflowResult {
         val projection=requireNotNull(snapshot.planDayProjection) { "MISSING_CANONICAL_OFI_PROJECTION" }
         val tissueProjection=requireNotNull(snapshot.planWeekTissueProjection) { "MISSING_CANONICAL_TISSUE_PROJECTION" }
         // RepresentativeWeek verifies these positional atoms have exactly isomorphic per-week immutable content.
@@ -241,7 +241,7 @@ internal class PostSplitWeeklyReflow {
         ownerProvenance: List<OwnerAllocationProvenance>,rejections: Map<String,Int>,
         initialObjective: PostSplitObjective,finalObjective: PostSplitObjective,initialDays: List<BalanceDay>,finalDays: List<BalanceDay>,
         qBefore: String,qAfter: String,tissue: PlannedTissueWeek,timeRef: Double,ofiRef: Double,diagnostic: String,execution: ReflowProgress,
-        canonicalFailureEmitter: ((StimulusCanonicalEvaluationFailureReason, String?) -> Nothing)?): PostSplitReflowResult {
+        canonicalFailureEmitter: ((StimulusCanonicalEvaluationFailure) -> Nothing)?): PostSplitReflowResult {
         execution.finalizing()
         val assignment=rows.associateBy { week.atomByLocalId.getValue(it.localId) }
         // Preserve each week's own immutable fields/bindings, not the representative row's copies.
@@ -254,10 +254,9 @@ internal class PostSplitWeeklyReflow {
         val priorErrors = ProgramProjectionValidator().errors(plan)
         val finalErrorsPreserved = ProgramProjectionValidator().errors(result).all { it in priorErrors }
         if (!finalErrorsPreserved) {
-            canonicalFailureEmitter?.invoke(
-                StimulusCanonicalEvaluationFailureReason.FINAL_CANONICAL_VALIDATION,
-                null
-            )
+            canonicalFailureEmitter?.invoke(StimulusCanonicalEvaluationFailure(
+                StimulusCanonicalEvaluationFailureReason.FINAL_CANONICAL_VALIDATION
+            ))
             check(finalErrorsPreserved) { "FINAL_CANONICAL_VALIDATION" }
         }
         check(PrimaryStrengthAnchorSpacingPolicy.allowedRows(result.items,primary))

@@ -14,14 +14,22 @@ class StimulusPlannedPrescriptionResolver {
         stableKey: String
     ): PlannedStimulusCompatibility {
         if (prescription.sets.isEmpty()) return PlannedStimulusCompatibility(quality, PlannedStimulusCompatibilityStatus.UNRESOLVED,
-            reasonCodes = listOf("PLANNED_SET_PRESCRIPTION_EMPTY"))
+            reasonCodes = listOf("PLANNED_SET_PRESCRIPTION_EMPTY"), authorityRecovery = ExecutionAuthorityResolution(
+                ExecutionAuthorityResolutionStatus.NO_SUPPORTED_AUTHORITY,
+                ExecutionAuthorityResolutionReason.UNSUPPORTED_PRESCRIPTION_AUTHORITY,
+                ExecutionAuthorityReturnTarget.NONE
+            ))
         val repsCompatible = prescription.sets.all { set -> when (quality) {
             TrainableQuality.STRENGTH -> set.reps in 1..6
             TrainableQuality.HYPERTROPHY -> set.reps in 7..15
             else -> false
         } }
         if (!repsCompatible) return PlannedStimulusCompatibility(quality, PlannedStimulusCompatibilityStatus.INCOMPATIBLE,
-            reasonCodes = listOf("PLANNED_REPS_OUTSIDE_${quality.name}_MODEL"))
+            reasonCodes = listOf("PLANNED_REPS_OUTSIDE_${quality.name}_MODEL"), authorityRecovery = ExecutionAuthorityResolution(
+                ExecutionAuthorityResolutionStatus.NO_SUPPORTED_AUTHORITY,
+                ExecutionAuthorityResolutionReason.UNSUPPORTED_PRESCRIPTION_AUTHORITY,
+                ExecutionAuthorityReturnTarget.NONE
+            ))
         if (quality == TrainableQuality.STRENGTH && prescription.sets.all {
                 it.loadState == com.training.trackplanner.data.ProgramLoadState.USER_CALIBRATION_REQUIRED &&
                     it.weightKg == 0.0 && it.seconds == 0 &&
@@ -29,7 +37,12 @@ class StimulusPlannedPrescriptionResolver {
             }) return PlannedStimulusCompatibility(
             quality,
             PlannedStimulusCompatibilityStatus.COMPATIBLE_REQUIRES_USER_LOAD_INPUT,
-            reasonCodes = listOf("LOAD_INTENTIONALLY_REQUIRES_USER_CALIBRATION")
+            reasonCodes = listOf("LOAD_INTENTIONALLY_REQUIRES_USER_CALIBRATION"),
+            authorityRecovery = ExecutionAuthorityResolution(
+                ExecutionAuthorityResolutionStatus.USER_INPUT_REQUIRED,
+                ExecutionAuthorityResolutionReason.RESISTANCE_LOAD_UNAVAILABLE,
+                ExecutionAuthorityReturnTarget.EXPLICIT_USER_INPUT
+            )
         )
         val canonicalReference = snapshot.canonicalStrengthSignals[stableKey]
             ?.takeIf { quality != TrainableQuality.STRENGTH || it.observationCount >= 2 }
@@ -48,10 +61,18 @@ class StimulusPlannedPrescriptionResolver {
         val loads = prescription.sets.map { it.weightKg }
         if (quality == TrainableQuality.STRENGTH) {
             if (reference == null) return PlannedStimulusCompatibility(quality, PlannedStimulusCompatibilityStatus.UNRESOLVED,
-                reasonCodes = listOf("CANONICAL_POSTERIOR_REFERENCE_UNAVAILABLE"))
+                reasonCodes = listOf("CANONICAL_POSTERIOR_REFERENCE_UNAVAILABLE"), authorityRecovery = ExecutionAuthorityResolution(
+                    ExecutionAuthorityResolutionStatus.NEEDS_REFERENCE_RESOLUTION,
+                    ExecutionAuthorityResolutionReason.CANONICAL_REFERENCE_UNAVAILABLE,
+                    ExecutionAuthorityReturnTarget.HISTORY_REFERENCE_RESOLUTION
+                ))
             val relative = loads.filter { it.isFinite() && it > 0.0 }.minOrNull()?.div(reference)
                 ?: return PlannedStimulusCompatibility(quality, PlannedStimulusCompatibilityStatus.UNRESOLVED,
-                    reference1RmKg = reference, reasonCodes = listOf("PLANNED_LOAD_UNAVAILABLE"))
+                    reference1RmKg = reference, reasonCodes = listOf("PLANNED_LOAD_UNAVAILABLE"), authorityRecovery = ExecutionAuthorityResolution(
+                        ExecutionAuthorityResolutionStatus.NEEDS_LOAD_INPUT,
+                        ExecutionAuthorityResolutionReason.RESISTANCE_LOAD_UNAVAILABLE,
+                        ExecutionAuthorityReturnTarget.EXPLICIT_USER_INPUT
+                    ))
             return PlannedStimulusCompatibility(quality,
                 if (relative >= .70) PlannedStimulusCompatibilityStatus.COMPATIBLE_CONDITIONAL_ON_EFFORT
                 else PlannedStimulusCompatibilityStatus.INCOMPATIBLE,
@@ -62,7 +83,11 @@ class StimulusPlannedPrescriptionResolver {
         // load authority.  B6.1 must keep it unresolved so B6.2 cannot fund a fabricated set.
         val validLoad = loads.all { it.isFinite() && it > 0.0 }
         if (!validLoad) return PlannedStimulusCompatibility(quality, PlannedStimulusCompatibilityStatus.UNRESOLVED,
-            reasonCodes = listOf("PLANNED_RESISTANCE_LOAD_UNAVAILABLE"))
+            reasonCodes = listOf("PLANNED_RESISTANCE_LOAD_UNAVAILABLE"), authorityRecovery = ExecutionAuthorityResolution(
+                ExecutionAuthorityResolutionStatus.NEEDS_LOAD_INPUT,
+                ExecutionAuthorityResolutionReason.RESISTANCE_LOAD_UNAVAILABLE,
+                ExecutionAuthorityReturnTarget.EXPLICIT_USER_INPUT
+            ))
         return PlannedStimulusCompatibility(quality,
             PlannedStimulusCompatibilityStatus.COMPATIBLE_CONDITIONAL_ON_EFFORT, reference1RmKg = reference)
     }

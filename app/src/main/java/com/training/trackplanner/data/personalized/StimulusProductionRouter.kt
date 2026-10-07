@@ -72,7 +72,11 @@ internal data class StimulusProductionGenerationResult(
     val incumbentPlacementShadow: CanonicalIncumbentPlacementShadow? = null,
     val incumbentPlacementActivationStatus: CanonicalIncumbentActivationStatus? = null,
     val incumbentPlacementPreservations: List<CanonicalIncumbentPlacementPreservation> = emptyList(),
-    val incumbentPlacementActivationDetails: List<String> = emptyList()
+    val incumbentPlacementActivationDetails: List<String> = emptyList(),
+    /** Typed unmet material demand survives an experimental fallback to CONTROL. */
+    val unresolvedMaterialDemandGaps: Set<String> = emptySet(),
+    /** Candidate authority recovery remains diagnostic and does not grant execution authority. */
+    val materialDemandAuthorityResolutions: List<ExecutionAuthorityResolution> = emptyList()
 ) {
     val diagnostics: StimulusProductionDiagnostics
         get() = StimulusProductionDiagnostics.observe(comparison, routeDecision, upstreamFailureReason).let {

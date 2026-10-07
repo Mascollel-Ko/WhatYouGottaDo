@@ -45,7 +45,10 @@ data class ExecutionAllocationTrace(
     /** Owner/role-local causal events emitted by the mutation stages and carried to B7. */
     val ownerAllocationProvenance: List<OwnerAllocationProvenance> = emptyList(),
     /** Empty unless a source allocator explicitly identified both sides of displacement. */
-    val ownerDisplacementEdges: List<OwnerDisplacementEdge> = emptyList()
+    val ownerDisplacementEdges: List<OwnerDisplacementEdge> = emptyList(),
+    /** Candidate-origin evidence is diagnostic and never grants prescription authority. */
+    val materialDemandCandidateOrigins: List<MaterialDemandCandidateOrigin> = emptyList(),
+    val unresolvedMaterialDemandGaps: Set<String> = emptySet()
 ) {
     fun toJson(): JSONObject = JSONObject()
         .put("capacity", JSONObject()
@@ -105,6 +108,10 @@ data class ExecutionAllocationTrace(
             { it.causeOwner.stableKey }, { it.causeOwner.selectionRole }, { it.displacedOwner.stableKey },
             { it.displacedOwner.selectionRole }, { it.stage.ordinal }, { it.reason.ordinal }, { it.week ?: 0 }, { it.displacedUnits }
         )).map { it.toJson() }))
+        .put("materialDemandCandidateOrigins", JSONArray(materialDemandCandidateOrigins
+            .sortedWith(compareBy({ it.owner.stableKey }, { it.owner.selectionRole }, { it.gapCodes.sorted().joinToString("|") }))
+            .map { it.toJson() }))
+        .put("unresolvedMaterialDemandGaps", JSONArray(unresolvedMaterialDemandGaps.sorted()))
 }
 
 data class TimedPlannedExercise(val item: PlannedExercise, val prescription: PlannedPrescription) {
@@ -198,43 +205,102 @@ data class MaterialDemand(
     val candidates: List<PlannedExercise>,
     val deferred: Map<String, String>,
     val audit: Map<String, String>,
-    val ownerAllocationProvenance: List<OwnerAllocationProvenance> = emptyList()
+    val ownerAllocationProvenance: List<OwnerAllocationProvenance> = emptyList(),
+    /** Why a candidate was proposed, kept separate from accepted executable mutations. */
+    val candidateOrigins: List<MaterialDemandCandidateOrigin> = emptyList(),
+    /** Complete finite candidate lists let the builder retry only exact-authorized alternatives. */
+    val candidateAlternatives: List<MaterialDemandCandidateAlternative> = emptyList(),
+    /** Need codes stay visible when every candidate is rejected for missing execution authority. */
+    val unresolvedGapCodes: Set<String> = emptySet()
 )
 
-class MaterialDemandResolver(private val prescriptions: PersonalizedPrescriptionPlanner = PersonalizedPrescriptionPlanner()) {
-    fun resolve(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, gaps: List<AdaptationGap>, request: ProgramSkeletonRequest): MaterialDemand {
+/** Candidate need/source only; this deliberately carries no dose or execution authorization. */
+data class MaterialDemandCandidateOrigin(
+    val owner: StimulusPrescriptionOwnerIdentity,
+    val gapCodes: Set<String>,
+    val evidenceCodes: Set<String> = setOf("MATERIAL_DEMAND_SELECTED"),
+    val authorityResolution: ExecutionAuthorityResolution? = null
+) {
+    fun toJson() = JSONObject()
+        .put("owner", JSONObject().put("stableKey", owner.stableKey).put("selectionRole", owner.selectionRole))
+        .put("gapCodes", JSONArray(gapCodes.sorted()))
+        .put("evidenceCodes", JSONArray(evidenceCodes.distinct().sorted()))
+        .put("authorityResolution", authorityResolution?.let { resolution ->
+            JSONObject()
+                .put("status", resolution.status.name)
+                .put("reason", resolution.reason.name)
+                .put("returnTarget", resolution.returnTarget.name)
+                .put("originalOwner", resolution.originalOwner?.let {
+                    JSONObject().put("stableKey", it.stableKey).put("selectionRole", it.selectionRole)
+                })
+                .put("attemptedOwners", JSONArray(resolution.attemptedOwners.map {
+                    JSONObject().put("stableKey", it.stableKey).put("selectionRole", it.selectionRole)
+                }))
+                .put("finalOwner", resolution.finalOwner?.let {
+                    JSONObject().put("stableKey", it.stableKey).put("selectionRole", it.selectionRole)
+                })
+        })
+}
+
+/** A selector proposal for one need; it contains no executable prescription. */
+data class MaterialDemandCandidateAlternative(
+    val gapCodes: Set<String>,
+    val candidate: PlannedExercise
+)
+
+class MaterialDemandResolver {
+    fun resolve(
+        snapshot: PlanningHistorySnapshot,
+        state: AthletePlanningState,
+        gaps: List<AdaptationGap>,
+        request: ProgramSkeletonRequest,
+        includeLegacyComparatorCandidateUnits: Boolean = false
+    ): MaterialDemand {
         val anchors = state.anchors.mapTo(mutableSetOf(), UserAnchor::stableKey)
-        val alternatives = GapCandidateSelector().select(snapshot, state, gaps, anchors, allAlternatives = true)
+        val alternatives = GapCandidateSelector().select(
+            snapshot, state, gaps, anchors, allAlternatives = true,
+            includePrescriptionDemand = includeLegacyComparatorCandidateUnits
+        )
         val audit = linkedMapOf<String, String>()
         val feasible = alternatives.filter { item ->
             val exercise = snapshot.exercises.getValue(item.stableKey)
             val equipment = exercise.equipment.split('|', ',').map(String::trim).filter(String::isNotBlank)
-            val minimumPrescription = prescriptions.prescribe(snapshot, state.strengthIntent, item, item.style)
-            val minimumSeconds = TimedPlannedExercise(item, minimumPrescription).estimatedSeconds
             val reason = when {
                 item.stableKey in request.excludedExerciseStableKeys -> "USER_EXCLUDED"
                 item.stableKey in snapshot.recoverySignals.tissueRestrictedStableKeys -> "TISSUE_RESTRICTED"
                 request.availableEquipment.isNotEmpty() && equipment.any { it !in request.availableEquipment && it != "BODYWEIGHT" } -> "EQUIPMENT_INCOMPATIBLE"
-                minimumSeconds > request.sessionMinutes * 60 -> "MINIMUM_PRESCRIPTION_EXCEEDS_SESSION_TIME"
                 else -> null
             }
             audit[item.stableKey] = reason ?: "FEASIBLE_ALTERNATIVE"
             reason == null
         }
         val selected = linkedMapOf<String, PlannedExercise>()
-        val ownerProvenance = mutableListOf<OwnerAllocationProvenance>()
+        val candidateOrigins = mutableListOf<MaterialDemandCandidateOrigin>()
+        val candidateAlternatives = mutableListOf<MaterialDemandCandidateAlternative>()
         val represented = mutableSetOf<String>()
         val selectedQualities = mutableSetOf<String>()
         val deferred = linkedMapOf<String, String>()
+        val unresolvedGapCodes = linkedSetOf<String>()
         fun quality(item: PlannedExercise): String {
             val metadata = snapshot.metadata[item.stableKey]
             return listOf(snapshot.activityKind(item.stableKey), metadata?.redundancyGroup?.takeIf(String::isNotBlank)
                 ?: metadata?.movementFamily.orEmpty()).joinToString(":")
         }
+        fun coveredGaps(choice: PlannedExercise, gap: AdaptationGap): Set<String> = gaps.filter { other ->
+            other.contributesTransitionPressure == gap.contributesTransitionPressure &&
+                (other.code == gap.code || objectiveFromGap(other.code) in choice.representedObjectives ||
+                    objectiveFromGap(other.code) in choice.supportiveObjectives)
+        }.mapTo(linkedSetOf(), AdaptationGap::code)
         gaps.sortedWith(compareByDescending<AdaptationGap> { when(it.priority) { "HIGH" -> 3; "MEDIUM", "MODERATE" -> 2; else -> 1 } }
             .thenBy { !it.contributesTransitionPressure }.thenBy { it.code }).forEach { gap ->
             if (gap.code in represented && !gap.code.endsWith("FOUNDATIONAL_ONRAMP")) return@forEach
-            val pool = feasible.filter { gap.code in it.representedGapCodes }
+            // Candidate selection may rank identities, but its legacy targetSets field is not
+            // dose authority. A selected row receives set demand only after an exact execution
+            // authority is found downstream.
+            val pool = feasible.filter { gap.code in it.representedGapCodes }.map { candidate ->
+                if (includeLegacyComparatorCandidateUnits) candidate
+                else candidate.copy(targetSets = 0)
+            }
             // A foundational block can contain distinct canonical objective qualities.
             // Explicit supportive work is eligible; direct candidates lead when feasible.
             val remaining = pool.sortedWith(compareBy<PlannedExercise> {
@@ -243,6 +309,12 @@ class MaterialDemandResolver(private val prescriptions: PersonalizedPrescription
                 .thenBy { it.representedObjectives.size }
                 .thenByDescending { item -> snapshot.allConfirmedSets.any { it.stableKey == item.stableKey } }
                 .thenBy { it.stableKey })
+            remaining.forEach { alternative ->
+                candidateAlternatives += MaterialDemandCandidateAlternative(
+                    gapCodes = coveredGaps(alternative, gap),
+                    candidate = alternative.copy(representedGapCodes = coveredGaps(alternative, gap))
+                )
+            }
             val choices = if (gap.code == "RESISTANCE_FOUNDATIONAL_ONRAMP") remaining
                 else if (gap.code == "BADMINTON_FOUNDATIONAL_ONRAMP") {
                     val objectives = mutableSetOf<String>()
@@ -252,36 +324,22 @@ class MaterialDemandResolver(private val prescriptions: PersonalizedPrescription
                         contributes
                     }
                 } else remaining.take(1)
-            if (choices.isEmpty()) deferred[gap.code] = "NO_FEASIBLE_PRESCRIPTION_OR_CANDIDATE"
+            if (choices.isEmpty()) {
+                deferred[gap.code] = "NO_FEASIBLE_PRESCRIPTION_OR_CANDIDATE"
+                // Keep the need visible even when candidate selection itself has no result.
+                // A missing candidate must not make the underlying material gap disappear.
+                unresolvedGapCodes += gap.code
+            }
             choices.forEach { choice ->
-                val covered = gaps.filter { other ->
-                    other.contributesTransitionPressure == gap.contributesTransitionPressure &&
-                        (other.code == gap.code || objectiveFromGap(other.code) in choice.representedObjectives ||
-                            objectiveFromGap(other.code) in choice.supportiveObjectives)
-                }.mapTo(linkedSetOf(), AdaptationGap::code)
+                val covered = coveredGaps(choice, gap)
                 val existing = selected[choice.stableKey]
                 val owner = existing?.takeIf { it.material && !choice.material } ?: choice
                 val resolvedOwner = owner.copy(representedGapCodes = covered + existing?.representedGapCodes.orEmpty())
                 val ownerIdentity = StimulusPrescriptionOwnerIdentity(resolvedOwner.stableKey, resolvedOwner.role)
-                if (existing == null) {
-                    val rx = prescriptions.prescribe(snapshot, state.strengthIntent, resolvedOwner, resolvedOwner.style)
-                    ownerProvenance += OwnerAllocationProvenance(ownerIdentity, OwnerAllocationStage.MATERIAL_DEMAND,
-                        OwnerAllocationAction.ADDED, null,
-                        ownerAllocationState(null, null, null, rx.sets.size, rx.sets, rx.text, resolvedOwner.role),
-                        OwnerAllocationCause.MATERIAL_DEMAND, evidenceCodes = listOf("MATERIAL_DEMAND_SELECTED"))
-                } else if (StimulusPrescriptionOwnerIdentity(existing.stableKey, existing.role) != ownerIdentity) {
-                    val beforeRx = prescriptions.prescribe(snapshot, state.strengthIntent, existing, existing.style)
-                    ownerProvenance += OwnerAllocationProvenance(
-                        StimulusPrescriptionOwnerIdentity(existing.stableKey, existing.role), OwnerAllocationStage.MATERIAL_DEMAND,
-                        OwnerAllocationAction.REMOVED, ownerAllocationState(null, null, null, beforeRx.sets.size,
-                            beforeRx.sets, beforeRx.text, existing.role), null, OwnerAllocationCause.MATERIAL_DEMAND,
-                        evidenceCodes = listOf("MATERIAL_DEMAND_OWNER_REPLACED"))
-                    val afterRx = prescriptions.prescribe(snapshot, state.strengthIntent, resolvedOwner, resolvedOwner.style)
-                    ownerProvenance += OwnerAllocationProvenance(ownerIdentity, OwnerAllocationStage.MATERIAL_DEMAND,
-                        OwnerAllocationAction.ADDED, null,
-                        ownerAllocationState(null, null, null, afterRx.sets.size, afterRx.sets, afterRx.text, resolvedOwner.role),
-                        OwnerAllocationCause.MATERIAL_DEMAND, evidenceCodes = listOf("MATERIAL_DEMAND_OWNER_REPLACEMENT"))
-                }
+                candidateOrigins += MaterialDemandCandidateOrigin(
+                    owner = ownerIdentity,
+                    gapCodes = covered + existing?.representedGapCodes.orEmpty()
+                )
                 selected[choice.stableKey] = resolvedOwner
                 // Supportive exposure remains useful demand, but cannot close another DIRECT gap.
                 represented += covered.filter { it == gap.code || objectiveFromGap(it) in choice.representedObjectives }
@@ -298,12 +356,20 @@ class MaterialDemandResolver(private val prescriptions: PersonalizedPrescription
                 key in request.excludedExerciseStableKeys -> "USER_EXCLUDED"
                 snapshot.explicitlyRestricted(key) -> "EXPLICIT_PROFILE_RESTRICTION"
                 key in snapshot.recoverySignals.tissueRestrictedStableKeys -> "TISSUE_RESTRICTED"
-                PerformancePrescriptionResolver.resolve(snapshot, key) == null -> "NO_SAFE_PRESCRIPTION_AUTHORITY"
                 !matches -> "NO_MATCHING_CURRENT_OBJECTIVE_DEMAND"
                 else -> "REDUNDANT_OR_INELIGIBLE_CANDIDATE"
             })
         }
-        return MaterialDemand(selected.values.toList(), deferred, audit, ownerProvenance.deterministicOwnerOrder())
+        return MaterialDemand(
+            candidates = selected.values.toList(),
+            deferred = deferred,
+            audit = audit,
+            candidateOrigins = candidateOrigins.distinct().sortedWith(compareBy(
+                { it.owner.stableKey }, { it.owner.selectionRole }, { it.gapCodes.sorted().joinToString("|") }
+            )),
+            candidateAlternatives = candidateAlternatives.distinct(),
+            unresolvedGapCodes = unresolvedGapCodes
+        )
     }
 
     private fun objectiveFromGap(code: String): String = listOf("BADMINTON_DROP_", "BADMINTON_UNDERREPRESENTED_", "BADMINTON_DEVELOP_")
