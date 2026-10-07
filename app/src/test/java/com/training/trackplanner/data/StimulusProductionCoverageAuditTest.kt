@@ -83,23 +83,47 @@ class StimulusProductionCoverageAuditTest {
         )
         val canonicalPlanningByCase = linkedMapOf<String, CanonicalStimulusPlanningResult>()
         val productionContextByCase = linkedMapOf<String, PreparedCanonicalGenerationContext>()
+        val c29PhaseDurationsByCase = linkedMapOf<String, Map<String, Long>>()
+        val c29GenerationDurationsByCase = linkedMapOf<String, Long>()
+        val c29PlannerMetricsByCase = linkedMapOf<String, Map<String, Int>>()
         val records = specs.map { spec ->
             val result = runCase(spec, seedIncumbentPlacementFixture = spec.label in
                 setOf("persona0_mixed", "persona0_reviewed", "persona3_reviewed", "persona4_mixed"), observeCanonicalPlanning = { planning ->
                 canonicalPlanningByCase[spec.label] = planning
             }, evaluateWithIncumbent = { service, preflight, answers, metadata, incumbentIndex ->
                 withContext(Dispatchers.IO) {
-                    service.generatePreparedProduction(
-                        preflight = preflight,
-                        answers = answers,
-                        metadata = metadata,
-                        incumbentPlacementIndex = incumbentIndex,
-                        productionGenerationObserver = { observation ->
-                            if (observation.phase == ProductionGenerationPhase.CANONICAL_PREPARED) {
-                                productionContextByCase[spec.label] = observation.context
+                    val generationStartedAt = System.nanoTime()
+                    val previousPhaseAt = linkedMapOf<ProductionGenerationPhase, Long>()
+                    val phaseDurations = linkedMapOf<String, Long>()
+                    try {
+                        service.generatePreparedProduction(
+                            preflight = preflight,
+                            answers = answers,
+                            metadata = metadata,
+                            incumbentPlacementIndex = incumbentIndex,
+                            productionGenerationObserver = { observation ->
+                                val observedAt = System.nanoTime()
+                                if (observation.phase == ProductionGenerationPhase.CANONICAL_PREPARED) {
+                                    productionContextByCase[spec.label] = observation.context
+                                    phaseDurations["generation_start_to_canonical_prepared"] =
+                                        (observedAt - generationStartedAt).coerceAtLeast(0L) / 1_000_000L
+                                }
+                                previousPhaseAt.entries.lastOrNull()?.let { (previous, previousAt) ->
+                                    phaseDurations["${previous.name}_to_${observation.phase.name}"] =
+                                        (observedAt - previousAt).coerceAtLeast(0L) / 1_000_000L
+                                }
+                                previousPhaseAt[observation.phase] = observedAt
+                                if (observation.phase == ProductionGenerationPhase.B6_POST_MATERIALIZATION_COMPLETE) {
+                                    val builder = field(service, "programBuilder") as PersonalizedProgramBuilder
+                                    c29PlannerMetricsByCase[spec.label] = builder.lastPerformanceMetrics.toMap()
+                                }
                             }
-                        }
-                    )
+                        )
+                    } finally {
+                        c29GenerationDurationsByCase[spec.label] =
+                            (System.nanoTime() - generationStartedAt).coerceAtLeast(0L) / 1_000_000L
+                        c29PhaseDurationsByCase[spec.label] = phaseDurations.toMap()
+                    }
                 }
             })
             if (result == null) {
@@ -711,6 +735,62 @@ class StimulusProductionCoverageAuditTest {
         java.io.File("build/reports/c28-material-demand-execution-authority-census.json").apply {
             parentFile?.mkdirs()
             writeText(c28Census)
+        }
+        val c29Census = C29UnresolvedDispositionCensus.render(
+            records = records,
+            preparedContexts = productionContextByCase,
+            c28Census = c28Census,
+            plannerMetricsByCase = c29PlannerMetricsByCase,
+            startSha = "f3498af2055d7a4f6d9989c99d49f1c2042fff84"
+        )
+        assertEquals(c29Census, C29UnresolvedDispositionCensus.render(
+            records = records.reversed(),
+            preparedContexts = productionContextByCase,
+            c28Census = c28Census,
+            plannerMetricsByCase = c29PlannerMetricsByCase,
+            startSha = "f3498af2055d7a4f6d9989c99d49f1c2042fff84"
+        ))
+        val c29Json = org.json.JSONObject(c29Census)
+        val c29Summary = c29Json.getJSONObject("summary")
+        assertEquals(22, c29Summary.getInt("unresolvedNeedIdentities"))
+        assertEquals(44, c29Summary.getInt("ownerWeekRows"))
+        assertEquals(22, c29Summary.getInt("currentMovementCandidateExecutionPolicyUnsupported"))
+        assertEquals(208, c29Summary.getInt("exactAuthorityCandidateProbes"))
+        assertEquals(0, c29Json.getJSONObject("stageEvaluationCounts").getInt("repeatedExactOwnerAuthorityProbeKeys"))
+        assertEquals(22, c29Summary.getJSONObject("rootCauseCounts").getInt("TARGET_GENERATION_GAP"))
+        assertEquals(22, c29Summary.getJSONObject("classifiedNeedDispositionCounts").getInt("TRUE_UNRESOLVED"))
+        assertEquals(0, c29Summary.getJSONObject("classifiedNeedDispositionCounts").getInt("USER_INPUT_REQUIRED"))
+        assertEquals(0, c29Summary.getJSONObject("classifiedNeedDispositionCounts").getInt("RESOLVED_DEFERRED"))
+        assertEquals(0, c29Summary.getJSONObject("classifiedNeedDispositionCounts").getInt("RESOLVED_EXCLUDED_OR_INFEASIBLE"))
+        assertEquals(0, c29Json.getJSONObject("stageEvaluationCounts").getInt("exactB6OwnerLookupsForMovementCoverageTargets"))
+        assertFalse(c29Json.getBoolean("productionBehaviorChanged"))
+        java.io.File("build/reports/c29-unresolved-disposition-census.json").apply {
+            parentFile?.mkdirs()
+            writeText(c29Census)
+        }
+        val sortedGenerationMillis = c29GenerationDurationsByCase.values.sorted()
+        val phaseSamples = c29PhaseDurationsByCase.values.flatMap { it.entries }
+            .groupBy({ it.key }, { it.value }).toSortedMap()
+        val c29TimingObservation = org.json.JSONObject()
+            .put("observationOnly", true)
+            .put("generationCases", sortedGenerationMillis.size)
+            .put("generationCallTotalMillis", sortedGenerationMillis.sum())
+            .put("generationCallMeanMillis", sortedGenerationMillis.average())
+            .put("generationCallMedianMillis", if (sortedGenerationMillis.isEmpty()) 0.0 else if (sortedGenerationMillis.size % 2 == 1) {
+                sortedGenerationMillis[sortedGenerationMillis.size / 2].toDouble()
+            } else {
+                (sortedGenerationMillis[sortedGenerationMillis.size / 2 - 1] + sortedGenerationMillis[sortedGenerationMillis.size / 2]) / 2.0
+            })
+            .put("generationCallMaxMillis", sortedGenerationMillis.maxOrNull() ?: 0L)
+            .put("phaseSamples", org.json.JSONObject(phaseSamples.mapValues { (_, samples) -> org.json.JSONObject()
+                .put("count", samples.size)
+                .put("totalMillis", samples.sum())
+                .put("meanMillis", samples.average())
+                .put("maxMillis", samples.maxOrNull() ?: 0L)
+            }))
+        java.io.File("build/reports/c29-generation-time-observation.json").apply {
+            parentFile?.mkdirs()
+            writeText(c29TimingObservation.toString(2))
         }
         assertEquals(0, nextPhaseSummary.getInt("qualityAddedOwnerWeeksWithoutAuthorizedB6"))
         assertEquals(0, nextPhaseSummary.getJSONArray("qualityAddedOwnerWeeksWithoutAuthorizedB6Cases").length())
