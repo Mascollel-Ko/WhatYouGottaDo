@@ -1,0 +1,2667 @@
+{
+  "phase": "C30",
+  "title": "Movement need disposition and canonical target admission",
+  "startSha": "7c5af1923e7b292a0541f504b471ad68157e18bc",
+  "productionBehaviorChangedOutsideB1ToB6MovementAdmission": false,
+  "summary": {
+    "c29MovementIdentities": 22,
+    "movementDispositionRows": 22,
+    "ownerWeekRows": 44,
+    "dispositions": {
+      "ADDRESS": 22
+    },
+    "dispositionsByCase": {
+      "persona0_sparse": {
+        "ADDRESS": 2
+      },
+      "persona1_sparse": {
+        "ADDRESS": 6
+      },
+      "persona2_sparse": {
+        "ADDRESS": 6
+      },
+      "persona3_sparse": {
+        "ADDRESS": 2
+      },
+      "persona4_sparse": {
+        "ADDRESS": 6
+      }
+    },
+    "executionDispositions": {
+      "POLICY_UNSUPPORTED": 22
+    },
+    "b4MovementTargets": 22,
+    "b5MovementOwnersSelected": 22,
+    "b5AddressTargetsWithoutOwner": 0,
+    "b6MovementTargetsCoveredByExactExistingAuthority": 0,
+    "movementTargetsMaterializedByExistingAuthorizedRow": 0,
+    "addressExecutionBlockedNoMovementDoseAuthority": 22,
+    "unauthorizedSparseOwnerWeekRowsAfter": 0,
+    "movementRoleMaterialRows": 0,
+    "approvedTaskOwnerRows": 8,
+    "powerMaterialRows": 0,
+    "canonicalJumpLandingTaskTargets": 22,
+    "approvedJumpLandingProtocols": 0,
+    "jumpLandingMaterialRows": 0,
+    "routes": {
+      "CONTROL": 22
+    },
+    "b7ReasonCases": {
+      "CHANGE_PROVENANCE_UNCLOSED": 15,
+      "COLLATERAL_TARGET_REGRESSION": 1,
+      "TARGET_REGRESSED": 1
+    },
+    "b7ReasonOccurrences": {
+      "CHANGE_PROVENANCE_UNCLOSED": 15,
+      "COLLATERAL_TARGET_REGRESSION": 1,
+      "TARGET_REGRESSED": 1
+    },
+    "unexplainedProvenanceAttributions": {
+      "UNEXPLAINED_REMOVED_IDENTITY": 73,
+      "UNEXPLAINED_PRESCRIPTION_CHANGE": 3
+    },
+    "b8Statuses": {
+      "CONTROL_REQUIRED": 15
+    },
+    "buildAccounting": {
+      "CONTROL": 22,
+      "EXPERIMENTAL": 22,
+      "TOTAL": 44,
+      "THIRD": 0,
+      "generatedCases": 22
+    },
+    "c20": {
+      "HARD_VALID": 10,
+      "HARD_INVALID": 0,
+      "UNRESOLVED": 0,
+      "NOT_EVALUATED_NO_CURRENT_AUTHORIZED_OWNER": 22,
+      "hardInvalidForcedPreserved": 0,
+      "unresolvedForcedPreserved": 0
+    },
+    "generationTimeTotalMs": 6651,
+    "generationTimeMeanMs": 302.3181818181818,
+    "generationTimeMedianMs": 262,
+    "generationTimeMaxMs": 770,
+    "canonicalB3MovementEvaluations": 22,
+    "canonicalB4MovementTargetBuilds": 22,
+    "b5MovementCandidatePoolRows": 1106,
+    "b6MovementAuthorityLookups": 123,
+    "repeatedIdenticalB6MovementLookups": 0,
+    "plannerPlacementMetrics": {
+      "acceptedMoves": 0,
+      "candidateDayChecks": 171,
+      "candidateDayProjectionChecks": 17,
+      "conditionalSplitParents": 0,
+      "dayProjectionCacheHits": 43,
+      "dayProjectionCacheMisses": 54,
+      "dayProjectionCalls": 121,
+      "fullTrials": 0,
+      "fundingFitsTrials": 0,
+      "initialPlacementLegalChecks": 11,
+      "initialPlacementSearchNodes": 11,
+      "mandatorySplitCandidates": 0,
+      "mandatorySplitDayProjectionCalls": 0,
+      "mandatorySplitTissueCalls": 0,
+      "placementAtomEvaluations": 50,
+      "postSplitCandidates": 0,
+      "rebalanceCandidates": 77,
+      "splitTrials": 0,
+      "tissueProjectionCacheHits": 13,
+      "tissueProjectionCacheMisses": 28,
+      "weekTissueProjectionCalls": 22,
+      "weeklyPlacementCalls": 26
+    },
+    "thirdPlannerBuilds": 0
+  },
+  "movementNeedIdentities": [
+    {
+      "case": "persona0_sparse",
+      "priorSparseStableKey": "ex_28347c1f",
+      "priorSparseSelectionRole": "COVERAGE_CORE_DIRECT",
+      "priorSparseWeeks": [
+        "1",
+        "2"
+      ],
+      "needSource": "MOVEMENT_REPRESENTATION_GAP",
+      "representedGapCodes": [
+        "CORE_DIRECT"
+      ],
+      "movementCoverage": "CORE_DIRECT",
+      "gapCode": "CORE_DIRECT",
+      "historyRepresentation": "ABSENT",
+      "current28Exposure": 0,
+      "prior28Exposure": 0,
+      "b3Disposition": "ADDRESS",
+      "b3Relevance": "MODERATE",
+      "b3Priority": "SECONDARY",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b3Evidence": [
+        "basePriority=MODERATE",
+        "contributesTransitionPressure=true",
+        "currentExposure28d=0.0",
+        "evidenceConfidence=LOW",
+        "explicitlyRestricted=false",
+        "foundationalOnramp=false",
+        "gapPriority=MODERATE",
+        "globallyRestricted=false",
+        "numericDoseAuthority=false",
+        "priorExposure28d=0.0",
+        "representationState=ABSENT"
+      ],
+      "b4TargetPresent": true,
+      "b4TargetId": "MOVEMENT:CORE_DIRECT",
+      "b4NumericAuthority": "DIRECTION_ONLY",
+      "b5Owner": {
+        "stableKey": "ex_28347c1f",
+        "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT"
+      },
+      "b5Status": "SELECTED_BY_CANONICAL_B5",
+      "b5CandidatePoolSize": 8,
+      "b5ReasonCodes": [
+        "B5_SELECTION_IS_NOT_PRESCRIPTION_AUTHORITY",
+        "MOVEMENT_TARGET_OWNER_SELECTED"
+      ],
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "b6ReasonCodes": [
+        "MOVEMENT_TARGET_HAS_NO_NUMERIC_DOSE_AUTHORITY",
+        "NO_APPROVED_MOVEMENT_DOSE_POLICY",
+        "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY"
+      ],
+      "b6ExistingAuthorityTargetId": null,
+      "exactB6AuthorityAvailable": false,
+      "materializedExactOwnerRows": 0,
+      "materialized": false,
+      "comparisonAvailable": false,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b5ObservedTargetIds": [
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:POSTERIOR_CHAIN",
+        "MOVEMENT:UPPER_PULL"
+      ],
+      "b6ObservedTargetIds": [
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:POSTERIOR_CHAIN",
+        "MOVEMENT:UPPER_PULL"
+      ],
+      "executionDisposition": "POLICY_UNSUPPORTED",
+      "executionBlocker": "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY",
+      "generationTimeMs": 151,
+      "noDosePolicyAdded": true
+    },
+    {
+      "case": "persona0_sparse",
+      "priorSparseStableKey": "ex_1dbee10e",
+      "priorSparseSelectionRole": "COVERAGE_HORIZONTAL_PUSH",
+      "priorSparseWeeks": [
+        "1",
+        "2"
+      ],
+      "needSource": "MOVEMENT_REPRESENTATION_GAP",
+      "representedGapCodes": [
+        "HORIZONTAL_PUSH"
+      ],
+      "movementCoverage": "HORIZONTAL_PUSH",
+      "gapCode": "HORIZONTAL_PUSH",
+      "historyRepresentation": "ABSENT",
+      "current28Exposure": 0,
+      "prior28Exposure": 0,
+      "b3Disposition": "ADDRESS",
+      "b3Relevance": "MODERATE",
+      "b3Priority": "SECONDARY",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b3Evidence": [
+        "basePriority=HIGH",
+        "contributesTransitionPressure=true",
+        "currentExposure28d=0.0",
+        "evidenceConfidence=LOW",
+        "explicitlyRestricted=false",
+        "foundationalOnramp=false",
+        "gapPriority=MODERATE",
+        "globallyRestricted=false",
+        "numericDoseAuthority=false",
+        "priorExposure28d=0.0",
+        "representationState=ABSENT"
+      ],
+      "b4TargetPresent": true,
+      "b4TargetId": "MOVEMENT:HORIZONTAL_PUSH",
+      "b4NumericAuthority": "DIRECTION_ONLY",
+      "b5Owner": {
+        "stableKey": "ex_1dbee10e",
+        "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_HORIZONTAL_PUSH"
+      },
+      "b5Status": "SELECTED_BY_CANONICAL_B5",
+      "b5CandidatePoolSize": 9,
+      "b5ReasonCodes": [
+        "B5_SELECTION_IS_NOT_PRESCRIPTION_AUTHORITY",
+        "MOVEMENT_TARGET_OWNER_SELECTED"
+      ],
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "b6ReasonCodes": [
+        "MOVEMENT_TARGET_HAS_NO_NUMERIC_DOSE_AUTHORITY",
+        "NO_APPROVED_MOVEMENT_DOSE_POLICY",
+        "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY"
+      ],
+      "b6ExistingAuthorityTargetId": null,
+      "exactB6AuthorityAvailable": false,
+      "materializedExactOwnerRows": 0,
+      "materialized": false,
+      "comparisonAvailable": false,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b5ObservedTargetIds": [
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:POSTERIOR_CHAIN",
+        "MOVEMENT:UPPER_PULL"
+      ],
+      "b6ObservedTargetIds": [
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:POSTERIOR_CHAIN",
+        "MOVEMENT:UPPER_PULL"
+      ],
+      "executionDisposition": "POLICY_UNSUPPORTED",
+      "executionBlocker": "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY",
+      "generationTimeMs": 151,
+      "noDosePolicyAdded": true
+    },
+    {
+      "case": "persona1_sparse",
+      "priorSparseStableKey": "barbell_reverse_curl",
+      "priorSparseSelectionRole": "COVERAGE_ARMS_BICEPS",
+      "priorSparseWeeks": [
+        "1",
+        "2"
+      ],
+      "needSource": "MOVEMENT_REPRESENTATION_GAP",
+      "representedGapCodes": [
+        "ARMS_BICEPS"
+      ],
+      "movementCoverage": "ARMS_BICEPS",
+      "gapCode": "ARMS_BICEPS",
+      "historyRepresentation": "ABSENT",
+      "current28Exposure": 0,
+      "prior28Exposure": 0,
+      "b3Disposition": "ADDRESS",
+      "b3Relevance": "MODERATE",
+      "b3Priority": "SECONDARY",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b3Evidence": [
+        "basePriority=MODERATE",
+        "contributesTransitionPressure=true",
+        "currentExposure28d=0.0",
+        "evidenceConfidence=LOW",
+        "explicitlyRestricted=false",
+        "foundationalOnramp=false",
+        "gapPriority=MODERATE",
+        "globallyRestricted=false",
+        "numericDoseAuthority=false",
+        "priorExposure28d=0.0",
+        "representationState=ABSENT"
+      ],
+      "b4TargetPresent": true,
+      "b4TargetId": "MOVEMENT:ARMS_BICEPS",
+      "b4NumericAuthority": "DIRECTION_ONLY",
+      "b5Owner": {
+        "stableKey": "barbell_reverse_curl",
+        "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_BICEPS"
+      },
+      "b5Status": "SELECTED_BY_CANONICAL_B5",
+      "b5CandidatePoolSize": 11,
+      "b5ReasonCodes": [
+        "B5_SELECTION_IS_NOT_PRESCRIPTION_AUTHORITY",
+        "MOVEMENT_TARGET_OWNER_SELECTED"
+      ],
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "b6ReasonCodes": [
+        "MOVEMENT_TARGET_HAS_NO_NUMERIC_DOSE_AUTHORITY",
+        "NO_APPROVED_MOVEMENT_DOSE_POLICY",
+        "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY"
+      ],
+      "b6ExistingAuthorityTargetId": null,
+      "exactB6AuthorityAvailable": false,
+      "materializedExactOwnerRows": 0,
+      "materialized": false,
+      "comparisonAvailable": false,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b5ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:LOWER_KNEE",
+        "MOVEMENT:POSTERIOR_CHAIN"
+      ],
+      "b6ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:LOWER_KNEE",
+        "MOVEMENT:POSTERIOR_CHAIN"
+      ],
+      "executionDisposition": "POLICY_UNSUPPORTED",
+      "executionBlocker": "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY",
+      "generationTimeMs": 213,
+      "noDosePolicyAdded": true
+    },
+    {
+      "case": "persona1_sparse",
+      "priorSparseStableKey": "dumbbell_lying_triceps_extension",
+      "priorSparseSelectionRole": "COVERAGE_ARMS_TRICEPS",
+      "priorSparseWeeks": [
+        "1",
+        "2"
+      ],
+      "needSource": "MOVEMENT_REPRESENTATION_GAP",
+      "representedGapCodes": [
+        "ARMS_TRICEPS"
+      ],
+      "movementCoverage": "ARMS_TRICEPS",
+      "gapCode": "ARMS_TRICEPS",
+      "historyRepresentation": "ABSENT",
+      "current28Exposure": 0,
+      "prior28Exposure": 0,
+      "b3Disposition": "ADDRESS",
+      "b3Relevance": "MODERATE",
+      "b3Priority": "SECONDARY",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b3Evidence": [
+        "basePriority=MODERATE",
+        "contributesTransitionPressure=true",
+        "currentExposure28d=0.0",
+        "evidenceConfidence=LOW",
+        "explicitlyRestricted=false",
+        "foundationalOnramp=false",
+        "gapPriority=MODERATE",
+        "globallyRestricted=false",
+        "numericDoseAuthority=false",
+        "priorExposure28d=0.0",
+        "representationState=ABSENT"
+      ],
+      "b4TargetPresent": true,
+      "b4TargetId": "MOVEMENT:ARMS_TRICEPS",
+      "b4NumericAuthority": "DIRECTION_ONLY",
+      "b5Owner": {
+        "stableKey": "dumbbell_lying_triceps_extension",
+        "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_TRICEPS"
+      },
+      "b5Status": "SELECTED_BY_CANONICAL_B5",
+      "b5CandidatePoolSize": 5,
+      "b5ReasonCodes": [
+        "B5_SELECTION_IS_NOT_PRESCRIPTION_AUTHORITY",
+        "MOVEMENT_TARGET_OWNER_SELECTED"
+      ],
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "b6ReasonCodes": [
+        "MOVEMENT_TARGET_HAS_NO_NUMERIC_DOSE_AUTHORITY",
+        "NO_APPROVED_MOVEMENT_DOSE_POLICY",
+        "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY"
+      ],
+      "b6ExistingAuthorityTargetId": null,
+      "exactB6AuthorityAvailable": false,
+      "materializedExactOwnerRows": 0,
+      "materialized": false,
+      "comparisonAvailable": false,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b5ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:LOWER_KNEE",
+        "MOVEMENT:POSTERIOR_CHAIN"
+      ],
+      "b6ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:LOWER_KNEE",
+        "MOVEMENT:POSTERIOR_CHAIN"
+      ],
+      "executionDisposition": "POLICY_UNSUPPORTED",
+      "executionBlocker": "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY",
+      "generationTimeMs": 213,
+      "noDosePolicyAdded": true
+    },
+    {
+      "case": "persona1_sparse",
+      "priorSparseStableKey": "ex_5ca7133f",
+      "priorSparseSelectionRole": "COVERAGE_CALVES",
+      "priorSparseWeeks": [
+        "1",
+        "2"
+      ],
+      "needSource": "MOVEMENT_REPRESENTATION_GAP",
+      "representedGapCodes": [
+        "CALVES"
+      ],
+      "movementCoverage": "CALVES",
+      "gapCode": "CALVES",
+      "historyRepresentation": "ABSENT",
+      "current28Exposure": 0,
+      "prior28Exposure": 0,
+      "b3Disposition": "ADDRESS",
+      "b3Relevance": "MODERATE",
+      "b3Priority": "SECONDARY",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b3Evidence": [
+        "basePriority=MODERATE",
+        "contributesTransitionPressure=true",
+        "currentExposure28d=0.0",
+        "evidenceConfidence=LOW",
+        "explicitlyRestricted=false",
+        "foundationalOnramp=false",
+        "gapPriority=MODERATE",
+        "globallyRestricted=false",
+        "numericDoseAuthority=false",
+        "priorExposure28d=0.0",
+        "representationState=ABSENT"
+      ],
+      "b4TargetPresent": true,
+      "b4TargetId": "MOVEMENT:CALVES",
+      "b4NumericAuthority": "DIRECTION_ONLY",
+      "b5Owner": {
+        "stableKey": "ex_5ca7133f",
+        "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CALVES"
+      },
+      "b5Status": "SELECTED_BY_CANONICAL_B5",
+      "b5CandidatePoolSize": 3,
+      "b5ReasonCodes": [
+        "B5_SELECTION_IS_NOT_PRESCRIPTION_AUTHORITY",
+        "MOVEMENT_TARGET_OWNER_SELECTED"
+      ],
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "b6ReasonCodes": [
+        "MOVEMENT_TARGET_HAS_NO_NUMERIC_DOSE_AUTHORITY",
+        "NO_APPROVED_MOVEMENT_DOSE_POLICY",
+        "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY"
+      ],
+      "b6ExistingAuthorityTargetId": null,
+      "exactB6AuthorityAvailable": false,
+      "materializedExactOwnerRows": 0,
+      "materialized": false,
+      "comparisonAvailable": false,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b5ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:LOWER_KNEE",
+        "MOVEMENT:POSTERIOR_CHAIN"
+      ],
+      "b6ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:LOWER_KNEE",
+        "MOVEMENT:POSTERIOR_CHAIN"
+      ],
+      "executionDisposition": "POLICY_UNSUPPORTED",
+      "executionBlocker": "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY",
+      "generationTimeMs": 213,
+      "noDosePolicyAdded": true
+    },
+    {
+      "case": "persona1_sparse",
+      "priorSparseStableKey": "ex_28347c1f",
+      "priorSparseSelectionRole": "COVERAGE_CORE_DIRECT",
+      "priorSparseWeeks": [
+        "1",
+        "2"
+      ],
+      "needSource": "MOVEMENT_REPRESENTATION_GAP",
+      "representedGapCodes": [
+        "CORE_DIRECT"
+      ],
+      "movementCoverage": "CORE_DIRECT",
+      "gapCode": "CORE_DIRECT",
+      "historyRepresentation": "ABSENT",
+      "current28Exposure": 0,
+      "prior28Exposure": 0,
+      "b3Disposition": "ADDRESS",
+      "b3Relevance": "MODERATE",
+      "b3Priority": "SECONDARY",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b3Evidence": [
+        "basePriority=MODERATE",
+        "contributesTransitionPressure=true",
+        "currentExposure28d=0.0",
+        "evidenceConfidence=LOW",
+        "explicitlyRestricted=false",
+        "foundationalOnramp=false",
+        "gapPriority=MODERATE",
+        "globallyRestricted=false",
+        "numericDoseAuthority=false",
+        "priorExposure28d=0.0",
+        "representationState=ABSENT"
+      ],
+      "b4TargetPresent": true,
+      "b4TargetId": "MOVEMENT:CORE_DIRECT",
+      "b4NumericAuthority": "DIRECTION_ONLY",
+      "b5Owner": {
+        "stableKey": "ex_28347c1f",
+        "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT"
+      },
+      "b5Status": "SELECTED_BY_CANONICAL_B5",
+      "b5CandidatePoolSize": 9,
+      "b5ReasonCodes": [
+        "B5_SELECTION_IS_NOT_PRESCRIPTION_AUTHORITY",
+        "MOVEMENT_TARGET_OWNER_SELECTED"
+      ],
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "b6ReasonCodes": [
+        "MOVEMENT_TARGET_HAS_NO_NUMERIC_DOSE_AUTHORITY",
+        "NO_APPROVED_MOVEMENT_DOSE_POLICY",
+        "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY"
+      ],
+      "b6ExistingAuthorityTargetId": null,
+      "exactB6AuthorityAvailable": false,
+      "materializedExactOwnerRows": 0,
+      "materialized": false,
+      "comparisonAvailable": false,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b5ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:LOWER_KNEE",
+        "MOVEMENT:POSTERIOR_CHAIN"
+      ],
+      "b6ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:LOWER_KNEE",
+        "MOVEMENT:POSTERIOR_CHAIN"
+      ],
+      "executionDisposition": "POLICY_UNSUPPORTED",
+      "executionBlocker": "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY",
+      "generationTimeMs": 213,
+      "noDosePolicyAdded": true
+    },
+    {
+      "case": "persona1_sparse",
+      "priorSparseStableKey": "dumbbell_goblet_squat",
+      "priorSparseSelectionRole": "COVERAGE_LOWER_KNEE",
+      "priorSparseWeeks": [
+        "1",
+        "2"
+      ],
+      "needSource": "MOVEMENT_REPRESENTATION_GAP",
+      "representedGapCodes": [
+        "LOWER_KNEE"
+      ],
+      "movementCoverage": "LOWER_KNEE",
+      "gapCode": "LOWER_KNEE",
+      "historyRepresentation": "ABSENT",
+      "current28Exposure": 0,
+      "prior28Exposure": 0,
+      "b3Disposition": "ADDRESS",
+      "b3Relevance": "MODERATE",
+      "b3Priority": "SECONDARY",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b3Evidence": [
+        "basePriority=HIGH",
+        "contributesTransitionPressure=true",
+        "currentExposure28d=0.0",
+        "evidenceConfidence=LOW",
+        "explicitlyRestricted=false",
+        "foundationalOnramp=false",
+        "gapPriority=MODERATE",
+        "globallyRestricted=false",
+        "numericDoseAuthority=false",
+        "priorExposure28d=0.0",
+        "representationState=ABSENT"
+      ],
+      "b4TargetPresent": true,
+      "b4TargetId": "MOVEMENT:LOWER_KNEE",
+      "b4NumericAuthority": "DIRECTION_ONLY",
+      "b5Owner": {
+        "stableKey": "dumbbell_goblet_squat",
+        "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_LOWER_KNEE"
+      },
+      "b5Status": "SELECTED_BY_CANONICAL_B5",
+      "b5CandidatePoolSize": 6,
+      "b5ReasonCodes": [
+        "B5_SELECTION_IS_NOT_PRESCRIPTION_AUTHORITY",
+        "MOVEMENT_TARGET_OWNER_SELECTED"
+      ],
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "b6ReasonCodes": [
+        "MOVEMENT_TARGET_HAS_NO_NUMERIC_DOSE_AUTHORITY",
+        "NO_APPROVED_MOVEMENT_DOSE_POLICY",
+        "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY"
+      ],
+      "b6ExistingAuthorityTargetId": null,
+      "exactB6AuthorityAvailable": false,
+      "materializedExactOwnerRows": 0,
+      "materialized": false,
+      "comparisonAvailable": false,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b5ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:LOWER_KNEE",
+        "MOVEMENT:POSTERIOR_CHAIN"
+      ],
+      "b6ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:LOWER_KNEE",
+        "MOVEMENT:POSTERIOR_CHAIN"
+      ],
+      "executionDisposition": "POLICY_UNSUPPORTED",
+      "executionBlocker": "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY",
+      "generationTimeMs": 213,
+      "noDosePolicyAdded": true
+    },
+    {
+      "case": "persona1_sparse",
+      "priorSparseStableKey": "barbell_romanian_deadlift",
+      "priorSparseSelectionRole": "COVERAGE_POSTERIOR_CHAIN",
+      "priorSparseWeeks": [
+        "1",
+        "2"
+      ],
+      "needSource": "MOVEMENT_REPRESENTATION_GAP",
+      "representedGapCodes": [
+        "POSTERIOR_CHAIN"
+      ],
+      "movementCoverage": "POSTERIOR_CHAIN",
+      "gapCode": "POSTERIOR_CHAIN",
+      "historyRepresentation": "ABSENT",
+      "current28Exposure": 0,
+      "prior28Exposure": 0,
+      "b3Disposition": "ADDRESS",
+      "b3Relevance": "MODERATE",
+      "b3Priority": "SECONDARY",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b3Evidence": [
+        "basePriority=HIGH",
+        "contributesTransitionPressure=true",
+        "currentExposure28d=0.0",
+        "evidenceConfidence=LOW",
+        "explicitlyRestricted=false",
+        "foundationalOnramp=false",
+        "gapPriority=MODERATE",
+        "globallyRestricted=false",
+        "numericDoseAuthority=false",
+        "priorExposure28d=0.0",
+        "representationState=ABSENT"
+      ],
+      "b4TargetPresent": true,
+      "b4TargetId": "MOVEMENT:POSTERIOR_CHAIN",
+      "b4NumericAuthority": "DIRECTION_ONLY",
+      "b5Owner": {
+        "stableKey": "barbell_romanian_deadlift",
+        "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_POSTERIOR_CHAIN"
+      },
+      "b5Status": "SELECTED_BY_CANONICAL_B5",
+      "b5CandidatePoolSize": 4,
+      "b5ReasonCodes": [
+        "B5_SELECTION_IS_NOT_PRESCRIPTION_AUTHORITY",
+        "MOVEMENT_TARGET_OWNER_SELECTED"
+      ],
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "b6ReasonCodes": [
+        "MOVEMENT_TARGET_HAS_NO_NUMERIC_DOSE_AUTHORITY",
+        "NO_APPROVED_MOVEMENT_DOSE_POLICY",
+        "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY"
+      ],
+      "b6ExistingAuthorityTargetId": null,
+      "exactB6AuthorityAvailable": false,
+      "materializedExactOwnerRows": 0,
+      "materialized": false,
+      "comparisonAvailable": false,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b5ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:LOWER_KNEE",
+        "MOVEMENT:POSTERIOR_CHAIN"
+      ],
+      "b6ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:LOWER_KNEE",
+        "MOVEMENT:POSTERIOR_CHAIN"
+      ],
+      "executionDisposition": "POLICY_UNSUPPORTED",
+      "executionBlocker": "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY",
+      "generationTimeMs": 213,
+      "noDosePolicyAdded": true
+    },
+    {
+      "case": "persona2_sparse",
+      "priorSparseStableKey": "barbell_reverse_curl",
+      "priorSparseSelectionRole": "COVERAGE_ARMS_BICEPS",
+      "priorSparseWeeks": [
+        "1",
+        "2"
+      ],
+      "needSource": "MOVEMENT_REPRESENTATION_GAP",
+      "representedGapCodes": [
+        "ARMS_BICEPS"
+      ],
+      "movementCoverage": "ARMS_BICEPS",
+      "gapCode": "ARMS_BICEPS",
+      "historyRepresentation": "ABSENT",
+      "current28Exposure": 0,
+      "prior28Exposure": 0,
+      "b3Disposition": "ADDRESS",
+      "b3Relevance": "MODERATE",
+      "b3Priority": "SECONDARY",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b3Evidence": [
+        "basePriority=MODERATE",
+        "contributesTransitionPressure=true",
+        "currentExposure28d=0.0",
+        "evidenceConfidence=LOW",
+        "explicitlyRestricted=false",
+        "foundationalOnramp=false",
+        "gapPriority=MODERATE",
+        "globallyRestricted=false",
+        "numericDoseAuthority=false",
+        "priorExposure28d=0.0",
+        "representationState=ABSENT"
+      ],
+      "b4TargetPresent": true,
+      "b4TargetId": "MOVEMENT:ARMS_BICEPS",
+      "b4NumericAuthority": "DIRECTION_ONLY",
+      "b5Owner": {
+        "stableKey": "barbell_reverse_curl",
+        "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_BICEPS"
+      },
+      "b5Status": "SELECTED_BY_CANONICAL_B5",
+      "b5CandidatePoolSize": 17,
+      "b5ReasonCodes": [
+        "B5_SELECTION_IS_NOT_PRESCRIPTION_AUTHORITY",
+        "MOVEMENT_TARGET_OWNER_SELECTED"
+      ],
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "b6ReasonCodes": [
+        "MOVEMENT_TARGET_HAS_NO_NUMERIC_DOSE_AUTHORITY",
+        "NO_APPROVED_MOVEMENT_DOSE_POLICY",
+        "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY"
+      ],
+      "b6ExistingAuthorityTargetId": null,
+      "exactB6AuthorityAvailable": false,
+      "materializedExactOwnerRows": 0,
+      "materialized": false,
+      "comparisonAvailable": false,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b5ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:POSTERIOR_CHAIN",
+        "MOVEMENT:UPPER_PULL"
+      ],
+      "b6ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:POSTERIOR_CHAIN",
+        "MOVEMENT:UPPER_PULL"
+      ],
+      "executionDisposition": "POLICY_UNSUPPORTED",
+      "executionBlocker": "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY",
+      "generationTimeMs": 158,
+      "noDosePolicyAdded": true
+    },
+    {
+      "case": "persona2_sparse",
+      "priorSparseStableKey": "cable_overhead_triceps_extension",
+      "priorSparseSelectionRole": "COVERAGE_ARMS_TRICEPS",
+      "priorSparseWeeks": [
+        "1",
+        "2"
+      ],
+      "needSource": "MOVEMENT_REPRESENTATION_GAP",
+      "representedGapCodes": [
+        "ARMS_TRICEPS"
+      ],
+      "movementCoverage": "ARMS_TRICEPS",
+      "gapCode": "ARMS_TRICEPS",
+      "historyRepresentation": "ABSENT",
+      "current28Exposure": 0,
+      "prior28Exposure": 0,
+      "b3Disposition": "ADDRESS",
+      "b3Relevance": "MODERATE",
+      "b3Priority": "SECONDARY",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b3Evidence": [
+        "basePriority=MODERATE",
+        "contributesTransitionPressure=true",
+        "currentExposure28d=0.0",
+        "evidenceConfidence=LOW",
+        "explicitlyRestricted=false",
+        "foundationalOnramp=false",
+        "gapPriority=MODERATE",
+        "globallyRestricted=false",
+        "numericDoseAuthority=false",
+        "priorExposure28d=0.0",
+        "representationState=ABSENT"
+      ],
+      "b4TargetPresent": true,
+      "b4TargetId": "MOVEMENT:ARMS_TRICEPS",
+      "b4NumericAuthority": "DIRECTION_ONLY",
+      "b5Owner": {
+        "stableKey": "cable_overhead_triceps_extension",
+        "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_TRICEPS"
+      },
+      "b5Status": "SELECTED_BY_CANONICAL_B5",
+      "b5CandidatePoolSize": 10,
+      "b5ReasonCodes": [
+        "B5_SELECTION_IS_NOT_PRESCRIPTION_AUTHORITY",
+        "MOVEMENT_TARGET_OWNER_SELECTED"
+      ],
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "b6ReasonCodes": [
+        "MOVEMENT_TARGET_HAS_NO_NUMERIC_DOSE_AUTHORITY",
+        "NO_APPROVED_MOVEMENT_DOSE_POLICY",
+        "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY"
+      ],
+      "b6ExistingAuthorityTargetId": null,
+      "exactB6AuthorityAvailable": false,
+      "materializedExactOwnerRows": 0,
+      "materialized": false,
+      "comparisonAvailable": false,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b5ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:POSTERIOR_CHAIN",
+        "MOVEMENT:UPPER_PULL"
+      ],
+      "b6ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:POSTERIOR_CHAIN",
+        "MOVEMENT:UPPER_PULL"
+      ],
+      "executionDisposition": "POLICY_UNSUPPORTED",
+      "executionBlocker": "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY",
+      "generationTimeMs": 158,
+      "noDosePolicyAdded": true
+    },
+    {
+      "case": "persona2_sparse",
+      "priorSparseStableKey": "ex_5c8751d2",
+      "priorSparseSelectionRole": "COVERAGE_CALVES",
+      "priorSparseWeeks": [
+        "1",
+        "2"
+      ],
+      "needSource": "MOVEMENT_REPRESENTATION_GAP",
+      "representedGapCodes": [
+        "CALVES"
+      ],
+      "movementCoverage": "CALVES",
+      "gapCode": "CALVES",
+      "historyRepresentation": "ABSENT",
+      "current28Exposure": 0,
+      "prior28Exposure": 0,
+      "b3Disposition": "ADDRESS",
+      "b3Relevance": "MODERATE",
+      "b3Priority": "SECONDARY",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b3Evidence": [
+        "basePriority=MODERATE",
+        "contributesTransitionPressure=true",
+        "currentExposure28d=0.0",
+        "evidenceConfidence=LOW",
+        "explicitlyRestricted=false",
+        "foundationalOnramp=false",
+        "gapPriority=MODERATE",
+        "globallyRestricted=false",
+        "numericDoseAuthority=false",
+        "priorExposure28d=0.0",
+        "representationState=ABSENT"
+      ],
+      "b4TargetPresent": true,
+      "b4TargetId": "MOVEMENT:CALVES",
+      "b4NumericAuthority": "DIRECTION_ONLY",
+      "b5Owner": {
+        "stableKey": "ex_5c8751d2",
+        "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CALVES"
+      },
+      "b5Status": "SELECTED_BY_CANONICAL_B5",
+      "b5CandidatePoolSize": 5,
+      "b5ReasonCodes": [
+        "B5_SELECTION_IS_NOT_PRESCRIPTION_AUTHORITY",
+        "MOVEMENT_TARGET_OWNER_SELECTED"
+      ],
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "b6ReasonCodes": [
+        "MOVEMENT_TARGET_HAS_NO_NUMERIC_DOSE_AUTHORITY",
+        "NO_APPROVED_MOVEMENT_DOSE_POLICY",
+        "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY"
+      ],
+      "b6ExistingAuthorityTargetId": null,
+      "exactB6AuthorityAvailable": false,
+      "materializedExactOwnerRows": 0,
+      "materialized": false,
+      "comparisonAvailable": false,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b5ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:POSTERIOR_CHAIN",
+        "MOVEMENT:UPPER_PULL"
+      ],
+      "b6ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:POSTERIOR_CHAIN",
+        "MOVEMENT:UPPER_PULL"
+      ],
+      "executionDisposition": "POLICY_UNSUPPORTED",
+      "executionBlocker": "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY",
+      "generationTimeMs": 158,
+      "noDosePolicyAdded": true
+    },
+    {
+      "case": "persona2_sparse",
+      "priorSparseStableKey": "ex_28347c1f",
+      "priorSparseSelectionRole": "COVERAGE_CORE_DIRECT",
+      "priorSparseWeeks": [
+        "1",
+        "2"
+      ],
+      "needSource": "MOVEMENT_REPRESENTATION_GAP",
+      "representedGapCodes": [
+        "CORE_DIRECT"
+      ],
+      "movementCoverage": "CORE_DIRECT",
+      "gapCode": "CORE_DIRECT",
+      "historyRepresentation": "ABSENT",
+      "current28Exposure": 0,
+      "prior28Exposure": 0,
+      "b3Disposition": "ADDRESS",
+      "b3Relevance": "MODERATE",
+      "b3Priority": "SECONDARY",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b3Evidence": [
+        "basePriority=MODERATE",
+        "contributesTransitionPressure=true",
+        "currentExposure28d=0.0",
+        "evidenceConfidence=LOW",
+        "explicitlyRestricted=false",
+        "foundationalOnramp=false",
+        "gapPriority=MODERATE",
+        "globallyRestricted=false",
+        "numericDoseAuthority=false",
+        "priorExposure28d=0.0",
+        "representationState=ABSENT"
+      ],
+      "b4TargetPresent": true,
+      "b4TargetId": "MOVEMENT:CORE_DIRECT",
+      "b4NumericAuthority": "DIRECTION_ONLY",
+      "b5Owner": {
+        "stableKey": "ex_28347c1f",
+        "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT"
+      },
+      "b5Status": "SELECTED_BY_CANONICAL_B5",
+      "b5CandidatePoolSize": 10,
+      "b5ReasonCodes": [
+        "B5_SELECTION_IS_NOT_PRESCRIPTION_AUTHORITY",
+        "MOVEMENT_TARGET_OWNER_SELECTED"
+      ],
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "b6ReasonCodes": [
+        "MOVEMENT_TARGET_HAS_NO_NUMERIC_DOSE_AUTHORITY",
+        "NO_APPROVED_MOVEMENT_DOSE_POLICY",
+        "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY"
+      ],
+      "b6ExistingAuthorityTargetId": null,
+      "exactB6AuthorityAvailable": false,
+      "materializedExactOwnerRows": 0,
+      "materialized": false,
+      "comparisonAvailable": false,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b5ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:POSTERIOR_CHAIN",
+        "MOVEMENT:UPPER_PULL"
+      ],
+      "b6ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:POSTERIOR_CHAIN",
+        "MOVEMENT:UPPER_PULL"
+      ],
+      "executionDisposition": "POLICY_UNSUPPORTED",
+      "executionBlocker": "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY",
+      "generationTimeMs": 158,
+      "noDosePolicyAdded": true
+    },
+    {
+      "case": "persona2_sparse",
+      "priorSparseStableKey": "barbell_deadlift",
+      "priorSparseSelectionRole": "COVERAGE_POSTERIOR_CHAIN",
+      "priorSparseWeeks": [
+        "1",
+        "2"
+      ],
+      "needSource": "MOVEMENT_REPRESENTATION_GAP",
+      "representedGapCodes": [
+        "POSTERIOR_CHAIN"
+      ],
+      "movementCoverage": "POSTERIOR_CHAIN",
+      "gapCode": "POSTERIOR_CHAIN",
+      "historyRepresentation": "ABSENT",
+      "current28Exposure": 0,
+      "prior28Exposure": 0,
+      "b3Disposition": "ADDRESS",
+      "b3Relevance": "MODERATE",
+      "b3Priority": "SECONDARY",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b3Evidence": [
+        "basePriority=HIGH",
+        "contributesTransitionPressure=true",
+        "currentExposure28d=0.0",
+        "evidenceConfidence=LOW",
+        "explicitlyRestricted=false",
+        "foundationalOnramp=false",
+        "gapPriority=MODERATE",
+        "globallyRestricted=false",
+        "numericDoseAuthority=false",
+        "priorExposure28d=0.0",
+        "representationState=ABSENT"
+      ],
+      "b4TargetPresent": true,
+      "b4TargetId": "MOVEMENT:POSTERIOR_CHAIN",
+      "b4NumericAuthority": "DIRECTION_ONLY",
+      "b5Owner": {
+        "stableKey": "barbell_deadlift",
+        "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_POSTERIOR_CHAIN"
+      },
+      "b5Status": "SELECTED_BY_CANONICAL_B5",
+      "b5CandidatePoolSize": 16,
+      "b5ReasonCodes": [
+        "B5_SELECTION_IS_NOT_PRESCRIPTION_AUTHORITY",
+        "MOVEMENT_TARGET_OWNER_SELECTED"
+      ],
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "b6ReasonCodes": [
+        "MOVEMENT_TARGET_HAS_NO_NUMERIC_DOSE_AUTHORITY",
+        "NO_APPROVED_MOVEMENT_DOSE_POLICY",
+        "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY"
+      ],
+      "b6ExistingAuthorityTargetId": null,
+      "exactB6AuthorityAvailable": false,
+      "materializedExactOwnerRows": 0,
+      "materialized": false,
+      "comparisonAvailable": false,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b5ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:POSTERIOR_CHAIN",
+        "MOVEMENT:UPPER_PULL"
+      ],
+      "b6ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:POSTERIOR_CHAIN",
+        "MOVEMENT:UPPER_PULL"
+      ],
+      "executionDisposition": "POLICY_UNSUPPORTED",
+      "executionBlocker": "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY",
+      "generationTimeMs": 158,
+      "noDosePolicyAdded": true
+    },
+    {
+      "case": "persona2_sparse",
+      "priorSparseStableKey": "cable_rear_delt_fly",
+      "priorSparseSelectionRole": "COVERAGE_UPPER_PULL",
+      "priorSparseWeeks": [
+        "1",
+        "2"
+      ],
+      "needSource": "MOVEMENT_REPRESENTATION_GAP",
+      "representedGapCodes": [
+        "UPPER_PULL"
+      ],
+      "movementCoverage": "UPPER_PULL",
+      "gapCode": "UPPER_PULL",
+      "historyRepresentation": "ABSENT",
+      "current28Exposure": 0,
+      "prior28Exposure": 0,
+      "b3Disposition": "ADDRESS",
+      "b3Relevance": "MODERATE",
+      "b3Priority": "SECONDARY",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b3Evidence": [
+        "basePriority=HIGH",
+        "contributesTransitionPressure=true",
+        "currentExposure28d=0.0",
+        "evidenceConfidence=LOW",
+        "explicitlyRestricted=false",
+        "foundationalOnramp=false",
+        "gapPriority=MODERATE",
+        "globallyRestricted=false",
+        "numericDoseAuthority=false",
+        "priorExposure28d=0.0",
+        "representationState=ABSENT"
+      ],
+      "b4TargetPresent": true,
+      "b4TargetId": "MOVEMENT:UPPER_PULL",
+      "b4NumericAuthority": "DIRECTION_ONLY",
+      "b5Owner": {
+        "stableKey": "cable_rear_delt_fly",
+        "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_UPPER_PULL"
+      },
+      "b5Status": "SELECTED_BY_CANONICAL_B5",
+      "b5CandidatePoolSize": 33,
+      "b5ReasonCodes": [
+        "B5_SELECTION_IS_NOT_PRESCRIPTION_AUTHORITY",
+        "MOVEMENT_TARGET_OWNER_SELECTED"
+      ],
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "b6ReasonCodes": [
+        "MOVEMENT_TARGET_HAS_NO_NUMERIC_DOSE_AUTHORITY",
+        "NO_APPROVED_MOVEMENT_DOSE_POLICY",
+        "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY"
+      ],
+      "b6ExistingAuthorityTargetId": null,
+      "exactB6AuthorityAvailable": false,
+      "materializedExactOwnerRows": 0,
+      "materialized": false,
+      "comparisonAvailable": false,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b5ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:POSTERIOR_CHAIN",
+        "MOVEMENT:UPPER_PULL"
+      ],
+      "b6ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:POSTERIOR_CHAIN",
+        "MOVEMENT:UPPER_PULL"
+      ],
+      "executionDisposition": "POLICY_UNSUPPORTED",
+      "executionBlocker": "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY",
+      "generationTimeMs": 158,
+      "noDosePolicyAdded": true
+    },
+    {
+      "case": "persona3_sparse",
+      "priorSparseStableKey": "ex_28347c1f",
+      "priorSparseSelectionRole": "COVERAGE_CORE_DIRECT",
+      "priorSparseWeeks": [
+        "1",
+        "2"
+      ],
+      "needSource": "MOVEMENT_REPRESENTATION_GAP",
+      "representedGapCodes": [
+        "CORE_DIRECT"
+      ],
+      "movementCoverage": "CORE_DIRECT",
+      "gapCode": "CORE_DIRECT",
+      "historyRepresentation": "ABSENT",
+      "current28Exposure": 0,
+      "prior28Exposure": 0,
+      "b3Disposition": "ADDRESS",
+      "b3Relevance": "MODERATE",
+      "b3Priority": "SECONDARY",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b3Evidence": [
+        "basePriority=MODERATE",
+        "contributesTransitionPressure=true",
+        "currentExposure28d=0.0",
+        "evidenceConfidence=LOW",
+        "explicitlyRestricted=false",
+        "foundationalOnramp=false",
+        "gapPriority=MODERATE",
+        "globallyRestricted=false",
+        "numericDoseAuthority=false",
+        "priorExposure28d=0.0",
+        "representationState=ABSENT"
+      ],
+      "b4TargetPresent": true,
+      "b4TargetId": "MOVEMENT:CORE_DIRECT",
+      "b4NumericAuthority": "DIRECTION_ONLY",
+      "b5Owner": {
+        "stableKey": "ex_28347c1f",
+        "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT"
+      },
+      "b5Status": "SELECTED_BY_CANONICAL_B5",
+      "b5CandidatePoolSize": 8,
+      "b5ReasonCodes": [
+        "B5_SELECTION_IS_NOT_PRESCRIPTION_AUTHORITY",
+        "MOVEMENT_TARGET_OWNER_SELECTED"
+      ],
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "b6ReasonCodes": [
+        "MOVEMENT_TARGET_HAS_NO_NUMERIC_DOSE_AUTHORITY",
+        "NO_APPROVED_MOVEMENT_DOSE_POLICY",
+        "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY"
+      ],
+      "b6ExistingAuthorityTargetId": null,
+      "exactB6AuthorityAvailable": false,
+      "materializedExactOwnerRows": 0,
+      "materialized": false,
+      "comparisonAvailable": false,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b5ObservedTargetIds": [
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:POSTERIOR_CHAIN",
+        "MOVEMENT:UPPER_PULL"
+      ],
+      "b6ObservedTargetIds": [
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:POSTERIOR_CHAIN",
+        "MOVEMENT:UPPER_PULL"
+      ],
+      "executionDisposition": "POLICY_UNSUPPORTED",
+      "executionBlocker": "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY",
+      "generationTimeMs": 122,
+      "noDosePolicyAdded": true
+    },
+    {
+      "case": "persona3_sparse",
+      "priorSparseStableKey": "ex_1dbee10e",
+      "priorSparseSelectionRole": "COVERAGE_HORIZONTAL_PUSH",
+      "priorSparseWeeks": [
+        "1",
+        "2"
+      ],
+      "needSource": "MOVEMENT_REPRESENTATION_GAP",
+      "representedGapCodes": [
+        "HORIZONTAL_PUSH"
+      ],
+      "movementCoverage": "HORIZONTAL_PUSH",
+      "gapCode": "HORIZONTAL_PUSH",
+      "historyRepresentation": "ABSENT",
+      "current28Exposure": 0,
+      "prior28Exposure": 0,
+      "b3Disposition": "ADDRESS",
+      "b3Relevance": "MODERATE",
+      "b3Priority": "SECONDARY",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b3Evidence": [
+        "basePriority=HIGH",
+        "contributesTransitionPressure=true",
+        "currentExposure28d=0.0",
+        "evidenceConfidence=LOW",
+        "explicitlyRestricted=false",
+        "foundationalOnramp=false",
+        "gapPriority=MODERATE",
+        "globallyRestricted=false",
+        "numericDoseAuthority=false",
+        "priorExposure28d=0.0",
+        "representationState=ABSENT"
+      ],
+      "b4TargetPresent": true,
+      "b4TargetId": "MOVEMENT:HORIZONTAL_PUSH",
+      "b4NumericAuthority": "DIRECTION_ONLY",
+      "b5Owner": {
+        "stableKey": "ex_1dbee10e",
+        "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_HORIZONTAL_PUSH"
+      },
+      "b5Status": "SELECTED_BY_CANONICAL_B5",
+      "b5CandidatePoolSize": 9,
+      "b5ReasonCodes": [
+        "B5_SELECTION_IS_NOT_PRESCRIPTION_AUTHORITY",
+        "MOVEMENT_TARGET_OWNER_SELECTED"
+      ],
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "b6ReasonCodes": [
+        "MOVEMENT_TARGET_HAS_NO_NUMERIC_DOSE_AUTHORITY",
+        "NO_APPROVED_MOVEMENT_DOSE_POLICY",
+        "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY"
+      ],
+      "b6ExistingAuthorityTargetId": null,
+      "exactB6AuthorityAvailable": false,
+      "materializedExactOwnerRows": 0,
+      "materialized": false,
+      "comparisonAvailable": false,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b5ObservedTargetIds": [
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:POSTERIOR_CHAIN",
+        "MOVEMENT:UPPER_PULL"
+      ],
+      "b6ObservedTargetIds": [
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:POSTERIOR_CHAIN",
+        "MOVEMENT:UPPER_PULL"
+      ],
+      "executionDisposition": "POLICY_UNSUPPORTED",
+      "executionBlocker": "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY",
+      "generationTimeMs": 122,
+      "noDosePolicyAdded": true
+    },
+    {
+      "case": "persona4_sparse",
+      "priorSparseStableKey": "barbell_reverse_curl",
+      "priorSparseSelectionRole": "COVERAGE_ARMS_BICEPS",
+      "priorSparseWeeks": [
+        "1",
+        "2"
+      ],
+      "needSource": "MOVEMENT_REPRESENTATION_GAP",
+      "representedGapCodes": [
+        "ARMS_BICEPS"
+      ],
+      "movementCoverage": "ARMS_BICEPS",
+      "gapCode": "ARMS_BICEPS",
+      "historyRepresentation": "ABSENT",
+      "current28Exposure": 0,
+      "prior28Exposure": 0,
+      "b3Disposition": "ADDRESS",
+      "b3Relevance": "MODERATE",
+      "b3Priority": "SECONDARY",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b3Evidence": [
+        "basePriority=MODERATE",
+        "contributesTransitionPressure=true",
+        "currentExposure28d=0.0",
+        "evidenceConfidence=LOW",
+        "explicitlyRestricted=false",
+        "foundationalOnramp=false",
+        "gapPriority=MODERATE",
+        "globallyRestricted=false",
+        "numericDoseAuthority=false",
+        "priorExposure28d=0.0",
+        "representationState=ABSENT"
+      ],
+      "b4TargetPresent": true,
+      "b4TargetId": "MOVEMENT:ARMS_BICEPS",
+      "b4NumericAuthority": "DIRECTION_ONLY",
+      "b5Owner": {
+        "stableKey": "barbell_reverse_curl",
+        "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_BICEPS"
+      },
+      "b5Status": "SELECTED_BY_CANONICAL_B5",
+      "b5CandidatePoolSize": 11,
+      "b5ReasonCodes": [
+        "B5_SELECTION_IS_NOT_PRESCRIPTION_AUTHORITY",
+        "MOVEMENT_TARGET_OWNER_SELECTED"
+      ],
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "b6ReasonCodes": [
+        "MOVEMENT_TARGET_HAS_NO_NUMERIC_DOSE_AUTHORITY",
+        "NO_APPROVED_MOVEMENT_DOSE_POLICY",
+        "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY"
+      ],
+      "b6ExistingAuthorityTargetId": null,
+      "exactB6AuthorityAvailable": false,
+      "materializedExactOwnerRows": 0,
+      "materialized": false,
+      "comparisonAvailable": false,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b5ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:POSTERIOR_CHAIN",
+        "MOVEMENT:UPPER_PULL"
+      ],
+      "b6ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:POSTERIOR_CHAIN",
+        "MOVEMENT:UPPER_PULL"
+      ],
+      "executionDisposition": "POLICY_UNSUPPORTED",
+      "executionBlocker": "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY",
+      "generationTimeMs": 119,
+      "noDosePolicyAdded": true
+    },
+    {
+      "case": "persona4_sparse",
+      "priorSparseStableKey": "dumbbell_lying_triceps_extension",
+      "priorSparseSelectionRole": "COVERAGE_ARMS_TRICEPS",
+      "priorSparseWeeks": [
+        "1",
+        "2"
+      ],
+      "needSource": "MOVEMENT_REPRESENTATION_GAP",
+      "representedGapCodes": [
+        "ARMS_TRICEPS"
+      ],
+      "movementCoverage": "ARMS_TRICEPS",
+      "gapCode": "ARMS_TRICEPS",
+      "historyRepresentation": "ABSENT",
+      "current28Exposure": 0,
+      "prior28Exposure": 0,
+      "b3Disposition": "ADDRESS",
+      "b3Relevance": "MODERATE",
+      "b3Priority": "SECONDARY",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b3Evidence": [
+        "basePriority=MODERATE",
+        "contributesTransitionPressure=true",
+        "currentExposure28d=0.0",
+        "evidenceConfidence=LOW",
+        "explicitlyRestricted=false",
+        "foundationalOnramp=false",
+        "gapPriority=MODERATE",
+        "globallyRestricted=false",
+        "numericDoseAuthority=false",
+        "priorExposure28d=0.0",
+        "representationState=ABSENT"
+      ],
+      "b4TargetPresent": true,
+      "b4TargetId": "MOVEMENT:ARMS_TRICEPS",
+      "b4NumericAuthority": "DIRECTION_ONLY",
+      "b5Owner": {
+        "stableKey": "dumbbell_lying_triceps_extension",
+        "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_TRICEPS"
+      },
+      "b5Status": "SELECTED_BY_CANONICAL_B5",
+      "b5CandidatePoolSize": 5,
+      "b5ReasonCodes": [
+        "B5_SELECTION_IS_NOT_PRESCRIPTION_AUTHORITY",
+        "MOVEMENT_TARGET_OWNER_SELECTED"
+      ],
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "b6ReasonCodes": [
+        "MOVEMENT_TARGET_HAS_NO_NUMERIC_DOSE_AUTHORITY",
+        "NO_APPROVED_MOVEMENT_DOSE_POLICY",
+        "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY"
+      ],
+      "b6ExistingAuthorityTargetId": null,
+      "exactB6AuthorityAvailable": false,
+      "materializedExactOwnerRows": 0,
+      "materialized": false,
+      "comparisonAvailable": false,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b5ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:POSTERIOR_CHAIN",
+        "MOVEMENT:UPPER_PULL"
+      ],
+      "b6ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:POSTERIOR_CHAIN",
+        "MOVEMENT:UPPER_PULL"
+      ],
+      "executionDisposition": "POLICY_UNSUPPORTED",
+      "executionBlocker": "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY",
+      "generationTimeMs": 119,
+      "noDosePolicyAdded": true
+    },
+    {
+      "case": "persona4_sparse",
+      "priorSparseStableKey": "ex_5ca7133f",
+      "priorSparseSelectionRole": "COVERAGE_CALVES",
+      "priorSparseWeeks": [
+        "1",
+        "2"
+      ],
+      "needSource": "MOVEMENT_REPRESENTATION_GAP",
+      "representedGapCodes": [
+        "CALVES"
+      ],
+      "movementCoverage": "CALVES",
+      "gapCode": "CALVES",
+      "historyRepresentation": "ABSENT",
+      "current28Exposure": 0,
+      "prior28Exposure": 0,
+      "b3Disposition": "ADDRESS",
+      "b3Relevance": "MODERATE",
+      "b3Priority": "SECONDARY",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b3Evidence": [
+        "basePriority=MODERATE",
+        "contributesTransitionPressure=true",
+        "currentExposure28d=0.0",
+        "evidenceConfidence=LOW",
+        "explicitlyRestricted=false",
+        "foundationalOnramp=false",
+        "gapPriority=MODERATE",
+        "globallyRestricted=false",
+        "numericDoseAuthority=false",
+        "priorExposure28d=0.0",
+        "representationState=ABSENT"
+      ],
+      "b4TargetPresent": true,
+      "b4TargetId": "MOVEMENT:CALVES",
+      "b4NumericAuthority": "DIRECTION_ONLY",
+      "b5Owner": {
+        "stableKey": "ex_5ca7133f",
+        "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CALVES"
+      },
+      "b5Status": "SELECTED_BY_CANONICAL_B5",
+      "b5CandidatePoolSize": 3,
+      "b5ReasonCodes": [
+        "B5_SELECTION_IS_NOT_PRESCRIPTION_AUTHORITY",
+        "MOVEMENT_TARGET_OWNER_SELECTED"
+      ],
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "b6ReasonCodes": [
+        "MOVEMENT_TARGET_HAS_NO_NUMERIC_DOSE_AUTHORITY",
+        "NO_APPROVED_MOVEMENT_DOSE_POLICY",
+        "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY"
+      ],
+      "b6ExistingAuthorityTargetId": null,
+      "exactB6AuthorityAvailable": false,
+      "materializedExactOwnerRows": 0,
+      "materialized": false,
+      "comparisonAvailable": false,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b5ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:POSTERIOR_CHAIN",
+        "MOVEMENT:UPPER_PULL"
+      ],
+      "b6ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:POSTERIOR_CHAIN",
+        "MOVEMENT:UPPER_PULL"
+      ],
+      "executionDisposition": "POLICY_UNSUPPORTED",
+      "executionBlocker": "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY",
+      "generationTimeMs": 119,
+      "noDosePolicyAdded": true
+    },
+    {
+      "case": "persona4_sparse",
+      "priorSparseStableKey": "ex_28347c1f",
+      "priorSparseSelectionRole": "COVERAGE_CORE_DIRECT",
+      "priorSparseWeeks": [
+        "1",
+        "2"
+      ],
+      "needSource": "MOVEMENT_REPRESENTATION_GAP",
+      "representedGapCodes": [
+        "CORE_DIRECT"
+      ],
+      "movementCoverage": "CORE_DIRECT",
+      "gapCode": "CORE_DIRECT",
+      "historyRepresentation": "ABSENT",
+      "current28Exposure": 0,
+      "prior28Exposure": 0,
+      "b3Disposition": "ADDRESS",
+      "b3Relevance": "MODERATE",
+      "b3Priority": "SECONDARY",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b3Evidence": [
+        "basePriority=MODERATE",
+        "contributesTransitionPressure=true",
+        "currentExposure28d=0.0",
+        "evidenceConfidence=LOW",
+        "explicitlyRestricted=false",
+        "foundationalOnramp=false",
+        "gapPriority=MODERATE",
+        "globallyRestricted=false",
+        "numericDoseAuthority=false",
+        "priorExposure28d=0.0",
+        "representationState=ABSENT"
+      ],
+      "b4TargetPresent": true,
+      "b4TargetId": "MOVEMENT:CORE_DIRECT",
+      "b4NumericAuthority": "DIRECTION_ONLY",
+      "b5Owner": {
+        "stableKey": "ex_28347c1f",
+        "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT"
+      },
+      "b5Status": "SELECTED_BY_CANONICAL_B5",
+      "b5CandidatePoolSize": 9,
+      "b5ReasonCodes": [
+        "B5_SELECTION_IS_NOT_PRESCRIPTION_AUTHORITY",
+        "MOVEMENT_TARGET_OWNER_SELECTED"
+      ],
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "b6ReasonCodes": [
+        "MOVEMENT_TARGET_HAS_NO_NUMERIC_DOSE_AUTHORITY",
+        "NO_APPROVED_MOVEMENT_DOSE_POLICY",
+        "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY"
+      ],
+      "b6ExistingAuthorityTargetId": null,
+      "exactB6AuthorityAvailable": false,
+      "materializedExactOwnerRows": 0,
+      "materialized": false,
+      "comparisonAvailable": false,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b5ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:POSTERIOR_CHAIN",
+        "MOVEMENT:UPPER_PULL"
+      ],
+      "b6ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:POSTERIOR_CHAIN",
+        "MOVEMENT:UPPER_PULL"
+      ],
+      "executionDisposition": "POLICY_UNSUPPORTED",
+      "executionBlocker": "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY",
+      "generationTimeMs": 119,
+      "noDosePolicyAdded": true
+    },
+    {
+      "case": "persona4_sparse",
+      "priorSparseStableKey": "barbell_romanian_deadlift",
+      "priorSparseSelectionRole": "COVERAGE_POSTERIOR_CHAIN",
+      "priorSparseWeeks": [
+        "1",
+        "2"
+      ],
+      "needSource": "MOVEMENT_REPRESENTATION_GAP",
+      "representedGapCodes": [
+        "POSTERIOR_CHAIN"
+      ],
+      "movementCoverage": "POSTERIOR_CHAIN",
+      "gapCode": "POSTERIOR_CHAIN",
+      "historyRepresentation": "ABSENT",
+      "current28Exposure": 0,
+      "prior28Exposure": 0,
+      "b3Disposition": "ADDRESS",
+      "b3Relevance": "MODERATE",
+      "b3Priority": "SECONDARY",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b3Evidence": [
+        "basePriority=HIGH",
+        "contributesTransitionPressure=true",
+        "currentExposure28d=0.0",
+        "evidenceConfidence=LOW",
+        "explicitlyRestricted=false",
+        "foundationalOnramp=false",
+        "gapPriority=MODERATE",
+        "globallyRestricted=false",
+        "numericDoseAuthority=false",
+        "priorExposure28d=0.0",
+        "representationState=ABSENT"
+      ],
+      "b4TargetPresent": true,
+      "b4TargetId": "MOVEMENT:POSTERIOR_CHAIN",
+      "b4NumericAuthority": "DIRECTION_ONLY",
+      "b5Owner": {
+        "stableKey": "barbell_romanian_deadlift",
+        "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_POSTERIOR_CHAIN"
+      },
+      "b5Status": "SELECTED_BY_CANONICAL_B5",
+      "b5CandidatePoolSize": 4,
+      "b5ReasonCodes": [
+        "B5_SELECTION_IS_NOT_PRESCRIPTION_AUTHORITY",
+        "MOVEMENT_TARGET_OWNER_SELECTED"
+      ],
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "b6ReasonCodes": [
+        "MOVEMENT_TARGET_HAS_NO_NUMERIC_DOSE_AUTHORITY",
+        "NO_APPROVED_MOVEMENT_DOSE_POLICY",
+        "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY"
+      ],
+      "b6ExistingAuthorityTargetId": null,
+      "exactB6AuthorityAvailable": false,
+      "materializedExactOwnerRows": 0,
+      "materialized": false,
+      "comparisonAvailable": false,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b5ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:POSTERIOR_CHAIN",
+        "MOVEMENT:UPPER_PULL"
+      ],
+      "b6ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:POSTERIOR_CHAIN",
+        "MOVEMENT:UPPER_PULL"
+      ],
+      "executionDisposition": "POLICY_UNSUPPORTED",
+      "executionBlocker": "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY",
+      "generationTimeMs": 119,
+      "noDosePolicyAdded": true
+    },
+    {
+      "case": "persona4_sparse",
+      "priorSparseStableKey": "dumbbell_chest_supported_row",
+      "priorSparseSelectionRole": "COVERAGE_UPPER_PULL",
+      "priorSparseWeeks": [
+        "1",
+        "2"
+      ],
+      "needSource": "MOVEMENT_REPRESENTATION_GAP",
+      "representedGapCodes": [
+        "UPPER_PULL"
+      ],
+      "movementCoverage": "UPPER_PULL",
+      "gapCode": "UPPER_PULL",
+      "historyRepresentation": "ABSENT",
+      "current28Exposure": 0,
+      "prior28Exposure": 0,
+      "b3Disposition": "ADDRESS",
+      "b3Relevance": "MODERATE",
+      "b3Priority": "SECONDARY",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b3Evidence": [
+        "basePriority=HIGH",
+        "contributesTransitionPressure=true",
+        "currentExposure28d=0.0",
+        "evidenceConfidence=LOW",
+        "explicitlyRestricted=false",
+        "foundationalOnramp=false",
+        "gapPriority=MODERATE",
+        "globallyRestricted=false",
+        "numericDoseAuthority=false",
+        "priorExposure28d=0.0",
+        "representationState=ABSENT"
+      ],
+      "b4TargetPresent": true,
+      "b4TargetId": "MOVEMENT:UPPER_PULL",
+      "b4NumericAuthority": "DIRECTION_ONLY",
+      "b5Owner": {
+        "stableKey": "dumbbell_chest_supported_row",
+        "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_UPPER_PULL"
+      },
+      "b5Status": "SELECTED_BY_CANONICAL_B5",
+      "b5CandidatePoolSize": 13,
+      "b5ReasonCodes": [
+        "B5_SELECTION_IS_NOT_PRESCRIPTION_AUTHORITY",
+        "MOVEMENT_TARGET_OWNER_SELECTED"
+      ],
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "b6ReasonCodes": [
+        "MOVEMENT_TARGET_HAS_NO_NUMERIC_DOSE_AUTHORITY",
+        "NO_APPROVED_MOVEMENT_DOSE_POLICY",
+        "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY"
+      ],
+      "b6ExistingAuthorityTargetId": null,
+      "exactB6AuthorityAvailable": false,
+      "materializedExactOwnerRows": 0,
+      "materialized": false,
+      "comparisonAvailable": false,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b5ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:POSTERIOR_CHAIN",
+        "MOVEMENT:UPPER_PULL"
+      ],
+      "b6ObservedTargetIds": [
+        "MOVEMENT:ARMS_BICEPS",
+        "MOVEMENT:ARMS_TRICEPS",
+        "MOVEMENT:CALVES",
+        "MOVEMENT:CORE_DIRECT",
+        "MOVEMENT:HORIZONTAL_PUSH",
+        "MOVEMENT:POSTERIOR_CHAIN",
+        "MOVEMENT:UPPER_PULL"
+      ],
+      "executionDisposition": "POLICY_UNSUPPORTED",
+      "executionBlocker": "NO_EXACT_MOVEMENT_PRESCRIPTION_AUTHORITY",
+      "generationTimeMs": 119,
+      "noDosePolicyAdded": true
+    }
+  ],
+  "ownerWeekRows": [
+    {
+      "case": "persona0_sparse",
+      "week": 1,
+      "originalSparseStableKey": "ex_1dbee10e",
+      "originalSparseSelectionRole": "COVERAGE_HORIZONTAL_PUSH",
+      "movementCoverage": "HORIZONTAL_PUSH",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "ex_1dbee10e",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_HORIZONTAL_PUSH",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona0_sparse",
+      "week": 1,
+      "originalSparseStableKey": "ex_28347c1f",
+      "originalSparseSelectionRole": "COVERAGE_CORE_DIRECT",
+      "movementCoverage": "CORE_DIRECT",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "ex_28347c1f",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona0_sparse",
+      "week": 2,
+      "originalSparseStableKey": "ex_1dbee10e",
+      "originalSparseSelectionRole": "COVERAGE_HORIZONTAL_PUSH",
+      "movementCoverage": "HORIZONTAL_PUSH",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "ex_1dbee10e",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_HORIZONTAL_PUSH",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona0_sparse",
+      "week": 2,
+      "originalSparseStableKey": "ex_28347c1f",
+      "originalSparseSelectionRole": "COVERAGE_CORE_DIRECT",
+      "movementCoverage": "CORE_DIRECT",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "ex_28347c1f",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 1,
+      "originalSparseStableKey": "barbell_reverse_curl",
+      "originalSparseSelectionRole": "COVERAGE_ARMS_BICEPS",
+      "movementCoverage": "ARMS_BICEPS",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "barbell_reverse_curl",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_BICEPS",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 1,
+      "originalSparseStableKey": "barbell_romanian_deadlift",
+      "originalSparseSelectionRole": "COVERAGE_POSTERIOR_CHAIN",
+      "movementCoverage": "POSTERIOR_CHAIN",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "barbell_romanian_deadlift",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_POSTERIOR_CHAIN",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 1,
+      "originalSparseStableKey": "dumbbell_goblet_squat",
+      "originalSparseSelectionRole": "COVERAGE_LOWER_KNEE",
+      "movementCoverage": "LOWER_KNEE",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "dumbbell_goblet_squat",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_LOWER_KNEE",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 1,
+      "originalSparseStableKey": "dumbbell_lying_triceps_extension",
+      "originalSparseSelectionRole": "COVERAGE_ARMS_TRICEPS",
+      "movementCoverage": "ARMS_TRICEPS",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "dumbbell_lying_triceps_extension",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_TRICEPS",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 1,
+      "originalSparseStableKey": "ex_28347c1f",
+      "originalSparseSelectionRole": "COVERAGE_CORE_DIRECT",
+      "movementCoverage": "CORE_DIRECT",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "ex_28347c1f",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 1,
+      "originalSparseStableKey": "ex_5ca7133f",
+      "originalSparseSelectionRole": "COVERAGE_CALVES",
+      "movementCoverage": "CALVES",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "ex_5ca7133f",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_CALVES",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 2,
+      "originalSparseStableKey": "barbell_reverse_curl",
+      "originalSparseSelectionRole": "COVERAGE_ARMS_BICEPS",
+      "movementCoverage": "ARMS_BICEPS",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "barbell_reverse_curl",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_BICEPS",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 2,
+      "originalSparseStableKey": "barbell_romanian_deadlift",
+      "originalSparseSelectionRole": "COVERAGE_POSTERIOR_CHAIN",
+      "movementCoverage": "POSTERIOR_CHAIN",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "barbell_romanian_deadlift",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_POSTERIOR_CHAIN",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 2,
+      "originalSparseStableKey": "dumbbell_goblet_squat",
+      "originalSparseSelectionRole": "COVERAGE_LOWER_KNEE",
+      "movementCoverage": "LOWER_KNEE",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "dumbbell_goblet_squat",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_LOWER_KNEE",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 2,
+      "originalSparseStableKey": "dumbbell_lying_triceps_extension",
+      "originalSparseSelectionRole": "COVERAGE_ARMS_TRICEPS",
+      "movementCoverage": "ARMS_TRICEPS",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "dumbbell_lying_triceps_extension",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_TRICEPS",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 2,
+      "originalSparseStableKey": "ex_28347c1f",
+      "originalSparseSelectionRole": "COVERAGE_CORE_DIRECT",
+      "movementCoverage": "CORE_DIRECT",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "ex_28347c1f",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 2,
+      "originalSparseStableKey": "ex_5ca7133f",
+      "originalSparseSelectionRole": "COVERAGE_CALVES",
+      "movementCoverage": "CALVES",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "ex_5ca7133f",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_CALVES",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 1,
+      "originalSparseStableKey": "barbell_deadlift",
+      "originalSparseSelectionRole": "COVERAGE_POSTERIOR_CHAIN",
+      "movementCoverage": "POSTERIOR_CHAIN",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "barbell_deadlift",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_POSTERIOR_CHAIN",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 1,
+      "originalSparseStableKey": "barbell_reverse_curl",
+      "originalSparseSelectionRole": "COVERAGE_ARMS_BICEPS",
+      "movementCoverage": "ARMS_BICEPS",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "barbell_reverse_curl",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_BICEPS",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 1,
+      "originalSparseStableKey": "cable_overhead_triceps_extension",
+      "originalSparseSelectionRole": "COVERAGE_ARMS_TRICEPS",
+      "movementCoverage": "ARMS_TRICEPS",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "cable_overhead_triceps_extension",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_TRICEPS",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 1,
+      "originalSparseStableKey": "cable_rear_delt_fly",
+      "originalSparseSelectionRole": "COVERAGE_UPPER_PULL",
+      "movementCoverage": "UPPER_PULL",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "cable_rear_delt_fly",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_UPPER_PULL",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 1,
+      "originalSparseStableKey": "ex_28347c1f",
+      "originalSparseSelectionRole": "COVERAGE_CORE_DIRECT",
+      "movementCoverage": "CORE_DIRECT",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "ex_28347c1f",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 1,
+      "originalSparseStableKey": "ex_5c8751d2",
+      "originalSparseSelectionRole": "COVERAGE_CALVES",
+      "movementCoverage": "CALVES",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "ex_5c8751d2",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_CALVES",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 2,
+      "originalSparseStableKey": "barbell_deadlift",
+      "originalSparseSelectionRole": "COVERAGE_POSTERIOR_CHAIN",
+      "movementCoverage": "POSTERIOR_CHAIN",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "barbell_deadlift",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_POSTERIOR_CHAIN",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 2,
+      "originalSparseStableKey": "barbell_reverse_curl",
+      "originalSparseSelectionRole": "COVERAGE_ARMS_BICEPS",
+      "movementCoverage": "ARMS_BICEPS",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "barbell_reverse_curl",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_BICEPS",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 2,
+      "originalSparseStableKey": "cable_overhead_triceps_extension",
+      "originalSparseSelectionRole": "COVERAGE_ARMS_TRICEPS",
+      "movementCoverage": "ARMS_TRICEPS",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "cable_overhead_triceps_extension",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_TRICEPS",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 2,
+      "originalSparseStableKey": "cable_rear_delt_fly",
+      "originalSparseSelectionRole": "COVERAGE_UPPER_PULL",
+      "movementCoverage": "UPPER_PULL",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "cable_rear_delt_fly",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_UPPER_PULL",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 2,
+      "originalSparseStableKey": "ex_28347c1f",
+      "originalSparseSelectionRole": "COVERAGE_CORE_DIRECT",
+      "movementCoverage": "CORE_DIRECT",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "ex_28347c1f",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 2,
+      "originalSparseStableKey": "ex_5c8751d2",
+      "originalSparseSelectionRole": "COVERAGE_CALVES",
+      "movementCoverage": "CALVES",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "ex_5c8751d2",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_CALVES",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona3_sparse",
+      "week": 1,
+      "originalSparseStableKey": "ex_1dbee10e",
+      "originalSparseSelectionRole": "COVERAGE_HORIZONTAL_PUSH",
+      "movementCoverage": "HORIZONTAL_PUSH",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "ex_1dbee10e",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_HORIZONTAL_PUSH",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona3_sparse",
+      "week": 1,
+      "originalSparseStableKey": "ex_28347c1f",
+      "originalSparseSelectionRole": "COVERAGE_CORE_DIRECT",
+      "movementCoverage": "CORE_DIRECT",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "ex_28347c1f",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona3_sparse",
+      "week": 2,
+      "originalSparseStableKey": "ex_1dbee10e",
+      "originalSparseSelectionRole": "COVERAGE_HORIZONTAL_PUSH",
+      "movementCoverage": "HORIZONTAL_PUSH",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "ex_1dbee10e",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_HORIZONTAL_PUSH",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona3_sparse",
+      "week": 2,
+      "originalSparseStableKey": "ex_28347c1f",
+      "originalSparseSelectionRole": "COVERAGE_CORE_DIRECT",
+      "movementCoverage": "CORE_DIRECT",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "ex_28347c1f",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 1,
+      "originalSparseStableKey": "barbell_reverse_curl",
+      "originalSparseSelectionRole": "COVERAGE_ARMS_BICEPS",
+      "movementCoverage": "ARMS_BICEPS",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "barbell_reverse_curl",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_BICEPS",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 1,
+      "originalSparseStableKey": "barbell_romanian_deadlift",
+      "originalSparseSelectionRole": "COVERAGE_POSTERIOR_CHAIN",
+      "movementCoverage": "POSTERIOR_CHAIN",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "barbell_romanian_deadlift",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_POSTERIOR_CHAIN",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 1,
+      "originalSparseStableKey": "dumbbell_chest_supported_row",
+      "originalSparseSelectionRole": "COVERAGE_UPPER_PULL",
+      "movementCoverage": "UPPER_PULL",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "dumbbell_chest_supported_row",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_UPPER_PULL",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 1,
+      "originalSparseStableKey": "dumbbell_lying_triceps_extension",
+      "originalSparseSelectionRole": "COVERAGE_ARMS_TRICEPS",
+      "movementCoverage": "ARMS_TRICEPS",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "dumbbell_lying_triceps_extension",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_TRICEPS",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 1,
+      "originalSparseStableKey": "ex_28347c1f",
+      "originalSparseSelectionRole": "COVERAGE_CORE_DIRECT",
+      "movementCoverage": "CORE_DIRECT",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "ex_28347c1f",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 1,
+      "originalSparseStableKey": "ex_5ca7133f",
+      "originalSparseSelectionRole": "COVERAGE_CALVES",
+      "movementCoverage": "CALVES",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "ex_5ca7133f",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_CALVES",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 2,
+      "originalSparseStableKey": "barbell_reverse_curl",
+      "originalSparseSelectionRole": "COVERAGE_ARMS_BICEPS",
+      "movementCoverage": "ARMS_BICEPS",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "barbell_reverse_curl",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_BICEPS",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 2,
+      "originalSparseStableKey": "barbell_romanian_deadlift",
+      "originalSparseSelectionRole": "COVERAGE_POSTERIOR_CHAIN",
+      "movementCoverage": "POSTERIOR_CHAIN",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "barbell_romanian_deadlift",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_POSTERIOR_CHAIN",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 2,
+      "originalSparseStableKey": "dumbbell_chest_supported_row",
+      "originalSparseSelectionRole": "COVERAGE_UPPER_PULL",
+      "movementCoverage": "UPPER_PULL",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "dumbbell_chest_supported_row",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_UPPER_PULL",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 2,
+      "originalSparseStableKey": "dumbbell_lying_triceps_extension",
+      "originalSparseSelectionRole": "COVERAGE_ARMS_TRICEPS",
+      "movementCoverage": "ARMS_TRICEPS",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "dumbbell_lying_triceps_extension",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_TRICEPS",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 2,
+      "originalSparseStableKey": "ex_28347c1f",
+      "originalSparseSelectionRole": "COVERAGE_CORE_DIRECT",
+      "movementCoverage": "CORE_DIRECT",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "ex_28347c1f",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 2,
+      "originalSparseStableKey": "ex_5ca7133f",
+      "originalSparseSelectionRole": "COVERAGE_CALVES",
+      "movementCoverage": "CALVES",
+      "b3Disposition": "ADDRESS",
+      "b4TargetPresent": true,
+      "b5OwnerStableKey": "ex_5ca7133f",
+      "b5OwnerSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_CALVES",
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "originalUnauthorizedOwnerWeekRowsAfter": 0
+    }
+  ],
+  "performance": {
+    "generationCallIsObservationOnly": true,
+    "generationCalls": 22,
+    "generationTimeBefore": {
+      "source": "C29 audited 22-case Room\/service observation",
+      "totalMs": 3584,
+      "meanMs": 162.9,
+      "medianMs": 144.5,
+      "maxMs": 369
+    },
+    "generationTimeAfter": {
+      "totalMs": 6651,
+      "meanMs": 302.3181818181818,
+      "medianMs": 262,
+      "maxMs": 770
+    },
+    "candidateScanPlacement": "B5 only, downstream from the O(Q+T+M) B3 pass",
+    "identicalB6MovementLookupsRepeated": 0
+  }
+}

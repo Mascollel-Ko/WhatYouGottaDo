@@ -19,12 +19,18 @@ internal fun PlanningHistorySnapshot.explicitlyRestricted(key: String): Boolean 
     val movement = movementCoverage(key)
     val modes = hardRestrictedModes
     val highImpact = metadata[key]?.jointTendonImpactStressLevel in setOf("HIGH", "VERY_HIGH")
-    return (modes.any { it in setOf("LOW_BACK", "HEAVY_DEADLIFT") } && movement == MovementCoverage.POSTERIOR_CHAIN) ||
-        (modes.any { it in setOf("KNEE", "HEAVY_SQUAT") } && movement == MovementCoverage.LOWER_KNEE) ||
-        (modes.any { it in setOf("SHOULDER", "BENCH_OR_PUSH") } && movement in setOf(MovementCoverage.HORIZONTAL_PUSH,MovementCoverage.VERTICAL_PUSH)) ||
-        ("OVERHEAD_PRESS" in modes && movement == MovementCoverage.VERTICAL_PUSH) ||
+    return movementCoverageExplicitlyRestricted(movement) ||
         (modes.any { it in setOf("JUMP_LANDING", "LUNGE_DECELERATION") } && highImpact) ||
         ("LONG_BADMINTON" in modes && activityKind(key) == PlannedActivityKind.GENERIC_COURT_SESSION)
+}
+
+/** Reuses the existing exact user restriction mapping for movement-level target disposition. */
+internal fun PlanningHistorySnapshot.movementCoverageExplicitlyRestricted(movement: MovementCoverage): Boolean {
+    val modes = hardRestrictedModes
+    return (modes.any { it in setOf("LOW_BACK", "HEAVY_DEADLIFT") } && movement == MovementCoverage.POSTERIOR_CHAIN) ||
+        (modes.any { it in setOf("KNEE", "HEAVY_SQUAT") } && movement == MovementCoverage.LOWER_KNEE) ||
+        (modes.any { it in setOf("SHOULDER", "BENCH_OR_PUSH") } && movement in setOf(MovementCoverage.HORIZONTAL_PUSH, MovementCoverage.VERTICAL_PUSH)) ||
+        ("OVERHEAD_PRESS" in modes && movement == MovementCoverage.VERTICAL_PUSH)
 }
 
 internal fun PlanningHistorySnapshot.trainingStateInput(answers: PersonalizedPlanningAnswers) = TrainingStateInput(

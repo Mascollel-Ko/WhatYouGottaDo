@@ -5,6 +5,9 @@ import com.training.trackplanner.analysis.badminton.BadmintonObjectiveTransferLe
 import com.training.trackplanner.analysis.badminton.CanonicalBadmintonObjectiveRelation
 import com.training.trackplanner.data.CanonicalExercisePhysicalQualityCatalog
 import com.training.trackplanner.data.ExercisePhysicalQualityRelation
+import com.training.trackplanner.data.ProgramGoal
+import com.training.trackplanner.data.ProgramPeriodizationType
+import com.training.trackplanner.data.ProgramSkeletonRequest
 import com.training.trackplanner.data.PhysicalQualityMode
 import com.training.trackplanner.data.PhysicalQualityRegion
 import com.training.trackplanner.data.StimulusCapabilityLevel
@@ -39,6 +42,117 @@ class StimulusEvidenceObservabilityTest {
                 baseline.baselineObservability.getValue(quality))
             assertTrue(baseline.weeklyEvidence.getValue(quality).all { !it.hasSourceObservations })
         }
+    }
+
+    @Test
+    fun movementGapWithExistingTransitionPressureBecomesDirectionOnlyB4Target() {
+        val representation = MovementExposureRepresentation(
+            movementCoverage = MovementCoverage.HORIZONTAL_PUSH.name,
+            basePriority = RepresentationPriority.HIGH,
+            currentExposure28d = 0.0,
+            priorExposure28d = 0.0,
+            currentActiveBins = 0,
+            currentShare = null,
+            priorShare = null,
+            peerReference = null,
+            peerRepresentationRatio = null,
+            personalRetentionRatio = null,
+            representationState = RepresentationState.ABSENT,
+            evidenceConfidence = PlanningConfidence.LOW,
+            reasonCodes = listOf("CURRENT_EXPOSURE_ABSENT")
+        )
+        val snapshot = snapshot(ledger(emptyList(), emptyMap()))
+        val state = emptyState().copy(resistanceFoundationalOnramp = false, movementRepresentations = listOf(representation))
+        val profile = AthleteStimulusNeedEngine().analyze(snapshot, state)
+        val baseline = analyze(snapshot, state)
+        val portfolio = StimulusTrainingDecisionPortfolioEngine().build(profile, baseline)
+        val decision = portfolio.movementDecisions.single()
+        val target = StimulusTargetPlanEngine().build(portfolio, baseline).movementTargets.single()
+
+        assertEquals(MovementGapPriority.MODERATE, profile.movementNeedEvidence.single().gapPriority)
+        assertEquals(MovementNeedDisposition.ADDRESS, decision.disposition)
+        assertEquals(TargetPriority.SECONDARY, target.priority)
+        assertEquals("MOVEMENT:HORIZONTAL_PUSH", target.targetId)
+        assertEquals(StimulusTargetNumericAuthority.DIRECTION_ONLY, target.numericAuthority)
+        assertTrue(target.evidence.contains("weeklyUnitsTarget=NONE"))
+        assertTrue(target.evidence.contains("weeklySessionsTarget=NONE"))
+    }
+
+    @Test
+    fun lowPriorityMovementGapIsDeferredWithoutB4Target() {
+        val snapshot = snapshot(ledger(emptyList(), emptyMap()))
+        val profile = movementProfile(
+            snapshot,
+            need = movementNeed(gapPriority = MovementGapPriority.LOW, pressure = true)
+        )
+        val baseline = analyze(snapshot)
+        val portfolio = StimulusTrainingDecisionPortfolioEngine().build(profile, baseline)
+        val targetPlan = StimulusTargetPlanEngine().build(portfolio, baseline)
+
+        assertEquals(MovementNeedDisposition.DEFER, portfolio.movementDecisions.single().disposition)
+        assertTrue(targetPlan.movementTargets.isEmpty())
+        val selection = StimulusTargetCandidateSelector().build(
+            targetPlan, snapshot, emptyState(), request(), CanonicalExercisePhysicalQualityCatalog.EMPTY
+        )
+        assertTrue(selection.traces.none { it.targetId.startsWith("MOVEMENT:") })
+        assertTrue(StimulusPrescriptionAuthorizationEngine().build(targetPlan, selection, snapshot, emptyMap())
+            .movementAuthorizations.isEmpty())
+    }
+
+    @Test
+    fun explicitExistingUserMovementRestrictionIsResolvedAsExclude() {
+        val snapshot = snapshot(ledger(emptyList(), emptyMap())).copy(hardRestrictedModes = setOf("BENCH_OR_PUSH"))
+        val profile = movementProfile(snapshot, need = movementNeed(
+            coverage = MovementCoverage.HORIZONTAL_PUSH,
+            gapPriority = MovementGapPriority.HIGH,
+            pressure = true,
+            explicitlyRestricted = true
+        ))
+        val baseline = analyze(snapshot)
+        val portfolio = StimulusTrainingDecisionPortfolioEngine().build(profile, baseline)
+        val targetPlan = StimulusTargetPlanEngine().build(portfolio, baseline)
+
+        assertEquals(MovementNeedDisposition.EXCLUDE, portfolio.movementDecisions.single().disposition)
+        assertEquals(MovementNeedDispositionReason.EXPLICIT_USER_MOVEMENT_RESTRICTION.name,
+            portfolio.movementDecisions.single().reasonCodes.last())
+        assertTrue(targetPlan.movementTargets.isEmpty())
+        val selection = StimulusTargetCandidateSelector().build(
+            targetPlan, snapshot, emptyState(), request(), CanonicalExercisePhysicalQualityCatalog.EMPTY
+        )
+        assertTrue(selection.traces.none { it.targetId.startsWith("MOVEMENT:") })
+        assertTrue(StimulusPrescriptionAuthorizationEngine().build(targetPlan, selection, snapshot, emptyMap())
+            .movementAuthorizations.isEmpty())
+    }
+
+    @Test
+    fun zeroExposureWithoutExistingActionableGapPolicyDoesNotForceAddress() {
+        val snapshot = snapshot(ledger(emptyList(), emptyMap()))
+        val profile = movementProfile(snapshot, need = movementNeed(
+            state = RepresentationState.UNKNOWN,
+            confidence = PlanningConfidence.LOW,
+            gapPriority = null,
+            pressure = false
+        ))
+        val baseline = analyze(snapshot)
+        val portfolio = StimulusTrainingDecisionPortfolioEngine().build(profile, baseline)
+
+        assertEquals(0.0, portfolio.movementDecisions.single().currentExposure28d, 0.0)
+        assertEquals(MovementNeedDisposition.DEFER, portfolio.movementDecisions.single().disposition)
+        assertTrue(StimulusTargetPlanEngine().build(portfolio, baseline).movementTargets.isEmpty())
+    }
+
+    @Test
+    fun inconsistentMovementGapEvidenceRemainsUnresolved() {
+        val snapshot = snapshot(ledger(emptyList(), emptyMap()))
+        val profile = movementProfile(snapshot, need = movementNeed(
+            gapPriority = MovementGapPriority.HIGH,
+            pressure = false
+        ))
+        val baseline = analyze(snapshot)
+        val portfolio = StimulusTrainingDecisionPortfolioEngine().build(profile, baseline)
+
+        assertEquals(MovementNeedDisposition.UNRESOLVED, portfolio.movementDecisions.single().disposition)
+        assertTrue(portfolio.unresolved.contains("MOVEMENT_HORIZONTAL_PUSH_UNRESOLVED"))
     }
 
     @Test
@@ -228,6 +342,39 @@ class StimulusEvidenceObservabilityTest {
             QualityDoseHistoryAnalyzer().analyze(snapshot, state, CanonicalExercisePhysicalQualityCatalog.EMPTY)
         )
 
+    private fun movementProfile(snapshot: PlanningHistorySnapshot, need: AthleteStimulusMovementNeedEvidence) =
+        AthleteStimulusNeedProfile(
+            generatedAtCutoff = snapshot.cutoff,
+            qualityNeeds = emptyList(),
+            sportTaskNeeds = emptyList(),
+            courtContext = CourtContextEvidence(),
+            movementNeedEvidence = listOf(need)
+        )
+
+    private fun movementNeed(
+        coverage: MovementCoverage = MovementCoverage.HORIZONTAL_PUSH,
+        state: RepresentationState = RepresentationState.ABSENT,
+        confidence: PlanningConfidence = PlanningConfidence.LOW,
+        gapPriority: MovementGapPriority? = MovementGapPriority.MODERATE,
+        pressure: Boolean = true,
+        explicitlyRestricted: Boolean = false
+    ) = AthleteStimulusMovementNeedEvidence(
+        movementCoverage = coverage,
+        sourceCoverageCode = coverage.name,
+        basePriority = RepresentationPriority.HIGH,
+        representationState = state,
+        evidenceConfidence = confidence,
+        currentExposure28d = 0.0,
+        priorExposure28d = 0.0,
+        currentActiveBins = 0,
+        reasonCodes = listOf("TEST_MOVEMENT_EVIDENCE"),
+        gapPriority = gapPriority,
+        contributesTransitionPressure = pressure,
+        foundationalOnramp = false,
+        globallyRestricted = false,
+        explicitlyRestricted = explicitlyRestricted
+    )
+
     private fun portfolio(decision: TrainingNeedDecision, baseline: LedgerBackedQualityDoseHistory) =
         StimulusTrainingDecisionPortfolioEngine().build(
             AthleteStimulusNeedProfile(
@@ -282,5 +429,10 @@ class StimulusEvidenceObservabilityTest {
         BadmintonPlanningIntent.DISABLED, FreeWeightWillingness.UNRESOLVED, "MIXED", 56, 3.0, 0.0,
         0.0, 1.0, emptyList(), StrengthProgrammingStyle.UNRESOLVED, PlanningConfidence.LOW, 0,
         "NONE", PlanningConfidence.MODERATE
+    )
+
+    private fun request() = ProgramSkeletonRequest(
+        "movement disposition test", ProgramGoal.STRENGTH, 3, 60, emptySet(), "", 0.5, "AUTO",
+        ProgramPeriodizationType.AUTO, 2
     )
 }

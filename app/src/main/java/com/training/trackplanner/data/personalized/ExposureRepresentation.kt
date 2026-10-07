@@ -82,6 +82,8 @@ class PlannerActivityDomainResolver {
     }
 }
 
+enum class MovementGapPriority { HIGH, MODERATE, LOW }
+
 object ExposureRepresentationPolicy {
     const val SEVERE_RATIO = .25
     const val CLEAR_RATIO = .50
@@ -115,19 +117,27 @@ object ExposureRepresentationPolicy {
         else -> RepresentationState.UNKNOWN
     }
 
-    fun movementGapPriority(base: RepresentationPriority, state: RepresentationState, confidence: PlanningConfidence): String? = when (base) {
+    fun movementGapPriorityTyped(
+        base: RepresentationPriority,
+        state: RepresentationState,
+        confidence: PlanningConfidence
+    ): MovementGapPriority? = when (base) {
         RepresentationPriority.HIGH -> when (state) {
-            RepresentationState.ABSENT -> if (confidence == PlanningConfidence.LOW) "MODERATE" else "HIGH"
-            RepresentationState.STRONG_UNDERREPRESENTATION_SIGNAL -> if (confidence == PlanningConfidence.HIGH) "HIGH" else "MODERATE"
-            RepresentationState.UNDERREPRESENTATION_SIGNAL -> "MODERATE"
+            RepresentationState.ABSENT -> if (confidence == PlanningConfidence.LOW) MovementGapPriority.MODERATE else MovementGapPriority.HIGH
+            RepresentationState.STRONG_UNDERREPRESENTATION_SIGNAL -> if (confidence == PlanningConfidence.HIGH) MovementGapPriority.HIGH else MovementGapPriority.MODERATE
+            RepresentationState.UNDERREPRESENTATION_SIGNAL -> MovementGapPriority.MODERATE
             else -> null
         }
         RepresentationPriority.MODERATE -> when (state) {
-            RepresentationState.ABSENT, RepresentationState.STRONG_UNDERREPRESENTATION_SIGNAL -> "MODERATE"
-            RepresentationState.UNDERREPRESENTATION_SIGNAL -> "LOW"
+            RepresentationState.ABSENT, RepresentationState.STRONG_UNDERREPRESENTATION_SIGNAL -> MovementGapPriority.MODERATE
+            RepresentationState.UNDERREPRESENTATION_SIGNAL -> MovementGapPriority.LOW
             else -> null
         }
     }
+
+    /** Legacy display/audit bridge; canonical B1/B3 decisions consume the typed form above. */
+    fun movementGapPriority(base: RepresentationPriority, state: RepresentationState, confidence: PlanningConfidence): String? =
+        movementGapPriorityTyped(base, state, confidence)?.name
 
     fun badmintonGapPriority(
         state: RepresentationState,
@@ -211,7 +221,7 @@ class MovementExposureRepresentationAnalyzer {
     }
 
     private fun movementDomain(coverage: MovementCoverage): String = when (coverage) {
-        MovementCoverage.HORIZONTAL_PULL, MovementCoverage.VERTICAL_PULL -> "UPPER_PULL"
+        MovementCoverage.HORIZONTAL_PULL, MovementCoverage.VERTICAL_PULL, MovementCoverage.UPPER_PULL -> "UPPER_PULL"
         else -> coverage.name
     }
 

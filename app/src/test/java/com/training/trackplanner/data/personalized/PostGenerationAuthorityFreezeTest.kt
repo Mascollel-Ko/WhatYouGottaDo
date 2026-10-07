@@ -22,6 +22,8 @@ class PostGenerationAuthorityFreezeTest {
         // the adapter fields and resolver behavior remain byte/field compatible.
         // C24 adds an exact approved-task prescription branch and task exposure fields before
         // the builder; legacy prescription branches remain protected by this updated source hash.
+        // C30 adds typed movement gap priority to the shared representation analysis and extracts
+        // the existing hard movement restriction mapping for B3; historical dose predicates remain frozen.
         // All unrelated historical, style, numerical and prescription authorities remain frozen.
         // C28 lets the legacy selector report candidate identities without set-unit demand in
         // canonical EXP generation; it does not change candidate ranking or create a dose.
@@ -32,7 +34,7 @@ class PostGenerationAuthorityFreezeTest {
             // Approved Phase A closeout correction: the snapshot resolver delegates to the
             // explicit-argument resolver; classification branch order/predicates remain
             // unchanged, and production uses the explicit overload only in the shadow ledger.
-            "ExposureRepresentation.kt" to "fd0e5b041f83fa5d6cc512cf8713a1daed5d58c69d7169757663d78f1582b368",
+            "ExposureRepresentation.kt" to "d6a417b8bdb86ca8cfdefaac0fa701d6d2ec0d975418781f48ecd3f607d22c1b",
             "PersonalizedDecisionComponents.kt" to "66c6acc65bc46f5bc957d8f4f8b57f072b44d2a621f060edabe5d047aed89958",
             // C20 extracts the exact session-time predicate so the live incumbent feasibility
             // evaluator calls the production placement bound instead of maintaining a duplicate.
@@ -43,7 +45,7 @@ class PostGenerationAuthorityFreezeTest {
             "RecordBasedReviewedPolicy.kt" to "915be5354ac988774f740a366655d26f74cb3c8e2f820eecf63e8914b671ed08",
             "PlanningHistorySnapshotBuilder.kt" to "8cb9bd8c1be966e4878d2fa7cb3bf72ea0f722c7a565ac38a728323da755ddc3",
             "TrainingStateAssessment.kt" to "9027cb6d45422fc2cdecafa19fbec34a8b8fcba8c14cc594058d15e802e53bf2",
-            "TrainingStateRouting.kt" to "d086f1008c2247bda65e33b5db2277fc962a0ea666163dfe0f46e119a434b5f7"
+            "TrainingStateRouting.kt" to "bcbc769d004c80cf76a8b2ea1d69344be69b22892d769c591a58d0edecd042e0"
         )
         frozen.forEach { (name, expected) ->
             val source = File(root, "app/src/main/java/com/training/trackplanner/data/personalized/$name").readText().replace("\r\n", "\n")

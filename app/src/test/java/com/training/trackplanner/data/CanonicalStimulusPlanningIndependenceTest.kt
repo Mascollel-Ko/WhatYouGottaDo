@@ -514,7 +514,8 @@ class CanonicalStimulusPlanningIndependenceTest {
             val needs = requireNotNull(decision.athleteStimulusNeedProfile)
             val hOnly = explicit.copy(targetPlan = explicit.targetPlan.copy(
                 qualityTargets = explicit.targetPlan.qualityTargets.filter { it.quality == TrainableQuality.HYPERTROPHY },
-                taskTargets = emptyList()))
+                taskTargets = emptyList(),
+                movementTargets = emptyList()))
             assertEquals(listOf(TrainableQuality.HYPERTROPHY), hOnly.targetPlan.qualityTargets.map { it.quality })
             val altered = control.copy(personalizedDecision = when (remove) {
                 "decision" -> null

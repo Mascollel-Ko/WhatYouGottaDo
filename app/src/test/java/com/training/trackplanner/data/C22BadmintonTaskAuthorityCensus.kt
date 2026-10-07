@@ -140,7 +140,9 @@ internal object C22BadmintonTaskAuthorityCensus {
                         if (guide.text.contains("/side", ignoreCase = true)) {
                             aggregate["blockedPerSide"] = aggregate.getValue("blockedPerSide") + 1
                         }
-                        if (Regex("\\b\\d+\\s*[-–]\\s*\\d+\\b").containsMatchIn(guide.text)) {
+                        // Numeric range detection is locale/JDK-independent; Java's \b boundary
+                        // treats adjacent Hangul letters differently across runtime releases.
+                        if (Regex("(?:^|[^0-9])\\d+\\s*[-–]\\s*\\d+(?:$|[^0-9])").containsMatchIn(guide.text)) {
                             aggregate["blockedRange"] = aggregate.getValue("blockedRange") + 1
                         }
                     }

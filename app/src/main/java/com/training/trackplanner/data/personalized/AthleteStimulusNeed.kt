@@ -78,6 +78,25 @@ data class AthleteStimulusTaskNeed(
     val evidence: List<String> = emptyList()
 )
 
+/** Existing movement representation evidence admitted to B1 without creating dose authority. */
+data class AthleteStimulusMovementNeedEvidence(
+    val movementCoverage: MovementCoverage?,
+    val sourceCoverageCode: String,
+    val basePriority: RepresentationPriority,
+    val representationState: RepresentationState,
+    val evidenceConfidence: PlanningConfidence,
+    val currentExposure28d: Double,
+    val priorExposure28d: Double,
+    val currentActiveBins: Int,
+    val reasonCodes: List<String>,
+    /** Typed output of the existing representation policy; null means no actionable gap. */
+    val gapPriority: MovementGapPriority?,
+    val contributesTransitionPressure: Boolean,
+    val foundationalOnramp: Boolean,
+    val globallyRestricted: Boolean,
+    val explicitlyRestricted: Boolean = false
+)
+
 data class AthleteStimulusNeedProfile(
     val generatedAtCutoff: LocalDate,
     val qualityNeeds: List<AthleteStimulusQualityNeed>,
@@ -96,7 +115,9 @@ data class AthleteStimulusNeedProfile(
     /** Phase B4 canonical target envelope; it never enters the legacy target planner. */
     val stimulusTargetPlanShadow: StimulusTargetPlan? = null,
     /** Phase B6.1 typed prescription proposal; shadow-only and never generation authority. */
-    val stimulusPrescriptionRealizationPlanShadow: StimulusPrescriptionRealizationPlan? = null
+    val stimulusPrescriptionRealizationPlanShadow: StimulusPrescriptionRealizationPlan? = null,
+    /** Typed B1 movement evidence; it carries neither disposition nor executable dose authority. */
+    val movementNeedEvidence: List<AthleteStimulusMovementNeedEvidence> = emptyList()
 )
 
 internal data class StimulusNeedEvidenceIndex(
@@ -488,7 +509,32 @@ internal class AthleteStimulusNeedEngine(
             courtContext = index.courtContext,
             executionModifiers = executionModifiers(snapshot, state),
             unresolved = unresolved,
-            reasonCodes = index.reasonCodes
+            reasonCodes = index.reasonCodes,
+            movementNeedEvidence = state.movementRepresentations.map { representation ->
+                val coverage = MovementCoverage.entries.firstOrNull { it.name == representation.movementCoverage }
+                val gapPriority = ExposureRepresentationPolicy.movementGapPriorityTyped(
+                    representation.basePriority,
+                    representation.representationState,
+                    representation.evidenceConfidence
+                )
+                AthleteStimulusMovementNeedEvidence(
+                    movementCoverage = coverage,
+                    sourceCoverageCode = representation.movementCoverage,
+                    basePriority = representation.basePriority,
+                    representationState = representation.representationState,
+                    evidenceConfidence = representation.evidenceConfidence,
+                    currentExposure28d = representation.currentExposure28d,
+                    priorExposure28d = representation.priorExposure28d,
+                    currentActiveBins = representation.currentActiveBins,
+                    reasonCodes = representation.reasonCodes,
+                    gapPriority = gapPriority,
+                    contributesTransitionPressure = gapPriority != null,
+                    foundationalOnramp = state.resistanceFoundationalOnramp,
+                    globallyRestricted = state.recoverySignals.readinessStatus == "LIMITED" ||
+                        state.trainingStateAssessment?.globalHardRestriction == true,
+                    explicitlyRestricted = coverage?.let(snapshot::movementCoverageExplicitlyRestricted) == true
+                )
+            }
         )
     }
 
@@ -650,6 +696,22 @@ internal fun AthleteStimulusNeedProfile.toCompactJson(): JSONObject = JSONObject
         .put("unclassifiedSourceUnits", need.exposure.unclassifiedSourceUnits)
         .put("evidenceBasis", need.exposure.evidenceBasis.name)
         .put("sportContextLoad", need.sportContextLoad)
+        .put("reasonCodes", JSONArray(need.reasonCodes))
+    }))
+    .put("movementNeedEvidence", JSONArray(movementNeedEvidence.map { need -> JSONObject()
+        .put("movementCoverage", need.movementCoverage?.name)
+        .put("sourceCoverageCode", need.sourceCoverageCode)
+        .put("basePriority", need.basePriority.name)
+        .put("representationState", need.representationState.name)
+        .put("evidenceConfidence", need.evidenceConfidence.name)
+        .put("currentExposure28d", need.currentExposure28d)
+        .put("priorExposure28d", need.priorExposure28d)
+        .put("currentActiveBins", need.currentActiveBins)
+        .put("gapPriority", need.gapPriority?.name)
+        .put("contributesTransitionPressure", need.contributesTransitionPressure)
+        .put("foundationalOnramp", need.foundationalOnramp)
+        .put("globallyRestricted", need.globallyRestricted)
+        .put("explicitlyRestricted", need.explicitlyRestricted)
         .put("reasonCodes", JSONArray(need.reasonCodes))
     }))
     .put("courtContext", JSONObject()

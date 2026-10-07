@@ -344,7 +344,7 @@ class RegionalEvidenceIndexBuilder {
         MovementCoverage.POSTERIOR_CHAIN -> qualifier in setOf(PhysicalQualityRegion.POSTERIOR_CHAIN, PhysicalQualityRegion.HAMSTRING, PhysicalQualityRegion.LOWER, PhysicalQualityRegion.UNILATERAL_LOWER)
         MovementCoverage.CALVES -> qualifier in setOf(PhysicalQualityRegion.ANKLE, PhysicalQualityRegion.LOWER)
         MovementCoverage.HORIZONTAL_PUSH, MovementCoverage.VERTICAL_PUSH -> qualifier in setOf(PhysicalQualityRegion.UPPER_PUSH, PhysicalQualityRegion.CHEST, PhysicalQualityRegion.SHOULDERS, PhysicalQualityRegion.ARMS)
-        MovementCoverage.HORIZONTAL_PULL, MovementCoverage.VERTICAL_PULL -> qualifier in setOf(PhysicalQualityRegion.UPPER_PULL, PhysicalQualityRegion.SHOULDERS, PhysicalQualityRegion.ARMS)
+        MovementCoverage.HORIZONTAL_PULL, MovementCoverage.VERTICAL_PULL, MovementCoverage.UPPER_PULL -> qualifier in setOf(PhysicalQualityRegion.UPPER_PULL, PhysicalQualityRegion.SHOULDERS, PhysicalQualityRegion.ARMS)
         else -> false
     }
 }

@@ -86,6 +86,8 @@ class StimulusProductionCoverageAuditTest {
         val c29PhaseDurationsByCase = linkedMapOf<String, Map<String, Long>>()
         val c29GenerationDurationsByCase = linkedMapOf<String, Long>()
         val c29PlannerMetricsByCase = linkedMapOf<String, Map<String, Int>>()
+        val c30SelectionPlanByCase = linkedMapOf<String, StimulusCandidateSelectionPlan>()
+        val c30AuthorizationPlanByCase = linkedMapOf<String, StimulusPrescriptionAuthorizationPlan>()
         val records = specs.map { spec ->
             val result = runCase(spec, seedIncumbentPlacementFixture = spec.label in
                 setOf("persona0_mixed", "persona0_reviewed", "persona3_reviewed", "persona4_mixed"), observeCanonicalPlanning = { planning ->
@@ -117,6 +119,8 @@ class StimulusProductionCoverageAuditTest {
                                     val builder = field(service, "programBuilder") as PersonalizedProgramBuilder
                                     c29PlannerMetricsByCase[spec.label] = builder.lastPerformanceMetrics.toMap()
                                 }
+                                observation.selectionPlan?.let { c30SelectionPlanByCase[spec.label] = it }
+                                observation.authorizationPlan?.let { c30AuthorizationPlanByCase[spec.label] = it }
                             }
                         )
                     } finally {
@@ -792,9 +796,65 @@ class StimulusProductionCoverageAuditTest {
             parentFile?.mkdirs()
             writeText(c29TimingObservation.toString(2))
         }
+        val c30Census = C30MovementDispositionCensus.render(
+            records = records,
+            canonicalPlanningByCase = canonicalPlanningByCase,
+            c29Census = c29Census,
+            c20Census = c20Census,
+            generationMillisByCase = c29GenerationDurationsByCase,
+            plannerMetricsByCase = c29PlannerMetricsByCase,
+            selectionPlanByCase = c30SelectionPlanByCase,
+            authorizationPlanByCase = c30AuthorizationPlanByCase,
+            startSha = "7c5af1923e7b292a0541f504b471ad68157e18bc"
+        )
+        assertEquals(c30Census, C30MovementDispositionCensus.render(
+            records = records.reversed(),
+            canonicalPlanningByCase = canonicalPlanningByCase,
+            c29Census = c29Census,
+            c20Census = c20Census,
+            generationMillisByCase = c29GenerationDurationsByCase,
+            plannerMetricsByCase = c29PlannerMetricsByCase,
+            selectionPlanByCase = c30SelectionPlanByCase,
+            authorizationPlanByCase = c30AuthorizationPlanByCase,
+            startSha = "7c5af1923e7b292a0541f504b471ad68157e18bc"
+        ))
+        val c30Json = org.json.JSONObject(c30Census)
+        val c30Summary = c30Json.getJSONObject("summary")
+        assertEquals(22, c30Summary.getInt("c29MovementIdentities"))
+        assertEquals(22, c30Summary.getInt("movementDispositionRows"))
+        assertEquals(44, c30Summary.getInt("ownerWeekRows"))
+        assertEquals(22, c30Summary.getJSONObject("dispositions").getInt("ADDRESS"))
+        assertEquals(22, c30Summary.getInt("b4MovementTargets"))
+        assertEquals(22, c30Summary.getInt("b5MovementOwnersSelected"))
+        assertEquals(0, c30Summary.getInt("b6MovementTargetsCoveredByExactExistingAuthority"))
+        assertEquals(22, c30Summary.getInt("addressExecutionBlockedNoMovementDoseAuthority"))
+        assertEquals(22, c30Summary.getJSONObject("executionDispositions").getInt("POLICY_UNSUPPORTED"))
+        assertEquals(0, c30Summary.getInt("unauthorizedSparseOwnerWeekRowsAfter"))
+        assertEquals(0, c30Summary.getInt("thirdPlannerBuilds"))
+        assertEquals(0, c30Summary.getInt("powerMaterialRows"))
+        assertEquals(0, c30Summary.getInt("jumpLandingMaterialRows"))
+        val c30Performance = c30Json.getJSONObject("performance")
+        assertEquals(3584, c30Performance.getJSONObject("generationTimeBefore").getInt("totalMs"))
+        assertEquals(c30Summary.getLong("generationTimeTotalMs"),
+            c30Performance.getJSONObject("generationTimeAfter").getLong("totalMs"))
+        assertEquals(0, c30Performance.getInt("identicalB6MovementLookupsRepeated"))
+        assertTrue(c30Json.getJSONArray("movementNeedIdentities").let { rows ->
+            (0 until rows.length()).all { index ->
+                val row = rows.getJSONObject(index)
+                row.getString("b3Disposition") in MovementNeedDisposition.entries.map { it.name } &&
+                    (!row.getBoolean("b4TargetPresent") || row.getString("b4NumericAuthority") == "DIRECTION_ONLY")
+            }
+        })
+        java.io.File("build/reports/c30-movement-disposition-target-admission-census.json").apply {
+            parentFile?.mkdirs()
+            writeText(c30Census)
+        }
         assertEquals(0, nextPhaseSummary.getInt("qualityAddedOwnerWeeksWithoutAuthorizedB6"))
         assertEquals(0, nextPhaseSummary.getJSONArray("qualityAddedOwnerWeeksWithoutAuthorizedB6Cases").length())
-        assertEquals(3, nextPhaseSummary.getInt("b11CanonicalReplacementButB7UnclosedOwnerRows"))
+        assertEquals(73, nextPhaseSummary.getInt("b11CanonicalReplacementButB7UnclosedOwnerRows"))
+        assertEquals(70, nextPhaseSummary.getInt("b11CanonicalReplacementButB7UnclosedMovementOwnerRows"))
+        assertEquals(3, nextPhaseSummary.getInt("b11CanonicalReplacementButB7UnclosedQualityOwnerRows"))
+        assertEquals(0, nextPhaseSummary.getInt("b11CanonicalReplacementButB7UnclosedTaskOwnerRows"))
         assertEquals(0, nextPhaseSummary.getJSONArray("taskRoleReplacementRowsWithExactApprovedTaskB6").length())
         val persona3RecentCensus = nextPhaseJson.getJSONArray("cases").let { rows ->
             (0 until rows.length()).map { rows.getJSONObject(it) }.single { it.getString("case") == "persona3_recent" }
