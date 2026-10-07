@@ -19,5 +19,7 @@ internal enum class StimulusCanonicalEvaluationFailureReason {
 internal class StimulusCanonicalEvaluationFailure(
     val reason: StimulusCanonicalEvaluationFailureReason,
     val detailCode: String? = null,
+    val unresolvedMaterialDemandGaps: Set<String> = emptySet(),
+    val materialDemandAuthorityResolutions: List<ExecutionAuthorityResolution> = emptyList(),
     cause: Throwable? = null
 ) : RuntimeException(detailCode ?: reason.name, cause)

@@ -53,7 +53,7 @@ internal object C17PlacementCausalityCensus {
                 delta.optString("kind") == "PLACEMENT_OR_ROW_CHANGE" &&
                     delta.optString("c16Classification") == "RESIDUAL_MATERIAL_FIELD_DELTA" &&
                     delta.optJSONArray("changedFields")?.let { fields ->
-                        (0 until fields.length()).any { fields.getString(it) in setOf("day", "order") }
+                        fields.length() > 0 && (0 until fields.length()).all { fields.getString(it) in setOf("day", "order") }
                     } == true
             }
             val moves = rawPlacementDeltas.map { delta ->
@@ -74,12 +74,13 @@ internal object C17PlacementCausalityCensus {
                 }
                 Move(caseId, key, control, experimental)
             }.sortedWith(compareBy({ it.key.week }, { it.key.stableKey }, { it.key.role }))
-            require(moves.size == when (caseId) {
-                "persona0_mixed" -> 6
-                "persona0_reviewed" -> 4
-                "persona3_reviewed" -> 8
-                else -> 14
-            }) { "$caseId C16 placement delta count changed: ${moves.size}" }
+            // C28 removes the unauthorized coverage material that previously induced
+            // avoidable weekly reflow. Keep this audit tied to the exact current C16
+            // placement rows instead of asserting the pre-C28 drift corpus.
+            require(moves.size == rawPlacementDeltas.size) {
+                "$caseId C16 placement rows do not map one-to-one to current EXP rows: " +
+                    "census=${rawPlacementDeltas.size}, materialized=${moves.size}"
+            }
             allMoves += moves
 
             val allShared = comparison.control.items.mapNotNull { control ->
@@ -304,7 +305,19 @@ internal object C17PlacementCausalityCensus {
                         row.selectionRole == positiveOwner.getString("selectionRole")
                 })
                 .put("sharedOwnerPlacementMetrics", positiveMetrics))
-        require(allMoves.size == 32) { "C17 must account for all 32 C16 placement deltas, found ${allMoves.size}" }
+        require(allMoves.size == priorCases.let { rows -> (0 until rows.length()).sumOf { index ->
+            val row = rows.getJSONObject(index)
+            if (row.getString("case") !in targetCases) 0 else row.getJSONArray("deltaLedger").let { deltas ->
+                (0 until deltas.length()).count { deltaIndex ->
+                    val delta = deltas.getJSONObject(deltaIndex)
+                    delta.optString("kind") == "PLACEMENT_OR_ROW_CHANGE" &&
+                        delta.optString("c16Classification") == "RESIDUAL_MATERIAL_FIELD_DELTA" &&
+                        delta.optJSONArray("changedFields")?.let { fields ->
+                            fields.length() > 0 && (0 until fields.length()).all { fields.getString(it) in setOf("day", "order") }
+                        } == true
+                }
+            }
+        } }) { "C17 must account for all current C16 placement deltas, found ${allMoves.size}" }
         return output.toString(2)
     }
 

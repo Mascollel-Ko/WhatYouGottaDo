@@ -90,6 +90,58 @@ class StimulusPrescriptionRealizationTest {
         ).resolutions.single()
         assertEquals(StimulusPrescriptionResolutionStatus.NO_SAFE_TARGET_COMPATIBLE_PRESCRIPTION, result.status)
         assertEquals(PlannedStimulusCompatibilityStatus.UNRESOLVED, result.plannedCompatibility?.status)
+        assertEquals(ExecutionAuthorityResolutionStatus.NEEDS_LOAD_INPUT, result.authorityRecovery?.status)
+        assertEquals(ExecutionAuthorityReturnTarget.EXPLICIT_USER_INPUT, result.authorityRecovery?.returnTarget)
+    }
+
+    @Test
+    fun missingReferenceReturnsToExistingHistoryResolverAndB6CanBeReevaluated() {
+        val targetPlan = StimulusTargetPlan(listOf(target(TrainableQuality.STRENGTH)), emptyList(), emptyList())
+        val selectionPlan = selection(candidate())
+        val noReference = snapshot.copy(canonicalStrengthSignals = emptyMap())
+        val denied = StimulusPrescriptionRealizationPlanEngine().build(
+            targetPlan, selectionPlan, noReference, mapOf(owner() to prescription(5, 80.0))
+        ).resolutions.single()
+        assertEquals(StimulusPrescriptionResolutionStatus.NO_SAFE_TARGET_COMPATIBLE_PRESCRIPTION, denied.status)
+        assertEquals(ExecutionAuthorityResolutionStatus.NEEDS_REFERENCE_RESOLUTION, denied.authorityRecovery?.status)
+        assertEquals(ExecutionAuthorityReturnTarget.HISTORY_REFERENCE_RESOLUTION, denied.authorityRecovery?.returnTarget)
+
+        // On a new evaluation, the existing upstream history/reference resolver supplies a
+        // valid canonical reference; B6 is evaluated again against that exact evidence.
+        val reevaluated = StimulusPrescriptionRealizationPlanEngine().build(
+            targetPlan, selectionPlan, snapshot, mapOf(owner() to prescription(5, 80.0))
+        ).resolutions.single()
+        assertEquals(StimulusPrescriptionResolutionStatus.ALREADY_TARGET_COMPATIBLE, reevaluated.status)
+        assertEquals(ExecutionAuthorityResolutionStatus.READY, reevaluated.authorityRecovery?.status)
+
+        val authorizationPlan = StimulusPrescriptionAuthorizationEngine().build(
+            targetPlan, selectionPlan, snapshot, mapOf(owner() to prescription(5, 80.0))
+        )
+        val authorization = authorizationPlan.authorizations.single()
+        assertEquals(StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE, authorization.status)
+        assertEquals(owner(), authorization.owner?.let { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) })
+
+        // The recovered exact B6 result crosses the material-demand boundary with its own
+        // prescription; it does not use the missing-reference candidate's generic fallback.
+        val candidate = PlannedExercise(key, "B5_ROLE", "history-resolved", 90, targetSets = 0)
+        val origin = MaterialDemandCandidateOrigin(owner(), setOf("RESISTANCE_FOUNDATIONAL_ONRAMP"))
+        val demand = MaterialDemand(
+            candidates = listOf(candidate), deferred = emptyMap(), audit = emptyMap(),
+            candidateOrigins = listOf(origin),
+            candidateAlternatives = listOf(MaterialDemandCandidateAlternative(
+                setOf("RESISTANCE_FOUNDATIONAL_ONRAMP"), candidate
+            ))
+        )
+        val recoveredDemand = reResolveMaterialDemandCandidatesWithExistingAuthority(
+            demand, authorizationPlan.provider()
+        )
+        val executableDemand = filterMaterialDemandCandidatesWithoutExactExecutionAuthority(
+            recoveredDemand, authorizationPlan.provider()
+        )
+        assertEquals(1, executableDemand.candidates.size)
+        assertEquals(2, executableDemand.candidates.single().targetSets)
+        assertTrue(authorizationPlan.provider().resolveOwnerPrescription(executableDemand.candidates.single()) is
+            ExactOwnerPrescriptionResolution.Authorized)
     }
 
     @Test
@@ -142,6 +194,8 @@ class StimulusPrescriptionRealizationTest {
         ).resolutions.single()
         assertEquals(StimulusPrescriptionResolutionStatus.NO_PRESCRIPTION_CHANGE_AUTHORIZED, result.status)
         assertTrue(result.reasonCodes.contains("HYPERTROPHY_TARGET_NUMERIC_AUTHORITY_UNAVAILABLE"))
+        assertEquals(ExecutionAuthorityResolutionStatus.NEEDS_TARGET_RESOLUTION, result.authorityRecovery?.status)
+        assertEquals(ExecutionAuthorityReturnTarget.B4_TARGET_RESOLUTION, result.authorityRecovery?.returnTarget)
     }
 
     @Test

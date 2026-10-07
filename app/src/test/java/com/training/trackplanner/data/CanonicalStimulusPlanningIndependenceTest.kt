@@ -362,19 +362,33 @@ class CanonicalStimulusPlanningIndependenceTest {
                     actual
                 })
             assertEquals(1, computations)
-            val comparison = requireNotNull(result.comparison)
-            val mirror = requireNotNull(comparison.control.personalizedDecision?.athleteStimulusNeedProfile)
-            assertEquals(independent.athleteStimulusNeedProfile, mirror.copy(finalAudit = null,
-                qualityDoseHistoryShadow = null, trainingDecisionPortfolioShadow = null, stimulusTargetPlanShadow = null))
-            assertEquals(independent.qualityDoseHistory, mirror.qualityDoseHistoryShadow)
-            assertEquals(independent.decisionPortfolio, mirror.trainingDecisionPortfolioShadow?.copy(comparison = null))
-            assertEquals(independent.targetPlan, mirror.stimulusTargetPlanShadow?.copy(legacyComparison = null, controlProgramAudit = null))
-            assertEquals(independent.targetPlan, comparison.targetPlan)
-            assertNotNull(mirror.finalAudit)
-            assertNotNull(mirror.trainingDecisionPortfolioShadow?.comparison)
-            assertNotNull(mirror.stimulusTargetPlanShadow?.legacyComparison)
-            assertNotNull(mirror.stimulusTargetPlanShadow?.controlProgramAudit)
-            assertBuilds(result, 1, 1)
+            val comparison = result.comparison
+            if (comparison == null) {
+                // C28 keeps B1-B4 independent while preserving an unmet sparse-history coverage
+                // need when every finite candidate lacks exact execution authority. The safe
+                // result is CONTROL fallback with a typed unresolved need, not a fabricated row.
+                assertEquals(StimulusProductionProgramSource.CONTROL, result.routeDecision.selectedSource)
+                assertEquals("B9_EXPECTED_CANONICAL_EVALUATION_FAILURE", result.upstreamFailureReason)
+                assertEquals("NO_EXECUTABLE_PLANNING_DEMAND", result.upstreamFailureDetails.firstOrNull())
+                assertTrue(result.unresolvedMaterialDemandGaps.isNotEmpty())
+                assertTrue(result.materialDemandAuthorityResolutions.any {
+                    it.status == ExecutionAuthorityResolutionStatus.NO_SUPPORTED_AUTHORITY
+                })
+                assertBuilds(result, 1, 1)
+            } else {
+                val mirror = requireNotNull(comparison.control.personalizedDecision?.athleteStimulusNeedProfile)
+                assertEquals(independent.athleteStimulusNeedProfile, mirror.copy(finalAudit = null,
+                    qualityDoseHistoryShadow = null, trainingDecisionPortfolioShadow = null, stimulusTargetPlanShadow = null))
+                assertEquals(independent.qualityDoseHistory, mirror.qualityDoseHistoryShadow)
+                assertEquals(independent.decisionPortfolio, mirror.trainingDecisionPortfolioShadow?.copy(comparison = null))
+                assertEquals(independent.targetPlan, mirror.stimulusTargetPlanShadow?.copy(legacyComparison = null, controlProgramAudit = null))
+                assertEquals(independent.targetPlan, comparison.targetPlan)
+                assertNotNull(mirror.finalAudit)
+                assertNotNull(mirror.trainingDecisionPortfolioShadow?.comparison)
+                assertNotNull(mirror.stimulusTargetPlanShadow?.legacyComparison)
+                assertNotNull(mirror.stimulusTargetPlanShadow?.controlProgramAudit)
+                assertBuilds(result, 1, 1)
+            }
             result
         }
         Unit
@@ -448,8 +462,22 @@ class CanonicalStimulusPlanningIndependenceTest {
             assertEquals(1, result.buildCounts.experimentalBuilds)
             assertEquals(2, result.buildCounts.totalBuildInvocations)
             assertEquals(0, result.buildCounts.thirdBuilds)
-            assertEquals(StimulusProductionProgramSource.B8_STRENGTH_V1, result.routeDecision.selectedSource)
-            assertSame(requireNotNull(result.comparison).experimental, result.program)
+            val comparison = requireNotNull(result.comparison)
+            val exactB6Owners = requireNotNull(comparison.prescriptionAuthorizationPlan).authorizations
+                .filter { it.authorizedPrescription != null }
+                .mapNotNull { authorization -> authorization.owner?.let {
+                    StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole)
+                } }
+                .toSet()
+            assertTrue("the selected exact Strength B6 still materializes", exactB6Owners.isNotEmpty())
+            assertTrue(exactB6Owners.any { owner -> comparison.experimental.items.any {
+                it.exerciseStableKey == owner.stableKey && it.selectionRole == owner.selectionRole
+            } })
+            // Canonical B6 is complete before late CONTROL, but C28 leaves unsupported coverage
+            // needs unresolved; B7 therefore keeps this otherwise valid Strength case on CONTROL.
+            assertEquals(StimulusProductionProgramSource.CONTROL, result.routeDecision.selectedSource)
+            assertFalse(requireNotNull(comparison.experimentalReadinessAudit).changeProvenanceClosed)
+            assertSame(comparison.control, result.program)
             result
         }
         Unit

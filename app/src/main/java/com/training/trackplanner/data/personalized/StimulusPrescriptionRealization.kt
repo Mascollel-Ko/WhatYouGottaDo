@@ -96,7 +96,8 @@ data class PlannedStimulusCompatibility(
     val status: PlannedStimulusCompatibilityStatus,
     val reference1RmKg: Double? = null,
     val relativeIntensity: Double? = null,
-    val reasonCodes: List<String> = emptyList()
+    val reasonCodes: List<String> = emptyList(),
+    val authorityRecovery: ExecutionAuthorityResolution? = null
 )
 
 data class StimulusTargetCompatiblePrescription(
@@ -125,7 +126,8 @@ data class StimulusPrescriptionResolution(
     val strengthTrainingLoadShadow: StrengthTrainingLoadResolution? = null,
     val coldStartStrengthCalibration: ColdStartStrengthCalibrationResolution? = null,
     val mutationAuthority: Boolean = false,
-    val authority: StimulusPrescriptionResolutionAuthority = StimulusPrescriptionResolutionAuthority.SHADOW_ONLY
+    val authority: StimulusPrescriptionResolutionAuthority = StimulusPrescriptionResolutionAuthority.SHADOW_ONLY,
+    val authorityRecovery: ExecutionAuthorityResolution? = null
 )
 
 data class StimulusPrescriptionRealizationPlan(
@@ -177,13 +179,15 @@ class StimulusPrescriptionRealizationPlanEngine(
             compatibility: PlannedStimulusCompatibility? = null,
             proposal: StimulusTargetCompatiblePrescription? = null,
             strengthShadow: StrengthTrainingLoadResolution? = null,
-            coldStart: ColdStartStrengthCalibrationResolution? = null
+            coldStart: ColdStartStrengthCalibrationResolution? = null,
+            recovery: ExecutionAuthorityResolution? = null
         ) = StimulusPrescriptionResolution(
             targetId = targetId, quality = target.quality, evidenceBasis = target.evidenceBasis,
             strategy = target.strategy, numericAuthority = target.numericAuthority, owner = owner,
             currentPrescription = current, probePrescription = probe, plannedCompatibility = compatibility,
             proposedPrescription = proposal, status = status, reasonCodes = reasons,
-            strengthTrainingLoadShadow = strengthShadow, coldStartStrengthCalibration = coldStart, mutationAuthority = false
+            strengthTrainingLoadShadow = strengthShadow, coldStartStrengthCalibration = coldStart, mutationAuthority = false,
+            authorityRecovery = recovery
         )
 
         if (target.quality !in setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY) ||
@@ -202,7 +206,11 @@ class StimulusPrescriptionRealizationPlanEngine(
             else -> emptyList()
         }.distinct()
         if (ownerOptions.isEmpty()) return base(StimulusPrescriptionResolutionStatus.OWNER_UNRESOLVED,
-            listOf("B5_OWNER_NOT_SELECTED"))
+            listOf("B5_OWNER_NOT_SELECTED"), recovery = ExecutionAuthorityResolution(
+                ExecutionAuthorityResolutionStatus.NEEDS_OWNER_RESELECTION,
+                ExecutionAuthorityResolutionReason.EXACT_OWNER_NOT_SELECTED,
+                ExecutionAuthorityReturnTarget.B5_OWNER_SELECTION
+            ))
 
         fun probeFor(identity: StimulusPrescriptionOwnerIdentity): PlannedPrescription? {
             val item = selectionPlan.materialDemand.candidates.firstOrNull { it.stableKey == identity.stableKey } ?: return null
@@ -218,13 +226,23 @@ class StimulusPrescriptionRealizationPlanEngine(
             Triple(identity, source, Triple(current, effective, compatibility))
         }
         if (evaluated.isEmpty()) return base(StimulusPrescriptionResolutionStatus.OWNER_UNRESOLVED,
-            listOf("MATERIALIZED_OWNER_PRESCRIPTION_UNAVAILABLE"))
+            listOf("MATERIALIZED_OWNER_PRESCRIPTION_UNAVAILABLE"), recovery = ExecutionAuthorityResolution(
+                ExecutionAuthorityResolutionStatus.NO_SUPPORTED_AUTHORITY,
+                ExecutionAuthorityResolutionReason.NO_EXECUTABLE_AUTHORIZATION,
+                ExecutionAuthorityReturnTarget.NONE
+            ))
         val compatible = evaluated.filter { it.third.third.status == PlannedStimulusCompatibilityStatus.COMPATIBLE_CONDITIONAL_ON_EFFORT }
         if (compatible.size > 1) {
             return if (candidates.isNotEmpty()) {
                 base(
                     StimulusPrescriptionResolutionStatus.AMBIGUOUS_OWNER,
-                    listOf("MULTIPLE_B5_IDENTITIES_WITHOUT_EXACT_OWNER", "NO_ARBITRARY_B5_OWNER_SELECTION")
+                    listOf("MULTIPLE_B5_IDENTITIES_WITHOUT_EXACT_OWNER", "NO_ARBITRARY_B5_OWNER_SELECTION"),
+                    recovery = ExecutionAuthorityResolution(
+                        ExecutionAuthorityResolutionStatus.NEEDS_OWNER_RESELECTION,
+                        ExecutionAuthorityResolutionReason.AMBIGUOUS_OWNER,
+                        ExecutionAuthorityReturnTarget.B5_OWNER_SELECTION,
+                        attemptedOwners = ownerOptions.map { it.first }
+                    )
                 )
             } else {
                 base(
@@ -243,6 +261,12 @@ class StimulusPrescriptionRealizationPlanEngine(
                     if (candidates.isNotEmpty()) "MULTIPLE_B5_IDENTITIES_WITHOUT_EXACT_OWNER"
                     else "AMBIGUOUS_EXISTING_REALIZATION_OWNER",
                     "NO_COMPATIBLE_EXISTING_IDENTITY"
+                ),
+                recovery = ExecutionAuthorityResolution(
+                    ExecutionAuthorityResolutionStatus.NEEDS_OWNER_RESELECTION,
+                    ExecutionAuthorityResolutionReason.AMBIGUOUS_OWNER,
+                    ExecutionAuthorityReturnTarget.B5_OWNER_SELECTION,
+                    attemptedOwners = ownerOptions.map { it.first }
                 )
             )
         }
@@ -259,24 +283,47 @@ class StimulusPrescriptionRealizationPlanEngine(
                 StimulusTargetNumericAuthority.UNRESOLVED
             )) return base(
             StimulusPrescriptionResolutionStatus.NO_PRESCRIPTION_CHANGE_AUTHORIZED,
-            listOf("HYPERTROPHY_TARGET_NUMERIC_AUTHORITY_UNAVAILABLE"),
-            owner, current, effective, compatibility
+                listOf("HYPERTROPHY_TARGET_NUMERIC_AUTHORITY_UNAVAILABLE"),
+            owner, current, effective, compatibility,
+                recovery = ExecutionAuthorityResolution(
+                    ExecutionAuthorityResolutionStatus.NEEDS_TARGET_RESOLUTION,
+                    ExecutionAuthorityResolutionReason.HYPERTROPHY_NUMERIC_AUTHORITY_UNAVAILABLE,
+                    ExecutionAuthorityReturnTarget.B4_TARGET_RESOLUTION
+                )
         )
         if (compatibility.status == PlannedStimulusCompatibilityStatus.COMPATIBLE_CONDITIONAL_ON_EFFORT) {
             val proposal = StimulusTargetCompatiblePrescription(effective.sets, effort,
                 "EXISTING_TYPED_PLANNED_AUTHORITY", "CURRENT_PLANNED_PRESCRIPTION_ALREADY_COMPATIBLE")
             return base(StimulusPrescriptionResolutionStatus.ALREADY_TARGET_COMPATIBLE,
-                listOf("CURRENT_PLANNED_PRESCRIPTION_COMPATIBLE_CONDITIONAL_ON_EFFORT"), owner, current, effective, compatibility, proposal)
+                listOf("CURRENT_PLANNED_PRESCRIPTION_COMPATIBLE_CONDITIONAL_ON_EFFORT"), owner, current, effective, compatibility, proposal,
+                recovery = ExecutionAuthorityResolution(
+                    ExecutionAuthorityResolutionStatus.READY,
+                    ExecutionAuthorityResolutionReason.EXACT_AUTHORITY_AVAILABLE,
+                    ExecutionAuthorityReturnTarget.NONE,
+                    StimulusPrescriptionOwnerIdentity(identity.stableKey, identity.selectionRole),
+                    listOf(StimulusPrescriptionOwnerIdentity(identity.stableKey, identity.selectionRole)),
+                    StimulusPrescriptionOwnerIdentity(identity.stableKey, identity.selectionRole)
+                ))
         }
         if (compatibility.status == PlannedStimulusCompatibilityStatus.UNRESOLVED) return base(
             StimulusPrescriptionResolutionStatus.NO_SAFE_TARGET_COMPATIBLE_PRESCRIPTION,
-            compatibility.reasonCodes.ifEmpty { listOf("PLANNED_COMPATIBILITY_UNRESOLVED") }, owner, current, effective, compatibility)
+            compatibility.reasonCodes.ifEmpty { listOf("PLANNED_COMPATIBILITY_UNRESOLVED") }, owner, current, effective, compatibility,
+            recovery = compatibility.authorityRecovery?.copy(originalOwner = identity) ?: ExecutionAuthorityResolution(
+                ExecutionAuthorityResolutionStatus.NO_SUPPORTED_AUTHORITY,
+                ExecutionAuthorityResolutionReason.NO_EXECUTABLE_AUTHORIZATION,
+                ExecutionAuthorityReturnTarget.NONE
+            ))
         if (target.numericAuthority in setOf(
                 StimulusTargetNumericAuthority.NONE,
                 StimulusTargetNumericAuthority.DIRECTION_ONLY,
                 StimulusTargetNumericAuthority.UNRESOLVED
             )) return base(StimulusPrescriptionResolutionStatus.NO_PRESCRIPTION_CHANGE_AUTHORIZED,
-            listOf("B4_NUMERIC_AUTHORITY_DOES_NOT_AUTHORIZE_B6_CHANGE"), owner, current, effective, compatibility)
+            listOf("B4_NUMERIC_AUTHORITY_DOES_NOT_AUTHORIZE_B6_CHANGE"), owner, current, effective, compatibility,
+            recovery = ExecutionAuthorityResolution(
+                ExecutionAuthorityResolutionStatus.NEEDS_TARGET_RESOLUTION,
+                ExecutionAuthorityResolutionReason.B4_NUMERIC_AUTHORITY_MISSING,
+                ExecutionAuthorityReturnTarget.B4_TARGET_RESOLUTION
+            ))
         val proposed = plannedResolver.safeProposal(target.quality, effective, snapshot, identity.stableKey, effort)
         val selectedB5Candidate = candidates.singleOrNull {
                 it.stableKey == identity.stableKey && it.selectionRole == identity.selectionRole &&
@@ -312,11 +359,23 @@ class StimulusPrescriptionRealizationPlanEngine(
             }
             return base(StimulusPrescriptionResolutionStatus.NO_SAFE_TARGET_COMPATIBLE_PRESCRIPTION,
                 listOf("SAFE_LOAD_OR_EFFORT_AUTHORITY_UNAVAILABLE"), owner, current, effective, compatibility,
-                strengthShadow = strengthShadow)
+                strengthShadow = strengthShadow,
+                recovery = compatibility.authorityRecovery?.copy(originalOwner = identity) ?: ExecutionAuthorityResolution(
+                    ExecutionAuthorityResolutionStatus.NO_SUPPORTED_AUTHORITY,
+                    ExecutionAuthorityResolutionReason.NO_EXECUTABLE_AUTHORIZATION,
+                    ExecutionAuthorityReturnTarget.NONE
+                ))
         }
         return base(StimulusPrescriptionResolutionStatus.SAFE_TARGET_COMPATIBLE_PRESCRIPTION_RESOLVED,
             listOf("SHADOW_PROPOSAL_ONLY", "B5_OWNER_STABLE_KEY_AND_SELECTION_ROLE_PRESERVED"), owner, current, effective, compatibility, proposed,
-            strengthShadow)
+            strengthShadow, recovery = ExecutionAuthorityResolution(
+                ExecutionAuthorityResolutionStatus.READY,
+                ExecutionAuthorityResolutionReason.EXACT_AUTHORITY_AVAILABLE,
+                ExecutionAuthorityReturnTarget.NONE,
+                originalOwner = StimulusPrescriptionOwnerIdentity(identity.stableKey, identity.selectionRole),
+                attemptedOwners = listOf(StimulusPrescriptionOwnerIdentity(identity.stableKey, identity.selectionRole)),
+                finalOwner = StimulusPrescriptionOwnerIdentity(identity.stableKey, identity.selectionRole)
+            ))
     }
 
     private fun plannedCompatibility(

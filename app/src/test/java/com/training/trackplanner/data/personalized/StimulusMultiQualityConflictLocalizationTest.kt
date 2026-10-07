@@ -68,7 +68,7 @@ class StimulusMultiQualityConflictLocalizationTest {
         val experimental = builder.build(
             snapshot, state, gaps, intent, 1, request, PersonalizedPlanningAnswers(), null,
             exactPrescriptionAuthorizationProvider = authorizationPlan.provider(),
-            canonicalFailureEmitter = { _, _ ->
+            canonicalFailureEmitter = { _ ->
                 globalFailure = true
                 error("owner-local conflict must not emit a global canonical failure")
             }

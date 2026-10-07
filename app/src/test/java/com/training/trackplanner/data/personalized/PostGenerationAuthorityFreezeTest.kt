@@ -23,6 +23,8 @@ class PostGenerationAuthorityFreezeTest {
         // C24 adds an exact approved-task prescription branch and task exposure fields before
         // the builder; legacy prescription branches remain protected by this updated source hash.
         // All unrelated historical, style, numerical and prescription authorities remain frozen.
+        // C28 lets the legacy selector report candidate identities without set-unit demand in
+        // canonical EXP generation; it does not change candidate ranking or create a dose.
         val frozen = mapOf(
             // Domain-separated volume and court-deviation trace are the approved
             // changes in this follow-up; keep the remaining authorities frozen.
@@ -34,7 +36,9 @@ class PostGenerationAuthorityFreezeTest {
             "PersonalizedDecisionComponents.kt" to "66c6acc65bc46f5bc957d8f4f8b57f072b44d2a621f060edabe5d047aed89958",
             // C20 extracts the exact session-time predicate so the live incumbent feasibility
             // evaluator calls the production placement bound instead of maintaining a duplicate.
-            "ExecutionAllocationPlanner.kt" to "3eeb5c937499367537134884143950c6d64a1fec59595a1de8646401c48b4644",
+            // C28 adds candidate-origin and unresolved-need diagnostics to MaterialDemand; the
+            // allocation, timing, and prescription authority predicates remain frozen.
+            "ExecutionAllocationPlanner.kt" to "ac63cbefadd6a3a5413c4dd65b3b84ee6ed4fd9cffa6c16836fda07b33737ed4",
             "PerformancePrescriptionResolver.kt" to "48eda34c9e390ca109bbb1e19e7a8ac79802f01f60c25470f92c8eb7f87063be",
             "RecordBasedReviewedPolicy.kt" to "915be5354ac988774f740a366655d26f74cb3c8e2f820eecf63e8914b671ed08",
             "PlanningHistorySnapshotBuilder.kt" to "8cb9bd8c1be966e4878d2fa7cb3bf72ea0f722c7a565ac38a728323da755ddc3",
@@ -49,7 +53,7 @@ class PostGenerationAuthorityFreezeTest {
         val builderAuthorities = File(root, "app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt")
             .readText().replace("\r\n", "\n").substringBefore("class PersonalizedProgramBuilder(")
         assertEquals("Continuity, GapCandidateSelector, PersonalizedPrescriptionPlanner, validation and repair stay frozen",
-            "1a60e30444b6180258f7beae24f61deeb4a6bac9aaf79da5e03483777f2842eb",
+            "9f7a436d8db9942209add11e38130f9bfe19815e8c5b51a00296179117ccd1b4",
             MessageDigest.getInstance("SHA-256").digest(builderAuthorities.toByteArray()).joinToString("") { "%02x".format(it) })
     }
 }

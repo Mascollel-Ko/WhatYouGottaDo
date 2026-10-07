@@ -77,7 +77,14 @@ class ExerciseContinuityPlanner {
 }
 
 class GapCandidateSelector {
-    fun select(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, gaps: List<AdaptationGap>, used: Set<String>, allAlternatives: Boolean = false): List<PlannedExercise> {
+    fun select(
+        snapshot: PlanningHistorySnapshot,
+        state: AthletePlanningState,
+        gaps: List<AdaptationGap>,
+        used: Set<String>,
+        allAlternatives: Boolean = false,
+        includePrescriptionDemand: Boolean = true
+    ): List<PlannedExercise> {
         val chosen = used.toMutableSet()
         val orderedGaps = gaps.withIndex().sortedWith(
             compareBy<IndexedValue<AdaptationGap>> { gapPriorityRank(it.value.priority) }.thenBy { it.index }
@@ -94,7 +101,8 @@ class GapCandidateSelector {
                     selectableCandidates(snapshot, state, chosen)
                         .firstOrNull { key -> snapshot.activityKind(key) == PlannedActivityKind.RESISTANCE && snapshot.movementCoverage(key) == coverage }
                         ?.also(chosen::add)
-                        ?.let { key -> PlannedExercise(key, "FOUNDATIONAL_${coverage.name}", gap.reason, 90, targetSets = 2, representedGapCodes = setOf(gap.code)) }
+                        ?.let { key -> PlannedExercise(key, "FOUNDATIONAL_${coverage.name}", gap.reason, 90,
+                            targetSets = if (includePrescriptionDemand) 2 else 0, representedGapCodes = setOf(gap.code)) }
                 }
             }
             val historyKeys = snapshot.allConfirmedSets.mapTo(mutableSetOf(), PlanningSetRecord::stableKey)
@@ -133,7 +141,7 @@ class GapCandidateSelector {
             selectedKeys.map { key ->
                 chosen += key
                 val priority = when (gap.priority) { "HIGH" -> 100; "MEDIUM", "MODERATE" -> 90; else -> 70 }
-                val targetSets = if (snapshot.activityKind(key) in PERFORMANCE_ACTIVITY_KINDS)
+                val targetSets = if (!includePrescriptionDemand) 0 else if (snapshot.activityKind(key) in PERFORMANCE_ACTIVITY_KINDS)
                     PerformancePrescriptionResolver.resolve(snapshot, key)!!.sets.size.coerceAtLeast(2) else 2
                 val supportiveOnly = objective in snapshot.badmintonSupportiveObjectives[key].orEmpty() &&
                     objective !in snapshot.badmintonDirectObjectives[key].orEmpty()
@@ -368,7 +376,7 @@ class PersonalizedProgramBuilder(
     /** Scoped experimental authority; kept out of the legacy reflective buildCore seam. */
     private var activeExactPrescriptionAuthorizationProvider: ExactPrescriptionAuthorizationProvider? = null
     /** Optional typed failure translation used only by the production canonical branch. */
-    private var activeCanonicalFailureEmitter: ((StimulusCanonicalEvaluationFailureReason, String?) -> Nothing)? = null
+    private var activeCanonicalFailureEmitter: ((StimulusCanonicalEvaluationFailure) -> Nothing)? = null
 
     internal fun build(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, gaps: List<AdaptationGap>, intent: BlockIntent, horizon: Int, request: ProgramSkeletonRequest, answers: PersonalizedPlanningAnswers, priorDecisionId: String?, explicitWeeklyDays: Boolean = true,
         frequency: PlanningFrequencyProvenance = PlanningFrequencyProvenance(WeeklyDosePlanner().resolve(state, state.anchors.size + gaps.size),
@@ -379,7 +387,7 @@ class PersonalizedProgramBuilder(
         exactPrescriptionAuthorizationProvider: ExactPrescriptionAuthorizationProvider? = null,
         canonicalB5PowerOwnerIdentities: Set<StimulusPrescriptionOwnerIdentity> = emptySet(),
         canonicalB5TaskOwnerIdentitiesWithoutExecutableB6: Set<StimulusPrescriptionOwnerIdentity> = emptySet(),
-        canonicalFailureEmitter: ((StimulusCanonicalEvaluationFailureReason, String?) -> Nothing)? = null): GeneratedProgramSkeleton =
+        canonicalFailureEmitter: ((StimulusCanonicalEvaluationFailure) -> Nothing)? = null): GeneratedProgramSkeleton =
         buildWithArtifacts(snapshot, state, gaps, intent, horizon, request, answers, priorDecisionId, explicitWeeklyDays,
             frequency, progress, materialDemandOverride, regionalTargetPlan, exactPrescriptionAuthorizationProvider,
             canonicalB5PowerOwnerIdentities,
@@ -400,7 +408,7 @@ class PersonalizedProgramBuilder(
         exactPrescriptionAuthorizationProvider: ExactPrescriptionAuthorizationProvider? = null,
         canonicalB5PowerOwnerIdentities: Set<StimulusPrescriptionOwnerIdentity> = emptySet(),
         canonicalB5TaskOwnerIdentitiesWithoutExecutableB6: Set<StimulusPrescriptionOwnerIdentity> = emptySet(),
-        canonicalFailureEmitter: ((StimulusCanonicalEvaluationFailureReason, String?) -> Nothing)? = null): PersonalizedProgramBuildArtifacts {
+        canonicalFailureEmitter: ((StimulusCanonicalEvaluationFailure) -> Nothing)? = null): PersonalizedProgramBuildArtifacts {
         val performanceMetrics = PlannerPerformanceMetrics()
         val memo = PlanningComputationMemo(performanceMetrics)
         val memoSnapshot = memo.wrap(snapshot)
@@ -432,10 +440,10 @@ class PersonalizedProgramBuilder(
             result.items.groupBy { it.weekNumber }.forEach { (week, rows) ->
                 val units = rows.filter { regionalSelectionIdentity(result, it) == owner }.sumOf { it.setPrescriptions.size }
                 if (units > prescription.sets.size) {
-                    canonicalFailureEmitter?.invoke(
+                    canonicalFailureEmitter?.invoke(StimulusCanonicalEvaluationFailure(
                         StimulusCanonicalEvaluationFailureReason.REGIONAL_AUTHORIZATION_FAILURE,
                         "REGIONAL_AUTHORIZATION_OVERRUN"
-                    )
+                    ))
                     check(units <= prescription.sets.size) {
                         "REGIONAL_AUTHORIZATION_OVERRUN: $owner week=$week units=$units authorized=${prescription.sets.size}"
                     }
@@ -447,10 +455,10 @@ class PersonalizedProgramBuilder(
                 val units = rows.filter { it.exerciseStableKey == owner.stableKey && it.selectionRole == owner.selectionRole }
                     .sumOf { it.setPrescriptions.size }
                 if (units > prescription.sets.size) {
-                    canonicalFailureEmitter?.invoke(
+                    canonicalFailureEmitter?.invoke(StimulusCanonicalEvaluationFailure(
                         StimulusCanonicalEvaluationFailureReason.B6_AUTHORIZATION_FAILURE,
                         "B6_AUTHORIZATION_OVERRUN"
-                    )
+                    ))
                     check(units <= prescription.sets.size) {
                         "B6_AUTHORIZATION_OVERRUN: $owner week=$week units=$units authorized=${prescription.sets.size}"
                     }
@@ -555,7 +563,12 @@ class PersonalizedProgramBuilder(
         val schedulingContinuityReference = if (state.trainingStateAssessment?.permitsSustainableRelease == true)
             maxOf(schedulingBaselineResistance, normalResistance ?: schedulingBaselineResistance) else schedulingBaselineResistance
         val schedulingContinuityDemand = schedulingContinuityReference.roundToInt().coerceAtLeast(if (state.anchors.isEmpty()) 0 else 1)
-        val baseDemand = MaterialDemandResolver(generationPrescriptions).resolve(snapshot, state, gaps, request)
+        val baseDemand = MaterialDemandResolver().resolve(
+            snapshot, state, gaps, request,
+            // Preserve the pre-existing legacy comparator's candidate-unit shape. Canonical
+            // EXP/region generation passes false and gets set demand only from exact B6.
+            includeLegacyComparatorCandidateUnits = exactPrescriptionAuthorizationProvider == null && regionalTargetPlan == null
+        )
         val ownedBaseDemand = regionalTargetPlan?.let {
             RegionalMaterialDemandOwnershipFilter.filter(baseDemand, snapshot, state, it.ownedKeys, generationPrescriptions)
         } ?: baseDemand
@@ -572,13 +585,39 @@ class PersonalizedProgramBuilder(
         } else mergedDemand
         val b5SelectedQualityOwners = exactPrescriptionAuthorizationProvider?.b5SelectedQualityOwners.orEmpty()
         val canonicalB5OwnersRequiringExactQualityB6 = b5SelectedQualityOwners + canonicalB5PowerOwnerIdentities
-        val demand = if (regionalTargetPlan == null && exactPrescriptionAuthorizationProvider != null && canonicalB5OwnersRequiringExactQualityB6.isNotEmpty()) {
+        val qualityAuthorityFilteredDemand = if (regionalTargetPlan == null && exactPrescriptionAuthorizationProvider != null && canonicalB5OwnersRequiringExactQualityB6.isNotEmpty()) {
             // Apply the same pre-allocation B6 boundary to every canonical B5 Quality owner,
             // while retaining C21's explicit Power identity source. Filtering only Power let
             // denied Strength/Hypertrophy candidates enter frequency expansion; replacing that
             // source instead of unioning it would reopen the Power fallback.
             filterCanonicalB5DemandWithoutExecutableB6(taskAuthorityFilteredDemand, canonicalB5OwnersRequiringExactQualityB6, exactPrescriptionAuthorizationProvider)
         } else taskAuthorityFilteredDemand
+        // Material-demand is candidate-selection evidence, not permission to invent a dose.
+        // Filter its newly proposed executable candidates before budgets/allocation so they
+        // cannot be resurrected by frequency expansion, reflow, or residual completion.
+        // Canonical EXP/region generation has an explicit execution-authority input. The
+        // late CONTROL comparator intentionally has none and remains a separately built
+        // rollback baseline; do not apply EXP authority filtering to that comparator build.
+        val authorityReresolvedDemand = if (exactPrescriptionAuthorizationProvider != null || regionalTargetPlan != null) {
+            reResolveMaterialDemandCandidatesWithExistingAuthority(
+                qualityAuthorityFilteredDemand, exactPrescriptionAuthorizationProvider, regionalTargetPlan
+            )
+        } else qualityAuthorityFilteredDemand
+        val demand = if (exactPrescriptionAuthorizationProvider != null || regionalTargetPlan != null) {
+            filterMaterialDemandCandidatesWithoutExactExecutionAuthority(
+                authorityReresolvedDemand, exactPrescriptionAuthorizationProvider, regionalTargetPlan
+            )
+        } else authorityReresolvedDemand
+        val materialDemandOriginOwners = demand.candidateOrigins.flatMapTo(linkedSetOf()) { origin ->
+            listOfNotNull(origin.owner, origin.authorityResolution?.finalOwner)
+        }
+        val retainedDemandOwners = demand.candidates.mapTo(linkedSetOf()) {
+            StimulusPrescriptionOwnerIdentity(it.stableKey, it.role)
+        }
+        val deniedMaterialDemandOwners = authorityReresolvedDemand.candidates.asSequence()
+            .map { StimulusPrescriptionOwnerIdentity(it.stableKey, it.role) }
+            .filter { it in materialDemandOriginOwners && it !in retainedDemandOwners }
+            .toSet()
         val materialKeys = demand.candidates.filter(PlannedExercise::material).mapTo(mutableSetOf(), PlannedExercise::stableKey)
         val canonicalB5StableKeys = if (regionalTargetPlan == null) {
             materialDemandOverride?.candidates?.mapTo(linkedSetOf(), PlannedExercise::stableKey).orEmpty()
@@ -599,6 +638,9 @@ class PersonalizedProgramBuilder(
                     snapshot.activityKind(it.stableKey) != PlannedActivityKind.STRUCTURED_BADMINTON_DRILL)
         }.groupBy(PlanningSetRecord::stableKey).filterValues { rows -> rows.map(PlanningSetRecord::date).distinct().size >= 2 }
             .mapNotNull { (key, rows) ->
+                if (StimulusPrescriptionOwnerIdentity(key, "PERFORMANCE_CONTINUITY") in deniedMaterialDemandOwners) {
+                    return@mapNotNull null
+                }
                 PerformancePrescriptionResolver.resolve(snapshot, key) ?: return@mapNotNull null
                 if (key in state.recoverySignals.tissueRestrictedStableKeys) return@mapNotNull null
                 val weeks = rows.map { it.date.get(java.time.temporal.IsoFields.WEEK_OF_WEEK_BASED_YEAR) }.distinct().size.coerceAtLeast(1)
@@ -702,6 +744,7 @@ class PersonalizedProgramBuilder(
         val continuity = (authorizedOverride?.filter { it.continuity }?.map { it.item } ?: (continuityPlanner.select(state, transitions, allocations, days) +
             performanceContinuity.mapNotNull { item -> incumbentAllocations[item.stableKey]?.let { item.copy(targetSets = it) } }))
             .filterNot { it.stableKey in canonicalB5StableKeys }
+            .filterNot { StimulusPrescriptionOwnerIdentity(it.stableKey, it.role) in deniedMaterialDemandOwners }
             .filter(::isExecutableOwner)
         val executableOwnerIdentities = materialCandidates.filter(::isExecutableOwner)
             .mapTo(linkedSetOf()) { StimulusPrescriptionOwnerIdentity(it.stableKey, it.role) }
@@ -763,12 +806,15 @@ class PersonalizedProgramBuilder(
                 PrescriptionAuthoritySource.EXPERIMENTAL_MATERIAL_AUTHORIZED
             } else PrescriptionAuthoritySource.REGIONAL_TARGET_AUTHORIZED)
         val retained = retainedIncumbentSupply(snapshot, state, gaps, request, candidates, generationPrescriptions)
-        if (selected.isEmpty() && excludedConflictingOwners.isEmpty()) {
-            activeCanonicalFailureEmitter?.invoke(
-                StimulusCanonicalEvaluationFailureReason.NO_EXECUTABLE_PLANNING_DEMAND,
-                null
+        if (selected.isEmpty() && excludedConflictingOwners.isEmpty() &&
+            (exactPrescriptionAuthorizationProvider != null || regionalTargetPlan != null)) {
+            val failure = StimulusCanonicalEvaluationFailure(
+                reason = StimulusCanonicalEvaluationFailureReason.NO_EXECUTABLE_PLANNING_DEMAND,
+                unresolvedMaterialDemandGaps = demand.unresolvedGapCodes,
+                materialDemandAuthorityResolutions = demand.candidateOrigins.mapNotNull { it.authorityResolution }
             )
-            require(selected.isNotEmpty()) { "NO_EXECUTABLE_PLANNING_DEMAND" }
+            activeCanonicalFailureEmitter?.invoke(failure)
+            throw failure
         }
         progress.report(PersonalizedPlannerStage.PLACEMENT)
         val allocator = SplitAwareContinuityAllocation(generationPrescriptions, progress, placementContext, performanceMetrics)
@@ -803,15 +849,31 @@ class PersonalizedProgramBuilder(
                     is ExactOwnerPrescriptionResolution.Authorized ->
                         listOf(AuthorizedSchedulingDemand("authorized_$index", item, resolution.prescription, index < continuity.size))
                     ExactOwnerPrescriptionResolution.NoExecutableAuthority -> emptyList()
-                    ExactOwnerPrescriptionResolution.NoExactAuthority ->
-                        listOf(AuthorizedSchedulingDemand(
-                            "authorized_$index", item,
-                            generationPrescriptions.prescribe(snapshot, state.strengthIntent, item, item.style),
-                            index < continuity.size
-                        ))
+                    // Candidate selection and placement demand do not grant prescription
+                    // authority. New rows originating in material demand were already removed
+                    // before allocation and must never reach a generic executable fallback.
+                    // Preserve the established non-material-demand continuity path, which is
+                    // neither a new coverage row nor authority for a material-demand candidate.
+                    ExactOwnerPrescriptionResolution.NoExactAuthority -> if (
+                        StimulusPrescriptionOwnerIdentity(item.stableKey, item.role) in materialDemandOriginOwners
+                    ) emptyList() else listOf(AuthorizedSchedulingDemand(
+                        "authorized_$index", item,
+                        generationPrescriptions.prescribe(snapshot, state.strengthIntent, item, item.style),
+                        index < continuity.size
+                    ))
                 }
             }
         } else null
+        if (exactAuthorized != null && exactAuthorized.isEmpty() && excludedConflictingOwners.isEmpty()) {
+            val unresolvedFailure = StimulusCanonicalEvaluationFailure(
+                reason = StimulusCanonicalEvaluationFailureReason.NO_EXECUTABLE_PLANNING_DEMAND,
+                detailCode = "EXACT_PRESCRIPTION_AUTHORITY_REQUIRED",
+                unresolvedMaterialDemandGaps = demand.unresolvedGapCodes,
+                materialDemandAuthorityResolutions = demand.candidateOrigins.mapNotNull { it.authorityResolution }
+            )
+            activeCanonicalFailureEmitter?.invoke(unresolvedFailure)
+            throw unresolvedFailure
+        }
         val placement = when {
             authorizedOverride != null -> allocator.allocateAuthorized(snapshot, state, authorizedOverride, days, request.sessionMinutes, request)
             regionalAuthorized != null -> allocator.allocateAuthorized(snapshot, state, regionalAuthorized, days, request.sessionMinutes, request)
@@ -840,11 +902,22 @@ class PersonalizedProgramBuilder(
             }
             fun exactState(template: OwnerAllocationState?, count: Int, item: PlannedExercise?, accepted: PlannedPrescription?): OwnerAllocationState? {
                 if (template == null || item == null) return template
-                val authorizedKeys = exactPrescriptionAuthorizationProvider?.authorizedPrescriptions?.keys.orEmpty()
-                    .filter { it.owner == event.owner }
-                val prescription = if (authorizedKeys.isNotEmpty()) {
-                    exactPrescriptionAuthorizationProvider?.authorizedPrescriptionFor(item.copy(targetSets = count), count)
-                } else generationPrescriptions.prescribe(snapshot, state.strengthIntent, item.copy(targetSets = count), item.style)
+                val requested = item.copy(targetSets = count)
+                val prescription = when {
+                    requested.taskProtocolAuthorization != null ->
+                        generationPrescriptions.prescribe(snapshot, state.strengthIntent, requested, requested.style)
+                    exactPrescriptionAuthorizationProvider != null -> when (
+                        val resolution = exactPrescriptionAuthorizationProvider.resolveOwnerPrescription(requested)
+                    ) {
+                        is ExactOwnerPrescriptionResolution.Authorized -> resolution.prescription
+                        is ExactOwnerPrescriptionResolution.PreserveIncumbent -> resolution.prescription
+                        ExactOwnerPrescriptionResolution.ExcludeConflictingAddition,
+                        ExactOwnerPrescriptionResolution.NoExecutableAuthority,
+                        ExactOwnerPrescriptionResolution.NoExactAuthority -> null
+                    }
+                    regionalTargetPlan != null -> regionalTargetPlan.authorizedPrescriptionFor(requested, count)
+                    else -> generationPrescriptions.prescribe(snapshot, state.strengthIntent, requested, requested.style)
+                }
                 val resolved = accepted ?: prescription
                 return template.copy(setCount = count, setPrescriptions = resolved?.sets.orEmpty(),
                     prescription = resolved?.text, selectionRole = event.owner.selectionRole)
@@ -960,7 +1033,9 @@ class PersonalizedProgramBuilder(
                         owners.sumOf(PlannedExercise::targetSets) > firstWeek.filter { it.exerciseStableKey == key }.sumOf(ProgramSkeletonItem::setCount)
                     }.keys + placementDeferred.mapTo(linkedSetOf()) { it.item.stableKey },
                 ownerAllocationProvenance = (materialOwnerProvenance + exactFiniteOwnerProvenance + placementOwnerProvenance + repairResult.ownerAllocationProvenance)
-                    .map { it.withExactAuthority(exactPrescriptionAuthorizationProvider) }.deterministicOwnerOrder()
+                    .map { it.withExactAuthority(exactPrescriptionAuthorizationProvider) }.deterministicOwnerOrder(),
+                materialDemandCandidateOrigins = demand.candidateOrigins,
+                unresolvedMaterialDemandGaps = demand.unresolvedGapCodes
             )
         )
         val fingerprint = personalizedProgramFingerprint(repaired.request, repaired.items)
@@ -1096,7 +1171,14 @@ private fun mergeTypedMaterialDemand(base: MaterialDemand, experimental: Materia
     return MaterialDemand(
         candidates = merged.values.toList(),
         deferred = base.deferred + experimental.deferred,
-        audit = base.audit + experimental.audit
+        audit = base.audit + experimental.audit,
+        ownerAllocationProvenance = (base.ownerAllocationProvenance + experimental.ownerAllocationProvenance).distinct()
+            .deterministicOwnerOrder(),
+        candidateOrigins = (base.candidateOrigins + experimental.candidateOrigins).distinct().sortedWith(compareBy(
+            { it.owner.stableKey }, { it.owner.selectionRole }, { it.gapCodes.sorted().joinToString("|") }
+        )),
+        candidateAlternatives = (base.candidateAlternatives + experimental.candidateAlternatives).distinct(),
+        unresolvedGapCodes = base.unresolvedGapCodes + experimental.unresolvedGapCodes
     )
 }
 
@@ -1110,12 +1192,226 @@ internal fun personalizedProgramFingerprint(request: ProgramSkeletonRequest, ite
     return MessageDigest.getInstance("SHA-256").digest(source.toByteArray()).joinToString("") { "%02x".format(it) }
 }
 
-private fun mergeCanonicalMaterialDemand(base: MaterialDemand, canonical: MaterialDemand): MaterialDemand {
+internal fun mergeCanonicalMaterialDemand(base: MaterialDemand, canonical: MaterialDemand): MaterialDemand {
     val canonicalKeys = canonical.candidates.mapTo(linkedSetOf(), PlannedExercise::stableKey)
     return MaterialDemand(
         candidates = base.candidates.filterNot { it.stableKey in canonicalKeys } + canonical.candidates,
         deferred = base.deferred + canonical.deferred,
-        audit = base.audit + canonical.audit
+        audit = base.audit + canonical.audit,
+        ownerAllocationProvenance = (base.ownerAllocationProvenance + canonical.ownerAllocationProvenance).distinct()
+            .deterministicOwnerOrder(),
+        candidateOrigins = (base.candidateOrigins + canonical.candidateOrigins).distinct().sortedWith(compareBy(
+            { it.owner.stableKey }, { it.owner.selectionRole }, { it.gapCodes.sorted().joinToString("|") }
+        )),
+        candidateAlternatives = (base.candidateAlternatives + canonical.candidateAlternatives).distinct(),
+        unresolvedGapCodes = base.unresolvedGapCodes + canonical.unresolvedGapCodes
+    )
+}
+
+internal enum class MaterialDemandExecutionDeferral(val reasonCode: String) {
+    NO_EXACT_EXECUTABLE_PRESCRIPTION_AUTHORITY("MATERIAL_DEMAND_NO_EXACT_EXECUTABLE_PRESCRIPTION_AUTHORITY"),
+    NO_SUPPORTED_AUTHORIZED_OWNER_AFTER_RESELECTION("MATERIAL_DEMAND_NO_SUPPORTED_AUTHORIZED_OWNER_AFTER_RESELECTION")
+}
+
+private fun exactMaterialDemandPrescription(
+    candidate: PlannedExercise,
+    provider: ExactPrescriptionAuthorizationProvider?,
+    regionalTargetPlan: RegionalExperimentalTargetPlan?
+): PlannedPrescription? {
+    regionalTargetPlan?.authorizedPrescriptionFor(candidate)?.let { return it }
+    return when (val resolution = provider?.resolveOwnerPrescription(candidate)) {
+        is ExactOwnerPrescriptionResolution.Authorized -> resolution.prescription
+        is ExactOwnerPrescriptionResolution.PreserveIncumbent -> resolution.prescription
+        ExactOwnerPrescriptionResolution.ExcludeConflictingAddition,
+        ExactOwnerPrescriptionResolution.NoExecutableAuthority,
+        ExactOwnerPrescriptionResolution.NoExactAuthority,
+        null -> null
+    }
+}
+
+private fun hasExactMaterialDemandExecutionAuthority(
+    candidate: PlannedExercise,
+    provider: ExactPrescriptionAuthorizationProvider?,
+    regionalTargetPlan: RegionalExperimentalTargetPlan?
+): Boolean {
+    val identity = StimulusPrescriptionOwnerIdentity(candidate.stableKey, candidate.role)
+    val taskGrant = candidate.taskProtocolAuthorization
+    if (taskGrant != null) {
+        val definition = taskGrant.definition
+        return taskGrant.status == TaskProtocolB6Status.AUTHORIZED_APPROVED_TASK_PROTOCOL &&
+            definition.provenance == TaskProtocolPolicyProvenance.USER_APPROVED_PROJECT_POLICY &&
+            ApprovedBadmintonTaskProtocols.exact(identity.stableKey, identity.selectionRole,
+                definition.primaryTask) == definition &&
+            definition.stableKey == identity.stableKey && definition.selectionRole == identity.selectionRole &&
+            taskGrant.attributedTasks.isNotEmpty() && taskGrant.attributedTasks.all { it in definition.authorizedTasks &&
+                taskGrant.transferEvidence[it] == com.training.trackplanner.analysis.badminton.BadmintonObjectiveTransferLevel.DIRECT
+            }
+    }
+    // An exact quality prescription is usable for a material-demand candidate only when B5
+    // selected that same owner identity. A compatible prescription from another selection path
+    // cannot silently convert a candidate into a B5-owned executable row.
+    if (regionalTargetPlan == null && identity !in provider?.b5SelectedQualityOwners.orEmpty()) return false
+    return exactMaterialDemandPrescription(candidate, provider, regionalTargetPlan) != null
+}
+
+/**
+ * First return a denied material-demand candidate to the existing finite candidate selector.
+ * Only an alternative with exact authority for its full owner identity and all original gap
+ * codes can replace it. This lookup carries no dose authority and cannot invent a fallback.
+ */
+internal fun reResolveMaterialDemandCandidatesWithExistingAuthority(
+    demand: MaterialDemand,
+    provider: ExactPrescriptionAuthorizationProvider?,
+    regionalTargetPlan: RegionalExperimentalTargetPlan? = null
+): MaterialDemand {
+    if (demand.candidateOrigins.isEmpty()) return demand
+    val candidates = demand.candidates.toMutableList()
+    val updatedOrigins = demand.candidateOrigins.map { origin ->
+        val original = candidates.firstOrNull {
+            StimulusPrescriptionOwnerIdentity(it.stableKey, it.role) == origin.owner
+        } ?: return@map origin
+        if (hasExactMaterialDemandExecutionAuthority(original, provider, regionalTargetPlan)) {
+            exactMaterialDemandPrescription(original, provider, regionalTargetPlan)?.let { exact ->
+                if (original.targetSets <= 0) {
+                    val index = candidates.indexOfFirst { StimulusPrescriptionOwnerIdentity(it.stableKey, it.role) == origin.owner }
+                    if (index >= 0) candidates[index] = original.copy(targetSets = exact.sets.size)
+                }
+            }
+            return@map origin.copy(authorityResolution = ExecutionAuthorityResolution(
+                status = ExecutionAuthorityResolutionStatus.READY,
+                reason = ExecutionAuthorityResolutionReason.EXACT_AUTHORITY_AVAILABLE,
+                returnTarget = ExecutionAuthorityReturnTarget.NONE,
+                originalOwner = origin.owner,
+                attemptedOwners = listOf(origin.owner),
+                finalOwner = origin.owner
+            ))
+        }
+
+        val b6Recovery = provider?.executionAuthorityResolutions?.get(origin.owner)
+        // B6's typed return target takes precedence. Re-selection can resolve only an owner
+        // identity problem; it cannot manufacture a missing B4 target, history reference, or load.
+        if (b6Recovery != null && b6Recovery.status !in setOf(
+                ExecutionAuthorityResolutionStatus.NEEDS_OWNER_RESELECTION,
+                ExecutionAuthorityResolutionStatus.READY
+            )) {
+            val typedRecovery = b6Recovery.copy(
+                originalOwner = origin.owner,
+                attemptedOwners = (b6Recovery.attemptedOwners + origin.owner).distinct()
+            )
+            return@map origin.copy(authorityResolution = typedRecovery)
+        }
+
+        val attempted = linkedSetOf<StimulusPrescriptionOwnerIdentity>().apply {
+            addAll(b6Recovery?.attemptedOwners.orEmpty())
+            add(origin.owner)
+        }
+        var replacement: PlannedExercise? = null
+        for (alternative in demand.candidateAlternatives) {
+            if (!alternative.gapCodes.containsAll(origin.gapCodes)) continue
+            val candidate = alternative.candidate
+            val identity = StimulusPrescriptionOwnerIdentity(candidate.stableKey, candidate.role)
+            if (!attempted.add(identity)) continue
+            if (hasExactMaterialDemandExecutionAuthority(candidate, provider, regionalTargetPlan)) {
+                val exact = exactMaterialDemandPrescription(candidate, provider, regionalTargetPlan)
+                replacement = candidate.copy(targetSets = exact?.sets?.size?.takeIf { candidate.targetSets <= 0 } ?: candidate.targetSets)
+                break
+            }
+        }
+
+        if (replacement != null) {
+            candidates.removeAll { StimulusPrescriptionOwnerIdentity(it.stableKey, it.role) == origin.owner }
+            val replacementIdentity = StimulusPrescriptionOwnerIdentity(replacement.stableKey, replacement.role)
+            val existingIndex = candidates.indexOfFirst {
+                StimulusPrescriptionOwnerIdentity(it.stableKey, it.role) == replacementIdentity
+            }
+            if (existingIndex >= 0) {
+                val existing = candidates[existingIndex]
+                candidates[existingIndex] = existing.copy(
+                    representedGapCodes = existing.representedGapCodes + replacement.representedGapCodes
+                )
+            } else {
+                candidates += replacement
+            }
+            origin.copy(authorityResolution = ExecutionAuthorityResolution(
+                status = ExecutionAuthorityResolutionStatus.READY,
+                reason = ExecutionAuthorityResolutionReason.EXACT_AUTHORITY_AVAILABLE,
+                returnTarget = ExecutionAuthorityReturnTarget.MATERIAL_DEMAND_CANDIDATE_SELECTION,
+                originalOwner = origin.owner,
+                attemptedOwners = attempted.toList(),
+                finalOwner = replacementIdentity
+            ))
+        } else {
+            origin.copy(authorityResolution = ExecutionAuthorityResolution(
+                status = ExecutionAuthorityResolutionStatus.NO_SUPPORTED_AUTHORITY,
+                reason = ExecutionAuthorityResolutionReason.OWNER_CANDIDATES_EXHAUSTED,
+                returnTarget = ExecutionAuthorityReturnTarget.MATERIAL_DEMAND_CANDIDATE_SELECTION,
+                originalOwner = origin.owner,
+                attemptedOwners = attempted.toList()
+            ))
+        }
+    }
+    val unresolvedGaps = updatedOrigins.asSequence()
+        .filter { it.authorityResolution?.status != null &&
+            it.authorityResolution.status != ExecutionAuthorityResolutionStatus.READY }
+        .flatMap { it.gapCodes.asSequence() }
+        .toSet()
+    val unresolvedOwners = updatedOrigins.filter {
+        it.authorityResolution?.status == ExecutionAuthorityResolutionStatus.NO_SUPPORTED_AUTHORITY
+    }.associate { origin ->
+        "${origin.owner.stableKey}#${origin.owner.selectionRole}" to
+            MaterialDemandExecutionDeferral.NO_SUPPORTED_AUTHORIZED_OWNER_AFTER_RESELECTION.reasonCode
+    }
+    return demand.copy(
+        candidates = candidates,
+        deferred = demand.deferred + unresolvedOwners,
+        audit = demand.audit + unresolvedOwners,
+        candidateOrigins = updatedOrigins,
+        unresolvedGapCodes = demand.unresolvedGapCodes + unresolvedGaps
+    )
+}
+
+/**
+ * Material-demand candidates can remain in origin diagnostics, but only an exact B6 grant,
+ * an explicitly preserved incumbent, or an exact C24 Task B6 grant may cross into scheduling.
+ * This runs before allocation so later frequency/completion stages receive no denied candidate.
+ */
+internal fun filterMaterialDemandCandidatesWithoutExactExecutionAuthority(
+    demand: MaterialDemand,
+    provider: ExactPrescriptionAuthorizationProvider?,
+    regionalTargetPlan: RegionalExperimentalTargetPlan? = null
+): MaterialDemand {
+    val originatedOwners = demand.candidateOrigins.flatMapTo(linkedSetOf()) { origin ->
+        listOfNotNull(origin.owner, origin.authorityResolution?.finalOwner)
+    }
+    if (originatedOwners.isEmpty()) return demand
+
+    val deferredOwners: Set<StimulusPrescriptionOwnerIdentity> = demand.candidates.asSequence()
+        .filter { StimulusPrescriptionOwnerIdentity(it.stableKey, it.role) in originatedOwners }
+        .filterNot { hasExactMaterialDemandExecutionAuthority(it, provider, regionalTargetPlan) }
+        .map {
+            StimulusPrescriptionOwnerIdentity(it.stableKey, it.role)
+        }
+        .toSortedSet(compareBy<StimulusPrescriptionOwnerIdentity>({ it.stableKey }, { it.selectionRole }))
+    if (deferredOwners.isEmpty()) return demand
+
+    val ownerKeys = deferredOwners.associate { owner ->
+        "${owner.stableKey}#${owner.selectionRole}" to (
+            demand.deferred["${owner.stableKey}#${owner.selectionRole}"]
+                ?: MaterialDemandExecutionDeferral.NO_EXACT_EXECUTABLE_PRESCRIPTION_AUTHORITY.reasonCode)
+    }
+    val stillUnresolvedGaps = demand.candidateOrigins.asSequence()
+        .filter { origin -> origin.owner in deferredOwners || origin.authorityResolution?.finalOwner?.let { it in deferredOwners } == true }
+        .flatMap { it.gapCodes.asSequence() }
+        .toSet()
+    return demand.copy(
+        candidates = demand.candidates.filterNot { candidate ->
+            StimulusPrescriptionOwnerIdentity(candidate.stableKey, candidate.role) in deferredOwners
+        },
+        deferred = demand.deferred + ownerKeys,
+        audit = demand.audit + ownerKeys,
+        unresolvedGapCodes = demand.unresolvedGapCodes + stillUnresolvedGaps
+        // candidateOrigins intentionally remains, so the rejected candidate is diagnosable;
+        // no origin record is copied into accepted executable-mutation provenance.
     )
 }
 

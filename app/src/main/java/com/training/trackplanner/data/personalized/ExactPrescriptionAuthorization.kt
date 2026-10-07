@@ -36,6 +36,10 @@ fun interface ExactPrescriptionAuthorizationProvider {
     val ownerExecutionDispositions: Map<StimulusPrescriptionOwnerIdentity, StimulusPrescriptionOwnerExecutionDisposition>
         get() = emptyMap()
 
+    /** Typed next-step guidance from B6 when an exact owner was considered but not executable. */
+    val executionAuthorityResolutions: Map<StimulusPrescriptionOwnerIdentity, ExecutionAuthorityResolution>
+        get() = emptyMap()
+
     /** Exact B5-selected Quality owners, including those for which B6 denied executable authority. */
     val b5SelectedQualityOwners: Set<StimulusPrescriptionOwnerIdentity>
         get() = emptySet()
@@ -49,6 +53,48 @@ fun interface ExactPrescriptionAuthorizationProvider {
             it.status == StimulusMultiQualityPrescriptionResolutionStatus.CONFLICTING_MULTI_QUALITY_AUTHORITY
         }.keys
 }
+
+enum class ExecutionAuthorityResolutionStatus {
+    READY,
+    NEEDS_TARGET_RESOLUTION,
+    NEEDS_OWNER_RESELECTION,
+    NEEDS_REFERENCE_RESOLUTION,
+    NEEDS_LOAD_INPUT,
+    USER_INPUT_REQUIRED,
+    NO_SUPPORTED_AUTHORITY
+}
+
+enum class ExecutionAuthorityReturnTarget {
+    B4_TARGET_RESOLUTION,
+    B5_OWNER_SELECTION,
+    MATERIAL_DEMAND_CANDIDATE_SELECTION,
+    HISTORY_REFERENCE_RESOLUTION,
+    EXPLICIT_USER_INPUT,
+    NONE
+}
+
+enum class ExecutionAuthorityResolutionReason {
+    EXACT_AUTHORITY_AVAILABLE,
+    EXACT_OWNER_NOT_SELECTED,
+    B4_NUMERIC_AUTHORITY_MISSING,
+    CANONICAL_REFERENCE_UNAVAILABLE,
+    RESISTANCE_LOAD_UNAVAILABLE,
+    HYPERTROPHY_NUMERIC_AUTHORITY_UNAVAILABLE,
+    AMBIGUOUS_OWNER,
+    OWNER_CANDIDATES_EXHAUSTED,
+    NO_EXECUTABLE_AUTHORIZATION,
+    UNSUPPORTED_PRESCRIPTION_AUTHORITY
+}
+
+/** Typed recovery path; it never grants prescription authority by itself. */
+data class ExecutionAuthorityResolution(
+    val status: ExecutionAuthorityResolutionStatus,
+    val reason: ExecutionAuthorityResolutionReason,
+    val returnTarget: ExecutionAuthorityReturnTarget,
+    val originalOwner: StimulusPrescriptionOwnerIdentity? = null,
+    val attemptedOwners: List<StimulusPrescriptionOwnerIdentity> = emptyList(),
+    val finalOwner: StimulusPrescriptionOwnerIdentity? = null
+)
 
 /** Typed owner lookup keeps a known conflict distinct from an ordinary missing authority row. */
 internal sealed interface ExactOwnerPrescriptionResolution {

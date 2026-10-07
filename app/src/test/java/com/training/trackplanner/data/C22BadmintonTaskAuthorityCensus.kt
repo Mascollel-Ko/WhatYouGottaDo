@@ -58,16 +58,15 @@ internal object C22BadmintonTaskAuthorityCensus {
             }
             aggregate["generatedCases"] = aggregate.getValue("generatedCases") + 1
             val comparison = result.comparison
-            requireNotNull(comparison) { "${spec.label}: production comparison missing" }
             val planning = requireNotNull(planningByCase[spec.label]) { "${spec.label}: B1-B4 planning missing" }
             val context = requireNotNull(contextByCase[spec.label]) { "${spec.label}: prepared source context missing" }
-            val taskTargets = comparison.targetPlan.taskTargets.associateBy { it.task }
+            val taskTargets = (comparison?.targetPlan ?: planning.targetPlan).taskTargets.associateBy { it.task }
             val taskNeeds = planning.athleteStimulusNeedProfile.sportTaskNeeds.associateBy { it.task }
             val taskDecisions = planning.decisionPortfolio.taskDecisions.associateBy { it.task }
-            val selectedTaskOwners = comparison.selectionPlan.selectedCandidates
+            val selectedTaskOwners = comparison?.selectionPlan?.selectedCandidates.orEmpty()
                 .filter { candidate -> candidate.coveredTargetIds.any { it.startsWith("TASK:") } }
                 .sortedWith(compareBy({ it.stableKey }, { it.selectionRole }))
-            if (selectedTaskOwners.isNotEmpty() && comparison.experimentalReadinessAudit?.status ==
+            if (selectedTaskOwners.isNotEmpty() && comparison?.experimentalReadinessAudit?.status ==
                 StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW) {
                 aggregate["b7EligibleTaskCases"] = aggregate.getValue("b7EligibleTaskCases") + 1
             }
@@ -103,10 +102,11 @@ internal object C22BadmintonTaskAuthorityCensus {
                         .put("reasonCodes", JSONArray(it.reasonCodes.sorted()))
                     } ?: JSONObject.NULL)
                     .put("b5SelectedOwners", JSONArray(owners.map { candidate ->
-                        ownerTaskJson(spec.label, task, candidate, context, relationCatalog, comparison)
+                        ownerTaskJson(spec.label, task, candidate, context, relationCatalog,
+                            requireNotNull(comparison))
                     }))
                     .put("taskB6Authority", "NO_TASK_SPECIFIC_B6_AUTHORITY_MODEL")
-                    .put("taskOutcome", comparison.experimentalReadinessAudit?.targetOutcomes
+                    .put("taskOutcome", comparison?.experimentalReadinessAudit?.targetOutcomes
                         ?.firstOrNull { it.targetId == "TASK:$task" }?.let { outcome -> JSONObject()
                             .put("status", outcome.status.name).put("reasonCodes", JSONArray(outcome.reasonCodes.sorted()))
                         } ?: JSONObject.NULL)
@@ -144,14 +144,15 @@ internal object C22BadmintonTaskAuthorityCensus {
                             aggregate["blockedRange"] = aggregate.getValue("blockedRange") + 1
                         }
                     }
-                    ownerRows += ownerTaskJson(spec.label, task, candidate, context, relationCatalog, comparison)
+                    ownerRows += ownerTaskJson(spec.label, task, candidate, context, relationCatalog,
+                        requireNotNull(comparison))
                 }
             }
 
             val selectedIdentities = selectedTaskOwners.mapTo(linkedSetOf()) {
                 StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole)
             }
-            comparison.experimental.items
+            comparison?.experimental?.items.orEmpty()
                 .filter { it.selectionRole.startsWith("CANONICAL_STIMULUS_TASK_") }
                 // C22 measured whether its legacy fallbacks survived the exact B6 filter. C24
                 // governed task-protocol rows are new authority and must not be mislabeled as
@@ -186,16 +187,19 @@ internal object C22BadmintonTaskAuthorityCensus {
                     .put("probeCompatibility", it.probePrescriptionCompatibility.name)
                     .put("targetSetsFromExistingPrescription", it.targetSetsFromExistingPrescription)
                 }))
-                .put("b7", JSONObject().put("eligible", result.comparison.experimentalReadinessAudit?.status?.name)
-                    .put("reasonCodes", JSONArray(result.comparison.experimentalReadinessAudit?.reasonCodes.orEmpty().sorted()))
-                    .put("targetOutcomes", JSONArray(result.comparison.experimentalReadinessAudit?.targetOutcomes.orEmpty()
+                .put("generationEvaluation", if (comparison == null) "CONTROL_FALLBACK_NO_EXECUTABLE_EXP_MATERIAL" else "COMPARISON_AVAILABLE")
+                .put("upstreamFailureReason", result.upstreamFailureReason)
+                .put("upstreamFailureDetails", JSONArray(result.upstreamFailureDetails))
+                .put("b7", JSONObject().put("eligible", comparison?.experimentalReadinessAudit?.status?.name)
+                    .put("reasonCodes", JSONArray(comparison?.experimentalReadinessAudit?.reasonCodes.orEmpty().sorted()))
+                    .put("targetOutcomes", JSONArray(comparison?.experimentalReadinessAudit?.targetOutcomes.orEmpty()
                         .sortedBy { it.targetId }.map { outcome -> JSONObject()
                             .put("targetId", outcome.targetId).put("status", outcome.status.name)
                             .put("reasonCodes", JSONArray(outcome.reasonCodes.sorted()))
                         })))
-                .put("b8", JSONObject().put("status", result.comparison.productionCutoverAuthority?.status?.name)
-                    .put("scope", result.comparison.productionCutoverAuthority?.scope?.name)
-                    .put("reasonCodes", JSONArray(result.comparison.productionCutoverAuthority?.reasonCodes.orEmpty().sorted())))
+                .put("b8", JSONObject().put("status", comparison?.productionCutoverAuthority?.status?.name)
+                    .put("scope", comparison?.productionCutoverAuthority?.scope?.name)
+                    .put("reasonCodes", JSONArray(comparison?.productionCutoverAuthority?.reasonCodes.orEmpty().sorted())))
                 .put("route", result.routeDecision.selectedSource.name)
                 .put("buildAccounting", JSONObject()
                     .put("CONTROL", result.buildCounts.controlBuilds)

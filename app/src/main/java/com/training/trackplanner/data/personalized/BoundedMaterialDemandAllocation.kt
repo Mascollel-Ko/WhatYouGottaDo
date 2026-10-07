@@ -44,7 +44,7 @@ data class BoundedMaterialAllocationTrace(val totalCapacity: Int, val totalLegit
 internal class BoundedMaterialDemandAllocation(snapshot: PlanningHistorySnapshot, state: AthletePlanningState,
     request: ProgramSkeletonRequest, items: List<PlannedExercise>, regional: RegionalExperimentalTargetPlan,
     prescriptions: PersonalizedPrescriptionPlanner, capacity: Int, continuityDemand: Int, coreReserve: Int,
-    private val canonicalFailureEmitter: ((StimulusCanonicalEvaluationFailureReason, String?) -> Nothing)? = null) {
+    private val canonicalFailureEmitter: ((StimulusCanonicalEvaluationFailure) -> Nothing)? = null) {
     private val originals = items.mapIndexed { index, item ->
         val regionalRx = regional.authorizedPrescriptionBySelectionRole[RegionalSelectionIdentity(item.stableKey, item.role)]
         val rx = regionalRx ?: prescriptions.prescribe(snapshot, state.strengthIntent, item, item.style)
@@ -115,10 +115,10 @@ internal class BoundedMaterialDemandAllocation(snapshot: PlanningHistorySnapshot
     }
     fun prescriptionFor(item: PlannedExercise): PlannedPrescription = requireNotNull(selectedPrescriptions[MaterialDemandOwner.of(item)]).also {
         if (it.sets.size != item.targetSets) {
-            canonicalFailureEmitter?.invoke(
+            canonicalFailureEmitter?.invoke(StimulusCanonicalEvaluationFailure(
                 StimulusCanonicalEvaluationFailureReason.MATERIAL_AUTHORIZATION_FAILURE,
                 "MATERIAL_AUTHORIZATION_QUANTITY_MISMATCH"
-            )
+            ))
             require(it.sets.size == item.targetSets) { "MATERIAL_AUTHORIZATION_QUANTITY_MISMATCH" }
         }
     }

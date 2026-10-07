@@ -40,15 +40,19 @@ class StimulusProductionQualityAuditTest {
         assertEquals(4, hypertrophy.size)
         (strength + hypertrophy).forEach { auditC7Case(it) }
 
-        val fallback = runRealCase(CorpusSpec("strength_without_reviewed_history", TrainableQuality.STRENGTH, "barbell_back_squat", withHistory = false))
-        assertEquals(StimulusProductionProgramSource.CONTROL, fallback.production.routeDecision.selectedSource)
-        assertFalse(fallback.production.routeDecision.productionRoutingActive)
-        assertNull(StimulusProductionMaterialScopeResolver().resolve(fallback.comparison))
-        assertEquals(1, fallback.production.buildCounts.controlBuilds)
-        assertEquals(1, fallback.production.buildCounts.experimentalBuilds)
-        assertEquals(2, fallback.production.buildCounts.totalBuildInvocations)
-        assertEquals(0, fallback.production.buildCounts.thirdBuilds)
-        println("B14.1 FALLBACK\n${StimulusProductionAuditReport.render(fallback)}")
+        val fallback = runRealEvaluation(
+            CorpusSpec("strength_without_reviewed_history", TrainableQuality.STRENGTH, "barbell_back_squat", withHistory = false)
+        )
+        assertEquals(StimulusProductionProgramSource.CONTROL, fallback.routeDecision.selectedSource)
+        assertFalse(fallback.routeDecision.productionRoutingActive)
+        assertNull("no executable comparison may be built when all exact authority paths are exhausted", fallback.comparison)
+        assertTrue("unresolved needs must remain visible", fallback.unresolvedMaterialDemandGaps.isNotEmpty())
+        assertTrue("authority failures must be typed", fallback.materialDemandAuthorityResolutions.isNotEmpty())
+        assertEquals(1, fallback.buildCounts.controlBuilds)
+        assertEquals(1, fallback.buildCounts.experimentalBuilds)
+        assertEquals(2, fallback.buildCounts.totalBuildInvocations)
+        assertEquals(0, fallback.buildCounts.thirdBuilds)
+        println("C28 UNRESOLVED FALLBACK\nroute=${fallback.routeDecision}; gaps=${fallback.unresolvedMaterialDemandGaps}; recovery=${fallback.materialDemandAuthorityResolutions}")
     }
 
     @Test
@@ -94,8 +98,17 @@ class StimulusProductionQualityAuditTest {
                 reasonCodes = emptyList()
             )
         )
-        assertNull("C7 scope resolution must reject a combined target with incomplete owner provenance", resolver.resolve(combined))
-        assertEquals(StimulusProductionScopeResolutionStatus.PARTIAL_PROVENANCE, resolver.resolveDetailed(combined).status)
+        assertEquals(
+            "scope resolution describes claimed material scope; B8 must still verify an exact owner for each target",
+            StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1,
+            resolver.resolve(combined)
+        )
+        val combinedB8 = StimulusProductionCutoverAuthorityAuditEngine().audit(
+            combined,
+            StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1
+        )
+        assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, combinedB8.status)
+        assertTrue("combined target without an exact Strength owner remains blocked", combinedB8.authorizedOwnerIdentities.isEmpty())
         val combinedAuthority = StimulusProductionCutoverAuthorityDecision(
             status = StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER,
             scope = StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1,
@@ -109,14 +122,20 @@ class StimulusProductionQualityAuditTest {
         assertEquals(listOf("B9_B8_COMBINED_SCOPE_NOT_ACTIVE"), combinedRoute.decision.reasonCodes)
 
         val thirdQuality = h.comparison.copy(experimentalReadinessAudit = audit.copy(changeAttributions = listOf(attribution(listOf("QUALITY:HYPERTROPHY", "QUALITY:POWER")))))
-        assertNull(resolver.resolve(thirdQuality))
+        assertEquals(StimulusProductionCutoverScope.HYPERTROPHY_V1, resolver.resolve(thirdQuality))
+        val thirdQualityB8 = StimulusProductionCutoverAuthorityAuditEngine().audit(
+            thirdQuality,
+            StimulusProductionCutoverScope.HYPERTROPHY_V1
+        )
+        assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, thirdQualityB8.status)
+        assertTrue("unsupported Power remains outside the resolved Hypertrophy scope", thirdQualityB8.authorizedOwnerIdentities.isEmpty())
 
         val fullyGovernedPower = unsupported.copy(targetPlan = unsupported.targetPlan.copy(
             qualityTargets = unsupported.targetPlan.qualityTargets.filter { it.quality != TrainableQuality.POWER } +
                 unsupported.targetPlan.qualityTargets.first().copy(quality = TrainableQuality.POWER)
         ))
         val fullyGovernedPowerScope = resolver.resolveDetailed(fullyGovernedPower)
-        assertEquals(StimulusProductionScopeResolutionStatus.PARTIAL_PROVENANCE, fullyGovernedPowerScope.status)
+        assertEquals(StimulusProductionScopeResolutionStatus.UNSUPPORTED_QUALITY, fullyGovernedPowerScope.status)
         assertTrue("UNSUPPORTED_QUALITY_POWER" in fullyGovernedPowerScope.reasonCodes)
         (TrainableQuality.entries - setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY)).forEach { quality ->
             val probe = h.comparison.copy(
@@ -126,12 +145,12 @@ class StimulusProductionQualityAuditTest {
             val detail = resolver.resolveDetailed(probe)
             assertNull(detail.scope)
             assertEquals(setOf(quality), detail.materialQualities)
-            assertEquals(StimulusProductionScopeResolutionStatus.PARTIAL_PROVENANCE, detail.status)
+            assertEquals(StimulusProductionScopeResolutionStatus.UNSUPPORTED_QUALITY, detail.status)
             assertTrue("UNSUPPORTED_QUALITY_${quality.name}" in detail.reasonCodes)
         }
         val unknown = h.comparison.copy(experimentalReadinessAudit = audit.copy(changeAttributions = listOf(attribution(listOf("QUALITY:NOT_A_QUALITY")))))
         assertEquals(setOf("QUALITY:NOT_A_QUALITY"), resolver.resolveDetailed(unknown).unknownTargetIds)
-        assertEquals(StimulusProductionScopeResolutionStatus.PARTIAL_PROVENANCE, resolver.resolveDetailed(unknown).status)
+        assertEquals(StimulusProductionScopeResolutionStatus.UNKNOWN_TARGET, resolver.resolveDetailed(unknown).status)
         assertTrue("UNKNOWN_TARGET_ID" in resolver.resolveDetailed(unknown).reasonCodes)
         val three = fullyGovernedPower.copy(experimentalReadinessAudit = audit.copy(changeAttributions = listOf(attribution(listOf("QUALITY:STRENGTH", "QUALITY:HYPERTROPHY", "QUALITY:POWER")))))
         assertTrue("THIRD_QUALITY_PRESENT" in resolver.resolveDetailed(three).reasonCodes)
@@ -235,7 +254,12 @@ class StimulusProductionQualityAuditTest {
 
         val legacyStrength = runRealCase(CorpusSpec("legacy_strength", TrainableQuality.STRENGTH, "barbell_back_squat"))
         val legacyH = StimulusProductionRouter().route(positiveComparison, authority, StimulusProductionRoutingMode.B8_STRENGTH_V1_ACTIVE)
-        assertEquals(StimulusProductionProgramSource.B8_STRENGTH_V1, legacyStrength.production.routeDecision.selectedSource)
+        assertEquals("unexplained unsupported-coverage removals keep this real service case on CONTROL",
+            StimulusProductionProgramSource.CONTROL, legacyStrength.production.routeDecision.selectedSource)
+        assertEquals(StimulusExperimentalReadinessStatus.NOT_ELIGIBLE,
+            legacyStrength.comparison.experimentalReadinessAudit?.status)
+        assertTrue("the removed coverage owners remain visible to B7",
+            legacyStrength.comparison.experimentalReadinessAudit?.reasonCodes.orEmpty().contains("CHANGE_PROVENANCE_UNCLOSED"))
         assertEquals(StimulusProductionProgramSource.CONTROL, legacyH.decision.selectedSource)
         assertEquals(listOf("B9_B8_SCOPE_MISMATCH"), legacyH.decision.reasonCodes)
     }
@@ -303,7 +327,7 @@ class StimulusProductionQualityAuditTest {
 
     private fun auditSuccessfulCase(case: CorpusCase) {
         val production = case.production
-        val comparison = case.comparison
+        val comparison = requireNotNull(case.comparison)
         val authority = requireNotNull(comparison.productionCutoverAuthority)
         val unexplainedRows = comparison.experimentalReadinessAudit?.changeAttributions.orEmpty()
             .filter { it.source == StimulusExperimentalChangeAttributionSource.UNEXPLAINED }
@@ -389,7 +413,7 @@ class StimulusProductionQualityAuditTest {
     }
 
     private fun auditC7Case(case: CorpusCase) {
-        val comparison = case.comparison
+        val comparison = requireNotNull(case.comparison)
         val targetId = "QUALITY:${case.spec.quality.name}"
         val selected = comparison.selectionPlan.selectedCandidates.filter { targetId in it.coveredTargetIds }
         assertTrue("${case.spec.label}: B4 target did not reach B5", selected.isNotEmpty())
@@ -435,6 +459,16 @@ class StimulusProductionQualityAuditTest {
     }
 
     private suspend fun runRealCase(spec: CorpusSpec): CorpusCase {
+        val production = runRealEvaluation(spec)
+        val comparison = requireNotNull(production.comparison) {
+            "C28 corpus case ${spec.label} has no comparison: route=${production.routeDecision}; " +
+                "upstreamFailure=${production.upstreamFailureReason}; diagnostics=${production.diagnostics}; " +
+                "unresolved=${production.unresolvedMaterialDemandGaps}; recoveries=${production.materialDemandAuthorityResolutions}"
+        }
+        return CorpusCase(spec, production, comparison)
+    }
+
+    private suspend fun runRealEvaluation(spec: CorpusSpec): StimulusProductionGenerationResult {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val db = Room.inMemoryDatabaseBuilder(context, TrainingDatabase::class.java).allowMainThreadQueries().build()
         try {
@@ -499,7 +533,7 @@ class StimulusProductionQualityAuditTest {
                 else -> if (question.id.startsWith("INTERRUPTION_CAUSE_")) "UNKNOWN" else error("Unexpected personalized question: ${question.id}")
             } })
             val production = repository.generatePreparedPersonalizedProgramEvaluation(preflight, answers)
-            return CorpusCase(spec, production, requireNotNull(production.comparison))
+            return production
         } finally { db.close() }
     }
 
@@ -638,7 +672,7 @@ class StimulusProductionQualityAuditTest {
 /** Stable text intended for failed-test output and local review, never persisted or shown in UI. */
 private object StimulusProductionAuditReport {
     fun render(case: StimulusProductionQualityAuditTest.CorpusCase): String {
-        val c = case.comparison
+        val c = requireNotNull(case.comparison)
         val a = c.productionCutoverAuthority
         val materialOwners = a?.authorizedOwnerIdentities.orEmpty().sortedWith(compareBy({ it.stableKey }, { it.selectionRole }))
         val material = c.experimentalReadinessAudit?.changeAttributions.orEmpty().filter { it.stableKey != null && it.selectionRole != null }.sortedWith(compareBy({ it.stableKey }, { it.selectionRole }, { it.source.name }))

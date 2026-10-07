@@ -44,6 +44,7 @@ internal object C20LiveIncumbentStabilityCensus {
         var projectionCalls = 0
         var dayOfiProjectionCalls = 0
         var tissueProjectionCalls = 0
+        var noCurrentCanonicalOwnerRows = 0
 
         targetCases.sorted().forEach { caseId ->
             val result = results.getValue(caseId)
@@ -86,7 +87,29 @@ internal object C20LiveIncumbentStabilityCensus {
                 val role = owner.getString("selectionRole")
                 val live = shadow.rows.singleOrNull {
                     it.owner.stableKey == stableKey && it.owner.selectionRole == role && it.week == week
-                } ?: error("$caseId missing live feasibility row $stableKey#$role week $week")
+                }
+                if (live == null) {
+                    // C28 can correctly suppress an old coverage incumbent when the current
+                    // generation has no exact executable prescription authority for it. Such
+                    // an owner has no current placement to preserve or feasibility to evaluate.
+                    noCurrentCanonicalOwnerRows++
+                    val omittedRow = JSONObject()
+                        .put("case", caseId)
+                        .put("week", week)
+                        .put("owner", JSONObject().put("stableKey", stableKey).put("selectionRole", role))
+                        .put("lineage", shadow.sourceLineageId)
+                        .put("incumbent", JSONObject().put("day", prior.getJSONObject("from").getInt("day"))
+                            .put("order", prior.getJSONObject("from").getInt("order")))
+                        .put("currentOwnerPresent", false)
+                        .put("liveFeasibility", JSONObject().put("status", "NOT_EVALUATED_NO_CURRENT_AUTHORIZED_OWNER"))
+                        .put("shadowRecommendation", "NO_INCUMBENT_CANDIDATE")
+                        .put("productionAfter", JSONObject.NULL)
+                        .put("productionChanged", false)
+                        .put("sourceSnapshotFreshAtGeneration", true)
+                    caseOutputRows.put(omittedRow)
+                    outputRows.put(omittedRow)
+                    return@forEach
+                }
                 val state = live.feasibility.name
                 counts[state] = counts.getValue(state) + 1
                 val shadowPlacement = shadow.shadowRows.singleOrNull {
@@ -152,7 +175,10 @@ internal object C20LiveIncumbentStabilityCensus {
                 .put("liveFeasibility", JSONObject()
                     .put("HARD_VALID", caseOutputRows.objects().count { it.getJSONObject("liveFeasibility").getString("status") == "HARD_VALID" })
                     .put("HARD_INVALID", caseOutputRows.objects().count { it.getJSONObject("liveFeasibility").getString("status") == "HARD_INVALID" })
-                    .put("UNRESOLVED", caseOutputRows.objects().count { it.getJSONObject("liveFeasibility").getString("status") == "UNRESOLVED" }))
+                    .put("UNRESOLVED", caseOutputRows.objects().count { it.getJSONObject("liveFeasibility").getString("status") == "UNRESOLVED" })
+                    .put("NOT_EVALUATED_NO_CURRENT_AUTHORIZED_OWNER", caseOutputRows.objects().count {
+                        it.getJSONObject("liveFeasibility").getString("status") == "NOT_EVALUATED_NO_CURRENT_AUTHORIZED_OWNER"
+                    }))
                 .put("combinedAnchorFeasibility", shadow.combinedFeasibility?.toJson() ?: JSONObject.NULL)
                 .put("combinedAnchorSetConflict", shadow.combinedAnchorSetConflict)
                 .put("allShadowPlacementChanges", allPlacementChanges)
@@ -196,7 +222,8 @@ internal object C20LiveIncumbentStabilityCensus {
                 .put("dayOfiProjectionCalls", dayOfiProjectionCalls)
                 .put("tissueProjectionCalls", tissueProjectionCalls)
                 .put("cacheHits", 0)
-                .put("generationScopedProjectionCache", false))
+                 .put("generationScopedProjectionCache", false)
+                 .put("notEvaluatedNoCurrentAuthorizedOwnerRows", noCurrentCanonicalOwnerRows))
             .put("shadowPlacement", JSONObject()
                 .put("activatedCases", JSONObject(activations))
                 .put("preservedHardValidRows", hardValidPreserved)
@@ -241,6 +268,7 @@ internal object C20LiveIncumbentStabilityCensus {
                 .put("HARD_VALID", counts.getValue(CanonicalIncumbentFeasibility.HARD_VALID.name))
                 .put("HARD_INVALID", counts.getValue(CanonicalIncumbentFeasibility.HARD_INVALID.name))
                 .put("UNRESOLVED", counts.getValue(CanonicalIncumbentFeasibility.UNRESOLVED.name))
+                .put("NOT_EVALUATED_NO_CURRENT_AUTHORIZED_OWNER", noCurrentCanonicalOwnerRows)
                 .put("preservedHardValidRows", hardValidPreserved)
                 .put("hardInvalidRowsForcedPreserved", hardInvalidForcedPreserved)
                 .put("unresolvedRowsForcedPreserved", unresolvedForcedPreserved)
