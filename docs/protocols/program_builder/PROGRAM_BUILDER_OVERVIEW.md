@@ -7,7 +7,7 @@
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.5 |
-| Last audited commit | 1880d129478927c32b9dc04db91f6b82c2ec60de |
+| Last audited commit | 4f4006915c8fefcb4162c7e684767f99df02e360 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1374,3 +1374,10 @@ Post-audit boundary notes
 - The C29 sparse set has 22 movement needs / 44 prior owner-weeks. All 22 are explicitly ADDRESS from existing actionable gap/pressure evidence, receive direction-only B4 targets, and receive canonical B5 owners; none has an exact movement dose authority, so executable movement rows remain 0. Zero exposure alone does not force ADDRESS, as tested. B7/B8 predicates and routing scope are unchanged.
 - C30 census and audit: [`docs/c30_movement_disposition_target_admission_audit.md`](../../c30_movement_disposition_target_admission_audit.md), [`docs/c30-movement-disposition-target-admission-census.json`](../../c30-movement-disposition-target-admission-census.json). App remains `0.5.1.5`; Room remains 38 without a persistence migration.
 - C30 implementation/test commit `1880d129478927c32b9dc04db91f6b82c2ec60de` is this protocol's `lastAuditedCommit`. Hosted run [37614855371](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/37614855371) passed 2,338 tests (0 failures, 0 errors, 4 skips), protocol/contracts/whitespace validation, coverage upload, APK assembly, signer validation, and artifact upload. The final full-suite census observed 6,651 ms for 22 generated cases (302.3 ms mean, 262 ms median, 770 ms max); measurements vary by JVM/worker load, so this is treated as a possible latency increase rather than a stable benchmark. Coverage report SHA-256 is `7F08B15F0DAAA49F2693453870F10E18AB95583D9A646CAD7FDA409DDCFDC5E9`; census SHA-256 is `E3863C5B047937488D3F6CA1C49CE7F7DC6B65FD628E7364FB3E45FEC22B0CD1`; APK is 68,889,247 bytes with SHA-256 `0F53EF10D3752CC1D58258FE60FDFD48C3C2489FE94D0C2C1F95EB83C1299F56`.
+
+### Phase C31 — movement B6 authority reuse audit (protocol remains 3.63.0)
+
+- C31 audited all 22 B3-ADDRESS/B4-direction-only/B5-selected movement targets and their 208 candidate identities. No candidate had exact executable Quality or movement B6 authority; no directly related authorized Quality or C24 Task row could satisfy a movement target non-additively; no authorized alternative, history-backed execution authority, or existing user-calibration path was found. All 22 are therefore `GENUINE_NO_B6_POLICY`, not connected by a new dose or relaxed identity match.
+- The 44 historical sparse owner-week rows remain non-executable, with zero new movement-only rows, duplicates, or unauthorized material. C31 added audit evidence and a negative same-stableKey/different-role selector regression test only. B3/B4/B5/B6, routing, B7/B8, versions, and persistence schemas did not change.
+- C31 audit and complete candidate/owner-week census: [`docs/c31_movement_b6_authority_reuse_audit.md`](../../c31_movement_b6_authority_reuse_audit.md) and [`docs/c31-movement-b6-authority-reuse-census.json`](../../c31-movement-b6-authority-reuse-census.json). The C30 APK digest discrepancy is reconciled there by run and artifact ID.
+- Three local Room/service corpus observations took 4,662 / 4,716 / 4,601 ms (median 4,662 ms); the test-only counters observed 1,106 B5 candidate evaluation rows, 123 movement B6 lookups, and no repeated identical lookup. The audit/test commit `4f4006915c8fefcb4162c7e684767f99df02e360` is `lastAuditedCommit`. Local full tests passed 2,339 tests (0 failures, 0 errors, 4 skips) with the external JDK 17 / `forkEvery=75` worker-restart workaround. This census and audit report are documentation outputs.
