@@ -19,28 +19,29 @@ import org.junit.Test
 class StimulusProductionCutoverAuthorityTest {
     @Test
     fun coldStartHasSeparateB8ScopeAndCannotMasqueradeAsStrengthV1() {
-        val b5 = selected("bench", "CANONICAL_STIMULUS_QUALITY_STRENGTH")
-        val trace = trace("bench", "CANONICAL_STIMULUS_QUALITY_STRENGTH")
-        val coldAuth = coldStartAuthorization("bench", "CANONICAL_STIMULUS_QUALITY_STRENGTH")
-        val experimentalItem = item("bench", "CANONICAL_STIMULUS_QUALITY_STRENGTH", reps = 6).copy(
+        val ownerKey = "barbell_bench_press"
+        val b5 = selected(ownerKey, "CANONICAL_STIMULUS_QUALITY_STRENGTH")
+        val trace = trace(ownerKey, "CANONICAL_STIMULUS_QUALITY_STRENGTH")
+        val coldAuth = coldStartAuthorization(ownerKey, "CANONICAL_STIMULUS_QUALITY_STRENGTH")
+        val experimentalItem = item(ownerKey, "CANONICAL_STIMULUS_QUALITY_STRENGTH", reps = 6).copy(
             prescription = "2 sets × 6 reps · RPE 6.5 · choose weight",
             weightKg = 0.0,
             weightSource = "COLD_START_USER_CALIBRATION",
             setPrescriptions = coldAuth.authorizedPrescription!!.sets
         )
-        val coldMaterialization = materialization("bench", "CANONICAL_STIMULUS_QUALITY_STRENGTH")
+        val coldMaterialization = materialization(ownerKey, "CANONICAL_STIMULUS_QUALITY_STRENGTH")
             .copy(executionAuthority = StimulusPrescriptionExecutionAuthority.REQUIRES_USER_LOAD_INPUT)
         val compared = comparison(
             controlItems = listOf(item("base", "BASE")),
             experimentalItems = listOf(item("base", "BASE"), experimentalItem),
             selected = b5,
             traces = listOf(trace),
-            attribution = attribution("bench", "CANONICAL_STIMULUS_QUALITY_STRENGTH",
+            attribution = attribution(ownerKey, "CANONICAL_STIMULUS_QUALITY_STRENGTH",
                 StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY),
             authorization = coldAuth,
             materialization = coldMaterialization,
             materialDemand = listOf(PlannedExercise(
-                stableKey = "bench", role = "CANONICAL_STIMULUS_QUALITY_STRENGTH", reason = "B4 numeric demand",
+                stableKey = ownerKey, role = "CANONICAL_STIMULUS_QUALITY_STRENGTH", reason = "B4 numeric demand",
                 priority = 1, targetSets = 2
             ))
         )
@@ -74,23 +75,24 @@ class StimulusProductionCutoverAuthorityTest {
 
     @Test
     fun directionOnlyDoseCannotUseColdStartB8Scope() {
-        val selected = selected("bench", "CANONICAL_STIMULUS_QUALITY_STRENGTH")
-        val authorization = coldStartAuthorization("bench", "CANONICAL_STIMULUS_QUALITY_STRENGTH")
+        val ownerKey = "barbell_bench_press"
+        val selected = selected(ownerKey, "CANONICAL_STIMULUS_QUALITY_STRENGTH")
+        val authorization = coldStartAuthorization(ownerKey, "CANONICAL_STIMULUS_QUALITY_STRENGTH")
         val comparison = comparison(
             controlItems = listOf(item("base", "BASE")),
-            experimentalItems = listOf(item("base", "BASE"), item("bench", "CANONICAL_STIMULUS_QUALITY_STRENGTH", reps = 6).copy(
+            experimentalItems = listOf(item("base", "BASE"), item(ownerKey, "CANONICAL_STIMULUS_QUALITY_STRENGTH", reps = 6).copy(
                 weightKg = 0.0, weightSource = "COLD_START_USER_CALIBRATION", setPrescriptions = authorization.authorizedPrescription!!.sets
             )),
             selected = selected,
-            traces = listOf(trace("bench", "CANONICAL_STIMULUS_QUALITY_STRENGTH")),
-            attribution = attribution("bench", "CANONICAL_STIMULUS_QUALITY_STRENGTH", StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY),
+            traces = listOf(trace(ownerKey, "CANONICAL_STIMULUS_QUALITY_STRENGTH")),
+            attribution = attribution(ownerKey, "CANONICAL_STIMULUS_QUALITY_STRENGTH", StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY),
             authorization = authorization,
-            materialization = materialization("bench", "CANONICAL_STIMULUS_QUALITY_STRENGTH").copy(
+            materialization = materialization(ownerKey, "CANONICAL_STIMULUS_QUALITY_STRENGTH").copy(
                 executionAuthority = StimulusPrescriptionExecutionAuthority.REQUIRES_USER_LOAD_INPUT
             ),
             target = qualityTarget(TrainableQuality.STRENGTH, StimulusTargetNumericAuthority.DIRECTION_ONLY),
             materialDemand = listOf(PlannedExercise(
-                stableKey = "bench", role = "CANONICAL_STIMULUS_QUALITY_STRENGTH", reason = "B4 direction",
+                stableKey = ownerKey, role = "CANONICAL_STIMULUS_QUALITY_STRENGTH", reason = "B4 direction",
                 priority = 1, targetSets = 2
             ))
         )

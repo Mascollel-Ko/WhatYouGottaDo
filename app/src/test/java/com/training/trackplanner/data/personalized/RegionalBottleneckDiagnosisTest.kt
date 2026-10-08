@@ -76,7 +76,9 @@ class RegionalBottleneckDiagnosisTest {
     fun indexContainsSupportedRegionsAndKeepsZeroRegionalWeeksInWeeklyBand() {
         val fixture = fixture(currentStrengthWeeks = setOf(0, 2), previousStrengthWeeks = setOf(4, 6), signal = 0.0, includeHypertrophy = false)
         val index = RegionalEvidenceIndexBuilder().build(fixture.snapshot, fixture.state, fixture.catalog)
-        assertEquals(7, index.regions.size)
+        assertEquals(9, index.regions.size)
+        assertTrue(MovementCoverage.ARMS_BICEPS in index.regions)
+        assertTrue(MovementCoverage.ARMS_TRICEPS in index.regions)
         val band = index.regions.getValue(MovementCoverage.LOWER_KNEE).strengthDoseBand
         assertEquals(8, band.eligibleWeekCount)
         assertEquals(4, band.directExposureWeekCount)

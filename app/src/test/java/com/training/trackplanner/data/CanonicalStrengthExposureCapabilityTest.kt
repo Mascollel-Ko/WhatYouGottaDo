@@ -32,6 +32,22 @@ class CanonicalStrengthExposureCapabilityTest {
     }
 
     @Test
+    fun approvedStrengthVariantsShareTheExactAnchorBudgets() {
+        assertEquals(setOf("barbell_back_squat", "ex_c5043892"),
+            CanonicalStrengthExposureCapability.approvedStableKeys(CanonicalStrengthExposureCapability.MovementAnchor.SQUAT))
+        assertEquals(setOf("barbell_deadlift"),
+            CanonicalStrengthExposureCapability.approvedStableKeys(CanonicalStrengthExposureCapability.MovementAnchor.DEADLIFT))
+        assertEquals(setOf("ex_e41f4c2b", "ex_e41e8dcf"),
+            CanonicalStrengthExposureCapability.approvedStableKeys(CanonicalStrengthExposureCapability.MovementAnchor.WEIGHTED_VERTICAL_PULL))
+        assertEquals(setOf("barbell_bench_press", "ex_3a7d3eda"),
+            CanonicalStrengthExposureCapability.approvedStableKeys(CanonicalStrengthExposureCapability.MovementAnchor.HORIZONTAL_PRESS))
+        assertEquals(setOf("ex_32219f7a", "ex_79f3bdbe", "ex_bb4b4276"),
+            CanonicalStrengthExposureCapability.approvedStableKeys(CanonicalStrengthExposureCapability.MovementAnchor.VERTICAL_PRESS))
+        assertTrue(approved.all { CanonicalStrengthExposureCapability.movementAnchor(it) != null })
+        assertFalse(CanonicalStrengthExposureCapability.movementAnchor("barbell_romanian_deadlift") != null)
+    }
+
+    @Test
     fun approvedStrengthIdentitiesArePresentInTheCurrentCanonicalMetadata() {
         val asset = sequenceOf(
             File("src/main/assets/${RuntimeExerciseMetadataAssetLoader.CANONICAL_ASSET_PATH}"),

@@ -46,10 +46,67 @@ internal fun observeProductionScope(
     }
     val attributed = attributions.map { StimulusPrescriptionOwnerIdentity(requireNotNull(it.stableKey), requireNotNull(it.selectionRole)) }.toSet()
     val targetIds = attributions.flatMap { it.targetIds }.toSortedSet()
+    val regionalHypertrophyTargets = comparison.targetPlan.movementTargets.filter { movement ->
+        val dose = movement.regionalDoseTargets.firstOrNull {
+            it.kind == StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET &&
+                it.shapeAuthority == StimulusMovementDoseShapeAuthority.HYPERTROPHY_BAND_8_12_PERSONAL_7_15_RPE_7_USER_LOAD_CALIBRATION &&
+                it.numericAuthority in setOf(
+                    StimulusTargetNumericAuthority.PERSONAL_SUCCESSFUL_DOSE,
+                    StimulusTargetNumericAuthority.PERSONAL_RESTORE_BASELINE,
+                    StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY
+                ) && it.weeklyTarget != null && it.existingEquivalentExposure?.let { value -> value.isFinite() && value >= 0.0 } == true &&
+                (it.authorizedWholeSetUnits ?: 0) > 0 && it.residualEquivalentExposure?.let { value -> value.isFinite() && value > 0.0 } == true &&
+                (it.numericAuthority != StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY ||
+                    it.evidence.any { evidence -> evidence.contains("doseProvenance=${RegionalColdStartDosePolicy.PROVENANCE}") })
+        } ?: return@filter false
+        val selected = comparison.selectionPlan.selectedCandidates.filter { movement.targetId in it.coveredTargetIds }
+        selected.size == 1 && comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().any { authorization ->
+            authorization.targetId == movement.targetId && authorization.quality == TrainableQuality.HYPERTROPHY &&
+                authorization.owner?.let { owner -> selected.singleOrNull()?.let { owner.stableKey == it.stableKey && owner.selectionRole == it.selectionRole } } == true &&
+                authorization.authorizedPrescription != null && authorization.status in setOf(
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
+                ) && authorization.authorizedPrescription.sets.size == dose.authorizedWholeSetUnits
+        }
+    }.map { it.targetId }.toSet()
+    val existingAuthorizedRegionalTargets = comparison.targetPlan.movementTargets.filter { movement ->
+        val dose = movement.regionalDoseTargets.firstOrNull {
+            it.kind == StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET &&
+                it.shapeAuthority == StimulusMovementDoseShapeAuthority.HYPERTROPHY_BAND_8_12_PERSONAL_7_15_RPE_7_USER_LOAD_CALIBRATION &&
+                it.numericAuthority in setOf(
+                    StimulusTargetNumericAuthority.PERSONAL_SUCCESSFUL_DOSE,
+                    StimulusTargetNumericAuthority.PERSONAL_RESTORE_BASELINE,
+                    StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY
+                ) && it.weeklyTarget != null && it.authorizedWholeSetUnits == 0 &&
+                it.existingEquivalentExposure?.let { value -> value.isFinite() && value + 1e-9 >= it.weeklyTarget } == true &&
+                (it.numericAuthority != StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY ||
+                    it.evidence.any { evidence -> evidence.contains("doseProvenance=${RegionalColdStartDosePolicy.PROVENANCE}") })
+        } ?: return@filter false
+        val selected = comparison.selectionPlan.selectedCandidates.filter { movement.targetId in it.coveredTargetIds }
+        val owner = selected.singleOrNull()?.let { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }
+            ?: return@filter false
+        val movementAuthority = comparison.prescriptionAuthorizationPlan?.movementAuthorizations.orEmpty()
+            .singleOrNull { it.targetId == movement.targetId }
+        movementAuthority?.status == StimulusMovementB6Status.COVERED_BY_EXISTING_QUALITY_B6 &&
+            movementAuthority.existingAuthorityTargetId == "QUALITY:HYPERTROPHY" &&
+            comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().any { authorization ->
+                authorization.targetId == "QUALITY:HYPERTROPHY" && authorization.quality == TrainableQuality.HYPERTROPHY &&
+                    authorization.owner?.let { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) } == owner &&
+                    authorization.authorizedPrescription != null && authorization.status in setOf(
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
+                    )
+            }
+    }.map { it.targetId }.toSet()
     val governed = comparison.targetPlan.qualityTargets.map { "QUALITY:${it.quality.name}" }.toSet() +
-        comparison.targetPlan.taskTargets.map { "TASK:${it.task}" }
+        comparison.targetPlan.taskTargets.map { "TASK:${it.task}" } + regionalHypertrophyTargets + existingAuthorizedRegionalTargets
     val unknown = (targetIds - governed).toSortedSet()
-    val qualities = targetIds.mapNotNull { id -> TrainableQuality.entries.firstOrNull { id == "QUALITY:${it.name}" } }.toSet()
+    val qualities = targetIds.mapNotNull { id ->
+        TrainableQuality.entries.firstOrNull { id == "QUALITY:${it.name}" }
+            ?: TrainableQuality.HYPERTROPHY.takeIf { id in regionalHypertrophyTargets || id in existingAuthorizedRegionalTargets }
+    }.toSet()
     val unsupported = qualities - setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY)
     val reasons = sortedSetOf<String>()
     val removed = comparison.removedOwnerIdentities
@@ -69,7 +126,8 @@ internal fun observeProductionScope(
     unsupported.forEach { reasons += "UNSUPPORTED_QUALITY_${it.name}" }
     if (qualities.containsAll(setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY)) && unsupported.isNotEmpty()) reasons += "THIRD_QUALITY_PRESENT"
     if (scope != StimulusProductionCutoverScope.BADMINTON_TASK_V1 &&
-        targetIds.any { id -> id in governed && !id.startsWith("QUALITY:") }) reasons += "UNSUPPORTED_TARGET_COMBINATION"
+        targetIds.any { id -> id in governed && !id.startsWith("QUALITY:") &&
+            id !in regionalHypertrophyTargets && id !in existingAuthorizedRegionalTargets }) reasons += "UNSUPPORTED_TARGET_COMBINATION"
     val status = when {
         scope == StimulusProductionCutoverScope.STRENGTH_V1 -> StimulusProductionScopeResolutionStatus.RESOLVED_STRENGTH
         scope == StimulusProductionCutoverScope.STRENGTH_CALIBRATION_V1 -> StimulusProductionScopeResolutionStatus.RESOLVED_STRENGTH_CALIBRATION
@@ -87,7 +145,8 @@ internal fun observeProductionScope(
     }
     val identities = attributions.flatMap { attribution ->
         attribution.targetIds.mapNotNull { id ->
-            TrainableQuality.entries.firstOrNull { id == "QUALITY:${it.name}" }?.let { quality ->
+            (TrainableQuality.entries.firstOrNull { id == "QUALITY:${it.name}" }
+                ?: TrainableQuality.HYPERTROPHY.takeIf { id in regionalHypertrophyTargets || id in existingAuthorizedRegionalTargets })?.let { quality ->
                 StimulusPrescriptionAuthorityIdentity(requireNotNull(attribution.stableKey), requireNotNull(attribution.selectionRole), quality)
             }
         }

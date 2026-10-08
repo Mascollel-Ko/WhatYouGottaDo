@@ -8,10 +8,37 @@ import org.json.JSONObject
 enum class StimulusTargetNumericAuthority {
     PERSONAL_SUCCESSFUL_DOSE,
     PERSONAL_RESTORE_BASELINE,
+    USER_APPROVED_PROJECT_POLICY,
     DIRECTION_ONLY,
     NONE,
     UNRESOLVED
 }
+
+/** Numeric budget attached to a movement need; it does not authorize owner selection or a prescription. */
+enum class StimulusMovementDoseKind {
+    HYPERTROPHY_REGION_EQUIVALENT_SET,
+    CORE_DIRECT_CONTROL_SET
+}
+
+/** Dose authority and execution-shape authority are independent; Core currently has no approved shape. */
+enum class StimulusMovementDoseShapeAuthority {
+    HYPERTROPHY_BAND_8_12_PERSONAL_7_15_RPE_7_USER_LOAD_CALIBRATION,
+    NONE
+}
+
+data class StimulusMovementDoseTarget(
+    val kind: StimulusMovementDoseKind,
+    val numericAuthority: StimulusTargetNumericAuthority,
+    val weeklyTarget: Double?,
+    val reasonCodes: List<String>,
+    val evidence: List<String> = emptyList(),
+    val shapeAuthority: StimulusMovementDoseShapeAuthority = StimulusMovementDoseShapeAuthority.NONE,
+    /** Filled by the production B4 residual pass after compatible incumbent/authorized work is projected. */
+    val existingEquivalentExposure: Double? = null,
+    val residualEquivalentExposure: Double? = null,
+    val authorizedWholeSetUnits: Int? = null,
+    val residualReasonCodes: List<String> = emptyList()
+)
 
 /** A validated, non-materialized personal exposure envelope. */
 data class StimulusTargetRange(
@@ -66,7 +93,8 @@ data class StimulusMovementTarget(
     val priority: TargetPriority,
     val numericAuthority: StimulusTargetNumericAuthority = StimulusTargetNumericAuthority.DIRECTION_ONLY,
     val reasonCodes: List<String>,
-    val evidence: List<String>
+    val evidence: List<String>,
+    val regionalDoseTargets: List<StimulusMovementDoseTarget> = emptyList()
 ) {
     val targetId: String get() = "MOVEMENT:${movementCoverage.name}"
 }
@@ -190,7 +218,8 @@ class StimulusTargetPlanEngine {
                 priority = decision.priority,
                 numericAuthority = StimulusTargetNumericAuthority.DIRECTION_ONLY,
                 reasonCodes = (decision.reasonCodes + "B4_MOVEMENT_TARGET_ADMITTED" +
-                    "MOVEMENT_TARGET_HAS_NO_NUMERIC_DOSE_AUTHORITY").distinct(),
+                    "MOVEMENT_TARGET_DOES_NOT_OWN_QUALITY_DOSE_AUTHORITY" +
+                    "REGIONAL_QUALITY_DOSE_AUTHORITY_IS_ATTACHED_SEPARATELY").distinct(),
                 evidence = decision.evidence + listOf(
                     "movementNeedRelevance=${decision.relevance.name}",
                     "movementCoverage=${coverage.name}",
@@ -224,14 +253,27 @@ class StimulusTargetPlanEngine {
         val weeklyUnits = band?.weeklyUnitsRange()
         val weeklySessions = band?.weeklySessionsRange()
         val weeklyValid = baselineUsable && weeklyUnits != null && weeklySessions != null
-        val authority = numericAuthority(
+        val strengthColdStart = decision.quality == TrainableQuality.STRENGTH &&
+            decision.needDecision == TrainingNeedDecision.DEVELOP &&
+            !baselineUsable && decision.ledgerAvailable && !decision.observedPersonalDirectBaseline &&
+            decision.baselineObservability in setOf(
+                DoseBaselineObservability.COMPLETE,
+                DoseBaselineObservability.NO_ELIGIBLE_CLASSIFIED_HISTORY
+            )
+        val authority = if (strengthColdStart) StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY else numericAuthority(
             decision.strategy,
             decision.baselineAvailable && baseline.available,
             baselineUsable,
             weeklyValid
         )
+        val targetUnits = if (strengthColdStart) StimulusTargetRange(
+            RegionalColdStartDosePolicy.STRENGTH_DIRECT_SETS_PER_ANCHOR_WEEK,
+            RegionalColdStartDosePolicy.STRENGTH_DIRECT_SETS_PER_ANCHOR_WEEK,
+            RegionalColdStartDosePolicy.STRENGTH_DIRECT_SETS_PER_ANCHOR_WEEK
+        ) else weeklyUnits
         val numeric = authority == StimulusTargetNumericAuthority.PERSONAL_SUCCESSFUL_DOSE ||
-            authority == StimulusTargetNumericAuthority.PERSONAL_RESTORE_BASELINE
+            authority == StimulusTargetNumericAuthority.PERSONAL_RESTORE_BASELINE ||
+            authority == StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY
         val exposureUnits = band?.exposureUnitsRangeOrNull()
         val exposureSessions = band?.exposureSessionsRangeOrNull()
         val frequency = band?.directExposureWeekFrequency?.takeIf { it.isFinite() && it >= 0.0 }
@@ -245,6 +287,13 @@ class StimulusTargetPlanEngine {
                 StimulusTargetNumericAuthority.PERSONAL_RESTORE_BASELINE -> {
                     add("PERSONAL_RESTORE_BASELINE")
                     add("RESTORE_BEFORE_INVENTING_NEW_DOSE")
+                }
+                StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY -> {
+                    add("USER_APPROVED_PROJECT_POLICY_NUMERIC_AUTHORITY")
+                    if (strengthColdStart) {
+                        add("USER_APPROVED_PROJECT_POLICY_STRENGTH_COLD_START_4_DIRECT_SETS_PER_SELECTED_ANCHOR_WEEK")
+                        add("STRENGTH_ANCHOR_VARIANTS_SHARE_ONE_WEEKLY_BUDGET")
+                    }
                 }
                 StimulusTargetNumericAuthority.DIRECTION_ONLY -> {
                     if (decision.strategy in PERSONAL_BASELINE_STRATEGIES) {
@@ -290,8 +339,8 @@ class StimulusTargetPlanEngine {
             numericAuthority = authority,
             baselineSource = decision.baselineSource,
             baselineConfidence = decision.baselineConfidence,
-            weeklyDirectUnitsTarget = weeklyUnits.takeIf { numeric },
-            weeklyDirectSessionsTarget = weeklySessions.takeIf { numeric },
+            weeklyDirectUnitsTarget = targetUnits.takeIf { numeric },
+            weeklyDirectSessionsTarget = weeklySessions.takeIf { numeric && !strengthColdStart },
             exposureWeekDirectUnitsReference = exposureUnits.takeIf { numeric },
             exposureWeekDirectSessionsReference = exposureSessions.takeIf { numeric },
             exposureWeekFrequencyReference = frequency.takeIf { numeric },
@@ -628,7 +677,8 @@ class StimulusTargetControlProgramAuditEngine {
             else StimulusTargetControlStatus.DIRECT_ABSENT
         }
         StimulusTargetNumericAuthority.PERSONAL_SUCCESSFUL_DOSE,
-        StimulusTargetNumericAuthority.PERSONAL_RESTORE_BASELINE -> when {
+        StimulusTargetNumericAuthority.PERSONAL_RESTORE_BASELINE,
+        StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY -> when {
             range == null || planned == null -> StimulusTargetControlStatus.UNRESOLVED
             planned < range.min -> StimulusTargetControlStatus.BELOW_BAND
             planned > range.max -> StimulusTargetControlStatus.ABOVE_BAND
@@ -675,6 +725,15 @@ internal fun StimulusTargetPlan.toCompactJson(): JSONObject = JSONObject()
         .put("numericAuthority", target.numericAuthority.name)
         .put("weeklyUnitsTarget", JSONObject.NULL)
         .put("weeklySessionsTarget", JSONObject.NULL)
+        .put("regionalDoseTargets", JSONArray(target.regionalDoseTargets.map { dose -> JSONObject()
+            .put("kind", dose.kind.name).put("numericAuthority", dose.numericAuthority.name)
+            .put("weeklyTarget", dose.weeklyTarget).put("reasonCodes", JSONArray(dose.reasonCodes))
+            .put("evidence", JSONArray(dose.evidence)).put("shapeAuthority", dose.shapeAuthority.name)
+            .put("existingEquivalentExposure", dose.existingEquivalentExposure)
+            .put("residualEquivalentExposure", dose.residualEquivalentExposure)
+            .put("authorizedWholeSetUnits", dose.authorizedWholeSetUnits)
+            .put("residualReasonCodes", JSONArray(dose.residualReasonCodes))
+        }))
         .put("reasonCodes", JSONArray(target.reasonCodes))
         .put("evidence", JSONArray(target.evidence))
     }))

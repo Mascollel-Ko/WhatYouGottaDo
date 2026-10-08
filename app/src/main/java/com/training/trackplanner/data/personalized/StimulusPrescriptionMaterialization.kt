@@ -23,6 +23,7 @@ enum class StimulusPrescriptionAuthorizationStatus {
 enum class StimulusMovementB6Status {
     COVERED_BY_EXISTING_QUALITY_B6,
     COVERED_BY_APPROVED_TASK_B6,
+    AUTHORIZED_REGIONAL_HYPERTROPHY_B6,
     NO_EXECUTABLE_MOVEMENT_AUTHORITY,
     NO_B5_MOVEMENT_OWNER
 }

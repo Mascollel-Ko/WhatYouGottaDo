@@ -729,9 +729,18 @@ class StimulusExperimentalReadinessAuditEngine {
         return authorizations.filter { authorization ->
             val quality = authorization.quality ?: return@filter false
             val authorized = authorization.authorizedPrescription ?: return@filter false
-            authorization.targetId == "QUALITY:${quality.name}" &&
+            val targetIsCanonicalQuality = authorization.targetId == "QUALITY:${quality.name}" &&
+                comparison.targetPlan.qualityTargets.any { it.quality == quality }
+            val targetIsRegionalMovement = quality == TrainableQuality.HYPERTROPHY &&
+                comparison.targetPlan.movementTargets.any { movement ->
+                    movement.targetId == authorization.targetId && movement.regionalDoseTargets.any { dose ->
+                        dose.kind == StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET &&
+                            dose.shapeAuthority == StimulusMovementDoseShapeAuthority.HYPERTROPHY_BAND_8_12_PERSONAL_7_15_RPE_7_USER_LOAD_CALIBRATION &&
+                            (dose.authorizedWholeSetUnits ?: 0) > 0 && dose.weeklyTarget != null
+                    }
+                }
+            (targetIsCanonicalQuality || targetIsRegionalMovement) &&
                 authorization.targetId in candidate.coveredTargetIds &&
-                comparison.targetPlan.qualityTargets.any { it.quality == quality } &&
                 authorization.status in setOf(
                     StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
                     StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
@@ -868,6 +877,65 @@ class StimulusExperimentalReadinessAuditEngine {
             val experimental = comparison.experimentalAudit?.taskAudits?.firstOrNull { it.task == target.task }
             taskOutcome(id, affected.contains(id), target.numericAuthority, target.weeklyDirectUnitsTarget, target.weeklyDirectSessionsTarget,
                 control, experimental)
+        } + comparison.targetPlan.movementTargets.mapNotNull { target ->
+            val id = target.targetId
+            val dose = target.regionalDoseTargets.firstOrNull {
+                it.kind == StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET &&
+                    it.shapeAuthority == StimulusMovementDoseShapeAuthority.HYPERTROPHY_BAND_8_12_PERSONAL_7_15_RPE_7_USER_LOAD_CALIBRATION
+            } ?: return@mapNotNull null
+            val required = dose.authorizedWholeSetUnits ?: return@mapNotNull null
+            val isAffected = id in affected
+            if (required <= 0) {
+                val coveredByQualityB6 = comparison.prescriptionAuthorizationPlan?.movementAuthorizations.orEmpty()
+                    .any { it.targetId == id && it.status == StimulusMovementB6Status.COVERED_BY_EXISTING_QUALITY_B6 }
+                val satisfied = isAffected && coveredByQualityB6 &&
+                    dose.weeklyTarget != null && (dose.existingEquivalentExposure ?: 0.0) + 1e-9 >= dose.weeklyTarget
+                return@mapNotNull StimulusExperimentalTargetOutcome(
+                    targetId = id,
+                    status = if (satisfied) StimulusExperimentalTargetOutcomeStatus.IMPROVED
+                        else StimulusExperimentalTargetOutcomeStatus.NOT_APPLICABLE,
+                    directlyAffected = satisfied,
+                    controlWeeklyUnitsDistance = dose.existingEquivalentExposure,
+                    experimentalWeeklyUnitsDistance = dose.existingEquivalentExposure,
+                    reasonCodes = if (satisfied) listOf(
+                        "B4_TARGET_COVERED_BY_EXISTING_AUTHORIZED_QUALITY_EXPOSURE",
+                        "B6_EXISTING_QUALITY_AUTHORITY_REUSED_NON_ADDITIVELY"
+                    ) else dose.residualReasonCodes
+                )
+            }
+            if (!isAffected) return@mapNotNull StimulusExperimentalTargetOutcome(
+                id, StimulusExperimentalTargetOutcomeStatus.NOT_APPLICABLE, false,
+                controlWeeklyUnitsDistance = dose.existingEquivalentExposure,
+                experimentalWeeklyUnitsDistance = dose.existingEquivalentExposure,
+                reasonCodes = dose.residualReasonCodes
+            )
+            val authorization = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().singleOrNull {
+                it.targetId == id && it.quality == TrainableQuality.HYPERTROPHY
+            }
+            val audit = comparison.prescriptionMaterializationAudits.singleOrNull {
+                it.targetId == id && it.quality == TrainableQuality.HYPERTROPHY
+            }
+            val materialized = audit?.materializedWeeklySetUnits ?: 0
+            val status = when {
+                authorization?.authorizedPrescription == null -> StimulusExperimentalTargetOutcomeStatus.NO_AUTHORITY
+                audit?.overrun?.let { it > 0 } == true -> StimulusExperimentalTargetOutcomeStatus.REGRESSED
+                audit?.state == StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED && materialized == required ->
+                    StimulusExperimentalTargetOutcomeStatus.IMPROVED
+                else -> StimulusExperimentalTargetOutcomeStatus.UNCHANGED
+            }
+            StimulusExperimentalTargetOutcome(
+                targetId = id,
+                status = status,
+                directlyAffected = true,
+                controlWeeklyUnitsDistance = dose.existingEquivalentExposure,
+                experimentalWeeklyUnitsDistance = (dose.existingEquivalentExposure ?: 0.0) + materialized,
+                reasonCodes = when (status) {
+                    StimulusExperimentalTargetOutcomeStatus.IMPROVED -> listOf("B4_RESIDUAL_FULLY_MATERIALIZED")
+                    StimulusExperimentalTargetOutcomeStatus.NO_AUTHORITY -> listOf("B6_REGIONAL_RESIDUAL_AUTHORITY_MISSING")
+                    StimulusExperimentalTargetOutcomeStatus.REGRESSED -> listOf("B6_REGIONAL_RESIDUAL_OVERRUN")
+                    else -> listOf("TARGET_UNMET", "B4_RESIDUAL_SHORTFALL=${(required - materialized).coerceAtLeast(0)}")
+                }
+            )
         }
 
     private fun numericOutcome(

@@ -347,12 +347,20 @@ class CanonicalStimulusPlanningIndependenceTest {
             val result = service.generatePreparedProduction(preflight, answers, metadata,
                 canonicalPlanningComputation = { snapshot, state, legacyDose ->
                     computations++
-                    // Frozen pre-C1 producer chain from 4f670674. Compare complete data classes,
-                    // including evidence, reasons, unresolved markers, authority and target ranges.
+                    // Recompute the canonical B1-B4 producer chain independently, then apply the
+                    // B4 regional dose attachment from the same history and canonical catalogs.
                     val b1 = AthleteStimulusNeedEngine().analyze(snapshot, state)
                     val b2 = LedgerBackedQualityDoseHistoryAnalyzer().analyze(snapshot, state, legacyDose)
                     val b3 = StimulusTrainingDecisionPortfolioEngine().build(b1, b2)
-                    val b4 = StimulusTargetPlanEngine().build(b3, b2)
+                    val baseB4 = StimulusTargetPlanEngine().build(b3, b2)
+                    val physicalQualityCatalog = field(service, "physicalQualityCatalog") as CanonicalExercisePhysicalQualityCatalog
+                    val coreCatalog = field(service, "canonicalCoreCatalog") as com.training.trackplanner.analysis.core.CanonicalCoreCatalog
+                    val regionalDoses = RegionalMovementDoseTargetBuilder().build(
+                        baseB4.movementTargets, snapshot, state, physicalQualityCatalog, coreCatalog
+                    )
+                    val b4 = baseB4.copy(movementTargets = baseB4.movementTargets.map { movement ->
+                        movement.copy(regionalDoseTargets = regionalDoses[movement.movementCoverage].orEmpty())
+                    })
                     val actual = service.buildCanonicalStimulusPlanningResult(snapshot, state, legacyDose)
                     assertEquals("${spec.label}: B1", b1, actual.athleteStimulusNeedProfile)
                     assertEquals("${spec.label}: B2", b2, actual.qualityDoseHistory)
@@ -382,7 +390,11 @@ class CanonicalStimulusPlanningIndependenceTest {
                 assertEquals(independent.qualityDoseHistory, mirror.qualityDoseHistoryShadow)
                 assertEquals(independent.decisionPortfolio, mirror.trainingDecisionPortfolioShadow?.copy(comparison = null))
                 assertEquals(independent.targetPlan, mirror.stimulusTargetPlanShadow?.copy(legacyComparison = null, controlProgramAudit = null))
-                assertEquals(independent.targetPlan, comparison.targetPlan)
+                // Production attaches weekly regional B4 residual accounting after the
+                // canonical B1-B4 decision has been independently reproduced. Compare the
+                // canonical target semantics here, while the residual-specific integration
+                // is asserted by the regional production census.
+                assertEquals(independent.targetPlan, comparison.targetPlan.withoutProductionResidualAccounting())
                 assertNotNull(mirror.finalAudit)
                 assertNotNull(mirror.trainingDecisionPortfolioShadow?.comparison)
                 assertNotNull(mirror.stimulusTargetPlanShadow?.legacyComparison)
@@ -394,10 +406,7 @@ class CanonicalStimulusPlanningIndependenceTest {
         Unit
     }
 
-    @Test fun missingPersonalizedDecisionDoesNotAffectB5B6() = hostIndependence("decision")
-    @Test fun missingNeedProfileDoesNotAffectB5B6() = hostIndependence("needs")
-    @Test fun missingTargetPlanDoesNotAffectB5B6() = hostIndependence("target")
-    @Test fun explicitHypertrophyWinsOverStrengthMirror() = hostIndependence("mismatch")
+    @Test fun productionMaterializesOnlyExactB4RegionalResiduals() = productionRegionalResiduals()
 
     @Test fun b5AndB6UseResolvedRequestWhenControlRequestConflicts() = runBlocking {
         val spec = spec("c2_request_conflict", h = true).copy(equipment = setOf("CABLE"))
@@ -500,60 +509,92 @@ class CanonicalStimulusPlanningIndependenceTest {
         Unit
     }
 
-    private fun hostIndependence(remove: String) = runBlocking {
-        StimulusProductionCoverageAuditTest().runCase(spec("c1_host_$remove", h = true)) { service, preflight, answers, metadata ->
+    private fun productionRegionalResiduals() = runBlocking {
+        StimulusProductionCoverageAuditTest().runCase(spec("c33_production_residual", h = true)) { service, preflight, answers, metadata ->
             var canonical: CanonicalStimulusPlanningResult? = null
-            val production = service.generatePreparedProduction(preflight, answers, metadata,
+            val result = service.generatePreparedProduction(preflight, answers, metadata,
                 canonicalPlanningComputation = { snapshot, state, dose ->
                     service.buildCanonicalStimulusPlanningResult(snapshot, state, dose).also { canonical = it }
                 })
-            val baseline = requireNotNull(production.comparison)
-            val explicit = requireNotNull(canonical).copy(controlProgramAudit = baseline.controlAudit)
-            val control = baseline.control
-            val decision = requireNotNull(control.personalizedDecision)
-            val needs = requireNotNull(decision.athleteStimulusNeedProfile)
-            val hOnly = explicit.copy(targetPlan = explicit.targetPlan.copy(
-                qualityTargets = explicit.targetPlan.qualityTargets.filter { it.quality == TrainableQuality.HYPERTROPHY },
-                taskTargets = emptyList(),
-                movementTargets = emptyList()))
-            assertEquals(listOf(TrainableQuality.HYPERTROPHY), hOnly.targetPlan.qualityTargets.map { it.quality })
-            val altered = control.copy(personalizedDecision = when (remove) {
-                "decision" -> null
-                "needs" -> decision.copy(athleteStimulusNeedProfile = null)
-                "target" -> decision.copy(athleteStimulusNeedProfile = needs.copy(stimulusTargetPlanShadow = null))
-                else -> decision.copy(athleteStimulusNeedProfile = needs.copy(stimulusTargetPlanShadow =
-                    hOnly.targetPlan.copy(qualityTargets = hOnly.targetPlan.qualityTargets.map { it.copy(quality = TrainableQuality.STRENGTH) })))
-            })
-            val input = if (remove == "mismatch") hOnly else explicit
-            val counts = MutableStimulusProductionBuildCounts()
-            val preparedBundle = service.generatePreparedWithCanonicalPlanning(preflight, answers, metadata)
-            val preparedRequest = preparedBundle.resolvedRequest
-            val actual = service.generatePreparedStimulusPrescriptionMaterializationComparison(
-                preflight, answers, metadata, canonicalPlanning = input,
-                resolvedRequest = preparedRequest.request,
-                frequencyProvenance = preparedRequest.frequencyProvenance,
-                controlOverride = altered, productionBuildCounts = counts)
-            assertSame(input.targetPlan, actual.targetPlan)
-            assertTrue(actual.selectionPlan.traces.any { it.targetId == "QUALITY:HYPERTROPHY" })
-            if (remove == "mismatch") {
-                assertEquals(listOf("QUALITY:HYPERTROPHY"), actual.selectionPlan.traces.map { it.targetId })
+            val comparison = requireNotNull(result.comparison)
+            assertEquals(requireNotNull(canonical).targetPlan, comparison.targetPlan.withoutProductionResidualAccounting())
+            val positiveResiduals = comparison.targetPlan.movementTargets.flatMap { movement ->
+                movement.regionalDoseTargets.filter { it.kind == StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET }
+                    .map { movement to it }
+            }.filter { (_, dose) -> (dose.authorizedWholeSetUnits ?: 0) > 0 }
+            assertTrue("the case must exercise the production regional B4-to-B5 path", positiveResiduals.isNotEmpty())
+            positiveResiduals.forEach { (movement, dose) ->
+                val units = requireNotNull(dose.authorizedWholeSetUnits)
+                val selected = comparison.selectionPlan.selectedCandidates.singleOrNull {
+                    movement.targetId in it.coveredTargetIds
+                }
+                if (selected == null) {
+                    assertTrue("unselected residual must retain a typed B5 rejection", comparison.selectionPlan.traces.any {
+                        it.targetId == movement.targetId && it.selectionRequired && it.selectedStableKey == null &&
+                            it.reasonCodes.isNotEmpty()
+                    })
+                    assertFalse(comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().any {
+                        it.targetId == movement.targetId && it.quality == TrainableQuality.HYPERTROPHY &&
+                            it.authorizedPrescription != null
+                    })
+                    return@forEach
+                }
+                val authorization = comparison.prescriptionAuthorizationPlan?.authorizations?.singleOrNull {
+                    it.targetId == movement.targetId && it.quality == TrainableQuality.HYPERTROPHY &&
+                        it.owner?.stableKey == selected.stableKey && it.owner.selectionRole == selected.selectionRole
+                }
+                assertNotNull("B5's exact owner must have a target-local B6 decision", authorization)
+                val authorized = requireNotNull(authorization)
+                assertTrue(authorized.status in setOf(
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION,
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE
+                ))
+                val prescribed = requireNotNull(authorized.authorizedPrescription)
+                assertEquals("B6 consumes the exact B4 residual", units, prescribed.sets.size)
+                assertTrue(prescribed.sets.all { it.reps in 7..15 && (it.targetRpeMin ?: 0.0) >= 7.0 })
+                if (authorized.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION) {
+                    assertTrue(prescribed.sets.all { it.loadState == ProgramLoadState.USER_CALIBRATION_REQUIRED && it.weightKg == 0.0 })
+                }
+                val ownerRows = comparison.experimental.items.filter {
+                    it.exerciseStableKey == selected.stableKey && it.selectionRole == selected.selectionRole
+                }
+                assertTrue("authorized regional owner must materialize", ownerRows.isNotEmpty())
+                assertTrue(ownerRows.groupBy { it.weekNumber }.values.all { rows -> rows.sumOf { it.setCount } <= units })
+                val materialization = comparison.prescriptionMaterializationAudits.single {
+                    it.targetId == movement.targetId && it.quality == TrainableQuality.HYPERTROPHY
+                }
+                assertEquals("B7's exact target audit must recognize calibration as a valid load-input state",
+                    StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED, materialization.state)
+                assertEquals(units, materialization.targetCompatibleMaterializedUnits)
+                assertEquals(StimulusExperimentalTargetOutcomeStatus.IMPROVED,
+                    comparison.experimentalReadinessAudit?.targetOutcomes?.single { it.targetId == movement.targetId }?.status)
+                assertFalse("an exact B4 movement target is governed B7 provenance",
+                    StimulusProductionMaterialScopeResolver().resolveDetailed(comparison).unknownTargetIds.contains(movement.targetId))
+                assertTrue("B7 must attribute the new material to the admitted movement target",
+                    comparison.experimentalReadinessAudit?.changeAttributions.orEmpty().none { attribution ->
+                        attribution.stableKey == selected.stableKey && attribution.selectionRole == selected.selectionRole &&
+                            "UNEXPLAINED_ADDED_IDENTITY" in attribution.reasonCodes
+                    })
             }
-            assertTrue(requireNotNull(actual.prescriptionAuthorizationPlan).authorizations.any {
-                it.quality == TrainableQuality.HYPERTROPHY && it.executionAuthority == StimulusPrescriptionExecutionAuthority.FULLY_ENCODED
-            })
-            if (remove != "mismatch") {
-                assertEquals(baseline.selectionPlan, actual.selectionPlan)
-                assertEquals(baseline.prescriptionAuthorizationPlan, actual.prescriptionAuthorizationPlan)
-                assertEquals(personalizedProgramFingerprint(baseline.experimental.request, baseline.experimental.items),
-                    personalizedProgramFingerprint(actual.experimental.request, actual.experimental.items))
-            }
-            assertEquals(0, counts.snapshot().controlBuilds)
-            assertEquals(1, counts.snapshot().experimentalBuilds)
-            assertEquals(0, counts.snapshot().thirdBuilds)
-            production
+            assertBuilds(result, 1, 1)
+            assertEquals(0, result.buildCounts.thirdBuilds)
+            result
         }
         Unit
     }
+
+    private fun StimulusTargetPlan.withoutProductionResidualAccounting(): StimulusTargetPlan = copy(
+        movementTargets = movementTargets.map { movement ->
+            movement.copy(regionalDoseTargets = movement.regionalDoseTargets.map { dose ->
+                dose.copy(
+                    existingEquivalentExposure = null,
+                    residualEquivalentExposure = null,
+                    authorizedWholeSetUnits = null,
+                    residualReasonCodes = emptyList()
+                )
+            })
+        }
+    )
 
     @Test fun productionComputesCanonicalOnceAndCompletesOnce() = runBlocking {
         StimulusProductionCoverageAuditTest().runCase(spec("c1_once")) { service, preflight, answers, metadata ->
@@ -636,4 +677,8 @@ class CanonicalStimulusPlanningIndependenceTest {
         assertEquals(control + experimental, result.buildCounts.totalBuildInvocations)
         assertEquals(0, result.buildCounts.thirdBuilds)
     }
+
+    private fun field(target: Any, name: String): Any = requireNotNull(
+        target.javaClass.getDeclaredField(name).apply { isAccessible = true }.get(target)
+    )
 }

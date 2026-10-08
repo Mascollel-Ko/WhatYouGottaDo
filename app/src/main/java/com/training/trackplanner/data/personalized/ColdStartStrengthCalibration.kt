@@ -17,6 +17,7 @@ enum class ColdStartStrengthCalibrationReason {
     SET_DEMAND_UNAVAILABLE,
     B5_DIRECT_TARGET_SELECTION_UNAVAILABLE,
     OWNER_ROLE_NOT_CANONICAL_STRENGTH,
+    OWNER_NOT_IN_APPROVED_MOVEMENT_ANCHOR,
     OWNER_LOAD_SEMANTICS_UNRESOLVED,
     SAME_OWNER_HISTORY_NOT_ABSENT,
     C14_FAILURE_NOT_EXACT_OWNER_SIGNAL_MISSING
@@ -75,8 +76,12 @@ class ColdStartStrengthCalibrationResolver {
         if (target.quality != TrainableQuality.STRENGTH) reasons += ColdStartStrengthCalibrationReason.WRONG_QUALITY
         if (target.numericAuthority !in setOf(
                 StimulusTargetNumericAuthority.PERSONAL_RESTORE_BASELINE,
-                StimulusTargetNumericAuthority.PERSONAL_SUCCESSFUL_DOSE
+                StimulusTargetNumericAuthority.PERSONAL_SUCCESSFUL_DOSE,
+                StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY
             )) reasons += ColdStartStrengthCalibrationReason.B4_DOSE_AUTHORITY_UNAVAILABLE
+        if (target.numericAuthority == StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY &&
+            "USER_APPROVED_PROJECT_POLICY_STRENGTH_COLD_START_4_DIRECT_SETS_PER_SELECTED_ANCHOR_WEEK" !in target.reasonCodes
+        ) reasons += ColdStartStrengthCalibrationReason.B4_DOSE_AUTHORITY_UNAVAILABLE
         if (b4AuthorizedSetCount <= 0 || currentProbeSetCount != b4AuthorizedSetCount) {
             reasons += ColdStartStrengthCalibrationReason.SET_DEMAND_UNAVAILABLE
         }
@@ -85,6 +90,9 @@ class ColdStartStrengthCalibrationResolver {
         }
         if (selectedCandidate.selectionRole != CANONICAL_STRENGTH_SELECTION_ROLE) {
             reasons += ColdStartStrengthCalibrationReason.OWNER_ROLE_NOT_CANONICAL_STRENGTH
+        }
+        if (com.training.trackplanner.data.CanonicalStrengthExposureCapability.movementAnchor(selectedCandidate.stableKey) == null) {
+            reasons += ColdStartStrengthCalibrationReason.OWNER_NOT_IN_APPROVED_MOVEMENT_ANCHOR
         }
         val semantics = c14.ownerLoadSemantics
         if (semantics == null || !semantics.rawLoadIsResolvedMechanicalLoad) {

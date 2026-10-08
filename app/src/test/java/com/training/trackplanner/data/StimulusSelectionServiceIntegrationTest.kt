@@ -249,7 +249,9 @@ class StimulusSelectionServiceIntegrationTest {
             assertTrue(comparison.winner == null)
             assertFalse(comparison.selectionPlan.productionSelectionAuthority)
             assertEquals("B7 must remain fail-closed for unexplained coverage-owner removals", StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, evaluation.status)
-            assertEquals(StimulusProductionCutoverScope.STRENGTH_V1, evaluation.scope)
+            // C33 admits the exact regional Hypertrophy residual into the existing combined
+            // B8 scope; unrelated B7 removal blockers must still keep production on CONTROL.
+            assertEquals(StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1, evaluation.scope)
             assertTrue("B7 removal blockers prevent any B8 authorization", evaluation.authorizedOwnerIdentities.isEmpty())
             assertEquals(b8Comparison.experimentalReadinessAudit?.status, evaluation.b7Status)
             assertEquals(StimulusExperimentalReadinessStatus.NOT_ELIGIBLE, b8Comparison.experimentalReadinessAudit?.status)

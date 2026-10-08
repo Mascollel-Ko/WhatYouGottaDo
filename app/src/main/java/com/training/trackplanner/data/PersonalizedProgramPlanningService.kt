@@ -55,6 +55,10 @@ import com.training.trackplanner.data.personalized.PlannedPrescription
 import com.training.trackplanner.data.personalized.StimulusPrescriptionAuthorizationEngine
 import com.training.trackplanner.data.personalized.StimulusPrescriptionAuthorizationPlan
 import com.training.trackplanner.data.personalized.StimulusPrescriptionMaterializationAuditEngine
+import com.training.trackplanner.data.personalized.CanonicalRegionalMovementB4ResidualResolver
+import com.training.trackplanner.data.personalized.CanonicalRegionalMovementB6AuthorizationEngine
+import com.training.trackplanner.data.personalized.mergeCanonicalMaterialDemand
+import com.training.trackplanner.data.personalized.regionalRegionQualifierMatches
 import com.training.trackplanner.data.personalized.CanonicalStimulusPlanningResult
 import com.training.trackplanner.data.personalized.CanonicalPreparedProgram
 import com.training.trackplanner.data.personalized.CanonicalPlanningOutcome
@@ -68,6 +72,7 @@ import com.training.trackplanner.data.personalized.MovementCoverage
 import com.training.trackplanner.data.personalized.RegionalTrainingDecisionResolver
 import com.training.trackplanner.data.personalized.RegionalStimulusTargetResolver
 import com.training.trackplanner.data.personalized.RegionalExperimentalMaterialDemandBuilder
+import com.training.trackplanner.data.personalized.RegionalMovementDoseTargetBuilder
 import com.training.trackplanner.data.personalized.RegionalAuthorityProgramComparison
 import com.training.trackplanner.data.personalized.movementCoverage
 import com.training.trackplanner.data.personalized.toJson
@@ -357,7 +362,19 @@ internal class PersonalizedProgramPlanningService(
         val stimulusNeeds = athleteStimulusNeedEngine.analyze(snapshot, state)
         val ledgerDoseHistory = LedgerBackedQualityDoseHistoryAnalyzer().analyze(snapshot, state, legacyDoseHistory)
         val decisionPortfolio = StimulusTrainingDecisionPortfolioEngine().build(stimulusNeeds, ledgerDoseHistory)
-        val targetPlan = StimulusTargetPlanEngine().build(decisionPortfolio, ledgerDoseHistory)
+        val targetPlanWithoutMovementDose = StimulusTargetPlanEngine().build(decisionPortfolio, ledgerDoseHistory)
+        val regionalDoses = RegionalMovementDoseTargetBuilder().build(
+            movementTargets = targetPlanWithoutMovementDose.movementTargets,
+            snapshot = snapshot,
+            state = state,
+            catalog = physicalQualityCatalog,
+            coreCatalog = canonicalCoreCatalog
+        )
+        val targetPlan = targetPlanWithoutMovementDose.copy(
+            movementTargets = targetPlanWithoutMovementDose.movementTargets.map { movement ->
+                movement.copy(regionalDoseTargets = regionalDoses[movement.movementCoverage].orEmpty())
+            }
+        )
         return CanonicalStimulusPlanningResult(
             athleteStimulusNeedProfile = stimulusNeeds,
             qualityDoseHistory = ledgerDoseHistory,
@@ -432,33 +449,116 @@ internal class PersonalizedProgramPlanningService(
             ?: throw requireNotNull((context.canonicalPlanningOutcome as? CanonicalPlanningOutcome.ExpectedFailure)?.failure)
         val targetPlan = canonicalPlanning.targetPlan
         val resolved = context.resolvedRequest
-        val selectionPlan = StimulusTargetCandidateSelector().build(
-            targetPlan = targetPlan,
+        // B5 first resolves only the canonical Quality/Task targets. Their exact B6
+        // authorizations are the only planned H exposure credited before the regional B4
+        // residual is calculated; CONTROL is built later and is never dose/prescription authority.
+        val qualityTaskTargetPlan = targetPlan.copy(movementTargets = emptyList())
+        val qualityTaskSelectionPlan = StimulusTargetCandidateSelector().build(
+            targetPlan = qualityTaskTargetPlan,
             snapshot = context.snapshot,
             state = context.state,
             request = resolved.request,
             physicalQualityCatalog = physicalQualityCatalog
         )
         val taskProtocolPlan = com.training.trackplanner.data.personalized.TaskProtocolB6AuthorizationEngine.build(
-            targetPlan, selectionPlan, context.snapshot
+            qualityTaskTargetPlan, qualityTaskSelectionPlan, context.snapshot
         )
         val taskProtocolDemand = com.training.trackplanner.data.personalized.applyTaskProtocolAuthorizations(
-            selectionPlan.materialDemand, taskProtocolPlan
+            qualityTaskSelectionPlan.materialDemand, taskProtocolPlan
         )
-        observe(ProductionGenerationPhase.B5_COMPLETE, selectionPlan, null)
         val prescriptionContext = com.training.trackplanner.data.personalized.buildCanonicalPrescriptionContext(
-            targetPlan = targetPlan,
-            selectionPlan = selectionPlan,
+            targetPlan = qualityTaskTargetPlan,
+            selectionPlan = qualityTaskSelectionPlan,
             snapshot = context.snapshot,
             strengthIntent = context.state.strengthIntent
         )
-        val authorizationPlan = StimulusPrescriptionAuthorizationEngine().build(
-            targetPlan = targetPlan,
-            selectionPlan = selectionPlan,
+        val qualityTaskAuthorizationPlan = StimulusPrescriptionAuthorizationEngine().build(
+            targetPlan = qualityTaskTargetPlan,
+            selectionPlan = qualityTaskSelectionPlan,
             snapshot = context.snapshot,
             canonicalPrescriptionContext = prescriptionContext,
             approvedTaskB6Owners = taskProtocolPlan.authorizedByOwner.keys
         )
+        val residualTargetPlan = CanonicalRegionalMovementB4ResidualResolver().resolve(
+            targetPlan = targetPlan,
+            existingProgram = null,
+            selectionPlan = qualityTaskSelectionPlan,
+            authorizationPlan = qualityTaskAuthorizationPlan,
+            snapshot = context.snapshot,
+            catalog = physicalQualityCatalog
+        )
+        val movementSelectionPlan = StimulusTargetCandidateSelector().build(
+            targetPlan = residualTargetPlan.copy(qualityTargets = emptyList(), taskTargets = emptyList()),
+            snapshot = context.snapshot,
+            state = context.state,
+            request = resolved.request,
+            physicalQualityCatalog = physicalQualityCatalog,
+            excludedStableKeys = qualityTaskSelectionPlan.selectedCandidates.mapTo(linkedSetOf()) { it.stableKey }
+        )
+        val initiallyCombinedSelectionPlan = qualityTaskSelectionPlan.copy(
+            selectedCandidates = (qualityTaskSelectionPlan.selectedCandidates + movementSelectionPlan.selectedCandidates)
+                .sortedWith(compareBy({ it.primaryTargetId }, { it.stableKey }, { it.selectionRole })),
+            traces = qualityTaskSelectionPlan.traces + movementSelectionPlan.traces,
+            materialDemand = mergeCanonicalMaterialDemand(taskProtocolDemand, movementSelectionPlan.materialDemand),
+            candidateDispositionIndex = com.training.trackplanner.data.personalized.StimulusCandidateDispositionIndex(
+                qualityTaskSelectionPlan.candidateDispositionIndex.entries + movementSelectionPlan.candidateDispositionIndex.entries
+            ),
+            strengthShortfalls = qualityTaskSelectionPlan.strengthShortfalls
+        )
+        val existingQualitySatisfaction = residualTargetPlan.movementTargets.mapNotNull { movement ->
+            val dose = movement.regionalDoseTargets.firstOrNull {
+                it.kind == com.training.trackplanner.data.personalized.StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET
+            } ?: return@mapNotNull null
+            if ((dose.authorizedWholeSetUnits ?: Int.MAX_VALUE) != 0 || dose.weeklyTarget == null ||
+                (dose.existingEquivalentExposure ?: 0.0) + 1e-9 < dose.weeklyTarget) return@mapNotNull null
+            val owner = qualityTaskSelectionPlan.selectedCandidates.firstOrNull { candidate ->
+                "QUALITY:HYPERTROPHY" in candidate.coveredTargetIds &&
+                    qualityTaskAuthorizationPlan.authorizations.any { authorization ->
+                        authorization.targetId == "QUALITY:HYPERTROPHY" && authorization.quality == TrainableQuality.HYPERTROPHY &&
+                            authorization.owner?.let { it.stableKey == candidate.stableKey && it.selectionRole == candidate.selectionRole } == true &&
+                            authorization.authorizedPrescription != null && authorization.status in setOf(
+                                com.training.trackplanner.data.personalized.StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                                com.training.trackplanner.data.personalized.StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
+                                com.training.trackplanner.data.personalized.StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
+                            ) && physicalQualityCatalog.relations(candidate.stableKey).any { relation ->
+                                relation.qualityId == TrainableQuality.HYPERTROPHY &&
+                                    relation.relationLevel == com.training.trackplanner.data.StimulusCapabilityLevel.DIRECT_CAPABILITY &&
+                                    regionalRegionQualifierMatches(movement.movementCoverage, relation.regionQualifier)
+                            }
+                    }
+            } ?: return@mapNotNull null
+            movement.targetId to StimulusPrescriptionOwnerIdentity(owner.stableKey, owner.selectionRole)
+        }.toMap()
+        val selectionPlan = initiallyCombinedSelectionPlan.copy(
+            selectedCandidates = initiallyCombinedSelectionPlan.selectedCandidates.map { candidate ->
+                val sharedMovementTargets = existingQualitySatisfaction.filterValues {
+                    it == StimulusPrescriptionOwnerIdentity(candidate.stableKey, candidate.selectionRole)
+                }.keys
+                candidate.copy(coveredTargetIds = candidate.coveredTargetIds + sharedMovementTargets)
+            },
+            traces = initiallyCombinedSelectionPlan.traces.map { trace ->
+                val owner = existingQualitySatisfaction[trace.targetId] ?: return@map trace
+                trace.copy(
+                    selectionRequired = false,
+                    coveredByPreviouslySelectedStableKey = owner.stableKey,
+                    coveredByPreviouslySelectedSelectionRole = owner.selectionRole,
+                    reasonCodes = (trace.reasonCodes + "B5_NON_ADDITIVE_EXISTING_QUALITY_OWNER_SATISFIES_MOVEMENT_TARGET").distinct()
+                )
+            }
+        )
+        val authorizationPlan = CanonicalRegionalMovementB6AuthorizationEngine().authorize(
+            targetPlan = residualTargetPlan,
+            selectionPlan = selectionPlan,
+            baseAuthorizationPlan = StimulusPrescriptionAuthorizationEngine().build(
+                targetPlan = residualTargetPlan,
+                selectionPlan = selectionPlan,
+                snapshot = context.snapshot,
+                canonicalPrescriptionContext = prescriptionContext,
+                approvedTaskB6Owners = taskProtocolPlan.authorizedByOwner.keys
+            ),
+            snapshot = context.snapshot
+        )
+        observe(ProductionGenerationPhase.B5_COMPLETE, selectionPlan, null)
         val activelyAdmittedStrengthTargetIds = selectionPlan.traces.asSequence()
             .filter { it.targetId == "QUALITY:STRENGTH" }
             .filter { it.selectionRequired || it.selectedStableKey != null || it.coveredByPreviouslySelectedStableKey != null }
@@ -502,7 +602,7 @@ internal class PersonalizedProgramPlanningService(
                     com.training.trackplanner.data.personalized.PlanningFrequencySource.EXPLICIT_USER,
                 frequency = resolved.frequencyProvenance,
                 progress = progress,
-                materialDemandOverride = taskProtocolDemand,
+                materialDemandOverride = selectionPlan.materialDemand,
                 exactPrescriptionAuthorizationProvider = authorizationPlan.provider(),
                 canonicalB5PowerOwnerIdentities = executionSelectionPlan.selectedCandidates
                     .filter { "QUALITY:POWER" in it.coveredTargetIds }
@@ -535,7 +635,7 @@ internal class PersonalizedProgramPlanningService(
 
         val finalAudit = FinalStimulusNeedAudit().audit(experimental, context.snapshot, physicalQualityCatalog)
         val experimentalAudit = StimulusTargetControlProgramAuditEngine().audit(
-            targetPlan,
+            residualTargetPlan,
             finalAudit,
             resolved.request.durationWeeks
         )
@@ -550,7 +650,7 @@ internal class PersonalizedProgramPlanningService(
             experimentalItems = experimental.items
         )
         val realizationPlan = StimulusPrescriptionRealizationPlanEngine().build(
-            targetPlan = targetPlan,
+            targetPlan = residualTargetPlan,
             selectionPlan = executionSelectionPlan,
             snapshot = context.snapshot,
             currentPrescriptions = realizationInputs.currentPrescriptions,
@@ -561,6 +661,7 @@ internal class PersonalizedProgramPlanningService(
         observe(ProductionGenerationPhase.B6_POST_MATERIALIZATION_COMPLETE, executionSelectionPlan, authorizationPlan)
         return CanonicalExperimentalGeneration(
             program = experimental,
+            targetPlan = residualTargetPlan,
             selectionPlan = executionSelectionPlan,
             prescriptionContext = prescriptionContext,
             authorizationPlan = authorizationPlan,
@@ -719,7 +820,7 @@ internal class PersonalizedProgramPlanningService(
         val comparison = StimulusSelectionProgramComparisonEngine().compare(
             control = control,
             experimental = experimental.program,
-            targetPlan = canonicalPlanning.targetPlan,
+            targetPlan = experimental.targetPlan,
             selectionPlan = experimental.selectionPlan,
             controlAudit = canonicalPlanning.controlProgramAudit,
             experimentalAudit = experimental.experimentalAudit
@@ -1286,7 +1387,7 @@ internal class PersonalizedProgramPlanningService(
             val stabilizedProgram = activation.program
             val finalAudit = FinalStimulusNeedAudit().audit(stabilizedProgram, context.snapshot, physicalQualityCatalog)
             val experimentalAudit = StimulusTargetControlProgramAuditEngine().audit(
-                canonicalPlanning.targetPlan,
+                experimental.targetPlan,
                 finalAudit,
                 context.resolvedRequest.request.durationWeeks
             )
@@ -1301,7 +1402,7 @@ internal class PersonalizedProgramPlanningService(
                 experimentalItems = stabilizedProgram.items
             )
             val realizationPlan = StimulusPrescriptionRealizationPlanEngine().build(
-                targetPlan = canonicalPlanning.targetPlan,
+                targetPlan = experimental.targetPlan,
                 selectionPlan = experimental.selectionPlan,
                 snapshot = context.snapshot,
                 currentPrescriptions = realizationInputs.currentPrescriptions,

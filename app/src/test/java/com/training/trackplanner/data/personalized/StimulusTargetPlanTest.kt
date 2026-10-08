@@ -93,6 +93,88 @@ class StimulusTargetPlanTest {
     }
 
     @Test
+    fun developedStrengthWithoutPersonalBaselineGetsOneSelectedAnchorColdStartBudget() {
+        val decision = portfolio(StimulusDoseStrategy.INTRODUCE_DIRECT_STIMULUS).qualityDecisions.single().copy(
+            needDecision = TrainingNeedDecision.DEVELOP,
+            baselineAvailable = true,
+            hasPersonalDirectBaseline = false,
+            baselineEligibleWeekCount = 0,
+            baselineDirectUnitsMedian = null,
+            baselineDirectSessionsMedian = null,
+            baselineExposureWeekFrequency = null,
+            ledgerAvailable = true,
+            observedPersonalDirectBaseline = false,
+            numericBaselineUsable = false,
+            baselineObservability = DoseBaselineObservability.COMPLETE
+        )
+        val target = StimulusTargetPlanEngine().build(
+            StimulusTrainingDecisionPortfolio(listOf(decision), emptyList(), emptyList()),
+            baseline(valid = false)
+        ).qualityTargets.single()
+
+        assertEquals(StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY, target.numericAuthority)
+        assertEquals(StimulusTargetRange(4.0, 4.0, 4.0), target.weeklyDirectUnitsTarget)
+        assertNull(target.weeklyDirectSessionsTarget)
+        assertTrue(target.reasonCodes.contains(
+            "USER_APPROVED_PROJECT_POLICY_STRENGTH_COLD_START_4_DIRECT_SETS_PER_SELECTED_ANCHOR_WEEK"
+        ))
+        assertTrue(target.reasonCodes.contains("STRENGTH_ANCHOR_VARIANTS_SHARE_ONE_WEEKLY_BUDGET"))
+    }
+
+    @Test
+    fun deferredMovementNeedCannotCreateColdStartDoseTarget() {
+        val deferred = StimulusMovementTrainingDecision(
+            movementCoverage = MovementCoverage.HORIZONTAL_PUSH,
+            sourceCoverageCode = "HORIZONTAL_PUSH",
+            relevance = NeedRelevance.LOW,
+            disposition = MovementNeedDisposition.DEFER,
+            priority = TargetPriority.BACKGROUND,
+            basePriority = RepresentationPriority.MODERATE,
+            representationState = RepresentationState.ABSENT,
+            evidenceConfidence = PlanningConfidence.MODERATE,
+            currentExposure28d = 0.0,
+            priorExposure28d = 0.0,
+            gapPriority = MovementGapPriority.LOW,
+            contributesTransitionPressure = false,
+            reasonCodes = listOf(MovementNeedDispositionReason.LOW_PRIORITY_GAP_DEFERRED.name),
+            evidence = listOf("existing B3 decision=DEFER")
+        )
+        val plan = StimulusTargetPlanEngine().build(
+            StimulusTrainingDecisionPortfolio(
+                qualityDecisions = emptyList(), taskDecisions = emptyList(), unresolved = emptyList(),
+                movementDecisions = listOf(deferred)
+            ),
+            baseline(valid = false)
+        )
+
+        assertTrue(plan.movementTargets.isEmpty())
+        assertFalse(plan.movementTargets.any { target ->
+            target.regionalDoseTargets.any {
+                it.numericAuthority == StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY
+            }
+        })
+    }
+
+    @Test
+    fun partialStrengthHistoryDoesNotReceiveColdStartNumericAuthority() {
+        val decision = portfolio(StimulusDoseStrategy.DEVELOP_DIRECT_STIMULUS_DIRECTION_ONLY).qualityDecisions.single().copy(
+            needDecision = TrainingNeedDecision.DEVELOP,
+            baselineAvailable = true,
+            hasPersonalDirectBaseline = false,
+            ledgerAvailable = true,
+            observedPersonalDirectBaseline = false,
+            numericBaselineUsable = false,
+            baselineObservability = DoseBaselineObservability.PARTIAL_UNCLASSIFIED
+        )
+        val target = StimulusTargetPlanEngine().build(
+            StimulusTrainingDecisionPortfolio(listOf(decision), emptyList(), emptyList()),
+            baseline(valid = false)
+        ).qualityTargets.single()
+        assertEquals(StimulusTargetNumericAuthority.DIRECTION_ONLY, target.numericAuthority)
+        assertNull(target.weeklyDirectUnitsTarget)
+    }
+
+    @Test
     fun unavailableBaselineForBaselineStrategyIsUnresolvedAndSafe() {
         val target = StimulusTargetPlanEngine().build(
             portfolio(StimulusDoseStrategy.HOLD_PERSONAL_BASELINE), baseline(valid = true, available = false)

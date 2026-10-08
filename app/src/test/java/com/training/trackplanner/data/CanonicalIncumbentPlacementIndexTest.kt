@@ -172,6 +172,22 @@ class CanonicalIncumbentPlacementIndexTest {
     }
 
     @Test
+    fun c32_1ExactProgramContractRemainsEligibleAfterC33RegionalMaterializationBump() {
+        val c32_1 = program(
+            builder = "3.65.0",
+            runtime = "RECORD_BASED_PLANNER_0.15.7_KOTLIN_1"
+        )
+        val result = index(program = c32_1)
+        assertEquals(CanonicalIncumbentIndexStatus.AVAILABLE, result.status)
+        assertEquals(2, result.placement(owner, 1)?.day)
+
+        val mismatched = index(program = c32_1.copy(
+            canonicalPlannerRuntimeVersion = com.training.trackplanner.data.personalized.PERSONALIZED_PLANNER_PROTOCOL
+        ))
+        assertEquals(CanonicalIncumbentIndexStatus.SOURCE_VERSION_INCOMPATIBLE, mismatched.status)
+    }
+
+    @Test
     fun c20ExactPlacementContractRemainsEligibleAfterC21Bump() {
         val c20 = program(
             builder = "3.55.0",

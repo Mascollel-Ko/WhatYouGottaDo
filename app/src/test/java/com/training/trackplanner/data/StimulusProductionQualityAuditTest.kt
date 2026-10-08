@@ -63,9 +63,31 @@ class StimulusProductionQualityAuditTest {
         )
         assertEquals(StimulusProductionProgramSource.CONTROL, fallback.routeDecision.selectedSource)
         assertFalse(fallback.routeDecision.productionRoutingActive)
-        assertNull("no executable comparison may be built when all exact authority paths are exhausted", fallback.comparison)
-        assertTrue("unresolved needs must remain visible", fallback.unresolvedMaterialDemandGaps.isNotEmpty())
-        assertTrue("authority failures must be typed", fallback.materialDemandAuthorityResolutions.isNotEmpty())
+        val fallbackComparison = requireNotNull(fallback.comparison)
+        val selectedStrengthOwners = fallbackComparison.selectionPlan.selectedCandidates.filter {
+            "QUALITY:STRENGTH" in it.coveredTargetIds
+        }.map { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }.toSet()
+        assertTrue("independent regional work may still be audited when Strength B6 is unavailable",
+            selectedStrengthOwners.isNotEmpty() || fallbackComparison.targetPlan.movementTargets.isNotEmpty())
+        assertTrue("no exact Strength prescription authority is manufactured",
+            fallbackComparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().none {
+                it.quality == TrainableQuality.STRENGTH && it.authorizedPrescription != null && it.status in setOf(
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
+                )
+            })
+        assertTrue("an unauthorized Strength B5 owner cannot materialize through the regional path",
+            fallbackComparison.experimental.items.none { row ->
+                StimulusPrescriptionOwnerIdentity(row.exerciseStableKey, row.selectionRole) in selectedStrengthOwners
+            })
+        assertTrue("the unmet Strength target remains a typed shortfall when its B6 authority is unavailable",
+            fallbackComparison.selectionPlan.strengthShortfalls.any {
+                it.reason == StimulusStrengthShortfallReason.NO_EXECUTABLE_STRENGTH_PRESCRIPTION
+            })
+        val strengthFailures = fallbackComparison.prescriptionAuthorizationPlan?.authorizations.orEmpty()
+            .filter { it.quality == TrainableQuality.STRENGTH && it.authorizedPrescription == null }
+        assertTrue("Strength B6 failure must retain typed authority failure evidence", strengthFailures.isNotEmpty())
         assertEquals(1, fallback.buildCounts.controlBuilds)
         assertEquals(1, fallback.buildCounts.experimentalBuilds)
         assertEquals(2, fallback.buildCounts.totalBuildInvocations)

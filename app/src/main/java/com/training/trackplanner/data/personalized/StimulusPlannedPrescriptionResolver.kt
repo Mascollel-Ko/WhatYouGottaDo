@@ -39,6 +39,20 @@ class StimulusPlannedPrescriptionResolver {
                 ExecutionAuthorityResolutionReason.UNSUPPORTED_PRESCRIPTION_AUTHORITY,
                 ExecutionAuthorityReturnTarget.NONE
             ))
+        if (quality == TrainableQuality.HYPERTROPHY && prescription.sets.all {
+                it.loadState == com.training.trackplanner.data.ProgramLoadState.USER_CALIBRATION_REQUIRED &&
+                    it.weightKg == 0.0 && it.seconds == 0 &&
+                    it.targetRpeMin.validatedTargetRpeMin()?.let { rpe -> rpe >= quality.canonicalEffortTarget().minimumRpe } == true
+            }) return PlannedStimulusCompatibility(
+            quality,
+            PlannedStimulusCompatibilityStatus.COMPATIBLE_REQUIRES_USER_LOAD_INPUT,
+            reasonCodes = listOf("HYPERTROPHY_LOAD_INTENTIONALLY_REQUIRES_USER_CALIBRATION"),
+            authorityRecovery = ExecutionAuthorityResolution(
+                ExecutionAuthorityResolutionStatus.USER_INPUT_REQUIRED,
+                ExecutionAuthorityResolutionReason.RESISTANCE_LOAD_UNAVAILABLE,
+                ExecutionAuthorityReturnTarget.EXPLICIT_USER_INPUT
+            )
+        )
         if (quality == TrainableQuality.STRENGTH && prescription.sets.all {
                 it.loadState == com.training.trackplanner.data.ProgramLoadState.USER_CALIBRATION_REQUIRED &&
                     it.weightKg == 0.0 && it.seconds == 0 &&

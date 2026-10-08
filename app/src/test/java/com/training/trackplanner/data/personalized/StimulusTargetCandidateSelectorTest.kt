@@ -65,6 +65,28 @@ class StimulusTargetCandidateSelectorTest {
     }
 
     @Test
+    fun strengthColdStartB4BudgetIsPassedToB5AsOneSelectedAnchorDemand() {
+        val key = "barbell_bench_press"
+        val fixture = fixture(listOf(exercise(key)), listOf(relation(key)))
+        val coldStart = target(
+            quality = TrainableQuality.STRENGTH,
+            priority = TargetPriority.PRIMARY,
+            strategy = StimulusDoseStrategy.INTRODUCE_DIRECT_STIMULUS,
+            authority = StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY,
+            weekly = StimulusTargetRange(4.0, 4.0, 4.0)
+        ).copy(reasonCodes = listOf(
+            "USER_APPROVED_PROJECT_POLICY_STRENGTH_COLD_START_4_DIRECT_SETS_PER_SELECTED_ANCHOR_WEEK",
+            "STRENGTH_ANCHOR_VARIANTS_SHARE_ONE_WEEKLY_BUDGET"
+        ))
+
+        val selection = select(qualityPlan().copy(qualityTargets = listOf(coldStart)), fixture, emptyList())
+
+        assertEquals(key, selection.selectedCandidates.single().stableKey)
+        assertEquals(4, selection.materialDemand.candidates.single().targetSets)
+        assertTrue(selection.materialDemand.candidates.single().role.contains("QUALITY_STRENGTH"))
+    }
+
+    @Test
     fun directCandidatesBeatSupportiveCandidatesByEligibility() {
         val supportive = exercise("supportive")
         val direct = exercise("barbell_back_squat")

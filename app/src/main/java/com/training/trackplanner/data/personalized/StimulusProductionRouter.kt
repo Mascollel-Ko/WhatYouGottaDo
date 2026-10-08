@@ -444,12 +444,30 @@ class StimulusProductionMaterialScopeResolver {
         if (targetIds.isEmpty()) return null
         val governedTargetIds = comparison.targetPlan.qualityTargets.mapTo(linkedSetOf()) { "QUALITY:${it.quality.name}" }
             .apply { addAll(comparison.targetPlan.taskTargets.map { "TASK:${it.task}" }) }
+            .apply {
+                comparison.targetPlan.movementTargets.filter { movement ->
+                    movement.regionalDoseTargets.any { dose ->
+                        dose.kind == StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET &&
+                            dose.shapeAuthority == StimulusMovementDoseShapeAuthority.HYPERTROPHY_BAND_8_12_PERSONAL_7_15_RPE_7_USER_LOAD_CALIBRATION &&
+                            dose.weeklyTarget != null && (
+                                (dose.authorizedWholeSetUnits ?: 0) > 0 ||
+                                    (dose.authorizedWholeSetUnits == 0 &&
+                                        (dose.existingEquivalentExposure ?: 0.0) + 1e-9 >= dose.weeklyTarget &&
+                                        comparison.prescriptionAuthorizationPlan?.movementAuthorizations.orEmpty().any {
+                                            it.targetId == movement.targetId &&
+                                                it.status == StimulusMovementB6Status.COVERED_BY_EXISTING_QUALITY_B6
+                                        })
+                                )
+                    }
+                }.forEach { add(it.targetId) }
+            }
         if (targetIds.any { it !in governedTargetIds }) return null
         val targetQualities = targetIds.mapNotNull { targetId ->
             when (targetId) {
                 "QUALITY:STRENGTH" -> com.training.trackplanner.data.TrainableQuality.STRENGTH
                 "QUALITY:HYPERTROPHY" -> com.training.trackplanner.data.TrainableQuality.HYPERTROPHY
-                else -> null
+                else -> targetId.takeIf { regionalHypertrophyTarget(comparison, it) }
+                    ?.let { com.training.trackplanner.data.TrainableQuality.HYPERTROPHY }
             }
         }.toSet()
         if (targetQualities.isEmpty() && targetIds.all { it.startsWith("TASK:") }) {
@@ -470,8 +488,9 @@ class StimulusProductionMaterialScopeResolver {
             ) return StimulusProductionCutoverScope.BADMINTON_TASK_V1
             return null
         }
-        // Mixed task/quality material and unknown target families resolve to no production scope.
-        if (targetIds.any { !it.startsWith("QUALITY:") }) return null
+        // Task/unknown material remains out of quality scope. An exact B4 regional Hypertrophy
+        // target is admitted only through its typed movement target and B4 dose lineage.
+        if (targetIds.any { !it.startsWith("QUALITY:") && !regionalHypertrophyTarget(comparison, it) }) return null
         if (targetQualities == setOf(com.training.trackplanner.data.TrainableQuality.STRENGTH)) {
             val calibrationOwners = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty()
                 .filter { authorization ->
@@ -494,6 +513,32 @@ class StimulusProductionMaterialScopeResolver {
                 com.training.trackplanner.data.TrainableQuality.HYPERTROPHY
             ) -> StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1
             else -> null
+        }
+    }
+
+    private fun regionalHypertrophyTarget(
+        comparison: StimulusSelectionProgramComparison,
+        targetId: String
+    ): Boolean = comparison.targetPlan.movementTargets.any { movement ->
+        movement.targetId == targetId && movement.regionalDoseTargets.any { dose ->
+            dose.kind == StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET &&
+                dose.shapeAuthority == StimulusMovementDoseShapeAuthority.HYPERTROPHY_BAND_8_12_PERSONAL_7_15_RPE_7_USER_LOAD_CALIBRATION &&
+                dose.numericAuthority in setOf(
+                    StimulusTargetNumericAuthority.PERSONAL_SUCCESSFUL_DOSE,
+                    StimulusTargetNumericAuthority.PERSONAL_RESTORE_BASELINE,
+                    StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY
+                ) && dose.weeklyTarget != null &&
+                dose.existingEquivalentExposure?.let { it.isFinite() && it >= 0.0 } == true &&
+                ((dose.authorizedWholeSetUnits ?: 0) > 0 &&
+                    dose.residualEquivalentExposure?.let { it.isFinite() && it > 0.0 } == true ||
+                    dose.authorizedWholeSetUnits == 0 &&
+                        (dose.existingEquivalentExposure ?: 0.0) + 1e-9 >= dose.weeklyTarget &&
+                        comparison.prescriptionAuthorizationPlan?.movementAuthorizations.orEmpty().any {
+                            it.targetId == targetId &&
+                                it.status == StimulusMovementB6Status.COVERED_BY_EXISTING_QUALITY_B6
+                        }) &&
+                (dose.numericAuthority != StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY ||
+                    dose.evidence.any { it.contains("doseProvenance=USER_APPROVED_PROJECT_POLICY") })
         }
     }
 }

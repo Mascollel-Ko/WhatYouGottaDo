@@ -18,6 +18,7 @@ internal data class PreparedCanonicalGenerationContext(
 /** B5/B6 artifact completed without a CONTROL program or any CONTROL diagnostics. */
 internal data class CanonicalExperimentalGeneration(
     val program: GeneratedProgramSkeleton,
+    val targetPlan: com.training.trackplanner.data.personalized.StimulusTargetPlan,
     val selectionPlan: StimulusCandidateSelectionPlan,
     val prescriptionContext: CanonicalPrescriptionContext,
     val authorizationPlan: StimulusPrescriptionAuthorizationPlan,

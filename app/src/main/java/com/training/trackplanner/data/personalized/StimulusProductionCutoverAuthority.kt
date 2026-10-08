@@ -117,7 +117,7 @@ class StimulusProductionCutoverAuthorityAuditEngine {
             }
             val nonTarget = materialOwners.flatMap { identity ->
                 materialAttributionsFor(comparison, identity).filter(::isMaterialAttribution).flatMap { attribution ->
-                    attribution.targetIds.filterNot { it == policy.targetId }
+                    attribution.targetIds.filterNot { it in allowedMaterialTargetIds(comparison, policy) }
                 }
             }.distinct().sorted()
             if (nonTarget.isNotEmpty()) {
@@ -506,23 +506,28 @@ class StimulusProductionCutoverAuthorityAuditEngine {
         }
         if (candidate == null) reasons += policy.addedOwnerB5Reason
 
-        val target = comparison.targetPlan.qualityTargets.firstOrNull { "QUALITY:${it.quality.name}" == policy.targetId }
         val candidateTargets = candidate?.coveredTargetIds.orEmpty()
+        val auth = exactAuthorization(comparison, identity, policy)
+        val authorizationTargetId = auth?.targetId
         val selectedTraceTargets = comparison.selectionPlan.traces
             .filter { trace -> trace.selectedStableKey == identity.stableKey && trace.selectedSelectionRole == identity.selectionRole }
             .map { it.targetId }
-        if (target == null || policy.targetId !in candidateTargets || policy.targetId !in selectedTraceTargets) {
+        val canonicalQualityTarget = authorizationTargetId == policy.targetId && comparison.targetPlan.qualityTargets.any {
+            "QUALITY:${it.quality.name}" == policy.targetId && it.quality == policy.quality
+        }
+        val regionalTarget = authorizationTargetId?.let { isRegionalHypertrophyTarget(comparison, it, policy) } == true
+        if ((!canonicalQualityTarget && !regionalTarget) || authorizationTargetId !in candidateTargets ||
+            authorizationTargetId !in selectedTraceTargets) {
             reasons += policy.addedOwnerB5Reason
         }
-        targetAuthorityReason(comparison, policy.targetId, policy)?.let(reasons::add)
+        targetAuthorityReason(comparison, authorizationTargetId, policy)?.let(reasons::add)
 
         val attribution = materialAttributionsFor(comparison, identity)
             .firstOrNull { it.source == StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY }
-        if (attribution == null || policy.targetId !in attribution.targetIds) {
+        if (attribution == null || authorizationTargetId !in attribution.targetIds) {
             reasons += policy.addedOwnerB5Reason
         }
 
-        val auth = exactAuthorization(comparison, identity, policy)
         if (!isExecutableAuthorization(comparison, auth, policy)) {
             reasons += policy.prescriptionAuthorityReason
         }
@@ -564,8 +569,9 @@ class StimulusProductionCutoverAuthorityAuditEngine {
             }) {
             reasons += "B8_CUTOVER_V1_PROVENANCE_NOT_CLOSED"
         }
+        val allowedTargets = allowedMaterialTargetIds + regionalAllowedTargetIds(comparison, policy)
         if (attributions.filter(::isMaterialAttribution).any { attribution ->
-            attribution.targetIds.any { it !in allowedMaterialTargetIds }
+            attribution.targetIds.any { it !in allowedTargets }
         }) {
             reasons += policy.nonQualityChangeReason
         }
@@ -593,17 +599,31 @@ class StimulusProductionCutoverAuthorityAuditEngine {
         authorization: StimulusPrescriptionAuthorization?,
         policy: CutoverScopePolicy
     ): Boolean = authorization != null && authorization.quality == policy.quality &&
-            authorization.authorizedPrescription != null && when (policy.scope) {
-                StimulusProductionCutoverScope.STRENGTH_CALIBRATION_V1 -> validColdStartAuthorization(comparison, authorization)
+            authorization.authorizedPrescription != null && when {
+                policy.scope == StimulusProductionCutoverScope.STRENGTH_CALIBRATION_V1 ->
+                    validColdStartAuthorization(comparison, authorization)
+                policy.scope == StimulusProductionCutoverScope.HYPERTROPHY_V1 &&
+                    isRegionalHypertrophyTarget(comparison, authorization.targetId, policy) -> {
+                    val prescription = authorization.authorizedPrescription
+                    val calibration = authorization.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION &&
+                        validRegionalHypertrophyCalibration(comparison, authorization)
+                    val materialLoad = authorization.status in setOf(
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR
+                    ) && prescription.sets.all { it.weightKg.isFinite() && it.weightKg > 0.0 }
+                    (calibration || materialLoad) &&
+                        canonicalExecutionAuthority(policy.quality, prescription) == StimulusPrescriptionExecutionAuthority.FULLY_ENCODED &&
+                        prescription.sets.isNotEmpty() && prescription.sets.all { it.reps in 7..15 && it.targetRpeMin?.let { rpe -> rpe >= 7.0 } == true }
+                }
                 else -> authorization.status in setOf(
                     StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
                     StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR
-                )
-            } && (policy.scope != StimulusProductionCutoverScope.HYPERTROPHY_V1 ||
-            canonicalExecutionAuthority(policy.quality, authorization.authorizedPrescription) == StimulusPrescriptionExecutionAuthority.FULLY_ENCODED &&
-            authorization.authorizedPrescription.sets.isNotEmpty() && authorization.authorizedPrescription.sets.all { set ->
-                set.reps in 7..15 && set.weightKg.isFinite() && set.weightKg > 0.0
-            })
+                ) && (policy.scope != StimulusProductionCutoverScope.HYPERTROPHY_V1 ||
+                    canonicalExecutionAuthority(policy.quality, authorization.authorizedPrescription) == StimulusPrescriptionExecutionAuthority.FULLY_ENCODED &&
+                    authorization.authorizedPrescription.sets.isNotEmpty() && authorization.authorizedPrescription.sets.all { set ->
+                        set.reps in 7..15 && set.weightKg.isFinite() && set.weightKg > 0.0
+                    })
+            }
 
     private fun executionAuthorityReason(
         comparison: StimulusSelectionProgramComparison,
@@ -626,12 +646,16 @@ class StimulusProductionCutoverAuthorityAuditEngine {
             val target = comparison.targetPlan.qualityTargets.firstOrNull { "QUALITY:${it.quality.name}" == targetId }
             return if (target == null || target.quality != TrainableQuality.STRENGTH ||
                 target.strategy == StimulusDoseStrategy.UNRESOLVED || targetId in comparison.targetPlan.unresolved ||
-                target.numericAuthority !in setOf(
+                (target.numericAuthority !in setOf(
                     StimulusTargetNumericAuthority.PERSONAL_SUCCESSFUL_DOSE,
                     StimulusTargetNumericAuthority.PERSONAL_RESTORE_BASELINE
-                )) "B8_STRENGTH_CALIBRATION_V1_REQUIRES_NUMERIC_DOSE" else null
+                ) && !(target.numericAuthority == StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY &&
+                    "USER_APPROVED_PROJECT_POLICY_STRENGTH_COLD_START_4_DIRECT_SETS_PER_SELECTED_ANCHOR_WEEK" in target.reasonCodes))) {
+                "B8_STRENGTH_CALIBRATION_V1_REQUIRES_NUMERIC_DOSE"
+            } else null
         }
         if (policy.scope == StimulusProductionCutoverScope.HYPERTROPHY_V1) {
+            if (targetId != null && isRegionalHypertrophyTarget(comparison, targetId, policy)) return null
             val target = comparison.targetPlan.qualityTargets.firstOrNull { "QUALITY:${it.quality.name}" == targetId }
             return if (target == null || target.quality != policy.quality ||
                 target.strategy == StimulusDoseStrategy.UNRESOLVED || targetId in comparison.targetPlan.unresolved ||
@@ -658,6 +682,76 @@ class StimulusProductionCutoverAuthorityAuditEngine {
         return null
     }
 
+    private fun isRegionalHypertrophyTarget(
+        comparison: StimulusSelectionProgramComparison,
+        targetId: String,
+        policy: CutoverScopePolicy
+    ): Boolean = policy.scope == StimulusProductionCutoverScope.HYPERTROPHY_V1 &&
+        comparison.targetPlan.movementTargets.any { movement ->
+            movement.targetId == targetId && movement.regionalDoseTargets.any { dose ->
+                dose.kind == StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET &&
+                    dose.shapeAuthority == StimulusMovementDoseShapeAuthority.HYPERTROPHY_BAND_8_12_PERSONAL_7_15_RPE_7_USER_LOAD_CALIBRATION &&
+                    dose.numericAuthority in setOf(
+                        StimulusTargetNumericAuthority.PERSONAL_SUCCESSFUL_DOSE,
+                        StimulusTargetNumericAuthority.PERSONAL_RESTORE_BASELINE,
+                        StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY
+                    ) && dose.weeklyTarget != null && (dose.authorizedWholeSetUnits ?: 0) > 0 &&
+                    dose.existingEquivalentExposure?.let { it.isFinite() && it >= 0.0 } == true &&
+                    dose.residualEquivalentExposure?.let { it.isFinite() && it > 0.0 } == true &&
+                    (dose.numericAuthority != StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY ||
+                        dose.evidence.any { it.contains("doseProvenance=${RegionalColdStartDosePolicy.PROVENANCE}") })
+            }
+        }
+
+    private fun regionalAllowedTargetIds(
+        comparison: StimulusSelectionProgramComparison,
+        policy: CutoverScopePolicy
+    ): Set<String> = if (policy.scope != StimulusProductionCutoverScope.HYPERTROPHY_V1) emptySet() else
+        comparison.targetPlan.movementTargets.mapNotNullTo(linkedSetOf()) { movement ->
+            movement.targetId.takeIf {
+                isRegionalHypertrophyTarget(comparison, it, policy) ||
+                    isCoveredByExistingAuthorizedQualityMaterial(comparison, it, policy)
+            }
+        }
+
+    private fun allowedMaterialTargetIds(
+        comparison: StimulusSelectionProgramComparison,
+        policy: CutoverScopePolicy
+    ): Set<String> = setOf(policy.targetId) + regionalAllowedTargetIds(comparison, policy)
+
+    private fun isCoveredByExistingAuthorizedQualityMaterial(
+        comparison: StimulusSelectionProgramComparison,
+        targetId: String,
+        policy: CutoverScopePolicy
+    ): Boolean = policy.scope == StimulusProductionCutoverScope.HYPERTROPHY_V1 &&
+        comparison.targetPlan.movementTargets.any { movement ->
+            movement.targetId == targetId && movement.regionalDoseTargets.any { dose ->
+                dose.kind == StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET &&
+                    dose.shapeAuthority == StimulusMovementDoseShapeAuthority.HYPERTROPHY_BAND_8_12_PERSONAL_7_15_RPE_7_USER_LOAD_CALIBRATION &&
+                    dose.weeklyTarget != null && dose.authorizedWholeSetUnits == 0 &&
+                    dose.existingEquivalentExposure?.let { it.isFinite() && it + 1e-9 >= dose.weeklyTarget } == true &&
+                    comparison.prescriptionAuthorizationPlan?.movementAuthorizations.orEmpty().any {
+                        it.targetId == targetId && it.status == StimulusMovementB6Status.COVERED_BY_EXISTING_QUALITY_B6
+                    }
+            }
+        }
+
+    private fun validRegionalHypertrophyCalibration(
+        comparison: StimulusSelectionProgramComparison,
+        authorization: StimulusPrescriptionAuthorization
+    ): Boolean {
+        val prescription = authorization.authorizedPrescription ?: return false
+        val dose = comparison.targetPlan.movementTargets.firstOrNull { it.targetId == authorization.targetId }
+            ?.regionalDoseTargets?.firstOrNull { it.kind == StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET }
+            ?: return false
+        val units = dose.authorizedWholeSetUnits ?: return false
+        return authorization.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION &&
+            units == prescription.sets.size && authorization.reasonCodes.isNotEmpty() && prescription.sets.isNotEmpty() && prescription.sets.all { set ->
+                set.reps in 7..15 && set.targetRpeMin?.let { it >= 7.0 } == true &&
+                    set.weightKg == 0.0 && set.loadState == com.training.trackplanner.data.ProgramLoadState.USER_CALIBRATION_REQUIRED
+            }
+    }
+
     private fun fullMaterialization(
         comparison: StimulusSelectionProgramComparison,
         identity: StimulusPrescriptionOwnerIdentity,
@@ -682,6 +776,16 @@ class StimulusProductionCutoverAuthorityAuditEngine {
         }
         if (policy.scope == StimulusProductionCutoverScope.HYPERTROPHY_V1 &&
             audit.executionAuthority != StimulusPrescriptionExecutionAuthority.FULLY_ENCODED) return false
+        if (policy.scope == StimulusProductionCutoverScope.HYPERTROPHY_V1 &&
+            isRegionalHypertrophyTarget(comparison, audit.targetId, policy)) {
+            val dose = comparison.targetPlan.movementTargets.first { it.targetId == audit.targetId }
+                .regionalDoseTargets.first { it.kind == StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET }
+            val residualUnits = dose.authorizedWholeSetUnits ?: return false
+            if (audit.authorizedWeeklySetUnits != residualUnits || audit.weeklyAudits.any {
+                    it.authorizedSetUnits != residualUnits || it.materializedSetUnits != residualUnits ||
+                        it.targetCompatibleMaterializedUnits != residualUnits
+                }) return false
+        }
         val expectedWeeks = comparison.experimental.request.durationWeeks.coerceAtLeast(1)
         if (audit.state != StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED ||
             audit.weeklyAudits.size != expectedWeeks ||
@@ -705,6 +809,7 @@ class StimulusProductionCutoverAuthorityAuditEngine {
             authorization.executionAuthority == StimulusPrescriptionExecutionAuthority.REQUIRES_USER_LOAD_INPUT &&
             proposal.owner == StimulusPrescriptionOwnerIdentity(owner.stableKey, owner.selectionRole) &&
             proposal.quality == TrainableQuality.STRENGTH &&
+            com.training.trackplanner.data.CanonicalStrengthExposureCapability.movementAnchor(owner.stableKey) != null &&
             proposal.loadState == com.training.trackplanner.data.ProgramLoadState.USER_CALIBRATION_REQUIRED &&
             proposal.ownerHistoryStatus == ColdStartStrengthOwnerHistoryStatus.EXACT_OWNER_STRENGTH_SIGNAL_MISSING &&
             proposal.setCount > 0 && proposal.repetitions == 6 && proposal.targetRpe == 6.5 &&

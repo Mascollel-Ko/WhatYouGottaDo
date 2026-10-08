@@ -7,7 +7,7 @@ import com.training.trackplanner.data.CanonicalStrengthExposureCapability
 /** One exact, exercise-local personal set selected by the shared target-quality policy. */
 internal data class TargetCompatiblePersonalSet(
     val record: PlanningSetRecord,
-    val resolvedLoadKg: Double,
+    val resolvedLoadKg: Double?,
     val reference1RmKg: Double? = null,
     val relativeIntensity: Double? = null
 )
@@ -25,6 +25,13 @@ internal fun latestTargetCompatiblePersonalSet(
 ): TargetCompatiblePersonalSet? = snapshot.allConfirmedSets.asSequence()
     .filter { it.stableKey == stableKey }
     .mapNotNull { row ->
+        // Hypertrophy shape history is reusable only inside the approved 7–15 range.
+        // A logged low effort is contrary evidence even if the repetitions look plausible.
+        if (quality == TrainableQuality.HYPERTROPHY && (
+                row.reps !in RegionalColdStartDosePolicy.HYPERTROPHY_PERSONAL_REPS_MIN..
+                    RegionalColdStartDosePolicy.HYPERTROPHY_PERSONAL_REPS_MAX ||
+                    row.rpe?.let { !it.isFinite() || it < RegionalColdStartDosePolicy.HYPERTROPHY_MINIMUM_TARGET_RPE } == true
+            )) return@mapNotNull null
         if (requireReviewedAuthority) {
             val realization = snapshot.reviewedRealization(row)
             val expectedKind = when (quality) {
@@ -39,12 +46,25 @@ internal fun latestTargetCompatiblePersonalSet(
             val compatible = when (quality) {
                 TrainableQuality.STRENGTH -> snapshot.historyRealizedKind(row) == RealizedStimulusKind.STRENGTH_LIKE &&
                     row.weightKg.isFinite() && row.weightKg > 0.0
-                TrainableQuality.HYPERTROPHY -> snapshot.historyRealizedKind(row) == RealizedStimulusKind.HYPERTROPHY_LIKE
+                TrainableQuality.HYPERTROPHY -> if (snapshot.stimulusExposureLedger.setObservations.isNotEmpty()) {
+                    val reviewed = snapshot.reviewedRealization(row)
+                    reviewed.isRealized && reviewed.kind == RealizedStimulusKind.HYPERTROPHY_LIKE
+                } else {
+                    snapshot.historyRealizedKind(row) == RealizedStimulusKind.HYPERTROPHY_LIKE
+                }
                 else -> false
             }
-            if (compatible && row.weightKg.isFinite() && row.weightKg >= 0.0) {
-                TargetCompatiblePersonalSet(row, row.weightKg)
-            } else null
+            when {
+                !compatible -> null
+                quality == TrainableQuality.HYPERTROPHY && row.weightKg.isFinite() && row.weightKg > 0.0 ->
+                    TargetCompatiblePersonalSet(row, row.weightKg)
+                // A reviewed successful rep pattern may still guide shape when its load
+                // was not recorded. It never turns 0 kg into resistance-load authority;
+                // the prescription builder keeps the user-calibration state typed.
+                quality == TrainableQuality.HYPERTROPHY -> TargetCompatiblePersonalSet(row, null)
+                row.weightKg.isFinite() && row.weightKg > 0.0 -> TargetCompatiblePersonalSet(row, row.weightKg)
+                else -> null
+            }
         }
     }
     .maxWithOrNull(compareBy<TargetCompatiblePersonalSet> { it.record.date }.thenBy { it.record.setIndex })
@@ -67,18 +87,24 @@ internal fun targetCompatiblePersonalHistoryPrescription(
     val label = if (isHypertrophy) "hypertrophy" else "strength"
     val source = weightSourceOverride ?: if (isHypertrophy) "TARGET_COMPATIBLE_PERSONAL_HYPERTROPHY_HISTORY"
         else "TARGET_COMPATIBLE_PERSONAL_STRENGTH_HISTORY"
+    val hasLoadAuthority = compatible.resolvedLoadKg?.let { it.isFinite() && it > 0.0 } == true
     return PlannedPrescription(
         text = "Target-compatible $label personal history",
         sets = List(requestedSets) { index ->
             ProgramSetPrescription(
                 setIndex = index + 1,
                 reps = row.reps,
-                weightKg = compatible.resolvedLoadKg,
+                weightKg = compatible.resolvedLoadKg ?: 0.0,
                 seconds = row.seconds,
-                targetRpeMin = if (isHypertrophy) 7.0 else null
+                targetRpeMin = if (isHypertrophy) 7.0 else null,
+                loadState = if (isHypertrophy && !hasLoadAuthority)
+                    com.training.trackplanner.data.ProgramLoadState.USER_CALIBRATION_REQUIRED
+                else com.training.trackplanner.data.ProgramLoadState.EXPLICIT_LOAD
             )
         },
         restSeconds = restSeconds,
-        weightSource = source
+        weightSource = if (isHypertrophy && !hasLoadAuthority)
+            "PERSONAL_SUCCESSFUL_REP_SHAPE_USER_CALIBRATION_REQUIRED"
+        else source
     )
 }

@@ -58,8 +58,8 @@ data class RegionalDoseBand(
     val exposureWeekUnitsQ75: Double? = null,
     val directExposureWeekCount: Int = 0,
     val directExposureWeekFrequency: Double? = null,
-    val current28dUnits: Int = 0,
-    val previous28dUnits: Int = 0,
+    val current28dUnits: Double = 0.0,
+    val previous28dUnits: Double = 0.0,
     val current28dSessions: Int = 0,
     val previous28dSessions: Int = 0,
     val current28dExposureWeekCount: Int = 0,
@@ -144,6 +144,8 @@ private val regionalSupportedRegions = listOf(
     MovementCoverage.LOWER_KNEE,
     MovementCoverage.POSTERIOR_CHAIN,
     MovementCoverage.CALVES,
+    MovementCoverage.ARMS_BICEPS,
+    MovementCoverage.ARMS_TRICEPS,
     MovementCoverage.HORIZONTAL_PUSH,
     MovementCoverage.VERTICAL_PUSH,
     MovementCoverage.HORIZONTAL_PULL,
@@ -153,24 +155,25 @@ private val regionalSupportedRegions = listOf(
 private data class RegionalWeek(val start: LocalDate, val end: LocalDate, val rows: List<PlanningSetRecord>, val excluded: Boolean)
 
 private class MutableRegionalDose {
-    val weeklyUnits = linkedMapOf<LocalDate, Int>()
-    val currentWeeklyUnits = linkedMapOf<LocalDate, Int>()
-    val previousWeeklyUnits = linkedMapOf<LocalDate, Int>()
-    var currentUnits = 0
-    var previousUnits = 0
+    val weeklyUnits = linkedMapOf<LocalDate, Double>()
+    val currentWeeklyUnits = linkedMapOf<LocalDate, Double>()
+    val previousWeeklyUnits = linkedMapOf<LocalDate, Double>()
+    var currentUnits = 0.0
+    var previousUnits = 0.0
     val currentDates = linkedSetOf<LocalDate>()
     val previousDates = linkedSetOf<LocalDate>()
 
-    fun add(row: PlanningSetRecord, weekStart: LocalDate, age: Int) {
-        weeklyUnits[weekStart] = weeklyUnits.getOrDefault(weekStart, 0) + 1
+    fun add(row: PlanningSetRecord, weekStart: LocalDate, age: Int, equivalentUnits: Double = 1.0) {
+        require(equivalentUnits.isFinite() && equivalentUnits > 0.0)
+        weeklyUnits[weekStart] = weeklyUnits.getOrDefault(weekStart, 0.0) + equivalentUnits
         if (age in 0..27) {
-            currentUnits++
+            currentUnits += equivalentUnits
             currentDates += row.date
-            currentWeeklyUnits[weekStart] = currentWeeklyUnits.getOrDefault(weekStart, 0) + 1
+            currentWeeklyUnits[weekStart] = currentWeeklyUnits.getOrDefault(weekStart, 0.0) + equivalentUnits
         } else if (age in 28..55) {
-            previousUnits++
+            previousUnits += equivalentUnits
             previousDates += row.date
-            previousWeeklyUnits[weekStart] = previousWeeklyUnits.getOrDefault(weekStart, 0) + 1
+            previousWeeklyUnits[weekStart] = previousWeeklyUnits.getOrDefault(weekStart, 0.0) + equivalentUnits
         }
     }
 
@@ -178,8 +181,8 @@ private class MutableRegionalDose {
         val weekly = eligibleWeeks.map { weeklyUnits[it.start]?.toDouble() ?: 0.0 }
         // Keep the two half-windows as independent dimensions.  Calendar weeks
         // with no regional exposure remain zeroes in these lists.
-        val currentHalf = currentWeeklyUnits.values.map(Int::toDouble)
-        val previousHalf = previousWeeklyUnits.values.map(Int::toDouble)
+        val currentHalf = currentWeeklyUnits.values
+        val previousHalf = previousWeeklyUnits.values
         val exposed = weekly.filter { it > 0.0 }
         val currentExposed = currentHalf.filter { it > 0.0 }
         val previousExposed = previousHalf.filter { it > 0.0 }
@@ -204,8 +207,8 @@ private class MutableRegionalDose {
             previous28dSessions = previousDates.size,
             current28dExposureWeekCount = currentExposed.size,
             previous28dExposureWeekCount = previousExposed.size,
-            current28dWeeklyUnitsMedian = quantile(currentHalf, .50),
-            previous28dWeeklyUnitsMedian = quantile(previousHalf, .50),
+            current28dWeeklyUnitsMedian = quantile(currentHalf.toList(), .50),
+            previous28dWeeklyUnitsMedian = quantile(previousHalf.toList(), .50),
             current28dExposureWeekUnitsMedian = quantile(currentExposed, .50),
             previous28dExposureWeekUnitsMedian = quantile(previousExposed, .50),
             confidence = confidence,
@@ -262,18 +265,15 @@ class RegionalEvidenceIndexBuilder {
             if (relations.isEmpty()) return@forEach
             indexedRows++
             val realized = snapshot.historyRealizedKind(row)
-            val doseSeen = linkedSetOf<TrainableQuality>()
+            val doseCreditByQuality = linkedMapOf<TrainableQuality, Double>()
             var specificStrengthRelation = false
             relations.forEach { relation ->
-                if (relation.relationLevel != StimulusCapabilityLevel.DIRECT_CAPABILITY ||
-                    relation.qualityId !in setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY) ||
+                if (relation.qualityId !in setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY) ||
                     !regionQualifierMatches(movement, relation.regionQualifier)) return@forEach
                 when (relation.qualityId) {
-                    TrainableQuality.STRENGTH -> if (realized == RealizedStimulusKind.STRENGTH_LIKE) {
-                        if (doseSeen.add(relation.qualityId)) {
-                            strength.getValue(movement).add(row, weekStart, age)
-                            if (age in 0..27) strengthKeys.getValue(movement).add(row.stableKey)
-                        }
+                    TrainableQuality.STRENGTH -> if (relation.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY &&
+                        realized == RealizedStimulusKind.STRENGTH_LIKE) {
+                        doseCreditByQuality[relation.qualityId] = 1.0
                         if (relation.modeQualifier !in setOf(PhysicalQualityMode.GENERAL, PhysicalQualityMode.OTHER)) {
                             specificStrengthRelation = true
                             val signal = snapshot.canonicalStrengthSignals[row.stableKey]
@@ -289,10 +289,22 @@ class RegionalEvidenceIndexBuilder {
                         }
                     }
                     TrainableQuality.HYPERTROPHY -> if (realized == RealizedStimulusKind.HYPERTROPHY_LIKE) {
-                        if (doseSeen.add(relation.qualityId)) hypertrophy.getValue(movement).add(row, weekStart, age)
+                        val credit = when (relation.relationLevel) {
+                            StimulusCapabilityLevel.DIRECT_CAPABILITY -> 1.0
+                            StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY -> 0.5
+                        }
+                        doseCreditByQuality[relation.qualityId] = maxOf(
+                            doseCreditByQuality[relation.qualityId] ?: 0.0,
+                            credit
+                        )
                     }
                     else -> Unit
                 }
+            }
+            doseCreditByQuality[TrainableQuality.STRENGTH]?.let { strength.getValue(movement).add(row, weekStart, age, it) }
+            doseCreditByQuality[TrainableQuality.HYPERTROPHY]?.let { hypertrophy.getValue(movement).add(row, weekStart, age, it) }
+            if (doseCreditByQuality[TrainableQuality.STRENGTH] != null && age in 0..27) {
+                strengthKeys.getValue(movement).add(row.stableKey)
             }
             if (specificStrengthRelation && realized == RealizedStimulusKind.STRENGTH_LIKE) {
                 if (age in 0..27) { specificCurrent[movement] = specificCurrent.getValue(movement) + 1; specificCurrentDates.getValue(movement) += row.date }
@@ -345,6 +357,7 @@ class RegionalEvidenceIndexBuilder {
         MovementCoverage.CALVES -> qualifier in setOf(PhysicalQualityRegion.ANKLE, PhysicalQualityRegion.LOWER)
         MovementCoverage.HORIZONTAL_PUSH, MovementCoverage.VERTICAL_PUSH -> qualifier in setOf(PhysicalQualityRegion.UPPER_PUSH, PhysicalQualityRegion.CHEST, PhysicalQualityRegion.SHOULDERS, PhysicalQualityRegion.ARMS)
         MovementCoverage.HORIZONTAL_PULL, MovementCoverage.VERTICAL_PULL, MovementCoverage.UPPER_PULL -> qualifier in setOf(PhysicalQualityRegion.UPPER_PULL, PhysicalQualityRegion.SHOULDERS, PhysicalQualityRegion.ARMS)
+        MovementCoverage.ARMS_BICEPS, MovementCoverage.ARMS_TRICEPS -> qualifier == PhysicalQualityRegion.ARMS
         else -> false
     }
 }
@@ -504,7 +517,7 @@ class RegionalBottleneckDiagnosisEngine {
 
     private fun strengthStatus(band: RegionalDoseBand): RegionalStrengthExposureStatus = when {
         band.eligibleWeekCount == 0 -> RegionalStrengthExposureStatus.UNKNOWN
-        band.directExposureWeekCount == 0 || (band.current28dUnits == 0 && band.previous28dUnits == 0) -> RegionalStrengthExposureStatus.ABSENT
+        band.directExposureWeekCount == 0 || (band.current28dUnits == 0.0 && band.previous28dUnits == 0.0) -> RegionalStrengthExposureStatus.ABSENT
         strengthDimensionStatus(band, false) == RegionalDoseDimensionStatus.BELOW_PERSONAL_PATTERN ||
             strengthDimensionStatus(band, true) == RegionalDoseDimensionStatus.BELOW_PERSONAL_PATTERN ||
             frequencyStatus(band) == RegionalDoseDimensionStatus.BELOW_PERSONAL_PATTERN -> RegionalStrengthExposureStatus.LOW

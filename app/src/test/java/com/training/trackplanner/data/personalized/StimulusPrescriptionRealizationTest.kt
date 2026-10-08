@@ -185,6 +185,36 @@ class StimulusPrescriptionRealizationTest {
     }
 
     @Test
+    fun exactHypertrophyB4DoseWithExplicitUserLoadCalibrationIsCompatibleButNotARealLoad() {
+        val resolver = StimulusPlannedPrescriptionResolver()
+        val calibration = PlannedPrescription(
+            text = "4 sets × 8 reps · RPE 7 · user selects load",
+            sets = List(4) { index -> ProgramSetPrescription(
+                setIndex = index + 1,
+                reps = 8,
+                weightKg = 0.0,
+                seconds = 0,
+                targetRpeMin = 7.0,
+                loadState = com.training.trackplanner.data.ProgramLoadState.USER_CALIBRATION_REQUIRED
+            ) },
+            restSeconds = 90,
+            weightSource = "USER_CALIBRATION_REQUIRED"
+        )
+        val result = resolver.compatibility(TrainableQuality.HYPERTROPHY, calibration, snapshot, key)
+        assertEquals(PlannedStimulusCompatibilityStatus.COMPATIBLE_REQUIRES_USER_LOAD_INPUT, result.status)
+        assertTrue(result.reasonCodes.contains("HYPERTROPHY_LOAD_INTENTIONALLY_REQUIRES_USER_CALIBRATION"))
+        assertEquals(ExecutionAuthorityResolutionStatus.USER_INPUT_REQUIRED, result.authorityRecovery?.status)
+        assertEquals(ExecutionAuthorityReturnTarget.EXPLICIT_USER_INPUT, result.authorityRecovery?.returnTarget)
+
+        val belowEffort = calibration.copy(sets = calibration.sets.map { it.copy(targetRpeMin = 6.5) })
+        assertEquals(PlannedStimulusCompatibilityStatus.UNRESOLVED,
+            resolver.compatibility(TrainableQuality.HYPERTROPHY, belowEffort, snapshot, key).status)
+        val fabricatedLoad = calibration.copy(sets = calibration.sets.map { it.copy(weightKg = 5.0) })
+        assertEquals(PlannedStimulusCompatibilityStatus.COMPATIBLE_CONDITIONAL_ON_EFFORT,
+            resolver.compatibility(TrainableQuality.HYPERTROPHY, fabricatedLoad, snapshot, key).status)
+    }
+
+    @Test
     fun hypertrophyNumericAuthorityIsRequiredEvenForCompatibleOwner() {
         val hTarget = target(TrainableQuality.HYPERTROPHY, StimulusTargetNumericAuthority.NONE)
         val hCandidate = candidate().copy(coveredTargetIds = setOf("QUALITY:HYPERTROPHY"), primaryTargetId = "QUALITY:HYPERTROPHY")
