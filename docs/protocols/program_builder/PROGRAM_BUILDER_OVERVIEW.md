@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.63.0 |
+| Protocol version | 3.64.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.5 |
+| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.6 |
 | Last audited commit | 4f4006915c8fefcb4162c7e684767f99df02e360 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
@@ -1381,3 +1381,11 @@ Post-audit boundary notes
 - The 44 historical sparse owner-week rows remain non-executable, with zero new movement-only rows, duplicates, or unauthorized material. C31 added audit evidence and a negative same-stableKey/different-role selector regression test only. B3/B4/B5/B6, routing, B7/B8, versions, and persistence schemas did not change.
 - C31 audit and complete candidate/owner-week census: [`docs/c31_movement_b6_authority_reuse_audit.md`](../../c31_movement_b6_authority_reuse_audit.md) and [`docs/c31-movement-b6-authority-reuse-census.json`](../../c31-movement-b6-authority-reuse-census.json). The C30 APK digest discrepancy is reconciled there by run and artifact ID.
 - Three local Room/service corpus observations took 4,662 / 4,716 / 4,601 ms (median 4,662 ms); the test-only counters observed 1,106 B5 candidate evaluation rows, 123 movement B6 lookups, and no repeated identical lookup. The audit/test commit `4f4006915c8fefcb4162c7e684767f99df02e360` is `lastAuditedCommit`. Local full tests passed 2,339 tests (0 failures, 0 errors, 4 skips) with the external JDK 17 / `forkEvery=75` worker-restart workaround. This census and audit report are documentation outputs.
+
+### Phase C32 — exact Strength exposure capability (protocol 3.64.0)
+
+- `TrainableQuality.STRENGTH` exposure now uses one exact policy: an approved canonical `strengthPossible` identity and a set with 1–6 prescribed or realized repetitions. The bounded ten-key whitelist and this exposure rule are `USER_APPROVED_PROJECT_POLICY`; they are not represented as a universally proven physiological optimum. Legacy `STRENGTH_PROGRESS`, Strength program slots, and Strength-related strings retain their existing metadata purposes and do not grant this capability.
+- The same identity-plus-repetition gate is consumed by reviewed history classification, the exposure ledger, B1/B2 history, B5 candidate eligibility, planned/final set classification, and B6 compatibility. Existing B6 load, reference, effort, calibration, and fail-closed checks remain separate and intact. Sets are classified individually, so a 5/5/8 prescription only credits its first two sets as Strength.
+- If an active Strength target has no eligible owner or executable B6 prescription, typed `StimulusStrengthShortfall` state remains attached to the intact CONTROL result and a localized warning is shown. A NO_MINIMUM_TARGET is not incorrectly presented as a Strength shortfall. Hypertrophy work, movement targets, and C24 Task protocols do not grant Strength credit; Power/RFD/Reactive/Task authorization is unchanged.
+- C31's 22 movement target contexts were reevaluated with the updated Strength definition. The exact resulting B1–B6, materialization, route, shortfall, and timing census is [`docs/c32-strength-exposure-census.json`](../../c32-strength-exposure-census.json); the policy and regression audit is [`docs/c32_strength_exposure_audit.md`](../../c32_strength_exposure_audit.md). C32 does not add movement dose or copy CONTROL prescriptions. App remains `0.5.1.5`; Room remains 38 and no persistence schema changes were made.
+- Local verification passed all 2,353 unit tests (0 failures, 0 errors, 4 skips) using the repository-external JDK 17 worker workaround after the default JBR 21 Robolectric native runtime crashed with an access violation. Kotlin and unit-test compilation plus `assembleDebug` passed. Three C32 Room/service timing runs were 4,539 / 4,529 / 4,980 ms (median 4,529 ms); the final full-suite census measured 3,576 ms over 22 generated cases (162.5 ms mean, 145.5 ms median, 393 ms max). `lastAuditedCommit` is implementation/test SHA `25c7b1dc6453166d58fd927d8c6c8f9e0c31720d`; the census SHA-256 is `AD2A0DED6CDA1D298F856092298150E2B7C42C03B6C02B55E7B0D9681818BC6F`.
