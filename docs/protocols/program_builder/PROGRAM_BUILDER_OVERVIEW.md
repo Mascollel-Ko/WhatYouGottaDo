@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.64.0 |
+| Protocol version | 3.65.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.6 |
-| Last audited commit | 25c7b1dc6453166d58fd927d8c6c8f9e0c31720d |
+| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.7 |
+| Last audited commit | a082478506db5026445cc44c50259d7a2df05796 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1390,3 +1390,11 @@ Post-audit boundary notes
 - C31's 22 movement target contexts were reevaluated with the updated Strength definition. The exact resulting B1–B6, materialization, route, shortfall, and timing census is [`docs/c32-strength-exposure-census.json`](../../c32-strength-exposure-census.json); the policy and regression audit is [`docs/c32_strength_exposure_audit.md`](../../c32_strength_exposure_audit.md). C32 does not add movement dose or copy CONTROL prescriptions. App remains `0.5.1.5`; Room remains 38 and no persistence schema changes were made.
 - Local verification passed all 2,353 unit tests (0 failures, 0 errors, 4 skips) using the repository-external JDK 17 worker workaround after the default JBR 21 Robolectric native runtime crashed with an access violation. Kotlin and unit-test compilation plus `assembleDebug` passed. Three C32 Room/service timing runs were 4,539 / 4,529 / 4,980 ms (median 4,529 ms); the final full-suite census measured 3,576 ms over 22 generated cases (162.5 ms mean, 145.5 ms median, 393 ms max). `lastAuditedCommit` is implementation/test SHA `25c7b1dc6453166d58fd927d8c6c8f9e0c31720d`; the census SHA-256 is `AD2A0DED6CDA1D298F856092298150E2B7C42C03B6C02B55E7B0D9681818BC6F`.
 - Main Hosted run [37720884407](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/37720884407) passed 2,353 tests (0 failures, 0 errors, 4 skips), protocol and Community/Cloud validation, whitespace, coverage upload, APK assembly, signer verification, and APK upload. APK artifact `11526411968` contains a 68,890,335-byte APK with SHA-256 `3F620C8680ECD568638E720AF6D6CFCB52325AF0474BC9311E2AB070A3953D12`; coverage artifact `11525403561` contains the report with SHA-256 `F1819EBBAD421D2652E122547A7C68ACD31BBE7CC54DB4122C7100C3964660D7`.
+
+### Phase C32.1 — planned Strength intent and realized exposure (protocol 3.65.0)
+
+- The exact ten-key `USER_APPROVED_PROJECT_POLICY` capability remains the only way an exercise can be Strength-capable. A centralized set classifier separates approved exercise capability, exact linked planned Strength intent, and realized exposure; broad legacy strength metadata does not grant exposure eligibility.
+- Planned intent is restored only through exact persisted application/session/program/item/progression/set linkage, with matching canonical Strength role, stable key, and planned 1–6 repetitions. Realized repetitions at or below goal and up to two above goal retain Strength credit; larger overperformance needs one reliable signal (relative load ≥70% 1RM, RPE ≥6, or RIR ≤4), otherwise it remains uncertain unless reliable low-load/low-effort evidence establishes non-realization. Unlinked history uses the stricter approved-key + 1–6 reps + one reliable signal path.
+- B1/B2 history, the per-set exposure ledger, planned/final realization, and B5 eligibility consume the same exact capability/exposure policy. Uncertain history remains incomplete instead of being treated as zero. B6 load/capacity/calibration authority is unchanged; recognized exposure does not authorize a new prescription. No new dose/progression formula, persistence field, or schema was added.
+- The 22 C31 sparse movement contexts remain unchanged: B3 ADDRESS 22, B4 direction-only targets 22, movement executable/unauthorized rows 0/0, and all 22 generated cases remain CONTROL. Strength's exact planned rows are 30, all backed by the exact B5/B6 owner; the full generated corpus records 108 realized, 0 overperformed, 0 uncertain, and 573 non-Strength history sets. Power and JUMP_LANDING remain closed; build accounting remains CONTROL 22 / EXPERIMENTAL 22 / TOTAL 44 / THIRD 0.
+- Protocol/runtime/app/Room are `3.65.0` / `RECORD_BASED_PLANNER_0.15.7_KOTLIN_1` / `0.5.1.5` / 38. Local full suite passed 2,364 tests (0 failures, 0 errors, 4 skips); compile and debug APK assembly passed using the repository-external JDK 17 worker workaround after a JBR 21 Robolectric native runtime access violation. The local APK is 70,735,541 bytes (SHA-256 `306674E307ECA4DEE0AF606891CEE3DBC527226A323874BB82128EAA589F2E58`). The deterministic census is [`docs/c32.1-strength-intent-exposure-census.json`](../../c32.1-strength-intent-exposure-census.json), SHA-256 `2133DE71D898CFFE2E08FF3A581CB759810BEF7ECD94939CE295629570C16EF3`; details are in [`docs/c32_1_strength_intent_and_exposure_audit.md`](../../c32_1_strength_intent_and_exposure_audit.md). Implementation/test commit `a082478506db5026445cc44c50259d7a2df05796` is `lastAuditedCommit`.
