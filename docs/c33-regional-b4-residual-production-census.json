@@ -1,0 +1,4877 @@
+{
+  "phase": "C33",
+  "title": "Regional B4 residual production integration",
+  "startSha": "59e80b1a2179dfba37c7aa9cb99f07db6d13dc29",
+  "previousC31Baseline": {
+    "sourceCensus": "docs\/c31-movement-b6-authority-reuse-census.json",
+    "movementTargets": 22,
+    "ownerWeeks": 44,
+    "policyUnsupportedBefore": 22,
+    "unauthorizedMovementRowsBefore": 0
+  },
+  "targets": [
+    {
+      "case": "persona0_sparse",
+      "movementCoverage": "CORE_DIRECT",
+      "isC31BaselineTarget": true,
+      "movementTargetId": "MOVEMENT:CORE_DIRECT",
+      "b3Disposition": "ADDRESS",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b4TargetAuthority": "DIRECTION_ONLY",
+      "doseAuthorityAvailable": true,
+      "doseKind": "CORE_DIRECT_CONTROL_SET",
+      "numericAuthority": "USER_APPROVED_PROJECT_POLICY",
+      "weeklyTarget": 6,
+      "authorizedWholeSetUnits": 0,
+      "doseReasons": [
+        "CORE_PRESCRIPTION_SHAPE_AUTHORITY_UNAVAILABLE",
+        "INSUFFICIENT_CORE_HISTORY_FOR_PERSONAL_TOLERANCE_BASELINE",
+        "USER_APPROVED_PROJECT_POLICY_CORE_DIRECT_COLD_START_6_SETS_PER_WEEK"
+      ],
+      "candidatePoolSize": 8,
+      "selectedOwnerCount": 1,
+      "selectedOwners": [
+        {
+          "stableKey": "ex_28347c1f",
+          "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT",
+          "primaryTargetId": "MOVEMENT:CORE_DIRECT",
+          "selectionReasons": [
+            "B4_MOVEMENT_TARGET_REQUESTED_IDENTITY",
+            "B5_DOES_NOT_GRANT_DOSE_AUTHORITY"
+          ]
+        }
+      ],
+      "rejectedCandidateCount": 7,
+      "rejectedCandidates": [
+        {
+          "stableKey": "ex_2a826c82",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_644e0f9d",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_a345e30b",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_a44ae2ca",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_a9b52886",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_d5bdffe1",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_f6d43398",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        }
+      ],
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "nonAdditiveExistingSatisfaction": false,
+      "existingAuthorizedPhysicalSetCount": 0,
+      "b6ReasonCodes": [],
+      "authorized": false,
+      "authorizedWeeklyUnits": 0,
+      "materializedWeeklyUnits": 0,
+      "materializedTotalUnits": 0,
+      "materializationReasonCodes": [],
+      "finiteCapacityDisposition": [],
+      "materializationCompatibleUnits": 0,
+      "remainingShortfallPerWeek": 0,
+      "overrunPerWeek": 0,
+      "b7ReasonCodes": [],
+      "b8Scope": "HYPERTROPHY_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "route": "CONTROL",
+      "duplicateCredit": false,
+      "unauthorizedMaterialRows": 0,
+      "coreShapeAuthorityMissing": true,
+      "materializationDisposition": "UNRESOLVED_CORE_PRESCRIPTION_SHAPE_AUTHORITY",
+      "weeks": 2
+    },
+    {
+      "case": "persona0_sparse",
+      "movementCoverage": "HORIZONTAL_PUSH",
+      "isC31BaselineTarget": true,
+      "movementTargetId": "MOVEMENT:HORIZONTAL_PUSH",
+      "b3Disposition": "ADDRESS",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b4TargetAuthority": "DIRECTION_ONLY",
+      "doseAuthorityAvailable": true,
+      "doseKind": "HYPERTROPHY_REGION_EQUIVALENT_SET",
+      "numericAuthority": "USER_APPROVED_PROJECT_POLICY",
+      "weeklyTarget": 8,
+      "existingCompatibleExposure": 0,
+      "residualEquivalentExposure": 8,
+      "authorizedWholeSetUnits": 8,
+      "doseReasons": [
+        "B4_AUTHORIZED_WHOLE_SET_UNITS=8",
+        "B4_REGIONAL_RESIDUAL_AUTHORIZED",
+        "B4_RESIDUAL_EQUIVALENT_UNITS=8.0",
+        "USER_APPROVED_PROJECT_POLICY_HYPERTROPHY_COLD_START_8_EQUIVALENT_SETS_PER_REGION_WEEK"
+      ],
+      "candidatePoolSize": 9,
+      "selectedOwnerCount": 1,
+      "selectedOwners": [
+        {
+          "stableKey": "ex_1dbee10e",
+          "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_HORIZONTAL_PUSH",
+          "primaryTargetId": "MOVEMENT:HORIZONTAL_PUSH",
+          "selectionReasons": [
+            "B4_EXACT_REGIONAL_RESIDUAL=8",
+            "B5_DIRECT_HYPERTROPHY_OWNER_SELECTED"
+          ]
+        }
+      ],
+      "rejectedCandidateCount": 8,
+      "rejectedCandidates": [
+        {
+          "stableKey": "ex_28902b13",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_442617f6",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_4c779df2",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_6463edad",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_73b0b63f",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_debf6a8b",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_fb67af37",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "machine_chest_fly",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        }
+      ],
+      "b6Status": "AUTHORIZED_COLD_START_USER_CALIBRATION",
+      "nonAdditiveExistingSatisfaction": false,
+      "existingAuthorizedPhysicalSetCount": 0,
+      "b6ReasonCodes": [
+        "USER_APPROVED_COLD_START_HYPERTROPHY_8_REPS_WITHIN_8_12_BAND_LOAD_CALIBRATION_REQUIRED"
+      ],
+      "prescriptionSource": "USER_APPROVED_PROJECT_POLICY",
+      "reps": 8,
+      "targetRpeMin": 7,
+      "loadState": "USER_CALIBRATION_REQUIRED",
+      "authorized": true,
+      "authorizedWeeklyUnits": 8,
+      "materializedWeeklyUnits": 8,
+      "materializedTotalUnits": 16,
+      "materializationState": "FULLY_MATERIALIZED",
+      "materializationReasonCodes": [
+        "B5_SELECTION_PROBE_AUTHORIZED"
+      ],
+      "finiteCapacityDisposition": [],
+      "materializationCompatibleUnits": 8,
+      "remainingShortfallPerWeek": 0,
+      "overrunPerWeek": 0,
+      "b7Status": "IMPROVED",
+      "b7ReasonCodes": [
+        "B4_RESIDUAL_FULLY_MATERIALIZED"
+      ],
+      "b8Scope": "HYPERTROPHY_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "route": "CONTROL",
+      "duplicateCredit": false,
+      "unauthorizedMaterialRows": 0,
+      "coreShapeAuthorityMissing": false,
+      "materializationDisposition": "MATERIALIZED_EXACT_B4_RESIDUAL",
+      "weeks": 2
+    },
+    {
+      "case": "persona0_sparse",
+      "movementCoverage": "POSTERIOR_CHAIN",
+      "isC31BaselineTarget": false,
+      "movementTargetId": "MOVEMENT:POSTERIOR_CHAIN",
+      "b3Disposition": "ADDRESS",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b4TargetAuthority": "DIRECTION_ONLY",
+      "doseAuthorityAvailable": true,
+      "doseKind": "HYPERTROPHY_REGION_EQUIVALENT_SET",
+      "numericAuthority": "USER_APPROVED_PROJECT_POLICY",
+      "weeklyTarget": 8,
+      "existingCompatibleExposure": 0,
+      "residualEquivalentExposure": 8,
+      "authorizedWholeSetUnits": 8,
+      "doseReasons": [
+        "B4_AUTHORIZED_WHOLE_SET_UNITS=8",
+        "B4_REGIONAL_RESIDUAL_AUTHORIZED",
+        "B4_RESIDUAL_EQUIVALENT_UNITS=8.0",
+        "USER_APPROVED_PROJECT_POLICY_HYPERTROPHY_COLD_START_8_EQUIVALENT_SETS_PER_REGION_WEEK"
+      ],
+      "candidatePoolSize": 0,
+      "selectedOwnerCount": 0,
+      "selectedOwners": [],
+      "rejectedCandidateCount": 0,
+      "rejectedCandidates": [],
+      "b6Status": "NO_EXECUTABLE_AUTHORIZATION",
+      "nonAdditiveExistingSatisfaction": false,
+      "existingAuthorizedPhysicalSetCount": 0,
+      "b6ReasonCodes": [
+        "B6_REQUIRES_EXACT_B5_REGIONAL_OWNER"
+      ],
+      "authorized": false,
+      "authorizedWeeklyUnits": 0,
+      "materializedWeeklyUnits": 0,
+      "materializedTotalUnits": 0,
+      "materializationState": "NOT_MATERIALIZED",
+      "materializationReasonCodes": [
+        "B6_REQUIRES_EXACT_B5_REGIONAL_OWNER",
+        "NO_EXECUTABLE_AUTHORIZATION"
+      ],
+      "finiteCapacityDisposition": [],
+      "materializationCompatibleUnits": 0,
+      "remainingShortfallPerWeek": 8,
+      "overrunPerWeek": 0,
+      "b7Status": "NOT_APPLICABLE",
+      "b7ReasonCodes": [
+        "B4_AUTHORIZED_WHOLE_SET_UNITS=8",
+        "B4_REGIONAL_RESIDUAL_AUTHORIZED",
+        "B4_RESIDUAL_EQUIVALENT_UNITS=8.0"
+      ],
+      "b8Scope": "HYPERTROPHY_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "route": "CONTROL",
+      "duplicateCredit": false,
+      "unauthorizedMaterialRows": 0,
+      "coreShapeAuthorityMissing": false,
+      "materializationDisposition": "NO_ELIGIBLE_B5_OWNER",
+      "weeks": 2
+    },
+    {
+      "case": "persona0_sparse",
+      "movementCoverage": "UPPER_PULL",
+      "isC31BaselineTarget": false,
+      "movementTargetId": "MOVEMENT:UPPER_PULL",
+      "b3Disposition": "ADDRESS",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b4TargetAuthority": "DIRECTION_ONLY",
+      "doseAuthorityAvailable": false,
+      "doseKind": "NO_REGIONAL_NUMERIC_DOSE_AUTHORITY",
+      "numericAuthority": "DIRECTION_ONLY",
+      "authorizedWholeSetUnits": 0,
+      "doseReasons": [],
+      "candidatePoolSize": 17,
+      "selectedOwnerCount": 1,
+      "selectedOwners": [
+        {
+          "stableKey": "cable_rear_delt_fly",
+          "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_UPPER_PULL",
+          "primaryTargetId": "MOVEMENT:UPPER_PULL",
+          "selectionReasons": [
+            "B4_MOVEMENT_TARGET_REQUESTED_IDENTITY",
+            "B5_DOES_NOT_GRANT_DOSE_AUTHORITY"
+          ]
+        }
+      ],
+      "rejectedCandidateCount": 16,
+      "rejectedCandidates": [
+        {
+          "stableKey": "ex_32eb8457",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_33d2da8e",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_3c3692aa",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_40fa57be",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_462c760e",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_6466fe77",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_7deabeba",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_a60496be",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_a76f20b6",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_c365e5e2",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_ca5cce66",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_dc9e5953",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_e159d15a",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_e1894690",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_e4f911bb",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_fa31f7a6",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        }
+      ],
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "nonAdditiveExistingSatisfaction": false,
+      "existingAuthorizedPhysicalSetCount": 0,
+      "b6ReasonCodes": [],
+      "authorized": false,
+      "authorizedWeeklyUnits": 0,
+      "materializedWeeklyUnits": 0,
+      "materializedTotalUnits": 0,
+      "materializationReasonCodes": [],
+      "finiteCapacityDisposition": [],
+      "materializationCompatibleUnits": 0,
+      "remainingShortfallPerWeek": 0,
+      "overrunPerWeek": 0,
+      "b7ReasonCodes": [],
+      "b8Scope": "HYPERTROPHY_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "route": "CONTROL",
+      "duplicateCredit": false,
+      "unauthorizedMaterialRows": 0,
+      "coreShapeAuthorityMissing": false,
+      "materializationDisposition": "NO_REGIONAL_NUMERIC_DOSE_AUTHORITY",
+      "weeks": 2
+    },
+    {
+      "case": "persona1_sparse",
+      "movementCoverage": "ARMS_BICEPS",
+      "isC31BaselineTarget": true,
+      "movementTargetId": "MOVEMENT:ARMS_BICEPS",
+      "b3Disposition": "ADDRESS",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b4TargetAuthority": "DIRECTION_ONLY",
+      "doseAuthorityAvailable": true,
+      "doseKind": "HYPERTROPHY_REGION_EQUIVALENT_SET",
+      "numericAuthority": "USER_APPROVED_PROJECT_POLICY",
+      "weeklyTarget": 8,
+      "existingCompatibleExposure": 0,
+      "residualEquivalentExposure": 8,
+      "authorizedWholeSetUnits": 8,
+      "doseReasons": [
+        "B4_AUTHORIZED_WHOLE_SET_UNITS=8",
+        "B4_REGIONAL_RESIDUAL_AUTHORIZED",
+        "B4_RESIDUAL_EQUIVALENT_UNITS=8.0",
+        "USER_APPROVED_PROJECT_POLICY_HYPERTROPHY_COLD_START_8_EQUIVALENT_SETS_PER_REGION_WEEK"
+      ],
+      "candidatePoolSize": 11,
+      "selectedOwnerCount": 1,
+      "selectedOwners": [
+        {
+          "stableKey": "barbell_reverse_curl",
+          "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_BICEPS",
+          "primaryTargetId": "MOVEMENT:ARMS_BICEPS",
+          "selectionReasons": [
+            "B4_EXACT_REGIONAL_RESIDUAL=8",
+            "B5_DIRECT_HYPERTROPHY_OWNER_SELECTED"
+          ]
+        }
+      ],
+      "rejectedCandidateCount": 10,
+      "rejectedCandidates": [
+        {
+          "stableKey": "dumbbell_preacher_curl",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "dumbbell_spider_curl",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_281347da",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_2892da5a",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_85b2ac56",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_86323ed6",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_8633d8db",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_b69ab702",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_c62c0716",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_d5048362",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        }
+      ],
+      "b6Status": "AUTHORIZED_COLD_START_USER_CALIBRATION",
+      "nonAdditiveExistingSatisfaction": false,
+      "existingAuthorizedPhysicalSetCount": 0,
+      "b6ReasonCodes": [
+        "USER_APPROVED_COLD_START_HYPERTROPHY_8_REPS_WITHIN_8_12_BAND_LOAD_CALIBRATION_REQUIRED"
+      ],
+      "prescriptionSource": "USER_APPROVED_PROJECT_POLICY",
+      "reps": 8,
+      "targetRpeMin": 7,
+      "loadState": "USER_CALIBRATION_REQUIRED",
+      "authorized": true,
+      "authorizedWeeklyUnits": 8,
+      "materializedWeeklyUnits": 8,
+      "materializedTotalUnits": 16,
+      "materializationState": "FULLY_MATERIALIZED",
+      "materializationReasonCodes": [
+        "B5_SELECTION_PROBE_AUTHORIZED"
+      ],
+      "finiteCapacityDisposition": [],
+      "materializationCompatibleUnits": 8,
+      "remainingShortfallPerWeek": 0,
+      "overrunPerWeek": 0,
+      "b7Status": "IMPROVED",
+      "b7ReasonCodes": [
+        "B4_RESIDUAL_FULLY_MATERIALIZED"
+      ],
+      "b8Scope": "HYPERTROPHY_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "route": "CONTROL",
+      "duplicateCredit": false,
+      "unauthorizedMaterialRows": 0,
+      "coreShapeAuthorityMissing": false,
+      "materializationDisposition": "MATERIALIZED_EXACT_B4_RESIDUAL",
+      "weeks": 2
+    },
+    {
+      "case": "persona1_sparse",
+      "movementCoverage": "ARMS_TRICEPS",
+      "isC31BaselineTarget": true,
+      "movementTargetId": "MOVEMENT:ARMS_TRICEPS",
+      "b3Disposition": "ADDRESS",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b4TargetAuthority": "DIRECTION_ONLY",
+      "doseAuthorityAvailable": true,
+      "doseKind": "HYPERTROPHY_REGION_EQUIVALENT_SET",
+      "numericAuthority": "USER_APPROVED_PROJECT_POLICY",
+      "weeklyTarget": 8,
+      "existingCompatibleExposure": 0,
+      "residualEquivalentExposure": 8,
+      "authorizedWholeSetUnits": 8,
+      "doseReasons": [
+        "B4_AUTHORIZED_WHOLE_SET_UNITS=8",
+        "B4_REGIONAL_RESIDUAL_AUTHORIZED",
+        "B4_RESIDUAL_EQUIVALENT_UNITS=8.0",
+        "USER_APPROVED_PROJECT_POLICY_HYPERTROPHY_COLD_START_8_EQUIVALENT_SETS_PER_REGION_WEEK"
+      ],
+      "candidatePoolSize": 3,
+      "selectedOwnerCount": 1,
+      "selectedOwners": [
+        {
+          "stableKey": "dumbbell_lying_triceps_extension",
+          "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_TRICEPS",
+          "primaryTargetId": "MOVEMENT:ARMS_TRICEPS",
+          "selectionReasons": [
+            "B4_EXACT_REGIONAL_RESIDUAL=8",
+            "B5_DIRECT_HYPERTROPHY_OWNER_SELECTED"
+          ]
+        }
+      ],
+      "rejectedCandidateCount": 2,
+      "rejectedCandidates": [
+        {
+          "stableKey": "ex_da56a4fe",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_deca2b61",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        }
+      ],
+      "b6Status": "AUTHORIZED_COLD_START_USER_CALIBRATION",
+      "nonAdditiveExistingSatisfaction": false,
+      "existingAuthorizedPhysicalSetCount": 0,
+      "b6ReasonCodes": [
+        "USER_APPROVED_COLD_START_HYPERTROPHY_8_REPS_WITHIN_8_12_BAND_LOAD_CALIBRATION_REQUIRED"
+      ],
+      "prescriptionSource": "USER_APPROVED_PROJECT_POLICY",
+      "reps": 8,
+      "targetRpeMin": 7,
+      "loadState": "USER_CALIBRATION_REQUIRED",
+      "authorized": true,
+      "authorizedWeeklyUnits": 8,
+      "materializedWeeklyUnits": 8,
+      "materializedTotalUnits": 16,
+      "materializationState": "FULLY_MATERIALIZED",
+      "materializationReasonCodes": [
+        "B5_SELECTION_PROBE_AUTHORIZED"
+      ],
+      "finiteCapacityDisposition": [],
+      "materializationCompatibleUnits": 8,
+      "remainingShortfallPerWeek": 0,
+      "overrunPerWeek": 0,
+      "b7Status": "IMPROVED",
+      "b7ReasonCodes": [
+        "B4_RESIDUAL_FULLY_MATERIALIZED"
+      ],
+      "b8Scope": "HYPERTROPHY_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "route": "CONTROL",
+      "duplicateCredit": false,
+      "unauthorizedMaterialRows": 0,
+      "coreShapeAuthorityMissing": false,
+      "materializationDisposition": "MATERIALIZED_EXACT_B4_RESIDUAL",
+      "weeks": 2
+    },
+    {
+      "case": "persona1_sparse",
+      "movementCoverage": "CALVES",
+      "isC31BaselineTarget": true,
+      "movementTargetId": "MOVEMENT:CALVES",
+      "b3Disposition": "ADDRESS",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b4TargetAuthority": "DIRECTION_ONLY",
+      "doseAuthorityAvailable": true,
+      "doseKind": "HYPERTROPHY_REGION_EQUIVALENT_SET",
+      "numericAuthority": "USER_APPROVED_PROJECT_POLICY",
+      "weeklyTarget": 8,
+      "existingCompatibleExposure": 0,
+      "residualEquivalentExposure": 8,
+      "authorizedWholeSetUnits": 8,
+      "doseReasons": [
+        "B4_AUTHORIZED_WHOLE_SET_UNITS=8",
+        "B4_REGIONAL_RESIDUAL_AUTHORIZED",
+        "B4_RESIDUAL_EQUIVALENT_UNITS=8.0",
+        "USER_APPROVED_PROJECT_POLICY_HYPERTROPHY_COLD_START_8_EQUIVALENT_SETS_PER_REGION_WEEK"
+      ],
+      "candidatePoolSize": 3,
+      "selectedOwnerCount": 1,
+      "selectedOwners": [
+        {
+          "stableKey": "ex_5ca7133f",
+          "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CALVES",
+          "primaryTargetId": "MOVEMENT:CALVES",
+          "selectionReasons": [
+            "B4_EXACT_REGIONAL_RESIDUAL=8",
+            "B5_DIRECT_HYPERTROPHY_OWNER_SELECTED"
+          ]
+        }
+      ],
+      "rejectedCandidateCount": 2,
+      "rejectedCandidates": [
+        {
+          "stableKey": "standing_bodyweight_calf_raise",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "standing_dumbbell_calf_raise",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        }
+      ],
+      "b6Status": "AUTHORIZED_COLD_START_USER_CALIBRATION",
+      "nonAdditiveExistingSatisfaction": false,
+      "existingAuthorizedPhysicalSetCount": 0,
+      "b6ReasonCodes": [
+        "USER_APPROVED_COLD_START_HYPERTROPHY_8_REPS_WITHIN_8_12_BAND_LOAD_CALIBRATION_REQUIRED"
+      ],
+      "prescriptionSource": "USER_APPROVED_PROJECT_POLICY",
+      "reps": 8,
+      "targetRpeMin": 7,
+      "loadState": "USER_CALIBRATION_REQUIRED",
+      "authorized": true,
+      "authorizedWeeklyUnits": 8,
+      "materializedWeeklyUnits": 8,
+      "materializedTotalUnits": 16,
+      "materializationState": "FULLY_MATERIALIZED",
+      "materializationReasonCodes": [
+        "B5_SELECTION_PROBE_AUTHORIZED"
+      ],
+      "finiteCapacityDisposition": [],
+      "materializationCompatibleUnits": 8,
+      "remainingShortfallPerWeek": 0,
+      "overrunPerWeek": 0,
+      "b7Status": "IMPROVED",
+      "b7ReasonCodes": [
+        "B4_RESIDUAL_FULLY_MATERIALIZED"
+      ],
+      "b8Scope": "HYPERTROPHY_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "route": "CONTROL",
+      "duplicateCredit": false,
+      "unauthorizedMaterialRows": 0,
+      "coreShapeAuthorityMissing": false,
+      "materializationDisposition": "MATERIALIZED_EXACT_B4_RESIDUAL",
+      "weeks": 2
+    },
+    {
+      "case": "persona1_sparse",
+      "movementCoverage": "CORE_DIRECT",
+      "isC31BaselineTarget": true,
+      "movementTargetId": "MOVEMENT:CORE_DIRECT",
+      "b3Disposition": "ADDRESS",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b4TargetAuthority": "DIRECTION_ONLY",
+      "doseAuthorityAvailable": true,
+      "doseKind": "CORE_DIRECT_CONTROL_SET",
+      "numericAuthority": "USER_APPROVED_PROJECT_POLICY",
+      "weeklyTarget": 6,
+      "authorizedWholeSetUnits": 0,
+      "doseReasons": [
+        "CORE_PRESCRIPTION_SHAPE_AUTHORITY_UNAVAILABLE",
+        "INSUFFICIENT_CORE_HISTORY_FOR_PERSONAL_TOLERANCE_BASELINE",
+        "USER_APPROVED_PROJECT_POLICY_CORE_DIRECT_COLD_START_6_SETS_PER_WEEK"
+      ],
+      "candidatePoolSize": 9,
+      "selectedOwnerCount": 1,
+      "selectedOwners": [
+        {
+          "stableKey": "ex_28347c1f",
+          "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT",
+          "primaryTargetId": "MOVEMENT:CORE_DIRECT",
+          "selectionReasons": [
+            "B4_MOVEMENT_TARGET_REQUESTED_IDENTITY",
+            "B5_DOES_NOT_GRANT_DOSE_AUTHORITY"
+          ]
+        }
+      ],
+      "rejectedCandidateCount": 8,
+      "rejectedCandidates": [
+        {
+          "stableKey": "ex_2a826c82",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_644e0f9d",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_a345e30b",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_a44ae2ca",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_a8385c4a",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_a9b52886",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_d5bdffe1",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_f6d43398",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        }
+      ],
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "nonAdditiveExistingSatisfaction": false,
+      "existingAuthorizedPhysicalSetCount": 0,
+      "b6ReasonCodes": [],
+      "authorized": false,
+      "authorizedWeeklyUnits": 0,
+      "materializedWeeklyUnits": 0,
+      "materializedTotalUnits": 0,
+      "materializationReasonCodes": [],
+      "finiteCapacityDisposition": [],
+      "materializationCompatibleUnits": 0,
+      "remainingShortfallPerWeek": 0,
+      "overrunPerWeek": 0,
+      "b7ReasonCodes": [],
+      "b8Scope": "HYPERTROPHY_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "route": "CONTROL",
+      "duplicateCredit": false,
+      "unauthorizedMaterialRows": 0,
+      "coreShapeAuthorityMissing": true,
+      "materializationDisposition": "UNRESOLVED_CORE_PRESCRIPTION_SHAPE_AUTHORITY",
+      "weeks": 2
+    },
+    {
+      "case": "persona1_sparse",
+      "movementCoverage": "HORIZONTAL_PUSH",
+      "isC31BaselineTarget": false,
+      "movementTargetId": "MOVEMENT:HORIZONTAL_PUSH",
+      "b3Disposition": "ADDRESS",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b4TargetAuthority": "DIRECTION_ONLY",
+      "doseAuthorityAvailable": true,
+      "doseKind": "HYPERTROPHY_REGION_EQUIVALENT_SET",
+      "numericAuthority": "USER_APPROVED_PROJECT_POLICY",
+      "weeklyTarget": 8,
+      "existingCompatibleExposure": 0,
+      "residualEquivalentExposure": 8,
+      "authorizedWholeSetUnits": 8,
+      "doseReasons": [
+        "B4_AUTHORIZED_WHOLE_SET_UNITS=8",
+        "B4_REGIONAL_RESIDUAL_AUTHORIZED",
+        "B4_RESIDUAL_EQUIVALENT_UNITS=8.0",
+        "USER_APPROVED_PROJECT_POLICY_HYPERTROPHY_COLD_START_8_EQUIVALENT_SETS_PER_REGION_WEEK"
+      ],
+      "candidatePoolSize": 10,
+      "selectedOwnerCount": 1,
+      "selectedOwners": [
+        {
+          "stableKey": "ex_27b3deb5",
+          "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_HORIZONTAL_PUSH",
+          "primaryTargetId": "MOVEMENT:HORIZONTAL_PUSH",
+          "selectionReasons": [
+            "B4_EXACT_REGIONAL_RESIDUAL=8",
+            "B5_DIRECT_HYPERTROPHY_OWNER_SELECTED"
+          ]
+        }
+      ],
+      "rejectedCandidateCount": 9,
+      "rejectedCandidates": [
+        {
+          "stableKey": "ex_28902b13",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_3a7d3eda",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_6463edad",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_73b0b63f",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_91b749b3",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_a61f1e96",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_a61f307a",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_debf6a8b",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_fb67af37",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        }
+      ],
+      "b6Status": "AUTHORIZED_COLD_START_USER_CALIBRATION",
+      "nonAdditiveExistingSatisfaction": false,
+      "existingAuthorizedPhysicalSetCount": 0,
+      "b6ReasonCodes": [
+        "USER_APPROVED_COLD_START_HYPERTROPHY_8_REPS_WITHIN_8_12_BAND_LOAD_CALIBRATION_REQUIRED"
+      ],
+      "prescriptionSource": "USER_APPROVED_PROJECT_POLICY",
+      "reps": 8,
+      "targetRpeMin": 7,
+      "loadState": "USER_CALIBRATION_REQUIRED",
+      "authorized": true,
+      "authorizedWeeklyUnits": 8,
+      "materializedWeeklyUnits": 8,
+      "materializedTotalUnits": 16,
+      "materializationState": "FULLY_MATERIALIZED",
+      "materializationReasonCodes": [
+        "B5_SELECTION_PROBE_AUTHORIZED"
+      ],
+      "finiteCapacityDisposition": [],
+      "materializationCompatibleUnits": 8,
+      "remainingShortfallPerWeek": 0,
+      "overrunPerWeek": 0,
+      "b7Status": "IMPROVED",
+      "b7ReasonCodes": [
+        "B4_RESIDUAL_FULLY_MATERIALIZED"
+      ],
+      "b8Scope": "HYPERTROPHY_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "route": "CONTROL",
+      "duplicateCredit": false,
+      "unauthorizedMaterialRows": 0,
+      "coreShapeAuthorityMissing": false,
+      "materializationDisposition": "MATERIALIZED_EXACT_B4_RESIDUAL",
+      "weeks": 2
+    },
+    {
+      "case": "persona1_sparse",
+      "movementCoverage": "LOWER_KNEE",
+      "isC31BaselineTarget": true,
+      "movementTargetId": "MOVEMENT:LOWER_KNEE",
+      "b3Disposition": "ADDRESS",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b4TargetAuthority": "DIRECTION_ONLY",
+      "doseAuthorityAvailable": true,
+      "doseKind": "HYPERTROPHY_REGION_EQUIVALENT_SET",
+      "numericAuthority": "USER_APPROVED_PROJECT_POLICY",
+      "weeklyTarget": 8,
+      "existingCompatibleExposure": 0,
+      "residualEquivalentExposure": 8,
+      "authorizedWholeSetUnits": 8,
+      "doseReasons": [
+        "B4_AUTHORIZED_WHOLE_SET_UNITS=8",
+        "B4_REGIONAL_RESIDUAL_AUTHORIZED",
+        "B4_RESIDUAL_EQUIVALENT_UNITS=8.0",
+        "USER_APPROVED_PROJECT_POLICY_HYPERTROPHY_COLD_START_8_EQUIVALENT_SETS_PER_REGION_WEEK"
+      ],
+      "candidatePoolSize": 5,
+      "selectedOwnerCount": 1,
+      "selectedOwners": [
+        {
+          "stableKey": "dumbbell_goblet_squat",
+          "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_LOWER_KNEE",
+          "primaryTargetId": "MOVEMENT:LOWER_KNEE",
+          "selectionReasons": [
+            "B4_EXACT_REGIONAL_RESIDUAL=8",
+            "B5_DIRECT_HYPERTROPHY_OWNER_SELECTED"
+          ]
+        }
+      ],
+      "rejectedCandidateCount": 4,
+      "rejectedCandidates": [
+        {
+          "stableKey": "ex_c5043892",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_d67e5761",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_e2efd0fe",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_ee378da7",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        }
+      ],
+      "b6Status": "AUTHORIZED_COLD_START_USER_CALIBRATION",
+      "nonAdditiveExistingSatisfaction": false,
+      "existingAuthorizedPhysicalSetCount": 0,
+      "b6ReasonCodes": [
+        "USER_APPROVED_COLD_START_HYPERTROPHY_8_REPS_WITHIN_8_12_BAND_LOAD_CALIBRATION_REQUIRED"
+      ],
+      "prescriptionSource": "USER_APPROVED_PROJECT_POLICY",
+      "reps": 8,
+      "targetRpeMin": 7,
+      "loadState": "USER_CALIBRATION_REQUIRED",
+      "authorized": true,
+      "authorizedWeeklyUnits": 8,
+      "materializedWeeklyUnits": 8,
+      "materializedTotalUnits": 16,
+      "materializationState": "FULLY_MATERIALIZED",
+      "materializationReasonCodes": [
+        "B5_SELECTION_PROBE_AUTHORIZED"
+      ],
+      "finiteCapacityDisposition": [],
+      "materializationCompatibleUnits": 8,
+      "remainingShortfallPerWeek": 0,
+      "overrunPerWeek": 0,
+      "b7Status": "IMPROVED",
+      "b7ReasonCodes": [
+        "B4_RESIDUAL_FULLY_MATERIALIZED"
+      ],
+      "b8Scope": "HYPERTROPHY_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "route": "CONTROL",
+      "duplicateCredit": false,
+      "unauthorizedMaterialRows": 0,
+      "coreShapeAuthorityMissing": false,
+      "materializationDisposition": "MATERIALIZED_EXACT_B4_RESIDUAL",
+      "weeks": 2
+    },
+    {
+      "case": "persona1_sparse",
+      "movementCoverage": "POSTERIOR_CHAIN",
+      "isC31BaselineTarget": true,
+      "movementTargetId": "MOVEMENT:POSTERIOR_CHAIN",
+      "b3Disposition": "ADDRESS",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b4TargetAuthority": "DIRECTION_ONLY",
+      "doseAuthorityAvailable": true,
+      "doseKind": "HYPERTROPHY_REGION_EQUIVALENT_SET",
+      "numericAuthority": "USER_APPROVED_PROJECT_POLICY",
+      "weeklyTarget": 8,
+      "existingCompatibleExposure": 0,
+      "residualEquivalentExposure": 8,
+      "authorizedWholeSetUnits": 8,
+      "doseReasons": [
+        "B4_AUTHORIZED_WHOLE_SET_UNITS=8",
+        "B4_REGIONAL_RESIDUAL_AUTHORIZED",
+        "B4_RESIDUAL_EQUIVALENT_UNITS=8.0",
+        "USER_APPROVED_PROJECT_POLICY_HYPERTROPHY_COLD_START_8_EQUIVALENT_SETS_PER_REGION_WEEK"
+      ],
+      "candidatePoolSize": 4,
+      "selectedOwnerCount": 1,
+      "selectedOwners": [
+        {
+          "stableKey": "barbell_romanian_deadlift",
+          "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_POSTERIOR_CHAIN",
+          "primaryTargetId": "MOVEMENT:POSTERIOR_CHAIN",
+          "selectionReasons": [
+            "B4_EXACT_REGIONAL_RESIDUAL=8",
+            "B5_DIRECT_HYPERTROPHY_OWNER_SELECTED"
+          ]
+        }
+      ],
+      "rejectedCandidateCount": 3,
+      "rejectedCandidates": [
+        {
+          "stableKey": "dumbbell_romanian_deadlift",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "dumbbell_single_leg_rdl",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "single_leg_hip_bridge",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        }
+      ],
+      "b6Status": "AUTHORIZED_COLD_START_USER_CALIBRATION",
+      "nonAdditiveExistingSatisfaction": false,
+      "existingAuthorizedPhysicalSetCount": 0,
+      "b6ReasonCodes": [
+        "USER_APPROVED_COLD_START_HYPERTROPHY_8_REPS_WITHIN_8_12_BAND_LOAD_CALIBRATION_REQUIRED"
+      ],
+      "prescriptionSource": "USER_APPROVED_PROJECT_POLICY",
+      "reps": 8,
+      "targetRpeMin": 7,
+      "loadState": "USER_CALIBRATION_REQUIRED",
+      "authorized": true,
+      "authorizedWeeklyUnits": 8,
+      "materializedWeeklyUnits": 8,
+      "materializedTotalUnits": 16,
+      "materializationState": "FULLY_MATERIALIZED",
+      "materializationReasonCodes": [
+        "B5_SELECTION_PROBE_AUTHORIZED"
+      ],
+      "finiteCapacityDisposition": [],
+      "materializationCompatibleUnits": 8,
+      "remainingShortfallPerWeek": 0,
+      "overrunPerWeek": 0,
+      "b7Status": "IMPROVED",
+      "b7ReasonCodes": [
+        "B4_RESIDUAL_FULLY_MATERIALIZED"
+      ],
+      "b8Scope": "HYPERTROPHY_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "route": "CONTROL",
+      "duplicateCredit": false,
+      "unauthorizedMaterialRows": 0,
+      "coreShapeAuthorityMissing": false,
+      "materializationDisposition": "MATERIALIZED_EXACT_B4_RESIDUAL",
+      "weeks": 2
+    },
+    {
+      "case": "persona2_sparse",
+      "movementCoverage": "ARMS_BICEPS",
+      "isC31BaselineTarget": true,
+      "movementTargetId": "MOVEMENT:ARMS_BICEPS",
+      "b3Disposition": "ADDRESS",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b4TargetAuthority": "DIRECTION_ONLY",
+      "doseAuthorityAvailable": true,
+      "doseKind": "HYPERTROPHY_REGION_EQUIVALENT_SET",
+      "numericAuthority": "USER_APPROVED_PROJECT_POLICY",
+      "weeklyTarget": 8,
+      "existingCompatibleExposure": 0,
+      "residualEquivalentExposure": 8,
+      "authorizedWholeSetUnits": 8,
+      "doseReasons": [
+        "B4_AUTHORIZED_WHOLE_SET_UNITS=8",
+        "B4_REGIONAL_RESIDUAL_AUTHORIZED",
+        "B4_RESIDUAL_EQUIVALENT_UNITS=8.0",
+        "USER_APPROVED_PROJECT_POLICY_HYPERTROPHY_COLD_START_8_EQUIVALENT_SETS_PER_REGION_WEEK"
+      ],
+      "candidatePoolSize": 17,
+      "selectedOwnerCount": 1,
+      "selectedOwners": [
+        {
+          "stableKey": "barbell_reverse_curl",
+          "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_BICEPS",
+          "primaryTargetId": "MOVEMENT:ARMS_BICEPS",
+          "selectionReasons": [
+            "B4_EXACT_REGIONAL_RESIDUAL=8",
+            "B5_DIRECT_HYPERTROPHY_OWNER_SELECTED"
+          ]
+        }
+      ],
+      "rejectedCandidateCount": 16,
+      "rejectedCandidates": [
+        {
+          "stableKey": "dumbbell_preacher_curl",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "dumbbell_spider_curl",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_281347da",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_2892da5a",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_3d5719de",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_85b2ac56",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_86323ed6",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_8633d8db",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_b69ab702",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_c1a81cb2",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_c62c0716",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_d5048362",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_e709eeda",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ez_bar_preacher_curl",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ez_bar_reverse_curl",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ez_bar_spider_curl",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        }
+      ],
+      "b6Status": "AUTHORIZED_COLD_START_USER_CALIBRATION",
+      "nonAdditiveExistingSatisfaction": false,
+      "existingAuthorizedPhysicalSetCount": 0,
+      "b6ReasonCodes": [
+        "USER_APPROVED_COLD_START_HYPERTROPHY_8_REPS_WITHIN_8_12_BAND_LOAD_CALIBRATION_REQUIRED"
+      ],
+      "prescriptionSource": "USER_APPROVED_PROJECT_POLICY",
+      "reps": 8,
+      "targetRpeMin": 7,
+      "loadState": "USER_CALIBRATION_REQUIRED",
+      "authorized": true,
+      "authorizedWeeklyUnits": 8,
+      "materializedWeeklyUnits": 8,
+      "materializedTotalUnits": 16,
+      "materializationState": "FULLY_MATERIALIZED",
+      "materializationReasonCodes": [
+        "B5_SELECTION_PROBE_AUTHORIZED"
+      ],
+      "finiteCapacityDisposition": [],
+      "materializationCompatibleUnits": 8,
+      "remainingShortfallPerWeek": 0,
+      "overrunPerWeek": 0,
+      "b7Status": "IMPROVED",
+      "b7ReasonCodes": [
+        "B4_RESIDUAL_FULLY_MATERIALIZED"
+      ],
+      "b8Scope": "HYPERTROPHY_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "route": "CONTROL",
+      "duplicateCredit": false,
+      "unauthorizedMaterialRows": 0,
+      "coreShapeAuthorityMissing": false,
+      "materializationDisposition": "MATERIALIZED_EXACT_B4_RESIDUAL",
+      "weeks": 2
+    },
+    {
+      "case": "persona2_sparse",
+      "movementCoverage": "ARMS_TRICEPS",
+      "isC31BaselineTarget": true,
+      "movementTargetId": "MOVEMENT:ARMS_TRICEPS",
+      "b3Disposition": "ADDRESS",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b4TargetAuthority": "DIRECTION_ONLY",
+      "doseAuthorityAvailable": true,
+      "doseKind": "HYPERTROPHY_REGION_EQUIVALENT_SET",
+      "numericAuthority": "USER_APPROVED_PROJECT_POLICY",
+      "weeklyTarget": 8,
+      "existingCompatibleExposure": 0,
+      "residualEquivalentExposure": 8,
+      "authorizedWholeSetUnits": 8,
+      "doseReasons": [
+        "B4_AUTHORIZED_WHOLE_SET_UNITS=8",
+        "B4_REGIONAL_RESIDUAL_AUTHORIZED",
+        "B4_RESIDUAL_EQUIVALENT_UNITS=8.0",
+        "USER_APPROVED_PROJECT_POLICY_HYPERTROPHY_COLD_START_8_EQUIVALENT_SETS_PER_REGION_WEEK"
+      ],
+      "candidatePoolSize": 7,
+      "selectedOwnerCount": 1,
+      "selectedOwners": [
+        {
+          "stableKey": "dumbbell_lying_triceps_extension",
+          "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_TRICEPS",
+          "primaryTargetId": "MOVEMENT:ARMS_TRICEPS",
+          "selectionReasons": [
+            "B4_EXACT_REGIONAL_RESIDUAL=8",
+            "B5_DIRECT_HYPERTROPHY_OWNER_SELECTED"
+          ]
+        }
+      ],
+      "rejectedCandidateCount": 6,
+      "rejectedCandidates": [
+        {
+          "stableKey": "ex_5322f2d1",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_da56a4fe",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_deca2b61",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_eb636bac",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_fa570291",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ez_bar_lying_triceps_extension",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        }
+      ],
+      "b6Status": "AUTHORIZED_COLD_START_USER_CALIBRATION",
+      "nonAdditiveExistingSatisfaction": false,
+      "existingAuthorizedPhysicalSetCount": 0,
+      "b6ReasonCodes": [
+        "USER_APPROVED_COLD_START_HYPERTROPHY_8_REPS_WITHIN_8_12_BAND_LOAD_CALIBRATION_REQUIRED"
+      ],
+      "prescriptionSource": "USER_APPROVED_PROJECT_POLICY",
+      "reps": 8,
+      "targetRpeMin": 7,
+      "loadState": "USER_CALIBRATION_REQUIRED",
+      "authorized": true,
+      "authorizedWeeklyUnits": 8,
+      "materializedWeeklyUnits": 0,
+      "materializedTotalUnits": 0,
+      "materializationState": "NOT_MATERIALIZED",
+      "materializationReasonCodes": [
+        "B5_SELECTION_PROBE_AUTHORIZED",
+        "B6_AUTHORIZATION_MISSING_WEEK",
+        "B6_AUTHORIZATION_SHORTFALL"
+      ],
+      "finiteCapacityDisposition": [
+        {
+          "owner": {
+            "stableKey": "dumbbell_lying_triceps_extension",
+            "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_TRICEPS"
+          },
+          "stage": "FINITE_EXECUTION_ALLOCATION",
+          "action": "REMOVED",
+          "before": {
+            "week": 1,
+            "setCount": 8,
+            "setPrescriptions": [
+              {
+                "index": 1,
+                "reps": 8,
+                "weightKg": 0,
+                "seconds": 0,
+                "targetRpeMin": 7
+              },
+              {
+                "index": 2,
+                "reps": 8,
+                "weightKg": 0,
+                "seconds": 0,
+                "targetRpeMin": 7
+              },
+              {
+                "index": 3,
+                "reps": 8,
+                "weightKg": 0,
+                "seconds": 0,
+                "targetRpeMin": 7
+              },
+              {
+                "index": 4,
+                "reps": 8,
+                "weightKg": 0,
+                "seconds": 0,
+                "targetRpeMin": 7
+              },
+              {
+                "index": 5,
+                "reps": 8,
+                "weightKg": 0,
+                "seconds": 0,
+                "targetRpeMin": 7
+              },
+              {
+                "index": 6,
+                "reps": 8,
+                "weightKg": 0,
+                "seconds": 0,
+                "targetRpeMin": 7
+              },
+              {
+                "index": 7,
+                "reps": 8,
+                "weightKg": 0,
+                "seconds": 0,
+                "targetRpeMin": 7
+              },
+              {
+                "index": 8,
+                "reps": 8,
+                "weightKg": 0,
+                "seconds": 0,
+                "targetRpeMin": 7
+              }
+            ],
+            "prescription": "Regional hypertrophy cold-start; user load calibration required",
+            "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_TRICEPS"
+          },
+          "cause": "CAPACITY_LIMIT",
+          "targetIds": [
+            "QUALITY:HYPERTROPHY"
+          ],
+          "qualities": [
+            "HYPERTROPHY"
+          ],
+          "authorizedDemandIds": [],
+          "evidenceCodes": [
+            "FINITE_ALLOCATOR_CAPACITY_BOUNDARY"
+          ],
+          "mutationSequence": 0
+        },
+        {
+          "owner": {
+            "stableKey": "dumbbell_lying_triceps_extension",
+            "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_TRICEPS"
+          },
+          "stage": "FINITE_EXECUTION_ALLOCATION",
+          "action": "REMOVED",
+          "before": {
+            "week": 2,
+            "setCount": 8,
+            "setPrescriptions": [
+              {
+                "index": 1,
+                "reps": 8,
+                "weightKg": 0,
+                "seconds": 0,
+                "targetRpeMin": 7
+              },
+              {
+                "index": 2,
+                "reps": 8,
+                "weightKg": 0,
+                "seconds": 0,
+                "targetRpeMin": 7
+              },
+              {
+                "index": 3,
+                "reps": 8,
+                "weightKg": 0,
+                "seconds": 0,
+                "targetRpeMin": 7
+              },
+              {
+                "index": 4,
+                "reps": 8,
+                "weightKg": 0,
+                "seconds": 0,
+                "targetRpeMin": 7
+              },
+              {
+                "index": 5,
+                "reps": 8,
+                "weightKg": 0,
+                "seconds": 0,
+                "targetRpeMin": 7
+              },
+              {
+                "index": 6,
+                "reps": 8,
+                "weightKg": 0,
+                "seconds": 0,
+                "targetRpeMin": 7
+              },
+              {
+                "index": 7,
+                "reps": 8,
+                "weightKg": 0,
+                "seconds": 0,
+                "targetRpeMin": 7
+              },
+              {
+                "index": 8,
+                "reps": 8,
+                "weightKg": 0,
+                "seconds": 0,
+                "targetRpeMin": 7
+              }
+            ],
+            "prescription": "Regional hypertrophy cold-start; user load calibration required",
+            "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_TRICEPS"
+          },
+          "cause": "CAPACITY_LIMIT",
+          "targetIds": [
+            "QUALITY:HYPERTROPHY"
+          ],
+          "qualities": [
+            "HYPERTROPHY"
+          ],
+          "authorizedDemandIds": [],
+          "evidenceCodes": [
+            "FINITE_ALLOCATOR_CAPACITY_BOUNDARY"
+          ],
+          "mutationSequence": 0
+        }
+      ],
+      "materializationCompatibleUnits": 0,
+      "remainingShortfallPerWeek": 8,
+      "overrunPerWeek": 0,
+      "b7Status": "NOT_APPLICABLE",
+      "b7ReasonCodes": [
+        "B4_AUTHORIZED_WHOLE_SET_UNITS=8",
+        "B4_REGIONAL_RESIDUAL_AUTHORIZED",
+        "B4_RESIDUAL_EQUIVALENT_UNITS=8.0"
+      ],
+      "b8Scope": "HYPERTROPHY_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "route": "CONTROL",
+      "duplicateCredit": false,
+      "unauthorizedMaterialRows": 0,
+      "coreShapeAuthorityMissing": false,
+      "materializationDisposition": "UNMATERIALIZED_FINITE_CAPACITY_LIMIT",
+      "weeks": 2
+    },
+    {
+      "case": "persona2_sparse",
+      "movementCoverage": "CALVES",
+      "isC31BaselineTarget": true,
+      "movementTargetId": "MOVEMENT:CALVES",
+      "b3Disposition": "ADDRESS",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b4TargetAuthority": "DIRECTION_ONLY",
+      "doseAuthorityAvailable": true,
+      "doseKind": "HYPERTROPHY_REGION_EQUIVALENT_SET",
+      "numericAuthority": "USER_APPROVED_PROJECT_POLICY",
+      "weeklyTarget": 8,
+      "existingCompatibleExposure": 0,
+      "residualEquivalentExposure": 8,
+      "authorizedWholeSetUnits": 8,
+      "doseReasons": [
+        "B4_AUTHORIZED_WHOLE_SET_UNITS=8",
+        "B4_REGIONAL_RESIDUAL_AUTHORIZED",
+        "B4_RESIDUAL_EQUIVALENT_UNITS=8.0",
+        "USER_APPROVED_PROJECT_POLICY_HYPERTROPHY_COLD_START_8_EQUIVALENT_SETS_PER_REGION_WEEK"
+      ],
+      "candidatePoolSize": 5,
+      "selectedOwnerCount": 1,
+      "selectedOwners": [
+        {
+          "stableKey": "ex_5c8751d2",
+          "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CALVES",
+          "primaryTargetId": "MOVEMENT:CALVES",
+          "selectionReasons": [
+            "B4_EXACT_REGIONAL_RESIDUAL=8",
+            "B5_DIRECT_HYPERTROPHY_OWNER_SELECTED"
+          ]
+        }
+      ],
+      "rejectedCandidateCount": 4,
+      "rejectedCandidates": [
+        {
+          "stableKey": "ex_5ca7133f",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "standing_bodyweight_calf_raise",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "standing_calf_raise_machine",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "standing_dumbbell_calf_raise",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        }
+      ],
+      "b6Status": "AUTHORIZED_COLD_START_USER_CALIBRATION",
+      "nonAdditiveExistingSatisfaction": false,
+      "existingAuthorizedPhysicalSetCount": 0,
+      "b6ReasonCodes": [
+        "USER_APPROVED_COLD_START_HYPERTROPHY_8_REPS_WITHIN_8_12_BAND_LOAD_CALIBRATION_REQUIRED"
+      ],
+      "prescriptionSource": "USER_APPROVED_PROJECT_POLICY",
+      "reps": 8,
+      "targetRpeMin": 7,
+      "loadState": "USER_CALIBRATION_REQUIRED",
+      "authorized": true,
+      "authorizedWeeklyUnits": 8,
+      "materializedWeeklyUnits": 0,
+      "materializedTotalUnits": 0,
+      "materializationState": "NOT_MATERIALIZED",
+      "materializationReasonCodes": [
+        "B5_SELECTION_PROBE_AUTHORIZED",
+        "B6_AUTHORIZATION_MISSING_WEEK",
+        "B6_AUTHORIZATION_SHORTFALL"
+      ],
+      "finiteCapacityDisposition": [
+        {
+          "owner": {
+            "stableKey": "ex_5c8751d2",
+            "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CALVES"
+          },
+          "stage": "FINITE_EXECUTION_ALLOCATION",
+          "action": "REMOVED",
+          "before": {
+            "week": 1,
+            "setCount": 8,
+            "setPrescriptions": [
+              {
+                "index": 1,
+                "reps": 8,
+                "weightKg": 0,
+                "seconds": 0,
+                "targetRpeMin": 7
+              },
+              {
+                "index": 2,
+                "reps": 8,
+                "weightKg": 0,
+                "seconds": 0,
+                "targetRpeMin": 7
+              },
+              {
+                "index": 3,
+                "reps": 8,
+                "weightKg": 0,
+                "seconds": 0,
+                "targetRpeMin": 7
+              },
+              {
+                "index": 4,
+                "reps": 8,
+                "weightKg": 0,
+                "seconds": 0,
+                "targetRpeMin": 7
+              },
+              {
+                "index": 5,
+                "reps": 8,
+                "weightKg": 0,
+                "seconds": 0,
+                "targetRpeMin": 7
+              },
+              {
+                "index": 6,
+                "reps": 8,
+                "weightKg": 0,
+                "seconds": 0,
+                "targetRpeMin": 7
+              },
+              {
+                "index": 7,
+                "reps": 8,
+                "weightKg": 0,
+                "seconds": 0,
+                "targetRpeMin": 7
+              },
+              {
+                "index": 8,
+                "reps": 8,
+                "weightKg": 0,
+                "seconds": 0,
+                "targetRpeMin": 7
+              }
+            ],
+            "prescription": "Regional hypertrophy cold-start; user load calibration required",
+            "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CALVES"
+          },
+          "cause": "CAPACITY_LIMIT",
+          "targetIds": [
+            "QUALITY:HYPERTROPHY"
+          ],
+          "qualities": [
+            "HYPERTROPHY"
+          ],
+          "authorizedDemandIds": [],
+          "evidenceCodes": [
+            "FINITE_ALLOCATOR_CAPACITY_BOUNDARY"
+          ],
+          "mutationSequence": 0
+        },
+        {
+          "owner": {
+            "stableKey": "ex_5c8751d2",
+            "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CALVES"
+          },
+          "stage": "FINITE_EXECUTION_ALLOCATION",
+          "action": "REMOVED",
+          "before": {
+            "week": 2,
+            "setCount": 8,
+            "setPrescriptions": [
+              {
+                "index": 1,
+                "reps": 8,
+                "weightKg": 0,
+                "seconds": 0,
+                "targetRpeMin": 7
+              },
+              {
+                "index": 2,
+                "reps": 8,
+                "weightKg": 0,
+                "seconds": 0,
+                "targetRpeMin": 7
+              },
+              {
+                "index": 3,
+                "reps": 8,
+                "weightKg": 0,
+                "seconds": 0,
+                "targetRpeMin": 7
+              },
+              {
+                "index": 4,
+                "reps": 8,
+                "weightKg": 0,
+                "seconds": 0,
+                "targetRpeMin": 7
+              },
+              {
+                "index": 5,
+                "reps": 8,
+                "weightKg": 0,
+                "seconds": 0,
+                "targetRpeMin": 7
+              },
+              {
+                "index": 6,
+                "reps": 8,
+                "weightKg": 0,
+                "seconds": 0,
+                "targetRpeMin": 7
+              },
+              {
+                "index": 7,
+                "reps": 8,
+                "weightKg": 0,
+                "seconds": 0,
+                "targetRpeMin": 7
+              },
+              {
+                "index": 8,
+                "reps": 8,
+                "weightKg": 0,
+                "seconds": 0,
+                "targetRpeMin": 7
+              }
+            ],
+            "prescription": "Regional hypertrophy cold-start; user load calibration required",
+            "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CALVES"
+          },
+          "cause": "CAPACITY_LIMIT",
+          "targetIds": [
+            "QUALITY:HYPERTROPHY"
+          ],
+          "qualities": [
+            "HYPERTROPHY"
+          ],
+          "authorizedDemandIds": [],
+          "evidenceCodes": [
+            "FINITE_ALLOCATOR_CAPACITY_BOUNDARY"
+          ],
+          "mutationSequence": 0
+        }
+      ],
+      "materializationCompatibleUnits": 0,
+      "remainingShortfallPerWeek": 8,
+      "overrunPerWeek": 0,
+      "b7Status": "NOT_APPLICABLE",
+      "b7ReasonCodes": [
+        "B4_AUTHORIZED_WHOLE_SET_UNITS=8",
+        "B4_REGIONAL_RESIDUAL_AUTHORIZED",
+        "B4_RESIDUAL_EQUIVALENT_UNITS=8.0"
+      ],
+      "b8Scope": "HYPERTROPHY_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "route": "CONTROL",
+      "duplicateCredit": false,
+      "unauthorizedMaterialRows": 0,
+      "coreShapeAuthorityMissing": false,
+      "materializationDisposition": "UNMATERIALIZED_FINITE_CAPACITY_LIMIT",
+      "weeks": 2
+    },
+    {
+      "case": "persona2_sparse",
+      "movementCoverage": "CORE_DIRECT",
+      "isC31BaselineTarget": true,
+      "movementTargetId": "MOVEMENT:CORE_DIRECT",
+      "b3Disposition": "ADDRESS",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b4TargetAuthority": "DIRECTION_ONLY",
+      "doseAuthorityAvailable": true,
+      "doseKind": "CORE_DIRECT_CONTROL_SET",
+      "numericAuthority": "USER_APPROVED_PROJECT_POLICY",
+      "weeklyTarget": 6,
+      "authorizedWholeSetUnits": 0,
+      "doseReasons": [
+        "CORE_PRESCRIPTION_SHAPE_AUTHORITY_UNAVAILABLE",
+        "INSUFFICIENT_CORE_HISTORY_FOR_PERSONAL_TOLERANCE_BASELINE",
+        "USER_APPROVED_PROJECT_POLICY_CORE_DIRECT_COLD_START_6_SETS_PER_WEEK"
+      ],
+      "candidatePoolSize": 10,
+      "selectedOwnerCount": 1,
+      "selectedOwners": [
+        {
+          "stableKey": "ex_28347c1f",
+          "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT",
+          "primaryTargetId": "MOVEMENT:CORE_DIRECT",
+          "selectionReasons": [
+            "B4_MOVEMENT_TARGET_REQUESTED_IDENTITY",
+            "B5_DOES_NOT_GRANT_DOSE_AUTHORITY"
+          ]
+        }
+      ],
+      "rejectedCandidateCount": 9,
+      "rejectedCandidates": [
+        {
+          "stableKey": "ex_2a826c82",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_644e0f9d",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_a345e30b",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_a44ae2ca",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_a8385c4a",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_a9b52886",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_b3f447be",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_d5bdffe1",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_f6d43398",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        }
+      ],
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "nonAdditiveExistingSatisfaction": false,
+      "existingAuthorizedPhysicalSetCount": 0,
+      "b6ReasonCodes": [],
+      "authorized": false,
+      "authorizedWeeklyUnits": 0,
+      "materializedWeeklyUnits": 0,
+      "materializedTotalUnits": 0,
+      "materializationReasonCodes": [],
+      "finiteCapacityDisposition": [],
+      "materializationCompatibleUnits": 0,
+      "remainingShortfallPerWeek": 0,
+      "overrunPerWeek": 0,
+      "b7ReasonCodes": [],
+      "b8Scope": "HYPERTROPHY_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "route": "CONTROL",
+      "duplicateCredit": false,
+      "unauthorizedMaterialRows": 0,
+      "coreShapeAuthorityMissing": true,
+      "materializationDisposition": "UNRESOLVED_CORE_PRESCRIPTION_SHAPE_AUTHORITY",
+      "weeks": 2
+    },
+    {
+      "case": "persona2_sparse",
+      "movementCoverage": "HORIZONTAL_PUSH",
+      "isC31BaselineTarget": false,
+      "movementTargetId": "MOVEMENT:HORIZONTAL_PUSH",
+      "b3Disposition": "ADDRESS",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b4TargetAuthority": "DIRECTION_ONLY",
+      "doseAuthorityAvailable": true,
+      "doseKind": "HYPERTROPHY_REGION_EQUIVALENT_SET",
+      "numericAuthority": "USER_APPROVED_PROJECT_POLICY",
+      "weeklyTarget": 8,
+      "existingCompatibleExposure": 0,
+      "residualEquivalentExposure": 8,
+      "authorizedWholeSetUnits": 8,
+      "doseReasons": [
+        "B4_AUTHORIZED_WHOLE_SET_UNITS=8",
+        "B4_REGIONAL_RESIDUAL_AUTHORIZED",
+        "B4_RESIDUAL_EQUIVALENT_UNITS=8.0",
+        "USER_APPROVED_PROJECT_POLICY_HYPERTROPHY_COLD_START_8_EQUIVALENT_SETS_PER_REGION_WEEK"
+      ],
+      "candidatePoolSize": 15,
+      "selectedOwnerCount": 1,
+      "selectedOwners": [
+        {
+          "stableKey": "barbell_bench_press",
+          "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_HORIZONTAL_PUSH",
+          "primaryTargetId": "MOVEMENT:HORIZONTAL_PUSH",
+          "selectionReasons": [
+            "B4_EXACT_REGIONAL_RESIDUAL=8",
+            "B5_DIRECT_HYPERTROPHY_OWNER_SELECTED"
+          ]
+        }
+      ],
+      "rejectedCandidateCount": 14,
+      "rejectedCandidates": [
+        {
+          "stableKey": "ex_1dbee10e",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_27b3deb5",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_28902b13",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_3a7d3eda",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_442617f6",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_4c779df2",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_6463edad",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_73b0b63f",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_91b749b3",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_a61f1e96",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_a61f307a",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_debf6a8b",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_fb67af37",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "machine_chest_fly",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        }
+      ],
+      "b6Status": "AUTHORIZED_COLD_START_USER_CALIBRATION",
+      "nonAdditiveExistingSatisfaction": false,
+      "existingAuthorizedPhysicalSetCount": 0,
+      "b6ReasonCodes": [
+        "USER_APPROVED_COLD_START_HYPERTROPHY_8_REPS_WITHIN_8_12_BAND_LOAD_CALIBRATION_REQUIRED"
+      ],
+      "prescriptionSource": "USER_APPROVED_PROJECT_POLICY",
+      "reps": 8,
+      "targetRpeMin": 7,
+      "loadState": "USER_CALIBRATION_REQUIRED",
+      "authorized": true,
+      "authorizedWeeklyUnits": 8,
+      "materializedWeeklyUnits": 8,
+      "materializedTotalUnits": 16,
+      "materializationState": "FULLY_MATERIALIZED",
+      "materializationReasonCodes": [
+        "B5_SELECTION_PROBE_AUTHORIZED"
+      ],
+      "finiteCapacityDisposition": [],
+      "materializationCompatibleUnits": 8,
+      "remainingShortfallPerWeek": 0,
+      "overrunPerWeek": 0,
+      "b7Status": "IMPROVED",
+      "b7ReasonCodes": [
+        "B4_RESIDUAL_FULLY_MATERIALIZED"
+      ],
+      "b8Scope": "HYPERTROPHY_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "route": "CONTROL",
+      "duplicateCredit": false,
+      "unauthorizedMaterialRows": 0,
+      "coreShapeAuthorityMissing": false,
+      "materializationDisposition": "MATERIALIZED_EXACT_B4_RESIDUAL",
+      "weeks": 2
+    },
+    {
+      "case": "persona2_sparse",
+      "movementCoverage": "POSTERIOR_CHAIN",
+      "isC31BaselineTarget": true,
+      "movementTargetId": "MOVEMENT:POSTERIOR_CHAIN",
+      "b3Disposition": "ADDRESS",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b4TargetAuthority": "DIRECTION_ONLY",
+      "doseAuthorityAvailable": true,
+      "doseKind": "HYPERTROPHY_REGION_EQUIVALENT_SET",
+      "numericAuthority": "USER_APPROVED_PROJECT_POLICY",
+      "weeklyTarget": 8,
+      "existingCompatibleExposure": 0,
+      "residualEquivalentExposure": 8,
+      "authorizedWholeSetUnits": 8,
+      "doseReasons": [
+        "B4_AUTHORIZED_WHOLE_SET_UNITS=8",
+        "B4_REGIONAL_RESIDUAL_AUTHORIZED",
+        "B4_RESIDUAL_EQUIVALENT_UNITS=8.0",
+        "USER_APPROVED_PROJECT_POLICY_HYPERTROPHY_COLD_START_8_EQUIVALENT_SETS_PER_REGION_WEEK"
+      ],
+      "candidatePoolSize": 15,
+      "selectedOwnerCount": 1,
+      "selectedOwners": [
+        {
+          "stableKey": "barbell_deadlift",
+          "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_POSTERIOR_CHAIN",
+          "primaryTargetId": "MOVEMENT:POSTERIOR_CHAIN",
+          "selectionReasons": [
+            "B4_EXACT_REGIONAL_RESIDUAL=8",
+            "B5_DIRECT_HYPERTROPHY_OWNER_SELECTED"
+          ]
+        }
+      ],
+      "rejectedCandidateCount": 14,
+      "rejectedCandidates": [
+        {
+          "stableKey": "barbell_romanian_deadlift",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "dumbbell_romanian_deadlift",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "dumbbell_single_leg_rdl",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_1cf51b6b",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_2822ec2e",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_389920ab",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_4c76dbb2",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_721f7b5b",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_8824026f",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_b59bed7d",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_e0b1e364",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_fa34ddfe",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "kettlebell_single_leg_rdl",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "single_leg_hip_bridge",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        }
+      ],
+      "b6Status": "AUTHORIZED_COLD_START_USER_CALIBRATION",
+      "nonAdditiveExistingSatisfaction": false,
+      "existingAuthorizedPhysicalSetCount": 0,
+      "b6ReasonCodes": [
+        "USER_APPROVED_COLD_START_HYPERTROPHY_8_REPS_WITHIN_8_12_BAND_LOAD_CALIBRATION_REQUIRED"
+      ],
+      "prescriptionSource": "USER_APPROVED_PROJECT_POLICY",
+      "reps": 8,
+      "targetRpeMin": 7,
+      "loadState": "USER_CALIBRATION_REQUIRED",
+      "authorized": true,
+      "authorizedWeeklyUnits": 8,
+      "materializedWeeklyUnits": 8,
+      "materializedTotalUnits": 16,
+      "materializationState": "FULLY_MATERIALIZED",
+      "materializationReasonCodes": [
+        "B5_SELECTION_PROBE_AUTHORIZED"
+      ],
+      "finiteCapacityDisposition": [],
+      "materializationCompatibleUnits": 8,
+      "remainingShortfallPerWeek": 0,
+      "overrunPerWeek": 0,
+      "b7Status": "IMPROVED",
+      "b7ReasonCodes": [
+        "B4_RESIDUAL_FULLY_MATERIALIZED"
+      ],
+      "b8Scope": "HYPERTROPHY_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "route": "CONTROL",
+      "duplicateCredit": false,
+      "unauthorizedMaterialRows": 0,
+      "coreShapeAuthorityMissing": false,
+      "materializationDisposition": "MATERIALIZED_EXACT_B4_RESIDUAL",
+      "weeks": 2
+    },
+    {
+      "case": "persona2_sparse",
+      "movementCoverage": "UPPER_PULL",
+      "isC31BaselineTarget": true,
+      "movementTargetId": "MOVEMENT:UPPER_PULL",
+      "b3Disposition": "ADDRESS",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b4TargetAuthority": "DIRECTION_ONLY",
+      "doseAuthorityAvailable": false,
+      "doseKind": "NO_REGIONAL_NUMERIC_DOSE_AUTHORITY",
+      "numericAuthority": "DIRECTION_ONLY",
+      "authorizedWholeSetUnits": 0,
+      "doseReasons": [],
+      "candidatePoolSize": 33,
+      "selectedOwnerCount": 1,
+      "selectedOwners": [
+        {
+          "stableKey": "cable_rear_delt_fly",
+          "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_UPPER_PULL",
+          "primaryTargetId": "MOVEMENT:UPPER_PULL",
+          "selectionReasons": [
+            "B4_MOVEMENT_TARGET_REQUESTED_IDENTITY",
+            "B5_DOES_NOT_GRANT_DOSE_AUTHORITY"
+          ]
+        }
+      ],
+      "rejectedCandidateCount": 32,
+      "rejectedCandidates": [
+        {
+          "stableKey": "chest_supported_row_machine",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "dumbbell_chest_supported_row",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "dumbbell_rear_delt_fly",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_282a9d87",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_30a0e9aa",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_32eb8457",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_33d2da8e",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_3c3692aa",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_40fa57be",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_462c760e",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_6466fe77",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_6a966452",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_708e64ce",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_7deabeba",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_8e4bf08e",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_a60496be",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_a76f20b6",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_c365e5e2",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_ca5cce66",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_dc9e5953",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_de46b7f6",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_e159d15a",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_e1894690",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_e41e8dcf",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_e41f4c2b",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_e4f911bb",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_f459ad2a",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_fa31f7a6",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "gymnastic_ring_inverted_row",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "one_arm_gymnastic_ring_row",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "one_arm_suspension_trainer_row",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "suspension_trainer_inverted_row",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        }
+      ],
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "nonAdditiveExistingSatisfaction": false,
+      "existingAuthorizedPhysicalSetCount": 0,
+      "b6ReasonCodes": [],
+      "authorized": false,
+      "authorizedWeeklyUnits": 0,
+      "materializedWeeklyUnits": 0,
+      "materializedTotalUnits": 0,
+      "materializationReasonCodes": [],
+      "finiteCapacityDisposition": [],
+      "materializationCompatibleUnits": 0,
+      "remainingShortfallPerWeek": 0,
+      "overrunPerWeek": 0,
+      "b7ReasonCodes": [],
+      "b8Scope": "HYPERTROPHY_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "route": "CONTROL",
+      "duplicateCredit": false,
+      "unauthorizedMaterialRows": 0,
+      "coreShapeAuthorityMissing": false,
+      "materializationDisposition": "NO_REGIONAL_NUMERIC_DOSE_AUTHORITY",
+      "weeks": 2
+    },
+    {
+      "case": "persona3_sparse",
+      "movementCoverage": "CORE_DIRECT",
+      "isC31BaselineTarget": true,
+      "movementTargetId": "MOVEMENT:CORE_DIRECT",
+      "b3Disposition": "ADDRESS",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b4TargetAuthority": "DIRECTION_ONLY",
+      "doseAuthorityAvailable": true,
+      "doseKind": "CORE_DIRECT_CONTROL_SET",
+      "numericAuthority": "USER_APPROVED_PROJECT_POLICY",
+      "weeklyTarget": 6,
+      "authorizedWholeSetUnits": 0,
+      "doseReasons": [
+        "CORE_PRESCRIPTION_SHAPE_AUTHORITY_UNAVAILABLE",
+        "INSUFFICIENT_CORE_HISTORY_FOR_PERSONAL_TOLERANCE_BASELINE",
+        "USER_APPROVED_PROJECT_POLICY_CORE_DIRECT_COLD_START_6_SETS_PER_WEEK"
+      ],
+      "candidatePoolSize": 8,
+      "selectedOwnerCount": 1,
+      "selectedOwners": [
+        {
+          "stableKey": "ex_28347c1f",
+          "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT",
+          "primaryTargetId": "MOVEMENT:CORE_DIRECT",
+          "selectionReasons": [
+            "B4_MOVEMENT_TARGET_REQUESTED_IDENTITY",
+            "B5_DOES_NOT_GRANT_DOSE_AUTHORITY"
+          ]
+        }
+      ],
+      "rejectedCandidateCount": 7,
+      "rejectedCandidates": [
+        {
+          "stableKey": "ex_2a826c82",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_644e0f9d",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_a345e30b",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_a44ae2ca",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_a9b52886",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_d5bdffe1",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_f6d43398",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        }
+      ],
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "nonAdditiveExistingSatisfaction": false,
+      "existingAuthorizedPhysicalSetCount": 0,
+      "b6ReasonCodes": [],
+      "authorized": false,
+      "authorizedWeeklyUnits": 0,
+      "materializedWeeklyUnits": 0,
+      "materializedTotalUnits": 0,
+      "materializationReasonCodes": [],
+      "finiteCapacityDisposition": [],
+      "materializationCompatibleUnits": 0,
+      "remainingShortfallPerWeek": 0,
+      "overrunPerWeek": 0,
+      "b7ReasonCodes": [],
+      "b8Scope": "HYPERTROPHY_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "route": "CONTROL",
+      "duplicateCredit": false,
+      "unauthorizedMaterialRows": 0,
+      "coreShapeAuthorityMissing": true,
+      "materializationDisposition": "UNRESOLVED_CORE_PRESCRIPTION_SHAPE_AUTHORITY",
+      "weeks": 2
+    },
+    {
+      "case": "persona3_sparse",
+      "movementCoverage": "HORIZONTAL_PUSH",
+      "isC31BaselineTarget": true,
+      "movementTargetId": "MOVEMENT:HORIZONTAL_PUSH",
+      "b3Disposition": "ADDRESS",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b4TargetAuthority": "DIRECTION_ONLY",
+      "doseAuthorityAvailable": true,
+      "doseKind": "HYPERTROPHY_REGION_EQUIVALENT_SET",
+      "numericAuthority": "USER_APPROVED_PROJECT_POLICY",
+      "weeklyTarget": 8,
+      "existingCompatibleExposure": 0,
+      "residualEquivalentExposure": 8,
+      "authorizedWholeSetUnits": 8,
+      "doseReasons": [
+        "B4_AUTHORIZED_WHOLE_SET_UNITS=8",
+        "B4_REGIONAL_RESIDUAL_AUTHORIZED",
+        "B4_RESIDUAL_EQUIVALENT_UNITS=8.0",
+        "USER_APPROVED_PROJECT_POLICY_HYPERTROPHY_COLD_START_8_EQUIVALENT_SETS_PER_REGION_WEEK"
+      ],
+      "candidatePoolSize": 9,
+      "selectedOwnerCount": 1,
+      "selectedOwners": [
+        {
+          "stableKey": "ex_1dbee10e",
+          "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_HORIZONTAL_PUSH",
+          "primaryTargetId": "MOVEMENT:HORIZONTAL_PUSH",
+          "selectionReasons": [
+            "B4_EXACT_REGIONAL_RESIDUAL=8",
+            "B5_DIRECT_HYPERTROPHY_OWNER_SELECTED"
+          ]
+        }
+      ],
+      "rejectedCandidateCount": 8,
+      "rejectedCandidates": [
+        {
+          "stableKey": "ex_28902b13",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_442617f6",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_4c779df2",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_6463edad",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_73b0b63f",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_debf6a8b",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_fb67af37",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "machine_chest_fly",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        }
+      ],
+      "b6Status": "AUTHORIZED_COLD_START_USER_CALIBRATION",
+      "nonAdditiveExistingSatisfaction": false,
+      "existingAuthorizedPhysicalSetCount": 0,
+      "b6ReasonCodes": [
+        "USER_APPROVED_COLD_START_HYPERTROPHY_8_REPS_WITHIN_8_12_BAND_LOAD_CALIBRATION_REQUIRED"
+      ],
+      "prescriptionSource": "USER_APPROVED_PROJECT_POLICY",
+      "reps": 8,
+      "targetRpeMin": 7,
+      "loadState": "USER_CALIBRATION_REQUIRED",
+      "authorized": true,
+      "authorizedWeeklyUnits": 8,
+      "materializedWeeklyUnits": 8,
+      "materializedTotalUnits": 16,
+      "materializationState": "FULLY_MATERIALIZED",
+      "materializationReasonCodes": [
+        "B5_SELECTION_PROBE_AUTHORIZED"
+      ],
+      "finiteCapacityDisposition": [],
+      "materializationCompatibleUnits": 8,
+      "remainingShortfallPerWeek": 0,
+      "overrunPerWeek": 0,
+      "b7Status": "IMPROVED",
+      "b7ReasonCodes": [
+        "B4_RESIDUAL_FULLY_MATERIALIZED"
+      ],
+      "b8Scope": "HYPERTROPHY_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "route": "CONTROL",
+      "duplicateCredit": false,
+      "unauthorizedMaterialRows": 0,
+      "coreShapeAuthorityMissing": false,
+      "materializationDisposition": "MATERIALIZED_EXACT_B4_RESIDUAL",
+      "weeks": 2
+    },
+    {
+      "case": "persona3_sparse",
+      "movementCoverage": "POSTERIOR_CHAIN",
+      "isC31BaselineTarget": false,
+      "movementTargetId": "MOVEMENT:POSTERIOR_CHAIN",
+      "b3Disposition": "ADDRESS",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b4TargetAuthority": "DIRECTION_ONLY",
+      "doseAuthorityAvailable": true,
+      "doseKind": "HYPERTROPHY_REGION_EQUIVALENT_SET",
+      "numericAuthority": "USER_APPROVED_PROJECT_POLICY",
+      "weeklyTarget": 8,
+      "existingCompatibleExposure": 0,
+      "residualEquivalentExposure": 8,
+      "authorizedWholeSetUnits": 8,
+      "doseReasons": [
+        "B4_AUTHORIZED_WHOLE_SET_UNITS=8",
+        "B4_REGIONAL_RESIDUAL_AUTHORIZED",
+        "B4_RESIDUAL_EQUIVALENT_UNITS=8.0",
+        "USER_APPROVED_PROJECT_POLICY_HYPERTROPHY_COLD_START_8_EQUIVALENT_SETS_PER_REGION_WEEK"
+      ],
+      "candidatePoolSize": 0,
+      "selectedOwnerCount": 0,
+      "selectedOwners": [],
+      "rejectedCandidateCount": 0,
+      "rejectedCandidates": [],
+      "b6Status": "NO_EXECUTABLE_AUTHORIZATION",
+      "nonAdditiveExistingSatisfaction": false,
+      "existingAuthorizedPhysicalSetCount": 0,
+      "b6ReasonCodes": [
+        "B6_REQUIRES_EXACT_B5_REGIONAL_OWNER"
+      ],
+      "authorized": false,
+      "authorizedWeeklyUnits": 0,
+      "materializedWeeklyUnits": 0,
+      "materializedTotalUnits": 0,
+      "materializationState": "NOT_MATERIALIZED",
+      "materializationReasonCodes": [
+        "B6_REQUIRES_EXACT_B5_REGIONAL_OWNER",
+        "NO_EXECUTABLE_AUTHORIZATION"
+      ],
+      "finiteCapacityDisposition": [],
+      "materializationCompatibleUnits": 0,
+      "remainingShortfallPerWeek": 8,
+      "overrunPerWeek": 0,
+      "b7Status": "NOT_APPLICABLE",
+      "b7ReasonCodes": [
+        "B4_AUTHORIZED_WHOLE_SET_UNITS=8",
+        "B4_REGIONAL_RESIDUAL_AUTHORIZED",
+        "B4_RESIDUAL_EQUIVALENT_UNITS=8.0"
+      ],
+      "b8Scope": "HYPERTROPHY_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "route": "CONTROL",
+      "duplicateCredit": false,
+      "unauthorizedMaterialRows": 0,
+      "coreShapeAuthorityMissing": false,
+      "materializationDisposition": "NO_ELIGIBLE_B5_OWNER",
+      "weeks": 2
+    },
+    {
+      "case": "persona3_sparse",
+      "movementCoverage": "UPPER_PULL",
+      "isC31BaselineTarget": false,
+      "movementTargetId": "MOVEMENT:UPPER_PULL",
+      "b3Disposition": "ADDRESS",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b4TargetAuthority": "DIRECTION_ONLY",
+      "doseAuthorityAvailable": false,
+      "doseKind": "NO_REGIONAL_NUMERIC_DOSE_AUTHORITY",
+      "numericAuthority": "DIRECTION_ONLY",
+      "authorizedWholeSetUnits": 0,
+      "doseReasons": [],
+      "candidatePoolSize": 17,
+      "selectedOwnerCount": 1,
+      "selectedOwners": [
+        {
+          "stableKey": "cable_rear_delt_fly",
+          "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_UPPER_PULL",
+          "primaryTargetId": "MOVEMENT:UPPER_PULL",
+          "selectionReasons": [
+            "B4_MOVEMENT_TARGET_REQUESTED_IDENTITY",
+            "B5_DOES_NOT_GRANT_DOSE_AUTHORITY"
+          ]
+        }
+      ],
+      "rejectedCandidateCount": 16,
+      "rejectedCandidates": [
+        {
+          "stableKey": "ex_32eb8457",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_33d2da8e",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_3c3692aa",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_40fa57be",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_462c760e",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_6466fe77",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_7deabeba",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_a60496be",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_a76f20b6",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_c365e5e2",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_ca5cce66",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_dc9e5953",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_e159d15a",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_e1894690",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_e4f911bb",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_fa31f7a6",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        }
+      ],
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "nonAdditiveExistingSatisfaction": false,
+      "existingAuthorizedPhysicalSetCount": 0,
+      "b6ReasonCodes": [],
+      "authorized": false,
+      "authorizedWeeklyUnits": 0,
+      "materializedWeeklyUnits": 0,
+      "materializedTotalUnits": 0,
+      "materializationReasonCodes": [],
+      "finiteCapacityDisposition": [],
+      "materializationCompatibleUnits": 0,
+      "remainingShortfallPerWeek": 0,
+      "overrunPerWeek": 0,
+      "b7ReasonCodes": [],
+      "b8Scope": "HYPERTROPHY_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "route": "CONTROL",
+      "duplicateCredit": false,
+      "unauthorizedMaterialRows": 0,
+      "coreShapeAuthorityMissing": false,
+      "materializationDisposition": "NO_REGIONAL_NUMERIC_DOSE_AUTHORITY",
+      "weeks": 2
+    },
+    {
+      "case": "persona4_sparse",
+      "movementCoverage": "ARMS_BICEPS",
+      "isC31BaselineTarget": true,
+      "movementTargetId": "MOVEMENT:ARMS_BICEPS",
+      "b3Disposition": "ADDRESS",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b4TargetAuthority": "DIRECTION_ONLY",
+      "doseAuthorityAvailable": true,
+      "doseKind": "HYPERTROPHY_REGION_EQUIVALENT_SET",
+      "numericAuthority": "USER_APPROVED_PROJECT_POLICY",
+      "weeklyTarget": 8,
+      "existingCompatibleExposure": 0,
+      "residualEquivalentExposure": 8,
+      "authorizedWholeSetUnits": 8,
+      "doseReasons": [
+        "B4_AUTHORIZED_WHOLE_SET_UNITS=8",
+        "B4_REGIONAL_RESIDUAL_AUTHORIZED",
+        "B4_RESIDUAL_EQUIVALENT_UNITS=8.0",
+        "USER_APPROVED_PROJECT_POLICY_HYPERTROPHY_COLD_START_8_EQUIVALENT_SETS_PER_REGION_WEEK"
+      ],
+      "candidatePoolSize": 11,
+      "selectedOwnerCount": 1,
+      "selectedOwners": [
+        {
+          "stableKey": "barbell_reverse_curl",
+          "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_BICEPS",
+          "primaryTargetId": "MOVEMENT:ARMS_BICEPS",
+          "selectionReasons": [
+            "B4_EXACT_REGIONAL_RESIDUAL=8",
+            "B5_DIRECT_HYPERTROPHY_OWNER_SELECTED"
+          ]
+        }
+      ],
+      "rejectedCandidateCount": 10,
+      "rejectedCandidates": [
+        {
+          "stableKey": "dumbbell_preacher_curl",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "dumbbell_spider_curl",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_281347da",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_2892da5a",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_85b2ac56",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_86323ed6",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_8633d8db",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_b69ab702",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_c62c0716",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_d5048362",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        }
+      ],
+      "b6Status": "AUTHORIZED_COLD_START_USER_CALIBRATION",
+      "nonAdditiveExistingSatisfaction": false,
+      "existingAuthorizedPhysicalSetCount": 0,
+      "b6ReasonCodes": [
+        "USER_APPROVED_COLD_START_HYPERTROPHY_8_REPS_WITHIN_8_12_BAND_LOAD_CALIBRATION_REQUIRED"
+      ],
+      "prescriptionSource": "USER_APPROVED_PROJECT_POLICY",
+      "reps": 8,
+      "targetRpeMin": 7,
+      "loadState": "USER_CALIBRATION_REQUIRED",
+      "authorized": true,
+      "authorizedWeeklyUnits": 8,
+      "materializedWeeklyUnits": 8,
+      "materializedTotalUnits": 16,
+      "materializationState": "FULLY_MATERIALIZED",
+      "materializationReasonCodes": [
+        "B5_SELECTION_PROBE_AUTHORIZED"
+      ],
+      "finiteCapacityDisposition": [],
+      "materializationCompatibleUnits": 8,
+      "remainingShortfallPerWeek": 0,
+      "overrunPerWeek": 0,
+      "b7Status": "IMPROVED",
+      "b7ReasonCodes": [
+        "B4_RESIDUAL_FULLY_MATERIALIZED"
+      ],
+      "b8Scope": "HYPERTROPHY_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "route": "CONTROL",
+      "duplicateCredit": false,
+      "unauthorizedMaterialRows": 0,
+      "coreShapeAuthorityMissing": false,
+      "materializationDisposition": "MATERIALIZED_EXACT_B4_RESIDUAL",
+      "weeks": 2
+    },
+    {
+      "case": "persona4_sparse",
+      "movementCoverage": "ARMS_TRICEPS",
+      "isC31BaselineTarget": true,
+      "movementTargetId": "MOVEMENT:ARMS_TRICEPS",
+      "b3Disposition": "ADDRESS",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b4TargetAuthority": "DIRECTION_ONLY",
+      "doseAuthorityAvailable": true,
+      "doseKind": "HYPERTROPHY_REGION_EQUIVALENT_SET",
+      "numericAuthority": "USER_APPROVED_PROJECT_POLICY",
+      "weeklyTarget": 8,
+      "existingCompatibleExposure": 0,
+      "residualEquivalentExposure": 8,
+      "authorizedWholeSetUnits": 8,
+      "doseReasons": [
+        "B4_AUTHORIZED_WHOLE_SET_UNITS=8",
+        "B4_REGIONAL_RESIDUAL_AUTHORIZED",
+        "B4_RESIDUAL_EQUIVALENT_UNITS=8.0",
+        "USER_APPROVED_PROJECT_POLICY_HYPERTROPHY_COLD_START_8_EQUIVALENT_SETS_PER_REGION_WEEK"
+      ],
+      "candidatePoolSize": 3,
+      "selectedOwnerCount": 1,
+      "selectedOwners": [
+        {
+          "stableKey": "dumbbell_lying_triceps_extension",
+          "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_TRICEPS",
+          "primaryTargetId": "MOVEMENT:ARMS_TRICEPS",
+          "selectionReasons": [
+            "B4_EXACT_REGIONAL_RESIDUAL=8",
+            "B5_DIRECT_HYPERTROPHY_OWNER_SELECTED"
+          ]
+        }
+      ],
+      "rejectedCandidateCount": 2,
+      "rejectedCandidates": [
+        {
+          "stableKey": "ex_da56a4fe",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_deca2b61",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        }
+      ],
+      "b6Status": "AUTHORIZED_COLD_START_USER_CALIBRATION",
+      "nonAdditiveExistingSatisfaction": false,
+      "existingAuthorizedPhysicalSetCount": 0,
+      "b6ReasonCodes": [
+        "USER_APPROVED_COLD_START_HYPERTROPHY_8_REPS_WITHIN_8_12_BAND_LOAD_CALIBRATION_REQUIRED"
+      ],
+      "prescriptionSource": "USER_APPROVED_PROJECT_POLICY",
+      "reps": 8,
+      "targetRpeMin": 7,
+      "loadState": "USER_CALIBRATION_REQUIRED",
+      "authorized": true,
+      "authorizedWeeklyUnits": 8,
+      "materializedWeeklyUnits": 8,
+      "materializedTotalUnits": 16,
+      "materializationState": "FULLY_MATERIALIZED",
+      "materializationReasonCodes": [
+        "B5_SELECTION_PROBE_AUTHORIZED"
+      ],
+      "finiteCapacityDisposition": [],
+      "materializationCompatibleUnits": 8,
+      "remainingShortfallPerWeek": 0,
+      "overrunPerWeek": 0,
+      "b7Status": "IMPROVED",
+      "b7ReasonCodes": [
+        "B4_RESIDUAL_FULLY_MATERIALIZED"
+      ],
+      "b8Scope": "HYPERTROPHY_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "route": "CONTROL",
+      "duplicateCredit": false,
+      "unauthorizedMaterialRows": 0,
+      "coreShapeAuthorityMissing": false,
+      "materializationDisposition": "MATERIALIZED_EXACT_B4_RESIDUAL",
+      "weeks": 2
+    },
+    {
+      "case": "persona4_sparse",
+      "movementCoverage": "CALVES",
+      "isC31BaselineTarget": true,
+      "movementTargetId": "MOVEMENT:CALVES",
+      "b3Disposition": "ADDRESS",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b4TargetAuthority": "DIRECTION_ONLY",
+      "doseAuthorityAvailable": true,
+      "doseKind": "HYPERTROPHY_REGION_EQUIVALENT_SET",
+      "numericAuthority": "USER_APPROVED_PROJECT_POLICY",
+      "weeklyTarget": 8,
+      "existingCompatibleExposure": 0,
+      "residualEquivalentExposure": 8,
+      "authorizedWholeSetUnits": 8,
+      "doseReasons": [
+        "B4_AUTHORIZED_WHOLE_SET_UNITS=8",
+        "B4_REGIONAL_RESIDUAL_AUTHORIZED",
+        "B4_RESIDUAL_EQUIVALENT_UNITS=8.0",
+        "USER_APPROVED_PROJECT_POLICY_HYPERTROPHY_COLD_START_8_EQUIVALENT_SETS_PER_REGION_WEEK"
+      ],
+      "candidatePoolSize": 3,
+      "selectedOwnerCount": 1,
+      "selectedOwners": [
+        {
+          "stableKey": "ex_5ca7133f",
+          "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CALVES",
+          "primaryTargetId": "MOVEMENT:CALVES",
+          "selectionReasons": [
+            "B4_EXACT_REGIONAL_RESIDUAL=8",
+            "B5_DIRECT_HYPERTROPHY_OWNER_SELECTED"
+          ]
+        }
+      ],
+      "rejectedCandidateCount": 2,
+      "rejectedCandidates": [
+        {
+          "stableKey": "standing_bodyweight_calf_raise",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "standing_dumbbell_calf_raise",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        }
+      ],
+      "b6Status": "AUTHORIZED_COLD_START_USER_CALIBRATION",
+      "nonAdditiveExistingSatisfaction": false,
+      "existingAuthorizedPhysicalSetCount": 0,
+      "b6ReasonCodes": [
+        "USER_APPROVED_COLD_START_HYPERTROPHY_8_REPS_WITHIN_8_12_BAND_LOAD_CALIBRATION_REQUIRED"
+      ],
+      "prescriptionSource": "USER_APPROVED_PROJECT_POLICY",
+      "reps": 8,
+      "targetRpeMin": 7,
+      "loadState": "USER_CALIBRATION_REQUIRED",
+      "authorized": true,
+      "authorizedWeeklyUnits": 8,
+      "materializedWeeklyUnits": 8,
+      "materializedTotalUnits": 16,
+      "materializationState": "FULLY_MATERIALIZED",
+      "materializationReasonCodes": [
+        "B5_SELECTION_PROBE_AUTHORIZED"
+      ],
+      "finiteCapacityDisposition": [],
+      "materializationCompatibleUnits": 8,
+      "remainingShortfallPerWeek": 0,
+      "overrunPerWeek": 0,
+      "b7Status": "IMPROVED",
+      "b7ReasonCodes": [
+        "B4_RESIDUAL_FULLY_MATERIALIZED"
+      ],
+      "b8Scope": "HYPERTROPHY_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "route": "CONTROL",
+      "duplicateCredit": false,
+      "unauthorizedMaterialRows": 0,
+      "coreShapeAuthorityMissing": false,
+      "materializationDisposition": "MATERIALIZED_EXACT_B4_RESIDUAL",
+      "weeks": 2
+    },
+    {
+      "case": "persona4_sparse",
+      "movementCoverage": "CORE_DIRECT",
+      "isC31BaselineTarget": true,
+      "movementTargetId": "MOVEMENT:CORE_DIRECT",
+      "b3Disposition": "ADDRESS",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b4TargetAuthority": "DIRECTION_ONLY",
+      "doseAuthorityAvailable": true,
+      "doseKind": "CORE_DIRECT_CONTROL_SET",
+      "numericAuthority": "USER_APPROVED_PROJECT_POLICY",
+      "weeklyTarget": 6,
+      "authorizedWholeSetUnits": 0,
+      "doseReasons": [
+        "CORE_PRESCRIPTION_SHAPE_AUTHORITY_UNAVAILABLE",
+        "INSUFFICIENT_CORE_HISTORY_FOR_PERSONAL_TOLERANCE_BASELINE",
+        "USER_APPROVED_PROJECT_POLICY_CORE_DIRECT_COLD_START_6_SETS_PER_WEEK"
+      ],
+      "candidatePoolSize": 9,
+      "selectedOwnerCount": 1,
+      "selectedOwners": [
+        {
+          "stableKey": "ex_28347c1f",
+          "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT",
+          "primaryTargetId": "MOVEMENT:CORE_DIRECT",
+          "selectionReasons": [
+            "B4_MOVEMENT_TARGET_REQUESTED_IDENTITY",
+            "B5_DOES_NOT_GRANT_DOSE_AUTHORITY"
+          ]
+        }
+      ],
+      "rejectedCandidateCount": 8,
+      "rejectedCandidates": [
+        {
+          "stableKey": "ex_2a826c82",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_644e0f9d",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_a345e30b",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_a44ae2ca",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_a8385c4a",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_a9b52886",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_d5bdffe1",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_f6d43398",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        }
+      ],
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "nonAdditiveExistingSatisfaction": false,
+      "existingAuthorizedPhysicalSetCount": 0,
+      "b6ReasonCodes": [],
+      "authorized": false,
+      "authorizedWeeklyUnits": 0,
+      "materializedWeeklyUnits": 0,
+      "materializedTotalUnits": 0,
+      "materializationReasonCodes": [],
+      "finiteCapacityDisposition": [],
+      "materializationCompatibleUnits": 0,
+      "remainingShortfallPerWeek": 0,
+      "overrunPerWeek": 0,
+      "b7ReasonCodes": [],
+      "b8Scope": "HYPERTROPHY_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "route": "CONTROL",
+      "duplicateCredit": false,
+      "unauthorizedMaterialRows": 0,
+      "coreShapeAuthorityMissing": true,
+      "materializationDisposition": "UNRESOLVED_CORE_PRESCRIPTION_SHAPE_AUTHORITY",
+      "weeks": 2
+    },
+    {
+      "case": "persona4_sparse",
+      "movementCoverage": "HORIZONTAL_PUSH",
+      "isC31BaselineTarget": false,
+      "movementTargetId": "MOVEMENT:HORIZONTAL_PUSH",
+      "b3Disposition": "ADDRESS",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b4TargetAuthority": "DIRECTION_ONLY",
+      "doseAuthorityAvailable": true,
+      "doseKind": "HYPERTROPHY_REGION_EQUIVALENT_SET",
+      "numericAuthority": "USER_APPROVED_PROJECT_POLICY",
+      "weeklyTarget": 8,
+      "existingCompatibleExposure": 0,
+      "residualEquivalentExposure": 8,
+      "authorizedWholeSetUnits": 8,
+      "doseReasons": [
+        "B4_AUTHORIZED_WHOLE_SET_UNITS=8",
+        "B4_REGIONAL_RESIDUAL_AUTHORIZED",
+        "B4_RESIDUAL_EQUIVALENT_UNITS=8.0",
+        "USER_APPROVED_PROJECT_POLICY_HYPERTROPHY_COLD_START_8_EQUIVALENT_SETS_PER_REGION_WEEK"
+      ],
+      "candidatePoolSize": 10,
+      "selectedOwnerCount": 1,
+      "selectedOwners": [
+        {
+          "stableKey": "ex_27b3deb5",
+          "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_HORIZONTAL_PUSH",
+          "primaryTargetId": "MOVEMENT:HORIZONTAL_PUSH",
+          "selectionReasons": [
+            "B4_EXACT_REGIONAL_RESIDUAL=8",
+            "B5_DIRECT_HYPERTROPHY_OWNER_SELECTED"
+          ]
+        }
+      ],
+      "rejectedCandidateCount": 9,
+      "rejectedCandidates": [
+        {
+          "stableKey": "ex_28902b13",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_3a7d3eda",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_6463edad",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_73b0b63f",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_91b749b3",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_a61f1e96",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_a61f307a",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_debf6a8b",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_fb67af37",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        }
+      ],
+      "b6Status": "AUTHORIZED_COLD_START_USER_CALIBRATION",
+      "nonAdditiveExistingSatisfaction": false,
+      "existingAuthorizedPhysicalSetCount": 0,
+      "b6ReasonCodes": [
+        "USER_APPROVED_COLD_START_HYPERTROPHY_8_REPS_WITHIN_8_12_BAND_LOAD_CALIBRATION_REQUIRED"
+      ],
+      "prescriptionSource": "USER_APPROVED_PROJECT_POLICY",
+      "reps": 8,
+      "targetRpeMin": 7,
+      "loadState": "USER_CALIBRATION_REQUIRED",
+      "authorized": true,
+      "authorizedWeeklyUnits": 8,
+      "materializedWeeklyUnits": 8,
+      "materializedTotalUnits": 16,
+      "materializationState": "FULLY_MATERIALIZED",
+      "materializationReasonCodes": [
+        "B5_SELECTION_PROBE_AUTHORIZED"
+      ],
+      "finiteCapacityDisposition": [],
+      "materializationCompatibleUnits": 8,
+      "remainingShortfallPerWeek": 0,
+      "overrunPerWeek": 0,
+      "b7Status": "IMPROVED",
+      "b7ReasonCodes": [
+        "B4_RESIDUAL_FULLY_MATERIALIZED"
+      ],
+      "b8Scope": "HYPERTROPHY_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "route": "CONTROL",
+      "duplicateCredit": false,
+      "unauthorizedMaterialRows": 0,
+      "coreShapeAuthorityMissing": false,
+      "materializationDisposition": "MATERIALIZED_EXACT_B4_RESIDUAL",
+      "weeks": 2
+    },
+    {
+      "case": "persona4_sparse",
+      "movementCoverage": "POSTERIOR_CHAIN",
+      "isC31BaselineTarget": true,
+      "movementTargetId": "MOVEMENT:POSTERIOR_CHAIN",
+      "b3Disposition": "ADDRESS",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b4TargetAuthority": "DIRECTION_ONLY",
+      "doseAuthorityAvailable": true,
+      "doseKind": "HYPERTROPHY_REGION_EQUIVALENT_SET",
+      "numericAuthority": "USER_APPROVED_PROJECT_POLICY",
+      "weeklyTarget": 8,
+      "existingCompatibleExposure": 0,
+      "residualEquivalentExposure": 8,
+      "authorizedWholeSetUnits": 8,
+      "doseReasons": [
+        "B4_AUTHORIZED_WHOLE_SET_UNITS=8",
+        "B4_REGIONAL_RESIDUAL_AUTHORIZED",
+        "B4_RESIDUAL_EQUIVALENT_UNITS=8.0",
+        "USER_APPROVED_PROJECT_POLICY_HYPERTROPHY_COLD_START_8_EQUIVALENT_SETS_PER_REGION_WEEK"
+      ],
+      "candidatePoolSize": 4,
+      "selectedOwnerCount": 1,
+      "selectedOwners": [
+        {
+          "stableKey": "barbell_romanian_deadlift",
+          "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_POSTERIOR_CHAIN",
+          "primaryTargetId": "MOVEMENT:POSTERIOR_CHAIN",
+          "selectionReasons": [
+            "B4_EXACT_REGIONAL_RESIDUAL=8",
+            "B5_DIRECT_HYPERTROPHY_OWNER_SELECTED"
+          ]
+        }
+      ],
+      "rejectedCandidateCount": 3,
+      "rejectedCandidates": [
+        {
+          "stableKey": "dumbbell_romanian_deadlift",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "dumbbell_single_leg_rdl",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "single_leg_hip_bridge",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        }
+      ],
+      "b6Status": "AUTHORIZED_COLD_START_USER_CALIBRATION",
+      "nonAdditiveExistingSatisfaction": false,
+      "existingAuthorizedPhysicalSetCount": 0,
+      "b6ReasonCodes": [
+        "USER_APPROVED_COLD_START_HYPERTROPHY_8_REPS_WITHIN_8_12_BAND_LOAD_CALIBRATION_REQUIRED"
+      ],
+      "prescriptionSource": "USER_APPROVED_PROJECT_POLICY",
+      "reps": 8,
+      "targetRpeMin": 7,
+      "loadState": "USER_CALIBRATION_REQUIRED",
+      "authorized": true,
+      "authorizedWeeklyUnits": 8,
+      "materializedWeeklyUnits": 8,
+      "materializedTotalUnits": 16,
+      "materializationState": "FULLY_MATERIALIZED",
+      "materializationReasonCodes": [
+        "B5_SELECTION_PROBE_AUTHORIZED"
+      ],
+      "finiteCapacityDisposition": [],
+      "materializationCompatibleUnits": 8,
+      "remainingShortfallPerWeek": 0,
+      "overrunPerWeek": 0,
+      "b7Status": "IMPROVED",
+      "b7ReasonCodes": [
+        "B4_RESIDUAL_FULLY_MATERIALIZED"
+      ],
+      "b8Scope": "HYPERTROPHY_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "route": "CONTROL",
+      "duplicateCredit": false,
+      "unauthorizedMaterialRows": 0,
+      "coreShapeAuthorityMissing": false,
+      "materializationDisposition": "MATERIALIZED_EXACT_B4_RESIDUAL",
+      "weeks": 2
+    },
+    {
+      "case": "persona4_sparse",
+      "movementCoverage": "UPPER_PULL",
+      "isC31BaselineTarget": true,
+      "movementTargetId": "MOVEMENT:UPPER_PULL",
+      "b3Disposition": "ADDRESS",
+      "b3ReasonCodes": [
+        "ACTIONABLE_REPRESENTATION_GAP",
+        "CURRENT_EXPOSURE_ABSENT",
+        "MOVEMENT_DISPOSITION_ADDRESS",
+        "SPARSE_CURRENT_WINDOW"
+      ],
+      "b4TargetAuthority": "DIRECTION_ONLY",
+      "doseAuthorityAvailable": false,
+      "doseKind": "NO_REGIONAL_NUMERIC_DOSE_AUTHORITY",
+      "numericAuthority": "DIRECTION_ONLY",
+      "authorizedWholeSetUnits": 0,
+      "doseReasons": [],
+      "candidatePoolSize": 13,
+      "selectedOwnerCount": 1,
+      "selectedOwners": [
+        {
+          "stableKey": "dumbbell_chest_supported_row",
+          "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_UPPER_PULL",
+          "primaryTargetId": "MOVEMENT:UPPER_PULL",
+          "selectionReasons": [
+            "B4_MOVEMENT_TARGET_REQUESTED_IDENTITY",
+            "B5_DOES_NOT_GRANT_DOSE_AUTHORITY"
+          ]
+        }
+      ],
+      "rejectedCandidateCount": 12,
+      "rejectedCandidates": [
+        {
+          "stableKey": "dumbbell_rear_delt_fly",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_30a0e9aa",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_6466fe77",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_6a966452",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_708e64ce",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_8e4bf08e",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_de46b7f6",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_e159d15a",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_e1894690",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_e41e8dcf",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_e41f4c2b",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        },
+        {
+          "stableKey": "ex_e4f911bb",
+          "reasonCodes": [
+            "DETERMINISTIC_STABLE_KEY_TIE_BREAK"
+          ]
+        }
+      ],
+      "b6Status": "NO_EXECUTABLE_MOVEMENT_AUTHORITY",
+      "nonAdditiveExistingSatisfaction": false,
+      "existingAuthorizedPhysicalSetCount": 0,
+      "b6ReasonCodes": [],
+      "authorized": false,
+      "authorizedWeeklyUnits": 0,
+      "materializedWeeklyUnits": 0,
+      "materializedTotalUnits": 0,
+      "materializationReasonCodes": [],
+      "finiteCapacityDisposition": [],
+      "materializationCompatibleUnits": 0,
+      "remainingShortfallPerWeek": 0,
+      "overrunPerWeek": 0,
+      "b7ReasonCodes": [],
+      "b8Scope": "HYPERTROPHY_V1",
+      "b8Status": "CONTROL_REQUIRED",
+      "route": "CONTROL",
+      "duplicateCredit": false,
+      "unauthorizedMaterialRows": 0,
+      "coreShapeAuthorityMissing": false,
+      "materializationDisposition": "NO_REGIONAL_NUMERIC_DOSE_AUTHORITY",
+      "weeks": 2
+    }
+  ],
+  "ownerWeeks": [
+    {
+      "case": "persona0_sparse",
+      "week": 1,
+      "movementTargetId": "MOVEMENT:CORE_DIRECT",
+      "isC31BaselineTarget": true,
+      "stableKey": "ex_28347c1f",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 0,
+      "authorized": false,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 0,
+      "targetCompatibleUnits": 0,
+      "shortfall": 0,
+      "overrun": 0
+    },
+    {
+      "case": "persona0_sparse",
+      "week": 2,
+      "movementTargetId": "MOVEMENT:CORE_DIRECT",
+      "isC31BaselineTarget": true,
+      "stableKey": "ex_28347c1f",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 0,
+      "authorized": false,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 0,
+      "targetCompatibleUnits": 0,
+      "shortfall": 0,
+      "overrun": 0
+    },
+    {
+      "case": "persona0_sparse",
+      "week": 1,
+      "movementTargetId": "MOVEMENT:HORIZONTAL_PUSH",
+      "isC31BaselineTarget": true,
+      "stableKey": "ex_1dbee10e",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_HORIZONTAL_PUSH",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 8,
+      "targetCompatibleUnits": 8,
+      "shortfall": 0,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona0_sparse",
+      "week": 2,
+      "movementTargetId": "MOVEMENT:HORIZONTAL_PUSH",
+      "isC31BaselineTarget": true,
+      "stableKey": "ex_1dbee10e",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_HORIZONTAL_PUSH",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 8,
+      "targetCompatibleUnits": 8,
+      "shortfall": 0,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona0_sparse",
+      "week": 1,
+      "movementTargetId": "MOVEMENT:POSTERIOR_CHAIN",
+      "isC31BaselineTarget": false,
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": false,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 0,
+      "targetCompatibleUnits": 0,
+      "shortfall": 8,
+      "overrun": 0
+    },
+    {
+      "case": "persona0_sparse",
+      "week": 2,
+      "movementTargetId": "MOVEMENT:POSTERIOR_CHAIN",
+      "isC31BaselineTarget": false,
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": false,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 0,
+      "targetCompatibleUnits": 0,
+      "shortfall": 8,
+      "overrun": 0
+    },
+    {
+      "case": "persona0_sparse",
+      "week": 1,
+      "movementTargetId": "MOVEMENT:UPPER_PULL",
+      "isC31BaselineTarget": false,
+      "stableKey": "cable_rear_delt_fly",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_UPPER_PULL",
+      "doseAuthorityAvailable": false,
+      "b4ResidualUnits": 0,
+      "authorized": false,
+      "disposition": "NO_REGIONAL_NUMERIC_DOSE_AUTHORITY",
+      "materializedUnits": 0,
+      "targetCompatibleUnits": 0,
+      "shortfall": 0,
+      "overrun": 0
+    },
+    {
+      "case": "persona0_sparse",
+      "week": 2,
+      "movementTargetId": "MOVEMENT:UPPER_PULL",
+      "isC31BaselineTarget": false,
+      "stableKey": "cable_rear_delt_fly",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_UPPER_PULL",
+      "doseAuthorityAvailable": false,
+      "b4ResidualUnits": 0,
+      "authorized": false,
+      "disposition": "NO_REGIONAL_NUMERIC_DOSE_AUTHORITY",
+      "materializedUnits": 0,
+      "targetCompatibleUnits": 0,
+      "shortfall": 0,
+      "overrun": 0
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 1,
+      "movementTargetId": "MOVEMENT:ARMS_BICEPS",
+      "isC31BaselineTarget": true,
+      "stableKey": "barbell_reverse_curl",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_BICEPS",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 8,
+      "targetCompatibleUnits": 8,
+      "shortfall": 0,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 2,
+      "movementTargetId": "MOVEMENT:ARMS_BICEPS",
+      "isC31BaselineTarget": true,
+      "stableKey": "barbell_reverse_curl",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_BICEPS",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 8,
+      "targetCompatibleUnits": 8,
+      "shortfall": 0,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 1,
+      "movementTargetId": "MOVEMENT:ARMS_TRICEPS",
+      "isC31BaselineTarget": true,
+      "stableKey": "dumbbell_lying_triceps_extension",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_TRICEPS",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 8,
+      "targetCompatibleUnits": 8,
+      "shortfall": 0,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 2,
+      "movementTargetId": "MOVEMENT:ARMS_TRICEPS",
+      "isC31BaselineTarget": true,
+      "stableKey": "dumbbell_lying_triceps_extension",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_TRICEPS",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 8,
+      "targetCompatibleUnits": 8,
+      "shortfall": 0,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 1,
+      "movementTargetId": "MOVEMENT:CALVES",
+      "isC31BaselineTarget": true,
+      "stableKey": "ex_5ca7133f",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CALVES",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 8,
+      "targetCompatibleUnits": 8,
+      "shortfall": 0,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 2,
+      "movementTargetId": "MOVEMENT:CALVES",
+      "isC31BaselineTarget": true,
+      "stableKey": "ex_5ca7133f",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CALVES",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 8,
+      "targetCompatibleUnits": 8,
+      "shortfall": 0,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 1,
+      "movementTargetId": "MOVEMENT:CORE_DIRECT",
+      "isC31BaselineTarget": true,
+      "stableKey": "ex_28347c1f",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 0,
+      "authorized": false,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 0,
+      "targetCompatibleUnits": 0,
+      "shortfall": 0,
+      "overrun": 0
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 2,
+      "movementTargetId": "MOVEMENT:CORE_DIRECT",
+      "isC31BaselineTarget": true,
+      "stableKey": "ex_28347c1f",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 0,
+      "authorized": false,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 0,
+      "targetCompatibleUnits": 0,
+      "shortfall": 0,
+      "overrun": 0
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 1,
+      "movementTargetId": "MOVEMENT:HORIZONTAL_PUSH",
+      "isC31BaselineTarget": false,
+      "stableKey": "ex_27b3deb5",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_HORIZONTAL_PUSH",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 8,
+      "targetCompatibleUnits": 8,
+      "shortfall": 0,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 2,
+      "movementTargetId": "MOVEMENT:HORIZONTAL_PUSH",
+      "isC31BaselineTarget": false,
+      "stableKey": "ex_27b3deb5",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_HORIZONTAL_PUSH",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 8,
+      "targetCompatibleUnits": 8,
+      "shortfall": 0,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 1,
+      "movementTargetId": "MOVEMENT:LOWER_KNEE",
+      "isC31BaselineTarget": true,
+      "stableKey": "dumbbell_goblet_squat",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_LOWER_KNEE",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 8,
+      "targetCompatibleUnits": 8,
+      "shortfall": 0,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 2,
+      "movementTargetId": "MOVEMENT:LOWER_KNEE",
+      "isC31BaselineTarget": true,
+      "stableKey": "dumbbell_goblet_squat",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_LOWER_KNEE",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 8,
+      "targetCompatibleUnits": 8,
+      "shortfall": 0,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 1,
+      "movementTargetId": "MOVEMENT:POSTERIOR_CHAIN",
+      "isC31BaselineTarget": true,
+      "stableKey": "barbell_romanian_deadlift",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_POSTERIOR_CHAIN",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 8,
+      "targetCompatibleUnits": 8,
+      "shortfall": 0,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona1_sparse",
+      "week": 2,
+      "movementTargetId": "MOVEMENT:POSTERIOR_CHAIN",
+      "isC31BaselineTarget": true,
+      "stableKey": "barbell_romanian_deadlift",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_POSTERIOR_CHAIN",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 8,
+      "targetCompatibleUnits": 8,
+      "shortfall": 0,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 1,
+      "movementTargetId": "MOVEMENT:ARMS_BICEPS",
+      "isC31BaselineTarget": true,
+      "stableKey": "barbell_reverse_curl",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_BICEPS",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 8,
+      "targetCompatibleUnits": 8,
+      "shortfall": 0,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 2,
+      "movementTargetId": "MOVEMENT:ARMS_BICEPS",
+      "isC31BaselineTarget": true,
+      "stableKey": "barbell_reverse_curl",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_BICEPS",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 8,
+      "targetCompatibleUnits": 8,
+      "shortfall": 0,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 1,
+      "movementTargetId": "MOVEMENT:ARMS_TRICEPS",
+      "isC31BaselineTarget": true,
+      "stableKey": "dumbbell_lying_triceps_extension",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_TRICEPS",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 0,
+      "targetCompatibleUnits": 0,
+      "shortfall": 8,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 2,
+      "movementTargetId": "MOVEMENT:ARMS_TRICEPS",
+      "isC31BaselineTarget": true,
+      "stableKey": "dumbbell_lying_triceps_extension",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_TRICEPS",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 0,
+      "targetCompatibleUnits": 0,
+      "shortfall": 8,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 1,
+      "movementTargetId": "MOVEMENT:CALVES",
+      "isC31BaselineTarget": true,
+      "stableKey": "ex_5c8751d2",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CALVES",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 0,
+      "targetCompatibleUnits": 0,
+      "shortfall": 8,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 2,
+      "movementTargetId": "MOVEMENT:CALVES",
+      "isC31BaselineTarget": true,
+      "stableKey": "ex_5c8751d2",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CALVES",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 0,
+      "targetCompatibleUnits": 0,
+      "shortfall": 8,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 1,
+      "movementTargetId": "MOVEMENT:CORE_DIRECT",
+      "isC31BaselineTarget": true,
+      "stableKey": "ex_28347c1f",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 0,
+      "authorized": false,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 0,
+      "targetCompatibleUnits": 0,
+      "shortfall": 0,
+      "overrun": 0
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 2,
+      "movementTargetId": "MOVEMENT:CORE_DIRECT",
+      "isC31BaselineTarget": true,
+      "stableKey": "ex_28347c1f",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 0,
+      "authorized": false,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 0,
+      "targetCompatibleUnits": 0,
+      "shortfall": 0,
+      "overrun": 0
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 1,
+      "movementTargetId": "MOVEMENT:HORIZONTAL_PUSH",
+      "isC31BaselineTarget": false,
+      "stableKey": "barbell_bench_press",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_HORIZONTAL_PUSH",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 8,
+      "targetCompatibleUnits": 8,
+      "shortfall": 0,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 2,
+      "movementTargetId": "MOVEMENT:HORIZONTAL_PUSH",
+      "isC31BaselineTarget": false,
+      "stableKey": "barbell_bench_press",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_HORIZONTAL_PUSH",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 8,
+      "targetCompatibleUnits": 8,
+      "shortfall": 0,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 1,
+      "movementTargetId": "MOVEMENT:POSTERIOR_CHAIN",
+      "isC31BaselineTarget": true,
+      "stableKey": "barbell_deadlift",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_POSTERIOR_CHAIN",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 8,
+      "targetCompatibleUnits": 8,
+      "shortfall": 0,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 2,
+      "movementTargetId": "MOVEMENT:POSTERIOR_CHAIN",
+      "isC31BaselineTarget": true,
+      "stableKey": "barbell_deadlift",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_POSTERIOR_CHAIN",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 8,
+      "targetCompatibleUnits": 8,
+      "shortfall": 0,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 1,
+      "movementTargetId": "MOVEMENT:UPPER_PULL",
+      "isC31BaselineTarget": true,
+      "stableKey": "cable_rear_delt_fly",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_UPPER_PULL",
+      "doseAuthorityAvailable": false,
+      "b4ResidualUnits": 0,
+      "authorized": false,
+      "disposition": "NO_REGIONAL_NUMERIC_DOSE_AUTHORITY",
+      "materializedUnits": 0,
+      "targetCompatibleUnits": 0,
+      "shortfall": 0,
+      "overrun": 0
+    },
+    {
+      "case": "persona2_sparse",
+      "week": 2,
+      "movementTargetId": "MOVEMENT:UPPER_PULL",
+      "isC31BaselineTarget": true,
+      "stableKey": "cable_rear_delt_fly",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_UPPER_PULL",
+      "doseAuthorityAvailable": false,
+      "b4ResidualUnits": 0,
+      "authorized": false,
+      "disposition": "NO_REGIONAL_NUMERIC_DOSE_AUTHORITY",
+      "materializedUnits": 0,
+      "targetCompatibleUnits": 0,
+      "shortfall": 0,
+      "overrun": 0
+    },
+    {
+      "case": "persona3_sparse",
+      "week": 1,
+      "movementTargetId": "MOVEMENT:CORE_DIRECT",
+      "isC31BaselineTarget": true,
+      "stableKey": "ex_28347c1f",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 0,
+      "authorized": false,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 0,
+      "targetCompatibleUnits": 0,
+      "shortfall": 0,
+      "overrun": 0
+    },
+    {
+      "case": "persona3_sparse",
+      "week": 2,
+      "movementTargetId": "MOVEMENT:CORE_DIRECT",
+      "isC31BaselineTarget": true,
+      "stableKey": "ex_28347c1f",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 0,
+      "authorized": false,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 0,
+      "targetCompatibleUnits": 0,
+      "shortfall": 0,
+      "overrun": 0
+    },
+    {
+      "case": "persona3_sparse",
+      "week": 1,
+      "movementTargetId": "MOVEMENT:HORIZONTAL_PUSH",
+      "isC31BaselineTarget": true,
+      "stableKey": "ex_1dbee10e",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_HORIZONTAL_PUSH",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 8,
+      "targetCompatibleUnits": 8,
+      "shortfall": 0,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona3_sparse",
+      "week": 2,
+      "movementTargetId": "MOVEMENT:HORIZONTAL_PUSH",
+      "isC31BaselineTarget": true,
+      "stableKey": "ex_1dbee10e",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_HORIZONTAL_PUSH",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 8,
+      "targetCompatibleUnits": 8,
+      "shortfall": 0,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona3_sparse",
+      "week": 1,
+      "movementTargetId": "MOVEMENT:POSTERIOR_CHAIN",
+      "isC31BaselineTarget": false,
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": false,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 0,
+      "targetCompatibleUnits": 0,
+      "shortfall": 8,
+      "overrun": 0
+    },
+    {
+      "case": "persona3_sparse",
+      "week": 2,
+      "movementTargetId": "MOVEMENT:POSTERIOR_CHAIN",
+      "isC31BaselineTarget": false,
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": false,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 0,
+      "targetCompatibleUnits": 0,
+      "shortfall": 8,
+      "overrun": 0
+    },
+    {
+      "case": "persona3_sparse",
+      "week": 1,
+      "movementTargetId": "MOVEMENT:UPPER_PULL",
+      "isC31BaselineTarget": false,
+      "stableKey": "cable_rear_delt_fly",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_UPPER_PULL",
+      "doseAuthorityAvailable": false,
+      "b4ResidualUnits": 0,
+      "authorized": false,
+      "disposition": "NO_REGIONAL_NUMERIC_DOSE_AUTHORITY",
+      "materializedUnits": 0,
+      "targetCompatibleUnits": 0,
+      "shortfall": 0,
+      "overrun": 0
+    },
+    {
+      "case": "persona3_sparse",
+      "week": 2,
+      "movementTargetId": "MOVEMENT:UPPER_PULL",
+      "isC31BaselineTarget": false,
+      "stableKey": "cable_rear_delt_fly",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_UPPER_PULL",
+      "doseAuthorityAvailable": false,
+      "b4ResidualUnits": 0,
+      "authorized": false,
+      "disposition": "NO_REGIONAL_NUMERIC_DOSE_AUTHORITY",
+      "materializedUnits": 0,
+      "targetCompatibleUnits": 0,
+      "shortfall": 0,
+      "overrun": 0
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 1,
+      "movementTargetId": "MOVEMENT:ARMS_BICEPS",
+      "isC31BaselineTarget": true,
+      "stableKey": "barbell_reverse_curl",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_BICEPS",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 8,
+      "targetCompatibleUnits": 8,
+      "shortfall": 0,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 2,
+      "movementTargetId": "MOVEMENT:ARMS_BICEPS",
+      "isC31BaselineTarget": true,
+      "stableKey": "barbell_reverse_curl",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_BICEPS",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 8,
+      "targetCompatibleUnits": 8,
+      "shortfall": 0,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 1,
+      "movementTargetId": "MOVEMENT:ARMS_TRICEPS",
+      "isC31BaselineTarget": true,
+      "stableKey": "dumbbell_lying_triceps_extension",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_TRICEPS",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 8,
+      "targetCompatibleUnits": 8,
+      "shortfall": 0,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 2,
+      "movementTargetId": "MOVEMENT:ARMS_TRICEPS",
+      "isC31BaselineTarget": true,
+      "stableKey": "dumbbell_lying_triceps_extension",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_TRICEPS",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 8,
+      "targetCompatibleUnits": 8,
+      "shortfall": 0,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 1,
+      "movementTargetId": "MOVEMENT:CALVES",
+      "isC31BaselineTarget": true,
+      "stableKey": "ex_5ca7133f",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CALVES",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 8,
+      "targetCompatibleUnits": 8,
+      "shortfall": 0,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 2,
+      "movementTargetId": "MOVEMENT:CALVES",
+      "isC31BaselineTarget": true,
+      "stableKey": "ex_5ca7133f",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CALVES",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 8,
+      "targetCompatibleUnits": 8,
+      "shortfall": 0,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 1,
+      "movementTargetId": "MOVEMENT:CORE_DIRECT",
+      "isC31BaselineTarget": true,
+      "stableKey": "ex_28347c1f",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 0,
+      "authorized": false,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 0,
+      "targetCompatibleUnits": 0,
+      "shortfall": 0,
+      "overrun": 0
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 2,
+      "movementTargetId": "MOVEMENT:CORE_DIRECT",
+      "isC31BaselineTarget": true,
+      "stableKey": "ex_28347c1f",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 0,
+      "authorized": false,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 0,
+      "targetCompatibleUnits": 0,
+      "shortfall": 0,
+      "overrun": 0
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 1,
+      "movementTargetId": "MOVEMENT:HORIZONTAL_PUSH",
+      "isC31BaselineTarget": false,
+      "stableKey": "ex_27b3deb5",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_HORIZONTAL_PUSH",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 8,
+      "targetCompatibleUnits": 8,
+      "shortfall": 0,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 2,
+      "movementTargetId": "MOVEMENT:HORIZONTAL_PUSH",
+      "isC31BaselineTarget": false,
+      "stableKey": "ex_27b3deb5",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_HORIZONTAL_PUSH",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 8,
+      "targetCompatibleUnits": 8,
+      "shortfall": 0,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 1,
+      "movementTargetId": "MOVEMENT:POSTERIOR_CHAIN",
+      "isC31BaselineTarget": true,
+      "stableKey": "barbell_romanian_deadlift",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_POSTERIOR_CHAIN",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 8,
+      "targetCompatibleUnits": 8,
+      "shortfall": 0,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 2,
+      "movementTargetId": "MOVEMENT:POSTERIOR_CHAIN",
+      "isC31BaselineTarget": true,
+      "stableKey": "barbell_romanian_deadlift",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_POSTERIOR_CHAIN",
+      "doseAuthorityAvailable": true,
+      "b4ResidualUnits": 8,
+      "authorized": true,
+      "disposition": "REGIONAL_DOSE_AUTHORITY_PRESENT",
+      "materializedUnits": 8,
+      "targetCompatibleUnits": 8,
+      "shortfall": 0,
+      "overrun": 0,
+      "loadState": "USER_CALIBRATION_REQUIRED"
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 1,
+      "movementTargetId": "MOVEMENT:UPPER_PULL",
+      "isC31BaselineTarget": true,
+      "stableKey": "dumbbell_chest_supported_row",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_UPPER_PULL",
+      "doseAuthorityAvailable": false,
+      "b4ResidualUnits": 0,
+      "authorized": false,
+      "disposition": "NO_REGIONAL_NUMERIC_DOSE_AUTHORITY",
+      "materializedUnits": 0,
+      "targetCompatibleUnits": 0,
+      "shortfall": 0,
+      "overrun": 0
+    },
+    {
+      "case": "persona4_sparse",
+      "week": 2,
+      "movementTargetId": "MOVEMENT:UPPER_PULL",
+      "isC31BaselineTarget": true,
+      "stableKey": "dumbbell_chest_supported_row",
+      "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_UPPER_PULL",
+      "doseAuthorityAvailable": false,
+      "b4ResidualUnits": 0,
+      "authorized": false,
+      "disposition": "NO_REGIONAL_NUMERIC_DOSE_AUTHORITY",
+      "materializedUnits": 0,
+      "targetCompatibleUnits": 0,
+      "shortfall": 0,
+      "overrun": 0
+    }
+  ],
+  "summary": {
+    "movementTargets": 29,
+    "ownerWeekRows": 58,
+    "c31BaselineMovementTargets": 22,
+    "c31BaselineOwnerWeekRows": 44,
+    "c31BaselineContextsAbsentNow": [],
+    "additionalCurrentTargetContexts": [
+      "persona0_sparse|POSTERIOR_CHAIN",
+      "persona0_sparse|UPPER_PULL",
+      "persona1_sparse|HORIZONTAL_PUSH",
+      "persona2_sparse|HORIZONTAL_PUSH",
+      "persona3_sparse|POSTERIOR_CHAIN",
+      "persona3_sparse|UPPER_PULL",
+      "persona4_sparse|HORIZONTAL_PUSH"
+    ],
+    "positiveResidualTargets": 20,
+    "fullySatisfiedTargets": 16,
+    "partiallySatisfiedTargets": 0,
+    "legitimatelyUnsatisfiedTargets": 13,
+    "userCalibrationRequiredTargets": 18,
+    "hypertrophyResidualTargets": 20,
+    "coreDirectTargets": 5,
+    "targetsWithoutRegionalDoseAuthority": 4,
+    "nonAdditivelySatisfiedTargets": 0,
+    "coreMaterializedSetRows": 0,
+    "candidateRows": 268,
+    "selectedCandidates": 27,
+    "legitimatelyRejectedCandidates": 241,
+    "authorizedMaterialUnits": 288,
+    "actualMaterialUnits": 256,
+    "overfilledTargets": 0,
+    "duplicateCreditTargets": 0,
+    "unauthorizedMaterialRows": 0,
+    "capacityLimitedTargets": 2,
+    "routes": {
+      "CONTROL": 5
+    },
+    "buildAccounting": {
+      "control": 22,
+      "experimental": 22,
+      "total": 44,
+      "third": 0
+    }
+  },
+  "performance": {
+    "caseCount": 5,
+    "totalMs": 670,
+    "meanMs": 134,
+    "medianMs": 113,
+    "maxMs": 245
+  },
+  "invariants": {
+    "noThirdBuild": true,
+    "noUnauthorizedRows": true,
+    "noOverfilledTarget": true,
+    "coreNotRoutedThroughHypertrophy": true,
+    "powerMaterialRows": 0,
+    "jumpLandingMaterialRows": 0
+  }
+}
