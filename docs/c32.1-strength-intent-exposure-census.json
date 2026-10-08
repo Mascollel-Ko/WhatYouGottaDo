@@ -1,0 +1,3138 @@
+{
+  "phase": "C32.1",
+  "title": "Strength set intent, evidence classification, and C31 corpus re-evaluation",
+  "startSha": "67eb6a609df8751424298a4b05d33a7353c7b1f4",
+  "strengthExposurePolicy": {
+    "provenance": "USER_APPROVED_PROJECT_POLICY",
+    "version": "C32_STRENGTH_EXPOSURE_V1",
+    "approvedStableKeys": [
+      "barbell_back_squat",
+      "barbell_bench_press",
+      "barbell_deadlift",
+      "ex_32219f7a",
+      "ex_3a7d3eda",
+      "ex_79f3bdbe",
+      "ex_bb4b4276",
+      "ex_c5043892",
+      "ex_e41e8dcf",
+      "ex_e41f4c2b"
+    ],
+    "eligibility": "strengthPossible(stableKey) && reps in 1..6"
+  },
+  "before": {
+    "movementB3Address": 22,
+    "movementB4Targets": 22,
+    "movementB5Owners": 22,
+    "movementB6PolicyUnsupported": 22,
+    "movementUnauthorizedRows": 0
+  },
+  "summary": {
+    "movementIdentities": 22,
+    "uniqueSparseGenerationCases": 5,
+    "movementB3Dispositions": {
+      "ADDRESS": 22
+    },
+    "movementB4Targets": 22,
+    "strengthB4TargetContexts": 22,
+    "strengthB4TargetCases": 5,
+    "strengthB4StrategiesByCase": {
+      "INTRODUCE_DIRECT_STIMULUS": 4,
+      "NO_MINIMUM_TARGET": 1
+    },
+    "strengthB5SelectedOwnerContexts": 12,
+    "strengthB5SelectedOwnerCases": 2,
+    "strengthB6AuthorizedTargets": 0,
+    "strengthShortfallTargetCount": 4,
+    "strengthShortfallCases": 4,
+    "strengthShortfallNotices": 4,
+    "historyStrengthExposureAssessments": {
+      "REALIZED": 108,
+      "OVERPERFORMED": 0,
+      "UNCERTAIN": 0,
+      "NOT_STRENGTH": 573
+    },
+    "b1StrengthCurrent28dDirectUnits": 0,
+    "b1StrengthPrior28dDirectUnits": 108,
+    "b2StrengthDoseHistory": {
+      "directUnits": 108,
+      "unclassifiedUnits": 0,
+      "classificationIncompleteWeeks": 0,
+      "numericBaselineEligibleWeeks": 79
+    },
+    "noMinimumStrengthCasesWithFalseShortfallNotice": 0,
+    "experimentalStrengthEligibleSetRows": 0,
+    "movementExecutableOwnerWeeks": 0,
+    "movementUnauthorizedExecutableRows": 0,
+    "routes": {
+      "CONTROL": 5
+    },
+    "builds": {
+      "control": 5,
+      "experimental": 5,
+      "total": 10,
+      "third": 0
+    },
+    "generationTimeMs": {
+      "total": 455,
+      "median": 85,
+      "max": 119
+    },
+    "allGeneratedCorpusGenerationTimeMs": {
+      "generatedCases": 22,
+      "total": 3562,
+      "meanPerCase": 161.9090909090909,
+      "medianPerCase": 133.5,
+      "minPerCase": 73,
+      "maxPerCase": 376,
+      "rangePerCase": 303
+    }
+  },
+  "fullGeneratedCorpus": {
+    "generatedCases": 22,
+    "routes": {
+      "CONTROL": 22
+    },
+    "builds": {
+      "control": 22,
+      "experimental": 22,
+      "total": 44,
+      "third": 0
+    },
+    "strengthShortfallNotices": 11,
+    "b7EvaluatedCases": 15,
+    "b8EvaluatedCases": 15,
+    "experimentalStrengthEligibleSetRows": 30
+  },
+  "cases": [
+    {
+      "case": "persona0_sparse",
+      "movementCoverage": "HORIZONTAL_PUSH",
+      "priorC31": {
+        "movementB3": "ADDRESS",
+        "movementB4Target": true,
+        "movementB5SelectedOwner": "ex_1dbee10e",
+        "movementExecution": "GENUINE_NO_B6_POLICY"
+      },
+      "b1Strength": {
+        "current28dDirectUnits": 0,
+        "prior28dDirectUnits": 0,
+        "needDecision": "DEVELOP",
+        "relevance": "HIGH",
+        "evidenceBasis": "REALIZED_PRESCRIPTION_CLASSIFIED",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_HIGH",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE"
+        ]
+      },
+      "b2StrengthDoseHistory": {
+        "available": true,
+        "directUnits": 0,
+        "unclassifiedUnits": 0,
+        "classificationIncompleteWeeks": 0,
+        "numericBaselineEligibleWeeks": 1
+      },
+      "historyStrengthExposureAssessments": {
+        "REALIZED": 0,
+        "OVERPERFORMED": 0,
+        "UNCERTAIN": 0,
+        "NOT_STRENGTH": 3
+      },
+      "b3Strength": {
+        "decision": "DEVELOP",
+        "strategy": "INTRODUCE_DIRECT_STIMULUS",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_HIGH",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE",
+          "NEED_DEVELOP",
+          "NEED_DECISION_DEVELOP",
+          "BASELINE_STATE_NO_PERSONAL_DIRECT_OBSERVED",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_COMPLETE",
+          "VALID_REVIEWED_ZERO_BASELINE_HISTORY",
+          "NO_PERSONAL_DIRECT_BASELINE",
+          "CANONICAL_PERSONAL_DIRECT_BASELINE_ABSENT",
+          "INTRODUCE_DIRECT_STIMULUS_WITHOUT_NUMERIC_DOSE_AUTHORITY",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LOW_BASELINE_CONFIDENCE"
+        ]
+      },
+      "b4Strength": {
+        "present": true,
+        "strategy": "INTRODUCE_DIRECT_STIMULUS",
+        "numericAuthority": "DIRECTION_ONLY",
+        "priority": "PRIMARY",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_HIGH",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE",
+          "NEED_DEVELOP",
+          "NEED_DECISION_DEVELOP",
+          "BASELINE_STATE_NO_PERSONAL_DIRECT_OBSERVED",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_COMPLETE",
+          "VALID_REVIEWED_ZERO_BASELINE_HISTORY",
+          "NO_PERSONAL_DIRECT_BASELINE",
+          "CANONICAL_PERSONAL_DIRECT_BASELINE_ABSENT",
+          "INTRODUCE_DIRECT_STIMULUS_WITHOUT_NUMERIC_DOSE_AUTHORITY",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LOW_BASELINE_CONFIDENCE",
+          "LEDGER_AND_LEGACY_BASELINE_VALUES_MATCH",
+          "ZERO_OR_UNAVAILABLE_BASELINE_RETAINED",
+          "B4_TARGET_IS_OBSERVED_PERSONAL_EXPOSURE_NOT_OPTIMALITY",
+          "QUALITY_TARGET_ENVELOPES_ARE_NON_ADDITIVE",
+          "NOVEL_DIRECT_STIMULUS_NUMERIC_DOSE_NOT_AUTHORIZED"
+        ]
+      },
+      "movementDisposition": "ADDRESS",
+      "movementB4TargetPresent": true,
+      "movementB4NumericAuthority": "DIRECTION_ONLY",
+      "b5StrengthSelectedOwner": null,
+      "b5StrengthSelectionRole": null,
+      "b5MovementSelectedOwner": "ex_1dbee10e",
+      "b5MovementSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_HORIZONTAL_PUSH",
+      "movementMaterialization": {
+        "materializedOwnerWeeks": [],
+        "exactOwnerHasAuthorizedB6": false,
+        "unauthorizedExecutableOwnerWeeks": 0
+      },
+      "b6StrengthAuthorizations": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "stableKey": null,
+          "selectionRole": null,
+          "status": "NO_EXECUTABLE_AUTHORIZATION",
+          "reasonCodes": [
+            "B5_OWNER_NOT_SELECTED"
+          ]
+        }
+      ],
+      "strengthShortfalls": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "reason": "NO_ELIGIBLE_STRENGTH_EXERCISE"
+        }
+      ],
+      "finalStrengthShortfalls": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "reason": "NO_ELIGIBLE_STRENGTH_EXERCISE"
+        }
+      ],
+      "programNoticeCodes": [
+        "STRENGTH_EXPOSURE_SHORTFALL"
+      ],
+      "experimentalStrengthEligibleSetRows": [],
+      "strengthShortfallNotice": true,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b7": null,
+      "b8": null,
+      "route": "CONTROL",
+      "buildCounts": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona0_sparse",
+      "movementCoverage": "CORE_DIRECT",
+      "priorC31": {
+        "movementB3": "ADDRESS",
+        "movementB4Target": true,
+        "movementB5SelectedOwner": "ex_28347c1f",
+        "movementExecution": "GENUINE_NO_B6_POLICY"
+      },
+      "b1Strength": {
+        "current28dDirectUnits": 0,
+        "prior28dDirectUnits": 0,
+        "needDecision": "DEVELOP",
+        "relevance": "HIGH",
+        "evidenceBasis": "REALIZED_PRESCRIPTION_CLASSIFIED",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_HIGH",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE"
+        ]
+      },
+      "b2StrengthDoseHistory": {
+        "available": true,
+        "directUnits": 0,
+        "unclassifiedUnits": 0,
+        "classificationIncompleteWeeks": 0,
+        "numericBaselineEligibleWeeks": 1
+      },
+      "historyStrengthExposureAssessments": {
+        "REALIZED": 0,
+        "OVERPERFORMED": 0,
+        "UNCERTAIN": 0,
+        "NOT_STRENGTH": 3
+      },
+      "b3Strength": {
+        "decision": "DEVELOP",
+        "strategy": "INTRODUCE_DIRECT_STIMULUS",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_HIGH",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE",
+          "NEED_DEVELOP",
+          "NEED_DECISION_DEVELOP",
+          "BASELINE_STATE_NO_PERSONAL_DIRECT_OBSERVED",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_COMPLETE",
+          "VALID_REVIEWED_ZERO_BASELINE_HISTORY",
+          "NO_PERSONAL_DIRECT_BASELINE",
+          "CANONICAL_PERSONAL_DIRECT_BASELINE_ABSENT",
+          "INTRODUCE_DIRECT_STIMULUS_WITHOUT_NUMERIC_DOSE_AUTHORITY",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LOW_BASELINE_CONFIDENCE"
+        ]
+      },
+      "b4Strength": {
+        "present": true,
+        "strategy": "INTRODUCE_DIRECT_STIMULUS",
+        "numericAuthority": "DIRECTION_ONLY",
+        "priority": "PRIMARY",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_HIGH",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE",
+          "NEED_DEVELOP",
+          "NEED_DECISION_DEVELOP",
+          "BASELINE_STATE_NO_PERSONAL_DIRECT_OBSERVED",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_COMPLETE",
+          "VALID_REVIEWED_ZERO_BASELINE_HISTORY",
+          "NO_PERSONAL_DIRECT_BASELINE",
+          "CANONICAL_PERSONAL_DIRECT_BASELINE_ABSENT",
+          "INTRODUCE_DIRECT_STIMULUS_WITHOUT_NUMERIC_DOSE_AUTHORITY",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LOW_BASELINE_CONFIDENCE",
+          "LEDGER_AND_LEGACY_BASELINE_VALUES_MATCH",
+          "ZERO_OR_UNAVAILABLE_BASELINE_RETAINED",
+          "B4_TARGET_IS_OBSERVED_PERSONAL_EXPOSURE_NOT_OPTIMALITY",
+          "QUALITY_TARGET_ENVELOPES_ARE_NON_ADDITIVE",
+          "NOVEL_DIRECT_STIMULUS_NUMERIC_DOSE_NOT_AUTHORIZED"
+        ]
+      },
+      "movementDisposition": "ADDRESS",
+      "movementB4TargetPresent": true,
+      "movementB4NumericAuthority": "DIRECTION_ONLY",
+      "b5StrengthSelectedOwner": null,
+      "b5StrengthSelectionRole": null,
+      "b5MovementSelectedOwner": "ex_28347c1f",
+      "b5MovementSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT",
+      "movementMaterialization": {
+        "materializedOwnerWeeks": [],
+        "exactOwnerHasAuthorizedB6": false,
+        "unauthorizedExecutableOwnerWeeks": 0
+      },
+      "b6StrengthAuthorizations": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "stableKey": null,
+          "selectionRole": null,
+          "status": "NO_EXECUTABLE_AUTHORIZATION",
+          "reasonCodes": [
+            "B5_OWNER_NOT_SELECTED"
+          ]
+        }
+      ],
+      "strengthShortfalls": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "reason": "NO_ELIGIBLE_STRENGTH_EXERCISE"
+        }
+      ],
+      "finalStrengthShortfalls": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "reason": "NO_ELIGIBLE_STRENGTH_EXERCISE"
+        }
+      ],
+      "programNoticeCodes": [
+        "STRENGTH_EXPOSURE_SHORTFALL"
+      ],
+      "experimentalStrengthEligibleSetRows": [],
+      "strengthShortfallNotice": true,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b7": null,
+      "b8": null,
+      "route": "CONTROL",
+      "buildCounts": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona1_sparse",
+      "movementCoverage": "ARMS_BICEPS",
+      "priorC31": {
+        "movementB3": "ADDRESS",
+        "movementB4Target": true,
+        "movementB5SelectedOwner": "barbell_reverse_curl",
+        "movementExecution": "GENUINE_NO_B6_POLICY"
+      },
+      "b1Strength": {
+        "current28dDirectUnits": 0,
+        "prior28dDirectUnits": 0,
+        "needDecision": "NO_EXTRA_NEED",
+        "relevance": "LOW",
+        "evidenceBasis": "REALIZED_PRESCRIPTION_CLASSIFIED",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_LOW",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_NO_EXTRA_NEED"
+        ]
+      },
+      "b2StrengthDoseHistory": {
+        "available": true,
+        "directUnits": 0,
+        "unclassifiedUnits": 0,
+        "classificationIncompleteWeeks": 0,
+        "numericBaselineEligibleWeeks": 0
+      },
+      "historyStrengthExposureAssessments": {
+        "REALIZED": 0,
+        "OVERPERFORMED": 0,
+        "UNCERTAIN": 0,
+        "NOT_STRENGTH": 3
+      },
+      "b3Strength": {
+        "decision": "NO_EXTRA_NEED",
+        "strategy": "NO_MINIMUM_TARGET",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_LOW",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_NO_EXTRA_NEED",
+          "NEED_NO_EXTRA_NEED",
+          "NEED_DECISION_NO_EXTRA_NEED",
+          "BASELINE_STATE_NO_ELIGIBLE_CLASSIFIED_HISTORY",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_NO_ELIGIBLE_CLASSIFIED_HISTORY",
+          "NO_ELIGIBLE_CLASSIFIED_BASELINE_HISTORY",
+          "PERSONAL_BASELINE_UNAVAILABLE",
+          "INSUFFICIENT_RESPONSE_EVIDENCE"
+        ]
+      },
+      "b4Strength": {
+        "present": true,
+        "strategy": "NO_MINIMUM_TARGET",
+        "numericAuthority": "NONE",
+        "priority": "BACKGROUND",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_LOW",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_NO_EXTRA_NEED",
+          "NEED_NO_EXTRA_NEED",
+          "NEED_DECISION_NO_EXTRA_NEED",
+          "BASELINE_STATE_NO_ELIGIBLE_CLASSIFIED_HISTORY",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_NO_ELIGIBLE_CLASSIFIED_HISTORY",
+          "NO_ELIGIBLE_CLASSIFIED_BASELINE_HISTORY",
+          "PERSONAL_BASELINE_UNAVAILABLE",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LEDGER_BASELINE_VALUES_DIFFER_FROM_LEGACY",
+          "SESSION_IDENTITY_CHANGED_TO_DATE_AND_SESSION_STABLE_KEY",
+          "B4_TARGET_IS_OBSERVED_PERSONAL_EXPOSURE_NOT_OPTIMALITY",
+          "QUALITY_TARGET_ENVELOPES_ARE_NON_ADDITIVE",
+          "NO_SEPARATE_DEVELOPMENT_FLOOR",
+          "INCIDENTAL_STIMULUS_ALLOWED"
+        ]
+      },
+      "movementDisposition": "ADDRESS",
+      "movementB4TargetPresent": true,
+      "movementB4NumericAuthority": "DIRECTION_ONLY",
+      "b5StrengthSelectedOwner": null,
+      "b5StrengthSelectionRole": null,
+      "b5MovementSelectedOwner": "barbell_reverse_curl",
+      "b5MovementSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_BICEPS",
+      "movementMaterialization": {
+        "materializedOwnerWeeks": [],
+        "exactOwnerHasAuthorizedB6": false,
+        "unauthorizedExecutableOwnerWeeks": 0
+      },
+      "b6StrengthAuthorizations": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "stableKey": null,
+          "selectionRole": null,
+          "status": "NO_EXECUTABLE_AUTHORIZATION",
+          "reasonCodes": [
+            "B5_OWNER_NOT_SELECTED"
+          ]
+        }
+      ],
+      "strengthShortfalls": [],
+      "finalStrengthShortfalls": [],
+      "programNoticeCodes": [],
+      "experimentalStrengthEligibleSetRows": [],
+      "strengthShortfallNotice": false,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b7": null,
+      "b8": null,
+      "route": "CONTROL",
+      "buildCounts": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona1_sparse",
+      "movementCoverage": "POSTERIOR_CHAIN",
+      "priorC31": {
+        "movementB3": "ADDRESS",
+        "movementB4Target": true,
+        "movementB5SelectedOwner": "barbell_romanian_deadlift",
+        "movementExecution": "GENUINE_NO_B6_POLICY"
+      },
+      "b1Strength": {
+        "current28dDirectUnits": 0,
+        "prior28dDirectUnits": 0,
+        "needDecision": "NO_EXTRA_NEED",
+        "relevance": "LOW",
+        "evidenceBasis": "REALIZED_PRESCRIPTION_CLASSIFIED",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_LOW",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_NO_EXTRA_NEED"
+        ]
+      },
+      "b2StrengthDoseHistory": {
+        "available": true,
+        "directUnits": 0,
+        "unclassifiedUnits": 0,
+        "classificationIncompleteWeeks": 0,
+        "numericBaselineEligibleWeeks": 0
+      },
+      "historyStrengthExposureAssessments": {
+        "REALIZED": 0,
+        "OVERPERFORMED": 0,
+        "UNCERTAIN": 0,
+        "NOT_STRENGTH": 3
+      },
+      "b3Strength": {
+        "decision": "NO_EXTRA_NEED",
+        "strategy": "NO_MINIMUM_TARGET",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_LOW",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_NO_EXTRA_NEED",
+          "NEED_NO_EXTRA_NEED",
+          "NEED_DECISION_NO_EXTRA_NEED",
+          "BASELINE_STATE_NO_ELIGIBLE_CLASSIFIED_HISTORY",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_NO_ELIGIBLE_CLASSIFIED_HISTORY",
+          "NO_ELIGIBLE_CLASSIFIED_BASELINE_HISTORY",
+          "PERSONAL_BASELINE_UNAVAILABLE",
+          "INSUFFICIENT_RESPONSE_EVIDENCE"
+        ]
+      },
+      "b4Strength": {
+        "present": true,
+        "strategy": "NO_MINIMUM_TARGET",
+        "numericAuthority": "NONE",
+        "priority": "BACKGROUND",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_LOW",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_NO_EXTRA_NEED",
+          "NEED_NO_EXTRA_NEED",
+          "NEED_DECISION_NO_EXTRA_NEED",
+          "BASELINE_STATE_NO_ELIGIBLE_CLASSIFIED_HISTORY",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_NO_ELIGIBLE_CLASSIFIED_HISTORY",
+          "NO_ELIGIBLE_CLASSIFIED_BASELINE_HISTORY",
+          "PERSONAL_BASELINE_UNAVAILABLE",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LEDGER_BASELINE_VALUES_DIFFER_FROM_LEGACY",
+          "SESSION_IDENTITY_CHANGED_TO_DATE_AND_SESSION_STABLE_KEY",
+          "B4_TARGET_IS_OBSERVED_PERSONAL_EXPOSURE_NOT_OPTIMALITY",
+          "QUALITY_TARGET_ENVELOPES_ARE_NON_ADDITIVE",
+          "NO_SEPARATE_DEVELOPMENT_FLOOR",
+          "INCIDENTAL_STIMULUS_ALLOWED"
+        ]
+      },
+      "movementDisposition": "ADDRESS",
+      "movementB4TargetPresent": true,
+      "movementB4NumericAuthority": "DIRECTION_ONLY",
+      "b5StrengthSelectedOwner": null,
+      "b5StrengthSelectionRole": null,
+      "b5MovementSelectedOwner": "barbell_romanian_deadlift",
+      "b5MovementSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_POSTERIOR_CHAIN",
+      "movementMaterialization": {
+        "materializedOwnerWeeks": [],
+        "exactOwnerHasAuthorizedB6": false,
+        "unauthorizedExecutableOwnerWeeks": 0
+      },
+      "b6StrengthAuthorizations": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "stableKey": null,
+          "selectionRole": null,
+          "status": "NO_EXECUTABLE_AUTHORIZATION",
+          "reasonCodes": [
+            "B5_OWNER_NOT_SELECTED"
+          ]
+        }
+      ],
+      "strengthShortfalls": [],
+      "finalStrengthShortfalls": [],
+      "programNoticeCodes": [],
+      "experimentalStrengthEligibleSetRows": [],
+      "strengthShortfallNotice": false,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b7": null,
+      "b8": null,
+      "route": "CONTROL",
+      "buildCounts": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona1_sparse",
+      "movementCoverage": "LOWER_KNEE",
+      "priorC31": {
+        "movementB3": "ADDRESS",
+        "movementB4Target": true,
+        "movementB5SelectedOwner": "dumbbell_goblet_squat",
+        "movementExecution": "GENUINE_NO_B6_POLICY"
+      },
+      "b1Strength": {
+        "current28dDirectUnits": 0,
+        "prior28dDirectUnits": 0,
+        "needDecision": "NO_EXTRA_NEED",
+        "relevance": "LOW",
+        "evidenceBasis": "REALIZED_PRESCRIPTION_CLASSIFIED",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_LOW",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_NO_EXTRA_NEED"
+        ]
+      },
+      "b2StrengthDoseHistory": {
+        "available": true,
+        "directUnits": 0,
+        "unclassifiedUnits": 0,
+        "classificationIncompleteWeeks": 0,
+        "numericBaselineEligibleWeeks": 0
+      },
+      "historyStrengthExposureAssessments": {
+        "REALIZED": 0,
+        "OVERPERFORMED": 0,
+        "UNCERTAIN": 0,
+        "NOT_STRENGTH": 3
+      },
+      "b3Strength": {
+        "decision": "NO_EXTRA_NEED",
+        "strategy": "NO_MINIMUM_TARGET",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_LOW",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_NO_EXTRA_NEED",
+          "NEED_NO_EXTRA_NEED",
+          "NEED_DECISION_NO_EXTRA_NEED",
+          "BASELINE_STATE_NO_ELIGIBLE_CLASSIFIED_HISTORY",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_NO_ELIGIBLE_CLASSIFIED_HISTORY",
+          "NO_ELIGIBLE_CLASSIFIED_BASELINE_HISTORY",
+          "PERSONAL_BASELINE_UNAVAILABLE",
+          "INSUFFICIENT_RESPONSE_EVIDENCE"
+        ]
+      },
+      "b4Strength": {
+        "present": true,
+        "strategy": "NO_MINIMUM_TARGET",
+        "numericAuthority": "NONE",
+        "priority": "BACKGROUND",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_LOW",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_NO_EXTRA_NEED",
+          "NEED_NO_EXTRA_NEED",
+          "NEED_DECISION_NO_EXTRA_NEED",
+          "BASELINE_STATE_NO_ELIGIBLE_CLASSIFIED_HISTORY",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_NO_ELIGIBLE_CLASSIFIED_HISTORY",
+          "NO_ELIGIBLE_CLASSIFIED_BASELINE_HISTORY",
+          "PERSONAL_BASELINE_UNAVAILABLE",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LEDGER_BASELINE_VALUES_DIFFER_FROM_LEGACY",
+          "SESSION_IDENTITY_CHANGED_TO_DATE_AND_SESSION_STABLE_KEY",
+          "B4_TARGET_IS_OBSERVED_PERSONAL_EXPOSURE_NOT_OPTIMALITY",
+          "QUALITY_TARGET_ENVELOPES_ARE_NON_ADDITIVE",
+          "NO_SEPARATE_DEVELOPMENT_FLOOR",
+          "INCIDENTAL_STIMULUS_ALLOWED"
+        ]
+      },
+      "movementDisposition": "ADDRESS",
+      "movementB4TargetPresent": true,
+      "movementB4NumericAuthority": "DIRECTION_ONLY",
+      "b5StrengthSelectedOwner": null,
+      "b5StrengthSelectionRole": null,
+      "b5MovementSelectedOwner": "dumbbell_goblet_squat",
+      "b5MovementSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_LOWER_KNEE",
+      "movementMaterialization": {
+        "materializedOwnerWeeks": [],
+        "exactOwnerHasAuthorizedB6": false,
+        "unauthorizedExecutableOwnerWeeks": 0
+      },
+      "b6StrengthAuthorizations": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "stableKey": null,
+          "selectionRole": null,
+          "status": "NO_EXECUTABLE_AUTHORIZATION",
+          "reasonCodes": [
+            "B5_OWNER_NOT_SELECTED"
+          ]
+        }
+      ],
+      "strengthShortfalls": [],
+      "finalStrengthShortfalls": [],
+      "programNoticeCodes": [],
+      "experimentalStrengthEligibleSetRows": [],
+      "strengthShortfallNotice": false,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b7": null,
+      "b8": null,
+      "route": "CONTROL",
+      "buildCounts": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona1_sparse",
+      "movementCoverage": "ARMS_TRICEPS",
+      "priorC31": {
+        "movementB3": "ADDRESS",
+        "movementB4Target": true,
+        "movementB5SelectedOwner": "dumbbell_lying_triceps_extension",
+        "movementExecution": "GENUINE_NO_B6_POLICY"
+      },
+      "b1Strength": {
+        "current28dDirectUnits": 0,
+        "prior28dDirectUnits": 0,
+        "needDecision": "NO_EXTRA_NEED",
+        "relevance": "LOW",
+        "evidenceBasis": "REALIZED_PRESCRIPTION_CLASSIFIED",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_LOW",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_NO_EXTRA_NEED"
+        ]
+      },
+      "b2StrengthDoseHistory": {
+        "available": true,
+        "directUnits": 0,
+        "unclassifiedUnits": 0,
+        "classificationIncompleteWeeks": 0,
+        "numericBaselineEligibleWeeks": 0
+      },
+      "historyStrengthExposureAssessments": {
+        "REALIZED": 0,
+        "OVERPERFORMED": 0,
+        "UNCERTAIN": 0,
+        "NOT_STRENGTH": 3
+      },
+      "b3Strength": {
+        "decision": "NO_EXTRA_NEED",
+        "strategy": "NO_MINIMUM_TARGET",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_LOW",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_NO_EXTRA_NEED",
+          "NEED_NO_EXTRA_NEED",
+          "NEED_DECISION_NO_EXTRA_NEED",
+          "BASELINE_STATE_NO_ELIGIBLE_CLASSIFIED_HISTORY",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_NO_ELIGIBLE_CLASSIFIED_HISTORY",
+          "NO_ELIGIBLE_CLASSIFIED_BASELINE_HISTORY",
+          "PERSONAL_BASELINE_UNAVAILABLE",
+          "INSUFFICIENT_RESPONSE_EVIDENCE"
+        ]
+      },
+      "b4Strength": {
+        "present": true,
+        "strategy": "NO_MINIMUM_TARGET",
+        "numericAuthority": "NONE",
+        "priority": "BACKGROUND",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_LOW",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_NO_EXTRA_NEED",
+          "NEED_NO_EXTRA_NEED",
+          "NEED_DECISION_NO_EXTRA_NEED",
+          "BASELINE_STATE_NO_ELIGIBLE_CLASSIFIED_HISTORY",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_NO_ELIGIBLE_CLASSIFIED_HISTORY",
+          "NO_ELIGIBLE_CLASSIFIED_BASELINE_HISTORY",
+          "PERSONAL_BASELINE_UNAVAILABLE",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LEDGER_BASELINE_VALUES_DIFFER_FROM_LEGACY",
+          "SESSION_IDENTITY_CHANGED_TO_DATE_AND_SESSION_STABLE_KEY",
+          "B4_TARGET_IS_OBSERVED_PERSONAL_EXPOSURE_NOT_OPTIMALITY",
+          "QUALITY_TARGET_ENVELOPES_ARE_NON_ADDITIVE",
+          "NO_SEPARATE_DEVELOPMENT_FLOOR",
+          "INCIDENTAL_STIMULUS_ALLOWED"
+        ]
+      },
+      "movementDisposition": "ADDRESS",
+      "movementB4TargetPresent": true,
+      "movementB4NumericAuthority": "DIRECTION_ONLY",
+      "b5StrengthSelectedOwner": null,
+      "b5StrengthSelectionRole": null,
+      "b5MovementSelectedOwner": "dumbbell_lying_triceps_extension",
+      "b5MovementSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_TRICEPS",
+      "movementMaterialization": {
+        "materializedOwnerWeeks": [],
+        "exactOwnerHasAuthorizedB6": false,
+        "unauthorizedExecutableOwnerWeeks": 0
+      },
+      "b6StrengthAuthorizations": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "stableKey": null,
+          "selectionRole": null,
+          "status": "NO_EXECUTABLE_AUTHORIZATION",
+          "reasonCodes": [
+            "B5_OWNER_NOT_SELECTED"
+          ]
+        }
+      ],
+      "strengthShortfalls": [],
+      "finalStrengthShortfalls": [],
+      "programNoticeCodes": [],
+      "experimentalStrengthEligibleSetRows": [],
+      "strengthShortfallNotice": false,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b7": null,
+      "b8": null,
+      "route": "CONTROL",
+      "buildCounts": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona1_sparse",
+      "movementCoverage": "CORE_DIRECT",
+      "priorC31": {
+        "movementB3": "ADDRESS",
+        "movementB4Target": true,
+        "movementB5SelectedOwner": "ex_28347c1f",
+        "movementExecution": "GENUINE_NO_B6_POLICY"
+      },
+      "b1Strength": {
+        "current28dDirectUnits": 0,
+        "prior28dDirectUnits": 0,
+        "needDecision": "NO_EXTRA_NEED",
+        "relevance": "LOW",
+        "evidenceBasis": "REALIZED_PRESCRIPTION_CLASSIFIED",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_LOW",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_NO_EXTRA_NEED"
+        ]
+      },
+      "b2StrengthDoseHistory": {
+        "available": true,
+        "directUnits": 0,
+        "unclassifiedUnits": 0,
+        "classificationIncompleteWeeks": 0,
+        "numericBaselineEligibleWeeks": 0
+      },
+      "historyStrengthExposureAssessments": {
+        "REALIZED": 0,
+        "OVERPERFORMED": 0,
+        "UNCERTAIN": 0,
+        "NOT_STRENGTH": 3
+      },
+      "b3Strength": {
+        "decision": "NO_EXTRA_NEED",
+        "strategy": "NO_MINIMUM_TARGET",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_LOW",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_NO_EXTRA_NEED",
+          "NEED_NO_EXTRA_NEED",
+          "NEED_DECISION_NO_EXTRA_NEED",
+          "BASELINE_STATE_NO_ELIGIBLE_CLASSIFIED_HISTORY",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_NO_ELIGIBLE_CLASSIFIED_HISTORY",
+          "NO_ELIGIBLE_CLASSIFIED_BASELINE_HISTORY",
+          "PERSONAL_BASELINE_UNAVAILABLE",
+          "INSUFFICIENT_RESPONSE_EVIDENCE"
+        ]
+      },
+      "b4Strength": {
+        "present": true,
+        "strategy": "NO_MINIMUM_TARGET",
+        "numericAuthority": "NONE",
+        "priority": "BACKGROUND",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_LOW",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_NO_EXTRA_NEED",
+          "NEED_NO_EXTRA_NEED",
+          "NEED_DECISION_NO_EXTRA_NEED",
+          "BASELINE_STATE_NO_ELIGIBLE_CLASSIFIED_HISTORY",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_NO_ELIGIBLE_CLASSIFIED_HISTORY",
+          "NO_ELIGIBLE_CLASSIFIED_BASELINE_HISTORY",
+          "PERSONAL_BASELINE_UNAVAILABLE",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LEDGER_BASELINE_VALUES_DIFFER_FROM_LEGACY",
+          "SESSION_IDENTITY_CHANGED_TO_DATE_AND_SESSION_STABLE_KEY",
+          "B4_TARGET_IS_OBSERVED_PERSONAL_EXPOSURE_NOT_OPTIMALITY",
+          "QUALITY_TARGET_ENVELOPES_ARE_NON_ADDITIVE",
+          "NO_SEPARATE_DEVELOPMENT_FLOOR",
+          "INCIDENTAL_STIMULUS_ALLOWED"
+        ]
+      },
+      "movementDisposition": "ADDRESS",
+      "movementB4TargetPresent": true,
+      "movementB4NumericAuthority": "DIRECTION_ONLY",
+      "b5StrengthSelectedOwner": null,
+      "b5StrengthSelectionRole": null,
+      "b5MovementSelectedOwner": "ex_28347c1f",
+      "b5MovementSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT",
+      "movementMaterialization": {
+        "materializedOwnerWeeks": [],
+        "exactOwnerHasAuthorizedB6": false,
+        "unauthorizedExecutableOwnerWeeks": 0
+      },
+      "b6StrengthAuthorizations": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "stableKey": null,
+          "selectionRole": null,
+          "status": "NO_EXECUTABLE_AUTHORIZATION",
+          "reasonCodes": [
+            "B5_OWNER_NOT_SELECTED"
+          ]
+        }
+      ],
+      "strengthShortfalls": [],
+      "finalStrengthShortfalls": [],
+      "programNoticeCodes": [],
+      "experimentalStrengthEligibleSetRows": [],
+      "strengthShortfallNotice": false,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b7": null,
+      "b8": null,
+      "route": "CONTROL",
+      "buildCounts": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona1_sparse",
+      "movementCoverage": "CALVES",
+      "priorC31": {
+        "movementB3": "ADDRESS",
+        "movementB4Target": true,
+        "movementB5SelectedOwner": "ex_5ca7133f",
+        "movementExecution": "GENUINE_NO_B6_POLICY"
+      },
+      "b1Strength": {
+        "current28dDirectUnits": 0,
+        "prior28dDirectUnits": 0,
+        "needDecision": "NO_EXTRA_NEED",
+        "relevance": "LOW",
+        "evidenceBasis": "REALIZED_PRESCRIPTION_CLASSIFIED",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_LOW",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_NO_EXTRA_NEED"
+        ]
+      },
+      "b2StrengthDoseHistory": {
+        "available": true,
+        "directUnits": 0,
+        "unclassifiedUnits": 0,
+        "classificationIncompleteWeeks": 0,
+        "numericBaselineEligibleWeeks": 0
+      },
+      "historyStrengthExposureAssessments": {
+        "REALIZED": 0,
+        "OVERPERFORMED": 0,
+        "UNCERTAIN": 0,
+        "NOT_STRENGTH": 3
+      },
+      "b3Strength": {
+        "decision": "NO_EXTRA_NEED",
+        "strategy": "NO_MINIMUM_TARGET",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_LOW",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_NO_EXTRA_NEED",
+          "NEED_NO_EXTRA_NEED",
+          "NEED_DECISION_NO_EXTRA_NEED",
+          "BASELINE_STATE_NO_ELIGIBLE_CLASSIFIED_HISTORY",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_NO_ELIGIBLE_CLASSIFIED_HISTORY",
+          "NO_ELIGIBLE_CLASSIFIED_BASELINE_HISTORY",
+          "PERSONAL_BASELINE_UNAVAILABLE",
+          "INSUFFICIENT_RESPONSE_EVIDENCE"
+        ]
+      },
+      "b4Strength": {
+        "present": true,
+        "strategy": "NO_MINIMUM_TARGET",
+        "numericAuthority": "NONE",
+        "priority": "BACKGROUND",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_LOW",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_NO_EXTRA_NEED",
+          "NEED_NO_EXTRA_NEED",
+          "NEED_DECISION_NO_EXTRA_NEED",
+          "BASELINE_STATE_NO_ELIGIBLE_CLASSIFIED_HISTORY",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_NO_ELIGIBLE_CLASSIFIED_HISTORY",
+          "NO_ELIGIBLE_CLASSIFIED_BASELINE_HISTORY",
+          "PERSONAL_BASELINE_UNAVAILABLE",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LEDGER_BASELINE_VALUES_DIFFER_FROM_LEGACY",
+          "SESSION_IDENTITY_CHANGED_TO_DATE_AND_SESSION_STABLE_KEY",
+          "B4_TARGET_IS_OBSERVED_PERSONAL_EXPOSURE_NOT_OPTIMALITY",
+          "QUALITY_TARGET_ENVELOPES_ARE_NON_ADDITIVE",
+          "NO_SEPARATE_DEVELOPMENT_FLOOR",
+          "INCIDENTAL_STIMULUS_ALLOWED"
+        ]
+      },
+      "movementDisposition": "ADDRESS",
+      "movementB4TargetPresent": true,
+      "movementB4NumericAuthority": "DIRECTION_ONLY",
+      "b5StrengthSelectedOwner": null,
+      "b5StrengthSelectionRole": null,
+      "b5MovementSelectedOwner": "ex_5ca7133f",
+      "b5MovementSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_CALVES",
+      "movementMaterialization": {
+        "materializedOwnerWeeks": [],
+        "exactOwnerHasAuthorizedB6": false,
+        "unauthorizedExecutableOwnerWeeks": 0
+      },
+      "b6StrengthAuthorizations": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "stableKey": null,
+          "selectionRole": null,
+          "status": "NO_EXECUTABLE_AUTHORIZATION",
+          "reasonCodes": [
+            "B5_OWNER_NOT_SELECTED"
+          ]
+        }
+      ],
+      "strengthShortfalls": [],
+      "finalStrengthShortfalls": [],
+      "programNoticeCodes": [],
+      "experimentalStrengthEligibleSetRows": [],
+      "strengthShortfallNotice": false,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b7": null,
+      "b8": null,
+      "route": "CONTROL",
+      "buildCounts": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona2_sparse",
+      "movementCoverage": "POSTERIOR_CHAIN",
+      "priorC31": {
+        "movementB3": "ADDRESS",
+        "movementB4Target": true,
+        "movementB5SelectedOwner": "barbell_deadlift",
+        "movementExecution": "GENUINE_NO_B6_POLICY"
+      },
+      "b1Strength": {
+        "current28dDirectUnits": 0,
+        "prior28dDirectUnits": 0,
+        "needDecision": "DEVELOP",
+        "relevance": "MODERATE",
+        "evidenceBasis": "REALIZED_PRESCRIPTION_CLASSIFIED",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE"
+        ]
+      },
+      "b2StrengthDoseHistory": {
+        "available": true,
+        "directUnits": 0,
+        "unclassifiedUnits": 0,
+        "classificationIncompleteWeeks": 0,
+        "numericBaselineEligibleWeeks": 1
+      },
+      "historyStrengthExposureAssessments": {
+        "REALIZED": 0,
+        "OVERPERFORMED": 0,
+        "UNCERTAIN": 0,
+        "NOT_STRENGTH": 3
+      },
+      "b3Strength": {
+        "decision": "DEVELOP",
+        "strategy": "INTRODUCE_DIRECT_STIMULUS",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE",
+          "NEED_DEVELOP",
+          "NEED_DECISION_DEVELOP",
+          "BASELINE_STATE_NO_PERSONAL_DIRECT_OBSERVED",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_COMPLETE",
+          "VALID_REVIEWED_ZERO_BASELINE_HISTORY",
+          "NO_PERSONAL_DIRECT_BASELINE",
+          "CANONICAL_PERSONAL_DIRECT_BASELINE_ABSENT",
+          "INTRODUCE_DIRECT_STIMULUS_WITHOUT_NUMERIC_DOSE_AUTHORITY",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LOW_BASELINE_CONFIDENCE"
+        ]
+      },
+      "b4Strength": {
+        "present": true,
+        "strategy": "INTRODUCE_DIRECT_STIMULUS",
+        "numericAuthority": "DIRECTION_ONLY",
+        "priority": "SECONDARY",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE",
+          "NEED_DEVELOP",
+          "NEED_DECISION_DEVELOP",
+          "BASELINE_STATE_NO_PERSONAL_DIRECT_OBSERVED",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_COMPLETE",
+          "VALID_REVIEWED_ZERO_BASELINE_HISTORY",
+          "NO_PERSONAL_DIRECT_BASELINE",
+          "CANONICAL_PERSONAL_DIRECT_BASELINE_ABSENT",
+          "INTRODUCE_DIRECT_STIMULUS_WITHOUT_NUMERIC_DOSE_AUTHORITY",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LOW_BASELINE_CONFIDENCE",
+          "LEDGER_AND_LEGACY_BASELINE_VALUES_MATCH",
+          "ZERO_OR_UNAVAILABLE_BASELINE_RETAINED",
+          "B4_TARGET_IS_OBSERVED_PERSONAL_EXPOSURE_NOT_OPTIMALITY",
+          "QUALITY_TARGET_ENVELOPES_ARE_NON_ADDITIVE",
+          "NOVEL_DIRECT_STIMULUS_NUMERIC_DOSE_NOT_AUTHORIZED"
+        ]
+      },
+      "movementDisposition": "ADDRESS",
+      "movementB4TargetPresent": true,
+      "movementB4NumericAuthority": "DIRECTION_ONLY",
+      "b5StrengthSelectedOwner": "barbell_back_squat",
+      "b5StrengthSelectionRole": "CANONICAL_STIMULUS_QUALITY_STRENGTH",
+      "b5MovementSelectedOwner": "barbell_deadlift",
+      "b5MovementSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_POSTERIOR_CHAIN",
+      "movementMaterialization": {
+        "materializedOwnerWeeks": [],
+        "exactOwnerHasAuthorizedB6": false,
+        "unauthorizedExecutableOwnerWeeks": 0
+      },
+      "b6StrengthAuthorizations": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "stableKey": "barbell_back_squat",
+          "selectionRole": "CANONICAL_STIMULUS_QUALITY_STRENGTH",
+          "status": "NO_EXECUTABLE_AUTHORIZATION",
+          "reasonCodes": [
+            "CANONICAL_POSTERIOR_REFERENCE_UNAVAILABLE"
+          ]
+        }
+      ],
+      "strengthShortfalls": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "reason": "NO_EXECUTABLE_STRENGTH_PRESCRIPTION"
+        }
+      ],
+      "finalStrengthShortfalls": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "reason": "NO_EXECUTABLE_STRENGTH_PRESCRIPTION"
+        }
+      ],
+      "programNoticeCodes": [
+        "STRENGTH_EXPOSURE_SHORTFALL"
+      ],
+      "experimentalStrengthEligibleSetRows": [],
+      "strengthShortfallNotice": true,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b7": null,
+      "b8": null,
+      "route": "CONTROL",
+      "buildCounts": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona2_sparse",
+      "movementCoverage": "ARMS_BICEPS",
+      "priorC31": {
+        "movementB3": "ADDRESS",
+        "movementB4Target": true,
+        "movementB5SelectedOwner": "barbell_reverse_curl",
+        "movementExecution": "GENUINE_NO_B6_POLICY"
+      },
+      "b1Strength": {
+        "current28dDirectUnits": 0,
+        "prior28dDirectUnits": 0,
+        "needDecision": "DEVELOP",
+        "relevance": "MODERATE",
+        "evidenceBasis": "REALIZED_PRESCRIPTION_CLASSIFIED",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE"
+        ]
+      },
+      "b2StrengthDoseHistory": {
+        "available": true,
+        "directUnits": 0,
+        "unclassifiedUnits": 0,
+        "classificationIncompleteWeeks": 0,
+        "numericBaselineEligibleWeeks": 1
+      },
+      "historyStrengthExposureAssessments": {
+        "REALIZED": 0,
+        "OVERPERFORMED": 0,
+        "UNCERTAIN": 0,
+        "NOT_STRENGTH": 3
+      },
+      "b3Strength": {
+        "decision": "DEVELOP",
+        "strategy": "INTRODUCE_DIRECT_STIMULUS",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE",
+          "NEED_DEVELOP",
+          "NEED_DECISION_DEVELOP",
+          "BASELINE_STATE_NO_PERSONAL_DIRECT_OBSERVED",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_COMPLETE",
+          "VALID_REVIEWED_ZERO_BASELINE_HISTORY",
+          "NO_PERSONAL_DIRECT_BASELINE",
+          "CANONICAL_PERSONAL_DIRECT_BASELINE_ABSENT",
+          "INTRODUCE_DIRECT_STIMULUS_WITHOUT_NUMERIC_DOSE_AUTHORITY",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LOW_BASELINE_CONFIDENCE"
+        ]
+      },
+      "b4Strength": {
+        "present": true,
+        "strategy": "INTRODUCE_DIRECT_STIMULUS",
+        "numericAuthority": "DIRECTION_ONLY",
+        "priority": "SECONDARY",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE",
+          "NEED_DEVELOP",
+          "NEED_DECISION_DEVELOP",
+          "BASELINE_STATE_NO_PERSONAL_DIRECT_OBSERVED",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_COMPLETE",
+          "VALID_REVIEWED_ZERO_BASELINE_HISTORY",
+          "NO_PERSONAL_DIRECT_BASELINE",
+          "CANONICAL_PERSONAL_DIRECT_BASELINE_ABSENT",
+          "INTRODUCE_DIRECT_STIMULUS_WITHOUT_NUMERIC_DOSE_AUTHORITY",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LOW_BASELINE_CONFIDENCE",
+          "LEDGER_AND_LEGACY_BASELINE_VALUES_MATCH",
+          "ZERO_OR_UNAVAILABLE_BASELINE_RETAINED",
+          "B4_TARGET_IS_OBSERVED_PERSONAL_EXPOSURE_NOT_OPTIMALITY",
+          "QUALITY_TARGET_ENVELOPES_ARE_NON_ADDITIVE",
+          "NOVEL_DIRECT_STIMULUS_NUMERIC_DOSE_NOT_AUTHORIZED"
+        ]
+      },
+      "movementDisposition": "ADDRESS",
+      "movementB4TargetPresent": true,
+      "movementB4NumericAuthority": "DIRECTION_ONLY",
+      "b5StrengthSelectedOwner": "barbell_back_squat",
+      "b5StrengthSelectionRole": "CANONICAL_STIMULUS_QUALITY_STRENGTH",
+      "b5MovementSelectedOwner": "barbell_reverse_curl",
+      "b5MovementSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_BICEPS",
+      "movementMaterialization": {
+        "materializedOwnerWeeks": [],
+        "exactOwnerHasAuthorizedB6": false,
+        "unauthorizedExecutableOwnerWeeks": 0
+      },
+      "b6StrengthAuthorizations": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "stableKey": "barbell_back_squat",
+          "selectionRole": "CANONICAL_STIMULUS_QUALITY_STRENGTH",
+          "status": "NO_EXECUTABLE_AUTHORIZATION",
+          "reasonCodes": [
+            "CANONICAL_POSTERIOR_REFERENCE_UNAVAILABLE"
+          ]
+        }
+      ],
+      "strengthShortfalls": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "reason": "NO_EXECUTABLE_STRENGTH_PRESCRIPTION"
+        }
+      ],
+      "finalStrengthShortfalls": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "reason": "NO_EXECUTABLE_STRENGTH_PRESCRIPTION"
+        }
+      ],
+      "programNoticeCodes": [
+        "STRENGTH_EXPOSURE_SHORTFALL"
+      ],
+      "experimentalStrengthEligibleSetRows": [],
+      "strengthShortfallNotice": true,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b7": null,
+      "b8": null,
+      "route": "CONTROL",
+      "buildCounts": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona2_sparse",
+      "movementCoverage": "ARMS_TRICEPS",
+      "priorC31": {
+        "movementB3": "ADDRESS",
+        "movementB4Target": true,
+        "movementB5SelectedOwner": "cable_overhead_triceps_extension",
+        "movementExecution": "GENUINE_NO_B6_POLICY"
+      },
+      "b1Strength": {
+        "current28dDirectUnits": 0,
+        "prior28dDirectUnits": 0,
+        "needDecision": "DEVELOP",
+        "relevance": "MODERATE",
+        "evidenceBasis": "REALIZED_PRESCRIPTION_CLASSIFIED",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE"
+        ]
+      },
+      "b2StrengthDoseHistory": {
+        "available": true,
+        "directUnits": 0,
+        "unclassifiedUnits": 0,
+        "classificationIncompleteWeeks": 0,
+        "numericBaselineEligibleWeeks": 1
+      },
+      "historyStrengthExposureAssessments": {
+        "REALIZED": 0,
+        "OVERPERFORMED": 0,
+        "UNCERTAIN": 0,
+        "NOT_STRENGTH": 3
+      },
+      "b3Strength": {
+        "decision": "DEVELOP",
+        "strategy": "INTRODUCE_DIRECT_STIMULUS",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE",
+          "NEED_DEVELOP",
+          "NEED_DECISION_DEVELOP",
+          "BASELINE_STATE_NO_PERSONAL_DIRECT_OBSERVED",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_COMPLETE",
+          "VALID_REVIEWED_ZERO_BASELINE_HISTORY",
+          "NO_PERSONAL_DIRECT_BASELINE",
+          "CANONICAL_PERSONAL_DIRECT_BASELINE_ABSENT",
+          "INTRODUCE_DIRECT_STIMULUS_WITHOUT_NUMERIC_DOSE_AUTHORITY",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LOW_BASELINE_CONFIDENCE"
+        ]
+      },
+      "b4Strength": {
+        "present": true,
+        "strategy": "INTRODUCE_DIRECT_STIMULUS",
+        "numericAuthority": "DIRECTION_ONLY",
+        "priority": "SECONDARY",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE",
+          "NEED_DEVELOP",
+          "NEED_DECISION_DEVELOP",
+          "BASELINE_STATE_NO_PERSONAL_DIRECT_OBSERVED",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_COMPLETE",
+          "VALID_REVIEWED_ZERO_BASELINE_HISTORY",
+          "NO_PERSONAL_DIRECT_BASELINE",
+          "CANONICAL_PERSONAL_DIRECT_BASELINE_ABSENT",
+          "INTRODUCE_DIRECT_STIMULUS_WITHOUT_NUMERIC_DOSE_AUTHORITY",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LOW_BASELINE_CONFIDENCE",
+          "LEDGER_AND_LEGACY_BASELINE_VALUES_MATCH",
+          "ZERO_OR_UNAVAILABLE_BASELINE_RETAINED",
+          "B4_TARGET_IS_OBSERVED_PERSONAL_EXPOSURE_NOT_OPTIMALITY",
+          "QUALITY_TARGET_ENVELOPES_ARE_NON_ADDITIVE",
+          "NOVEL_DIRECT_STIMULUS_NUMERIC_DOSE_NOT_AUTHORIZED"
+        ]
+      },
+      "movementDisposition": "ADDRESS",
+      "movementB4TargetPresent": true,
+      "movementB4NumericAuthority": "DIRECTION_ONLY",
+      "b5StrengthSelectedOwner": "barbell_back_squat",
+      "b5StrengthSelectionRole": "CANONICAL_STIMULUS_QUALITY_STRENGTH",
+      "b5MovementSelectedOwner": "cable_overhead_triceps_extension",
+      "b5MovementSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_TRICEPS",
+      "movementMaterialization": {
+        "materializedOwnerWeeks": [],
+        "exactOwnerHasAuthorizedB6": false,
+        "unauthorizedExecutableOwnerWeeks": 0
+      },
+      "b6StrengthAuthorizations": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "stableKey": "barbell_back_squat",
+          "selectionRole": "CANONICAL_STIMULUS_QUALITY_STRENGTH",
+          "status": "NO_EXECUTABLE_AUTHORIZATION",
+          "reasonCodes": [
+            "CANONICAL_POSTERIOR_REFERENCE_UNAVAILABLE"
+          ]
+        }
+      ],
+      "strengthShortfalls": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "reason": "NO_EXECUTABLE_STRENGTH_PRESCRIPTION"
+        }
+      ],
+      "finalStrengthShortfalls": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "reason": "NO_EXECUTABLE_STRENGTH_PRESCRIPTION"
+        }
+      ],
+      "programNoticeCodes": [
+        "STRENGTH_EXPOSURE_SHORTFALL"
+      ],
+      "experimentalStrengthEligibleSetRows": [],
+      "strengthShortfallNotice": true,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b7": null,
+      "b8": null,
+      "route": "CONTROL",
+      "buildCounts": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona2_sparse",
+      "movementCoverage": "UPPER_PULL",
+      "priorC31": {
+        "movementB3": "ADDRESS",
+        "movementB4Target": true,
+        "movementB5SelectedOwner": "cable_rear_delt_fly",
+        "movementExecution": "GENUINE_NO_B6_POLICY"
+      },
+      "b1Strength": {
+        "current28dDirectUnits": 0,
+        "prior28dDirectUnits": 0,
+        "needDecision": "DEVELOP",
+        "relevance": "MODERATE",
+        "evidenceBasis": "REALIZED_PRESCRIPTION_CLASSIFIED",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE"
+        ]
+      },
+      "b2StrengthDoseHistory": {
+        "available": true,
+        "directUnits": 0,
+        "unclassifiedUnits": 0,
+        "classificationIncompleteWeeks": 0,
+        "numericBaselineEligibleWeeks": 1
+      },
+      "historyStrengthExposureAssessments": {
+        "REALIZED": 0,
+        "OVERPERFORMED": 0,
+        "UNCERTAIN": 0,
+        "NOT_STRENGTH": 3
+      },
+      "b3Strength": {
+        "decision": "DEVELOP",
+        "strategy": "INTRODUCE_DIRECT_STIMULUS",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE",
+          "NEED_DEVELOP",
+          "NEED_DECISION_DEVELOP",
+          "BASELINE_STATE_NO_PERSONAL_DIRECT_OBSERVED",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_COMPLETE",
+          "VALID_REVIEWED_ZERO_BASELINE_HISTORY",
+          "NO_PERSONAL_DIRECT_BASELINE",
+          "CANONICAL_PERSONAL_DIRECT_BASELINE_ABSENT",
+          "INTRODUCE_DIRECT_STIMULUS_WITHOUT_NUMERIC_DOSE_AUTHORITY",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LOW_BASELINE_CONFIDENCE"
+        ]
+      },
+      "b4Strength": {
+        "present": true,
+        "strategy": "INTRODUCE_DIRECT_STIMULUS",
+        "numericAuthority": "DIRECTION_ONLY",
+        "priority": "SECONDARY",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE",
+          "NEED_DEVELOP",
+          "NEED_DECISION_DEVELOP",
+          "BASELINE_STATE_NO_PERSONAL_DIRECT_OBSERVED",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_COMPLETE",
+          "VALID_REVIEWED_ZERO_BASELINE_HISTORY",
+          "NO_PERSONAL_DIRECT_BASELINE",
+          "CANONICAL_PERSONAL_DIRECT_BASELINE_ABSENT",
+          "INTRODUCE_DIRECT_STIMULUS_WITHOUT_NUMERIC_DOSE_AUTHORITY",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LOW_BASELINE_CONFIDENCE",
+          "LEDGER_AND_LEGACY_BASELINE_VALUES_MATCH",
+          "ZERO_OR_UNAVAILABLE_BASELINE_RETAINED",
+          "B4_TARGET_IS_OBSERVED_PERSONAL_EXPOSURE_NOT_OPTIMALITY",
+          "QUALITY_TARGET_ENVELOPES_ARE_NON_ADDITIVE",
+          "NOVEL_DIRECT_STIMULUS_NUMERIC_DOSE_NOT_AUTHORIZED"
+        ]
+      },
+      "movementDisposition": "ADDRESS",
+      "movementB4TargetPresent": true,
+      "movementB4NumericAuthority": "DIRECTION_ONLY",
+      "b5StrengthSelectedOwner": "barbell_back_squat",
+      "b5StrengthSelectionRole": "CANONICAL_STIMULUS_QUALITY_STRENGTH",
+      "b5MovementSelectedOwner": "cable_rear_delt_fly",
+      "b5MovementSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_UPPER_PULL",
+      "movementMaterialization": {
+        "materializedOwnerWeeks": [],
+        "exactOwnerHasAuthorizedB6": false,
+        "unauthorizedExecutableOwnerWeeks": 0
+      },
+      "b6StrengthAuthorizations": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "stableKey": "barbell_back_squat",
+          "selectionRole": "CANONICAL_STIMULUS_QUALITY_STRENGTH",
+          "status": "NO_EXECUTABLE_AUTHORIZATION",
+          "reasonCodes": [
+            "CANONICAL_POSTERIOR_REFERENCE_UNAVAILABLE"
+          ]
+        }
+      ],
+      "strengthShortfalls": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "reason": "NO_EXECUTABLE_STRENGTH_PRESCRIPTION"
+        }
+      ],
+      "finalStrengthShortfalls": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "reason": "NO_EXECUTABLE_STRENGTH_PRESCRIPTION"
+        }
+      ],
+      "programNoticeCodes": [
+        "STRENGTH_EXPOSURE_SHORTFALL"
+      ],
+      "experimentalStrengthEligibleSetRows": [],
+      "strengthShortfallNotice": true,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b7": null,
+      "b8": null,
+      "route": "CONTROL",
+      "buildCounts": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona2_sparse",
+      "movementCoverage": "CORE_DIRECT",
+      "priorC31": {
+        "movementB3": "ADDRESS",
+        "movementB4Target": true,
+        "movementB5SelectedOwner": "ex_28347c1f",
+        "movementExecution": "GENUINE_NO_B6_POLICY"
+      },
+      "b1Strength": {
+        "current28dDirectUnits": 0,
+        "prior28dDirectUnits": 0,
+        "needDecision": "DEVELOP",
+        "relevance": "MODERATE",
+        "evidenceBasis": "REALIZED_PRESCRIPTION_CLASSIFIED",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE"
+        ]
+      },
+      "b2StrengthDoseHistory": {
+        "available": true,
+        "directUnits": 0,
+        "unclassifiedUnits": 0,
+        "classificationIncompleteWeeks": 0,
+        "numericBaselineEligibleWeeks": 1
+      },
+      "historyStrengthExposureAssessments": {
+        "REALIZED": 0,
+        "OVERPERFORMED": 0,
+        "UNCERTAIN": 0,
+        "NOT_STRENGTH": 3
+      },
+      "b3Strength": {
+        "decision": "DEVELOP",
+        "strategy": "INTRODUCE_DIRECT_STIMULUS",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE",
+          "NEED_DEVELOP",
+          "NEED_DECISION_DEVELOP",
+          "BASELINE_STATE_NO_PERSONAL_DIRECT_OBSERVED",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_COMPLETE",
+          "VALID_REVIEWED_ZERO_BASELINE_HISTORY",
+          "NO_PERSONAL_DIRECT_BASELINE",
+          "CANONICAL_PERSONAL_DIRECT_BASELINE_ABSENT",
+          "INTRODUCE_DIRECT_STIMULUS_WITHOUT_NUMERIC_DOSE_AUTHORITY",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LOW_BASELINE_CONFIDENCE"
+        ]
+      },
+      "b4Strength": {
+        "present": true,
+        "strategy": "INTRODUCE_DIRECT_STIMULUS",
+        "numericAuthority": "DIRECTION_ONLY",
+        "priority": "SECONDARY",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE",
+          "NEED_DEVELOP",
+          "NEED_DECISION_DEVELOP",
+          "BASELINE_STATE_NO_PERSONAL_DIRECT_OBSERVED",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_COMPLETE",
+          "VALID_REVIEWED_ZERO_BASELINE_HISTORY",
+          "NO_PERSONAL_DIRECT_BASELINE",
+          "CANONICAL_PERSONAL_DIRECT_BASELINE_ABSENT",
+          "INTRODUCE_DIRECT_STIMULUS_WITHOUT_NUMERIC_DOSE_AUTHORITY",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LOW_BASELINE_CONFIDENCE",
+          "LEDGER_AND_LEGACY_BASELINE_VALUES_MATCH",
+          "ZERO_OR_UNAVAILABLE_BASELINE_RETAINED",
+          "B4_TARGET_IS_OBSERVED_PERSONAL_EXPOSURE_NOT_OPTIMALITY",
+          "QUALITY_TARGET_ENVELOPES_ARE_NON_ADDITIVE",
+          "NOVEL_DIRECT_STIMULUS_NUMERIC_DOSE_NOT_AUTHORIZED"
+        ]
+      },
+      "movementDisposition": "ADDRESS",
+      "movementB4TargetPresent": true,
+      "movementB4NumericAuthority": "DIRECTION_ONLY",
+      "b5StrengthSelectedOwner": "barbell_back_squat",
+      "b5StrengthSelectionRole": "CANONICAL_STIMULUS_QUALITY_STRENGTH",
+      "b5MovementSelectedOwner": "ex_28347c1f",
+      "b5MovementSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT",
+      "movementMaterialization": {
+        "materializedOwnerWeeks": [],
+        "exactOwnerHasAuthorizedB6": false,
+        "unauthorizedExecutableOwnerWeeks": 0
+      },
+      "b6StrengthAuthorizations": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "stableKey": "barbell_back_squat",
+          "selectionRole": "CANONICAL_STIMULUS_QUALITY_STRENGTH",
+          "status": "NO_EXECUTABLE_AUTHORIZATION",
+          "reasonCodes": [
+            "CANONICAL_POSTERIOR_REFERENCE_UNAVAILABLE"
+          ]
+        }
+      ],
+      "strengthShortfalls": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "reason": "NO_EXECUTABLE_STRENGTH_PRESCRIPTION"
+        }
+      ],
+      "finalStrengthShortfalls": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "reason": "NO_EXECUTABLE_STRENGTH_PRESCRIPTION"
+        }
+      ],
+      "programNoticeCodes": [
+        "STRENGTH_EXPOSURE_SHORTFALL"
+      ],
+      "experimentalStrengthEligibleSetRows": [],
+      "strengthShortfallNotice": true,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b7": null,
+      "b8": null,
+      "route": "CONTROL",
+      "buildCounts": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona2_sparse",
+      "movementCoverage": "CALVES",
+      "priorC31": {
+        "movementB3": "ADDRESS",
+        "movementB4Target": true,
+        "movementB5SelectedOwner": "ex_5c8751d2",
+        "movementExecution": "GENUINE_NO_B6_POLICY"
+      },
+      "b1Strength": {
+        "current28dDirectUnits": 0,
+        "prior28dDirectUnits": 0,
+        "needDecision": "DEVELOP",
+        "relevance": "MODERATE",
+        "evidenceBasis": "REALIZED_PRESCRIPTION_CLASSIFIED",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE"
+        ]
+      },
+      "b2StrengthDoseHistory": {
+        "available": true,
+        "directUnits": 0,
+        "unclassifiedUnits": 0,
+        "classificationIncompleteWeeks": 0,
+        "numericBaselineEligibleWeeks": 1
+      },
+      "historyStrengthExposureAssessments": {
+        "REALIZED": 0,
+        "OVERPERFORMED": 0,
+        "UNCERTAIN": 0,
+        "NOT_STRENGTH": 3
+      },
+      "b3Strength": {
+        "decision": "DEVELOP",
+        "strategy": "INTRODUCE_DIRECT_STIMULUS",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE",
+          "NEED_DEVELOP",
+          "NEED_DECISION_DEVELOP",
+          "BASELINE_STATE_NO_PERSONAL_DIRECT_OBSERVED",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_COMPLETE",
+          "VALID_REVIEWED_ZERO_BASELINE_HISTORY",
+          "NO_PERSONAL_DIRECT_BASELINE",
+          "CANONICAL_PERSONAL_DIRECT_BASELINE_ABSENT",
+          "INTRODUCE_DIRECT_STIMULUS_WITHOUT_NUMERIC_DOSE_AUTHORITY",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LOW_BASELINE_CONFIDENCE"
+        ]
+      },
+      "b4Strength": {
+        "present": true,
+        "strategy": "INTRODUCE_DIRECT_STIMULUS",
+        "numericAuthority": "DIRECTION_ONLY",
+        "priority": "SECONDARY",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE",
+          "NEED_DEVELOP",
+          "NEED_DECISION_DEVELOP",
+          "BASELINE_STATE_NO_PERSONAL_DIRECT_OBSERVED",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_COMPLETE",
+          "VALID_REVIEWED_ZERO_BASELINE_HISTORY",
+          "NO_PERSONAL_DIRECT_BASELINE",
+          "CANONICAL_PERSONAL_DIRECT_BASELINE_ABSENT",
+          "INTRODUCE_DIRECT_STIMULUS_WITHOUT_NUMERIC_DOSE_AUTHORITY",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LOW_BASELINE_CONFIDENCE",
+          "LEDGER_AND_LEGACY_BASELINE_VALUES_MATCH",
+          "ZERO_OR_UNAVAILABLE_BASELINE_RETAINED",
+          "B4_TARGET_IS_OBSERVED_PERSONAL_EXPOSURE_NOT_OPTIMALITY",
+          "QUALITY_TARGET_ENVELOPES_ARE_NON_ADDITIVE",
+          "NOVEL_DIRECT_STIMULUS_NUMERIC_DOSE_NOT_AUTHORIZED"
+        ]
+      },
+      "movementDisposition": "ADDRESS",
+      "movementB4TargetPresent": true,
+      "movementB4NumericAuthority": "DIRECTION_ONLY",
+      "b5StrengthSelectedOwner": "barbell_back_squat",
+      "b5StrengthSelectionRole": "CANONICAL_STIMULUS_QUALITY_STRENGTH",
+      "b5MovementSelectedOwner": "ex_5c8751d2",
+      "b5MovementSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_CALVES",
+      "movementMaterialization": {
+        "materializedOwnerWeeks": [],
+        "exactOwnerHasAuthorizedB6": false,
+        "unauthorizedExecutableOwnerWeeks": 0
+      },
+      "b6StrengthAuthorizations": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "stableKey": "barbell_back_squat",
+          "selectionRole": "CANONICAL_STIMULUS_QUALITY_STRENGTH",
+          "status": "NO_EXECUTABLE_AUTHORIZATION",
+          "reasonCodes": [
+            "CANONICAL_POSTERIOR_REFERENCE_UNAVAILABLE"
+          ]
+        }
+      ],
+      "strengthShortfalls": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "reason": "NO_EXECUTABLE_STRENGTH_PRESCRIPTION"
+        }
+      ],
+      "finalStrengthShortfalls": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "reason": "NO_EXECUTABLE_STRENGTH_PRESCRIPTION"
+        }
+      ],
+      "programNoticeCodes": [
+        "STRENGTH_EXPOSURE_SHORTFALL"
+      ],
+      "experimentalStrengthEligibleSetRows": [],
+      "strengthShortfallNotice": true,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b7": null,
+      "b8": null,
+      "route": "CONTROL",
+      "buildCounts": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona3_sparse",
+      "movementCoverage": "HORIZONTAL_PUSH",
+      "priorC31": {
+        "movementB3": "ADDRESS",
+        "movementB4Target": true,
+        "movementB5SelectedOwner": "ex_1dbee10e",
+        "movementExecution": "GENUINE_NO_B6_POLICY"
+      },
+      "b1Strength": {
+        "current28dDirectUnits": 0,
+        "prior28dDirectUnits": 0,
+        "needDecision": "DEVELOP",
+        "relevance": "MODERATE",
+        "evidenceBasis": "REALIZED_PRESCRIPTION_CLASSIFIED",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE"
+        ]
+      },
+      "b2StrengthDoseHistory": {
+        "available": true,
+        "directUnits": 0,
+        "unclassifiedUnits": 0,
+        "classificationIncompleteWeeks": 0,
+        "numericBaselineEligibleWeeks": 1
+      },
+      "historyStrengthExposureAssessments": {
+        "REALIZED": 0,
+        "OVERPERFORMED": 0,
+        "UNCERTAIN": 0,
+        "NOT_STRENGTH": 3
+      },
+      "b3Strength": {
+        "decision": "DEVELOP",
+        "strategy": "INTRODUCE_DIRECT_STIMULUS",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE",
+          "NEED_DEVELOP",
+          "NEED_DECISION_DEVELOP",
+          "BASELINE_STATE_NO_PERSONAL_DIRECT_OBSERVED",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_COMPLETE",
+          "VALID_REVIEWED_ZERO_BASELINE_HISTORY",
+          "NO_PERSONAL_DIRECT_BASELINE",
+          "CANONICAL_PERSONAL_DIRECT_BASELINE_ABSENT",
+          "INTRODUCE_DIRECT_STIMULUS_WITHOUT_NUMERIC_DOSE_AUTHORITY",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LOW_BASELINE_CONFIDENCE"
+        ]
+      },
+      "b4Strength": {
+        "present": true,
+        "strategy": "INTRODUCE_DIRECT_STIMULUS",
+        "numericAuthority": "DIRECTION_ONLY",
+        "priority": "SECONDARY",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE",
+          "NEED_DEVELOP",
+          "NEED_DECISION_DEVELOP",
+          "BASELINE_STATE_NO_PERSONAL_DIRECT_OBSERVED",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_COMPLETE",
+          "VALID_REVIEWED_ZERO_BASELINE_HISTORY",
+          "NO_PERSONAL_DIRECT_BASELINE",
+          "CANONICAL_PERSONAL_DIRECT_BASELINE_ABSENT",
+          "INTRODUCE_DIRECT_STIMULUS_WITHOUT_NUMERIC_DOSE_AUTHORITY",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LOW_BASELINE_CONFIDENCE",
+          "LEDGER_AND_LEGACY_BASELINE_VALUES_MATCH",
+          "ZERO_OR_UNAVAILABLE_BASELINE_RETAINED",
+          "B4_TARGET_IS_OBSERVED_PERSONAL_EXPOSURE_NOT_OPTIMALITY",
+          "QUALITY_TARGET_ENVELOPES_ARE_NON_ADDITIVE",
+          "NOVEL_DIRECT_STIMULUS_NUMERIC_DOSE_NOT_AUTHORIZED"
+        ]
+      },
+      "movementDisposition": "ADDRESS",
+      "movementB4TargetPresent": true,
+      "movementB4NumericAuthority": "DIRECTION_ONLY",
+      "b5StrengthSelectedOwner": null,
+      "b5StrengthSelectionRole": null,
+      "b5MovementSelectedOwner": "ex_1dbee10e",
+      "b5MovementSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_HORIZONTAL_PUSH",
+      "movementMaterialization": {
+        "materializedOwnerWeeks": [],
+        "exactOwnerHasAuthorizedB6": false,
+        "unauthorizedExecutableOwnerWeeks": 0
+      },
+      "b6StrengthAuthorizations": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "stableKey": null,
+          "selectionRole": null,
+          "status": "NO_EXECUTABLE_AUTHORIZATION",
+          "reasonCodes": [
+            "B5_OWNER_NOT_SELECTED"
+          ]
+        }
+      ],
+      "strengthShortfalls": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "reason": "NO_ELIGIBLE_STRENGTH_EXERCISE"
+        }
+      ],
+      "finalStrengthShortfalls": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "reason": "NO_ELIGIBLE_STRENGTH_EXERCISE"
+        }
+      ],
+      "programNoticeCodes": [
+        "STRENGTH_EXPOSURE_SHORTFALL"
+      ],
+      "experimentalStrengthEligibleSetRows": [],
+      "strengthShortfallNotice": true,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b7": null,
+      "b8": null,
+      "route": "CONTROL",
+      "buildCounts": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona3_sparse",
+      "movementCoverage": "CORE_DIRECT",
+      "priorC31": {
+        "movementB3": "ADDRESS",
+        "movementB4Target": true,
+        "movementB5SelectedOwner": "ex_28347c1f",
+        "movementExecution": "GENUINE_NO_B6_POLICY"
+      },
+      "b1Strength": {
+        "current28dDirectUnits": 0,
+        "prior28dDirectUnits": 0,
+        "needDecision": "DEVELOP",
+        "relevance": "MODERATE",
+        "evidenceBasis": "REALIZED_PRESCRIPTION_CLASSIFIED",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE"
+        ]
+      },
+      "b2StrengthDoseHistory": {
+        "available": true,
+        "directUnits": 0,
+        "unclassifiedUnits": 0,
+        "classificationIncompleteWeeks": 0,
+        "numericBaselineEligibleWeeks": 1
+      },
+      "historyStrengthExposureAssessments": {
+        "REALIZED": 0,
+        "OVERPERFORMED": 0,
+        "UNCERTAIN": 0,
+        "NOT_STRENGTH": 3
+      },
+      "b3Strength": {
+        "decision": "DEVELOP",
+        "strategy": "INTRODUCE_DIRECT_STIMULUS",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE",
+          "NEED_DEVELOP",
+          "NEED_DECISION_DEVELOP",
+          "BASELINE_STATE_NO_PERSONAL_DIRECT_OBSERVED",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_COMPLETE",
+          "VALID_REVIEWED_ZERO_BASELINE_HISTORY",
+          "NO_PERSONAL_DIRECT_BASELINE",
+          "CANONICAL_PERSONAL_DIRECT_BASELINE_ABSENT",
+          "INTRODUCE_DIRECT_STIMULUS_WITHOUT_NUMERIC_DOSE_AUTHORITY",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LOW_BASELINE_CONFIDENCE"
+        ]
+      },
+      "b4Strength": {
+        "present": true,
+        "strategy": "INTRODUCE_DIRECT_STIMULUS",
+        "numericAuthority": "DIRECTION_ONLY",
+        "priority": "SECONDARY",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE",
+          "NEED_DEVELOP",
+          "NEED_DECISION_DEVELOP",
+          "BASELINE_STATE_NO_PERSONAL_DIRECT_OBSERVED",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_COMPLETE",
+          "VALID_REVIEWED_ZERO_BASELINE_HISTORY",
+          "NO_PERSONAL_DIRECT_BASELINE",
+          "CANONICAL_PERSONAL_DIRECT_BASELINE_ABSENT",
+          "INTRODUCE_DIRECT_STIMULUS_WITHOUT_NUMERIC_DOSE_AUTHORITY",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LOW_BASELINE_CONFIDENCE",
+          "LEDGER_AND_LEGACY_BASELINE_VALUES_MATCH",
+          "ZERO_OR_UNAVAILABLE_BASELINE_RETAINED",
+          "B4_TARGET_IS_OBSERVED_PERSONAL_EXPOSURE_NOT_OPTIMALITY",
+          "QUALITY_TARGET_ENVELOPES_ARE_NON_ADDITIVE",
+          "NOVEL_DIRECT_STIMULUS_NUMERIC_DOSE_NOT_AUTHORIZED"
+        ]
+      },
+      "movementDisposition": "ADDRESS",
+      "movementB4TargetPresent": true,
+      "movementB4NumericAuthority": "DIRECTION_ONLY",
+      "b5StrengthSelectedOwner": null,
+      "b5StrengthSelectionRole": null,
+      "b5MovementSelectedOwner": "ex_28347c1f",
+      "b5MovementSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT",
+      "movementMaterialization": {
+        "materializedOwnerWeeks": [],
+        "exactOwnerHasAuthorizedB6": false,
+        "unauthorizedExecutableOwnerWeeks": 0
+      },
+      "b6StrengthAuthorizations": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "stableKey": null,
+          "selectionRole": null,
+          "status": "NO_EXECUTABLE_AUTHORIZATION",
+          "reasonCodes": [
+            "B5_OWNER_NOT_SELECTED"
+          ]
+        }
+      ],
+      "strengthShortfalls": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "reason": "NO_ELIGIBLE_STRENGTH_EXERCISE"
+        }
+      ],
+      "finalStrengthShortfalls": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "reason": "NO_ELIGIBLE_STRENGTH_EXERCISE"
+        }
+      ],
+      "programNoticeCodes": [
+        "STRENGTH_EXPOSURE_SHORTFALL"
+      ],
+      "experimentalStrengthEligibleSetRows": [],
+      "strengthShortfallNotice": true,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b7": null,
+      "b8": null,
+      "route": "CONTROL",
+      "buildCounts": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona4_sparse",
+      "movementCoverage": "ARMS_BICEPS",
+      "priorC31": {
+        "movementB3": "ADDRESS",
+        "movementB4Target": true,
+        "movementB5SelectedOwner": "barbell_reverse_curl",
+        "movementExecution": "GENUINE_NO_B6_POLICY"
+      },
+      "b1Strength": {
+        "current28dDirectUnits": 0,
+        "prior28dDirectUnits": 0,
+        "needDecision": "DEVELOP",
+        "relevance": "MODERATE",
+        "evidenceBasis": "REALIZED_PRESCRIPTION_CLASSIFIED",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE"
+        ]
+      },
+      "b2StrengthDoseHistory": {
+        "available": true,
+        "directUnits": 0,
+        "unclassifiedUnits": 0,
+        "classificationIncompleteWeeks": 0,
+        "numericBaselineEligibleWeeks": 1
+      },
+      "historyStrengthExposureAssessments": {
+        "REALIZED": 0,
+        "OVERPERFORMED": 0,
+        "UNCERTAIN": 0,
+        "NOT_STRENGTH": 3
+      },
+      "b3Strength": {
+        "decision": "DEVELOP",
+        "strategy": "INTRODUCE_DIRECT_STIMULUS",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE",
+          "NEED_DEVELOP",
+          "NEED_DECISION_DEVELOP",
+          "BASELINE_STATE_NO_PERSONAL_DIRECT_OBSERVED",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_COMPLETE",
+          "VALID_REVIEWED_ZERO_BASELINE_HISTORY",
+          "NO_PERSONAL_DIRECT_BASELINE",
+          "CANONICAL_PERSONAL_DIRECT_BASELINE_ABSENT",
+          "INTRODUCE_DIRECT_STIMULUS_WITHOUT_NUMERIC_DOSE_AUTHORITY",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LOW_BASELINE_CONFIDENCE"
+        ]
+      },
+      "b4Strength": {
+        "present": true,
+        "strategy": "INTRODUCE_DIRECT_STIMULUS",
+        "numericAuthority": "DIRECTION_ONLY",
+        "priority": "SECONDARY",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE",
+          "NEED_DEVELOP",
+          "NEED_DECISION_DEVELOP",
+          "BASELINE_STATE_NO_PERSONAL_DIRECT_OBSERVED",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_COMPLETE",
+          "VALID_REVIEWED_ZERO_BASELINE_HISTORY",
+          "NO_PERSONAL_DIRECT_BASELINE",
+          "CANONICAL_PERSONAL_DIRECT_BASELINE_ABSENT",
+          "INTRODUCE_DIRECT_STIMULUS_WITHOUT_NUMERIC_DOSE_AUTHORITY",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LOW_BASELINE_CONFIDENCE",
+          "LEDGER_AND_LEGACY_BASELINE_VALUES_MATCH",
+          "ZERO_OR_UNAVAILABLE_BASELINE_RETAINED",
+          "B4_TARGET_IS_OBSERVED_PERSONAL_EXPOSURE_NOT_OPTIMALITY",
+          "QUALITY_TARGET_ENVELOPES_ARE_NON_ADDITIVE",
+          "NOVEL_DIRECT_STIMULUS_NUMERIC_DOSE_NOT_AUTHORIZED"
+        ]
+      },
+      "movementDisposition": "ADDRESS",
+      "movementB4TargetPresent": true,
+      "movementB4NumericAuthority": "DIRECTION_ONLY",
+      "b5StrengthSelectedOwner": "barbell_bench_press",
+      "b5StrengthSelectionRole": "CANONICAL_STIMULUS_QUALITY_STRENGTH",
+      "b5MovementSelectedOwner": "barbell_reverse_curl",
+      "b5MovementSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_BICEPS",
+      "movementMaterialization": {
+        "materializedOwnerWeeks": [],
+        "exactOwnerHasAuthorizedB6": false,
+        "unauthorizedExecutableOwnerWeeks": 0
+      },
+      "b6StrengthAuthorizations": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "stableKey": "barbell_bench_press",
+          "selectionRole": "CANONICAL_STIMULUS_QUALITY_STRENGTH",
+          "status": "NO_EXECUTABLE_AUTHORIZATION",
+          "reasonCodes": [
+            "B4_NUMERIC_AUTHORITY_DOES_NOT_AUTHORIZE_B6_CHANGE"
+          ]
+        }
+      ],
+      "strengthShortfalls": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "reason": "NO_EXECUTABLE_STRENGTH_PRESCRIPTION"
+        }
+      ],
+      "finalStrengthShortfalls": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "reason": "NO_EXECUTABLE_STRENGTH_PRESCRIPTION"
+        }
+      ],
+      "programNoticeCodes": [
+        "STRENGTH_EXPOSURE_SHORTFALL"
+      ],
+      "experimentalStrengthEligibleSetRows": [],
+      "strengthShortfallNotice": true,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b7": null,
+      "b8": null,
+      "route": "CONTROL",
+      "buildCounts": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona4_sparse",
+      "movementCoverage": "POSTERIOR_CHAIN",
+      "priorC31": {
+        "movementB3": "ADDRESS",
+        "movementB4Target": true,
+        "movementB5SelectedOwner": "barbell_romanian_deadlift",
+        "movementExecution": "GENUINE_NO_B6_POLICY"
+      },
+      "b1Strength": {
+        "current28dDirectUnits": 0,
+        "prior28dDirectUnits": 0,
+        "needDecision": "DEVELOP",
+        "relevance": "MODERATE",
+        "evidenceBasis": "REALIZED_PRESCRIPTION_CLASSIFIED",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE"
+        ]
+      },
+      "b2StrengthDoseHistory": {
+        "available": true,
+        "directUnits": 0,
+        "unclassifiedUnits": 0,
+        "classificationIncompleteWeeks": 0,
+        "numericBaselineEligibleWeeks": 1
+      },
+      "historyStrengthExposureAssessments": {
+        "REALIZED": 0,
+        "OVERPERFORMED": 0,
+        "UNCERTAIN": 0,
+        "NOT_STRENGTH": 3
+      },
+      "b3Strength": {
+        "decision": "DEVELOP",
+        "strategy": "INTRODUCE_DIRECT_STIMULUS",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE",
+          "NEED_DEVELOP",
+          "NEED_DECISION_DEVELOP",
+          "BASELINE_STATE_NO_PERSONAL_DIRECT_OBSERVED",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_COMPLETE",
+          "VALID_REVIEWED_ZERO_BASELINE_HISTORY",
+          "NO_PERSONAL_DIRECT_BASELINE",
+          "CANONICAL_PERSONAL_DIRECT_BASELINE_ABSENT",
+          "INTRODUCE_DIRECT_STIMULUS_WITHOUT_NUMERIC_DOSE_AUTHORITY",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LOW_BASELINE_CONFIDENCE"
+        ]
+      },
+      "b4Strength": {
+        "present": true,
+        "strategy": "INTRODUCE_DIRECT_STIMULUS",
+        "numericAuthority": "DIRECTION_ONLY",
+        "priority": "SECONDARY",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE",
+          "NEED_DEVELOP",
+          "NEED_DECISION_DEVELOP",
+          "BASELINE_STATE_NO_PERSONAL_DIRECT_OBSERVED",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_COMPLETE",
+          "VALID_REVIEWED_ZERO_BASELINE_HISTORY",
+          "NO_PERSONAL_DIRECT_BASELINE",
+          "CANONICAL_PERSONAL_DIRECT_BASELINE_ABSENT",
+          "INTRODUCE_DIRECT_STIMULUS_WITHOUT_NUMERIC_DOSE_AUTHORITY",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LOW_BASELINE_CONFIDENCE",
+          "LEDGER_AND_LEGACY_BASELINE_VALUES_MATCH",
+          "ZERO_OR_UNAVAILABLE_BASELINE_RETAINED",
+          "B4_TARGET_IS_OBSERVED_PERSONAL_EXPOSURE_NOT_OPTIMALITY",
+          "QUALITY_TARGET_ENVELOPES_ARE_NON_ADDITIVE",
+          "NOVEL_DIRECT_STIMULUS_NUMERIC_DOSE_NOT_AUTHORIZED"
+        ]
+      },
+      "movementDisposition": "ADDRESS",
+      "movementB4TargetPresent": true,
+      "movementB4NumericAuthority": "DIRECTION_ONLY",
+      "b5StrengthSelectedOwner": "barbell_bench_press",
+      "b5StrengthSelectionRole": "CANONICAL_STIMULUS_QUALITY_STRENGTH",
+      "b5MovementSelectedOwner": "barbell_romanian_deadlift",
+      "b5MovementSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_POSTERIOR_CHAIN",
+      "movementMaterialization": {
+        "materializedOwnerWeeks": [],
+        "exactOwnerHasAuthorizedB6": false,
+        "unauthorizedExecutableOwnerWeeks": 0
+      },
+      "b6StrengthAuthorizations": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "stableKey": "barbell_bench_press",
+          "selectionRole": "CANONICAL_STIMULUS_QUALITY_STRENGTH",
+          "status": "NO_EXECUTABLE_AUTHORIZATION",
+          "reasonCodes": [
+            "B4_NUMERIC_AUTHORITY_DOES_NOT_AUTHORIZE_B6_CHANGE"
+          ]
+        }
+      ],
+      "strengthShortfalls": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "reason": "NO_EXECUTABLE_STRENGTH_PRESCRIPTION"
+        }
+      ],
+      "finalStrengthShortfalls": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "reason": "NO_EXECUTABLE_STRENGTH_PRESCRIPTION"
+        }
+      ],
+      "programNoticeCodes": [
+        "STRENGTH_EXPOSURE_SHORTFALL"
+      ],
+      "experimentalStrengthEligibleSetRows": [],
+      "strengthShortfallNotice": true,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b7": null,
+      "b8": null,
+      "route": "CONTROL",
+      "buildCounts": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona4_sparse",
+      "movementCoverage": "UPPER_PULL",
+      "priorC31": {
+        "movementB3": "ADDRESS",
+        "movementB4Target": true,
+        "movementB5SelectedOwner": "dumbbell_chest_supported_row",
+        "movementExecution": "GENUINE_NO_B6_POLICY"
+      },
+      "b1Strength": {
+        "current28dDirectUnits": 0,
+        "prior28dDirectUnits": 0,
+        "needDecision": "DEVELOP",
+        "relevance": "MODERATE",
+        "evidenceBasis": "REALIZED_PRESCRIPTION_CLASSIFIED",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE"
+        ]
+      },
+      "b2StrengthDoseHistory": {
+        "available": true,
+        "directUnits": 0,
+        "unclassifiedUnits": 0,
+        "classificationIncompleteWeeks": 0,
+        "numericBaselineEligibleWeeks": 1
+      },
+      "historyStrengthExposureAssessments": {
+        "REALIZED": 0,
+        "OVERPERFORMED": 0,
+        "UNCERTAIN": 0,
+        "NOT_STRENGTH": 3
+      },
+      "b3Strength": {
+        "decision": "DEVELOP",
+        "strategy": "INTRODUCE_DIRECT_STIMULUS",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE",
+          "NEED_DEVELOP",
+          "NEED_DECISION_DEVELOP",
+          "BASELINE_STATE_NO_PERSONAL_DIRECT_OBSERVED",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_COMPLETE",
+          "VALID_REVIEWED_ZERO_BASELINE_HISTORY",
+          "NO_PERSONAL_DIRECT_BASELINE",
+          "CANONICAL_PERSONAL_DIRECT_BASELINE_ABSENT",
+          "INTRODUCE_DIRECT_STIMULUS_WITHOUT_NUMERIC_DOSE_AUTHORITY",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LOW_BASELINE_CONFIDENCE"
+        ]
+      },
+      "b4Strength": {
+        "present": true,
+        "strategy": "INTRODUCE_DIRECT_STIMULUS",
+        "numericAuthority": "DIRECTION_ONLY",
+        "priority": "SECONDARY",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE",
+          "NEED_DEVELOP",
+          "NEED_DECISION_DEVELOP",
+          "BASELINE_STATE_NO_PERSONAL_DIRECT_OBSERVED",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_COMPLETE",
+          "VALID_REVIEWED_ZERO_BASELINE_HISTORY",
+          "NO_PERSONAL_DIRECT_BASELINE",
+          "CANONICAL_PERSONAL_DIRECT_BASELINE_ABSENT",
+          "INTRODUCE_DIRECT_STIMULUS_WITHOUT_NUMERIC_DOSE_AUTHORITY",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LOW_BASELINE_CONFIDENCE",
+          "LEDGER_AND_LEGACY_BASELINE_VALUES_MATCH",
+          "ZERO_OR_UNAVAILABLE_BASELINE_RETAINED",
+          "B4_TARGET_IS_OBSERVED_PERSONAL_EXPOSURE_NOT_OPTIMALITY",
+          "QUALITY_TARGET_ENVELOPES_ARE_NON_ADDITIVE",
+          "NOVEL_DIRECT_STIMULUS_NUMERIC_DOSE_NOT_AUTHORIZED"
+        ]
+      },
+      "movementDisposition": "ADDRESS",
+      "movementB4TargetPresent": true,
+      "movementB4NumericAuthority": "DIRECTION_ONLY",
+      "b5StrengthSelectedOwner": "barbell_bench_press",
+      "b5StrengthSelectionRole": "CANONICAL_STIMULUS_QUALITY_STRENGTH",
+      "b5MovementSelectedOwner": "dumbbell_chest_supported_row",
+      "b5MovementSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_UPPER_PULL",
+      "movementMaterialization": {
+        "materializedOwnerWeeks": [],
+        "exactOwnerHasAuthorizedB6": false,
+        "unauthorizedExecutableOwnerWeeks": 0
+      },
+      "b6StrengthAuthorizations": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "stableKey": "barbell_bench_press",
+          "selectionRole": "CANONICAL_STIMULUS_QUALITY_STRENGTH",
+          "status": "NO_EXECUTABLE_AUTHORIZATION",
+          "reasonCodes": [
+            "B4_NUMERIC_AUTHORITY_DOES_NOT_AUTHORIZE_B6_CHANGE"
+          ]
+        }
+      ],
+      "strengthShortfalls": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "reason": "NO_EXECUTABLE_STRENGTH_PRESCRIPTION"
+        }
+      ],
+      "finalStrengthShortfalls": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "reason": "NO_EXECUTABLE_STRENGTH_PRESCRIPTION"
+        }
+      ],
+      "programNoticeCodes": [
+        "STRENGTH_EXPOSURE_SHORTFALL"
+      ],
+      "experimentalStrengthEligibleSetRows": [],
+      "strengthShortfallNotice": true,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b7": null,
+      "b8": null,
+      "route": "CONTROL",
+      "buildCounts": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona4_sparse",
+      "movementCoverage": "ARMS_TRICEPS",
+      "priorC31": {
+        "movementB3": "ADDRESS",
+        "movementB4Target": true,
+        "movementB5SelectedOwner": "dumbbell_lying_triceps_extension",
+        "movementExecution": "GENUINE_NO_B6_POLICY"
+      },
+      "b1Strength": {
+        "current28dDirectUnits": 0,
+        "prior28dDirectUnits": 0,
+        "needDecision": "DEVELOP",
+        "relevance": "MODERATE",
+        "evidenceBasis": "REALIZED_PRESCRIPTION_CLASSIFIED",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE"
+        ]
+      },
+      "b2StrengthDoseHistory": {
+        "available": true,
+        "directUnits": 0,
+        "unclassifiedUnits": 0,
+        "classificationIncompleteWeeks": 0,
+        "numericBaselineEligibleWeeks": 1
+      },
+      "historyStrengthExposureAssessments": {
+        "REALIZED": 0,
+        "OVERPERFORMED": 0,
+        "UNCERTAIN": 0,
+        "NOT_STRENGTH": 3
+      },
+      "b3Strength": {
+        "decision": "DEVELOP",
+        "strategy": "INTRODUCE_DIRECT_STIMULUS",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE",
+          "NEED_DEVELOP",
+          "NEED_DECISION_DEVELOP",
+          "BASELINE_STATE_NO_PERSONAL_DIRECT_OBSERVED",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_COMPLETE",
+          "VALID_REVIEWED_ZERO_BASELINE_HISTORY",
+          "NO_PERSONAL_DIRECT_BASELINE",
+          "CANONICAL_PERSONAL_DIRECT_BASELINE_ABSENT",
+          "INTRODUCE_DIRECT_STIMULUS_WITHOUT_NUMERIC_DOSE_AUTHORITY",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LOW_BASELINE_CONFIDENCE"
+        ]
+      },
+      "b4Strength": {
+        "present": true,
+        "strategy": "INTRODUCE_DIRECT_STIMULUS",
+        "numericAuthority": "DIRECTION_ONLY",
+        "priority": "SECONDARY",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE",
+          "NEED_DEVELOP",
+          "NEED_DECISION_DEVELOP",
+          "BASELINE_STATE_NO_PERSONAL_DIRECT_OBSERVED",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_COMPLETE",
+          "VALID_REVIEWED_ZERO_BASELINE_HISTORY",
+          "NO_PERSONAL_DIRECT_BASELINE",
+          "CANONICAL_PERSONAL_DIRECT_BASELINE_ABSENT",
+          "INTRODUCE_DIRECT_STIMULUS_WITHOUT_NUMERIC_DOSE_AUTHORITY",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LOW_BASELINE_CONFIDENCE",
+          "LEDGER_AND_LEGACY_BASELINE_VALUES_MATCH",
+          "ZERO_OR_UNAVAILABLE_BASELINE_RETAINED",
+          "B4_TARGET_IS_OBSERVED_PERSONAL_EXPOSURE_NOT_OPTIMALITY",
+          "QUALITY_TARGET_ENVELOPES_ARE_NON_ADDITIVE",
+          "NOVEL_DIRECT_STIMULUS_NUMERIC_DOSE_NOT_AUTHORIZED"
+        ]
+      },
+      "movementDisposition": "ADDRESS",
+      "movementB4TargetPresent": true,
+      "movementB4NumericAuthority": "DIRECTION_ONLY",
+      "b5StrengthSelectedOwner": "barbell_bench_press",
+      "b5StrengthSelectionRole": "CANONICAL_STIMULUS_QUALITY_STRENGTH",
+      "b5MovementSelectedOwner": "dumbbell_lying_triceps_extension",
+      "b5MovementSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_ARMS_TRICEPS",
+      "movementMaterialization": {
+        "materializedOwnerWeeks": [],
+        "exactOwnerHasAuthorizedB6": false,
+        "unauthorizedExecutableOwnerWeeks": 0
+      },
+      "b6StrengthAuthorizations": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "stableKey": "barbell_bench_press",
+          "selectionRole": "CANONICAL_STIMULUS_QUALITY_STRENGTH",
+          "status": "NO_EXECUTABLE_AUTHORIZATION",
+          "reasonCodes": [
+            "B4_NUMERIC_AUTHORITY_DOES_NOT_AUTHORIZE_B6_CHANGE"
+          ]
+        }
+      ],
+      "strengthShortfalls": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "reason": "NO_EXECUTABLE_STRENGTH_PRESCRIPTION"
+        }
+      ],
+      "finalStrengthShortfalls": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "reason": "NO_EXECUTABLE_STRENGTH_PRESCRIPTION"
+        }
+      ],
+      "programNoticeCodes": [
+        "STRENGTH_EXPOSURE_SHORTFALL"
+      ],
+      "experimentalStrengthEligibleSetRows": [],
+      "strengthShortfallNotice": true,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b7": null,
+      "b8": null,
+      "route": "CONTROL",
+      "buildCounts": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona4_sparse",
+      "movementCoverage": "CORE_DIRECT",
+      "priorC31": {
+        "movementB3": "ADDRESS",
+        "movementB4Target": true,
+        "movementB5SelectedOwner": "ex_28347c1f",
+        "movementExecution": "GENUINE_NO_B6_POLICY"
+      },
+      "b1Strength": {
+        "current28dDirectUnits": 0,
+        "prior28dDirectUnits": 0,
+        "needDecision": "DEVELOP",
+        "relevance": "MODERATE",
+        "evidenceBasis": "REALIZED_PRESCRIPTION_CLASSIFIED",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE"
+        ]
+      },
+      "b2StrengthDoseHistory": {
+        "available": true,
+        "directUnits": 0,
+        "unclassifiedUnits": 0,
+        "classificationIncompleteWeeks": 0,
+        "numericBaselineEligibleWeeks": 1
+      },
+      "historyStrengthExposureAssessments": {
+        "REALIZED": 0,
+        "OVERPERFORMED": 0,
+        "UNCERTAIN": 0,
+        "NOT_STRENGTH": 3
+      },
+      "b3Strength": {
+        "decision": "DEVELOP",
+        "strategy": "INTRODUCE_DIRECT_STIMULUS",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE",
+          "NEED_DEVELOP",
+          "NEED_DECISION_DEVELOP",
+          "BASELINE_STATE_NO_PERSONAL_DIRECT_OBSERVED",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_COMPLETE",
+          "VALID_REVIEWED_ZERO_BASELINE_HISTORY",
+          "NO_PERSONAL_DIRECT_BASELINE",
+          "CANONICAL_PERSONAL_DIRECT_BASELINE_ABSENT",
+          "INTRODUCE_DIRECT_STIMULUS_WITHOUT_NUMERIC_DOSE_AUTHORITY",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LOW_BASELINE_CONFIDENCE"
+        ]
+      },
+      "b4Strength": {
+        "present": true,
+        "strategy": "INTRODUCE_DIRECT_STIMULUS",
+        "numericAuthority": "DIRECTION_ONLY",
+        "priority": "SECONDARY",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE",
+          "NEED_DEVELOP",
+          "NEED_DECISION_DEVELOP",
+          "BASELINE_STATE_NO_PERSONAL_DIRECT_OBSERVED",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_COMPLETE",
+          "VALID_REVIEWED_ZERO_BASELINE_HISTORY",
+          "NO_PERSONAL_DIRECT_BASELINE",
+          "CANONICAL_PERSONAL_DIRECT_BASELINE_ABSENT",
+          "INTRODUCE_DIRECT_STIMULUS_WITHOUT_NUMERIC_DOSE_AUTHORITY",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LOW_BASELINE_CONFIDENCE",
+          "LEDGER_AND_LEGACY_BASELINE_VALUES_MATCH",
+          "ZERO_OR_UNAVAILABLE_BASELINE_RETAINED",
+          "B4_TARGET_IS_OBSERVED_PERSONAL_EXPOSURE_NOT_OPTIMALITY",
+          "QUALITY_TARGET_ENVELOPES_ARE_NON_ADDITIVE",
+          "NOVEL_DIRECT_STIMULUS_NUMERIC_DOSE_NOT_AUTHORIZED"
+        ]
+      },
+      "movementDisposition": "ADDRESS",
+      "movementB4TargetPresent": true,
+      "movementB4NumericAuthority": "DIRECTION_ONLY",
+      "b5StrengthSelectedOwner": "barbell_bench_press",
+      "b5StrengthSelectionRole": "CANONICAL_STIMULUS_QUALITY_STRENGTH",
+      "b5MovementSelectedOwner": "ex_28347c1f",
+      "b5MovementSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT",
+      "movementMaterialization": {
+        "materializedOwnerWeeks": [],
+        "exactOwnerHasAuthorizedB6": false,
+        "unauthorizedExecutableOwnerWeeks": 0
+      },
+      "b6StrengthAuthorizations": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "stableKey": "barbell_bench_press",
+          "selectionRole": "CANONICAL_STIMULUS_QUALITY_STRENGTH",
+          "status": "NO_EXECUTABLE_AUTHORIZATION",
+          "reasonCodes": [
+            "B4_NUMERIC_AUTHORITY_DOES_NOT_AUTHORIZE_B6_CHANGE"
+          ]
+        }
+      ],
+      "strengthShortfalls": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "reason": "NO_EXECUTABLE_STRENGTH_PRESCRIPTION"
+        }
+      ],
+      "finalStrengthShortfalls": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "reason": "NO_EXECUTABLE_STRENGTH_PRESCRIPTION"
+        }
+      ],
+      "programNoticeCodes": [
+        "STRENGTH_EXPOSURE_SHORTFALL"
+      ],
+      "experimentalStrengthEligibleSetRows": [],
+      "strengthShortfallNotice": true,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b7": null,
+      "b8": null,
+      "route": "CONTROL",
+      "buildCounts": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    },
+    {
+      "case": "persona4_sparse",
+      "movementCoverage": "CALVES",
+      "priorC31": {
+        "movementB3": "ADDRESS",
+        "movementB4Target": true,
+        "movementB5SelectedOwner": "ex_5ca7133f",
+        "movementExecution": "GENUINE_NO_B6_POLICY"
+      },
+      "b1Strength": {
+        "current28dDirectUnits": 0,
+        "prior28dDirectUnits": 0,
+        "needDecision": "DEVELOP",
+        "relevance": "MODERATE",
+        "evidenceBasis": "REALIZED_PRESCRIPTION_CLASSIFIED",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE"
+        ]
+      },
+      "b2StrengthDoseHistory": {
+        "available": true,
+        "directUnits": 0,
+        "unclassifiedUnits": 0,
+        "classificationIncompleteWeeks": 0,
+        "numericBaselineEligibleWeeks": 1
+      },
+      "historyStrengthExposureAssessments": {
+        "REALIZED": 0,
+        "OVERPERFORMED": 0,
+        "UNCERTAIN": 0,
+        "NOT_STRENGTH": 3
+      },
+      "b3Strength": {
+        "decision": "DEVELOP",
+        "strategy": "INTRODUCE_DIRECT_STIMULUS",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE",
+          "NEED_DEVELOP",
+          "NEED_DECISION_DEVELOP",
+          "BASELINE_STATE_NO_PERSONAL_DIRECT_OBSERVED",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_COMPLETE",
+          "VALID_REVIEWED_ZERO_BASELINE_HISTORY",
+          "NO_PERSONAL_DIRECT_BASELINE",
+          "CANONICAL_PERSONAL_DIRECT_BASELINE_ABSENT",
+          "INTRODUCE_DIRECT_STIMULUS_WITHOUT_NUMERIC_DOSE_AUTHORITY",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LOW_BASELINE_CONFIDENCE"
+        ]
+      },
+      "b4Strength": {
+        "present": true,
+        "strategy": "INTRODUCE_DIRECT_STIMULUS",
+        "numericAuthority": "DIRECTION_ONLY",
+        "priority": "SECONDARY",
+        "reasonCodes": [
+          "GOAL_RELEVANCE_MODERATE",
+          "EXPOSURE_ABSENT",
+          "RESPONSE_INSUFFICIENT_EVIDENCE",
+          "DECISION_MATRIX_DEVELOP",
+          "DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE",
+          "REVIEWED_CANONICAL_ZERO_EXPOSURE",
+          "NEED_DEVELOP",
+          "NEED_DECISION_DEVELOP",
+          "BASELINE_STATE_NO_PERSONAL_DIRECT_OBSERVED",
+          "EVIDENCE_BASIS_REALIZED_PRESCRIPTION_CLASSIFIED",
+          "BASELINE_OBSERVABILITY_COMPLETE",
+          "VALID_REVIEWED_ZERO_BASELINE_HISTORY",
+          "NO_PERSONAL_DIRECT_BASELINE",
+          "CANONICAL_PERSONAL_DIRECT_BASELINE_ABSENT",
+          "INTRODUCE_DIRECT_STIMULUS_WITHOUT_NUMERIC_DOSE_AUTHORITY",
+          "INSUFFICIENT_RESPONSE_EVIDENCE",
+          "LOW_BASELINE_CONFIDENCE",
+          "LEDGER_AND_LEGACY_BASELINE_VALUES_MATCH",
+          "ZERO_OR_UNAVAILABLE_BASELINE_RETAINED",
+          "B4_TARGET_IS_OBSERVED_PERSONAL_EXPOSURE_NOT_OPTIMALITY",
+          "QUALITY_TARGET_ENVELOPES_ARE_NON_ADDITIVE",
+          "NOVEL_DIRECT_STIMULUS_NUMERIC_DOSE_NOT_AUTHORIZED"
+        ]
+      },
+      "movementDisposition": "ADDRESS",
+      "movementB4TargetPresent": true,
+      "movementB4NumericAuthority": "DIRECTION_ONLY",
+      "b5StrengthSelectedOwner": "barbell_bench_press",
+      "b5StrengthSelectionRole": "CANONICAL_STIMULUS_QUALITY_STRENGTH",
+      "b5MovementSelectedOwner": "ex_5ca7133f",
+      "b5MovementSelectionRole": "CANONICAL_STIMULUS_MOVEMENT_CALVES",
+      "movementMaterialization": {
+        "materializedOwnerWeeks": [],
+        "exactOwnerHasAuthorizedB6": false,
+        "unauthorizedExecutableOwnerWeeks": 0
+      },
+      "b6StrengthAuthorizations": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "stableKey": "barbell_bench_press",
+          "selectionRole": "CANONICAL_STIMULUS_QUALITY_STRENGTH",
+          "status": "NO_EXECUTABLE_AUTHORIZATION",
+          "reasonCodes": [
+            "B4_NUMERIC_AUTHORITY_DOES_NOT_AUTHORIZE_B6_CHANGE"
+          ]
+        }
+      ],
+      "strengthShortfalls": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "reason": "NO_EXECUTABLE_STRENGTH_PRESCRIPTION"
+        }
+      ],
+      "finalStrengthShortfalls": [
+        {
+          "targetId": "QUALITY:STRENGTH",
+          "reason": "NO_EXECUTABLE_STRENGTH_PRESCRIPTION"
+        }
+      ],
+      "programNoticeCodes": [
+        "STRENGTH_EXPOSURE_SHORTFALL"
+      ],
+      "experimentalStrengthEligibleSetRows": [],
+      "strengthShortfallNotice": true,
+      "upstreamFailureReason": "B9_EXPECTED_CANONICAL_EVALUATION_FAILURE",
+      "upstreamFailureDetails": [
+        "NO_EXECUTABLE_PLANNING_DEMAND"
+      ],
+      "b7": null,
+      "b8": null,
+      "route": "CONTROL",
+      "buildCounts": {
+        "control": 1,
+        "experimental": 1,
+        "total": 2,
+        "third": 0
+      }
+    }
+  ]
+}
