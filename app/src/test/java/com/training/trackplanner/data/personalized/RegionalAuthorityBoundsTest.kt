@@ -7,7 +7,7 @@ import org.junit.Test
 class RegionalAuthorityBoundsTest {
     private val f = PostGenerationFixture
     private val key = "barbell_deadlift"
-    private val role = "exact-regional-owner"
+    private val role = CANONICAL_STRENGTH_SELECTION_ROLE
     private val target = RegionalStimulusTarget(MovementCoverage.POSTERIOR_CHAIN, TrainableQuality.STRENGTH,
         RegionalTargetAction.RESTORE, RegionalNumericAuthority.PRE_DECLINE_PERSONAL_PATTERN, 7.0)
     private fun rx(n: Int) = PlannedPrescription("authorized", List(n) { ProgramSetPrescription(it + 1, 3, 190.0, 0) }, 120, "AUTHORIZED")
@@ -84,7 +84,7 @@ class RegionalAuthorityBoundsTest {
         val result = FinalRegionalStimulusProjector().project(target, f.plan(listOf(ordinary,regional)), snapshot,
             catalog, RegionalSelectionIdentity(key, role), 2, 5, 5)
         assertEquals("ordinary 2 + regional 5 must report regional 5", 5, result.targetCompatibleMaterializedUnits)
-        assertEquals(2, result.ordinarySameKeyCompatibleUnits)
+        assertEquals("ordinary same-key rows lack exact Strength-owner intent", 0, result.ordinarySameKeyCompatibleUnits)
         assertEquals(0, result.overrunUnits)
         val invalid = FinalRegionalStimulusProjector().project(target,
             f.plan(listOf(ordinary, regional.copy(setPrescriptions = rx(6).sets))), snapshot,

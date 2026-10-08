@@ -732,7 +732,10 @@ class RegionalTargetPrescriptionResolver(
         val canonicalStrengthAuthority = snapshot.canonicalStrengthSignals[item.stableKey]?.observationCount?.let { it >= 2 } == true
         if (canonicalStrengthAuthority && canonicalPrescription.sets.isNotEmpty() &&
             CanonicalStrengthExposureCapability.strengthPossible(item.stableKey) &&
-            canonicalPrescription.sets.all { provisionalRealizedStimulusClass(item.stableKey, it.reps) == RealizedStimulusClass.STRENGTH_LIKE } &&
+            canonicalPrescription.sets.all {
+                plannedTargetSetStimulusClass(item.stableKey, it.reps, item.role, TrainableQuality.STRENGTH) ==
+                    RealizedStimulusClass.STRENGTH_LIKE
+            } &&
             canonicalPrescription.sets.any { it.weightKg > 0.0 }
         ) {
             return Resolution(
@@ -763,9 +766,11 @@ object RegionalMaterialDemandOwnershipFilter {
             if (candidate.stableKey in anchors) return@filter true
             val prescription = planner.prescribe(snapshot, state.strengthIntent, candidate, candidate.style)
             val actualQualities = prescription.sets.mapNotNull { set ->
-                when (provisionalRealizedStimulusClass(candidate.stableKey, set.reps)) {
-                    RealizedStimulusClass.STRENGTH_LIKE -> TrainableQuality.STRENGTH
-                    RealizedStimulusClass.HYPERTROPHY_LIKE -> TrainableQuality.HYPERTROPHY
+                when {
+                    plannedTargetSetStimulusClass(candidate.stableKey, set.reps, candidate.role, TrainableQuality.STRENGTH) ==
+                        RealizedStimulusClass.STRENGTH_LIKE -> TrainableQuality.STRENGTH
+                    plannedTargetSetStimulusClass(candidate.stableKey, set.reps, candidate.role, TrainableQuality.HYPERTROPHY) ==
+                        RealizedStimulusClass.HYPERTROPHY_LIKE -> TrainableQuality.HYPERTROPHY
                     else -> null
                 }
             }.toSet()
@@ -832,8 +837,10 @@ class FinalRegionalStimulusProjector {
             }
         fun compatibleUnits(items: List<ProgramSkeletonItem>) = items.sumOf { item -> item.setPrescriptions.count { set ->
                 when (target.quality) {
-                    TrainableQuality.STRENGTH -> provisionalRealizedStimulusClass(item.exerciseStableKey, set.reps) == RealizedStimulusClass.STRENGTH_LIKE
-                    TrainableQuality.HYPERTROPHY -> provisionalRealizedStimulusClass(item.exerciseStableKey, set.reps) == RealizedStimulusClass.HYPERTROPHY_LIKE
+                    TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY ->
+                        plannedTargetSetStimulusClass(item.exerciseStableKey, set.reps, item.selectionRole, target.quality) ==
+                            if (target.quality == TrainableQuality.STRENGTH) RealizedStimulusClass.STRENGTH_LIKE
+                            else RealizedStimulusClass.HYPERTROPHY_LIKE
                     else -> false
                 }
             } }

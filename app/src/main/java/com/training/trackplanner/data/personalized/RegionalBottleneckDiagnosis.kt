@@ -567,8 +567,9 @@ class ProgramEmphasisProjector {
                     }.distinct()
                     .filter { quality ->
                         when (quality) {
-                            TrainableQuality.STRENGTH -> provisionalRealizedStimulusClass(item.exerciseStableKey, set.reps) == RealizedStimulusClass.STRENGTH_LIKE
-                            TrainableQuality.HYPERTROPHY -> provisionalRealizedStimulusClass(item.exerciseStableKey, set.reps) == RealizedStimulusClass.HYPERTROPHY_LIKE
+                            TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY ->
+                                plannedTargetSetStimulusClass(item.exerciseStableKey, set.reps, item.selectionRole, quality) ==
+                                    if (quality == TrainableQuality.STRENGTH) RealizedStimulusClass.STRENGTH_LIKE else RealizedStimulusClass.HYPERTROPHY_LIKE
                             TrainableQuality.POWER, TrainableQuality.RAPID_FORCE_PRODUCTION, TrainableQuality.REACTIVE_STRENGTH_SSC -> true
                             else -> false
                         }

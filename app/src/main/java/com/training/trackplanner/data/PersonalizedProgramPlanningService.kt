@@ -105,6 +105,8 @@ import com.training.trackplanner.data.personalized.ProductionGenerationObservati
 internal class PersonalizedProgramPlanningService(
     private val exerciseDao: ExerciseDao,
     private val workoutDao: WorkoutDao,
+    private val programDao: ProgramDao,
+    private val programProgressionDao: ProgramProgressionDao,
     private val profileDao: InitialUserProfileDao,
     private val appMetaDao: AppMetaDao,
     private val badmintonCatalog: CanonicalBadmintonObjectiveCatalog,
@@ -1441,6 +1443,22 @@ internal class PersonalizedProgramPlanningService(
         includeStimulusExposureLedger: Boolean = false
     ): com.training.trackplanner.data.personalized.PlanningHistorySnapshot {
         val history = workoutDao.entriesWithSetsUntil(cutoff.toString())
+        val strengthIntentHistory = if (includeStimulusExposureLedger) history.filter { workout ->
+            com.training.trackplanner.data.CanonicalStrengthExposureCapability.strengthPossible(workout.entry.exerciseStableKey) &&
+                workout.sets.any { it.confirmed }
+        } else emptyList()
+        val plannedStrengthSetIntents = if (strengthIntentHistory.isNotEmpty()) {
+            com.training.trackplanner.data.personalized.StrengthPlannedSetIntentResolver.resolve(
+                history = strengthIntentHistory,
+                programs = programDao.allPrograms(),
+                programItems = programDao.allProgramItems(),
+                progressionTracks = programProgressionDao.tracks(),
+                progressionItems = programProgressionDao.items(),
+                applications = programProgressionDao.applications(),
+                links = programProgressionDao.links(),
+                prescriptions = programProgressionDao.prescriptions()
+            )
+        } else emptyMap()
         val exercises = exerciseDao.allExercises()
         val profile = profileDao.profile()
         val dailyMetrics = dailyMetricDao.metricsUntil(cutoff.toString())
@@ -1497,7 +1515,8 @@ internal class PersonalizedProgramPlanningService(
         val roleCatalog = exerciseRoleRelationDao?.let { dao ->
             ExerciseRoleRelationCatalog.of(dao.allTrainingRoles(), dao.allProgramSlotCapabilities())
         } ?: ExerciseRoleRelationCatalog.EMPTY
-        val baseSnapshot = snapshotBuilder.build(cutoff, history, exercises, metadata, badmintonCatalog, profile, preferences, canonicalStrength, recovery, roleCatalog)
+        val baseSnapshot = snapshotBuilder.build(cutoff, history, exercises, metadata, badmintonCatalog, profile, preferences,
+            canonicalStrength, recovery, roleCatalog, plannedStrengthSetIntents)
         val snapshot = if (includeStimulusExposureLedger) {
             val loadResolver = StrengthPerformanceLoadResolver(dailyMetrics, checkIns, profile)
             baseSnapshot.copy(
@@ -1516,7 +1535,8 @@ internal class PersonalizedProgramPlanningService(
                     exerciseRoleCatalog = roleCatalog,
                     historyStart = qualityDoseHistoryHorizon(cutoff).ledgerStart,
                     reviewedCanonicalStableKeys = reviewedCanonicalStableKeys,
-                    strengthPerformanceHistory = strengthPerformanceHistory
+                    strengthPerformanceHistory = strengthPerformanceHistory,
+                    plannedStrengthSetIntents = plannedStrengthSetIntents
                 )
             )
         } else baseSnapshot

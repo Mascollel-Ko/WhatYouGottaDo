@@ -6,6 +6,7 @@ import com.training.trackplanner.data.TrainableQuality
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -29,14 +30,24 @@ class RealizedStimulusClassificationTest {
         loadSemantics = StrengthLoadSemantics.EXTERNAL_LOAD
     )
 
+    private fun plannedStrengthInput(actualReps: Int, plannedReps: Int = 5) = input(actualReps, key = "barbell_bench_press").copy(
+        strengthSetIntentEvidence = StrengthSetIntentEvidence(
+            intent = StrengthSetIntent.PLANNED_STRENGTH,
+            plannedReps = plannedReps,
+            selectionRole = CANONICAL_STRENGTH_SELECTION_ROLE,
+            sourceProgramStableKey = "exact-source-program",
+            sourceItemId = "exact-source-item"
+        )
+    )
+
     @Test
     fun strengthSixBoundaryExamplesAreFailClosed() {
         assertTrue(RealizedStimulusClassifier.classify(input(6)).isRealized)
         assertEquals(RealizedStimulusStatus.REVIEWED_NON_REALIZATION,
-            RealizedStimulusClassifier.classify(input(5, load = 69.9)).status)
-        assertFalse(RealizedStimulusClassifier.classify(input(5, reference = null)).isRealized)
+            RealizedStimulusClassifier.classify(input(5, load = 60.0, rpe = 5.0)).status)
+        assertTrue(RealizedStimulusClassifier.classify(input(5, reference = null, rpe = 8.0)).isRealized)
         assertEquals(RealizedStimulusStatus.REVIEWED_NON_REALIZATION,
-            RealizedStimulusClassifier.classify(input(5, rpe = 5.9)).status)
+            RealizedStimulusClassifier.classify(input(5, load = 60.0, rpe = 5.9)).status)
         assertTrue(RealizedStimulusClassifier.classify(input(5, rpe = null, impliedRir = 4.0)).isRealized)
         assertEquals(RealizedStimulusKind.STRENGTH_LIKE, RealizedStimulusClassifier.classify(input(1)).kind)
     }
@@ -70,6 +81,111 @@ class RealizedStimulusClassificationTest {
         assertEquals(RealizedStimulusKind.STRENGTH_LIKE, results[0].kind)
         assertEquals(RealizedStimulusKind.STRENGTH_LIKE, results[1].kind)
         assertEquals(RealizedStimulusKind.HYPERTROPHY_LIKE, results[2].kind)
+    }
+
+    @Test
+    fun plannedStrengthIntentSurvivesNormalAndSmallOverperformance() {
+        listOf(5 to StrengthExposureAssessment.REALIZED,
+            6 to StrengthExposureAssessment.OVERPERFORMED,
+            7 to StrengthExposureAssessment.OVERPERFORMED).forEach { (actual, expected) ->
+            val result = RealizedStimulusClassifier.classify(plannedStrengthInput(actual))
+            assertEquals(expected, result.strengthExposureAssessment)
+            assertEquals(StrengthSetIntent.PLANNED_STRENGTH, result.strengthSetIntent)
+            assertTrue(result.isRealized)
+        }
+    }
+
+    @Test
+    fun plannedStrengthLargeOverperformanceNeedsAnyOneReliableLoadOrEffortSignal() {
+        val rpeOnly = RealizedStimulusClassifier.classify(plannedStrengthInput(8).copy(
+            resolvedLoadKg = null, reference1RmKg = null, rpe = 8.0, impliedRir = null))
+        assertEquals(StrengthExposureAssessment.OVERPERFORMED, rpeOnly.strengthExposureAssessment)
+
+        val loadOnly = RealizedStimulusClassifier.classify(plannedStrengthInput(8).copy(
+            resolvedLoadKg = 75.0, reference1RmKg = 100.0, rpe = null, impliedRir = null))
+        assertEquals(StrengthExposureAssessment.OVERPERFORMED, loadOnly.strengthExposureAssessment)
+
+        val noEvidence = RealizedStimulusClassifier.classify(plannedStrengthInput(8).copy(
+            resolvedLoadKg = null, reference1RmKg = null, rpe = null, impliedRir = null))
+        assertEquals(StrengthExposureAssessment.UNCERTAIN, noEvidence.strengthExposureAssessment)
+        assertEquals(StrengthSetIntent.PLANNED_STRENGTH, noEvidence.strengthSetIntent)
+        assertFalse(noEvidence.isRealized)
+
+        val clearlyLow = RealizedStimulusClassifier.classify(plannedStrengthInput(12).copy(
+            resolvedLoadKg = 50.0, reference1RmKg = 100.0, rpe = 4.0, impliedRir = 6.0))
+        assertEquals(StrengthExposureAssessment.NOT_STRENGTH, clearlyLow.strengthExposureAssessment)
+        assertEquals(StrengthSetIntent.PLANNED_STRENGTH, clearlyLow.strengthSetIntent)
+    }
+
+    @Test
+    fun unplannedStrengthHistoryNeedsAnApprovedIdentityAndAnyOneEvidenceSignal() {
+        val relativeLoadOnly = RealizedStimulusClassifier.classify(input(5, key = "barbell_deadlift")
+            .copy(rpe = null, resolvedLoadKg = 75.0, reference1RmKg = 100.0))
+        assertEquals(StrengthExposureAssessment.REALIZED, relativeLoadOnly.strengthExposureAssessment)
+
+        val rpeOnly = RealizedStimulusClassifier.classify(input(5, key = "barbell_deadlift")
+            .copy(rpe = 8.0, resolvedLoadKg = null, reference1RmKg = null))
+        assertEquals(StrengthExposureAssessment.REALIZED, rpeOnly.strengthExposureAssessment)
+
+        val insufficient = RealizedStimulusClassifier.classify(input(5, key = "barbell_deadlift")
+            .copy(rpe = null, resolvedLoadKg = null, reference1RmKg = null, impliedRir = null))
+        assertEquals(StrengthExposureAssessment.UNCERTAIN, insufficient.strengthExposureAssessment)
+        assertTrue(insufficient.isUnclassified)
+
+        listOf("barbell_reverse_curl", "machine_chest_press", "pull_up", "machine_shoulder_press",
+            "lat_pulldown", "leg_press", "barbell_romanian_deadlift", "ex_6466fe77", "ex_7814843a")
+            .forEach { key ->
+                val result = RealizedStimulusClassifier.classify(input(5, key = key))
+                assertEquals("$key must not receive Strength credit", StrengthExposureAssessment.NOT_STRENGTH,
+                    result.strengthExposureAssessment)
+                assertFalse("$key must not receive Strength credit", result.isRealized && result.kind == RealizedStimulusKind.STRENGTH_LIKE)
+            }
+    }
+
+    @Test
+    fun exactPlanLinkageChangesStrengthInterpretationButRepSimilarityDoesNot() {
+        val plannedSeven = RealizedStimulusClassifier.classify(plannedStrengthInput(7))
+        assertEquals(StrengthExposureAssessment.OVERPERFORMED, plannedSeven.strengthExposureAssessment)
+        val unplannedSeven = RealizedStimulusClassifier.classify(input(7, key = "barbell_bench_press"))
+        assertFalse(unplannedSeven.kind == RealizedStimulusKind.STRENGTH_LIKE)
+        assertNotEquals(StrengthSetIntent.PLANNED_STRENGTH, unplannedSeven.strengthSetIntent)
+    }
+
+    @Test
+    fun plannedStrengthOverperformanceIsNotAutomaticallyHypertrophyCredit() {
+        val key = "barbell_bench_press"
+        val row = PlanningSetRecord(
+            date, key, "Bench Press", "RESISTANCE", 1, 8, 40.0, 0, null,
+            StrengthSetIntentEvidence(
+                intent = StrengthSetIntent.PLANNED_STRENGTH,
+                plannedReps = 5,
+                selectionRole = CANONICAL_STRENGTH_SELECTION_ROLE
+            )
+        )
+        val metadata = com.training.trackplanner.data.RuntimeExerciseMetadataDefaults.forIdentity(key, key).copy(
+            analysisEligibility = com.training.trackplanner.data.MetadataTokenField.parse("HYPERTROPHY_VOLUME")
+        )
+        val snapshot = PlanningHistorySnapshot(
+            cutoff = date,
+            allConfirmedSets = listOf(row),
+            exercises = mapOf(key to com.training.trackplanner.data.Exercise(key, key, "RESISTANCE")),
+            metadata = mapOf(key to metadata),
+            badmintonObjectives = emptyMap(),
+            profilePrimaryGoal = "STRENGTH_GAIN",
+            strengthTrainingYears = 1.0,
+            badmintonTrainingYears = 0.0,
+            preferences = PersonalizedPlanningPreferences()
+        )
+
+        assertEquals(0.0, snapshot.hypertrophyStimulus(row), 0.0)
+    }
+
+    @Test
+    fun lowRepPowerAndTaskWorkDoNotBecomeStrength() {
+        listOf("power_clean", "ex_314df428", "ex_33841b88").forEach { key ->
+            val result = RealizedStimulusClassifier.classify(input(3, key = key, quality = TrainableQuality.POWER))
+            assertFalse("$key must remain outside Strength", result.isRealized && result.kind == RealizedStimulusKind.STRENGTH_LIKE)
+        }
     }
 
     @Test
@@ -113,7 +229,9 @@ class RealizedStimulusClassificationTest {
 
     @Test
     fun capabilityProxyCannotBecomeRealizedPrescription() {
-        val power = RealizedStimulusClassifier.classify(input(5, quality = TrainableQuality.POWER))
+        val power = RealizedStimulusClassifier.classify(input(5, key = "power_clean", quality = TrainableQuality.POWER).copy(
+            activityKind = PlannedActivityKind.ATHLETIC_PERFORMANCE_DRILL
+        ))
         assertEquals(RealizedStimulusStatus.UNCLASSIFIED, power.status)
         assertFalse(power.isRealized)
     }

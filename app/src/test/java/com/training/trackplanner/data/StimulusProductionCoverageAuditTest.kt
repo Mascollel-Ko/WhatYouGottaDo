@@ -93,7 +93,10 @@ class StimulusProductionCoverageAuditTest {
         assertFalse("an unavailable Strength owner must not leak into an EXP skeleton",
             result.comparison?.experimental?.items.orEmpty().any { item ->
                 item.selectionRole.startsWith("CANONICAL_STIMULUS_QUALITY_STRENGTH") &&
-                    item.setPrescriptions.any { CanonicalStrengthExposureCapability.strengthExposureEligible(item.exerciseStableKey, it.reps) }
+                    item.setPrescriptions.any {
+                        plannedTargetSetStimulusClass(item.exerciseStableKey, it.reps, item.selectionRole, TrainableQuality.STRENGTH) ==
+                            RealizedStimulusClass.STRENGTH_LIKE
+                    }
             })
     }
 
@@ -214,7 +217,8 @@ class StimulusProductionCoverageAuditTest {
             val comparison = result.comparison ?: return@forEach
             comparison.experimental.items.forEach { item ->
                 item.setPrescriptions.filter { set ->
-                    CanonicalStrengthExposureCapability.strengthExposureEligible(item.stableKey, set.reps)
+                    plannedTargetSetStimulusClass(item.stableKey, set.reps, item.selectionRole, TrainableQuality.STRENGTH) ==
+                        RealizedStimulusClass.STRENGTH_LIKE
                 }.forEach { set ->
                     assertTrue(
                         "${spec.label} ${item.stableKey}#${item.selectionRole} ${set.reps} reps must have exact authorized Strength B6",
@@ -1001,8 +1005,9 @@ class StimulusProductionCoverageAuditTest {
             selectionByCase = c30SelectionPlanByCase,
             authorizationByCase = c30AuthorizationPlanByCase,
             generationByCase = generatedByCase,
+            preparedContextByCase = productionContextByCase,
             generationTimeMillisByCase = c29GenerationDurationsByCase,
-            startSha = "0fff801c409443da962369c0a001ad4f909bb378"
+            startSha = "67eb6a609df8751424298a4b05d33a7353c7b1f4"
         )
         assertEquals(c32StrengthCensus, C32StrengthExposureCorpusCensus.render(
             c29Census = c29Census,
@@ -1010,8 +1015,9 @@ class StimulusProductionCoverageAuditTest {
             selectionByCase = c30SelectionPlanByCase,
             authorizationByCase = c30AuthorizationPlanByCase,
             generationByCase = generatedByCase,
+            preparedContextByCase = productionContextByCase,
             generationTimeMillisByCase = c29GenerationDurationsByCase,
-            startSha = "0fff801c409443da962369c0a001ad4f909bb378"
+            startSha = "67eb6a609df8751424298a4b05d33a7353c7b1f4"
         ))
         val c32StrengthJson = org.json.JSONObject(c32StrengthCensus)
         val c32StrengthSummary = c32StrengthJson.getJSONObject("summary")
@@ -1027,12 +1033,19 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(0, c32StrengthSummary.getInt("noMinimumStrengthCasesWithFalseShortfallNotice"))
         assertEquals(22, c32StrengthSummary.getJSONObject("allGeneratedCorpusGenerationTimeMs").getInt("generatedCases"))
         assertEquals(0, c32StrengthSummary.getInt("movementUnauthorizedExecutableRows"))
+        val assessments = c32StrengthSummary.getJSONObject("historyStrengthExposureAssessments")
+        assertTrue(assessments.getInt("REALIZED") >= 0)
+        assertTrue(assessments.getInt("OVERPERFORMED") >= 0)
+        assertTrue(assessments.getInt("UNCERTAIN") >= 0)
+        assertTrue(assessments.getInt("NOT_STRENGTH") >= 0)
+        assertTrue(c32StrengthSummary.has("b1StrengthCurrent28dDirectUnits"))
+        assertTrue(c32StrengthSummary.has("b2StrengthDoseHistory"))
         val c32Builds = c32StrengthSummary.getJSONObject("builds")
         assertEquals(5, c32Builds.getInt("control"))
         assertEquals(5, c32Builds.getInt("experimental"))
         assertEquals(10, c32Builds.getInt("total"))
         assertEquals(0, c32Builds.getInt("third"))
-        java.io.File("build/reports/c32-strength-exposure-census.json").apply {
+        java.io.File("build/reports/c32.1-strength-intent-exposure-census.json").apply {
             parentFile?.mkdirs()
             writeText(c32StrengthCensus)
         }

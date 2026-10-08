@@ -39,8 +39,29 @@ class StimulusTargetCandidateSelectorTest {
             result.strengthShortfalls
         )
         val disposition = result.candidateDispositionIndex.entries.single()
-        assertEquals(StimulusCandidateDispositionStatus.INELIGIBLE, disposition.status)
+        assertEquals(StimulusCandidateDispositionStatus.NOT_RELEVANT_TO_TARGET, disposition.status)
         assertTrue(StimulusCandidateDispositionReason.STRENGTH_CAPABILITY_NOT_APPROVED in disposition.reasons)
+    }
+
+    @Test
+    fun allTenApprovedStrengthIdentitiesRemainCanonicalB5CandidatesEvenWithSupportiveLegacyRelations() {
+        val approved = listOf(
+            "barbell_back_squat", "ex_c5043892", "barbell_deadlift", "ex_e41f4c2b", "ex_e41e8dcf",
+            "barbell_bench_press", "ex_3a7d3eda", "ex_32219f7a", "ex_79f3bdbe", "ex_bb4b4276"
+        )
+        val fixture = fixture(approved.map(::exercise), approved.map {
+            relation(it, StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY)
+        })
+
+        val result = select(qualityPlan(), fixture, emptyList())
+
+        assertEquals(approved.toSet(), result.traces.single().candidatePool.toSet())
+        approved.forEach { stableKey ->
+            val disposition = result.candidateDispositionIndex.entries.single { it.stableKey == stableKey }
+            assertTrue("$stableKey must be B5 eligible by the exact approved capability", disposition.directTargetCandidate)
+            assertFalse("$stableKey must not be rejected as lacking direct capability",
+                StimulusCandidateDispositionReason.NO_DIRECT_CAPABILITY in disposition.reasons)
+        }
     }
 
     @Test
@@ -60,7 +81,7 @@ class StimulusTargetCandidateSelectorTest {
         assertFalse(result.traces.single().candidatePool.contains("supportive"))
         val supportiveDisposition = result.candidateDispositionIndex.entries.single { it.stableKey == "supportive" }
         assertEquals(StimulusCandidateDispositionStatus.NOT_RELEVANT_TO_TARGET, supportiveDisposition.status)
-        assertEquals(listOf(StimulusCandidateDispositionReason.NO_DIRECT_CAPABILITY), supportiveDisposition.reasons)
+        assertEquals(listOf(StimulusCandidateDispositionReason.STRENGTH_CAPABILITY_NOT_APPROVED), supportiveDisposition.reasons)
     }
 
     @Test
@@ -104,8 +125,8 @@ class StimulusTargetCandidateSelectorTest {
 
     @Test
     fun noMinimumAndExcludedOwnersReceiveTypedNonSelectionReasons() {
-        val candidate = exercise("candidate")
-        val fixture = fixture(listOf(candidate), listOf(relation("candidate")))
+        val candidate = exercise("barbell_back_squat")
+        val fixture = fixture(listOf(candidate), listOf(relation("barbell_back_squat")))
         val noDemandPlan = qualityPlan().copy(qualityTargets = listOf(target(
             TrainableQuality.STRENGTH, TargetPriority.PRIMARY, StimulusDoseStrategy.NO_MINIMUM_TARGET,
             StimulusTargetNumericAuthority.NONE
@@ -115,7 +136,7 @@ class StimulusTargetCandidateSelectorTest {
         assertEquals(StimulusCandidateDispositionReason.NO_MINIMUM_TARGET, noDemand.reasons.single())
 
         val excluded = select(qualityPlan(), fixture.copy(request = fixture.request.copy(
-            excludedExerciseStableKeys = setOf("candidate")
+            excludedExerciseStableKeys = setOf("barbell_back_squat")
         )), emptyList()).candidateDispositionIndex.entries.single()
         assertEquals(StimulusCandidateDispositionStatus.INELIGIBLE, excluded.status)
         assertTrue(StimulusCandidateDispositionReason.USER_EXCLUDED in excluded.reasons)

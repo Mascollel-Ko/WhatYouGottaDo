@@ -9,7 +9,7 @@ import com.training.trackplanner.data.personalized.placementSessionFits
 import java.security.MessageDigest
 
 /** Current builder contract recorded on accepted canonical programs. */
-internal const val CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.64.0"
+internal const val CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.65.0"
 
 /** A typed view of TrainingProgram.stableKey; it is independent of exercise stable keys. */
 @JvmInline
@@ -128,6 +128,7 @@ internal data class CanonicalIncumbentPlacementIndex(
             val sourceContract = builderVersion to runtimeVersion
             val supportedContracts = setOf(
                 expectedBuilderProtocolVersion to expectedPlannerRuntimeVersion,
+                C32_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION to C32_PERSONALIZED_PLANNER_PROTOCOL_VERSION,
                 C24_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION to C24_PERSONALIZED_PLANNER_PROTOCOL_VERSION,
                 C23_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION to C23_PERSONALIZED_PLANNER_PROTOCOL_VERSION,
                 C22_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION to C22_PERSONALIZED_PLANNER_PROTOCOL_VERSION,
@@ -186,6 +187,9 @@ internal data class CanonicalIncumbentPlacementIndex(
 /** C19 persisted exact lineage/roles before C20 changed placement behavior. */
 private const val C19_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.54.0"
 private const val C19_PERSONALIZED_PLANNER_PROTOCOL_VERSION = "RECORD_BASED_PLANNER_0.14.6_KOTLIN_1"
+/** C32 exact Strength exposure programs remain compatible after the C32.1 intent/evidence split. */
+private const val C32_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.64.0"
+private const val C32_PERSONALIZED_PLANNER_PROTOCOL_VERSION = "RECORD_BASED_PLANNER_0.15.6_KOTLIN_1"
 /** C20 persisted exact incumbent sources remain eligible after the C21 planner contract bump. */
 private const val C20_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.55.0"
 private const val C20_PERSONALIZED_PLANNER_PROTOCOL_VERSION = "RECORD_BASED_PLANNER_0.14.7_KOTLIN_1"

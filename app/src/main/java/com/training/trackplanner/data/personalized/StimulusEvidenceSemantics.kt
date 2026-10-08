@@ -70,6 +70,7 @@ internal fun qualityObservationClassification(
     if (quality == TrainableQuality.STRENGTH || quality == TrainableQuality.HYPERTROPHY) {
         return when (observation.realizedStimulusClassification.status) {
             RealizedStimulusStatus.REALIZED,
+            RealizedStimulusStatus.OVERPERFORMED,
             RealizedStimulusStatus.REVIEWED_NON_REALIZATION -> QualityObservationClassification.CLASSIFIED
             RealizedStimulusStatus.UNCLASSIFIED -> QualityObservationClassification.UNCLASSIFIED
         }
@@ -91,7 +92,8 @@ internal fun qualityObservationDisposition(
     if (classification == QualityObservationClassification.UNCLASSIFIED) return QualityObservationDisposition.UNCLASSIFIED
     if (quality == TrainableQuality.STRENGTH || quality == TrainableQuality.HYPERTROPHY) {
         return when (observation.realizedStimulusClassification.status) {
-            RealizedStimulusStatus.REALIZED -> if (
+            RealizedStimulusStatus.REALIZED,
+            RealizedStimulusStatus.OVERPERFORMED -> if (
                 realizedPrescriptionCompatible(quality, observation.realizedStimulusClassification)
             ) QualityObservationDisposition.COMPATIBLE_REALIZATION
             else QualityObservationDisposition.REVIEWED_NON_REALIZATION

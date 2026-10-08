@@ -29,10 +29,14 @@ class PostGenerationAuthorityFreezeTest {
         // canonical EXP generation; it does not change candidate ranking or create a dose.
         // C32 narrows observed Strength exposure to the exact approved capability and 1-6 reps;
         // unrelated state construction and history authority remain frozen.
+        // C32.1 preserves uncertain approved-key exposure as UNKNOWN rather than converting it
+        // to absent, while keeping the canonical Strength identity boundary intact.
+        // C32.1 also carries confirmed source IDs and the persisted planned-set link into history
+        // so Strength intent is accepted only from the exact saved Strength owner and set.
         val frozen = mapOf(
             // Domain-separated volume and court-deviation trace are the approved
             // changes in this follow-up; keep the remaining authorities frozen.
-            "AthletePlanningStateBuilder.kt" to "6f9538c1acf0a1ffc5ece658b72bdbe8311316a9b7756c4bdfc4a59edb13ed8d",
+            "AthletePlanningStateBuilder.kt" to "1a20d50280884f9eb916d7a28b249d124552fbd275f0df1f34939f915126271a",
             // Approved Phase A closeout correction: the snapshot resolver delegates to the
             // explicit-argument resolver; classification branch order/predicates remain
             // unchanged, and production uses the explicit overload only in the shadow ledger.
@@ -45,7 +49,7 @@ class PostGenerationAuthorityFreezeTest {
             "ExecutionAllocationPlanner.kt" to "ac63cbefadd6a3a5413c4dd65b3b84ee6ed4fd9cffa6c16836fda07b33737ed4",
             "PerformancePrescriptionResolver.kt" to "48eda34c9e390ca109bbb1e19e7a8ac79802f01f60c25470f92c8eb7f87063be",
             "RecordBasedReviewedPolicy.kt" to "915be5354ac988774f740a366655d26f74cb3c8e2f820eecf63e8914b671ed08",
-            "PlanningHistorySnapshotBuilder.kt" to "8cb9bd8c1be966e4878d2fa7cb3bf72ea0f722c7a565ac38a728323da755ddc3",
+            "PlanningHistorySnapshotBuilder.kt" to "86cd17bf56f36e2759bb8cd507b0c0162d9023627898ba1fd3dfb64558bce76f",
             "TrainingStateAssessment.kt" to "9027cb6d45422fc2cdecafa19fbec34a8b8fcba8c14cc594058d15e802e53bf2",
             "TrainingStateRouting.kt" to "bcbc769d004c80cf76a8b2ea1d69344be69b22892d769c591a58d0edecd042e0"
         )

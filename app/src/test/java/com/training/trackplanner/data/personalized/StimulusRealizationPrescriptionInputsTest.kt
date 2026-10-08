@@ -74,16 +74,22 @@ class StimulusRealizationPrescriptionInputsTest {
         stimulusExposureLedger = if (reviewed) StimulusExposureLedger(
             facetProfilesByStableKey = emptyMap(),
             setObservations = history.mapIndexed { index, row ->
-                val qualityKind = when {
-                    CanonicalStrengthExposureCapability.strengthExposureEligible(row.stableKey, row.reps) -> RealizedStimulusKind.STRENGTH_LIKE
-                    row.reps in 7..15 -> RealizedStimulusKind.HYPERTROPHY_LIKE
-                    else -> RealizedStimulusKind.NONE
+                val directQuality = when {
+                    CanonicalStrengthExposureCapability.strengthPossible(row.stableKey) && row.reps in 1..6 -> TrainableQuality.STRENGTH
+                    row.reps in 7..15 -> TrainableQuality.HYPERTROPHY
+                    else -> null
                 }
-                val quality = when (qualityKind) {
-                    RealizedStimulusKind.STRENGTH_LIKE -> TrainableQuality.STRENGTH
-                    RealizedStimulusKind.HYPERTROPHY_LIKE -> TrainableQuality.HYPERTROPHY
-                    RealizedStimulusKind.NONE -> TrainableQuality.POWER
-                }
+                val classification = RealizedStimulusClassifier.classify(RealizedStimulusInput(
+                    stableKey = row.stableKey,
+                    date = row.date,
+                    activityKind = PlannedActivityKind.RESISTANCE,
+                    reps = row.reps,
+                    resolvedLoadKg = row.weightKg.takeIf { it > 0.0 },
+                    rpe = row.rpe,
+                    directQualities = setOfNotNull(directQuality),
+                    reviewedIdentity = true,
+                    reference1RmKg = canonicalStrengthSignals[row.stableKey]?.posteriorMedianKg
+                ))
                 StimulusSetObservation(
                     source = StimulusSourceRef(index.toLong() + 1L, "reviewed-${index + 1}", index.toLong() + 1L,
                         row.setIndex, "reviewed-${row.date}", row.date, row.stableKey),
@@ -92,24 +98,11 @@ class StimulusRealizationPrescriptionInputsTest {
                     weightKg = row.weightKg,
                     seconds = row.seconds,
                     rpe = row.rpe,
-                    realizedPrescriptionClass = when (qualityKind) {
-                        RealizedStimulusKind.STRENGTH_LIKE -> RealizedStimulusClass.STRENGTH_LIKE
-                        RealizedStimulusKind.HYPERTROPHY_LIKE -> RealizedStimulusClass.HYPERTROPHY_LIKE
-                        RealizedStimulusKind.NONE -> RealizedStimulusClass.AMBIGUOUS_REALIZED_STIMULUS
-                    },
+                    realizedPrescriptionClass = classification.toLegacyClass(),
                     facetProfileKey = key,
-                    classificationAuthority = StimulusClassificationAuthority.REVIEWED_CANONICAL,
-                    realizedStimulusClassification = RealizedStimulusClassification(
-                        kind = qualityKind,
-                        status = if (qualityKind == RealizedStimulusKind.NONE) RealizedStimulusStatus.REVIEWED_NON_REALIZATION else RealizedStimulusStatus.REALIZED,
-                        authority = RealizedStimulusAuthority.REVIEWED,
-                        resolvedLoadKg = row.weightKg.takeIf { it > 0.0 },
-                        reference1RmKg = if (qualityKind == RealizedStimulusKind.STRENGTH_LIKE) 50.0 else null,
-                        relativeIntensity = if (qualityKind == RealizedStimulusKind.STRENGTH_LIKE) row.weightKg / 50.0 else null,
-                        observedRpe = row.rpe,
-                        impliedRir = 2.0,
-                        reasonCodes = listOf("TEST_REVIEWED_REALIZATION")
-                    )
+                    classificationAuthority = if (classification.isUnclassified) StimulusClassificationAuthority.UNCLASSIFIED
+                        else StimulusClassificationAuthority.REVIEWED_CANONICAL,
+                    realizedStimulusClassification = classification
                 )
             },
             courtObservations = emptyList(), cutoff = LocalDate.of(2026, 9, 30)

@@ -1,6 +1,7 @@
 package com.training.trackplanner.data.personalized
 
 import com.training.trackplanner.data.CanonicalExercisePhysicalQualityCatalog
+import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.ExercisePhysicalQualityRelation
 import com.training.trackplanner.data.MetadataTokenField
 import com.training.trackplanner.data.RuntimeExerciseMetadata
@@ -235,7 +236,9 @@ class AthleteNeedsProfileTest {
         directObjectives: Map<String, Set<String>> = emptyMap(),
         supportiveObjectives: Map<String, Set<String>> = emptyMap(),
         recovery: PlanningRecoverySignals = PlanningRecoverySignals()
-    ) = PlanningHistorySnapshot(cutoff, rows, emptyMap(), metadata, emptyMap(), goal, 1.0, 0.0,
+    ) = PlanningHistorySnapshot(cutoff, rows, rows.map { it.stableKey }.distinct().associateWith { key ->
+        Exercise(key, key, "RESISTANCE")
+    }, metadata, emptyMap(), goal, 1.0, 0.0,
         PersonalizedPlanningPreferences(), canonicalStrengthSignals = signals, recoverySignals = recovery,
         badmintonDirectObjectives = directObjectives, badmintonSupportiveObjectives = supportiveObjectives)
 

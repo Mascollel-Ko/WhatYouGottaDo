@@ -14,8 +14,8 @@ internal data class TargetCompatiblePersonalSet(
 
 /**
  * Shared target-compatible history policy for regional prescription resolution and canonical
- * B6. The B6 caller requires reviewed ledger evidence; the older regional shadow path keeps its
- * documented legacy projection when a fixture has no ledger.
+ * B6. The B6 caller requires reviewed ledger evidence; the regional shadow path may run without a
+ * ledger but still uses the shared evidence-aware Strength exposure classifier.
  */
 internal fun latestTargetCompatiblePersonalSet(
     quality: TrainableQuality,
@@ -37,7 +37,7 @@ internal fun latestTargetCompatiblePersonalSet(
             else TargetCompatiblePersonalSet(row, load, realization.reference1RmKg, realization.relativeIntensity)
         } else {
             val compatible = when (quality) {
-                TrainableQuality.STRENGTH -> CanonicalStrengthExposureCapability.strengthExposureEligible(stableKey, row.reps) &&
+                TrainableQuality.STRENGTH -> snapshot.historyRealizedKind(row) == RealizedStimulusKind.STRENGTH_LIKE &&
                     row.weightKg.isFinite() && row.weightKg > 0.0
                 TrainableQuality.HYPERTROPHY -> snapshot.historyRealizedKind(row) == RealizedStimulusKind.HYPERTROPHY_LIKE
                 else -> false

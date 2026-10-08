@@ -25,7 +25,8 @@ class PlanningHistorySnapshotBuilder {
         preferences: PersonalizedPlanningPreferences,
         canonicalStrengthSignals: Map<String, CanonicalStrengthSignal> = emptyMap(),
         recoverySignals: PlanningRecoverySignals = PlanningRecoverySignals(),
-        exerciseRoleCatalog: ExerciseRoleRelationCatalog = ExerciseRoleRelationCatalog.EMPTY
+        exerciseRoleCatalog: ExerciseRoleRelationCatalog = ExerciseRoleRelationCatalog.EMPTY,
+        plannedStrengthSetIntents: Map<StrengthSetSourceIdentity, StrengthSetIntentEvidence> = emptyMap()
     ): PlanningHistorySnapshot {
         val exerciseByKey = exercises.associateBy(Exercise::stableKey)
         val confirmed = history.asSequence()
@@ -42,11 +43,17 @@ class PlanningHistorySnapshotBuilder {
                         reps = set.reps,
                         weightKg = set.weightKg,
                         seconds = set.seconds,
-                        rpe = set.rpe ?: record.entry.rpe
+                        rpe = set.rpe ?: record.entry.rpe,
+                        sourceEntryId = record.entry.id,
+                        sourceSetId = set.id,
+                        strengthSetIntentEvidence = plannedStrengthSetIntents[
+                            StrengthSetSourceIdentity(record.entry.id, set.setIndex)
+                        ] ?: StrengthSetIntentEvidence()
                     )
                 }
             }
-            .sortedWith(compareBy(PlanningSetRecord::date, PlanningSetRecord::stableKey, PlanningSetRecord::setIndex))
+            .sortedWith(compareBy(PlanningSetRecord::date, PlanningSetRecord::stableKey, PlanningSetRecord::setIndex)
+                .thenBy(PlanningSetRecord::sourceEntryId).thenBy(PlanningSetRecord::sourceSetId))
             .toList()
         require(confirmed.isNotEmpty()) { "기록 기반 계획에 사용할 완료 세트가 없습니다." }
         require(confirmed.all { it.stableKey.isNotBlank() && it.stableKey in exerciseByKey }) {

@@ -158,7 +158,7 @@ class StimulusEvidenceObservabilityTest {
     @Test
     fun reviewedNonRealizationIsAValidStrengthZero() {
         val horizon = qualityDoseHistoryHorizon(cutoff)
-        val key = "reviewed-zero"
+        val key = "barbell_back_squat"
         val reviewedZero = observation(key, 1, horizon.newestCompletedWeekEnd,
             StimulusClassificationAuthority.REVIEWED_CANONICAL).copy(
             realizedStimulusClassification = RealizedStimulusClassification.reviewedNonRealization()
@@ -193,12 +193,11 @@ class StimulusEvidenceObservabilityTest {
         val horizon = qualityDoseHistoryHorizon(cutoff)
         val excludedStart = horizon.completedWeekEnds[1].minusDays(6)
         val observations = listOf(
-            observation("direct", 1, horizon.newestCompletedWeekEnd, StimulusClassificationAuthority.REVIEWED_CANONICAL),
-            observation("custom", 2, horizon.completedWeekEnds[1], StimulusClassificationAuthority.UNCLASSIFIED)
+            observation("barbell_back_squat", 1, horizon.newestCompletedWeekEnd, StimulusClassificationAuthority.REVIEWED_CANONICAL),
+            observation("barbell_back_squat", 2, horizon.completedWeekEnds[1], StimulusClassificationAuthority.UNCLASSIFIED)
         )
         val profiles = mapOf(
-            "direct" to profile("direct", relation("direct", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY)),
-            "custom" to profile("custom", relation("custom", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY))
+            "barbell_back_squat" to profile("barbell_back_squat", relation("barbell_back_squat", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY))
         )
         val baseline = analyze(snapshot(ledger(observations, profiles)), stateWithExcludedWeek(excludedStart))
         assertEquals(DoseBaselineObservability.COMPLETE, baseline.baselineObservability.getValue(TrainableQuality.STRENGTH))
@@ -214,13 +213,12 @@ class StimulusEvidenceObservabilityTest {
     fun observedDirectBaselineSurvivesPartialClassificationButNumericAuthorityDoesNot() {
         val horizon = qualityDoseHistoryHorizon(cutoff)
         val observations = listOf(
-            observation("direct", 1, horizon.completedWeekEnds[0], StimulusClassificationAuthority.REVIEWED_CANONICAL),
-            observation("direct", 2, horizon.completedWeekEnds[1], StimulusClassificationAuthority.REVIEWED_CANONICAL),
-            observation("custom", 3, horizon.completedWeekEnds[2], StimulusClassificationAuthority.UNCLASSIFIED)
+            observation("barbell_back_squat", 1, horizon.completedWeekEnds[0], StimulusClassificationAuthority.REVIEWED_CANONICAL),
+            observation("barbell_back_squat", 2, horizon.completedWeekEnds[1], StimulusClassificationAuthority.REVIEWED_CANONICAL),
+            observation("barbell_back_squat", 3, horizon.completedWeekEnds[2], StimulusClassificationAuthority.UNCLASSIFIED)
         )
         val profiles = mapOf(
-            "direct" to profile("direct", relation("direct", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY)),
-            "custom" to profile("custom", relation("custom", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY))
+            "barbell_back_squat" to profile("barbell_back_squat", relation("barbell_back_squat", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY))
         )
         val baseline = analyze(snapshot(ledger(observations, profiles)))
         assertEquals(DoseBaselineObservability.PARTIAL_UNCLASSIFIED, baseline.baselineObservability.getValue(TrainableQuality.STRENGTH))
@@ -247,13 +245,12 @@ class StimulusEvidenceObservabilityTest {
     fun incompletePriorWindowWithholdsExactTrendComparison() {
         val horizon = qualityDoseHistoryHorizon(cutoff)
         val observations = buildList {
-            repeat(5) { add(observation("direct", it.toLong() + 1, cutoff.minusDays(2), StimulusClassificationAuthority.REVIEWED_CANONICAL)) }
-            repeat(2) { add(observation("direct", it.toLong() + 20, cutoff.minusDays(35), StimulusClassificationAuthority.REVIEWED_CANONICAL)) }
-            repeat(3) { add(observation("custom", it.toLong() + 40, cutoff.minusDays(35), StimulusClassificationAuthority.UNCLASSIFIED)) }
+            repeat(5) { add(observation("barbell_back_squat", it.toLong() + 1, cutoff.minusDays(2), StimulusClassificationAuthority.REVIEWED_CANONICAL)) }
+            repeat(2) { add(observation("barbell_back_squat", it.toLong() + 20, cutoff.minusDays(35), StimulusClassificationAuthority.REVIEWED_CANONICAL)) }
+            repeat(3) { add(observation("barbell_back_squat", it.toLong() + 40, cutoff.minusDays(35), StimulusClassificationAuthority.UNCLASSIFIED)) }
         }
         val profiles = mapOf(
-            "direct" to profile("direct", relation("direct", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY)),
-            "custom" to profile("custom", relation("custom", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY))
+            "barbell_back_squat" to profile("barbell_back_squat", relation("barbell_back_squat", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY))
         )
         val need = AthleteStimulusNeedEngine().analyze(snapshot(ledger(observations, profiles)), emptyState())
         val strength = need.qualityNeeds.single { it.quality == TrainableQuality.STRENGTH }
@@ -292,13 +289,13 @@ class StimulusEvidenceObservabilityTest {
     @Test
     fun reviewedSourceSeparatesStrengthRealizationFromCapabilityProxy() {
         val horizon = qualityDoseHistoryHorizon(cutoff)
-        val source = observation("mixed", 99, horizon.newestCompletedWeekEnd, StimulusClassificationAuthority.REVIEWED_CANONICAL)
+        val source = observation("barbell_back_squat", 99, horizon.newestCompletedWeekEnd, StimulusClassificationAuthority.REVIEWED_CANONICAL)
             .copy(realizedStimulusClassification = RealizedStimulusClassification.UNCLASSIFIED)
-        val profile = profile("mixed").copy(physicalQualities = listOf(
-            relation("mixed-strength", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY),
-            relation("mixed-power", TrainableQuality.POWER, StimulusCapabilityLevel.DIRECT_CAPABILITY)
+        val profile = profile("barbell_back_squat").copy(physicalQualities = listOf(
+            relation("barbell_back_squat", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY),
+            relation("barbell_back_squat", TrainableQuality.POWER, StimulusCapabilityLevel.DIRECT_CAPABILITY)
         ))
-        val snapshot = snapshot(ledger(listOf(source), mapOf("mixed" to profile)))
+        val snapshot = snapshot(ledger(listOf(source), mapOf("barbell_back_squat" to profile)))
         val evidence = StimulusNeedEvidenceIndexBuilder().build(snapshot)
         val strength = evidence.qualityEvidence.getValue(TrainableQuality.STRENGTH)
         val power = evidence.qualityEvidence.getValue(TrainableQuality.POWER)

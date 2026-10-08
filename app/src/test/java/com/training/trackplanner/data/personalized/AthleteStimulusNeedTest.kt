@@ -20,6 +20,7 @@ import com.training.trackplanner.data.StimulusCapabilityLevel
 import com.training.trackplanner.data.TrainableQuality
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -28,22 +29,24 @@ class AthleteStimulusNeedTest {
 
     @Test
     fun prescriptionCompatibilityAndSessionIdentityAreAudited() {
-        val strength = profile("s", relation("strength", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY))
-        val supportive = profile("support", relation("support", TrainableQuality.STRENGTH, StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY))
+        val strengthKey = "barbell_back_squat"
+        val formerlySupportiveKey = "ex_3a7d3eda"
+        val strength = profile(strengthKey, relation(strengthKey, TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY))
+        val supportive = profile(formerlySupportiveKey, relation(formerlySupportiveKey, TrainableQuality.STRENGTH, StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY))
         val observations = listOf(
-            observation("s", 1, cutoff, "same-day-a", 5),
-            observation("s", 2, cutoff, "same-day-b", 5),
-            observation("support", 3, cutoff, "support", 5),
-            observation("s", 5, cutoff, "incompatible", 12),
-            observation("s", 4, cutoff.minusDays(28), "prior", 5)
+            observation(strengthKey, 1, cutoff, "same-day-a", 5),
+            observation(strengthKey, 2, cutoff, "same-day-b", 5),
+            observation(formerlySupportiveKey, 3, cutoff, "support", 5),
+            observation(strengthKey, 5, cutoff, "incompatible", 12),
+            observation(strengthKey, 4, cutoff.minusDays(28), "prior", 5)
         )
-        val snapshot = snapshot(listOf("s", "support"), observations, mapOf(strength.stableKey to strength, supportive.stableKey to supportive))
+        val snapshot = snapshot(listOf(strengthKey, formerlySupportiveKey), observations, mapOf(strength.stableKey to strength, supportive.stableKey to supportive))
         val profile = AthleteStimulusNeedEngine().analyze(snapshot, AthletePlanningStateBuilder().build(snapshot, PersonalizedPlanningAnswers()))
         val need = profile.qualityNeeds.single { it.quality == TrainableQuality.STRENGTH }
-        assertEquals(2, need.exposure.current28d.directUnits)
+        assertEquals(3, need.exposure.current28d.directUnits)
         assertEquals(1, need.exposure.current28d.excludedDirectByPrescriptionUnits)
-        assertEquals(1, need.exposure.current28d.supportiveUnits)
-        assertEquals(2, need.exposure.current28d.directSessions)
+        assertEquals(0, need.exposure.current28d.supportiveUnits)
+        assertEquals(3, need.exposure.current28d.directSessions)
         assertEquals(1, need.exposure.current28d.directTrainingDays)
         assertTrue("DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE" in need.exposure.reasonCodes)
     }
@@ -120,9 +123,10 @@ class AthleteStimulusNeedTest {
 
     @Test
     fun windowBoundariesAndDirectActiveBinsAreExact() {
-        val p = profile("s", relation("s", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY))
-        val observations = listOf(0, 6, 7, 27, 28, 55, 56).mapIndexed { index, age -> observation("s", index.toLong() + 1, cutoff.minusDays(age.toLong()), "session-$index", 5) }
-        val index = StimulusNeedEvidenceIndexBuilder().build(snapshot(listOf("s"), observations, mapOf("s" to p)))
+        val key = "barbell_back_squat"
+        val p = profile(key, relation(key, TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY))
+        val observations = listOf(0, 6, 7, 27, 28, 55, 56).mapIndexed { index, age -> observation(key, index.toLong() + 1, cutoff.minusDays(age.toLong()), "session-$index", 5) }
+        val index = StimulusNeedEvidenceIndexBuilder().build(snapshot(listOf(key), observations, mapOf(key to p)))
         val evidence = index.qualityEvidence.getValue(TrainableQuality.STRENGTH)
         assertEquals(2, evidence.recent7d.directUnits)
         assertEquals(4, evidence.current28d.directUnits)
@@ -140,8 +144,9 @@ class AthleteStimulusNeedTest {
         val index = StimulusNeedEvidenceIndexBuilder().build(snapshot(profiles.keys.toList(), observations, profiles))
         val evidence = index.qualityEvidence.getValue(TrainableQuality.STRENGTH)
         assertEquals(0, evidence.currentDirectActiveBins)
-        assertEquals(1, evidence.current28d.supportiveUnits)
-        assertEquals(1, evidence.current28d.excludedDirectByPrescriptionUnits)
+        assertEquals(0, evidence.current28d.directUnits)
+        assertEquals(0, evidence.current28d.supportiveUnits)
+        assertEquals(0, evidence.current28d.excludedDirectByPrescriptionUnits)
     }
 
     @Test
@@ -156,35 +161,35 @@ class AthleteStimulusNeedTest {
         val index = StimulusNeedEvidenceIndexBuilder().build(snapshot(listOf("dual"), observations, mapOf("dual" to p)))
         val strength = index.qualityEvidence.getValue(TrainableQuality.STRENGTH).current28d
         val hypertrophy = index.qualityEvidence.getValue(TrainableQuality.HYPERTROPHY).current28d
-        assertEquals(1, strength.directUnits)
-        assertEquals(2, strength.excludedDirectByPrescriptionUnits)
+        assertEquals(0, strength.directUnits)
+        assertEquals(0, strength.excludedDirectByPrescriptionUnits)
         assertEquals(1, hypertrophy.directUnits)
         assertEquals(2, hypertrophy.excludedDirectByPrescriptionUnits)
     }
 
     @Test
     fun strengthResponseUsesOnlyDirectStrengthLikeStableKeysWithEnoughObservations() {
-        val keys = listOf("direct-strength", "supportive-strength", "direct-hypertrophy", "single-strength")
+        val keys = listOf("barbell_back_squat", "ex_3a7d3eda", "machine_chest_press", "barbell_deadlift")
         val profiles = mapOf(
-            "direct-strength" to profile("direct-strength", relation("strength", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY)),
-            "supportive-strength" to profile("supportive-strength", relation("support", TrainableQuality.STRENGTH, StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY)),
-            "direct-hypertrophy" to profile("direct-hypertrophy", relation("hypertrophy", TrainableQuality.HYPERTROPHY, StimulusCapabilityLevel.DIRECT_CAPABILITY)),
-            "single-strength" to profile("single-strength", relation("single", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY))
+            "barbell_back_squat" to profile("barbell_back_squat", relation("barbell_back_squat", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY)),
+            "ex_3a7d3eda" to profile("ex_3a7d3eda", relation("ex_3a7d3eda", TrainableQuality.STRENGTH, StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY)),
+            "machine_chest_press" to profile("machine_chest_press", relation("machine_chest_press", TrainableQuality.HYPERTROPHY, StimulusCapabilityLevel.DIRECT_CAPABILITY)),
+            "barbell_deadlift" to profile("barbell_deadlift", relation("barbell_deadlift", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY))
         )
         val observations = listOf(
-            observation("direct-strength", 1, cutoff, "direct-a", 5),
-            observation("direct-strength", 2, cutoff.minusDays(7), "direct-b", 5),
-            observation("supportive-strength", 3, cutoff, "supportive-a", 5),
-            observation("supportive-strength", 4, cutoff.minusDays(7), "supportive-b", 5),
-            observation("direct-hypertrophy", 5, cutoff, "hypertrophy-a", 12),
-            observation("direct-hypertrophy", 6, cutoff.minusDays(7), "hypertrophy-b", 12),
-            observation("single-strength", 7, cutoff, "single-a", 5)
+            observation("barbell_back_squat", 1, cutoff, "direct-a", 5),
+            observation("barbell_back_squat", 2, cutoff.minusDays(7), "direct-b", 5),
+            observation("ex_3a7d3eda", 3, cutoff, "supportive-a", 5),
+            observation("ex_3a7d3eda", 4, cutoff.minusDays(7), "supportive-b", 5),
+            observation("machine_chest_press", 5, cutoff, "hypertrophy-a", 12),
+            observation("machine_chest_press", 6, cutoff.minusDays(7), "hypertrophy-b", 12),
+            observation("barbell_deadlift", 7, cutoff, "single-a", 5)
         )
         val signals = mapOf(
-            "direct-strength" to CanonicalStrengthSignal(100.0, 3.0, 2, "TEST"),
-            "supportive-strength" to CanonicalStrengthSignal(100.0, -100.0, 2, "TEST"),
-            "direct-hypertrophy" to CanonicalStrengthSignal(100.0, -100.0, 2, "TEST"),
-            "single-strength" to CanonicalStrengthSignal(100.0, -100.0, 1, "TEST")
+            "barbell_back_squat" to CanonicalStrengthSignal(100.0, 3.0, 2, "TEST"),
+            "ex_3a7d3eda" to CanonicalStrengthSignal(100.0, 3.0, 2, "TEST"),
+            "machine_chest_press" to CanonicalStrengthSignal(100.0, -100.0, 2, "TEST"),
+            "barbell_deadlift" to CanonicalStrengthSignal(100.0, -100.0, 1, "TEST")
         )
         val snapshot = snapshot(keys, observations, profiles, canonicalStrengthSignals = signals)
         val need = AthleteStimulusNeedEngine().analyze(snapshot, AthletePlanningStateBuilder().build(snapshot, PersonalizedPlanningAnswers()))
@@ -208,13 +213,50 @@ class AthleteStimulusNeedTest {
 
     @Test
     fun supportivePrescriptionExclusionHasOnlySupportiveReason() {
-        val p = profile("support", relation("support", TrainableQuality.STRENGTH, StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY))
-        val s = snapshot(listOf("support"), listOf(observation("support", 1, cutoff, "support", 12)), mapOf("support" to p))
+        val key = "ex_3a7d3eda"
+        val p = profile(key, relation(key, TrainableQuality.STRENGTH, StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY))
+        val s = snapshot(listOf(key), listOf(observation(key, 1, cutoff, "support", 12)), mapOf(key to p))
         val need = AthleteStimulusNeedEngine().analyze(s, AthletePlanningStateBuilder().build(s, PersonalizedPlanningAnswers()))
             .qualityNeeds.single { it.quality == TrainableQuality.STRENGTH }
-        assertEquals(1, need.exposure.current28d.excludedSupportiveByPrescriptionUnits)
-        assertTrue("SUPPORTIVE_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE" in need.exposure.reasonCodes)
-        assertTrue("DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE" !in need.exposure.reasonCodes)
+        assertEquals(1, need.exposure.current28d.excludedDirectByPrescriptionUnits)
+        assertTrue("DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE" in need.exposure.reasonCodes)
+        assertTrue("SUPPORTIVE_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE" !in need.exposure.reasonCodes)
+    }
+
+    @Test
+    fun exactApprovedSupportiveLegacyRelationIsDirectStrengthForB1AndUncertainIsNotAbsence() {
+        val approved = "ex_3a7d3eda"
+        val approvedProfile = profile(approved, relation(approved, TrainableQuality.STRENGTH, StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY))
+        val approvedSnapshot = snapshot(listOf(approved), listOf(observation(approved, 90, cutoff, "approved", 5)), mapOf(approved to approvedProfile))
+        val approvedEvidence = StimulusNeedEvidenceIndexBuilder().build(approvedSnapshot).qualityEvidence
+            .getValue(TrainableQuality.STRENGTH).current28d
+        assertEquals(1, approvedEvidence.directUnits)
+        assertEquals(0, approvedEvidence.supportiveUnits)
+
+        val uncertainKey = "barbell_bench_press"
+        val uncertainProfile = profile(uncertainKey,
+            relation(uncertainKey, TrainableQuality.STRENGTH, StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY))
+        val uncertainObservation = observation(uncertainKey, 91, cutoff, "uncertain", 5).copy(
+            realizedPrescriptionClass = RealizedStimulusClass.AMBIGUOUS_REALIZED_STIMULUS,
+            realizedStimulusClassification = RealizedStimulusClassification(
+                kind = RealizedStimulusKind.NONE,
+                status = RealizedStimulusStatus.UNCLASSIFIED,
+                authority = RealizedStimulusAuthority.REVIEWED,
+                reasonCodes = listOf("STRENGTH_EXPOSURE_LOAD_OR_EFFORT_EVIDENCE_UNAVAILABLE"),
+                strengthExposureAssessment = StrengthExposureAssessment.UNCERTAIN
+            )
+        )
+        val uncertainSnapshot = snapshot(listOf(uncertainKey), listOf(uncertainObservation), mapOf(uncertainKey to uncertainProfile))
+        val uncertainNeed = AthleteStimulusNeedEngine().analyze(
+            uncertainSnapshot, AthletePlanningStateBuilder().build(uncertainSnapshot, PersonalizedPlanningAnswers())
+        ).qualityNeeds.single { it.quality == TrainableQuality.STRENGTH }
+        val uncertainEvidence = StimulusNeedEvidenceIndexBuilder().build(uncertainSnapshot).qualityEvidence
+            .getValue(TrainableQuality.STRENGTH).current28d
+        assertEquals(ExposureState.UNKNOWN, uncertainNeed.exposure.currentExposure)
+        assertEquals(TrainingNeedDecision.UNKNOWN, uncertainNeed.decision)
+        assertEquals(0, uncertainEvidence.directUnits)
+        assertEquals(1, uncertainEvidence.unclassifiedSourceUnits)
+        assertEquals(StimulusEvidenceCoverage.PARTIAL, uncertainNeed.exposure.coverage)
     }
 
     @Test

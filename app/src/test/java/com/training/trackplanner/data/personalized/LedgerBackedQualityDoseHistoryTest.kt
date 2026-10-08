@@ -32,14 +32,15 @@ class LedgerBackedQualityDoseHistoryTest {
     fun oneExtendedLedgerServesB1ContextAndCompletedWeekBaseline() {
         val cutoff = LocalDate.of(2026, 9, 23)
         val horizon = qualityDoseHistoryHorizon(cutoff)
-        val old = observation("strength", 1, horizon.oldestCompletedWeekStart, "old", 5)
-        val recent = observation("strength", 2, cutoff.minusDays(2), "recent", 5)
-        val ledger = ledger(cutoff, listOf(old, recent), profile("strength", relation("strength", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY)), horizon.ledgerStart)
+        val key = "barbell_back_squat"
+        val old = observation(key, 1, horizon.oldestCompletedWeekStart, "old", 5)
+        val recent = observation(key, 2, cutoff.minusDays(2), "recent", 5)
+        val ledger = ledger(cutoff, listOf(old, recent), profile(key, relation(key, TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY)), horizon.ledgerStart)
         val snapshot = snapshot(cutoff, ledger)
         val shadow = LedgerBackedQualityDoseHistoryAnalyzer().analyze(snapshot, emptyState(), QualityDoseHistoryAnalyzer().analyze(snapshot, emptyState(), CanonicalExercisePhysicalQualityCatalog.EMPTY))
 
         assertEquals(2, ledger.setObservations.size)
-        assertEquals(1, ledger.query(window = StimulusExposureWindow.CONTEXT_56D).count { it.source.stableKey == "strength" })
+        assertEquals(1, ledger.query(window = StimulusExposureWindow.CONTEXT_56D).count { it.source.stableKey == key })
         assertEquals(1, shadow.weeklyEvidence.getValue(TrainableQuality.STRENGTH).count { it.directUnits > 0 })
         assertTrue(shadow.reasonCodes.contains("LEDGER_HORIZON_EXTENDED_FOR_COMPLETED_ISO_WEEK_BASELINE"))
     }
@@ -47,34 +48,70 @@ class LedgerBackedQualityDoseHistoryTest {
     @Test
     fun directWinsSupportiveAndSessionsUseDateAndStableSessionKey() {
         val cutoff = LocalDate.of(2026, 9, 23)
-        val both = profile("both", relation("direct", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY), relation("support", TrainableQuality.STRENGTH, StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY))
-        val supportive = profile("supportive", relation("supportive", TrainableQuality.STRENGTH, StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY))
+        val bothKey = "barbell_back_squat"
+        val supportiveKey = "ex_3a7d3eda"
+        val both = profile(bothKey, relation(bothKey, TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY), relation("supportive-relation", TrainableQuality.STRENGTH, StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY))
+        val supportive = profile(supportiveKey, relation(supportiveKey, TrainableQuality.STRENGTH, StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY))
         val day = qualityDoseHistoryHorizon(cutoff).newestCompletedWeekEnd
         val observations = listOf(
-            observation("both", 1, day, "session-a", 5),
-            observation("supportive", 2, day, "session-b", 5)
+            observation(bothKey, 1, day, "session-a", 5),
+            observation(supportiveKey, 2, day, "session-b", 5)
         )
         val ledger = StimulusExposureLedger(
-            mapOf("both" to both, "supportive" to supportive), observations, emptyList(), cutoff, cutoff.minusDays(55)
+            mapOf(bothKey to both, supportiveKey to supportive), observations, emptyList(), cutoff, cutoff.minusDays(55)
         )
         val snapshot = snapshot(cutoff, ledger)
         val shadow = analyze(snapshot)
         val week = shadow.weeklyEvidence.getValue(TrainableQuality.STRENGTH).first { it.directUnits + it.supportiveUnits > 0 }
 
-        assertEquals(1, week.directUnits)
-        assertEquals(1, week.supportiveUnits)
-        assertEquals(1, week.directSessions)
-        assertEquals(1, week.supportiveSessions)
+        assertEquals(2, week.directUnits)
+        assertEquals(0, week.supportiveUnits)
+        assertEquals(2, week.directSessions)
+        assertEquals(0, week.supportiveSessions)
         assertEquals(1, week.directTrainingDays)
-        assertEquals(1, week.supportiveTrainingDays)
+        assertEquals(0, week.supportiveTrainingDays)
         assertTrue(week.directPrecedenceResolutions > 0)
+    }
+
+    @Test
+    fun exactApprovedStrengthIdentityOverridesSupportiveRelationAndKeepsUnknownPartial() {
+        val cutoff = LocalDate.of(2026, 9, 23)
+        val key = "ex_3a7d3eda"
+        val day = qualityDoseHistoryHorizon(cutoff).newestCompletedWeekEnd
+        val approvedProfile = profile(key, relation(key, TrainableQuality.STRENGTH, StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY))
+        val approvedLedger = ledger(cutoff, listOf(observation(key, 501, day, "authorized", 5)), approvedProfile, cutoff.minusDays(55))
+        val approvedWeek = analyze(snapshot(cutoff, approvedLedger)).weeklyEvidence.getValue(TrainableQuality.STRENGTH)
+            .single { it.hasSourceObservations }
+        assertEquals(1, approvedWeek.directUnits)
+        assertEquals(0, approvedWeek.supportiveUnits)
+
+        val uncertainKey = "barbell_bench_press"
+        val uncertainProfile = profile(uncertainKey,
+            relation(uncertainKey, TrainableQuality.STRENGTH, StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY))
+        val uncertainObservation = observation(uncertainKey, 502, day, "uncertain", 5).copy(
+            realizedPrescriptionClass = RealizedStimulusClass.AMBIGUOUS_REALIZED_STIMULUS,
+            realizedStimulusClassification = RealizedStimulusClassification(
+                kind = RealizedStimulusKind.NONE,
+                status = RealizedStimulusStatus.UNCLASSIFIED,
+                authority = RealizedStimulusAuthority.REVIEWED,
+                reasonCodes = listOf("STRENGTH_EXPOSURE_LOAD_OR_EFFORT_EVIDENCE_UNAVAILABLE"),
+                strengthExposureAssessment = StrengthExposureAssessment.UNCERTAIN
+            )
+        )
+        val uncertainLedger = ledger(cutoff, listOf(uncertainObservation), uncertainProfile, cutoff.minusDays(55))
+        val uncertainWeek = analyze(snapshot(cutoff, uncertainLedger)).weeklyEvidence.getValue(TrainableQuality.STRENGTH)
+            .single { it.hasSourceObservations }
+        assertEquals(0, uncertainWeek.directUnits)
+        assertEquals(1, uncertainWeek.unclassifiedRelevantUnits)
+        assertFalse(uncertainWeek.classificationComplete)
     }
 
     @Test
     fun incompatiblePrescriptionIsExcludedAndDoesNotFallThroughToSupportive() {
         val cutoff = LocalDate.of(2026, 9, 23)
-        val profile = profile("strength", relation("direct", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY), relation("support", TrainableQuality.STRENGTH, StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY))
-        val ledger = ledger(cutoff, listOf(observation("strength", 1, qualityDoseHistoryHorizon(cutoff).newestCompletedWeekEnd, "session", 12)), profile, cutoff.minusDays(55))
+        val key = "barbell_back_squat"
+        val profile = profile(key, relation(key, TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY), relation("supportive-relation", TrainableQuality.STRENGTH, StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY))
+        val ledger = ledger(cutoff, listOf(observation(key, 1, qualityDoseHistoryHorizon(cutoff).newestCompletedWeekEnd, "session", 12)), profile, cutoff.minusDays(55))
         val shadow = analyze(snapshot(cutoff, ledger))
         val week = shadow.weeklyEvidence.getValue(TrainableQuality.STRENGTH).first { it.hasSourceObservations }
 
@@ -90,11 +127,12 @@ class LedgerBackedQualityDoseHistoryTest {
         val cutoff = LocalDate.of(2026, 9, 23)
         val horizon = qualityDoseHistoryHorizon(cutoff)
         val counts = listOf(4, 6, 8, 10)
+        val key = "barbell_back_squat"
         val observations = counts.flatMapIndexed { index, count ->
             val date = horizon.newestCompletedWeekEnd.minusDays(index * 7L)
-            (1..count).map { set -> observation("strength", index * 100L + set, date, "s-$index", 5) }
+            (1..count).map { set -> observation(key, index * 100L + set, date, "s-$index", 5) }
         }
-        val profile = profile("strength", relation("direct", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY))
+        val profile = profile(key, relation(key, TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY))
         val shadow = analyze(snapshot(cutoff, ledger(cutoff, observations, profile, horizon.ledgerStart)))
         val band = shadow.bands.getValue(TrainableQuality.STRENGTH)
 

@@ -117,7 +117,9 @@ class RegionalBottleneckDiagnosisTest {
         )
         val signals = signal?.let { mapOf("barbell_back_squat" to CanonicalStrengthSignal(posteriorChangePercent = it, observationCount = 3, source = "TEST")) }.orEmpty()
         val snapshot = PlanningHistorySnapshot(
-            cutoff, rows, emptyMap(), metadata, emptyMap(), "STRENGTH_GAIN", 1.0, 0.0,
+            cutoff, rows, (setOf("anchor", "barbell_back_squat", "ex_c5043892")).associateWith { key ->
+                com.training.trackplanner.data.Exercise(key, key, "RESISTANCE")
+            }, metadata, emptyMap(), "STRENGTH_GAIN", 1.0, 0.0,
             PersonalizedPlanningPreferences(), canonicalStrengthSignals = signals
         )
         val relations = mutableListOf(

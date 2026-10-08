@@ -1,6 +1,7 @@
 package com.training.trackplanner.data.personalized
 
 import com.training.trackplanner.data.ExercisePhysicalQualityRelation
+import com.training.trackplanner.data.CanonicalStrengthExposureCapability
 import com.training.trackplanner.data.StimulusCapabilityLevel
 import com.training.trackplanner.data.TrainableQuality
 import java.time.DayOfWeek
@@ -204,7 +205,11 @@ internal class LedgerBackedQualityDoseHistoryAnalyzer {
             val profile = ledger.facetProfilesByStableKey[observation.facetProfileKey]
             if (profile == null) return@observationLoop
             profile.physicalQualities.groupBy(ExercisePhysicalQualityRelation::qualityId).forEach { (quality, relations) ->
-                val direct = relations.any { it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY }
+                if (quality == TrainableQuality.STRENGTH &&
+                    !CanonicalStrengthExposureCapability.strengthPossible(observation.source.stableKey)) return@forEach
+                val direct = (quality == TrainableQuality.STRENGTH &&
+                    CanonicalStrengthExposureCapability.strengthPossible(observation.source.stableKey)) ||
+                    relations.any { it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY }
                 val supportive = !direct && relations.any { it.relationLevel == StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY }
                 if (!direct && !supportive) return@forEach
                 val classification = qualityObservationClassification(

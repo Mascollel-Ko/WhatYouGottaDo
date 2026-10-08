@@ -365,6 +365,8 @@ class TrainingRepository internal constructor(
         performancePrescriptions = com.training.trackplanner.data.personalized.PerformancePrescriptionResolver.fromCanonicalPrograms(SeedData.programs(context)),
         exerciseDao = exerciseDao,
         workoutDao = workoutDao,
+        programDao = programDao,
+        programProgressionDao = db.programProgressionDao(),
         profileDao = initialUserProfileDao,
         appMetaDao = appMetaDao,
         badmintonCatalog = badmintonObjectiveCatalog,

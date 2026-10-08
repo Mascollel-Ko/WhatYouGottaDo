@@ -171,7 +171,11 @@ internal class StimulusNeedEvidenceIndexBuilder {
                     }
                 }
                 relationsByQuality.forEach { (qualityId, relations) ->
-                    val direct = relations.any { it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY }
+                    if (qualityId == TrainableQuality.STRENGTH &&
+                        !CanonicalStrengthExposureCapability.strengthPossible(observation.source.stableKey)) return@forEach
+                    val direct = (qualityId == TrainableQuality.STRENGTH &&
+                        CanonicalStrengthExposureCapability.strengthPossible(observation.source.stableKey)) ||
+                        relations.any { it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY }
                     val supportive = !direct && relations.any { it.relationLevel == StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY }
                     if (!direct && !supportive) return@forEach
                     val accumulator = quality.getValue(qualityId)
@@ -469,6 +473,7 @@ internal class AthleteStimulusNeedEngine(
             val decision = decide(relevance, exposure.currentExposure, response).let { candidate ->
                 if (candidate == TrainingNeedDecision.UNKNOWN &&
                     exposure.unclassifiedSourceUnits > 0 &&
+                    !(quality == TrainableQuality.STRENGTH && exposure.currentExposure == ExposureState.UNKNOWN) &&
                     relevance !in setOf(NeedRelevance.UNKNOWN, NeedRelevance.NONE, NeedRelevance.LOW)
                 ) TrainingNeedDecision.DEVELOP else candidate
             }

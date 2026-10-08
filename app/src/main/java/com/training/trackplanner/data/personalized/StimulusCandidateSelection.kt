@@ -606,11 +606,13 @@ class StimulusTargetCandidateSelector(
     ): List<CandidateKey> {
         val keys = snapshot.exercises.keys.asSequence().filter { key ->
             when (intent) {
-                is StimulusSelectionTarget.Quality -> !physicalQualityCatalog.isAssessmentOnly(key) && physicalQualityCatalog.relations(key).any {
-                    it.qualityId == intent.target.quality && it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY
-                } && (intent.target.quality != TrainableQuality.STRENGTH ||
-                    (snapshot.activityKind(key) == PlannedActivityKind.RESISTANCE &&
-                        CanonicalStrengthExposureCapability.strengthPossible(key)))
+                is StimulusSelectionTarget.Quality -> !physicalQualityCatalog.isAssessmentOnly(key) &&
+                    if (intent.target.quality == TrainableQuality.STRENGTH) {
+                        snapshot.activityKind(key) == PlannedActivityKind.RESISTANCE &&
+                            CanonicalStrengthExposureCapability.strengthPossible(key)
+                    } else physicalQualityCatalog.relations(key).any {
+                        it.qualityId == intent.target.quality && it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY
+                    }
                 is StimulusSelectionTarget.Task -> snapshot.badmintonDirectObjectives[key].orEmpty().contains(intent.target.task) &&
                     snapshot.activityKind(key) in TASK_ACTIVITY_KINDS
                 is StimulusSelectionTarget.Movement -> snapshot.activityKind(key) == PlannedActivityKind.RESISTANCE &&
@@ -673,7 +675,10 @@ class StimulusTargetCandidateSelector(
             val selectedRanking = context.selectedInstead?.stableKey?.let(ranked::get)?.toRankingTuple()
             snapshot.exercises.keys.sorted().map { key ->
                 val rawDirectTarget = when (intent) {
-                    is StimulusSelectionTarget.Quality -> physicalQualityCatalog.relations(key).any {
+                    is StimulusSelectionTarget.Quality -> if (intent.target.quality == TrainableQuality.STRENGTH) {
+                        snapshot.activityKind(key) == PlannedActivityKind.RESISTANCE &&
+                            CanonicalStrengthExposureCapability.strengthPossible(key)
+                    } else physicalQualityCatalog.relations(key).any {
                         it.qualityId == intent.target.quality && it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY
                     }
                     is StimulusSelectionTarget.Task -> intent.target.task in snapshot.badmintonDirectObjectives[key].orEmpty()
@@ -681,6 +686,13 @@ class StimulusTargetCandidateSelector(
                         snapshot.movementCoverage(key).directlyRepresents(intent.target.movementCoverage)
                 }
                 if (!rawDirectTarget) {
+                    val rejectionReason = if (intent is StimulusSelectionTarget.Quality &&
+                        intent.target.quality == TrainableQuality.STRENGTH &&
+                        snapshot.activityKind(key) == PlannedActivityKind.RESISTANCE &&
+                        !CanonicalStrengthExposureCapability.strengthPossible(key) &&
+                        physicalQualityCatalog.relations(key).any { it.qualityId == TrainableQuality.STRENGTH }
+                    ) StimulusCandidateDispositionReason.STRENGTH_CAPABILITY_NOT_APPROVED
+                    else StimulusCandidateDispositionReason.NO_DIRECT_CAPABILITY
                     return@map StimulusCandidateDisposition(
                         targetId = intent.targetId,
                         stableKey = key,
@@ -688,7 +700,7 @@ class StimulusTargetCandidateSelector(
                         directTargetCandidate = false,
                         selectionRequired = context.selectionRequired,
                         status = StimulusCandidateDispositionStatus.NOT_RELEVANT_TO_TARGET,
-                        reasons = listOf(StimulusCandidateDispositionReason.NO_DIRECT_CAPABILITY),
+                        reasons = listOf(rejectionReason),
                         targetCoveredBySelectedOwner = context.targetCoveredBySelectedOwner
                     )
                 }
@@ -887,7 +899,9 @@ class StimulusTargetCandidateSelector(
             is StimulusSelectionTarget.Quality -> when (intent.target.evidenceBasis) {
                 StimulusEvidenceBasis.REALIZED_PRESCRIPTION_CLASSIFIED -> if (
                     (intent.target.quality == TrainableQuality.STRENGTH &&
-                        prescription.sets.all { provisionalRealizedStimulusClass(key, it.reps) == RealizedStimulusClass.STRENGTH_LIKE }) ||
+                        prescription.sets.all {
+                            plannedTargetSetStimulusClass(key, it.reps, role, TrainableQuality.STRENGTH) == RealizedStimulusClass.STRENGTH_LIKE
+                        }) ||
                     (intent.target.quality == TrainableQuality.HYPERTROPHY &&
                         prescription.sets.all { provisionalRealizedStimulusClass(it.reps) == RealizedStimulusClass.HYPERTROPHY_LIKE })
                 )
@@ -912,9 +926,9 @@ class StimulusTargetCandidateSelector(
 
     private fun directlyCovers(intent: StimulusSelectionTarget, key: String, snapshot: PlanningHistorySnapshot,
         catalog: CanonicalExercisePhysicalQualityCatalog): Boolean = when (intent) {
-        is StimulusSelectionTarget.Quality -> (intent.target.quality != TrainableQuality.STRENGTH ||
-            (snapshot.activityKind(key) == PlannedActivityKind.RESISTANCE &&
-                CanonicalStrengthExposureCapability.strengthPossible(key))) && catalog.relations(key).any {
+        is StimulusSelectionTarget.Quality -> if (intent.target.quality == TrainableQuality.STRENGTH) {
+            snapshot.activityKind(key) == PlannedActivityKind.RESISTANCE && CanonicalStrengthExposureCapability.strengthPossible(key)
+        } else catalog.relations(key).any {
             it.qualityId == intent.target.quality && it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY
         }
         is StimulusSelectionTarget.Task -> snapshot.activityKind(key) in TASK_ACTIVITY_KINDS &&
@@ -970,7 +984,11 @@ class StimulusTargetCandidateSelector(
     }
 
     private fun historyCompatible(snapshot: PlanningHistorySnapshot, quality: TrainableQuality, row: PlanningSetRecord): Boolean =
-        if (snapshot.stimulusExposureLedger.setObservations.isEmpty()) compatibleHistory(quality, provisionalRealizedStimulusClass(row))
+        if (snapshot.stimulusExposureLedger.setObservations.isEmpty()) {
+            if (quality == TrainableQuality.STRENGTH) {
+                realizedPrescriptionCompatible(quality, classifyPlanningHistorySet(snapshot, row))
+            } else compatibleHistory(quality, provisionalRealizedStimulusClass(row))
+        }
         else if (quality in setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY)) {
             realizedPrescriptionCompatible(quality, snapshot.reviewedRealization(row))
         } else capabilityProxyCompatible(snapshot.reviewedSourceAuthority(row))

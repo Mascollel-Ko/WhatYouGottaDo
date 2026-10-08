@@ -4,7 +4,7 @@ import com.training.trackplanner.data.personalized.*
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** Deterministic post-C32 view of the same 22 sparse movement identities audited by C31. */
+/** Deterministic post-C32.1 view of the same 22 sparse movement identities audited by C31. */
 internal object C32StrengthExposureCorpusCensus {
     fun render(
         c29Census: String,
@@ -12,6 +12,7 @@ internal object C32StrengthExposureCorpusCensus {
         selectionByCase: Map<String, StimulusCandidateSelectionPlan>,
         authorizationByCase: Map<String, StimulusPrescriptionAuthorizationPlan>,
         generationByCase: Map<String, StimulusProductionGenerationResult>,
+        preparedContextByCase: Map<String, PreparedCanonicalGenerationContext>,
         generationTimeMillisByCase: Map<String, Long>,
         startSha: String
     ): String {
@@ -24,6 +25,9 @@ internal object C32StrengthExposureCorpusCensus {
             val selection = requireNotNull(selectionByCase[caseName])
             val authorization = requireNotNull(authorizationByCase[caseName])
             val generation = requireNotNull(generationByCase[caseName])
+            val prepared = requireNotNull(preparedContextByCase[caseName])
+            val historyExposureCounts = strengthExposureAssessmentCounts(prepared.snapshot)
+            val strengthDoseWeeks = planning.qualityDoseHistory.weeklyEvidence[TrainableQuality.STRENGTH].orEmpty()
             val coverage = MovementCoverage.valueOf(need.getJSONArray("representedGapCodes").getString(0))
             val movementDecision = planning.decisionPortfolio.movementDecisions.singleOrNull {
                 it.movementCoverage == coverage
@@ -70,7 +74,8 @@ internal object C32StrengthExposureCorpusCensus {
             val cutover = generation.comparison?.productionCutoverAuthority
             val strengthSets = experimental?.items.orEmpty().flatMap { item ->
                 item.setPrescriptions.filter { set ->
-                    CanonicalStrengthExposureCapability.strengthExposureEligible(item.stableKey, set.reps)
+                    plannedTargetSetStimulusClass(item.stableKey, set.reps, item.selectionRole, TrainableQuality.STRENGTH) ==
+                        RealizedStimulusClass.STRENGTH_LIKE
                 }.map { set -> JSONObject()
                     .put("stableKey", item.stableKey)
                     .put("selectionRole", item.selectionRole)
@@ -92,6 +97,13 @@ internal object C32StrengthExposureCorpusCensus {
                     .put("relevance", strengthNeed.relevance.name)
                     .put("evidenceBasis", strengthNeed.exposure.evidenceBasis.name)
                     .put("reasonCodes", JSONArray(strengthNeed.reasonCodes)))
+                .put("b2StrengthDoseHistory", JSONObject()
+                    .put("available", planning.qualityDoseHistory.available)
+                    .put("directUnits", strengthDoseWeeks.sumOf { it.directUnits })
+                    .put("unclassifiedUnits", strengthDoseWeeks.sumOf { it.unclassifiedRelevantUnits })
+                    .put("classificationIncompleteWeeks", strengthDoseWeeks.count { !it.classificationComplete })
+                    .put("numericBaselineEligibleWeeks", strengthDoseWeeks.count { it.eligibleForNumericBaseline }))
+                .put("historyStrengthExposureAssessments", historyExposureCounts)
                 .put("b3Strength", strengthDecision?.let { JSONObject()
                     .put("decision", it.needDecision.name)
                     .put("strategy", it.strategy.name)
@@ -171,6 +183,20 @@ internal object C32StrengthExposureCorpusCensus {
                 fullCorpusDurations[fullCorpusDurations.size / 2]) / 2.0
         }
         val routeCounts = caseRows.groupingBy { it.getString("route") }.eachCount().toSortedMap()
+        val fullGeneratedCaseNames = generationByCase.keys.sorted()
+        val uniqueContexts = fullGeneratedCaseNames.map { name -> name to requireNotNull(preparedContextByCase[name]) }
+        val historyAssessmentTotals = linkedMapOf(
+            "REALIZED" to 0, "OVERPERFORMED" to 0, "UNCERTAIN" to 0, "NOT_STRENGTH" to 0
+        )
+        uniqueContexts.forEach { (_, prepared) ->
+            val counts = strengthExposureAssessmentCounts(prepared.snapshot)
+            historyAssessmentTotals.keys.forEach { key ->
+                historyAssessmentTotals[key] = historyAssessmentTotals.getValue(key) + counts.getInt(key)
+            }
+        }
+        val b2StrengthWeeks = fullGeneratedCaseNames.flatMap { name ->
+            requireNotNull(planningByCase[name]).qualityDoseHistory.weeklyEvidence[TrainableQuality.STRENGTH].orEmpty()
+        }
         val strengthStrategyCounts = caseRows.mapNotNull { row ->
             row.optJSONObject("b4Strength")?.takeIf { it.optBoolean("present") }?.optString("strategy")
         }.groupingBy { it }.eachCount().toSortedMap()
@@ -182,8 +208,8 @@ internal object C32StrengthExposureCorpusCensus {
             ) }
         }
         return JSONObject()
-            .put("phase", "C32")
-            .put("title", "Strength exposure capability and C31 movement corpus re-evaluation")
+            .put("phase", "C32.1")
+            .put("title", "Strength set intent, evidence classification, and C31 corpus re-evaluation")
             .put("startSha", startSha)
             .put("strengthExposurePolicy", JSONObject()
                 .put("provenance", CanonicalStrengthExposureCapability.policyProvenance)
@@ -212,6 +238,22 @@ internal object C32StrengthExposureCorpusCensus {
                 .put("strengthShortfallTargetCount", caseRows.sumOf { it.getJSONArray("finalStrengthShortfalls").length() })
                 .put("strengthShortfallCases", caseRows.count { it.getJSONArray("finalStrengthShortfalls").length() > 0 })
                 .put("strengthShortfallNotices", caseRows.count { it.getBoolean("strengthShortfallNotice") })
+                .put("historyStrengthExposureAssessments", JSONObject().apply {
+                    historyAssessmentTotals.forEach { (key, count) -> put(key, count) }
+                })
+                .put("b1StrengthCurrent28dDirectUnits", fullGeneratedCaseNames.sumOf { name ->
+                    requireNotNull(planningByCase[name]).athleteStimulusNeedProfile.qualityNeeds
+                        .single { it.quality == TrainableQuality.STRENGTH }.exposure.current28d.directUnits
+                })
+                .put("b1StrengthPrior28dDirectUnits", fullGeneratedCaseNames.sumOf { name ->
+                    requireNotNull(planningByCase[name]).athleteStimulusNeedProfile.qualityNeeds
+                        .single { it.quality == TrainableQuality.STRENGTH }.exposure.prior28d.directUnits
+                })
+                .put("b2StrengthDoseHistory", JSONObject()
+                    .put("directUnits", b2StrengthWeeks.sumOf { it.directUnits })
+                    .put("unclassifiedUnits", b2StrengthWeeks.sumOf { it.unclassifiedRelevantUnits })
+                    .put("classificationIncompleteWeeks", b2StrengthWeeks.count { !it.classificationComplete })
+                    .put("numericBaselineEligibleWeeks", b2StrengthWeeks.count { it.eligibleForNumericBaseline }))
                 .put("noMinimumStrengthCasesWithFalseShortfallNotice", caseRows.count { row ->
                     row.optJSONObject("b4Strength")?.optString("strategy") == "NO_MINIMUM_TARGET" &&
                         row.getBoolean("strengthShortfallNotice")
@@ -259,12 +301,34 @@ internal object C32StrengthExposureCorpusCensus {
                 .put("experimentalStrengthEligibleSetRows", generationByCase.values.sumOf { result ->
                     result.comparison?.experimental?.items.orEmpty().sumOf { item ->
                         item.setPrescriptions.count { set ->
-                            CanonicalStrengthExposureCapability.strengthExposureEligible(item.stableKey, set.reps)
+                            plannedTargetSetStimulusClass(item.stableKey, set.reps, item.selectionRole, TrainableQuality.STRENGTH) ==
+                                RealizedStimulusClass.STRENGTH_LIKE
                         }
                     }
                 }))
             .put("cases", JSONArray(rows))
             .toString(2)
+    }
+
+    private fun strengthExposureAssessmentCounts(snapshot: PlanningHistorySnapshot): JSONObject {
+        val counts = linkedMapOf("REALIZED" to 0, "OVERPERFORMED" to 0, "UNCERTAIN" to 0, "NOT_STRENGTH" to 0)
+        snapshot.allConfirmedSets.filter { row ->
+            !row.date.isBefore(snapshot.cutoff.minusDays(55))
+        }.forEach { row ->
+            val classification = if (snapshot.stimulusExposureLedger.setObservations.isEmpty()) {
+                classifyPlanningHistorySet(snapshot, row)
+            } else snapshot.reviewedRealization(row)
+            val disposition = when {
+                !CanonicalStrengthExposureCapability.strengthPossible(row.stableKey) -> "NOT_STRENGTH"
+                classification.strengthExposureAssessment == StrengthExposureAssessment.UNCERTAIN -> "UNCERTAIN"
+                classification.kind == RealizedStimulusKind.STRENGTH_LIKE &&
+                    classification.strengthExposureAssessment == StrengthExposureAssessment.OVERPERFORMED -> "OVERPERFORMED"
+                classification.kind == RealizedStimulusKind.STRENGTH_LIKE && classification.isRealized -> "REALIZED"
+                else -> "NOT_STRENGTH"
+            }
+            counts[disposition] = counts.getValue(disposition) + 1
+        }
+        return JSONObject().apply { counts.forEach { (key, count) -> put(key, count) } }
     }
 }
 

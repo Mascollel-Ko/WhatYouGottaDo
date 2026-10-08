@@ -82,7 +82,8 @@ data class QualityExposureSummary(
     val ambiguousRealizedStimulusUnits: Int,
     val currentExposure: ExposureState,
     val confidence: PlanningConfidence,
-    val evidence: List<String>
+    val evidence: List<String>,
+    val uncertainStrengthUnits: Int = 0
 ) {
     @Deprecated("Use recent7dUnits; this value counts confirmed set rows, not bouts") val recent7dBouts get() = recent7dUnits
     @Deprecated("Use current28dUnits; this value counts confirmed set rows, not bouts") val current28dBouts get() = current28dUnits
@@ -251,7 +252,9 @@ class AthleteNeedsProfileEngine(
             val exposure = qualityBuckets.getValue(quality).summary(quality, snapshot)
             val relevance = qualityRelevance(quality, snapshot, state)
             val response = responseFor(quality, qualityBuckets.getValue(quality).currentStableKeys(), snapshot)
-            val decision = decide(relevance, exposure.currentExposure, response)
+            val decision = if (quality == TrainableQuality.STRENGTH && exposure.currentExposure == ExposureState.UNKNOWN) {
+                TrainingNeedDecision.UNKNOWN
+            } else decide(relevance, exposure.currentExposure, response)
             QualityNeed(
                 quality = quality,
                 relevance = relevance,
@@ -435,7 +438,7 @@ class AthleteNeedsProfileEngine(
     }
 
     private fun confidence(exposure: QualityExposureSummary, snapshot: PlanningHistorySnapshot): PlanningConfidence = when {
-        snapshot.historyDays < 28 || exposure.context56dUnits < 2 -> PlanningConfidence.LOW
+        snapshot.historyDays < 28 || exposure.context56dUnits < 2 || exposure.uncertainStrengthUnits > 0 -> PlanningConfidence.LOW
         exposure.current28dUnits >= 3 && exposure.previous28dUnits > 0 -> PlanningConfidence.HIGH
         else -> PlanningConfidence.MODERATE
     }
@@ -462,29 +465,48 @@ class AthleteNeedsProfileEngine(
     private inner class MutableQualityBucket {
         private val records = mutableListOf<QualityObservation>()
         fun add(row: PlanningSetRecord, relation: ExercisePhysicalQualityRelation, age: Int, snapshot: PlanningHistorySnapshot) {
-            val realized = if (snapshot.stimulusExposureLedger.setObservations.isEmpty()) {
-                provisionalRealizedStimulusClass(row)
-            } else snapshot.reviewedRealization(row).toLegacyClass()
-            records += QualityObservation(row, relation.relationLevel, age, realized)
+            if (relation.qualityId == TrainableQuality.STRENGTH &&
+                !CanonicalStrengthExposureCapability.strengthPossible(row.stableKey)) return
+            val classification = when {
+                snapshot.stimulusExposureLedger.setObservations.isNotEmpty() -> snapshot.reviewedRealization(row)
+                relation.qualityId == TrainableQuality.STRENGTH -> classifyPlanningHistorySet(snapshot, row)
+                else -> null
+            }
+            val realized = when {
+                classification != null -> classification.toLegacyClass()
+                row.strengthSetIntentEvidence.intent == StrengthSetIntent.PLANNED_STRENGTH ->
+                    RealizedStimulusClass.AMBIGUOUS_REALIZED_STIMULUS
+                else -> provisionalRealizedStimulusClass(row)
+            }
+            val effectiveLevel = if (relation.qualityId == TrainableQuality.STRENGTH &&
+                CanonicalStrengthExposureCapability.strengthPossible(row.stableKey)) StimulusCapabilityLevel.DIRECT_CAPABILITY
+            else relation.relationLevel
+            records += QualityObservation(row, effectiveLevel, age, realized,
+                strengthUncertain = relation.qualityId == TrainableQuality.STRENGTH && classification?.isUnclassified == true)
         }
         fun currentStableKeys(): Set<String> = records.asSequence()
-            .filter { it.age in 0..27 }
+            .filter { it.age in 0..27 && it.realized == RealizedStimulusClass.STRENGTH_LIKE }
             .map { it.record.stableKey }
             .toSet()
         fun summary(quality: TrainableQuality, snapshot: PlanningHistorySnapshot): QualityExposureSummary {
-            val recent = records.count { it.age in 0..6 }
-            val current = records.count { it.age in 0..27 }
-            val previous = records.count { it.age in 28..55 }
-            val direct = records.filter { it.level == StimulusCapabilityLevel.DIRECT_CAPABILITY && it.age in 0..27 }
-            val supportive = records.filter { it.level == StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY && it.age in 0..27 }
-            val exposure = exposureState(current, previous, direct.map { it.record.date }.toSet().size + supportive.map { it.record.date }.toSet().size)
+            val strength = quality == TrainableQuality.STRENGTH
+            val counted = if (strength) records.filter { it.realized == RealizedStimulusClass.STRENGTH_LIKE } else records
+            val recent = counted.count { it.age in 0..6 }
+            val current = counted.count { it.age in 0..27 }
+            val previous = counted.count { it.age in 28..55 }
+            val direct = counted.filter { it.level == StimulusCapabilityLevel.DIRECT_CAPABILITY && it.age in 0..27 }
+            val supportive = counted.filter { it.level == StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY && it.age in 0..27 }
+            val currentUncertain = strength && records.any { it.age in 0..27 && it.strengthUncertain }
+            val exposure = if (current == 0 && currentUncertain) ExposureState.UNKNOWN
+                else exposureState(current, previous, direct.map { it.record.date }.toSet().size + supportive.map { it.record.date }.toSet().size)
             return QualityExposureSummary(quality, recent, current, previous, records.size, direct.map { it.record.date }.toSet().size, direct.size,
                 supportive.map { it.record.date }.toSet().size, supportive.size,
                 records.count { it.realized == RealizedStimulusClass.STRENGTH_LIKE && it.age in 0..27 },
                 records.count { it.realized == RealizedStimulusClass.HYPERTROPHY_LIKE && it.age in 0..27 },
                 records.count { it.realized == RealizedStimulusClass.AMBIGUOUS_REALIZED_STIMULUS && it.age in 0..27 },
-                exposure, if (snapshot.historyDays < 28) PlanningConfidence.LOW else PlanningConfidence.MODERATE,
-                listOf("unit=confirmed planning set record", "session=unique training date", "recent7dUnits=$recent", "current28dUnits=$current", "previous28dUnits=$previous", "directUnits=${direct.size}", "supportiveUnits=${supportive.size}", "repsOnlyClassifier=PROVISIONAL_EXPOSURE_DESCRIPTION_ONLY"))
+                exposure, if (snapshot.historyDays < 28 || currentUncertain) PlanningConfidence.LOW else PlanningConfidence.MODERATE,
+                listOf("unit=confirmed planning set record", "session=unique training date", "recent7dUnits=$recent", "current28dUnits=$current", "previous28dUnits=$previous", "directUnits=${direct.size}", "supportiveUnits=${supportive.size}", "uncertainStrengthUnits=${records.count { it.age in 0..27 && it.strengthUncertain }}", "repsOnlyClassifier=PROVISIONAL_EXPOSURE_DESCRIPTION_ONLY"),
+                uncertainStrengthUnits = records.count { it.age in 0..27 && it.strengthUncertain })
         }
     }
 
@@ -501,7 +523,13 @@ class AthleteNeedsProfileEngine(
         fun confidence(snapshot: PlanningHistorySnapshot): PlanningConfidence = if (snapshot.historyDays < 28) PlanningConfidence.LOW else if (direct.size + supportive.size >= 3) PlanningConfidence.MODERATE else PlanningConfidence.LOW
     }
 
-    private data class QualityObservation(val record: PlanningSetRecord, val level: StimulusCapabilityLevel, val age: Int, val realized: RealizedStimulusClass)
+    private data class QualityObservation(
+        val record: PlanningSetRecord,
+        val level: StimulusCapabilityLevel,
+        val age: Int,
+        val realized: RealizedStimulusClass,
+        val strengthUncertain: Boolean = false
+    )
 
     private fun List<Double>.medianOrNull(): Double? {
         if (isEmpty()) return null

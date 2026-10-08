@@ -5,6 +5,7 @@ import com.training.trackplanner.analysis.badminton.BadmintonPracticeLoadCalcula
 import com.training.trackplanner.analysis.badminton.CanonicalBadmintonObjectiveCatalog
 import com.training.trackplanner.analysis.core.CanonicalCoreCatalog
 import com.training.trackplanner.data.CanonicalExercisePhysicalQualityCatalog
+import com.training.trackplanner.data.CanonicalStrengthExposureCapability
 import com.training.trackplanner.data.CanonicalMetadataRelation
 import com.training.trackplanner.data.CanonicalRelationDomain
 import com.training.trackplanner.data.Exercise
@@ -221,10 +222,19 @@ data class StimulusExposureLedger(
             trainingDays += observation.source.date
             activeBins += age / 7
             val relations = profile.physicalQualities
-            if (relations.any { it.relationLevel.name == "DIRECT_CAPABILITY" && filter.matchesPhysicalRelation(it) }) direct++
-            if (relations.any { it.relationLevel.name == "SUPPORTIVE_CAPABILITY" && filter.matchesPhysicalRelation(it) }) supportive++
+            val policyStrengthDirect = filter.quality == TrainableQuality.STRENGTH &&
+                CanonicalStrengthExposureCapability.strengthPossible(observation.source.stableKey)
+            val directCapability = policyStrengthDirect || filter.quality != TrainableQuality.STRENGTH && relations.any {
+                it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY && filter.matchesPhysicalRelation(it)
+            }
+            if (directCapability) direct++
+            if (filter.quality != TrainableQuality.STRENGTH && !policyStrengthDirect && relations.any {
+                    it.relationLevel == StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY && filter.matchesPhysicalRelation(it)
+                }) supportive++
             when (observation.realizedStimulusClassification.kind) {
-                RealizedStimulusKind.STRENGTH_LIKE -> strengthLike++
+                RealizedStimulusKind.STRENGTH_LIKE -> if (
+                    CanonicalStrengthExposureCapability.strengthPossible(observation.source.stableKey)
+                ) strengthLike++ else ambiguous++
                 RealizedStimulusKind.HYPERTROPHY_LIKE -> hypertrophyLike++
                 RealizedStimulusKind.NONE -> ambiguous++
             }
@@ -284,7 +294,8 @@ class StimulusExposureLedgerBuilder(
         historyStart: LocalDate? = null,
         reviewedCanonicalStableKeys: Set<String> = emptySet(),
         strengthPerformanceHistory: List<StrengthExercisePerformanceHistoryEntity> = emptyList(),
-        reviewedNonRealizationSetIds: Set<Long> = emptySet()
+        reviewedNonRealizationSetIds: Set<Long> = emptySet(),
+        plannedStrengthSetIntents: Map<StrengthSetSourceIdentity, StrengthSetIntentEvidence> = emptyMap()
     ): StimulusExposureLedger = build(
         cutoff = cutoff,
         history = history,
@@ -298,7 +309,8 @@ class StimulusExposureLedgerBuilder(
         historyStart = historyStart,
         reviewedCanonicalStableKeys = reviewedCanonicalStableKeys,
         strengthPerformanceHistory = strengthPerformanceHistory,
-        reviewedNonRealizationSetIds = reviewedNonRealizationSetIds
+        reviewedNonRealizationSetIds = reviewedNonRealizationSetIds,
+        plannedStrengthSetIntents = plannedStrengthSetIntents
     )
 
     fun build(
@@ -314,11 +326,11 @@ class StimulusExposureLedgerBuilder(
         historyStart: LocalDate? = null,
         reviewedCanonicalStableKeys: Set<String> = emptySet(),
         strengthPerformanceHistory: List<StrengthExercisePerformanceHistoryEntity> = emptyList(),
-        reviewedNonRealizationSetIds: Set<Long> = emptySet()
+        reviewedNonRealizationSetIds: Set<Long> = emptySet(),
+        plannedStrengthSetIntents: Map<StrengthSetSourceIdentity, StrengthSetIntentEvidence> = emptyMap()
     ): StimulusExposureLedger {
         val referenceIndex = if (strengthPerformanceHistory.isEmpty()) strengthReferenceIndex
         else CanonicalStrengthReferenceIndex(strengthPerformanceHistory)
-        val b6ClassifierEnabled = strengthLoadResolver != null || strengthPerformanceHistory.isNotEmpty()
         val windowStart = (historyStart ?: cutoff.minusDays(55)).coerceAtMost(cutoff)
         val boundedHistory = history.mapNotNull { record ->
             val date = runCatching { LocalDate.parse(record.entry.date) }.getOrNull()
@@ -414,9 +426,7 @@ class StimulusExposureLedgerBuilder(
                 val semantics = target?.loadSemantics ?: com.training.trackplanner.analysis.strengthperformance.StrengthLoadSemantics.EXTERNAL_LOAD
                 val resolvedLoad = strengthLoadResolver?.resolve(date, set, semantics)?.totalLoadKg
                     ?: set.weightKg.takeIf { it.isFinite() && it > 0.0 && semantics.rawLoadIsResolvedMechanicalLoad }
-                val reviewedRealization = if (!b6ClassifierEnabled) legacyClassification(
-                    provisionalRealizedStimulusClass(stableKey, set.reps), authority
-                ) else RealizedStimulusClassifier.classify(
+                val reviewedRealization = RealizedStimulusClassifier.classify(
                     RealizedStimulusInput(
                         stableKey = stableKey,
                         date = date,
@@ -429,7 +439,10 @@ class StimulusExposureLedgerBuilder(
                         reviewedIdentity = authority == StimulusClassificationAuthority.REVIEWED_CANONICAL,
                         reviewedNonRealization = set.id in reviewedNonRealizationSetIds,
                         reference1RmKg = referenceIndex.reference1RmKg(stableKey, date, record.entry.sessionStableKey),
-                        loadSemantics = semantics
+                        loadSemantics = semantics,
+                        strengthSetIntentEvidence = plannedStrengthSetIntents[
+                            StrengthSetSourceIdentity(record.entry.id, set.setIndex)
+                        ] ?: StrengthSetIntentEvidence()
                     )
                 )
                 sets += StimulusSetObservation(

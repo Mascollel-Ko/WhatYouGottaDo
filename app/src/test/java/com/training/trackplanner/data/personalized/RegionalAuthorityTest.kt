@@ -57,6 +57,7 @@ class RegionalAuthorityTest {
             localId = "mixed", weekNumber = 1, dayOfWeek = 1, orderIndex = 1, exerciseStableKey = key,
             exerciseName = key, category = "TEST", restSeconds = 90, prescription = "mixed", setCount = 4,
             reps = 4, weightKg = 100.0, seconds = 0, selectionReason = "TEST", weightSource = "TEST",
+            selectionRole = CANONICAL_STRENGTH_SELECTION_ROLE,
             setPrescriptions = listOf(
                 ProgramSetPrescription(1, 4, 100.0, 0), ProgramSetPrescription(2, 8, 80.0, 0),
                 ProgramSetPrescription(3, 8, 80.0, 0), ProgramSetPrescription(4, 8, 80.0, 0)
@@ -71,7 +72,13 @@ class RegionalAuthorityTest {
         )
         val labels = ProgramEmphasisProjector().project(skeleton, snapshot, catalog)
         assertEquals(1, labels.first { it.quality == TrainableQuality.STRENGTH }.plannedUnits)
-        assertEquals(3, labels.first { it.quality == TrainableQuality.HYPERTROPHY }.plannedUnits)
+        assertFalse(labels.any { it.quality == TrainableQuality.HYPERTROPHY })
+
+        val movementOwnedLabels = ProgramEmphasisProjector().project(
+            skeleton.copy(items = listOf(item.copy(selectionRole = "MOVEMENT_OWNER"))), snapshot, catalog
+        )
+        assertFalse(movementOwnedLabels.any { it.quality == TrainableQuality.STRENGTH })
+        assertEquals(3, movementOwnedLabels.first { it.quality == TrainableQuality.HYPERTROPHY }.plannedUnits)
     }
 
     @Test

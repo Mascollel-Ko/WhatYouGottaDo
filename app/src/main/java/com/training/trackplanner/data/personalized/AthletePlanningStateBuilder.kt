@@ -15,9 +15,18 @@ class AthletePlanningStateBuilder(
         val recentStart = snapshot.cutoff.minusDays(27)
         val recent = snapshot.allConfirmedSets.filter { !it.date.isBefore(recentStart) }
         val resistance = recent.filter { snapshot.activityKind(it.stableKey) == PlannedActivityKind.RESISTANCE }
-        val heavy = resistance.count { it.weightKg > 0 &&
-            CanonicalStrengthExposureCapability.strengthExposureEligible(it.stableKey, it.reps) &&
-            snapshot.movementCoverage(it.stableKey) !in isolationMovements }
+        fun strengthAssessment(row: PlanningSetRecord): StrengthExposureAssessment =
+            if (snapshot.stimulusExposureLedger.setObservations.isEmpty()) {
+                classifyPlanningHistorySet(snapshot, row).strengthExposureAssessment
+            } else snapshot.reviewedRealization(row).strengthExposureAssessment
+        val heavy = resistance.count { row ->
+            snapshot.historyRealizedKind(row) == RealizedStimulusKind.STRENGTH_LIKE &&
+                snapshot.movementCoverage(row.stableKey) !in isolationMovements
+        }
+        val uncertainStrength = resistance.any { row ->
+            CanonicalStrengthExposureCapability.strengthPossible(row.stableKey) &&
+                strengthAssessment(row) == StrengthExposureAssessment.UNCERTAIN
+        }
         val hypertrophyStimulus = resistance.groupBy { snapshot.movementCoverage(it.stableKey) }.mapValues { (_, rows) ->
             rows.sumOf { row -> snapshot.hypertrophyStimulus(row) }
         }
@@ -31,12 +40,14 @@ class AthletePlanningStateBuilder(
             resistance.isNotEmpty() -> ObservedTrainingBehavior.GENERAL_MIXED
             else -> ObservedTrainingBehavior.UNKNOWN
         }
-        val heavyWeeks = resistance.filter { it.weightKg > 0 &&
-            CanonicalStrengthExposureCapability.strengthExposureEligible(it.stableKey, it.reps) }
+        val heavyWeeks = resistance.filter { row ->
+            snapshot.historyRealizedKind(row) == RealizedStimulusKind.STRENGTH_LIKE
+        }
             .map { it.date.get(java.time.temporal.IsoFields.WEEK_BASED_YEAR) to it.date.get(java.time.temporal.IsoFields.WEEK_OF_WEEK_BASED_YEAR) }.distinct().size
         val exposure = when {
             heavyRatio >= .15 || heavyWeeks >= 3 -> StrengthExposure.PRESENT
             heavy > 0 -> StrengthExposure.LOW
+            uncertainStrength -> StrengthExposure.UNKNOWN
             resistance.isNotEmpty() -> StrengthExposure.ABSENT
             else -> StrengthExposure.UNKNOWN
         }
@@ -334,6 +345,9 @@ internal fun PlanningHistorySnapshot.movementCoverage(key: String): MovementCove
 internal fun PlanningHistorySnapshot.movementGroup(key: String): String = movementCoverage(key).name
 
 internal fun PlanningHistorySnapshot.hypertrophyStimulus(row: PlanningSetRecord): Double {
+    // A set linked to a planned Strength owner is not silently re-labeled as Hypertrophy
+    // when its realized reps exceed plan or its Strength evidence is uncertain.
+    if (row.strengthSetIntentEvidence.intent == StrengthSetIntent.PLANNED_STRENGTH) return 0.0
     val meta = metadata[row.stableKey] ?: return 0.0
     if ("HYPERTROPHY_VOLUME" !in meta.analysisEligibility || row.reps !in 5..30) return 0.0
     val effort = when (row.rpe) {

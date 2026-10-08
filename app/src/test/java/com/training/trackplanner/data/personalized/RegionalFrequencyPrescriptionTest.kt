@@ -75,7 +75,8 @@ class RegionalFrequencyPrescriptionTest {
         mode: PhysicalQualityMode, reps: Int, load: Double) {
         val snapshot = snapshot()
         val state = f.state(snapshot)
-        val item = f.source(key, 3).copy(role = "exact-target-owner")
+        val item = f.source(key, 3).copy(role = if (quality == TrainableQuality.STRENGTH)
+            CANONICAL_STRENGTH_SELECTION_ROLE else "exact-target-owner")
         val target = RegionalStimulusTarget(region, quality, RegionalTargetAction.ADD_SUPPORT,
             RegionalNumericAuthority.FULL_WINDOW_PERSONAL_BAND, weeklyDoseTarget = 3.0)
         val rx = PlannedPrescription("authorized", List(3) { ProgramSetPrescription(it + 1, reps, load, 0) }, 90, "TARGET_TEST")
