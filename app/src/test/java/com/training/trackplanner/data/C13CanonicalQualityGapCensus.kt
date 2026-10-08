@@ -280,7 +280,7 @@ private fun classifyFinalOwnerSets(
         val isSupportive = !isDirect && relations.any { it.relationLevel == StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY }
         item.setPrescriptions.forEach { set ->
             val compatible = quality !in setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY) ||
-                prescriptionShapeCompatible(quality, set.reps)
+                prescriptionShapeCompatible(quality, owner.stableKey, set.reps)
             when {
                 isDirect && compatible -> direct++
                 isDirect -> incompatibleDirect++

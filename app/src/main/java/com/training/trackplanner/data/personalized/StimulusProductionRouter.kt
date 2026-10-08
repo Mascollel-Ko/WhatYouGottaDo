@@ -76,7 +76,9 @@ internal data class StimulusProductionGenerationResult(
     /** Typed unmet material demand survives an experimental fallback to CONTROL. */
     val unresolvedMaterialDemandGaps: Set<String> = emptySet(),
     /** Candidate authority recovery remains diagnostic and does not grant execution authority. */
-    val materialDemandAuthorityResolutions: List<ExecutionAuthorityResolution> = emptyList()
+    val materialDemandAuthorityResolutions: List<ExecutionAuthorityResolution> = emptyList(),
+    /** Unmet Strength quality demand remains visible even if B9 safely returns CONTROL. */
+    val strengthShortfalls: List<StimulusStrengthShortfall> = emptyList()
 ) {
     val diagnostics: StimulusProductionDiagnostics
         get() = StimulusProductionDiagnostics.observe(comparison, routeDecision, upstreamFailureReason).let {

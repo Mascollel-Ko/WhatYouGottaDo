@@ -1,6 +1,7 @@
 package com.training.trackplanner.data.personalized
 
 import com.training.trackplanner.data.ProgramGoal
+import com.training.trackplanner.data.CanonicalStrengthExposureCapability
 import kotlin.math.pow
 import kotlin.math.sqrt
 
@@ -14,7 +15,9 @@ class AthletePlanningStateBuilder(
         val recentStart = snapshot.cutoff.minusDays(27)
         val recent = snapshot.allConfirmedSets.filter { !it.date.isBefore(recentStart) }
         val resistance = recent.filter { snapshot.activityKind(it.stableKey) == PlannedActivityKind.RESISTANCE }
-        val heavy = resistance.count { it.weightKg > 0 && it.reps in 1..6 && snapshot.movementCoverage(it.stableKey) !in isolationMovements }
+        val heavy = resistance.count { it.weightKg > 0 &&
+            CanonicalStrengthExposureCapability.strengthExposureEligible(it.stableKey, it.reps) &&
+            snapshot.movementCoverage(it.stableKey) !in isolationMovements }
         val hypertrophyStimulus = resistance.groupBy { snapshot.movementCoverage(it.stableKey) }.mapValues { (_, rows) ->
             rows.sumOf { row -> snapshot.hypertrophyStimulus(row) }
         }
@@ -28,7 +31,8 @@ class AthletePlanningStateBuilder(
             resistance.isNotEmpty() -> ObservedTrainingBehavior.GENERAL_MIXED
             else -> ObservedTrainingBehavior.UNKNOWN
         }
-        val heavyWeeks = resistance.filter { it.weightKg > 0 && it.reps in 1..6 }
+        val heavyWeeks = resistance.filter { it.weightKg > 0 &&
+            CanonicalStrengthExposureCapability.strengthExposureEligible(it.stableKey, it.reps) }
             .map { it.date.get(java.time.temporal.IsoFields.WEEK_BASED_YEAR) to it.date.get(java.time.temporal.IsoFields.WEEK_OF_WEEK_BASED_YEAR) }.distinct().size
         val exposure = when {
             heavyRatio >= .15 || heavyWeeks >= 3 -> StrengthExposure.PRESENT

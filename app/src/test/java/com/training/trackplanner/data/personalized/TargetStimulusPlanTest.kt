@@ -153,7 +153,7 @@ class TargetStimulusPlanTest {
     @Test
     fun doseHistoryUsesCompletedActiveWeeksAndLeavesExcludedWeeksOut() {
         val cutoff = LocalDate.of(2026, 9, 19)
-        val key = "squat"
+        val key = "barbell_back_squat"
         val rows = (1..4).flatMap { week ->
             val end = cutoff.with(java.time.DayOfWeek.SUNDAY).minusDays((week * 7).toLong())
             (1..(week + 1)).map { index -> PlanningSetRecord(end.minusDays(2), key, key, "RESISTANCE", index, 5, 80.0, 0, 7.0) }
@@ -272,11 +272,11 @@ class TargetStimulusPlanTest {
         val counts = listOf(12, 12, 11, 13, 12, 12, 13, 11)
         val rows = counts.flatMapIndexed { offset, count ->
             val end = completeEnd.minusDays(offset * 7L)
-            (1..count).map { index -> PlanningSetRecord(end.minusDays(2), "strength", "strength", "RESISTANCE", index, 3, 100.0, 0, 7.0) }
+            (1..count).map { index -> PlanningSetRecord(end.minusDays(2), "barbell_back_squat", "barbell_back_squat", "RESISTANCE", index, 3, 100.0, 0, 7.0) }
         }
-        val snapshot = snapshot(cutoff, rows, mapOf("strength" to metadata("strength")))
+        val snapshot = snapshot(cutoff, rows, mapOf("barbell_back_squat" to metadata("barbell_back_squat")))
         val catalog = CanonicalExercisePhysicalQualityCatalog.of(listOf(
-            relation("strength", "strength", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY)
+            relation("strength", "barbell_back_squat", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY)
         ))
         val band = QualityDoseHistoryAnalyzer().analyze(snapshot, emptyState(), catalog).bands.getValue(TrainableQuality.STRENGTH)
         assertEquals(8, band.eligibleWeekCount)
@@ -369,7 +369,7 @@ class TargetStimulusPlanTest {
         assertEquals(0, threeRep.bands.getValue(TrainableQuality.HYPERTROPHY).directExposureWeekCount)
         assertEquals(4, threeRep.bands.getValue(TrainableQuality.POWER).directExposureWeekCount)
         assertEquals(RealizedStimulusClass.STRENGTH_LIKE, provisionalRealizedStimulusClass(PlanningSetRecord(
-            LocalDate.of(2026, 9, 12), "squat", "squat", "RESISTANCE", 1, 3, 100.0, 0, 7.0)))
+            LocalDate.of(2026, 9, 12), "barbell_back_squat", "squat", "RESISTANCE", 1, 3, 100.0, 0, 7.0)))
 
         val twelveRep = analyzePrescriptionHistory(12)
         assertEquals(0, twelveRep.bands.getValue(TrainableQuality.STRENGTH).directExposureWeekCount)
@@ -392,13 +392,13 @@ class TargetStimulusPlanTest {
         val completeEnd = completedTrainingWeekEnd(cutoff)
         val rows = (0..3).flatMap { offset ->
             val date = completeEnd.minusDays(offset * 7L + 2L)
-            listOf(PlanningSetRecord(date, "squat", "squat", "RESISTANCE", 1, reps, 100.0, 0, 7.0))
+            listOf(PlanningSetRecord(date, "barbell_back_squat", "squat", "RESISTANCE", 1, reps, 100.0, 0, 7.0))
         }
-        val snapshot = snapshot(cutoff, rows, mapOf("squat" to metadata("squat")))
+        val snapshot = snapshot(cutoff, rows, mapOf("barbell_back_squat" to metadata("barbell_back_squat")))
         val catalog = CanonicalExercisePhysicalQualityCatalog.of(listOf(
-            relation("squat-strength", "squat", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY),
-            relation("squat-hypertrophy", "squat", TrainableQuality.HYPERTROPHY, StimulusCapabilityLevel.DIRECT_CAPABILITY),
-            relation("squat-power", "squat", TrainableQuality.POWER, StimulusCapabilityLevel.DIRECT_CAPABILITY)
+            relation("squat-strength", "barbell_back_squat", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY),
+            relation("squat-hypertrophy", "barbell_back_squat", TrainableQuality.HYPERTROPHY, StimulusCapabilityLevel.DIRECT_CAPABILITY),
+            relation("squat-power", "barbell_back_squat", TrainableQuality.POWER, StimulusCapabilityLevel.DIRECT_CAPABILITY)
         ))
         return QualityDoseHistoryAnalyzer().analyze(snapshot, emptyState(), catalog)
     }

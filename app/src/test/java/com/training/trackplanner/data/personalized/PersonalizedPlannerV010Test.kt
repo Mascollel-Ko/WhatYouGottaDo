@@ -362,10 +362,10 @@ class PersonalizedPlannerV010Test {
 
     @Test
     fun `latest week strongest exposure is load reference and future weeks do not auto progress`() {
-        val squat = exercise("squat", "MAIN_LOWER_STRENGTH")
+        val squat = exercise("barbell_back_squat", "MAIN_LOWER_STRENGTH")
         val monday = cutoff.with(java.time.DayOfWeek.MONDAY)
-        val rows = session(monday, "squat", 100.0) + session(monday.plusDays(2), "squat", 80.0) + session(monday.plusDays(4), "squat", 90.0) +
-            session(monday.minusWeeks(1), "squat", 100.0) + session(monday.minusWeeks(1).plusDays(2), "squat", 80.0) + session(monday.minusWeeks(1).plusDays(4), "squat", 90.0)
+        val rows = session(monday, "barbell_back_squat", 100.0) + session(monday.plusDays(2), "barbell_back_squat", 80.0) + session(monday.plusDays(4), "barbell_back_squat", 90.0) +
+            session(monday.minusWeeks(1), "barbell_back_squat", 100.0) + session(monday.minusWeeks(1).plusDays(2), "barbell_back_squat", 80.0) + session(monday.minusWeeks(1).plusDays(4), "barbell_back_squat", 90.0)
         val source = snapshot(rows, listOf(squat))
         val state = AthletePlanningStateBuilder().build(source, PersonalizedPlanningAnswers())
         val plan = PersonalizedProgramBuilder().build(source, state, emptyList(), BlockIntentPlanner().decide(state, emptyList()), 3, request(days = 3, weeks = 3), PersonalizedPlanningAnswers(), null)

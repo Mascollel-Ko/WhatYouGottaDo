@@ -21,5 +21,7 @@ internal class StimulusCanonicalEvaluationFailure(
     val detailCode: String? = null,
     val unresolvedMaterialDemandGaps: Set<String> = emptySet(),
     val materialDemandAuthorityResolutions: List<ExecutionAuthorityResolution> = emptyList(),
+    /** Typed B5/B6 Strength shortfalls survive a safe fallback to the intact CONTROL program. */
+    val strengthShortfalls: List<StimulusStrengthShortfall> = emptyList(),
     cause: Throwable? = null
 ) : RuntimeException(detailCode ?: reason.name, cause)

@@ -219,9 +219,11 @@ internal object C17PlacementCausalityCensus {
                 .put("b7Reasons", JSONArray(comparison.experimentalReadinessAudit?.reasonCodes.orEmpty().sorted()))
                 .put("b8Status", comparison.productionCutoverAuthority?.status?.name)
                 .put("b8Reasons", JSONArray(comparison.productionCutoverAuthority?.reasonCodes.orEmpty().sorted()))
-                .put("authorizedCalibrationOwner", ownerJson(StimulusPrescriptionOwnerIdentity(
-                    priorCase.getJSONObject("calibrationOwner").getString("stableKey"),
-                    priorCase.getJSONObject("calibrationOwner").getString("selectionRole"))))
+                .put("authorizedCalibrationOwner", priorCase.optJSONObject("calibrationOwner")?.let { calibrationOwner ->
+                    ownerJson(StimulusPrescriptionOwnerIdentity(
+                        calibrationOwner.getString("stableKey"), calibrationOwner.getString("selectionRole")
+                    ))
+                } ?: JSONObject.NULL)
                 .put("b4Targets", priorCase.getJSONArray("B4Targets"))
                 .put("placementDeltaCount", moves.size)
                 .put("uniqueOwnerRoleCount", moves.map { it.key.stableKey to it.key.role }.distinct().size)
@@ -254,7 +256,7 @@ internal object C17PlacementCausalityCensus {
         val positiveMetrics = sharedPlacementMetrics(positiveComparison.control.items, positiveComparison.experimental.items)
         val positiveOwner = priorCases.let { cases ->
             (0 until cases.length()).map(cases::getJSONObject).single { it.getString("case") == "persona2_reviewed" }
-                .getJSONObject("calibrationOwner")
+                .optJSONObject("calibrationOwner")
         }
         val output = JSONObject()
             .put("schema", "c17-placement-causality-census-v1")
@@ -299,9 +301,9 @@ internal object C17PlacementCausalityCensus {
                 .put("case", "persona2_reviewed")
                 .put("route", positiveResult.routeDecision.selectedSource.name)
                 .put("b8Status", positiveComparison.productionCutoverAuthority?.status?.name)
-                .put("calibrationOwner", positiveOwner)
+                .put("calibrationOwner", positiveOwner ?: JSONObject.NULL)
                 .put("authorizedCalibrationRows", positiveComparison.experimental.items.count { row ->
-                    row.exerciseStableKey == positiveOwner.getString("stableKey") &&
+                    positiveOwner != null && row.exerciseStableKey == positiveOwner.getString("stableKey") &&
                         row.selectionRole == positiveOwner.getString("selectionRole")
                 })
                 .put("sharedOwnerPlacementMetrics", positiveMetrics))

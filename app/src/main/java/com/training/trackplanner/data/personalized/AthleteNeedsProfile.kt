@@ -1,6 +1,7 @@
 package com.training.trackplanner.data.personalized
 
 import com.training.trackplanner.data.CanonicalExercisePhysicalQualityCatalog
+import com.training.trackplanner.data.CanonicalStrengthExposureCapability
 import com.training.trackplanner.data.ExercisePhysicalQualityRelation
 import com.training.trackplanner.data.StimulusCapabilityLevel
 import com.training.trackplanner.data.TrainableQuality
@@ -33,8 +34,8 @@ enum class TrainingNeedDecision {
 }
 
 /**
- * Coarse prescription-shape description derived from reps only. This is provisional exposure
- * metadata, not an adaptation or training-response classifier.
+ * Coarse prescription-shape description under the canonical capability policy. This is
+ * provisional exposure metadata, not an adaptation or training-response classifier.
  */
 enum class RealizedStimulusClass {
     STRENGTH_LIKE,
@@ -43,15 +44,20 @@ enum class RealizedStimulusClass {
 }
 
 /**
- * One shared, deliberately provisional prescription-shape classifier. It describes the
- * recorded rep range only; it never proves adaptation or response.
+ * Shared set-level prescription shape. Strength requires both the exact canonical capability
+ * and the 1..6 rep band; rep count alone never grants Strength.
  */
-internal fun provisionalRealizedStimulusClass(row: PlanningSetRecord): RealizedStimulusClass = when {
-    else -> provisionalRealizedStimulusClass(row.reps)
+internal fun provisionalRealizedStimulusClass(row: PlanningSetRecord): RealizedStimulusClass =
+    provisionalRealizedStimulusClass(row.stableKey, row.reps)
+
+internal fun provisionalRealizedStimulusClass(stableKey: String, reps: Int): RealizedStimulusClass = when {
+    CanonicalStrengthExposureCapability.strengthExposureEligible(stableKey, reps) -> RealizedStimulusClass.STRENGTH_LIKE
+    reps in 7..15 -> RealizedStimulusClass.HYPERTROPHY_LIKE
+    else -> RealizedStimulusClass.AMBIGUOUS_REALIZED_STIMULUS
 }
 
+/** Rep-only callers may classify a Hypertrophy band, but cannot infer Strength capability. */
 internal fun provisionalRealizedStimulusClass(reps: Int): RealizedStimulusClass = when {
-    reps in 1..6 -> RealizedStimulusClass.STRENGTH_LIKE
     reps in 7..15 -> RealizedStimulusClass.HYPERTROPHY_LIKE
     else -> RealizedStimulusClass.AMBIGUOUS_REALIZED_STIMULUS
 }

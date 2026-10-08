@@ -30,4 +30,6 @@ internal fun Context.programUserNoticeText(notice: ProgramUserNotice): String =
             )
         ProgramUserNoticeCode.AUTOMATIC_QUALITY_ADJUSTMENT ->
             getString(R.string.program_notice_automatic_quality_adjustment)
+        ProgramUserNoticeCode.STRENGTH_EXPOSURE_SHORTFALL ->
+            getString(R.string.program_notice_strength_exposure_shortfall)
     }

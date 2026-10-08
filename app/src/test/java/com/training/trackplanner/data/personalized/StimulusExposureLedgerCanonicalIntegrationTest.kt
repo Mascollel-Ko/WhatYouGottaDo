@@ -184,9 +184,9 @@ class StimulusExposureLedgerCanonicalIntegrationTest {
             stimulusExposureLedger = ledger
         )
         val evidence = StimulusNeedEvidenceIndexBuilder().build(snapshot)
-        assertEquals(3, evidence.qualityEvidence.getValue(TrainableQuality.STRENGTH).current28d.directUnits)
+        assertEquals(0, evidence.qualityEvidence.getValue(TrainableQuality.STRENGTH).current28d.directUnits)
         assertEquals(2, evidence.qualityEvidence.getValue(TrainableQuality.HYPERTROPHY).current28d.directUnits)
-        assertTrue(evidence.currentStrengthStableKeys.containsAll(setOf("ex_e2efd0fe", "ex_ab468462", "ex_e159d15a")))
+        assertTrue(evidence.currentStrengthStableKeys.isEmpty())
         assertTrue(ledger.facetProfilesByStableKey.getValue("ex_e2efd0fe").badmintonObjectives.any {
             it.objective == BadmintonObjective.DECELERATION &&
                 it.transferLevel == BadmintonObjectiveTransferLevel.SUPPORTIVE
@@ -204,12 +204,49 @@ class StimulusExposureLedgerCanonicalIntegrationTest {
     }
 
     @Test
+    fun ledgerClassifiesMixedStrengthSetsByExactIdentityAndEachSetRepetitionCount() {
+        val exercises = repository.exercises(includeHistory = true).associateBy(Exercise::stableKey)
+        val metadata = repository.runtimeMetadataCatalog().all().associateBy(RuntimeExerciseMetadata::stableKey)
+        val squat = exercises.getValue("barbell_back_squat")
+        val base = record(610, squat, 0, reps = 5)
+        val mixed = base.copy(sets = listOf(5, 5, 8).mapIndexed { index, reps ->
+            base.sets.single().copy(id = 6100L + index, setIndex = index + 1, reps = reps)
+        })
+        val unapprovedLegPress = record(611, exercises.getValue("ex_ab468462"), 1, reps = 5)
+        val history = listOf(mixed, unapprovedLegPress)
+        val ledger = StimulusExposureLedgerBuilder().build(
+            cutoff = cutoff,
+            history = history,
+            exercises = exercises,
+            metadata = metadata,
+            physicalQualityCatalog = repository.physicalQualityCatalog(),
+            movementRelations = repository.movementRelations(),
+            coreCatalog = repository.coreCatalog(),
+            badmintonCatalog = repository.badmintonObjectiveCatalog(),
+            exerciseRoleCatalog = ExerciseRoleRelationCatalog.of(
+                repository.trainingRoleRelations(), repository.programSlotCapabilityRelations()
+            )
+        )
+
+        val squatObservations = ledger.setObservations.filter { it.source.stableKey == "barbell_back_squat" }
+            .sortedBy { it.source.setIndex }
+        assertEquals(3, squatObservations.size)
+        assertEquals(listOf(
+            RealizedStimulusKind.STRENGTH_LIKE,
+            RealizedStimulusKind.STRENGTH_LIKE,
+            RealizedStimulusKind.HYPERTROPHY_LIKE
+        ), squatObservations.map { it.realizedStimulusClassification.kind })
+        val legPressObservation = ledger.setObservations.single { it.source.stableKey == "ex_ab468462" }
+        assertEquals(RealizedStimulusKind.NONE, legPressObservation.realizedStimulusClassification.kind)
+    }
+
+    @Test
     fun canonicalLedgerBackedDoseHistoryUsesExtendedCompletedWeekCoverage() {
         val exercises = repository.exercises(includeHistory = true).associateBy(Exercise::stableKey)
         val metadata = repository.runtimeMetadataCatalog().all().associateBy(RuntimeExerciseMetadata::stableKey)
         val horizon = qualityDoseHistoryHorizon(cutoff)
         val history = listOf(55L, 48L, 41L, 34L).mapIndexed { index, offset ->
-            record(index.toLong() + 80, exercises.getValue("ex_e2efd0fe"), offset, reps = 5)
+            record(index.toLong() + 80, exercises.getValue("barbell_back_squat"), offset, reps = 5)
         } + record(100, exercises.getValue("ex_ae9ecdbc"), 0)
         val ledger = StimulusExposureLedgerBuilder().build(
             cutoff = cutoff,

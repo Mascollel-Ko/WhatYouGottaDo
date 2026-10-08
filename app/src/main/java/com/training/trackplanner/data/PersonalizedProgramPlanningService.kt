@@ -457,9 +457,32 @@ internal class PersonalizedProgramPlanningService(
             canonicalPrescriptionContext = prescriptionContext,
             approvedTaskB6Owners = taskProtocolPlan.authorizedByOwner.keys
         )
-        observe(ProductionGenerationPhase.B6_PRE_AUTHORITY_COMPLETE, selectionPlan, authorizationPlan)
+        val activelyAdmittedStrengthTargetIds = selectionPlan.traces.asSequence()
+            .filter { it.targetId == "QUALITY:STRENGTH" }
+            .filter { it.selectionRequired || it.selectedStableKey != null || it.coveredByPreviouslySelectedStableKey != null }
+            .map { it.targetId }
+            .toSet()
+        val failedStrengthTargets = authorizationPlan.authorizations.asSequence()
+            .filter { it.quality == com.training.trackplanner.data.TrainableQuality.STRENGTH }
+            .filter { it.targetId in activelyAdmittedStrengthTargetIds }
+            .filter { it.status !in setOf(
+                com.training.trackplanner.data.personalized.StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                com.training.trackplanner.data.personalized.StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
+                com.training.trackplanner.data.personalized.StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
+            ) }
+            .map { it.targetId }
+            .toSet()
+        val executionSelectionPlan = selectionPlan.copy(
+            strengthShortfalls = (selectionPlan.strengthShortfalls + failedStrengthTargets.map { targetId ->
+                com.training.trackplanner.data.personalized.StimulusStrengthShortfall(
+                    targetId,
+                    com.training.trackplanner.data.personalized.StimulusStrengthShortfallReason.NO_EXECUTABLE_STRENGTH_PRESCRIPTION
+                )
+            }).distinctBy(com.training.trackplanner.data.personalized.StimulusStrengthShortfall::targetId)
+        )
+        observe(ProductionGenerationPhase.B6_PRE_AUTHORITY_COMPLETE, executionSelectionPlan, authorizationPlan)
 
-        observe(ProductionGenerationPhase.EXPERIMENTAL_BUILD, selectionPlan, authorizationPlan)
+        observe(ProductionGenerationPhase.EXPERIMENTAL_BUILD, executionSelectionPlan, authorizationPlan)
         val generatedExperimental = try {
             productionBuildCounts.recordProgramBuildInvocation(
                 com.training.trackplanner.data.personalized.StimulusProductionBuildKind.EXPERIMENTAL
@@ -479,10 +502,10 @@ internal class PersonalizedProgramPlanningService(
                 progress = progress,
                 materialDemandOverride = taskProtocolDemand,
                 exactPrescriptionAuthorizationProvider = authorizationPlan.provider(),
-                canonicalB5PowerOwnerIdentities = selectionPlan.selectedCandidates
+                canonicalB5PowerOwnerIdentities = executionSelectionPlan.selectedCandidates
                     .filter { "QUALITY:POWER" in it.coveredTargetIds }
                     .mapTo(linkedSetOf()) { com.training.trackplanner.data.personalized.StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) },
-                canonicalB5TaskOwnerIdentitiesWithoutExecutableB6 = selectionPlan.selectedCandidates
+                canonicalB5TaskOwnerIdentitiesWithoutExecutableB6 = executionSelectionPlan.selectedCandidates
                     .filter { candidate -> candidate.coveredTargetIds.any { it.startsWith("TASK:") } }
                     .filterNot { candidate ->
                         com.training.trackplanner.data.personalized.StimulusPrescriptionOwnerIdentity(candidate.stableKey, candidate.selectionRole) in taskProtocolPlan.authorizedByOwner
@@ -495,7 +518,16 @@ internal class PersonalizedProgramPlanningService(
         } catch (error: CancellationException) {
             throw error
         } catch (error: StimulusCanonicalEvaluationFailure) {
-            throw canonicalEvaluationFailure(error)
+            val failureWithStrengthShortfalls = StimulusCanonicalEvaluationFailure(
+                reason = error.reason,
+                detailCode = error.detailCode,
+                unresolvedMaterialDemandGaps = error.unresolvedMaterialDemandGaps,
+                materialDemandAuthorityResolutions = error.materialDemandAuthorityResolutions,
+                strengthShortfalls = (error.strengthShortfalls + executionSelectionPlan.strengthShortfalls)
+                    .distinctBy(com.training.trackplanner.data.personalized.StimulusStrengthShortfall::targetId),
+                cause = error
+            )
+            throw canonicalEvaluationFailure(failureWithStrengthShortfalls)
         }
         val experimental = generatedExperimental.withTaskProtocolFrequencyOutcomes(taskProtocolPlan)
 
@@ -511,23 +543,23 @@ internal class PersonalizedProgramPlanningService(
             context.snapshot
         )
         val realizationInputs = com.training.trackplanner.data.personalized.buildStimulusRealizationPrescriptionInputs(
-            selectionPlan = selectionPlan,
+            selectionPlan = executionSelectionPlan,
             canonicalPrescriptionContext = prescriptionContext,
             experimentalItems = experimental.items
         )
         val realizationPlan = StimulusPrescriptionRealizationPlanEngine().build(
             targetPlan = targetPlan,
-            selectionPlan = selectionPlan,
+            selectionPlan = executionSelectionPlan,
             snapshot = context.snapshot,
             currentPrescriptions = realizationInputs.currentPrescriptions,
             historyBackedOwners = prescriptionContext.historyBackedOwners,
             currentPrescriptionsByQuality = realizationInputs.currentPrescriptionsByQuality,
             historyBackedAuthorities = prescriptionContext.historyBackedAuthorities
         )
-        observe(ProductionGenerationPhase.B6_POST_MATERIALIZATION_COMPLETE, selectionPlan, authorizationPlan)
+        observe(ProductionGenerationPhase.B6_POST_MATERIALIZATION_COMPLETE, executionSelectionPlan, authorizationPlan)
         return CanonicalExperimentalGeneration(
             program = experimental,
-            selectionPlan = selectionPlan,
+            selectionPlan = executionSelectionPlan,
             prescriptionContext = prescriptionContext,
             authorizationPlan = authorizationPlan,
             experimentalAudit = experimentalAudit,
@@ -1140,36 +1172,53 @@ internal class PersonalizedProgramPlanningService(
         ) {
             productionGenerationObserver?.invoke(ProductionGenerationObservation(phase, context, selectionPlan, authorizationPlan))
         }
+        fun preserveStrengthShortfallNotice(
+            program: GeneratedProgramSkeleton,
+            shortfalls: List<com.training.trackplanner.data.personalized.StimulusStrengthShortfall>
+        ): GeneratedProgramSkeleton = if (shortfalls.isEmpty()) program else program.copy(
+            optimizationSummary = program.optimizationSummary.copy(
+                notices = (program.optimizationSummary.notices + ProgramUserNotice(
+                    code = ProgramUserNoticeCode.STRENGTH_EXPOSURE_SHORTFALL,
+                    level = ProgramUserNoticeLevel.WARNING
+                )).distinctBy(ProgramUserNotice::code)
+            )
+        )
         observe(ProductionGenerationPhase.CANONICAL_PREPARED)
 
         fun fallback(
             control: GeneratedProgramSkeleton,
             failure: com.training.trackplanner.data.personalized.StimulusProductionEvaluationFailure
-        ) = com.training.trackplanner.data.personalized.StimulusProductionGenerationResult(
-            program = control.copy(incumbentSourceSnapshotToken = incumbentPlacementIndex.sourceSnapshotToken),
-            routeDecision = com.training.trackplanner.data.personalized.StimulusProductionRoutingDecision(
-                mode = routingMode,
-                selectedSource = com.training.trackplanner.data.personalized.StimulusProductionProgramSource.CONTROL,
-                b8Status = null,
-                b8Scope = null,
-                reasonCodes = listOf("B9_UPSTREAM_EVALUATION_FAILED_CONTROL_FALLBACK"),
-                productionRoutingActive = false
-            ),
-            comparison = null,
-            buildCounts = buildCounts.snapshot(),
-            upstreamFailureReason = failure.reasonCode,
-            upstreamFailureDetails = (failure.cause as? StimulusCanonicalEvaluationFailure)?.let {
-                listOfNotNull(it.reason.name, it.detailCode)
-            }.orEmpty(),
-            incumbentPlacementShadow = incumbentPlacementShadow,
-            unresolvedMaterialDemandGaps = (failure.cause as? StimulusCanonicalEvaluationFailure)
-                ?.unresolvedMaterialDemandGaps.orEmpty(),
-            materialDemandAuthorityResolutions = (failure.cause as? StimulusCanonicalEvaluationFailure)
-                ?.materialDemandAuthorityResolutions.orEmpty()
-        ).also {
-            productionProgress.reportSelection()
-            productionProgress.reportValidationComplete()
-            productionProgress.reportComplete()
+        ): com.training.trackplanner.data.personalized.StimulusProductionGenerationResult {
+            val canonicalFailure = failure.cause as? StimulusCanonicalEvaluationFailure
+            val strengthShortfalls = canonicalFailure?.strengthShortfalls.orEmpty()
+            return com.training.trackplanner.data.personalized.StimulusProductionGenerationResult(
+                program = preserveStrengthShortfallNotice(
+                    control.copy(incumbentSourceSnapshotToken = incumbentPlacementIndex.sourceSnapshotToken),
+                    strengthShortfalls
+                ),
+                routeDecision = com.training.trackplanner.data.personalized.StimulusProductionRoutingDecision(
+                    mode = routingMode,
+                    selectedSource = com.training.trackplanner.data.personalized.StimulusProductionProgramSource.CONTROL,
+                    b8Status = null,
+                    b8Scope = null,
+                    reasonCodes = listOf("B9_UPSTREAM_EVALUATION_FAILED_CONTROL_FALLBACK"),
+                    productionRoutingActive = false
+                ),
+                comparison = null,
+                buildCounts = buildCounts.snapshot(),
+                upstreamFailureReason = failure.reasonCode,
+                upstreamFailureDetails = (failure.cause as? StimulusCanonicalEvaluationFailure)?.let {
+                    listOfNotNull(it.reason.name, it.detailCode)
+                }.orEmpty(),
+                incumbentPlacementShadow = incumbentPlacementShadow,
+                unresolvedMaterialDemandGaps = canonicalFailure?.unresolvedMaterialDemandGaps.orEmpty(),
+                materialDemandAuthorityResolutions = canonicalFailure?.materialDemandAuthorityResolutions.orEmpty(),
+                strengthShortfalls = strengthShortfalls
+            ).also {
+                productionProgress.reportSelection()
+                productionProgress.reportValidationComplete()
+                productionProgress.reportComplete()
+            }
         }
 
         val canonicalPlanning = when (val outcome = context.canonicalPlanningOutcome) {
@@ -1323,16 +1372,21 @@ internal class PersonalizedProgramPlanningService(
         productionProgress.reportSelection()
         productionProgress.reportValidationComplete()
         productionProgress.reportComplete()
-        val routedProgram = if (routed.program.incumbentSourceSnapshotToken == incumbentPlacementIndex.sourceSnapshotToken) {
+        val routedProgramWithSourceToken = if (routed.program.incumbentSourceSnapshotToken == incumbentPlacementIndex.sourceSnapshotToken) {
             routed.program
         } else {
             routed.program.copy(incumbentSourceSnapshotToken = incumbentPlacementIndex.sourceSnapshotToken)
         }
+        val routedProgram = preserveStrengthShortfallNotice(
+            routedProgramWithSourceToken,
+            experimental.selectionPlan.strengthShortfalls
+        )
         return com.training.trackplanner.data.personalized.StimulusProductionGenerationResult(
             program = routedProgram,
             routeDecision = routed.decision,
             comparison = evaluation.comparison,
             buildCounts = buildCounts.snapshot(),
+            strengthShortfalls = experimental.selectionPlan.strengthShortfalls,
             incumbentPlacementShadow = incumbentPlacementShadow,
             incumbentPlacementActivationStatus = incumbentPlacementActivationStatus,
             incumbentPlacementPreservations = incumbentPlacementPreservations,

@@ -10,7 +10,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class StimulusPrescriptionRealizationTest {
-    private val key = "canonical.exercise"
+    private val key = "barbell_back_squat"
     private val snapshot = PlanningHistorySnapshot(
         cutoff = LocalDate.of(2026, 9, 23), allConfirmedSets = emptyList(), exercises = emptyMap(),
         metadata = emptyMap(), badmintonObjectives = emptyMap(), profilePrimaryGoal = "MIXED",
@@ -277,6 +277,26 @@ class StimulusPrescriptionRealizationTest {
         val eighty = resolve(8, 80.0)
         assertEquals(5, eighty.proposedPrescription?.sets?.first()?.reps)
         assertEquals(80.0, eighty.proposedPrescription?.sets?.first()?.weightKg ?: -1.0, .001)
+    }
+
+    @Test
+    fun lowRepsAndCapabilityAloneDoNotReplaceStrengthB6AuthorityChecks() {
+        val resolver = StimulusPlannedPrescriptionResolver()
+        val approvedFive = resolver.compatibility(
+            TrainableQuality.STRENGTH, prescription(5, 80.0), snapshot, "barbell_back_squat"
+        )
+        assertEquals(PlannedStimulusCompatibilityStatus.COMPATIBLE_CONDITIONAL_ON_EFFORT, approvedFive.status)
+
+        val approvedSeven = resolver.compatibility(
+            TrainableQuality.STRENGTH, prescription(7, 80.0), snapshot, "barbell_back_squat"
+        )
+        assertEquals(PlannedStimulusCompatibilityStatus.INCOMPATIBLE, approvedSeven.status)
+
+        val unapprovedFive = resolver.compatibility(
+            TrainableQuality.STRENGTH, prescription(5, 80.0), snapshot, "pull_up"
+        )
+        assertEquals(PlannedStimulusCompatibilityStatus.INCOMPATIBLE, unapprovedFive.status)
+        assertTrue(unapprovedFive.reasonCodes.contains("STRENGTH_CAPABILITY_NOT_APPROVED"))
     }
 
     @Test

@@ -1,6 +1,7 @@
 package com.training.trackplanner.data.personalized
 
 import com.training.trackplanner.data.CanonicalExercisePhysicalQualityCatalog
+import com.training.trackplanner.data.CanonicalStrengthExposureCapability
 import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.ProgramSkeletonRequest
 import com.training.trackplanner.data.ProgramSkeletonItem
@@ -236,7 +237,7 @@ class RegionalStimulusCreditProjector {
                         regionQualifierMatches(region, it.regionQualifier)
                 }.forEach {
                     val compatible = if (it.qualityId in setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY)) {
-                        prescriptionShapeCompatible(it.qualityId, set.reps)
+                        prescriptionShapeCompatible(it.qualityId, item.exerciseStableKey, set.reps)
                     } else true
                     if (!compatible) return@forEach
                     val key = region to it.qualityId
@@ -687,7 +688,7 @@ class RegionalTargetPrescriptionResolver(
             )
         }
         if (canonicalPrescription.sets.isNotEmpty() && canonicalPrescription.sets.all {
-                provisionalRealizedStimulusClass(it.reps) == RealizedStimulusClass.HYPERTROPHY_LIKE
+                provisionalRealizedStimulusClass(item.stableKey, it.reps) == RealizedStimulusClass.HYPERTROPHY_LIKE
             }) {
             val source = canonicalPrescription.sets.first().weightKg.takeIf { it > 0.0 }
             return Resolution(
@@ -730,7 +731,8 @@ class RegionalTargetPrescriptionResolver(
         }
         val canonicalStrengthAuthority = snapshot.canonicalStrengthSignals[item.stableKey]?.observationCount?.let { it >= 2 } == true
         if (canonicalStrengthAuthority && canonicalPrescription.sets.isNotEmpty() &&
-            canonicalPrescription.sets.all { provisionalRealizedStimulusClass(it.reps) == RealizedStimulusClass.STRENGTH_LIKE } &&
+            CanonicalStrengthExposureCapability.strengthPossible(item.stableKey) &&
+            canonicalPrescription.sets.all { provisionalRealizedStimulusClass(item.stableKey, it.reps) == RealizedStimulusClass.STRENGTH_LIKE } &&
             canonicalPrescription.sets.any { it.weightKg > 0.0 }
         ) {
             return Resolution(
@@ -761,7 +763,7 @@ object RegionalMaterialDemandOwnershipFilter {
             if (candidate.stableKey in anchors) return@filter true
             val prescription = planner.prescribe(snapshot, state.strengthIntent, candidate, candidate.style)
             val actualQualities = prescription.sets.mapNotNull { set ->
-                when (provisionalRealizedStimulusClass(set.reps)) {
+                when (provisionalRealizedStimulusClass(candidate.stableKey, set.reps)) {
                     RealizedStimulusClass.STRENGTH_LIKE -> TrainableQuality.STRENGTH
                     RealizedStimulusClass.HYPERTROPHY_LIKE -> TrainableQuality.HYPERTROPHY
                     else -> null
@@ -830,8 +832,8 @@ class FinalRegionalStimulusProjector {
             }
         fun compatibleUnits(items: List<ProgramSkeletonItem>) = items.sumOf { item -> item.setPrescriptions.count { set ->
                 when (target.quality) {
-                    TrainableQuality.STRENGTH -> provisionalRealizedStimulusClass(set.reps) == RealizedStimulusClass.STRENGTH_LIKE
-                    TrainableQuality.HYPERTROPHY -> provisionalRealizedStimulusClass(set.reps) == RealizedStimulusClass.HYPERTROPHY_LIKE
+                    TrainableQuality.STRENGTH -> provisionalRealizedStimulusClass(item.exerciseStableKey, set.reps) == RealizedStimulusClass.STRENGTH_LIKE
+                    TrainableQuality.HYPERTROPHY -> provisionalRealizedStimulusClass(item.exerciseStableKey, set.reps) == RealizedStimulusClass.HYPERTROPHY_LIKE
                     else -> false
                 }
             } }

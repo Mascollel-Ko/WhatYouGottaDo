@@ -26,8 +26,7 @@ class StimulusProductionQualityAuditTest {
     fun realServiceCorpusIsAuthorizedAndStructurallyAuditable() = runBlocking {
         val strength = listOf(
             CorpusSpec("strength_lower_main", TrainableQuality.STRENGTH, "barbell_back_squat"),
-            CorpusSpec("strength_upper_push", TrainableQuality.STRENGTH, "barbell_bench_press"),
-            CorpusSpec("strength_upper_pull", TrainableQuality.STRENGTH, "chest_supported_row_machine")
+            CorpusSpec("strength_upper_push", TrainableQuality.STRENGTH, "barbell_bench_press")
         ).map { runRealCase(it) }
         val hypertrophy = listOf(
             CorpusSpec("hypertrophy_lower_compound", TrainableQuality.HYPERTROPHY, "dumbbell_goblet_squat"),
@@ -36,9 +35,28 @@ class StimulusProductionQualityAuditTest {
             CorpusSpec("hypertrophy_lower_isolation", TrainableQuality.HYPERTROPHY, "cable_hip_adduction")
         ).map { runRealCase(it) }
 
-        assertEquals(3, strength.size)
+        assertEquals(2, strength.size)
         assertEquals(4, hypertrophy.size)
         (strength + hypertrophy).forEach { auditC7Case(it) }
+
+        val offListStrengthKey = "chest_supported_row_machine"
+        val offListStrength = runRealEvaluation(CorpusSpec(
+            "off_list_low_rep_strength", TrainableQuality.STRENGTH, offListStrengthKey
+        ))
+        assertEquals(StimulusProductionProgramSource.CONTROL, offListStrength.routeDecision.selectedSource)
+        assertFalse(offListStrength.comparison?.selectionPlan?.selectedCandidates.orEmpty().any {
+            it.stableKey == offListStrengthKey && "QUALITY:STRENGTH" in it.coveredTargetIds
+        })
+        assertFalse(offListStrength.comparison?.prescriptionAuthorizationPlan?.authorizations.orEmpty().any {
+            it.quality == TrainableQuality.STRENGTH && it.owner?.stableKey == offListStrengthKey &&
+                it.authorizedPrescription != null && it.status in setOf(
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR
+                )
+        })
+        assertTrue(offListStrength.comparison?.experimental?.items.orEmpty().none {
+            it.exerciseStableKey == offListStrengthKey && it.setPrescriptions.any { set -> set.reps in 1..6 }
+        })
 
         val fallback = runRealEvaluation(
             CorpusSpec("strength_without_reviewed_history", TrainableQuality.STRENGTH, "barbell_back_squat", withHistory = false)

@@ -1,5 +1,6 @@
 package com.training.trackplanner.data.personalized
 
+import com.training.trackplanner.data.CanonicalStrengthExposureCapability
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.ProgramSetPrescription
 import com.training.trackplanner.data.ProgramSkeletonItem
@@ -73,9 +74,9 @@ class StimulusRealizationPrescriptionInputsTest {
         stimulusExposureLedger = if (reviewed) StimulusExposureLedger(
             facetProfilesByStableKey = emptyMap(),
             setObservations = history.mapIndexed { index, row ->
-                val qualityKind = when (row.reps) {
-                    in 1..6 -> RealizedStimulusKind.STRENGTH_LIKE
-                    in 7..15 -> RealizedStimulusKind.HYPERTROPHY_LIKE
+                val qualityKind = when {
+                    CanonicalStrengthExposureCapability.strengthExposureEligible(row.stableKey, row.reps) -> RealizedStimulusKind.STRENGTH_LIKE
+                    row.reps in 7..15 -> RealizedStimulusKind.HYPERTROPHY_LIKE
                     else -> RealizedStimulusKind.NONE
                 }
                 val quality = when (qualityKind) {

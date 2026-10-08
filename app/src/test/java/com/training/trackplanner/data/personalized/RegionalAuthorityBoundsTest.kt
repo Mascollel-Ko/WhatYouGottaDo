@@ -6,7 +6,7 @@ import org.junit.Test
 
 class RegionalAuthorityBoundsTest {
     private val f = PostGenerationFixture
-    private val key = "hinge"
+    private val key = "barbell_deadlift"
     private val role = "exact-regional-owner"
     private val target = RegionalStimulusTarget(MovementCoverage.POSTERIOR_CHAIN, TrainableQuality.STRENGTH,
         RegionalTargetAction.RESTORE, RegionalNumericAuthority.PRE_DECLINE_PERSONAL_PATTERN, 7.0)
@@ -15,6 +15,23 @@ class RegionalAuthorityBoundsTest {
         MaterialDemand(listOf(f.source(key, 5).copy(role = role)), emptyMap(), emptyMap()),
         mapOf(key to target), emptySet(), authorizedPrescriptionBySelectionRole =
             mapOf(RegionalSelectionIdentity(key, role) to rx(5)))
+
+    private fun snapshotWithDeadlift(): PlanningHistorySnapshot {
+        val base = f.snapshot()
+        val canonical = listOf(
+            Exercise(key, "Deadlift", "RESISTANCE", equipment = "BARBELL") to "MAIN_HINGE_STRENGTH",
+            Exercise("barbell_bench_press", "Bench press", "RESISTANCE", equipment = "BARBELL") to "HORIZONTAL_PUSH_STRENGTH"
+        )
+        return base.copy(
+            exercises = base.exercises + canonical.associate { it.first.stableKey to it.first },
+            metadata = base.metadata + canonical.associate { (exercise, slot) ->
+                exercise.stableKey to RuntimeExerciseMetadataDefaults.forExercise(exercise).copy(
+                    activityKind = "EXERCISE", planningEligibility = "PROGRAM_SELECTABLE",
+                    programSlot = slot, progressMetricType = "LOAD_REPS"
+                )
+            }
+        )
+    }
 
     @Test fun mergeCannotRelabelOrdinaryQuantityAsRegional() {
         val ordinary = f.source(key,9).copy(role="ordinary")
@@ -36,9 +53,9 @@ class RegionalAuthorityBoundsTest {
     @Test fun realBuilderSpareCapacityCannotExpandRegionalAuthorization() {
         assertEquals(RegionalTrainingDecision.RESTORE_STRENGTH_EXPOSURE,
             RegionalTrainingDecisionResolver().resolve(diagnosis(TrainingResponseState.STABLE_RESPONSE, false)).decision)
-        val base = f.snapshot()
+        val base = snapshotWithDeadlift()
         val records = (0..7).flatMap { week -> (1..3).flatMap { day -> (1..10).map { set ->
-            PlanningSetRecord(base.cutoff.minusDays(week * 7L + day), "press", "press", "RESISTANCE", set, 5, 80.0, 0, 7.0)
+            PlanningSetRecord(base.cutoff.minusDays(week * 7L + day), "barbell_bench_press", "barbell_bench_press", "RESISTANCE", set, 5, 80.0, 0, 7.0)
         } } }
         val snapshot = base.copy(allConfirmedSets = records, planDayProjection = f.safe,
             planWeekTissueProjection = PlanWeekTissueProjection { _, _ -> PlannedTissueWeek(emptyList()) })
@@ -58,7 +75,7 @@ class RegionalAuthorityBoundsTest {
     }
 
     @Test fun sameStableKeyOrdinarySetsAreNotRegionalMaterialization() {
-        val snapshot = f.snapshot()
+        val snapshot = snapshotWithDeadlift()
         val ordinary = residualItem(snapshot, f.source(key,2).copy(role="ordinary"), rx(2), "ordinary", 1, 1)
         val regional = residualItem(snapshot, f.source(key,5).copy(role=role), rx(5), "regional", 3, 1)
         val catalog = CanonicalExercisePhysicalQualityCatalog.of(listOf(ExercisePhysicalQualityRelation(
@@ -78,18 +95,18 @@ class RegionalAuthorityBoundsTest {
     }
 
     @Test fun everyNumericRegionalTraceStaysWithinItsOwnResidual() {
-        val base = f.snapshot()
+        val base = snapshotWithDeadlift()
         val history = (0..7).flatMap { week -> (1..3).flatMap { day -> (1..10).map { set ->
-            PlanningSetRecord(base.cutoff.minusDays(week * 7L + day), "press", "press", "RESISTANCE", set, 5, 80.0, 0, 7.0)
+            PlanningSetRecord(base.cutoff.minusDays(week * 7L + day), "barbell_bench_press", "barbell_bench_press", "RESISTANCE", set, 5, 80.0, 0, 7.0)
         } } }
-        val snapshot = base.copy(allConfirmedSets = history + listOf("hinge", "squat").map {
+        val snapshot = base.copy(allConfirmedSets = history + listOf("barbell_deadlift", "squat").map {
             PlanningSetRecord(base.cutoff.minusDays(10), it, it, "RESISTANCE", 1, 3, 100.0, 0, 7.0)
         }, planDayProjection = f.safe, planWeekTissueProjection = PlanWeekTissueProjection { _, _ -> PlannedTissueWeek(emptyList()) })
         val diagnoses = listOf(
             diagnosis(TrainingResponseState.STABLE_RESPONSE, false),
             diagnosis(TrainingResponseState.STABLE_RESPONSE, false, true).copy(region = MovementCoverage.LOWER_KNEE))
         val catalog = CanonicalExercisePhysicalQualityCatalog.of(listOf(
-            ExercisePhysicalQualityRelation("hinge-test", "hinge", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY,
+            ExercisePhysicalQualityRelation("hinge-test", "barbell_deadlift", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY,
                 PhysicalQualityRegion.LOWER, PhysicalQualityMode.HINGE, true, "TEST", setOf("TEST"), "PASS", ""),
             ExercisePhysicalQualityRelation("squat-test", "squat", TrainableQuality.HYPERTROPHY, StimulusCapabilityLevel.DIRECT_CAPABILITY,
                 PhysicalQualityRegion.LOWER, PhysicalQualityMode.SQUAT, true, "TEST", setOf("TEST"), "PASS", "")))

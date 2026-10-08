@@ -103,24 +103,28 @@ class RegionalBottleneckDiagnosisTest {
             val end = completeEnd.minusDays(offset * 7L)
             val anchor = PlanningSetRecord(end.minusDays(2), "anchor", "anchor", "RESISTANCE", 1, 5, 80.0, 0, 7.0)
             val strength = if (offset in currentStrengthWeeks || offset in previousStrengthWeeks)
-                listOf(PlanningSetRecord(end.minusDays(2), "squat", "squat", "RESISTANCE", 1, 3, 100.0, 0, 7.0)) else emptyList()
+                listOf(PlanningSetRecord(end.minusDays(2), "barbell_back_squat", "barbell_back_squat", "RESISTANCE", 1, 3, 100.0, 0, 7.0)) else emptyList()
             val specific = if (includeSpecific && offset in previousStrengthWeeks)
-                listOf(PlanningSetRecord(end.minusDays(2), "specific-squat", "specific-squat", "RESISTANCE", 1, 3, 100.0, 0, 7.0)) else emptyList()
+                listOf(PlanningSetRecord(end.minusDays(2), "ex_c5043892", "ex_c5043892", "RESISTANCE", 1, 3, 100.0, 0, 7.0)) else emptyList()
             val hypertrophy = if (includeHypertrophy && offset in previousStrengthWeeks)
-                listOf(PlanningSetRecord(end.minusDays(2), "squat", "squat", "RESISTANCE", 2, 12, 70.0, 0, 8.0)) else emptyList()
+                listOf(PlanningSetRecord(end.minusDays(2), "barbell_back_squat", "barbell_back_squat", "RESISTANCE", 2, 12, 70.0, 0, 8.0)) else emptyList()
             listOf(anchor) + strength + specific + hypertrophy
         }
-        val metadata = mapOf("anchor" to metadata("anchor"), "squat" to metadata("squat"), "specific-squat" to metadata("specific-squat"))
-        val signals = signal?.let { mapOf("squat" to CanonicalStrengthSignal(posteriorChangePercent = it, observationCount = 3, source = "TEST")) }.orEmpty()
+        val metadata = mapOf(
+            "anchor" to metadata("anchor"),
+            "barbell_back_squat" to metadata("barbell_back_squat"),
+            "ex_c5043892" to metadata("ex_c5043892")
+        )
+        val signals = signal?.let { mapOf("barbell_back_squat" to CanonicalStrengthSignal(posteriorChangePercent = it, observationCount = 3, source = "TEST")) }.orEmpty()
         val snapshot = PlanningHistorySnapshot(
             cutoff, rows, emptyMap(), metadata, emptyMap(), "STRENGTH_GAIN", 1.0, 0.0,
             PersonalizedPlanningPreferences(), canonicalStrengthSignals = signals
         )
         val relations = mutableListOf(
-            relation("squat-strength", "squat", TrainableQuality.STRENGTH, PhysicalQualityMode.GENERAL),
-            relation("squat-hypertrophy", "squat", TrainableQuality.HYPERTROPHY, PhysicalQualityMode.GENERAL)
+            relation("squat-strength", "barbell_back_squat", TrainableQuality.STRENGTH, PhysicalQualityMode.GENERAL),
+            relation("squat-hypertrophy", "barbell_back_squat", TrainableQuality.HYPERTROPHY, PhysicalQualityMode.GENERAL)
         )
-        if (includeSpecific) relations += relation("specific-strength", "specific-squat", TrainableQuality.STRENGTH, PhysicalQualityMode.SQUAT)
+        if (includeSpecific) relations += relation("specific-strength", "ex_c5043892", TrainableQuality.STRENGTH, PhysicalQualityMode.SQUAT)
         val catalog = CanonicalExercisePhysicalQualityCatalog.of(relations)
         val state = AthletePlanningStateBuilder().build(snapshot, PersonalizedPlanningAnswers())
         return Fixture(snapshot, state, catalog)

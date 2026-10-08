@@ -7,6 +7,7 @@
     <string name="program_notice_repeated_core_pattern_replaced">A repeated core pattern was replaced with another stability exercise.</string>
     <string name="program_notice_adjacent_lower_fatigue_reduced">Some exercises were rearranged to avoid consecutive lower-body fatigue.</string>
     <string name="program_notice_automatic_quality_adjustment">The exercise composition was adjusted automatically.</string>
+      <string name="program_notice_strength_exposure_shortfall">Some planned Strength exposure remains unmet. Current exercise availability or prescription evidence did not support an approved 1–6 rep Strength set. Check whether a squat, deadlift, weighted pull-up or chin-up, bench press, or overhead press and its required equipment are available.</string>
     <plurals name="program_notice_excluded_exercises_applied">
         <item quantity="one">%1$d selected exercise was excluded from the program.</item>
         <item quantity="other">%1$d selected exercises were excluded from the program.</item>

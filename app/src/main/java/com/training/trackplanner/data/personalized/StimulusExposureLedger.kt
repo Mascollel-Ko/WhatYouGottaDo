@@ -415,7 +415,7 @@ class StimulusExposureLedgerBuilder(
                 val resolvedLoad = strengthLoadResolver?.resolve(date, set, semantics)?.totalLoadKg
                     ?: set.weightKg.takeIf { it.isFinite() && it > 0.0 && semantics.rawLoadIsResolvedMechanicalLoad }
                 val reviewedRealization = if (!b6ClassifierEnabled) legacyClassification(
-                    provisionalRealizedStimulusClass(set.reps), authority
+                    provisionalRealizedStimulusClass(stableKey, set.reps), authority
                 ) else RealizedStimulusClassifier.classify(
                     RealizedStimulusInput(
                         stableKey = stableKey,

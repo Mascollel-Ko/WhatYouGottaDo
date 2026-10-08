@@ -5,6 +5,7 @@ import com.training.trackplanner.data.CanonicalExercisePhysicalQualityCatalog
 import com.training.trackplanner.data.ExercisePhysicalQualityRelation
 import com.training.trackplanner.data.StimulusCapabilityLevel
 import com.training.trackplanner.data.TrainableQuality
+import com.training.trackplanner.data.CanonicalStrengthExposureCapability
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import org.json.JSONArray
@@ -646,8 +647,8 @@ internal fun stimulusPrescriptionCompatible(quality: TrainableQuality, realized:
 }
 
 /** Planned prescription shape only; it is never historical realized-stimulus authority. */
-internal fun prescriptionShapeCompatible(quality: TrainableQuality, reps: Int): Boolean = when (quality) {
-    TrainableQuality.STRENGTH -> reps in 1..6
+internal fun prescriptionShapeCompatible(quality: TrainableQuality, stableKey: String, reps: Int): Boolean = when (quality) {
+    TrainableQuality.STRENGTH -> CanonicalStrengthExposureCapability.strengthExposureEligible(stableKey, reps)
     TrainableQuality.HYPERTROPHY -> reps in 7..15
     else -> true
 }

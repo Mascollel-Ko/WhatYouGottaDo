@@ -1,6 +1,7 @@
 package com.training.trackplanner.data.personalized
 
 import com.training.trackplanner.data.ProgramSetPrescription
+import com.training.trackplanner.data.CanonicalStrengthExposureCapability
 import com.training.trackplanner.data.TrainableQuality
 import com.training.trackplanner.data.validatedTargetRpeMin
 import kotlin.math.round
@@ -19,8 +20,16 @@ class StimulusPlannedPrescriptionResolver {
                 ExecutionAuthorityResolutionReason.UNSUPPORTED_PRESCRIPTION_AUTHORITY,
                 ExecutionAuthorityReturnTarget.NONE
             ))
+        if (quality == TrainableQuality.STRENGTH && !CanonicalStrengthExposureCapability.strengthPossible(stableKey)) {
+            return PlannedStimulusCompatibility(quality, PlannedStimulusCompatibilityStatus.INCOMPATIBLE,
+                reasonCodes = listOf("STRENGTH_CAPABILITY_NOT_APPROVED"), authorityRecovery = ExecutionAuthorityResolution(
+                    ExecutionAuthorityResolutionStatus.NO_SUPPORTED_AUTHORITY,
+                    ExecutionAuthorityResolutionReason.UNSUPPORTED_PRESCRIPTION_AUTHORITY,
+                    ExecutionAuthorityReturnTarget.NONE
+                ))
+        }
         val repsCompatible = prescription.sets.all { set -> when (quality) {
-            TrainableQuality.STRENGTH -> set.reps in 1..6
+            TrainableQuality.STRENGTH -> CanonicalStrengthExposureCapability.strengthExposureEligible(stableKey, set.reps)
             TrainableQuality.HYPERTROPHY -> set.reps in 7..15
             else -> false
         } }
@@ -103,6 +112,7 @@ class StimulusPlannedPrescriptionResolver {
         if (count == 0) return null
         return when (quality) {
             TrainableQuality.STRENGTH -> {
+                if (!CanonicalStrengthExposureCapability.strengthPossible(stableKey)) return null
                 val reference = snapshot.canonicalStrengthSignals[stableKey]
                     ?.takeIf { it.observationCount >= 2 }
                     ?.posteriorMedianKg

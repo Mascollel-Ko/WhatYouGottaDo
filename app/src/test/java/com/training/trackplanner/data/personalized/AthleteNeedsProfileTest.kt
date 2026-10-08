@@ -16,10 +16,10 @@ class AthleteNeedsProfileTest {
     private val cutoff = LocalDate.of(2026, 9, 19)
     private val catalog = CanonicalExercisePhysicalQualityCatalog.of(
         listOf(
-            relation("squat", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY),
-            relation("deadlift", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY),
-            relation("bench", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY),
-            relation("squat", TrainableQuality.HYPERTROPHY, StimulusCapabilityLevel.DIRECT_CAPABILITY),
+            relation("barbell_back_squat", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY),
+            relation("barbell_deadlift", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY),
+            relation("barbell_bench_press", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY),
+            relation("barbell_back_squat", TrainableQuality.HYPERTROPHY, StimulusCapabilityLevel.DIRECT_CAPABILITY),
             relation("bound", TrainableQuality.POWER, StimulusCapabilityLevel.DIRECT_CAPABILITY),
             relation("run", TrainableQuality.CARDIORESPIRATORY_FITNESS, StimulusCapabilityLevel.DIRECT_CAPABILITY)
         )
@@ -30,9 +30,9 @@ class AthleteNeedsProfileTest {
         val snapshot = snapshot(
             goal = "STRENGTH_GAIN",
             rows = listOf(2L, 9L, 16L).flatMap { day ->
-                (1..3).map { index -> record(cutoff.minusDays(day), "squat", index, 5) }
+                (1..3).map { index -> record(cutoff.minusDays(day), "barbell_back_squat", index, 5) }
             },
-            signals = mapOf("squat" to CanonicalStrengthSignal(100.0, 8.0, 3, "TEST"))
+            signals = mapOf("barbell_back_squat" to CanonicalStrengthSignal(100.0, 8.0, 3, "TEST"))
         )
         val profile = AthleteNeedsProfileEngine().analyze(snapshot, state(StrengthIntent.STRENGTH_PRIORITY), catalog)
         val strength = profile.qualityNeeds.single { it.quality == TrainableQuality.STRENGTH }
@@ -44,7 +44,7 @@ class AthleteNeedsProfileTest {
 
     @Test
     fun powerLowAndHypertrophyOnlyGoalNeedsNoExtraPower() {
-        val snapshot = snapshot(goal = "HYPERTROPHY_PHYSIQUE", rows = listOf(record(cutoff.minusDays(2), "squat", 1, 10)))
+        val snapshot = snapshot(goal = "HYPERTROPHY_PHYSIQUE", rows = listOf(record(cutoff.minusDays(2), "barbell_back_squat", 1, 10)))
         val profile = AthleteNeedsProfileEngine().analyze(snapshot, state(StrengthIntent.HYPERTROPHY_PRIORITY), catalog)
         val power = profile.qualityNeeds.single { it.quality == TrainableQuality.POWER }
         assertEquals(NeedRelevance.NONE, power.relevance)
@@ -53,7 +53,7 @@ class AthleteNeedsProfileTest {
 
     @Test
     fun badmintonIntentWithNoPowerExposureDevelopsPower() {
-        val snapshot = snapshot(goal = "BADMINTON_PERFORMANCE", rows = listOf(record(cutoff.minusDays(2), "squat", 1, 10)))
+        val snapshot = snapshot(goal = "BADMINTON_PERFORMANCE", rows = listOf(record(cutoff.minusDays(2), "barbell_back_squat", 1, 10)))
         val profile = AthleteNeedsProfileEngine().analyze(snapshot, state(StrengthIntent.MIXED, BadmintonPlanningIntent.ENABLED), catalog)
         val power = profile.qualityNeeds.single { it.quality == TrainableQuality.POWER }
         assertEquals(NeedRelevance.MODERATE, power.relevance)
@@ -63,7 +63,7 @@ class AthleteNeedsProfileTest {
 
     @Test
     fun insufficientHistoryStaysLowConfidenceAndUnknownPriorityIsExplicit() {
-        val snapshot = snapshot(goal = "", rows = listOf(record(cutoff.minusDays(1), "squat", 1, 10)))
+        val snapshot = snapshot(goal = "", rows = listOf(record(cutoff.minusDays(1), "barbell_back_squat", 1, 10)))
         val profile = AthleteNeedsProfileEngine().analyze(snapshot, state(StrengthIntent.UNRESOLVED, BadmintonPlanningIntent.UNRESOLVED), catalog)
         assertTrue(profile.unresolved.contains("UNKNOWN_USER_PRIORITY"))
         assertTrue(profile.qualityNeeds.all { it.confidence == PlanningConfidence.LOW })
@@ -72,14 +72,14 @@ class AthleteNeedsProfileTest {
 
     @Test
     fun disabledBadmintonIntentMakesSportTasksIrrelevant() {
-        val profile = analyze(snapshot("STRENGTH_GAIN", listOf(record(cutoff.minusDays(2), "squat", 1, 5))),
+        val profile = analyze(snapshot("STRENGTH_GAIN", listOf(record(cutoff.minusDays(2), "barbell_back_squat", 1, 5))),
             state(StrengthIntent.STRENGTH_PRIORITY, BadmintonPlanningIntent.DISABLED))
         assertTrue(profile.sportTaskNeeds.all { it.relevance == NeedRelevance.NONE })
     }
 
     @Test
     fun hypertrophyExposureIsNotPositiveResponse() {
-        val rows = listOf(2L, 9L).flatMap { day -> (1..3).map { record(cutoff.minusDays(day), "squat", it, 10) } }
+        val rows = listOf(2L, 9L).flatMap { day -> (1..3).map { record(cutoff.minusDays(day), "barbell_back_squat", it, 10) } }
         val profile = analyze(snapshot("HYPERTROPHY_PHYSIQUE", rows), state(StrengthIntent.HYPERTROPHY_PRIORITY))
         val need = profile.qualityNeeds.single { it.quality == TrainableQuality.HYPERTROPHY }
         assertEquals(ExposureState.ESTABLISHED, need.currentExposure)
@@ -108,9 +108,9 @@ class AthleteNeedsProfileTest {
     fun strengthResponseUsesOnlyRelevantRecentlyExposedKeys() {
         val snapshot = snapshot(
             "STRENGTH_GAIN",
-            listOf(2L, 9L).flatMap { day -> (1..3).map { record(cutoff.minusDays(day), "squat", it, 5) } },
+            listOf(2L, 9L).flatMap { day -> (1..3).map { record(cutoff.minusDays(day), "barbell_back_squat", it, 5) } },
             mapOf(
-                "squat" to CanonicalStrengthSignal(100.0, 5.0, 3, "TEST"),
+                "barbell_back_squat" to CanonicalStrengthSignal(100.0, 5.0, 3, "TEST"),
                 "unrelated" to CanonicalStrengthSignal(100.0, -20.0, 3, "TEST")
             )
         )
@@ -120,13 +120,13 @@ class AthleteNeedsProfileTest {
 
     @Test
     fun strengthResponseUsesMedianSoOneExtremeDoesNotDominate() {
-        val rows = listOf("squat", "deadlift", "bench").mapIndexed { index, key ->
+        val rows = listOf("barbell_back_squat", "barbell_deadlift", "barbell_bench_press").mapIndexed { index, key ->
             record(cutoff.minusDays((index + 2).toLong()), key, 1, 5)
         }
         val signals = mapOf(
-            "squat" to CanonicalStrengthSignal(100.0, 5.0, 2, "TEST"),
-            "deadlift" to CanonicalStrengthSignal(100.0, 6.0, 2, "TEST"),
-            "bench" to CanonicalStrengthSignal(100.0, -50.0, 2, "TEST")
+            "barbell_back_squat" to CanonicalStrengthSignal(100.0, 5.0, 2, "TEST"),
+            "barbell_deadlift" to CanonicalStrengthSignal(100.0, 6.0, 2, "TEST"),
+            "barbell_bench_press" to CanonicalStrengthSignal(100.0, -50.0, 2, "TEST")
         )
         val need = analyze(snapshot("STRENGTH_GAIN", rows, signals), state(StrengthIntent.STRENGTH_PRIORITY)).qualityNeeds
             .single { it.quality == TrainableQuality.STRENGTH }
@@ -168,7 +168,7 @@ class AthleteNeedsProfileTest {
 
     @Test
     fun badmintonIntentCreatesModerateTaskRelevanceWithoutExplicitSubGoal() {
-        val profile = analyze(snapshot("BADMINTON_PERFORMANCE", listOf(record(cutoff.minusDays(2), "squat", 1, 10))),
+        val profile = analyze(snapshot("BADMINTON_PERFORMANCE", listOf(record(cutoff.minusDays(2), "barbell_back_squat", 1, 10))),
             state(StrengthIntent.MIXED, BadmintonPlanningIntent.ENABLED))
         val expected = setOf("ACCELERATION", "DECELERATION", "FOOTWORK", "REACTION", "LUNGE_REACH", "JUMP_LANDING")
         assertTrue(profile.sportTaskNeeds.filter { it.task in expected }.all { it.relevance == NeedRelevance.MODERATE })
@@ -176,7 +176,7 @@ class AthleteNeedsProfileTest {
 
     @Test
     fun badmintonIntentDoesNotMakeAllQualitiesHigh() {
-        val profile = analyze(snapshot("BADMINTON_PERFORMANCE", listOf(record(cutoff.minusDays(2), "squat", 1, 10))),
+        val profile = analyze(snapshot("BADMINTON_PERFORMANCE", listOf(record(cutoff.minusDays(2), "barbell_back_squat", 1, 10))),
             state(StrengthIntent.MIXED, BadmintonPlanningIntent.ENABLED))
         val checked = setOf(TrainableQuality.POWER, TrainableQuality.RAPID_FORCE_PRODUCTION,
             TrainableQuality.REACTIVE_STRENGTH_SSC, TrainableQuality.CARDIORESPIRATORY_FITNESS, TrainableQuality.MUSCULAR_ENDURANCE)
@@ -185,7 +185,7 @@ class AthleteNeedsProfileTest {
 
     @Test
     fun strengthPriorityStillHasHighRelevance() {
-        val need = analyze(snapshot("STRENGTH_GAIN", listOf(record(cutoff.minusDays(2), "squat", 1, 5))),
+        val need = analyze(snapshot("STRENGTH_GAIN", listOf(record(cutoff.minusDays(2), "barbell_back_squat", 1, 5))),
             state(StrengthIntent.STRENGTH_PRIORITY)).qualityNeeds.single { it.quality == TrainableQuality.STRENGTH }
         assertEquals(NeedRelevance.HIGH, need.relevance)
     }
@@ -239,7 +239,7 @@ class AthleteNeedsProfileTest {
         PersonalizedPlanningPreferences(), canonicalStrengthSignals = signals, recoverySignals = recovery,
         badmintonDirectObjectives = directObjectives, badmintonSupportiveObjectives = supportiveObjectives)
 
-    private fun constrainedSnapshot() = snapshot("BADMINTON_PERFORMANCE", listOf(record(cutoff.minusDays(2), "squat", 1, 10)),
+    private fun constrainedSnapshot() = snapshot("BADMINTON_PERFORMANCE", listOf(record(cutoff.minusDays(2), "barbell_back_squat", 1, 10)),
         recovery = PlanningRecoverySignals(readinessStatus = "CAUTION"))
 
     private fun metadataFor(key: String, kind: String): Map<String, RuntimeExerciseMetadata> {

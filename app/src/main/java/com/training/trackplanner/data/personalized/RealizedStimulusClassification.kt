@@ -3,6 +3,7 @@ package com.training.trackplanner.data.personalized
 import com.training.trackplanner.analysis.strengthperformance.StrengthLoadSemantics
 import com.training.trackplanner.analysis.strengthperformance.curve.ResolvedRepetitionCurve
 import com.training.trackplanner.data.TrainableQuality
+import com.training.trackplanner.data.CanonicalStrengthExposureCapability
 import com.training.trackplanner.data.StrengthExercisePerformanceHistoryEntity
 import java.time.LocalDate
 import kotlin.math.floor
@@ -113,9 +114,16 @@ object RealizedStimulusClassifier {
         if (!input.reviewedIdentity || input.activityKind != PlannedActivityKind.RESISTANCE) {
             return RealizedStimulusClassification.UNCLASSIFIED.copy(reasonCodes = listOf("REVIEWED_RESISTANCE_IDENTITY_REQUIRED"))
         }
-        val kind = when (input.reps) {
-            in 1..6 -> RealizedStimulusKind.STRENGTH_LIKE
-            in 7..15 -> RealizedStimulusKind.HYPERTROPHY_LIKE
+        val kind = when {
+            CanonicalStrengthExposureCapability.strengthExposureEligible(input.stableKey, input.reps) ->
+                RealizedStimulusKind.STRENGTH_LIKE
+            input.reps in 1..6 -> {
+                if (input.directQualities.any { it in setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY) }) {
+                    return RealizedStimulusClassification.reviewedNonRealization("STRENGTH_CAPABILITY_NOT_APPROVED")
+                }
+                return unclassified("DIRECT_QUALITY_RELATION_REQUIRED")
+            }
+            input.reps in 7..15 -> RealizedStimulusKind.HYPERTROPHY_LIKE
             else -> return RealizedStimulusClassification.reviewedNonRealization("REPS_OUTSIDE_REVIEWED_STIMULUS_RANGE")
         }
         val requiredQuality = when (kind) {
@@ -207,7 +215,7 @@ internal fun PlanningHistorySnapshot.reviewedSourceAuthority(row: PlanningSetRec
 
 internal fun PlanningHistorySnapshot.historyRealizedKind(row: PlanningSetRecord): RealizedStimulusKind =
     if (stimulusExposureLedger.setObservations.isEmpty()) {
-        when (provisionalRealizedStimulusClass(row.reps)) {
+        when (provisionalRealizedStimulusClass(row.stableKey, row.reps)) {
             RealizedStimulusClass.STRENGTH_LIKE -> RealizedStimulusKind.STRENGTH_LIKE
             RealizedStimulusClass.HYPERTROPHY_LIKE -> RealizedStimulusKind.HYPERTROPHY_LIKE
             RealizedStimulusClass.AMBIGUOUS_REALIZED_STIMULUS -> RealizedStimulusKind.NONE

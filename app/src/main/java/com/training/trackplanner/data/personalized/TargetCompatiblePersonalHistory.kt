@@ -2,6 +2,7 @@ package com.training.trackplanner.data.personalized
 
 import com.training.trackplanner.data.ProgramSetPrescription
 import com.training.trackplanner.data.TrainableQuality
+import com.training.trackplanner.data.CanonicalStrengthExposureCapability
 
 /** One exact, exercise-local personal set selected by the shared target-quality policy. */
 internal data class TargetCompatiblePersonalSet(
@@ -36,7 +37,8 @@ internal fun latestTargetCompatiblePersonalSet(
             else TargetCompatiblePersonalSet(row, load, realization.reference1RmKg, realization.relativeIntensity)
         } else {
             val compatible = when (quality) {
-                TrainableQuality.STRENGTH -> row.reps in 1..6 && row.weightKg.isFinite() && row.weightKg > 0.0
+                TrainableQuality.STRENGTH -> CanonicalStrengthExposureCapability.strengthExposureEligible(stableKey, row.reps) &&
+                    row.weightKg.isFinite() && row.weightKg > 0.0
                 TrainableQuality.HYPERTROPHY -> snapshot.historyRealizedKind(row) == RealizedStimulusKind.HYPERTROPHY_LIKE
                 else -> false
             }

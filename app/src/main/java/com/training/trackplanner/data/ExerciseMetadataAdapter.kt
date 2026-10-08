@@ -92,6 +92,10 @@ data class RuntimeExerciseMetadata(
     val safeForSeedMutation: Boolean,
     val appCueProfile: String = "NONE"
 ) {
+    /** Exact, typed capability; legacy Strength metadata fields never grant this capability. */
+    val strengthPossible: Boolean
+        get() = CanonicalStrengthExposureCapability.strengthPossible(stableKey)
+
     val progressBehavior: ProgressMetricRuntimeBehavior
         get() = ExerciseMetadataAdapter.progressMetricBehavior(progressMetricType)
 

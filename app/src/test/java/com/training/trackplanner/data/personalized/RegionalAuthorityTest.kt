@@ -38,7 +38,7 @@ class RegionalAuthorityTest {
 
     @Test
     fun mixedSetPrescriptionsAreClassifiedPerSet() {
-        val key = "mixed-squat"
+        val key = "barbell_back_squat"
         val metadata = RuntimeExerciseMetadataDefaults.forIdentity(key, key).copy(
             activityKind = "EXERCISE", programSlot = "MAIN_LOWER_STRENGTH", planningEligibility = "PROGRAM_SELECTABLE"
         )

@@ -27,10 +27,12 @@ class PostGenerationAuthorityFreezeTest {
         // All unrelated historical, style, numerical and prescription authorities remain frozen.
         // C28 lets the legacy selector report candidate identities without set-unit demand in
         // canonical EXP generation; it does not change candidate ranking or create a dose.
+        // C32 narrows observed Strength exposure to the exact approved capability and 1-6 reps;
+        // unrelated state construction and history authority remain frozen.
         val frozen = mapOf(
             // Domain-separated volume and court-deviation trace are the approved
             // changes in this follow-up; keep the remaining authorities frozen.
-            "AthletePlanningStateBuilder.kt" to "1e2f9e50cf77b92cb111bd2a6a2e59fc41e620be5e6cdfaa198c3777d8a9ad8d",
+            "AthletePlanningStateBuilder.kt" to "6f9538c1acf0a1ffc5ece658b72bdbe8311316a9b7756c4bdfc4a59edb13ed8d",
             // Approved Phase A closeout correction: the snapshot resolver delegates to the
             // explicit-argument resolver; classification branch order/predicates remain
             // unchanged, and production uses the explicit overload only in the shadow ledger.

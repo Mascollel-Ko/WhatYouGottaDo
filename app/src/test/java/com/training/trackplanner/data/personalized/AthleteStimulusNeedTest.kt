@@ -50,12 +50,13 @@ class AthleteStimulusNeedTest {
 
     @Test
     fun finalAuditUsesActualSetsAndExposesDistributionDelta() {
-        val strength = profile("s", relation("strength", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY))
-        val snapshot = snapshot(listOf("s"), emptyList(), mapOf(strength.stableKey to strength))
-        val beforeRow = item("before", 1, List(6) { ProgramSetPrescription(it + 1, 5, 50.0, 0) })
+        val key = "barbell_back_squat"
+        val strength = profile(key, relation("strength", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY))
+        val snapshot = snapshot(listOf(key), emptyList(), mapOf(strength.stableKey to strength))
+        val beforeRow = item("before", 1, List(6) { ProgramSetPrescription(it + 1, 5, 50.0, 0) }, key)
         val afterRows = listOf(
-            item("after-a", 1, List(3) { ProgramSetPrescription(it + 1, 5, 50.0, 0) }),
-            item("after-b", 3, List(3) { ProgramSetPrescription(it + 1, 5, 50.0, 0) })
+            item("after-a", 1, List(3) { ProgramSetPrescription(it + 1, 5, 50.0, 0) }, key),
+            item("after-b", 3, List(3) { ProgramSetPrescription(it + 1, 5, 50.0, 0) }, key)
         )
         val request = ProgramSkeletonRequest("audit", ProgramGoal.BODYBUILDING, 3, 60, emptySet(), "", .5, "AUTO", ProgramPeriodizationType.AUTO, 1)
         fun plan(rows: List<ProgramSkeletonItem>) = com.training.trackplanner.data.GeneratedProgramSkeleton("audit", 7, request, request.periodizationType, emptyList(), rows)
@@ -290,13 +291,14 @@ class AthleteStimulusNeedTest {
 
     @Test
     fun finalAuditReconstructsPreReflowDistributionFromProductionTrace() {
-        val p = profile("s", relation("s", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY))
-        val s = snapshot(listOf("s"), emptyList(), mapOf("s" to p))
-        val before = item("row-a", 1, List(1) { ProgramSetPrescription(1, 5, 50.0, 0) }) to
-            item("row-b", 2, List(1) { ProgramSetPrescription(1, 5, 50.0, 0) })
+        val key = "barbell_back_squat"
+        val p = profile(key, relation(key, TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY))
+        val s = snapshot(listOf(key), emptyList(), mapOf(key to p))
+        val before = item("row-a", 1, List(1) { ProgramSetPrescription(1, 5, 50.0, 0) }, key) to
+            item("row-b", 2, List(1) { ProgramSetPrescription(1, 5, 50.0, 0) }, key)
         val objective = PostSplitObjective(BalanceObjective(0, 0.0, 0.0), 0, 0)
         val trace = PostSplitReflowTrace("APPLIED", emptyList(), emptyList(), "before", "after",
-            moves = listOf(PostSplitMove("row-b", "s", 2, 1, objective, objective)))
+            moves = listOf(PostSplitMove("row-b", key, 2, 1, objective, objective)))
         val finalPlan = simplePlan(before.first.copy(dayOfWeek = 1)).copy(
             items = listOf(before.first.copy(dayOfWeek = 1), before.second.copy(dayOfWeek = 1)),
             personalizedDecision = minimalDecision(trace)
@@ -312,17 +314,19 @@ class AthleteStimulusNeedTest {
 
     @Test
     fun finalAuditSeparatesDirectAndSupportivePrescriptionCoverageReasons() {
-        val direct = profile("direct", relation("direct", TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY))
-        val supportive = profile("support", relation("support", TrainableQuality.STRENGTH, StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY))
-        val s = snapshot(listOf("direct", "support"), emptyList(), mapOf("direct" to direct, "support" to supportive))
+        val directKey = "barbell_back_squat"
+        val supportiveKey = "barbell_deadlift"
+        val direct = profile(directKey, relation(directKey, TrainableQuality.STRENGTH, StimulusCapabilityLevel.DIRECT_CAPABILITY))
+        val supportive = profile(supportiveKey, relation(supportiveKey, TrainableQuality.STRENGTH, StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY))
+        val s = snapshot(listOf(directKey, supportiveKey), emptyList(), mapOf(directKey to direct, supportiveKey to supportive))
         val directAudit = FinalStimulusNeedAudit().audit(simplePlan(item("direct-row", 1,
-            List(1) { ProgramSetPrescription(1, 12, 50.0, 0) }, key = "direct")), s)
+            List(1) { ProgramSetPrescription(1, 12, 50.0, 0) }, key = directKey)), s)
         val directEvidence = directAudit.finalQualityCoverage.getValue(TrainableQuality.STRENGTH)
         assertEquals(0, directEvidence.directUnits)
         assertEquals(1, directEvidence.incompatibleDirectCapabilityUnits)
         assertTrue("DIRECT_CAPABILITY_PRESENT_BUT_PRESCRIPTION_INCOMPATIBLE" in directEvidence.reasonCodes)
         val supportiveAudit = FinalStimulusNeedAudit().audit(simplePlan(item("support-row", 1,
-            List(1) { ProgramSetPrescription(1, 5, 50.0, 0) }, key = "support")), s)
+            List(1) { ProgramSetPrescription(1, 5, 50.0, 0) }, key = supportiveKey)), s)
         val supportiveEvidence = supportiveAudit.finalQualityCoverage.getValue(TrainableQuality.STRENGTH)
         assertEquals(1, supportiveEvidence.supportiveUnits)
         assertTrue("SUPPORTIVE_ONLY_FINAL_COVERAGE" in supportiveEvidence.reasonCodes)

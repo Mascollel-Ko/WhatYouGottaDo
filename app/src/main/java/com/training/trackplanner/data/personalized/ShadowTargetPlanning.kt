@@ -420,7 +420,7 @@ class QualityDoseHistoryAnalyzer {
     }
 
     private fun prescriptionCompatible(quality: TrainableQuality, row: PlanningSetRecord, snapshot: PlanningHistorySnapshot): Boolean =
-        if (snapshot.stimulusExposureLedger.setObservations.isEmpty()) prescriptionShapeCompatible(quality, row.reps)
+        if (snapshot.stimulusExposureLedger.setObservations.isEmpty()) prescriptionShapeCompatible(quality, row.stableKey, row.reps)
         else if (quality in setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY)) {
             realizedPrescriptionCompatible(quality, snapshot.reviewedRealization(row))
         } else capabilityProxyCompatible(snapshot.reviewedSourceAuthority(row))

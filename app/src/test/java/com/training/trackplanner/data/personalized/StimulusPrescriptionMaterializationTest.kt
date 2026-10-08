@@ -14,7 +14,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class StimulusPrescriptionMaterializationTest {
-    private val key = "b6.materialized.squat"
+    private val key = "barbell_back_squat"
     private val role = "B5_ROLE"
     private val snapshot = PlanningHistorySnapshot(
         cutoff = LocalDate.of(2026, 9, 23), allConfirmedSets = emptyList(), exercises = emptyMap(),

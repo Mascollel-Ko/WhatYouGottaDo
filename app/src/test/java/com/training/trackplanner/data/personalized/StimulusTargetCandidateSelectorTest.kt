@@ -26,19 +26,37 @@ import org.junit.Test
 
 class StimulusTargetCandidateSelectorTest {
     @Test
+    fun strengthTargetWithoutAnApprovedCandidateRemainsATypedShortfall() {
+        val offListExercise = exercise("ex_8e4bf08e")
+        val fixture = fixture(listOf(offListExercise), listOf(relation("ex_8e4bf08e")))
+
+        val result = select(qualityPlan(), fixture, emptyList())
+
+        assertTrue(result.selectedCandidates.isEmpty())
+        assertTrue(result.materialDemand.candidates.isEmpty())
+        assertEquals(
+            listOf(StimulusStrengthShortfall("QUALITY:STRENGTH", StimulusStrengthShortfallReason.NO_ELIGIBLE_STRENGTH_EXERCISE)),
+            result.strengthShortfalls
+        )
+        val disposition = result.candidateDispositionIndex.entries.single()
+        assertEquals(StimulusCandidateDispositionStatus.INELIGIBLE, disposition.status)
+        assertTrue(StimulusCandidateDispositionReason.STRENGTH_CAPABILITY_NOT_APPROVED in disposition.reasons)
+    }
+
+    @Test
     fun directCandidatesBeatSupportiveCandidatesByEligibility() {
         val supportive = exercise("supportive")
-        val direct = exercise("direct")
+        val direct = exercise("barbell_back_squat")
         val fixture = fixture(
             exercises = listOf(supportive, direct),
             relations = listOf(
                 relation("supportive", StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY),
-                relation("direct", StimulusCapabilityLevel.DIRECT_CAPABILITY)
+                relation("barbell_back_squat", StimulusCapabilityLevel.DIRECT_CAPABILITY)
             )
         )
         val plan = qualityPlan()
         val result = select(plan, fixture, emptyList())
-        assertEquals(listOf("direct"), result.materialDemand.candidates.map { it.stableKey })
+        assertEquals(listOf("barbell_back_squat"), result.materialDemand.candidates.map { it.stableKey })
         assertFalse(result.traces.single().candidatePool.contains("supportive"))
         val supportiveDisposition = result.candidateDispositionIndex.entries.single { it.stableKey == "supportive" }
         assertEquals(StimulusCandidateDispositionStatus.NOT_RELEVANT_TO_TARGET, supportiveDisposition.status)
@@ -47,22 +65,22 @@ class StimulusTargetCandidateSelectorTest {
 
     @Test
     fun targetCompatibleHistoryRanksBeforeGenericHistoryWithoutWeightedScore() {
-        val generic = exercise("generic")
-        val familiar = exercise("familiar")
+        val generic = exercise("barbell_back_squat")
+        val familiar = exercise("barbell_deadlift")
         val fixture = fixture(
             exercises = listOf(generic, familiar),
-            relations = listOf(relation("generic"), relation("familiar")),
+            relations = listOf(relation("barbell_back_squat"), relation("barbell_deadlift")),
             history = listOf(
-                PlanningSetRecord(LocalDate.of(2026, 9, 1), "generic", "generic", "STRENGTH", 1, 10, 0.0, 0, 8.0),
-                PlanningSetRecord(LocalDate.of(2026, 9, 2), "familiar", "familiar", "STRENGTH", 1, 5, 0.0, 0, 8.0)
+                PlanningSetRecord(LocalDate.of(2026, 9, 1), "barbell_back_squat", "generic", "STRENGTH", 1, 10, 0.0, 0, 8.0),
+                PlanningSetRecord(LocalDate.of(2026, 9, 2), "barbell_deadlift", "familiar", "STRENGTH", 1, 5, 0.0, 0, 8.0)
             )
         )
         val result = select(qualityPlan(), fixture, emptyList())
-        assertEquals("familiar", result.selectedCandidates.single().stableKey)
+        assertEquals("barbell_deadlift", result.selectedCandidates.single().stableKey)
         assertTrue(result.traces.single().reasonCodes.contains("SELECTION_IDENTITY_PRESENT"))
-        val omitted = result.candidateDispositionIndex.entries.single { it.targetId == "QUALITY:STRENGTH" && it.stableKey == "generic" }
+        val omitted = result.candidateDispositionIndex.entries.single { it.targetId == "QUALITY:STRENGTH" && it.stableKey == "barbell_back_squat" }
         assertEquals(StimulusCandidateDispositionStatus.ELIGIBLE_NOT_SELECTED, omitted.status)
-        assertEquals("familiar", omitted.selectedInstead?.stableKey)
+        assertEquals("barbell_deadlift", omitted.selectedInstead?.stableKey)
         assertEquals(StimulusCandidateRankingField.TARGET_COMPATIBLE_HISTORY, omitted.firstDifferingField)
         assertEquals(StimulusCandidateDispositionReason.LOWER_RANK_THAN_SELECTED_CANDIDATE, omitted.reasons.single())
     }
@@ -70,18 +88,18 @@ class StimulusTargetCandidateSelectorTest {
     @Test
     fun stableKeyTieBreakIsExplicitAndDispositionOrderIsDeterministic() {
         val fixture = fixture(
-            exercises = listOf(exercise("z_candidate"), exercise("a_candidate")),
-            relations = listOf(relation("z_candidate"), relation("a_candidate"))
+            exercises = listOf(exercise("barbell_deadlift"), exercise("barbell_back_squat")),
+            relations = listOf(relation("barbell_deadlift"), relation("barbell_back_squat"))
         )
         val first = select(qualityPlan(), fixture, emptyList())
         val second = select(qualityPlan(), fixture, emptyList())
         assertEquals(first.candidateDispositionIndex, second.candidateDispositionIndex)
-        assertEquals("a_candidate", first.selectedCandidates.single().stableKey)
-        val omitted = first.candidateDispositionIndex.entries.single { it.stableKey == "z_candidate" }
+        assertEquals("barbell_back_squat", first.selectedCandidates.single().stableKey)
+        val omitted = first.candidateDispositionIndex.entries.single { it.stableKey == "barbell_deadlift" }
         assertEquals(StimulusCandidateDispositionStatus.ELIGIBLE_NOT_SELECTED, omitted.status)
         assertEquals(StimulusCandidateRankingField.STABLE_KEY, omitted.firstDifferingField)
         assertEquals(StimulusCandidateDispositionReason.DETERMINISTIC_STABLE_KEY_TIE_BREAK, omitted.reasons.single())
-        assertEquals(omitted.candidateRanking?.copy(stableKey = "a_candidate"), omitted.selectedInsteadRanking)
+        assertEquals(omitted.candidateRanking?.copy(stableKey = "barbell_back_squat"), omitted.selectedInsteadRanking)
     }
 
     @Test
@@ -166,8 +184,8 @@ class StimulusTargetCandidateSelectorTest {
 
     @Test
     fun movementCandidateDoesNotSuppressLaterCanonicalQualitySelection() {
-        val candidate = exercise("dual_candidate")
-        val base = fixture(listOf(candidate), listOf(relation("dual_candidate")))
+        val candidate = exercise("barbell_back_squat")
+        val base = fixture(listOf(candidate), listOf(relation("barbell_back_squat")))
         val snapshot = base.snapshot.copy(metadata = base.snapshot.metadata.mapValues { (_, metadata) ->
             metadata.copy(activityKind = "EXERCISE", programSlot = "CORE_STABILITY_ACCESSORY", progressMetricType = "LOAD_REPS",
                 analysisEligibility = MetadataTokenField.parse("STRENGTH_PROGRESS"))
@@ -185,9 +203,9 @@ class StimulusTargetCandidateSelectorTest {
 
         val strengthTrace = result.traces.single { it.targetId == "QUALITY:STRENGTH" }
         assertTrue(strengthTrace.selectionRequired)
-        assertEquals("dual_candidate", strengthTrace.selectedStableKey)
+        assertEquals("barbell_back_squat", strengthTrace.selectedStableKey)
         val movementTrace = result.traces.single { it.targetId == movement.targetId }
-        assertEquals("dual_candidate", movementTrace.selectedStableKey)
+        assertEquals("barbell_back_squat", movementTrace.selectedStableKey)
         assertEquals("CANONICAL_STIMULUS_QUALITY_STRENGTH", movementTrace.selectedSelectionRole)
         assertTrue(movementTrace.reasonCodes.contains("MOVEMENT_COVERED_BY_CANONICAL_B5_OWNER"))
         assertEquals(setOf("QUALITY:STRENGTH", movement.targetId), result.selectedCandidates.single().coveredTargetIds)
@@ -195,10 +213,10 @@ class StimulusTargetCandidateSelectorTest {
 
     @Test
     fun movementTargetReusesOnlyTheExactAuthorizedQualityPrescription() {
-        val candidate = exercise("dual_authorized_candidate")
-        val base = fixture(listOf(candidate), listOf(relation("dual_authorized_candidate")))
+        val candidate = exercise("barbell_back_squat")
+        val base = fixture(listOf(candidate), listOf(relation("barbell_back_squat")))
         val snapshot = base.snapshot.copy(
-            canonicalStrengthSignals = mapOf("dual_authorized_candidate" to CanonicalStrengthSignal(100.0, observationCount = 2)),
+            canonicalStrengthSignals = mapOf("barbell_back_squat" to CanonicalStrengthSignal(100.0, observationCount = 2)),
             metadata = base.snapshot.metadata.mapValues { (_, metadata) ->
                 metadata.copy(activityKind = "EXERCISE", programSlot = "CORE_STABILITY_ACCESSORY", progressMetricType = "LOAD_REPS",
                     analysisEligibility = MetadataTokenField.parse("STRENGTH_PROGRESS"))
@@ -214,7 +232,7 @@ class StimulusTargetCandidateSelectorTest {
             targetPlan, snapshot, base.state, base.request, base.catalog
         )
         val owner = selection.selectedCandidates.single()
-        assertEquals("dual_authorized_candidate", owner.stableKey)
+        assertEquals("barbell_back_squat", owner.stableKey)
         assertEquals("CANONICAL_STIMULUS_QUALITY_STRENGTH", owner.selectionRole)
         assertTrue(movement.targetId in owner.coveredTargetIds)
 
@@ -237,10 +255,10 @@ class StimulusTargetCandidateSelectorTest {
 
     @Test
     fun movementTargetDoesNotReuseSameStableKeyAuthorityFromDifferentRole() {
-        val candidate = exercise("dual_authorized_candidate")
-        val base = fixture(listOf(candidate), listOf(relation("dual_authorized_candidate")))
+        val candidate = exercise("barbell_back_squat")
+        val base = fixture(listOf(candidate), listOf(relation("barbell_back_squat")))
         val snapshot = base.snapshot.copy(
-            canonicalStrengthSignals = mapOf("dual_authorized_candidate" to CanonicalStrengthSignal(100.0, observationCount = 2)),
+            canonicalStrengthSignals = mapOf("barbell_back_squat" to CanonicalStrengthSignal(100.0, observationCount = 2)),
             metadata = base.snapshot.metadata.mapValues { (_, metadata) ->
                 metadata.copy(activityKind = "EXERCISE", programSlot = "CORE_STABILITY_ACCESSORY", progressMetricType = "LOAD_REPS",
                     analysisEligibility = MetadataTokenField.parse("STRENGTH_PROGRESS"))
@@ -275,10 +293,10 @@ class StimulusTargetCandidateSelectorTest {
 
     @Test
     fun selectedOwnerCanCoverAnotherTargetWithoutSelectingASecondRole() {
-        val dual = exercise("dual_capability")
+        val dual = exercise("barbell_back_squat")
         val fixture = fixture(listOf(dual), listOf(
-            relation("dual_capability", quality = TrainableQuality.STRENGTH),
-            relation("dual_capability", quality = TrainableQuality.POWER)
+            relation("barbell_back_squat", quality = TrainableQuality.STRENGTH),
+            relation("barbell_back_squat", quality = TrainableQuality.POWER)
         ))
         val plan = StimulusTargetPlan(
             qualityTargets = listOf(
@@ -288,7 +306,7 @@ class StimulusTargetCandidateSelectorTest {
         )
         val result = select(plan, fixture, emptyList())
         assertEquals(1, result.selectedCandidates.size)
-        val covered = result.candidateDispositionIndex.entries.single { it.targetId == "QUALITY:POWER" && it.stableKey == "dual_capability" }
+        val covered = result.candidateDispositionIndex.entries.single { it.targetId == "QUALITY:POWER" && it.stableKey == "barbell_back_squat" }
         assertEquals(StimulusCandidateDispositionStatus.REUSED_FOR_TARGET, covered.status)
         assertEquals("CANONICAL_STIMULUS_QUALITY_STRENGTH", covered.selectedInstead?.selectionRole)
         assertTrue(covered.targetCoveredBySelectedOwner)
@@ -296,8 +314,8 @@ class StimulusTargetCandidateSelectorTest {
 
     @Test
     fun materializationFailureIsNotReportedAsAnEligibilityOrRankingOutcome() {
-        val candidate = exercise("too_slow")
-        val fixture = fixture(listOf(candidate), listOf(relation("too_slow")))
+        val candidate = exercise("barbell_back_squat")
+        val fixture = fixture(listOf(candidate), listOf(relation("barbell_back_squat")))
             .copy(request = request().copy(sessionMinutes = 0))
         val result = select(qualityPlan(), fixture, emptyList())
         val disposition = result.candidateDispositionIndex.entries.single()
@@ -367,89 +385,89 @@ class StimulusTargetCandidateSelectorTest {
 
     @Test
     fun repeatedRecentCompatibleDirectHistoryWinsContinuityRanking() {
-        val recent = exercise("recent_squat")
-        val fresh = exercise("fresh_squat")
+        val recent = exercise("barbell_back_squat")
+        val fresh = exercise("barbell_deadlift")
         val cutoff = LocalDate.of(2026, 9, 20)
         val fixture = fixture(
             exercises = listOf(fresh, recent),
-            relations = listOf(relation("fresh_squat"), relation("recent_squat")),
+            relations = listOf(relation("barbell_deadlift"), relation("barbell_back_squat")),
             history = listOf(
-                PlanningSetRecord(cutoff.minusDays(7), "recent_squat", "recent squat", "STRENGTH", 1, 5, 80.0, 0, 8.0),
-                PlanningSetRecord(cutoff.minusDays(14), "recent_squat", "recent squat", "STRENGTH", 1, 5, 80.0, 0, 8.0)
+                PlanningSetRecord(cutoff.minusDays(7), "barbell_back_squat", "recent squat", "STRENGTH", 1, 5, 80.0, 0, 8.0),
+                PlanningSetRecord(cutoff.minusDays(14), "barbell_back_squat", "recent squat", "STRENGTH", 1, 5, 80.0, 0, 8.0)
             )
         )
 
         val result = select(qualityPlan(), fixture, emptyList())
-        assertEquals("recent_squat", result.selectedCandidates.single().stableKey)
-        assertEquals(listOf("recent_squat"), result.traces.single().historyDirectCapabilityIdentities)
+        assertEquals("barbell_back_squat", result.selectedCandidates.single().stableKey)
+        assertEquals(listOf("barbell_back_squat"), result.traces.single().historyDirectCapabilityIdentities)
     }
 
     @Test
     fun historyOlderThanSixtyDaysDoesNotReceiveCurrentContinuityPriority() {
-        val old = exercise("z_old_squat")
-        val fresh = exercise("a_fresh_squat")
+        val old = exercise("barbell_deadlift")
+        val fresh = exercise("barbell_back_squat")
         val cutoff = LocalDate.of(2026, 9, 20)
         val fixture = fixture(
             exercises = listOf(old, fresh),
-            relations = listOf(relation("z_old_squat"), relation("a_fresh_squat")),
-            history = listOf(PlanningSetRecord(cutoff.minusDays(65), "z_old_squat", "old squat", "STRENGTH", 1, 5, 80.0, 0, 8.0))
+            relations = listOf(relation("barbell_deadlift"), relation("barbell_back_squat")),
+            history = listOf(PlanningSetRecord(cutoff.minusDays(65), "barbell_deadlift", "old squat", "STRENGTH", 1, 5, 80.0, 0, 8.0))
         )
 
         val result = select(qualityPlan(), fixture, emptyList())
-        assertEquals("a_fresh_squat", result.selectedCandidates.single().stableKey)
+        assertEquals("barbell_back_squat", result.selectedCandidates.single().stableKey)
         assertTrue(result.traces.single().historyDirectCapabilityIdentities.isEmpty())
     }
 
     @Test
     fun recentButPrescriptionIncompatibleHistoryIsNotClassifiedAsStrengthCompatible() {
-        val incompatible = exercise("a_incompatible_squat")
-        val fresh = exercise("z_fresh_squat")
+        val incompatible = exercise("barbell_back_squat")
+        val fresh = exercise("barbell_deadlift")
         val fixture = fixture(
             exercises = listOf(incompatible, fresh),
-            relations = listOf(relation("a_incompatible_squat"), relation("z_fresh_squat")),
-            history = listOf(PlanningSetRecord(LocalDate.of(2026, 9, 10), "a_incompatible_squat", "incompatible squat", "STRENGTH", 1, 10, 80.0, 0, 8.0))
+            relations = listOf(relation("barbell_back_squat"), relation("barbell_deadlift")),
+            history = listOf(PlanningSetRecord(LocalDate.of(2026, 9, 10), "barbell_back_squat", "incompatible squat", "STRENGTH", 1, 10, 80.0, 0, 8.0))
         )
 
         val result = select(qualityPlan(), fixture, emptyList())
-        assertEquals("a_incompatible_squat", result.selectedCandidates.single().stableKey)
+        assertEquals("barbell_back_squat", result.selectedCandidates.single().stableKey)
         assertEquals(SelectionProbePrescriptionCompatibility.REALIZED_INCOMPATIBLE,
             result.selectedCandidates.single().probePrescriptionCompatibility)
     }
 
     @Test
     fun tissueRestrictionOverridesRecentContinuityAndNoHistorySelectionIsDeterministic() {
-        val restricted = exercise("a_restricted_squat")
-        val safe = exercise("z_safe_squat")
+        val restricted = exercise("barbell_back_squat")
+        val safe = exercise("barbell_deadlift")
         val cutoff = LocalDate.of(2026, 9, 20)
         val base = fixture(
             exercises = listOf(restricted, safe),
-            relations = listOf(relation("a_restricted_squat"), relation("z_safe_squat")),
-            history = listOf(PlanningSetRecord(cutoff.minusDays(3), "a_restricted_squat", "restricted squat", "STRENGTH", 1, 5, 80.0, 0, 8.0))
+            relations = listOf(relation("barbell_back_squat"), relation("barbell_deadlift")),
+            history = listOf(PlanningSetRecord(cutoff.minusDays(3), "barbell_back_squat", "restricted squat", "STRENGTH", 1, 5, 80.0, 0, 8.0))
         )
         val tissueRestricted = base.copy(snapshot = base.snapshot.copy(
-            recoverySignals = PlanningRecoverySignals(tissueRestrictedStableKeys = setOf("a_restricted_squat"))
+            recoverySignals = PlanningRecoverySignals(tissueRestrictedStableKeys = setOf("barbell_back_squat"))
         ))
         val gated = select(qualityPlan(), tissueRestricted, emptyList())
-        assertEquals("z_safe_squat", gated.selectedCandidates.single().stableKey)
-        assertFalse(gated.traces.single().candidatePool.contains("a_restricted_squat"))
+        assertEquals("barbell_deadlift", gated.selectedCandidates.single().stableKey)
+        assertFalse(gated.traces.single().candidatePool.contains("barbell_back_squat"))
 
-        val noHistory = fixture(listOf(safe, exercise("b_squat")), listOf(relation("z_safe_squat"), relation("b_squat")))
+        val noHistory = fixture(listOf(safe, exercise("ex_c5043892")), listOf(relation("barbell_deadlift"), relation("ex_c5043892")))
         assertEquals(select(qualityPlan(), noHistory, emptyList()), select(qualityPlan(), noHistory, emptyList()))
     }
 
     @Test
     fun controlIdentityCannotSuppressCanonicalSelectionForDoseGap() {
-        val existing = exercise("existing")
-        val replacement = exercise("replacement")
+        val existing = exercise("barbell_back_squat")
+        val replacement = exercise("barbell_deadlift")
         val fixture = fixture(
             exercises = listOf(existing, replacement),
-            relations = listOf(relation("existing"), relation("replacement"))
+            relations = listOf(relation("barbell_back_squat"), relation("barbell_deadlift"))
         )
         val result = select(qualityPlan(), fixture, listOf(existing))
         val trace = result.traces.single()
         assertTrue(trace.selectionRequired)
         assertTrue(trace.historyDirectCapabilityIdentities.isEmpty())
-        assertEquals("existing", result.selectedCandidates.single().stableKey)
+        assertEquals("barbell_back_squat", result.selectedCandidates.single().stableKey)
         assertTrue(trace.reasonCodes.contains("SELECTION_IDENTITY_PRESENT"))
         assertEquals(select(qualityPlan(), fixture, emptyList()).candidateDispositionIndex,
             result.candidateDispositionIndex)
@@ -457,8 +475,8 @@ class StimulusTargetCandidateSelectorTest {
 
     @Test
     fun canonicalSelectorHasNoLegacySeedAndAlwaysBuildsFromTargetAndHistory() {
-        val existing = exercise("existing")
-        val fixture = fixture(listOf(existing), listOf(relation("existing")))
+        val existing = exercise("barbell_back_squat")
+        val fixture = fixture(listOf(existing), listOf(relation("barbell_back_squat")))
         val control = skeleton(fixture.request, listOf(
             item("existing", 1, role = "MAIN"),
             item("existing", 2, role = "MAIN", week = 2),
@@ -468,15 +486,15 @@ class StimulusTargetCandidateSelectorTest {
         val actual = StimulusTargetCandidateSelector().build(
             qualityPlan(), fixture.snapshot, fixture.state, fixture.request, fixture.catalog
         )
-        assertEquals("existing", actual.selectedCandidates.single().stableKey)
+        assertEquals("barbell_back_squat", actual.selectedCandidates.single().stableKey)
         assertEquals("CANONICAL_STIMULUS_QUALITY_STRENGTH", actual.selectedCandidates.single().selectionRole)
         assertTrue(actual.traces.single().selectionRequired)
     }
 
     @Test
     fun selectorRunsAfterControlObjectIsDiscardedAndHasNoProgramObjectParameter() {
-        val candidate = exercise("candidate")
-        val fixture = fixture(listOf(candidate), listOf(relation("candidate")))
+        val candidate = exercise("barbell_back_squat")
+        val fixture = fixture(listOf(candidate), listOf(relation("barbell_back_squat")))
         var control: GeneratedProgramSkeleton? = skeleton(fixture.request, listOf(item("old", 1, role = "MAIN")))
         assertEquals(setOf("old"), requireNotNull(control).items.mapTo(linkedSetOf(), ProgramSkeletonItem::exerciseStableKey))
         control = null
@@ -487,7 +505,7 @@ class StimulusTargetCandidateSelectorTest {
         val result = StimulusTargetCandidateSelector().build(
             qualityPlan(), fixture.snapshot, fixture.state, fixture.request, fixture.catalog
         )
-        assertEquals(listOf("candidate"), result.selectedCandidates.map { it.stableKey })
+        assertEquals(listOf("barbell_back_squat"), result.selectedCandidates.map { it.stableKey })
         assertEquals("CANONICAL_STIMULUS_QUALITY_STRENGTH", result.selectedCandidates.single().selectionRole)
     }
 
@@ -572,6 +590,7 @@ class StimulusTargetCandidateSelectorTest {
         assertFalse(result.traces.last().selectionRequired)
         assertNull(result.traces.last().selectedStableKey)
         assertTrue(result.traces.last().reasonCodes.contains("NO_MINIMUM_TARGET"))
+        assertTrue("a no-minimum Strength target is not an unmet exposure shortfall", result.strengthShortfalls.isEmpty())
     }
 
     @Test
@@ -644,8 +663,8 @@ class StimulusTargetCandidateSelectorTest {
 
     @Test
     fun b5UsesExistingPrescriptionSetCountAndLeavesStrengthGapForB6() {
-        val candidate = exercise("novel")
-        val fixture = fixture(listOf(candidate), listOf(relation("novel")))
+        val candidate = exercise("barbell_back_squat")
+        val fixture = fixture(listOf(candidate), listOf(relation("barbell_back_squat")))
         val result = select(qualityPlan().copy(
             qualityTargets = listOf(target(TrainableQuality.STRENGTH, TargetPriority.PRIMARY,
                 StimulusDoseStrategy.INTRODUCE_DIRECT_STIMULUS, StimulusTargetNumericAuthority.DIRECTION_ONLY,
@@ -707,7 +726,11 @@ class StimulusTargetCandidateSelectorTest {
         }
         val metadata = exercises.associate { exercise ->
             exercise.stableKey to RuntimeExerciseMetadataDefaults.forExercise(exercise).copy(
-                planningEligibility = "PROGRAM_SELECTABLE", sourceConfidenceLevel = "HIGH"
+                activityKind = if (exercise.activityKind == "GENERIC_COURT_SESSION") "SPORT_SESSION" else "EXERCISE",
+                planningEligibility = "PROGRAM_SELECTABLE",
+                progressMetricType = "LOAD_REPS",
+                analysisEligibility = MetadataTokenField.parse("STRENGTH_PROGRESS"),
+                sourceConfidenceLevel = "HIGH"
             )
         }
         val snapshot = PlanningHistorySnapshot(
