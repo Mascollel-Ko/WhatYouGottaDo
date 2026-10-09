@@ -1,4 +1,5 @@
 import java.util.Properties
+import org.gradle.api.tasks.testing.Test
 
 plugins {
     id("com.android.application")
@@ -157,6 +158,13 @@ dependencies {
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+}
+
+// The production-coverage corpus retains several generated planner snapshots while rendering
+// the audit reports. Keep the unit-test worker's heap large enough for that single bounded run;
+// this changes verification capacity only and does not affect the shipped application.
+tasks.withType<Test>().configureEach {
+    maxHeapSize = "2g"
 }
 
 fun registerConnectiveTissuePriorTask(name: String, command: String) {
