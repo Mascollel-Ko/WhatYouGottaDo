@@ -272,6 +272,7 @@ class StimulusProductionCoverageAuditTest {
         val c15File = java.io.File("build/reports/c15-cold-start-strength-calibration-census.json")
         requireNotNull(c15File.parentFile).mkdirs()
         c15File.writeText(c15Census)
+        assertC15CurrentCorpusContracts(c15Census)
         val c16Census = renderC16B8ResidualBlockerCensus(
             records,
             c15MergeMainHead = "caa3e8d07f52462ec009e31aad406fa0c7b18aea",
@@ -283,6 +284,7 @@ class StimulusProductionCoverageAuditTest {
             c16StartHead = "caa3e8d07f52462ec009e31aad406fa0c7b18aea"
         ))
         java.io.File("build/reports/c16-b8-residual-blocker-census.json").writeText(c16Census)
+        assertC16CurrentCorpusContracts(c16Census)
         val c17Census = C17PlacementCausalityCensus.render(
             records,
             productionContextByCase,
@@ -1256,49 +1258,28 @@ class StimulusProductionCoverageAuditTest {
                 assertEquals(0, delta.getJSONArray("directCausalDisplacementEdges").length())
             }
         println("C17_PLACEMENT_CENSUS=${c17Summary}")
-        val c16Cases = org.json.JSONObject(c16Census).getJSONArray("cases")
-        fun c16Case(name: String) = (0 until c16Cases.length()).map { c16Cases.getJSONObject(it) }.single { it.getString("case") == name }
-        assertEquals(0, c16Case("persona0_mixed").getInt("authorizedCalibrationDeltaCount"))
-        assertEquals(6, c16Case("persona0_mixed").getInt("residualDeltaCount"))
-        assertEquals(4, c16Case("persona0_reviewed").getInt("authorizedCalibrationDeltaCount"))
-        assertEquals(10, c16Case("persona0_reviewed").getInt("residualDeltaCount"))
-        assertEquals(4, c16Case("persona3_reviewed").getInt("authorizedCalibrationDeltaCount"))
-        assertEquals(12, c16Case("persona3_reviewed").getInt("residualDeltaCount"))
-        assertEquals(4, c16Case("persona4_mixed").getInt("authorizedCalibrationDeltaCount"))
-        assertEquals(24, c16Case("persona4_mixed").getInt("residualDeltaCount"))
-        assertEquals(0, c16Case("persona2_reviewed").getInt("authorizedCalibrationDeltaCount"))
-        assertEquals(22, c16Case("persona2_reviewed").getInt("residualDeltaCount"))
-        // C32 excludes the eight-rep reviewed squat history from Strength exposure, so this
-        // case no longer has an exact B5 Strength owner to calibrate. Other reviewed fixtures
-        // below retain the existing cold-start calibration path.
-        assertEquals("TRUE_SAFETY_BLOCK", c16Case("persona2_reviewed")
-            .getJSONObject("rootClassification").getString("primaryDisposition"))
-        val reviewedReplacementRoot = c16Case("persona0_reviewed").getJSONObject("rootClassification")
-        assertEquals("AUDIT_OR_PROVENANCE_GAP", reviewedReplacementRoot.getString("primaryDisposition"))
-        assertEquals("PROVENANCE_ONLY_GAP", reviewedReplacementRoot.getJSONObject("primaryRootBlocker").getString("type"))
-        listOf("persona4_mixed").forEach { name ->
-            val root = c16Case(name).getJSONObject("rootClassification")
-            assertEquals("$name disposition", "TRUE_SAFETY_BLOCK", root.getString("primaryDisposition"))
-            assertFalse("$name is not an exact false negative", root.getBoolean("potentialFalseNegativeEligible"))
-        }
-        // C33's regional H material changes which rows remain in the audit's residual
-        // comparison; the independent B7 provenance blocker remains fail-closed.
-        assertEquals("AUDIT_OR_PROVENANCE_GAP", c16Case("persona0_mixed")
-            .getJSONObject("rootClassification").getString("primaryDisposition"))
-        assertEquals("PROVENANCE_ONLY_GAP", c16Case("persona0_mixed")
-            .getJSONObject("rootClassification").getJSONObject("primaryRootBlocker").getString("type"))
-        assertEquals("TRUE_SAFETY_BLOCK", c16Case("persona3_reviewed")
-            .getJSONObject("rootClassification").getString("primaryDisposition"))
-        assertFalse(c16Case("persona3_reviewed").getJSONObject("rootClassification").getBoolean("potentialFalseNegativeEligible"))
-        assertEquals("UNAUTHORIZED_PLACEMENT_CHANGE", c16Case("persona3_reviewed")
-            .getJSONObject("rootClassification").getJSONObject("primaryRootBlocker").getString("type"))
+        val serializationProbe = generated.first { it.first.label == "reviewed_strength_isolated" }.second
+            .comparison!!.prescriptionRealizationPlan!!.toCompactJson().toString()
+        assertFalse(serializationProbe.contains("c14StrengthTrainingLoadShadow"))
+        println(report)
+        assertC9CorpusBoundaries(records)
+        val control = generated.filter { it.second.routeDecision.selectedSource == StimulusProductionProgramSource.CONTROL }
+        val b7ReasonCounts = control.flatMap { it.second.comparison?.experimentalReadinessAudit?.reasonCodes.orEmpty() }
+            .groupingBy { it }.eachCount()
+        assertTrue(b7ReasonCounts.keys.contains("CHANGE_PROVENANCE_UNCLOSED"))
+        assertFalse("aggregate regional H is not compared with the whole-quality reference",
+            b7ReasonCounts.containsKey("TARGET_REGRESSED"))
+        assertFalse("B6-denied Quality additions no longer contribute affected unmet targets",
+            b7ReasonCounts.containsKey("AFFECTED_TARGET_REMAINS_UNMET"))
+    }
+
+    /** Parse prior-phase reports in short stack frames before downstream corpus audits accumulate. */
+    private fun assertC15CurrentCorpusContracts(c15Census: String) {
         val c15 = org.json.JSONObject(c15Census)
         assertEquals(27, c15.getJSONObject("corpus").getInt("totalCases"))
         assertEquals(22, c15.getJSONObject("corpus").getInt("generated"))
         assertEquals(5, c15.getJSONObject("corpus").getInt("preflightRejected"))
-        // Without unsupported coverage fallback rows, the current corpus keeps the intact
-        // CONTROL skeleton wherever B7 sees an unexplained owner removal. Exact Quality B6
-        // rows remain materialized, but they do not erase unrelated provenance blockers.
+        // Existing provenance blockers still keep the intact CONTROL skeleton selected.
         assertEquals(22, c15.getJSONObject("corpus").getJSONObject("routes").getInt("CONTROL"))
         assertEquals(0, c15.getJSONObject("corpus").getJSONObject("routes").getInt("B8_STRENGTH_CALIBRATION_V1"))
         assertEquals(0, c15.getJSONObject("corpus").getJSONObject("routes").getInt("B8_STRENGTH_V1"))
@@ -1306,8 +1287,6 @@ class StimulusProductionCoverageAuditTest {
             (0 until rows.length()).count { rows.getJSONObject(it).optJSONObject("C15_coldStart")?.optString("status") == "AVAILABLE" }
         })
         assertEquals(5, c15.getJSONArray("fiveC13RepRangeCases").length())
-        // C33 now admits the approved four-set anchor seed only after B3 has chosen
-        // INTRODUCE_DIRECT_STIMULUS; those need-qualified rows are no longer direction-only.
         assertEquals(0, c15.getJSONArray("directionOnlyStrengthCases").length())
         assertEquals(8, c15.getJSONArray("cases").let { rows ->
             (0 until rows.length()).count {
@@ -1335,22 +1314,45 @@ class StimulusProductionCoverageAuditTest {
         assertEquals("CONTROL_REQUIRED", calibrationCase.getJSONObject("B8").getString("status"))
         assertEquals(0, calibrationCase.getJSONObject("buildAccounting").getInt("third"))
         assertFalse(calibrationCase.getJSONObject("C14_shadow").getBoolean("hasCapacityReference"))
-        val serializationProbe = generated.first { it.first.label == "reviewed_strength_isolated" }.second
-            .comparison!!.prescriptionRealizationPlan!!.toCompactJson().toString()
-        assertFalse(serializationProbe.contains("c14StrengthTrainingLoadShadow"))
-        println(report)
-        assertC9CorpusBoundaries(records)
         val routeCounts = c15.getJSONObject("corpus").getJSONObject("routes")
         assertEquals(0, routeCounts.getInt("B8_HYPERTROPHY_V1"))
         assertEquals(0, routeCounts.getInt("B8_STRENGTH_HYPERTROPHY_V1"))
-        val control = generated.filter { it.second.routeDecision.selectedSource == StimulusProductionProgramSource.CONTROL }
-        val b7ReasonCounts = control.flatMap { it.second.comparison?.experimentalReadinessAudit?.reasonCodes.orEmpty() }
-            .groupingBy { it }.eachCount()
-        assertTrue(b7ReasonCounts.keys.contains("CHANGE_PROVENANCE_UNCLOSED"))
-        assertFalse("aggregate regional H is not compared with the whole-quality reference",
-            b7ReasonCounts.containsKey("TARGET_REGRESSED"))
-        assertFalse("B6-denied Quality additions no longer contribute affected unmet targets",
-            b7ReasonCounts.containsKey("AFFECTED_TARGET_REMAINS_UNMET"))
+    }
+
+    private fun assertC16CurrentCorpusContracts(c16Census: String) {
+        val c16Cases = org.json.JSONObject(c16Census).getJSONArray("cases")
+        fun c16Case(name: String) = (0 until c16Cases.length()).map { c16Cases.getJSONObject(it) }
+            .single { it.getString("case") == name }
+        assertEquals(0, c16Case("persona0_mixed").getInt("authorizedCalibrationDeltaCount"))
+        assertEquals(6, c16Case("persona0_mixed").getInt("residualDeltaCount"))
+        assertEquals(4, c16Case("persona0_reviewed").getInt("authorizedCalibrationDeltaCount"))
+        assertEquals(10, c16Case("persona0_reviewed").getInt("residualDeltaCount"))
+        assertEquals(4, c16Case("persona3_reviewed").getInt("authorizedCalibrationDeltaCount"))
+        assertEquals(12, c16Case("persona3_reviewed").getInt("residualDeltaCount"))
+        assertEquals(4, c16Case("persona4_mixed").getInt("authorizedCalibrationDeltaCount"))
+        assertEquals(24, c16Case("persona4_mixed").getInt("residualDeltaCount"))
+        assertEquals(0, c16Case("persona2_reviewed").getInt("authorizedCalibrationDeltaCount"))
+        assertEquals(22, c16Case("persona2_reviewed").getInt("residualDeltaCount"))
+        // C32 excludes the eight-rep reviewed squat history from Strength exposure.
+        assertEquals("TRUE_SAFETY_BLOCK", c16Case("persona2_reviewed")
+            .getJSONObject("rootClassification").getString("primaryDisposition"))
+        val reviewedReplacementRoot = c16Case("persona0_reviewed").getJSONObject("rootClassification")
+        assertEquals("AUDIT_OR_PROVENANCE_GAP", reviewedReplacementRoot.getString("primaryDisposition"))
+        assertEquals("PROVENANCE_ONLY_GAP", reviewedReplacementRoot.getJSONObject("primaryRootBlocker").getString("type"))
+        listOf("persona4_mixed").forEach { name ->
+            val root = c16Case(name).getJSONObject("rootClassification")
+            assertEquals("$name disposition", "TRUE_SAFETY_BLOCK", root.getString("primaryDisposition"))
+            assertFalse("$name is not an exact false negative", root.getBoolean("potentialFalseNegativeEligible"))
+        }
+        assertEquals("AUDIT_OR_PROVENANCE_GAP", c16Case("persona0_mixed")
+            .getJSONObject("rootClassification").getString("primaryDisposition"))
+        assertEquals("PROVENANCE_ONLY_GAP", c16Case("persona0_mixed")
+            .getJSONObject("rootClassification").getJSONObject("primaryRootBlocker").getString("type"))
+        assertEquals("TRUE_SAFETY_BLOCK", c16Case("persona3_reviewed")
+            .getJSONObject("rootClassification").getString("primaryDisposition"))
+        assertFalse(c16Case("persona3_reviewed").getJSONObject("rootClassification").getBoolean("potentialFalseNegativeEligible"))
+        assertEquals("UNAUTHORIZED_PLACEMENT_CHANGE", c16Case("persona3_reviewed")
+            .getJSONObject("rootClassification").getJSONObject("primaryRootBlocker").getString("type"))
     }
 
     private fun assertC26RejectedQualityRowsAreNotMaterialized(
