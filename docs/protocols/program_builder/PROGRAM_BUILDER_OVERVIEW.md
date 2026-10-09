@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.66.0 |
+| Protocol version | 3.67.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.8 |
-| Last audited commit | 6d721211b4b745f6a6020f0e7a8d415eecb3cce4 |
+| Last audited commit | a6519964674d39bc69f37010d513f5575c9ab476 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1406,3 +1406,10 @@ Post-audit boundary notes
 - In the five sparse cases, the 22 C31 movement target contexts / 44 owner-weeks all remain present; the current B3 census also contains seven additional movement contexts. Across 29 current targets / 58 owner-weeks, B5 examined 268 candidate rows, selected 27 owners, and legitimately rejected 241. Sixteen targets materialized exactly; two were limited by finite capacity, two lacked a B5 owner, five Core targets lacked shape authority, and four Upper Pull targets lacked numeric regional dose authority. Partial targets 0; B6-authorized units 288 and materialized units 256; load calibration required for 18; overfilled, duplicate-credit and unauthorized rows 0.
 - The full corpus remains one CONTROL and one EXPERIMENTAL build per generated case (22 / 22 / 44 / 0 third builds). All 22 generated cases remain CONTROL because B7 still observes 90 unexplained removed identities across 22 cases, one unexplained prescription change, two target regressions, and one collateral regression. Unexplained added identities are 0 and affected targets remaining unmet are 0. No B7/B8 guard was relaxed; Power and JUMP_LANDING material remain zero.
 - C33 census: [`docs/c33-regional-b4-residual-production-census.json`](../../c33-regional-b4-residual-production-census.json), SHA-256 `8DE39C04832480ACD468C6F76A1BCB4FB9195C05659333BB245A44436D75363B`; audit: [`docs/c33_regional_b4_residual_production_audit.md`](../../c33_regional_b4_residual_production_audit.md). Protocol/runtime/app/Room are `3.66.0` / `RECORD_BASED_PLANNER_0.15.8_KOTLIN_1` / `0.5.1.5` / 38. Local full suite passed 2,375 tests (0 failures, 0 errors, 4 skips), compile and debug APK assembly passed. The APK is 70,741,614 bytes (SHA-256 `B6695E7ED4118428C8433B12F3410740F961E7323993A8565889329996592433`). Implementation/test commit `6d721211b4b745f6a6020f0e7a8d415eecb3cce4` is `lastAuditedCommit`.
+
+### Phase C34 — exact removed-owner replacement provenance (protocol 3.67.0)
+
+- The before census covers 200 removed owner-week rows: 100 `(case, old owner)` pairs and 24 globally distinct stableKey/role identities. Of 90 unexplained owner-case attributions (180 owner-weeks), 43 movement replacements had the complete exact B4 target → B5 primary owner → B6 regional Hypertrophy authority → weekly materialization chain. B7 now consumes that evidence for those movement targets; 47 attributions (94 owner-weeks) remain unexplained. No same-key-only or allocator-displacement inference was added. The census preserves all before dossiers and joins the after B7/B8 attribution status per removed owner-week.
+- B7 `CHANGE_PROVENANCE_UNCLOSED` falls from 22 to 21 cases; one case becomes B7-eligible, but B8 still requires CONTROL for a missing/short authorized week. Routes remain CONTROL 22. The two true `QUALITY:HYPERTROPHY` target regressions and the collateral regression remain blocked because regional additions exceed the aggregate Quality B4 maximum. `persona4_recent`'s 5→4 squat-set mutation also remains unexplained because it has no exact B5/B6 authority.
+- C34 does not alter C33 regional residual selection or materialization: the before corpus remains 268 candidate rows, 27 selected, 241 normal rejections, zero overfill, duplicate credit, unauthorized material, or unexplained added identities. Power/JUMP_LANDING remain material-zero; builds remain CONTROL 22 / EXPERIMENTAL 22 / TOTAL 44 / THIRD 0. B7/B8 guards are unchanged.
+- C34 census: [`docs/c34-removed-identity-provenance-census.json`](../../c34-removed-identity-provenance-census.json), SHA-256 `F2A1A6C1F71C350DD557764E1F326636CB2F5D9DA2A94EEB2DFE9C6421C69C8A`; audit: [`docs/c34_removed_identity_provenance_audit.md`](../../c34_removed_identity_provenance_audit.md). Protocol/runtime/app/Room are `3.67.0` / `RECORD_BASED_PLANNER_0.15.9_KOTLIN_1` / `0.5.1.5` / 38. Local full suite passed 2,375 tests (0 failures, 0 errors, 4 skips) using the existing repository-external JDK 17 / worker-restart setup after JBR 21 Robolectric native runtime crashed outside the JVM. `compileDebugKotlin` and `assembleDebug` passed. Local debug APK is 70,741,870 bytes, SHA-256 `90865FF2C6676EE6B07E73C50A54EDAC38E9893444270F4B70DDA2B1B5780C76`. Implementation/test commit `a6519964674d39bc69f37010d513f5575c9ab476` is `lastAuditedCommit`; Hosted CI/artifact results are tracked in the completion report.
