@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.68.0 |
+| Protocol version | 3.69.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.10 |
-| Last audited commit | 5df9bda80c02b71f18f54db99cd1ee8d7d0829cb |
+| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.11 |
+| Last audited commit | 0c321c3d415981d9f0c4bc5e761f6ac36e2fe709 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1422,3 +1422,12 @@ Post-audit boundary notes
 - The corpus has 22 generated cases and 88 regional H target rows: 698 raw residual/authorized units, 565 funded, 549 compatible-materialized, 133 finite-capacity-unfunded and 16 further materialization shortfall. Regional overrun, duplicate physical rows and unauthorized material are 0. C34's two aggregate-only regressions and one collateral regression fall to 0; 47 unexplained removals, one unexplained prescription change and CONTROL routes remain fail-closed.
 - C35 census and audit: [`docs/c35_hypertrophy_capacity_audit.md`](../../c35_hypertrophy_capacity_audit.md) and [`docs/c35-hypertrophy-capacity-census.json`](../../c35-hypertrophy-capacity-census.json). Protocol/runtime/app/Room are `3.68.0` / `RECORD_BASED_PLANNER_0.15.10_KOTLIN_1` / `0.5.1.5` / 38. `lastAuditedCommit` names the C35 implementation/test commit; validation and artifact hashes are in the completion report.
 - Final verification: 2,380 JVM tests passed (0 failures, 0 errors, 4 skips) with the existing external JDK 17 worker-restart workaround; Kotlin main/test compilation, debug APK assembly, protocol validation, and `git diff --check` passed. Census SHA-256 is `839002052AC68418D471C4A7E976807CA180D66404B701EB91B00E6073434265`; coverage report SHA-256 is `BAC4835B1609119F32C9527052293D68448B653A78CC60C4CE34C8AF8B07A555`. Local debug APK: 70,741,861 bytes, SHA-256 `C533776CA62C58A757A1F8F6582B4ABAB720022CDC44C81A7BCD1A9FFE1DD7F1`. Implementation/test commit `5df9bda80c02b71f18f54db99cd1ee8d7d0829cb` is `lastAuditedCommit`; Hosted CI and artifact hashes are in the completion report.
+
+
+### Phase C36 — execution accounting and change provenance closure (protocol 3.69.0)
+
+- C36 distinguishes the older `finiteAllocationPriorityOrder` observation from final B4 regional funding. Across 22 generated cases and 88 regional target rows, raw B4 residual is 698 units/week; the legacy diagnostic reports 565, while exact frequency authorization and first-week materialization are both 549. The actual B4-to-scheduled shortfall is therefore 149 units/week, with no authorization-to-placement loss. Six rows (48 units) were only diagnostic-funded and were rejected by final frequency capacity; four rows (32 units) were final BASE-authorized but absent from that diagnostic. Existing exact same-owner retained units are 0; regional overrun, duplicate physical rows, and unauthorized material are 0.
+- The 47 unexplained removals are 47 unique `(case, owner)` pairs / 94 owner-week occurrences. 38 have a B11 replacement candidate and exact B5 alternative, but none has a replacement that is both scheduled and materialized. Three have exact B4/B6 authority but were rejected by finite capacity; 35 lack exact B6 authority, and nine have no selected canonical replacement evidence. No exact displacement edge exists. These removals remain unexplained and B7/B8 remain fail-closed.
+- `persona4_recent`'s `barbell_back_squat#STYLE_HEAVY_LOWER_KNEE` changes from 40 kg × 8 × 5 on day 4 to 40 kg × 8 × 4 on day 2 in both weeks. It is already four sets before placement. C36 attributes the exact set-prefix reduction to `FINITE_CAPACITY_CONTINUITY_ALLOCATION` only when the exact continuity candidate requests five, receives four under binding computed capacity, and matches the BASE scheduled prefix and CONTROL/EXPERIMENTAL rows. This is causal accounting, not B6 prescription authority; the owner has no exact B5/B6 authorization, and the new source is not accepted as an execution-routing source.
+- After that exact attribution, unexplained prescription-change owner-weeks are 0 (the two week rows are capacity-attributed). B7 reports 21 `CHANGE_PROVENANCE_UNCLOSED` cases and one `ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW`; B8 still requires CONTROL for all 22 cases. Routes remain CONTROL 22, with CONTROL/EXPERIMENTAL/total/third build accounting 22/22/44/0. Power and JUMP_LANDING material remain 0.
+- C36 census: [`docs/c36-execution-provenance-census.json`](../../c36-execution-provenance-census.json); human audit: [`docs/c36_execution_provenance_audit.md`](../../c36_execution_provenance_audit.md). Protocol/runtime/app/Room are `3.69.0` / `RECORD_BASED_PLANNER_0.15.11_KOTLIN_1` / `0.5.1.5` / 38. Local verification passed 2,380 JVM tests (0 failures, 0 errors, 4 skips), Kotlin main/test compilation, debug APK assembly, protocol validation, and `git diff --check`. Local debug APK: 70,741,865 bytes, SHA-256 `5B8C6C2B80F08626EB28971E90F1ABEE6667FD48DA17BA13EA8BA375705B2DC8`. Census SHA-256 is `628A9DCC9072F49FF55D9C5BCC5CD8C60CB2BD33866A9F0C5F1DC94C5BDAF7BF`. Implementation/test commit `0c321c3d415981d9f0c4bc5e761f6ac36e2fe709` is `lastAuditedCommit`; Hosted CI and uploaded artifact details are recorded in the completion report.
