@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.69.0 |
+| Protocol version | 3.70.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.11 |
-| Last audited commit | 0c321c3d415981d9f0c4bc5e761f6ac36e2fe709 |
+| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.12 |
+| Last audited commit | 32170eb82dc6fcce09bce8bb0d016c8e092165ec |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1431,3 +1431,12 @@ Post-audit boundary notes
 - `persona4_recent`'s `barbell_back_squat#STYLE_HEAVY_LOWER_KNEE` changes from 40 kg × 8 × 5 on day 4 to 40 kg × 8 × 4 on day 2 in both weeks. It is already four sets before placement. C36 attributes the exact set-prefix reduction to `FINITE_CAPACITY_CONTINUITY_ALLOCATION` only when the exact continuity candidate requests five, receives four under binding computed capacity, and matches the BASE scheduled prefix and CONTROL/EXPERIMENTAL rows. This is causal accounting, not B6 prescription authority; the owner has no exact B5/B6 authorization, and the new source is not accepted as an execution-routing source.
 - After that exact attribution, unexplained prescription-change owner-weeks are 0 (the two week rows are capacity-attributed). B7 reports 21 `CHANGE_PROVENANCE_UNCLOSED` cases and one `ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW`; B8 still requires CONTROL for all 22 cases. Routes remain CONTROL 22, with CONTROL/EXPERIMENTAL/total/third build accounting 22/22/44/0. Power and JUMP_LANDING material remain 0.
 - C36 census: [`docs/c36-execution-provenance-census.json`](../../c36-execution-provenance-census.json); human audit: [`docs/c36_execution_provenance_audit.md`](../../c36_execution_provenance_audit.md). Protocol/runtime/app/Room are `3.69.0` / `RECORD_BASED_PLANNER_0.15.11_KOTLIN_1` / `0.5.1.5` / 38. Local verification passed 2,380 JVM tests (0 failures, 0 errors, 4 skips), Kotlin main/test compilation, debug APK assembly, protocol validation, and `git diff --check`. Local debug APK: 70,741,865 bytes, SHA-256 `5B8C6C2B80F08626EB28971E90F1ABEE6667FD48DA17BA13EA8BA375705B2DC8`. Census SHA-256 is `628A9DCC9072F49FF55D9C5BCC5CD8C60CB2BD33866A9F0C5F1DC94C5BDAF7BF`. Implementation/test commit `0c321c3d415981d9f0c4bc5e761f6ac36e2fe709` is `lastAuditedCommit`; Hosted CI and uploaded artifact details are recorded in the completion report.
+
+### C37 — exact direct-Core prescription shape and provenance retest (protocol 3.70.0)
+
+- B4 retains the existing six direct CORE_CONTROL sets/week policy. B6 consumes the exact B4 residual count; it does not set a new weekly amount. For canonical `CoreClass.DIRECT` exercises with a repetition-only recording mode, B6 uses an exact compatible personal repetition record in 7–15 reps or the already approved 8-rep cold-start anchor. Trunk flexion/extension keeps the existing Hypertrophy minimum-effort rule; technical bracing/control does not receive an artificial RPE target. Static holds require exact personal duration history. Unknown external resistance is explicitly user-calibration-required, never a real 0 kg load.
+- Exact Core B6 authority is passed through EXP materialization and B7 replacement attribution only when the matching B4 Core target, exact B5 owner/role, exact B6 grant and week-by-week materialization all agree. Missing grants and capacity-limited rows remain fail-closed. C36 retest closes 32 exact Core owner-week attributions (16 case-owner pairs); two capacity-limited Core owner-week rows remain unexplained and unmaterialized. This evidence does not itself activate B8/B9 routing.
+- On the 22-case corpus, all routes remain CONTROL; B8 requires CONTROL in 22 cases. B7 has four eligible cases and 18 not-eligible cases; `CHANGE_PROVENANCE_UNCLOSED` remains in 18 cases. 32 unique removed case-owner pairs / 64 owner-week occurrences remain unexplained.
+- Power and JUMP_LANDING remain fail-closed: the existing B4 target is direction-only or lacks exact numeric/frequency authority, and a 2–4 set / 3–6 rep shape cannot create an unapproved weekly demand, exercise eligibility, intensity or load. Power/JUMP_LANDING material stays 0. UPPER_PULL remains direction-only where canonical direct regional dose authority is absent; it is not assigned an automatic eight-set target.
+- Existing B5 regional residual selection and finite scheduling remain the execution path; the current corpus records 245 candidate rows, 27 selected owners and 218 normal candidate rejections. Existing Plan preview supports manual draft editing, but this phase does not create a validated replace-option model or user-selectable replacement proposal flow. Such options remain unavailable until whole-program B7/B8 validation can certify them; CONTROL is not used as prescription authority.
+- C37 audit/census: [`docs/c37_exercise_prescription_selection_audit.md`](../../c37_exercise_prescription_selection_audit.md) and [`docs/c37-exercise-prescription-selection-census.json`](../../c37-exercise-prescription-selection-census.json). Protocol/runtime/app/Room are `3.70.0` / `RECORD_BASED_PLANNER_0.15.12_KOTLIN_1` / `0.5.1.5` / 38. The C36 program/runtime pair remains accepted as an incumbent source; database and backup schemas are unchanged. Full verification and artifact details are recorded in the C37 audit.
