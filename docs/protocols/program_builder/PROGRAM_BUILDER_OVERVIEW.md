@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.67.0 |
+| Protocol version | 3.68.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.8 |
-| Last audited commit | a6519964674d39bc69f37010d513f5575c9ab476 |
+| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.10 |
+| Last audited commit | 5df9bda80c02b71f18f54db99cd1ee8d7d0829cb |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1413,3 +1413,12 @@ Post-audit boundary notes
 - B7 `CHANGE_PROVENANCE_UNCLOSED` falls from 22 to 21 cases; one case becomes B7-eligible, but B8 still requires CONTROL for a missing/short authorized week. Routes remain CONTROL 22. The two true `QUALITY:HYPERTROPHY` target regressions and the collateral regression remain blocked because regional additions exceed the aggregate Quality B4 maximum. `persona4_recent`'s 5→4 squat-set mutation also remains unexplained because it has no exact B5/B6 authority.
 - C34 does not alter C33 regional residual selection or materialization: the before corpus remains 268 candidate rows, 27 selected, 241 normal rejections, zero overfill, duplicate credit, unauthorized material, or unexplained added identities. Power/JUMP_LANDING remain material-zero; builds remain CONTROL 22 / EXPERIMENTAL 22 / TOTAL 44 / THIRD 0. B7/B8 guards are unchanged.
 - C34 census: [`docs/c34-removed-identity-provenance-census.json`](../../c34-removed-identity-provenance-census.json), SHA-256 `F2A1A6C1F71C350DD557764E1F326636CB2F5D9DA2A94EEB2DFE9C6421C69C8A`; audit: [`docs/c34_removed_identity_provenance_audit.md`](../../c34_removed_identity_provenance_audit.md). Protocol/runtime/app/Room are `3.67.0` / `RECORD_BASED_PLANNER_0.15.9_KOTLIN_1` / `0.5.1.5` / 38. Local full suite passed 2,375 tests (0 failures, 0 errors, 4 skips) using the existing repository-external JDK 17 / worker-restart setup after JBR 21 Robolectric native runtime crashed outside the JVM. `compileDebugKotlin` and `assembleDebug` passed. Local debug APK is 70,741,870 bytes, SHA-256 `90865FF2C6676EE6B07E73C50A54EDAC38E9893444270F4B70DDA2B1B5780C76`. Implementation/test commit `a6519964674d39bc69f37010d513f5575c9ab476` is `lastAuditedCommit`; Hosted CI/artifact results are tracked in the completion report.
+
+
+### Phase C35 — regional Hypertrophy semantics and finite capacity priority (protocol 3.68.0)
+
+- `QUALITY:HYPERTROPHY` remains a whole-quality historical/reference signal. B7 no longer compares exact B4/B5/B6-authorized regional H additions as if they were one aggregate hard cap. The raw aggregate remains in the audit; only fully proven incremental regional units are projected out of that comparison. Each regional B4 target retains its own independent materialization and overrun result, so a true regional regression remains blocking.
+- Finite material candidates are ordered by canonical `PlannedExercise.priority` descending before entering the unchanged frozen allocator. Equal-priority ordering preserves the previous resistance preference and deterministic stable identity tie-breaks. Continuity/core reservations and B7/B8 predicates are unchanged.
+- The corpus has 22 generated cases and 88 regional H target rows: 698 raw residual/authorized units, 565 funded, 549 compatible-materialized, 133 finite-capacity-unfunded and 16 further materialization shortfall. Regional overrun, duplicate physical rows and unauthorized material are 0. C34's two aggregate-only regressions and one collateral regression fall to 0; 47 unexplained removals, one unexplained prescription change and CONTROL routes remain fail-closed.
+- C35 census and audit: [`docs/c35_hypertrophy_capacity_audit.md`](../../c35_hypertrophy_capacity_audit.md) and [`docs/c35-hypertrophy-capacity-census.json`](../../c35-hypertrophy-capacity-census.json). Protocol/runtime/app/Room are `3.68.0` / `RECORD_BASED_PLANNER_0.15.10_KOTLIN_1` / `0.5.1.5` / 38. `lastAuditedCommit` names the C35 implementation/test commit; validation and artifact hashes are in the completion report.
+- Final verification: 2,380 JVM tests passed (0 failures, 0 errors, 4 skips) with the existing external JDK 17 worker-restart workaround; Kotlin main/test compilation, debug APK assembly, protocol validation, and `git diff --check` passed. Census SHA-256 is `839002052AC68418D471C4A7E976807CA180D66404B701EB91B00E6073434265`; coverage report SHA-256 is `BAC4835B1609119F32C9527052293D68448B653A78CC60C4CE34C8AF8B07A555`. Local debug APK: 70,741,861 bytes, SHA-256 `C533776CA62C58A757A1F8F6582B4ABAB720022CDC44C81A7BCD1A9FFE1DD7F1`. Implementation/test commit `5df9bda80c02b71f18f54db99cd1ee8d7d0829cb` is `lastAuditedCommit`; Hosted CI and artifact hashes are in the completion report.
