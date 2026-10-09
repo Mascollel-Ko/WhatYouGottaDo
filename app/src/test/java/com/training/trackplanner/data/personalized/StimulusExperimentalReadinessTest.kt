@@ -53,6 +53,49 @@ class StimulusExperimentalReadinessTest {
     }
 
     @Test
+    fun authorizedRegionalHypertrophyUnitsDoNotRegressTheAggregateQualityReference() {
+        val comparison = regionalHypertrophyAggregateFixture(overrun = 0)
+        assertEquals(16, comparison.experimental.items.filter { it.exerciseStableKey == "machine_chest_press" }.sumOf { it.setPrescriptions.size })
+        assertEquals(0, comparison.control.items.filter { it.exerciseStableKey == "machine_chest_press" }.sumOf { it.setPrescriptions.size })
+        assertEquals(8.0, regionalHypertrophyAddedWeeklyUnits(comparison), 0.0)
+        val audit = StimulusExperimentalReadinessAuditEngine().audit(comparison)
+        val aggregate = audit.targetOutcomes.single { it.targetId == "QUALITY:HYPERTROPHY" }
+
+        assertEquals(StimulusExperimentalTargetOutcomeStatus.UNCHANGED, aggregate.status)
+        assertEquals(8.0, aggregate.regionalHypertrophyUnitsExcludedFromAggregateComparison!!, 0.0)
+        assertTrue(aggregate.reasonCodes.contains("AUTHORIZED_REGIONAL_HYPERTROPHY_EXCLUDED_FROM_AGGREGATE_QUALITY_COMPARISON"))
+        assertFalse(audit.reasonCodes.contains("TARGET_REGRESSED"))
+        assertTrue(audit.collateralRegressionFree)
+    }
+
+    @Test
+    fun aggregateProjectionDoesNotHideARealRegionalOverrun() {
+        val audit = StimulusExperimentalReadinessAuditEngine().audit(regionalHypertrophyAggregateFixture(overrun = 1))
+
+        assertEquals(StimulusExperimentalTargetOutcomeStatus.UNCHANGED,
+            audit.targetOutcomes.single { it.targetId == "QUALITY:HYPERTROPHY" }.status)
+        assertEquals(StimulusExperimentalTargetOutcomeStatus.REGRESSED,
+            audit.targetOutcomes.single { it.targetId == "MOVEMENT:HORIZONTAL_PUSH" }.status)
+        assertTrue(audit.reasonCodes.contains("TARGET_REGRESSED"))
+    }
+
+    @Test
+    fun aggregateProjectionExcludesOnlyExactB6AuthorizedRegionalMaterial() {
+        val comparison = regionalHypertrophyAggregateFixture(overrun = 0)
+        val authorizationPlan = requireNotNull(comparison.prescriptionAuthorizationPlan)
+        val withoutExactMovementB6 = comparison.copy(
+            prescriptionAuthorizationPlan = authorizationPlan.copy(
+                authorizations = authorizationPlan.authorizations.filterNot {
+                    it.targetId == "MOVEMENT:HORIZONTAL_PUSH" && it.quality == TrainableQuality.HYPERTROPHY
+                }
+            )
+        )
+
+        assertEquals(8.0, regionalHypertrophyAddedWeeklyUnits(comparison), 0.0)
+        assertEquals(0.0, regionalHypertrophyAddedWeeklyUnits(withoutExactMovementB6), 0.0)
+    }
+
+    @Test
     fun directionOnlyPresenceUsesDirectPresenceSemantics() {
         val target = qualityTarget(StimulusTargetNumericAuthority.DIRECTION_ONLY, null)
         val comparison = comparison(
@@ -519,6 +562,102 @@ class StimulusExperimentalReadinessTest {
                 source = StimulusPrescriptionAuthorizationSource.CANONICAL_HISTORY_PRESCRIPTION,
                 inputPrescription = authorized, plannedCompatibility = null, authorizedPrescription = authorized, status = status
             ))))
+    }
+
+    private fun regionalHypertrophyAggregateFixture(overrun: Int): StimulusSelectionProgramComparison {
+        val target = qualityTarget(
+            StimulusTargetNumericAuthority.PERSONAL_SUCCESSFUL_DOSE,
+            StimulusTargetRange(3.0, 5.0, 9.0)
+        ).copy(quality = TrainableQuality.HYPERTROPHY)
+        val dose = StimulusMovementDoseTarget(
+            kind = StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET,
+            numericAuthority = StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY,
+            weeklyTarget = 8.0,
+            reasonCodes = listOf("C35_FIXTURE"),
+            shapeAuthority = StimulusMovementDoseShapeAuthority.HYPERTROPHY_BAND_8_12_PERSONAL_7_15_RPE_7_USER_LOAD_CALIBRATION,
+            existingEquivalentExposure = 0.0,
+            residualEquivalentExposure = 8.0,
+            authorizedWholeSetUnits = 8
+        )
+        val movement = StimulusMovementTarget(MovementCoverage.HORIZONTAL_PUSH, TargetPriority.PRIMARY,
+            reasonCodes = listOf("C35_FIXTURE"), evidence = listOf("EXACT_MOVEMENT_NEED"), regionalDoseTargets = listOf(dose))
+        val role = "CANONICAL_STIMULUS_MOVEMENT_HORIZONTAL_PUSH"
+        val owner = StimulusPrescriptionOwnerIdentity("machine_chest_press", role)
+        val ownerRef = StimulusPrescriptionOwner(owner.stableKey, owner.selectionRole)
+        val selected = StimulusSelectedCandidate(
+            stableKey = owner.stableKey,
+            coveredTargetIds = setOf(movement.targetId),
+            primaryTargetId = movement.targetId,
+            selectionReasons = listOf("EXACT_B4_REGIONAL_RESIDUAL"),
+            currentPrescriptionCompatibility = "B5_OWNER_FOR_B4_REGIONAL_RESIDUAL",
+            targetSetsFromExistingPrescription = 0,
+            selectionRole = role,
+            probePrescriptionCompatibility = SelectionProbePrescriptionCompatibility.REALIZATION_UNCLASSIFIED
+        )
+        val prescription = PlannedPrescription("8 reps", List(8) {
+            ProgramSetPrescription(it + 1, 8, 0.0, 0)
+        }, 90, "USER_CALIBRATION_REQUIRED")
+        val exactAuth = StimulusPrescriptionAuthorization(
+            targetId = movement.targetId,
+            quality = TrainableQuality.HYPERTROPHY,
+            owner = ownerRef,
+            source = StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE,
+            inputPrescription = prescription,
+            plannedCompatibility = null,
+            authorizedPrescription = prescription,
+            status = StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
+        )
+        val materialization = StimulusPrescriptionMaterializationAudit(
+            targetId = movement.targetId,
+            quality = TrainableQuality.HYPERTROPHY,
+            owner = ownerRef,
+            authorizedWeeklySetUnits = 8,
+            materializedWeeklySetUnits = 8,
+            targetCompatibleMaterializedUnits = 8,
+            shortfall = 0,
+            overrun = overrun,
+            prescriptionPreservedOrSubset = true,
+            state = StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED,
+            executionAuthority = StimulusPrescriptionExecutionAuthority.REQUIRES_USER_LOAD_INPUT,
+            totalAuthorizedUnits = 16,
+            totalMaterializedUnits = 16 + overrun * 2,
+            totalCompatibleUnits = 16,
+            totalShortfallUnits = 0,
+            maximumWeeklyOverrun = overrun
+        )
+        val controlRow = item("control-h").copy(setCount = 12,
+            setPrescriptions = List(12) { ProgramSetPrescription(it + 1, 8, 0.0, 0) })
+        val controlRows = listOf(controlRow.copy(weekNumber = 1), controlRow.copy(weekNumber = 2))
+        val movementRow = item(owner.stableKey).copy(selectionRole = owner.selectionRole, setCount = 8,
+            setPrescriptions = prescription.sets)
+        val base = comparison(
+            target = target,
+            controlUnits = 12.0,
+            experimentalUnits = 20.0,
+            controlSessions = 2.0,
+            experimentalSessions = 2.0,
+            controlItems = controlRows,
+            experimentalItems = controlRows + listOf(movementRow.copy(weekNumber = 1), movementRow.copy(weekNumber = 2)),
+            selectedCandidate = selected
+        )
+        return base.copy(
+            targetPlan = StimulusTargetPlan(listOf(target), emptyList(), emptyList(), movementTargets = listOf(movement)),
+            selectionPlan = base.selectionPlan.copy(
+                selectedCandidates = listOf(selected),
+                materialDemand = MaterialDemand(listOf(PlannedExercise(owner.stableKey, owner.selectionRole,
+                    "C35 exact regional owner", 100, targetSets = 8)), emptyMap(), emptyMap())
+            ),
+            prescriptionAuthorizationPlan = StimulusPrescriptionAuthorizationPlan(
+                authorizations = listOf(exactAuth),
+                movementAuthorizations = listOf(StimulusMovementB6Authorization(
+                    targetId = movement.targetId,
+                    owner = owner,
+                    status = StimulusMovementB6Status.AUTHORIZED_REGIONAL_HYPERTROPHY_B6,
+                    reasonCodes = listOf("EXACT_B6_FIXTURE")
+                ))
+            ),
+            prescriptionMaterializationAudits = listOf(materialization)
+        )
     }
 
     private fun comparison(

@@ -48,7 +48,9 @@ data class ExecutionAllocationTrace(
     val ownerDisplacementEdges: List<OwnerDisplacementEdge> = emptyList(),
     /** Candidate-origin evidence is diagnostic and never grants prescription authority. */
     val materialDemandCandidateOrigins: List<MaterialDemandCandidateOrigin> = emptyList(),
-    val unresolvedMaterialDemandGaps: Set<String> = emptySet()
+    val unresolvedMaterialDemandGaps: Set<String> = emptySet(),
+    /** Exact pre-kernel order and funding; diagnostic only and never consumed as policy. */
+    val finiteAllocationPriorityOrder: List<FiniteAllocationPriorityRow> = emptyList()
 ) {
     fun toJson(): JSONObject = JSONObject()
         .put("capacity", JSONObject()
@@ -111,8 +113,28 @@ data class ExecutionAllocationTrace(
         .put("materialDemandCandidateOrigins", JSONArray(materialDemandCandidateOrigins
             .sortedWith(compareBy({ it.owner.stableKey }, { it.owner.selectionRole }, { it.gapCodes.sorted().joinToString("|") }))
             .map { it.toJson() }))
+        .put("finiteAllocationPriorityOrder", JSONArray(finiteAllocationPriorityOrder.map { it.toJson() }))
         .put("unresolvedMaterialDemandGaps", JSONArray(unresolvedMaterialDemandGaps.sorted()))
 }
+
+data class FiniteAllocationPriorityRow(
+    val owner: StimulusPrescriptionOwnerIdentity,
+    val priority: Int,
+    val resistance: Boolean,
+    val styleVariant: String,
+    val requestedUnits: Int,
+    val fundedUnits: Int
+) {
+    fun toJson(): JSONObject = JSONObject()
+        .put("stableKey", owner.stableKey)
+        .put("selectionRole", owner.selectionRole)
+        .put("priority", priority)
+        .put("resistance", resistance)
+        .put("styleVariant", styleVariant)
+        .put("requestedUnits", requestedUnits)
+        .put("fundedUnits", fundedUnits)
+}
+
 
 data class TimedPlannedExercise(val item: PlannedExercise, val prescription: PlannedPrescription) {
     val estimatedSeconds: Int get() = prescription.sets.sumOf { if (it.seconds > 0) it.seconds else 45 } +

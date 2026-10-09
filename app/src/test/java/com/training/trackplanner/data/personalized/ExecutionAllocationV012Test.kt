@@ -53,6 +53,51 @@ class ExecutionAllocationV012Test {
         assertEquals(listOf(2, 2), result.material)
     }
 
+    @Test fun `canonical priority funds regional primary before lower priority base regardless of input order`() {
+        val regionalPrimary = PlannedExercise("regional", "MOVEMENT_TARGET", "regional primary", 100, targetSets = 3)
+        val baseSecondary = PlannedExercise("base", "BASE_DEMAND", "base secondary", 50, targetSets = 3)
+        val isResistance: (String) -> Boolean = { it == "base" }
+        fun allocate(items: List<PlannedExercise>): Map<String, Int> {
+            val ordered = orderMaterialCandidatesForFiniteAllocation(items, isResistance)
+            val finite = FiniteExecutionAllocator.allocate(
+                capacity = 3,
+                continuityDemand = 0,
+                minimums = ordered.map(PlannedExercise::targetSets),
+                share = 0.0,
+                coreReserve = 0,
+                flexible = emptySet()
+            )
+            return ordered.mapIndexed { index, item -> item.stableKey to finite.material[index] }.toMap()
+        }
+
+        val oldOrder = listOf(regionalPrimary, baseSecondary).sortedWith(
+            compareByDescending<PlannedExercise> { isResistance(it.stableKey) }
+                .thenByDescending { it.priority }
+                .thenBy { it.stableKey }
+        )
+        assertEquals(listOf("base", "regional"), oldOrder.map(PlannedExercise::stableKey))
+        val expected = mapOf("regional" to 3, "base" to 0)
+        assertEquals(expected, allocate(listOf(regionalPrimary, baseSecondary)))
+        assertEquals(expected, allocate(listOf(baseSecondary, regionalPrimary)))
+    }
+
+    @Test fun `equal priority tie break is deterministic and lower priority retains capacity shortfall`() {
+        val candidates = listOf(
+            PlannedExercise("zeta", "ROLE_Z", "", 70, targetSets = 2),
+            PlannedExercise("alpha", "ROLE_A", "", 70, targetSets = 2),
+            PlannedExercise("low", "ROLE_LOW", "", 20, targetSets = 2)
+        )
+        val ordered = orderMaterialCandidatesForFiniteAllocation(candidates) { false }
+        assertEquals(listOf("alpha", "zeta", "low"), ordered.map(PlannedExercise::stableKey))
+        val result = FiniteExecutionAllocator.allocate(4, 0, ordered.map(PlannedExercise::targetSets), 0.0, 0,
+            emptySet())
+        assertEquals(listOf(2, 2, 0), result.material)
+        assertEquals(listOf(2, 2, 0), FiniteExecutionAllocator.allocate(4, 0,
+            orderMaterialCandidatesForFiniteAllocation(candidates) { false }.map(PlannedExercise::targetSets), 0.0, 0,
+            emptySet()).material)
+        assertEquals(listOf(2), result.deferred)
+    }
+
     @Test fun `indivisible multi objective drill is funded once and never tokenized`() {
         val full = FiniteExecutionAllocator.allocate(6, 5, listOf(3), .35, 1, emptySet())
         assertEquals(listOf(3), full.material)

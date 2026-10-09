@@ -42,7 +42,9 @@ data class StimulusExperimentalTargetOutcome(
     val experimentalWeeklyUnitsDistance: Double? = null,
     val controlWeeklySessionsDistance: Double? = null,
     val experimentalWeeklySessionsDistance: Double? = null,
-    val reasonCodes: List<String> = emptyList()
+    val reasonCodes: List<String> = emptyList(),
+    /** Authorized movement-scoped H material is kept visible, but is not compared as an aggregate Quality H cap. */
+    val regionalHypertrophyUnitsExcludedFromAggregateComparison: Double? = null
 )
 
 data class StimulusExperimentalChangeAttribution(
@@ -918,9 +920,21 @@ class StimulusExperimentalReadinessAuditEngine {
             val id = "QUALITY:${target.quality.name}"
             val control = comparison.controlAudit?.qualityAudits?.firstOrNull { it.quality == target.quality }
             val experimental = comparison.experimentalAudit?.qualityAudits?.firstOrNull { it.quality == target.quality }
+            val regionalHypertrophyUnits = if (target.quality == TrainableQuality.HYPERTROPHY) {
+                regionalHypertrophyAddedWeeklyUnits(comparison)
+            } else 0.0
+            val comparableExperimentalUnits = experimental?.plannedWeeklyDirectUnits?.let {
+                (it - regionalHypertrophyUnits).coerceAtLeast(0.0)
+            }
             numericOutcome(id, affected.contains(id), target.numericAuthority, target.weeklyDirectUnitsTarget, target.weeklyDirectSessionsTarget,
-                control?.plannedWeeklyDirectUnits, experimental?.plannedWeeklyDirectUnits, control?.plannedWeeklyDirectSessions, experimental?.plannedWeeklyDirectSessions,
+                control?.plannedWeeklyDirectUnits, comparableExperimentalUnits, control?.plannedWeeklyDirectSessions, experimental?.plannedWeeklyDirectSessions,
                 control?.weeklyDirectUnitsStatus, experimental?.weeklyDirectUnitsStatus, control?.weeklyDirectSessionsStatus, experimental?.weeklyDirectSessionsStatus)
+                .let { outcome ->
+                    if (regionalHypertrophyUnits <= 0.0) outcome else outcome.copy(
+                        reasonCodes = (outcome.reasonCodes + "AUTHORIZED_REGIONAL_HYPERTROPHY_EXCLUDED_FROM_AGGREGATE_QUALITY_COMPARISON").distinct(),
+                        regionalHypertrophyUnitsExcludedFromAggregateComparison = regionalHypertrophyUnits
+                    )
+                }
         } + comparison.targetPlan.taskTargets.map { target ->
             val id = "TASK:${target.task}"
             val control = comparison.controlAudit?.taskAudits?.firstOrNull { it.task == target.task }
@@ -1096,6 +1110,69 @@ class StimulusExperimentalReadinessAuditEngine {
 
 }
 
+/**
+ * Projects only the newly materialized, exact-B6 movement-scoped Hypertrophy units out of the
+ * aggregate Quality H comparison. The raw aggregate remains in the B4/B7 audit; regional units
+ * have their own B4 residual and B7 overrun check, so comparing their sum to the historical
+ * aggregate envelope would mix regional dose authority with an observed whole-quality reference.
+ */
+internal fun regionalHypertrophyAddedWeeklyUnits(comparison: StimulusSelectionProgramComparison): Double {
+    val authorizationPlan = comparison.prescriptionAuthorizationPlan ?: return 0.0
+    val horizon = comparison.experimental.request.durationWeeks.coerceAtLeast(1)
+    val qualityTargetId = "QUALITY:${TrainableQuality.HYPERTROPHY.name}"
+    val addedByOwner = linkedMapOf<StimulusPrescriptionOwnerIdentity, Int>()
+
+    comparison.targetPlan.movementTargets.forEach { movement ->
+        val targetId = movement.targetId
+        val dose = movement.regionalDoseTargets.firstOrNull {
+            it.kind == StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET &&
+                (it.authorizedWholeSetUnits ?: 0) > 0
+        } ?: return@forEach
+        comparison.selectionPlan.selectedCandidates
+            .filter { it.primaryTargetId == targetId && targetId in it.coveredTargetIds && qualityTargetId !in it.coveredTargetIds }
+            .forEach candidateLoop@{ candidate ->
+                val owner = StimulusPrescriptionOwnerIdentity(candidate.stableKey, candidate.selectionRole)
+                val authorization = authorizationPlan.authorizations.singleOrNull {
+                    it.targetId == targetId && it.quality == TrainableQuality.HYPERTROPHY &&
+                        it.owner?.let { exact -> exact.stableKey == owner.stableKey && exact.selectionRole == owner.selectionRole } == true
+                } ?: return@candidateLoop
+                if (authorization.status !in setOf(
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
+                    ) || authorization.authorizedPrescription?.sets?.size != dose.authorizedWholeSetUnits
+                ) return@candidateLoop
+                if (authorizationPlan.movementAuthorizations.none {
+                    it.targetId == targetId && it.owner == owner &&
+                        it.status == StimulusMovementB6Status.AUTHORIZED_REGIONAL_HYPERTROPHY_B6
+                }) return@candidateLoop
+                val materialization = comparison.prescriptionMaterializationAudits.singleOrNull {
+                    it.targetId == targetId && it.quality == TrainableQuality.HYPERTROPHY &&
+                        it.owner?.let { exact -> exact.stableKey == owner.stableKey && exact.selectionRole == owner.selectionRole } == true
+                } ?: return@candidateLoop
+                if (materialization.state == StimulusPrescriptionMaterializationState.INVARIANT_FAILURE ||
+                    materialization.totalCompatibleUnits <= 0
+                ) return@candidateLoop
+                val experimentalUnits = comparison.experimental.items.filter {
+                    it.exerciseStableKey == owner.stableKey && it.selectionRole == owner.selectionRole
+                }.sumOf { it.setPrescriptions.size }
+                val controlUnits = comparison.control.items.filter {
+                    it.exerciseStableKey == owner.stableKey && it.selectionRole == owner.selectionRole
+                }.sumOf { it.setPrescriptions.size }
+                val incrementalMaterializedUnits = minOf(
+                    materialization.totalCompatibleUnits,
+                    (experimentalUnits - controlUnits).coerceAtLeast(0)
+                )
+                if (incrementalMaterializedUnits > 0) {
+                    // An exact physical owner can satisfy more than one regional observation;
+                    // count its physical increment once in the aggregate projection.
+                    addedByOwner[owner] = maxOf(addedByOwner[owner] ?: 0, incrementalMaterializedUnits)
+                }
+            }
+    }
+    return addedByOwner.values.sum().toDouble() / horizon
+}
+
 internal fun StimulusExperimentalReadinessAudit.toJson(): JSONObject = JSONObject()
     .put("status", status.name)
     .put("materializationIntegrityPassed", materializationIntegrityPassed)
@@ -1108,6 +1185,7 @@ internal fun StimulusExperimentalReadinessAudit.toJson(): JSONObject = JSONObjec
         .put("targetId", outcome.targetId).put("status", outcome.status.name).put("directlyAffected", outcome.directlyAffected)
         .put("controlWeeklyUnitsDistance", outcome.controlWeeklyUnitsDistance).put("experimentalWeeklyUnitsDistance", outcome.experimentalWeeklyUnitsDistance)
         .put("controlWeeklySessionsDistance", outcome.controlWeeklySessionsDistance).put("experimentalWeeklySessionsDistance", outcome.experimentalWeeklySessionsDistance)
+        .put("regionalHypertrophyUnitsExcludedFromAggregateComparison", outcome.regionalHypertrophyUnitsExcludedFromAggregateComparison)
         .put("reasonCodes", JSONArray(outcome.reasonCodes))
     }))
     .put("changeAttributions", JSONArray(changeAttributions.map { attribution -> JSONObject()

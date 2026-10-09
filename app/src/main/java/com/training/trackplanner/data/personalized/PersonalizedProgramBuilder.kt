@@ -654,9 +654,9 @@ class PersonalizedProgramBuilder(
             val transition = transitions.getValue(anchor.stableKey)
             anchor.stableKey to maxOf(.20, anchor.sets.toDouble() / weeks) * maxOf(.25, transition.continuityScore) * transition.localDoseFactor
         }
-        val materialCandidates = demand.candidates.filter(PlannedExercise::material).sortedWith(
-            compareByDescending<PlannedExercise> { snapshot.activityKind(it.stableKey) == PlannedActivityKind.RESISTANCE }
-                .thenByDescending { it.priority }.thenBy { it.stableKey })
+        val materialCandidates = orderMaterialCandidatesForFiniteAllocation(
+            demand.candidates.filter(PlannedExercise::material)
+        ) { stableKey -> snapshot.activityKind(stableKey) == PlannedActivityKind.RESISTANCE }
         val optionalCandidates = demand.candidates.filterNot(PlannedExercise::material).take(1)
         val lead = transitions.values.maxByOrNull(AnchorTransition::rotationPressure)
         val share = when (lead?.structureTreatment) {
@@ -1035,7 +1035,17 @@ class PersonalizedProgramBuilder(
                 ownerAllocationProvenance = (materialOwnerProvenance + exactFiniteOwnerProvenance + placementOwnerProvenance + repairResult.ownerAllocationProvenance)
                     .map { it.withExactAuthority(exactPrescriptionAuthorizationProvider) }.deterministicOwnerOrder(),
                 materialDemandCandidateOrigins = demand.candidateOrigins,
-                unresolvedMaterialDemandGaps = demand.unresolvedGapCodes
+                unresolvedMaterialDemandGaps = demand.unresolvedGapCodes,
+                finiteAllocationPriorityOrder = materialCandidates.mapIndexed { index, item ->
+                    FiniteAllocationPriorityRow(
+                        owner = StimulusPrescriptionOwnerIdentity(item.stableKey, item.role),
+                        priority = item.priority,
+                        resistance = snapshot.activityKind(item.stableKey) == PlannedActivityKind.RESISTANCE,
+                        styleVariant = item.styleVariant,
+                        requestedUnits = item.targetSets,
+                        fundedUnits = finite.material[index]
+                    )
+                }
             )
         )
         val fingerprint = personalizedProgramFingerprint(repaired.request, repaired.items)

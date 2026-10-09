@@ -790,6 +790,36 @@ class StimulusProductionCoverageAuditTest {
             parentFile?.mkdirs()
             writeText(c33RegionalCensus)
         }
+        val c35Census = C35HypertrophyCapacityCensus.render(
+            generatedByCase = generatedByCase,
+            generationMillisByCase = c29GenerationDurationsByCase,
+            startSha = "fe7eed90f5a53fb656406507152c32782aa9e676"
+        )
+        assertEquals(c35Census, C35HypertrophyCapacityCensus.render(
+            generatedByCase = generatedByCase.toSortedMap().toList().reversed().toMap(),
+            generationMillisByCase = c29GenerationDurationsByCase,
+            startSha = "fe7eed90f5a53fb656406507152c32782aa9e676"
+        ))
+        java.io.File("build/reports/c35-hypertrophy-capacity-census.json").apply {
+            parentFile?.mkdirs()
+            writeText(c35Census)
+        }
+        val c35Summary = org.json.JSONObject(c35Census).getJSONObject("summary")
+        assertEquals(0, c35Summary.getInt("priorityInversionsAfter"))
+        assertEquals(0, c35Summary.getInt("lowerPriorityFundedWhileHigherPriorityCapacityRejected"))
+        assertTrue(c35Summary.getBoolean("equalPriorityOrderMatchesDeterministicCanonicalTieBreak"))
+        assertEquals(1, c35Summary.getJSONObject("syntheticPriorityProbe").getInt("beforeInversions"))
+        assertEquals(0, c35Summary.getJSONObject("syntheticPriorityProbe").getInt("afterInversions"))
+        assertEquals(2, c35Summary.getInt("aggregateOnlyFalseRegressionCandidates"))
+        assertEquals(0, c35Summary.getInt("aggregateHypertrophyRegressionCasesAfter"))
+        assertEquals(0, c35Summary.getInt("regionalHypertrophyOverrunTargetsAfter"))
+        assertEquals(698.0, c35Summary.getDouble("regionalRawResidualWeeklyUnits"), 0.0)
+        assertEquals(565, c35Summary.getInt("regionalFundedUnits"))
+        assertEquals(549, c35Summary.getInt("regionalMaterializedCompatibleUnits"))
+        assertEquals(133, c35Summary.getInt("regionalUnfundedUnits"))
+        assertEquals(16, c35Summary.getInt("regionalUnmaterializedShortfallUnits") - c35Summary.getInt("regionalUnfundedUnits"))
+        assertEquals(0, c35Summary.getInt("unauthorizedMaterialRows"))
+        assertEquals(0, c35Summary.getInt("duplicatePhysicalSetRows"))
         assertEquals(29, c33RegionalSummary.getInt("movementTargets"))
         assertEquals(58, c33RegionalSummary.getInt("ownerWeekRows"))
         assertEquals(22, c33RegionalSummary.getInt("c31BaselineMovementTargets"))
@@ -933,19 +963,19 @@ class StimulusProductionCoverageAuditTest {
         val regressionCase = nextPhaseJson.getJSONArray("cases").let { rows ->
             (0 until rows.length()).map { rows.getJSONObject(it) }.single { it.getString("case") == "persona1_mixed" }
         }
-        assertEquals(listOf("QUALITY:HYPERTROPHY"), regressionCase.getJSONObject("b7")
+        assertEquals(emptyList<String>(), regressionCase.getJSONObject("b7")
             .getJSONArray("regressedTargets").let { rows -> (0 until rows.length()).map { rows.getString(it) } })
-        assertFalse(regressionCase.getJSONObject("b7").getBoolean("collateralRegressionFree"))
-        // The reviewed hypertrophy case no longer has the prior added-dose regression:
-        // the unauthorized provisional coverage row is absent. It remains CONTROL because
-        // the remaining owner removals still have unclosed provenance.
+        assertTrue(regressionCase.getJSONObject("b7").getBoolean("collateralRegressionFree"))
+        // Both historical aggregate-H regressions were caused by comparing regional B4 dose
+        // against a whole-quality observed envelope. Regional target outcomes remain separately
+        // checked; these cases now stay CONTROL only because their owner-removal provenance is open.
         val reviewedRegressionCase = nextPhaseJson.getJSONArray("cases").let { rows ->
             (0 until rows.length()).map { rows.getJSONObject(it) }.single { it.getString("case") == "persona1_reviewed" }
         }
         assertEquals("CONTROL", reviewedRegressionCase.getString("route"))
         assertTrue(reviewedRegressionCase.getJSONObject("b7").getJSONArray("reasons").toString()
             .contains("CHANGE_PROVENANCE_UNCLOSED"))
-        assertEquals(listOf("QUALITY:HYPERTROPHY"), reviewedRegressionCase.getJSONObject("b7")
+        assertEquals(emptyList<String>(), reviewedRegressionCase.getJSONObject("b7")
             .getJSONArray("regressedTargets").let { rows -> (0 until rows.length()).map { rows.getString(it) } })
         val bottleneckReport = java.io.File("build/reports/next-phase-bottleneck-census.json")
         requireNotNull(bottleneckReport.parentFile).mkdirs()
@@ -958,9 +988,8 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(c19Routes.optInt("STRENGTH_CALIBRATION_V1", 0), c24Routes.optInt("B8_STRENGTH_CALIBRATION_V1", 0))
         assertFalse(c24Routes.has("B8_BADMINTON_TASK_V1"))
         assertTrue(c24.getJSONObject("b7Summary").length() > 0)
-        // Suppressing unauthorized provisional coverage can expose one genuine collateral
-        // target regression; B7 remains closed and the route is not granted.
-        assertEquals(1, c24.getJSONObject("b7Summary").getInt("collateralRegressionCases"))
+        // Historical aggregate-H overage is not a collateral loss of regional target coverage.
+        assertEquals(0, c24.getJSONObject("b7Summary").getInt("collateralRegressionCases"))
         val perturbedComparator = org.json.JSONObject(c22TaskCensus)
         val perturbedCases = perturbedComparator.getJSONArray("cases")
         for (index in 0 until perturbedCases.length()) {
@@ -1197,7 +1226,9 @@ class StimulusProductionCoverageAuditTest {
         val control = generated.filter { it.second.routeDecision.selectedSource == StimulusProductionProgramSource.CONTROL }
         val b7ReasonCounts = control.flatMap { it.second.comparison?.experimentalReadinessAudit?.reasonCodes.orEmpty() }
             .groupingBy { it }.eachCount()
-        assertTrue(b7ReasonCounts.keys.containsAll(setOf("CHANGE_PROVENANCE_UNCLOSED", "TARGET_REGRESSED")))
+        assertTrue(b7ReasonCounts.keys.contains("CHANGE_PROVENANCE_UNCLOSED"))
+        assertFalse("aggregate regional H is not compared with the whole-quality reference",
+            b7ReasonCounts.containsKey("TARGET_REGRESSED"))
         assertFalse("B6-denied Quality additions no longer contribute affected unmet targets",
             b7ReasonCounts.containsKey("AFFECTED_TARGET_REMAINS_UNMET"))
     }
