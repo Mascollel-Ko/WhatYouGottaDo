@@ -109,6 +109,26 @@ internal object NextPhaseBottleneckCensus {
                     .put("weeklySessions", rangeJson(target.weeklyDirectSessionsTarget))
                     .put("reasons", JSONArray(target.reasonCodes.sorted()))
             }
+            val b4Movement = comparison.targetPlan.movementTargets.sortedBy { it.movementCoverage.name }.map { target ->
+                JSONObject().put("target", target.targetId)
+                    .put("movementCoverage", target.movementCoverage.name)
+                    .put("priority", target.priority.name)
+                    .put("numericAuthority", target.numericAuthority.name)
+                    .put("reasons", JSONArray(target.reasonCodes.sorted()))
+                    .put("evidence", JSONArray(target.evidence.sorted()))
+                    .put("regionalDoseTargets", JSONArray(target.regionalDoseTargets.map { dose ->
+                        JSONObject().put("kind", dose.kind.name)
+                            .put("numericAuthority", dose.numericAuthority.name)
+                            .put("weeklyTarget", dose.weeklyTarget ?: JSONObject.NULL)
+                            .put("existingEquivalentExposure", dose.existingEquivalentExposure ?: JSONObject.NULL)
+                            .put("residualEquivalentExposure", dose.residualEquivalentExposure ?: JSONObject.NULL)
+                            .put("authorizedWholeSetUnits", dose.authorizedWholeSetUnits ?: JSONObject.NULL)
+                            .put("shapeAuthority", dose.shapeAuthority.name)
+                            .put("reasonCodes", JSONArray(dose.reasonCodes.sorted()))
+                            .put("residualReasonCodes", JSONArray(dose.residualReasonCodes.sorted()))
+                            .put("evidence", JSONArray(dose.evidence.sorted()))
+                    }))
+            }
             val b5 = comparison.selectionPlan.selectedCandidates.sortedWith(
                 compareBy({ it.stableKey }, { it.selectionRole }, { it.primaryTargetId })
             ).map { candidate ->
@@ -147,6 +167,25 @@ internal object NextPhaseBottleneckCensus {
                     .put("experimentalWeeklyUnitsDistance", outcome.experimentalWeeklyUnitsDistance ?: JSONObject.NULL)
                     .put("controlWeeklySessionsDistance", outcome.controlWeeklySessionsDistance ?: JSONObject.NULL)
                     .put("experimentalWeeklySessionsDistance", outcome.experimentalWeeklySessionsDistance ?: JSONObject.NULL)
+            }
+            val executionTrace = comparison.experimental.personalizedDecision?.planningBudget?.execution
+            val allocationEvents = executionTrace?.ownerAllocationProvenance.orEmpty().map { it.toJson() }
+            val displacementEdges = executionTrace?.ownerDisplacementEdges.orEmpty().map { it.toJson() }
+            val materializationTraces = comparison.materializationTraces.sortedWith(
+                compareBy({ it.targetId }, { it.selectedStableKey.orEmpty() }, { it.selectionRole.orEmpty() })
+            ).map { trace ->
+                JSONObject().put("target", trace.targetId)
+                    .put("selectedStableKey", trace.selectedStableKey ?: JSONObject.NULL)
+                    .put("selectionRole", trace.selectionRole ?: JSONObject.NULL)
+                    .put("selectedAtB5", trace.selectedAtB5)
+                    .put("directIdentityVerifiedAtSelection", trace.directIdentityVerifiedAtSelection ?: JSONObject.NULL)
+                    .put("presentInFinalExperimentalSkeleton", trace.presentInFinalExperimentalSkeleton)
+                    .put("finalWeeklyOccurrences", trace.finalWeeklyOccurrences)
+                    .put("finalTotalSetUnits", trace.finalTotalSetUnits)
+                    .put("directIdentityStillValid", trace.directIdentityStillValid)
+                    .put("realizedTargetStatus", trace.realizedTargetStatus ?: JSONObject.NULL)
+                    .put("evidenceBasis", trace.evidenceBasis.name)
+                    .put("reasonCodes", JSONArray(trace.reasonCodes.sorted()))
             }
             fun qualityProgramAudits(audit: StimulusTargetControlProgramAudit?) = JSONArray(
                 audit?.qualityAudits.orEmpty().sortedBy { it.quality.name }.map { row ->
@@ -300,6 +339,7 @@ internal object NextPhaseBottleneckCensus {
                     .put("experimental", result.buildCounts.experimentalBuilds)
                     .put("total", result.buildCounts.totalBuildInvocations).put("third", result.buildCounts.thirdBuilds))
                 .put("b4", JSONObject().put("qualityTargets", JSONArray(b4Quality)).put("taskTargets", JSONArray(b4Task))
+                    .put("movementTargets", JSONArray(b4Movement))
                     .put("unresolved", JSONArray(comparison.targetPlan.unresolved.sorted())))
                 .put("b5SelectedOwners", JSONArray(b5))
                 .put("b6QualityAuthorities", JSONArray(b6))
@@ -309,6 +349,9 @@ internal object NextPhaseBottleneckCensus {
                 .put("addedOwners", JSONArray(addedOwners.map(::ownerJson)))
                 .put("removedOwners", JSONArray(removedOwners.map(::ownerJson)))
                 .put("changedSharedOwners", JSONArray(changedOwners.map(::ownerJson)))
+                .put("ownerAllocationProvenance", JSONArray(allocationEvents))
+                .put("ownerDisplacementEdges", JSONArray(displacementEdges))
+                .put("materializationTraces", JSONArray(materializationTraces))
                 .put("materialOwnerFamilies", JSONObject().put("taskProtocolOwners", taskOwners.size)
                     .put("strengthOwners", qualityOwners.count { owner -> qualityMaterial.any {
                         it.exerciseStableKey == owner.stableKey && it.selectionRole == owner.selectionRole && roleFamily(it) == "STRENGTH"
@@ -404,6 +447,20 @@ internal object NextPhaseBottleneckCensus {
                 } else null
             } }
         }
+        val unexplainedRemovedAttributionCount = controlCases.sumOf { case ->
+            case.getJSONObject("b7").getJSONArray("unclosedAttributions").let { rows -> (0 until rows.length()).count { index ->
+                rows.getJSONObject(index).optString("source") == "UNEXPLAINED" &&
+                    rows.getJSONObject(index).getJSONArray("reasons").strings().contains("UNEXPLAINED_REMOVED_IDENTITY")
+            } }
+        }
+        val exactMovementReplacementAttributionCount = controlCases.sumOf { case ->
+            case.getJSONObject("b7").getJSONArray("changeAttributions").let { rows -> (0 until rows.length()).count { index ->
+                val attribution = rows.getJSONObject(index)
+                attribution.optString("source") == StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY.name &&
+                    attribution.getJSONArray("reasons").strings().contains("B6_AUTHORIZED_REGIONAL_MOVEMENT_REPLACEMENT") &&
+                    attribution.getJSONArray("targetIds").strings().any { it.startsWith("MOVEMENT:") }
+            } }
+        }
         fun unclosedCanonicalReplacementRowsForTargetFamily(family: String): Int =
             canonicalReplacementUnclosedRows.count { row ->
                 row.getJSONArray("b11TargetEvidence").let { evidence ->
@@ -473,6 +530,8 @@ internal object NextPhaseBottleneckCensus {
             .put("affectedUnmetTargetCounts", objectCounts(affectedUnmet))
             .put("materialDeltaKinds", objectCounts(deltaKindCounts))
             .put("controlRemovedOwnerIdentityCount", removedControlOwnerCount)
+            .put("unexplainedRemovedIdentityAttributions", unexplainedRemovedAttributionCount)
+            .put("exactMovementCanonicalReplacementAttributions", exactMovementReplacementAttributionCount)
             .put("casesWithMixedStrengthAndTaskMaterialOnlyBlockers", controlCases.count {
                 it.getBoolean("mixedStrengthTaskOnlyFailureCandidate")
             })

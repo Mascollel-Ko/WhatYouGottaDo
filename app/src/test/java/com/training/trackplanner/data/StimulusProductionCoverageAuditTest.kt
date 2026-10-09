@@ -822,11 +822,80 @@ class StimulusProductionCoverageAuditTest {
             }
         assertEquals(0, nextPhaseSummary.getInt("qualityAddedOwnerWeeksWithoutAuthorizedB6"))
         assertEquals(0, nextPhaseSummary.getJSONArray("qualityAddedOwnerWeeksWithoutAuthorizedB6Cases").length())
-        assertEquals(81, nextPhaseSummary.getInt("b11CanonicalReplacementButB7UnclosedOwnerRows"))
-        assertEquals(74, nextPhaseSummary.getInt("b11CanonicalReplacementButB7UnclosedMovementOwnerRows"))
+        assertEquals(38, nextPhaseSummary.getInt("b11CanonicalReplacementButB7UnclosedOwnerRows"))
+        assertEquals(31, nextPhaseSummary.getInt("b11CanonicalReplacementButB7UnclosedMovementOwnerRows"))
         assertEquals(7, nextPhaseSummary.getInt("b11CanonicalReplacementButB7UnclosedQualityOwnerRows"))
         assertEquals(0, nextPhaseSummary.getInt("b11CanonicalReplacementButB7UnclosedTaskOwnerRows"))
         assertEquals(0, nextPhaseSummary.getJSONArray("taskRoleReplacementRowsWithExactApprovedTaskB6").length())
+        assertEquals(47, nextPhaseSummary.getInt("unexplainedRemovedIdentityAttributions"))
+        assertEquals(43, nextPhaseSummary.getInt("exactMovementCanonicalReplacementAttributions"))
+        val movementReplacementResult = requireNotNull(records.single { it.first.label == "persona1_mixed" }.second)
+        val movementReplacementComparison = requireNotNull(movementReplacementResult.comparison)
+        val movementReplacementOldOwner = StimulusPrescriptionOwnerIdentity("barbell_reverse_curl", "COVERAGE_ARMS_BICEPS")
+        val movementReplacementNewOwner = StimulusPrescriptionOwnerIdentity(
+            "barbell_reverse_curl", "CANONICAL_STIMULUS_MOVEMENT_ARMS_BICEPS"
+        )
+        val movementReplacement = movementReplacementComparison.experimentalReadinessAudit!!.changeAttributions.single {
+            it.stableKey == movementReplacementOldOwner.stableKey &&
+                it.selectionRole == movementReplacementOldOwner.selectionRole
+        }
+        assertEquals(StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY, movementReplacement.source)
+        assertEquals(listOf("MOVEMENT:ARMS_BICEPS"), movementReplacement.targetIds)
+        assertTrue("B6_AUTHORIZED_REGIONAL_MOVEMENT_REPLACEMENT" in movementReplacement.reasonCodes)
+        assertTrue("EXACT_B4_MOVEMENT_TARGET" in movementReplacement.evidenceSources)
+        assertTrue("EXACT_B5_PRIMARY_MOVEMENT_OWNER" in movementReplacement.evidenceSources)
+        assertTrue("EXACT_B6_REGIONAL_HYPERTROPHY_AUTHORITY" in movementReplacement.evidenceSources)
+        assertTrue("EXACT_WEEKLY_MATERIALIZATION_MATCH" in movementReplacement.evidenceSources)
+        val exactMovementSelection = movementReplacementComparison.selectionPlan.selectedCandidates.single {
+            StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) == movementReplacementNewOwner
+        }
+        assertEquals("MOVEMENT:ARMS_BICEPS", exactMovementSelection.primaryTargetId)
+        val exactMovementB6 = movementReplacementComparison.prescriptionAuthorizationPlan!!.authorizations.single {
+            it.targetId == "MOVEMENT:ARMS_BICEPS" &&
+                it.owner?.let { owner -> StimulusPrescriptionOwnerIdentity(owner.stableKey, owner.selectionRole) } == movementReplacementNewOwner
+        }
+        assertNotNull(exactMovementB6.authorizedPrescription)
+        val exactMovementMaterialization = movementReplacementComparison.materializationTraces.single {
+            it.targetId == "MOVEMENT:ARMS_BICEPS" && it.selectedStableKey == movementReplacementNewOwner.stableKey &&
+                it.selectionRole == movementReplacementNewOwner.selectionRole
+        }
+        assertTrue(exactMovementMaterialization.directIdentityVerifiedAtSelection == true)
+        assertTrue(exactMovementMaterialization.presentInFinalExperimentalSkeleton)
+        fun assertMovementReplacementFailsClosed(tampered: StimulusSelectionProgramComparison) {
+            val attribution = StimulusExperimentalReadinessAuditEngine().audit(tampered).changeAttributions.single {
+                it.stableKey == movementReplacementOldOwner.stableKey &&
+                    it.selectionRole == movementReplacementOldOwner.selectionRole
+            }
+            assertEquals(StimulusExperimentalChangeAttributionSource.UNEXPLAINED, attribution.source)
+            assertEquals(listOf("UNEXPLAINED_REMOVED_IDENTITY"), attribution.reasonCodes)
+        }
+        val b6WithoutMovementAuthority = movementReplacementComparison.copy(
+            prescriptionAuthorizationPlan = movementReplacementComparison.prescriptionAuthorizationPlan!!.copy(
+                authorizations = movementReplacementComparison.prescriptionAuthorizationPlan!!.authorizations.filterNot {
+                    it.targetId == "MOVEMENT:ARMS_BICEPS" &&
+                        it.owner?.let { owner -> StimulusPrescriptionOwnerIdentity(owner.stableKey, owner.selectionRole) } == movementReplacementNewOwner
+                }
+            )
+        )
+        assertMovementReplacementFailsClosed(b6WithoutMovementAuthority)
+        assertMovementReplacementFailsClosed(movementReplacementComparison.copy(
+            materializationTraces = movementReplacementComparison.materializationTraces.filterNot {
+                it.targetId == "MOVEMENT:ARMS_BICEPS" && it.selectedStableKey == movementReplacementNewOwner.stableKey &&
+                    it.selectionRole == movementReplacementNewOwner.selectionRole
+            }
+        ))
+        val unrelatedRoleOmission = movementReplacementComparison.nonSelectionProvenance.map { omission ->
+            if (omission.omittedControlOwner != movementReplacementOldOwner) omission else omission.copy(
+                targetEvidence = omission.targetEvidence.map { targetEvidence ->
+                    if (targetEvidence.targetId != "MOVEMENT:ARMS_BICEPS") targetEvidence else targetEvidence.copy(
+                        disposition = targetEvidence.disposition.copy(
+                            canonicalSelectionRole = "CANONICAL_STIMULUS_MOVEMENT_UPPER_PULL"
+                        )
+                    )
+                }
+            )
+        }
+        assertMovementReplacementFailsClosed(movementReplacementComparison.copy(nonSelectionProvenance = unrelatedRoleOmission))
         val persona3RecentCensus = nextPhaseJson.getJSONArray("cases").let { rows ->
             (0 until rows.length()).map { rows.getJSONObject(it) }.single { it.getString("case") == "persona3_recent" }
         }
@@ -866,6 +935,7 @@ class StimulusProductionCoverageAuditTest {
         }
         assertEquals(listOf("QUALITY:HYPERTROPHY"), regressionCase.getJSONObject("b7")
             .getJSONArray("regressedTargets").let { rows -> (0 until rows.length()).map { rows.getString(it) } })
+        assertFalse(regressionCase.getJSONObject("b7").getBoolean("collateralRegressionFree"))
         // The reviewed hypertrophy case no longer has the prior added-dose regression:
         // the unauthorized provisional coverage row is absent. It remains CONTROL because
         // the remaining owner removals still have unclosed provenance.
@@ -875,6 +945,8 @@ class StimulusProductionCoverageAuditTest {
         assertEquals("CONTROL", reviewedRegressionCase.getString("route"))
         assertTrue(reviewedRegressionCase.getJSONObject("b7").getJSONArray("reasons").toString()
             .contains("CHANGE_PROVENANCE_UNCLOSED"))
+        assertEquals(listOf("QUALITY:HYPERTROPHY"), reviewedRegressionCase.getJSONObject("b7")
+            .getJSONArray("regressedTargets").let { rows -> (0 until rows.length()).map { rows.getString(it) } })
         val bottleneckReport = java.io.File("build/reports/next-phase-bottleneck-census.json")
         requireNotNull(bottleneckReport.parentFile).mkdirs()
         bottleneckReport.writeText(nextPhaseCensus)
@@ -1436,8 +1508,8 @@ class StimulusProductionCoverageAuditTest {
                     it.selectionRole == omission.omittedControlOwner.selectionRole
             }
         })
-        // No generated comparison in this C28 replay closes B7 because unresolved material
-        // demand still leaves CONTROL owner removals without executable replacement authority.
+        // Exact B4/B5/B6 regional movement replacement evidence may close some or all
+        // owner-removal provenance. Any remaining authority or target blocker still retains CONTROL.
         records.forEach { (spec, result) ->
             if (result != null) {
                 val comparison = result.comparison
@@ -1445,8 +1517,17 @@ class StimulusProductionCoverageAuditTest {
                     assertTrue("Failed generation retains unresolved demand for ${spec.label}",
                         result.unresolvedMaterialDemandGaps.isNotEmpty())
                 } else {
-                    assertTrue("B7 must report unclosed removals for ${spec.label}",
-                        "CHANGE_PROVENANCE_UNCLOSED" in comparison.experimentalReadinessAudit?.reasonCodes.orEmpty())
+                    val audit = requireNotNull(comparison.experimentalReadinessAudit)
+                    if (audit.changeProvenanceClosed) {
+                        assertTrue("Closed B7 provenance has no unexplained or inconclusive removals for ${spec.label}",
+                            audit.changeAttributions.none {
+                                it.source in setOf(StimulusExperimentalChangeAttributionSource.UNEXPLAINED,
+                                    StimulusExperimentalChangeAttributionSource.INCONCLUSIVE_DISPLACEMENT)
+                            })
+                    } else {
+                        assertTrue("Unclosed B7 provenance remains explicit for ${spec.label}",
+                            "CHANGE_PROVENANCE_UNCLOSED" in audit.reasonCodes)
+                    }
                 }
                 assertEquals("Unresolved authority retains CONTROL: ${spec.label}",
                     StimulusProductionProgramSource.CONTROL, result.routeDecision.selectedSource)

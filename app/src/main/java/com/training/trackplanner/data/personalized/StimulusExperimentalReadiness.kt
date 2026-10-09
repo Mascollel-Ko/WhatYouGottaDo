@@ -410,17 +410,24 @@ class StimulusExperimentalReadinessAuditEngine {
                         StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY,
                         canonicalReplacementTargets,
                         listOf("B5_CANONICAL_OWNER_REPLACED_CONTROL_ROLE") +
-                            if (canonicalReplacementTargets.any { it.startsWith("TASK:") }) {
+                            (if (canonicalReplacementTargets.any { it.startsWith("MOVEMENT:") }) {
+                                listOf("B6_AUTHORIZED_REGIONAL_MOVEMENT_REPLACEMENT")
+                            } else emptyList()) +
+                            (if (canonicalReplacementTargets.any { it.startsWith("TASK:") }) {
                                 listOf("B6_APPROVED_TASK_PROTOCOL_REPLACEMENT", "TASK_CREDIT_NON_ADDITIVE")
-                            } else emptyList(),
+                            } else emptyList()),
                         listOf("EXACT_B5_CANONICAL_REPLACEMENT_OWNER") +
-                            if (canonicalReplacementTargets.any { it.startsWith("TASK:") }) {
+                            (if (canonicalReplacementTargets.any { it.startsWith("MOVEMENT:") }) {
+                                listOf("EXACT_B4_MOVEMENT_TARGET", "EXACT_B5_PRIMARY_MOVEMENT_OWNER",
+                                    "EXACT_B6_REGIONAL_HYPERTROPHY_AUTHORITY", "EXACT_WEEKLY_MATERIALIZATION_MATCH")
+                            } else emptyList()) +
+                            (if (canonicalReplacementTargets.any { it.startsWith("TASK:") }) {
                                 listOf("EXACT_TASK_B6_AUTHORIZATION", "DIRECT_CANONICAL_TASK_RELATION",
                                     "USER_APPROVED_PROJECT_POLICY", "LOSSLESS_TASK_MATERIALIZATION", "TASK_PROTOCOL_FREQUENCY_SATISFIED")
                             } else {
                                 listOf("EXACT_B6_AUTHORIZATION_FOR_REPLACEMENT", "EXACT_OWNER_QUALITY_TARGET_AUTHORITY",
                                     "EXPERIMENTAL_AUTHORIZED_WEEKLY_SUBSET")
-                            })
+                            }))
                 evidence.governedExperimentalChangeExists &&
                     evidence.removedOwnerHasCapacityOrPlacementEvidence &&
                     evidence.removedOwnerHasDisappearanceEvidence &&
@@ -648,8 +655,51 @@ class StimulusExperimentalReadinessAuditEngine {
                     replacement.selectionRole == "CANONICAL_STIMULUS_${it.targetId.replace(':', '_')}"
             }
             .map { it.targetId }
+        val movementTargets = exactExecutableChangeAuthorizations(comparison, owner, replacement)
+            .mapNotNull { authorization ->
+                val targetId = authorization.targetId
+                if (targetId !in exactB5Targets || replacement.primaryTargetId != targetId) return@mapNotNull null
+                val target = comparison.targetPlan.movementTargets.singleOrNull { it.targetId == targetId }
+                    ?: return@mapNotNull null
+                val expectedRole = "CANONICAL_STIMULUS_MOVEMENT_${target.movementCoverage.name}"
+                if (replacement.selectionRole != expectedRole ||
+                    authorization.quality != TrainableQuality.HYPERTROPHY) return@mapNotNull null
+                val dose = target.regionalDoseTargets.singleOrNull {
+                    it.kind == StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET &&
+                        it.shapeAuthority == StimulusMovementDoseShapeAuthority.HYPERTROPHY_BAND_8_12_PERSONAL_7_15_RPE_7_USER_LOAD_CALIBRATION
+                } ?: return@mapNotNull null
+                val authorizedWeeklyUnits = dose.authorizedWholeSetUnits?.takeIf { it > 0 }
+                    ?: return@mapNotNull null
+                if (dose.weeklyTarget == null || dose.numericAuthority == StimulusTargetNumericAuthority.DIRECTION_ONLY) {
+                    return@mapNotNull null
+                }
+
+                // A target label and an authorized candidate are not enough: every week removed
+                // from the exact old CONTROL identity must have the selected new-role material,
+                // and its B4 residual must be fully represented by those B6-authorized rows.
+                val removedWeeks = comparison.control.items.asSequence()
+                    .filter { it.exerciseStableKey == removed.stableKey && it.selectionRole == removed.selectionRole }
+                    .map { it.weekNumber }.toSortedSet()
+                val replacementRows = comparison.experimental.items.filter {
+                    it.exerciseStableKey == owner.stableKey && it.selectionRole == owner.selectionRole
+                }
+                val rowsByWeek = replacementRows.groupBy { it.weekNumber }
+                if (removedWeeks.isEmpty() || rowsByWeek.keys != removedWeeks ||
+                    removedWeeks.any { week -> rowsByWeek[week].orEmpty().sumOf { it.setCount } != authorizedWeeklyUnits }) {
+                    return@mapNotNull null
+                }
+                val trace = comparison.materializationTraces.singleOrNull {
+                    it.targetId == targetId && it.selectedStableKey == owner.stableKey &&
+                        it.selectionRole == owner.selectionRole
+                } ?: return@mapNotNull null
+                if (!trace.selectedAtB5 || trace.directIdentityVerifiedAtSelection != true ||
+                    !trace.presentInFinalExperimentalSkeleton || !trace.directIdentityStillValid ||
+                    trace.finalWeeklyOccurrences != replacementRows.size ||
+                    trace.finalTotalSetUnits != replacementRows.sumOf { it.setCount }) return@mapNotNull null
+                targetId
+            }
         val taskTargets = exactTaskReplacementTargetIds(comparison, removed, replacement, exactB5Targets)
-        return (qualityTargets + taskTargets).distinct().sorted()
+        return (qualityTargets + movementTargets + taskTargets).distinct().sorted()
     }
 
     /** Task role replacement has its own exact C24 B6 proof; Quality B6 rows cannot stand in for it. */
