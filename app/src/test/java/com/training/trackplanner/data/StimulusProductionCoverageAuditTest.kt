@@ -820,6 +820,126 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(16, c35Summary.getInt("regionalUnmaterializedShortfallUnits") - c35Summary.getInt("regionalUnfundedUnits"))
         assertEquals(0, c35Summary.getInt("unauthorizedMaterialRows"))
         assertEquals(0, c35Summary.getInt("duplicatePhysicalSetRows"))
+
+        val c36Census = C36ExecutionProvenanceCensus.render(
+            records = records,
+            contexts = productionContextByCase,
+            generationMillisByCase = c29GenerationDurationsByCase,
+            c35Summary = c35Summary,
+            startSha = "751cb2eff36e4c5969eedd634c0dfecbd13ff70d"
+        )
+        val c36Json = org.json.JSONObject(c36Census)
+        val c36CaseNames = c36Json.getJSONArray("cases").let { rows ->
+            (0 until rows.length()).map { rows.getJSONObject(it).getString("case") }
+        }
+        assertEquals(c36CaseNames.sorted(), c36CaseNames)
+        val c36RemovalOrder = c36Json.getJSONArray("removedOwnerWeeks").let { rows ->
+            (0 until rows.length()).map { row -> rows.getJSONObject(row).let {
+                listOf(it.getString("case"), it.getJSONObject("removedOwner").getString("stableKey"),
+                    it.getJSONObject("removedOwner").getString("selectionRole"), it.getInt("week").toString().padStart(2, '0'))
+            }.joinToString("|") }
+        }
+        assertEquals(c36RemovalOrder.sorted(), c36RemovalOrder)
+        java.io.File("build/reports/c36-execution-provenance-census.json").apply {
+            parentFile?.mkdirs()
+            writeText(c36Census)
+        }
+        val c36Summary = c36Json.getJSONObject("summary")
+        val c36AccountingComparison = c36Json.getJSONObject("beforeAfter")
+        assertEquals(565, c36AccountingComparison.getJSONObject("c35ReportedAccounting").getInt("finiteFundedPerWeekUnits"))
+        assertEquals(133, c36AccountingComparison.getJSONObject("c35ReportedAccounting").getInt("reportedUnfundedPerWeekUnits"))
+        assertEquals(549, c36AccountingComparison.getJSONObject("c36StageAlignedAccounting").getInt("finalAuthorizedAndMaterializedPerWeekUnits"))
+        assertEquals(149, c36AccountingComparison.getJSONObject("c36StageAlignedAccounting").getInt("b4ToFinalScheduleShortfallPerWeekUnits"))
+        assertEquals(47, c36AccountingComparison.getJSONObject("c34ToC36RemovalAccounting").getInt("c34UnexplainedCaseOwnerPairs"))
+        assertEquals(22, c36Summary.getInt("generatedCases"))
+        assertEquals(0, c36Summary.getInt("regionalOverrunUnits"))
+        assertEquals(0, c36Summary.getInt("duplicatePhysicalRows"))
+        assertEquals(0, c36Summary.getInt("unauthorizedMaterialUnits"))
+        assertEquals(22, c36Summary.getJSONObject("routes").getInt("CONTROL"))
+        val squatDossier = org.json.JSONObject(c36Census).getJSONArray("cases").let { rows ->
+            (0 until rows.length()).map { rows.getJSONObject(it) }.single { it.getString("case") == "persona4_recent" }
+        }.getJSONObject("persona4RecentSquatDossier")
+        assertEquals(5, squatDossier.getJSONArray("controlRows").getJSONObject(0).getInt("sets"))
+        assertEquals(4, squatDossier.getJSONArray("experimentalRows").getJSONObject(0).getInt("sets"))
+        assertFalse(squatDossier.getBoolean("exactB5Selected"))
+        assertEquals(0, squatDossier.getJSONArray("exactB6Authorities").length())
+        assertEquals(28, squatDossier.getInt("frequencyComputedCapacityUnits"))
+        assertEquals(1, squatDossier.getJSONArray("frequencyCapacityCandidates").let { rows ->
+            (0 until rows.length()).count { rows.getJSONObject(it).optString("selectionRole") == "STYLE_HEAVY_LOWER_KNEE" &&
+                rows.getJSONObject(it).optBoolean("continuity") && rows.getJSONObject(it).optInt("requestedUnits") == 5 &&
+                rows.getJSONObject(it).optInt("fundedBaseUnits") == 4 && rows.getJSONObject(it).optString("rejectionReason") == "FINITE_CAPACITY" }
+        })
+        val squatCapacityAttribution = squatDossier.getJSONObject("b7Attribution")
+        assertEquals(StimulusExperimentalChangeAttributionSource.FINITE_CAPACITY_CONTINUITY_ALLOCATION.name,
+            squatCapacityAttribution.getString("source"))
+        assertTrue(squatCapacityAttribution.getJSONArray("evidenceSources").toString()
+            .contains("EXACT_OWNER_WEEK_CAPACITY_CANDIDATE"))
+        assertTrue(squatCapacityAttribution.getJSONArray("reasonCodes").toString()
+            .contains("REQUESTED_DEMAND_EXCEEDS_COMPUTED_CAPACITY"))
+        val changedSquatWeeks = c36Json.getJSONArray("prescriptionChangeOwnerWeeks").let { rows ->
+            (0 until rows.length()).map { rows.getJSONObject(it) }
+                .filter { it.getString("case") == "persona4_recent" &&
+                    it.getJSONObject("owner").getString("stableKey") == "barbell_back_squat" &&
+                    it.getJSONObject("owner").getString("selectionRole") == "STYLE_HEAVY_LOWER_KNEE" }
+        }
+        assertEquals(2, changedSquatWeeks.size)
+        changedSquatWeeks.forEach { row ->
+            assertEquals(StimulusExperimentalChangeAttributionSource.FINITE_CAPACITY_CONTINUITY_ALLOCATION.name,
+                row.getJSONObject("b7Attribution").getString("source"))
+            assertEquals(5, row.getJSONArray("before").getJSONObject(0).getInt("sets"))
+            assertEquals(4, row.getJSONArray("after").getJSONObject(0).getInt("sets"))
+            assertEquals(4, row.getJSONArray("before").getJSONObject(0).getInt("day"))
+            assertEquals(2, row.getJSONArray("after").getJSONObject(0).getInt("day"))
+            assertEquals(0, row.getJSONArray("b6ExactOwnerAuthority").length())
+        }
+        val persona4Comparison = requireNotNull(records.single { it.first.label == "persona4_recent" }.second?.comparison)
+        val persona4Decision = requireNotNull(persona4Comparison.experimental.personalizedDecision)
+        val persona4Frequency = requireNotNull(persona4Decision.frequencyDemand)
+        fun squatAttributionAfter(tampered: StimulusSelectionProgramComparison) =
+            StimulusExperimentalReadinessAuditEngine().audit(tampered).changeAttributions.single {
+                it.stableKey == "barbell_back_squat" && it.selectionRole == "STYLE_HEAVY_LOWER_KNEE"
+            }
+        val wrongRoleFrequency = persona4Frequency.copy(candidates = persona4Frequency.candidates.map { candidate ->
+            if (candidate.item.stableKey == "barbell_back_squat" && candidate.item.role == "STYLE_HEAVY_LOWER_KNEE")
+                candidate.copy(item = candidate.item.copy(role = "UNRELATED_ROLE")) else candidate
+        })
+        assertEquals(StimulusExperimentalChangeAttributionSource.UNEXPLAINED,
+            squatAttributionAfter(persona4Comparison.copy(experimental = persona4Comparison.experimental.copy(
+                personalizedDecision = persona4Decision.copy(frequencyDemand = wrongRoleFrequency)
+            ))).source)
+        val nonBindingCapacity = persona4Frequency.copy(computedCapacity =
+            persona4Frequency.computedCapacity.copy(finalControllableUnits = 37))
+        assertEquals(StimulusExperimentalChangeAttributionSource.UNEXPLAINED,
+            squatAttributionAfter(persona4Comparison.copy(experimental = persona4Comparison.experimental.copy(
+                personalizedDecision = persona4Decision.copy(frequencyDemand = nonBindingCapacity)
+            ))).source)
+        val changedSquatRest = persona4Comparison.experimental.items.map { row ->
+            if (row.exerciseStableKey == "barbell_back_squat" && row.selectionRole == "STYLE_HEAVY_LOWER_KNEE")
+                row.copy(restSeconds = row.restSeconds + 15) else row
+        }
+        assertEquals(StimulusExperimentalChangeAttributionSource.UNEXPLAINED,
+            squatAttributionAfter(persona4Comparison.copy(experimental = persona4Comparison.experimental.copy(items = changedSquatRest))).source)
+        assertEquals(21, c36Summary.getJSONObject("b7StatusesAndReasons").getInt("CHANGE_PROVENANCE_UNCLOSED"))
+        assertEquals(22, c36Summary.getJSONObject("b8Statuses").getInt("CONTROL_REQUIRED"))
+        assertEquals(22, c36Summary.getJSONObject("routes").getInt("CONTROL"))
+        assertEquals(94, c36Summary.getInt("unexplainedRemovedOwnerWeekOccurrences"))
+        assertEquals(2, c36Summary.getInt("prescriptionChangeOwnerWeeks"))
+        assertEquals(0, c36Summary.getInt("unexplainedPrescriptionChangeOwnerWeeks"))
+        assertEquals(2, c36Summary.getInt("finiteCapacityAttributedPrescriptionChangeOwnerWeeks"))
+        assertEquals(47, c36Summary.getInt("uniqueUnexplainedCaseOwnerPairs"))
+        assertEquals(38, c36Summary.getInt("uniqueUnexplainedOwnerCasesWithB11CanonicalReplacement"))
+        assertEquals(0, c36Summary.getInt("unexplainedOwnerCasesWithExactB4B5B6ScheduleMaterialization"))
+        assertEquals(0, c36Summary.getInt("exactDisplacementOwnerWeekOccurrences"))
+        assertEquals(549, c36Summary.getInt("regionalFrequencyFundedBaseUnitsPerTargetWeek"))
+        assertEquals(549, c36Summary.getInt("regionalFirstWeekMaterializedUnits"))
+        assertEquals(1098, c36Summary.getInt("regionalFinalAuthorizedWeeklyUnitsRepeatedAcrossHorizon"))
+        assertEquals(1098, c36Summary.getInt("regionalMaterializedUnitsAcrossHorizon"))
+        assertEquals(6, c36Summary.getInt("legacyDiagnosticFundedButCapacityRejectedRows"))
+        assertEquals(48, c36Summary.getInt("legacyDiagnosticFundedButCapacityRejectedUnits"))
+        assertEquals(4, c36Summary.getInt("legacyDiagnosticZeroButActuallyScheduledRows"))
+        assertEquals(32, c36Summary.getInt("legacyDiagnosticZeroButActuallyScheduledUnits"))
+        assertTrue("C36 requires complete owner/week removal evidence", org.json.JSONObject(c36Census)
+            .getJSONArray("removedOwnerWeeks").length() >= c36Summary.getInt("uniqueUnexplainedCaseOwnerPairs"))
         assertEquals(29, c33RegionalSummary.getInt("movementTargets"))
         assertEquals(58, c33RegionalSummary.getInt("ownerWeekRows"))
         assertEquals(22, c33RegionalSummary.getInt("c31BaselineMovementTargets"))

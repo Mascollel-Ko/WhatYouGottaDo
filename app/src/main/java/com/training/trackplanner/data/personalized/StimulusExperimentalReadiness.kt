@@ -29,6 +29,7 @@ enum class StimulusExperimentalChangeAttributionSource {
     B6_SAFE_REPAIRED_PRESCRIPTION,
     B6_COLD_START_USER_CALIBRATION,
     B6_APPROVED_TASK_PROTOCOL,
+    FINITE_CAPACITY_CONTINUITY_ALLOCATION,
     DOWNSTREAM_CONSTRAINT_DISPLACEMENT,
     INCONCLUSIVE_DISPLACEMENT,
     UNEXPLAINED
@@ -460,9 +461,11 @@ class StimulusExperimentalReadinessAuditEngine {
             val downstreamTargets = constrainedDownstreamTargetIds(comparison, identity)
             val taskProtocol = exactTaskProtocolAttributions(comparison, identity, selected[identity])
             val executableAuthorizations = exactExecutableChangeAuthorizations(comparison, identity, selected[identity])
+            val finiteCapacityContinuityReduction = exactFiniteCapacityContinuityReduction(comparison, identity)
             val source = when {
                 downstreamTargets.isNotEmpty() -> StimulusExperimentalChangeAttributionSource.DOWNSTREAM_CONSTRAINT_DISPLACEMENT
                 taskProtocol.isNotEmpty() -> StimulusExperimentalChangeAttributionSource.B6_APPROVED_TASK_PROTOCOL
+                finiteCapacityContinuityReduction -> StimulusExperimentalChangeAttributionSource.FINITE_CAPACITY_CONTINUITY_ALLOCATION
                 executableAuthorizations.any { it.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION } ->
                     StimulusExperimentalChangeAttributionSource.B6_COLD_START_USER_CALIBRATION
                 executableAuthorizations.any { it.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR } -> StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION
@@ -478,16 +481,22 @@ class StimulusExperimentalReadinessAuditEngine {
                     listOf("B6_COLD_START_SHAPE_AUTHORITY_LOAD_REQUIRES_USER_INPUT")
                 source == StimulusExperimentalChangeAttributionSource.B6_APPROVED_TASK_PROTOCOL ->
                     listOf("B6_USER_APPROVED_EXACT_TASK_PROTOCOL", "TASK_CREDIT_NON_ADDITIVE")
+                source == StimulusExperimentalChangeAttributionSource.FINITE_CAPACITY_CONTINUITY_ALLOCATION ->
+                    listOf("EXACT_FINITE_CAPACITY_CONTINUITY_SET_PREFIX", "REQUESTED_DEMAND_EXCEEDS_COMPUTED_CAPACITY",
+                        "BASE_SCHEDULED_CONTINUITY_MATCHES_ALLOCATED_OWNER")
                 else -> listOf("B6_AUTHORIZED_PRESCRIPTION_CHANGE")
             }
             result += StimulusExperimentalChangeAttribution(identity.stableKey, identity.selectionRole, source,
                 when {
                     downstreamTargets.isNotEmpty() -> downstreamTargets
                     taskProtocol.isNotEmpty() -> taskProtocol.flatMap { it.authorization.attributedTasks }.distinct().sortedBy { it.ordinal }.map { "TASK:${it.name}" }
+                    finiteCapacityContinuityReduction -> emptyList()
                     else -> executableAuthorizations.map { it.targetId }.distinct().sorted()
                 },
                 reasonCodes,
-                if (downstreamTargets.isNotEmpty()) listOf("EXPERIMENTAL_OWNER_CONSTRAINT_TRACE", "CONTROL_PRESCRIPTION_IS_EXACT_SET_SUPERSET")
+                if (finiteCapacityContinuityReduction) listOf("EXACT_OWNER_WEEK_CAPACITY_CANDIDATE", "EXACT_COMPUTED_FREQUENCY_CAPACITY",
+                    "EXACT_BASE_SCHEDULED_CONTINUITY", "EXACT_CONTROL_TO_EXPERIMENTAL_SET_PREFIX")
+                else if (downstreamTargets.isNotEmpty()) listOf("EXPERIMENTAL_OWNER_CONSTRAINT_TRACE", "CONTROL_PRESCRIPTION_IS_EXACT_SET_SUPERSET")
                 else if (taskProtocol.isNotEmpty()) listOf("EXACT_B4_TASK_TARGET", "EXACT_B5_OWNER_ROLE", "USER_APPROVED_PROJECT_POLICY", "EXPERIMENTAL_MATERIALIZATION_MATCH")
                 else if (executableAuthorizations.isNotEmpty()) listOf("EXACT_B5_OWNER_TARGET_COVERAGE",
                     "EXACT_OWNER_QUALITY_TARGET_AUTHORITY", "EXPERIMENTAL_AUTHORIZED_WEEKLY_SUBSET") else emptyList())
@@ -614,6 +623,72 @@ class StimulusExperimentalReadinessAuditEngine {
             reduced = true
         }
         return reduced
+    }
+
+    /**
+     * A finite allocator may reduce an incumbent continuity owner before placement. B7 accepts
+     * that explanation only when the exact base capacity trace names the same owner, requested
+     * prescription and funded set prefix that appears in CONTROL and the final EXP skeleton.
+     * This is allocation provenance, not B5/B6 prescription authority.
+     */
+    private fun exactFiniteCapacityContinuityReduction(
+        comparison: StimulusSelectionProgramComparison,
+        identity: StimulusPrescriptionOwnerIdentity
+    ): Boolean {
+        val decision = comparison.experimental.personalizedDecision ?: return false
+        val frequencyDemand = decision.frequencyDemand ?: return false
+        val totalRequested = frequencyDemand.candidates.sumOf { it.requestedUnits }
+        val totalScheduledBase = frequencyDemand.baseAuthorized.sumOf { it.prescription.sets.size }
+        val computedCapacity = frequencyDemand.computedCapacity.finalControllableUnits
+        if (computedCapacity <= 0 || totalRequested <= computedCapacity || totalScheduledBase > computedCapacity) return false
+        val candidate = frequencyDemand.candidates.singleOrNull {
+            StimulusPrescriptionOwnerIdentity(it.item.stableKey, it.item.role) == identity
+        } ?: return false
+        if (!candidate.continuity || candidate.rejectionReason != CandidateRejectionReason.FINITE_CAPACITY ||
+            candidate.fundedBaseUnits <= 0 || candidate.fundedBaseUnits >= candidate.requestedUnits) return false
+
+        val controlByWeek = comparison.control.items.filter {
+            it.exerciseStableKey == identity.stableKey && it.selectionRole == identity.selectionRole
+        }.groupBy(ProgramSkeletonItem::weekNumber)
+        val experimentalByWeek = comparison.experimental.items.filter {
+            it.exerciseStableKey == identity.stableKey && it.selectionRole == identity.selectionRole
+        }.groupBy(ProgramSkeletonItem::weekNumber)
+        if (controlByWeek.isEmpty() || controlByWeek.keys != experimentalByWeek.keys) return false
+
+        val changedWeeks = controlByWeek.keys.filter { week ->
+            val beforeRows = controlByWeek.getValue(week)
+            val afterRows = experimentalByWeek.getValue(week)
+            if (beforeRows.size != 1 || afterRows.size != 1) return@filter true
+            val before = beforeRows.single()
+            val after = afterRows.single()
+            before.setCount != after.setCount || before.setPrescriptions != after.setPrescriptions
+        }
+        if (changedWeeks.isEmpty()) return false
+
+        for (week in controlByWeek.keys) {
+            val beforeRows = controlByWeek.getValue(week)
+            val afterRows = experimentalByWeek.getValue(week)
+            if (beforeRows.size != 1 || afterRows.size != 1) return false
+            val before = beforeRows.single()
+            val after = afterRows.single()
+            val beforeSets = before.setPrescriptions
+            val afterSets = after.setPrescriptions
+            if (before.setCount != candidate.requestedUnits || after.setCount != candidate.fundedBaseUnits ||
+                beforeSets != candidate.prescription.sets || afterSets != candidate.prescription.sets.take(afterSets.size) ||
+                afterSets.size >= beforeSets.size || before.reps != after.reps || before.weightKg != after.weightKg ||
+                before.seconds != after.seconds || before.restSeconds != after.restSeconds ||
+                before.weightSource != after.weightSource) return false
+        }
+
+        val baseContinuity = frequencyDemand.baseAuthorized.filter {
+            it.continuity && it.item.stableKey == identity.stableKey && it.item.role == identity.selectionRole
+        }
+        if (baseContinuity.size != 1) return false
+        val basePrescription = baseContinuity.single().prescription
+        return basePrescription.sets.size == candidate.fundedBaseUnits &&
+            basePrescription.sets == candidate.prescription.sets.take(candidate.fundedBaseUnits) &&
+            basePrescription.restSeconds == candidate.prescription.restSeconds &&
+            basePrescription.weightSource == candidate.prescription.weightSource
     }
 
     /**
