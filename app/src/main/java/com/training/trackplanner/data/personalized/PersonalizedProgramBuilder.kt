@@ -710,7 +710,8 @@ class PersonalizedProgramBuilder(
                 if (capacityExpanded) maxOf(continuityDemand, coreReserve + (materialCandidates.firstOrNull()?.targetSets ?: 0)) else continuityDemand)
             else envelope.finalControllableUnits
         val bounded = regionalTargetPlan?.let { BoundedMaterialDemandAllocation(snapshot, state, request, materialCandidates,
-            it, generationPrescriptions, capacity, continuityDemand, coreReserve, activeCanonicalFailureEmitter) }
+            it, generationPrescriptions, capacity, continuityDemand, coreReserve, activeCanonicalFailureEmitter,
+            exactPrescriptionAuthorizationProvider) }
         val finite = bounded?.finite ?: FiniteExecutionAllocator.allocate(capacity, continuityDemand, materialCandidates.map(PlannedExercise::targetSets), share, coreReserve,
             materialCandidates.indices.filterTo(mutableSetOf()) {
                 val item = materialCandidates[it]
@@ -1260,7 +1261,9 @@ private fun hasExactMaterialDemandExecutionAuthority(
     // An exact quality prescription is usable for a material-demand candidate only when B5
     // selected that same owner identity. A compatible prescription from another selection path
     // cannot silently convert a candidate into a B5-owned executable row.
-    if (regionalTargetPlan == null && identity !in provider?.b5SelectedQualityOwners.orEmpty()) return false
+    if (regionalTargetPlan == null && identity !in provider?.b5SelectedQualityOwners.orEmpty() &&
+        identity !in provider?.b5SelectedMovementOwners.orEmpty()
+    ) return false
     return exactMaterialDemandPrescription(candidate, provider, regionalTargetPlan) != null
 }
 

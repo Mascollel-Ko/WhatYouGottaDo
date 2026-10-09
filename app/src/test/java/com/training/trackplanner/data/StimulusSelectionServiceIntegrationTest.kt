@@ -249,9 +249,11 @@ class StimulusSelectionServiceIntegrationTest {
             assertTrue(comparison.winner == null)
             assertFalse(comparison.selectionPlan.productionSelectionAuthority)
             assertEquals("B7 must remain fail-closed for unexplained coverage-owner removals", StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, evaluation.status)
-            // C33 admits the exact regional Hypertrophy residual into the existing combined
-            // B8 scope; unrelated B7 removal blockers must still keep production on CONTROL.
-            assertEquals(StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1, evaluation.scope)
+            // The production comparison may contain material outside the combined quality scope.
+            // Its attached B8 scope must reflect the exact resolver result; an unresolved scope
+            // uses the existing Strength-only fail-closed diagnostic fallback and still cannot route.
+            val materialScope = StimulusProductionMaterialScopeResolver().resolve(b8Comparison)
+            assertEquals(materialScope ?: StimulusProductionCutoverScope.STRENGTH_V1, evaluation.scope)
             assertTrue("B7 removal blockers prevent any B8 authorization", evaluation.authorizedOwnerIdentities.isEmpty())
             assertEquals(b8Comparison.experimentalReadinessAudit?.status, evaluation.b7Status)
             assertEquals(StimulusExperimentalReadinessStatus.NOT_ELIGIBLE, b8Comparison.experimentalReadinessAudit?.status)
@@ -499,7 +501,8 @@ class StimulusSelectionServiceIntegrationTest {
         assertTrue(hDecision.authorizedOwnerIdentities.isEmpty())
 
         assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, comparison.productionCutoverAuthority?.status)
-        assertEquals(StimulusProductionCutoverScope.HYPERTROPHY_V1, comparison.productionCutoverAuthority?.scope)
+        val resolvedProductionScope = StimulusProductionMaterialScopeResolver().resolve(comparison)
+        assertEquals(resolvedProductionScope ?: StimulusProductionCutoverScope.STRENGTH_V1, comparison.productionCutoverAuthority?.scope)
         assertEquals(StimulusProductionProgramSource.CONTROL, production.routeDecision.selectedSource)
         assertFalse(production.routeDecision.productionRoutingActive)
         assertSame(comparison.control, production.program)

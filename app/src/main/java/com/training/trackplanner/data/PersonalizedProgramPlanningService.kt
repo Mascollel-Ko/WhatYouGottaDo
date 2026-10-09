@@ -485,9 +485,10 @@ internal class PersonalizedProgramPlanningService(
             selectionPlan = qualityTaskSelectionPlan,
             authorizationPlan = qualityTaskAuthorizationPlan,
             snapshot = context.snapshot,
-            catalog = physicalQualityCatalog
+            catalog = physicalQualityCatalog,
+            coreCatalog = canonicalCoreCatalog
         )
-        val movementSelectionPlan = StimulusTargetCandidateSelector().build(
+        val movementSelectionPlan = StimulusTargetCandidateSelector(coreCatalog = canonicalCoreCatalog).build(
             targetPlan = residualTargetPlan.copy(qualityTargets = emptyList(), taskTargets = emptyList()),
             snapshot = context.snapshot,
             state = context.state,
@@ -556,7 +557,8 @@ internal class PersonalizedProgramPlanningService(
                 canonicalPrescriptionContext = prescriptionContext,
                 approvedTaskB6Owners = taskProtocolPlan.authorizedByOwner.keys
             ),
-            snapshot = context.snapshot
+            snapshot = context.snapshot,
+            coreCatalog = canonicalCoreCatalog
         )
         observe(ProductionGenerationPhase.B5_COMPLETE, selectionPlan, null)
         val activelyAdmittedStrengthTargetIds = selectionPlan.traces.asSequence()

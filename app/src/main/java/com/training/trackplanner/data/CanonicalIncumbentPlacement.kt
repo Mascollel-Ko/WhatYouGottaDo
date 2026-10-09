@@ -9,7 +9,7 @@ import com.training.trackplanner.data.personalized.placementSessionFits
 import java.security.MessageDigest
 
 /** Current builder contract recorded on accepted canonical programs. */
-internal const val CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.69.0"
+internal const val CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.70.0"
 
 /** A typed view of TrainingProgram.stableKey; it is independent of exercise stable keys. */
 @JvmInline
@@ -128,6 +128,7 @@ internal data class CanonicalIncumbentPlacementIndex(
             val sourceContract = builderVersion to runtimeVersion
             val supportedContracts = setOf(
                 expectedBuilderProtocolVersion to expectedPlannerRuntimeVersion,
+                C36_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION to C36_PERSONALIZED_PLANNER_PROTOCOL_VERSION,
                 C35_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION to C35_PERSONALIZED_PLANNER_PROTOCOL_VERSION,
                 C34_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION to C34_PERSONALIZED_PLANNER_PROTOCOL_VERSION,
                 C33_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION to C33_PERSONALIZED_PLANNER_PROTOCOL_VERSION,
@@ -191,6 +192,9 @@ internal data class CanonicalIncumbentPlacementIndex(
 /** C19 persisted exact lineage/roles before C20 changed placement behavior. */
 private const val C19_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.54.0"
 private const val C19_PERSONALIZED_PLANNER_PROTOCOL_VERSION = "RECORD_BASED_PLANNER_0.14.6_KOTLIN_1"
+/** C36 records remain valid incumbent sources after C37 adds exact direct-Core shape authority. */
+private const val C36_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.69.0"
+private const val C36_PERSONALIZED_PLANNER_PROTOCOL_VERSION = "RECORD_BASED_PLANNER_0.15.11_KOTLIN_1"
 /** C35 persisted programs remain valid incumbent sources after C36's exact B7 capacity-attribution contract. */
 private const val C35_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.68.0"
 private const val C35_PERSONALIZED_PLANNER_PROTOCOL_VERSION = "RECORD_BASED_PLANNER_0.15.10_KOTLIN_1"

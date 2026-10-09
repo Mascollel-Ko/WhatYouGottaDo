@@ -310,13 +310,15 @@ class RegionalMovementDoseTargetBuilder {
                         else StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY,
                     weeklyTarget = personalWeeklyMedian ?: RegionalColdStartDosePolicy.CORE_DIRECT_SETS_PER_WEEK,
                     reasonCodes = if (personalBaseline) listOf("PERSONAL_CORE_DIRECT_COMPLETED_WEEK_BASELINE",
-                        "CORE_PRESCRIPTION_SHAPE_AUTHORITY_UNAVAILABLE") else listOf(
+                        "CORE_B6_SHAPE_RESOLVED_PER_EXACT_OWNER") else listOf(
                         "USER_APPROVED_PROJECT_POLICY_CORE_DIRECT_COLD_START_6_SETS_PER_WEEK",
                         "INSUFFICIENT_CORE_HISTORY_FOR_PERSONAL_TOLERANCE_BASELINE",
-                        "CORE_PRESCRIPTION_SHAPE_AUTHORITY_UNAVAILABLE"),
+                        "CORE_B6_SHAPE_RESOLVED_PER_EXACT_OWNER"),
                     evidence = listOf("eligibleWeeks=${weekly.size}", "directExposureWeeks=$exposedWeeks",
-                        "observedWeeklySetMedian=${personalWeeklyMedian ?: median(weekly)}", "prescriptionShapeAuthority=NONE"),
-                    shapeAuthority = StimulusMovementDoseShapeAuthority.NONE
+                        "observedWeeklySetMedian=${personalWeeklyMedian ?: median(weekly)}",
+                        "setDoseAuthority=${if (personalBaseline) "PERSONAL_SUCCESSFUL_DOSE" else RegionalColdStartDosePolicy.PROVENANCE}",
+                        "prescriptionShapeAuthority=EXACT_B5_OWNER_METADATA_OR_PERSONAL_HISTORY_REQUIRED"),
+                    shapeAuthority = StimulusMovementDoseShapeAuthority.CORE_DIRECT_SET_DOSE_EXACT_OWNER_SHAPE_REQUIRED
                 )
             } else null
             movement.movementCoverage to listOfNotNull(regionalHypotrophy, core)
@@ -341,21 +343,60 @@ class CanonicalRegionalMovementB4ResidualResolver(
         selectionPlan: StimulusCandidateSelectionPlan,
         authorizationPlan: StimulusPrescriptionAuthorizationPlan,
         snapshot: PlanningHistorySnapshot,
-        catalog: CanonicalExercisePhysicalQualityCatalog
+        catalog: CanonicalExercisePhysicalQualityCatalog,
+        coreCatalog: com.training.trackplanner.analysis.core.CanonicalCoreCatalog = com.training.trackplanner.analysis.core.CanonicalCoreCatalog.EMPTY
     ): StimulusTargetPlan {
         val exposure = projector.projectWithAuthorizedQualityMaterial(
             existingProgram, selectionPlan, authorizationPlan, snapshot, catalog,
             targetRegions = targetPlan.movementTargets.mapTo(linkedSetOf()) { it.movementCoverage }
         )
+        val authorizedCoreExposure = authorizationPlan.authorizations.asSequence()
+            .filter { authorization ->
+                authorization.owner != null && authorization.authorizedPrescription != null &&
+                    authorization.status in setOf(
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
+                    ) && coreCatalog.resolve(authorization.owner.stableKey)?.let { profile ->
+                        profile.coreClass == com.training.trackplanner.analysis.core.CoreClass.DIRECT && profile.directTarget != null
+                    } == true
+            }
+            .groupBy { authorization ->
+                StimulusPrescriptionOwnerIdentity(
+                    requireNotNull(authorization.owner).stableKey,
+                    requireNotNull(authorization.owner).selectionRole
+                )
+            }
+            .mapValues { (_, rows) -> rows.maxOf { requireNotNull(it.authorizedPrescription).sets.size } }
         val movements = targetPlan.movementTargets.map { movement ->
             val doses = movement.regionalDoseTargets.map { dose ->
-                if (dose.kind != StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET ||
-                    dose.shapeAuthority != StimulusMovementDoseShapeAuthority.HYPERTROPHY_BAND_8_12_PERSONAL_7_15_RPE_7_USER_LOAD_CALIBRATION ||
-                    dose.weeklyTarget == null || dose.numericAuthority in setOf(
+                if (dose.weeklyTarget == null || dose.numericAuthority in setOf(
                         StimulusTargetNumericAuthority.NONE,
                         StimulusTargetNumericAuthority.DIRECTION_ONLY,
                         StimulusTargetNumericAuthority.UNRESOLVED
                     )) return@map dose
+                if (dose.kind == StimulusMovementDoseKind.CORE_DIRECT_CONTROL_SET &&
+                    dose.shapeAuthority == StimulusMovementDoseShapeAuthority.CORE_DIRECT_SET_DOSE_EXACT_OWNER_SHAPE_REQUIRED
+                ) {
+                    val existing = authorizedCoreExposure.values.sum().toDouble()
+                    val residual = (dose.weeklyTarget - existing).coerceAtLeast(0.0)
+                    val wholeSets = kotlin.math.floor(residual + 1e-9).toInt()
+                    return@map dose.copy(
+                        existingEquivalentExposure = existing,
+                        residualEquivalentExposure = residual,
+                        authorizedWholeSetUnits = wholeSets,
+                        residualReasonCodes = when {
+                            wholeSets == 0 && residual > 0.0 -> listOf("B4_CORE_FRACTIONAL_RESIDUAL_CANNOT_AUTHORIZE_WHOLE_SET")
+                            wholeSets == 0 -> listOf("B4_EXISTING_AUTHORIZED_DIRECT_CORE_EXPOSURE_COVERS_TARGET")
+                            else -> listOf("B4_CORE_DIRECT_RESIDUAL_AUTHORIZED", "B4_CORE_EXISTING_DIRECT_SETS=$existing",
+                                "B4_CORE_TARGET_DIRECT_SETS=${dose.weeklyTarget}", "B4_CORE_RESIDUAL_DIRECT_SETS=$residual",
+                                "B4_CORE_AUTHORIZED_WHOLE_SET_UNITS=$wholeSets")
+                        }
+                    )
+                }
+                if (dose.kind != StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET ||
+                    dose.shapeAuthority != StimulusMovementDoseShapeAuthority.HYPERTROPHY_BAND_8_12_PERSONAL_7_15_RPE_7_USER_LOAD_CALIBRATION
+                ) return@map dose
                 val existing = exposure[movement.movementCoverage to TrainableQuality.HYPERTROPHY]?.weeklyEquivalentUnits ?: 0.0
                 val residual = (dose.weeklyTarget - existing).coerceAtLeast(0.0)
                 val wholeSets = kotlin.math.floor(residual + 1e-9).toInt()
@@ -993,6 +1034,99 @@ class RegionalTargetPrescriptionResolver(
         }
     }
 
+    /** B6 consumes an exact B4 Core set residual and an exact canonical Core exercise shape. */
+    fun resolveCoreDirect(
+        item: PlannedExercise,
+        snapshot: PlanningHistorySnapshot,
+        coreCatalog: com.training.trackplanner.analysis.core.CanonicalCoreCatalog,
+        requestedSets: Int
+    ): Resolution {
+        if (requestedSets <= 0 || item.targetSets != requestedSets) {
+            return Resolution(null, listOf("CORE_B6_SET_COUNT_MUST_MATCH_EXACT_B4_RESIDUAL"))
+        }
+        val profile = coreCatalog.resolve(item.stableKey)?.takeIf {
+            it.coreClass == com.training.trackplanner.analysis.core.CoreClass.DIRECT && it.directTarget != null
+        } ?: return Resolution(null, listOf("CORE_B6_REQUIRES_EXACT_CANONICAL_DIRECT_CORE_PROFILE"))
+        val shape = CoreDirectPrescriptionShapeResolver.resolve(item.stableKey, snapshot, coreCatalog)
+            ?: return Resolution(null, listOf("CORE_B6_EXECUTION_METRIC_OR_EXACT_DURATION_UNAVAILABLE"))
+        val history = snapshot.allConfirmedSets.asSequence().filter { it.stableKey == item.stableKey }
+            .maxWithOrNull(compareBy<PlanningSetRecord> { it.date }.thenBy { it.setIndex })
+        val exercise = snapshot.exercises[item.stableKey]
+        val knownNoExternalLoad = exercise?.let(::isExplicitNoExternalLoad) == true
+        val historicalLoad = history?.weightKg?.takeIf { it.isFinite() && it > 0.0 }
+        val needsLoadCalibration = !knownNoExternalLoad && historicalLoad == null
+        val restSeconds = exercise?.defaultRestSeconds?.coerceAtLeast(0) ?: 0
+        val setRows = when (shape) {
+            is CoreDirectPrescriptionShape.Repetitions -> List(requestedSets) { index ->
+                ProgramSetPrescription(
+                    setIndex = index + 1,
+                    reps = shape.reps,
+                    weightKg = historicalLoad ?: 0.0,
+                    seconds = 0,
+                    targetRpeMin = if (CoreDirectPrescriptionShapeResolver.requiresHypertrophyEffort(profile.directTarget))
+                        RegionalColdStartDosePolicy.HYPERTROPHY_MINIMUM_TARGET_RPE else null,
+                    loadState = when {
+                        historicalLoad != null -> ProgramLoadState.EXPLICIT_LOAD
+                        knownNoExternalLoad -> ProgramLoadState.NOT_APPLICABLE
+                        else -> ProgramLoadState.USER_CALIBRATION_REQUIRED
+                    }
+                )
+            }
+            is CoreDirectPrescriptionShape.Duration -> List(requestedSets) { index ->
+                ProgramSetPrescription(
+                    setIndex = index + 1,
+                    reps = 0,
+                    weightKg = historicalLoad ?: 0.0,
+                    seconds = shape.seconds,
+                    targetRpeMin = null,
+                    loadState = when {
+                        historicalLoad != null -> ProgramLoadState.EXPLICIT_LOAD
+                        knownNoExternalLoad -> ProgramLoadState.NOT_APPLICABLE
+                        else -> ProgramLoadState.USER_CALIBRATION_REQUIRED
+                    }
+                )
+            }
+        }
+        val calibration = needsLoadCalibration
+        val sideAware = exercise?.mode?.contains("좌우") == true || exercise?.mode?.contains("/측") == true
+        val shapeText = when (shape) {
+            is CoreDirectPrescriptionShape.Repetitions -> "${shape.reps} reps${if (sideAware) " per side" else ""}"
+            is CoreDirectPrescriptionShape.Duration -> "${shape.seconds} seconds"
+        }
+        val prescription = PlannedPrescription(
+            text = "Direct Core $requestedSets sets × $shapeText${if (calibration) "; user load calibration required" else ""}",
+            sets = setRows,
+            restSeconds = restSeconds,
+            weightSource = when {
+                calibration -> "CORE_DIRECT_EXACT_SHAPE_USER_CALIBRATION_REQUIRED"
+                shape is CoreDirectPrescriptionShape.Repetitions && shape.fromPersonalHistory -> "CORE_DIRECT_PERSONAL_REPETITION_HISTORY"
+                shape is CoreDirectPrescriptionShape.Duration -> "CORE_DIRECT_EXACT_PERSONAL_DURATION_HISTORY"
+                else -> "USER_APPROVED_PROJECT_POLICY_CORE_REPETITION_ANCHOR_8"
+            }
+        )
+        val reason = when {
+            shape is CoreDirectPrescriptionShape.Duration -> "CORE_DIRECT_EXACT_PERSONAL_DURATION_REUSED"
+            shape is CoreDirectPrescriptionShape.Repetitions && shape.fromPersonalHistory -> "CORE_DIRECT_PERSONAL_REPETITIONS_7_15_REUSED"
+            else -> "CORE_DIRECT_COLD_START_REPETITIONS_8_FROM_APPROVED_HYPERTROPHY_SHAPE"
+        }
+        return Resolution(
+            prescription,
+            listOf(reason, "CORE_DIRECT_TECHNICAL_QUALITY_PRIORITY", "B6_SET_COUNT_EQUALS_B4_RESIDUAL") +
+                if (calibration) listOf("USER_INPUT_REQUIRED_FOR_EXTERNAL_LOAD") else emptyList(),
+            when {
+                shape is CoreDirectPrescriptionShape.Duration -> RegionalPrescriptionAuthoritySource.PERSONAL_CORE_DURATION
+                shape is CoreDirectPrescriptionShape.Repetitions && shape.fromPersonalHistory -> RegionalPrescriptionAuthoritySource.PERSONAL_CORE_REPETITIONS
+                else -> RegionalPrescriptionAuthoritySource.USER_APPROVED_COLD_START_CORE_REPETITIONS
+            }
+        )
+    }
+
+    private fun isExplicitNoExternalLoad(exercise: com.training.trackplanner.data.Exercise): Boolean {
+        val equipment = (exercise.equipment + "|" + exercise.equipmentTags)
+            .lowercase().split('|', ',', ';').map(String::trim).filter(String::isNotEmpty)
+        return equipment.any { it in setOf("맨몸", "체중", "bodyweight", "no external load", "none") }
+    }
+
     private fun resolveHypertrophy(
         canonicalPrescription: PlannedPrescription,
         snapshot: PlanningHistorySnapshot,
@@ -1075,7 +1209,8 @@ class CanonicalRegionalMovementB6AuthorizationEngine(
         targetPlan: StimulusTargetPlan,
         selectionPlan: StimulusCandidateSelectionPlan,
         baseAuthorizationPlan: StimulusPrescriptionAuthorizationPlan,
-        snapshot: PlanningHistorySnapshot
+        snapshot: PlanningHistorySnapshot,
+        coreCatalog: com.training.trackplanner.analysis.core.CanonicalCoreCatalog = com.training.trackplanner.analysis.core.CanonicalCoreCatalog.EMPTY
     ): StimulusPrescriptionAuthorizationPlan {
         val regionalAuthorizations = targetPlan.movementTargets.mapNotNull { movement ->
             val dose = movement.regionalDoseTargets.firstOrNull {
@@ -1166,20 +1301,94 @@ class CanonicalRegionalMovementB6AuthorizationEngine(
             )
         }
         val regionalByTarget = regionalAuthorizations.associateBy(StimulusPrescriptionAuthorization::targetId)
+        val coreAuthorizations = targetPlan.movementTargets.mapNotNull { movement ->
+            val dose = movement.regionalDoseTargets.firstOrNull {
+                it.kind == StimulusMovementDoseKind.CORE_DIRECT_CONTROL_SET &&
+                    it.shapeAuthority == StimulusMovementDoseShapeAuthority.CORE_DIRECT_SET_DOSE_EXACT_OWNER_SHAPE_REQUIRED
+            } ?: return@mapNotNull null
+            val units = dose.authorizedWholeSetUnits ?: return@mapNotNull null
+            if (units <= 0) return@mapNotNull null
+            val selected = selectionPlan.selectedCandidates.firstOrNull { movement.targetId in it.coveredTargetIds }
+            val owner = selected?.let { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }
+            val item = owner?.let { identity -> selectionPlan.materialDemand.candidates.singleOrNull {
+                it.stableKey == identity.stableKey && it.role == identity.selectionRole && it.targetSets == units
+            } }
+            val resolution = if (owner == null || item == null) {
+                RegionalTargetPrescriptionResolver.Resolution(null, listOf("CORE_B6_REQUIRES_EXACT_B5_MOVEMENT_OWNER"))
+            } else prescriptionResolver.resolveCoreDirect(item, snapshot, coreCatalog, units)
+            val prescription = resolution.prescription
+            val calibration = prescription?.sets?.isNotEmpty() == true && prescription.sets.any {
+                it.loadState == ProgramLoadState.USER_CALIBRATION_REQUIRED
+            }
+            val status = when {
+                prescription == null -> StimulusPrescriptionAuthorizationStatus.NO_EXECUTABLE_AUTHORIZATION
+                calibration -> StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
+                else -> StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE
+            }
+            StimulusPrescriptionAuthorization(
+                targetId = movement.targetId,
+                quality = null,
+                owner = owner?.let { StimulusPrescriptionOwner(it.stableKey, it.selectionRole) },
+                source = if (owner == null) null else StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE,
+                inputPrescription = prescription,
+                plannedCompatibility = null,
+                authorizedPrescription = prescription,
+                status = status,
+                reasonCodes = resolution.reasonCodes,
+                executionAuthority = when {
+                    prescription == null || prescription.sets.isEmpty() -> StimulusPrescriptionExecutionAuthority.UNRESOLVED
+                    prescription.sets.all { it.loadState == ProgramLoadState.USER_CALIBRATION_REQUIRED } ->
+                        StimulusPrescriptionExecutionAuthority.REQUIRES_USER_LOAD_INPUT
+                    prescription.sets.all { it.loadState in setOf(ProgramLoadState.EXPLICIT_LOAD, ProgramLoadState.NOT_APPLICABLE) } ->
+                        StimulusPrescriptionExecutionAuthority.FULLY_ENCODED
+                    else -> StimulusPrescriptionExecutionAuthority.UNRESOLVED
+                },
+                authorityRecovery = when {
+                    prescription == null -> ExecutionAuthorityResolution(
+                        ExecutionAuthorityResolutionStatus.NO_SUPPORTED_AUTHORITY,
+                        ExecutionAuthorityResolutionReason.UNSUPPORTED_PRESCRIPTION_AUTHORITY,
+                        ExecutionAuthorityReturnTarget.NONE, owner
+                    )
+                    calibration -> ExecutionAuthorityResolution(
+                        ExecutionAuthorityResolutionStatus.USER_INPUT_REQUIRED,
+                        ExecutionAuthorityResolutionReason.RESISTANCE_LOAD_UNAVAILABLE,
+                        ExecutionAuthorityReturnTarget.EXPLICIT_USER_INPUT, owner,
+                        owner?.let(::listOf).orEmpty(), owner
+                    )
+                    else -> ExecutionAuthorityResolution(
+                        ExecutionAuthorityResolutionStatus.READY,
+                        ExecutionAuthorityResolutionReason.EXACT_AUTHORITY_AVAILABLE,
+                        ExecutionAuthorityReturnTarget.NONE, owner, owner?.let(::listOf).orEmpty(), owner
+                    )
+                }
+            )
+        }
         val movementStatuses = baseAuthorizationPlan.movementAuthorizations.map { existing ->
             val regional = regionalByTarget[existing.targetId]
+            val core = coreAuthorizations.firstOrNull { it.targetId == existing.targetId }
             when {
                 regional?.authorizedPrescription != null -> existing.copy(
                     owner = regional.owner?.let { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) },
                     status = StimulusMovementB6Status.AUTHORIZED_REGIONAL_HYPERTROPHY_B6,
                     reasonCodes = regional.reasonCodes + "B6_CONSUMED_EXACT_B4_REGIONAL_RESIDUAL"
                 )
+                core?.authorizedPrescription != null -> existing.copy(
+                    owner = core.owner?.let { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) },
+                    status = StimulusMovementB6Status.AUTHORIZED_CORE_DIRECT_B6,
+                    reasonCodes = core.reasonCodes + "B6_CONSUMED_EXACT_B4_CORE_DIRECT_RESIDUAL"
+                )
                 else -> existing
             }
         }
+        val coreOwnerPrescriptions = coreAuthorizations.mapNotNull { authorization ->
+            val owner = authorization.owner ?: return@mapNotNull null
+            val prescription = authorization.authorizedPrescription ?: return@mapNotNull null
+            StimulusPrescriptionOwnerIdentity(owner.stableKey, owner.selectionRole) to prescription
+        }.toMap()
         return baseAuthorizationPlan.copy(
-            authorizations = baseAuthorizationPlan.authorizations + regionalAuthorizations,
-            movementAuthorizations = movementStatuses
+            authorizations = baseAuthorizationPlan.authorizations + regionalAuthorizations + coreAuthorizations,
+            movementAuthorizations = movementStatuses,
+            movementOwnerPrescriptions = baseAuthorizationPlan.movementOwnerPrescriptions + coreOwnerPrescriptions
         )
     }
 }
@@ -1189,7 +1398,10 @@ enum class RegionalPrescriptionAuthoritySource {
     PERSONAL_SUCCESSFUL_HISTORY,
     CANONICAL_HYPERTROPHY_AUTHORITY,
     USER_APPROVED_COLD_START_CALIBRATION,
-    CANONICAL_STRENGTH_AUTHORITY
+    CANONICAL_STRENGTH_AUTHORITY,
+    PERSONAL_CORE_REPETITIONS,
+    PERSONAL_CORE_DURATION,
+    USER_APPROVED_COLD_START_CORE_REPETITIONS
 }
 
 /** Removes only legacy demand that would fund an owned region × quality with the same actual set shape. */

@@ -24,6 +24,7 @@ enum class StimulusMovementB6Status {
     COVERED_BY_EXISTING_QUALITY_B6,
     COVERED_BY_APPROVED_TASK_B6,
     AUTHORIZED_REGIONAL_HYPERTROPHY_B6,
+    AUTHORIZED_CORE_DIRECT_B6,
     NO_EXECUTABLE_MOVEMENT_AUTHORITY,
     NO_B5_MOVEMENT_OWNER
 }
@@ -62,7 +63,9 @@ data class StimulusPrescriptionAuthorizationPlan(
     val canonicalPrescriptions: Map<StimulusPrescriptionOwnerIdentity, PlannedPrescription> = emptyMap(),
     val historyBackedOwners: Set<StimulusPrescriptionOwnerIdentity> = emptySet(),
     /** Movement targets may reuse an already-authorized physical row but never grant a new dose. */
-    val movementAuthorizations: List<StimulusMovementB6Authorization> = emptyList()
+    val movementAuthorizations: List<StimulusMovementB6Authorization> = emptyList(),
+    /** Exact owner-level B6 prescriptions for non-TrainableQuality movement targets such as Core. */
+    val movementOwnerPrescriptions: Map<StimulusPrescriptionOwnerIdentity, PlannedPrescription> = emptyMap()
 ) {
     private val executableAuthorizations: List<StimulusPrescriptionAuthorization> = authorizations
         .mapNotNull { authorization ->
@@ -173,19 +176,39 @@ data class StimulusPrescriptionAuthorizationPlan(
         }.keys
 
     fun provider(): ExactPrescriptionAuthorizationProvider = object : ExactPrescriptionAuthorizationProvider {
-        override val authorizedOwners: Map<StimulusPrescriptionOwnerIdentity, PlannedPrescription> = this@StimulusPrescriptionAuthorizationPlan.authorizedOwners
+        override val authorizedOwners: Map<StimulusPrescriptionOwnerIdentity, PlannedPrescription> =
+            this@StimulusPrescriptionAuthorizationPlan.authorizedOwners + this@StimulusPrescriptionAuthorizationPlan.movementOwnerPrescriptions
         override val authorizedPrescriptions: Map<StimulusPrescriptionAuthorityIdentity, PlannedPrescription> = this@StimulusPrescriptionAuthorizationPlan.authorizedPrescriptions
         override val multiQualityResolutions: Map<StimulusPrescriptionOwnerIdentity, StimulusMultiQualityPrescriptionResolution> = this@StimulusPrescriptionAuthorizationPlan.multiQualityResolutions
-        override val ownerExecutionDispositions: Map<StimulusPrescriptionOwnerIdentity, StimulusPrescriptionOwnerExecutionDisposition> = this@StimulusPrescriptionAuthorizationPlan.ownerExecutionDispositions
-        override val executionAuthorityResolutions: Map<StimulusPrescriptionOwnerIdentity, ExecutionAuthorityResolution> = this@StimulusPrescriptionAuthorizationPlan.executionAuthorityResolutions
+        override val ownerExecutionDispositions: Map<StimulusPrescriptionOwnerIdentity, StimulusPrescriptionOwnerExecutionDisposition> =
+            this@StimulusPrescriptionAuthorizationPlan.ownerExecutionDispositions + this@StimulusPrescriptionAuthorizationPlan.movementOwnerPrescriptions.keys.associateWith {
+                StimulusPrescriptionOwnerExecutionDisposition.EXECUTABLE_EXACT_AUTHORITY
+            }
+        override val executionAuthorityResolutions: Map<StimulusPrescriptionOwnerIdentity, ExecutionAuthorityResolution> =
+            this@StimulusPrescriptionAuthorizationPlan.executionAuthorityResolutions + authorizations.mapNotNull { authorization ->
+                val owner = authorization.owner ?: return@mapNotNull null
+                val recovery = authorization.authorityRecovery ?: return@mapNotNull null
+                StimulusPrescriptionOwnerIdentity(owner.stableKey, owner.selectionRole) to recovery
+            }.toMap()
         override val b5SelectedQualityOwners: Set<StimulusPrescriptionOwnerIdentity> = authorizations.mapNotNullTo(linkedSetOf()) { authorization ->
             val owner = authorization.owner ?: return@mapNotNullTo null
             owner.takeIf { authorization.quality != null }?.let { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }
         }
+        override val b5SelectedMovementOwners: Set<StimulusPrescriptionOwnerIdentity> = movementAuthorizations.mapNotNullTo(linkedSetOf()) { authorization ->
+            val owner = authorization.owner ?: return@mapNotNullTo null
+            owner.takeIf {
+                authorization.status == StimulusMovementB6Status.AUTHORIZED_CORE_DIRECT_B6 &&
+                    it in movementOwnerPrescriptions
+            }
+        }
         override val canonicalPrescriptions: Map<StimulusPrescriptionOwnerIdentity, PlannedPrescription> = this@StimulusPrescriptionAuthorizationPlan.canonicalPrescriptions
 
-        override fun authorizedPrescriptionFor(item: PlannedExercise, requestedSets: Int): PlannedPrescription? =
-            authorizedOwners[StimulusPrescriptionOwnerIdentity(item.stableKey, item.role)]
+        override fun authorizedPrescriptionFor(item: PlannedExercise, requestedSets: Int): PlannedPrescription? {
+            if (requestedSets < 0) return null
+            val prescription = authorizedOwners[StimulusPrescriptionOwnerIdentity(item.stableKey, item.role)] ?: return null
+            if (requestedSets > prescription.sets.size) return null
+            return prescription.copy(sets = prescription.sets.take(requestedSets).mapIndexed { index, set -> set.copy(setIndex = index + 1) })
+        }
 
         override fun authorizedPrescriptionFor(item: PlannedExercise, quality: TrainableQuality, requestedSets: Int): PlannedPrescription? {
             if (requestedSets < 0) return null
@@ -501,7 +524,9 @@ class StimulusPrescriptionMaterializationAuditEngine(
         val expectedWeeks = (1..experimental.request.durationWeeks.coerceAtLeast(1)).toList()
         val owner = authorization.owner
         val authorized = authorization.authorizedPrescription
-        val effectiveExecutionAuthority = canonicalExecutionAuthority(authorization.quality, authorized)
+        val effectiveExecutionAuthority = if (authorization.quality == null && authorization.targetId.startsWith("MOVEMENT:")) {
+            authorization.executionAuthority
+        } else canonicalExecutionAuthority(authorization.quality, authorized)
         val ownerIdentity = owner?.let { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }
         if (ownerIdentity != null && ownerIdentity in plan.conflictingOwners) {
             val conflictReasons = (authorization.reasonCodes +
@@ -580,12 +605,22 @@ class StimulusPrescriptionMaterializationAuditEngine(
         }
         val rowsByWeek = experimental.items.filter { it.exerciseStableKey == owner.stableKey && it.selectionRole == owner.selectionRole }
             .groupBy(ProgramSkeletonItem::weekNumber)
+        val exactCoreMovementAuthorization = authorization.quality == null && ownerIdentity != null &&
+            plan.movementOwnerPrescriptions[ownerIdentity] == authorized &&
+            plan.movementAuthorizations.any {
+                it.targetId == authorization.targetId && it.owner == ownerIdentity &&
+                    it.status == StimulusMovementB6Status.AUTHORIZED_CORE_DIRECT_B6
+            } && plan.authorizations.count {
+                it.targetId == authorization.targetId && it.quality == null && it.owner == owner
+            } == 1
         val weeklyAudits = expectedWeeks.map { week ->
             val rows = rowsByWeek[week].orEmpty()
             val materialized = rows.sumOf { it.setPrescriptions.size }
             val overrun = (materialized - authorized.sets.size).coerceAtLeast(0)
             val subsetValidation = validateAuthorizedWeeklySubset(rows, authorized, owner.stableKey, owner.selectionRole)
-            val compatible = authorization.quality?.let { quality -> rows.sumOf { row ->
+            val compatible = if (exactCoreMovementAuthorization && subsetValidation.valid) {
+                materialized
+            } else authorization.quality?.let { quality -> rows.sumOf { row ->
                 val planned = PlannedPrescription(row.prescription, row.setPrescriptions, row.restSeconds, row.weightSource)
                 val compatibility = plannedResolver.compatibility(quality, planned, snapshot, owner.stableKey)
                 val calibrationCompatible = authorization.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION &&
@@ -602,6 +637,7 @@ class StimulusPrescriptionMaterializationAuditEngine(
                 if (!preserved) add("B6_PRESCRIPTION_NOT_PRESERVED")
                 addAll(subsetValidation.reasonCodes)
                 if (compatible < materialized) add("B6_TARGET_COMPATIBILITY_SHORTFALL")
+                if (exactCoreMovementAuthorization) add("B6_EXACT_CORE_DIRECT_AUTHORIZATION_MATCHED")
                 if (authorization.source == StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE) add("B5_SELECTION_PROBE_AUTHORIZED")
             }.let { reasons ->
                 StimulusPrescriptionWeekMaterializationAudit(week, authorized.sets.size, materialized, compatible, shortfall, overrun, preserved, reasons)

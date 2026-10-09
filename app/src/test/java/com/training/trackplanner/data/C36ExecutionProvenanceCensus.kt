@@ -627,6 +627,19 @@ internal object C36ExecutionProvenanceCensus {
         }
 
         val unexplained = removalRows.filter { it.optString("proposedClassification") == "UNEXPLAINED_REMOVAL" }
+        val coreDirectClosedRows = removalRows.filter { row ->
+            row.optJSONObject("b7Attribution")?.optJSONArray("reasonCodes")?.let { reasons ->
+                (0 until reasons.length()).any { reasons.optString(it) == "B6_AUTHORIZED_CORE_DIRECT_MOVEMENT_REPLACEMENT" }
+            } == true
+        }
+        val coreDirectClosedPairs = coreDirectClosedRows.map { row ->
+            val owner = row.optJSONObject("removedOwner")
+            listOf(row.optString("case"), owner?.optString("stableKey"), owner?.optString("selectionRole")).joinToString("|")
+        }.distinct()
+        val coreDirectStillUnexplainedRows = unexplained.filter { row ->
+            row.optJSONObject("removedOwner")?.optString("stableKey") == "ex_28347c1f" &&
+                row.optJSONObject("removedOwner")?.optString("selectionRole") == "COVERAGE_CORE_DIRECT"
+        }
         val uniqueRemovedOwners = removalRows.map { row ->
             listOf(row.optString("case"), row.optJSONObject("removedOwner")?.optString("stableKey"),
                 row.optJSONObject("removedOwner")?.optString("selectionRole")).joinToString("|")
@@ -747,6 +760,9 @@ internal object C36ExecutionProvenanceCensus {
                 .put("uniqueRemovedOwnerIdentitiesAcrossCorpus", uniqueIdentities.size)
                 .put("unexplainedRemovedOwnerWeekOccurrences", unexplained.size)
                 .put("uniqueUnexplainedCaseOwnerPairs", unexplainedUnique.size)
+                .put("coreDirectB7ClosedOwnerWeekOccurrences", coreDirectClosedRows.size)
+                .put("coreDirectB7ClosedCaseOwnerPairs", coreDirectClosedPairs.size)
+                .put("coreDirectStillUnexplainedOwnerWeekOccurrences", coreDirectStillUnexplainedRows.size)
                 .put("uniqueUnexplainedOwnerCasesWithB11CanonicalReplacement", canonicalCandidateOwnerCases.size)
                 .put("unexplainedOwnerCasesWithExactB5ReplacementSelected", canonicalCandidateOwnerCases.values.count(::ownerCaseHasSelectedExactReplacement))
                 .put("unexplainedOwnerCasesWithExactB4B6Authority", canonicalCandidateOwnerCases.values.count(::ownerCaseHasExactB6))

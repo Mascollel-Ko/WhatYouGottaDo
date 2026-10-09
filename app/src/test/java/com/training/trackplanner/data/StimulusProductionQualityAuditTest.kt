@@ -138,11 +138,12 @@ class StimulusProductionQualityAuditTest {
                 reasonCodes = emptyList()
             )
         )
-        assertEquals(
-            "scope resolution describes claimed material scope; B8 must still verify an exact owner for each target",
-            StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1,
+        assertNull(
+            "a quality-only attribution cannot silently absorb other B7 material owners",
             resolver.resolve(combined)
         )
+        val combinedScopeAudit = resolver.resolveDetailed(combined)
+        assertTrue(combinedScopeAudit.unattributedOwnerIdentities.isNotEmpty() || combinedScopeAudit.unknownTargetIds.isNotEmpty())
         val combinedB8 = StimulusProductionCutoverAuthorityAuditEngine().audit(
             combined,
             StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1
@@ -162,7 +163,9 @@ class StimulusProductionQualityAuditTest {
         assertEquals(listOf("B9_B8_COMBINED_SCOPE_NOT_ACTIVE"), combinedRoute.decision.reasonCodes)
 
         val thirdQuality = h.comparison.copy(experimentalReadinessAudit = audit.copy(changeAttributions = listOf(attribution(listOf("QUALITY:HYPERTROPHY", "QUALITY:POWER")))))
-        assertEquals(StimulusProductionCutoverScope.HYPERTROPHY_V1, resolver.resolve(thirdQuality))
+        val thirdQualityScope = resolver.resolveDetailed(thirdQuality)
+        assertNull("unattributed Power material cannot be hidden inside a Hypertrophy scope", thirdQualityScope.scope)
+        assertTrue(thirdQualityScope.unattributedOwnerIdentities.isNotEmpty() || thirdQualityScope.unknownTargetIds.isNotEmpty())
         val thirdQualityB8 = StimulusProductionCutoverAuthorityAuditEngine().audit(
             thirdQuality,
             StimulusProductionCutoverScope.HYPERTROPHY_V1
@@ -175,8 +178,9 @@ class StimulusProductionQualityAuditTest {
                 unsupported.targetPlan.qualityTargets.first().copy(quality = TrainableQuality.POWER)
         ))
         val fullyGovernedPowerScope = resolver.resolveDetailed(fullyGovernedPower)
-        assertEquals(StimulusProductionScopeResolutionStatus.UNSUPPORTED_QUALITY, fullyGovernedPowerScope.status)
-        assertTrue("UNSUPPORTED_QUALITY_POWER" in fullyGovernedPowerScope.reasonCodes)
+        assertEquals(StimulusProductionScopeResolutionStatus.PARTIAL_PROVENANCE, fullyGovernedPowerScope.status)
+        assertTrue("partial owner attribution must be diagnosed before interpreting unsupported quality scope",
+            fullyGovernedPowerScope.reasonCodes.any { it.contains("PROVENANCE") })
         (TrainableQuality.entries - setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY)).forEach { quality ->
             val probe = h.comparison.copy(
                 targetPlan = h.comparison.targetPlan.copy(qualityTargets = listOf(h.comparison.targetPlan.qualityTargets.first().copy(quality = quality))),
@@ -185,12 +189,12 @@ class StimulusProductionQualityAuditTest {
             val detail = resolver.resolveDetailed(probe)
             assertNull(detail.scope)
             assertEquals(setOf(quality), detail.materialQualities)
-            assertEquals(StimulusProductionScopeResolutionStatus.UNSUPPORTED_QUALITY, detail.status)
+            assertEquals(StimulusProductionScopeResolutionStatus.PARTIAL_PROVENANCE, detail.status)
             assertTrue("UNSUPPORTED_QUALITY_${quality.name}" in detail.reasonCodes)
         }
         val unknown = h.comparison.copy(experimentalReadinessAudit = audit.copy(changeAttributions = listOf(attribution(listOf("QUALITY:NOT_A_QUALITY")))))
         assertEquals(setOf("QUALITY:NOT_A_QUALITY"), resolver.resolveDetailed(unknown).unknownTargetIds)
-        assertEquals(StimulusProductionScopeResolutionStatus.UNKNOWN_TARGET, resolver.resolveDetailed(unknown).status)
+        assertEquals(StimulusProductionScopeResolutionStatus.PARTIAL_PROVENANCE, resolver.resolveDetailed(unknown).status)
         assertTrue("UNKNOWN_TARGET_ID" in resolver.resolveDetailed(unknown).reasonCodes)
         val three = fullyGovernedPower.copy(experimentalReadinessAudit = audit.copy(changeAttributions = listOf(attribution(listOf("QUALITY:STRENGTH", "QUALITY:HYPERTROPHY", "QUALITY:POWER")))))
         assertTrue("THIRD_QUALITY_PRESENT" in resolver.resolveDetailed(three).reasonCodes)

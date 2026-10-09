@@ -158,4 +158,38 @@ class BoundedMaterialDemandTest {
         assertEquals(CandidateRejectionReason.FINITE_CAPACITY,allocation.candidates.single().rejectionReason)
     }
 
+    @Test fun regionalCapacityConsumesExactMovementB6PrescriptionAndOnlyItsAuthorizedPrefix() {
+        val snapshot = f.snapshot().copy(planDayProjection = f.safe,
+            planWeekTissueProjection = PlanWeekTissueProjection { _, _ -> PlannedTissueWeek(emptyList()) })
+        val item = f.source("hinge", 4, priority = 100).copy(role = "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT")
+        val owner = StimulusPrescriptionOwnerIdentity(item.stableKey, item.role)
+        val authorized = PlannedPrescription("exact Core B6", List(4) { index ->
+            ProgramSetPrescription(index + 1, 8, 0.0, 0, loadState = ProgramLoadState.NOT_APPLICABLE)
+        }, 60, "CORE_DIRECT_APPROVED_SHAPE")
+        val provider = object : ExactPrescriptionAuthorizationProvider {
+            override val authorizedOwners = mapOf(owner to authorized)
+            override val ownerExecutionDispositions = mapOf(
+                owner to StimulusPrescriptionOwnerExecutionDisposition.EXECUTABLE_EXACT_AUTHORITY
+            )
+            override val b5SelectedMovementOwners = setOf(owner)
+            override fun authorizedPrescriptionFor(item: PlannedExercise, requestedSets: Int): PlannedPrescription? =
+                if (StimulusPrescriptionOwnerIdentity(item.stableKey, item.role) != owner || requestedSets !in 0..authorized.sets.size) null
+                else authorized.copy(sets = authorized.sets.take(requestedSets).mapIndexed { index, set -> set.copy(setIndex = index + 1) })
+        }
+        val regional = RegionalExperimentalTargetPlan(MaterialDemand(listOf(item), emptyMap(), emptyMap()), emptyMap(), emptySet())
+        val state = f.state(snapshot)
+        val request = f.plan(emptyList()).request
+        val full = BoundedMaterialDemandAllocation(snapshot, state, request, listOf(item), regional,
+            PersonalizedPrescriptionPlanner(), 4, 0, 0, exactPrescriptionAuthorizationProvider = provider)
+        assertEquals(4, full.bounds.single().allocatedUnits)
+        assertNull(full.bounds.single().rejection)
+
+        val partial = BoundedMaterialDemandAllocation(snapshot, state, request, listOf(item), regional,
+            PersonalizedPrescriptionPlanner(), 2, 0, 0, exactPrescriptionAuthorizationProvider = provider)
+        assertEquals(2, partial.bounds.single().allocatedUnits)
+        assertEquals(4, partial.bounds.single().maximumUnits)
+        assertEquals(4, partial.bounds.single().prescriptionUnits)
+        assertEquals(CandidateRejectionReason.FINITE_CAPACITY, partial.candidates.single().rejectionReason)
+    }
+
 }

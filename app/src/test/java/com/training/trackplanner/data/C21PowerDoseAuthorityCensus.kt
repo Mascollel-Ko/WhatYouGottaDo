@@ -285,8 +285,18 @@ internal object C21PowerDoseAuthorityCensus {
             comparison.prescriptionAuthorizationPlan?.authorizations?.any {
                 it.quality == TrainableQuality.POWER && it.authorizedPrescription != null
             } == true
+        fun powerTargetWasActuallyAdjudicated(comparison: StimulusSelectionProgramComparison) =
+            comparison.experimentalReadinessAudit?.targetOutcomes?.singleOrNull {
+                it.targetId == "QUALITY:POWER"
+            }?.let { outcome ->
+                outcome.directlyAffected && outcome.status in setOf(
+                    StimulusExperimentalTargetOutcomeStatus.IMPROVED,
+                    StimulusExperimentalTargetOutcomeStatus.UNCHANGED
+                )
+            } == true
         val b7EligiblePowerCases = powerRouteRows.count { (_, comparison) ->
-            comparison.experimentalReadinessAudit?.status == StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW
+            comparison.experimentalReadinessAudit?.status == StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW &&
+                hasPowerB6Authority(comparison) && powerTargetWasActuallyAdjudicated(comparison)
         }
         val b8AuthorizedPowerCases = powerRouteRows.count { (_, comparison) ->
             hasPowerB6Authority(comparison) && comparison.productionCutoverAuthority?.status ==

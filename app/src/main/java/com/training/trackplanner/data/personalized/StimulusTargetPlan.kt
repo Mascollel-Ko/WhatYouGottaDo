@@ -23,6 +23,8 @@ enum class StimulusMovementDoseKind {
 /** Dose authority and execution-shape authority are independent; Core currently has no approved shape. */
 enum class StimulusMovementDoseShapeAuthority {
     HYPERTROPHY_BAND_8_12_PERSONAL_7_15_RPE_7_USER_LOAD_CALIBRATION,
+    /** B4 owns only the Core set count; exact repetition/duration shape is resolved per B5 owner. */
+    CORE_DIRECT_SET_DOSE_EXACT_OWNER_SHAPE_REQUIRED,
     NONE
 }
 

@@ -384,16 +384,70 @@ internal fun renderC16B8ResidualBlockerCensus(
             it.put("c16Classification", "EXPECTED_C15_CALIBRATION_DELTA")
                 .put("calibrationDeltaBasis", "EXACT_C11_CANONICAL_ROLE_REPLACEMENT")
         }
+        val approvedCoreMaterialDeltas = deltas.filter { delta ->
+            if (delta.optString("kind") !in setOf("ROW_ADDED", "ROW_MATERIAL_CHANGE")) return@filter false
+            val ownerJson = delta.optJSONObject("owner") ?: return@filter false
+            val owner = StimulusPrescriptionOwnerIdentity(
+                ownerJson.optString("stableKey"), ownerJson.optString("selectionRole")
+            )
+            val movementTarget = comparison.targetPlan.movementTargets.singleOrNull { target ->
+                target.movementCoverage == MovementCoverage.CORE_DIRECT &&
+                    comparison.selectionPlan.selectedCandidates.any { selected ->
+                        owner.stableKey == selected.stableKey && owner.selectionRole == selected.selectionRole &&
+                            target.targetId in selected.coveredTargetIds
+                    }
+            } ?: return@filter false
+            val dose = movementTarget.regionalDoseTargets.singleOrNull {
+                it.kind == StimulusMovementDoseKind.CORE_DIRECT_CONTROL_SET
+            } ?: return@filter false
+            val b6 = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().singleOrNull {
+                it.targetId == movementTarget.targetId && it.quality == null &&
+                    it.owner?.let { exact -> owner == StimulusPrescriptionOwnerIdentity(exact.stableKey, exact.selectionRole) } == true
+            } ?: return@filter false
+            val b6State = comparison.prescriptionAuthorizationPlan?.movementAuthorizations.orEmpty().singleOrNull {
+                it.targetId == movementTarget.targetId && it.status == StimulusMovementB6Status.AUTHORIZED_CORE_DIRECT_B6 &&
+                    it.owner == owner
+            } ?: return@filter false
+            val prescription = b6.authorizedPrescription ?: return@filter false
+            if (dose.authorizedWholeSetUnits != prescription.sets.size ||
+                b6.executionAuthority !in setOf(
+                    StimulusPrescriptionExecutionAuthority.FULLY_ENCODED,
+                    StimulusPrescriptionExecutionAuthority.REQUIRES_USER_LOAD_INPUT
+                ) || b6.status !in setOf(
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
+                ) || b6State.owner != owner
+            ) return@filter false
+            val after = delta.optJSONObject("after") ?: return@filter false
+            val actualSets = after.optJSONArray("setPrescriptions") ?: return@filter false
+            val expectedSets = prescription.sets.sortedBy { it.setIndex }
+            actualSets.length() == expectedSets.size && after.optInt("setCount") == expectedSets.size &&
+                after.optInt("restSeconds") == prescription.restSeconds &&
+                after.optString("weightSource") == prescription.weightSource &&
+                (0 until actualSets.length()).all { index ->
+                    val actual = actualSets.getJSONObject(index)
+                    val expected = expectedSets[index]
+                    actual.optInt("setIndex") == expected.setIndex && actual.optInt("reps") == expected.reps &&
+                        actual.optDouble("weightKg", Double.NaN) == expected.weightKg &&
+                        actual.optInt("seconds") == expected.seconds &&
+                        actual.optDouble("targetRpeMin", Double.NaN) == (expected.targetRpeMin ?: Double.NaN) &&
+                        actual.optString("loadState") == expected.loadState.name
+                }
+        }
+        approvedCoreMaterialDeltas.forEach { delta ->
+            delta.put("c16Classification", "AUTHORIZED_CORE_DIRECT_TARGET_MATERIALIZATION")
+                .put("coreMaterializationBasis", "EXACT_B4_B5_B6_MOVEMENT_CHAIN")
+        }
         val materialDeltas = deltas.filter { it.optString("kind") !in setOf("OWNER_ADDED", "OWNER_REMOVED") }
-        materialDeltas.filterNot { it in calibrationDelta || it in approvedRoleReplacementDeltas }.forEach { delta ->
+        materialDeltas.filterNot { it in calibrationDelta || it in approvedRoleReplacementDeltas || it in approvedCoreMaterialDeltas }.forEach { delta ->
             delta.put("c16Classification", when {
                 delta.optString("kind") == "ROW_ADDED" -> "ROW_ADDED_REQUIRES_EXACT_B5_B6_TARGET_AUDIT"
                 delta.optString("kind") == "ROW_REMOVED" -> "ROW_REMOVED_REQUIRES_C11_AND_B8_REMOVAL_AUDIT"
                 else -> "RESIDUAL_MATERIAL_FIELD_DELTA"
             })
         }
-        val allAuthorizedCalibrationDeltas = calibrationDelta + approvedRoleReplacementDeltas
-        val residual = materialDeltas.filterNot { it in allAuthorizedCalibrationDeltas }
+        val allAuthorizedPolicyDeltas = calibrationDelta + approvedRoleReplacementDeltas + approvedCoreMaterialDeltas
+        val residual = materialDeltas.filterNot { it in allAuthorizedPolicyDeltas }
         val blockerClassification = actualBlockerClassification(comparison, residual, evidence)
         return JSONObject().put("case", spec.label).put("route", result.routeDecision.selectedSource.name)
             .put("calibrationOwner", exactOwner?.let(::ownerJson) ?: JSONObject.NULL)
@@ -432,7 +486,9 @@ internal fun renderC16B8ResidualBlockerCensus(
                 .put("status", comparison.productionCutoverAuthority?.status?.name ?: JSONObject.NULL)
                 .put("reasons", JSONArray(comparison.productionCutoverAuthority?.reasonCodes.orEmpty().sorted()))
                 .put("reasonCount", comparison.productionCutoverAuthority?.reasonCodes.orEmpty().size))
-            .put("authorizedCalibrationDeltaCount", allAuthorizedCalibrationDeltas.size)
+            .put("authorizedCalibrationDeltaCount", (calibrationDelta + approvedRoleReplacementDeltas).size)
+            .put("authorizedCoreMaterialDeltaCount", approvedCoreMaterialDeltas.size)
+            .put("authorizedPolicyDeltaCount", allAuthorizedPolicyDeltas.size)
             .put("residualDeltaCount", residual.size)
             .put("rootClassification", blockerClassification)
             .put("deltaLedger", JSONArray(deltas))

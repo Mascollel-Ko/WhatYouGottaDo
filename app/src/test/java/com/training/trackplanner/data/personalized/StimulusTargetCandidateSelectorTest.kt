@@ -1,5 +1,9 @@
 package com.training.trackplanner.data.personalized
 
+import com.training.trackplanner.analysis.core.CanonicalCoreCatalog
+import com.training.trackplanner.analysis.core.CanonicalCoreProfile
+import com.training.trackplanner.analysis.core.CoreClass
+import com.training.trackplanner.analysis.core.CoreDirectTarget
 import com.training.trackplanner.data.CanonicalExercisePhysicalQualityCatalog
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.ExercisePhysicalQualityRelation
@@ -166,7 +170,7 @@ class StimulusTargetCandidateSelectorTest {
 
     @Test
     fun admittedMovementTargetSelectsCanonicalB5OwnerButDoesNotInventDoseOrB6() {
-        val candidate = exercise("core_candidate")
+        val candidate = exercise("core_candidate", mode = "repetitions")
         val base = fixture(listOf(candidate), emptyList())
         val snapshot = base.snapshot.copy(
             canonicalStrengthSignals = mapOf("dual_authorized_candidate" to CanonicalStrengthSignal(100.0, observationCount = 2)),
@@ -185,7 +189,7 @@ class StimulusTargetCandidateSelectorTest {
         assertEquals(MovementCoverage.CORE_DIRECT, snapshot.movementCoverage("core_candidate"))
         assertEquals("PROGRAM_SELECTABLE", snapshot.metadata.getValue("core_candidate").planningEligibility)
 
-        val selection = StimulusTargetCandidateSelector().build(
+        val selection = StimulusTargetCandidateSelector(coreCatalog = directCoreCatalog("core_candidate")).build(
             targetPlan, snapshot, base.state, base.request, CanonicalExercisePhysicalQualityCatalog.EMPTY
         )
         val selected = selection.selectedCandidates.single()
@@ -227,8 +231,9 @@ class StimulusTargetCandidateSelectorTest {
 
     @Test
     fun movementCandidateDoesNotSuppressLaterCanonicalQualitySelection() {
-        val candidate = exercise("barbell_back_squat")
-        val base = fixture(listOf(candidate), listOf(relation("barbell_back_squat")))
+        val key = "barbell_back_squat"
+        val candidate = exercise(key, mode = "repetitions")
+        val base = fixture(listOf(candidate), listOf(relation(key)))
         val snapshot = base.snapshot.copy(metadata = base.snapshot.metadata.mapValues { (_, metadata) ->
             metadata.copy(activityKind = "EXERCISE", programSlot = "CORE_STABILITY_ACCESSORY", progressMetricType = "LOAD_REPS",
                 analysisEligibility = MetadataTokenField.parse("STRENGTH_PROGRESS"))
@@ -240,15 +245,15 @@ class StimulusTargetCandidateSelectorTest {
         val strength = target(TrainableQuality.STRENGTH, TargetPriority.SECONDARY)
         val targetPlan = StimulusTargetPlan(listOf(strength), emptyList(), emptyList(), movementTargets = listOf(movement))
 
-        val result = StimulusTargetCandidateSelector().build(
+        val result = StimulusTargetCandidateSelector(coreCatalog = directCoreCatalog(key)).build(
             targetPlan, snapshot, base.state, base.request, base.catalog
         )
 
         val strengthTrace = result.traces.single { it.targetId == "QUALITY:STRENGTH" }
         assertTrue(strengthTrace.selectionRequired)
-        assertEquals("barbell_back_squat", strengthTrace.selectedStableKey)
+        assertEquals(key, strengthTrace.selectedStableKey)
         val movementTrace = result.traces.single { it.targetId == movement.targetId }
-        assertEquals("barbell_back_squat", movementTrace.selectedStableKey)
+        assertEquals(key, movementTrace.selectedStableKey)
         assertEquals("CANONICAL_STIMULUS_QUALITY_STRENGTH", movementTrace.selectedSelectionRole)
         assertTrue(movementTrace.reasonCodes.contains("MOVEMENT_COVERED_BY_CANONICAL_B5_OWNER"))
         assertEquals(setOf("QUALITY:STRENGTH", movement.targetId), result.selectedCandidates.single().coveredTargetIds)
@@ -256,10 +261,11 @@ class StimulusTargetCandidateSelectorTest {
 
     @Test
     fun movementTargetReusesOnlyTheExactAuthorizedQualityPrescription() {
-        val candidate = exercise("barbell_back_squat")
-        val base = fixture(listOf(candidate), listOf(relation("barbell_back_squat")))
+        val key = "barbell_back_squat"
+        val candidate = exercise(key, mode = "repetitions")
+        val base = fixture(listOf(candidate), listOf(relation(key)))
         val snapshot = base.snapshot.copy(
-            canonicalStrengthSignals = mapOf("barbell_back_squat" to CanonicalStrengthSignal(100.0, observationCount = 2)),
+            canonicalStrengthSignals = mapOf(key to CanonicalStrengthSignal(100.0, observationCount = 2)),
             metadata = base.snapshot.metadata.mapValues { (_, metadata) ->
                 metadata.copy(activityKind = "EXERCISE", programSlot = "CORE_STABILITY_ACCESSORY", progressMetricType = "LOAD_REPS",
                     analysisEligibility = MetadataTokenField.parse("STRENGTH_PROGRESS"))
@@ -271,11 +277,11 @@ class StimulusTargetCandidateSelectorTest {
         )
         val strength = target(TrainableQuality.STRENGTH, TargetPriority.SECONDARY)
         val targetPlan = StimulusTargetPlan(listOf(strength), emptyList(), emptyList(), movementTargets = listOf(movement))
-        val selection = StimulusTargetCandidateSelector().build(
+        val selection = StimulusTargetCandidateSelector(coreCatalog = directCoreCatalog(key)).build(
             targetPlan, snapshot, base.state, base.request, base.catalog
         )
         val owner = selection.selectedCandidates.single()
-        assertEquals("barbell_back_squat", owner.stableKey)
+        assertEquals(key, owner.stableKey)
         assertEquals("CANONICAL_STIMULUS_QUALITY_STRENGTH", owner.selectionRole)
         assertTrue(movement.targetId in owner.coveredTargetIds)
 
@@ -298,10 +304,11 @@ class StimulusTargetCandidateSelectorTest {
 
     @Test
     fun movementTargetDoesNotReuseSameStableKeyAuthorityFromDifferentRole() {
-        val candidate = exercise("barbell_back_squat")
-        val base = fixture(listOf(candidate), listOf(relation("barbell_back_squat")))
+        val key = "barbell_back_squat"
+        val candidate = exercise(key, mode = "repetitions")
+        val base = fixture(listOf(candidate), listOf(relation(key)))
         val snapshot = base.snapshot.copy(
-            canonicalStrengthSignals = mapOf("barbell_back_squat" to CanonicalStrengthSignal(100.0, observationCount = 2)),
+            canonicalStrengthSignals = mapOf(key to CanonicalStrengthSignal(100.0, observationCount = 2)),
             metadata = base.snapshot.metadata.mapValues { (_, metadata) ->
                 metadata.copy(activityKind = "EXERCISE", programSlot = "CORE_STABILITY_ACCESSORY", progressMetricType = "LOAD_REPS",
                     analysisEligibility = MetadataTokenField.parse("STRENGTH_PROGRESS"))
@@ -313,7 +320,7 @@ class StimulusTargetCandidateSelectorTest {
         )
         val strength = target(TrainableQuality.STRENGTH, TargetPriority.SECONDARY)
         val targetPlan = StimulusTargetPlan(listOf(strength), emptyList(), emptyList(), movementTargets = listOf(movement))
-        val selection = StimulusTargetCandidateSelector().build(
+        val selection = StimulusTargetCandidateSelector(coreCatalog = directCoreCatalog(key)).build(
             targetPlan, snapshot, base.state, base.request, base.catalog
         )
         val selected = selection.selectedCandidates.single()
@@ -743,6 +750,10 @@ class StimulusTargetCandidateSelectorTest {
         taskTargets = emptyList(), unresolved = emptyList()
     )
 
+    private fun directCoreCatalog(stableKey: String): CanonicalCoreCatalog = CanonicalCoreCatalog.of(
+        listOf(CanonicalCoreProfile(stableKey, CoreClass.DIRECT, CoreDirectTarget.BRACING))
+    )
+
     private fun target(
         quality: TrainableQuality,
         priority: TargetPriority,
@@ -787,8 +798,8 @@ class StimulusTargetCandidateSelectorTest {
         return Fixture(snapshot, state, CanonicalExercisePhysicalQualityCatalog.of(relations), request())
     }
 
-    private fun exercise(key: String, activityKind: String = "RESISTANCE") = Exercise(
-        stableKey = key, name = key, category = "STRENGTH", activityKind = activityKind, equipment = "BODYWEIGHT"
+    private fun exercise(key: String, activityKind: String = "RESISTANCE", mode: String = "") = Exercise(
+        stableKey = key, name = key, category = "STRENGTH", activityKind = activityKind, equipment = "BODYWEIGHT", mode = mode
     )
 
     private fun request() = ProgramSkeletonRequest("test", ProgramGoal.STRENGTH, 3, 60, emptySet(), "", .5, "AUTO", ProgramPeriodizationType.AUTO, 2)
