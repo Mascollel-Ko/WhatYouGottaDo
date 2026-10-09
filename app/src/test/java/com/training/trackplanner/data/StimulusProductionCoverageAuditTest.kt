@@ -821,14 +821,14 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(0, c35Summary.getInt("unauthorizedMaterialRows"))
         assertEquals(0, c35Summary.getInt("duplicatePhysicalSetRows"))
 
-        val c36Census = C36ExecutionProvenanceCensus.render(
+        val c36Json = C36ExecutionProvenanceCensus.render(
             records = records,
             contexts = productionContextByCase,
             generationMillisByCase = c29GenerationDurationsByCase,
             c35Summary = c35Summary,
-            startSha = "751cb2eff36e4c5969eedd634c0dfecbd13ff70d"
+            startSha = "751cb2eff36e4c5969eedd634c0dfecbd13ff70d",
+            implementationSha = "0c321c3d415981d9f0c4bc5e761f6ac36e2fe709"
         )
-        val c36Json = org.json.JSONObject(c36Census)
         val c36CaseNames = c36Json.getJSONArray("cases").let { rows ->
             (0 until rows.length()).map { rows.getJSONObject(it).getString("case") }
         }
@@ -842,7 +842,7 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(c36RemovalOrder.sorted(), c36RemovalOrder)
         java.io.File("build/reports/c36-execution-provenance-census.json").apply {
             parentFile?.mkdirs()
-            writeText(c36Census)
+            writer(Charsets.UTF_8).use { C36ExecutionProvenanceCensus.writeCompactJson(c36Json, it) }
         }
         val c36Summary = c36Json.getJSONObject("summary")
         val c36AccountingComparison = c36Json.getJSONObject("beforeAfter")
@@ -856,7 +856,7 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(0, c36Summary.getInt("duplicatePhysicalRows"))
         assertEquals(0, c36Summary.getInt("unauthorizedMaterialUnits"))
         assertEquals(22, c36Summary.getJSONObject("routes").getInt("CONTROL"))
-        val squatDossier = org.json.JSONObject(c36Census).getJSONArray("cases").let { rows ->
+        val squatDossier = c36Json.getJSONArray("cases").let { rows ->
             (0 until rows.length()).map { rows.getJSONObject(it) }.single { it.getString("case") == "persona4_recent" }
         }.getJSONObject("persona4RecentSquatDossier")
         assertEquals(5, squatDossier.getJSONArray("controlRows").getJSONObject(0).getInt("sets"))
@@ -938,7 +938,7 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(48, c36Summary.getInt("legacyDiagnosticFundedButCapacityRejectedUnits"))
         assertEquals(4, c36Summary.getInt("legacyDiagnosticZeroButActuallyScheduledRows"))
         assertEquals(32, c36Summary.getInt("legacyDiagnosticZeroButActuallyScheduledUnits"))
-        assertTrue("C36 requires complete owner/week removal evidence", org.json.JSONObject(c36Census)
+        assertTrue("C36 requires complete owner/week removal evidence", c36Json
             .getJSONArray("removedOwnerWeeks").length() >= c36Summary.getInt("uniqueUnexplainedCaseOwnerPairs"))
         assertEquals(29, c33RegionalSummary.getInt("movementTargets"))
         assertEquals(58, c33RegionalSummary.getInt("ownerWeekRows"))

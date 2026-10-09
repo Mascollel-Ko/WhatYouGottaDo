@@ -3,18 +3,91 @@ package com.training.trackplanner.data
 import com.training.trackplanner.data.personalized.*
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.Writer
 
 /** C36 evidence joins actual B4/B5/B6, allocation, scheduling, materialization and B7 objects. */
 internal object C36ExecutionProvenanceCensus {
     private const val UNEXPLAINED_REMOVAL = "UNEXPLAINED_REMOVED_IDENTITY"
+
+    /** Writes the report without allocating a second, report-sized String. */
+    fun writeCompactJson(value: JSONObject, writer: Writer) {
+        writeJsonValue(value, writer)
+    }
+
+    private fun writeJsonValue(value: Any?, writer: Writer) {
+        when {
+            value == null || value === JSONObject.NULL -> writer.write("null")
+            value is JSONObject -> {
+                writer.write('{'.code)
+                val keys = value.keys()
+                var first = true
+                while (keys.hasNext()) {
+                    val key = keys.next()
+                    if (!first) writer.write(','.code)
+                    first = false
+                    writeJsonString(key, writer)
+                    writer.write(':'.code)
+                    writeJsonValue(value.get(key), writer)
+                }
+                writer.write('}'.code)
+            }
+            value is JSONArray -> {
+                writer.write('['.code)
+                for (index in 0 until value.length()) {
+                    if (index > 0) writer.write(','.code)
+                    writeJsonValue(value.get(index), writer)
+                }
+                writer.write(']'.code)
+            }
+            value is String -> writeJsonString(value, writer)
+            value is Number -> writer.write(jsonNumber(value))
+            value is Boolean -> writer.write(value.toString())
+            else -> writeJsonString(value.toString(), writer)
+        }
+    }
+
+    private fun writeJsonString(value: String, writer: Writer) {
+        writer.write('"'.code)
+        value.forEach { char ->
+            when (char) {
+                '"' -> writer.write("\\\"")
+                '\\' -> writer.write("\\\\")
+                '\b' -> writer.write("\\b")
+                '\u000C' -> writer.write("\\f")
+                '\n' -> writer.write("\\n")
+                '\r' -> writer.write("\\r")
+                '\t' -> writer.write("\\t")
+                else -> if (char.code < 0x20) {
+                    writer.write("\\u")
+                    writer.write(HEX[(char.code ushr 12) and 0xF].code)
+                    writer.write(HEX[(char.code ushr 8) and 0xF].code)
+                    writer.write(HEX[(char.code ushr 4) and 0xF].code)
+                    writer.write(HEX[char.code and 0xF].code)
+                } else writer.write(char.code)
+            }
+        }
+        writer.write('"'.code)
+    }
+
+    private fun jsonNumber(value: Number): String {
+        val rendered = value.toString()
+        require(rendered != "NaN" && rendered != "Infinity" && rendered != "-Infinity") {
+            "JSON census cannot contain a non-finite number"
+        }
+        if ('.' !in rendered || 'e' in rendered.lowercase()) return rendered
+        return rendered.trimEnd('0').trimEnd('.')
+    }
+
+    private const val HEX = "0123456789abcdef"
 
     fun render(
         records: List<Pair<StimulusProductionCoverageAuditTest.CoverageSpec, StimulusProductionGenerationResult?>>,
         contexts: Map<String, PreparedCanonicalGenerationContext>,
         generationMillisByCase: Map<String, Long>,
         c35Summary: JSONObject,
-        startSha: String
-    ): String {
+        startSha: String,
+        implementationSha: String
+    ): JSONObject {
         val cases = JSONArray()
         val regionalRows = mutableListOf<JSONObject>()
         val removalRows = mutableListOf<JSONObject>()
@@ -618,6 +691,7 @@ internal object C36ExecutionProvenanceCensus {
             .put("phase", "C36")
             .put("title", "Execution accounting and change provenance closure")
             .put("startSha", startSha)
+            .put("implementationSha", implementationSha)
             .put("accountingSemantics", JSONObject()
                 .put("legacyFiniteAllocationPriorityOrder", "PRE-REGIONAL_OR_GENERIC_BUILDER_CANDIDATE_DIAGNOSTIC; NOT FINAL B4 REGIONAL FUNDING")
                 .put("boundedMaterialDemand.allocatedUnits", "B4 REGIONAL DEMAND UNITS ACCEPTED BY FINITE CAPACITY")
@@ -694,7 +768,6 @@ internal object C36ExecutionProvenanceCensus {
                 .put("experimental", records.mapNotNull { it.second?.buildCounts?.experimentalBuilds }.sum())
                 .put("total", records.mapNotNull { it.second?.buildCounts?.totalBuildInvocations }.sum())
                 .put("third", records.mapNotNull { it.second?.buildCounts?.thirdBuilds }.sum())))
-            .toString()
     }
 
     private fun squatB6Authorized(
