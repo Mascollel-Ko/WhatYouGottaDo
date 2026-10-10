@@ -596,24 +596,43 @@ class StimulusTargetCandidateSelectorTest {
 
     @Test
     fun multiTargetDirectCandidateIsSelectedOnceAndReused() {
-        val shared = exercise("shared")
+        val shared = exercise("shared").copy(laterality = "BILATERAL")
         val fixture = fixture(
             exercises = listOf(shared),
             relations = listOf(
-                relation("shared", StimulusCapabilityLevel.DIRECT_CAPABILITY, TrainableQuality.POWER),
+                powerRelation("shared"),
                 relation("shared", StimulusCapabilityLevel.DIRECT_CAPABILITY, TrainableQuality.RAPID_FORCE_PRODUCTION)
             )
         )
         val plan = StimulusTargetPlan(
             qualityTargets = listOf(
-                target(TrainableQuality.POWER, TargetPriority.PRIMARY),
+                approvedPowerTarget(TargetPriority.PRIMARY),
                 target(TrainableQuality.RAPID_FORCE_PRODUCTION, TargetPriority.SECONDARY)
-            ), taskTargets = emptyList(), unresolved = emptyList()
+            ), taskTargets = emptyList(), unresolved = emptyList(),
+            powerJumpDoseDecisions = listOf(approvedPowerDose())
         )
         val result = select(plan, fixture, emptyList())
         assertEquals(listOf("shared"), result.selectedCandidates.map { it.stableKey })
         assertEquals(setOf("QUALITY:POWER", "QUALITY:RAPID_FORCE_PRODUCTION"), result.selectedCandidates.single().coveredTargetIds)
         assertTrue(result.traces[1].reasonCodes.contains("TARGET_COVERED_BY_ALREADY_SELECTED_IDENTITY"))
+    }
+
+    @Test
+    fun powerCandidateCannotMaterializeFromTargetFieldsWithoutTypedB4DoseDecision() {
+        val fixture = fixture(
+            exercises = listOf(exercise("shared")),
+            relations = listOf(powerRelation("shared"))
+        )
+        val plan = StimulusTargetPlan(
+            qualityTargets = listOf(approvedPowerTarget(TargetPriority.PRIMARY)),
+            taskTargets = emptyList(), unresolved = emptyList()
+        )
+
+        val result = select(plan, fixture, emptyList())
+
+        assertTrue(result.selectedCandidates.isEmpty())
+        assertEquals("B5_POWER_JUMP_REQUIRES_EXACT_TYPED_B4_DOSE_DECISION",
+            result.traces.single().candidateRejectionReasons.getValue("shared"))
     }
 
     @Test
@@ -645,13 +664,13 @@ class StimulusTargetCandidateSelectorTest {
 
     @Test
     fun selectedIdentityRedundancyAvoidsUnnecessaryDuplicateGroup() {
-        val first = exercise("first_power")
+        val first = exercise("first_power").copy(laterality = "BILATERAL")
         val redundant = exercise("a_redundant_rfd")
         val independent = exercise("z_independent_rfd")
         val fixture = fixture(
             exercises = listOf(first, redundant, independent),
             relations = listOf(
-                relation("first_power", quality = TrainableQuality.POWER),
+                powerRelation("first_power"),
                 relation("a_redundant_rfd", quality = TrainableQuality.RAPID_FORCE_PRODUCTION),
                 relation("z_independent_rfd", quality = TrainableQuality.RAPID_FORCE_PRODUCTION)
             )
@@ -663,9 +682,10 @@ class StimulusTargetCandidateSelectorTest {
         val withRedundancy = fixture.copy(snapshot = fixture.snapshot.copy(metadata = metadata))
         val plan = StimulusTargetPlan(
             qualityTargets = listOf(
-                target(TrainableQuality.POWER, TargetPriority.PRIMARY),
+                approvedPowerTarget(TargetPriority.PRIMARY),
                 target(TrainableQuality.RAPID_FORCE_PRODUCTION, TargetPriority.SECONDARY)
-            ), taskTargets = emptyList(), unresolved = emptyList()
+            ), taskTargets = emptyList(), unresolved = emptyList(),
+            powerJumpDoseDecisions = listOf(approvedPowerDose())
         )
 
         val selected = select(plan, withRedundancy, emptyList())
@@ -762,6 +782,45 @@ class StimulusTargetCandidateSelectorTest {
         weekly: StimulusTargetRange = StimulusTargetRange(4.0, 6.0, 9.0)
     ) = StimulusQualityTarget(quality, strategy, priority, authority, SuccessfulDoseSource.NORMAL_COMPLETED_WEEKS,
         PlanningConfidence.HIGH, weekly, StimulusTargetRange(1.0, 2.0, 3.0), null, null, null, emptyList(), emptyList(), true, true)
+
+    private fun approvedPowerTarget(priority: TargetPriority): StimulusQualityTarget = target(
+        quality = TrainableQuality.POWER,
+        priority = priority,
+        strategy = StimulusDoseStrategy.INTRODUCE_DIRECT_STIMULUS,
+        authority = StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY,
+        weekly = StimulusTargetRange(2.0, 2.0, 2.0)
+    ).copy(
+        needDecision = TrainingNeedDecision.DEVELOP,
+        requiredPhysicalModes = setOf(PhysicalQualityMode.BALLISTIC.name, PhysicalQualityMode.PLYOMETRIC.name)
+    )
+
+    private fun approvedPowerDose(): PowerJumpDoseDecision = PowerJumpIntegratedDosePolicy.resolve(
+        PowerJumpDoseNeed(
+            targetId = "QUALITY:POWER",
+            kind = PowerJumpDoseKind.POWER,
+            region = PowerJumpBodyRegion.LOWER,
+            needDecision = TrainingNeedDecision.DEVELOP,
+            priority = TargetPriority.PRIMARY
+        ),
+        PowerJumpDoseEvidence(
+            resistanceWorkload = PowerJumpResistanceWorkload(PowerJumpWorkloadStatus.COMPLETE, 0, 0),
+            validRecentBadmintonWeekMinutes = listOf(60.0)
+        )
+    )
+
+    private fun powerRelation(key: String) = ExercisePhysicalQualityRelation(
+        relationId = "$key-POWER-BALLISTIC",
+        exerciseStableKey = key,
+        qualityId = TrainableQuality.POWER,
+        relationLevel = StimulusCapabilityLevel.DIRECT_CAPABILITY,
+        regionQualifier = PhysicalQualityRegion.LOWER,
+        modeQualifier = PhysicalQualityMode.BALLISTIC,
+        prescriptionDependent = true,
+        provenance = "USER_APPROVED_PROJECT_POLICY",
+        evidenceRelationKeys = emptySet(),
+        reviewStatus = "PASS",
+        notes = "test exact direct Power relation"
+    )
 
     private fun relation(key: String, level: StimulusCapabilityLevel = StimulusCapabilityLevel.DIRECT_CAPABILITY,
         quality: TrainableQuality = TrainableQuality.STRENGTH) = ExercisePhysicalQualityRelation(

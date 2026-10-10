@@ -4,6 +4,83 @@ import com.training.trackplanner.data.personalized.*
 import org.json.JSONArray
 import org.json.JSONObject
 
+/** Exact C37 B3→B4→B5→B6→weekly-row proof for Power/Jump additions in this legacy census. */
+private fun exactPowerJumpPolicyMaterialDelta(
+    comparison: StimulusSelectionProgramComparison,
+    delta: JSONObject
+): Boolean {
+    if (delta.optString("kind") != "ROW_ADDED") return false
+    val ownerObject = delta.optJSONObject("owner") ?: return false
+    val owner = StimulusPrescriptionOwnerIdentity(
+        ownerObject.optString("stableKey"), ownerObject.optString("selectionRole")
+    )
+    val after = delta.optJSONObject("after") ?: return false
+    val week = after.optInt("week", -1)
+    if (week <= 0) return false
+    val quality = when {
+        comparison.targetPlan.qualityTargets.any { it.quality == TrainableQuality.POWER } &&
+            owner.selectionRole == "CANONICAL_STIMULUS_QUALITY_POWER" -> TrainableQuality.POWER
+        comparison.targetPlan.qualityTargets.any { it.quality == TrainableQuality.REACTIVE_STRENGTH_SSC } &&
+            owner.selectionRole == "CANONICAL_STIMULUS_QUALITY_REACTIVE_STRENGTH_SSC" -> TrainableQuality.REACTIVE_STRENGTH_SSC
+        else -> return false
+    }
+    val targetId = "QUALITY:${quality.name}"
+    val target = comparison.targetPlan.qualityTargets.singleOrNull { it.quality == quality } ?: return false
+    val decision = comparison.targetPlan.powerJumpDoseDecisions.singleOrNull { it.targetId == targetId } ?: return false
+    val required = decision.approvedWeeklySetUnits
+    if (decision.status != PowerJumpDoseStatus.AUTHORIZED || required !in 2..4 ||
+        target.needDecision != TrainingNeedDecision.DEVELOP ||
+        target.numericAuthority != StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY ||
+        target.weeklyDirectUnitsTarget?.preferred != required.toDouble()
+    ) return false
+    val candidate = comparison.selectionPlan.selectedCandidates.singleOrNull {
+        it.stableKey == owner.stableKey && it.selectionRole == owner.selectionRole &&
+            it.primaryTargetId == targetId && targetId in it.coveredTargetIds
+    } ?: return false
+    val authorization = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().singleOrNull {
+        it.targetId == targetId && it.quality == quality &&
+            it.owner?.let { exact -> owner == StimulusPrescriptionOwnerIdentity(exact.stableKey, exact.selectionRole) } == true
+    } ?: return false
+    val prescription = authorization.authorizedPrescription ?: return false
+    if (authorization.source != StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE ||
+        prescription.sets.size != required || authorization.status !in setOf(
+            StimulusPrescriptionAuthorizationStatus.AUTHORIZED_USER_APPROVED_POWER_JUMP_POLICY,
+            StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
+        )
+    ) return false
+    val trace = comparison.materializationTraces.singleOrNull {
+        it.targetId == targetId && it.selectedStableKey == owner.stableKey && it.selectionRole == owner.selectionRole
+    } ?: return false
+    val audit = comparison.prescriptionMaterializationAudits.singleOrNull { it.targetId == targetId } ?: return false
+    val duration = comparison.experimental.request.durationWeeks.coerceAtLeast(1)
+    if (!trace.selectedAtB5 || trace.directIdentityVerifiedAtSelection != true ||
+        !trace.presentInFinalExperimentalSkeleton || !trace.directIdentityStillValid ||
+        audit.state != StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED ||
+        audit.authorizedWeeklySetUnits != required || audit.materializedWeeklySetUnits != required ||
+        audit.targetCompatibleMaterializedUnits != required || audit.totalMaterializedUnits != required * duration ||
+        (audit.overrun ?: 0) > 0
+    ) return false
+    val attributed = comparison.experimentalReadinessAudit?.changeAttributions.orEmpty().any {
+        it.source == StimulusExperimentalChangeAttributionSource.B6_APPROVED_POWER_JUMP_POLICY &&
+            it.stableKey == owner.stableKey && it.selectionRole == owner.selectionRole && targetId in it.targetIds
+    }
+    if (!attributed) return false
+    val actualSets = after.optJSONArray("setPrescriptions") ?: return false
+    val authorizedSets = prescription.sets.sortedBy { it.setIndex }
+    return actualSets.length() == authorizedSets.size && after.optInt("setCount") == authorizedSets.size &&
+        after.optInt("restSeconds") == prescription.restSeconds &&
+        after.optString("weightSource") == prescription.weightSource &&
+        (0 until actualSets.length()).all { index ->
+            val actual = actualSets.getJSONObject(index)
+            val expected = authorizedSets[index]
+            actual.optInt("setIndex") == expected.setIndex && actual.optInt("reps") == expected.reps &&
+                actual.optDouble("weightKg", Double.NaN) == expected.weightKg &&
+                actual.optInt("seconds") == expected.seconds &&
+                actual.optDouble("targetRpeMin", Double.NaN) == (expected.targetRpeMin ?: Double.NaN) &&
+                actual.optString("loadState") == expected.loadState.name
+        }
+}
+
 /** Exact, test-only row ledger for the four C15 calibration cases and the positive reference. */
 internal fun renderC16B8ResidualBlockerCensus(
     records: List<Pair<StimulusProductionCoverageAuditTest.CoverageSpec, StimulusProductionGenerationResult?>>,
@@ -438,15 +515,21 @@ internal fun renderC16B8ResidualBlockerCensus(
             delta.put("c16Classification", "AUTHORIZED_CORE_DIRECT_TARGET_MATERIALIZATION")
                 .put("coreMaterializationBasis", "EXACT_B4_B5_B6_MOVEMENT_CHAIN")
         }
+        val approvedPowerJumpMaterialDeltas = deltas.filter { exactPowerJumpPolicyMaterialDelta(comparison, it) }
+        approvedPowerJumpMaterialDeltas.forEach { delta ->
+            delta.put("c16Classification", "AUTHORIZED_POWER_JUMP_POLICY_MATERIALIZATION")
+                .put("powerJumpMaterializationBasis", "EXACT_B3_B4_B5_B6_B7_WEEKLY_CHAIN")
+        }
         val materialDeltas = deltas.filter { it.optString("kind") !in setOf("OWNER_ADDED", "OWNER_REMOVED") }
-        materialDeltas.filterNot { it in calibrationDelta || it in approvedRoleReplacementDeltas || it in approvedCoreMaterialDeltas }.forEach { delta ->
+        materialDeltas.filterNot { it in calibrationDelta || it in approvedRoleReplacementDeltas ||
+            it in approvedCoreMaterialDeltas || it in approvedPowerJumpMaterialDeltas }.forEach { delta ->
             delta.put("c16Classification", when {
                 delta.optString("kind") == "ROW_ADDED" -> "ROW_ADDED_REQUIRES_EXACT_B5_B6_TARGET_AUDIT"
                 delta.optString("kind") == "ROW_REMOVED" -> "ROW_REMOVED_REQUIRES_C11_AND_B8_REMOVAL_AUDIT"
                 else -> "RESIDUAL_MATERIAL_FIELD_DELTA"
             })
         }
-        val allAuthorizedPolicyDeltas = calibrationDelta + approvedRoleReplacementDeltas + approvedCoreMaterialDeltas
+        val allAuthorizedPolicyDeltas = calibrationDelta + approvedRoleReplacementDeltas + approvedCoreMaterialDeltas + approvedPowerJumpMaterialDeltas
         val residual = materialDeltas.filterNot { it in allAuthorizedPolicyDeltas }
         val blockerClassification = actualBlockerClassification(comparison, residual, evidence)
         return JSONObject().put("case", spec.label).put("route", result.routeDecision.selectedSource.name)
@@ -488,6 +571,7 @@ internal fun renderC16B8ResidualBlockerCensus(
                 .put("reasonCount", comparison.productionCutoverAuthority?.reasonCodes.orEmpty().size))
             .put("authorizedCalibrationDeltaCount", (calibrationDelta + approvedRoleReplacementDeltas).size)
             .put("authorizedCoreMaterialDeltaCount", approvedCoreMaterialDeltas.size)
+            .put("authorizedPowerJumpMaterialDeltaCount", approvedPowerJumpMaterialDeltas.size)
             .put("authorizedPolicyDeltaCount", allAuthorizedPolicyDeltas.size)
             .put("residualDeltaCount", residual.size)
             .put("rootClassification", blockerClassification)

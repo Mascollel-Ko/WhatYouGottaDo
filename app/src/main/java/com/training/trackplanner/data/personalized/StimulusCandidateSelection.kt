@@ -470,7 +470,13 @@ class StimulusTargetCandidateSelector(
             val rejectionRoles = linkedMapOf<String, String>()
             var materialized: MaterializedCandidate? = null
             for (candidate in ranked) {
-                val result = materialize(intent, candidate.key, snapshot, state, request)
+                val exactB4PowerJumpDecision = targetPlan.powerJumpDoseDecisions.singleOrNull {
+                    it.targetId == intent.targetId
+                }
+                val result = materialize(
+                    intent, candidate.key, snapshot, state, request, physicalQualityCatalog,
+                    exactB4PowerJumpDecision
+                )
                 if (result is MaterializedCandidateResult.Success) {
                     materialized = result.value
                     break
@@ -702,7 +708,8 @@ class StimulusTargetCandidateSelector(
                         snapshot.activityKind(key) == PlannedActivityKind.RESISTANCE &&
                             CanonicalStrengthExposureCapability.strengthPossible(key)
                     } else physicalQualityCatalog.relations(key).any {
-                        it.qualityId == intent.target.quality && it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY
+                        it.qualityId == intent.target.quality && it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY &&
+                            intent.target.acceptsPhysicalMode(it.modeQualifier.name)
                     }
                 is StimulusSelectionTarget.Task -> snapshot.badmintonDirectObjectives[key].orEmpty().contains(intent.target.task) &&
                     snapshot.activityKind(key) in TASK_ACTIVITY_KINDS
@@ -787,7 +794,8 @@ class StimulusTargetCandidateSelector(
                         snapshot.activityKind(key) == PlannedActivityKind.RESISTANCE &&
                             CanonicalStrengthExposureCapability.strengthPossible(key)
                     } else physicalQualityCatalog.relations(key).any {
-                        it.qualityId == intent.target.quality && it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY
+                        it.qualityId == intent.target.quality && it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY &&
+                            intent.target.acceptsPhysicalMode(it.modeQualifier.name)
                     }
                     is StimulusSelectionTarget.Task -> intent.target.task in snapshot.badmintonDirectObjectives[key].orEmpty()
                     is StimulusSelectionTarget.Movement -> snapshot.activityKind(key) == PlannedActivityKind.RESISTANCE &&
@@ -992,10 +1000,26 @@ class StimulusTargetCandidateSelector(
         key: String,
         snapshot: PlanningHistorySnapshot,
         state: AthletePlanningState,
-        request: ProgramSkeletonRequest
+        request: ProgramSkeletonRequest,
+        physicalQualityCatalog: CanonicalExercisePhysicalQualityCatalog,
+        exactB4PowerJumpDecision: PowerJumpDoseDecision?
     ): MaterializedCandidateResult {
         val role = roleFor(intent)
         val probe = PlannedExercise(key, role, "B5 canonical identity probe", priorityBridge(intent.priority), style = StrengthProgrammingStyle.NONE)
+        val qualityTarget = (intent as? StimulusSelectionTarget.Quality)?.target
+        if (qualityTarget?.quality in setOf(TrainableQuality.POWER, TrainableQuality.REACTIVE_STRENGTH_SSC)) {
+            return materializePowerJumpPreflight(
+                intent = intent,
+                target = requireNotNull(qualityTarget),
+                key = key,
+                role = role,
+                probe = probe,
+                snapshot = snapshot,
+                request = request,
+                physicalQualityCatalog = physicalQualityCatalog,
+                exactB4PowerJumpDecision = exactB4PowerJumpDecision
+            )
+        }
         val prescription = runCatching {
             prescriptionPlanner.prescribe(snapshot, state.strengthIntent, probe, StrengthProgrammingStyle.NONE)
         }.getOrElse { return MaterializedCandidateResult.Failure("NO_SAFE_PRESCRIPTION_AUTHORITY") }
@@ -1041,6 +1065,63 @@ class StimulusTargetCandidateSelector(
         return MaterializedCandidateResult.Success(MaterializedCandidate(item, prescription, compatibility, emptyMap()))
     }
 
+    /**
+     * Power/Jump candidates use the approved B4 dose and the same exact metadata B6 resolver.
+     * This is only a B5 executability preflight: final B6 independently recreates the authority.
+     */
+    private fun materializePowerJumpPreflight(
+        intent: StimulusSelectionTarget,
+        target: StimulusQualityTarget,
+        key: String,
+        role: String,
+        probe: PlannedExercise,
+        snapshot: PlanningHistorySnapshot,
+        request: ProgramSkeletonRequest,
+        physicalQualityCatalog: CanonicalExercisePhysicalQualityCatalog,
+        exactB4PowerJumpDecision: PowerJumpDoseDecision?
+    ): MaterializedCandidateResult {
+        if (exactB4PowerJumpDecision?.status != PowerJumpDoseStatus.AUTHORIZED ||
+            exactB4PowerJumpDecision.numericAuthority != StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY ||
+            exactB4PowerJumpDecision.approvedWeeklySetUnits <= 0 ||
+            exactB4PowerJumpDecision.approvedWeeklySetUnits.toDouble() != target.weeklyDirectUnitsTarget?.preferred
+        ) {
+            return MaterializedCandidateResult.Failure("B5_POWER_JUMP_REQUIRES_EXACT_TYPED_B4_DOSE_DECISION")
+        }
+        if (target.needDecision != TrainingNeedDecision.DEVELOP ||
+            target.numericAuthority != StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY) {
+            return MaterializedCandidateResult.Failure("B5_POWER_JUMP_REQUIRES_EXACT_B3_B4_AUTHORITY")
+        }
+        val unitsValue = target.weeklyDirectUnitsTarget?.preferred
+            ?: return MaterializedCandidateResult.Failure("B5_POWER_JUMP_REQUIRES_EXACT_B4_SET_COUNT")
+        if (!unitsValue.isFinite() || unitsValue != unitsValue.toInt().toDouble()) {
+            return MaterializedCandidateResult.Failure("B5_POWER_JUMP_B4_SET_COUNT_NOT_WHOLE_UNITS")
+        }
+        val units = unitsValue.toInt()
+        val b6Request = PowerJumpB6RequestFactory.create(target, key, units, snapshot, physicalQualityCatalog)
+        val shape = PowerJumpPrescriptionShapeResolver.resolve(b6Request)
+        val prescription = shape.prescription
+            ?: return MaterializedCandidateResult.Failure(
+                (shape.reasonCodes + "B5_CANDIDATE_B6_EXECUTABILITY_PREFLIGHT_NOT_AUTHORITY").distinct().joinToString("|")
+            )
+        val plannedItem = probe.copy(
+            reason = "B5 ranked an exact direct Power/Jump owner after a non-authoritative B6 executability preflight.",
+            targetSets = units,
+            material = true
+        )
+        val estimatedSeconds = TimedPlannedExercise(plannedItem, prescription).estimatedSeconds
+        if (estimatedSeconds > request.sessionMinutes * 60) {
+            return MaterializedCandidateResult.Failure("MINIMUM_PRESCRIPTION_EXCEEDS_SESSION_TIME")
+        }
+        return MaterializedCandidateResult.Success(
+            MaterializedCandidate(
+                item = plannedItem,
+                prescription = prescription,
+                compatibility = SelectionProbePrescriptionCompatibility.REALIZATION_UNCLASSIFIED,
+                rejectionReasons = emptyMap()
+            )
+        )
+    }
+
     private sealed interface MaterializedCandidateResult {
         data class Success(val value: MaterializedCandidate) : MaterializedCandidateResult
         data class Failure(val reason: String) : MaterializedCandidateResult
@@ -1054,13 +1135,17 @@ class StimulusTargetCandidateSelector(
         is StimulusSelectionTarget.Quality -> if (intent.target.quality == TrainableQuality.STRENGTH) {
             snapshot.activityKind(key) == PlannedActivityKind.RESISTANCE && CanonicalStrengthExposureCapability.strengthPossible(key)
         } else catalog.relations(key).any {
-            it.qualityId == intent.target.quality && it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY
+            it.qualityId == intent.target.quality && it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY &&
+                intent.target.acceptsPhysicalMode(it.modeQualifier.name)
         }
         is StimulusSelectionTarget.Task -> snapshot.activityKind(key) in TASK_ACTIVITY_KINDS &&
             intent.target.task in snapshot.badmintonDirectObjectives[key].orEmpty()
         is StimulusSelectionTarget.Movement -> snapshot.activityKind(key) == PlannedActivityKind.RESISTANCE &&
             snapshot.movementCoverage(key).directlyRepresents(intent.target.movementCoverage)
     }
+
+    private fun StimulusQualityTarget.acceptsPhysicalMode(mode: String): Boolean =
+        requiredPhysicalModes?.contains(mode) ?: true
 
     private fun selectionAllowed(intent: StimulusSelectionTarget): Boolean = when (intent) {
         is StimulusSelectionTarget.Quality -> intent.strategy in QUALITY_SELECTION_STRATEGIES ||

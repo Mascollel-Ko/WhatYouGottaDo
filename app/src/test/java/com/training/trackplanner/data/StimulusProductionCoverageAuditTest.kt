@@ -363,66 +363,129 @@ class StimulusProductionCoverageAuditTest {
             c20StartSha = "46a166499dc2136c73d22e66670d6232d59c21b4"
         )
         java.io.File("build/reports/c20-live-incumbent-stability-census.json").writeText(c20Census)
-        val c21PowerCensus = C21PowerDoseAuthorityCensus.render(
+        val c37PowerJumpCensus = C37PowerJumpIntegratedAuthorityCensus.render(
             records = records,
             planningByCase = canonicalPlanningByCase,
             contextByCase = productionContextByCase,
             metadataRepository = canonicalMetadataRepository
         )
-        assertEquals(c21PowerCensus, C21PowerDoseAuthorityCensus.render(
+        assertEquals(c37PowerJumpCensus, C37PowerJumpIntegratedAuthorityCensus.render(
             records.reversed(), canonicalPlanningByCase, productionContextByCase, canonicalMetadataRepository
         ))
-        java.io.File("build/reports/c21-power-dose-authority-census.json").writeText(c21PowerCensus)
-        val c21Json = org.json.JSONObject(c21PowerCensus)
-        assertEquals(27, c21Json.getJSONObject("counts").getInt("corpusCases"))
-        assertEquals(22, c21Json.getJSONObject("counts").getInt("generatedCases"))
-        assertEquals(5, c21Json.getJSONObject("counts").getInt("preflightRejected"))
-        assertEquals(22, c21Json.getJSONObject("counts").getInt("powerTargets"))
-        assertEquals(22, c21Json.getJSONObject("counts").getInt("powerTargetsTotal"))
-        assertEquals(4, c21Json.getJSONObject("counts").getInt("directionOnlyBefore"))
-        assertEquals(0, c21Json.getJSONObject("counts").getInt("numericPowerAuthorityAfter"))
-        assertEquals(0, c21Json.getJSONObject("counts").getInt("reviewedStarterAuthority"))
-        assertEquals(0, c21Json.getJSONObject("counts").getInt("b7EligiblePowerCases"))
-        assertEquals(0, c21Json.getJSONObject("counts").getInt("b8AuthorizedPowerCases"))
-        assertEquals(0, c21Json.getJSONObject("counts").getInt("powerRoutedCases"))
-        assertEquals(8, c21Json.getJSONObject("counts").getInt("preC21BaselineGeneratedPowerRows"))
-        assertEquals(0, c21Json.getJSONObject("counts").getInt("generatedPowerRowsAfterAuthorityFilter"))
-        assertEquals("POWER_REMAINS_DIRECTION_ONLY", c21Json.getString("policyConclusion"))
-        val c21Persona3 = c21Json.getJSONObject("persona3Reviewed")
-        assertEquals("DEVELOP_DIRECT_STIMULUS_DIRECTION_ONLY", c21Persona3.getJSONObject("powerTarget").getString("strategy"))
-        assertEquals("DIRECTION_ONLY", c21Persona3.getJSONObject("powerTarget").getString("numericAuthority"))
-        assertEquals("ex_314df428", c21Persona3.getJSONObject("selectedOwner").getString("stableKey"))
-        assertEquals("CANONICAL_STIMULUS_QUALITY_POWER", c21Persona3.getJSONObject("selectedOwner").getString("selectionRole"))
-        assertEquals(0, c21Persona3.getInt("exactOwnerPersonalHistoryCount"))
-        assertEquals(0, c21Persona3.getInt("currentPowerRowsAfterAuthorityFilter"))
-        assertEquals("MODEL_UNAVAILABLE", c21Persona3.getString("currentB6Status"))
-        assertTrue(c21Persona3.getJSONArray("currentB6ReasonCodes").toString().contains("CAPABILITY_PROXY_QUALITY_NON_PRESCRIPTIVE"))
-        val c21CaseRows = c21Json.getJSONArray("cases")
-        fun c21Case(name: String) = (0 until c21CaseRows.length()).map { c21CaseRows.getJSONObject(it) }
+        java.io.File("build/reports/c37-power-jump-integrated-authority-census.json").writeText(c37PowerJumpCensus)
+        val c37PowerSummary = C37PowerJumpIntegratedAuthorityCensus.renderCompactSummary(c37PowerJumpCensus)
+        assertEquals(c37PowerSummary, C37PowerJumpIntegratedAuthorityCensus.renderCompactSummary(c37PowerJumpCensus))
+        java.io.File("build/reports/c37-power-jump-integrated-authority-summary.json").writeText(c37PowerSummary)
+        val c37Json = org.json.JSONObject(c37PowerJumpCensus)
+        val c37Counts = c37Json.getJSONObject("counts")
+        assertEquals("c37-power-jump-integrated-authority-census-v1", c37Json.getString("schema"))
+        assertEquals(27, c37Counts.getInt("corpusCases"))
+        assertEquals(22, c37Counts.getInt("generatedCases"))
+        assertEquals(5, c37Counts.getInt("preflightRejected"))
+        assertEquals(22, c37Counts.getInt("powerTargets"))
+        assertEquals(4, c37Counts.getInt("directionOnlyBeforeC37B4"))
+        assertEquals(3, c37Counts.getInt("numericPowerAuthorityAfter"))
+        assertEquals(3, c37Counts.getInt("userApprovedPolicyAuthorityCases"))
+        assertEquals(0, c37Counts.getInt("personalNumericAuthorityCases"))
+        assertEquals(3, c37Counts.getInt("exactB6AuthorizedPowerCases"))
+        assertEquals(0, c37Counts.getInt("reviewedStarterAuthority"))
+        assertEquals(1, c37Counts.getInt("stillDirectionOnly"))
+        assertEquals(3, c37Counts.getInt("fullyMaterializedPower"))
+        assertEquals(1, c37Counts.getInt("b7EligiblePowerCases"))
+        assertEquals(0, c37Counts.getInt("b8AuthorizedPowerCases"))
+        assertEquals(0, c37Counts.getInt("powerRoutedCases"))
+        assertEquals(8, c37Counts.getInt("preC21BaselineGeneratedPowerRows"))
+        assertEquals(6, c37Counts.getInt("generatedPowerRowsAfterAuthorityFilter"))
+        assertEquals(22, c37Counts.getInt("jumpLandingTargets"))
+        assertEquals(0, c37Counts.getInt("jumpLandingNeedCases"))
+        assertEquals(0, c37Counts.getInt("jumpLandingNumericB4Cases"))
+        assertEquals(0, c37Counts.getInt("jumpLandingB5OwnerRows"))
+        assertEquals(0, c37Counts.getInt("jumpLandingB6AuthorizedCases"))
+        assertEquals(0, c37Counts.getInt("jumpLandingMaterializedCases"))
+        assertEquals(0, c37Counts.getInt("jumpLandingMaterializedSetUnits"))
+        assertEquals(0, c37Counts.getInt("jumpLandingB7EligibleCases"))
+        assertEquals(0, c37Counts.getInt("jumpLandingB8AuthorizedCases"))
+        assertEquals(0, c37Counts.getInt("jumpLandingRoutedCases"))
+        assertEquals("POWER_JUMP_B4_B6_EXACT_MATERIALIZATION_WITH_B7_B8_FAIL_CLOSED", c37Json.getString("policyConclusion"))
+        val c37Persona3 = c37Json.getJSONObject("persona3Reviewed")
+        assertEquals("USER_APPROVED_PROJECT_POLICY", c37Persona3.getJSONObject("powerTarget").getString("numericAuthority"))
+        assertEquals("lateral_bound_continuous", c37Persona3.getJSONObject("selectedOwner").getString("stableKey"))
+        assertEquals("CANONICAL_STIMULUS_QUALITY_POWER", c37Persona3.getJSONObject("selectedOwner").getString("selectionRole"))
+        assertEquals(0, c37Persona3.getInt("exactOwnerPersonalHistoryCount"))
+        assertEquals(2, c37Persona3.getInt("currentPowerRowsAfterAuthorityFilter"))
+        assertEquals("AUTHORIZED_USER_APPROVED_POWER_JUMP_POLICY", c37Persona3.getString("currentB6Status"))
+        val c37CaseRows = c37Json.getJSONArray("cases")
+        fun c37Case(name: String) = (0 until c37CaseRows.length()).map { c37CaseRows.getJSONObject(it) }
             .single { it.getString("case") == name }
-        assertEquals("CONTROL", c21Case("persona3_reviewed").getString("route"))
-        assertEquals(0, c21Case("persona3_reviewed").getJSONArray("generatedPowerRows").length())
-        assertEquals("CONTROL", c21Case("persona3_mixed").getString("route"))
-        assertEquals(0, c21Case("persona3_mixed").getJSONArray("generatedPowerRows").length())
-        assertEquals("UNCHANGED", c21Case("persona3_mixed").getJSONObject("powerTargetOutcome").getString("status"))
-        // Exact direct-Core B6 material closes the prior role-removal gap. This overall B7
-        // readiness does not grant Power authority; B8 still rejects out-of-scope Power material.
+        listOf("persona3_mixed", "persona3_reviewed", "persona3_sparse").forEach { name ->
+            val case = c37Case(name)
+            assertEquals("USER_APPROVED_PROJECT_POLICY", case.getJSONObject("b4PowerTarget").getString("numericAuthority"))
+            assertEquals(2, case.getJSONObject("b4PowerTarget").getJSONObject("weeklyDirectUnitsTarget").getInt("preferred"))
+            assertEquals("lateral_bound_continuous", case.getJSONArray("b5SelectedPowerOwners").getJSONObject(0).getString("stableKey"))
+            assertEquals("AUTHORIZED_USER_APPROVED_POWER_JUMP_POLICY",
+                case.getJSONObject("b6PowerAuthorization").getString("status"))
+            assertEquals("FULLY_MATERIALIZED", case.getJSONObject("b6PowerMaterialization").getString("state"))
+            assertEquals(2, case.getJSONArray("generatedPowerRows").length())
+            val weeklyRows = case.getJSONArray("generatedPowerRows")
+            for (rowIndex in 0 until weeklyRows.length()) {
+                val row = weeklyRows.getJSONObject(rowIndex)
+                assertEquals("USER_APPROVED_POWER_JUMP_BODYWEIGHT_POLICY", row.getString("weightSource"))
+                val sets = row.getJSONArray("sets")
+                assertEquals(2, sets.length())
+                for (setIndex in 0 until sets.length()) {
+                    val set = sets.getJSONObject(setIndex)
+                    assertEquals("NOT_APPLICABLE", set.getString("loadState"))
+                    assertEquals(0.0, set.getDouble("weightKg"), 0.0)
+                }
+            }
+            val compact = org.json.JSONObject(C37PowerJumpIntegratedAuthorityCensus.renderCompactSummary(c37PowerJumpCensus))
+            val compactRows = compact.getJSONArray("cases").let { rows ->
+                (0 until rows.length()).map { rows.getJSONObject(it) }.single { it.getString("case") == name }
+            }.getJSONArray("generatedRows")
+            assertEquals(2, compactRows.length())
+            for (rowIndex in 0 until compactRows.length()) {
+                val compactRow = compactRows.getJSONObject(rowIndex)
+                assertEquals("NOT_APPLICABLE", compactRow.getJSONArray("loadStates").getString(0))
+                assertEquals(0.0, compactRow.getJSONArray("weightKg").getDouble(0), 0.0)
+                assertEquals("NOT_APPLICABLE", compactRow.getJSONArray("setPrescriptions").getJSONObject(0).getString("loadState"))
+            }
+            val jumpLanding = case.getJSONObject("jumpLanding")
+            assertEquals("NO_EXTRA_NEED", jumpLanding.getJSONObject("b1Need").getString("decision"))
+            assertEquals(0, jumpLanding.getJSONArray("b5Owners").length())
+            assertEquals("IMPROVED", case.getJSONObject("powerTargetOutcome").getString("status"))
+        }
+        assertEquals("CONTROL", c37Case("persona3_reviewed").getString("route"))
+        assertEquals("CONTROL", c37Case("persona3_mixed").getString("route"))
+        val persona3RecentPower = c37Case("persona3_recent")
+        assertEquals("WORKLOAD_UNKNOWN", persona3RecentPower.getJSONObject("b4PowerDoseDecision").getString("status"))
+        assertEquals("NO_EXECUTABLE_AUTHORIZATION", persona3RecentPower.getJSONObject("b6PowerAuthorization").getString("status"))
+        assertTrue(persona3RecentPower.getJSONObject("b6PowerAuthorization").getJSONArray("reasonCodes").toString()
+            .contains("EXACT_PLANNED_STRENGTH_HYPERTROPHY_WORKLOAD_REQUIRED"))
+        assertEquals(0, persona3RecentPower.getJSONArray("generatedPowerRows").length())
+        // B7 can validate the exact Power outcome, but B8's current scope is still Strength-only.
         assertEquals("ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW",
-            c21Case("persona3_mixed").getJSONObject("b7").getString("status"))
-        // The mixed case's exact B8 scope remains Strength because that is its canonical
-        // quality target. Power stays closed, and the unchanged B7 failure keeps CONTROL.
-        assertEquals("STRENGTH_V1", c21Case("persona3_mixed").getJSONObject("b8").getString("scope"))
-        val c21Routes = c21Json.getJSONObject("routeSnapshot")
+            c37Case("persona3_mixed").getJSONObject("b7").getString("status"))
+        assertEquals("CONTROL_REQUIRED", c37Case("persona3_mixed").getJSONObject("b8").getString("status"))
+        assertTrue(c37Case("persona3_mixed").getJSONObject("b8").getJSONArray("reasonCodes").toString()
+            .contains("B8_CUTOVER_V1_NON_STRENGTH_CHANGE_OUT_OF_SCOPE"))
+        val c37Routes = c37Json.getJSONObject("routeSnapshot")
         listOf("CONTROL", "STRENGTH_V1", "STRENGTH_CALIBRATION_V1", "HYPERTROPHY", "COMBINED")
-            .forEach { route -> assertEquals(c19Routes.getInt(route), c21Routes.getInt(route)) }
-        val c21B7 = c21Json.getJSONObject("b7ReasonOccurrences")
-        assertTrue(c21B7.length() > 0)
-        val c21C20 = c21Json.getJSONObject("c20LiveIncumbentFeasibility")
-        assertEquals(10, c21C20.getInt("HARD_VALID"))
-        assertEquals(0, c21C20.getInt("HARD_INVALID"))
-        assertEquals(0, c21C20.getInt("UNRESOLVED"))
-        assertEquals(4, c21C20.getInt("preservedHardValidRows"))
-        assertEquals(0, c21C20.getInt("hardInvalidOrUnresolvedForcedPreserved"))
+            .forEach { route -> assertEquals(c19Routes.getInt(route), c37Routes.getInt(route)) }
+        val c37B7 = c37Json.getJSONObject("b7ReasonOccurrences")
+        assertTrue(c37B7.length() > 0)
+        val c37C20 = c37Json.getJSONObject("c20LiveIncumbentFeasibility")
+        assertEquals(10, c37C20.getInt("HARD_VALID"))
+        assertEquals(0, c37C20.getInt("HARD_INVALID"))
+        assertEquals(0, c37C20.getInt("UNRESOLVED"))
+        assertEquals(4, c37C20.getInt("preservedHardValidRows"))
+        assertEquals(0, c37C20.getInt("hardInvalidOrUnresolvedForcedPreserved"))
+        // C24's historical handoff expects the C21-shaped count envelope. Feed it the live
+        // C37 counts so downstream task auditing observes current Power material without
+        // pretending C24 itself grants any Power authority.
+        val c21PowerCensus = org.json.JSONObject().put("counts", org.json.JSONObject()
+            .put("numericPowerAuthorityAfter", c37Counts.getInt("numericPowerAuthorityAfter"))
+            .put("fullyMaterializedPower", c37Counts.getInt("fullyMaterializedPower")))
+            .toString()
         val c22PreC22CMaterializedTaskRows = javaClass.classLoader!!
             .getResourceAsStream("c22-task-materialization-before-authority-filter.json")!!
             .bufferedReader().use { org.json.JSONArray(it.readText()) }
@@ -563,7 +626,7 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(0, c24Counts.getInt("weeklyFrequencyShortfalls"))
         assertEquals(0, c24Counts.getInt("placementShortfalls"))
         assertEquals(0, c24Counts.getInt("unapprovedTaskOwnersDeferred"))
-        assertEquals(0, c24Counts.getInt("powerMaterialRows"))
+        assertEquals(c37Counts.getInt("generatedPowerRowsAfterAuthorityFilter"), c24Counts.getInt("powerMaterialRows"))
         assertEquals(0, c24Counts.getInt("jumpLandingMaterialRows"))
         assertTrue(taskSelectionItems.all { item ->
             runCatching { TaskProtocolExposureMetadata.fromJsonString(checkNotNull(item.taskProtocolSemanticsJson)) }.isSuccess
@@ -590,8 +653,8 @@ class StimulusProductionCoverageAuditTest {
                 assertEquals(setOf(1, 2), rows.map { it.getInt("exposureIndex") }.toSet())
             }
         }
-        assertEquals(0, c24.getJSONObject("powerInvariant").getInt("numericPowerAuthority"))
-        assertEquals(0, c24.getJSONObject("powerInvariant").getInt("executableB6"))
+        assertEquals(c37Counts.getInt("numericPowerAuthorityAfter"), c24.getJSONObject("powerInvariant").getInt("numericPowerAuthority"))
+        assertEquals(c37Counts.getInt("fullyMaterializedPower"), c24.getJSONObject("powerInvariant").getInt("executableB6"))
         val persona3RecentServiceResult = requireNotNull(records.single { it.first.label == "persona3_recent" }.second)
         val persona3RecentComparison = requireNotNull(persona3RecentServiceResult.comparison)
         val taskReplacementExpectations = mapOf(
@@ -1081,7 +1144,9 @@ class StimulusProductionCoverageAuditTest {
         assertEquals("CONTROL", persona3RecentCensus.getString("route"))
         assertEquals(8, persona3RecentCensus.getJSONArray("taskMaterialRows").length())
         assertEquals(0, persona3RecentCensus.getJSONObject("b7").getJSONArray("affectedUnmetTargets").length())
-        assertEquals(setOf("QUALITY:POWER", "TASK:JUMP_LANDING"),
+        // POWER remains a need, but with planned resistance workload unknown B4 correctly
+        // withholds its executable numeric target; only the independent C24 task is unmet.
+        assertEquals(setOf("TASK:JUMP_LANDING"),
             persona3RecentCensus.getJSONObject("b7").getJSONArray("allUnmetTargetOutcomes")
                 .let { rows -> (0 until rows.length()).map { rows.getString(it) }.toSet() })
         val strengthTargetOutcome = persona3RecentCensus.getJSONObject("b7").getJSONArray("targetOutcomes")
@@ -1357,6 +1422,7 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(12, c16Case("persona0_reviewed").getInt("residualDeltaCount"))
         assertEquals(4, c16Case("persona3_reviewed").getInt("authorizedCalibrationDeltaCount"))
         assertEquals(2, c16Case("persona3_reviewed").getInt("authorizedCoreMaterialDeltaCount"))
+        assertEquals(2, c16Case("persona3_reviewed").getInt("authorizedPowerJumpMaterialDeltaCount"))
         assertEquals(12, c16Case("persona3_reviewed").getInt("residualDeltaCount"))
         assertEquals(4, c16Case("persona4_mixed").getInt("authorizedCalibrationDeltaCount"))
         assertEquals(2, c16Case("persona4_mixed").getInt("authorizedCoreMaterialDeltaCount"))

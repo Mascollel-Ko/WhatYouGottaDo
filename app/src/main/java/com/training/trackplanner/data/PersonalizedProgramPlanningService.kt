@@ -452,7 +452,11 @@ internal class PersonalizedProgramPlanningService(
         // B5 first resolves only the canonical Quality/Task targets. Their exact B6
         // authorizations are the only planned H exposure credited before the regional B4
         // residual is calculated; CONTROL is built later and is never dose/prescription authority.
-        val qualityTaskTargetPlan = targetPlan.copy(movementTargets = emptyList())
+        val powerJumpQualities = setOf(TrainableQuality.POWER, TrainableQuality.REACTIVE_STRENGTH_SSC)
+        val qualityTaskTargetPlan = targetPlan.copy(
+            qualityTargets = targetPlan.qualityTargets.filterNot { it.quality in powerJumpQualities },
+            movementTargets = emptyList()
+        )
         val qualityTaskSelectionPlan = StimulusTargetCandidateSelector().build(
             targetPlan = qualityTaskTargetPlan,
             snapshot = context.snapshot,
@@ -479,8 +483,33 @@ internal class PersonalizedProgramPlanningService(
             canonicalPrescriptionContext = prescriptionContext,
             approvedTaskB6Owners = taskProtocolPlan.authorizedByOwner.keys
         )
-        val residualTargetPlan = CanonicalRegionalMovementB4ResidualResolver().resolve(
+        // Power/Jump numeric authority is resolved only after the existing Strength/Hypertrophy
+        // B5+B6 rows are known. The cap is not a target and cannot create a B3 need.
+        val powerJumpTargetPlan = com.training.trackplanner.data.personalized.CanonicalPowerJumpB4DoseResolver().resolve(
             targetPlan = targetPlan,
+            existingSelection = qualityTaskSelectionPlan,
+            existingAuthorization = qualityTaskAuthorizationPlan,
+            snapshot = context.snapshot,
+            state = context.state,
+            physicalQualityCatalog = physicalQualityCatalog
+        )
+        val authorizedPowerJumpTargetIds = powerJumpTargetPlan.powerJumpDoseDecisions.filter {
+            it.status == com.training.trackplanner.data.personalized.PowerJumpDoseStatus.AUTHORIZED &&
+                it.approvedWeeklySetUnits > 0
+        }.mapTo(linkedSetOf(), com.training.trackplanner.data.personalized.PowerJumpDoseDecision::targetId)
+        val powerJumpSelectionPlan = StimulusTargetCandidateSelector().build(
+            targetPlan = powerJumpTargetPlan.copy(
+                qualityTargets = powerJumpTargetPlan.qualityTargets.filter { "QUALITY:${it.quality.name}" in authorizedPowerJumpTargetIds },
+                taskTargets = emptyList(), movementTargets = emptyList()
+            ),
+            snapshot = context.snapshot,
+            state = context.state,
+            request = resolved.request,
+            physicalQualityCatalog = physicalQualityCatalog,
+            excludedStableKeys = qualityTaskSelectionPlan.selectedCandidates.mapTo(linkedSetOf()) { it.stableKey }
+        )
+        val residualTargetPlan = CanonicalRegionalMovementB4ResidualResolver().resolve(
+            targetPlan = powerJumpTargetPlan,
             existingProgram = null,
             selectionPlan = qualityTaskSelectionPlan,
             authorizationPlan = qualityTaskAuthorizationPlan,
@@ -494,15 +523,20 @@ internal class PersonalizedProgramPlanningService(
             state = context.state,
             request = resolved.request,
             physicalQualityCatalog = physicalQualityCatalog,
-            excludedStableKeys = qualityTaskSelectionPlan.selectedCandidates.mapTo(linkedSetOf()) { it.stableKey }
+            excludedStableKeys = (qualityTaskSelectionPlan.selectedCandidates + powerJumpSelectionPlan.selectedCandidates)
+                .mapTo(linkedSetOf()) { it.stableKey }
         )
         val initiallyCombinedSelectionPlan = qualityTaskSelectionPlan.copy(
-            selectedCandidates = (qualityTaskSelectionPlan.selectedCandidates + movementSelectionPlan.selectedCandidates)
+            selectedCandidates = (qualityTaskSelectionPlan.selectedCandidates + powerJumpSelectionPlan.selectedCandidates + movementSelectionPlan.selectedCandidates)
                 .sortedWith(compareBy({ it.primaryTargetId }, { it.stableKey }, { it.selectionRole })),
-            traces = qualityTaskSelectionPlan.traces + movementSelectionPlan.traces,
-            materialDemand = mergeCanonicalMaterialDemand(taskProtocolDemand, movementSelectionPlan.materialDemand),
+            traces = qualityTaskSelectionPlan.traces + powerJumpSelectionPlan.traces + movementSelectionPlan.traces,
+            materialDemand = mergeCanonicalMaterialDemand(
+                mergeCanonicalMaterialDemand(taskProtocolDemand, powerJumpSelectionPlan.materialDemand),
+                movementSelectionPlan.materialDemand
+            ),
             candidateDispositionIndex = com.training.trackplanner.data.personalized.StimulusCandidateDispositionIndex(
-                qualityTaskSelectionPlan.candidateDispositionIndex.entries + movementSelectionPlan.candidateDispositionIndex.entries
+                qualityTaskSelectionPlan.candidateDispositionIndex.entries + powerJumpSelectionPlan.candidateDispositionIndex.entries +
+                    movementSelectionPlan.candidateDispositionIndex.entries
             ),
             strengthShortfalls = qualityTaskSelectionPlan.strengthShortfalls
         )
@@ -550,7 +584,7 @@ internal class PersonalizedProgramPlanningService(
         val authorizationPlan = CanonicalRegionalMovementB6AuthorizationEngine().authorize(
             targetPlan = residualTargetPlan,
             selectionPlan = selectionPlan,
-            baseAuthorizationPlan = StimulusPrescriptionAuthorizationEngine().build(
+            baseAuthorizationPlan = StimulusPrescriptionAuthorizationEngine(physicalQualityCatalog = physicalQualityCatalog).build(
                 targetPlan = residualTargetPlan,
                 selectionPlan = selectionPlan,
                 snapshot = context.snapshot,
@@ -607,7 +641,7 @@ internal class PersonalizedProgramPlanningService(
                 materialDemandOverride = selectionPlan.materialDemand,
                 exactPrescriptionAuthorizationProvider = authorizationPlan.provider(),
                 canonicalB5PowerOwnerIdentities = executionSelectionPlan.selectedCandidates
-                    .filter { "QUALITY:POWER" in it.coveredTargetIds }
+                    .filter { it.coveredTargetIds.any { id -> id in setOf("QUALITY:POWER", "QUALITY:REACTIVE_STRENGTH_SSC") } }
                     .mapTo(linkedSetOf()) { com.training.trackplanner.data.personalized.StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) },
                 canonicalB5TaskOwnerIdentitiesWithoutExecutableB6 = executionSelectionPlan.selectedCandidates
                     .filter { candidate -> candidate.coveredTargetIds.any { it.startsWith("TASK:") } }
