@@ -66,7 +66,7 @@ B8은 `POWER_JUMP_V1`을 별도 scope로 검증한다. 기존 B7 provenance clos
 - 첫 전체 `:app:testDebugUnitTest` 실행은 1,520 tests 처리 후 JBR 21의 `robolectric-nativeruntime.dll`에서 native `EXCEPTION_ACCESS_VIOLATION`으로 종료됐다. 그 시점의 결과 XML에는 assertion failure 0건, test error 0건이었다. 저장소 밖 JDK 17 + 직렬 worker `forkEvery=75` workaround로 재실행해 전체 2,408 tests, 0 failures, 0 errors, 4 skips로 통과했다.
 - `:app:compileDebugKotlin`, `:app:compileDebugUnitTestKotlin`, `:app:assembleDebug`, protocol validation 및 `git diff --check`가 통과했다. 기존 deprecation/nullability compile warning은 남아 있다.
 - 로컬 debug APK는 70,743,219 bytes이며 SHA-256은 `7A596CF2537DADA1A917707630365D5AF397CAB61EC2AF63105984E65AF6DFDA`다. compact C37 census SHA-256은 `897BEE81141083CE4606FD59CEB218B82877FBE375BE1E55F1D26E021C92911D`다.
-- C37.2 구현·테스트 commit `2e115315ede6ffedae206e0fc33ad7a5fc4e5357`을 `lastAuditedCommit`으로 기록했다. PR #24는 Draft를 유지하며, 이 결과는 hosted CI가 branch update를 검증하기 전까지 완료로 간주하지 않는다.
+- C37.2 구현·테스트 commit `2e115315ede6ffedae206e0fc33ad7a5fc4e5357`을 `lastAuditedCommit`으로 기록했다. Hosted CI run [38025498649](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/38025498649)은 테스트, coverage 업로드, APK assembly, signer verification, APK 업로드까지 성공했다. APK artifact ID `11660795094` (artifact ZIP 65,480,844 bytes), APK 69,070,559 bytes, SHA-256 `7EE09BA5DAAC03841FFADEADDF465F1724BE358D853CFF9D761C82BA4960E25B`; coverage artifact ID `11660625144`. PR #24는 전체 사용자 선택/교체 범위와 Jump/Landing의 실제 B1 필요 경로가 아직 완성되지 않아 Draft로 유지한다.
 
 ### 남은 작업 경계
 
