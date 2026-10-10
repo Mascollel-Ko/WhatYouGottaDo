@@ -67,4 +67,4 @@ B11 `CANONICAL_REPLACEMENT` 분류나 B5 후보는 위 B4/B6/실제 배정 체�
 
 ## 남은 한계
 
-PR #24는 Draft로 유지한다. Hosted CI는 이 변경을 push한 뒤 확인한다. 32쌍의 향후 해소에는 각각 실제 B4 numeric authority, exact B6 authority, allocator/scheduler가 생성한 owner-week 인과 사건 중 필요한 증거가 여전히 필요하다. 그 근거가 없는 동안 B9 CONTROL은 정상 fail-closed 결과다.
+PR #24는 OPEN/Draft로 유지했다. 최종 HEAD `97f6ac8f45606057e30f7a58a2886d4ef437d647`의 [Hosted CI run 38059536503](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/38059536503)은 성공했다. Hosted JVM suite는 JUnit XML 합계 2,420 tests / 0 failures / 0 errors / 4 skips였고, APK assembly·signer verification·artifact upload도 통과했다. APK artifact [11673325849](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/38059536503/artifacts/11673325849)는 APK 69,168,763 bytes, SHA-256 `8EB3FC546DE68A4D38B3F2BFE2263D124F3A1A8E16ACDC5A8A620D36E8A9A606`이다. Coverage artifact [11672194135](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/38059536503/artifacts/11672194135)도 업로드됐다. 32쌍의 향후 해소에는 각각 실제 B4 numeric authority, exact B6 authority, allocator/scheduler가 생성한 owner-week 인과 사건 중 필요한 증거가 여전히 필요하다. 그 근거가 없는 동안 B9 CONTROL은 정상 fail-closed 결과다.

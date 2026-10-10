@@ -12809,7 +12809,39 @@
       "bytes": 72729550,
       "sha256": "158CE46BBD2C6F70D0EAEBB3E857F6210AC6FC00BFB99A27A9C88090396FBFA2"
     },
-    "hostedCi": "PENDING_PR_UPDATE"
+    "hostedCi": {
+      "runId": 38059536503,
+      "headSha": "97f6ac8f45606057e30f7a58a2886d4ef437d647",
+      "status": "SUCCESS",
+      "url": "https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/38059536503",
+      "jvmSuite": {
+        "tests": 2420,
+        "failures": 0,
+        "errors": 0,
+        "skips": 4,
+        "evidence": "uploaded JUnit XML totals"
+      },
+      "apkSignerVerification": "PASS",
+      "artifactUpload": "PASS"
+    },
+    "hostedArtifacts": [
+      {
+        "artifactId": 11673325849,
+        "name": "WhatYouGottaDo-debug-apk",
+        "url": "https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/38059536503/artifacts/11673325849",
+        "archiveBytes": 65575209,
+        "archiveSha256": "937a1caa237c8e0cdb91c6ffe84e808dbc33205d6c093676bbc625000d0b02ed",
+        "apkBytes": 69168763,
+        "apkSha256": "8EB3FC546DE68A4D38B3F2BFE2263D124F3A1A8E16ACDC5A8A620D36E8A9A606"
+      },
+      {
+        "artifactId": 11672194135,
+        "name": "Stimulus-production-coverage",
+        "url": "https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/38059536503/artifacts/11672194135",
+        "archiveBytes": 778763,
+        "archiveSha256": "60807825961ebe014cc6576598a6f08a0e1fb8597344530c5447329233ab815f"
+      }
+    ]
   },
   "implementationCommit": "708f6c85f0de2522496bf4c2b2a8f164f6a3c15b"
 }
