@@ -96,6 +96,257 @@ class StimulusExperimentalReadinessTest {
     }
 
     @Test
+    fun exactCoreB6MaterializationIsCountedByB7AndRejectedWithoutItsGrant() {
+        val target = StimulusMovementTarget(
+            movementCoverage = MovementCoverage.CORE_DIRECT,
+            priority = TargetPriority.PRIMARY,
+            reasonCodes = listOf("EXACT_CORE_NEED"),
+            evidence = listOf("CANONICAL_DIRECT_CORE_PROFILE"),
+            regionalDoseTargets = listOf(StimulusMovementDoseTarget(
+                kind = StimulusMovementDoseKind.CORE_DIRECT_CONTROL_SET,
+                numericAuthority = StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY,
+                weeklyTarget = 6.0,
+                reasonCodes = listOf("USER_APPROVED_CORE_COLD_START"),
+                shapeAuthority = StimulusMovementDoseShapeAuthority.CORE_DIRECT_SET_DOSE_EXACT_OWNER_SHAPE_REQUIRED,
+                existingEquivalentExposure = 2.0,
+                residualEquivalentExposure = 4.0,
+                authorizedWholeSetUnits = 4
+            ))
+        )
+        val owner = StimulusPrescriptionOwnerIdentity("bird-dog", "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT")
+        val ownerRef = StimulusPrescriptionOwner(owner.stableKey, owner.selectionRole)
+        val coreWeightSource = "USER_APPROVED_PROJECT_POLICY_CORE_REPETITION_ANCHOR_8"
+        val rows = (1..2).map { week -> item(owner.stableKey).copy(
+            localId = "bird-$week", weekNumber = week, selectionRole = owner.selectionRole, setCount = 4,
+            restSeconds = 60, weightSource = coreWeightSource,
+            setPrescriptions = List(4) { ProgramSetPrescription(it + 1, 8, 0.0, 0,
+                loadState = com.training.trackplanner.data.ProgramLoadState.NOT_APPLICABLE) }
+        ) }
+        val prescription = PlannedPrescription("4 sets × 8 reps per side", rows.first().setPrescriptions, 60,
+            coreWeightSource)
+        val authorization = StimulusPrescriptionAuthorization(
+            targetId = target.targetId,
+            quality = null,
+            owner = ownerRef,
+            source = StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE,
+            inputPrescription = prescription,
+            plannedCompatibility = null,
+            authorizedPrescription = prescription,
+            status = StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+            reasonCodes = listOf("CORE_B6_EXACT_OWNER_SHAPE"),
+            executionAuthority = StimulusPrescriptionExecutionAuthority.FULLY_ENCODED
+        )
+        val movementB6 = StimulusMovementB6Authorization(
+            targetId = target.targetId, owner = owner,
+            status = StimulusMovementB6Status.AUTHORIZED_CORE_DIRECT_B6,
+            reasonCodes = listOf("B6_CONSUMED_EXACT_B4_CORE_RESIDUAL")
+        )
+        val selection = StimulusSelectedCandidate(
+            stableKey = owner.stableKey, coveredTargetIds = setOf(target.targetId),
+            primaryTargetId = target.targetId, selectionReasons = listOf("B5_EXACT_CORE_OWNER"),
+            currentPrescriptionCompatibility = "EXACT_CORE_SHAPE", targetSetsFromExistingPrescription = 0,
+            selectionRole = owner.selectionRole
+        )
+        val base = comparison(
+            controlItems = emptyList(), experimentalItems = rows, selectedCandidate = null
+        )
+        val materialDemand = MaterialDemand(listOf(PlannedExercise(owner.stableKey, owner.selectionRole,
+            "B4 Core residual", 100, targetSets = 4)), emptyMap(), emptyMap())
+        val authorizationPlan = StimulusPrescriptionAuthorizationPlan(
+            authorizations = listOf(authorization),
+            movementAuthorizations = listOf(movementB6),
+            movementOwnerPrescriptions = mapOf(owner to prescription)
+        )
+        val withCore = base.copy(
+            targetPlan = StimulusTargetPlan(emptyList(), emptyList(), emptyList(), movementTargets = listOf(target)),
+            selectionPlan = base.selectionPlan.copy(selectedCandidates = listOf(selection), materialDemand = materialDemand),
+            prescriptionAuthorizationPlan = authorizationPlan
+        ).let { comparison ->
+            comparison.copy(prescriptionMaterializationAudits = StimulusPrescriptionMaterializationAuditEngine()
+                .audit(authorizationPlan, comparison.experimental, PlanningHistorySnapshot(
+                    cutoff = java.time.LocalDate.of(2026, 9, 19), allConfirmedSets = emptyList(), exercises = emptyMap(),
+                    metadata = emptyMap(), badmintonObjectives = emptyMap(), profilePrimaryGoal = "GENERAL_FITNESS",
+                    strengthTrainingYears = 0.0, badmintonTrainingYears = 0.0, preferences = PersonalizedPlanningPreferences()
+                )))
+        }
+        val audit = StimulusExperimentalReadinessAuditEngine().audit(withCore)
+        assertEquals(StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED,
+            withCore.prescriptionMaterializationAudits.single().state)
+        assertEquals(StimulusExperimentalTargetOutcomeStatus.IMPROVED, audit.targetOutcomes.single().status)
+        assertTrue(audit.materializationIntegrityPassed)
+
+        val withoutGrant = withCore.copy(
+            prescriptionAuthorizationPlan = authorizationPlan.copy(movementAuthorizations = emptyList())
+        ).let { comparison ->
+            comparison.copy(prescriptionMaterializationAudits = StimulusPrescriptionMaterializationAuditEngine()
+                .audit(requireNotNull(comparison.prescriptionAuthorizationPlan), comparison.experimental, PlanningHistorySnapshot(
+                    cutoff = java.time.LocalDate.of(2026, 9, 19), allConfirmedSets = emptyList(), exercises = emptyMap(),
+                    metadata = emptyMap(), badmintonObjectives = emptyMap(), profilePrimaryGoal = "GENERAL_FITNESS",
+                    strengthTrainingYears = 0.0, badmintonTrainingYears = 0.0, preferences = PersonalizedPlanningPreferences()
+                )))
+        }
+        val rejected = StimulusExperimentalReadinessAuditEngine().audit(withoutGrant)
+        assertFalse(rejected.materializationIntegrityPassed)
+        assertTrue(rejected.reasonCodes.contains("B6_REJECTED_CORE_OWNER_WEEK_MATERIALIZED"))
+        assertEquals(StimulusExperimentalTargetOutcomeStatus.NO_AUTHORITY, rejected.targetOutcomes.single().status)
+    }
+
+    @Test
+    fun exactCoreB6ClosesSameExerciseRoleReplacementButMissingGrantDoesNot() {
+        fun fixture(includeCoreGrant: Boolean, requireUserInput: Boolean = false): StimulusSelectionProgramComparison {
+            val key = "ex_28347c1f"
+            val oldRole = "COVERAGE_CORE_DIRECT"
+            val newRole = "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT"
+            val targetId = "MOVEMENT:CORE_DIRECT"
+            val oldOwner = StimulusPrescriptionOwnerIdentity(key, oldRole)
+            val owner = StimulusPrescriptionOwnerIdentity(key, newRole)
+            val target = StimulusMovementTarget(
+                movementCoverage = MovementCoverage.CORE_DIRECT,
+                priority = TargetPriority.PRIMARY,
+                numericAuthority = StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY,
+                reasonCodes = listOf("EXACT_CORE_NEED"),
+                evidence = listOf("CANONICAL_DIRECT_CORE_PROFILE"),
+                regionalDoseTargets = listOf(StimulusMovementDoseTarget(
+                    kind = StimulusMovementDoseKind.CORE_DIRECT_CONTROL_SET,
+                    numericAuthority = StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY,
+                    weeklyTarget = 6.0,
+                    reasonCodes = listOf("USER_APPROVED_CORE_COLD_START"),
+                    shapeAuthority = StimulusMovementDoseShapeAuthority.CORE_DIRECT_SET_DOSE_EXACT_OWNER_SHAPE_REQUIRED,
+                    existingEquivalentExposure = 2.0,
+                    residualEquivalentExposure = 4.0,
+                    authorizedWholeSetUnits = 4
+                ))
+            )
+            val candidate = StimulusSelectedCandidate(
+                stableKey = key,
+                coveredTargetIds = setOf(targetId),
+                primaryTargetId = targetId,
+                selectionReasons = listOf("B5_EXACT_CORE_OWNER"),
+                currentPrescriptionCompatibility = "EXACT_CORE_SHAPE",
+                targetSetsFromExistingPrescription = 0,
+                selectionRole = newRole
+            )
+            val disposition = StimulusCandidateDisposition(
+                targetId = targetId,
+                stableKey = key,
+                canonicalSelectionRole = newRole,
+                directTargetCandidate = true,
+                selectionRequired = true,
+                status = StimulusCandidateDispositionStatus.SELECTED,
+                reasons = emptyList()
+            )
+            val coreWeightSource = "USER_APPROVED_PROJECT_POLICY_CORE_REPETITION_ANCHOR_8"
+            val sets = List(4) { ProgramSetPrescription(
+                setIndex = it + 1, reps = 8, weightKg = 0.0, seconds = 0,
+                loadState = if (requireUserInput) com.training.trackplanner.data.ProgramLoadState.USER_CALIBRATION_REQUIRED
+                    else com.training.trackplanner.data.ProgramLoadState.NOT_APPLICABLE
+            ) }
+            val prescription = PlannedPrescription("4 sets × 8 reps per side", sets, 60, coreWeightSource)
+            val materialized = item(key).copy(
+                localId = "core-week-1", weekNumber = 1, selectionRole = newRole,
+                setCount = 4, restSeconds = 60, weightSource = coreWeightSource,
+                setPrescriptions = sets
+            )
+            val base = comparison(
+                controlItems = listOf(item(key).copy(selectionRole = oldRole)),
+                experimentalItems = listOf(materialized),
+                selectedCandidate = candidate
+            )
+            val authorization = StimulusPrescriptionAuthorization(
+                targetId = targetId,
+                quality = null,
+                owner = StimulusPrescriptionOwner(key, newRole),
+                source = StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE,
+                inputPrescription = prescription,
+                plannedCompatibility = null,
+                authorizedPrescription = prescription,
+                status = if (requireUserInput) StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
+                    else StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                reasonCodes = listOf("CORE_B6_EXACT_OWNER_SHAPE"),
+                executionAuthority = if (requireUserInput) StimulusPrescriptionExecutionAuthority.REQUIRES_USER_LOAD_INPUT
+                    else StimulusPrescriptionExecutionAuthority.FULLY_ENCODED,
+                authorityRecovery = if (requireUserInput) ExecutionAuthorityResolution(
+                    status = ExecutionAuthorityResolutionStatus.USER_INPUT_REQUIRED,
+                    reason = ExecutionAuthorityResolutionReason.RESISTANCE_LOAD_UNAVAILABLE,
+                    returnTarget = ExecutionAuthorityReturnTarget.EXPLICIT_USER_INPUT,
+                    originalOwner = owner,
+                    attemptedOwners = listOf(owner),
+                    finalOwner = owner
+                ) else null
+            )
+            val plan = StimulusPrescriptionAuthorizationPlan(
+                authorizations = listOf(authorization),
+                movementAuthorizations = if (includeCoreGrant) listOf(StimulusMovementB6Authorization(
+                    targetId = targetId, owner = owner,
+                    status = StimulusMovementB6Status.AUTHORIZED_CORE_DIRECT_B6,
+                    reasonCodes = listOf("B6_CONSUMED_EXACT_B4_CORE_RESIDUAL")
+                )) else emptyList(),
+                movementOwnerPrescriptions = mapOf(owner to prescription)
+            )
+            val exactMaterializationTrace = StimulusCandidateMaterializationTrace(
+                targetId = targetId,
+                selectedStableKey = key,
+                selectedAtB5 = true,
+                directIdentityVerifiedAtSelection = true,
+                presentInFinalExperimentalSkeleton = true,
+                finalWeeklyOccurrences = 1,
+                finalTotalSetUnits = 4,
+                directIdentityStillValid = true,
+                realizedTargetStatus = "DIRECT_PRESENT",
+                reasonCodes = listOf("EXACT_CORE_MATERIALIZED"),
+                selectionRole = newRole
+            )
+            return base.copy(
+                targetPlan = StimulusTargetPlan(emptyList(), emptyList(), emptyList(), movementTargets = listOf(target)),
+                selectionPlan = base.selectionPlan.copy(
+                    materialDemand = MaterialDemand(
+                        listOf(PlannedExercise(key, newRole, "B4 Core residual", 100, targetSets = 4)),
+                        emptyMap(), emptyMap()
+                    ),
+                    candidateDispositionIndex = StimulusCandidateDispositionIndex(listOf(disposition))
+                ),
+                prescriptionAuthorizationPlan = plan,
+                materializationTraces = listOf(exactMaterializationTrace),
+                nonSelectionProvenance = listOf(StimulusNonSelectionProvenance(
+                    omittedControlOwner = oldOwner,
+                    classification = StimulusNonSelectionClassification.CANONICAL_REPLACEMENT,
+                    targetEvidence = listOf(StimulusTargetNonSelectionProvenance(
+                        targetId = targetId,
+                        classification = StimulusNonSelectionClassification.CANONICAL_REPLACEMENT,
+                        disposition = disposition
+                    ))
+                ))
+            )
+        }
+
+        val withExactGrant = StimulusExperimentalReadinessAuditEngine().audit(fixture(includeCoreGrant = true))
+        val coreRemoval = withExactGrant.changeAttributions.single {
+            it.stableKey == "ex_28347c1f" && it.selectionRole == "COVERAGE_CORE_DIRECT"
+        }
+        assertEquals(StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY, coreRemoval.source)
+        assertTrue(coreRemoval.targetIds.contains("MOVEMENT:CORE_DIRECT"))
+        assertTrue(coreRemoval.reasonCodes.contains("B6_AUTHORIZED_CORE_DIRECT_MOVEMENT_REPLACEMENT"))
+        assertTrue(coreRemoval.evidenceSources.contains("EXACT_B6_CORE_DIRECT_AUTHORITY"))
+        assertFalse(coreRemoval.reasonCodes.contains("UNEXPLAINED_REMOVED_IDENTITY"))
+
+        val awaitingLoadInput = StimulusExperimentalReadinessAuditEngine().audit(
+            fixture(includeCoreGrant = true, requireUserInput = true)
+        )
+        val inputRequiredRemoval = awaitingLoadInput.changeAttributions.single {
+            it.stableKey == "ex_28347c1f" && it.selectionRole == "COVERAGE_CORE_DIRECT"
+        }
+        assertEquals(StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY, inputRequiredRemoval.source)
+        assertTrue(inputRequiredRemoval.evidenceSources.contains("EXACT_B6_CORE_DIRECT_AUTHORITY"))
+
+        val withoutExactGrant = StimulusExperimentalReadinessAuditEngine().audit(fixture(includeCoreGrant = false))
+        val unexplained = withoutExactGrant.changeAttributions.single {
+            it.stableKey == "ex_28347c1f" && it.selectionRole == "COVERAGE_CORE_DIRECT"
+        }
+        assertEquals(StimulusExperimentalChangeAttributionSource.UNEXPLAINED, unexplained.source)
+        assertTrue(unexplained.reasonCodes.contains("UNEXPLAINED_REMOVED_IDENTITY"))
+    }
+
+    @Test
     fun directionOnlyPresenceUsesDirectPresenceSemantics() {
         val target = qualityTarget(StimulusTargetNumericAuthority.DIRECTION_ONLY, null)
         val comparison = comparison(

@@ -283,7 +283,7 @@ class RegionalAuthorityTest {
     }
 
     @Test
-    fun canonicalMovementB4CarriesRegionalHypertrophyAndCoreDoseWithoutInventingCoreShape() {
+    fun canonicalMovementB4CarriesRegionalDoseAndDefersCoreShapeToExactOwner() {
         val key = "new-horizontal-press"
         val metadata = RuntimeExerciseMetadataDefaults.forIdentity(key, key).copy(
             activityKind = "EXERCISE", programSlot = "MAIN_UPPER_STRENGTH", planningEligibility = "PROGRAM_SELECTABLE"
@@ -327,9 +327,108 @@ class RegionalAuthorityTest {
         assertEquals(StimulusMovementDoseKind.CORE_DIRECT_CONTROL_SET, core.kind)
         assertEquals(StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY, core.numericAuthority)
         assertEquals(6.0, core.weeklyTarget!!, 0.0)
-        assertEquals(StimulusMovementDoseShapeAuthority.NONE, core.shapeAuthority)
-        assertTrue(core.reasonCodes.contains("CORE_PRESCRIPTION_SHAPE_AUTHORITY_UNAVAILABLE"))
-        assertTrue(core.evidence.contains("prescriptionShapeAuthority=NONE"))
+        assertEquals(StimulusMovementDoseShapeAuthority.CORE_DIRECT_SET_DOSE_EXACT_OWNER_SHAPE_REQUIRED, core.shapeAuthority)
+        assertTrue(core.reasonCodes.contains("CORE_B6_SHAPE_RESOLVED_PER_EXACT_OWNER"))
+        assertTrue(core.evidence.contains("prescriptionShapeAuthority=EXACT_B5_OWNER_METADATA_OR_PERSONAL_HISTORY_REQUIRED"))
+    }
+
+    @Test
+    fun coreDirectB6ConsumesExactB4SetsAndUsesOnlyApprovedOwnerShapeEvidence() {
+        val key = "bird-dog"
+        val date = LocalDate.of(2026, 9, 18)
+        val exercise = Exercise(
+            stableKey = key,
+            name = "Bird dog",
+            category = "CORE",
+            mode = "맨몸, 좌우 횟수",
+            equipment = "BODYWEIGHT"
+        )
+        val snapshot = PlanningHistorySnapshot(
+            cutoff = date.plusDays(1),
+            allConfirmedSets = emptyList(),
+            exercises = mapOf(key to exercise),
+            metadata = mapOf(key to RuntimeExerciseMetadataDefaults.forExercise(exercise)),
+            badmintonObjectives = emptyMap(),
+            profilePrimaryGoal = "GENERAL_FITNESS",
+            strengthTrainingYears = 0.0,
+            badmintonTrainingYears = 0.0,
+            preferences = PersonalizedPlanningPreferences()
+        )
+        val catalog = CanonicalCoreCatalog.of(listOf(CanonicalCoreProfile(key, CoreClass.DIRECT, CoreDirectTarget.BRACING)))
+        val owner = PlannedExercise(
+            stableKey = key,
+            role = "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT",
+            reason = "B4 residual",
+            priority = 100,
+            targetSets = 4
+        )
+
+        val result = RegionalTargetPrescriptionResolver().resolveCoreDirect(owner, snapshot, catalog, requestedSets = 4)
+        val prescription = requireNotNull(result.prescription)
+        assertEquals(4, prescription.sets.size)
+        assertTrue(prescription.sets.all { it.reps == 8 && it.seconds == 0 })
+        assertTrue(prescription.sets.all { it.targetRpeMin == null })
+        assertTrue(prescription.sets.all { it.loadState == ProgramLoadState.NOT_APPLICABLE })
+        assertTrue(prescription.text.contains("4 sets × 8 reps per side"))
+        assertTrue(result.reasonCodes.contains("B6_SET_COUNT_EQUALS_B4_RESIDUAL"))
+        assertNull(RegionalTargetPrescriptionResolver().resolveCoreDirect(owner, snapshot, catalog, requestedSets = 3).prescription)
+    }
+
+    @Test
+    fun coreDirectDurationRequiresExactPersonalHistoryAndDoesNotInventSeconds() {
+        val key = "static-core"
+        val date = LocalDate.of(2026, 9, 18)
+        val exercise = Exercise(
+            stableKey = key,
+            name = "Static hold",
+            category = "CORE",
+            mode = "맨몸, 시간",
+            equipment = "BODYWEIGHT"
+        )
+        val metadata = RuntimeExerciseMetadataDefaults.forExercise(exercise)
+        val catalog = CanonicalCoreCatalog.of(listOf(CanonicalCoreProfile(key, CoreClass.DIRECT, CoreDirectTarget.BRACING)))
+        fun snapshot(history: List<PlanningSetRecord>) = PlanningHistorySnapshot(
+            cutoff = date.plusDays(1), allConfirmedSets = history, exercises = mapOf(key to exercise),
+            metadata = mapOf(key to metadata), badmintonObjectives = emptyMap(), profilePrimaryGoal = "GENERAL_FITNESS",
+            strengthTrainingYears = 0.0, badmintonTrainingYears = 0.0, preferences = PersonalizedPlanningPreferences()
+        )
+        val owner = PlannedExercise(key, "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT", "B4 residual", 100, targetSets = 2)
+        val resolver = RegionalTargetPrescriptionResolver()
+        assertNull(resolver.resolveCoreDirect(owner, snapshot(emptyList()), catalog, 2).prescription)
+        val history = PlanningSetRecord(date, key, exercise.name, exercise.category, 1, 0, 0.0, 45, null)
+        val result = resolver.resolveCoreDirect(owner, snapshot(listOf(history)), catalog, 2)
+        val prescription = requireNotNull(result.prescription)
+        assertEquals(2, prescription.sets.size)
+        assertTrue(prescription.sets.all { it.reps == 0 && it.seconds == 45 })
+        assertTrue(prescription.sets.all { it.loadState == ProgramLoadState.NOT_APPLICABLE })
+        assertTrue(result.reasonCodes.contains("CORE_DIRECT_EXACT_PERSONAL_DURATION_REUSED"))
+    }
+
+    @Test
+    fun coreDirectUnknownExternalLoadRemainsUserCalibrationRequired() {
+        val key = "loaded-core"
+        val exercise = Exercise(
+            stableKey = key,
+            name = "Loaded carry",
+            category = "CORE",
+            mode = "맨몸, 좌우 횟수",
+            equipment = "DUMBBELL"
+        )
+        val snapshot = PlanningHistorySnapshot(
+            cutoff = LocalDate.of(2026, 9, 19), allConfirmedSets = emptyList(), exercises = mapOf(key to exercise),
+            metadata = mapOf(key to RuntimeExerciseMetadataDefaults.forExercise(exercise)), badmintonObjectives = emptyMap(),
+            profilePrimaryGoal = "GENERAL_FITNESS", strengthTrainingYears = 0.0, badmintonTrainingYears = 0.0,
+            preferences = PersonalizedPlanningPreferences()
+        )
+        val catalog = CanonicalCoreCatalog.of(listOf(CanonicalCoreProfile(key, CoreClass.DIRECT, CoreDirectTarget.BRACING)))
+        val owner = PlannedExercise(key, "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT", "B4 residual", 100, targetSets = 3)
+        val result = RegionalTargetPrescriptionResolver().resolveCoreDirect(owner, snapshot, catalog, 3)
+        val prescription = requireNotNull(result.prescription)
+        assertEquals(3, prescription.sets.size)
+        assertTrue(prescription.sets.all {
+            it.weightKg == 0.0 && it.loadState == ProgramLoadState.USER_CALIBRATION_REQUIRED
+        })
+        assertTrue(result.reasonCodes.contains("USER_INPUT_REQUIRED_FOR_EXTERNAL_LOAD"))
     }
 
     @Test

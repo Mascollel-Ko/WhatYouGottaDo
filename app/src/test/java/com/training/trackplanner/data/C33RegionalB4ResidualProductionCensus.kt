@@ -90,12 +90,14 @@ internal object C33RegionalB4ResidualProductionCensus {
                 val isCore = dose?.kind == StimulusMovementDoseKind.CORE_DIRECT_CONTROL_SET
                 if (isCore) coreTargets++
 
-                val authorization = authorizationPlan.authorizations.singleOrNull {
-                    it.targetId == movement.targetId && it.quality == TrainableQuality.HYPERTROPHY
+                val targetAuthorizations = authorizationPlan.authorizations.filter {
+                    it.targetId == movement.targetId && it.quality == (if (isCore) null else TrainableQuality.HYPERTROPHY)
                 }
-                val audit = comparison.prescriptionMaterializationAudits.singleOrNull {
-                    it.targetId == movement.targetId && it.quality == TrainableQuality.HYPERTROPHY
+                val authorization = targetAuthorizations.singleOrNull()
+                val targetMaterializationAudits = comparison.prescriptionMaterializationAudits.filter {
+                    it.targetId == movement.targetId && it.quality == (if (isCore) null else TrainableQuality.HYPERTROPHY)
                 }
+                val audit = targetMaterializationAudits.singleOrNull()
                 val movementAuthorization = authorizationPlan.movementAuthorizations.singleOrNull {
                     it.targetId == movement.targetId
                 }
@@ -118,16 +120,30 @@ internal object C33RegionalB4ResidualProductionCensus {
                     }
                 if (dose == null) targetsWithoutRegionalDoseAuthority++
                 if (nonAdditiveExistingSatisfaction) nonAdditivelySatisfiedTargets++
-                val owner = regionalOwner ?: movementAuthorization?.owner
+                val owner = regionalOwner ?: movementAuthorization?.owner ?: selected.singleOrNull()?.let {
+                    com.training.trackplanner.data.personalized.StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole)
+                }
+                val exactMovementB6 = !isCore || (
+                    movementAuthorization?.status == StimulusMovementB6Status.AUTHORIZED_CORE_DIRECT_B6 &&
+                        movementAuthorization.owner == owner && owner != null &&
+                        authorizationPlan.movementOwnerPrescriptions[owner] == authorization?.authorizedPrescription
+                    )
                 val exactAuthorization = authorization != null && authorization.authorizedPrescription != null &&
-                    authorization.status in executableStatuses && regionalOwner != null &&
-                    selected.any { it.stableKey == regionalOwner.stableKey && it.selectionRole == regionalOwner.selectionRole } &&
+                    authorization.status in executableStatuses && owner != null && exactMovementB6 &&
+                    selected.any { it.stableKey == owner.stableKey && it.selectionRole == owner.selectionRole } &&
                     authorization.authorizedPrescription.sets.size == units
-                val targetRows = if (!exactAuthorization || owner == null) emptyList() else comparison.experimental.items.filter {
+                val targetRows = if (owner == null) emptyList() else comparison.experimental.items.filter {
                     it.exerciseStableKey == owner.stableKey && it.selectionRole == owner.selectionRole
                 }
                 val allocationEvents = if (owner == null) emptyList() else comparison.experimental.personalizedDecision
                     ?.planningBudget?.execution?.ownerAllocationProvenance.orEmpty().filter {
+                        it.owner.stableKey == owner.stableKey && it.owner.selectionRole == owner.selectionRole
+                    }
+                val authorizedDemandCandidates = if (owner == null) emptyList() else selection.materialDemand.candidates.filter {
+                    it.stableKey == owner.stableKey && it.role == owner.selectionRole
+                }
+                val boundedOwnerRows = if (owner == null) emptyList() else comparison.experimental.personalizedDecision
+                    ?.frequencyDemand?.boundedMaterialAllocation?.owners.orEmpty().filter {
                         it.owner.stableKey == owner.stableKey && it.owner.selectionRole == owner.selectionRole
                     }
                 val finiteCapacityEvents = allocationEvents.filter {
@@ -181,7 +197,7 @@ internal object C33RegionalB4ResidualProductionCensus {
                 actualMaterialUnits += materializedUnits
                 val candidateOwners = selected.map { it.stableKey to it.selectionRole }.toSet()
                 if (candidateOwners.size > 1) duplicateCreditTargets++
-                val unauthorizedForTarget = if (isCore == true || nonAdditiveExistingSatisfaction || exactAuthorization) emptyList() else targetRows
+                val unauthorizedForTarget = if (nonAdditiveExistingSatisfaction || exactAuthorization) emptyList() else targetRows
                 unauthorizedRows += unauthorizedForTarget.size
                 if (isCore) coreMaterialRows += targetRows.sumOf { it.setPrescriptions.size }
                 if (targetOverrun > 0) overfilledTargets++
@@ -250,9 +266,21 @@ internal object C33RegionalB4ResidualProductionCensus {
                     .put("rejectedCandidateCount", rejectedKeys.size)
                     .put("rejectedCandidates", JSONArray(rejected))
                     .put("b6Status", b6Status)
+                    .put("b6AuthorizationRowCount", targetAuthorizations.size)
+                    .put("materializationAuditRowCount", targetMaterializationAudits.size)
                     .put("nonAdditiveExistingSatisfaction", nonAdditiveExistingSatisfaction)
                     .put("existingAuthorizedPhysicalSetCount", existingOwnerRows.sumOf { it.setPrescriptions.size })
                     .put("b6ReasonCodes", JSONArray(authorization?.reasonCodes.orEmpty().sorted()))
+                    .put("selectedDemandCandidateCount", authorizedDemandCandidates.size)
+                    .put("selectedDemandCandidates", JSONArray(authorizedDemandCandidates.map { candidate -> JSONObject()
+                        .put("stableKey", candidate.stableKey).put("selectionRole", candidate.role)
+                        .put("targetSets", candidate.targetSets).put("material", candidate.material)
+                    }))
+                    .put("boundedAllocationRows", JSONArray(boundedOwnerRows.map { it.toJson() }))
+                    .put("exactOwnerExperimentalRows", JSONArray(targetRows.map { row -> JSONObject()
+                        .put("week", row.weekNumber).put("day", row.dayOfWeek).put("sets", row.setPrescriptions.size)
+                        .put("reps", row.reps).put("seconds", row.seconds).put("loadState", row.setPrescriptions.firstOrNull()?.loadState?.name)
+                    }))
                     .put("prescriptionSource", authorization?.authorizedPrescription?.weightSource)
                     .put("reps", authorization?.authorizedPrescription?.sets?.firstOrNull()?.reps)
                     .put("targetRpeMin", authorization?.authorizedPrescription?.sets?.firstOrNull()?.targetRpeMin)
@@ -278,9 +306,9 @@ internal object C33RegionalB4ResidualProductionCensus {
                     .put("materializationDisposition", when {
                         units == 0 && nonAdditiveExistingSatisfaction -> "SATISFIED_BY_EXISTING_AUTHORIZED_MATERIAL"
                         dose == null -> "NO_REGIONAL_NUMERIC_DOSE_AUTHORITY"
-                        isCore == true -> "UNRESOLVED_CORE_PRESCRIPTION_SHAPE_AUTHORITY"
                         exactAuthorization && audit?.state == StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED -> "MATERIALIZED_EXACT_B4_RESIDUAL"
                         exactAuthorization && finiteCapacityEvents.isNotEmpty() -> "UNMATERIALIZED_FINITE_CAPACITY_LIMIT"
+                        isCore == true && authorization?.authorizedPrescription == null -> "UNRESOLVED_CORE_PRESCRIPTION_SHAPE_AUTHORITY"
                         candidatePool.isEmpty() -> "NO_ELIGIBLE_B5_OWNER"
                         exactAuthorization -> "AUTHORIZED_BUT_OTHER_MATERIALIZATION_SHORTFALL"
                         else -> "NO_EXECUTABLE_B6_AUTHORITY"

@@ -1179,13 +1179,47 @@ class TrainingRepository internal constructor(
         existingProgramId: Long?,
         skeleton: GeneratedProgramSkeleton
     ): Long = cloudMutation(CloudMutationScope.PROGRAMS) {
-        programPlanService.saveGeneratedProgram(existingProgramId, skeleton).also { programId ->
-            skeleton.personalizedDecision?.let { decision ->
+        val finalSkeleton = skeleton.replacementReview?.let { review ->
+            ProgramReplacementSaveGate.requireSaveable(skeleton)
+            if (!ProgramReplacementSaveGate.requiresFreshValidation(skeleton)) skeleton else {
+                val freshIncumbentIndex = programPlanService.canonicalIncumbentPlacementIndex(existingProgramId)
+                val revalidated = personalizedProgramPlanningService.validateReplacementSelection(
+                    currentDraft = skeleton,
+                    selectedOptionIds = review.appliedOptionIds,
+                    currentMetadata = exerciseMetadataEditorService.resolvedRuntimeMetadataByExerciseStableKey(),
+                    currentIncumbentPlacementIndex = freshIncumbentIndex
+                )
+                if (ProgramReplacementReviewFingerprint.create(revalidated) !=
+                    ProgramReplacementReviewFingerprint.create(skeleton)
+                ) throw ProgramReplacementSaveRejectedException("REPLACEMENT_CHANGED_DURING_SAVE_REVALIDATION")
+                revalidated.copy(
+                    replacementReview = revalidated.replacementReview?.copy(
+                        appliedOptionIds = review.appliedOptionIds
+                    )
+                )
+            }
+        } ?: skeleton
+        programPlanService.saveGeneratedProgram(existingProgramId, finalSkeleton).also { programId ->
+            finalSkeleton.personalizedDecision?.let { decision ->
                 val stableKey = requireNotNull(programPlanService.programStableKey(programId))
-                val fingerprint = personalizedProgramFingerprint(skeleton.request, skeleton.items)
+                val fingerprint = personalizedProgramFingerprint(finalSkeleton.request, finalSkeleton.items)
                 personalizedProgramPlanningService.persistDecision(programId, stableKey, decision, fingerprint)
             }
         }
+    }
+
+    suspend fun validateProgramReplacementSelection(
+        skeleton: GeneratedProgramSkeleton,
+        selectedOptionIds: Set<String>,
+        existingProgramId: Long? = null
+    ): GeneratedProgramSkeleton = withContext(Dispatchers.IO) {
+        val freshIncumbentIndex = programPlanService.canonicalIncumbentPlacementIndex(existingProgramId)
+        personalizedProgramPlanningService.validateReplacementSelection(
+            currentDraft = skeleton,
+            selectedOptionIds = selectedOptionIds,
+            currentMetadata = exerciseMetadataEditorService.resolvedRuntimeMetadataByExerciseStableKey(),
+            currentIncumbentPlacementIndex = freshIncumbentIndex
+        )
     }
 
     suspend fun deleteProgram(programId: Long) = withContext(Dispatchers.IO) {

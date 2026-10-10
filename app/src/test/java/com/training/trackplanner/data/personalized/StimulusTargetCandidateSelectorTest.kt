@@ -1,5 +1,9 @@
 package com.training.trackplanner.data.personalized
 
+import com.training.trackplanner.analysis.core.CanonicalCoreCatalog
+import com.training.trackplanner.analysis.core.CanonicalCoreProfile
+import com.training.trackplanner.analysis.core.CoreClass
+import com.training.trackplanner.analysis.core.CoreDirectTarget
 import com.training.trackplanner.data.CanonicalExercisePhysicalQualityCatalog
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.ExercisePhysicalQualityRelation
@@ -25,6 +29,128 @@ import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class StimulusTargetCandidateSelectorTest {
+    @Test
+    fun regionalResidualSkipsTopRankedCandidateWithoutExactB6AndUsesNextEligibleOwner() {
+        val first = exercise("a_candidate")
+        val second = exercise("b_candidate")
+        val base = fixture(
+            listOf(first, second),
+            listOf(relation("a_candidate", quality = TrainableQuality.HYPERTROPHY).copy(regionQualifier = PhysicalQualityRegion.ARMS),
+                relation("b_candidate", quality = TrainableQuality.HYPERTROPHY).copy(regionQualifier = PhysicalQualityRegion.ARMS))
+        )
+        val snapshot = base.snapshot.copy(metadata = base.snapshot.metadata.mapValues { (_, value) ->
+            value.copy(programSlot = "BICEPS_ACCESSORY")
+        })
+        val target = StimulusMovementTarget(
+            movementCoverage = MovementCoverage.ARMS_BICEPS,
+            priority = TargetPriority.PRIMARY,
+            reasonCodes = listOf("B3_ADDRESS"),
+            evidence = listOf("direct exposure gap"),
+            regionalDoseTargets = listOf(StimulusMovementDoseTarget(
+                kind = StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET,
+                numericAuthority = StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY,
+                weeklyTarget = 8.0,
+                reasonCodes = listOf("COLD_START"),
+                shapeAuthority = StimulusMovementDoseShapeAuthority.HYPERTROPHY_BAND_8_12_PERSONAL_7_15_RPE_7_USER_LOAD_CALIBRATION,
+                existingEquivalentExposure = 4.0,
+                residualEquivalentExposure = 4.0,
+                authorizedWholeSetUnits = 4,
+                residualReasonCodes = listOf("B4_RESIDUAL_DOSE_AUTHORIZED")
+            ))
+        )
+        val plan = StimulusTargetPlan(emptyList(), emptyList(), emptyList(), movementTargets = listOf(target))
+        val selection = StimulusTargetCandidateSelector().build(
+            targetPlan = plan,
+            snapshot = snapshot,
+            state = base.state,
+            request = base.request,
+            physicalQualityCatalog = base.catalog,
+            movementCandidateRejectionReason = { _, key, _, _ ->
+                if (key == "a_candidate") "NO_EXECUTABLE_B6" else null
+            }
+        )
+
+        assertEquals(listOf("a_candidate", "b_candidate"), selection.traces.single().candidatePool)
+        assertEquals("b_candidate", selection.selectedCandidates.single().stableKey)
+        assertEquals(4, selection.materialDemand.candidates.single().targetSets)
+        assertEquals("NO_EXECUTABLE_B6", selection.traces.single().candidateRejectionReasons["a_candidate"])
+        assertTrue(selection.traces.single().reasonCodes.contains("B5_SKIPPED_HIGHER_RANKED_CANDIDATE_WITHOUT_EXACT_B6"))
+        val rejected = selection.candidateDispositionIndex.entries.single { it.stableKey == "a_candidate" }
+        assertEquals(StimulusCandidateDispositionStatus.MATERIALIZATION_FAILED, rejected.status)
+    }
+
+    @Test
+    fun regionalResidualDoesNotMaterializeWhenEveryRankedOwnerLacksExactB6() {
+        val exercise = exercise("a_candidate")
+        val base = fixture(listOf(exercise), listOf(
+            relation("a_candidate", quality = TrainableQuality.HYPERTROPHY).copy(regionQualifier = PhysicalQualityRegion.ARMS)
+        ))
+        val snapshot = base.snapshot.copy(metadata = base.snapshot.metadata.mapValues { (_, value) ->
+            value.copy(programSlot = "BICEPS_ACCESSORY")
+        })
+        val target = StimulusMovementTarget(
+            MovementCoverage.ARMS_BICEPS, TargetPriority.PRIMARY,
+            reasonCodes = listOf("B3_ADDRESS"), evidence = listOf("direct exposure gap"),
+            regionalDoseTargets = listOf(StimulusMovementDoseTarget(
+                StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET,
+                StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY,
+                8.0, listOf("COLD_START"),
+                shapeAuthority = StimulusMovementDoseShapeAuthority.HYPERTROPHY_BAND_8_12_PERSONAL_7_15_RPE_7_USER_LOAD_CALIBRATION,
+                existingEquivalentExposure = 0.0, residualEquivalentExposure = 4.0,
+                authorizedWholeSetUnits = 4, residualReasonCodes = listOf("B4_RESIDUAL_DOSE_AUTHORIZED")
+            ))
+        )
+        val selection = StimulusTargetCandidateSelector().build(
+            StimulusTargetPlan(emptyList(), emptyList(), emptyList(), movementTargets = listOf(target)),
+            snapshot, base.state, base.request, base.catalog,
+            movementCandidateRejectionReason = { _, _, _, _ -> "NO_EXECUTABLE_B6" }
+        )
+
+        assertTrue(selection.materialDemand.candidates.isEmpty())
+        assertTrue(selection.selectedCandidates.isEmpty())
+        assertEquals("MOVEMENT_TARGET_HAS_NO_B5_OWNER_WITH_EXACT_B6_AUTHORITY", selection.traces.single().reasonCodes.first())
+        assertEquals("NO_EXECUTABLE_B6", selection.traces.single().candidateRejectionReasons["a_candidate"])
+    }
+
+    @Test
+    fun forcedPreviewCandidateStillMustPassCanonicalB5AndExactB6Checks() {
+        val first = exercise("a_candidate")
+        val second = exercise("b_candidate")
+        val base = fixture(
+            listOf(first, second),
+            listOf(relation("a_candidate", quality = TrainableQuality.HYPERTROPHY).copy(regionQualifier = PhysicalQualityRegion.ARMS),
+                relation("b_candidate", quality = TrainableQuality.HYPERTROPHY).copy(regionQualifier = PhysicalQualityRegion.ARMS))
+        )
+        val snapshot = base.snapshot.copy(metadata = base.snapshot.metadata.mapValues { (_, value) ->
+            value.copy(programSlot = "BICEPS_ACCESSORY")
+        })
+        val target = StimulusMovementTarget(
+            MovementCoverage.ARMS_BICEPS, TargetPriority.PRIMARY,
+            reasonCodes = listOf("B3_ADDRESS"), evidence = listOf("direct exposure gap"),
+            regionalDoseTargets = listOf(StimulusMovementDoseTarget(
+                StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET,
+                StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY,
+                8.0, listOf("COLD_START"),
+                shapeAuthority = StimulusMovementDoseShapeAuthority.HYPERTROPHY_BAND_8_12_PERSONAL_7_15_RPE_7_USER_LOAD_CALIBRATION,
+                existingEquivalentExposure = 4.0, residualEquivalentExposure = 4.0,
+                authorizedWholeSetUnits = 4, residualReasonCodes = listOf("B4_RESIDUAL_DOSE_AUTHORIZED")
+            ))
+        )
+        val selection = StimulusTargetCandidateSelector().build(
+            StimulusTargetPlan(emptyList(), emptyList(), emptyList(), movementTargets = listOf(target)),
+            snapshot, base.state, base.request, base.catalog,
+            movementCandidateRejectionReason = { _, key, _, _ ->
+                if (key == "b_candidate") "NO_EXECUTABLE_B6" else null
+            },
+            forcedCandidateByTarget = mapOf(target.targetId to "b_candidate")
+        )
+
+        assertTrue("a user-requested preview candidate still fails closed when B6 rejects it",
+            selection.selectedCandidates.isEmpty())
+        assertTrue(selection.materialDemand.candidates.isEmpty())
+        assertEquals("NO_EXECUTABLE_B6", selection.traces.single().candidateRejectionReasons["b_candidate"])
+    }
+
     @Test
     fun strengthTargetWithoutAnApprovedCandidateRemainsATypedShortfall() {
         val offListExercise = exercise("ex_8e4bf08e")
@@ -166,7 +292,7 @@ class StimulusTargetCandidateSelectorTest {
 
     @Test
     fun admittedMovementTargetSelectsCanonicalB5OwnerButDoesNotInventDoseOrB6() {
-        val candidate = exercise("core_candidate")
+        val candidate = exercise("core_candidate", mode = "repetitions")
         val base = fixture(listOf(candidate), emptyList())
         val snapshot = base.snapshot.copy(
             canonicalStrengthSignals = mapOf("dual_authorized_candidate" to CanonicalStrengthSignal(100.0, observationCount = 2)),
@@ -185,7 +311,7 @@ class StimulusTargetCandidateSelectorTest {
         assertEquals(MovementCoverage.CORE_DIRECT, snapshot.movementCoverage("core_candidate"))
         assertEquals("PROGRAM_SELECTABLE", snapshot.metadata.getValue("core_candidate").planningEligibility)
 
-        val selection = StimulusTargetCandidateSelector().build(
+        val selection = StimulusTargetCandidateSelector(coreCatalog = directCoreCatalog("core_candidate")).build(
             targetPlan, snapshot, base.state, base.request, CanonicalExercisePhysicalQualityCatalog.EMPTY
         )
         val selected = selection.selectedCandidates.single()
@@ -227,8 +353,9 @@ class StimulusTargetCandidateSelectorTest {
 
     @Test
     fun movementCandidateDoesNotSuppressLaterCanonicalQualitySelection() {
-        val candidate = exercise("barbell_back_squat")
-        val base = fixture(listOf(candidate), listOf(relation("barbell_back_squat")))
+        val key = "barbell_back_squat"
+        val candidate = exercise(key, mode = "repetitions")
+        val base = fixture(listOf(candidate), listOf(relation(key)))
         val snapshot = base.snapshot.copy(metadata = base.snapshot.metadata.mapValues { (_, metadata) ->
             metadata.copy(activityKind = "EXERCISE", programSlot = "CORE_STABILITY_ACCESSORY", progressMetricType = "LOAD_REPS",
                 analysisEligibility = MetadataTokenField.parse("STRENGTH_PROGRESS"))
@@ -240,15 +367,15 @@ class StimulusTargetCandidateSelectorTest {
         val strength = target(TrainableQuality.STRENGTH, TargetPriority.SECONDARY)
         val targetPlan = StimulusTargetPlan(listOf(strength), emptyList(), emptyList(), movementTargets = listOf(movement))
 
-        val result = StimulusTargetCandidateSelector().build(
+        val result = StimulusTargetCandidateSelector(coreCatalog = directCoreCatalog(key)).build(
             targetPlan, snapshot, base.state, base.request, base.catalog
         )
 
         val strengthTrace = result.traces.single { it.targetId == "QUALITY:STRENGTH" }
         assertTrue(strengthTrace.selectionRequired)
-        assertEquals("barbell_back_squat", strengthTrace.selectedStableKey)
+        assertEquals(key, strengthTrace.selectedStableKey)
         val movementTrace = result.traces.single { it.targetId == movement.targetId }
-        assertEquals("barbell_back_squat", movementTrace.selectedStableKey)
+        assertEquals(key, movementTrace.selectedStableKey)
         assertEquals("CANONICAL_STIMULUS_QUALITY_STRENGTH", movementTrace.selectedSelectionRole)
         assertTrue(movementTrace.reasonCodes.contains("MOVEMENT_COVERED_BY_CANONICAL_B5_OWNER"))
         assertEquals(setOf("QUALITY:STRENGTH", movement.targetId), result.selectedCandidates.single().coveredTargetIds)
@@ -256,10 +383,11 @@ class StimulusTargetCandidateSelectorTest {
 
     @Test
     fun movementTargetReusesOnlyTheExactAuthorizedQualityPrescription() {
-        val candidate = exercise("barbell_back_squat")
-        val base = fixture(listOf(candidate), listOf(relation("barbell_back_squat")))
+        val key = "barbell_back_squat"
+        val candidate = exercise(key, mode = "repetitions")
+        val base = fixture(listOf(candidate), listOf(relation(key)))
         val snapshot = base.snapshot.copy(
-            canonicalStrengthSignals = mapOf("barbell_back_squat" to CanonicalStrengthSignal(100.0, observationCount = 2)),
+            canonicalStrengthSignals = mapOf(key to CanonicalStrengthSignal(100.0, observationCount = 2)),
             metadata = base.snapshot.metadata.mapValues { (_, metadata) ->
                 metadata.copy(activityKind = "EXERCISE", programSlot = "CORE_STABILITY_ACCESSORY", progressMetricType = "LOAD_REPS",
                     analysisEligibility = MetadataTokenField.parse("STRENGTH_PROGRESS"))
@@ -271,11 +399,11 @@ class StimulusTargetCandidateSelectorTest {
         )
         val strength = target(TrainableQuality.STRENGTH, TargetPriority.SECONDARY)
         val targetPlan = StimulusTargetPlan(listOf(strength), emptyList(), emptyList(), movementTargets = listOf(movement))
-        val selection = StimulusTargetCandidateSelector().build(
+        val selection = StimulusTargetCandidateSelector(coreCatalog = directCoreCatalog(key)).build(
             targetPlan, snapshot, base.state, base.request, base.catalog
         )
         val owner = selection.selectedCandidates.single()
-        assertEquals("barbell_back_squat", owner.stableKey)
+        assertEquals(key, owner.stableKey)
         assertEquals("CANONICAL_STIMULUS_QUALITY_STRENGTH", owner.selectionRole)
         assertTrue(movement.targetId in owner.coveredTargetIds)
 
@@ -298,10 +426,11 @@ class StimulusTargetCandidateSelectorTest {
 
     @Test
     fun movementTargetDoesNotReuseSameStableKeyAuthorityFromDifferentRole() {
-        val candidate = exercise("barbell_back_squat")
-        val base = fixture(listOf(candidate), listOf(relation("barbell_back_squat")))
+        val key = "barbell_back_squat"
+        val candidate = exercise(key, mode = "repetitions")
+        val base = fixture(listOf(candidate), listOf(relation(key)))
         val snapshot = base.snapshot.copy(
-            canonicalStrengthSignals = mapOf("barbell_back_squat" to CanonicalStrengthSignal(100.0, observationCount = 2)),
+            canonicalStrengthSignals = mapOf(key to CanonicalStrengthSignal(100.0, observationCount = 2)),
             metadata = base.snapshot.metadata.mapValues { (_, metadata) ->
                 metadata.copy(activityKind = "EXERCISE", programSlot = "CORE_STABILITY_ACCESSORY", progressMetricType = "LOAD_REPS",
                     analysisEligibility = MetadataTokenField.parse("STRENGTH_PROGRESS"))
@@ -313,7 +442,7 @@ class StimulusTargetCandidateSelectorTest {
         )
         val strength = target(TrainableQuality.STRENGTH, TargetPriority.SECONDARY)
         val targetPlan = StimulusTargetPlan(listOf(strength), emptyList(), emptyList(), movementTargets = listOf(movement))
-        val selection = StimulusTargetCandidateSelector().build(
+        val selection = StimulusTargetCandidateSelector(coreCatalog = directCoreCatalog(key)).build(
             targetPlan, snapshot, base.state, base.request, base.catalog
         )
         val selected = selection.selectedCandidates.single()
@@ -589,24 +718,43 @@ class StimulusTargetCandidateSelectorTest {
 
     @Test
     fun multiTargetDirectCandidateIsSelectedOnceAndReused() {
-        val shared = exercise("shared")
+        val shared = exercise("shared").copy(laterality = "BILATERAL")
         val fixture = fixture(
             exercises = listOf(shared),
             relations = listOf(
-                relation("shared", StimulusCapabilityLevel.DIRECT_CAPABILITY, TrainableQuality.POWER),
+                powerRelation("shared"),
                 relation("shared", StimulusCapabilityLevel.DIRECT_CAPABILITY, TrainableQuality.RAPID_FORCE_PRODUCTION)
             )
         )
         val plan = StimulusTargetPlan(
             qualityTargets = listOf(
-                target(TrainableQuality.POWER, TargetPriority.PRIMARY),
+                approvedPowerTarget(TargetPriority.PRIMARY),
                 target(TrainableQuality.RAPID_FORCE_PRODUCTION, TargetPriority.SECONDARY)
-            ), taskTargets = emptyList(), unresolved = emptyList()
+            ), taskTargets = emptyList(), unresolved = emptyList(),
+            powerJumpDoseDecisions = listOf(approvedPowerDose())
         )
         val result = select(plan, fixture, emptyList())
         assertEquals(listOf("shared"), result.selectedCandidates.map { it.stableKey })
         assertEquals(setOf("QUALITY:POWER", "QUALITY:RAPID_FORCE_PRODUCTION"), result.selectedCandidates.single().coveredTargetIds)
         assertTrue(result.traces[1].reasonCodes.contains("TARGET_COVERED_BY_ALREADY_SELECTED_IDENTITY"))
+    }
+
+    @Test
+    fun powerCandidateCannotMaterializeFromTargetFieldsWithoutTypedB4DoseDecision() {
+        val fixture = fixture(
+            exercises = listOf(exercise("shared")),
+            relations = listOf(powerRelation("shared"))
+        )
+        val plan = StimulusTargetPlan(
+            qualityTargets = listOf(approvedPowerTarget(TargetPriority.PRIMARY)),
+            taskTargets = emptyList(), unresolved = emptyList()
+        )
+
+        val result = select(plan, fixture, emptyList())
+
+        assertTrue(result.selectedCandidates.isEmpty())
+        assertEquals("B5_POWER_JUMP_REQUIRES_EXACT_TYPED_B4_DOSE_DECISION",
+            result.traces.single().candidateRejectionReasons.getValue("shared"))
     }
 
     @Test
@@ -638,13 +786,13 @@ class StimulusTargetCandidateSelectorTest {
 
     @Test
     fun selectedIdentityRedundancyAvoidsUnnecessaryDuplicateGroup() {
-        val first = exercise("first_power")
+        val first = exercise("first_power").copy(laterality = "BILATERAL")
         val redundant = exercise("a_redundant_rfd")
         val independent = exercise("z_independent_rfd")
         val fixture = fixture(
             exercises = listOf(first, redundant, independent),
             relations = listOf(
-                relation("first_power", quality = TrainableQuality.POWER),
+                powerRelation("first_power"),
                 relation("a_redundant_rfd", quality = TrainableQuality.RAPID_FORCE_PRODUCTION),
                 relation("z_independent_rfd", quality = TrainableQuality.RAPID_FORCE_PRODUCTION)
             )
@@ -656,9 +804,10 @@ class StimulusTargetCandidateSelectorTest {
         val withRedundancy = fixture.copy(snapshot = fixture.snapshot.copy(metadata = metadata))
         val plan = StimulusTargetPlan(
             qualityTargets = listOf(
-                target(TrainableQuality.POWER, TargetPriority.PRIMARY),
+                approvedPowerTarget(TargetPriority.PRIMARY),
                 target(TrainableQuality.RAPID_FORCE_PRODUCTION, TargetPriority.SECONDARY)
-            ), taskTargets = emptyList(), unresolved = emptyList()
+            ), taskTargets = emptyList(), unresolved = emptyList(),
+            powerJumpDoseDecisions = listOf(approvedPowerDose())
         )
 
         val selected = select(plan, withRedundancy, emptyList())
@@ -743,6 +892,10 @@ class StimulusTargetCandidateSelectorTest {
         taskTargets = emptyList(), unresolved = emptyList()
     )
 
+    private fun directCoreCatalog(stableKey: String): CanonicalCoreCatalog = CanonicalCoreCatalog.of(
+        listOf(CanonicalCoreProfile(stableKey, CoreClass.DIRECT, CoreDirectTarget.BRACING))
+    )
+
     private fun target(
         quality: TrainableQuality,
         priority: TargetPriority,
@@ -751,6 +904,45 @@ class StimulusTargetCandidateSelectorTest {
         weekly: StimulusTargetRange = StimulusTargetRange(4.0, 6.0, 9.0)
     ) = StimulusQualityTarget(quality, strategy, priority, authority, SuccessfulDoseSource.NORMAL_COMPLETED_WEEKS,
         PlanningConfidence.HIGH, weekly, StimulusTargetRange(1.0, 2.0, 3.0), null, null, null, emptyList(), emptyList(), true, true)
+
+    private fun approvedPowerTarget(priority: TargetPriority): StimulusQualityTarget = target(
+        quality = TrainableQuality.POWER,
+        priority = priority,
+        strategy = StimulusDoseStrategy.INTRODUCE_DIRECT_STIMULUS,
+        authority = StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY,
+        weekly = StimulusTargetRange(2.0, 2.0, 2.0)
+    ).copy(
+        needDecision = TrainingNeedDecision.DEVELOP,
+        requiredPhysicalModes = setOf(PhysicalQualityMode.BALLISTIC.name, PhysicalQualityMode.PLYOMETRIC.name)
+    )
+
+    private fun approvedPowerDose(): PowerJumpDoseDecision = PowerJumpIntegratedDosePolicy.resolve(
+        PowerJumpDoseNeed(
+            targetId = "QUALITY:POWER",
+            kind = PowerJumpDoseKind.POWER,
+            region = PowerJumpBodyRegion.LOWER,
+            needDecision = TrainingNeedDecision.DEVELOP,
+            priority = TargetPriority.PRIMARY
+        ),
+        PowerJumpDoseEvidence(
+            resistanceWorkload = PowerJumpResistanceWorkload(PowerJumpWorkloadStatus.COMPLETE, 0, 0),
+            validRecentBadmintonWeekMinutes = listOf(60.0)
+        )
+    )
+
+    private fun powerRelation(key: String) = ExercisePhysicalQualityRelation(
+        relationId = "$key-POWER-BALLISTIC",
+        exerciseStableKey = key,
+        qualityId = TrainableQuality.POWER,
+        relationLevel = StimulusCapabilityLevel.DIRECT_CAPABILITY,
+        regionQualifier = PhysicalQualityRegion.LOWER,
+        modeQualifier = PhysicalQualityMode.BALLISTIC,
+        prescriptionDependent = true,
+        provenance = "USER_APPROVED_PROJECT_POLICY",
+        evidenceRelationKeys = emptySet(),
+        reviewStatus = "PASS",
+        notes = "test exact direct Power relation"
+    )
 
     private fun relation(key: String, level: StimulusCapabilityLevel = StimulusCapabilityLevel.DIRECT_CAPABILITY,
         quality: TrainableQuality = TrainableQuality.STRENGTH) = ExercisePhysicalQualityRelation(
@@ -787,8 +979,8 @@ class StimulusTargetCandidateSelectorTest {
         return Fixture(snapshot, state, CanonicalExercisePhysicalQualityCatalog.of(relations), request())
     }
 
-    private fun exercise(key: String, activityKind: String = "RESISTANCE") = Exercise(
-        stableKey = key, name = key, category = "STRENGTH", activityKind = activityKind, equipment = "BODYWEIGHT"
+    private fun exercise(key: String, activityKind: String = "RESISTANCE", mode: String = "") = Exercise(
+        stableKey = key, name = key, category = "STRENGTH", activityKind = activityKind, equipment = "BODYWEIGHT", mode = mode
     )
 
     private fun request() = ProgramSkeletonRequest("test", ProgramGoal.STRENGTH, 3, 60, emptySet(), "", .5, "AUTO", ProgramPeriodizationType.AUTO, 2)

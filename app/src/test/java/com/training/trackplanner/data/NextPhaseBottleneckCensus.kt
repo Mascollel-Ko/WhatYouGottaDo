@@ -516,6 +516,7 @@ internal object NextPhaseBottleneckCensus {
         val summary = JSONObject()
             .put("generatedCases", cases.size)
             .put("controlCases", controlCases.size)
+            .put("powerJumpCases", cases.count { it.optString("route") == StimulusProductionProgramSource.B8_POWER_JUMP_V1.name })
             .put("routes", objectCounts(routes))
             .put("b7ReasonOccurrencesAllGenerated", objectCounts(b7All))
             .put("b7ReasonOccurrencesControlOnly", objectCounts(b7Control))

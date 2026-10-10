@@ -74,6 +74,7 @@ import com.training.trackplanner.data.TrainingProgramItemSet
 import com.training.trackplanner.data.TrainingProgram
 import com.training.trackplanner.data.TrainingRepository
 import com.training.trackplanner.data.StaleIncumbentSourceException
+import com.training.trackplanner.data.UnexplainedCanonicalIncumbentMutationException
 import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.WorkoutSet
@@ -743,11 +744,26 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
                     _programBuildProgress.value = ProgramBuildProgressState.Failed(
                         if (error is StaleIncumbentSourceException) {
                             "기존 프로그램이 생성 중 변경되었습니다. 최신 상태로 다시 생성해 주세요."
+                        } else if (error is UnexplainedCanonicalIncumbentMutationException) {
+                            "기존 운동을 바꾸거나 빼는 근거가 확인되지 않아 저장하지 않았습니다. 기존 프로그램은 유지됩니다."
                         } else {
                             "프로그램을 저장하지 못했습니다. 다시 시도해 주세요."
                         }
                     )
                 }
+        }
+    }
+
+    fun validateProgramReplacementSelection(
+        skeleton: GeneratedProgramSkeleton,
+        selectedOptionIds: Set<String>,
+        existingProgramId: Long?,
+        onResult: (Result<GeneratedProgramSkeleton>) -> Unit
+    ) {
+        viewModelScope.launch {
+            onResult(runCatching {
+                repository.validateProgramReplacementSelection(skeleton, selectedOptionIds, existingProgramId)
+            })
         }
     }
 

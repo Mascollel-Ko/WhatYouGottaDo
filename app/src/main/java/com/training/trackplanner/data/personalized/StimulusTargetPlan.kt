@@ -23,6 +23,8 @@ enum class StimulusMovementDoseKind {
 /** Dose authority and execution-shape authority are independent; Core currently has no approved shape. */
 enum class StimulusMovementDoseShapeAuthority {
     HYPERTROPHY_BAND_8_12_PERSONAL_7_15_RPE_7_USER_LOAD_CALIBRATION,
+    /** B4 owns only the Core set count; exact repetition/duration shape is resolved per B5 owner. */
+    CORE_DIRECT_SET_DOSE_EXACT_OWNER_SHAPE_REQUIRED,
     NONE
 }
 
@@ -71,7 +73,11 @@ data class StimulusQualityTarget(
     val hasPersonalDirectBaseline: Boolean = false,
     val numericBaselineUsable: Boolean = false,
     val evidenceBasis: StimulusEvidenceBasis = evidenceBasisForQuality(quality),
-    val prescriptionRealizationAuthority: Boolean = evidenceBasis == StimulusEvidenceBasis.REALIZED_PRESCRIPTION_CLASSIFIED
+    val prescriptionRealizationAuthority: Boolean = evidenceBasis == StimulusEvidenceBasis.REALIZED_PRESCRIPTION_CLASSIFIED,
+    /** Exact B3 disposition; B4/B5 extensions must never infer need from metadata alone. */
+    val needDecision: TrainingNeedDecision? = null,
+    /** Optional exact canonical mode restriction for a bounded B4 dose path. */
+    val requiredPhysicalModes: Set<String>? = null
 )
 
 data class StimulusTaskTarget(
@@ -199,7 +205,9 @@ data class StimulusTargetPlan(
     val selectionAuthority: Boolean = false,
     val placementAuthority: Boolean = false,
     val schedulingAuthority: Boolean = false,
-    val movementTargets: List<StimulusMovementTarget> = emptyList()
+    val movementTargets: List<StimulusMovementTarget> = emptyList(),
+    /** B4 product-policy decisions for Power and direct Jump/Landing quality targets. */
+    val powerJumpDoseDecisions: List<PowerJumpDoseDecision> = emptyList()
 )
 
 /** Converts B3 decisions and B2 bands into an observation-only canonical target envelope. */
@@ -356,7 +364,8 @@ class StimulusTargetPlanEngine {
             hasPersonalDirectBaseline = decision.observedPersonalDirectBaseline,
             numericBaselineUsable = decision.numericBaselineUsable,
             evidenceBasis = decision.evidenceBasis,
-            prescriptionRealizationAuthority = decision.evidenceBasis == StimulusEvidenceBasis.REALIZED_PRESCRIPTION_CLASSIFIED
+            prescriptionRealizationAuthority = decision.evidenceBasis == StimulusEvidenceBasis.REALIZED_PRESCRIPTION_CLASSIFIED,
+            needDecision = decision.needDecision
         )
     }
 

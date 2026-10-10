@@ -32,6 +32,15 @@ internal fun canonicalExecutionAuthority(
         StimulusPrescriptionExecutionAuthority.FULLY_ENCODED
     quality == TrainableQuality.HYPERTROPHY -> StimulusPrescriptionExecutionAuthority.CONDITIONAL_ON_UNPERSISTED_EFFORT
     quality == TrainableQuality.STRENGTH -> StimulusPrescriptionExecutionAuthority.FULLY_ENCODED
+    quality in setOf(TrainableQuality.POWER, TrainableQuality.REACTIVE_STRENGTH_SSC) &&
+        prescription?.sets?.isNotEmpty() == true && prescription.sets.all { it.loadState == com.training.trackplanner.data.ProgramLoadState.USER_CALIBRATION_REQUIRED } ->
+        StimulusPrescriptionExecutionAuthority.REQUIRES_USER_LOAD_INPUT
+    quality in setOf(TrainableQuality.POWER, TrainableQuality.REACTIVE_STRENGTH_SSC) &&
+        prescription?.sets?.isNotEmpty() == true && prescription.sets.all { set ->
+            set.reps in 3..6 && set.seconds == 0 &&
+                set.loadState in setOf(com.training.trackplanner.data.ProgramLoadState.EXPLICIT_LOAD, com.training.trackplanner.data.ProgramLoadState.NOT_APPLICABLE) &&
+                (set.loadState != com.training.trackplanner.data.ProgramLoadState.EXPLICIT_LOAD || set.weightKg > 0.0)
+        } -> StimulusPrescriptionExecutionAuthority.FULLY_ENCODED
     else -> StimulusPrescriptionExecutionAuthority.UNRESOLVED
 }
 

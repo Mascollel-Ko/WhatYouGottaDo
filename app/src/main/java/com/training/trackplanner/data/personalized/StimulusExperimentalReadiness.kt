@@ -28,7 +28,9 @@ enum class StimulusExperimentalChangeAttributionSource {
     B6_EXISTING_OWNER_PRESCRIPTION,
     B6_SAFE_REPAIRED_PRESCRIPTION,
     B6_COLD_START_USER_CALIBRATION,
+    B6_APPROVED_POWER_JUMP_POLICY,
     B6_APPROVED_TASK_PROTOCOL,
+    USER_APPROVED_EXACT_EXERCISE_REPLACEMENT,
     FINITE_CAPACITY_CONTINUITY_ALLOCATION,
     DOWNSTREAM_CONSTRAINT_DISPLACEMENT,
     INCONCLUSIVE_DISPLACEMENT,
@@ -54,8 +56,37 @@ data class StimulusExperimentalChangeAttribution(
     val source: StimulusExperimentalChangeAttributionSource,
     val targetIds: List<String> = emptyList(),
     val reasonCodes: List<String> = emptyList(),
-    val evidenceSources: List<String> = emptyList()
+    val evidenceSources: List<String> = emptyList(),
+    /** Populated only by B7 after an exact, user-selected owner replacement is verified. */
+    val replacementOwner: StimulusPrescriptionOwnerIdentity? = null,
+    val replacementEvidenceId: String? = null
 )
+
+/**
+ * Exact physical-row chain for a user-selected replacement. The control owner is tied to the
+ * verified keep-plan B5/B6 owner, then to the explicitly selected replacement's B5/B6 rows.
+ */
+data class StimulusUserApprovedReplacementEdge(
+    val optionId: String,
+    val targetId: String,
+    val displacedControlOwner: StimulusPrescriptionOwnerIdentity,
+    val keepOwner: StimulusPrescriptionOwnerIdentity,
+    val replacementOwner: StimulusPrescriptionOwnerIdentity,
+    val controlRows: List<ProgramSkeletonItem>,
+    val keepRows: List<ProgramSkeletonItem>,
+    val replacementRows: List<ProgramSkeletonItem>
+) {
+    init {
+        require(optionId.isNotBlank() && targetId.isNotBlank())
+        require(displacedControlOwner != keepOwner && keepOwner != replacementOwner)
+        require(controlRows.isNotEmpty() && keepRows.isNotEmpty() && replacementRows.isNotEmpty())
+        require(controlRows.all { it.exerciseStableKey == displacedControlOwner.stableKey && it.selectionRole == displacedControlOwner.selectionRole })
+        require(keepRows.all { it.exerciseStableKey == keepOwner.stableKey && it.selectionRole == keepOwner.selectionRole })
+        require(replacementRows.all { it.exerciseStableKey == replacementOwner.stableKey && it.selectionRole == replacementOwner.selectionRole })
+        require(controlRows.map { it.weekNumber }.toSet() == keepRows.map { it.weekNumber }.toSet())
+        require(keepRows.map { it.weekNumber }.toSet() == replacementRows.map { it.weekNumber }.toSet())
+    }
+}
 
 /**
  * Owner-local causal evidence for one removed CONTROL identity. Global B5/B6 change evidence
@@ -82,7 +113,8 @@ data class StimulusExperimentalReadinessAudit(
     val collateralRegressionFree: Boolean = true,
     val reasonCodes: List<String> = emptyList(),
     val shadowOnly: Boolean = true,
-    val productionAuthority: Boolean = false
+    val productionAuthority: Boolean = false,
+    val userApprovedReplacementEdges: List<StimulusUserApprovedReplacementEdge> = emptyList()
 ) {
     val integrityPassed: Boolean get() = materializationIntegrityPassed
     val winner: String? get() = null
@@ -149,7 +181,6 @@ class StimulusExperimentalReadinessAuditEngine {
                 productionAuthority = false
             )
         }
-
         val attributions = attributeChanges(comparison)
         val hasUnexplainedProvenance = attributions.any { it.source == StimulusExperimentalChangeAttributionSource.UNEXPLAINED }
         val hasInconclusiveProvenance = attributions.any { it.source == StimulusExperimentalChangeAttributionSource.INCONCLUSIVE_DISPLACEMENT }
@@ -198,11 +229,180 @@ class StimulusExperimentalReadinessAuditEngine {
         )
     }
 
+    /**
+     * Closes only removals caused by an explicitly selected, exact keep→replacement chain.
+     * Target outcomes and every other B7 gate are retained from the normal audit unchanged.
+     */
+    fun auditWithUserApprovedReplacementEvidence(
+        comparison: StimulusSelectionProgramComparison,
+        keepComparison: StimulusSelectionProgramComparison,
+        proposedEdges: List<StimulusUserApprovedReplacementEdge>
+    ): StimulusExperimentalReadinessAudit {
+        val baseline = audit(comparison)
+        if (proposedEdges.isEmpty()) return baseline
+        if (proposedEdges.size != proposedEdges.map { it.optionId }.distinct().size ||
+            proposedEdges.size != proposedEdges.map { it.targetId }.distinct().size
+        ) return baseline
+        val verified = proposedEdges.filter { edge ->
+            verifyUserReplacementEdge(comparison, keepComparison, baseline, edge)
+        }
+        if (verified.size != proposedEdges.size) return baseline
+
+        val edgeByDisplaced = verified.associateBy { it.displacedControlOwner }
+        val attributions = baseline.changeAttributions.map { attribution ->
+            val owner = attribution.stableKey?.let { key ->
+                attribution.selectionRole?.let { role -> StimulusPrescriptionOwnerIdentity(key, role) }
+            }
+            val edge = owner?.let(edgeByDisplaced::get)
+            if (edge == null) attribution else attribution.copy(
+                source = StimulusExperimentalChangeAttributionSource.USER_APPROVED_EXACT_EXERCISE_REPLACEMENT,
+                targetIds = listOf(edge.targetId),
+                reasonCodes = listOf("USER_EXPLICITLY_SELECTED_EXACT_TARGET_REPLACEMENT", "B5_B6_WEEKLY_ROWS_MATCH"),
+                evidenceSources = listOf("EXACT_CONTROL_OWNER_WEEK_ROWS", "KEEP_PLAN_B7_B8_AUTHORIZED_B5_B6_CHAIN",
+                    "EXPLICIT_USER_SELECTION", "EXACT_REPLACEMENT_B4_B5_B6_WEEK_ROWS", "WHOLE_PROGRAM_B7_OUTCOMES_PRESERVED"),
+                replacementOwner = edge.replacementOwner,
+                replacementEvidenceId = edge.optionId
+            )
+        }
+        val hasUnexplained = attributions.any { it.source == StimulusExperimentalChangeAttributionSource.UNEXPLAINED }
+        val hasInconclusive = attributions.any { it.source == StimulusExperimentalChangeAttributionSource.INCONCLUSIVE_DISPLACEMENT }
+        val closed = !hasUnexplained && !hasInconclusive
+        val outcomes = baseline.targetOutcomes
+        val reasons = baseline.reasonCodes.filterNot { reason ->
+            closed && reason in setOf("CHANGE_PROVENANCE_UNCLOSED", "REMOVAL_CAUSALITY_UNPROVEN")
+        }.toMutableList()
+        if (!closed && "CHANGE_PROVENANCE_UNCLOSED" !in reasons) reasons += "CHANGE_PROVENANCE_UNCLOSED"
+        val status = when {
+            !baseline.materializationIntegrityPassed -> StimulusExperimentalReadinessStatus.NOT_ELIGIBLE
+            !closed || !baseline.collateralRegressionFree || outcomes.any { it.status == StimulusExperimentalTargetOutcomeStatus.REGRESSED } ->
+                StimulusExperimentalReadinessStatus.NOT_ELIGIBLE
+            outcomes.any { it.status == StimulusExperimentalTargetOutcomeStatus.NO_AUTHORITY && it.directlyAffected } ->
+                StimulusExperimentalReadinessStatus.NOT_ELIGIBLE
+            outcomes.any { it.status == StimulusExperimentalTargetOutcomeStatus.INCONCLUSIVE && it.directlyAffected } ->
+                StimulusExperimentalReadinessStatus.INCONCLUSIVE
+            outcomes.any { it.status == StimulusExperimentalTargetOutcomeStatus.UNCHANGED && it.directlyAffected && "TARGET_UNMET" in it.reasonCodes } ->
+                StimulusExperimentalReadinessStatus.NOT_ELIGIBLE
+            hasInconclusive -> StimulusExperimentalReadinessStatus.INCONCLUSIVE
+            else -> StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW
+        }
+        return baseline.copy(
+            status = status,
+            changeAttributions = attributions,
+            changeProvenanceClosed = closed,
+            reasonCodes = reasons.distinct(),
+            userApprovedReplacementEdges = verified
+        )
+    }
+
+    private fun verifyUserReplacementEdge(
+        comparison: StimulusSelectionProgramComparison,
+        keepComparison: StimulusSelectionProgramComparison,
+        audit: StimulusExperimentalReadinessAudit,
+        edge: StimulusUserApprovedReplacementEdge
+    ): Boolean {
+        val old = edge.displacedControlOwner
+        val keepOwner = edge.keepOwner
+        val replacement = edge.replacementOwner
+        if (comparison.control.request != keepComparison.control.request ||
+            comparison.control.items != keepComparison.control.items ||
+            old !in comparison.removedOwnerIdentities || old !in keepComparison.removedOwnerIdentities ||
+            keepOwner.stableKey != old.stableKey || keepOwner == replacement || replacement in comparison.controlOwnerIdentities
+        ) return false
+        if (edge.controlRows != comparison.control.items.filter {
+                it.exerciseStableKey == old.stableKey && it.selectionRole == old.selectionRole
+            } || edge.controlRows.isEmpty()) return false
+        val weeks = edge.controlRows.mapTo(sortedSetOf()) { it.weekNumber }
+        if (edge.keepRows != keepComparison.experimental.items.filter {
+                it.exerciseStableKey == keepOwner.stableKey && it.selectionRole == keepOwner.selectionRole && it.weekNumber in weeks
+            } || edge.replacementRows != comparison.experimental.items.filter {
+                it.exerciseStableKey == replacement.stableKey && it.selectionRole == replacement.selectionRole && it.weekNumber in weeks
+            }) return false
+        if (edge.keepRows.isEmpty() || edge.replacementRows.isEmpty() ||
+            edge.keepRows.map { it.weekNumber }.toSet() != weeks || edge.replacementRows.map { it.weekNumber }.toSet() != weeks ||
+            comparison.experimental.items.any { it.exerciseStableKey == keepOwner.stableKey && it.selectionRole == keepOwner.selectionRole && it.weekNumber in weeks }
+        ) return false
+
+        val keepEvidence = keepComparison.experimentalReadinessAudit?.changeAttributions.orEmpty().singleOrNull { attribution ->
+            attribution.stableKey == old.stableKey && attribution.selectionRole == old.selectionRole &&
+                attribution.source == StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY &&
+                "B5_CANONICAL_OWNER_REPLACED_CONTROL_ROLE" in attribution.reasonCodes && edge.targetId in attribution.targetIds
+        } ?: return false
+        if (edge.targetId !in b8AuthorizedTargetIds(keepComparison) ||
+            keepComparison.productionCutoverAuthority?.status != StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER ||
+            keepComparison.experimentalReadinessAudit?.status != StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW ||
+            !hasExactB5Owner(keepComparison, edge.targetId, keepOwner) ||
+            !hasExactB5Owner(comparison, edge.targetId, replacement) ||
+            !hasExactB6Owner(keepComparison, edge.targetId, keepOwner) ||
+            !hasExactB6Owner(comparison, edge.targetId, replacement)
+        ) return false
+        val targetOutcome = audit.targetOutcomes.singleOrNull { it.targetId == edge.targetId } ?: return false
+        if (targetOutcome.status in setOf(StimulusExperimentalTargetOutcomeStatus.REGRESSED,
+                StimulusExperimentalTargetOutcomeStatus.NO_AUTHORITY, StimulusExperimentalTargetOutcomeStatus.INCONCLUSIVE)) return false
+        // The original B7 removal evidence must explicitly connect the CONTROL identity to the
+        // same target; a same-key or display-name match alone is never sufficient.
+        return keepEvidence.evidenceSources.any { it.startsWith("EXACT_") } &&
+            edge.keepRows.all { it.exerciseStableKey == keepOwner.stableKey && it.selectionRole == keepOwner.selectionRole }
+    }
+
+    private fun b8AuthorizedTargetIds(comparison: StimulusSelectionProgramComparison): Set<String> = buildSet {
+        comparison.productionCutoverAuthority?.authorizedAuthorityIdentities.orEmpty().forEach { add("QUALITY:${it.quality.name}") }
+        comparison.productionCutoverAuthority?.authorizedTaskProtocolIdentities.orEmpty()
+            .flatMap { it.authorizedTasks }.forEach { add("TASK:${it.name}") }
+        comparison.productionCutoverAuthority?.authorizedMovementTargetOwnerIdentities.orEmpty().forEach { add(it.targetId) }
+    }
+
+    private fun hasExactB5Owner(
+        comparison: StimulusSelectionProgramComparison,
+        targetId: String,
+        owner: StimulusPrescriptionOwnerIdentity
+    ): Boolean = comparison.selectionPlan.selectedCandidates.singleOrNull {
+        it.stableKey == owner.stableKey && it.selectionRole == owner.selectionRole && it.primaryTargetId == targetId &&
+            targetId in it.coveredTargetIds
+    } != null && comparison.selectionPlan.traces.any {
+        it.targetId == targetId && it.selectedStableKey == owner.stableKey && it.selectedSelectionRole == owner.selectionRole
+    }
+
+    private fun hasExactB6Owner(
+        comparison: StimulusSelectionProgramComparison,
+        targetId: String,
+        owner: StimulusPrescriptionOwnerIdentity
+    ): Boolean {
+        if (targetId.startsWith("MOVEMENT:")) return StimulusProductionMovementScopeEvidence.hasExactExecutableB6(comparison, targetId, owner)
+        val quality = TrainableQuality.entries.singleOrNull { targetId == "QUALITY:${it.name}" }
+        if (quality != null) {
+            val authorization = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().singleOrNull {
+                it.targetId == targetId && it.quality == quality &&
+                    it.owner?.let { candidate -> candidate.stableKey == owner.stableKey && candidate.selectionRole == owner.selectionRole } == true &&
+                    it.authorizedPrescription != null && it.status in setOf(
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
+                    )
+            } ?: return false
+            val rows = comparison.experimental.items.filter {
+                it.exerciseStableKey == owner.stableKey && it.selectionRole == owner.selectionRole
+            }
+            return rows.isNotEmpty() && validateAuthorizedWeeklySubset(
+                rows, requireNotNull(authorization.authorizedPrescription), owner.stableKey, owner.selectionRole
+            ).valid && comparison.prescriptionMaterializationAudits.any {
+                it.targetId == targetId && it.quality == quality &&
+                    it.owner?.let { candidate -> candidate.stableKey == owner.stableKey && candidate.selectionRole == owner.selectionRole } == true &&
+                    it.state == StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED && it.shortfall == 0 && it.overrun == 0
+            }
+        }
+        return targetId.startsWith("TASK:") && taskProtocolMetadataForOwner(comparison.experimental, owner).any { metadata ->
+            metadata.authorization.attributedTasks.any { "TASK:${it.name}" == targetId } &&
+                ApprovedBadmintonTaskProtocols.exact(owner.stableKey, owner.selectionRole, metadata.authorization.definition.primaryTask) ==
+                    metadata.authorization.definition
+        }
+    }
+
     private fun materializationIntegrityReasons(
         comparison: StimulusSelectionProgramComparison
     ): LinkedHashSet<String> {
         val integrityReasons = linkedSetOf<String>()
         integrityReasons += rejectedQualityMaterializationReasons(comparison)
+        integrityReasons += rejectedCoreMovementMaterializationReasons(comparison)
         comparison.prescriptionMaterializationAudits.forEach { audit ->
             if (audit.state == StimulusPrescriptionMaterializationState.INVARIANT_FAILURE) {
                 integrityReasons += "B6_MATERIALIZATION_INVARIANT_FAILURE"
@@ -271,7 +471,8 @@ class StimulusExperimentalReadinessAuditEngine {
         val executableStatuses = setOf(
             StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
             StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
-            StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
+            StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION,
+            StimulusPrescriptionAuthorizationStatus.AUTHORIZED_USER_APPROVED_POWER_JUMP_POLICY
         )
         val before = comparison.control.items.groupBy {
             StimulusPrescriptionOwnerIdentity(it.exerciseStableKey, it.selectionRole) to it.weekNumber
@@ -309,6 +510,55 @@ class StimulusExperimentalReadinessAuditEngine {
                 if (beforeRows.isEmpty() || signatures(beforeRows) != signatures(afterRows)) {
                     reasons += "B6_REJECTED_QUALITY_OWNER_WEEK_MATERIALIZED"
                 }
+            }
+        }
+        return reasons
+    }
+
+    /** Core movement material must be backed by its exact owner-level B6 grant. */
+    private fun rejectedCoreMovementMaterializationReasons(
+        comparison: StimulusSelectionProgramComparison
+    ): Set<String> {
+        val plan = comparison.prescriptionAuthorizationPlan ?: return emptySet()
+        val before = comparison.control.items.groupBy {
+            StimulusPrescriptionOwnerIdentity(it.exerciseStableKey, it.selectionRole) to it.weekNumber
+        }
+        val after = comparison.experimental.items.groupBy {
+            StimulusPrescriptionOwnerIdentity(it.exerciseStableKey, it.selectionRole) to it.weekNumber
+        }
+        val reasons = linkedSetOf<String>()
+        comparison.targetPlan.movementTargets.forEach { target ->
+            val dose = target.regionalDoseTargets.firstOrNull {
+                it.kind == StimulusMovementDoseKind.CORE_DIRECT_CONTROL_SET &&
+                    it.shapeAuthority == StimulusMovementDoseShapeAuthority.CORE_DIRECT_SET_DOSE_EXACT_OWNER_SHAPE_REQUIRED
+            } ?: return@forEach
+            val selected = comparison.selectionPlan.selectedCandidates.singleOrNull { target.targetId in it.coveredTargetIds }
+            val owner = selected?.let { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) } ?: return@forEach
+            val authorization = plan.authorizations.singleOrNull {
+                it.targetId == target.targetId && it.quality == null && it.owner == StimulusPrescriptionOwner(owner.stableKey, owner.selectionRole)
+            }
+            val exactB6 = plan.movementAuthorizations.singleOrNull {
+                it.targetId == target.targetId && it.owner == owner && it.status == StimulusMovementB6Status.AUTHORIZED_CORE_DIRECT_B6
+            }
+            val authorized = authorization?.authorizedPrescription
+            val ownerWeeks = (before.keys + after.keys).filter { it.first == owner }.map { it.second }.toSet()
+            ownerWeeks.forEach weekLoop@ { week ->
+                val prior = before[owner to week].orEmpty()
+                val current = after[owner to week].orEmpty()
+                if (current == prior && current.isEmpty()) return@weekLoop
+                if (exactB6 == null || authorized == null || authorization.status !in setOf(
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
+                    )) {
+                    if (current != prior) reasons += "B6_REJECTED_CORE_OWNER_WEEK_MATERIALIZED"
+                    return@weekLoop
+                }
+                val validation = validateAuthorizedWeeklySubset(current, authorized, owner.stableKey, owner.selectionRole)
+                val expected = dose.authorizedWholeSetUnits ?: 0
+                if (!validation.valid || current.sumOf { it.setPrescriptions.size } > expected ||
+                    expected != authorized.sets.size
+                ) reasons += "B6_CORE_OWNER_WEEK_AUTHORIZATION_MISMATCH"
             }
         }
         return reasons
@@ -367,7 +617,20 @@ class StimulusExperimentalReadinessAuditEngine {
             val candidate = selected[identity]
             result += if (candidate != null) {
                 val taskProtocol = exactTaskProtocolAttributions(comparison, identity, candidate)
-                if (taskProtocol.isNotEmpty()) StimulusExperimentalChangeAttribution(
+                val powerJumpAuthorizations = exactExecutableChangeAuthorizations(comparison, identity, candidate)
+                    .filter { it.quality in setOf(TrainableQuality.POWER, TrainableQuality.REACTIVE_STRENGTH_SSC) }
+                val exactPowerJump = powerJumpAuthorizations.singleOrNull()
+                if (exactPowerJump != null) StimulusExperimentalChangeAttribution(
+                    stableKey = identity.stableKey,
+                    selectionRole = identity.selectionRole,
+                    source = if (exactPowerJump.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION)
+                        StimulusExperimentalChangeAttributionSource.B6_COLD_START_USER_CALIBRATION
+                    else StimulusExperimentalChangeAttributionSource.B6_APPROVED_POWER_JUMP_POLICY,
+                    targetIds = listOf(exactPowerJump.targetId),
+                    reasonCodes = exactPowerJump.reasonCodes + "B6_EXACT_POWER_JUMP_AUTHORITY_MATERIALIZED",
+                    evidenceSources = listOf("EXACT_B3_NEED", "EXACT_B4_APPROVED_WEEKLY_SET_COUNT", "EXACT_B5_OWNER_AND_DIRECT_RELATION",
+                        "EXACT_B6_POWER_JUMP_SHAPE", "EXPERIMENTAL_MATERIALIZATION_MATCH")
+                ) else if (taskProtocol.isNotEmpty()) StimulusExperimentalChangeAttribution(
                     stableKey = identity.stableKey,
                     selectionRole = identity.selectionRole,
                     source = StimulusExperimentalChangeAttributionSource.B6_APPROVED_TASK_PROTOCOL,
@@ -414,15 +677,24 @@ class StimulusExperimentalReadinessAuditEngine {
                         canonicalReplacementTargets,
                         listOf("B5_CANONICAL_OWNER_REPLACED_CONTROL_ROLE") +
                             (if (canonicalReplacementTargets.any { it.startsWith("MOVEMENT:") }) {
-                                listOf("B6_AUTHORIZED_REGIONAL_MOVEMENT_REPLACEMENT")
+                                if (canonicalReplacementTargets.contains("MOVEMENT:CORE_DIRECT")) {
+                                    listOf("B6_AUTHORIZED_CORE_DIRECT_MOVEMENT_REPLACEMENT")
+                                } else {
+                                    listOf("B6_AUTHORIZED_REGIONAL_MOVEMENT_REPLACEMENT")
+                                }
                             } else emptyList()) +
                             (if (canonicalReplacementTargets.any { it.startsWith("TASK:") }) {
                                 listOf("B6_APPROVED_TASK_PROTOCOL_REPLACEMENT", "TASK_CREDIT_NON_ADDITIVE")
                             } else emptyList()),
                         listOf("EXACT_B5_CANONICAL_REPLACEMENT_OWNER") +
                             (if (canonicalReplacementTargets.any { it.startsWith("MOVEMENT:") }) {
-                                listOf("EXACT_B4_MOVEMENT_TARGET", "EXACT_B5_PRIMARY_MOVEMENT_OWNER",
-                                    "EXACT_B6_REGIONAL_HYPERTROPHY_AUTHORITY", "EXACT_WEEKLY_MATERIALIZATION_MATCH")
+                                if (canonicalReplacementTargets.contains("MOVEMENT:CORE_DIRECT")) {
+                                    listOf("EXACT_B4_CORE_DIRECT_TARGET", "EXACT_B5_PRIMARY_CORE_DIRECT_OWNER",
+                                        "EXACT_B6_CORE_DIRECT_AUTHORITY", "EXACT_WEEKLY_CORE_MATERIALIZATION_MATCH")
+                                } else {
+                                    listOf("EXACT_B4_MOVEMENT_TARGET", "EXACT_B5_PRIMARY_MOVEMENT_OWNER",
+                                        "EXACT_B6_REGIONAL_HYPERTROPHY_AUTHORITY", "EXACT_WEEKLY_MATERIALIZATION_MATCH")
+                                }
                             } else emptyList()) +
                             (if (canonicalReplacementTargets.any { it.startsWith("TASK:") }) {
                                 listOf("EXACT_TASK_B6_AUTHORIZATION", "DIRECT_CANONICAL_TASK_RELATION",
@@ -739,8 +1011,18 @@ class StimulusExperimentalReadinessAuditEngine {
                 val target = comparison.targetPlan.movementTargets.singleOrNull { it.targetId == targetId }
                     ?: return@mapNotNull null
                 val expectedRole = "CANONICAL_STIMULUS_MOVEMENT_${target.movementCoverage.name}"
-                if (replacement.selectionRole != expectedRole ||
-                    authorization.quality != TrainableQuality.HYPERTROPHY) return@mapNotNull null
+                if (replacement.selectionRole != expectedRole) return@mapNotNull null
+                if (target.movementCoverage == MovementCoverage.CORE_DIRECT) {
+                    return@mapNotNull exactCoreDirectReplacementTargetId(
+                        comparison = comparison,
+                        removed = removed,
+                        target = target,
+                        owner = owner,
+                        replacement = replacement,
+                        authorization = authorization
+                    )
+                }
+                if (authorization.quality != TrainableQuality.HYPERTROPHY) return@mapNotNull null
                 val dose = target.regionalDoseTargets.singleOrNull {
                     it.kind == StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET &&
                         it.shapeAuthority == StimulusMovementDoseShapeAuthority.HYPERTROPHY_BAND_8_12_PERSONAL_7_15_RPE_7_USER_LOAD_CALIBRATION
@@ -777,6 +1059,86 @@ class StimulusExperimentalReadinessAuditEngine {
             }
         val taskTargets = exactTaskReplacementTargetIds(comparison, removed, replacement, exactB5Targets)
         return (qualityTargets + movementTargets + taskTargets).distinct().sorted()
+    }
+
+    /** Core B6 has no TrainableQuality by design; require its own exact B4/B5/B6 chain. */
+    private fun exactCoreDirectReplacementTargetId(
+        comparison: StimulusSelectionProgramComparison,
+        removed: StimulusPrescriptionOwnerIdentity,
+        target: StimulusMovementTarget,
+        owner: StimulusPrescriptionOwnerIdentity,
+        replacement: StimulusSelectedCandidate,
+        authorization: StimulusPrescriptionAuthorization
+    ): String? {
+        if (target.movementCoverage != MovementCoverage.CORE_DIRECT ||
+            target.targetId != "MOVEMENT:CORE_DIRECT" ||
+            replacement.primaryTargetId != target.targetId ||
+            target.targetId !in replacement.coveredTargetIds ||
+            authorization.targetId != target.targetId || authorization.quality != null ||
+            authorization.owner?.let { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) } != owner
+        ) return null
+
+        val dose = target.regionalDoseTargets.singleOrNull {
+            it.kind == StimulusMovementDoseKind.CORE_DIRECT_CONTROL_SET &&
+                it.shapeAuthority == StimulusMovementDoseShapeAuthority.CORE_DIRECT_SET_DOSE_EXACT_OWNER_SHAPE_REQUIRED
+        } ?: return null
+        val authorizedUnits = dose.authorizedWholeSetUnits?.takeIf { it > 0 } ?: return null
+        if (dose.numericAuthority == StimulusTargetNumericAuthority.DIRECTION_ONLY ||
+            dose.weeklyTarget == null || dose.weeklyTarget <= 0.0 ||
+            dose.residualEquivalentExposure == null || dose.residualEquivalentExposure <= 0.0) return null
+
+        val statusIsExecutable = authorization.status in setOf(
+            StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+            StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
+            StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
+        )
+        val authorized = authorization.authorizedPrescription ?: return null
+        if (!statusIsExecutable || authorized.sets.size != authorizedUnits ||
+            comparison.prescriptionAuthorizationPlan?.movementOwnerPrescriptions?.get(owner) != authorized) return null
+        val movementB6 = comparison.prescriptionAuthorizationPlan.movementAuthorizations.singleOrNull {
+            it.targetId == target.targetId && it.owner == owner
+        } ?: return null
+        if (movementB6.status != StimulusMovementB6Status.AUTHORIZED_CORE_DIRECT_B6) return null
+        val executionIsValid = when (authorization.executionAuthority) {
+            StimulusPrescriptionExecutionAuthority.FULLY_ENCODED -> authorized.sets.all {
+                it.loadState in setOf(
+                    com.training.trackplanner.data.ProgramLoadState.EXPLICIT_LOAD,
+                    com.training.trackplanner.data.ProgramLoadState.NOT_APPLICABLE
+                )
+            }
+            StimulusPrescriptionExecutionAuthority.REQUIRES_USER_LOAD_INPUT -> {
+                val recovery = authorization.authorityRecovery
+                authorization.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION &&
+                    authorized.sets.all { it.loadState == com.training.trackplanner.data.ProgramLoadState.USER_CALIBRATION_REQUIRED } &&
+                    recovery?.status == ExecutionAuthorityResolutionStatus.USER_INPUT_REQUIRED &&
+                    recovery.returnTarget == ExecutionAuthorityReturnTarget.EXPLICIT_USER_INPUT &&
+                    recovery.reason == ExecutionAuthorityResolutionReason.RESISTANCE_LOAD_UNAVAILABLE &&
+                    recovery.originalOwner == owner && recovery.finalOwner == owner
+            }
+            else -> false
+        }
+        if (!executionIsValid) return null
+
+        val exactRemovedWeeks = comparison.control.items.asSequence()
+            .filter { it.exerciseStableKey == removed.stableKey && it.selectionRole == removed.selectionRole }
+            .map { it.weekNumber }.toSortedSet()
+        if (exactRemovedWeeks.isEmpty()) return null
+        val rows = comparison.experimental.items.filter {
+            it.exerciseStableKey == owner.stableKey && it.selectionRole == owner.selectionRole
+        }
+        val rowsByWeek = rows.groupBy { it.weekNumber }
+        if (rowsByWeek.keys != exactRemovedWeeks || exactRemovedWeeks.any { week ->
+                rowsByWeek[week].orEmpty().sumOf { it.setCount } != authorizedUnits
+            } || !validateAuthorizedWeeklySubset(rows, authorized, owner.stableKey, owner.selectionRole).valid) return null
+
+        val trace = comparison.materializationTraces.singleOrNull {
+            it.targetId == target.targetId && it.selectedStableKey == owner.stableKey &&
+                it.selectionRole == owner.selectionRole
+        } ?: return null
+        if (!trace.selectedAtB5 || trace.directIdentityVerifiedAtSelection != true ||
+            !trace.presentInFinalExperimentalSkeleton || !trace.directIdentityStillValid ||
+            trace.finalWeeklyOccurrences != rows.size || trace.finalTotalSetUnits != rows.sumOf { it.setCount }) return null
+        return target.targetId
     }
 
     /** Task role replacement has its own exact C24 B6 proof; Quality B6 rows cannot stand in for it. */
@@ -854,8 +1216,56 @@ class StimulusExperimentalReadinessAuditEngine {
         // Empty materialization is a valid mathematical subset but proves no actual change.
         if (rows.isEmpty() || rows.any { it.setPrescriptions.isEmpty() || it.setCount != it.setPrescriptions.size }) return emptyList()
         return authorizations.filter { authorization ->
-            val quality = authorization.quality ?: return@filter false
             val authorized = authorization.authorizedPrescription ?: return@filter false
+            if (authorization.quality == null) {
+                val target = comparison.targetPlan.movementTargets.singleOrNull { it.targetId == authorization.targetId }
+                    ?: return@filter false
+                if (target.movementCoverage != MovementCoverage.CORE_DIRECT ||
+                    authorization.targetId !in candidate.coveredTargetIds ||
+                    candidate.primaryTargetId != authorization.targetId ||
+                    candidate.selectionRole != "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT") return@filter false
+                val dose = target.regionalDoseTargets.singleOrNull {
+                    it.kind == StimulusMovementDoseKind.CORE_DIRECT_CONTROL_SET &&
+                        it.shapeAuthority == StimulusMovementDoseShapeAuthority.CORE_DIRECT_SET_DOSE_EXACT_OWNER_SHAPE_REQUIRED
+                } ?: return@filter false
+                val authorizedUnits = dose.authorizedWholeSetUnits?.takeIf { it > 0 } ?: return@filter false
+                val movementB6 = plan.movementAuthorizations.singleOrNull {
+                    it.targetId == target.targetId && it.owner?.let { value ->
+                        StimulusPrescriptionOwnerIdentity(value.stableKey, value.selectionRole)
+                    } == identity
+                } ?: return@filter false
+                val executionIsValid = when (authorization.executionAuthority) {
+                    StimulusPrescriptionExecutionAuthority.FULLY_ENCODED -> authorized.sets.all {
+                        it.loadState in setOf(
+                            com.training.trackplanner.data.ProgramLoadState.EXPLICIT_LOAD,
+                            com.training.trackplanner.data.ProgramLoadState.NOT_APPLICABLE
+                        )
+                    }
+                    StimulusPrescriptionExecutionAuthority.REQUIRES_USER_LOAD_INPUT -> {
+                        val recovery = authorization.authorityRecovery
+                        authorization.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION &&
+                            authorized.sets.all {
+                                it.loadState == com.training.trackplanner.data.ProgramLoadState.USER_CALIBRATION_REQUIRED
+                            } && recovery?.status == ExecutionAuthorityResolutionStatus.USER_INPUT_REQUIRED &&
+                            recovery.returnTarget == ExecutionAuthorityReturnTarget.EXPLICIT_USER_INPUT &&
+                            recovery.reason == ExecutionAuthorityResolutionReason.RESISTANCE_LOAD_UNAVAILABLE &&
+                            recovery.originalOwner == identity && recovery.finalOwner == identity
+                    }
+                    else -> false
+                }
+                authorization.targetId == target.targetId &&
+                    authorization.status in setOf(
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
+                    ) &&
+                    movementB6.status == StimulusMovementB6Status.AUTHORIZED_CORE_DIRECT_B6 &&
+                    authorized.sets.size == authorizedUnits &&
+                    plan.movementOwnerPrescriptions[identity] == authorized &&
+                    executionIsValid &&
+                    validateAuthorizedWeeklySubset(rows, authorized, identity.stableKey, identity.selectionRole).valid
+            } else {
+            val quality = authorization.quality
             val targetIsCanonicalQuality = authorization.targetId == "QUALITY:${quality.name}" &&
                 comparison.targetPlan.qualityTargets.any { it.quality == quality }
             val targetIsRegionalMovement = quality == TrainableQuality.HYPERTROPHY &&
@@ -866,19 +1276,81 @@ class StimulusExperimentalReadinessAuditEngine {
                             (dose.authorizedWholeSetUnits ?: 0) > 0 && dose.weeklyTarget != null
                     }
                 }
+            val targetIsPowerJump = quality in setOf(TrainableQuality.POWER, TrainableQuality.REACTIVE_STRENGTH_SSC) &&
+                targetIsCanonicalQuality && validExactPowerJumpExecution(comparison, identity, candidate, authorization)
             (targetIsCanonicalQuality || targetIsRegionalMovement) &&
+                (quality !in setOf(TrainableQuality.POWER, TrainableQuality.REACTIVE_STRENGTH_SSC) || targetIsPowerJump) &&
                 authorization.targetId in candidate.coveredTargetIds &&
                 authorization.status in setOf(
                     StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
                     StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
-                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION,
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_USER_APPROVED_POWER_JUMP_POLICY
                 ) && authorization.executionAuthority == canonicalExecutionAuthority(quality, authorized) &&
                 (authorization.executionAuthority == StimulusPrescriptionExecutionAuthority.FULLY_ENCODED ||
                     authorization.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION &&
                         authorization.executionAuthority == StimulusPrescriptionExecutionAuthority.REQUIRES_USER_LOAD_INPUT &&
                         authorization.coldStartCalibration?.owner == identity) &&
                 validateAuthorizedWeeklySubset(rows, authorized, identity.stableKey, identity.selectionRole).valid
+            }
         }
+    }
+
+    /** B7 proof for the bounded P/J policy; it validates the exact B3→B4→B5→B6 chain. */
+    private fun validExactPowerJumpExecution(
+        comparison: StimulusSelectionProgramComparison,
+        identity: StimulusPrescriptionOwnerIdentity,
+        candidate: StimulusSelectedCandidate,
+        authorization: StimulusPrescriptionAuthorization
+    ): Boolean {
+        val quality = authorization.quality ?: return false
+        if (quality !in setOf(TrainableQuality.POWER, TrainableQuality.REACTIVE_STRENGTH_SSC)) return false
+        val targetId = "QUALITY:${quality.name}"
+        val target = comparison.targetPlan.qualityTargets.singleOrNull { it.quality == quality } ?: return false
+        val decision = comparison.targetPlan.powerJumpDoseDecisions.singleOrNull { it.targetId == targetId } ?: return false
+        val authorized = authorization.authorizedPrescription ?: return false
+        if (authorization.targetId != targetId || authorization.owner?.let {
+                StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole)
+            } != identity || candidate.primaryTargetId != targetId || targetId !in candidate.coveredTargetIds ||
+            target.needDecision != TrainingNeedDecision.DEVELOP ||
+            target.numericAuthority != StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY ||
+            decision.status != PowerJumpDoseStatus.AUTHORIZED || decision.approvedWeeklySetUnits !in 2..4 ||
+            target.weeklyDirectUnitsTarget?.preferred != decision.approvedWeeklySetUnits.toDouble() ||
+            target.requiredPhysicalModes.isNullOrEmpty() || authorized.sets.size != decision.approvedWeeklySetUnits ||
+            authorization.source != StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE ||
+            "B3_NEED_PRESERVED" !in authorization.reasonCodes ||
+            "B4_EXACT_POWER_JUMP_SET_UNITS=${decision.approvedWeeklySetUnits}" !in authorization.reasonCodes ||
+            "B5_EXACT_OWNER=${identity.stableKey}#${identity.selectionRole}" !in authorization.reasonCodes
+        ) return false
+        val setsValid = authorized.sets.all { set -> set.reps in 3..6 && set.seconds == 0 && set.targetRpeMin == null && when (set.loadState) {
+            com.training.trackplanner.data.ProgramLoadState.NOT_APPLICABLE -> set.weightKg == 0.0
+            com.training.trackplanner.data.ProgramLoadState.EXPLICIT_LOAD -> set.weightKg.isFinite() && set.weightKg > 0.0
+            com.training.trackplanner.data.ProgramLoadState.USER_CALIBRATION_REQUIRED -> set.weightKg == 0.0
+            else -> false
+        } }
+        val executionStateValid = when (authorization.status) {
+            StimulusPrescriptionAuthorizationStatus.AUTHORIZED_USER_APPROVED_POWER_JUMP_POLICY ->
+                authorization.executionAuthority == StimulusPrescriptionExecutionAuthority.FULLY_ENCODED &&
+                    authorized.sets.all { it.loadState in setOf(
+                        com.training.trackplanner.data.ProgramLoadState.NOT_APPLICABLE,
+                        com.training.trackplanner.data.ProgramLoadState.EXPLICIT_LOAD
+                    ) }
+            StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION ->
+                authorization.executionAuthority == StimulusPrescriptionExecutionAuthority.REQUIRES_USER_LOAD_INPUT &&
+                    authorized.sets.all { it.loadState == com.training.trackplanner.data.ProgramLoadState.USER_CALIBRATION_REQUIRED } &&
+                    authorization.authorityRecovery?.status == ExecutionAuthorityResolutionStatus.USER_INPUT_REQUIRED &&
+                    authorization.authorityRecovery.returnTarget == ExecutionAuthorityReturnTarget.EXPLICIT_USER_INPUT
+            else -> false
+        }
+        val trace = comparison.materializationTraces.singleOrNull {
+            it.targetId == targetId && it.selectedStableKey == identity.stableKey && it.selectionRole == identity.selectionRole
+        } ?: return false
+        val rows = comparison.experimental.items.filter {
+            it.exerciseStableKey == identity.stableKey && it.selectionRole == identity.selectionRole
+        }
+        return setsValid && executionStateValid && trace.selectedAtB5 && trace.directIdentityVerifiedAtSelection == true &&
+            trace.presentInFinalExperimentalSkeleton && trace.directIdentityStillValid && rows.isNotEmpty() &&
+            validateAuthorizedWeeklySubset(rows, authorized, identity.stableKey, identity.selectionRole).valid
     }
 
     private fun removalCausalEvidence(
@@ -993,6 +1465,7 @@ class StimulusExperimentalReadinessAuditEngine {
     private fun targetOutcomes(comparison: StimulusSelectionProgramComparison, affected: Set<String>): List<StimulusExperimentalTargetOutcome> =
         comparison.targetPlan.qualityTargets.map { target ->
             val id = "QUALITY:${target.quality.name}"
+            val powerJumpDecision = comparison.targetPlan.powerJumpDoseDecisions.singleOrNull { it.targetId == id }
             val control = comparison.controlAudit?.qualityAudits?.firstOrNull { it.quality == target.quality }
             val experimental = comparison.experimentalAudit?.qualityAudits?.firstOrNull { it.quality == target.quality }
             val regionalHypertrophyUnits = if (target.quality == TrainableQuality.HYPERTROPHY) {
@@ -1001,9 +1474,11 @@ class StimulusExperimentalReadinessAuditEngine {
             val comparableExperimentalUnits = experimental?.plannedWeeklyDirectUnits?.let {
                 (it - regionalHypertrophyUnits).coerceAtLeast(0.0)
             }
-            numericOutcome(id, affected.contains(id), target.numericAuthority, target.weeklyDirectUnitsTarget, target.weeklyDirectSessionsTarget,
+            (if (target.quality in setOf(TrainableQuality.POWER, TrainableQuality.REACTIVE_STRENGTH_SSC) && powerJumpDecision != null) {
+                powerJumpOutcome(comparison, id, affected.contains(id), powerJumpDecision)
+            } else numericOutcome(id, affected.contains(id), target.numericAuthority, target.weeklyDirectUnitsTarget, target.weeklyDirectSessionsTarget,
                 control?.plannedWeeklyDirectUnits, comparableExperimentalUnits, control?.plannedWeeklyDirectSessions, experimental?.plannedWeeklyDirectSessions,
-                control?.weeklyDirectUnitsStatus, experimental?.weeklyDirectUnitsStatus, control?.weeklyDirectSessionsStatus, experimental?.weeklyDirectSessionsStatus)
+                control?.weeklyDirectUnitsStatus, experimental?.weeklyDirectUnitsStatus, control?.weeklyDirectSessionsStatus, experimental?.weeklyDirectSessionsStatus))
                 .let { outcome ->
                     if (regionalHypertrophyUnits <= 0.0) outcome else outcome.copy(
                         reasonCodes = (outcome.reasonCodes + "AUTHORIZED_REGIONAL_HYPERTROPHY_EXCLUDED_FROM_AGGREGATE_QUALITY_COMPARISON").distinct(),
@@ -1073,6 +1548,59 @@ class StimulusExperimentalReadinessAuditEngine {
                     StimulusExperimentalTargetOutcomeStatus.NO_AUTHORITY -> listOf("B6_REGIONAL_RESIDUAL_AUTHORITY_MISSING")
                     StimulusExperimentalTargetOutcomeStatus.REGRESSED -> listOf("B6_REGIONAL_RESIDUAL_OVERRUN")
                     else -> listOf("TARGET_UNMET", "B4_RESIDUAL_SHORTFALL=${(required - materialized).coerceAtLeast(0)}")
+                }
+            )
+        } + comparison.targetPlan.movementTargets.mapNotNull { target ->
+            val id = target.targetId
+            val dose = target.regionalDoseTargets.firstOrNull {
+                it.kind == StimulusMovementDoseKind.CORE_DIRECT_CONTROL_SET &&
+                    it.shapeAuthority == StimulusMovementDoseShapeAuthority.CORE_DIRECT_SET_DOSE_EXACT_OWNER_SHAPE_REQUIRED
+            } ?: return@mapNotNull null
+            val required = dose.authorizedWholeSetUnits ?: return@mapNotNull null
+            val isAffected = id in affected
+            if (required <= 0 || !isAffected) return@mapNotNull StimulusExperimentalTargetOutcome(
+                targetId = id,
+                status = StimulusExperimentalTargetOutcomeStatus.NOT_APPLICABLE,
+                directlyAffected = false,
+                controlWeeklyUnitsDistance = dose.existingEquivalentExposure,
+                experimentalWeeklyUnitsDistance = dose.existingEquivalentExposure,
+                reasonCodes = dose.residualReasonCodes
+            )
+            val authorization = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().singleOrNull {
+                it.targetId == id && it.quality == null
+            }
+            val owner = authorization?.owner?.let { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }
+            val b6 = comparison.prescriptionAuthorizationPlan?.movementAuthorizations.orEmpty().singleOrNull {
+                it.targetId == id && it.status == StimulusMovementB6Status.AUTHORIZED_CORE_DIRECT_B6 && it.owner == owner
+            }
+            val audit = comparison.prescriptionMaterializationAudits.singleOrNull {
+                it.targetId == id && it.quality == null && it.owner?.let { row ->
+                    row.stableKey == owner?.stableKey && row.selectionRole == owner.selectionRole
+                } == true
+            }
+            val materialized = audit?.materializedWeeklySetUnits ?: 0
+            val status = when {
+                b6 == null || authorization?.authorizedPrescription == null -> StimulusExperimentalTargetOutcomeStatus.NO_AUTHORITY
+                audit?.overrun?.let { it > 0 } == true -> StimulusExperimentalTargetOutcomeStatus.REGRESSED
+                audit?.state == StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED &&
+                    materialized == required && audit.targetCompatibleMaterializedUnits == required ->
+                    StimulusExperimentalTargetOutcomeStatus.IMPROVED
+                else -> StimulusExperimentalTargetOutcomeStatus.UNCHANGED
+            }
+            StimulusExperimentalTargetOutcome(
+                targetId = id,
+                status = status,
+                directlyAffected = true,
+                controlWeeklyUnitsDistance = dose.existingEquivalentExposure,
+                experimentalWeeklyUnitsDistance = (dose.existingEquivalentExposure ?: 0.0) + materialized,
+                reasonCodes = when (status) {
+                    StimulusExperimentalTargetOutcomeStatus.IMPROVED -> listOf(
+                        "B4_CORE_DIRECT_RESIDUAL_FULLY_MATERIALIZED", "B6_EXACT_OWNER_SHAPE_AUTHORITY_VERIFIED"
+                    ) + if (authorization?.executionAuthority == StimulusPrescriptionExecutionAuthority.REQUIRES_USER_LOAD_INPUT)
+                        listOf("USER_CALIBRATION_REQUIRED_FOR_EXTERNAL_LOAD") else emptyList()
+                    StimulusExperimentalTargetOutcomeStatus.NO_AUTHORITY -> listOf("B6_CORE_DIRECT_EXECUTION_AUTHORITY_MISSING")
+                    StimulusExperimentalTargetOutcomeStatus.REGRESSED -> listOf("B6_CORE_DIRECT_RESIDUAL_OVERRUN")
+                    else -> listOf("TARGET_UNMET", "B4_CORE_DIRECT_RESIDUAL_SHORTFALL=${(required - materialized).coerceAtLeast(0)}")
                 }
             )
         }
@@ -1167,6 +1695,65 @@ class StimulusExperimentalReadinessAuditEngine {
             improved > 0 -> StimulusExperimentalTargetOutcomeStatus.IMPROVED
             else -> StimulusExperimentalTargetOutcomeStatus.UNCHANGED
         }
+    }
+
+    /** Power/Jump has a direct B4 set-unit target, not the legacy exposure/session range pair. */
+    private fun powerJumpOutcome(
+        comparison: StimulusSelectionProgramComparison,
+        targetId: String,
+        affected: Boolean,
+        decision: PowerJumpDoseDecision
+    ): StimulusExperimentalTargetOutcome {
+        if (!affected) return StimulusExperimentalTargetOutcome(
+            targetId = targetId,
+            status = if (decision.status == PowerJumpDoseStatus.NEED_UNRESOLVED)
+                StimulusExperimentalTargetOutcomeStatus.INCONCLUSIVE else StimulusExperimentalTargetOutcomeStatus.NOT_APPLICABLE,
+            directlyAffected = false,
+            reasonCodes = decision.reasonCodes
+        )
+        if (decision.status != PowerJumpDoseStatus.AUTHORIZED || decision.approvedWeeklySetUnits !in 2..4) {
+            return StimulusExperimentalTargetOutcome(
+                targetId = targetId,
+                status = if (decision.status == PowerJumpDoseStatus.NEED_UNRESOLVED)
+                    StimulusExperimentalTargetOutcomeStatus.INCONCLUSIVE else StimulusExperimentalTargetOutcomeStatus.NO_AUTHORITY,
+                directlyAffected = true,
+                reasonCodes = decision.reasonCodes + "B4_HAS_NO_EXECUTABLE_POWER_JUMP_SET_AUTHORITY"
+            )
+        }
+        val authorization = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().singleOrNull {
+            it.targetId == targetId && it.quality in setOf(TrainableQuality.POWER, TrainableQuality.REACTIVE_STRENGTH_SSC)
+        }
+        val audit = comparison.prescriptionMaterializationAudits.singleOrNull { it.targetId == targetId }
+        val required = decision.approvedWeeklySetUnits
+        val materialized = audit?.materializedWeeklySetUnits ?: 0
+        val status = when {
+            audit?.overrun?.let { it > 0 } == true -> StimulusExperimentalTargetOutcomeStatus.REGRESSED
+            authorization?.authorizedPrescription == null || authorization.authorizedPrescription.sets.size != required ->
+                StimulusExperimentalTargetOutcomeStatus.NO_AUTHORITY
+            audit?.state == StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED &&
+                materialized == required && audit.targetCompatibleMaterializedUnits == required &&
+                audit.totalMaterializedUnits == required * comparison.experimental.request.durationWeeks.coerceAtLeast(1) ->
+                StimulusExperimentalTargetOutcomeStatus.IMPROVED
+            else -> StimulusExperimentalTargetOutcomeStatus.UNCHANGED
+        }
+        return StimulusExperimentalTargetOutcome(
+            targetId = targetId,
+            status = status,
+            directlyAffected = true,
+            controlWeeklyUnitsDistance = required.toDouble(),
+            experimentalWeeklyUnitsDistance = (required - materialized).coerceAtLeast(0).toDouble(),
+            reasonCodes = when (status) {
+                StimulusExperimentalTargetOutcomeStatus.IMPROVED -> listOf(
+                    "B3_POWER_JUMP_NEED_PRESERVED",
+                    "B4_EXACT_POWER_JUMP_SET_UNITS=${required}",
+                    "B6_EXACT_POWER_JUMP_MATERIALIZATION_VERIFIED"
+                ) + if (authorization?.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION)
+                    listOf("USER_CALIBRATION_REQUIRED_FOR_EXTERNAL_LOAD") else emptyList()
+                StimulusExperimentalTargetOutcomeStatus.NO_AUTHORITY -> listOf("B6_EXACT_POWER_JUMP_AUTHORITY_MISSING")
+                StimulusExperimentalTargetOutcomeStatus.REGRESSED -> listOf("B6_POWER_JUMP_SET_OVERRUN")
+                else -> listOf("B4_B6_POWER_JUMP_SHORTFALL=${(required - materialized).coerceAtLeast(0)}")
+            }
+        )
     }
 
     private fun compareDistance(control: Double, experimental: Double): StimulusExperimentalTargetOutcomeStatus = when {
@@ -1267,4 +1854,28 @@ internal fun StimulusExperimentalReadinessAudit.toJson(): JSONObject = JSONObjec
         .put("stableKey", attribution.stableKey).put("selectionRole", attribution.selectionRole).put("source", attribution.source.name)
         .put("targetIds", JSONArray(attribution.targetIds)).put("reasonCodes", JSONArray(attribution.reasonCodes))
         .put("evidenceSources", JSONArray(attribution.evidenceSources))
+        .put("replacementOwnerStableKey", attribution.replacementOwner?.stableKey)
+        .put("replacementOwnerSelectionRole", attribution.replacementOwner?.selectionRole)
+        .put("replacementEvidenceId", attribution.replacementEvidenceId)
+    }))
+    .put("userApprovedReplacementEdges", JSONArray(userApprovedReplacementEdges.map { edge -> JSONObject()
+        .put("optionId", edge.optionId).put("targetId", edge.targetId)
+        .put("displacedControlOwner", JSONObject().put("stableKey", edge.displacedControlOwner.stableKey)
+            .put("selectionRole", edge.displacedControlOwner.selectionRole))
+        .put("keepOwner", JSONObject().put("stableKey", edge.keepOwner.stableKey).put("selectionRole", edge.keepOwner.selectionRole))
+        .put("replacementOwner", JSONObject().put("stableKey", edge.replacementOwner.stableKey)
+            .put("selectionRole", edge.replacementOwner.selectionRole))
+        .put("controlRows", JSONArray(edge.controlRows.map(ProgramSkeletonItem::toReplacementEvidenceJson)))
+        .put("keepRows", JSONArray(edge.keepRows.map(ProgramSkeletonItem::toReplacementEvidenceJson)))
+        .put("replacementRows", JSONArray(edge.replacementRows.map(ProgramSkeletonItem::toReplacementEvidenceJson)))
+    }))
+
+private fun ProgramSkeletonItem.toReplacementEvidenceJson(): JSONObject = JSONObject()
+    .put("localId", localId).put("week", weekNumber).put("day", dayOfWeek).put("order", orderIndex)
+    .put("stableKey", exerciseStableKey).put("selectionRole", selectionRole)
+    .put("setCount", setCount).put("reps", reps).put("weightKg", weightKg).put("seconds", seconds)
+    .put("restSeconds", restSeconds).put("weightSource", weightSource).put("prescription", prescription)
+    .put("sets", JSONArray(setPrescriptions.map { set -> JSONObject()
+        .put("setIndex", set.setIndex).put("reps", set.reps).put("weightKg", set.weightKg)
+        .put("seconds", set.seconds).put("targetRpeMin", set.targetRpeMin).put("loadState", set.loadState.name)
     }))

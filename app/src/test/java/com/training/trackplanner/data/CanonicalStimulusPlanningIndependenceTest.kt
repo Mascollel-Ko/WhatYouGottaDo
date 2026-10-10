@@ -394,7 +394,10 @@ class CanonicalStimulusPlanningIndependenceTest {
                 // canonical B1-B4 decision has been independently reproduced. Compare the
                 // canonical target semantics here, while the residual-specific integration
                 // is asserted by the regional production census.
-                assertEquals(independent.targetPlan, comparison.targetPlan.withoutProductionResidualAccounting())
+                assertEquals(
+                    independent.targetPlan.withoutProductionResidualAccounting(),
+                    comparison.targetPlan.withoutProductionResidualAccounting()
+                )
                 assertNotNull(mirror.finalAudit)
                 assertNotNull(mirror.trainingDecisionPortfolioShadow?.comparison)
                 assertNotNull(mirror.stimulusTargetPlanShadow?.legacyComparison)
@@ -517,7 +520,10 @@ class CanonicalStimulusPlanningIndependenceTest {
                     service.buildCanonicalStimulusPlanningResult(snapshot, state, dose).also { canonical = it }
                 })
             val comparison = requireNotNull(result.comparison)
-            assertEquals(requireNotNull(canonical).targetPlan, comparison.targetPlan.withoutProductionResidualAccounting())
+            assertEquals(
+                requireNotNull(canonical).targetPlan.withoutProductionResidualAccounting(),
+                comparison.targetPlan.withoutProductionResidualAccounting()
+            )
             val positiveResiduals = comparison.targetPlan.movementTargets.flatMap { movement ->
                 movement.regionalDoseTargets.filter { it.kind == StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET }
                     .map { movement to it }
@@ -584,6 +590,13 @@ class CanonicalStimulusPlanningIndependenceTest {
     }
 
     private fun StimulusTargetPlan.withoutProductionResidualAccounting(): StimulusTargetPlan = copy(
+        // Production adds need-gated Power/Jump B4 dose decisions only after the initial
+        // Strength/Hypertrophy B5+B6 pass. These are independently covered by the C37 census;
+        // this helper compares the unchanged canonical B1-B4 producer projection.
+        qualityTargets = qualityTargets.filterNot {
+            it.quality in setOf(TrainableQuality.POWER, TrainableQuality.REACTIVE_STRENGTH_SSC)
+        },
+        powerJumpDoseDecisions = emptyList(),
         movementTargets = movementTargets.map { movement ->
             movement.copy(regionalDoseTargets = movement.regionalDoseTargets.map { dose ->
                 dose.copy(

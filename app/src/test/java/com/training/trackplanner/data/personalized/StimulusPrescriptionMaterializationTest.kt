@@ -6,9 +6,11 @@ import com.training.trackplanner.data.ProgramPeriodizationType
 import com.training.trackplanner.data.ProgramSetPrescription
 import com.training.trackplanner.data.ProgramSkeletonItem
 import com.training.trackplanner.data.ProgramSkeletonRequest
+import com.training.trackplanner.data.ProgramLoadState
 import com.training.trackplanner.data.TrainableQuality
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -139,6 +141,46 @@ class StimulusPrescriptionMaterializationTest {
         assertEquals(StimulusPrescriptionMaterializationState.NOT_MATERIALIZED, audit.state)
         assertEquals(0, audit.totalShortfallUnits)
         assertTrue(audit.weeklyAudits.all { it.authorizedSetUnits == 0 && it.shortfall == 0 })
+    }
+
+    @Test
+    fun exactUserApprovedPowerJumpB6IsCountedAsTargetCompatibleWithoutGenericQualityFallback() {
+        val owner = StimulusPrescriptionOwner(key, role, "B5_SELECTION")
+        val powerPrescription = PlannedPrescription(
+            text = "2 sets × 4 quality reps",
+            sets = List(2) { index -> ProgramSetPrescription(index + 1, 4, 0.0, 0,
+                targetRpeMin = null, loadState = ProgramLoadState.NOT_APPLICABLE) },
+            restSeconds = 120,
+            weightSource = "USER_APPROVED_POWER_JUMP_BODYWEIGHT_POLICY"
+        )
+        val authorization = StimulusPrescriptionAuthorization(
+            targetId = "QUALITY:POWER",
+            quality = TrainableQuality.POWER,
+            owner = owner,
+            source = StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE,
+            inputPrescription = null,
+            plannedCompatibility = null,
+            authorizedPrescription = powerPrescription,
+            status = StimulusPrescriptionAuthorizationStatus.AUTHORIZED_USER_APPROVED_POWER_JUMP_POLICY,
+            reasonCodes = listOf(
+                "B3_NEED_PRESERVED",
+                "B4_EXACT_POWER_JUMP_SET_UNITS=2",
+                "B5_EXACT_OWNER=$key#$role",
+                "B6_CONSUMES_EXACT_B4_SET_COUNT=2",
+                "USER_APPROVED_PROJECT_POLICY"
+            ),
+            executionAuthority = StimulusPrescriptionExecutionAuthority.FULLY_ENCODED
+        )
+        val plan = StimulusPrescriptionAuthorizationPlan(listOf(authorization))
+        val result = StimulusPrescriptionMaterializationAuditEngine().audit(
+            plan, experimental(listOf(1, 2), powerPrescription), snapshot
+        ).single()
+
+        assertEquals(StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED, result.state)
+        assertEquals(2, result.targetCompatibleMaterializedUnits)
+        assertEquals(4, result.totalMaterializedUnits)
+        assertTrue(result.reasonCodes.contains("B6_EXACT_POWER_JUMP_AUTHORIZATION_MATCHED"))
+        assertFalse(result.reasonCodes.contains("B6_TARGET_COMPATIBILITY_SHORTFALL"))
     }
 
     @Test

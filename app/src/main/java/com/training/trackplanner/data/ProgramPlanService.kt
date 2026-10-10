@@ -57,7 +57,13 @@ internal class ProgramPlanService(
             val program = programDao.findProgram(programId)
             val rows = program?.let { programDao.itemsForProgram(it.id) }.orEmpty()
             val sets = program?.let { programDao.programItemSetsForProgram(it.id) }.orEmpty()
-            val token = program?.let { CanonicalIncumbentSourceSnapshotFingerprint.create(it, rows, sets) }
+            val rowIds = rows.mapTo(hashSetOf(), TrainingProgramItem::id)
+            val progressionItems = db.programProgressionDao().items().filter { it.programItemId in rowIds }
+            val trackIds = progressionItems.mapTo(hashSetOf(), ProgramProgressionItem::trackId)
+            val progressionTracks = db.programProgressionDao().tracks().filter { it.id in trackIds }
+            val token = program?.let {
+                CanonicalIncumbentSourceSnapshotFingerprint.create(it, rows, sets, progressionItems, progressionTracks)
+            }
             CanonicalIncumbentPlacementIndex.fromPersistedProgram(
                 program, programId, rows, sourceSnapshotToken = token
             )
@@ -128,16 +134,29 @@ internal class ProgramPlanService(
         val request = skeleton.request
         val existing = existingProgramId?.let { programDao.findProgram(it) }
         val canonicalDecision = skeleton.personalizedDecision
+        val existingItems = existing?.let { programDao.itemsForProgram(it.id) }.orEmpty()
+        val existingSets = existing?.let { programDao.programItemSetsForProgram(it.id) }.orEmpty()
+        val existingItemIds = existingItems.mapTo(hashSetOf(), TrainingProgramItem::id)
+        val existingProgressionItems = db.programProgressionDao().items().filter { it.programItemId in existingItemIds }
+        val existingProgressionTracks = db.programProgressionDao().tracks()
+            .filter { track -> existingProgressionItems.any { it.trackId == track.id } }
         if (existingProgramId != null && canonicalDecision != null) {
             if (existing == null) {
                 throw StaleIncumbentSourceException("STALE_INCUMBENT_SOURCE: program was deleted during generation")
             }
             val expected = skeleton.incumbentSourceSnapshotToken
                 ?: throw StaleIncumbentSourceException("STALE_INCUMBENT_SOURCE: missing generation snapshot")
-            val rows = programDao.itemsForProgram(existing.id)
-            val sets = programDao.programItemSetsForProgram(existing.id)
-            val actual = CanonicalIncumbentSourceSnapshotFingerprint.create(existing, rows, sets)
+            val actual = CanonicalIncumbentSourceSnapshotFingerprint.create(
+                existing, existingItems, existingSets, existingProgressionItems, existingProgressionTracks
+            )
             if (actual != expected) throw StaleIncumbentSourceException("STALE_INCUMBENT_SOURCE: program changed during generation")
+            CanonicalIncumbentSaveMutationGuard.requireNoUnprovenMutation(
+                persistedRows = existingItems,
+                persistedSets = existingSets,
+                persistedProgression = existingProgressionItems,
+                finalDraft = skeleton,
+                expectedSourceSnapshotToken = expected
+            )
         }
         val exactCanonicalGeneration = canonicalDecision?.takeIf {
             it.protocolVersion == PERSONALIZED_PLANNER_PROTOCOL
@@ -188,6 +207,23 @@ internal class ProgramPlanService(
             item.progressionBinding?.let { binding ->
                 require(sessions.getValue(binding.sessionKey).track.exerciseStableKey == item.exerciseStableKey)
                 restored[itemId] = ProgramProgressionItem(itemId, binding.logicalItemId, binding.sessionKey, binding.linkMode, binding.signature)
+            }
+            if (itemId !in restored) {
+                val unchangedSource = existingItems.singleOrNull { source ->
+                    source.selectionRole?.isNotBlank() == true &&
+                        source.exerciseStableKey == item.exerciseStableKey &&
+                        source.selectionRole == item.selectionRole &&
+                        source.weekNumber == item.weekNumber &&
+                        CanonicalIncumbentSaveMutationGuard.samePhysicalPrescription(
+                            source,
+                            existingSets.filter { it.programItemId == source.id },
+                            item
+                        )
+                }
+                val priorBinding = unchangedSource?.let { existingProgressionItems.singleOrNull { binding -> binding.programItemId == it.id } }
+                if (unchangedSource != null && priorBinding != null) {
+                    restored[itemId] = priorBinding.copy(programItemId = itemId)
+                }
             }
             programDao.insertProgramItemSets(
                 ProgramSetPrescriptionResolver.resolve(item).map { set -> set.toEntity(itemId) }
