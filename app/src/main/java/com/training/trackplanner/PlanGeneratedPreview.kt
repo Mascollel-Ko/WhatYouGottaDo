@@ -13,6 +13,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -48,6 +49,7 @@ import com.training.trackplanner.data.upsertDraftItem
 import com.training.trackplanner.data.withWeekDays
 import com.training.trackplanner.data.ProgramEditScope
 import com.training.trackplanner.data.ProgramScopedEditor
+import com.training.trackplanner.data.personalized.MovementCoverage
 import androidx.compose.ui.platform.testTag
 import com.training.trackplanner.localization.localizedExerciseName
 import com.training.trackplanner.localization.localizedUiText
@@ -58,6 +60,12 @@ internal fun ProgramSkeletonPreview(
     exercises: List<Exercise>,
     metadataByExerciseId: Map<String, RuntimeExerciseMetadata>,
     progressionEligibleKeys: Set<String> = emptySet(),
+    onValidateReplacementSelection: (
+        GeneratedProgramSkeleton,
+        Set<String>,
+        (Result<GeneratedProgramSkeleton>) -> Unit
+    ) -> Unit = { _, _, callback -> callback(Result.failure(IllegalStateException("REPLACEMENT_VALIDATION_UNAVAILABLE"))) },
+    replacementRequestIsCurrent: Boolean = true,
     onSkeletonChange: (GeneratedProgramSkeleton) -> Unit
 ) {
     var selectedWeek by rememberSaveable(skeleton.suggestedName) { mutableStateOf(1) }
@@ -66,6 +74,10 @@ internal fun ProgramSkeletonPreview(
     var editingItem by remember { mutableStateOf<ProgramSkeletonItem?>(null) }
     var removeDayTarget by remember { mutableStateOf<Int?>(null) }
     var allWeeks by rememberSaveable(skeleton.suggestedName) { mutableStateOf(true) }
+    var selectedReplacementIds by remember(skeleton.replacementReview?.sessionId) { mutableStateOf(emptySet<String>()) }
+    var replacementValidationInProgress by remember(skeleton.replacementReview?.sessionId) { mutableStateOf(false) }
+    var replacementValidationError by remember(skeleton.replacementReview?.sessionId) { mutableStateOf<String?>(null) }
+    var validatedReplacementPreview by remember(skeleton.replacementReview?.sessionId) { mutableStateOf<GeneratedProgramSkeleton?>(null) }
     val recordBased=skeleton.personalizedDecision!=null
     val supportsAll=remember(skeleton) { ProgramScopedEditor.supportsAll(skeleton) }
     val scope=if(recordBased && allWeeks && supportsAll) ProgramEditScope.ALL_WEEKS else ProgramEditScope.INDIVIDUAL_WEEK
@@ -134,6 +146,59 @@ internal fun ProgramSkeletonPreview(
         skeleton.personalizedDecision?.let { decision ->
             PlanningSummaryCard(remember(decision) { PlanningSummaryPresenter.present(decision) })
         }
+        skeleton.replacementReview?.let { review ->
+            ReplacementReviewPanel(
+                skeleton = skeleton,
+                review = review,
+                selectedOptionIds = selectedReplacementIds,
+                validating = replacementValidationInProgress,
+                errorMessage = replacementValidationError,
+                validatedPreview = validatedReplacementPreview,
+                exercises = exercises,
+                sourceIsCurrent = replacementRequestIsCurrent &&
+                    if (review.appliedOptionIds.isNotEmpty()) {
+                        review.validation?.resultingDraftFingerprint ==
+                            com.training.trackplanner.data.ProgramReplacementReviewFingerprint.create(skeleton)
+                    } else {
+                        com.training.trackplanner.data.ProgramReplacementReviewFingerprint.create(skeleton) == review.sourceDraftFingerprint
+                    },
+                onToggleOption = { optionId, selected ->
+                    val targetId = review.options.singleOrNull { it.optionId == optionId }?.targetId
+                    selectedReplacementIds = if (selected && targetId != null) {
+                        selectedReplacementIds.filterTo(linkedSetOf()) { selectedId ->
+                            review.options.singleOrNull { it.optionId == selectedId }?.targetId != targetId
+                        } + optionId
+                    } else if (selected) {
+                        selectedReplacementIds + optionId
+                    } else {
+                        selectedReplacementIds - optionId
+                    }
+                    replacementValidationError = null
+                    validatedReplacementPreview = null
+                },
+                onValidate = {
+                    replacementValidationInProgress = true
+                    replacementValidationError = null
+                    validatedReplacementPreview = null
+                    onValidateReplacementSelection(skeleton, selectedReplacementIds) { result ->
+                        replacementValidationInProgress = false
+                        result.onSuccess { validatedReplacementPreview = it }
+                            .onFailure { replacementValidationError = replacementValidationMessage(it) }
+                    }
+                },
+                onApplyValidated = { candidate ->
+                    val candidateReview = requireNotNull(candidate.replacementReview)
+                    val selected = candidateReview.validation?.selectedOptionIds.orEmpty()
+                    if (selected.isNotEmpty() && candidateReview.validation?.resultingDraftFingerprint ==
+                        com.training.trackplanner.data.ProgramReplacementReviewFingerprint.create(candidate)
+                    ) {
+                        onSkeletonChange(candidate.copy(
+                            replacementReview = candidateReview.copy(appliedOptionIds = selected)
+                        ))
+                    }
+                }
+            )
+        }
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(8.dp),
@@ -181,6 +246,177 @@ internal fun ProgramSkeletonPreview(
         }
     }
 }
+
+@Composable
+private fun ReplacementReviewPanel(
+    skeleton: GeneratedProgramSkeleton,
+    review: com.training.trackplanner.data.ProgramReplacementReview,
+    selectedOptionIds: Set<String>,
+    validating: Boolean,
+    errorMessage: String?,
+    validatedPreview: GeneratedProgramSkeleton?,
+    exercises: List<Exercise>,
+    sourceIsCurrent: Boolean,
+    onToggleOption: (String, Boolean) -> Unit,
+    onValidate: () -> Unit,
+    onApplyValidated: (GeneratedProgramSkeleton) -> Unit
+) {
+    val applied = review.appliedOptionIds
+    val validated = validatedPreview?.replacementReview?.validation
+    Card(
+        modifier = Modifier.fillMaxWidth().testTag("replacement-review"),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            MaterialText(stringResource(R.string.program_replacement_title), fontWeight = FontWeight.SemiBold)
+            when {
+                applied.isNotEmpty() -> {
+                    val stillValidated = review.validation?.resultingDraftFingerprint ==
+                        com.training.trackplanner.data.ProgramReplacementReviewFingerprint.create(skeleton) && sourceIsCurrent
+                    MaterialText(
+                        stringResource(if (stillValidated) R.string.program_replacement_applied else R.string.program_replacement_stale),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    if (stillValidated) {
+                        review.options.filter { it.optionId in applied }.forEach { option ->
+                            val oldRows = option.sourceItems
+                            MaterialText("${exerciseLabel(exercises, option.sourceStableKey)} → ${exerciseLabel(exercises, option.candidateStableKey)}")
+                            if (oldRows.isNotEmpty()) MaterialText("${stringResource(R.string.program_replacement_original)}: ${describeReplacementRows(oldRows)}")
+                        }
+                    }
+                }
+                !sourceIsCurrent -> MaterialText(stringResource(R.string.program_replacement_stale))
+                else -> {
+                    MaterialText(stringResource(R.string.program_replacement_intro), style = MaterialTheme.typography.bodySmall)
+                    review.options.forEach { option ->
+                        val checked = option.optionId in selectedOptionIds
+                        val sourceRows = option.sourceItems
+                        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                            Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Checkbox(
+                                    checked = checked,
+                                    onCheckedChange = { onToggleOption(option.optionId, it) },
+                                    enabled = !validating,
+                                    modifier = Modifier.testTag("replacement-option-${option.optionId}")
+                                )
+                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                    MaterialText("${exerciseLabel(exercises, option.sourceStableKey)} → ${exerciseLabel(exercises, option.candidateStableKey)}", fontWeight = FontWeight.Medium)
+                                    if (sourceRows.isNotEmpty()) MaterialText("${stringResource(R.string.program_replacement_original)}: ${describeReplacementRows(sourceRows)}", style = MaterialTheme.typography.bodySmall)
+                                    MaterialText("${stringResource(R.string.program_replacement_target)}: ${replacementTargetLabel(option.targetId)}", style = MaterialTheme.typography.bodySmall)
+                                    MaterialText(stringResource(R.string.program_replacement_candidate_reason), style = MaterialTheme.typography.bodySmall)
+                                    MaterialText(stringResource(R.string.program_replacement_candidate_pending), style = MaterialTheme.typography.bodySmall)
+                                }
+                            }
+                        }
+                    }
+                    Button(
+                        onClick = onValidate,
+                        enabled = selectedOptionIds.isNotEmpty() && !validating,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("replacement-validate")
+                    ) {
+                        MaterialText(if (validating) stringResource(R.string.program_replacement_validating) else stringResource(R.string.program_replacement_validate))
+                    }
+                    errorMessage?.let { MaterialText(stringResource(R.string.program_replacement_validation_failed, it), color = MaterialTheme.colorScheme.error) }
+                    if (validatedPreview != null && validated?.status == com.training.trackplanner.data.ProgramReplacementValidationStatus.VALIDATED) {
+                        MaterialText(stringResource(R.string.program_replacement_validated), fontWeight = FontWeight.SemiBold)
+                        val chosen = review.options.filter { it.optionId in validated.selectedOptionIds }
+                        chosen.forEach { option ->
+                            MaterialText("${exerciseLabel(exercises, option.sourceStableKey)} → ${exerciseLabel(exercises, option.candidateStableKey)}")
+                            MaterialText("${stringResource(R.string.program_replacement_target)}: ${replacementTargetLabel(option.targetId)}")
+                            val impact = validated.targetImpacts.firstOrNull { it.targetId == option.targetId }
+                            if (impact != null) {
+                                MaterialText(stringResource(
+                                    R.string.program_replacement_target_impact,
+                                    stringResource(replacementOutcomeLabel(impact.keepStatus)),
+                                    impact.keepWeeklyUnitsDistance?.toString() ?: "—",
+                                    stringResource(replacementOutcomeLabel(impact.alternativeStatus)),
+                                    impact.alternativeWeeklyUnitsDistance?.toString() ?: "—"
+                                ), style = MaterialTheme.typography.bodySmall)
+                            }
+                            val weeks = option.sourceRows.map { it.weekNumber }.distinct().sorted()
+                            weeks.forEach { week ->
+                                val oldRows = option.sourceRows.filter { it.weekNumber == week }.mapNotNull { identity ->
+                                    option.sourceItems.firstOrNull { it.localId == identity.localId }
+                                }
+                                val newRows = validatedPreview.items.filter {
+                                    it.exerciseStableKey == option.candidateStableKey && it.selectionRole == option.candidateSelectionRole &&
+                                        it.weekNumber == week && !it.requiredTemplateAnchor
+                                }
+                                MaterialText("${week}주차 · ${stringResource(R.string.program_replacement_original)}: ${describeReplacementRows(oldRows)}")
+                                MaterialText("${stringResource(R.string.program_replacement_alternative)}: ${describeReplacementRows(newRows)}")
+                            }
+                            MaterialText(stringResource(R.string.program_replacement_valid_reason), style = MaterialTheme.typography.bodySmall)
+                        }
+                        Button(
+                            onClick = { onApplyValidated(validatedPreview) },
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("replacement-apply")
+                        ) { MaterialText(stringResource(R.string.program_replacement_apply)) }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun exerciseLabel(exercises: List<Exercise>, stableKey: String): String =
+    exercises.firstOrNull { it.stableKey == stableKey }?.let { localizedExerciseName(it.stableKey, it.name) } ?: stableKey
+
+@Composable
+private fun replacementTargetLabel(targetId: String): String {
+    val qualityResource = when (targetId) {
+        "QUALITY:HYPERTROPHY" -> R.string.program_replacement_quality_hypertrophy
+        "QUALITY:STRENGTH" -> R.string.program_replacement_quality_strength
+        "QUALITY:POWER" -> R.string.program_replacement_quality_power
+        "QUALITY:REACTIVE_STRENGTH_SSC" -> R.string.program_replacement_quality_reactive
+        else -> null
+    }
+    if (qualityResource != null) return stringResource(qualityResource)
+    val movement = targetId.removePrefix("MOVEMENT:").takeIf { targetId.startsWith("MOVEMENT:") }
+        ?.let { name -> MovementCoverage.entries.firstOrNull { it.name == name } }
+    if (movement != null) return stringResource(movementLabel(movement))
+    return stringResource(R.string.program_replacement_generic_target, targetId.substringAfter(':').replace('_', ' '))
+}
+
+private fun replacementOutcomeLabel(status: com.training.trackplanner.data.personalized.StimulusExperimentalTargetOutcomeStatus?): Int = when (status) {
+    com.training.trackplanner.data.personalized.StimulusExperimentalTargetOutcomeStatus.IMPROVED -> R.string.program_replacement_outcome_improved
+    com.training.trackplanner.data.personalized.StimulusExperimentalTargetOutcomeStatus.UNCHANGED -> R.string.program_replacement_outcome_unchanged
+    com.training.trackplanner.data.personalized.StimulusExperimentalTargetOutcomeStatus.REGRESSED -> R.string.program_replacement_outcome_regressed
+    com.training.trackplanner.data.personalized.StimulusExperimentalTargetOutcomeStatus.INCONCLUSIVE -> R.string.program_replacement_outcome_inconclusive
+    com.training.trackplanner.data.personalized.StimulusExperimentalTargetOutcomeStatus.NOT_APPLICABLE -> R.string.program_replacement_outcome_not_applicable
+    com.training.trackplanner.data.personalized.StimulusExperimentalTargetOutcomeStatus.NO_AUTHORITY -> R.string.program_replacement_outcome_no_authority
+    null -> R.string.program_replacement_outcome_unassessed
+}
+
+private fun replacementValidationMessage(error: Throwable): String {
+    val code = error.message.orEmpty()
+    return when {
+        code.contains("STALE") || code.contains("CHANGED_AFTER_GENERATION") -> "기록, 메타데이터 또는 초안이 바뀌어 검증이 오래되었습니다. 최신 상태에서 다시 생성해 주세요."
+        code.contains("B7_REJECTED") || code.contains("SOURCE_OWNER_STILL_REQUIRED") -> "교체 후 목표 충족 또는 다른 목표 보호를 입증하지 못했습니다. 원래 운동을 유지하세요."
+        code.contains("B8_REJECTED") || code.contains("B6") || code.contains("B5") -> "선택한 운동의 정확한 처방 권한 또는 전체 배정이 승인되지 않았습니다."
+        else -> "전체 프로그램 검증이 통과하지 않아 변경을 적용하지 않았습니다."
+    }
+}
+
+private fun describeReplacementRows(rows: List<ProgramSkeletonItem>): String = rows
+    .sortedWith(compareBy({ it.weekNumber }, { it.dayOfWeek }, { it.orderIndex }))
+    .joinToString("; ") { item ->
+        val sets = ProgramSetPrescriptionResolver.resolve(item)
+        val shape = sets.groupBy { Triple(it.reps, it.seconds, it.loadState) }
+            .entries.joinToString(" + ") { (key, grouped) ->
+                val (reps, seconds, loadState) = key
+                val dose = if (seconds > 0) "${grouped.size}×${seconds}초" else "${grouped.size}×$reps"
+                val load = when (loadState) {
+                    ProgramLoadState.USER_CALIBRATION_REQUIRED -> " · 중량 사용자 보정"
+                    ProgramLoadState.REAL_ZERO_LOAD -> " · 맨몸"
+                    ProgramLoadState.NOT_APPLICABLE -> ""
+                    ProgramLoadState.EXPLICIT_LOAD -> grouped.first().weightKg.takeIf { it > 0.0 }?.let { " · ${it}kg" }.orEmpty()
+                }
+                dose + load
+            }
+        "${item.weekNumber}주차 ${item.dayOfWeek}일 · $shape · ${item.restSeconds}초 휴식"
+    }
 
 @Composable
 internal fun ProgramEditScopeControl(scope: ProgramEditScope,supportsAll: Boolean,onChange: (ProgramEditScope)->Unit) {

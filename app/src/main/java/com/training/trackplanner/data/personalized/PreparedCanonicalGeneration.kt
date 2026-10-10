@@ -12,7 +12,10 @@ internal data class PreparedCanonicalGenerationContext(
     val priorDecisionId: String?,
     val legacyNeeds: AthleteNeedsProfile,
     val legacyDoseHistory: QualityDoseHistory,
-    val canonicalPlanningOutcome: CanonicalPlanningOutcome
+    val canonicalPlanningOutcome: CanonicalPlanningOutcome,
+    /** Persisted answer state at the end of preparation, distinct from a later user edit. */
+    val postAnswerPreferences: PersonalizedPlanningPreferences,
+    val postAnswerWeekAnnotations: Map<java.time.LocalDate, WeeklyContextAnnotation>
 )
 
 /** B5/B6 artifact completed without a CONTROL program or any CONTROL diagnostics. */

@@ -30,6 +30,7 @@ import com.training.trackplanner.data.personalized.AthleteNeedsProfileEngine
 import com.training.trackplanner.data.personalized.AthleteStimulusNeedEngine
 import com.training.trackplanner.data.personalized.FinalStimulusNeedAudit
 import com.training.trackplanner.data.personalized.StimulusExperimentalReadinessAuditEngine
+import com.training.trackplanner.data.personalized.StimulusExperimentalChangeAttributionSource
 import com.training.trackplanner.data.personalized.toCompactJson
 import com.training.trackplanner.data.personalized.QualityDoseHistoryAnalyzer
 import com.training.trackplanner.data.personalized.LedgerBackedQualityDoseHistoryAnalyzer
@@ -141,6 +142,30 @@ internal class PersonalizedProgramPlanningService(
     private val programBuilder: PersonalizedProgramBuilder = PersonalizedProgramBuilder(),
     private val persistUserState: suspend (suspend () -> Unit) -> Unit = { it() }
 ) {
+    private val replacementValidationSessions = java.util.concurrent.ConcurrentHashMap<String, ReplacementValidationSession>()
+
+    private data class ReplacementValidationSession(
+        val preflight: PersonalizedPlanningPreflight,
+        val answers: PersonalizedPlanningAnswers,
+        val metadata: Map<String, RuntimeExerciseMetadata>,
+        val context: PreparedCanonicalGenerationContext,
+        val control: GeneratedProgramSkeleton,
+        val canonicalPlanning: CanonicalStimulusPlanningResult,
+        val incumbentPlacementIndex: CanonicalIncumbentPlacementIndex,
+        val routingMode: com.training.trackplanner.data.personalized.StimulusProductionRoutingMode,
+        val baselineRequest: ProgramSkeletonRequest,
+        val keepProgram: GeneratedProgramSkeleton,
+        val keepComparison: StimulusSelectionProgramComparison,
+        val baselineFingerprint: String,
+        val options: List<com.training.trackplanner.data.ProgramReplacementCandidateOption>,
+        val baselineTargetOutcomes: List<com.training.trackplanner.data.personalized.StimulusExperimentalTargetOutcome>,
+        val latestValidatedFingerprint: java.util.concurrent.atomic.AtomicReference<String?> =
+            java.util.concurrent.atomic.AtomicReference(null)
+    )
+
+    internal class ReplacementSelectionRejectedException(val reasonCode: String) :
+        IllegalStateException("PROGRAM_REPLACEMENT_VALIDATION_REJECTED:$reasonCode")
+
     suspend fun prepare(
         request: ProgramSkeletonRequest,
         metadata: Map<String, RuntimeExerciseMetadata>,
@@ -432,7 +457,9 @@ internal class PersonalizedProgramPlanningService(
             priorDecisionId = priorId,
             legacyNeeds = legacyNeeds,
             legacyDoseHistory = legacyDoseHistory,
-            canonicalPlanningOutcome = canonicalOutcome
+            canonicalPlanningOutcome = canonicalOutcome,
+            postAnswerPreferences = readPreferences(),
+            postAnswerWeekAnnotations = WeeklyContextAnnotationJson.read(appMetaDao.value(WeeklyContextAnnotationJson.KEY))
         )
     }
 
@@ -443,7 +470,8 @@ internal class PersonalizedProgramPlanningService(
         progress: PersonalizedPlannerProgressReporter,
         productionBuildCounts: com.training.trackplanner.data.personalized.MutableStimulusProductionBuildCounts,
         observe: (ProductionGenerationPhase, StimulusCandidateSelectionPlan?, StimulusPrescriptionAuthorizationPlan?) -> Unit,
-        experimentalProgramBuildOverride: (suspend () -> GeneratedProgramSkeleton)?
+        experimentalProgramBuildOverride: (suspend () -> GeneratedProgramSkeleton)?,
+        forcedCandidateByTarget: Map<String, String> = emptyMap()
     ): CanonicalExperimentalGeneration {
         val canonicalPlanning = (context.canonicalPlanningOutcome as? CanonicalPlanningOutcome.Success)?.result
             ?: throw requireNotNull((context.canonicalPlanningOutcome as? CanonicalPlanningOutcome.ExpectedFailure)?.failure)
@@ -462,7 +490,8 @@ internal class PersonalizedProgramPlanningService(
             snapshot = context.snapshot,
             state = context.state,
             request = resolved.request,
-            physicalQualityCatalog = physicalQualityCatalog
+            physicalQualityCatalog = physicalQualityCatalog,
+            forcedCandidateByTarget = forcedCandidateByTarget
         )
         val taskProtocolPlan = com.training.trackplanner.data.personalized.TaskProtocolB6AuthorizationEngine.build(
             qualityTaskTargetPlan, qualityTaskSelectionPlan, context.snapshot
@@ -506,7 +535,8 @@ internal class PersonalizedProgramPlanningService(
             state = context.state,
             request = resolved.request,
             physicalQualityCatalog = physicalQualityCatalog,
-            excludedStableKeys = qualityTaskSelectionPlan.selectedCandidates.mapTo(linkedSetOf()) { it.stableKey }
+            excludedStableKeys = qualityTaskSelectionPlan.selectedCandidates.mapTo(linkedSetOf()) { it.stableKey },
+            forcedCandidateByTarget = forcedCandidateByTarget
         )
         val residualTargetPlan = CanonicalRegionalMovementB4ResidualResolver().resolve(
             targetPlan = powerJumpTargetPlan,
@@ -524,7 +554,18 @@ internal class PersonalizedProgramPlanningService(
             request = resolved.request,
             physicalQualityCatalog = physicalQualityCatalog,
             excludedStableKeys = (qualityTaskSelectionPlan.selectedCandidates + powerJumpSelectionPlan.selectedCandidates)
-                .mapTo(linkedSetOf()) { it.stableKey }
+                .mapTo(linkedSetOf()) { it.stableKey },
+            movementCandidateRejectionReason = { movement, stableKey, selectionRole, requestedSets ->
+                CanonicalRegionalMovementB6AuthorizationEngine().candidateRejectionReason(
+                    movement = movement,
+                    stableKey = stableKey,
+                    selectionRole = selectionRole,
+                    requestedSets = requestedSets,
+                    snapshot = context.snapshot,
+                    coreCatalog = canonicalCoreCatalog
+                )
+            },
+            forcedCandidateByTarget = forcedCandidateByTarget
         )
         val initiallyCombinedSelectionPlan = qualityTaskSelectionPlan.copy(
             selectedCandidates = (qualityTaskSelectionPlan.selectedCandidates + powerJumpSelectionPlan.selectedCandidates + movementSelectionPlan.selectedCandidates)
@@ -1274,7 +1315,8 @@ internal class PersonalizedProgramPlanningService(
 
     /**
      * Production order is canonical preparation and the complete EXPERIMENTAL artifact first,
-     * followed by one late CONTROL materialization, comparison, B7/B8 and intact-object B9.
+     * followed by one late CONTROL materialization, comparison, B7/B8 and B9 routing that
+     * retains the selected result.
      */
     internal suspend fun generatePreparedProduction(
         preflight: PersonalizedPlanningPreflight,
@@ -1291,6 +1333,9 @@ internal class PersonalizedProgramPlanningService(
             CanonicalIncumbentIndexStatus.NO_EXISTING_PROGRAM
         )
     ): com.training.trackplanner.data.personalized.StimulusProductionGenerationResult {
+        // A new generation attempt makes every prior preview choice stale, even if this run
+        // later produces no alternatives or falls back to CONTROL.
+        replacementValidationSessions.clear()
         val buildCounts = com.training.trackplanner.data.personalized.MutableStimulusProductionBuildCounts()
         var incumbentPlacementShadow: CanonicalIncumbentPlacementShadow? = null
         var incumbentPlacementActivationStatus: CanonicalIncumbentActivationStatus? = null
@@ -1520,8 +1565,38 @@ internal class PersonalizedProgramPlanningService(
             routedProgramWithSourceToken,
             experimental.selectionPlan.strengthShortfalls
         )
+        val replacementReview = if (
+            routed.decision.productionRoutingActive &&
+            evaluation.comparison.experimentalReadinessAudit?.status ==
+                com.training.trackplanner.data.personalized.StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW &&
+            evaluation.cutoverAuthority.status ==
+                com.training.trackplanner.data.personalized.StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER
+        ) {
+            createReplacementCandidateReview(routedProgram, evaluation.comparison)
+        } else null
+        replacementReview?.let { review ->
+            replacementValidationSessions[review.sessionId] = ReplacementValidationSession(
+                preflight = preflight,
+                answers = answers.copy(values = answers.values.toMap()),
+                metadata = metadata.toMap(),
+                context = context,
+                control = preparedControl.program,
+                canonicalPlanning = canonicalPlanning,
+                incumbentPlacementIndex = incumbentPlacementIndex,
+                routingMode = routingMode,
+                baselineRequest = routedProgram.request,
+                keepProgram = routedProgram,
+                keepComparison = evaluation.comparison,
+                baselineFingerprint = review.sourceDraftFingerprint,
+                options = review.options,
+                baselineTargetOutcomes = evaluation.comparison.experimentalReadinessAudit?.targetOutcomes.orEmpty()
+            )
+        }
+        // Preserve the exact routed value for CONTROL/no-review paths. Several existing
+        // fail-closed contracts intentionally return the comparator object itself.
+        val reviewedProgram = replacementReview?.let { routedProgram.copy(replacementReview = it) } ?: routedProgram
         return com.training.trackplanner.data.personalized.StimulusProductionGenerationResult(
-            program = routedProgram,
+            program = reviewedProgram,
             routeDecision = routed.decision,
             comparison = evaluation.comparison,
             buildCounts = buildCounts.snapshot(),
@@ -1530,6 +1605,407 @@ internal class PersonalizedProgramPlanningService(
             incumbentPlacementActivationStatus = incumbentPlacementActivationStatus,
             incumbentPlacementPreservations = incumbentPlacementPreservations,
             incumbentPlacementActivationDetails = incumbentPlacementActivationDetails
+        )
+    }
+
+    /**
+     * Exposes only B5-eligible, exact-target exercise candidates after the keep draft itself has
+     * passed B7/B8 and B9 chose EXP. Options remain explicitly unvalidated until the whole
+     * replacement combination is sent back through B5/B6/B7/B8.
+     */
+    private fun createReplacementCandidateReview(
+        routedProgram: GeneratedProgramSkeleton,
+        comparison: StimulusSelectionProgramComparison
+    ): com.training.trackplanner.data.ProgramReplacementReview? {
+        val b8 = comparison.productionCutoverAuthority ?: return null
+        if (b8.status != com.training.trackplanner.data.personalized.StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER) {
+            return null
+        }
+        val b8AuthorizedTargetIds = buildSet {
+            b8.authorizedAuthorityIdentities.forEach { add("QUALITY:${it.quality.name}") }
+            b8.authorizedTaskProtocolIdentities.flatMap { it.authorizedTasks }.forEach { add("TASK:${it.name}") }
+            b8.authorizedMovementTargetOwnerIdentities.forEach { add(it.targetId) }
+        }
+        if (b8AuthorizedTargetIds.isEmpty()) return null
+        val baseFingerprint = com.training.trackplanner.data.ProgramReplacementReviewFingerprint.create(routedProgram)
+        val options = comparison.selectionPlan.candidateDispositionIndex.entries.asSequence()
+            // A replacement review may only start from a target already inside this exact
+            // B8 authority scope. B5 candidates for adjacent but unauthorized targets are not
+            // presented as exercise alternatives for the routed program.
+            .filter { it.targetId in b8AuthorizedTargetIds }
+            .filter { it.status == com.training.trackplanner.data.personalized.StimulusCandidateDispositionStatus.ELIGIBLE_NOT_SELECTED }
+            .filter { it.directTargetCandidate && it.selectedInstead != null }
+            .mapNotNull { disposition ->
+                val source = requireNotNull(disposition.selectedInstead)
+                if (source.stableKey == disposition.stableKey || source.selectionRole != disposition.canonicalSelectionRole) {
+                    return@mapNotNull null
+                }
+                val sourceRows = routedProgram.items.filter {
+                    it.exerciseStableKey == source.stableKey && it.selectionRole == source.selectionRole
+                }.filterNot(ProgramSkeletonItem::requiredTemplateAnchor)
+                    .map(com.training.trackplanner.data.ProgramReplacementRowIdentity::from)
+                    .sortedWith(compareBy({ it.weekNumber }, { it.dayOfWeek }, { it.orderIndex }, { it.localId }))
+                if (sourceRows.isEmpty()) return@mapNotNull null
+                val sourceItems = routedProgram.items.filter { item -> sourceRows.any { it.localId == item.localId } }
+                val optionId = com.training.trackplanner.data.ProgramReplacementReviewFingerprint.identityFingerprint(
+                    com.training.trackplanner.data.ProgramReplacementRowIdentity(
+                        localId = "${disposition.targetId}:${disposition.stableKey}",
+                        weekNumber = 0, dayOfWeek = 0, orderIndex = 0,
+                        stableKey = source.stableKey, selectionRole = source.selectionRole
+                    )
+                ).take(24) + ":" + disposition.targetId + ":" + disposition.stableKey
+                com.training.trackplanner.data.ProgramReplacementCandidateOption(
+                    optionId = optionId,
+                    targetId = disposition.targetId,
+                    sourceRows = sourceRows,
+                    sourceItems = sourceItems,
+                    sourceStableKey = source.stableKey,
+                    sourceSelectionRole = source.selectionRole,
+                    candidateStableKey = disposition.stableKey,
+                    candidateSelectionRole = disposition.canonicalSelectionRole,
+                    reasonCodes = disposition.reasons.map { it.name } + "B5_ELIGIBLE_CANDIDATE_REQUIRES_WHOLE_PROGRAM_B6_B7_B8_VALIDATION",
+                    b5CandidateEligible = true
+                )
+            }
+            .distinctBy(com.training.trackplanner.data.ProgramReplacementCandidateOption::optionId)
+            .toList()
+        if (options.isEmpty()) return null
+        return com.training.trackplanner.data.ProgramReplacementReview(
+            sessionId = java.util.UUID.randomUUID().toString(),
+            sourceDraftFingerprint = baseFingerprint,
+            options = options
+        )
+    }
+
+    /** Rebuilds the selected B5 override and repeats whole-program B7/B8 before applying it. */
+    internal suspend fun validateReplacementSelection(
+        currentDraft: GeneratedProgramSkeleton,
+        selectedOptionIds: Set<String>,
+        currentMetadata: Map<String, RuntimeExerciseMetadata>,
+        currentIncumbentPlacementIndex: CanonicalIncumbentPlacementIndex? = null
+    ): GeneratedProgramSkeleton {
+        val review = currentDraft.replacementReview
+            ?: throw ReplacementSelectionRejectedException("REPLACEMENT_REVIEW_MISSING")
+        val session = replacementValidationSessions[review.sessionId]
+            ?: throw ReplacementSelectionRejectedException("STALE_REPLACEMENT_SESSION_EXPIRED")
+        val incumbentIndex = currentIncumbentPlacementIndex ?: session.incumbentPlacementIndex
+        if (incumbentIndex.sourceSnapshotToken != session.incumbentPlacementIndex.sourceSnapshotToken) {
+            throw StaleIncumbentSourceException("STALE_INCUMBENT_SOURCE: existing program changed after replacement review generation")
+        }
+        val currentFingerprint = ProgramReplacementReviewFingerprint.create(currentDraft)
+        if (currentFingerprint != session.baselineFingerprint && currentFingerprint != session.latestValidatedFingerprint.get()) {
+            throw ReplacementSelectionRejectedException("STALE_DRAFT_CHANGED_AFTER_GENERATION")
+        }
+        val requestWithoutUserEditableName = currentDraft.request.copy(name = session.baselineRequest.name)
+        if (requestWithoutUserEditableName != session.baselineRequest) {
+            throw ReplacementSelectionRejectedException("STALE_REQUEST_CONSTRAINTS_CHANGED")
+        }
+        val freshPreferences = readPreferences()
+        if (freshPreferences != session.context.postAnswerPreferences) {
+            throw ReplacementSelectionRejectedException("STALE_USER_PREFERENCES_CHANGED")
+        }
+        val freshWeekAnnotations = WeeklyContextAnnotationJson.read(appMetaDao.value(WeeklyContextAnnotationJson.KEY))
+        if (freshWeekAnnotations != session.context.postAnswerWeekAnnotations) {
+            throw ReplacementSelectionRejectedException("STALE_WEEK_ANNOTATIONS_CHANGED")
+        }
+        val freshSnapshot = buildSnapshot(
+            session.preflight.cutoff,
+            currentMetadata,
+            freshPreferences,
+            includeStimulusExposureLedger = true
+        )
+        // Personalized answers are persisted during preparation. Normalize only those two
+        // expected answer-backed values while retaining an exact comparison of all other
+        // captured history, metadata, recovery, tissue, readiness, and prescription evidence.
+        val expectedSnapshot = session.context.snapshot.copy(
+            preferences = freshPreferences,
+            weekAnnotations = freshWeekAnnotations
+        )
+        // The two projection fields are runtime evaluators backed by the exact input data above;
+        // each rebuild creates fresh lambda/calculator instances, so comparing their object
+        // identity would mark every valid review stale. All their captured evidence is compared
+        // in the remaining snapshot fields (history, exercise metadata, recovery/tissue state,
+        // performance authorities, and the exposure ledger).
+        val freshSnapshotWithExpectedProjectionProviders = freshSnapshot.copy(
+            planDayProjection = expectedSnapshot.planDayProjection,
+            planWeekTissueProjection = expectedSnapshot.planWeekTissueProjection
+        )
+        if (freshSnapshotWithExpectedProjectionProviders != expectedSnapshot) {
+            throw ReplacementSelectionRejectedException("STALE_HISTORY_OR_METADATA_CHANGED")
+        }
+        val selectedOptions = selectedOptionIds.map { id ->
+            session.options.singleOrNull { it.optionId == id }
+                ?: throw ReplacementSelectionRejectedException("UNKNOWN_REPLACEMENT_OPTION")
+        }
+        if (selectedOptions.map { it.targetId }.distinct().size != selectedOptions.size) {
+            throw ReplacementSelectionRejectedException("MULTIPLE_REPLACEMENTS_FOR_ONE_TARGET")
+        }
+        if (selectedOptions.any { option -> option.sourceRows.any { row ->
+                session.context.snapshot.exercises[option.candidateStableKey] == null ||
+                    row.stableKey != option.sourceStableKey || row.selectionRole != option.sourceSelectionRole
+            } }) {
+            throw ReplacementSelectionRejectedException("REPLACEMENT_IDENTITY_NO_LONGER_VALID")
+        }
+        val forcedByTarget = selectedOptions.associate { it.targetId to it.candidateStableKey }
+        val variant = try {
+            buildCanonicalExperimentalGeneration(
+                context = session.context,
+                answers = session.answers,
+                progress = PersonalizedPlannerProgressReporter.NONE,
+                productionBuildCounts = com.training.trackplanner.data.personalized.MutableStimulusProductionBuildCounts(),
+                observe = { _, _, _ -> },
+                experimentalProgramBuildOverride = null,
+                forcedCandidateByTarget = forcedByTarget
+            )
+        } catch (failure: CancellationException) {
+            throw failure
+        } catch (failure: Exception) {
+            throw ReplacementSelectionRejectedException(
+                "REPLACEMENT_B5_B6_REGENERATION_FAILED:${failure.message.orEmpty().take(160)}"
+            )
+        }
+        selectedOptions.forEach { option ->
+            val selectedAtB5 = variant.selectionPlan.selectedCandidates.any { candidate ->
+                candidate.stableKey == option.candidateStableKey &&
+                    candidate.selectionRole == option.candidateSelectionRole &&
+                    option.targetId in candidate.coveredTargetIds
+            }
+            if (!selectedAtB5) throw ReplacementSelectionRejectedException("REPLACEMENT_EXACT_B5_OWNER_NOT_SELECTED:${option.targetId}")
+            val sourceWeeks = option.sourceRows.map { it.weekNumber }.toSet()
+            val candidateWeeks = variant.program.items.asSequence()
+                .filterNot(ProgramSkeletonItem::requiredTemplateAnchor)
+                .filter { it.exerciseStableKey == option.candidateStableKey && it.selectionRole == option.candidateSelectionRole }
+                .map(ProgramSkeletonItem::weekNumber)
+                .toSet()
+            if (!candidateWeeks.containsAll(sourceWeeks)) {
+                throw ReplacementSelectionRejectedException("REPLACEMENT_EXACT_B6_MATERIAL_MISSING:${option.targetId}")
+            }
+            val retainedSourceWeeks = variant.program.items.asSequence()
+                .filterNot(ProgramSkeletonItem::requiredTemplateAnchor)
+                .filter { it.exerciseStableKey == option.sourceStableKey && it.selectionRole == option.sourceSelectionRole }
+                .map(ProgramSkeletonItem::weekNumber)
+                .toSet()
+            if (retainedSourceWeeks.intersect(sourceWeeks).isNotEmpty()) {
+                throw ReplacementSelectionRejectedException("REPLACEMENT_SOURCE_OWNER_STILL_REQUIRED:${option.targetId}")
+            }
+        }
+        if (!replacementLeavesUnselectedOwnerWeeksUnchanged(
+                session.keepProgram, variant.program, selectedOptions
+            )) {
+            throw ReplacementSelectionRejectedException("REPLACEMENT_CHANGED_UNSELECTED_OWNER_WEEKS")
+        }
+        val incumbentFeasibility = CanonicalIncumbentPlacementFeasibilityEvaluator.evaluate(
+            index = incumbentIndex,
+            program = variant.program,
+            snapshot = session.context.snapshot,
+            state = session.context.state
+        )
+        val incumbentActivation = CanonicalIncumbentPlacementActivator.activate(
+            index = incumbentIndex,
+            program = variant.program,
+            feasibility = incumbentFeasibility
+        )
+        val stabilizedVariant = refreshCanonicalExperimental(variant, incumbentActivation.program, session.context.snapshot)
+        val rawComparison = compareCanonicalExperimentalWithControl(
+            session.control,
+            session.canonicalPlanning,
+            stabilizedVariant
+        )
+        val replacementEdges = buildUserReplacementEdges(session, selectedOptions, rawComparison)
+        val readinessWithReplacementEvidence = StimulusExperimentalReadinessAuditEngine()
+            .auditWithUserApprovedReplacementEvidence(rawComparison, session.keepComparison, replacementEdges)
+        if (readinessWithReplacementEvidence.userApprovedReplacementEdges.size != replacementEdges.size) {
+            throw ReplacementSelectionRejectedException("REPLACEMENT_B7_EXACT_CAUSAL_EDGE_REJECTED")
+        }
+        val comparison = rawComparison.copy(experimentalReadinessAudit = readinessWithReplacementEvidence)
+        val materialScopeResolver = com.training.trackplanner.data.personalized.StimulusProductionMaterialScopeResolver()
+        val scopeResolution = materialScopeResolver.resolveDetailed(comparison)
+        val scope = scopeResolution.scope
+            ?: throw ReplacementSelectionRejectedException(
+                ("REPLACEMENT_B8_SCOPE_UNRESOLVED:" + scopeResolution.reasonCodes.joinToString(",") +
+                    ":selected=" + selectedOptions.joinToString(";") { "${it.targetId}/${it.candidateStableKey}" }).take(220)
+            )
+        val authority = com.training.trackplanner.data.personalized.StimulusProductionCutoverAuthorityAuditEngine()
+            .audit(comparison, scope)
+        val authorizedComparison = comparison.copy(productionCutoverAuthority = authority)
+        val route = com.training.trackplanner.data.personalized.StimulusProductionRouter().route(
+            authorizedComparison, authority, session.routingMode
+        )
+        val readiness = authorizedComparison.experimentalReadinessAudit
+        if (readiness?.status != com.training.trackplanner.data.personalized.StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW) {
+            throw ReplacementSelectionRejectedException(
+                "REPLACEMENT_B7_REJECTED:${readiness?.reasonCodes.orEmpty().joinToString(",")}".take(220)
+            )
+        }
+        if (authority.status != com.training.trackplanner.data.personalized.StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER ||
+            !route.decision.productionRoutingActive
+        ) {
+            throw ReplacementSelectionRejectedException("REPLACEMENT_B8_REJECTED:${authority.reasonCodes.joinToString(",")}".take(220))
+        }
+        val routedProgram = route.program.copy(
+            incumbentSourceSnapshotToken = incumbentIndex.sourceSnapshotToken
+        )
+        val resultingFingerprint = ProgramReplacementReviewFingerprint.create(routedProgram)
+        val proofId = ProgramReplacementReviewFingerprint.identityFingerprint(
+            ProgramReplacementRowIdentity(
+                localId = "${review.sessionId}:${selectedOptionIds.sorted().joinToString("+")}:$resultingFingerprint:" +
+                    readiness.userApprovedReplacementEdges.sortedBy { it.optionId }.joinToString("|") { edge ->
+                        listOf(edge.optionId, edge.targetId, edge.displacedControlOwner, edge.keepOwner, edge.replacementOwner)
+                            .joinToString(":") + ":" + (edge.controlRows + edge.keepRows + edge.replacementRows)
+                            .joinToString(",") { ProgramReplacementReviewFingerprint.itemFingerprint(it) }
+                    },
+                weekNumber = 0, dayOfWeek = 0, orderIndex = 0,
+                stableKey = "B7_${readiness.status.name}",
+                selectionRole = "B8_${authority.status.name}:B9_${route.decision.selectedSource.name}"
+            )
+        )
+        val validation = com.training.trackplanner.data.ProgramReplacementCombinationValidation(
+            selectedOptionIds = selectedOptionIds,
+            sourceDraftFingerprint = session.baselineFingerprint,
+            resultingDraftFingerprint = resultingFingerprint,
+            status = com.training.trackplanner.data.ProgramReplacementValidationStatus.VALIDATED,
+            b7Status = readiness.status,
+            b8Status = authority.status,
+            b9SelectedSource = route.decision.selectedSource,
+            targetImpacts = selectedOptions.map { option ->
+                val keep = session.baselineTargetOutcomes.firstOrNull { it.targetId == option.targetId }
+                val alternative = readiness.targetOutcomes.firstOrNull { it.targetId == option.targetId }
+                com.training.trackplanner.data.ProgramReplacementTargetImpact(
+                    targetId = option.targetId,
+                    keepStatus = keep?.status,
+                    alternativeStatus = alternative?.status,
+                    keepWeeklyUnitsDistance = keep?.experimentalWeeklyUnitsDistance,
+                    alternativeWeeklyUnitsDistance = alternative?.experimentalWeeklyUnitsDistance,
+                    keepWeeklySessionsDistance = keep?.experimentalWeeklySessionsDistance,
+                    alternativeWeeklySessionsDistance = alternative?.experimentalWeeklySessionsDistance
+                )
+            },
+            causalEvidence = readiness.userApprovedReplacementEdges.map { edge ->
+                com.training.trackplanner.data.ProgramReplacementCausalEvidence(
+                    optionId = edge.optionId,
+                    targetId = edge.targetId,
+                    displacedControlOwner = edge.displacedControlOwner,
+                    keepOwner = edge.keepOwner,
+                    replacementOwner = edge.replacementOwner,
+                    controlRows = edge.controlRows,
+                    keepRows = edge.keepRows,
+                    replacementRows = edge.replacementRows
+                )
+            },
+            reasonCodes = (readiness.reasonCodes + authority.reasonCodes).distinct(),
+            proofId = proofId
+        )
+        val selectedSet = selectedOptionIds.toSet()
+        val updatedReview = review.copy(
+            validation = validation,
+            // This preview has already been verified. The UI must still receive an explicit user
+            // apply action before these ids become the final selected replacement set.
+            appliedOptionIds = emptySet(),
+            options = review.options.map { option ->
+                if (option.optionId in selectedSet) option.copy(b6Validated = true, b7Validated = true, b8Validated = true)
+                else option
+            }
+        )
+        val result = routedProgram.copy(replacementReview = updatedReview)
+        session.latestValidatedFingerprint.set(resultingFingerprint)
+        return result
+    }
+
+    private fun buildUserReplacementEdges(
+        session: ReplacementValidationSession,
+        selectedOptions: List<com.training.trackplanner.data.ProgramReplacementCandidateOption>,
+        comparison: StimulusSelectionProgramComparison
+    ): List<com.training.trackplanner.data.personalized.StimulusUserApprovedReplacementEdge> = selectedOptions.map { option ->
+        val targetId = option.targetId
+        val weeks = option.sourceRows.mapTo(sortedSetOf()) { it.weekNumber }
+        val keepOwner = StimulusPrescriptionOwnerIdentity(option.sourceStableKey, option.sourceSelectionRole)
+        val b8 = session.keepComparison.productionCutoverAuthority
+            ?.takeIf { it.status == com.training.trackplanner.data.personalized.StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER }
+            ?: throw ReplacementSelectionRejectedException("REPLACEMENT_KEEP_PLAN_B8_AUTHORITY_MISSING")
+        val authorizedTargets = buildSet {
+            b8.authorizedAuthorityIdentities.forEach { add("QUALITY:${it.quality.name}") }
+            b8.authorizedTaskProtocolIdentities.flatMap { it.authorizedTasks }.forEach { add("TASK:${it.name}") }
+            b8.authorizedMovementTargetOwnerIdentities.forEach { add(it.targetId) }
+        }
+        if (targetId !in authorizedTargets) throw ReplacementSelectionRejectedException("REPLACEMENT_TARGET_OUTSIDE_KEEP_B8_SCOPE")
+        val sourceRows = session.keepProgram.items.filter {
+            it.exerciseStableKey == keepOwner.stableKey && it.selectionRole == keepOwner.selectionRole && it.weekNumber in weeks
+        }.sortedWith(compareBy({ it.weekNumber }, { it.dayOfWeek }, { it.orderIndex }, { it.localId }))
+        val expectedSourceRows = option.sourceItems.sortedWith(compareBy({ it.weekNumber }, { it.dayOfWeek }, { it.orderIndex }, { it.localId }))
+        if (sourceRows != expectedSourceRows || sourceRows.map { it.weekNumber }.toSet() != weeks) {
+            throw ReplacementSelectionRejectedException("REPLACEMENT_KEEP_ROW_IDENTITY_CHANGED")
+        }
+
+        // CONTROL's old row may have a legacy role, while the keep plan already has the exact
+        // canonical owner. Accept only the B7-proven same-key CONTROL→keep edge for this exact
+        // B4 target; never infer that edge from the key or exercise name alone.
+        val baselineB7 = session.keepComparison.experimentalReadinessAudit
+            ?.takeIf { it.status == com.training.trackplanner.data.personalized.StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW }
+            ?: throw ReplacementSelectionRejectedException("REPLACEMENT_KEEP_PLAN_B7_NOT_CLOSED")
+        val displacedOwners = session.keepComparison.removedOwnerIdentities.filter { old ->
+            old.stableKey == keepOwner.stableKey && baselineB7.changeAttributions.singleOrNull { attribution ->
+                attribution.stableKey == old.stableKey && attribution.selectionRole == old.selectionRole &&
+                    attribution.source == StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY &&
+                    "B5_CANONICAL_OWNER_REPLACED_CONTROL_ROLE" in attribution.reasonCodes && targetId in attribution.targetIds
+            } != null
+        }
+        val displaced = displacedOwners.singleOrNull()
+            ?: throw ReplacementSelectionRejectedException("REPLACEMENT_CONTROL_KEEP_CAUSAL_EDGE_AMBIGUOUS")
+        val controlRows = session.control.items.filter {
+            it.exerciseStableKey == displaced.stableKey && it.selectionRole == displaced.selectionRole
+        }.sortedWith(compareBy({ it.weekNumber }, { it.dayOfWeek }, { it.orderIndex }, { it.localId }))
+        if (controlRows.isEmpty() || controlRows.map { it.weekNumber }.toSet() != weeks) {
+            throw ReplacementSelectionRejectedException("REPLACEMENT_CONTROL_OWNER_WEEK_MISMATCH")
+        }
+        val replacement = StimulusPrescriptionOwnerIdentity(option.candidateStableKey, option.candidateSelectionRole)
+        val replacementRows = comparison.experimental.items.filter {
+            it.exerciseStableKey == replacement.stableKey && it.selectionRole == replacement.selectionRole && it.weekNumber in weeks
+        }.sortedWith(compareBy({ it.weekNumber }, { it.dayOfWeek }, { it.orderIndex }, { it.localId }))
+        if (replacementRows.isEmpty() || replacementRows.map { it.weekNumber }.toSet() != weeks) {
+            throw ReplacementSelectionRejectedException("REPLACEMENT_B6_WEEK_ROWS_MISSING")
+        }
+        com.training.trackplanner.data.personalized.StimulusUserApprovedReplacementEdge(
+            optionId = option.optionId,
+            targetId = targetId,
+            displacedControlOwner = displaced,
+            keepOwner = keepOwner,
+            replacementOwner = replacement,
+            controlRows = controlRows,
+            keepRows = sourceRows,
+            replacementRows = replacementRows
+        )
+    }
+
+    private fun refreshCanonicalExperimental(
+        source: CanonicalExperimentalGeneration,
+        program: GeneratedProgramSkeleton,
+        snapshot: PlanningHistorySnapshot
+    ): CanonicalExperimentalGeneration {
+        if (program === source.program) return source
+        val finalAudit = FinalStimulusNeedAudit().audit(program, snapshot, physicalQualityCatalog)
+        val targetAudit = StimulusTargetControlProgramAuditEngine().audit(
+            source.targetPlan, finalAudit, program.request.durationWeeks
+        )
+        val materialization = StimulusPrescriptionMaterializationAuditEngine().audit(
+            source.authorizationPlan, program, snapshot
+        )
+        val realizationInputs = com.training.trackplanner.data.personalized.buildStimulusRealizationPrescriptionInputs(
+            source.selectionPlan, source.prescriptionContext, program.items
+        )
+        val realization = StimulusPrescriptionRealizationPlanEngine().build(
+            source.targetPlan,
+            source.selectionPlan,
+            snapshot,
+            realizationInputs.currentPrescriptions,
+            source.prescriptionContext.historyBackedOwners,
+            realizationInputs.currentPrescriptionsByQuality,
+            source.prescriptionContext.historyBackedAuthorities
+        )
+        return source.copy(
+            program = program,
+            experimentalAudit = targetAudit,
+            prescriptionRealizationPlan = realization,
+            materializationAudits = materialization
         )
     }
 

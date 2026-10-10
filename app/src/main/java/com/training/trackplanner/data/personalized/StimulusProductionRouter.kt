@@ -462,6 +462,85 @@ class StimulusProductionRouter {
  */
 /** Reuses typed B4/B5/B6 movement evidence; it does not infer authority from exercise similarity. */
 internal object StimulusProductionMovementScopeEvidence {
+    /** B7 exact edge supplied only after its keep-plan and replacement B5/B6 proof succeeds. */
+    fun exactUserApprovedReplacementControlOwners(
+        comparison: StimulusSelectionProgramComparison
+    ): Set<StimulusPrescriptionOwnerIdentity> {
+        val b7 = comparison.experimentalReadinessAudit ?: return emptySet()
+        if (b7.status != StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW ||
+            !b7.changeProvenanceClosed
+        ) return emptySet()
+        val attributed = b7.changeAttributions.filter {
+            it.source == StimulusExperimentalChangeAttributionSource.USER_APPROVED_EXACT_EXERCISE_REPLACEMENT
+        }
+        return b7.userApprovedReplacementEdges.mapNotNullTo(linkedSetOf()) { edge ->
+            val old = edge.displacedControlOwner
+            val replacement = edge.replacementOwner
+            val attribution = attributed.singleOrNull {
+                it.stableKey == old.stableKey && it.selectionRole == old.selectionRole &&
+                    it.targetIds == listOf(edge.targetId) && it.replacementOwner == replacement &&
+                    it.replacementEvidenceId == edge.optionId
+            } ?: return@mapNotNullTo null
+            val weeks = edge.controlRows.mapTo(sortedSetOf()) { it.weekNumber }
+            if (old !in comparison.removedOwnerIdentities || replacement !in comparison.addedOwnerIdentities ||
+                edge.controlRows != comparison.control.items.filter {
+                    it.exerciseStableKey == old.stableKey && it.selectionRole == old.selectionRole
+                } || edge.replacementRows != comparison.experimental.items.filter {
+                    it.exerciseStableKey == replacement.stableKey && it.selectionRole == replacement.selectionRole && it.weekNumber in weeks
+                } || !hasExactB5ReplacementOwner(comparison, edge.targetId, replacement) ||
+                !hasExactReplacementB6(comparison, edge.targetId, replacement)
+            ) return@mapNotNullTo null
+            // Keep a local reference so malformed duplicate attribution cannot be optimized away.
+            attribution.takeIf { edge.targetId.isNotBlank() }?.let { old }
+        }
+    }
+
+    private fun hasExactB5ReplacementOwner(
+        comparison: StimulusSelectionProgramComparison,
+        targetId: String,
+        owner: StimulusPrescriptionOwnerIdentity
+    ): Boolean = comparison.selectionPlan.selectedCandidates.singleOrNull {
+        it.stableKey == owner.stableKey && it.selectionRole == owner.selectionRole &&
+            it.primaryTargetId == targetId && targetId in it.coveredTargetIds
+    } != null && comparison.selectionPlan.traces.any {
+        it.targetId == targetId && it.selectedStableKey == owner.stableKey && it.selectedSelectionRole == owner.selectionRole
+    }
+
+    private fun hasExactReplacementB6(
+        comparison: StimulusSelectionProgramComparison,
+        targetId: String,
+        owner: StimulusPrescriptionOwnerIdentity
+    ): Boolean {
+        if (targetId.startsWith("MOVEMENT:")) return hasExactExecutableB6(comparison, targetId, owner)
+        val quality = TrainableQuality.entries.singleOrNull { targetId == "QUALITY:${it.name}" }
+        if (quality != null) {
+            val authorization = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().singleOrNull {
+                it.targetId == targetId && it.quality == quality &&
+                    it.owner?.let { candidate -> candidate.stableKey == owner.stableKey && candidate.selectionRole == owner.selectionRole } == true &&
+                    it.authorizedPrescription != null && it.status in setOf(
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
+                    )
+            } ?: return false
+            val rows = comparison.experimental.items.filter {
+                it.exerciseStableKey == owner.stableKey && it.selectionRole == owner.selectionRole
+            }
+            return rows.isNotEmpty() && validateAuthorizedWeeklySubset(
+                rows, requireNotNull(authorization.authorizedPrescription), owner.stableKey, owner.selectionRole
+            ).valid && comparison.prescriptionMaterializationAudits.any {
+                it.targetId == targetId && it.quality == quality &&
+                    it.owner?.let { candidate -> candidate.stableKey == owner.stableKey && candidate.selectionRole == owner.selectionRole } == true &&
+                    it.state == StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED && it.shortfall == 0 && it.overrun == 0
+            }
+        }
+        return targetId.startsWith("TASK:") && taskProtocolMetadataForOwner(comparison.experimental, owner).any { metadata ->
+            metadata.authorization.attributedTasks.any { "TASK:${it.name}" == targetId } &&
+                ApprovedBadmintonTaskProtocols.exact(owner.stableKey, owner.selectionRole, metadata.authorization.definition.primaryTask) ==
+                    metadata.authorization.definition
+        }
+    }
+
     fun hasExactExecutableB6(
         comparison: StimulusSelectionProgramComparison,
         targetId: String,
@@ -681,8 +760,10 @@ class StimulusProductionMaterialScopeResolver {
                             else -> false
                         }
                 }
-            } && (comparison.removedOwnerIdentities - StimulusProductionMovementScopeEvidence.exactSameExerciseRoleReplacements(
-                comparison, exactMovementOwners.mapTo(linkedSetOf()) { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }
+            } && (comparison.removedOwnerIdentities - (
+                StimulusProductionMovementScopeEvidence.exactSameExerciseRoleReplacements(
+                    comparison, exactMovementOwners.mapTo(linkedSetOf()) { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }
+                ) + StimulusProductionMovementScopeEvidence.exactUserApprovedReplacementControlOwners(comparison)
             )).isEmpty()) return StimulusProductionCutoverScope.POWER_JUMP_V1
         val targetQualities = targetIds.mapNotNull { targetId ->
             when (targetId) {

@@ -170,5 +170,7 @@ data class GeneratedProgramSkeleton(
     /** Typed per-protocol weekly placement result; transient audit, not prescription authority. */
     val taskProtocolFrequencyOutcomes: List<com.training.trackplanner.data.personalized.TaskProtocolWeeklyFrequencyOutcome> = emptyList(),
     /** Transient source token; never serialized as program authority. Checked before replacing an incumbent. */
-    internal val incumbentSourceSnapshotToken: CanonicalIncumbentSourceSnapshotToken? = null
+    internal val incumbentSourceSnapshotToken: CanonicalIncumbentSourceSnapshotToken? = null,
+    /** Transient B5 candidate review; candidates do not grant B6 and are not persisted as program rows. */
+    val replacementReview: ProgramReplacementReview? = null
 )

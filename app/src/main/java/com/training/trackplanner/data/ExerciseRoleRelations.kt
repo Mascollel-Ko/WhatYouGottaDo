@@ -87,6 +87,11 @@ class ExerciseRoleRelationCatalog private constructor(
     private val trainingByStableKey: Map<String, Set<TrainingRole>>,
     private val capabilityByStableKey: Map<String, Set<ProgramSlotCapability>>
 ) {
+    override fun equals(other: Any?): Boolean = other is ExerciseRoleRelationCatalog &&
+        trainingByStableKey == other.trainingByStableKey && capabilityByStableKey == other.capabilityByStableKey
+
+    override fun hashCode(): Int = 31 * trainingByStableKey.hashCode() + capabilityByStableKey.hashCode()
+
     fun trainingRoles(exerciseStableKey: String): Set<TrainingRole> =
         trainingByStableKey[exerciseStableKey].orEmpty()
 

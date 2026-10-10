@@ -9,7 +9,7 @@ import com.training.trackplanner.data.personalized.placementSessionFits
 import java.security.MessageDigest
 
 /** Current builder contract recorded on accepted canonical programs. */
-internal const val CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.72.0"
+internal const val CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.73.0"
 
 /** A typed view of TrainingProgram.stableKey; it is independent of exercise stable keys. */
 @JvmInline
@@ -128,6 +128,7 @@ internal data class CanonicalIncumbentPlacementIndex(
             val sourceContract = builderVersion to runtimeVersion
             val supportedContracts = setOf(
                 expectedBuilderProtocolVersion to expectedPlannerRuntimeVersion,
+                C37_2_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION to C37_2_PERSONALIZED_PLANNER_PROTOCOL_VERSION,
                 C37_1_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION to C37_1_PERSONALIZED_PLANNER_PROTOCOL_VERSION,
                 C37_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION to C37_PERSONALIZED_PLANNER_PROTOCOL_VERSION,
                 C36_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION to C36_PERSONALIZED_PLANNER_PROTOCOL_VERSION,
@@ -200,6 +201,9 @@ private const val C37_PERSONALIZED_PLANNER_PROTOCOL_VERSION = "RECORD_BASED_PLAN
 /** C37.1 Power/Jump dose-authority programs remain valid after B8/B9 exact-scope integration. */
 private const val C37_1_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.71.0"
 private const val C37_1_PERSONALIZED_PLANNER_PROTOCOL_VERSION = "RECORD_BASED_PLANNER_0.15.13_KOTLIN_1"
+/** C37.2 bounded Power/Jump production sources remain usable after replacement review integration. */
+private const val C37_2_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.72.0"
+private const val C37_2_PERSONALIZED_PLANNER_PROTOCOL_VERSION = "RECORD_BASED_PLANNER_0.15.14_KOTLIN_1"
 /** C36 records remain valid incumbent sources after C37 adds exact direct-Core shape authority. */
 private const val C36_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.69.0"
 private const val C36_PERSONALIZED_PLANNER_PROTOCOL_VERSION = "RECORD_BASED_PLANNER_0.15.11_KOTLIN_1"

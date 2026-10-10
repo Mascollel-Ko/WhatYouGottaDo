@@ -1205,6 +1205,81 @@ class RegionalTargetPrescriptionResolver(
 class CanonicalRegionalMovementB6AuthorizationEngine(
     private val prescriptionResolver: RegionalTargetPrescriptionResolver = RegionalTargetPrescriptionResolver()
 ) {
+    /**
+     * Bounded B6 feasibility probe used while B5 walks its already-ranked regional candidates.
+     * This does not authorize material: the final owner is still re-authorized below and by the
+     * ordinary materialization/B7 path. It only prevents B5 from stopping at a candidate whose
+     * exact B4 residual has no supported B6 shape when a lower-ranked eligible owner does.
+     */
+    fun candidateRejectionReason(
+        movement: StimulusMovementTarget,
+        stableKey: String,
+        selectionRole: String,
+        requestedSets: Int,
+        snapshot: PlanningHistorySnapshot,
+        coreCatalog: com.training.trackplanner.analysis.core.CanonicalCoreCatalog
+    ): String? {
+        val dose = movement.regionalDoseTargets.firstOrNull {
+            it.kind == StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET &&
+                it.shapeAuthority == StimulusMovementDoseShapeAuthority.HYPERTROPHY_BAND_8_12_PERSONAL_7_15_RPE_7_USER_LOAD_CALIBRATION
+        } ?: movement.regionalDoseTargets.firstOrNull {
+            it.kind == StimulusMovementDoseKind.CORE_DIRECT_CONTROL_SET &&
+                it.shapeAuthority == StimulusMovementDoseShapeAuthority.CORE_DIRECT_SET_DOSE_EXACT_OWNER_SHAPE_REQUIRED
+        } ?: return null
+        if (requestedSets <= 0) return "B6_NO_POSITIVE_B4_RESIDUAL"
+        val item = PlannedExercise(
+            stableKey = stableKey,
+            role = selectionRole,
+            reason = "B5 exact B4 residual candidate feasibility probe",
+            priority = when (movement.priority) {
+                TargetPriority.PRIMARY -> 100
+                TargetPriority.SECONDARY -> 90
+                TargetPriority.MAINTENANCE -> 85
+                TargetPriority.BACKGROUND -> 70
+                TargetPriority.NONE, TargetPriority.UNRESOLVED -> 0
+            },
+            targetSets = requestedSets,
+            material = true
+        )
+        val resolution = if (dose.kind == StimulusMovementDoseKind.CORE_DIRECT_CONTROL_SET) {
+            prescriptionResolver.resolveCoreDirect(item, snapshot, coreCatalog, requestedSets)
+        } else {
+            val numericAuthority = when (dose.numericAuthority) {
+                StimulusTargetNumericAuthority.PERSONAL_SUCCESSFUL_DOSE -> RegionalNumericAuthority.PRIOR_TOLERATED_HYPERTROPHY
+                StimulusTargetNumericAuthority.PERSONAL_RESTORE_BASELINE -> RegionalNumericAuthority.FULL_WINDOW_PERSONAL_BAND
+                StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY -> RegionalNumericAuthority.USER_APPROVED_PROJECT_POLICY
+                else -> RegionalNumericAuthority.NONE
+            }
+            val regionalTarget = RegionalStimulusTarget(
+                region = movement.movementCoverage,
+                quality = TrainableQuality.HYPERTROPHY,
+                action = if (dose.numericAuthority == StimulusTargetNumericAuthority.PERSONAL_RESTORE_BASELINE)
+                    RegionalTargetAction.RESTORE else RegionalTargetAction.ADD_SUPPORT,
+                numericAuthority = numericAuthority,
+                weeklyDoseTarget = dose.weeklyTarget,
+                priority = when (movement.priority) {
+                    TargetPriority.PRIMARY -> NeedRelevance.HIGH
+                    TargetPriority.SECONDARY, TargetPriority.MAINTENANCE -> NeedRelevance.MODERATE
+                    TargetPriority.BACKGROUND -> NeedRelevance.LOW
+                    TargetPriority.NONE, TargetPriority.UNRESOLVED -> NeedRelevance.UNKNOWN
+                },
+                reasonCodes = movement.reasonCodes + dose.reasonCodes + dose.residualReasonCodes
+            )
+            val b4 = RegionalB4ResidualDoseAuthority(
+                target = regionalTarget,
+                existingCredit = null,
+                existingEquivalentUnits = dose.existingEquivalentExposure ?: 0.0,
+                targetEquivalentUnits = dose.weeklyTarget,
+                residualEquivalentUnits = dose.residualEquivalentExposure ?: 0.0,
+                authorizedWholeSetUnits = requestedSets,
+                reasonCodes = dose.residualReasonCodes
+            )
+            prescriptionResolver.resolve(b4, item, snapshot)
+        }
+        return if (resolution.prescription != null && resolution.prescription.sets.size == requestedSets) null
+        else resolution.reasonCodes.firstOrNull() ?: "B6_EXACT_RESIDUAL_AUTHORITY_UNAVAILABLE"
+    }
+
     fun authorize(
         targetPlan: StimulusTargetPlan,
         selectionPlan: StimulusCandidateSelectionPlan,

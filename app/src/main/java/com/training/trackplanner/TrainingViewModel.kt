@@ -751,6 +751,19 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun validateProgramReplacementSelection(
+        skeleton: GeneratedProgramSkeleton,
+        selectedOptionIds: Set<String>,
+        existingProgramId: Long?,
+        onResult: (Result<GeneratedProgramSkeleton>) -> Unit
+    ) {
+        viewModelScope.launch {
+            onResult(runCatching {
+                repository.validateProgramReplacementSelection(skeleton, selectedOptionIds, existingProgramId)
+            })
+        }
+    }
+
     fun deleteProgram(programId: Long, onDeleted: () -> Unit = {}) {
         viewModelScope.launch {
             repository.deleteProgram(programId)

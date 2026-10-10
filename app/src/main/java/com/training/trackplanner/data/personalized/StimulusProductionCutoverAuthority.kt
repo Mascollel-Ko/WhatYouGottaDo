@@ -114,7 +114,8 @@ class StimulusProductionCutoverAuthorityAuditEngine {
             reasons += "B8_CUTOVER_V1_COLLATERAL_REGRESSION"
         }
         val materialOwners = materialOwnerIdentities(comparison)
-        val roleReplacements = canonicalRoleReplacementControlOwners(comparison, materialOwners)
+        val roleReplacements = canonicalRoleReplacementControlOwners(comparison, materialOwners) +
+            StimulusProductionMovementScopeEvidence.exactUserApprovedReplacementControlOwners(comparison)
         if ((comparison.removedOwnerIdentities - roleReplacements).isNotEmpty()) {
             reasons += "B8_CUTOVER_V1_CONTROL_OWNER_REMOVAL_NOT_ALLOWED"
         }
@@ -247,7 +248,7 @@ class StimulusProductionCutoverAuthorityAuditEngine {
         }
         val exactMovementRoleReplacements = StimulusProductionMovementScopeEvidence.exactSameExerciseRoleReplacements(
             comparison, movementOwners
-        )
+        ) + StimulusProductionMovementScopeEvidence.exactUserApprovedReplacementControlOwners(comparison)
         if ((comparison.removedOwnerIdentities - exactMovementRoleReplacements).isNotEmpty()) {
             reasons += "B8_POWER_JUMP_CONTROL_OWNER_REMOVAL_NOT_EXACT_MOVEMENT_ROLE_REPLACEMENT"
         }
@@ -626,7 +627,8 @@ class StimulusProductionCutoverAuthorityAuditEngine {
         if (!b7.collateralRegressionFree || b7.targetOutcomes.any { it.status == StimulusExperimentalTargetOutcomeStatus.REGRESSED }) {
             reasons += "B8_BADMINTON_TASK_COLLATERAL_OR_TARGET_REGRESSION"
         }
-        if (comparison.removedOwnerIdentities.isNotEmpty()) reasons += "B8_BADMINTON_TASK_CONTROL_OWNER_REMOVAL_NOT_ALLOWED"
+        val exactTaskReplacements = StimulusProductionMovementScopeEvidence.exactUserApprovedReplacementControlOwners(comparison)
+        if ((comparison.removedOwnerIdentities - exactTaskReplacements).isNotEmpty()) reasons += "B8_BADMINTON_TASK_CONTROL_OWNER_REMOVAL_NOT_ALLOWED"
         if (comparison.control.weekDaySchedule != comparison.experimental.weekDaySchedule) {
             reasons += "B8_BADMINTON_TASK_WEEKDAY_SCHEDULE_CHANGED"
         }
@@ -846,7 +848,8 @@ class StimulusProductionCutoverAuthorityAuditEngine {
             reasons += "B8_CUTOVER_V1_COLLATERAL_REGRESSION"
         }
         val materialOwners = materialOwnerIdentities(comparison)
-        val roleReplacements = canonicalRoleReplacementControlOwners(comparison, materialOwners)
+        val roleReplacements = canonicalRoleReplacementControlOwners(comparison, materialOwners) +
+            StimulusProductionMovementScopeEvidence.exactUserApprovedReplacementControlOwners(comparison)
         if ((comparison.removedOwnerIdentities - roleReplacements).isNotEmpty()) reasons += "B8_CUTOVER_V1_CONTROL_OWNER_REMOVAL_NOT_ALLOWED"
         if (comparison.control.weekDaySchedule != comparison.experimental.weekDaySchedule) reasons += "B8_CUTOVER_V1_WEEKDAY_SCHEDULE_CHANGED"
 
@@ -1344,6 +1347,7 @@ class StimulusProductionCutoverAuthorityAuditEngine {
     ): Boolean {
         val allowedDifferences = authorized + canonicalRoleReplacementControlOwners(comparison, authorized) +
             StimulusProductionMovementScopeEvidence.exactSameExerciseRoleReplacements(comparison, authorized) +
+            StimulusProductionMovementScopeEvidence.exactUserApprovedReplacementControlOwners(comparison) +
             authorizedDownstreamConstraintControlOwners(comparison, authorized)
         return comparison.controlOwnerIdentities.any { identity ->
             identity !in allowedDifferences && ownerRows(comparison.control, identity) != ownerRows(comparison.experimental, identity)

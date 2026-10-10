@@ -30,6 +30,7 @@ enum class StimulusExperimentalChangeAttributionSource {
     B6_COLD_START_USER_CALIBRATION,
     B6_APPROVED_POWER_JUMP_POLICY,
     B6_APPROVED_TASK_PROTOCOL,
+    USER_APPROVED_EXACT_EXERCISE_REPLACEMENT,
     FINITE_CAPACITY_CONTINUITY_ALLOCATION,
     DOWNSTREAM_CONSTRAINT_DISPLACEMENT,
     INCONCLUSIVE_DISPLACEMENT,
@@ -55,8 +56,37 @@ data class StimulusExperimentalChangeAttribution(
     val source: StimulusExperimentalChangeAttributionSource,
     val targetIds: List<String> = emptyList(),
     val reasonCodes: List<String> = emptyList(),
-    val evidenceSources: List<String> = emptyList()
+    val evidenceSources: List<String> = emptyList(),
+    /** Populated only by B7 after an exact, user-selected owner replacement is verified. */
+    val replacementOwner: StimulusPrescriptionOwnerIdentity? = null,
+    val replacementEvidenceId: String? = null
 )
+
+/**
+ * Exact physical-row chain for a user-selected replacement. The control owner is tied to the
+ * verified keep-plan B5/B6 owner, then to the explicitly selected replacement's B5/B6 rows.
+ */
+data class StimulusUserApprovedReplacementEdge(
+    val optionId: String,
+    val targetId: String,
+    val displacedControlOwner: StimulusPrescriptionOwnerIdentity,
+    val keepOwner: StimulusPrescriptionOwnerIdentity,
+    val replacementOwner: StimulusPrescriptionOwnerIdentity,
+    val controlRows: List<ProgramSkeletonItem>,
+    val keepRows: List<ProgramSkeletonItem>,
+    val replacementRows: List<ProgramSkeletonItem>
+) {
+    init {
+        require(optionId.isNotBlank() && targetId.isNotBlank())
+        require(displacedControlOwner != keepOwner && keepOwner != replacementOwner)
+        require(controlRows.isNotEmpty() && keepRows.isNotEmpty() && replacementRows.isNotEmpty())
+        require(controlRows.all { it.exerciseStableKey == displacedControlOwner.stableKey && it.selectionRole == displacedControlOwner.selectionRole })
+        require(keepRows.all { it.exerciseStableKey == keepOwner.stableKey && it.selectionRole == keepOwner.selectionRole })
+        require(replacementRows.all { it.exerciseStableKey == replacementOwner.stableKey && it.selectionRole == replacementOwner.selectionRole })
+        require(controlRows.map { it.weekNumber }.toSet() == keepRows.map { it.weekNumber }.toSet())
+        require(keepRows.map { it.weekNumber }.toSet() == replacementRows.map { it.weekNumber }.toSet())
+    }
+}
 
 /**
  * Owner-local causal evidence for one removed CONTROL identity. Global B5/B6 change evidence
@@ -83,7 +113,8 @@ data class StimulusExperimentalReadinessAudit(
     val collateralRegressionFree: Boolean = true,
     val reasonCodes: List<String> = emptyList(),
     val shadowOnly: Boolean = true,
-    val productionAuthority: Boolean = false
+    val productionAuthority: Boolean = false,
+    val userApprovedReplacementEdges: List<StimulusUserApprovedReplacementEdge> = emptyList()
 ) {
     val integrityPassed: Boolean get() = materializationIntegrityPassed
     val winner: String? get() = null
@@ -196,6 +227,174 @@ class StimulusExperimentalReadinessAuditEngine {
             shadowOnly = true,
             productionAuthority = false
         )
+    }
+
+    /**
+     * Closes only removals caused by an explicitly selected, exact keep→replacement chain.
+     * Target outcomes and every other B7 gate are retained from the normal audit unchanged.
+     */
+    fun auditWithUserApprovedReplacementEvidence(
+        comparison: StimulusSelectionProgramComparison,
+        keepComparison: StimulusSelectionProgramComparison,
+        proposedEdges: List<StimulusUserApprovedReplacementEdge>
+    ): StimulusExperimentalReadinessAudit {
+        val baseline = audit(comparison)
+        if (proposedEdges.isEmpty()) return baseline
+        if (proposedEdges.size != proposedEdges.map { it.optionId }.distinct().size ||
+            proposedEdges.size != proposedEdges.map { it.targetId }.distinct().size
+        ) return baseline
+        val verified = proposedEdges.filter { edge ->
+            verifyUserReplacementEdge(comparison, keepComparison, baseline, edge)
+        }
+        if (verified.size != proposedEdges.size) return baseline
+
+        val edgeByDisplaced = verified.associateBy { it.displacedControlOwner }
+        val attributions = baseline.changeAttributions.map { attribution ->
+            val owner = attribution.stableKey?.let { key ->
+                attribution.selectionRole?.let { role -> StimulusPrescriptionOwnerIdentity(key, role) }
+            }
+            val edge = owner?.let(edgeByDisplaced::get)
+            if (edge == null) attribution else attribution.copy(
+                source = StimulusExperimentalChangeAttributionSource.USER_APPROVED_EXACT_EXERCISE_REPLACEMENT,
+                targetIds = listOf(edge.targetId),
+                reasonCodes = listOf("USER_EXPLICITLY_SELECTED_EXACT_TARGET_REPLACEMENT", "B5_B6_WEEKLY_ROWS_MATCH"),
+                evidenceSources = listOf("EXACT_CONTROL_OWNER_WEEK_ROWS", "KEEP_PLAN_B7_B8_AUTHORIZED_B5_B6_CHAIN",
+                    "EXPLICIT_USER_SELECTION", "EXACT_REPLACEMENT_B4_B5_B6_WEEK_ROWS", "WHOLE_PROGRAM_B7_OUTCOMES_PRESERVED"),
+                replacementOwner = edge.replacementOwner,
+                replacementEvidenceId = edge.optionId
+            )
+        }
+        val hasUnexplained = attributions.any { it.source == StimulusExperimentalChangeAttributionSource.UNEXPLAINED }
+        val hasInconclusive = attributions.any { it.source == StimulusExperimentalChangeAttributionSource.INCONCLUSIVE_DISPLACEMENT }
+        val closed = !hasUnexplained && !hasInconclusive
+        val outcomes = baseline.targetOutcomes
+        val reasons = baseline.reasonCodes.filterNot { reason ->
+            closed && reason in setOf("CHANGE_PROVENANCE_UNCLOSED", "REMOVAL_CAUSALITY_UNPROVEN")
+        }.toMutableList()
+        if (!closed && "CHANGE_PROVENANCE_UNCLOSED" !in reasons) reasons += "CHANGE_PROVENANCE_UNCLOSED"
+        val status = when {
+            !baseline.materializationIntegrityPassed -> StimulusExperimentalReadinessStatus.NOT_ELIGIBLE
+            !closed || !baseline.collateralRegressionFree || outcomes.any { it.status == StimulusExperimentalTargetOutcomeStatus.REGRESSED } ->
+                StimulusExperimentalReadinessStatus.NOT_ELIGIBLE
+            outcomes.any { it.status == StimulusExperimentalTargetOutcomeStatus.NO_AUTHORITY && it.directlyAffected } ->
+                StimulusExperimentalReadinessStatus.NOT_ELIGIBLE
+            outcomes.any { it.status == StimulusExperimentalTargetOutcomeStatus.INCONCLUSIVE && it.directlyAffected } ->
+                StimulusExperimentalReadinessStatus.INCONCLUSIVE
+            outcomes.any { it.status == StimulusExperimentalTargetOutcomeStatus.UNCHANGED && it.directlyAffected && "TARGET_UNMET" in it.reasonCodes } ->
+                StimulusExperimentalReadinessStatus.NOT_ELIGIBLE
+            hasInconclusive -> StimulusExperimentalReadinessStatus.INCONCLUSIVE
+            else -> StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW
+        }
+        return baseline.copy(
+            status = status,
+            changeAttributions = attributions,
+            changeProvenanceClosed = closed,
+            reasonCodes = reasons.distinct(),
+            userApprovedReplacementEdges = verified
+        )
+    }
+
+    private fun verifyUserReplacementEdge(
+        comparison: StimulusSelectionProgramComparison,
+        keepComparison: StimulusSelectionProgramComparison,
+        audit: StimulusExperimentalReadinessAudit,
+        edge: StimulusUserApprovedReplacementEdge
+    ): Boolean {
+        val old = edge.displacedControlOwner
+        val keepOwner = edge.keepOwner
+        val replacement = edge.replacementOwner
+        if (comparison.control.request != keepComparison.control.request ||
+            comparison.control.items != keepComparison.control.items ||
+            old !in comparison.removedOwnerIdentities || old !in keepComparison.removedOwnerIdentities ||
+            keepOwner.stableKey != old.stableKey || keepOwner == replacement || replacement in comparison.controlOwnerIdentities
+        ) return false
+        if (edge.controlRows != comparison.control.items.filter {
+                it.exerciseStableKey == old.stableKey && it.selectionRole == old.selectionRole
+            } || edge.controlRows.isEmpty()) return false
+        val weeks = edge.controlRows.mapTo(sortedSetOf()) { it.weekNumber }
+        if (edge.keepRows != keepComparison.experimental.items.filter {
+                it.exerciseStableKey == keepOwner.stableKey && it.selectionRole == keepOwner.selectionRole && it.weekNumber in weeks
+            } || edge.replacementRows != comparison.experimental.items.filter {
+                it.exerciseStableKey == replacement.stableKey && it.selectionRole == replacement.selectionRole && it.weekNumber in weeks
+            }) return false
+        if (edge.keepRows.isEmpty() || edge.replacementRows.isEmpty() ||
+            edge.keepRows.map { it.weekNumber }.toSet() != weeks || edge.replacementRows.map { it.weekNumber }.toSet() != weeks ||
+            comparison.experimental.items.any { it.exerciseStableKey == keepOwner.stableKey && it.selectionRole == keepOwner.selectionRole && it.weekNumber in weeks }
+        ) return false
+
+        val keepEvidence = keepComparison.experimentalReadinessAudit?.changeAttributions.orEmpty().singleOrNull { attribution ->
+            attribution.stableKey == old.stableKey && attribution.selectionRole == old.selectionRole &&
+                attribution.source == StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY &&
+                "B5_CANONICAL_OWNER_REPLACED_CONTROL_ROLE" in attribution.reasonCodes && edge.targetId in attribution.targetIds
+        } ?: return false
+        if (edge.targetId !in b8AuthorizedTargetIds(keepComparison) ||
+            keepComparison.productionCutoverAuthority?.status != StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER ||
+            keepComparison.experimentalReadinessAudit?.status != StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW ||
+            !hasExactB5Owner(keepComparison, edge.targetId, keepOwner) ||
+            !hasExactB5Owner(comparison, edge.targetId, replacement) ||
+            !hasExactB6Owner(keepComparison, edge.targetId, keepOwner) ||
+            !hasExactB6Owner(comparison, edge.targetId, replacement)
+        ) return false
+        val targetOutcome = audit.targetOutcomes.singleOrNull { it.targetId == edge.targetId } ?: return false
+        if (targetOutcome.status in setOf(StimulusExperimentalTargetOutcomeStatus.REGRESSED,
+                StimulusExperimentalTargetOutcomeStatus.NO_AUTHORITY, StimulusExperimentalTargetOutcomeStatus.INCONCLUSIVE)) return false
+        // The original B7 removal evidence must explicitly connect the CONTROL identity to the
+        // same target; a same-key or display-name match alone is never sufficient.
+        return keepEvidence.evidenceSources.any { it.startsWith("EXACT_") } &&
+            edge.keepRows.all { it.exerciseStableKey == keepOwner.stableKey && it.selectionRole == keepOwner.selectionRole }
+    }
+
+    private fun b8AuthorizedTargetIds(comparison: StimulusSelectionProgramComparison): Set<String> = buildSet {
+        comparison.productionCutoverAuthority?.authorizedAuthorityIdentities.orEmpty().forEach { add("QUALITY:${it.quality.name}") }
+        comparison.productionCutoverAuthority?.authorizedTaskProtocolIdentities.orEmpty()
+            .flatMap { it.authorizedTasks }.forEach { add("TASK:${it.name}") }
+        comparison.productionCutoverAuthority?.authorizedMovementTargetOwnerIdentities.orEmpty().forEach { add(it.targetId) }
+    }
+
+    private fun hasExactB5Owner(
+        comparison: StimulusSelectionProgramComparison,
+        targetId: String,
+        owner: StimulusPrescriptionOwnerIdentity
+    ): Boolean = comparison.selectionPlan.selectedCandidates.singleOrNull {
+        it.stableKey == owner.stableKey && it.selectionRole == owner.selectionRole && it.primaryTargetId == targetId &&
+            targetId in it.coveredTargetIds
+    } != null && comparison.selectionPlan.traces.any {
+        it.targetId == targetId && it.selectedStableKey == owner.stableKey && it.selectedSelectionRole == owner.selectionRole
+    }
+
+    private fun hasExactB6Owner(
+        comparison: StimulusSelectionProgramComparison,
+        targetId: String,
+        owner: StimulusPrescriptionOwnerIdentity
+    ): Boolean {
+        if (targetId.startsWith("MOVEMENT:")) return StimulusProductionMovementScopeEvidence.hasExactExecutableB6(comparison, targetId, owner)
+        val quality = TrainableQuality.entries.singleOrNull { targetId == "QUALITY:${it.name}" }
+        if (quality != null) {
+            val authorization = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().singleOrNull {
+                it.targetId == targetId && it.quality == quality &&
+                    it.owner?.let { candidate -> candidate.stableKey == owner.stableKey && candidate.selectionRole == owner.selectionRole } == true &&
+                    it.authorizedPrescription != null && it.status in setOf(
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
+                    )
+            } ?: return false
+            val rows = comparison.experimental.items.filter {
+                it.exerciseStableKey == owner.stableKey && it.selectionRole == owner.selectionRole
+            }
+            return rows.isNotEmpty() && validateAuthorizedWeeklySubset(
+                rows, requireNotNull(authorization.authorizedPrescription), owner.stableKey, owner.selectionRole
+            ).valid && comparison.prescriptionMaterializationAudits.any {
+                it.targetId == targetId && it.quality == quality &&
+                    it.owner?.let { candidate -> candidate.stableKey == owner.stableKey && candidate.selectionRole == owner.selectionRole } == true &&
+                    it.state == StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED && it.shortfall == 0 && it.overrun == 0
+            }
+        }
+        return targetId.startsWith("TASK:") && taskProtocolMetadataForOwner(comparison.experimental, owner).any { metadata ->
+            metadata.authorization.attributedTasks.any { "TASK:${it.name}" == targetId } &&
+                ApprovedBadmintonTaskProtocols.exact(owner.stableKey, owner.selectionRole, metadata.authorization.definition.primaryTask) ==
+                    metadata.authorization.definition
+        }
     }
 
     private fun materializationIntegrityReasons(
@@ -1655,4 +1854,28 @@ internal fun StimulusExperimentalReadinessAudit.toJson(): JSONObject = JSONObjec
         .put("stableKey", attribution.stableKey).put("selectionRole", attribution.selectionRole).put("source", attribution.source.name)
         .put("targetIds", JSONArray(attribution.targetIds)).put("reasonCodes", JSONArray(attribution.reasonCodes))
         .put("evidenceSources", JSONArray(attribution.evidenceSources))
+        .put("replacementOwnerStableKey", attribution.replacementOwner?.stableKey)
+        .put("replacementOwnerSelectionRole", attribution.replacementOwner?.selectionRole)
+        .put("replacementEvidenceId", attribution.replacementEvidenceId)
+    }))
+    .put("userApprovedReplacementEdges", JSONArray(userApprovedReplacementEdges.map { edge -> JSONObject()
+        .put("optionId", edge.optionId).put("targetId", edge.targetId)
+        .put("displacedControlOwner", JSONObject().put("stableKey", edge.displacedControlOwner.stableKey)
+            .put("selectionRole", edge.displacedControlOwner.selectionRole))
+        .put("keepOwner", JSONObject().put("stableKey", edge.keepOwner.stableKey).put("selectionRole", edge.keepOwner.selectionRole))
+        .put("replacementOwner", JSONObject().put("stableKey", edge.replacementOwner.stableKey)
+            .put("selectionRole", edge.replacementOwner.selectionRole))
+        .put("controlRows", JSONArray(edge.controlRows.map(ProgramSkeletonItem::toReplacementEvidenceJson)))
+        .put("keepRows", JSONArray(edge.keepRows.map(ProgramSkeletonItem::toReplacementEvidenceJson)))
+        .put("replacementRows", JSONArray(edge.replacementRows.map(ProgramSkeletonItem::toReplacementEvidenceJson)))
+    }))
+
+private fun ProgramSkeletonItem.toReplacementEvidenceJson(): JSONObject = JSONObject()
+    .put("localId", localId).put("week", weekNumber).put("day", dayOfWeek).put("order", orderIndex)
+    .put("stableKey", exerciseStableKey).put("selectionRole", selectionRole)
+    .put("setCount", setCount).put("reps", reps).put("weightKg", weightKg).put("seconds", seconds)
+    .put("restSeconds", restSeconds).put("weightSource", weightSource).put("prescription", prescription)
+    .put("sets", JSONArray(setPrescriptions.map { set -> JSONObject()
+        .put("setIndex", set.setIndex).put("reps", set.reps).put("weightKg", set.weightKg)
+        .put("seconds", set.seconds).put("targetRpeMin", set.targetRpeMin).put("loadState", set.loadState.name)
     }))

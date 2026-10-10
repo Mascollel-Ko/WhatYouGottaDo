@@ -10,6 +10,7 @@ import kotlinx.coroutines.withContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -193,7 +194,7 @@ class StimulusProductionCoverageAuditTest {
                 assertEquals(selected.copy(
                     incumbentSourceSnapshotToken = result.program.incumbentSourceSnapshotToken,
                     optimizationSummary = result.program.optimizationSummary
-                ), result.program)
+                ), result.program.copy(replacementReview = null))
                 assertEquals(spec.label, comparison.selectionPlan.strengthShortfalls, result.strengthShortfalls)
                 assertEquals(StimulusProductionMaterialScopeResolver().resolve(comparison), result.diagnostics.scopeResolution?.scope)
             }
@@ -2109,6 +2110,71 @@ class StimulusProductionCoverageAuditTest {
             assertTrue("${spec.label} duration stays in the bounded horizon", resolved.durationWeeks in 2..6)
             if (spec.explicitDuration) assertEquals("${spec.label} explicit duration", 2, resolved.durationWeeks)
         }
+    }
+
+    @Test
+    fun activePowerDraftKeepsReplacementSelectionOnTheFullB5B6B7B8B9Path() = runBlocking {
+        val spec = CoverageSpec(
+            label = "persona3_mixed",
+            quality = TrainableQuality.STRENGTH,
+            stableKey = "barbell_back_squat",
+            profileGoal = "MIXED",
+            goal = ProgramGoal.BADMINTON_SUPPORT,
+            intent = StrengthIntent.MIXED,
+            badminton = true,
+            history = "mixed",
+            days = 5,
+            minutes = 60,
+            equipment = setOf("MACHINE", "CABLE")
+        )
+        val result = requireNotNull(runCase(spec) { service, preflight, answers, metadata ->
+            val generated = service.generatePreparedProduction(
+                preflight = preflight,
+                answers = answers,
+                metadata = metadata,
+                routingMode = StimulusProductionRoutingMode.B8_STRENGTH_HYPERTROPHY_V1_ACTIVE
+            )
+            val keepFingerprint = ProgramReplacementReviewFingerprint.create(generated.program)
+            val firstCandidate = generated.program.replacementReview?.options?.firstOrNull {
+                it.targetId == "MOVEMENT:HORIZONTAL_PUSH"
+            }
+            val b8 = requireNotNull(generated.comparison?.productionCutoverAuthority)
+            val authorizedTargetIds = buildSet {
+                b8.authorizedAuthorityIdentities.forEach { add("QUALITY:${it.quality.name}") }
+                b8.authorizedTaskProtocolIdentities.flatMap { it.authorizedTasks }.forEach { add("TASK:${it.name}") }
+                b8.authorizedMovementTargetOwnerIdentities.forEach { add(it.targetId) }
+            }
+            assertTrue(generated.program.replacementReview?.options.orEmpty().all { it.targetId in authorizedTargetIds })
+            val selectedCandidate = requireNotNull(firstCandidate) { "Expected a B5 replacement candidate for an authorized Power-route movement target" }
+            val alternative = service.validateReplacementSelection(
+                generated.program,
+                setOf(selectedCandidate.optionId),
+                metadata
+            )
+            val review = requireNotNull(alternative.replacementReview)
+            assertEquals(ProgramReplacementValidationStatus.VALIDATED, review.validation?.status)
+            assertEquals(StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW,
+                review.validation?.b7Status)
+            assertEquals(StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER,
+                review.validation?.b8Status)
+            assertTrue("validation is only a preview; explicit apply is still required",
+                review.appliedOptionIds.isEmpty())
+            assertNotEquals(keepFingerprint, ProgramReplacementReviewFingerprint.create(alternative))
+            val edge = requireNotNull(review.validation?.causalEvidence?.singleOrNull())
+            assertEquals(selectedCandidate.targetId, edge.targetId)
+            assertEquals(selectedCandidate.sourceStableKey, edge.keepOwner.stableKey)
+            assertEquals(selectedCandidate.candidateStableKey, edge.replacementOwner.stableKey)
+            assertTrue(edge.controlRows.isNotEmpty() && edge.keepRows.isNotEmpty() && edge.replacementRows.isNotEmpty())
+            assertEquals(StimulusProductionProgramSource.B8_POWER_JUMP_V1,
+                review.validation?.b9SelectedSource)
+            assertEquals("failed validation must leave the keep draft untouched", keepFingerprint,
+                ProgramReplacementReviewFingerprint.create(generated.program))
+            generated
+        })
+        assertEquals(StimulusProductionProgramSource.B8_POWER_JUMP_V1, result.routeDecision.selectedSource)
+        assertEquals(1, result.buildCounts.controlBuilds)
+        assertEquals(1, result.buildCounts.experimentalBuilds)
+        assertEquals(0, result.buildCounts.thirdBuilds)
     }
 
     private fun render(records: List<Pair<CoverageSpec, StimulusProductionGenerationResult?>>): String = buildString {

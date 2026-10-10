@@ -30,6 +30,128 @@ import org.junit.Test
 
 class StimulusTargetCandidateSelectorTest {
     @Test
+    fun regionalResidualSkipsTopRankedCandidateWithoutExactB6AndUsesNextEligibleOwner() {
+        val first = exercise("a_candidate")
+        val second = exercise("b_candidate")
+        val base = fixture(
+            listOf(first, second),
+            listOf(relation("a_candidate", quality = TrainableQuality.HYPERTROPHY).copy(regionQualifier = PhysicalQualityRegion.ARMS),
+                relation("b_candidate", quality = TrainableQuality.HYPERTROPHY).copy(regionQualifier = PhysicalQualityRegion.ARMS))
+        )
+        val snapshot = base.snapshot.copy(metadata = base.snapshot.metadata.mapValues { (_, value) ->
+            value.copy(programSlot = "BICEPS_ACCESSORY")
+        })
+        val target = StimulusMovementTarget(
+            movementCoverage = MovementCoverage.ARMS_BICEPS,
+            priority = TargetPriority.PRIMARY,
+            reasonCodes = listOf("B3_ADDRESS"),
+            evidence = listOf("direct exposure gap"),
+            regionalDoseTargets = listOf(StimulusMovementDoseTarget(
+                kind = StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET,
+                numericAuthority = StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY,
+                weeklyTarget = 8.0,
+                reasonCodes = listOf("COLD_START"),
+                shapeAuthority = StimulusMovementDoseShapeAuthority.HYPERTROPHY_BAND_8_12_PERSONAL_7_15_RPE_7_USER_LOAD_CALIBRATION,
+                existingEquivalentExposure = 4.0,
+                residualEquivalentExposure = 4.0,
+                authorizedWholeSetUnits = 4,
+                residualReasonCodes = listOf("B4_RESIDUAL_DOSE_AUTHORIZED")
+            ))
+        )
+        val plan = StimulusTargetPlan(emptyList(), emptyList(), emptyList(), movementTargets = listOf(target))
+        val selection = StimulusTargetCandidateSelector().build(
+            targetPlan = plan,
+            snapshot = snapshot,
+            state = base.state,
+            request = base.request,
+            physicalQualityCatalog = base.catalog,
+            movementCandidateRejectionReason = { _, key, _, _ ->
+                if (key == "a_candidate") "NO_EXECUTABLE_B6" else null
+            }
+        )
+
+        assertEquals(listOf("a_candidate", "b_candidate"), selection.traces.single().candidatePool)
+        assertEquals("b_candidate", selection.selectedCandidates.single().stableKey)
+        assertEquals(4, selection.materialDemand.candidates.single().targetSets)
+        assertEquals("NO_EXECUTABLE_B6", selection.traces.single().candidateRejectionReasons["a_candidate"])
+        assertTrue(selection.traces.single().reasonCodes.contains("B5_SKIPPED_HIGHER_RANKED_CANDIDATE_WITHOUT_EXACT_B6"))
+        val rejected = selection.candidateDispositionIndex.entries.single { it.stableKey == "a_candidate" }
+        assertEquals(StimulusCandidateDispositionStatus.MATERIALIZATION_FAILED, rejected.status)
+    }
+
+    @Test
+    fun regionalResidualDoesNotMaterializeWhenEveryRankedOwnerLacksExactB6() {
+        val exercise = exercise("a_candidate")
+        val base = fixture(listOf(exercise), listOf(
+            relation("a_candidate", quality = TrainableQuality.HYPERTROPHY).copy(regionQualifier = PhysicalQualityRegion.ARMS)
+        ))
+        val snapshot = base.snapshot.copy(metadata = base.snapshot.metadata.mapValues { (_, value) ->
+            value.copy(programSlot = "BICEPS_ACCESSORY")
+        })
+        val target = StimulusMovementTarget(
+            MovementCoverage.ARMS_BICEPS, TargetPriority.PRIMARY,
+            reasonCodes = listOf("B3_ADDRESS"), evidence = listOf("direct exposure gap"),
+            regionalDoseTargets = listOf(StimulusMovementDoseTarget(
+                StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET,
+                StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY,
+                8.0, listOf("COLD_START"),
+                shapeAuthority = StimulusMovementDoseShapeAuthority.HYPERTROPHY_BAND_8_12_PERSONAL_7_15_RPE_7_USER_LOAD_CALIBRATION,
+                existingEquivalentExposure = 0.0, residualEquivalentExposure = 4.0,
+                authorizedWholeSetUnits = 4, residualReasonCodes = listOf("B4_RESIDUAL_DOSE_AUTHORIZED")
+            ))
+        )
+        val selection = StimulusTargetCandidateSelector().build(
+            StimulusTargetPlan(emptyList(), emptyList(), emptyList(), movementTargets = listOf(target)),
+            snapshot, base.state, base.request, base.catalog,
+            movementCandidateRejectionReason = { _, _, _, _ -> "NO_EXECUTABLE_B6" }
+        )
+
+        assertTrue(selection.materialDemand.candidates.isEmpty())
+        assertTrue(selection.selectedCandidates.isEmpty())
+        assertEquals("MOVEMENT_TARGET_HAS_NO_B5_OWNER_WITH_EXACT_B6_AUTHORITY", selection.traces.single().reasonCodes.first())
+        assertEquals("NO_EXECUTABLE_B6", selection.traces.single().candidateRejectionReasons["a_candidate"])
+    }
+
+    @Test
+    fun forcedPreviewCandidateStillMustPassCanonicalB5AndExactB6Checks() {
+        val first = exercise("a_candidate")
+        val second = exercise("b_candidate")
+        val base = fixture(
+            listOf(first, second),
+            listOf(relation("a_candidate", quality = TrainableQuality.HYPERTROPHY).copy(regionQualifier = PhysicalQualityRegion.ARMS),
+                relation("b_candidate", quality = TrainableQuality.HYPERTROPHY).copy(regionQualifier = PhysicalQualityRegion.ARMS))
+        )
+        val snapshot = base.snapshot.copy(metadata = base.snapshot.metadata.mapValues { (_, value) ->
+            value.copy(programSlot = "BICEPS_ACCESSORY")
+        })
+        val target = StimulusMovementTarget(
+            MovementCoverage.ARMS_BICEPS, TargetPriority.PRIMARY,
+            reasonCodes = listOf("B3_ADDRESS"), evidence = listOf("direct exposure gap"),
+            regionalDoseTargets = listOf(StimulusMovementDoseTarget(
+                StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET,
+                StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY,
+                8.0, listOf("COLD_START"),
+                shapeAuthority = StimulusMovementDoseShapeAuthority.HYPERTROPHY_BAND_8_12_PERSONAL_7_15_RPE_7_USER_LOAD_CALIBRATION,
+                existingEquivalentExposure = 4.0, residualEquivalentExposure = 4.0,
+                authorizedWholeSetUnits = 4, residualReasonCodes = listOf("B4_RESIDUAL_DOSE_AUTHORIZED")
+            ))
+        )
+        val selection = StimulusTargetCandidateSelector().build(
+            StimulusTargetPlan(emptyList(), emptyList(), emptyList(), movementTargets = listOf(target)),
+            snapshot, base.state, base.request, base.catalog,
+            movementCandidateRejectionReason = { _, key, _, _ ->
+                if (key == "b_candidate") "NO_EXECUTABLE_B6" else null
+            },
+            forcedCandidateByTarget = mapOf(target.targetId to "b_candidate")
+        )
+
+        assertTrue("a user-requested preview candidate still fails closed when B6 rejects it",
+            selection.selectedCandidates.isEmpty())
+        assertTrue(selection.materialDemand.candidates.isEmpty())
+        assertEquals("NO_EXECUTABLE_B6", selection.traces.single().candidateRejectionReasons["b_candidate"])
+    }
+
+    @Test
     fun strengthTargetWithoutAnApprovedCandidateRemainsATypedShortfall() {
         val offListExercise = exercise("ex_8e4bf08e")
         val fixture = fixture(listOf(offListExercise), listOf(relation("ex_8e4bf08e")))

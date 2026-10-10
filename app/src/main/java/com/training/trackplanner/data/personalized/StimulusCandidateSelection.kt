@@ -300,7 +300,11 @@ class StimulusTargetCandidateSelector(
         state: AthletePlanningState,
         request: ProgramSkeletonRequest,
         physicalQualityCatalog: CanonicalExercisePhysicalQualityCatalog,
-        excludedStableKeys: Set<String> = emptySet()
+        excludedStableKeys: Set<String> = emptySet(),
+        /** Exact B6 feasibility probe for a B5 regional owner. A rejection lets B5 inspect the next ranked candidate. */
+        movementCandidateRejectionReason: (StimulusMovementTarget, String, String, Int) -> String? = { _, _, _, _ -> null },
+        /** Explicit preview-choice override; it remains subject to normal B5 eligibility and B6 checks. */
+        forcedCandidateByTarget: Map<String, String> = emptyMap()
     ): StimulusCandidateSelectionPlan {
         val contextStart = snapshot.cutoff.minusDays(55)
         val currentStart = snapshot.cutoff.minusDays(27)
@@ -390,19 +394,35 @@ class StimulusTargetCandidateSelector(
                     dispositionContexts += TargetDispositionContext(intent, selectionRequired = false)
                     return@forEach
                 }
-                val chosen = ranked.firstOrNull()
+                val role = roleFor(intent)
+                val candidateRejections = linkedMapOf<String, String>()
+                val forcedCandidate = forcedCandidateByTarget[intent.targetId]
+                val candidateOrder = if (forcedCandidate == null) ranked else ranked.filter { it.key == forcedCandidate }
+                if (forcedCandidate != null && candidateOrder.isEmpty()) {
+                    candidateRejections[forcedCandidate] = "FORCED_CANDIDATE_NOT_B5_ELIGIBLE"
+                }
+                val chosen = candidateOrder.firstOrNull { candidate ->
+                    if (regionalDose == null || regionalUnits == null) return@firstOrNull true
+                    val rejection = movementCandidateRejectionReason(intent.target, candidate.key, role, regionalUnits)
+                    if (rejection == null) true else {
+                        candidateRejections[candidate.key] = rejection
+                        false
+                    }
+                }
                 if (chosen == null) {
-                    val reason = "MOVEMENT_TARGET_HAS_NO_ELIGIBLE_B5_OWNER"
+                    val reason = if (candidateRejections.isEmpty()) "MOVEMENT_TARGET_HAS_NO_ELIGIBLE_B5_OWNER"
+                    else "MOVEMENT_TARGET_HAS_NO_B5_OWNER_WITH_EXACT_B6_AUTHORITY"
                     deferred[intent.targetId] = reason
-                    traces += trace(intent, historyIdentities, true, pool, null, null, emptyMap(), listOf(reason))
+                    traces += trace(intent, historyIdentities, true, pool, null, null, candidateRejections, listOf(reason),
+                        candidateRoles = candidateRejections.keys.associateWith { role })
                     dispositionContexts += TargetDispositionContext(
                         intent = intent,
                         selectionRequired = true,
-                        rankedCandidates = ranked
+                        rankedCandidates = ranked,
+                        materializationFailures = candidateRejections
                     )
                     return@forEach
                 }
-                val role = roleFor(intent)
                 if (regionalDose != null && regionalUnits != null) {
                     val item = PlannedExercise(
                         stableKey = chosen.key,
@@ -430,14 +450,18 @@ class StimulusTargetCandidateSelector(
                     selected[chosen.key] = selectedCandidate
                     audit[chosen.key] = if (regionalDose.kind == StimulusMovementDoseKind.CORE_DIRECT_CONTROL_SET)
                         "B5_SELECTED_EXACT_CORE_DIRECT_RESIDUAL_OWNER" else "B5_SELECTED_EXACT_REGIONAL_RESIDUAL_OWNER"
-                    traces += trace(intent, historyIdentities, true, pool, chosen.key, null, emptyMap(),
+                    traces += trace(intent, historyIdentities, true, pool, chosen.key, null, candidateRejections,
                         listOf("MOVEMENT_TARGET_OWNER_SELECTED", "B4_RESIDUAL_SET_UNITS=$regionalUnits",
                             if (regionalDose.kind == StimulusMovementDoseKind.CORE_DIRECT_CONTROL_SET) "B5_CORE_SELECTION_REQUIRES_EXACT_CANONICAL_CORE_PROFILE" else "B5_DIRECT_HYPERTROPHY_OWNER_SELECTED",
-                            "B5_SELECTION_DOES_NOT_ENLARGE_B4_RESIDUAL"), selectedRole = role)
+                            "B5_SELECTION_DOES_NOT_ENLARGE_B4_RESIDUAL",
+                            if (candidateRejections.isNotEmpty()) "B5_SKIPPED_HIGHER_RANKED_CANDIDATE_WITHOUT_EXACT_B6" else "B5_TOP_RANKED_CANDIDATE_AUTHORIZED"),
+                        selectedRole = role,
+                        candidateRoles = candidateRejections.keys.associateWith { role })
                     dispositionContexts += TargetDispositionContext(
                         intent = intent,
                         selectionRequired = true,
                         rankedCandidates = ranked,
+                        materializationFailures = candidateRejections,
                         selectedInstead = StimulusPrescriptionOwnerIdentity(chosen.key, role)
                     )
                     return@forEach
@@ -469,7 +493,13 @@ class StimulusTargetCandidateSelector(
             val rejections = linkedMapOf<String, String>()
             val rejectionRoles = linkedMapOf<String, String>()
             var materialized: MaterializedCandidate? = null
-            for (candidate in ranked) {
+            val forcedCandidate = forcedCandidateByTarget[intent.targetId]
+            val candidateOrder = if (forcedCandidate == null) ranked else ranked.filter { it.key == forcedCandidate }
+            if (forcedCandidate != null && candidateOrder.isEmpty()) {
+                rejections[forcedCandidate] = "FORCED_CANDIDATE_NOT_B5_ELIGIBLE"
+                rejectionRoles[forcedCandidate] = roleFor(intent)
+            }
+            for (candidate in candidateOrder) {
                 val exactB4PowerJumpDecision = targetPlan.powerJumpDoseDecisions.singleOrNull {
                     it.targetId == intent.targetId
                 }
@@ -486,7 +516,7 @@ class StimulusTargetCandidateSelector(
             }
             val chosen = materialized
             if (chosen == null) {
-                val reason = if (pool.isEmpty()) "TARGET_REQUIRES_SELECTION_BUT_NO_MATERIALIZABLE_CANDIDATE"
+                val reason = if (forcedCandidate != null) "EXPLICIT_PREVIEW_CANDIDATE_FAILED_B5_OR_B6"
                 else "TARGET_REQUIRES_SELECTION_BUT_NO_MATERIALIZABLE_CANDIDATE"
                 deferred[intent.targetId] = reason
                 traces += trace(intent, historyIdentities, true, pool, null, null, rejections, listOf(reason), candidateRoles = rejectionRoles)
@@ -984,14 +1014,17 @@ class StimulusTargetCandidateSelector(
         else -> null
     }
 
-    private fun String.toDispositionReason(): StimulusCandidateDispositionReason = when (this) {
-        "NO_SAFE_PRESCRIPTION_AUTHORITY" -> StimulusCandidateDispositionReason.NO_SAFE_PRESCRIPTION_AUTHORITY
-        "MINIMUM_PRESCRIPTION_EXCEEDS_SESSION_TIME" -> StimulusCandidateDispositionReason.MINIMUM_PRESCRIPTION_EXCEEDS_SESSION_TIME
-        "NO_MINIMUM_TARGET" -> StimulusCandidateDispositionReason.NO_MINIMUM_TARGET
-        "REDUCTION_DOES_NOT_AUTHORIZE_NEW_EXERCISE" -> StimulusCandidateDispositionReason.REDUCTION_DOES_NOT_AUTHORIZE_SELECTION
-        "DISTRIBUTION_AUTHORITY_DEFERRED" -> StimulusCandidateDispositionReason.DISTRIBUTION_ONLY
-        "TARGET_UNRESOLVED" -> StimulusCandidateDispositionReason.TARGET_UNRESOLVED
-        "TARGET_SELECTION_NOT_AUTHORIZED_BY_B5_STRATEGY" -> StimulusCandidateDispositionReason.STRATEGY_DOES_NOT_AUTHORIZE_SELECTION
+    private fun String.toDispositionReason(): StimulusCandidateDispositionReason = when {
+        this == "NO_SAFE_PRESCRIPTION_AUTHORITY" || this == "NO_EXECUTABLE_B6" ||
+            startsWith("B6_") || contains("PRESCRIPTION_AUTHORITY") || contains("EXECUTABLE_AUTHORITY") ->
+            StimulusCandidateDispositionReason.NO_SAFE_PRESCRIPTION_AUTHORITY
+        this == "MINIMUM_PRESCRIPTION_EXCEEDS_SESSION_TIME" ->
+            StimulusCandidateDispositionReason.MINIMUM_PRESCRIPTION_EXCEEDS_SESSION_TIME
+        this == "NO_MINIMUM_TARGET" -> StimulusCandidateDispositionReason.NO_MINIMUM_TARGET
+        this == "REDUCTION_DOES_NOT_AUTHORIZE_NEW_EXERCISE" ->
+            StimulusCandidateDispositionReason.REDUCTION_DOES_NOT_AUTHORIZE_SELECTION
+        this == "DISTRIBUTION_AUTHORITY_DEFERRED" -> StimulusCandidateDispositionReason.DISTRIBUTION_ONLY
+        this == "TARGET_UNRESOLVED" -> StimulusCandidateDispositionReason.TARGET_UNRESOLVED
         else -> StimulusCandidateDispositionReason.STRATEGY_DOES_NOT_AUTHORIZE_SELECTION
     }
 
