@@ -4,7 +4,7 @@ import com.training.trackplanner.data.TrainableQuality
 
 enum class StimulusProductionScopeResolutionStatus {
     RESOLVED_STRENGTH, RESOLVED_STRENGTH_CALIBRATION, RESOLVED_HYPERTROPHY, RESOLVED_STRENGTH_HYPERTROPHY,
-    RESOLVED_BADMINTON_TASK,
+    RESOLVED_BADMINTON_TASK, RESOLVED_POWER_JUMP,
     NO_MATERIAL, MISSING_PROVENANCE, PARTIAL_PROVENANCE, UNKNOWN_TARGET,
     UNSUPPORTED_QUALITY, AMBIGUOUS_MATERIAL_SCOPE
 }
@@ -40,6 +40,7 @@ internal fun observeProductionScope(
             StimulusExperimentalChangeAttributionSource.B6_EXISTING_OWNER_PRESCRIPTION,
             StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION,
             StimulusExperimentalChangeAttributionSource.B6_COLD_START_USER_CALIBRATION,
+        StimulusExperimentalChangeAttributionSource.B6_APPROVED_POWER_JUMP_POLICY,
             StimulusExperimentalChangeAttributionSource.B6_APPROVED_TASK_PROTOCOL) &&
             it.stableKey != null && it.selectionRole != null &&
             StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) in owners
@@ -100,14 +101,26 @@ internal fun observeProductionScope(
                     )
             }
     }.map { it.targetId }.toSet()
+    val exactMovementTargets = StimulusProductionMovementScopeEvidence.exactMovementTargetOwnerIdentities(
+        comparison, owners
+    ).mapTo(linkedSetOf()) { it.targetId }
+    val exactMovementHypertrophyTargets = comparison.targetPlan.movementTargets.filter { movement ->
+        movement.targetId in exactMovementTargets && movement.regionalDoseTargets.any {
+            it.kind == StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET
+        }
+    }.map { it.targetId }.toSet()
     val governed = comparison.targetPlan.qualityTargets.map { "QUALITY:${it.quality.name}" }.toSet() +
-        comparison.targetPlan.taskTargets.map { "TASK:${it.task}" } + regionalHypertrophyTargets + existingAuthorizedRegionalTargets
+        comparison.targetPlan.taskTargets.map { "TASK:${it.task}" } + regionalHypertrophyTargets + existingAuthorizedRegionalTargets +
+        exactMovementTargets
     val unknown = (targetIds - governed).toSortedSet()
     val qualities = targetIds.mapNotNull { id ->
         TrainableQuality.entries.firstOrNull { id == "QUALITY:${it.name}" }
-            ?: TrainableQuality.HYPERTROPHY.takeIf { id in regionalHypertrophyTargets || id in existingAuthorizedRegionalTargets }
+            ?: TrainableQuality.HYPERTROPHY.takeIf { id in regionalHypertrophyTargets || id in existingAuthorizedRegionalTargets ||
+                id in exactMovementHypertrophyTargets }
     }.toSet()
-    val unsupported = qualities - setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY)
+    val powerJumpQualities = setOf(TrainableQuality.POWER, TrainableQuality.REACTIVE_STRENGTH_SSC)
+    val unsupported = qualities - setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY) -
+        if (scope == StimulusProductionCutoverScope.POWER_JUMP_V1) powerJumpQualities else emptySet()
     val reasons = sortedSetOf<String>()
     val removed = comparison.removedOwnerIdentities
     val structureChanged = comparison.control.weekDaySchedule != comparison.experimental.weekDaySchedule ||
@@ -127,12 +140,15 @@ internal fun observeProductionScope(
     if (qualities.containsAll(setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY)) && unsupported.isNotEmpty()) reasons += "THIRD_QUALITY_PRESENT"
     if (scope != StimulusProductionCutoverScope.BADMINTON_TASK_V1 &&
         targetIds.any { id -> id in governed && !id.startsWith("QUALITY:") &&
-            id !in regionalHypertrophyTargets && id !in existingAuthorizedRegionalTargets }) reasons += "UNSUPPORTED_TARGET_COMBINATION"
+            id !in regionalHypertrophyTargets && id !in existingAuthorizedRegionalTargets && id !in exactMovementTargets }) {
+        reasons += "UNSUPPORTED_TARGET_COMBINATION"
+    }
     val status = when {
         scope == StimulusProductionCutoverScope.STRENGTH_V1 -> StimulusProductionScopeResolutionStatus.RESOLVED_STRENGTH
         scope == StimulusProductionCutoverScope.STRENGTH_CALIBRATION_V1 -> StimulusProductionScopeResolutionStatus.RESOLVED_STRENGTH_CALIBRATION
         scope == StimulusProductionCutoverScope.HYPERTROPHY_V1 -> StimulusProductionScopeResolutionStatus.RESOLVED_HYPERTROPHY
         scope == StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1 -> StimulusProductionScopeResolutionStatus.RESOLVED_STRENGTH_HYPERTROPHY
+        scope == StimulusProductionCutoverScope.POWER_JUMP_V1 -> StimulusProductionScopeResolutionStatus.RESOLVED_POWER_JUMP
         audit == null -> StimulusProductionScopeResolutionStatus.MISSING_PROVENANCE
         owners.isEmpty() && removed.isNotEmpty() -> StimulusProductionScopeResolutionStatus.AMBIGUOUS_MATERIAL_SCOPE
         owners.isEmpty() && structureChanged -> StimulusProductionScopeResolutionStatus.AMBIGUOUS_MATERIAL_SCOPE
@@ -170,6 +186,7 @@ internal fun observeProductionScope(
         scope == StimulusProductionCutoverScope.HYPERTROPHY_V1 -> StimulusProductionScopeResolutionStatus.RESOLVED_HYPERTROPHY
         scope == StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1 -> StimulusProductionScopeResolutionStatus.RESOLVED_STRENGTH_HYPERTROPHY
         scope == StimulusProductionCutoverScope.BADMINTON_TASK_V1 -> StimulusProductionScopeResolutionStatus.RESOLVED_BADMINTON_TASK
+        scope == StimulusProductionCutoverScope.POWER_JUMP_V1 -> StimulusProductionScopeResolutionStatus.RESOLVED_POWER_JUMP
         else -> status
     }
     return StimulusProductionScopeResolution(scope, finalStatus, qualities, owners + removed, reasons.toList(), unknown,

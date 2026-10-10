@@ -92,7 +92,9 @@ data class PowerJumpDoseDecision(
     val badmintonBand: BadmintonActivityBand,
     val provenance: String,
     val reasonCodes: List<String>,
-    val evidence: List<String>
+    val evidence: List<String>,
+    /** Exact B4 region survives into B8 so weekly frequency can be validated without reclassification. */
+    val targetRegion: PowerJumpBodyRegion? = null
 )
 
 enum class ResistanceSetBand { LOW, MODERATE, HIGH }
@@ -376,7 +378,8 @@ object PowerJumpIntegratedDosePolicy {
             "badmintonBand=${badmintonBand.name}",
             "applicableWeeklyCap=${cap ?: "UNKNOWN"}",
             "approvedWeeklySetUnits=$units"
-        )
+        ),
+        targetRegion = need.region
     )
 
     private fun resistanceBand(sets: Int): ResistanceSetBand = when {

@@ -144,6 +144,7 @@ internal object C19CanonicalProgramLineageCensus {
             .put("realCaseShadow", JSONArray(sortedRows))
             .put("routeSnapshot", JSONObject()
                 .put("CONTROL", routes[com.training.trackplanner.data.personalized.StimulusProductionProgramSource.CONTROL] ?: 0)
+                .put("POWER_JUMP", routes[com.training.trackplanner.data.personalized.StimulusProductionProgramSource.B8_POWER_JUMP_V1] ?: 0)
                 .put("STRENGTH_V1", routes[com.training.trackplanner.data.personalized.StimulusProductionProgramSource.B8_STRENGTH_V1] ?: 0)
                 .put("STRENGTH_CALIBRATION_V1", routes[com.training.trackplanner.data.personalized.StimulusProductionProgramSource.B8_STRENGTH_CALIBRATION_V1] ?: 0)
                 .put("HYPERTROPHY", routes[com.training.trackplanner.data.personalized.StimulusProductionProgramSource.B8_HYPERTROPHY_V1] ?: 0)

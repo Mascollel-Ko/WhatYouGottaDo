@@ -7,6 +7,7 @@ import com.training.trackplanner.data.ProgramSetPrescription
 import com.training.trackplanner.data.ProgramSkeletonItem
 import com.training.trackplanner.data.ProgramSkeletonRequest
 import com.training.trackplanner.data.ProgramWeekPlan
+import com.training.trackplanner.data.TrainableQuality
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
@@ -112,6 +113,46 @@ class StimulusProductionRoutingTest {
         val result = StimulusProductionRouter().route(comparison, malformed, StimulusProductionRoutingMode.B8_STRENGTH_V1_ACTIVE)
         assertSame(comparison.control, result.program)
         assertEquals(listOf("B9_B8_EMPTY_AUTHORIZED_OWNER_SET"), result.decision.reasonCodes)
+    }
+
+    @Test
+    fun exactPowerJumpB8AuthorityRoutesOnlyThroughAnEnabledMode() {
+        val base = comparison()
+        val owner = StimulusPrescriptionOwnerIdentity("squat", "PRIMARY")
+        val powerJumpComparison = base.copy(experimentalReadinessAudit =
+            StimulusExperimentalReadinessAudit(
+                status = StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW,
+                changeAttributions = listOf(StimulusExperimentalChangeAttribution(
+                    stableKey = owner.stableKey,
+                    selectionRole = owner.selectionRole,
+                    source = StimulusExperimentalChangeAttributionSource.B6_APPROVED_POWER_JUMP_POLICY,
+                    targetIds = listOf("QUALITY:POWER")
+                )),
+                materializationIntegrityPassed = true,
+                changeProvenanceClosed = true,
+                collateralRegressionFree = true
+            )
+        )
+        val b8 = authority().copy(
+            scope = StimulusProductionCutoverScope.POWER_JUMP_V1,
+            reasonCodes = listOf("B8_POWER_JUMP_V1_AUTHORIZED"),
+            authorizedAuthorityIdentities = listOf(
+                StimulusPrescriptionAuthorityIdentity("squat", "PRIMARY", TrainableQuality.POWER)
+            )
+        )
+
+        val routed = StimulusProductionRouter().route(
+            powerJumpComparison, b8, StimulusProductionRoutingMode.B8_STRENGTH_HYPERTROPHY_V1_ACTIVE
+        )
+        assertSame(powerJumpComparison.experimental, routed.program)
+        assertEquals(StimulusProductionProgramSource.B8_POWER_JUMP_V1, routed.decision.selectedSource)
+        assertEquals(listOf("B9_B8_POWER_JUMP_V1_ROUTED"), routed.decision.reasonCodes)
+
+        val disabled = StimulusProductionRouter().route(
+            powerJumpComparison, b8, StimulusProductionRoutingMode.B8_STRENGTH_V1_ACTIVE
+        )
+        assertSame(powerJumpComparison.control, disabled.program)
+        assertEquals(listOf("B9_B8_POWER_JUMP_SCOPE_NOT_ACTIVE"), disabled.decision.reasonCodes)
     }
 
     private fun authority() = StimulusProductionCutoverAuthorityDecision(

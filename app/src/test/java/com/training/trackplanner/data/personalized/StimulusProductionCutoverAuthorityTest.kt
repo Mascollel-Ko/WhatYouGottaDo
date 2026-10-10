@@ -102,6 +102,60 @@ class StimulusProductionCutoverAuthorityTest {
     }
 
     @Test
+    fun productionScopeResolverRequiresExactPowerJumpMaterialAttribution() {
+        val ownerKey = "lateral_bound_continuous"
+        val role = "CANONICAL_STIMULUS_QUALITY_POWER"
+        val targetId = "QUALITY:POWER"
+        val target = qualityTarget(TrainableQuality.POWER, StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY)
+            .copy(needDecision = TrainingNeedDecision.DEVELOP, requiredPhysicalModes = setOf("PLYOMETRIC"))
+        val dose = PowerJumpDoseDecision(
+            targetId = targetId,
+            status = PowerJumpDoseStatus.AUTHORIZED,
+            numericAuthority = StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY,
+            approvedWeeklySetUnits = 2,
+            applicableWeeklyCap = 6,
+            existingAuthorizedSetUnits = 0,
+            lowerResistanceBand = ResistanceSetBand.LOW,
+            upperResistanceBand = ResistanceSetBand.LOW,
+            badmintonBand = BadmintonActivityBand.LOW,
+            provenance = PowerJumpIntegratedDosePolicy.PROVENANCE,
+            reasonCodes = listOf("B3_DEVELOP_NEED_CONFIRMED"),
+            evidence = emptyList(),
+            targetRegion = PowerJumpBodyRegion.LOWER
+        )
+        val exactAttribution = StimulusExperimentalChangeAttribution(
+            stableKey = ownerKey,
+            selectionRole = role,
+            source = StimulusExperimentalChangeAttributionSource.B6_APPROVED_POWER_JUMP_POLICY,
+            targetIds = listOf(targetId)
+        )
+        fun candidateComparison(attribution: StimulusExperimentalChangeAttribution) = comparison(
+            controlItems = listOf(item("base", "BASE")),
+            experimentalItems = listOf(item("base", "BASE"), item(ownerKey, role, reps = 4)),
+            selected = selected(ownerKey, role, targetId),
+            traces = listOf(trace(ownerKey, role, targetId)),
+            attribution = listOf(attribution),
+            target = target,
+            b7 = eligibleAudit(listOf(attribution))
+        ).copy(targetPlan = StimulusTargetPlan(
+            qualityTargets = listOf(target), taskTargets = emptyList(), unresolved = emptyList(),
+            powerJumpDoseDecisions = listOf(dose)
+        ))
+
+        val exactComparison = candidateComparison(exactAttribution)
+        val resolver = StimulusProductionMaterialScopeResolver()
+        assertEquals(resolver.resolveDetailed(exactComparison).toString(), StimulusProductionCutoverScope.POWER_JUMP_V1,
+            resolver.resolve(exactComparison))
+        assertEquals(StimulusProductionCutoverScope.POWER_JUMP_V1, engine().audit(exactComparison).scope)
+        assertEquals(null, StimulusProductionMaterialScopeResolver().resolve(candidateComparison(
+            exactAttribution.copy(source = StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY)
+        )))
+        assertEquals(null, StimulusProductionMaterialScopeResolver().resolve(candidateComparison(
+            exactAttribution.copy(targetIds = listOf("QUALITY:STRENGTH"))
+        )))
+    }
+
+    @Test
     fun eligibleSameOwnerStrengthRepairIsAuthorized() {
         val control = item("squat", "PRIMARY", reps = 8)
         val experimental = control.copy(reps = 5, prescription = "5 reps", setPrescriptions = sets(5))

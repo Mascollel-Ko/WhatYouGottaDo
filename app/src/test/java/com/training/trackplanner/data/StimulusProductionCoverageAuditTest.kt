@@ -347,7 +347,7 @@ class StimulusProductionCoverageAuditTest {
         java.io.File("build/reports/c19-program-lineage-incumbent-placement-census.json").writeText(c19Census)
         val measuredC19RouteCount = records.mapNotNull { it.second }.size
         assertEquals(measuredC19RouteCount, sequenceOf(
-            "CONTROL", "STRENGTH_V1", "STRENGTH_CALIBRATION_V1", "HYPERTROPHY", "COMBINED"
+            "CONTROL", "POWER_JUMP", "STRENGTH_V1", "STRENGTH_CALIBRATION_V1", "HYPERTROPHY", "COMBINED"
         ).sumOf(c19Routes::getInt))
         // B7 totals are remeasured by the C26 census below; these embedded C19 metrics
         // describe the current EXP result and are not frozen historical C19 baselines.
@@ -392,8 +392,8 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(1, c37Counts.getInt("stillDirectionOnly"))
         assertEquals(3, c37Counts.getInt("fullyMaterializedPower"))
         assertEquals(1, c37Counts.getInt("b7EligiblePowerCases"))
-        assertEquals(0, c37Counts.getInt("b8AuthorizedPowerCases"))
-        assertEquals(0, c37Counts.getInt("powerRoutedCases"))
+        assertEquals(1, c37Counts.getInt("b8AuthorizedPowerCases"))
+        assertEquals(1, c37Counts.getInt("powerRoutedCases"))
         assertEquals(8, c37Counts.getInt("preC21BaselineGeneratedPowerRows"))
         assertEquals(6, c37Counts.getInt("generatedPowerRowsAfterAuthorityFilter"))
         assertEquals(22, c37Counts.getInt("jumpLandingTargets"))
@@ -406,7 +406,7 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(0, c37Counts.getInt("jumpLandingB7EligibleCases"))
         assertEquals(0, c37Counts.getInt("jumpLandingB8AuthorizedCases"))
         assertEquals(0, c37Counts.getInt("jumpLandingRoutedCases"))
-        assertEquals("POWER_JUMP_B4_B6_EXACT_MATERIALIZATION_WITH_B7_B8_FAIL_CLOSED", c37Json.getString("policyConclusion"))
+        assertEquals("EXACT_B8_B9_POWER_JUMP_ROUTE_WITH_OTHER_CASES_FAIL_CLOSED", c37Json.getString("policyConclusion"))
         val c37Persona3 = c37Json.getJSONObject("persona3Reviewed")
         assertEquals("USER_APPROVED_PROJECT_POLICY", c37Persona3.getJSONObject("powerTarget").getString("numericAuthority"))
         assertEquals("lateral_bound_continuous", c37Persona3.getJSONObject("selectedOwner").getString("stableKey"))
@@ -455,21 +455,36 @@ class StimulusProductionCoverageAuditTest {
             assertEquals("IMPROVED", case.getJSONObject("powerTargetOutcome").getString("status"))
         }
         assertEquals("CONTROL", c37Case("persona3_reviewed").getString("route"))
-        assertEquals("CONTROL", c37Case("persona3_mixed").getString("route"))
+        assertEquals("B8_POWER_JUMP_V1", c37Case("persona3_mixed").getString("route"))
         val persona3RecentPower = c37Case("persona3_recent")
         assertEquals("WORKLOAD_UNKNOWN", persona3RecentPower.getJSONObject("b4PowerDoseDecision").getString("status"))
         assertEquals("NO_EXECUTABLE_AUTHORIZATION", persona3RecentPower.getJSONObject("b6PowerAuthorization").getString("status"))
         assertTrue(persona3RecentPower.getJSONObject("b6PowerAuthorization").getJSONArray("reasonCodes").toString()
             .contains("EXACT_PLANNED_STRENGTH_HYPERTROPHY_WORKLOAD_REQUIRED"))
         assertEquals(0, persona3RecentPower.getJSONArray("generatedPowerRows").length())
-        // B7 can validate the exact Power outcome, but B8's current scope is still Strength-only.
+        // This is the one bounded route: B8 consumes exact Power plus same-exercise C37
+        // movement authorities. Reviewed/sparse variants remain fail-closed.
         assertEquals("ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW",
             c37Case("persona3_mixed").getJSONObject("b7").getString("status"))
-        assertEquals("CONTROL_REQUIRED", c37Case("persona3_mixed").getJSONObject("b8").getString("status"))
-        assertTrue(c37Case("persona3_mixed").getJSONObject("b8").getJSONArray("reasonCodes").toString()
-            .contains("B8_CUTOVER_V1_NON_STRENGTH_CHANGE_OUT_OF_SCOPE"))
+        assertEquals("AUTHORIZED_FOR_BOUNDED_CUTOVER", c37Case("persona3_mixed").getJSONObject("b8").getString("status"))
+        assertEquals("POWER_JUMP_V1", c37Case("persona3_mixed").getJSONObject("b8").getString("scope"))
+        assertEquals(2, c37Case("persona3_mixed").getJSONObject("b8")
+            .getJSONArray("authorizedMovementTargetOwnerIdentities").length())
+        assertEquals("CONTROL", c37Case("persona3_reviewed").getString("route"))
+        assertEquals("CONTROL", c37Case("persona3_sparse").getString("route"))
+        val mixedResult = requireNotNull(records.single { it.first.label == "persona3_mixed" }.second)
+        val mixedComparison = requireNotNull(mixedResult.comparison)
+        val mixedB8 = requireNotNull(mixedComparison.productionCutoverAuthority)
+        val missingMovementBinding = StimulusProductionRouter().route(
+            mixedComparison,
+            mixedB8.copy(authorizedMovementTargetOwnerIdentities = mixedB8.authorizedMovementTargetOwnerIdentities.drop(1)),
+            StimulusProductionRoutingPolicy.defaultMode
+        )
+        assertEquals(StimulusProductionProgramSource.CONTROL, missingMovementBinding.decision.selectedSource)
+        assertTrue(missingMovementBinding.decision.reasonCodes.contains("B9_B8_POWER_JUMP_OWNER_AUTHORITY_IDENTITY_MISMATCH"))
         val c37Routes = c37Json.getJSONObject("routeSnapshot")
-        listOf("CONTROL", "STRENGTH_V1", "STRENGTH_CALIBRATION_V1", "HYPERTROPHY", "COMBINED")
+        assertEquals(1, c37Routes.getInt("POWER_JUMP"))
+        listOf("CONTROL", "POWER_JUMP", "STRENGTH_V1", "STRENGTH_CALIBRATION_V1", "HYPERTROPHY", "COMBINED")
             .forEach { route -> assertEquals(c19Routes.getInt(route), c37Routes.getInt(route)) }
         val c37B7 = c37Json.getJSONObject("b7ReasonOccurrences")
         assertTrue(c37B7.length() > 0)
@@ -823,7 +838,8 @@ class StimulusProductionCoverageAuditTest {
         // Sparse movement targets now enter the ordinary B4/B5/B6 path; keep corpus
         // accounting and safety contracts current instead of reasserting C28's old output.
         assertEquals(22, nextPhaseSummary.getInt("generatedCases"))
-        assertEquals(22, nextPhaseSummary.getInt("controlCases"))
+        assertEquals(21, nextPhaseSummary.getInt("controlCases"))
+        assertEquals(1, nextPhaseSummary.getInt("powerJumpCases"))
         assertEquals(0, nextPhaseSummary.getInt("casesWithMixedStrengthAndTaskMaterialOnlyBlockers"))
         assertEquals(0, nextPhaseSummary.getJSONObject("unclosedAttributionReasonOccurrences")
             .optInt("UNEXPLAINED_ADDED_IDENTITY", 0))
@@ -832,7 +848,8 @@ class StimulusProductionCoverageAuditTest {
         // residual materialization. Keep their immutable checked-in baselines as references;
         // assert current safety contracts here and emit a fresh C33 before/after census.
         assertEquals(22, nextPhaseSummary.getInt("generatedCases"))
-        assertEquals(22, nextPhaseSummary.getInt("controlCases"))
+        assertEquals(21, nextPhaseSummary.getInt("controlCases"))
+        assertEquals(1, nextPhaseSummary.getInt("powerJumpCases"))
         assertEquals(0, nextPhaseSummary.getInt("qualityAddedOwnerWeeksWithoutAuthorizedB6"))
         assertEquals(0, nextPhaseSummary.getJSONObject("unclosedAttributionReasonOccurrences")
             .optInt("UNEXPLAINED_ADDED_IDENTITY", 0))
@@ -926,7 +943,8 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(0, c36Summary.getInt("regionalOverrunUnits"))
         assertEquals(0, c36Summary.getInt("duplicatePhysicalRows"))
         assertEquals(0, c36Summary.getInt("unauthorizedMaterialUnits"))
-        assertEquals(22, c36Summary.getJSONObject("routes").getInt("CONTROL"))
+        assertEquals(21, c36Summary.getJSONObject("routes").getInt("CONTROL"))
+        assertEquals(1, c36Summary.getJSONObject("routes").getInt("B8_POWER_JUMP_V1"))
         val squatDossier = c36Json.getJSONArray("cases").let { rows ->
             (0 until rows.length()).map { rows.getJSONObject(it) }.single { it.getString("case") == "persona4_recent" }
         }.getJSONObject("persona4RecentSquatDossier")
@@ -984,8 +1002,10 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(StimulusExperimentalChangeAttributionSource.UNEXPLAINED,
             capacitySquatAttributionAfter(capacityComparison.copy(experimental = capacityComparison.experimental.copy(items = changedSquatRest))).source)
         assertEquals(18, c36Summary.getJSONObject("b7StatusesAndReasons").getInt("CHANGE_PROVENANCE_UNCLOSED"))
-        assertEquals(22, c36Summary.getJSONObject("b8Statuses").getInt("CONTROL_REQUIRED"))
-        assertEquals(22, c36Summary.getJSONObject("routes").getInt("CONTROL"))
+        assertEquals(21, c36Summary.getJSONObject("b8Statuses").getInt("CONTROL_REQUIRED"))
+        assertEquals(1, c36Summary.getJSONObject("b8Statuses").getInt("AUTHORIZED_FOR_BOUNDED_CUTOVER"))
+        assertEquals(21, c36Summary.getJSONObject("routes").getInt("CONTROL"))
+        assertEquals(1, c36Summary.getJSONObject("routes").getInt("B8_POWER_JUMP_V1"))
         assertEquals(64, c36Summary.getInt("unexplainedRemovedOwnerWeekOccurrences"))
         assertEquals(4, c36Summary.getInt("prescriptionChangeOwnerWeeks"))
         assertEquals(0, c36Summary.getInt("unexplainedPrescriptionChangeOwnerWeeks"))
@@ -1070,7 +1090,7 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(0, nextPhaseSummary.getInt("b11CanonicalReplacementButB7UnclosedTaskOwnerRows"))
         assertEquals(0, nextPhaseSummary.getJSONArray("taskRoleReplacementRowsWithExactApprovedTaskB6").length())
         assertEquals(32, nextPhaseSummary.getInt("unexplainedRemovedIdentityAttributions"))
-        assertEquals(42, nextPhaseSummary.getInt("exactMovementCanonicalReplacementAttributions"))
+        assertEquals(41, nextPhaseSummary.getInt("exactMovementCanonicalReplacementAttributions"))
         val movementReplacementResult = requireNotNull(records.single { it.first.label == "persona1_mixed" }.second)
         val movementReplacementComparison = requireNotNull(movementReplacementResult.comparison)
         val movementReplacementOldOwner = StimulusPrescriptionOwnerIdentity("barbell_reverse_curl", "COVERAGE_ARMS_BICEPS")
@@ -1370,8 +1390,10 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(27, c15.getJSONObject("corpus").getInt("totalCases"))
         assertEquals(22, c15.getJSONObject("corpus").getInt("generated"))
         assertEquals(5, c15.getJSONObject("corpus").getInt("preflightRejected"))
-        // Existing provenance blockers still keep the intact CONTROL skeleton selected.
-        assertEquals(22, c15.getJSONObject("corpus").getJSONObject("routes").getInt("CONTROL"))
+        // Only persona3_mixed passes the exact P/J + C37 movement B4/B5/B6 proof; every other
+        // corpus case remains on CONTROL unless its own complete authority chain passes.
+        assertEquals(21, c15.getJSONObject("corpus").getJSONObject("routes").getInt("CONTROL"))
+        assertEquals(1, c15.getJSONObject("corpus").getJSONObject("routes").getInt("B8_POWER_JUMP_V1"))
         assertEquals(0, c15.getJSONObject("corpus").getJSONObject("routes").getInt("B8_STRENGTH_CALIBRATION_V1"))
         assertEquals(0, c15.getJSONObject("corpus").getJSONObject("routes").getInt("B8_STRENGTH_V1"))
         assertEquals(3, c15.getJSONArray("cases").let { rows ->
@@ -1781,8 +1803,18 @@ class StimulusProductionCoverageAuditTest {
                             "CHANGE_PROVENANCE_UNCLOSED" in audit.reasonCodes)
                     }
                 }
-                assertEquals("Unresolved authority retains CONTROL: ${spec.label}",
-                    StimulusProductionProgramSource.CONTROL, result.routeDecision.selectedSource)
+                if (result.routeDecision.selectedSource == StimulusProductionProgramSource.B8_POWER_JUMP_V1) {
+                    assertEquals("Only exact Power/Jump B8 can leave CONTROL: ${spec.label}",
+                        StimulusProductionCutoverScope.POWER_JUMP_V1,
+                        comparison?.productionCutoverAuthority?.scope)
+                    assertEquals(StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER,
+                        comparison?.productionCutoverAuthority?.status)
+                    assertEquals(StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW,
+                        comparison?.experimentalReadinessAudit?.status)
+                } else {
+                    assertEquals("Unresolved authority retains CONTROL: ${spec.label}",
+                        StimulusProductionProgramSource.CONTROL, result.routeDecision.selectedSource)
+                }
             }
         }
         val h = requireNotNull(records.single { it.first.label == "reviewed_hypertrophy_isolated" }.second)
