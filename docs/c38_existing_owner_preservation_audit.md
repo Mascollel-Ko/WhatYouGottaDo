@@ -45,4 +45,9 @@ C37.5의 32개 미해결 관계는 최신 production corpus에서도 그대로 �
 - Protocol/runtime는 저장 mutation contract 때문에 `3.75.0` / `RECORD_BASED_PLANNER_0.15.17_KOTLIN_1`로 갱신했다. App `0.5.1.5`, Room `38`, CSV/cloud backup 계약은 변경하지 않았다.
 - 구현·테스트 commit: `df5504cabb2ec31a21a450ce2e4eddfb04e94a6d`.
 
-Hosted CI/APK artifact, commit SHA 및 최종 PR 상태는 PR #24의 C38.0 구현 커밋 완료 후 갱신한다.
+## Hosted 결과
+
+- 구현/test SHA `a5289ba7d834bd0af5010292a1038c26bfdfe597`의 [Hosted CI run 38069751951](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/38069751951)은 성공했다. Hosted JUnit 결과는 364 suites, 2,430 tests, 0 failures, 0 errors, 4 skips다. 프로토콜 검사, community/cloud 계약 검사, coverage·test report 업로드, APK assemble, signer 검증 및 APK 업로드가 모두 통과했다.
+- Signed debug APK artifact [11676566552](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/38069751951/artifacts/11676566552): 69,201,531 bytes, SHA-256 `CD4512FE86B07E33C94DA80C1A233AAEB1A7BF681CD7CAAA5B3DCD7A58B3D266`.
+- Coverage artifact [11675883710](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/38069751951/artifacts/11675883710).
+- 해당 Hosted run 시점 PR #24은 OPEN/Draft였고 main에 병합되지 않았다. run은 구현·테스트 SHA `a5289ba7d834bd0af5010292a1038c26bfdfe597`를 대상으로 했으며, 당시 `origin/main`은 시작 기준 `a4c1a0f4c6c9a35ac67247698a3c897ce2a6e063`였다.
