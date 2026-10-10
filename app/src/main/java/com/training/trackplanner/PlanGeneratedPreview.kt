@@ -196,6 +196,18 @@ internal fun ProgramSkeletonPreview(
                             replacementReview = candidateReview.copy(appliedOptionIds = selected)
                         ))
                     }
+                },
+                onRevertApplied = {
+                    runCatching {
+                        com.training.trackplanner.data.ProgramReplacementReviewReverter.restoreKeepDraft(skeleton)
+                    }.onSuccess { restored ->
+                        selectedReplacementIds = emptySet()
+                        replacementValidationError = null
+                        validatedReplacementPreview = null
+                        onSkeletonChange(restored)
+                    }.onFailure { failure ->
+                        replacementValidationError = replacementValidationMessage(failure)
+                    }
                 }
             )
         }
@@ -259,7 +271,8 @@ private fun ReplacementReviewPanel(
     sourceIsCurrent: Boolean,
     onToggleOption: (String, Boolean) -> Unit,
     onValidate: () -> Unit,
-    onApplyValidated: (GeneratedProgramSkeleton) -> Unit
+    onApplyValidated: (GeneratedProgramSkeleton) -> Unit,
+    onRevertApplied: () -> Unit
 ) {
     val applied = review.appliedOptionIds
     val validated = validatedPreview?.replacementReview?.validation
@@ -284,6 +297,10 @@ private fun ReplacementReviewPanel(
                             MaterialText("${exerciseLabel(exercises, option.sourceStableKey)} → ${exerciseLabel(exercises, option.candidateStableKey)}")
                             if (oldRows.isNotEmpty()) MaterialText("${stringResource(R.string.program_replacement_original)}: ${describeReplacementRows(oldRows)}")
                         }
+                        OutlinedButton(
+                            onClick = onRevertApplied,
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("replacement-revert")
+                        ) { MaterialText(stringResource(R.string.program_replacement_revert)) }
                     }
                 }
                 !sourceIsCurrent -> MaterialText(stringResource(R.string.program_replacement_stale))

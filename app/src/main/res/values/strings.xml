@@ -513,6 +513,7 @@
     <string name="program_replacement_outcome_no_authority">권한 없음</string>
     <string name="program_replacement_outcome_unassessed">미평가</string>
     <string name="program_replacement_apply">검증된 교체 적용</string>
+    <string name="program_replacement_revert">기존 운동으로 되돌리기</string>
     <string name="program_replacement_applied">선택한 교체가 검증된 초안에 적용되었습니다.</string>
     <string name="program_replacement_stale">초안이 검증 이후 변경되어 이 교체 근거는 오래되었습니다. 최신 초안으로 다시 생성해 주세요.</string>
     <string name="program_replacement_stale_save">검증 이후 초안이 바뀌었습니다. 변경 제안을 다시 검증하거나 새로 생성해 주세요.</string>

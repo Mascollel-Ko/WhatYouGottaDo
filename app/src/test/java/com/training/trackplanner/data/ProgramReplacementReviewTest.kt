@@ -153,6 +153,12 @@ class ProgramReplacementReviewTest {
             appliedOptionIds = setOf(option.optionId)
         ))
         ProgramReplacementSaveGate.requireSaveable(applied)
+        val restored = ProgramReplacementReviewReverter.restoreKeepDraft(applied)
+        assertEquals(listOf(source), restored.items)
+        assertEquals(emptySet<String>(), restored.replacementReview?.appliedOptionIds)
+        assertEquals(null, restored.replacementReview?.validation)
+        assertEquals(ProgramReplacementReviewFingerprint.create(base), ProgramReplacementReviewFingerprint.create(restored))
+        ProgramReplacementSaveGate.requireSaveable(restored)
         val evidenceTampered = applied.copy(replacementReview = applied.replacementReview!!.copy(
             validation = applied.replacementReview!!.validation!!.copy(
                 causalEvidence = applied.replacementReview!!.validation!!.causalEvidence.map { evidence ->
@@ -167,6 +173,9 @@ class ProgramReplacementReviewTest {
         assertEquals("REPLACEMENT_VALIDATION_STALE", org.junit.Assert.assertThrows(
             ProgramReplacementSaveRejectedException::class.java
         ) { ProgramReplacementSaveGate.requireSaveable(staleApplied) }.reasonCode)
+        assertEquals("REPLACEMENT_VALIDATION_STALE", org.junit.Assert.assertThrows(
+            ProgramReplacementSaveRejectedException::class.java
+        ) { ProgramReplacementReviewReverter.restoreKeepDraft(staleApplied) }.reasonCode)
     }
 
     private fun skeleton(items: List<ProgramSkeletonItem> = listOf(item())) = GeneratedProgramSkeleton(

@@ -504,6 +504,7 @@
     <string name="program_replacement_outcome_no_authority">No authority</string>
     <string name="program_replacement_outcome_unassessed">Not assessed</string>
     <string name="program_replacement_apply">Apply validated replacement</string>
+    <string name="program_replacement_revert">Restore original exercise</string>
     <string name="program_replacement_applied">The selected replacement is applied to the validated draft.</string>
     <string name="program_replacement_stale">The draft changed after validation, so this replacement evidence is stale. Regenerate from the latest draft.</string>
     <string name="program_replacement_stale_save">The draft changed after validation. Revalidate the change or generate a new draft.</string>

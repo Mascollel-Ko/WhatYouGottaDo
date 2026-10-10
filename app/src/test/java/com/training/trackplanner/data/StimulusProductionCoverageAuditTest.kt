@@ -946,6 +946,13 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(0, c36Summary.getInt("unauthorizedMaterialUnits"))
         assertEquals(21, c36Summary.getJSONObject("routes").getInt("CONTROL"))
         assertEquals(1, c36Summary.getJSONObject("routes").getInt("B8_POWER_JUMP_V1"))
+        assertEquals(32, c36Summary.getInt("uniqueUnexplainedCaseOwnerPairs"))
+        assertEquals(9, c36Summary.getInt("unexplainedPairsWithoutExactB5Alternative"))
+        assertEquals(18, c36Summary.getInt("unexplainedPairsWithB5ButWithoutExactB6"))
+        assertEquals(5, c36Summary.getInt("unexplainedPairsWithB6ButWithoutScheduledMaterialization"))
+        assertEquals(32, c36Summary.getInt("unexplainedPairsWithoutExactB5Alternative") +
+            c36Summary.getInt("unexplainedPairsWithB5ButWithoutExactB6") +
+            c36Summary.getInt("unexplainedPairsWithB6ButWithoutScheduledMaterialization"))
         val squatDossier = c36Json.getJSONArray("cases").let { rows ->
             (0 until rows.length()).map { rows.getJSONObject(it) }.single { it.getString("case") == "persona4_recent" }
         }.getJSONObject("persona4RecentSquatDossier")
@@ -2127,7 +2134,117 @@ class StimulusProductionCoverageAuditTest {
             minutes = 60,
             equipment = setOf("MACHINE", "CABLE")
         )
-        val result = requireNotNull(runCase(spec) { service, preflight, answers, metadata ->
+        val databaseName = "c37-replacement-e2e-${System.nanoTime()}"
+        val result = requireNotNull(runCase(
+            spec = spec,
+            databaseName = databaseName,
+            afterProduction = { repository, db, generated ->
+                val option = requireNotNull(generated.program.replacementReview?.options?.firstOrNull {
+                    it.targetId == "MOVEMENT:HORIZONTAL_PUSH"
+                })
+                val validated = repository.validateProgramReplacementSelection(generated.program, setOf(option.optionId))
+                val validation = requireNotNull(validated.replacementReview?.validation)
+                assertEquals(ProgramReplacementValidationStatus.VALIDATED, validation.status)
+                assertEquals(StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW, validation.b7Status)
+                assertEquals(StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER, validation.b8Status)
+                assertEquals(StimulusProductionProgramSource.B8_POWER_JUMP_V1, validation.b9SelectedSource)
+                val applied = validated.copy(replacementReview = requireNotNull(validated.replacementReview).copy(
+                    appliedOptionIds = setOf(option.optionId)
+                ))
+                val appliedEvidence = requireNotNull(applied.replacementReview?.validation?.causalEvidence?.singleOrNull())
+                val saveRevalidation = repository.validateProgramReplacementSelection(applied, setOf(option.optionId))
+                val differingFields = buildList {
+                    if (applied.items != saveRevalidation.items) add("items")
+                    if (applied.weekPlans != saveRevalidation.weekPlans) add("weekPlans")
+                    if (applied.personalizedDecision != saveRevalidation.personalizedDecision) add("personalizedDecision")
+                    if (applied.progressionSessions != saveRevalidation.progressionSessions) add("progressionSessions")
+                    if (applied.weekDaySchedule != saveRevalidation.weekDaySchedule) add("weekDaySchedule")
+                    if (applied.taskProtocolFrequencyOutcomes != saveRevalidation.taskProtocolFrequencyOutcomes) add("taskProtocolFrequencyOutcomes")
+                    if (applied.optimizationSummary != saveRevalidation.optimizationSummary) add("optimizationSummary")
+                    if (applied.warnings != saveRevalidation.warnings) add("warnings")
+                    if (applied.incumbentSourceSnapshotToken != saveRevalidation.incumbentSourceSnapshotToken) add("incumbentSourceSnapshotToken")
+                }
+                val beforeDecision = requireNotNull(applied.personalizedDecision)
+                val afterDecision = requireNotNull(saveRevalidation.personalizedDecision)
+                val decisionDiffs = beforeDecision.javaClass.declaredFields.filter { field ->
+                    !java.lang.reflect.Modifier.isStatic(field.modifiers) && !field.isSynthetic
+                }.mapNotNull { field ->
+                    field.isAccessible = true
+                    val before = field.get(beforeDecision)
+                    val after = field.get(afterDecision)
+                    if (before == after) null else "${field.name}: ${before?.toString()?.take(220)} -> ${after?.toString()?.take(220)}"
+                }
+                assertEquals("save-time whole-plan revalidation changed approved fields $differingFields; decision $decisionDiffs",
+                    ProgramReplacementReviewFingerprint.create(applied),
+                    ProgramReplacementReviewFingerprint.create(saveRevalidation))
+                val programId = repository.saveGeneratedProgram(existingProgramId = null, skeleton = applied)
+
+                db.close()
+                val context = ApplicationProvider.getApplicationContext<Context>()
+                val reopenedDb = Room.databaseBuilder(context, TrainingDatabase::class.java, databaseName)
+                    .allowMainThreadQueries().build()
+                try {
+                    val reopenedRepository = TrainingRepository(reopenedDb, context)
+                    val reloaded = com.training.trackplanner.skeletonFromProgram(reopenedRepository.programEditorSnapshot(programId))
+                    val persistedRows = reloaded.items.filter {
+                        it.exerciseStableKey == option.candidateStableKey && it.selectionRole == option.candidateSelectionRole
+                    }
+                    assertTrue("selected replacement should survive Room reload", persistedRows.isNotEmpty())
+                    assertFalse(reloaded.items.any {
+                        it.exerciseStableKey == option.sourceStableKey && it.selectionRole == option.sourceSelectionRole
+                    })
+                    assertTrue(persistedRows.all { it.setCount > 0 && it.reps > 0 })
+                    fun persistedContract(row: ProgramSkeletonItem) = listOf(
+                        row.weekNumber, row.dayOfWeek, row.orderIndex, row.exerciseStableKey, row.exerciseName,
+                        row.category, row.restSeconds, row.prescription, row.setCount, row.reps, row.weightKg,
+                        row.seconds, row.weightSource, row.selectionRole, row.trainingSlot, row.dayIntensity,
+                        row.setPrescriptions
+                    )
+                    val expectedRows = appliedEvidence.replacementRows.map(::persistedContract)
+                        .sortedBy { it.joinToString("|") }
+                    val reloadedRows = persistedRows.map(::persistedContract).sortedBy { it.joinToString("|") }
+                    assertEquals("Room reload must preserve the exact approved exercise, week/day/order, prescription and progression binding",
+                        expectedRows, reloadedRows)
+                    assertTrue("saved progression links must remain persisted and exercise/set exact", persistedRows.all { row ->
+                        val binding = row.progressionBinding ?: return@all false
+                        binding.persisted && binding.signature.exerciseStableKey == row.exerciseStableKey &&
+                            binding.signature.setCount == row.setCount &&
+                            binding.signature.repsPattern == ProgramSetPrescriptionResolver.resolve(row)
+                                .joinToString("|") { it.reps.toString() }
+                    })
+                    reopenedRepository.applyProgramToDates(programId, "2026-10-12", ProgramApplyMode.Append)
+                    val appliedEntries = reopenedDb.workoutDao().allEntriesWithSets().filter {
+                        it.entry.exerciseStableKey == option.candidateStableKey
+                    }
+                    assertTrue("selected exercise should be applied to dated sessions", appliedEntries.isNotEmpty())
+                    assertTrue(appliedEntries.all { it.sets.isNotEmpty() && it.entry.sessionStableKey.isNotBlank() })
+                    assertEquals(persistedRows.sumOf { it.setCount }, appliedEntries.sumOf { it.sets.size })
+                    val expectedAppliedSets = persistedRows.flatMap { row ->
+                        ProgramSetPrescriptionResolver.resolve(row).map { prescription ->
+                            listOf(prescription.reps, prescription.weightKg, prescription.seconds,
+                                prescription.targetRpeMin, prescription.loadState.name, row.restSeconds)
+                        }
+                    }.sortedBy { it.joinToString("|") }
+                    val actualAppliedSets = appliedEntries.flatMap { entry ->
+                        entry.sets.map { set ->
+                            listOf(set.reps, set.weightKg, set.seconds, set.targetRpeMin,
+                                set.loadState.name, entry.entry.restSeconds)
+                        }
+                    }.sortedBy { it.joinToString("|") }
+                    assertEquals("dated session application must preserve reps, load, duration, RPE, load state and rest",
+                        expectedAppliedSets, actualAppliedSets)
+                    val expectedPlacements = persistedRows.map { it.weekNumber to it.dayOfWeek }.sortedWith(compareBy<Pair<Int, Int>> { it.first }.thenBy { it.second })
+                    val actualPlacements = appliedEntries.map { entry ->
+                        val date = java.time.LocalDate.parse(entry.entry.date)
+                        val daysFromStart = date.toEpochDay() - java.time.LocalDate.parse("2026-10-12").toEpochDay()
+                        (daysFromStart / 7L).toInt() + 1 to date.dayOfWeek.value
+                    }.sortedWith(compareBy<Pair<Int, Int>> { it.first }.thenBy { it.second })
+                    assertEquals("dated session application must retain planned week and weekday", expectedPlacements, actualPlacements)
+                } finally {
+                    reopenedDb.close()
+                }
+            }
+        ) { service, preflight, answers, metadata ->
             val generated = service.generatePreparedProduction(
                 preflight = preflight,
                 answers = answers,
@@ -2239,16 +2356,19 @@ class StimulusProductionCoverageAuditTest {
 
     internal suspend fun runCase(
         spec: CoverageSpec,
+        databaseName: String? = null,
         seedIncumbentPlacementFixture: Boolean = false,
         verifyRepeatedAcceptedRegeneration: Boolean = false,
         observeCanonicalPlanning: (suspend (CanonicalStimulusPlanningResult) -> Unit)? = null,
         evaluateWithIncumbent: (suspend (PersonalizedProgramPlanningService, PersonalizedPlanningPreflight,
             PersonalizedPlanningAnswers, Map<String, RuntimeExerciseMetadata>, CanonicalIncumbentPlacementIndex) -> StimulusProductionGenerationResult)? = null,
+        afterProduction: (suspend (TrainingRepository, TrainingDatabase, StimulusProductionGenerationResult) -> Unit)? = null,
         evaluate: (suspend (PersonalizedProgramPlanningService, PersonalizedPlanningPreflight, PersonalizedPlanningAnswers,
             Map<String, RuntimeExerciseMetadata>) -> StimulusProductionGenerationResult)? = null
     ): StimulusProductionGenerationResult? {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        val db = Room.inMemoryDatabaseBuilder(context, TrainingDatabase::class.java).allowMainThreadQueries().build()
+        val db = (databaseName?.let { Room.databaseBuilder(context, TrainingDatabase::class.java, it) }
+            ?: Room.inMemoryDatabaseBuilder(context, TrainingDatabase::class.java)).allowMainThreadQueries().build()
         try {
             val repository = TrainingRepository(db, context)
             repository.seedIfNeeded()
@@ -2329,6 +2449,7 @@ class StimulusProductionCoverageAuditTest {
             val production = evaluateWithIncumbent?.invoke(service, preflight, answers, metadata, incumbentIndex)
                 ?: evaluate?.invoke(service, preflight, answers, metadata)
                 ?: repository.generatePreparedPersonalizedProgramEvaluation(preflight, answers, existingProgramId = existingProgramId)
+            afterProduction?.invoke(repository, db, production)
             if (verifyRepeatedAcceptedRegeneration) {
                 val programId = requireNotNull(existingProgramId) { "C20 idempotence check requires a persisted incumbent source" }
                 fun placementFingerprint(result: StimulusProductionGenerationResult): List<String> =
@@ -2362,7 +2483,10 @@ class StimulusProductionCoverageAuditTest {
                 }
             }
             return production
-        } finally { db.close() }
+        } finally {
+            db.close()
+            databaseName?.let(context::deleteDatabase)
+        }
     }
 
     private suspend fun seedIncumbentPlacementProgram(db: TrainingDatabase, caseId: String): Long {

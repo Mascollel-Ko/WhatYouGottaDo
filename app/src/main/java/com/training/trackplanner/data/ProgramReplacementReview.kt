@@ -195,6 +195,48 @@ internal object ProgramReplacementSaveGate {
         skeleton.replacementReview?.appliedOptionIds?.isNotEmpty() == true
 }
 
+/** Restores the exact reviewed keep rows so a user can undo an applied preview and choose again. */
+internal object ProgramReplacementReviewReverter {
+    fun restoreKeepDraft(appliedDraft: GeneratedProgramSkeleton): GeneratedProgramSkeleton {
+        ProgramReplacementSaveGate.requireSaveable(appliedDraft)
+        val review = appliedDraft.replacementReview
+            ?: throw ProgramReplacementSaveRejectedException("REPLACEMENT_REVIEW_MISSING")
+        if (review.appliedOptionIds.isEmpty()) {
+            throw ProgramReplacementSaveRejectedException("REPLACEMENT_NOT_APPLIED")
+        }
+        val validation = review.validation
+            ?: throw ProgramReplacementSaveRejectedException("REPLACEMENT_VALIDATION_STALE")
+        val evidence = validation.causalEvidence.associateBy(ProgramReplacementCausalEvidence::optionId)
+        val selectedEvidence = review.appliedOptionIds.map { optionId ->
+            evidence[optionId] ?: throw ProgramReplacementSaveRejectedException("REPLACEMENT_CAUSAL_EVIDENCE_MISSING")
+        }
+        val replacementRows = selectedEvidence.flatMap(ProgramReplacementCausalEvidence::replacementRows)
+        val replacementIds = replacementRows.map(ProgramSkeletonItem::localId)
+        if (replacementIds.distinct().size != replacementIds.size ||
+            replacementRows.any { row -> appliedDraft.items.singleOrNull { it.localId == row.localId } != row }
+        ) throw ProgramReplacementSaveRejectedException("REPLACEMENT_CAUSAL_EVIDENCE_MISMATCH")
+
+        val removedIds = replacementIds.toSet()
+        val restoredItems = appliedDraft.items.filterNot { it.localId in removedIds } +
+            selectedEvidence.flatMap(ProgramReplacementCausalEvidence::keepRows)
+        if (restoredItems.map(ProgramSkeletonItem::localId).distinct().size != restoredItems.size) {
+            throw ProgramReplacementSaveRejectedException("REPLACEMENT_CAUSAL_EVIDENCE_MISMATCH")
+        }
+        val keepDraft = appliedDraft.copy(
+            items = restoredItems,
+            replacementReview = review.copy(
+                validation = null,
+                appliedOptionIds = emptySet(),
+                options = review.options.map { it.copy(b6Validated = false, b7Validated = false, b8Validated = false) }
+            )
+        )
+        if (ProgramReplacementReviewFingerprint.create(keepDraft) != review.sourceDraftFingerprint) {
+            throw ProgramReplacementSaveRejectedException("REPLACEMENT_VALIDATION_STALE")
+        }
+        return keepDraft
+    }
+}
+
 object ProgramReplacementReviewFingerprint {
     fun requestConstraints(request: ProgramSkeletonRequest): String =
         sha256(request.copy(name = "").toString())
@@ -205,7 +247,14 @@ object ProgramReplacementReviewFingerprint {
         append('|').append(skeleton.durationDays)
         append('|').append(skeleton.periodizationType).append('|').append(skeleton.templateId)
         append('|').append(skeleton.representativeTemplate).append('|').append(skeleton.weekPlans)
-        append('|').append(skeleton.personalizedDecision)
+        // Save-time B5/B6 revalidation creates a fresh audit decision id/time even when the
+        // authorized plan is identical. Those two audit metadata values are not user-visible
+        // program content; retain every other decision field in the stale-draft fingerprint.
+        val decisionFingerprint = skeleton.personalizedDecision?.copy(
+            decisionId = "",
+            generatedAtEpochMillis = 0L
+        )
+        append('|').append(decisionFingerprint)
         append('|').append(skeleton.progressionSessions)
         append('|').append(skeleton.taskProtocolFrequencyOutcomes)
         append('|').append(skeleton.optimizationSummary)

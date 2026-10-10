@@ -8,6 +8,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.Modifier
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onAllNodesWithText
@@ -67,12 +71,13 @@ class ProgramReplacementReviewUiTest {
 
         compose.setContent {
             TrainingTrackPlannerTheme {
+                var draft by remember { mutableStateOf(base) }
                 Column(Modifier.verticalScroll(rememberScrollState())) {
                     ProgramSkeletonPreview(
-                skeleton = base,
+                skeleton = draft,
                 exercises = emptyList(),
                 metadataByExerciseId = emptyMap(),
-                onSkeletonChange = { savedByApply.add(it) },
+                onSkeletonChange = { savedByApply.add(it); draft = it },
                 onValidateReplacementSelection = { current, selected, callback ->
                     val selectedOption = current.replacementReview!!.options.single { it.optionId in selected }
                     val replacement = item("replacement", selectedOption.candidateStableKey, "Incline Dumbbell Curl")
@@ -105,7 +110,11 @@ class ProgramReplacementReviewUiTest {
                             )),
                             proofId = "proof"
                         ),
-                        options = listOf(selectedOption.copy(b6Validated = true, b7Validated = true, b8Validated = true))
+                        options = current.replacementReview!!.options.map { option ->
+                            if (option.optionId == selectedOption.optionId) {
+                                option.copy(b6Validated = true, b7Validated = true, b8Validated = true)
+                            } else option
+                        }
                     )
                     val validated = changed.copy(replacementReview = validatedReview)
                     validatedDraft = validated
@@ -131,6 +140,20 @@ class ProgramReplacementReviewUiTest {
         compose.waitForIdle()
         assertEquals("cable_curl", savedByApply.single().items.single().exerciseStableKey)
         assertEquals(setOf("option-2"), savedByApply.single().replacementReview?.appliedOptionIds)
+
+        compose.onNodeWithTag("replacement-revert").performScrollTo().assertIsDisplayed().performClick()
+        compose.waitForIdle()
+        assertEquals("barbell_curl", savedByApply.last().items.single().exerciseStableKey)
+        assertEquals(emptySet<String>(), savedByApply.last().replacementReview?.appliedOptionIds)
+        assertEquals(ProgramReplacementReviewFingerprint.create(savedByApply.last()),
+            savedByApply.last().replacementReview?.sourceDraftFingerprint)
+        compose.onNodeWithTag("replacement-option-option-1").performScrollTo().performClick()
+        compose.onNodeWithTag("replacement-validate").performScrollTo().performClick()
+        compose.waitForIdle()
+        compose.onNodeWithTag("replacement-apply").performScrollTo().performClick()
+        compose.waitForIdle()
+        assertEquals("incline_dumbbell_curl", savedByApply.last().items.single().exerciseStableKey)
+        assertEquals(setOf("option-1"), savedByApply.last().replacementReview?.appliedOptionIds)
     }
 
     @Test
