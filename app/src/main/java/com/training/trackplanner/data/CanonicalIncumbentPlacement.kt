@@ -9,7 +9,7 @@ import com.training.trackplanner.data.personalized.placementSessionFits
 import java.security.MessageDigest
 
 /** Current builder contract recorded on accepted canonical programs. */
-internal const val CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.74.0"
+internal const val CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.75.0"
 
 /** A typed view of TrainingProgram.stableKey; it is independent of exercise stable keys. */
 @JvmInline
@@ -49,6 +49,20 @@ internal data class CanonicalIncumbentPlacementPreservation(
     val sourceLineageId: CanonicalProgramLineageId,
     val sourceSnapshotToken: CanonicalIncumbentSourceSnapshotToken,
     val feasibility: CanonicalIncumbentFeasibilityEvidence
+)
+
+/**
+ * Save-time proof for changing an existing canonical program. This is deliberately separate
+ * from B6: the permit can only attest that the persisted source exactly matched the CONTROL
+ * rows and that the already-built EXP result passed B7, B8 and B9.
+ */
+data class CanonicalIncumbentSaveMutationEvidence(
+    val sourceSnapshotToken: CanonicalIncumbentSourceSnapshotToken,
+    val finalDraftFingerprint: String,
+    val controlRows: List<ProgramSkeletonItem>,
+    val readiness: com.training.trackplanner.data.personalized.StimulusExperimentalReadinessAudit,
+    val cutover: com.training.trackplanner.data.personalized.StimulusProductionCutoverAuthorityDecision,
+    val route: com.training.trackplanner.data.personalized.StimulusProductionRoutingDecision
 )
 
 /** Hash of the persisted source read before generation; it is checked before replacing that source. */
@@ -128,6 +142,8 @@ internal data class CanonicalIncumbentPlacementIndex(
             val sourceContract = builderVersion to runtimeVersion
             val supportedContracts = setOf(
                 expectedBuilderProtocolVersion to expectedPlannerRuntimeVersion,
+                C37_5_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION to C37_5_PERSONALIZED_PLANNER_PROTOCOL_VERSION,
+                C37_4_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION to C37_4_PERSONALIZED_PLANNER_PROTOCOL_VERSION,
                 C37_2_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION to C37_2_PERSONALIZED_PLANNER_PROTOCOL_VERSION,
                 C37_1_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION to C37_1_PERSONALIZED_PLANNER_PROTOCOL_VERSION,
                 C37_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION to C37_PERSONALIZED_PLANNER_PROTOCOL_VERSION,
@@ -198,6 +214,12 @@ private const val C19_PERSONALIZED_PLANNER_PROTOCOL_VERSION = "RECORD_BASED_PLAN
 /** C37 programs remain valid incumbent sources after bounded Power/Jump B4-B6 authority integration. */
 private const val C37_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.70.0"
 private const val C37_PERSONALIZED_PLANNER_PROTOCOL_VERSION = "RECORD_BASED_PLANNER_0.15.12_KOTLIN_1"
+/** C37.5 programs remain valid after owner-week removal repair and save-time mutation protection. */
+private const val C37_5_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.74.0"
+private const val C37_5_PERSONALIZED_PLANNER_PROTOCOL_VERSION = "RECORD_BASED_PLANNER_0.15.16_KOTLIN_1"
+/** C37.4 programs remain valid after exact replacement review and save-time mutation protection. */
+private const val C37_4_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.73.0"
+private const val C37_4_PERSONALIZED_PLANNER_PROTOCOL_VERSION = "RECORD_BASED_PLANNER_0.15.15_KOTLIN_1"
 /** C37.1 Power/Jump dose-authority programs remain valid after B8/B9 exact-scope integration. */
 private const val C37_1_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.71.0"
 private const val C37_1_PERSONALIZED_PLANNER_PROTOCOL_VERSION = "RECORD_BASED_PLANNER_0.15.13_KOTLIN_1"
@@ -241,7 +263,9 @@ internal object CanonicalIncumbentSourceSnapshotFingerprint {
     fun create(
         program: TrainingProgram,
         rows: List<TrainingProgramItem>,
-        sets: List<TrainingProgramItemSet>
+        sets: List<TrainingProgramItemSet>,
+        progressionItems: List<ProgramProgressionItem> = emptyList(),
+        progressionTracks: List<ProgramProgressionTrack> = emptyList()
     ): CanonicalIncumbentSourceSnapshotToken {
         val digest = MessageDigest.getInstance("SHA-256")
         fun field(value: String?) {
@@ -277,6 +301,18 @@ internal object CanonicalIncumbentSourceSnapshotFingerprint {
                 record("set", listOf(set.id, set.programItemId, set.setIndex, set.reps, set.weightKg,
                     set.seconds, set.targetRpeMin, set.loadState))
             }
+        }
+        progressionItems.sortedBy(ProgramProgressionItem::programItemId).forEach { item ->
+            record("progression-item", listOf(
+                item.programItemId, item.logicalItemId, item.trackId, item.linkMode, item.signature
+            ))
+        }
+        progressionTracks.sortedBy(ProgramProgressionTrack::id).forEach { track ->
+            record("progression-track", listOf(
+                track.id, track.programStableKey, track.exerciseStableKey, track.label, track.role,
+                track.roleOverride, track.mode, track.basePolicy, track.anchorSetIndex,
+                track.needsReview, track.rule
+            ))
         }
         val hex = digest.digest().joinToString("") { byte -> "%02x".format(byte) }
         return CanonicalIncumbentSourceSnapshotToken(hex)

@@ -909,6 +909,33 @@ internal class PersonalizedProgramPlanningService(
         return comparison.copy(experimentalReadinessAudit = StimulusExperimentalReadinessAuditEngine().audit(comparison))
     }
 
+    private fun attachIncumbentSaveMutationEvidence(
+        program: GeneratedProgramSkeleton,
+        incumbentIndex: CanonicalIncumbentPlacementIndex,
+        controlRows: List<ProgramSkeletonItem>,
+        comparison: StimulusSelectionProgramComparison,
+        cutover: com.training.trackplanner.data.personalized.StimulusProductionCutoverAuthorityDecision,
+        route: com.training.trackplanner.data.personalized.StimulusProductionRoutingDecision
+    ): GeneratedProgramSkeleton {
+        val sourceToken = incumbentIndex.sourceSnapshotToken ?: return program
+        val readiness = comparison.experimentalReadinessAudit ?: return program.copy(
+            incumbentSourceSnapshotToken = sourceToken,
+            incumbentSaveMutationEvidence = null
+        )
+        val evidence = CanonicalIncumbentSaveMutationEvidence(
+            sourceSnapshotToken = sourceToken,
+            finalDraftFingerprint = CanonicalIncumbentSaveMutationGuard.draftFingerprint(program),
+            controlRows = controlRows,
+            readiness = readiness,
+            cutover = cutover,
+            route = route
+        )
+        return program.copy(
+            incumbentSourceSnapshotToken = sourceToken,
+            incumbentSaveMutationEvidence = evidence
+        )
+    }
+
     /** Test/audit seam proving B1-B4 can be calculated without constructing CONTROL. */
     internal suspend fun buildCanonicalStimulusPlanningForPrepared(
         preflight: PersonalizedPlanningPreflight,
@@ -1556,11 +1583,14 @@ internal class PersonalizedProgramPlanningService(
         productionProgress.reportSelection()
         productionProgress.reportValidationComplete()
         productionProgress.reportComplete()
-        val routedProgramWithSourceToken = if (routed.program.incumbentSourceSnapshotToken == incumbentPlacementIndex.sourceSnapshotToken) {
-            routed.program
-        } else {
-            routed.program.copy(incumbentSourceSnapshotToken = incumbentPlacementIndex.sourceSnapshotToken)
-        }
+        val routedProgramWithSourceToken = attachIncumbentSaveMutationEvidence(
+            program = routed.program,
+            incumbentIndex = incumbentPlacementIndex,
+            controlRows = preparedControl.program.items,
+            comparison = evaluation.comparison,
+            cutover = evaluation.cutoverAuthority,
+            route = routed.decision
+        )
         val routedProgram = preserveStrengthShortfallNotice(
             routedProgramWithSourceToken,
             experimental.selectionPlan.strengthShortfalls
@@ -1842,8 +1872,13 @@ internal class PersonalizedProgramPlanningService(
         ) {
             throw ReplacementSelectionRejectedException("REPLACEMENT_B8_REJECTED:${authority.reasonCodes.joinToString(",")}".take(220))
         }
-        val routedProgram = route.program.copy(
-            incumbentSourceSnapshotToken = incumbentIndex.sourceSnapshotToken
+        val routedProgram = attachIncumbentSaveMutationEvidence(
+            program = route.program,
+            incumbentIndex = incumbentIndex,
+            controlRows = session.control.items,
+            comparison = authorizedComparison,
+            cutover = authority,
+            route = route.decision
         )
         val resultingFingerprint = ProgramReplacementReviewFingerprint.create(routedProgram)
         val proofId = ProgramReplacementReviewFingerprint.identityFingerprint(

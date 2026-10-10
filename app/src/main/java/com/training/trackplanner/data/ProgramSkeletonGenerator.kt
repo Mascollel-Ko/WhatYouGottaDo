@@ -171,6 +171,8 @@ data class GeneratedProgramSkeleton(
     val taskProtocolFrequencyOutcomes: List<com.training.trackplanner.data.personalized.TaskProtocolWeeklyFrequencyOutcome> = emptyList(),
     /** Transient source token; never serialized as program authority. Checked before replacing an incumbent. */
     internal val incumbentSourceSnapshotToken: CanonicalIncumbentSourceSnapshotToken? = null,
+    /** Exact B7/B8/B9 proof used only when an existing canonical program is replaced at save time. */
+    internal val incumbentSaveMutationEvidence: CanonicalIncumbentSaveMutationEvidence? = null,
     /** Transient B5 candidate review; candidates do not grant B6 and are not persisted as program rows. */
     val replacementReview: ProgramReplacementReview? = null
 )

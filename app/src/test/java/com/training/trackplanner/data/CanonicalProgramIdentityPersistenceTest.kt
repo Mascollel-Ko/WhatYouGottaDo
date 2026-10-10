@@ -27,7 +27,10 @@ class CanonicalProgramIdentityPersistenceTest {
 
     @Test fun `canonical saved program is a lineage and regeneration keeps it`() = runBlocking {
         val db = database()
-        db.exerciseDao().insertExercise(Exercise("bench-lineage", "Bench press", "STRENGTH"))
+        db.exerciseDao().insertExercise(Exercise(
+            "bench-lineage", "Bench press", "STRENGTH",
+            activityKind = "TRAINING_EXERCISE", volumeLoadEligible = true
+        ))
         val service = ProgramPlanService(db, db.exerciseDao(), db.workoutDao(), db.programDao(), { it }, { emptySet() })
         val request = ProgramSkeletonRequest(
             name = "Canonical",
@@ -97,6 +100,7 @@ class CanonicalProgramIdentityPersistenceTest {
             regenerated.canonicalPlannerRuntimeVersion)
         val persistedItem = db.programDao().itemsForProgram(regeneratedId).single()
         assertEquals("CANONICAL_STIMULUS_QUALITY_STRENGTH", persistedItem.selectionRole)
+        val originalProgressionBinding = db.programProgressionDao().items().single()
 
         val index = service.canonicalIncumbentPlacementIndex(regeneratedId)
         assertEquals(CanonicalIncumbentIndexStatus.AVAILABLE, index.status)
@@ -115,7 +119,23 @@ class CanonicalProgramIdentityPersistenceTest {
         assertTrue(staleFailure is StaleIncumbentSourceException)
 
         val freshSnapshot = service.canonicalIncumbentPlacementIndex(regeneratedId).sourceSnapshotToken
-        service.saveGeneratedProgram(regeneratedId, skeleton.copy(incumbentSourceSnapshotToken = freshSnapshot))
+        val unexplainedRemoval = runCatching {
+            service.saveGeneratedProgram(regeneratedId, skeleton.copy(incumbentSourceSnapshotToken = freshSnapshot))
+        }.exceptionOrNull()
+        assertTrue(unexplainedRemoval is UnexplainedCanonicalIncumbentMutationException)
+        assertEquals(2, db.programDao().itemsForProgram(regeneratedId).single().orderIndex)
+
+        // An exact owner-week prescription can be regenerated without B7 mutation evidence.
+        service.saveGeneratedProgram(
+            regeneratedId,
+            skeleton.copy(
+                items = listOf(item.copy(orderIndex = 2)),
+                incumbentSourceSnapshotToken = freshSnapshot
+            )
+        )
+        val savedProgressionBinding = db.programProgressionDao().items().single()
+        assertEquals(originalProgressionBinding.logicalItemId, savedProgressionBinding.logicalItemId)
+        assertEquals(originalProgressionBinding.trackId, savedProgressionBinding.trackId)
 
         val deletedSnapshot = service.canonicalIncumbentPlacementIndex(regeneratedId).sourceSnapshotToken
         service.deleteProgram(regeneratedId)

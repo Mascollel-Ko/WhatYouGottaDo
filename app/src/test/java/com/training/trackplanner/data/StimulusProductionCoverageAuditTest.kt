@@ -33,7 +33,7 @@ class StimulusProductionCoverageAuditTest {
     )
 
     @Test
-    fun hardValidIncumbentPlacementIsStableAcrossAcceptedRegeneration() = runBlocking {
+    fun c20SummaryPlacementRowWithoutExactPrescriptionCannotOverwriteCanonicalProgram() = runBlocking {
         val spec = CoverageSpec(
             label = "persona0_mixed",
             quality = TrainableQuality.STRENGTH,
@@ -47,12 +47,14 @@ class StimulusProductionCoverageAuditTest {
             minutes = 60,
             equipment = setOf("MACHINE", "CABLE")
         )
-        val result = runCase(
-            spec,
-            seedIncumbentPlacementFixture = true,
-            verifyRepeatedAcceptedRegeneration = true
-        )
-        assertNotNull(result)
+        val failure = runCatching {
+            runCase(
+                spec,
+                seedIncumbentPlacementFixture = true,
+                verifyRepeatedAcceptedRegeneration = true
+            )
+        }.exceptionOrNull()
+        assertTrue(failure is UnexplainedCanonicalIncumbentMutationException)
     }
 
     @Test
@@ -193,6 +195,7 @@ class StimulusProductionCoverageAuditTest {
                 val selected = if (result.routeDecision.productionRoutingActive) comparison.experimental else comparison.control
                 assertEquals(selected.copy(
                     incumbentSourceSnapshotToken = result.program.incumbentSourceSnapshotToken,
+                    incumbentSaveMutationEvidence = result.program.incumbentSaveMutationEvidence,
                     optimizationSummary = result.program.optimizationSummary
                 ), result.program.copy(replacementReview = null))
                 assertEquals(spec.label, comparison.selectionPlan.strengthShortfalls, result.strengthShortfalls)
