@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.70.0 |
+| Protocol version | 3.71.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.12 |
-| Last audited commit | 32170eb82dc6fcce09bce8bb0d016c8e092165ec |
+| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.13 |
+| Last audited commit | aec4effd3e246fecd9c391264e83921b131b07bd |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1440,3 +1440,14 @@ Post-audit boundary notes
 - Power and JUMP_LANDING remain fail-closed: the existing B4 target is direction-only or lacks exact numeric/frequency authority, and a 2–4 set / 3–6 rep shape cannot create an unapproved weekly demand, exercise eligibility, intensity or load. Power/JUMP_LANDING material stays 0. UPPER_PULL remains direction-only where canonical direct regional dose authority is absent; it is not assigned an automatic eight-set target.
 - Existing B5 regional residual selection and finite scheduling remain the execution path; the current corpus records 245 candidate rows, 27 selected owners and 218 normal candidate rejections. Existing Plan preview supports manual draft editing, but this phase does not create a validated replace-option model or user-selectable replacement proposal flow. Such options remain unavailable until whole-program B7/B8 validation can certify them; CONTROL is not used as prescription authority.
 - C37 audit/census: [`docs/c37_exercise_prescription_selection_audit.md`](../../c37_exercise_prescription_selection_audit.md) and [`docs/c37-exercise-prescription-selection-census.json`](../../c37-exercise-prescription-selection-census.json). Protocol/runtime/app/Room are `3.70.0` / `RECORD_BASED_PLANNER_0.15.12_KOTLIN_1` / `0.5.1.5` / 38. The C36 program/runtime pair remains accepted as an incumbent source; database and backup schemas are unchanged. Full verification and artifact details are recorded in the C37 audit.
+
+### C37.1 — integrated Power and Jump/Landing dose authority (protocol 3.71.0)
+
+- B1/B3 remains the need authority. B4 applies the user-approved cap only after `DEVELOP`; the cap is an upper bound, not a required dose. B4 projects lower/upper Strength and Hypertrophy workload from exact B5-selected, B6-authorized, direct-relation planned sets and deduplicates a physical set across quality rows. Incomplete required workload remains `WORKLOAD_UNKNOWN`, never an assumed zero.
+- Recent badminton context uses observed complete ISO weeks fully within the rolling 28-day window. Missing observation weeks are not imputed as zero, training-state excluded weeks are omitted, and no valid observed complete week maps to the conservative MODERATE cap column. Court minutes are context only and are not converted to Power/Jump sets or contacts.
+- The shared lower-body Power + Jump/Landing cap, ordered LOW/MODERATE/HIGH badminton columns, is `6/4/2` for 0–7 lower direct resistance sets, `4/2/2` for 8–15, and `2/2/0` for 16+. Upper-body Power uses `6/4/2` for the same resistance bands without a badminton column. Whole-body Power uses the smaller upper/lower cap; all new Power/Jump work shares a weekly maximum of 8 physical sets. Existing authorized sets reduce room and are never deleted by the cap.
+- Exact B5 eligibility requires an exercise-specific reviewed `DIRECT_CAPABILITY` relation: Power `BALLISTIC` or `PLYOMETRIC`, Jump/Landing `LANDING`. B6 consumes the exact B4 weekly set count and allows 2–4 sets, 3–6 reps, a 4-rep initial shape, and a 120-second initial rest. Only explicit canonical bodyweight evidence removes external-load input. Equipment alone does not select a 1RM coefficient. Same-exercise 50% general-power or 70% Power-Clean values are user-confirmation suggestions only when the caller proves the mode and reliable same-exercise 1RM. Ordinary squat 1RM is never transferred to jump squat. Unrepresentable side/landing semantics stay unsupported.
+- On the 27-case test corpus, 22 generated cases contain directional `REACTIVE_STRENGTH_SSC` target rows; none has a B1 need, numeric Jump/Landing B4 authority, exact B5 owner, B6 authority or materialization. Power has 22 target rows and 3 cases progress through numeric B4, one unique exact B5 owner, B6, and materialization. Those cases produce 6 rows across the two-week horizon (2 weekly sets each). One case is B7-eligible for future cutover review; Power/Jump B8 authorization and B9 production routing are both 0. Every case still routes CONTROL.
+- The Power/Jump path is shadow material only. It does not alter C24 badminton Task protocols, Strength/Hypertrophy policy, Core direct policy, Legacy Auto, or B7/B8/B9 guards. This version accepts persisted C37 `3.70.0` / `RECORD_BASED_PLANNER_0.15.12_KOTLIN_1` programs as incumbent sources; App remains `0.5.1.5`, Room remains 38.
+- C37.1 census and audit: [`docs/c37-power-jump-integrated-authority-census.json`](../../c37-power-jump-integrated-authority-census.json) and [`docs/c37_exercise_prescription_selection_audit.md`](../../c37_exercise_prescription_selection_audit.md). Keep/replace proposal persistence, preview selection UI, and Power/Jump B8/B9 scopes remain open work; no EXP plan is exposed as a selectable successful plan.
+- C37.1 implementation/test commit `aec4effd3e246fecd9c391264e83921b131b07bd` is the current `lastAuditedCommit`. Local verification passed 2,406 JVM tests (0 failures, 0 errors, 4 skips), Kotlin main/test compilation, debug APK assembly, protocol validation, and `git diff --check`. Local APK: 70,743,117 bytes, SHA-256 `5B232504D630BE93098B8BD65B06921120C8FE1E1AAC13912FE3EFF1E740DF3C`; census SHA-256 `9E0C4A74D540D7758E5C215049E6FEF9A4BA8074DA250FF2056C3B3F785E620A`. Hosted CI is pending this PR update.
