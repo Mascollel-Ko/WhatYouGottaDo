@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.71.0 |
+| Protocol version | 3.72.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.13 |
-| Last audited commit | aec4effd3e246fecd9c391264e83921b131b07bd |
+| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.14 |
+| Last audited commit | 2e115315ede6ffedae206e0fc33ad7a5fc4e5357 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1451,3 +1451,11 @@ Post-audit boundary notes
 - The Power/Jump path is shadow material only. It does not alter C24 badminton Task protocols, Strength/Hypertrophy policy, Core direct policy, Legacy Auto, or B7/B8/B9 guards. This version accepts persisted C37 `3.70.0` / `RECORD_BASED_PLANNER_0.15.12_KOTLIN_1` programs as incumbent sources; App remains `0.5.1.5`, Room remains 38.
 - C37.1 census and audit: [`docs/c37-power-jump-integrated-authority-census.json`](../../c37-power-jump-integrated-authority-census.json) and [`docs/c37_exercise_prescription_selection_audit.md`](../../c37_exercise_prescription_selection_audit.md). Keep/replace proposal persistence, preview selection UI, and Power/Jump B8/B9 scopes remain open work; no EXP plan is exposed as a selectable successful plan.
 - C37.1 implementation/test commit `aec4effd3e246fecd9c391264e83921b131b07bd` is the current `lastAuditedCommit`. Local verification passed 2,406 JVM tests (0 failures, 0 errors, 4 skips), Kotlin main/test compilation, debug APK assembly, protocol validation, and `git diff --check`. Local APK: 70,743,117 bytes, SHA-256 `5B232504D630BE93098B8BD65B06921120C8FE1E1AAC13912FE3EFF1E740DF3C`; census SHA-256 `9E0C4A74D540D7758E5C215049E6FEF9A4BA8074DA250FF2056C3B3F785E620A`. Hosted CI is pending this PR update.
+
+### C37.2 — bounded Power/Jump B8 and B9 authorization (protocol 3.72.0)
+
+- B8 evaluates a separate `POWER_JUMP_V1` scope only when the material delta has exact Power/Reactive B6 attribution and every co-material Task or Movement owner has its own exact approved protocol or B4/B5/B6 chain. B8 rechecks B7 closure, exact need and B4 weekly units, B5 identity/trace, B6 authorization, full-horizon materialization, unchanged schedule/program contract, hard projection, and target/collateral outcomes. Existing B8 guards remain fail-closed.
+- Same-exercise internal-role changes are accepted only when B7 identifies the canonical movement-role replacement and the replacement owner is the exact B5-selected, B6-authorized movement target owner. A matching stable key alone does not authorize a removal. B9 checks exact Power/Jump, Task, and Movement authority identities before routing; CONTROL remains the fallback.
+- The regenerated 27-case corpus contains 22 generated cases. Three Power cases reach exact B6 and full materialization, but only one also passes B7 and B8 and routes through `B8_POWER_JUMP_V1`; 21 remain CONTROL. No Jump/Landing need or executable Jump/Landing material is present in this corpus. This is bounded evidence, not a general activation claim.
+- C37.2 preserves C37.1 Core, Strength/Hypertrophy, C24 Task, and Legacy Auto contracts. Protocol/runtime are `3.72.0` / `RECORD_BASED_PLANNER_0.15.14_KOTLIN_1`; App remains `0.5.1.5` and Room remains 38. The compact census and audit are recorded in the C37 artifacts. PR #24 remains Draft pending completion and review.
+- C37.2 implementation/test commit `2e115315ede6ffedae206e0fc33ad7a5fc4e5357` is the current `lastAuditedCommit`. Local verification passed 2,408 JVM tests (0 failures, 0 errors, 4 skips), Kotlin main/test compilation, debug APK assembly, protocol validation, and `git diff --check`. Local APK: 70,743,219 bytes, SHA-256 `7A596CF2537DADA1A917707630365D5AF397CAB61EC2AF63105984E65AF6DFDA`; compact C37 census SHA-256 `897BEE81141083CE4606FD59CEB218B82877FBE375BE1E55F1D26E021C92911D`. Hosted CI is pending this PR update.

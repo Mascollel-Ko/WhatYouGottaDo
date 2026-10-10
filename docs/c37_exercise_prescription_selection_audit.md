@@ -2,9 +2,9 @@
 
 ## 결과 범위
 
-C37은 기준 `a4c1a0f4c6c9a35ac67247698a3c897ce2a6e063`에서 이어서 작업했다. 현재 계약은 Protocol `3.71.0`, Runtime `RECORD_BASED_PLANNER_0.15.13_KOTLIN_1`, App `0.5.1.5`, Room `38`이다. C33의 region별 B4 잔량 → B5 후보 부분집합 → B6 처방 → finite allocation/배치 → B7/B8 검증 경로를 보존했다.
+C37은 기준 `a4c1a0f4c6c9a35ac67247698a3c897ce2a6e063`에서 이어서 작업했다. 현재 계약은 Protocol `3.72.0`, Runtime `RECORD_BASED_PLANNER_0.15.14_KOTLIN_1`, App `0.5.1.5`, Room `38`이다. C33의 region별 B4 잔량 → B5 후보 부분집합 → B6 처방 → finite allocation/배치 → B7/B8 검증 경로를 보존했다.
 
-기본 C37은 직접 코어의 실행 형태와 exact B7 원인 증거를 연결한다. C37.1은 사용자가 승인한 Power/Jump-Landing 용량·처방 정책을 B4/B5/B6 shadow 경로까지 연결했다. B7/B8/B9 cutover와 사용자 교체 선택 화면은 아직 완성되지 않았으며, EXP 결과는 저장 전 확정안이나 선택 가능한 제안으로 노출되지 않는다.
+기본 C37은 직접 코어의 실행 형태와 exact B7 원인 증거를 연결한다. C37.1은 사용자가 승인한 Power/Jump-Landing 용량·처방 정책을 B4/B5/B6 경로까지 연결했고, C37.2는 B7/B8/B9에서 전체 검증을 통과한 범위만 제한적으로 라우팅한다. Keep/replace proposal UI는 별도 미완료 범위이며, 승인되지 않은 EXP 결과를 저장 전 확정안이나 선택 가능한 제안으로 노출하지 않는다.
 
 ## 직접 코어 B4/B5/B6
 
@@ -30,7 +30,7 @@ Core role 대체는 B7이 다음의 정확한 연결을 모두 확인할 때만 
 - 최신 C33 census는 candidate 245, selected owner 27, 정상 탈락 218, core direct target 5, 그중 4 target이 두 주 동안 materialize되고 1 target은 finite capacity로 0 materialize 됨을 기록한다. 전체 C36 실행은 CONTROL 22 / EXPERIMENTAL 22 / total 44 / third build 0이다.
 - 동일 22-case 실행의 planner wall time은 합계 6,269 ms, 평균 285.0 ms/case, 중앙값 224 ms, 최솟값 89 ms, 최댓값 689 ms였다. 한 corpus 실행에서 관찰된 수치이며 성능 SLA 비교는 아니다.
 
-## Power·점프착지의 C37.1 B4/B5/B6 shadow 경로
+## Power·점프착지의 C37.1 B4/B5/B6 처방 경로
 
 Power와 점프착지는 모든 사용자에게 필요한 주간 목표로 만들지 않는다. B4는 B1/B3의 `DEVELOP` need가 있을 때만 수치 권한을 검토한다. 하체 Strength/Hypertrophy workload는 이번 계획에서 exact B5/B6 승인된 직접 세트만 사용하고, 한 physical set이 두 quality/region 표현에 있으면 한 번만 센다. 추정 불완전한 resistance workload는 0으로 바꾸지 않고 `WORKLOAD_UNKNOWN`으로 남긴다. 배드민턴은 기록이 없는 주를 0분으로 넣지 않으며, 최근 28일 안에서 관측된 완전 ISO 주만 집계하고 명시적으로 제외된 interruption 주는 빼며, 유효 주가 없으면 UNKNOWN을 보수적 MODERATE cap column으로 처리한다.
 
@@ -38,7 +38,15 @@ Power와 점프착지는 모든 사용자에게 필요한 주간 목표로 만�
 
 B5에는 해당 stableKey의 canonical `DIRECT_CAPABILITY`, `PASS` physical-quality relation과 Power의 `BALLISTIC/PLYOMETRIC` 또는 Jump/Landing의 `LANDING` mode가 필요하다. SUPPORTIVE relation은 직접 자격으로 승격하지 않는다. 첫 cold-start shape는 `2–4 sets × 3–6 reps`, 4회 anchor, 120초 초기 휴식이며, 세트 수는 B4 권한이다. 명시적인 canonical bodyweight semantics가 확인되면 외부부하 없음으로 실행할 수 있다. 외부부하 운동은 장비 종류만으로 1RM 계수를 추정하지 않고 calibration을 요구한다. 50% general Power와 70% Power Clean은 적합성이 명시되고 동일 운동의 신뢰 가능한 1RM이 확인된 경우에만 사용자 확인용 제안이며, 점프 스쿼트는 일반 스쿼트 1RM을 재사용하지 않는다. 현재 데이터 모델이 좌우 착지/반복 의미를 손실 없이 저장하지 못하면 해당 unilateral shape는 보류한다.
 
-22-case corpus는 27건 중 22 생성 / 5 preflight rejection이다. generated case의 Power target row는 22이며, 이 중 B4 cold-start numeric authority·exact B5 owner·B6 승인·완전 materialization까지 이어진 것은 3건이다. owner는 `lateral_bound_continuous` 하나이며, 주 2세트가 2주 horizon에 걸쳐 6 physical rows로 생성됐다. personal Power numeric dose authority는 0건이다. 1건은 B7 future-review eligible, B8-authorized와 production-routed는 0건이다. `REACTIVE_STRENGTH_SSC` 방향 target row는 22건이지만 B1 need는 0, numeric B4는 0, B5/B6/materialization은 0이다. C24의 `TASK:JUMP_LANDING`은 별도 기존 프로토콜이며 이 변경으로 수정되지 않았다. 기존 C21 frozen reference 8 Power rows 대비 새 authority filter 결과는 6 rows다.
+22-case corpus는 27건 중 22 생성 / 5 preflight rejection이다. generated case의 Power target row는 22이며, 이 중 B4 cold-start numeric authority·exact B5 owner·B6 승인·완전 materialization까지 이어진 것은 3건이다. owner는 `lateral_bound_continuous` 하나이며, 주 2세트가 2주 horizon에 걸쳐 6 physical rows로 생성됐다. personal Power numeric dose authority는 0건이다. `REACTIVE_STRENGTH_SSC` 방향 target row는 22건이지만 B1 need는 0, numeric B4는 0, B5/B6/materialization은 0이다. C24의 `TASK:JUMP_LANDING`은 별도 기존 프로토콜이며 이 변경으로 수정되지 않았다. 기존 C21 frozen reference 8 Power rows 대비 새 authority filter 결과는 6 rows다.
+
+## C37.2 — 정확한 Power/Jump B8/B9 제한 라우팅
+
+B8은 `POWER_JUMP_V1`을 별도 scope로 검증한다. 기존 B7 provenance closure와 regression 검사, 정확한 B3 need 및 B4 주간 set units, B5 stableKey/role와 trace, B6의 typed execution authority, 모든 주차의 완전한 materialization, schedule/program contract 보존, hard projection을 다시 확인한다. Power/Jump와 함께 들어가는 Task 및 Movement owner도 각자의 exact Task protocol 또는 B4/B5/B6 materialization 증거가 있어야 한다. B9는 세 authority identity 집합을 대조한 뒤 이미 생성된 EXP object만 선택한다. 어떤 predicate도 완화하지 않았다.
+
+같은 stableKey의 내부 role 변경은 자동 대체로 보지 않는다. B7이 정확한 canonical Movement role replacement를 분류하고, 동일 물리 운동의 새 role이 exact B5 owner이며 B6가 승인한 movement target임을 증명할 때만 그 제거를 B8이 허용한다. 다른 CONTROL owner removal은 계속 차단된다.
+
+현재 동일한 27-case corpus에서 B4 numeric Power authority / B5 owner / B6 authorization / full materialization은 3건, B7 eligible은 1건, B8 authorized와 B9 `B8_POWER_JUMP_V1` route도 1건이다. `persona3_mixed`만 주 2세트 × 4회 `lateral_bound_continuous`를 두 주에 materialize하고, 동시에 exact B6가 확인된 `CORE_DIRECT` 및 `HORIZONTAL_PUSH` movement owners도 검증해 통과했다. 나머지 21건은 CONTROL이다. Jump/Landing need, numeric B4, B5 owner, B6, materialization은 모두 0건이므로 Jump/Landing production route는 열리지 않았다.
 
 기존 지역 Hypertrophy authority는 exact canonical direct regional relation을 요구한다. `UPPER_PULL`는 일부 case에서 그 regional target qualifier로 직접 계산되지 않아 현재 `DIRECTION_ONLY`로 남는다. 이것을 임의로 horizontal/vertical pull 두 region으로 확장하거나 8세트를 강제하지 않았다. 개인 numeric evidence와 direct metadata가 없는 경우 cold-start 8을 적용하지 않는다.
 
@@ -46,20 +54,20 @@ B5에는 해당 stableKey의 canonical `DIRECT_CAPABILITY`, `PASS` physical-qual
 
 기존 canonical B5 ranking과 전체 finite allocation priority, scheduler 및 hard feasibility 검사를 유지했다. 남은 후보가 있다는 이유만으로 전부 넣지 않는다. 최신 corpus에서 218개 후보는 정상 탈락으로 기록된다. finite capacity shortfall은 B4 요구량과 분리해 보존된다. 새 시간·회복 정책을 만들지 않았다.
 
-현재 저장 전 `ProgramSkeletonPreview`는 초안의 수동 편집 기능을 제공하지만, planner가 생성한 교체 선택지 모델, 사용자의 복수 교체 조합 검증, 오래된 제안 무효화/재검증, 선택 결과의 proposal provenance 기능은 구현하지 않았다. 현 corpus에서는 B8 `CONTROL_REQUIRED`가 22건이고 B9 route도 모두 CONTROL이므로 EXP 결과를 확정 교체안처럼 화면에 노출하는 것은 안전하지 않다. CONTROL 기록을 B6 prescription authority로 사용하지 않았다.
+현재 저장 전 `ProgramSkeletonPreview`는 초안의 수동 편집 기능을 제공하지만, planner가 생성한 keep/replace 선택지 모델, 복수 교체 조합 검증, stale proposal 무효화/재검증, 선택 결과의 proposal provenance 기능은 구현하지 않았다. 이 UI는 이번 B8/B9 scope와 별도로 남는다. B8/B9가 승인한 결과만 정상 경로로 라우팅하며, CONTROL 기록을 B6 prescription authority로 사용하지 않았다.
 
 ## B7/B8, 호환성 및 검증
 
-이번 B7 변경은 exact Core evidence가 있는 role replacement만 설명한다. B7 predicate나 B8 cutover 조건을 완화하지 않았다. 최신 route는 CONTROL 22이며, B7은 eligible 4, not eligible 18이다. `CHANGE_PROVENANCE_UNCLOSED`는 18 case에서 남는다. B8은 22건 모두 `CONTROL_REQUIRED`다. C24 Task authority, Legacy Auto, Strength/Hypertrophy, Power/JUMP_LANDING 분리는 유지된다. Room/backup schema 및 App version은 변경하지 않았다. C36 (`3.69.0` / `0.15.11`) 및 C37 (`3.70.0` / `0.15.12`)을 이전 incumbent source로 계속 허용한다.
+최신 route는 CONTROL 21 / `B8_POWER_JUMP_V1` 1이다. 전체 corpus의 B7은 eligible 4, not eligible 18이며 `CHANGE_PROVENANCE_UNCLOSED`가 18 case에 남는다. B8은 21건 `CONTROL_REQUIRED`, 1건 `AUTHORIZED_FOR_BOUNDED_CUTOVER`다. 승인된 한 사례 밖의 P/J scope는 계속 fail-closed다. C24 Task authority, Legacy Auto, Strength/Hypertrophy 정책과 분리는 유지된다. Room/backup schema 및 App version은 변경하지 않았다. 이전 C36/C37 incumbent source 지원도 유지된다.
 
 ## 로컬 검증 기록
 
-- 직접 코어 shape/B4/B5/B6/B7, regional authority, service routing, task/incumbent 및 fail-closed scope 회귀를 집중 실행했다. 마지막 집중 실행에서는 selector 33개와 quality-scope 회귀가 통과했다.
-- 전체 `:app:testDebugUnitTest`는 repository 밖의 JDK 17 worker와 `forkEvery=75` 설정으로 직렬 실행해 2,406 tests, 0 failures, 0 errors, 4 skips로 통과했다.
-- Power/Jump policy, B5 exact typed-B4 selector, B6 materialization, 22-case service census 및 canonical-scope parity 집중 테스트가 통과했다. `compileDebugKotlin`, `compileDebugUnitTestKotlin`, `assembleDebug`, protocol validation 및 `git diff --check`도 통과했다.
-- 로컬 debug APK는 70,743,117 bytes이며 SHA-256은 `5B232504D630BE93098B8BD65B06921120C8FE1E1AAC13912FE3EFF1E740DF3C`다. census SHA-256은 `9E0C4A74D540D7758E5C215049E6FEF9A4BA8074DA250FF2056C3B3F785E620A`다.
-- 구현·테스트 commit `aec4effd3e246fecd9c391264e83921b131b07bd`는 `lastAuditedCommit`이다. PR #24는 범위 미완료로 Draft를 유지한다. 최신 Hosted CI는 branch push 후 확인한다.
+- Power/Jump cap matrix와 처방 shape, B8 exact authority, B9 route 및 22-case C37/C36 regression을 포함한 집중 실행은 40 tests, 0 failures/errors로 통과했다.
+- 첫 전체 `:app:testDebugUnitTest` 실행은 1,520 tests 처리 후 JBR 21의 `robolectric-nativeruntime.dll`에서 native `EXCEPTION_ACCESS_VIOLATION`으로 종료됐다. 그 시점의 결과 XML에는 assertion failure 0건, test error 0건이었다. 저장소 밖 JDK 17 + 직렬 worker `forkEvery=75` workaround로 재실행해 전체 2,408 tests, 0 failures, 0 errors, 4 skips로 통과했다.
+- `:app:compileDebugKotlin`, `:app:compileDebugUnitTestKotlin`, `:app:assembleDebug`, protocol validation 및 `git diff --check`가 통과했다. 기존 deprecation/nullability compile warning은 남아 있다.
+- 로컬 debug APK는 70,743,219 bytes이며 SHA-256은 `7A596CF2537DADA1A917707630365D5AF397CAB61EC2AF63105984E65AF6DFDA`다. compact C37 census SHA-256은 `897BEE81141083CE4606FD59CEB218B82877FBE375BE1E55F1D26E021C92911D`다.
+- C37.2 구현·테스트 commit `2e115315ede6ffedae206e0fc33ad7a5fc4e5357`을 `lastAuditedCommit`으로 기록했다. PR #24는 Draft를 유지하며, 이 결과는 hosted CI가 branch update를 검증하기 전까지 완료로 간주하지 않는다.
 
 ### 남은 작업 경계
 
-이 문서는 전체 사용자 요청의 완료 선언이 아니다. 현재 구현은 P/J의 shadow numeric B4, exact B5, exact B6와 실제 EXP materialization까지 연결했지만 B8/B9에는 P/J production scope가 없다. Corpus 전체는 CONTROL이며, EXP 결과를 성공안으로 내보내지 않는다. typed partial-shortfall readiness, exact B8/B9 Core/P/J scope, planner-generated keep-vs-replace proposal contract, 조합 재검증·stale proposal 무효화, 저장 전 사용자 선택 UI는 남아 있다. 해당 계약이 완성되기 전까지 app은 사용자가 승인하지 않은 EXP 계획을 확정안으로 표시하지 않는다.
+이 문서는 전체 사용자 요청 중 keep/replace 선택 화면 완료 선언이 아니다. C37.2는 corpus에서 정확한 B7/B8/B9 증거가 확보된 한 P/J 사례만 생산 경로로 라우팅한다. 나머지 사례는 CONTROL에 남고, Jump/Landing은 아직 need가 없어 materialization하지 않는다. Planner 생성 교체안, 조합 재검증, stale proposal 무효화와 저장 전 사용자 선택 UI는 별도 남은 작업이다.

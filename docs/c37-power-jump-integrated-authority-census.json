@@ -2,12 +2,12 @@
   "schema": "c37-power-jump-integrated-authority-summary-v1",
   "startSha": "e4d07e82e595ab70772e40f1b1cc45b039c98701",
   "versions": {
-    "protocol": "3.71.0",
-    "runtime": "RECORD_BASED_PLANNER_0.15.13_KOTLIN_1",
+    "protocol": "3.72.0",
+    "runtime": "RECORD_BASED_PLANNER_0.15.14_KOTLIN_1",
     "app": "0.5.1.5",
     "room": 38
   },
-  "policyConclusion": "POWER_JUMP_B4_B6_EXACT_MATERIALIZATION_WITH_B7_B8_FAIL_CLOSED",
+  "policyConclusion": "EXACT_B8_B9_POWER_JUMP_ROUTE_WITH_OTHER_CASES_FAIL_CLOSED",
   "counts": {
     "corpusCases": 27,
     "preflightRejected": 5,
@@ -23,8 +23,8 @@
     "stillDirectionOnly": 1,
     "fullyMaterializedPower": 3,
     "b7EligiblePowerCases": 1,
-    "b8AuthorizedPowerCases": 0,
-    "powerRoutedCases": 0,
+    "b8AuthorizedPowerCases": 1,
+    "powerRoutedCases": 1,
     "exactB5PowerOwnerRows": 3,
     "uniqueExactB5PowerOwners": 1,
     "generatedPowerRowsAfterAuthorityFilter": 6,
@@ -152,7 +152,8 @@
           "B8_CUTOVER_V1_REQUIRES_FULL_B6_MATERIALIZATION",
           "B8_CUTOVER_V1_UNRELATED_CONTROL_MUTATION",
           "B8_CUTOVER_V1_UPSTREAM_INCONSISTENCY"
-        ]
+        ],
+        "authorizedMovementTargetOwnerIdentities": []
       },
       "jumpLanding": {
         "b1Need": {
@@ -438,7 +439,8 @@
         "scope": "STRENGTH_V1",
         "reasons": [
           "B8_B7_NOT_ELIGIBLE"
-        ]
+        ],
+        "authorizedMovementTargetOwnerIdentities": []
       },
       "jumpLanding": {
         "b1Need": {
@@ -703,7 +705,8 @@
         "scope": "STRENGTH_V1",
         "reasons": [
           "B8_B7_NOT_ELIGIBLE"
-        ]
+        ],
+        "authorizedMovementTargetOwnerIdentities": []
       },
       "jumpLanding": {
         "b1Need": {
@@ -972,7 +975,8 @@
         "scope": "STRENGTH_V1",
         "reasons": [
           "B8_B7_NOT_ELIGIBLE"
-        ]
+        ],
+        "authorizedMovementTargetOwnerIdentities": []
       },
       "jumpLanding": {
         "b1Need": {
@@ -1237,7 +1241,8 @@
         "scope": "STRENGTH_V1",
         "reasons": [
           "B8_B7_NOT_ELIGIBLE"
-        ]
+        ],
+        "authorizedMovementTargetOwnerIdentities": []
       },
       "jumpLanding": {
         "b1Need": {
@@ -1515,7 +1520,8 @@
         "scope": "STRENGTH_V1",
         "reasons": [
           "B8_B7_NOT_ELIGIBLE"
-        ]
+        ],
+        "authorizedMovementTargetOwnerIdentities": []
       },
       "jumpLanding": {
         "b1Need": {
@@ -1780,7 +1786,8 @@
         "scope": "STRENGTH_V1",
         "reasons": [
           "B8_B7_NOT_ELIGIBLE"
-        ]
+        ],
+        "authorizedMovementTargetOwnerIdentities": []
       },
       "jumpLanding": {
         "b1Need": {
@@ -2045,7 +2052,8 @@
         "scope": "STRENGTH_V1",
         "reasons": [
           "B8_B7_NOT_ELIGIBLE"
-        ]
+        ],
+        "authorizedMovementTargetOwnerIdentities": []
       },
       "jumpLanding": {
         "b1Need": {
@@ -2310,7 +2318,8 @@
         "scope": "STRENGTH_V1",
         "reasons": [
           "B8_B7_NOT_ELIGIBLE"
-        ]
+        ],
+        "authorizedMovementTargetOwnerIdentities": []
       },
       "jumpLanding": {
         "b1Need": {
@@ -2592,7 +2601,8 @@
         "scope": "STRENGTH_V1",
         "reasons": [
           "B8_B7_NOT_ELIGIBLE"
-        ]
+        ],
+        "authorizedMovementTargetOwnerIdentities": []
       },
       "jumpLanding": {
         "b1Need": {
@@ -2857,7 +2867,8 @@
         "scope": "STRENGTH_V1",
         "reasons": [
           "B8_B7_NOT_ELIGIBLE"
-        ]
+        ],
+        "authorizedMovementTargetOwnerIdentities": []
       },
       "jumpLanding": {
         "b1Need": {
@@ -3121,7 +3132,8 @@
         "reasons": [
           "B6_AUTHORIZATION_MISSING_WEEK",
           "B6_AUTHORIZATION_SHORTFALL"
-        ]
+        ],
+        "authorizedMovementTargetOwnerIdentities": []
       },
       "jumpLanding": {
         "b1Need": {
@@ -3282,7 +3294,7 @@
     {
       "case": "persona3_mixed",
       "preflight": "GENERATED",
-      "route": "CONTROL",
+      "route": "B8_POWER_JUMP_V1",
       "b1Need": {
         "decision": "DEVELOP",
         "relevance": "MODERATE",
@@ -3467,16 +3479,22 @@
         "reasons": []
       },
       "b8": {
-        "status": "CONTROL_REQUIRED",
-        "scope": "STRENGTH_V1",
+        "status": "AUTHORIZED_FOR_BOUNDED_CUTOVER",
+        "scope": "POWER_JUMP_V1",
         "reasons": [
-          "B8_CUTOVER_V1_ADDED_OWNER_WITHOUT_EXACT_B5_AUTHORITY",
-          "B8_CUTOVER_V1_EMPTY_MATERIAL_AUTHORITY",
-          "B8_CUTOVER_V1_NON_STRENGTH_CHANGE_OUT_OF_SCOPE",
-          "B8_CUTOVER_V1_PRESCRIPTION_CHANGE_WITHOUT_EXACT_B6_AUTHORITY",
-          "B8_CUTOVER_V1_REQUIRES_FULL_B6_MATERIALIZATION",
-          "B8_CUTOVER_V1_UNRELATED_CONTROL_MUTATION",
-          "B8_CUTOVER_V1_UPSTREAM_INCONSISTENCY"
+          "B8_POWER_JUMP_V1_AUTHORIZED"
+        ],
+        "authorizedMovementTargetOwnerIdentities": [
+          {
+            "targetId": "MOVEMENT:CORE_DIRECT",
+            "stableKey": "ex_28347c1f",
+            "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT"
+          },
+          {
+            "targetId": "MOVEMENT:HORIZONTAL_PUSH",
+            "stableKey": "ex_1dbee10e",
+            "selectionRole": "CANONICAL_STIMULUS_MOVEMENT_HORIZONTAL_PUSH"
+          }
         ]
       },
       "jumpLanding": {
@@ -3630,16 +3648,10 @@
           "reasons": []
         },
         "b8": {
-          "status": "CONTROL_REQUIRED",
-          "scope": "STRENGTH_V1",
+          "status": "AUTHORIZED_FOR_BOUNDED_CUTOVER",
+          "scope": "POWER_JUMP_V1",
           "reasons": [
-            "B8_CUTOVER_V1_ADDED_OWNER_WITHOUT_EXACT_B5_AUTHORITY",
-            "B8_CUTOVER_V1_EMPTY_MATERIAL_AUTHORITY",
-            "B8_CUTOVER_V1_NON_STRENGTH_CHANGE_OUT_OF_SCOPE",
-            "B8_CUTOVER_V1_PRESCRIPTION_CHANGE_WITHOUT_EXACT_B6_AUTHORITY",
-            "B8_CUTOVER_V1_REQUIRES_FULL_B6_MATERIALIZATION",
-            "B8_CUTOVER_V1_UNRELATED_CONTROL_MUTATION",
-            "B8_CUTOVER_V1_UPSTREAM_INCONSISTENCY"
+            "B8_POWER_JUMP_V1_AUTHORIZED"
           ]
         }
       }
@@ -3763,7 +3775,8 @@
         "scope": "STRENGTH_V1",
         "reasons": [
           "B8_B7_NOT_ELIGIBLE"
-        ]
+        ],
+        "authorizedMovementTargetOwnerIdentities": []
       },
       "jumpLanding": {
         "b1Need": {
@@ -4116,7 +4129,8 @@
         "scope": "STRENGTH_V1",
         "reasons": [
           "B8_B7_NOT_ELIGIBLE"
-        ]
+        ],
+        "authorizedMovementTargetOwnerIdentities": []
       },
       "jumpLanding": {
         "b1Need": {
@@ -4473,7 +4487,8 @@
         "scope": "STRENGTH_V1",
         "reasons": [
           "B8_B7_NOT_ELIGIBLE"
-        ]
+        ],
+        "authorizedMovementTargetOwnerIdentities": []
       },
       "jumpLanding": {
         "b1Need": {
@@ -4746,7 +4761,8 @@
           "B8_CUTOVER_V1_REQUIRES_FULL_B6_MATERIALIZATION",
           "B8_CUTOVER_V1_UNRELATED_CONTROL_MUTATION",
           "B8_CUTOVER_V1_UPSTREAM_INCONSISTENCY"
-        ]
+        ],
+        "authorizedMovementTargetOwnerIdentities": []
       },
       "jumpLanding": {
         "b1Need": {
@@ -5036,7 +5052,8 @@
         "scope": "STRENGTH_V1",
         "reasons": [
           "B8_B7_NOT_ELIGIBLE"
-        ]
+        ],
+        "authorizedMovementTargetOwnerIdentities": []
       },
       "jumpLanding": {
         "b1Need": {
@@ -5305,7 +5322,8 @@
         "scope": "STRENGTH_V1",
         "reasons": [
           "B8_B7_NOT_ELIGIBLE"
-        ]
+        ],
+        "authorizedMovementTargetOwnerIdentities": []
       },
       "jumpLanding": {
         "b1Need": {
@@ -5570,7 +5588,8 @@
         "scope": "STRENGTH_V1",
         "reasons": [
           "B8_B7_NOT_ELIGIBLE"
-        ]
+        ],
+        "authorizedMovementTargetOwnerIdentities": []
       },
       "jumpLanding": {
         "b1Need": {
@@ -5835,7 +5854,8 @@
         "scope": "STRENGTH_V1",
         "reasons": [
           "B8_B7_NOT_ELIGIBLE"
-        ]
+        ],
+        "authorizedMovementTargetOwnerIdentities": []
       },
       "jumpLanding": {
         "b1Need": {
@@ -6104,7 +6124,8 @@
         "scope": "STRENGTH_V1",
         "reasons": [
           "B8_B7_NOT_ELIGIBLE"
-        ]
+        ],
+        "authorizedMovementTargetOwnerIdentities": []
       },
       "jumpLanding": {
         "b1Need": {
@@ -6268,5 +6289,5 @@
       }
     }
   ],
-  "scope": "shadow generation only; B7\/B8\/B9 remain authoritative and no route is inferred"
+  "scope": "exact B8\/B9 bounded Power\/Jump route only; every other case remains governed by its existing B7\/B8 result"
 }
