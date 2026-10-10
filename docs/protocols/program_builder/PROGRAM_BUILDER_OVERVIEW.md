@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.73.0 |
+| Protocol version | 3.74.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.15 |
-| Last audited commit | b24ea4ad33ccc854378e9ff061311c8033df2c2c |
+| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.16 |
+| Last audited commit | 708f6c85f0de2522496bf4c2b2a8f164f6a3c15b |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1472,3 +1472,12 @@ Post-audit boundary notes
 - The validated result remains a separate preview until the user presses the explicit apply action. The save gate rejects a validated-but-not-applied combination, stale row/schedule/request fingerprints, changed history or metadata, expired generation sessions, and any saved result that differs from a fresh whole-program revalidation. The final exercise rows and prescriptions use the existing persistence path; no Room or backup schema changed.
 - CONTROL/B9 fallback drafts never expose replacement candidates as executable choices. Editing the generated rows or changing request constraints invalidates the review; ordinary manual editing remains on its existing path.
 - C37.3/C37.4 implementation/test commit `b24ea4ad33ccc854378e9ff061311c8033df2c2c` is `lastAuditedCommit`. Local verification passed 2,420 JVM tests (0 failures, 0 errors, 4 skips), `compileDebugKotlin`, `compileDebugUnitTestKotlin`, `assembleDebug`, protocol validation (9 families / 36 protocols), and `git diff --check`. The full suite used the repository-external JDK 17 worker configuration after the known JBR 21 Robolectric native-runtime crash reproduced; the suite itself passed on JDK 17. Local debug APK: 72,729,062 bytes, SHA-256 `020F0A1F21CBC274F03769C3F8F14C359C73B6213C3004C9AD7776D56FCB5AA1`. App remains `0.5.1.5`, Room remains 38, and no persistence or backup schema changed. PR #24 remains Draft; hosted check and uploaded artifact evidence are tracked on the PR.
+
+### C37.5 - cause-specific unresolved-removal audit and replacement-save closure
+
+- The latest C36 corpus reproduces 32 unique unexplained `(case, stableKey, selectionRole)` pairs across 64 owner-week rows: 9 have no exact B5 alternative, 18 have a candidate but lack exact B6 authority, and 5 have B4/B6 probe authority but receive zero finite scheduling funding. Candidate labels and same-key role changes remain insufficient evidence; the 32 rows stay fail-closed.
+- Across 22 generated cases, B7 is `NOT_ELIGIBLE` for 18 and eligible for 4; B8 authorizes one bounded Power/Jump route and requires CONTROL for 21. B9 returns the exact CONTROL source for those 21. This phase does not relax B7, B8, or route scope.
+- A preview user can undo a fully validated/applied replacement by restoring the exact keep rows from causal evidence, then select and validate another proposal. Tampered or stale causal rows are rejected. Save-time revalidation fingerprints all plan and authority fields while excluding only generated decision id and timestamp, allowing the same approved plan to survive a deterministic revalidation run.
+- Integration coverage validates replacement selection, explicit apply, repeated save-time B5-B9 validation, Room save/close/reopen, exact persisted prescription and progression semantics, and applying the saved program to dated sessions. No Room or backup schema changed. The human audit and 32-pair machine census are `docs/c37_5_removal_repair_audit.md` and `docs/c37_5-removal-repair-census.json`.
+
+- C37.5 implementation/test commit `708f6c85f0de2522496bf4c2b2a8f164f6a3c15b` is `lastAuditedCommit`. Local verification passed 2,420 JVM tests (0 failures, 0 errors, 4 skips), `compileDebugKotlin`, `compileDebugUnitTestKotlin`, `assembleDebug`, protocol validation (9 families / 36 protocols), and `git diff --check`. The suite used the repository-external JDK 17 worker configuration; the native crash did not recur. Local APK: 72,729,550 bytes, SHA-256 `158CE46BBD2C6F70D0EAEBB3E857F6210AC6FC00BFB99A27A9C88090396FBFA2`. App remains `0.5.1.5`, Room remains 38. PR #24 remains Draft; hosted CI is pending the PR update.
