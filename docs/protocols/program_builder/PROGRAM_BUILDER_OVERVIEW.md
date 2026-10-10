@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.72.0 |
+| Protocol version | 3.73.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.14 |
-| Last audited commit | 2e115315ede6ffedae206e0fc33ad7a5fc4e5357 |
+| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.15 |
+| Last audited commit | b24ea4ad33ccc854378e9ff061311c8033df2c2c |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1459,3 +1459,16 @@ Post-audit boundary notes
 - The regenerated 27-case corpus contains 22 generated cases. Three Power cases reach exact B6 and full materialization, but only one also passes B7 and B8 and routes through `B8_POWER_JUMP_V1`; 21 remain CONTROL. No Jump/Landing need or executable Jump/Landing material is present in this corpus. This is bounded evidence, not a general activation claim.
 - C37.2 preserves C37.1 Core, Strength/Hypertrophy, C24 Task, and Legacy Auto contracts. Protocol/runtime are `3.72.0` / `RECORD_BASED_PLANNER_0.15.14_KOTLIN_1`; App remains `0.5.1.5` and Room remains 38. The compact census and audit are recorded in the C37 artifacts. PR #24 remains Draft pending completion and review.
 - C37.2 implementation/test commit `2e115315ede6ffedae206e0fc33ad7a5fc4e5357` is the current `lastAuditedCommit`. Local verification passed 2,408 JVM tests (0 failures, 0 errors, 4 skips), Kotlin main/test compilation, debug APK assembly, protocol validation, and `git diff --check`. Local APK: 70,743,219 bytes, SHA-256 `7A596CF2537DADA1A917707630365D5AF397CAB61EC2AF63105984E65AF6DFDA`; compact C37 census SHA-256 `897BEE81141083CE4606FD59CEB218B82877FBE375BE1E55F1D26E021C92911D`. Hosted CI is pending this PR update.
+
+### C37.3 — bounded ranked-owner retry and scheduling reallocation
+
+- The canonical regional B5 selector preserves its existing ranked candidate order and continues to the next B5-eligible owner only when an exact B6 feasibility probe rejects the current candidate. If no exact B6 owner remains, the regional need stays unmaterialized; no candidate-side dose is created.
+- Existing `FrequencyExpansionPlanner` day-reallocation behavior is retained and covered by its placement/reflow tests. A candidate may move only through the existing schedule and feasibility pipeline; this phase adds no frequency or recovery policy.
+
+### C37.4 — pre-save replacement review
+
+- A review is attached only to a B9-routed EXP draft that already passed the existing B7 and B8 gates. The UI distinguishes B5 alternatives still awaiting full validation from replacement options that have passed validation; candidates do not gain execution authority by being displayed or checked.
+- Selecting one or more candidates rebuilds the complete canonical EXP plan against the same generated CONTROL comparator, forces only the chosen target→stableKey mappings through normal B5 eligibility, requires exact materialized B6 owners, then reruns the existing incumbent feasibility, B7, B8, and B9 path. A failed combination does not mutate the keep draft.
+- The validated result remains a separate preview until the user presses the explicit apply action. The save gate rejects a validated-but-not-applied combination, stale row/schedule/request fingerprints, changed history or metadata, expired generation sessions, and any saved result that differs from a fresh whole-program revalidation. The final exercise rows and prescriptions use the existing persistence path; no Room or backup schema changed.
+- CONTROL/B9 fallback drafts never expose replacement candidates as executable choices. Editing the generated rows or changing request constraints invalidates the review; ordinary manual editing remains on its existing path.
+- C37.3/C37.4 implementation/test commit `b24ea4ad33ccc854378e9ff061311c8033df2c2c` is `lastAuditedCommit`. Local verification passed 2,420 JVM tests (0 failures, 0 errors, 4 skips), `compileDebugKotlin`, `compileDebugUnitTestKotlin`, `assembleDebug`, protocol validation (9 families / 36 protocols), and `git diff --check`. The full suite used the repository-external JDK 17 worker configuration after the known JBR 21 Robolectric native-runtime crash reproduced; the suite itself passed on JDK 17. Local debug APK: 72,729,062 bytes, SHA-256 `020F0A1F21CBC274F03769C3F8F14C359C73B6213C3004C9AD7776D56FCB5AA1`. App remains `0.5.1.5`, Room remains 38, and no persistence or backup schema changed. PR #24 remains Draft; hosted check and uploaded artifact evidence are tracked on the PR.
