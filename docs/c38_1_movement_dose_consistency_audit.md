@@ -12,6 +12,14 @@ C38.1은 movement coverage, regional dose evidence, 최종 세트 projection에�
 - 최근 및 이전 28일 주간 총량 중앙값은 적격·관측·완료·비제외 주에서 해당 region의 0세트도 포함한다. 운동한 주만의 중앙값은 실제 positive exposure 주로 계산한다. 제외·미관측·미완료 주는 0으로 만들지 않으며, 비어 있는 기간은 null/미관측으로 남긴다.
 - B5의 선택과 `candidateItems`는 `(stableKey, selectionRole)` identity를 사용한다. 동일 physical stableKey가 다른 역할에 덮이지 않으면서 실제 선택·materialization은 같은 운동 세트를 중복 발행하지 않는다.
 
+## A–E 결정적 검증
+
+- **A — 통합 pull:** B1 표현 분석과 regional B2 근거는 수평·수직 방향 노출을 UPPER_PULL 통합 항목에서 주별로 합산한다. 같은 주 수평 3세트와 수직 4세트는 UPPER_PULL 7세트다. 3세트와 4세트가 다른 주라면 각 주 값으로 통계를 내며 중앙값을 더하지 않는다. 기존 방향별 B4 target이 수치 권한을 갖고 있으면 aggregate가 같은 quota를 다시 만들지 않는다.
+- **B — 0주:** 28일 전체 주간 용량 중앙값에는 관측되고 완료된 적격 주의 실제 0을 포함한다. 운동한 주 중앙값은 양의 세트가 있었던 주만 계산한다. 제외·미관측 구간을 0으로 꾸미지 않으며, 빈 구간은 `null`로 남긴다.
+- **C — movement/quality 분리:** 승인된 품질 세트의 최종 투영은 부위 qualifier와 운동의 canonical movement 관계를 모두 확인한다. 수직 프레스의 어깨 자극은 기존 지역 근비대 장부에 기여할 수 있지만 HORIZONTAL_PUSH movement를 충족하지 않는다. LOWER_KNEE도 POSTERIOR_CHAIN movement를 충족하지 않는다. 기존 canonical supportive 근비대 0.5 credit은 유지한다.
+- **D — 동일 관계의 전 구간 적용:** B1, B4 근거·residual, B5 후보, 예정/최종 projection, B7 materialization audit에 공통 movement 관계와 regional credit resolver를 사용한다. 수평/수직 밀기와 당기기, LOWER_KNEE/POSTERIOR_CHAIN, CORE_DIRECT의 허용·차단 경계를 테스트로 고정했다.
+- **E — B5 owner 식별:** B5 선택 및 후보 표는 `(stableKey, selectionRole)`을 식별자로 사용하고, B6 권한은 target/owner/week의 정확한 연결을 유지한다. 이미 선택한 실제 운동을 다른 role로 다시 발행해 두 번째 물리 행을 만들지 않는다. 테스트는 정확한 role 일치만 권한 재사용으로 인정하고, stableKey만 같은 다른 role의 B6 근거를 전용하지 않음을 검증한다.
+
 ## 회귀 증거
 
 Focused tests는 같은 주 수평 pull 3세트와 수직 pull 4세트를 UPPER_PULL 7세트로 합치며 주별 통계를 먼저 계산한다. 서로 다른 주의 3/4세트는 주간 값 3과 4에서 통계가 나오고 중앙값을 더하지 않는다. 최근 주 `[8,0,0,0]`의 전체 주간 중앙값은 0이고 노출 주 중앙값은 8이며, `[8,0,8,0]`도 0주를 포함한다. 제외·미관측 기간은 분모에 들어가지 않는다.
@@ -34,4 +42,11 @@ C38.0 기준은 B7 eligible 4 / ineligible 18, B8 authorized 1 / control 21, B9 
 
 `UPPER_PULL`만을 위한 주간 수치 목표, cross-quality 환산계수, B6 중량 또는 RPE, Strength/Power/Task authority를 만들지 않았다. C36의 exact B7/B8 검증, CONTROL object, C37.4/C37.5의 저장 시 재검증·선택 흐름은 유지한다. 세부 machine-readable census는 테스트 실행 시 `app/build/reports/c36-execution-provenance-census.json`, `c33-regional-b4-residual-production-census.json`, `c26-current-next-phase-corpus.json`에 재생성된다. 이 build 산출물을 저장소에 복제하지 않는다.
 
-Implementation commit, full-suite/build verification, Hosted CI 결과는 PR #24의 C38.1 최종 update에서 이 문서와 Protocol registry에 기입한다.
+## 검증 및 버전
+
+- 시작 SHA `c7e9c3eff8553cf80109261bd578142fee18d19a`; implementation SHA `b36f4ad2bb40c9ff4e2d57bfe8f3793a6434bbd5`.
+- Protocol `3.76.0`, Runtime `RECORD_BASED_PLANNER_0.15.18_KOTLIN_1`; App `0.5.1.5`, Room `38`.
+- Focused regional 테스트 73/73 통과(RegionalAuthority 22, RegionalBottleneckDiagnosis 12, target selector 39); production coverage 6/6, service integration 2/2, post-generation authority freeze 1/1 통과. 전체 JVM suite는 364 suites, 2,441 tests, 실패 0, 오류 0, 기존 skip 4였다.
+- `compileDebugKotlin`, `compileDebugUnitTestKotlin`, `assembleDebug`, protocol validator (9 families / 36 protocols), `git diff --check`가 통과했다. 로컬 debug APK는 72,729,550 bytes, SHA-256 `3C8070534E3BE3252C3DDDF89DDFBA71DF9A4EB972230B03B60684054665E720`이다.
+- 최초 JBR 21 테스트 실행에서 알려진 Robolectric native SQLite access violation이 관찰됐다. 외부 JDK 17/fork worker 방식으로 전체 suite를 다시 실행해 native crash 및 assertion 실패 없이 통과했다. `gradle/gradle-daemon-jvm.properties`는 원래대로 복구했고 crash log는 미추적 상태라 commit에 포함하지 않았다.
+- PR #24는 OPEN/Draft이며 main에는 병합하지 않았다. Hosted CI와 artifact 결과는 코드 및 문서 후속 commit의 최종 CI 확인 뒤 별도로 기록한다.
