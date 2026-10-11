@@ -59,7 +59,7 @@ import com.training.trackplanner.data.personalized.StimulusPrescriptionMateriali
 import com.training.trackplanner.data.personalized.CanonicalRegionalMovementB4ResidualResolver
 import com.training.trackplanner.data.personalized.CanonicalRegionalMovementB6AuthorizationEngine
 import com.training.trackplanner.data.personalized.mergeCanonicalMaterialDemand
-import com.training.trackplanner.data.personalized.regionalRegionQualifierMatches
+import com.training.trackplanner.data.personalized.regionalQualityRelationCredit
 import com.training.trackplanner.data.personalized.CanonicalStimulusPlanningResult
 import com.training.trackplanner.data.personalized.CanonicalPreparedProgram
 import com.training.trackplanner.data.personalized.CanonicalPlanningOutcome
@@ -597,9 +597,10 @@ internal class PersonalizedProgramPlanningService(
                                 com.training.trackplanner.data.personalized.StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
                                 com.training.trackplanner.data.personalized.StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
                             ) && physicalQualityCatalog.relations(candidate.stableKey).any { relation ->
-                                relation.qualityId == TrainableQuality.HYPERTROPHY &&
-                                    relation.relationLevel == com.training.trackplanner.data.StimulusCapabilityLevel.DIRECT_CAPABILITY &&
-                                    regionalRegionQualifierMatches(movement.movementCoverage, relation.regionQualifier)
+                                relation.qualityId == TrainableQuality.HYPERTROPHY && regionalQualityRelationCredit(
+                                    movement.movementCoverage, context.snapshot.movementCoverage(candidate.stableKey),
+                                    relation.qualityId, relation.relationLevel, relation.regionQualifier
+                                ) == 1.0
                             }
                     }
             } ?: return@mapNotNull null

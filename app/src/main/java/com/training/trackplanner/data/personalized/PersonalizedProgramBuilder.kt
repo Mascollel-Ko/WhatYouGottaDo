@@ -96,10 +96,10 @@ class GapCandidateSelector {
                     MovementCoverage.LOWER_KNEE,
                     MovementCoverage.POSTERIOR_CHAIN,
                     MovementCoverage.HORIZONTAL_PUSH,
-                    MovementCoverage.HORIZONTAL_PULL
+                    MovementCoverage.UPPER_PULL
                 ).mapNotNull { coverage ->
                     selectableCandidates(snapshot, state, chosen)
-                        .firstOrNull { key -> snapshot.activityKind(key) == PlannedActivityKind.RESISTANCE && snapshot.movementCoverage(key) == coverage }
+                        .firstOrNull { key -> snapshot.activityKind(key) == PlannedActivityKind.RESISTANCE && snapshot.movementCoverage(key).directlyRepresents(coverage) }
                         ?.also(chosen::add)
                         ?.let { key -> PlannedExercise(key, "FOUNDATIONAL_${coverage.name}", gap.reason, 90,
                             targetSets = if (includePrescriptionDemand) 2 else 0, representedGapCodes = setOf(gap.code)) }
@@ -111,7 +111,7 @@ class GapCandidateSelector {
                 "LOWER_KNEE" -> setOf(MovementCoverage.LOWER_KNEE)
                 "POSTERIOR_CHAIN" -> setOf(MovementCoverage.POSTERIOR_CHAIN)
                 "HORIZONTAL_PUSH" -> setOf(MovementCoverage.HORIZONTAL_PUSH)
-                "UPPER_PULL" -> setOf(MovementCoverage.HORIZONTAL_PULL, MovementCoverage.VERTICAL_PULL)
+                "UPPER_PULL" -> setOf(MovementCoverage.UPPER_PULL)
                 "CORE_DIRECT" -> setOf(MovementCoverage.CORE_DIRECT)
                 "CALVES" -> setOf(MovementCoverage.CALVES)
                 "ARMS_BICEPS" -> setOf(MovementCoverage.ARMS_BICEPS)
@@ -126,7 +126,8 @@ class GapCandidateSelector {
                             objective in snapshot.badmintonSupportiveObjectives[key].orEmpty()) &&
                             (snapshot.activityKind(key) == PlannedActivityKind.RESISTANCE ||
                                 (snapshot.activityKind(key) in PERFORMANCE_ACTIVITY_KINDS && snapshot.hasSafePerformancePrescription(key)))
-                        else -> snapshot.activityKind(key) == PlannedActivityKind.RESISTANCE && snapshot.movementCoverage(key) in target
+                        else -> snapshot.activityKind(key) == PlannedActivityKind.RESISTANCE &&
+                            target.any { movement -> snapshot.movementCoverage(key).directlyRepresents(movement) }
                     }
                 }
                 .sortedWith(

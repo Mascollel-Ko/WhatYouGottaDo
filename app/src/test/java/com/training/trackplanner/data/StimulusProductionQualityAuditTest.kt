@@ -300,10 +300,20 @@ class StimulusProductionQualityAuditTest {
         val legacyH = StimulusProductionRouter().route(positiveComparison, authority, StimulusProductionRoutingMode.B8_STRENGTH_V1_ACTIVE)
         assertEquals("unexplained unsupported-coverage removals keep this real service case on CONTROL",
             StimulusProductionProgramSource.CONTROL, legacyStrength.production.routeDecision.selectedSource)
-        assertEquals(StimulusExperimentalReadinessStatus.NOT_ELIGIBLE,
-            legacyStrength.comparison.experimentalReadinessAudit?.status)
-        assertTrue("the removed coverage owners remain visible to B7",
-            legacyStrength.comparison.experimentalReadinessAudit?.reasonCodes.orEmpty().contains("CHANGE_PROVENANCE_UNCLOSED"))
+        val legacyReadiness = requireNotNull(legacyStrength.comparison.experimentalReadinessAudit)
+        assertEquals(StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW, legacyReadiness.status)
+        assertTrue("exact movement replacement chains close their B7 provenance", legacyReadiness.changeProvenanceClosed)
+        assertTrue(legacyReadiness.targetOutcomes.any {
+            it.targetId == "MOVEMENT:UPPER_PULL" && it.status == StimulusExperimentalTargetOutcomeStatus.IMPROVED
+        })
+        assertFalse("B7 no longer reports the exact UPPER_PULL replacement as unexplained",
+            "CHANGE_PROVENANCE_UNCLOSED" in legacyReadiness.reasonCodes)
+        val legacyB8 = requireNotNull(legacyStrength.comparison.productionCutoverAuthority)
+        assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, legacyB8.status)
+        assertTrue("Strength B8 remains bounded when exact movement/Core rows are also materialized",
+            "B8_CUTOVER_V1_NON_STRENGTH_CHANGE_OUT_OF_SCOPE" in legacyB8.reasonCodes)
+        assertTrue("B8 continues to reject rows lacking exact scope-local B5 authority",
+            "B8_CUTOVER_V1_ADDED_OWNER_WITHOUT_EXACT_B5_AUTHORITY" in legacyB8.reasonCodes)
         assertEquals(StimulusProductionProgramSource.CONTROL, legacyH.decision.selectedSource)
         assertEquals(listOf("B9_B8_SCOPE_MISMATCH"), legacyH.decision.reasonCodes)
     }
@@ -481,19 +491,28 @@ class StimulusProductionQualityAuditTest {
             return
         }
 
-        // C7 no longer treats legacy parity as a routing condition. Where an unrelated
-        // owner change cannot be proven by the existing B7 evidence, retain CONTROL.
+        // B7 provenance may close while a narrower B8 scope still rejects unrelated material.
         val readiness = requireNotNull(comparison.experimentalReadinessAudit)
-        assertEquals(StimulusExperimentalReadinessStatus.NOT_ELIGIBLE, readiness.status)
-        assertTrue("${case.spec.label}: fallback lacks an explicit provenance failure",
-            "CHANGE_PROVENANCE_UNCLOSED" in readiness.reasonCodes)
-        assertTrue("${case.spec.label}: B7 did not identify the unresolved owner",
-            readiness.changeAttributions.any { it.source == StimulusExperimentalChangeAttributionSource.UNEXPLAINED })
+        when (readiness.status) {
+            StimulusExperimentalReadinessStatus.NOT_ELIGIBLE -> {
+                assertTrue("${case.spec.label}: fallback lacks an explicit provenance failure",
+                    "CHANGE_PROVENANCE_UNCLOSED" in readiness.reasonCodes)
+                assertTrue("${case.spec.label}: B7 did not identify the unresolved owner",
+                    readiness.changeAttributions.any { it.source == StimulusExperimentalChangeAttributionSource.UNEXPLAINED })
+            }
+            StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW -> {
+                assertTrue("${case.spec.label}: eligible B7 must have closed provenance", readiness.changeProvenanceClosed)
+                assertTrue("${case.spec.label}: B8 must still retain its independent exact-scope reason", authority.reasonCodes.isNotEmpty())
+            }
+            else -> throw AssertionError("${case.spec.label}: unexpected B7 status ${readiness.status}")
+        }
         assertTrue(readiness.shadowOnly)
         assertFalse(readiness.productionAuthority)
         assertNull(readiness.winner)
         assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, authority.status)
-        assertTrue("B8_B7_NOT_ELIGIBLE" in authority.reasonCodes)
+        if (readiness.status == StimulusExperimentalReadinessStatus.NOT_ELIGIBLE) {
+            assertTrue("B8_B7_NOT_ELIGIBLE" in authority.reasonCodes)
+        }
         assertSame(comparison.control, case.production.program)
         assertEquals(StimulusProductionProgramSource.CONTROL, case.production.routeDecision.selectedSource)
         assertFalse(case.production.routeDecision.productionRoutingActive)

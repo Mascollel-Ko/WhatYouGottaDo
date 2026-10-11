@@ -45,7 +45,7 @@ internal data class DemandDefinition(val id: String, val unit: PlanningDemandUni
     val ownerGapCodes: Set<String> = emptySet()) {
     fun contribution(snapshot: PlanningHistorySnapshot, stableKey: String, styleVariant: String, count: Int): Double = when (unit) {
         PlanningDemandUnit.RESISTANCE_SETS -> if (snapshot.activityKind(stableKey) == PlannedActivityKind.RESISTANCE &&
-            snapshot.movementCoverage(stableKey) in movements) count.toDouble() else 0.0
+            movements.any { target -> snapshot.movementCoverage(stableKey).directlyRepresents(target) }) count.toDouble() else 0.0
         PlanningDemandUnit.OBJECTIVE_EXPOSURE -> count * (snapshot.badmintonObjectives[stableKey]?.get(objective) ?: 0.0)
         PlanningDemandUnit.DIRECT_SETS -> if (objective in snapshot.badmintonDirectObjectives[stableKey].orEmpty()) count.toDouble() else 0.0
         PlanningDemandUnit.CONTINUITY_SETS -> if (key == stableKey && variant == styleVariant) count.toDouble() else 0.0
@@ -71,7 +71,7 @@ internal class AuthorizedPlanningDemand(private val snapshot: PlanningHistorySna
                     .distinct().sorted().forEach { add(DemandDefinition("OBJECTIVE:$it", PlanningDemandUnit.OBJECTIVE_EXPOSURE, priority, it, ownerGapCodes = setOf(code))) }
             } else {
                 val mapped = when (code.removePrefix("HYPERTROPHY_REBALANCE_")) {
-                    "UPPER_PULL" -> setOf(MovementCoverage.HORIZONTAL_PULL, MovementCoverage.VERTICAL_PULL)
+                    "UPPER_PULL" -> setOf(MovementCoverage.UPPER_PULL)
                     else -> MovementCoverage.entries.filter { it.name == code.removePrefix("HYPERTROPHY_REBALANCE_") }.toSet()
                 }
                 val movements = mapped.ifEmpty { authorized.filter { code in it.item.representedGapCodes }

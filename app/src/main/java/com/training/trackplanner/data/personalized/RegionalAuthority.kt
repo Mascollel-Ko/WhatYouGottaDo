@@ -2,6 +2,7 @@ package com.training.trackplanner.data.personalized
 
 import com.training.trackplanner.data.CanonicalExercisePhysicalQualityCatalog
 import com.training.trackplanner.data.CanonicalStrengthExposureCapability
+import com.training.trackplanner.data.ExercisePhysicalQualityRelation
 import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.ProgramSkeletonRequest
 import com.training.trackplanner.data.ProgramSkeletonItem
@@ -27,22 +28,21 @@ class RegionalStrengthRequirementResolver {
     ): Map<MovementCoverage, NeedRelevance> {
         if (globalStrengthRelevance == NeedRelevance.UNKNOWN) return emptyMap()
         val result = linkedMapOf<MovementCoverage, NeedRelevance>()
-        representations.forEach { representation ->
-            val owner = when (representation.movementCoverage) {
-                "UPPER_PULL" -> listOf(MovementCoverage.HORIZONTAL_PULL, MovementCoverage.VERTICAL_PULL)
-                else -> runCatching { listOf(MovementCoverage.valueOf(representation.movementCoverage)) }.getOrDefault(emptyList())
-            }
-            owner.forEach { region ->
-                val regional = when (representation.basePriority) {
-                    RepresentationPriority.HIGH -> globalStrengthRelevance
-                    RepresentationPriority.MODERATE -> when (globalStrengthRelevance) {
-                        NeedRelevance.HIGH -> NeedRelevance.MODERATE
-                        NeedRelevance.MODERATE -> NeedRelevance.MODERATE
-                        NeedRelevance.LOW -> NeedRelevance.LOW
-                        else -> globalStrengthRelevance
-                    }
+        val canonicalPriorities = representations.mapNotNull { representation ->
+            runCatching { MovementCoverage.valueOf(representation.movementCoverage).canonicalRepresentationDomain() }
+                .getOrNull()?.let { it to representation.basePriority }
+        }.groupBy({ it.first }, { it.second })
+        canonicalPriorities.forEach { (region, priorities) ->
+            val basePriority = if (priorities.any { it == RepresentationPriority.HIGH })
+                RepresentationPriority.HIGH else RepresentationPriority.MODERATE
+            result[region] = when (basePriority) {
+                RepresentationPriority.HIGH -> globalStrengthRelevance
+                RepresentationPriority.MODERATE -> when (globalStrengthRelevance) {
+                    NeedRelevance.HIGH -> NeedRelevance.MODERATE
+                    NeedRelevance.MODERATE -> NeedRelevance.MODERATE
+                    NeedRelevance.LOW -> NeedRelevance.LOW
+                    else -> globalStrengthRelevance
                 }
-                result[region] = regional
             }
         }
         return result
@@ -53,7 +53,7 @@ class RegionalStrengthRequirementResolver {
         representations: Iterable<MovementExposureRepresentation>,
         supportedRegions: Set<MovementCoverage>
     ): Map<MovementCoverage, NeedRelevance> = resolve(globalStrengthRelevance, representations)
-        .filterKeys { it in supportedRegions }
+        .filterKeys { target -> supportedRegions.any { it.canonicalRepresentationDomain() == target } }
 }
 
 enum class RegionalTrainingDecision {
@@ -242,11 +242,50 @@ class RegionalMovementDoseTargetBuilder {
         coreCatalog: com.training.trackplanner.analysis.core.CanonicalCoreCatalog
     ): Map<MovementCoverage, List<StimulusMovementDoseTarget>> {
         val regionalIndex = RegionalEvidenceIndexBuilder().build(snapshot, state, catalog)
+        fun hasNumericDirectionalPullDose(coverage: MovementCoverage): Boolean {
+            val band = regionalIndex.regions[coverage]?.hypertrophyDoseBand ?: return false
+            val hasDirect = catalog.relations(TrainableQuality.HYPERTROPHY).any { relation ->
+                regionalQualityRelationCredit(
+                    coverage, snapshot.movementCoverage(relation.exerciseStableKey), TrainableQuality.HYPERTROPHY,
+                    relation.relationLevel, relation.regionQualifier
+                ) == 1.0
+            }
+            return hasDirect && (!band.hasPersonalBaseline || band.weeklyUnitsMedian != null)
+        }
+        val activeDirectionalPullDoseTargets = movementTargets.asSequence()
+            .map(StimulusMovementTarget::movementCoverage)
+            .filter { it == MovementCoverage.HORIZONTAL_PULL || it == MovementCoverage.VERTICAL_PULL }
+            .filter(::hasNumericDirectionalPullDose)
+            .toSet()
         return movementTargets.associate { movement ->
-            val regionalHypotrophy = if (movement.movementCoverage == MovementCoverage.CORE_DIRECT) null else {
+            // UPPER_PULL is the direction-level roll-up. If a directional pull
+            // target already owns regional hypertrophy dose authority in this
+            // B4 pass, the roll-up may observe those sets but must not issue a
+            // second independent regional set budget.
+            val upperPullSharesDirectionalDose = movement.movementCoverage == MovementCoverage.UPPER_PULL &&
+                activeDirectionalPullDoseTargets.isNotEmpty()
+            val regionalHypotrophy = if (movement.movementCoverage == MovementCoverage.CORE_DIRECT) null else if (upperPullSharesDirectionalDose) {
+                StimulusMovementDoseTarget(
+                    kind = StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET,
+                    numericAuthority = StimulusTargetNumericAuthority.DIRECTION_ONLY,
+                    weeklyTarget = null,
+                    reasonCodes = listOf("UPPER_PULL_ROLLUP_SHARES_DIRECTIONAL_PULL_DOSE_AUTHORITY"),
+                    evidence = listOf(
+                        "activeDirectionalPullDoseTargets=${activeDirectionalPullDoseTargets.map(MovementCoverage::name).sorted().joinToString()}",
+                        "upperPullIsAggregateCoverage=true",
+                        "additionalUpperPullRegionalQuota=NONE"
+                    ),
+                    shapeAuthority = StimulusMovementDoseShapeAuthority.HYPERTROPHY_BAND_8_12_PERSONAL_7_15_RPE_7_USER_LOAD_CALIBRATION
+                )
+            } else {
                 val hasDirect = catalog.relations(TrainableQuality.HYPERTROPHY).any { relation ->
-                    relation.relationLevel == com.training.trackplanner.data.StimulusCapabilityLevel.DIRECT_CAPABILITY &&
-                        regionalRegionQualifierMatches(movement.movementCoverage, relation.regionQualifier)
+                    regionalQualityRelationCredit(
+                        movement.movementCoverage,
+                        snapshot.movementCoverage(relation.exerciseStableKey),
+                        TrainableQuality.HYPERTROPHY,
+                        relation.relationLevel,
+                        relation.regionQualifier
+                    ) == 1.0
                 }
                 if (!hasDirect) null else regionalIndex.regions[movement.movementCoverage]?.hypertrophyDoseBand?.let { band ->
                     val personalBaseline = band.hasPersonalBaseline
@@ -437,28 +476,31 @@ class RegionalStimulusCreditProjector {
         val rows = linkedMapOf<Pair<MovementCoverage, TrainableQuality>, MutableRegionalPlannedStimulus>()
         val weekCount = plan.weekPlans.size.coerceAtLeast(1)
         plan.items.forEach { item ->
-            val region = snapshot.movementCoverage(item.exerciseStableKey)
-            if (region == MovementCoverage.OTHER) return@forEach
+            val relations = catalog.relations(item.exerciseStableKey)
+            val regions = regionalQualityEvidenceTargets(snapshot.movementCoverage(item.exerciseStableKey), relations)
+            if (regions.isEmpty()) return@forEach
             item.setPrescriptions.forEach { set ->
-                val relationCreditByQuality = linkedMapOf<TrainableQuality, Double>()
-                catalog.relations(item.exerciseStableKey).filter { regionQualifierMatches(region, it.regionQualifier) }.forEach { relation ->
-                    val credit = when (relation.relationLevel) {
-                        com.training.trackplanner.data.StimulusCapabilityLevel.DIRECT_CAPABILITY -> 1.0
-                        com.training.trackplanner.data.StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY ->
-                            if (relation.qualityId == TrainableQuality.HYPERTROPHY) 0.5 else 0.0
+                regions.forEach regionLoop@{ region ->
+                    val relationCreditByQuality = linkedMapOf<TrainableQuality, Double>()
+                    relations
+                        .forEach relationLoop@{ relation ->
+                            val credit = regionalQualityRelationCredit(
+                                region, snapshot.movementCoverage(item.exerciseStableKey), relation.qualityId,
+                                relation.relationLevel, relation.regionQualifier
+                            )
+                            if (credit <= 0.0) return@relationLoop
+                            val compatible = if (relation.qualityId in setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY)) {
+                                prescriptionShapeCompatible(relation.qualityId, item.exerciseStableKey, set.reps)
+                            } else true
+                            if (!compatible) return@relationLoop
+                            relationCreditByQuality[relation.qualityId] = maxOf(relationCreditByQuality[relation.qualityId] ?: 0.0, credit)
+                        }
+                    relationCreditByQuality.forEach { (quality, credit) ->
+                        val key = region to quality
+                        val value = rows.getOrPut(key) { MutableRegionalPlannedStimulus(region, quality) }
+                        value.units += credit
+                        value.weeks += item.weekNumber
                     }
-                    if (credit <= 0.0) return@forEach
-                    val compatible = if (relation.qualityId in setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY)) {
-                        prescriptionShapeCompatible(relation.qualityId, item.exerciseStableKey, set.reps)
-                    } else true
-                    if (!compatible) return@forEach
-                    relationCreditByQuality[relation.qualityId] = maxOf(relationCreditByQuality[relation.qualityId] ?: 0.0, credit)
-                }
-                relationCreditByQuality.forEach { (quality, credit) ->
-                    val key = region to quality
-                    val value = rows.getOrPut(key) { MutableRegionalPlannedStimulus(region, quality) }
-                    value.units += credit
-                    value.weeks += item.weekNumber
                 }
             }
         }
@@ -492,9 +534,7 @@ class RegionalStimulusCreditProjector {
                     StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
                     StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
                     StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
-                ) && StimulusPrescriptionOwnerIdentity(owner.stableKey, owner.selectionRole) in selectedByOwner &&
-                selectedByOwner.getValue(StimulusPrescriptionOwnerIdentity(owner.stableKey, owner.selectionRole))
-                    .coveredTargetIds.contains("QUALITY:HYPERTROPHY")
+                ) && StimulusPrescriptionOwnerIdentity(owner.stableKey, owner.selectionRole) in selectedByOwner
         }
         val replaced = authorized.mapNotNullTo(linkedSetOf()) { authorization ->
             authorization.owner?.let { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }
@@ -509,19 +549,20 @@ class RegionalStimulusCreditProjector {
             val owner = requireNotNull(authorization.owner)
             val prescription = requireNotNull(authorization.authorizedPrescription)
             prescription.sets.forEach { set ->
-                val regions = targetRegions ?: setOf(snapshot.movementCoverage(owner.stableKey))
+                val regions = targetRegions ?: regionalQualityEvidenceTargets(
+                    snapshot.movementCoverage(owner.stableKey), catalog.relations(owner.stableKey)
+                ).toSet()
                 regions.forEach { region ->
                     if (region == MovementCoverage.OTHER) return@forEach
                     val credit = catalog.relations(owner.stableKey)
-                        .filter { regionalRegionQualifierMatches(region, it.regionQualifier) }
+                        .asSequence()
                         .filter { it.qualityId == TrainableQuality.HYPERTROPHY }
                         .maxOfOrNull { relation ->
-                            when (relation.relationLevel) {
-                                com.training.trackplanner.data.StimulusCapabilityLevel.DIRECT_CAPABILITY -> 1.0
-                                com.training.trackplanner.data.StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY -> 0.5
-                            }
-                        }
-                        ?: 0.0
+                        regionalQualityRelationCredit(
+                            region, snapshot.movementCoverage(owner.stableKey), relation.qualityId,
+                            relation.relationLevel, relation.regionQualifier
+                        )
+                    } ?: 0.0
                     if (credit <= 0.0 || !prescriptionShapeCompatible(TrainableQuality.HYPERTROPHY, owner.stableKey, set.reps)) return@forEach
                     val key = region to TrainableQuality.HYPERTROPHY
                     combined[key] = (combined[key] ?: 0.0) + credit
@@ -543,16 +584,6 @@ class RegionalStimulusCreditProjector {
         val weeks = linkedSetOf<Int>()
     }
 
-    private fun regionQualifierMatches(movement: MovementCoverage, qualifier: com.training.trackplanner.data.PhysicalQualityRegion): Boolean = when (movement) {
-        MovementCoverage.LOWER_KNEE -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.LOWER, com.training.trackplanner.data.PhysicalQualityRegion.QUADS_GLUTE, com.training.trackplanner.data.PhysicalQualityRegion.UNILATERAL_LOWER)
-        MovementCoverage.POSTERIOR_CHAIN -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.POSTERIOR_CHAIN, com.training.trackplanner.data.PhysicalQualityRegion.HAMSTRING, com.training.trackplanner.data.PhysicalQualityRegion.LOWER, com.training.trackplanner.data.PhysicalQualityRegion.UNILATERAL_LOWER)
-        MovementCoverage.CALVES -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.ANKLE, com.training.trackplanner.data.PhysicalQualityRegion.LOWER)
-        MovementCoverage.HORIZONTAL_PUSH -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PUSH, com.training.trackplanner.data.PhysicalQualityRegion.CHEST, com.training.trackplanner.data.PhysicalQualityRegion.SHOULDERS, com.training.trackplanner.data.PhysicalQualityRegion.ARMS)
-        MovementCoverage.VERTICAL_PUSH -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PUSH, com.training.trackplanner.data.PhysicalQualityRegion.SHOULDERS, com.training.trackplanner.data.PhysicalQualityRegion.ARMS)
-        MovementCoverage.HORIZONTAL_PULL, MovementCoverage.VERTICAL_PULL, MovementCoverage.UPPER_PULL -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PULL, com.training.trackplanner.data.PhysicalQualityRegion.SHOULDERS, com.training.trackplanner.data.PhysicalQualityRegion.ARMS)
-        MovementCoverage.ARMS_BICEPS, MovementCoverage.ARMS_TRICEPS -> qualifier == com.training.trackplanner.data.PhysicalQualityRegion.ARMS
-        else -> false
-    }
 }
 
 data class RegionalAuthorityTrace(
@@ -751,12 +782,12 @@ class RegionalTargetCandidateSelector {
         val pool = snapshot.exercises.keys.asSequence()
             .filter { key -> target.specificStableKey == null || key == target.specificStableKey }
             .filter { key -> key !in usedStableKeys }
-            .filter { key -> snapshot.movementCoverage(key) == target.region }
+            .filter { key -> snapshot.movementCoverage(key).directlyRepresents(target.region) }
             .filter { key -> request?.excludedExerciseStableKeys?.contains(key) != true }
             .filter { key -> snapshot.metadata[key]?.planningEligibility in setOf("PROGRAM_SELECTABLE", "SELECTABLE") }
             .filterNot(snapshot::explicitlyRestricted)
             .filter { key -> key !in snapshot.recoverySignals.tissueRestrictedStableKeys }
-            .filter { key -> exactCapability(catalog, key, target) }
+            .filter { key -> exactCapability(snapshot, catalog, key, target) }
             .filter { key -> equipmentCompatible(snapshot, key, state, request) }
             .filter { key -> prescriptionCompatible(snapshot, key, target.quality) }
             .sortedWith(
@@ -787,10 +818,12 @@ class RegionalTargetCandidateSelector {
         ))
     }
 
-    private fun exactCapability(catalog: CanonicalExercisePhysicalQualityCatalog, key: String, target: RegionalStimulusTarget): Boolean =
+    private fun exactCapability(snapshot: PlanningHistorySnapshot, catalog: CanonicalExercisePhysicalQualityCatalog, key: String, target: RegionalStimulusTarget): Boolean =
         catalog.relations(key).any { relation ->
-            relation.qualityId == target.quality && relation.relationLevel == com.training.trackplanner.data.StimulusCapabilityLevel.DIRECT_CAPABILITY &&
-                regionQualifierMatches(target.region, relation.regionQualifier)
+            relation.qualityId == target.quality && regionalQualityRelationCredit(
+                target.region, snapshot.movementCoverage(key), relation.qualityId,
+                relation.relationLevel, relation.regionQualifier
+            ) == 1.0
         }
 
     private fun prescriptionCompatible(snapshot: PlanningHistorySnapshot, key: String, quality: TrainableQuality): Boolean {
@@ -824,15 +857,6 @@ class RegionalTargetCandidateSelector {
         return if (group.isBlank()) 0 else existingPlan?.items.orEmpty().count { it.redundancyGroup == group }
     }
 
-    private fun regionQualifierMatches(movement: MovementCoverage, qualifier: com.training.trackplanner.data.PhysicalQualityRegion): Boolean = when (movement) {
-        MovementCoverage.LOWER_KNEE -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.LOWER, com.training.trackplanner.data.PhysicalQualityRegion.QUADS_GLUTE, com.training.trackplanner.data.PhysicalQualityRegion.UNILATERAL_LOWER)
-        MovementCoverage.POSTERIOR_CHAIN -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.POSTERIOR_CHAIN, com.training.trackplanner.data.PhysicalQualityRegion.HAMSTRING, com.training.trackplanner.data.PhysicalQualityRegion.LOWER, com.training.trackplanner.data.PhysicalQualityRegion.UNILATERAL_LOWER)
-        MovementCoverage.CALVES -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.ANKLE, com.training.trackplanner.data.PhysicalQualityRegion.LOWER)
-        MovementCoverage.HORIZONTAL_PUSH, MovementCoverage.VERTICAL_PUSH -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PUSH, com.training.trackplanner.data.PhysicalQualityRegion.CHEST, com.training.trackplanner.data.PhysicalQualityRegion.SHOULDERS, com.training.trackplanner.data.PhysicalQualityRegion.ARMS)
-        MovementCoverage.HORIZONTAL_PULL, MovementCoverage.VERTICAL_PULL, MovementCoverage.UPPER_PULL -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PULL, com.training.trackplanner.data.PhysicalQualityRegion.SHOULDERS, com.training.trackplanner.data.PhysicalQualityRegion.ARMS)
-        MovementCoverage.ARMS_BICEPS, MovementCoverage.ARMS_TRICEPS -> qualifier == com.training.trackplanner.data.PhysicalQualityRegion.ARMS
-        else -> false
-    }
 }
 
 data class RegionalExperimentalMaterialDemand(
@@ -1332,7 +1356,7 @@ class CanonicalRegionalMovementB6AuthorizationEngine(
                 authorizedWholeSetUnits = units,
                 reasonCodes = dose.residualReasonCodes
             )
-            val resolution = if (owner == null || candidate == null || item == null) {
+            val resolution = if (candidate == null || item == null) {
                 RegionalTargetPrescriptionResolver.Resolution(null, listOf("B6_REQUIRES_EXACT_B5_REGIONAL_OWNER"))
             } else prescriptionResolver.resolve(b4, item, snapshot)
             val authorized = resolution.prescription
@@ -1505,9 +1529,10 @@ object RegionalMaterialDemandOwnershipFilter {
             }.toSet()
             ownedKeys.none { owned ->
                 owned.quality in actualQualities && catalog.relations(candidate.stableKey).any { relation ->
-                    relation.qualityId == owned.quality &&
-                        relation.relationLevel == com.training.trackplanner.data.StimulusCapabilityLevel.DIRECT_CAPABILITY &&
-                        regionalRegionQualifierMatches(owned.region, relation.regionQualifier)
+                    relation.qualityId == owned.quality && regionalQualityRelationCredit(
+                        owned.region, snapshot.movementCoverage(candidate.stableKey), relation.qualityId,
+                        relation.relationLevel, relation.regionQualifier
+                    ) == 1.0
                 }
             }
         }
@@ -1557,11 +1582,11 @@ class FinalRegionalStimulusProjector {
         val sameKeyRows = finalPlan.items
             .filter { it.weekNumber == 1 && it.exerciseStableKey == selectedIdentity?.stableKey }
             .filter { item ->
-                snapshot.movementCoverage(item.exerciseStableKey) == target.region &&
-                    catalog.relations(item.exerciseStableKey).any { relation ->
-                        relation.qualityId == target.quality &&
-                            relation.relationLevel == com.training.trackplanner.data.StimulusCapabilityLevel.DIRECT_CAPABILITY &&
-                            regionalRegionQualifierMatches(target.region, relation.regionQualifier)
+                catalog.relations(item.exerciseStableKey).any { relation ->
+                    relation.qualityId == target.quality && regionalQualityRelationCredit(
+                        target.region, snapshot.movementCoverage(item.exerciseStableKey), relation.qualityId,
+                        relation.relationLevel, relation.regionQualifier
+                    ) == 1.0
                     }
             }
         fun compatibleUnits(items: List<ProgramSkeletonItem>) = items.sumOf { item -> item.setPrescriptions.count { set ->
@@ -1619,8 +1644,89 @@ internal fun regionalRegionQualifierMatches(
     MovementCoverage.LOWER_KNEE -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.LOWER, com.training.trackplanner.data.PhysicalQualityRegion.QUADS_GLUTE, com.training.trackplanner.data.PhysicalQualityRegion.UNILATERAL_LOWER)
     MovementCoverage.POSTERIOR_CHAIN -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.POSTERIOR_CHAIN, com.training.trackplanner.data.PhysicalQualityRegion.HAMSTRING, com.training.trackplanner.data.PhysicalQualityRegion.LOWER, com.training.trackplanner.data.PhysicalQualityRegion.UNILATERAL_LOWER)
     MovementCoverage.CALVES -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.ANKLE, com.training.trackplanner.data.PhysicalQualityRegion.LOWER)
-    MovementCoverage.HORIZONTAL_PUSH, MovementCoverage.VERTICAL_PUSH -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PUSH, com.training.trackplanner.data.PhysicalQualityRegion.CHEST, com.training.trackplanner.data.PhysicalQualityRegion.SHOULDERS, com.training.trackplanner.data.PhysicalQualityRegion.ARMS)
-    MovementCoverage.HORIZONTAL_PULL, MovementCoverage.VERTICAL_PULL, MovementCoverage.UPPER_PULL -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PULL, com.training.trackplanner.data.PhysicalQualityRegion.SHOULDERS, com.training.trackplanner.data.PhysicalQualityRegion.ARMS)
+    MovementCoverage.HORIZONTAL_PUSH -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PUSH, com.training.trackplanner.data.PhysicalQualityRegion.CHEST)
+    MovementCoverage.VERTICAL_PUSH -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PUSH, com.training.trackplanner.data.PhysicalQualityRegion.SHOULDERS)
+    MovementCoverage.HORIZONTAL_PULL, MovementCoverage.VERTICAL_PULL -> qualifier == com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PULL
+    MovementCoverage.UPPER_PULL -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PULL, com.training.trackplanner.data.PhysicalQualityRegion.SHOULDERS)
     MovementCoverage.ARMS_BICEPS, MovementCoverage.ARMS_TRICEPS -> qualifier == com.training.trackplanner.data.PhysicalQualityRegion.ARMS
     else -> false
 }
+
+/** Shared movement-and-quality credit rule for history, B4 projection, and final audits. */
+internal fun regionalQualityRelationCredit(
+    target: MovementCoverage,
+    exerciseMovement: MovementCoverage,
+    quality: TrainableQuality,
+    relationLevel: com.training.trackplanner.data.StimulusCapabilityLevel,
+    qualifier: com.training.trackplanner.data.PhysicalQualityRegion
+): Double {
+    if (!regionalRegionQualifierMatches(target, qualifier)) return 0.0
+    return when (relationLevel) {
+        com.training.trackplanner.data.StimulusCapabilityLevel.DIRECT_CAPABILITY ->
+            if (exerciseMovement.directlyRepresents(target)) 1.0 else 0.0
+        com.training.trackplanner.data.StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY ->
+            if (quality == TrainableQuality.HYPERTROPHY &&
+                supportiveHypertrophyRegionMatches(target, exerciseMovement, qualifier)) 0.5 else 0.0
+    }
+}
+
+/**
+ * A broad quality-region qualifier cannot satisfy an unrelated movement direction.
+ * Keep the approved half-credit for a specific regional relation, while requiring
+ * matching movement identity where the existing region key represents a direction.
+ */
+private fun supportiveHypertrophyRegionMatches(
+    target: MovementCoverage,
+    exerciseMovement: MovementCoverage,
+    qualifier: com.training.trackplanner.data.PhysicalQualityRegion
+): Boolean = when (target) {
+    MovementCoverage.HORIZONTAL_PUSH -> exerciseMovement.directlyRepresents(target) &&
+        qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PUSH, com.training.trackplanner.data.PhysicalQualityRegion.CHEST)
+    MovementCoverage.VERTICAL_PUSH -> exerciseMovement.directlyRepresents(target) &&
+        qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PUSH, com.training.trackplanner.data.PhysicalQualityRegion.SHOULDERS)
+    MovementCoverage.HORIZONTAL_PULL, MovementCoverage.VERTICAL_PULL ->
+        exerciseMovement.directlyRepresents(target) && qualifier == com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PULL
+    MovementCoverage.UPPER_PULL -> exerciseMovement.directlyRepresents(target) &&
+        qualifier == com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PULL
+    MovementCoverage.LOWER_KNEE -> qualifier == com.training.trackplanner.data.PhysicalQualityRegion.QUADS_GLUTE ||
+        (exerciseMovement.directlyRepresents(target) && qualifier in setOf(
+            com.training.trackplanner.data.PhysicalQualityRegion.LOWER,
+            com.training.trackplanner.data.PhysicalQualityRegion.UNILATERAL_LOWER
+        ))
+    MovementCoverage.POSTERIOR_CHAIN -> qualifier in setOf(
+        com.training.trackplanner.data.PhysicalQualityRegion.POSTERIOR_CHAIN,
+        com.training.trackplanner.data.PhysicalQualityRegion.HAMSTRING
+    ) || (exerciseMovement.directlyRepresents(target) && qualifier in setOf(
+        com.training.trackplanner.data.PhysicalQualityRegion.LOWER,
+        com.training.trackplanner.data.PhysicalQualityRegion.UNILATERAL_LOWER
+    ))
+    MovementCoverage.CALVES -> qualifier == com.training.trackplanner.data.PhysicalQualityRegion.ANKLE ||
+        (exerciseMovement.directlyRepresents(target) && qualifier == com.training.trackplanner.data.PhysicalQualityRegion.LOWER)
+    MovementCoverage.ARMS_BICEPS, MovementCoverage.ARMS_TRICEPS -> qualifier == com.training.trackplanner.data.PhysicalQualityRegion.ARMS
+    else -> false
+}
+
+/**
+ * Quality-region observations may include canonical supportive Hypertrophy relations even when
+ * the exercise's movement identity differs. Movement coverage remains exact in B5; these extra
+ * regions are only ledger observations and never grant movement or prescription authority.
+ */
+internal fun regionalQualityEvidenceTargets(
+    exerciseMovement: MovementCoverage,
+    relations: Iterable<ExercisePhysicalQualityRelation>
+): List<MovementCoverage> = buildSet {
+    addAll(exerciseMovement.regionalEvidenceTargets().filter { it in regionalSupportedRegions })
+    relations.asSequence()
+        .filter {
+            it.qualityId == TrainableQuality.HYPERTROPHY &&
+                it.relationLevel == com.training.trackplanner.data.StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY
+        }
+        .forEach { relation ->
+            regionalSupportedRegions.filterTo(this) { region ->
+                regionalQualityRelationCredit(
+                    region, exerciseMovement, TrainableQuality.HYPERTROPHY,
+                    relation.relationLevel, relation.regionQualifier
+                ) > 0.0
+            }
+        }
+}.toList().sortedBy(MovementCoverage::name)

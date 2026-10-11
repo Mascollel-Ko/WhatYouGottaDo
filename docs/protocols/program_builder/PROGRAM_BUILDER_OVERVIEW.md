@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.75.0 |
+| Protocol version | 3.76.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.17 |
-| Last audited commit | df5504cabb2ec31a21a450ce2e4eddfb04e94a6d |
+| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.18 |
+| Last audited commit | c7e9c3eff8553cf80109261bd578142fee18d19a |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1489,3 +1489,11 @@ Post-audit boundary notes
 - Changing or removing a saved owner-week requires the same final draft fingerprint, an eligible B7 audit with exact owner attribution, an authorized exact B8 owner/scope, and active B9 routing. A removal additionally requires the exact user-approved replacement edge, including the displaced row, target, replacement identity, week materialization, and B8-authorized replacement owner. Role-only changes are compared as distinct exact identities. Missing proof aborts the save transaction and retains the prior program.
 - C37.5's 32 unresolved `(case, stableKey, selectionRole)` comparator pairs remain unresolved where B4 dose authority, exact B6 prescription authority, or actual funded/materialized units are absent. `UPPER_PULL` remains direction-only and receives no independent weekly set target. This version adds no dose, load, effort, or exercise eligibility policy and does not relax B7/B8/B9.
 - Implementation/test commit `df5504cabb2ec31a21a450ce2e4eddfb04e94a6d` is `lastAuditedCommit`. Local full suite passed 2,430 tests (0 failures, 0 errors, 4 skips) with the repository-external JDK 17 worker workaround after the known JBR 21 Robolectric native-runtime crash. Main/test Kotlin compilation, `assembleDebug`, protocol validation (9 families / 36 protocols), and `git diff --check` passed. App remains `0.5.1.5`, Room remains 38. Full verification details are in [`docs/c38_existing_owner_preservation_audit.md`](../../c38_existing_owner_preservation_audit.md); PR #24 remains Draft.
+
+### C38.1 — consistent movement and regional dose evidence (protocol 3.76.0)
+
+- `HORIZONTAL_PULL`, `VERTICAL_PULL`, and directly classified `UPPER_PULL` exercises resolve to the existing `UPPER_PULL` aggregate for integrated exposure. The aggregate consumes eligible physical sets once per week; it does not add a second regional quota when an active directional B4 dose already owns that authority. Horizontal and vertical directional targets remain distinct, as do horizontal/vertical push, knee/posterior-chain, and `CORE_DIRECT`.
+- Regional historic evidence, B4 residuals, B5 owner eligibility, planned projection, final projection, and B7 materialization audit use the same canonical relation-credit rules. Direct movement credit requires the matching movement relationship; supported regional hypertrophy credit continues to use the existing canonical supportive relation and its existing 0.5 credit. Muscle-region contribution does not create movement coverage.
+- Recent and previous 28-day weekly-dose medians include zero for eligible, observed, completed, non-excluded weeks with other controllable training, while exposure-week medians include only qualifying weeks with dose. Unobserved, incomplete, and excluded weeks are omitted; an empty interval remains unobserved rather than becoming a zero median.
+- B5 candidate arbitration identifies an owner by `(stableKey, selectionRole)`, preserving distinct role decisions while keeping physical materialization deduplicated. No new Strength, Hypertrophy, Power, Core, or movement quota or exercise authority is introduced.
+- Production corpus regression verifies the changed B4→B5→B6→weekly materialization→B7 chain, exact authorization and residual accounting, and CONTROL/EXP build isolation. C38.1 implementation and verification details are recorded in [`docs/c38_1_movement_dose_consistency_audit.md`](../../c38_1_movement_dose_consistency_audit.md).

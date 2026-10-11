@@ -321,11 +321,11 @@ class StimulusTargetCandidateSelector(
                 rows.filter { !it.date.isBefore(currentStart) }.map(PlanningSetRecord::date).distinct().size
             }
         )
-        val selected = linkedMapOf<String, StimulusSelectedCandidate>()
+        val selected = linkedMapOf<StimulusPrescriptionOwnerIdentity, StimulusSelectedCandidate>()
         // A movement-only B5 observation is not an executable selected owner and must not
         // suppress later Quality/Task candidate selection during this same pass.
         val movementSelected = linkedMapOf<String, StimulusSelectedCandidate>()
-        val candidateItems = linkedMapOf<String, PlannedExercise>()
+        val candidateItems = linkedMapOf<StimulusPrescriptionOwnerIdentity, PlannedExercise>()
         val deferred = linkedMapOf<String, String>()
         val audit = linkedMapOf<String, String>()
         val traces = mutableListOf<StimulusCandidateSelectionTrace>()
@@ -360,7 +360,7 @@ class StimulusTargetCandidateSelector(
             }
             if (reusable != null) {
                 val merged = reusable.copy(coveredTargetIds = reusable.coveredTargetIds + intent.targetId)
-                selected[reusable.stableKey] = merged
+                selected[StimulusPrescriptionOwnerIdentity(merged.stableKey, merged.selectionRole)] = merged
                 traces += trace(
                     intent, historyIdentities, false, emptyList(), null, reusable.stableKey,
                     emptyMap(), listOf("TARGET_COVERED_BY_ALREADY_SELECTED_IDENTITY", realizedGapCode(intent)),
@@ -375,7 +375,44 @@ class StimulusTargetCandidateSelector(
                 return@forEach
             }
 
-            val ranked = eligibleCandidates(intent, selected.keys, excludedStableKeys, snapshot, state, request, physicalQualityCatalog, historyIndex, coreCatalog)
+            // A direction-only movement observation may roll up to UPPER_PULL (or
+            // another explicitly represented movement target) without becoming a
+            // second B5 physical owner. This is observation sharing only: numeric
+            // regional-dose owners still require their own exact B4/B6 path above.
+            val reusableMovementObservation = if (intent is StimulusSelectionTarget.Movement && !isRegionalDoseOwner) {
+                movementSelected.values.firstOrNull { movementCandidate ->
+                    directlyCovers(intent, movementCandidate.stableKey, snapshot, physicalQualityCatalog)
+                }
+            } else null
+            if (reusableMovementObservation != null) {
+                traces += trace(
+                    intent = intent,
+                    historyIdentities = historyIdentities,
+                    required = false,
+                    pool = emptyList(),
+                    selected = null,
+                    reused = reusableMovementObservation.stableKey,
+                    rejections = emptyMap(),
+                    reasons = listOf(
+                        "TARGET_COVERED_BY_ALREADY_SELECTED_MOVEMENT_IDENTITY",
+                        "MOVEMENT_COVERAGE_OBSERVATION_ONLY_NO_ADDITIONAL_PHYSICAL_OWNER"
+                    ),
+                    reusedRole = reusableMovementObservation.selectionRole
+                )
+                dispositionContexts += TargetDispositionContext(
+                    intent = intent,
+                    selectionRequired = false,
+                    selectedInstead = StimulusPrescriptionOwnerIdentity(
+                        reusableMovementObservation.stableKey,
+                        reusableMovementObservation.selectionRole
+                    ),
+                    targetCoveredBySelectedOwner = true
+                )
+                return@forEach
+            }
+
+            val selectedPhysicalKeys = selected.values.mapTo(linkedSetOf(), StimulusSelectedCandidate::stableKey)
+            val ranked = eligibleCandidates(intent, selectedPhysicalKeys, excludedStableKeys, snapshot, state, request, physicalQualityCatalog, historyIndex, coreCatalog)
             val pool = ranked.map { it.key }
             if (intent is StimulusSelectionTarget.Movement) {
                 val regionalDose = intent.target.regionalDoseTargets.firstOrNull {
@@ -397,9 +434,14 @@ class StimulusTargetCandidateSelector(
                 val role = roleFor(intent)
                 val candidateRejections = linkedMapOf<String, String>()
                 val forcedCandidate = forcedCandidateByTarget[intent.targetId]
-                val candidateOrder = if (forcedCandidate == null) ranked else ranked.filter { it.key == forcedCandidate }
+                val selectedOwnerKeys = selected.values.mapTo(linkedSetOf(), StimulusSelectedCandidate::stableKey)
+                val availableRanked = ranked.filterNot { it.key in selectedOwnerKeys }
+                ranked.filter { it.key in selectedOwnerKeys }.forEach { alreadySelected ->
+                    candidateRejections[alreadySelected.key] = "PHYSICAL_OWNER_ALREADY_SELECTED_FOR_OTHER_AUTHORIZED_DEMAND"
+                }
+                val candidateOrder = if (forcedCandidate == null) availableRanked else availableRanked.filter { it.key == forcedCandidate }
                 if (forcedCandidate != null && candidateOrder.isEmpty()) {
-                    candidateRejections[forcedCandidate] = "FORCED_CANDIDATE_NOT_B5_ELIGIBLE"
+                    candidateRejections.putIfAbsent(forcedCandidate, "FORCED_CANDIDATE_NOT_B5_ELIGIBLE")
                 }
                 val chosen = candidateOrder.firstOrNull { candidate ->
                     if (regionalDose == null || regionalUnits == null) return@firstOrNull true
@@ -410,8 +452,13 @@ class StimulusTargetCandidateSelector(
                     }
                 }
                 if (chosen == null) {
-                    val reason = if (candidateRejections.isEmpty()) "MOVEMENT_TARGET_HAS_NO_ELIGIBLE_B5_OWNER"
-                    else "MOVEMENT_TARGET_HAS_NO_B5_OWNER_WITH_EXACT_B6_AUTHORITY"
+                    val reason = when {
+                        ranked.isNotEmpty() && candidateRejections.isNotEmpty() && candidateRejections.values.all {
+                            it == "PHYSICAL_OWNER_ALREADY_SELECTED_FOR_OTHER_AUTHORIZED_DEMAND"
+                        } -> "MOVEMENT_TARGET_CANDIDATES_ALREADY_ALLOCATED_TO_OTHER_PHYSICAL_DEMANDS"
+                        candidateRejections.isEmpty() -> "MOVEMENT_TARGET_HAS_NO_ELIGIBLE_B5_OWNER"
+                        else -> "MOVEMENT_TARGET_HAS_NO_B5_OWNER_WITH_EXACT_B6_AUTHORITY"
+                    }
                     deferred[intent.targetId] = reason
                     traces += trace(intent, historyIdentities, true, pool, null, null, candidateRejections, listOf(reason),
                         candidateRoles = candidateRejections.keys.associateWith { role })
@@ -435,7 +482,8 @@ class StimulusTargetCandidateSelector(
                         material = true,
                         representedGapCodes = setOf("${intent.targetId}_B4_REGIONAL_RESIDUAL")
                     )
-                    candidateItems[chosen.key] = item
+                    val ownerIdentity = StimulusPrescriptionOwnerIdentity(item.stableKey, item.role)
+                    candidateItems[ownerIdentity] = item
                     val selectedCandidate = StimulusSelectedCandidate(
                         stableKey = chosen.key,
                         coveredTargetIds = setOf(intent.targetId),
@@ -447,7 +495,7 @@ class StimulusTargetCandidateSelector(
                         selectionRole = role,
                         probePrescriptionCompatibility = SelectionProbePrescriptionCompatibility.REALIZATION_UNCLASSIFIED
                     )
-                    selected[chosen.key] = selectedCandidate
+                    selected[ownerIdentity] = selectedCandidate
                     audit[chosen.key] = if (regionalDose.kind == StimulusMovementDoseKind.CORE_DIRECT_CONTROL_SET)
                         "B5_SELECTED_EXACT_CORE_DIRECT_RESIDUAL_OWNER" else "B5_SELECTED_EXACT_REGIONAL_RESIDUAL_OWNER"
                     traces += trace(intent, historyIdentities, true, pool, chosen.key, null, candidateRejections,
@@ -529,7 +577,8 @@ class StimulusTargetCandidateSelector(
                 return@forEach
             }
             val item = chosen.item
-            candidateItems[item.stableKey] = candidateItems[item.stableKey]?.let { old ->
+            val ownerIdentity = StimulusPrescriptionOwnerIdentity(item.stableKey, item.role)
+            candidateItems[ownerIdentity] = candidateItems[ownerIdentity]?.let { old ->
                 old.copy(targetSets = maxOf(old.targetSets, item.targetSets), representedObjectives = old.representedObjectives + item.representedObjectives)
             } ?: item
             val selectedCandidate = StimulusSelectedCandidate(
@@ -545,7 +594,7 @@ class StimulusTargetCandidateSelector(
                 selectionRole = item.role,
                 probePrescriptionCompatibility = chosen.compatibility
             )
-            selected[item.stableKey] = selectedCandidate
+            selected[ownerIdentity] = selectedCandidate
             audit[item.stableKey] = "B5_SELECTED_CANONICAL_IDENTITY"
             traces += trace(
                 intent, historyIdentities, true, pool, item.stableKey, null, rejections,
@@ -570,7 +619,7 @@ class StimulusTargetCandidateSelector(
             selectedCandidate.copy(coveredTargetIds = selectedCandidate.coveredTargetIds + movementTargetIds)
         }
         val standaloneMovementCandidates = movementSelected.values.filterNot { movementCandidate ->
-            movementCandidate.stableKey in selected
+            selected.keys.any { it.stableKey == movementCandidate.stableKey }
         }
         val allSelected = (executableSelected + standaloneMovementCandidates)
             .sortedWith(compareBy({ it.primaryTargetId }, { it.stableKey }, { it.selectionRole }))
@@ -601,7 +650,11 @@ class StimulusTargetCandidateSelector(
             if (!trace.targetId.startsWith("MOVEMENT:") || trace.selectedStableKey == null) return@map trace
             val movementOwner = movementSelected[trace.targetId]
             if (movementOwner?.stableKey != trace.selectedStableKey) return@map trace
-            val finalOwner = selected[trace.selectedStableKey]
+            // A direction-only movement candidate may be satisfied by the exact
+            // same physical owner selected for an independently authorized quality
+            // target. Preserve the quality owner's role in the trace; the shared
+            // physical row remains single and no movement dose authority is added.
+            val finalOwner = selected.values.singleOrNull { it.stableKey == movementOwner.stableKey }
             if (finalOwner == null) return@map trace
             trace.copy(
                 selectedSelectionRole = finalOwner.selectionRole,
@@ -611,7 +664,7 @@ class StimulusTargetCandidateSelector(
         val finalDispositionContexts = dispositionContexts.map { context ->
             if (context.intent !is StimulusSelectionTarget.Movement) return@map context
             val movementOwner = movementSelected[context.intent.targetId] ?: return@map context
-            val finalOwner = selected[movementOwner.stableKey] ?: return@map context
+            val finalOwner = selected.values.singleOrNull { it.stableKey == movementOwner.stableKey } ?: return@map context
             if (finalOwner.primaryTargetId == context.intent.targetId) return@map context
             context.copy(
                 selectionRequired = false,
@@ -681,14 +734,6 @@ class StimulusTargetCandidateSelector(
     private fun roleFor(intent: StimulusSelectionTarget): String =
         "CANONICAL_STIMULUS_${intent.targetId.replace(':', '_')}"
 
-    /** UPPER_PULL is the existing canonical aggregate over horizontal and vertical pull. */
-    private fun MovementCoverage.directlyRepresents(target: MovementCoverage): Boolean = when (target) {
-        MovementCoverage.UPPER_PULL -> this in setOf(
-            MovementCoverage.HORIZONTAL_PULL, MovementCoverage.VERTICAL_PULL, MovementCoverage.UPPER_PULL
-        )
-        else -> this == target
-    }
-
     private data class CandidateKey(
         val key: String,
         val targetCompatibleHistory: Boolean,
@@ -755,9 +800,10 @@ class StimulusTargetCandidateSelector(
                                 CoreDirectPrescriptionShapeResolver.supportsExecutableShape(key, snapshot, coreCatalog)
                         } == true) &&
                         (!requiresHypertrophyOwner || physicalQualityCatalog.relations(key).any { relation ->
-                            relation.qualityId == TrainableQuality.HYPERTROPHY &&
-                                relation.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY &&
-                                regionalRegionQualifierMatches(intent.target.movementCoverage, relation.regionQualifier)
+                            relation.qualityId == TrainableQuality.HYPERTROPHY && regionalQualityRelationCredit(
+                                intent.target.movementCoverage, snapshot.movementCoverage(key), relation.qualityId,
+                                relation.relationLevel, relation.regionQualifier
+                            ) == 1.0
                         })
                 }
             }

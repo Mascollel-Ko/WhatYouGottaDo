@@ -352,6 +352,81 @@ class StimulusTargetCandidateSelectorTest {
     }
 
     @Test
+    fun upperPullAndHorizontalPullDirectionOnlyTargetsShareOnePhysicalObservation() {
+        val candidate = exercise("horizontal_pull_observation")
+        val base = fixture(listOf(candidate), emptyList())
+        val snapshot = base.snapshot.copy(metadata = base.snapshot.metadata.mapValues { (_, metadata) ->
+            metadata.copy(activityKind = "EXERCISE", programSlot = "HORIZONTAL_PULL_STRENGTH",
+                planningEligibility = "PROGRAM_SELECTABLE")
+        })
+        assertEquals(MovementCoverage.HORIZONTAL_PULL, snapshot.movementCoverage(candidate.stableKey))
+        val horizontal = StimulusMovementTarget(
+            MovementCoverage.HORIZONTAL_PULL, TargetPriority.SECONDARY,
+            reasonCodes = listOf("B4_DIRECTION_ONLY"), evidence = emptyList()
+        )
+        val upper = StimulusMovementTarget(
+            MovementCoverage.UPPER_PULL, TargetPriority.SECONDARY,
+            reasonCodes = listOf("B4_DIRECTION_ONLY"), evidence = emptyList()
+        )
+
+        val selection = StimulusTargetCandidateSelector().build(
+            StimulusTargetPlan(emptyList(), emptyList(), emptyList(), movementTargets = listOf(upper, horizontal)),
+            snapshot, base.state, base.request, base.catalog
+        )
+
+        assertEquals(1, selection.selectedCandidates.count { it.stableKey == candidate.stableKey })
+        assertEquals("CANONICAL_STIMULUS_MOVEMENT_HORIZONTAL_PULL", selection.selectedCandidates.single().selectionRole)
+        assertTrue(selection.materialDemand.candidates.isEmpty())
+        val upperTrace = selection.traces.single { it.targetId == upper.targetId }
+        assertFalse(upperTrace.selectionRequired)
+        assertEquals(candidate.stableKey, upperTrace.coveredByPreviouslySelectedStableKey)
+        assertEquals("CANONICAL_STIMULUS_MOVEMENT_HORIZONTAL_PULL", upperTrace.coveredByPreviouslySelectedSelectionRole)
+        assertTrue(upperTrace.reasonCodes.contains("MOVEMENT_COVERAGE_OBSERVATION_ONLY_NO_ADDITIONAL_PHYSICAL_OWNER"))
+    }
+
+    @Test
+    fun authorizedHorizontalPullDoseCanAlsoCoverUpperPullWithoutSecondMaterialDemand() {
+        val candidate = exercise("horizontal_pull_dose_owner")
+        val base = fixture(listOf(candidate), listOf(relation(
+            candidate.stableKey, quality = TrainableQuality.HYPERTROPHY
+        ).copy(regionQualifier = PhysicalQualityRegion.UPPER_PULL)))
+        val snapshot = base.snapshot.copy(metadata = base.snapshot.metadata.mapValues { (_, metadata) ->
+            metadata.copy(activityKind = "EXERCISE", programSlot = "HORIZONTAL_PULL_STRENGTH",
+                planningEligibility = "PROGRAM_SELECTABLE")
+        })
+        val horizontal = StimulusMovementTarget(
+            movementCoverage = MovementCoverage.HORIZONTAL_PULL,
+            priority = TargetPriority.PRIMARY,
+            reasonCodes = listOf("B4_ADDRESS"), evidence = emptyList(),
+            regionalDoseTargets = listOf(StimulusMovementDoseTarget(
+                kind = StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET,
+                numericAuthority = StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY,
+                weeklyTarget = 8.0, reasonCodes = listOf("APPROVED_REGIONAL_COLD_START"),
+                shapeAuthority = StimulusMovementDoseShapeAuthority.HYPERTROPHY_BAND_8_12_PERSONAL_7_15_RPE_7_USER_LOAD_CALIBRATION,
+                existingEquivalentExposure = 0.0, residualEquivalentExposure = 2.0,
+                authorizedWholeSetUnits = 2, residualReasonCodes = listOf("B4_RESIDUAL_DOSE_AUTHORIZED")
+            ))
+        )
+        val upper = StimulusMovementTarget(
+            MovementCoverage.UPPER_PULL, TargetPriority.SECONDARY,
+            reasonCodes = listOf("B4_DIRECTION_ONLY"), evidence = emptyList()
+        )
+
+        val selection = StimulusTargetCandidateSelector().build(
+            StimulusTargetPlan(emptyList(), emptyList(), emptyList(), movementTargets = listOf(horizontal, upper)),
+            snapshot, base.state, base.request, base.catalog
+        )
+
+        assertEquals(1, selection.materialDemand.candidates.size)
+        assertEquals(2, selection.materialDemand.candidates.single().targetSets)
+        assertEquals(candidate.stableKey, selection.materialDemand.candidates.single().stableKey)
+        assertEquals(1, selection.selectedCandidates.count { it.stableKey == candidate.stableKey })
+        assertTrue(upper.targetId in selection.selectedCandidates.single().coveredTargetIds)
+        assertTrue(selection.traces.single { it.targetId == upper.targetId }.reasonCodes
+            .contains("TARGET_COVERED_BY_ALREADY_SELECTED_IDENTITY"))
+    }
+
+    @Test
     fun movementCandidateDoesNotSuppressLaterCanonicalQualitySelection() {
         val key = "barbell_back_squat"
         val candidate = exercise(key, mode = "repetitions")

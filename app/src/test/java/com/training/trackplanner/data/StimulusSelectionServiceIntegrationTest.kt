@@ -256,8 +256,16 @@ class StimulusSelectionServiceIntegrationTest {
             assertEquals(materialScope ?: StimulusProductionCutoverScope.STRENGTH_V1, evaluation.scope)
             assertTrue("B7 removal blockers prevent any B8 authorization", evaluation.authorizedOwnerIdentities.isEmpty())
             assertEquals(b8Comparison.experimentalReadinessAudit?.status, evaluation.b7Status)
-            assertEquals(StimulusExperimentalReadinessStatus.NOT_ELIGIBLE, b8Comparison.experimentalReadinessAudit?.status)
-            assertTrue("unexplained removed coverage identities stay visible", b8Comparison.experimentalReadinessAudit?.reasonCodes.orEmpty().contains("CHANGE_PROVENANCE_UNCLOSED"))
+            val readiness = requireNotNull(b8Comparison.experimentalReadinessAudit)
+            assertEquals(StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW, readiness.status)
+            assertTrue("the exact movement replacement evidence closes B7", readiness.changeProvenanceClosed)
+            assertTrue(readiness.targetOutcomes.any {
+                it.targetId == "MOVEMENT:UPPER_PULL" && it.status == StimulusExperimentalTargetOutcomeStatus.IMPROVED
+            })
+            assertFalse("closed replacement must not remain classified as unexplained",
+                "CHANGE_PROVENANCE_UNCLOSED" in readiness.reasonCodes)
+            assertTrue("the strength-only B8 scope still rejects the additional movement rows",
+                "B8_CUTOVER_V1_NON_STRENGTH_CHANGE_OUT_OF_SCOPE" in evaluation.reasonCodes)
             val strengthTarget = b8Comparison.targetPlan.qualityTargets.single { it.quality == TrainableQuality.STRENGTH }
             assertTrue(strengthTarget.numericAuthority !in setOf(StimulusTargetNumericAuthority.NONE, StimulusTargetNumericAuthority.UNRESOLVED))
             val b6Authorization = requireNotNull(b8Comparison.prescriptionAuthorizationPlan).authorizations.single {
@@ -325,19 +333,35 @@ class StimulusSelectionServiceIntegrationTest {
 
             // Reusing the real B6.2 comparison with one CONTROL owner removed proves that B8's
             // narrower first-cutover boundary rejects a valid B7 candidate without routing it.
-            val removedOwner = b8Comparison.control.items.firstOrNull()
-            if (removedOwner != null) {
-                val blocked = b8Comparison.copy(
-                    experimental = b8Comparison.experimental.copy(
-                        items = b8Comparison.experimental.items.filterNot {
-                            it.exerciseStableKey == removedOwner.exerciseStableKey &&
-                                it.selectionRole == removedOwner.selectionRole
+            // Remove an unchanged shared incumbent so this mutation creates a genuinely
+            // new owner-week deletion, not a second edit to a CONTROL owner already replaced.
+            val strengthMaterialKeys = requireNotNull(b8Comparison.prescriptionAuthorizationPlan)
+                .authorizations.filter { it.quality == TrainableQuality.STRENGTH && it.authorizedPrescription != null }
+                .mapNotNullTo(linkedSetOf()) { it.owner?.stableKey }
+            // Normalize only this negative fixture to a shared-owner baseline. The real corpus
+            // now contains no shared owners for this comparison because its canonical changes
+            // are all replacements; B8 must still reject an exact owner deletion when one occurs.
+            val sharedBaseline = b8Comparison.copy(
+                experimental = b8Comparison.experimental.copy(items = b8Comparison.control.items)
+            )
+            val removedOwner = sharedBaseline.control.items.firstOrNull { item ->
+                item.exerciseStableKey !in strengthMaterialKeys
+            } ?: sharedBaseline.control.items.firstOrNull()
+            assertNotNull("the negative mutation fixture must have an exact CONTROL owner", removedOwner)
+            requireNotNull(removedOwner).let { incumbent ->
+                val incumbentIdentity = StimulusPrescriptionOwnerIdentity(incumbent.exerciseStableKey, incumbent.selectionRole)
+                val blocked = sharedBaseline.copy(
+                    experimental = sharedBaseline.experimental.copy(
+                        items = sharedBaseline.experimental.items.filterNot {
+                            it.exerciseStableKey == incumbent.exerciseStableKey &&
+                                it.selectionRole == incumbent.selectionRole
                         }
                     ),
                     experimentalReadinessAudit = b8Comparison.experimentalReadinessAudit?.copy(
                         status = StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW
                     )
                 )
+                assertTrue(incumbentIdentity in blocked.removedOwnerIdentities)
                 val blockedDecision = StimulusProductionCutoverAuthorityAuditEngine().audit(blocked)
                 assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, blockedDecision.status)
                 assertTrue(blockedDecision.reasonCodes.contains("B8_CUTOVER_V1_CONTROL_OWNER_REMOVAL_NOT_ALLOWED"))

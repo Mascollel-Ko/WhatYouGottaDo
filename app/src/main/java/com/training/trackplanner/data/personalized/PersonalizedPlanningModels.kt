@@ -8,7 +8,7 @@ import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.ProgramGoal
 import java.time.LocalDate
 
-internal const val PERSONALIZED_PLANNER_PROTOCOL = "RECORD_BASED_PLANNER_0.15.17_KOTLIN_1"
+internal const val PERSONALIZED_PLANNER_PROTOCOL = "RECORD_BASED_PLANNER_0.15.18_KOTLIN_1"
 internal const val PERSONALIZED_AUTHORITY_VERSION = "canonical-v1+reference-planner-v0.13.0-reviewed"
 
 enum class ObservedTrainingBehavior { HYPERTROPHY_DOMINANT, STRENGTH_DOMINANT, MIXED_STRENGTH_HYPERTROPHY, GENERAL_MIXED, UNKNOWN }
@@ -24,6 +24,24 @@ enum class PlannedActivityKind { RESISTANCE, STRUCTURED_BADMINTON_DRILL, ATHLETI
 enum class MovementCoverage {
     LOWER_KNEE, POSTERIOR_CHAIN, HORIZONTAL_PUSH, HORIZONTAL_PULL, VERTICAL_PUSH, VERTICAL_PULL, UPPER_PULL,
     CORE_DIRECT, CALVES, ARMS_BICEPS, ARMS_TRICEPS, OTHER
+}
+
+/** Canonical movement coverage relation: only UPPER_PULL aggregates the two existing pull directions. */
+internal fun MovementCoverage.directlyRepresents(target: MovementCoverage): Boolean = when (target) {
+    MovementCoverage.UPPER_PULL -> this == MovementCoverage.HORIZONTAL_PULL ||
+        this == MovementCoverage.VERTICAL_PULL || this == MovementCoverage.UPPER_PULL
+    else -> this == target
+}
+
+/** Regional observation includes the UPPER_PULL roll-up alongside its exact direction. */
+internal fun MovementCoverage.regionalEvidenceTargets(): List<MovementCoverage> = when (this) {
+    MovementCoverage.HORIZONTAL_PULL, MovementCoverage.VERTICAL_PULL -> listOf(this, MovementCoverage.UPPER_PULL)
+    else -> listOf(this)
+}
+
+internal fun MovementCoverage.canonicalRepresentationDomain(): MovementCoverage = when (this) {
+    MovementCoverage.HORIZONTAL_PULL, MovementCoverage.VERTICAL_PULL, MovementCoverage.UPPER_PULL -> MovementCoverage.UPPER_PULL
+    else -> this
 }
 enum class ProgressionDecision { ADVANCE, HOLD, REDUCE, REVIEW }
 enum class RepresentationState { ABSENT, STRONG_UNDERREPRESENTATION_SIGNAL, UNDERREPRESENTATION_SIGNAL, NO_CLEAR_DEFICIT_SIGNAL, UNKNOWN }

@@ -24,6 +24,9 @@ class PostGenerationAuthorityFreezeTest {
         // the builder; legacy prescription branches remain protected by this updated source hash.
         // C30 adds typed movement gap priority to the shared representation analysis and extracts
         // the existing hard movement restriction mapping for B3; historical dose predicates remain frozen.
+        // C38.1 updates ExposureRepresentation's movement-domain projection to the shared
+        // H/V/UPPER_PULL relation and GapCandidateSelector's pull-coverage lookup to consume
+        // that same relation; historical dose, ranking, and prescription authorities remain frozen.
         // All unrelated historical, style, numerical and prescription authorities remain frozen.
         // C28 lets the legacy selector report candidate identities without set-unit demand in
         // canonical EXP generation; it does not change candidate ranking or create a dose.
@@ -43,7 +46,7 @@ class PostGenerationAuthorityFreezeTest {
             // Approved Phase A closeout correction: the snapshot resolver delegates to the
             // explicit-argument resolver; classification branch order/predicates remain
             // unchanged, and production uses the explicit overload only in the shadow ledger.
-            "ExposureRepresentation.kt" to "d6a417b8bdb86ca8cfdefaac0fa701d6d2ec0d975418781f48ecd3f607d22c1b",
+            "ExposureRepresentation.kt" to "95f0889987f81c5b5d4002398b98989dc2d4e3803add6cc8947b1b4ca39d0638",
             "PersonalizedDecisionComponents.kt" to "66c6acc65bc46f5bc957d8f4f8b57f072b44d2a621f060edabe5d047aed89958",
             // C20 extracts the exact session-time predicate so the live incumbent feasibility
             // evaluator calls the production placement bound instead of maintaining a duplicate.
@@ -71,7 +74,7 @@ class PostGenerationAuthorityFreezeTest {
         val builderAuthorities = File(root, "app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt")
             .readText().replace("\r\n", "\n").substringBefore("class PersonalizedProgramBuilder(")
         assertEquals("Continuity, GapCandidateSelector, PersonalizedPrescriptionPlanner, validation and repair stay frozen",
-            "9f7a436d8db9942209add11e38130f9bfe19815e8c5b51a00296179117ccd1b4",
+            "b9683d50b2e8ab722d7820e21084943bf7c75423e5f673b5a984d06858bf4b1c",
             MessageDigest.getInstance("SHA-256").digest(builderAuthorities.toByteArray()).joinToString("") { "%02x".format(it) })
     }
 }

@@ -485,10 +485,21 @@ class CanonicalStimulusPlanningIndependenceTest {
             assertTrue(exactB6Owners.any { owner -> comparison.experimental.items.any {
                 it.exerciseStableKey == owner.stableKey && it.selectionRole == owner.selectionRole
             } })
-            // Canonical B6 is complete before late CONTROL, but C28 leaves unsupported coverage
-            // needs unresolved; B7 therefore keeps this otherwise valid Strength case on CONTROL.
+            // The exact UPPER_PULL B4/B5/B6 replacement is now closed by B7. That evidence
+            // does not widen the selected B8 scope: the mixed-scope fixture still safely returns CONTROL.
             assertEquals(StimulusProductionProgramSource.CONTROL, result.routeDecision.selectedSource)
-            assertFalse(requireNotNull(comparison.experimentalReadinessAudit).changeProvenanceClosed)
+            val readiness = requireNotNull(comparison.experimentalReadinessAudit)
+            assertTrue(readiness.changeProvenanceClosed)
+            assertTrue(readiness.targetOutcomes.any {
+                it.targetId == "MOVEMENT:UPPER_PULL" &&
+                    it.status == StimulusExperimentalTargetOutcomeStatus.IMPROVED
+            })
+            assertTrue(readiness.changeAttributions.any {
+                it.stableKey == "cable_rear_delt_fly" &&
+                    it.selectionRole == "COVERAGE_UPPER_PULL" &&
+                    "B6_AUTHORIZED_REGIONAL_MOVEMENT_REPLACEMENT" in it.reasonCodes
+            })
+            assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, result.routeDecision.b8Status)
             assertSame(comparison.control, result.program)
             result
         }
