@@ -8,7 +8,7 @@ import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.ProgramGoal
 import java.time.LocalDate
 
-internal const val PERSONALIZED_PLANNER_PROTOCOL = "RECORD_BASED_PLANNER_0.15.18_KOTLIN_1"
+internal const val PERSONALIZED_PLANNER_PROTOCOL = "RECORD_BASED_PLANNER_0.15.20_KOTLIN_1"
 internal const val PERSONALIZED_AUTHORITY_VERSION = "canonical-v1+reference-planner-v0.13.0-reviewed"
 
 enum class ObservedTrainingBehavior { HYPERTROPHY_DOMINANT, STRENGTH_DOMINANT, MIXED_STRENGTH_HYPERTROPHY, GENERAL_MIXED, UNKNOWN }
@@ -259,7 +259,9 @@ data class PlanningHistorySnapshot(
     /** Immutable local posterior history already loaded for the planning cutoff. */
     val strengthPerformanceHistory: List<com.training.trackplanner.data.StrengthExercisePerformanceHistoryEntity> = emptyList(),
     /** Phase A/B2 shadow evidence; immutable and deliberately excluded from planner authority. */
-    val stimulusExposureLedger: StimulusExposureLedger = StimulusExposureLedger.EMPTY
+    val stimulusExposureLedger: StimulusExposureLedger = StimulusExposureLedger.EMPTY,
+    /** Canonical direct movement/region decisions, including their evidence disposition. */
+    val canonicalMovementCoverage: Map<String, CanonicalMovementCoverageDecision> = emptyMap()
 ) {
     val historyStart: LocalDate get() = allConfirmedSets.minOf(PlanningSetRecord::date)
     val historyDays: Int get() = java.time.temporal.ChronoUnit.DAYS.between(historyStart, cutoff).toInt() + 1

@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.76.0 |
+| Protocol version | 3.78.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.18 |
+| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.20 |
 | Last audited commit | b36f4ad2bb40c9ff4e2d57bfe8f3793a6434bbd5 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
@@ -1497,3 +1497,11 @@ Post-audit boundary notes
 - Recent and previous 28-day weekly-dose medians include zero for eligible, observed, completed, non-excluded weeks with other controllable training, while exposure-week medians include only qualifying weeks with dose. Unobserved, incomplete, and excluded weeks are omitted; an empty interval remains unobserved rather than becoming a zero median.
 - B5 candidate arbitration identifies an owner by `(stableKey, selectionRole)`, preserving distinct role decisions while keeping physical materialization deduplicated. No new Strength, Hypertrophy, Power, Core, or movement quota or exercise authority is introduced.
 - Production corpus regression verifies the changed B4→B5→B6→weekly materialization→B7 chain, exact authorization and residual accounting, and CONTROL/EXP build isolation. C38.1 implementation and verification details are recorded in [`docs/c38_1_movement_dose_consistency_audit.md`](../../c38_1_movement_dose_consistency_audit.md).
+
+### C38.2 — canonical movement eligibility and exact target authority (protocol 3.78.0)
+
+- Direct movement coverage is resolved from canonical movement-pattern relations that agree with the exact runtime slot/family and any reviewed identity-master movement pattern. An accessory slot alone does not grant a compound movement owner. Rear-delt fly, lateral raise, pullover/straight-arm lat accessory, and chest fly therefore remain eligible only through their separate canonical regional-quality evidence; they do not stand in for row/pulldown, overhead press, or horizontal press movement coverage.
+- Regional hypertrophy credit and direct movement coverage remain separate decisions. Existing B4/B6 dose authority, direct/supportive credit values, and UPPER_PULL aggregation policy are unchanged. An accepted regional hypertrophy relation may be observed in its regional ledger without granting a movement owner or an unrelated prescription.
+- The movement decision is captured in the planning snapshot and reused by B1/B3 movement observations, B4 regional planning, B5 candidate filtering, B6 ownership, final materialization, and post-generation audit. A selectable identity with conflicting or review-required canonical evidence stays unresolved and fails closed.
+- B8 scope resolution validates every attributed Strength/Hypertrophy target against that exact owner's B5 selection when B5 is the provenance source, exact executable B6 prescription, and materialized rows. A target label attached to another owner's valid material cannot supply missing authority; partial provenance and unsupported targets keep their own diagnostic precedence.
+- The corrected rear-delt inherited muscle-analysis rows are included in the semantic metadata revision, so cached anatomy features are rebuilt. App and Room schemas remain unchanged.

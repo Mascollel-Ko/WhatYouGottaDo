@@ -259,9 +259,38 @@ class StimulusSelectionServiceIntegrationTest {
             val readiness = requireNotNull(b8Comparison.experimentalReadinessAudit)
             assertEquals(StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW, readiness.status)
             assertTrue("the exact movement replacement evidence closes B7", readiness.changeProvenanceClosed)
-            assertTrue(readiness.targetOutcomes.any {
+            val upperPullCandidateOwners = b8Comparison.selectionPlan.selectedCandidates.filter {
+                "MOVEMENT:UPPER_PULL" in it.coveredTargetIds
+            }
+            val rearDeltKeys = setOf(
+                "cable_rear_delt_fly", "dumbbell_rear_delt_fly", "ex_7176cbee", "ex_7deabeba", "ex_a60496be"
+            )
+            assertTrue("rear-delt isolation cannot be selected as direct UPPER_PULL coverage",
+                upperPullCandidateOwners.none { it.stableKey in rearDeltKeys })
+            val upperPullImproved = readiness.targetOutcomes.any {
                 it.targetId == "MOVEMENT:UPPER_PULL" && it.status == StimulusExperimentalTargetOutcomeStatus.IMPROVED
-            })
+            }
+            if (upperPullImproved) {
+                val exactMaterializedOwner = upperPullCandidateOwners.firstOrNull { selected ->
+                    b8Comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().any { authorization ->
+                        authorization.targetId == "MOVEMENT:UPPER_PULL" &&
+                            authorization.owner?.stableKey == selected.stableKey &&
+                            authorization.owner.selectionRole == selected.selectionRole &&
+                            authorization.authorizedPrescription != null
+                    } && b8Comparison.materializationTraces.any { trace ->
+                        trace.targetId == "MOVEMENT:UPPER_PULL" && trace.selectedAtB5 &&
+                            trace.selectedStableKey == selected.stableKey && trace.selectionRole == selected.selectionRole &&
+                            trace.finalTotalSetUnits > 0
+                    }
+                }
+                assertNotNull("a B7 pull improvement requires the exact selected and materialized B5/B6 owner",
+                    exactMaterializedOwner)
+            } else {
+                assertFalse("a non-selected accessory cannot create an UPPER_PULL improvement",
+                    b8Comparison.experimental.items.any {
+                        it.exerciseStableKey in rearDeltKeys && it.selectionRole == "CANONICAL_STIMULUS_MOVEMENT_UPPER_PULL"
+                    })
+            }
             assertFalse("closed replacement must not remain classified as unexplained",
                 "CHANGE_PROVENANCE_UNCLOSED" in readiness.reasonCodes)
             assertTrue("the strength-only B8 scope still rejects the additional movement rows",
@@ -407,7 +436,7 @@ class StimulusSelectionServiceIntegrationTest {
     }
 
     @Test
-    fun realServiceHypertrophyAuthorizationKeepsControlWhenB7RejectsCanonicalOwnerComparison() = runBlocking {
+    fun realServiceHypertrophyAuthorizationUsesItsExactRouteAndStrengthModeStillRollsBack() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val db = Room.inMemoryDatabaseBuilder(context, TrainingDatabase::class.java)
             .allowMainThreadQueries().build()
@@ -519,21 +548,24 @@ class StimulusSelectionServiceIntegrationTest {
             comparison,
             StimulusProductionCutoverScope.HYPERTROPHY_V1
         )
-        assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, hDecision.status)
+        assertEquals(StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER, hDecision.status)
         assertEquals(StimulusProductionCutoverScope.HYPERTROPHY_V1, hDecision.scope)
-        assertTrue(hDecision.reasonCodes.contains("B8_B7_NOT_ELIGIBLE"))
-        assertTrue(hDecision.authorizedOwnerIdentities.isEmpty())
+        assertEquals(listOf("B8_HYPERTROPHY_V1_AUTHORIZED"), hDecision.reasonCodes)
+        assertTrue(hDecision.authorizedOwnerIdentities.any {
+            it.stableKey == h.owner?.stableKey && it.selectionRole == h.owner?.selectionRole
+        })
 
-        assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, comparison.productionCutoverAuthority?.status)
+        assertEquals(StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER,
+            comparison.productionCutoverAuthority?.status)
         val resolvedProductionScope = StimulusProductionMaterialScopeResolver().resolve(comparison)
         assertEquals(resolvedProductionScope ?: StimulusProductionCutoverScope.STRENGTH_V1, comparison.productionCutoverAuthority?.scope)
-        assertEquals(StimulusProductionProgramSource.CONTROL, production.routeDecision.selectedSource)
-        assertFalse(production.routeDecision.productionRoutingActive)
-        assertSame(comparison.control, production.program)
+        assertEquals(StimulusProductionProgramSource.B8_HYPERTROPHY_V1, production.routeDecision.selectedSource)
+        assertTrue(production.routeDecision.productionRoutingActive)
+        assertSame(comparison.experimental, production.program)
         val controlFingerprint = personalizedProgramFingerprint(comparison.control.request, comparison.control.items)
         val experimentalFingerprint = personalizedProgramFingerprint(comparison.experimental.request, comparison.experimental.items)
         assertNotEquals(controlFingerprint, experimentalFingerprint)
-        assertEquals(controlFingerprint, personalizedProgramFingerprint(production.program.request, production.program.items))
+        assertEquals(experimentalFingerprint, personalizedProgramFingerprint(production.program.request, production.program.items))
         assertEquals(1, production.buildCounts.controlBuilds)
         assertEquals(1, production.buildCounts.experimentalBuilds)
         assertEquals(2, production.buildCounts.totalBuildInvocations)

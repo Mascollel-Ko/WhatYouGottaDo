@@ -1646,8 +1646,8 @@ internal fun regionalRegionQualifierMatches(
     MovementCoverage.CALVES -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.ANKLE, com.training.trackplanner.data.PhysicalQualityRegion.LOWER)
     MovementCoverage.HORIZONTAL_PUSH -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PUSH, com.training.trackplanner.data.PhysicalQualityRegion.CHEST)
     MovementCoverage.VERTICAL_PUSH -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PUSH, com.training.trackplanner.data.PhysicalQualityRegion.SHOULDERS)
-    MovementCoverage.HORIZONTAL_PULL, MovementCoverage.VERTICAL_PULL -> qualifier == com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PULL
-    MovementCoverage.UPPER_PULL -> qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PULL, com.training.trackplanner.data.PhysicalQualityRegion.SHOULDERS)
+    MovementCoverage.HORIZONTAL_PULL, MovementCoverage.VERTICAL_PULL, MovementCoverage.UPPER_PULL ->
+        qualifier == com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PULL
     MovementCoverage.ARMS_BICEPS, MovementCoverage.ARMS_TRICEPS -> qualifier == com.training.trackplanner.data.PhysicalQualityRegion.ARMS
     else -> false
 }
@@ -1662,8 +1662,44 @@ internal fun regionalQualityRelationCredit(
 ): Double {
     if (!regionalRegionQualifierMatches(target, qualifier)) return 0.0
     return when (relationLevel) {
-        com.training.trackplanner.data.StimulusCapabilityLevel.DIRECT_CAPABILITY ->
-            if (exerciseMovement.directlyRepresents(target)) 1.0 else 0.0
+        com.training.trackplanner.data.StimulusCapabilityLevel.DIRECT_CAPABILITY -> {
+            if (quality != TrainableQuality.HYPERTROPHY) {
+                if (exerciseMovement.directlyRepresents(target)) 1.0 else 0.0
+            } else when (target) {
+                // These are quality-region ledgers. A canonical chest/shoulder/posterior/ankle
+                // relation may supply local hypertrophy exposure without claiming its movement.
+                MovementCoverage.HORIZONTAL_PUSH -> if (
+                    qualifier == com.training.trackplanner.data.PhysicalQualityRegion.CHEST ||
+                    exerciseMovement.directlyRepresents(target)
+                ) 1.0 else 0.0
+                MovementCoverage.VERTICAL_PUSH -> if (
+                    qualifier == com.training.trackplanner.data.PhysicalQualityRegion.SHOULDERS ||
+                    exerciseMovement.directlyRepresents(target)
+                ) 1.0 else 0.0
+                MovementCoverage.HORIZONTAL_PULL, MovementCoverage.VERTICAL_PULL ->
+                    if (exerciseMovement.directlyRepresents(target)) 1.0 else 0.0
+                MovementCoverage.UPPER_PULL -> if (
+                    qualifier == com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PULL
+                ) 1.0 else 0.0
+                MovementCoverage.LOWER_KNEE -> if (
+                    qualifier == com.training.trackplanner.data.PhysicalQualityRegion.QUADS_GLUTE ||
+                    exerciseMovement.directlyRepresents(target)
+                ) 1.0 else 0.0
+                MovementCoverage.POSTERIOR_CHAIN -> if (
+                    qualifier in setOf(
+                        com.training.trackplanner.data.PhysicalQualityRegion.POSTERIOR_CHAIN,
+                        com.training.trackplanner.data.PhysicalQualityRegion.HAMSTRING
+                    ) || exerciseMovement.directlyRepresents(target)
+                ) 1.0 else 0.0
+                MovementCoverage.CALVES -> if (
+                    qualifier == com.training.trackplanner.data.PhysicalQualityRegion.ANKLE ||
+                    exerciseMovement.directlyRepresents(target)
+                ) 1.0 else 0.0
+                MovementCoverage.ARMS_BICEPS, MovementCoverage.ARMS_TRICEPS ->
+                    if (exerciseMovement.directlyRepresents(target)) 1.0 else 0.0
+                else -> 0.0
+            }
+        }
         com.training.trackplanner.data.StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY ->
             if (quality == TrainableQuality.HYPERTROPHY &&
                 supportiveHypertrophyRegionMatches(target, exerciseMovement, qualifier)) 0.5 else 0.0
@@ -1671,23 +1707,22 @@ internal fun regionalQualityRelationCredit(
 }
 
 /**
- * A broad quality-region qualifier cannot satisfy an unrelated movement direction.
- * Keep the approved half-credit for a specific regional relation, while requiring
- * matching movement identity where the existing region key represents a direction.
+ * This ledger measures regional physical-quality dose. Specific canonical muscle-region
+ * relations may contribute without claiming the corresponding movement pattern; direction
+ * coverage is checked separately through MovementCoverage.directlyRepresents().
  */
 private fun supportiveHypertrophyRegionMatches(
     target: MovementCoverage,
     exerciseMovement: MovementCoverage,
     qualifier: com.training.trackplanner.data.PhysicalQualityRegion
 ): Boolean = when (target) {
-    MovementCoverage.HORIZONTAL_PUSH -> exerciseMovement.directlyRepresents(target) &&
-        qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PUSH, com.training.trackplanner.data.PhysicalQualityRegion.CHEST)
-    MovementCoverage.VERTICAL_PUSH -> exerciseMovement.directlyRepresents(target) &&
-        qualifier in setOf(com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PUSH, com.training.trackplanner.data.PhysicalQualityRegion.SHOULDERS)
+    MovementCoverage.HORIZONTAL_PUSH -> qualifier == com.training.trackplanner.data.PhysicalQualityRegion.CHEST ||
+        (exerciseMovement.directlyRepresents(target) && qualifier == com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PUSH)
+    MovementCoverage.VERTICAL_PUSH -> qualifier == com.training.trackplanner.data.PhysicalQualityRegion.SHOULDERS ||
+        (exerciseMovement.directlyRepresents(target) && qualifier == com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PUSH)
     MovementCoverage.HORIZONTAL_PULL, MovementCoverage.VERTICAL_PULL ->
         exerciseMovement.directlyRepresents(target) && qualifier == com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PULL
-    MovementCoverage.UPPER_PULL -> exerciseMovement.directlyRepresents(target) &&
-        qualifier == com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PULL
+    MovementCoverage.UPPER_PULL -> qualifier == com.training.trackplanner.data.PhysicalQualityRegion.UPPER_PULL
     MovementCoverage.LOWER_KNEE -> qualifier == com.training.trackplanner.data.PhysicalQualityRegion.QUADS_GLUTE ||
         (exerciseMovement.directlyRepresents(target) && qualifier in setOf(
             com.training.trackplanner.data.PhysicalQualityRegion.LOWER,
@@ -1719,7 +1754,10 @@ internal fun regionalQualityEvidenceTargets(
     relations.asSequence()
         .filter {
             it.qualityId == TrainableQuality.HYPERTROPHY &&
-                it.relationLevel == com.training.trackplanner.data.StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY
+                it.relationLevel in setOf(
+                    com.training.trackplanner.data.StimulusCapabilityLevel.DIRECT_CAPABILITY,
+                    com.training.trackplanner.data.StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY
+                )
         }
         .forEach { relation ->
             regionalSupportedRegions.filterTo(this) { region ->

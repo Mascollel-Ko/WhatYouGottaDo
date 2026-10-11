@@ -26,6 +26,7 @@ class StimulusProductionCutoverAuthorityTest {
         val experimentalItem = item(ownerKey, "CANONICAL_STIMULUS_QUALITY_STRENGTH", reps = 6).copy(
             prescription = "2 sets × 6 reps · RPE 6.5 · choose weight",
             weightKg = 0.0,
+            restSeconds = requireNotNull(coldAuth.authorizedPrescription).restSeconds,
             weightSource = "COLD_START_USER_CALIBRATION",
             setPrescriptions = coldAuth.authorizedPrescription!!.sets
         )

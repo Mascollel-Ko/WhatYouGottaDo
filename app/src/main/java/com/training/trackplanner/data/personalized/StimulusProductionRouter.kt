@@ -462,6 +462,21 @@ class StimulusProductionRouter {
  */
 /** Reuses typed B4/B5/B6 movement evidence; it does not infer authority from exercise similarity. */
 internal object StimulusProductionMovementScopeEvidence {
+    /** Exact owners whose rows are added or changed in EXP; removed CONTROL rows are checked by B7 replacement evidence. */
+    fun materialOwnerIdentities(comparison: StimulusSelectionProgramComparison): Set<StimulusPrescriptionOwnerIdentity> =
+        buildSet {
+            addAll(comparison.addedOwnerIdentities)
+            comparison.sharedOwnerIdentities.forEach { identity ->
+                val controlRows = comparison.control.items.filter {
+                    it.exerciseStableKey == identity.stableKey && it.selectionRole == identity.selectionRole
+                }
+                val experimentalRows = comparison.experimental.items.filter {
+                    it.exerciseStableKey == identity.stableKey && it.selectionRole == identity.selectionRole
+                }
+                if (controlRows != experimentalRows) add(identity)
+            }
+        }
+
     /** B7 exact edge supplied only after its keep-plan and replacement B5/B6 proof succeeds. */
     fun exactUserApprovedReplacementControlOwners(
         comparison: StimulusSelectionProgramComparison
@@ -539,6 +554,38 @@ internal object StimulusProductionMovementScopeEvidence {
                 ApprovedBadmintonTaskProtocols.exact(owner.stableKey, owner.selectionRole, metadata.authorization.definition.primaryTask) ==
                     metadata.authorization.definition
         }
+    }
+
+    /** A material quality target must be backed by that exact owner's executable B6 rows. */
+    fun missingExactQualityTargetAuthorities(
+        comparison: StimulusSelectionProgramComparison
+    ): Set<StimulusOwnerTargetAuthorityGap> {
+        val materialOwners = materialOwnerIdentities(comparison)
+        return comparison.experimentalReadinessAudit?.changeAttributions.orEmpty()
+        .asSequence()
+        .filter { it.source in setOf(
+            StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY,
+            StimulusExperimentalChangeAttributionSource.B6_EXISTING_OWNER_PRESCRIPTION,
+            StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION,
+            StimulusExperimentalChangeAttributionSource.B6_COLD_START_USER_CALIBRATION
+        ) && it.stableKey != null && it.selectionRole != null &&
+            StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) in materialOwners }
+        .flatMap { attribution ->
+            val owner = StimulusPrescriptionOwnerIdentity(requireNotNull(attribution.stableKey), requireNotNull(attribution.selectionRole))
+            attribution.targetIds.asSequence().mapNotNull { targetId ->
+                val isBoundedQuality = targetId == "QUALITY:STRENGTH" || targetId == "QUALITY:HYPERTROPHY"
+                val b5Missing = attribution.source == StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY &&
+                    !hasExactB5ReplacementOwner(comparison, targetId, owner)
+                when {
+                    !isBoundedQuality -> null
+                    b5Missing -> StimulusOwnerTargetAuthorityGap(owner, targetId, "EXACT_B5_OWNER_TARGET_CHAIN_MISSING")
+                    !hasExactReplacementB6(comparison, targetId, owner) ->
+                        StimulusOwnerTargetAuthorityGap(owner, targetId, "EXACT_B6_PRESCRIPTION_OR_MATERIALIZATION_MISSING")
+                    else -> null
+                }
+            }
+        }
+        .toSet()
     }
 
     fun hasExactExecutableB6(
@@ -668,23 +715,23 @@ internal object StimulusProductionMovementScopeEvidence {
 
 class StimulusProductionMaterialScopeResolver {
     /** Diagnostic companion; [resolve] remains the unchanged production scope contract. */
-    fun resolveDetailed(comparison: StimulusSelectionProgramComparison): StimulusProductionScopeResolution =
-        observeProductionScope(comparison, resolve(comparison))
+    fun resolveDetailed(comparison: StimulusSelectionProgramComparison): StimulusProductionScopeResolution {
+        val missingExactTargetAuthority = StimulusProductionMovementScopeEvidence.missingExactQualityTargetAuthorities(comparison)
+        val observed = observeProductionScope(comparison, resolve(comparison))
+        if (missingExactTargetAuthority.isEmpty()) return observed
+        return observed.copy(
+            status = if (observed.status == StimulusProductionScopeResolutionStatus.AMBIGUOUS_MATERIAL_SCOPE) {
+                StimulusProductionScopeResolutionStatus.UNAUTHORIZED_TARGET_AUTHORITY
+            } else observed.status,
+            reasonCodes = (observed.reasonCodes + "EXACT_B6_TARGET_AUTHORITY_MISSING" +
+                missingExactTargetAuthority.map(StimulusOwnerTargetAuthorityGap::reasonCode)).distinct().sorted(),
+            unauthorizedOwnerTargetAuthorities = missingExactTargetAuthority
+        )
+    }
 
     fun resolve(comparison: StimulusSelectionProgramComparison): StimulusProductionCutoverScope? {
         val audit = comparison.experimentalReadinessAudit ?: return null
-        val materialOwners = buildSet {
-            addAll(comparison.addedOwnerIdentities)
-            comparison.sharedOwnerIdentities.forEach { identity ->
-                val controlRows = comparison.control.items.filter {
-                    it.exerciseStableKey == identity.stableKey && it.selectionRole == identity.selectionRole
-                }
-                val experimentalRows = comparison.experimental.items.filter {
-                    it.exerciseStableKey == identity.stableKey && it.selectionRole == identity.selectionRole
-                }
-                if (controlRows != experimentalRows) add(identity)
-            }
-        }
+        val materialOwners = StimulusProductionMovementScopeEvidence.materialOwnerIdentities(comparison)
         if (materialOwners.isEmpty()) return null
 
         val materialSources = setOf(
@@ -711,6 +758,7 @@ class StimulusProductionMaterialScopeResolver {
 
         val targetIds = attributions.flatMap { it.targetIds }
         if (targetIds.isEmpty()) return null
+        if (StimulusProductionMovementScopeEvidence.missingExactQualityTargetAuthorities(comparison).isNotEmpty()) return null
         val exactMovementOwners = StimulusProductionMovementScopeEvidence.exactMovementTargetOwnerIdentities(
             comparison, materialOwners
         )

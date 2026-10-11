@@ -16,7 +16,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [28])
 class C10OriginMutationInvestigationTest {
     @Test
-    fun reviewedHypertrophyCoverageNeedStaysVisibleWithoutAnUnauthorizedPrescription() = runBlocking {
+    fun reviewedRearDeltShoulderHistoryUsesExactRegionalHypertrophyAuthority() = runBlocking {
         val spec = StimulusProductionCoverageAuditTest.CoverageSpec(
             "reviewed_hypertrophy_isolated", TrainableQuality.HYPERTROPHY, "cable_rear_delt_fly",
             "HYPERTROPHY_PHYSIQUE", ProgramGoal.BODYBUILDING, StrengthIntent.HYPERTROPHY_PRIORITY,
@@ -24,58 +24,31 @@ class C10OriginMutationInvestigationTest {
         )
         val result = requireNotNull(StimulusProductionCoverageAuditTest().runCase(spec))
         val comparison = requireNotNull(result.comparison)
-        val owner = StimulusPrescriptionOwnerIdentity("ex_284ecca6", "COVERAGE_POSTERIOR_CHAIN")
-        val controlDecision = requireNotNull(comparison.control.personalizedDecision)
-        val experimentalDecision = requireNotNull(comparison.experimental.personalizedDecision)
-        val controlTrace = requireNotNull(controlDecision.planningBudget?.execution)
-        val experimentalTrace = requireNotNull(experimentalDecision.planningBudget?.execution)
-        fun exactRows(program: GeneratedProgramSkeleton, identity: StimulusPrescriptionOwnerIdentity) = program.items
-            .filter { StimulusPrescriptionOwnerIdentity(it.exerciseStableKey, it.selectionRole) == identity }
-            .sortedWith(compareBy({ it.weekNumber }, { it.dayOfWeek }, { it.orderIndex }))
-        val controlH = exactRows(comparison.control, owner)
-        val experimentalH = exactRows(comparison.experimental, owner)
-
-        // The late CONTROL comparator retains its legacy 3-set row. The experimental material-
-        // demand candidate remains visible as a need, but B6 has no exact authority for it.
-        assertTrue(controlDecision.frequencyDemand?.candidates.orEmpty().any {
-            StimulusPrescriptionOwnerIdentity(it.item.stableKey, it.item.role) == owner && it.item.targetSets == 2
-        })
-        assertTrue(experimentalH.isEmpty())
-        assertTrue(experimentalTrace.materialDemandCandidateOrigins.any { it.owner == owner })
-        assertTrue(experimentalTrace.unresolvedMaterialDemandGaps.isNotEmpty())
-        assertFalse(experimentalDecision.frequencyDemand?.candidates.orEmpty().any {
-            StimulusPrescriptionOwnerIdentity(it.item.stableKey, it.item.role) == owner
-        })
-        assertTrue(controlH.isNotEmpty())
-        assertTrue(controlH.all { it.setCount == 3 && it.setPrescriptions.size == 3 })
-        val controlExpansion = controlTrace.ownerAllocationProvenance.filter {
-            it.owner == owner && it.stage == OwnerAllocationStage.FINITE_EXECUTION_ALLOCATION &&
-                it.action == OwnerAllocationAction.SET_COUNT_EXPANDED
+        val owner = StimulusPrescriptionOwnerIdentity("cable_rear_delt_fly", "CANONICAL_STIMULUS_QUALITY_HYPERTROPHY")
+        val authorization = requireNotNull(comparison.prescriptionAuthorizationPlan).authorizations.single {
+            it.targetId == "QUALITY:HYPERTROPHY" && it.quality == TrainableQuality.HYPERTROPHY &&
+                it.owner?.let { exact -> StimulusPrescriptionOwnerIdentity(exact.stableKey, exact.selectionRole) } == owner
         }
-        assertEquals(controlH.map { it.weekNumber }.distinct().sorted(),
-            controlExpansion.mapNotNull { it.after?.week }.distinct().sorted())
-        assertTrue(controlExpansion.all {
-            it.before?.setCount == 2 && it.after?.setCount == 3 &&
-                it.before?.setPrescriptions?.size == 2 && it.after?.setPrescriptions?.size == 3 &&
-                it.cause == OwnerAllocationCause.CAPACITY_SHARE_ALLOCATION &&
-                "FINITE_ALLOCATOR_SHARED_UNIT_ALLOCATION" in it.evidenceCodes
-        })
-        assertFalse(experimentalTrace.ownerAllocationProvenance.any { event -> event.owner == owner && event.action in setOf(
-            OwnerAllocationAction.SET_COUNT_REDUCED, OwnerAllocationAction.SET_COUNT_EXPANDED,
-            OwnerAllocationAction.PRESCRIPTION_CHANGED
-        ) })
-        assertTrue(experimentalTrace.ownerDisplacementEdges.none { it.displacedOwner == owner })
-
-        assertEquals(StimulusProductionProgramSource.CONTROL, result.routeDecision.selectedSource)
-        val readiness = requireNotNull(comparison.experimentalReadinessAudit)
-        assertFalse(readiness.changeProvenanceClosed)
-        assertTrue("C28 removes the unauthorized set-count delta rather than attributing it", readiness.changeAttributions.none {
-            it.stableKey == owner.stableKey && it.selectionRole == owner.selectionRole &&
-                "UNEXPLAINED_PRESCRIPTION_CHANGE" in it.reasonCodes
-        })
-        assertNotNull(readiness.changeAttributions.singleOrNull {
-            it.stableKey == owner.stableKey && it.selectionRole == owner.selectionRole &&
-                "UNEXPLAINED_REMOVED_IDENTITY" in it.reasonCodes
-        })
+        assertTrue(authorization.status in setOf(
+            StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+            StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
+        ))
+        assertNotNull("the exact B6 prescription must be executable", authorization.authorizedPrescription)
+        val rows = comparison.experimental.items.filter {
+            StimulusPrescriptionOwnerIdentity(it.exerciseStableKey, it.selectionRole) == owner
+        }
+        assertTrue("the exact regional HYP owner must materialize", rows.isNotEmpty())
+        assertEquals(setOf(1, 2), rows.map { it.weekNumber }.toSet())
+        assertTrue(rows.all { it.setCount == 3 && it.setPrescriptions.size == 3 })
+        assertTrue(rows.flatMap { it.setPrescriptions }.all { it.reps in 7..15 && it.weightKg == 40.0 })
+        assertFalse("regional shoulder HYP must not become direct pull movement coverage",
+            comparison.experimental.items.any {
+                it.exerciseStableKey == owner.stableKey && it.selectionRole.startsWith("CANONICAL_STIMULUS_MOVEMENT_")
+            })
+        assertTrue(requireNotNull(comparison.experimentalReadinessAudit).changeProvenanceClosed)
+        assertEquals(StimulusProductionCutoverScope.HYPERTROPHY_V1, comparison.productionCutoverAuthority?.scope)
+        assertEquals(StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER,
+            comparison.productionCutoverAuthority?.status)
+        assertEquals(StimulusProductionProgramSource.B8_HYPERTROPHY_V1, result.routeDecision.selectedSource)
     }
 }

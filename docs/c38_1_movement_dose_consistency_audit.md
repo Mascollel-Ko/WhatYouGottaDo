@@ -1,5 +1,7 @@
 # C38.1 movement/region dose consistency audit
 
+> **C38.2 정정:** 아래의 C38.1 `persona0_sparse` rear-delt fly → `UPPER_PULL` 선택 및 8세트 materialization 주장은 잘못된 legacy slot 매핑을 물려받은 결과라 철회한다. C38.2의 canonical movement 교차검증에서는 리어델트 플라이를 직접 pull movement owner로 인정하지 않는다. 이전 11개 pull 제거 관계와 EXP 집계도 올바른 운동 분류로 다시 평가해야 하며, 아래의 당시 수치는 C38.1 실행 기록일 뿐 유효한 근거가 아니다. 최신 정정 결과는 `docs/c38_2_movement_dose_consistency_audit.md`에 기록한다.
+
 ## 범위와 기준
 
 C38.1은 movement coverage, regional dose evidence, 최종 세트 projection에서 서로 달랐던 movement 관계와 주간 집계 의미를 통일한다. 시작 코드 기준은 `c7e9c3eff8553cf80109261bd578142fee18d19a` (C38.0, Protocol 3.75.0 / Runtime 0.15.17)이며, 이 변경은 새로운 세트 수·운동 자격·중량·노력 정책을 추가하지 않는다. App 0.5.1.5, Room 38 및 저장·백업 계약은 유지한다.

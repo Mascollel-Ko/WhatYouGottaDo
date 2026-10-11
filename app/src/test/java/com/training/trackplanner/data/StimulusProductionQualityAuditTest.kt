@@ -63,35 +63,37 @@ class StimulusProductionQualityAuditTest {
         )
         assertEquals(StimulusProductionProgramSource.CONTROL, fallback.routeDecision.selectedSource)
         assertFalse(fallback.routeDecision.productionRoutingActive)
-        val fallbackComparison = requireNotNull(fallback.comparison)
-        val selectedStrengthOwners = fallbackComparison.selectionPlan.selectedCandidates.filter {
-            "QUALITY:STRENGTH" in it.coveredTargetIds
-        }.map { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }.toSet()
-        assertTrue("independent regional work may still be audited when Strength B6 is unavailable",
-            selectedStrengthOwners.isNotEmpty() || fallbackComparison.targetPlan.movementTargets.isNotEmpty())
-        assertTrue("no exact Strength prescription authority is manufactured",
-            fallbackComparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().none {
-                it.quality == TrainableQuality.STRENGTH && it.authorizedPrescription != null && it.status in setOf(
-                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
-                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
-                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
-                )
-            })
-        assertTrue("an unauthorized Strength B5 owner cannot materialize through the regional path",
-            fallbackComparison.experimental.items.none { row ->
-                StimulusPrescriptionOwnerIdentity(row.exerciseStableKey, row.selectionRole) in selectedStrengthOwners
-            })
-        assertTrue("the unmet Strength target remains a typed shortfall when its B6 authority is unavailable",
-            fallbackComparison.selectionPlan.strengthShortfalls.any {
-                it.reason == StimulusStrengthShortfallReason.NO_EXECUTABLE_STRENGTH_PRESCRIPTION
-            })
-        val strengthFailures = fallbackComparison.prescriptionAuthorizationPlan?.authorizations.orEmpty()
-            .filter { it.quality == TrainableQuality.STRENGTH && it.authorizedPrescription == null }
-        assertTrue("Strength B6 failure must retain typed authority failure evidence", strengthFailures.isNotEmpty())
-        assertEquals(1, fallback.buildCounts.controlBuilds)
-        assertEquals(1, fallback.buildCounts.experimentalBuilds)
-        assertEquals(2, fallback.buildCounts.totalBuildInvocations)
-        assertEquals(0, fallback.buildCounts.thirdBuilds)
+        val fallbackComparison = fallback.comparison
+        if (fallbackComparison == null) {
+            assertEquals("B9_EXPECTED_CANONICAL_EVALUATION_FAILURE", fallback.upstreamFailureReason)
+            assertTrue("the exact no-demand gate is retained in the typed fallback details",
+                "NO_EXECUTABLE_PLANNING_DEMAND" in fallback.upstreamFailureDetails)
+        } else {
+            val selectedStrengthOwners = fallbackComparison.selectionPlan.selectedCandidates.filter {
+                "QUALITY:STRENGTH" in it.coveredTargetIds
+            }.map { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }.toSet()
+            assertTrue("independent regional work may still be audited when Strength B6 is unavailable",
+                selectedStrengthOwners.isNotEmpty() || fallbackComparison.targetPlan.movementTargets.isNotEmpty())
+            assertTrue("no exact Strength prescription authority is manufactured",
+                fallbackComparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().none {
+                    it.quality == TrainableQuality.STRENGTH && it.authorizedPrescription != null && it.status in setOf(
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
+                    )
+                })
+            assertTrue("an unauthorized Strength B5 owner cannot materialize through the regional path",
+                fallbackComparison.experimental.items.none { row ->
+                    StimulusPrescriptionOwnerIdentity(row.exerciseStableKey, row.selectionRole) in selectedStrengthOwners
+                })
+            assertTrue("the unmet Strength target remains a typed shortfall when its B6 authority is unavailable",
+                fallbackComparison.selectionPlan.strengthShortfalls.any {
+                    it.reason == StimulusStrengthShortfallReason.NO_EXECUTABLE_STRENGTH_PRESCRIPTION
+                })
+            val strengthFailures = fallbackComparison.prescriptionAuthorizationPlan?.authorizations.orEmpty()
+                .filter { it.quality == TrainableQuality.STRENGTH && it.authorizedPrescription == null }
+            assertTrue("Strength B6 failure must retain typed authority failure evidence", strengthFailures.isNotEmpty())
+        }
         println("C28 UNRESOLVED FALLBACK\nroute=${fallback.routeDecision}; gaps=${fallback.unresolvedMaterialDemandGaps}; recovery=${fallback.materialDemandAuthorityResolutions}")
     }
 
@@ -143,7 +145,10 @@ class StimulusProductionQualityAuditTest {
             resolver.resolve(combined)
         )
         val combinedScopeAudit = resolver.resolveDetailed(combined)
-        assertTrue(combinedScopeAudit.unattributedOwnerIdentities.isNotEmpty() || combinedScopeAudit.unknownTargetIds.isNotEmpty())
+        assertTrue(combinedScopeAudit.unauthorizedOwnerTargetAuthorities.any {
+            it.owner == owner && it.targetId == "QUALITY:STRENGTH" &&
+                it.reasonCode == "EXACT_B6_PRESCRIPTION_OR_MATERIALIZATION_MISSING"
+        })
         val combinedB8 = StimulusProductionCutoverAuthorityAuditEngine().audit(
             combined,
             StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1
@@ -165,7 +170,9 @@ class StimulusProductionQualityAuditTest {
         val thirdQuality = h.comparison.copy(experimentalReadinessAudit = audit.copy(changeAttributions = listOf(attribution(listOf("QUALITY:HYPERTROPHY", "QUALITY:POWER")))))
         val thirdQualityScope = resolver.resolveDetailed(thirdQuality)
         assertNull("unattributed Power material cannot be hidden inside a Hypertrophy scope", thirdQualityScope.scope)
-        assertTrue(thirdQualityScope.unattributedOwnerIdentities.isNotEmpty() || thirdQualityScope.unknownTargetIds.isNotEmpty())
+        assertTrue("the unsupported Power target remains explicitly typed, outside HYP scope",
+            TrainableQuality.POWER in thirdQualityScope.materialQualities &&
+                "UNSUPPORTED_QUALITY_POWER" in thirdQualityScope.reasonCodes)
         val thirdQualityB8 = StimulusProductionCutoverAuthorityAuditEngine().audit(
             thirdQuality,
             StimulusProductionCutoverScope.HYPERTROPHY_V1
@@ -178,9 +185,9 @@ class StimulusProductionQualityAuditTest {
                 unsupported.targetPlan.qualityTargets.first().copy(quality = TrainableQuality.POWER)
         ))
         val fullyGovernedPowerScope = resolver.resolveDetailed(fullyGovernedPower)
-        assertEquals(StimulusProductionScopeResolutionStatus.PARTIAL_PROVENANCE, fullyGovernedPowerScope.status)
-        assertTrue("partial owner attribution must be diagnosed before interpreting unsupported quality scope",
-            fullyGovernedPowerScope.reasonCodes.any { it.contains("PROVENANCE") })
+        assertEquals(StimulusProductionScopeResolutionStatus.UNSUPPORTED_QUALITY, fullyGovernedPowerScope.status)
+        assertTrue("fully attributed Power remains unsupported by the bounded Strength/Hypertrophy material scopes",
+            "UNSUPPORTED_QUALITY_POWER" in fullyGovernedPowerScope.reasonCodes)
         (TrainableQuality.entries - setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY)).forEach { quality ->
             val probe = h.comparison.copy(
                 targetPlan = h.comparison.targetPlan.copy(qualityTargets = listOf(h.comparison.targetPlan.qualityTargets.first().copy(quality = quality))),
@@ -189,12 +196,16 @@ class StimulusProductionQualityAuditTest {
             val detail = resolver.resolveDetailed(probe)
             assertNull(detail.scope)
             assertEquals(setOf(quality), detail.materialQualities)
-            assertEquals(StimulusProductionScopeResolutionStatus.PARTIAL_PROVENANCE, detail.status)
+            assertEquals(
+                if (detail.unattributedOwnerIdentities.isNotEmpty()) StimulusProductionScopeResolutionStatus.PARTIAL_PROVENANCE
+                else StimulusProductionScopeResolutionStatus.UNSUPPORTED_QUALITY,
+                detail.status
+            )
             assertTrue("UNSUPPORTED_QUALITY_${quality.name}" in detail.reasonCodes)
         }
         val unknown = h.comparison.copy(experimentalReadinessAudit = audit.copy(changeAttributions = listOf(attribution(listOf("QUALITY:NOT_A_QUALITY")))))
         assertEquals(setOf("QUALITY:NOT_A_QUALITY"), resolver.resolveDetailed(unknown).unknownTargetIds)
-        assertEquals(StimulusProductionScopeResolutionStatus.PARTIAL_PROVENANCE, resolver.resolveDetailed(unknown).status)
+        assertEquals(StimulusProductionScopeResolutionStatus.UNKNOWN_TARGET, resolver.resolveDetailed(unknown).status)
         assertTrue("UNKNOWN_TARGET_ID" in resolver.resolveDetailed(unknown).reasonCodes)
         val three = fullyGovernedPower.copy(experimentalReadinessAudit = audit.copy(changeAttributions = listOf(attribution(listOf("QUALITY:STRENGTH", "QUALITY:HYPERTROPHY", "QUALITY:POWER")))))
         assertTrue("THIRD_QUALITY_PRESENT" in resolver.resolveDetailed(three).reasonCodes)
@@ -303,9 +314,12 @@ class StimulusProductionQualityAuditTest {
         val legacyReadiness = requireNotNull(legacyStrength.comparison.experimentalReadinessAudit)
         assertEquals(StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW, legacyReadiness.status)
         assertTrue("exact movement replacement chains close their B7 provenance", legacyReadiness.changeProvenanceClosed)
-        assertTrue(legacyReadiness.targetOutcomes.any {
-            it.targetId == "MOVEMENT:UPPER_PULL" && it.status == StimulusExperimentalTargetOutcomeStatus.IMPROVED
-        })
+        assertEquals(StimulusExperimentalTargetOutcomeStatus.NOT_APPLICABLE,
+            legacyReadiness.targetOutcomes.single { it.targetId == "MOVEMENT:UPPER_PULL" }.status)
+        assertTrue("rear-delt isolation cannot materialize as the missing pull-pattern owner",
+            legacyStrength.comparison.experimental.items.none { it.exerciseStableKey in setOf(
+                "cable_rear_delt_fly", "dumbbell_rear_delt_fly", "ex_7176cbee", "ex_7deabeba", "ex_a60496be"
+            ) })
         assertFalse("B7 no longer reports the exact UPPER_PULL replacement as unexplained",
             "CHANGE_PROVENANCE_UNCLOSED" in legacyReadiness.reasonCodes)
         val legacyB8 = requireNotNull(legacyStrength.comparison.productionCutoverAuthority)

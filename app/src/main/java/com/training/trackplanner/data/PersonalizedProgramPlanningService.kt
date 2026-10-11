@@ -129,6 +129,8 @@ internal class PersonalizedProgramPlanningService(
     private val performancePrescriptions: Map<String, com.training.trackplanner.data.personalized.PerformancePrescriptionAuthority> = emptyMap(),
     private val physicalQualityCatalog: CanonicalExercisePhysicalQualityCatalog = CanonicalExercisePhysicalQualityCatalog.EMPTY,
     private val canonicalMovementRelations: List<CanonicalMetadataRelation> = emptyList(),
+    private val canonicalIdentityMovementPatterns: Map<String, String> = emptyMap(),
+    private val canonicalIdentityMovementReviewStatuses: Map<String, String> = emptyMap(),
     private val canonicalCoreCatalog: CanonicalCoreCatalog = CanonicalCoreCatalog.EMPTY,
     private val reviewedCanonicalStableKeys: Set<String> = emptySet(),
     private val athleteNeedsProfileEngine: AthleteNeedsProfileEngine = AthleteNeedsProfileEngine(),
@@ -2165,7 +2167,10 @@ internal class PersonalizedProgramPlanningService(
             ExerciseRoleRelationCatalog.of(dao.allTrainingRoles(), dao.allProgramSlotCapabilities())
         } ?: ExerciseRoleRelationCatalog.EMPTY
         val baseSnapshot = snapshotBuilder.build(cutoff, history, exercises, metadata, badmintonCatalog, profile, preferences,
-            canonicalStrength, recovery, roleCatalog, plannedStrengthSetIntents)
+            canonicalStrength, recovery, roleCatalog, plannedStrengthSetIntents,
+            canonicalMovementRelations = canonicalMovementRelations,
+            canonicalIdentityMovementPatterns = canonicalIdentityMovementPatterns,
+            canonicalIdentityMovementReviewStatuses = canonicalIdentityMovementReviewStatuses)
         val snapshot = if (includeStimulusExposureLedger) {
             val loadResolver = StrengthPerformanceLoadResolver(dailyMetrics, checkIns, profile)
             baseSnapshot.copy(

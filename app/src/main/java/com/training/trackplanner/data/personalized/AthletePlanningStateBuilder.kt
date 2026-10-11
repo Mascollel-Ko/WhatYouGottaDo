@@ -321,26 +321,9 @@ private fun PlanningHistorySnapshot.isMachine(key: String): Boolean = metadata[k
 
 internal fun PlanningHistorySnapshot.isFreeWeight(key: String): Boolean = exercises[key]?.equipmentTags.orEmpty().split('|').any { it in setOf("BARBELL", "DUMBBELL", "KETTLEBELL", "EZ_BAR") }
 
-internal fun PlanningHistorySnapshot.movementCoverage(key: String): MovementCoverage = when (metadata[key]?.programSlot) {
-    "MAIN_LOWER_STRENGTH", "MACHINE_LOWER_BODY_STRENGTH", "UNILATERAL_LOWER_STRENGTH",
-    "UNILATERAL_LOWER_ACCESSORY", "KNEE_DOMINANT_ACCESSORY", "QUAD_ISOLATION_ACCESSORY",
-    "BODYWEIGHT_LOWER_PATTERN", "LOWER_BODY_ISOMETRIC_ACCESSORY" -> MovementCoverage.LOWER_KNEE
-    "MAIN_HINGE_STRENGTH", "POSTERIOR_CHAIN_ACCESSORY", "POSTERIOR_CHAIN_CONTROL_ACCESSORY",
-    "HAMSTRING_ISOLATION_ACCESSORY", "GLUTE_POSTERIOR_CHAIN_ACCESSORY", "UNILATERAL_HINGE_ACCESSORY",
-    "GLUTE_ACCESSORY", "BALLISTIC_HINGE_POWER" -> MovementCoverage.POSTERIOR_CHAIN
-    "HORIZONTAL_PUSH_STRENGTH_OR_ACCESSORY", "UPPER_PUSH_STRENGTH", "UPPER_PUSH_COMPOUND",
-    "UPPER_PUSH_ACCESSORY", "CHEST_ISOLATION_ACCESSORY", "TRICEPS_EMPHASIS_COMPOUND_PUSH" -> MovementCoverage.HORIZONTAL_PUSH
-    "HORIZONTAL_PULL_STRENGTH", "REAR_DELT_SCAPULAR_ACCESSORY" -> MovementCoverage.HORIZONTAL_PULL
-    "VERTICAL_PULL_STRENGTH", "LAT_ACCESSORY", "PULLOVER_ACCESSORY" -> MovementCoverage.VERTICAL_PULL
-    "OVERHEAD_PUSH_STRENGTH_OR_ACCESSORY", "BODYWEIGHT_VERTICAL_PUSH", "UNILATERAL_SHOULDER_PRESS",
-    "SHOULDER_ACCESSORY" -> MovementCoverage.VERTICAL_PUSH
-    "CORE_STABILITY_ACCESSORY", "CORE_FLEXION_ACCESSORY", "TRUNK_ANTI_ROTATION_STABILITY",
-    "CORE_STABILITY", "CONDITIONING_CORE", "LOADED_CARRY_BRACING" -> MovementCoverage.CORE_DIRECT
-    "ANKLE_CALF_SUPPORT", "ANKLE_SSC_CONDITIONING" -> MovementCoverage.CALVES
-    "BICEPS_ACCESSORY", "BRACHIALIS_FOREARM_ACCESSORY" -> MovementCoverage.ARMS_BICEPS
-    "TRICEPS_ACCESSORY" -> MovementCoverage.ARMS_TRICEPS
-    else -> MovementCoverage.OTHER
-}
+internal fun PlanningHistorySnapshot.movementCoverage(key: String): MovementCoverage =
+    canonicalMovementCoverage[key]?.coverage
+        ?: CanonicalMovementCoverageResolver.fallbackWithoutRelations(metadata[key])
 
 internal fun PlanningHistorySnapshot.movementGroup(key: String): String = movementCoverage(key).name
 

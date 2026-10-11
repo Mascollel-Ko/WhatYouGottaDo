@@ -485,19 +485,22 @@ class CanonicalStimulusPlanningIndependenceTest {
             assertTrue(exactB6Owners.any { owner -> comparison.experimental.items.any {
                 it.exerciseStableKey == owner.stableKey && it.selectionRole == owner.selectionRole
             } })
-            // The exact UPPER_PULL B4/B5/B6 replacement is now closed by B7. That evidence
-            // does not widen the selected B8 scope: the mixed-scope fixture still safely returns CONTROL.
+            // The accessory-slot correction removes the false rear-delt pull improvement.
+            // Other material remains outside this fixture's bounded Strength cutover scope.
             assertEquals(StimulusProductionProgramSource.CONTROL, result.routeDecision.selectedSource)
             val readiness = requireNotNull(comparison.experimentalReadinessAudit)
             assertTrue(readiness.changeProvenanceClosed)
-            assertTrue(readiness.targetOutcomes.any {
+            assertFalse(readiness.targetOutcomes.any {
                 it.targetId == "MOVEMENT:UPPER_PULL" &&
                     it.status == StimulusExperimentalTargetOutcomeStatus.IMPROVED
             })
-            assertTrue(readiness.changeAttributions.any {
+            assertFalse(comparison.selectionPlan.selectedCandidates.any {
                 it.stableKey == "cable_rear_delt_fly" &&
-                    it.selectionRole == "COVERAGE_UPPER_PULL" &&
-                    "B6_AUTHORIZED_REGIONAL_MOVEMENT_REPLACEMENT" in it.reasonCodes
+                    "MOVEMENT:UPPER_PULL" in it.coveredTargetIds
+            })
+            assertFalse(comparison.experimental.items.any {
+                it.exerciseStableKey == "cable_rear_delt_fly" &&
+                    it.selectionRole == "CANONICAL_STIMULUS_MOVEMENT_UPPER_PULL"
             })
             assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, result.routeDecision.b8Status)
             assertSame(comparison.control, result.program)
@@ -507,7 +510,7 @@ class CanonicalStimulusPlanningIndependenceTest {
     }
 
     @Test fun controlFallbackFixtureStillBuildsCanonicalArtifactFirst() = runBlocking {
-        val spec = spec("reviewed_hypertrophy_isolated", h = true)
+        val spec = spec("reviewed_strength_isolated")
         StimulusProductionCoverageAuditTest().runCase(spec) { service, preflight, answers, metadata ->
             val phases = mutableListOf<ProductionGenerationPhase>()
             val result = service.generatePreparedProduction(
@@ -524,7 +527,21 @@ class CanonicalStimulusPlanningIndependenceTest {
     }
 
     private fun productionRegionalResiduals() = runBlocking {
-        StimulusProductionCoverageAuditTest().runCase(spec("c33_production_residual", h = true)) { service, preflight, answers, metadata ->
+        val regionalResidualCase = StimulusProductionCoverageAuditTest.CoverageSpec(
+            label = "persona0_sparse",
+            quality = TrainableQuality.STRENGTH,
+            stableKey = "barbell_back_squat",
+            profileGoal = "STRENGTH_GAIN",
+            goal = ProgramGoal.STRENGTH,
+            intent = StrengthIntent.STRENGTH_PRIORITY,
+            badminton = false,
+            history = "sparse",
+            days = 3,
+            minutes = 60,
+            equipment = setOf("MACHINE", "CABLE"),
+            explicitWeeklyDays = true
+        )
+        StimulusProductionCoverageAuditTest().runCase(regionalResidualCase) { service, preflight, answers, metadata ->
             var canonical: CanonicalStimulusPlanningResult? = null
             val result = service.generatePreparedProduction(preflight, answers, metadata,
                 canonicalPlanningComputation = { snapshot, state, dose ->

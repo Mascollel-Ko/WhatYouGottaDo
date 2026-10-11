@@ -43,6 +43,7 @@ internal object C33RegionalB4ResidualProductionCensus {
     ): String {
         val targets = JSONArray()
         val weeklyRows = JSONArray()
+        val casesWithoutComparison = JSONArray()
         val routeCounts = sortedMapOf<String, Int>()
         var totalCandidates = 0
         var selectedCandidates = 0
@@ -66,7 +67,26 @@ internal object C33RegionalB4ResidualProductionCensus {
 
         sparseCases.sorted().forEach { case ->
             val generated = generatedByCase[case] ?: error("C33 census missing generated case $case")
-            val comparison = requireNotNull(generated.comparison) { "C33 census requires EXP comparison for $case" }
+            val comparison = generated.comparison
+            if (comparison == null) {
+                // A production result can legitimately fail closed before constructing a
+                // CONTROL/EXP comparison. Preserve that result in the census instead of
+                // inventing empty regional materialization rows or aborting the corpus audit.
+                routeCounts[generated.routeDecision.selectedSource.name] =
+                    (routeCounts[generated.routeDecision.selectedSource.name] ?: 0) + 1
+                val canonical = canonicalPlanningByCase[case]
+                casesWithoutComparison.put(JSONObject()
+                    .put("case", case)
+                    .put("route", generated.routeDecision.selectedSource.name)
+                    .put("routeReasons", JSONArray(generated.routeDecision.reasonCodes))
+                    .put("upstreamFailureReason", generated.upstreamFailureReason)
+                    .put("upstreamFailureDetails", JSONArray(generated.upstreamFailureDetails))
+                    .put("movementNeedEvidenceAvailable", canonical != null)
+                    .put("movementNeedDecisionCount", canonical?.decisionPortfolio?.movementDecisions?.size ?: 0)
+                    .put("comparisonStatus", "UNAVAILABLE_FAIL_CLOSED")
+                )
+                return@forEach
+            }
             val canonical = canonicalPlanningByCase[case] ?: error("C33 census missing B1-B4 evidence for $case")
             val selection = comparison.selectionPlan
             val authorizationPlan = requireNotNull(comparison.prescriptionAuthorizationPlan)
@@ -351,9 +371,12 @@ internal object C33RegionalB4ResidualProductionCensus {
                 .put("unauthorizedMovementRowsBefore", 0))
             .put("targets", targets)
             .put("ownerWeeks", weeklyRows)
+            .put("casesWithoutComparison", casesWithoutComparison)
             .put("summary", JSONObject()
                 .put("movementTargets", targets.length())
                 .put("ownerWeekRows", weeklyRows.length())
+                .put("casesWithComparison", sparseCases.size - casesWithoutComparison.length())
+                .put("casesWithoutComparison", casesWithoutComparison.length())
                 .put("c31BaselineMovementTargets", currentBaselineTargetCount)
                 .put("c31BaselineOwnerWeekRows", weeklyRows.let { rows ->
                     (0 until rows.length()).count { rows.getJSONObject(it).optBoolean("isC31BaselineTarget") }

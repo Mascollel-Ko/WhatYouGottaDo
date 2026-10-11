@@ -379,6 +379,10 @@ class TrainingRepository internal constructor(
         canonicalOfiAxisProfiles = canonicalOfiAxisProfiles,
         physicalQualityCatalog = canonicalMetadataRepository.physicalQualityCatalog(),
         canonicalMovementRelations = canonicalMetadataRepository.movementRelations(),
+        canonicalIdentityMovementPatterns = canonicalMetadataRepository.identities()
+            .associate { it.stableKey to it.movementPattern },
+        canonicalIdentityMovementReviewStatuses = canonicalMetadataRepository.identities()
+            .associate { it.stableKey to it.reviewStatus },
         canonicalCoreCatalog = canonicalCoreCatalog,
         reviewedCanonicalStableKeys = canonicalMetadataRepository.identities().mapTo(linkedSetOf()) { it.stableKey },
         exerciseRoleRelationDao = exerciseRoleRelationDao,

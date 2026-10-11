@@ -113,12 +113,19 @@ internal object C36ExecutionProvenanceCensus {
         var diagnosticFundedButCapacityRejectedUnits = 0
         var diagnosticZeroButActuallyScheduledRows = 0
         var diagnosticZeroButActuallyScheduledUnits = 0
+        var comparisonUnavailableCases = 0
 
         records.sortedBy { it.first.label }.forEach { (spec, result) ->
             val generated = result ?: return@forEach
             val comparison = generated.comparison ?: run {
-                cases.put(JSONObject().put("case", spec.label).put("generated", false)
+                comparisonUnavailableCases++
+                routes[generated.routeDecision.selectedSource.name] =
+                    (routes[generated.routeDecision.selectedSource.name] ?: 0) + 1
+                cases.put(JSONObject().put("case", spec.label).put("generated", true)
+                    .put("comparisonAvailable", false)
                     .put("route", generated.routeDecision.selectedSource.name)
+                    .put("upstreamFailureReason", generated.upstreamFailureReason)
+                    .put("upstreamFailureDetails", JSONArray(generated.upstreamFailureDetails))
                     .put("generationTimeMs", generationMillisByCase[spec.label] ?: JSONObject.NULL))
                 return@forEach
             }
@@ -587,6 +594,7 @@ internal object C36ExecutionProvenanceCensus {
             val case = JSONObject()
                 .put("case", spec.label)
                 .put("generated", true)
+                .put("comparisonAvailable", true)
                 .put("route", generated.routeDecision.selectedSource.name)
                 .put("generationTimeMs", generationMillisByCase[spec.label] ?: JSONObject.NULL)
                 .put("executionAllocationAccounting", execution?.let { trace -> JSONObject()
@@ -795,6 +803,8 @@ internal object C36ExecutionProvenanceCensus {
             .put("prescriptionChangeOwnerWeeks", JSONArray(prescriptionChanges))
             .put("summary", JSONObject()
                 .put("generatedCases", cases.length())
+                .put("casesWithComparison", cases.length() - comparisonUnavailableCases)
+                .put("comparisonUnavailableCases", comparisonUnavailableCases)
                 .put("regionalTargetRows", regionalRows.size)
                 .put("regionalRawResidualPerTargetWeekUnits", regionalRawResidual)
                 .put("regionalFiniteAllocationDiagnosticFundedPerTargetWeekUnits", regionalFiniteDiagnosticFunded)

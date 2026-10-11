@@ -27,6 +27,9 @@ class PostGenerationAuthorityFreezeTest {
         // C38.1 updates ExposureRepresentation's movement-domain projection to the shared
         // H/V/UPPER_PULL relation and GapCandidateSelector's pull-coverage lookup to consume
         // that same relation; historical dose, ranking, and prescription authorities remain frozen.
+        // C38.2 replaces broad runtime accessory-slot movement promotion with a canonical
+        // movement-pattern/family resolver and supplies canonical relations to the snapshot;
+        // historical dose and prescription authorities remain frozen.
         // All unrelated historical, style, numerical and prescription authorities remain frozen.
         // C28 lets the legacy selector report candidate identities without set-unit demand in
         // canonical EXP generation; it does not change candidate ranking or create a dose.
@@ -42,7 +45,7 @@ class PostGenerationAuthorityFreezeTest {
         val frozen = mapOf(
             // Domain-separated volume and court-deviation trace are the approved
             // changes in this follow-up; keep the remaining authorities frozen.
-            "AthletePlanningStateBuilder.kt" to "1a20d50280884f9eb916d7a28b249d124552fbd275f0df1f34939f915126271a",
+            "AthletePlanningStateBuilder.kt" to "4a1c4df0a5089b4e49668713d365b549c6b48eab0f3953c1a3fafd2a63df6a70",
             // Approved Phase A closeout correction: the snapshot resolver delegates to the
             // explicit-argument resolver; classification branch order/predicates remain
             // unchanged, and production uses the explicit overload only in the shadow ledger.
@@ -55,7 +58,7 @@ class PostGenerationAuthorityFreezeTest {
             "ExecutionAllocationPlanner.kt" to "ebfc914e43b0d970743edfe52027a382a5db66023a2c11d579b6e2b56a0880f4",
             "PerformancePrescriptionResolver.kt" to "48eda34c9e390ca109bbb1e19e7a8ac79802f01f60c25470f92c8eb7f87063be",
             "RecordBasedReviewedPolicy.kt" to "915be5354ac988774f740a366655d26f74cb3c8e2f820eecf63e8914b671ed08",
-            "PlanningHistorySnapshotBuilder.kt" to "86cd17bf56f36e2759bb8cd507b0c0162d9023627898ba1fd3dfb64558bce76f",
+            "PlanningHistorySnapshotBuilder.kt" to "856201038ff76599ba4928ffae9d10080fc6c46ba670096fb9036387fb6dfbd3",
             "TrainingStateAssessment.kt" to "9027cb6d45422fc2cdecafa19fbec34a8b8fcba8c14cc594058d15e802e53bf2",
             "TrainingStateRouting.kt" to "bcbc769d004c80cf76a8b2ea1d69344be69b22892d769c591a58d0edecd042e0"
         )

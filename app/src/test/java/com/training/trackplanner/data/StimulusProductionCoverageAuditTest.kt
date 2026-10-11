@@ -17,6 +17,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.io.File
 import java.time.LocalDate
 import kotlin.math.ln
 
@@ -31,6 +32,111 @@ class StimulusProductionCoverageAuditTest {
         val equipment: Set<String>, val isolateOwner: Boolean = false,
         val explicitWeeklyDays: Boolean = true, val explicitDuration: Boolean = true
     )
+
+    @Test
+    fun rearDeltFlyCannotSatisfyOrOwnUpperPullInProductionGeneration() = runBlocking {
+        var planning: CanonicalStimulusPlanningResult? = null
+        val result = requireNotNull(runCase(
+            CoverageSpec(
+                label = "persona0_sparse",
+                quality = TrainableQuality.STRENGTH,
+                stableKey = "barbell_back_squat",
+                profileGoal = "STRENGTH_GAIN",
+                goal = ProgramGoal.STRENGTH,
+                intent = StrengthIntent.STRENGTH_PRIORITY,
+                badminton = false,
+                history = "sparse",
+                days = 3,
+                minutes = 60,
+                equipment = setOf("MACHINE", "CABLE")
+            ),
+            observeCanonicalPlanning = { planning = it }
+        ))
+        val comparison = requireNotNull(result.comparison)
+        val target = requireNotNull(planning).targetPlan.movementTargets.singleOrNull {
+            it.movementCoverage == MovementCoverage.UPPER_PULL
+        }
+        assertNotNull("B4 keeps the existing need decision; the correction changes eligibility, not need", target)
+
+        val illegalFlySelection = comparison.selectionPlan.selectedCandidates.filter { candidate ->
+            candidate.stableKey in setOf("cable_rear_delt_fly", "dumbbell_rear_delt_fly", "ex_7deabeba", "ex_a60496be") &&
+                "MOVEMENT:UPPER_PULL" in candidate.coveredTargetIds
+        }
+        assertTrue("a rear-delt isolation cannot be a direct pull owner", illegalFlySelection.isEmpty())
+        assertFalse(comparison.prescriptionAuthorizationPlan!!.authorizations.any { authorization ->
+            authorization.targetId == "MOVEMENT:UPPER_PULL" && (authorization.owner?.stableKey ?: "") in
+                setOf("cable_rear_delt_fly", "dumbbell_rear_delt_fly", "ex_7deabeba", "ex_a60496be")
+        })
+        assertFalse(comparison.experimental.items.any { item ->
+            item.exerciseStableKey in setOf("cable_rear_delt_fly", "dumbbell_rear_delt_fly", "ex_7deabeba", "ex_a60496be") &&
+                item.selectionRole == "CANONICAL_STIMULUS_MOVEMENT_UPPER_PULL"
+        })
+        assertNotNull(comparison.experimentalReadinessAudit)
+        assertNotNull(comparison.productionCutoverAuthority)
+        val upperPullOwners = comparison.selectionPlan.selectedCandidates.filter {
+            "MOVEMENT:UPPER_PULL" in it.coveredTargetIds
+        }
+        val upperPullAuthorizations = comparison.prescriptionAuthorizationPlan!!.authorizations.filter {
+            it.targetId == "MOVEMENT:UPPER_PULL"
+        }
+        val upperPullMaterializations = comparison.materializationTraces.filter {
+            it.targetId == "MOVEMENT:UPPER_PULL"
+        }
+        val movementDose = target?.regionalDoseTargets.orEmpty()
+        val rearDeltCensus = org.json.JSONObject()
+            .put("case", "persona0_sparse")
+            .put("b4", org.json.JSONObject()
+                .put("movementNeed", target?.reasonCodes?.joinToString(",") ?: "NO_TARGET")
+                .put("doseTargets", org.json.JSONArray(movementDose.map { dose ->
+                    org.json.JSONObject().put("kind", dose.kind.name).put("authority", dose.numericAuthority.name)
+                        .put("weeklyTarget", dose.weeklyTarget).put("reasons", org.json.JSONArray(dose.reasonCodes))
+                })))
+            .put("b5UpperPullOwners", org.json.JSONArray(upperPullOwners.map {
+                org.json.JSONObject().put("stableKey", it.stableKey).put("selectionRole", it.selectionRole)
+                    .put("primaryTarget", it.primaryTargetId).put("targets", org.json.JSONArray(it.coveredTargetIds))
+            }))
+            .put("b6UpperPull", org.json.JSONArray(upperPullAuthorizations.map {
+                org.json.JSONObject().put("owner", it.owner?.let { owner -> "${owner.stableKey}#${owner.selectionRole}" })
+                    .put("status", it.status.name).put("reasonCodes", org.json.JSONArray(it.reasonCodes))
+                    .put("prescription", it.authorizedPrescription?.let { prescription -> prescription.toString() })
+            }))
+            .put("fundedUpperPull", org.json.JSONArray(comparison.experimental.personalizedDecision?.authorizedScheduling?.authorized.orEmpty()
+                .filter { demand -> upperPullOwners.any { it.stableKey == demand.item.stableKey && it.selectionRole == demand.item.role } }
+                .map { demand -> org.json.JSONObject().put("demandId", demand.id)
+                    .put("stableKey", demand.item.stableKey).put("selectionRole", demand.item.role)
+                    .put("sets", demand.prescription.sets.size).put("prescription", demand.prescription.text) }))
+            .put("materializedUpperPull", org.json.JSONArray(upperPullMaterializations.map {
+                org.json.JSONObject().put("stableKey", it.selectedStableKey).put("selectionRole", it.selectionRole)
+                    .put("selectedAtB5", it.selectedAtB5).put("finalWeeklyOccurrences", it.finalWeeklyOccurrences)
+                    .put("finalTotalSetUnits", it.finalTotalSetUnits).put("directIdentityStillValid", it.directIdentityStillValid)
+                    .put("reasonCodes", org.json.JSONArray(it.reasonCodes))
+            }))
+            .put("finalUpperPullRows", org.json.JSONArray(comparison.experimental.items.filter {
+                it.selectionRole == "CANONICAL_STIMULUS_MOVEMENT_UPPER_PULL"
+            }.map { item -> org.json.JSONObject().put("stableKey", item.exerciseStableKey)
+                .put("week", item.weekNumber).put("day", item.dayOfWeek).put("sets", item.setCount)
+                .put("prescriptions", org.json.JSONArray(item.setPrescriptions.map { it.toString() })) }))
+            .put("b7", org.json.JSONObject().put("status", comparison.experimentalReadinessAudit!!.status.name)
+                .put("reasons", org.json.JSONArray(comparison.experimentalReadinessAudit!!.reasonCodes)))
+            .put("b8", org.json.JSONObject().put("status", comparison.productionCutoverAuthority!!.status.name)
+                .put("scope", comparison.productionCutoverAuthority!!.scope.name)
+                .put("reasons", org.json.JSONArray(comparison.productionCutoverAuthority!!.reasonCodes)))
+            .put("b9", org.json.JSONObject().put("source", result.routeDecision.selectedSource.name)
+                .put("reasons", org.json.JSONArray(result.routeDecision.reasonCodes)))
+            .put("buildAccounting", org.json.JSONObject().put("control", result.buildCounts.controlBuilds)
+                .put("experimental", result.buildCounts.experimentalBuilds).put("third", result.buildCounts.thirdBuilds))
+        File("build/reports/c38-2-rear-delt-production-case.json").apply {
+            parentFile?.mkdirs()
+            writeText(rearDeltCensus.toString(2))
+        }
+        assertEquals(1, result.buildCounts.controlBuilds)
+        assertTrue(result.buildCounts.experimentalBuilds <= 1)
+        assertEquals(0, result.buildCounts.thirdBuilds)
+        assertEquals(
+            comparison.productionCutoverAuthority?.status == StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER,
+            result.routeDecision.productionRoutingActive
+        )
+    }
 
     @Test
     fun c20SummaryPlacementRowWithoutExactPrescriptionCannotOverwriteCanonicalProgram() = runBlocking {
@@ -212,13 +318,103 @@ class StimulusProductionCoverageAuditTest {
             spec to result
         }
         val generated = records.mapNotNull { (spec, result) -> result?.let { spec to it } }
+        val previousC37Pairs = org.json.JSONObject(repositoryFile("docs/c37_5-removal-repair-census.json").readText())
+            .getJSONArray("unexplainedPairs")
+        val reclassifiedPairs = org.json.JSONArray()
+        val reclassificationCounts = sortedMapOf<String, Int>()
+        for (index in 0 until previousC37Pairs.length()) {
+            val previous = previousC37Pairs.getJSONObject(index)
+            val ownerJson = previous.getJSONObject("ownerIdentity")
+            val caseName = previous.getString("case")
+            val owner = StimulusPrescriptionOwnerIdentity(
+                ownerJson.getString("stableKey"), ownerJson.getString("selectionRole")
+            )
+            val result = records.singleOrNull { it.first.label == caseName }?.second
+            val comparison = result?.comparison
+            val controlRows = comparison?.control?.items.orEmpty().filter {
+                it.exerciseStableKey == owner.stableKey && it.selectionRole == owner.selectionRole
+            }
+            val exactExperimentalRows = comparison?.experimental?.items.orEmpty().filter {
+                it.exerciseStableKey == owner.stableKey && it.selectionRole == owner.selectionRole
+            }
+            val sameKeyOtherRoleRows = comparison?.experimental?.items.orEmpty().filter {
+                it.exerciseStableKey == owner.stableKey && it.selectionRole != owner.selectionRole
+            }
+            val disposition = when {
+                comparison == null -> "COMPARISON_UNAVAILABLE_FAIL_CLOSED"
+                controlRows.isEmpty() -> "DISAPPEARED_BECAUSE_CURRENT_CONTROL_OUTPUT_CHANGED"
+                exactExperimentalRows.isNotEmpty() -> "EXACT_OWNER_PRESERVED_IN_CURRENT_EXP"
+                sameKeyOtherRoleRows.isNotEmpty() -> "SAME_EXERCISE_ROLE_CHANGED_REQUIRES_OWN_AUTHORITY"
+                else -> "EXACT_OWNER_STILL_REMOVED"
+            }
+            reclassificationCounts[disposition] = (reclassificationCounts[disposition] ?: 0) + 1
+            val attribution = comparison?.experimentalReadinessAudit?.changeAttributions.orEmpty().singleOrNull {
+                it.stableKey == owner.stableKey && it.selectionRole == owner.selectionRole
+            }
+            fun rowsJson(rows: List<ProgramSkeletonItem>) = org.json.JSONArray(rows.map { row ->
+                org.json.JSONObject().put("week", row.weekNumber).put("day", row.dayOfWeek)
+                    .put("order", row.orderIndex).put("sets", row.setCount).put("restSeconds", row.restSeconds)
+                    .put("weightSource", row.weightSource).put("setPrescriptions", org.json.JSONArray(
+                        row.setPrescriptions.sortedBy { it.setIndex }.map { set ->
+                            org.json.JSONObject().put("setIndex", set.setIndex).put("reps", set.reps)
+                                .put("seconds", set.seconds).put("loadKg", set.weightKg)
+                                .put("loadState", set.loadState.name).put("targetRpeMin", set.targetRpeMin)
+                        }
+                    ))
+            })
+            reclassifiedPairs.put(org.json.JSONObject()
+                .put("case", caseName)
+                .put("owner", org.json.JSONObject().put("stableKey", owner.stableKey)
+                    .put("selectionRole", owner.selectionRole))
+                .put("oldC37Classification", previous.getString("classification"))
+                .put("oldB4Targets", previous.getJSONArray("exactB4TargetIds"))
+                .put("disposition", disposition)
+                .put("controlRows", rowsJson(controlRows))
+                .put("experimentalExactOwnerRows", rowsJson(exactExperimentalRows))
+                .put("experimentalSameStableKeyOtherRoles", rowsJson(sameKeyOtherRoleRows))
+                .put("b7Attribution", attribution?.let { value -> org.json.JSONObject()
+                    .put("source", value.source.name).put("targets", org.json.JSONArray(value.targetIds))
+                    .put("reasonCodes", org.json.JSONArray(value.reasonCodes))
+                    .put("evidenceSources", org.json.JSONArray(value.evidenceSources)) } ?: org.json.JSONObject.NULL)
+                .put("b8Status", comparison?.productionCutoverAuthority?.status?.name ?: "CONTROL_REQUIRED")
+                .put("b9Route", result?.routeDecision?.selectedSource?.name ?: "CONTROL"))
+        }
+        File("build/reports/c38-2-prior-removal-reclassification.json").apply {
+            parentFile?.mkdirs()
+            writeText(org.json.JSONObject()
+                .put("previousCorpus", "C37.5 32 unique (case, stableKey, selectionRole) pairs")
+                .put("currentGeneratedCases", generated.size)
+                .put("dispositionCounts", org.json.JSONObject(reclassificationCounts))
+                .put("pairs", reclassifiedPairs).toString(2))
+        }
         val authorizedStrengthStatuses = setOf(
             StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
             StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
             StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
         )
+        val accessoryOnlyMovementOwners = setOf(
+            "cable_rear_delt_fly", "dumbbell_rear_delt_fly", "ex_7176cbee", "ex_7deabeba", "ex_a60496be",
+            "ex_93538692", "ex_b076570e", "ex_708e64ce", "ex_c365e5e2", "machine_chest_fly"
+        )
         generated.forEach { (spec, result) ->
             val comparison = result.comparison ?: return@forEach
+            val accessoryMovementSelections = comparison.selectionPlan.selectedCandidates
+                .filter { candidate -> candidate.coveredTargetIds.any { it.startsWith("MOVEMENT:") } }
+                .filter { it.stableKey in accessoryOnlyMovementOwners }
+            assertTrue(
+                "${spec.label}: accessory-only movement selections are not canonical direct owners: " +
+                    accessoryMovementSelections.map { it.stableKey to it.coveredTargetIds },
+                accessoryMovementSelections.isEmpty()
+            )
+            val accessoryMovementRows = comparison.experimental.items.filter { item ->
+                item.stableKey in accessoryOnlyMovementOwners &&
+                    item.selectionRole.startsWith("CANONICAL_STIMULUS_MOVEMENT_")
+            }
+            assertTrue(
+                "${spec.label}: accessory-only identities cannot materialize movement-owner rows: " +
+                    accessoryMovementRows.map { it.stableKey to it.selectionRole },
+                accessoryMovementRows.isEmpty()
+            )
             comparison.experimental.items.forEach { item ->
                 item.setPrescriptions.filter { set ->
                     plannedTargetSetStimulusClass(item.stableKey, set.reps, item.selectionRole, TrainableQuality.STRENGTH) ==
@@ -338,6 +534,27 @@ class StimulusProductionCoverageAuditTest {
             c18StartSha = "bb8dfca386b8fd296417185a9c105ac2b5e94b0f"
         ))
         java.io.File("build/reports/c18-tissue-incumbent-placement-census.json").writeText(c18Census)
+        val c18FixtureComparisonJson = org.json.JSONObject(c18Census)
+        assertEquals(2, c18FixtureComparisonJson.getJSONObject("summary")
+            .getInt("generatedControlDoesNotMatchHistoricalIncumbent"))
+        val historicalPlacementMismatches = (0 until c18FixtureComparisonJson.getJSONArray("placementRows").length())
+            .map { c18FixtureComparisonJson.getJSONArray("placementRows").getJSONObject(it) }
+            .filter { !it.getBoolean("generatedControlMatchesHistoricalIncumbent") }
+            .map { row ->
+                val owner = row.getJSONObject("owner")
+                "${row.getString("case")}#${owner.getString("stableKey")}#${owner.getString("selectionRole")}@${row.getInt("week")}"
+            }.sorted()
+        assertEquals(
+            listOf(
+                "persona4_mixed#barbell_back_squat#STYLE_HEAVY_LOWER_KNEE@1",
+                "persona4_mixed#barbell_back_squat#STYLE_HEAVY_LOWER_KNEE@2"
+            ),
+            historicalPlacementMismatches
+        )
+        assertTrue((0 until c18FixtureComparisonJson.getJSONArray("placementRows").length())
+            .map { c18FixtureComparisonJson.getJSONArray("placementRows").getJSONObject(it) }
+            .filter { !it.getBoolean("generatedControlMatchesHistoricalIncumbent") }
+            .all { it.getString("incumbentShadowRecommendation") == "NO_ELIGIBLE_INCUMBENT" })
         val c19Census = C19CanonicalProgramLineageCensus.render(c18Census, records)
         assertEquals(c19Census, C19CanonicalProgramLineageCensus.render(c18Census, records.reversed()))
         val c19Summary = org.json.JSONObject(c19Census).getJSONObject("summary")
@@ -485,8 +702,19 @@ class StimulusProductionCoverageAuditTest {
             c37Case("persona3_mixed").getJSONObject("b7").getString("status"))
         assertEquals("AUTHORIZED_FOR_BOUNDED_CUTOVER", c37Case("persona3_mixed").getJSONObject("b8").getString("status"))
         assertEquals("POWER_JUMP_V1", c37Case("persona3_mixed").getJSONObject("b8").getString("scope"))
-        assertEquals(2, c37Case("persona3_mixed").getJSONObject("b8")
-            .getJSONArray("authorizedMovementTargetOwnerIdentities").length())
+        val persona3MixedB8MovementOwners = c37Case("persona3_mixed").getJSONObject("b8")
+            .getJSONArray("authorizedMovementTargetOwnerIdentities")
+        assertEquals(
+            listOf(
+                "MOVEMENT:CORE_DIRECT#ex_28347c1f#CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT",
+                "MOVEMENT:HORIZONTAL_PUSH#ex_1dbee10e#CANONICAL_STIMULUS_MOVEMENT_HORIZONTAL_PUSH",
+                "MOVEMENT:UPPER_PULL#ex_32eb8457#CANONICAL_STIMULUS_MOVEMENT_UPPER_PULL"
+            ),
+            (0 until persona3MixedB8MovementOwners.length()).map { index ->
+                val owner = persona3MixedB8MovementOwners.getJSONObject(index)
+                "${owner.getString("targetId")}#${owner.getString("stableKey")}#${owner.getString("selectionRole")}"
+            }
+        )
         assertEquals("CONTROL", c37Case("persona3_reviewed").getString("route"))
         assertEquals("ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW",
             c37Case("persona3_sparse").getJSONObject("b7").getString("status"))
@@ -511,10 +739,13 @@ class StimulusProductionCoverageAuditTest {
         val c37B7 = c37Json.getJSONObject("b7ReasonOccurrences")
         assertTrue(c37B7.length() > 0)
         val c37C20 = c37Json.getJSONObject("c20LiveIncumbentFeasibility")
-        assertEquals(10, c37C20.getInt("HARD_VALID"))
+        assertEquals(6, c37C20.getInt("HARD_VALID"))
         assertEquals(0, c37C20.getInt("HARD_INVALID"))
         assertEquals(0, c37C20.getInt("UNRESOLVED"))
-        assertEquals(4, c37C20.getInt("preservedHardValidRows"))
+        assertFalse(c37C20.has("NOT_EVALUATED_NO_CURRENT_AUTHORIZED_OWNER"))
+        // The current production route does not activate those historical placements;
+        // HARD_VALID is a feasibility result, not proof of an applied preservation event.
+        assertEquals(0, c37C20.getInt("preservedHardValidRows"))
         assertEquals(0, c37C20.getInt("hardInvalidOrUnresolvedForcedPreserved"))
         // C24's historical handoff expects the C21-shaped count envelope. Feed it the live
         // C37 counts so downstream task auditing observes current Power material without
@@ -633,7 +864,7 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(0, c23.getJSONObject("powerInvariant").getInt("numericAuthority"))
         assertEquals(0, c23.getJSONObject("powerInvariant").getInt("executableB6"))
         assertEquals(0, c23.getJSONObject("powerInvariant").getInt("materialRows"))
-        assertEquals(10, c23.getJSONObject("c20IncumbentRegression").getInt("HARD_VALID"))
+        assertEquals(6, c23.getJSONObject("c20IncumbentRegression").getInt("HARD_VALID"))
         assertEquals(0, c23.getJSONObject("c20IncumbentRegression").getInt("HARD_INVALID"))
         assertEquals(0, c23.getJSONObject("c20IncumbentRegression").getInt("UNRESOLVED"))
         assertFalse(c23.getJSONObject("productionChanges").getBoolean("taskB6Added"))
@@ -668,7 +899,7 @@ class StimulusProductionCoverageAuditTest {
         assertTrue(taskSelectionItems.all { item ->
             runCatching { TaskProtocolExposureMetadata.fromJsonString(checkNotNull(item.taskProtocolSemanticsJson)) }.isSuccess
         })
-        assertEquals(10, c24.getJSONObject("c20IncumbentRegression").getInt("HARD_VALID"))
+        assertEquals(6, c24.getJSONObject("c20IncumbentRegression").getInt("HARD_VALID"))
         assertEquals(0, c24.getJSONObject("c20IncumbentRegression").getInt("HARD_INVALID"))
         assertEquals(0, c24.getJSONObject("c20IncumbentRegression").getInt("UNRESOLVED"))
         assertEquals(0, c24.getJSONObject("c20IncumbentRegression").getInt("invalidOrUnresolvedForcedPreserved"))
@@ -786,9 +1017,21 @@ class StimulusProductionCoverageAuditTest {
                 unclosedByOwner[owner]?.let { spec.label to it }
             }
         }
-        // C33's regional B4/B5/B6 path leaves B7 comparisons available in the same corpus;
-        // all seven Quality replacement rows still lack exact executable B6 and stay unclosed.
-        assertEquals("All seven Quality replacements without executable B6 remain closed", 7,
+        // The legacy C26 fixture is a historical snapshot. The live corpus is reclassified
+        // after canonical movement semantics are corrected; preserve the exact current rows
+        // separately instead of forcing its count to equal that old snapshot.
+        java.io.File("build/reports/c38-2-quality-replacement-rows.json").apply {
+            parentFile?.mkdirs()
+            writeText(org.json.JSONArray(remainingQualityReplacementRows.map { (caseName, attribution) ->
+                org.json.JSONObject().put("case", caseName)
+                    .put("stableKey", attribution.stableKey)
+                    .put("selectionRole", attribution.selectionRole)
+                    .put("source", attribution.source.name)
+                    .put("targetIds", org.json.JSONArray(attribution.targetIds.sorted()))
+                    .put("reasonCodes", org.json.JSONArray(attribution.reasonCodes.sorted()))
+            }).toString(2))
+        }
+        assertEquals("Current exact Quality replacement rows remain fail-closed", 5,
             remainingQualityReplacementRows.size)
         val frozenQualityReplacementRows = org.json.JSONObject(
             repositoryFile("docs/c26-b6-exp-b7-consistency-census.json").readText()
@@ -857,10 +1100,15 @@ class StimulusProductionCoverageAuditTest {
         }
         assertEquals(orderedCaseNames.sorted(), orderedCaseNames)
         val nextPhaseSummary = nextPhaseJson.getJSONObject("summary")
-        // Sparse movement targets now enter the ordinary B4/B5/B6 path; keep corpus
-        // accounting and safety contracts current instead of reasserting C28's old output.
+        // Two generated results have no comparison object and are excluded from this
+        // owner-delta census. Report generation and comparison counts separately.
         assertEquals(22, nextPhaseSummary.getInt("generatedCases"))
-        assertEquals(20, nextPhaseSummary.getInt("controlCases"))
+        assertEquals(20, nextPhaseSummary.getInt("casesWithComparison"))
+        assertEquals(2, nextPhaseSummary.getInt("generatedResultsWithoutComparison"))
+        assertEquals(listOf("persona1_recent", "persona1_sparse"),
+            (0 until nextPhaseSummary.getJSONArray("generatedResultsWithoutComparisonCaseNames").length())
+                .map { nextPhaseSummary.getJSONArray("generatedResultsWithoutComparisonCaseNames").getString(it) })
+        assertEquals(17, nextPhaseSummary.getInt("controlCases"))
         assertEquals(2, nextPhaseSummary.getInt("powerJumpCases"))
         assertEquals(0, nextPhaseSummary.getInt("casesWithMixedStrengthAndTaskMaterialOnlyBlockers"))
         assertEquals(0, nextPhaseSummary.getJSONObject("unclosedAttributionReasonOccurrences")
@@ -870,7 +1118,9 @@ class StimulusProductionCoverageAuditTest {
         // residual materialization. Keep their immutable checked-in baselines as references;
         // assert current safety contracts here and emit a fresh C33 before/after census.
         assertEquals(22, nextPhaseSummary.getInt("generatedCases"))
-        assertEquals(20, nextPhaseSummary.getInt("controlCases"))
+        assertEquals(20, nextPhaseSummary.getInt("casesWithComparison"))
+        assertEquals(2, nextPhaseSummary.getInt("generatedResultsWithoutComparison"))
+        assertEquals(17, nextPhaseSummary.getInt("controlCases"))
         assertEquals(2, nextPhaseSummary.getInt("powerJumpCases"))
         assertEquals(0, nextPhaseSummary.getInt("qualityAddedOwnerWeeksWithoutAuthorizedB6"))
         assertEquals(0, nextPhaseSummary.getJSONObject("unclosedAttributionReasonOccurrences")
@@ -920,15 +1170,17 @@ class StimulusProductionCoverageAuditTest {
         assertTrue(c35Summary.getBoolean("equalPriorityOrderMatchesDeterministicCanonicalTieBreak"))
         assertEquals(1, c35Summary.getJSONObject("syntheticPriorityProbe").getInt("beforeInversions"))
         assertEquals(0, c35Summary.getJSONObject("syntheticPriorityProbe").getInt("afterInversions"))
-        assertEquals(2, c35Summary.getInt("aggregateOnlyFalseRegressionCandidates"))
-        assertEquals(0, c35Summary.getInt("aggregateHypertrophyRegressionCasesAfter"))
+        assertEquals(0, c35Summary.getInt("aggregateOnlyFalseRegressionCandidates"))
+        assertEquals(1, c35Summary.getInt("aggregateHypertrophyRegressionCasesAfter"))
         assertEquals(0, c35Summary.getInt("regionalHypertrophyOverrunTargetsAfter"))
-        assertEquals(808.0, c35Summary.getDouble("regionalRawResidualWeeklyUnits"), 0.0)
-        assertEquals(616, c35Summary.getInt("regionalFundedUnits"))
-        assertEquals(688, c35Summary.getInt("regionalLegacyDiagnosticFundedUnits"))
-        assertEquals(616, c35Summary.getInt("regionalMaterializedCompatibleUnits"))
-        assertEquals(1232, c35Summary.getInt("regionalTotalMaterializedCompatibleSetUnits"))
-        assertEquals(192, c35Summary.getInt("regionalUnfundedUnits"))
+        assertEquals(600.0, c35Summary.getDouble("regionalRawResidualWeeklyUnits"), 0.0)
+        // The canonical identity review gate removes eight regional units that were
+        // previously funded through calf accessory identities still marked REVIEW_REQUIRED.
+        assertEquals(464, c35Summary.getInt("regionalFundedUnits"))
+        assertEquals(512, c35Summary.getInt("regionalLegacyDiagnosticFundedUnits"))
+        assertEquals(464, c35Summary.getInt("regionalMaterializedCompatibleUnits"))
+        assertEquals(928, c35Summary.getInt("regionalTotalMaterializedCompatibleSetUnits"))
+        assertEquals(136, c35Summary.getInt("regionalUnfundedUnits"))
         assertEquals(0, c35Summary.getInt("regionalUnmaterializedShortfallUnits") - c35Summary.getInt("regionalUnfundedUnits"))
         assertEquals(0, c35Summary.getInt("unauthorizedMaterialRows"))
         assertEquals(0, c35Summary.getInt("duplicatePhysicalSetRows"))
@@ -958,22 +1210,25 @@ class StimulusProductionCoverageAuditTest {
         }
         val c36Summary = c36Json.getJSONObject("summary")
         val c36AccountingComparison = c36Json.getJSONObject("beforeAfter")
-        assertEquals(616, c36AccountingComparison.getJSONObject("c35ReportedAccounting").getInt("finiteFundedPerWeekUnits"))
-        assertEquals(192, c36AccountingComparison.getJSONObject("c35ReportedAccounting").getInt("reportedUnfundedPerWeekUnits"))
-        assertEquals(616, c36AccountingComparison.getJSONObject("c36StageAlignedAccounting").getInt("finalAuthorizedAndMaterializedPerWeekUnits"))
-        assertEquals(192, c36AccountingComparison.getJSONObject("c36StageAlignedAccounting").getInt("b4ToFinalScheduleShortfallPerWeekUnits"))
+        assertEquals(464, c36AccountingComparison.getJSONObject("c35ReportedAccounting").getInt("finiteFundedPerWeekUnits"))
+        assertEquals(136, c36AccountingComparison.getJSONObject("c35ReportedAccounting").getInt("reportedUnfundedPerWeekUnits"))
+        assertEquals(464, c36AccountingComparison.getJSONObject("c36StageAlignedAccounting").getInt("finalAuthorizedAndMaterializedPerWeekUnits"))
+        assertEquals(136, c36AccountingComparison.getJSONObject("c36StageAlignedAccounting").getInt("b4ToFinalScheduleShortfallPerWeekUnits"))
         assertEquals(47, c36AccountingComparison.getJSONObject("c34ToC36RemovalAccounting").getInt("c34UnexplainedCaseOwnerPairs"))
         assertEquals(22, c36Summary.getInt("generatedCases"))
+        assertEquals(20, c36Summary.getInt("casesWithComparison"))
+        assertEquals(2, c36Summary.getInt("comparisonUnavailableCases"))
         assertEquals(0, c36Summary.getInt("regionalOverrunUnits"))
         assertEquals(0, c36Summary.getInt("duplicatePhysicalRows"))
         assertEquals(0, c36Summary.getInt("unauthorizedMaterialUnits"))
-        assertEquals(20, c36Summary.getJSONObject("routes").getInt("CONTROL"))
+        assertEquals(19, c36Summary.getJSONObject("routes").getInt("CONTROL"))
+        assertEquals(1, c36Summary.getJSONObject("routes").optInt("B8_HYPERTROPHY_V1", 0))
         assertEquals(2, c36Summary.getJSONObject("routes").getInt("B8_POWER_JUMP_V1"))
-        assertEquals(25, c36Summary.getInt("uniqueUnexplainedCaseOwnerPairs"))
-        assertEquals(9, c36Summary.getInt("unexplainedPairsWithoutExactB5Alternative"))
-        assertEquals(7, c36Summary.getInt("unexplainedPairsWithB5ButWithoutExactB6"))
-        assertEquals(9, c36Summary.getInt("unexplainedPairsWithB6ButWithoutScheduledMaterialization"))
-        assertEquals(25, c36Summary.getInt("unexplainedPairsWithoutExactB5Alternative") +
+        assertEquals(19, c36Summary.getInt("uniqueUnexplainedCaseOwnerPairs"))
+        assertEquals(8, c36Summary.getInt("unexplainedPairsWithoutExactB5Alternative"))
+        assertEquals(5, c36Summary.getInt("unexplainedPairsWithB5ButWithoutExactB6"))
+        assertEquals(6, c36Summary.getInt("unexplainedPairsWithB6ButWithoutScheduledMaterialization"))
+        assertEquals(19, c36Summary.getInt("unexplainedPairsWithoutExactB5Alternative") +
             c36Summary.getInt("unexplainedPairsWithB5ButWithoutExactB6") +
             c36Summary.getInt("unexplainedPairsWithB6ButWithoutScheduledMaterialization"))
         val squatDossier = c36Json.getJSONArray("cases").let { rows ->
@@ -1032,58 +1287,68 @@ class StimulusProductionCoverageAuditTest {
         }
         assertEquals(StimulusExperimentalChangeAttributionSource.UNEXPLAINED,
             capacitySquatAttributionAfter(capacityComparison.copy(experimental = capacityComparison.experimental.copy(items = changedSquatRest))).source)
-        assertEquals(15, c36Summary.getJSONObject("b7StatusesAndReasons").getInt("CHANGE_PROVENANCE_UNCLOSED"))
-        assertEquals(20, c36Summary.getJSONObject("b8Statuses").getInt("CONTROL_REQUIRED"))
-        assertEquals(2, c36Summary.getJSONObject("b8Statuses").getInt("AUTHORIZED_FOR_BOUNDED_CUTOVER"))
-        assertEquals(20, c36Summary.getJSONObject("routes").getInt("CONTROL"))
+        assertEquals(12, c36Summary.getJSONObject("b7StatusesAndReasons").getInt("CHANGE_PROVENANCE_UNCLOSED"))
+        assertEquals(17, c36Summary.getJSONObject("b8Statuses").getInt("CONTROL_REQUIRED"))
+        assertEquals(3, c36Summary.getJSONObject("b8Statuses").getInt("AUTHORIZED_FOR_BOUNDED_CUTOVER"))
+        assertEquals(19, c36Summary.getJSONObject("routes").getInt("CONTROL"))
+        assertEquals(1, c36Summary.getJSONObject("routes").optInt("B8_HYPERTROPHY_V1", 0))
         assertEquals(2, c36Summary.getJSONObject("routes").getInt("B8_POWER_JUMP_V1"))
-        assertEquals(50, c36Summary.getInt("unexplainedRemovedOwnerWeekOccurrences"))
-        assertEquals(6, c36Summary.getInt("prescriptionChangeOwnerWeeks"))
-        assertEquals(0, c36Summary.getInt("unexplainedPrescriptionChangeOwnerWeeks"))
-        assertEquals(6, c36Summary.getInt("finiteCapacityAttributedPrescriptionChangeOwnerWeeks"))
-        assertEquals(25, c36Summary.getInt("uniqueUnexplainedCaseOwnerPairs"))
-        assertEquals(28, c36Summary.getInt("coreDirectB7ClosedOwnerWeekOccurrences"))
-        assertEquals(14, c36Summary.getInt("coreDirectB7ClosedCaseOwnerPairs"))
+        assertEquals(38, c36Summary.getInt("unexplainedRemovedOwnerWeekOccurrences"))
+        assertEquals(12, c36Summary.getInt("prescriptionChangeOwnerWeeks"))
+        assertEquals(4, c36Summary.getInt("unexplainedPrescriptionChangeOwnerWeeks"))
+        assertEquals(8, c36Summary.getInt("finiteCapacityAttributedPrescriptionChangeOwnerWeeks"))
+        assertEquals(19, c36Summary.getInt("uniqueUnexplainedCaseOwnerPairs"))
+        assertEquals(20, c36Summary.getInt("coreDirectB7ClosedOwnerWeekOccurrences"))
+        assertEquals(10, c36Summary.getInt("coreDirectB7ClosedCaseOwnerPairs"))
         assertEquals(6, c36Summary.getInt("coreDirectStillUnexplainedOwnerWeekOccurrences"))
-        assertEquals(16, c36Summary.getInt("uniqueUnexplainedOwnerCasesWithB11CanonicalReplacement"))
+        assertEquals(11, c36Summary.getInt("uniqueUnexplainedOwnerCasesWithB11CanonicalReplacement"))
         assertEquals(0, c36Summary.getInt("unexplainedOwnerCasesWithExactB4B5B6ScheduleMaterialization"))
         assertEquals(0, c36Summary.getInt("exactDisplacementOwnerWeekOccurrences"))
-        assertEquals(616, c36Summary.getInt("regionalFrequencyFundedBaseUnitsPerTargetWeek"))
-        assertEquals(616, c36Summary.getInt("regionalFirstWeekMaterializedUnits"))
-        assertEquals(1232, c36Summary.getInt("regionalFinalAuthorizedWeeklyUnitsRepeatedAcrossHorizon"))
-        assertEquals(1232, c36Summary.getInt("regionalMaterializedUnitsAcrossHorizon"))
-        assertEquals(9, c36Summary.getInt("legacyDiagnosticFundedButCapacityRejectedRows"))
-        assertEquals(72, c36Summary.getInt("legacyDiagnosticFundedButCapacityRejectedUnits"))
+        assertEquals(464, c36Summary.getInt("regionalFrequencyFundedBaseUnitsPerTargetWeek"))
+        assertEquals(464, c36Summary.getInt("regionalFirstWeekMaterializedUnits"))
+        assertEquals(928, c36Summary.getInt("regionalFinalAuthorizedWeeklyUnitsRepeatedAcrossHorizon"))
+        assertEquals(928, c36Summary.getInt("regionalMaterializedUnitsAcrossHorizon"))
+        assertEquals(6, c36Summary.getInt("legacyDiagnosticFundedButCapacityRejectedRows"))
+        assertEquals(48, c36Summary.getInt("legacyDiagnosticFundedButCapacityRejectedUnits"))
         assertEquals(0, c36Summary.getInt("legacyDiagnosticZeroButActuallyScheduledRows"))
         assertEquals(0, c36Summary.getInt("legacyDiagnosticZeroButActuallyScheduledUnits"))
         assertTrue("C36 requires complete owner/week removal evidence", c36Json
             .getJSONArray("removedOwnerWeeks").length() >= c36Summary.getInt("uniqueUnexplainedCaseOwnerPairs"))
-        assertEquals(29, c33RegionalSummary.getInt("movementTargets"))
-        assertEquals(58, c33RegionalSummary.getInt("ownerWeekRows"))
-        assertEquals(22, c33RegionalSummary.getInt("c31BaselineMovementTargets"))
-        assertEquals(44, c33RegionalSummary.getInt("c31BaselineOwnerWeekRows"))
-        assertEquals(0, c33RegionalSummary.getJSONArray("c31BaselineContextsAbsentNow").length())
-        assertEquals(7, c33RegionalSummary.getJSONArray("additionalCurrentTargetContexts").length())
+        assertEquals(22, c33RegionalSummary.getInt("movementTargets"))
+        assertEquals(44, c33RegionalSummary.getInt("ownerWeekRows"))
+        assertEquals(1, c33RegionalSummary.getInt("casesWithoutComparison"))
+        assertEquals(listOf("persona1_sparse"), (0 until c33RegionalJson.getJSONArray("casesWithoutComparison").length())
+            .map { c33RegionalJson.getJSONArray("casesWithoutComparison").getJSONObject(it).getString("case") })
+        val c33Unavailable = c33RegionalJson.getJSONArray("casesWithoutComparison").getJSONObject(0)
+        assertEquals("CONTROL", c33Unavailable.getString("route"))
+        assertEquals("UNAVAILABLE_FAIL_CLOSED", c33Unavailable.getString("comparisonStatus"))
+        assertEquals(listOf("NO_EXECUTABLE_PLANNING_DEMAND"),
+            (0 until c33Unavailable.getJSONArray("upstreamFailureDetails").length())
+                .map { c33Unavailable.getJSONArray("upstreamFailureDetails").getString(it) })
+        assertEquals(16, c33RegionalSummary.getInt("c31BaselineMovementTargets"))
+        assertEquals(32, c33RegionalSummary.getInt("c31BaselineOwnerWeekRows"))
+        assertEquals(6, c33RegionalSummary.getJSONArray("c31BaselineContextsAbsentNow").length())
+        assertEquals(6, c33RegionalSummary.getJSONArray("additionalCurrentTargetContexts").length())
         assertEquals(0, c33RegionalSummary.getInt("targetsWithoutRegionalDoseAuthority"))
         assertEquals(0, c33RegionalSummary.getInt("unauthorizedMaterialRows"))
         assertEquals(0, c33RegionalSummary.getInt("overfilledTargets"))
         assertEquals(0, c33RegionalSummary.getInt("duplicateCreditTargets"))
         assertEquals(4, c33RegionalSummary.getInt("capacityLimitedTargets"))
-        assertEquals(245, c33RegionalSummary.getInt("candidateRows"))
-        assertEquals(27, c33RegionalSummary.getInt("selectedCandidates"))
-        assertEquals(218, c33RegionalSummary.getInt("legitimatelyRejectedCandidates"))
-        assertEquals(23, c33RegionalSummary.getInt("fullySatisfiedTargets"))
+        assertEquals(144, c33RegionalSummary.getInt("candidateRows"))
+        assertEquals(20, c33RegionalSummary.getInt("selectedCandidates"))
+        assertEquals(124, c33RegionalSummary.getInt("legitimatelyRejectedCandidates"))
+        assertEquals(16, c33RegionalSummary.getInt("fullySatisfiedTargets"))
         assertEquals(0, c33RegionalSummary.getInt("partiallySatisfiedTargets"))
         assertEquals(6, c33RegionalSummary.getInt("legitimatelyUnsatisfiedTargets"))
-        assertEquals(22, c33RegionalSummary.getInt("userCalibrationRequiredTargets"))
-        assertEquals(5, c33RegionalSummary.getInt("coreDirectTargets"))
-        assertEquals(48, c33RegionalSummary.getInt("coreMaterializedSetRows"))
-        assertEquals(412, c33RegionalSummary.getInt("authorizedMaterialUnits"))
-        assertEquals(352, c33RegionalSummary.getInt("actualMaterialUnits"))
+        assertEquals(16, c33RegionalSummary.getInt("userCalibrationRequiredTargets"))
+        assertEquals(4, c33RegionalSummary.getInt("coreDirectTargets"))
+        assertEquals(36, c33RegionalSummary.getInt("coreMaterializedSetRows"))
+        assertEquals(304, c33RegionalSummary.getInt("authorizedMaterialUnits"))
+        assertEquals(244, c33RegionalSummary.getInt("actualMaterialUnits"))
         val c33Targets = c33RegionalJson.getJSONArray("targets")
         val c33CoreTargets = (0 until c33Targets.length()).map { c33Targets.getJSONObject(it) }
             .filter { it.getString("movementCoverage") == "CORE_DIRECT" }
-        assertEquals(5, c33CoreTargets.size)
+        assertEquals(4, c33CoreTargets.size)
         assertTrue(c33CoreTargets.all {
             it.getInt("authorizedWholeSetUnits") == 6 && it.getBoolean("authorized") &&
                 it.getInt("b6AuthorizationRowCount") == 1 && it.getString("b6Status") in setOf(
@@ -1091,7 +1356,7 @@ class StimulusProductionCoverageAuditTest {
                 )
         })
         val fullyMaterializedCore = c33CoreTargets.filter { it.getString("materializationState") == "FULLY_MATERIALIZED" }
-        assertEquals(4, fullyMaterializedCore.size)
+        assertEquals(3, fullyMaterializedCore.size)
         assertTrue(fullyMaterializedCore.all { target ->
             val rows = target.getJSONArray("exactOwnerExperimentalRows")
             rows.length() == 2 && (0 until rows.length()).all { index ->
@@ -1115,25 +1380,27 @@ class StimulusProductionCoverageAuditTest {
             }
         assertEquals(0, nextPhaseSummary.getInt("qualityAddedOwnerWeeksWithoutAuthorizedB6"))
         assertEquals(0, nextPhaseSummary.getJSONArray("qualityAddedOwnerWeeksWithoutAuthorizedB6Cases").length())
-        assertEquals(16, nextPhaseSummary.getInt("b11CanonicalReplacementButB7UnclosedOwnerRows"))
-        assertEquals(9, nextPhaseSummary.getInt("b11CanonicalReplacementButB7UnclosedMovementOwnerRows"))
-        assertEquals(7, nextPhaseSummary.getInt("b11CanonicalReplacementButB7UnclosedQualityOwnerRows"))
+        assertEquals(11, nextPhaseSummary.getInt("b11CanonicalReplacementButB7UnclosedOwnerRows"))
+        assertEquals(6, nextPhaseSummary.getInt("b11CanonicalReplacementButB7UnclosedMovementOwnerRows"))
+        assertEquals(5, nextPhaseSummary.getInt("b11CanonicalReplacementButB7UnclosedQualityOwnerRows"))
         assertEquals(0, nextPhaseSummary.getInt("b11CanonicalReplacementButB7UnclosedTaskOwnerRows"))
         assertEquals(0, nextPhaseSummary.getJSONArray("taskRoleReplacementRowsWithExactApprovedTaskB6").length())
-        assertEquals(25, nextPhaseSummary.getInt("unexplainedRemovedIdentityAttributions"))
-        assertEquals(49, nextPhaseSummary.getInt("exactMovementCanonicalReplacementAttributions"))
-        val movementReplacementResult = requireNotNull(records.single { it.first.label == "persona1_mixed" }.second)
+        assertEquals(19, nextPhaseSummary.getInt("unexplainedRemovedIdentityAttributions"))
+        assertEquals(39, nextPhaseSummary.getInt("exactMovementCanonicalReplacementAttributions"))
+        // Use a current, semantically valid direct pull replacement. The prior fixture
+        // treated a reverse-curl quality candidate as a movement replacement.
+        val movementReplacementResult = requireNotNull(records.single { it.first.label == "persona0_mixed" }.second)
         val movementReplacementComparison = requireNotNull(movementReplacementResult.comparison)
-        val movementReplacementOldOwner = StimulusPrescriptionOwnerIdentity("barbell_reverse_curl", "COVERAGE_ARMS_BICEPS")
+        val movementReplacementOldOwner = StimulusPrescriptionOwnerIdentity("ex_32eb8457", "COVERAGE_UPPER_PULL")
         val movementReplacementNewOwner = StimulusPrescriptionOwnerIdentity(
-            "barbell_reverse_curl", "CANONICAL_STIMULUS_MOVEMENT_ARMS_BICEPS"
+            "ex_32eb8457", "CANONICAL_STIMULUS_MOVEMENT_UPPER_PULL"
         )
         val movementReplacement = movementReplacementComparison.experimentalReadinessAudit!!.changeAttributions.single {
             it.stableKey == movementReplacementOldOwner.stableKey &&
                 it.selectionRole == movementReplacementOldOwner.selectionRole
         }
         assertEquals(StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY, movementReplacement.source)
-        assertEquals(listOf("MOVEMENT:ARMS_BICEPS"), movementReplacement.targetIds)
+        assertEquals(listOf("MOVEMENT:UPPER_PULL"), movementReplacement.targetIds)
         assertTrue("B6_AUTHORIZED_REGIONAL_MOVEMENT_REPLACEMENT" in movementReplacement.reasonCodes)
         assertTrue("EXACT_B4_MOVEMENT_TARGET" in movementReplacement.evidenceSources)
         assertTrue("EXACT_B5_PRIMARY_MOVEMENT_OWNER" in movementReplacement.evidenceSources)
@@ -1142,14 +1409,14 @@ class StimulusProductionCoverageAuditTest {
         val exactMovementSelection = movementReplacementComparison.selectionPlan.selectedCandidates.single {
             StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) == movementReplacementNewOwner
         }
-        assertEquals("MOVEMENT:ARMS_BICEPS", exactMovementSelection.primaryTargetId)
+        assertEquals("MOVEMENT:UPPER_PULL", exactMovementSelection.primaryTargetId)
         val exactMovementB6 = movementReplacementComparison.prescriptionAuthorizationPlan!!.authorizations.single {
-            it.targetId == "MOVEMENT:ARMS_BICEPS" &&
+            it.targetId == "MOVEMENT:UPPER_PULL" &&
                 it.owner?.let { owner -> StimulusPrescriptionOwnerIdentity(owner.stableKey, owner.selectionRole) } == movementReplacementNewOwner
         }
         assertNotNull(exactMovementB6.authorizedPrescription)
         val exactMovementMaterialization = movementReplacementComparison.materializationTraces.single {
-            it.targetId == "MOVEMENT:ARMS_BICEPS" && it.selectedStableKey == movementReplacementNewOwner.stableKey &&
+            it.targetId == "MOVEMENT:UPPER_PULL" && it.selectedStableKey == movementReplacementNewOwner.stableKey &&
                 it.selectionRole == movementReplacementNewOwner.selectionRole
         }
         assertTrue(exactMovementMaterialization.directIdentityVerifiedAtSelection == true)
@@ -1165,7 +1432,7 @@ class StimulusProductionCoverageAuditTest {
         val b6WithoutMovementAuthority = movementReplacementComparison.copy(
             prescriptionAuthorizationPlan = movementReplacementComparison.prescriptionAuthorizationPlan!!.copy(
                 authorizations = movementReplacementComparison.prescriptionAuthorizationPlan!!.authorizations.filterNot {
-                    it.targetId == "MOVEMENT:ARMS_BICEPS" &&
+                    it.targetId == "MOVEMENT:UPPER_PULL" &&
                         it.owner?.let { owner -> StimulusPrescriptionOwnerIdentity(owner.stableKey, owner.selectionRole) } == movementReplacementNewOwner
                 }
             )
@@ -1173,16 +1440,16 @@ class StimulusProductionCoverageAuditTest {
         assertMovementReplacementFailsClosed(b6WithoutMovementAuthority)
         assertMovementReplacementFailsClosed(movementReplacementComparison.copy(
             materializationTraces = movementReplacementComparison.materializationTraces.filterNot {
-                it.targetId == "MOVEMENT:ARMS_BICEPS" && it.selectedStableKey == movementReplacementNewOwner.stableKey &&
+                it.targetId == "MOVEMENT:UPPER_PULL" && it.selectedStableKey == movementReplacementNewOwner.stableKey &&
                     it.selectionRole == movementReplacementNewOwner.selectionRole
             }
         ))
         val unrelatedRoleOmission = movementReplacementComparison.nonSelectionProvenance.map { omission ->
             if (omission.omittedControlOwner != movementReplacementOldOwner) omission else omission.copy(
                 targetEvidence = omission.targetEvidence.map { targetEvidence ->
-                    if (targetEvidence.targetId != "MOVEMENT:ARMS_BICEPS") targetEvidence else targetEvidence.copy(
+                    if (targetEvidence.targetId != "MOVEMENT:UPPER_PULL") targetEvidence else targetEvidence.copy(
                         disposition = targetEvidence.disposition.copy(
-                            canonicalSelectionRole = "CANONICAL_STIMULUS_MOVEMENT_UPPER_PULL"
+                            canonicalSelectionRole = "CANONICAL_STIMULUS_MOVEMENT_VERTICAL_PULL"
                         )
                     )
                 }
@@ -1228,12 +1495,14 @@ class StimulusProductionCoverageAuditTest {
         val regressionCase = nextPhaseJson.getJSONArray("cases").let { rows ->
             (0 until rows.length()).map { rows.getJSONObject(it) }.single { it.getString("case") == "persona1_mixed" }
         }
-        assertEquals(emptyList<String>(), regressionCase.getJSONObject("b7")
+        assertEquals(listOf("QUALITY:HYPERTROPHY"), regressionCase.getJSONObject("b7")
             .getJSONArray("regressedTargets").let { rows -> (0 until rows.length()).map { rows.getString(it) } })
-        assertTrue(regressionCase.getJSONObject("b7").getBoolean("collateralRegressionFree"))
-        // Both historical aggregate-H regressions were caused by comparing regional B4 dose
-        // against a whole-quality observed envelope. Regional target outcomes remain separately
-        // checked; these cases now stay CONTROL only because their owner-removal provenance is open.
+        assertFalse("the lost four-set exposure remains blocked as a regression",
+            regressionCase.getJSONObject("b7").getBoolean("collateralRegressionFree"))
+        assertEquals("CONTROL", regressionCase.getString("route"))
+        // With canonical movement eligibility corrected, persona1_mixed no longer gets credit
+        // from an invalid owner chain. CONTROL has four direct hypertrophy sets while EXP has
+        // none, so the real target regression must remain fail-closed.
         val reviewedRegressionCase = nextPhaseJson.getJSONArray("cases").let { rows ->
             (0 until rows.length()).map { rows.getJSONObject(it) }.single { it.getString("case") == "persona1_reviewed" }
         }
@@ -1254,7 +1523,8 @@ class StimulusProductionCoverageAuditTest {
         assertFalse(c24Routes.has("B8_BADMINTON_TASK_V1"))
         assertTrue(c24.getJSONObject("b7Summary").length() > 0)
         // Historical aggregate-H overage is not a collateral loss of regional target coverage.
-        assertEquals(0, c24.getJSONObject("b7Summary").getInt("collateralRegressionCases"))
+        assertEquals("the actual lost HYPERTROPHY exposure remains a separate collateral blocker",
+            1, c24.getJSONObject("b7Summary").getInt("collateralRegressionCases"))
         val perturbedComparator = org.json.JSONObject(c22TaskCensus)
         val perturbedCases = perturbedComparator.getJSONArray("cases")
         for (index in 0 until perturbedCases.length()) {
@@ -1301,19 +1571,37 @@ class StimulusProductionCoverageAuditTest {
         ))
         val c20Summary = org.json.JSONObject(c20Census).getJSONObject("summary")
         assertEquals(32, c20Summary.getInt("placementRows"))
-        assertEquals(10, c20Summary.getInt("HARD_VALID"))
+        assertEquals(6, c20Summary.getInt("HARD_VALID"))
         assertEquals(0, c20Summary.getInt("HARD_INVALID"))
         assertEquals(0, c20Summary.getInt("UNRESOLVED"))
-        assertEquals(22, c20Summary.getInt("NOT_EVALUATED_NO_CURRENT_AUTHORIZED_OWNER"))
-        assertEquals(10, c20Summary.getInt("preservedHardValidRows"))
+        assertEquals(26, c20Summary.getInt("NOT_EVALUATED_NO_CURRENT_AUTHORIZED_OWNER"))
+        assertEquals(2, c20Summary.getInt("preservedHardValidRows"))
         assertEquals(0, c20Summary.getInt("hardInvalidRowsForcedPreserved"))
         assertEquals(0, c20Summary.getInt("unresolvedRowsForcedPreserved"))
         assertEquals(0, c20Summary.getInt("combinedAnchorSetConflicts"))
+        val c20Rows = org.json.JSONObject(c20Census).getJSONArray("placementRows")
+        val c20HardValidOwnerWeeks = (0 until c20Rows.length()).map { c20Rows.getJSONObject(it) }
+            .filter { it.getJSONObject("liveFeasibility").getString("status") == "HARD_VALID" }
+            .map { row ->
+                val owner = row.getJSONObject("owner")
+                "${row.getString("case")}#${owner.getString("stableKey")}#${owner.getString("selectionRole")}@${row.getInt("week")}"
+            }.sorted()
+        assertEquals(
+            listOf(
+                "persona0_mixed#barbell_back_squat#STYLE_HEAVY_LOWER_KNEE@1",
+                "persona0_mixed#barbell_back_squat#STYLE_HEAVY_LOWER_KNEE@2",
+                "persona3_reviewed#barbell_back_squat#STYLE_HEAVY_LOWER_KNEE@1",
+                "persona3_reviewed#barbell_back_squat#STYLE_HEAVY_LOWER_KNEE@2",
+                "persona4_mixed#barbell_back_squat#STYLE_HEAVY_LOWER_KNEE@1",
+                "persona4_mixed#barbell_back_squat#STYLE_HEAVY_LOWER_KNEE@2"
+            ),
+            c20HardValidOwnerWeeks
+        )
         val c20PlacementMetrics = org.json.JSONObject(c20Census).getJSONObject("shadowPlacement")
         assertEquals(4, c20PlacementMetrics.getInt("sharedPlacementDeltaBefore"))
-        assertEquals(0, c20PlacementMetrics.getInt("sharedPlacementDeltaAfter"))
+        assertEquals(4, c20PlacementMetrics.getInt("sharedPlacementDeltaAfter"))
         assertEquals(8, c20PlacementMetrics.getInt("totalDayDistanceBefore"))
-        assertEquals(0, c20PlacementMetrics.getInt("totalDayDistanceAfter"))
+        assertEquals(8, c20PlacementMetrics.getInt("totalDayDistanceAfter"))
         val c20Routes = org.json.JSONObject(c20Census).getJSONObject("routeSnapshot")
         assertEquals(c19Routes.optInt("CONTROL", 0), c20Routes.optInt("CONTROL", 0))
         assertEquals(c19Routes.optInt("STRENGTH_V1", 0), c20Routes.optInt("B8_STRENGTH_V1", 0))
@@ -1324,10 +1612,10 @@ class StimulusProductionCoverageAuditTest {
         val c20CaseRows = org.json.JSONObject(c20Census).getJSONArray("caseRows")
         fun c20Case(name: String) = (0 until c20CaseRows.length()).map { c20CaseRows.getJSONObject(it) }
             .single { it.getString("case") == name }
-        assertEquals(4, c20Case("persona0_mixed").getJSONObject("liveFeasibility").getInt("HARD_VALID"))
+        assertEquals(2, c20Case("persona0_mixed").getJSONObject("liveFeasibility").getInt("HARD_VALID"))
         assertEquals(0, c20Case("persona0_mixed").getJSONObject("liveFeasibility").getInt("HARD_INVALID"))
         assertEquals(0, c20Case("persona0_mixed").getJSONObject("liveFeasibility").getInt("UNRESOLVED"))
-        assertEquals(2, c20Case("persona0_mixed").getJSONObject("liveFeasibility").getInt("NOT_EVALUATED_NO_CURRENT_AUTHORIZED_OWNER"))
+        assertEquals(4, c20Case("persona0_mixed").getJSONObject("liveFeasibility").getInt("NOT_EVALUATED_NO_CURRENT_AUTHORIZED_OWNER"))
         assertEquals(0, c20Case("persona0_reviewed").getJSONObject("liveFeasibility").getInt("HARD_VALID"))
         assertEquals(0, c20Case("persona0_reviewed").getJSONObject("liveFeasibility").getInt("HARD_INVALID"))
         assertEquals(0, c20Case("persona0_reviewed").getJSONObject("liveFeasibility").getInt("UNRESOLVED"))
@@ -1336,11 +1624,12 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(0, c20Case("persona3_reviewed").getJSONObject("liveFeasibility").getInt("HARD_INVALID"))
         assertEquals(0, c20Case("persona3_reviewed").getJSONObject("liveFeasibility").getInt("UNRESOLVED"))
         assertEquals(6, c20Case("persona3_reviewed").getJSONObject("liveFeasibility").getInt("NOT_EVALUATED_NO_CURRENT_AUTHORIZED_OWNER"))
-        assertEquals(4, c20Case("persona4_mixed").getJSONObject("liveFeasibility").getInt("HARD_VALID"))
+        assertEquals(2, c20Case("persona4_mixed").getJSONObject("liveFeasibility").getInt("HARD_VALID"))
         assertEquals(0, c20Case("persona4_mixed").getJSONObject("liveFeasibility").getInt("HARD_INVALID"))
         assertEquals(0, c20Case("persona4_mixed").getJSONObject("liveFeasibility").getInt("UNRESOLVED"))
-        assertEquals(10, c20Case("persona4_mixed").getJSONObject("liveFeasibility").getInt("NOT_EVALUATED_NO_CURRENT_AUTHORIZED_OWNER"))
-        assertEquals("ACTIVATED", c20Case("persona0_mixed").getString("activationStatus"))
+        assertEquals(12, c20Case("persona4_mixed").getJSONObject("liveFeasibility").getInt("NOT_EVALUATED_NO_CURRENT_AUTHORIZED_OWNER"))
+        assertEquals("NON_ANCHOR_PLACEMENT_WOULD_CHANGE", c20Case("persona0_mixed").getString("activationStatus"))
+        assertEquals("CONTROL", c20Case("persona0_mixed").getString("route"))
         assertEquals(0, c20Case("persona0_mixed").getJSONArray("preservationEvents").length())
         assertFalse(c20Case("persona0_mixed").getBoolean("productionPlacementChanged"))
         assertEquals("NO_ELIGIBLE_HARD_VALID_ANCHORS", c20Case("persona0_reviewed").getString("activationStatus"))
@@ -1348,9 +1637,10 @@ class StimulusProductionCoverageAuditTest {
         assertEquals("ACTIVATED", c20Case("persona3_reviewed").getString("activationStatus"))
         assertEquals(0, c20Case("persona3_reviewed").getJSONArray("preservationEvents").length())
         assertFalse(c20Case("persona3_reviewed").getBoolean("productionPlacementChanged"))
-        assertEquals("ACTIVATED", c20Case("persona4_mixed").getString("activationStatus"))
-        assertEquals(4, c20Case("persona4_mixed").getJSONArray("preservationEvents").length())
-        assertTrue(c20Case("persona4_mixed").getBoolean("productionPlacementChanged"))
+        assertEquals("NON_ANCHOR_PLACEMENT_WOULD_CHANGE", c20Case("persona4_mixed").getString("activationStatus"))
+        assertEquals("CONTROL", c20Case("persona4_mixed").getString("route"))
+        assertEquals(0, c20Case("persona4_mixed").getJSONArray("preservationEvents").length())
+        assertFalse(c20Case("persona4_mixed").getBoolean("productionPlacementChanged"))
         val c20PositiveReference = org.json.JSONObject(c20Census).getJSONObject("positiveReference")
         assertEquals("persona2_reviewed", c20PositiveReference.getString("case"))
         // Under C32, the reviewed squat evidence in this case is outside the approved 1..6
@@ -1361,7 +1651,7 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(2, c20PositiveReference.getInt("sharedOwnerRows"))
         assertEquals(2, c20PositiveReference.getInt("sharedOwnerRowsPlacementUnchanged"))
         assertEquals(0, c20PositiveReference.getInt("preservationEvents"))
-        assertEquals(10, c20PositiveReference.getInt("calibrationRows"))
+        assertEquals(8, c20PositiveReference.getInt("calibrationRows"))
         val c18Json = org.json.JSONObject(c18Census)
         val c18Summary = c18Json.getJSONObject("summary")
         assertEquals(4, c18Summary.getInt("placementDeltas"))
@@ -1372,9 +1662,10 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(0, c18Summary.getInt("priorPlacementHardInvalid"))
         assertEquals(0, c18Summary.getInt("stillUnresolved"))
         assertEquals(0, c18Summary.getInt("actualDisplacementAuthorityProven"))
-        assertEquals(4, c18Summary.getInt("syntheticIncumbentShadowKeep"))
+        assertEquals("historical incumbent fixtures do not authorize mismatched generated CONTROL rows",
+            0, c18Summary.getInt("syntheticIncumbentShadowKeep"))
         assertEquals(0, c18Summary.getInt("syntheticIncumbentShadowMove"))
-        assertEquals(0, c18Summary.getInt("syntheticIncumbentShadowNoDecision"))
+        assertEquals(4, c18Summary.getInt("syntheticIncumbentShadowNoDecision"))
         assertEquals(0, c18Summary.getInt("currentCorpusInputUnresolvedTissueKeys"))
         assertEquals(5, c18Summary.getInt("resolvedWithRequiredInput"))
         assertEquals(1, c18Summary.getInt("exactBodyweightAdapterRepairs"))
@@ -1409,7 +1700,11 @@ class StimulusProductionCoverageAuditTest {
         val b7ReasonCounts = control.flatMap { it.second.comparison?.experimentalReadinessAudit?.reasonCodes.orEmpty() }
             .groupingBy { it }.eachCount()
         assertTrue(b7ReasonCounts.keys.contains("CHANGE_PROVENANCE_UNCLOSED"))
-        assertFalse("aggregate regional H is not compared with the whole-quality reference",
+        assertEquals("persona1_mixed loses its previously materialized direct HYPERTROPHY sets",
+            listOf("persona1_mixed"), control.filter {
+                "TARGET_REGRESSED" in it.second.comparison?.experimentalReadinessAudit?.reasonCodes.orEmpty()
+            }.map { it.first.label }.sorted())
+        assertTrue("real HYPERTROPHY target regression remains fail-closed",
             b7ReasonCounts.containsKey("TARGET_REGRESSED"))
         assertFalse("B6-denied Quality additions no longer contribute affected unmet targets",
             b7ReasonCounts.containsKey("AFFECTED_TARGET_REMAINS_UNMET"))
@@ -1421,10 +1716,17 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(27, c15.getJSONObject("corpus").getInt("totalCases"))
         assertEquals(22, c15.getJSONObject("corpus").getInt("generated"))
         assertEquals(5, c15.getJSONObject("corpus").getInt("preflightRejected"))
-        // The current movement-domain projection permits the independently exact POWER_JUMP
-        // route for these two cases. Keep this bounded to the rows whose own B7 and B8 pass.
-        assertEquals(20, c15.getJSONObject("corpus").getJSONObject("routes").getInt("CONTROL"))
+        // C38.2 requires exact owner-target B5/B6 evidence before resolving a bounded quality
+        // scope. The reviewed isolated HYP owner has the exact chain; POWER_JUMP remains bounded.
+        assertEquals(19, c15.getJSONObject("corpus").getJSONObject("routes").getInt("CONTROL"))
+        assertEquals(1, c15.getJSONObject("corpus").getJSONObject("routes").getInt("B8_HYPERTROPHY_V1"))
         assertEquals(2, c15.getJSONObject("corpus").getJSONObject("routes").getInt("B8_POWER_JUMP_V1"))
+        val c15HypertrophyCases = c15.getJSONArray("cases").let { rows ->
+            (0 until rows.length()).map(rows::getJSONObject)
+                .filter { it.getString("route") == "B8_HYPERTROPHY_V1" }
+                .map { it.getString("caseId") }.sorted()
+        }
+        assertEquals(listOf("reviewed_hypertrophy_isolated"), c15HypertrophyCases)
         val c15PowerJumpCases = c15.getJSONArray("cases").let { rows ->
             (0 until rows.length()).map(rows::getJSONObject)
                 .filter { it.getString("route") == "B8_POWER_JUMP_V1" }
@@ -1474,7 +1776,7 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(0, calibrationCase.getJSONObject("buildAccounting").getInt("third"))
         assertFalse(calibrationCase.getJSONObject("C14_shadow").getBoolean("hasCapacityReference"))
         val routeCounts = c15.getJSONObject("corpus").getJSONObject("routes")
-        assertEquals(0, routeCounts.getInt("B8_HYPERTROPHY_V1"))
+        assertEquals(1, routeCounts.getInt("B8_HYPERTROPHY_V1"))
         assertEquals(0, routeCounts.getInt("B8_STRENGTH_HYPERTROPHY_V1"))
     }
 
@@ -1516,8 +1818,45 @@ class StimulusProductionCoverageAuditTest {
         }
         assertEquals(0, c16Case("persona0_mixed").getInt("authorizedCalibrationDeltaCount"))
         assertEquals(2, c16Case("persona0_mixed").getInt("authorizedCoreMaterialDeltaCount"))
-        assertEquals(2, c16Case("persona0_mixed").getInt("authorizedRegionalHypertrophyMaterialDeltaCount"))
-        assertEquals(4, c16Case("persona0_mixed").getInt("residualDeltaCount"))
+        val persona0Mixed = c16Case("persona0_mixed")
+        val persona0MixedRegionalMaterial = (0 until persona0Mixed.getJSONArray("deltaLedger").length())
+            .map { persona0Mixed.getJSONArray("deltaLedger").getJSONObject(it) }
+            .filter { it.optString("c16Classification") == "AUTHORIZED_REGIONAL_HYPERTROPHY_TARGET_MATERIALIZATION" }
+            .map { delta ->
+                val owner = delta.getJSONObject("owner")
+                val after = delta.getJSONObject("after")
+                "${owner.getString("stableKey")}#${owner.getString("selectionRole")}@${after.getInt("week")}:${after.getInt("setCount")}"
+            }.sorted()
+        assertEquals(
+            listOf(
+                "ex_1dbee10e#CANONICAL_STIMULUS_MOVEMENT_HORIZONTAL_PUSH@1:8",
+                "ex_1dbee10e#CANONICAL_STIMULUS_MOVEMENT_HORIZONTAL_PUSH@2:8",
+                "ex_32eb8457#CANONICAL_STIMULUS_MOVEMENT_UPPER_PULL@1:8",
+                "ex_32eb8457#CANONICAL_STIMULUS_MOVEMENT_UPPER_PULL@2:8"
+            ),
+            persona0MixedRegionalMaterial
+        )
+        assertEquals(4, persona0Mixed.getInt("authorizedRegionalHypertrophyMaterialDeltaCount"))
+        val persona0MixedUnclosedRemovals = (0 until persona0Mixed.getJSONArray("deltaLedger").length())
+            .map { persona0Mixed.getJSONArray("deltaLedger").getJSONObject(it) }
+            .filter { it.optString("kind") == "ROW_REMOVED" }
+            .map { delta ->
+                val owner = delta.getJSONObject("owner")
+                val before = delta.getJSONObject("before")
+                "${owner.getString("stableKey")}#${owner.getString("selectionRole")}@${before.getInt("week")}:${before.getInt("setCount")}"
+            }.sorted()
+        assertEquals(
+            listOf(
+                "ex_1dbee10e#COVERAGE_HORIZONTAL_PUSH@1:2",
+                "ex_1dbee10e#COVERAGE_HORIZONTAL_PUSH@2:2",
+                "ex_28347c1f#COVERAGE_CORE_DIRECT@1:2",
+                "ex_28347c1f#COVERAGE_CORE_DIRECT@2:2",
+                "ex_32eb8457#COVERAGE_UPPER_PULL@1:2",
+                "ex_32eb8457#COVERAGE_UPPER_PULL@2:2"
+            ),
+            persona0MixedUnclosedRemovals
+        )
+        assertEquals(6, persona0Mixed.getInt("residualDeltaCount"))
         assertEquals(4, c16Case("persona0_reviewed").getInt("authorizedCalibrationDeltaCount"))
         assertCoreFiniteCapacityShortfall("persona0_reviewed")
         assertEquals(0, c16Case("persona0_reviewed").getInt("authorizedCoreMaterialDeltaCount"))
@@ -1551,12 +1890,47 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(8, c16Case("persona3_reviewed").getInt("residualDeltaCount"))
         assertEquals(4, c16Case("persona4_mixed").getInt("authorizedCalibrationDeltaCount"))
         assertEquals(2, c16Case("persona4_mixed").getInt("authorizedCoreMaterialDeltaCount"))
-        assertEquals(10, c16Case("persona4_mixed").getInt("authorizedRegionalHypertrophyMaterialDeltaCount"))
-        assertEquals(14, c16Case("persona4_mixed").getInt("residualDeltaCount"))
+        val persona4Mixed = c16Case("persona4_mixed")
+        val persona4MixedRegionalMaterial = (0 until persona4Mixed.getJSONArray("deltaLedger").length())
+            .map { persona4Mixed.getJSONArray("deltaLedger").getJSONObject(it) }
+            .filter { it.optString("c16Classification") == "AUTHORIZED_REGIONAL_HYPERTROPHY_TARGET_MATERIALIZATION" }
+            .map { delta ->
+                val owner = delta.getJSONObject("owner")
+                val after = delta.getJSONObject("after")
+                "${owner.getString("stableKey")}#${owner.getString("selectionRole")}@${after.getInt("week")}:${after.getInt("setCount")}"
+            }.sorted()
+        assertEquals(
+            listOf(
+                "barbell_reverse_curl#CANONICAL_STIMULUS_MOVEMENT_ARMS_BICEPS@1:8",
+                "barbell_reverse_curl#CANONICAL_STIMULUS_MOVEMENT_ARMS_BICEPS@2:8",
+                "barbell_romanian_deadlift#CANONICAL_STIMULUS_MOVEMENT_POSTERIOR_CHAIN@1:8",
+                "barbell_romanian_deadlift#CANONICAL_STIMULUS_MOVEMENT_POSTERIOR_CHAIN@2:8",
+                "dumbbell_lying_triceps_extension#CANONICAL_STIMULUS_MOVEMENT_ARMS_TRICEPS@1:8",
+                "dumbbell_lying_triceps_extension#CANONICAL_STIMULUS_MOVEMENT_ARMS_TRICEPS@2:8",
+                "ex_27b3deb5#CANONICAL_STIMULUS_MOVEMENT_HORIZONTAL_PUSH@1:8",
+                "ex_27b3deb5#CANONICAL_STIMULUS_MOVEMENT_HORIZONTAL_PUSH@2:8",
+                "ex_30a0e9aa#CANONICAL_STIMULUS_MOVEMENT_UPPER_PULL@1:8",
+                "ex_30a0e9aa#CANONICAL_STIMULUS_MOVEMENT_UPPER_PULL@2:8",
+                "ex_5ca7133f#CANONICAL_STIMULUS_MOVEMENT_CALVES@1:8",
+                "ex_5ca7133f#CANONICAL_STIMULUS_MOVEMENT_CALVES@2:8"
+            ),
+            persona4MixedRegionalMaterial
+        )
+        assertEquals(12, persona4Mixed.getInt("authorizedRegionalHypertrophyMaterialDeltaCount"))
+        assertEquals(16, persona4Mixed.getInt("residualDeltaCount"))
         assertEquals(0, c16Case("persona2_reviewed").getInt("authorizedCalibrationDeltaCount"))
         assertEquals(2, c16Case("persona2_reviewed").getInt("authorizedCoreMaterialDeltaCount"))
-        assertEquals(10, c16Case("persona2_reviewed").getInt("authorizedRegionalHypertrophyMaterialDeltaCount"))
-        assertEquals(12, c16Case("persona2_reviewed").getInt("residualDeltaCount"))
+        val persona2ReviewedC16 = c16Case("persona2_reviewed")
+        assertEquals("unreviewed split identities no longer receive regional direct-owner materialization",
+            8, persona2ReviewedC16.getInt("authorizedRegionalHypertrophyMaterialDeltaCount"))
+        assertEquals(10, persona2ReviewedC16.getInt("residualDeltaCount"))
+        assertFalse((0 until persona2ReviewedC16.getJSONArray("deltaLedger").length()).any { index ->
+            val delta = persona2ReviewedC16.getJSONArray("deltaLedger").getJSONObject(index)
+            delta.optJSONObject("after")?.optJSONObject("owner")?.optString("stableKey")?.let { key -> key in setOf(
+                "dumbbell_spider_curl", "ez_bar_spider_curl", "standing_bodyweight_calf_raise",
+                "standing_calf_raise_machine", "standing_dumbbell_calf_raise"
+            ) } == true
+        })
         // The newly exact regional HYP material has an audit/provenance blocker;
         // that does not turn it into B7 eligibility or relax B8.
         val reviewedStrengthRoot = c16Case("persona2_reviewed").getJSONObject("rootClassification")
@@ -1652,14 +2026,27 @@ class StimulusProductionCoverageAuditTest {
                 assertTrue(currentResult.upstreamFailureDetails.drop(1).all {
                     it == "EXACT_PRESCRIPTION_AUTHORITY_REQUIRED"
                 })
-                assertTrue("unresolved material need must survive the CONTROL fallback",
-                    currentResult.unresolvedMaterialDemandGaps.isNotEmpty())
-                assertTrue("owner re-resolution result must survive the CONTROL fallback",
-                    currentResult.materialDemandAuthorityResolutions.any {
+                val explicitNoDemand = currentResult.upstreamFailureDetails == listOf("NO_EXECUTABLE_PLANNING_DEMAND")
+                assertTrue(
+                    "either a current unmet material demand or a typed no-executable-demand result must survive " +
+                        "the CONTROL fallback; case=$caseName/w$week/$identity, unresolved=${currentResult.unresolvedMaterialDemandGaps}, " +
+                        "failure=${currentResult.upstreamFailureDetails}",
+                    currentResult.unresolvedMaterialDemandGaps.isNotEmpty() || explicitNoDemand
+                )
+                val ownerExhaustionRecorded = currentResult.materialDemandAuthorityResolutions.any {
                         it.status == ExecutionAuthorityResolutionStatus.NO_SUPPORTED_AUTHORITY &&
                             it.returnTarget == ExecutionAuthorityReturnTarget.MATERIAL_DEMAND_CANDIDATE_SELECTION &&
                             it.reason == ExecutionAuthorityResolutionReason.OWNER_CANDIDATES_EXHAUSTED
-                    })
+                    }
+                val canonicalNoDemandRecorded = currentResult.upstreamFailureDetails.firstOrNull() ==
+                    "NO_EXECUTABLE_PLANNING_DEMAND"
+                assertTrue(
+                    "owner exhaustion or an explicit no-demand failure must survive CONTROL fallback: " +
+                        "$caseName/w$week/$identity; resolutions=${currentResult.materialDemandAuthorityResolutions}; " +
+                        "unresolved=${currentResult.unresolvedMaterialDemandGaps}; " +
+                        "failure=${currentResult.upstreamFailureReason}/${currentResult.upstreamFailureDetails}",
+                    ownerExhaustionRecorded || canonicalNoDemandRecorded
+                )
                 continue
             }
             val currentAuthorizations = currentComparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().filter { authorization ->
@@ -1898,8 +2285,10 @@ class StimulusProductionCoverageAuditTest {
             if (result != null) {
                 val comparison = result.comparison
                 if (comparison == null) {
-                    assertTrue("Failed generation retains unresolved demand for ${spec.label}",
-                        result.unresolvedMaterialDemandGaps.isNotEmpty())
+                    assertTrue("Failed generation retains unresolved demand or an explicit no-demand reason for ${spec.label}",
+                        result.unresolvedMaterialDemandGaps.isNotEmpty() ||
+                            result.upstreamFailureReason == "NO_EXECUTABLE_PLANNING_DEMAND" ||
+                            "NO_EXECUTABLE_PLANNING_DEMAND" in result.upstreamFailureDetails)
                 } else {
                     val audit = requireNotNull(comparison.experimentalReadinessAudit)
                     if (audit.changeProvenanceClosed) {
@@ -1921,6 +2310,14 @@ class StimulusProductionCoverageAuditTest {
                         comparison?.productionCutoverAuthority?.status)
                     assertEquals(StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW,
                         comparison?.experimentalReadinessAudit?.status)
+                } else if (result.routeDecision.selectedSource == StimulusProductionProgramSource.B8_HYPERTROPHY_V1) {
+                    assertEquals("Only the existing bounded Hypertrophy scope can authorize this route: ${spec.label}",
+                        StimulusProductionCutoverScope.HYPERTROPHY_V1,
+                        comparison?.productionCutoverAuthority?.scope)
+                    assertEquals(StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER,
+                        comparison?.productionCutoverAuthority?.status)
+                    assertEquals(StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW,
+                        comparison?.experimentalReadinessAudit?.status)
                 } else {
                     assertEquals("Unresolved authority retains CONTROL: ${spec.label}",
                         StimulusProductionProgramSource.CONTROL, result.routeDecision.selectedSource)
@@ -1932,24 +2329,30 @@ class StimulusProductionCoverageAuditTest {
         val audit = requireNotNull(c.experimentalReadinessAudit)
         assertTrue(audit.materializationIntegrityPassed)
         assertTrue(audit.collateralRegressionFree)
-        assertFalse(audit.changeProvenanceClosed)
-        assertEquals(listOf("CHANGE_PROVENANCE_UNCLOSED"), audit.reasonCodes)
-        val unresolved = audit.changeAttributions.single {
-            it.stableKey == "ex_284ecca6" && it.selectionRole == "COVERAGE_POSTERIOR_CHAIN" &&
-                it.source == StimulusExperimentalChangeAttributionSource.UNEXPLAINED
+        assertTrue(audit.changeProvenanceClosed)
+        assertEquals(emptyList<String>(), audit.reasonCodes)
+        val exactRegionalReplacement = audit.changeAttributions.single {
+            it.stableKey == "cable_rear_delt_fly" && it.selectionRole == "STYLE_MEDIUM_OTHER"
         }
-        assertEquals("ex_284ecca6", unresolved.stableKey)
-        assertEquals("COVERAGE_POSTERIOR_CHAIN", unresolved.selectionRole)
-        assertEquals(listOf("UNEXPLAINED_REMOVED_IDENTITY"), unresolved.reasonCodes)
-        assertFalse(c.experimental.items.any {
-            it.exerciseStableKey == unresolved.stableKey && it.selectionRole == unresolved.selectionRole
+        assertEquals(StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY, exactRegionalReplacement.source)
+        assertEquals(listOf("B5_CANONICAL_OWNER_REPLACED_CONTROL_ROLE"), exactRegionalReplacement.reasonCodes)
+        assertEquals(listOf("QUALITY:HYPERTROPHY"), exactRegionalReplacement.targetIds)
+        assertTrue("EXACT_B6_AUTHORIZATION_FOR_REPLACEMENT" in exactRegionalReplacement.evidenceSources)
+        assertTrue("EXACT_OWNER_QUALITY_TARGET_AUTHORITY" in exactRegionalReplacement.evidenceSources)
+        assertTrue("EXPERIMENTAL_AUTHORIZED_WEEKLY_SUBSET" in exactRegionalReplacement.evidenceSources)
+        assertTrue(c.experimental.items.any {
+            it.exerciseStableKey == "cable_rear_delt_fly" &&
+                it.selectionRole == "CANONICAL_STIMULUS_QUALITY_HYPERTROPHY" &&
+                it.setCount == 3 && it.setPrescriptions.all { set -> set.reps == 10 && set.weightKg == 40.0 }
         })
-        assertFalse(c.selectionPlan.selectedCandidates.any { it.stableKey == unresolved.stableKey && it.selectionRole == unresolved.selectionRole })
-        assertFalse(c.prescriptionAuthorizationPlan!!.authorizations.any { it.owner?.stableKey == unresolved.stableKey })
-        assertFalse(unresolved.stableKey in c.experimental.personalizedDecision?.planningBudget?.execution?.constrainedOwnerStableKeys.orEmpty())
-        assertTrue(audit.changeAttributions.any { it.stableKey == "cable_rear_delt_fly" &&
-            "B5_CANONICAL_OWNER_REPLACED_CONTROL_ROLE" in it.reasonCodes && it.targetIds == listOf("QUALITY:HYPERTROPHY") })
-        val legacyFly = StimulusPrescriptionOwnerIdentity("cable_rear_delt_fly", "STYLE_MEDIUM_HORIZONTAL_PULL")
+        assertFalse(c.experimental.items.any {
+            it.exerciseStableKey == "cable_rear_delt_fly" &&
+                it.selectionRole.startsWith("CANONICAL_STIMULUS_MOVEMENT_")
+        })
+        assertEquals(StimulusProductionCutoverScope.HYPERTROPHY_V1, c.productionCutoverAuthority?.scope)
+        assertEquals(StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER,
+            c.productionCutoverAuthority?.status)
+        val legacyFly = StimulusPrescriptionOwnerIdentity("cable_rear_delt_fly", "STYLE_MEDIUM_OTHER")
         val flyOmission = c.nonSelectionProvenance.single { it.omittedControlOwner == legacyFly }
         assertEquals(StimulusNonSelectionClassification.CANONICAL_REPLACEMENT, flyOmission.classification)
         val exactFlyDisposition = flyOmission.targetEvidence.single { it.targetId == "QUALITY:HYPERTROPHY" }.disposition
@@ -1972,7 +2375,7 @@ class StimulusProductionCoverageAuditTest {
     }
 
     @Test
-    fun c28UnapprovedCoverageCandidateStaysDiagnosticAndDoesNotMaterialize() = runBlocking {
+    fun c28ControlOnlyPosteriorAccessoryCannotAcquireDirectCoverageOrMaterialize() = runBlocking {
         val spec = CoverageSpec("c9_allocator_boundary", TrainableQuality.HYPERTROPHY, "cable_rear_delt_fly",
             "HYPERTROPHY_PHYSIQUE", ProgramGoal.BODYBUILDING, StrengthIntent.HYPERTROPHY_PRIORITY,
             false, "reviewed", 3, 60, emptySet(), true)
@@ -1990,9 +2393,19 @@ class StimulusProductionCoverageAuditTest {
             })
         } else {
             val execution = requireNotNull(result.comparison?.experimental?.personalizedDecision?.planningBudget?.execution)
-            assertTrue(execution.materialDemandCandidateOrigins.any {
-                it.owner.stableKey == owner.stableKey && it.owner.selectionRole == owner.selectionRole
-            })
+            assertFalse("a control-only accessory is not a direct posterior-chain execution origin",
+                execution.materialDemandCandidateOrigins.any {
+                    it.owner.stableKey == owner.stableKey && it.owner.selectionRole == owner.selectionRole
+                })
+            assertFalse("the accessory cannot be selected as a direct posterior-chain owner",
+                result.comparison?.selectionPlan?.selectedCandidates.orEmpty().any {
+                    it.stableKey == owner.stableKey && it.selectionRole == owner.selectionRole &&
+                        it.coveredTargetIds.any { target -> target.startsWith("MOVEMENT:") }
+                })
+            assertFalse("no exact B6 authority or physical row may be manufactured",
+                result.comparison?.experimental?.items.orEmpty().any {
+                    it.exerciseStableKey == owner.stableKey && it.selectionRole == owner.selectionRole
+                })
         }
     }
 

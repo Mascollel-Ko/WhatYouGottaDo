@@ -9,7 +9,7 @@ import com.training.trackplanner.data.personalized.placementSessionFits
 import java.security.MessageDigest
 
 /** Current builder contract recorded on accepted canonical programs. */
-internal const val CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.76.0"
+internal const val CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.78.0"
 
 /** A typed view of TrainingProgram.stableKey; it is independent of exercise stable keys. */
 @JvmInline
@@ -142,6 +142,8 @@ internal data class CanonicalIncumbentPlacementIndex(
             val sourceContract = builderVersion to runtimeVersion
             val supportedContracts = setOf(
                 expectedBuilderProtocolVersion to expectedPlannerRuntimeVersion,
+                C38_2_PREVIOUS_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION to C38_2_PREVIOUS_PERSONALIZED_PLANNER_PROTOCOL_VERSION,
+                C38_1_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION to C38_1_PERSONALIZED_PLANNER_PROTOCOL_VERSION,
                 C38_0_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION to C38_0_PERSONALIZED_PLANNER_PROTOCOL_VERSION,
                 C37_5_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION to C37_5_PERSONALIZED_PLANNER_PROTOCOL_VERSION,
                 C37_4_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION to C37_4_PERSONALIZED_PLANNER_PROTOCOL_VERSION,
@@ -212,6 +214,12 @@ internal data class CanonicalIncumbentPlacementIndex(
 /** C19 persisted exact lineage/roles before C20 changed placement behavior. */
 private const val C19_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.54.0"
 private const val C19_PERSONALIZED_PLANNER_PROTOCOL_VERSION = "RECORD_BASED_PLANNER_0.14.6_KOTLIN_1"
+/** Earlier C38.2 programs remain valid incumbents under the exact-target B8 check. */
+private const val C38_2_PREVIOUS_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.77.0"
+private const val C38_2_PREVIOUS_PERSONALIZED_PLANNER_PROTOCOL_VERSION = "RECORD_BASED_PLANNER_0.15.19_KOTLIN_1"
+/** C38.1 programs remain valid incumbents under canonical movement eligibility. */
+private const val C38_1_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.76.0"
+private const val C38_1_PERSONALIZED_PLANNER_PROTOCOL_VERSION = "RECORD_BASED_PLANNER_0.15.18_KOTLIN_1"
 /** C38.0 records remain valid incumbent sources after movement/regional evidence unification. */
 private const val C38_0_CANONICAL_PROGRAM_BUILDER_PROTOCOL_VERSION = "3.75.0"
 private const val C38_0_PERSONALIZED_PLANNER_PROTOCOL_VERSION = "RECORD_BASED_PLANNER_0.15.17_KOTLIN_1"

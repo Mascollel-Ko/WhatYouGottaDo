@@ -6,8 +6,14 @@ enum class StimulusProductionScopeResolutionStatus {
     RESOLVED_STRENGTH, RESOLVED_STRENGTH_CALIBRATION, RESOLVED_HYPERTROPHY, RESOLVED_STRENGTH_HYPERTROPHY,
     RESOLVED_BADMINTON_TASK, RESOLVED_POWER_JUMP,
     NO_MATERIAL, MISSING_PROVENANCE, PARTIAL_PROVENANCE, UNKNOWN_TARGET,
-    UNSUPPORTED_QUALITY, AMBIGUOUS_MATERIAL_SCOPE
+    UNSUPPORTED_QUALITY, UNAUTHORIZED_TARGET_AUTHORITY, AMBIGUOUS_MATERIAL_SCOPE
 }
+
+data class StimulusOwnerTargetAuthorityGap(
+    val owner: StimulusPrescriptionOwnerIdentity,
+    val targetId: String,
+    val reasonCode: String = "EXACT_B6_TARGET_AUTHORITY_MISSING"
+)
 
 data class StimulusProductionScopeResolution(
     val scope: StimulusProductionCutoverScope?,
@@ -19,7 +25,8 @@ data class StimulusProductionScopeResolution(
     val unattributedOwnerIdentities: Set<StimulusPrescriptionOwnerIdentity>,
     val removedOwnerIdentities: Set<StimulusPrescriptionOwnerIdentity>,
     val materialAuthorityIdentities: Set<StimulusPrescriptionAuthorityIdentity>,
-    val materialTaskProtocolIdentities: Set<StimulusTaskProtocolAuthorityIdentity> = emptySet()
+    val materialTaskProtocolIdentities: Set<StimulusTaskProtocolAuthorityIdentity> = emptySet(),
+    val unauthorizedOwnerTargetAuthorities: Set<StimulusOwnerTargetAuthorityGap> = emptySet()
 )
 
 /** Observation only. The nullable scope is supplied by the existing resolver, never inferred here. */
@@ -246,8 +253,8 @@ internal data class StimulusProductionDiagnostics(
                 comparison == null -> StimulusProductionFallbackStage.UPSTREAM_EVALUATION_FAILURE
                 b7?.materializationIntegrityPassed == false -> StimulusProductionFallbackStage.B6_EXECUTION_AUTHORITY
                 resolution?.status == StimulusProductionScopeResolutionStatus.NO_MATERIAL -> StimulusProductionFallbackStage.NO_MATERIAL_CHANGE
-                resolution?.scope == null -> StimulusProductionFallbackStage.SCOPE_RESOLUTION
                 failedB6.isNotEmpty() || failedMaterializations.isNotEmpty() -> StimulusProductionFallbackStage.B6_EXECUTION_AUTHORITY
+                resolution?.scope == null -> StimulusProductionFallbackStage.SCOPE_RESOLUTION
                 b7?.status != StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW -> StimulusProductionFallbackStage.B7_READINESS
                 b8?.status != StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER -> StimulusProductionFallbackStage.B8_CUTOVER_AUTHORITY
                 else -> StimulusProductionFallbackStage.B9_ROUTING_CONTRACT

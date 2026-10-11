@@ -228,6 +228,11 @@ internal object NextPhaseBottleneckCensus {
                     .put("status", it.status.name).put("reasons", JSONArray(it.reasonCodes.sorted()))
                     .put("materialQualities", JSONArray(it.materialQualities.map { quality -> quality.name }.sorted()))
                     .put("materialOwners", JSONArray(it.materialOwnerIdentities.sortedWith(ownerOrder).map(::ownerJson)))
+                    .put("unauthorizedOwnerTargetAuthorities", JSONArray(it.unauthorizedOwnerTargetAuthorities
+                        .sortedWith(compareBy({ gap -> gap.owner.stableKey }, { gap -> gap.owner.selectionRole },
+                            { gap -> gap.targetId }, { gap -> gap.reasonCode }))
+                        .map { gap -> JSONObject().put("owner", ownerJson(gap.owner)).put("targetId", gap.targetId)
+                            .put("reasonCode", gap.reasonCode) }))
                     .put("unknownTargets", JSONArray(it.unknownTargetIds.sorted()))
                     .put("unattributedOwners", JSONArray(it.unattributedOwnerIdentities.sortedWith(ownerOrder).map(::ownerJson)))
                     .put("removedOwners", JSONArray(it.removedOwnerIdentities.sortedWith(ownerOrder).map(::ownerJson)))
@@ -513,8 +518,13 @@ internal object NextPhaseBottleneckCensus {
                 val mapping = reasonCaseMap { it.getJSONObject("b8").getJSONArray("reasons").strings() }
                 mapping.forEach { (key, value) -> obj.put(key, JSONArray(value)) }
             })
+        val generatedResults = records.mapNotNull { (case, result) -> result?.let { case to it } }
+        val generatedWithoutComparison = generatedResults.filter { (_, result) -> result.comparison == null }
         val summary = JSONObject()
-            .put("generatedCases", cases.size)
+            .put("generatedCases", generatedResults.size)
+            .put("casesWithComparison", cases.size)
+            .put("generatedResultsWithoutComparison", generatedWithoutComparison.size)
+            .put("generatedResultsWithoutComparisonCaseNames", JSONArray(generatedWithoutComparison.map { it.first.label }.sorted()))
             .put("controlCases", controlCases.size)
             .put("powerJumpCases", cases.count { it.optString("route") == StimulusProductionProgramSource.B8_POWER_JUMP_V1.name })
             .put("routes", objectCounts(routes))

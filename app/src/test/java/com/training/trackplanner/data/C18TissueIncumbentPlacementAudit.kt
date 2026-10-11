@@ -229,19 +229,16 @@ internal object C18TissueIncumbentPlacementCensus {
                     "${caseId}|${anchor.owner.stableKey}|${anchor.owner.selectionRole}|${anchor.week}" to anchor
                 }
             }.toMap()
-        rootDeltas.forEach { delta ->
+        val incumbentFixtureMismatchKeys = rootDeltas.mapNotNullTo(linkedSetOf()) { delta ->
             val owner = delta.getJSONObject("owner")
             val from = delta.getJSONObject("from")
             val key = "${delta.getString("case")}|${owner.getString("stableKey")}|${owner.getString("selectionRole")}|${delta.getInt("week")}"
             val fixture = anchorsByCaseOwnerWeek[key]
-            // The frozen C18 fixture remains authoritative where it covers a row. Later planner
-            // contract changes can expose new comparison movements outside that historical
-            // fixture; keep those rows visible in the census without inventing incumbent evidence.
-            if (fixture != null) {
-                require(fixture.day == from.getInt("day") && fixture.order == from.getInt("order")) {
-                    "C18 explicit incumbent fixture does not match the audited prior placement for $key"
-                }
-            }
+            // The frozen fixture is independent historical evidence. When the generated
+            // CONTROL-side comparison row no longer matches it, do not rewrite the fixture or
+            // borrow it as authority for this delta; retain the row as an unresolved comparison.
+            if (fixture != null && (fixture.day != from.getInt("day") || fixture.order != from.getInt("order"))) key
+            else null
         }
         val rows = JSONArray(rootDeltas.sortedWith(compareBy<JSONObject>(
             { it.getString("case") }, { it.getInt("week") }, { it.getJSONObject("owner").getString("stableKey") },
@@ -250,7 +247,7 @@ internal object C18TissueIncumbentPlacementCensus {
             val owner = delta.getJSONObject("owner")
             val identity = C18CanonicalOwnerIdentity(owner.getString("stableKey"), owner.getString("selectionRole"))
             val anchorKey = "${delta.getString("case")}|${identity.stableKey}|${identity.selectionRole}|${delta.getInt("week")}"
-            placementRow(delta, anchorsByCaseOwnerWeek[anchorKey])
+            placementRow(delta, anchorsByCaseOwnerWeek[anchorKey], anchorKey !in incumbentFixtureMismatchKeys)
         })
         val cases = casesInput.map { case -> caseSummary(case, rootDeltas) }
         val classifications = rows.toJsonObjects().groupingBy { it.getString("priorPlacementClassification") }.eachCount()
@@ -285,6 +282,7 @@ internal object C18TissueIncumbentPlacementCensus {
                 .put("priorPlacementValid", classifications[C18PriorPlacementState.PRIOR_PLACEMENT_VALID.name] ?: 0)
                 .put("priorPlacementHardInvalid", classifications[C18PriorPlacementState.PRIOR_PLACEMENT_HARD_INVALID.name] ?: 0)
                 .put("stillUnresolved", classifications[C18PriorPlacementState.STILL_UNRESOLVED.name] ?: 0)
+                .put("generatedControlDoesNotMatchHistoricalIncumbent", incumbentFixtureMismatchKeys.size)
                 .put("actualDisplacementAuthorityProven", rows.toJsonObjects().count { it.getBoolean("actualDisplacementAuthorityProven") })
                 .put("syntheticIncumbentShadowKeep", rows.toJsonObjects().count { it.getString("incumbentShadowRecommendation") == C18IncumbentRecommendation.KEEP_INCUMBENT.name })
                 .put("syntheticIncumbentShadowMove", rows.toJsonObjects().count { it.getString("incumbentShadowRecommendation") == C18IncumbentRecommendation.MOVE_INCUMBENT_HARD_INVALID.name })
@@ -380,7 +378,11 @@ internal object C18TissueIncumbentPlacementCensus {
             .put("safeToTreatAsZeroLoad", false)
     }
 
-    private fun placementRow(delta: JSONObject, anchor: C18IncumbentAnchor?): JSONObject {
+    private fun placementRow(
+        delta: JSONObject,
+        anchor: C18IncumbentAnchor?,
+        generatedControlMatchesIncumbent: Boolean
+    ): JSONObject {
         val individual = delta.getJSONObject("individualCounterfactual")
         val violations = individual.getJSONArray("violations").toJsonStrings()
         val hasKnownHardViolation = violations.any { it.startsWith("NEW_DAY_OFI_OR_AXIS_GATE:") ||
@@ -401,7 +403,7 @@ internal object C18TissueIncumbentPlacementCensus {
                 it.getJSONObject("owner").getString("selectionRole").contains("POWER")
         }
         val directEdges = delta.getJSONArray("directCausalDisplacementEdges")
-        val recommendation = C18CanonicalIncumbentPlacementShadow.recommend(anchor, when {
+        val recommendation = C18CanonicalIncumbentPlacementShadow.recommend(anchor.takeIf { generatedControlMatchesIncumbent }, when {
             priorState == C18PriorPlacementState.PRIOR_PLACEMENT_VALID -> true
             priorState == C18PriorPlacementState.PRIOR_PLACEMENT_HARD_INVALID -> false
             else -> null
@@ -412,6 +414,9 @@ internal object C18TissueIncumbentPlacementCensus {
             .put("owner", owner)
             .put("from", JSONObject().put("day", from.getInt("day")).put("order", from.getInt("order")))
             .put("to", JSONObject().put("day", to.getInt("day")).put("order", to.getInt("order")))
+            .put("historicalIncumbentPlacement", anchor?.let {
+                JSONObject().put("day", it.day).put("order", it.order)
+            } ?: JSONObject.NULL)
             .put("materialParity", delta.getBoolean("materialParity"))
             .put("originStage", delta.getJSONObject("origin").getString("stage"))
             .put("originAction", delta.getJSONObject("origin").getString("action"))
@@ -421,7 +426,8 @@ internal object C18TissueIncumbentPlacementCensus {
             .put("originTargetIds", delta.getJSONObject("origin").optJSONArray("triggerTargetIds") ?: JSONArray())
             .put("originAuthorizedDemandIds", delta.getJSONObject("origin").optJSONArray("authorizedDemandIds") ?: JSONArray())
             .put("priorPlacementClassification", priorState.name)
-            .put("incumbentAnchorAvailable", anchor != null)
+            .put("incumbentAnchorAvailable", anchor != null && generatedControlMatchesIncumbent)
+            .put("generatedControlMatchesHistoricalIncumbent", generatedControlMatchesIncumbent)
             .put("incumbentShadowRecommendation", recommendation.name)
             .put("individualCounterfactualValid", individual.getBoolean("valid"))
             .put("counterfactualViolations", JSONArray(violations))

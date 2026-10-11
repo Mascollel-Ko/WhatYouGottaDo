@@ -47,8 +47,11 @@ internal object C35HypertrophyCapacityCensus {
 
         generatedByCase.toSortedMap().forEach { (caseName, generated) ->
             val comparison = generated.comparison ?: run {
-                cases.put(JSONObject().put("case", caseName).put("generated", false)
-                    .put("route", generated.routeDecision.selectedSource.name))
+                cases.put(JSONObject().put("case", caseName).put("generated", true)
+                    .put("comparisonAvailable", false)
+                    .put("route", generated.routeDecision.selectedSource.name)
+                    .put("upstreamFailureReason", generated.upstreamFailureReason)
+                    .put("upstreamFailureDetails", JSONArray(generated.upstreamFailureDetails)))
                 return@forEach
             }
             val b7 = comparison.experimentalReadinessAudit
@@ -245,6 +248,7 @@ internal object C35HypertrophyCapacityCensus {
             cases.put(JSONObject()
                 .put("case", caseName)
                 .put("generated", true)
+                .put("comparisonAvailable", true)
                 .put("generationTimeMs", generationMillisByCase[caseName] ?: JSONObject.NULL)
                 .put("route", generated.routeDecision.selectedSource.name)
                 .put("aggregateHypertrophy", JSONObject()

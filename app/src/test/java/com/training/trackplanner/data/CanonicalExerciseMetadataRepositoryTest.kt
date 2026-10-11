@@ -72,7 +72,7 @@ class CanonicalExerciseMetadataRepositoryTest {
     @Test
     fun canonicalRepositoryExposesEveryProductionMetadataDomain() {
         assertEquals(2249, repository.movementRelations().size)
-        assertEquals(797, repository.muscleRelations().size)
+        assertEquals(787, repository.muscleRelations().size)
         assertEquals(3913, repository.ofiRelations().size)
         assertEquals(241, repository.recoveryProfiles().size)
         assertEquals(1864, repository.badmintonRelations().size)
@@ -81,6 +81,22 @@ class CanonicalExerciseMetadataRepositoryTest {
         assertEquals(194, repository.progressionRelations().size)
         assertEquals(16, repository.strengthProxyRelations().size)
         assertEquals(3651, repository.tissueRepository().catalog.authorityRows.size)
+    }
+
+    @Test
+    fun rearDeltFlyMuscleProjectionKeepsShouldersAndRemovesInheritedFalsePrimaryRows() {
+        val keys = setOf("cable_rear_delt_fly", "dumbbell_rear_delt_fly", "ex_7deabeba", "ex_a60496be")
+        val relations = repository.muscleRelations().filter { it.exerciseStableKey in keys }
+        assertTrue(keys.all { key -> relations.any {
+            it.exerciseStableKey == key && it.relationValue == "SHOULDERS" && it.relationType == "PRIMARY"
+        } })
+        assertTrue(relations.none {
+            it.relationValue in setOf("BACK_LATS", "LATERAL_CORE", "ANTERIOR_CORE") &&
+                it.relationType == "PRIMARY"
+        })
+        assertTrue(setOf("ex_7deabeba", "ex_a60496be").all { key -> relations.any {
+            it.exerciseStableKey == key && it.relationValue == "ANTERIOR_CORE" && it.relationType == "SECONDARY"
+        } })
     }
 
     @Test
