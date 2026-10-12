@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.80.0 |
+| Protocol version | 3.81.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.22 |
@@ -1515,3 +1515,12 @@ Post-audit boundary notes
 - Saving compares against the actual persisted Room program. Replacing a saved draft requires explicit user confirmation; temporary CONTROL output is not treated as the saved owner. Source-snapshot validation continues to reject stale saves.
 - Saved programs stamped with builder/runtime `3.79.0` / `RECORD_BASED_PLANNER_0.15.21_KOTLIN_1` remain eligible incumbent sources after the protocol bump; Room and backup schemas are unchanged.
 - The 22-case corpus reports each final B1–B6 result or typed input/execution failure independently of CONTROL differences. Detailed output census and verification are recorded in [`docs/c38_3_new_generator_independent_execution_audit.md`](../../c38_3_new_generator_independent_execution_audit.md).
+
+### C38.4 — per-attempt generation decision trace and export (protocol 3.81.0)
+
+- Every personalized-generation attempt receives one UUID run ID before history loading. The run-scoped `GenerationDecisionTraceStore` records the actual execution inputs, policy/function name, criteria, numeric comparisons, reason codes, selected/excluded/deferred candidates, downstream values, and monotonic duration at the production decision boundary. It does not rerun generation or change a decision.
+- Tracing covers history loading and input preflight, B1 need, B2 individual baseline and quality dose ledger, B3 strategy, B4 target amounts, every indexed B5 disposition plus candidate-pool entries without a disposition, B6 prescription authority/materialization, resistance-volume limits, execution capacity and finite allocation, split/day placement and reflow, frequency expansion, independent final schedule/catalog/equipment/B5/B6/set-integrity/time/OFI/tissue checks, and B7/B8/B9 route status. B7/B8 are explicitly `NOT_EXECUTED` during ordinary generation; diagnostic collection does not cause a CONTROL build.
+- B2 physical set rows and weekly equivalent stimulus units remain distinct. Weeks with no confirmed set row are marked as unobserved when the source cannot distinguish no training from unrecorded training. Candidate personal records contain only bounded recent set facts and stable exercise keys; local record IDs are not exported.
+- The generated `generation_diagnostic.json` uses schema `generation-decision-trace-v1` and includes the full structured event trace. `generation_summary.txt` renders a Korean, ten-section report of the same attempt. The in-app **생성 진단 내보내기** action shares both cache-backed files through Android's chooser; no external upload occurs. Export removes account/authentication fields, personal identifiers, and local persistence IDs.
+- Generation duration uses monotonic timestamps at the actual preparation and generation boundaries; each traced phase carries its own elapsed time. The diagnostic ring is in-memory and bounded to the latest eight attempts, and exporting does not modify Room rows, program persistence, CSV, or cloud-backup contracts.
+- This is observation-only: B1–B6 policies, dose limits, candidate ranking, prescription authority, splitting/placement, OFI/tissue limits, B7/B8/B9 routing, app version `0.5.1.5`, planner runtime `RECORD_BASED_PLANNER_0.15.22_KOTLIN_1`, and Room schema `38` remain unchanged.

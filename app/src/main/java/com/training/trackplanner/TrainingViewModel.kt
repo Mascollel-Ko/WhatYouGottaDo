@@ -702,10 +702,11 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     fun preparePersonalizedProgram(
         request: ProgramSkeletonRequest,
         constraints: PersonalizedGenerationConstraints,
+        traceId: String? = null,
         onPrepared: (PersonalizedPlanningPreflight) -> Unit
     ) {
         personalizedGenerationRunner.launch({ progress ->
-            repository.preparePersonalizedProgram(request, constraints, progress = progress)
+            repository.preparePersonalizedProgram(request, constraints, progress = progress, traceId = traceId)
         }) { preflight ->
                 _programBuildProgress.value = ProgramBuildProgressState.Idle
                 onPrepared(preflight)

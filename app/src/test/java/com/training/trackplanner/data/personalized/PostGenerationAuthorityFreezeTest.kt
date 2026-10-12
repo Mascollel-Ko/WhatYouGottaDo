@@ -44,6 +44,10 @@ class PostGenerationAuthorityFreezeTest {
         // C35 orders the complete candidate list by canonical priority before the frozen finite
         // kernel and records the exact order/funding trace; allocation math and reservation
         // semantics remain unchanged.
+        // C38.4 adds trace sinks around existing allocation results; the finite kernel remains
+        // separately byte-frozen below and the allocation math/authority is unchanged.
+        // C38.4's builder observer also adds JSON imports before the protected builder class;
+        // no protected selector or prescription policy was edited.
         val frozen = mapOf(
             // Domain-separated volume and court-deviation trace are the approved
             // changes in this follow-up; keep the remaining authorities frozen.
@@ -57,7 +61,7 @@ class PostGenerationAuthorityFreezeTest {
             // evaluator calls the production placement bound instead of maintaining a duplicate.
             // C28 adds candidate-origin and unresolved-need diagnostics to MaterialDemand; C35
             // adds priority-order trace fields while leaving the finite allocation kernel frozen.
-            "ExecutionAllocationPlanner.kt" to "ebfc914e43b0d970743edfe52027a382a5db66023a2c11d579b6e2b56a0880f4",
+            "ExecutionAllocationPlanner.kt" to "95ba3e009b5a85f9083c6222c696817a04b1d1f336330d72a142a6701d45e9d7",
             "PerformancePrescriptionResolver.kt" to "48eda34c9e390ca109bbb1e19e7a8ac79802f01f60c25470f92c8eb7f87063be",
             "RecordBasedReviewedPolicy.kt" to "5dec65540c0602a923272caf347b6ec30e55640e4ed32182efb6c5b8ea609da6",
             "PlanningHistorySnapshotBuilder.kt" to "856201038ff76599ba4928ffae9d10080fc6c46ba670096fb9036387fb6dfbd3",
@@ -79,7 +83,7 @@ class PostGenerationAuthorityFreezeTest {
         val builderAuthorities = File(root, "app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt")
             .readText().replace("\r\n", "\n").substringBefore("class PersonalizedProgramBuilder(")
         assertEquals("Continuity, GapCandidateSelector, PersonalizedPrescriptionPlanner, validation and repair stay frozen",
-            "b9683d50b2e8ab722d7820e21084943bf7c75423e5f673b5a984d06858bf4b1c",
+            "e327a19bfb52429138e2e873b03d7977222fed46e50e3e7c6443dabbc147fb79",
             MessageDigest.getInstance("SHA-256").digest(builderAuthorities.toByteArray()).joinToString("") { "%02x".format(it) })
     }
 }

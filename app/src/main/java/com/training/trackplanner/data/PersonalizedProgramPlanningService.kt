@@ -26,6 +26,7 @@ import com.training.trackplanner.data.personalized.PersonalizedPlannerProgressRe
 import com.training.trackplanner.data.personalized.PersonalizedPlannerStage
 import com.training.trackplanner.data.personalized.PlanningHistorySnapshotBuilder
 import com.training.trackplanner.data.personalized.PlanningHistorySnapshot
+import com.training.trackplanner.data.personalized.PlanningSetRecord
 import com.training.trackplanner.data.personalized.AthleteNeedsProfileEngine
 import com.training.trackplanner.data.personalized.AthleteStimulusNeedEngine
 import com.training.trackplanner.data.personalized.FinalStimulusNeedAudit
@@ -107,6 +108,10 @@ import com.training.trackplanner.data.personalized.PreparedCanonicalGenerationCo
 import com.training.trackplanner.data.personalized.CanonicalExperimentalGeneration
 import com.training.trackplanner.data.personalized.ProductionGenerationPhase
 import com.training.trackplanner.data.personalized.ProductionGenerationObservation
+import com.training.trackplanner.data.personalized.GenerationDecisionTraceStore
+import com.training.trackplanner.data.personalized.generationProgramJson
+import com.training.trackplanner.data.personalized.diagnosticRequestJson
+import com.training.trackplanner.data.personalized.generationBaselineJson
 
 internal class PersonalizedProgramPlanningService(
     private val exerciseDao: ExerciseDao,
@@ -173,21 +178,80 @@ internal class PersonalizedProgramPlanningService(
         metadata: Map<String, RuntimeExerciseMetadata>,
         cutoff: LocalDate = LocalDate.now(),
         constraints: PersonalizedGenerationConstraints = PersonalizedGenerationConstraints(explicitSessionMinutes = request.sessionMinutes),
-        progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE
+        progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE,
+        traceId: String? = null
     ): PersonalizedPlanningPreflight {
-        progress.report(PersonalizedPlannerStage.HISTORY)
-        val preferences = readPreferences()
-        val snapshot = buildSnapshot(cutoff, metadata, preferences, includeStimulusExposureLedger = false)
-        progress.report(PersonalizedPlannerStage.PATTERNS)
-        val state = stateBuilder.build(snapshot, PersonalizedPlanningAnswers())
-        return PersonalizedPlanningPreflight(
-            preparationId = UUID.randomUUID().toString(),
-            cutoff = cutoff,
-            request = request,
-            constraints = constraints,
-            questions = questionPolicy.questions(snapshot, state, PersonalizedPlanningAnswers()),
-            preparedAtEpochMillis = System.currentTimeMillis()
-        )
+        val runId = traceId ?: UUID.randomUUID().toString()
+        val attemptStarted = System.nanoTime()
+        GenerationDecisionTraceStore.begin(runId, diagnosticRequestJson(
+            goal = request.goal.name, weeklyDays = request.weeklyTrainingDays,
+            sessionMinutes = request.sessionMinutes, durationWeeks = request.durationWeeks,
+            equipment = request.availableEquipment, excludedStableKeys = request.excludedExerciseStableKeys,
+            preferredStableKeys = request.preferredExerciseStableKeys,
+            explicitGoal = constraints.explicitGoal?.name,
+            explicitDays = constraints.explicitWeeklyTrainingDays,
+            explicitMinutes = constraints.explicitSessionMinutes
+        ), attemptStarted)
+        try {
+            progress.report(PersonalizedPlannerStage.HISTORY)
+            val loadStarted = System.nanoTime()
+            val preferences = readPreferences()
+            val snapshot = buildSnapshot(cutoff, metadata, preferences, includeStimulusExposureLedger = false)
+            GenerationDecisionTraceStore.record(
+                runId, "RECORD_LOADING", "PersonalizedProgramPlanningService.prepare/buildSnapshot",
+                inputs = JSONObject().put("cutoff", cutoff.toString()).put("sourceSetCount", snapshot.allConfirmedSets.size)
+                    .put("metadataExerciseCount", snapshot.metadata.size),
+                criteria = JSONObject().put("historyScope", "confirmed workout sets and runtime exercise metadata"),
+                comparisons = JSONObject().put("loadedSetCount", snapshot.allConfirmedSets.size),
+                decision = "HISTORY_LOADED", reasonCodes = listOf("HISTORY_SNAPSHOT_READY"),
+                nextStageInputs = JSONObject().put("cutoff", snapshot.cutoff.toString()), startedNanos = loadStarted
+            )
+            progress.report(PersonalizedPlannerStage.PATTERNS)
+            val analysisStarted = System.nanoTime()
+            val state = stateBuilder.build(snapshot, PersonalizedPlanningAnswers())
+            val questions = questionPolicy.questions(snapshot, state, PersonalizedPlanningAnswers())
+            GenerationDecisionTraceStore.record(
+                runId, "TRAINING_STATE_ANALYSIS", "AthletePlanningStateBuilder.build + PlanningQuestionPolicy.questions",
+                inputs = JSONObject().put("historyDays", state.historyDays).put("confirmedSetCount", snapshot.allConfirmedSets.size)
+                    .put("recoveryStatus", snapshot.recoverySignals.readinessStatus),
+                criteria = JSONObject().put("unresolvedStrengthIntent", state.strengthIntent.name)
+                    .put("unresolvedBadmintonIntent", state.badmintonIntent.name)
+                    .put("unresolvedFreeWeightWillingness", state.freeWeightWillingness.name),
+                comparisons = JSONObject().put("questionCount", questions.size),
+                decision = if (questions.isEmpty()) "READY_FOR_GENERATION" else "INPUT_REQUIRED",
+                reasonCodes = questions.map { "QUESTION:${it.id}" },
+                selected = questions.map { it.id }, nextStageInputs = JSONObject()
+                    .put("observedBehavior", state.observedBehavior.name).put("strengthIntent", state.strengthIntent.name)
+                    .put("badmintonIntent", state.badmintonIntent.name).put("freeWeightWillingness", state.freeWeightWillingness.name),
+                startedNanos = analysisStarted
+            )
+            GenerationDecisionTraceStore.record(
+                runId, "INPUT_REQUIREMENTS", "PlanningQuestionPolicy.questions",
+                inputs = JSONObject().put("questionIds", JSONArray(questions.map { it.id })),
+                criteria = JSONObject().put("requiresResolvedAnswers", questions.isNotEmpty()),
+                comparisons = JSONObject().put("requiredAnswers", questions.size),
+                decision = if (questions.isEmpty()) "NO_QUESTIONS" else "ANSWERS_REQUIRED",
+                reasonCodes = questions.map { "ANSWER_REQUIRED:${it.id}" },
+                selected = questions.map { it.id }, nextStageInputs = JSONObject().put("preparationId", runId),
+                startedNanos = attemptStarted, durationNanos = System.nanoTime() - attemptStarted
+            )
+            GenerationDecisionTraceStore.setStatus(
+                runId,
+                if (questions.isEmpty()) "READY_FOR_GENERATION" else "INPUT_REQUIRED"
+            )
+            return PersonalizedPlanningPreflight(
+                preparationId = runId,
+                cutoff = cutoff,
+                request = request,
+                constraints = constraints,
+                questions = questions,
+                preparedAtEpochMillis = System.currentTimeMillis()
+            )
+        } catch (failure: Throwable) {
+            GenerationDecisionTraceStore.finish(runId, "PREPARATION_FAILED", "PREPARATION_FAILURE",
+                "PersonalizedProgramPlanningService.prepare", JSONObject().put("reasonCodes", JSONArray(listOf(failure.javaClass.simpleName))))
+            throw failure
+        }
     }
 
     suspend fun generatePrepared(
@@ -385,10 +449,106 @@ internal class PersonalizedProgramPlanningService(
         state: com.training.trackplanner.data.personalized.AthletePlanningState,
         legacyDoseHistory: com.training.trackplanner.data.personalized.QualityDoseHistory =
             QualityDoseHistoryAnalyzer().analyze(snapshot, state, physicalQualityCatalog)
+    ): CanonicalStimulusPlanningResult = buildCanonicalStimulusPlanningResultWithTrace(
+        snapshot = snapshot, state = state, legacyDoseHistory = legacyDoseHistory, traceId = null
+    )
+
+    private fun buildCanonicalStimulusPlanningResultWithTrace(
+        snapshot: PlanningHistorySnapshot,
+        state: com.training.trackplanner.data.personalized.AthletePlanningState,
+        legacyDoseHistory: com.training.trackplanner.data.personalized.QualityDoseHistory,
+        traceId: String?
     ): CanonicalStimulusPlanningResult {
+        var started = System.nanoTime()
         val stimulusNeeds = athleteStimulusNeedEngine.analyze(snapshot, state)
+        GenerationDecisionTraceStore.record(
+            traceId, "B1_NEED", "AthleteStimulusNeedEngine.analyze",
+            inputs = JSONObject().put("goal", state.programGoal.name).put("strengthIntent", state.strengthIntent.name)
+                .put("badmintonIntent", state.badmintonIntent.name).put("cutoff", snapshot.cutoff.toString()),
+            criteria = JSONObject().put("recentWindowDays", 28).put("priorWindowDays", 28)
+                .put("needDecisionEnum", "TrainingNeedDecision"),
+            comparisons = JSONObject().put("qualityNeeds", stimulusNeeds.qualityNeeds.size)
+                .put("taskNeeds", stimulusNeeds.sportTaskNeeds.size).put("movementNeeds", stimulusNeeds.movementNeedEvidence.size),
+            decision = "B1_PROFILE_COMPUTED", reasonCodes = stimulusNeeds.reasonCodes,
+            selected = (stimulusNeeds.qualityNeeds.map { "QUALITY:${it.quality.name}:${it.decision.name}" } +
+                stimulusNeeds.sportTaskNeeds.map { "TASK:${it.task}:${it.decision.name}" } +
+                stimulusNeeds.movementNeedEvidence.map { "MOVEMENT:${it.movementCoverage?.name}:${it.gapPriority?.name ?: "NO_GAP"}" }),
+            deferred = stimulusNeeds.movementNeedEvidence.filter { it.globallyRestricted || it.explicitlyRestricted }
+                .map { "${it.movementCoverage}:${it.sourceCoverageCode}" },
+            nextStageInputs = stimulusNeeds.toCompactJson().put("qualityNeedsDetailed", JSONArray(stimulusNeeds.qualityNeeds.map { need -> JSONObject()
+                .put("quality", need.quality.name).put("relevance", need.relevance.name).put("response", need.response.name)
+                .put("decision", need.decision.name).put("confidence", need.confidence.name)
+                .put("current28dDirect", need.exposure.current28d.directUnits)
+                .put("current28dSupportive", need.exposure.current28d.supportiveUnits)
+                .put("prior28dDirect", need.exposure.prior28d.directUnits)
+                .put("prior28dSupportive", need.exposure.prior28d.supportiveUnits)
+                .put("directSessionsCurrent28d", need.exposure.current28d.directSessions)
+                .put("supportiveSessionsCurrent28d", need.exposure.current28d.supportiveSessions)
+                .put("confidence", need.exposure.confidence.name).put("coverage", need.exposure.coverage.name)
+                .put("evidenceBasis", need.exposure.evidenceBasis.name).put("reasonCodes", JSONArray(need.reasonCodes))
+                .put("evidence", JSONArray(need.evidence)) }))
+                .put("taskNeedsDetailed", JSONArray(stimulusNeeds.sportTaskNeeds.map { need -> JSONObject()
+                    .put("task", need.task).put("relevance", need.relevance.name).put("response", need.response.name)
+                    .put("decision", need.decision.name).put("confidence", need.confidence.name)
+                    .put("current28dDirect", need.exposure.current28d.directUnits)
+                    .put("current28dSupportive", need.exposure.current28d.supportiveUnits)
+                    .put("prior28dDirect", need.exposure.prior28d.directUnits)
+                    .put("prior28dSupportive", need.exposure.prior28d.supportiveUnits)
+                    .put("sportContextLoad", need.sportContextLoad).put("reasonCodes", JSONArray(need.reasonCodes))
+                    .put("evidence", JSONArray(need.evidence)) })), startedNanos = started
+        )
+        started = System.nanoTime()
         val ledgerDoseHistory = LedgerBackedQualityDoseHistoryAnalyzer().analyze(snapshot, state, legacyDoseHistory)
+        val productionBands = JSONObject().apply {
+            legacyDoseHistory.bands.toSortedMap(compareBy { it.name }).forEach { (quality, band) ->
+                put(quality.name, JSONObject().put("source", band.source.name).put("eligibleWeeks", band.eligibleWeekCount)
+                    .put("directQ25", band.directUnitsQ25).put("directMedian", band.directUnitsMedian)
+                    .put("directQ75", band.directUnitsQ75).put("supportiveQ25", band.supportiveUnitsQ25)
+                    .put("supportiveMedian", band.supportiveUnitsMedian).put("supportiveQ75", band.supportiveUnitsQ75)
+                    .put("confidence", band.confidence.name).put("directExposureWeeks", band.directExposureWeekCount))
+            }
+        }
+        val physicalWeeklyBaseline = snapshot.generationBaselineJson()
+        val ledgerTrace = ledgerDoseHistory.toCompactJson().put("weeklyExclusionReasons", JSONArray(
+            ledgerDoseHistory.weeklyEvidence.flatMap { (quality, weeks) -> weeks.mapNotNull { week ->
+                val reason = when {
+                    !week.hasSourceObservations -> "NO_SOURCE_OBSERVATIONS"
+                    !week.classificationComplete -> "INCOMPLETE_SOURCE_CLASSIFICATION"
+                    week.excludedFromBaseline -> "EXCLUDED_FROM_BASELINE"
+                    else -> null
+                }
+                reason?.let { JSONObject().put("quality", quality.name).put("start", week.start.toString())
+                    .put("end", week.end.toString()).put("reasonCode", it) }
+            } }
+        ))
+        GenerationDecisionTraceStore.record(
+            traceId, "B2_PERSONAL_BASELINE", "LedgerBackedQualityDoseHistoryAnalyzer.analyze + QualityDoseHistoryAnalyzer.analyze",
+            inputs = JSONObject().put("cutoff", snapshot.cutoff.toString()).put("confirmedSetCount", snapshot.allConfirmedSets.size)
+                .put("horizonWeeks", ledgerDoseHistory.horizon.requiredCompletedWeeks),
+            criteria = JSONObject().put("physicalSetsSeparateFromEquivalentStimulusUnits", true)
+                .put("baselineSource", "actual legacyDoseHistory bands used by downstream planner"),
+            comparisons = JSONObject().put("activeWeekPhysicalSetMean", physicalWeeklyBaseline.opt("activeWeekPhysicalSetMean"))
+                .put("ledgerBands", ledgerTrace).put("productionBands", productionBands),
+            decision = "B2_BASELINE_COMPUTED", reasonCodes = ledgerDoseHistory.reasonCodes,
+            nextStageInputs = physicalWeeklyBaseline.put("productionBands", productionBands)
+                .put("qualityDoseHistory", ledgerTrace), startedNanos = started
+        )
+        started = System.nanoTime()
         val decisionPortfolio = StimulusTrainingDecisionPortfolioEngine().build(stimulusNeeds, ledgerDoseHistory)
+        GenerationDecisionTraceStore.record(
+            traceId, "B3_STRATEGY", "StimulusTrainingDecisionPortfolioEngine.build",
+            inputs = JSONObject().put("needCount", stimulusNeeds.qualityNeeds.size + stimulusNeeds.sportTaskNeeds.size)
+                .put("baselineCount", ledgerDoseHistory.bands.size + ledgerDoseHistory.weeklyEvidence.values.sumOf { it.size }),
+            criteria = JSONObject().put("actions", JSONArray(com.training.trackplanner.data.personalized.TargetStimulusAction.entries.map { it.name }))
+                .put("strategy", "TargetStimulusAction and numeric authority"),
+            comparisons = JSONObject().put("qualityDecisions", decisionPortfolio.qualityDecisions.size)
+                .put("taskDecisions", decisionPortfolio.taskDecisions.size),
+            decision = "B3_PORTFOLIO_COMPUTED", reasonCodes = decisionPortfolio.unresolved,
+            selected = decisionPortfolio.qualityDecisions.map { "QUALITY:${it.quality}:${it.strategy.name}" } +
+                decisionPortfolio.taskDecisions.map { "TASK:${it.task}:${it.strategy.name}" },
+            nextStageInputs = decisionPortfolio.toCompactJson(), startedNanos = started
+        )
+        started = System.nanoTime()
         val targetPlanWithoutMovementDose = StimulusTargetPlanEngine().build(decisionPortfolio, ledgerDoseHistory)
         val regionalDoses = RegionalMovementDoseTargetBuilder().build(
             movementTargets = targetPlanWithoutMovementDose.movementTargets,
@@ -401,6 +561,18 @@ internal class PersonalizedProgramPlanningService(
             movementTargets = targetPlanWithoutMovementDose.movementTargets.map { movement ->
                 movement.copy(regionalDoseTargets = regionalDoses[movement.movementCoverage].orEmpty())
             }
+        )
+        GenerationDecisionTraceStore.record(
+            traceId, "B4_TARGETS", "StimulusTargetPlanEngine.build + RegionalMovementDoseTargetBuilder.build",
+            inputs = JSONObject().put("decisionPortfolio", decisionPortfolio.toCompactJson()),
+            criteria = JSONObject().put("numericAuthorityFromResolvedTargetPlan", true),
+            comparisons = JSONObject().put("qualityTargetCount", targetPlan.qualityTargets.size)
+                .put("taskTargetCount", targetPlan.taskTargets.size).put("movementTargetCount", targetPlan.movementTargets.size),
+            decision = "B4_TARGET_PLAN_COMPUTED", reasonCodes = targetPlan.unresolved,
+            selected = targetPlan.qualityTargets.map { "QUALITY:${it.quality}:${it.weeklyDirectUnitsTarget?.preferred}" } +
+                targetPlan.taskTargets.map { "TASK:${it.task}:${it.weeklyDirectUnitsTarget?.preferred}" } +
+                targetPlan.movementTargets.map { "${it.targetId}:${it.regionalDoseTargets.sumOf { dose -> dose.weeklyTarget ?: 0.0 }}" },
+            nextStageInputs = targetPlan.toCompactJson(), startedNanos = started
         )
         return CanonicalStimulusPlanningResult(
             athleteStimulusNeedProfile = stimulusNeeds,
@@ -416,7 +588,8 @@ internal class PersonalizedProgramPlanningService(
         answers: PersonalizedPlanningAnswers,
         metadata: Map<String, RuntimeExerciseMetadata>,
         progress: PersonalizedPlannerProgressReporter,
-        canonicalPlanningComputation: CanonicalStimulusPlanningComputation
+        canonicalPlanningComputation: CanonicalStimulusPlanningComputation?,
+        traceId: String
     ): PreparedCanonicalGenerationContext {
         progress.report(PersonalizedPlannerStage.INPUT)
         val missingAnswers = preflight.questions.filter { question ->
@@ -425,9 +598,22 @@ internal class PersonalizedProgramPlanningService(
         require(missingAnswers.isEmpty()) { "사전 확인 답변이 누락됐습니다: ${missingAnswers.joinToString()}" }
 
         progress.report(PersonalizedPlannerStage.HISTORY)
+        val historyStarted = System.nanoTime()
         val preferences = readPreferences()
         val snapshot = buildSnapshot(preflight.cutoff, metadata, preferences, includeStimulusExposureLedger = true)
+        GenerationDecisionTraceStore.record(
+            traceId, "RECORD_LOADING_FINAL", "PersonalizedProgramPlanningService.prepareCanonicalGenerationContext/buildSnapshot",
+            inputs = JSONObject().put("cutoff", preflight.cutoff.toString()).put("includeStimulusExposureLedger", true),
+            criteria = JSONObject().put("confirmedWorkoutRowsOnly", true),
+            comparisons = JSONObject().put("confirmedSetCount", snapshot.allConfirmedSets.size)
+                .put("strengthPerformanceHistoryCount", snapshot.strengthPerformanceHistory.size)
+                .put("exerciseMetadataCount", snapshot.metadata.size),
+            decision = "GENERATION_HISTORY_LOADED", reasonCodes = listOf("FINAL_HISTORY_SNAPSHOT_READY"),
+            nextStageInputs = JSONObject().put("confirmedSetCount", snapshot.allConfirmedSets.size),
+            startedNanos = historyStarted
+        )
         progress.report(PersonalizedPlannerStage.PATTERNS)
+        val analysisStarted = System.nanoTime()
         val state = stateBuilder.build(snapshot, answers)
         require(state.strengthIntent != StrengthIntent.UNRESOLVED &&
             state.badmintonIntent != BadmintonPlanningIntent.UNRESOLVED &&
@@ -442,11 +628,31 @@ internal class PersonalizedProgramPlanningService(
         val resolvedRequest = resolvePreparedProgramRequest(preflight, state, gaps, intent, frequencyEvidence)
         val priorId = appMetaDao.latestByPrefix("$DECISION_PREFIX%")?.value?.let(::decisionIdFromJson)
 
+        GenerationDecisionTraceStore.record(
+            traceId, "B3_TRAINING_STATE_AND_REQUEST", "AthletePlanningStateBuilder.build + AdaptationGapAnalyzer + BlockIntentPlanner + WeeklyDosePlanner",
+            inputs = JSONObject().put("answerIds", JSONArray(answers.values.keys.sorted()))
+                .put("answerValues", JSONObject(answers.values))
+                .put("stateConfidence", state.confidence.name).put("observedHistoryDays", state.historyDays),
+            criteria = JSONObject().put("requestedDays", resolvedRequest.request.weeklyTrainingDays)
+                .put("frequencySource", resolvedRequest.frequencyProvenance.source.name),
+            comparisons = JSONObject().put("adaptationGapCount", gaps.size).put("intentMinWeeks", intent.adaptationMinWeeks)
+                .put("intentMaxWeeks", intent.adaptationMaxWeeks),
+            decision = "STATE_AND_REQUEST_RESOLVED", reasonCodes = gaps.flatMap { it.reasonCodes }.distinct(),
+            selected = gaps.map { "${it.code}:${it.priority}" }, deferred = gaps.filter { it.currentExposure == it.priorExposure }
+                .map { "${it.code}:NO_DELTA" },
+            nextStageInputs = JSONObject().put("primaryAdaptation", state.primaryAdaptation)
+                .put("resolvedWeeklyDays", resolvedRequest.request.weeklyTrainingDays)
+                .put("frequencyRecommendation", frequencyEvidence.recommendedDays)
+                .put("frequencySource", resolvedRequest.frequencyProvenance.source.name),
+            startedNanos = analysisStarted
+        )
+
         // Keep the pre-C8 compatibility diagnostics independent of any generated skeleton.
         val legacyNeeds = athleteNeedsProfileEngine.analyze(snapshot, state, physicalQualityCatalog)
         val legacyDoseHistory = QualityDoseHistoryAnalyzer().analyze(snapshot, state, physicalQualityCatalog)
         val canonicalOutcome = try {
-            CanonicalPlanningOutcome.Success(canonicalPlanningComputation(snapshot, state, legacyDoseHistory))
+            CanonicalPlanningOutcome.Success(canonicalPlanningComputation?.invoke(snapshot, state, legacyDoseHistory)
+                ?: buildCanonicalStimulusPlanningResultWithTrace(snapshot, state, legacyDoseHistory, traceId))
         } catch (failure: StimulusCanonicalEvaluationFailure) {
             CanonicalPlanningOutcome.ExpectedFailure(failure)
         }
@@ -468,6 +674,7 @@ internal class PersonalizedProgramPlanningService(
     /** Runs B5 and B6, including EXPERIMENTAL post-materialization audits, without CONTROL. */
     private suspend fun buildCanonicalExperimentalGeneration(
         context: PreparedCanonicalGenerationContext,
+        traceId: String?,
         answers: PersonalizedPlanningAnswers,
         progress: PersonalizedPlannerProgressReporter,
         productionBuildCounts: com.training.trackplanner.data.personalized.MutableStimulusProductionBuildCounts,
@@ -693,6 +900,7 @@ internal class PersonalizedProgramPlanningService(
                         com.training.trackplanner.data.personalized.StimulusPrescriptionOwnerIdentity(candidate.stableKey, candidate.selectionRole) in taskProtocolPlan.authorizedByOwner
                     }
                     .mapTo(linkedSetOf()) { com.training.trackplanner.data.personalized.StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) },
+                traceId = traceId,
                 canonicalFailureEmitter = { failure ->
                     throw failure
                 }
@@ -729,6 +937,7 @@ internal class PersonalizedProgramPlanningService(
             canonicalPrescriptionContext = prescriptionContext,
             experimentalItems = experimental.items
         )
+        val realizationStarted = System.nanoTime()
         val realizationPlan = StimulusPrescriptionRealizationPlanEngine().build(
             targetPlan = residualTargetPlan,
             selectionPlan = executionSelectionPlan,
@@ -737,6 +946,36 @@ internal class PersonalizedProgramPlanningService(
             historyBackedOwners = prescriptionContext.historyBackedOwners,
             currentPrescriptionsByQuality = realizationInputs.currentPrescriptionsByQuality,
             historyBackedAuthorities = prescriptionContext.historyBackedAuthorities
+        )
+        val materializationJson = JSONArray()
+        materializationAudits.forEach { audit ->
+            val weeks = JSONArray()
+            audit.weeklyAudits.forEach { week ->
+                weeks.put(JSONObject().put("week", week.weekNumber).put("authorizedUnits", week.authorizedSetUnits)
+                    .put("materializedUnits", week.materializedSetUnits).put("compatibleUnits", week.targetCompatibleMaterializedUnits)
+                    .put("shortfall", week.shortfall).put("overrun", week.overrun).put("reasonCodes", JSONArray(week.reasonCodes)))
+            }
+            materializationJson.put(JSONObject().put("targetId", audit.targetId).put("quality", audit.quality?.name)
+                .put("owner", audit.owner?.let { JSONObject().put("stableKey", it.stableKey).put("selectionRole", it.selectionRole) })
+                .put("weeklyAuthorizedUnits", audit.authorizedWeeklySetUnits).put("weeklyMaterializedUnits", audit.materializedWeeklySetUnits)
+                .put("targetCompatibleUnits", audit.targetCompatibleMaterializedUnits).put("shortfall", audit.shortfall)
+                .put("overrun", audit.overrun).put("state", audit.state.name).put("reasonCodes", JSONArray(audit.reasonCodes))
+                .put("weeks", weeks))
+        }
+        GenerationDecisionTraceStore.record(
+            traceId, "B6_REALIZATION", "StimulusPrescriptionRealizationPlanEngine.build + StimulusPrescriptionMaterializationAuditEngine.audit",
+            inputs = JSONObject().put("selectedItems", experimental.items.size),
+            criteria = JSONObject().put("exactB6Prescription", true).put("physicalSetUnitsOnly", true),
+            comparisons = JSONObject().put("materializationAuditCount", materializationAudits.size)
+                .put("authorizedSetUnits", materializationAudits.sumOf { it.authorizedWeeklySetUnits })
+                .put("materializedSetUnits", materializationAudits.sumOf { it.materializedWeeklySetUnits })
+                .put("totalShortfallUnits", materializationAudits.sumOf { it.totalShortfallUnits }),
+            decision = "B6_REALIZATION_COMPLETE", reasonCodes = materializationAudits.flatMap { it.reasonCodes }.distinct(),
+            selected = experimental.items.map { "${it.exerciseStableKey}#${it.selectionRole}:${it.setPrescriptions.size}" },
+            deferred = materializationAudits.filter { it.totalShortfallUnits > 0 }.map { "${it.targetId}:${it.totalShortfallUnits}" },
+            nextStageInputs = JSONObject().put("realizationPlan", realizationPlan.toCompactJson())
+                .put("materializationAudits", materializationJson),
+            startedNanos = realizationStarted
         )
         observe(ProductionGenerationPhase.B6_POST_MATERIALIZATION_COMPLETE, executionSelectionPlan, authorizationPlan)
         return CanonicalExperimentalGeneration(
@@ -1357,7 +1596,7 @@ internal class PersonalizedProgramPlanningService(
             com.training.trackplanner.data.personalized.StimulusProductionRoutingPolicy.defaultMode,
         controlGenerationOverride: (suspend () -> GeneratedProgramSkeleton)? = null,
         includeComparisonDiagnostics: Boolean = controlGenerationOverride != null,
-        canonicalPlanningComputation: CanonicalStimulusPlanningComputation = ::buildCanonicalStimulusPlanningResult,
+        canonicalPlanningComputation: CanonicalStimulusPlanningComputation? = null,
         productionGenerationObserver: ((ProductionGenerationObservation) -> Unit)? = null,
         experimentalProgramBuildOverride: (suspend () -> GeneratedProgramSkeleton)? = null,
         incumbentPlacementIndex: CanonicalIncumbentPlacementIndex = CanonicalIncumbentPlacementIndex.unavailable(
@@ -1376,19 +1615,158 @@ internal class PersonalizedProgramPlanningService(
         var incumbentPlacementPreservations: List<CanonicalIncumbentPlacementPreservation> = emptyList()
         var incumbentPlacementActivationDetails: List<String> = emptyList()
         val productionProgress = com.training.trackplanner.data.personalized.ProductionGenerationProgressMapper(progress)
+        GenerationDecisionTraceStore.beginGeneration(preflight.preparationId)
+        val totalGenerationStarted = System.nanoTime()
         val context = prepareCanonicalGenerationContext(
             preflight = preflight,
             answers = answers,
             metadata = metadata,
             progress = productionProgress.canonicalReporter(),
-            canonicalPlanningComputation = canonicalPlanningComputation
+            canonicalPlanningComputation = canonicalPlanningComputation,
+            traceId = preflight.preparationId
         )
+        var phaseStartedNanos = System.nanoTime()
         fun observe(
             phase: ProductionGenerationPhase,
             selectionPlan: StimulusCandidateSelectionPlan? = null,
             authorizationPlan: StimulusPrescriptionAuthorizationPlan? = null
         ) {
             productionGenerationObserver?.invoke(ProductionGenerationObservation(phase, context, selectionPlan, authorizationPlan))
+            val traceId = preflight.preparationId
+            when (phase) {
+                ProductionGenerationPhase.CANONICAL_PREPARED -> {
+                    val canonical = (context.canonicalPlanningOutcome as? CanonicalPlanningOutcome.Success)?.result
+                    GenerationDecisionTraceStore.record(
+                        traceId, "CANONICAL_CONTEXT", "PersonalizedProgramPlanningService.prepareCanonicalGenerationContext",
+                        inputs = JSONObject().put("requestGoal", context.resolvedRequest.request.goal.name)
+                            .put("requestedDays", context.resolvedRequest.request.weeklyTrainingDays)
+                            .put("sessionMinutes", context.resolvedRequest.request.sessionMinutes),
+                        criteria = JSONObject().put("b1ToB4ComputedOnce", true),
+                        comparisons = JSONObject().put("gapCount", context.gaps.size)
+                            .put("canonicalStatus", if (canonical == null) "EXPECTED_FAILURE" else "SUCCESS"),
+                        decision = if (canonical == null) "CANONICAL_FAILED" else "CANONICAL_READY",
+                        reasonCodes = (canonical?.targetPlan?.unresolved.orEmpty() +
+                            (context.canonicalPlanningOutcome as? CanonicalPlanningOutcome.ExpectedFailure)?.failure?.reason?.name.orEmpty())
+                            .filter(String::isNotEmpty),
+                        nextStageInputs = JSONObject().put("state", JSONObject().put("strengthIntent", context.state.strengthIntent.name)
+                            .put("badmintonIntent", context.state.badmintonIntent.name).put("freeWeightWillingness", context.state.freeWeightWillingness.name))
+                            .put("gaps", JSONArray(context.gaps.map { JSONObject().put("code", it.code).put("priority", it.priority)
+                                .put("reason", it.reason).put("reasonCodes", JSONArray(it.reasonCodes)) }))
+                            .put("b1", canonical?.athleteStimulusNeedProfile?.toCompactJson())
+                            .put("b2", canonical?.qualityDoseHistory?.toCompactJson())
+                            .put("b3", canonical?.decisionPortfolio?.toCompactJson())
+                            .put("b4", canonical?.targetPlan?.toCompactJson())
+                    )
+                }
+                ProductionGenerationPhase.B5_COMPLETE -> selectionPlan?.let { plan ->
+                    val dispositions = JSONArray(plan.candidateDispositionIndex.entries.map { row ->
+                        val exercise = context.snapshot.exercises[row.stableKey]
+                        val personalHistory = context.snapshot.allConfirmedSets.filter { it.stableKey == row.stableKey }
+                            .sortedWith(compareByDescending<PlanningSetRecord> { it.date }.thenByDescending { it.setIndex })
+                        val ranking = row.candidateRanking?.let { rank -> JSONObject()
+                            .put("targetCompatibleHistory", rank.targetCompatibleHistory).put("recentHistory", rank.recentHistory)
+                            .put("contextHistory", rank.contextHistory).put("anchorContinuity", rank.anchorContinuity)
+                            .put("repeatedRecentSessions", rank.repeatedRecentSessions).put("freeWeightCompatible", rank.freeWeightCompatible)
+                            .put("highConfidence", rank.highConfidence).put("redundant", rank.redundant)
+                            .put("stableKeyTieBreak", rank.stableKey) }
+                        JSONObject().put("targetId", row.targetId).put("stableKey", row.stableKey)
+                            .put("exerciseName", exercise?.name).put("category", exercise?.category)
+                            .put("canonicalMovement", context.snapshot.movementCoverage(row.stableKey).name)
+                            .put("selectionRole", row.canonicalSelectionRole).put("directTargetCandidate", row.directTargetCandidate)
+                            .put("selectionRequired", row.selectionRequired).put("status", row.status.name)
+                            .put("reasons", JSONArray(row.reasons.map { it.name }))
+                            .put("equipment", exercise?.equipment).put("equipmentTags", exercise?.equipmentTags)
+                            .put("availableEquipment", JSONArray(context.resolvedRequest.request.availableEquipment.sorted()))
+                            .put("preferredByUser", row.stableKey in context.resolvedRequest.request.preferredExerciseStableKeys)
+                            .put("excludedByUser", row.stableKey in context.resolvedRequest.request.excludedExerciseStableKeys)
+                            .put("personalRecordedSetCount", context.snapshot.allConfirmedSets.count { it.stableKey == row.stableKey })
+                            .put("personalRecentRecords", JSONArray(personalHistory.take(8).map { record -> JSONObject()
+                                .put("date", record.date.toString()).put("reps", record.reps).put("weightKg", record.weightKg)
+                                .put("rpe", record.rpe).put("plannedStrengthIntent", record.strengthSetIntentEvidence.intent.name) }))
+                            .put("tissueRestricted", row.stableKey in context.state.recoverySignals.tissueRestrictedStableKeys)
+                            .put("ranking", ranking)
+                            .put("selectedInstead", row.selectedInstead?.let { JSONObject().put("stableKey", it.stableKey).put("selectionRole", it.selectionRole) })
+                            .put("selectedInsteadRanking", row.selectedInsteadRanking?.let { rank -> JSONObject()
+                                .put("targetCompatibleHistory", rank.targetCompatibleHistory).put("recentHistory", rank.recentHistory)
+                                .put("contextHistory", rank.contextHistory).put("anchorContinuity", rank.anchorContinuity)
+                                .put("repeatedRecentSessions", rank.repeatedRecentSessions).put("freeWeightCompatible", rank.freeWeightCompatible)
+                                .put("highConfidence", rank.highConfidence).put("redundant", rank.redundant).put("stableKeyTieBreak", rank.stableKey) })
+                            .put("firstDifferingField", row.firstDifferingField?.name)
+                            .put("targetCoveredBySelectedOwner", row.targetCoveredBySelectedOwner)
+                    })
+                    val assessedByTarget = plan.candidateDispositionIndex.entries.groupBy { it.targetId }.mapValues { it.value.map { row -> row.stableKey }.toSet() }
+                    val notDispositioned = plan.traces.flatMap { trace ->
+                        trace.candidatePool.filterNot { it in assessedByTarget[trace.targetId].orEmpty() }
+                            .map { JSONObject().put("targetId", trace.targetId).put("stableKey", it).put("status", "NOT_IN_DISPOSITION_INDEX") }
+                    }
+                    GenerationDecisionTraceStore.record(
+                        traceId, "B5_CANDIDATES", "StimulusTargetCandidateSelector.build",
+                        inputs = JSONObject().put("targetPlan", (context.canonicalPlanningOutcome as? CanonicalPlanningOutcome.Success)?.result?.targetPlan?.toCompactJson()),
+                        criteria = JSONObject().put("candidatePoolAndDispositionIndexAreActualSelectorOutputs", true),
+                        comparisons = JSONObject().put("dispositionCount", dispositions.length()).put("selectedCount", plan.selectedCandidates.size),
+                        decision = "B5_SELECTION_COMPLETE", reasonCodes = plan.traces.flatMap { it.reasonCodes }.distinct(),
+                        selected = plan.selectedCandidates.map { "${it.stableKey}#${it.selectionRole}" },
+                        excluded = plan.candidateDispositionIndex.entries.filter { it.status != com.training.trackplanner.data.personalized.StimulusCandidateDispositionStatus.SELECTED }
+                            .map { "${it.targetId}:${it.stableKey}:${it.status.name}:${it.reasons.joinToString("+") { reason -> reason.name }}" },
+                        deferred = plan.materialDemand.deferred.keys,
+                        nextStageInputs = plan.toCompactJson().put("candidateDispositions", dispositions)
+                            .put("candidatePoolNotDispositioned", JSONArray(notDispositioned))
+                            .put("materialDemandCandidates", JSONArray(plan.materialDemand.candidates.map { candidate -> JSONObject()
+                                .put("stableKey", candidate.stableKey).put("selectionRole", candidate.role)
+                                .put("reason", candidate.reason).put("priority", candidate.priority)
+                                .put("targetSets", candidate.targetSets).put("material", candidate.material)
+                                .put("representedGapCodes", JSONArray(candidate.representedGapCodes.sorted()))
+                                .put("representedObjectives", JSONArray(candidate.representedObjectives.sorted())) })),
+                        startedNanos = phaseStartedNanos
+                    )
+                }
+                ProductionGenerationPhase.B6_PRE_AUTHORITY_COMPLETE -> authorizationPlan?.let { plan ->
+                    val rows = JSONArray(plan.authorizations.map { authorization -> JSONObject()
+                        .put("targetId", authorization.targetId).put("quality", authorization.quality?.name)
+                        .put("owner", authorization.owner?.let { JSONObject().put("stableKey", it.stableKey).put("selectionRole", it.selectionRole) })
+                        .put("source", authorization.source?.name).put("status", authorization.status.name)
+                        .put("executionAuthority", authorization.executionAuthority.name)
+                        .put("personalRecordEvidence", authorization.owner?.stableKey?.let { stableKey ->
+                            val rows = context.snapshot.allConfirmedSets.filter { it.stableKey == stableKey }
+                                .sortedWith(compareByDescending<PlanningSetRecord> { it.date }.thenByDescending { it.setIndex })
+                            val strength = context.snapshot.canonicalStrengthSignals[stableKey]
+                            JSONObject().put("recordedSetCount", rows.size)
+                                .put("recent28dSetCount", rows.count { !it.date.isBefore(context.snapshot.cutoff.minusDays(27)) })
+                                .put("latestRecordedDate", rows.firstOrNull()?.date?.toString())
+                                .put("latestRecords", JSONArray(rows.take(12).map { row -> JSONObject()
+                                    .put("date", row.date.toString()).put("reps", row.reps).put("weightKg", row.weightKg)
+                                    .put("rpe", row.rpe).put("plannedStrengthIntent", row.strengthSetIntentEvidence.intent.name) }))
+                                .put("canonicalStrengthSignal", strength?.let { JSONObject().put("source", it.source)
+                                    .put("referenceDate", it.referenceDate?.toString()).put("posteriorMedianKg", it.posteriorMedianKg)
+                                    .put("observationCount", it.observationCount).put("twoSidedObservationCount", it.twoSidedObservationCount)
+                                    .put("baselineEstablished", it.baselineEstablished) })
+                        })
+                        .put("inputPrescription", authorization.inputPrescription?.toString())
+                        .put("authorizedPrescription", authorization.authorizedPrescription?.let { JSONObject()
+                            .put("text", it.text).put("sets", JSONArray(it.sets.map { set -> JSONObject()
+                                .put("setIndex", set.setIndex).put("reps", set.reps).put("weightKg", set.weightKg)
+                                .put("loadState", set.loadState.name).put("targetRpeMin", set.targetRpeMin).put("seconds", set.seconds) }))
+                            .put("restSeconds", it.restSeconds).put("weightSource", it.weightSource) })
+                        .put("reasonCodes", JSONArray(authorization.reasonCodes))
+                        .put("coldStartCalibration", authorization.coldStartCalibration?.toString())
+                    })
+                    GenerationDecisionTraceStore.record(
+                        traceId, "B6_AUTHORIZATION", "StimulusPrescriptionAuthorizationEngine.build + RegionalMovementB6AuthorizationEngine.authorize",
+                        inputs = JSONObject().put("selectedCandidateCount", selectionPlan?.selectedCandidates?.size ?: 0),
+                        criteria = JSONObject().put("onlyExplicitExecutableAuthority", true),
+                        comparisons = JSONObject().put("authorizationCount", rows.length()).put("authorizedCount", plan.authorizations.count { it.authorizedPrescription != null }),
+                        decision = "B6_PRE_AUTHORITY_COMPLETE", reasonCodes = plan.authorizations.flatMap { it.reasonCodes }.distinct(),
+                        selected = plan.authorizations.filter { it.authorizedPrescription != null }.map { "${it.targetId}:${it.owner?.stableKey}" },
+                        excluded = plan.authorizations.filter { it.authorizedPrescription == null }.map { "${it.targetId}:${it.status.name}" },
+                        nextStageInputs = JSONObject().put("authorizations", rows).put("movementAuthorizations", JSONArray(plan.movementAuthorizations.map { it.toString() })),
+                        startedNanos = phaseStartedNanos
+                    )
+                }
+                ProductionGenerationPhase.B7, ProductionGenerationPhase.B8 -> Unit
+                ProductionGenerationPhase.B9 -> Unit
+                else -> Unit
+            }
+            phaseStartedNanos = System.nanoTime()
         }
         fun reject(failure: com.training.trackplanner.data.personalized.StimulusProductionEvaluationFailure): Nothing {
             val canonicalFailure = failure.cause as? StimulusCanonicalEvaluationFailure
@@ -1399,6 +1777,15 @@ internal class PersonalizedProgramPlanningService(
                     it.detailCode?.let(::add)
                 }
             }.distinct().sorted()
+            GenerationDecisionTraceStore.record(
+                preflight.preparationId, "GENERATION_REJECTION", "PersonalizedProgramPlanningService.reject/typed execution failure",
+                criteria = JSONObject().put("legacyFallback", false).put("controlBuilds", buildCounts.snapshot().controlBuilds),
+                decision = "REJECTED", reasonCodes = codes,
+                deferred = canonicalFailure?.unresolvedMaterialDemandGaps.orEmpty().sorted(),
+                nextStageInputs = JSONObject().put("reasonCodes", JSONArray(codes))
+                    .put("strengthShortfalls", JSONArray(canonicalFailure?.strengthShortfalls.orEmpty().map { it.toString() }))
+                    .put("unresolvedMaterialDemandGaps", JSONArray(canonicalFailure?.unresolvedMaterialDemandGaps.orEmpty().sorted()))
+            )
             throw com.training.trackplanner.data.personalized.StimulusProductionExecutionRejectedException(
                 reasonCodes = codes,
                 unresolvedMaterialDemandGaps = canonicalFailure?.unresolvedMaterialDemandGaps.orEmpty(),
@@ -1461,6 +1848,7 @@ internal class PersonalizedProgramPlanningService(
         var experimental = try {
             buildCanonicalExperimentalGeneration(
                 context = context,
+                traceId = preflight.preparationId,
                 answers = answers,
                 progress = productionProgress.experimentalReporter(),
                 productionBuildCounts = buildCounts,
@@ -1541,6 +1929,7 @@ internal class PersonalizedProgramPlanningService(
             tissueProjectionCallCount = liveIncumbentFeasibility.tissueProjectionCallCount
         )
 
+        val executionValidationStarted = System.nanoTime()
         val executionValidation = com.training.trackplanner.data.personalized.StimulusProductionExecutionValidator().validate(
             program = experimental.program,
             snapshot = context.snapshot,
@@ -1548,7 +1937,42 @@ internal class PersonalizedProgramPlanningService(
             selectionPlan = experimental.selectionPlan,
             authorizationPlan = experimental.authorizationPlan,
             taskProtocolPlan = experimental.taskProtocolPlan,
-            materializationAudits = experimental.materializationAudits
+            materializationAudits = experimental.materializationAudits,
+            traceId = preflight.preparationId
+        )
+        GenerationDecisionTraceStore.record(
+            preflight.preparationId, "FINAL_VALIDATION", "StimulusProductionExecutionValidator.validate",
+            inputs = JSONObject().put("programRowCount", experimental.program.items.size)
+                .put("weekCount", experimental.program.request.durationWeeks)
+                .put("requestedDays", experimental.program.request.weeklyTrainingDays)
+                .put("physicalSetCount", experimental.program.items.sumOf { it.setPrescriptions.size }),
+            criteria = JSONObject().put("independentOfB7B8", true).put("requiresExecutableB6Authority", true)
+                .put("checks", org.json.JSONArray(listOf("projection", "canonical-target", "candidate", "B6-authorization",
+                    "session-time", "OFI", "tissue-recovery", "duplicate-owner", "weight-calibration", "schedule"))),
+            comparisons = JSONObject().put("sessionTimeChecks", org.json.JSONArray(executionValidation.sessionTimeChecks.map { check ->
+                JSONObject().put("week", check.week).put("day", check.day).put("estimatedSeconds", check.estimatedSeconds)
+                    .put("availableSeconds", check.availableSeconds).put("withinLimit", check.withinLimit)
+            })).put("dayOfiChecks", org.json.JSONArray(executionValidation.dayOfiChecks.map { check ->
+                JSONObject().put("week", check.week).put("day", check.day).put("feasible", check.feasible)
+                    .put("ofi", check.ofi).put("axisScores", org.json.JSONArray(check.axisScores))
+                    .put("cautionReasons", org.json.JSONArray(check.cautionReasons))
+            })).put("tissueRecoveryChecks", org.json.JSONArray(executionValidation.tissueRecoveryChecks.map { check ->
+                JSONObject().put("week", check.week).put("feasible", check.feasible)
+                    .put("conditionalOnTypedB6Execution", check.conditionalOnTypedB6Execution)
+                    .put("diagnostic", check.diagnostic).put("blockedUnits", org.json.JSONArray(check.blockedUnits.sorted()))
+                    .put("unresolvedExerciseKeys", org.json.JSONArray(check.unresolvedExerciseKeys.sorted()))
+            })).put("unmetAuthorizedSetUnits", executionValidation.unmetAuthorizedSetUnits)
+                .put("unresolvedMaterialDemandGaps", org.json.JSONArray(executionValidation.unresolvedMaterialDemandGaps.sorted()))
+                .put("deferredMaterialDemandGaps", org.json.JSONArray(executionValidation.deferredMaterialDemandGaps.sorted()))
+                .put("userLoadCalibrationOwners", org.json.JSONArray(executionValidation.userLoadCalibrationOwners.map {
+                    "${it.stableKey}#${it.selectionRole}"
+                })),
+            decision = if (executionValidation.executable) "EXECUTABLE" else "REJECTED",
+            reasonCodes = executionValidation.reasonCodes,
+            selected = experimental.program.items.map { "${it.exerciseStableKey}#${it.selectionRole}:${it.setCount}" },
+            nextStageInputs = JSONObject().put("executable", executionValidation.executable)
+                .put("reasonCodes", org.json.JSONArray(executionValidation.reasonCodes)),
+            startedNanos = executionValidationStarted
         )
         if (!executionValidation.executable) {
             throw com.training.trackplanner.data.personalized.StimulusProductionExecutionRejectedException(
@@ -1670,6 +2094,7 @@ internal class PersonalizedProgramPlanningService(
                     diagnosticFailureReason = "CONTROL_COMPARISON_${parityFailure.reason.name}"
                 } else {
                     observe(ProductionGenerationPhase.CONTROL_AUDIT)
+                    val b7Started = System.nanoTime()
                     val comparison = compareCanonicalExperimentalWithControl(
                         preparedControl.program,
                         preparedControl.canonicalPlanning,
@@ -1677,11 +2102,38 @@ internal class PersonalizedProgramPlanningService(
                     )
                     observe(ProductionGenerationPhase.COMPARISON)
                     observe(ProductionGenerationPhase.B7)
+                    val b7 = comparison.experimentalReadinessAudit
+                    GenerationDecisionTraceStore.record(
+                        preflight.preparationId, "B7_DIAGNOSTIC",
+                        "compareCanonicalExperimentalWithControl + StimulusExperimentalReadinessAuditEngine.audit",
+                        criteria = JSONObject().put("comparisonOnly", true).put("controlsGenerationExecution", false),
+                        comparisons = JSONObject().put("removedStableKeys", JSONArray(comparison.removedStableKeys.sorted()))
+                            .put("removedOwnerIdentities", JSONArray(comparison.removedOwnerIdentities.sortedWith(compareBy({ it.stableKey }, { it.selectionRole })).map {
+                                JSONObject().put("stableKey", it.stableKey).put("selectionRole", it.selectionRole)
+                            })).put("readiness", b7?.toJson() ?: JSONObject.NULL),
+                        decision = b7?.status?.name ?: "READINESS_AUDIT_UNAVAILABLE",
+                        reasonCodes = b7?.reasonCodes.orEmpty(),
+                        excluded = comparison.removedOwnerIdentities.map { "${it.stableKey}#${it.selectionRole}" },
+                        nextStageInputs = comparison.toCompactJson(), startedNanos = b7Started
+                    )
+                    val b8Started = System.nanoTime()
                     val scope = com.training.trackplanner.data.personalized.StimulusProductionMaterialScopeResolver().resolve(comparison)
                     val authority = com.training.trackplanner.data.personalized.StimulusProductionCutoverAuthorityAuditEngine()
                         .audit(comparison, scope ?: com.training.trackplanner.data.personalized.StimulusProductionCutoverScope.STRENGTH_V1)
                     val comparisonWithAuthority = comparison.copy(productionCutoverAuthority = authority)
                     observe(ProductionGenerationPhase.B8)
+                    GenerationDecisionTraceStore.record(
+                        preflight.preparationId, "B8_DIAGNOSTIC",
+                        "StimulusProductionMaterialScopeResolver.resolve + StimulusProductionCutoverAuthorityAuditEngine.audit",
+                        inputs = JSONObject().put("resolvedScope", scope?.name)
+                            .put("fallbackScopeUsedWhenUnresolved", if (scope == null) "STRENGTH_V1" else JSONObject.NULL),
+                        criteria = JSONObject().put("comparisonOnly", true).put("controlsGenerationExecution", false),
+                        comparisons = JSONObject().put("authority", authority.toJson())
+                            .put("b7Status", authority.b7Status.name),
+                        decision = authority.status.name, reasonCodes = authority.reasonCodes,
+                        selected = authority.authorizedOwnerIdentities.map { "${it.stableKey}#${it.selectionRole}" },
+                        nextStageInputs = comparisonWithAuthority.toCompactJson(), startedNanos = b8Started
+                    )
                     diagnosticComparison = comparisonWithAuthority
                     diagnosticAuthority = authority
                     // B9 reports the B7/B8 result while retaining the independently validated
@@ -1707,6 +2159,26 @@ internal class PersonalizedProgramPlanningService(
                 diagnosticFailureReason = "B7_B8_DIAGNOSTIC_${failure.reasonCode}"
             } catch (failure: Exception) {
                 diagnosticFailureReason = "B7_B8_DIAGNOSTIC_FAILED_${failure.javaClass.simpleName}"
+            }
+        }
+        listOf("B7", "B8").forEach { stage ->
+            val stageId = "${stage}_DIAGNOSTIC"
+            if (!GenerationDecisionTraceStore.hasStage(preflight.preparationId, stageId)) {
+                val priorComparisonReachedB7 = GenerationDecisionTraceStore.hasStage(preflight.preparationId, "B7_DIAGNOSTIC")
+                val attemptedButFailed = includeComparisonDiagnostics && stage == "B8" && priorComparisonReachedB7
+                GenerationDecisionTraceStore.record(
+                    preflight.preparationId, stageId,
+                    if (stage == "B7") "StimulusExperimentalReadinessAuditEngine.audit"
+                    else "StimulusProductionCutoverAuthorityAuditEngine.audit",
+                    decision = if (attemptedButFailed) "DIAGNOSTIC_FAILED" else "NOT_EXECUTED",
+                    reasonCodes = listOf(when {
+                        attemptedButFailed -> diagnosticFailureReason ?: "B8_DIAGNOSTIC_FAILED"
+                        !includeComparisonDiagnostics -> "COMPARISON_DIAGNOSTICS_DISABLED"
+                        else -> diagnosticFailureReason ?: "PRECEDING_COMPARISON_STEP_DID_NOT_COMPLETE"
+                    }),
+                    nextStageInputs = JSONObject().put("status", if (attemptedButFailed) "DIAGNOSTIC_FAILED" else "NOT_EXECUTED")
+                        .put("diagnosticFailureReason", diagnosticFailureReason)
+                )
             }
         }
         observe(ProductionGenerationPhase.B9)
@@ -1758,11 +2230,44 @@ internal class PersonalizedProgramPlanningService(
             )
         }
         val reviewedProgram = replacementReview?.let { routedProgram.copy(replacementReview = it) } ?: routedProgram
+        val returnSerializationStarted = System.nanoTime()
+        val returnedProgramTrace = reviewedProgram.generationProgramJson()
+        val finalBuildCounts = buildCounts.snapshot()
+        GenerationDecisionTraceStore.record(
+            preflight.preparationId, "B9_RETURN", "StimulusProductionRouter.selectExecutable",
+            inputs = JSONObject().put("independentValidationPassed", executionValidation.executable)
+                .put("diagnosticComparisonEnabled", includeComparisonDiagnostics),
+            criteria = JSONObject().put("source", routed.decision.selectedSource.name),
+            comparisons = JSONObject().put("B7Status", diagnosticComparison?.experimentalReadinessAudit?.status?.name ?: "NOT_EXECUTED")
+                .put("B8Status", diagnosticAuthority?.status?.name ?: "NOT_EXECUTED"),
+            decision = "PROGRAM_RETURNED", reasonCodes = routed.decision.reasonCodes,
+            selected = listOf(routed.decision.selectedSource.name),
+            nextStageInputs = JSONObject(returnedProgramTrace.toString())
+                .put("routeDecision", JSONObject().put("mode", routed.decision.mode.name)
+                    .put("selectedSource", routed.decision.selectedSource.name)
+                    .put("productionRoutingActive", routed.decision.productionRoutingActive)
+                    .put("reasonCodes", JSONArray(routed.decision.reasonCodes)))
+                .put("buildCounts", JSONObject().put("total", finalBuildCounts.totalBuildInvocations)
+                    .put("control", finalBuildCounts.controlBuilds).put("experimental", finalBuildCounts.experimentalBuilds)
+                    .put("other", finalBuildCounts.otherBuilds)),
+            startedNanos = totalGenerationStarted
+        )
+        GenerationDecisionTraceStore.record(
+            preflight.preparationId, "FINAL_PROGRAM", "PersonalizedProgramPlanningService.generatePreparedProduction",
+            inputs = JSONObject().put("runId", preflight.preparationId),
+            criteria = JSONObject().put("sameNewGeneratorOutputReturned", true),
+            comparisons = JSONObject().put("actualTrainingDays", reviewedProgram.items.filter { it.weekNumber == 1 }
+                .map { it.dayOfWeek }.distinct().size)
+                .put("requestedDays", reviewedProgram.request.weeklyTrainingDays)
+                .put("physicalSetCount", reviewedProgram.items.filter { it.weekNumber == 1 }.sumOf { it.setPrescriptions.size }),
+            decision = "FINAL_PROGRAM_RETURNED", reasonCodes = listOf(routed.decision.selectedSource.name),
+            nextStageInputs = returnedProgramTrace, startedNanos = returnSerializationStarted
+        )
         return com.training.trackplanner.data.personalized.StimulusProductionGenerationResult(
             program = reviewedProgram,
             routeDecision = routed.decision,
             comparison = diagnosticComparison,
-            buildCounts = buildCounts.snapshot(),
+            buildCounts = finalBuildCounts,
             executionValidation = executionValidation,
             diagnosticFailureReason = diagnosticFailureReason,
             unresolvedMaterialDemandGaps = executionValidation.unresolvedMaterialDemandGaps,
@@ -1917,6 +2422,7 @@ internal class PersonalizedProgramPlanningService(
         val variant = try {
             buildCanonicalExperimentalGeneration(
                 context = session.context,
+                traceId = null,
                 answers = session.answers,
                 progress = PersonalizedPlannerProgressReporter.NONE,
                 productionBuildCounts = com.training.trackplanner.data.personalized.MutableStimulusProductionBuildCounts(),

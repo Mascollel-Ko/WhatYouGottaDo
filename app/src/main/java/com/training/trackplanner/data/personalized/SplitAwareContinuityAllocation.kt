@@ -76,7 +76,21 @@ internal data class SplitAwareAllocation(val days: Map<Int, List<AuthorizedTimed
 internal class SplitAwareContinuityAllocation(private val prescriptions: PersonalizedPrescriptionPlanner,
     private val progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE,
     private val placementContext: PlacementContext? = null,
-    private val performanceMetrics: PlannerPerformanceMetrics? = null) {
+    private val performanceMetrics: PlannerPerformanceMetrics? = null,
+    private val traceId: String? = null) {
+    private fun placementObserver(scope: String): ((JSONObject) -> Unit)? =
+        if (traceId == null || !GenerationDecisionTraceStore.contains(traceId)) null else { decision ->
+        val durationNanos = decision.optLong("durationNanos").coerceAtLeast(0L)
+        GenerationDecisionTraceStore.record(traceId, "TIMED_DAY_PLACEMENT_ATTEMPT",
+            "TimedWeeklyPlacementPlanner.distribute/$scope",
+            inputs = JSONObject().put("scope", scope), decision = decision.optString("decision"),
+            selected = if (decision.optString("decision") == "PLACED")
+                listOf(decision.optString("stableKey")) else emptyList(),
+            deferred = if (decision.optString("decision").startsWith("DEFERRED"))
+                listOf(decision.optString("stableKey")) else emptyList(),
+            nextStageInputs = decision,
+            startedNanos = (System.nanoTime() - durationNanos).coerceAtLeast(0L), durationNanos = durationNanos)
+    }
     private fun context(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, days: Int, minutes: Int): PlacementContext =
         placementContext ?: PlacementContext(snapshot, state, days, minutes)
 
@@ -114,7 +128,8 @@ internal class SplitAwareContinuityAllocation(private val prescriptions: Persona
         val result = TimedWeeklyPlacementPlanner().distribute(authorized.map { TimedPlannedExercise(it.item, it.prescription) },
             days, minutes, snapshot, state.trainingStateAssessment?.sustainable?.robustSchedule == true,
             isMain = { item -> MainSchedulingPolicy.role(item, authorized.any { it.item == item && it.continuity }) == com.training.trackplanner.data.ProgressionRole.MAIN },
-            planningState = state, context = placement, metrics = performanceMetrics, ownerMutationSink = capture)
+            planningState = state, context = placement, metrics = performanceMetrics, ownerMutationSink = capture,
+            decisionObserver = placementObserver("AUTHORIZED_INITIAL_PLACEMENT"))
         return improve(snapshot, state, authorized, TimedExecutionAllocation(result.first, result.second), days, minutes, request,
             ownerProvenance)
     }
@@ -125,7 +140,8 @@ internal class SplitAwareContinuityAllocation(private val prescriptions: Persona
         val placementProvenance = mutableListOf<OwnerAllocationProvenance>()
         val baseline = TimedExecutionAllocationPlanner(prescriptions, context(snapshot, state, days, minutes), performanceMetrics)
             .allocate(snapshot, state, continuity, material, optional, days, minutes,
-                placementProvenanceSink(authorized, placementProvenance))
+                placementProvenanceSink(authorized, placementProvenance),
+                decisionObserver = placementObserver("FINITE_FUNDING_FEASIBILITY_TRIAL"))
         return improve(snapshot, state, authorized, baseline, days, minutes, request,
             baseline.ownerAllocationProvenance + placementProvenance)
     }
@@ -151,7 +167,8 @@ internal class SplitAwareContinuityAllocation(private val prescriptions: Persona
             val result = TimedWeeklyPlacementPlanner().distribute(atoms.map { it.timed }, days, minutes, snapshot,
                 state.trainingStateAssessment?.sustainable?.robustSchedule == true,
                 isMain = { item -> MainSchedulingPolicy.role(item, authorized.any { it.item == item && it.continuity }) == com.training.trackplanner.data.ProgressionRole.MAIN },
-                planningState = state, context = context(snapshot, state, days, minutes), metrics = performanceMetrics)
+                planningState = state, context = context(snapshot, state, days, minutes), metrics = performanceMetrics,
+                decisionObserver = placementObserver("SPLIT_TRIAL"))
             if (result.second.isNotEmpty()) return null
             // Equal chunks are distinguished by occurrence, never by stableKey-keyed maps.
             val remaining = atoms.toMutableList()

@@ -8,6 +8,8 @@ import com.training.trackplanner.data.ProgramSkeletonRequest
 import com.training.trackplanner.data.ProgramWeekPlan
 import java.security.MessageDigest
 import java.util.UUID
+import org.json.JSONArray
+import org.json.JSONObject
 import kotlin.math.round
 import kotlin.math.roundToInt
 
@@ -388,12 +390,13 @@ class PersonalizedProgramBuilder(
         exactPrescriptionAuthorizationProvider: ExactPrescriptionAuthorizationProvider? = null,
         canonicalB5PowerOwnerIdentities: Set<StimulusPrescriptionOwnerIdentity> = emptySet(),
         canonicalB5TaskOwnerIdentitiesWithoutExecutableB6: Set<StimulusPrescriptionOwnerIdentity> = emptySet(),
-        canonicalFailureEmitter: ((StimulusCanonicalEvaluationFailure) -> Nothing)? = null): GeneratedProgramSkeleton =
+        canonicalFailureEmitter: ((StimulusCanonicalEvaluationFailure) -> Nothing)? = null,
+        traceId: String? = null): GeneratedProgramSkeleton =
         buildWithArtifacts(snapshot, state, gaps, intent, horizon, request, answers, priorDecisionId, explicitWeeklyDays,
             frequency, progress, materialDemandOverride, regionalTargetPlan, exactPrescriptionAuthorizationProvider,
             canonicalB5PowerOwnerIdentities,
             canonicalB5TaskOwnerIdentitiesWithoutExecutableB6,
-            canonicalFailureEmitter).program
+            canonicalFailureEmitter, traceId).program
 
     /**
      * Builds the final CONTROL skeleton and the B5 seed from the same completed owner state.
@@ -409,7 +412,8 @@ class PersonalizedProgramBuilder(
         exactPrescriptionAuthorizationProvider: ExactPrescriptionAuthorizationProvider? = null,
         canonicalB5PowerOwnerIdentities: Set<StimulusPrescriptionOwnerIdentity> = emptySet(),
         canonicalB5TaskOwnerIdentitiesWithoutExecutableB6: Set<StimulusPrescriptionOwnerIdentity> = emptySet(),
-        canonicalFailureEmitter: ((StimulusCanonicalEvaluationFailure) -> Nothing)? = null): PersonalizedProgramBuildArtifacts {
+        canonicalFailureEmitter: ((StimulusCanonicalEvaluationFailure) -> Nothing)? = null,
+        traceId: String? = null): PersonalizedProgramBuildArtifacts {
         val performanceMetrics = PlannerPerformanceMetrics()
         val memo = PlanningComputationMemo(performanceMetrics)
         val memoSnapshot = memo.wrap(snapshot)
@@ -422,13 +426,23 @@ class PersonalizedProgramBuilder(
             buildBeforeReflow(memoSnapshot, state, gaps, intent, horizon, request, answers, priorDecisionId, explicitWeeklyDays,
                 frequency, progress, generationPrescriptions, performanceMetrics, materialDemandOverride, regionalTargetPlan,
                 exactPrescriptionAuthorizationProvider, canonicalB5PowerOwnerIdentities,
-                canonicalB5TaskOwnerIdentitiesWithoutExecutableB6)
+                canonicalB5TaskOwnerIdentitiesWithoutExecutableB6, traceId)
         } finally {
             activeExactPrescriptionAuthorizationProvider = previousExactAuthorization
             activeCanonicalFailureEmitter = previousCanonicalFailureEmitter
         }
+        val reflowStarted = System.nanoTime()
         val reviewed = PostSplitWeeklyReflow().review(placed, memoSnapshot, state, progress,
             ReflowEvaluationCounts(performanceMetrics = performanceMetrics), canonicalFailureEmitter)
+        GenerationDecisionTraceStore.record(traceId, "POST_SPLIT_REFLOW", "PostSplitWeeklyReflow.review",
+            inputs = JSONObject().put("rowCountBefore", placed.items.size),
+            criteria = JSONObject().put("preserveAuthorizedSetAmounts", true).put("ofiGate", true).put("tissueGate", true),
+            comparisons = JSONObject().put("rowCountAfter", reviewed.skeleton.items.size)
+                .put("moveCount", reviewed.trace.moves.size).put("rejections", JSONObject(reviewed.trace.rejections)),
+            decision = reviewed.trace.state, reasonCodes = listOf(reviewed.trace.diagnostic).filter(String::isNotBlank),
+            selected = reviewed.trace.moves.map { "${it.stableKey}:${it.from}->${it.to}" },
+            excluded = reviewed.trace.rejections.map { "${it.key}:${it.value}" },
+            nextStageInputs = reviewed.trace.toJson(), startedNanos = reflowStarted)
         val result = if (reviewed.trace.state == "NOT_APPLICABLE_NO_MANDATORY_SPLIT") placed
             else reviewed.skeleton.copy(personalizedDecision = reviewed.skeleton.personalizedDecision?.let { decision -> decision.copy(
                 postSplitReflow = reviewed.trace,
@@ -467,6 +481,74 @@ class PersonalizedProgramBuilder(
             }
         }
         val finalizedProgram = observeBoundedMaterialDemand(result)
+        val decision = finalizedProgram.personalizedDecision
+        val planningBudget = decision?.planningBudget
+        val execution = planningBudget?.execution
+        val resistance = planningBudget?.domains?.resistance ?: planningBudget?.resistance
+        val generationStarted = traceId?.let(GenerationDecisionTraceStore::contains) == true
+        if (generationStarted) {
+            val capacity = execution?.capacity
+            GenerationDecisionTraceStore.record(traceId, "WEEKLY_CAPACITY", "ResistanceVolumePlanner.plan + ExecutionCapacityPlanner.envelope",
+                inputs = JSONObject().put("requestedDays", request.weeklyTrainingDays).put("sessionMinutes", request.sessionMinutes)
+                    .put("usefulDemand", resistance?.resistanceUsefulDemand ?: 0),
+                criteria = JSONObject().put("historicalCapacityPolicy", resistance?.resistanceBaselineSource ?: "UNAVAILABLE"),
+                comparisons = JSONObject().put("resistance", JSONObject().put("baselineSets", resistance?.resistanceBaselineSets)
+                    .put("normalWeekCount", resistance?.resistanceNormalWeekCount).put("activeWeekCount", resistance?.resistanceActiveWeekCount)
+                    .put("weeklyQ25", resistance?.resistanceWeeklyQ25).put("weeklyMedian", resistance?.resistanceWeeklyMedian)
+                    .put("weeklyQ75", resistance?.resistanceWeeklyQ75).put("globalDoseFactor", resistance?.globalDoseFactor)
+                    .put("timeCeiling", resistance?.resistanceTimeCeiling).put("dayRelease", resistance?.resistanceDayRelease)
+                    .put("usefulDemand", resistance?.resistanceUsefulDemand).put("targetSets", resistance?.resistanceTargetSets)
+                    .put("finalSets", resistance?.resistanceFinalSets))
+                    .put("envelope", execution?.toJson()?.optJSONObject("capacity") ?: JSONObject()),
+                decision = "CAPACITY_ENVELOPE_COMPUTED", reasonCodes = listOfNotNull(resistance?.resistanceBaselineSource),
+                nextStageInputs = execution?.toJson() ?: JSONObject())
+            GenerationDecisionTraceStore.record(traceId, "FINITE_ALLOCATION", "FiniteExecutionAllocator.allocate / BoundedMaterialDemandAllocation",
+                inputs = JSONObject().put("capacityUnits", capacity?.finalControllableUnits)
+                    .put("continuityRequestedUnits", execution?.continuityRequestedUnits)
+                    .put("materialGapRequestedUnits", execution?.materialGapRequestedUnits),
+                criteria = JSONObject().put("fundingOrder", "finiteAllocationPriorityOrder"),
+                comparisons = JSONObject().put("continuityAllocatedUnits", execution?.continuityAllocatedUnits)
+                    .put("materialGapAllocatedUnits", execution?.materialGapAllocatedUnits)
+                    .put("fundedPhysicalSetUnits", execution?.finiteAllocationPriorityOrder?.sumOf { it.fundedUnits })
+                    .put("unfundedPhysicalSetUnits", execution?.finiteAllocationPriorityOrder?.sumOf { (it.requestedUnits - it.fundedUnits).coerceAtLeast(0) }),
+                decision = "FINITE_ALLOCATION_COMPLETE", reasonCodes = execution?.deferredMaterialGaps?.values.orEmpty(),
+                selected = execution?.finiteAllocationPriorityOrder?.filter { it.fundedUnits > 0 }
+                    ?.map { "${it.owner.stableKey}#${it.owner.selectionRole}:${it.fundedUnits}/${it.requestedUnits}" }.orEmpty(),
+                deferred = execution?.finiteAllocationPriorityOrder?.filter { it.fundedUnits < it.requestedUnits }
+                    ?.map { "${it.owner.stableKey}#${it.owner.selectionRole}:${it.requestedUnits - it.fundedUnits}" }.orEmpty(),
+                nextStageInputs = execution?.toJson() ?: JSONObject())
+            GenerationDecisionTraceStore.record(traceId, "SPLIT_AND_DAY_PLACEMENT", "SplitAwareContinuityAllocation.allocate + ContinuitySplitPolicy + MandatoryContinuityPlacement + TimedWeeklyPlacementPlanner",
+                inputs = JSONObject().put("authorizedDemands", decision?.authorizedScheduling?.authorized?.size ?: 0)
+                    .put("requestedDays", request.weeklyTrainingDays).put("sessionMinutes", request.sessionMinutes),
+                criteria = JSONObject().put("sameExerciseSpacingAndRecoveryConstrained", true),
+                comparisons = JSONObject().put("scheduledTrainingDays", finalizedProgram.items.filter { it.weekNumber == 1 }.map { it.dayOfWeek }.distinct().sorted().size)
+                    .put("finalPhysicalSets", finalizedProgram.items.filter { it.weekNumber == 1 }.sumOf { it.setPrescriptions.size }),
+                decision = "PLACEMENT_COMPLETE",
+                reasonCodes = listOfNotNull(decision?.authorizedScheduling?.decisions?.joinToString(";") { "${it.authorizedDemandId}:${it.decision}:${it.failureReasons}" }),
+                selected = finalizedProgram.items.filter { it.weekNumber == 1 }.map { "${it.exerciseStableKey}#${it.selectionRole}@${it.dayOfWeek}:${it.setCount}" },
+                deferred = decision?.authorizedScheduling?.decisions?.filterNot { it.eligible }?.map { "${it.authorizedDemandId}:${it.failureReasons}" }.orEmpty(),
+                nextStageInputs = JSONObject().put("authorizedScheduling", decision?.authorizedScheduling?.toJson())
+                    .put("continuitySplitPolicy", JSONArray(decision?.authorizedScheduling?.decisions.orEmpty().map { JSONObject()
+                        .put("demandId", it.authorizedDemandId).put("eligible", it.eligible).put("template", JSONArray(it.template))
+                        .put("decision", it.decision).put("failureReasons", JSONArray(it.failureReasons.map(Enum<*>::name))) }))
+                    .put("frequencyExpansion", decision?.frequencyExpansion?.toJson())
+                    .put("residualCompletion", decision?.residualCompletion?.toJson())
+                    .put("boundedDayRebalancer", decision?.dayRebalancing?.toJson())
+                    .put("postSplitReflow", decision?.postSplitReflow?.toJson()))
+            val plannedDays = (1..7).filter { finalizedProgram.weekDaySchedule[1].orEmpty().contains(it) }
+            val usedDays = finalizedProgram.items.filter { it.weekNumber == 1 }.map { it.dayOfWeek }.toSet()
+            GenerationDecisionTraceStore.record(traceId, "EMPTY_TRAINING_DAYS", "GeneratedProgramSkeleton.weekDaySchedule final audit",
+                inputs = JSONObject().put("requestedDays", request.weeklyTrainingDays).put("scheduledDays", JSONArray(plannedDays)),
+                criteria = JSONObject().put("scheduledDayRequiresMaterializedItem", true),
+                comparisons = JSONObject().put("actualTrainingDays", usedDays.size).put("emptyScheduledDays", JSONArray((plannedDays.toSet() - usedDays).sorted())),
+                decision = if (plannedDays.size == usedDays.size) "ALL_SCHEDULED_DAYS_USED" else "SCHEDULED_DAYS_EMPTY",
+                reasonCodes = if (plannedDays.size == usedDays.size) emptyList() else listOf("REQUESTED_DAY_HAS_NO_MATERIALIZED_ITEM"),
+                excluded = (plannedDays.toSet() - usedDays).map { "DAY:$it" },
+                nextStageInputs = JSONObject().put("requestedDays", request.weeklyTrainingDays)
+                    .put("scheduledDays", JSONArray(plannedDays.sorted()))
+                    .put("actualTrainingDays", usedDays.size)
+                    .put("emptyScheduledDays", JSONArray((plannedDays.toSet() - usedDays).sorted())))
+        }
         // `observeBoundedMaterialDemand` only updates decision diagnostics. Project both canonical
         // sibling inputs from the builder's finalized prescription rows, never from the program object.
         val finalizedPrescriptionRows = result.items.map { item ->
@@ -493,39 +575,67 @@ class PersonalizedProgramBuilder(
         regionalTargetPlan: RegionalExperimentalTargetPlan?,
         exactPrescriptionAuthorizationProvider: ExactPrescriptionAuthorizationProvider?,
         canonicalB5PowerOwnerIdentities: Set<StimulusPrescriptionOwnerIdentity>,
-        canonicalB5TaskOwnerIdentitiesWithoutExecutableB6: Set<StimulusPrescriptionOwnerIdentity>): GeneratedProgramSkeleton {
-        if (!frequency.explicitIncrease) return buildCore(snapshot, state, gaps, intent, horizon, request, answers, priorDecisionId,
-            explicitWeeklyDays, frequency, progress = progress, generationPrescriptions = generationPrescriptions,
-            performanceMetrics = performanceMetrics, materialDemandOverride = materialDemandOverride,
-            regionalTargetPlan = regionalTargetPlan, canonicalB5PowerOwnerIdentities = canonicalB5PowerOwnerIdentities,
-            canonicalB5TaskOwnerIdentitiesWithoutExecutableB6 = canonicalB5TaskOwnerIdentitiesWithoutExecutableB6)
+        canonicalB5TaskOwnerIdentitiesWithoutExecutableB6: Set<StimulusPrescriptionOwnerIdentity>,
+        traceId: String?): GeneratedProgramSkeleton {
+        val frequencyDecisionStarted = System.nanoTime()
+        if (!frequency.explicitIncrease) {
+            GenerationDecisionTraceStore.record(traceId, "FREQUENCY_EXPANSION", "FrequencyExpansionPlanner.expand",
+                inputs = JSONObject().put("recommendedDays", frequency.recommendation.recommendedDays)
+                    .put("userSelectedDays", frequency.resolvedUserDays),
+                criteria = JSONObject().put("explicitIncrease", false),
+                decision = "NOT_EXECUTED", reasonCodes = listOf("NO_EXPLICIT_FREQUENCY_INCREASE"),
+                nextStageInputs = JSONObject().put("baseScheduleDays", request.weeklyTrainingDays),
+                startedNanos = frequencyDecisionStarted)
+            return buildCoreWithTrace(snapshot, state, gaps, intent, horizon, request, answers, priorDecisionId,
+                explicitWeeklyDays, frequency, progress = progress, generationPrescriptions = generationPrescriptions,
+                performanceMetrics = performanceMetrics, materialDemandOverride = materialDemandOverride,
+                regionalTargetPlan = regionalTargetPlan, canonicalB5PowerOwnerIdentities = canonicalB5PowerOwnerIdentities,
+                canonicalB5TaskOwnerIdentitiesWithoutExecutableB6 = canonicalB5TaskOwnerIdentitiesWithoutExecutableB6,
+                traceId = traceId)
+        }
         // BASE is fully evaluated before expansion. Its nested work must not consume expansion's milestone range.
         val baseProgress = PersonalizedPlannerProgressReporter { stage ->
             progress.report(if (stage.percent > 50) PersonalizedPlannerStage.BASE_REVIEW else stage)
         }
-        val base = buildCore(snapshot, state, gaps, intent, horizon, request.copy(weeklyTrainingDays = frequency.algorithmRecommendedDays),
+        val base = buildCoreWithTrace(snapshot, state, gaps, intent, horizon, request.copy(weeklyTrainingDays = frequency.algorithmRecommendedDays),
             answers, priorDecisionId, true, frequency, progress = baseProgress, generationPrescriptions = generationPrescriptions,
             performanceMetrics = performanceMetrics, materialDemandOverride = materialDemandOverride,
             regionalTargetPlan = regionalTargetPlan, canonicalB5PowerOwnerIdentities = canonicalB5PowerOwnerIdentities,
-            canonicalB5TaskOwnerIdentitiesWithoutExecutableB6 = canonicalB5TaskOwnerIdentitiesWithoutExecutableB6)
+            canonicalB5TaskOwnerIdentitiesWithoutExecutableB6 = canonicalB5TaskOwnerIdentitiesWithoutExecutableB6,
+            traceId = traceId)
         progress.report(PersonalizedPlannerStage.EXPANSION)
-        return FrequencyExpansionPlanner(generationPrescriptions, performanceMetrics).expand(snapshot, state, request, base, frequency,
+        val expansionStarted = System.nanoTime()
+        val expanded = FrequencyExpansionPlanner(generationPrescriptions, performanceMetrics).expand(snapshot, state, request, base, frequency,
             exactPrescriptionAuthorizationProvider,
             { authorized, capacity ->
             progress.report(PersonalizedPlannerStage.EXPANSION_RECHECK)
             var result: CompletionResult? = null
-            buildCore(snapshot, state, gaps, intent, horizon, request, answers, priorDecisionId, true, frequency, authorized, capacity,
+            buildCoreWithTrace(snapshot, state, gaps, intent, horizon, request, answers, priorDecisionId, true, frequency, authorized, capacity,
                 progress = PersonalizedPlannerProgressReporter { progress.report(PersonalizedPlannerStage.EXPANSION_RECHECK) }, generationPrescriptions = generationPrescriptions,
                 performanceMetrics = performanceMetrics, materialDemandOverride = materialDemandOverride,
                 regionalTargetPlan = regionalTargetPlan, canonicalB5PowerOwnerIdentities = canonicalB5PowerOwnerIdentities,
-                canonicalB5TaskOwnerIdentitiesWithoutExecutableB6 = canonicalB5TaskOwnerIdentitiesWithoutExecutableB6) {
-                result = it
-                it.skeleton
-            }
+                canonicalB5TaskOwnerIdentitiesWithoutExecutableB6 = canonicalB5TaskOwnerIdentitiesWithoutExecutableB6,
+                traceId = traceId,
+                finish = { completion ->
+                    result = completion
+                    completion.skeleton
+                })
             checkNotNull(result)
         })
+        GenerationDecisionTraceStore.record(traceId, "FREQUENCY_EXPANSION", "FrequencyExpansionPlanner.expand",
+            inputs = JSONObject().put("recommendedDays", frequency.recommendation.recommendedDays)
+                .put("userSelectedDays", frequency.resolvedUserDays),
+            criteria = JSONObject().put("explicitIncrease", frequency.explicitIncrease),
+            comparisons = JSONObject().put("actualTrainingDays", expanded.items.filter { it.weekNumber == 1 }.map { it.dayOfWeek }.distinct().size)
+                .put("finalRows", expanded.items.count { it.weekNumber == 1 }),
+            decision = expanded.personalizedDecision?.frequencyExpansion?.diagnostic ?: "EXPANSION_RESULT_MISSING",
+            reasonCodes = listOfNotNull(expanded.personalizedDecision?.frequencyExpansion?.diagnostic),
+            nextStageInputs = expanded.personalizedDecision?.frequencyExpansion?.toJson() ?: JSONObject(), startedNanos = expansionStarted)
+        return expanded
     }
 
+    // Keep the historical private signature stable for existing reflection-based authority audits.
+    // Production callers use the observed overload below; direct legacy/control calls remain untraced.
     private fun buildCore(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, gaps: List<AdaptationGap>, intent: BlockIntent,
         horizon: Int, request: ProgramSkeletonRequest, answers: PersonalizedPlanningAnswers, priorDecisionId: String?, explicitWeeklyDays: Boolean,
         frequency: PlanningFrequencyProvenance, authorizedOverride: List<AuthorizedSchedulingDemand>? = null,
@@ -537,7 +647,25 @@ class PersonalizedProgramBuilder(
         regionalTargetPlan: RegionalExperimentalTargetPlan? = null,
         canonicalB5PowerOwnerIdentities: Set<StimulusPrescriptionOwnerIdentity> = emptySet(),
         canonicalB5TaskOwnerIdentitiesWithoutExecutableB6: Set<StimulusPrescriptionOwnerIdentity> = emptySet(),
-        finish: ((CompletionResult) -> GeneratedProgramSkeleton)? = null): GeneratedProgramSkeleton {
+        finish: ((CompletionResult) -> GeneratedProgramSkeleton)? = null): GeneratedProgramSkeleton =
+        buildCoreWithTrace(snapshot, state, gaps, intent, horizon, request, answers, priorDecisionId, explicitWeeklyDays,
+            frequency, authorizedOverride, capacityOverride, generationPrescriptions, progress, performanceMetrics,
+            materialDemandOverride, regionalTargetPlan, canonicalB5PowerOwnerIdentities,
+            canonicalB5TaskOwnerIdentitiesWithoutExecutableB6, finish, traceId = null)
+
+    private fun buildCoreWithTrace(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, gaps: List<AdaptationGap>, intent: BlockIntent,
+        horizon: Int, request: ProgramSkeletonRequest, answers: PersonalizedPlanningAnswers, priorDecisionId: String?, explicitWeeklyDays: Boolean,
+        frequency: PlanningFrequencyProvenance, authorizedOverride: List<AuthorizedSchedulingDemand>? = null,
+        capacityOverride: WeeklyCapacityEnvelope? = null,
+        generationPrescriptions: PersonalizedPrescriptionPlanner = prescriptionPlanner,
+        progress: PersonalizedPlannerProgressReporter = PersonalizedPlannerProgressReporter.NONE,
+        performanceMetrics: PlannerPerformanceMetrics = PlannerPerformanceMetrics(),
+        materialDemandOverride: MaterialDemand? = null,
+        regionalTargetPlan: RegionalExperimentalTargetPlan? = null,
+        canonicalB5PowerOwnerIdentities: Set<StimulusPrescriptionOwnerIdentity> = emptySet(),
+        canonicalB5TaskOwnerIdentitiesWithoutExecutableB6: Set<StimulusPrescriptionOwnerIdentity> = emptySet(),
+        finish: ((CompletionResult) -> GeneratedProgramSkeleton)? = null,
+        traceId: String? = null): GeneratedProgramSkeleton {
         val exactPrescriptionAuthorizationProvider = activeExactPrescriptionAuthorizationProvider
         progress.report(PersonalizedPlannerStage.DEMAND)
         val transitionPlanner = AdaptationTransitionPlanner()
@@ -637,6 +765,7 @@ class PersonalizedProgramBuilder(
             }
         val canonicalB5QualityStableKeysWithoutExecutableB6 = canonicalB5QualityOwnersWithoutExecutableB6
             .mapTo(linkedSetOf(), StimulusPrescriptionOwnerIdentity::stableKey)
+        val volumeStarted = System.nanoTime()
         val provisionalResistance = ResistanceVolumePlanner.plan(snapshot, state, request, Int.MAX_VALUE, anchorFallbackResistance)
         val baselineResistance = schedulingBaselineResistance
         val resistanceContinuityDemand = schedulingContinuityDemand
@@ -683,13 +812,25 @@ class PersonalizedProgramBuilder(
         val resistanceUsefulDemand = resistanceContinuityDemand +
             materialCandidates.filter { snapshot.activityKind(it.stableKey) == PlannedActivityKind.RESISTANCE }.sumOf(PlannedExercise::targetSets) +
             optionalCandidates.filter { snapshot.activityKind(it.stableKey) == PlannedActivityKind.RESISTANCE }.sumOf(PlannedExercise::targetSets)
-        val rawResistanceBudget = ResistanceVolumePlanner.plan(snapshot, state, request, resistanceUsefulDemand, anchorFallbackResistance)
+        val rawResistanceBudget = ResistanceVolumePlanner.plan(snapshot, state, request, resistanceUsefulDemand,
+            anchorFallbackResistance, traceId)
         val capacityExpanded = baselineResistance < 4.0 && materialCandidates.any { it.priority >= 100 } && systemicDoseFactor >= .92
         val resistanceBudget = rawResistanceBudget.copy(
             resistanceTargetSets = if (capacityExpanded)
                 minOf(rawResistanceBudget.resistanceTimeCeiling, resistanceUsefulDemand)
             else rawResistanceBudget.resistanceTargetSets
         )
+        GenerationDecisionTraceStore.record(traceId, "RESISTANCE_VOLUME_PLANNING", "ResistanceVolumePlanner.plan",
+            inputs = JSONObject().put("confirmedSetCount", recentResistance.size).put("usefulDemand", resistanceUsefulDemand)
+                .put("anchorFallback", anchorFallbackResistance),
+            criteria = JSONObject().put("normalWeekBaseline", true).put("zeroWeeksIncludedInProductionBaseline", false),
+            comparisons = JSONObject().put("baseline", baselineResistance).put("normalWeekCount", resistanceBudget.resistanceNormalWeekCount)
+                .put("activeWeekCount", resistanceBudget.resistanceActiveWeekCount).put("q25", resistanceBudget.resistanceWeeklyQ25)
+                .put("median", resistanceBudget.resistanceWeeklyMedian).put("q75", resistanceBudget.resistanceWeeklyQ75)
+                .put("demand", resistanceBudget.resistanceUsefulDemand).put("target", resistanceBudget.resistanceTargetSets)
+                .put("timeCeiling", resistanceBudget.resistanceTimeCeiling).put("globalDoseFactor", resistanceBudget.globalDoseFactor),
+            decision = "RESISTANCE_BUDGET_COMPUTED", reasonCodes = listOf(resistanceBudget.resistanceBaselineSource),
+            nextStageInputs = JSONObject().put("resistanceBudget", resistanceBudget.toString()), startedNanos = volumeStarted)
         val domains = DomainVolumeBudget(
             resistance = resistanceBudget,
             structuredBadminton = PerformanceVolumeBudget(
@@ -705,8 +846,28 @@ class PersonalizedProgramBuilder(
                 finalBouts = 0
             )
         )
+        val capacityStarted = System.nanoTime()
         val envelope = capacityOverride ?: ExecutionCapacityPlanner().envelope(snapshot, state, request, baselineResistance,
             continuityDemand + materialRequested, systemicDoseFactor, domains)
+        GenerationDecisionTraceStore.record(traceId, "EXECUTION_CAPACITY", "ExecutionCapacityPlanner.envelope",
+            inputs = JSONObject().put("requestedDays", request.weeklyTrainingDays).put("sessionMinutes", request.sessionMinutes)
+                .put("usefulDemandUnits", continuityDemand + materialRequested),
+            criteria = JSONObject().put("capacityOverridePresent", capacityOverride != null),
+            comparisons = JSONObject().put("historicalControllableUnits", envelope.historicalControllableUnits)
+                .put("recoveryConstraint", envelope.recoveryConstraint).put("courtInterferenceContext", envelope.courtInterferenceContext)
+                .put("densityBound", envelope.scheduleFeasibleUnits).put("scheduleUnits", envelope.scheduleFeasibleUnits)
+                .put("globalDoseFactor", systemicDoseFactor).put("finalControllableUnits", envelope.finalControllableUnits),
+            decision = "CAPACITY_ENVELOPE_RESOLVED", reasonCodes = listOfNotNull(
+                if (envelope.scheduleFeasibleUnits < envelope.usefulDemandUnits) "DENSITY_BOUND_REDUCED_DEMAND" else null,
+                if (envelope.finalControllableUnits < envelope.scheduleFeasibleUnits) "HISTORICAL_OR_RECOVERY_CAPACITY_REDUCED" else null
+            ),
+            nextStageInputs = JSONObject().put("envelope", JSONObject().put("resolvedWeeklyDays", envelope.resolvedWeeklyDays)
+                .put("availableWeeklySeconds", envelope.availableWeeklySeconds).put("historicalSessionObservationCount", envelope.historicalSessionObservationCount)
+                .put("historicalSessionUnitMedian", envelope.historicalSessionUnitMedian).put("historicalSessionUnitUpperTypical", envelope.historicalSessionUnitUpperTypical)
+                .put("historicalSessionSecondsMedian", envelope.historicalSessionSecondsMedian).put("historicalControllableUnits", envelope.historicalControllableUnits)
+                .put("recoveryConstraint", envelope.recoveryConstraint).put("courtInterferenceContext", envelope.courtInterferenceContext)
+                .put("usefulDemandUnits", envelope.usefulDemandUnits).put("scheduleFeasibleUnits", envelope.scheduleFeasibleUnits)
+                .put("finalControllableUnits", envelope.finalControllableUnits)), startedNanos = capacityStarted)
         // The canonical finite allocator reserves the established incumbent
         // continuity.  The independent resistance target is recorded as a
         // volume authorization and does not turn unused budget into filler.
@@ -725,12 +886,26 @@ class PersonalizedProgramBuilder(
         val bounded = regionalTargetPlan?.let { BoundedMaterialDemandAllocation(snapshot, state, request, materialCandidates,
             it, generationPrescriptions, capacity, continuityDemand, coreReserve, activeCanonicalFailureEmitter,
             exactPrescriptionAuthorizationProvider) }
+        val finiteStarted = System.nanoTime()
         val finite = bounded?.finite ?: FiniteExecutionAllocator.allocate(capacity, continuityDemand, materialCandidates.map(PlannedExercise::targetSets), share, coreReserve,
             materialCandidates.indices.filterTo(mutableSetOf()) {
                 val item = materialCandidates[it]
                 snapshot.activityKind(item.stableKey) == PlannedActivityKind.RESISTANCE &&
                     RegionalSelectionIdentity(item.stableKey, item.role) !in regionalTargetPlan?.authorizedPrescriptionBySelectionRole.orEmpty()
             }, materialCandidates.map { StimulusPrescriptionOwnerIdentity(it.stableKey, it.role) })
+        GenerationDecisionTraceStore.record(traceId, "FINITE_EXECUTION_ALLOCATOR", if (bounded != null) "BoundedMaterialDemandAllocation.finite" else "FiniteExecutionAllocator.allocate",
+            inputs = JSONObject().put("capacity", capacity).put("continuityDemand", continuityDemand)
+                .put("requestedMaterialSets", materialCandidates.sumOf { it.targetSets }).put("coreReserve", coreReserve),
+            criteria = JSONObject().put("finiteCapacity", true).put("continuityShare", share),
+            comparisons = JSONObject().put("continuityBefore", continuityDemand).put("continuityAfter", finite.continuity)
+                .put("materialBefore", materialCandidates.sumOf { it.targetSets }).put("materialAfter", finite.material.sum())
+                .put("materialReduction", (materialCandidates.sumOf { it.targetSets } - finite.material.sum()).coerceAtLeast(0)),
+            decision = "FINITE_ALLOCATION_COMPLETE", reasonCodes = finite.ownerAllocationProvenance.map { it.action.name }.distinct(),
+            selected = finite.material.mapIndexedNotNull { index, count -> count.takeIf { it > 0 }?.let { "${materialCandidates[index].stableKey}#${materialCandidates[index].role}:$it" } },
+            deferred = finite.material.mapIndexedNotNull { index, count -> (materialCandidates[index].targetSets - count).takeIf { it > 0 }?.let { "${materialCandidates[index].stableKey}#${materialCandidates[index].role}:$it" } },
+            nextStageInputs = JSONObject().put("finite", JSONObject().put("continuity", finite.continuity)
+                .put("material", JSONArray(finite.material)).put("deferred", JSONArray(finite.deferred))
+                .put("ownerAllocationProvenance", JSONArray(finite.ownerAllocationProvenance.map { it.toJson() }))), startedNanos = finiteStarted)
         // Keep the established continuity allocator as the final scheduling
         // authority.  Domain budgets authorize independently; placement still
         // receives the same finite, canonical continuity demand ordering.
@@ -844,7 +1019,7 @@ class PersonalizedProgramBuilder(
             throw failure
         }
         progress.report(PersonalizedPlannerStage.PLACEMENT)
-        val allocator = SplitAwareContinuityAllocation(generationPrescriptions, progress, placementContext, performanceMetrics)
+        val allocator = SplitAwareContinuityAllocation(generationPrescriptions, progress, placementContext, performanceMetrics, traceId)
         val regionalAuthorized = if (regionalTargetPlan != null && authorizedOverride == null) {
             selected.mapIndexed { index, item ->
                 val prescription = if (index >= continuity.size && item.material) requireNotNull(bounded).prescriptionFor(item)
@@ -902,12 +1077,22 @@ class PersonalizedProgramBuilder(
             activeCanonicalFailureEmitter?.invoke(unresolvedFailure)
             throw unresolvedFailure
         }
+        val placementStarted = System.nanoTime()
         val placement = when {
             authorizedOverride != null -> allocator.allocateAuthorized(snapshot, state, authorizedOverride, days, request.sessionMinutes, request)
             regionalAuthorized != null -> allocator.allocateAuthorized(snapshot, state, regionalAuthorized, days, request.sessionMinutes, request)
             exactAuthorized != null -> allocator.allocateAuthorized(snapshot, state, exactAuthorized, days, request.sessionMinutes, request)
             else -> allocator.allocate(snapshot, state, continuity, gapItems, optional, days, request.sessionMinutes, request)
         }
+        GenerationDecisionTraceStore.record(traceId, "SPLIT_AWARE_CONTINUITY_ALLOCATION", "SplitAwareContinuityAllocation.allocate",
+            inputs = JSONObject().put("selectedDemandCount", selected.size).put("weeklyDays", days).put("sessionMinutes", request.sessionMinutes),
+            criteria = JSONObject().put("continuityAndMaterialDemandsShareTimedDayConstraints", true),
+            comparisons = JSONObject().put("placedDayCount", placement.days.size).put("deferredDemandCount", placement.deferred.size),
+            decision = "SPLIT_AND_FINITE_DAY_PLACEMENT_COMPLETE", reasonCodes = placement.deferred.map { "TIME_OR_DAY_CONSTRAINT:${it.item.stableKey}" },
+            selected = placement.days.flatMap { (day, atoms) -> atoms.map { "${it.timed.item.stableKey}#${it.timed.item.role}:${it.timed.prescription.sets.size}@$day" } },
+            deferred = placement.deferred.map { "${it.item.stableKey}#${it.item.role}:${it.prescription.sets.size}" },
+            nextStageInputs = JSONObject().put("dayKeys", JSONArray(placement.days.keys.sorted()))
+                .put("deferredStableKeys", JSONArray(placement.deferred.map { it.item.stableKey })), startedNanos = placementStarted)
         progress.report(PersonalizedPlannerStage.FEASIBILITY)
         val timed = placement.days.values.flatten().map { it.timed }
         val logical = placement.days
@@ -1118,10 +1303,21 @@ class PersonalizedProgramBuilder(
             return initialSkeleton.copy(personalizedDecision = decision.copy(residualCompletion = ResidualCompletionTrace(
                 "POST_PROCESS_FAILED_SAFE_AUTHORIZED_PRESCRIPTION", fingerprint, fingerprint, snapshot.cutoff.plusDays(1).toString())))
         }
+        val completionStarted = System.nanoTime()
         val completion = ResidualCompletion(generationPrescriptions, progress).complete(initialSkeleton, snapshot, state, gaps,
             authorized, envelope, postProcessAtoms, postProcessSources, explicitWeeklyDays, snapshot.planDayProjection, postProcessOrigins,
             regionalTargetPlan?.authorizedPrescriptionBySelectionRole?.keys.orEmpty(),
             exactAuthorizationOnly = bounded != null || exactPrescriptionAuthorizationProvider != null)
+        GenerationDecisionTraceStore.record(traceId, "RESIDUAL_COMPLETION", "ResidualCompletion.complete",
+            inputs = JSONObject().put("preCompletionSetCount", initialSkeleton.items.sumOf { it.setPrescriptions.size }),
+            criteria = JSONObject().put("timeGate", true).put("ofiGate", true).put("tissueGate", true)
+                .put("exactAuthorizationOnly", bounded != null || exactPrescriptionAuthorizationProvider != null),
+            comparisons = JSONObject().put("authorizedUnits", completion.trace.authorizedUnits)
+                .put("postCompletionSetCount", completion.skeleton.items.sumOf { it.setPrescriptions.size })
+                .put("addedSets", completion.trace.additions.sumOf { it.setCount }),
+            decision = completion.trace.state, reasonCodes = completion.trace.residuals.map { it.id }.distinct(),
+            selected = completion.trace.additions.map { "${it.stableKey}:${it.setCount}@${it.day}" },
+            deferred = completion.trace.exactShortfalls.map { it.toString() }, nextStageInputs = completion.trace.toJson(), startedNanos = completionStarted)
         val completedWeek = completion.skeleton.items.filter { it.weekNumber == 1 }
         fun completedUnits(kind: PlannedActivityKind) = completedWeek.filter { snapshot.activityKind(it.exerciseStableKey) == kind }
             .sumOf { it.setPrescriptions.size }
@@ -1153,8 +1349,18 @@ class PersonalizedProgramBuilder(
             weeklyFrequency = completion.skeleton.request.weeklyTrainingDays)))))
         // The second stage owns only placement. Its fail-safe is CompletedPlan, never InitialSkeleton.
         progress.report(PersonalizedPlannerStage.BALANCE)
+        val rebalanceStarted = System.nanoTime()
         val rebalanced = BoundedDayRebalancer().rebalance(completion, snapshot, state, snapshot.planDayProjection,
             RebalanceEvaluationCounts(performanceMetrics = performanceMetrics))
+        GenerationDecisionTraceStore.record(traceId, "BOUNDED_DAY_REBALANCER", "BoundedDayRebalancer.rebalance",
+            inputs = JSONObject().put("inputRows", completion.skeleton.items.size),
+            criteria = JSONObject().put("doNotWorsenHardFeasibility", true).put("respectOfi", true),
+            comparisons = JSONObject().put("actions", rebalanced.trace.actions.size)
+                .put("finalRows", rebalanced.skeleton.items.size), decision = rebalanced.trace.balanceState,
+            reasonCodes = listOf(rebalanced.trace.diagnostic).filter(String::isNotBlank),
+            selected = rebalanced.trace.actions.map { "${it.sourceDay}>${it.destinationDay}:${it.stableKeys}" },
+            deferred = rebalanced.trace.primaryRejections.map { "${it.key}:${it.value}" },
+            nextStageInputs = rebalanced.trace.toJson(), startedNanos = rebalanceStarted)
         return observeBoundedMaterialDemand(rebalanced.skeleton.copy(personalizedDecision = decision.copy(
             authorizedScheduling = completion.skeleton.personalizedDecision?.authorizedScheduling,
             residualCompletion = completion.trace,

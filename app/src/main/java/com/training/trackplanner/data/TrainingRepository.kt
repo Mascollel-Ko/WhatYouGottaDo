@@ -28,6 +28,7 @@ import com.training.trackplanner.data.personalized.PersonalizedPlanningAnswers
 import com.training.trackplanner.data.personalized.PersonalizedGenerationConstraints
 import com.training.trackplanner.data.personalized.PersonalizedPlanningOutcome
 import com.training.trackplanner.data.personalized.PersonalizedPlanningPreflight
+import com.training.trackplanner.data.personalized.GenerationDecisionTraceStore
 import com.training.trackplanner.data.personalized.personalizedProgramFingerprint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
@@ -1136,13 +1137,14 @@ class TrainingRepository internal constructor(
         request: ProgramSkeletonRequest,
         constraints: PersonalizedGenerationConstraints = PersonalizedGenerationConstraints(explicitSessionMinutes = request.sessionMinutes),
         cutoff: LocalDate = LocalDate.now(),
-        progress: com.training.trackplanner.data.personalized.PersonalizedPlannerProgressReporter = com.training.trackplanner.data.personalized.PersonalizedPlannerProgressReporter.NONE
+        progress: com.training.trackplanner.data.personalized.PersonalizedPlannerProgressReporter = com.training.trackplanner.data.personalized.PersonalizedPlannerProgressReporter.NONE,
+        traceId: String? = null
     ): PersonalizedPlanningPreflight = withContext(Dispatchers.IO) {
         personalizedProgramPlanningService.prepare(
             request = request,
             metadata = exerciseMetadataEditorService.resolvedRuntimeMetadataByExerciseStableKey(),
             constraints = constraints,
-            cutoff = cutoff, progress = progress
+            cutoff = cutoff, progress = progress, traceId = traceId
         )
     }
 
@@ -1166,15 +1168,53 @@ class TrainingRepository internal constructor(
         includeComparisonDiagnostics: Boolean = false
     ): com.training.trackplanner.data.personalized.StimulusProductionGenerationResult = withContext(Dispatchers.IO) {
         val incumbentIndex = programPlanService.canonicalIncumbentPlacementIndex(existingProgramId)
-        personalizedProgramPlanningService.generatePreparedProduction(
-            preflight = preflight,
-            answers = answers,
-            metadata = exerciseMetadataEditorService.resolvedRuntimeMetadataByExerciseStableKey(),
-            progress = progress,
-            routingMode = routingMode,
-            includeComparisonDiagnostics = includeComparisonDiagnostics,
-            incumbentPlacementIndex = incumbentIndex
-        )
+        try {
+            val result = personalizedProgramPlanningService.generatePreparedProduction(
+                preflight = preflight,
+                answers = answers,
+                metadata = exerciseMetadataEditorService.resolvedRuntimeMetadataByExerciseStableKey(),
+                progress = progress,
+                routingMode = routingMode,
+                includeComparisonDiagnostics = includeComparisonDiagnostics,
+                incumbentPlacementIndex = incumbentIndex
+            )
+            GenerationDecisionTraceStore.finish(preflight.preparationId, "GENERATED", "GENERATION_COMPLETE",
+                "TrainingRepository.generatePreparedPersonalizedProgramEvaluation")
+            result
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            GenerationDecisionTraceStore.finish(preflight.preparationId, "CANCELLED", "GENERATION_CANCELLED",
+                "TrainingRepository.generatePreparedPersonalizedProgramEvaluation")
+            throw cancelled
+        } catch (failure: Throwable) {
+            val details = org.json.JSONObject().put("reasonCodes", org.json.JSONArray(listOf(
+                failure.javaClass.simpleName,
+                (failure as? com.training.trackplanner.data.personalized.StimulusProductionExecutionRejectedException)?.reasonCodes.orEmpty().joinToString("+")
+            ).filter(String::isNotBlank)))
+            if (!GenerationDecisionTraceStore.hasStage(preflight.preparationId, "B7_DIAGNOSTIC")) {
+                GenerationDecisionTraceStore.record(
+                    preflight.preparationId, "B7_DIAGNOSTIC", "StimulusExperimentalReadinessAuditEngine.audit",
+                    decision = "NOT_EXECUTED", reasonCodes = listOf("GENERATION_FAILED_BEFORE_B7"),
+                    nextStageInputs = org.json.JSONObject().put("status", "NOT_EXECUTED")
+                )
+            }
+            if (!GenerationDecisionTraceStore.hasStage(preflight.preparationId, "B8_DIAGNOSTIC")) {
+                GenerationDecisionTraceStore.record(
+                    preflight.preparationId, "B8_DIAGNOSTIC", "StimulusProductionCutoverAuthorityAuditEngine.audit",
+                    decision = "NOT_EXECUTED", reasonCodes = listOf("GENERATION_FAILED_BEFORE_B8"),
+                    nextStageInputs = org.json.JSONObject().put("status", "NOT_EXECUTED")
+                )
+            }
+            GenerationDecisionTraceStore.record(
+                preflight.preparationId, "GENERATION_FAILURE", "TrainingRepository.generatePreparedPersonalizedProgramEvaluation",
+                criteria = org.json.JSONObject().put("legacyFallback", false),
+                decision = "GENERATION_FAILED", reasonCodes = details.optJSONArray("reasonCodes")?.let { array ->
+                    (0 until array.length()).map { array.optString(it) }
+                }.orEmpty(), nextStageInputs = details
+            )
+            GenerationDecisionTraceStore.finish(preflight.preparationId, "FAILED", "GENERATION_FAILED",
+                "TrainingRepository.generatePreparedPersonalizedProgramEvaluation", details)
+            throw failure
+        }
     }
 
     suspend fun saveLegacyAutoProgram(existingProgramId: Long?, skeleton: LegacyAutoSkeleton,

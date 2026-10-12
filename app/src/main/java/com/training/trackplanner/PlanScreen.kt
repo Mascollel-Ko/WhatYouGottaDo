@@ -76,6 +76,7 @@ import com.training.trackplanner.data.personalized.PersonalizedGenerationConstra
 import com.training.trackplanner.data.personalized.PersonalizedPlanningPreflight
 import com.training.trackplanner.localization.localizedProgramName
 import java.time.LocalDate
+import java.util.UUID
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -105,7 +106,8 @@ internal fun PersonalizedPlanningQuestionDialog(
     answers: Map<String, String>,
     onAnswer: (String, String) -> Unit,
     onGenerate: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onExportTrace: (() -> Unit)? = null
 ) {
     var submitted by remember { mutableStateOf(false) }
     AlertDialog(
@@ -145,7 +147,12 @@ internal fun PersonalizedPlanningQuestionDialog(
                 question.options.any { it.value == answers[question.id] && it.value != "UNRESOLVED" }
             }) { Text("이 답변으로 생성") }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("취소") } }
+        dismissButton = {
+            Row {
+                if (onExportTrace != null) TextButton(onClick = onExportTrace) { Text("생성 진단 내보내기") }
+                TextButton(onClick = onDismiss) { Text("취소") }
+            }
+        }
     )
 }
 
@@ -422,6 +429,7 @@ private fun ProgramEditorScreen(
     var personalizedDaysOverride by rememberSaveable(program?.id ?: 0L) { mutableStateOf<Int?>(null) }
     var personalizedDurationOverride by rememberSaveable(program?.id ?: 0L) { mutableStateOf<Int?>(null) }
     var lastGenerationWasPersonalized by rememberSaveable { mutableStateOf(false) }
+    var generationTraceId by rememberSaveable(program?.id ?: 0L) { mutableStateOf<String?>(null) }
 
     LaunchedEffect(program?.id) {
         if (program != null && personalizedDraft == null) personalizedDraft = skeletonFromProgram(viewModel.programEditorSnapshot(program.id)).withResolvedWeekDaySchedule()
@@ -546,14 +554,18 @@ private fun ProgramEditorScreen(
             com.training.trackplanner.data.ProgramReplacementReviewFingerprint.requestConstraints(request)
         lastGenerationWasPersonalized = true
         personalizedAnswers = emptyMap()
+        val traceId = UUID.randomUUID().toString()
+        generationTraceId = traceId
         viewModel.preparePersonalizedProgram(
             request = request,
             constraints = PersonalizedGenerationConstraints(
                 explicitWeeklyTrainingDays = personalizedDaysOverride,
                 explicitDurationWeeks = personalizedDurationOverride,
                 explicitSessionMinutes = sessionMinutes
-            )
+            ),
+            traceId = traceId
         ) { preflight ->
+            generationTraceId = preflight.preparationId
             if (preflight.questions.isEmpty()) runPreparedPersonalized(preflight, emptyMap())
             else pendingPersonalizedPreflight = preflight
         }
@@ -571,7 +583,8 @@ private fun ProgramEditorScreen(
                 personalizedRetry.clear()
                 pendingPersonalizedPreflight = null
                 personalizedAnswers = emptyMap()
-            }
+            },
+            onExportTrace = generationTraceId?.let { id -> { GenerationDecisionTraceExporter.share(context, id) } }
         )
     }
 
@@ -750,6 +763,9 @@ private fun ProgramEditorScreen(
                         if (lastGenerationWasPersonalized) personalizedRetry.retry(::preparePersonalized) {
                             runPreparedPersonalized(it.preflight, it.answers.values)
                         } else generateSkeleton()
+                    },
+                    onExportTrace = generationTraceId?.takeIf { lastGenerationWasPersonalized }?.let { id ->
+                        { GenerationDecisionTraceExporter.share(context, id) }
                     }
                 )
             }
@@ -764,6 +780,13 @@ private fun ProgramEditorScreen(
             }
         }
         personalizedDraft?.let { currentSkeleton ->
+            if (lastGenerationWasPersonalized && generationTraceId != null) {
+                item {
+                    OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = {
+                        generationTraceId?.let { GenerationDecisionTraceExporter.share(context, it) }
+                    }) { Text("생성 진단 내보내기") }
+                }
+            }
             if (currentSkeleton.warnings.any { it.startsWith(PROGRAM_ITEM_RESTORE_WARNING) }) {
                 item {
                     InfoCard("일부 프로그램 메타데이터를 복원하지 못했습니다. 저장 전 구성을 확인하세요.")
@@ -854,6 +877,7 @@ private fun ProgramEditorScreen(
 @Composable
 internal fun ProgramBuildProgressCard(
     progress: ProgramBuildProgressState,
+    onExportTrace: (() -> Unit)? = null,
     onRetry: () -> Unit
 ) {
     when (progress) {
@@ -909,6 +933,9 @@ internal fun ProgramBuildProgressCard(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(progress.message, style = MaterialTheme.typography.bodyMedium)
+                    if (onExportTrace != null) {
+                        OutlinedButton(onClick = onExportTrace) { Text("생성 진단 내보내기") }
+                    }
                     OutlinedButton(onClick = onRetry) {
                         Text("다시 시도")
                     }
