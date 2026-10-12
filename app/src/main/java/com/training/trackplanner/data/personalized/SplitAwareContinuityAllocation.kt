@@ -7,7 +7,9 @@ import org.json.JSONObject
 data class AuthorizedAtomOrigin(val authorizedDemandId: String, val splitGroupId: String = "", val splitChunkIndex: Int? = null)
 data class AuthorizedSchedulingDemand(val id: String, val item: PlannedExercise, val prescription: PlannedPrescription, val continuity: Boolean,
     val fundingSource: PlanningFundingSource = PlanningFundingSource.BASE, val originalRank: Int? = null,
-    val sourceReason: CandidateRejectionReason? = null)
+    val sourceReason: CandidateRejectionReason? = null,
+    /** True only when B6 supplied the exact prescription whose sets may be divided across days. */
+    val exactB6AuthorizedForSplit: Boolean = false)
 data class ContinuitySplitDecision(val authorizedDemandId: String, val eligible: Boolean, val template: List<Int>, val decision: String,
     val failureReasons: Set<SplitPlacementFailure> = emptySet(), val ofiWarnings: List<SplitOfiWarning> = emptyList())
 data class AuthorizedSchedulingTrace(val authorized: List<AuthorizedSchedulingDemand>, val decisions: List<ContinuitySplitDecision>,
@@ -17,6 +19,7 @@ data class AuthorizedSchedulingTrace(val authorized: List<AuthorizedSchedulingDe
     fun toJson() = JSONObject().put("demandBoundary", "AUTHORIZED_POST_CAPACITY_PRE_PLACEMENT_DEMAND")
         .put("authorized", JSONArray(authorized.map { demand -> JSONObject().put("authorizedDemandId", demand.id)
             .put("stableKey", demand.item.stableKey).put("continuity", demand.continuity)
+            .put("exactB6AuthorizedForSplit", demand.exactB6AuthorizedForSplit)
             .put("fundingSource", demand.fundingSource.name).put("originalRank", demand.originalRank)
             .put("sourceReason", demand.sourceReason?.name)
             .put("gapCodes", JSONArray(demand.item.representedGapCodes.toList())).put("style", demand.item.style.name)
@@ -52,8 +55,9 @@ internal object ContinuitySplitPolicy {
         else -> listOf(count)
     }
     fun mandatory(snapshot: PlanningHistorySnapshot, demand: AuthorizedSchedulingDemand) =
-        eligible(snapshot, demand) && demand.prescription.sets.size in 6..9
-    fun eligible(snapshot: PlanningHistorySnapshot, demand: AuthorizedSchedulingDemand): Boolean = demand.continuity &&
+        eligible(snapshot, demand) && demand.continuity && demand.prescription.sets.size in 6..9
+    fun eligible(snapshot: PlanningHistorySnapshot, demand: AuthorizedSchedulingDemand): Boolean =
+        (demand.continuity || demand.exactB6AuthorizedForSplit) &&
         snapshot.activityKind(demand.item.stableKey) == PlannedActivityKind.RESISTANCE && demand.prescription.sets.size in 4..9 &&
         demand.item.style in setOf(StrengthProgrammingStyle.NONE, StrengthProgrammingStyle.STRAIGHT_5X5, StrengthProgrammingStyle.STRAIGHT_STRENGTH_SETS) &&
         demand.item.styleVariant.isBlank() && demand.prescription.sets.map { it.copy(setIndex = 0) }.distinct().size == 1
@@ -260,7 +264,8 @@ internal class SplitAwareContinuityAllocation(private val prescriptions: Persona
             }
             return events
         }
-        for (parent in authorized.filter { it.continuity }.sortedWith(compareByDescending<AuthorizedSchedulingDemand> { it.item.priority }.thenBy { it.id })) {
+        for (parent in authorized.filter { it.continuity || it.exactB6AuthorizedForSplit }
+            .sortedWith(compareByDescending<AuthorizedSchedulingDemand> { it.item.priority }.thenBy { it.id })) {
             val eligible = ContinuitySplitPolicy.eligible(snapshot, parent)
             val equipment = snapshot.exercises[parent.item.stableKey]?.equipment.orEmpty().split('|', ',').map(String::trim).filter(String::isNotBlank)
             val permitted = parent.item.stableKey !in request?.excludedExerciseStableKeys.orEmpty() &&
@@ -296,9 +301,7 @@ internal class SplitAwareContinuityAllocation(private val prescriptions: Persona
             val needsSplit = full == null || full.values.count { it.isNotEmpty() } < minOf(days, 2)
             val split = if (needsSplit) {
                 performanceMetrics?.let { it.splitTrials++ }
-                trial(others + ContinuitySplitPolicy.chunks(parent, days) { count ->
-                    prescriptions.prescribe(snapshot, state.strengthIntent, parent.item.copy(targetSets = count), parent.item.style).text
-                })
+                trial(others + ContinuitySplitPolicy.chunks(parent, days))
             } else null
             val chooseSplit = split != null && (full == null || maximum(split) < maximum(full) && maxLower(split) <= maxLower(full))
             // An infeasible split never replaces the existing safe allocation; ties prefer full unsplit.

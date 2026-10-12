@@ -42,6 +42,7 @@ import com.training.trackplanner.data.personalized.TrainingDecisionPortfolioEngi
 import com.training.trackplanner.data.personalized.StimulusTrainingDecisionPortfolioEngine
 import com.training.trackplanner.data.personalized.StimulusTrainingDecisionPortfolioComparisonEngine
 import com.training.trackplanner.data.personalized.StimulusTargetPlanEngine
+import com.training.trackplanner.data.personalized.targetCoverageLedgerJson
 import com.training.trackplanner.data.personalized.StimulusTargetPlanComparisonEngine
 import com.training.trackplanner.data.personalized.StimulusTargetControlProgramAuditEngine
 import com.training.trackplanner.data.personalized.StimulusTargetCandidateSelector
@@ -700,6 +701,45 @@ internal class PersonalizedProgramPlanningService(
             state = context.state,
             request = resolved.request,
             physicalQualityCatalog = physicalQualityCatalog,
+            qualityCandidateRejectionReason = { target, item, _ ->
+                val targetOnlyPlan = qualityTaskTargetPlan.copy(
+                    qualityTargets = listOf(target), taskTargets = emptyList(), movementTargets = emptyList()
+                )
+                val targetId = "QUALITY:${target.quality.name}"
+                val candidate = com.training.trackplanner.data.personalized.StimulusSelectedCandidate(
+                    stableKey = item.stableKey,
+                    coveredTargetIds = setOf(targetId),
+                    primaryTargetId = targetId,
+                    selectionReasons = listOf("B5_CANDIDATE_REQUIRES_EXACT_B6_PROBE"),
+                    currentPrescriptionCompatibility = "B6_EXACT_CANDIDATE_PROBE",
+                    targetSetsFromExistingPrescription = item.targetSets,
+                    selectionRole = item.role
+                )
+                val candidatePlan = com.training.trackplanner.data.personalized.StimulusCandidateSelectionPlan(
+                    selectedCandidates = listOf(candidate),
+                    traces = emptyList(),
+                    materialDemand = com.training.trackplanner.data.personalized.MaterialDemand(
+                        candidates = listOf(item.copy(material = true)), deferred = emptyMap(), audit = emptyMap()
+                    )
+                )
+                val candidateContext = com.training.trackplanner.data.personalized.buildCanonicalPrescriptionContext(
+                    targetOnlyPlan, candidatePlan, context.snapshot, context.state.strengthIntent
+                )
+                val b6 = StimulusPrescriptionAuthorizationEngine(physicalQualityCatalog = physicalQualityCatalog).build(
+                    targetPlan = targetOnlyPlan,
+                    selectionPlan = candidatePlan,
+                    snapshot = context.snapshot,
+                    canonicalPrescriptionContext = candidateContext
+                ).authorizations.singleOrNull { it.targetId == targetId }
+                if (b6?.authorizedPrescription != null && b6.status in setOf(
+                        com.training.trackplanner.data.personalized.StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                        com.training.trackplanner.data.personalized.StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
+                        com.training.trackplanner.data.personalized.StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION,
+                        com.training.trackplanner.data.personalized.StimulusPrescriptionAuthorizationStatus.AUTHORIZED_USER_APPROVED_POWER_JUMP_POLICY
+                    )) null
+                else (b6?.reasonCodes.orEmpty() + b6?.status?.name.orEmpty()).filter(String::isNotBlank)
+                    .distinct().joinToString("|").ifBlank { "NO_EXACT_B6_AUTHORIZATION" }
+            },
             forcedCandidateByTarget = forcedCandidateByTarget
         )
         val taskProtocolPlan = com.training.trackplanner.data.personalized.TaskProtocolB6AuthorizationEngine.build(
@@ -974,7 +1014,15 @@ internal class PersonalizedProgramPlanningService(
             selected = experimental.items.map { "${it.exerciseStableKey}#${it.selectionRole}:${it.setPrescriptions.size}" },
             deferred = materializationAudits.filter { it.totalShortfallUnits > 0 }.map { "${it.targetId}:${it.totalShortfallUnits}" },
             nextStageInputs = JSONObject().put("realizationPlan", realizationPlan.toCompactJson())
-                .put("materializationAudits", materializationJson),
+                .put("materializationAudits", materializationJson)
+                .put("targetCoverageLedger", targetCoverageLedgerJson(
+                    targetPlan = residualTargetPlan,
+                    selectionPlan = executionSelectionPlan,
+                    authorizationPlan = authorizationPlan,
+                    program = experimental,
+                    finalAudit = experimentalAudit,
+                    materializationAudits = materializationAudits
+                )),
             startedNanos = realizationStarted
         )
         observe(ProductionGenerationPhase.B6_POST_MATERIALIZATION_COMPLETE, executionSelectionPlan, authorizationPlan)
@@ -1938,7 +1986,9 @@ internal class PersonalizedProgramPlanningService(
             authorizationPlan = experimental.authorizationPlan,
             taskProtocolPlan = experimental.taskProtocolPlan,
             materializationAudits = experimental.materializationAudits,
-            traceId = preflight.preparationId
+            traceId = preflight.preparationId,
+            requireActualTrainingDays = context.resolvedRequest.frequencyProvenance.source ==
+                com.training.trackplanner.data.personalized.PlanningFrequencySource.EXPLICIT_USER
         )
         GenerationDecisionTraceStore.record(
             preflight.preparationId, "FINAL_VALIDATION", "StimulusProductionExecutionValidator.validate",
@@ -1963,7 +2013,14 @@ internal class PersonalizedProgramPlanningService(
                     .put("unresolvedExerciseKeys", org.json.JSONArray(check.unresolvedExerciseKeys.sorted()))
             })).put("unmetAuthorizedSetUnits", executionValidation.unmetAuthorizedSetUnits)
                 .put("unresolvedMaterialDemandGaps", org.json.JSONArray(executionValidation.unresolvedMaterialDemandGaps.sorted()))
-                .put("deferredMaterialDemandGaps", org.json.JSONArray(executionValidation.deferredMaterialDemandGaps.sorted()))
+            .put("deferredMaterialDemandGaps", org.json.JSONArray(executionValidation.deferredMaterialDemandGaps.sorted()))
+                .put("trainingDayAudits", org.json.JSONArray(executionValidation.trainingDayAudits.map { audit -> JSONObject()
+                    .put("week", audit.week).put("requestedDays", audit.requestedDays)
+                    .put("scheduledDays", org.json.JSONArray(audit.scheduledDays))
+                    .put("actualTrainingDays", org.json.JSONArray(audit.actualTrainingDays))
+                    .put("emptyScheduledDays", org.json.JSONArray(audit.emptyScheduledDays))
+                    .put("complete", audit.complete)
+                }))
                 .put("userLoadCalibrationOwners", org.json.JSONArray(executionValidation.userLoadCalibrationOwners.map {
                     "${it.stableKey}#${it.selectionRole}"
                 })),
@@ -1981,7 +2038,12 @@ internal class PersonalizedProgramPlanningService(
                     add("PROGRAM_SCHEDULE_AUDIT:horizon=${experimental.program.request.durationWeeks}:" +
                         "days=${experimental.program.request.weeklyTrainingDays}:" +
                         "keys=${experimental.program.weekDaySchedule.keys.sorted().joinToString("+")}:" +
-                        "schedule=${experimental.program.weekDaySchedule.toSortedMap().entries.joinToString(";") { (week, days) -> "$week=${days.sorted().joinToString("+")}" }}")
+                            "schedule=${experimental.program.weekDaySchedule.toSortedMap().entries.joinToString(";") { (week, days) -> "$week=${days.sorted().joinToString("+")}" }}")
+                    executionValidation.trainingDayAudits.filterNot { it.complete }.forEach { audit ->
+                        add("ACTUAL_TRAINING_DAYS_WEEK_${audit.week}:requested=${audit.requestedDays}:" +
+                            "scheduled=${audit.scheduledDays.joinToString("+")}:actual=${audit.actualTrainingDays.joinToString("+")}:" +
+                            "empty=${audit.emptyScheduledDays.joinToString("+")}")
+                    }
                     executionValidation.tissueRecoveryChecks.filterNot { it.feasible }.forEach { check ->
                         add("TISSUE_CONDITIONAL_WEEK_${check.week}:${check.conditionalOnTypedB6Execution}")
                     }

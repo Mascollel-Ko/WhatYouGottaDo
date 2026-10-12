@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.81.0 |
+| Protocol version | 3.82.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.22 |
+| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.23 |
 | Last audited commit | aa84e3e72181f104b2dddd28e136b70c73620f7f |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
@@ -1523,4 +1523,13 @@ Post-audit boundary notes
 - B2 physical set rows and weekly equivalent stimulus units remain distinct. Weeks with no confirmed set row are marked as unobserved when the source cannot distinguish no training from unrecorded training. Candidate personal records contain only bounded recent set facts and stable exercise keys; local record IDs are not exported.
 - The generated `generation_diagnostic.json` uses schema `generation-decision-trace-v1` and includes the full structured event trace. `generation_summary.txt` renders a Korean, ten-section report of the same attempt. The in-app **생성 진단 내보내기** action shares both cache-backed files through Android's chooser; no external upload occurs. Export removes account/authentication fields, personal identifiers, and local persistence IDs.
 - Generation duration uses monotonic timestamps at the actual preparation and generation boundaries; each traced phase carries its own elapsed time. The diagnostic ring is in-memory and bounded to the latest eight attempts, and exporting does not modify Room rows, program persistence, CSV, or cloud-backup contracts.
-- This is observation-only: B1–B6 policies, dose limits, candidate ranking, prescription authority, splitting/placement, OFI/tissue limits, B7/B8/B9 routing, app version `0.5.1.5`, planner runtime `RECORD_BASED_PLANNER_0.15.22_KOTLIN_1`, and Room schema `38` remain unchanged.
+- C38.4 itself was observation-only. The subsequent C38.5 execution correction is documented below; app version `0.5.1.5` and Room schema `38` remain unchanged.
+
+### C38.5 — B4/B5/B6 executable weekly coverage (protocol 3.82.0)
+
+- B4 target coverage is exported as a non-additive target ledger. It keeps target-specific equivalent stimulus separate from unique physical set totals, retains numeric-authority and personal-baseline evidence, and reports B5 owners, B6 authorization, realized contribution, and shortfall reason per target.
+- B5 applies the exact B6 feasibility probe while ranking quality candidates. If the best-ranked candidate has no safe exact authorization, its reason is recorded and deterministic selection continues to the next eligible candidate; an approved prescription is not synthesized to rescue a rejected owner.
+- Canonical B5/B6 execution no longer funds a historical continuity lane that its own materialization path suppresses. The continuity request remains in diagnostics, while only exact B6-authorized material candidates receive the released finite capacity. The allocator cannot exceed a candidate's requested authorized set count; the trace records requested/funded continuity and released units.
+- Exact B6-authorized new resistance prescriptions may be considered for splitting when their per-set prescription is homogeneous and existing recovery, spacing, exercise, session-time, OFI, and tissue limits pass. Chunk rows retain the original exact set prescriptions; splitting only changes day placement and cannot change weekly set count or prescription attributes.
+- Explicit requested frequency validation counts days with at least one real, prescribed physical set. An empty scheduled day or fewer active days than requested produces a typed generation rejection with requested/actual/empty-day details before an ordinary incomplete draft is returned. It does not invoke a legacy fallback.
+- Safety authority remains at B6 and independent production execution validation. Continuity release does not increase set requests, change B6 load/rep/RPE decisions, weaken recovery limits, or convert B7/B8 comparison status into an execution gate. B7/B8 remain diagnostics and B9 source reporting remains unchanged.

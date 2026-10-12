@@ -19,7 +19,8 @@ internal data class StimulusProductionExecutionValidation(
     val unmetAuthorizedSetUnits: Int = 0,
     val unresolvedMaterialDemandGaps: Set<String> = emptySet(),
     val deferredMaterialDemandGaps: Set<String> = emptySet(),
-    val userLoadCalibrationOwners: List<StimulusPrescriptionOwnerIdentity> = emptyList()
+    val userLoadCalibrationOwners: List<StimulusPrescriptionOwnerIdentity> = emptyList(),
+    val trainingDayAudits: List<StimulusWeekTrainingDayAudit> = emptyList()
 ) {
     init {
         require(reasonCodes == reasonCodes.distinct().sorted())
@@ -56,6 +57,33 @@ internal data class StimulusProductionTissueRecoveryCheck(
     val unresolvedExerciseKeys: Set<String>
 )
 
+internal data class StimulusWeekTrainingDayAudit(
+    val week: Int,
+    val requestedDays: Int,
+    val scheduledDays: List<Int>,
+    val actualTrainingDays: List<Int>,
+    val emptyScheduledDays: List<Int>
+) {
+    val complete: Boolean get() = scheduledDays.size == requestedDays && actualTrainingDays.size == requestedDays && emptyScheduledDays.isEmpty()
+}
+
+internal object StimulusTrainingDayCoverage {
+    fun assess(program: GeneratedProgramSkeleton): List<StimulusWeekTrainingDayAudit> =
+        program.weekDaySchedule.toSortedMap().map { (week, scheduled) ->
+            val actual = program.items.asSequence()
+                .filter { it.weekNumber == week && it.setCount > 0 && it.setPrescriptions.size >= it.setCount }
+                .map(ProgramSkeletonItem::dayOfWeek)
+                .distinct().sorted().toList()
+            StimulusWeekTrainingDayAudit(
+                week = week,
+                requestedDays = program.request.weeklyTrainingDays,
+                scheduledDays = scheduled.distinct().sorted(),
+                actualTrainingDays = actual,
+                emptyScheduledDays = scheduled.distinct().filterNot { it in actual }.sorted()
+            )
+        }
+}
+
 internal class StimulusProductionExecutionRejectedException(
     val reasonCodes: List<String>,
     val detailCodes: List<String> = emptyList(),
@@ -87,7 +115,8 @@ internal class StimulusProductionExecutionValidator(
         authorizationPlan: StimulusPrescriptionAuthorizationPlan,
         taskProtocolPlan: TaskProtocolAuthorizationPlan,
         materializationAudits: List<StimulusPrescriptionMaterializationAudit>,
-        traceId: String? = null
+        traceId: String? = null,
+        requireActualTrainingDays: Boolean = true
     ): StimulusProductionExecutionValidation {
         val failures = sortedSetOf<String>()
         val rowsByOwner = program.items.groupBy {
@@ -117,6 +146,11 @@ internal class StimulusProductionExecutionValidator(
 
         val scheduleStarted = System.nanoTime()
         val itemsByWeekDay = program.items.groupBy { it.weekNumber to it.dayOfWeek }
+        val trainingDayAudits = StimulusTrainingDayCoverage.assess(program)
+        if (requireActualTrainingDays) trainingDayAudits.forEach { audit ->
+            if (!audit.complete) failures += "ACTUAL_TRAINING_DAYS_MISMATCH"
+            if (audit.emptyScheduledDays.isNotEmpty()) failures += "SCHEDULED_DAYS_EMPTY"
+        }
         program.weekDaySchedule.forEach { (week, days) ->
             val frequencyMatches = days.size == program.request.weeklyTrainingDays
             val uniqueAndValidDays = days.size == days.distinct().size && days.all { it in 1..7 }
@@ -128,6 +162,10 @@ internal class StimulusProductionExecutionValidator(
             if (!weekWithinHorizon) failures += "SCHEDULE_WEEK_OUTSIDE_PROGRAM_HORIZON"
             scheduleChecks.put(JSONObject().put("week", week).put("requestedDays", program.request.weeklyTrainingDays)
                 .put("scheduledDays", JSONArray(days.sorted())).put("frequencyMatches", frequencyMatches)
+                .put("actualTrainingDays", JSONArray(trainingDayAudits.firstOrNull { it.week == week }?.actualTrainingDays.orEmpty()))
+                .put("emptyScheduledDays", JSONArray(trainingDayAudits.firstOrNull { it.week == week }?.emptyScheduledDays.orEmpty()))
+                .put("actualTrainingDayCount", trainingDayAudits.firstOrNull { it.week == week }?.actualTrainingDays?.size ?: 0)
+                .put("actualTrainingDaysMatchRequest", trainingDayAudits.firstOrNull { it.week == week }?.complete == true)
                 .put("uniqueAndValidDays", uniqueAndValidDays).put("weekWithinProgramHorizon", weekWithinHorizon))
         }
         val completeScheduleHorizon = program.weekDaySchedule.keys == (1..program.request.durationWeeks).toSet()
@@ -138,12 +176,19 @@ internal class StimulusProductionExecutionValidator(
             inputs = JSONObject().put("requestedWeeklyTrainingDays", program.request.weeklyTrainingDays)
                 .put("durationWeeks", program.request.durationWeeks).put("programRowCount", program.items.size),
             criteria = JSONObject().put("supportedDays", "2..5").put("scheduledDayCountMustMatchRequest", true)
+                .put("actualApprovedTrainingDayCountMustMatchRequest", true).put("zeroSetRowsDoNotCountAsTrainingDays", true)
                 .put("uniqueDaysInRange1to7", true).put("completeWeekHorizon", true),
             comparisons = JSONObject().put("checks", scheduleChecks).put("completeScheduleHorizon", completeScheduleHorizon)
                 .put("projectionErrors", JSONArray(projectionErrors)),
-            decision = if (failures.none { it in setOf("WEEKLY_FREQUENCY_OUTSIDE_SUPPORTED_RANGE", "WEEKLY_FREQUENCY_SCHEDULE_MISMATCH", "INVALID_WEEKLY_TRAINING_SCHEDULE", "SCHEDULE_WEEK_OUTSIDE_PROGRAM_HORIZON", "WEEKLY_TRAINING_SCHEDULE_INCOMPLETE", "PROGRAM_PROJECTION_INVALID") }) "SCHEDULE_VALID" else "SCHEDULE_REJECTED",
-            reasonCodes = failures.filter { it in setOf("WEEKLY_FREQUENCY_OUTSIDE_SUPPORTED_RANGE", "WEEKLY_FREQUENCY_SCHEDULE_MISMATCH", "INVALID_WEEKLY_TRAINING_SCHEDULE", "SCHEDULE_WEEK_OUTSIDE_PROGRAM_HORIZON", "WEEKLY_TRAINING_SCHEDULE_INCOMPLETE", "PROGRAM_PROJECTION_INVALID") },
-            nextStageInputs = JSONObject().put("completeScheduleHorizon", completeScheduleHorizon), startedNanos = scheduleStarted)
+            decision = if (failures.none { it in setOf("WEEKLY_FREQUENCY_OUTSIDE_SUPPORTED_RANGE", "WEEKLY_FREQUENCY_SCHEDULE_MISMATCH", "INVALID_WEEKLY_TRAINING_SCHEDULE", "SCHEDULE_WEEK_OUTSIDE_PROGRAM_HORIZON", "WEEKLY_TRAINING_SCHEDULE_INCOMPLETE", "PROGRAM_PROJECTION_INVALID", "ACTUAL_TRAINING_DAYS_MISMATCH", "SCHEDULED_DAYS_EMPTY") }) "SCHEDULE_VALID" else "SCHEDULE_REJECTED",
+            reasonCodes = failures.filter { it in setOf("WEEKLY_FREQUENCY_OUTSIDE_SUPPORTED_RANGE", "WEEKLY_FREQUENCY_SCHEDULE_MISMATCH", "INVALID_WEEKLY_TRAINING_SCHEDULE", "SCHEDULE_WEEK_OUTSIDE_PROGRAM_HORIZON", "WEEKLY_TRAINING_SCHEDULE_INCOMPLETE", "PROGRAM_PROJECTION_INVALID", "ACTUAL_TRAINING_DAYS_MISMATCH", "SCHEDULED_DAYS_EMPTY") },
+            nextStageInputs = JSONObject().put("completeScheduleHorizon", completeScheduleHorizon)
+                .put("trainingDayAudits", JSONArray(trainingDayAudits.map { audit -> JSONObject()
+                    .put("week", audit.week).put("requestedDays", audit.requestedDays)
+                    .put("scheduledDays", JSONArray(audit.scheduledDays))
+                    .put("actualTrainingDays", JSONArray(audit.actualTrainingDays))
+                    .put("emptyScheduledDays", JSONArray(audit.emptyScheduledDays)).put("complete", audit.complete)
+                })), startedNanos = scheduleStarted)
         val sessionTimeStarted = System.nanoTime()
         itemsByWeekDay.forEach { (weekDay, rows) ->
             val allowedDays = program.weekDaySchedule[weekDay.first]
@@ -571,7 +616,8 @@ internal class StimulusProductionExecutionValidator(
             unmetAuthorizedSetUnits = unmet,
             unresolvedMaterialDemandGaps = unresolvedGaps,
             deferredMaterialDemandGaps = deferredGaps,
-            userLoadCalibrationOwners = calibrationOwners
+            userLoadCalibrationOwners = calibrationOwners,
+            trainingDayAudits = trainingDayAudits
         )
     }
 }

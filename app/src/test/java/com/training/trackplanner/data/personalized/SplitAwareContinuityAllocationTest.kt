@@ -60,10 +60,22 @@ class SplitAwareContinuityAllocationTest {
     @Test fun `nonuniform ordered prescriptions and noncontinuity are ineligible`() {
         val parent = parent(5)
         assertFalse(ContinuitySplitPolicy.eligible(snapshot, parent.copy(continuity = false)))
+        assertTrue(ContinuitySplitPolicy.eligible(snapshot, parent.copy(continuity = false, exactB6AuthorizedForSplit = true)))
         assertFalse(ContinuitySplitPolicy.eligible(snapshot, parent.copy(prescription = parent.prescription.copy(sets =
             parent.prescription.sets.mapIndexed { index, set -> set.copy(weightKg = index * 10.0) }))))
         val performance = snapshot.copy(metadata = snapshot.metadata.mapValues { (_, meta) -> meta.copy(activityKind = "STRUCTURED_BADMINTON_DRILL") })
         assertFalse(ContinuitySplitPolicy.eligible(performance, parent))
+    }
+
+    @Test fun `new B6 authorized eight set prescription can split without changing prescription`() {
+        val approved = parent(8).copy(continuity = false, exactB6AuthorizedForSplit = true)
+        val result = improve(approved, days = 2)
+        val atoms = result.days.values.flatten()
+        assertEquals(listOf(4, 4), atoms.map { it.timed.prescription.sets.size }.sorted())
+        assertEquals(8, atoms.sumOf { it.timed.prescription.sets.size })
+        assertEquals(approved.prescription.sets.map { it.copy(setIndex = 0) },
+            atoms.sortedBy { it.origin.splitChunkIndex }.flatMap { it.timed.prescription.sets }.map { it.copy(setIndex = 0) })
+        assertTrue(atoms.all { it.timed.prescription.weightSource == approved.prescription.weightSource })
     }
     @Test fun `one to three preserve existing behavior`() {
         for (count in listOf(1, 2, 3)) {

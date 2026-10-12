@@ -29,12 +29,12 @@ class StimulusProductionQualityAuditTest {
             StimulusProductionCoverageAuditTest.CoverageSpec(
                 "c38_strength_reviewed", TrainableQuality.STRENGTH, "barbell_back_squat",
                 "STRENGTH_GAIN", ProgramGoal.STRENGTH, StrengthIntent.STRENGTH_PRIORITY,
-                false, "reviewed", 3, 60, emptySet(), isolateOwner = true
+                false, "reviewed", 3, 60, emptySet(), isolateOwner = true, explicitWeeklyDays = false
             ),
             StimulusProductionCoverageAuditTest.CoverageSpec(
                 "c38_hypertrophy_reviewed", TrainableQuality.HYPERTROPHY, "cable_rear_delt_fly",
                 "HYPERTROPHY_PHYSIQUE", ProgramGoal.BODYBUILDING, StrengthIntent.HYPERTROPHY_PRIORITY,
-                false, "reviewed", 3, 60, emptySet(), isolateOwner = true
+                false, "reviewed", 3, 60, emptySet(), isolateOwner = true, explicitWeeklyDays = false
             )
         )
         cases.forEach { spec ->
@@ -539,7 +539,7 @@ class StimulusProductionQualityAuditTest {
                 sportStrengthRatio = "AUTO", periodizationType = ProgramPeriodizationType.AUTO,
                 durationWeeks = 2, excludedExerciseStableKeys = excluded
             )
-            val constraints = PersonalizedGenerationConstraints(goal, 3, 2, 60)
+            val constraints = PersonalizedGenerationConstraints(goal, null, 2, 60)
             val preflight = repository.preparePersonalizedProgram(request, constraints, cutoff)
             val answers = PersonalizedPlanningAnswers(preflight.questions.associate { question -> question.id to when (question.id) {
                 QUESTION_STRENGTH_INTENT -> if (spec.quality == TrainableQuality.STRENGTH) StrengthIntent.STRENGTH_PRIORITY.name else StrengthIntent.HYPERTROPHY_PRIORITY.name

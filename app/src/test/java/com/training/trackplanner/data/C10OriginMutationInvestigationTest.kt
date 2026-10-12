@@ -20,7 +20,7 @@ class C10OriginMutationInvestigationTest {
         val spec = StimulusProductionCoverageAuditTest.CoverageSpec(
             "reviewed_hypertrophy_isolated", TrainableQuality.HYPERTROPHY, "cable_rear_delt_fly",
             "HYPERTROPHY_PHYSIQUE", ProgramGoal.BODYBUILDING, StrengthIntent.HYPERTROPHY_PRIORITY,
-            false, "reviewed", 3, 60, emptySet(), true
+            false, "reviewed", 3, 60, emptySet(), true, explicitWeeklyDays = false
         )
         val result = requireNotNull(StimulusProductionCoverageAuditTest().runCase(spec))
         val comparison = requireNotNull(result.comparison)

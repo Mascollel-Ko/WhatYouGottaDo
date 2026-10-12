@@ -791,6 +791,14 @@ class PersonalizedProgramBuilder(
                     targetSets = count, material = false)
             }
         val continuityDemand = resistanceContinuityDemand + performanceContinuity.sumOf(PlannedExercise::targetSets)
+        // In canonical B5/B6 execution, continuity is only a historical demand signal. The
+        // canonical path later suppresses incumbent continuity rows and materializes only
+        // exact B6-authorized owners, so reserving those same units here would consume capacity
+        // without producing a row. Keep the requested amount for diagnostics and capacity
+        // context, but do not fund a lane that this execution path will discard.
+        val canonicalB5Execution = exactPrescriptionAuthorizationProvider != null &&
+            materialDemandOverride != null && regionalTargetPlan == null
+        val fundedContinuityDemand = if (canonicalB5Execution) 0 else continuityDemand
         val anchorWeights = state.anchors.associate { anchor ->
             val weeks = (state.styleFeaturesByAnchor[anchor.stableKey]?.weeksObserved ?: 1).coerceAtLeast(1)
             val transition = transitions.getValue(anchor.stableKey)
@@ -868,26 +876,29 @@ class PersonalizedProgramBuilder(
                 .put("recoveryConstraint", envelope.recoveryConstraint).put("courtInterferenceContext", envelope.courtInterferenceContext)
                 .put("usefulDemandUnits", envelope.usefulDemandUnits).put("scheduleFeasibleUnits", envelope.scheduleFeasibleUnits)
                 .put("finalControllableUnits", envelope.finalControllableUnits)), startedNanos = capacityStarted)
-        // The canonical finite allocator reserves the established incumbent
-        // continuity.  The independent resistance target is recorded as a
-        // volume authorization and does not turn unused budget into filler.
-        val coreReserve = if (state.anchors.isEmpty()) 0 else
-            minOf(continuityDemand, state.anchors.size).coerceAtLeast(1)
+        // Legacy/noncanonical allocation reserves incumbent continuity. Canonical B5/B6 has
+        // already replaced that lane with exact target owners and suppresses continuity rows;
+        // its units therefore cannot be reserved again here.
+        val coreReserve = if (state.anchors.isEmpty() || canonicalB5Execution) 0 else
+            minOf(fundedContinuityDemand, state.anchors.size).coerceAtLeast(1)
+        // The generic allocator can grow flexible minimums toward its shared-capacity target.
+        // Canonical B5 values are already exact B6 set counts, so any growth here would create
+        // unauthorized sets. Keep the allocator subset-only for this production path.
+        val fundedShare = if (canonicalB5Execution) 0.0 else share
         val capacity = if (canonicalB5StableKeys.isNotEmpty()) {
-            // Keep the canonical planner's complete continuity allocation alongside B5/B6
-            // demand when the measured session-time envelope allows it. B5 owners that replace
-            // a continuity key are removed from that lane below, so their target prescription
-            // occupies the same exercise demand instead of displacing unrelated owners.
+            // Historical continuity remains part of the useful-demand ceiling. The canonical
+            // allocator below funds only exact B5/B6 owners because this path suppresses the
+            // incumbent-continuity materialization lane.
             minOf(envelope.finalControllableUnits, continuityDemand + materialRequested)
         } else if (envelope.historicalSessionObservationCount < 4)
             minOf(envelope.finalControllableUnits,
                 if (capacityExpanded) maxOf(continuityDemand, coreReserve + (materialCandidates.firstOrNull()?.targetSets ?: 0)) else continuityDemand)
             else envelope.finalControllableUnits
         val bounded = regionalTargetPlan?.let { BoundedMaterialDemandAllocation(snapshot, state, request, materialCandidates,
-            it, generationPrescriptions, capacity, continuityDemand, coreReserve, activeCanonicalFailureEmitter,
+            it, generationPrescriptions, capacity, fundedContinuityDemand, coreReserve, activeCanonicalFailureEmitter,
             exactPrescriptionAuthorizationProvider) }
         val finiteStarted = System.nanoTime()
-        val finite = bounded?.finite ?: FiniteExecutionAllocator.allocate(capacity, continuityDemand, materialCandidates.map(PlannedExercise::targetSets), share, coreReserve,
+        val finite = bounded?.finite ?: FiniteExecutionAllocator.allocate(capacity, fundedContinuityDemand, materialCandidates.map(PlannedExercise::targetSets), fundedShare, coreReserve,
             materialCandidates.indices.filterTo(mutableSetOf()) {
                 val item = materialCandidates[it]
                 snapshot.activityKind(item.stableKey) == PlannedActivityKind.RESISTANCE &&
@@ -895,12 +906,17 @@ class PersonalizedProgramBuilder(
             }, materialCandidates.map { StimulusPrescriptionOwnerIdentity(it.stableKey, it.role) })
         GenerationDecisionTraceStore.record(traceId, "FINITE_EXECUTION_ALLOCATOR", if (bounded != null) "BoundedMaterialDemandAllocation.finite" else "FiniteExecutionAllocator.allocate",
             inputs = JSONObject().put("capacity", capacity).put("continuityDemand", continuityDemand)
+                .put("fundedContinuityDemand", fundedContinuityDemand).put("canonicalB5Execution", canonicalB5Execution)
                 .put("requestedMaterialSets", materialCandidates.sumOf { it.targetSets }).put("coreReserve", coreReserve),
-            criteria = JSONObject().put("finiteCapacity", true).put("continuityShare", share),
-            comparisons = JSONObject().put("continuityBefore", continuityDemand).put("continuityAfter", finite.continuity)
+            criteria = JSONObject().put("finiteCapacity", true).put("continuityShare", fundedShare)
+                .put("canonicalB5ReservesDiscardedContinuity", false).put("canonicalMaterialSubsetOnly", canonicalB5Execution),
+            comparisons = JSONObject().put("continuityRequested", continuityDemand).put("continuityFunded", fundedContinuityDemand)
+                .put("continuityReleasedToAuthorizedMaterial", (continuityDemand - fundedContinuityDemand).coerceAtLeast(0))
+                .put("continuityBefore", fundedContinuityDemand).put("continuityAfter", finite.continuity)
                 .put("materialBefore", materialCandidates.sumOf { it.targetSets }).put("materialAfter", finite.material.sum())
                 .put("materialReduction", (materialCandidates.sumOf { it.targetSets } - finite.material.sum()).coerceAtLeast(0)),
-            decision = "FINITE_ALLOCATION_COMPLETE", reasonCodes = finite.ownerAllocationProvenance.map { it.action.name }.distinct(),
+            decision = "FINITE_ALLOCATION_COMPLETE", reasonCodes = (finite.ownerAllocationProvenance.map { it.action.name } +
+                if (canonicalB5Execution && continuityDemand > 0) listOf("CANONICAL_CONTINUITY_HAS_NO_EXACT_B5_B6_OWNER_RESERVE_RELEASED") else emptyList()).distinct(),
             selected = finite.material.mapIndexedNotNull { index, count -> count.takeIf { it > 0 }?.let { "${materialCandidates[index].stableKey}#${materialCandidates[index].role}:$it" } },
             deferred = finite.material.mapIndexedNotNull { index, count -> (materialCandidates[index].targetSets - count).takeIf { it > 0 }?.let { "${materialCandidates[index].stableKey}#${materialCandidates[index].role}:$it" } },
             nextStageInputs = JSONObject().put("finite", JSONObject().put("continuity", finite.continuity)
@@ -933,8 +949,6 @@ class PersonalizedProgramBuilder(
         val canonicalB5Owners = materialDemandOverride?.candidates?.mapTo(linkedSetOf()) {
             StimulusPrescriptionOwnerIdentity(it.stableKey, it.role)
         }.orEmpty()
-        val canonicalB5Execution = exactPrescriptionAuthorizationProvider != null &&
-            materialDemandOverride != null && regionalTargetPlan == null
         val continuity = if (canonicalB5Execution) emptyList() else
             (authorizedOverride?.filter { it.continuity }?.map { it.item } ?: (continuityPlanner.select(state, transitions, allocations, days) +
             performanceContinuity.mapNotNull { item -> incumbentAllocations[item.stableKey]?.let { item.copy(targetSets = it) } }))
@@ -1047,9 +1061,11 @@ class PersonalizedProgramBuilder(
                 when (val resolution = exactPrescriptionAuthorizationProvider.resolveOwnerPrescription(item)) {
                     is ExactOwnerPrescriptionResolution.ExcludeConflictingAddition -> emptyList()
                     is ExactOwnerPrescriptionResolution.PreserveIncumbent ->
-                        listOf(AuthorizedSchedulingDemand("authorized_$index", item, resolution.prescription, index < continuity.size))
+                        listOf(AuthorizedSchedulingDemand("authorized_$index", item, resolution.prescription, index < continuity.size,
+                            exactB6AuthorizedForSplit = item.material && StimulusPrescriptionOwnerIdentity(item.stableKey, item.role) in canonicalB5Owners))
                     is ExactOwnerPrescriptionResolution.Authorized ->
-                        listOf(AuthorizedSchedulingDemand("authorized_$index", item, resolution.prescription, index < continuity.size))
+                        listOf(AuthorizedSchedulingDemand("authorized_$index", item, resolution.prescription, index < continuity.size,
+                            exactB6AuthorizedForSplit = item.material && StimulusPrescriptionOwnerIdentity(item.stableKey, item.role) in canonicalB5Owners))
                     ExactOwnerPrescriptionResolution.NoExecutableAuthority -> emptyList()
                     // Candidate selection and placement demand do not grant prescription
                     // authority. New rows originating in material demand were already removed

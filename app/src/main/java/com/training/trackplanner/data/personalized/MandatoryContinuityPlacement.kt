@@ -14,9 +14,7 @@ internal class MandatoryContinuityPlacement(private val snapshot: PlanningHistor
         val failures = linkedSetOf<SplitPlacementFailure>()
         val ofiWarnings = linkedSetOf<SplitOfiWarning>()
         val others = (1..days).associateWith { day -> current[day].orEmpty().filter { it.origin.authorizedDemandId != parent.id } }
-        val chunks = ContinuitySplitPolicy.chunks(parent, days) { count ->
-            prescriptions.prescribe(snapshot, state.strengthIntent, parent.item.copy(targetSets = count), parent.item.style).text
-        }
+        val chunks = ContinuitySplitPolicy.chunks(parent, days)
         val actualDays = RecordBasedReviewedPolicy.defaultSchedule(1, days).getValue(1).sorted()
         val dayLoads = mutableMapOf<List<com.training.trackplanner.data.ProgramSkeletonItem>, StandaloneDayLoad>()
         val tissueFeasibility = mutableMapOf<List<com.training.trackplanner.data.ProgramSkeletonItem>, Boolean>()

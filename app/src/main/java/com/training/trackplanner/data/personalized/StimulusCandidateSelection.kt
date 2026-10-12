@@ -303,6 +303,8 @@ class StimulusTargetCandidateSelector(
         excludedStableKeys: Set<String> = emptySet(),
         /** Exact B6 feasibility probe for a B5 regional owner. A rejection lets B5 inspect the next ranked candidate. */
         movementCandidateRejectionReason: (StimulusMovementTarget, String, String, Int) -> String? = { _, _, _, _ -> null },
+        /** Exact B6 feasibility probe for a quality owner. Rejections advance the deterministic B5 candidate order. */
+        qualityCandidateRejectionReason: (StimulusQualityTarget, PlannedExercise, PlannedPrescription) -> String? = { _, _, _ -> null },
         /** Explicit preview-choice override; it remains subject to normal B5 eligibility and B6 checks. */
         forcedCandidateByTarget: Map<String, String> = emptyMap()
     ): StimulusCandidateSelectionPlan {
@@ -556,6 +558,13 @@ class StimulusTargetCandidateSelector(
                     exactB4PowerJumpDecision
                 )
                 if (result is MaterializedCandidateResult.Success) {
+                    val quality = (intent as? StimulusSelectionTarget.Quality)?.target
+                    val b6Rejection = quality?.let { qualityCandidateRejectionReason(it, result.value.item, result.value.prescription) }
+                    if (b6Rejection != null) {
+                        rejections[candidate.key] = "B6_REJECTED:$b6Rejection"
+                        rejectionRoles[candidate.key] = roleFor(intent)
+                        continue
+                    }
                     materialized = result.value
                     break
                 }

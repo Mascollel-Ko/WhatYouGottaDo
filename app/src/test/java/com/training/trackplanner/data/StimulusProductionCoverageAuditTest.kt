@@ -151,7 +151,8 @@ class StimulusProductionCoverageAuditTest {
             history = "mixed",
             days = 2,
             minutes = 60,
-            equipment = setOf("MACHINE", "CABLE")
+            equipment = setOf("MACHINE", "CABLE"),
+            explicitWeeklyDays = false
         )
         val result = requireNotNull(runCase(
             spec,
@@ -196,7 +197,8 @@ class StimulusProductionCoverageAuditTest {
             days = 3,
             minutes = 60,
             equipment = setOf("MACHINE", "CABLE"),
-            isolateOwner = true
+            isolateOwner = true,
+            explicitWeeklyDays = false
         )
         var canonicalPlanning: CanonicalStimulusPlanningResult? = null
         val result = requireNotNull(runCase(spec, observeCanonicalPlanning = { canonicalPlanning = it }))
@@ -349,7 +351,33 @@ class StimulusProductionCoverageAuditTest {
                     .filter { it.authorizedPrescription == null && it.executionAuthority.name == "CONDITIONAL_ON_UNPERSISTED_EFFORT" }
                     .mapNotNull { it.owner?.let { owner -> "${owner.stableKey}#${owner.selectionRole}" } }
                     .distinct().sorted()
+                val b5CandidatesDeniedByB6 = c30SelectionPlanByCase[spec.label]?.traces.orEmpty()
+                    .flatMap { trace -> trace.candidateRejectionReasons.map { (stableKey, reason) -> "$stableKey:$reason" } }
+                    .filter { it.contains(":B6_REJECTED:") }
+                    .distinct().sorted()
                 if (
+                    productionFailure?.reasonCodes?.contains("NO_EXECUTABLE_PLANNING_DEMAND") == true &&
+                    !hasNumericB4Demand && c30SelectionPlanByCase[spec.label]?.selectedCandidates.isNullOrEmpty()
+                ) {
+                    executionFailuresByCase[spec.label] = requireNotNull(productionFailure)
+                    executionB4DemandByCase[spec.label] = false
+                    executionB6AuthorizationByCase[spec.label] = hasExecutableB6
+                    executionBlockersByCase[spec.label] = "NO_NUMERIC_B4_AUTHORITY"
+                    executionInputNeedsByCase[spec.label] = listOf("B4_TARGET_NUMERIC_AUTHORITY_UNAVAILABLE")
+                    null
+                } else if (
+                    productionFailure?.reasonCodes?.contains("NO_EXECUTABLE_PLANNING_DEMAND") == true &&
+                    !hasExecutableB6 && b5CandidatesDeniedByB6.isNotEmpty()
+                ) {
+                    executionFailuresByCase[spec.label] = requireNotNull(productionFailure)
+                    executionB4DemandByCase[spec.label] = hasNumericB4Demand
+                    executionB6AuthorizationByCase[spec.label] = false
+                    executionBlockersByCase[spec.label] = "B6_INPUT_OR_AUTHORITY_REQUIRED"
+                    executionInputNeedsByCase[spec.label] = listOf(
+                        "B6_USER_EFFORT_OR_LOAD_CALIBRATION_REQUIRED:${b5CandidatesDeniedByB6.joinToString(",")}"
+                    )
+                    null
+                } else if (
                     productionFailure?.reasonCodes?.contains("NO_EXECUTABLE_PLANNING_DEMAND") == true &&
                     !hasExecutableB6 && conditionalB6Owners.isNotEmpty()
                 ) {
@@ -372,6 +400,17 @@ class StimulusProductionCoverageAuditTest {
                     executionBlockersByCase[spec.label] = "DAY_OFI_RECOVERY_CAPACITY_UNSATISFIED"
                     executionInputNeedsByCase[spec.label] = emptyList()
                     null
+                } else if (
+                    productionFailure != null && hasNumericB4Demand &&
+                    "ACTUAL_TRAINING_DAYS_MISMATCH" in productionFailure.reasonCodes &&
+                    productionFailure.detailCodes.any { it.startsWith("ACTUAL_TRAINING_DAYS_WEEK_") }
+                ) {
+                    executionFailuresByCase[spec.label] = productionFailure
+                    executionB4DemandByCase[spec.label] = true
+                    executionB6AuthorizationByCase[spec.label] = hasExecutableB6
+                    executionBlockersByCase[spec.label] = "REQUESTED_TRAINING_DAYS_UNFILLED"
+                    executionInputNeedsByCase[spec.label] = emptyList()
+                    null
                 } else throw failure
             }
             if (result == null) {
@@ -385,14 +424,27 @@ class StimulusProductionCoverageAuditTest {
                             assertTrue(executionInputNeedsByCase.getValue(spec.label).single()
                                 .startsWith("B6_USER_EFFORT_OR_LOAD_CALIBRATION_REQUIRED:"))
                         }
+                        "NO_NUMERIC_B4_AUTHORITY" -> {
+                            assertTrue(failure.reasonCodes.contains("NO_EXECUTABLE_PLANNING_DEMAND"))
+                            assertTrue(executionInputNeedsByCase.getValue(spec.label).contains("B4_TARGET_NUMERIC_AUTHORITY_UNAVAILABLE"))
+                            assertFalse("no numeric B4 authority means no physical set can be fabricated",
+                                executionB4DemandByCase.getValue(spec.label))
+                        }
                         "DAY_OFI_RECOVERY_CAPACITY_UNSATISFIED" -> {
                             assertTrue(failure.reasonCodes.contains("DAY_OFI_OR_RECOVERY_LIMIT_EXCEEDED"))
                             assertTrue(failure.detailCodes.any { it.startsWith("DAY_OFI_WEEK_") })
                             assertFalse("execution rejection happens before comparison CONTROL is built",
                                 c29PhaseDurationsByCase[spec.label].orEmpty().keys.any { it.endsWith("_to_CONTROL_BUILD") })
                             if (spec.label == "persona2_recent") {
-                                assertTrue("the missing Strength load/effort authority is recorded explicitly",
-                                    failure.detailCodes.any {
+                                val benchRejectionRecordedByB5 = c30SelectionPlanByCase[spec.label]?.traces.orEmpty()
+                                    .any { trace -> trace.candidateRejectionReasons.any { (stableKey, reason) ->
+                                        stableKey == "barbell_bench_press" && reason.startsWith("B6_REJECTED:")
+                                    } }
+                                val benchNeedsUserLoadCalibration = c30AuthorizationPlanByCase[spec.label]?.authorizations.orEmpty()
+                                    .any { authorization -> authorization.owner?.stableKey == "barbell_bench_press" &&
+                                        authorization.executionAuthority.name == "REQUIRES_USER_LOAD_INPUT" }
+                                assertTrue("the exact bench B6 load limitation is preserved either in its B5 rejection or B6 owner authority",
+                                    benchRejectionRecordedByB5 || benchNeedsUserLoadCalibration || failure.detailCodes.any {
                                         it.startsWith("B6_STRENGTH_LOAD_AUTHORITY:QUALITY:STRENGTH#barbell_bench_press#")
                                     })
                                 assertFalse("the unprescribable B5 Strength owner cannot re-enter with a generic row",
@@ -400,6 +452,13 @@ class StimulusProductionCoverageAuditTest {
                                         it.startsWith("ROW_AUDIT_barbell_bench_press#CANONICAL_STIMULUS_QUALITY_STRENGTH")
                                     })
                             }
+                        }
+                        "REQUESTED_TRAINING_DAYS_UNFILLED" -> {
+                            assertTrue(failure.reasonCodes.contains("ACTUAL_TRAINING_DAYS_MISMATCH"))
+                            val actualDayDetail = failure.detailCodes.first { it.startsWith("ACTUAL_TRAINING_DAYS_WEEK_") }
+                            assertTrue("empty requested days are explicit", "empty=" in actualDayDetail)
+                            assertFalse("rejection happens before optional comparison CONTROL is built",
+                                c29PhaseDurationsByCase[spec.label].orEmpty().keys.any { it.endsWith("_to_CONTROL_BUILD") })
                         }
                         else -> throw AssertionError("${spec.label} has an unclassified new-generator failure")
                     }
@@ -468,7 +527,7 @@ class StimulusProductionCoverageAuditTest {
     fun c28ControlOnlyPosteriorAccessoryCannotAcquireDirectCoverageOrMaterialize() = runBlocking {
         val spec = CoverageSpec("c9_allocator_boundary", TrainableQuality.HYPERTROPHY, "cable_rear_delt_fly",
             "HYPERTROPHY_PHYSIQUE", ProgramGoal.BODYBUILDING, StrengthIntent.HYPERTROPHY_PRIORITY,
-            false, "reviewed", 3, 60, emptySet(), true)
+            false, "reviewed", 3, 60, emptySet(), true, explicitWeeklyDays = false)
         val result = requireNotNull(runCase(spec))
         val owner = StimulusPrescriptionOwnerIdentity("ex_284ecca6", "COVERAGE_POSTERIOR_CHAIN")
         assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, result.routeDecision.selectedSource)
@@ -729,6 +788,13 @@ class StimulusProductionCoverageAuditTest {
                 assertTrue("${spec.label} resolved duration stays bounded", resolved.request.durationWeeks in 2..6)
                 if (spec.explicitWeeklyDays) assertEquals(spec.days, resolved.request.weeklyTrainingDays)
                 if (spec.explicitDuration) assertEquals(2, resolved.request.durationWeeks)
+                if ("ACTUAL_TRAINING_DAYS_MISMATCH" in failure.reasonCodes) {
+                    assertTrue("only a user-selected frequency can require every requested day", spec.explicitWeeklyDays)
+                    assertTrue(failure.reasonCodes.contains("SCHEDULED_DAYS_EMPTY"))
+                    assertTrue(failure.detailCodes.any { it.startsWith("ACTUAL_TRAINING_DAYS_WEEK_") && "empty=" in it })
+                    assertEquals("request_strength_explicit", spec.label)
+                    return@forEach
+                }
                 assertTrue("${spec.label} failure is an explicit hard day-feasibility rejection",
                     "DAY_OFI_OR_RECOVERY_LIMIT_EXCEEDED" in failure.reasonCodes &&
                         failure.detailCodes.any { it.startsWith("DAY_OFI_WEEK_") })
@@ -828,6 +894,130 @@ class StimulusProductionCoverageAuditTest {
     }
 
     @Test
+    fun explicitlyRequestedFiveDaysCannotReturnOnlyTwoActiveDays() = runBlocking {
+        val spec = CoverageSpec(
+            label = "requested_five_actual_days_gate",
+            quality = TrainableQuality.HYPERTROPHY,
+            stableKey = "cable_rear_delt_fly",
+            profileGoal = "HYPERTROPHY_PHYSIQUE",
+            goal = ProgramGoal.BODYBUILDING,
+            intent = StrengthIntent.HYPERTROPHY_PRIORITY,
+            badminton = false,
+            history = "reviewed",
+            days = 5,
+            minutes = 60,
+            equipment = emptySet(),
+            isolateOwner = true
+        )
+        val observedPhases = mutableListOf<ProductionGenerationPhase>()
+        val failure = runCatching {
+            runCase(spec) { service, preflight, answers, metadata ->
+                service.generatePreparedProduction(
+                    preflight = preflight,
+                    answers = answers,
+                    metadata = metadata,
+                    includeComparisonDiagnostics = false,
+                    productionGenerationObserver = { observedPhases += it.phase }
+                )
+            }
+        }.exceptionOrNull() as? StimulusProductionExecutionRejectedException
+        assertNotNull("an incomplete explicit schedule must be a typed generation failure", failure)
+        assertTrue(requireNotNull(failure).reasonCodes.contains("ACTUAL_TRAINING_DAYS_MISMATCH"))
+        assertTrue(requireNotNull(failure).reasonCodes.contains("SCHEDULED_DAYS_EMPTY"))
+        val detail = requireNotNull(failure).detailCodes.first { it.startsWith("ACTUAL_TRAINING_DAYS_WEEK_1:") }
+        assertTrue(detail.contains("requested=5"))
+        assertTrue(detail.contains("actual="))
+        assertTrue(detail.contains("empty="))
+        assertFalse("rejection occurs before diagnostic CONTROL generation",
+            ProductionGenerationPhase.CONTROL_BUILD in observedPhases)
+    }
+
+    @Test
+    fun canonicalB5B6AllocationDoesNotReserveDiscardedContinuityUnits() = runBlocking {
+        val spec = CoverageSpec(
+            label = "canonical_material_demand_not_displaced_by_discarded_continuity",
+            quality = TrainableQuality.STRENGTH,
+            stableKey = "barbell_back_squat",
+            profileGoal = "STRENGTH_GAIN",
+            goal = ProgramGoal.STRENGTH,
+            intent = StrengthIntent.STRENGTH_PRIORITY,
+            badminton = false,
+            history = "reviewed",
+            days = 5,
+            minutes = 60,
+            equipment = setOf("BARBELL", "DUMBBELL", "BENCH", "RACK"),
+            explicitWeeklyDays = true
+        )
+        var runId: String? = null
+        val outcome = runCatching { runCase(spec) { service, preflight, answers, metadata ->
+            runId = preflight.preparationId
+            service.generatePreparedProduction(
+                preflight = preflight,
+                answers = answers,
+                metadata = metadata,
+                includeComparisonDiagnostics = false
+            )
+        } }
+        val trace = org.json.JSONObject(requireNotNull(GenerationDecisionTraceStore.json(requireNotNull(runId))))
+        val finite = (0 until trace.getJSONArray("events").length())
+            .map { trace.getJSONArray("events").getJSONObject(it) }
+            .last { it.getString("stageId") == "FINITE_EXECUTION_ALLOCATOR" }
+        val comparisons = finite.getJSONObject("comparisons")
+        assertTrue("the fixture has a positive incumbent demand that the canonical path suppresses",
+            comparisons.getInt("continuityRequested") > 0)
+        assertEquals(0, comparisons.getInt("continuityFunded"))
+        assertTrue("approved B5/B6 demand receives capacity instead of stopping at the old 9-unit remainder",
+            comparisons.getInt("materialAfter") > 9)
+        assertTrue("finite allocation cannot increase the B5 requested sets",
+            comparisons.getInt("materialAfter") <= comparisons.getInt("materialBefore"))
+        val rejected = outcome.exceptionOrNull() as? StimulusProductionExecutionRejectedException
+        if (rejected != null) {
+            assertTrue("an explicit 5-day request must fail with a typed execution/input reason rather than return a partial draft",
+                rejected.reasonCodes.any { it in setOf("ACTUAL_TRAINING_DAYS_MISMATCH", "DAY_OFI_OR_RECOVERY_LIMIT_EXCEEDED", "NO_EXECUTABLE_PLANNING_DEMAND") })
+            assertTrue("requested-day shortfall is identified in the failure trace",
+                rejected.reasonCodes.contains("ACTUAL_TRAINING_DAYS_MISMATCH") ||
+                    rejected.detailCodes.any { it.startsWith("ACTUAL_TRAINING_DAYS_WEEK_") })
+            val report = org.json.JSONObject().put("case", spec.label).put("status", "TYPED_REJECTION")
+                .put("reasonCodes", org.json.JSONArray(rejected.reasonCodes)).put("detailCodes", org.json.JSONArray(rejected.detailCodes))
+                .put("finiteAllocation", comparisons).put("decisionTrace", trace)
+            java.io.File("build/reports/c38-5-authorized-weekly-allocation-regression.json").apply {
+                parentFile?.mkdirs()
+                writeText(report.toString(2))
+            }
+            return@runBlocking
+        }
+        val generated = requireNotNull(outcome.getOrNull())
+        assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, generated.routeDecision.selectedSource)
+        assertEquals("the normal canonical execution does not build a diagnostic CONTROL", 0, generated.buildCounts.controlBuilds)
+        assertTrue(requireNotNull(generated.executionValidation).executable)
+        assertEquals("the explicitly requested weekly frequency is honored in the returned request", 5,
+            generated.program.request.weeklyTrainingDays)
+        val physicalRows = generated.program.items.filter { it.weekNumber == 1 }
+        assertTrue("the final physical rows reflect the expanded exact material allocation",
+            physicalRows.sumOf(ProgramSkeletonItem::setCount) > 9)
+        assertEquals("an explicit five-day request may not return fewer active days", 5,
+            physicalRows.map(ProgramSkeletonItem::dayOfWeek).distinct().size)
+        val report = org.json.JSONObject()
+            .put("case", spec.label)
+            .put("source", generated.routeDecision.selectedSource.name)
+            .put("requestedTrainingDays", generated.program.request.weeklyTrainingDays)
+            .put("actualWeekOneTrainingDays", org.json.JSONArray(physicalRows.map(ProgramSkeletonItem::dayOfWeek).distinct().sorted()))
+            .put("weekOnePhysicalSets", physicalRows.sumOf(ProgramSkeletonItem::setCount))
+            .put("weekOneRows", org.json.JSONArray(physicalRows.map { row -> org.json.JSONObject()
+                .put("day", row.dayOfWeek).put("name", row.exerciseName).put("stableKey", row.exerciseStableKey)
+                .put("selectionRole", row.selectionRole).put("sets", row.setCount)
+                .put("prescriptions", org.json.JSONArray(row.setPrescriptions.map { it.toString() }))
+            }))
+            .put("finiteAllocation", comparisons)
+            .put("decisionTrace", trace)
+        java.io.File("build/reports/c38-5-authorized-weekly-allocation-regression.json").apply {
+            parentFile?.mkdirs()
+            writeText(report.toString(2))
+        }
+        Unit
+    }
+
+    @Test
     fun b8DiagnosticModeStillReturnsTheValidatedNewGeneratorThroughRoomAndDateApplication() = runBlocking {
         val spec = CoverageSpec(
             label = "persona3_mixed",
@@ -840,7 +1030,8 @@ class StimulusProductionCoverageAuditTest {
             history = "mixed",
             days = 5,
             minutes = 60,
-            equipment = setOf("MACHINE", "CABLE")
+            equipment = setOf("MACHINE", "CABLE"),
+            explicitWeeklyDays = false
         )
         val databaseName = "c37-replacement-e2e-${System.nanoTime()}"
         val result = requireNotNull(runCase(

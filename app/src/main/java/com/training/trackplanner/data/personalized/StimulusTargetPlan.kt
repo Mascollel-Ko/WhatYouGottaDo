@@ -704,7 +704,9 @@ internal fun StimulusTargetPlan.toCompactJson(): JSONObject = JSONObject()
     .put("schedulingAuthority", schedulingAuthority)
     .put("unresolved", JSONArray(unresolved))
     .put("qualityTargets", JSONArray(qualityTargets.map { target -> JSONObject()
-        .put("quality", target.quality.name).put("strategy", target.strategy.name).put("priority", target.priority.name)
+        .put("targetId", "QUALITY:${target.quality.name}")
+        .put("quality", target.quality.name).put("strategy", target.strategy.name)
+        .put("needDecision", target.needDecision?.name).put("priority", target.priority.name)
         .put("numericAuthority", target.numericAuthority.name).put("baselineSource", target.baselineSource?.name)
         .put("baselineConfidence", target.baselineConfidence?.name)
         .put("baselineAvailable", target.baselineAvailable).put("hasPersonalDirectBaseline", target.hasPersonalDirectBaseline)
@@ -748,6 +750,116 @@ internal fun StimulusTargetPlan.toCompactJson(): JSONObject = JSONObject()
     }))
     .put("legacyComparison", legacyComparison?.toJson())
     .put("controlProgramAudit", controlProgramAudit?.toJson())
+
+/**
+ * Read-only B4→B5→B6→final coverage ledger. Physical rows are counted once per owner here;
+ * equivalent quality stimulus stays in its own target-specific unit and is never added to rows.
+ */
+internal fun targetCoverageLedgerJson(
+    targetPlan: StimulusTargetPlan,
+    selectionPlan: StimulusCandidateSelectionPlan,
+    authorizationPlan: StimulusPrescriptionAuthorizationPlan,
+    program: com.training.trackplanner.data.GeneratedProgramSkeleton,
+    finalAudit: StimulusTargetControlProgramAudit,
+    materializationAudits: List<StimulusPrescriptionMaterializationAudit>
+): JSONObject {
+    fun ownerJson(candidate: StimulusSelectedCandidate) = JSONObject()
+        .put("stableKey", candidate.stableKey)
+        .put("selectionRole", candidate.selectionRole)
+        .put("selectionReasons", JSONArray(candidate.selectionReasons))
+    fun physicalSets(candidates: List<StimulusSelectedCandidate>): Int {
+        val owners = candidates.mapTo(linkedSetOf()) { it.stableKey to it.selectionRole }
+        return program.items.asSequence()
+            .filter { (it.exerciseStableKey to it.selectionRole) in owners }
+            .sumOf { it.setPrescriptions.size }
+    }
+    val horizon = program.request.durationWeeks.coerceAtLeast(1)
+    val uniquePhysicalSets = program.items.sumOf { it.setPrescriptions.size }
+    val quality = JSONArray(targetPlan.qualityTargets.map { target ->
+        val id = "QUALITY:${target.quality.name}"
+        val candidates = selectionPlan.selectedCandidates.filter { id in it.coveredTargetIds }
+        val authorization = authorizationPlan.authorizations.filter { it.targetId == id }
+        val audit = finalAudit.qualityAudits.firstOrNull { it.quality == target.quality }
+        JSONObject()
+            .put("targetId", id)
+            .put("targetType", "QUALITY")
+            .put("strategy", target.strategy.name)
+            .put("needDecision", target.needDecision?.name)
+            .put("numericAuthority", target.numericAuthority.name)
+            .put("weeklyAuthorizedRange", target.weeklyDirectUnitsTarget?.toJson() ?: JSONObject.NULL)
+            .put("baselineSource", target.baselineSource?.name ?: JSONObject.NULL)
+            .put("baselineConfidence", target.baselineConfidence?.name ?: JSONObject.NULL)
+            .put("hasPersonalDirectBaseline", target.hasPersonalDirectBaseline)
+            .put("b5Owners", JSONArray(candidates.map(::ownerJson)))
+            .put("b6Authorizations", JSONArray(authorization.map { row -> JSONObject()
+                .put("owner", row.owner?.let { "${it.stableKey}#${it.selectionRole}" } ?: JSONObject.NULL)
+                .put("status", row.status.name)
+                .put("authorizedPhysicalSets", row.authorizedPrescription?.sets?.size ?: 0)
+                .put("reasonCodes", JSONArray(row.reasonCodes))
+            }))
+            .put("actualUniquePhysicalSets", physicalSets(candidates))
+            .put("actualPhysicalSetsPerWeek", physicalSets(candidates).toDouble() / horizon)
+            .put("actualDirectEquivalentStimulusUnitsPerWeek", audit?.plannedWeeklyDirectUnits ?: JSONObject.NULL)
+            .put("coverageStatus", audit?.weeklyDirectUnitsStatus?.name ?: "NO_NUMERIC_AUTHORITY")
+            .put("reasonCodes", JSONArray(target.reasonCodes + authorization.flatMap { it.reasonCodes } +
+                listOfNotNull(audit?.weeklyDirectUnitsStatus?.name).distinct()))
+            .put("targetContributesToAdditivePhysicalSetBudget", false)
+    })
+    val tasks = JSONArray(targetPlan.taskTargets.map { target ->
+        val id = "TASK:${target.task}"
+        val candidates = selectionPlan.selectedCandidates.filter { id in it.coveredTargetIds }
+        val audit = finalAudit.taskAudits.firstOrNull { it.task == target.task }
+        JSONObject()
+            .put("targetId", id)
+            .put("targetType", "TASK")
+            .put("strategy", target.strategy.name)
+            .put("numericAuthority", target.numericAuthority.name)
+            .put("weeklyAuthorizedRange", target.weeklyDirectUnitsTarget?.toJson() ?: JSONObject.NULL)
+            .put("b5Owners", JSONArray(candidates.map(::ownerJson)))
+            .put("actualUniquePhysicalSets", physicalSets(candidates))
+            .put("actualPhysicalSetsPerWeek", physicalSets(candidates).toDouble() / horizon)
+            .put("actualDirectEquivalentStimulusUnitsPerWeek", audit?.plannedDirectUnits ?: JSONObject.NULL)
+            .put("coverageStatus", audit?.status?.name ?: "NOT_AUDITED")
+            .put("reasonCodes", JSONArray(target.reasonCodes + listOfNotNull(audit?.status?.name)))
+            .put("targetContributesToAdditivePhysicalSetBudget", false)
+    })
+    val movements = JSONArray(targetPlan.movementTargets.map { target ->
+        val candidates = selectionPlan.selectedCandidates.filter { target.targetId in it.coveredTargetIds }
+        val authorizations = authorizationPlan.authorizations.filter { it.targetId == target.targetId }
+        val materializations = materializationAudits.filter { it.targetId == target.targetId }
+        JSONObject()
+            .put("targetId", target.targetId)
+            .put("targetType", "MOVEMENT")
+            .put("movementCoverage", target.movementCoverage.name)
+            .put("numericAuthority", target.numericAuthority.name)
+            .put("regionalDoseTargets", JSONArray(target.regionalDoseTargets.map { dose -> JSONObject()
+                .put("kind", dose.kind.name)
+                .put("weeklyEquivalentTarget", dose.weeklyTarget ?: JSONObject.NULL)
+                .put("authorizedPhysicalSetUnits", dose.authorizedWholeSetUnits ?: JSONObject.NULL)
+                .put("existingEquivalentExposure", dose.existingEquivalentExposure ?: JSONObject.NULL)
+                .put("residualEquivalentExposure", dose.residualEquivalentExposure ?: JSONObject.NULL)
+                .put("reasonCodes", JSONArray(dose.reasonCodes + dose.residualReasonCodes))
+            }))
+            .put("b5Owners", JSONArray(candidates.map(::ownerJson)))
+            .put("b6Authorizations", JSONArray(authorizations.map { row -> JSONObject()
+                .put("owner", row.owner?.let { "${it.stableKey}#${it.selectionRole}" } ?: JSONObject.NULL)
+                .put("status", row.status.name)
+                .put("authorizedPhysicalSets", row.authorizedPrescription?.sets?.size ?: 0)
+                .put("reasonCodes", JSONArray(row.reasonCodes))
+            }))
+            .put("actualUniquePhysicalSets", physicalSets(candidates))
+            .put("actualPhysicalSetsPerWeek", physicalSets(candidates).toDouble() / horizon)
+            .put("actualTargetCompatibleEquivalentUnitsPerWeek", materializations.sumOf { it.targetCompatibleMaterializedUnits.toDouble() } / horizon)
+            .put("shortfallUnits", materializations.sumOf { it.totalShortfallUnits })
+            .put("reasonCodes", JSONArray(target.reasonCodes + authorizations.flatMap { it.reasonCodes } +
+                materializations.flatMap { it.reasonCodes }))
+            .put("targetContributesToAdditivePhysicalSetBudget", false)
+    })
+    return JSONObject()
+        .put("nonAdditiveTargets", true)
+        .put("uniquePhysicalSetCountAcrossProgram", uniquePhysicalSets)
+        .put("targetSpecificCoverage", JSONObject().put("quality", quality).put("task", tasks).put("movement", movements))
+}
 
 private fun StimulusTargetRange.toJson() = JSONObject().put("min", min).put("preferred", preferred).put("max", max)
 

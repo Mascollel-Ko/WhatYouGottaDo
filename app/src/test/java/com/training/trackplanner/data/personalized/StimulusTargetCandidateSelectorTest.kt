@@ -255,6 +255,39 @@ class StimulusTargetCandidateSelectorTest {
     }
 
     @Test
+    fun qualityCandidateRejectedByExactB6ProbeAdvancesToNextRankedCandidate() {
+        val generic = exercise("barbell_back_squat")
+        val familiar = exercise("barbell_deadlift")
+        val fixture = fixture(
+            exercises = listOf(generic, familiar),
+            relations = listOf(relation("barbell_back_squat"), relation("barbell_deadlift")),
+            history = listOf(
+                PlanningSetRecord(LocalDate.of(2026, 9, 1), "barbell_back_squat", "generic", "STRENGTH", 1, 10, 0.0, 0, 8.0),
+                PlanningSetRecord(LocalDate.of(2026, 9, 2), "barbell_deadlift", "familiar", "STRENGTH", 1, 5, 0.0, 0, 8.0)
+            )
+        )
+        val probed = mutableListOf<String>()
+        val result = StimulusTargetCandidateSelector().build(
+            targetPlan = qualityPlan(),
+            snapshot = fixture.snapshot,
+            state = fixture.state,
+            request = fixture.request,
+            physicalQualityCatalog = fixture.catalog,
+            qualityCandidateRejectionReason = { _, item, _ ->
+                probed += item.stableKey
+                if (item.stableKey == "barbell_deadlift") "LOAD_OR_EFFORT_AUTHORITY_MISSING" else null
+            }
+        )
+
+        assertEquals(listOf("barbell_deadlift", "barbell_back_squat"), probed)
+        assertEquals("barbell_back_squat", result.selectedCandidates.single().stableKey)
+        assertEquals("B6_REJECTED:LOAD_OR_EFFORT_AUTHORITY_MISSING",
+            result.traces.single().candidateRejectionReasons["barbell_deadlift"])
+        assertEquals(StimulusCandidateDispositionStatus.MATERIALIZATION_FAILED,
+            result.candidateDispositionIndex.entries.single { it.stableKey == "barbell_deadlift" }.status)
+    }
+
+    @Test
     fun stableKeyTieBreakIsExplicitAndDispositionOrderIsDeterministic() {
         val fixture = fixture(
             exercises = listOf(exercise("barbell_deadlift"), exercise("barbell_back_squat")),

@@ -22,7 +22,8 @@ class CanonicalStimulusPlanningIndependenceTest {
             if (badminton) ProgramGoal.BADMINTON_SUPPORT else if (mixed) ProgramGoal.FUNCTIONAL_CONDITIONING
                 else if (h) ProgramGoal.BODYBUILDING else ProgramGoal.STRENGTH,
             if (mixed || badminton) StrengthIntent.MIXED else if (h) StrengthIntent.HYPERTROPHY_PRIORITY else StrengthIntent.STRENGTH_PRIORITY,
-            badminton, history, 3, 60, emptySet(), !mixed && !badminton
+            badminton, history, 3, 60, emptySet(), !mixed && !badminton,
+            explicitWeeklyDays = false
         )
 
     @Test fun strengthParity() = parity(spec("c1_strength"))
@@ -426,7 +427,7 @@ class CanonicalStimulusPlanningIndependenceTest {
     @Test fun productionMaterializesOnlyExactB4RegionalResiduals() = productionRegionalResiduals()
 
     @Test fun b5AndB6UseResolvedRequestWhenControlRequestConflicts() = runBlocking {
-        val spec = spec("c2_request_conflict", h = true).copy(equipment = setOf("CABLE"))
+        val spec = spec("c2_request_conflict", h = true).copy(equipment = setOf("CABLE"), explicitWeeklyDays = false)
         StimulusProductionCoverageAuditTest().runCase(spec) { service, preflight, answers, metadata ->
             val prepared = service.generatePreparedWithCanonicalPlanning(preflight, answers, metadata)
             val resolved = prepared.resolvedRequest

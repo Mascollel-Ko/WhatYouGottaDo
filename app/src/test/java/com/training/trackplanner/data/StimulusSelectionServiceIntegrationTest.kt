@@ -489,7 +489,7 @@ class StimulusSelectionServiceIntegrationTest {
                 durationWeeks = 2, excludedExerciseStableKeys = excluded
             )
             val constraints = PersonalizedGenerationConstraints(
-                explicitGoal = ProgramGoal.BODYBUILDING, explicitWeeklyTrainingDays = 3,
+                explicitGoal = ProgramGoal.BODYBUILDING, explicitWeeklyTrainingDays = null,
                 explicitDurationWeeks = 2, explicitSessionMinutes = 60
             )
             val preflight = repository.preparePersonalizedProgram(request, constraints, cutoff)
