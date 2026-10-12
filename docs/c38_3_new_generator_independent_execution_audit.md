@@ -80,4 +80,7 @@ CONTROL은 비교 진단 또는 호출자가 명시한 `CONTROL_ONLY` 경로에�
 - `:app:compileDebugKotlin :app:compileDebugUnitTestKotlin :app:assembleDebug`: 통과. Debug APK `app/build/outputs/apk/debug/app-debug.apk`, 69,255,011 bytes.
 - `apksigner verify --print-certs`: 통과. Debug signer SHA-256 `318c7551fde53d6972d03b0c61524245bf2b0c797cb505fa970451d2a746da88`; APK SHA-256 `EC6DAB8C4EFBE6D9915F510AB5323DA300418F4BED0A0E6E0EE42D8227C18076`.
 - `git diff --check`: 종료 코드 0 (공백 오류 없음; Git은 CRLF 변환 경고만 표시).
-- Hosted GitHub Actions 및 최종 commit/PR 브랜치 push 결과는 push 뒤 확인해 여기에 기록한다. Main에는 병합하지 않는다.
+- Hosted GitHub Actions run [38213001269](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/38213001269), 구현 SHA `07085e30546c4c5b5d2112552ea877958331035a`: 성공. Protocol/contract/whitespace 검사, 2,442 JVM tests(0 failures, 0 errors, 4 skips), APK 조립, CI 키와 서명 일치 검사, APK 업로드가 모두 통과했다.
+- Hosted `Stimulus-production-coverage` artifact(368,395 bytes)에서 census schema v3의 27행을 확인했다: 14 generated, 5 preflight input required, 8 execution rejected(22개 생성 가능 입력 corpus + 별도 5개 no-history preflight). 업로드된 JUnit XML도 2,442/0/0/4를 확인했다.
+- Hosted `WhatYouGottaDo-debug-apk` artifact(65,652,981 bytes)를 내려받아 `apksigner`로 재검증했다. APK SHA-256 `6246CAC293C1C0DEC0EA4083C067E261808193C826BAE03FDE9C2179F894A6D8`; CI signing certificate SHA-256 `a37b8a11810408005e8dc45bd83bec29769404ca8e3041d2c41af546b344d3e4`.
+- 이 기록을 포함한 커밋과 PR 브랜치의 최종 SHA/Hosted run은 후속 확인한다. Main에는 병합하지 않는다.
