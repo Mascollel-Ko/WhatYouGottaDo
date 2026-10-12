@@ -23,7 +23,8 @@ internal object RecordBasedReviewedPolicy {
         badmintonKeys.entries.firstOrNull { (_, keys) -> stableKey in keys }?.key
 
     fun defaultWeekdays(daysPerWeek: Int): List<Int> =
-        when (daysPerWeek.coerceIn(3, 7)) {
+        when (daysPerWeek.coerceIn(2, 7)) {
+            2 -> listOf(1, 4)
             3 -> listOf(1, 3, 5)
             4 -> listOf(1, 2, 4, 6)
             5 -> listOf(1, 2, 4, 6, 7)
@@ -33,7 +34,7 @@ internal object RecordBasedReviewedPolicy {
 
     fun defaultSchedule(durationWeeks: Int, daysPerWeek: Int): Map<Int, Set<Int>> {
         val days = defaultWeekdays(daysPerWeek).toSet()
-        return (1..durationWeeks.coerceIn(3, 8)).associateWith { days }
+        return (1..durationWeeks.coerceIn(1, 8)).associateWith { days }
     }
 
 

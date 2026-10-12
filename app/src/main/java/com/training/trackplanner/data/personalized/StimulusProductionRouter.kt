@@ -6,12 +6,13 @@ import com.training.trackplanner.data.CanonicalIncumbentPlacementShadow
 import com.training.trackplanner.data.CanonicalIncumbentActivationStatus
 import com.training.trackplanner.data.CanonicalIncumbentPlacementPreservation
 
-/** Internal production policy; switch this single line to CONTROL_ONLY for emergency rollback. */
+/** Normal production always executes the independently validated canonical generator. */
 object StimulusProductionRoutingPolicy {
-    val defaultMode: StimulusProductionRoutingMode = StimulusProductionRoutingMode.B8_STRENGTH_HYPERTROPHY_V1_ACTIVE
+    val defaultMode: StimulusProductionRoutingMode = StimulusProductionRoutingMode.NEW_GENERATOR_ACTIVE
 }
 
 enum class StimulusProductionRoutingMode {
+    NEW_GENERATOR_ACTIVE,
     CONTROL_ONLY,
     B8_STRENGTH_V1_ACTIVE,
     B8_SINGLE_QUALITY_STRENGTH_HYPERTROPHY_V1_ACTIVE,
@@ -20,6 +21,7 @@ enum class StimulusProductionRoutingMode {
 }
 
 enum class StimulusProductionProgramSource {
+    NEW_GENERATOR,
     CONTROL,
     B8_STRENGTH_V1,
     B8_STRENGTH_CALIBRATION_V1,
@@ -35,7 +37,9 @@ data class StimulusProductionRoutingDecision(
     val b8Status: StimulusProductionCutoverAuthorityStatus?,
     val b8Scope: StimulusProductionCutoverScope?,
     val reasonCodes: List<String>,
-    val productionRoutingActive: Boolean
+    val productionRoutingActive: Boolean,
+    /** Comparison-only status; it never grants or removes execution permission. */
+    val b7Status: StimulusExperimentalReadinessStatus? = null
 ) {
     init {
         require(reasonCodes == reasonCodes.distinct().sorted())
@@ -45,7 +49,8 @@ data class StimulusProductionRoutingDecision(
 }
 
 internal fun StimulusProductionRoutingMode.permits(source: StimulusProductionProgramSource): Boolean = when (this) {
-    StimulusProductionRoutingMode.CONTROL_ONLY -> false
+    StimulusProductionRoutingMode.NEW_GENERATOR_ACTIVE -> source == StimulusProductionProgramSource.NEW_GENERATOR
+    StimulusProductionRoutingMode.CONTROL_ONLY -> source == StimulusProductionProgramSource.CONTROL
     StimulusProductionRoutingMode.B8_STRENGTH_V1_ACTIVE -> source == StimulusProductionProgramSource.B8_STRENGTH_V1
     StimulusProductionRoutingMode.B8_SINGLE_QUALITY_STRENGTH_HYPERTROPHY_V1_ACTIVE ->
         source == StimulusProductionProgramSource.B8_STRENGTH_V1 ||
@@ -73,12 +78,17 @@ internal data class StimulusProductionGenerationResult(
     val buildCounts: StimulusProductionBuildCounts,
     val upstreamFailureReason: String? = null,
     val upstreamFailureDetails: List<String> = emptyList(),
+    val executionValidation: StimulusProductionExecutionValidation? = null,
+    /** B7/B8 diagnostic failure is independent of successful new-generator execution. */
+    val diagnosticFailureReason: String? = null,
     val incumbentPlacementShadow: CanonicalIncumbentPlacementShadow? = null,
     val incumbentPlacementActivationStatus: CanonicalIncumbentActivationStatus? = null,
     val incumbentPlacementPreservations: List<CanonicalIncumbentPlacementPreservation> = emptyList(),
     val incumbentPlacementActivationDetails: List<String> = emptyList(),
-    /** Typed unmet material demand survives an experimental fallback to CONTROL. */
+    /** Typed unmet material demand stays visible alongside the selected source. */
     val unresolvedMaterialDemandGaps: Set<String> = emptySet(),
+    /** Placement deferrals remain visible as separate, typed generation diagnostics. */
+    val deferredMaterialDemandGaps: Set<String> = emptySet(),
     /** Candidate authority recovery remains diagnostic and does not grant execution authority. */
     val materialDemandAuthorityResolutions: List<ExecutionAuthorityResolution> = emptyList(),
     /** Unmet Strength quality demand remains visible even if B9 safely returns CONTROL. */
@@ -86,7 +96,8 @@ internal data class StimulusProductionGenerationResult(
 ) {
     val diagnostics: StimulusProductionDiagnostics
         get() = StimulusProductionDiagnostics.observe(comparison, routeDecision, upstreamFailureReason).let {
-            it.copy(secondaryReasonCodes = (it.secondaryReasonCodes + upstreamFailureDetails).distinct().sorted())
+            it.copy(secondaryReasonCodes = (it.secondaryReasonCodes + upstreamFailureDetails +
+                executionValidation?.reasonCodes.orEmpty() + listOfNotNull(diagnosticFailureReason)).distinct().sorted())
         }
 }
 
@@ -140,134 +151,73 @@ internal class MutableStimulusProductionBuildCounts {
     )
 }
 
-/** Recognized failure boundary for the optional experimental/cutover branch after CONTROL exists. */
+/** Recognized failure boundary for an unexecutable canonical draft; it never selects CONTROL. */
 internal class StimulusProductionEvaluationFailure(
     val reasonCode: String,
     cause: Throwable? = null
 ) : RuntimeException(reasonCode, cause)
 
 /**
- * B9 only selects one of the already-built B6.2 programs. It has no builder, persistence,
- * Room, snapshot, or authority-engine access and therefore cannot create a hybrid or third plan.
+ * B9 reports the selected source. B7/B8 remain comparison-only metadata; the only normal
+ * executable source is the independently validated new generator. CONTROL is selectable only
+ * through the explicit CONTROL_ONLY diagnostic/rollback mode.
  */
 class StimulusProductionRouter {
+    internal fun selectExecutable(
+        program: GeneratedProgramSkeleton,
+        validation: StimulusProductionExecutionValidation,
+        mode: StimulusProductionRoutingMode = StimulusProductionRoutingMode.NEW_GENERATOR_ACTIVE,
+        readiness: StimulusExperimentalReadinessAudit? = null,
+        authority: StimulusProductionCutoverAuthorityDecision? = null
+    ): StimulusProductionRouteResult {
+        require(validation.executable) {
+            "NEW_GENERATOR_EXECUTION_REJECTED:${validation.reasonCodes.joinToString(",")}".take(500)
+        }
+        require(mode != StimulusProductionRoutingMode.CONTROL_ONLY) {
+            "CONTROL_ONLY_REQUIRES_AN_EXPLICIT_LEGACY_PROGRAM"
+        }
+        val reasons = buildList {
+            add("B9_NEW_GENERATOR_SELECTED")
+            readiness?.let { add("B7_DIAGNOSTIC_${it.status.name}") }
+            authority?.let { add("B8_DIAGNOSTIC_${it.status.name}") }
+        }.distinct().sorted()
+        val decision = StimulusProductionRoutingDecision(
+            mode = StimulusProductionRoutingMode.NEW_GENERATOR_ACTIVE,
+            selectedSource = StimulusProductionProgramSource.NEW_GENERATOR,
+            b8Status = authority?.status,
+            b8Scope = authority?.scope,
+            reasonCodes = reasons,
+            productionRoutingActive = true,
+            b7Status = readiness?.status
+        )
+        return StimulusProductionRouteResult(program, decision)
+    }
+
+    /**
+     * Comparison-only compatibility surface for B7/B8 diagnostics. It never gates EXP on
+     * provenance or scope. CONTROL is returned only when the caller explicitly requests
+     * CONTROL_ONLY; normal production uses [selectExecutable] after B1–B6 validation.
+     */
     fun route(
         comparison: StimulusSelectionProgramComparison,
         authority: StimulusProductionCutoverAuthorityDecision?,
         mode: StimulusProductionRoutingMode
     ): StimulusProductionRouteResult {
-        val fallbackReason = when {
-            mode == StimulusProductionRoutingMode.CONTROL_ONLY -> "B9_CONTROL_ONLY_POLICY"
-            authority == null -> "B9_B8_AUTHORITY_MISSING"
-            authority.status == StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED -> "B9_B8_CONTROL_REQUIRED"
-            authority.status == StimulusProductionCutoverAuthorityStatus.INCONCLUSIVE -> "B9_B8_INCONCLUSIVE"
-            authority.status == StimulusProductionCutoverAuthorityStatus.NO_MATERIAL_CHANGE -> "B9_B8_NO_MATERIAL_CHANGE"
-            authority.status != StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER ->
-                "B9_B8_CONTRACT_INCONSISTENCY"
-            authority.scope == StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1 &&
-                !mode.permits(StimulusProductionProgramSource.B8_STRENGTH_HYPERTROPHY_V1) ->
-                "B9_B8_COMBINED_SCOPE_NOT_ACTIVE"
-            authority.scope == StimulusProductionCutoverScope.BADMINTON_TASK_V1 &&
-                !mode.permits(StimulusProductionProgramSource.B8_BADMINTON_TASK_V1) -> "B9_B8_TASK_SCOPE_NOT_ACTIVE"
-            authority.scope == StimulusProductionCutoverScope.POWER_JUMP_V1 &&
-                !mode.permits(StimulusProductionProgramSource.B8_POWER_JUMP_V1) -> "B9_B8_POWER_JUMP_SCOPE_NOT_ACTIVE"
-            authority.scope !in setOf(
-                StimulusProductionCutoverScope.STRENGTH_V1,
-                StimulusProductionCutoverScope.STRENGTH_CALIBRATION_V1,
-                StimulusProductionCutoverScope.HYPERTROPHY_V1,
-                StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1,
-                StimulusProductionCutoverScope.BADMINTON_TASK_V1,
-                StimulusProductionCutoverScope.POWER_JUMP_V1
-            ) -> "B9_B8_SCOPE_MISMATCH"
-            !mode.permits(sourceForScope(authority.scope)) -> "B9_B8_SCOPE_MISMATCH"
-            authority.authorizedOwnerIdentities.isEmpty() -> "B9_B8_EMPTY_AUTHORIZED_OWNER_SET"
-            authority.authorizedOwnerIdentities.size != authority.authorizedOwnerIdentities.distinct().size ->
-                "B9_B8_AUTHORITY_IDENTITY_MISMATCH"
-            authority.authorizedAuthorityIdentities.size != authority.authorizedAuthorityIdentities.distinct().size ->
-                "B9_B8_AUTHORITY_IDENTITY_MISMATCH"
-            authority.authorizedAuthorityIdentities.toSet() != expectedAuthorityIdentities(comparison, authority) ->
-                "B9_B8_AUTHORITY_IDENTITY_MISMATCH"
-            authority.scope == StimulusProductionCutoverScope.POWER_JUMP_V1 &&
-                authority.authorizedOwnerIdentities.toSet() != (
-                    authority.authorizedAuthorityIdentities.map {
-                        StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole)
-                    }.toSet() + authority.authorizedTaskProtocolIdentities.map {
-                        StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole)
-                    }.toSet() + authority.authorizedMovementTargetOwnerIdentities.map {
-                        StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole)
-                    }.toSet()
-                ) -> "B9_B8_POWER_JUMP_OWNER_AUTHORITY_IDENTITY_MISMATCH"
-            authority.scope == StimulusProductionCutoverScope.POWER_JUMP_V1 &&
-                authority.authorizedMovementTargetOwnerIdentities.size !=
-                authority.authorizedMovementTargetOwnerIdentities.distinct().size -> "B9_B8_MOVEMENT_TARGET_AUTHORITY_IDENTITY_MISMATCH"
-            authority.scope == StimulusProductionCutoverScope.POWER_JUMP_V1 &&
-                authority.authorizedMovementTargetOwnerIdentities.toSet() != expectedMovementTargetOwnerIdentities(comparison) ->
-                "B9_B8_MOVEMENT_TARGET_AUTHORITY_IDENTITY_MISMATCH"
-            authority.scope == StimulusProductionCutoverScope.POWER_JUMP_V1 &&
-                authority.authorizedAuthorityIdentities.any { it.quality !in setOf(TrainableQuality.POWER, TrainableQuality.REACTIVE_STRENGTH_SSC) } ->
-                "B9_B8_AUTHORITY_IDENTITY_MISMATCH"
-            authority.scope == StimulusProductionCutoverScope.BADMINTON_TASK_V1 &&
-                authority.authorizedTaskProtocolIdentities.isEmpty() -> "B9_B8_TASK_AUTHORITY_IDENTITY_MISMATCH"
-            authority.authorizedTaskProtocolIdentities.size != authority.authorizedTaskProtocolIdentities.distinct().size ->
-                "B9_B8_TASK_AUTHORITY_IDENTITY_MISMATCH"
-            authority.scope == StimulusProductionCutoverScope.BADMINTON_TASK_V1 &&
-                authority.authorizedTaskProtocolIdentities.toSet() != expectedTaskProtocolIdentities(comparison) ->
-                "B9_B8_TASK_AUTHORITY_IDENTITY_MISMATCH"
-            authority.scope == StimulusProductionCutoverScope.POWER_JUMP_V1 &&
-                authority.authorizedTaskProtocolIdentities.toSet() != expectedTaskProtocolIdentities(comparison) ->
-                "B9_B8_TASK_AUTHORITY_IDENTITY_MISMATCH"
-            authority.scope !in setOf(StimulusProductionCutoverScope.BADMINTON_TASK_V1,
-                StimulusProductionCutoverScope.POWER_JUMP_V1) &&
-                authority.authorizedTaskProtocolIdentities.isNotEmpty() -> "B9_B8_TASK_AUTHORITY_IDENTITY_MISMATCH"
-            authority.scope == StimulusProductionCutoverScope.BADMINTON_TASK_V1 &&
-                authority.authorizedOwnerIdentities.toSet() != authority.authorizedTaskProtocolIdentities.map {
-                    StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole)
-                }.toSet() -> "B9_B8_TASK_AUTHORITY_IDENTITY_MISMATCH"
-            authority.scope == StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1 &&
-                authority.authorizedAuthorityIdentities.any { it.quality !in setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY) } ->
-                "B9_B8_AUTHORITY_IDENTITY_MISMATCH"
-            authority.scope == StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1 &&
-                authority.authorizedAuthorityIdentities.map { it.quality }.toSet() !=
-                    setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY) ->
-                "B9_B8_AUTHORITY_IDENTITY_MISMATCH"
-            authority.scope == StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1 &&
-                combinedHasUnsupportedAttributionQuality(comparison) ->
-                "B9_B8_AUTHORITY_IDENTITY_MISMATCH"
-            authority.scope == StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1 &&
-                combinedAuthorityHasFailedUpstreamQuality(comparison, authority) ->
-                "B9_B8_AUTHORITY_IDENTITY_MISMATCH"
-            authority.scope == StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1 &&
-                comparison.prescriptionAuthorizationPlan?.conflictingOwners.orEmpty().any { owner ->
-                    owner in authority.authorizedOwnerIdentities
-                } ->
-                "B9_B8_AUTHORITY_IDENTITY_MISMATCH"
-            authority.b7Status != StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW ->
-                "B9_B8_CONTRACT_INCONSISTENCY"
-            authority.routingActive || authority.productionMutationAuthority -> "B9_B8_CONTRACT_INCONSISTENCY"
-            else -> null
+        if (mode == StimulusProductionRoutingMode.CONTROL_ONLY) {
+            return control(comparison, mode, authority, "B9_EXPLICIT_CONTROL_ONLY_MODE")
         }
-        if (fallbackReason != null) {
-            return control(comparison, mode, authority, fallbackReason)
-        }
-        val source = sourceForScope(requireNotNull(authority).scope)
         val decision = StimulusProductionRoutingDecision(
-            mode = mode,
-            selectedSource = source,
+            mode = StimulusProductionRoutingMode.NEW_GENERATOR_ACTIVE,
+            selectedSource = StimulusProductionProgramSource.NEW_GENERATOR,
             b8Status = authority?.status,
             b8Scope = authority?.scope,
-            reasonCodes = listOf(
-                when (source) {
-                    StimulusProductionProgramSource.B8_STRENGTH_V1 -> "B9_B8_STRENGTH_V1_ROUTED"
-                    StimulusProductionProgramSource.B8_STRENGTH_CALIBRATION_V1 -> "B9_B8_STRENGTH_CALIBRATION_V1_ROUTED"
-                    StimulusProductionProgramSource.B8_HYPERTROPHY_V1 -> "B9_B8_HYPERTROPHY_V1_ROUTED"
-                    StimulusProductionProgramSource.B8_STRENGTH_HYPERTROPHY_V1 ->
-                        "B9_B8_STRENGTH_HYPERTROPHY_V1_ROUTED"
-                    StimulusProductionProgramSource.B8_BADMINTON_TASK_V1 -> "B9_B8_BADMINTON_TASK_V1_ROUTED"
-                    StimulusProductionProgramSource.B8_POWER_JUMP_V1 -> "B9_B8_POWER_JUMP_V1_ROUTED"
-                    StimulusProductionProgramSource.CONTROL -> "B9_B8_CONTROL_REQUIRED"
-                }
-            ),
-            productionRoutingActive = true
+            reasonCodes = buildList {
+                add("B9_NEW_GENERATOR_SELECTED")
+                comparison.experimentalReadinessAudit?.let { add("B7_DIAGNOSTIC_${it.status.name}") }
+                authority?.let { add("B8_DIAGNOSTIC_${it.status.name}") }
+            }.distinct().sorted(),
+            productionRoutingActive = true,
+            b7Status = comparison.experimentalReadinessAudit?.status
         )
         return StimulusProductionRouteResult(comparison.experimental, decision)
     }
@@ -284,7 +234,8 @@ class StimulusProductionRouter {
             b8Status = authority?.status,
             b8Scope = authority?.scope,
             reasonCodes = listOf(reason).sorted(),
-            productionRoutingActive = false
+            productionRoutingActive = false,
+            b7Status = comparison.experimentalReadinessAudit?.status
         )
         return StimulusProductionRouteResult(comparison.control, decision)
     }

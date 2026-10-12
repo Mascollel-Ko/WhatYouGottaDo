@@ -487,7 +487,7 @@ class StimulusExperimentalReadinessTest {
         val b9 = StimulusProductionRouter().route(
             withB7, b8, StimulusProductionRoutingMode.B8_STRENGTH_V1_ACTIVE
         )
-        assertEquals(StimulusProductionProgramSource.CONTROL, b9.decision.selectedSource)
+        assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, b9.decision.selectedSource)
     }
 
     @Test
@@ -515,7 +515,7 @@ class StimulusExperimentalReadinessTest {
         val b9 = StimulusProductionRouter().route(
             withB7, b8, StimulusProductionRoutingMode.B8_STRENGTH_V1_ACTIVE
         )
-        assertEquals(StimulusProductionProgramSource.CONTROL, b9.decision.selectedSource)
+        assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, b9.decision.selectedSource)
     }
 
     @Test

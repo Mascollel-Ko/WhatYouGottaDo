@@ -49,6 +49,6 @@ class C10OriginMutationInvestigationTest {
         assertEquals(StimulusProductionCutoverScope.HYPERTROPHY_V1, comparison.productionCutoverAuthority?.scope)
         assertEquals(StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER,
             comparison.productionCutoverAuthority?.status)
-        assertEquals(StimulusProductionProgramSource.B8_HYPERTROPHY_V1, result.routeDecision.selectedSource)
+        assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, result.routeDecision.selectedSource)
     }
 }

@@ -9,6 +9,7 @@ import com.training.trackplanner.data.personalized.StimulusProductionCutoverAuth
 import com.training.trackplanner.data.personalized.StimulusMovementB6Status
 import com.training.trackplanner.data.personalized.StimulusTargetNumericAuthority
 import com.training.trackplanner.data.personalized.StimulusProductionGenerationResult
+import com.training.trackplanner.data.personalized.StimulusProductionExecutionRejectedException
 import com.training.trackplanner.data.personalized.CanonicalStimulusPlanningResult
 import org.json.JSONArray
 import org.json.JSONObject
@@ -39,7 +40,8 @@ internal object C33RegionalB4ResidualProductionCensus {
         generatedByCase: Map<String, StimulusProductionGenerationResult>,
         canonicalPlanningByCase: Map<String, CanonicalStimulusPlanningResult>,
         generationMillisByCase: Map<String, Long>,
-        startSha: String
+        startSha: String,
+        executionFailuresByCase: Map<String, StimulusProductionExecutionRejectedException> = emptyMap()
     ): String {
         val targets = JSONArray()
         val weeklyRows = JSONArray()
@@ -66,7 +68,22 @@ internal object C33RegionalB4ResidualProductionCensus {
         val timings = sparseCases.mapNotNull { generationMillisByCase[it] }.sorted()
 
         sparseCases.sorted().forEach { case ->
-            val generated = generatedByCase[case] ?: error("C33 census missing generated case $case")
+            val generated = generatedByCase[case]
+            if (generated == null) {
+                val failure = executionFailuresByCase[case] ?: error("C33 census missing generated case $case")
+                val canonical = canonicalPlanningByCase[case]
+                casesWithoutComparison.put(JSONObject()
+                    .put("case", case)
+                    .put("route", "NO_PROGRAM_RETURNED")
+                    .put("routeReasons", JSONArray(failure.reasonCodes))
+                    .put("upstreamFailureReason", "NO_EXECUTABLE_PLANNING_DEMAND")
+                    .put("upstreamFailureDetails", JSONArray(failure.reasonCodes))
+                    .put("movementNeedEvidenceAvailable", canonical != null)
+                    .put("movementNeedDecisionCount", canonical?.decisionPortfolio?.movementDecisions?.size ?: 0)
+                    .put("comparisonStatus", "EXECUTION_REJECTED_INPUT_OR_AUTHORITY_REQUIRED")
+                )
+                return@forEach
+            }
             val comparison = generated.comparison
             if (comparison == null) {
                 // A production result can legitimately fail closed before constructing a

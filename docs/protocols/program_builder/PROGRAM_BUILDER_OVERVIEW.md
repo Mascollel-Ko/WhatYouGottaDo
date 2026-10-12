@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.78.0 |
+| Protocol version | 3.80.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.20 |
-| Last audited commit | b36f4ad2bb40c9ff4e2d57bfe8f3793a6434bbd5 |
+| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; personalized planner runtime v0.15.22 |
+| Last audited commit | aa84e3e72181f104b2dddd28e136b70c73620f7f |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -1505,3 +1505,13 @@ Post-audit boundary notes
 - The movement decision is captured in the planning snapshot and reused by B1/B3 movement observations, B4 regional planning, B5 candidate filtering, B6 ownership, final materialization, and post-generation audit. A selectable identity with conflicting or review-required canonical evidence stays unresolved and fails closed.
 - B8 scope resolution validates every attributed Strength/Hypertrophy target against that exact owner's B5 selection when B5 is the provenance source, exact executable B6 prescription, and materialized rows. A target label attached to another owner's valid material cannot supply missing authority; partial provenance and unsupported targets keep their own diagnostic precedence.
 - The corrected rear-delt inherited muscle-analysis rows are included in the semantic metadata revision, so cached anatomy features are rebuilt. App and Room schemas remain unchanged.
+
+### C38.3 — independent new-generator execution (protocol 3.80.0)
+
+- The normal personalized-generation entrypoint runs canonical B1–B6 once and selects the resulting new-generator draft only after an independent final execution validator. It does not build a legacy CONTROL candidate.
+- B7 comparison/provenance and B8 cutover scope/status remain diagnostic data. B9 records the actual source as `NEW_GENERATOR`; no B7/B8 denial or diagnostic failure changes the returned program. Legacy CONTROL remains reachable only through an explicit diagnostic/legacy invocation.
+- The independent execution validator checks current catalog identity and category, excluded exercise and equipment constraints, exact B4→B5 target ownership, B6 authorization and materialization integrity, typed Task protocol execution, set/load/RPE shape, weekly schedule and session time, and day OFI plus connective-tissue recovery projections. Unsafe complete drafts return an explicit generation failure; unresolved or deferred demand stays typed as a shortfall and is never filled by legacy prescriptions.
+- A day that exceeds the OFI or any fatigue-axis limit enters a hard-feasibility scheduling repair before return. Whole-exercise moves must preserve prescriptions, exercise identity, session duration, current tissue restrictions, and primary-lift spacing; the destination must pass the same day projection. If no safe placement exists, generation reports failure.
+- Saving compares against the actual persisted Room program. Replacing a saved draft requires explicit user confirmation; temporary CONTROL output is not treated as the saved owner. Source-snapshot validation continues to reject stale saves.
+- Saved programs stamped with builder/runtime `3.79.0` / `RECORD_BASED_PLANNER_0.15.21_KOTLIN_1` remain eligible incumbent sources after the protocol bump; Room and backup schemas are unchanged.
+- The 22-case corpus reports each final B1–B6 result or typed input/execution failure independently of CONTROL differences. Detailed output census and verification are recorded in [`docs/c38_3_new_generator_independent_execution_audit.md`](../../c38_3_new_generator_independent_execution_audit.md).

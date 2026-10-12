@@ -623,9 +623,20 @@ class PersonalizedProgramBuilder(
         val canonicalB5StableKeys = if (regionalTargetPlan == null) {
             materialDemandOverride?.candidates?.mapTo(linkedSetOf(), PlannedExercise::stableKey).orEmpty()
         } else emptySet()
-        // A deferred Power target must not regain an executable-looking legacy row through the
-        // separate performance-continuity path. Other B5 qualities retain their existing behavior.
+        // Any B5 Quality owner that lacks executable B6 must stay out of generic continuity.
+        // Otherwise an owner removed from canonical material demand could re-enter with a
+        // template prescription through the separate performance-continuity path.
         val canonicalB5PowerStableKeys = canonicalB5PowerOwnerIdentities.mapTo(linkedSetOf()) { it.stableKey }
+        val canonicalB5QualityOwnersWithoutExecutableB6 = exactPrescriptionAuthorizationProvider
+            ?.b5SelectedQualityOwners.orEmpty()
+            .filterTo(linkedSetOf()) { owner ->
+                exactPrescriptionAuthorizationProvider?.ownerExecutionDispositions?.get(owner) !in setOf(
+                    StimulusPrescriptionOwnerExecutionDisposition.EXECUTABLE_EXACT_AUTHORITY,
+                    StimulusPrescriptionOwnerExecutionDisposition.PRESERVE_INCUMBENT_OWNER
+                )
+            }
+        val canonicalB5QualityStableKeysWithoutExecutableB6 = canonicalB5QualityOwnersWithoutExecutableB6
+            .mapTo(linkedSetOf(), StimulusPrescriptionOwnerIdentity::stableKey)
         val provisionalResistance = ResistanceVolumePlanner.plan(snapshot, state, request, Int.MAX_VALUE, anchorFallbackResistance)
         val baselineResistance = schedulingBaselineResistance
         val resistanceContinuityDemand = schedulingContinuityDemand
@@ -633,6 +644,7 @@ class PersonalizedProgramBuilder(
             !it.date.isBefore(snapshot.cutoff.minusDays(27)) && !it.date.isAfter(snapshot.cutoff) &&
                 snapshot.activityKind(it.stableKey) in PERFORMANCE_ACTIVITY_KINDS &&
                 it.stableKey !in materialKeys && it.stableKey !in canonicalB5PowerStableKeys &&
+                it.stableKey !in canonicalB5QualityStableKeysWithoutExecutableB6 &&
                 it.stableKey !in request.excludedExerciseStableKeys &&
                 !snapshot.explicitlyRestricted(it.stableKey) &&
                 (state.badmintonIntent == BadmintonPlanningIntent.ENABLED ||
@@ -743,7 +755,13 @@ class PersonalizedProgramBuilder(
             ?.keys.orEmpty()
         fun isExecutableOwner(item: PlannedExercise): Boolean =
             StimulusPrescriptionOwnerIdentity(item.stableKey, item.role) !in excludedConflictingOwners
-        val continuity = (authorizedOverride?.filter { it.continuity }?.map { it.item } ?: (continuityPlanner.select(state, transitions, allocations, days) +
+        val canonicalB5Owners = materialDemandOverride?.candidates?.mapTo(linkedSetOf()) {
+            StimulusPrescriptionOwnerIdentity(it.stableKey, it.role)
+        }.orEmpty()
+        val canonicalB5Execution = exactPrescriptionAuthorizationProvider != null &&
+            materialDemandOverride != null && regionalTargetPlan == null
+        val continuity = if (canonicalB5Execution) emptyList() else
+            (authorizedOverride?.filter { it.continuity }?.map { it.item } ?: (continuityPlanner.select(state, transitions, allocations, days) +
             performanceContinuity.mapNotNull { item -> incumbentAllocations[item.stableKey]?.let { item.copy(targetSets = it) } }))
             .filterNot { it.stableKey in canonicalB5StableKeys }
             .filterNot { StimulusPrescriptionOwnerIdentity(it.stableKey, it.role) in deniedMaterialDemandOwners }
@@ -781,8 +799,15 @@ class PersonalizedProgramBuilder(
             (1..horizon).map { week -> event.copy(before = event.before?.copy(week = week), after = event.after?.copy(week = week)) }
         }
         val spare = capacity - finite.continuity - finite.material.sum()
-        val optional = (authorizedOverride?.filter { !it.continuity && !it.item.material }?.map { it.item } ?: optionalCandidates.filter { it.targetSets <= spare })
-            .filter(::isExecutableOwner)
+        val optional = if (canonicalB5Execution) {
+            optionalCandidates.filter { item ->
+                StimulusPrescriptionOwnerIdentity(item.stableKey, item.role) in canonicalB5Owners && item.targetSets <= spare &&
+                    exactPrescriptionAuthorizationProvider?.resolveOwnerPrescription(item) is ExactOwnerPrescriptionResolution.Authorized
+            }
+        } else {
+            (authorizedOverride?.filter { !it.continuity && !it.item.material }?.map { it.item } ?: optionalCandidates.filter { it.targetSets <= spare })
+                .filter(::isExecutableOwner)
+        }
         val selected = continuity + gapItems + optional
         // Capture original demand before finite capacity is allowed to erase it. No selection changes in this trace stage.
         val originalAllocations = proportionalAllocation(incumbentWeights.entries.sortedByDescending { it.value }
@@ -857,7 +882,8 @@ class PersonalizedProgramBuilder(
                     // Preserve the established non-material-demand continuity path, which is
                     // neither a new coverage row nor authority for a material-demand candidate.
                     ExactOwnerPrescriptionResolution.NoExactAuthority -> if (
-                        StimulusPrescriptionOwnerIdentity(item.stableKey, item.role) in materialDemandOriginOwners
+                        StimulusPrescriptionOwnerIdentity(item.stableKey, item.role) in materialDemandOriginOwners ||
+                            StimulusPrescriptionOwnerIdentity(item.stableKey, item.role) in canonicalB5QualityOwnersWithoutExecutableB6
                     ) emptyList() else listOf(AuthorizedSchedulingDemand(
                         "authorized_$index", item,
                         generationPrescriptions.prescribe(snapshot, state.strengthIntent, item, item.style),

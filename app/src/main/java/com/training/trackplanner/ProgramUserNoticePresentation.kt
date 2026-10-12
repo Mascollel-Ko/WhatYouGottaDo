@@ -32,4 +32,12 @@ internal fun Context.programUserNoticeText(notice: ProgramUserNotice): String =
             getString(R.string.program_notice_automatic_quality_adjustment)
         ProgramUserNoticeCode.STRENGTH_EXPOSURE_SHORTFALL ->
             getString(R.string.program_notice_strength_exposure_shortfall)
+        ProgramUserNoticeCode.STIMULUS_DOSE_SHORTFALL ->
+            getString(R.string.program_notice_stimulus_dose_shortfall, notice.count)
+        ProgramUserNoticeCode.STIMULUS_REQUIREMENT_UNRESOLVED ->
+            getString(R.string.program_notice_stimulus_requirement_unresolved, notice.count)
+        ProgramUserNoticeCode.USER_LOAD_CALIBRATION_REQUIRED ->
+            getString(R.string.program_notice_user_load_calibration_required, notice.count)
+        ProgramUserNoticeCode.TISSUE_RECOVERY_PROJECTION_UNRESOLVED ->
+            getString(R.string.program_notice_tissue_recovery_projection_unresolved, notice.count)
     }

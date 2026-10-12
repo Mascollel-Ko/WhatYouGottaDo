@@ -1162,7 +1162,8 @@ class TrainingRepository internal constructor(
         progress: com.training.trackplanner.data.personalized.PersonalizedPlannerProgressReporter = com.training.trackplanner.data.personalized.PersonalizedPlannerProgressReporter.NONE,
         routingMode: com.training.trackplanner.data.personalized.StimulusProductionRoutingMode =
             com.training.trackplanner.data.personalized.StimulusProductionRoutingPolicy.defaultMode,
-        existingProgramId: Long? = null
+        existingProgramId: Long? = null,
+        includeComparisonDiagnostics: Boolean = false
     ): com.training.trackplanner.data.personalized.StimulusProductionGenerationResult = withContext(Dispatchers.IO) {
         val incumbentIndex = programPlanService.canonicalIncumbentPlacementIndex(existingProgramId)
         personalizedProgramPlanningService.generatePreparedProduction(
@@ -1171,6 +1172,7 @@ class TrainingRepository internal constructor(
             metadata = exerciseMetadataEditorService.resolvedRuntimeMetadataByExerciseStableKey(),
             progress = progress,
             routingMode = routingMode,
+            includeComparisonDiagnostics = includeComparisonDiagnostics,
             incumbentPlacementIndex = incumbentIndex
         )
     }
@@ -1181,7 +1183,8 @@ class TrainingRepository internal constructor(
 
     suspend fun saveGeneratedProgram(
         existingProgramId: Long?,
-        skeleton: GeneratedProgramSkeleton
+        skeleton: GeneratedProgramSkeleton,
+        existingProgramReplacementApproved: Boolean = false
     ): Long = cloudMutation(CloudMutationScope.PROGRAMS) {
         val finalSkeleton = skeleton.replacementReview?.let { review ->
             ProgramReplacementSaveGate.requireSaveable(skeleton)
@@ -1203,7 +1206,11 @@ class TrainingRepository internal constructor(
                 )
             }
         } ?: skeleton
-        programPlanService.saveGeneratedProgram(existingProgramId, finalSkeleton).also { programId ->
+        programPlanService.saveGeneratedProgram(
+            existingProgramId,
+            finalSkeleton,
+            existingProgramReplacementApproved
+        ).also { programId ->
             finalSkeleton.personalizedDecision?.let { decision ->
                 val stableKey = requireNotNull(programPlanService.programStableKey(programId))
                 val fingerprint = personalizedProgramFingerprint(finalSkeleton.request, finalSkeleton.items)

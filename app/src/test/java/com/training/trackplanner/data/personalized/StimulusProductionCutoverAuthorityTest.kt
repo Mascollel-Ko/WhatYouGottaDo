@@ -54,7 +54,7 @@ class StimulusProductionCutoverAuthorityTest {
         val route = StimulusProductionRouter().route(
             compared, b8, StimulusProductionRoutingMode.B8_STRENGTH_HYPERTROPHY_V1_ACTIVE
         )
-        assertEquals(StimulusProductionProgramSource.B8_STRENGTH_CALIBRATION_V1, route.decision.selectedSource)
+        assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, route.decision.selectedSource)
         assertSame(compared.experimental, route.program)
 
         val ordinaryStrength = engine().audit(compared, StimulusProductionCutoverScope.STRENGTH_V1)
@@ -367,7 +367,7 @@ class StimulusProductionCutoverAuthorityTest {
         assertEquals(StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER, b8.status)
         assertEquals(listOf(independent), b8.authorizedOwnerIdentities)
         val b9 = StimulusProductionRouter().route(compared, b8, StimulusProductionRoutingMode.B8_STRENGTH_V1_ACTIVE)
-        assertEquals(StimulusProductionProgramSource.B8_STRENGTH_V1, b9.decision.selectedSource)
+        assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, b9.decision.selectedSource)
         assertSame(compared.experimental, b9.program)
     }
 
@@ -391,8 +391,8 @@ class StimulusProductionCutoverAuthorityTest {
         val b8 = engine().audit(compared)
         assertEquals(StimulusProductionCutoverAuthorityStatus.NO_MATERIAL_CHANGE, b8.status)
         val b9 = StimulusProductionRouter().route(compared, b8, StimulusProductionRoutingMode.B8_STRENGTH_V1_ACTIVE)
-        assertEquals(StimulusProductionProgramSource.CONTROL, b9.decision.selectedSource)
-        assertSame(compared.control, b9.program)
+        assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, b9.decision.selectedSource)
+        assertSame(compared.experimental, b9.program)
     }
 
     @Test
@@ -524,8 +524,8 @@ class StimulusProductionCutoverAuthorityTest {
             comparison, authority, StimulusProductionRoutingMode.B8_STRENGTH_V1_ACTIVE
         )
         assertSame(comparison.experimental, result.program)
-        assertEquals(StimulusProductionProgramSource.B8_STRENGTH_V1, result.decision.selectedSource)
-        assertEquals(listOf("B9_B8_STRENGTH_V1_ROUTED"), result.decision.reasonCodes)
+        assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, result.decision.selectedSource)
+        assertTrue("B9_NEW_GENERATOR_SELECTED" in result.decision.reasonCodes)
         assertTrue(result.decision.productionRoutingActive)
     }
 
@@ -538,19 +538,19 @@ class StimulusProductionCutoverAuthorityTest {
         )
         assertSame(comparison.control, result.program)
         assertEquals(StimulusProductionProgramSource.CONTROL, result.decision.selectedSource)
-        assertEquals(listOf("B9_CONTROL_ONLY_POLICY"), result.decision.reasonCodes)
+        assertEquals(listOf("B9_EXPLICIT_CONTROL_ONLY_MODE"), result.decision.reasonCodes)
         assertFalse(result.decision.productionRoutingActive)
         assertEquals(StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER, result.decision.b8Status)
     }
 
     @Test
-    fun b9StatusMatrixAlwaysFallsBackToTheExistingControlSkeleton() {
+    fun b9StatusMatrixKeepsTheNewGeneratorAndReportsB8Statuses() {
         val comparison = authorizedComparison()
         listOf(
-            StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED to "B9_B8_CONTROL_REQUIRED",
-            StimulusProductionCutoverAuthorityStatus.INCONCLUSIVE to "B9_B8_INCONCLUSIVE",
-            StimulusProductionCutoverAuthorityStatus.NO_MATERIAL_CHANGE to "B9_B8_NO_MATERIAL_CHANGE"
-        ).forEach { (status, reason) ->
+            StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED,
+            StimulusProductionCutoverAuthorityStatus.INCONCLUSIVE,
+            StimulusProductionCutoverAuthorityStatus.NO_MATERIAL_CHANGE
+        ).forEach { status ->
             val authority = StimulusProductionCutoverAuthorityDecision(
                 status = status,
                 scope = StimulusProductionCutoverScope.STRENGTH_V1,
@@ -561,9 +561,11 @@ class StimulusProductionCutoverAuthorityTest {
             val result = StimulusProductionRouter().route(
                 comparison, authority, StimulusProductionRoutingMode.B8_STRENGTH_V1_ACTIVE
             )
-            assertSame(comparison.control, result.program)
-            assertEquals(listOf(reason), result.decision.reasonCodes)
-            assertFalse(result.decision.productionRoutingActive)
+            assertSame(comparison.experimental, result.program)
+            assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, result.decision.selectedSource)
+            assertEquals(status, result.decision.b8Status)
+            assertTrue("B9_NEW_GENERATOR_SELECTED" in result.decision.reasonCodes)
+            assertTrue(result.decision.productionRoutingActive)
         }
     }
 
@@ -580,19 +582,21 @@ class StimulusProductionCutoverAuthorityTest {
         val result = StimulusProductionRouter().route(
             comparison, authority, StimulusProductionRoutingMode.B8_STRENGTH_V1_ACTIVE
         )
-        assertSame(comparison.control, result.program)
-        assertEquals(listOf("B9_B8_EMPTY_AUTHORIZED_OWNER_SET"), result.decision.reasonCodes)
-        assertFalse(result.decision.productionRoutingActive)
+        assertSame(comparison.experimental, result.program)
+        assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, result.decision.selectedSource)
+        assertEquals(StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER, result.decision.b8Status)
+        assertTrue(result.decision.productionRoutingActive)
     }
 
     @Test
-    fun b9MissingAuthorityFallsBackToControl() {
+    fun b9MissingAuthorityDoesNotFallBackToControl() {
         val comparison = authorizedComparison()
         val result = StimulusProductionRouter().route(
             comparison, null, StimulusProductionRoutingMode.B8_STRENGTH_V1_ACTIVE
         )
-        assertSame(comparison.control, result.program)
-        assertEquals(listOf("B9_B8_AUTHORITY_MISSING"), result.decision.reasonCodes)
+        assertSame(comparison.experimental, result.program)
+        assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, result.decision.selectedSource)
+        assertTrue(result.decision.productionRoutingActive)
     }
 
     private fun authorizedComparison() = comparison(

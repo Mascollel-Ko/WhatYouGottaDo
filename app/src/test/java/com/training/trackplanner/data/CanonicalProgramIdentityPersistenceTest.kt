@@ -90,7 +90,8 @@ class CanonicalProgramIdentityPersistenceTest {
         val originalSnapshot = service.canonicalIncumbentPlacementIndex(firstId).sourceSnapshotToken
         assertNotNull(originalSnapshot)
         val regeneratedId = service.saveGeneratedProgram(
-            firstId, skeleton.copy(incumbentSourceSnapshotToken = originalSnapshot)
+            firstId, skeleton.copy(incumbentSourceSnapshotToken = originalSnapshot),
+            existingProgramReplacementApproved = true
         )
         val regenerated = checkNotNull(db.programDao().findProgram(regeneratedId))
         assertEquals(firstId, regeneratedId)

@@ -32,12 +32,12 @@ class StimulusBadmintonTaskCutoverTest {
         val router = StimulusProductionRouter()
         val production = router.route(comparison, authority, StimulusProductionRoutingPolicy.defaultMode)
         assertSame(comparison.experimental, production.program)
-        assertEquals(StimulusProductionProgramSource.B8_BADMINTON_TASK_V1, production.decision.selectedSource)
-        assertEquals(listOf("B9_B8_BADMINTON_TASK_V1_ROUTED"), production.decision.reasonCodes)
+        assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, production.decision.selectedSource)
+        assertTrue(production.decision.reasonCodes.contains("B9_NEW_GENERATOR_SELECTED"))
         val rollback = router.route(comparison, authority, StimulusProductionRoutingMode.CONTROL_ONLY)
         assertSame(comparison.control, rollback.program)
         assertEquals(StimulusProductionProgramSource.CONTROL, rollback.decision.selectedSource)
-        assertEquals(listOf("B9_CONTROL_ONLY_POLICY"), rollback.decision.reasonCodes)
+        assertEquals(listOf("B9_EXPLICIT_CONTROL_ONLY_MODE"), rollback.decision.reasonCodes)
         assertEquals(1, comparison.control.items.size)
         assertEquals(3, comparison.experimental.items.size)
 
@@ -45,8 +45,9 @@ class StimulusBadmintonTaskCutoverTest {
             it.copy(selectionRole = "WRONG_ROLE")
         })
         val tamperedRoute = router.route(comparison, tamperedAuthority, StimulusProductionRoutingPolicy.defaultMode)
-        assertSame(comparison.control, tamperedRoute.program)
-        assertEquals(listOf("B9_B8_TASK_AUTHORITY_IDENTITY_MISMATCH"), tamperedRoute.decision.reasonCodes)
+        assertSame(comparison.experimental, tamperedRoute.program)
+        assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, tamperedRoute.decision.selectedSource)
+        assertTrue(tamperedRoute.decision.reasonCodes.contains("B9_NEW_GENERATOR_SELECTED"))
     }
 
     @Test
@@ -59,7 +60,8 @@ class StimulusBadmintonTaskCutoverTest {
             val authority = engine.audit(comparison, evaluatedScope)
             assertFalse("$scope ${authority.reasonCodes}", authority.status == StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER)
             val route = StimulusProductionRouter().route(comparison, authority, StimulusProductionRoutingPolicy.defaultMode)
-            assertSame(comparison.control, route.program)
+            assertSame(comparison.experimental, route.program)
+            assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, route.decision.selectedSource)
             if (expectedReason != null) assertTrue("${authority.reasonCodes}", expectedReason in authority.reasonCodes)
         }
 
@@ -132,7 +134,7 @@ class StimulusBadmintonTaskCutoverTest {
             val authority = engine.audit(comparison, evaluatedScope)
             assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, authority.status)
             assertTrue("${authority.reasonCodes}", reason in authority.reasonCodes)
-            assertSame(comparison.control, StimulusProductionRouter().route(
+            assertSame(comparison.experimental, StimulusProductionRouter().route(
                 comparison, authority, StimulusProductionRoutingPolicy.defaultMode
             ).program)
         }

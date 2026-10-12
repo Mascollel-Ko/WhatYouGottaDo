@@ -18,11 +18,12 @@ internal data class PreparedCanonicalGenerationContext(
     val postAnswerWeekAnnotations: Map<java.time.LocalDate, WeeklyContextAnnotation>
 )
 
-/** B5/B6 artifact completed without a CONTROL program or any CONTROL diagnostics. */
+/** B1–B6 artifact completed without building a CONTROL program. */
 internal data class CanonicalExperimentalGeneration(
     val program: GeneratedProgramSkeleton,
     val targetPlan: com.training.trackplanner.data.personalized.StimulusTargetPlan,
     val selectionPlan: StimulusCandidateSelectionPlan,
+    val taskProtocolPlan: TaskProtocolAuthorizationPlan,
     val prescriptionContext: CanonicalPrescriptionContext,
     val authorizationPlan: StimulusPrescriptionAuthorizationPlan,
     val experimentalAudit: StimulusTargetControlProgramAudit,

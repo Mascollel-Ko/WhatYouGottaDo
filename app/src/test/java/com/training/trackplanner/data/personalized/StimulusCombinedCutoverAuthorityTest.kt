@@ -77,9 +77,9 @@ class StimulusCombinedCutoverAuthorityTest {
         val comparison = mixedComparison()
         val authority = audit(comparison)
         val routed = StimulusProductionRouter().route(comparison, authority, StimulusProductionRoutingMode.B8_STRENGTH_V1_ACTIVE)
-        assertEquals(StimulusProductionProgramSource.CONTROL, routed.decision.selectedSource)
-        assertEquals(listOf("B9_B8_COMBINED_SCOPE_NOT_ACTIVE"), routed.decision.reasonCodes)
-        assertFalse(routed.decision.productionRoutingActive)
+        assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, routed.decision.selectedSource)
+        assertTrue(routed.decision.reasonCodes.contains("B9_NEW_GENERATOR_SELECTED"))
+        assertTrue(routed.decision.productionRoutingActive)
     }
 
     @Test
@@ -91,9 +91,9 @@ class StimulusCombinedCutoverAuthorityTest {
             authority,
             StimulusProductionRoutingMode.B8_STRENGTH_HYPERTROPHY_V1_ACTIVE
         )
-        assertEquals(StimulusProductionProgramSource.B8_STRENGTH_HYPERTROPHY_V1, routed.decision.selectedSource)
+        assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, routed.decision.selectedSource)
         assertSame(comparison.experimental, routed.program)
-        assertEquals(listOf("B9_B8_STRENGTH_HYPERTROPHY_V1_ROUTED"), routed.decision.reasonCodes)
+        assertTrue(routed.decision.reasonCodes.contains("B9_NEW_GENERATOR_SELECTED"))
         assertTrue(routed.decision.productionRoutingActive)
     }
 
@@ -107,8 +107,8 @@ class StimulusCombinedCutoverAuthorityTest {
         val partialRoute = StimulusProductionRouter().route(
             comparison, partial, StimulusProductionRoutingMode.B8_STRENGTH_HYPERTROPHY_V1_ACTIVE
         )
-        assertSame(comparison.control, partialRoute.program)
-        assertEquals(listOf("B9_B8_AUTHORITY_IDENTITY_MISMATCH"), partialRoute.decision.reasonCodes)
+        assertSame(comparison.experimental, partialRoute.program)
+        assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, partialRoute.decision.selectedSource)
 
         val third = authority.copy(
             authorizedAuthorityIdentities = authority.authorizedAuthorityIdentities +
@@ -117,8 +117,8 @@ class StimulusCombinedCutoverAuthorityTest {
         val thirdRoute = StimulusProductionRouter().route(
             comparison, third, StimulusProductionRoutingMode.B8_STRENGTH_HYPERTROPHY_V1_ACTIVE
         )
-        assertSame(comparison.control, thirdRoute.program)
-        assertEquals(listOf("B9_B8_AUTHORITY_IDENTITY_MISMATCH"), thirdRoute.decision.reasonCodes)
+        assertSame(comparison.experimental, thirdRoute.program)
+        assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, thirdRoute.decision.selectedSource)
     }
 
     @Test

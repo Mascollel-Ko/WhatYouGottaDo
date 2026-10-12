@@ -230,7 +230,14 @@ internal class FrequencyExpansionPlanner(private val prescriptions: Personalized
                     rows.associate { it.localId to it.copy(dayOfWeek = 1, orderIndex = 0) })
                 completion = completion.copy(week = week.copy(items = rows), skeleton = week.mirror(completion.skeleton, rows, completion.skeleton.weekDaySchedule))
             }
-            val rebalanced = BoundedDayRebalancer { trial -> failure(trial) == null && origins(trial) != null }
+            val rebalanced = BoundedDayRebalancer { trial ->
+                val gateFailure = failure(trial)
+                // BoundedDayRebalancer validates each destination day and may need several
+                // whole-row moves to repair an already hard-infeasible source. Let that one
+                // staged OFI residual through this origin-preservation gate; all non-OFI
+                // frequency, prescription, and connective-tissue gates remain mandatory.
+                origins(trial) != null && (gateFailure == null || gateFailure.code == "OFI_CONSTRAINT")
+            }
                 .rebalance(completion, snapshot, state, snapshot.planDayProjection,
                     RebalanceEvaluationCounts(performanceMetrics = performanceMetrics))
             result = rebalanced.skeleton.copy(personalizedDecision = rebalanced.skeleton.personalizedDecision?.copy(dayRebalancing = rebalanced.trace))

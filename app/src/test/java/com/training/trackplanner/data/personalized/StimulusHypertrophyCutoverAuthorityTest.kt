@@ -246,10 +246,10 @@ class StimulusHypertrophyCutoverAuthorityTest {
         val comparison = sharedHypertrophyComparison()
         val authority = audit(comparison)
         val routed = StimulusProductionRouter().route(comparison, authority, StimulusProductionRoutingMode.B8_STRENGTH_V1_ACTIVE)
-        assertEquals(StimulusProductionProgramSource.CONTROL, routed.decision.selectedSource)
-        assertSame(comparison.control, routed.program)
-        assertEquals(listOf("B9_B8_SCOPE_MISMATCH"), routed.decision.reasonCodes)
-        assertFalse(routed.decision.productionRoutingActive)
+        assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, routed.decision.selectedSource)
+        assertSame(comparison.experimental, routed.program)
+        assertTrue(routed.decision.reasonCodes.contains("B9_NEW_GENERATOR_SELECTED"))
+        assertTrue(routed.decision.productionRoutingActive)
     }
 
     private fun audit(comparison: StimulusSelectionProgramComparison) =

@@ -10,6 +10,9 @@ class MainSchedulingPolicyTest {
     private fun items(count: Int)=primaryKeys.take(count).map { TimedPlannedExercise(f.source(it,1,priority=100),f.rx(1)) }
     private fun place(count: Int,days: Int,robust: Boolean=true)=TimedWeeklyPlacementPlanner().distribute(items(count),days,90,
         robustSchedule=robust,isMain={ MainSchedulingPolicy.role(it,true)==ProgressionRole.MAIN })
+    @Test fun defaultScheduleHonorsTwoDayFrequencyAndRequestedHorizon() {
+        assertEquals(mapOf(1 to setOf(1, 4), 2 to setOf(1, 4)), RecordBasedReviewedPolicy.defaultSchedule(2, 2))
+    }
     @Test fun fourDaysThreeMainsPreferNoOverlapBeforeRobustEarlyWeekPreference() {
         val old=TimedWeeklyPlacementPlanner().distribute(items(3),4,90,robustSchedule=true).first
         val revised=place(3,4).first

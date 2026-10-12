@@ -30,6 +30,8 @@ class PostGenerationAuthorityFreezeTest {
         // C38.2 replaces broad runtime accessory-slot movement promotion with a canonical
         // movement-pattern/family resolver and supplies canonical relations to the snapshot;
         // historical dose and prescription authorities remain frozen.
+        // C38.3 allows the user's requested 2-day schedule and 1-week horizon without silently
+        // expanding either request; the reviewed scheduling map records those exact bounds.
         // All unrelated historical, style, numerical and prescription authorities remain frozen.
         // C28 lets the legacy selector report candidate identities without set-unit demand in
         // canonical EXP generation; it does not change candidate ranking or create a dose.
@@ -57,7 +59,7 @@ class PostGenerationAuthorityFreezeTest {
             // adds priority-order trace fields while leaving the finite allocation kernel frozen.
             "ExecutionAllocationPlanner.kt" to "ebfc914e43b0d970743edfe52027a382a5db66023a2c11d579b6e2b56a0880f4",
             "PerformancePrescriptionResolver.kt" to "48eda34c9e390ca109bbb1e19e7a8ac79802f01f60c25470f92c8eb7f87063be",
-            "RecordBasedReviewedPolicy.kt" to "915be5354ac988774f740a366655d26f74cb3c8e2f820eecf63e8914b671ed08",
+            "RecordBasedReviewedPolicy.kt" to "5dec65540c0602a923272caf347b6ec30e55640e4ed32182efb6c5b8ea609da6",
             "PlanningHistorySnapshotBuilder.kt" to "856201038ff76599ba4928ffae9d10080fc6c46ba670096fb9036387fb6dfbd3",
             "TrainingStateAssessment.kt" to "9027cb6d45422fc2cdecafa19fbec34a8b8fcba8c14cc594058d15e802e53bf2",
             "TrainingStateRouting.kt" to "bcbc769d004c80cf76a8b2ea1d69344be69b22892d769c591a58d0edecd042e0"

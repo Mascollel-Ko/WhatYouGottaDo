@@ -743,6 +743,7 @@ internal class PersonalizedProgramPlanningService(
             program = experimental,
             targetPlan = residualTargetPlan,
             selectionPlan = executionSelectionPlan,
+            taskProtocolPlan = taskProtocolPlan,
             prescriptionContext = prescriptionContext,
             authorizationPlan = authorizationPlan,
             experimentalAudit = experimentalAudit,
@@ -761,10 +762,10 @@ internal class PersonalizedProgramPlanningService(
         observe: (ProductionGenerationPhase) -> Unit
     ): GeneratedProgramSkeleton {
         observe(ProductionGenerationPhase.CONTROL_BUILD)
-        if (controlGenerationOverride != null) return controlGenerationOverride()
         productionBuildCounts.recordProgramBuildInvocation(
             com.training.trackplanner.data.personalized.StimulusProductionBuildKind.CONTROL
         )
+        if (controlGenerationOverride != null) return controlGenerationOverride()
         val resolved = context.resolvedRequest
         return programBuilder.build(
             snapshot = context.snapshot,
@@ -1344,9 +1345,8 @@ internal class PersonalizedProgramPlanningService(
     }
 
     /**
-     * Production order is canonical preparation and the complete EXPERIMENTAL artifact first,
-     * followed by one late CONTROL materialization, comparison, B7/B8 and B9 routing that
-     * retains the selected result.
+     * The default production path runs B1–B6, validates the final draft, and returns it directly.
+     * CONTROL/B7/B8 comparison is an explicit diagnostic option and cannot select the program.
      */
     internal suspend fun generatePreparedProduction(
         preflight: PersonalizedPlanningPreflight,
@@ -1356,6 +1356,7 @@ internal class PersonalizedProgramPlanningService(
         routingMode: com.training.trackplanner.data.personalized.StimulusProductionRoutingMode =
             com.training.trackplanner.data.personalized.StimulusProductionRoutingPolicy.defaultMode,
         controlGenerationOverride: (suspend () -> GeneratedProgramSkeleton)? = null,
+        includeComparisonDiagnostics: Boolean = controlGenerationOverride != null,
         canonicalPlanningComputation: CanonicalStimulusPlanningComputation = ::buildCanonicalStimulusPlanningResult,
         productionGenerationObserver: ((ProductionGenerationObservation) -> Unit)? = null,
         experimentalProgramBuildOverride: (suspend () -> GeneratedProgramSkeleton)? = null,
@@ -1363,8 +1364,11 @@ internal class PersonalizedProgramPlanningService(
             CanonicalIncumbentIndexStatus.NO_EXISTING_PROGRAM
         )
     ): com.training.trackplanner.data.personalized.StimulusProductionGenerationResult {
+        require(routingMode != com.training.trackplanner.data.personalized.StimulusProductionRoutingMode.CONTROL_ONLY || includeComparisonDiagnostics) {
+            "CONTROL_ONLY requires an explicit comparison/legacy diagnostic invocation"
+        }
         // A new generation attempt makes every prior preview choice stale, even if this run
-        // later produces no alternatives or falls back to CONTROL.
+        // later produces no alternatives or is rejected by the independent execution gate.
         replacementValidationSessions.clear()
         val buildCounts = com.training.trackplanner.data.personalized.MutableStimulusProductionBuildCounts()
         var incumbentPlacementShadow: CanonicalIncumbentPlacementShadow? = null
@@ -1386,6 +1390,22 @@ internal class PersonalizedProgramPlanningService(
         ) {
             productionGenerationObserver?.invoke(ProductionGenerationObservation(phase, context, selectionPlan, authorizationPlan))
         }
+        fun reject(failure: com.training.trackplanner.data.personalized.StimulusProductionEvaluationFailure): Nothing {
+            val canonicalFailure = failure.cause as? StimulusCanonicalEvaluationFailure
+            val codes = buildList {
+                add(failure.reasonCode)
+                canonicalFailure?.let {
+                    add(it.reason.name)
+                    it.detailCode?.let(::add)
+                }
+            }.distinct().sorted()
+            throw com.training.trackplanner.data.personalized.StimulusProductionExecutionRejectedException(
+                reasonCodes = codes,
+                unresolvedMaterialDemandGaps = canonicalFailure?.unresolvedMaterialDemandGaps.orEmpty(),
+                materialDemandAuthorityResolutions = canonicalFailure?.materialDemandAuthorityResolutions.orEmpty(),
+                strengthShortfalls = canonicalFailure?.strengthShortfalls.orEmpty()
+            )
+        }
         fun preserveStrengthShortfallNotice(
             program: GeneratedProgramSkeleton,
             shortfalls: List<com.training.trackplanner.data.personalized.StimulusStrengthShortfall>
@@ -1397,53 +1417,45 @@ internal class PersonalizedProgramPlanningService(
                 )).distinctBy(ProgramUserNotice::code)
             )
         )
-        observe(ProductionGenerationPhase.CANONICAL_PREPARED)
-
-        fun fallback(
-            control: GeneratedProgramSkeleton,
-            failure: com.training.trackplanner.data.personalized.StimulusProductionEvaluationFailure
-        ): com.training.trackplanner.data.personalized.StimulusProductionGenerationResult {
-            val canonicalFailure = failure.cause as? StimulusCanonicalEvaluationFailure
-            val strengthShortfalls = canonicalFailure?.strengthShortfalls.orEmpty()
-            return com.training.trackplanner.data.personalized.StimulusProductionGenerationResult(
-                program = preserveStrengthShortfallNotice(
-                    control.copy(incumbentSourceSnapshotToken = incumbentPlacementIndex.sourceSnapshotToken),
-                    strengthShortfalls
-                ),
-                routeDecision = com.training.trackplanner.data.personalized.StimulusProductionRoutingDecision(
-                    mode = routingMode,
-                    selectedSource = com.training.trackplanner.data.personalized.StimulusProductionProgramSource.CONTROL,
-                    b8Status = null,
-                    b8Scope = null,
-                    reasonCodes = listOf("B9_UPSTREAM_EVALUATION_FAILED_CONTROL_FALLBACK"),
-                    productionRoutingActive = false
-                ),
-                comparison = null,
-                buildCounts = buildCounts.snapshot(),
-                upstreamFailureReason = failure.reasonCode,
-                upstreamFailureDetails = (failure.cause as? StimulusCanonicalEvaluationFailure)?.let {
-                    listOfNotNull(it.reason.name, it.detailCode)
-                }.orEmpty(),
-                incumbentPlacementShadow = incumbentPlacementShadow,
-                unresolvedMaterialDemandGaps = canonicalFailure?.unresolvedMaterialDemandGaps.orEmpty(),
-                materialDemandAuthorityResolutions = canonicalFailure?.materialDemandAuthorityResolutions.orEmpty(),
-                strengthShortfalls = strengthShortfalls
-            ).also {
-                productionProgress.reportSelection()
-                productionProgress.reportValidationComplete()
-                productionProgress.reportComplete()
-            }
+        fun preserveIndependentExecutionNotices(
+            program: GeneratedProgramSkeleton,
+            validation: com.training.trackplanner.data.personalized.StimulusProductionExecutionValidation
+        ): GeneratedProgramSkeleton {
+            val notices = buildList {
+                addAll(program.optimizationSummary.notices)
+                if (validation.unmetAuthorizedSetUnits > 0) add(ProgramUserNotice(
+                    code = ProgramUserNoticeCode.STIMULUS_DOSE_SHORTFALL,
+                    count = validation.unmetAuthorizedSetUnits,
+                    level = ProgramUserNoticeLevel.WARNING
+                ))
+                if (validation.unresolvedMaterialDemandGaps.isNotEmpty()) add(ProgramUserNotice(
+                    code = ProgramUserNoticeCode.STIMULUS_REQUIREMENT_UNRESOLVED,
+                    count = validation.unresolvedMaterialDemandGaps.size,
+                    level = ProgramUserNoticeLevel.WARNING
+                ))
+                if (validation.userLoadCalibrationOwners.isNotEmpty()) add(ProgramUserNotice(
+                    code = ProgramUserNoticeCode.USER_LOAD_CALIBRATION_REQUIRED,
+                    count = validation.userLoadCalibrationOwners.size,
+                    level = ProgramUserNoticeLevel.WARNING
+                ))
+                val tissueRecoveryUnresolvedExerciseCount = validation.tissueRecoveryChecks
+                    .filter { it.conditionalOnTypedB6Execution }
+                    .flatMap { it.unresolvedExerciseKeys }
+                    .distinct()
+                    .size
+                if (tissueRecoveryUnresolvedExerciseCount > 0) add(ProgramUserNotice(
+                    code = ProgramUserNoticeCode.TISSUE_RECOVERY_PROJECTION_UNRESOLVED,
+                    count = tissueRecoveryUnresolvedExerciseCount,
+                    level = ProgramUserNoticeLevel.WARNING
+                ))
+            }.distinctBy(ProgramUserNotice::code)
+            return program.copy(optimizationSummary = program.optimizationSummary.copy(notices = notices))
         }
+        observe(ProductionGenerationPhase.CANONICAL_PREPARED)
 
         val canonicalPlanning = when (val outcome = context.canonicalPlanningOutcome) {
             is CanonicalPlanningOutcome.Success -> outcome.result
-            is CanonicalPlanningOutcome.ExpectedFailure -> {
-                val control = materializeLateControl(
-                    context, answers, productionProgress.controlReporter(), buildCounts, controlGenerationOverride, ::observe
-                )
-                val failure = canonicalEvaluationFailure(outcome.failure)
-                return fallback(com.training.trackplanner.data.personalized.bindSplitParentProgression(control), failure)
-            }
+            is CanonicalPlanningOutcome.ExpectedFailure -> reject(canonicalEvaluationFailure(outcome.failure))
         }
 
         var experimental = try {
@@ -1458,21 +1470,9 @@ internal class PersonalizedProgramPlanningService(
         } catch (failure: CancellationException) {
             throw failure
         } catch (failure: StimulusCanonicalEvaluationFailure) {
-            val control = materializeLateControl(
-                context, answers, productionProgress.controlReporter(), buildCounts, controlGenerationOverride, ::observe
-            )
-            val late = attachLateControlCompatibilityMirrors(control, context, canonicalPlanning)
-            val controlFailure = late.planningOutcome as? CanonicalPlanningOutcome.ExpectedFailure
-            if (controlFailure != null) return fallback(late.program, canonicalEvaluationFailure(controlFailure.failure))
-            return fallback(late.program, canonicalEvaluationFailure(failure))
+            reject(canonicalEvaluationFailure(failure))
         } catch (failure: com.training.trackplanner.data.personalized.StimulusProductionEvaluationFailure) {
-            val control = materializeLateControl(
-                context, answers, productionProgress.controlReporter(), buildCounts, controlGenerationOverride, ::observe
-            )
-            val late = attachLateControlCompatibilityMirrors(control, context, canonicalPlanning)
-            val controlFailure = late.planningOutcome as? CanonicalPlanningOutcome.ExpectedFailure
-            if (controlFailure != null) return fallback(late.program, canonicalEvaluationFailure(controlFailure.failure))
-            return fallback(late.program, failure)
+            reject(failure)
         }
 
         // C20 evaluates exact incumbent positions against current EXP rows and the same
@@ -1541,98 +1541,232 @@ internal class PersonalizedProgramPlanningService(
             tissueProjectionCallCount = liveIncumbentFeasibility.tissueProjectionCallCount
         )
 
-        val control = materializeLateControl(
-            context = context,
-            answers = answers,
-            progress = productionProgress.controlReporter(),
-            productionBuildCounts = buildCounts,
-            controlGenerationOverride = controlGenerationOverride,
-            observe = ::observe
+        val executionValidation = com.training.trackplanner.data.personalized.StimulusProductionExecutionValidator().validate(
+            program = experimental.program,
+            snapshot = context.snapshot,
+            targetPlan = experimental.targetPlan,
+            selectionPlan = experimental.selectionPlan,
+            authorizationPlan = experimental.authorizationPlan,
+            taskProtocolPlan = experimental.taskProtocolPlan,
+            materializationAudits = experimental.materializationAudits
         )
-        val preparedControl = attachLateControlCompatibilityMirrors(control, context, canonicalPlanning)
-        val parityFailure = (preparedControl.planningOutcome as? CanonicalPlanningOutcome.ExpectedFailure)?.failure
-        if (parityFailure != null) return fallback(preparedControl.program, canonicalEvaluationFailure(parityFailure))
-        observe(ProductionGenerationPhase.CONTROL_AUDIT)
-
-        val evaluation = try {
-            val comparison = compareCanonicalExperimentalWithControl(
-                preparedControl.program,
-                preparedControl.canonicalPlanning,
-                experimental
+        if (!executionValidation.executable) {
+            throw com.training.trackplanner.data.personalized.StimulusProductionExecutionRejectedException(
+                reasonCodes = executionValidation.reasonCodes,
+                detailCodes = buildList {
+                    add("PROGRAM_SCHEDULE_AUDIT:horizon=${experimental.program.request.durationWeeks}:" +
+                        "days=${experimental.program.request.weeklyTrainingDays}:" +
+                        "keys=${experimental.program.weekDaySchedule.keys.sorted().joinToString("+")}:" +
+                        "schedule=${experimental.program.weekDaySchedule.toSortedMap().entries.joinToString(";") { (week, days) -> "$week=${days.sorted().joinToString("+")}" }}")
+                    executionValidation.tissueRecoveryChecks.filterNot { it.feasible }.forEach { check ->
+                        add("TISSUE_CONDITIONAL_WEEK_${check.week}:${check.conditionalOnTypedB6Execution}")
+                    }
+                    executionValidation.dayOfiChecks.filterNot { it.feasible }.forEach { check ->
+                        val dayRows = experimental.program.items.filter {
+                            it.weekNumber == check.week && it.dayOfWeek == check.day
+                        }
+                        val rebalance = experimental.program.personalizedDecision?.dayRebalancing
+                        if (check.week == 1 && rebalance != null) {
+                            add("DAY_REBALANCE:state=${rebalance.balanceState}:diagnostic=${rebalance.diagnostic}:" +
+                                "initial=${rebalance.initialDays.joinToString("+") { "${it.day}:${it.hardFeasible}:${it.hardViolationMagnitude}" }}:" +
+                                "final=${rebalance.finalDays.joinToString("+") { "${it.day}:${it.hardFeasible}:${it.hardViolationMagnitude}" }}:" +
+                                "actions=${rebalance.actions.joinToString("+") { "${it.sourceDay}>${it.destinationDay}:${it.stableKeys.joinToString(",")}" }}")
+                        }
+                        add("DAY_OFI_WEEK_${check.week}_DAY_${check.day}:ofi=${check.ofi ?: "MISSING"}:" +
+                            "axes=${check.axisScores.joinToString("+")}:" +
+                            "cautions=${check.cautionReasons.joinToString("+")}:" +
+                            "rows=${dayRows.joinToString("+") { row ->
+                                "${row.exerciseStableKey}#${row.selectionRole}:sets=${row.setCount}:seconds=${row.estimatedDurationSeconds}:" +
+                                    "main=${row.progressionRole}:binding=${row.progressionBinding?.sessionKey ?: "NONE"}:" +
+                                    "variant=${row.progressionVariant}:style=${row.progressionStyle}:anchor=${row.requiredTemplateAnchor}"
+                            }}")
+                    }
+                    experimental.program.items.forEach { row ->
+                        val owner = com.training.trackplanner.data.personalized.StimulusPrescriptionOwnerIdentity(
+                            row.exerciseStableKey, row.selectionRole
+                        )
+                        val exercise = context.snapshot.exercises[row.exerciseStableKey]
+                        val decision = context.snapshot.canonicalMovementCoverage[row.exerciseStableKey]
+                        val candidate = experimental.selectionPlan.selectedCandidates.singleOrNull {
+                            it.stableKey == owner.stableKey && it.selectionRole == owner.selectionRole
+                        }
+                        val requestedEquipment = experimental.program.request.availableEquipment.sorted().joinToString("+")
+                        val sameKeyCandidates = experimental.selectionPlan.selectedCandidates.filter {
+                            it.stableKey == owner.stableKey
+                        }.joinToString("+") { "${it.selectionRole}=${it.coveredTargetIds.sorted().joinToString("/")}" }
+                        add("ROW_AUDIT_${owner.stableKey}#${owner.selectionRole}:anchor=${row.requiredTemplateAnchor}:" +
+                            "candidate=${candidate?.coveredTargetIds.orEmpty().sorted().joinToString("+")}:" +
+                            "movement=${decision?.coverage}:${decision?.directCoverageAdmissible}:${decision?.reason}:" +
+                            "equipment=${exercise?.equipment}:allowed=$requestedEquipment:" +
+                            "reason=${row.selectionReason.take(60)}:sameKeyB5=$sameKeyCandidates")
+                    }
+                    executionValidation.tissueRecoveryChecks.filterNot { it.feasible }.forEach { check ->
+                        add("TISSUE_RECOVERY_WEEK_${check.week}:diagnostic=${check.diagnostic ?: "MISSING"}:" +
+                            "blocked=${check.blockedUnits.sorted().joinToString("+")}:" +
+                            "unresolved=${check.unresolvedExerciseKeys.sorted().joinToString("+")}")
+                        check.unresolvedExerciseKeys.sorted().forEach { stableKey ->
+                            experimental.program.items.filter {
+                                it.weekNumber == check.week && it.exerciseStableKey == stableKey
+                            }.forEach { row ->
+                                val owner = com.training.trackplanner.data.personalized.StimulusPrescriptionOwnerIdentity(
+                                    row.exerciseStableKey, row.selectionRole
+                                )
+                                val b6 = experimental.authorizationPlan.authorizations.filter {
+                                    it.owner?.let { value -> value.stableKey == owner.stableKey && value.selectionRole == owner.selectionRole } == true
+                                }.map { "${it.status.name}/${it.executionAuthority.name}" }.distinct().sorted()
+                                val loads = com.training.trackplanner.data.ProgramSetPrescriptionResolver.resolve(row).map {
+                                    "${it.loadState.name}:${it.weightKg}kg"
+                                }.distinct().sorted()
+                                add("TISSUE_RECOVERY_ROW_${stableKey}#${row.selectionRole}:B6=${b6.joinToString("+")}:" +
+                                    "loads=${loads.joinToString("+")}:reason=${row.selectionReason.take(80)}")
+                            }
+                        }
+                    }
+                    experimental.prescriptionRealizationPlan.resolutions.filter { resolution ->
+                        resolution.strengthTrainingLoadShadow?.available == false
+                    }.forEach { resolution ->
+                        val owner = resolution.owner?.let { "${it.stableKey}#${it.selectionRole}" } ?: "UNRESOLVED"
+                        val missing = resolution.strengthTrainingLoadShadow?.unavailableReasons.orEmpty()
+                            .map { it.name }.sorted().joinToString("+")
+                        add("B6_STRENGTH_LOAD_AUTHORITY:${resolution.targetId}#$owner:missing=$missing")
+                    }
+                    experimental.authorizationPlan.authorizations.filter { authorization ->
+                        authorization.quality != null && authorization.authorizedPrescription == null
+                    }.forEach { authorization ->
+                        val owner = authorization.owner?.let { "${it.stableKey}#${it.selectionRole}" } ?: "UNRESOLVED"
+                        add("B6_AUTHORITY_REQUIRED:${authorization.targetId}#$owner:" +
+                            "status=${authorization.status.name}:execution=${authorization.executionAuthority.name}:" +
+                            "reasons=${authorization.reasonCodes.sorted().joinToString("+")}")
+                    }
+                }.distinct().sorted(),
+                unresolvedMaterialDemandGaps = experimental.program.personalizedDecision?.planningBudget?.execution
+                    ?.unresolvedMaterialDemandGaps.orEmpty(),
+                strengthShortfalls = experimental.selectionPlan.strengthShortfalls
             )
-            observe(ProductionGenerationPhase.COMPARISON)
-            observe(ProductionGenerationPhase.B7)
-            val scope = com.training.trackplanner.data.personalized.StimulusProductionMaterialScopeResolver().resolve(comparison)
-            val authority = com.training.trackplanner.data.personalized.StimulusProductionCutoverAuthorityAuditEngine()
-                .audit(comparison, scope ?: com.training.trackplanner.data.personalized.StimulusProductionCutoverScope.STRENGTH_V1)
-            observe(ProductionGenerationPhase.B8)
-            com.training.trackplanner.data.personalized.StimulusProductionCutoverEvaluation(
-                comparison = comparison.copy(productionCutoverAuthority = authority),
-                cutoverAuthority = authority
-            )
-        } catch (failure: CancellationException) {
-            throw failure
-        } catch (failure: StimulusCanonicalEvaluationFailure) {
-            return fallback(preparedControl.program, canonicalEvaluationFailure(failure))
-        } catch (failure: com.training.trackplanner.data.personalized.StimulusProductionEvaluationFailure) {
-            return fallback(preparedControl.program, failure)
         }
-        val routed = com.training.trackplanner.data.personalized.StimulusProductionRouter().route(
-            comparison = evaluation.comparison,
-            authority = evaluation.cutoverAuthority,
-            mode = routingMode
+
+        var diagnosticControl: GeneratedProgramSkeleton? = null
+        var diagnosticComparison: StimulusSelectionProgramComparison? = null
+        var diagnosticAuthority: com.training.trackplanner.data.personalized.StimulusProductionCutoverAuthorityDecision? = null
+        var diagnosticFailureReason: String? = null
+        var routed = com.training.trackplanner.data.personalized.StimulusProductionRouter().selectExecutable(
+            program = experimental.program,
+            validation = executionValidation
         )
+        if (includeComparisonDiagnostics) {
+            try {
+                val control = materializeLateControl(
+                    context = context,
+                    answers = answers,
+                    progress = productionProgress.controlReporter(),
+                    productionBuildCounts = buildCounts,
+                    controlGenerationOverride = controlGenerationOverride,
+                    observe = ::observe
+                )
+                diagnosticControl = control
+                val preparedControl = attachLateControlCompatibilityMirrors(control, context, canonicalPlanning)
+                val parityFailure = (preparedControl.planningOutcome as? CanonicalPlanningOutcome.ExpectedFailure)?.failure
+                if (parityFailure != null) {
+                    diagnosticFailureReason = "CONTROL_COMPARISON_${parityFailure.reason.name}"
+                } else {
+                    observe(ProductionGenerationPhase.CONTROL_AUDIT)
+                    val comparison = compareCanonicalExperimentalWithControl(
+                        preparedControl.program,
+                        preparedControl.canonicalPlanning,
+                        experimental
+                    )
+                    observe(ProductionGenerationPhase.COMPARISON)
+                    observe(ProductionGenerationPhase.B7)
+                    val scope = com.training.trackplanner.data.personalized.StimulusProductionMaterialScopeResolver().resolve(comparison)
+                    val authority = com.training.trackplanner.data.personalized.StimulusProductionCutoverAuthorityAuditEngine()
+                        .audit(comparison, scope ?: com.training.trackplanner.data.personalized.StimulusProductionCutoverScope.STRENGTH_V1)
+                    val comparisonWithAuthority = comparison.copy(productionCutoverAuthority = authority)
+                    observe(ProductionGenerationPhase.B8)
+                    diagnosticComparison = comparisonWithAuthority
+                    diagnosticAuthority = authority
+                    // B9 reports the B7/B8 result while retaining the independently validated
+                    // generator output. Only a separately explicit legacy mode can select CONTROL.
+                    routed = if (routingMode == com.training.trackplanner.data.personalized.StimulusProductionRoutingMode.CONTROL_ONLY) {
+                        com.training.trackplanner.data.personalized.StimulusProductionRouter().route(
+                            comparisonWithAuthority, authority, routingMode
+                        )
+                    } else {
+                        com.training.trackplanner.data.personalized.StimulusProductionRouter().selectExecutable(
+                            program = experimental.program,
+                            validation = executionValidation,
+                            readiness = comparisonWithAuthority.experimentalReadinessAudit,
+                            authority = authority
+                        )
+                    }
+                }
+            } catch (failure: CancellationException) {
+                throw failure
+            } catch (failure: StimulusCanonicalEvaluationFailure) {
+                diagnosticFailureReason = "B7_B8_DIAGNOSTIC_${failure.reason.name}"
+            } catch (failure: com.training.trackplanner.data.personalized.StimulusProductionEvaluationFailure) {
+                diagnosticFailureReason = "B7_B8_DIAGNOSTIC_${failure.reasonCode}"
+            } catch (failure: Exception) {
+                diagnosticFailureReason = "B7_B8_DIAGNOSTIC_FAILED_${failure.javaClass.simpleName}"
+            }
+        }
         observe(ProductionGenerationPhase.B9)
         productionProgress.reportSelection()
         productionProgress.reportValidationComplete()
         productionProgress.reportComplete()
-        val routedProgramWithSourceToken = attachIncumbentSaveMutationEvidence(
-            program = routed.program,
-            incumbentIndex = incumbentPlacementIndex,
-            controlRows = preparedControl.program.items,
-            comparison = evaluation.comparison,
-            cutover = evaluation.cutoverAuthority,
-            route = routed.decision
-        )
-        val routedProgram = preserveStrengthShortfallNotice(
-            routedProgramWithSourceToken,
-            experimental.selectionPlan.strengthShortfalls
+        val sourceTaggedProgram = routed.program.copy(incumbentSourceSnapshotToken = incumbentPlacementIndex.sourceSnapshotToken)
+        val routedProgramWithEvidence = if (diagnosticControl != null && diagnosticComparison != null && diagnosticAuthority != null) {
+            attachIncumbentSaveMutationEvidence(
+                program = sourceTaggedProgram,
+                incumbentIndex = incumbentPlacementIndex,
+                controlRows = diagnosticControl!!.items,
+                comparison = diagnosticComparison!!,
+                cutover = diagnosticAuthority!!,
+                route = routed.decision
+            )
+        } else sourceTaggedProgram
+        val routedProgram = preserveIndependentExecutionNotices(
+            preserveStrengthShortfallNotice(routedProgramWithEvidence, experimental.selectionPlan.strengthShortfalls),
+            executionValidation
         )
         val replacementReview = if (
             routed.decision.productionRoutingActive &&
-            evaluation.comparison.experimentalReadinessAudit?.status ==
+            diagnosticComparison?.experimentalReadinessAudit?.status ==
                 com.training.trackplanner.data.personalized.StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW &&
-            evaluation.cutoverAuthority.status ==
+            diagnosticAuthority?.status ==
                 com.training.trackplanner.data.personalized.StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER
         ) {
-            createReplacementCandidateReview(routedProgram, evaluation.comparison)
+            createReplacementCandidateReview(routedProgram, requireNotNull(diagnosticComparison))
         } else null
         replacementReview?.let { review ->
+            val selectedControl = requireNotNull(diagnosticControl)
+            val comparison = requireNotNull(diagnosticComparison)
             replacementValidationSessions[review.sessionId] = ReplacementValidationSession(
                 preflight = preflight,
                 answers = answers.copy(values = answers.values.toMap()),
                 metadata = metadata.toMap(),
                 context = context,
-                control = preparedControl.program,
+                control = selectedControl,
                 canonicalPlanning = canonicalPlanning,
                 incumbentPlacementIndex = incumbentPlacementIndex,
                 routingMode = routingMode,
                 baselineRequest = routedProgram.request,
                 keepProgram = routedProgram,
-                keepComparison = evaluation.comparison,
+                keepComparison = comparison,
                 baselineFingerprint = review.sourceDraftFingerprint,
                 options = review.options,
-                baselineTargetOutcomes = evaluation.comparison.experimentalReadinessAudit?.targetOutcomes.orEmpty()
+                baselineTargetOutcomes = comparison.experimentalReadinessAudit?.targetOutcomes.orEmpty()
             )
         }
-        // Preserve the exact routed value for CONTROL/no-review paths. Several existing
-        // fail-closed contracts intentionally return the comparator object itself.
         val reviewedProgram = replacementReview?.let { routedProgram.copy(replacementReview = it) } ?: routedProgram
         return com.training.trackplanner.data.personalized.StimulusProductionGenerationResult(
             program = reviewedProgram,
             routeDecision = routed.decision,
-            comparison = evaluation.comparison,
+            comparison = diagnosticComparison,
             buildCounts = buildCounts.snapshot(),
+            executionValidation = executionValidation,
+            diagnosticFailureReason = diagnosticFailureReason,
+            unresolvedMaterialDemandGaps = executionValidation.unresolvedMaterialDemandGaps,
+            deferredMaterialDemandGaps = executionValidation.deferredMaterialDemandGaps,
             strengthShortfalls = experimental.selectionPlan.strengthShortfalls,
             incumbentPlacementShadow = incumbentPlacementShadow,
             incumbentPlacementActivationStatus = incumbentPlacementActivationStatus,
@@ -2081,10 +2215,40 @@ internal class PersonalizedProgramPlanningService(
         val unanswered = preflight.questions.filter { question ->
             question.options.none { it.value == answers.values[question.id] && it.value != "UNRESOLVED" }
         }
-        return if (unanswered.isNotEmpty()) PersonalizedPlanningOutcome.Questions(unanswered)
-        else PersonalizedPlanningOutcome.Generated(generatePreparedProduction(
-            preflight, answers, metadata, progress, incumbentPlacementIndex = incumbentPlacementIndex
-        ).program)
+        if (unanswered.isNotEmpty()) return PersonalizedPlanningOutcome.Questions(unanswered)
+        return try {
+            PersonalizedPlanningOutcome.Generated(generatePreparedProduction(
+                preflight, answers, metadata, progress, incumbentPlacementIndex = incumbentPlacementIndex
+            ).program)
+        } catch (failure: com.training.trackplanner.data.personalized.StimulusProductionExecutionRejectedException) {
+            val primaryMessage = when {
+                "DAY_OFI_OR_RECOVERY_LIMIT_EXCEEDED" in failure.reasonCodes ->
+                    "현재 하루 피로·회복 한도 안에 주간 운동량을 배치할 수 없어 생성을 중단했습니다. 운동 일수, 세션 시간 또는 목표 운동량을 조정해 다시 생성해 주세요."
+                "SESSION_TIME_LIMIT_EXCEEDED" in failure.reasonCodes ->
+                    "선택된 처방을 요청한 세션 시간 안에 배치할 수 없어 생성을 중단했습니다. 세션 시간을 늘리거나 목표 운동량을 조정해 주세요."
+                "CONNECTIVE_TISSUE_RECOVERY_LIMIT_EXCEEDED" in failure.reasonCodes ->
+                    "관절·건·인대의 주간 회복 한도를 충족하지 못해 생성을 중단했습니다. 회복 상태를 확인하고 운동량을 조정해 주세요."
+                "NO_EXECUTABLE_PLANNING_DEMAND" in failure.reasonCodes ||
+                    failure.reasonCodes.any { it.startsWith("B6_") } ->
+                    "중량 또는 노력도(RPE)를 안전하게 처방할 근거가 부족합니다. 해당 운동의 기록과 중량 보정 정보를 보완해 주세요."
+                else ->
+                    "새 생성기가 안전한 처방을 완성하지 못했습니다. 운동 기록, 장비, 시간, 회복 조건과 중량 보정 정보를 확인해 주세요."
+            }
+            val strengthLoadInputMissing = failure.detailCodes.any { detail ->
+                detail.startsWith("B6_STRENGTH_LOAD_AUTHORITY:") &&
+                    "EFFORT_EVIDENCE_INSUFFICIENT" in detail
+            }
+            val message = if (strengthLoadInputMissing) {
+                "$primaryMessage 근력 운동은 세트 중량과 RPE 기록이 충분해야 안전한 중량을 계산할 수 있습니다."
+            } else primaryMessage
+            PersonalizedPlanningOutcome.Failed(
+                reasonCode = failure.reasonCodes.firstOrNull() ?: "NEW_GENERATOR_EXECUTION_REJECTED",
+                message = message,
+                detailCodes = failure.reasonCodes,
+                unresolvedMaterialDemandGaps = failure.unresolvedMaterialDemandGaps,
+                strengthShortfalls = failure.strengthShortfalls
+            )
+        }
     }
 
     private suspend fun buildSnapshot(

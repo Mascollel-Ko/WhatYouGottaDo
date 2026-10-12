@@ -195,15 +195,19 @@ class StimulusSelectionServiceIntegrationTest {
             )
             assertEquals("B6 must use explicit canonical result", prepared.canonicalPlanning.targetPlan, mismatchComparison.targetPlan)
             assertTrue("explicit canonical target plan must survive mirror mismatch", mismatchComparison.targetPlan.qualityTargets.isNotEmpty())
-            val production = repository.generatePreparedPersonalizedProgramEvaluation(preflight, answers)
+            val production = repository.generatePreparedPersonalizedProgramEvaluation(
+                preflight, answers, includeComparisonDiagnostics = true
+            )
             val standalone = production.program
             val comparison = requireNotNull(production.comparison)
             val b8Comparison = comparison
             val evaluation = requireNotNull(comparison.productionCutoverAuthority)
 
-            assertSame("unexplained removal of unsupported coverage owners keeps the whole EXP build in shadow", comparison.control, standalone)
-            assertEquals(StimulusProductionProgramSource.CONTROL, production.routeDecision.selectedSource)
-            assertFalse(production.routeDecision.productionRoutingActive)
+            assertEquals("B7/B8 removal diagnostics do not change the executable new-generator result",
+                personalizedProgramFingerprint(comparison.experimental.request, comparison.experimental.items),
+                personalizedProgramFingerprint(standalone.request, standalone.items))
+            assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, production.routeDecision.selectedSource)
+            assertTrue(production.routeDecision.productionRoutingActive)
             assertEquals("control goal", preflight.request.goal, comparison.control.request.goal)
             assertEquals("control weekly days", preflight.request.weeklyTrainingDays, comparison.control.request.weeklyTrainingDays)
             assertEquals("control duration", preflight.request.durationWeeks, comparison.control.request.durationWeeks)
@@ -328,18 +332,18 @@ class StimulusSelectionServiceIntegrationTest {
             assertFalse(evaluation.routingActive)
             assertFalse(evaluation.productionMutationAuthority)
             assertEquals(evaluation, b8Comparison.productionCutoverAuthority)
-            assertEquals(StimulusProductionProgramSource.CONTROL, production.routeDecision.selectedSource)
-            assertFalse(production.routeDecision.productionRoutingActive)
-            assertSame(b8Comparison.control, production.program)
-            assertEquals(listOf("B9_B8_CONTROL_REQUIRED"), production.routeDecision.reasonCodes)
+            assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, production.routeDecision.selectedSource)
+            assertTrue(production.routeDecision.productionRoutingActive)
+            assertEquals(
+                personalizedProgramFingerprint(b8Comparison.experimental.request, b8Comparison.experimental.items),
+                personalizedProgramFingerprint(production.program.request, production.program.items)
+            )
+            assertTrue(production.routeDecision.reasonCodes.contains("B8_DIAGNOSTIC_CONTROL_REQUIRED"))
             assertEquals(1, production.buildCounts.controlBuilds)
             assertEquals(1, production.buildCounts.experimentalBuilds)
             assertEquals(2, production.buildCounts.totalBuildInvocations)
             assertEquals(0, production.buildCounts.thirdBuilds)
-            assertEquals(
-                personalizedProgramFingerprint(b8Comparison.control.request, b8Comparison.control.items),
-                personalizedProgramFingerprint(standalone.request, standalone.items)
-            )
+            assertNotNull("explicit comparison diagnostics retain a CONTROL snapshot for analysis", b8Comparison.control)
             assertFalse(comparison.selectionPlan.prescriptionAuthority)
             assertEquals(
                 comparison.control.items.map { StimulusPrescriptionOwnerIdentity(it.exerciseStableKey, it.selectionRole) }.toSet(),
@@ -399,12 +403,9 @@ class StimulusSelectionServiceIntegrationTest {
                     blockedDecision,
                     StimulusProductionRoutingMode.B8_STRENGTH_V1_ACTIVE
                 )
-                assertEquals(
-                    personalizedProgramFingerprint(blocked.control.request, blocked.control.items),
-                    personalizedProgramFingerprint(blockedRoute.program.request, blockedRoute.program.items)
-                )
-                assertSame(blocked.control, blockedRoute.program)
-                assertEquals(StimulusProductionProgramSource.CONTROL, blockedRoute.decision.selectedSource)
+                assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, blockedRoute.decision.selectedSource)
+                assertSame(blocked.experimental, blockedRoute.program)
+                assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, blockedRoute.decision.selectedSource)
             }
             val rollback = StimulusProductionRouter().route(
                 b8Comparison,
@@ -501,7 +502,9 @@ class StimulusSelectionServiceIntegrationTest {
                     else -> if (question.id.startsWith("INTERRUPTION_CAUSE_")) "UNKNOWN" else error("Unexpected personalized question: ${question.id}")
                 }
             })
-            val production = repository.generatePreparedPersonalizedProgramEvaluation(preflight, answers)
+            val production = repository.generatePreparedPersonalizedProgramEvaluation(
+                preflight, answers, includeComparisonDiagnostics = true
+            )
             val comparison = requireNotNull(production.comparison)
             assertHypertrophyServiceResult(production, comparison)
         } finally {
@@ -559,9 +562,12 @@ class StimulusSelectionServiceIntegrationTest {
             comparison.productionCutoverAuthority?.status)
         val resolvedProductionScope = StimulusProductionMaterialScopeResolver().resolve(comparison)
         assertEquals(resolvedProductionScope ?: StimulusProductionCutoverScope.STRENGTH_V1, comparison.productionCutoverAuthority?.scope)
-        assertEquals(StimulusProductionProgramSource.B8_HYPERTROPHY_V1, production.routeDecision.selectedSource)
+        assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, production.routeDecision.selectedSource)
         assertTrue(production.routeDecision.productionRoutingActive)
-        assertSame(comparison.experimental, production.program)
+        assertEquals(
+            personalizedProgramFingerprint(comparison.experimental.request, comparison.experimental.items),
+            personalizedProgramFingerprint(production.program.request, production.program.items)
+        )
         val controlFingerprint = personalizedProgramFingerprint(comparison.control.request, comparison.control.items)
         val experimentalFingerprint = personalizedProgramFingerprint(comparison.experimental.request, comparison.experimental.items)
         assertNotEquals(controlFingerprint, experimentalFingerprint)
@@ -576,8 +582,8 @@ class StimulusSelectionServiceIntegrationTest {
             requireNotNull(comparison.productionCutoverAuthority),
             StimulusProductionRoutingMode.B8_STRENGTH_V1_ACTIVE
         )
-        assertEquals(StimulusProductionProgramSource.CONTROL, legacyRollback.decision.selectedSource)
-        assertFalse(legacyRollback.decision.productionRoutingActive)
-        assertSame(comparison.control, legacyRollback.program)
+        assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, legacyRollback.decision.selectedSource)
+        assertTrue(legacyRollback.decision.productionRoutingActive)
+        assertSame(comparison.experimental, legacyRollback.program)
     }
 }

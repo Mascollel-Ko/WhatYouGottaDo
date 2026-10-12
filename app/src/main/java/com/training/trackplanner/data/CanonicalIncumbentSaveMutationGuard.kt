@@ -10,9 +10,8 @@ internal class UnexplainedCanonicalIncumbentMutationException(
 ) : IllegalStateException("$reasonCode:$stableKey#$selectionRole:w$week")
 
 /**
- * Prevents replacing an existing saved canonical plan with a draft that silently drops or
- * changes an exact owner-week. B7/B8 evidence is accepted only when the persisted owner-week
- * was the exact CONTROL material that B7/B8 adjudicated and the final draft has not changed.
+ * Prevents replacing an existing saved canonical plan until the user confirms the preview save.
+ * The comparison baseline is the actual persisted program snapshot, never a generated CONTROL.
  */
 internal object CanonicalIncumbentSaveMutationGuard {
     private data class OwnerWeek(val stableKey: String, val selectionRole: String, val week: Int)
@@ -51,8 +50,12 @@ internal object CanonicalIncumbentSaveMutationGuard {
         persistedSets: List<TrainingProgramItemSet>,
         persistedProgression: List<ProgramProgressionItem>,
         finalDraft: GeneratedProgramSkeleton,
-        expectedSourceSnapshotToken: CanonicalIncumbentSourceSnapshotToken
+        expectedSourceSnapshotToken: CanonicalIncumbentSourceSnapshotToken,
+        userApprovedReplacement: Boolean = false
     ) {
+        require(finalDraft.incumbentSourceSnapshotToken == expectedSourceSnapshotToken) {
+            "CANONICAL_INCUMBENT_SOURCE_SNAPSHOT_MISMATCH"
+        }
         val setsByItem = persistedSets.groupBy(TrainingProgramItemSet::programItemId)
         val progressionByItem = persistedProgression.associateBy(ProgramProgressionItem::programItemId)
         val before = persistedRows.map { row ->
@@ -78,83 +81,19 @@ internal object CanonicalIncumbentSaveMutationGuard {
             ownerWeek to material.copy(progression = projectedProgression)
         }.groupBy({ it.first }, { it.second })
 
-        val evidence = finalDraft.incumbentSaveMutationEvidence
-        val evidenceUsable = evidence != null &&
-            evidence.sourceSnapshotToken == expectedSourceSnapshotToken &&
-            evidence.finalDraftFingerprint == draftFingerprint(finalDraft) &&
-            evidence.readiness.status == com.training.trackplanner.data.personalized.StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW &&
-            evidence.readiness.materializationIntegrityPassed &&
-            evidence.readiness.changeProvenanceClosed &&
-            evidence.readiness.collateralRegressionFree &&
-            evidence.readiness.changeAttributions.none {
-                it.source == com.training.trackplanner.data.personalized.StimulusExperimentalChangeAttributionSource.UNEXPLAINED ||
-                    it.source == com.training.trackplanner.data.personalized.StimulusExperimentalChangeAttributionSource.INCONCLUSIVE_DISPLACEMENT
-            } &&
-            evidence.cutover.status == com.training.trackplanner.data.personalized.StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER &&
-            evidence.route.productionRoutingActive &&
-            evidence.route.selectedSource != com.training.trackplanner.data.personalized.StimulusProductionProgramSource.CONTROL &&
-            evidence.route.b8Status == evidence.cutover.status && evidence.route.b8Scope == evidence.cutover.scope
-
-        // New identities are governed by the generation's B6/B7/B8/B9 contract. This guard
-        // protects only rows that already existed in the saved program from silent loss/change.
-        before.keys.sortedWith(compareBy(OwnerWeek::stableKey, OwnerWeek::selectionRole, OwnerWeek::week))
-            .forEach { ownerWeek ->
-                val oldRows = before[ownerWeek].orEmpty().sortedWith(PHYSICAL_ORDER)
-                val newRows = after[ownerWeek].orEmpty().sortedWith(PHYSICAL_ORDER)
-                if (oldRows == newRows) return@forEach
-
-                val comparatorRows = evidence?.controlRows.orEmpty().mapNotNull { row ->
-                    if (row.exerciseStableKey != ownerWeek.stableKey || row.selectionRole != ownerWeek.selectionRole ||
-                        row.weekNumber != ownerWeek.week
-                    ) null else skeletonMaterial(row)
-                }.map { it.copy(progression = null) }.sortedWith(PHYSICAL_ORDER)
-                val ownerCause = evidence?.readiness?.changeAttributions.orEmpty().singleOrNull {
-                    it.stableKey == ownerWeek.stableKey && it.selectionRole == ownerWeek.selectionRole &&
-                        it.source != com.training.trackplanner.data.personalized.StimulusExperimentalChangeAttributionSource.UNEXPLAINED &&
-                        it.source != com.training.trackplanner.data.personalized.StimulusExperimentalChangeAttributionSource.INCONCLUSIVE_DISPLACEMENT &&
-                        it.targetIds.isNotEmpty() && it.reasonCodes.isNotEmpty() && it.evidenceSources.isNotEmpty()
-                }
-                val exactComparatorMatch = comparatorRows == oldRows.map { it.copy(progression = null) }.sortedWith(PHYSICAL_ORDER)
-                val ownerIsB8Authorized = evidence?.cutover?.let { cutover ->
-                    (cutover.authorizedOwnerIdentities + cutover.authorizedAuthorityIdentities.map { it.owner })
-                        .any { it.stableKey == ownerWeek.stableKey && it.selectionRole == ownerWeek.selectionRole }
-                } == true
-                val exactSelectedReplacement = if (newRows.isEmpty() && ownerCause != null && evidence != null) {
-                    ownerCause.source == com.training.trackplanner.data.personalized.StimulusExperimentalChangeAttributionSource.USER_APPROVED_EXACT_EXERCISE_REPLACEMENT &&
-                        evidence.readiness.userApprovedReplacementEdges.any { edge ->
-                            val weekControl = edge.controlRows.filter { it.weekNumber == ownerWeek.week }
-                                .map { skeletonMaterial(it).copy(progression = null) }.sortedWith(PHYSICAL_ORDER)
-                            val weekReplacement = edge.replacementRows.filter { it.weekNumber == ownerWeek.week }
-                                .map { skeletonMaterial(it).copy(progression = null) }.sortedWith(PHYSICAL_ORDER)
-                            val finalReplacement = finalDraft.items.filter {
-                                it.weekNumber == ownerWeek.week &&
-                                    it.exerciseStableKey == edge.replacementOwner.stableKey &&
-                                    it.selectionRole == edge.replacementOwner.selectionRole
-                            }.map { skeletonMaterial(it).copy(progression = null) }.sortedWith(PHYSICAL_ORDER)
-                            edge.displacedControlOwner.stableKey == ownerWeek.stableKey &&
-                                edge.displacedControlOwner.selectionRole == ownerWeek.selectionRole &&
-                                ownerCause.replacementOwner == edge.replacementOwner &&
-                                ownerCause.replacementEvidenceId == edge.optionId &&
-                                edge.targetId in ownerCause.targetIds &&
-                                weekControl == oldRows.map { it.copy(progression = null) }.sortedWith(PHYSICAL_ORDER) &&
-                                weekReplacement.isNotEmpty() && weekReplacement == finalReplacement &&
-                                (evidence.cutover.authorizedOwnerIdentities + evidence.cutover.authorizedAuthorityIdentities.map { it.owner })
-                                    .any { it.stableKey == edge.replacementOwner.stableKey && it.selectionRole == edge.replacementOwner.selectionRole }
-                        }
-                } else false
-                val exactMutationAuthorization = if (newRows.isEmpty()) exactSelectedReplacement else ownerIsB8Authorized
-                if (!evidenceUsable || ownerCause == null || !exactComparatorMatch || !exactMutationAuthorization) {
-                    val reason = when {
-                        !evidenceUsable -> "CANONICAL_INCUMBENT_MUTATION_WITHOUT_B7_B8_B9_AUTHORITY"
-                        ownerCause == null -> "CANONICAL_INCUMBENT_OWNER_CAUSAL_EVIDENCE_MISSING"
-                        !exactComparatorMatch -> "CANONICAL_INCUMBENT_SOURCE_NOT_EXACTLY_B7_CONTROL"
-                        else -> "CANONICAL_INCUMBENT_OWNER_NOT_EXACTLY_AUTHORIZED_BY_B8"
-                    }
-                    throw UnexplainedCanonicalIncumbentMutationException(
-                        reason, ownerWeek.stableKey, ownerWeek.selectionRole, ownerWeek.week
-                    )
-                }
-            }
+        val changedOwnerWeek = (before.keys + after.keys).distinct()
+            .sortedWith(compareBy(OwnerWeek::stableKey, OwnerWeek::selectionRole, OwnerWeek::week))
+            .firstOrNull { ownerWeek ->
+                before[ownerWeek].orEmpty().sortedWith(PHYSICAL_ORDER) != after[ownerWeek].orEmpty().sortedWith(PHYSICAL_ORDER)
+            } ?: return
+        if (!userApprovedReplacement) {
+            throw UnexplainedCanonicalIncumbentMutationException(
+                "CANONICAL_INCUMBENT_REPLACEMENT_REQUIRES_EXPLICIT_USER_APPROVAL",
+                changedOwnerWeek.stableKey,
+                changedOwnerWeek.selectionRole,
+                changedOwnerWeek.week
+            )
+        }
     }
 
     /** Exact set payload match used to retain progression only for an unchanged physical prescription. */

@@ -399,6 +399,10 @@ internal object NextPhaseBottleneckCensus {
         }.sortedBy { it.getString("case") }
 
         val controlCases = cases.filter { it.getString("route") == StimulusProductionProgramSource.CONTROL.name }
+        // B7/B8 are diagnostic comparisons and must be counted independently from B9's
+        // returned program source. Normal production now returns the new generator for every
+        // executable case, so filtering diagnostics by a CONTROL route would erase the audit.
+        val diagnosticCases = cases
         fun reasonCaseMap(reasonSelector: (JSONObject) -> List<String>) = sortedMapOf<String, List<String>>().apply {
             cases.forEach { row -> reasonSelector(row).distinct().forEach { reason ->
                 put(reason, (get(reason).orEmpty() + row.getString("case")).sorted())
@@ -422,8 +426,8 @@ internal object NextPhaseBottleneckCensus {
             (0 until deltas.length()).map { deltas.getJSONObject(it).getString("kind") }
         } }.groupingBy { it }.eachCount()
         val routes = cases.groupingBy { it.getString("route") }.eachCount()
-        val removedControlOwnerCount = controlCases.sumOf { row -> row.getJSONArray("removedOwners").length() }
-        val unexecutableQualityAddedRows = controlCases.flatMap { case ->
+        val removedControlOwnerCount = diagnosticCases.sumOf { row -> row.getJSONArray("removedOwners").length() }
+        val unexecutableQualityAddedRows = diagnosticCases.flatMap { case ->
             val authorities = case.getJSONArray("b6QualityAuthorities")
             case.getJSONArray("materialDeltas").let { deltas -> (0 until deltas.length()).mapNotNull { index ->
                 val delta = deltas.getJSONObject(index)
@@ -442,7 +446,7 @@ internal object NextPhaseBottleneckCensus {
                     .put("b6Reasons", matching?.optJSONArray("reasonCodes") ?: JSONArray())
             } }
         }
-        val canonicalReplacementUnclosedRows = controlCases.flatMap { case ->
+        val canonicalReplacementUnclosedRows = diagnosticCases.flatMap { case ->
             case.getJSONObject("b7").getJSONArray("removedOwnerEvidence").let { rows -> (0 until rows.length()).mapNotNull { index ->
                 val row = rows.getJSONObject(index)
                 if (row.optString("b11Classification") == "CANONICAL_REPLACEMENT" &&
@@ -452,13 +456,13 @@ internal object NextPhaseBottleneckCensus {
                 } else null
             } }
         }
-        val unexplainedRemovedAttributionCount = controlCases.sumOf { case ->
+        val unexplainedRemovedAttributionCount = diagnosticCases.sumOf { case ->
             case.getJSONObject("b7").getJSONArray("unclosedAttributions").let { rows -> (0 until rows.length()).count { index ->
                 rows.getJSONObject(index).optString("source") == "UNEXPLAINED" &&
                     rows.getJSONObject(index).getJSONArray("reasons").strings().contains("UNEXPLAINED_REMOVED_IDENTITY")
             } }
         }
-        val exactMovementReplacementAttributionCount = controlCases.sumOf { case ->
+        val exactMovementReplacementAttributionCount = diagnosticCases.sumOf { case ->
             case.getJSONObject("b7").getJSONArray("changeAttributions").let { rows -> (0 until rows.length()).count { index ->
                 val attribution = rows.getJSONObject(index)
                 attribution.optString("source") == StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY.name &&
@@ -477,7 +481,7 @@ internal object NextPhaseBottleneckCensus {
                 }
             }
         val taskReplacementsWithExactProtocol = canonicalReplacementUnclosedRows.flatMap { removal ->
-            val case = controlCases.single { it.getString("case") == removal.getString("case") }
+            val case = diagnosticCases.single { it.getString("case") == removal.getString("case") }
             val owner = removal.getJSONObject("owner")
             val evidence = removal.getJSONArray("b11TargetEvidence")
             (0 until evidence.length()).mapNotNull { index ->
@@ -540,13 +544,13 @@ internal object NextPhaseBottleneckCensus {
             })
             .put("affectedUnmetTargetCounts", objectCounts(affectedUnmet))
             .put("materialDeltaKinds", objectCounts(deltaKindCounts))
-            .put("controlRemovedOwnerIdentityCount", removedControlOwnerCount)
+            .put("diagnosticControlRemovedOwnerIdentityCount", removedControlOwnerCount)
             .put("unexplainedRemovedIdentityAttributions", unexplainedRemovedAttributionCount)
             .put("exactMovementCanonicalReplacementAttributions", exactMovementReplacementAttributionCount)
-            .put("casesWithMixedStrengthAndTaskMaterialOnlyBlockers", controlCases.count {
+            .put("casesWithMixedStrengthAndTaskMaterialOnlyBlockers", diagnosticCases.count {
                 it.getBoolean("mixedStrengthTaskOnlyFailureCandidate")
             })
-            .put("mixedStrengthTaskOnlyCaseNames", JSONArray(controlCases.filter {
+            .put("mixedStrengthTaskOnlyCaseNames", JSONArray(diagnosticCases.filter {
                 it.getBoolean("mixedStrengthTaskOnlyFailureCandidate")
             }.map { it.getString("case") }))
             .put("powerMaterialRows", cases.sumOf { row ->

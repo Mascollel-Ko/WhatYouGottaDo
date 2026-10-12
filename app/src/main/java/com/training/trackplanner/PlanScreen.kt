@@ -837,6 +837,9 @@ private fun ProgramEditorScreen(
                                 suggestedName = request.name,
                                 request = savedRequest
                             ),
+                            // Pressing Save in this existing-program editor explicitly confirms
+                            // replacing that user's saved draft. Preview generation never writes.
+                            existingProgramReplacementApproved = program != null,
                             onSaved = onSaved
                         )
                     }

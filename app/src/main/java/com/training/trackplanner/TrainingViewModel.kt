@@ -692,6 +692,8 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
                         _programBuildProgress.value = ProgramBuildProgressState.Running(100, "프로그램 구성을 완료했습니다.")
                         _programBuildProgress.value = ProgramBuildProgressState.Completed(outcome.skeleton.optimizationSummary)
                     }
+                    is PersonalizedPlanningOutcome.Failed -> _programBuildProgress.value =
+                        ProgramBuildProgressState.Failed(outcome.message)
                 }
                 onOutcome(outcome)
         }
@@ -734,10 +736,13 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     fun saveGeneratedProgram(
         existingProgramId: Long?,
         skeleton: GeneratedProgramSkeleton,
+        existingProgramReplacementApproved: Boolean = false,
         onSaved: (Long) -> Unit
     ) {
         viewModelScope.launch {
-            runCatching { repository.saveGeneratedProgram(existingProgramId, skeleton) }
+            runCatching {
+                repository.saveGeneratedProgram(existingProgramId, skeleton, existingProgramReplacementApproved)
+            }
                 .onSuccess(onSaved)
                 .onFailure { error ->
                     android.util.Log.w("ProgramSave", "Generated program was not saved", error)

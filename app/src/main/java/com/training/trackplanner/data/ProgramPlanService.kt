@@ -128,7 +128,8 @@ internal class ProgramPlanService(
 
     suspend fun saveGeneratedProgram(
         existingProgramId: Long?,
-        skeleton: GeneratedProgramSkeleton
+        skeleton: GeneratedProgramSkeleton,
+        existingProgramReplacementApproved: Boolean = false
     ): Long = db.withTransaction {
         val now = System.currentTimeMillis()
         val request = skeleton.request
@@ -155,7 +156,8 @@ internal class ProgramPlanService(
                 persistedSets = existingSets,
                 persistedProgression = existingProgressionItems,
                 finalDraft = skeleton,
-                expectedSourceSnapshotToken = expected
+                expectedSourceSnapshotToken = expected,
+                userApprovedReplacement = existingProgramReplacementApproved
             )
         }
         val exactCanonicalGeneration = canonicalDecision?.takeIf {

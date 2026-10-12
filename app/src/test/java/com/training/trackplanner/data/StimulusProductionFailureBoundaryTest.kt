@@ -11,6 +11,7 @@ import com.training.trackplanner.data.personalized.PersonalizedPlanningAnswers
 import com.training.trackplanner.data.personalized.PersonalizedPlanningPreflight
 import com.training.trackplanner.data.personalized.StimulusCanonicalEvaluationFailure
 import com.training.trackplanner.data.personalized.StimulusCanonicalEvaluationFailureReason
+import com.training.trackplanner.data.personalized.StimulusProductionExecutionRejectedException
 import com.training.trackplanner.data.personalized.StimulusProductionProgramSource
 import com.training.trackplanner.data.personalized.StrengthIntent
 import com.training.trackplanner.data.personalized.FreeWeightWillingness
@@ -22,7 +23,6 @@ import com.training.trackplanner.data.personalized.QUESTION_BADMINTON_INTENT
 import com.training.trackplanner.data.personalized.QUESTION_FREE_WEIGHT
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
-import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
@@ -37,73 +37,53 @@ import java.time.LocalDate
 @Config(sdk = [28])
 class StimulusProductionFailureBoundaryTest {
     @Test
-    fun typedExpectedFailureFallsBackToOriginalControlAndCompletes() = runBlocking {
+    fun unsafeCanonicalGenerationReturnsExplicitFailureWithoutControlFallback() = runBlocking {
         val fixture = fixture()
         try {
             val updates = mutableListOf<PersonalizedPlannerProgress>()
             val observations = mutableListOf<ProductionGenerationObservation>()
-            var preparedRequest: ProgramSkeletonRequest? = null
-            val result = fixture.service.generatePreparedProduction(
-                preflight = fixture.preflight,
-                answers = fixture.answers,
-                metadata = emptyMap(),
-                progress = reporter(updates),
-                productionGenerationObserver = { observation ->
-                    observations += observation
-                    if (observation.phase == ProductionGenerationPhase.CANONICAL_PREPARED) {
-                        preparedRequest = observation.context.resolvedRequest.request
+            var controlInvocations = 0
+            val failure = captureThrowable {
+                fixture.service.generatePreparedProduction(
+                    preflight = fixture.preflight,
+                    answers = fixture.answers,
+                    metadata = emptyMap(),
+                    progress = reporter(updates),
+                    includeComparisonDiagnostics = false,
+                    productionGenerationObserver = observations::add,
+                    controlGenerationOverride = { controlInvocations++; fixture.control },
+                    experimentalProgramBuildOverride = {
+                        throw StimulusCanonicalEvaluationFailure(
+                            StimulusCanonicalEvaluationFailureReason.NO_EXECUTABLE_PLANNING_DEMAND,
+                            detailCode = "wording-independent-detail"
+                        )
                     }
-                },
-                controlGenerationOverride = { fixture.control.copy(request = requireNotNull(preparedRequest)) },
-                experimentalProgramBuildOverride = {
-                    throw StimulusCanonicalEvaluationFailure(
-                        StimulusCanonicalEvaluationFailureReason.NO_EXECUTABLE_PLANNING_DEMAND,
-                        detailCode = "wording-independent-detail"
-                    )
-                }
-            )
+                )
+            }
 
-            assertTrue("CONTROL fallback keeps the late materialized skeleton", result.program.items.isNotEmpty())
-            assertEquals(StimulusProductionProgramSource.CONTROL, result.routeDecision.selectedSource)
-            assertFalse(result.routeDecision.productionRoutingActive)
-            assertEquals(listOf("B9_UPSTREAM_EVALUATION_FAILED_CONTROL_FALLBACK"), result.routeDecision.reasonCodes)
-            assertEquals(com.training.trackplanner.data.personalized.StimulusProductionFallbackStage.UPSTREAM_EVALUATION_FAILURE, result.diagnostics.primaryFallbackStage)
-            assertTrue("NO_EXECUTABLE_PLANNING_DEMAND" in result.diagnostics.secondaryReasonCodes)
-            assertTrue("wording-independent-detail" in result.diagnostics.secondaryReasonCodes)
-            assertEquals(0, result.buildCounts.controlBuilds)
-            assertEquals(1, result.buildCounts.experimentalBuilds)
-            assertEquals(1, result.buildCounts.totalBuildInvocations)
-            assertEquals(0, result.buildCounts.thirdBuilds)
+            assertTrue(failure is StimulusProductionExecutionRejectedException)
+            val rejected = failure as StimulusProductionExecutionRejectedException
+            assertTrue("NO_EXECUTABLE_PLANNING_DEMAND" in rejected.reasonCodes)
+            assertTrue("wording-independent-detail" in rejected.reasonCodes)
+            assertEquals("a failed B1–B6 attempt must never invoke legacy CONTROL", 0, controlInvocations)
             val phases = observations.map { it.phase }
-            assertTrue(phases.indexOf(ProductionGenerationPhase.B6_PRE_AUTHORITY_COMPLETE) < phases.indexOf(ProductionGenerationPhase.EXPERIMENTAL_BUILD))
-            assertTrue(phases.indexOf(ProductionGenerationPhase.EXPERIMENTAL_BUILD) < phases.indexOf(ProductionGenerationPhase.CONTROL_BUILD))
+            assertTrue(ProductionGenerationPhase.EXPERIMENTAL_BUILD in phases)
+            assertFalse(ProductionGenerationPhase.CONTROL_BUILD in phases)
+            assertFalse(ProductionGenerationPhase.B7 in phases)
+            assertFalse(ProductionGenerationPhase.B8 in phases)
+            assertFalse(ProductionGenerationPhase.B9 in phases)
             assertFalse(ProductionGenerationPhase.B6_POST_MATERIALIZATION_COMPLETE in phases)
             assertEquals(updates.map { it.percent }.sorted(), updates.map { it.percent })
-            assertEquals(100, updates.last().percent)
-            assertEquals(1, updates.count { it.percent == 100 })
-
-            fixture.repository.saveGeneratedProgram(null, result.program)
-            val persisted = fixture.db.appMetaDao()
-                .latestByPrefix("${PersonalizedProgramPlanningService.DECISION_PREFIX}%")
-                ?.value
-                ?.let(::JSONObject)
-                ?: JSONObject()
-            val persistedJson = persisted.toString()
-            listOf(
-                "stimulusPrescriptionRealizationPlanShadow",
-                "experimentalReadinessAudit",
-                "productionCutoverAuthority",
-                "productionRoutingDecision"
-            ).forEach { key -> assertFalse("persisted decision must not contain $key", persistedJson.contains(key)) }
+            assertTrue(updates.none { it.percent == 100 })
         } finally {
             fixture.db.close()
         }
     }
 
     @Test
-    fun expectedExperimentalFailureBuildsExactlyOneLateControl() = runBlocking {
+    fun ordinaryNewGeneratorInvocationBuildsNoControlAndReturnsValidatedOutput() = runBlocking {
         val spec = StimulusProductionCoverageAuditTest.CoverageSpec(
-            label = "c8_expected_experimental_failure",
+            label = "c39_default_new_generator",
             quality = com.training.trackplanner.data.TrainableQuality.STRENGTH,
             stableKey = "barbell_back_squat",
             profileGoal = "STRENGTH_GAIN",
@@ -121,20 +101,69 @@ class StimulusProductionFailureBoundaryTest {
                 preflight = preflight,
                 answers = answers,
                 metadata = metadata,
-                experimentalProgramBuildOverride = {
-                    throw StimulusCanonicalEvaluationFailure(
-                        StimulusCanonicalEvaluationFailureReason.NO_EXECUTABLE_PLANNING_DEMAND,
-                        detailCode = "C8_EXPECTED_EXPERIMENTAL_FAILURE"
-                    )
-                }
+                includeComparisonDiagnostics = false
             )
         })
-        assertEquals(StimulusProductionProgramSource.CONTROL, result.routeDecision.selectedSource)
-        assertEquals(1, result.buildCounts.controlBuilds)
+        assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, result.routeDecision.selectedSource)
+        assertEquals(0, result.buildCounts.controlBuilds)
         assertEquals(1, result.buildCounts.experimentalBuilds)
-        assertEquals(2, result.buildCounts.totalBuildInvocations)
+        assertEquals(1, result.buildCounts.totalBuildInvocations)
         assertEquals(0, result.buildCounts.thirdBuilds)
-        assertTrue("C8_EXPECTED_EXPERIMENTAL_FAILURE" in result.diagnostics.secondaryReasonCodes)
+        assertTrue(requireNotNull(result.executionValidation).executable)
+        assertTrue(result.program.items.isNotEmpty())
+        assertEquals(null, result.comparison)
+    }
+
+    @Test
+    fun b6PrescriptionMutationIsRejectedWithoutControlFallback() = runBlocking {
+        val spec = StimulusProductionCoverageAuditTest.CoverageSpec(
+            label = "c38_3_unauthorized_b6_load",
+            quality = com.training.trackplanner.data.TrainableQuality.STRENGTH,
+            stableKey = "barbell_back_squat",
+            profileGoal = "STRENGTH_GAIN",
+            goal = ProgramGoal.STRENGTH,
+            intent = StrengthIntent.STRENGTH_PRIORITY,
+            badminton = false,
+            history = "reviewed",
+            days = 3,
+            minutes = 60,
+            equipment = emptySet(),
+            isolateOwner = true
+        )
+        var controlInvocations = 0
+        val result = requireNotNull(StimulusProductionCoverageAuditTest().runCase(spec) { service, preflight, answers, metadata ->
+            val valid = service.generatePreparedProduction(
+                preflight = preflight,
+                answers = answers,
+                metadata = metadata,
+                includeComparisonDiagnostics = false
+            )
+            val ownerIndex = valid.program.items.indexOfFirst { it.setPrescriptions.isNotEmpty() }
+            assertTrue("the B1–B6 fixture must contain a materialized physical set", ownerIndex >= 0)
+            val original = valid.program.items[ownerIndex]
+            val unauthorized = valid.program.copy(items = valid.program.items.toMutableList().also { items ->
+                items[ownerIndex] = original.copy(setPrescriptions = original.setPrescriptions.mapIndexed { index, set ->
+                    if (index == 0) set.copy(weightKg = set.weightKg + 17.5) else set
+                })
+            })
+            val rejected = captureThrowable {
+                service.generatePreparedProduction(
+                    preflight = preflight,
+                    answers = answers,
+                    metadata = metadata,
+                    includeComparisonDiagnostics = false,
+                    controlGenerationOverride = { controlInvocations++; error("CONTROL_MUST_NOT_RUN") },
+                    experimentalProgramBuildOverride = { unauthorized }
+                )
+            }
+            assertTrue(rejected is StimulusProductionExecutionRejectedException)
+            val executionFailure = rejected as StimulusProductionExecutionRejectedException
+            assertTrue(executionFailure.reasonCodes.contains("B6_PHYSICAL_SET_INTEGRITY_FAILURE"))
+            assertEquals("an unauthorized prescription must fail closed without returning CONTROL", 0, controlInvocations)
+            valid
+        })
+        assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, result.routeDecision.selectedSource)
+        assertTrue(requireNotNull(result.executionValidation).executable)
     }
 
     @Test
@@ -174,28 +203,38 @@ class StimulusProductionFailureBoundaryTest {
     }
 
     @Test
-    fun controlFailurePropagatesAfterCanonicalArtifactCompletes() = runBlocking {
-        val fixture = fixture()
-        try {
-            val observations = mutableListOf<ProductionGenerationObservation>()
-            val controlFailure = IllegalStateException("CONTROL_BUILDER_FAILED")
-            val thrown = captureThrowable {
-                fixture.service.generatePreparedProduction(
-                    fixture.preflight,
-                    fixture.answers,
-                    emptyMap(),
-                    productionGenerationObserver = observations::add,
-                    controlGenerationOverride = { throw controlFailure },
-                    experimentalProgramBuildOverride = { fixture.control }
-                )
-            }
-            assertSame(controlFailure, thrown)
-            val phases = observations.map { it.phase }
-            assertTrue(phases.indexOf(ProductionGenerationPhase.B6_POST_MATERIALIZATION_COMPLETE) <
-                phases.indexOf(ProductionGenerationPhase.CONTROL_BUILD))
-        } finally {
-            fixture.db.close()
-        }
+    fun optionalB7B8DiagnosticFailureCannotBlockNewGeneratorResult() = runBlocking {
+        val spec = StimulusProductionCoverageAuditTest.CoverageSpec(
+            label = "c38_3_diagnostic_control_failure",
+            quality = com.training.trackplanner.data.TrainableQuality.STRENGTH,
+            stableKey = "barbell_back_squat",
+            profileGoal = "STRENGTH_GAIN",
+            goal = ProgramGoal.STRENGTH,
+            intent = StrengthIntent.STRENGTH_PRIORITY,
+            badminton = false,
+            history = "reviewed",
+            days = 3,
+            minutes = 60,
+            equipment = emptySet(),
+            isolateOwner = true
+        )
+        val controlFailure = IllegalStateException("CONTROL_BUILDER_FAILED")
+        val observations = mutableListOf<ProductionGenerationObservation>()
+        val result = requireNotNull(StimulusProductionCoverageAuditTest().runCase(spec) { service, preflight, answers, metadata ->
+            service.generatePreparedProduction(
+                preflight = preflight,
+                answers = answers,
+                metadata = metadata,
+                productionGenerationObserver = observations::add,
+                controlGenerationOverride = { throw controlFailure }
+            )
+        })
+        val phases = observations.map { it.phase }
+        assertTrue(phases.indexOf(ProductionGenerationPhase.B6_POST_MATERIALIZATION_COMPLETE) < phases.indexOf(ProductionGenerationPhase.CONTROL_BUILD))
+        assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, result.routeDecision.selectedSource)
+        assertEquals(1, result.buildCounts.controlBuilds)
+        assertEquals(1, result.buildCounts.experimentalBuilds)
+        assertEquals("B7_B8_DIAGNOSTIC_FAILED_IllegalStateException", result.diagnosticFailureReason)
     }
 
     private suspend fun assertUnexpected(failure: RuntimeException) {
