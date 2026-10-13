@@ -22,6 +22,8 @@ import com.training.trackplanner.analysis.strengthperformance.curve.RepetitionCu
 import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
 import com.training.trackplanner.analysis.trends.TrendDataPoint
 import com.training.trackplanner.analysis.trends.TrendMetricId
+import com.training.trackplanner.analysis.v2profile.V2Stage1TrainingProfile
+import com.training.trackplanner.analysis.v2profile.V2Stage1TrainingProfileAnalyzer
 import com.training.trackplanner.analysis.trends.WeeklyAnalysisWindow
 import com.training.trackplanner.analysis.tissue.TissueCurrentState
 import com.training.trackplanner.data.personalized.PersonalizedPlanningAnswers
@@ -336,6 +338,17 @@ class TrainingRepository internal constructor(
             ProgramEditorSnapshot(program, items, db.programDao().programItemSetsForProgram(programId),
                 db.programProgressionDao().items().filter { binding -> items.any { it.id == binding.programItemId } },
                 db.programProgressionDao().tracks().filter { it.programStableKey == program.stableKey })
+        }
+    }
+    /** Read-only V2-1 snapshot over existing records and exercise metadata. */
+    suspend fun analyzeV2Stage1TrainingProfile(asOf: LocalDate): V2Stage1TrainingProfile = withContext(Dispatchers.IO) {
+        db.withTransaction {
+            val exercisesByStableKey = exerciseDao.allExercises().associateBy(Exercise::stableKey)
+            V2Stage1TrainingProfileAnalyzer.analyzeRecords(
+                records = workoutDao.allEntriesWithSets(),
+                exercisesByStableKey = exercisesByStableKey,
+                asOf = asOf
+            )
         }
     }
     suspend fun progressionDraftContext(): ProgressionDraftContext = withContext(Dispatchers.IO) {
