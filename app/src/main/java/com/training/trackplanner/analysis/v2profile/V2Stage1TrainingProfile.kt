@@ -14,6 +14,9 @@ data class V2Stage1TrainingProfile(
     val interpretation: V2Stage1Interpretation = V2Stage1Interpretation.DESCRIPTIVE_ONLY,
     val caveats: List<String> = DEFAULT_CAVEATS
 ) {
+    /** V2-1B descriptive performance evidence; it never changes exercise retention or V2-1A equality. */
+    val stage1B: V2Stage1BAnalysis by lazy { V2Stage1BAnalyzer.analyze(this) }
+
     val topExercises: List<V2Stage1ExerciseSummary>
         get() = exercises.take(20)
 
