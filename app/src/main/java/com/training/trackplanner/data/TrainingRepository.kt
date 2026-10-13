@@ -22,12 +22,15 @@ import com.training.trackplanner.analysis.strengthperformance.curve.RepetitionCu
 import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
 import com.training.trackplanner.analysis.trends.TrendDataPoint
 import com.training.trackplanner.analysis.trends.TrendMetricId
+import com.training.trackplanner.analysis.v2profile.V2Stage1TrainingProfile
+import com.training.trackplanner.analysis.v2profile.V2Stage1TrainingProfileAnalyzer
 import com.training.trackplanner.analysis.trends.WeeklyAnalysisWindow
 import com.training.trackplanner.analysis.tissue.TissueCurrentState
 import com.training.trackplanner.data.personalized.PersonalizedPlanningAnswers
 import com.training.trackplanner.data.personalized.PersonalizedGenerationConstraints
 import com.training.trackplanner.data.personalized.PersonalizedPlanningOutcome
 import com.training.trackplanner.data.personalized.PersonalizedPlanningPreflight
+import com.training.trackplanner.data.personalized.GenerationDecisionTraceStore
 import com.training.trackplanner.data.personalized.personalizedProgramFingerprint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
@@ -337,6 +340,17 @@ class TrainingRepository internal constructor(
                 db.programProgressionDao().tracks().filter { it.programStableKey == program.stableKey })
         }
     }
+    /** Read-only V2-1 snapshot over existing records and exercise metadata. */
+    suspend fun analyzeV2Stage1TrainingProfile(asOf: LocalDate): V2Stage1TrainingProfile = withContext(Dispatchers.IO) {
+        db.withTransaction {
+            val exercisesByStableKey = exerciseDao.allExercises().associateBy(Exercise::stableKey)
+            V2Stage1TrainingProfileAnalyzer.analyzeRecords(
+                records = workoutDao.allEntriesWithSets(),
+                exercisesByStableKey = exercisesByStableKey,
+                asOf = asOf
+            )
+        }
+    }
     suspend fun progressionDraftContext(): ProgressionDraftContext = withContext(Dispatchers.IO) {
         db.withTransaction {
             val roles = exerciseRoleRelationDao.allTrainingRoles().groupBy { it.exerciseStableKey }
@@ -379,6 +393,10 @@ class TrainingRepository internal constructor(
         canonicalOfiAxisProfiles = canonicalOfiAxisProfiles,
         physicalQualityCatalog = canonicalMetadataRepository.physicalQualityCatalog(),
         canonicalMovementRelations = canonicalMetadataRepository.movementRelations(),
+        canonicalIdentityMovementPatterns = canonicalMetadataRepository.identities()
+            .associate { it.stableKey to it.movementPattern },
+        canonicalIdentityMovementReviewStatuses = canonicalMetadataRepository.identities()
+            .associate { it.stableKey to it.reviewStatus },
         canonicalCoreCatalog = canonicalCoreCatalog,
         reviewedCanonicalStableKeys = canonicalMetadataRepository.identities().mapTo(linkedSetOf()) { it.stableKey },
         exerciseRoleRelationDao = exerciseRoleRelationDao,
@@ -1132,13 +1150,14 @@ class TrainingRepository internal constructor(
         request: ProgramSkeletonRequest,
         constraints: PersonalizedGenerationConstraints = PersonalizedGenerationConstraints(explicitSessionMinutes = request.sessionMinutes),
         cutoff: LocalDate = LocalDate.now(),
-        progress: com.training.trackplanner.data.personalized.PersonalizedPlannerProgressReporter = com.training.trackplanner.data.personalized.PersonalizedPlannerProgressReporter.NONE
+        progress: com.training.trackplanner.data.personalized.PersonalizedPlannerProgressReporter = com.training.trackplanner.data.personalized.PersonalizedPlannerProgressReporter.NONE,
+        traceId: String? = null
     ): PersonalizedPlanningPreflight = withContext(Dispatchers.IO) {
         personalizedProgramPlanningService.prepare(
             request = request,
             metadata = exerciseMetadataEditorService.resolvedRuntimeMetadataByExerciseStableKey(),
             constraints = constraints,
-            cutoff = cutoff, progress = progress
+            cutoff = cutoff, progress = progress, traceId = traceId
         )
     }
 
@@ -1158,17 +1177,57 @@ class TrainingRepository internal constructor(
         progress: com.training.trackplanner.data.personalized.PersonalizedPlannerProgressReporter = com.training.trackplanner.data.personalized.PersonalizedPlannerProgressReporter.NONE,
         routingMode: com.training.trackplanner.data.personalized.StimulusProductionRoutingMode =
             com.training.trackplanner.data.personalized.StimulusProductionRoutingPolicy.defaultMode,
-        existingProgramId: Long? = null
+        existingProgramId: Long? = null,
+        includeComparisonDiagnostics: Boolean = false
     ): com.training.trackplanner.data.personalized.StimulusProductionGenerationResult = withContext(Dispatchers.IO) {
         val incumbentIndex = programPlanService.canonicalIncumbentPlacementIndex(existingProgramId)
-        personalizedProgramPlanningService.generatePreparedProduction(
-            preflight = preflight,
-            answers = answers,
-            metadata = exerciseMetadataEditorService.resolvedRuntimeMetadataByExerciseStableKey(),
-            progress = progress,
-            routingMode = routingMode,
-            incumbentPlacementIndex = incumbentIndex
-        )
+        try {
+            val result = personalizedProgramPlanningService.generatePreparedProduction(
+                preflight = preflight,
+                answers = answers,
+                metadata = exerciseMetadataEditorService.resolvedRuntimeMetadataByExerciseStableKey(),
+                progress = progress,
+                routingMode = routingMode,
+                includeComparisonDiagnostics = includeComparisonDiagnostics,
+                incumbentPlacementIndex = incumbentIndex
+            )
+            GenerationDecisionTraceStore.finish(preflight.preparationId, "GENERATED", "GENERATION_COMPLETE",
+                "TrainingRepository.generatePreparedPersonalizedProgramEvaluation")
+            result
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            GenerationDecisionTraceStore.finish(preflight.preparationId, "CANCELLED", "GENERATION_CANCELLED",
+                "TrainingRepository.generatePreparedPersonalizedProgramEvaluation")
+            throw cancelled
+        } catch (failure: Throwable) {
+            val details = org.json.JSONObject().put("reasonCodes", org.json.JSONArray(listOf(
+                failure.javaClass.simpleName,
+                (failure as? com.training.trackplanner.data.personalized.StimulusProductionExecutionRejectedException)?.reasonCodes.orEmpty().joinToString("+")
+            ).filter(String::isNotBlank)))
+            if (!GenerationDecisionTraceStore.hasStage(preflight.preparationId, "B7_DIAGNOSTIC")) {
+                GenerationDecisionTraceStore.record(
+                    preflight.preparationId, "B7_DIAGNOSTIC", "StimulusExperimentalReadinessAuditEngine.audit",
+                    decision = "NOT_EXECUTED", reasonCodes = listOf("GENERATION_FAILED_BEFORE_B7"),
+                    nextStageInputs = org.json.JSONObject().put("status", "NOT_EXECUTED")
+                )
+            }
+            if (!GenerationDecisionTraceStore.hasStage(preflight.preparationId, "B8_DIAGNOSTIC")) {
+                GenerationDecisionTraceStore.record(
+                    preflight.preparationId, "B8_DIAGNOSTIC", "StimulusProductionCutoverAuthorityAuditEngine.audit",
+                    decision = "NOT_EXECUTED", reasonCodes = listOf("GENERATION_FAILED_BEFORE_B8"),
+                    nextStageInputs = org.json.JSONObject().put("status", "NOT_EXECUTED")
+                )
+            }
+            GenerationDecisionTraceStore.record(
+                preflight.preparationId, "GENERATION_FAILURE", "TrainingRepository.generatePreparedPersonalizedProgramEvaluation",
+                criteria = org.json.JSONObject().put("legacyFallback", false),
+                decision = "GENERATION_FAILED", reasonCodes = details.optJSONArray("reasonCodes")?.let { array ->
+                    (0 until array.length()).map { array.optString(it) }
+                }.orEmpty(), nextStageInputs = details
+            )
+            GenerationDecisionTraceStore.finish(preflight.preparationId, "FAILED", "GENERATION_FAILED",
+                "TrainingRepository.generatePreparedPersonalizedProgramEvaluation", details)
+            throw failure
+        }
     }
 
     suspend fun saveLegacyAutoProgram(existingProgramId: Long?, skeleton: LegacyAutoSkeleton,
@@ -1177,15 +1236,54 @@ class TrainingRepository internal constructor(
 
     suspend fun saveGeneratedProgram(
         existingProgramId: Long?,
-        skeleton: GeneratedProgramSkeleton
+        skeleton: GeneratedProgramSkeleton,
+        existingProgramReplacementApproved: Boolean = false
     ): Long = cloudMutation(CloudMutationScope.PROGRAMS) {
-        programPlanService.saveGeneratedProgram(existingProgramId, skeleton).also { programId ->
-            skeleton.personalizedDecision?.let { decision ->
+        val finalSkeleton = skeleton.replacementReview?.let { review ->
+            ProgramReplacementSaveGate.requireSaveable(skeleton)
+            if (!ProgramReplacementSaveGate.requiresFreshValidation(skeleton)) skeleton else {
+                val freshIncumbentIndex = programPlanService.canonicalIncumbentPlacementIndex(existingProgramId)
+                val revalidated = personalizedProgramPlanningService.validateReplacementSelection(
+                    currentDraft = skeleton,
+                    selectedOptionIds = review.appliedOptionIds,
+                    currentMetadata = exerciseMetadataEditorService.resolvedRuntimeMetadataByExerciseStableKey(),
+                    currentIncumbentPlacementIndex = freshIncumbentIndex
+                )
+                if (ProgramReplacementReviewFingerprint.create(revalidated) !=
+                    ProgramReplacementReviewFingerprint.create(skeleton)
+                ) throw ProgramReplacementSaveRejectedException("REPLACEMENT_CHANGED_DURING_SAVE_REVALIDATION")
+                revalidated.copy(
+                    replacementReview = revalidated.replacementReview?.copy(
+                        appliedOptionIds = review.appliedOptionIds
+                    )
+                )
+            }
+        } ?: skeleton
+        programPlanService.saveGeneratedProgram(
+            existingProgramId,
+            finalSkeleton,
+            existingProgramReplacementApproved
+        ).also { programId ->
+            finalSkeleton.personalizedDecision?.let { decision ->
                 val stableKey = requireNotNull(programPlanService.programStableKey(programId))
-                val fingerprint = personalizedProgramFingerprint(skeleton.request, skeleton.items)
+                val fingerprint = personalizedProgramFingerprint(finalSkeleton.request, finalSkeleton.items)
                 personalizedProgramPlanningService.persistDecision(programId, stableKey, decision, fingerprint)
             }
         }
+    }
+
+    suspend fun validateProgramReplacementSelection(
+        skeleton: GeneratedProgramSkeleton,
+        selectedOptionIds: Set<String>,
+        existingProgramId: Long? = null
+    ): GeneratedProgramSkeleton = withContext(Dispatchers.IO) {
+        val freshIncumbentIndex = programPlanService.canonicalIncumbentPlacementIndex(existingProgramId)
+        personalizedProgramPlanningService.validateReplacementSelection(
+            currentDraft = skeleton,
+            selectedOptionIds = selectedOptionIds,
+            currentMetadata = exerciseMetadataEditorService.resolvedRuntimeMetadataByExerciseStableKey(),
+            currentIncumbentPlacementIndex = freshIncumbentIndex
+        )
     }
 
     suspend fun deleteProgram(programId: Long) = withContext(Dispatchers.IO) {

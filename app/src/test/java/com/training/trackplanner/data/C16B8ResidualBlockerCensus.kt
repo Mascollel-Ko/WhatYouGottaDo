@@ -4,6 +4,178 @@ import com.training.trackplanner.data.personalized.*
 import org.json.JSONArray
 import org.json.JSONObject
 
+/** Exact C37 B3→B4→B5→B6→weekly-row proof for Power/Jump additions in this legacy census. */
+private fun exactPowerJumpPolicyMaterialDelta(
+    comparison: StimulusSelectionProgramComparison,
+    delta: JSONObject
+): Boolean {
+    if (delta.optString("kind") != "ROW_ADDED") return false
+    val ownerObject = delta.optJSONObject("owner") ?: return false
+    val owner = StimulusPrescriptionOwnerIdentity(
+        ownerObject.optString("stableKey"), ownerObject.optString("selectionRole")
+    )
+    val after = delta.optJSONObject("after") ?: return false
+    val week = after.optInt("week", -1)
+    if (week <= 0) return false
+    val quality = when {
+        comparison.targetPlan.qualityTargets.any { it.quality == TrainableQuality.POWER } &&
+            owner.selectionRole == "CANONICAL_STIMULUS_QUALITY_POWER" -> TrainableQuality.POWER
+        comparison.targetPlan.qualityTargets.any { it.quality == TrainableQuality.REACTIVE_STRENGTH_SSC } &&
+            owner.selectionRole == "CANONICAL_STIMULUS_QUALITY_REACTIVE_STRENGTH_SSC" -> TrainableQuality.REACTIVE_STRENGTH_SSC
+        else -> return false
+    }
+    val targetId = "QUALITY:${quality.name}"
+    val target = comparison.targetPlan.qualityTargets.singleOrNull { it.quality == quality } ?: return false
+    val decision = comparison.targetPlan.powerJumpDoseDecisions.singleOrNull { it.targetId == targetId } ?: return false
+    val required = decision.approvedWeeklySetUnits
+    if (decision.status != PowerJumpDoseStatus.AUTHORIZED || required !in 2..4 ||
+        target.needDecision != TrainingNeedDecision.DEVELOP ||
+        target.numericAuthority != StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY ||
+        target.weeklyDirectUnitsTarget?.preferred != required.toDouble()
+    ) return false
+    val candidate = comparison.selectionPlan.selectedCandidates.singleOrNull {
+        it.stableKey == owner.stableKey && it.selectionRole == owner.selectionRole &&
+            it.primaryTargetId == targetId && targetId in it.coveredTargetIds
+    } ?: return false
+    val authorization = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().singleOrNull {
+        it.targetId == targetId && it.quality == quality &&
+            it.owner?.let { exact -> owner == StimulusPrescriptionOwnerIdentity(exact.stableKey, exact.selectionRole) } == true
+    } ?: return false
+    val prescription = authorization.authorizedPrescription ?: return false
+    if (authorization.source != StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE ||
+        prescription.sets.size != required || authorization.status !in setOf(
+            StimulusPrescriptionAuthorizationStatus.AUTHORIZED_USER_APPROVED_POWER_JUMP_POLICY,
+            StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
+        )
+    ) return false
+    val trace = comparison.materializationTraces.singleOrNull {
+        it.targetId == targetId && it.selectedStableKey == owner.stableKey && it.selectionRole == owner.selectionRole
+    } ?: return false
+    val audit = comparison.prescriptionMaterializationAudits.singleOrNull { it.targetId == targetId } ?: return false
+    val duration = comparison.experimental.request.durationWeeks.coerceAtLeast(1)
+    if (!trace.selectedAtB5 || trace.directIdentityVerifiedAtSelection != true ||
+        !trace.presentInFinalExperimentalSkeleton || !trace.directIdentityStillValid ||
+        audit.state != StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED ||
+        audit.authorizedWeeklySetUnits != required || audit.materializedWeeklySetUnits != required ||
+        audit.targetCompatibleMaterializedUnits != required || audit.totalMaterializedUnits != required * duration ||
+        (audit.overrun ?: 0) > 0
+    ) return false
+    val attributed = comparison.experimentalReadinessAudit?.changeAttributions.orEmpty().any {
+        it.source == StimulusExperimentalChangeAttributionSource.B6_APPROVED_POWER_JUMP_POLICY &&
+            it.stableKey == owner.stableKey && it.selectionRole == owner.selectionRole && targetId in it.targetIds
+    }
+    if (!attributed) return false
+    val actualSets = after.optJSONArray("setPrescriptions") ?: return false
+    val authorizedSets = prescription.sets.sortedBy { it.setIndex }
+    return actualSets.length() == authorizedSets.size && after.optInt("setCount") == authorizedSets.size &&
+        after.optInt("restSeconds") == prescription.restSeconds &&
+        after.optString("weightSource") == prescription.weightSource &&
+        (0 until actualSets.length()).all { index ->
+            val actual = actualSets.getJSONObject(index)
+            val expected = authorizedSets[index]
+            actual.optInt("setIndex") == expected.setIndex && actual.optInt("reps") == expected.reps &&
+                actual.optDouble("weightKg", Double.NaN) == expected.weightKg &&
+                actual.optInt("seconds") == expected.seconds &&
+                actual.optDouble("targetRpeMin", Double.NaN) == (expected.targetRpeMin ?: Double.NaN) &&
+                actual.optString("loadState") == expected.loadState.name
+        }
+}
+
+/** Exact B4→B5→B6→weekly-materialization proof for regional Hypertrophy rows. */
+private fun exactRegionalHypertrophyMaterialDelta(
+    comparison: StimulusSelectionProgramComparison,
+    delta: JSONObject
+): Boolean {
+    if (delta.optString("kind") !in setOf("ROW_ADDED", "ROW_MATERIAL_CHANGE")) return false
+    val ownerObject = delta.optJSONObject("owner") ?: return false
+    val owner = StimulusPrescriptionOwnerIdentity(
+        ownerObject.optString("stableKey"), ownerObject.optString("selectionRole")
+    )
+    val after = delta.optJSONObject("after") ?: return false
+    val week = after.optInt("week", -1)
+    if (week <= 0) return false
+
+    val targetAndDose = comparison.targetPlan.movementTargets.mapNotNull { target ->
+        val dose = target.regionalDoseTargets.singleOrNull {
+            it.kind == StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET &&
+                it.shapeAuthority == StimulusMovementDoseShapeAuthority.HYPERTROPHY_BAND_8_12_PERSONAL_7_15_RPE_7_USER_LOAD_CALIBRATION
+        } ?: return@mapNotNull null
+        val units = dose.authorizedWholeSetUnits ?: return@mapNotNull null
+        if (units <= 0 || dose.weeklyTarget == null || dose.numericAuthority in setOf(
+                StimulusTargetNumericAuthority.NONE,
+                StimulusTargetNumericAuthority.DIRECTION_ONLY,
+                StimulusTargetNumericAuthority.UNRESOLVED
+            )) return@mapNotNull null
+        target to dose
+    }.singleOrNull { (target, _) ->
+        comparison.selectionPlan.selectedCandidates.singleOrNull { candidate ->
+            candidate.stableKey == owner.stableKey && candidate.selectionRole == owner.selectionRole &&
+                candidate.primaryTargetId == target.targetId && target.targetId in candidate.coveredTargetIds
+        } != null
+    } ?: return false
+    val (target, dose) = targetAndDose
+    val units = dose.authorizedWholeSetUnits ?: return false
+
+    val movementB6 = comparison.prescriptionAuthorizationPlan?.movementAuthorizations.orEmpty().singleOrNull {
+        it.targetId == target.targetId && it.owner == owner &&
+            it.status == StimulusMovementB6Status.AUTHORIZED_REGIONAL_HYPERTROPHY_B6
+    } ?: return false
+    if ("B6_CONSUMED_EXACT_B4_REGIONAL_RESIDUAL" !in movementB6.reasonCodes) return false
+    val authorization = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().singleOrNull {
+        it.targetId == target.targetId && it.quality == TrainableQuality.HYPERTROPHY &&
+            it.owner?.let { exact -> owner == StimulusPrescriptionOwnerIdentity(exact.stableKey, exact.selectionRole) } == true
+    } ?: return false
+    val prescription = authorization.authorizedPrescription ?: return false
+    if (authorization.source != StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE ||
+        authorization.status !in setOf(
+            StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+            StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
+            StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
+        ) || authorization.executionAuthority !in setOf(
+            StimulusPrescriptionExecutionAuthority.FULLY_ENCODED,
+            StimulusPrescriptionExecutionAuthority.REQUIRES_USER_LOAD_INPUT
+        ) || prescription.sets.size != units
+    ) return false
+
+    val materialization = comparison.prescriptionMaterializationAudits.singleOrNull {
+        it.targetId == target.targetId && it.quality == TrainableQuality.HYPERTROPHY &&
+            it.owner?.let { exact -> owner == StimulusPrescriptionOwnerIdentity(exact.stableKey, exact.selectionRole) } == true
+    } ?: return false
+    val weekAudit = materialization.weeklyAudits.singleOrNull { it.weekNumber == week } ?: return false
+    if (materialization.state != StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED ||
+        materialization.authorizedWeeklySetUnits != units ||
+        materialization.overrun != 0 || materialization.shortfall != 0 ||
+        weekAudit.authorizedSetUnits != units || weekAudit.materializedSetUnits != units ||
+        weekAudit.targetCompatibleMaterializedUnits != units || weekAudit.shortfall != 0 || weekAudit.overrun != 0
+    ) return false
+
+    val attributed = comparison.experimentalReadinessAudit?.changeAttributions.orEmpty().any {
+        it.stableKey == owner.stableKey && it.selectionRole == owner.selectionRole &&
+            target.targetId in it.targetIds &&
+            it.source in setOf(
+                StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY,
+                StimulusExperimentalChangeAttributionSource.B6_EXISTING_OWNER_PRESCRIPTION,
+                StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION,
+                StimulusExperimentalChangeAttributionSource.B6_COLD_START_USER_CALIBRATION
+            )
+    }
+    if (!attributed) return false
+
+    val actualSets = after.optJSONArray("setPrescriptions") ?: return false
+    val authorizedSets = prescription.sets.sortedBy { it.setIndex }
+    return actualSets.length() == authorizedSets.size && after.optInt("setCount") == authorizedSets.size &&
+        after.optInt("restSeconds") == prescription.restSeconds && after.optString("weightSource") == prescription.weightSource &&
+        (0 until actualSets.length()).all { index ->
+            val actual = actualSets.getJSONObject(index)
+            val expected = authorizedSets[index]
+            actual.optInt("setIndex") == expected.setIndex && actual.optInt("reps") == expected.reps &&
+                actual.optDouble("weightKg", Double.NaN) == expected.weightKg &&
+                actual.optInt("seconds") == expected.seconds &&
+                actual.optDouble("targetRpeMin", Double.NaN) == (expected.targetRpeMin ?: Double.NaN) &&
+                actual.optString("loadState") == expected.loadState.name
+        }
+}
+
 /** Exact, test-only row ledger for the four C15 calibration cases and the positive reference. */
 internal fun renderC16B8ResidualBlockerCensus(
     records: List<Pair<StimulusProductionCoverageAuditTest.CoverageSpec, StimulusProductionGenerationResult?>>,
@@ -384,16 +556,83 @@ internal fun renderC16B8ResidualBlockerCensus(
             it.put("c16Classification", "EXPECTED_C15_CALIBRATION_DELTA")
                 .put("calibrationDeltaBasis", "EXACT_C11_CANONICAL_ROLE_REPLACEMENT")
         }
+        val approvedCoreMaterialDeltas = deltas.filter { delta ->
+            if (delta.optString("kind") !in setOf("ROW_ADDED", "ROW_MATERIAL_CHANGE")) return@filter false
+            val ownerJson = delta.optJSONObject("owner") ?: return@filter false
+            val owner = StimulusPrescriptionOwnerIdentity(
+                ownerJson.optString("stableKey"), ownerJson.optString("selectionRole")
+            )
+            val movementTarget = comparison.targetPlan.movementTargets.singleOrNull { target ->
+                target.movementCoverage == MovementCoverage.CORE_DIRECT &&
+                    comparison.selectionPlan.selectedCandidates.any { selected ->
+                        owner.stableKey == selected.stableKey && owner.selectionRole == selected.selectionRole &&
+                            target.targetId in selected.coveredTargetIds
+                    }
+            } ?: return@filter false
+            val dose = movementTarget.regionalDoseTargets.singleOrNull {
+                it.kind == StimulusMovementDoseKind.CORE_DIRECT_CONTROL_SET
+            } ?: return@filter false
+            val b6 = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().singleOrNull {
+                it.targetId == movementTarget.targetId && it.quality == null &&
+                    it.owner?.let { exact -> owner == StimulusPrescriptionOwnerIdentity(exact.stableKey, exact.selectionRole) } == true
+            } ?: return@filter false
+            val b6State = comparison.prescriptionAuthorizationPlan?.movementAuthorizations.orEmpty().singleOrNull {
+                it.targetId == movementTarget.targetId && it.status == StimulusMovementB6Status.AUTHORIZED_CORE_DIRECT_B6 &&
+                    it.owner == owner
+            } ?: return@filter false
+            val prescription = b6.authorizedPrescription ?: return@filter false
+            if (dose.authorizedWholeSetUnits != prescription.sets.size ||
+                b6.executionAuthority !in setOf(
+                    StimulusPrescriptionExecutionAuthority.FULLY_ENCODED,
+                    StimulusPrescriptionExecutionAuthority.REQUIRES_USER_LOAD_INPUT
+                ) || b6.status !in setOf(
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
+                ) || b6State.owner != owner
+            ) return@filter false
+            val after = delta.optJSONObject("after") ?: return@filter false
+            val actualSets = after.optJSONArray("setPrescriptions") ?: return@filter false
+            val expectedSets = prescription.sets.sortedBy { it.setIndex }
+            actualSets.length() == expectedSets.size && after.optInt("setCount") == expectedSets.size &&
+                after.optInt("restSeconds") == prescription.restSeconds &&
+                after.optString("weightSource") == prescription.weightSource &&
+                (0 until actualSets.length()).all { index ->
+                    val actual = actualSets.getJSONObject(index)
+                    val expected = expectedSets[index]
+                    actual.optInt("setIndex") == expected.setIndex && actual.optInt("reps") == expected.reps &&
+                        actual.optDouble("weightKg", Double.NaN) == expected.weightKg &&
+                        actual.optInt("seconds") == expected.seconds &&
+                        actual.optDouble("targetRpeMin", Double.NaN) == (expected.targetRpeMin ?: Double.NaN) &&
+                        actual.optString("loadState") == expected.loadState.name
+                }
+        }
+        approvedCoreMaterialDeltas.forEach { delta ->
+            delta.put("c16Classification", "AUTHORIZED_CORE_DIRECT_TARGET_MATERIALIZATION")
+                .put("coreMaterializationBasis", "EXACT_B4_B5_B6_MOVEMENT_CHAIN")
+        }
+        val approvedPowerJumpMaterialDeltas = deltas.filter { exactPowerJumpPolicyMaterialDelta(comparison, it) }
+        approvedPowerJumpMaterialDeltas.forEach { delta ->
+            delta.put("c16Classification", "AUTHORIZED_POWER_JUMP_POLICY_MATERIALIZATION")
+                .put("powerJumpMaterializationBasis", "EXACT_B3_B4_B5_B6_B7_WEEKLY_CHAIN")
+        }
+        val approvedRegionalHypertrophyMaterialDeltas = deltas.filter { exactRegionalHypertrophyMaterialDelta(comparison, it) }
+        approvedRegionalHypertrophyMaterialDeltas.forEach { delta ->
+            delta.put("c16Classification", "AUTHORIZED_REGIONAL_HYPERTROPHY_TARGET_MATERIALIZATION")
+                .put("regionalHypertrophyMaterializationBasis", "EXACT_B4_B5_B6_B7_WEEKLY_CHAIN")
+        }
         val materialDeltas = deltas.filter { it.optString("kind") !in setOf("OWNER_ADDED", "OWNER_REMOVED") }
-        materialDeltas.filterNot { it in calibrationDelta || it in approvedRoleReplacementDeltas }.forEach { delta ->
+        materialDeltas.filterNot { it in calibrationDelta || it in approvedRoleReplacementDeltas ||
+            it in approvedCoreMaterialDeltas || it in approvedPowerJumpMaterialDeltas ||
+            it in approvedRegionalHypertrophyMaterialDeltas }.forEach { delta ->
             delta.put("c16Classification", when {
                 delta.optString("kind") == "ROW_ADDED" -> "ROW_ADDED_REQUIRES_EXACT_B5_B6_TARGET_AUDIT"
                 delta.optString("kind") == "ROW_REMOVED" -> "ROW_REMOVED_REQUIRES_C11_AND_B8_REMOVAL_AUDIT"
                 else -> "RESIDUAL_MATERIAL_FIELD_DELTA"
             })
         }
-        val allAuthorizedCalibrationDeltas = calibrationDelta + approvedRoleReplacementDeltas
-        val residual = materialDeltas.filterNot { it in allAuthorizedCalibrationDeltas }
+        val allAuthorizedPolicyDeltas = calibrationDelta + approvedRoleReplacementDeltas + approvedCoreMaterialDeltas +
+            approvedPowerJumpMaterialDeltas + approvedRegionalHypertrophyMaterialDeltas
+        val residual = materialDeltas.filterNot { it in allAuthorizedPolicyDeltas }
         val blockerClassification = actualBlockerClassification(comparison, residual, evidence)
         return JSONObject().put("case", spec.label).put("route", result.routeDecision.selectedSource.name)
             .put("calibrationOwner", exactOwner?.let(::ownerJson) ?: JSONObject.NULL)
@@ -412,6 +651,111 @@ internal fun renderC16B8ResidualBlockerCensus(
                     .put("numericAuthority", it.numericAuthority.name).put("targetUnits", it.weeklyDirectUnitsTarget?.let { range ->
                         JSONObject().put("min", range.min).put("preferred", range.preferred).put("max", range.max)
                     } ?: JSONObject.NULL)
+            }))
+            .put("B4MovementTargets", JSONArray(comparison.targetPlan.movementTargets.sortedBy { it.movementCoverage.name }.map { movement ->
+                JSONObject().put("targetId", movement.targetId).put("priority", movement.priority.name)
+                    .put("doses", JSONArray(movement.regionalDoseTargets.map { dose -> JSONObject()
+                        .put("kind", dose.kind.name).put("authority", dose.numericAuthority.name)
+                        .put("weeklyTarget", dose.weeklyTarget ?: JSONObject.NULL)
+                        .put("existing", dose.existingEquivalentExposure ?: JSONObject.NULL)
+                        .put("residual", dose.residualEquivalentExposure ?: JSONObject.NULL)
+                        .put("authorizedWholeSets", dose.authorizedWholeSetUnits ?: JSONObject.NULL)
+                        .put("reasonCodes", JSONArray(dose.residualReasonCodes))
+                    }))
+            }))
+            .put("B5CoreDirect", JSONObject()
+                .put("traces", JSONArray(comparison.selectionPlan.traces.filter { it.targetId == "MOVEMENT:CORE_DIRECT" }.map { trace -> JSONObject()
+                    .put("selectionRequired", trace.selectionRequired)
+                    .put("candidatePool", JSONArray(trace.candidatePool))
+                    .put("selectedStableKey", trace.selectedStableKey ?: JSONObject.NULL)
+                    .put("selectedSelectionRole", trace.selectedSelectionRole ?: JSONObject.NULL)
+                    .put("coveredByStableKey", trace.coveredByPreviouslySelectedStableKey ?: JSONObject.NULL)
+                    .put("coveredByRole", trace.coveredByPreviouslySelectedSelectionRole ?: JSONObject.NULL)
+                    .put("rejections", JSONObject(trace.candidateRejectionReasons))
+                    .put("reasonCodes", JSONArray(trace.reasonCodes))
+                }))
+                .put("selectedOwners", JSONArray(comparison.selectionPlan.selectedCandidates.filter {
+                    "MOVEMENT:CORE_DIRECT" in it.coveredTargetIds
+                }.map { JSONObject().put("stableKey", it.stableKey).put("selectionRole", it.selectionRole)
+                    .put("primaryTargetId", it.primaryTargetId).put("coveredTargets", JSONArray(it.coveredTargetIds.sorted()))
+                }))
+                .put("demandItems", JSONArray(comparison.selectionPlan.materialDemand.candidates.filter {
+                    it.representedGapCodes.any { code -> code.contains("CORE_DIRECT") }
+                }.map { JSONObject().put("stableKey", it.stableKey).put("selectionRole", it.role).put("targetSets", it.targetSets) })))
+            .put("B6CoreDirect", JSONArray(comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty()
+                .filter { it.targetId == "MOVEMENT:CORE_DIRECT" }.map { authorization -> JSONObject()
+                    .put("ownerStableKey", authorization.owner?.stableKey ?: JSONObject.NULL)
+                    .put("ownerSelectionRole", authorization.owner?.selectionRole ?: JSONObject.NULL)
+                    .put("status", authorization.status.name)
+                    .put("executionAuthority", authorization.executionAuthority.name)
+                    .put("setCount", authorization.authorizedPrescription?.sets?.size ?: JSONObject.NULL)
+                    .put("reasonCodes", JSONArray(authorization.reasonCodes))
+                }))
+            .put("B5Power", JSONObject()
+                .put("traces", JSONArray(comparison.selectionPlan.traces.filter {
+                    it.targetId == "QUALITY:POWER" || it.targetId == "QUALITY:REACTIVE_STRENGTH_SSC"
+                }.map { trace -> JSONObject()
+                    .put("targetId", trace.targetId).put("selectedStableKey", trace.selectedStableKey ?: JSONObject.NULL)
+                    .put("selectedSelectionRole", trace.selectedSelectionRole ?: JSONObject.NULL)
+                    .put("candidatePool", JSONArray(trace.candidatePool))
+                    .put("rejections", JSONObject(trace.candidateRejectionReasons))
+                    .put("reasonCodes", JSONArray(trace.reasonCodes))
+                }))
+                .put("selectedOwners", JSONArray(comparison.selectionPlan.selectedCandidates.filter {
+                    "QUALITY:POWER" in it.coveredTargetIds || "QUALITY:REACTIVE_STRENGTH_SSC" in it.coveredTargetIds
+                }.map { ownerJson(StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole)) })))
+            .put("B6Power", JSONArray(comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().filter {
+                it.quality in setOf(TrainableQuality.POWER, TrainableQuality.REACTIVE_STRENGTH_SSC)
+            }.map { authorization -> JSONObject()
+                .put("targetId", authorization.targetId).put("quality", authorization.quality?.name ?: JSONObject.NULL)
+                .put("owner", authorization.owner?.let { ownerJson(StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole)) } ?: JSONObject.NULL)
+                .put("status", authorization.status.name).put("executionAuthority", authorization.executionAuthority.name)
+                .put("setCount", authorization.authorizedPrescription?.sets?.size ?: JSONObject.NULL)
+                .put("reasonCodes", JSONArray(authorization.reasonCodes.sorted()))
+            }))
+            .put("powerMaterialization", JSONArray(comparison.prescriptionMaterializationAudits.filter {
+                it.quality in setOf(TrainableQuality.POWER, TrainableQuality.REACTIVE_STRENGTH_SSC)
+            }.map { audit -> JSONObject()
+                .put("targetId", audit.targetId).put("quality", audit.quality?.name ?: JSONObject.NULL)
+                .put("owner", audit.owner?.let { ownerJson(StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole)) } ?: JSONObject.NULL)
+                .put("state", audit.state.name).put("authorizedWeeklyUnits", audit.authorizedWeeklySetUnits)
+                .put("materializedWeeklyUnits", audit.materializedWeeklySetUnits).put("shortfall", audit.shortfall)
+                .put("overrun", audit.overrun).put("reasonCodes", JSONArray(audit.reasonCodes.sorted()))
+            }))
+            .put("authorizedScheduling", JSONArray(comparison.experimental.personalizedDecision?.authorizedScheduling?.authorized.orEmpty().map { demand ->
+                JSONObject().put("id", demand.id).put("owner", ownerJson(StimulusPrescriptionOwnerIdentity(demand.item.stableKey, demand.item.role)))
+                    .put("continuity", demand.continuity).put("priority", demand.item.priority)
+                    .put("sets", demand.prescription.sets.size).put("sourceReason", demand.sourceReason?.name)
+            }))
+            .put("frequencyCandidates", JSONArray(comparison.experimental.personalizedDecision?.frequencyDemand?.candidates.orEmpty().map { candidate ->
+                JSONObject().put("owner", ownerJson(StimulusPrescriptionOwnerIdentity(candidate.item.stableKey, candidate.item.role)))
+                    .put("requested", candidate.requestedUnits).put("funded", candidate.fundedBaseUnits)
+                    .put("reason", candidate.rejectionReason.name).put("authority", candidate.prescriptionAuthority.name)
+            }))
+            .put("coreAuthorityProvider", comparison.prescriptionAuthorizationPlan?.let { plan ->
+                val owner = comparison.selectionPlan.selectedCandidates.firstOrNull {
+                    "MOVEMENT:CORE_DIRECT" in it.coveredTargetIds
+                }?.let { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }
+                JSONObject().put("selectedOwner", owner?.let(::ownerJson) ?: JSONObject.NULL)
+                    .put("movementSelectedOwners", JSONArray(plan.provider().b5SelectedMovementOwners.map(::ownerJson)))
+                    .put("movementPrescriptionOwners", JSONArray(plan.movementOwnerPrescriptions.keys.map(::ownerJson)))
+                    .put("disposition", owner?.let { plan.provider().ownerExecutionDispositions[it]?.name } ?: JSONObject.NULL)
+                    .put("resolved", owner?.let { identity ->
+                        val item = comparison.selectionPlan.materialDemand.candidates.singleOrNull {
+                            it.stableKey == identity.stableKey && it.role == identity.selectionRole
+                        }
+                        item?.let { plan.provider().resolveOwnerPrescription(it)::class.simpleName } ?: "NO_EXACT_B5_MATERIAL_ITEM"
+                    } ?: JSONObject.NULL)
+            } ?: JSONObject.NULL)
+            .put("schedulingDecisions", JSONArray(comparison.experimental.personalizedDecision?.authorizedScheduling?.decisions.orEmpty().map { decision ->
+                JSONObject().put("demandId", decision.authorizedDemandId).put("eligible", decision.eligible)
+                    .put("decision", decision.decision).put("failureReasons", JSONArray(decision.failureReasons.map { it.name }.sorted()))
+            }))
+            .put("boundedAllocation", comparison.experimental.personalizedDecision?.frequencyDemand?.boundedMaterialAllocation?.toJson() ?: JSONObject.NULL)
+            .put("finitePriorityOrder", JSONArray(comparison.experimental.personalizedDecision?.planningBudget?.execution
+                ?.finiteAllocationPriorityOrder.orEmpty().map { row -> JSONObject()
+                    .put("owner", ownerJson(row.owner)).put("priority", row.priority)
+                    .put("requested", row.requestedUnits).put("funded", row.fundedUnits)
             }))
             .put("selectedB5StrengthOwners", JSONArray(comparison.selectionPlan.selectedCandidates.filter {
                 "QUALITY:STRENGTH" in it.coveredTargetIds
@@ -432,7 +776,11 @@ internal fun renderC16B8ResidualBlockerCensus(
                 .put("status", comparison.productionCutoverAuthority?.status?.name ?: JSONObject.NULL)
                 .put("reasons", JSONArray(comparison.productionCutoverAuthority?.reasonCodes.orEmpty().sorted()))
                 .put("reasonCount", comparison.productionCutoverAuthority?.reasonCodes.orEmpty().size))
-            .put("authorizedCalibrationDeltaCount", allAuthorizedCalibrationDeltas.size)
+            .put("authorizedCalibrationDeltaCount", (calibrationDelta + approvedRoleReplacementDeltas).size)
+            .put("authorizedCoreMaterialDeltaCount", approvedCoreMaterialDeltas.size)
+            .put("authorizedPowerJumpMaterialDeltaCount", approvedPowerJumpMaterialDeltas.size)
+            .put("authorizedRegionalHypertrophyMaterialDeltaCount", approvedRegionalHypertrophyMaterialDeltas.size)
+            .put("authorizedPolicyDeltaCount", allAuthorizedPolicyDeltas.size)
             .put("residualDeltaCount", residual.size)
             .put("rootClassification", blockerClassification)
             .put("deltaLedger", JSONArray(deltas))

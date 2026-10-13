@@ -113,12 +113,19 @@ internal object C36ExecutionProvenanceCensus {
         var diagnosticFundedButCapacityRejectedUnits = 0
         var diagnosticZeroButActuallyScheduledRows = 0
         var diagnosticZeroButActuallyScheduledUnits = 0
+        var comparisonUnavailableCases = 0
 
         records.sortedBy { it.first.label }.forEach { (spec, result) ->
             val generated = result ?: return@forEach
             val comparison = generated.comparison ?: run {
-                cases.put(JSONObject().put("case", spec.label).put("generated", false)
+                comparisonUnavailableCases++
+                routes[generated.routeDecision.selectedSource.name] =
+                    (routes[generated.routeDecision.selectedSource.name] ?: 0) + 1
+                cases.put(JSONObject().put("case", spec.label).put("generated", true)
+                    .put("comparisonAvailable", false)
                     .put("route", generated.routeDecision.selectedSource.name)
+                    .put("upstreamFailureReason", generated.upstreamFailureReason)
+                    .put("upstreamFailureDetails", JSONArray(generated.upstreamFailureDetails))
                     .put("generationTimeMs", generationMillisByCase[spec.label] ?: JSONObject.NULL))
                 return@forEach
             }
@@ -375,6 +382,19 @@ internal object C36ExecutionProvenanceCensus {
                                         disposition.canonicalSelectionRole == replacementOwner.selectionRole
                                 }
                         }
+                        val exactB6Decisions = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().filter { auth ->
+                            auth.owner?.let { it.stableKey == replacementOwner.stableKey &&
+                                it.selectionRole == replacementOwner.selectionRole } == true &&
+                                auth.targetId in candidate.coveredTargetIds &&
+                                nonSelection?.targetEvidence.orEmpty().any { evidence ->
+                                    val disposition = evidence.disposition
+                                    evidence.targetId == auth.targetId &&
+                                        evidence.classification == StimulusNonSelectionClassification.CANONICAL_REPLACEMENT &&
+                                        disposition.status == StimulusCandidateDispositionStatus.SELECTED &&
+                                        disposition.directTargetCandidate && disposition.stableKey == replacementOwner.stableKey &&
+                                        disposition.canonicalSelectionRole == replacementOwner.selectionRole
+                                }
+                        }
                         val exactScheduled = authorizationTrace?.authorized.orEmpty().filter {
                             it.item.stableKey == replacementOwner.stableKey && it.item.role == replacementOwner.selectionRole && it.item.material
                         }
@@ -392,6 +412,15 @@ internal object C36ExecutionProvenanceCensus {
                                 else -> false
                             }
                         }.sorted()
+                        val exactFrequencyCandidates = decision?.frequencyDemand?.candidates.orEmpty().filter {
+                            it.item.stableKey == replacementOwner.stableKey && it.item.role == replacementOwner.selectionRole
+                        }
+                        val exactCandidateEvents = execution?.ownerAllocationProvenance.orEmpty().filter { event ->
+                            event.owner == replacementOwner && listOfNotNull(event.before?.week, event.after?.week).contains(week)
+                        }
+                        val exactMaterializationTrace = comparison.materializationTraces.filter {
+                            it.selectedStableKey == replacementOwner.stableKey && it.selectionRole == replacementOwner.selectionRole
+                        }
                         JSONObject().put("owner", ownerJson(replacementOwner))
                             .put("coveredTargets", JSONArray(candidate.coveredTargetIds.sorted()))
                             .put("b5Reasons", JSONArray(candidate.selectionReasons))
@@ -407,11 +436,39 @@ internal object C36ExecutionProvenanceCensus {
                                 .put("b4TargetPresent", auth.targetId in exactB4TargetsPresent)
                                 .put("reasonCodes", JSONArray(auth.reasonCodes.sorted()))
                             }))
+                            .put("b6DecisionTrace", JSONArray(exactB6Decisions.map { auth -> JSONObject()
+                                .put("targetId", auth.targetId).put("status", auth.status.name)
+                                .put("authorized", auth.authorizedPrescription != null)
+                                .put("authorizedUnits", auth.authorizedPrescription?.sets?.size ?: 0)
+                                .put("executionAuthority", auth.executionAuthority.name)
+                                .put("recoveryStatus", auth.authorityRecovery?.status?.name ?: JSONObject.NULL)
+                                .put("recoveryReason", auth.authorityRecovery?.reason?.name ?: JSONObject.NULL)
+                                .put("returnTarget", auth.authorityRecovery?.returnTarget?.name ?: JSONObject.NULL)
+                                .put("reasonCodes", JSONArray(auth.reasonCodes.sorted()))
+                            }))
                             .put("scheduledDemand", JSONArray(exactScheduled.map { demand -> JSONObject()
                                 .put("id", demand.id).put("fundingSource", demand.fundingSource.name)
                                 .put("sourceReason", demand.sourceReason?.name ?: JSONObject.NULL)
                                 .put("authorizedUnits", demand.prescription.sets.size)
                                 .put("prescriptionMatchesExactB6", exactB6.any { it.authorizedPrescription == demand.prescription })
+                            }))
+                            .put("frequencyCandidateProof", JSONArray(exactFrequencyCandidates.map { candidateProof -> JSONObject()
+                                .put("rank", candidateProof.originalRank)
+                                .put("requestedUnits", candidateProof.requestedUnits)
+                                .put("fundedUnits", candidateProof.fundedBaseUnits)
+                                .put("remainingUnits", candidateProof.remainingUnits)
+                                .put("rejectionReason", candidateProof.rejectionReason.name)
+                                .put("continuity", candidateProof.continuity)
+                                .put("prescriptionAuthority", candidateProof.prescriptionAuthority.name)
+                            }))
+                            .put("ownerAllocationEvents", JSONArray(exactCandidateEvents.map(OwnerAllocationProvenance::toJson)))
+                            .put("materializationTrace", JSONArray(exactMaterializationTrace.map { trace -> JSONObject()
+                                .put("targetId", trace.targetId).put("selectedAtB5", trace.selectedAtB5)
+                                .put("presentInFinalExperimentalSkeleton", trace.presentInFinalExperimentalSkeleton)
+                                .put("finalWeeklyOccurrences", trace.finalWeeklyOccurrences)
+                                .put("finalTotalSetUnits", trace.finalTotalSetUnits)
+                                .put("directIdentityStillValid", trace.directIdentityStillValid)
+                                .put("reasonCodes", JSONArray(trace.reasonCodes.sorted()))
                             }))
                             .put("materializedSameWeekUnits", comparison.experimental.items.filter {
                                 it.weekNumber == week && it.exerciseStableKey == replacementOwner.stableKey &&
@@ -537,6 +594,7 @@ internal object C36ExecutionProvenanceCensus {
             val case = JSONObject()
                 .put("case", spec.label)
                 .put("generated", true)
+                .put("comparisonAvailable", true)
                 .put("route", generated.routeDecision.selectedSource.name)
                 .put("generationTimeMs", generationMillisByCase[spec.label] ?: JSONObject.NULL)
                 .put("executionAllocationAccounting", execution?.let { trace -> JSONObject()
@@ -627,6 +685,19 @@ internal object C36ExecutionProvenanceCensus {
         }
 
         val unexplained = removalRows.filter { it.optString("proposedClassification") == "UNEXPLAINED_REMOVAL" }
+        val coreDirectClosedRows = removalRows.filter { row ->
+            row.optJSONObject("b7Attribution")?.optJSONArray("reasonCodes")?.let { reasons ->
+                (0 until reasons.length()).any { reasons.optString(it) == "B6_AUTHORIZED_CORE_DIRECT_MOVEMENT_REPLACEMENT" }
+            } == true
+        }
+        val coreDirectClosedPairs = coreDirectClosedRows.map { row ->
+            val owner = row.optJSONObject("removedOwner")
+            listOf(row.optString("case"), owner?.optString("stableKey"), owner?.optString("selectionRole")).joinToString("|")
+        }.distinct()
+        val coreDirectStillUnexplainedRows = unexplained.filter { row ->
+            row.optJSONObject("removedOwner")?.optString("stableKey") == "ex_28347c1f" &&
+                row.optJSONObject("removedOwner")?.optString("selectionRole") == "COVERAGE_CORE_DIRECT"
+        }
         val uniqueRemovedOwners = removalRows.map { row ->
             listOf(row.optString("case"), row.optJSONObject("removedOwner")?.optString("stableKey"),
                 row.optJSONObject("removedOwner")?.optString("selectionRole")).joinToString("|")
@@ -687,6 +758,15 @@ internal object C36ExecutionProvenanceCensus {
                 }
             }
         }
+        val unexplainedWithoutExactB5 = unexplainedOwnerCaseRows.values.count { rows ->
+            !ownerCaseHasSelectedExactReplacement(rows)
+        }
+        val unexplainedB5WithoutB6 = unexplainedOwnerCaseRows.values.count { rows ->
+            ownerCaseHasSelectedExactReplacement(rows) && !ownerCaseHasExactB6(rows)
+        }
+        val unexplainedB6WithoutScheduledMaterial = unexplainedOwnerCaseRows.values.count { rows ->
+            ownerCaseHasExactB6(rows) && !ownerCaseHasExactScheduledMaterialization(rows)
+        }
         return JSONObject()
             .put("phase", "C36")
             .put("title", "Execution accounting and change provenance closure")
@@ -723,6 +803,8 @@ internal object C36ExecutionProvenanceCensus {
             .put("prescriptionChangeOwnerWeeks", JSONArray(prescriptionChanges))
             .put("summary", JSONObject()
                 .put("generatedCases", cases.length())
+                .put("casesWithComparison", cases.length() - comparisonUnavailableCases)
+                .put("comparisonUnavailableCases", comparisonUnavailableCases)
                 .put("regionalTargetRows", regionalRows.size)
                 .put("regionalRawResidualPerTargetWeekUnits", regionalRawResidual)
                 .put("regionalFiniteAllocationDiagnosticFundedPerTargetWeekUnits", regionalFiniteDiagnosticFunded)
@@ -747,6 +829,12 @@ internal object C36ExecutionProvenanceCensus {
                 .put("uniqueRemovedOwnerIdentitiesAcrossCorpus", uniqueIdentities.size)
                 .put("unexplainedRemovedOwnerWeekOccurrences", unexplained.size)
                 .put("uniqueUnexplainedCaseOwnerPairs", unexplainedUnique.size)
+                .put("unexplainedPairsWithoutExactB5Alternative", unexplainedWithoutExactB5)
+                .put("unexplainedPairsWithB5ButWithoutExactB6", unexplainedB5WithoutB6)
+                .put("unexplainedPairsWithB6ButWithoutScheduledMaterialization", unexplainedB6WithoutScheduledMaterial)
+                .put("coreDirectB7ClosedOwnerWeekOccurrences", coreDirectClosedRows.size)
+                .put("coreDirectB7ClosedCaseOwnerPairs", coreDirectClosedPairs.size)
+                .put("coreDirectStillUnexplainedOwnerWeekOccurrences", coreDirectStillUnexplainedRows.size)
                 .put("uniqueUnexplainedOwnerCasesWithB11CanonicalReplacement", canonicalCandidateOwnerCases.size)
                 .put("unexplainedOwnerCasesWithExactB5ReplacementSelected", canonicalCandidateOwnerCases.values.count(::ownerCaseHasSelectedExactReplacement))
                 .put("unexplainedOwnerCasesWithExactB4B6Authority", canonicalCandidateOwnerCases.values.count(::ownerCaseHasExactB6))

@@ -8,7 +8,7 @@ import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.ProgramGoal
 import java.time.LocalDate
 
-internal const val PERSONALIZED_PLANNER_PROTOCOL = "RECORD_BASED_PLANNER_0.15.11_KOTLIN_1"
+internal const val PERSONALIZED_PLANNER_PROTOCOL = "RECORD_BASED_PLANNER_0.15.23_KOTLIN_1"
 internal const val PERSONALIZED_AUTHORITY_VERSION = "canonical-v1+reference-planner-v0.13.0-reviewed"
 
 enum class ObservedTrainingBehavior { HYPERTROPHY_DOMINANT, STRENGTH_DOMINANT, MIXED_STRENGTH_HYPERTROPHY, GENERAL_MIXED, UNKNOWN }
@@ -24,6 +24,24 @@ enum class PlannedActivityKind { RESISTANCE, STRUCTURED_BADMINTON_DRILL, ATHLETI
 enum class MovementCoverage {
     LOWER_KNEE, POSTERIOR_CHAIN, HORIZONTAL_PUSH, HORIZONTAL_PULL, VERTICAL_PUSH, VERTICAL_PULL, UPPER_PULL,
     CORE_DIRECT, CALVES, ARMS_BICEPS, ARMS_TRICEPS, OTHER
+}
+
+/** Canonical movement coverage relation: only UPPER_PULL aggregates the two existing pull directions. */
+internal fun MovementCoverage.directlyRepresents(target: MovementCoverage): Boolean = when (target) {
+    MovementCoverage.UPPER_PULL -> this == MovementCoverage.HORIZONTAL_PULL ||
+        this == MovementCoverage.VERTICAL_PULL || this == MovementCoverage.UPPER_PULL
+    else -> this == target
+}
+
+/** Regional observation includes the UPPER_PULL roll-up alongside its exact direction. */
+internal fun MovementCoverage.regionalEvidenceTargets(): List<MovementCoverage> = when (this) {
+    MovementCoverage.HORIZONTAL_PULL, MovementCoverage.VERTICAL_PULL -> listOf(this, MovementCoverage.UPPER_PULL)
+    else -> listOf(this)
+}
+
+internal fun MovementCoverage.canonicalRepresentationDomain(): MovementCoverage = when (this) {
+    MovementCoverage.HORIZONTAL_PULL, MovementCoverage.VERTICAL_PULL, MovementCoverage.UPPER_PULL -> MovementCoverage.UPPER_PULL
+    else -> this
 }
 enum class ProgressionDecision { ADVANCE, HOLD, REDUCE, REVIEW }
 enum class RepresentationState { ABSENT, STRONG_UNDERREPRESENTATION_SIGNAL, UNDERREPRESENTATION_SIGNAL, NO_CLEAR_DEFICIT_SIGNAL, UNKNOWN }
@@ -241,7 +259,9 @@ data class PlanningHistorySnapshot(
     /** Immutable local posterior history already loaded for the planning cutoff. */
     val strengthPerformanceHistory: List<com.training.trackplanner.data.StrengthExercisePerformanceHistoryEntity> = emptyList(),
     /** Phase A/B2 shadow evidence; immutable and deliberately excluded from planner authority. */
-    val stimulusExposureLedger: StimulusExposureLedger = StimulusExposureLedger.EMPTY
+    val stimulusExposureLedger: StimulusExposureLedger = StimulusExposureLedger.EMPTY,
+    /** Canonical direct movement/region decisions, including their evidence disposition. */
+    val canonicalMovementCoverage: Map<String, CanonicalMovementCoverageDecision> = emptyMap()
 ) {
     val historyStart: LocalDate get() = allConfirmedSets.minOf(PlanningSetRecord::date)
     val historyDays: Int get() = java.time.temporal.ChronoUnit.DAYS.between(historyStart, cutoff).toInt() + 1
@@ -396,4 +416,11 @@ data class PersonalizedPlanningDecision(
 sealed interface PersonalizedPlanningOutcome {
     data class Questions(val questions: List<PersonalizedPlanningQuestion>) : PersonalizedPlanningOutcome
     data class Generated(val skeleton: GeneratedProgramSkeleton) : PersonalizedPlanningOutcome
+    data class Failed(
+        val reasonCode: String,
+        val message: String,
+        val detailCodes: List<String> = emptyList(),
+        val unresolvedMaterialDemandGaps: Set<String> = emptySet(),
+        val strengthShortfalls: List<StimulusStrengthShortfall> = emptyList()
+    ) : PersonalizedPlanningOutcome
 }

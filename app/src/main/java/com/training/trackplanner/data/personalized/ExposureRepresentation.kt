@@ -220,10 +220,7 @@ class MovementExposureRepresentationAnalyzer {
         }
     }
 
-    private fun movementDomain(coverage: MovementCoverage): String = when (coverage) {
-        MovementCoverage.HORIZONTAL_PULL, MovementCoverage.VERTICAL_PULL, MovementCoverage.UPPER_PULL -> "UPPER_PULL"
-        else -> coverage.name
-    }
+    private fun movementDomain(coverage: MovementCoverage): String = coverage.canonicalRepresentationDomain().name
 
     private fun reasonCodes(current: Double, confidence: PlanningConfidence, peer: Double?, personal: Double?, state: RepresentationState) = buildList {
         if (current == 0.0) add("CURRENT_EXPOSURE_ABSENT")

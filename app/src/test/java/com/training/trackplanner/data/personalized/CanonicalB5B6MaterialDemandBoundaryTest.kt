@@ -436,6 +436,38 @@ class CanonicalB5B6MaterialDemandBoundaryTest {
     }
 
     @Test
+    fun exactMovementB5B6GrantPassesTheSharedMaterialDemandBoundary() {
+        val coreOwner = StimulusPrescriptionOwnerIdentity("bird_dog", "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT")
+        val candidate = item(coreOwner).copy(targetSets = 4)
+        val prescription = PlannedPrescription(
+            "4 direct Core sets × 8 repetitions",
+            List(4) { ProgramSetPrescription(it + 1, 8, 0.0, 0) },
+            restSeconds = 60,
+            weightSource = "USER_APPROVED_PROJECT_POLICY_CORE_REPETITION_ANCHOR_8"
+        )
+        val plan = StimulusPrescriptionAuthorizationPlan(
+            authorizations = emptyList(),
+            movementAuthorizations = listOf(StimulusMovementB6Authorization(
+                targetId = "MOVEMENT:CORE_DIRECT",
+                owner = coreOwner,
+                status = StimulusMovementB6Status.AUTHORIZED_CORE_DIRECT_B6,
+                reasonCodes = listOf("B6_CONSUMED_EXACT_B4_CORE_RESIDUAL")
+            )),
+            movementOwnerPrescriptions = mapOf(coreOwner to prescription)
+        )
+        val provider = plan.provider()
+        val input = demand(candidate, origins = listOf(origin(coreOwner)))
+
+        val resolved = reResolveMaterialDemandCandidatesWithExistingAuthority(input, provider)
+        val filtered = filterMaterialDemandCandidatesWithoutExactExecutionAuthority(resolved, provider)
+
+        assertEquals(setOf(coreOwner), provider.b5SelectedMovementOwners)
+        assertEquals(listOf(candidate), filtered.candidates)
+        assertTrue(filtered.deferred.isEmpty())
+        assertEquals(ExecutionAuthorityResolutionStatus.READY, filtered.candidateOrigins.single().authorityResolution?.status)
+    }
+
+    @Test
     fun sameStableKeyWithDifferentRoleDoesNotBorrowB6Authority() {
         val wrongRole = item(powerOwner.copy(selectionRole = "OTHER_POWER_ROLE"))
         val provider = ExactPrescriptionAuthorizationProvider { _, _ -> null }

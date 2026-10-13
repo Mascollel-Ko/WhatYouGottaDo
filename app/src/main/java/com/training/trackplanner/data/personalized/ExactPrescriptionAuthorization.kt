@@ -44,6 +44,10 @@ fun interface ExactPrescriptionAuthorizationProvider {
     val b5SelectedQualityOwners: Set<StimulusPrescriptionOwnerIdentity>
         get() = emptySet()
 
+    /** Exact movement B5 owners which have a corresponding typed movement B6 grant. */
+    val b5SelectedMovementOwners: Set<StimulusPrescriptionOwnerIdentity>
+        get() = emptySet()
+
     /** Actual-history prescriptions used only for PRESERVE_INCUMBENT_OWNER dispositions. */
     val canonicalPrescriptions: Map<StimulusPrescriptionOwnerIdentity, PlannedPrescription>
         get() = emptyMap()

@@ -42,13 +42,39 @@ data class BoundedMaterialAllocationTrace(val totalCapacity: Int, val totalLegit
 
 /** Experimental orchestration only. The frozen finite kernel performs the unchanged atomic first pass. */
 internal class BoundedMaterialDemandAllocation(snapshot: PlanningHistorySnapshot, state: AthletePlanningState,
-    request: ProgramSkeletonRequest, items: List<PlannedExercise>, regional: RegionalExperimentalTargetPlan,
+    request: ProgramSkeletonRequest, items: List<PlannedExercise>, private val regional: RegionalExperimentalTargetPlan,
     prescriptions: PersonalizedPrescriptionPlanner, capacity: Int, continuityDemand: Int, coreReserve: Int,
-    private val canonicalFailureEmitter: ((StimulusCanonicalEvaluationFailure) -> Nothing)? = null) {
+    private val canonicalFailureEmitter: ((StimulusCanonicalEvaluationFailure) -> Nothing)? = null,
+    private val exactPrescriptionAuthorizationProvider: ExactPrescriptionAuthorizationProvider? = null) {
+    private fun exactPrescription(item: PlannedExercise): PlannedPrescription? {
+        regional.authorizedPrescriptionFor(item)?.let { return it }
+        val provider = exactPrescriptionAuthorizationProvider ?: return null
+        return when (val resolution = provider.resolveOwnerPrescription(item)) {
+            is ExactOwnerPrescriptionResolution.Authorized -> resolution.prescription
+            is ExactOwnerPrescriptionResolution.PreserveIncumbent -> resolution.prescription
+            ExactOwnerPrescriptionResolution.ExcludeConflictingAddition,
+            ExactOwnerPrescriptionResolution.NoExecutableAuthority,
+            ExactOwnerPrescriptionResolution.NoExactAuthority -> null
+        }
+    }
+
+    private fun exactPrefix(item: PlannedExercise, count: Int, authorized: PlannedPrescription): PlannedPrescription? {
+        if (count < 0 || count > authorized.sets.size) return null
+        regional.authorizedPrescriptionFor(item, count)?.let { return it }
+        return authorized.copy(sets = authorized.sets.take(count).mapIndexed { index, set -> set.copy(setIndex = index + 1) })
+    }
+
     private val originals = items.mapIndexed { index, item ->
         val regionalRx = regional.authorizedPrescriptionBySelectionRole[RegionalSelectionIdentity(item.stableKey, item.role)]
-        val rx = regionalRx ?: prescriptions.prescribe(snapshot, state.strengthIntent, item, item.style)
-        val maximum = regionalRx?.sets?.size ?: item.targetSets.coerceAtLeast(0)
+        val authorizedRx = exactPrescription(item)
+        val rx = authorizedRx ?: if (exactPrescriptionAuthorizationProvider == null) {
+            // Preserve the helper's legacy behavior for isolated allocator tests. The production
+            // canonical regional path supplies the B6 provider and therefore fails closed here.
+            prescriptions.prescribe(snapshot, state.strengthIntent, item, item.style)
+        } else null
+        val traceRx = rx ?: PlannedPrescription("No exact B6 authorization", emptyList(), 0, "UNAUTHORIZED_NO_PRESCRIPTION")
+        val maximum = regional.authorizedPrescriptionBySelectionRole[RegionalSelectionIdentity(item.stableKey, item.role)]
+            ?.sets?.size ?: item.targetSets.coerceAtLeast(0)
         val equipment = snapshot.exercises[item.stableKey]?.equipment.orEmpty().split('|', ',').map(String::trim).filter(String::isNotBlank)
         val eligible = item.stableKey in snapshot.exercises && item.stableKey !in request.excludedExerciseStableKeys &&
             !snapshot.explicitlyRestricted(item.stableKey) && postProcessTissueAllowed(snapshot, state, item.stableKey) &&
@@ -56,12 +82,13 @@ internal class BoundedMaterialDemandAllocation(snapshot: PlanningHistorySnapshot
             (request.availableEquipment.isEmpty() || equipment.all { it == "BODYWEIGHT" || it in request.availableEquipment })
         val rejection = when {
             !eligible -> "EXISTING_HARD_GATE"
-            rx.sets.isEmpty() || rx.sets.size > maximum -> "PRESCRIPTION_EXCEEDS_DEMAND_MAXIMUM"
+            authorizedRx == null && exactPrescriptionAuthorizationProvider != null -> "NO_EXACT_B6_PRESCRIPTION_AUTHORITY"
+            traceRx.sets.isEmpty() || traceRx.sets.size > maximum -> "PRESCRIPTION_EXCEEDS_DEMAND_MAXIMUM"
             else -> null
         }
         val authority = if (regionalRx != null) PrescriptionAuthoritySource.REGIONAL_TARGET_AUTHORIZED
             else PrescriptionAuthoritySource.EXPERIMENTAL_MATERIAL_AUTHORIZED
-        Triple(CapacityCandidateTrace(index + 1, item, rx, 0, false,
+        Triple(CapacityCandidateTrace(index + 1, item, traceRx, 0, false,
             if (rejection == null) CandidateRejectionReason.FINITE_CAPACITY else CandidateRejectionReason.SAFETY_OR_SEMANTIC_REJECTION,
             authority), maximum, rejection)
     }
@@ -79,8 +106,9 @@ internal class BoundedMaterialDemandAllocation(snapshot: PlanningHistorySnapshot
         originals.forEachIndexed { index, (candidate, _, rejection) ->
             val rx = when {
                 rejection != null -> null
-                funded[index] > 0 -> candidate.prescription
-                else -> frequencyPortion(snapshot, state, candidate, materialCapacity - funded.sum(), prescriptions)
+                funded[index] > 0 -> exactPrefix(candidate.item, funded[index], candidate.prescription)
+                else -> frequencyPortion(snapshot, state, candidate, materialCapacity - funded.sum(), prescriptions,
+                    exactPrescriptionAuthorizationProvider)
             }
             if (rx != null) {
                 funded[index] = rx.sets.size

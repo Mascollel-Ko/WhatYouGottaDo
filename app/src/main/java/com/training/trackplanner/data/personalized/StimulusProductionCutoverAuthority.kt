@@ -11,7 +11,8 @@ enum class StimulusProductionCutoverScope {
     STRENGTH_CALIBRATION_V1,
     HYPERTROPHY_V1,
     STRENGTH_HYPERTROPHY_V1,
-    BADMINTON_TASK_V1
+    BADMINTON_TASK_V1,
+    POWER_JUMP_V1
 }
 
 enum class StimulusProductionCutoverAuthorityStatus {
@@ -28,6 +29,13 @@ data class StimulusTaskProtocolAuthorityIdentity(
     val authorizedTasks: Set<CanonicalTaskTarget>
 )
 
+/** Exact B4 movement target to B5 owner binding accepted by B8 alongside another bounded scope. */
+data class StimulusMovementTargetOwnerIdentity(
+    val targetId: String,
+    val stableKey: String,
+    val selectionRole: String
+)
+
 data class StimulusProductionCutoverAuthorityDecision(
     val status: StimulusProductionCutoverAuthorityStatus,
     val scope: StimulusProductionCutoverScope,
@@ -37,7 +45,8 @@ data class StimulusProductionCutoverAuthorityDecision(
     val routingActive: Boolean = false,
     val productionMutationAuthority: Boolean = false,
     val authorizedAuthorityIdentities: List<StimulusPrescriptionAuthorityIdentity> = emptyList(),
-    val authorizedTaskProtocolIdentities: List<StimulusTaskProtocolAuthorityIdentity> = emptyList()
+    val authorizedTaskProtocolIdentities: List<StimulusTaskProtocolAuthorityIdentity> = emptyList(),
+    val authorizedMovementTargetOwnerIdentities: List<StimulusMovementTargetOwnerIdentity> = emptyList()
 ) {
     // B8 normally emits both flags as false. The B9 selector still validates them so malformed
     // diagnostics fail closed with a typed contract-inconsistency reason instead of throwing.
@@ -56,13 +65,22 @@ data class StimulusProductionCutoverEvaluation(
  * access to a builder, DAO, snapshot or request, so it cannot rerun any upstream phase.
  */
 class StimulusProductionCutoverAuthorityAuditEngine {
-    fun audit(comparison: StimulusSelectionProgramComparison): StimulusProductionCutoverAuthorityDecision =
-        audit(comparison, StimulusProductionCutoverScope.STRENGTH_V1)
+    fun audit(comparison: StimulusSelectionProgramComparison): StimulusProductionCutoverAuthorityDecision {
+        // Preserve the historical Strength default for every existing scope, while dispatching
+        // only an exact, fully attributed B6 Power/Jump material delta to its bounded B8 audit.
+        val scope = StimulusProductionMaterialScopeResolver().resolve(comparison)
+            ?.takeIf { it == StimulusProductionCutoverScope.POWER_JUMP_V1 }
+            ?: StimulusProductionCutoverScope.STRENGTH_V1
+        return audit(comparison, scope)
+    }
 
     fun audit(
         comparison: StimulusSelectionProgramComparison,
         scope: StimulusProductionCutoverScope
     ): StimulusProductionCutoverAuthorityDecision {
+        if (scope == StimulusProductionCutoverScope.POWER_JUMP_V1) {
+            return auditPowerJump(comparison)
+        }
         if (scope == StimulusProductionCutoverScope.BADMINTON_TASK_V1) {
             return auditBadmintonTask(comparison)
         }
@@ -96,7 +114,8 @@ class StimulusProductionCutoverAuthorityAuditEngine {
             reasons += "B8_CUTOVER_V1_COLLATERAL_REGRESSION"
         }
         val materialOwners = materialOwnerIdentities(comparison)
-        val roleReplacements = canonicalRoleReplacementControlOwners(comparison, materialOwners)
+        val roleReplacements = canonicalRoleReplacementControlOwners(comparison, materialOwners) +
+            StimulusProductionMovementScopeEvidence.exactUserApprovedReplacementControlOwners(comparison)
         if ((comparison.removedOwnerIdentities - roleReplacements).isNotEmpty()) {
             reasons += "B8_CUTOVER_V1_CONTROL_OWNER_REMOVAL_NOT_ALLOWED"
         }
@@ -169,6 +188,413 @@ class StimulusProductionCutoverAuthorityAuditEngine {
         }
     }
 
+    /** B8 consumes only exact B7-closed Power/Jump material and rechecks its full B3-B6 chain. */
+    private fun auditPowerJump(
+        comparison: StimulusSelectionProgramComparison
+    ): StimulusProductionCutoverAuthorityDecision {
+        val scope = StimulusProductionCutoverScope.POWER_JUMP_V1
+        fun denied(reason: String): StimulusProductionCutoverAuthorityDecision = StimulusProductionCutoverAuthorityDecision(
+            status = StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED,
+            scope = scope,
+            authorizedOwnerIdentities = emptyList(),
+            reasonCodes = listOf(reason),
+            b7Status = comparison.experimentalReadinessAudit?.status ?: StimulusExperimentalReadinessStatus.NOT_ELIGIBLE
+        )
+        if (StimulusProductionMaterialScopeResolver().resolve(comparison) != scope) {
+            return denied("B8_POWER_JUMP_MATERIAL_SCOPE_MISMATCH")
+        }
+        val b7 = comparison.experimentalReadinessAudit ?: return denied("B8_POWER_JUMP_B7_AUDIT_MISSING")
+        when (b7.status) {
+            StimulusExperimentalReadinessStatus.NOT_ELIGIBLE -> return denied("B8_POWER_JUMP_B7_NOT_ELIGIBLE")
+            StimulusExperimentalReadinessStatus.INCONCLUSIVE -> return inconclusivePowerJump(comparison, "B8_POWER_JUMP_B7_INCONCLUSIVE")
+            StimulusExperimentalReadinessStatus.NO_MATERIAL_CHANGE -> return StimulusProductionCutoverAuthorityDecision(
+                status = StimulusProductionCutoverAuthorityStatus.NO_MATERIAL_CHANGE,
+                scope = scope,
+                authorizedOwnerIdentities = emptyList(),
+                reasonCodes = listOf("B8_NO_MATERIAL_CHANGE"),
+                b7Status = b7.status
+            )
+            StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW -> Unit
+        }
+
+        val reasons = linkedSetOf<String>()
+        if (!b7.changeProvenanceClosed || b7.changeAttributions.any {
+                it.source in setOf(StimulusExperimentalChangeAttributionSource.UNEXPLAINED,
+                    StimulusExperimentalChangeAttributionSource.INCONCLUSIVE_DISPLACEMENT)
+            }) reasons += "B8_POWER_JUMP_PROVENANCE_NOT_CLOSED"
+        if (!b7.materializationIntegrityPassed) reasons += "B8_POWER_JUMP_MATERIALIZATION_NOT_INTEGRAL"
+        if (!b7.collateralRegressionFree || b7.targetOutcomes.any {
+                it.status == StimulusExperimentalTargetOutcomeStatus.REGRESSED
+            }) reasons += "B8_POWER_JUMP_TARGET_OR_COLLATERAL_REGRESSION"
+        if (comparison.control.weekDaySchedule != comparison.experimental.weekDaySchedule) {
+            reasons += "B8_POWER_JUMP_WEEKDAY_SCHEDULE_CHANGED"
+        }
+        if (comparison.control.request != comparison.experimental.request ||
+            comparison.control.durationDays != comparison.experimental.durationDays ||
+            comparison.control.periodizationType != comparison.experimental.periodizationType) {
+            reasons += "B8_POWER_JUMP_PROGRAM_CONTRACT_CHANGED"
+        }
+        if (ProgramProjectionValidator().errors(comparison.experimental).isNotEmpty() ||
+            comparison.experimental.items.any { it.dayOfWeek !in comparison.experimental.weekDaySchedule[it.weekNumber].orEmpty() }) {
+            reasons += "B8_POWER_JUMP_HARD_PROJECTION_INVALID"
+        }
+
+        val materialOwners = materialOwnerIdentities(comparison)
+        val movementTargetOwners = StimulusProductionMovementScopeEvidence.exactMovementTargetOwnerIdentities(
+            comparison, materialOwners
+        )
+        val movementOwners = movementTargetOwners.mapTo(linkedSetOf()) {
+            StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole)
+        }
+        val exactMovementRoleReplacements = StimulusProductionMovementScopeEvidence.exactSameExerciseRoleReplacements(
+            comparison, movementOwners
+        ) + StimulusProductionMovementScopeEvidence.exactUserApprovedReplacementControlOwners(comparison)
+        if ((comparison.removedOwnerIdentities - exactMovementRoleReplacements).isNotEmpty()) {
+            reasons += "B8_POWER_JUMP_CONTROL_OWNER_REMOVAL_NOT_EXACT_MOVEMENT_ROLE_REPLACEMENT"
+        }
+        if (materialOwners.isEmpty()) reasons += "B8_POWER_JUMP_EMPTY_MATERIAL_AUTHORITY"
+        reasons += b6IntegrityReasonsInternal(comparison) { owner, quality ->
+            owner != null && owner in materialOwners && quality in setOf(TrainableQuality.POWER, TrainableQuality.REACTIVE_STRENGTH_SSC)
+        }
+        val attrsByOwner = b7.changeAttributions.filter { attr ->
+            attr.stableKey != null && attr.selectionRole != null &&
+                StimulusPrescriptionOwnerIdentity(attr.stableKey, attr.selectionRole) in materialOwners
+        }.groupBy { StimulusPrescriptionOwnerIdentity(requireNotNull(it.stableKey), requireNotNull(it.selectionRole)) }
+        if (attrsByOwner.keys != materialOwners) reasons += "B8_POWER_JUMP_MATERIAL_PROVENANCE_INCOMPLETE"
+        val attributedTargetIds = attrsByOwner.values.flatten().flatMap { it.targetIds }.toSet()
+        val governedTaskTargetIds = comparison.targetPlan.taskTargets.mapTo(linkedSetOf()) { "TASK:${it.task}" }
+        val exactMovementTargetIds = movementTargetOwners.mapTo(linkedSetOf()) { it.targetId }
+        if (attributedTargetIds.isEmpty() || attributedTargetIds.any {
+                it !in POWER_JUMP_TARGET_IDS && it !in governedTaskTargetIds && it !in exactMovementTargetIds
+            }) {
+            reasons += "B8_POWER_JUMP_UNKNOWN_OR_EMPTY_TARGET"
+        }
+        val taskTargets = comparison.targetPlan.taskTargets.mapNotNull { target ->
+            runCatching { CanonicalTaskTarget.valueOf(target.task) }.getOrNull()
+        }.toSet()
+        if (taskTargets.size != comparison.targetPlan.taskTargets.size ||
+            comparison.targetPlan.taskTargets.any { target ->
+                target.task == CanonicalTaskTarget.JUMP_LANDING.name &&
+                    (target.strategy == StimulusDoseStrategy.UNRESOLVED || "TASK:JUMP_LANDING" in comparison.targetPlan.unresolved)
+            }) reasons += "B8_POWER_JUMP_UNRESOLVED_OR_UNKNOWN_TASK_TARGET"
+
+        val authorized = linkedSetOf<StimulusPrescriptionOwnerIdentity>()
+        val authorityIdentities = linkedSetOf<StimulusPrescriptionAuthorityIdentity>()
+        val taskProtocolIdentities = linkedSetOf<StimulusTaskProtocolAuthorityIdentity>()
+        val authorizedMovementTargetIdentities = linkedSetOf<StimulusMovementTargetOwnerIdentity>()
+        val powerJumpOwners = linkedSetOf<StimulusPrescriptionOwnerIdentity>()
+        materialOwners.sortedWith(OWNER_ORDER).forEach { owner ->
+            val ownerAttributions = attrsByOwner[owner].orEmpty()
+            val targetId = ownerAttributions.singleOrNull()?.targetIds?.singleOrNull()
+            val ownerReasons = when {
+                targetId != null && targetId in POWER_JUMP_TARGET_IDS -> validatePowerJumpOwner(comparison, owner, ownerAttributions)
+                targetId != null && targetId in governedTaskTargetIds -> if (ownerAttributions.singleOrNull()?.source ==
+                    StimulusExperimentalChangeAttributionSource.B6_APPROVED_TASK_PROTOCOL) {
+                    validateTaskOwner(comparison, owner, taskTargets)
+                } else listOf("B8_POWER_JUMP_TASK_PROTOCOL_AUTHORITY_REQUIRED")
+                targetId != null && targetId in exactMovementTargetIds -> validateMovementTargetOwner(
+                    comparison, owner, targetId, ownerAttributions
+                )
+                else -> listOf("B8_POWER_JUMP_FOREIGN_OR_UNAUTHORIZED_MATERIAL")
+            }
+            reasons += ownerReasons
+            if (ownerReasons.isEmpty()) {
+                val quality = when (targetId) {
+                    "QUALITY:POWER" -> TrainableQuality.POWER
+                    "QUALITY:REACTIVE_STRENGTH_SSC" -> TrainableQuality.REACTIVE_STRENGTH_SSC
+                    else -> null
+                }
+                if (quality != null) {
+                    authorized += owner
+                    powerJumpOwners += owner
+                    authorityIdentities += StimulusPrescriptionAuthorityIdentity(owner.stableKey, owner.selectionRole, quality)
+                } else if (targetId != null && targetId in governedTaskTargetIds) {
+                    val metadata = taskProtocolMetadataForOwner(comparison.experimental, owner).firstOrNull()
+                    val definition = metadata?.authorization?.definition
+                    if (metadata == null || definition == null) {
+                        reasons += "B8_POWER_JUMP_TASK_PROTOCOL_IDENTITY_REQUIRED"
+                    } else {
+                        authorized += owner
+                        taskProtocolIdentities += StimulusTaskProtocolAuthorityIdentity(
+                            protocolId = definition.protocolId,
+                            stableKey = owner.stableKey,
+                            selectionRole = owner.selectionRole,
+                            authorizedTasks = metadata.authorization.attributedTasks
+                        )
+                    }
+                } else if (targetId != null && targetId in exactMovementTargetIds) {
+                    authorized += owner
+                    authorizedMovementTargetIdentities += StimulusMovementTargetOwnerIdentity(
+                        targetId, owner.stableKey, owner.selectionRole
+                    )
+                }
+            }
+        }
+        reasons += powerJumpScheduleReasons(comparison, powerJumpOwners)
+        if (powerJumpOwners.isEmpty()) reasons += "B8_POWER_JUMP_EMPTY_MATERIAL_AUTHORITY"
+        if (unrelatedControlParityFailures(comparison, authorized)) reasons += "B8_POWER_JUMP_UNRELATED_CONTROL_MUTATION"
+        val normalized = reasons.toList().distinct().sorted()
+        return if (normalized.isEmpty()) StimulusProductionCutoverAuthorityDecision(
+            status = StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER,
+            scope = scope,
+            authorizedOwnerIdentities = authorized.toList().sortedWith(OWNER_ORDER),
+            authorizedAuthorityIdentities = authorityIdentities.toList().sortedWith(AUTHORITY_ORDER),
+            authorizedTaskProtocolIdentities = taskProtocolIdentities.toList().sortedWith(TASK_PROTOCOL_AUTHORITY_ORDER),
+            authorizedMovementTargetOwnerIdentities = authorizedMovementTargetIdentities.toList()
+                .sortedWith(compareBy({ it.targetId }, { it.stableKey }, { it.selectionRole })),
+            reasonCodes = listOf("B8_POWER_JUMP_V1_AUTHORIZED"),
+            b7Status = b7.status
+        ) else StimulusProductionCutoverAuthorityDecision(
+            status = StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED,
+            scope = scope,
+            authorizedOwnerIdentities = emptyList(),
+            reasonCodes = normalized,
+            b7Status = b7.status
+        )
+    }
+
+    private fun inconclusivePowerJump(
+        comparison: StimulusSelectionProgramComparison,
+        reason: String
+    ) = StimulusProductionCutoverAuthorityDecision(
+        status = StimulusProductionCutoverAuthorityStatus.INCONCLUSIVE,
+        scope = StimulusProductionCutoverScope.POWER_JUMP_V1,
+        authorizedOwnerIdentities = emptyList(),
+        reasonCodes = listOf(reason),
+        b7Status = comparison.experimentalReadinessAudit?.status ?: StimulusExperimentalReadinessStatus.INCONCLUSIVE
+    )
+
+    private fun validatePowerJumpOwner(
+        comparison: StimulusSelectionProgramComparison,
+        owner: StimulusPrescriptionOwnerIdentity,
+        attributions: List<StimulusExperimentalChangeAttribution>
+    ): List<String> {
+        val reasons = linkedSetOf<String>()
+        val targetId = attributions.singleOrNull()?.targetIds?.singleOrNull()
+        val quality = when (targetId) {
+            "QUALITY:POWER" -> TrainableQuality.POWER
+            "QUALITY:REACTIVE_STRENGTH_SSC" -> TrainableQuality.REACTIVE_STRENGTH_SSC
+            else -> null
+        }
+        if (quality == null || attributions.size != 1) {
+            reasons += "B8_POWER_JUMP_EXACT_OWNER_TARGET_ATTRIBUTION_REQUIRED"
+            return reasons.toList()
+        }
+        val target = comparison.targetPlan.qualityTargets.singleOrNull { it.quality == quality }
+        val dose = comparison.targetPlan.powerJumpDoseDecisions.singleOrNull { it.targetId == targetId }
+        if (target == null || target.needDecision != TrainingNeedDecision.DEVELOP ||
+            target.strategy == StimulusDoseStrategy.UNRESOLVED || target.numericAuthority != StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY ||
+            targetId in comparison.targetPlan.unresolved || target.requiredPhysicalModes.isNullOrEmpty() ||
+            dose?.status != PowerJumpDoseStatus.AUTHORIZED || dose.approvedWeeklySetUnits !in 2..4 ||
+            dose.targetRegion == null ||
+            target.weeklyDirectUnitsTarget?.preferred != dose.approvedWeeklySetUnits.toDouble() ||
+            "B3_DEVELOP_NEED_CONFIRMED" !in dose.reasonCodes ||
+            dose.provenance != PowerJumpIntegratedDosePolicy.PROVENANCE) {
+            reasons += "B8_POWER_JUMP_EXACT_B3_B4_AUTHORITY_REQUIRED"
+        }
+        val candidate = comparison.selectionPlan.selectedCandidates.singleOrNull {
+            it.stableKey == owner.stableKey && it.selectionRole == owner.selectionRole
+        }
+        if (candidate == null || candidate.primaryTargetId != targetId || targetId !in candidate.coveredTargetIds ||
+            comparison.selectionPlan.traces.none { trace -> trace.targetId == targetId &&
+                trace.selectedStableKey == owner.stableKey && trace.selectedSelectionRole == owner.selectionRole } ||
+            comparison.materializationTraces.none { trace -> trace.targetId == targetId && trace.selectedAtB5 &&
+                trace.directIdentityVerifiedAtSelection == true && trace.presentInFinalExperimentalSkeleton &&
+                trace.directIdentityStillValid && trace.selectedStableKey == owner.stableKey && trace.selectionRole == owner.selectionRole }) {
+            reasons += "B8_POWER_JUMP_EXACT_B5_OWNER_REQUIRED"
+        }
+        val authorizations = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().filter { auth ->
+            auth.targetId == targetId && auth.quality == quality && auth.owner?.let {
+                StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) == owner
+            } == true
+        }
+        val auth = authorizations.singleOrNull()
+        val prescription = auth?.authorizedPrescription
+        val calibration = auth?.status == StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
+        if (auth == null || prescription == null || auth.source != StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE ||
+            auth.status !in setOf(StimulusPrescriptionAuthorizationStatus.AUTHORIZED_USER_APPROVED_POWER_JUMP_POLICY,
+                StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION) ||
+            "B3_NEED_PRESERVED" !in auth.reasonCodes ||
+            "B4_EXACT_POWER_JUMP_SET_UNITS=${dose?.approvedWeeklySetUnits}" !in auth.reasonCodes ||
+            "B5_EXACT_OWNER=${owner.stableKey}#${owner.selectionRole}" !in auth.reasonCodes ||
+            prescription.sets.size != dose?.approvedWeeklySetUnits || prescription.sets.any {
+                it.reps !in 3..6 || it.seconds != 0 || it.targetRpeMin != null || when (it.loadState) {
+                    com.training.trackplanner.data.ProgramLoadState.NOT_APPLICABLE -> it.weightKg != 0.0
+                    com.training.trackplanner.data.ProgramLoadState.EXPLICIT_LOAD -> !it.weightKg.isFinite() || it.weightKg <= 0.0
+                    com.training.trackplanner.data.ProgramLoadState.USER_CALIBRATION_REQUIRED -> it.weightKg != 0.0
+                    else -> true
+                }
+            } || (calibration && (auth.executionAuthority != StimulusPrescriptionExecutionAuthority.REQUIRES_USER_LOAD_INPUT ||
+                prescription.sets.any { it.loadState != com.training.trackplanner.data.ProgramLoadState.USER_CALIBRATION_REQUIRED } ||
+                auth.authorityRecovery?.status != ExecutionAuthorityResolutionStatus.USER_INPUT_REQUIRED ||
+                auth.authorityRecovery.returnTarget != ExecutionAuthorityReturnTarget.EXPLICIT_USER_INPUT)) ||
+            (!calibration && (auth.executionAuthority != StimulusPrescriptionExecutionAuthority.FULLY_ENCODED ||
+                prescription.sets.any { it.loadState !in setOf(com.training.trackplanner.data.ProgramLoadState.NOT_APPLICABLE,
+                    com.training.trackplanner.data.ProgramLoadState.EXPLICIT_LOAD) }))) {
+            reasons += "B8_POWER_JUMP_EXACT_B6_AUTHORITY_REQUIRED"
+        }
+        val b6Attribution = attributions.singleOrNull()
+        val expectedSource = if (calibration) StimulusExperimentalChangeAttributionSource.B6_COLD_START_USER_CALIBRATION
+            else StimulusExperimentalChangeAttributionSource.B6_APPROVED_POWER_JUMP_POLICY
+        if (b6Attribution == null || b6Attribution.targetIds != listOf(targetId) ||
+            b6Attribution.source != expectedSource ||
+            "B4_EXACT_POWER_JUMP_SET_UNITS=${dose?.approvedWeeklySetUnits}" !in b6Attribution.reasonCodes ||
+            "B5_EXACT_OWNER=${owner.stableKey}#${owner.selectionRole}" !in b6Attribution.reasonCodes) {
+            reasons += "B8_POWER_JUMP_B6_PROVENANCE_REQUIRED"
+        }
+        val rows = comparison.experimental.items.filter { it.exerciseStableKey == owner.stableKey && it.selectionRole == owner.selectionRole }
+        if (prescription == null || rows.isEmpty() || !validateAuthorizedWeeklySubset(rows, prescription, owner.stableKey, owner.selectionRole).valid) {
+            reasons += "B8_POWER_JUMP_MATERIALIZED_ROWS_DO_NOT_MATCH_B6"
+        }
+        if (rows.groupBy { it.weekNumber to it.dayOfWeek }.values.any { sessionRows ->
+                sessionRows.sumOf { it.setCount } !in 2..4
+            }) reasons += "B8_POWER_JUMP_SESSION_SET_COUNT_OUTSIDE_2_TO_4"
+        val audits = comparison.prescriptionMaterializationAudits.filter { it.targetId == targetId && it.quality == quality &&
+            it.owner?.let { row -> StimulusPrescriptionOwnerIdentity(row.stableKey, row.selectionRole) == owner } == true }
+        val audit = audits.singleOrNull()
+        val weeks = comparison.experimental.request.durationWeeks.coerceAtLeast(1)
+        if (audit == null || audit.state != StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED ||
+            audit.executionAuthority != (if (calibration) StimulusPrescriptionExecutionAuthority.REQUIRES_USER_LOAD_INPUT else StimulusPrescriptionExecutionAuthority.FULLY_ENCODED) ||
+            audit.authorizedWeeklySetUnits != dose?.approvedWeeklySetUnits || audit.materializedWeeklySetUnits != dose?.approvedWeeklySetUnits ||
+            audit.targetCompatibleMaterializedUnits != dose?.approvedWeeklySetUnits || audit.shortfall != 0 || audit.overrun != 0 ||
+            audit.weeklyAudits.size != weeks || audit.weeklyAudits.any { it.authorizedSetUnits != dose?.approvedWeeklySetUnits ||
+                it.materializedSetUnits != dose?.approvedWeeklySetUnits || it.targetCompatibleMaterializedUnits != dose?.approvedWeeklySetUnits ||
+                it.shortfall != 0 || it.overrun != 0 || !it.prescriptionPreservedOrSubset }) {
+            reasons += "B8_POWER_JUMP_FULL_HORIZON_MATERIALIZATION_REQUIRED"
+        }
+        val outcome = comparison.experimentalReadinessAudit?.targetOutcomes?.singleOrNull { it.targetId == targetId }
+        if (outcome == null || !outcome.directlyAffected || outcome.status !in setOf(
+                StimulusExperimentalTargetOutcomeStatus.IMPROVED, StimulusExperimentalTargetOutcomeStatus.UNCHANGED)) {
+            reasons += "B8_POWER_JUMP_B7_TARGET_OUTCOME_REQUIRED"
+        }
+        return reasons.toList()
+    }
+
+    /** A non-P/J movement row may share this cutover only with its own exact B4/B5/B6 lineage. */
+    private fun validateMovementTargetOwner(
+        comparison: StimulusSelectionProgramComparison,
+        owner: StimulusPrescriptionOwnerIdentity,
+        targetId: String,
+        attributions: List<StimulusExperimentalChangeAttribution>
+    ): List<String> {
+        val reasons = linkedSetOf<String>()
+        if (attributions.size != 1 || attributions.singleOrNull()?.source !=
+            StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY ||
+            attributions.singleOrNull()?.targetIds != listOf(targetId) ||
+            !StimulusProductionMovementScopeEvidence.hasExactExecutableB6(comparison, targetId, owner)) {
+            reasons += "B8_POWER_JUMP_MOVEMENT_TARGET_EXACT_B4_B5_B6_REQUIRED"
+        }
+        val target = comparison.targetPlan.movementTargets.singleOrNull { it.targetId == targetId }
+        val outcome = comparison.experimentalReadinessAudit?.targetOutcomes?.singleOrNull { it.targetId == targetId }
+        if (target == null || outcome == null || !outcome.directlyAffected || outcome.status !in setOf(
+                StimulusExperimentalTargetOutcomeStatus.IMPROVED, StimulusExperimentalTargetOutcomeStatus.UNCHANGED
+            )) reasons += "B8_POWER_JUMP_MOVEMENT_TARGET_OUTCOME_REQUIRED"
+        val movementB6 = comparison.prescriptionAuthorizationPlan?.movementAuthorizations.orEmpty().singleOrNull {
+            it.targetId == targetId && it.owner == owner && it.status in setOf(
+                StimulusMovementB6Status.AUTHORIZED_REGIONAL_HYPERTROPHY_B6,
+                StimulusMovementB6Status.AUTHORIZED_CORE_DIRECT_B6
+            )
+        }
+        val dose = target?.regionalDoseTargets?.singleOrNull { it.kind in setOf(
+            StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET,
+            StimulusMovementDoseKind.CORE_DIRECT_CONTROL_SET
+        ) }
+        val units = dose?.authorizedWholeSetUnits
+        val quality = when (dose?.kind) {
+            StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET -> TrainableQuality.HYPERTROPHY
+            StimulusMovementDoseKind.CORE_DIRECT_CONTROL_SET -> null
+            null -> null
+        }
+        val authorization = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().singleOrNull { auth ->
+            auth.targetId == targetId && auth.quality == quality && auth.owner?.let {
+                StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) == owner
+            } == true
+        }
+        val prescription = if (quality == null) {
+            comparison.prescriptionAuthorizationPlan?.movementOwnerPrescriptions?.get(owner)
+        } else authorization?.authorizedPrescription
+        val expectedMovementStatus = when (dose?.kind) {
+            StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET -> StimulusMovementB6Status.AUTHORIZED_REGIONAL_HYPERTROPHY_B6
+            StimulusMovementDoseKind.CORE_DIRECT_CONTROL_SET -> StimulusMovementB6Status.AUTHORIZED_CORE_DIRECT_B6
+            null -> null
+        }
+        if (dose == null || units == null || units <= 0 || dose.weeklyTarget == null ||
+            dose.numericAuthority == StimulusTargetNumericAuthority.DIRECTION_ONLY ||
+            dose.residualEquivalentExposure?.let { it > 0.0 && it.isFinite() } != true ||
+            movementB6?.status != expectedMovementStatus || authorization?.authorizedPrescription != prescription ||
+            prescription == null || prescription.sets.size != units ||
+            authorization?.status !in setOf(StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
+                StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION)) {
+            reasons += "B8_POWER_JUMP_MOVEMENT_TARGET_EXACT_B6_AUTHORITY_REQUIRED"
+        }
+        val rows = comparison.experimental.items.filter {
+            it.exerciseStableKey == owner.stableKey && it.selectionRole == owner.selectionRole
+        }
+        val expectedWeeks = (1..comparison.experimental.request.durationWeeks.coerceAtLeast(1)).toSet()
+        val rowsByWeek = rows.groupBy { it.weekNumber }
+        if (prescription == null || rowsByWeek.keys != expectedWeeks || expectedWeeks.any { week ->
+                val weekRows = rowsByWeek[week].orEmpty()
+                weekRows.sumOf { it.setPrescriptions.size } != units ||
+                    !validateAuthorizedWeeklySubset(weekRows, prescription, owner.stableKey, owner.selectionRole).valid
+            }) reasons += "B8_POWER_JUMP_MOVEMENT_MATERIALIZATION_MISMATCH"
+        val audits = comparison.prescriptionMaterializationAudits.filter { audit ->
+            audit.targetId == targetId && audit.quality == quality && audit.owner?.let {
+                StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) == owner
+            } == true
+        }
+        val audit = audits.singleOrNull()
+        if (audit == null || audit.state != StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED ||
+            audit.authorizedWeeklySetUnits != units || audit.targetCompatibleMaterializedUnits != units ||
+            audit.shortfall != 0 || audit.overrun != 0 || audit.weeklyAudits.size != expectedWeeks.size ||
+            audit.weeklyAudits.any { it.authorizedSetUnits != units || it.materializedSetUnits != units ||
+                it.targetCompatibleMaterializedUnits != units || it.shortfall != 0 || it.overrun != 0 ||
+                !it.prescriptionPreservedOrSubset }) {
+            reasons += "B8_POWER_JUMP_MOVEMENT_FULL_HORIZON_MATERIALIZATION_REQUIRED"
+        }
+        return reasons.toList()
+    }
+
+    /** Caps new Power/Jump exposure at two training days for every overlapping B4 region. */
+    private fun powerJumpScheduleReasons(
+        comparison: StimulusSelectionProgramComparison,
+        newOwners: Set<StimulusPrescriptionOwnerIdentity>
+    ): Set<String> {
+        data class ExposureDay(val region: PowerJumpBodyRegion, val week: Int, val day: Int, val isNew: Boolean)
+        val decisions = comparison.targetPlan.powerJumpDoseDecisions.associateBy { it.targetId }
+        val exposures = mutableListOf<ExposureDay>()
+        val reasons = linkedSetOf<String>()
+        comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().forEach { authorization ->
+            val quality = authorization.quality
+            if (quality !in setOf(TrainableQuality.POWER, TrainableQuality.REACTIVE_STRENGTH_SSC)) return@forEach
+            val owner = authorization.owner?.let { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }
+                ?: return@forEach
+            val dose = decisions[authorization.targetId] ?: return@forEach
+            val region = dose.targetRegion ?: return@forEach
+            if (authorization.status !in setOf(
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_USER_APPROVED_POWER_JUMP_POLICY,
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
+                )) return@forEach
+            comparison.experimental.items.filter {
+                it.exerciseStableKey == owner.stableKey && it.selectionRole == owner.selectionRole
+            }.map { it.weekNumber to it.dayOfWeek }.distinct().forEach { (week, day) ->
+                exposures += ExposureDay(region, week, day, owner in newOwners)
+            }
+        }
+        val regions = PowerJumpBodyRegion.entries
+        regions.forEach { region ->
+            exposures.filter { event ->
+                event.region == PowerJumpBodyRegion.WHOLE_BODY || region == PowerJumpBodyRegion.WHOLE_BODY || event.region == region
+            }.groupBy(ExposureDay::week).forEach { (_, weekEvents) ->
+                val days = weekEvents.mapTo(sortedSetOf()) { it.day }
+                if (days.size > 2 && weekEvents.any(ExposureDay::isNew)) {
+                    reasons += "B8_POWER_JUMP_MORE_THAN_TWO_EXPOSURE_DAYS_FOR_REGION_${region.name}"
+                }
+            }
+        }
+        return reasons
+    }
+
     /** Task-only cutover consumes exact C24 row grants and never routes task work through a quality B6. */
     private fun auditBadmintonTask(
         comparison: StimulusSelectionProgramComparison
@@ -201,7 +627,8 @@ class StimulusProductionCutoverAuthorityAuditEngine {
         if (!b7.collateralRegressionFree || b7.targetOutcomes.any { it.status == StimulusExperimentalTargetOutcomeStatus.REGRESSED }) {
             reasons += "B8_BADMINTON_TASK_COLLATERAL_OR_TARGET_REGRESSION"
         }
-        if (comparison.removedOwnerIdentities.isNotEmpty()) reasons += "B8_BADMINTON_TASK_CONTROL_OWNER_REMOVAL_NOT_ALLOWED"
+        val exactTaskReplacements = StimulusProductionMovementScopeEvidence.exactUserApprovedReplacementControlOwners(comparison)
+        if ((comparison.removedOwnerIdentities - exactTaskReplacements).isNotEmpty()) reasons += "B8_BADMINTON_TASK_CONTROL_OWNER_REMOVAL_NOT_ALLOWED"
         if (comparison.control.weekDaySchedule != comparison.experimental.weekDaySchedule) {
             reasons += "B8_BADMINTON_TASK_WEEKDAY_SCHEDULE_CHANGED"
         }
@@ -421,7 +848,8 @@ class StimulusProductionCutoverAuthorityAuditEngine {
             reasons += "B8_CUTOVER_V1_COLLATERAL_REGRESSION"
         }
         val materialOwners = materialOwnerIdentities(comparison)
-        val roleReplacements = canonicalRoleReplacementControlOwners(comparison, materialOwners)
+        val roleReplacements = canonicalRoleReplacementControlOwners(comparison, materialOwners) +
+            StimulusProductionMovementScopeEvidence.exactUserApprovedReplacementControlOwners(comparison)
         if ((comparison.removedOwnerIdentities - roleReplacements).isNotEmpty()) reasons += "B8_CUTOVER_V1_CONTROL_OWNER_REMOVAL_NOT_ALLOWED"
         if (comparison.control.weekDaySchedule != comparison.experimental.weekDaySchedule) reasons += "B8_CUTOVER_V1_WEEKDAY_SCHEDULE_CHANGED"
 
@@ -909,7 +1337,8 @@ class StimulusProductionCutoverAuthorityAuditEngine {
             StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY,
             StimulusExperimentalChangeAttributionSource.B6_EXISTING_OWNER_PRESCRIPTION,
             StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION,
-            StimulusExperimentalChangeAttributionSource.B6_COLD_START_USER_CALIBRATION
+            StimulusExperimentalChangeAttributionSource.B6_COLD_START_USER_CALIBRATION,
+            StimulusExperimentalChangeAttributionSource.B6_APPROVED_POWER_JUMP_POLICY
         )
 
     private fun unrelatedControlParityFailures(
@@ -917,6 +1346,8 @@ class StimulusProductionCutoverAuthorityAuditEngine {
         authorized: Set<StimulusPrescriptionOwnerIdentity>
     ): Boolean {
         val allowedDifferences = authorized + canonicalRoleReplacementControlOwners(comparison, authorized) +
+            StimulusProductionMovementScopeEvidence.exactSameExerciseRoleReplacements(comparison, authorized) +
+            StimulusProductionMovementScopeEvidence.exactUserApprovedReplacementControlOwners(comparison) +
             authorizedDownstreamConstraintControlOwners(comparison, authorized)
         return comparison.controlOwnerIdentities.any { identity ->
             identity !in allowedDifferences && ownerRows(comparison.control, identity) != ownerRows(comparison.experimental, identity)
@@ -1090,6 +1521,7 @@ class StimulusProductionCutoverAuthorityAuditEngine {
         val TASK_MATERIAL_ATTRIBUTION_SOURCES = setOf(
             StimulusExperimentalChangeAttributionSource.B6_APPROVED_TASK_PROTOCOL
         )
+        val POWER_JUMP_TARGET_IDS = setOf("QUALITY:POWER", "QUALITY:REACTIVE_STRENGTH_SSC")
 
         fun qualityPolicy(quality: TrainableQuality): CutoverScopePolicy = when (quality) {
             TrainableQuality.STRENGTH -> scopePolicy(StimulusProductionCutoverScope.STRENGTH_V1)
@@ -1099,6 +1531,7 @@ class StimulusProductionCutoverAuthorityAuditEngine {
 
         fun scopePolicy(scope: StimulusProductionCutoverScope): CutoverScopePolicy = when (scope) {
             StimulusProductionCutoverScope.BADMINTON_TASK_V1 -> error("Task scope does not use quality prescription policy")
+            StimulusProductionCutoverScope.POWER_JUMP_V1 -> error("Power/Jump scope has its own exact B8 validator")
             StimulusProductionCutoverScope.STRENGTH_V1 -> CutoverScopePolicy(
                 scope = scope,
                 quality = TrainableQuality.STRENGTH,
@@ -1180,6 +1613,9 @@ internal fun StimulusProductionCutoverAuthorityDecision.toJson(): JSONObject = J
         JSONObject().put("protocolId", it.protocolId).put("stableKey", it.stableKey).put("selectionRole", it.selectionRole)
             .put("authorizedTasks", JSONArray(it.authorizedTasks.map { task -> task.name }.sorted()))
     }))
+    .put("authorizedMovementTargetOwnerIdentities", JSONArray(authorizedMovementTargetOwnerIdentities.sortedWith(
+        compareBy({ it.targetId }, { it.stableKey }, { it.selectionRole })
+    ).map { JSONObject().put("targetId", it.targetId).put("stableKey", it.stableKey).put("selectionRole", it.selectionRole) }))
     .put("reasonCodes", JSONArray(reasonCodes.distinct().sorted()))
     .put("b7Status", b7Status.name)
     .put("routingActive", routingActive)

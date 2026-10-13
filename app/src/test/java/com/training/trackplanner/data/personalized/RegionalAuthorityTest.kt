@@ -8,6 +8,7 @@ import com.training.trackplanner.data.CanonicalExercisePhysicalQualityCatalog
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.ExercisePhysicalQualityRelation
 import com.training.trackplanner.data.GeneratedProgramSkeleton
+import com.training.trackplanner.data.MetadataTokenField
 import com.training.trackplanner.data.PhysicalQualityMode
 import com.training.trackplanner.data.PhysicalQualityRegion
 import com.training.trackplanner.data.ProgramPeriodizationType
@@ -28,6 +29,323 @@ import org.junit.Test
 import java.time.LocalDate
 
 class RegionalAuthorityTest {
+    @Test
+    fun movementHierarchyAggregatesOnlyUpperPullAndRegionalCreditUsesWeeklyPhysicalRowsOnce() {
+        assertTrue(MovementCoverage.HORIZONTAL_PULL.directlyRepresents(MovementCoverage.UPPER_PULL))
+        assertTrue(MovementCoverage.VERTICAL_PULL.directlyRepresents(MovementCoverage.UPPER_PULL))
+        assertTrue(MovementCoverage.UPPER_PULL.directlyRepresents(MovementCoverage.UPPER_PULL))
+        assertFalse(MovementCoverage.HORIZONTAL_PULL.directlyRepresents(MovementCoverage.VERTICAL_PULL))
+        assertFalse(MovementCoverage.VERTICAL_PUSH.directlyRepresents(MovementCoverage.HORIZONTAL_PUSH))
+        assertFalse(MovementCoverage.LOWER_KNEE.directlyRepresents(MovementCoverage.POSTERIOR_CHAIN))
+        assertFalse(MovementCoverage.CORE_DIRECT.directlyRepresents(MovementCoverage.UPPER_PULL))
+
+        val horizontal = Exercise("horizontal-row", "Horizontal row", "RESISTANCE", equipment = "BODYWEIGHT")
+        val vertical = Exercise("vertical-pull", "Vertical pull", "RESISTANCE", equipment = "BODYWEIGHT")
+        val metadata = mapOf(
+            horizontal.stableKey to RuntimeExerciseMetadataDefaults.forExercise(horizontal).copy(
+                activityKind = "EXERCISE", programSlot = "HORIZONTAL_PULL_STRENGTH",
+                planningEligibility = "PROGRAM_SELECTABLE", analysisEligibility = MetadataTokenField.parse("HYPERTROPHY_VOLUME")
+            ),
+            vertical.stableKey to RuntimeExerciseMetadataDefaults.forExercise(vertical).copy(
+                activityKind = "EXERCISE", programSlot = "VERTICAL_PULL_STRENGTH",
+                planningEligibility = "PROGRAM_SELECTABLE", analysisEligibility = MetadataTokenField.parse("HYPERTROPHY_VOLUME")
+            )
+        )
+        val snapshot = PlanningHistorySnapshot(
+            LocalDate.of(2026, 9, 19), emptyList(), mapOf(horizontal.stableKey to horizontal, vertical.stableKey to vertical),
+            metadata, emptyMap(), "HYPERTROPHY", 1.0, 0.0, PersonalizedPlanningPreferences()
+        )
+        val relation = listOf(
+            horizontal.stableKey, vertical.stableKey
+        ).map { key -> ExercisePhysicalQualityRelation(
+            "hyper-$key", key, TrainableQuality.HYPERTROPHY, StimulusCapabilityLevel.DIRECT_CAPABILITY,
+            PhysicalQualityRegion.UPPER_PULL, PhysicalQualityMode.GENERAL, true, "TEST", setOf("TEST"), "PASS", ""
+        ) }
+        val catalog = CanonicalExercisePhysicalQualityCatalog.of(relation)
+        val request = ProgramSkeletonRequest(
+            "upper-pull-projection", com.training.trackplanner.data.ProgramGoal.BODYBUILDING, 1, 60,
+            emptySet(), "", 0.0, "AUTO", ProgramPeriodizationType.AUTO, 1
+        )
+        fun row(key: String, sets: Int) = ProgramSkeletonItem(
+            localId = "row-$key", weekNumber = 1, dayOfWeek = 1, orderIndex = 1,
+            exerciseStableKey = key, exerciseName = key, category = "RESISTANCE", restSeconds = 90,
+            prescription = "10 reps", setCount = sets, reps = 10, weightKg = 20.0, seconds = 0,
+            selectionReason = "test", weightSource = "TEST", selectionRole = "TEST_ROLE",
+            setPrescriptions = List(sets) { ProgramSetPrescription(it + 1, 10, 20.0, 0, targetRpeMin = 7.0) }
+        )
+        val plan = GeneratedProgramSkeleton(
+            "upper-pull-projection", 7, request, ProgramPeriodizationType.AUTO, emptyList(),
+            listOf(row(horizontal.stableKey, 3), row(vertical.stableKey, 4))
+        )
+        val projected = RegionalStimulusCreditProjector().project(plan, snapshot, catalog)
+        assertEquals(3.0, projected.getValue(MovementCoverage.HORIZONTAL_PULL to TrainableQuality.HYPERTROPHY).weeklyEquivalentUnits, 0.0)
+        assertEquals(4.0, projected.getValue(MovementCoverage.VERTICAL_PULL to TrainableQuality.HYPERTROPHY).weeklyEquivalentUnits, 0.0)
+        assertEquals(7.0, projected.getValue(MovementCoverage.UPPER_PULL to TrainableQuality.HYPERTROPHY).weeklyEquivalentUnits, 0.0)
+        val emphasis = ProgramEmphasisProjector().project(plan, snapshot, catalog)
+        assertEquals(7, emphasis.single { it.region == MovementCoverage.UPPER_PULL }.plannedUnits)
+    }
+
+    @Test
+    fun verticalPressQualityRegionDoesNotLeakIntoHorizontalMovementCredit() {
+        val key = "vertical-press"
+        val exercise = Exercise(key, "Overhead press", "RESISTANCE", equipment = "BODYWEIGHT")
+        val metadata = RuntimeExerciseMetadataDefaults.forExercise(exercise).copy(
+            activityKind = "EXERCISE", programSlot = "OVERHEAD_PUSH_STRENGTH_OR_ACCESSORY",
+            planningEligibility = "PROGRAM_SELECTABLE", analysisEligibility = MetadataTokenField.parse("HYPERTROPHY_VOLUME")
+        )
+        val snapshot = PlanningHistorySnapshot(
+            LocalDate.of(2026, 9, 19),
+            listOf(PlanningSetRecord(LocalDate.of(2026, 9, 18), "unrelated-history", "unrelated-history", "RESISTANCE", 1, 8, 20.0, 0, 7.0)),
+            mapOf(key to exercise), mapOf(key to metadata), emptyMap(),
+            "HYPERTROPHY", 1.0, 0.0, PersonalizedPlanningPreferences()
+        )
+        val relation = ExercisePhysicalQualityRelation(
+            "vertical-press-hypertrophy", key, TrainableQuality.HYPERTROPHY,
+            StimulusCapabilityLevel.DIRECT_CAPABILITY, PhysicalQualityRegion.SHOULDERS,
+            PhysicalQualityMode.GENERAL, true, "TEST", setOf("TEST"), "PASS", ""
+        )
+        val supportiveArmsRelation = ExercisePhysicalQualityRelation(
+            "vertical-press-supportive-arms", key, TrainableQuality.HYPERTROPHY,
+            StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY, PhysicalQualityRegion.ARMS,
+            PhysicalQualityMode.GENERAL, true, "TEST", setOf("TEST"), "PASS", ""
+        )
+        val broadUpperPushRelation = ExercisePhysicalQualityRelation(
+            "vertical-press-supportive-upper-push", key, TrainableQuality.HYPERTROPHY,
+            StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY, PhysicalQualityRegion.UPPER_PUSH,
+            PhysicalQualityMode.GENERAL, true, "TEST", setOf("TEST"), "PASS", ""
+        )
+        val catalog = CanonicalExercisePhysicalQualityCatalog.of(listOf(relation, supportiveArmsRelation, broadUpperPushRelation))
+        val request = ProgramSkeletonRequest(
+            "vertical-press-projection", com.training.trackplanner.data.ProgramGoal.BODYBUILDING, 1, 60,
+            emptySet(), "", 0.0, "AUTO", ProgramPeriodizationType.AUTO, 1
+        )
+        val item = ProgramSkeletonItem(
+            localId = "press", weekNumber = 1, dayOfWeek = 1, orderIndex = 1, exerciseStableKey = key,
+            exerciseName = exercise.name, category = exercise.category, restSeconds = 90, prescription = "8 reps",
+            setCount = 1, reps = 8, weightKg = 20.0, seconds = 0, selectionReason = "test", weightSource = "TEST",
+            selectionRole = "CANONICAL_STIMULUS_QUALITY_HYPERTROPHY",
+            setPrescriptions = listOf(ProgramSetPrescription(1, 8, 20.0, 0, targetRpeMin = 7.0))
+        )
+        val plan = GeneratedProgramSkeleton("vertical-press-projection", 7, request, ProgramPeriodizationType.AUTO, emptyList(), listOf(item))
+        val projector = RegionalStimulusCreditProjector()
+        val ordinary = projector.project(plan, snapshot, catalog)
+        assertEquals(1.0, ordinary.getValue(MovementCoverage.VERTICAL_PUSH to TrainableQuality.HYPERTROPHY).weeklyEquivalentUnits, 0.0)
+        assertFalse(ordinary.containsKey(MovementCoverage.HORIZONTAL_PUSH to TrainableQuality.HYPERTROPHY))
+        val authorized = projector.projectWithAuthorizedQualityMaterial(
+            existingPlan = null,
+            selectionPlan = StimulusCandidateSelectionPlan(
+                selectedCandidates = listOf(StimulusSelectedCandidate(
+                    stableKey = key, coveredTargetIds = setOf("QUALITY:HYPERTROPHY"),
+                    primaryTargetId = "QUALITY:HYPERTROPHY", selectionReasons = emptyList(),
+                    currentPrescriptionCompatibility = "AUTHORIZED", targetSetsFromExistingPrescription = 1,
+                    selectionRole = item.selectionRole
+                )), traces = emptyList(), materialDemand = com.training.trackplanner.data.personalized.MaterialDemand(
+                    candidates = emptyList(), deferred = emptyMap(), audit = emptyMap()
+                )
+            ),
+            authorizationPlan = StimulusPrescriptionAuthorizationPlan(listOf(StimulusPrescriptionAuthorization(
+                targetId = "QUALITY:HYPERTROPHY", quality = TrainableQuality.HYPERTROPHY,
+                owner = StimulusPrescriptionOwner(key, item.selectionRole), source = StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE,
+                inputPrescription = null, plannedCompatibility = null,
+                authorizedPrescription = PlannedPrescription("1 x 8", listOf(ProgramSetPrescription(1, 8, 20.0, 0, targetRpeMin = 7.0)), 90, "TEST"),
+                status = StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE
+            ))),
+            snapshot = snapshot, catalog = catalog,
+            targetRegions = setOf(MovementCoverage.HORIZONTAL_PUSH, MovementCoverage.VERTICAL_PUSH, MovementCoverage.ARMS_TRICEPS)
+        )
+        assertEquals(1.0, authorized.getValue(MovementCoverage.VERTICAL_PUSH to TrainableQuality.HYPERTROPHY).weeklyEquivalentUnits, 0.0)
+        assertFalse(authorized.containsKey(MovementCoverage.HORIZONTAL_PUSH to TrainableQuality.HYPERTROPHY))
+        assertEquals(0.5, authorized.getValue(MovementCoverage.ARMS_TRICEPS to TrainableQuality.HYPERTROPHY).weeklyEquivalentUnits, 0.0)
+
+        val horizontalTarget = RegionalStimulusTarget(
+            region = MovementCoverage.HORIZONTAL_PUSH,
+            quality = TrainableQuality.HYPERTROPHY,
+            action = RegionalTargetAction.ADD_SUPPORT,
+            numericAuthority = RegionalNumericAuthority.USER_APPROVED_PROJECT_POLICY,
+            weeklyDoseTarget = 1.0
+        )
+        val selection = RegionalTargetCandidateSelector().select(
+            horizontalTarget, snapshot, AthletePlanningStateBuilder().build(snapshot, PersonalizedPlanningAnswers()), request,
+            catalog = catalog
+        )
+        assertTrue("vertical press is not a horizontal-push owner", selection.candidates.isEmpty())
+        val finalProjection = FinalRegionalStimulusProjector().project(
+            target = horizontalTarget,
+            finalPlan = plan,
+            snapshot = snapshot,
+            catalog = catalog,
+            selectedIdentity = RegionalSelectionIdentity(key, item.selectionRole),
+            creditedUnits = 0,
+            residualUnits = 1,
+            authorizedUnits = 1
+        )
+        assertEquals(0, finalProjection.targetCompatibleMaterializedUnits)
+        assertEquals(1, finalProjection.shortfall)
+    }
+
+    @Test
+    fun lowerKneeDoesNotSatisfyPosteriorChainAlthoughBothMayUseLowerRegionQualifier() {
+        val key = "knee-dominant-owner"
+        val exercise = Exercise(key, "Knee dominant", "RESISTANCE", equipment = "BODYWEIGHT")
+        val metadata = RuntimeExerciseMetadataDefaults.forExercise(exercise).copy(
+            activityKind = "EXERCISE", programSlot = "MAIN_LOWER_STRENGTH",
+            planningEligibility = "PROGRAM_SELECTABLE", analysisEligibility = MetadataTokenField.parse("HYPERTROPHY_VOLUME")
+        )
+        val snapshot = PlanningHistorySnapshot(
+            LocalDate.of(2026, 9, 19), emptyList(), mapOf(key to exercise), mapOf(key to metadata), emptyMap(),
+            "HYPERTROPHY", 1.0, 0.0, PersonalizedPlanningPreferences()
+        )
+        val catalog = CanonicalExercisePhysicalQualityCatalog.of(listOf(ExercisePhysicalQualityRelation(
+            "knee-hypertrophy", key, TrainableQuality.HYPERTROPHY, StimulusCapabilityLevel.DIRECT_CAPABILITY,
+            PhysicalQualityRegion.LOWER, PhysicalQualityMode.GENERAL, true, "TEST", setOf("TEST"), "PASS", ""
+        )))
+        val request = ProgramSkeletonRequest(
+            "knee-posterior-projection", com.training.trackplanner.data.ProgramGoal.BODYBUILDING, 1, 60,
+            emptySet(), "", 0.0, "AUTO", ProgramPeriodizationType.AUTO, 1
+        )
+        val item = ProgramSkeletonItem(
+            localId = "knee", weekNumber = 1, dayOfWeek = 1, orderIndex = 1, exerciseStableKey = key,
+            exerciseName = exercise.name, category = exercise.category, restSeconds = 90, prescription = "8 reps",
+            setCount = 1, reps = 8, weightKg = 20.0, seconds = 0, selectionReason = "test", weightSource = "TEST",
+            selectionRole = "CANONICAL_STIMULUS_QUALITY_HYPERTROPHY",
+            setPrescriptions = listOf(ProgramSetPrescription(1, 8, 20.0, 0, targetRpeMin = 7.0))
+        )
+        val plan = GeneratedProgramSkeleton("knee-posterior-projection", 7, request, ProgramPeriodizationType.AUTO, emptyList(), listOf(item))
+        val projected = RegionalStimulusCreditProjector().project(plan, snapshot, catalog)
+        assertEquals(1.0, projected.getValue(MovementCoverage.LOWER_KNEE to TrainableQuality.HYPERTROPHY).weeklyEquivalentUnits, 0.0)
+        assertFalse(projected.containsKey(MovementCoverage.POSTERIOR_CHAIN to TrainableQuality.HYPERTROPHY))
+        val authorized = RegionalStimulusCreditProjector().projectWithAuthorizedQualityMaterial(
+            existingPlan = null,
+            selectionPlan = StimulusCandidateSelectionPlan(
+                selectedCandidates = listOf(StimulusSelectedCandidate(
+                    stableKey = key, coveredTargetIds = setOf("QUALITY:HYPERTROPHY"), primaryTargetId = "QUALITY:HYPERTROPHY",
+                    selectionReasons = emptyList(), currentPrescriptionCompatibility = "AUTHORIZED", targetSetsFromExistingPrescription = 1,
+                    selectionRole = item.selectionRole
+                )), traces = emptyList(), materialDemand = com.training.trackplanner.data.personalized.MaterialDemand(
+                    candidates = emptyList(), deferred = emptyMap(), audit = emptyMap()
+                )
+            ),
+            authorizationPlan = StimulusPrescriptionAuthorizationPlan(listOf(StimulusPrescriptionAuthorization(
+                targetId = "QUALITY:HYPERTROPHY", quality = TrainableQuality.HYPERTROPHY,
+                owner = StimulusPrescriptionOwner(key, item.selectionRole), source = StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE,
+                inputPrescription = null, plannedCompatibility = null,
+                authorizedPrescription = PlannedPrescription("1 x 8", item.setPrescriptions, 90, "TEST"),
+                status = StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE
+            ))),
+            snapshot = snapshot, catalog = catalog, targetRegions = setOf(MovementCoverage.POSTERIOR_CHAIN)
+        )
+        assertFalse(authorized.containsKey(MovementCoverage.POSTERIOR_CHAIN to TrainableQuality.HYPERTROPHY))
+    }
+
+    @Test
+    fun upperPullAddressFlowsThroughRegionalB4B5AndB6WithoutCreatingDirectionalQuota() {
+        val key = "vertical-pull-cold-start"
+        val exercise = Exercise(key, "Vertical pull", "RESISTANCE", equipment = "BODYWEIGHT")
+        val metadata = RuntimeExerciseMetadataDefaults.forExercise(exercise).copy(
+            activityKind = "EXERCISE", programSlot = "VERTICAL_PULL_STRENGTH",
+            planningEligibility = "PROGRAM_SELECTABLE", analysisEligibility = MetadataTokenField.parse("HYPERTROPHY_VOLUME")
+        )
+        val snapshot = PlanningHistorySnapshot(
+            LocalDate.of(2026, 9, 19),
+            listOf(PlanningSetRecord(LocalDate.of(2026, 9, 18), "unrelated-history", "unrelated-history", "RESISTANCE", 1, 8, 20.0, 0, 7.0)),
+            mapOf(key to exercise), mapOf(key to metadata), emptyMap(),
+            "HYPERTROPHY", 1.0, 0.0, PersonalizedPlanningPreferences()
+        )
+        val relation = ExercisePhysicalQualityRelation(
+            "vertical-pull-hyper", key, TrainableQuality.HYPERTROPHY,
+            StimulusCapabilityLevel.DIRECT_CAPABILITY, PhysicalQualityRegion.UPPER_PULL,
+            PhysicalQualityMode.GENERAL, true, "TEST", setOf("TEST"), "PASS", ""
+        )
+        val catalog = CanonicalExercisePhysicalQualityCatalog.of(listOf(relation))
+        val state = AthletePlanningStateBuilder().build(snapshot, PersonalizedPlanningAnswers())
+        val request = ProgramSkeletonRequest(
+            "upper-pull-cold-start", com.training.trackplanner.data.ProgramGoal.BODYBUILDING, 1, 60,
+            emptySet(), "", 0.0, "AUTO", ProgramPeriodizationType.AUTO, 1
+        )
+        val admitted = StimulusMovementTarget(
+            MovementCoverage.UPPER_PULL, TargetPriority.PRIMARY,
+            reasonCodes = listOf("B3_ADDRESS"), evidence = listOf("aggregate pull direction need")
+        )
+        val dose = RegionalMovementDoseTargetBuilder().build(
+            listOf(admitted), snapshot, state, catalog,
+            CanonicalCoreCatalog.of(emptyList())
+        ).getValue(MovementCoverage.UPPER_PULL).single()
+        assertEquals(StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY, dose.numericAuthority)
+        assertEquals(8.0, dose.weeklyTarget!!, 0.0)
+        assertEquals(StimulusMovementDoseShapeAuthority.HYPERTROPHY_BAND_8_12_PERSONAL_7_15_RPE_7_USER_LOAD_CALIBRATION,
+            dose.shapeAuthority)
+
+        val targetPlan = StimulusTargetPlan(
+            qualityTargets = emptyList(), taskTargets = emptyList(), unresolved = emptyList(),
+            movementTargets = listOf(admitted.copy(regionalDoseTargets = listOf(dose)))
+        )
+        val emptySelection = StimulusTargetCandidateSelector().build(
+            targetPlan.copy(movementTargets = emptyList()), snapshot, state, request, catalog
+        )
+        val emptyAuthorization = StimulusPrescriptionAuthorizationEngine(physicalQualityCatalog = catalog).build(
+            targetPlan.copy(movementTargets = emptyList()), emptySelection, snapshot, emptyMap()
+        )
+        val residualPlan = CanonicalRegionalMovementB4ResidualResolver().resolve(
+            targetPlan, existingProgram = null, emptySelection, emptyAuthorization, snapshot, catalog
+        )
+        val residualDose = residualPlan.movementTargets.single().regionalDoseTargets.single()
+        assertEquals(0.0, residualDose.existingEquivalentExposure!!, 0.0)
+        assertEquals(8.0, residualDose.residualEquivalentExposure!!, 0.0)
+        assertEquals(8, residualDose.authorizedWholeSetUnits)
+
+        val selection = StimulusTargetCandidateSelector(coreCatalog = CanonicalCoreCatalog.of(emptyList())).build(
+            residualPlan, snapshot, state, request, catalog,
+            movementCandidateRejectionReason = { movement, stableKey, role, sets ->
+                CanonicalRegionalMovementB6AuthorizationEngine().candidateRejectionReason(
+                    movement, stableKey, role, sets, snapshot, CanonicalCoreCatalog.of(emptyList())
+                )
+            }
+        )
+        assertEquals(key, selection.selectedCandidates.single().stableKey)
+        assertEquals(8, selection.materialDemand.candidates.single().targetSets)
+        val baseAuthorization = StimulusPrescriptionAuthorizationEngine(physicalQualityCatalog = catalog).build(
+            residualPlan, selection, snapshot, emptyMap()
+        )
+        val authorized = CanonicalRegionalMovementB6AuthorizationEngine().authorize(
+            residualPlan, selection, baseAuthorization, snapshot, CanonicalCoreCatalog.of(emptyList())
+        )
+        val b6 = authorized.authorizations.single { it.targetId == admitted.targetId }
+        assertEquals(StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION, b6.status)
+        assertEquals(8, b6.authorizedPrescription!!.sets.size)
+        assertTrue(b6.authorizedPrescription.sets.all {
+            it.reps == 8 && it.targetRpeMin!! >= 7.0 &&
+                it.loadState == ProgramLoadState.USER_CALIBRATION_REQUIRED && it.weightKg == 0.0
+        })
+        assertEquals(StimulusMovementB6Status.AUTHORIZED_REGIONAL_HYPERTROPHY_B6,
+            authorized.movementAuthorizations.single().status)
+
+        val horizontalKey = "horizontal-pull-directional-target"
+        val horizontalExercise = Exercise(horizontalKey, "Horizontal pull", "RESISTANCE", equipment = "BODYWEIGHT")
+        val horizontalMetadata = RuntimeExerciseMetadataDefaults.forExercise(horizontalExercise).copy(
+            activityKind = "EXERCISE", programSlot = "HORIZONTAL_PULL_STRENGTH",
+            planningEligibility = "PROGRAM_SELECTABLE", analysisEligibility = MetadataTokenField.parse("HYPERTROPHY_VOLUME")
+        )
+        val combinedSnapshot = snapshot.copy(
+            exercises = snapshot.exercises + (horizontalKey to horizontalExercise),
+            metadata = snapshot.metadata + (horizontalKey to horizontalMetadata)
+        )
+        val horizontalRelation = relation.copy(relationId = "horizontal-pull-hyper", exerciseStableKey = horizontalKey)
+        val combinedCatalog = CanonicalExercisePhysicalQualityCatalog.of(listOf(relation, horizontalRelation))
+        val horizontalNeed = StimulusMovementTarget(
+            MovementCoverage.HORIZONTAL_PULL, TargetPriority.PRIMARY,
+            reasonCodes = listOf("B3_ADDRESS"), evidence = listOf("direction-specific pull need")
+        )
+        val sharedPullTargets = RegionalMovementDoseTargetBuilder().build(
+            listOf(admitted, horizontalNeed), combinedSnapshot, state, combinedCatalog,
+            CanonicalCoreCatalog.of(emptyList())
+        )
+        val upperRollupDose = sharedPullTargets.getValue(MovementCoverage.UPPER_PULL).single()
+        assertEquals(StimulusTargetNumericAuthority.DIRECTION_ONLY, upperRollupDose.numericAuthority)
+        assertNull(upperRollupDose.weeklyTarget)
+        assertEquals(listOf("UPPER_PULL_ROLLUP_SHARES_DIRECTIONAL_PULL_DOSE_AUTHORITY"), upperRollupDose.reasonCodes)
+        assertEquals(8.0, sharedPullTargets.getValue(MovementCoverage.HORIZONTAL_PULL).single().weeklyTarget!!, 0.0)
+    }
+
     @Test
     fun hypertrophyColdStartIsRegionBudgetAndPersonalBandTakesPrecedence() {
         val cold = RegionalStimulusTargetResolver().resolve(morphologyDiagnosis())
@@ -77,15 +395,20 @@ class RegionalAuthorityTest {
     fun directAndCanonicalSupportiveCreditsAreEquivalentAndDeduplicatedPerRegion() {
         val directKey = "direct-lower"
         val supportiveKey = "supportive-lower"
+        val crossMovementSupportiveKey = "cross-movement-supportive-arms"
         val directMeta = RuntimeExerciseMetadataDefaults.forIdentity(directKey, directKey).copy(
             activityKind = "EXERCISE", programSlot = "MAIN_LOWER_STRENGTH"
         )
         val supportiveMeta = RuntimeExerciseMetadataDefaults.forIdentity(supportiveKey, supportiveKey).copy(
             activityKind = "EXERCISE", programSlot = "MAIN_LOWER_STRENGTH"
         )
+        val crossMovementMeta = RuntimeExerciseMetadataDefaults.forIdentity(crossMovementSupportiveKey, crossMovementSupportiveKey).copy(
+            activityKind = "EXERCISE", programSlot = "MAIN_HORIZONTAL_PUSH"
+        )
         val snapshot = PlanningHistorySnapshot(
             LocalDate.of(2026, 9, 19), emptyList(), emptyMap(),
-            mapOf(directKey to directMeta, supportiveKey to supportiveMeta), emptyMap(),
+            mapOf(directKey to directMeta, supportiveKey to supportiveMeta,
+                crossMovementSupportiveKey to crossMovementMeta), emptyMap(),
             "HYPERTROPHY", 1.0, 0.0, PersonalizedPlanningPreferences()
         )
         fun relation(id: String, key: String, level: StimulusCapabilityLevel, region: PhysicalQualityRegion) =
@@ -94,18 +417,30 @@ class RegionalAuthorityTest {
         val catalog = CanonicalExercisePhysicalQualityCatalog.of(listOf(
             relation("direct-lower", directKey, StimulusCapabilityLevel.DIRECT_CAPABILITY, PhysicalQualityRegion.LOWER),
             relation("direct-quads", directKey, StimulusCapabilityLevel.DIRECT_CAPABILITY, PhysicalQualityRegion.QUADS_GLUTE),
-            relation("supportive-lower", supportiveKey, StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY, PhysicalQualityRegion.LOWER)
+            relation("supportive-lower", supportiveKey, StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY, PhysicalQualityRegion.LOWER),
+            relation("supportive-arms", crossMovementSupportiveKey, StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY, PhysicalQualityRegion.ARMS)
         ))
         val plan = GeneratedProgramSkeleton(
             "regional-credit", 7, ProgramSkeletonRequest("regional-credit", com.training.trackplanner.data.ProgramGoal.BODYBUILDING,
                 1, 60, emptySet(), "", 0.0, "AUTO", ProgramPeriodizationType.AUTO, 1),
             ProgramPeriodizationType.AUTO, emptyList(), listOf(
-                skeletonItem(directKey, 1, 2), skeletonItem(supportiveKey, 2, 4)
+                skeletonItem(directKey, 1, 2), skeletonItem(supportiveKey, 2, 4),
+                skeletonItem(crossMovementSupportiveKey, 3, 4)
             )
         )
         val credit = RegionalStimulusCreditProjector().project(plan, snapshot, catalog)
             .getValue(MovementCoverage.LOWER_KNEE to TrainableQuality.HYPERTROPHY)
         assertEquals(4.0, credit.weeklyEquivalentUnits, 0.0)
+        val supportiveArmCredit = RegionalStimulusCreditProjector().project(plan, snapshot, catalog)
+            .getValue(MovementCoverage.ARMS_TRICEPS to TrainableQuality.HYPERTROPHY)
+        // Four physical sets × the canonical 0.5 supportive credit; this is an
+        // arm-region quality observation, not direct movement coverage.
+        assertEquals(2.0, supportiveArmCredit.weeklyEquivalentUnits, 0.0)
+        assertFalse(MovementCoverage.HORIZONTAL_PUSH.directlyRepresents(MovementCoverage.ARMS_TRICEPS))
+        assertEquals(0.0, regionalQualityRelationCredit(
+            MovementCoverage.HORIZONTAL_PUSH, MovementCoverage.VERTICAL_PUSH, TrainableQuality.HYPERTROPHY,
+            StimulusCapabilityLevel.DIRECT_CAPABILITY, PhysicalQualityRegion.UPPER_PUSH
+        ), 0.0)
     }
 
     @Test
@@ -283,10 +618,10 @@ class RegionalAuthorityTest {
     }
 
     @Test
-    fun canonicalMovementB4CarriesRegionalHypertrophyAndCoreDoseWithoutInventingCoreShape() {
+    fun canonicalMovementB4CarriesRegionalDoseAndDefersCoreShapeToExactOwner() {
         val key = "new-horizontal-press"
         val metadata = RuntimeExerciseMetadataDefaults.forIdentity(key, key).copy(
-            activityKind = "EXERCISE", programSlot = "MAIN_UPPER_STRENGTH", planningEligibility = "PROGRAM_SELECTABLE"
+            activityKind = "EXERCISE", programSlot = "HORIZONTAL_PUSH_STRENGTH_OR_ACCESSORY", planningEligibility = "PROGRAM_SELECTABLE"
         )
         val snapshot = PlanningHistorySnapshot(
             LocalDate.of(2026, 9, 19), emptyList(), emptyMap(), mapOf(key to metadata), emptyMap(),
@@ -327,13 +662,112 @@ class RegionalAuthorityTest {
         assertEquals(StimulusMovementDoseKind.CORE_DIRECT_CONTROL_SET, core.kind)
         assertEquals(StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY, core.numericAuthority)
         assertEquals(6.0, core.weeklyTarget!!, 0.0)
-        assertEquals(StimulusMovementDoseShapeAuthority.NONE, core.shapeAuthority)
-        assertTrue(core.reasonCodes.contains("CORE_PRESCRIPTION_SHAPE_AUTHORITY_UNAVAILABLE"))
-        assertTrue(core.evidence.contains("prescriptionShapeAuthority=NONE"))
+        assertEquals(StimulusMovementDoseShapeAuthority.CORE_DIRECT_SET_DOSE_EXACT_OWNER_SHAPE_REQUIRED, core.shapeAuthority)
+        assertTrue(core.reasonCodes.contains("CORE_B6_SHAPE_RESOLVED_PER_EXACT_OWNER"))
+        assertTrue(core.evidence.contains("prescriptionShapeAuthority=EXACT_B5_OWNER_METADATA_OR_PERSONAL_HISTORY_REQUIRED"))
     }
 
     @Test
-    fun requirementUsesBasePriorityAndMapsUpperPullWithoutMergingHistory() {
+    fun coreDirectB6ConsumesExactB4SetsAndUsesOnlyApprovedOwnerShapeEvidence() {
+        val key = "bird-dog"
+        val date = LocalDate.of(2026, 9, 18)
+        val exercise = Exercise(
+            stableKey = key,
+            name = "Bird dog",
+            category = "CORE",
+            mode = "맨몸, 좌우 횟수",
+            equipment = "BODYWEIGHT"
+        )
+        val snapshot = PlanningHistorySnapshot(
+            cutoff = date.plusDays(1),
+            allConfirmedSets = emptyList(),
+            exercises = mapOf(key to exercise),
+            metadata = mapOf(key to RuntimeExerciseMetadataDefaults.forExercise(exercise)),
+            badmintonObjectives = emptyMap(),
+            profilePrimaryGoal = "GENERAL_FITNESS",
+            strengthTrainingYears = 0.0,
+            badmintonTrainingYears = 0.0,
+            preferences = PersonalizedPlanningPreferences()
+        )
+        val catalog = CanonicalCoreCatalog.of(listOf(CanonicalCoreProfile(key, CoreClass.DIRECT, CoreDirectTarget.BRACING)))
+        val owner = PlannedExercise(
+            stableKey = key,
+            role = "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT",
+            reason = "B4 residual",
+            priority = 100,
+            targetSets = 4
+        )
+
+        val result = RegionalTargetPrescriptionResolver().resolveCoreDirect(owner, snapshot, catalog, requestedSets = 4)
+        val prescription = requireNotNull(result.prescription)
+        assertEquals(4, prescription.sets.size)
+        assertTrue(prescription.sets.all { it.reps == 8 && it.seconds == 0 })
+        assertTrue(prescription.sets.all { it.targetRpeMin == null })
+        assertTrue(prescription.sets.all { it.loadState == ProgramLoadState.NOT_APPLICABLE })
+        assertTrue(prescription.text.contains("4 sets × 8 reps per side"))
+        assertTrue(result.reasonCodes.contains("B6_SET_COUNT_EQUALS_B4_RESIDUAL"))
+        assertNull(RegionalTargetPrescriptionResolver().resolveCoreDirect(owner, snapshot, catalog, requestedSets = 3).prescription)
+    }
+
+    @Test
+    fun coreDirectDurationRequiresExactPersonalHistoryAndDoesNotInventSeconds() {
+        val key = "static-core"
+        val date = LocalDate.of(2026, 9, 18)
+        val exercise = Exercise(
+            stableKey = key,
+            name = "Static hold",
+            category = "CORE",
+            mode = "맨몸, 시간",
+            equipment = "BODYWEIGHT"
+        )
+        val metadata = RuntimeExerciseMetadataDefaults.forExercise(exercise)
+        val catalog = CanonicalCoreCatalog.of(listOf(CanonicalCoreProfile(key, CoreClass.DIRECT, CoreDirectTarget.BRACING)))
+        fun snapshot(history: List<PlanningSetRecord>) = PlanningHistorySnapshot(
+            cutoff = date.plusDays(1), allConfirmedSets = history, exercises = mapOf(key to exercise),
+            metadata = mapOf(key to metadata), badmintonObjectives = emptyMap(), profilePrimaryGoal = "GENERAL_FITNESS",
+            strengthTrainingYears = 0.0, badmintonTrainingYears = 0.0, preferences = PersonalizedPlanningPreferences()
+        )
+        val owner = PlannedExercise(key, "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT", "B4 residual", 100, targetSets = 2)
+        val resolver = RegionalTargetPrescriptionResolver()
+        assertNull(resolver.resolveCoreDirect(owner, snapshot(emptyList()), catalog, 2).prescription)
+        val history = PlanningSetRecord(date, key, exercise.name, exercise.category, 1, 0, 0.0, 45, null)
+        val result = resolver.resolveCoreDirect(owner, snapshot(listOf(history)), catalog, 2)
+        val prescription = requireNotNull(result.prescription)
+        assertEquals(2, prescription.sets.size)
+        assertTrue(prescription.sets.all { it.reps == 0 && it.seconds == 45 })
+        assertTrue(prescription.sets.all { it.loadState == ProgramLoadState.NOT_APPLICABLE })
+        assertTrue(result.reasonCodes.contains("CORE_DIRECT_EXACT_PERSONAL_DURATION_REUSED"))
+    }
+
+    @Test
+    fun coreDirectUnknownExternalLoadRemainsUserCalibrationRequired() {
+        val key = "loaded-core"
+        val exercise = Exercise(
+            stableKey = key,
+            name = "Loaded carry",
+            category = "CORE",
+            mode = "맨몸, 좌우 횟수",
+            equipment = "DUMBBELL"
+        )
+        val snapshot = PlanningHistorySnapshot(
+            cutoff = LocalDate.of(2026, 9, 19), allConfirmedSets = emptyList(), exercises = mapOf(key to exercise),
+            metadata = mapOf(key to RuntimeExerciseMetadataDefaults.forExercise(exercise)), badmintonObjectives = emptyMap(),
+            profilePrimaryGoal = "GENERAL_FITNESS", strengthTrainingYears = 0.0, badmintonTrainingYears = 0.0,
+            preferences = PersonalizedPlanningPreferences()
+        )
+        val catalog = CanonicalCoreCatalog.of(listOf(CanonicalCoreProfile(key, CoreClass.DIRECT, CoreDirectTarget.BRACING)))
+        val owner = PlannedExercise(key, "CANONICAL_STIMULUS_MOVEMENT_CORE_DIRECT", "B4 residual", 100, targetSets = 3)
+        val result = RegionalTargetPrescriptionResolver().resolveCoreDirect(owner, snapshot, catalog, 3)
+        val prescription = requireNotNull(result.prescription)
+        assertEquals(3, prescription.sets.size)
+        assertTrue(prescription.sets.all {
+            it.weightKg == 0.0 && it.loadState == ProgramLoadState.USER_CALIBRATION_REQUIRED
+        })
+        assertTrue(result.reasonCodes.contains("USER_INPUT_REQUIRED_FOR_EXTERNAL_LOAD"))
+    }
+
+    @Test
+    fun requirementUsesBasePriorityAndKeepsUpperPullAsOneIntegratedRequirement() {
         val resolver = RegionalStrengthRequirementResolver()
         val result = resolver.resolve(NeedRelevance.HIGH, listOf(
             representation("LOWER_KNEE", RepresentationPriority.HIGH),
@@ -342,9 +776,26 @@ class RegionalAuthorityTest {
         ))
         assertEquals(NeedRelevance.HIGH, result[MovementCoverage.LOWER_KNEE])
         assertEquals(NeedRelevance.MODERATE, result[MovementCoverage.POSTERIOR_CHAIN])
-        assertEquals(NeedRelevance.HIGH, result[MovementCoverage.HORIZONTAL_PULL])
-        assertEquals(NeedRelevance.HIGH, result[MovementCoverage.VERTICAL_PULL])
+        assertEquals(NeedRelevance.HIGH, result[MovementCoverage.UPPER_PULL])
+        assertTrue(MovementCoverage.HORIZONTAL_PULL !in result)
+        assertTrue(MovementCoverage.VERTICAL_PULL !in result)
         assertTrue(MovementCoverage.VERTICAL_PUSH !in result)
+    }
+
+    @Test
+    fun horizontalAndVerticalPullRepresentationsShareOneStrengthRequirement() {
+        val resolver = RegionalStrengthRequirementResolver()
+        val representations = listOf(
+            representation("HORIZONTAL_PULL", RepresentationPriority.MODERATE),
+            representation("VERTICAL_PULL", RepresentationPriority.HIGH)
+        )
+        val resolved = resolver.resolve(NeedRelevance.HIGH, representations)
+        assertEquals(mapOf(MovementCoverage.UPPER_PULL to NeedRelevance.HIGH), resolved)
+        assertEquals(mapOf(MovementCoverage.UPPER_PULL to NeedRelevance.HIGH), resolver.resolve(
+            NeedRelevance.HIGH, representations, setOf(MovementCoverage.HORIZONTAL_PULL)
+        ))
+        assertEquals(0, resolver.resolve(NeedRelevance.HIGH, representations,
+            setOf(MovementCoverage.LOWER_KNEE)).size)
     }
 
     @Test

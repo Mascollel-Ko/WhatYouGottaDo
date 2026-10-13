@@ -6,25 +6,29 @@ import com.training.trackplanner.data.CanonicalIncumbentPlacementShadow
 import com.training.trackplanner.data.CanonicalIncumbentActivationStatus
 import com.training.trackplanner.data.CanonicalIncumbentPlacementPreservation
 
-/** Internal production policy; switch this single line to CONTROL_ONLY for emergency rollback. */
+/** Normal production always executes the independently validated canonical generator. */
 object StimulusProductionRoutingPolicy {
-    val defaultMode: StimulusProductionRoutingMode = StimulusProductionRoutingMode.B8_STRENGTH_HYPERTROPHY_V1_ACTIVE
+    val defaultMode: StimulusProductionRoutingMode = StimulusProductionRoutingMode.NEW_GENERATOR_ACTIVE
 }
 
 enum class StimulusProductionRoutingMode {
+    NEW_GENERATOR_ACTIVE,
     CONTROL_ONLY,
     B8_STRENGTH_V1_ACTIVE,
     B8_SINGLE_QUALITY_STRENGTH_HYPERTROPHY_V1_ACTIVE,
+    B8_POWER_JUMP_V1_ACTIVE,
     B8_STRENGTH_HYPERTROPHY_V1_ACTIVE
 }
 
 enum class StimulusProductionProgramSource {
+    NEW_GENERATOR,
     CONTROL,
     B8_STRENGTH_V1,
     B8_STRENGTH_CALIBRATION_V1,
     B8_HYPERTROPHY_V1,
     B8_STRENGTH_HYPERTROPHY_V1,
-    B8_BADMINTON_TASK_V1
+    B8_BADMINTON_TASK_V1,
+    B8_POWER_JUMP_V1
 }
 
 data class StimulusProductionRoutingDecision(
@@ -33,7 +37,9 @@ data class StimulusProductionRoutingDecision(
     val b8Status: StimulusProductionCutoverAuthorityStatus?,
     val b8Scope: StimulusProductionCutoverScope?,
     val reasonCodes: List<String>,
-    val productionRoutingActive: Boolean
+    val productionRoutingActive: Boolean,
+    /** Comparison-only status; it never grants or removes execution permission. */
+    val b7Status: StimulusExperimentalReadinessStatus? = null
 ) {
     init {
         require(reasonCodes == reasonCodes.distinct().sorted())
@@ -43,17 +49,20 @@ data class StimulusProductionRoutingDecision(
 }
 
 internal fun StimulusProductionRoutingMode.permits(source: StimulusProductionProgramSource): Boolean = when (this) {
-    StimulusProductionRoutingMode.CONTROL_ONLY -> false
+    StimulusProductionRoutingMode.NEW_GENERATOR_ACTIVE -> source == StimulusProductionProgramSource.NEW_GENERATOR
+    StimulusProductionRoutingMode.CONTROL_ONLY -> source == StimulusProductionProgramSource.CONTROL
     StimulusProductionRoutingMode.B8_STRENGTH_V1_ACTIVE -> source == StimulusProductionProgramSource.B8_STRENGTH_V1
     StimulusProductionRoutingMode.B8_SINGLE_QUALITY_STRENGTH_HYPERTROPHY_V1_ACTIVE ->
         source == StimulusProductionProgramSource.B8_STRENGTH_V1 ||
             source == StimulusProductionProgramSource.B8_HYPERTROPHY_V1
+    StimulusProductionRoutingMode.B8_POWER_JUMP_V1_ACTIVE -> source == StimulusProductionProgramSource.B8_POWER_JUMP_V1
     StimulusProductionRoutingMode.B8_STRENGTH_HYPERTROPHY_V1_ACTIVE ->
         source == StimulusProductionProgramSource.B8_STRENGTH_V1 ||
             source == StimulusProductionProgramSource.B8_STRENGTH_CALIBRATION_V1 ||
             source == StimulusProductionProgramSource.B8_HYPERTROPHY_V1 ||
             source == StimulusProductionProgramSource.B8_STRENGTH_HYPERTROPHY_V1 ||
-            source == StimulusProductionProgramSource.B8_BADMINTON_TASK_V1
+            source == StimulusProductionProgramSource.B8_BADMINTON_TASK_V1 ||
+            source == StimulusProductionProgramSource.B8_POWER_JUMP_V1
 }
 
 data class StimulusProductionRouteResult(
@@ -69,12 +78,17 @@ internal data class StimulusProductionGenerationResult(
     val buildCounts: StimulusProductionBuildCounts,
     val upstreamFailureReason: String? = null,
     val upstreamFailureDetails: List<String> = emptyList(),
+    val executionValidation: StimulusProductionExecutionValidation? = null,
+    /** B7/B8 diagnostic failure is independent of successful new-generator execution. */
+    val diagnosticFailureReason: String? = null,
     val incumbentPlacementShadow: CanonicalIncumbentPlacementShadow? = null,
     val incumbentPlacementActivationStatus: CanonicalIncumbentActivationStatus? = null,
     val incumbentPlacementPreservations: List<CanonicalIncumbentPlacementPreservation> = emptyList(),
     val incumbentPlacementActivationDetails: List<String> = emptyList(),
-    /** Typed unmet material demand survives an experimental fallback to CONTROL. */
+    /** Typed unmet material demand stays visible alongside the selected source. */
     val unresolvedMaterialDemandGaps: Set<String> = emptySet(),
+    /** Placement deferrals remain visible as separate, typed generation diagnostics. */
+    val deferredMaterialDemandGaps: Set<String> = emptySet(),
     /** Candidate authority recovery remains diagnostic and does not grant execution authority. */
     val materialDemandAuthorityResolutions: List<ExecutionAuthorityResolution> = emptyList(),
     /** Unmet Strength quality demand remains visible even if B9 safely returns CONTROL. */
@@ -82,7 +96,8 @@ internal data class StimulusProductionGenerationResult(
 ) {
     val diagnostics: StimulusProductionDiagnostics
         get() = StimulusProductionDiagnostics.observe(comparison, routeDecision, upstreamFailureReason).let {
-            it.copy(secondaryReasonCodes = (it.secondaryReasonCodes + upstreamFailureDetails).distinct().sorted())
+            it.copy(secondaryReasonCodes = (it.secondaryReasonCodes + upstreamFailureDetails +
+                executionValidation?.reasonCodes.orEmpty() + listOfNotNull(diagnosticFailureReason)).distinct().sorted())
         }
 }
 
@@ -136,107 +151,73 @@ internal class MutableStimulusProductionBuildCounts {
     )
 }
 
-/** Recognized failure boundary for the optional experimental/cutover branch after CONTROL exists. */
+/** Recognized failure boundary for an unexecutable canonical draft; it never selects CONTROL. */
 internal class StimulusProductionEvaluationFailure(
     val reasonCode: String,
     cause: Throwable? = null
 ) : RuntimeException(reasonCode, cause)
 
 /**
- * B9 only selects one of the already-built B6.2 programs. It has no builder, persistence,
- * Room, snapshot, or authority-engine access and therefore cannot create a hybrid or third plan.
+ * B9 reports the selected source. B7/B8 remain comparison-only metadata; the only normal
+ * executable source is the independently validated new generator. CONTROL is selectable only
+ * through the explicit CONTROL_ONLY diagnostic/rollback mode.
  */
 class StimulusProductionRouter {
+    internal fun selectExecutable(
+        program: GeneratedProgramSkeleton,
+        validation: StimulusProductionExecutionValidation,
+        mode: StimulusProductionRoutingMode = StimulusProductionRoutingMode.NEW_GENERATOR_ACTIVE,
+        readiness: StimulusExperimentalReadinessAudit? = null,
+        authority: StimulusProductionCutoverAuthorityDecision? = null
+    ): StimulusProductionRouteResult {
+        require(validation.executable) {
+            "NEW_GENERATOR_EXECUTION_REJECTED:${validation.reasonCodes.joinToString(",")}".take(500)
+        }
+        require(mode != StimulusProductionRoutingMode.CONTROL_ONLY) {
+            "CONTROL_ONLY_REQUIRES_AN_EXPLICIT_LEGACY_PROGRAM"
+        }
+        val reasons = buildList {
+            add("B9_NEW_GENERATOR_SELECTED")
+            readiness?.let { add("B7_DIAGNOSTIC_${it.status.name}") }
+            authority?.let { add("B8_DIAGNOSTIC_${it.status.name}") }
+        }.distinct().sorted()
+        val decision = StimulusProductionRoutingDecision(
+            mode = StimulusProductionRoutingMode.NEW_GENERATOR_ACTIVE,
+            selectedSource = StimulusProductionProgramSource.NEW_GENERATOR,
+            b8Status = authority?.status,
+            b8Scope = authority?.scope,
+            reasonCodes = reasons,
+            productionRoutingActive = true,
+            b7Status = readiness?.status
+        )
+        return StimulusProductionRouteResult(program, decision)
+    }
+
+    /**
+     * Comparison-only compatibility surface for B7/B8 diagnostics. It never gates EXP on
+     * provenance or scope. CONTROL is returned only when the caller explicitly requests
+     * CONTROL_ONLY; normal production uses [selectExecutable] after B1–B6 validation.
+     */
     fun route(
         comparison: StimulusSelectionProgramComparison,
         authority: StimulusProductionCutoverAuthorityDecision?,
         mode: StimulusProductionRoutingMode
     ): StimulusProductionRouteResult {
-        val fallbackReason = when {
-            mode == StimulusProductionRoutingMode.CONTROL_ONLY -> "B9_CONTROL_ONLY_POLICY"
-            authority == null -> "B9_B8_AUTHORITY_MISSING"
-            authority.status == StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED -> "B9_B8_CONTROL_REQUIRED"
-            authority.status == StimulusProductionCutoverAuthorityStatus.INCONCLUSIVE -> "B9_B8_INCONCLUSIVE"
-            authority.status == StimulusProductionCutoverAuthorityStatus.NO_MATERIAL_CHANGE -> "B9_B8_NO_MATERIAL_CHANGE"
-            authority.status != StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER ->
-                "B9_B8_CONTRACT_INCONSISTENCY"
-            authority.scope == StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1 &&
-                !mode.permits(StimulusProductionProgramSource.B8_STRENGTH_HYPERTROPHY_V1) ->
-                "B9_B8_COMBINED_SCOPE_NOT_ACTIVE"
-            authority.scope == StimulusProductionCutoverScope.BADMINTON_TASK_V1 &&
-                !mode.permits(StimulusProductionProgramSource.B8_BADMINTON_TASK_V1) -> "B9_B8_TASK_SCOPE_NOT_ACTIVE"
-            authority.scope !in setOf(
-                StimulusProductionCutoverScope.STRENGTH_V1,
-                StimulusProductionCutoverScope.STRENGTH_CALIBRATION_V1,
-                StimulusProductionCutoverScope.HYPERTROPHY_V1,
-                StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1,
-                StimulusProductionCutoverScope.BADMINTON_TASK_V1
-            ) -> "B9_B8_SCOPE_MISMATCH"
-            !mode.permits(sourceForScope(authority.scope)) -> "B9_B8_SCOPE_MISMATCH"
-            authority.authorizedOwnerIdentities.isEmpty() -> "B9_B8_EMPTY_AUTHORIZED_OWNER_SET"
-            authority.authorizedOwnerIdentities.size != authority.authorizedOwnerIdentities.distinct().size ->
-                "B9_B8_AUTHORITY_IDENTITY_MISMATCH"
-            authority.authorizedAuthorityIdentities.size != authority.authorizedAuthorityIdentities.distinct().size ->
-                "B9_B8_AUTHORITY_IDENTITY_MISMATCH"
-            authority.authorizedAuthorityIdentities.toSet() != expectedAuthorityIdentities(comparison, authority) ->
-                "B9_B8_AUTHORITY_IDENTITY_MISMATCH"
-            authority.scope == StimulusProductionCutoverScope.BADMINTON_TASK_V1 &&
-                authority.authorizedTaskProtocolIdentities.isEmpty() -> "B9_B8_TASK_AUTHORITY_IDENTITY_MISMATCH"
-            authority.authorizedTaskProtocolIdentities.size != authority.authorizedTaskProtocolIdentities.distinct().size ->
-                "B9_B8_TASK_AUTHORITY_IDENTITY_MISMATCH"
-            authority.scope == StimulusProductionCutoverScope.BADMINTON_TASK_V1 &&
-                authority.authorizedTaskProtocolIdentities.toSet() != expectedTaskProtocolIdentities(comparison) ->
-                "B9_B8_TASK_AUTHORITY_IDENTITY_MISMATCH"
-            authority.scope != StimulusProductionCutoverScope.BADMINTON_TASK_V1 &&
-                authority.authorizedTaskProtocolIdentities.isNotEmpty() -> "B9_B8_TASK_AUTHORITY_IDENTITY_MISMATCH"
-            authority.scope == StimulusProductionCutoverScope.BADMINTON_TASK_V1 &&
-                authority.authorizedOwnerIdentities.toSet() != authority.authorizedTaskProtocolIdentities.map {
-                    StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole)
-                }.toSet() -> "B9_B8_TASK_AUTHORITY_IDENTITY_MISMATCH"
-            authority.scope == StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1 &&
-                authority.authorizedAuthorityIdentities.any { it.quality !in setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY) } ->
-                "B9_B8_AUTHORITY_IDENTITY_MISMATCH"
-            authority.scope == StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1 &&
-                authority.authorizedAuthorityIdentities.map { it.quality }.toSet() !=
-                    setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY) ->
-                "B9_B8_AUTHORITY_IDENTITY_MISMATCH"
-            authority.scope == StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1 &&
-                combinedHasUnsupportedAttributionQuality(comparison) ->
-                "B9_B8_AUTHORITY_IDENTITY_MISMATCH"
-            authority.scope == StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1 &&
-                combinedAuthorityHasFailedUpstreamQuality(comparison, authority) ->
-                "B9_B8_AUTHORITY_IDENTITY_MISMATCH"
-            authority.scope == StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1 &&
-                comparison.prescriptionAuthorizationPlan?.conflictingOwners.orEmpty().any { owner ->
-                    owner in authority.authorizedOwnerIdentities
-                } ->
-                "B9_B8_AUTHORITY_IDENTITY_MISMATCH"
-            authority.b7Status != StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW ->
-                "B9_B8_CONTRACT_INCONSISTENCY"
-            authority.routingActive || authority.productionMutationAuthority -> "B9_B8_CONTRACT_INCONSISTENCY"
-            else -> null
+        if (mode == StimulusProductionRoutingMode.CONTROL_ONLY) {
+            return control(comparison, mode, authority, "B9_EXPLICIT_CONTROL_ONLY_MODE")
         }
-        if (fallbackReason != null) {
-            return control(comparison, mode, authority, fallbackReason)
-        }
-        val source = sourceForScope(requireNotNull(authority).scope)
         val decision = StimulusProductionRoutingDecision(
-            mode = mode,
-            selectedSource = source,
+            mode = StimulusProductionRoutingMode.NEW_GENERATOR_ACTIVE,
+            selectedSource = StimulusProductionProgramSource.NEW_GENERATOR,
             b8Status = authority?.status,
             b8Scope = authority?.scope,
-            reasonCodes = listOf(
-                when (source) {
-                    StimulusProductionProgramSource.B8_STRENGTH_V1 -> "B9_B8_STRENGTH_V1_ROUTED"
-                    StimulusProductionProgramSource.B8_STRENGTH_CALIBRATION_V1 -> "B9_B8_STRENGTH_CALIBRATION_V1_ROUTED"
-                    StimulusProductionProgramSource.B8_HYPERTROPHY_V1 -> "B9_B8_HYPERTROPHY_V1_ROUTED"
-                    StimulusProductionProgramSource.B8_STRENGTH_HYPERTROPHY_V1 ->
-                        "B9_B8_STRENGTH_HYPERTROPHY_V1_ROUTED"
-                    StimulusProductionProgramSource.B8_BADMINTON_TASK_V1 -> "B9_B8_BADMINTON_TASK_V1_ROUTED"
-                    StimulusProductionProgramSource.CONTROL -> "B9_B8_CONTROL_REQUIRED"
-                }
-            ),
-            productionRoutingActive = true
+            reasonCodes = buildList {
+                add("B9_NEW_GENERATOR_SELECTED")
+                comparison.experimentalReadinessAudit?.let { add("B7_DIAGNOSTIC_${it.status.name}") }
+                authority?.let { add("B8_DIAGNOSTIC_${it.status.name}") }
+            }.distinct().sorted(),
+            productionRoutingActive = true,
+            b7Status = comparison.experimentalReadinessAudit?.status
         )
         return StimulusProductionRouteResult(comparison.experimental, decision)
     }
@@ -253,13 +234,15 @@ class StimulusProductionRouter {
             b8Status = authority?.status,
             b8Scope = authority?.scope,
             reasonCodes = listOf(reason).sorted(),
-            productionRoutingActive = false
+            productionRoutingActive = false,
+            b7Status = comparison.experimentalReadinessAudit?.status
         )
         return StimulusProductionRouteResult(comparison.control, decision)
     }
 
     private fun sourceForScope(scope: StimulusProductionCutoverScope): StimulusProductionProgramSource = when (scope) {
         StimulusProductionCutoverScope.BADMINTON_TASK_V1 -> StimulusProductionProgramSource.B8_BADMINTON_TASK_V1
+        StimulusProductionCutoverScope.POWER_JUMP_V1 -> StimulusProductionProgramSource.B8_POWER_JUMP_V1
         StimulusProductionCutoverScope.STRENGTH_V1 -> StimulusProductionProgramSource.B8_STRENGTH_V1
         StimulusProductionCutoverScope.STRENGTH_CALIBRATION_V1 -> StimulusProductionProgramSource.B8_STRENGTH_CALIBRATION_V1
         StimulusProductionCutoverScope.HYPERTROPHY_V1 -> StimulusProductionProgramSource.B8_HYPERTROPHY_V1
@@ -281,6 +264,7 @@ class StimulusProductionRouter {
             StimulusPrescriptionAuthorityIdentity(it.stableKey, it.selectionRole, TrainableQuality.HYPERTROPHY)
         }.toSet()
         StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1 -> combinedExpectedAuthorityIdentities(comparison)
+        StimulusProductionCutoverScope.POWER_JUMP_V1 -> powerJumpExpectedAuthorityIdentities(comparison)
     }
 
     private fun expectedTaskProtocolIdentities(
@@ -325,6 +309,34 @@ class StimulusProductionRouter {
             }
             .toSet()
     }
+
+    private fun powerJumpExpectedAuthorityIdentities(
+        comparison: StimulusSelectionProgramComparison
+    ): Set<StimulusPrescriptionAuthorityIdentity> {
+        val materialOwners = materialOwnerIdentities(comparison)
+        return comparison.experimentalReadinessAudit?.changeAttributions.orEmpty().asSequence()
+            .filter { attribution -> attribution.source == StimulusExperimentalChangeAttributionSource.B6_APPROVED_POWER_JUMP_POLICY ||
+                attribution.source == StimulusExperimentalChangeAttributionSource.B6_COLD_START_USER_CALIBRATION }
+            .filter { attribution -> attribution.stableKey != null && attribution.selectionRole != null &&
+                StimulusPrescriptionOwnerIdentity(attribution.stableKey, attribution.selectionRole) in materialOwners }
+            .flatMap { attribution ->
+                val quality = when (attribution.targetIds.singleOrNull()) {
+                    "QUALITY:POWER" -> TrainableQuality.POWER
+                    "QUALITY:REACTIVE_STRENGTH_SSC" -> TrainableQuality.REACTIVE_STRENGTH_SSC
+                    else -> null
+                }
+                listOfNotNull(quality?.let { StimulusPrescriptionAuthorityIdentity(
+                    requireNotNull(attribution.stableKey), requireNotNull(attribution.selectionRole), it
+                ) }).asSequence()
+            }.toSet()
+    }
+
+    private fun expectedMovementTargetOwnerIdentities(
+        comparison: StimulusSelectionProgramComparison
+    ): Set<StimulusMovementTargetOwnerIdentity> =
+        StimulusProductionMovementScopeEvidence.exactMovementTargetOwnerIdentities(
+            comparison, materialOwnerIdentities(comparison)
+        )
 
     private fun combinedAuthorityHasFailedUpstreamQuality(
         comparison: StimulusSelectionProgramComparison,
@@ -388,6 +400,7 @@ class StimulusProductionRouter {
             StimulusExperimentalChangeAttributionSource.B6_EXISTING_OWNER_PRESCRIPTION,
             StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION,
             StimulusExperimentalChangeAttributionSource.B6_COLD_START_USER_CALIBRATION,
+            StimulusExperimentalChangeAttributionSource.B6_APPROVED_POWER_JUMP_POLICY,
             StimulusExperimentalChangeAttributionSource.B6_APPROVED_TASK_PROTOCOL
         )
     }
@@ -398,14 +411,11 @@ class StimulusProductionRouter {
  * deliberately conservative: it never probes B8 policies and it ignores reused/conflict-only
  * rows that were not materially executed.
  */
-class StimulusProductionMaterialScopeResolver {
-    /** Diagnostic companion; [resolve] remains the unchanged production scope contract. */
-    fun resolveDetailed(comparison: StimulusSelectionProgramComparison): StimulusProductionScopeResolution =
-        observeProductionScope(comparison, resolve(comparison))
-
-    fun resolve(comparison: StimulusSelectionProgramComparison): StimulusProductionCutoverScope? {
-        val audit = comparison.experimentalReadinessAudit ?: return null
-        val materialOwners = buildSet {
+/** Reuses typed B4/B5/B6 movement evidence; it does not infer authority from exercise similarity. */
+internal object StimulusProductionMovementScopeEvidence {
+    /** Exact owners whose rows are added or changed in EXP; removed CONTROL rows are checked by B7 replacement evidence. */
+    fun materialOwnerIdentities(comparison: StimulusSelectionProgramComparison): Set<StimulusPrescriptionOwnerIdentity> =
+        buildSet {
             addAll(comparison.addedOwnerIdentities)
             comparison.sharedOwnerIdentities.forEach { identity ->
                 val controlRows = comparison.control.items.filter {
@@ -417,6 +427,262 @@ class StimulusProductionMaterialScopeResolver {
                 if (controlRows != experimentalRows) add(identity)
             }
         }
+
+    /** B7 exact edge supplied only after its keep-plan and replacement B5/B6 proof succeeds. */
+    fun exactUserApprovedReplacementControlOwners(
+        comparison: StimulusSelectionProgramComparison
+    ): Set<StimulusPrescriptionOwnerIdentity> {
+        val b7 = comparison.experimentalReadinessAudit ?: return emptySet()
+        if (b7.status != StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW ||
+            !b7.changeProvenanceClosed
+        ) return emptySet()
+        val attributed = b7.changeAttributions.filter {
+            it.source == StimulusExperimentalChangeAttributionSource.USER_APPROVED_EXACT_EXERCISE_REPLACEMENT
+        }
+        return b7.userApprovedReplacementEdges.mapNotNullTo(linkedSetOf()) { edge ->
+            val old = edge.displacedControlOwner
+            val replacement = edge.replacementOwner
+            val attribution = attributed.singleOrNull {
+                it.stableKey == old.stableKey && it.selectionRole == old.selectionRole &&
+                    it.targetIds == listOf(edge.targetId) && it.replacementOwner == replacement &&
+                    it.replacementEvidenceId == edge.optionId
+            } ?: return@mapNotNullTo null
+            val weeks = edge.controlRows.mapTo(sortedSetOf()) { it.weekNumber }
+            if (old !in comparison.removedOwnerIdentities || replacement !in comparison.addedOwnerIdentities ||
+                edge.controlRows != comparison.control.items.filter {
+                    it.exerciseStableKey == old.stableKey && it.selectionRole == old.selectionRole
+                } || edge.replacementRows != comparison.experimental.items.filter {
+                    it.exerciseStableKey == replacement.stableKey && it.selectionRole == replacement.selectionRole && it.weekNumber in weeks
+                } || !hasExactB5ReplacementOwner(comparison, edge.targetId, replacement) ||
+                !hasExactReplacementB6(comparison, edge.targetId, replacement)
+            ) return@mapNotNullTo null
+            // Keep a local reference so malformed duplicate attribution cannot be optimized away.
+            attribution.takeIf { edge.targetId.isNotBlank() }?.let { old }
+        }
+    }
+
+    private fun hasExactB5ReplacementOwner(
+        comparison: StimulusSelectionProgramComparison,
+        targetId: String,
+        owner: StimulusPrescriptionOwnerIdentity
+    ): Boolean = comparison.selectionPlan.selectedCandidates.singleOrNull {
+        it.stableKey == owner.stableKey && it.selectionRole == owner.selectionRole &&
+            it.primaryTargetId == targetId && targetId in it.coveredTargetIds
+    } != null && comparison.selectionPlan.traces.any {
+        it.targetId == targetId && it.selectedStableKey == owner.stableKey && it.selectedSelectionRole == owner.selectionRole
+    }
+
+    private fun hasExactReplacementB6(
+        comparison: StimulusSelectionProgramComparison,
+        targetId: String,
+        owner: StimulusPrescriptionOwnerIdentity
+    ): Boolean {
+        if (targetId.startsWith("MOVEMENT:")) return hasExactExecutableB6(comparison, targetId, owner)
+        val quality = TrainableQuality.entries.singleOrNull { targetId == "QUALITY:${it.name}" }
+        if (quality != null) {
+            val authorization = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().singleOrNull {
+                it.targetId == targetId && it.quality == quality &&
+                    it.owner?.let { candidate -> candidate.stableKey == owner.stableKey && candidate.selectionRole == owner.selectionRole } == true &&
+                    it.authorizedPrescription != null && it.status in setOf(
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
+                        StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION
+                    )
+            } ?: return false
+            val rows = comparison.experimental.items.filter {
+                it.exerciseStableKey == owner.stableKey && it.selectionRole == owner.selectionRole
+            }
+            return rows.isNotEmpty() && validateAuthorizedWeeklySubset(
+                rows, requireNotNull(authorization.authorizedPrescription), owner.stableKey, owner.selectionRole
+            ).valid && comparison.prescriptionMaterializationAudits.any {
+                it.targetId == targetId && it.quality == quality &&
+                    it.owner?.let { candidate -> candidate.stableKey == owner.stableKey && candidate.selectionRole == owner.selectionRole } == true &&
+                    it.state == StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED && it.shortfall == 0 && it.overrun == 0
+            }
+        }
+        return targetId.startsWith("TASK:") && taskProtocolMetadataForOwner(comparison.experimental, owner).any { metadata ->
+            metadata.authorization.attributedTasks.any { "TASK:${it.name}" == targetId } &&
+                ApprovedBadmintonTaskProtocols.exact(owner.stableKey, owner.selectionRole, metadata.authorization.definition.primaryTask) ==
+                    metadata.authorization.definition
+        }
+    }
+
+    /** A material quality target must be backed by that exact owner's executable B6 rows. */
+    fun missingExactQualityTargetAuthorities(
+        comparison: StimulusSelectionProgramComparison
+    ): Set<StimulusOwnerTargetAuthorityGap> {
+        val materialOwners = materialOwnerIdentities(comparison)
+        return comparison.experimentalReadinessAudit?.changeAttributions.orEmpty()
+        .asSequence()
+        .filter { it.source in setOf(
+            StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY,
+            StimulusExperimentalChangeAttributionSource.B6_EXISTING_OWNER_PRESCRIPTION,
+            StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION,
+            StimulusExperimentalChangeAttributionSource.B6_COLD_START_USER_CALIBRATION
+        ) && it.stableKey != null && it.selectionRole != null &&
+            StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) in materialOwners }
+        .flatMap { attribution ->
+            val owner = StimulusPrescriptionOwnerIdentity(requireNotNull(attribution.stableKey), requireNotNull(attribution.selectionRole))
+            attribution.targetIds.asSequence().mapNotNull { targetId ->
+                val isBoundedQuality = targetId == "QUALITY:STRENGTH" || targetId == "QUALITY:HYPERTROPHY"
+                val b5Missing = attribution.source == StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY &&
+                    !hasExactB5ReplacementOwner(comparison, targetId, owner)
+                when {
+                    !isBoundedQuality -> null
+                    b5Missing -> StimulusOwnerTargetAuthorityGap(owner, targetId, "EXACT_B5_OWNER_TARGET_CHAIN_MISSING")
+                    !hasExactReplacementB6(comparison, targetId, owner) ->
+                        StimulusOwnerTargetAuthorityGap(owner, targetId, "EXACT_B6_PRESCRIPTION_OR_MATERIALIZATION_MISSING")
+                    else -> null
+                }
+            }
+        }
+        .toSet()
+    }
+
+    fun hasExactExecutableB6(
+        comparison: StimulusSelectionProgramComparison,
+        targetId: String,
+        owner: StimulusPrescriptionOwnerIdentity
+    ): Boolean {
+        val target = comparison.targetPlan.movementTargets.singleOrNull { it.targetId == targetId } ?: return false
+        val b5 = comparison.selectionPlan.selectedCandidates.singleOrNull {
+            it.stableKey == owner.stableKey && it.selectionRole == owner.selectionRole &&
+                targetId in it.coveredTargetIds && it.primaryTargetId == targetId
+        } ?: return false
+        if (comparison.selectionPlan.traces.none { it.targetId == targetId &&
+                it.selectedStableKey == owner.stableKey && it.selectedSelectionRole == owner.selectionRole } || b5.selectionRole.isBlank()) return false
+        val dose = target.regionalDoseTargets.singleOrNull { dose ->
+            dose.kind in setOf(StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET,
+                StimulusMovementDoseKind.CORE_DIRECT_CONTROL_SET)
+        } ?: return false
+        val units = dose.authorizedWholeSetUnits ?: return false
+        if (units <= 0 || dose.weeklyTarget == null || dose.residualEquivalentExposure?.let { it.isFinite() && it > 0.0 } != true ||
+            dose.numericAuthority !in setOf(StimulusTargetNumericAuthority.PERSONAL_SUCCESSFUL_DOSE,
+                StimulusTargetNumericAuthority.PERSONAL_RESTORE_BASELINE,
+                StimulusTargetNumericAuthority.USER_APPROVED_PROJECT_POLICY) ||
+            target.targetId in comparison.targetPlan.unresolved) return false
+        val b6 = comparison.prescriptionAuthorizationPlan?.movementAuthorizations.orEmpty().singleOrNull {
+            it.targetId == targetId && it.owner == owner && it.status in setOf(
+                StimulusMovementB6Status.AUTHORIZED_REGIONAL_HYPERTROPHY_B6,
+                StimulusMovementB6Status.AUTHORIZED_CORE_DIRECT_B6
+            )
+        } ?: return false
+        if (b6.status == StimulusMovementB6Status.AUTHORIZED_REGIONAL_HYPERTROPHY_B6) {
+            val authorization = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().singleOrNull {
+                it.targetId == targetId && it.quality == TrainableQuality.HYPERTROPHY &&
+                    it.owner?.let { row -> row.stableKey == owner.stableKey && row.selectionRole == owner.selectionRole } == true
+            } ?: return false
+            val materialization = comparison.prescriptionMaterializationAudits.singleOrNull {
+                it.targetId == targetId && it.quality == TrainableQuality.HYPERTROPHY && it.owner?.let { row ->
+                    row.stableKey == owner.stableKey && row.selectionRole == owner.selectionRole
+                } == true
+            }
+            val expectedWeeks = comparison.experimental.request.durationWeeks.coerceAtLeast(1)
+            return dose.kind == StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET &&
+                authorization.authorizedPrescription?.sets?.size == units &&
+                authorization.source == StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE &&
+                authorization.status in setOf(StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_SAFE_REPAIR,
+                    StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION) &&
+                authorization.executionAuthority in setOf(StimulusPrescriptionExecutionAuthority.FULLY_ENCODED,
+                    StimulusPrescriptionExecutionAuthority.REQUIRES_USER_LOAD_INPUT) &&
+                "B6_CONSUMED_EXACT_B4_REGIONAL_RESIDUAL" in b6.reasonCodes
+                && materialization?.state == StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED &&
+                materialization.authorizedWeeklySetUnits == units && materialization.materializedWeeklySetUnits == units &&
+                materialization.targetCompatibleMaterializedUnits == units && materialization.shortfall == 0 &&
+                materialization.overrun == 0 && materialization.weeklyAudits.size == expectedWeeks &&
+                materialization.weeklyAudits.all { it.authorizedSetUnits == units && it.materializedSetUnits == units &&
+                    it.targetCompatibleMaterializedUnits == units && it.shortfall == 0 && it.overrun == 0 &&
+                    it.prescriptionPreservedOrSubset }
+        }
+        val authorization = comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().singleOrNull {
+            it.targetId == targetId && it.quality == null &&
+                it.owner?.let { row -> row.stableKey == owner.stableKey && row.selectionRole == owner.selectionRole } == true
+        } ?: return false
+        val ownerPrescription = comparison.prescriptionAuthorizationPlan?.movementOwnerPrescriptions?.get(owner)
+        val materialization = comparison.prescriptionMaterializationAudits.singleOrNull {
+            it.targetId == targetId && it.quality == null && it.owner?.let { row ->
+                row.stableKey == owner.stableKey && row.selectionRole == owner.selectionRole
+            } == true
+        }
+        val expectedWeeks = comparison.experimental.request.durationWeeks.coerceAtLeast(1)
+        return dose.kind == StimulusMovementDoseKind.CORE_DIRECT_CONTROL_SET && ownerPrescription != null &&
+            authorization.authorizedPrescription == ownerPrescription && ownerPrescription.sets.size == units &&
+            authorization.source == StimulusPrescriptionAuthorizationSource.B5_SELECTION_PROBE &&
+            authorization.status in setOf(StimulusPrescriptionAuthorizationStatus.AUTHORIZED_EXISTING_COMPATIBLE,
+                StimulusPrescriptionAuthorizationStatus.AUTHORIZED_COLD_START_USER_CALIBRATION) &&
+            "B6_CONSUMED_EXACT_B4_CORE_DIRECT_RESIDUAL" in b6.reasonCodes &&
+            materialization?.state == StimulusPrescriptionMaterializationState.FULLY_MATERIALIZED &&
+            materialization.authorizedWeeklySetUnits == units && materialization.materializedWeeklySetUnits == units &&
+            materialization.targetCompatibleMaterializedUnits == units && materialization.shortfall == 0 &&
+            materialization.overrun == 0 && materialization.weeklyAudits.size == expectedWeeks &&
+            materialization.weeklyAudits.all { it.authorizedSetUnits == units && it.materializedSetUnits == units &&
+                it.targetCompatibleMaterializedUnits == units && it.shortfall == 0 && it.overrun == 0 &&
+                it.prescriptionPreservedOrSubset }
+    }
+
+    fun exactMovementTargetOwnerIdentities(
+        comparison: StimulusSelectionProgramComparison,
+        materialOwners: Set<StimulusPrescriptionOwnerIdentity>
+    ): Set<StimulusMovementTargetOwnerIdentity> =
+        comparison.experimentalReadinessAudit?.changeAttributions.orEmpty().asSequence()
+            .filter { attribution -> attribution.source == StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY &&
+                attribution.stableKey != null && attribution.selectionRole != null && attribution.targetIds.size == 1 &&
+                attribution.targetIds.single().startsWith("MOVEMENT:") }
+            .mapNotNull { attribution ->
+                val owner = StimulusPrescriptionOwnerIdentity(requireNotNull(attribution.stableKey), requireNotNull(attribution.selectionRole))
+                val targetId = attribution.targetIds.single()
+                if (owner in materialOwners && hasExactExecutableB6(comparison, targetId, owner)) {
+                    StimulusMovementTargetOwnerIdentity(targetId, owner.stableKey, owner.selectionRole)
+                } else null
+            }.toSet()
+
+    fun exactSameExerciseRoleReplacements(
+        comparison: StimulusSelectionProgramComparison,
+        executableReplacementOwners: Set<StimulusPrescriptionOwnerIdentity>
+    ): Set<StimulusPrescriptionOwnerIdentity> {
+        val b7 = comparison.experimentalReadinessAudit ?: return emptySet()
+        return b7.changeAttributions.asSequence()
+            .filter { it.source == StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY &&
+                "B5_CANONICAL_OWNER_REPLACED_CONTROL_ROLE" in it.reasonCodes &&
+                it.stableKey != null && it.selectionRole != null }
+            .mapNotNull { attribution ->
+                val old = StimulusPrescriptionOwnerIdentity(requireNotNull(attribution.stableKey), requireNotNull(attribution.selectionRole))
+                val targets = attribution.targetIds.toSet().takeIf { values ->
+                    values.isNotEmpty() && values.all { it.startsWith("MOVEMENT:") }
+                }.orEmpty()
+                val replacement = executableReplacementOwners.singleOrNull { candidate ->
+                    candidate.stableKey == old.stableKey && candidate != old && candidate in comparison.addedOwnerIdentities &&
+                        targets.isNotEmpty() && targets.all { targetId ->
+                            targetId in comparison.selectionPlan.selectedCandidates.singleOrNull {
+                                it.stableKey == candidate.stableKey && it.selectionRole == candidate.selectionRole
+                            }?.coveredTargetIds.orEmpty() && hasExactExecutableB6(comparison, targetId, candidate)
+                        }
+                }
+                old.takeIf { old in comparison.removedOwnerIdentities && replacement != null }
+            }.toSet()
+    }
+}
+
+class StimulusProductionMaterialScopeResolver {
+    /** Diagnostic companion; [resolve] remains the unchanged production scope contract. */
+    fun resolveDetailed(comparison: StimulusSelectionProgramComparison): StimulusProductionScopeResolution {
+        val missingExactTargetAuthority = StimulusProductionMovementScopeEvidence.missingExactQualityTargetAuthorities(comparison)
+        val observed = observeProductionScope(comparison, resolve(comparison))
+        if (missingExactTargetAuthority.isEmpty()) return observed
+        return observed.copy(
+            status = if (observed.status == StimulusProductionScopeResolutionStatus.AMBIGUOUS_MATERIAL_SCOPE) {
+                StimulusProductionScopeResolutionStatus.UNAUTHORIZED_TARGET_AUTHORITY
+            } else observed.status,
+            reasonCodes = (observed.reasonCodes + "EXACT_B6_TARGET_AUTHORITY_MISSING" +
+                missingExactTargetAuthority.map(StimulusOwnerTargetAuthorityGap::reasonCode)).distinct().sorted(),
+            unauthorizedOwnerTargetAuthorities = missingExactTargetAuthority
+        )
+    }
+
+    fun resolve(comparison: StimulusSelectionProgramComparison): StimulusProductionCutoverScope? {
+        val audit = comparison.experimentalReadinessAudit ?: return null
+        val materialOwners = StimulusProductionMovementScopeEvidence.materialOwnerIdentities(comparison)
         if (materialOwners.isEmpty()) return null
 
         val materialSources = setOf(
@@ -424,7 +690,8 @@ class StimulusProductionMaterialScopeResolver {
             StimulusExperimentalChangeAttributionSource.B6_EXISTING_OWNER_PRESCRIPTION,
             StimulusExperimentalChangeAttributionSource.B6_SAFE_REPAIRED_PRESCRIPTION,
             StimulusExperimentalChangeAttributionSource.B6_COLD_START_USER_CALIBRATION,
-            StimulusExperimentalChangeAttributionSource.B6_APPROVED_TASK_PROTOCOL
+            StimulusExperimentalChangeAttributionSource.B6_APPROVED_TASK_PROTOCOL,
+            StimulusExperimentalChangeAttributionSource.B6_APPROVED_POWER_JUMP_POLICY
         )
         val attributions = audit.changeAttributions.filter { attribution ->
             attribution.source in materialSources &&
@@ -442,6 +709,11 @@ class StimulusProductionMaterialScopeResolver {
 
         val targetIds = attributions.flatMap { it.targetIds }
         if (targetIds.isEmpty()) return null
+        if (StimulusProductionMovementScopeEvidence.missingExactQualityTargetAuthorities(comparison).isNotEmpty()) return null
+        val exactMovementOwners = StimulusProductionMovementScopeEvidence.exactMovementTargetOwnerIdentities(
+            comparison, materialOwners
+        )
+        val exactMovementTargetIds = exactMovementOwners.mapTo(linkedSetOf()) { it.targetId }
         val governedTargetIds = comparison.targetPlan.qualityTargets.mapTo(linkedSetOf()) { "QUALITY:${it.quality.name}" }
             .apply { addAll(comparison.targetPlan.taskTargets.map { "TASK:${it.task}" }) }
             .apply {
@@ -461,11 +733,43 @@ class StimulusProductionMaterialScopeResolver {
                     }
                 }.forEach { add(it.targetId) }
             }
+            .apply { addAll(exactMovementTargetIds) }
         if (targetIds.any { it !in governedTargetIds }) return null
+        val powerJumpTargetIds = setOf("QUALITY:POWER", "QUALITY:REACTIVE_STRENGTH_SSC")
+        val governedTaskIds = comparison.targetPlan.taskTargets.mapTo(linkedSetOf()) { "TASK:${it.task}" }
+        if (targetIds.any { it in powerJumpTargetIds } &&
+            targetIds.all { it in powerJumpTargetIds || it in governedTaskIds || it in exactMovementTargetIds } && attributions.groupBy {
+                StimulusPrescriptionOwnerIdentity(requireNotNull(it.stableKey), requireNotNull(it.selectionRole))
+            }.let { byOwner ->
+                byOwner.keys == materialOwners && byOwner.values.all { ownerAttributions ->
+                    ownerAttributions.size == 1 && ownerAttributions.single().targetIds.size == 1 &&
+                        when (ownerAttributions.single().targetIds.single()) {
+                            in powerJumpTargetIds -> ownerAttributions.single().source in setOf(
+                                StimulusExperimentalChangeAttributionSource.B6_APPROVED_POWER_JUMP_POLICY,
+                                StimulusExperimentalChangeAttributionSource.B6_COLD_START_USER_CALIBRATION
+                            )
+                            in governedTaskIds -> ownerAttributions.single().source ==
+                                StimulusExperimentalChangeAttributionSource.B6_APPROVED_TASK_PROTOCOL
+                            in exactMovementTargetIds -> ownerAttributions.single().source ==
+                                StimulusExperimentalChangeAttributionSource.B5_SELECTED_IDENTITY &&
+                                StimulusProductionMovementScopeEvidence.hasExactExecutableB6(comparison,
+                                    ownerAttributions.single().targetIds.single(),
+                                    StimulusPrescriptionOwnerIdentity(requireNotNull(ownerAttributions.single().stableKey),
+                                        requireNotNull(ownerAttributions.single().selectionRole)))
+                            else -> false
+                        }
+                }
+            } && (comparison.removedOwnerIdentities - (
+                StimulusProductionMovementScopeEvidence.exactSameExerciseRoleReplacements(
+                    comparison, exactMovementOwners.mapTo(linkedSetOf()) { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }
+                ) + StimulusProductionMovementScopeEvidence.exactUserApprovedReplacementControlOwners(comparison)
+            )).isEmpty()) return StimulusProductionCutoverScope.POWER_JUMP_V1
         val targetQualities = targetIds.mapNotNull { targetId ->
             when (targetId) {
                 "QUALITY:STRENGTH" -> com.training.trackplanner.data.TrainableQuality.STRENGTH
                 "QUALITY:HYPERTROPHY" -> com.training.trackplanner.data.TrainableQuality.HYPERTROPHY
+            "QUALITY:POWER" -> com.training.trackplanner.data.TrainableQuality.POWER
+            "QUALITY:REACTIVE_STRENGTH_SSC" -> com.training.trackplanner.data.TrainableQuality.REACTIVE_STRENGTH_SSC
                 else -> targetId.takeIf { regionalHypertrophyTarget(comparison, it) }
                     ?.let { com.training.trackplanner.data.TrainableQuality.HYPERTROPHY }
             }

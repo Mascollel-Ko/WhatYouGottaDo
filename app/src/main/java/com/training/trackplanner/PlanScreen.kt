@@ -76,6 +76,7 @@ import com.training.trackplanner.data.personalized.PersonalizedGenerationConstra
 import com.training.trackplanner.data.personalized.PersonalizedPlanningPreflight
 import com.training.trackplanner.localization.localizedProgramName
 import java.time.LocalDate
+import java.util.UUID
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -105,7 +106,8 @@ internal fun PersonalizedPlanningQuestionDialog(
     answers: Map<String, String>,
     onAnswer: (String, String) -> Unit,
     onGenerate: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onExportTrace: (() -> Unit)? = null
 ) {
     var submitted by remember { mutableStateOf(false) }
     AlertDialog(
@@ -145,7 +147,12 @@ internal fun PersonalizedPlanningQuestionDialog(
                 question.options.any { it.value == answers[question.id] && it.value != "UNRESOLVED" }
             }) { Text("이 답변으로 생성") }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("취소") } }
+        dismissButton = {
+            Row {
+                if (onExportTrace != null) TextButton(onClick = onExportTrace) { Text("생성 진단 내보내기") }
+                TextButton(onClick = onDismiss) { Text("취소") }
+            }
+        }
     )
 }
 
@@ -409,6 +416,7 @@ private fun ProgramEditorScreen(
     var legacyAutoDraft by remember(program?.id) { mutableStateOf<LegacyAutoSkeleton?>(null) }
     var legacyProgressionDraft by remember(program?.id) { mutableStateOf(LegacyProgressionDraft()) }
     val hasDraftItems = legacyAutoDraft?.items?.isNotEmpty() == true || personalizedDraft?.items?.isNotEmpty() == true
+    var replacementSourceRequestFingerprint by remember(program?.id) { mutableStateOf<String?>(null) }
     val buildProgress by viewModel.programBuildProgress.collectAsState()
     val generationRunning = buildProgress is ProgramBuildProgressState.Running
     var confirmRegenerate by rememberSaveable { mutableStateOf(false) }
@@ -421,6 +429,7 @@ private fun ProgramEditorScreen(
     var personalizedDaysOverride by rememberSaveable(program?.id ?: 0L) { mutableStateOf<Int?>(null) }
     var personalizedDurationOverride by rememberSaveable(program?.id ?: 0L) { mutableStateOf<Int?>(null) }
     var lastGenerationWasPersonalized by rememberSaveable { mutableStateOf(false) }
+    var generationTraceId by rememberSaveable(program?.id ?: 0L) { mutableStateOf<String?>(null) }
 
     LaunchedEffect(program?.id) {
         if (program != null && personalizedDraft == null) personalizedDraft = skeletonFromProgram(viewModel.programEditorSnapshot(program.id)).withResolvedWeekDaySchedule()
@@ -452,6 +461,15 @@ private fun ProgramEditorScreen(
             periodizationType = ProgramPeriodizationType.AUTO,
             durationWeeks = durationWeeks
         )
+
+    val appliedReplacementReview = personalizedDraft?.replacementReview?.takeIf { it.appliedOptionIds.isNotEmpty() }
+    val appliedReplacementIsCurrent = appliedReplacementReview == null ||
+        (appliedReplacementReview.validation?.status == com.training.trackplanner.data.ProgramReplacementValidationStatus.VALIDATED &&
+            appliedReplacementReview.validation.selectedOptionIds == appliedReplacementReview.appliedOptionIds &&
+            appliedReplacementReview.validation.resultingDraftFingerprint == personalizedDraft?.let { draft ->
+                com.training.trackplanner.data.ProgramReplacementReviewFingerprint.create(draft)
+            } && replacementSourceRequestFingerprint ==
+                com.training.trackplanner.data.ProgramReplacementReviewFingerprint.requestConstraints(currentRequest()))
 
     fun requireProgramName(): Boolean {
         val valid = normalizedProgramName().isNotEmpty()
@@ -500,6 +518,10 @@ private fun ProgramEditorScreen(
 
     fun runPreparedPersonalized(preflight: PersonalizedPlanningPreflight, answers: Map<String, String>) {
         if (viewModel.programBuildProgress.value is ProgramBuildProgressState.Running) return
+        if (replacementSourceRequestFingerprint == null) {
+            replacementSourceRequestFingerprint =
+                com.training.trackplanner.data.ProgramReplacementReviewFingerprint.requestConstraints(currentRequest())
+        }
         val frozenAnswers = answers.toMap()
         val confirmed = personalizedRetry.confirm(preflight, frozenAnswers)
         pendingPersonalizedPreflight = null
@@ -528,16 +550,22 @@ private fun ProgramEditorScreen(
         if (viewModel.programBuildProgress.value is ProgramBuildProgressState.Running) return
         personalizedRetry.clear()
         val request = currentRequest()
+        replacementSourceRequestFingerprint =
+            com.training.trackplanner.data.ProgramReplacementReviewFingerprint.requestConstraints(request)
         lastGenerationWasPersonalized = true
         personalizedAnswers = emptyMap()
+        val traceId = UUID.randomUUID().toString()
+        generationTraceId = traceId
         viewModel.preparePersonalizedProgram(
             request = request,
             constraints = PersonalizedGenerationConstraints(
                 explicitWeeklyTrainingDays = personalizedDaysOverride,
                 explicitDurationWeeks = personalizedDurationOverride,
                 explicitSessionMinutes = sessionMinutes
-            )
+            ),
+            traceId = traceId
         ) { preflight ->
+            generationTraceId = preflight.preparationId
             if (preflight.questions.isEmpty()) runPreparedPersonalized(preflight, emptyMap())
             else pendingPersonalizedPreflight = preflight
         }
@@ -555,7 +583,8 @@ private fun ProgramEditorScreen(
                 personalizedRetry.clear()
                 pendingPersonalizedPreflight = null
                 personalizedAnswers = emptyMap()
-            }
+            },
+            onExportTrace = generationTraceId?.let { id -> { GenerationDecisionTraceExporter.share(context, id) } }
         )
     }
 
@@ -734,6 +763,9 @@ private fun ProgramEditorScreen(
                         if (lastGenerationWasPersonalized) personalizedRetry.retry(::preparePersonalized) {
                             runPreparedPersonalized(it.preflight, it.answers.values)
                         } else generateSkeleton()
+                    },
+                    onExportTrace = generationTraceId?.takeIf { lastGenerationWasPersonalized }?.let { id ->
+                        { GenerationDecisionTraceExporter.share(context, id) }
                     }
                 )
             }
@@ -748,6 +780,13 @@ private fun ProgramEditorScreen(
             }
         }
         personalizedDraft?.let { currentSkeleton ->
+            if (lastGenerationWasPersonalized && generationTraceId != null) {
+                item {
+                    OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = {
+                        generationTraceId?.let { GenerationDecisionTraceExporter.share(context, it) }
+                    }) { Text("생성 진단 내보내기") }
+                }
+            }
             if (currentSkeleton.warnings.any { it.startsWith(PROGRAM_ITEM_RESTORE_WARNING) }) {
                 item {
                     InfoCard("일부 프로그램 메타데이터를 복원하지 못했습니다. 저장 전 구성을 확인하세요.")
@@ -759,7 +798,12 @@ private fun ProgramEditorScreen(
                     exercises = exercises,
                     metadataByExerciseId = runtimeMetadataByExerciseId,
                     progressionEligibleKeys = progressionEligibleKeys,
-                    onSkeletonChange = { personalizedDraft = it }
+                    onSkeletonChange = { personalizedDraft = it },
+                    onValidateReplacementSelection = { skeleton, selectedIds, callback ->
+                        viewModel.validateProgramReplacementSelection(skeleton, selectedIds, program?.id, callback)
+                    },
+                    replacementRequestIsCurrent = replacementSourceRequestFingerprint ==
+                        com.training.trackplanner.data.ProgramReplacementReviewFingerprint.requestConstraints(currentRequest())
                 )
             }
         }
@@ -782,7 +826,8 @@ private fun ProgramEditorScreen(
                 }
                 Button(
                     modifier = Modifier.weight(1f),
-                    enabled = hasDraftItems && !generationRunning && (legacyAutoDraft == null || progressionContext != null),
+                    enabled = hasDraftItems && !generationRunning && appliedReplacementIsCurrent &&
+                        (legacyAutoDraft == null || progressionContext != null),
                     onClick = {
                         if (!requireProgramName()) return@Button
                         legacyAutoDraft?.let { finalized ->
@@ -793,6 +838,16 @@ private fun ProgramEditorScreen(
                             return@Button
                         }
                         val current = personalizedDraft ?: return@Button
+                        val replacementReview = current.replacementReview
+                        val replacementNeedsRevalidation = replacementReview?.appliedOptionIds?.isNotEmpty() == true &&
+                            (replacementReview.validation?.status != com.training.trackplanner.data.ProgramReplacementValidationStatus.VALIDATED ||
+                                replacementReview.validation?.selectedOptionIds != replacementReview.appliedOptionIds ||
+                                replacementReview.validation?.resultingDraftFingerprint !=
+                                    com.training.trackplanner.data.ProgramReplacementReviewFingerprint.create(current))
+                        if (replacementNeedsRevalidation) {
+                            Toast.makeText(context, context.getString(R.string.program_replacement_stale_save), Toast.LENGTH_LONG).show()
+                            return@Button
+                        }
                         val request = currentRequest()
                         val savedRequest = if (lastGenerationWasPersonalized) {
                             current.request.copy(name = request.name)
@@ -805,6 +860,9 @@ private fun ProgramEditorScreen(
                                 suggestedName = request.name,
                                 request = savedRequest
                             ),
+                            // Pressing Save in this existing-program editor explicitly confirms
+                            // replacing that user's saved draft. Preview generation never writes.
+                            existingProgramReplacementApproved = program != null,
                             onSaved = onSaved
                         )
                     }
@@ -819,6 +877,7 @@ private fun ProgramEditorScreen(
 @Composable
 internal fun ProgramBuildProgressCard(
     progress: ProgramBuildProgressState,
+    onExportTrace: (() -> Unit)? = null,
     onRetry: () -> Unit
 ) {
     when (progress) {
@@ -874,6 +933,9 @@ internal fun ProgramBuildProgressCard(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(progress.message, style = MaterialTheme.typography.bodyMedium)
+                    if (onExportTrace != null) {
+                        OutlinedButton(onClick = onExportTrace) { Text("생성 진단 내보내기") }
+                    }
                     OutlinedButton(onClick = onRetry) {
                         Text("다시 시도")
                     }

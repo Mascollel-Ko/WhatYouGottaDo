@@ -381,6 +381,41 @@ class BoundedDayRebalancerTest {
             assertTrue(result.trace.actions.isEmpty()); assertEquals(input.skeleton, result.skeleton)
         }
     }
+    @Test fun `hard infeasible day is rebalanced even without a relative underload destination`() {
+        val rows = listOf(minutes("press", 1, 10), minutes("row", 1, 10, order = 2),
+            minutes("direct", 2, 20), minutes("support", 4, 20), minutes("hinge", 6, 18))
+        val input = completed(rows)
+        val projection = PlanDayProjection { day ->
+            if (day.any { it.exerciseStableKey == "press" } && day.any { it.exerciseStableKey == "row" }) {
+                StandaloneDayLoad(76, listOf(43, 44, 100, 69, 69, 78))
+            } else StandaloneDayLoad(40, List(6) { 40 })
+        }
+        val result = run(input, projection)
+        assertFalse(result.trace.initialDays.single { it.day == 1 }.hardFeasible)
+        assertTrue(result.trace.actions.any { it.sourceDay == 1 })
+        assertEquals(0, result.trace.finalObjective.hardInfeasibleDays)
+        assertEquals(frozenContent(input.skeleton), frozenContent(result.skeleton))
+    }
+    @Test fun `hard safety repair may relocate a mandatory owner without dropping its prescription`() {
+        val rows = listOf(
+            minutes("press", 1, 10).copy(requiredTemplateAnchor = true),
+            minutes("row", 1, 10, order = 2),
+            minutes("direct", 2, 20), minutes("support", 4, 20), minutes("hinge", 6, 18)
+        )
+        val input = completed(rows, overrides = mapOf("row" to f.source("row", 1, priority = 100, material = true)))
+        val projection = PlanDayProjection { day ->
+            if (day.any { it.exerciseStableKey == "press" } && day.any { it.exerciseStableKey == "row" }) {
+                StandaloneDayLoad(76, listOf(43, 44, 100, 69, 69, 78))
+            } else StandaloneDayLoad(40, List(6) { 40 })
+        }
+        val result = run(input, projection)
+        val original = input.skeleton.items.single { it.weekNumber == 1 && it.exerciseStableKey == "row" }
+        val moved = result.skeleton.items.single { it.weekNumber == 1 && it.exerciseStableKey == "row" }
+        assertNotEquals(original.dayOfWeek, moved.dayOfWeek)
+        assertEquals(original.copy(dayOfWeek = moved.dayOfWeek, orderIndex = moved.orderIndex), moved)
+        assertEquals(0, result.trace.finalObjective.hardInfeasibleDays)
+        assertTrue(result.trace.actions.any { "row" in it.stableKeys })
+    }
     @Test fun `tissue-restricted stableKeys are never relocated`() {
         val input = completed()
         val source = snapshot.copy(recoverySignals = PlanningRecoverySignals(tissueRestrictedStableKeys = snapshot.exercises.keys))

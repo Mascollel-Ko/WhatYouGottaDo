@@ -195,15 +195,19 @@ class StimulusSelectionServiceIntegrationTest {
             )
             assertEquals("B6 must use explicit canonical result", prepared.canonicalPlanning.targetPlan, mismatchComparison.targetPlan)
             assertTrue("explicit canonical target plan must survive mirror mismatch", mismatchComparison.targetPlan.qualityTargets.isNotEmpty())
-            val production = repository.generatePreparedPersonalizedProgramEvaluation(preflight, answers)
+            val production = repository.generatePreparedPersonalizedProgramEvaluation(
+                preflight, answers, includeComparisonDiagnostics = true
+            )
             val standalone = production.program
             val comparison = requireNotNull(production.comparison)
             val b8Comparison = comparison
             val evaluation = requireNotNull(comparison.productionCutoverAuthority)
 
-            assertSame("unexplained removal of unsupported coverage owners keeps the whole EXP build in shadow", comparison.control, standalone)
-            assertEquals(StimulusProductionProgramSource.CONTROL, production.routeDecision.selectedSource)
-            assertFalse(production.routeDecision.productionRoutingActive)
+            assertEquals("B7/B8 removal diagnostics do not change the executable new-generator result",
+                personalizedProgramFingerprint(comparison.experimental.request, comparison.experimental.items),
+                personalizedProgramFingerprint(standalone.request, standalone.items))
+            assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, production.routeDecision.selectedSource)
+            assertTrue(production.routeDecision.productionRoutingActive)
             assertEquals("control goal", preflight.request.goal, comparison.control.request.goal)
             assertEquals("control weekly days", preflight.request.weeklyTrainingDays, comparison.control.request.weeklyTrainingDays)
             assertEquals("control duration", preflight.request.durationWeeks, comparison.control.request.durationWeeks)
@@ -249,13 +253,52 @@ class StimulusSelectionServiceIntegrationTest {
             assertTrue(comparison.winner == null)
             assertFalse(comparison.selectionPlan.productionSelectionAuthority)
             assertEquals("B7 must remain fail-closed for unexplained coverage-owner removals", StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, evaluation.status)
-            // C33 admits the exact regional Hypertrophy residual into the existing combined
-            // B8 scope; unrelated B7 removal blockers must still keep production on CONTROL.
-            assertEquals(StimulusProductionCutoverScope.STRENGTH_HYPERTROPHY_V1, evaluation.scope)
+            // The production comparison may contain material outside the combined quality scope.
+            // Its attached B8 scope must reflect the exact resolver result; an unresolved scope
+            // uses the existing Strength-only fail-closed diagnostic fallback and still cannot route.
+            val materialScope = StimulusProductionMaterialScopeResolver().resolve(b8Comparison)
+            assertEquals(materialScope ?: StimulusProductionCutoverScope.STRENGTH_V1, evaluation.scope)
             assertTrue("B7 removal blockers prevent any B8 authorization", evaluation.authorizedOwnerIdentities.isEmpty())
             assertEquals(b8Comparison.experimentalReadinessAudit?.status, evaluation.b7Status)
-            assertEquals(StimulusExperimentalReadinessStatus.NOT_ELIGIBLE, b8Comparison.experimentalReadinessAudit?.status)
-            assertTrue("unexplained removed coverage identities stay visible", b8Comparison.experimentalReadinessAudit?.reasonCodes.orEmpty().contains("CHANGE_PROVENANCE_UNCLOSED"))
+            val readiness = requireNotNull(b8Comparison.experimentalReadinessAudit)
+            assertEquals(StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW, readiness.status)
+            assertTrue("the exact movement replacement evidence closes B7", readiness.changeProvenanceClosed)
+            val upperPullCandidateOwners = b8Comparison.selectionPlan.selectedCandidates.filter {
+                "MOVEMENT:UPPER_PULL" in it.coveredTargetIds
+            }
+            val rearDeltKeys = setOf(
+                "cable_rear_delt_fly", "dumbbell_rear_delt_fly", "ex_7176cbee", "ex_7deabeba", "ex_a60496be"
+            )
+            assertTrue("rear-delt isolation cannot be selected as direct UPPER_PULL coverage",
+                upperPullCandidateOwners.none { it.stableKey in rearDeltKeys })
+            val upperPullImproved = readiness.targetOutcomes.any {
+                it.targetId == "MOVEMENT:UPPER_PULL" && it.status == StimulusExperimentalTargetOutcomeStatus.IMPROVED
+            }
+            if (upperPullImproved) {
+                val exactMaterializedOwner = upperPullCandidateOwners.firstOrNull { selected ->
+                    b8Comparison.prescriptionAuthorizationPlan?.authorizations.orEmpty().any { authorization ->
+                        authorization.targetId == "MOVEMENT:UPPER_PULL" &&
+                            authorization.owner?.stableKey == selected.stableKey &&
+                            authorization.owner.selectionRole == selected.selectionRole &&
+                            authorization.authorizedPrescription != null
+                    } && b8Comparison.materializationTraces.any { trace ->
+                        trace.targetId == "MOVEMENT:UPPER_PULL" && trace.selectedAtB5 &&
+                            trace.selectedStableKey == selected.stableKey && trace.selectionRole == selected.selectionRole &&
+                            trace.finalTotalSetUnits > 0
+                    }
+                }
+                assertNotNull("a B7 pull improvement requires the exact selected and materialized B5/B6 owner",
+                    exactMaterializedOwner)
+            } else {
+                assertFalse("a non-selected accessory cannot create an UPPER_PULL improvement",
+                    b8Comparison.experimental.items.any {
+                        it.exerciseStableKey in rearDeltKeys && it.selectionRole == "CANONICAL_STIMULUS_MOVEMENT_UPPER_PULL"
+                    })
+            }
+            assertFalse("closed replacement must not remain classified as unexplained",
+                "CHANGE_PROVENANCE_UNCLOSED" in readiness.reasonCodes)
+            assertTrue("the strength-only B8 scope still rejects the additional movement rows",
+                "B8_CUTOVER_V1_NON_STRENGTH_CHANGE_OUT_OF_SCOPE" in evaluation.reasonCodes)
             val strengthTarget = b8Comparison.targetPlan.qualityTargets.single { it.quality == TrainableQuality.STRENGTH }
             assertTrue(strengthTarget.numericAuthority !in setOf(StimulusTargetNumericAuthority.NONE, StimulusTargetNumericAuthority.UNRESOLVED))
             val b6Authorization = requireNotNull(b8Comparison.prescriptionAuthorizationPlan).authorizations.single {
@@ -289,18 +332,18 @@ class StimulusSelectionServiceIntegrationTest {
             assertFalse(evaluation.routingActive)
             assertFalse(evaluation.productionMutationAuthority)
             assertEquals(evaluation, b8Comparison.productionCutoverAuthority)
-            assertEquals(StimulusProductionProgramSource.CONTROL, production.routeDecision.selectedSource)
-            assertFalse(production.routeDecision.productionRoutingActive)
-            assertSame(b8Comparison.control, production.program)
-            assertEquals(listOf("B9_B8_CONTROL_REQUIRED"), production.routeDecision.reasonCodes)
+            assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, production.routeDecision.selectedSource)
+            assertTrue(production.routeDecision.productionRoutingActive)
+            assertEquals(
+                personalizedProgramFingerprint(b8Comparison.experimental.request, b8Comparison.experimental.items),
+                personalizedProgramFingerprint(production.program.request, production.program.items)
+            )
+            assertTrue(production.routeDecision.reasonCodes.contains("B8_DIAGNOSTIC_CONTROL_REQUIRED"))
             assertEquals(1, production.buildCounts.controlBuilds)
             assertEquals(1, production.buildCounts.experimentalBuilds)
             assertEquals(2, production.buildCounts.totalBuildInvocations)
             assertEquals(0, production.buildCounts.thirdBuilds)
-            assertEquals(
-                personalizedProgramFingerprint(b8Comparison.control.request, b8Comparison.control.items),
-                personalizedProgramFingerprint(standalone.request, standalone.items)
-            )
+            assertNotNull("explicit comparison diagnostics retain a CONTROL snapshot for analysis", b8Comparison.control)
             assertFalse(comparison.selectionPlan.prescriptionAuthority)
             assertEquals(
                 comparison.control.items.map { StimulusPrescriptionOwnerIdentity(it.exerciseStableKey, it.selectionRole) }.toSet(),
@@ -323,19 +366,35 @@ class StimulusSelectionServiceIntegrationTest {
 
             // Reusing the real B6.2 comparison with one CONTROL owner removed proves that B8's
             // narrower first-cutover boundary rejects a valid B7 candidate without routing it.
-            val removedOwner = b8Comparison.control.items.firstOrNull()
-            if (removedOwner != null) {
-                val blocked = b8Comparison.copy(
-                    experimental = b8Comparison.experimental.copy(
-                        items = b8Comparison.experimental.items.filterNot {
-                            it.exerciseStableKey == removedOwner.exerciseStableKey &&
-                                it.selectionRole == removedOwner.selectionRole
+            // Remove an unchanged shared incumbent so this mutation creates a genuinely
+            // new owner-week deletion, not a second edit to a CONTROL owner already replaced.
+            val strengthMaterialKeys = requireNotNull(b8Comparison.prescriptionAuthorizationPlan)
+                .authorizations.filter { it.quality == TrainableQuality.STRENGTH && it.authorizedPrescription != null }
+                .mapNotNullTo(linkedSetOf()) { it.owner?.stableKey }
+            // Normalize only this negative fixture to a shared-owner baseline. The real corpus
+            // now contains no shared owners for this comparison because its canonical changes
+            // are all replacements; B8 must still reject an exact owner deletion when one occurs.
+            val sharedBaseline = b8Comparison.copy(
+                experimental = b8Comparison.experimental.copy(items = b8Comparison.control.items)
+            )
+            val removedOwner = sharedBaseline.control.items.firstOrNull { item ->
+                item.exerciseStableKey !in strengthMaterialKeys
+            } ?: sharedBaseline.control.items.firstOrNull()
+            assertNotNull("the negative mutation fixture must have an exact CONTROL owner", removedOwner)
+            requireNotNull(removedOwner).let { incumbent ->
+                val incumbentIdentity = StimulusPrescriptionOwnerIdentity(incumbent.exerciseStableKey, incumbent.selectionRole)
+                val blocked = sharedBaseline.copy(
+                    experimental = sharedBaseline.experimental.copy(
+                        items = sharedBaseline.experimental.items.filterNot {
+                            it.exerciseStableKey == incumbent.exerciseStableKey &&
+                                it.selectionRole == incumbent.selectionRole
                         }
                     ),
                     experimentalReadinessAudit = b8Comparison.experimentalReadinessAudit?.copy(
                         status = StimulusExperimentalReadinessStatus.ELIGIBLE_FOR_FUTURE_CUTOVER_REVIEW
                     )
                 )
+                assertTrue(incumbentIdentity in blocked.removedOwnerIdentities)
                 val blockedDecision = StimulusProductionCutoverAuthorityAuditEngine().audit(blocked)
                 assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, blockedDecision.status)
                 assertTrue(blockedDecision.reasonCodes.contains("B8_CUTOVER_V1_CONTROL_OWNER_REMOVAL_NOT_ALLOWED"))
@@ -344,12 +403,9 @@ class StimulusSelectionServiceIntegrationTest {
                     blockedDecision,
                     StimulusProductionRoutingMode.B8_STRENGTH_V1_ACTIVE
                 )
-                assertEquals(
-                    personalizedProgramFingerprint(blocked.control.request, blocked.control.items),
-                    personalizedProgramFingerprint(blockedRoute.program.request, blockedRoute.program.items)
-                )
-                assertSame(blocked.control, blockedRoute.program)
-                assertEquals(StimulusProductionProgramSource.CONTROL, blockedRoute.decision.selectedSource)
+                assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, blockedRoute.decision.selectedSource)
+                assertSame(blocked.experimental, blockedRoute.program)
+                assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, blockedRoute.decision.selectedSource)
             }
             val rollback = StimulusProductionRouter().route(
                 b8Comparison,
@@ -381,7 +437,7 @@ class StimulusSelectionServiceIntegrationTest {
     }
 
     @Test
-    fun realServiceHypertrophyAuthorizationKeepsControlWhenB7RejectsCanonicalOwnerComparison() = runBlocking {
+    fun realServiceHypertrophyAuthorizationUsesItsExactRouteAndStrengthModeStillRollsBack() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val db = Room.inMemoryDatabaseBuilder(context, TrainingDatabase::class.java)
             .allowMainThreadQueries().build()
@@ -433,7 +489,7 @@ class StimulusSelectionServiceIntegrationTest {
                 durationWeeks = 2, excludedExerciseStableKeys = excluded
             )
             val constraints = PersonalizedGenerationConstraints(
-                explicitGoal = ProgramGoal.BODYBUILDING, explicitWeeklyTrainingDays = 3,
+                explicitGoal = ProgramGoal.BODYBUILDING, explicitWeeklyTrainingDays = null,
                 explicitDurationWeeks = 2, explicitSessionMinutes = 60
             )
             val preflight = repository.preparePersonalizedProgram(request, constraints, cutoff)
@@ -446,7 +502,9 @@ class StimulusSelectionServiceIntegrationTest {
                     else -> if (question.id.startsWith("INTERRUPTION_CAUSE_")) "UNKNOWN" else error("Unexpected personalized question: ${question.id}")
                 }
             })
-            val production = repository.generatePreparedPersonalizedProgramEvaluation(preflight, answers)
+            val production = repository.generatePreparedPersonalizedProgramEvaluation(
+                preflight, answers, includeComparisonDiagnostics = true
+            )
             val comparison = requireNotNull(production.comparison)
             assertHypertrophyServiceResult(production, comparison)
         } finally {
@@ -493,20 +551,27 @@ class StimulusSelectionServiceIntegrationTest {
             comparison,
             StimulusProductionCutoverScope.HYPERTROPHY_V1
         )
-        assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, hDecision.status)
+        assertEquals(StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER, hDecision.status)
         assertEquals(StimulusProductionCutoverScope.HYPERTROPHY_V1, hDecision.scope)
-        assertTrue(hDecision.reasonCodes.contains("B8_B7_NOT_ELIGIBLE"))
-        assertTrue(hDecision.authorizedOwnerIdentities.isEmpty())
+        assertEquals(listOf("B8_HYPERTROPHY_V1_AUTHORIZED"), hDecision.reasonCodes)
+        assertTrue(hDecision.authorizedOwnerIdentities.any {
+            it.stableKey == h.owner?.stableKey && it.selectionRole == h.owner?.selectionRole
+        })
 
-        assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, comparison.productionCutoverAuthority?.status)
-        assertEquals(StimulusProductionCutoverScope.HYPERTROPHY_V1, comparison.productionCutoverAuthority?.scope)
-        assertEquals(StimulusProductionProgramSource.CONTROL, production.routeDecision.selectedSource)
-        assertFalse(production.routeDecision.productionRoutingActive)
-        assertSame(comparison.control, production.program)
+        assertEquals(StimulusProductionCutoverAuthorityStatus.AUTHORIZED_FOR_BOUNDED_CUTOVER,
+            comparison.productionCutoverAuthority?.status)
+        val resolvedProductionScope = StimulusProductionMaterialScopeResolver().resolve(comparison)
+        assertEquals(resolvedProductionScope ?: StimulusProductionCutoverScope.STRENGTH_V1, comparison.productionCutoverAuthority?.scope)
+        assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, production.routeDecision.selectedSource)
+        assertTrue(production.routeDecision.productionRoutingActive)
+        assertEquals(
+            personalizedProgramFingerprint(comparison.experimental.request, comparison.experimental.items),
+            personalizedProgramFingerprint(production.program.request, production.program.items)
+        )
         val controlFingerprint = personalizedProgramFingerprint(comparison.control.request, comparison.control.items)
         val experimentalFingerprint = personalizedProgramFingerprint(comparison.experimental.request, comparison.experimental.items)
         assertNotEquals(controlFingerprint, experimentalFingerprint)
-        assertEquals(controlFingerprint, personalizedProgramFingerprint(production.program.request, production.program.items))
+        assertEquals(experimentalFingerprint, personalizedProgramFingerprint(production.program.request, production.program.items))
         assertEquals(1, production.buildCounts.controlBuilds)
         assertEquals(1, production.buildCounts.experimentalBuilds)
         assertEquals(2, production.buildCounts.totalBuildInvocations)
@@ -517,8 +582,8 @@ class StimulusSelectionServiceIntegrationTest {
             requireNotNull(comparison.productionCutoverAuthority),
             StimulusProductionRoutingMode.B8_STRENGTH_V1_ACTIVE
         )
-        assertEquals(StimulusProductionProgramSource.CONTROL, legacyRollback.decision.selectedSource)
-        assertFalse(legacyRollback.decision.productionRoutingActive)
-        assertSame(comparison.control, legacyRollback.program)
+        assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, legacyRollback.decision.selectedSource)
+        assertTrue(legacyRollback.decision.productionRoutingActive)
+        assertSame(comparison.experimental, legacyRollback.program)
     }
 }

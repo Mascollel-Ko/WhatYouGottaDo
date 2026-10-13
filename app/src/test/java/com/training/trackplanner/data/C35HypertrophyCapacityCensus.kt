@@ -25,7 +25,9 @@ internal object C35HypertrophyCapacityCensus {
         var regionalRawResidual = 0.0
         var regionalAuthorized = 0
         var regionalFunded = 0
+        var regionalLegacyDiagnosticFunded = 0
         var regionalMaterialized = 0
+        var regionalTotalMaterialized = 0
         var regionalUnfunded = 0
         var regionalUnmaterialized = 0
         var unauthorizedMaterialRows = 0
@@ -45,8 +47,11 @@ internal object C35HypertrophyCapacityCensus {
 
         generatedByCase.toSortedMap().forEach { (caseName, generated) ->
             val comparison = generated.comparison ?: run {
-                cases.put(JSONObject().put("case", caseName).put("generated", false)
-                    .put("route", generated.routeDecision.selectedSource.name))
+                cases.put(JSONObject().put("case", caseName).put("generated", true)
+                    .put("comparisonAvailable", false)
+                    .put("route", generated.routeDecision.selectedSource.name)
+                    .put("upstreamFailureReason", generated.upstreamFailureReason)
+                    .put("upstreamFailureDetails", JSONArray(generated.upstreamFailureDetails)))
                 return@forEach
             }
             val b7 = comparison.experimentalReadinessAudit
@@ -123,14 +128,58 @@ internal object C35HypertrophyCapacityCensus {
                         }
                         val owner = auth?.owner?.let { StimulusPrescriptionOwnerIdentity(it.stableKey, it.selectionRole) }
                         val priority = owner?.let { exact -> priorityRows.singleOrNull { it.owner == exact } }
+                        val selectedDemand = comparison.selectionPlan.materialDemand.candidates.singleOrNull {
+                            it.stableKey == selected.stableKey && it.role == selected.selectionRole
+                        }
+                        val decision = comparison.experimental.personalizedDecision
+                        val frequencyOwnerRows = decision?.frequencyDemand?.candidates.orEmpty().filter {
+                            it.item.stableKey == selected.stableKey && it.item.role == selected.selectionRole &&
+                                (selectedDemand == null || it.item.styleVariant == selectedDemand.styleVariant)
+                        }
+                        val scheduledOwnerRows = decision?.authorizedScheduling?.authorized.orEmpty().filter {
+                            it.item.stableKey == selected.stableKey && it.item.role == selected.selectionRole && it.item.material
+                        }
+                        val boundedOwner = decision?.frequencyDemand?.boundedMaterialAllocation?.owners.orEmpty().singleOrNull {
+                            it.owner.stableKey == selected.stableKey && it.owner.selectionRole == selected.selectionRole &&
+                                (selectedDemand == null || it.owner.variant == selectedDemand.styleVariant)
+                        }
                         val audit = comparison.prescriptionMaterializationAudits.singleOrNull {
                             it.targetId == movement.targetId && it.quality == TrainableQuality.HYPERTROPHY &&
                                 it.owner?.stableKey == selected.stableKey && it.owner.selectionRole == selected.selectionRole
                         }
-                        val fundedUnits = priority?.fundedUnits ?: 0
+                        // The legacy finite-priority row is a diagnostic before the
+                        // regional B4 authority and final frequency funding.  Report
+                        // actual B4-authorized scheduling units as funded; keep the
+                        // older diagnostic separately so its apparent over-allocation
+                        // cannot be mistaken for materialization loss.
+                        val legacyDiagnosticFundedUnits = priority?.fundedUnits ?: 0
+                        // FrequencyExpansionPlanner's exact candidate ledger is the
+                        // final finite funding source consumed by the scheduler. The
+                        // optional bounded trace is not present on every legacy-shaped
+                        // regional route, so its absence cannot erase funding evidence.
+                        val fundedUnits = frequencyOwnerRows.sumOf { it.fundedBaseUnits }
+                        val scheduledUnits = scheduledOwnerRows.sumOf { it.prescription.sets.size }
+                        regionalLegacyDiagnosticFunded += legacyDiagnosticFundedUnits
                         val materializedUnits = audit?.minimumWeeklyCompatibleUnits ?: 0
                         regionalFunded += fundedUnits
                         regionalMaterialized += materializedUnits
+                        regionalTotalMaterialized += audit?.totalCompatibleUnits ?: 0
+                        val actualRowsByWeek = comparison.experimental.items
+                            .filter { it.exerciseStableKey == selected.stableKey && it.selectionRole == selected.selectionRole }
+                            .groupBy { it.weekNumber }
+                        val weeklyMaterialization = JSONArray((1..comparison.experimental.request.durationWeeks.coerceAtLeast(1)).map { week ->
+                            val weekAudit = audit?.weeklyAudits?.singleOrNull { it.weekNumber == week }
+                            val actualRows = actualRowsByWeek[week].orEmpty()
+                            JSONObject()
+                                .put("week", week)
+                                .put("authorizedSetUnits", weekAudit?.authorizedSetUnits ?: JSONObject.NULL)
+                                .put("auditedSetUnits", weekAudit?.materializedSetUnits ?: JSONObject.NULL)
+                                .put("compatibleSetUnits", weekAudit?.targetCompatibleMaterializedUnits ?: JSONObject.NULL)
+                                .put("physicalRows", actualRows.size)
+                                .put("physicalSetRows", actualRows.sumOf { it.setPrescriptions.size.coerceAtLeast(it.setCount) })
+                                .put("dayNumbers", JSONArray(actualRows.map { it.dayOfWeek }.distinct().sorted()))
+                                .put("reasons", JSONArray(weekAudit?.reasonCodes.orEmpty().distinct().sorted()))
+                        })
                         if (auth?.authorizedPrescription == null && materializedUnits > 0) unauthorizedMaterialRows += materializedUnits
                         JSONObject()
                             .put("stableKey", owner?.stableKey ?: selected.stableKey)
@@ -139,7 +188,17 @@ internal object C35HypertrophyCapacityCensus {
                                 .firstOrNull { it.targetId == movement.targetId }?.status?.name ?: "NO_AUTHORITY")
                             .put("authorized", auth?.authorizedPrescription != null)
                             .put("fundedUnits", fundedUnits)
+                            .put("legacyDiagnosticFundedUnits", legacyDiagnosticFundedUnits)
+                            .put("finiteFundedUnits", fundedUnits)
+                            .put("placementAuthorizedWeeklyUnits", scheduledUnits)
+                            .put("placementMaterializedFirstWeekUnits", boundedOwner?.materializedUnits ?: JSONObject.NULL)
+                            .put("frequencyFundedCandidateRows", frequencyOwnerRows.size)
                             .put("materializedCompatibleUnits", materializedUnits)
+                            .put("materializationState", audit?.state?.name ?: "MISSING_AUDIT")
+                            .put("materializationReasonCodes", JSONArray(audit?.reasonCodes.orEmpty().distinct().sorted()))
+                            .put("totalAuthorizedSetUnits", audit?.totalAuthorizedUnits ?: JSONObject.NULL)
+                            .put("totalCompatibleMaterializedSetUnits", audit?.totalCompatibleUnits ?: JSONObject.NULL)
+                            .put("weeklyMaterialization", weeklyMaterialization)
                             .put("priority", priority?.priority ?: JSONObject.NULL)
                             .put("b6ReasonCodes", JSONArray(auth?.reasonCodes.orEmpty().sorted()))
                             .put("capacityReasons", JSONArray(allocation?.ownerAllocationProvenance.orEmpty().filter {
@@ -166,6 +225,7 @@ internal object C35HypertrophyCapacityCensus {
                             .put("candidateCount", comparison.selectionPlan.traces.firstOrNull { it.targetId == movement.targetId }
                                 ?.candidatePool?.distinct()?.size ?: 0)
                             .put("fundedUnits", fundedUnits)
+                            .put("legacyDiagnosticFundedUnits", ownerRows.sumOf { it.optInt("legacyDiagnosticFundedUnits") })
                             .put("materializedCompatibleUnits", materializedUnits)
                             .put("unfundedUnits", (authorizedUnits - fundedUnits).coerceAtLeast(0))
                             .put("unmaterializedShortfallUnits", (authorizedUnits - materializedUnits).coerceAtLeast(0))
@@ -188,6 +248,7 @@ internal object C35HypertrophyCapacityCensus {
             cases.put(JSONObject()
                 .put("case", caseName)
                 .put("generated", true)
+                .put("comparisonAvailable", true)
                 .put("generationTimeMs", generationMillisByCase[caseName] ?: JSONObject.NULL)
                 .put("route", generated.routeDecision.selectedSource.name)
                 .put("aggregateHypertrophy", JSONObject()
@@ -266,7 +327,9 @@ internal object C35HypertrophyCapacityCensus {
                 .put("regionalRawResidualWeeklyUnits", regionalRawResidual)
                 .put("regionalAuthorizedWholeSetUnits", regionalAuthorized)
                 .put("regionalFundedUnits", regionalFunded)
+                .put("regionalLegacyDiagnosticFundedUnits", regionalLegacyDiagnosticFunded)
                 .put("regionalMaterializedCompatibleUnits", regionalMaterialized)
+            .put("regionalTotalMaterializedCompatibleSetUnits", regionalTotalMaterialized)
                 .put("regionalUnfundedUnits", regionalUnfunded)
                 .put("regionalUnmaterializedShortfallUnits", regionalUnmaterialized)
                 .put("aggregateOnlyFalseRegressionCandidates", aggregateFalseRegressionCandidates)

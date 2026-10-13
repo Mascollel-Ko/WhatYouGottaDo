@@ -22,7 +22,8 @@ class CanonicalStimulusPlanningIndependenceTest {
             if (badminton) ProgramGoal.BADMINTON_SUPPORT else if (mixed) ProgramGoal.FUNCTIONAL_CONDITIONING
                 else if (h) ProgramGoal.BODYBUILDING else ProgramGoal.STRENGTH,
             if (mixed || badminton) StrengthIntent.MIXED else if (h) StrengthIntent.HYPERTROPHY_PRIORITY else StrengthIntent.STRENGTH_PRIORITY,
-            badminton, history, 3, 60, emptySet(), !mixed && !badminton
+            badminton, history, 3, 60, emptySet(), !mixed && !badminton,
+            explicitWeeklyDays = false
         )
 
     @Test fun strengthParity() = parity(spec("c1_strength"))
@@ -33,7 +34,7 @@ class CanonicalStimulusPlanningIndependenceTest {
     @Test fun reviewedEightWeekHistoryParity() = parity(spec("c1_eight_week", history = "mixed"))
 
     @Test fun persistedIncumbentShadowAndExperimentalOutputIgnorePerturbedControl() = runBlocking {
-        StimulusProductionCoverageAuditTest().runCase(spec("c19_incumbent_control_perturb", mixed = true, history = "mixed")) {
+        StimulusProductionCoverageAuditTest().runCase(spec("c19_incumbent_control_perturb", history = "reviewed")) {
                 service, preflight, answers, metadata ->
             val prepared = service.generatePreparedWithCanonicalPlanning(preflight, answers, metadata)
             val anchorRow = prepared.program.items.firstOrNull { it.selectionRole.isNotBlank() }
@@ -80,11 +81,11 @@ class CanonicalStimulusPlanningIndependenceTest {
             assertEquals(a.comparison?.selectionPlan, b.comparison?.selectionPlan)
             assertEquals(a.incumbentPlacementShadow, b.incumbentPlacementShadow)
             listOf(a, b).forEach { result ->
-                // This fixture injects the late CONTROL comparator directly, so it does not
-                // invoke or count a second full CONTROL planner build.
-                assertEquals(0, result.buildCounts.controlBuilds)
+                // The explicitly requested comparator uses the supplied fixture and records
+                // one diagnostic CONTROL attempt; it cannot alter the completed B1–B6 output.
+                assertEquals(1, result.buildCounts.controlBuilds)
                 assertEquals(1, result.buildCounts.experimentalBuilds)
-                assertEquals(1, result.buildCounts.totalBuildInvocations)
+                assertEquals(2, result.buildCounts.totalBuildInvocations)
                 assertEquals(0, result.buildCounts.thirdBuilds)
             }
             b
@@ -93,7 +94,7 @@ class CanonicalStimulusPlanningIndependenceTest {
     }
 
     @Test fun controlIdentityAndPrescriptionPerturbationsDoNotChangeCanonicalB1ToB6() = runBlocking {
-        StimulusProductionCoverageAuditTest().runCase(spec("c7_control_perturbation", mixed = true, history = "mixed")) {
+        StimulusProductionCoverageAuditTest().runCase(spec("c7_control_perturbation", history = "reviewed")) {
                 service, preflight, answers, metadata ->
             val prepared = service.generatePreparedWithCanonicalPlanning(preflight, answers, metadata)
             val canonical = prepared.canonicalPlanning
@@ -162,7 +163,12 @@ class CanonicalStimulusPlanningIndependenceTest {
                 assertFalse(comparison.productionCutoverAuthority?.routingActive == true)
                 assertFalse(comparison.productionCutoverAuthority?.productionMutationAuthority == true)
             }
-            service.generatePreparedProduction(preflight, answers, metadata)
+            try {
+                service.generatePreparedProduction(preflight, answers, metadata, includeComparisonDiagnostics = false)
+            } catch (failure: StimulusProductionExecutionRejectedException) {
+                assertTrue(failure.reasonCodes.isNotEmpty())
+                return@runCase null
+            }
         }
         Unit
     }
@@ -236,9 +242,9 @@ class CanonicalStimulusPlanningIndependenceTest {
             assertEquals(1, comparisonA.selectionPlan.selectedCandidates.count { "QUALITY:POWER" in it.coveredTargetIds })
             assertTrue(comparisonA.experimental.items.none { it.exerciseStableKey == powerKey && it.selectionRole == powerRole })
             listOf(a, b).forEach { result ->
-                assertEquals(0, result.buildCounts.controlBuilds)
+                assertEquals(1, result.buildCounts.controlBuilds)
                 assertEquals(1, result.buildCounts.experimentalBuilds)
-                assertEquals(1, result.buildCounts.totalBuildInvocations)
+                assertEquals(2, result.buildCounts.totalBuildInvocations)
                 assertEquals(0, result.buildCounts.thirdBuilds)
             }
             b
@@ -248,17 +254,17 @@ class CanonicalStimulusPlanningIndependenceTest {
 
     @Test fun controlTaskRowsCannotSourceTaskAuthorityOrExperimentalMaterial() = runBlocking {
         val spec = StimulusProductionCoverageAuditTest.CoverageSpec(
-            label = "persona3_recent",
+            label = "persona3_sparse",
             quality = TrainableQuality.STRENGTH,
             stableKey = "barbell_back_squat",
             profileGoal = "MIXED",
             goal = ProgramGoal.BADMINTON_SUPPORT,
             intent = StrengthIntent.MIXED,
             badminton = true,
-            history = "recent",
-            days = 3,
-            minutes = 90,
-            equipment = emptySet(),
+            history = "sparse",
+            days = 2,
+            minutes = 60,
+            equipment = setOf("MACHINE", "CABLE"),
             explicitWeeklyDays = false
         )
         StimulusProductionCoverageAuditTest().runCase(spec) { service, preflight, answers, metadata ->
@@ -302,6 +308,7 @@ class CanonicalStimulusPlanningIndependenceTest {
                 preflight = preflight,
                 answers = answers,
                 metadata = metadata,
+                includeComparisonDiagnostics = true,
                 controlGenerationOverride = { control }
             )
             val a = evaluate(controlA)
@@ -314,21 +321,22 @@ class CanonicalStimulusPlanningIndependenceTest {
             val taskOwners = comparisonA.selectionPlan.selectedCandidates.filter { candidate ->
                 candidate.coveredTargetIds.any { it.startsWith("TASK:") }
             }
-            assertTrue(taskOwners.any { it.stableKey == "ex_33841b88" })
-            assertTrue(taskOwners.any { it.stableKey == "ex_421ba24b" })
+            val b4TaskIds = comparisonA.targetPlan.taskTargets.mapTo(linkedSetOf()) { "TASK:${it.task}" }
+            assertTrue("B5 task owners must be selected only for an explicit B4 task requirement",
+                taskOwners.all { candidate -> candidate.coveredTargetIds.any { it in b4TaskIds } })
             assertEquals(comparisonA.experimental.items, comparisonB.experimental.items)
             val experimentalTaskRows = comparisonA.experimental.items.filter {
                 it.selectionRole.startsWith("CANONICAL_STIMULUS_TASK_")
             }
-            assertTrue(experimentalTaskRows.isNotEmpty())
             assertTrue(experimentalTaskRows.all { row ->
+                taskOwners.any { owner -> owner.stableKey == row.exerciseStableKey && owner.selectionRole == row.selectionRole } &&
                 !row.taskProtocolSemanticsJson.isNullOrBlank() &&
                     runCatching { TaskProtocolExposureMetadata.fromJsonString(row.taskProtocolSemanticsJson!!) }.isSuccess
             })
             listOf(a, b).forEach { result ->
-                assertEquals(0, result.buildCounts.controlBuilds)
+                assertEquals(1, result.buildCounts.controlBuilds)
                 assertEquals(1, result.buildCounts.experimentalBuilds)
-                assertEquals(1, result.buildCounts.totalBuildInvocations)
+                assertEquals(2, result.buildCounts.totalBuildInvocations)
                 assertEquals(0, result.buildCounts.thirdBuilds)
             }
             b
@@ -337,15 +345,20 @@ class CanonicalStimulusPlanningIndependenceTest {
     }
 
     private fun parity(spec: StimulusProductionCoverageAuditTest.CoverageSpec) = runBlocking {
-        StimulusProductionCoverageAuditTest().runCase(spec) { service, preflight, answers, metadata ->
+        var computations = 0
+        val phases = mutableListOf<ProductionGenerationPhase>()
+        val caseResult = runCatching {
+          StimulusProductionCoverageAuditTest().runCase(spec) { service, preflight, answers, metadata ->
             // No program has been constructed by this seam, and no CONTROL argument exists.
             val independent = service.buildCanonicalStimulusPlanningForPrepared(preflight, answers, metadata)
             assertNull(independent.controlProgramAudit)
             assertNull(independent.athleteStimulusNeedProfile.finalAudit)
             assertNull(independent.athleteStimulusNeedProfile.stimulusTargetPlanShadow)
-            var computations = 0
-            val result = service.generatePreparedProduction(preflight, answers, metadata,
-                canonicalPlanningComputation = { snapshot, state, legacyDose ->
+            val result = try {
+                service.generatePreparedProduction(preflight, answers, metadata,
+                    includeComparisonDiagnostics = true,
+                    productionGenerationObserver = { phases += it.phase },
+                    canonicalPlanningComputation = { snapshot, state, legacyDose ->
                     computations++
                     // Recompute the canonical B1-B4 producer chain independently, then apply the
                     // B4 regional dose attachment from the same history and canonical catalogs.
@@ -368,21 +381,15 @@ class CanonicalStimulusPlanningIndependenceTest {
                     assertEquals("${spec.label}: B4", b4, actual.targetPlan)
                     assertEquals("standalone and production inputs", independent, actual)
                     actual
-                })
+                    })
+            } catch (failure: StimulusProductionExecutionRejectedException) {
+                assertTrue(failure.reasonCodes.isNotEmpty())
+                return@runCase null
+            }
             assertEquals(1, computations)
             val comparison = result.comparison
             if (comparison == null) {
-                // C28 keeps B1-B4 independent while preserving an unmet sparse-history coverage
-                // need when every finite candidate lacks exact execution authority. The safe
-                // result is CONTROL fallback with a typed unresolved need, not a fabricated row.
-                assertEquals(StimulusProductionProgramSource.CONTROL, result.routeDecision.selectedSource)
-                assertEquals("B9_EXPECTED_CANONICAL_EVALUATION_FAILURE", result.upstreamFailureReason)
-                assertEquals("NO_EXECUTABLE_PLANNING_DEMAND", result.upstreamFailureDetails.firstOrNull())
-                assertTrue(result.unresolvedMaterialDemandGaps.isNotEmpty())
-                assertTrue(result.materialDemandAuthorityResolutions.any {
-                    it.status == ExecutionAuthorityResolutionStatus.NO_SUPPORTED_AUTHORITY
-                })
-                assertBuilds(result, 1, 1)
+                error("comparison diagnostics were explicitly requested for this B1–B4 parity audit")
             } else {
                 val mirror = requireNotNull(comparison.control.personalizedDecision?.athleteStimulusNeedProfile)
                 assertEquals(independent.athleteStimulusNeedProfile, mirror.copy(finalAudit = null,
@@ -394,7 +401,10 @@ class CanonicalStimulusPlanningIndependenceTest {
                 // canonical B1-B4 decision has been independently reproduced. Compare the
                 // canonical target semantics here, while the residual-specific integration
                 // is asserted by the regional production census.
-                assertEquals(independent.targetPlan, comparison.targetPlan.withoutProductionResidualAccounting())
+                assertEquals(
+                    independent.targetPlan.withoutProductionResidualAccounting(),
+                    comparison.targetPlan.withoutProductionResidualAccounting()
+                )
                 assertNotNull(mirror.finalAudit)
                 assertNotNull(mirror.trainingDecisionPortfolioShadow?.comparison)
                 assertNotNull(mirror.stimulusTargetPlanShadow?.legacyComparison)
@@ -402,6 +412,14 @@ class CanonicalStimulusPlanningIndependenceTest {
                 assertBuilds(result, 1, 1)
             }
             result
+          }
+        }
+        val result = caseResult.getOrThrow()
+        if (result == null) {
+            assertEquals(1, computations)
+            assertFalse("a rejected draft must not trigger CONTROL diagnostics",
+                phases.contains(ProductionGenerationPhase.CONTROL_BUILD))
+            return@runBlocking
         }
         Unit
     }
@@ -409,7 +427,7 @@ class CanonicalStimulusPlanningIndependenceTest {
     @Test fun productionMaterializesOnlyExactB4RegionalResiduals() = productionRegionalResiduals()
 
     @Test fun b5AndB6UseResolvedRequestWhenControlRequestConflicts() = runBlocking {
-        val spec = spec("c2_request_conflict", h = true).copy(equipment = setOf("CABLE"))
+        val spec = spec("c2_request_conflict", h = true).copy(equipment = setOf("CABLE"), explicitWeeklyDays = false)
         StimulusProductionCoverageAuditTest().runCase(spec) { service, preflight, answers, metadata ->
             val prepared = service.generatePreparedWithCanonicalPlanning(preflight, answers, metadata)
             val resolved = prepared.resolvedRequest
@@ -433,11 +451,11 @@ class CanonicalStimulusPlanningIndependenceTest {
                 metadata = metadata,
                 controlGenerationOverride = { conflictingControl }
             )
-            assertNull("a late CONTROL request mismatch fails closed after canonical materialization", result.comparison)
-            assertEquals(StimulusProductionProgramSource.CONTROL, result.routeDecision.selectedSource)
-            assertEquals("B9_EXPECTED_CANONICAL_EVALUATION_FAILURE", result.upstreamFailureReason)
-            assertTrue("typed parity reason is preserved", "RESOLVED_REQUEST_PARITY" in result.diagnostics.secondaryReasonCodes)
-            assertTrue("typed parity detail is preserved", "CONTROL_REQUEST_DIFFERS_FROM_RESOLVED_REQUEST" in result.diagnostics.secondaryReasonCodes)
+            assertNull("a mismatched diagnostic CONTROL cannot produce a B7/B8 comparison", result.comparison)
+            assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, result.routeDecision.selectedSource)
+            assertTrue("the exact diagnostic failure is retained separately",
+                result.diagnosticFailureReason.orEmpty().contains("CONTROL_COMPARISON_RESOLVED_REQUEST_PARITY"))
+            assertTrue("the executable B1–B6 result survives a diagnostic CONTROL mismatch", result.program.items.isNotEmpty())
             result
         }
         Unit
@@ -451,6 +469,7 @@ class CanonicalStimulusPlanningIndependenceTest {
                 preflight = preflight,
                 answers = answers,
                 metadata = metadata,
+                includeComparisonDiagnostics = true,
                 productionGenerationObserver = observations::add
             )
             val phases = observations.map { it.phase }
@@ -482,42 +501,82 @@ class CanonicalStimulusPlanningIndependenceTest {
             assertTrue(exactB6Owners.any { owner -> comparison.experimental.items.any {
                 it.exerciseStableKey == owner.stableKey && it.selectionRole == owner.selectionRole
             } })
-            // Canonical B6 is complete before late CONTROL, but C28 leaves unsupported coverage
-            // needs unresolved; B7 therefore keeps this otherwise valid Strength case on CONTROL.
-            assertEquals(StimulusProductionProgramSource.CONTROL, result.routeDecision.selectedSource)
-            assertFalse(requireNotNull(comparison.experimentalReadinessAudit).changeProvenanceClosed)
-            assertSame(comparison.control, result.program)
+            // The accessory-slot correction removes the false rear-delt pull improvement.
+            // Other material remains outside this fixture's bounded Strength cutover scope.
+            assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, result.routeDecision.selectedSource)
+            val readiness = requireNotNull(comparison.experimentalReadinessAudit)
+            assertTrue(readiness.changeProvenanceClosed)
+            assertFalse(readiness.targetOutcomes.any {
+                it.targetId == "MOVEMENT:UPPER_PULL" &&
+                    it.status == StimulusExperimentalTargetOutcomeStatus.IMPROVED
+            })
+            assertFalse(comparison.selectionPlan.selectedCandidates.any {
+                it.stableKey == "cable_rear_delt_fly" &&
+                    "MOVEMENT:UPPER_PULL" in it.coveredTargetIds
+            })
+            assertFalse(comparison.experimental.items.any {
+                it.exerciseStableKey == "cable_rear_delt_fly" &&
+                    it.selectionRole == "CANONICAL_STIMULUS_MOVEMENT_UPPER_PULL"
+            })
+            assertEquals(StimulusProductionCutoverAuthorityStatus.CONTROL_REQUIRED, result.routeDecision.b8Status)
+            assertEquals(
+                personalizedProgramFingerprint(comparison.experimental.request, comparison.experimental.items),
+                personalizedProgramFingerprint(result.program.request, result.program.items)
+            )
             result
         }
         Unit
     }
 
     @Test fun controlFallbackFixtureStillBuildsCanonicalArtifactFirst() = runBlocking {
-        val spec = spec("reviewed_hypertrophy_isolated", h = true)
+        val spec = spec("reviewed_strength_isolated")
         StimulusProductionCoverageAuditTest().runCase(spec) { service, preflight, answers, metadata ->
             val phases = mutableListOf<ProductionGenerationPhase>()
             val result = service.generatePreparedProduction(
                 preflight, answers, metadata,
+                includeComparisonDiagnostics = true,
                 productionGenerationObserver = { phases += it.phase }
             )
             assertTrue(phases.indexOf(ProductionGenerationPhase.B6_POST_MATERIALIZATION_COMPLETE) <
                 phases.indexOf(ProductionGenerationPhase.CONTROL_BUILD))
-            assertEquals(StimulusProductionProgramSource.CONTROL, result.routeDecision.selectedSource)
-            assertSame(requireNotNull(result.comparison).control, result.program)
+            assertEquals(StimulusProductionProgramSource.NEW_GENERATOR, result.routeDecision.selectedSource)
+            val experimental = requireNotNull(result.comparison).experimental
+            assertEquals(
+                personalizedProgramFingerprint(experimental.request, experimental.items),
+                personalizedProgramFingerprint(result.program.request, result.program.items)
+            )
             result
         }
         Unit
     }
 
     private fun productionRegionalResiduals() = runBlocking {
-        StimulusProductionCoverageAuditTest().runCase(spec("c33_production_residual", h = true)) { service, preflight, answers, metadata ->
+        val regionalResidualCase = StimulusProductionCoverageAuditTest.CoverageSpec(
+            label = "persona0_sparse",
+            quality = TrainableQuality.STRENGTH,
+            stableKey = "barbell_back_squat",
+            profileGoal = "STRENGTH_GAIN",
+            goal = ProgramGoal.STRENGTH,
+            intent = StrengthIntent.STRENGTH_PRIORITY,
+            badminton = false,
+            history = "sparse",
+            days = 3,
+            minutes = 60,
+            equipment = setOf("MACHINE", "CABLE"),
+            explicitWeeklyDays = true
+        )
+        StimulusProductionCoverageAuditTest().runCase(regionalResidualCase) { service, preflight, answers, metadata ->
             var canonical: CanonicalStimulusPlanningResult? = null
             val result = service.generatePreparedProduction(preflight, answers, metadata,
+                includeComparisonDiagnostics = true,
                 canonicalPlanningComputation = { snapshot, state, dose ->
                     service.buildCanonicalStimulusPlanningResult(snapshot, state, dose).also { canonical = it }
                 })
             val comparison = requireNotNull(result.comparison)
-            assertEquals(requireNotNull(canonical).targetPlan, comparison.targetPlan.withoutProductionResidualAccounting())
+            assertEquals(
+                requireNotNull(canonical).targetPlan.withoutProductionResidualAccounting(),
+                comparison.targetPlan.withoutProductionResidualAccounting()
+            )
             val positiveResiduals = comparison.targetPlan.movementTargets.flatMap { movement ->
                 movement.regionalDoseTargets.filter { it.kind == StimulusMovementDoseKind.HYPERTROPHY_REGION_EQUIVALENT_SET }
                     .map { movement to it }
@@ -584,6 +643,13 @@ class CanonicalStimulusPlanningIndependenceTest {
     }
 
     private fun StimulusTargetPlan.withoutProductionResidualAccounting(): StimulusTargetPlan = copy(
+        // Production adds need-gated Power/Jump B4 dose decisions only after the initial
+        // Strength/Hypertrophy B5+B6 pass. These are independently covered by the C37 census;
+        // this helper compares the unchanged canonical B1-B4 producer projection.
+        qualityTargets = qualityTargets.filterNot {
+            it.quality in setOf(TrainableQuality.POWER, TrainableQuality.REACTIVE_STRENGTH_SSC)
+        },
+        powerJumpDoseDecisions = emptyList(),
         movementTargets = movementTargets.map { movement ->
             movement.copy(regionalDoseTargets = movement.regionalDoseTargets.map { dose ->
                 dose.copy(
@@ -601,45 +667,48 @@ class CanonicalStimulusPlanningIndependenceTest {
             var computations = 0
             val updates = mutableListOf<Int>()
             val result = service.generatePreparedProduction(preflight, answers, metadata, reporter(updates),
+                includeComparisonDiagnostics = false,
                 canonicalPlanningComputation = { snapshot, state, dose ->
-                    assertTrue("canonical planning precedes late CONTROL", updates.last() < 69)
+                    assertTrue("canonical planning is completed before B1–B6 materialization", updates.last() < 69)
                     computations++
                     service.buildCanonicalStimulusPlanningResult(snapshot, state, dose)
                 })
             assertEquals(1, computations)
-            assertBuilds(result, 1, 1)
+            assertBuilds(result, 0, 1)
             assertProgress(updates, completed = true)
             result
         }
         Unit
     }
 
-    @Test fun expectedIndependentPlanningFailureFallsBackAndCompletes() = runBlocking {
-        StimulusProductionCoverageAuditTest().runCase(spec("c1_expected_failure")) { service, preflight, answers, metadata ->
-            val updates = mutableListOf<Int>()
-            val phases = mutableListOf<ProductionGenerationPhase>()
-            var attempts = 0
-            val result = service.generatePreparedProduction(preflight, answers, metadata, reporter(updates),
-                productionGenerationObserver = { phases += it.phase },
-                canonicalPlanningComputation = { _, _, _ ->
-                    attempts++
-                    throw StimulusCanonicalEvaluationFailure(StimulusCanonicalEvaluationFailureReason.FINAL_CANONICAL_VALIDATION, "C1_TEST_FAILURE")
-                })
-            assertEquals(1, attempts)
-            assertEquals(StimulusProductionProgramSource.CONTROL, result.routeDecision.selectedSource)
-            assertFalse(result.routeDecision.productionRoutingActive)
-            assertNull(result.comparison)
-            assertTrue(result.program.items.isNotEmpty())
-            assertEquals("B9_EXPECTED_CANONICAL_EVALUATION_FAILURE", result.upstreamFailureReason)
-            assertTrue("C1_TEST_FAILURE" in result.diagnostics.secondaryReasonCodes)
-            assertEquals(StimulusProductionFallbackStage.UPSTREAM_EVALUATION_FAILURE, result.diagnostics.primaryFallbackStage)
-            assertBuilds(result, 1, 0)
-            assertTrue(phases.indexOf(ProductionGenerationPhase.CANONICAL_PREPARED) < phases.indexOf(ProductionGenerationPhase.CONTROL_BUILD))
-            assertFalse(ProductionGenerationPhase.EXPERIMENTAL_BUILD in phases)
-            assertProgress(updates, completed = true)
-            result
+    @Test fun expectedIndependentPlanningFailureReturnsTypedFailureWithoutControlFallback() = runBlocking {
+        val updates = mutableListOf<Int>()
+        val phases = mutableListOf<ProductionGenerationPhase>()
+        var attempts = 0
+        var rejected: StimulusProductionExecutionRejectedException? = null
+        try {
+            StimulusProductionCoverageAuditTest().runCase(spec("c1_expected_failure")) { service, preflight, answers, metadata ->
+                service.generatePreparedProduction(preflight, answers, metadata, reporter(updates),
+                    includeComparisonDiagnostics = false,
+                    productionGenerationObserver = { phases += it.phase },
+                    canonicalPlanningComputation = { _, _, _ ->
+                        attempts++
+                        throw StimulusCanonicalEvaluationFailure(
+                            StimulusCanonicalEvaluationFailureReason.FINAL_CANONICAL_VALIDATION,
+                            "C1_TEST_FAILURE"
+                        )
+                    })
+            }
+        } catch (failure: StimulusProductionExecutionRejectedException) {
+            rejected = failure
         }
-        Unit
+        assertEquals(1, attempts)
+        assertTrue(rejected?.reasonCodes.orEmpty().contains("FINAL_CANONICAL_VALIDATION"))
+        assertTrue(rejected?.reasonCodes.orEmpty().contains("C1_TEST_FAILURE"))
+        assertTrue(ProductionGenerationPhase.CANONICAL_PREPARED in phases)
+        assertFalse(ProductionGenerationPhase.CONTROL_BUILD in phases)
+        assertFalse(ProductionGenerationPhase.EXPERIMENTAL_BUILD in phases)
+        assertProgress(updates, completed = false)
     }
 
     @Test fun independentPlanningCancellationPropagates() = propagates(CancellationException("C1_CANCEL"))

@@ -24,6 +24,14 @@ class PostGenerationAuthorityFreezeTest {
         // the builder; legacy prescription branches remain protected by this updated source hash.
         // C30 adds typed movement gap priority to the shared representation analysis and extracts
         // the existing hard movement restriction mapping for B3; historical dose predicates remain frozen.
+        // C38.1 updates ExposureRepresentation's movement-domain projection to the shared
+        // H/V/UPPER_PULL relation and GapCandidateSelector's pull-coverage lookup to consume
+        // that same relation; historical dose, ranking, and prescription authorities remain frozen.
+        // C38.2 replaces broad runtime accessory-slot movement promotion with a canonical
+        // movement-pattern/family resolver and supplies canonical relations to the snapshot;
+        // historical dose and prescription authorities remain frozen.
+        // C38.3 allows the user's requested 2-day schedule and 1-week horizon without silently
+        // expanding either request; the reviewed scheduling map records those exact bounds.
         // All unrelated historical, style, numerical and prescription authorities remain frozen.
         // C28 lets the legacy selector report candidate identities without set-unit demand in
         // canonical EXP generation; it does not change candidate ranking or create a dose.
@@ -36,23 +44,27 @@ class PostGenerationAuthorityFreezeTest {
         // C35 orders the complete candidate list by canonical priority before the frozen finite
         // kernel and records the exact order/funding trace; allocation math and reservation
         // semantics remain unchanged.
+        // C38.4 adds trace sinks around existing allocation results; the finite kernel remains
+        // separately byte-frozen below and the allocation math/authority is unchanged.
+        // C38.4's builder observer also adds JSON imports before the protected builder class;
+        // no protected selector or prescription policy was edited.
         val frozen = mapOf(
             // Domain-separated volume and court-deviation trace are the approved
             // changes in this follow-up; keep the remaining authorities frozen.
-            "AthletePlanningStateBuilder.kt" to "1a20d50280884f9eb916d7a28b249d124552fbd275f0df1f34939f915126271a",
+            "AthletePlanningStateBuilder.kt" to "4a1c4df0a5089b4e49668713d365b549c6b48eab0f3953c1a3fafd2a63df6a70",
             // Approved Phase A closeout correction: the snapshot resolver delegates to the
             // explicit-argument resolver; classification branch order/predicates remain
             // unchanged, and production uses the explicit overload only in the shadow ledger.
-            "ExposureRepresentation.kt" to "d6a417b8bdb86ca8cfdefaac0fa701d6d2ec0d975418781f48ecd3f607d22c1b",
+            "ExposureRepresentation.kt" to "95f0889987f81c5b5d4002398b98989dc2d4e3803add6cc8947b1b4ca39d0638",
             "PersonalizedDecisionComponents.kt" to "66c6acc65bc46f5bc957d8f4f8b57f072b44d2a621f060edabe5d047aed89958",
             // C20 extracts the exact session-time predicate so the live incumbent feasibility
             // evaluator calls the production placement bound instead of maintaining a duplicate.
             // C28 adds candidate-origin and unresolved-need diagnostics to MaterialDemand; C35
             // adds priority-order trace fields while leaving the finite allocation kernel frozen.
-            "ExecutionAllocationPlanner.kt" to "ebfc914e43b0d970743edfe52027a382a5db66023a2c11d579b6e2b56a0880f4",
+            "ExecutionAllocationPlanner.kt" to "95ba3e009b5a85f9083c6222c696817a04b1d1f336330d72a142a6701d45e9d7",
             "PerformancePrescriptionResolver.kt" to "48eda34c9e390ca109bbb1e19e7a8ac79802f01f60c25470f92c8eb7f87063be",
-            "RecordBasedReviewedPolicy.kt" to "915be5354ac988774f740a366655d26f74cb3c8e2f820eecf63e8914b671ed08",
-            "PlanningHistorySnapshotBuilder.kt" to "86cd17bf56f36e2759bb8cd507b0c0162d9023627898ba1fd3dfb64558bce76f",
+            "RecordBasedReviewedPolicy.kt" to "5dec65540c0602a923272caf347b6ec30e55640e4ed32182efb6c5b8ea609da6",
+            "PlanningHistorySnapshotBuilder.kt" to "856201038ff76599ba4928ffae9d10080fc6c46ba670096fb9036387fb6dfbd3",
             "TrainingStateAssessment.kt" to "9027cb6d45422fc2cdecafa19fbec34a8b8fcba8c14cc594058d15e802e53bf2",
             "TrainingStateRouting.kt" to "bcbc769d004c80cf76a8b2ea1d69344be69b22892d769c591a58d0edecd042e0"
         )
@@ -71,7 +83,7 @@ class PostGenerationAuthorityFreezeTest {
         val builderAuthorities = File(root, "app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt")
             .readText().replace("\r\n", "\n").substringBefore("class PersonalizedProgramBuilder(")
         assertEquals("Continuity, GapCandidateSelector, PersonalizedPrescriptionPlanner, validation and repair stay frozen",
-            "9f7a436d8db9942209add11e38130f9bfe19815e8c5b51a00296179117ccd1b4",
+            "e327a19bfb52429138e2e873b03d7977222fed46e50e3e7c6443dabbc147fb79",
             MessageDigest.getInstance("SHA-256").digest(builderAuthorities.toByteArray()).joinToString("") { "%02x".format(it) })
     }
 }

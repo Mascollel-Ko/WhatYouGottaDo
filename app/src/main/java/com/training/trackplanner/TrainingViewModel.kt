@@ -74,6 +74,7 @@ import com.training.trackplanner.data.TrainingProgramItemSet
 import com.training.trackplanner.data.TrainingProgram
 import com.training.trackplanner.data.TrainingRepository
 import com.training.trackplanner.data.StaleIncumbentSourceException
+import com.training.trackplanner.data.UnexplainedCanonicalIncumbentMutationException
 import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.WorkoutSet
@@ -691,6 +692,8 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
                         _programBuildProgress.value = ProgramBuildProgressState.Running(100, "프로그램 구성을 완료했습니다.")
                         _programBuildProgress.value = ProgramBuildProgressState.Completed(outcome.skeleton.optimizationSummary)
                     }
+                    is PersonalizedPlanningOutcome.Failed -> _programBuildProgress.value =
+                        ProgramBuildProgressState.Failed(outcome.message)
                 }
                 onOutcome(outcome)
         }
@@ -699,10 +702,11 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     fun preparePersonalizedProgram(
         request: ProgramSkeletonRequest,
         constraints: PersonalizedGenerationConstraints,
+        traceId: String? = null,
         onPrepared: (PersonalizedPlanningPreflight) -> Unit
     ) {
         personalizedGenerationRunner.launch({ progress ->
-            repository.preparePersonalizedProgram(request, constraints, progress = progress)
+            repository.preparePersonalizedProgram(request, constraints, progress = progress, traceId = traceId)
         }) { preflight ->
                 _programBuildProgress.value = ProgramBuildProgressState.Idle
                 onPrepared(preflight)
@@ -733,21 +737,39 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     fun saveGeneratedProgram(
         existingProgramId: Long?,
         skeleton: GeneratedProgramSkeleton,
+        existingProgramReplacementApproved: Boolean = false,
         onSaved: (Long) -> Unit
     ) {
         viewModelScope.launch {
-            runCatching { repository.saveGeneratedProgram(existingProgramId, skeleton) }
+            runCatching {
+                repository.saveGeneratedProgram(existingProgramId, skeleton, existingProgramReplacementApproved)
+            }
                 .onSuccess(onSaved)
                 .onFailure { error ->
                     android.util.Log.w("ProgramSave", "Generated program was not saved", error)
                     _programBuildProgress.value = ProgramBuildProgressState.Failed(
                         if (error is StaleIncumbentSourceException) {
                             "기존 프로그램이 생성 중 변경되었습니다. 최신 상태로 다시 생성해 주세요."
+                        } else if (error is UnexplainedCanonicalIncumbentMutationException) {
+                            "기존 운동을 바꾸거나 빼는 근거가 확인되지 않아 저장하지 않았습니다. 기존 프로그램은 유지됩니다."
                         } else {
                             "프로그램을 저장하지 못했습니다. 다시 시도해 주세요."
                         }
                     )
                 }
+        }
+    }
+
+    fun validateProgramReplacementSelection(
+        skeleton: GeneratedProgramSkeleton,
+        selectedOptionIds: Set<String>,
+        existingProgramId: Long?,
+        onResult: (Result<GeneratedProgramSkeleton>) -> Unit
+    ) {
+        viewModelScope.launch {
+            onResult(runCatching {
+                repository.validateProgramReplacementSelection(skeleton, selectedOptionIds, existingProgramId)
+            })
         }
     }
 

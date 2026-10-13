@@ -129,6 +129,30 @@ class PersonalizedGenerationProgressUiTest {
         compose.onNodeWithText("다시 시도").assertIsDisplayed()
     }
 
+    @Test fun diagnosticExportActionIsAvailableForInputCorrectionAndGenerationFailure() {
+        var exports = 0
+        var showFailure by mutableStateOf(false)
+        compose.setContent {
+            TrainingTrackPlannerTheme {
+                if (showFailure) {
+                    ProgramBuildProgressCard(
+                        progress = ProgramBuildProgressState.Failed("생성 실패"),
+                        onExportTrace = { exports++ }, onRetry = {}
+                    )
+                } else {
+                    PersonalizedPlanningQuestionDialog(
+                        listOf(question), emptyMap(), { _, _ -> }, {}, {}, onExportTrace = { exports++ }
+                    )
+                }
+            }
+        }
+        compose.onNodeWithText("생성 진단 내보내기").assertIsDisplayed().performClick()
+        assertEquals(1, exports)
+        compose.runOnIdle { showFailure = true }
+        compose.onNodeWithText("생성 진단 내보내기").assertIsDisplayed().performClick()
+        assertEquals(2, exports)
+    }
+
     @Test fun narrowDialogAtLargeFontKeepsExplanatoryTextReadableWithoutClipping() {
         compose.setContent {
             val density = androidx.compose.ui.platform.LocalDensity.current

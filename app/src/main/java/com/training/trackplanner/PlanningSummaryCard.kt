@@ -194,7 +194,7 @@ private fun styleLabel(value: StrengthProgrammingStyle): Int = when (value) {
     StrengthProgrammingStyle.UNRESOLVED -> R.string.planning_summary_style_unresolved
 }
 
-private fun movementLabel(value: MovementCoverage): Int = when (value) {
+internal fun movementLabel(value: MovementCoverage): Int = when (value) {
     MovementCoverage.LOWER_KNEE -> R.string.planning_summary_movement_lower_knee
     MovementCoverage.POSTERIOR_CHAIN -> R.string.planning_summary_movement_posterior_chain
     MovementCoverage.HORIZONTAL_PUSH -> R.string.planning_summary_movement_horizontal_push

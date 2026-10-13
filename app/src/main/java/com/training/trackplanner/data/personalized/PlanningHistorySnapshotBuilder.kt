@@ -5,6 +5,7 @@ import com.training.trackplanner.analysis.badminton.BadmintonObjectiveStimulusCa
 import com.training.trackplanner.analysis.badminton.BadmintonObjectiveTransferLevel
 import com.training.trackplanner.analysis.badminton.BadmintonPracticeLoadCalculator
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.CanonicalMetadataRelation
 import com.training.trackplanner.data.ExerciseRoleRelationCatalog
 import com.training.trackplanner.data.InitialUserProfile
 import com.training.trackplanner.data.RuntimeExerciseMetadata
@@ -26,7 +27,10 @@ class PlanningHistorySnapshotBuilder {
         canonicalStrengthSignals: Map<String, CanonicalStrengthSignal> = emptyMap(),
         recoverySignals: PlanningRecoverySignals = PlanningRecoverySignals(),
         exerciseRoleCatalog: ExerciseRoleRelationCatalog = ExerciseRoleRelationCatalog.EMPTY,
-        plannedStrengthSetIntents: Map<StrengthSetSourceIdentity, StrengthSetIntentEvidence> = emptyMap()
+        plannedStrengthSetIntents: Map<StrengthSetSourceIdentity, StrengthSetIntentEvidence> = emptyMap(),
+        canonicalMovementRelations: List<CanonicalMetadataRelation> = emptyList(),
+        canonicalIdentityMovementPatterns: Map<String, String> = emptyMap(),
+        canonicalIdentityMovementReviewStatuses: Map<String, String> = emptyMap()
     ): PlanningHistorySnapshot {
         val exerciseByKey = exercises.associateBy(Exercise::stableKey)
         val confirmed = history.asSequence()
@@ -106,7 +110,12 @@ class PlanningHistorySnapshotBuilder {
                     .filter { it.transferLevel == BadmintonObjectiveTransferLevel.SUPPORTIVE }
                     .mapTo(linkedSetOf()) { it.objective.name }
             },
-            exerciseRoleCatalog = exerciseRoleCatalog
+            exerciseRoleCatalog = exerciseRoleCatalog,
+            canonicalMovementCoverage = if (canonicalMovementRelations.isEmpty()) emptyMap() else
+                CanonicalMovementCoverageResolver.resolveAll(
+                    metadata, canonicalMovementRelations, canonicalIdentityMovementPatterns,
+                    canonicalIdentityMovementReviewStatuses
+                )
         )
     }
 }

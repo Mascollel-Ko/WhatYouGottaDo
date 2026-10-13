@@ -64,6 +64,8 @@ data class RegionalDoseBand(
     val previous28dSessions: Int = 0,
     val current28dExposureWeekCount: Int = 0,
     val previous28dExposureWeekCount: Int = 0,
+    val current28dEligibleWeekCount: Int = 0,
+    val previous28dEligibleWeekCount: Int = 0,
     val current28dWeeklyUnitsMedian: Double? = null,
     val previous28dWeeklyUnitsMedian: Double? = null,
     val current28dExposureWeekUnitsMedian: Double? = null,
@@ -140,7 +142,7 @@ data class ProgramEmphasisLabel(
     val plannedUnits: Int
 )
 
-private val regionalSupportedRegions = listOf(
+internal val regionalSupportedRegions = listOf(
     MovementCoverage.LOWER_KNEE,
     MovementCoverage.POSTERIOR_CHAIN,
     MovementCoverage.CALVES,
@@ -149,7 +151,8 @@ private val regionalSupportedRegions = listOf(
     MovementCoverage.HORIZONTAL_PUSH,
     MovementCoverage.VERTICAL_PUSH,
     MovementCoverage.HORIZONTAL_PULL,
-    MovementCoverage.VERTICAL_PULL
+    MovementCoverage.VERTICAL_PULL,
+    MovementCoverage.UPPER_PULL
 )
 
 private data class RegionalWeek(val start: LocalDate, val end: LocalDate, val rows: List<PlanningSetRecord>, val excluded: Boolean)
@@ -177,12 +180,19 @@ private class MutableRegionalDose {
         }
     }
 
-    fun finish(eligibleWeeks: List<RegionalWeek>, confidence: PlanningConfidence): RegionalDoseBand {
+    fun finish(eligibleWeeks: List<RegionalWeek>, confidence: PlanningConfidence, cutoff: LocalDate): RegionalDoseBand {
         val weekly = eligibleWeeks.map { weeklyUnits[it.start]?.toDouble() ?: 0.0 }
-        // Keep the two half-windows as independent dimensions.  Calendar weeks
-        // with no regional exposure remain zeroes in these lists.
-        val currentHalf = currentWeeklyUnits.values
-        val previousHalf = previousWeeklyUnits.values
+        // The current/prior dose medians use complete, observed training weeks.
+        // A qualifying week with no target-region sets is a real zero; an excluded
+        // or unobserved week is absent from eligibleWeeks and remains unknown.
+        val currentHalfWeeks = eligibleWeeks.filter { week ->
+            java.time.temporal.ChronoUnit.DAYS.between(week.end, cutoff).toInt() in 0..27
+        }
+        val previousHalfWeeks = eligibleWeeks.filter { week ->
+            java.time.temporal.ChronoUnit.DAYS.between(week.end, cutoff).toInt() in 28..55
+        }
+        val currentHalf = currentHalfWeeks.map { weeklyUnits[it.start] ?: 0.0 }
+        val previousHalf = previousHalfWeeks.map { weeklyUnits[it.start] ?: 0.0 }
         val exposed = weekly.filter { it > 0.0 }
         val currentExposed = currentHalf.filter { it > 0.0 }
         val previousExposed = previousHalf.filter { it > 0.0 }
@@ -194,10 +204,10 @@ private class MutableRegionalDose {
         return RegionalDoseBand(
             eligibleWeekCount = weekly.size,
             weeklyUnitsQ25 = quantile(weekly, .25),
-            weeklyUnitsMedian = quantile(weekly, .50),
+            weeklyUnitsMedian = median(weekly),
             weeklyUnitsQ75 = quantile(weekly, .75),
             exposureWeekUnitsQ25 = quantile(exposed, .25),
-            exposureWeekUnitsMedian = quantile(exposed, .50),
+            exposureWeekUnitsMedian = median(exposed),
             exposureWeekUnitsQ75 = quantile(exposed, .75),
             directExposureWeekCount = exposed.size,
             directExposureWeekFrequency = if (weekly.isEmpty()) null else exposed.size.toDouble() / weekly.size,
@@ -207,10 +217,12 @@ private class MutableRegionalDose {
             previous28dSessions = previousDates.size,
             current28dExposureWeekCount = currentExposed.size,
             previous28dExposureWeekCount = previousExposed.size,
-            current28dWeeklyUnitsMedian = quantile(currentHalf.toList(), .50),
-            previous28dWeeklyUnitsMedian = quantile(previousHalf.toList(), .50),
-            current28dExposureWeekUnitsMedian = quantile(currentExposed, .50),
-            previous28dExposureWeekUnitsMedian = quantile(previousExposed, .50),
+            current28dEligibleWeekCount = currentHalf.size,
+            previous28dEligibleWeekCount = previousHalf.size,
+            current28dWeeklyUnitsMedian = median(currentHalf),
+            previous28dWeeklyUnitsMedian = median(previousHalf),
+            current28dExposureWeekUnitsMedian = median(currentExposed),
+            previous28dExposureWeekUnitsMedian = median(previousExposed),
             confidence = confidence,
             source = source
         )
@@ -257,63 +269,73 @@ class RegionalEvidenceIndexBuilder {
         var indexedRows = 0
         snapshot.allConfirmedSets.forEach { row ->
             val age = java.time.temporal.ChronoUnit.DAYS.between(row.date, snapshot.cutoff).toInt()
-            if (age !in 0..55) return@forEach
+            // Include the complete oldest weekly bin (which starts up to 61 days
+            // before cutoff); incomplete leading weeks are never counted as zero.
+            if (age !in 0..61) return@forEach
             val weekStart = eligibleByDate[row] ?: return@forEach
             val movement = snapshot.movementCoverage(row.stableKey)
-            if (movement !in regionalSupportedRegions) return@forEach
             val relations = relationByKey[row.stableKey].orEmpty()
             if (relations.isEmpty()) return@forEach
+            val evidenceRegions = regionalQualityEvidenceTargets(movement, relations)
+            if (evidenceRegions.isEmpty()) return@forEach
             indexedRows++
             val realized = snapshot.historyRealizedKind(row)
-            val doseCreditByQuality = linkedMapOf<TrainableQuality, Double>()
-            var specificStrengthRelation = false
-            relations.forEach { relation ->
-                if (relation.qualityId !in setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY) ||
-                    !regionQualifierMatches(movement, relation.regionQualifier)) return@forEach
-                when (relation.qualityId) {
-                    TrainableQuality.STRENGTH -> if (relation.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY &&
-                        realized == RealizedStimulusKind.STRENGTH_LIKE) {
-                        doseCreditByQuality[relation.qualityId] = 1.0
-                        if (relation.modeQualifier !in setOf(PhysicalQualityMode.GENERAL, PhysicalQualityMode.OTHER)) {
-                            specificStrengthRelation = true
-                            val signal = snapshot.canonicalStrengthSignals[row.stableKey]
-                            // Stable-key specificity is authoritative only for a
-                            // canonical performance key with the existing minimum
-                            // observation count.  The aggregate counters below are
-                            // retained for legacy shadow payload compatibility.
-                            if ((signal?.observationCount ?: 0) >= 2) {
-                                val current = specificByRegion.getValue(movement).getOrPut(row.stableKey) { MutableRegionalSpecificity(row.stableKey) }
-                                if (age in 0..27) current.currentUnits++ else if (age in 28..55) current.previousUnits++
-                                if (age in 0..27) current.currentDates += row.date else if (age in 28..55) current.previousDates += row.date
+            evidenceRegions.forEach regionLoop@{ evidenceRegion ->
+                val doseCreditByQuality = linkedMapOf<TrainableQuality, Double>()
+                var specificStrengthRelation = false
+                relations.forEach relationLoop@{ relation ->
+                    val relationCredit = regionalQualityRelationCredit(
+                        evidenceRegion, movement, relation.qualityId, relation.relationLevel, relation.regionQualifier
+                    )
+                    if (relationCredit <= 0.0 ||
+                        relation.qualityId !in setOf(TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY)) return@relationLoop
+                    when (relation.qualityId) {
+                        TrainableQuality.STRENGTH -> if (realized == RealizedStimulusKind.STRENGTH_LIKE) {
+                            doseCreditByQuality[relation.qualityId] = relationCredit
+                            if (relation.modeQualifier !in setOf(PhysicalQualityMode.GENERAL, PhysicalQualityMode.OTHER)) {
+                                specificStrengthRelation = true
+                                val signal = snapshot.canonicalStrengthSignals[row.stableKey]
+                                // Stable-key specificity is authoritative only for a
+                                // canonical performance key with the existing minimum
+                                // observation count. The aggregate pull bucket observes
+                                // the same row once, independently of its direction bucket.
+                                if ((signal?.observationCount ?: 0) >= 2) {
+                                    val current = specificByRegion.getValue(evidenceRegion)
+                                        .getOrPut(row.stableKey) { MutableRegionalSpecificity(row.stableKey) }
+                                    if (age in 0..27) current.currentUnits++ else if (age in 28..55) current.previousUnits++
+                                    if (age in 0..27) current.currentDates += row.date else if (age in 28..55) current.previousDates += row.date
+                                }
                             }
                         }
-                    }
-                    TrainableQuality.HYPERTROPHY -> if (realized == RealizedStimulusKind.HYPERTROPHY_LIKE) {
-                        val credit = when (relation.relationLevel) {
-                            StimulusCapabilityLevel.DIRECT_CAPABILITY -> 1.0
-                            StimulusCapabilityLevel.SUPPORTIVE_CAPABILITY -> 0.5
+                        TrainableQuality.HYPERTROPHY -> if (realized == RealizedStimulusKind.HYPERTROPHY_LIKE) {
+                            doseCreditByQuality[relation.qualityId] = maxOf(
+                                doseCreditByQuality[relation.qualityId] ?: 0.0,
+                                relationCredit
+                            )
                         }
-                        doseCreditByQuality[relation.qualityId] = maxOf(
-                            doseCreditByQuality[relation.qualityId] ?: 0.0,
-                            credit
-                        )
+                        else -> Unit
                     }
-                    else -> Unit
                 }
-            }
-            doseCreditByQuality[TrainableQuality.STRENGTH]?.let { strength.getValue(movement).add(row, weekStart, age, it) }
-            doseCreditByQuality[TrainableQuality.HYPERTROPHY]?.let { hypertrophy.getValue(movement).add(row, weekStart, age, it) }
-            if (doseCreditByQuality[TrainableQuality.STRENGTH] != null && age in 0..27) {
-                strengthKeys.getValue(movement).add(row.stableKey)
-            }
-            if (specificStrengthRelation && realized == RealizedStimulusKind.STRENGTH_LIKE) {
-                if (age in 0..27) { specificCurrent[movement] = specificCurrent.getValue(movement) + 1; specificCurrentDates.getValue(movement) += row.date }
-                if (age in 28..55) { specificPrevious[movement] = specificPrevious.getValue(movement) + 1; specificPreviousDates.getValue(movement) += row.date }
+                doseCreditByQuality[TrainableQuality.STRENGTH]?.let { strength.getValue(evidenceRegion).add(row, weekStart, age, it) }
+                doseCreditByQuality[TrainableQuality.HYPERTROPHY]?.let { hypertrophy.getValue(evidenceRegion).add(row, weekStart, age, it) }
+                if (doseCreditByQuality[TrainableQuality.STRENGTH] != null && age in 0..27) {
+                    strengthKeys.getValue(evidenceRegion).add(row.stableKey)
+                }
+                if (specificStrengthRelation && realized == RealizedStimulusKind.STRENGTH_LIKE) {
+                    if (age in 0..27) {
+                        specificCurrent[evidenceRegion] = specificCurrent.getValue(evidenceRegion) + 1
+                        specificCurrentDates.getValue(evidenceRegion) += row.date
+                    }
+                    if (age in 28..55) {
+                        specificPrevious[evidenceRegion] = specificPrevious.getValue(evidenceRegion) + 1
+                        specificPreviousDates.getValue(evidenceRegion) += row.date
+                    }
+                }
             }
         }
         val regions = regionalSupportedRegions.associateWith { region ->
-            val strengthBand = strength.getValue(region).finish(eligible, confidence)
-            val hypertrophyBand = hypertrophy.getValue(region).finish(eligible, confidence)
+            val strengthBand = strength.getValue(region).finish(eligible, confidence, snapshot.cutoff)
+            val hypertrophyBand = hypertrophy.getValue(region).finish(eligible, confidence, snapshot.cutoff)
             val validSignals = strengthKeys.getValue(region).mapNotNull { key ->
                 snapshot.canonicalStrengthSignals[key]?.takeIf { it.observationCount >= 2 && it.posteriorChangePercent?.isFinite() == true }
             }
@@ -351,15 +373,6 @@ class RegionalEvidenceIndexBuilder {
         return RegionalEvidenceIndex(regions, indexedRows, eligible.size, weeks.count { it.rows.isNotEmpty() })
     }
 
-    private fun regionQualifierMatches(movement: MovementCoverage, qualifier: PhysicalQualityRegion): Boolean = when (movement) {
-        MovementCoverage.LOWER_KNEE -> qualifier in setOf(PhysicalQualityRegion.LOWER, PhysicalQualityRegion.QUADS_GLUTE, PhysicalQualityRegion.UNILATERAL_LOWER)
-        MovementCoverage.POSTERIOR_CHAIN -> qualifier in setOf(PhysicalQualityRegion.POSTERIOR_CHAIN, PhysicalQualityRegion.HAMSTRING, PhysicalQualityRegion.LOWER, PhysicalQualityRegion.UNILATERAL_LOWER)
-        MovementCoverage.CALVES -> qualifier in setOf(PhysicalQualityRegion.ANKLE, PhysicalQualityRegion.LOWER)
-        MovementCoverage.HORIZONTAL_PUSH, MovementCoverage.VERTICAL_PUSH -> qualifier in setOf(PhysicalQualityRegion.UPPER_PUSH, PhysicalQualityRegion.CHEST, PhysicalQualityRegion.SHOULDERS, PhysicalQualityRegion.ARMS)
-        MovementCoverage.HORIZONTAL_PULL, MovementCoverage.VERTICAL_PULL, MovementCoverage.UPPER_PULL -> qualifier in setOf(PhysicalQualityRegion.UPPER_PULL, PhysicalQualityRegion.SHOULDERS, PhysicalQualityRegion.ARMS)
-        MovementCoverage.ARMS_BICEPS, MovementCoverage.ARMS_TRICEPS -> qualifier == PhysicalQualityRegion.ARMS
-        else -> false
-    }
 }
 
 private class MutableRegionalSpecificity(val stableKey: String) {
@@ -562,33 +575,41 @@ class ProgramEmphasisProjector {
     ): List<ProgramEmphasisLabel> {
         val totals = linkedMapOf<Pair<MovementCoverage, TrainableQuality>, Int>()
         skeleton.items.forEach { item ->
-            val region = snapshot.movementCoverage(item.exerciseStableKey)
-            if (region !in regionalSupportedRegions) return@forEach
+            val regions = snapshot.movementCoverage(item.exerciseStableKey).regionalEvidenceTargets()
+                .filter { it in regionalSupportedRegions }
+            if (regions.isEmpty()) return@forEach
             val prescriptions = item.setPrescriptions.ifEmpty {
                 // Legacy skeletons without set rows retain the canonical scalar fallback.
                 List(item.setCount.coerceAtLeast(0)) { ProgramSetPrescription(it + 1, item.reps, item.weightKg, item.seconds) }
             }
             prescriptions.forEach { set ->
-                val qualities = catalog.relations(item.exerciseStableKey)
-                    .filter { it.relationLevel == StimulusCapabilityLevel.DIRECT_CAPABILITY }
-                    .map { relation ->
-                        when (relation.qualityId) {
-                            TrainableQuality.RAPID_FORCE_PRODUCTION,
-                            TrainableQuality.REACTIVE_STRENGTH_SSC -> TrainableQuality.POWER
-                            else -> relation.qualityId
+                regions.forEach { region ->
+                    val qualities = catalog.relations(item.exerciseStableKey)
+                        .filter { relation ->
+                            regionalQualityRelationCredit(
+                                region, snapshot.movementCoverage(item.exerciseStableKey), relation.qualityId,
+                                relation.relationLevel, relation.regionQualifier
+                            ) == 1.0
                         }
-                    }.distinct()
-                    .filter { quality ->
-                        when (quality) {
-                            TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY ->
-                                plannedTargetSetStimulusClass(item.exerciseStableKey, set.reps, item.selectionRole, quality) ==
-                                    if (quality == TrainableQuality.STRENGTH) RealizedStimulusClass.STRENGTH_LIKE else RealizedStimulusClass.HYPERTROPHY_LIKE
-                            TrainableQuality.POWER, TrainableQuality.RAPID_FORCE_PRODUCTION, TrainableQuality.REACTIVE_STRENGTH_SSC -> true
-                            else -> false
+                        .map { relation ->
+                            when (relation.qualityId) {
+                                TrainableQuality.RAPID_FORCE_PRODUCTION,
+                                TrainableQuality.REACTIVE_STRENGTH_SSC -> TrainableQuality.POWER
+                                else -> relation.qualityId
+                            }
+                        }.distinct()
+                        .filter { quality ->
+                            when (quality) {
+                                TrainableQuality.STRENGTH, TrainableQuality.HYPERTROPHY ->
+                                    plannedTargetSetStimulusClass(item.exerciseStableKey, set.reps, item.selectionRole, quality) ==
+                                        if (quality == TrainableQuality.STRENGTH) RealizedStimulusClass.STRENGTH_LIKE else RealizedStimulusClass.HYPERTROPHY_LIKE
+                                TrainableQuality.POWER, TrainableQuality.RAPID_FORCE_PRODUCTION, TrainableQuality.REACTIVE_STRENGTH_SSC -> true
+                                else -> false
+                            }
                         }
+                    qualities.forEach { quality ->
+                        totals[region to quality] = totals.getOrDefault(region to quality, 0) + 1
                     }
-                qualities.forEach { quality ->
-                    totals[region to quality] = totals.getOrDefault(region to quality, 0) + 1
                 }
             }
         }
@@ -611,6 +632,8 @@ internal fun RegionalDoseBand.toJson(): JSONObject = JSONObject()
     .put("current28dSessions", current28dSessions).put("previous28dSessions", previous28dSessions)
     .put("current28dExposureWeekCount", current28dExposureWeekCount)
     .put("previous28dExposureWeekCount", previous28dExposureWeekCount)
+    .put("current28dEligibleWeekCount", current28dEligibleWeekCount)
+    .put("previous28dEligibleWeekCount", previous28dEligibleWeekCount)
     .put("current28dWeeklyUnitsMedian", current28dWeeklyUnitsMedian)
     .put("previous28dWeeklyUnitsMedian", previous28dWeeklyUnitsMedian)
     .put("current28dExposureWeekUnitsMedian", current28dExposureWeekUnitsMedian)
@@ -647,3 +670,9 @@ internal fun ProgramEmphasisLabel.toJson(): JSONObject = JSONObject()
     .put("region", region.name).put("quality", quality.name).put("plannedUnits", plannedUnits)
 
 private fun quantile(values: List<Double>, q: Double): Double? = values.takeIf { it.isNotEmpty() }?.sorted()?.let { it[((it.size - 1) * q).roundToInt()] }
+
+/** Conventional sample median; an even sample averages its two middle observations. */
+private fun median(values: List<Double>): Double? = values.takeIf { it.isNotEmpty() }?.sorted()?.let { sorted ->
+    val middle = sorted.size / 2
+    if (sorted.size % 2 == 1) sorted[middle] else (sorted[middle - 1] + sorted[middle]) / 2.0
+}

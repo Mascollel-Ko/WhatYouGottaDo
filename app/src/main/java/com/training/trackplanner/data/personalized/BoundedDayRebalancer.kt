@@ -13,21 +13,38 @@ internal fun bandDistance(ratio: Double): Double = when {
     else -> 0.0
 }
 
-data class BalanceObjective(val bandViolationCount: Int, val maxBandDistance: Double, val totalBandDistance: Double) : Comparable<BalanceObjective> {
+data class BalanceObjective(
+    val bandViolationCount: Int,
+    val maxBandDistance: Double,
+    val totalBandDistance: Double,
+    val hardInfeasibleDays: Int = 0,
+    val hardViolationMagnitude: Int = 0
+) : Comparable<BalanceObjective> {
     override fun compareTo(other: BalanceObjective): Int = compareValuesBy(this, other,
+        BalanceObjective::hardInfeasibleDays, BalanceObjective::hardViolationMagnitude,
         BalanceObjective::bandViolationCount, BalanceObjective::maxBandDistance, BalanceObjective::totalBandDistance)
     fun toJson(): JSONObject = JSONObject().put("bandViolationCount", bandViolationCount)
         .put("maxBandDistance", maxBandDistance).put("totalBandDistance", totalBandDistance)
+        .put("hardInfeasibleDays", hardInfeasibleDays).put("hardViolationMagnitude", hardViolationMagnitude)
 }
-data class BalanceDay(val day: Int, val seconds: Int, val standaloneOfi: Int, val timeRatio: Double, val ofiRatio: Double?) {
+data class BalanceDay(
+    val day: Int,
+    val seconds: Int,
+    val standaloneOfi: Int,
+    val timeRatio: Double,
+    val ofiRatio: Double?,
+    val hardFeasible: Boolean = true,
+    val hardViolationMagnitude: Int = 0
+) {
     val timeDistance: Double get() = bandDistance(timeRatio)
     val ofiDistance: Double get() = ofiRatio?.let(::bandDistance) ?: 0.0
-    val needsBalance: Boolean get() = timeDistance > 0 || ofiDistance > 0
-    val source: Boolean get() = timeRatio > UPPER_BALANCE_RATIO || (ofiRatio ?: 0.0) > UPPER_BALANCE_RATIO ||
+    val needsBalance: Boolean get() = !hardFeasible || timeDistance > 0 || ofiDistance > 0
+    val source: Boolean get() = !hardFeasible || timeRatio > UPPER_BALANCE_RATIO || (ofiRatio ?: 0.0) > UPPER_BALANCE_RATIO ||
         standaloneOfi >= FatigueThresholds.OFI_CAUTION_START
     val destination: Boolean get() = timeRatio < LOWER_BALANCE_RATIO || (ofiRatio != null && ofiRatio < LOWER_BALANCE_RATIO)
     fun toJson(): JSONObject = JSONObject().put("day", day).put("seconds", seconds).put("standaloneOfi", standaloneOfi)
-        .put("timeRatio", timeRatio).put("ofiRatio", ofiRatio)
+        .put("timeRatio", timeRatio).put("ofiRatio", ofiRatio).put("hardFeasible", hardFeasible)
+        .put("hardViolationMagnitude", hardViolationMagnitude)
 }
 data class BalanceAction(val actionType: String, val atomIds: List<String>, val stableKeys: List<String>, val sourceDay: Int,
     val destinationDay: Int, val before: List<BalanceDay>, val after: List<BalanceDay>, val beforeObjective: BalanceObjective,
@@ -60,7 +77,13 @@ data class DayRebalancingTrace(val balanceState: String, val preRebalanceFingerp
 
 internal fun balanceObjective(days: List<BalanceDay>): BalanceObjective {
     val distances = days.flatMap { listOf(it.timeDistance, it.ofiDistance) }
-    return BalanceObjective(distances.count { it > 0 }, distances.maxOrNull() ?: 0.0, distances.sum())
+    return BalanceObjective(
+        bandViolationCount = distances.count { it > 0 },
+        maxBandDistance = distances.maxOrNull() ?: 0.0,
+        totalBandDistance = distances.sum(),
+        hardInfeasibleDays = days.count { !it.hardFeasible },
+        hardViolationMagnitude = days.sumOf { it.hardViolationMagnitude }
+    )
 }
 internal fun balanceNonWorsening(before: List<BalanceDay>, after: List<BalanceDay>): Boolean =
     after.all { day -> before.first { it.day == day.day }.let { prior -> day.timeDistance <= prior.timeDistance && day.ofiDistance <= prior.ofiDistance } } &&
@@ -115,19 +138,35 @@ internal class BoundedDayRebalancer(private val additionalGate: (List<ProgramSke
             }
             val dayRows = items.filter { it.dayOfWeek == day }
             val seconds = dayRows.sumOf(::plannedSeconds)
-            val ofi = load(dayRows).ofi
+            val projection = load(dayRows)
+            val ofi = projection.ofi
             counts.dayMetrics++
             counts.performanceMetrics?.let { it.dayProjectionCalls++ }
-            BalanceDay(day, seconds, ofi, seconds / timeReference, if (ofiReference > 0) ofi / ofiReference else null)
+            val violationMagnitude = if (dayRows.isEmpty()) 0 else
+                (ofi - FatigueThresholds.OFI_CAUTION_START + 1).coerceAtLeast(0) +
+                    projection.axisScores.sumOf { (it - FatigueThresholds.DAILY_AXIS_CAUTION_START + 1).coerceAtLeast(0) } +
+                    projection.cautionReasons.distinct().size
+            BalanceDay(day, seconds, ofi, seconds / timeReference, if (ofiReference > 0) ofi / ofiReference else null,
+                hardFeasible = dayRows.isEmpty() || projection.feasible,
+                hardViolationMagnitude = violationMagnitude)
         }
-        fun movable(row: ProgramSkeletonItem): Boolean {
+        fun movable(row: ProgramSkeletonItem, hardSafetyRepairSource: Boolean = false): Boolean {
             val source = completed.sourceByAtom[atom(row)] ?: return false
             val session = skeleton.progressionSessions.firstOrNull { it.key == row.progressionBinding?.sessionKey }
             val origin = skeleton.personalizedDecision?.authorizedScheduling?.localOrigins?.get(row.localId)
             if (origin?.splitGroupId?.isNotBlank() == true && skeleton.personalizedDecision?.authorizedScheduling?.authorized.orEmpty()
                     .any { it.id == origin.authorizedDemandId && ContinuitySplitPolicy.mandatory(snapshot,it) }) return false
-            if (MainSchedulingPolicy.isMain(row,skeleton)) return MainSchedulingPolicy.ordinaryMain(row,source,skeleton)
-            return source.scheduleTier() != ScheduleTier.CORE_MUST_DO && row.progressionRole != ProgressionRole.MAIN &&
+            if (MainSchedulingPolicy.isMain(row,skeleton)) {
+                if (MainSchedulingPolicy.ordinaryMain(row,source,skeleton)) return true
+                // A newly generated draft can label a row MAIN before a persisted continuation
+                // session exists. During a hard OFI repair, the whole authorized prescription
+                // may move as one atom; an existing bound session remains fixed.
+                return hardSafetyRepairSource && row.progressionVariant.isBlank() &&
+                    source.styleVariant.isBlank() && !row.requiredTemplateAnchor
+            }
+            return (source.scheduleTier() != ScheduleTier.CORE_MUST_DO || hardSafetyRepairSource) &&
+                (row.progressionRole != ProgressionRole.MAIN ||
+                    (hardSafetyRepairSource && row.progressionBinding == null && session == null)) &&
                 session?.track?.role != ProgressionRole.MAIN && row.progressionVariant.isBlank() &&
                 source.styleVariant.isBlank() && !row.requiredTemplateAnchor
         }
@@ -156,6 +195,7 @@ internal class BoundedDayRebalancer(private val additionalGate: (List<ProgramSke
         val actions = mutableListOf<BalanceAction>()
         val ownerProvenance = mutableListOf<OwnerAllocationProvenance>()
         val primaryRejections = sortedMapOf<String,Int>()
+        val hardRepairRejections = sortedMapOf<String,Int>()
         val visited = mutableSetOf(rows.associate { atom(it) to it.dayOfWeek })
         val candidateOrder = compareBy<RebalanceCandidate> { strengthPrimary(it.rows) }.thenBy { it.action.afterObjective }.thenBy { it.movementCost }
             .thenBy { it.priority }.thenBy { it.keyOrder }.thenBy { it.action.sourceDay }.thenBy { it.action.destinationDay }.thenBy { it.identityOrder }
@@ -166,11 +206,17 @@ internal class BoundedDayRebalancer(private val additionalGate: (List<ProgramSke
                 route: String = if (reverse == null) "PRIMARY_MOVE" else "SWAP"): RebalanceCandidate? {
                 counts.candidates++
                 counts.performanceMetrics?.let { it.rebalanceCandidates++ }
+                val hardRepairSource = currentMetrics.any { !it.hardFeasible } &&
+                    currentMetrics.any { it.day == source.dayOfWeek && !it.hardFeasible }
                 fun rejected(reason: String): RebalanceCandidate? {
                     if (route.startsWith("STRENGTH_PRIMARY")) primaryRejections[reason] = primaryRejections.getOrDefault(reason,0)+1
+                    if (hardRepairSource) hardRepairRejections[reason] = hardRepairRejections.getOrDefault(reason,0)+1
                     return null
                 }
-                if (!movable(source) || reverse?.let { !movable(it) } == true) return rejected("PROTECTED_STRUCTURE_OR_SPLIT")
+                if (!movable(source, hardSafetyRepairSource = hardRepairSource) ||
+                    reverse?.let { !movable(it, hardSafetyRepairSource = hardRepairSource) } == true) {
+                    return rejected("PROTECTED_STRUCTURE_OR_SPLIT")
+                }
                 val moved = listOfNotNull(source, reverse)
                 if (moved.any { !postProcessTissueAllowed(snapshot, state, it.exerciseStableKey) }) return rejected("CURRENT_TISSUE_RESTRICTION")
                 val affected = setOf(source.dayOfWeek, destination)
@@ -187,7 +233,10 @@ internal class BoundedDayRebalancer(private val additionalGate: (List<ProgramSke
                         if (items.sumOf(::plannedSeconds) > skeleton.request.sessionMinutes * 60) return rejected("SESSION_TIME")
                     }
                 }
-                if (maxLower(tentative) > lowerBefore) return rejected("LOWER_STRESS_CONCENTRATION")
+                // Repair a hard-infeasible source before applying the softer lower-stress
+                // dispersion preference. Destination OFI and the final weekly recovery gate
+                // still apply to the complete relocated prescription.
+                if (!hardRepairSource && maxLower(tentative) > lowerBefore) return rejected("LOWER_STRESS_CONCENTRATION")
                 if (!PrimaryStrengthAnchorSpacingPolicy.allowedRows(tentative,primaryKeys)) return rejected("PRIMARY_ANCHOR_CALENDAR_SPACING")
                 if (!additionalGate(tentative)) return rejected("ADDITIONAL_PLACEMENT_GATE")
                 // Keep the canonical day projection as the final candidate gate. All exact
@@ -206,18 +255,24 @@ internal class BoundedDayRebalancer(private val additionalGate: (List<ProgramSke
                 val beforeAffected = currentMetrics.filter { it.day in affected }
                 val afterAffected = nextMetrics.filter { it.day in affected }
                 val primaryChange = strengthPrimary(tentative).compareTo(strengthPrimary(rows))
-                if (primaryChange > 0) return null
-                if (primaryChange == 0 && !balanceNonWorsening(beforeAffected, afterAffected)) return null
+                if (primaryChange > 0) return rejected("PRIMARY_STRENGTH_SPACING")
                 val objective = balanceObjective(nextMetrics)
-                if (primaryChange == 0 && objective >= beforeObjective) return null
+                val hardRepairImproved = afterAffected.count { !it.hardFeasible } < beforeAffected.count { !it.hardFeasible } ||
+                    afterAffected.sumOf { it.hardViolationMagnitude } < beforeAffected.sumOf { it.hardViolationMagnitude }
+                if (primaryChange == 0 && !hardRepairImproved && !balanceNonWorsening(beforeAffected, afterAffected))
+                    return rejected("HARD_CONSTRAINT_NOT_IMPROVED")
+                if (primaryChange == 0 && objective >= beforeObjective) return rejected("OBJECTIVE_NOT_IMPROVED")
                 check(immutable(tentative) == immutable(rows))
                 val action = BalanceAction(if (reverse == null) "MOVE" else "SWAP", moved.map(::atom), moved.map { it.exerciseStableKey },
                     source.dayOfWeek, destination, beforeAffected, afterAffected, beforeObjective, objective, route = route)
                 return RebalanceCandidate(tentative, nextMetrics, action, moved.sumOf(::cost), moved.sumOf(::priority),
                     moved.map { it.exerciseStableKey }.sorted().joinToString("|"), moved.map(::atom).sorted().joinToString("|"))
             }
-            val sourceDays = currentMetrics.filter(BalanceDay::source).map { it.day }
-            val destinationDays = currentMetrics.filter(BalanceDay::destination).map { it.day }
+            val hardRepairDays = currentMetrics.filterNot(BalanceDay::hardFeasible).map { it.day }
+            val sourceDays = if (hardRepairDays.isNotEmpty()) hardRepairDays else
+                currentMetrics.filter(BalanceDay::source).map { it.day }
+            val destinationDays = if (hardRepairDays.isNotEmpty()) currentMetrics.filter(BalanceDay::hardFeasible).map { it.day } else
+                currentMetrics.filter(BalanceDay::destination).map { it.day }
             var best: RebalanceCandidate? = null
             fun consider(candidate: RebalanceCandidate?) {
                 if (candidate != null && (best == null || candidateOrder.compare(candidate, best!!) < 0)) best = candidate
@@ -306,9 +361,15 @@ internal class BoundedDayRebalancer(private val additionalGate: (List<ProgramSke
             actions.isNotEmpty() -> "IMPROVED_BUT_CONSTRAINED"
             else -> "UNRESOLVED_BALANCE_CONSTRAINT"
         }
+        val diagnostic = if (finalObjective.hardInfeasibleDays > 0 && hardRepairRejections.isNotEmpty())
+            "UNRESOLVED_BALANCE_CONSTRAINT:HARD_REPAIR_REJECTIONS=" +
+                hardRepairRejections.entries.joinToString(",") { "${it.key}:${it.value}" }
+        else if (finalObjective.hardInfeasibleDays > 0) "UNRESOLVED_BALANCE_CONSTRAINT"
+        else if (finalObjective.bandViolationCount > 0) "UNRESOLVED_BALANCE_CONSTRAINT"
+        else ""
         return RebalancingResult(result, DayRebalancingTrace(status, personalizedProgramFingerprint(skeleton.request, skeleton.items),
             personalizedProgramFingerprint(result.request, result.items), timeReference, ofiReference, initialMetrics, currentMetrics,
-            initialObjective, finalObjective, actions, if (finalObjective.bandViolationCount > 0) "UNRESOLVED_BALANCE_CONSTRAINT" else "",
+            initialObjective, finalObjective, actions, diagnostic,
             strengthPrimary(original),strengthPrimary(rows),primaryRejections,
             ownerAllocationProvenance = ownerProvenance.deterministicOwnerOrder()))
     }

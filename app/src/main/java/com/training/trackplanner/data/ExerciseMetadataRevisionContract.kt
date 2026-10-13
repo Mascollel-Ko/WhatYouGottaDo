@@ -51,6 +51,19 @@ internal object ExerciseMetadataRevisionPolicy {
                             .appendLine(row.value)
                     }
             }
+            // Weekly anatomy features consume these weighted rows directly. Include the
+            // relation input in the semantic revision so corrected canonical credits
+            // invalidate an otherwise identical cached snapshot.
+            appendLine("canonical-muscle-relations-projection-v1")
+            repository.muscleRelations().sortedBy(CanonicalMetadataRelation::relationKey).forEach { relation ->
+                append(relation.relationKey).append('|')
+                    .append(relation.exerciseStableKey).append('|')
+                    .append(relation.relationType).append('|')
+                    .append(relation.relationValue).append('|')
+                    .append(relation.coefficient).append('|')
+                    .append(relation.status).append('|')
+                    .appendLine(relation.provenance)
+            }
         }
         val displayPayload = buildString {
             appendLine(displayProjection)

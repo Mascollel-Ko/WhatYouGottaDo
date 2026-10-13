@@ -11,6 +11,90 @@ class PlannerIsolationArchitectureTest {
     private fun normalized(text: String) = text.replace("\r\n", "\n")
     private fun text(path: String) = normalized(File(source, path).readText())
 
+    /** Source dependency checks must ignore KDoc and comments, which are not executable edges. */
+    private fun codeWithoutComments(sourceText: String): String {
+        val input = normalized(sourceText)
+        val output = StringBuilder(input.length)
+        var index = 0
+        var blockDepth = 0
+        var lineComment = false
+        var quote: Char? = null
+        var rawString = false
+        while (index < input.length) {
+            val current = input[index]
+            val next = input.getOrNull(index + 1)
+            val third = input.getOrNull(index + 2)
+            when {
+                lineComment -> {
+                    if (current == '\n') {
+                        output.append('\n')
+                        lineComment = false
+                    } else output.append(' ')
+                    index++
+                }
+                blockDepth > 0 -> {
+                    if (current == '/' && next == '*') {
+                        output.append("  ")
+                        blockDepth++
+                        index += 2
+                    } else if (current == '*' && next == '/') {
+                        output.append("  ")
+                        blockDepth--
+                        index += 2
+                    } else {
+                        output.append(if (current == '\n') '\n' else ' ')
+                        index++
+                    }
+                }
+                rawString -> {
+                    if (current == '"' && next == '"' && third == '"') {
+                        output.append("\"\"\"")
+                        index += 3
+                        rawString = false
+                    } else {
+                        output.append(current)
+                        index++
+                    }
+                }
+                quote != null -> {
+                    output.append(current)
+                    if (current == '\\' && index + 1 < input.length) {
+                        output.append(input[index + 1])
+                        index += 2
+                    } else {
+                        if (current == quote) quote = null
+                        index++
+                    }
+                }
+                current == '/' && next == '/' -> {
+                    output.append("  ")
+                    index += 2
+                    lineComment = true
+                }
+                current == '/' && next == '*' -> {
+                    output.append("  ")
+                    index += 2
+                    blockDepth = 1
+                }
+                current == '"' && next == '"' && third == '"' -> {
+                    output.append("\"\"\"")
+                    index += 3
+                    rawString = true
+                }
+                current == '"' || current == '\'' -> {
+                    quote = current
+                    output.append(current)
+                    index++
+                }
+                else -> {
+                    output.append(current)
+                    index++
+                }
+            }
+        }
+        return output.toString()
+    }
+
     @Test fun frozenPlannerImportsOnlyOwnTypesIdentityDaoAndNeutralRowNoticePrimitives() {
         val allowed = setOf("Exercise", "ExerciseDao", "ProgramSetPrescription", "ProgramOptimizationSummary",
             "ProgramUserNotice", "ProgramUserNoticeCode", "ProgramUserNoticeLevel")
@@ -34,7 +118,7 @@ class PlannerIsolationArchitectureTest {
 
     @Test fun recordBasedTransitiveSourceDependenciesCannotReachFrozenPlanningInternals() {
         val files = source.walkTopDown().filter { it.extension == "kt" }.toList()
-        val contents = files.associateWith { normalized(it.readText()) }
+        val contents = files.associateWith { codeWithoutComments(it.readText()) }
         val packages = contents.mapValues { Regex("(?m)^package ([\\w.]+)").find(it.value.removePrefix("\uFEFF"))!!.groupValues[1] }
         val declarations = mutableMapOf<String, File>()
         contents.forEach { (file, content) ->

@@ -157,7 +157,8 @@ internal class TimedExecutionAllocationPlanner(
 ) {
     fun allocate(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, continuity: List<PlannedExercise>,
                  material: List<PlannedExercise>, optional: List<PlannedExercise>, days: Int, minutes: Int,
-                 ownerMutationSink: ((WeeklyOwnerPlacementMutation) -> Unit)? = null): TimedExecutionAllocation {
+                 ownerMutationSink: ((WeeklyOwnerPlacementMutation) -> Unit)? = null,
+                 decisionObserver: ((JSONObject) -> Unit)? = null): TimedExecutionAllocation {
         val funded = mutableListOf<PlannedExercise>()
         val deferred = mutableListOf<TimedPlannedExercise>()
         val context = placementContext ?: PlacementContext(snapshot, state, days, minutes)
@@ -168,7 +169,8 @@ internal class TimedExecutionAllocationPlanner(
         fun fits(items: List<PlannedExercise>): Boolean {
             performanceMetrics?.let { it.fundingFitsTrials++ }
             return TimedWeeklyPlacementPlanner().distributeGreedy(items.map(::timed), days, minutes, snapshot,
-                state.trainingStateAssessment?.sustainable?.robustSchedule == true, context = context, metrics = performanceMetrics).second.isEmpty()
+                state.trainingStateAssessment?.sustainable?.robustSchedule == true, context = context, metrics = performanceMetrics,
+                decisionObserver = null).second.isEmpty()
         }
         // One core set per retained resistance anchor; style variants are rebuilt below.
         val cores = continuity.filter { it.transition != null }.groupBy(PlannedExercise::stableKey).values.map { variants ->
@@ -198,7 +200,7 @@ internal class TimedExecutionAllocationPlanner(
             state.trainingStateAssessment?.sustainable?.robustSchedule == true,
             isMain = { MainSchedulingPolicy.role(it, it in continuity) == com.training.trackplanner.data.ProgressionRole.MAIN },
             planningState = state, context = context, metrics = performanceMetrics,
-            ownerMutationSink = ownerMutationSink)
+            ownerMutationSink = ownerMutationSink, decisionObserver = decisionObserver)
         check(placement.second.isEmpty())
         val fundedByDemand = funded.associateBy { Triple(it.stableKey, it.role, it.styleVariant) }
         val ownerEvents = (continuity + material + optional).mapNotNull { requested ->
@@ -507,9 +509,10 @@ internal class TimedWeeklyPlacementPlanner {
         context: PlacementContext? = null,
         metrics: PlannerPerformanceMetrics? = null,
         ownerMutationSink: ((WeeklyOwnerPlacementMutation) -> Unit)? = null,
+        decisionObserver: ((JSONObject) -> Unit)? = null,
     ): Pair<Map<Int, List<TimedPlannedExercise>>, List<TimedPlannedExercise>> {
         val greedy = distributeGreedy(items, days, sessionMinutes, snapshot, robustSchedule, context, metrics,
-            ownerMutationSink)
+            ownerMutationSink, decisionObserver)
         val reviewed = InitialMainPlacement.review(
             greedy.first,
             sessionMinutes,
@@ -548,6 +551,7 @@ internal class TimedWeeklyPlacementPlanner {
         context: PlacementContext? = null,
         metrics: PlannerPerformanceMetrics? = null,
         ownerMutationSink: ((WeeklyOwnerPlacementMutation) -> Unit)? = null,
+        decisionObserver: ((JSONObject) -> Unit)? = null,
     ): Pair<Map<Int, List<TimedPlannedExercise>>, List<TimedPlannedExercise>> {
         metrics?.let {
             it.weeklyPlacementCalls++
@@ -575,13 +579,17 @@ internal class TimedWeeklyPlacementPlanner {
             .thenBy { it.item.stableKey }
             .thenBy { it.item.styleVariant })
         ordered.forEach { row ->
+            val placementStarted = System.nanoTime()
             val rowContext = atom(row)
             val sameKeyDays = buckets.filterValues { list -> list.any { it.item.stableKey == rowContext.stableKey } }.keys
+            val evaluatedDays = if (decisionObserver == null) null else mutableMapOf<Int, Triple<Boolean, Int, Boolean>>()
             val target = buckets.entries.filter { entry ->
                 metrics?.let { it.candidateDayChecks++ }
-                entry.key !in sameKeyDays && placementSessionFits(
-                    entry.value.sumOf { it.estimatedSeconds }, rowContext.estimatedSeconds, sessionMinutes
-                )
+                val currentSeconds = entry.value.sumOf { it.estimatedSeconds }
+                val sameExerciseConflict = entry.key in sameKeyDays
+                val fitsTime = placementSessionFits(currentSeconds, rowContext.estimatedSeconds, sessionMinutes)
+                evaluatedDays?.set(entry.key, Triple(sameExerciseConflict, currentSeconds, fitsTime))
+                !sameExerciseConflict && fitsTime
             }.minWithOrNull(compareBy<Map.Entry<Int, MutableList<TimedPlannedExercise>>> {
                 if (rowContext.lowerStress) it.value.filter { atom(it).lowerStress }.sumOf { atom(it).estimatedSeconds } else 0
             }.thenBy {
@@ -592,6 +600,41 @@ internal class TimedWeeklyPlacementPlanner {
                 }
             }.thenBy { it.value.sumOf { atom(it).estimatedSeconds } }
                 .thenBy { it.key })
+            val placementDurationNanos = (System.nanoTime() - placementStarted).coerceAtLeast(0L)
+            decisionObserver?.invoke(JSONObject().put("phase", "GREEDY_TIMED_PLACEMENT")
+                .put("stableKey", row.item.stableKey)
+                .put("exerciseName", snapshot?.exercises?.get(row.item.stableKey)?.name)
+                .put("selectionRole", row.item.role).put("setCount", row.prescription.sets.size)
+                .put("scheduleTier", rowContext.scheduleTier.name).put("lowerStress", rowContext.lowerStress)
+                .put("robustSchedule", robustSchedule).put("sameExerciseAlreadyPlacedDays", JSONArray(sameKeyDays.sorted()))
+                .put("incomingSeconds", rowContext.estimatedSeconds).put("selectedDay", target?.key ?: JSONObject.NULL)
+                .put("decision", if (target == null) "DEFERRED_NO_ELIGIBLE_DAY" else "PLACED")
+                .put("dayEvaluations", JSONArray(buckets.entries.map { entry ->
+                    val (sameExerciseConflict, currentSeconds, fitsTime) = requireNotNull(evaluatedDays).getValue(entry.key)
+                    val lowerStressSeconds = if (rowContext.lowerStress) entry.value.filter { atom(it).lowerStress }
+                        .sumOf { atom(it).estimatedSeconds } else 0
+                    val scheduleRank = if (!robustSchedule) 0 else when (rowContext.scheduleTier) {
+                        ScheduleTier.CORE_MUST_DO -> if (entry.key <= (days + 1) / 2) 0 else 1
+                        ScheduleTier.IMPORTANT -> 0
+                        ScheduleTier.OPTIONAL_CAPACITY -> days - entry.key
+                    }
+                    val eligible = !sameExerciseConflict && fitsTime
+                    val reason = when {
+                        sameExerciseConflict -> "SAME_EXERCISE_ALREADY_PLACED_ON_DAY"
+                        !fitsTime -> "SESSION_TIME_LIMIT"
+                        target?.key == entry.key -> "SELECTED_BY_PLACEMENT_RANKING"
+                        else -> "ELIGIBLE_BUT_LOWER_RANKED"
+                    }
+                    JSONObject().put("day", entry.key).put("currentSeconds", currentSeconds)
+                        .put("incomingSeconds", rowContext.estimatedSeconds)
+                        .put("availableSeconds", sessionMinutes * 60)
+                        .put("sameExerciseConflict", sameExerciseConflict).put("fitsTime", fitsTime)
+                        .put("eligible", eligible).put("lowerStressSeconds", lowerStressSeconds)
+                        .put("scheduleTierRank", scheduleRank).put("selected", target?.key == entry.key)
+                        .put("reasonCode", reason)
+                }))
+                .put("durationMillis", placementDurationNanos / 1_000_000.0)
+                .put("durationNanos", placementDurationNanos))
             if (target == null) {
                 deferred += row
                 ownerMutationSink?.invoke(WeeklyOwnerPlacementMutation(row, null, null, null, null,

@@ -122,9 +122,9 @@
       "primaryKey": [
         "relationKey"
       ],
-      "rowCount": 797,
+      "rowCount": 787,
       "scope": "PRODUCTION_ACTIVE",
-      "sha256": "a515f7c924b15cd095efab151bf5d60f6ffe16e30e0722d370557202c293abb4"
+      "sha256": "34522c58e5020ab3772ce6de965201d03be8934c3b50d66e976b7f7f96b9d75a"
     },
     {
       "path": "ofi_relations.csv",
