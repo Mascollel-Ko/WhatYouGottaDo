@@ -145,15 +145,22 @@ object V2Stage1TrainingProfileAnalyzer {
         }
         val exerciseFrequencies = resistanceRows
             .groupBy(IncludedSet::exerciseKey)
-            .map { (key, exerciseRows) ->
-                V2Stage1ExerciseFrequency(
+            .entries
+            .mapIndexed { firstObservedIndex, (key, exerciseRows) ->
+                firstObservedIndex to V2Stage1ExerciseFrequency(
                     stableKey = key,
                     name = exerciseRows.maxWithOrNull(compareBy<IncludedSet>({ it.date }, { it.observation.setIndex }, { it.observation.entryId }))
                         ?.observation?.exerciseName.orEmpty(),
                     completedSetCount = exerciseRows.size
                 )
             }
-            .sortedWith(compareByDescending<V2Stage1ExerciseFrequency> { it.completedSetCount }.thenBy { it.name })
+            // The Python reference's Counter.most_common keeps first-observed order for ties.
+            // Preserve that input-order evidence; the separate exercise summary stays name-sorted.
+            .sortedWith(
+                compareByDescending<Pair<Int, V2Stage1ExerciseFrequency>> { it.second.completedSetCount }
+                    .thenBy { it.first }
+            )
+            .map { it.second }
 
         return V2Stage1WindowSummary(
             days = days,

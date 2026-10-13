@@ -85,6 +85,22 @@ class V2Stage1TrainingProfileAnalyzerTest {
     }
 
     @Test
+    fun `window frequency ties retain first observed order while exercise summaries sort by name`() {
+        val rows = listOf(
+            observation("z-exercise", "2026-10-12", entryId = 10, setIndex = 1, name = "Zulu"),
+            observation("z-exercise", "2026-10-12", entryId = 10, setIndex = 2, name = "Zulu"),
+            observation("a-exercise", "2026-10-12", entryId = 11, setIndex = 1, name = "Alpha"),
+            observation("a-exercise", "2026-10-12", entryId = 11, setIndex = 2, name = "Alpha")
+        )
+
+        val profile = V2Stage1TrainingProfileAnalyzer.analyze(rows, asOf = asOf)
+        val sevenDay = profile.windows.single { it.days == 7 }
+
+        assertEquals(listOf("z-exercise", "a-exercise"), sevenDay.resistanceExerciseFrequencies.map { it.stableKey })
+        assertEquals(listOf("a-exercise", "z-exercise"), profile.exercises.map { it.stableKey })
+    }
+
+    @Test
     fun `exercise load repetitions and RPE retain direct evidence and unknowns`() {
         val rows = mutableListOf<V2Stage1SetObservation>()
         val dates = listOf("2026-08-21", "2026-08-28", "2026-09-05", "2026-09-12", "2026-09-15", "2026-09-18", "2026-09-23", "2026-09-30", "2026-10-06")
