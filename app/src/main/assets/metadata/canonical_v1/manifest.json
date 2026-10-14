@@ -1,5 +1,5 @@
 {
-  "authorityWorkbookSha256": "f6f0f7da70f6a8fa8e8dbfd2878e7f685a4afe10fa49948965e79a678820581c",
+  "authorityWorkbookSha256": "2219189920d773d4a589109b90406c39ddbb9d37ec32dfb780ecfe18c3a08ecb",
   "counts": {
     "bootstrapRows": 253,
     "displayRows": 1823,
@@ -58,7 +58,7 @@
       ],
       "rowCount": 253,
       "scope": "CANONICAL_AND_HISTORY_COMPATIBILITY",
-      "sha256": "2910baa390651692e80f2a577fb8e78f81ee8312ea392910d7468f5173d0ec30"
+      "sha256": "d9671ed2608a25f1ba216cbbe3a50481d3e082cf6cbf0317ceaab1d91e43f388"
     },
     {
       "path": "history_identity.csv",
@@ -122,9 +122,9 @@
       "primaryKey": [
         "relationKey"
       ],
-      "rowCount": 797,
+      "rowCount": 769,
       "scope": "PRODUCTION_ACTIVE",
-      "sha256": "a515f7c924b15cd095efab151bf5d60f6ffe16e30e0722d370557202c293abb4"
+      "sha256": "de6a9f038d96c379cb77a48994e2c5bd77bd6aebf7b4cc2a642bd4bd8d167ed8"
     },
     {
       "path": "ofi_relations.csv",

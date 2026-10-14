@@ -5,7 +5,6 @@ MUSCLE_00003,band_lift,밴드 리프트,GLUTES,PRIMARY,,1,1,MIGRATED_CURRENT_BEH
 MUSCLE_00004,band_lift,밴드 리프트,LATERAL_CORE,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,band_lift,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00005,band_lift,밴드 리프트,SHOULDERS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,band_lift,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00006,band_pallof_press,밴드 팔로프 프레스,ANTERIOR_CORE,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_99728d25,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00007,band_pallof_press,밴드 팔로프 프레스,CHEST,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_99728d25,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00008,band_pallof_press,밴드 팔로프 프레스,LATERAL_CORE,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_99728d25,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00009,band_woodchop,밴드 우드찹,ANTERIOR_CORE,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,band_woodchop,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00010,band_woodchop,밴드 우드찹,FOREARM_GRIP,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,band_woodchop,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
@@ -49,7 +48,6 @@ MUSCLE_00047,cable_overhead_triceps_extension,케이블 오버헤드 트라이�
 MUSCLE_00048,cable_overhead_triceps_extension,케이블 오버헤드 트라이셉스 익스텐션,FOREARM_GRIP,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_a9e8859c,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00049,cable_overhead_triceps_extension,케이블 오버헤드 트라이셉스 익스텐션,TRICEPS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_a9e8859c,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00050,cable_pallof_press,케이블 팔로프 프레스,ANTERIOR_CORE,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_99728d25,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00051,cable_pallof_press,케이블 팔로프 프레스,CHEST,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_99728d25,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00052,cable_pallof_press,케이블 팔로프 프레스,LATERAL_CORE,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_99728d25,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00053,cable_rear_delt_fly,케이블 리어델트 플라이,ANTERIOR_CORE,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_7176cbee,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00054,cable_rear_delt_fly,케이블 리어델트 플라이,BACK_LATS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_7176cbee,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
@@ -61,15 +59,11 @@ MUSCLE_00059,cable_woodchop,케이블 우드찹,GLUTES,PRIMARY,,1,1,MIGRATED_CUR
 MUSCLE_00060,cable_woodchop,케이블 우드찹,LATERAL_CORE,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,cable_woodchop,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00061,cable_woodchop,케이블 우드찹,SHOULDERS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,cable_woodchop,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00062,chest_supported_row_machine,체스트 서포티드 로우 머신,BACK_LATS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_8e51640a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00063,chest_supported_row_machine,체스트 서포티드 로우 머신,BICEPS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_8e51640a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00064,chest_supported_row_machine,체스트 서포티드 로우 머신,CHEST,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_8e51640a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00065,chest_supported_row_machine,체스트 서포티드 로우 머신,SHOULDERS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_8e51640a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00066,chest_supported_row_machine,체스트 서포티드 로우 머신,ANTERIOR_CORE,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,ex_8e51640a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
+MUSCLE_00063,chest_supported_row_machine,체스트 서포티드 로우 머신,BICEPS,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,ex_8e51640a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
+MUSCLE_00065,chest_supported_row_machine,체스트 서포티드 로우 머신,SHOULDERS,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,ex_8e51640a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00067,dumbbell_chest_supported_row,덤벨 체스트 서포티드 로우,BACK_LATS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_8e51640a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00068,dumbbell_chest_supported_row,덤벨 체스트 서포티드 로우,BICEPS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_8e51640a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00069,dumbbell_chest_supported_row,덤벨 체스트 서포티드 로우,CHEST,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_8e51640a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00070,dumbbell_chest_supported_row,덤벨 체스트 서포티드 로우,SHOULDERS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_8e51640a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00071,dumbbell_chest_supported_row,덤벨 체스트 서포티드 로우,ANTERIOR_CORE,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,ex_8e51640a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
+MUSCLE_00068,dumbbell_chest_supported_row,덤벨 체스트 서포티드 로우,BICEPS,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,ex_8e51640a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
+MUSCLE_00070,dumbbell_chest_supported_row,덤벨 체스트 서포티드 로우,SHOULDERS,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,ex_8e51640a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00072,dumbbell_farmer_carry,덤벨 파머스 캐리,ANTERIOR_CORE,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_a1fc4533,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00073,dumbbell_farmer_carry,덤벨 파머스 캐리,FOREARM_GRIP,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_a1fc4533,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00074,dumbbell_goblet_squat,덤벨 고블릿 스쿼트,ANTERIOR_CORE,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_ac7df636,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
@@ -100,9 +94,6 @@ MUSCLE_00098,dumbbell_single_leg_rdl,덤벨 원레그 루마니안 데드리프�
 MUSCLE_00099,dumbbell_single_leg_rdl,덤벨 원레그 루마니안 데드리프트,ANTERIOR_CORE,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,single_leg_rdl,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00100,dumbbell_single_leg_rdl,덤벨 원레그 루마니안 데드리프트,POSTERIOR_CHAIN_ERECTORS,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,single_leg_rdl,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00101,dumbbell_spider_curl,덤벨 스파이더 컬,BICEPS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_516f4456,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00102,dumbbell_spider_curl,덤벨 스파이더 컬,CHEST,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_516f4456,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00103,dumbbell_spider_curl,덤벨 스파이더 컬,FOREARM_GRIP,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_516f4456,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00104,dumbbell_spider_curl,덤벨 스파이더 컬,ANTERIOR_CORE,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,ex_516f4456,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00105,dumbbell_woodchop,덤벨 우드찹,ANTERIOR_CORE,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,dumbbell_woodchop,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00106,dumbbell_woodchop,덤벨 우드찹,FOREARM_GRIP,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,dumbbell_woodchop,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00107,dumbbell_woodchop,덤벨 우드찹,GLUTES,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,dumbbell_woodchop,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
@@ -273,11 +264,8 @@ MUSCLE_00271,ex_64661229,월싯,ANTERIOR_CORE,PRIMARY,,1,1,MIGRATED_CURRENT_BEHA
 MUSCLE_00272,ex_64661229,월싯,BACK_LATS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_64661229,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00273,ex_64661229,월싯,GLUTES,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_64661229,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00274,ex_64661229,월싯,QUADS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_64661229,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00275,ex_6466fe77,친업,ANTERIOR_CORE,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_6466fe77,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00276,ex_6466fe77,친업,BACK_LATS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_6466fe77,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00277,ex_6466fe77,친업,BICEPS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_6466fe77,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00278,ex_6466fe77,친업,CHEST,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_6466fe77,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00279,ex_6466fe77,친업,FOREARM_GRIP,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_6466fe77,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
+MUSCLE_00277,ex_6466fe77,친업,BICEPS,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,ex_6466fe77,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00280,ex_681d9ed2,러닝,CALVES,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_681d9ed2,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00281,ex_681d9ed2,러닝,HAMSTRINGS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_681d9ed2,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00282,ex_681d9ed2,러닝,QUADS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_681d9ed2,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
@@ -289,10 +277,8 @@ MUSCLE_00287,ex_681eed4a,수영,ANTERIOR_CORE,SECONDARY,,0.5,1,MIGRATED_CURRENT_
 MUSCLE_00288,ex_69a56484,래터럴 스텝다운,GLUTES,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_69a56484,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00289,ex_69a56484,래터럴 스텝다운,ANTERIOR_CORE,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,ex_69a56484,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00290,ex_6a966452,체스트 서포티드 원암 덤벨 로우,BACK_LATS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_6a966452,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00291,ex_6a966452,체스트 서포티드 원암 덤벨 로우,BICEPS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_6a966452,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00292,ex_6a966452,체스트 서포티드 원암 덤벨 로우,CHEST,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_6a966452,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00293,ex_6a966452,체스트 서포티드 원암 덤벨 로우,SHOULDERS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_6a966452,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00294,ex_6a966452,체스트 서포티드 원암 덤벨 로우,ANTERIOR_CORE,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,ex_6a966452,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
+MUSCLE_00291,ex_6a966452,체스트 서포티드 원암 덤벨 로우,BICEPS,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,ex_6a966452,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
+MUSCLE_00293,ex_6a966452,체스트 서포티드 원암 덤벨 로우,SHOULDERS,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,ex_6a966452,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00295,ex_704cbf1a,덤벨 스텝업,ANTERIOR_CORE,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_704cbf1a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00296,ex_704cbf1a,덤벨 스텝업,CALVES,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_704cbf1a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00297,ex_704cbf1a,덤벨 스텝업,GLUTES,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_704cbf1a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
@@ -384,10 +370,8 @@ MUSCLE_00382,ex_9f283612,원암 인클라인 덤벨 프레스,ANTERIOR_CORE,PRIM
 MUSCLE_00383,ex_9f283612,원암 인클라인 덤벨 프레스,CHEST,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_9f283612,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00384,ex_9f283612,원암 인클라인 덤벨 프레스,SHOULDERS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_9f283612,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00385,ex_9f283612,원암 인클라인 덤벨 프레스,TRICEPS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_9f283612,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00386,ex_a091b9fe,원레그 레그 프레스,GLUTES,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_a091b9fe,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00387,ex_a091b9fe,원레그 레그 프레스,HAMSTRINGS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_a091b9fe,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
+MUSCLE_00386,ex_a091b9fe,원레그 레그 프레스,GLUTES,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,ex_a091b9fe,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00388,ex_a091b9fe,원레그 레그 프레스,QUADS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_a091b9fe,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00389,ex_a091b9fe,원레그 레그 프레스,ANTERIOR_CORE,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,ex_a091b9fe,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00390,ex_a12de111,A스킵,CALVES,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_a12de111,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00391,ex_a12de111,A스킵,ANTERIOR_CORE,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,ex_a12de111,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00392,ex_a12de4d2,B스킵,HAMSTRINGS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_a12de4d2,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
@@ -424,10 +408,8 @@ MUSCLE_00422,ex_a8385c4a,코펜하겐 플랭크,GLUTES,PRIMARY,,1,1,MIGRATED_CUR
 MUSCLE_00423,ex_a8385c4a,코펜하겐 플랭크,LATERAL_CORE,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_a8385c4a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00424,ex_a9b52886,마운틴 클라이머,ANTERIOR_CORE,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_a9b52886,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00425,ex_a9b52886,마운틴 클라이머,SHOULDERS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_a9b52886,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00426,ex_ab468462,레그 프레스,GLUTES,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_ab468462,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00427,ex_ab468462,레그 프레스,HAMSTRINGS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_ab468462,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
+MUSCLE_00426,ex_ab468462,레그 프레스,GLUTES,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,ex_ab468462,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00428,ex_ab468462,레그 프레스,QUADS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_ab468462,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00429,ex_ab468462,레그 프레스,ANTERIOR_CORE,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,ex_ab468462,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00430,ex_ab918e2b,실내 자전거,CALVES,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_ab918e2b,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00431,ex_ab918e2b,실내 자전거,HAMSTRINGS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_ab918e2b,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00432,ex_ab918e2b,실내 자전거,QUADS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_ab918e2b,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
@@ -457,10 +439,7 @@ MUSCLE_00455,ex_b4b198de,래터럴 런지,QUADS,PRIMARY,,1,1,MIGRATED_CURRENT_BE
 MUSCLE_00456,ex_b59bed7d,스탠딩 레그 컬,CALVES,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_b59bed7d,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00457,ex_b59bed7d,스탠딩 레그 컬,HAMSTRINGS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_b59bed7d,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00458,ex_b59bed7d,스탠딩 레그 컬,ANTERIOR_CORE,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,ex_b59bed7d,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00459,ex_b69ab702,크로스바디 해머 컬,BICEPS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_b69ab702,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00460,ex_b69ab702,크로스바디 해머 컬,CHEST,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_b69ab702,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00461,ex_b69ab702,크로스바디 해머 컬,FOREARM_GRIP,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_b69ab702,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00462,ex_b69ab702,크로스바디 해머 컬,ANTERIOR_CORE,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,ex_b69ab702,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
+MUSCLE_00459,ex_b69ab702,크로스바디 해머 컬,BICEPS,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,ex_b69ab702,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00463,ex_b76d3f92,케이블 래터럴 레이즈,BACK_LATS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_b76d3f92,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00464,ex_b76d3f92,케이블 래터럴 레이즈,LATERAL_CORE,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_b76d3f92,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00465,ex_b76d3f92,케이블 래터럴 레이즈,SHOULDERS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_b76d3f92,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
@@ -670,18 +649,13 @@ MUSCLE_00668,ez_bar_reverse_curl,EZ바 리버스 컬,BICEPS,PRIMARY,,1,1,MIGRATE
 MUSCLE_00669,ez_bar_reverse_curl,EZ바 리버스 컬,FOREARM_GRIP,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_dd2f732e,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00670,ez_bar_reverse_curl,EZ바 리버스 컬,ANTERIOR_CORE,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,ex_dd2f732e,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00671,ez_bar_spider_curl,EZ바 스파이더 컬,BICEPS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_516f4456,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00672,ez_bar_spider_curl,EZ바 스파이더 컬,CHEST,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_516f4456,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00673,ez_bar_spider_curl,EZ바 스파이더 컬,FOREARM_GRIP,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_516f4456,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00674,ez_bar_spider_curl,EZ바 스파이더 컬,ANTERIOR_CORE,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,ex_516f4456,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00675,face_pull,페이스풀,BACK_LATS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,face_pull,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00676,face_pull,페이스풀,LATERAL_CORE,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,face_pull,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00677,face_pull,페이스풀,SHOULDERS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,face_pull,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00678,face_pull,페이스풀,ANTERIOR_CORE,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,face_pull,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00679,gymnastic_ring_inverted_row,짐내스틱 링 인버티드 로우,ANTERIOR_CORE,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_e159d15a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00680,gymnastic_ring_inverted_row,짐내스틱 링 인버티드 로우,BACK_LATS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_e159d15a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00681,gymnastic_ring_inverted_row,짐내스틱 링 인버티드 로우,BICEPS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_e159d15a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00682,gymnastic_ring_inverted_row,짐내스틱 링 인버티드 로우,CHEST,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_e159d15a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00683,gymnastic_ring_inverted_row,짐내스틱 링 인버티드 로우,SHOULDERS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_e159d15a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
+MUSCLE_00681,gymnastic_ring_inverted_row,짐내스틱 링 인버티드 로우,BICEPS,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,ex_e159d15a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
+MUSCLE_00683,gymnastic_ring_inverted_row,짐내스틱 링 인버티드 로우,SHOULDERS,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,ex_e159d15a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00684,half_kneeling_single_arm_dumbbell_press,하프 닐링 원암 덤벨 프레스,TRICEPS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,half_kneeling_single_arm_dumbbell_press,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00685,half_kneeling_single_arm_dumbbell_press,하프 닐링 원암 덤벨 프레스,ANTERIOR_CORE,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,half_kneeling_single_arm_dumbbell_press,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00686,half_kneeling_single_arm_dumbbell_press,하프 닐링 원암 덤벨 프레스,SHOULDERS,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,half_kneeling_single_arm_dumbbell_press,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
@@ -769,11 +743,9 @@ MUSCLE_00770,standing_calf_raise_machine,스탠딩 카프 레이즈 머신,CALVE
 MUSCLE_00771,standing_calf_raise_machine,스탠딩 카프 레이즈 머신,ANTERIOR_CORE,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,ex_bd072cd,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00772,standing_dumbbell_calf_raise,덤벨 스탠딩 카프 레이즈,CALVES,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_bd072cd,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00773,standing_dumbbell_calf_raise,덤벨 스탠딩 카프 레이즈,ANTERIOR_CORE,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,ex_bd072cd,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00774,suspension_trainer_inverted_row,서스펜션 트레이너 인버티드 로우,ANTERIOR_CORE,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_e159d15a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00775,suspension_trainer_inverted_row,서스펜션 트레이너 인버티드 로우,BACK_LATS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_e159d15a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00776,suspension_trainer_inverted_row,서스펜션 트레이너 인버티드 로우,BICEPS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_e159d15a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00777,suspension_trainer_inverted_row,서스펜션 트레이너 인버티드 로우,CHEST,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_e159d15a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00778,suspension_trainer_inverted_row,서스펜션 트레이너 인버티드 로우,SHOULDERS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_e159d15a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
+MUSCLE_00776,suspension_trainer_inverted_row,서스펜션 트레이너 인버티드 로우,BICEPS,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,ex_e159d15a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
+MUSCLE_00778,suspension_trainer_inverted_row,서스펜션 트레이너 인버티드 로우,SHOULDERS,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,ex_e159d15a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00779,vipr_chop,바이퍼 회전 아래로,ANTERIOR_CORE,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,vipr_chop,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00780,vipr_chop,바이퍼 회전 아래로,GLUTES,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,vipr_chop,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00781,vipr_chop,바이퍼 회전 아래로,FOREARM_GRIP,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,vipr_chop,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
