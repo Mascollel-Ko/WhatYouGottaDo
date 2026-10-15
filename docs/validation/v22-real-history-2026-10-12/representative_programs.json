@@ -1,0 +1,5247 @@
+{
+  "T0_2w_3d_A": {
+    "caseId": "T0-2w-3d-A",
+    "timeline": "T0",
+    "asOf": "2026-10-11",
+    "weeks": 2,
+    "daysVariant": "3",
+    "days": 3,
+    "inferredDays": 3,
+    "trainingDayInference": {
+      "window": "8_COMPLETE_ROLLING_7_DAY_WEEKS",
+      "categories": [
+        "근력운동",
+        "기능성운동"
+      ],
+      "weeks": [
+        {
+          "start": "2026-10-05",
+          "end": "2026-10-11",
+          "trainingDays": 4,
+          "excludedBottom30Percent": false
+        },
+        {
+          "start": "2026-09-28",
+          "end": "2026-10-04",
+          "trainingDays": 3,
+          "excludedBottom30Percent": false
+        },
+        {
+          "start": "2026-09-21",
+          "end": "2026-09-27",
+          "trainingDays": 3,
+          "excludedBottom30Percent": false
+        },
+        {
+          "start": "2026-09-14",
+          "end": "2026-09-20",
+          "trainingDays": 3,
+          "excludedBottom30Percent": false
+        },
+        {
+          "start": "2026-09-07",
+          "end": "2026-09-13",
+          "trainingDays": 4,
+          "excludedBottom30Percent": false
+        },
+        {
+          "start": "2026-08-31",
+          "end": "2026-09-06",
+          "trainingDays": 1,
+          "excludedBottom30Percent": true
+        },
+        {
+          "start": "2026-08-24",
+          "end": "2026-08-30",
+          "trainingDays": 2,
+          "excludedBottom30Percent": true
+        },
+        {
+          "start": "2026-08-17",
+          "end": "2026-08-23",
+          "trainingDays": 3,
+          "excludedBottom30Percent": false
+        }
+      ],
+      "excludedWeekCount": 2,
+      "rounding": "HALF_UP",
+      "retainedMean": 3.3333
+    },
+    "mode": "A",
+    "focusStableKey": null,
+    "status": "SUCCESS",
+    "error": null,
+    "semantic": {
+      "historyEvidence": {
+        "ARMS_BICEPS_OR_FOREARM": {
+          "historyWeeklyNominal": 2.031,
+          "baselinePlanned": 2,
+          "gap": 0.031
+        },
+        "ARMS_TRICEPS": {
+          "historyWeeklyNominal": 1.969,
+          "baselinePlanned": 2,
+          "gap": 0
+        },
+        "CALVES": {
+          "historyWeeklyNominal": 4.812,
+          "baselinePlanned": 5,
+          "gap": 0
+        },
+        "CORE_ANTI_EXTENSION": {
+          "historyWeeklyNominal": 3.312,
+          "baselinePlanned": 4,
+          "gap": 0
+        },
+        "CORE_ANTI_ROTATION": {
+          "historyWeeklyNominal": 2.156,
+          "baselinePlanned": 2,
+          "gap": 0.156
+        },
+        "HIP_HINGE": {
+          "historyWeeklyNominal": 0.969,
+          "baselinePlanned": 2,
+          "gap": 0
+        },
+        "HORIZONTAL_PULL": {
+          "historyWeeklyNominal": 1.531,
+          "baselinePlanned": 2,
+          "gap": 0
+        },
+        "OTHER_근력운동": {
+          "historyWeeklyNominal": 0.219,
+          "baselinePlanned": 0,
+          "gap": 0.219
+        },
+        "OTHER_기능성운동": {
+          "historyWeeklyNominal": 1.75,
+          "baselinePlanned": 2,
+          "gap": 0
+        },
+        "PRESS_OTHER": {
+          "historyWeeklyNominal": 8.5,
+          "baselinePlanned": 9,
+          "gap": 0
+        },
+        "SQUAT_PATTERN": {
+          "historyWeeklyNominal": 3.688,
+          "baselinePlanned": 4,
+          "gap": 0
+        },
+        "UPPER_BACK_ACCESSORY": {
+          "historyWeeklyNominal": 1.219,
+          "baselinePlanned": 1,
+          "gap": 0.219
+        },
+        "VERTICAL_PULL": {
+          "historyWeeklyNominal": 3.594,
+          "baselinePlanned": 4,
+          "gap": 0
+        }
+      },
+      "baselineWeeklyNominalSets": 39,
+      "authority": {
+        "stimulus": "NAME_BASED_ROLE_PROXY_NOT_CANONICAL",
+        "prescription": "HISTORICAL_OBSERVATION_ONLY",
+        "executionMissCarryover": false,
+        "structuralPlanningOnly": true
+      },
+      "limitations": [
+        "Not a validated Kotlin V1/V2-1 stimulus ledger",
+        "No fabricated kilogram progression",
+        "No actual session time estimates; duration cap unverified",
+        "No weekday schedule or tissue-level recovery verification",
+        "No validated canonical deficit ranking; B is a proxy experiment",
+        "C requires explicit focus stableKey",
+        "Program intensity progression cannot be finalized without exercise-local load authority"
+      ],
+      "blocks": [
+        {
+          "block": 1,
+          "startWeek": 1,
+          "endWeek": 2,
+          "phase": "BASELINE",
+          "plannedReallocations": [],
+          "plannedRoleSets": {
+            "ARMS_BICEPS_OR_FOREARM": 2,
+            "ARMS_TRICEPS": 2,
+            "CALVES": 5,
+            "CORE_ANTI_EXTENSION": 4,
+            "CORE_ANTI_ROTATION": 2,
+            "HIP_HINGE": 2,
+            "HORIZONTAL_PULL": 2,
+            "OTHER_기능성운동": 2,
+            "PRESS_OTHER": 9,
+            "SQUAT_PATTERN": 4,
+            "UPPER_BACK_ACCESSORY": 1,
+            "VERTICAL_PULL": 4
+          },
+          "sessions": [
+            {
+              "session": 1,
+              "nominalSets": 13,
+              "items": [
+                {
+                  "exercise": "스쿼트",
+                  "stableKey": "barbell_back_squat",
+                  "category": "근력운동",
+                  "role": "SQUAT_PATTERN",
+                  "setCount": 3,
+                  "sets": [
+                    {
+                      "weightKg": 140.0,
+                      "reps": 5,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 140.0,
+                      "reps": 5,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 140.0,
+                      "reps": 5,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 12,
+                  "historicalSets56d": 19
+                },
+                {
+                  "exercise": "등받이 없는 덤벨 시티드 숄더프레스",
+                  "stableKey": "ex_bb4b4276",
+                  "category": "근력운동",
+                  "role": "PRESS_OTHER",
+                  "setCount": 3,
+                  "sets": [
+                    {
+                      "weightKg": 18.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 18.0,
+                      "reps": 9,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 18.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 8.0,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 12,
+                  "historicalSets56d": 18
+                },
+                {
+                  "exercise": "데드버그",
+                  "stableKey": "ex_d5bdffe1",
+                  "category": "기능성운동",
+                  "role": "CORE_ANTI_EXTENSION",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": null,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    },
+                    {
+                      "weightKg": null,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 8.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    }
+                  ],
+                  "historicalSets28d": 14,
+                  "historicalSets56d": 22
+                },
+                {
+                  "exercise": "케이블 팔로프 프레스",
+                  "stableKey": "cable_pallof_press",
+                  "category": "기능성운동",
+                  "role": "CORE_ANTI_ROTATION",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 20.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 25.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 8.0,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 9,
+                  "historicalSets56d": 15
+                },
+                {
+                  "exercise": "케이블 원암 로우",
+                  "stableKey": "ex_3c3692aa",
+                  "category": "근력운동",
+                  "role": "HORIZONTAL_PULL",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 45.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-09-30",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 45.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-09-30",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 6,
+                  "historicalSets56d": 10
+                },
+                {
+                  "exercise": "불가리안 스플릿 스쿼트",
+                  "stableKey": "ex_e2efd0fe",
+                  "category": "기능성운동",
+                  "role": "SQUAT_PATTERN",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 15.0,
+                      "reps": 15,
+                      "seconds": null,
+                      "observedRpe": 6.0,
+                      "sourceDate": "2026-10-02",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 3,
+                  "historicalSets56d": 6
+                }
+              ]
+            },
+            {
+              "session": 2,
+              "nominalSets": 13,
+              "items": [
+                {
+                  "exercise": "데드리프트",
+                  "stableKey": "barbell_deadlift",
+                  "category": "근력운동",
+                  "role": "HIP_HINGE",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 190.0,
+                      "reps": 2,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-09-13",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 0,
+                  "historicalSets56d": 3
+                },
+                {
+                  "exercise": "원레그 카프 레이즈",
+                  "stableKey": "ex_5ca7133f",
+                  "category": "근력운동",
+                  "role": "CALVES",
+                  "setCount": 3,
+                  "sets": [
+                    {
+                      "weightKg": 10.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 9,
+                      "seconds": null,
+                      "observedRpe": 8.0,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 21,
+                  "historicalSets56d": 28
+                },
+                {
+                  "exercise": "인클라인 덤벨 프레스",
+                  "stableKey": "ex_a61f1e96",
+                  "category": "근력운동",
+                  "role": "PRESS_OTHER",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 60.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 60.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 17,
+                  "historicalSets56d": 29
+                },
+                {
+                  "exercise": "데드버그",
+                  "stableKey": "ex_d5bdffe1",
+                  "category": "기능성운동",
+                  "role": "CORE_ANTI_EXTENSION",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": null,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    },
+                    {
+                      "weightKg": null,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 8.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    }
+                  ],
+                  "historicalSets28d": 14,
+                  "historicalSets56d": 22
+                },
+                {
+                  "exercise": "원암 케이블 오버헤드 트라이셉스 익스텐션",
+                  "stableKey": "ex_eb636bac",
+                  "category": "근력운동",
+                  "role": "ARMS_TRICEPS",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 15.0,
+                      "reps": 15,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 15.0,
+                      "reps": 15,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 8,
+                  "historicalSets56d": 15
+                },
+                {
+                  "exercise": "래터럴 바운드",
+                  "stableKey": "lateral_bound_continuous",
+                  "category": "기능성운동",
+                  "role": "OTHER_기능성운동",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": null,
+                      "reps": 6,
+                      "seconds": 30,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-09-15",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    }
+                  ],
+                  "historicalSets28d": 4,
+                  "historicalSets56d": 17
+                },
+                {
+                  "exercise": "머신컬",
+                  "stableKey": "user_ex_6d0c47a1-ef2c-4c9a-a1ca-52307d6ea648",
+                  "category": "근력운동",
+                  "role": "ARMS_BICEPS_OR_FOREARM",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 35.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-07",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 5,
+                  "historicalSets56d": 7
+                },
+                {
+                  "exercise": "해머 컬",
+                  "stableKey": "ex_2892da5a",
+                  "category": "근력운동",
+                  "role": "ARMS_BICEPS_OR_FOREARM",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 14.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-09-21",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 3,
+                  "historicalSets56d": 3
+                }
+              ]
+            },
+            {
+              "session": 3,
+              "nominalSets": 13,
+              "items": [
+                {
+                  "exercise": "중량 풀업",
+                  "stableKey": "ex_e41f4c2b",
+                  "category": "근력운동",
+                  "role": "VERTICAL_PULL",
+                  "setCount": 4,
+                  "sets": [
+                    {
+                      "weightKg": 10.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 6,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 8.0,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 14,
+                  "historicalSets56d": 27
+                },
+                {
+                  "exercise": "원레그 카프 레이즈",
+                  "stableKey": "ex_5ca7133f",
+                  "category": "근력운동",
+                  "role": "CALVES",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 10.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 21,
+                  "historicalSets56d": 28
+                },
+                {
+                  "exercise": "인클라인 덤벨 프레스",
+                  "stableKey": "ex_a61f1e96",
+                  "category": "근력운동",
+                  "role": "PRESS_OTHER",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 60.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 60.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 17,
+                  "historicalSets56d": 29
+                },
+                {
+                  "exercise": "하프 닐링 원암 케틀벨 프레스",
+                  "stableKey": "half_kneeling_single_arm_kettlebell_press",
+                  "category": "기능성운동",
+                  "role": "PRESS_OTHER",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 8.0,
+                      "reps": 14,
+                      "seconds": null,
+                      "observedRpe": 6.0,
+                      "sourceDate": "2026-10-02",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 8.0,
+                      "reps": 14,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-02",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 6,
+                  "historicalSets56d": 15
+                },
+                {
+                  "exercise": "페이스풀",
+                  "stableKey": "face_pull",
+                  "category": "근력운동",
+                  "role": "UPPER_BACK_ACCESSORY",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 25.0,
+                      "reps": 15,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 5,
+                  "historicalSets56d": 9
+                },
+                {
+                  "exercise": "루마니안 바벨 데드리프트",
+                  "stableKey": "barbell_romanian_deadlift",
+                  "category": "근력운동",
+                  "role": "HIP_HINGE",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 120.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-09-15",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 3,
+                  "historicalSets56d": 7
+                },
+                {
+                  "exercise": "앞뒤 랜덤 콕줍기",
+                  "stableKey": "ex_4255e429",
+                  "category": "기능성운동",
+                  "role": "OTHER_기능성운동",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": null,
+                      "reps": 6,
+                      "seconds": 40,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-09-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    }
+                  ],
+                  "historicalSets28d": 0,
+                  "historicalSets56d": 8
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "T0_8w_auto_B": {
+    "caseId": "T0-8w-autod-B",
+    "timeline": "T0",
+    "asOf": "2026-10-11",
+    "weeks": 8,
+    "daysVariant": "auto",
+    "days": 3,
+    "inferredDays": 3,
+    "trainingDayInference": {
+      "window": "8_COMPLETE_ROLLING_7_DAY_WEEKS",
+      "categories": [
+        "근력운동",
+        "기능성운동"
+      ],
+      "weeks": [
+        {
+          "start": "2026-10-05",
+          "end": "2026-10-11",
+          "trainingDays": 4,
+          "excludedBottom30Percent": false
+        },
+        {
+          "start": "2026-09-28",
+          "end": "2026-10-04",
+          "trainingDays": 3,
+          "excludedBottom30Percent": false
+        },
+        {
+          "start": "2026-09-21",
+          "end": "2026-09-27",
+          "trainingDays": 3,
+          "excludedBottom30Percent": false
+        },
+        {
+          "start": "2026-09-14",
+          "end": "2026-09-20",
+          "trainingDays": 3,
+          "excludedBottom30Percent": false
+        },
+        {
+          "start": "2026-09-07",
+          "end": "2026-09-13",
+          "trainingDays": 4,
+          "excludedBottom30Percent": false
+        },
+        {
+          "start": "2026-08-31",
+          "end": "2026-09-06",
+          "trainingDays": 1,
+          "excludedBottom30Percent": true
+        },
+        {
+          "start": "2026-08-24",
+          "end": "2026-08-30",
+          "trainingDays": 2,
+          "excludedBottom30Percent": true
+        },
+        {
+          "start": "2026-08-17",
+          "end": "2026-08-23",
+          "trainingDays": 3,
+          "excludedBottom30Percent": false
+        }
+      ],
+      "excludedWeekCount": 2,
+      "rounding": "HALF_UP",
+      "retainedMean": 3.3333
+    },
+    "mode": "B",
+    "focusStableKey": null,
+    "status": "SUCCESS",
+    "error": null,
+    "semantic": {
+      "historyEvidence": {
+        "ARMS_BICEPS_OR_FOREARM": {
+          "historyWeeklyNominal": 2.031,
+          "baselinePlanned": 2,
+          "gap": 0.031
+        },
+        "ARMS_TRICEPS": {
+          "historyWeeklyNominal": 1.969,
+          "baselinePlanned": 2,
+          "gap": 0
+        },
+        "CALVES": {
+          "historyWeeklyNominal": 4.812,
+          "baselinePlanned": 5,
+          "gap": 0
+        },
+        "CORE_ANTI_EXTENSION": {
+          "historyWeeklyNominal": 3.312,
+          "baselinePlanned": 4,
+          "gap": 0
+        },
+        "CORE_ANTI_ROTATION": {
+          "historyWeeklyNominal": 2.156,
+          "baselinePlanned": 2,
+          "gap": 0.156
+        },
+        "HIP_HINGE": {
+          "historyWeeklyNominal": 0.969,
+          "baselinePlanned": 2,
+          "gap": 0
+        },
+        "HORIZONTAL_PULL": {
+          "historyWeeklyNominal": 1.531,
+          "baselinePlanned": 2,
+          "gap": 0
+        },
+        "OTHER_근력운동": {
+          "historyWeeklyNominal": 0.219,
+          "baselinePlanned": 0,
+          "gap": 0.219
+        },
+        "OTHER_기능성운동": {
+          "historyWeeklyNominal": 1.75,
+          "baselinePlanned": 2,
+          "gap": 0
+        },
+        "PRESS_OTHER": {
+          "historyWeeklyNominal": 8.5,
+          "baselinePlanned": 9,
+          "gap": 0
+        },
+        "SQUAT_PATTERN": {
+          "historyWeeklyNominal": 3.688,
+          "baselinePlanned": 4,
+          "gap": 0
+        },
+        "UPPER_BACK_ACCESSORY": {
+          "historyWeeklyNominal": 1.219,
+          "baselinePlanned": 1,
+          "gap": 0.219
+        },
+        "VERTICAL_PULL": {
+          "historyWeeklyNominal": 3.594,
+          "baselinePlanned": 4,
+          "gap": 0
+        }
+      },
+      "baselineWeeklyNominalSets": 39,
+      "authority": {
+        "stimulus": "NAME_BASED_ROLE_PROXY_NOT_CANONICAL",
+        "prescription": "HISTORICAL_OBSERVATION_ONLY",
+        "executionMissCarryover": false,
+        "structuralPlanningOnly": true
+      },
+      "limitations": [
+        "Not a validated Kotlin V1/V2-1 stimulus ledger",
+        "No fabricated kilogram progression",
+        "No actual session time estimates; duration cap unverified",
+        "No weekday schedule or tissue-level recovery verification",
+        "No validated canonical deficit ranking; B is a proxy experiment",
+        "C requires explicit focus stableKey",
+        "Program intensity progression cannot be finalized without exercise-local load authority"
+      ],
+      "blocks": [
+        {
+          "block": 1,
+          "startWeek": 1,
+          "endWeek": 3,
+          "phase": "BASELINE",
+          "plannedReallocations": [],
+          "plannedRoleSets": {
+            "ARMS_BICEPS_OR_FOREARM": 2,
+            "ARMS_TRICEPS": 2,
+            "CALVES": 5,
+            "CORE_ANTI_EXTENSION": 4,
+            "CORE_ANTI_ROTATION": 2,
+            "HIP_HINGE": 2,
+            "HORIZONTAL_PULL": 2,
+            "OTHER_기능성운동": 2,
+            "PRESS_OTHER": 9,
+            "SQUAT_PATTERN": 4,
+            "UPPER_BACK_ACCESSORY": 1,
+            "VERTICAL_PULL": 4
+          },
+          "sessions": [
+            {
+              "session": 1,
+              "nominalSets": 13,
+              "items": [
+                {
+                  "exercise": "스쿼트",
+                  "stableKey": "barbell_back_squat",
+                  "category": "근력운동",
+                  "role": "SQUAT_PATTERN",
+                  "setCount": 3,
+                  "sets": [
+                    {
+                      "weightKg": 140.0,
+                      "reps": 5,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 140.0,
+                      "reps": 5,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 140.0,
+                      "reps": 5,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 12,
+                  "historicalSets56d": 19
+                },
+                {
+                  "exercise": "등받이 없는 덤벨 시티드 숄더프레스",
+                  "stableKey": "ex_bb4b4276",
+                  "category": "근력운동",
+                  "role": "PRESS_OTHER",
+                  "setCount": 3,
+                  "sets": [
+                    {
+                      "weightKg": 18.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 18.0,
+                      "reps": 9,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 18.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 8.0,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 12,
+                  "historicalSets56d": 18
+                },
+                {
+                  "exercise": "데드버그",
+                  "stableKey": "ex_d5bdffe1",
+                  "category": "기능성운동",
+                  "role": "CORE_ANTI_EXTENSION",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": null,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    },
+                    {
+                      "weightKg": null,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 8.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    }
+                  ],
+                  "historicalSets28d": 14,
+                  "historicalSets56d": 22
+                },
+                {
+                  "exercise": "케이블 팔로프 프레스",
+                  "stableKey": "cable_pallof_press",
+                  "category": "기능성운동",
+                  "role": "CORE_ANTI_ROTATION",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 20.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 25.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 8.0,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 9,
+                  "historicalSets56d": 15
+                },
+                {
+                  "exercise": "케이블 원암 로우",
+                  "stableKey": "ex_3c3692aa",
+                  "category": "근력운동",
+                  "role": "HORIZONTAL_PULL",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 45.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-09-30",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 45.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-09-30",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 6,
+                  "historicalSets56d": 10
+                },
+                {
+                  "exercise": "불가리안 스플릿 스쿼트",
+                  "stableKey": "ex_e2efd0fe",
+                  "category": "기능성운동",
+                  "role": "SQUAT_PATTERN",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 15.0,
+                      "reps": 15,
+                      "seconds": null,
+                      "observedRpe": 6.0,
+                      "sourceDate": "2026-10-02",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 3,
+                  "historicalSets56d": 6
+                }
+              ]
+            },
+            {
+              "session": 2,
+              "nominalSets": 13,
+              "items": [
+                {
+                  "exercise": "데드리프트",
+                  "stableKey": "barbell_deadlift",
+                  "category": "근력운동",
+                  "role": "HIP_HINGE",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 190.0,
+                      "reps": 2,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-09-13",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 0,
+                  "historicalSets56d": 3
+                },
+                {
+                  "exercise": "원레그 카프 레이즈",
+                  "stableKey": "ex_5ca7133f",
+                  "category": "근력운동",
+                  "role": "CALVES",
+                  "setCount": 3,
+                  "sets": [
+                    {
+                      "weightKg": 10.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 9,
+                      "seconds": null,
+                      "observedRpe": 8.0,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 21,
+                  "historicalSets56d": 28
+                },
+                {
+                  "exercise": "인클라인 덤벨 프레스",
+                  "stableKey": "ex_a61f1e96",
+                  "category": "근력운동",
+                  "role": "PRESS_OTHER",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 60.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 60.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 17,
+                  "historicalSets56d": 29
+                },
+                {
+                  "exercise": "데드버그",
+                  "stableKey": "ex_d5bdffe1",
+                  "category": "기능성운동",
+                  "role": "CORE_ANTI_EXTENSION",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": null,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    },
+                    {
+                      "weightKg": null,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 8.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    }
+                  ],
+                  "historicalSets28d": 14,
+                  "historicalSets56d": 22
+                },
+                {
+                  "exercise": "원암 케이블 오버헤드 트라이셉스 익스텐션",
+                  "stableKey": "ex_eb636bac",
+                  "category": "근력운동",
+                  "role": "ARMS_TRICEPS",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 15.0,
+                      "reps": 15,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 15.0,
+                      "reps": 15,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 8,
+                  "historicalSets56d": 15
+                },
+                {
+                  "exercise": "래터럴 바운드",
+                  "stableKey": "lateral_bound_continuous",
+                  "category": "기능성운동",
+                  "role": "OTHER_기능성운동",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": null,
+                      "reps": 6,
+                      "seconds": 30,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-09-15",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    }
+                  ],
+                  "historicalSets28d": 4,
+                  "historicalSets56d": 17
+                },
+                {
+                  "exercise": "머신컬",
+                  "stableKey": "user_ex_6d0c47a1-ef2c-4c9a-a1ca-52307d6ea648",
+                  "category": "근력운동",
+                  "role": "ARMS_BICEPS_OR_FOREARM",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 35.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-07",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 5,
+                  "historicalSets56d": 7
+                },
+                {
+                  "exercise": "해머 컬",
+                  "stableKey": "ex_2892da5a",
+                  "category": "근력운동",
+                  "role": "ARMS_BICEPS_OR_FOREARM",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 14.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-09-21",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 3,
+                  "historicalSets56d": 3
+                }
+              ]
+            },
+            {
+              "session": 3,
+              "nominalSets": 13,
+              "items": [
+                {
+                  "exercise": "중량 풀업",
+                  "stableKey": "ex_e41f4c2b",
+                  "category": "근력운동",
+                  "role": "VERTICAL_PULL",
+                  "setCount": 4,
+                  "sets": [
+                    {
+                      "weightKg": 10.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 6,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 8.0,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 14,
+                  "historicalSets56d": 27
+                },
+                {
+                  "exercise": "원레그 카프 레이즈",
+                  "stableKey": "ex_5ca7133f",
+                  "category": "근력운동",
+                  "role": "CALVES",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 10.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 21,
+                  "historicalSets56d": 28
+                },
+                {
+                  "exercise": "인클라인 덤벨 프레스",
+                  "stableKey": "ex_a61f1e96",
+                  "category": "근력운동",
+                  "role": "PRESS_OTHER",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 60.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 60.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 17,
+                  "historicalSets56d": 29
+                },
+                {
+                  "exercise": "하프 닐링 원암 케틀벨 프레스",
+                  "stableKey": "half_kneeling_single_arm_kettlebell_press",
+                  "category": "기능성운동",
+                  "role": "PRESS_OTHER",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 8.0,
+                      "reps": 14,
+                      "seconds": null,
+                      "observedRpe": 6.0,
+                      "sourceDate": "2026-10-02",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 8.0,
+                      "reps": 14,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-02",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 6,
+                  "historicalSets56d": 15
+                },
+                {
+                  "exercise": "페이스풀",
+                  "stableKey": "face_pull",
+                  "category": "근력운동",
+                  "role": "UPPER_BACK_ACCESSORY",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 25.0,
+                      "reps": 15,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 5,
+                  "historicalSets56d": 9
+                },
+                {
+                  "exercise": "루마니안 바벨 데드리프트",
+                  "stableKey": "barbell_romanian_deadlift",
+                  "category": "근력운동",
+                  "role": "HIP_HINGE",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 120.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-09-15",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 3,
+                  "historicalSets56d": 7
+                },
+                {
+                  "exercise": "앞뒤 랜덤 콕줍기",
+                  "stableKey": "ex_4255e429",
+                  "category": "기능성운동",
+                  "role": "OTHER_기능성운동",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": null,
+                      "reps": 6,
+                      "seconds": 40,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-09-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    }
+                  ],
+                  "historicalSets28d": 0,
+                  "historicalSets56d": 8
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "block": 2,
+          "startWeek": 4,
+          "endWeek": 6,
+          "phase": "PLANNED_DEVELOPMENT",
+          "plannedReallocations": [
+            {
+              "from": "ex_bb4b4276",
+              "to": "face_pull",
+              "donorRole": "PRESS_OTHER",
+              "receiverRole": "UPPER_BACK_ACCESSORY",
+              "amountNominalSets": 1,
+              "reason": "PLANNED_PERSONAL_HISTORY_GAP_PROXY_NOT_CANONICAL_STIMULUS"
+            }
+          ],
+          "plannedRoleSets": {
+            "ARMS_BICEPS_OR_FOREARM": 2,
+            "ARMS_TRICEPS": 2,
+            "CALVES": 5,
+            "CORE_ANTI_EXTENSION": 4,
+            "CORE_ANTI_ROTATION": 2,
+            "HIP_HINGE": 2,
+            "HORIZONTAL_PULL": 2,
+            "OTHER_기능성운동": 2,
+            "PRESS_OTHER": 8,
+            "SQUAT_PATTERN": 4,
+            "UPPER_BACK_ACCESSORY": 2,
+            "VERTICAL_PULL": 4
+          },
+          "sessions": [
+            {
+              "session": 1,
+              "nominalSets": 12,
+              "items": [
+                {
+                  "exercise": "스쿼트",
+                  "stableKey": "barbell_back_squat",
+                  "category": "근력운동",
+                  "role": "SQUAT_PATTERN",
+                  "setCount": 3,
+                  "sets": [
+                    {
+                      "weightKg": 140.0,
+                      "reps": 5,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 140.0,
+                      "reps": 5,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 140.0,
+                      "reps": 5,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 12,
+                  "historicalSets56d": 19
+                },
+                {
+                  "exercise": "등받이 없는 덤벨 시티드 숄더프레스",
+                  "stableKey": "ex_bb4b4276",
+                  "category": "근력운동",
+                  "role": "PRESS_OTHER",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 18.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 18.0,
+                      "reps": 9,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 12,
+                  "historicalSets56d": 18
+                },
+                {
+                  "exercise": "데드버그",
+                  "stableKey": "ex_d5bdffe1",
+                  "category": "기능성운동",
+                  "role": "CORE_ANTI_EXTENSION",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": null,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    },
+                    {
+                      "weightKg": null,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 8.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    }
+                  ],
+                  "historicalSets28d": 14,
+                  "historicalSets56d": 22
+                },
+                {
+                  "exercise": "케이블 팔로프 프레스",
+                  "stableKey": "cable_pallof_press",
+                  "category": "기능성운동",
+                  "role": "CORE_ANTI_ROTATION",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 20.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 25.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 8.0,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 9,
+                  "historicalSets56d": 15
+                },
+                {
+                  "exercise": "케이블 원암 로우",
+                  "stableKey": "ex_3c3692aa",
+                  "category": "근력운동",
+                  "role": "HORIZONTAL_PULL",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 45.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-09-30",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 45.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-09-30",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 6,
+                  "historicalSets56d": 10
+                },
+                {
+                  "exercise": "불가리안 스플릿 스쿼트",
+                  "stableKey": "ex_e2efd0fe",
+                  "category": "기능성운동",
+                  "role": "SQUAT_PATTERN",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 15.0,
+                      "reps": 15,
+                      "seconds": null,
+                      "observedRpe": 6.0,
+                      "sourceDate": "2026-10-02",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 3,
+                  "historicalSets56d": 6
+                }
+              ]
+            },
+            {
+              "session": 2,
+              "nominalSets": 13,
+              "items": [
+                {
+                  "exercise": "데드리프트",
+                  "stableKey": "barbell_deadlift",
+                  "category": "근력운동",
+                  "role": "HIP_HINGE",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 190.0,
+                      "reps": 2,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-09-13",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 0,
+                  "historicalSets56d": 3
+                },
+                {
+                  "exercise": "원레그 카프 레이즈",
+                  "stableKey": "ex_5ca7133f",
+                  "category": "근력운동",
+                  "role": "CALVES",
+                  "setCount": 3,
+                  "sets": [
+                    {
+                      "weightKg": 10.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 9,
+                      "seconds": null,
+                      "observedRpe": 8.0,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 21,
+                  "historicalSets56d": 28
+                },
+                {
+                  "exercise": "인클라인 덤벨 프레스",
+                  "stableKey": "ex_a61f1e96",
+                  "category": "근력운동",
+                  "role": "PRESS_OTHER",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 60.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 60.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 17,
+                  "historicalSets56d": 29
+                },
+                {
+                  "exercise": "데드버그",
+                  "stableKey": "ex_d5bdffe1",
+                  "category": "기능성운동",
+                  "role": "CORE_ANTI_EXTENSION",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": null,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    },
+                    {
+                      "weightKg": null,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 8.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    }
+                  ],
+                  "historicalSets28d": 14,
+                  "historicalSets56d": 22
+                },
+                {
+                  "exercise": "원암 케이블 오버헤드 트라이셉스 익스텐션",
+                  "stableKey": "ex_eb636bac",
+                  "category": "근력운동",
+                  "role": "ARMS_TRICEPS",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 15.0,
+                      "reps": 15,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 15.0,
+                      "reps": 15,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 8,
+                  "historicalSets56d": 15
+                },
+                {
+                  "exercise": "래터럴 바운드",
+                  "stableKey": "lateral_bound_continuous",
+                  "category": "기능성운동",
+                  "role": "OTHER_기능성운동",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": null,
+                      "reps": 6,
+                      "seconds": 30,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-09-15",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    }
+                  ],
+                  "historicalSets28d": 4,
+                  "historicalSets56d": 17
+                },
+                {
+                  "exercise": "머신컬",
+                  "stableKey": "user_ex_6d0c47a1-ef2c-4c9a-a1ca-52307d6ea648",
+                  "category": "근력운동",
+                  "role": "ARMS_BICEPS_OR_FOREARM",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 35.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-07",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 5,
+                  "historicalSets56d": 7
+                },
+                {
+                  "exercise": "해머 컬",
+                  "stableKey": "ex_2892da5a",
+                  "category": "근력운동",
+                  "role": "ARMS_BICEPS_OR_FOREARM",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 14.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-09-21",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 3,
+                  "historicalSets56d": 3
+                }
+              ]
+            },
+            {
+              "session": 3,
+              "nominalSets": 14,
+              "items": [
+                {
+                  "exercise": "중량 풀업",
+                  "stableKey": "ex_e41f4c2b",
+                  "category": "근력운동",
+                  "role": "VERTICAL_PULL",
+                  "setCount": 4,
+                  "sets": [
+                    {
+                      "weightKg": 10.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 6,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 8.0,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 14,
+                  "historicalSets56d": 27
+                },
+                {
+                  "exercise": "원레그 카프 레이즈",
+                  "stableKey": "ex_5ca7133f",
+                  "category": "근력운동",
+                  "role": "CALVES",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 10.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 21,
+                  "historicalSets56d": 28
+                },
+                {
+                  "exercise": "인클라인 덤벨 프레스",
+                  "stableKey": "ex_a61f1e96",
+                  "category": "근력운동",
+                  "role": "PRESS_OTHER",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 60.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 60.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 17,
+                  "historicalSets56d": 29
+                },
+                {
+                  "exercise": "하프 닐링 원암 케틀벨 프레스",
+                  "stableKey": "half_kneeling_single_arm_kettlebell_press",
+                  "category": "기능성운동",
+                  "role": "PRESS_OTHER",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 8.0,
+                      "reps": 14,
+                      "seconds": null,
+                      "observedRpe": 6.0,
+                      "sourceDate": "2026-10-02",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 8.0,
+                      "reps": 14,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-02",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 6,
+                  "historicalSets56d": 15
+                },
+                {
+                  "exercise": "페이스풀",
+                  "stableKey": "face_pull",
+                  "category": "근력운동",
+                  "role": "UPPER_BACK_ACCESSORY",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 25.0,
+                      "reps": 15,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 25.0,
+                      "reps": 15,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 5,
+                  "historicalSets56d": 9
+                },
+                {
+                  "exercise": "루마니안 바벨 데드리프트",
+                  "stableKey": "barbell_romanian_deadlift",
+                  "category": "근력운동",
+                  "role": "HIP_HINGE",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 120.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-09-15",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 3,
+                  "historicalSets56d": 7
+                },
+                {
+                  "exercise": "앞뒤 랜덤 콕줍기",
+                  "stableKey": "ex_4255e429",
+                  "category": "기능성운동",
+                  "role": "OTHER_기능성운동",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": null,
+                      "reps": 6,
+                      "seconds": 40,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-09-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    }
+                  ],
+                  "historicalSets28d": 0,
+                  "historicalSets56d": 8
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "block": 3,
+          "startWeek": 7,
+          "endWeek": 8,
+          "phase": "PLANNED_DEVELOPMENT",
+          "plannedReallocations": [
+            {
+              "from": "ex_bb4b4276",
+              "to": "face_pull",
+              "donorRole": "PRESS_OTHER",
+              "receiverRole": "UPPER_BACK_ACCESSORY",
+              "amountNominalSets": 1,
+              "reason": "PLANNED_PERSONAL_HISTORY_GAP_PROXY_NOT_CANONICAL_STIMULUS"
+            }
+          ],
+          "plannedRoleSets": {
+            "ARMS_BICEPS_OR_FOREARM": 2,
+            "ARMS_TRICEPS": 2,
+            "CALVES": 5,
+            "CORE_ANTI_EXTENSION": 4,
+            "CORE_ANTI_ROTATION": 2,
+            "HIP_HINGE": 2,
+            "HORIZONTAL_PULL": 2,
+            "OTHER_기능성운동": 2,
+            "PRESS_OTHER": 8,
+            "SQUAT_PATTERN": 4,
+            "UPPER_BACK_ACCESSORY": 2,
+            "VERTICAL_PULL": 4
+          },
+          "sessions": [
+            {
+              "session": 1,
+              "nominalSets": 12,
+              "items": [
+                {
+                  "exercise": "스쿼트",
+                  "stableKey": "barbell_back_squat",
+                  "category": "근력운동",
+                  "role": "SQUAT_PATTERN",
+                  "setCount": 3,
+                  "sets": [
+                    {
+                      "weightKg": 140.0,
+                      "reps": 5,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 140.0,
+                      "reps": 5,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 140.0,
+                      "reps": 5,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 12,
+                  "historicalSets56d": 19
+                },
+                {
+                  "exercise": "등받이 없는 덤벨 시티드 숄더프레스",
+                  "stableKey": "ex_bb4b4276",
+                  "category": "근력운동",
+                  "role": "PRESS_OTHER",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 18.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 18.0,
+                      "reps": 9,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 12,
+                  "historicalSets56d": 18
+                },
+                {
+                  "exercise": "데드버그",
+                  "stableKey": "ex_d5bdffe1",
+                  "category": "기능성운동",
+                  "role": "CORE_ANTI_EXTENSION",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": null,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    },
+                    {
+                      "weightKg": null,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 8.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    }
+                  ],
+                  "historicalSets28d": 14,
+                  "historicalSets56d": 22
+                },
+                {
+                  "exercise": "케이블 팔로프 프레스",
+                  "stableKey": "cable_pallof_press",
+                  "category": "기능성운동",
+                  "role": "CORE_ANTI_ROTATION",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 20.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 25.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 8.0,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 9,
+                  "historicalSets56d": 15
+                },
+                {
+                  "exercise": "케이블 원암 로우",
+                  "stableKey": "ex_3c3692aa",
+                  "category": "근력운동",
+                  "role": "HORIZONTAL_PULL",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 45.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-09-30",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 45.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-09-30",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 6,
+                  "historicalSets56d": 10
+                },
+                {
+                  "exercise": "불가리안 스플릿 스쿼트",
+                  "stableKey": "ex_e2efd0fe",
+                  "category": "기능성운동",
+                  "role": "SQUAT_PATTERN",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 15.0,
+                      "reps": 15,
+                      "seconds": null,
+                      "observedRpe": 6.0,
+                      "sourceDate": "2026-10-02",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 3,
+                  "historicalSets56d": 6
+                }
+              ]
+            },
+            {
+              "session": 2,
+              "nominalSets": 13,
+              "items": [
+                {
+                  "exercise": "데드리프트",
+                  "stableKey": "barbell_deadlift",
+                  "category": "근력운동",
+                  "role": "HIP_HINGE",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 190.0,
+                      "reps": 2,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-09-13",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 0,
+                  "historicalSets56d": 3
+                },
+                {
+                  "exercise": "원레그 카프 레이즈",
+                  "stableKey": "ex_5ca7133f",
+                  "category": "근력운동",
+                  "role": "CALVES",
+                  "setCount": 3,
+                  "sets": [
+                    {
+                      "weightKg": 10.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 9,
+                      "seconds": null,
+                      "observedRpe": 8.0,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 21,
+                  "historicalSets56d": 28
+                },
+                {
+                  "exercise": "인클라인 덤벨 프레스",
+                  "stableKey": "ex_a61f1e96",
+                  "category": "근력운동",
+                  "role": "PRESS_OTHER",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 60.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 60.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 17,
+                  "historicalSets56d": 29
+                },
+                {
+                  "exercise": "데드버그",
+                  "stableKey": "ex_d5bdffe1",
+                  "category": "기능성운동",
+                  "role": "CORE_ANTI_EXTENSION",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": null,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    },
+                    {
+                      "weightKg": null,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 8.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    }
+                  ],
+                  "historicalSets28d": 14,
+                  "historicalSets56d": 22
+                },
+                {
+                  "exercise": "원암 케이블 오버헤드 트라이셉스 익스텐션",
+                  "stableKey": "ex_eb636bac",
+                  "category": "근력운동",
+                  "role": "ARMS_TRICEPS",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 15.0,
+                      "reps": 15,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 15.0,
+                      "reps": 15,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 8,
+                  "historicalSets56d": 15
+                },
+                {
+                  "exercise": "래터럴 바운드",
+                  "stableKey": "lateral_bound_continuous",
+                  "category": "기능성운동",
+                  "role": "OTHER_기능성운동",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": null,
+                      "reps": 6,
+                      "seconds": 30,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-09-15",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    }
+                  ],
+                  "historicalSets28d": 4,
+                  "historicalSets56d": 17
+                },
+                {
+                  "exercise": "머신컬",
+                  "stableKey": "user_ex_6d0c47a1-ef2c-4c9a-a1ca-52307d6ea648",
+                  "category": "근력운동",
+                  "role": "ARMS_BICEPS_OR_FOREARM",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 35.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-07",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 5,
+                  "historicalSets56d": 7
+                },
+                {
+                  "exercise": "해머 컬",
+                  "stableKey": "ex_2892da5a",
+                  "category": "근력운동",
+                  "role": "ARMS_BICEPS_OR_FOREARM",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 14.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-09-21",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 3,
+                  "historicalSets56d": 3
+                }
+              ]
+            },
+            {
+              "session": 3,
+              "nominalSets": 14,
+              "items": [
+                {
+                  "exercise": "중량 풀업",
+                  "stableKey": "ex_e41f4c2b",
+                  "category": "근력운동",
+                  "role": "VERTICAL_PULL",
+                  "setCount": 4,
+                  "sets": [
+                    {
+                      "weightKg": 10.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 6,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 8.0,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 14,
+                  "historicalSets56d": 27
+                },
+                {
+                  "exercise": "원레그 카프 레이즈",
+                  "stableKey": "ex_5ca7133f",
+                  "category": "근력운동",
+                  "role": "CALVES",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 10.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 21,
+                  "historicalSets56d": 28
+                },
+                {
+                  "exercise": "인클라인 덤벨 프레스",
+                  "stableKey": "ex_a61f1e96",
+                  "category": "근력운동",
+                  "role": "PRESS_OTHER",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 60.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 60.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 17,
+                  "historicalSets56d": 29
+                },
+                {
+                  "exercise": "하프 닐링 원암 케틀벨 프레스",
+                  "stableKey": "half_kneeling_single_arm_kettlebell_press",
+                  "category": "기능성운동",
+                  "role": "PRESS_OTHER",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 8.0,
+                      "reps": 14,
+                      "seconds": null,
+                      "observedRpe": 6.0,
+                      "sourceDate": "2026-10-02",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 8.0,
+                      "reps": 14,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-02",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 6,
+                  "historicalSets56d": 15
+                },
+                {
+                  "exercise": "페이스풀",
+                  "stableKey": "face_pull",
+                  "category": "근력운동",
+                  "role": "UPPER_BACK_ACCESSORY",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 25.0,
+                      "reps": 15,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 25.0,
+                      "reps": 15,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 5,
+                  "historicalSets56d": 9
+                },
+                {
+                  "exercise": "루마니안 바벨 데드리프트",
+                  "stableKey": "barbell_romanian_deadlift",
+                  "category": "근력운동",
+                  "role": "HIP_HINGE",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 120.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-09-15",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 3,
+                  "historicalSets56d": 7
+                },
+                {
+                  "exercise": "앞뒤 랜덤 콕줍기",
+                  "stableKey": "ex_4255e429",
+                  "category": "기능성운동",
+                  "role": "OTHER_기능성운동",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": null,
+                      "reps": 6,
+                      "seconds": 40,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-09-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    }
+                  ],
+                  "historicalSets28d": 0,
+                  "historicalSets56d": 8
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "T0_12w_5d_C": {
+    "caseId": "T0-12w-5d-C",
+    "timeline": "T0",
+    "asOf": "2026-10-11",
+    "weeks": 12,
+    "daysVariant": "5",
+    "days": 5,
+    "inferredDays": 3,
+    "trainingDayInference": {
+      "window": "8_COMPLETE_ROLLING_7_DAY_WEEKS",
+      "categories": [
+        "근력운동",
+        "기능성운동"
+      ],
+      "weeks": [
+        {
+          "start": "2026-10-05",
+          "end": "2026-10-11",
+          "trainingDays": 4,
+          "excludedBottom30Percent": false
+        },
+        {
+          "start": "2026-09-28",
+          "end": "2026-10-04",
+          "trainingDays": 3,
+          "excludedBottom30Percent": false
+        },
+        {
+          "start": "2026-09-21",
+          "end": "2026-09-27",
+          "trainingDays": 3,
+          "excludedBottom30Percent": false
+        },
+        {
+          "start": "2026-09-14",
+          "end": "2026-09-20",
+          "trainingDays": 3,
+          "excludedBottom30Percent": false
+        },
+        {
+          "start": "2026-09-07",
+          "end": "2026-09-13",
+          "trainingDays": 4,
+          "excludedBottom30Percent": false
+        },
+        {
+          "start": "2026-08-31",
+          "end": "2026-09-06",
+          "trainingDays": 1,
+          "excludedBottom30Percent": true
+        },
+        {
+          "start": "2026-08-24",
+          "end": "2026-08-30",
+          "trainingDays": 2,
+          "excludedBottom30Percent": true
+        },
+        {
+          "start": "2026-08-17",
+          "end": "2026-08-23",
+          "trainingDays": 3,
+          "excludedBottom30Percent": false
+        }
+      ],
+      "excludedWeekCount": 2,
+      "rounding": "HALF_UP",
+      "retainedMean": 3.3333
+    },
+    "mode": "C",
+    "focusStableKey": "barbell_back_squat",
+    "status": "SUCCESS",
+    "error": null,
+    "semantic": {
+      "historyEvidence": {
+        "ARMS_BICEPS_OR_FOREARM": {
+          "historyWeeklyNominal": 2.031,
+          "baselinePlanned": 2,
+          "gap": 0.031
+        },
+        "ARMS_TRICEPS": {
+          "historyWeeklyNominal": 1.969,
+          "baselinePlanned": 2,
+          "gap": 0
+        },
+        "CALVES": {
+          "historyWeeklyNominal": 4.812,
+          "baselinePlanned": 5,
+          "gap": 0
+        },
+        "CORE_ANTI_EXTENSION": {
+          "historyWeeklyNominal": 3.312,
+          "baselinePlanned": 4,
+          "gap": 0
+        },
+        "CORE_ANTI_ROTATION": {
+          "historyWeeklyNominal": 2.156,
+          "baselinePlanned": 2,
+          "gap": 0.156
+        },
+        "HIP_HINGE": {
+          "historyWeeklyNominal": 0.969,
+          "baselinePlanned": 2,
+          "gap": 0
+        },
+        "HORIZONTAL_PULL": {
+          "historyWeeklyNominal": 1.531,
+          "baselinePlanned": 2,
+          "gap": 0
+        },
+        "OTHER_근력운동": {
+          "historyWeeklyNominal": 0.219,
+          "baselinePlanned": 0,
+          "gap": 0.219
+        },
+        "OTHER_기능성운동": {
+          "historyWeeklyNominal": 1.75,
+          "baselinePlanned": 2,
+          "gap": 0
+        },
+        "PRESS_OTHER": {
+          "historyWeeklyNominal": 8.5,
+          "baselinePlanned": 9,
+          "gap": 0
+        },
+        "SQUAT_PATTERN": {
+          "historyWeeklyNominal": 3.688,
+          "baselinePlanned": 4,
+          "gap": 0
+        },
+        "UPPER_BACK_ACCESSORY": {
+          "historyWeeklyNominal": 1.219,
+          "baselinePlanned": 1,
+          "gap": 0.219
+        },
+        "VERTICAL_PULL": {
+          "historyWeeklyNominal": 3.594,
+          "baselinePlanned": 4,
+          "gap": 0
+        }
+      },
+      "baselineWeeklyNominalSets": 39,
+      "authority": {
+        "stimulus": "NAME_BASED_ROLE_PROXY_NOT_CANONICAL",
+        "prescription": "HISTORICAL_OBSERVATION_ONLY",
+        "executionMissCarryover": false,
+        "structuralPlanningOnly": true
+      },
+      "limitations": [
+        "Not a validated Kotlin V1/V2-1 stimulus ledger",
+        "No fabricated kilogram progression",
+        "No actual session time estimates; duration cap unverified",
+        "No weekday schedule or tissue-level recovery verification",
+        "No validated canonical deficit ranking; B is a proxy experiment",
+        "C requires explicit focus stableKey",
+        "Program intensity progression cannot be finalized without exercise-local load authority"
+      ],
+      "blocks": [
+        {
+          "block": 1,
+          "startWeek": 1,
+          "endWeek": 3,
+          "phase": "BASELINE",
+          "plannedReallocations": [],
+          "plannedRoleSets": {
+            "ARMS_BICEPS_OR_FOREARM": 2,
+            "ARMS_TRICEPS": 2,
+            "CALVES": 5,
+            "CORE_ANTI_EXTENSION": 4,
+            "CORE_ANTI_ROTATION": 2,
+            "HIP_HINGE": 2,
+            "HORIZONTAL_PULL": 2,
+            "OTHER_기능성운동": 2,
+            "PRESS_OTHER": 9,
+            "SQUAT_PATTERN": 4,
+            "UPPER_BACK_ACCESSORY": 1,
+            "VERTICAL_PULL": 4
+          },
+          "sessions": [
+            {
+              "session": 1,
+              "nominalSets": 8,
+              "items": [
+                {
+                  "exercise": "스쿼트",
+                  "stableKey": "barbell_back_squat",
+                  "category": "근력운동",
+                  "role": "SQUAT_PATTERN",
+                  "setCount": 3,
+                  "sets": [
+                    {
+                      "weightKg": 140.0,
+                      "reps": 5,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 140.0,
+                      "reps": 5,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 140.0,
+                      "reps": 5,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 12,
+                  "historicalSets56d": 19
+                },
+                {
+                  "exercise": "인클라인 덤벨 프레스",
+                  "stableKey": "ex_a61f1e96",
+                  "category": "근력운동",
+                  "role": "PRESS_OTHER",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 60.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 60.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 17,
+                  "historicalSets56d": 29
+                },
+                {
+                  "exercise": "원암 케이블 오버헤드 트라이셉스 익스텐션",
+                  "stableKey": "ex_eb636bac",
+                  "category": "근력운동",
+                  "role": "ARMS_TRICEPS",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 15.0,
+                      "reps": 15,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 15.0,
+                      "reps": 15,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 8,
+                  "historicalSets56d": 15
+                },
+                {
+                  "exercise": "루마니안 바벨 데드리프트",
+                  "stableKey": "barbell_romanian_deadlift",
+                  "category": "근력운동",
+                  "role": "HIP_HINGE",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 120.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-09-15",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 3,
+                  "historicalSets56d": 7
+                }
+              ]
+            },
+            {
+              "session": 2,
+              "nominalSets": 8,
+              "items": [
+                {
+                  "exercise": "데드리프트",
+                  "stableKey": "barbell_deadlift",
+                  "category": "근력운동",
+                  "role": "HIP_HINGE",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 190.0,
+                      "reps": 2,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-09-13",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 0,
+                  "historicalSets56d": 3
+                },
+                {
+                  "exercise": "원레그 카프 레이즈",
+                  "stableKey": "ex_5ca7133f",
+                  "category": "근력운동",
+                  "role": "CALVES",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 10.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 21,
+                  "historicalSets56d": 28
+                },
+                {
+                  "exercise": "데드버그",
+                  "stableKey": "ex_d5bdffe1",
+                  "category": "기능성운동",
+                  "role": "CORE_ANTI_EXTENSION",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": null,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    },
+                    {
+                      "weightKg": null,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 8.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    }
+                  ],
+                  "historicalSets28d": 14,
+                  "historicalSets56d": 22
+                },
+                {
+                  "exercise": "하프 닐링 원암 케틀벨 프레스",
+                  "stableKey": "half_kneeling_single_arm_kettlebell_press",
+                  "category": "기능성운동",
+                  "role": "PRESS_OTHER",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 8.0,
+                      "reps": 14,
+                      "seconds": null,
+                      "observedRpe": 6.0,
+                      "sourceDate": "2026-10-02",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 8.0,
+                      "reps": 14,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-02",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 6,
+                  "historicalSets56d": 15
+                },
+                {
+                  "exercise": "불가리안 스플릿 스쿼트",
+                  "stableKey": "ex_e2efd0fe",
+                  "category": "기능성운동",
+                  "role": "SQUAT_PATTERN",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 15.0,
+                      "reps": 15,
+                      "seconds": null,
+                      "observedRpe": 6.0,
+                      "sourceDate": "2026-10-02",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 3,
+                  "historicalSets56d": 6
+                }
+              ]
+            },
+            {
+              "session": 3,
+              "nominalSets": 8,
+              "items": [
+                {
+                  "exercise": "중량 풀업",
+                  "stableKey": "ex_e41f4c2b",
+                  "category": "근력운동",
+                  "role": "VERTICAL_PULL",
+                  "setCount": 4,
+                  "sets": [
+                    {
+                      "weightKg": 10.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 6,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 8.0,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 14,
+                  "historicalSets56d": 27
+                },
+                {
+                  "exercise": "케이블 팔로프 프레스",
+                  "stableKey": "cable_pallof_press",
+                  "category": "기능성운동",
+                  "role": "CORE_ANTI_ROTATION",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 20.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 25.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 8.0,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 9,
+                  "historicalSets56d": 15
+                },
+                {
+                  "exercise": "페이스풀",
+                  "stableKey": "face_pull",
+                  "category": "근력운동",
+                  "role": "UPPER_BACK_ACCESSORY",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 25.0,
+                      "reps": 15,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 5,
+                  "historicalSets56d": 9
+                },
+                {
+                  "exercise": "해머 컬",
+                  "stableKey": "ex_2892da5a",
+                  "category": "근력운동",
+                  "role": "ARMS_BICEPS_OR_FOREARM",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 14.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-09-21",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 3,
+                  "historicalSets56d": 3
+                }
+              ]
+            },
+            {
+              "session": 4,
+              "nominalSets": 8,
+              "items": [
+                {
+                  "exercise": "등받이 없는 덤벨 시티드 숄더프레스",
+                  "stableKey": "ex_bb4b4276",
+                  "category": "근력운동",
+                  "role": "PRESS_OTHER",
+                  "setCount": 3,
+                  "sets": [
+                    {
+                      "weightKg": 18.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 18.0,
+                      "reps": 9,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 18.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 8.0,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 12,
+                  "historicalSets56d": 18
+                },
+                {
+                  "exercise": "인클라인 덤벨 프레스",
+                  "stableKey": "ex_a61f1e96",
+                  "category": "근력운동",
+                  "role": "PRESS_OTHER",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 60.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 60.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 17,
+                  "historicalSets56d": 29
+                },
+                {
+                  "exercise": "케이블 원암 로우",
+                  "stableKey": "ex_3c3692aa",
+                  "category": "근력운동",
+                  "role": "HORIZONTAL_PULL",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 45.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-09-30",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 45.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-09-30",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 6,
+                  "historicalSets56d": 10
+                },
+                {
+                  "exercise": "앞뒤 랜덤 콕줍기",
+                  "stableKey": "ex_4255e429",
+                  "category": "기능성운동",
+                  "role": "OTHER_기능성운동",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": null,
+                      "reps": 6,
+                      "seconds": 40,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-09-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    }
+                  ],
+                  "historicalSets28d": 0,
+                  "historicalSets56d": 8
+                }
+              ]
+            },
+            {
+              "session": 5,
+              "nominalSets": 7,
+              "items": [
+                {
+                  "exercise": "원레그 카프 레이즈",
+                  "stableKey": "ex_5ca7133f",
+                  "category": "근력운동",
+                  "role": "CALVES",
+                  "setCount": 3,
+                  "sets": [
+                    {
+                      "weightKg": 10.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 9,
+                      "seconds": null,
+                      "observedRpe": 8.0,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 21,
+                  "historicalSets56d": 28
+                },
+                {
+                  "exercise": "데드버그",
+                  "stableKey": "ex_d5bdffe1",
+                  "category": "기능성운동",
+                  "role": "CORE_ANTI_EXTENSION",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": null,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    },
+                    {
+                      "weightKg": null,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 8.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    }
+                  ],
+                  "historicalSets28d": 14,
+                  "historicalSets56d": 22
+                },
+                {
+                  "exercise": "래터럴 바운드",
+                  "stableKey": "lateral_bound_continuous",
+                  "category": "기능성운동",
+                  "role": "OTHER_기능성운동",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": null,
+                      "reps": 6,
+                      "seconds": 30,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-09-15",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    }
+                  ],
+                  "historicalSets28d": 4,
+                  "historicalSets56d": 17
+                },
+                {
+                  "exercise": "머신컬",
+                  "stableKey": "user_ex_6d0c47a1-ef2c-4c9a-a1ca-52307d6ea648",
+                  "category": "근력운동",
+                  "role": "ARMS_BICEPS_OR_FOREARM",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 35.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-07",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 5,
+                  "historicalSets56d": 7
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "block": 2,
+          "startWeek": 4,
+          "endWeek": 6,
+          "phase": "PLANNED_DEVELOPMENT",
+          "plannedReallocations": [
+            {
+              "from": "ex_bb4b4276",
+              "to": "barbell_back_squat",
+              "donorRole": "PRESS_OTHER",
+              "receiverRole": "SQUAT_PATTERN",
+              "amountNominalSets": 1,
+              "reason": "PLANNED_PERSONAL_HISTORY_GAP_PROXY_NOT_CANONICAL_STIMULUS"
+            }
+          ],
+          "plannedRoleSets": {
+            "ARMS_BICEPS_OR_FOREARM": 2,
+            "ARMS_TRICEPS": 2,
+            "CALVES": 5,
+            "CORE_ANTI_EXTENSION": 4,
+            "CORE_ANTI_ROTATION": 2,
+            "HIP_HINGE": 2,
+            "HORIZONTAL_PULL": 2,
+            "OTHER_기능성운동": 2,
+            "PRESS_OTHER": 8,
+            "SQUAT_PATTERN": 5,
+            "UPPER_BACK_ACCESSORY": 1,
+            "VERTICAL_PULL": 4
+          },
+          "sessions": [
+            {
+              "session": 1,
+              "nominalSets": 9,
+              "items": [
+                {
+                  "exercise": "스쿼트",
+                  "stableKey": "barbell_back_squat",
+                  "category": "근력운동",
+                  "role": "SQUAT_PATTERN",
+                  "setCount": 4,
+                  "sets": [
+                    {
+                      "weightKg": 140.0,
+                      "reps": 5,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 140.0,
+                      "reps": 5,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 140.0,
+                      "reps": 5,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 140.0,
+                      "reps": 5,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 12,
+                  "historicalSets56d": 19
+                },
+                {
+                  "exercise": "인클라인 덤벨 프레스",
+                  "stableKey": "ex_a61f1e96",
+                  "category": "근력운동",
+                  "role": "PRESS_OTHER",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 60.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 60.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 17,
+                  "historicalSets56d": 29
+                },
+                {
+                  "exercise": "원암 케이블 오버헤드 트라이셉스 익스텐션",
+                  "stableKey": "ex_eb636bac",
+                  "category": "근력운동",
+                  "role": "ARMS_TRICEPS",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 15.0,
+                      "reps": 15,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 15.0,
+                      "reps": 15,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 8,
+                  "historicalSets56d": 15
+                },
+                {
+                  "exercise": "루마니안 바벨 데드리프트",
+                  "stableKey": "barbell_romanian_deadlift",
+                  "category": "근력운동",
+                  "role": "HIP_HINGE",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 120.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-09-15",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 3,
+                  "historicalSets56d": 7
+                }
+              ]
+            },
+            {
+              "session": 2,
+              "nominalSets": 8,
+              "items": [
+                {
+                  "exercise": "데드리프트",
+                  "stableKey": "barbell_deadlift",
+                  "category": "근력운동",
+                  "role": "HIP_HINGE",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 190.0,
+                      "reps": 2,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-09-13",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 0,
+                  "historicalSets56d": 3
+                },
+                {
+                  "exercise": "원레그 카프 레이즈",
+                  "stableKey": "ex_5ca7133f",
+                  "category": "근력운동",
+                  "role": "CALVES",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 10.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 21,
+                  "historicalSets56d": 28
+                },
+                {
+                  "exercise": "데드버그",
+                  "stableKey": "ex_d5bdffe1",
+                  "category": "기능성운동",
+                  "role": "CORE_ANTI_EXTENSION",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": null,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    },
+                    {
+                      "weightKg": null,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 8.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    }
+                  ],
+                  "historicalSets28d": 14,
+                  "historicalSets56d": 22
+                },
+                {
+                  "exercise": "하프 닐링 원암 케틀벨 프레스",
+                  "stableKey": "half_kneeling_single_arm_kettlebell_press",
+                  "category": "기능성운동",
+                  "role": "PRESS_OTHER",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 8.0,
+                      "reps": 14,
+                      "seconds": null,
+                      "observedRpe": 6.0,
+                      "sourceDate": "2026-10-02",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 8.0,
+                      "reps": 14,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-02",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 6,
+                  "historicalSets56d": 15
+                },
+                {
+                  "exercise": "불가리안 스플릿 스쿼트",
+                  "stableKey": "ex_e2efd0fe",
+                  "category": "기능성운동",
+                  "role": "SQUAT_PATTERN",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 15.0,
+                      "reps": 15,
+                      "seconds": null,
+                      "observedRpe": 6.0,
+                      "sourceDate": "2026-10-02",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 3,
+                  "historicalSets56d": 6
+                }
+              ]
+            },
+            {
+              "session": 3,
+              "nominalSets": 8,
+              "items": [
+                {
+                  "exercise": "중량 풀업",
+                  "stableKey": "ex_e41f4c2b",
+                  "category": "근력운동",
+                  "role": "VERTICAL_PULL",
+                  "setCount": 4,
+                  "sets": [
+                    {
+                      "weightKg": 10.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 6,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 8.0,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 14,
+                  "historicalSets56d": 27
+                },
+                {
+                  "exercise": "케이블 팔로프 프레스",
+                  "stableKey": "cable_pallof_press",
+                  "category": "기능성운동",
+                  "role": "CORE_ANTI_ROTATION",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 20.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 25.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 8.0,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 9,
+                  "historicalSets56d": 15
+                },
+                {
+                  "exercise": "페이스풀",
+                  "stableKey": "face_pull",
+                  "category": "근력운동",
+                  "role": "UPPER_BACK_ACCESSORY",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 25.0,
+                      "reps": 15,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 5,
+                  "historicalSets56d": 9
+                },
+                {
+                  "exercise": "해머 컬",
+                  "stableKey": "ex_2892da5a",
+                  "category": "근력운동",
+                  "role": "ARMS_BICEPS_OR_FOREARM",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 14.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-09-21",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 3,
+                  "historicalSets56d": 3
+                }
+              ]
+            },
+            {
+              "session": 4,
+              "nominalSets": 7,
+              "items": [
+                {
+                  "exercise": "등받이 없는 덤벨 시티드 숄더프레스",
+                  "stableKey": "ex_bb4b4276",
+                  "category": "근력운동",
+                  "role": "PRESS_OTHER",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 18.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 18.0,
+                      "reps": 9,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 12,
+                  "historicalSets56d": 18
+                },
+                {
+                  "exercise": "인클라인 덤벨 프레스",
+                  "stableKey": "ex_a61f1e96",
+                  "category": "근력운동",
+                  "role": "PRESS_OTHER",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 60.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 60.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 17,
+                  "historicalSets56d": 29
+                },
+                {
+                  "exercise": "케이블 원암 로우",
+                  "stableKey": "ex_3c3692aa",
+                  "category": "근력운동",
+                  "role": "HORIZONTAL_PULL",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 45.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-09-30",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 45.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-09-30",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 6,
+                  "historicalSets56d": 10
+                },
+                {
+                  "exercise": "앞뒤 랜덤 콕줍기",
+                  "stableKey": "ex_4255e429",
+                  "category": "기능성운동",
+                  "role": "OTHER_기능성운동",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": null,
+                      "reps": 6,
+                      "seconds": 40,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-09-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    }
+                  ],
+                  "historicalSets28d": 0,
+                  "historicalSets56d": 8
+                }
+              ]
+            },
+            {
+              "session": 5,
+              "nominalSets": 7,
+              "items": [
+                {
+                  "exercise": "원레그 카프 레이즈",
+                  "stableKey": "ex_5ca7133f",
+                  "category": "근력운동",
+                  "role": "CALVES",
+                  "setCount": 3,
+                  "sets": [
+                    {
+                      "weightKg": 10.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 9,
+                      "seconds": null,
+                      "observedRpe": 8.0,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 21,
+                  "historicalSets56d": 28
+                },
+                {
+                  "exercise": "데드버그",
+                  "stableKey": "ex_d5bdffe1",
+                  "category": "기능성운동",
+                  "role": "CORE_ANTI_EXTENSION",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": null,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    },
+                    {
+                      "weightKg": null,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 8.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    }
+                  ],
+                  "historicalSets28d": 14,
+                  "historicalSets56d": 22
+                },
+                {
+                  "exercise": "래터럴 바운드",
+                  "stableKey": "lateral_bound_continuous",
+                  "category": "기능성운동",
+                  "role": "OTHER_기능성운동",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": null,
+                      "reps": 6,
+                      "seconds": 30,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-09-15",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    }
+                  ],
+                  "historicalSets28d": 4,
+                  "historicalSets56d": 17
+                },
+                {
+                  "exercise": "머신컬",
+                  "stableKey": "user_ex_6d0c47a1-ef2c-4c9a-a1ca-52307d6ea648",
+                  "category": "근력운동",
+                  "role": "ARMS_BICEPS_OR_FOREARM",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 35.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-07",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 5,
+                  "historicalSets56d": 7
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "block": 3,
+          "startWeek": 7,
+          "endWeek": 9,
+          "phase": "PLANNED_DEVELOPMENT",
+          "plannedReallocations": [
+            {
+              "from": "ex_bb4b4276",
+              "to": "barbell_back_squat",
+              "donorRole": "PRESS_OTHER",
+              "receiverRole": "SQUAT_PATTERN",
+              "amountNominalSets": 1,
+              "reason": "PLANNED_PERSONAL_HISTORY_GAP_PROXY_NOT_CANONICAL_STIMULUS"
+            }
+          ],
+          "plannedRoleSets": {
+            "ARMS_BICEPS_OR_FOREARM": 2,
+            "ARMS_TRICEPS": 2,
+            "CALVES": 5,
+            "CORE_ANTI_EXTENSION": 4,
+            "CORE_ANTI_ROTATION": 2,
+            "HIP_HINGE": 2,
+            "HORIZONTAL_PULL": 2,
+            "OTHER_기능성운동": 2,
+            "PRESS_OTHER": 8,
+            "SQUAT_PATTERN": 5,
+            "UPPER_BACK_ACCESSORY": 1,
+            "VERTICAL_PULL": 4
+          },
+          "sessions": [
+            {
+              "session": 1,
+              "nominalSets": 9,
+              "items": [
+                {
+                  "exercise": "스쿼트",
+                  "stableKey": "barbell_back_squat",
+                  "category": "근력운동",
+                  "role": "SQUAT_PATTERN",
+                  "setCount": 4,
+                  "sets": [
+                    {
+                      "weightKg": 140.0,
+                      "reps": 5,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 140.0,
+                      "reps": 5,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 140.0,
+                      "reps": 5,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 140.0,
+                      "reps": 5,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 12,
+                  "historicalSets56d": 19
+                },
+                {
+                  "exercise": "인클라인 덤벨 프레스",
+                  "stableKey": "ex_a61f1e96",
+                  "category": "근력운동",
+                  "role": "PRESS_OTHER",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 60.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 60.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 17,
+                  "historicalSets56d": 29
+                },
+                {
+                  "exercise": "원암 케이블 오버헤드 트라이셉스 익스텐션",
+                  "stableKey": "ex_eb636bac",
+                  "category": "근력운동",
+                  "role": "ARMS_TRICEPS",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 15.0,
+                      "reps": 15,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 15.0,
+                      "reps": 15,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 8,
+                  "historicalSets56d": 15
+                },
+                {
+                  "exercise": "루마니안 바벨 데드리프트",
+                  "stableKey": "barbell_romanian_deadlift",
+                  "category": "근력운동",
+                  "role": "HIP_HINGE",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 120.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-09-15",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 3,
+                  "historicalSets56d": 7
+                }
+              ]
+            },
+            {
+              "session": 2,
+              "nominalSets": 8,
+              "items": [
+                {
+                  "exercise": "데드리프트",
+                  "stableKey": "barbell_deadlift",
+                  "category": "근력운동",
+                  "role": "HIP_HINGE",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 190.0,
+                      "reps": 2,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-09-13",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 0,
+                  "historicalSets56d": 3
+                },
+                {
+                  "exercise": "원레그 카프 레이즈",
+                  "stableKey": "ex_5ca7133f",
+                  "category": "근력운동",
+                  "role": "CALVES",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 10.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 21,
+                  "historicalSets56d": 28
+                },
+                {
+                  "exercise": "데드버그",
+                  "stableKey": "ex_d5bdffe1",
+                  "category": "기능성운동",
+                  "role": "CORE_ANTI_EXTENSION",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": null,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    },
+                    {
+                      "weightKg": null,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 8.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    }
+                  ],
+                  "historicalSets28d": 14,
+                  "historicalSets56d": 22
+                },
+                {
+                  "exercise": "하프 닐링 원암 케틀벨 프레스",
+                  "stableKey": "half_kneeling_single_arm_kettlebell_press",
+                  "category": "기능성운동",
+                  "role": "PRESS_OTHER",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 8.0,
+                      "reps": 14,
+                      "seconds": null,
+                      "observedRpe": 6.0,
+                      "sourceDate": "2026-10-02",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 8.0,
+                      "reps": 14,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-02",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 6,
+                  "historicalSets56d": 15
+                },
+                {
+                  "exercise": "불가리안 스플릿 스쿼트",
+                  "stableKey": "ex_e2efd0fe",
+                  "category": "기능성운동",
+                  "role": "SQUAT_PATTERN",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 15.0,
+                      "reps": 15,
+                      "seconds": null,
+                      "observedRpe": 6.0,
+                      "sourceDate": "2026-10-02",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 3,
+                  "historicalSets56d": 6
+                }
+              ]
+            },
+            {
+              "session": 3,
+              "nominalSets": 8,
+              "items": [
+                {
+                  "exercise": "중량 풀업",
+                  "stableKey": "ex_e41f4c2b",
+                  "category": "근력운동",
+                  "role": "VERTICAL_PULL",
+                  "setCount": 4,
+                  "sets": [
+                    {
+                      "weightKg": 10.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 6,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 8.0,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 14,
+                  "historicalSets56d": 27
+                },
+                {
+                  "exercise": "케이블 팔로프 프레스",
+                  "stableKey": "cable_pallof_press",
+                  "category": "기능성운동",
+                  "role": "CORE_ANTI_ROTATION",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 20.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 25.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 8.0,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 9,
+                  "historicalSets56d": 15
+                },
+                {
+                  "exercise": "페이스풀",
+                  "stableKey": "face_pull",
+                  "category": "근력운동",
+                  "role": "UPPER_BACK_ACCESSORY",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 25.0,
+                      "reps": 15,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 5,
+                  "historicalSets56d": 9
+                },
+                {
+                  "exercise": "해머 컬",
+                  "stableKey": "ex_2892da5a",
+                  "category": "근력운동",
+                  "role": "ARMS_BICEPS_OR_FOREARM",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 14.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-09-21",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 3,
+                  "historicalSets56d": 3
+                }
+              ]
+            },
+            {
+              "session": 4,
+              "nominalSets": 7,
+              "items": [
+                {
+                  "exercise": "등받이 없는 덤벨 시티드 숄더프레스",
+                  "stableKey": "ex_bb4b4276",
+                  "category": "근력운동",
+                  "role": "PRESS_OTHER",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 18.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 18.0,
+                      "reps": 9,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 12,
+                  "historicalSets56d": 18
+                },
+                {
+                  "exercise": "인클라인 덤벨 프레스",
+                  "stableKey": "ex_a61f1e96",
+                  "category": "근력운동",
+                  "role": "PRESS_OTHER",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 60.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 60.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 17,
+                  "historicalSets56d": 29
+                },
+                {
+                  "exercise": "케이블 원암 로우",
+                  "stableKey": "ex_3c3692aa",
+                  "category": "근력운동",
+                  "role": "HORIZONTAL_PULL",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 45.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-09-30",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 45.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-09-30",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 6,
+                  "historicalSets56d": 10
+                },
+                {
+                  "exercise": "앞뒤 랜덤 콕줍기",
+                  "stableKey": "ex_4255e429",
+                  "category": "기능성운동",
+                  "role": "OTHER_기능성운동",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": null,
+                      "reps": 6,
+                      "seconds": 40,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-09-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    }
+                  ],
+                  "historicalSets28d": 0,
+                  "historicalSets56d": 8
+                }
+              ]
+            },
+            {
+              "session": 5,
+              "nominalSets": 7,
+              "items": [
+                {
+                  "exercise": "원레그 카프 레이즈",
+                  "stableKey": "ex_5ca7133f",
+                  "category": "근력운동",
+                  "role": "CALVES",
+                  "setCount": 3,
+                  "sets": [
+                    {
+                      "weightKg": 10.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 9,
+                      "seconds": null,
+                      "observedRpe": 8.0,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 21,
+                  "historicalSets56d": 28
+                },
+                {
+                  "exercise": "데드버그",
+                  "stableKey": "ex_d5bdffe1",
+                  "category": "기능성운동",
+                  "role": "CORE_ANTI_EXTENSION",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": null,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    },
+                    {
+                      "weightKg": null,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 8.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    }
+                  ],
+                  "historicalSets28d": 14,
+                  "historicalSets56d": 22
+                },
+                {
+                  "exercise": "래터럴 바운드",
+                  "stableKey": "lateral_bound_continuous",
+                  "category": "기능성운동",
+                  "role": "OTHER_기능성운동",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": null,
+                      "reps": 6,
+                      "seconds": 30,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-09-15",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    }
+                  ],
+                  "historicalSets28d": 4,
+                  "historicalSets56d": 17
+                },
+                {
+                  "exercise": "머신컬",
+                  "stableKey": "user_ex_6d0c47a1-ef2c-4c9a-a1ca-52307d6ea648",
+                  "category": "근력운동",
+                  "role": "ARMS_BICEPS_OR_FOREARM",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 35.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-07",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 5,
+                  "historicalSets56d": 7
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "block": 4,
+          "startWeek": 10,
+          "endWeek": 12,
+          "phase": "PLANNED_DEVELOPMENT",
+          "plannedReallocations": [
+            {
+              "from": "ex_bb4b4276",
+              "to": "barbell_back_squat",
+              "donorRole": "PRESS_OTHER",
+              "receiverRole": "SQUAT_PATTERN",
+              "amountNominalSets": 1,
+              "reason": "PLANNED_PERSONAL_HISTORY_GAP_PROXY_NOT_CANONICAL_STIMULUS"
+            }
+          ],
+          "plannedRoleSets": {
+            "ARMS_BICEPS_OR_FOREARM": 2,
+            "ARMS_TRICEPS": 2,
+            "CALVES": 5,
+            "CORE_ANTI_EXTENSION": 4,
+            "CORE_ANTI_ROTATION": 2,
+            "HIP_HINGE": 2,
+            "HORIZONTAL_PULL": 2,
+            "OTHER_기능성운동": 2,
+            "PRESS_OTHER": 8,
+            "SQUAT_PATTERN": 5,
+            "UPPER_BACK_ACCESSORY": 1,
+            "VERTICAL_PULL": 4
+          },
+          "sessions": [
+            {
+              "session": 1,
+              "nominalSets": 9,
+              "items": [
+                {
+                  "exercise": "스쿼트",
+                  "stableKey": "barbell_back_squat",
+                  "category": "근력운동",
+                  "role": "SQUAT_PATTERN",
+                  "setCount": 4,
+                  "sets": [
+                    {
+                      "weightKg": 140.0,
+                      "reps": 5,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 140.0,
+                      "reps": 5,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 140.0,
+                      "reps": 5,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 140.0,
+                      "reps": 5,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 12,
+                  "historicalSets56d": 19
+                },
+                {
+                  "exercise": "인클라인 덤벨 프레스",
+                  "stableKey": "ex_a61f1e96",
+                  "category": "근력운동",
+                  "role": "PRESS_OTHER",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 60.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 60.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 17,
+                  "historicalSets56d": 29
+                },
+                {
+                  "exercise": "원암 케이블 오버헤드 트라이셉스 익스텐션",
+                  "stableKey": "ex_eb636bac",
+                  "category": "근력운동",
+                  "role": "ARMS_TRICEPS",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 15.0,
+                      "reps": 15,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 15.0,
+                      "reps": 15,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 8,
+                  "historicalSets56d": 15
+                },
+                {
+                  "exercise": "루마니안 바벨 데드리프트",
+                  "stableKey": "barbell_romanian_deadlift",
+                  "category": "근력운동",
+                  "role": "HIP_HINGE",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 120.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-09-15",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 3,
+                  "historicalSets56d": 7
+                }
+              ]
+            },
+            {
+              "session": 2,
+              "nominalSets": 8,
+              "items": [
+                {
+                  "exercise": "데드리프트",
+                  "stableKey": "barbell_deadlift",
+                  "category": "근력운동",
+                  "role": "HIP_HINGE",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 190.0,
+                      "reps": 2,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-09-13",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 0,
+                  "historicalSets56d": 3
+                },
+                {
+                  "exercise": "원레그 카프 레이즈",
+                  "stableKey": "ex_5ca7133f",
+                  "category": "근력운동",
+                  "role": "CALVES",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 10.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 21,
+                  "historicalSets56d": 28
+                },
+                {
+                  "exercise": "데드버그",
+                  "stableKey": "ex_d5bdffe1",
+                  "category": "기능성운동",
+                  "role": "CORE_ANTI_EXTENSION",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": null,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    },
+                    {
+                      "weightKg": null,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 8.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    }
+                  ],
+                  "historicalSets28d": 14,
+                  "historicalSets56d": 22
+                },
+                {
+                  "exercise": "하프 닐링 원암 케틀벨 프레스",
+                  "stableKey": "half_kneeling_single_arm_kettlebell_press",
+                  "category": "기능성운동",
+                  "role": "PRESS_OTHER",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 8.0,
+                      "reps": 14,
+                      "seconds": null,
+                      "observedRpe": 6.0,
+                      "sourceDate": "2026-10-02",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 8.0,
+                      "reps": 14,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-02",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 6,
+                  "historicalSets56d": 15
+                },
+                {
+                  "exercise": "불가리안 스플릿 스쿼트",
+                  "stableKey": "ex_e2efd0fe",
+                  "category": "기능성운동",
+                  "role": "SQUAT_PATTERN",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 15.0,
+                      "reps": 15,
+                      "seconds": null,
+                      "observedRpe": 6.0,
+                      "sourceDate": "2026-10-02",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 3,
+                  "historicalSets56d": 6
+                }
+              ]
+            },
+            {
+              "session": 3,
+              "nominalSets": 8,
+              "items": [
+                {
+                  "exercise": "중량 풀업",
+                  "stableKey": "ex_e41f4c2b",
+                  "category": "근력운동",
+                  "role": "VERTICAL_PULL",
+                  "setCount": 4,
+                  "sets": [
+                    {
+                      "weightKg": 10.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 6,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 8.0,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 14,
+                  "historicalSets56d": 27
+                },
+                {
+                  "exercise": "케이블 팔로프 프레스",
+                  "stableKey": "cable_pallof_press",
+                  "category": "기능성운동",
+                  "role": "CORE_ANTI_ROTATION",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 20.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 25.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 8.0,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 9,
+                  "historicalSets56d": 15
+                },
+                {
+                  "exercise": "페이스풀",
+                  "stableKey": "face_pull",
+                  "category": "근력운동",
+                  "role": "UPPER_BACK_ACCESSORY",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 25.0,
+                      "reps": 15,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-08",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 5,
+                  "historicalSets56d": 9
+                },
+                {
+                  "exercise": "해머 컬",
+                  "stableKey": "ex_2892da5a",
+                  "category": "근력운동",
+                  "role": "ARMS_BICEPS_OR_FOREARM",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 14.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-09-21",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 3,
+                  "historicalSets56d": 3
+                }
+              ]
+            },
+            {
+              "session": 4,
+              "nominalSets": 7,
+              "items": [
+                {
+                  "exercise": "등받이 없는 덤벨 시티드 숄더프레스",
+                  "stableKey": "ex_bb4b4276",
+                  "category": "근력운동",
+                  "role": "PRESS_OTHER",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 18.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 18.0,
+                      "reps": 9,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 12,
+                  "historicalSets56d": 18
+                },
+                {
+                  "exercise": "인클라인 덤벨 프레스",
+                  "stableKey": "ex_a61f1e96",
+                  "category": "근력운동",
+                  "role": "PRESS_OTHER",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 60.0,
+                      "reps": 7,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 60.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-06",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 17,
+                  "historicalSets56d": 29
+                },
+                {
+                  "exercise": "케이블 원암 로우",
+                  "stableKey": "ex_3c3692aa",
+                  "category": "근력운동",
+                  "role": "HORIZONTAL_PULL",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": 45.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-09-30",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 45.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-09-30",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 6,
+                  "historicalSets56d": 10
+                },
+                {
+                  "exercise": "앞뒤 랜덤 콕줍기",
+                  "stableKey": "ex_4255e429",
+                  "category": "기능성운동",
+                  "role": "OTHER_기능성운동",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": null,
+                      "reps": 6,
+                      "seconds": 40,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-09-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    }
+                  ],
+                  "historicalSets28d": 0,
+                  "historicalSets56d": 8
+                }
+              ]
+            },
+            {
+              "session": 5,
+              "nominalSets": 7,
+              "items": [
+                {
+                  "exercise": "원레그 카프 레이즈",
+                  "stableKey": "ex_5ca7133f",
+                  "category": "근력운동",
+                  "role": "CALVES",
+                  "setCount": 3,
+                  "sets": [
+                    {
+                      "weightKg": 10.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 8,
+                      "seconds": null,
+                      "observedRpe": 7.0,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    },
+                    {
+                      "weightKg": 10.0,
+                      "reps": 9,
+                      "seconds": null,
+                      "observedRpe": 8.0,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 21,
+                  "historicalSets56d": 28
+                },
+                {
+                  "exercise": "데드버그",
+                  "stableKey": "ex_d5bdffe1",
+                  "category": "기능성운동",
+                  "role": "CORE_ANTI_EXTENSION",
+                  "setCount": 2,
+                  "sets": [
+                    {
+                      "weightKg": null,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 7.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    },
+                    {
+                      "weightKg": null,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 8.5,
+                      "sourceDate": "2026-10-11",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    }
+                  ],
+                  "historicalSets28d": 14,
+                  "historicalSets56d": 22
+                },
+                {
+                  "exercise": "래터럴 바운드",
+                  "stableKey": "lateral_bound_continuous",
+                  "category": "기능성운동",
+                  "role": "OTHER_기능성운동",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": null,
+                      "reps": 6,
+                      "seconds": 30,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-09-15",
+                      "loadStatus": "NO_LOAD_OR_CALIBRATION_REQUIRED"
+                    }
+                  ],
+                  "historicalSets28d": 4,
+                  "historicalSets56d": 17
+                },
+                {
+                  "exercise": "머신컬",
+                  "stableKey": "user_ex_6d0c47a1-ef2c-4c9a-a1ca-52307d6ea648",
+                  "category": "근력운동",
+                  "role": "ARMS_BICEPS_OR_FOREARM",
+                  "setCount": 1,
+                  "sets": [
+                    {
+                      "weightKg": 35.0,
+                      "reps": 10,
+                      "seconds": null,
+                      "observedRpe": 6.5,
+                      "sourceDate": "2026-10-07",
+                      "loadStatus": "HISTORICAL_LOAD_UNVERIFIED"
+                    }
+                  ],
+                  "historicalSets28d": 5,
+                  "historicalSets56d": 7
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

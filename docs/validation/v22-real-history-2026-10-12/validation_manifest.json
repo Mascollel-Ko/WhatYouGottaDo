@@ -1,0 +1,15 @@
+{
+  "sourceBackup": "1-whatyougottado_backup_2026-10-12.csv",
+  "sourceBackupSha256": "0b61bd57161a894a66502fcaab004268d929062b8639f4459f48e71eacde32e1",
+  "sourceBackupBytes": 9163308,
+  "sourceBackupCopied": false,
+  "filteredFixture": "app/src/test/resources/v22-real-history/whatyougottado_backup_2026-10-12-v22.csv.gz",
+  "filteredFixtureSha256": "a434e277a97a9db47afc4f7d135f75647b4f2d216c2ca052d392b7483ee364e1",
+  "confirmedV22SetRows": 940,
+  "firstWorkoutDate": "2026-06-01",
+  "lastWorkoutDate": "2026-10-11",
+  "caseCount": 528,
+  "successCount": 528,
+  "failureCount": 0,
+  "referencePython": "3.11.3"
+}
