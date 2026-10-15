@@ -671,6 +671,26 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun generateV22Program(
+        request: com.training.trackplanner.data.v22.V22GenerationRequest,
+        onResult: (com.training.trackplanner.data.v22.V22GeneratedProgram) -> Unit
+    ) {
+        if (_programBuildProgress.value is ProgramBuildProgressState.Running) return
+        viewModelScope.launch {
+            _programBuildProgress.value = ProgramBuildProgressState.Running(10, "V2-2 기록을 확인하는 중입니다.")
+            runCatching {
+                withContext(Dispatchers.Default) { repository.generateV22Program(request) }
+            }.onSuccess { generated ->
+                _programBuildProgress.value = ProgramBuildProgressState.Completed(generated.skeleton.optimizationSummary)
+                onResult(generated)
+            }.onFailure { error ->
+                _programBuildProgress.value = ProgramBuildProgressState.Failed(
+                    error.message ?: "V2-2 프로그램 생성에 실패했습니다."
+                )
+            }
+        }
+    }
+
     private val personalizedGenerationRunner by lazy { PersonalizedGenerationRunner(viewModelScope, _programBuildProgress) }
 
     fun generatePersonalizedProgram(

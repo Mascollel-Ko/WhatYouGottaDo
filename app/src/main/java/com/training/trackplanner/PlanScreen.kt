@@ -74,6 +74,8 @@ import com.training.trackplanner.data.reconcileProgression
 import com.training.trackplanner.data.personalized.PersonalizedPlanningAnswers
 import com.training.trackplanner.data.personalized.PersonalizedGenerationConstraints
 import com.training.trackplanner.data.personalized.PersonalizedPlanningPreflight
+import com.training.trackplanner.data.v22.V22GenerationRequest
+import com.training.trackplanner.data.v22.V22Mode
 import com.training.trackplanner.localization.localizedProgramName
 import java.time.LocalDate
 import androidx.compose.foundation.layout.Box
@@ -421,6 +423,12 @@ private fun ProgramEditorScreen(
     var personalizedDaysOverride by rememberSaveable(program?.id ?: 0L) { mutableStateOf<Int?>(null) }
     var personalizedDurationOverride by rememberSaveable(program?.id ?: 0L) { mutableStateOf<Int?>(null) }
     var lastGenerationWasPersonalized by rememberSaveable { mutableStateOf(false) }
+    var lastGenerationWasV22 by rememberSaveable { mutableStateOf(false) }
+    var v22Mode by rememberSaveable(program?.id ?: 0L) { mutableStateOf(V22Mode.A) }
+    var v22Weeks by rememberSaveable(program?.id ?: 0L) { mutableStateOf(8) }
+    var v22Days by rememberSaveable(program?.id ?: 0L) { mutableStateOf(4) }
+    var v22FocusStableKey by rememberSaveable(program?.id ?: 0L) { mutableStateOf("barbell_back_squat") }
+    var v22SkeletonCreated by rememberSaveable(program?.id ?: 0L) { mutableStateOf(false) }
 
     LaunchedEffect(program?.id) {
         if (program != null && personalizedDraft == null) personalizedDraft = skeletonFromProgram(viewModel.programEditorSnapshot(program.id)).withResolvedWeekDaySchedule()
@@ -465,6 +473,8 @@ private fun ProgramEditorScreen(
     fun startBlankProgram() {
         if (!requireProgramName()) return
         personalizedRetry.clear()
+        lastGenerationWasPersonalized = false
+        lastGenerationWasV22 = false
         val request = currentRequest()
         legacyAutoDraft = null
         legacyProgressionDraft = LegacyProgressionDraft()
@@ -486,6 +496,7 @@ private fun ProgramEditorScreen(
             sportStrengthRatio = "AUTO", periodizationType = LegacyAutoPeriodizationType.AUTO
         )
         lastGenerationWasPersonalized = false
+        lastGenerationWasV22 = false
         viewModel.generateLegacyAutoSkeleton(request) { generated ->
             legacyAutoDraft = generated
             // Frozen output has returned and is finalized. Only the separate editor overlay is initialized.
@@ -529,6 +540,7 @@ private fun ProgramEditorScreen(
         personalizedRetry.clear()
         val request = currentRequest()
         lastGenerationWasPersonalized = true
+        lastGenerationWasV22 = false
         personalizedAnswers = emptyMap()
         viewModel.preparePersonalizedProgram(
             request = request,
@@ -540,6 +552,34 @@ private fun ProgramEditorScreen(
         ) { preflight ->
             if (preflight.questions.isEmpty()) runPreparedPersonalized(preflight, emptyMap())
             else pendingPersonalizedPreflight = preflight
+        }
+    }
+
+    fun generateV22() {
+        if (!requireProgramName()) return
+        if (viewModel.programBuildProgress.value is ProgramBuildProgressState.Running) return
+        personalizedRetry.clear()
+        lastGenerationWasPersonalized = false
+        lastGenerationWasV22 = true
+        val focus = v22FocusStableKey.trim().takeIf { v22Mode == V22Mode.C && it.isNotEmpty() }
+        viewModel.generateV22Program(
+            V22GenerationRequest(
+                name = normalizedProgramName(),
+                weeks = v22Weeks,
+                days = v22Days,
+                mode = v22Mode,
+                asOf = LocalDate.now(),
+                focusStableKey = focus,
+                sessionMinutes = sessionMinutes
+            )
+        ) { generated ->
+            legacyAutoDraft = null
+            legacyProgressionDraft = LegacyProgressionDraft()
+            personalizedDraft = generated.skeleton.withResolvedWeekDaySchedule()
+            autoSkeletonCreated = false
+            personalizedSkeletonCreated = false
+            v22SkeletonCreated = true
+            showSkeletonOptions = true
         }
     }
 
@@ -716,6 +756,59 @@ private fun ProgramEditorScreen(
                     ) {
                         Text(if (personalizedSkeletonCreated) "기록 기반 알고리듬 프로그램 다시 만들기" else "기록 기반 알고리듬 프로그램 만들기")
                     }
+                    ProgramOptionRow {
+                        ProgramDropdown(
+                            modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                            label = "V2-2 유형",
+                            selected = v22Mode,
+                            options = V22Mode.entries,
+                            optionLabel = { it.name },
+                            onSelect = { v22Mode = it },
+                            enabled = !generationRunning
+                        )
+                        ProgramDropdown(
+                            modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                            label = "V2-2 기간",
+                            selected = v22Weeks,
+                            options = (1..52).toList(),
+                            optionLabel = { programWeekLabel(it) },
+                            onSelect = { v22Weeks = it },
+                            enabled = !generationRunning
+                        )
+                    }
+                    ProgramOptionRow {
+                        ProgramDropdown(
+                            modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                            label = "V2-2 주당 일수",
+                            selected = v22Days,
+                            options = (1..7).toList(),
+                            optionLabel = { stringResource(R.string.program_days_per_week, it) },
+                            onSelect = { v22Days = it },
+                            enabled = !generationRunning
+                        )
+                        if (v22Mode == V22Mode.C) {
+                            OutlinedTextField(
+                                modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                                value = v22FocusStableKey,
+                                onValueChange = { v22FocusStableKey = it },
+                                label = { Text("C 집중 stableKey") },
+                                enabled = !generationRunning,
+                                singleLine = true
+                            )
+                        }
+                    }
+                    Text(
+                        text = "V2-2는 Python v1.0의 기록 기반 대리지표와 알려진 한계를 그대로 사용합니다.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Button(
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !generationRunning,
+                        onClick = { generateV22() }
+                    ) {
+                        Text(if (v22SkeletonCreated) "V2-2 프로그램 다시 만들기" else "V2-2 프로그램 만들기")
+                    }
                     } else {
                         Text(
                             text = "기존 구성은 아래 목록에서 수정합니다.",
@@ -733,7 +826,7 @@ private fun ProgramEditorScreen(
                     onRetry = {
                         if (lastGenerationWasPersonalized) personalizedRetry.retry(::preparePersonalized) {
                             runPreparedPersonalized(it.preflight, it.answers.values)
-                        } else generateSkeleton()
+                        } else if (lastGenerationWasV22) generateV22() else generateSkeleton()
                     }
                 )
             }
@@ -794,7 +887,7 @@ private fun ProgramEditorScreen(
                         }
                         val current = personalizedDraft ?: return@Button
                         val request = currentRequest()
-                        val savedRequest = if (lastGenerationWasPersonalized) {
+                        val savedRequest = if (lastGenerationWasPersonalized || lastGenerationWasV22) {
                             current.request.copy(name = request.name)
                         } else {
                             request

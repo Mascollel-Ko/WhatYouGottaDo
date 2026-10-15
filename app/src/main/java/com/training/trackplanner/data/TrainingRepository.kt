@@ -29,6 +29,9 @@ import com.training.trackplanner.data.personalized.PersonalizedGenerationConstra
 import com.training.trackplanner.data.personalized.PersonalizedPlanningOutcome
 import com.training.trackplanner.data.personalized.PersonalizedPlanningPreflight
 import com.training.trackplanner.data.personalized.personalizedProgramFingerprint
+import com.training.trackplanner.data.v22.V22GeneratedProgram
+import com.training.trackplanner.data.v22.V22GenerationRequest
+import com.training.trackplanner.data.v22.V22ProgramPlanningService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
@@ -321,6 +324,10 @@ class TrainingRepository internal constructor(
     )
     private val legacyAutoGenerationService = LegacyAutoGenerationService(
         exerciseDao = exerciseDao
+    )
+    private val v22ProgramPlanningService = V22ProgramPlanningService(
+        exerciseDao = exerciseDao,
+        workoutDao = workoutDao
     )
     private val programProgressionService = ProgramProgressionService(db) {
         connectiveTissueAnalysisService.build(System.currentTimeMillis()).loadUnits
@@ -1107,6 +1114,11 @@ class TrainingRepository internal constructor(
     suspend fun generateLegacyAutoSkeleton(request: LegacyAutoRequest): LegacyAutoSkeleton =
         withContext(Dispatchers.IO) {
             legacyAutoGenerationService.generateProgramSkeleton(request)
+        }
+
+    suspend fun generateV22Program(request: V22GenerationRequest): V22GeneratedProgram =
+        withContext(Dispatchers.IO) {
+            v22ProgramPlanningService.generate(request)
         }
 
     suspend fun generatePersonalizedProgram(
