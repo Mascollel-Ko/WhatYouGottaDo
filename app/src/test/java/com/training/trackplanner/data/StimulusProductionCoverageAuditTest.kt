@@ -924,7 +924,10 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(21, c36Summary.getJSONObject("b7StatusesAndReasons").getInt("CHANGE_PROVENANCE_UNCLOSED"))
         assertEquals(22, c36Summary.getJSONObject("b8Statuses").getInt("CONTROL_REQUIRED"))
         assertEquals(22, c36Summary.getJSONObject("routes").getInt("CONTROL"))
-        assertEquals(94, c36Summary.getInt("unexplainedRemovedOwnerWeekOccurrences"))
+        // B metadata's corrected overhead triceps identity is now ARMS/GENERAL, not
+        // SHOULDERS/VERTICAL_PRESS. This changes the actual experiment comparison
+        // census; preserve an exact observed expectation and all adjacent safeguards.
+        assertEquals(84, c36Summary.getInt("unexplainedRemovedOwnerWeekOccurrences"))
         assertEquals(2, c36Summary.getInt("prescriptionChangeOwnerWeeks"))
         assertEquals(0, c36Summary.getInt("unexplainedPrescriptionChangeOwnerWeeks"))
         assertEquals(2, c36Summary.getInt("finiteCapacityAttributedPrescriptionChangeOwnerWeeks"))
