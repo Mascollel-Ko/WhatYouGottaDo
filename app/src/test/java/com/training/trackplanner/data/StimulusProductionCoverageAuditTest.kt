@@ -846,6 +846,25 @@ class StimulusProductionCoverageAuditTest {
             parentFile?.mkdirs()
             writer(Charsets.UTF_8).use { C36ExecutionProvenanceCensus.writeCompactJson(c36Json, it) }
         }
+        // The corrected ARMS/GENERAL classification preserves these exact CONTROL
+        // incumbents in B5's shadow experimental comparison. Their previous
+        // unexplained removals disappeared; no B7/B8 production authority changed.
+        val correctedTricepsRetentionCases = setOf(
+            "persona1_recent", "persona1_reviewed", "persona2_reviewed",
+            "persona4_recent", "persona4_reviewed"
+        )
+        correctedTricepsRetentionCases.forEach { label ->
+            val affected = requireNotNull(records.single { it.first.label == label }.second?.comparison)
+            assertTrue("$label must keep the triceps identity in CONTROL",
+                affected.control.items.any { it.exerciseStableKey == "cable_overhead_triceps_extension" })
+            assertTrue("$label must retain the same triceps identity in EXP",
+                affected.experimental.items.any { it.exerciseStableKey == "cable_overhead_triceps_extension" })
+            assertTrue("$label must select the canonical triceps B5 owner",
+                affected.selectionPlan.selectedCandidates.any {
+                    it.stableKey == "cable_overhead_triceps_extension" &&
+                        it.selectionRole == "CANONICAL_STIMULUS_MOVEMENT_ARMS_TRICEPS"
+                })
+        }
         val c36Summary = c36Json.getJSONObject("summary")
         val c36AccountingComparison = c36Json.getJSONObject("beforeAfter")
         assertEquals(565, c36AccountingComparison.getJSONObject("c35ReportedAccounting").getInt("finiteFundedPerWeekUnits"))
@@ -931,8 +950,8 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(2, c36Summary.getInt("prescriptionChangeOwnerWeeks"))
         assertEquals(0, c36Summary.getInt("unexplainedPrescriptionChangeOwnerWeeks"))
         assertEquals(2, c36Summary.getInt("finiteCapacityAttributedPrescriptionChangeOwnerWeeks"))
-        assertEquals(47, c36Summary.getInt("uniqueUnexplainedCaseOwnerPairs"))
-        assertEquals(38, c36Summary.getInt("uniqueUnexplainedOwnerCasesWithB11CanonicalReplacement"))
+        assertEquals(42, c36Summary.getInt("uniqueUnexplainedCaseOwnerPairs"))
+        assertEquals(39, c36Summary.getInt("uniqueUnexplainedOwnerCasesWithB11CanonicalReplacement"))
         assertEquals(0, c36Summary.getInt("unexplainedOwnerCasesWithExactB4B5B6ScheduleMaterialization"))
         assertEquals(0, c36Summary.getInt("exactDisplacementOwnerWeekOccurrences"))
         assertEquals(549, c36Summary.getInt("regionalFrequencyFundedBaseUnitsPerTargetWeek"))
