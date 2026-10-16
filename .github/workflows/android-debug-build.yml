@@ -100,6 +100,11 @@ jobs:
           echo "Google Web Client ID configured: yes"
           echo "Supabase publishable key configured: yes"
 
+      - name: Validate B metadata relation regressions
+        run: |
+          python -m unittest discover -s tools/metadata_authority/tests -p 'test_physical_quality_relations.py' -v
+          python -m unittest discover -s tools/metadata_authority/tests -p 'test_b_balanced_target_task_relations.py' -v
+
       - name: Run debug unit tests
         env:
           ANDROID_CI_KEYSTORE_PATH: ${{ runner.temp }}/whatyougottado-ci-debug.jks
