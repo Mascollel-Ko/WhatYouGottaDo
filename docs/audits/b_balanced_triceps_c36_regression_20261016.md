@@ -77,4 +77,10 @@ C34의 과거 동결 기준 `c34UnexplainedCaseOwnerPairs=47`은 **기존 스냅
 - `:app:assembleDebug` 통과. 로컬 APK는 69,042,577 bytes, SHA-256 `B168C9850E94853FD16158E96D4550AE82315D8429ADDED73F0F8223BC3360FC`; `apksigner` v2 검증 통과, signer 1명(Android Debug)이다. 연결된 기기/에뮬레이터가 없어 계측 테스트는 실행하지 않았다.
 - 추가 `:app:check`는 debug tests와 lint를 통과한 뒤 `testReleaseUnitTest`에서 2,395 tests 중 136 failures, 4 skips로 종료됐다. 모든 failure는 release Robolectric이 `com.whatyougottado.app/androidx.activity.ComponentActivity`를 manifest activity로 해석하지 못한 공통 초기화 오류다. 기준 `main`에서 대표 테스트를 동일 조건으로 실행해 1/1 같은 오류를 재현했으므로 이번 메타데이터 변경의 회귀나 필수 debug CI 실패로 분류하지 않는다.
 
-이 문서는 PR 검증 전 성공을 주장하지 않는다. 최종 CI 녹색, APK 생성 및 서명 여부는 CI에서 별도 확인한다.
+## Hosted CI 검증
+
+[GitHub Actions run 38879410925](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/38879410925)은 커밋 `2486b7bb587122e5c1ee3e7275ba62d94f891820`에서 성공했다. 문서/계약/whitespace/B metadata 검증, 전체 debug unit tests, coverage와 JUnit 업로드, APK 조립, CI signer 검증, APK 업로드가 모두 통과했다.
+
+- 업로드된 JUnit XML: 365 suites, 2,395 tests, 0 failures, 0 errors, 4 skips.
+- 업로드된 APK: 69,056,897 bytes, SHA-256 `460C74D80FA3E57FC4817C9BC1F0CAC61DDA19B9616174566BA5B72673CC2E70`.
+- `apksigner`: v2 서명 유효, signer 1명, 인증서 `CN=WhatYouGottaDo CI Debug, OU=Android, O=WhatYouGottaDo, C=KR`, 인증서 SHA-256 `A37B8A11810408005E8DC45BD83BEC29769404CA8E3041D2C41AF546B344D3E4`.
