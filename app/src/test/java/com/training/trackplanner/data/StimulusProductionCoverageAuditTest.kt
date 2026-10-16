@@ -975,9 +975,12 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(0, c33RegionalSummary.getInt("overfilledTargets"))
         assertEquals(0, c33RegionalSummary.getInt("duplicateCreditTargets"))
         assertEquals(2, c33RegionalSummary.getInt("capacityLimitedTargets"))
-        assertEquals(268, c33RegionalSummary.getInt("candidateRows"))
+        // Reclassifying the two overhead triceps extensions as ARMS/GENERAL adds
+        // four legitimate B5 candidate rows across the sparse equipment contexts.
+        // Selection/materialization authority must remain independently bounded.
+        assertEquals(272, c33RegionalSummary.getInt("candidateRows"))
         assertEquals(27, c33RegionalSummary.getInt("selectedCandidates"))
-        assertEquals(241, c33RegionalSummary.getInt("legitimatelyRejectedCandidates"))
+        assertEquals(245, c33RegionalSummary.getInt("legitimatelyRejectedCandidates"))
         assertEquals(16, c33RegionalSummary.getInt("fullySatisfiedTargets"))
         assertEquals(0, c33RegionalSummary.getInt("partiallySatisfiedTargets"))
         assertEquals(13, c33RegionalSummary.getInt("legitimatelyUnsatisfiedTargets"))
@@ -985,6 +988,41 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(288, c33RegionalSummary.getInt("authorizedMaterialUnits"))
         assertEquals(256, c33RegionalSummary.getInt("actualMaterialUnits"))
         val c33Targets = c33RegionalJson.getJSONArray("targets")
+        val sparseTricepsExpectedCandidates = mapOf(
+            "persona1_sparse" to setOf("dumbbell_overhead_triceps_extension"),
+            "persona2_sparse" to setOf(
+                "cable_overhead_triceps_extension", "dumbbell_overhead_triceps_extension"
+            ),
+            "persona4_sparse" to setOf("dumbbell_overhead_triceps_extension")
+        )
+        val sparseTricepsExpectedPoolSizes = mapOf(
+            "persona1_sparse" to 4,
+            "persona2_sparse" to 9,
+            "persona4_sparse" to 4
+        )
+        sparseTricepsExpectedCandidates.forEach { (case, expectedCandidates) ->
+            val target = (0 until c33Targets.length()).map { c33Targets.getJSONObject(it) }.single {
+                it.getString("case") == case && it.getString("movementCoverage") == "ARMS_TRICEPS"
+            }
+            val candidateKeys = listOf("selectedOwners", "rejectedCandidates").flatMap { arrayName ->
+                val rows = target.getJSONArray(arrayName)
+                (0 until rows.length()).map { rows.getJSONObject(it).getString("stableKey") }
+            }.toSet()
+            assertEquals(sparseTricepsExpectedPoolSizes.getValue(case), target.getInt("candidatePoolSize"))
+            assertTrue("$case must expose the corrected overhead triceps B5 candidates",
+                candidateKeys.containsAll(expectedCandidates))
+            assertEquals(8, target.getInt("authorizedWeeklyUnits"))
+            assertEquals("CONTROL_REQUIRED", target.getString("b8Status"))
+            assertEquals("CONTROL", target.getString("route"))
+        }
+        val capacityLimitedTriceps = (0 until c33Targets.length()).map { c33Targets.getJSONObject(it) }.single {
+            it.getString("case") == "persona2_sparse" && it.getString("movementCoverage") == "ARMS_TRICEPS"
+        }
+        assertEquals("cable_overhead_triceps_extension",
+            capacityLimitedTriceps.getJSONArray("selectedOwners").getJSONObject(0).getString("stableKey"))
+        assertEquals("UNMATERIALIZED_FINITE_CAPACITY_LIMIT",
+            capacityLimitedTriceps.getString("materializationDisposition"))
+        assertEquals(0, capacityLimitedTriceps.getInt("materializedTotalUnits"))
         (0 until c33Targets.length()).map { c33Targets.getJSONObject(it) }
             .filter { it.getBoolean("authorized") && it.getInt("authorizedWeeklyUnits") > 0 &&
                 it.getString("materializationState") != "FULLY_MATERIALIZED" }
@@ -996,13 +1034,13 @@ class StimulusProductionCoverageAuditTest {
             }
         assertEquals(0, nextPhaseSummary.getInt("qualityAddedOwnerWeeksWithoutAuthorizedB6"))
         assertEquals(0, nextPhaseSummary.getJSONArray("qualityAddedOwnerWeeksWithoutAuthorizedB6Cases").length())
-        assertEquals(38, nextPhaseSummary.getInt("b11CanonicalReplacementButB7UnclosedOwnerRows"))
-        assertEquals(31, nextPhaseSummary.getInt("b11CanonicalReplacementButB7UnclosedMovementOwnerRows"))
+        assertEquals(39, nextPhaseSummary.getInt("b11CanonicalReplacementButB7UnclosedOwnerRows"))
+        assertEquals(32, nextPhaseSummary.getInt("b11CanonicalReplacementButB7UnclosedMovementOwnerRows"))
         assertEquals(7, nextPhaseSummary.getInt("b11CanonicalReplacementButB7UnclosedQualityOwnerRows"))
         assertEquals(0, nextPhaseSummary.getInt("b11CanonicalReplacementButB7UnclosedTaskOwnerRows"))
         assertEquals(0, nextPhaseSummary.getJSONArray("taskRoleReplacementRowsWithExactApprovedTaskB6").length())
-        assertEquals(47, nextPhaseSummary.getInt("unexplainedRemovedIdentityAttributions"))
-        assertEquals(43, nextPhaseSummary.getInt("exactMovementCanonicalReplacementAttributions"))
+        assertEquals(42, nextPhaseSummary.getInt("unexplainedRemovedIdentityAttributions"))
+        assertEquals(48, nextPhaseSummary.getInt("exactMovementCanonicalReplacementAttributions"))
         val movementReplacementResult = requireNotNull(records.single { it.first.label == "persona1_mixed" }.second)
         val movementReplacementComparison = requireNotNull(movementReplacementResult.comparison)
         val movementReplacementOldOwner = StimulusPrescriptionOwnerIdentity("barbell_reverse_curl", "COVERAGE_ARMS_BICEPS")
