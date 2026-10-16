@@ -846,6 +846,25 @@ class StimulusProductionCoverageAuditTest {
             parentFile?.mkdirs()
             writer(Charsets.UTF_8).use { C36ExecutionProvenanceCensus.writeCompactJson(c36Json, it) }
         }
+        // The corrected ARMS/GENERAL classification preserves these exact CONTROL
+        // incumbents in B5's shadow experimental comparison. Their previous
+        // unexplained removals disappeared; no B7/B8 production authority changed.
+        val correctedTricepsRetentionCases = setOf(
+            "persona1_recent", "persona1_reviewed", "persona2_reviewed",
+            "persona4_recent", "persona4_reviewed"
+        )
+        correctedTricepsRetentionCases.forEach { label ->
+            val affected = requireNotNull(records.single { it.first.label == label }.second?.comparison)
+            assertTrue("$label must keep the triceps identity in CONTROL",
+                affected.control.items.any { it.exerciseStableKey == "cable_overhead_triceps_extension" })
+            assertTrue("$label must retain the same triceps identity in EXP",
+                affected.experimental.items.any { it.exerciseStableKey == "cable_overhead_triceps_extension" })
+            assertTrue("$label must select the canonical triceps B5 owner",
+                affected.selectionPlan.selectedCandidates.any {
+                    it.stableKey == "cable_overhead_triceps_extension" &&
+                        it.selectionRole == "CANONICAL_STIMULUS_MOVEMENT_ARMS_TRICEPS"
+                })
+        }
         val c36Summary = c36Json.getJSONObject("summary")
         val c36AccountingComparison = c36Json.getJSONObject("beforeAfter")
         assertEquals(565, c36AccountingComparison.getJSONObject("c35ReportedAccounting").getInt("finiteFundedPerWeekUnits"))
@@ -924,12 +943,15 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(21, c36Summary.getJSONObject("b7StatusesAndReasons").getInt("CHANGE_PROVENANCE_UNCLOSED"))
         assertEquals(22, c36Summary.getJSONObject("b8Statuses").getInt("CONTROL_REQUIRED"))
         assertEquals(22, c36Summary.getJSONObject("routes").getInt("CONTROL"))
-        assertEquals(94, c36Summary.getInt("unexplainedRemovedOwnerWeekOccurrences"))
+        // B metadata's corrected overhead triceps identity is now ARMS/GENERAL, not
+        // SHOULDERS/VERTICAL_PRESS. This changes the actual experiment comparison
+        // census; preserve an exact observed expectation and all adjacent safeguards.
+        assertEquals(84, c36Summary.getInt("unexplainedRemovedOwnerWeekOccurrences"))
         assertEquals(2, c36Summary.getInt("prescriptionChangeOwnerWeeks"))
         assertEquals(0, c36Summary.getInt("unexplainedPrescriptionChangeOwnerWeeks"))
         assertEquals(2, c36Summary.getInt("finiteCapacityAttributedPrescriptionChangeOwnerWeeks"))
-        assertEquals(47, c36Summary.getInt("uniqueUnexplainedCaseOwnerPairs"))
-        assertEquals(38, c36Summary.getInt("uniqueUnexplainedOwnerCasesWithB11CanonicalReplacement"))
+        assertEquals(42, c36Summary.getInt("uniqueUnexplainedCaseOwnerPairs"))
+        assertEquals(39, c36Summary.getInt("uniqueUnexplainedOwnerCasesWithB11CanonicalReplacement"))
         assertEquals(0, c36Summary.getInt("unexplainedOwnerCasesWithExactB4B5B6ScheduleMaterialization"))
         assertEquals(0, c36Summary.getInt("exactDisplacementOwnerWeekOccurrences"))
         assertEquals(549, c36Summary.getInt("regionalFrequencyFundedBaseUnitsPerTargetWeek"))
@@ -953,9 +975,12 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(0, c33RegionalSummary.getInt("overfilledTargets"))
         assertEquals(0, c33RegionalSummary.getInt("duplicateCreditTargets"))
         assertEquals(2, c33RegionalSummary.getInt("capacityLimitedTargets"))
-        assertEquals(268, c33RegionalSummary.getInt("candidateRows"))
+        // Reclassifying the two overhead triceps extensions as ARMS/GENERAL adds
+        // four legitimate B5 candidate rows across the sparse equipment contexts.
+        // Selection/materialization authority must remain independently bounded.
+        assertEquals(272, c33RegionalSummary.getInt("candidateRows"))
         assertEquals(27, c33RegionalSummary.getInt("selectedCandidates"))
-        assertEquals(241, c33RegionalSummary.getInt("legitimatelyRejectedCandidates"))
+        assertEquals(245, c33RegionalSummary.getInt("legitimatelyRejectedCandidates"))
         assertEquals(16, c33RegionalSummary.getInt("fullySatisfiedTargets"))
         assertEquals(0, c33RegionalSummary.getInt("partiallySatisfiedTargets"))
         assertEquals(13, c33RegionalSummary.getInt("legitimatelyUnsatisfiedTargets"))
@@ -963,6 +988,41 @@ class StimulusProductionCoverageAuditTest {
         assertEquals(288, c33RegionalSummary.getInt("authorizedMaterialUnits"))
         assertEquals(256, c33RegionalSummary.getInt("actualMaterialUnits"))
         val c33Targets = c33RegionalJson.getJSONArray("targets")
+        val sparseTricepsExpectedCandidates = mapOf(
+            "persona1_sparse" to setOf("dumbbell_overhead_triceps_extension"),
+            "persona2_sparse" to setOf(
+                "cable_overhead_triceps_extension", "dumbbell_overhead_triceps_extension"
+            ),
+            "persona4_sparse" to setOf("dumbbell_overhead_triceps_extension")
+        )
+        val sparseTricepsExpectedPoolSizes = mapOf(
+            "persona1_sparse" to 4,
+            "persona2_sparse" to 9,
+            "persona4_sparse" to 4
+        )
+        sparseTricepsExpectedCandidates.forEach { (case, expectedCandidates) ->
+            val target = (0 until c33Targets.length()).map { c33Targets.getJSONObject(it) }.single {
+                it.getString("case") == case && it.getString("movementCoverage") == "ARMS_TRICEPS"
+            }
+            val candidateKeys = listOf("selectedOwners", "rejectedCandidates").flatMap { arrayName ->
+                val rows = target.getJSONArray(arrayName)
+                (0 until rows.length()).map { rows.getJSONObject(it).getString("stableKey") }
+            }.toSet()
+            assertEquals(sparseTricepsExpectedPoolSizes.getValue(case), target.getInt("candidatePoolSize"))
+            assertTrue("$case must expose the corrected overhead triceps B5 candidates",
+                candidateKeys.containsAll(expectedCandidates))
+            assertEquals(8, target.getInt("authorizedWeeklyUnits"))
+            assertEquals("CONTROL_REQUIRED", target.getString("b8Status"))
+            assertEquals("CONTROL", target.getString("route"))
+        }
+        val capacityLimitedTriceps = (0 until c33Targets.length()).map { c33Targets.getJSONObject(it) }.single {
+            it.getString("case") == "persona2_sparse" && it.getString("movementCoverage") == "ARMS_TRICEPS"
+        }
+        assertEquals("cable_overhead_triceps_extension",
+            capacityLimitedTriceps.getJSONArray("selectedOwners").getJSONObject(0).getString("stableKey"))
+        assertEquals("UNMATERIALIZED_FINITE_CAPACITY_LIMIT",
+            capacityLimitedTriceps.getString("materializationDisposition"))
+        assertEquals(0, capacityLimitedTriceps.getInt("materializedTotalUnits"))
         (0 until c33Targets.length()).map { c33Targets.getJSONObject(it) }
             .filter { it.getBoolean("authorized") && it.getInt("authorizedWeeklyUnits") > 0 &&
                 it.getString("materializationState") != "FULLY_MATERIALIZED" }
@@ -974,13 +1034,13 @@ class StimulusProductionCoverageAuditTest {
             }
         assertEquals(0, nextPhaseSummary.getInt("qualityAddedOwnerWeeksWithoutAuthorizedB6"))
         assertEquals(0, nextPhaseSummary.getJSONArray("qualityAddedOwnerWeeksWithoutAuthorizedB6Cases").length())
-        assertEquals(38, nextPhaseSummary.getInt("b11CanonicalReplacementButB7UnclosedOwnerRows"))
-        assertEquals(31, nextPhaseSummary.getInt("b11CanonicalReplacementButB7UnclosedMovementOwnerRows"))
+        assertEquals(39, nextPhaseSummary.getInt("b11CanonicalReplacementButB7UnclosedOwnerRows"))
+        assertEquals(32, nextPhaseSummary.getInt("b11CanonicalReplacementButB7UnclosedMovementOwnerRows"))
         assertEquals(7, nextPhaseSummary.getInt("b11CanonicalReplacementButB7UnclosedQualityOwnerRows"))
         assertEquals(0, nextPhaseSummary.getInt("b11CanonicalReplacementButB7UnclosedTaskOwnerRows"))
         assertEquals(0, nextPhaseSummary.getJSONArray("taskRoleReplacementRowsWithExactApprovedTaskB6").length())
-        assertEquals(47, nextPhaseSummary.getInt("unexplainedRemovedIdentityAttributions"))
-        assertEquals(43, nextPhaseSummary.getInt("exactMovementCanonicalReplacementAttributions"))
+        assertEquals(42, nextPhaseSummary.getInt("unexplainedRemovedIdentityAttributions"))
+        assertEquals(48, nextPhaseSummary.getInt("exactMovementCanonicalReplacementAttributions"))
         val movementReplacementResult = requireNotNull(records.single { it.first.label == "persona1_mixed" }.second)
         val movementReplacementComparison = requireNotNull(movementReplacementResult.comparison)
         val movementReplacementOldOwner = StimulusPrescriptionOwnerIdentity("barbell_reverse_curl", "COVERAGE_ARMS_BICEPS")

@@ -100,6 +100,11 @@ jobs:
           echo "Google Web Client ID configured: yes"
           echo "Supabase publishable key configured: yes"
 
+      - name: Validate B metadata relation regressions
+        run: |
+          python -m unittest discover -s tools/metadata_authority/tests -p 'test_physical_quality_relations.py' -v
+          python -m unittest discover -s tools/metadata_authority/tests -p 'test_b_balanced_target_task_relations.py' -v
+
       - name: Run debug unit tests
         env:
           ANDROID_CI_KEYSTORE_PATH: ${{ runner.temp }}/whatyougottado-ci-debug.jks
@@ -125,6 +130,9 @@ jobs:
             app/build/reports/c19-program-lineage-incumbent-placement-census.json
             app/build/reports/c20-live-incumbent-stability-census.json
             app/build/reports/c23-task-protocol-frequency-representation-census.json
+            app/build/reports/c26-current-next-phase-corpus.json
+            app/build/reports/c33-regional-b4-residual-production-census.json
+            app/build/reports/c36-execution-provenance-census.json
             app/build/test-results/testDebugUnitTest/*.xml
           if-no-files-found: warn
 

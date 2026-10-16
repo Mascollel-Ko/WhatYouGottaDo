@@ -66,6 +66,27 @@ class PhysicalQualityRelationsTest(unittest.TestCase):
             self.assertEqual({"STRENGTH", "HYPERTROPHY"}, {row["qualityId"] for row in by_key[key]})
             self.assertTrue(all(row["regionQualifier"] == "LOWER" and row["modeQualifier"] == "SQUAT" for row in by_key[key]))
 
+    def test_overhead_triceps_extensions_are_arm_hypertrophy_not_vertical_press(self):
+        relations = read_csv(ASSETS / "physical_quality_relations.csv")
+        by_key = {}
+        for row in relations:
+            by_key.setdefault(row["exerciseStableKey"], []).append(row)
+
+        for key in ("cable_overhead_triceps_extension", "dumbbell_overhead_triceps_extension"):
+            hypertrophy = [row for row in by_key[key] if row["qualityId"] == "HYPERTROPHY"]
+            self.assertEqual(1, len(hypertrophy), key)
+            row = hypertrophy[0]
+            self.assertEqual("DIRECT_CAPABILITY", row["relationLevel"])
+            self.assertEqual("ARMS", row["regionQualifier"])
+            self.assertEqual("GENERAL", row["modeQualifier"])
+            self.assertEqual("YES", row["prescriptionDependent"])
+            self.assertNotEqual("VERTICAL_PRESS", row["modeQualifier"])
+
+        # The correction is exercise-specific, not a global rewrite of overhead work.
+        press = [row for row in by_key["ex_32219f7a"] if row["qualityId"] == "STRENGTH"]
+        self.assertEqual(1, len(press))
+        self.assertEqual("VERTICAL_PRESS", press[0]["modeQualifier"])
+
     def test_program_selectable_membership_is_complete_and_exclusions_hold(self):
         runtime = {row["stableKey"]: row for row in read_csv(ASSETS / "runtime_metadata.csv")}
         identities = {row["stableKey"]: row for row in read_csv(ASSETS / "identity_master.csv")}
