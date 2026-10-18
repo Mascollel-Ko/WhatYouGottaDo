@@ -1092,7 +1092,9 @@
         <item>MUSCLE_GROUP|CHEST|Chest</item>
         <item>MUSCLE_GROUP|FOREARM_GRIP|Forearm grip</item>
         <item>MUSCLE_GROUP|GLUTES|Glutes</item>
+        <item>MUSCLE_GROUP|GLUTE_MEDIUS|Gluteus medius</item>
         <item>MUSCLE_GROUP|HAMSTRINGS|Hamstrings</item>
+        <item>MUSCLE_GROUP|HIP_ADDUCTOR|Hip adductors</item>
         <item>MUSCLE_GROUP|LATERAL_CORE|Lateral core</item>
         <item>MUSCLE_GROUP|POSTERIOR_CHAIN_ERECTORS|Posterior chain erectors</item>
         <item>MUSCLE_GROUP|QUADS|Quads</item>
@@ -2917,7 +2919,9 @@
         <item>MUSCLE_GROUP|CHEST|Chest|CHEST</item>
         <item>MUSCLE_GROUP|FOREARM_GRIP|Forearm grip|FOREARM GRIP</item>
         <item>MUSCLE_GROUP|GLUTES|Glutes|GLUTES</item>
+        <item>MUSCLE_GROUP|GLUTE_MEDIUS|Gluteus medius|GLUTE MEDIUS|GLUTEUS MEDIUS</item>
         <item>MUSCLE_GROUP|HAMSTRINGS|Hamstrings|HAMSTRINGS</item>
+        <item>MUSCLE_GROUP|HIP_ADDUCTOR|Hip adductors|HIP ADDUCTOR|HIP ADDUCTORS</item>
         <item>MUSCLE_GROUP|LATERAL_CORE|Lateral core|LATERAL CORE</item>
         <item>MUSCLE_GROUP|POSTERIOR_CHAIN_ERECTORS|Posterior chain erectors|POSTERIOR CHAIN ERECTORS</item>
         <item>MUSCLE_GROUP|QUADS|Quads|QUADS</item>

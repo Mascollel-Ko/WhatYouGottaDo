@@ -1090,7 +1090,9 @@ MUSCLE_GROUP,CALVES,종아리 근육,종아리 근육,종아리 근육,종아리
 MUSCLE_GROUP,CHEST,가슴 근육,가슴 근육,가슴 근육,가슴 근육 항목을 나타내는 앱 표시 용어입니다.,,Chest,CHEST,,PRODUCTION,APPROVED_RESEARCHED
 MUSCLE_GROUP,FOREARM_GRIP,전완·그립 근육,전완·그립 근육,전완·그립 근육,전완·그립 근육 항목을 나타내는 앱 표시 용어입니다.,,Forearm grip,FOREARM GRIP,,PRODUCTION,APPROVED_RESEARCHED
 MUSCLE_GROUP,GLUTES,둔근,둔근,볼기근,둔근 항목을 나타내는 앱 표시 용어입니다.,볼기근,Glutes,GLUTES,,PRODUCTION,APPROVED_RESEARCHED
+MUSCLE_GROUP,GLUTE_MEDIUS,중둔근,중둔근,중둔근,중둔근 자극 관계를 나타내는 해부학 분류입니다.,중간볼기근,Gluteus medius,GLUTE MEDIUS|GLUTEUS MEDIUS,,PRODUCTION,APPROVED_RESEARCHED
 MUSCLE_GROUP,HAMSTRINGS,햄스트링,햄스트링,넙다리뒤근육,햄스트링 항목을 나타내는 앱 표시 용어입니다.,넙다리뒤근육,Hamstrings,HAMSTRINGS,,PRODUCTION,APPROVED_RESEARCHED
+MUSCLE_GROUP,HIP_ADDUCTOR,고관절 내전근군,고관절 내전근군,고관절 내전근군,고관절 내전근군 자극 관계를 나타내는 해부학 분류입니다.,내전근|모음근,Hip adductors,HIP ADDUCTOR|HIP ADDUCTORS,,PRODUCTION,APPROVED_RESEARCHED
 MUSCLE_GROUP,LATERAL_CORE,측면 코어,측면 코어,측면 코어,측면 코어 항목을 나타내는 앱 표시 용어입니다.,,Lateral core,LATERAL CORE,,PRODUCTION,APPROVED_RESEARCHED
 MUSCLE_GROUP,POSTERIOR_CHAIN_ERECTORS,후면사슬·척추세움근,후면사슬·척추세움근,후면사슬·척추세움근,후면사슬·척추세움근 항목을 나타내는 앱 표시 용어입니다.,,Posterior chain erectors,POSTERIOR CHAIN ERECTORS,,PRODUCTION,APPROVED_RESEARCHED
 MUSCLE_GROUP,QUADS,대퇴사두근,대퇴사두근,대퇴사두근,대퇴사두근 항목을 나타내는 앱 표시 용어입니다.,,Quads,QUADS,,PRODUCTION,APPROVED_RESEARCHED

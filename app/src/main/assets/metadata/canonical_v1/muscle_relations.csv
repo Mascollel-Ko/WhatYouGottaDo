@@ -36,9 +36,7 @@ MUSCLE_00035,barbell_romanian_deadlift,루마니안 바벨 데드리프트,HAMST
 MUSCLE_00036,barbell_romanian_deadlift,루마니안 바벨 데드리프트,ANTERIOR_CORE,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,barbell_romanian_deadlift,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00037,barbell_romanian_deadlift,루마니안 바벨 데드리프트,BACK_LATS,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,barbell_romanian_deadlift,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00038,barbell_romanian_deadlift,루마니안 바벨 데드리프트,POSTERIOR_CHAIN_ERECTORS,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,barbell_romanian_deadlift,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00039,cable_hip_adduction,케이블 힙 어덕션,ADDUCTOR_ABDUCTOR,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_eaea872c,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00040,cable_hip_adduction,케이블 힙 어덕션,ANTERIOR_CORE,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_eaea872c,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00041,cable_hip_adduction,케이블 힙 어덕션,GLUTES,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_eaea872c,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
+MUSCLE_00039,cable_hip_adduction,케이블 힙 어덕션,HIP_ADDUCTOR,PRIMARY,,1,0.9,RESEARCH_CORRECTED_2026_10_18,PASS,ex_eaea872c,HIP_CORE_CANONICAL_RECLASSIFICATION_2026-10-18; https://pubmed.ncbi.nlm.nih.gov/24377067/
 MUSCLE_00042,cable_lift,케이블 리프트,ANTERIOR_CORE,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,cable_lift,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00043,cable_lift,케이블 리프트,FOREARM_GRIP,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,cable_lift,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00044,cable_lift,케이블 리프트,GLUTES,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,cable_lift,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
@@ -295,8 +293,7 @@ MUSCLE_00307,ex_70f19bf,리닝 래터럴 레이즈,ANTERIOR_CORE,SECONDARY,,0.5,
 MUSCLE_00308,ex_721f7b5b,힙 쓰러스트,ANTERIOR_CORE,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_721f7b5b,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00309,ex_721f7b5b,힙 쓰러스트,GLUTES,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_721f7b5b,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00310,ex_721f7b5b,힙 쓰러스트,HAMSTRINGS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_721f7b5b,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00311,ex_728da646,힙 어브덕션,GLUTES,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_728da646,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00312,ex_728da646,힙 어브덕션,ANTERIOR_CORE,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,ex_728da646,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
+MUSCLE_00311,ex_728da646,힙 어브덕션,GLUTE_MEDIUS,PRIMARY,,1,0.9,RESEARCH_CORRECTED_2026_10_18,PASS,ex_728da646,HIP_CORE_CANONICAL_RECLASSIFICATION_2026-10-18; https://pubmed.ncbi.nlm.nih.gov/24377067/
 MUSCLE_00313,ex_72f11dc5,덤벨 리스트 익스텐션,BACK_LATS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_72f11dc5,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00314,ex_72f11dc5,덤벨 리스트 익스텐션,FOREARM_GRIP,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_72f11dc5,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00315,ex_72f11dc5,덤벨 리스트 익스텐션,ANTERIOR_CORE,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,ex_72f11dc5,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
@@ -402,10 +399,8 @@ MUSCLE_00416,ex_a76f20b6,시티드 원암 케이블 로우,BACK_LATS,PRIMARY,,1,
 MUSCLE_00417,ex_a76f20b6,시티드 원암 케이블 로우,BICEPS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_a76f20b6,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00418,ex_a76f20b6,시티드 원암 케이블 로우,SHOULDERS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_a76f20b6,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00419,ex_a76f20b6,시티드 원암 케이블 로우,ANTERIOR_CORE,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,ex_a76f20b6,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00420,ex_a8385c4a,코펜하겐 플랭크,ADDUCTOR_ABDUCTOR,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_a8385c4a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00421,ex_a8385c4a,코펜하겐 플랭크,ANTERIOR_CORE,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_a8385c4a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00422,ex_a8385c4a,코펜하겐 플랭크,GLUTES,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_a8385c4a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00423,ex_a8385c4a,코펜하겐 플랭크,LATERAL_CORE,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_a8385c4a,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
+MUSCLE_00420,ex_a8385c4a,코펜하겐 플랭크,HIP_ADDUCTOR,PRIMARY,,1,0.9,RESEARCH_CORRECTED_2026_10_18,PASS,ex_a8385c4a,HIP_CORE_CANONICAL_RECLASSIFICATION_2026-10-18; https://pubmed.ncbi.nlm.nih.gov/41931009/
+MUSCLE_00423,ex_a8385c4a,코펜하겐 플랭크,LATERAL_CORE,SECONDARY,,0.5,0.9,RESEARCH_CORRECTED_2026_10_18,PASS,ex_a8385c4a,HIP_CORE_CANONICAL_RECLASSIFICATION_2026-10-18; https://pubmed.ncbi.nlm.nih.gov/41931009/
 MUSCLE_00424,ex_a9b52886,마운틴 클라이머,ANTERIOR_CORE,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_a9b52886,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00425,ex_a9b52886,마운틴 클라이머,SHOULDERS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_a9b52886,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00426,ex_ab468462,레그 프레스,GLUTES,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,ex_ab468462,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
@@ -663,9 +658,7 @@ MUSCLE_00687,half_kneeling_single_arm_kettlebell_press,하프 닐링 원암 케�
 MUSCLE_00688,half_kneeling_single_arm_kettlebell_press,하프 닐링 원암 케틀벨 프레스,ANTERIOR_CORE,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,half_kneeling_single_arm_kettlebell_press,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00689,half_kneeling_single_arm_kettlebell_press,하프 닐링 원암 케틀벨 프레스,FOREARM_GRIP,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,half_kneeling_single_arm_kettlebell_press,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00690,half_kneeling_single_arm_kettlebell_press,하프 닐링 원암 케틀벨 프레스,SHOULDERS,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,half_kneeling_single_arm_kettlebell_press,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00691,hip_adduction_machine,힙 어덕션 머신,ADDUCTOR_ABDUCTOR,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_eaea872c,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00692,hip_adduction_machine,힙 어덕션 머신,ANTERIOR_CORE,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_eaea872c,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00693,hip_adduction_machine,힙 어덕션 머신,GLUTES,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_eaea872c,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
+MUSCLE_00691,hip_adduction_machine,힙 어덕션 머신,HIP_ADDUCTOR,PRIMARY,,1,0.9,RESEARCH_CORRECTED_2026_10_18,PASS,ex_eaea872c,HIP_CORE_CANONICAL_RECLASSIFICATION_2026-10-18; https://pubmed.ncbi.nlm.nih.gov/24377067/
 MUSCLE_00694,kettlebell_farmer_carry,케틀벨 파머스 캐리,ANTERIOR_CORE,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_a1fc4533,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00695,kettlebell_farmer_carry,케틀벨 파머스 캐리,FOREARM_GRIP,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_a1fc4533,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00696,kettlebell_goblet_squat,케틀벨 고블릿 스쿼트,ANTERIOR_CORE,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_ac7df636,analysis_contract_baseline_v1.csv; inherited only where final closeout says so

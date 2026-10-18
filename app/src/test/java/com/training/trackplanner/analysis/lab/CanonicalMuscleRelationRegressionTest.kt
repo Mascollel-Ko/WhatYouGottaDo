@@ -36,6 +36,10 @@ class CanonicalMuscleRelationRegressionTest {
             "ez_bar_spider_curl" to mapOf("BICEPS" to primary()),
             "ex_b69ab702" to mapOf("BICEPS" to secondary()),
             "ex_6466fe77" to mapOf("BACK_LATS" to primary(), "BICEPS" to secondary()),
+            "cable_hip_adduction" to mapOf("HIP_ADDUCTOR" to primary()),
+            "hip_adduction_machine" to mapOf("HIP_ADDUCTOR" to primary()),
+            "ex_728da646" to mapOf("GLUTE_MEDIUS" to primary()),
+            "ex_a8385c4a" to mapOf("HIP_ADDUCTOR" to primary(), "LATERAL_CORE" to secondary()),
             "gymnastic_ring_inverted_row" to invertedRowRelations(),
             "suspension_trainer_inverted_row" to invertedRowRelations(),
             "ex_ab468462" to legPressRelations(),
@@ -77,6 +81,10 @@ class CanonicalMuscleRelationRegressionTest {
             "ex_516f4456" to mapOf(MuscleBucket.BICEPS to 1.0),
             "ex_b69ab702" to mapOf(MuscleBucket.BICEPS to 1.0),
             "ex_6466fe77" to mapOf(MuscleBucket.BACK_LATS to 1.0, MuscleBucket.BICEPS to 0.5),
+            "cable_hip_adduction" to mapOf(MuscleBucket.ADDUCTOR_ABDUCTOR to 1.0),
+            "hip_adduction_machine" to mapOf(MuscleBucket.ADDUCTOR_ABDUCTOR to 1.0),
+            "ex_728da646" to mapOf(MuscleBucket.GLUTES to 1.0),
+            "ex_a8385c4a" to mapOf(MuscleBucket.ADDUCTOR_ABDUCTOR to 1.0),
             "gymnastic_ring_inverted_row" to invertedRowContributions(),
             "suspension_trainer_inverted_row" to invertedRowContributions(),
             "ex_e159d15a" to invertedRowContributions(),
@@ -130,6 +138,20 @@ class CanonicalMuscleRelationRegressionTest {
         assertEquals(1_000.0, legPress.cell(AnalysisFeatureKey.anatomy("QUADS"), week)?.value ?: 0.0, 0.01)
         assertEquals(500.0, legPress.cell(AnalysisFeatureKey.anatomy("GLUTES"), week)?.value ?: 0.0, 0.01)
         assertEquals(0.0, legPress.cell(AnalysisFeatureKey.anatomy("HAMSTRINGS"), week)?.value ?: 0.0, 0.01)
+
+        val adduction = weeklySnapshotFor(exercises.getValue("cable_hip_adduction"))
+        assertEquals(1_000.0, adduction.cell(AnalysisFeatureKey.anatomy("HIP_ADDUCTOR"), week)?.value ?: 0.0, 0.01)
+        assertEquals(0.0, adduction.cell(AnalysisFeatureKey.anatomy("GLUTES"), week)?.value ?: 0.0, 0.01)
+        assertEquals(0.0, adduction.cell(AnalysisFeatureKey.anatomy("ANTERIOR_CORE"), week)?.value ?: 0.0, 0.01)
+
+        val abduction = weeklySnapshotFor(exercises.getValue("ex_728da646"))
+        assertEquals(1_000.0, abduction.cell(AnalysisFeatureKey.anatomy("GLUTE_MEDIUS"), week)?.value ?: 0.0, 0.01)
+        assertEquals(0.0, abduction.cell(AnalysisFeatureKey.anatomy("ANTERIOR_CORE"), week)?.value ?: 0.0, 0.01)
+
+        val copenhagen = weeklySnapshotFor(exercises.getValue("ex_a8385c4a"))
+        assertEquals(1_000.0, copenhagen.cell(AnalysisFeatureKey.anatomy("HIP_ADDUCTOR"), week)?.value ?: 0.0, 0.01)
+        assertEquals(500.0, copenhagen.cell(AnalysisFeatureKey.anatomy("LATERAL_CORE"), week)?.value ?: 0.0, 0.01)
+        assertEquals(0.0, copenhagen.cell(AnalysisFeatureKey.anatomy("GLUTES"), week)?.value ?: 0.0, 0.01)
     }
 
     private fun weeklySnapshotFor(exercise: com.training.trackplanner.data.Exercise) =
