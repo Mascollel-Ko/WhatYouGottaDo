@@ -3,7 +3,6 @@ package com.training.trackplanner.data
 import java.io.File
 import java.security.MessageDigest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -52,8 +51,8 @@ class BBalancedMetadataContractTest {
         val file = asset("metadata/b_balanced_v1/target_task_relations.csv")
         val rows = file.readLines(Charsets.UTF_8).drop(1).filter(String::isNotBlank)
             .map { it.split(",") }
-        assertEquals(9, rows.size)
-        assertTrue(rows.all { it.size == 8 && it[7] == "NONE" })
+        assertEquals(38, rows.size)
+        assertTrue(rows.all { it.size == 9 && it[7] == "NONE" && it[8].isNotBlank() })
         assertEquals(rows.size, rows.map { it[0] }.distinct().size)
         val tasks = rows.groupBy({ it[1] }, { it[3] }).mapValues { (_, values) -> values.toSet() }
         assertEquals(setOf("HIP_ADDUCTION"), tasks["cable_hip_adduction"])
@@ -63,6 +62,12 @@ class BBalancedMetadataContractTest {
         assertEquals(setOf("DYNAMIC_TRUNK_STABILIZATION", "ANTI_EXTENSION"), tasks["ex_d5bdffe1"])
         assertEquals(setOf("ANTI_EXTENSION"), tasks["ex_a44ae2ca"])
         assertEquals(setOf("ANTI_LATERAL_FLEXION"), tasks["ex_f6d43398"])
-        assertFalse(tasks.containsKey("ex_a8385c4a")) // Copenhagen status is under review.
+        assertEquals(setOf("AXIAL_BRACING"), tasks["dumbbell_farmer_carry"])
+        assertEquals(setOf("AXIAL_BRACING"), tasks["kettlebell_farmer_carry"])
+        assertEquals(setOf("DYNAMIC_TRUNK_STABILIZATION", "ANTI_EXTENSION"), tasks["ex_a9b52886"])
+        assertEquals(setOf("ANTI_LATERAL_FLEXION"), tasks["ex_a8385c4a"])
+        assertEquals(31, rows.filter { it[2] == "CORE" && it[6] == "REVIEWED_B_OVERLAY_V2" }
+            .map { it[1] }.distinct().size)
+        assertTrue(rows.single { it[1] == "ex_a8385c4a" }[6] == "REVIEW_REQUIRED")
     }
 }

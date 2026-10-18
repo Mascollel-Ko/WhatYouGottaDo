@@ -56,8 +56,8 @@ class MetadataAuthorityTest(unittest.TestCase):
         self.assertEqual(11, counts["historyOnlyIdentityRows"])
         self.assertEqual(242, counts["timingRows"])
         self.assertEqual(253, counts["bootstrapRows"])
-        self.assertEqual(1823, counts["displayRows"])
-        self.assertEqual(1686, counts["productionDisplayRows"])
+        self.assertEqual(1825, counts["displayRows"])
+        self.assertEqual(1688, counts["productionDisplayRows"])
         workbook = load_workbook(WORKBOOK, read_only=True)
         self.assertEqual(DISPLAY_HEADERS, [str(cell.value or "").strip() for cell in workbook[DISPLAY_SHEET][1]])
 
@@ -167,13 +167,13 @@ class MetadataAuthorityTest(unittest.TestCase):
         korean = resource_keys(RESOURCES / "values/metadata_display_catalog.xml")
         english = resource_keys(RESOURCES / "values-en/metadata_display_catalog.xml")
         self.assertEqual(korean, english)
-        self.assertEqual(1823, len(korean))
+        self.assertEqual(1825, len(korean))
 
     def test_display_routing_audit_is_current_and_complete(self):
         metrics = collect_display_routing(REPO)
         validate_display_routing(metrics)
-        self.assertEqual(1686, metrics["reachableProductionPairCount"])
-        self.assertEqual(1686, metrics["translatedReachableProductionPairCount"])
+        self.assertEqual(1688, metrics["reachableProductionPairCount"])
+        self.assertEqual(1688, metrics["translatedReachableProductionPairCount"])
         self.assertEqual(137, metrics["expectedCompatibilityOnlyPairCount"])
         self.assertEqual(70, metrics["preRefactorRawCodeProneUiPathCount"])
         self.assertEqual(0, metrics["postRefactorRawCodeProneUiPathCount"])

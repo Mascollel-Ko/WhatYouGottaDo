@@ -139,6 +139,15 @@ def validate(path: Path) -> dict[str, int]:
     require_unique(display_rows, ("displayField", "canonicalCode"), DISPLAY_SHEET)
     require(all(row["canonicalCode"] for row in display_rows), f"Blank canonicalCode in {DISPLAY_SHEET}")
     expected_production = set(collect_inventory())
+    # The exporter validates the authority workbook before replacing generated
+    # canonical CSVs. Include relation codes from the workbook itself so a new,
+    # explicitly reviewed muscle code can be exported without requiring a
+    # hand-edited generated CSV to break the bootstrap cycle.
+    expected_production.update(
+        ("MUSCLE_GROUP", row["muscleCode"])
+        for row in sheet_rows(workbook, "10_MUSCLE_REL")
+        if row["muscleCode"] and row["muscleCode"] != "NONE"
+    )
     actual_production = {
         (row["displayField"], row["canonicalCode"])
         for row in display_rows

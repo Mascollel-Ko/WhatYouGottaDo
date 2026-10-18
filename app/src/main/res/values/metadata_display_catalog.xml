@@ -1092,7 +1092,9 @@
         <item>MUSCLE_GROUP|CHEST|가슴 근육</item>
         <item>MUSCLE_GROUP|FOREARM_GRIP|전완·그립 근육</item>
         <item>MUSCLE_GROUP|GLUTES|둔근</item>
+        <item>MUSCLE_GROUP|GLUTE_MEDIUS|중둔근</item>
         <item>MUSCLE_GROUP|HAMSTRINGS|햄스트링</item>
+        <item>MUSCLE_GROUP|HIP_ADDUCTOR|고관절 내전근군</item>
         <item>MUSCLE_GROUP|LATERAL_CORE|측면 코어</item>
         <item>MUSCLE_GROUP|POSTERIOR_CHAIN_ERECTORS|후면사슬·척추세움근</item>
         <item>MUSCLE_GROUP|QUADS|대퇴사두근</item>
@@ -2917,7 +2919,9 @@
         <item>MUSCLE_GROUP|CHEST|가슴 근육</item>
         <item>MUSCLE_GROUP|FOREARM_GRIP|전완·그립 근육</item>
         <item>MUSCLE_GROUP|GLUTES|둔근|볼기근</item>
+        <item>MUSCLE_GROUP|GLUTE_MEDIUS|중둔근|중간볼기근</item>
         <item>MUSCLE_GROUP|HAMSTRINGS|햄스트링|넙다리뒤근육</item>
+        <item>MUSCLE_GROUP|HIP_ADDUCTOR|고관절 내전근군|내전근|모음근</item>
         <item>MUSCLE_GROUP|LATERAL_CORE|측면 코어</item>
         <item>MUSCLE_GROUP|POSTERIOR_CHAIN_ERECTORS|후면사슬·척추세움근</item>
         <item>MUSCLE_GROUP|QUADS|대퇴사두근</item>
