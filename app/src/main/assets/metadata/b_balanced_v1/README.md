@@ -19,9 +19,15 @@ loaded by Kotlin production planning or the frozen Python v1.0 reference.
 - Copenhagen plank remains `CORE_CLASS=HIDDEN_HIGH`: its primary canonical
   training target is hip adduction, while direct-core intent depends on support
   height and execution. Its detailed row is therefore `REVIEW_REQUIRED`.
-- Before activation: add a typed runtime reader, confirm stableKey identity,
-  gate interpretation by version, run B dose-ledger/provenance regressions,
-  and separately approve any numeric prescription authority.
+- A strict, read-only `BBalancedTaskCatalog` V2 reader now exists for the B attribution
+  ledger. It checks schema/version, exact task tokens, review status and
+  `numericDoseAuthority=NONE`, but is **not wired into production selection**.
+- `BBalancedStimulusLedgerV1Builder` projects already-confirmed B1 sets into
+  non-additive direct Strength/Hypertrophy, observed direct-Core, indirect muscle
+  participation, and unresolved evidence across 7/28/56-day windows.
+- Before any production activation: validate the full dose-ledger/provenance
+  comparison, define and separately approve numeric prescription authority,
+  and protect existing B4–B8/control routing.
 
 See `docs/audits/b_balanced_semantic_review_v0_2.md` for evidence and
 `tools/metadata_authority/tests/test_b_balanced_target_task_relations.py` for assertions.
