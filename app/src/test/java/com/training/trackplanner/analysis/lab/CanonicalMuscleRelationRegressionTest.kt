@@ -34,7 +34,7 @@ class CanonicalMuscleRelationRegressionTest {
             "ex_6a966452" to rowRelations(),
             "dumbbell_spider_curl" to mapOf("BICEPS" to primary()),
             "ez_bar_spider_curl" to mapOf("BICEPS" to primary()),
-            "ex_b69ab702" to mapOf("BICEPS" to secondary()),
+            "ex_b69ab702" to mapOf("BICEPS" to primary()),
             "ex_6466fe77" to mapOf("BACK_LATS" to primary(), "BICEPS" to secondary()),
             "cable_hip_adduction" to mapOf("HIP_ADDUCTOR" to primary()),
             "hip_adduction_machine" to mapOf("HIP_ADDUCTOR" to primary()),
@@ -131,7 +131,7 @@ class CanonicalMuscleRelationRegressionTest {
         assertEquals(0.0, row.cell(AnalysisFeatureKey.anatomy("CHEST"), week)?.value ?: 0.0, 0.01)
 
         val crossBodyCurl = weeklySnapshotFor(exercises.getValue("ex_b69ab702"))
-        assertEquals(500.0, crossBodyCurl.cell(AnalysisFeatureKey.anatomy("BICEPS"), week)?.value ?: 0.0, 0.01)
+        assertEquals(1_000.0, crossBodyCurl.cell(AnalysisFeatureKey.anatomy("BICEPS"), week)?.value ?: 0.0, 0.01)
         assertEquals(0.0, crossBodyCurl.cell(AnalysisFeatureKey.anatomy("CHEST"), week)?.value ?: 0.0, 0.01)
 
         val legPress = weeklySnapshotFor(exercises.getValue("ex_ab468462"))
