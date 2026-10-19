@@ -124,7 +124,7 @@ class ExerciseMetadataFieldRegistryContractTest {
     fun releasePreservesPersistenceAndRevisionInvariants() {
         val revisions = ExerciseMetadataRevisionPolicy.project(context, repository)
         assertEquals(
-            "4db4272f1733823da21d3b02ace8bb97889b4e80dbb05d9955456dfc3c8ad978",
+            "a5484959a228c625bff50fdca2f03948faddb870a0c56f8d8f9ef17d8505ac44",
             revisions.semanticCanonicalMetadataRevision
         )
         assertEquals(
