@@ -6,13 +6,29 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   package-authority:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Apply vetted audit proposals and regenerate source assets once
+        if: github.event.head_commit.message == 'ci(temp): apply muscle role audit proposals'
+        run: |
+          python -m pip install -r tools/metadata_authority/requirements.txt
+          python tools/metadata_authority/apply_muscle_role_audit_v1.py
+          python tools/metadata_authority/apply_muscle_role_audit_v1.py --apply
+          python tools/metadata_authority/validate_authority_workbook.py --workbook docs/metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx
+          python tools/metadata_authority/export_canonical_metadata.py --workbook docs/metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx --output app/src/main/assets/metadata/canonical_v1
+          python tools/metadata_authority/export_canonical_metadata.py --check --workbook docs/metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx --output app/src/main/assets/metadata/canonical_v1
+          python -m unittest discover -s tools/metadata_authority/tests
+          git status --short
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx app/src/main/assets/metadata/canonical_v1 app/src/main/res/values/metadata_display_catalog.xml app/src/main/res/values-en/metadata_display_catalog.xml docs/metadata_authority/metadata_display_resource_manifest.json
+          git commit -m "[metadata-audit-generated] apply 762-row provisional role review" || true
+          git push origin HEAD:audit/canonical-muscle-primary-20261019
       - name: Upload original authority and generated rows
         uses: actions/upload-artifact@v4
         with:
