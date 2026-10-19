@@ -1,0 +1,77 @@
+name: Temporary muscle metadata contract regeneration
+
+on:
+  push:
+    branches: [audit/canonical-muscle-primary-20261019]
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-contract:
+    if: "${{ github.event.head_commit.message == 'ci(temp): regenerate muscle metadata revision contract' }}"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - run: chmod +x ./gradlew
+      - name: Restore CI debug keystore
+        env:
+          ANDROID_CI_KEYSTORE_B64: ${{ secrets.ANDROID_CI_KEYSTORE_B64 }}
+        run: |
+          test -n "${ANDROID_CI_KEYSTORE_B64:-}"
+          printf '%s' "$ANDROID_CI_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/whatyougottado-ci-debug.jks"
+          chmod 600 "$RUNNER_TEMP/whatyougottado-ci-debug.jks"
+      - name: Regenerate only the contract artifacts from Kotlin registry
+        env:
+          UPDATE_METADATA_CONTRACT_ARTIFACTS: '1'
+          ANDROID_CI_KEYSTORE_PATH: ${{ runner.temp }}/whatyougottado-ci-debug.jks
+          ANDROID_CI_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_CI_KEYSTORE_PASSWORD }}
+          ANDROID_CI_KEY_ALIAS: ${{ secrets.ANDROID_CI_KEY_ALIAS }}
+          ANDROID_CI_KEY_PASSWORD: ${{ secrets.ANDROID_CI_KEY_PASSWORD }}
+          GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          ./gradlew :app:testDebugUnitTest --tests 'com.training.trackplanner.data.ExerciseMetadataFieldRegistryContractTest.artifactsAreDeterministicAndCurrent' -Pgoogle.webClientId="$GOOGLE_WEB_CLIENT_ID" -Psupabase.publishableKey="$SUPABASE_PUBLISHABLE_KEY"
+      - name: Update pinned semantic revision and verify it matches regenerated manifest
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          manifest_path = Path('app/src/main/assets/metadata/canonical_v1/metadata_revision_manifest.json')
+          manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+          test_path = Path('app/src/test/java/com/training/trackplanner/data/ExerciseMetadataFieldRegistryContractTest.kt')
+          old = '4db4272f1733823da21d3b02ace8bb97889b4e80dbb05d9955456dfc3c8ad978'
+          new = manifest['semanticCanonicalMetadataRevision']
+          assert len(new) == 64 and all(c in '0123456789abcdef' for c in new)
+          assert old != new
+          text = test_path.read_text(encoding='utf-8')
+          assert text.count(old) == 1
+          test_path.write_text(text.replace(old, new), encoding='utf-8')
+          print('New semantic metadata revision:', new)
+          print('Display revision unchanged:', manifest['metadataDisplayDictionaryRevision'])
+          PY
+      - name: Verify complete metadata contract test class
+        env:
+          ANDROID_CI_KEYSTORE_PATH: ${{ runner.temp }}/whatyougottado-ci-debug.jks
+          ANDROID_CI_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_CI_KEYSTORE_PASSWORD }}
+          ANDROID_CI_KEY_ALIAS: ${{ secrets.ANDROID_CI_KEY_ALIAS }}
+          ANDROID_CI_KEY_PASSWORD: ${{ secrets.ANDROID_CI_KEY_PASSWORD }}
+          GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          ./gradlew :app:testDebugUnitTest --tests 'com.training.trackplanner.data.ExerciseMetadataFieldRegistryContractTest' -Pgoogle.webClientId="$GOOGLE_WEB_CLIENT_ID" -Psupabase.publishableKey="$SUPABASE_PUBLISHABLE_KEY"
+      - name: Commit generated artifacts and pinned contract
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/generated/metadata_field_display_contract.csv app/src/main/assets/metadata/canonical_v1/metadata_field_display_contract.json app/src/main/assets/metadata/canonical_v1/metadata_revision_manifest.json app/src/test/java/com/training/trackplanner/data/ExerciseMetadataFieldRegistryContractTest.kt
+          git diff --cached --check
+          git diff --cached --stat
+          git diff --cached --quiet && { echo 'No files updated'; exit 1; }
+          git commit -m "[metadata-contract-generated] refresh semantic manifest after source workbook revision"
+          git push origin HEAD:audit/canonical-muscle-primary-20261019
