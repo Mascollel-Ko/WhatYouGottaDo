@@ -1,19 +1,19 @@
-action,exerciseStableKey,muscleCode,expectedRole,targetRole,targetCoefficient,rationale
-ADD,dumbbell_goblet_squat,QUADS,,PRIMARY,1,Goblet squat knee extension prime mover
-ADD,dumbbell_goblet_squat,GLUTES,,PRIMARY,1,Goblet squat hip extension prime mover
-ADD,kettlebell_goblet_squat,QUADS,,PRIMARY,1,Goblet squat knee extension prime mover
-ADD,kettlebell_goblet_squat,GLUTES,,PRIMARY,1,Goblet squat hip extension prime mover
-ADD,ex_85f12271,QUADS,,PRIMARY,1,Unilateral box squat knee extension
-ADD,ex_85f12271,GLUTES,,PRIMARY,1,Unilateral box squat hip extension
-ADD,ex_d67e5761,QUADS,,PRIMARY,1,Pistol squat knee extension
-ADD,ex_d67e5761,GLUTES,,PRIMARY,1,Pistol squat hip extension
-ADD,ex_a611010d,QUADS,,PRIMARY,1,Cossack squat knee extension
-ADD,ex_a611010d,GLUTES,,SECONDARY,0.5,Lateral hip extension support
-UPDATE,ex_a611010d,ADDUCTOR_ABDUCTOR,REVIEW_REQUIRED,PRIMARY,1,Resolve mixed label to HIP_ADDUCTOR prime mover
-UPDATE,ex_b69ab702,BICEPS,SECONDARY,PRIMARY,1,Hammer curl primary elbow flexor bucket; brachialis/brachioradialis not separately coded
-ADD,ex_e159d15a,BACK_LATS,,PRIMARY,1,Inverted row upper-back primary
-ADD,ex_e159d15a,BICEPS,,SECONDARY,0.5,Inverted row elbow flexor assist
-ADD,ex_e159d15a,SHOULDERS,,SECONDARY,0.5,Inverted row rear-shoulder assist
-ADD,ex_69a56484,QUADS,,PRIMARY,1,Step-down loaded knee extension control
-ADD,ex_7404067c,GLUTES,,PRIMARY,1,Kettlebell swing hip extension
-ADD,ex_7404067c,HAMSTRINGS,,PRIMARY,1,Kettlebell swing hip extension contribution
+action,exerciseStableKey,muscleCode,targetMuscleCode,expectedRole,targetRole,targetCoefficient,rationale
+ADD,dumbbell_goblet_squat,QUADS,QUADS,,PRIMARY,1,Goblet squat knee extension prime mover
+ADD,dumbbell_goblet_squat,GLUTES,GLUTES,,PRIMARY,1,Goblet squat hip extension prime mover
+ADD,kettlebell_goblet_squat,QUADS,QUADS,,PRIMARY,1,Goblet squat knee extension prime mover
+ADD,kettlebell_goblet_squat,GLUTES,GLUTES,,PRIMARY,1,Goblet squat hip extension prime mover
+ADD,ex_85f12271,QUADS,QUADS,,PRIMARY,1,Unilateral box squat knee extension
+ADD,ex_85f12271,GLUTES,GLUTES,,PRIMARY,1,Unilateral box squat hip extension
+ADD,ex_d67e5761,QUADS,QUADS,,PRIMARY,1,Pistol squat knee extension
+ADD,ex_d67e5761,GLUTES,GLUTES,,PRIMARY,1,Pistol squat hip extension
+ADD,ex_a611010d,QUADS,QUADS,,PRIMARY,1,Cossack squat knee extension
+ADD,ex_a611010d,GLUTES,GLUTES,,SECONDARY,0.5,Lateral hip extension support
+UPDATE,ex_a611010d,ADDUCTOR_ABDUCTOR,HIP_ADDUCTOR,REVIEW_REQUIRED,PRIMARY,1,Resolve mixed label to HIP_ADDUCTOR prime mover
+UPDATE,ex_b69ab702,BICEPS,BICEPS,SECONDARY,PRIMARY,1,Hammer curl primary elbow flexor bucket; brachialis/brachioradialis not separately coded
+ADD,ex_e159d15a,BACK_LATS,BACK_LATS,,PRIMARY,1,Inverted row upper-back primary
+ADD,ex_e159d15a,BICEPS,BICEPS,,SECONDARY,0.5,Inverted row elbow flexor assist
+ADD,ex_e159d15a,SHOULDERS,SHOULDERS,,SECONDARY,0.5,Inverted row rear-shoulder assist
+ADD,ex_69a56484,QUADS,QUADS,,PRIMARY,1,Step-down loaded knee extension control
+ADD,ex_7404067c,GLUTES,GLUTES,,PRIMARY,1,Kettlebell swing hip extension
+ADD,ex_7404067c,HAMSTRINGS,HAMSTRINGS,,PRIMARY,1,Kettlebell swing hip extension contribution
