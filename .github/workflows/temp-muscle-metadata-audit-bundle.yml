@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Apply vetted audit proposals and regenerate source assets once
-        if: github.event.head_commit.message == 'ci(temp): apply muscle role audit proposals'
+        if: "${{ github.event.head_commit.message == 'ci(temp): apply muscle role audit proposals' }}"
         run: |
           python -m pip install -r tools/metadata_authority/requirements.txt
           python tools/metadata_authority/apply_muscle_role_audit_v1.py
