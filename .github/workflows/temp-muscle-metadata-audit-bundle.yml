@@ -1,0 +1,28 @@
+name: Temporary muscle metadata audit source bundle
+
+on:
+  push:
+    branches: [audit/canonical-muscle-primary-20261019]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package-authority:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload original authority and generated rows
+        uses: actions/upload-artifact@v4
+        with:
+          name: muscle-primary-authority-source
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 6
+          path: |
+            docs/metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx
+            docs/metadata_authority/README.md
+            app/src/main/assets/metadata/canonical_v1/
+            app/src/main/assets/metadata/b_balanced_v1/
+            tools/metadata_authority/
