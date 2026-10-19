@@ -23,7 +23,33 @@ every single row**. The proposed change status `PROVISIONAL_MECHANICS_V1` preven
 mistaking a deterministic mechanical-screening recommendation for an accepted
 scientific prescription rule. Review-dependent identities remain marked
 `REVIEW_REQUIRED`. The file also identifies absent primary muscles (e.g. goblet squat
-and pistol squat) requiring authority additions, which are **not** automatically inserted.
+and pistol squat) requiring authority additions. **Those verified prime-mover omissions have since been repaired in this draft branch; see below.**
+
+## Targeted repair following source-level review
+
+The blanket rollback of PR #28 was inappropriate. Its existing role changes were
+preserved. The corrective patch `muscle_role_targeted_repairs_20261019.csv`
+made only these source-level adjustments:
+
+- 16 **new missing relations** on nine identified exercises, including squat
+  knee-/hip-extensor movers, inverted-row back and assisting arm muscles,
+  step-down quadriceps and kettlebell swing hip extensors.
+- 2 **wrong existing relations corrected**: Cossack squat's mixed
+  `ADDUCTOR_ABDUCTOR REVIEW_REQUIRED` became specific `HIP_ADDUCTOR PRIMARY`;
+  cross-body hammer curl `BICEPS SECONDARY` became `BICEPS PRIMARY`
+  (the current bucket cannot separately express brachialis/brachioradialis).
+- 7 corresponding **exercise_bootstrap** primary/secondary muscle token
+  corrections, preserving other bootstrap fields and all canonical identity keys.
+- Total canonical relations: **778 = 762 existing + 16 additions**.
+  The previous 531 provisional role/coefficient proposals are **not discarded**
+  and remain a separate review question.
+- Regression tests now assert that each directly hypertrophy-capable identity
+  has at least one canonical anatomical PRIMARY, and protect already-valid
+  triceps, overhead press and squat stabilizer corrections.
+
+This focused repair is intentionally **not** a claim that all 531 original
+rule-derived changes are anatomically verified, or that every legacy muscle
+display token has been fully audited. PR remains draft pending broader review.
 
 ## Interpretation
 
