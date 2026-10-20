@@ -82,7 +82,7 @@ class CanonicalMuscleTargetRepairRegressionTest {
     @Test
     fun repairedRelationsDoNotDuplicateMuscleTargets() {
         val relations = repository.muscleRelations()
-        assertEquals(778, relations.size)
+        assertEquals(780, relations.size)
         assertEquals(relations.size,
             relations.map { it.exerciseStableKey to it.relationValue }.distinct().size)
         assertTrue(relations.none {
