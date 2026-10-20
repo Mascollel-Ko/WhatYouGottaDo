@@ -386,6 +386,8 @@ class TrainingRepository internal constructor(
         canonicalOfiAxisProfiles = canonicalOfiAxisProfiles,
         physicalQualityCatalog = canonicalMetadataRepository.physicalQualityCatalog(),
         canonicalMovementRelations = canonicalMetadataRepository.movementRelations(),
+        canonicalMuscleRelations = canonicalMetadataRepository.muscleRelations(),
+        bBalancedTaskCatalog = com.training.trackplanner.data.personalized.BBalancedTaskCatalog.fromAssets(context),
         canonicalCoreCatalog = canonicalCoreCatalog,
         reviewedCanonicalStableKeys = canonicalMetadataRepository.identities().mapTo(linkedSetOf()) { it.stableKey },
         exerciseRoleRelationDao = exerciseRoleRelationDao,
