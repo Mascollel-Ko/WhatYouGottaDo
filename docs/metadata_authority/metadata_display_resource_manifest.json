@@ -1,5 +1,5 @@
 {
-  "authorityWorkbookSha256": "dca04d875b0b45632fe9a640fc3e0571e9b6995d193e9d70b99b34e617c16828",
+  "authorityWorkbookSha256": "76dacb5155eb6a04fbe7ec0cc409819fba59ed07b9a661c5e7ec80ea1e7d276a",
   "files": [
     {
       "path": "app/src/main/res/values/metadata_display_catalog.xml",
