@@ -130,6 +130,9 @@ internal class PersonalizedProgramPlanningService(
     private val canonicalMovementRelations: List<CanonicalMetadataRelation> = emptyList(),
     private val canonicalCoreCatalog: CanonicalCoreCatalog = CanonicalCoreCatalog.EMPTY,
     private val reviewedCanonicalStableKeys: Set<String> = emptySet(),
+    private val canonicalMuscleRelations: List<CanonicalMetadataRelation> = emptyList(),
+    private val bBalancedTaskCatalog: com.training.trackplanner.data.personalized.BBalancedTaskCatalog =
+        com.training.trackplanner.data.personalized.BBalancedTaskCatalog.EMPTY,
     private val athleteNeedsProfileEngine: AthleteNeedsProfileEngine = AthleteNeedsProfileEngine(),
     private val athleteStimulusNeedEngine: AthleteStimulusNeedEngine = AthleteStimulusNeedEngine(),
     private val snapshotBuilder: PlanningHistorySnapshotBuilder = PlanningHistorySnapshotBuilder(),
@@ -1620,11 +1623,10 @@ internal class PersonalizedProgramPlanningService(
             canonicalStrength, recovery, roleCatalog, plannedStrengthSetIntents)
         val snapshot = if (includeStimulusExposureLedger) {
             val loadResolver = StrengthPerformanceLoadResolver(dailyMetrics, checkIns, profile)
-            baseSnapshot.copy(
-                stimulusExposureLedger = com.training.trackplanner.data.personalized.StimulusExposureLedgerBuilder(
-                    strengthLoadResolver = loadResolver,
-                    strengthPerformanceRegistry = strengthPerformanceRegistry
-                ).build(
+            val exposureLedger = com.training.trackplanner.data.personalized.StimulusExposureLedgerBuilder(
+                strengthLoadResolver = loadResolver,
+                strengthPerformanceRegistry = strengthPerformanceRegistry
+            ).build(
                     cutoff = cutoff,
                     history = history,
                     exercises = baseSnapshot.exercises,
@@ -1639,6 +1641,13 @@ internal class PersonalizedProgramPlanningService(
                     strengthPerformanceHistory = strengthPerformanceHistory,
                     plannedStrengthSetIntents = plannedStrengthSetIntents
                 )
+            baseSnapshot.copy(
+                stimulusExposureLedger = exposureLedger,
+                bBalancedStimulusLedger = if (canonicalMuscleRelations.isNotEmpty())
+                    com.training.trackplanner.data.personalized.BBalancedStimulusLedgerV1Builder().build(
+                        exposureLedger, canonicalMuscleRelations, bBalancedTaskCatalog
+                    )
+                else null
             )
         } else baseSnapshot
         return snapshot.copy(performancePrescriptions = performancePrescriptions,
