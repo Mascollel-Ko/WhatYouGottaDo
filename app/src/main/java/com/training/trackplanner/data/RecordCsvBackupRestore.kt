@@ -246,7 +246,7 @@ data class DailyTimeseriesRow(
 object RecordCsvBackupRestore {
     internal const val CURRENT_RESTORE_SCHEMA_VERSION = 13
     internal const val CURRENT_BACKUP_FORMAT_VERSION = 14
-    internal const val CURRENT_PROGRAM_BACKUP_SCHEMA_VERSION = 4
+    internal const val CURRENT_PROGRAM_BACKUP_SCHEMA_VERSION = 5
     internal const val EXPLICIT_METADATA_USER_OVERRIDES_CAPABILITY = "EXPLICIT_METADATA_USER_OVERRIDES_V1"
     private const val MANIFEST_PREFIX = "#WGTD_BACKUP_MANIFEST"
 
@@ -392,6 +392,7 @@ object RecordCsvBackupRestore {
         "program_periodization_type",
         "program_canonical_builder_protocol_version",
         "program_canonical_planner_runtime_version",
+        "program_planning_metadata_json",
         "program_week_number",
         "program_day_of_week",
         "program_order_index",
@@ -517,7 +518,8 @@ object RecordCsvBackupRestore {
                         "program_sport_strength_ratio" to program.sportStrengthRatio,
                         "program_periodization_type" to program.periodizationType,
                         "program_canonical_builder_protocol_version" to program.canonicalBuilderProtocolVersion.orEmpty(),
-                        "program_canonical_planner_runtime_version" to program.canonicalPlannerRuntimeVersion.orEmpty()
+                        "program_canonical_planner_runtime_version" to program.canonicalPlannerRuntimeVersion.orEmpty(),
+                        "program_planning_metadata_json" to program.planningMetadataJson.orEmpty()
                     )
                 )
             }
@@ -1177,6 +1179,7 @@ object RecordCsvBackupRestore {
                         periodizationType = row.value(index, "program_periodization_type"),
                         canonicalBuilderProtocolVersion = row.value(index, "program_canonical_builder_protocol_version").ifBlank { null },
                         canonicalPlannerRuntimeVersion = row.value(index, "program_canonical_planner_runtime_version").ifBlank { null },
+                        planningMetadataJson = row.value(index, "program_planning_metadata_json").ifBlank { null },
                         updatedAt = row.requiredLong(index, "program_updated_at", rowType)
                     )
                     return@forEachIndexed

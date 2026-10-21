@@ -166,7 +166,8 @@ internal class ProgramPlanService(
             canonicalPlannerRuntimeVersion = when {
                 canonicalDecision != null -> exactCanonicalGeneration?.protocolVersion
                 else -> existing?.canonicalPlannerRuntimeVersion
-            }
+            },
+            planningMetadataJson = skeleton.planningMetadataJson
         )
         val programId = if (existing != null) {
             programDao.updateProgram(program)

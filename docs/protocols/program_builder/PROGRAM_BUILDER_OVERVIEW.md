@@ -1,5 +1,33 @@
 # 자동 프로그램 생성 개요
 
+### V2-2 B Balanced 12-week v1 (2026-10-21)
+
+사용자에게 노출되는 V2-2 B는 `B_BALANCED_12_WEEK_V1`로 전환한다. A/C와
+`V22PythonParityEngine`의 구형 B 의미는 비교·회귀 기준으로 동결한다. B는 12주 고정이며
+1~4주, 5~8주, 9~12주의 세 집중 구간을 함께 평가한다. 각 구간의 구성은 안정적으로 반복하고
+4주차 자동 디로드나 주차별 기계적 증량을 만들지 않는다.
+
+- 근력·근비대·코어·스포츠 보조 중요도는 1~5이며, 비어 있으면 최근 기록의 canonical
+  contribution을 기준으로 추천하고 사용자가 UI에서 덮어쓸 수 있다.
+- 발전 목표 `T=(R+cH×H+cP×P)/(1+cH+cP)`는 수치 권위가 있는 근력·근비대에만 계산한다.
+  `cH`와 `cP`는 독립이며 근력 변화는 근비대 개인 반응 근거로 사용하지 않는다.
+- 유지 하한은 T의 비율이 아니다. 현재 v1은 비교 가능한 개인 근력 기록에서 성과가 감소하지 않은
+  가장 낮은 주간 dose가 있을 때만 M을 채운다. 나머지는 검토 필요로 남긴다.
+- canonical strength anchor, PRIMARY muscle, DIRECT core, badminton objective transfer와
+  B task overlay의 reviewed/review-required 상태를 stableKey로만 읽는다. 이름 추론은 구형 comparator
+  내부에만 남고 새 B의 자극 계산에는 사용하지 않는다.
+- 탐색은 4×4×4 focus sequence 64개로 제한한다. 실행 가능·시간 조건을 먼저 통과시키고 목표 중요도,
+  발전 부족, 유지 부족, 연속성 비용을 평가한다. 항상 최선의 실행 가능 계획을 보존한다.
+- 기존 roster와 관측 주간 ceiling 안에서만 세트를 재배분한다. 과거 kg은 참고값일 뿐이며 skeleton과
+  저장 세트는 `USER_CALIBRATION_REQUIRED`이다. 실제 완료 후 증량 판단은 기존 progression engine이
+  다음 비교 가능한 세션에만 수행한다.
+- 생성 provenance는 `planningMetadataJson`으로 프로그램/백업에 보존한다. 재열람 시 구간을 복원하며
+  4주 디로드를 합성하지 않는다. 기존 `ProgramScopedEditor` 편집 후에는 부족량을 다시 계산하되 다른
+  운동을 자동 보충하지 않는다.
+
+실제 최소화 기록 검증은
+[`docs/validation/b-balanced-12week-real-history-2026-10-12/report.md`](../../validation/b-balanced-12week-real-history-2026-10-12/report.md)에 있다.
+
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |

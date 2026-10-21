@@ -5,6 +5,29 @@ import java.time.LocalDate
 
 enum class V22Mode { A, B, C }
 
+enum class BBalancedGoal { STRENGTH, HYPERTROPHY, CORE, SPORT_SUPPORT }
+
+/** Null means that B should derive a recommendation from the available record. */
+data class BBalancedGoalImportance(
+    val strength: Int? = null,
+    val hypertrophy: Int? = null,
+    val core: Int? = null,
+    val sportSupport: Int? = null
+) {
+    init {
+        listOfNotNull(strength, hypertrophy, core, sportSupport).forEach {
+            require(it in 1..5) { "B goal importance must be 1..5" }
+        }
+    }
+
+    fun value(goal: BBalancedGoal): Int? = when (goal) {
+        BBalancedGoal.STRENGTH -> strength
+        BBalancedGoal.HYPERTROPHY -> hypertrophy
+        BBalancedGoal.CORE -> core
+        BBalancedGoal.SPORT_SUPPORT -> sportSupport
+    }
+}
+
 data class V22GenerationRequest(
     val name: String,
     val weeks: Int,
@@ -13,7 +36,8 @@ data class V22GenerationRequest(
     val asOf: LocalDate,
     val focusStableKey: String? = null,
     val sessionMinutes: Int? = null,
-    val backupName: String = "APP_WORKOUT_HISTORY"
+    val backupName: String = "APP_WORKOUT_HISTORY",
+    val bGoalImportance: BBalancedGoalImportance = BBalancedGoalImportance()
 )
 
 data class V22HistoryRow(
@@ -184,6 +208,79 @@ data class V22Plan(
 )
 
 data class V22GeneratedProgram(
-    val plan: V22Plan,
-    val skeleton: GeneratedProgramSkeleton
+    /** Frozen comparator. It is null only when B has no personal history from which to build it. */
+    val plan: V22Plan?,
+    val skeleton: GeneratedProgramSkeleton,
+    /** Present only for the live B path. [plan] remains the frozen Python-parity comparator. */
+    val balanced12WeekPlan: BBalanced12WeekPlan? = null
+)
+
+enum class BBalancedNumericAuthority {
+    RESEARCH_REFERENCE_AND_PERSONAL_HISTORY,
+    PERSONAL_HISTORY_ONLY,
+    DIRECTION_ONLY,
+    UNRESOLVED
+}
+
+data class BBalancedConfidence(
+    val history: Double,
+    val personalResponse: Double,
+    val reasons: List<String>
+)
+
+data class BBalancedGoalTarget(
+    val goal: BBalancedGoal,
+    val unit: String,
+    val importance: Int,
+    val importanceSource: String,
+    val researchReference: Double?,
+    val researchReferenceSource: String?,
+    val recentHistory: Double?,
+    val personalResponseCandidate: Double?,
+    val confidence: BBalancedConfidence,
+    val developmentTarget: Double?,
+    val maintenanceFloor: Double?,
+    val maintenanceSource: String?,
+    val numericAuthority: BBalancedNumericAuthority,
+    val reasons: List<String>
+)
+
+data class BBalancedGoalEvaluation(
+    val goal: BBalancedGoal,
+    val plannedDose: Double,
+    val developmentTarget: Double?,
+    val maintenanceFloor: Double?,
+    val developmentShortfall: Double?,
+    val maintenanceShortfall: Double?,
+    val status: String
+)
+
+data class BBalancedBlock(
+    val block: Int,
+    val startWeek: Int,
+    val endWeek: Int,
+    val focus: BBalancedGoal,
+    val focusReasons: List<String>,
+    val sessions: List<V22Session>,
+    val evaluation: List<BBalancedGoalEvaluation>
+)
+
+data class BBalancedSearchStats(
+    val evaluatedCandidates: Int,
+    val feasibleCandidates: Int,
+    val acceptedImprovements: Int,
+    val minimumImprovement: Double,
+    val terminationReason: String
+)
+
+data class BBalanced12WeekPlan(
+    val schema: String,
+    val input: V22PlanInput,
+    val goalTargets: List<BBalancedGoalTarget>,
+    val blocks: List<BBalancedBlock>,
+    val weeks: List<V22Week>,
+    val search: BBalancedSearchStats,
+    val legacyComparatorSchema: String,
+    val limitations: List<String>,
+    val metadataJson: String
 )

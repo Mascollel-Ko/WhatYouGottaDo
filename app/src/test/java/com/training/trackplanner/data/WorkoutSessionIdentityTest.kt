@@ -429,7 +429,7 @@ class WorkoutSessionIdentityTest {
         val db = Room.databaseBuilder(context, TrainingDatabase::class.java, name)
             .allowMainThreadQueries().addMigrations(MIGRATION_31_32, MIGRATION_32_33, TrainingDatabase.MIGRATION_33_34,
                 TrainingDatabase.MIGRATION_34_35, TrainingDatabase.MIGRATION_35_36, TrainingDatabase.MIGRATION_36_37,
-                TrainingDatabase.MIGRATION_37_38).build().also { databases += it }
+                TrainingDatabase.MIGRATION_37_38, TrainingDatabase.MIGRATION_38_39).build().also { databases += it }
         val migrated = db.workoutDao().allEntriesWithSets().sortedBy { it.entry.id }
         assertEquals(3, migrated.size)
         assertEquals(migrated[0].entry.sessionStableKey, migrated[1].entry.sessionStableKey)

@@ -327,7 +327,9 @@ class TrainingRepository internal constructor(
     )
     private val v22ProgramPlanningService = V22ProgramPlanningService(
         exerciseDao = exerciseDao,
-        workoutDao = workoutDao
+        workoutDao = workoutDao,
+        canonicalMetadataRepository = canonicalMetadataRepository,
+        bBalancedTaskCatalog = com.training.trackplanner.data.personalized.BBalancedTaskCatalog.fromAssets(context)
     )
     private val programProgressionService = ProgramProgressionService(db) {
         connectiveTissueAnalysisService.build(System.currentTimeMillis()).loadUnits
