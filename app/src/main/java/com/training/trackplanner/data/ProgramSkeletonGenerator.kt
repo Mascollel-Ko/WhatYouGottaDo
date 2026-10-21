@@ -166,6 +166,8 @@ data class GeneratedProgramSkeleton(
     val templateId: String = "POLICY_FALLBACK",
     val representativeTemplate: Boolean = false,
     val personalizedDecision: PersonalizedPlanningDecision? = null,
+    /** Versioned planner provenance that must survive save/edit/reopen without granting prescription authority. */
+    val planningMetadataJson: String? = null,
     val progressionSessions: List<DraftProgressionSession> = emptyList(),
     /** Typed per-protocol weekly placement result; transient audit, not prescription authority. */
     val taskProtocolFrequencyOutcomes: List<com.training.trackplanner.data.personalized.TaskProtocolWeeklyFrequencyOutcome> = emptyList(),

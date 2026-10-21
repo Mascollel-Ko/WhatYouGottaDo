@@ -1,6 +1,7 @@
 package com.training.trackplanner.data
 
 import com.training.trackplanner.data.personalized.RepresentativeWeek
+import com.training.trackplanner.data.v22.reassessBBalancedAfterEdit
 import java.util.UUID
 
 internal enum class ProgramEditScope { ALL_WEEKS, INDIVIDUAL_WEEK }
@@ -16,7 +17,7 @@ internal object ProgramScopedEditor {
     }
     fun delete(plan: GeneratedProgramSkeleton,id: String,scope: ProgramEditScope): GeneratedProgramSkeleton {
         val ids=targets(plan,id,scope)
-        return plan.copy(items=plan.items.filterNot { it.localId in ids })
+        return plan.copy(items=plan.items.filterNot { it.localId in ids }).reassessBBalancedAfterEdit()
     }
     fun move(plan: GeneratedProgramSkeleton,id: String,day: Int,scope: ProgramEditScope): GeneratedProgramSkeleton {
         require(day in 1..7)
@@ -25,6 +26,7 @@ internal object ProgramScopedEditor {
         require(plan.items.filter { it.localId in ids }.all { day in plan.weekDaySchedule[it.weekNumber].orEmpty() })
         return plan.copy(items=plan.items.map { row -> if(row.localId !in ids) row else row.copy(dayOfWeek=day,
             orderIndex=(plan.items.filter { it.weekNumber==row.weekNumber && it.dayOfWeek==day }.maxOfOrNull { it.orderIndex } ?: 0)+1) })
+            .reassessBBalancedAfterEdit()
     }
     fun reorder(plan: GeneratedProgramSkeleton,id: String,offset: Int,scope: ProgramEditScope): GeneratedProgramSkeleton {
         val ids=targets(plan,id,scope)
@@ -36,6 +38,7 @@ internal object ProgramScopedEditor {
             changes[row.localId]=other.orderIndex; changes[other.localId]=row.orderIndex
         }
         return plan.copy(items=plan.items.map { row -> changes[row.localId]?.let { row.copy(orderIndex=it) } ?: row })
+            .reassessBBalancedAfterEdit()
     }
     fun days(plan: GeneratedProgramSkeleton,week: Int,days: Set<Int>,scope: ProgramEditScope): GeneratedProgramSkeleton {
         require(days.all { it in 1..7 })
@@ -43,6 +46,7 @@ internal object ProgramScopedEditor {
         val weeks=if(scope==ProgramEditScope.ALL_WEEKS) (1..plan.request.durationWeeks).toSet() else setOf(week)
         return plan.copy(items=plan.items.filterNot { it.weekNumber in weeks && it.dayOfWeek !in days },
             weekDaySchedule=plan.weekDaySchedule.mapValues { (key,old) -> if(key in weeks) days else old })
+            .reassessBBalancedAfterEdit()
     }
     fun add(plan: GeneratedProgramSkeleton,item: ProgramSkeletonItem,scope: ProgramEditScope): GeneratedProgramSkeleton {
         require(plan.items.none { it.localId==item.localId })
@@ -52,5 +56,6 @@ internal object ProgramScopedEditor {
             weekNumber=week,orderIndex=(plan.items.filter { it.weekNumber==week && it.dayOfWeek==item.dayOfWeek }.maxOfOrNull { it.orderIndex } ?: 0)+1,
             progressionBinding=null) }
         return plan.copy(items=plan.items+added,weekDaySchedule=plan.weekDaySchedule.mapValues { (week,days) -> if(week in weeks) days+item.dayOfWeek else days })
+            .reassessBBalancedAfterEdit()
     }
 }

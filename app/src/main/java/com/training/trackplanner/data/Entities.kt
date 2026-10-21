@@ -257,7 +257,9 @@ data class TrainingProgram(
     val updatedAt: Long = System.currentTimeMillis(),
     /** Exact source contract for canonical incumbent extraction; null for legacy/manual programs. */
     val canonicalBuilderProtocolVersion: String? = null,
-    val canonicalPlannerRuntimeVersion: String? = null
+    val canonicalPlannerRuntimeVersion: String? = null,
+    /** Versioned non-prescriptive planning provenance (for example B 12-week focus/target evidence). */
+    val planningMetadataJson: String? = null
 )
 
 @Entity(

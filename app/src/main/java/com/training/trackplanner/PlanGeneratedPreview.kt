@@ -48,6 +48,7 @@ import com.training.trackplanner.data.upsertDraftItem
 import com.training.trackplanner.data.withWeekDays
 import com.training.trackplanner.data.ProgramEditScope
 import com.training.trackplanner.data.ProgramScopedEditor
+import com.training.trackplanner.data.v22.reassessBBalancedAfterEdit
 import androidx.compose.ui.platform.testTag
 import com.training.trackplanner.localization.localizedExerciseName
 import com.training.trackplanner.localization.localizedUiText
@@ -66,7 +67,7 @@ internal fun ProgramSkeletonPreview(
     var editingItem by remember { mutableStateOf<ProgramSkeletonItem?>(null) }
     var removeDayTarget by remember { mutableStateOf<Int?>(null) }
     var allWeeks by rememberSaveable(skeleton.suggestedName) { mutableStateOf(true) }
-    val recordBased=skeleton.personalizedDecision!=null
+    val recordBased=skeleton.personalizedDecision!=null || skeleton.planningMetadataJson?.contains("B_BALANCED_12_WEEK_V1")==true
     val supportsAll=remember(skeleton) { ProgramScopedEditor.supportsAll(skeleton) }
     val scope=if(recordBased && allWeeks && supportsAll) ProgramEditScope.ALL_WEEKS else ProgramEditScope.INDIVIDUAL_WEEK
     val editWeek=if(scope==ProgramEditScope.ALL_WEEKS) 1 else selectedWeek
@@ -124,7 +125,7 @@ internal fun ProgramSkeletonPreview(
             onSave = { updated ->
                 // Existing prescription edits remain current-week-only, even in structural template mode.
                 onSkeletonChange(if(recordBased && skeleton.items.none { it.localId==updated.localId })
-                    ProgramScopedEditor.add(skeleton,updated,scope) else skeleton.upsertDraftItem(updated))
+                    ProgramScopedEditor.add(skeleton,updated,scope) else skeleton.upsertDraftItem(updated).reassessBBalancedAfterEdit())
                 editingItem = null
             }
         )

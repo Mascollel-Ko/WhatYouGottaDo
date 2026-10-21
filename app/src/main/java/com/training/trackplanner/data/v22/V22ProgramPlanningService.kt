@@ -2,6 +2,7 @@ package com.training.trackplanner.data.v22
 
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.ExerciseDao
+import com.training.trackplanner.data.CanonicalExerciseMetadataRepository
 import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.ProgramDayIntensity
 import com.training.trackplanner.data.ProgramGoal
@@ -12,17 +13,128 @@ import com.training.trackplanner.data.ProgramSkeletonItem
 import com.training.trackplanner.data.ProgramSkeletonRequest
 import com.training.trackplanner.data.ProgramTrainingSlot
 import com.training.trackplanner.data.WorkoutDao
+import com.training.trackplanner.data.personalized.BBalancedTaskCatalog
 
 internal class V22ProgramPlanningService(
     private val exerciseDao: ExerciseDao,
-    private val workoutDao: WorkoutDao
+    private val workoutDao: WorkoutDao,
+    private val canonicalMetadataRepository: CanonicalExerciseMetadataRepository,
+    private val bBalancedTaskCatalog: BBalancedTaskCatalog
 ) {
     suspend fun generate(request: V22GenerationRequest): V22GeneratedProgram {
-        val history = V22HistoryInput.fromWorkoutHistory(workoutDao.entriesWithSetsUntil(request.asOf.toString()))
-        val plan = V22PythonParityEngine.build(history, request)
+        val effectiveRequest = if (request.mode == V22Mode.B) request.copy(weeks = 12) else request
+        val history = V22HistoryInput.fromWorkoutHistory(workoutDao.entriesWithSetsUntil(effectiveRequest.asOf.toString()))
         val exercises = exerciseDao.allExercises().associateBy(Exercise::stableKey)
-        return V22GeneratedProgram(plan, plan.toSkeleton(request, exercises))
+        if (effectiveRequest.mode != V22Mode.B) {
+            val plan = V22PythonParityEngine.build(history, effectiveRequest)
+            return V22GeneratedProgram(plan, plan.toSkeleton(effectiveRequest, exercises))
+        }
+        val balanced = BBalanced12WeekEngine.build(
+            rows = history,
+            request = effectiveRequest,
+            exercises = exercises,
+            muscleRelations = canonicalMetadataRepository.muscleRelations(),
+            coreCatalog = canonicalMetadataRepository.coreCatalog(),
+            badmintonCatalog = canonicalMetadataRepository.badmintonObjectiveCatalog(),
+            taskCatalog = bBalancedTaskCatalog
+        )
+        val comparator = runCatching { V22PythonParityEngine.build(history, effectiveRequest) }.getOrNull()
+            ?.takeIf { plan -> plan.weeks.firstOrNull()?.sessions?.any { it.items.isNotEmpty() } == true }
+        return V22GeneratedProgram(comparator, balanced.toSkeleton(effectiveRequest, exercises), balanced)
     }
+}
+
+internal fun BBalanced12WeekPlan.toSkeleton(
+    request: V22GenerationRequest,
+    exercises: Map<String, Exercise>
+): GeneratedProgramSkeleton {
+    val skeletonRequest = ProgramSkeletonRequest(
+        name = request.name,
+        goal = ProgramGoal.FUNCTIONAL_CONDITIONING,
+        weeklyTrainingDays = request.days,
+        sessionMinutes = request.sessionMinutes ?: 0,
+        availableEquipment = emptySet(),
+        excludedExerciseText = "",
+        badmintonTransferRatio = 0.0,
+        sportStrengthRatio = "AUTO",
+        periodizationType = ProgramPeriodizationType.AUTO,
+        durationWeeks = 12
+    )
+    val focusByBlock = blocks.associate { it.block to it.focus }
+    val items = weeks.flatMap { week ->
+        week.sessions.flatMap { session ->
+            session.items.mapIndexed { index, item ->
+                val sets = item.sets.mapIndexed { setIndex, set ->
+                    ProgramSetPrescription(
+                        setIndex = setIndex + 1,
+                        reps = set.reps ?: 0,
+                        weightKg = 0.0,
+                        seconds = set.seconds ?: 0,
+                        targetRpeMin = null,
+                        loadState = ProgramLoadState.USER_CALIBRATION_REQUIRED
+                    )
+                }
+                val reps = sets.map(ProgramSetPrescription::reps).distinct().singleOrNull() ?: 0
+                val seconds = sets.map(ProgramSetPrescription::seconds).distinct().singleOrNull() ?: 0
+                val focus = focusByBlock.getValue(week.block)
+                ProgramSkeletonItem(
+                    localId = "b12-w${week.week}-d${session.session}-o${index + 1}-${item.stableKey}",
+                    weekNumber = week.week,
+                    dayOfWeek = session.session,
+                    orderIndex = index + 1,
+                    exerciseStableKey = item.stableKey,
+                    exerciseName = item.exercise,
+                    category = item.category,
+                    restSeconds = exercises[item.stableKey]?.defaultRestSeconds ?: 60,
+                    prescription = "HISTORICAL_REFERENCE_ONLY · USER_CALIBRATION_REQUIRED",
+                    setCount = item.setCount,
+                    reps = reps,
+                    weightKg = 0.0,
+                    seconds = seconds,
+                    selectionReason = "B12_BLOCK_${week.block}_FOCUS_${focus.name}",
+                    weightSource = "B12_HISTORY_REFERENCE_NOT_APPROVED_LOAD",
+                    trainingSlot = ProgramTrainingSlot.FULL_BODY_BADMINTON_SUPPORT.name,
+                    dayIntensity = ProgramDayIntensity.MODERATE.name,
+                    stableKey = item.stableKey,
+                    selectionRole = "B12_FOCUS_${focus.name}",
+                    setPrescriptions = sets
+                )
+            }
+        }
+    }
+    return GeneratedProgramSkeleton(
+        suggestedName = request.name,
+        durationDays = 84,
+        request = skeletonRequest,
+        periodizationType = ProgramPeriodizationType.AUTO,
+        weekPlans = weeks.map { week ->
+            val focus = focusByBlock.getValue(week.block)
+            com.training.trackplanner.data.ProgramWeekPlan(
+                weekIndex = week.week,
+                weekType = "B_BALANCED_BLOCK_${week.block}_${focus.name}",
+                volumeMultiplier = 1.0,
+                intensityMultiplier = 1.0,
+                heavyExposureLimit = 2,
+                lowerBodyFatigueLimit = 8.0,
+                axialLoadLimit = 2,
+                plyometricLimit = 1,
+                deloadFlag = false,
+                targetRpeMin = 6.0,
+                targetRpeMax = 8.5
+            )
+        },
+        items = items,
+        weekDaySchedule = weeks.associate { week -> week.week to week.sessions.mapTo(linkedSetOf(), V22Session::session) },
+        warnings = listOf(
+            "B_BALANCED_12_WEEK_V1",
+            "Historical kilograms are references only; every future load remains USER_CALIBRATION_REQUIRED.",
+            "No automatic four-week deload; each four-week focus block keeps a stable structure.",
+            "Progression is evaluated only after a completed comparable session."
+        ) + limitations,
+        templateId = BBalanced12WeekEngine.TEMPLATE_ID,
+        representativeTemplate = false,
+        planningMetadataJson = metadataJson
+    )
 }
 
 internal fun V22Plan.toSkeleton(

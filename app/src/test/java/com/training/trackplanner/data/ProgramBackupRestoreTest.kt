@@ -109,7 +109,8 @@ class ProgramBackupRestoreTest {
                 sportStrengthRatio = "AUTO",
                 periodizationType = "BADMINTON_WAVE",
                 canonicalBuilderProtocolVersion = "3.54.0",
-                canonicalPlannerRuntimeVersion = "RECORD_BASED_PLANNER_0.14.6_KOTLIN_1"
+                canonicalPlannerRuntimeVersion = "RECORD_BASED_PLANNER_0.14.6_KOTLIN_1",
+                planningMetadataJson = "{\"schema\":\"B_BALANCED_12_WEEK_V1\",\"blocks\":[]}"
             )
         )
         val userProgramId = source.programDao().insertProgram(
@@ -200,6 +201,7 @@ class ProgramBackupRestoreTest {
         assertEquals("수정된, \"배드민턴\" 프로그램", target.programDao().findProgramByStableKey("3")?.name)
         assertEquals("3.54.0", target.programDao().findProgramByStableKey("3")?.canonicalBuilderProtocolVersion)
         assertEquals("RECORD_BASED_PLANNER_0.14.6_KOTLIN_1", target.programDao().findProgramByStableKey("3")?.canonicalPlannerRuntimeVersion)
+        assertEquals("{\"schema\":\"B_BALANCED_12_WEEK_V1\",\"blocks\":[]}", target.programDao().findProgramByStableKey("3")?.planningMetadataJson)
         val restoredItems = target.programDao().allProgramItems()
         assertEquals(squat.stableKey, restoredItems.single { it.exerciseName == squat.name }.exerciseStableKey)
         assertTrue(restoredItems.single { it.exerciseName == squat.name }.prescription.contains("\n"))

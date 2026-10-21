@@ -9,6 +9,7 @@ import com.training.trackplanner.data.TrainingDatabase
 import com.training.trackplanner.data.TrainingRepository
 import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutSet
+import com.training.trackplanner.skeletonFromProgram
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -103,8 +104,8 @@ class V22ProgramIntegrationTest {
         assertEquals(2, db.programProgressionDao().links().size)
         assertEquals(4, db.programProgressionDao().prescriptions().size)
         assertEquals(8, db.workoutDao().entriesWithSets("2026-10-10").single().sets.size)
-        assertFalse(generated.plan.authority.executionMissCarryover)
-        assertTrue(generated.plan.authority.structuralPlanningOnly)
+        assertFalse(requireNotNull(generated.plan).authority.executionMissCarryover)
+        assertTrue(requireNotNull(generated.plan).authority.structuralPlanningOnly)
     }
 
     @Test
@@ -137,7 +138,7 @@ class V22ProgramIntegrationTest {
         val cases = listOf(
             IntegrationCase(V22Mode.A, 2, 3, null, LocalDate.of(2027, 1, 4)),
             IntegrationCase(V22Mode.B, 8, inferredDays, null, LocalDate.of(2027, 2, 1)),
-            IntegrationCase(V22Mode.C, 12, 5, "barbell_back_squat", LocalDate.of(2027, 4, 5))
+            IntegrationCase(V22Mode.C, 12, 5, "barbell_back_squat", LocalDate.of(2027, 6, 7))
         )
 
         cases.forEach { case ->
@@ -152,11 +153,14 @@ class V22ProgramIntegrationTest {
                 backupName = "whatyougottado_backup_2026-10-12-v22.csv"
             )
             val generated = repository.generateV22Program(request)
-            assertEquals(V22PythonParityEngine.build(history, request), generated.plan)
+            val comparator = requireNotNull(generated.plan)
+            val effectiveRequest = if (case.mode == V22Mode.B) request.copy(weeks = 12) else request
+            assertEquals(V22PythonParityEngine.build(history, effectiveRequest), comparator)
             val preview = generated.skeleton
-            assertEquals(case.weeks * 7, preview.durationDays)
-            assertEquals(case.weeks, generated.plan.weeks.size)
-            assertEquals(V22PythonParityEngine.splitBlocks(case.weeks).size, generated.plan.blocks.size)
+            val effectiveWeeks = if (case.mode == V22Mode.B) 12 else case.weeks
+            assertEquals(effectiveWeeks * 7, preview.durationDays)
+            assertEquals(effectiveWeeks, comparator.weeks.size)
+            assertEquals(V22PythonParityEngine.splitBlocks(effectiveWeeks).size, comparator.blocks.size)
             assertTrue(preview.items.isNotEmpty())
 
             // This mirrors an allowed preview edit without altering the Python-derived prescription.
@@ -166,9 +170,17 @@ class V22ProgramIntegrationTest {
             val storedItems = db.programDao().itemsForProgram(programId)
             val storedSets = db.programDao().programItemSetsForProgram(programId).groupBy { it.programItemId }
             assertEquals(edited.suggestedName, storedProgram.name)
-            assertEquals(case.weeks * 7, storedProgram.durationDays)
+            assertEquals(effectiveWeeks * 7, storedProgram.durationDays)
             assertEquals(case.days, storedProgram.weeklyTrainingDays)
             assertEquals(edited.items.size, storedItems.size)
+            if (case.mode == V22Mode.B) {
+                assertTrue(storedProgram.planningMetadataJson.orEmpty().contains("B_BALANCED_12_WEEK_V1"))
+                assertTrue(edited.weekPlans.none { it.deloadFlag })
+                val reopened = skeletonFromProgram(repository.programEditorSnapshot(programId))
+                assertEquals(edited.planningMetadataJson, reopened.planningMetadataJson)
+                assertEquals(3, reopened.weekPlans.map { it.weekType.substringBeforeLast('_') }.distinct().size)
+                assertTrue(reopened.weekPlans.none { it.deloadFlag })
+            }
             edited.items.zip(storedItems).forEach { (expected, actual) ->
                 assertEquals(expected.weekNumber, actual.weekNumber)
                 assertEquals(expected.dayOfWeek, actual.dayOfWeek)
@@ -186,9 +198,14 @@ class V22ProgramIntegrationTest {
                     assertNull(actualSet.targetRpeMin)
                 }
             }
+            if (case.mode == V22Mode.B) {
+                assertTrue(storedSets.values.flatten().all {
+                    it.weightKg == 0.0 && it.loadState == com.training.trackplanner.data.ProgramLoadState.USER_CALIBRATION_REQUIRED
+                })
+            }
 
             repository.applyProgramToDates(programId, case.startDate.toString(), ProgramApplyMode.Append)
-            val endDate = case.startDate.plusDays((case.weeks * 7 - 1).toLong())
+            val endDate = case.startDate.plusDays((effectiveWeeks * 7 - 1).toLong())
             val applied = db.workoutDao().entriesWithSetsBetween(case.startDate.toString(), endDate.toString())
             assertEquals(storedItems.size, applied.size)
             assertTrue(applied.flatMap { it.sets }.all { !it.confirmed && it.targetRpeMin == null })
@@ -200,7 +217,7 @@ class V22ProgramIntegrationTest {
                 "${row.entry.date}|${row.entry.exerciseStableKey}|${row.sets.size}"
             }.eachCount()
             assertEquals(expectedSchedule, actualSchedule)
-            assertFalse(generated.plan.authority.executionMissCarryover)
+            assertFalse(comparator.authority.executionMissCarryover)
         }
 
         val historyAfter = db.workoutDao().entriesWithSetsBetween("2026-06-01", "2026-10-11")

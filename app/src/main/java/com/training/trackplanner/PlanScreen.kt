@@ -76,6 +76,8 @@ import com.training.trackplanner.data.personalized.PersonalizedGenerationConstra
 import com.training.trackplanner.data.personalized.PersonalizedPlanningPreflight
 import com.training.trackplanner.data.v22.V22GenerationRequest
 import com.training.trackplanner.data.v22.V22Mode
+import com.training.trackplanner.data.v22.BBalancedGoalImportance
+import com.training.trackplanner.data.v22.restoredBBalancedWeekPlans
 import com.training.trackplanner.localization.localizedProgramName
 import java.time.LocalDate
 import androidx.compose.foundation.layout.Box
@@ -428,6 +430,10 @@ private fun ProgramEditorScreen(
     var v22Weeks by rememberSaveable(program?.id ?: 0L) { mutableStateOf(8) }
     var v22Days by rememberSaveable(program?.id ?: 0L) { mutableStateOf(4) }
     var v22FocusStableKey by rememberSaveable(program?.id ?: 0L) { mutableStateOf("barbell_back_squat") }
+    var bStrengthImportance by rememberSaveable(program?.id ?: 0L) { mutableStateOf(0) }
+    var bHypertrophyImportance by rememberSaveable(program?.id ?: 0L) { mutableStateOf(0) }
+    var bCoreImportance by rememberSaveable(program?.id ?: 0L) { mutableStateOf(0) }
+    var bSportImportance by rememberSaveable(program?.id ?: 0L) { mutableStateOf(0) }
     var v22SkeletonCreated by rememberSaveable(program?.id ?: 0L) { mutableStateOf(false) }
 
     LaunchedEffect(program?.id) {
@@ -565,12 +571,18 @@ private fun ProgramEditorScreen(
         viewModel.generateV22Program(
             V22GenerationRequest(
                 name = normalizedProgramName(),
-                weeks = v22Weeks,
+                weeks = if (v22Mode == V22Mode.B) 12 else v22Weeks,
                 days = v22Days,
                 mode = v22Mode,
                 asOf = LocalDate.now(),
                 focusStableKey = focus,
-                sessionMinutes = sessionMinutes
+                sessionMinutes = sessionMinutes,
+                bGoalImportance = BBalancedGoalImportance(
+                    strength = bStrengthImportance.takeIf { it > 0 },
+                    hypertrophy = bHypertrophyImportance.takeIf { it > 0 },
+                    core = bCoreImportance.takeIf { it > 0 },
+                    sportSupport = bSportImportance.takeIf { it > 0 }
+                )
             )
         ) { generated ->
             legacyAutoDraft = null
@@ -769,11 +781,11 @@ private fun ProgramEditorScreen(
                         ProgramDropdown(
                             modifier = Modifier.weight(1f).widthIn(min = 180.dp),
                             label = "V2-2 기간",
-                            selected = v22Weeks,
-                            options = (1..52).toList(),
+                            selected = if (v22Mode == V22Mode.B) 12 else v22Weeks,
+                            options = if (v22Mode == V22Mode.B) listOf(12) else (1..52).toList(),
                             optionLabel = { programWeekLabel(it) },
                             onSelect = { v22Weeks = it },
-                            enabled = !generationRunning
+                            enabled = !generationRunning && v22Mode != V22Mode.B
                         )
                     }
                     ProgramOptionRow {
@@ -797,8 +809,51 @@ private fun ProgramEditorScreen(
                             )
                         }
                     }
+                    if (v22Mode == V22Mode.B) {
+                        ProgramOptionRow {
+                            ProgramDropdown(
+                                modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                                label = "근력 중요도",
+                                selected = bStrengthImportance,
+                                options = (0..5).toList(),
+                                optionLabel = { if (it == 0) "기록 추천" else "$it / 5" },
+                                onSelect = { bStrengthImportance = it },
+                                enabled = !generationRunning
+                            )
+                            ProgramDropdown(
+                                modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                                label = "근비대 중요도",
+                                selected = bHypertrophyImportance,
+                                options = (0..5).toList(),
+                                optionLabel = { if (it == 0) "기록 추천" else "$it / 5" },
+                                onSelect = { bHypertrophyImportance = it },
+                                enabled = !generationRunning
+                            )
+                        }
+                        ProgramOptionRow {
+                            ProgramDropdown(
+                                modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                                label = "코어 중요도",
+                                selected = bCoreImportance,
+                                options = (0..5).toList(),
+                                optionLabel = { if (it == 0) "기록 추천" else "$it / 5" },
+                                onSelect = { bCoreImportance = it },
+                                enabled = !generationRunning
+                            )
+                            ProgramDropdown(
+                                modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                                label = "스포츠 보조 중요도",
+                                selected = bSportImportance,
+                                options = (0..5).toList(),
+                                optionLabel = { if (it == 0) "기록 추천" else "$it / 5" },
+                                onSelect = { bSportImportance = it },
+                                enabled = !generationRunning
+                            )
+                        }
+                    }
                     Text(
-                        text = "V2-2는 Python v1.0의 기록 기반 대리지표와 알려진 한계를 그대로 사용합니다.",
+                        text = if (v22Mode == V22Mode.B) "B는 12주 고정(4주 × 3구간)이며 중요도 0은 기록 기반 추천입니다."
+                            else "A/C는 Python v1.0의 기록 기반 대리지표와 알려진 한계를 그대로 사용합니다.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1219,7 +1274,7 @@ internal fun skeletonFromProgram(snapshot: ProgramEditorSnapshot): GeneratedProg
     )
     val durationWeeks = ((program.durationDays.coerceAtLeast(1) + 6) / 7).coerceAtLeast(1)
     val setsByItemId = itemSets.groupBy(TrainingProgramItemSet::programItemId)
-    val weekPlans = (1..durationWeeks).map { week ->
+    val weekPlans = restoredBBalancedWeekPlans(program.planningMetadataJson, durationWeeks) ?: (1..durationWeeks).map { week ->
         ProgramWeekPlan(
             weekIndex = week,
             weekType = if (week % 4 == 0) "기존 디로드" else "기존 구성",
@@ -1266,7 +1321,11 @@ internal fun skeletonFromProgram(snapshot: ProgramEditorSnapshot): GeneratedProg
                 taskProtocolSemanticsJson = item.taskProtocolSemanticsJson
             )
         },
+        planningMetadataJson = program.planningMetadataJson,
         warnings = buildList {
+            if (program.planningMetadataJson?.contains("B_BALANCED_12_WEEK_V1") == true) {
+                add("B_BALANCED_12_WEEK_V1_RESTORED_WITHOUT_SYNTHETIC_DELOAD")
+            }
             if (restoredItems.any { (_, result) -> result.legacyFields.isNotEmpty() }) {
                 add("$PROGRAM_ITEM_LEGACY_RESTORE_WARNING: legacy prescription metadata used")
             }
