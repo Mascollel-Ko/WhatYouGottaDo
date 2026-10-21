@@ -1,0 +1,11 @@
+{
+  "schema": "B_BALANCED_12_WEEK_V1",
+  "fixture": "whatyougottado_backup_2026-10-12-v22.csv",
+  "fixtureRows": 940,
+  "asOf": "2026-10-11",
+  "weeks": 12,
+  "blocks": 3,
+  "candidateEvaluations": 64,
+  "generationMillisThisRun": 96,
+  "originalFullBackupValidated": false
+}
