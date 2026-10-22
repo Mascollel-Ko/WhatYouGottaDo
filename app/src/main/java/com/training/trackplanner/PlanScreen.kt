@@ -430,6 +430,7 @@ private fun ProgramEditorScreen(
     var v22Weeks by rememberSaveable(program?.id ?: 0L) { mutableStateOf(8) }
     var v22Days by rememberSaveable(program?.id ?: 0L) { mutableStateOf(4) }
     var v22FocusStableKey by rememberSaveable(program?.id ?: 0L) { mutableStateOf("barbell_back_squat") }
+    var bAllowFourthDay by rememberSaveable(program?.id ?: 0L) { mutableStateOf(true) }
     var bStrengthImportance by rememberSaveable(program?.id ?: 0L) { mutableStateOf(0) }
     var bHypertrophyImportance by rememberSaveable(program?.id ?: 0L) { mutableStateOf(0) }
     var bCoreImportance by rememberSaveable(program?.id ?: 0L) { mutableStateOf(0) }
@@ -577,6 +578,7 @@ private fun ProgramEditorScreen(
                 asOf = LocalDate.now(),
                 focusStableKey = focus,
                 sessionMinutes = sessionMinutes,
+                bMaxTrainingDays = if (v22Mode == V22Mode.B && v22Days == 3 && bAllowFourthDay) 4 else null,
                 bGoalImportance = BBalancedGoalImportance(
                     strength = bStrengthImportance.takeIf { it > 0 },
                     hypertrophy = bHypertrophyImportance.takeIf { it > 0 },
@@ -810,6 +812,19 @@ private fun ProgramEditorScreen(
                         }
                     }
                     if (v22Mode == V22Mode.B) {
+                        if (v22Days == 3) {
+                            ProgramOptionRow {
+                                ProgramDropdown(
+                                    modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                                    label = "B 최대 운동일수",
+                                    selected = bAllowFourthDay,
+                                    options = listOf(true, false),
+                                    optionLabel = { if (it) "필요하면 4일로 분산" else "3일 고정" },
+                                    onSelect = { bAllowFourthDay = it },
+                                    enabled = !generationRunning
+                                )
+                            }
+                        }
                         ProgramOptionRow {
                             ProgramDropdown(
                                 modifier = Modifier.weight(1f).widthIn(min = 180.dp),
@@ -852,7 +867,7 @@ private fun ProgramEditorScreen(
                         }
                     }
                     Text(
-                        text = if (v22Mode == V22Mode.B) "B는 12주 고정(4주 × 3구간)이며 중요도 0은 기록 기반 추천입니다."
+                        text = if (v22Mode == V22Mode.B) "B는 12주 고정이며 중요도 0은 기록 추천입니다. 4일 분산은 필요할 때만 적용하고, 삭제 후보는 감사 정보로만 기록합니다."
                             else "A/C는 Python v1.0의 기록 기반 대리지표와 알려진 한계를 그대로 사용합니다.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant

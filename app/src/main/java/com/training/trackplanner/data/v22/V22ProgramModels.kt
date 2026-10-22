@@ -37,7 +37,8 @@ data class V22GenerationRequest(
     val focusStableKey: String? = null,
     val sessionMinutes: Int? = null,
     val backupName: String = "APP_WORKOUT_HISTORY",
-    val bGoalImportance: BBalancedGoalImportance = BBalancedGoalImportance()
+    val bGoalImportance: BBalancedGoalImportance = BBalancedGoalImportance(),
+    val bMaxTrainingDays: Int? = null // explicit permission to expand B from three to four days
 )
 
 data class V22HistoryRow(
