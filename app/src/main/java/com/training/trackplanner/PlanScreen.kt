@@ -74,9 +74,8 @@ import com.training.trackplanner.data.reconcileProgression
 import com.training.trackplanner.data.personalized.PersonalizedPlanningAnswers
 import com.training.trackplanner.data.personalized.PersonalizedGenerationConstraints
 import com.training.trackplanner.data.personalized.PersonalizedPlanningPreflight
-import com.training.trackplanner.data.v22.V22GenerationRequest
-import com.training.trackplanner.data.v22.V22Mode
 import com.training.trackplanner.data.v22.BBalancedGoalImportance
+import com.training.trackplanner.data.v22.newBBalancedGenerationRequest
 import com.training.trackplanner.data.v22.restoredBBalancedWeekPlans
 import com.training.trackplanner.localization.localizedProgramName
 import java.time.LocalDate
@@ -426,10 +425,7 @@ private fun ProgramEditorScreen(
     var personalizedDurationOverride by rememberSaveable(program?.id ?: 0L) { mutableStateOf<Int?>(null) }
     var lastGenerationWasPersonalized by rememberSaveable { mutableStateOf(false) }
     var lastGenerationWasV22 by rememberSaveable { mutableStateOf(false) }
-    var v22Mode by rememberSaveable(program?.id ?: 0L) { mutableStateOf(V22Mode.A) }
-    var v22Weeks by rememberSaveable(program?.id ?: 0L) { mutableStateOf(8) }
     var v22Days by rememberSaveable(program?.id ?: 0L) { mutableStateOf(4) }
-    var v22FocusStableKey by rememberSaveable(program?.id ?: 0L) { mutableStateOf("barbell_back_squat") }
     var bAllowFourthDay by rememberSaveable(program?.id ?: 0L) { mutableStateOf(true) }
     var bStrengthImportance by rememberSaveable(program?.id ?: 0L) { mutableStateOf(0) }
     var bHypertrophyImportance by rememberSaveable(program?.id ?: 0L) { mutableStateOf(0) }
@@ -568,18 +564,14 @@ private fun ProgramEditorScreen(
         personalizedRetry.clear()
         lastGenerationWasPersonalized = false
         lastGenerationWasV22 = true
-        val focus = v22FocusStableKey.trim().takeIf { v22Mode == V22Mode.C && it.isNotEmpty() }
         viewModel.generateV22Program(
-            V22GenerationRequest(
+            newBBalancedGenerationRequest(
                 name = normalizedProgramName(),
-                weeks = if (v22Mode == V22Mode.B) 12 else v22Weeks,
                 days = v22Days,
-                mode = v22Mode,
                 asOf = LocalDate.now(),
-                focusStableKey = focus,
                 sessionMinutes = sessionMinutes,
-                bMaxTrainingDays = if (v22Mode == V22Mode.B && v22Days == 3 && bAllowFourthDay) 4 else null,
-                bGoalImportance = BBalancedGoalImportance(
+                allowFourthDay = bAllowFourthDay,
+                importance = BBalancedGoalImportance(
                     strength = bStrengthImportance.takeIf { it > 0 },
                     hypertrophy = bHypertrophyImportance.takeIf { it > 0 },
                     core = bCoreImportance.takeIf { it > 0 },
@@ -770,105 +762,76 @@ private fun ProgramEditorScreen(
                     ) {
                         Text(if (personalizedSkeletonCreated) "기록 기반 알고리듬 프로그램 다시 만들기" else "기록 기반 알고리듬 프로그램 만들기")
                     }
+                    Text(
+                        text = "12주 균형형 운동 프로그램",
+                        style = MaterialTheme.typography.titleMedium
+                    )
                     ProgramOptionRow {
                         ProgramDropdown(
                             modifier = Modifier.weight(1f).widthIn(min = 180.dp),
-                            label = "V2-2 유형",
-                            selected = v22Mode,
-                            options = V22Mode.entries,
-                            optionLabel = { it.name },
-                            onSelect = { v22Mode = it },
-                            enabled = !generationRunning
-                        )
-                        ProgramDropdown(
-                            modifier = Modifier.weight(1f).widthIn(min = 180.dp),
-                            label = "V2-2 기간",
-                            selected = if (v22Mode == V22Mode.B) 12 else v22Weeks,
-                            options = if (v22Mode == V22Mode.B) listOf(12) else (1..52).toList(),
-                            optionLabel = { programWeekLabel(it) },
-                            onSelect = { v22Weeks = it },
-                            enabled = !generationRunning && v22Mode != V22Mode.B
-                        )
-                    }
-                    ProgramOptionRow {
-                        ProgramDropdown(
-                            modifier = Modifier.weight(1f).widthIn(min = 180.dp),
-                            label = "V2-2 주당 일수",
+                            label = "주당 운동일수",
                             selected = v22Days,
                             options = (1..7).toList(),
                             optionLabel = { stringResource(R.string.program_days_per_week, it) },
                             onSelect = { v22Days = it },
                             enabled = !generationRunning
                         )
-                        if (v22Mode == V22Mode.C) {
-                            OutlinedTextField(
+                    }
+                    if (v22Days == 3) {
+                        ProgramOptionRow {
+                            ProgramDropdown(
                                 modifier = Modifier.weight(1f).widthIn(min = 180.dp),
-                                value = v22FocusStableKey,
-                                onValueChange = { v22FocusStableKey = it },
-                                label = { Text("C 집중 stableKey") },
-                                enabled = !generationRunning,
-                                singleLine = true
+                                label = "B 최대 운동일수",
+                                selected = bAllowFourthDay,
+                                options = listOf(true, false),
+                                optionLabel = { if (it) "필요하면 4일로 분산" else "3일 고정" },
+                                onSelect = { bAllowFourthDay = it },
+                                enabled = !generationRunning
                             )
                         }
                     }
-                    if (v22Mode == V22Mode.B) {
-                        if (v22Days == 3) {
-                            ProgramOptionRow {
-                                ProgramDropdown(
-                                    modifier = Modifier.weight(1f).widthIn(min = 180.dp),
-                                    label = "B 최대 운동일수",
-                                    selected = bAllowFourthDay,
-                                    options = listOf(true, false),
-                                    optionLabel = { if (it) "필요하면 4일로 분산" else "3일 고정" },
-                                    onSelect = { bAllowFourthDay = it },
-                                    enabled = !generationRunning
-                                )
-                            }
-                        }
-                        ProgramOptionRow {
-                            ProgramDropdown(
-                                modifier = Modifier.weight(1f).widthIn(min = 180.dp),
-                                label = "근력 중요도",
-                                selected = bStrengthImportance,
-                                options = (0..5).toList(),
-                                optionLabel = { if (it == 0) "기록 추천" else "$it / 5" },
-                                onSelect = { bStrengthImportance = it },
-                                enabled = !generationRunning
-                            )
-                            ProgramDropdown(
-                                modifier = Modifier.weight(1f).widthIn(min = 180.dp),
-                                label = "근비대 중요도",
-                                selected = bHypertrophyImportance,
-                                options = (0..5).toList(),
-                                optionLabel = { if (it == 0) "기록 추천" else "$it / 5" },
-                                onSelect = { bHypertrophyImportance = it },
-                                enabled = !generationRunning
-                            )
-                        }
-                        ProgramOptionRow {
-                            ProgramDropdown(
-                                modifier = Modifier.weight(1f).widthIn(min = 180.dp),
-                                label = "코어 중요도",
-                                selected = bCoreImportance,
-                                options = (0..5).toList(),
-                                optionLabel = { if (it == 0) "기록 추천" else "$it / 5" },
-                                onSelect = { bCoreImportance = it },
-                                enabled = !generationRunning
-                            )
-                            ProgramDropdown(
-                                modifier = Modifier.weight(1f).widthIn(min = 180.dp),
-                                label = "스포츠 보조 중요도",
-                                selected = bSportImportance,
-                                options = (0..5).toList(),
-                                optionLabel = { if (it == 0) "기록 추천" else "$it / 5" },
-                                onSelect = { bSportImportance = it },
-                                enabled = !generationRunning
-                            )
-                        }
+                    ProgramOptionRow {
+                        ProgramDropdown(
+                            modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                            label = "근력 중요도",
+                            selected = bStrengthImportance,
+                            options = (0..5).toList(),
+                            optionLabel = { if (it == 0) "기록 추천" else "$it / 5" },
+                            onSelect = { bStrengthImportance = it },
+                            enabled = !generationRunning
+                        )
+                        ProgramDropdown(
+                            modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                            label = "근비대 중요도",
+                            selected = bHypertrophyImportance,
+                            options = (0..5).toList(),
+                            optionLabel = { if (it == 0) "기록 추천" else "$it / 5" },
+                            onSelect = { bHypertrophyImportance = it },
+                            enabled = !generationRunning
+                        )
+                    }
+                    ProgramOptionRow {
+                        ProgramDropdown(
+                            modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                            label = "코어 중요도",
+                            selected = bCoreImportance,
+                            options = (0..5).toList(),
+                            optionLabel = { if (it == 0) "기록 추천" else "$it / 5" },
+                            onSelect = { bCoreImportance = it },
+                            enabled = !generationRunning
+                        )
+                        ProgramDropdown(
+                            modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                            label = "스포츠 보조 중요도",
+                            selected = bSportImportance,
+                            options = (0..5).toList(),
+                            optionLabel = { if (it == 0) "기록 추천" else "$it / 5" },
+                            onSelect = { bSportImportance = it },
+                            enabled = !generationRunning
+                        )
                     }
                     Text(
-                        text = if (v22Mode == V22Mode.B) "B는 12주 고정이며 중요도 0은 기록 추천입니다. 4일 분산은 필요할 때만 적용하고, 삭제 후보는 감사 정보로만 기록합니다."
-                            else "A/C는 Python v1.0의 기록 기반 대리지표와 알려진 한계를 그대로 사용합니다.",
+                        text = "12주 고정 · 중요도 0은 기록 추천입니다. 4일 분산은 필요할 때만 적용하고, 삭제 후보는 감사 정보로만 기록합니다.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -877,7 +840,7 @@ private fun ProgramEditorScreen(
                         enabled = !generationRunning,
                         onClick = { generateV22() }
                     ) {
-                        Text(if (v22SkeletonCreated) "V2-2 프로그램 다시 만들기" else "V2-2 프로그램 만들기")
+                        Text(if (v22SkeletonCreated) "12주 균형형 프로그램 다시 만들기" else "12주 균형형 프로그램 만들기")
                     }
                     } else {
                         Text(

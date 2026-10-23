@@ -30,3 +30,11 @@ deletionAudit.importanceWeightedLoss is a **relative review ranking**, not a phy
 4. Inspect every deletionAudit status and require explicit review before enabling any removal action.
 5. Inspect placementAudit's time warning, candidate evaluation count and lack of canonical OFI/tissue clearance.
 6. Run JVM/unit tests and APK/Actions; compare a representative real-history fixture on an Android device before merging.
+
+## B-only new-program UI cleanup — 2026-10-23
+
+- Only B balanced (12-week) is selectable on the new-program screen. A/C mode, C focus-key, and duration dropdowns have been removed from that route.
+- The existing weekly training-day selector (1–7), optional 3-to-4-day expansion, session duration and four goal importance controls are unchanged.
+- The new UI constructs its request via `newBBalancedGenerationRequest`, which explicitly fixes mode to B and weeks to 12.
+- Historical A/C programs remain available for load, preview, edit and persistence; the legacy parity engine and V22Mode enum are deliberately kept. No database migration or silent history rewrite.
+- Existing A/C parity and integration tests must continue to pass.
