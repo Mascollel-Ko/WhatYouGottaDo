@@ -37,7 +37,30 @@ data class V22GenerationRequest(
     val focusStableKey: String? = null,
     val sessionMinutes: Int? = null,
     val backupName: String = "APP_WORKOUT_HISTORY",
-    val bGoalImportance: BBalancedGoalImportance = BBalancedGoalImportance()
+    val bGoalImportance: BBalancedGoalImportance = BBalancedGoalImportance(),
+    val bMaxTrainingDays: Int? = null // explicit permission to expand B from three to four days
+)
+
+/**
+ * The new-program B-only UI contract.
+ * A and C remain available to older plans, parity tests and the B baseline comparator.
+ */
+internal fun newBBalancedGenerationRequest(
+    name: String,
+    days: Int,
+    asOf: LocalDate,
+    sessionMinutes: Int?,
+    allowFourthDay: Boolean,
+    importance: BBalancedGoalImportance
+): V22GenerationRequest = V22GenerationRequest(
+    name = name,
+    weeks = 12,
+    days = days,
+    mode = V22Mode.B,
+    asOf = asOf,
+    sessionMinutes = sessionMinutes,
+    bMaxTrainingDays = if (days == 3 && allowFourthDay) 4 else null,
+    bGoalImportance = importance
 )
 
 data class V22HistoryRow(

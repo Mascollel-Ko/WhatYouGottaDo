@@ -83,7 +83,14 @@ internal object BBalanced12WeekEngine {
         val contributions = contributionCatalog.filterKeys {
             key -> incumbent.any { session -> session.items.any { it.stableKey == key } }
         }
-        val trimmed = fitTime(incumbent, request.sessionMinutes, contributions, exercises)
+        // Do not destroy sets to satisfy the old under-counting timer. Preserve the roster,
+        // evaluate three versus four days only when explicitly authorized, and surface
+        // unresolved time/recovery limitations rather than reporting false feasibility.
+        val placement = BBalancedDayPlacementPlanner.optimize(
+            incumbent, request.days, request.bMaxTrainingDays ?: request.days,
+            request.sessionMinutes, exercises
+        )
+        val trimmed = placement.sessions
         val targets = targets(rows, request.asOf, request.bGoalImportance, contributions)
         val historyCeilings = historyCeilings(rows, request.asOf)
 
@@ -98,7 +105,7 @@ internal object BBalanced12WeekEngine {
             val blocks = focuses.map { focus ->
                 rebalance(trimmed, focus, contributions, historyCeilings)
             }
-            if (blocks.any { !feasible(it, request.sessionMinutes, exercises) }) continue
+            if (blocks.any { !structurallyFeasible(it) }) continue
             feasible++
             val evaluations = blocks.map { evaluate(it, targets, contributions) }
             val moves = blocks.indices.sumOf { index -> changedPhysicalSets(trimmed, blocks[index]) }
@@ -149,7 +156,7 @@ internal object BBalanced12WeekEngine {
             backup = request.backupName,
             asOf = request.asOf.toString(),
             weeks = 12,
-            days = request.days,
+            days = placement.effectiveDays,
             mode = V22Mode.B.name,
             focusStableKey = null,
             sessionMinutes = request.sessionMinutes
@@ -159,9 +166,23 @@ internal object BBalanced12WeekEngine {
             "Hypertrophy personal-response confidence is zero without direct muscle-size observations.",
             "Historical kilograms are references only; the future skeleton requires user calibration.",
             "Candidate search reuses incumbent exercises and never exceeds each exercise's observed weekly ceiling.",
-            "Goal satisfaction is a planning coverage ratio, not a predicted adaptation probability."
+            "Goal satisfaction is a planning coverage ratio, not a predicted adaptation probability.",
+            placement.diagnosis
         )
-        val metadata = metadataJson(input, targets, blocks, search, contributions, limitations)
+        val deletionReview = auditDeletionCandidates(trimmed, targets, contributions, exercises)
+        val metadata = JSONObject(metadataJson(input, targets, blocks, search, contributions, limitations))
+            .put("placementAudit", JSONObject()
+                .put("requestedDays", placement.requestedDays)
+                .put("effectiveDays", placement.effectiveDays)
+                .put("expanded", placement.expanded)
+                .put("candidateEvaluations", placement.candidateEvaluations)
+                .put("estimatedPeakMinutes", placement.maxEstimatedMinutes ?: JSONObject.NULL)
+                .put("requestedDaysEstimatedPeakMinutes", placement.requestedMaxEstimatedMinutes ?: JSONObject.NULL)
+                .put("status", placement.diagnosis)
+                .put("authority", "HEURISTIC_PLACEMENT_REVIEW_ONLY_NOT_OFI_OR_TISSUE_PROJECTION"))
+            .put("deletionAudit", deletionReview)
+            .put("deletionPolicy", "AUDIT_ONLY_NO_AUTOMATIC_REMOVAL")
+            .toString()
         return BBalanced12WeekPlan(
             schema = SCHEMA,
             input = input,
@@ -520,39 +541,11 @@ internal object BBalanced12WeekEngine {
             harmonicFocusAllocation * FOCUS_ALLOCATION_WEIGHT
     }
 
-    private fun fitTime(
-        source: List<V22Session>,
-        minutes: Int?,
-        contributions: Map<String, Contribution>,
-        exercises: Map<String, Exercise>
-    ): List<V22Session> {
-        if (minutes == null) return source
-        val limit = minutes * 60
-        return source.map { session ->
-            var items = session.items.map { it.copy(sets = it.sets.map(V22ObservedSet::copy)) }
-            while (sessionSeconds(items, exercises) > limit && items.isNotEmpty()) {
-                val index = items.indices.minWithOrNull(compareBy<Int> { i ->
-                    val c = contributions.getValue(items[i].stableKey)
-                    c.strength * 4 + c.core * 2 + c.sport + c.hypertrophyMuscles.size
-                }.thenByDescending { items[it].setCount }.thenBy { items[it].stableKey }) ?: break
-                val item = items[index]
-                items = if (item.setCount > 1) items.toMutableList().also {
-                    it[index] = item.copy(setCount = item.setCount - 1, sets = item.sets.dropLast(1))
-                } else items.filterIndexed { itemIndex, _ -> itemIndex != index }
-            }
-            session.copy(items = items, nominalSets = items.sumOf(V22ExercisePlan::setCount))
-        }
-    }
-
-    private fun feasible(sessions: List<V22Session>, minutes: Int?, exercises: Map<String, Exercise>): Boolean =
+    private fun structurallyFeasible(sessions: List<V22Session>): Boolean =
         sessions.isNotEmpty() && sessions.all { session ->
-            session.items.isNotEmpty() && (minutes == null || sessionSeconds(session.items, exercises) <= minutes * 60)
+            session.items.isNotEmpty() &&
+                session.items.all { it.setCount > 0 && it.setCount == it.sets.size }
         }
-
-    private fun sessionSeconds(items: List<V22ExercisePlan>, exercises: Map<String, Exercise>): Int = items.sumOf { item ->
-        val rest = exercises[item.stableKey]?.defaultRestSeconds ?: 60
-        item.sets.sumOf { set -> set.seconds?.takeIf { it > 0 } ?: 45 } + rest * max(0, item.setCount - 1)
-    }
 
     private fun changedPhysicalSets(base: List<V22Session>, candidate: List<V22Session>): Int {
         fun counts(sessions: List<V22Session>) = sessions.flatMap(V22Session::items)
@@ -561,6 +554,62 @@ internal object BBalanced12WeekEngine {
         val a = counts(base)
         val b = counts(candidate)
         return (a.keys + b.keys).sumOf { kotlin.math.abs(a.getOrDefault(it, 0) - b.getOrDefault(it, 0)) } / 2
+    }
+
+
+    /**
+     * Counterfactual exercise-removal review only. Deliberately does NOT mutate the plan.
+     * Metadata gaps and protected main lifts never become low-score auto-removal choices.
+     */
+    private fun auditDeletionCandidates(
+        sessions: List<V22Session>,
+        targets: List<BBalancedGoalTarget>,
+        contributions: Map<String, Contribution>,
+        exercises: Map<String, Exercise>
+    ): JSONArray {
+        val counts = sessions.flatMap(V22Session::items).groupBy(V22ExercisePlan::stableKey)
+            .mapValues { (_, items) -> items.sumOf(V22ExercisePlan::setCount) }
+        val baselineDose = dose(counts, contributions)
+        val rows = counts.keys.map { key ->
+            val metadata = exercises[key]
+            val relation = contributions[key]
+            val remaining = counts - key
+            val reducedDose = dose(remaining, contributions)
+            val primaryElsewhere = remaining.keys.flatMap { contributions[it]?.hypertrophyMuscles.orEmpty() }.toSet()
+            val uniquePrimary = relation?.hypertrophyMuscles.orEmpty() - primaryElsewhere
+            val tasksElsewhere = remaining.keys.flatMap { contributions[it]?.reviewedCoreTasks.orEmpty() }.toSet()
+            val uniqueCoreTasks = relation?.reviewedCoreTasks.orEmpty() - tasksElsewhere
+            val protected = CanonicalStrengthExposureCapability.strengthPossible(key) ||
+                key in setOf("barbell_back_squat", "barbell_deadlift", "barbell_romanian_deadlift")
+            val unresolved = metadata == null || metadata.isCustom || metadata.needsReview ||
+                relation == null || relation.reviewRequiredTasks.isNotEmpty()
+            val weightedLoss = targets.sumOf { target ->
+                val before = baselineDose.getValue(target.goal)
+                val after = reducedDose.getValue(target.goal)
+                val scale = target.developmentTarget?.takeIf { it > 0.0 }
+                    ?: before.coerceAtLeast(1.0)
+                target.importance * ((before - after).coerceAtLeast(0.0) / scale)
+            }
+            // Large, explicit coverage-preservation costs. These numbers rank review
+            // hypotheses, not experimentally measured training adaptations.
+            val reviewCost = rounded(weightedLoss + uniquePrimary.size * 5.0 +
+                uniqueCoreTasks.size * 5.0)
+            val status = when {
+                protected -> "PROTECTED_MAIN_STRENGTH_CAPABILITY"
+                unresolved -> "UNRESOLVED_CANONICAL_METADATA"
+                else -> "REVIEW_ELIGIBLE_NOT_AUTOMATICALLY_REMOVABLE"
+            }
+            JSONObject().put("stableKey", key)
+                .put("exercise", metadata?.name ?: key)
+                .put("weeklySets", counts.getValue(key))
+                .put("importanceWeightedLoss", reviewCost)
+                .put("status", status)
+                .put("uniquePrimaryMusclesAtRisk", JSONArray(uniquePrimary.sorted()))
+                .put("uniqueCoreTasksAtRisk", JSONArray(uniqueCoreTasks.sorted()))
+                .put("notRemoved", true)
+        }.sortedWith(compareBy<JSONObject> { it.optString("status") != "REVIEW_ELIGIBLE_NOT_AUTOMATICALLY_REMOVABLE" }
+            .thenBy { it.optDouble("importanceWeightedLoss") }.thenBy { it.optString("stableKey") })
+        return JSONArray(rows)
     }
 
     private fun focusReasons(

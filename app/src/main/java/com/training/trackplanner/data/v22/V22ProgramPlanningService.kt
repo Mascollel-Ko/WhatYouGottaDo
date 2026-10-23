@@ -51,7 +51,7 @@ internal fun BBalanced12WeekPlan.toSkeleton(
     val skeletonRequest = ProgramSkeletonRequest(
         name = request.name,
         goal = ProgramGoal.FUNCTIONAL_CONDITIONING,
-        weeklyTrainingDays = request.days,
+        weeklyTrainingDays = input.days,
         sessionMinutes = request.sessionMinutes ?: 0,
         availableEquipment = emptySet(),
         excludedExerciseText = "",

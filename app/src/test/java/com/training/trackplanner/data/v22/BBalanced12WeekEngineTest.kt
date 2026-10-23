@@ -146,6 +146,55 @@ class BBalanced12WeekEngineTest {
         assertTrue(restored!!.none { it.deloadFlag })
     }
 
+
+    @Test
+    fun authorizedFourthDayHasConservedPhysicalSetsAndSavedDayCount() {
+        val settings = request().copy(sessionMinutes = 35, bMaxTrainingDays = 4)
+        val expanded = build(realRows(), settings)
+        val fixed = build(realRows(), settings.copy(bMaxTrainingDays = null))
+        assertTrue(expanded.input.days in 3..4)
+        assertEquals(3, fixed.input.days)
+        assertEquals(expanded.input.days, expanded.weeks.first().sessions.size)
+        assertEquals(expanded.input.days, expanded.toSkeleton(settings, exercises).request.weeklyTrainingDays)
+        val baseline = fixed.weeks.first().sessions
+        val placed = BBalancedDayPlacementPlanner.optimize(baseline, 3, 4, 35, exercises)
+        assertEquals(baseline.sumOf(V22Session::nominalSets), placed.sessions.sumOf(V22Session::nominalSets))
+        fun countKeys(sessions: List<V22Session>) = sessions.flatMap(V22Session::items)
+            .groupBy(V22ExercisePlan::stableKey)
+            .mapValues { (_, values) -> values.sumOf(V22ExercisePlan::setCount) }
+        assertEquals(countKeys(baseline), countKeys(placed.sessions))
+        assertTrue(placed.sessions.all {
+            it.items.map(V22ExercisePlan::stableKey).distinct().size == it.items.size
+        })
+        assertTrue(JSONObject(expanded.metadataJson).getJSONObject("placementAudit")
+            .getInt("candidateEvaluations") > 0)
+    }
+
+    @Test
+    fun fixedDayRequestKeepsAllExercisesAndDeletionAuditIsReviewOnly() {
+        val plan = build(realRows(), request().copy(sessionMinutes = 25, bMaxTrainingDays = 3))
+        assertEquals(3, plan.input.days)
+        val root = JSONObject(plan.metadataJson)
+        assertEquals("AUDIT_ONLY_NO_AUTOMATIC_REMOVAL", root.getString("deletionPolicy"))
+        val audit = root.getJSONArray("deletionAudit")
+        assertTrue(audit.length() > 0)
+        for (i in 0 until audit.length()) {
+            assertTrue(audit.getJSONObject(i).getBoolean("notRemoved"))
+        }
+        assertEquals("HEURISTIC_PLACEMENT_REVIEW_ONLY_NOT_OFI_OR_TISSUE_PROJECTION",
+            root.getJSONObject("placementAudit").getString("authority"))
+        assertTrue(plan.weeks.all { week -> week.sessions.sumOf(V22Session::nominalSets) > 0 })
+    }
+
+    @Test
+    fun defaultBRequestDoesNotAutoExpandOrChangeWeekdayIdentities() {
+        val previous = build(realRows(), request())
+        val repeated = build(realRows(), request())
+        assertEquals(previous, repeated)
+        assertEquals(listOf(1, 2, 3), previous.weeks.first().sessions.map(V22Session::session))
+        assertEquals(false, JSONObject(previous.metadataJson).getJSONObject("placementAudit").getBoolean("expanded"))
+    }
+
     private fun build(rows: List<V22HistoryRow>, request: V22GenerationRequest): BBalanced12WeekPlan =
         BBalanced12WeekEngine.build(
             rows,
