@@ -88,7 +88,7 @@ class PlannerIsolationArchitectureTest {
 
     @Test fun archivedLegacySessionOverlayRemainsSeparateFromRecordBasedRuntime() {
         assertTrue(text("LegacyAutoPreview.kt").contains("ProgressionDraftControl(executionItem, execution"))
-        assertTrue(screen.contains("legacyProgressionDraft.reconcile(finalized, requireNotNull(progressionContext))"))
+        assertFalse(text("PlanScreen.kt").contains("legacyProgressionDraft.reconcile(finalized"))
         assertFalse(text("data/LegacyProgressionDraft.kt").contains("GeneratedProgramSkeleton"))
         assertFalse(text("data/ProgramExecutionDraft.kt").contains("Legacy"))
         assertTrue(text("data/ProgramProgressionDraft.kt").contains("ProgramExecutionDraft.reconcileProgression"))
