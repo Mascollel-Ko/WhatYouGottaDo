@@ -65,12 +65,12 @@ class PlannerIsolationArchitectureTest {
 
     @Test fun uiGenerationStateAndPreSavePathsAreDisjoint() {
         val screen = text("PlanScreen.kt")
-        val legacyAction = screen.substringAfter("fun generateSkeleton()").substringBefore("fun runPreparedPersonalized")
-        assertTrue(legacyAction.contains("generateLegacyAutoSkeleton"))
-        assertTrue(legacyAction.contains("legacyAutoDraft = generated"))
-        listOf("reconcileProgression", "withResolvedWeekDaySchedule", "PersonalizedProgramBuilder", "saveGeneratedProgram").forEach {
-            assertFalse(it, legacyAction.contains(it))
-        }
+        assertFalse(screen.contains("viewModel.generateLegacyAutoSkeleton"))
+        assertFalse(screen.contains("legacyAutoDraft"))
+        assertFalse(screen.contains("saveLegacyAutoProgram"))
+        assertTrue(screen.contains("viewModel.preparePersonalizedProgram"))
+        assertTrue(screen.contains("viewModel.generateV22Program"))
+        assertTrue(screen.contains("viewModel.saveGeneratedProgram"))
         assertTrue(screen.contains("personalizedDraft = personalizedDraft?.reconcileProgression"))
         assertFalse(text("LegacyAutoPreview.kt").contains("reconcileProgression"))
         assertFalse(text("LegacyAutoPreview.kt").contains("GeneratedProgramSkeleton"))
@@ -86,10 +86,7 @@ class PlannerIsolationArchitectureTest {
         }
     }
 
-    @Test fun sessionOverlayOnlyBeginsAfterFrozenOutputAndReusesGenericExecutionAuthority() {
-        val screen = text("PlanScreen.kt")
-        val generation = screen.substringAfter("viewModel.generateLegacyAutoSkeleton(request)").substringBefore("fun runPreparedPersonalized")
-        assertTrue(generation.indexOf("legacyAutoDraft = generated") < generation.indexOf("LegacyProgressionDraft().reconcile(generated"))
+    @Test fun archivedLegacySessionOverlayRemainsSeparateFromRecordBasedRuntime() {
         assertTrue(text("LegacyAutoPreview.kt").contains("ProgressionDraftControl(executionItem, execution"))
         assertTrue(screen.contains("legacyProgressionDraft.reconcile(finalized, requireNotNull(progressionContext))"))
         assertFalse(text("data/LegacyProgressionDraft.kt").contains("GeneratedProgramSkeleton"))

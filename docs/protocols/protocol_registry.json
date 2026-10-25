@@ -35,7 +35,7 @@
     {
       "familyId": "PROGRAM_BUILDER",
       "titleKo": "자동 프로그램 생성",
-      "descriptionKo": "현재 공개 결정론적 자동 골자 생성 계약",
+      "descriptionKo": "기록 기반·12주 균형형 생성과 과거 자동 골자 설계 기록",
       "indexDocument": "program_builder/PROGRAM_BUILDER_OVERVIEW.md"
     },
     {

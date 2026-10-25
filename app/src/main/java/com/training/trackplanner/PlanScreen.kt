@@ -1,10 +1,5 @@
 package com.training.trackplanner
 
-import com.training.trackplanner.data.program.legacy.LegacyAutoSkeleton
-import com.training.trackplanner.data.program.legacy.LegacyAutoRequest
-import com.training.trackplanner.data.program.legacy.LegacyAutoGoal
-import com.training.trackplanner.data.program.legacy.LegacyAutoPeriodizationType
-
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.widthIn
@@ -49,7 +44,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.data.GeneratedProgramSkeleton
-import com.training.trackplanner.data.LegacyProgressionDraft
 import com.training.trackplanner.data.ProgramBuildProgressState
 import com.training.trackplanner.data.ProgramApplyConflictSummary
 import com.training.trackplanner.data.ProgramApplyMode
@@ -409,14 +403,9 @@ private fun ProgramEditorScreen(
     var personalizedDraft by remember(program?.id) {
         mutableStateOf<GeneratedProgramSkeleton?>(null)
     }
-    var legacyAutoDraft by remember(program?.id) { mutableStateOf<LegacyAutoSkeleton?>(null) }
-    var legacyProgressionDraft by remember(program?.id) { mutableStateOf(LegacyProgressionDraft()) }
-    val hasDraftItems = legacyAutoDraft?.items?.isNotEmpty() == true || personalizedDraft?.items?.isNotEmpty() == true
+    val hasDraftItems = personalizedDraft?.items?.isNotEmpty() == true
     val buildProgress by viewModel.programBuildProgress.collectAsState()
     val generationRunning = buildProgress is ProgramBuildProgressState.Running
-    var confirmRegenerate by rememberSaveable { mutableStateOf(false) }
-    var showSkeletonOptions by rememberSaveable(program?.id ?: 0L) { mutableStateOf(false) }
-    var autoSkeletonCreated by rememberSaveable(program?.id ?: 0L) { mutableStateOf(false) }
     var personalizedSkeletonCreated by rememberSaveable(program?.id ?: 0L) { mutableStateOf(false) }
     var pendingPersonalizedPreflight by remember { mutableStateOf<PersonalizedPlanningPreflight?>(null) }
     var personalizedAnswers by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
@@ -442,12 +431,6 @@ private fun ProgramEditorScreen(
     LaunchedEffect(personalizedDraft, progressionContext) {
         progressionContext?.let { context -> personalizedDraft = personalizedDraft?.reconcileProgression(context.eligibleKeys, context.oneRmSnapshots) }
     }
-    LaunchedEffect(legacyAutoDraft, progressionContext) {
-        legacyAutoDraft?.let { finalized ->
-            progressionContext?.let { legacyProgressionDraft = legacyProgressionDraft.reconcile(finalized, it) }
-        }
-    }
-
     fun normalizedProgramName(): String = nameText.trim()
 
     fun currentRequest(): ProgramSkeletonRequest =
@@ -479,37 +462,10 @@ private fun ProgramEditorScreen(
         lastGenerationWasPersonalized = false
         lastGenerationWasV22 = false
         val request = currentRequest()
-        legacyAutoDraft = null
-        legacyProgressionDraft = LegacyProgressionDraft()
         personalizedDraft = emptyProgramSkeleton(
             request = request,
             weekDaySchedule = defaultProgramWeekDaySchedule(durationWeeks, weeklyDays)
         )
-        autoSkeletonCreated = false
-        showSkeletonOptions = false
-    }
-
-    fun generateSkeleton() {
-        if (!requireProgramName()) return
-        personalizedRetry.clear()
-        val request = LegacyAutoRequest(
-            name = normalizedProgramName(), goal = LegacyAutoGoal.BADMINTON_SUPPORT,
-            weeklyTrainingDays = weeklyDays, sessionMinutes = sessionMinutes, durationWeeks = durationWeeks,
-            availableEquipment = emptySet(), excludedExerciseText = "", badmintonTransferRatio = badmintonRatio,
-            sportStrengthRatio = "AUTO", periodizationType = LegacyAutoPeriodizationType.AUTO
-        )
-        lastGenerationWasPersonalized = false
-        lastGenerationWasV22 = false
-        viewModel.generateLegacyAutoSkeleton(request) { generated ->
-            legacyAutoDraft = generated
-            // Frozen output has returned and is finalized. Only the separate editor overlay is initialized.
-            legacyProgressionDraft = progressionContext?.let { LegacyProgressionDraft().reconcile(generated, it) }
-                ?: LegacyProgressionDraft()
-            personalizedDraft = null
-            autoSkeletonCreated = true
-            personalizedSkeletonCreated = false
-            showSkeletonOptions = true
-        }
     }
 
     fun runPreparedPersonalized(preflight: PersonalizedPlanningPreflight, answers: Map<String, String>) {
@@ -524,15 +480,11 @@ private fun ProgramEditorScreen(
         ) { generated ->
             personalizedRetry.clear()
             val request = currentRequest()
-            legacyAutoDraft = null
-            legacyProgressionDraft = LegacyProgressionDraft()
             personalizedDraft = generated.copy(
                 suggestedName = request.name,
                 request = generated.request.copy(name = request.name)
             ).withResolvedWeekDaySchedule()
-            autoSkeletonCreated = false
             personalizedSkeletonCreated = true
-            showSkeletonOptions = true
             pendingPersonalizedPreflight = null
         }
     }
@@ -579,13 +531,9 @@ private fun ProgramEditorScreen(
                 )
             )
         ) { generated ->
-            legacyAutoDraft = null
-            legacyProgressionDraft = LegacyProgressionDraft()
             personalizedDraft = generated.skeleton.withResolvedWeekDaySchedule()
-            autoSkeletonCreated = false
             personalizedSkeletonCreated = false
             v22SkeletonCreated = true
-            showSkeletonOptions = true
         }
     }
 
@@ -605,25 +553,6 @@ private fun ProgramEditorScreen(
         )
     }
 
-    if (confirmRegenerate) {
-        AlertDialog(
-            onDismissRequest = { confirmRegenerate = false },
-            title = { Text("자동 골자로 대체") },
-            text = { Text("현재 작성 중인 구성이 자동 골자로 대체됩니다.") },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        confirmRegenerate = false
-                        generateSkeleton()
-                    }
-                ) { Text("대체") }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmRegenerate = false }) { Text("취소") }
-            }
-        )
-    }
-
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = screenPadding(),
@@ -632,7 +561,7 @@ private fun ProgramEditorScreen(
         item {
             ScreenHeader(
                 title = if (program == null) "프로그램 새로 만들기" else "프로그램 수정",
-                body = "조건을 고른 뒤 자동 골자를 만들고, 저장 전에 세트와 중량을 조정합니다."
+                body = "빈 프로그램을 직접 구성하거나 기록 기반 프로그램을 만든 뒤, 저장 전에 세트와 중량을 조정합니다."
             )
         }
         item {
@@ -661,7 +590,6 @@ private fun ProgramEditorScreen(
                         singleLine = true
                     )
                     if (program == null) {
-                        if (showSkeletonOptions) {
                     ProgramOptionRow {
                         ProgramDropdown(
                             modifier = Modifier.weight(1f).widthIn(min = 180.dp),
@@ -703,32 +631,16 @@ private fun ProgramEditorScreen(
                         )
                     }
                     Text(
-                        text = "위 기간·일수·비율은 빈 프로그램과 기존 자동 골자에 적용됩니다.",
+                        text = "기간·일수·배드민턴 비율은 빈 프로그램에 적용됩니다. 하루 운동시간은 기록 기반 생성에도 사용됩니다.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                        }
                     Button(
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !generationRunning,
                         onClick = { startBlankProgram() }
                     ) {
                         Text("빈 프로그램으로 시작")
-                    }
-                    OutlinedButton(
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !generationRunning,
-                        onClick = {
-                            if (!showSkeletonOptions) {
-                                showSkeletonOptions = true
-                            } else if (hasDraftItems) {
-                                confirmRegenerate = true
-                            } else {
-                                generateSkeleton()
-                            }
-                        }
-                    ) {
-                        Text(if (autoSkeletonCreated) "자동 골자 다시 만들기" else "자동 골자 만들기")
                     }
                     ProgramOptionRow {
                         ProgramDropdown(
@@ -852,25 +764,18 @@ private fun ProgramEditorScreen(
                 }
             }
         }
-        if (buildProgress !is ProgramBuildProgressState.Idle && !(lastGenerationWasPersonalized && buildProgress is ProgramBuildProgressState.Running)) {
+        if ((lastGenerationWasPersonalized || lastGenerationWasV22) &&
+            buildProgress !is ProgramBuildProgressState.Idle &&
+            !(lastGenerationWasPersonalized && buildProgress is ProgramBuildProgressState.Running)) {
             item {
                 ProgramBuildProgressCard(
                     progress = buildProgress,
                     onRetry = {
                         if (lastGenerationWasPersonalized) personalizedRetry.retry(::preparePersonalized) {
                             runPreparedPersonalized(it.preflight, it.answers.values)
-                        } else if (lastGenerationWasV22) generateV22() else generateSkeleton()
+                        } else if (lastGenerationWasV22) generateV22()
                     }
                 )
-            }
-        }
-        legacyAutoDraft?.let { draft ->
-            item {
-                LegacyAutoSkeletonPreview(draft, exercises, runtimeMetadataByExerciseId,
-                    legacyProgressionDraft, { legacyProgressionDraft = it }) { updated ->
-                    legacyAutoDraft = updated
-                    progressionContext?.let { legacyProgressionDraft = legacyProgressionDraft.reconcile(updated, it) }
-                }
             }
         }
         personalizedDraft?.let { currentSkeleton ->
@@ -889,10 +794,10 @@ private fun ProgramEditorScreen(
                 )
             }
         }
-        if (legacyAutoDraft == null && personalizedDraft == null) item {
+        if (personalizedDraft == null) item {
             InfoCard(
                 if (program == null) {
-                    "자동 골자를 만들면 저장 전 미리보기와 수정 항목이 표시됩니다."
+                    "빈 프로그램으로 시작하거나 기록 기반 프로그램을 만들면 미리보기와 수정 항목이 표시됩니다."
                 } else {
                     "아직 저장된 운동 구성이 없습니다."
                 }
@@ -908,16 +813,9 @@ private fun ProgramEditorScreen(
                 }
                 Button(
                     modifier = Modifier.weight(1f),
-                    enabled = hasDraftItems && !generationRunning && (legacyAutoDraft == null || progressionContext != null),
+                    enabled = hasDraftItems && !generationRunning,
                     onClick = {
                         if (!requireProgramName()) return@Button
-                        legacyAutoDraft?.let { finalized ->
-                            viewModel.saveLegacyAutoProgram(program?.id, finalized.copy(
-                                suggestedName = normalizedProgramName(),
-                                request = finalized.request.copy(name = normalizedProgramName())
-                            ), legacyProgressionDraft.reconcile(finalized, requireNotNull(progressionContext)), onSaved)
-                            return@Button
-                        }
                         val current = personalizedDraft ?: return@Button
                         val request = currentRequest()
                         val savedRequest = if (lastGenerationWasPersonalized || lastGenerationWasV22) {

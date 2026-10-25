@@ -22,7 +22,7 @@ Protocol version과 application version은 독립적입니다. protocol `1.0.0`�
 | `CONNECTIVE_TISSUE` | 연결조직 부하와 회복 | 조직별 상대 노출, 잔여 노출, 개인 보정과 표시 | [열기](connective_tissue/CONNECTIVE_TISSUE_OVERVIEW.md) |
 | `BADMINTON` | 배드민턴 분류와 부하 | 훈련 방법, 전이 분류, 부하와 catalogue | [열기](badminton/BADMINTON_TRAINING_TAXONOMY.md) |
 | `STRENGTH` | 근력훈련 분류와 부하 | taxonomy, volume, 체중·시간 유지 운동과 주요 리프트 proxy 수행 추정 | [열기](strength/STRENGTH_TRAINING_TAXONOMY.md) |
-| `PROGRAM_BUILDER` | 자동 프로그램 생성 | 현재 공개 결정론적 자동 골자 생성 계약 | [열기](program_builder/PROGRAM_BUILDER_OVERVIEW.md) |
+| `PROGRAM_BUILDER` | 자동 프로그램 생성 | 기록 기반·12주 균형형 생성과 과거 자동 골자 설계 기록 | [열기](program_builder/PROGRAM_BUILDER_OVERVIEW.md) |
 | `DATA_PORTABILITY` | 백업과 복원 | legacy 호환성과 authoritative program snapshot | [열기](data_portability/BACKUP_AND_RESTORE.md) |
 | `COMMUNITY` | 커뮤니티 공유 | 인증된 공개 프로그램·주간 요약·친구 활동 공유 계약 | [열기](community/COMMUNITY_SHARING.md) |
 | `UI_PRESENTATION` | 제품 UI 표시 | 조용한 표면 계층, 내비게이션, locale 선택과 한국어/영어 표시 계약 | [열기](presentation/QUIET_UI_PRESENTATION.md) |

@@ -36,7 +36,12 @@ class ProgramRecordUiContractTest {
         val viewModel = source("TrainingViewModel.kt")
 
         assertTrue(screen.contains("기록 기반 알고리듬 프로그램 만들기"))
-        assertTrue(screen.indexOf("기록 기반 알고리듬 프로그램 만들기") > screen.indexOf("자동 골자 만들기"))
+        assertFalse(screen.contains("자동 골자 만들기"))
+        assertFalse(screen.contains("generateLegacyAutoSkeleton"))
+        assertFalse(screen.contains("saveLegacyAutoProgram"))
+        assertTrue(screen.contains("빈 프로그램으로 시작"))
+        assertTrue(screen.contains("viewModel.generateV22Program"))
+        assertFalse(screen.contains("showSkeletonOptions"))
         assertTrue(screen.contains("viewModel.preparePersonalizedProgram"))
         assertTrue(screen.contains("viewModel.generatePreparedPersonalizedProgram"))
         assertTrue(viewModel.contains("repository.preparePersonalizedProgram"))
