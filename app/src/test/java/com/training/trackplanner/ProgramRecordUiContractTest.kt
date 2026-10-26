@@ -31,7 +31,7 @@ class ProgramRecordUiContractTest {
     }
 
     @Test
-    fun `program creation exposes only B 12 week and preserves existing editor`() {
+    fun `creation offers manual blank and B 12 week while preserving existing editor`() {
         val screen = source("PlanScreen.kt")
         val viewModel = source("TrainingViewModel.kt")
 
@@ -43,7 +43,14 @@ class ProgramRecordUiContractTest {
         assertTrue(screen.contains("importance = BBalancedGoalImportance("))
         assertTrue(screen.contains("request = current.request.copy(name = name)"))
         assertFalse(screen.contains("기록 기반 알고리듬 프로그램 만들기"))
-        assertFalse(screen.contains("빈 프로그램으로 시작"))
+        assertTrue(screen.contains("빈 프로그램으로 시작"))
+        assertTrue(screen.contains("onClick = { startBlankProgram() }"))
+        assertTrue(screen.contains("request = blankProgramRequest()"))
+        assertTrue(screen.contains("weekDaySchedule = defaultProgramWeekDaySchedule(durationWeeks, weeklyDays)"))
+        assertTrue(screen.contains("sessionMinutes = blankSessionMinutes"))
+        assertTrue(screen.contains("badmintonTransferRatio = 0.0"))
+        assertTrue(screen.contains("selected = durationWeeks"))
+        assertTrue(screen.contains("selected = weeklyDays"))
         assertFalse(screen.contains("viewModel.preparePersonalizedProgram"))
         assertFalse(screen.contains("viewModel.generatePreparedPersonalizedProgram"))
         assertFalse(screen.contains("generateLegacyAutoSkeleton"))
@@ -52,8 +59,8 @@ class ProgramRecordUiContractTest {
         assertFalse(screen.contains("personalizedDurationOverride"))
         assertFalse(screen.contains("personalizedDaysOverride"))
         assertFalse(screen.contains("badmintonRatio"))
-        assertFalse(screen.contains("durationWeeks by rememberSaveable"))
-        assertFalse(screen.contains("weeklyDays by rememberSaveable"))
+        assertFalse(screen.contains("badmintonRatioOptions"))
+        assertFalse(screen.contains("personalizedRetry.retry(::preparePersonalized)"))
         assertTrue(viewModel.contains("repository.preparePersonalizedProgram"))
     }
 

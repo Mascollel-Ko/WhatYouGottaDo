@@ -385,6 +385,17 @@ private fun ProgramEditorScreen(
     var nameError by rememberSaveable(program?.id ?: 0L) {
         mutableStateOf(false)
     }
+    var durationWeeks by rememberSaveable(program?.id ?: 0L) {
+        mutableStateOf(
+            program?.let { ((it.durationDays.coerceAtLeast(1) + 6) / 7).coerceAtLeast(1) } ?: 4
+        )
+    }
+    var weeklyDays by rememberSaveable(program?.id ?: 0L) {
+        mutableStateOf((program?.weeklyTrainingDays ?: 3).takeIf { it > 0 } ?: 3)
+    }
+    var blankSessionMinutes by rememberSaveable(program?.id ?: 0L) {
+        mutableStateOf((program?.sessionMinutes ?: 60).takeIf { it > 0 } ?: 60)
+    }
     var v22SessionMinutes by rememberSaveable(program?.id ?: 0L) {
         mutableStateOf((program?.sessionMinutes ?: 60).takeIf { it > 0 } ?: 60)
     }
@@ -423,6 +434,31 @@ private fun ProgramEditorScreen(
         return valid
     }
 
+    fun blankProgramRequest(): ProgramSkeletonRequest =
+        ProgramSkeletonRequest(
+            name = normalizedProgramName(),
+            goal = ProgramGoal.BADMINTON_SUPPORT,
+            weeklyTrainingDays = weeklyDays,
+            sessionMinutes = blankSessionMinutes,
+            availableEquipment = emptySet(),
+            excludedExerciseText = "",
+            badmintonTransferRatio = 0.0,
+            sportStrengthRatio = "AUTO",
+            periodizationType = ProgramPeriodizationType.AUTO,
+            durationWeeks = durationWeeks
+        )
+
+    fun startBlankProgram() {
+        if (!requireProgramName()) return
+        if (viewModel.programBuildProgress.value is ProgramBuildProgressState.Running) return
+        lastGenerationWasV22 = false
+        v22SkeletonCreated = false
+        personalizedDraft = emptyProgramSkeleton(
+            request = blankProgramRequest(),
+            weekDaySchedule = defaultProgramWeekDaySchedule(durationWeeks, weeklyDays)
+        )
+    }
+
     fun generateV22() {
         if (!requireProgramName()) return
         if (viewModel.programBuildProgress.value is ProgramBuildProgressState.Running) return
@@ -455,7 +491,7 @@ private fun ProgramEditorScreen(
         item {
             ScreenHeader(
                 title = if (program == null) "프로그램 새로 만들기" else "프로그램 수정",
-                body = "12주 균형형 프로그램을 만든 뒤 저장 전에 운동 구성과 세트·중량을 조정합니다."
+                body = "빈 프로그램을 직접 구성하거나 12주 균형형 프로그램을 만든 뒤, 저장 전에 세트와 중량을 조정합니다."
             )
         }
         item {
@@ -484,6 +520,53 @@ private fun ProgramEditorScreen(
                         singleLine = true
                     )
                     if (program == null) {
+                        Text(
+                            text = "빈 프로그램 직접 구성",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        ProgramOptionRow {
+                            ProgramDropdown(
+                                modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                                label = "프로그램 기간",
+                                selected = durationWeeks,
+                                options = (3..8).toList(),
+                                optionLabel = { programWeekLabel(it) },
+                                onSelect = { durationWeeks = it },
+                                enabled = !generationRunning
+                            )
+                            ProgramDropdown(
+                                modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                                label = "주당 운동일수",
+                                selected = weeklyDays,
+                                options = (3..7).toList(),
+                                optionLabel = { stringResource(R.string.program_days_per_week, it) },
+                                onSelect = { weeklyDays = it },
+                                enabled = !generationRunning
+                            )
+                        }
+                        ProgramOptionRow {
+                            ProgramDropdown(
+                                modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                                label = "하루 운동시간",
+                                selected = blankSessionMinutes,
+                                options = listOf(30, 45, 60),
+                                optionLabel = { stringResource(R.string.program_minutes, it) },
+                                onSelect = { blankSessionMinutes = it },
+                                enabled = !generationRunning
+                            )
+                        }
+                        Text(
+                            text = "기간과 운동일수에 따라 빈 계획을 만듭니다. 운동 종목은 직접 추가하세요.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Button(
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !generationRunning,
+                            onClick = { startBlankProgram() }
+                        ) {
+                            Text("빈 프로그램으로 시작")
+                        }
                         Text(
                             text = "12주 균형형 운동 프로그램",
                             style = MaterialTheme.typography.titleMedium
@@ -612,7 +695,7 @@ private fun ProgramEditorScreen(
         if (personalizedDraft == null) item {
             InfoCard(
                 if (program == null) {
-                    "12주 균형형 프로그램을 만들면 저장 전 미리보기와 수정 항목이 표시됩니다."
+                    "빈 프로그램으로 시작하거나 12주 균형형 프로그램을 만들면 저장 전 미리보기와 수정 항목이 표시됩니다."
                 } else {
                     "아직 저장된 운동 구성이 없습니다."
                 }
