@@ -58,14 +58,16 @@ class PersonalizedPreparedRetryStateTest {
         assertNull(retry.payload)
     }
 
-    @Test fun actualEditorUsesPayloadForFailureCardAndClearsOnlyOnNewAttemptOrSuccess() {
-        val root=generateSequence(File(System.getProperty("user.dir")),File::getParentFile).first { File(it,"settings.gradle.kts").isFile }
-        val source=File(root,"app/src/main/java/com/training/trackplanner/PlanScreen.kt").readText()
-        assertTrue(source.contains("personalizedRetry.retry(::preparePersonalized)"))
-        assertTrue(source.contains("runPreparedPersonalized(it.preflight, it.answers.values)"))
-        val generate=source.substringAfter("fun runPreparedPersonalized").substringBefore("fun preparePersonalized")
-        assertTrue(generate.indexOf("personalizedRetry.confirm") < generate.indexOf("generatePreparedPersonalizedProgram"))
-        assertTrue(generate.indexOf("personalizedRetry.clear()") > generate.indexOf("{ generated ->"))
-        assertFalse(generate.contains("onFailure"))
+    @Test fun removedRecordBasedEditorDoesNotExposeArchivedPreparedRetryFlow() {
+        val root = generateSequence(File(System.getProperty("user.dir")), File::getParentFile)
+            .first { File(it, "settings.gradle.kts").isFile }
+        val source = File(root, "app/src/main/java/com/training/trackplanner/PlanScreen.kt").readText()
+        assertFalse(source.contains("personalizedRetry.retry(::preparePersonalized)"))
+        assertFalse(source.contains("runPreparedPersonalized"))
+        assertFalse(source.contains("viewModel.preparePersonalizedProgram"))
+        assertFalse(source.contains("viewModel.generatePreparedPersonalizedProgram"))
+        assertTrue(source.contains("viewModel.generateV22Program"))
+        assertTrue(source.contains("onRetry = {"))
+        assertTrue(source.contains("generateV22()"))
     }
 }
