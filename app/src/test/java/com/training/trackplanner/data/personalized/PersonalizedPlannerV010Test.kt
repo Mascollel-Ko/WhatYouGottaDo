@@ -15,9 +15,6 @@ import com.training.trackplanner.data.WorkoutSet
 import com.training.trackplanner.data.resolvePersonalizedRequest
 import com.training.trackplanner.data.canonicalStrengthSignalsForWindow
 import com.training.trackplanner.data.isPersonalizedProgramEdited
-import com.training.trackplanner.personalizedDurationOptions
-import com.training.trackplanner.personalizedOverrideFromSelection
-import com.training.trackplanner.personalizedWeeklyDayOptions
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -323,12 +320,20 @@ class PersonalizedPlannerV010Test {
     }
 
     @Test
-    fun `personalized AUTO and manual ranges are explicit and reversible`() {
-        assertEquals(listOf(0, 2, 3, 4, 5), personalizedWeeklyDayOptions)
-        assertEquals(listOf(0, 2, 3, 4, 5, 6), personalizedDurationOptions)
-        assertEquals(5, personalizedOverrideFromSelection(5))
-        assertEquals(6, personalizedOverrideFromSelection(6))
-        assertEquals(null, personalizedOverrideFromSelection(0))
+    fun `archived personalized request resolver keeps explicit and AUTO bounds`() {
+        val template = request(days = 3, weeks = 4)
+        val automatic = resolvePersonalizedRequest(
+            template, PersonalizedGenerationConstraints(),
+            ProgramGoal.BADMINTON_SUPPORT, recommendedDays = 4, recommendedHorizon = 5
+        )
+        assertEquals(4, automatic.weeklyTrainingDays)
+        assertEquals(5, automatic.durationWeeks)
+        val explicit = resolvePersonalizedRequest(
+            template, PersonalizedGenerationConstraints(explicitWeeklyTrainingDays = 7, explicitDurationWeeks = 8),
+            ProgramGoal.BADMINTON_SUPPORT, recommendedDays = 4, recommendedHorizon = 5
+        )
+        assertEquals(5, explicit.weeklyTrainingDays)
+        assertEquals(6, explicit.durationWeeks)
     }
 
     @Test

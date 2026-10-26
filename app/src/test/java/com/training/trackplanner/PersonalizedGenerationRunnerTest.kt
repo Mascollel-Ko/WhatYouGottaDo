@@ -92,9 +92,10 @@ class PersonalizedGenerationRunnerTest {
         assertEquals(2, Regex("answers.values.toMap").findAll(personalized).count())
         assertTrue(vm.substringBefore("private val personalizedGenerationRunner").contains("withTimeout(12_000)"))
         val ui = File(root, "app/src/main/java/com/training/trackplanner/PlanScreen.kt").readText()
-            .substringAfter("fun runPreparedPersonalized").substringBefore("fun preparePersonalized")
-        assertTrue(ui.indexOf("pendingPersonalizedPreflight = null") < ui.indexOf("viewModel.generatePreparedPersonalizedProgram"))
-        assertTrue(ui.contains("answers.toMap()")); assertTrue(ui.contains("personalizedDraft = generated.copy"))
+        assertFalse(ui.contains("fun runPreparedPersonalized"))
+        assertFalse(ui.contains("viewModel.generatePreparedPersonalizedProgram"))
+        assertTrue(ui.contains("viewModel.generateV22Program"))
+        assertTrue(ui.contains("request = current.request.copy(name = name)"))
         val dialog = File(root, "app/src/main/java/com/training/trackplanner/PersonalizedGenerationProgressDialog.kt").readText()
         assertTrue(dialog.contains("dismissOnBackPress = false")); assertTrue(dialog.contains("dismissOnClickOutside = false"))
     }

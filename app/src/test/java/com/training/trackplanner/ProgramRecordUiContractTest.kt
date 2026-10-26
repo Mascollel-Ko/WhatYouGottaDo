@@ -31,23 +31,30 @@ class ProgramRecordUiContractTest {
     }
 
     @Test
-    fun `record based planner is a separate path that retains editor on failure`() {
+    fun `program creation exposes only B 12 week and preserves existing editor`() {
         val screen = source("PlanScreen.kt")
         val viewModel = source("TrainingViewModel.kt")
 
-        assertTrue(screen.contains("기록 기반 알고리듬 프로그램 만들기"))
-        assertFalse(screen.contains("자동 골자 만들기"))
+        assertTrue(screen.contains("12주 균형형 프로그램 만들기"))
+        assertTrue(screen.contains("viewModel.generateV22Program"))
+        assertTrue(screen.contains("sessionMinutes = v22SessionMinutes"))
+        assertTrue(screen.contains("days = v22Days"))
+        assertTrue(screen.contains("allowFourthDay = bAllowFourthDay"))
+        assertTrue(screen.contains("importance = BBalancedGoalImportance("))
+        assertTrue(screen.contains("request = current.request.copy(name = name)"))
+        assertFalse(screen.contains("기록 기반 알고리듬 프로그램 만들기"))
+        assertFalse(screen.contains("빈 프로그램으로 시작"))
+        assertFalse(screen.contains("viewModel.preparePersonalizedProgram"))
+        assertFalse(screen.contains("viewModel.generatePreparedPersonalizedProgram"))
         assertFalse(screen.contains("generateLegacyAutoSkeleton"))
         assertFalse(screen.contains("saveLegacyAutoProgram"))
-        assertTrue(screen.contains("빈 프로그램으로 시작"))
-        assertTrue(screen.contains("viewModel.generateV22Program"))
         assertFalse(screen.contains("showSkeletonOptions"))
-        assertTrue(screen.contains("viewModel.preparePersonalizedProgram"))
-        assertTrue(screen.contains("viewModel.generatePreparedPersonalizedProgram"))
+        assertFalse(screen.contains("personalizedDurationOverride"))
+        assertFalse(screen.contains("personalizedDaysOverride"))
+        assertFalse(screen.contains("badmintonRatio"))
+        assertFalse(screen.contains("durationWeeks by rememberSaveable"))
+        assertFalse(screen.contains("weeklyDays by rememberSaveable"))
         assertTrue(viewModel.contains("repository.preparePersonalizedProgram"))
-        assertTrue(viewModel.contains("repository.generatePreparedPersonalizedProgram"))
-        assertFalse(screen.contains("questions.take(1)"))
-        assertFalse(viewModel.contains("generatePersonalizedProgram") && viewModel.contains("자동 생성으로 전환"))
     }
 
     private fun source(name: String): String =

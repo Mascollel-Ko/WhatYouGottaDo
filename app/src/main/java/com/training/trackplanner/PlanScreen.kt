@@ -385,20 +385,8 @@ private fun ProgramEditorScreen(
     var nameError by rememberSaveable(program?.id ?: 0L) {
         mutableStateOf(false)
     }
-    var durationWeeks by rememberSaveable(program?.id ?: 0L) {
-        mutableStateOf(
-            program?.let { ((it.durationDays.coerceAtLeast(1) + 6) / 7).coerceAtLeast(1) }
-                ?: 4
-        )
-    }
-    var weeklyDays by rememberSaveable(program?.id ?: 0L) {
-        mutableStateOf((program?.weeklyTrainingDays ?: 3).takeIf { it > 0 } ?: 3)
-    }
-    var sessionMinutes by rememberSaveable(program?.id ?: 0L) {
+    var v22SessionMinutes by rememberSaveable(program?.id ?: 0L) {
         mutableStateOf((program?.sessionMinutes ?: 60).takeIf { it > 0 } ?: 60)
-    }
-    var badmintonRatio by rememberSaveable(program?.id ?: 0L) {
-        mutableStateOf((program?.badmintonTransferRatio ?: 0.70).coerceIn(0.0, 0.90))
     }
     var personalizedDraft by remember(program?.id) {
         mutableStateOf<GeneratedProgramSkeleton?>(null)
@@ -406,13 +394,6 @@ private fun ProgramEditorScreen(
     val hasDraftItems = personalizedDraft?.items?.isNotEmpty() == true
     val buildProgress by viewModel.programBuildProgress.collectAsState()
     val generationRunning = buildProgress is ProgramBuildProgressState.Running
-    var personalizedSkeletonCreated by rememberSaveable(program?.id ?: 0L) { mutableStateOf(false) }
-    var pendingPersonalizedPreflight by remember { mutableStateOf<PersonalizedPlanningPreflight?>(null) }
-    var personalizedAnswers by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
-    val personalizedRetry = remember(program?.id) { PersonalizedPreparedRetryState() }
-    var personalizedDaysOverride by rememberSaveable(program?.id ?: 0L) { mutableStateOf<Int?>(null) }
-    var personalizedDurationOverride by rememberSaveable(program?.id ?: 0L) { mutableStateOf<Int?>(null) }
-    var lastGenerationWasPersonalized by rememberSaveable { mutableStateOf(false) }
     var lastGenerationWasV22 by rememberSaveable { mutableStateOf(false) }
     var v22Days by rememberSaveable(program?.id ?: 0L) { mutableStateOf(4) }
     var bAllowFourthDay by rememberSaveable(program?.id ?: 0L) { mutableStateOf(true) }
@@ -433,20 +414,6 @@ private fun ProgramEditorScreen(
     }
     fun normalizedProgramName(): String = nameText.trim()
 
-    fun currentRequest(): ProgramSkeletonRequest =
-        ProgramSkeletonRequest(
-            name = normalizedProgramName(),
-            goal = ProgramGoal.BADMINTON_SUPPORT,
-            weeklyTrainingDays = weeklyDays,
-            sessionMinutes = sessionMinutes,
-            availableEquipment = emptySet(),
-            excludedExerciseText = "",
-            badmintonTransferRatio = badmintonRatio,
-            sportStrengthRatio = "AUTO",
-            periodizationType = ProgramPeriodizationType.AUTO,
-            durationWeeks = durationWeeks
-        )
-
     fun requireProgramName(): Boolean {
         val valid = normalizedProgramName().isNotEmpty()
         nameError = !valid
@@ -456,72 +423,16 @@ private fun ProgramEditorScreen(
         return valid
     }
 
-    fun startBlankProgram() {
-        if (!requireProgramName()) return
-        personalizedRetry.clear()
-        lastGenerationWasPersonalized = false
-        lastGenerationWasV22 = false
-        val request = currentRequest()
-        personalizedDraft = emptyProgramSkeleton(
-            request = request,
-            weekDaySchedule = defaultProgramWeekDaySchedule(durationWeeks, weeklyDays)
-        )
-    }
-
-    fun runPreparedPersonalized(preflight: PersonalizedPlanningPreflight, answers: Map<String, String>) {
-        if (viewModel.programBuildProgress.value is ProgramBuildProgressState.Running) return
-        val frozenAnswers = answers.toMap()
-        val confirmed = personalizedRetry.confirm(preflight, frozenAnswers)
-        pendingPersonalizedPreflight = null
-        viewModel.generatePreparedPersonalizedProgram(
-            preflight = confirmed.preflight,
-            answers = confirmed.answers,
-            existingProgramId = program?.id
-        ) { generated ->
-            personalizedRetry.clear()
-            val request = currentRequest()
-            personalizedDraft = generated.copy(
-                suggestedName = request.name,
-                request = generated.request.copy(name = request.name)
-            ).withResolvedWeekDaySchedule()
-            personalizedSkeletonCreated = true
-            pendingPersonalizedPreflight = null
-        }
-    }
-
-    fun preparePersonalized() {
-        if (!requireProgramName()) return
-        if (viewModel.programBuildProgress.value is ProgramBuildProgressState.Running) return
-        personalizedRetry.clear()
-        val request = currentRequest()
-        lastGenerationWasPersonalized = true
-        lastGenerationWasV22 = false
-        personalizedAnswers = emptyMap()
-        viewModel.preparePersonalizedProgram(
-            request = request,
-            constraints = PersonalizedGenerationConstraints(
-                explicitWeeklyTrainingDays = personalizedDaysOverride,
-                explicitDurationWeeks = personalizedDurationOverride,
-                explicitSessionMinutes = sessionMinutes
-            )
-        ) { preflight ->
-            if (preflight.questions.isEmpty()) runPreparedPersonalized(preflight, emptyMap())
-            else pendingPersonalizedPreflight = preflight
-        }
-    }
-
     fun generateV22() {
         if (!requireProgramName()) return
         if (viewModel.programBuildProgress.value is ProgramBuildProgressState.Running) return
-        personalizedRetry.clear()
-        lastGenerationWasPersonalized = false
         lastGenerationWasV22 = true
         viewModel.generateV22Program(
             newBBalancedGenerationRequest(
                 name = normalizedProgramName(),
                 days = v22Days,
                 asOf = LocalDate.now(),
-                sessionMinutes = sessionMinutes,
+                sessionMinutes = v22SessionMinutes,
                 allowFourthDay = bAllowFourthDay,
                 importance = BBalancedGoalImportance(
                     strength = bStrengthImportance.takeIf { it > 0 },
@@ -532,25 +443,8 @@ private fun ProgramEditorScreen(
             )
         ) { generated ->
             personalizedDraft = generated.skeleton.withResolvedWeekDaySchedule()
-            personalizedSkeletonCreated = false
             v22SkeletonCreated = true
         }
-    }
-
-    if (lastGenerationWasPersonalized && buildProgress is ProgramBuildProgressState.Running) {
-        PersonalizedGenerationProgressDialog(buildProgress as ProgramBuildProgressState.Running)
-    } else pendingPersonalizedPreflight?.let { preflight ->
-        PersonalizedPlanningQuestionDialog(
-            questions = preflight.questions,
-            answers = personalizedAnswers,
-            onAnswer = { id, value -> personalizedAnswers = personalizedAnswers + (id to value) },
-            onGenerate = { runPreparedPersonalized(preflight, personalizedAnswers) },
-            onDismiss = {
-                personalizedRetry.clear()
-                pendingPersonalizedPreflight = null
-                personalizedAnswers = emptyMap()
-            }
-        )
     }
 
     LazyColumn(
@@ -561,7 +455,7 @@ private fun ProgramEditorScreen(
         item {
             ScreenHeader(
                 title = if (program == null) "프로그램 새로 만들기" else "프로그램 수정",
-                body = "빈 프로그램을 직접 구성하거나 기록 기반 프로그램을 만든 뒤, 저장 전에 세트와 중량을 조정합니다."
+                body = "12주 균형형 프로그램을 만든 뒤 저장 전에 운동 구성과 세트·중량을 조정합니다."
             )
         }
         item {
@@ -590,170 +484,95 @@ private fun ProgramEditorScreen(
                         singleLine = true
                     )
                     if (program == null) {
-                    ProgramOptionRow {
-                        ProgramDropdown(
-                            modifier = Modifier.weight(1f).widthIn(min = 180.dp),
-                            label = "프로그램 기간",
-                            selected = durationWeeks,
-                            options = (3..8).toList(),
-                            optionLabel = { programWeekLabel(it) },
-                            onSelect = { durationWeeks = it },
-                            enabled = !generationRunning
+                        Text(
+                            text = "12주 균형형 운동 프로그램",
+                            style = MaterialTheme.typography.titleMedium
                         )
-                        ProgramDropdown(
-                            modifier = Modifier.weight(1f).widthIn(min = 180.dp),
-                            label = "주당 운동일수",
-                            selected = weeklyDays,
-                            options = (3..7).toList(),
-                            optionLabel = { stringResource(R.string.program_days_per_week, it) },
-                            onSelect = { weeklyDays = it },
-                            enabled = !generationRunning
-                        )
-                    }
-                    ProgramOptionRow {
-                        ProgramDropdown(
-                            modifier = Modifier.weight(1f).widthIn(min = 180.dp),
-                            label = "하루 운동시간",
-                            selected = sessionMinutes,
-                            options = listOf(30, 45, 60),
-                            optionLabel = { stringResource(R.string.program_minutes, it) },
-                            onSelect = { sessionMinutes = it },
-                            enabled = !generationRunning
-                        )
-                        ProgramDropdown(
-                            modifier = Modifier.weight(1f).widthIn(min = 180.dp),
-                            label = "배드민턴 : 근력",
-                            selected = badmintonRatio,
-                            options = badmintonRatioOptions.keys.toList(),
-                            optionLabel = { ratio -> badmintonRatioOptions.getValue(ratio) },
-                            onSelect = { badmintonRatio = it },
-                            enabled = !generationRunning
-                        )
-                    }
-                    Text(
-                        text = "기간·일수·배드민턴 비율은 빈 프로그램에 적용됩니다. 하루 운동시간은 기록 기반 생성에도 사용됩니다.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Button(
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !generationRunning,
-                        onClick = { startBlankProgram() }
-                    ) {
-                        Text("빈 프로그램으로 시작")
-                    }
-                    ProgramOptionRow {
-                        ProgramDropdown(
-                            modifier = Modifier.weight(1f).widthIn(min = 180.dp),
-                            label = "기록 기반 기간",
-                            selected = personalizedDurationOverride ?: 0,
-                            options = personalizedDurationOptions,
-                            optionLabel = { if (it == 0) "AUTO" else programWeekLabel(it) },
-                            onSelect = { personalizedDurationOverride = personalizedOverrideFromSelection(it) },
-                            enabled = !generationRunning
-                        )
-                        ProgramDropdown(
-                            modifier = Modifier.weight(1f).widthIn(min = 180.dp),
-                            label = "기록 기반 주당 일수",
-                            selected = personalizedDaysOverride ?: 0,
-                            options = personalizedWeeklyDayOptions,
-                            optionLabel = { if (it == 0) "AUTO" else stringResource(R.string.program_days_per_week, it) },
-                            onSelect = { personalizedDaysOverride = personalizedOverrideFromSelection(it) },
-                            enabled = !generationRunning
-                        )
-                    }
-                    Text(
-                        text = "기록 기반 생성은 AUTO 또는 위의 명시값을 사용합니다. 하루 운동시간은 공통 설정을 사용하고, 배드민턴:근력 비율은 기록 기반 생성에 사용하지 않습니다.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Button(
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !generationRunning,
-                        onClick = { preparePersonalized() }
-                    ) {
-                        Text(if (personalizedSkeletonCreated) "기록 기반 알고리듬 프로그램 다시 만들기" else "기록 기반 알고리듬 프로그램 만들기")
-                    }
-                    Text(
-                        text = "12주 균형형 운동 프로그램",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    ProgramOptionRow {
-                        ProgramDropdown(
-                            modifier = Modifier.weight(1f).widthIn(min = 180.dp),
-                            label = "주당 운동일수",
-                            selected = v22Days,
-                            options = (1..7).toList(),
-                            optionLabel = { stringResource(R.string.program_days_per_week, it) },
-                            onSelect = { v22Days = it },
-                            enabled = !generationRunning
-                        )
-                    }
-                    if (v22Days == 3) {
                         ProgramOptionRow {
                             ProgramDropdown(
                                 modifier = Modifier.weight(1f).widthIn(min = 180.dp),
-                                label = "B 최대 운동일수",
-                                selected = bAllowFourthDay,
-                                options = listOf(true, false),
-                                optionLabel = { if (it) "필요하면 4일로 분산" else "3일 고정" },
-                                onSelect = { bAllowFourthDay = it },
+                                label = "주당 운동일수",
+                                selected = v22Days,
+                                options = (1..7).toList(),
+                                optionLabel = { stringResource(R.string.program_days_per_week, it) },
+                                onSelect = { v22Days = it },
+                                enabled = !generationRunning
+                            )
+                            ProgramDropdown(
+                                modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                                label = "하루 운동시간",
+                                selected = v22SessionMinutes,
+                                options = listOf(30, 45, 60),
+                                optionLabel = { stringResource(R.string.program_minutes, it) },
+                                onSelect = { v22SessionMinutes = it },
                                 enabled = !generationRunning
                             )
                         }
-                    }
-                    ProgramOptionRow {
-                        ProgramDropdown(
-                            modifier = Modifier.weight(1f).widthIn(min = 180.dp),
-                            label = "근력 중요도",
-                            selected = bStrengthImportance,
-                            options = (0..5).toList(),
-                            optionLabel = { if (it == 0) "기록 추천" else "$it / 5" },
-                            onSelect = { bStrengthImportance = it },
-                            enabled = !generationRunning
+                        if (v22Days == 3) {
+                            ProgramOptionRow {
+                                ProgramDropdown(
+                                    modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                                    label = "최대 운동일수",
+                                    selected = bAllowFourthDay,
+                                    options = listOf(true, false),
+                                    optionLabel = { if (it) "필요하면 4일로 분산" else "3일 고정" },
+                                    onSelect = { bAllowFourthDay = it },
+                                    enabled = !generationRunning
+                                )
+                            }
+                        }
+                        ProgramOptionRow {
+                            ProgramDropdown(
+                                modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                                label = "근력 중요도",
+                                selected = bStrengthImportance,
+                                options = (0..5).toList(),
+                                optionLabel = { if (it == 0) "기록 추천" else "$it / 5" },
+                                onSelect = { bStrengthImportance = it },
+                                enabled = !generationRunning
+                            )
+                            ProgramDropdown(
+                                modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                                label = "근비대 중요도",
+                                selected = bHypertrophyImportance,
+                                options = (0..5).toList(),
+                                optionLabel = { if (it == 0) "기록 추천" else "$it / 5" },
+                                onSelect = { bHypertrophyImportance = it },
+                                enabled = !generationRunning
+                            )
+                        }
+                        ProgramOptionRow {
+                            ProgramDropdown(
+                                modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                                label = "코어 중요도",
+                                selected = bCoreImportance,
+                                options = (0..5).toList(),
+                                optionLabel = { if (it == 0) "기록 추천" else "$it / 5" },
+                                onSelect = { bCoreImportance = it },
+                                enabled = !generationRunning
+                            )
+                            ProgramDropdown(
+                                modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                                label = "스포츠 보조 중요도",
+                                selected = bSportImportance,
+                                options = (0..5).toList(),
+                                optionLabel = { if (it == 0) "기록 추천" else "$it / 5" },
+                                onSelect = { bSportImportance = it },
+                                enabled = !generationRunning
+                            )
+                        }
+                        Text(
+                            text = "12주 고정 · 중요도 0은 기록 추천입니다. 4일 분산은 필요할 때만 적용하고, 삭제 후보는 감사 정보로만 기록합니다.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        ProgramDropdown(
-                            modifier = Modifier.weight(1f).widthIn(min = 180.dp),
-                            label = "근비대 중요도",
-                            selected = bHypertrophyImportance,
-                            options = (0..5).toList(),
-                            optionLabel = { if (it == 0) "기록 추천" else "$it / 5" },
-                            onSelect = { bHypertrophyImportance = it },
-                            enabled = !generationRunning
-                        )
-                    }
-                    ProgramOptionRow {
-                        ProgramDropdown(
-                            modifier = Modifier.weight(1f).widthIn(min = 180.dp),
-                            label = "코어 중요도",
-                            selected = bCoreImportance,
-                            options = (0..5).toList(),
-                            optionLabel = { if (it == 0) "기록 추천" else "$it / 5" },
-                            onSelect = { bCoreImportance = it },
-                            enabled = !generationRunning
-                        )
-                        ProgramDropdown(
-                            modifier = Modifier.weight(1f).widthIn(min = 180.dp),
-                            label = "스포츠 보조 중요도",
-                            selected = bSportImportance,
-                            options = (0..5).toList(),
-                            optionLabel = { if (it == 0) "기록 추천" else "$it / 5" },
-                            onSelect = { bSportImportance = it },
-                            enabled = !generationRunning
-                        )
-                    }
-                    Text(
-                        text = "12주 고정 · 중요도 0은 기록 추천입니다. 4일 분산은 필요할 때만 적용하고, 삭제 후보는 감사 정보로만 기록합니다.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Button(
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !generationRunning,
-                        onClick = { generateV22() }
-                    ) {
-                        Text(if (v22SkeletonCreated) "12주 균형형 프로그램 다시 만들기" else "12주 균형형 프로그램 만들기")
-                    }
+                        Button(
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !generationRunning,
+                            onClick = { generateV22() }
+                        ) {
+                            Text(if (v22SkeletonCreated) "12주 균형형 프로그램 다시 만들기" else "12주 균형형 프로그램 만들기")
+                        }
                     } else {
                         Text(
                             text = "기존 구성은 아래 목록에서 수정합니다.",
@@ -764,16 +583,12 @@ private fun ProgramEditorScreen(
                 }
             }
         }
-        if ((lastGenerationWasPersonalized || lastGenerationWasV22) &&
-            buildProgress !is ProgramBuildProgressState.Idle &&
-            !(lastGenerationWasPersonalized && buildProgress is ProgramBuildProgressState.Running)) {
+        if (lastGenerationWasV22 && buildProgress !is ProgramBuildProgressState.Idle) {
             item {
                 ProgramBuildProgressCard(
                     progress = buildProgress,
                     onRetry = {
-                        if (lastGenerationWasPersonalized) personalizedRetry.retry(::preparePersonalized) {
-                            runPreparedPersonalized(it.preflight, it.answers.values)
-                        } else if (lastGenerationWasV22) generateV22()
+                        generateV22()
                     }
                 )
             }
@@ -797,7 +612,7 @@ private fun ProgramEditorScreen(
         if (personalizedDraft == null) item {
             InfoCard(
                 if (program == null) {
-                    "빈 프로그램으로 시작하거나 기록 기반 프로그램을 만들면 미리보기와 수정 항목이 표시됩니다."
+                    "12주 균형형 프로그램을 만들면 저장 전 미리보기와 수정 항목이 표시됩니다."
                 } else {
                     "아직 저장된 운동 구성이 없습니다."
                 }
@@ -817,17 +632,12 @@ private fun ProgramEditorScreen(
                     onClick = {
                         if (!requireProgramName()) return@Button
                         val current = personalizedDraft ?: return@Button
-                        val request = currentRequest()
-                        val savedRequest = if (lastGenerationWasPersonalized || lastGenerationWasV22) {
-                            current.request.copy(name = request.name)
-                        } else {
-                            request
-                        }
+                        val name = normalizedProgramName()
                         viewModel.saveGeneratedProgram(
                             existingProgramId = program?.id,
                             skeleton = current.copy(
-                                suggestedName = request.name,
-                                request = savedRequest
+                                suggestedName = name,
+                                request = current.request.copy(name = name)
                             ),
                             onSaved = onSaved
                         )
