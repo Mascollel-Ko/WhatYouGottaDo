@@ -25,7 +25,7 @@ jobs:
         run: python scripts/validate_protocol_docs.py
 
       - name: Run Community and Cloud contract tests
-        run: node --test tests/community_sharing.test.mjs tests/cloud_backup_current.test.mjs
+        run: node --test tests/community_sharing.test.mjs tests/cloud_backup_current.test.mjs tests/watch_p0_release_isolation.test.mjs
 
       - name: Check whitespace errors
         run: git diff --check
@@ -114,6 +114,9 @@ jobs:
           GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
           SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
         run: ./gradlew testDebugUnitTest -Pgoogle.webClientId="$GOOGLE_WEB_CLIENT_ID" -Psupabase.publishableKey="$SUPABASE_PUBLISHABLE_KEY"
+
+      - name: Compile release Kotlin (P0 release isolation)
+        run: ./gradlew :app:compileReleaseKotlin
 
       - name: Upload production coverage and unit test reports
         if: always()
