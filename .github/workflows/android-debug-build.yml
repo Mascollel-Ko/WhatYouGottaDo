@@ -115,6 +115,9 @@ jobs:
           SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
         run: ./gradlew testDebugUnitTest -Pgoogle.webClientId="$GOOGLE_WEB_CLIENT_ID" -Psupabase.publishableKey="$SUPABASE_PUBLISHABLE_KEY"
 
+      - name: Compile release Kotlin (P0 release isolation)
+        run: ./gradlew :app:compileReleaseKotlin
+
       - name: Upload production coverage and unit test reports
         if: always()
         uses: actions/upload-artifact@v4
