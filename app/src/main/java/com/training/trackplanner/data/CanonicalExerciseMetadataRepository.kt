@@ -208,6 +208,18 @@ class CanonicalExerciseMetadataRepository(private val context: Context) {
         coefficientField = "coefficient"
     )
 
+    private val muscleRoleIndex: CanonicalMuscleRoleResolver by lazy {
+        CanonicalMuscleRoleResolver(
+            selectableStableKeys = selectableIdentities().mapTo(mutableSetOf()) { it.stableKey },
+            historyOnlyStableKeys = identities().filter(CanonicalExerciseIdentity::historyOnly)
+                .mapTo(mutableSetOf()) { it.stableKey },
+            relations = muscleRelations()
+        )
+    }
+
+    /** MUS-00: opt-in read-only gateway. No existing consumer is changed. */
+    fun muscleRoleResolver(): CanonicalMuscleRoleResolver = muscleRoleIndex
+
     fun ofiRelations(): List<CanonicalMetadataRelation> = canonicalRelations(
         assetName = "ofi_relations.csv",
         domain = CanonicalRelationDomain.OFI,
