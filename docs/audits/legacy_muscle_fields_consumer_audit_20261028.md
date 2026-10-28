@@ -3,7 +3,7 @@
 - 점검일: 2026-10-28 (Asia/Seoul)
 - 기준: `main` @ `18b5630e35cf76791037d65855880b8942c1a931`
 - 범위: `Exercise.primaryMuscles`/`secondaryMuscles` (1번 레거시)와 `muscle_relations.csv` (2번 정식 근육 관계표)의 **근육 역할 정보**에 한정. 운동 목적/OFI/조직 프로파일 전체 교체 작업이 아님.
-- [추적용 CSV](legacy_muscle_fields_migration_queue_20261028.csv): 총 **38개** 경로/검증 항목. `MUS-xx` = 마이그레이션/검증, `CMP-xx` = 호환 유지, `CAN-xx` = 이미 정식 사용. **모두 `NOT_STARTED`**.
+- [추적용 CSV](legacy_muscle_fields_migration_queue_20261028.csv): 총 **38개** 경로/검증 항목. `MUS-xx` = 마이그레이션/검증, `CMP-xx` = 호환 유지, `CAN-xx` = 이미 정식 사용. MUS-00은 `IMPLEMENTED_CI_PENDING`, 나머지는 `NOT_STARTED`.
 - **이번 커밋은 문서만 추가한다. 실행 코드, 메타데이터, DB, 백업 포맷은 전혀 변경하지 않는다.**
 
 ## 판정 원칙
@@ -90,3 +90,14 @@
 ## 선행 자료
 - `docs/audits/canonical_muscle_762_workbook_review_20261019.md`: 역할 제안의 잠정성, 중복된 bootstrap 근육 문자열, 데이터 보전 주의사항.
 - `docs/audits/metadata_existing_owner_capability_audit.md`: 기존 권위 매핑; 옛 문자열을 `KEEP_AS_CANONICAL_METADATA`로 분류한 행은 신규 6역할 관계표의 우선 소비 권위를 보장한다는 뜻이 아님.
+
+## MUS-00 구현 추적 (2026-10-28)
+
+- 구현 커밋: [`1b554df29e930dbfaf04694a8b51bd1227108f05`](https://github.com/Mascollel-Ko/WhatYouGottaDo/commit/1b554df29e930dbfaf04694a8b51bd1227108f05)
+- 구현 파일: `app/src/main/java/com/training/trackplanner/data/CanonicalMuscleRoleResolver.kt`; 저장소 통합: `CanonicalExerciseMetadataRepository.muscleRoleResolver()`.
+- 새 테스트: `app/src/test/java/com/training/trackplanner/data/CanonicalMuscleRoleResolverTest.kt` (6 cases: 벤치 역할 구분, 스쿼트 안정화, 히스토리/사용자/알 수 없는 운동, override 경고, 관계 없는 정식 운동, 잘못된 관계 거부).
+- 자동화: [Android Debug Build #40659366770](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/40659366770) **실행 중**. 통과 전에는 DONE 아님.
+- 이 단계는 read-only opt-in API뿐이며 화면, 기존 운동량/피로도 계산, Room, 운동 기록, 백업, 생성 알고리즘을 변경하지 않음.
+- *중요*: 기존 필드의 사용자 override는 조회 API의 명시적 `legacyMuscleOverridePresent` 신호를 호출자가 전달해야 감지 가능하다. 기존 사용자 override 자동 판정·병합은 MUS-13/14이며 이 단계에서 구현하지 않았다.
+- 이 환경에는 Android SDK/Gradle 실행 구성이 없어 **로컬 Android Gradle 테스트와 APK 빌드 결과는 없음**. CI 결과는 별도로 검증해야 한다.
+

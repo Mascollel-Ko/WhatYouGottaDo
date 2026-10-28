@@ -1,5 +1,5 @@
 id,phase,disposition,file,line_reference,confirmed_usage,target,status,implementation_sha,validation
-MUS-00,P0,ADD,app/src/main/java/com/training/trackplanner/data/CanonicalExerciseMetadataRepository.kt,202-209;615-638,stableKey별 정식 근육 역할 조회 계층 추가,canonical muscles; custom/override/history policy,NOT_STARTED,,
+MUS-00,P0,ADD,app/src/main/java/com/training/trackplanner/data/CanonicalExerciseMetadataRepository.kt,202-209;615-638,stableKey별 정식 근육 역할 조회 계층 추가,canonical muscles; custom/override/history policy,IMPLEMENTED_CI_PENDING,1b554df29e930dbfaf04694a8b51bd1227108f05,CI_RUN_40659366770; six Robolectric tests added; no local Android SDK
 MUS-01,P1,REPLACE,app/src/main/java/com/training/trackplanner/CommonUi.kt,549-555,상세 주동근/보조근에 옛 문자열 사용,six canonical roles; stabilizer display,NOT_STARTED,,
 MUS-02,P1,REPLACE,app/src/main/java/com/training/trackplanner/CommonUi.kt,352-373,영어 카드 요약에 옛 문자열 사용,canonical localized display,NOT_STARTED,,
 MUS-03,P2,REPLACE,app/src/main/java/com/training/trackplanner/CommonUi.kt,657-671,운동 검색이 옛 근육 문자열 사용,canonical searchable codes and user custom fallback,NOT_STARTED,,
