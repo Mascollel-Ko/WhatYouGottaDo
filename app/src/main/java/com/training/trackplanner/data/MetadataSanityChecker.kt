@@ -34,7 +34,10 @@ data class MetadataSanityReport(
 )
 
 object MetadataSanityChecker {
-    fun check(exercise: Exercise): MetadataSanityCheckResult {
+    fun check(
+        exercise: Exercise,
+        canonicalMuscleRoles: CanonicalMuscleRoleResolver? = null
+    ): MetadataSanityCheckResult {
         val issues = mutableListOf<MetadataSanityIssue>()
         exercise.weightFields().forEach { (field, value) ->
             if (value !in 0.0..1.0) {
@@ -60,10 +63,24 @@ object MetadataSanityChecker {
         val isRecovery = exercise.movementCategory == MovementCategory.RECOVERY.name
         val isTest = exercise.movementCategory == MovementCategory.TEST.name
 
-        exercise.requiredMetadataFields().forEach { (field, value) ->
+        // For built-ins, only verified stableKey muscle relations are authoritative.
+        val canonical = canonicalMuscleRoles?.lookup(exercise)
+        exercise.requiredMetadataFields()
+            .filterNot { (field, _) ->
+                field == "primaryMuscles" && canonical != null && !exercise.isCustom
+            }.forEach { (field, value) ->
             if (value.isBlank()) {
                 issues += exercise.review(field, "required analysis metadata field is blank")
             }
+        }
+
+        if (canonical != null && !exercise.isCustom &&
+            canonical.kind != CanonicalMuscleLookupKind.SELECTABLE_WITH_RELATIONS
+        ) {
+            issues += exercise.review(
+                "muscleRelations",
+                "built-in exercise lacks selectable canonical muscle relations"
+            )
         }
 
         if ("REACTIVE" in movementCategories && exercise.neuralSpeedWeight <= 0.0) {
@@ -197,8 +214,11 @@ object MetadataSanityChecker {
         )
     }
 
-    fun checkAll(exercises: List<Exercise>): MetadataSanityReport {
-        val results = exercises.map(::check)
+    fun checkAll(
+        exercises: List<Exercise>,
+        canonicalMuscleRoles: CanonicalMuscleRoleResolver? = null
+    ): MetadataSanityReport {
+        val results = exercises.map { check(it, canonicalMuscleRoles) }
         val issues = results.flatMap { result -> result.issues }
         val needsReviewNames = exercises
             .filter { exercise ->

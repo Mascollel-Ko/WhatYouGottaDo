@@ -145,11 +145,21 @@ internal fun RuntimeMetadataExerciseEditorDialog(
                     }
                     item {
                         MetadataEditorSection("3. 동작 분류") {
-                            MetadataMultiSelectField("주동근", splitExerciseTokens(exercise.primaryMuscles), ExerciseTaxonomy.muscles.sorted(), "exercise.primaryMuscles") {
-                                exercise = exercise.copy(primaryMuscles = joinExerciseTokens(it))
-                            }
-                            MetadataMultiSelectField("보조근", splitExerciseTokens(exercise.secondaryMuscles), ExerciseTaxonomy.muscles.sorted(), "exercise.secondaryMuscles") {
-                                exercise = exercise.copy(secondaryMuscles = joinExerciseTokens(it))
+                            if (exercise.isCustom || exercise.stableKey.isBlank()) {
+                                // Temporary compatibility editor for user-created exercises.
+                                // Final typed import must preserve these user-owned records.
+                                MetadataMultiSelectField("주동근", splitExerciseTokens(exercise.primaryMuscles), ExerciseTaxonomy.muscles.sorted(), "exercise.primaryMuscles") {
+                                    exercise = exercise.copy(primaryMuscles = joinExerciseTokens(it))
+                                }
+                                MetadataMultiSelectField("보조근", splitExerciseTokens(exercise.secondaryMuscles), ExerciseTaxonomy.muscles.sorted(), "exercise.secondaryMuscles") {
+                                    exercise = exercise.copy(secondaryMuscles = joinExerciseTokens(it))
+                                }
+                            } else {
+                                MaterialText(
+                                    "기본 운동의 근육 역할은 stableKey에 연결된 정식 메타데이터를 사용합니다. 주동근·보조근을 옛 형식으로 수정하지 않습니다.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                             MetadataMultiSelectField("장비", splitExerciseTokens(exercise.equipment.ifBlank { exercise.equipmentTags }), ExerciseTaxonomy.equipment.sorted(), "exercise.equipment") {
                                 exercise = exercise.copy(equipment = joinExerciseTokens(it), equipmentTags = joinExerciseTokens(it))

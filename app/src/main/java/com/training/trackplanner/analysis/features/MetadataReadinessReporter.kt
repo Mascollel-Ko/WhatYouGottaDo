@@ -1,5 +1,7 @@
 package com.training.trackplanner.analysis.features
 
+import com.training.trackplanner.data.CanonicalMuscleLookupKind
+import com.training.trackplanner.data.CanonicalMuscleRoleResolver
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.MetadataSanityChecker
 
@@ -41,11 +43,14 @@ enum class ReadinessStatus {
 }
 
 object MetadataReadinessReporter {
-    fun generate(exercises: List<Exercise>): MetadataAnalysisReadinessReport {
-        val sanityReport = MetadataSanityChecker.checkAll(exercises)
+    fun generate(
+        exercises: List<Exercise>,
+        canonicalMuscleRoles: CanonicalMuscleRoleResolver? = null
+    ): MetadataAnalysisReadinessReport {
+        val sanityReport = MetadataSanityChecker.checkAll(exercises, canonicalMuscleRoles)
         val sanityByName = sanityReport.issues.groupBy { issue -> issue.exerciseName }
         val rows = exercises.map { exercise ->
-            val missingFields = exercise.missingAnalysisFields()
+            val missingFields = exercise.missingAnalysisFields(canonicalMuscleRoles)
             val suspicious = sanityByName[exercise.name]
                 ?.map { issue -> "${issue.field}: ${issue.message}" }
                 .orEmpty()
@@ -178,7 +183,9 @@ object MetadataReadinessReporter {
         else -> ReadinessStatus.YES
     }
 
-    private fun Exercise.missingAnalysisFields(): List<String> =
+    private fun Exercise.missingAnalysisFields(
+        canonicalMuscleRoles: CanonicalMuscleRoleResolver?
+    ): List<String> =
         listOf(
             "movementPattern" to movementPattern,
             "movementCategory" to movementCategory,
@@ -204,8 +211,13 @@ object MetadataReadinessReporter {
             "stabilityDemandLevel" to stabilityDemandLevel,
             "mobilityDemandLevel" to mobilityDemandLevel,
             "analysisEligibility" to analysisEligibility
-        ).filter { (_, value) -> value.isBlank() }
-            .map { (field, _) -> field }
+        ).filter { (field, value) ->
+            value.isBlank() && !(field == "primaryMuscles" &&
+                canonicalMuscleRoles != null && !isCustom)
+        }.map { (field, _) -> field } +
+            if (canonicalMuscleRoles != null && !isCustom &&
+                canonicalMuscleRoles.lookup(this).kind != CanonicalMuscleLookupKind.SELECTABLE_WITH_RELATIONS
+            ) listOf("muscleRelations") else emptyList()
 
     private fun String.splitTokens(): Set<String> =
         split(',', '|', '/', ';')

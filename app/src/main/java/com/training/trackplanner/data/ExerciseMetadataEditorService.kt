@@ -92,7 +92,11 @@ internal class ExerciseMetadataEditorService(
             return@withTransaction savedExercise.stableKey
         }
 
+        // Built-in muscle roles are canonical by stableKey, never user-edited
+        // through the retired legacy primary/secondary editor.
         val submittedExercise = data.exercise.copy(
+            primaryMuscles = canonical.primaryMuscles,
+            secondaryMuscles = canonical.secondaryMuscles,
             stableKey = canonical.stableKey,
             name = canonical.name,
             isCustom = false,

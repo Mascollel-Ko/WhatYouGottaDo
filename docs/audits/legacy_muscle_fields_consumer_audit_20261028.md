@@ -154,3 +154,11 @@
 - The resolver is wired into `PerformanceTrendSummaryService` (fatigue trend), `DailyReadinessInputService` / `TodayReadinessEngine` (home status), and `PersonalizedProgramPlanningService` (planning recovery). No UI layout or DB schema changes.
 - Custom exercises remain on the explicit legacy data path pending one-time migration. History-only and unknown keys receive no inferred muscle roles. Default no-lookup overloads remain solely for existing isolated consumer/tests until final clean-up.
 - New cases: back squat, bench, deadlift, unknown/custom keys, no unexpected change to systemic fatigue; full CI pending.
+
+## MUS-05/10/11/15 interim editor and validator switch — 2026-10-29
+
+- Built-in muscle fields are now READ-ONLY in the metadata editor. Do not accept new primary/secondary muscle edits or same-key copy of legacy muscle columns. The `stableKey` selects canonical roles. The existing read-only exercise information dialog already presents canonical role groups.
+- New/custom exercises retain the old token editor as a **temporary** compatibility route until typed custom muscle relation storage and one-time backup conversion are implemented. This is not final legacy deletion.
+- `MetadataSanityChecker` and `MetadataReadinessReporter` accept an opt-in canonical role resolver, stop requiring the legacy `primaryMuscles` field for built-in exercises, and explicitly flag built-in keys without canonical relations. Existing no-resolver tests retain prior contract until call sites are converted.
+- Copying exercise metadata to an existing built-in cannot change its primary or secondary legacy columns; copying to a new custom exercise still preserves fields. The canonical role resolver, DB, and back-up data are not mutated by these UI changes.
+- Hosted CI pending. One-time backup migration, typed custom relation editor, and stored legacy column removal have NOT been implemented yet.
