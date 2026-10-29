@@ -477,4 +477,8 @@
     <string name="cold_start_choose_weight">Choose weight</string>
     <string name="cold_start_choose_weight_compact">Choose</string>
     <string name="cold_start_strength_guidance">No prior load is available for this exercise. Start with a comfortable load around RPE 6–7.</string>
+    <string name="home_build_ci_timestamp">Installed build started: %1$s (KST)</string>
+    <string name="home_build_commit_timestamp">Installed code committed: %1$s (KST)</string>
+    <string name="home_build_timestamp_unknown">Build time unavailable</string>
+    <string name="home_build_version_revision">v%1$s · %2$s</string>
 </resources>

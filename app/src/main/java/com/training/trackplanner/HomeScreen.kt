@@ -73,7 +73,10 @@ import com.training.trackplanner.localization.AppLanguageRegistry
 import com.training.trackplanner.localization.LocalizedPresentation
 import com.training.trackplanner.localization.localizedUiText
 import java.time.LocalDate
+import java.time.OffsetDateTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @Composable
 internal fun HomeScreen(
@@ -197,6 +200,9 @@ internal fun HomeScreen(
                 onOpen = { showInitialProfile = true }
             )
         }
+        item(key = "installed-build-provenance") {
+            HomeBuildProvenanceFooter()
+        }
     }
 
     if (showInitialProfile) {
@@ -262,6 +268,54 @@ internal fun HomeScreen(
         onCancel = viewModel::cancelPreparedRecordsRestore
     )
 }
+
+/**
+ * This footer identifies the installed APK. It never claims that the newest
+ * GitHub revision is installed or that an update has been downloaded.
+ */
+@Composable
+internal fun HomeBuildProvenanceFooter() {
+    val timestamp = remember(BuildConfig.BUILD_TIMESTAMP_UTC) {
+        formatBuildTimestampKst(BuildConfig.BUILD_TIMESTAMP_UTC)
+    }
+    val revision = remember(BuildConfig.GIT_COMMIT_SHA) {
+        BuildConfig.GIT_COMMIT_SHA.takeIf { sha ->
+            sha.length >= 8 && sha.take(8).all { c -> c in '0'..'9' || c in 'a'..'f' || c in 'A'..'F' }
+        }?.take(8) ?: "—"
+    }
+    val isCi = BuildConfig.BUILD_TIMESTAMP_SOURCE == "CI_START"
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Text(
+            text = timestamp?.let {
+                stringResource(
+                    if (isCi) R.string.home_build_ci_timestamp else R.string.home_build_commit_timestamp,
+                    it
+                )
+            } ?: stringResource(R.string.home_build_timestamp_unknown),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Text(
+            text = stringResource(R.string.home_build_version_revision, BuildConfig.VERSION_NAME, revision),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+/** ISO-8601 UTC or offset commit time -> fixed KST, independent of device timezone. */
+internal fun formatBuildTimestampKst(value: String): String? = runCatching {
+    OffsetDateTime.parse(value).atZoneSameInstant(ZoneId.of("Asia/Seoul"))
+        .format(DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm", Locale.KOREA))
+}.getOrNull()
 
 @Composable
 internal fun AppLanguageSelector(modifier: Modifier = Modifier) {

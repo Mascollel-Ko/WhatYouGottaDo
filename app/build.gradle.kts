@@ -41,6 +41,19 @@ val gitCommitSha = providers.environmentVariable("GITHUB_SHA").orNull
     }.getOrNull()?.takeIf { it.isNotEmpty() }
     ?: "unknown"
 
+// CI build-start time is stamped into this particular APK. Local builds fall
+// back to the checked-out commit timestamp; neither is the remote HEAD time.
+val ciBuildStartUtc = providers.environmentVariable("APP_BUILD_TIMESTAMP_UTC").orNull
+    ?.trim()
+    ?.takeIf { it.matches(Regex("[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z")) }
+val sourceCommitTime = if (ciBuildStartUtc == null) runCatching {
+    providers.exec {
+        commandLine("git", "show", "-s", "--format=%cI", "HEAD")
+    }.standardOutput.asText.get().trim()
+}.getOrNull().orEmpty() else ""
+val provenanceTimestamp = ciBuildStartUtc ?: sourceCommitTime
+val provenanceTimeSource = if (ciBuildStartUtc != null) "CI_START" else "COMMIT"
+
 android {
     namespace = "com.training.trackplanner"
     compileSdk = 36
@@ -54,6 +67,8 @@ android {
         versionName = "0.5.1.5"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "GIT_COMMIT_SHA", "\"$gitCommitSha\"")
+        buildConfigField("String", "BUILD_TIMESTAMP_UTC", quoteBuildConfig(provenanceTimestamp))
+        buildConfigField("String", "BUILD_TIMESTAMP_SOURCE", quoteBuildConfig(provenanceTimeSource))
         buildConfigField("String", "SUPABASE_URL", quoteBuildConfig(
             cloudBuildProperty("supabase.url", "https://yiruprqpkptjuhtknvur.supabase.co")
         ))
