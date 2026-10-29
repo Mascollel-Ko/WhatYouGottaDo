@@ -27,6 +27,10 @@ import com.training.trackplanner.data.DataTransferReport
 import com.training.trackplanner.data.DataTransferStage
 import com.training.trackplanner.data.DataTransferStages
 import com.training.trackplanner.data.DataTransferStatus
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
+import com.training.trackplanner.data.CanonicalExerciseMetadataRepository
+import com.training.trackplanner.data.EffectiveMuscleMetadataResolver
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.RuntimeExerciseMetadataDefaults
 import com.training.trackplanner.data.TrainingProgram
@@ -246,18 +250,24 @@ class LocalizedPresentationUiTest {
             equipmentTags = "DUMBBELL",
             mode = "WEIGHT_REPS"
         )
+        val repository = CanonicalExerciseMetadataRepository(
+            ApplicationProvider.getApplicationContext<Context>()
+        )
+        val muscle = EffectiveMuscleMetadataResolver(repository.muscleRoleResolver())
+            .resolve(exercise, emptyList())
         compose.setContent {
             TrainingTrackPlannerTheme {
                 ExerciseInfoDialog(
                     exercise = exercise,
                     metadata = RuntimeExerciseMetadataDefaults.forExercise(exercise),
+                    muscleMetadata = muscle,
                     onDismiss = {}
                 )
             }
         }
 
         compose.onNodeWithText("EZ-Bar Curl").assertIsDisplayed()
-        compose.onNodeWithText("Strength training / Lat / Triceps").assertExists()
+        compose.onNodeWithText("Strength training / Biceps / Forearm grip").assertExists()
         listOf("LAT", "TRICEPS", "DUMBBELL", "근력운동", "덤벨", "광배근")
             .forEach { compose.onAllNodesWithText(it).assertCountEquals(0) }
         listOf("상완요골근", "전완근", "이두근").forEach { source ->

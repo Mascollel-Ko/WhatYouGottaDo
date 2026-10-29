@@ -840,6 +840,7 @@ private fun ProgramDetailScreen(
     }.collectAsState(initial = emptyList())
     val exercises by viewModel.exercises.collectAsState()
     val runtimeMetadata by viewModel.exerciseRuntimeMetadata.collectAsState()
+    val muscleMetadataByKey by viewModel.exerciseMuscleMetadata.collectAsState()
     var infoExerciseKey by rememberSaveable { mutableStateOf<String?>(null) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     val groupedKeys = remember(items) {
@@ -853,6 +854,7 @@ private fun ProgramDetailScreen(
             ExerciseInfoDialog(
                 exercise = exercise,
                 metadata = runtimeMetadata[stableKey],
+                muscleMetadata = muscleMetadataByKey[stableKey],
                 onEditMetadata = null,
                 onDismiss = { infoExerciseKey = null }
             )

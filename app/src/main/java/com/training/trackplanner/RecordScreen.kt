@@ -67,6 +67,7 @@ internal fun RecordScreen(
     onWorkoutTargetPositioned: (Rect) -> Unit = {}
 ) {
     val exercises by viewModel.exercises.collectAsState()
+    val muscleMetadataByKey by viewModel.exerciseMuscleMetadata.collectAsState()
     val programLinks by viewModel.programWorkoutLinks.collectAsState(emptyList())
     val progressionSuggestions by viewModel.progressionSuggestions.collectAsState(emptyList())
     val programPrescriptions by viewModel.programPrescriptions.collectAsState(emptyList())
@@ -346,6 +347,7 @@ internal fun RecordScreen(
                     selectedDate = selectedDate,
                     entryWithSets = entryWithSets,
                     exercise = exerciseMap[entryWithSets.entry.exerciseStableKey],
+                    muscleMetadata = muscleMetadataByKey[entryWithSets.entry.exerciseStableKey],
                     highlighted = highlightedEntryId == entryId ||
                         (draggedEntryId != null && dragTargetEntryId == entryId && !isDragging),
                     cardModifier = if (isDragging) {

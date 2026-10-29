@@ -1,5 +1,6 @@
 package com.training.trackplanner
 
+import com.training.trackplanner.data.EffectiveMuscleMetadata
 import com.training.trackplanner.data.program.legacy.LegacyAutoRequest
 import com.training.trackplanner.data.program.legacy.LegacyAutoSkeleton
 
@@ -231,6 +232,9 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     private val _exerciseRuntimeMetadata = MutableStateFlow<Map<String, RuntimeExerciseMetadata>>(emptyMap())
     val exerciseRuntimeMetadata: StateFlow<Map<String, RuntimeExerciseMetadata>> =
         _exerciseRuntimeMetadata.asStateFlow()
+    private val _exerciseMuscleMetadata = MutableStateFlow<Map<String, EffectiveMuscleMetadata>>(emptyMap())
+    val exerciseMuscleMetadata: StateFlow<Map<String, EffectiveMuscleMetadata>> =
+        _exerciseMuscleMetadata.asStateFlow()
 
     private val recordDerivedRefresh = RecordDerivedRefreshCoordinator(
         scope = viewModelScope,
@@ -977,6 +981,8 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
 
     private suspend fun refreshExerciseRuntimeMetadataInternal() {
         _exerciseRuntimeMetadata.value = repository.resolvedRuntimeMetadataByExerciseStableKey()
+        // Same lifecycle as the editor save/reset and initial seed reconciliation.
+        _exerciseMuscleMetadata.value = repository.resolvedMuscleMetadataByStableKey()
     }
 
     fun deleteExerciseIfUnused(exerciseStableKey: String, onResult: (Boolean) -> Unit) {

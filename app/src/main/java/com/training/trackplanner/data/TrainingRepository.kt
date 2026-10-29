@@ -1031,31 +1031,6 @@ class TrainingRepository internal constructor(
             exerciseMetadataEditorService.resolvedRuntimeMetadataByExerciseStableKey()
         }
 
-    private val effectiveMuscleMetadataResolver by lazy {
-        EffectiveMuscleMetadataResolver(canonicalMetadataRepository.muscleRoleResolver())
-    }
-
-    /** MUS-00.5: reads persisted muscle overrides before choosing canonical authority. */
-    suspend fun resolvedMuscleMetadata(stableKey: String): EffectiveMuscleMetadata? =
-        withContext(Dispatchers.IO) {
-            val exercise = exerciseDao.findByStableKey(stableKey) ?: return@withContext null
-            effectiveMuscleMetadataResolver.resolve(
-                exercise, exerciseMetadataUserOverrideDao.findByStableKey(stableKey)
-            )
-        }
-
-    /** One DAO scan for future list/search consumers; does not mutate saved records. */
-    suspend fun resolvedMuscleMetadataByStableKey(): Map<String, EffectiveMuscleMetadata> =
-        withContext(Dispatchers.IO) {
-            val overridesByKey = exerciseMetadataUserOverrideDao.all()
-                .groupBy(ExerciseMetadataUserOverrideEntity::stableKey)
-            exerciseDao.allExercises().associate { exercise ->
-                exercise.stableKey to effectiveMuscleMetadataResolver.resolve(
-                    exercise, overridesByKey[exercise.stableKey].orEmpty()
-                )
-            }
-        }
-
     private suspend fun repairCustomExerciseStableKeys() {
         exerciseDao.customExercisesWithBlankStableKey().forEach { exercise ->
             exerciseDao.updateExercise(

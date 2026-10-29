@@ -18,7 +18,15 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
+import com.training.trackplanner.data.CanonicalExerciseMetadataRepository
+import com.training.trackplanner.data.EffectiveMuscleMetadataResolver
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.ExerciseMetadataUserOverrideEntity
+import com.training.trackplanner.data.ExerciseMetadataFieldScope
+import com.training.trackplanner.data.ExerciseMetadataValueEncoding
+import com.training.trackplanner.data.ExerciseMetadataOverrideSource
 import com.training.trackplanner.data.ExerciseMetadataCopySource
 import com.training.trackplanner.data.ExerciseRuntimeMetadataEditorData
 import com.training.trackplanner.data.MetadataTokenField
@@ -229,10 +237,17 @@ class MetadataPresentationUiTest {
             equipment = "DUMBBELL",
             equipmentTags = "DUMBBELL"
         )
+        // This fixture has no canonical stableKey: exercise-local legacy data remains visible.
+        val repository = CanonicalExerciseMetadataRepository(
+            ApplicationProvider.getApplicationContext<Context>()
+        )
+        val muscle = EffectiveMuscleMetadataResolver(repository.muscleRoleResolver())
+            .resolve(exercise, emptyList())
         sizedContent {
             ExerciseInfoDialog(
                 exercise = exercise,
                 metadata = RuntimeExerciseMetadataDefaults.forExercise(exercise),
+                muscleMetadata = muscle,
                 onDismiss = {}
             )
         }
@@ -243,6 +258,61 @@ class MetadataPresentationUiTest {
         listOf("LAT", "TRICEPS", "DUMBBELL").forEach { rawCode ->
             compose.onAllNodes(hasText(rawCode, substring = true)).assertCountEquals(0)
         }
+    }
+
+
+    @Test
+    fun builtInMuscleRolesRemainReadableAt320DpWithoutLegacyMixing() {
+        val repository = CanonicalExerciseMetadataRepository(
+            ApplicationProvider.getApplicationContext<Context>()
+        )
+        val squat = repository.exercises().first { it.stableKey == "barbell_back_squat" }
+            .copy(primaryMuscles = "LAT", secondaryMuscles = "TRICEPS")
+        val muscle = EffectiveMuscleMetadataResolver(repository.muscleRoleResolver())
+            .resolve(squat, emptyList())
+        sizedContent {
+            ExerciseInfoDialog(
+                exercise = squat,
+                muscleMetadata = muscle,
+                metadata = RuntimeExerciseMetadataDefaults.forExercise(squat),
+                onDismiss = {}
+            )
+        }
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("안정화 근육"))
+        compose.onNodeWithText("안정화 근육").assertIsDisplayed()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("전면 코어", substring = true))
+        val bound = compose.onNodeWithText("전면 코어", substring = true)
+            .getUnclippedBoundsInRoot()
+        assertTrue("canonical muscle text extends beyond 320dp", bound.right <= 320.dp)
+        compose.onAllNodesWithText("광배근", substring = true).assertCountEquals(0)
+        compose.onAllNodesWithText("LAT", substring = true).assertCountEquals(0)
+        compose.onAllNodesWithText("TRICEPS", substring = true).assertCountEquals(0)
+    }
+
+    @Test
+    fun savedMuscleOverrideIsNotReplacedByCanonicalDisplay() {
+        val repository = CanonicalExerciseMetadataRepository(
+            ApplicationProvider.getApplicationContext<Context>()
+        )
+        val exercise = repository.exercises().first { it.stableKey == "barbell_bench_press" }
+        val row = ExerciseMetadataUserOverrideEntity(
+            stableKey = exercise.stableKey,
+            fieldScope = ExerciseMetadataFieldScope.EXERCISE.name,
+            fieldKey = "exercise.primaryMuscles",
+            valueEncoding = ExerciseMetadataValueEncoding.TOKEN_SET.name,
+            value = "",
+            isExplicitEmpty = true,
+            source = ExerciseMetadataOverrideSource.USER_EDIT.name,
+            semanticCanonicalRevisionAtEdit = "ui-test"
+        )
+        val muscle = EffectiveMuscleMetadataResolver(repository.muscleRoleResolver())
+            .resolve(exercise, listOf(row))
+        sizedContent {
+            ExerciseInfoDialog(exercise, onDismiss = {}, muscleMetadata = muscle)
+        }
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("사용 근육과 장비"))
+        compose.onAllNodesWithText("주동근").assertCountEquals(0)
+        compose.onAllNodesWithText("가슴 근육", substring = true).assertCountEquals(0)
     }
 
     @Test

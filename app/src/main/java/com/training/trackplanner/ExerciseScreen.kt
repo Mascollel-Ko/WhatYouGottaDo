@@ -35,6 +35,7 @@ import com.training.trackplanner.data.ExerciseRuntimeMetadataEditorData
 internal fun ExerciseScreen(viewModel: TrainingViewModel) {
     val exercises by viewModel.exercises.collectAsState()
     val runtimeMetadataById by viewModel.exerciseRuntimeMetadata.collectAsState()
+    val muscleMetadataByKey by viewModel.exerciseMuscleMetadata.collectAsState()
     var query by rememberSaveable { mutableStateOf("") }
     var selectedCategory by rememberSaveable { mutableStateOf("전체") }
     var selectedSubcategoryKey by rememberSaveable { mutableStateOf<String?>(null) }
@@ -127,6 +128,7 @@ internal fun ExerciseScreen(viewModel: TrainingViewModel) {
             exercise = exercise,
             onDismiss = { detailCandidate = null },
             metadata = runtimeMetadataById[exercise.stableKey],
+            muscleMetadata = muscleMetadataByKey[exercise.stableKey],
             onEditMetadata = {
                 detailCandidate = null
                 viewModel.loadExerciseEditor(exercise.stableKey) { editorData = it }

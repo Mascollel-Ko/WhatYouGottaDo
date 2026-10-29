@@ -43,6 +43,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.training.trackplanner.data.CanonicalMuscleRole
+import com.training.trackplanner.data.EffectiveMuscleMetadata
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.ExerciseImageAssetMapping
 import com.training.trackplanner.data.RuntimeExerciseMetadata
@@ -353,18 +355,18 @@ internal fun ExerciseListItem(
 }
 
 @Composable
-internal fun ExerciseDetailCard(exercise: Exercise) {
+internal fun ExerciseDetailCard(exercise: Exercise, muscleMetadata: EffectiveMuscleMetadata? = null) {
     val context = LocalContext.current
     val translator = rememberMetadataTranslator()
     val displayName = localizedExerciseName(exercise)
     val displayDescription = localizedExerciseDescription(exercise)
     val isEnglish = LocalConfiguration.current.locales[0].language == Locale.ENGLISH.language
+    val presenter = remember(context, isEnglish) { CanonicalMusclePresentation.from(context) }
+    val muscleFields = resolvedMuscleDisplayFields(muscleMetadata, presenter, translator, isEnglish)
     val summary = if (isEnglish && !exercise.isCustom) {
-        listOf(
-            localizedUiText(translator.translate("exercise.category", exercise.category).orEmpty()),
-            exercise.primaryMuscles.localizedTokens(translator, "exercise.primaryMuscles"),
-            exercise.secondaryMuscles.localizedTokens(translator, "exercise.secondaryMuscles")
-        )
+        listOf(localizedUiText(translator.translate("exercise.category", exercise.category).orEmpty())) +
+            muscleFields.filter { it.label in setOf("Primary muscles", "Secondary muscles") }
+                .map { it.value }
     } else {
         listOf(
             translator.translate("exercise.category", exercise.category).orEmpty(),
@@ -427,8 +429,11 @@ internal fun ExerciseDetailCard(exercise: Exercise) {
             )
             Text(
                 text = summary,
+                modifier = Modifier.fillMaxWidth(),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis
             )
             if (displayDescription.isNotBlank()) {
                 Text(
@@ -449,16 +454,20 @@ internal fun ExerciseInfoDialog(
     exercise: Exercise,
     onDismiss: () -> Unit,
     metadata: RuntimeExerciseMetadata? = null,
-    onEditMetadata: (() -> Unit)? = null
+    onEditMetadata: (() -> Unit)? = null,
+    muscleMetadata: EffectiveMuscleMetadata? = null
 ) {
     val translator = rememberMetadataTranslator()
+    val context = LocalContext.current
+    val isEnglish = LocalConfiguration.current.locales[0].language == Locale.ENGLISH.language
+    val presenter = remember(context, isEnglish) { CanonicalMusclePresentation.from(context) }
     val displayExercise = metadata
         ?.exerciseName
         ?.takeIf { name -> name.isNotBlank() }
         ?.let { name -> exercise.copy(name = name) }
         ?: exercise
-    val sections = remember(displayExercise, metadata, translator) {
-        displayExercise.infoSections(metadata, translator)
+    val sections = remember(displayExercise, metadata, muscleMetadata, translator, presenter, isEnglish) {
+        displayExercise.infoSections(metadata, muscleMetadata, translator, presenter, isEnglish)
     }
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -481,7 +490,7 @@ internal fun ExerciseInfoDialog(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 item {
-                    ExerciseDetailCard(displayExercise)
+                    ExerciseDetailCard(displayExercise, muscleMetadata)
                 }
                 items(sections, key = ExerciseInfoSection::title) { section ->
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -522,7 +531,10 @@ private data class ExerciseInfoField(
 
 private fun Exercise.infoSections(
     metadata: RuntimeExerciseMetadata?,
-    translator: MetadataTranslator
+    muscleMetadata: EffectiveMuscleMetadata?,
+    translator: MetadataTranslator,
+    presenter: CanonicalMusclePresentation,
+    isEnglish: Boolean
 ): List<ExerciseInfoSection> =
     listOf(
         ExerciseInfoSection(
@@ -548,11 +560,8 @@ private fun Exercise.infoSections(
         ),
         ExerciseInfoSection(
             title = "사용 근육과 장비",
-            fields = listOf(
-                ExerciseInfoField("주동근", primaryMuscles.localizedTokens(translator, "exercise.primaryMuscles")),
-                ExerciseInfoField("보조근", secondaryMuscles.localizedTokens(translator, "exercise.secondaryMuscles")),
+            fields = resolvedMuscleDisplayFields(muscleMetadata, presenter, translator, isEnglish) +
                 ExerciseInfoField("장비", equipment.ifBlank { equipmentTags }.localizedTokens(translator, "exercise.equipment"))
-            )
         ),
         ExerciseInfoSection(
             title = "프로그램 활용",
@@ -624,6 +633,44 @@ private fun Exercise.infoSections(
         val visibleFields = section.fields.filterNot { field -> field.value.isBlank() }
         section.copy(fields = visibleFields).takeIf { visibleFields.isNotEmpty() }
     }
+
+
+/**
+ * MUS-01/02: No built-in Exercise.primaryMuscles/secondaryMuscles read.
+ * The only legacy path is explicit, verified compatibility data from MUS-00.5.
+ * Labels and values remain in a full-width Column to avoid narrow label/value rows.
+ */
+private fun resolvedMuscleDisplayFields(
+    effective: EffectiveMuscleMetadata?,
+    presenter: CanonicalMusclePresentation,
+    translator: MetadataTranslator,
+    isEnglish: Boolean
+): List<ExerciseInfoField> {
+    if (effective == null) return emptyList() // No data yet; never guess that there are no muscles.
+    val primary = if (isEnglish) "Primary muscles" else "주동근"
+    val secondary = if (isEnglish) "Secondary muscles" else "보조근"
+    if (!effective.usesCanonicalRoles) {
+        val legacy = effective.legacy ?: return emptyList()
+        return listOf(
+            ExerciseInfoField(primary, legacy.primaryMuscles.localizedTokens(translator, "exercise.primaryMuscles")),
+            ExerciseInfoField(secondary, legacy.secondaryMuscles.localizedTokens(translator, "exercise.secondaryMuscles"))
+        ).filter { it.value.isNotBlank() }
+    }
+    val roles = listOf(
+        CanonicalMuscleRole.PRIMARY to primary,
+        CanonicalMuscleRole.SECONDARY to secondary,
+        CanonicalMuscleRole.STABILIZER to (if (isEnglish) "Stabilizing muscles" else "안정화 근육"),
+        CanonicalMuscleRole.GENERAL_PARTICIPATION to (if (isEnglish) "Participating muscles" else "일반 참여 근육")
+    )
+    return roles.mapNotNull { (role, label) ->
+        presenter.optionsForRole(effective, role)
+            .map(MetadataDisplayOption::label)
+            .filter(String::isNotBlank)
+            .joinToString(" · ")
+            .takeIf(String::isNotBlank)
+            ?.let { ExerciseInfoField(label, it) }
+    }
+}
 
 private fun String.localizedTokens(
     translator: MetadataTranslator,

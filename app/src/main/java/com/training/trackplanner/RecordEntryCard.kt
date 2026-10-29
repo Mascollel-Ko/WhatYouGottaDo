@@ -47,6 +47,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.data.ActivityKind
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.EffectiveMuscleMetadata
 import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.RecordSetEdit
@@ -63,6 +64,7 @@ internal fun WorkoutEntryCard(
     selectedDate: String,
     entryWithSets: WorkoutEntryWithSets,
     exercise: Exercise?,
+    muscleMetadata: EffectiveMuscleMetadata? = null,
     highlighted: Boolean = false,
     cardModifier: Modifier = Modifier,
     headerDragModifier: Modifier = Modifier,
@@ -112,6 +114,7 @@ internal fun WorkoutEntryCard(
     if (showExerciseInfo && exercise != null) {
         ExerciseInfoDialog(
             exercise = exercise,
+            muscleMetadata = muscleMetadata,
             onDismiss = { showExerciseInfo = false }
         )
     }
