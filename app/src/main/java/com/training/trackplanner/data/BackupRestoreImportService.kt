@@ -1,13 +1,13 @@
 package com.training.trackplanner.data
 
 import androidx.room.withTransaction
+import com.training.trackplanner.analysis.strengthperformance.StrengthPosteriorModel
+import com.training.trackplanner.analysis.strengthperformance.VersionedDoubleArrayCodec
+import com.training.trackplanner.analysis.strengthperformance.toPosterior
 
 private val LEGACY_BUILTIN_MUSCLE_FIELDS = setOf(
     "exercise.primaryMuscles", "exercise.secondaryMuscles"
 )
-import com.training.trackplanner.analysis.strengthperformance.StrengthPosteriorModel
-import com.training.trackplanner.analysis.strengthperformance.VersionedDoubleArrayCodec
-import com.training.trackplanner.analysis.strengthperformance.toPosterior
 
 internal class BackupRestoreImportService(
     private val db: TrainingDatabase,
