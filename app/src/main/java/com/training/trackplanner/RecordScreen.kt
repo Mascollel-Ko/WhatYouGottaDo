@@ -199,6 +199,7 @@ internal fun RecordScreen(
     if (showExercisePicker) {
         ExercisePickerDialog(
             exercises = exercises.filter { exercise -> exercise.isActive },
+            muscleMetadataByKey = muscleMetadataByKey,
             onDismiss = { showExercisePicker = false },
             onSelect = { exercise ->
                 val hadConfirmedSet = entries.any { record -> record.sets.any(WorkoutSet::isAnalysisEligibleCompletedSet) }

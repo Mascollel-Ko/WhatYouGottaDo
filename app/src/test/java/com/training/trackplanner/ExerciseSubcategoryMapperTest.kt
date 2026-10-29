@@ -33,8 +33,9 @@ class ExerciseSubcategoryMapperTest {
             press.stableKey to RuntimeExerciseMetadataDefaults.forExercise(press).copy(movementFamily = "BENCH_PRESS_DUMBBELL_PRESS_MACHINE_PRESS_VARIANTS")
         )
 
-        val allCounts = ExerciseSubcategoryMapper.countsFor(listOf(row, press), "근력운동", "", metadata)
-        val rowCounts = ExerciseSubcategoryMapper.countsFor(listOf(row, press), "근력운동", "row", metadata)
+        val allCounts = ExerciseSubcategoryMapper.countsFor(listOf(row, press), "근력운동", metadata)
+        val filtered = listOf(row, press).filter { ExerciseSubcategoryMapper.matchesSearch(it, "row") }
+        val rowCounts = ExerciseSubcategoryMapper.countsFor(filtered, "근력운동", metadata)
 
         assertEquals(1, allCounts[ExerciseSubcategory.STRENGTH_CHEST_PUSH])
         assertEquals(1, allCounts[ExerciseSubcategory.STRENGTH_BACK_PULL])

@@ -22,6 +22,19 @@ internal class CanonicalMusclePresentation(
             .distinctBy(MetadataDisplayOption::code)
     }
 
+    /**
+     * Search permits all participating roles, including STABILIZER, but never
+     * NOT_SUPPORTED/REVIEW_REQUIRED. A built-in's canonical identity wins over
+     * an unmigrated legacy override; this is not the user editor policy.
+     */
+    fun searchableOptions(metadata: EffectiveMuscleMetadata): List<MetadataDisplayOption> =
+        metadata.canonical.relations
+            .asSequence()
+            .filter { it.role in DISPLAYABLE_ROLES }
+            .map { catalogue.option(MetadataDisplayField.MUSCLE_GROUP, it.muscleCode) }
+            .distinctBy(MetadataDisplayOption::code)
+            .toList()
+
     companion object {
         private val DISPLAYABLE_ROLES = setOf(
             CanonicalMuscleRole.PRIMARY,

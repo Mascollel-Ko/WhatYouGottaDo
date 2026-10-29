@@ -26,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.ExerciseRuntimeMetadataEditorData
@@ -46,6 +47,8 @@ internal fun ExerciseScreen(viewModel: TrainingViewModel) {
     var editorData by remember { mutableStateOf<ExerciseRuntimeMetadataEditorData?>(null) }
     var managementMessage by rememberSaveable { mutableStateOf<String?>(null) }
     val translator = rememberMetadataTranslator()
+    val context = LocalContext.current
+    val musclePresenter = remember(context) { CanonicalMusclePresentation.from(context) }
 
     LaunchedEffect(exercises.map(Exercise::stableKey)) {
         if (exercises.isNotEmpty()) viewModel.refreshExerciseRuntimeMetadata()
@@ -57,11 +60,13 @@ internal fun ExerciseScreen(viewModel: TrainingViewModel) {
     val categories = remember(visibleExercises) {
         listOf("전체") + visibleExercises.map { it.category }.distinct()
     }
-    val broadAndSearchFiltered = remember(visibleExercises, query, selectedCategory, translator) {
+    val broadAndSearchFiltered = remember(
+        visibleExercises, query, selectedCategory, translator, muscleMetadataByKey, musclePresenter
+    ) {
         visibleExercises.filter { exercise ->
             val categoryMatches = selectedCategory == "전체" || exercise.category == selectedCategory
             val queryMatches = ExerciseSubcategoryMapper.matchesSearch(exercise, query) ||
-                exercise.matchesMetadataQuery(query, translator)
+                exercise.matchesMetadataQuery(query, translator, muscleMetadataByKey[exercise.stableKey], musclePresenter)
             categoryMatches && queryMatches
         }
     }
@@ -69,26 +74,27 @@ internal fun ExerciseScreen(viewModel: TrainingViewModel) {
         ExerciseSubcategory.entries.firstOrNull { it.name == selectedSubcategoryKey }
     }
     val subcategoryCounts = remember(
-        broadAndSearchFiltered,
-        selectedCategory,
-        runtimeMetadataById
+        broadAndSearchFiltered, selectedCategory, runtimeMetadataById, muscleMetadataByKey
     ) {
         ExerciseSubcategoryMapper.countsFor(
-            exercises = visibleExercises,
+            exercises = broadAndSearchFiltered,
             broadCategory = selectedCategory,
-            query = query,
-            metadataByExerciseId = runtimeMetadataById
+            metadataByExerciseId = runtimeMetadataById,
+            muscleMetadataByKey = muscleMetadataByKey
         ).mapNotNull { (subcategory, count) -> if (count > 0) subcategory to count else null }
     }
     val showSubcategoryOverview = subcategoryCounts.isNotEmpty() && selectedSubcategory == null
-    val filtered = remember(broadAndSearchFiltered, selectedSubcategory, runtimeMetadataById) {
+    val filtered = remember(
+        broadAndSearchFiltered, selectedSubcategory, runtimeMetadataById, muscleMetadataByKey
+    ) {
         if (selectedSubcategory == null) {
             broadAndSearchFiltered
         } else {
             broadAndSearchFiltered.filter { exercise ->
                 selectedSubcategory in ExerciseSubcategoryMapper.categoriesFor(
                     exercise,
-                    runtimeMetadataById[exercise.stableKey]
+                    runtimeMetadataById[exercise.stableKey],
+                    muscleMetadataByKey[exercise.stableKey]
                 )
             }
         }

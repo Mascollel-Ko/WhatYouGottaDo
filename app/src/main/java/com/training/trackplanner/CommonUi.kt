@@ -43,7 +43,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.training.trackplanner.data.CanonicalExerciseMetadataRepository
 import com.training.trackplanner.data.CanonicalMuscleRole
+import com.training.trackplanner.data.EffectiveMuscleMetadataResolver
 import com.training.trackplanner.data.EffectiveMuscleMetadata
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.ExerciseImageAssetMapping
@@ -240,12 +242,26 @@ internal fun InlineDateSwitcher(
 internal fun ExercisePickerDialog(
     exercises: List<Exercise>,
     onDismiss: () -> Unit,
-    onSelect: (Exercise) -> Unit
+    onSelect: (Exercise) -> Unit,
+    muscleMetadataByKey: Map<String, EffectiveMuscleMetadata> = emptyMap()
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     val translator = rememberMetadataTranslator()
-    val filtered = exercises.filter { exercise ->
-        exercise.matchesMetadataQuery(query, translator)
+    val context = LocalContext.current
+    val musclePresenter = remember(context) { CanonicalMusclePresentation.from(context) }
+    // Program preview pickers have no ViewModel muscle map. Resolve built-ins
+    // by stableKey from the verified manifest, not stale Exercise strings.
+    val fallbackResolver = remember(context) {
+        EffectiveMuscleMetadataResolver(
+            CanonicalExerciseMetadataRepository(context).muscleRoleResolver()
+        )
+    }
+    val filtered = remember(exercises, query, translator, muscleMetadataByKey, musclePresenter, fallbackResolver) {
+        exercises.filter { exercise ->
+            val effective = muscleMetadataByKey[exercise.stableKey]
+                ?: fallbackResolver.resolve(exercise, emptyList())
+            exercise.matchesMetadataQuery(query, translator, effective, musclePresenter)
+        }
     }
 
     AlertDialog(
@@ -700,22 +716,38 @@ private fun Exercise.localizedRecordingMethod(): String {
     return stringResource(label)
 }
 
+/**
+ * MUS-03: built-in muscle search uses stableKey canonical relations, not the
+ * materialized legacy fields. Non-canonical exercises retain explicit import
+ * compatibility until their one-time migration.
+ */
 internal fun Exercise.matchesMetadataQuery(
     query: String,
-    translator: MetadataTranslator
+    translator: MetadataTranslator,
+    muscleMetadata: EffectiveMuscleMetadata?,
+    presenter: CanonicalMusclePresentation
 ): Boolean {
     val normalized = query.trim()
     if (normalized.isEmpty() || name.contains(normalized, ignoreCase = true)) return true
-    return listOf(
+
+    val ordinary = listOf(
         translator.option("exercise.category", category),
         translator.option("exercise.mode", mode)
-    ).plus(
-        primaryMuscles.split(',', '|', '/', ';').map { translator.option("exercise.primaryMuscles", it.trim()) }
-    ).plus(
-        secondaryMuscles.split(',', '|', '/', ';').map { translator.option("exercise.secondaryMuscles", it.trim()) }
-    ).plus(
-        equipment.ifBlank { equipmentTags }.split(',', '|', '/', ';').map { translator.option("exercise.equipment", it.trim()) }
-    ).any { option -> option.matches(normalized) }
+    ) + equipment.ifBlank { equipmentTags }.split(',', '|', '/', ';')
+        .map { translator.option("exercise.equipment", it.trim()) }
+
+    val muscles = when {
+        muscleMetadata == null -> emptyList()
+        !isCustom && muscleMetadata.canonical.hasCanonicalRelations ->
+            presenter.searchableOptions(muscleMetadata)
+        else -> muscleMetadata.legacy?.let { legacy ->
+            legacy.primaryMuscles.split(',', '|', '/', ';')
+                .map { translator.option("exercise.primaryMuscles", it.trim()) } +
+                legacy.secondaryMuscles.split(',', '|', '/', ';')
+                    .map { translator.option("exercise.secondaryMuscles", it.trim()) }
+        }.orEmpty()
+    }
+    return (ordinary + muscles).any { option -> option.matches(normalized) }
 }
 
 @Composable

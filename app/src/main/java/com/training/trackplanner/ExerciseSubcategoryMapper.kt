@@ -1,5 +1,7 @@
 package com.training.trackplanner
 
+import com.training.trackplanner.data.CanonicalMuscleRole
+import com.training.trackplanner.data.EffectiveMuscleMetadata
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.RuntimeExerciseMetadata
 import java.util.Locale
@@ -39,20 +41,58 @@ internal enum class ExerciseSubcategory(
     }
 }
 
+/**
+ * MUS-04: movement purpose and canonical PRIMARY muscles determine categories.
+ * Secondary/stabilizing/unsupported muscles must never imply a target category.
+ */
 internal object ExerciseSubcategoryMapper {
     fun availableFor(broadCategory: String): List<ExerciseSubcategory> =
         ExerciseSubcategory.entries.filter { it.broadCategory == broadCategory }
 
     fun categoriesFor(
         exercise: Exercise,
-        metadata: RuntimeExerciseMetadata?
+        metadata: RuntimeExerciseMetadata?,
+        muscleMetadata: EffectiveMuscleMetadata? = null
     ): Set<ExerciseSubcategory> {
         val candidates = availableFor(exercise.category)
         if (candidates.isEmpty()) return emptySet()
-        val other = candidates.last()
-        val tokens = structuredTokens(exercise, metadata)
-        val matched = candidates.dropLast(1).filterTo(linkedSetOf()) { it.matches(tokens) }
-        return matched.ifEmpty { setOf(other) }
+        val movement = movementTokens(exercise, metadata)
+        val primary = primaryMuscleCodes(muscleMetadata)
+        val hasCanonical = !exercise.isCustom && muscleMetadata?.canonical?.hasCanonicalRelations == true
+        val directCoreMovement = listOf(
+            exercise.movementPattern, metadata?.movementFamily.orEmpty(), metadata?.movementSubtype.orEmpty()
+        ).any { token ->
+            val normalized = token.uppercase(Locale.ROOT)
+            listOf("TRUNK", "ANTI_ROTATION", "ANTI_EXTENSION", "CORE_CONTROL", "LOADED_CARRY").any(normalized::contains)
+        }
+
+        val matches = candidates.dropLast(1).filterTo(linkedSetOf()) { category ->
+            val fromMovement = category.matches(movement)
+            val fromPrimary = when (category) {
+                ExerciseSubcategory.STRENGTH_CHEST_PUSH -> "CHEST" in primary
+                ExerciseSubcategory.STRENGTH_BACK_PULL -> "BACK_LATS" in primary
+                ExerciseSubcategory.STRENGTH_SHOULDERS -> "SHOULDERS" in primary
+                ExerciseSubcategory.STRENGTH_ARMS ->
+                    primary.any { it in setOf("BICEPS", "TRICEPS", "FOREARM_GRIP") }
+                ExerciseSubcategory.STRENGTH_SQUAT_QUAD -> "QUADS" in primary
+                ExerciseSubcategory.STRENGTH_HINGE_POSTERIOR ->
+                    primary.any { it in setOf("HAMSTRINGS", "POSTERIOR_CHAIN_ERECTORS") } ||
+                        ("GLUTES" in primary &&
+                            movement.any { "HINGE" in it || "HIP_THRUST" in it })
+                ExerciseSubcategory.STRENGTH_CORE ->
+                    primary.any { it == "ANTERIOR_CORE" || it == "LATERAL_CORE" }
+                ExerciseSubcategory.STRENGTH_CALF_ANKLE -> "CALVES" in primary
+                else -> false // Functional categorization continues to use movement-purpose tags.
+            }
+
+            if (category == ExerciseSubcategory.STRENGTH_CORE && hasCanonical) {
+                // Generic CORE tags (e.g., bracing stress) aren't core-training purpose.
+                fromPrimary || directCoreMovement
+            } else {
+                fromMovement || fromPrimary
+            }
+        }
+        return matches.ifEmpty { setOf(candidates.last()) }
     }
 
     fun matchesSearch(exercise: Exercise, query: String): Boolean =
@@ -61,23 +101,40 @@ internal object ExerciseSubcategoryMapper {
             exercise.detail1.contains(query, ignoreCase = true) ||
             exercise.detail2.contains(query, ignoreCase = true)
 
+    /**
+     * Accept an ALREADY SEARCH-FILTERED list. The same set of keys supplies
+     * subcategory counts and the displayed list, including muscle-name searches.
+     */
     fun countsFor(
         exercises: List<Exercise>,
         broadCategory: String,
-        query: String,
-        metadataByExerciseId: Map<String, RuntimeExerciseMetadata>
+        metadataByExerciseId: Map<String, RuntimeExerciseMetadata>,
+        muscleMetadataByKey: Map<String, EffectiveMuscleMetadata> = emptyMap()
     ): Map<ExerciseSubcategory, Int> {
-        val scoped = exercises.filter { exercise ->
-            exercise.category == broadCategory && matchesSearch(exercise, query)
-        }
+        val scoped = exercises.filter { exercise -> exercise.category == broadCategory }
         return availableFor(broadCategory).associateWith { subcategory ->
             scoped.count { exercise ->
-                subcategory in categoriesFor(exercise, metadataByExerciseId[exercise.stableKey])
+                subcategory in categoriesFor(
+                    exercise, metadataByExerciseId[exercise.stableKey],
+                    muscleMetadataByKey[exercise.stableKey]
+                )
             }
         }
     }
 
-    private fun structuredTokens(
+    private fun primaryMuscleCodes(muscle: EffectiveMuscleMetadata?): Set<String> =
+        when {
+            muscle == null -> emptySet()
+            muscle.canonical.hasCanonicalRelations ->
+                muscle.canonical.forRole(CanonicalMuscleRole.PRIMARY)
+                    .mapTo(mutableSetOf()) { it.muscleCode.uppercase(Locale.ROOT) }
+            // Transient compatibility only for user-created/history identities.
+            else -> muscle.legacy?.primaryMuscles.orEmpty()
+                .split(',', '|', ';')
+                .mapTo(mutableSetOf()) { it.trim().uppercase(Locale.ROOT) }
+        }
+
+    private fun movementTokens(
         exercise: Exercise,
         metadata: RuntimeExerciseMetadata?
     ): Set<String> = buildSet {
@@ -87,46 +144,27 @@ internal object ExerciseSubcategoryMapper {
                 .filter(String::isNotBlank)
                 .forEach(::add)
         }
-
+        // Only movement-purpose fields participate in strength classifications.
+        // Avoid fatigue, stabilization and equipment metadata: they signal demand,
+        // not the body part being trained.
+        listOf(exercise.movementPattern, exercise.movementCategory).forEach(::addStructured)
         metadata?.let { runtime ->
             listOf(
-                runtime.activityKind,
-                runtime.planningEligibility,
-                runtime.movementFamily,
-                runtime.movementSubtype,
-                runtime.programSlot,
-                runtime.redundancyGroup,
-                runtime.progressMetricType,
-                runtime.strengthProgressionGroup,
-                runtime.primaryStressProfile,
-                runtime.recoveryDecayProfile,
-                runtime.stressMagnitudeHint,
-                runtime.badmintonTransferLevel
+                runtime.movementFamily, runtime.movementSubtype, runtime.programSlot,
+                runtime.redundancyGroup, runtime.strengthProgressionGroup
             ).forEach(::addStructured)
-            listOf(
-                runtime.analysisEligibility,
-                runtime.secondaryStressTags,
-                runtime.tendonStressTags,
-                runtime.ligamentJointStabilityStressTags,
-                runtime.jointImpactStressTags,
-                runtime.cognitiveStressTags,
-                runtime.sportContextTags,
-                runtime.badmintonTransferType,
-                runtime.badmintonSkillTargets,
-                runtime.badmintonPhysicalQualities
-            ).flatMap { it.values }.forEach(::addStructured)
         }
-        listOf(
-            exercise.movementPattern,
-            exercise.movementCategory,
-            exercise.primaryMuscles,
-            exercise.secondaryMuscles,
-            exercise.equipment,
-            exercise.fatigueCategories,
-            exercise.badmintonTransferRoles,
-            exercise.stabilityRoles,
-            exercise.accessoryRoles,
-            exercise.analysisEligibility
-        ).forEach(::addStructured)
+        if (exercise.category == "기능성운동") {
+            // Preserve functional movement and badminton-target navigation.
+            listOf(exercise.badmintonTransferRoles, exercise.accessoryRoles)
+                .forEach(::addStructured)
+            metadata?.let { runtime ->
+                listOf(runtime.activityKind).forEach(::addStructured)
+                listOf(
+                    runtime.badmintonSkillTargets, runtime.badmintonPhysicalQualities,
+                    runtime.sportContextTags
+                ).flatMap { it.values }.forEach(::addStructured)
+            }
+        }
     }
 }
