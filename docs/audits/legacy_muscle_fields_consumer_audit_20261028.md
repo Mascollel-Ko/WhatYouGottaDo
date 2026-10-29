@@ -140,3 +140,9 @@
 - Use exact relation coefficients for PRIMARY/SECONDARY, not guessed new physiological multipliers; STABILIZER/GENERAL_PARTICIPATION/NOT_SUPPORTED/REVIEW_REQUIRED contribute no muscle-graph dose. Core codes remain in the separate core analysis, not falsely folded into the 12 muscle buckets.
 - Exercise set load, bodyweight, RPE, week aggregation, plank/side-plank duration-hold policies, graph UI and stored records are unchanged. The no-lookup API remains only for older isolated direct callers/tests, and user-custom exercise projection remains transient pending the one-time importer. Unknown/history-only keys fail closed. This is not the final backup migration.
 - Pending hosted CI + new stableKey source tests before marking MUS-08/09 CI_VERIFIED.
+
+## 2026-10-29 최종 CI 검증 및 작업 목록 정정
+
+- MUS-03/04의 구버전 감사 목록 불일치 수정 및 MUS-08/09의 정식 관계표 기반 그래프 로드 적용 후 최종 구현 커밋: `93bacdaeb60b29f65f3b5b8d97262901cb200095`.
+- 검증: [GitHub Actions 40826623096](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/40826623096) 성공. Android JVM 단위 테스트, Release Kotlin 컴파일, Debug APK 조립/서명 검증/업로드 모두 통과.
+- 기존 백업의 한 차례 `stableKey` 기준 정식 메타데이터 교체는 여전히 미수행; MUS-05·이후 저장 포맷 이관에서 실시한다. MUS-06/07의 부위별 준비도·피로 분석은 아직 직접 레거시 참조를 사용한다.
