@@ -59,6 +59,7 @@ internal fun ProgramSkeletonPreview(
     exercises: List<Exercise>,
     metadataByExerciseId: Map<String, RuntimeExerciseMetadata>,
     progressionEligibleKeys: Set<String> = emptySet(),
+    muscleMetadataByKey: Map<String, com.training.trackplanner.data.EffectiveMuscleMetadata> = emptyMap(),
     onSkeletonChange: (GeneratedProgramSkeleton) -> Unit
 ) {
     var selectedWeek by rememberSaveable(skeleton.suggestedName) { mutableStateOf(1) }
@@ -104,6 +105,7 @@ internal fun ProgramSkeletonPreview(
     if (showExercisePicker) {
         ExercisePickerDialog(
             exercises = exercises.filter(Exercise::isActive),
+            muscleMetadataByKey = muscleMetadataByKey,
             onDismiss = { showExercisePicker = false },
             onSelect = { exercise ->
                 val metadata = metadataByExerciseId[exercise.stableKey] ?: RuntimeExerciseMetadataDefaults.forExercise(exercise)

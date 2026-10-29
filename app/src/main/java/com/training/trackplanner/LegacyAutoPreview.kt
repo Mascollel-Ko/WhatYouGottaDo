@@ -57,6 +57,7 @@ internal fun LegacyAutoSkeletonPreview(
     metadataByExerciseId: Map<String, RuntimeExerciseMetadata>,
     progressionDraft: LegacyProgressionDraft,
     onProgressionChange: (LegacyProgressionDraft) -> Unit,
+    muscleMetadataByKey: Map<String, com.training.trackplanner.data.EffectiveMuscleMetadata> = emptyMap(),
     onSkeletonChange: (LegacyAutoSkeleton) -> Unit
 ) {
     val execution = remember(skeleton, progressionDraft) { progressionDraft.executionDraft(skeleton) }
@@ -97,6 +98,7 @@ internal fun LegacyAutoSkeletonPreview(
     if (showExercisePicker) {
         ExercisePickerDialog(
             exercises = exercises.filter(Exercise::isActive),
+            muscleMetadataByKey = muscleMetadataByKey,
             onDismiss = { showExercisePicker = false },
             onSelect = { exercise ->
                 val metadata = metadataByExerciseId[exercise.stableKey] ?: RuntimeExerciseMetadataDefaults.forExercise(exercise)

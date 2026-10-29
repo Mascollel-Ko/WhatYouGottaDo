@@ -252,14 +252,17 @@ internal fun ExercisePickerDialog(
     // Program preview pickers have no ViewModel muscle map. Resolve built-ins
     // by stableKey from the verified manifest, not stale Exercise strings.
     val fallbackResolver = remember(context) {
-        EffectiveMuscleMetadataResolver(
-            CanonicalExerciseMetadataRepository(context).muscleRoleResolver()
-        )
+        lazy(LazyThreadSafetyMode.NONE) {
+            EffectiveMuscleMetadataResolver(
+                CanonicalExerciseMetadataRepository(context).muscleRoleResolver()
+            )
+        }
     }
     val filtered = remember(exercises, query, translator, muscleMetadataByKey, musclePresenter, fallbackResolver) {
-        exercises.filter { exercise ->
+        if (query.isBlank()) exercises
+        else exercises.filter { exercise ->
             val effective = muscleMetadataByKey[exercise.stableKey]
-                ?: fallbackResolver.resolve(exercise, emptyList())
+                ?: fallbackResolver.value.resolve(exercise, emptyList())
             exercise.matchesMetadataQuery(query, translator, effective, musclePresenter)
         }
     }

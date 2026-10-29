@@ -377,6 +377,7 @@ private fun ProgramEditorScreen(
     val context = LocalContext.current
     val exercises by viewModel.exercises.collectAsState()
     val runtimeMetadataByExerciseId by viewModel.exerciseRuntimeMetadata.collectAsState()
+    val muscleMetadataByKey by viewModel.exerciseMuscleMetadata.collectAsState()
     var progressionContext by remember { mutableStateOf<com.training.trackplanner.data.ProgressionDraftContext?>(null) }
     val progressionEligibleKeys = progressionContext?.eligibleKeys.orEmpty()
     var nameText by rememberSaveable(program?.id ?: 0L) {
@@ -687,6 +688,7 @@ private fun ProgramEditorScreen(
                     skeleton = currentSkeleton,
                     exercises = exercises,
                     metadataByExerciseId = runtimeMetadataByExerciseId,
+                    muscleMetadataByKey = muscleMetadataByKey,
                     progressionEligibleKeys = progressionEligibleKeys,
                     onSkeletonChange = { personalizedDraft = it }
                 )
