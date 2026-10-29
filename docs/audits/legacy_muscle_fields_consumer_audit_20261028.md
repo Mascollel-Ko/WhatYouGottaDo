@@ -3,7 +3,7 @@
 - 점검일: 2026-10-28 (Asia/Seoul)
 - 기준: `main` @ `18b5630e35cf76791037d65855880b8942c1a931`
 - 범위: `Exercise.primaryMuscles`/`secondaryMuscles` (1번 레거시)와 `muscle_relations.csv` (2번 정식 근육 관계표)의 **근육 역할 정보**에 한정. 운동 목적/OFI/조직 프로파일 전체 교체 작업이 아님.
-- [추적용 CSV](legacy_muscle_fields_migration_queue_20261028.csv): 총 **39개** 경로/검증 항목. `MUS-xx` = 마이그레이션/검증, `CMP-xx` = 호환 유지, `CAN-xx` = 이미 정식 사용. MUS-00은 `CI_VERIFIED`, MUS-00.5는 `IMPLEMENTED_CI_PENDING`, 그 외는 `NOT_STARTED`.
+- [추적용 CSV](legacy_muscle_fields_migration_queue_20261028.csv): 총 **39개** 경로/검증 항목. `MUS-xx` = 마이그레이션/검증, `CMP-xx` = 호환 유지, `CAN-xx` = 이미 정식 사용. MUS-00과 MUS-00.5는 `CI_VERIFIED`, MUS-01·02는 `IMPLEMENTED_CI_PENDING`, 나머지는 `NOT_STARTED`.
 - **이번 커밋은 문서만 추가한다. 실행 코드, 메타데이터, DB, 백업 포맷은 전혀 변경하지 않는다.**
 
 ## 판정 원칙
@@ -113,3 +113,13 @@
 - 새 테스트 9개: pure resolver + 실제 Room override DAO 단일/일괄 조회, 사용자 명시적 빈값, 커스텀/히스토리, 코드별 한국어·영어 라벨과 별칭. [CI #40792846388](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/40792846388)는 현재 검증 진행 중이며 성공 전 `DONE` 처리하지 않는다.
 - 중요 남은 경계: 사용자 편집기로 기존 변경을 새 정식 역할 구조에 직접 저장하는 작업(MUS-05/13/14)은 **아직 미구현**. 새 계층은 기존 편집/백업 계약을 보존하는 전환 안전장치이며, 레거시 완전 삭제를 의미하지 않는다. 화면/검색/분석 연결도 아직 수행하지 않았다.
 - 과거 설치본의 미정리 사용자 변경은 기존 `ExerciseMetadataReconciliationService`로 보정되어야 한다. 이 단계가 과거 모든 DB를 무조건 탐지한다고 주장하지 않는다.
+
+## MUS-01·02 UI 전환 추적 (2026-10-29)
+
+- 화면 전환 기준 코드: [`ab92b31d97849315d59b904d65880e86a974993f`](https://github.com/Mascollel-Ko/WhatYouGottaDo/commit/ab92b31d97849315d59b904d65880e86a974993f). 운동·계획·기록 탭 공통 `ExerciseInfoDialog`, `ExerciseDetailCard`에 MUS-00.5의 `EffectiveMuscleMetadata`를 전달한다.
+- 기본 운동의 `PRIMARY / SECONDARY / STABILIZER / GENERAL_PARTICIPATION`를 `MUSCLE_GROUP`로 한국어·영어 표시하고, `NOT_SUPPORTED / REVIEW_REQUIRED`는 확정적 사용 근육으로 표시하지 않는다. 사용자 수정, 사용자 생성, 역사 전용/미등록 운동은 MUS-00.5의 명시적 `legacy` 호환 자료만 표시한다.
+- 운동 상세와 영어 요약에서 직접 `Exercise.primaryMuscles/secondaryMuscles`를 읽는 경로를 교체했다. **MUS-03 검색과 MUS-04 하위 분류는 여전히 레거시를 사용하며 이 단계에서 손대지 않았다.**
+- UI 크기/가로 여백/정보창 높이를 유지했다. 두 열짜리 좁은 레이블-값 행을 만들지 않았으며, 긴 영어 요약만 `maxLines=3` + ellipsis를 사용하고 전체 역할 이름은 상세 섹션에서 표시한다. 320dp·1.5x 글자 크기 Compose 테스트, 기본 스쿼트·사용자 초기화·한/영 출력 테스트를 추가/갱신했다.
+- 기록 및 클라우드/CSV 복원 완료 후 ViewModel의 근육 메타데이터 재조회도 수행하게 수정했다. Room/백업 스키마/계산식/프로그램 생성은 변경하지 않는다.
+- 초기 UI 커밋은 이전 tree base 사용 실수로 MUS-00.5 파일을 일시적으로 되돌렸으나, 복원 커밋 `ab92b31d`에서 7개 파일을 원상복구했다. `4a37d483...ab92b31d` 비교 기준 변화는 UI 관련 8개 파일로 한정된다.
+- CI는 **최신 통합 커밋의 전체 성공 전까지 완료로 표시하지 않는다.** 로컬 Android SDK가 없어 수동 디바이스 시각 검증도 별도로 필요하다.

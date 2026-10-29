@@ -1155,6 +1155,8 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
             }.onSuccess { result ->
                 _recordTransferMessage.value = result.summaryText("기록 복원")
                 _backupRestoreUiState.value = BackupRestoreUiState.Idle
+                // Restores may change exercise identities and saved muscle overrides.
+                refreshExerciseRuntimeMetadataInternal()
                 refreshAnalysisSummaries()
             }.onFailure { error ->
                 val reason = error.toBackupRestoreFailureReason()
