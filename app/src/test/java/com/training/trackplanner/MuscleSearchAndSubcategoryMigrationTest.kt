@@ -132,6 +132,7 @@ class MuscleSearchAndSubcategoryMigrationTest {
             stableKey = "user_custom_row",
             name = "내가 만든 운동",
             category = "근력운동",
+            movementPattern = "HORIZONTAL_PULL",
             isCustom = true,
             primaryMuscles = "LAT",
             secondaryMuscles = "BICEPS"
