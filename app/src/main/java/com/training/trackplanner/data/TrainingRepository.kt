@@ -918,7 +918,11 @@ class TrainingRepository internal constructor(
                 )
             )
         }
-        exerciseMetadataReconciliationService.cutoverBuiltinMuscleOverridesOnce()
+        if (exerciseMetadataReconciliationService.cutoverBuiltinMuscleOverridesOnce()) {
+            // The one-time cutover clears COMPLETED_KEY. Refresh REQUIRED_KEY
+            // even if the imported app_meta held an already-current revision.
+            exerciseMetadataReconciliationService.markRequiredIfNeeded()
+        }
         exerciseMetadataReconciliationService.reconcileIfRequired(semanticRevision)
         workoutSourceIdentityProvider.backfillMissingWorkoutSourceIds()
         repairCustomExerciseStableKeys()
