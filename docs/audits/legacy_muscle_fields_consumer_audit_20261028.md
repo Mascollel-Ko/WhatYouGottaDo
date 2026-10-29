@@ -3,7 +3,7 @@
 - 점검일: 2026-10-28 (Asia/Seoul)
 - 기준: `main` @ `18b5630e35cf76791037d65855880b8942c1a931`
 - 범위: `Exercise.primaryMuscles`/`secondaryMuscles` (1번 레거시)와 `muscle_relations.csv` (2번 정식 근육 관계표)의 **근육 역할 정보**에 한정. 운동 목적/OFI/조직 프로파일 전체 교체 작업이 아님.
-- [추적용 CSV](legacy_muscle_fields_migration_queue_20261028.csv): 총 **38개** 경로/검증 항목. `MUS-xx` = 마이그레이션/검증, `CMP-xx` = 호환 유지, `CAN-xx` = 이미 정식 사용. MUS-00은 `IMPLEMENTED_CI_PENDING`, 나머지는 `NOT_STARTED`.
+- [추적용 CSV](legacy_muscle_fields_migration_queue_20261028.csv): 총 **39개** 경로/검증 항목. `MUS-xx` = 마이그레이션/검증, `CMP-xx` = 호환 유지, `CAN-xx` = 이미 정식 사용. MUS-00은 `CI_VERIFIED`, MUS-00.5는 `IMPLEMENTED_CI_PENDING`, 그 외는 `NOT_STARTED`.
 - **이번 커밋은 문서만 추가한다. 실행 코드, 메타데이터, DB, 백업 포맷은 전혀 변경하지 않는다.**
 
 ## 판정 원칙
@@ -101,3 +101,15 @@
 - *중요*: 기존 필드의 사용자 override는 조회 API의 명시적 `legacyMuscleOverridePresent` 신호를 호출자가 전달해야 감지 가능하다. 기존 사용자 override 자동 판정·병합은 MUS-13/14이며 이 단계에서 구현하지 않았다.
 - 이 환경에는 Android SDK/Gradle 실행 구성이 없어 **로컬 Android Gradle 테스트와 APK 빌드 결과는 없음**. CI 결과는 별도로 검증해야 한다.
 
+
+## MUS-00.5 실제 구현 (2026-10-29)
+
+- 코드: [`445d42a9d147b604885c41674f7277e10dd9249c`](https://github.com/Mascollel-Ko/WhatYouGottaDo/commit/445d42a9d147b604885c41674f7277e10dd9249c)
+- 추가: `EffectiveMuscleMetadataResolver.kt` (출처/기존 사용자 근육 수정/명시적 빈값 보존), `CanonicalMusclePresentation.kt` (정식 `MUSCLE_GROUP` 한국어/영어 명칭과 검색 별칭).
+- `TrainingRepository.resolvedMuscleMetadata(stableKey)` 및 `resolvedMuscleMetadataByStableKey()`는 Room `exercise_metadata_user_overrides`에서 저장된 필드를 **직접 읽어** 분류한다. 단일/일괄 경로 모두 읽기 전용이고, DB/기록/스키마/CSV 구조는 그대로 둔다.
+- 사용자 추가 운동, 히스토리 전용 운동, 알 수 없는 운동, 관계 없는 selectable 운동은 canonical 여섯 역할이 있다고 가장하지 않고 구형 두 필드를 **호환용 별도 데이터**로 돌려준다. 내장 운동에서 `exercise.primaryMuscles` 또는 `exercise.secondaryMuscles` 사용자 override가 하나라도 존재하면 정식 역할을 화면/분석에 자동 투영하지 못하도록 `usesCanonicalRoles=false`다.
+- override 일부만 저장된 경우 다른 필드는 현재 materialized `Exercise` 값을 보존한다. 저장된 사용자 수정 문자열을 정식 관계로 추정 변환하거나 저장 데이터를 수정하지 않는다.
+- 정식 근육 코드에는 기존 `MetadataDisplayCatalogue.MUSCLE_GROUP`를 사용한다 (`MUSCLE`는 구형 표현용). `NOT_SUPPORTED`와 `REVIEW_REQUIRED`는 표시 후보에서 제외.
+- 새 테스트 9개: pure resolver + 실제 Room override DAO 단일/일괄 조회, 사용자 명시적 빈값, 커스텀/히스토리, 코드별 한국어·영어 라벨과 별칭. [CI #40792846388](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/40792846388)는 현재 검증 진행 중이며 성공 전 `DONE` 처리하지 않는다.
+- 중요 남은 경계: 사용자 편집기로 기존 변경을 새 정식 역할 구조에 직접 저장하는 작업(MUS-05/13/14)은 **아직 미구현**. 새 계층은 기존 편집/백업 계약을 보존하는 전환 안전장치이며, 레거시 완전 삭제를 의미하지 않는다. 화면/검색/분석 연결도 아직 수행하지 않았다.
+- 과거 설치본의 미정리 사용자 변경은 기존 `ExerciseMetadataReconciliationService`로 보정되어야 한다. 이 단계가 과거 모든 DB를 무조건 탐지한다고 주장하지 않는다.
