@@ -129,6 +129,7 @@ internal class PersonalizedProgramPlanningService(
     private val physicalQualityCatalog: CanonicalExercisePhysicalQualityCatalog = CanonicalExercisePhysicalQualityCatalog.EMPTY,
     private val canonicalMovementRelations: List<CanonicalMetadataRelation> = emptyList(),
     private val canonicalCoreCatalog: CanonicalCoreCatalog = CanonicalCoreCatalog.EMPTY,
+    private val canonicalMuscleRoles: CanonicalMuscleRoleResolver? = null,
     private val reviewedCanonicalStableKeys: Set<String> = emptySet(),
     private val athleteNeedsProfileEngine: AthleteNeedsProfileEngine = AthleteNeedsProfileEngine(),
     private val athleteStimulusNeedEngine: AthleteStimulusNeedEngine = AthleteStimulusNeedEngine(),
@@ -1567,7 +1568,10 @@ internal class PersonalizedProgramPlanningService(
         val canonicalStrength = canonicalStrengthSignals(cutoff)
         val runtimeCatalog = RuntimeExerciseMetadataCatalog.of(metadata.values)
         val readiness = TodayReadinessEngine().analyze(
-            TodayReadinessEngineInput(cutoff, exercises, history, dailyMetrics, checkIns, profile, runtimeCatalog)
+            TodayReadinessEngineInput(
+                cutoff, exercises, history, dailyMetrics, checkIns, profile, runtimeCatalog,
+                canonicalMuscleRoles = canonicalMuscleRoles
+            )
         )
         val revision = strengthPosteriorDao.revision(StrengthModelRevisionPolicy.CURRENT_REVISION_KEY)
             ?.takeIf { it.status == StrengthModelRevisionPolicy.STATUS_ACTIVE && StrengthModelRevisionPolicy.isCompatible(it) }

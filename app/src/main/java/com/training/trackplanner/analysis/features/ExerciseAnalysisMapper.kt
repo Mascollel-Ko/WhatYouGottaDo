@@ -1,5 +1,8 @@
 package com.training.trackplanner.analysis.features
 
+import com.training.trackplanner.data.CanonicalMuscleLookup
+import com.training.trackplanner.data.CanonicalMuscleLookupKind
+import com.training.trackplanner.data.CanonicalMuscleRole
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.WorkoutEntry
@@ -95,14 +98,16 @@ object ExerciseAnalysisMapper {
     fun fromExercise(
         exercise: Exercise,
         runtimeMetadata: RuntimeExerciseMetadata? = null,
-        canonicalBadmintonAuthority: Boolean = false
+        canonicalBadmintonAuthority: Boolean = false,
+        canonicalMuscles: CanonicalMuscleLookup? = null
     ): AnalysisExerciseFeatures =
         fromRecord(
             exercise = exercise,
             entry = null,
             sets = emptyList(),
             runtimeMetadata = runtimeMetadata,
-            canonicalBadmintonAuthority = canonicalBadmintonAuthority
+            canonicalBadmintonAuthority = canonicalBadmintonAuthority,
+            canonicalMuscles = canonicalMuscles
         )
 
     fun fromRecord(
@@ -111,7 +116,8 @@ object ExerciseAnalysisMapper {
         sets: List<WorkoutSet>,
         runtimeMetadata: RuntimeExerciseMetadata? = null,
         bodyWeightKg: Double? = null,
-        canonicalBadmintonAuthority: Boolean = false
+        canonicalBadmintonAuthority: Boolean = false,
+        canonicalMuscles: CanonicalMuscleLookup? = null
     ): AnalysisExerciseFeatures {
         val completedSets = sets.filter { set -> set.confirmed }
         val rpeValues = completedSets.mapNotNull { set -> set.rpe }
@@ -158,8 +164,8 @@ object ExerciseAnalysisMapper {
             analysisEligibility = analysisEligibility,
             movementPattern = runtimeMetadata?.movementFamily ?: exercise.movementPattern,
             movementCategory = runtimeMetadata?.movementSubtype ?: exercise.movementCategory,
-            primaryMuscles = exercise.primaryMuscles.splitTokens(),
-            secondaryMuscles = exercise.secondaryMuscles.splitTokens(),
+            primaryMuscles = roleMuscles(exercise, canonicalMuscles, CanonicalMuscleRole.PRIMARY),
+            secondaryMuscles = roleMuscles(exercise, canonicalMuscles, CanonicalMuscleRole.SECONDARY),
             equipment = exercise.equipment.ifBlank { exercise.equipmentTags }.splitTokens(),
             compoundType = exercise.compoundType,
             forceType = exercise.forceType,
@@ -242,6 +248,23 @@ object ExerciseAnalysisMapper {
             finalSourceStatus = runtimeMetadata?.finalSourceStatus.orEmpty(),
             canonicalBadmintonAuthority = canonicalBadmintonAuthority
         )
+    }
+
+    /**
+     * Only the legacy-import compatibility path reads old muscle strings.
+     * Runtime readiness always supplies canonical roles for built-in exercises.
+     */
+    private fun roleMuscles(
+        exercise: Exercise, canonical: CanonicalMuscleLookup?, role: CanonicalMuscleRole
+    ): Set<String> = when (canonical?.kind) {
+        CanonicalMuscleLookupKind.SELECTABLE_WITH_RELATIONS ->
+            canonical.forRole(role).mapTo(linkedSetOf()) { it.muscleCode }
+        CanonicalMuscleLookupKind.USER_CUSTOM_UNMAPPED, null ->
+            (if (role == CanonicalMuscleRole.PRIMARY) exercise.primaryMuscles else exercise.secondaryMuscles)
+                .splitTokens()
+        CanonicalMuscleLookupKind.SELECTABLE_WITHOUT_RELATIONS,
+        CanonicalMuscleLookupKind.HISTORY_ONLY_UNMAPPED,
+        CanonicalMuscleLookupKind.UNKNOWN_UNMAPPED -> emptySet()
     }
 
     private fun String.splitTokens(): Set<String> =

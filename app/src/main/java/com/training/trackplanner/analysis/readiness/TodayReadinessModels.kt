@@ -236,5 +236,6 @@ data class TodayReadinessEngineInput(
     val runtimeMetadataCatalog: com.training.trackplanner.data.RuntimeExerciseMetadataCatalog =
         com.training.trackplanner.data.RuntimeExerciseMetadataCatalog.EMPTY,
     val painInputs: List<PainInput> = emptyList(),
-    val adaptiveOutcomeSignals: List<AdaptiveOutcomeSignal> = emptyList()
+    val adaptiveOutcomeSignals: List<AdaptiveOutcomeSignal> = emptyList(),
+    val canonicalMuscleRoles: com.training.trackplanner.data.CanonicalMuscleRoleResolver? = null
 )

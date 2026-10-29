@@ -11,7 +11,8 @@ internal class DailyReadinessInputService(
     private val initialUserProfileDao: InitialUserProfileDao,
     private val runtimeExerciseMetadataDao: RuntimeExerciseMetadataDao,
     private val canonicalRuntimeMetadataCatalog: RuntimeExerciseMetadataCatalog,
-    private val dailyStatusService: DailyStatusService
+    private val dailyStatusService: DailyStatusService,
+    private val canonicalMuscleRoles: CanonicalMuscleRoleResolver? = null
 ) {
     suspend fun build(): TodayReadinessEngineInput {
         val today = SystemAnalysisDateProvider().today()
@@ -31,7 +32,8 @@ internal class DailyReadinessInputService(
             runtimeMetadataCatalog = RuntimeExerciseMetadataResolver(
                 canonicalRuntimeMetadataCatalog,
                 runtimeExerciseMetadataDao.all().map(RuntimeExerciseMetadataEntity::toRuntimeMetadata)
-            ).catalog(exercises)
+            ).catalog(exercises),
+            canonicalMuscleRoles = canonicalMuscleRoles
         )
     }
 }

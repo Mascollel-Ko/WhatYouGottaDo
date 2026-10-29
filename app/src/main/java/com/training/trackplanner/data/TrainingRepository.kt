@@ -390,6 +390,7 @@ class TrainingRepository internal constructor(
         physicalQualityCatalog = canonicalMetadataRepository.physicalQualityCatalog(),
         canonicalMovementRelations = canonicalMetadataRepository.movementRelations(),
         canonicalCoreCatalog = canonicalCoreCatalog,
+        canonicalMuscleRoles = canonicalMetadataRepository.muscleRoleResolver(),
         reviewedCanonicalStableKeys = canonicalMetadataRepository.identities().mapTo(linkedSetOf()) { it.stableKey },
         exerciseRoleRelationDao = exerciseRoleRelationDao,
         tissueStateProvider = { cutoff ->
@@ -405,7 +406,8 @@ class TrainingRepository internal constructor(
         initialUserProfileDao = initialUserProfileDao,
         runtimeExerciseMetadataDao = runtimeExerciseMetadataDao,
         canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog,
-        dailyStatusService = dailyStatusService
+        dailyStatusService = dailyStatusService,
+        canonicalMuscleRoles = canonicalMetadataRepository.muscleRoleResolver()
     )
     private val todayStatusSummaryService = TodayStatusSummaryService(
         dailyReadinessInputService = dailyReadinessInputService

@@ -31,7 +31,8 @@ class TodayReadinessEngine(
             exerciseMap = exerciseMap,
             runtimeMetadataCatalog = input.runtimeMetadataCatalog,
             dailyMetrics = input.dailyMetrics,
-            initialProfile = input.initialProfile
+            initialProfile = input.initialProfile,
+            canonicalMuscleRoles = input.canonicalMuscleRoles
         )
         val residual = residualCalculator.calculate(dailyLoads, input.today)
         val statisticalBaseline = statisticalBaselineCalculator.calculate(

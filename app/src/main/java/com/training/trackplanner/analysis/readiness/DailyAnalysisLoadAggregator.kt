@@ -5,6 +5,7 @@ import com.training.trackplanner.analysis.features.BodyweightEffectiveLoadCalcul
 import com.training.trackplanner.analysis.features.DurationHoldLoadCalculator
 import com.training.trackplanner.analysis.features.DurationHoldPolicy
 import com.training.trackplanner.analysis.features.ExerciseAnalysisMapper
+import com.training.trackplanner.data.CanonicalMuscleRoleResolver
 import com.training.trackplanner.data.DailyMetric
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.ExerciseTaxonomy
@@ -19,7 +20,8 @@ class DailyAnalysisLoadAggregator {
         exerciseMap: Map<String, Exercise>,
         runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY,
         dailyMetrics: List<DailyMetric> = emptyList(),
-        initialProfile: InitialUserProfile? = null
+        initialProfile: InitialUserProfile? = null,
+        canonicalMuscleRoles: CanonicalMuscleRoleResolver? = null
     ): List<DailyAnalysisLoad> {
         val contributions = entriesWithSets.mapNotNull { entryWithSets ->
             val confirmedSets = entryWithSets.sets.filter { set -> set.confirmed }
@@ -37,7 +39,8 @@ class DailyAnalysisLoadAggregator {
                 entry = entryWithSets.entry,
                 sets = entryWithSets.sets,
                 runtimeMetadata = runtimeMetadataCatalog.resolve(exercise),
-                bodyWeightKg = bodyWeightKg
+                bodyWeightKg = bodyWeightKg,
+                canonicalMuscles = canonicalMuscleRoles?.lookup(exercise)
             )
             if (!features.isCompleted) return@mapNotNull null
 
@@ -210,21 +213,21 @@ class DailyAnalysisLoadAggregator {
 
     private fun muscleBodyParts(token: String): List<String> {
         return when (ExerciseTaxonomy.canonicalMuscleToken(token)) {
-            "QUADRICEPS", "RECTUS_FEMORIS" -> listOf("quads")
-            "HAMSTRING" -> listOf("hamstrings")
-            "GLUTE", "GLUTE_MEDIUS" -> listOf("glutes")
-            "CALF", "TIBIALIS" -> listOf("calves_achilles")
-            "ERECTOR_SPINAE" -> listOf("erectors_low_back")
+            "QUADS", "QUADRICEPS", "RECTUS_FEMORIS" -> listOf("quads")
+            "HAMSTRINGS", "HAMSTRING" -> listOf("hamstrings")
+            "GLUTES", "GLUTE", "GLUTE_MEDIUS" -> listOf("glutes")
+            "CALVES", "CALF", "TIBIALIS" -> listOf("calves_achilles")
+            "POSTERIOR_CHAIN_ERECTORS", "ERECTOR_SPINAE" -> listOf("erectors_low_back")
             "CHEST", "UPPER_CHEST" -> listOf("chest")
-            "LAT", "BACK", "RHOMBOID", "TRAPEZIUS", "LOWER_TRAP" -> listOf("lats_upper_back")
-            "SHOULDER", "ANTERIOR_DELTOID", "LATERAL_DELTOID", "REAR_DELT", "SCAPULAR_STABILIZERS" ->
+            "BACK_LATS", "LAT", "BACK", "RHOMBOID", "TRAPEZIUS", "LOWER_TRAP" -> listOf("lats_upper_back")
+            "SHOULDERS", "SHOULDER", "ANTERIOR_DELTOID", "LATERAL_DELTOID", "REAR_DELT", "SCAPULAR_STABILIZERS" ->
                 listOf("shoulders")
             "ROTATOR_CUFF" -> listOf("rotator_cuff")
             "BICEPS" -> listOf("elbow_flexors")
             "TRICEPS" -> listOf("elbow_extensors")
-            "FOREARM", "GRIP" -> listOf("forearm_grip")
-            "CORE", "DEEP_CORE", "OBLIQUE", "ROTATION_CORE" -> listOf("core_abs_obliques")
-            "HIP_ADDUCTOR" -> listOf("hips_adductors_abductors")
+            "FOREARM_GRIP", "FOREARM", "GRIP" -> listOf("forearm_grip")
+            "ANTERIOR_CORE", "LATERAL_CORE", "CORE", "DEEP_CORE", "OBLIQUE", "ROTATION_CORE" -> listOf("core_abs_obliques")
+            "HIP_ADDUCTOR", "ADDUCTOR_ABDUCTOR" -> listOf("hips_adductors_abductors")
             else -> emptyList()
         }
     }

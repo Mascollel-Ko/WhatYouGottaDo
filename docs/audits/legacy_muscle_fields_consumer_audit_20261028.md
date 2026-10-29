@@ -146,3 +146,11 @@
 - MUS-03/04의 구버전 감사 목록 불일치 수정 및 MUS-08/09의 정식 관계표 기반 그래프 로드 적용 후 최종 구현 커밋: `93bacdaeb60b29f65f3b5b8d97262901cb200095`.
 - 검증: [GitHub Actions 40826623096](https://github.com/Mascollel-Ko/WhatYouGottaDo/actions/runs/40826623096) 성공. Android JVM 단위 테스트, Release Kotlin 컴파일, Debug APK 조립/서명 검증/업로드 모두 통과.
 - 기존 백업의 한 차례 `stableKey` 기준 정식 메타데이터 교체는 여전히 미수행; MUS-05·이후 저장 포맷 이관에서 실시한다. MUS-06/07의 부위별 준비도·피로 분석은 아직 직접 레거시 참조를 사용한다.
+
+## MUS-06/07: readiness role-source migration (2026-10-29)
+
+- Replaced default-activity readiness body-part role input with `CanonicalMuscleRoleResolver.lookup(exercise)` keyed by `stableKey` for all built-in exercises. `ExerciseAnalysisMapper` receives an opt-in role lookup and projects only `PRIMARY` / `SECONDARY`; `STABILIZER`, `GENERAL_PARTICIPATION`, `NOT_SUPPORTED`, `REVIEW_REQUIRED` are not implicitly counted as primary or secondary muscle load.
+- `DailyAnalysisLoadAggregator` retains its **distinct** readiness fatigue coefficients (`LOCAL_PRIMARY_SHARE=1.0`, `LOCAL_SECONDARY_SHARE=0.45`), axial / landing / overhead / grip / hold rules, baseline, residual and all other axes. These must not be changed to the muscle-graph SECONDARY coefficient 0.5.
+- The resolver is wired into `PerformanceTrendSummaryService` (fatigue trend), `DailyReadinessInputService` / `TodayReadinessEngine` (home status), and `PersonalizedProgramPlanningService` (planning recovery). No UI layout or DB schema changes.
+- Custom exercises remain on the explicit legacy data path pending one-time migration. History-only and unknown keys receive no inferred muscle roles. Default no-lookup overloads remain solely for existing isolated consumer/tests until final clean-up.
+- New cases: back squat, bench, deadlift, unknown/custom keys, no unexpected change to systemic fatigue; full CI pending.

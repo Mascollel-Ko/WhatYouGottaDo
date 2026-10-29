@@ -46,6 +46,7 @@ internal class PerformanceTrendSummaryService(
             runtimeMetadataCatalog = runtimeMetadataCatalog,
             canonicalCoreCatalog = canonicalCoreCatalog,
             badmintonObjectiveCatalog = badmintonObjectiveCatalog,
+            canonicalMuscleRoles = canonicalMuscleRoles,
             weeklyAggregator = WeeklyAnalysisAggregator(window)
         ).analyze(
             today = today,

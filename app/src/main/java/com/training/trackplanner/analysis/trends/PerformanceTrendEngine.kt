@@ -9,6 +9,7 @@ import com.training.trackplanner.analysis.readiness.PerformanceDropDetector
 import com.training.trackplanner.analysis.readiness.RecoverySignalInterpreter
 import com.training.trackplanner.analysis.readiness.ResidualFatigueCalculator
 import com.training.trackplanner.analysis.readiness.StatisticalBaselineCalculator
+import com.training.trackplanner.data.CanonicalMuscleRoleResolver
 import com.training.trackplanner.data.DailyMetric
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
@@ -26,6 +27,7 @@ class PerformanceTrendEngine(
     private val runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY,
     private val canonicalCoreCatalog: CanonicalCoreCatalog = CanonicalCoreCatalog.EMPTY,
     private val badmintonObjectiveCatalog: CanonicalBadmintonObjectiveCatalog = CanonicalBadmintonObjectiveCatalog.EMPTY,
+    private val canonicalMuscleRoles: CanonicalMuscleRoleResolver? = null,
     private val weeklyAggregator: WeeklyAnalysisAggregator = WeeklyAnalysisAggregator(),
     private val strengthCalculator: StrengthPerformanceIndexCalculator =
         StrengthPerformanceIndexCalculator(runtimeMetadataCatalog),
@@ -139,7 +141,8 @@ class PerformanceTrendEngine(
             completedEntries,
             exerciseMap,
             runtimeMetadataCatalog,
-            dailyMetrics
+            dailyMetrics,
+            canonicalMuscleRoles = canonicalMuscleRoles
         )
         return weeks.map { week ->
             val loadsUntilWeek = dailyLoads.filter { load -> load.date <= week.weekEnd }
