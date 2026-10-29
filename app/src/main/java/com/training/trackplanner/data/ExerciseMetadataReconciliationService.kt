@@ -14,6 +14,29 @@ internal class ExerciseMetadataReconciliationService(
     private val canonicalRepository: CanonicalExerciseMetadataRepository,
     private val seedExercisesByStableKey: () -> Map<String, Exercise>
 ) {
+    /**
+     * One-time local cutover of old built-in muscle edits. The canonical
+     * stableKey already defines all six roles; legacy fields are discarded.
+     * Separate user-created exercises and non-muscle user settings survive.
+     * Clearing COMPLETED_KEY forces the normal reconciliation to rehydrate
+     * built-in metadata from the currently shipped canonical catalogue.
+     */
+    suspend fun cutoverBuiltinMuscleOverridesOnce(): Boolean = db.withTransaction {
+        if (appMetaDao.value(MUSCLE_CUTOVER_KEY) == "done") return@withTransaction false
+        val seeds = seedExercisesByStableKey()
+        exerciseDao.allExercises().forEach { exercise ->
+            if (exercise.isCustom || exercise.stableKey !in seeds) return@forEach
+            listOf("exercise.primaryMuscles", "exercise.secondaryMuscles").forEach { field ->
+                overrideDao.deleteField(
+                    exercise.stableKey, ExerciseMetadataFieldScope.EXERCISE.name, field
+                )
+            }
+        }
+        appMetaDao.delete(COMPLETED_KEY)
+        appMetaDao.upsert(AppMeta(MUSCLE_CUTOVER_KEY, "done"))
+        true
+    }
+
     suspend fun markRequiredIfNeeded(): String {
         val revision = ExerciseMetadataRevisionPolicy.project(context, canonicalRepository)
             .semanticCanonicalMetadataRevision
@@ -87,5 +110,6 @@ internal class ExerciseMetadataReconciliationService(
     companion object {
         const val REQUIRED_KEY = "metadata_override_reconciliation_required"
         const val COMPLETED_KEY = "metadata_override_reconciliation_completed"
+        const val MUSCLE_CUTOVER_KEY = "canonical_muscle_stablekey_cutover_v1"
     }
 }

@@ -918,6 +918,7 @@ class TrainingRepository internal constructor(
                 )
             )
         }
+        exerciseMetadataReconciliationService.cutoverBuiltinMuscleOverridesOnce()
         exerciseMetadataReconciliationService.reconcileIfRequired(semanticRevision)
         workoutSourceIdentityProvider.backfillMissingWorkoutSourceIds()
         repairCustomExerciseStableKeys()

@@ -1,6 +1,10 @@
 package com.training.trackplanner.data
 
 import androidx.room.withTransaction
+
+private val LEGACY_BUILTIN_MUSCLE_FIELDS = setOf(
+    "exercise.primaryMuscles", "exercise.secondaryMuscles"
+)
 import com.training.trackplanner.analysis.strengthperformance.StrengthPosteriorModel
 import com.training.trackplanner.analysis.strengthperformance.VersionedDoubleArrayCodec
 import com.training.trackplanner.analysis.strengthperformance.toPosterior
@@ -84,7 +88,7 @@ internal class BackupRestoreImportService(
                 val snapshots = snapshotsByKey[row.stableKey].orEmpty()
                 val existingBefore = exerciseDao.findByStableKey(row.stableKey)
                 val canonical = seedByStableKey[row.stableKey]
-                val restoredFromBackup = if (isFormat12 && canonical != null) {
+                val restoredFromBackup = if (canonical != null && !row.isCustom) {
                     restoreCurrentBuiltInExercise(
                         canonical = canonical,
                         existing = existingBefore,
@@ -116,7 +120,7 @@ internal class BackupRestoreImportService(
                 runtimeExerciseMetadataDao.upsert(restored.runtimeMetadata.toEntity())
                 exerciseCount += 1
                 val legacy = LegacyTrainingRoleImportMapper.resolve(row.legacyTrainingRole)
-                val trainingRoles = if (isFormat12 && canonical != null) {
+                val trainingRoles = if (canonical != null && !row.isCustom) {
                     canonicalMetadataRepository.trainingRoleRelations()
                         .filter { it.exerciseStableKey == row.stableKey }
                         .mapTo(sortedSetOf(), ExerciseTrainingRoleRelation::trainingRoleCode)
@@ -127,7 +131,7 @@ internal class BackupRestoreImportService(
                     ) ?: (row.trainingRoleCodes + legacy.trainingRoles).map(TrainingRole::name).toSet()
                         .takeIf(Set<String>::isNotEmpty)
                 }
-                val capabilities = if (isFormat12 && canonical != null) {
+                val capabilities = if (canonical != null && !row.isCustom) {
                     canonicalMetadataRepository.programSlotCapabilityRelations()
                         .filter { it.exerciseStableKey == row.stableKey }
                         .mapTo(sortedSetOf(), ExerciseProgramSlotCapabilityRelation::capabilityCode)
@@ -178,6 +182,21 @@ internal class BackupRestoreImportService(
                             )
                         }
                 }
+            }
+            // Built-ins are resolved by stableKey in every backup generation.
+            // Only old muscle-field overrides are retired; other user state remains.
+            val restoredBuiltinKeys = data.exerciseRows
+                .filter { row -> !row.isCustom && row.stableKey in seedByStableKey }
+                .mapTo(linkedSetOf(), RestoreExerciseRow::stableKey)
+            restoredBuiltinKeys.forEach { stableKey ->
+                LEGACY_BUILTIN_MUSCLE_FIELDS.forEach { field ->
+                    exerciseMetadataUserOverrideDao.deleteField(
+                        stableKey, ExerciseMetadataFieldScope.EXERCISE.name, field
+                    )
+                }
+            }
+            if (restoredBuiltinKeys.isNotEmpty()) {
+                appMetaDao.upsert(AppMeta("canonical_stablekey_restore_cutover_v1", "complete"))
             }
             data.programSnapshot?.let { snapshot ->
                 val counts = restoreProgramSnapshot(snapshot)
@@ -482,11 +501,15 @@ internal class BackupRestoreImportService(
         data: RecordCsvImportData.Restore,
         mode: ExerciseListRestoreMode
     ) {
-        val rowsByStableKey = data.metadataUserOverrideRows
+        val builtInKeys = seedExercisesByStableKey().keys
+        val acceptedRows = data.metadataUserOverrideRows.filterNot { row ->
+            row.stableKey in builtInKeys && row.fieldKey in LEGACY_BUILTIN_MUSCLE_FIELDS
+        }
+        val rowsByStableKey = acceptedRows
             .groupBy(ExerciseMetadataUserOverrideEntity::stableKey)
         when (mode) {
             ExerciseListRestoreMode.PRESERVE_CURRENT_ACTIVE_EXERCISES ->
-                exerciseMetadataUserOverrideDao.upsertAll(data.metadataUserOverrideRows)
+                exerciseMetadataUserOverrideDao.upsertAll(acceptedRows)
             ExerciseListRestoreMode.APPLY_BACKUP_ACTIVE_EXERCISE_LIST ->
                 data.exerciseRows.map(RestoreExerciseRow::stableKey).distinct().forEach { stableKey ->
                     exerciseMetadataUserOverrideDao.replaceForStableKey(
