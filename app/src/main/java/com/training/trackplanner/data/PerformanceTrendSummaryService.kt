@@ -32,7 +32,8 @@ internal class PerformanceTrendSummaryService(
         com.training.trackplanner.analysis.badminton.CanonicalBadmintonObjectiveCatalog.EMPTY,
     private val strengthPosteriorDao: StrengthPosteriorDao,
     private val strengthPerformanceRegistry: StrengthPerformanceRegistry,
-    private val appMetaDao: AppMetaDao
+    private val appMetaDao: AppMetaDao,
+    private val canonicalMuscleRoles: CanonicalMuscleRoleResolver? = null
 ) {
     suspend fun build(window: WeeklyAnalysisWindow = WeeklyAnalysisWindow.DASHBOARD): PerformanceTrendSummary {
         val today = SystemAnalysisDateProvider().today()
@@ -63,7 +64,8 @@ internal class PerformanceTrendSummaryService(
             entriesWithSets = entries,
             exercises = exercises,
             runtimeMetadataCatalog = runtimeMetadataCatalog,
-            dailyMetrics = dailyMetrics
+            dailyMetrics = dailyMetrics,
+            canonicalMuscleRoles = canonicalMuscleRoles
         )
         val coreStimulusSeries = CoreStimulusMetricSeriesBuilder.build(base.coreStimulus)
         val initialProfile = initialUserProfileDao.profile()

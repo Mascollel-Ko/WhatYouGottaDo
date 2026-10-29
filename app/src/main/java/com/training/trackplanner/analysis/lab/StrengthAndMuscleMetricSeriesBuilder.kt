@@ -5,6 +5,7 @@ import com.training.trackplanner.analysis.features.DurationHoldLoadCalculator
 import com.training.trackplanner.analysis.features.DurationHoldPolicy
 import com.training.trackplanner.analysis.trends.TrendDataPoint
 import com.training.trackplanner.analysis.trends.TrendMetricId
+import com.training.trackplanner.data.CanonicalMuscleRoleResolver
 import com.training.trackplanner.data.DailyMetric
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
@@ -20,7 +21,8 @@ object StrengthAndMuscleMetricSeriesBuilder {
         exercises: List<Exercise>,
         @Suppress("UNUSED_PARAMETER")
         runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY,
-        dailyMetrics: List<DailyMetric> = emptyList()
+        dailyMetrics: List<DailyMetric> = emptyList(),
+        canonicalMuscleRoles: CanonicalMuscleRoleResolver? = null
     ): Map<TrendMetricId, List<TrendDataPoint>> {
         val exercisesById = exercises.associateBy(Exercise::stableKey)
         val dailyLoads = MuscleBucket.values().associateWith { mutableMapOf<LocalDate, Double>() }
@@ -55,7 +57,13 @@ object StrengthAndMuscleMetricSeriesBuilder {
                     val load = if (durationHoldLoad != null) setLoad else setLoad * rpeWeight(rpe)
                     if (load > 0.0) {
                         val contributions = durationHoldContributions(record.entry.exerciseStableKey)
-                            ?: MuscleLoadInputBuilder.contributions(exercise)
+                            ?: MuscleLoadInputBuilder.contributions(
+                                exercise,
+                                canonicalMuscleRoles?.lookup(
+                                    record.entry.exerciseStableKey,
+                                    isCustom = exercise?.isCustom == true
+                                )
+                            )
                         contributions.forEach { (bucket, weight) ->
                             dailyLoads.getValue(bucket).merge(date, load * weight, Double::plus)
                         }

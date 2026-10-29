@@ -132,3 +132,11 @@
 - `ExerciseScreen`: 동일한 검색 후 목록을 서브카테고리 수와 실제 목록에 사용하도록 연결하여 기존 이름 기반 `countsFor` 필터 중복을 제거했다. 화면의 폭/배치/버튼/여백 변경 없음.
 - 기존 보존 설계 MUS-00.5의 근육 override 표시 원칙은 아직 상세 화면(MUS-01/02)에 남아 있다. **정식 본문 일원화는 1회 데이터 이관 및 편집기 전환 때 동기화해야 하며**, 이번 단계가 모든 레거시 제거 완료를 의미하지 않는다.
 - 새 회귀 검사: 기본 운동의 옛 문자열/사용자 override 비권위 검색, 한/영/코드 검색, 안정화와 NOT_SUPPORTED 구분, 스쿼트·벤치·데드리프트 분류, 공통 검색 집계, 사용자 생성 운동 호환/미등록 안전성. 실제 기기 시각검증과 최종 hosted CI는 별도 판정한다.
+
+## 2026-10-29 MUS-03/04 CI recovery and MUS-08/09 implementation
+
+- Fixed the only failure in CI 40823117863 (2469 tests, 1 failed): the `progressMetricType` inventory row for `ExerciseSubcategoryMapper.kt` was obsolete after MUS-04 removed that code. Removed the row, did not reintroduce a legacy read.
+- MUS-08/09: `TrainingRepository` injects `CanonicalExerciseMetadataRepository.muscleRoleResolver()` into `PerformanceTrendSummaryService`; the trend builder passes the lookup to `MuscleLoadInputBuilder`. Built-in `stableKey` is now the source for live 12-bucket muscle graph contributions.
+- Use exact relation coefficients for PRIMARY/SECONDARY, not guessed new physiological multipliers; STABILIZER/GENERAL_PARTICIPATION/NOT_SUPPORTED/REVIEW_REQUIRED contribute no muscle-graph dose. Core codes remain in the separate core analysis, not falsely folded into the 12 muscle buckets.
+- Exercise set load, bodyweight, RPE, week aggregation, plank/side-plank duration-hold policies, graph UI and stored records are unchanged. The no-lookup API remains only for older isolated direct callers/tests, and user-custom exercise projection remains transient pending the one-time importer. Unknown/history-only keys fail closed. This is not the final backup migration.
+- Pending hosted CI + new stableKey source tests before marking MUS-08/09 CI_VERIFIED.

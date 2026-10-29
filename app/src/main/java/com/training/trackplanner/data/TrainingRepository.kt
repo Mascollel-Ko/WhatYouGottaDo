@@ -269,7 +269,8 @@ class TrainingRepository internal constructor(
         badmintonObjectiveCatalog = badmintonObjectiveCatalog,
         strengthPosteriorDao = strengthPosteriorDao,
         strengthPerformanceRegistry = strengthPerformanceRegistry,
-        appMetaDao = appMetaDao
+        appMetaDao = appMetaDao,
+        canonicalMuscleRoles = canonicalMetadataRepository.muscleRoleResolver()
     )
     private val weeklyAnalysisFeatureSnapshotService = WeeklyAnalysisFeatureSnapshotService(
         context = context,
