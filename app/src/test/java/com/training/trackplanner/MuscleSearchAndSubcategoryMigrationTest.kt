@@ -78,7 +78,7 @@ class MuscleSearchAndSubcategoryMigrationTest {
         assertTrue(deadlift.matchesMetadataQuery("BACK_LATS", translator, effective, presenter))
         val reverseCurl = exercise("barbell_reverse_curl")
         val reverse = resolver.resolve(reverseCurl, emptyList())
-        assertFalse(reverse.matchesMetadataQuery("BACK_LATS", translator, reverse, presenter))
+        assertFalse(reverseCurl.matchesMetadataQuery("BACK_LATS", translator, reverse, presenter))
     }
 
     @Test
