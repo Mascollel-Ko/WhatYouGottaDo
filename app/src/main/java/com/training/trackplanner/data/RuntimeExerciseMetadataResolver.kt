@@ -325,9 +325,6 @@ internal fun Exercise.copyEditableMetadataFrom(source: Exercise): Exercise =
         familyE1rmMultiplier = source.familyE1rmMultiplier,
         movementPattern = source.movementPattern,
         movementCategory = source.movementCategory,
-        // Built-in targets must never acquire another stableKey's legacy muscle roles.
-        primaryMuscles = if (isCustom || stableKey.isBlank()) source.primaryMuscles else primaryMuscles,
-        secondaryMuscles = if (isCustom || stableKey.isBlank()) source.secondaryMuscles else secondaryMuscles,
         equipment = source.equipment,
         equipmentTags = source.equipmentTags,
         compoundType = source.compoundType,
