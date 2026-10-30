@@ -55,31 +55,4 @@ internal object MuscleLoadInputBuilder {
         else -> null
     }
 
-    private fun legacyCompatibility(exercise: Exercise): Map<MuscleBucket, Double> {
-        val result = mutableMapOf<MuscleBucket, Double>()
-        MuscleGroupKeyNormalizer.canonicalKeys(exercise.primaryMuscles).forEach { token ->
-            legacyBucket(token)?.let { result.merge(it, 1.0, ::maxOf) }
-        }
-        MuscleGroupKeyNormalizer.canonicalKeys(exercise.secondaryMuscles).forEach { token ->
-            legacyBucket(token)?.let { result.merge(it, 0.5, ::maxOf) }
-        }
-        return result
-    }
-
-    private fun legacyBucket(token: String): MuscleBucket? = when (token) {
-        "QUADRICEPS", "RECTUS_FEMORIS" -> MuscleBucket.QUADS
-        "HAMSTRING" -> MuscleBucket.HAMSTRINGS
-        "GLUTE", "GLUTE_MEDIUS" -> MuscleBucket.GLUTES
-        "CALF", "TIBIALIS" -> MuscleBucket.CALVES
-        "HIP_ADDUCTOR" -> MuscleBucket.ADDUCTOR_ABDUCTOR
-        "ERECTOR_SPINAE" -> MuscleBucket.POSTERIOR_CHAIN_ERECTORS
-        "CHEST", "UPPER_CHEST" -> MuscleBucket.CHEST
-        "BACK", "LAT", "RHOMBOID", "TRAPEZIUS", "LOWER_TRAP" -> MuscleBucket.BACK_LATS
-        "SHOULDER", "ANTERIOR_DELTOID", "LATERAL_DELTOID", "REAR_DELT", "ROTATOR_CUFF", "SCAPULAR_STABILIZERS" ->
-            MuscleBucket.SHOULDERS
-        "BICEPS" -> MuscleBucket.BICEPS
-        "TRICEPS" -> MuscleBucket.TRICEPS
-        "FOREARM", "GRIP" -> MuscleBucket.FOREARM_GRIP
-        else -> null
-    }
 }
