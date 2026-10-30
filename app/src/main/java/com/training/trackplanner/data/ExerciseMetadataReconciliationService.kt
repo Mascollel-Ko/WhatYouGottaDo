@@ -16,14 +16,14 @@ internal class ExerciseMetadataReconciliationService(
 ) {
     /**
      * One-time local cutover of developer-materialized built-in metadata.
-     * Always refresh from the stableKey canonical baseline, but retain explicit
-     * persisted USER_EDIT / RESTORED_USER_OVERRIDE rows (including muscle fields).
-     * Differing old materialized columns are not evidence of user intent.
+     * Always refresh from the stableKey canonical baseline. Keep old user
+     * muscle edits as migration-review evidence in the override DAO, but never
+     * project those two-field values into active exercise muscle metadata.
      */
     suspend fun cutoverBuiltinMuscleOverridesOnce(): Boolean = db.withTransaction {
         if (appMetaDao.value(MUSCLE_CUTOVER_KEY) == "done") return@withTransaction false
-        // Do not delete USER_EDIT or RESTORED_USER_OVERRIDE rows: the
-        // normal effective-state resolver layers them above canonical defaults.
+        // Preserve old USER_EDIT / RESTORED_USER_OVERRIDE rows for explicit
+        // migration review; the live resolver ignores their muscle values.
         appMetaDao.delete(COMPLETED_KEY)
         appMetaDao.upsert(AppMeta(MUSCLE_CUTOVER_KEY, "done"))
         true
