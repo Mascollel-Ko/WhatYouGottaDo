@@ -303,7 +303,7 @@ internal object ExerciseMetadataFieldPolicyRegistry {
     ): ExerciseMetadataRestoreTarget {
         val target = ExerciseMetadataRestoreTarget(exercise, runtimeMetadata)
         rows.sortedBy(ExerciseMetadataSnapshotRow::fieldKey).forEach { row ->
-            val definition = requireNotNull(byKey[row.fieldKey]) { "Unknown exercise metadata field: ${row.fieldKey}" }
+            val definition = requireNotNull(definition(row.fieldKey)) { "Unknown exercise metadata field: ${row.fieldKey}" }
             require(definition.fieldScope == row.fieldScope) { "Exercise metadata field scope mismatch: ${row.fieldKey}" }
             require(definition.valueEncoding == row.valueEncoding) { "Exercise metadata encoding mismatch: ${row.fieldKey}" }
             require(row.isExplicitEmpty == row.value.isEmpty()) { "Exercise metadata empty marker mismatch: ${row.fieldKey}" }
@@ -333,7 +333,7 @@ internal object ExerciseMetadataFieldPolicyRegistry {
         }
         rows.forEach { row ->
             require(row.stableKey.isNotBlank()) { "Exercise metadata snapshot stableKey must be nonblank." }
-            val definition = requireNotNull(byKey[row.fieldKey]) { "Unknown exercise metadata field: ${row.fieldKey}" }
+            val definition = requireNotNull(definition(row.fieldKey)) { "Unknown exercise metadata field: ${row.fieldKey}" }
             require(definition.fieldScope == row.fieldScope) { "Exercise metadata field scope mismatch: ${row.fieldKey}" }
             require(definition.valueEncoding == row.valueEncoding) { "Exercise metadata encoding mismatch: ${row.fieldKey}" }
             require(row.isExplicitEmpty == row.value.isEmpty()) { "Exercise metadata empty marker mismatch: ${row.fieldKey}" }
