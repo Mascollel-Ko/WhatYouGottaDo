@@ -526,6 +526,8 @@ class CanonicalExerciseMetadataRepository(private val context: Context) {
         familyE1rmMultiplier = fields.required("familyE1rmMultiplier").toDouble(),
         movementPattern = fields["movementPattern"].orEmpty(),
         movementCategory = fields["movementCategory"].orEmpty(),
+        // Versioned seed/backup compatibility only. Live exercise features
+        // must resolve typed muscle relations by stableKey instead of these.
         primaryMuscles = fields["primaryMuscles"].orEmpty(),
         secondaryMuscles = fields["secondaryMuscles"].orEmpty(),
         equipment = fields["equipment"].orEmpty(),

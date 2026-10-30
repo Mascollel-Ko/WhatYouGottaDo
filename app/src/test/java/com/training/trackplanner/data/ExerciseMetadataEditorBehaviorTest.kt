@@ -114,6 +114,73 @@ class ExerciseMetadataEditorBehaviorTest {
     }
 
     @Test
+    fun oldBuiltInMuscleEditIsReviewedOnceWithoutUsingItAsCanonicalRoles() = runBlocking {
+        val db = newDatabase()
+        val repo = repository(db)
+        val canonical = CanonicalExerciseMetadataRepositoryProvider.get(context)
+            .exercises().first { it.stableKey == "barbell_bench_press" }
+        db.exerciseDao().insertExercise(canonical)
+        val original = db.exerciseDao().findByStableKey(canonical.stableKey)!!
+        val old = ExerciseMetadataUserOverrideEntity(
+            stableKey = canonical.stableKey,
+            fieldScope = ExerciseMetadataFieldScope.EXERCISE.name,
+            fieldKey = "exercise.primaryMuscles",
+            valueEncoding = ExerciseMetadataValueEncoding.TOKEN_SET.name,
+            value = "BICEPS", isExplicitEmpty = false,
+            source = ExerciseMetadataOverrideSource.USER_EDIT.name,
+            semanticCanonicalRevisionAtEdit = "old"
+        )
+        db.exerciseMetadataUserOverrideDao().upsert(old)
+        assertEquals(listOf(canonical.stableKey),
+            repo.pendingCustomMuscleRoleReviews().map { it.stableKey })
+        val editor = repo.exerciseEditorData(canonical.stableKey)
+        assertEquals("BICEPS", editor.legacyReviewPrimary)
+        // The typed editor must not preselect the old mistaken biceps.
+        assertEquals("CHEST", editor.muscleRoles.single {
+            it.role == CanonicalMuscleRole.PRIMARY
+        }.muscleCode)
+        assertTrue(repo.resolvedMuscleMetadata(canonical.stableKey)!!.usesCanonicalRoles)
+        assertEquals("CHEST", repo.resolvedMuscleMetadata(canonical.stableKey)!!.canonical
+            .forRole(CanonicalMuscleRole.PRIMARY).single().muscleCode)
+        repo.saveExerciseEditor(editor.copy(
+            exercise = editor.exercise.copy(description = "Changed unrelated note")
+        ))
+        assertEquals("BICEPS", db.exerciseMetadataUserOverrideDao()
+            .findByStableKey(canonical.stableKey)
+            .single { it.fieldKey == old.fieldKey }.value)
+        repo.confirmCustomMuscleRoles(canonical.stableKey, editor.muscleRoles)
+        assertTrue(repo.pendingCustomMuscleRoleReviews().isEmpty())
+        val retainedExercise = db.exerciseDao().findByStableKey(canonical.stableKey)!!
+        assertEquals(original.stableKey, retainedExercise.stableKey)
+        assertEquals(original.primaryMuscles, retainedExercise.primaryMuscles)
+        assertEquals("Changed unrelated note", retainedExercise.description)
+        assertEquals("BICEPS", db.exerciseMetadataUserOverrideDao()
+            .findByStableKey(canonical.stableKey)
+            .single { it.fieldKey == old.fieldKey }.value)
+        assertEquals("CHEST", repo.resolvedMuscleMetadata(canonical.stableKey)!!.canonical
+            .forRole(CanonicalMuscleRole.PRIMARY).single().muscleCode)
+        assertTrue(TrainingRepository(db, context).pendingCustomMuscleRoleReviews().isEmpty())
+    }
+
+    @Test
+    fun legacyCustomStringsNeverPrefillTypedEditorOrCopyIntoNewExercise() = runBlocking {
+        val db = newDatabase()
+        val repo = repository(db)
+        val key = "user_ex_legacy_hint_only"
+        db.exerciseDao().insertExercise(Exercise(
+            stableKey = key, name = "Old custom", category = "근력운동",
+            isCustom = true, primaryMuscles = "LAT", secondaryMuscles = "TRICEPS"
+        ))
+        val oldEditor = repo.exerciseEditorData(key)
+        assertEquals("LAT", oldEditor.legacyReviewPrimary)
+        assertEquals("TRICEPS", oldEditor.legacyReviewSecondary)
+        assertTrue(oldEditor.muscleRoles.isEmpty())
+        val newEditor = repo.exerciseEditorData(null)
+        assertTrue(newEditor.copySources.first { it.exercise.stableKey == key }.muscleRoles.isEmpty())
+        assertTrue(repo.resolvedMuscleMetadata(key)!!.canonical.relations.isEmpty())
+    }
+
+    @Test
     fun saveExerciseEditorCreatesCustomExerciseWithUniqueStableKeyAndOverride() = runBlocking {
         val db = newDatabase()
         val repository = repository(db)

@@ -102,8 +102,8 @@ class UserCreatedExerciseRuntimeMetadataTest {
         assertEquals("내 커스텀 운동", copied.name)
         assertEquals("", copied.stableKey)
         assertTrue(copied.isCustom)
-        assertEquals("QUADRICEPS", copied.primaryMuscles)
-        assertEquals("GLUTE", copied.secondaryMuscles)
+        assertEquals("", copied.primaryMuscles)
+        assertEquals("", copied.secondaryMuscles)
         assertEquals("SQUAT", copied.movementPattern)
         assertEquals("LOWER", copied.bodyRegion)
     }

@@ -31,7 +31,7 @@ class EffectiveMuscleMetadataResolverTest {
         val effective = resolver.resolve(bench, emptyList())
         assertEquals(EffectiveMuscleMetadataSource.CANONICAL, effective.source)
         assertTrue(effective.usesCanonicalRoles)
-        assertNull(effective.legacy)
+        assertFalse(effective.needsMigrationReview)
         assertEquals(setOf("CHEST"),
             effective.canonical.forRole(CanonicalMuscleRole.PRIMARY).mapTo(mutableSetOf()) { it.muscleCode })
     }
@@ -42,17 +42,16 @@ class EffectiveMuscleMetadataResolverTest {
         val clear = override(bench.stableKey, "exercise.primaryMuscles", "", true)
         val effective = resolver.resolve(bench, listOf(clear))
         assertEquals(EffectiveMuscleMetadataSource.LEGACY_USER_OVERRIDE, effective.source)
-        assertFalse(effective.usesCanonicalRoles)
+        assertTrue(effective.usesCanonicalRoles)
+        assertTrue(effective.needsMigrationReview)
         assertTrue(effective.canonical.requiresOverridePolicy)
-        assertEquals("", effective.legacy!!.primaryMuscles)
-        assertEquals(bench.secondaryMuscles, effective.legacy!!.secondaryMuscles)
-        assertEquals(setOf("exercise.primaryMuscles"), effective.legacy!!.overriddenFieldKeys)
+        assertEquals("CHEST", effective.canonical.forRole(CanonicalMuscleRole.PRIMARY).single().muscleCode)
 
         val secondary = override(bench.stableKey, "exercise.secondaryMuscles", "TRICEPS")
         val both = resolver.resolve(bench, listOf(clear, secondary))
-        assertEquals("", both.legacy!!.primaryMuscles)
-        assertEquals("TRICEPS", both.legacy!!.secondaryMuscles)
-        assertEquals(2, both.legacy!!.overriddenFieldKeys.size)
+        assertTrue(both.usesCanonicalRoles)
+        assertTrue(both.needsMigrationReview)
+        assertEquals(effective.canonical.relations, both.canonical.relations)
     }
 
     @Test
@@ -72,7 +71,7 @@ class EffectiveMuscleMetadataResolverTest {
     }
 
     @Test
-    fun customAndHistoryOnlyKeepTheirOwnLegacyFields() {
+    fun unreviewedCustomAndHistoryOnlyDoNotExposeOldMusclesAsLiveRoles() {
         val custom = Exercise(
             stableKey = "user_ex_muscle_example",
             name = "User movement",
@@ -84,12 +83,14 @@ class EffectiveMuscleMetadataResolverTest {
         val customResult = resolver.resolve(custom, emptyList())
         assertEquals(EffectiveMuscleMetadataSource.LEGACY_CUSTOM_EXERCISE, customResult.source)
         assertFalse(customResult.usesCanonicalRoles)
-        assertEquals("QUADRICEPS", customResult.legacy!!.primaryMuscles)
+        assertTrue(customResult.canonical.relations.isEmpty())
+        assertTrue(customResult.needsMigrationReview)
         val history = canonical.exercises(includeHistory = true)
             .first { it.stableKey == "ex_99728d25" }
         val historyResult = resolver.resolve(history, emptyList())
         assertEquals(EffectiveMuscleMetadataSource.LEGACY_HISTORY_ONLY, historyResult.source)
-        assertEquals(history.primaryMuscles, historyResult.legacy!!.primaryMuscles)
+        assertFalse(historyResult.usesCanonicalRoles)
+        assertTrue(historyResult.canonical.relations.isEmpty())
     }
 
     @Test
@@ -123,11 +124,11 @@ class EffectiveMuscleMetadataResolverTest {
             override(bench.stableKey, "exercise.primaryMuscles", "", true))
         val single = repository.resolvedMuscleMetadata(bench.stableKey)!!
         assertEquals(EffectiveMuscleMetadataSource.LEGACY_USER_OVERRIDE, single.source)
-        assertEquals("", single.legacy!!.primaryMuscles)
-        assertEquals(bench.secondaryMuscles, single.legacy!!.secondaryMuscles)
+        assertTrue(single.usesCanonicalRoles)
+        assertTrue(single.needsMigrationReview)
         val batched = repository.resolvedMuscleMetadataByStableKey()
         assertEquals(single, batched.getValue(bench.stableKey))
-        assertEquals("BICEPS", batched.getValue(custom.stableKey).legacy!!.primaryMuscles)
+        assertFalse(batched.getValue(custom.stableKey).usesCanonicalRoles)
         assertNull(repository.resolvedMuscleMetadata("missing_key"))
         assertEquals(1, database.exerciseMetadataUserOverrideDao()
             .findByStableKey(bench.stableKey).size)

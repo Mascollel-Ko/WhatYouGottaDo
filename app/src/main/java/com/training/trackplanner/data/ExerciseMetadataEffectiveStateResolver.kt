@@ -49,7 +49,11 @@ internal class ExerciseMetadataEffectiveStateResolver(
             rows = validatedOverrides
                 .filter { row ->
                     row.fieldScope != ExerciseMetadataFieldScope.TRAINING_ROLE_RELATION.name &&
-                        row.fieldScope != ExerciseMetadataFieldScope.PROGRAM_SLOT_CAPABILITY_RELATION.name
+                        row.fieldScope != ExerciseMetadataFieldScope.PROGRAM_SLOT_CAPABILITY_RELATION.name &&
+                        // Old muscle overrides remain in the DAO for explicit
+                        // migration review. They never materialize live exercise
+                        // rows or suppress six-role canonical metadata.
+                        row.fieldKey !in setOf("exercise.primaryMuscles", "exercise.secondaryMuscles")
                 }
                 .map(ExerciseMetadataUserOverrideEntity::toSnapshotRow)
         )

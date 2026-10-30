@@ -65,10 +65,7 @@ object MetadataSanityChecker {
 
         // For built-ins, only verified stableKey muscle relations are authoritative.
         val canonical = canonicalMuscleRoles?.lookup(exercise)
-        exercise.requiredMetadataFields()
-            .filterNot { (field, _) ->
-                field == "primaryMuscles" && canonical != null && !exercise.isCustom
-            }.forEach { (field, value) ->
+        exercise.requiredMetadataFields().forEach { (field, value) ->
             if (value.isBlank()) {
                 issues += exercise.review(field, "required analysis metadata field is blank")
             }
@@ -263,7 +260,6 @@ object MetadataSanityChecker {
         listOf(
             "movementPattern" to movementPattern,
             "movementCategory" to movementCategory,
-            "primaryMuscles" to primaryMuscles,
             "equipment" to equipment,
             "compoundType" to compoundType,
             "forceType" to forceType,

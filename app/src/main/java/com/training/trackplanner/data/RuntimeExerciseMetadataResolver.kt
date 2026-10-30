@@ -307,7 +307,10 @@ data class ExerciseRuntimeMetadataEditorData(
     val originalExercise: Exercise = exercise,
     val originalMetadata: RuntimeExerciseMetadata = metadata,
     val muscleRoles: List<CanonicalMuscleRoleEntry> = emptyList(),
-    val originalMuscleRoles: List<CanonicalMuscleRoleEntry> = muscleRoles
+    val originalMuscleRoles: List<CanonicalMuscleRoleEntry> = muscleRoles,
+    // Displayed only by the explicit post-upgrade review, never by regular exercise features.
+    val legacyReviewPrimary: String = "",
+    val legacyReviewSecondary: String = ""
 )
 
 data class ExerciseMetadataCopySource(
@@ -325,9 +328,6 @@ internal fun Exercise.copyEditableMetadataFrom(source: Exercise): Exercise =
         familyE1rmMultiplier = source.familyE1rmMultiplier,
         movementPattern = source.movementPattern,
         movementCategory = source.movementCategory,
-        // Built-in targets must never acquire another stableKey's legacy muscle roles.
-        primaryMuscles = if (isCustom || stableKey.isBlank()) source.primaryMuscles else primaryMuscles,
-        secondaryMuscles = if (isCustom || stableKey.isBlank()) source.secondaryMuscles else secondaryMuscles,
         equipment = source.equipment,
         equipmentTags = source.equipmentTags,
         compoundType = source.compoundType,

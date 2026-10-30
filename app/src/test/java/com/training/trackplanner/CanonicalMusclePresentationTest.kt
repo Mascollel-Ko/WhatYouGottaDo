@@ -58,7 +58,7 @@ class CanonicalMusclePresentationTest {
     }
 
     @Test
-    fun userOverrideNeverGetsCanonicalLabelsProjectedOverIt() {
+    fun oldMuscleOverrideRequiresReviewButUntilThenDisplaysCanonicalRoles() {
         val bench = repository.exercises().first { it.stableKey == "barbell_bench_press" }
         val row = ExerciseMetadataUserOverrideEntity(
             stableKey = bench.stableKey,
@@ -72,9 +72,9 @@ class CanonicalMusclePresentationTest {
         )
         val effective = resolver.resolve(bench, listOf(row))
         val presenter = CanonicalMusclePresentation.from(localized(Locale.KOREAN))
-        assertFalse(effective.usesCanonicalRoles)
-        assertTrue(presenter.optionsForRole(effective, CanonicalMuscleRole.PRIMARY).isEmpty())
-        assertEquals("", effective.legacy!!.primaryMuscles)
+        assertTrue(effective.usesCanonicalRoles)
+        assertTrue(effective.needsMigrationReview)
+        assertEquals("CHEST", presenter.optionsForRole(effective, CanonicalMuscleRole.PRIMARY).single().code)
     }
 
     private fun localized(locale: Locale): Context = context.createConfigurationContext(

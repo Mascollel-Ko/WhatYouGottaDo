@@ -50,9 +50,9 @@ class CanonicalStableKeyCutoverTest {
         repo.seedIfNeeded()
 
         val restored = db.exerciseDao().findByStableKey(canonical.stableKey)!!
-        // The developer-materialized secondary=BICEPS is discarded. The
-        // explicit USER_EDIT primary=HAMSTRING survives above the canonical base.
-        assertEquals("HAMSTRING", restored.primaryMuscles)
+        // Old edited values survive in override rows for review only.
+        // They may not re-enter live exercise metadata on startup.
+        assertEquals(canonical.primaryMuscles, restored.primaryMuscles)
         assertEquals(canonical.secondaryMuscles, restored.secondaryMuscles)
         val savedUserRows = db.exerciseMetadataUserOverrideDao().findByStableKey(canonical.stableKey)
         assertEquals(1, savedUserRows.size)
@@ -66,7 +66,9 @@ class CanonicalStableKeyCutoverTest {
         ))
 
         repo.seedIfNeeded()
-        assertEquals("HAMSTRING", db.exerciseDao().findByStableKey(canonical.stableKey)!!.primaryMuscles)
+        assertEquals(canonical.primaryMuscles, db.exerciseDao().findByStableKey(canonical.stableKey)!!.primaryMuscles)
+        assertEquals(listOf(canonical.stableKey, custom.stableKey),
+            repo.pendingCustomMuscleRoleReviews().map { it.stableKey }.sorted())
         assertEquals(1, db.exerciseMetadataUserOverrideDao().findByStableKey(canonical.stableKey).size)
         assertEquals(custom.primaryMuscles, db.exerciseDao().findByStableKey(custom.stableKey)!!.primaryMuscles)
     }

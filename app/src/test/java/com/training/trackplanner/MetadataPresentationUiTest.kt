@@ -286,7 +286,7 @@ class MetadataPresentationUiTest {
             equipment = "DUMBBELL",
             equipmentTags = "DUMBBELL"
         )
-        // This fixture has no canonical stableKey: exercise-local legacy data remains visible.
+        // Unknown identity has no typed muscle-role relation. Old raw fields are not displayed.
         val repository = CanonicalExerciseMetadataRepository(
             ApplicationProvider.getApplicationContext<Context>()
         )
@@ -301,8 +301,8 @@ class MetadataPresentationUiTest {
             )
         }
 
-        compose.onNode(hasScrollAction()).performScrollToNode(hasText("광배근"))
-        compose.onNodeWithText("광배근").assertIsDisplayed()
+        compose.onAllNodesWithText("광배근", substring = true).assertCountEquals(0)
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("덤벨"))
         compose.onNodeWithText("덤벨").assertExists()
         listOf("LAT", "TRICEPS", "DUMBBELL").forEach { rawCode ->
             compose.onAllNodes(hasText(rawCode, substring = true)).assertCountEquals(0)
@@ -339,7 +339,7 @@ class MetadataPresentationUiTest {
     }
 
     @Test
-    fun savedMuscleOverrideIsNotReplacedByCanonicalDisplay() {
+    fun oldMuscleOverrideCannotReplaceCanonicalDisplayWithoutReview() {
         val repository = CanonicalExerciseMetadataRepository(
             ApplicationProvider.getApplicationContext<Context>()
         )
@@ -360,8 +360,8 @@ class MetadataPresentationUiTest {
             ExerciseInfoDialog(exercise, onDismiss = {}, muscleMetadata = muscle)
         }
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("사용 근육과 장비"))
-        compose.onAllNodesWithText("주동근").assertCountEquals(0)
-        compose.onAllNodesWithText("가슴 근육", substring = true).assertCountEquals(0)
+        compose.onNodeWithText("주동근").assertExists()
+        compose.onNodeWithText("가슴 근육", substring = true).assertExists()
     }
 
     @Test

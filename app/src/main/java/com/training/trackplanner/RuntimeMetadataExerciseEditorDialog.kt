@@ -158,19 +158,6 @@ internal fun RuntimeMetadataExerciseEditorDialog(
                                 "근육별 역할을 수정할 수 있습니다. 주동근·보조근은 운동량에, 부위별 피로는 별도 계산식에 반영됩니다.",
                                 style = MaterialTheme.typography.bodySmall
                             )
-                            if (exercise.isCustom && muscleRoles.isEmpty() &&
-                                (exercise.primaryMuscles.isNotBlank() || exercise.secondaryMuscles.isNotBlank())) {
-                                MaterialText(
-                                    "이 운동에는 이전 형식의 근육 정보가 있습니다. 자동으로 확실하게 대응할 수 없는 항목은 삭제하지 않았습니다. 아래에서 역할을 직접 지정해 주세요.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                MaterialText(
-                                    "기존 주동근: " + exercise.primaryMuscles +
-                                        " / 기존 보조근: " + exercise.secondaryMuscles,
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                            }
                             UserMuscleRoleCodec.MUSCLE_CODES.forEach { code ->
                                 val role = muscleRoles.firstOrNull { it.muscleCode == code }?.role
                                 MuscleRoleChoiceRow(

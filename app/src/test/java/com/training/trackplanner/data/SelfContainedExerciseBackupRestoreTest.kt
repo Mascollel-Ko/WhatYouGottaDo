@@ -161,7 +161,12 @@ class SelfContainedExerciseBackupRestoreTest {
         val restoredOverrides = target.exerciseMetadataUserOverrideDao().findByStableKey(canonical.stableKey)
         val effective = repository.exerciseEditorData(canonical.stableKey)
         assertEquals(2, restoredOverrides.size)
-        assertEquals("GLUTEUS_MAXIMUS|QUADRICEPS", effective.exercise.primaryMuscles)
+        // Versioned old input is preserved for the review screen but must
+        // never be projected as current muscle roles.
+        assertEquals(canonical.primaryMuscles, effective.exercise.primaryMuscles)
+        assertEquals("GLUTEUS_MAXIMUS|QUADRICEPS", restoredOverrides.single {
+            it.fieldKey == "exercise.primaryMuscles"
+        }.value)
         assertEquals("MAIN_UPPER_PULL", effective.metadata.programSlot)
 
         val roundTrip = RecordCsvBackupRestore.parse(export(target)) as RecordCsvImportData.Restore
