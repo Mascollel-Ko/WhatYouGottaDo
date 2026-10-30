@@ -1018,6 +1018,54 @@ class TrainingRepository internal constructor(
         }
     }
 
+    /**
+     * Upgrade review queue: only user-created exercises without an explicit typed
+     * muscle-role confirmation. No inferred acceptance from two legacy fields.
+     * The typed row (including explicit empty) is the durable completion marker.
+     */
+    suspend fun pendingCustomMuscleRoleReviews(): List<Exercise> = withContext(Dispatchers.IO) {
+        val confirmed = exerciseMetadataUserOverrideDao.all()
+            .asSequence()
+            .filter { it.fieldKey == UserMuscleRoleCodec.FIELD_KEY }
+            .mapTo(mutableSetOf(), ExerciseMetadataUserOverrideEntity::stableKey)
+        exerciseDao.allExercises()
+            .filter { it.isCustom && it.stableKey.isNotBlank() && it.stableKey !in confirmed }
+            .sortedWith(compareBy({ it.name.lowercase(Locale.ROOT) }, Exercise::stableKey))
+    }
+
+    /**
+     * A deliberate user confirmation, not automatic import or an exercise rewrite.
+     * Existing logs, names, stableKeys, program links and legacy backup fields stay intact.
+     */
+    suspend fun confirmCustomMuscleRoles(
+        stableKey: String,
+        roles: List<CanonicalMuscleRoleEntry>
+    ): Unit = cloudMutation(CloudMutationScope.EXERCISES) {
+        db.withTransaction {
+            val exercise = requireNotNull(exerciseDao.findByStableKey(stableKey)) {
+                "운동을 찾지 못했습니다."
+            }
+            require(exercise.isCustom && stableKey.isNotBlank()) {
+                "직접 추가한 운동만 여기서 확인할 수 있습니다."
+            }
+            val value = UserMuscleRoleCodec.encode(roles)
+            exerciseMetadataUserOverrideDao.upsert(
+                ExerciseMetadataUserOverrideEntity(
+                    stableKey = stableKey,
+                    fieldScope = ExerciseMetadataFieldScope.MUSCLE_RELATION.name,
+                    fieldKey = UserMuscleRoleCodec.FIELD_KEY,
+                    valueEncoding = ExerciseMetadataValueEncoding.TOKEN_SET.name,
+                    value = value,
+                    isExplicitEmpty = value.isEmpty(),
+                    source = ExerciseMetadataOverrideSource.USER_EDIT.name,
+                    semanticCanonicalRevisionAtEdit =
+                        ExerciseMetadataRevisionPolicy.project(context, canonicalMetadataRepository)
+                            .semanticCanonicalMetadataRevision
+                )
+            )
+        }
+    }
+
     suspend fun exerciseEditorData(exerciseStableKey: String?): ExerciseRuntimeMetadataEditorData =
         withContext(Dispatchers.IO) {
             exerciseMetadataEditorService.exerciseEditorData(exerciseStableKey)
