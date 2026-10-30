@@ -33,12 +33,14 @@ internal class PerformanceTrendSummaryService(
     private val strengthPosteriorDao: StrengthPosteriorDao,
     private val strengthPerformanceRegistry: StrengthPerformanceRegistry,
     private val appMetaDao: AppMetaDao,
-    private val canonicalMuscleRoles: CanonicalMuscleRoleResolver? = null
+    private val canonicalMuscleRoles: CanonicalMuscleRoleResolver? = null,
+    private val userOverrideDao: ExerciseMetadataUserOverrideDao? = null
 ) {
     suspend fun build(window: WeeklyAnalysisWindow = WeeklyAnalysisWindow.DASHBOARD): PerformanceTrendSummary {
         val today = SystemAnalysisDateProvider().today()
         val todayString = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
         val exercises = exerciseDao.allExercises()
+        val effectiveMuscleRoles = canonicalMuscleRoles?.withUserOverrides(userOverrideDao?.all().orEmpty())
         val dailyMetrics = dailyMetricDao.metricsUntil(todayString)
         val entries = workoutDao.entriesWithSetsUntil(todayString)
         val runtimeMetadataCatalog = resolvedRuntimeMetadataCatalog(exercises)
@@ -46,7 +48,7 @@ internal class PerformanceTrendSummaryService(
             runtimeMetadataCatalog = runtimeMetadataCatalog,
             canonicalCoreCatalog = canonicalCoreCatalog,
             badmintonObjectiveCatalog = badmintonObjectiveCatalog,
-            canonicalMuscleRoles = canonicalMuscleRoles,
+            canonicalMuscleRoles = effectiveMuscleRoles,
             weeklyAggregator = WeeklyAnalysisAggregator(window)
         ).analyze(
             today = today,
@@ -66,7 +68,7 @@ internal class PerformanceTrendSummaryService(
             exercises = exercises,
             runtimeMetadataCatalog = runtimeMetadataCatalog,
             dailyMetrics = dailyMetrics,
-            canonicalMuscleRoles = canonicalMuscleRoles
+            canonicalMuscleRoles = effectiveMuscleRoles
         )
         val coreStimulusSeries = CoreStimulusMetricSeriesBuilder.build(base.coreStimulus)
         val initialProfile = initialUserProfileDao.profile()
