@@ -68,6 +68,7 @@ internal fun RecordScreen(
 ) {
     val exercises by viewModel.exercises.collectAsState()
     val muscleMetadataByKey by viewModel.exerciseMuscleMetadata.collectAsState()
+    val runtimeMetadataByKey by viewModel.exerciseRuntimeMetadata.collectAsState()
     val programLinks by viewModel.programWorkoutLinks.collectAsState(emptyList())
     val progressionSuggestions by viewModel.progressionSuggestions.collectAsState(emptyList())
     val programPrescriptions by viewModel.programPrescriptions.collectAsState(emptyList())
@@ -200,6 +201,7 @@ internal fun RecordScreen(
         ExercisePickerDialog(
             exercises = exercises.filter { exercise -> exercise.isActive },
             muscleMetadataByKey = muscleMetadataByKey,
+            runtimeMetadataByKey = runtimeMetadataByKey,
             onDismiss = { showExercisePicker = false },
             onSelect = { exercise ->
                 val hadConfirmedSet = entries.any { record -> record.sets.any(WorkoutSet::isAnalysisEligibleCompletedSet) }

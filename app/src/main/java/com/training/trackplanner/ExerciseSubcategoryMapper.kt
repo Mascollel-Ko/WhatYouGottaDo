@@ -3,6 +3,7 @@ package com.training.trackplanner
 import com.training.trackplanner.data.CanonicalMuscleRole
 import com.training.trackplanner.data.EffectiveMuscleMetadata
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.ExerciseSearchMatcher
 import com.training.trackplanner.data.RuntimeExerciseMetadata
 import java.util.Locale
 
@@ -96,10 +97,9 @@ internal object ExerciseSubcategoryMapper {
     }
 
     fun matchesSearch(exercise: Exercise, query: String): Boolean =
-        query.isBlank() ||
-            exercise.name.contains(query, ignoreCase = true) ||
-            exercise.detail1.contains(query, ignoreCase = true) ||
-            exercise.detail2.contains(query, ignoreCase = true)
+        query.isBlank() || ExerciseSearchMatcher.matchesAny(
+            listOf(exercise.name, exercise.detail1, exercise.detail2), query
+        )
 
     /**
      * Accept an ALREADY SEARCH-FILTERED list. The same set of keys supplies

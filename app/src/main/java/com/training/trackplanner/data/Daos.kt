@@ -170,6 +170,17 @@ interface ExerciseRoleRelationDao {
     suspend fun deleteProgramSlotCapabilities(stableKey: String)
 }
 
+data class ConfirmedExerciseNameCandidate(
+    val date: String,
+    val currentName: String,
+    val recordedName: String
+)
+
+data class PlanShiftTargetOrder(
+    val date: String,
+    val maxDisplayOrder: Int
+)
+
 @Dao
 interface WorkoutDao {
     @Query("SELECT * FROM workout_entries ORDER BY date, createdAt, id")
@@ -197,6 +208,16 @@ interface WorkoutDao {
     @Transaction
     @Query("SELECT * FROM workout_entries ORDER BY date, createdAt, id")
     suspend fun allEntriesWithSets(): List<WorkoutEntryWithSets>
+
+    @Transaction
+    @Query("SELECT * FROM workout_entries WHERE date >= :date ORDER BY date, createdAt, id")
+    suspend fun entriesWithSetsStarting(date: String): List<WorkoutEntryWithSets>
+
+    @Query(
+        "SELECT date, COALESCE(MAX(displayOrder), 0) AS maxDisplayOrder " +
+            "FROM workout_entries WHERE date IN (:dates) GROUP BY date"
+    )
+    suspend fun maxDisplayOrdersForDates(dates: List<String>): List<PlanShiftTargetOrder>
 
     @Transaction
     @Query(
@@ -519,24 +540,21 @@ interface WorkoutDao {
 
     @Query(
         """
-        SELECT DISTINCT workout_entries.date
+        SELECT DISTINCT workout_entries.date AS date,
+            COALESCE(exercises.name, '') AS currentName,
+            workout_entries.exerciseName AS recordedName
         FROM workout_entries
         INNER JOIN workout_sets ON workout_sets.entryId = workout_entries.id
         LEFT JOIN exercises ON exercises.stableKey = workout_entries.exerciseStableKey
         WHERE workout_entries.date BETWEEN :startDate AND :endDate
           AND workout_sets.confirmed = 1
-          AND (
-              instr(lower(COALESCE(exercises.name, '')), lower(:query)) > 0
-              OR instr(lower(workout_entries.exerciseName), lower(:query)) > 0
-          )
         ORDER BY workout_entries.date
         """
     )
-    fun observeConfirmedExerciseDatesBetween(
+    fun observeConfirmedExerciseNameCandidatesBetween(
         startDate: String,
-        endDate: String,
-        query: String
-    ): Flow<List<String>>
+        endDate: String
+    ): Flow<List<ConfirmedExerciseNameCandidate>>
 }
 
 @Dao

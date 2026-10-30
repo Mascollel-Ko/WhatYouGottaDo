@@ -1,6 +1,7 @@
 package com.training.trackplanner.data
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.flowOf
 
 internal class RepositoryReadQueryService(
@@ -36,7 +37,14 @@ internal class RepositoryReadQueryService(
         return if (normalized.isEmpty()) {
             flowOf(emptyList())
         } else {
-            workoutDao.observeConfirmedExerciseDatesBetween(startDate, endDate, normalized)
+            workoutDao.observeConfirmedExerciseNameCandidatesBetween(startDate, endDate).map { candidates ->
+                candidates.asSequence()
+                    .filter { row ->
+                        ExerciseSearchMatcher.matches(row.currentName, normalized) ||
+                            ExerciseSearchMatcher.matches(row.recordedName, normalized)
+                    }
+                    .map { it.date }.distinct().toList()
+            }
         }
     }
 }

@@ -90,11 +90,16 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import java.time.LocalDate
 
 class TrainingViewModel(application: Application) : AndroidViewModel(application) {
+    private val planPushGuard = AtomicBoolean(false)
+    private val _planPushInProgress = MutableStateFlow(false)
+    val planPushInProgress: StateFlow<Boolean> = _planPushInProgress.asStateFlow()
+
     internal constructor(application: Application, publisher: CommunityActivityPublisher) : this(application) {
         communityActivityPublisher = publisher
     }
@@ -911,13 +916,19 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         onResult: (com.training.trackplanner.data.PlanPushResult) -> Unit,
         onError: (String) -> Unit
     ) {
+        if (!planPushGuard.compareAndSet(false, true)) return
+        _planPushInProgress.value = true
         viewModelScope.launch {
-            runCatching { repository.pushFuturePlan(startDate, dayCount) }
-                .onSuccess {
-                    refreshAnalysisSummaries()
-                    onResult(it)
-                }
-                .onFailure { onError(it.message.orEmpty()) }
+            try {
+                val result = repository.pushFuturePlan(startDate, dayCount)
+                refreshAnalysisSummaries()
+                onResult(result)
+            } catch (error: Exception) {
+                onError(error.message.orEmpty())
+            } finally {
+                _planPushInProgress.value = false
+                planPushGuard.set(false)
+            }
         }
     }
 

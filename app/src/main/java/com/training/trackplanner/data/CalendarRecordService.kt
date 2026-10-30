@@ -1,6 +1,8 @@
 package com.training.trackplanner.data
 
 import androidx.room.withTransaction
+import android.os.SystemClock
+import android.util.Log
 import java.time.LocalDate
 import java.time.DateTimeException
 import java.time.format.DateTimeFormatter
@@ -136,8 +138,10 @@ internal class CalendarRecordService(
         } catch (error: DateTimeException) {
             throw IllegalArgumentException("dayCount overflows LocalDate", error)
         }
-        val snapshot = workoutDao.allEntriesWithSets()
-            .filter { record -> record.entry.date >= startDate && record.sets.any { !it.confirmed } }
+        val startedAt = SystemClock.elapsedRealtime()
+        val snapshot = workoutDao.entriesWithSetsStarting(startDate)
+            .filter { record -> record.sets.any { !it.confirmed } }
+        val queryMillis = SystemClock.elapsedRealtime() - startedAt
         if (snapshot.isEmpty()) return PlanPushResult()
 
         val shifted = snapshot.map { record ->
@@ -152,7 +156,7 @@ internal class CalendarRecordService(
         }
         val affectedDates = shifted.flatMap { listOf(it.source.entry.date, it.targetDate) }.distinct()
 
-        return mutateDates(affectedDates) {
+        val result = mutateDates(affectedDates) {
             val progressionLinks = db.programProgressionDao().links().associateBy { it.entryId }
             val progressionPrescriptions = db.programProgressionDao().prescriptions().groupBy { it.entryId }
             shifted.forEach { item ->
@@ -169,9 +173,13 @@ internal class CalendarRecordService(
 
             var createdAt = nextCreatedAt()
             var insertIndex = 0
+            val targetOrders = shifted.map { it.targetDate }.distinct()
+                .chunked(400)
+                .flatMap { workoutDao.maxDisplayOrdersForDates(it) }
+                .associate { it.date to it.maxDisplayOrder }
+            val progressionService = ProgramProgressionService(db)
             shifted.groupBy(ShiftedPlan::targetDate).toSortedMap().forEach { (targetDate, items) ->
-                var displayOrder = workoutDao.entriesWithSets(targetDate)
-                    .maxOfOrNull { it.entry.displayOrder } ?: 0
+                var displayOrder = targetOrders[targetDate] ?: 0
                 items.sortedWith(compareBy({ it.source.entry.date }, { it.source.entry.createdAt }, { it.source.entry.id }))
                     .forEach { item ->
                         beforePlanShiftInsert(insertIndex++)
@@ -194,7 +202,7 @@ internal class CalendarRecordService(
                         )
                         progressionLinks[item.source.entry.id]?.let { link ->
                             if (!sourceHadConfirmed) {
-                                ProgramProgressionService(db).relocate(link, progressionPrescriptions[link.entryId].orEmpty(), entryId)
+                                progressionService.relocate(link, progressionPrescriptions[link.entryId].orEmpty(), entryId)
                             } else {
                                 // A split remainder is a detached plan, never a second occurrence with the same chain identity.
                                 db.programProgressionDao().putLink(link.copy(needsReview = true))
@@ -212,6 +220,8 @@ internal class CalendarRecordService(
                 shiftedSetCount = shifted.sumOf { it.plannedSets.size }
             )
         }
+        Log.d("CalendarPlanPush", "candidateQuery=${queryMillis}ms total=${SystemClock.elapsedRealtime() - startedAt}ms shiftedEntries=${result.shiftedEntryCount}")
+        return result
     }
 
     suspend fun copyDateRangeAsPlan(

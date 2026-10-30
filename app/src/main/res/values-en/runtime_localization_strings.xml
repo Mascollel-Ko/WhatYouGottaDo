@@ -24,6 +24,8 @@
     <string name="record_condition_add">Enter condition</string>
     <string name="record_add_exercise">Add exercise</string>
     <string name="record_push_plan_action">Push plan</string>
+    <string name="record_push_plan_progress_title">Moving workout plans…</string>
+    <string name="record_push_plan_progress_detail">Please wait until the operation finishes.</string>
     <string name="record_push_plan_title">Push plan</string>
     <string name="record_push_plan_days">Rest days</string>
     <string name="record_push_plan_description">Shift planned work from the selected date later by the entered number of days. Completed workout history will not move.</string>

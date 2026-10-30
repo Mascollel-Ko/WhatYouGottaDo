@@ -24,6 +24,8 @@
     <string name="record_condition_add">컨디션 입력</string>
     <string name="record_add_exercise">운동 추가</string>
     <string name="record_push_plan_action">밀기</string>
+    <string name="record_push_plan_progress_title">운동 계획을 이동하고 있습니다.</string>
+    <string name="record_push_plan_progress_detail">작업이 완료될 때까지 잠시만 기다려 주세요.</string>
     <string name="record_push_plan_title">계획 밀기</string>
     <string name="record_push_plan_days">쉴 일수</string>
     <string name="record_push_plan_description">선택한 날짜부터 이후의 계획을 입력한 일수만큼 뒤로 밉니다. 완료된 운동 기록은 이동하지 않습니다.</string>

@@ -49,6 +49,8 @@ import com.training.trackplanner.data.EffectiveMuscleMetadataResolver
 import com.training.trackplanner.data.EffectiveMuscleMetadata
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.ExerciseImageAssetMapping
+import com.training.trackplanner.data.ExerciseSearchMatcher
+import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.localization.localizedExerciseName
 import com.training.trackplanner.localization.localizedExerciseDescription
@@ -243,12 +245,15 @@ internal fun ExercisePickerDialog(
     exercises: List<Exercise>,
     onDismiss: () -> Unit,
     onSelect: (Exercise) -> Unit,
-    muscleMetadataByKey: Map<String, EffectiveMuscleMetadata> = emptyMap()
+    muscleMetadataByKey: Map<String, EffectiveMuscleMetadata> = emptyMap(),
+    runtimeMetadataByKey: Map<String, RuntimeExerciseMetadata> = emptyMap()
 ) {
     var query by rememberSaveable { mutableStateOf("") }
+    var advanced by remember { mutableStateOf(ExerciseAdvancedSelection()) }
     val translator = rememberMetadataTranslator()
     val context = LocalContext.current
     val musclePresenter = remember(context) { CanonicalMusclePresentation.from(context) }
+    val searchCatalogue = remember(context) { MetadataDisplayCatalogue.from(context) }
     // Program preview pickers have no ViewModel muscle map. Resolve built-ins
     // by stableKey from the verified manifest, not stale Exercise strings.
     val fallbackResolver = remember(context) {
@@ -258,12 +263,19 @@ internal fun ExercisePickerDialog(
             )
         }
     }
-    val filtered = remember(exercises, query, translator, muscleMetadataByKey, musclePresenter, fallbackResolver) {
-        if (query.isBlank()) exercises
-        else exercises.filter { exercise ->
-            val effective = muscleMetadataByKey[exercise.stableKey]
-                ?: fallbackResolver.value.resolve(exercise, emptyList())
-            exercise.matchesMetadataQuery(query, translator, effective, musclePresenter)
+    val resolvedMuscles = remember(exercises, muscleMetadataByKey, fallbackResolver) {
+        exercises.associate { exercise ->
+            exercise.stableKey to (muscleMetadataByKey[exercise.stableKey]
+                ?: fallbackResolver.value.resolve(exercise, emptyList()))
+        }
+    }
+    val filtered = remember(exercises, query, translator, resolvedMuscles, musclePresenter, runtimeMetadataByKey, advanced) {
+        exercises.filter { exercise ->
+            exercise.matchesMetadataQuery(
+                query, translator, resolvedMuscles[exercise.stableKey], musclePresenter,
+                searchCatalogue, runtimeMetadataByKey[exercise.stableKey]
+            ) &&
+                advanced.matches(exercise, resolvedMuscles[exercise.stableKey], runtimeMetadataByKey[exercise.stableKey])
         }
     }
 
@@ -284,6 +296,14 @@ internal fun ExercisePickerDialog(
                     label = { Text("검색") },
                     singleLine = true
                 )
+                ExerciseAdvancedFilterPanel(
+                    exercises = exercises,
+                    muscleMetadataByKey = resolvedMuscles,
+                    runtimeMetadataByKey = runtimeMetadataByKey,
+                    selected = advanced,
+                    onSelectedChange = { advanced = it }
+                )
+                MaterialText("검색 결과 ${filtered.size}개", style = MaterialTheme.typography.labelSmall)
                 LazyColumn(
                     modifier = Modifier.heightIn(max = 420.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -296,6 +316,7 @@ internal fun ExercisePickerDialog(
                         )
                     }
                 }
+                if (filtered.isEmpty()) MaterialText("조건에 맞는 운동이 없습니다.")
             }
         }
     )
@@ -714,20 +735,41 @@ internal fun Exercise.matchesMetadataQuery(
     query: String,
     translator: MetadataTranslator,
     muscleMetadata: EffectiveMuscleMetadata?,
-    presenter: CanonicalMusclePresentation
+    presenter: CanonicalMusclePresentation,
+    catalogue: MetadataDisplayCatalogue? = null,
+    runtime: RuntimeExerciseMetadata? = null
 ): Boolean {
-    val normalized = query.trim()
-    if (normalized.isEmpty() || name.contains(normalized, ignoreCase = true)) return true
-
+    if (query.isBlank()) return true
     val ordinary = listOf(
-        translator.option("exercise.category", category),
-        translator.option("exercise.mode", mode)
-    ) + equipment.ifBlank { equipmentTags }.split(',', '|', '/', ';')
-        .map { translator.option("exercise.equipment", it.trim()) }
-
+        name,
+        translator.option("exercise.category", category).searchAliases.joinToString(" | "),
+        translator.option("exercise.mode", mode).searchAliases.joinToString(" | "),
+        equipment.ifBlank { equipmentTags },
+        equipmentTags,
+        movementPattern,
+        movementCategory,
+        forceType,
+        translator.option("exercise.equipment", equipment).searchAliases.joinToString(" | ")
+    )
     val muscles = if (muscleMetadata?.usesCanonicalRoles == true)
         presenter.searchableOptions(muscleMetadata) else emptyList()
-    return (ordinary + muscles).any { option -> option.matches(normalized) }
+    val muscleAliases = muscles.flatMap { option ->
+        option.searchAliases + if (option.code == "CHEST") listOf("대흉근") else emptyList()
+    }
+    val metadataAliases = catalogue?.let { display ->
+        listOf(
+            MetadataDisplayField.FORCE_TYPE to forceType,
+            MetadataDisplayField.MOVEMENT_PATTERN to movementPattern,
+            MetadataDisplayField.MOVEMENT_CATEGORY to movementCategory,
+            MetadataDisplayField.EQUIPMENT to equipment,
+            MetadataDisplayField.MOVEMENT_FAMILY to runtime?.movementFamily.orEmpty(),
+            MetadataDisplayField.PROGRAM_SLOT to runtime?.programSlot.orEmpty()
+        ).flatMap { (field, raw) ->
+            raw.split('|', ',', ';').filter(String::isNotBlank)
+                .flatMap { code -> display.option(field, code.trim()).searchAliases }
+        }
+    }.orEmpty()
+    return ExerciseSearchMatcher.matchesAny(ordinary + muscleAliases + metadataAliases, query)
 }
 
 @Composable

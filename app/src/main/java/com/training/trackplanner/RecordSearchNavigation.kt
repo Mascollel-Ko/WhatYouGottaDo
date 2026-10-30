@@ -1,5 +1,6 @@
 package com.training.trackplanner
 
+import com.training.trackplanner.data.ExerciseSearchMatcher
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.WorkoutSet
 import com.training.trackplanner.data.isAnalysisEligibleCompletedSet
@@ -31,7 +32,7 @@ internal object RecordSearchNavigation {
                 sequenceOf(
                     record.entry.exerciseName,
                     currentExerciseNames[record.entry.exerciseStableKey].orEmpty()
-                ).any { name -> name.contains(request.query, ignoreCase = true) }
+                ).any { name -> ExerciseSearchMatcher.matches(name, request.query) }
         }?.entry?.id
     }
 }

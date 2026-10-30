@@ -43,6 +43,18 @@ class WorkoutCalendarSearchTest {
     }
 
     @Test
+    fun whitespaceAndWordOrderMatchesDatesWithoutAnagramMatching() = runBlocking {
+        val db = newDatabase()
+        insertExercise(db, "calendar.deadbug", "데드 버그")
+        insertExercise(db, "calendar.row", "원암 덤벨 로우")
+        insertEntry(db, "2026-01-03", "calendar.deadbug", "데드 버그", confirmedSets = 1)
+        insertEntry(db, "2026-01-04", "calendar.row", "원암 덤벨 로우", confirmedSets = 1)
+        assertEquals(listOf("2026-01-03"), query(db, "2026-01-01", "2026-01-31", "데드버그").first())
+        assertEquals(listOf("2026-01-04"), query(db, "2026-01-01", "2026-01-31", "로우 원암").first())
+        assertTrue(query(db, "2026-01-01", "2026-01-31", "드데그버").first().isEmpty())
+    }
+
+    @Test
     fun multipleExercisesReturnDistinctConfirmedDates() = runBlocking {
         val db = newDatabase()
         insertExercise(db, "calendar.press.one", "덤벨 프레스")

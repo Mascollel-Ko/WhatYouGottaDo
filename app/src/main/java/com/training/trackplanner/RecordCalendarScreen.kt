@@ -25,6 +25,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -68,6 +70,7 @@ internal fun RecordCalendarScreen(
     val pushSuccessMessage = stringResource(R.string.record_push_plan_success)
     val noPlanMessage = stringResource(R.string.record_push_plan_empty)
     val pushFailedMessage = stringResource(R.string.record_push_plan_failed)
+    val planPushInProgress by viewModel.planPushInProgress.collectAsState()
     var visibleMonth by rememberSaveable(selectedDate) {
         mutableStateOf(YearMonth.from(LocalDate.parse(selectedDate)).toString())
     }
@@ -98,7 +101,7 @@ internal fun RecordCalendarScreen(
     var programRangeStart by rememberSaveable { mutableStateOf<String?>(null) }
     var pendingProgramSummary by remember { mutableStateOf<RecordRangeProgramSummary?>(null) }
 
-    BackHandler {
+    BackHandler(enabled = !planPushInProgress) {
         when {
             actionMenuDate != null -> actionMenuDate = null
             pendingDelete != null -> pendingDelete = null
@@ -161,6 +164,7 @@ internal fun RecordCalendarScreen(
     pendingPushDate?.let { sourceDate ->
         PushPlanDialog(
             sourceDate = sourceDate,
+            enabled = !planPushInProgress,
             onDismiss = { pendingPushDate = null },
             onConfirm = { dayCount ->
                 viewModel.pushFuturePlan(
@@ -180,6 +184,28 @@ internal fun RecordCalendarScreen(
                     }
                 )
             }
+        )
+    }
+
+    if (planPushInProgress) {
+        AlertDialog(
+            onDismissRequest = {},
+            properties = DialogProperties(
+                dismissOnBackPress = false,
+                dismissOnClickOutside = false
+            ),
+            title = { Text(stringResource(R.string.record_push_plan_progress_title)) },
+            text = {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    CircularProgressIndicator()
+                    Text(stringResource(R.string.record_push_plan_progress_detail))
+                }
+            },
+            confirmButton = {}
         )
     }
 
@@ -640,13 +666,14 @@ private fun CalendarActionDialog(
 @Composable
 private fun PushPlanDialog(
     sourceDate: String,
+    enabled: Boolean,
     onDismiss: () -> Unit,
     onConfirm: (Int) -> Unit
 ) {
     var dayCountText by rememberSaveable(sourceDate) { mutableStateOf("") }
     val dayCount = validPlanPushDayCount(sourceDate, dayCountText)
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (enabled) onDismiss() },
         title = { Text(stringResource(R.string.record_push_plan_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -657,17 +684,18 @@ private fun PushPlanDialog(
                     onValueChange = { dayCountText = it },
                     label = { Text(stringResource(R.string.record_push_plan_days)) },
                     singleLine = true,
+                    enabled = enabled,
                     isError = dayCountText.isNotBlank() && dayCount == null
                 )
             }
         },
         confirmButton = {
-            Button(enabled = dayCount != null, onClick = { onConfirm(checkNotNull(dayCount)) }) {
+            Button(enabled = enabled && dayCount != null, onClick = { onConfirm(checkNotNull(dayCount)) }) {
                 Text(stringResource(R.string.record_push_plan_action))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.daily_condition_cancel)) }
+            TextButton(enabled = enabled, onClick = onDismiss) { Text(stringResource(R.string.daily_condition_cancel)) }
         }
     )
 }

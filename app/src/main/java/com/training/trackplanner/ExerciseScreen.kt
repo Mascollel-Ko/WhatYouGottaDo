@@ -42,6 +42,7 @@ internal fun ExerciseScreen(
     val runtimeMetadataById by viewModel.exerciseRuntimeMetadata.collectAsState()
     val muscleMetadataByKey by viewModel.exerciseMuscleMetadata.collectAsState()
     var query by rememberSaveable { mutableStateOf("") }
+    var advanced by remember { mutableStateOf(ExerciseAdvancedSelection()) }
     var selectedCategory by rememberSaveable { mutableStateOf("전체") }
     var selectedSubcategoryKey by rememberSaveable { mutableStateOf<String?>(null) }
     var manageMode by rememberSaveable { mutableStateOf(false) }
@@ -53,6 +54,7 @@ internal fun ExerciseScreen(
     val translator = rememberMetadataTranslator()
     val context = LocalContext.current
     val musclePresenter = remember(context) { CanonicalMusclePresentation.from(context) }
+    val searchCatalogue = remember(context) { MetadataDisplayCatalogue.from(context) }
 
     LaunchedEffect(exercises.map(Exercise::stableKey)) {
         if (exercises.isNotEmpty()) viewModel.refreshExerciseRuntimeMetadata()
@@ -65,13 +67,18 @@ internal fun ExerciseScreen(
         listOf("전체") + visibleExercises.map { it.category }.distinct()
     }
     val broadAndSearchFiltered = remember(
-        visibleExercises, query, selectedCategory, translator, muscleMetadataByKey, musclePresenter
+        visibleExercises, query, selectedCategory, translator, muscleMetadataByKey, musclePresenter,
+        runtimeMetadataById, advanced, searchCatalogue
     ) {
         visibleExercises.filter { exercise ->
             val categoryMatches = selectedCategory == "전체" || exercise.category == selectedCategory
             val queryMatches = ExerciseSubcategoryMapper.matchesSearch(exercise, query) ||
-                exercise.matchesMetadataQuery(query, translator, muscleMetadataByKey[exercise.stableKey], musclePresenter)
-            categoryMatches && queryMatches
+                exercise.matchesMetadataQuery(
+                    query, translator, muscleMetadataByKey[exercise.stableKey],
+                    musclePresenter, searchCatalogue, runtimeMetadataById[exercise.stableKey]
+                )
+            categoryMatches && queryMatches &&
+                advanced.matches(exercise, muscleMetadataByKey[exercise.stableKey], runtimeMetadataById[exercise.stableKey])
         }
     }
     val selectedSubcategory = remember(selectedSubcategoryKey) {
@@ -202,6 +209,18 @@ internal fun ExerciseScreen(
                 label = { Text("검색") },
                 singleLine = true
             )
+        }
+        item {
+            ExerciseAdvancedFilterPanel(
+                exercises = visibleExercises,
+                muscleMetadataByKey = muscleMetadataByKey,
+                runtimeMetadataByKey = runtimeMetadataById,
+                selected = advanced,
+                onSelectedChange = { advanced = it }
+            )
+        }
+        item {
+            Text("검색 결과 ${filtered.size}개", style = MaterialTheme.typography.labelSmall)
         }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
