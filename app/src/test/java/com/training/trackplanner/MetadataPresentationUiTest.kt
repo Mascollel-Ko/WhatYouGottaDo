@@ -134,6 +134,51 @@ class MetadataPresentationUiTest {
     }
 
     @Test
+    fun upgradeDialogAtLargeFontCanFindBuiltInAndCopyOnlyMuscleRoles() {
+        val user = Exercise(
+            stableKey = "user_ex_role_review", name = "내가 등록한 운동",
+            category = "근력운동", isCustom = true,
+            primaryMuscles = "QUADRICEPS", secondaryMuscles = "GLUTE"
+        )
+        val builtIn = Exercise(
+            stableKey = "barbell_bench_press", name = "바벨 벤치프레스",
+            category = "근력운동", isCustom = false
+        )
+        val role = com.training.trackplanner.data.UserMuscleRoleCodec.entry(
+            builtIn.stableKey, "CHEST",
+            com.training.trackplanner.data.CanonicalMuscleRole.PRIMARY
+        )
+        val data = ExerciseRuntimeMetadataEditorData(
+            exercise = user,
+            metadata = RuntimeExerciseMetadataDefaults.forExercise(user),
+            options = RuntimeMetadataEditorOptions.from(
+                listOf(RuntimeExerciseMetadataDefaults.forExercise(user))
+            ),
+            copySources = listOf(ExerciseMetadataCopySource(
+                exercise = builtIn,
+                metadata = RuntimeExerciseMetadataDefaults.forExercise(builtIn),
+                muscleRoles = listOf(role)
+            ))
+        )
+        var confirmed: List<com.training.trackplanner.data.CanonicalMuscleRoleEntry>? = null
+        sizedContent {
+            CustomMuscleRoleReviewDialog(
+                initial = data,
+                remaining = 2,
+                onLater = {},
+                onConfirm = { roles, _ -> confirmed = roles }
+            )
+        }
+        compose.onNodeWithText("남은 운동 2개 · 내가 등록한 운동").assertIsDisplayed()
+        compose.onNodeWithText("기본 운동 검색해서 근육 정보 복사하기").performClick()
+        compose.onNodeWithText("운동 검색").performTextInput("벤치")
+        compose.onNodeWithText("바벨 벤치프레스").performClick()
+        compose.onNodeWithText("확인하고 다음").performClick()
+        assertEquals(setOf("CHEST"), confirmed?.map { it.muscleCode }?.toSet())
+        assertEquals("QUADRICEPS", user.primaryMuscles)
+    }
+
+    @Test
     fun exerciseInfoAndCopyDialogsUseGroupedLocalizedMetadata() {
         val exercise = exercise()
         val metadata = RuntimeExerciseMetadataDefaults.forExercise(exercise).copy(
