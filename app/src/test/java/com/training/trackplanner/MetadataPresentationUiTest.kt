@@ -172,7 +172,11 @@ class MetadataPresentationUiTest {
         compose.onNodeWithText("남은 운동 2개 · 내가 등록한 운동").assertIsDisplayed()
         compose.onNodeWithText("기본 운동 검색해서 근육 정보 복사하기").performClick()
         compose.onNodeWithText("운동 검색").performTextInput("벤치")
-        compose.onNodeWithText("바벨 벤치프레스").performClick()
+        // The built-in can have a localized display name different from its stored name.
+        val displayName = com.training.trackplanner.localization.LocalizedPresentation.exerciseName(
+            ApplicationProvider.getApplicationContext(), builtIn.stableKey, builtIn.name
+        )
+        compose.onNodeWithText(displayName).performClick()
         compose.onNodeWithText("확인하고 다음").performClick()
         assertEquals(setOf("CHEST"), confirmed?.map { it.muscleCode }?.toSet())
         assertEquals("QUADRICEPS", user.primaryMuscles)
