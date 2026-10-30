@@ -75,10 +75,10 @@ class CanonicalMuscleRelationRegressionTest {
             "chest_supported_row_machine" to rowContributions(),
             "dumbbell_chest_supported_row" to rowContributions(),
             "ex_6a966452" to rowContributions(),
-            "ex_8e51640a" to rowContributions(),
+            "ex_8e51640a" to emptyMap(), // old source identity: no live canonical relations
             "dumbbell_spider_curl" to mapOf(MuscleBucket.BICEPS to 1.0),
             "ez_bar_spider_curl" to mapOf(MuscleBucket.BICEPS to 1.0),
-            "ex_516f4456" to mapOf(MuscleBucket.BICEPS to 1.0),
+            "ex_516f4456" to emptyMap(), // old source identity: no live canonical relations
             "ex_b69ab702" to mapOf(MuscleBucket.BICEPS to 1.0),
             "ex_6466fe77" to mapOf(MuscleBucket.BACK_LATS to 1.0, MuscleBucket.BICEPS to 0.5),
             "cable_hip_adduction" to mapOf(MuscleBucket.ADDUCTOR_ABDUCTOR to 1.0),
