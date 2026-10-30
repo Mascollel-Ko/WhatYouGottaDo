@@ -17,8 +17,23 @@ class MuscleLoadInputBuilderTest {
             secondaryMuscles = "둔근"
         )
 
-        val loads = MuscleLoadInputBuilder.contributions(exercise)
-
+        // The obsolete Korean/English two-field aliases must not become
+        // current training credits merely because no typed lookup was provided.
+        assertTrue(MuscleLoadInputBuilder.contributions(exercise).isEmpty())
+        val selected = com.training.trackplanner.data.CanonicalMuscleLookup(
+            exercise.stableKey,
+            com.training.trackplanner.data.CanonicalMuscleLookupKind.USER_CUSTOM_WITH_RELATIONS,
+            listOf(
+                com.training.trackplanner.data.UserMuscleRoleCodec.entry(
+                    exercise.stableKey, "QUADS", com.training.trackplanner.data.CanonicalMuscleRole.PRIMARY
+                ),
+                com.training.trackplanner.data.UserMuscleRoleCodec.entry(
+                    exercise.stableKey, "GLUTES", com.training.trackplanner.data.CanonicalMuscleRole.SECONDARY
+                )
+            ),
+            false
+        )
+        val loads = MuscleLoadInputBuilder.contributions(exercise, selected)
         assertEquals(1.0, loads[MuscleBucket.QUADS] ?: 0.0, 0.001)
         assertEquals(0.5, loads[MuscleBucket.GLUTES] ?: 0.0, 0.001)
     }
