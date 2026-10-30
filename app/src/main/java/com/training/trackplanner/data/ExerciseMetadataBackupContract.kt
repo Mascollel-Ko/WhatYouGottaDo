@@ -14,6 +14,7 @@ enum class ExerciseMetadataFieldScope {
     EXERCISE,
     RUNTIME_METADATA,
     TRAINING_ROLE_RELATION,
+    MUSCLE_RELATION,
     PROGRAM_SLOT_CAPABILITY_RELATION,
     DENORMALIZED_REFERENCE,
     DERIVED_ANALYSIS
@@ -236,6 +237,13 @@ internal object ExerciseMetadataFieldPolicyRegistry {
             ExerciseMetadataFieldScope.TRAINING_ROLE_RELATION,
             ExerciseMetadataValueEncoding.TOKEN_SET
         ) { it.trainingRoles.joinToString("|") }
+        // Typed muscle overrides are user-owned; canonical muscle snapshots remain asset-owned.
+        add(ExerciseMetadataFieldDefinition(
+            "relation.muscleRoles",
+            ExerciseMetadataFieldScope.MUSCLE_RELATION,
+            ExerciseMetadataFieldPolicy.USER_OVERRIDE_ELIGIBLE,
+            ExerciseMetadataValueEncoding.TOKEN_SET
+        ))
         backupRelation(
             "relation.programSlotCapabilities",
             ExerciseMetadataFieldScope.PROGRAM_SLOT_CAPABILITY_RELATION,
@@ -796,6 +804,7 @@ private fun sourceOwnerFor(scope: ExerciseMetadataFieldScope): String = when (sc
     ExerciseMetadataFieldScope.EXERCISE -> "Exercise"
     ExerciseMetadataFieldScope.RUNTIME_METADATA -> "RuntimeExerciseMetadata"
     ExerciseMetadataFieldScope.TRAINING_ROLE_RELATION -> "ExerciseTrainingRoleRelation"
+    ExerciseMetadataFieldScope.MUSCLE_RELATION -> "ExerciseMetadataUserOverride"
     ExerciseMetadataFieldScope.PROGRAM_SLOT_CAPABILITY_RELATION -> "ExerciseProgramSlotCapabilityRelation"
     ExerciseMetadataFieldScope.DENORMALIZED_REFERENCE -> "BackupRestoreImportService"
     ExerciseMetadataFieldScope.DERIVED_ANALYSIS -> "AnalysisRebuild"
