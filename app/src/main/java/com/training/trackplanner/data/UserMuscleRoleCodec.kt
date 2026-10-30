@@ -92,8 +92,12 @@ object UserMuscleRoleCodec {
         userRows: List<ExerciseMetadataUserOverrideEntity>,
         exercises: List<Exercise> = emptyList()
     ): List<CanonicalMetadataRelation> {
+        val availableKeys = exercises.mapTo(mutableSetOf(), Exercise::stableKey)
         val byKey = userRows
             .filter { it.fieldKey == FIELD_KEY }
+            // When a live exercise list is available, never attribute load to
+            // deleted, renamed, history-only or unrecognized identities.
+            .filter { availableKeys.isEmpty() || it.stableKey in availableKeys }
             .associate { it.stableKey to it.validated().value }
         val generated = mutableListOf<CanonicalMetadataRelation>()
         // An old custom exercise must be reviewed, not silently converted
