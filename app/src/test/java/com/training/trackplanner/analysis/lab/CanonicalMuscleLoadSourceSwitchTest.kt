@@ -81,15 +81,33 @@ class CanonicalMuscleLoadSourceSwitchTest {
     }
 
     @Test
-    fun customExerciseUsesTemporaryCompatibilityUntilOneTimeImport() {
+    fun unreviewedCustomIsNotCreditedFromOldMuscleStrings() {
         val custom = Exercise(
             name = "내 하체운동", category = "근력운동",
             stableKey = "user_ex_quad", isCustom = true,
             primaryMuscles = "QUADRICEPS", secondaryMuscles = "GLUTE"
         )
-        val buckets = credited(custom)
-        assertEquals(1.0, buckets.getValue(MuscleBucket.QUADS), 0.001)
-        assertEquals(0.5, buckets.getValue(MuscleBucket.GLUTES), 0.001)
+        assertTrue(credited(custom).isEmpty())
+        val typed = com.training.trackplanner.data.UserMuscleRoleCodec
+        val chosen = listOf(
+            typed.entry(custom.stableKey, "QUADS", com.training.trackplanner.data.CanonicalMuscleRole.PRIMARY),
+            typed.entry(custom.stableKey, "GLUTES", com.training.trackplanner.data.CanonicalMuscleRole.SECONDARY)
+        )
+        val row = com.training.trackplanner.data.ExerciseMetadataUserOverrideEntity(
+            stableKey = custom.stableKey,
+            fieldScope = com.training.trackplanner.data.ExerciseMetadataFieldScope.MUSCLE_RELATION.name,
+            fieldKey = typed.FIELD_KEY,
+            valueEncoding = com.training.trackplanner.data.ExerciseMetadataValueEncoding.TOKEN_SET.name,
+            value = typed.encode(chosen),
+            isExplicitEmpty = false,
+            source = com.training.trackplanner.data.ExerciseMetadataOverrideSource.USER_EDIT.name,
+            semanticCanonicalRevisionAtEdit = "test"
+        )
+        val credited = MuscleLoadInputBuilder.contributions(
+            custom, roles.withUserOverrides(listOf(row)).lookup(custom)
+        )
+        assertEquals(1.0, credited.getValue(MuscleBucket.QUADS), 0.001)
+        assertEquals(0.5, credited.getValue(MuscleBucket.GLUTES), 0.001)
     }
 
     @Test
