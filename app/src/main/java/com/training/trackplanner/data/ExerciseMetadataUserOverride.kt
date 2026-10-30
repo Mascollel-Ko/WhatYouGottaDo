@@ -64,6 +64,9 @@ data class ExerciseMetadataUserOverrideEntity(
         require(value == ExerciseMetadataFieldPolicyRegistry.canonicalize(value, encoding)) {
             "Metadata override value is not canonically encoded: $fieldKey"
         }
+        if (fieldKey == UserMuscleRoleCodec.FIELD_KEY) {
+            UserMuscleRoleCodec.decode(value, stableKey)
+        }
         return this
     }
 
