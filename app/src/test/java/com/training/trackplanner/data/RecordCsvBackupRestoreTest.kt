@@ -157,7 +157,7 @@ class RecordCsvBackupRestoreTest {
     }
 
     @Test
-    fun restoreCsvKeepsLowercaseQuadricepsOverrideUsableForMuscleLoad() {
+    fun restoreCsvPreservesOldMuscleStringsWithoutCreditingThemAsNewRoles() {
         val exercise = Exercise(
             name = "Deadlift override",
             category = "근력운동",
@@ -202,11 +202,9 @@ class RecordCsvBackupRestoreTest {
         )
 
         assertEquals("HAMSTRING|GLUTE|ERECTOR_SPINAE|quadriceps", parsed.exerciseRows.single().primaryMuscles)
-        assertEquals(
-            624.0,
-            series.getValue(TrendMetricId.MUSCLE_QUADS_LOAD_DAILY).single().value ?: 0.0,
-            0.01
-        )
+        // Keep the old values for display/review and backup round trips; they
+        // must not silently count as confirmed muscle-role metadata.
+        assertTrue(series[TrendMetricId.MUSCLE_QUADS_LOAD_DAILY].orEmpty().isEmpty())
     }
 
     @Test
