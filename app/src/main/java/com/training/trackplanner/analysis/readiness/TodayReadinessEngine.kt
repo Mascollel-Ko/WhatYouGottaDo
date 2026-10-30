@@ -70,7 +70,8 @@ class TodayReadinessEngine(
             entriesWithSets = completedEntriesUntilToday,
             exerciseMap = exerciseMap,
             today = input.today,
-            runtimeMetadataCatalog = input.runtimeMetadataCatalog
+            runtimeMetadataCatalog = input.runtimeMetadataCatalog,
+            canonicalMuscleRoles = input.canonicalMuscleRoles
         )
         val pain = painGateEvaluator.evaluate(
             today = input.today,

@@ -4,13 +4,15 @@ import com.training.trackplanner.analysis.features.AnalysisFeatureExtractor
 import com.training.trackplanner.analysis.features.AnalysisExerciseFeatures
 import com.training.trackplanner.analysis.features.BodyweightEffectiveLoadCalculator
 import com.training.trackplanner.analysis.readiness.AnalysisConfidence
+import com.training.trackplanner.data.CanonicalMuscleRoleResolver
 import com.training.trackplanner.data.DailyMetric
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 import com.training.trackplanner.data.WorkoutEntryWithSets
 
 class StrengthPerformanceIndexCalculator(
-    private val runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY
+    private val runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY,
+    private val canonicalMuscleRoles: CanonicalMuscleRoleResolver? = null
 ) {
     fun calculate(
         weeks: List<WeeklyTrainingData>,
@@ -33,7 +35,10 @@ class StrengthPerformanceIndexCalculator(
         return weeks.mapIndexed { index, week ->
             val intensityScores = rawIntensityByWeek[index].mapNotNull { (exerciseStableKey, intensityRaw) ->
                 val exercise = exerciseMap[exerciseStableKey] ?: return@mapNotNull null
-                val features = AnalysisFeatureExtractor.fromExercise(exercise, runtimeMetadataCatalog.resolve(exercise))
+                val features = AnalysisFeatureExtractor.fromExercise(
+                    exercise, runtimeMetadataCatalog.resolve(exercise),
+                    canonicalMuscles = canonicalMuscleRoles?.lookup(exercise)
+                )
                 val history = rawIntensityByWeek.map { values -> values[exerciseStableKey] }
                 val (baseline, confidence) = TrendMath.baselineFor(history, index)
                 val score = if (baseline == null) 100.0 else TrendMath.higherIsBetterScore(intensityRaw, baseline)
@@ -132,7 +137,8 @@ class StrengthPerformanceIndexCalculator(
                 exercise,
                 record.entry,
                 record.sets,
-                runtimeMetadataCatalog.resolve(exercise)
+                runtimeMetadataCatalog.resolve(exercise),
+                canonicalMuscles = canonicalMuscleRoles?.lookup(exercise)
             )
             if (!features.isStrengthProgressEligible()) return@mapNotNull null
             val maxE1rm = record.sets
@@ -153,7 +159,8 @@ class StrengthPerformanceIndexCalculator(
                 exercise,
                 record.entry,
                 record.sets,
-                runtimeMetadataCatalog.resolve(exercise)
+                runtimeMetadataCatalog.resolve(exercise),
+                canonicalMuscles = canonicalMuscleRoles?.lookup(exercise)
             )
             if (!features.isStrengthLike()) return@sumOf 0.0
             val weight = PerformanceTrendConstants.volumeEligibilityWeight(
@@ -179,7 +186,8 @@ class StrengthPerformanceIndexCalculator(
                 exercise,
                 record.entry,
                 record.sets,
-                runtimeMetadataCatalog.resolve(exercise)
+                runtimeMetadataCatalog.resolve(exercise),
+                canonicalMuscles = canonicalMuscleRoles?.lookup(exercise)
             )
             if (!features.isStrengthLike()) return@sumOf 0
             record.sets.count { set ->
@@ -198,7 +206,8 @@ class StrengthPerformanceIndexCalculator(
                 exercise,
                 record.entry,
                 record.sets,
-                runtimeMetadataCatalog.resolve(exercise)
+                runtimeMetadataCatalog.resolve(exercise),
+                canonicalMuscles = canonicalMuscleRoles?.lookup(exercise)
             )
             if (!features.isStrengthLike()) return@flatMap emptyList()
             record.sets
@@ -245,7 +254,8 @@ class StrengthPerformanceIndexCalculator(
                 exercise,
                 record.entry,
                 record.sets,
-                runtimeMetadataCatalog.resolve(exercise)
+                runtimeMetadataCatalog.resolve(exercise),
+                canonicalMuscles = canonicalMuscleRoles?.lookup(exercise)
             )
             if (!features.isStrengthLike()) return@flatMap emptyList()
             record.sets.mapNotNull { set ->
@@ -281,7 +291,8 @@ class StrengthPerformanceIndexCalculator(
                 exercise,
                 record.entry,
                 record.sets,
-                runtimeMetadataCatalog.resolve(exercise)
+                runtimeMetadataCatalog.resolve(exercise),
+                canonicalMuscles = canonicalMuscleRoles?.lookup(exercise)
             )
             if (!features.isStrengthLike()) return@forEach
             val bodyWeight = allDailyMetrics

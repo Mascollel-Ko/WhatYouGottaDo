@@ -1,6 +1,7 @@
 package com.training.trackplanner.analysis.readiness
 
 import androidx.test.core.app.ApplicationProvider
+import com.training.trackplanner.analysis.features.AnalysisFeatureExtractor
 import com.training.trackplanner.analysis.features.ExerciseAnalysisMapper
 import com.training.trackplanner.data.CanonicalExerciseMetadataRepository
 import com.training.trackplanner.data.Exercise
@@ -126,6 +127,20 @@ class CanonicalReadinessMuscleSourceTest {
         val back = ExerciseAnalysisMapper.fromExercise(row, canonicalMuscles = roles.lookup(row))
         assertTrue("BACK_LATS" in back.primaryMuscles)
         assertFalse("LATERAL_CORE" in back.primaryMuscles)
+    }
+
+    @Test
+    fun sharedAnalysisFeatureExtractorReceivesCanonicalMuscleRoles() {
+        val press = exercise("barbell_bench_press").copy(
+            primaryMuscles = "BICEPS", secondaryMuscles = "HAMSTRING"
+        )
+        val features = AnalysisFeatureExtractor.fromExercise(
+            press, canonicalMuscles = roles.lookup(press)
+        )
+        assertEquals(setOf("CHEST"), features.primaryMuscles)
+        assertTrue("TRICEPS" in features.secondaryMuscles)
+        assertFalse("BICEPS" in features.primaryMuscles)
+        assertFalse("HAMSTRING" in features.secondaryMuscles)
     }
 
     @Test

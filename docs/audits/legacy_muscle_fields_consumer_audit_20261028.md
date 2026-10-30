@@ -190,3 +190,10 @@
 - Fix: match all sixteen verified `MUSCLE_GROUP` codes exactly **before** any old free-form alias compatibility. The alias normalizer is only a legacy-import/custom exercise fallback. Existing 1.0/0.45 role coefficients, axial/grip/overhead loads, duration holds, weekly aggregation, UI and stored exercise data remain unchanged.
 - Dedicated regression: band Pallof press `LATERAL_CORE` must load `core_abs_obliques`, not `lats_upper_back`; barbell row `BACK_LATS` must remain the back group.
 - This fixes builtin readiness aggregation only; later user-role typed edit/storage and source-wide consumer audit are separate phases. Hosted CI pending.
+
+## 2026-10-30 Strength and performance-signal consumer wiring
+
+- Extended existing `AnalysisFeatureExtractor` with an optional `CanonicalMuscleLookup` argument and forwarded it into `ExerciseAnalysisMapper`, without altering nonmuscle field derivation.
+- Production `PerformanceTrendEngine` passes its existing `CanonicalMuscleRoleResolver` to `StrengthPerformanceIndexCalculator` and weekly `PerformanceDropDetector`. `TodayReadinessEngine` passes the same resolver to current performance-drop detection. Strength raw volume, e1RM formula, RPE thresholds and scores remain untouched.
+- The optional parameter preserves legacy direct-call test compatibility while the native production graph supplies canonical roles. Built-ins use stableKey, and unknown/history-only keys must never inherit muscle roles by name.
+- Added regression that a tampered bench press presents `CHEST`/secondary `TRICEPS` through the public analysis feature API. Tests/CI pending.

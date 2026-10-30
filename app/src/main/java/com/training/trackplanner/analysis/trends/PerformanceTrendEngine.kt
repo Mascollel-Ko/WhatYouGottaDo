@@ -30,7 +30,7 @@ class PerformanceTrendEngine(
     private val canonicalMuscleRoles: CanonicalMuscleRoleResolver? = null,
     private val weeklyAggregator: WeeklyAnalysisAggregator = WeeklyAnalysisAggregator(),
     private val strengthCalculator: StrengthPerformanceIndexCalculator =
-        StrengthPerformanceIndexCalculator(runtimeMetadataCatalog),
+        StrengthPerformanceIndexCalculator(runtimeMetadataCatalog, canonicalMuscleRoles),
     private val badmintonPracticeCalculator: BadmintonPracticeLoadCalculator =
         BadmintonPracticeLoadCalculator(runtimeMetadataCatalog),
     private val badmintonObjectiveCalculator: BadmintonObjectiveStimulusCalculator =
@@ -159,7 +159,8 @@ class PerformanceTrendEngine(
                 entriesUntilWeek,
                 exerciseMap,
                 week.weekEnd,
-                runtimeMetadataCatalog
+                runtimeMetadataCatalog,
+                canonicalMuscleRoles
             )
             val pain = PainGateEvaluator().evaluate(week.weekEnd, emptyList())
             fatigueCalculator.calculate(

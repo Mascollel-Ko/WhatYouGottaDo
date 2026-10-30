@@ -1,6 +1,7 @@
 package com.training.trackplanner.analysis.readiness
 
 import com.training.trackplanner.analysis.features.ExerciseAnalysisMapper
+import com.training.trackplanner.data.CanonicalMuscleRoleResolver
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 import com.training.trackplanner.data.WorkoutEntryWithSets
@@ -11,7 +12,8 @@ class PerformanceDropDetector {
         entriesWithSets: List<WorkoutEntryWithSets>,
         exerciseMap: Map<String, Exercise>,
         today: LocalDate,
-        runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY
+        runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY,
+        canonicalMuscleRoles: CanonicalMuscleRoleResolver? = null
     ): PerformanceSignalSnapshot {
         val completedRecords = entriesWithSets
             .filter { record -> record.sets.any { set -> set.confirmed } }
@@ -36,13 +38,15 @@ class PerformanceDropDetector {
                 exercise,
                 latest.entry,
                 latest.sets,
-                runtimeMetadata
+                runtimeMetadata,
+                canonicalMuscles = canonicalMuscleRoles?.lookup(exercise)
             )
             val previousFeatures = ExerciseAnalysisMapper.fromRecord(
                 exercise,
                 previous.entry,
                 previous.sets,
-                runtimeMetadata
+                runtimeMetadata,
+                canonicalMuscles = canonicalMuscleRoles?.lookup(exercise)
             )
 
             val latestMainSet = latest.sets.filter { set -> set.confirmed }.maxByOrNull { set -> set.weightKg }
