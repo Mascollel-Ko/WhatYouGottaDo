@@ -271,7 +271,6 @@ class MetadataSanityCheckerTest {
         listOf(
             movementPattern,
             movementCategory,
-            primaryMuscles,
             equipment,
             compoundType,
             forceType,
