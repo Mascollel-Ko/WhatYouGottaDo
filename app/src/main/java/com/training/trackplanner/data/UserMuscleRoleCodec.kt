@@ -83,4 +83,41 @@ object UserMuscleRoleCodec {
             .distinctBy { it.first }
             .map { (code, role) -> entry(exercise.stableKey, code, role) }
     }
+    /**
+     * Consumers that take relation CSV rows (weekly anatomy/Program B) must see
+     * precisely the same effective muscle roles as the exercise editor and graphs.
+     */
+    fun effectiveRelations(
+        baseline: List<CanonicalMetadataRelation>,
+        userRows: List<ExerciseMetadataUserOverrideEntity>,
+        exercises: List<Exercise> = emptyList()
+    ): List<CanonicalMetadataRelation> {
+        val byKey = userRows
+            .filter { it.fieldKey == FIELD_KEY }
+            .associate { it.stableKey to it.validated().value }
+        val generated = mutableListOf<CanonicalMetadataRelation>()
+        val customByKey = exercises.filter(Exercise::isCustom).associateBy(Exercise::stableKey)
+        val keys = byKey.keys + customByKey.keys
+        keys.forEach { key ->
+            val rows = when {
+                key in byKey -> decode(byKey.getValue(key), key)
+                else -> legacyDraft(customByKey.getValue(key))
+            }
+            rows.forEach { row ->
+                generated += CanonicalMetadataRelation(
+                    domain = CanonicalRelationDomain.MUSCLE,
+                    relationKey = row.relationKey,
+                    exerciseStableKey = key,
+                    relationType = row.role.name,
+                    relationValue = row.muscleCode,
+                    coefficient = row.coefficient,
+                    sourceStableKey = key,
+                    status = row.status,
+                    provenance = row.provenance
+                )
+            }
+        }
+        return baseline.filterNot { it.exerciseStableKey in byKey } + generated
+    }
+
 }
