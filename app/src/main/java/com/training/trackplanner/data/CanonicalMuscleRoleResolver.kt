@@ -118,9 +118,11 @@ class CanonicalMuscleRoleResolver(
         legacyMuscleOverridePresent: Boolean = false
     ): CanonicalMuscleLookup {
         val normalizedKey = normalizeKey(stableKey)
-        val userRows = typedOverrides[normalizedKey]?.let {
-            UserMuscleRoleCodec.decode(it, normalizedKey)
-        }
+        // Only current built-ins or explicitly custom identities can own typed roles.
+        // A history-only or unknown stableKey must not impersonate a canonical exercise.
+        val userRows = typedOverrides[normalizedKey]
+            ?.takeIf { isCustom || normalizedKey in selectableKeys }
+            ?.let { UserMuscleRoleCodec.decode(it, normalizedKey) }
         val rows = userRows ?: if (!isCustom) relationsByStableKey[normalizedKey].orEmpty() else emptyList()
         val kind = when {
             isCustom && userRows != null -> CanonicalMuscleLookupKind.USER_CUSTOM_WITH_RELATIONS
