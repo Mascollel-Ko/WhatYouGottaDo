@@ -28,7 +28,10 @@ class CanonicalReadinessMuscleSourceTest {
     private fun exercise(key: String): Exercise =
         repo.exercises().first { it.stableKey == key }.copy(localLoadWeight = 1.0)
 
-    private fun fatigue(exercise: Exercise) = aggregate.aggregate(
+    private fun fatigue(
+        exercise: Exercise,
+        muscleRoles: com.training.trackplanner.data.CanonicalMuscleRoleResolver = roles
+    ) = aggregate.aggregate(
         entriesWithSets = listOf(
             WorkoutEntryWithSets(
                 entry = WorkoutEntry(
@@ -41,7 +44,7 @@ class CanonicalReadinessMuscleSourceTest {
             )
         ),
         exerciseMap = mapOf(exercise.stableKey to exercise),
-        canonicalMuscleRoles = roles
+        canonicalMuscleRoles = muscleRoles
     ).single()
 
     @Test
@@ -80,6 +83,35 @@ class CanonicalReadinessMuscleSourceTest {
         assertTrue(parts.getValue("glutes") > 0.0)
         assertFalse("lats_upper_back" in parts)
         // Axial low-back stress remains a separate, existing readiness policy.
+    }
+
+    @Test
+    fun planningReadinessUsesSameEditedMusclesAsDashboardAndNotStaleStrings() {
+        val bench = exercise("barbell_bench_press").copy(
+            primaryMuscles = "HAMSTRINGS", secondaryMuscles = "QUADS"
+        )
+        val baseline = fatigue(bench).bodyPartLoads
+        assertTrue((baseline["chest"] ?: 0.0) > 0.0)
+        val codec = com.training.trackplanner.data.UserMuscleRoleCodec
+        val override = com.training.trackplanner.data.ExerciseMetadataUserOverrideEntity(
+            stableKey = bench.stableKey,
+            fieldScope = com.training.trackplanner.data.ExerciseMetadataFieldScope.MUSCLE_RELATION.name,
+            fieldKey = codec.FIELD_KEY,
+            valueEncoding = com.training.trackplanner.data.ExerciseMetadataValueEncoding.TOKEN_SET.name,
+            value = codec.encode(listOf(
+                codec.entry(bench.stableKey, "BICEPS", com.training.trackplanner.data.CanonicalMuscleRole.PRIMARY),
+                codec.entry(bench.stableKey, "CHEST", com.training.trackplanner.data.CanonicalMuscleRole.STABILIZER)
+            )),
+            isExplicitEmpty = false,
+            source = com.training.trackplanner.data.ExerciseMetadataOverrideSource.USER_EDIT.name,
+            semanticCanonicalRevisionAtEdit = "test"
+        )
+        val effective = roles.withUserOverrides(listOf(override))
+        val edited = fatigue(bench, effective).bodyPartLoads
+        assertTrue((edited["elbow_flexors"] ?: 0.0) > 0.0)
+        assertFalse("chest" in edited)
+        assertFalse("hamstrings" in edited)
+        assertFalse("quads" in edited)
     }
 
     @Test
