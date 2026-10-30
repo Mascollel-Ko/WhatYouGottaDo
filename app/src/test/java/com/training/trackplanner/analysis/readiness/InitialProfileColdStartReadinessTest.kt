@@ -165,9 +165,24 @@ class InitialProfileColdStartReadinessTest {
     @Test
     fun painAndAvoidTagsMakeMatchingStimulusMoreConservative() {
         val exercise = upperPushExercise()
+        val muscleRoles = com.training.trackplanner.data.CanonicalMuscleRoleResolver(
+            setOf(exercise.stableKey), emptySet(),
+            listOf("CHEST" to "PRIMARY", "SHOULDERS" to "PRIMARY", "TRICEPS" to "SECONDARY")
+                .mapIndexed { index, (muscle, role) ->
+                    com.training.trackplanner.data.CanonicalMetadataRelation(
+                        domain = com.training.trackplanner.data.CanonicalRelationDomain.MUSCLE,
+                        relationKey = "UPPER_PUSH_$index", exerciseStableKey = exercise.stableKey,
+                        relationType = role, relationValue = muscle,
+                        coefficient = if (role == "PRIMARY") 1.0 else 0.5,
+                        sourceStableKey = exercise.stableKey,
+                        status = "TEST", provenance = "TEST"
+                    )
+                }
+        )
         val dailyLoads = DailyAnalysisLoadAggregator().aggregate(
             entriesWithSets = listOf(record(exercise, confirmedSets = listOf(set(reps = 8, weightKg = 60.0, confirmed = true)))),
-            exerciseMap = mapOf(exercise.stableKey to exercise)
+            exerciseMap = mapOf(exercise.stableKey to exercise),
+            canonicalMuscleRoles = muscleRoles
         )
         val plain = pressureFor(dailyLoads, highAdaptationProfile())
         val restricted = pressureFor(
