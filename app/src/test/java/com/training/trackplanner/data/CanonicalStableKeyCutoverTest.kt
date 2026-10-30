@@ -22,7 +22,7 @@ class CanonicalStableKeyCutoverTest {
     @After fun close() = db.close()
 
     @Test
-    fun oneTimeCutoverReplacesBuiltinMuscleOverrideAndKeepsCustom() = runBlocking {
+    fun oneTimeCutoverKeepsExplicitUserEditAndCustomExercise() = runBlocking {
         val canonical = SeedData.exactExerciseMetadataByStableKey(context).getValue("barbell_back_squat")
         val stale = canonical.copy(primaryMuscles = "HAMSTRING", secondaryMuscles = "BICEPS")
         db.exerciseDao().insertExercise(stale)
@@ -50,10 +50,14 @@ class CanonicalStableKeyCutoverTest {
         repo.seedIfNeeded()
 
         val restored = db.exerciseDao().findByStableKey(canonical.stableKey)!!
-        assertEquals(canonical.primaryMuscles, restored.primaryMuscles)
+        // The developer-materialized secondary=BICEPS is discarded. The
+        // explicit USER_EDIT primary=HAMSTRING survives above the canonical base.
+        assertEquals("HAMSTRING", restored.primaryMuscles)
         assertEquals(canonical.secondaryMuscles, restored.secondaryMuscles)
-        assertTrue(db.exerciseMetadataUserOverrideDao().findByStableKey(canonical.stableKey)
-            .none { it.fieldKey == "exercise.primaryMuscles" || it.fieldKey == "exercise.secondaryMuscles" })
+        val savedUserRows = db.exerciseMetadataUserOverrideDao().findByStableKey(canonical.stableKey)
+        assertEquals(1, savedUserRows.size)
+        assertEquals(ExerciseMetadataOverrideSource.USER_EDIT.name, savedUserRows.single().source)
+        assertEquals("exercise.primaryMuscles", savedUserRows.single().fieldKey)
         val customRestored = db.exerciseDao().findByStableKey(custom.stableKey)!!
         assertEquals(custom.primaryMuscles, customRestored.primaryMuscles)
         assertTrue(db.exerciseMetadataUserOverrideDao().findByStableKey(custom.stableKey).isNotEmpty())
@@ -62,7 +66,25 @@ class CanonicalStableKeyCutoverTest {
         ))
 
         repo.seedIfNeeded()
-        assertEquals(canonical.primaryMuscles, db.exerciseDao().findByStableKey(canonical.stableKey)!!.primaryMuscles)
+        assertEquals("HAMSTRING", db.exerciseDao().findByStableKey(canonical.stableKey)!!.primaryMuscles)
+        assertEquals(1, db.exerciseMetadataUserOverrideDao().findByStableKey(canonical.stableKey).size)
         assertEquals(custom.primaryMuscles, db.exerciseDao().findByStableKey(custom.stableKey)!!.primaryMuscles)
+    }
+
+    @Test
+    fun developerMaterializedMuscleDifferencesWithoutUserEditAreReplaced() = runBlocking {
+        val canonical = SeedData.exactExerciseMetadataByStableKey(context).getValue("barbell_deadlift")
+        val developerCopy = canonical.copy(primaryMuscles = "BICEPS", secondaryMuscles = "TRICEPS")
+        db.exerciseDao().insertExercise(developerCopy)
+
+        val repo = TrainingRepository(db, context)
+        repo.seedIfNeeded()
+
+        val afterCutover = db.exerciseDao().findByStableKey(canonical.stableKey)!!
+        assertEquals(canonical.primaryMuscles, afterCutover.primaryMuscles)
+        assertEquals(canonical.secondaryMuscles, afterCutover.secondaryMuscles)
+        assertTrue(db.exerciseMetadataUserOverrideDao().findByStableKey(canonical.stableKey).isEmpty())
+        repo.seedIfNeeded() // the same one-time cutover is idempotent
+        assertEquals(canonical.primaryMuscles, db.exerciseDao().findByStableKey(canonical.stableKey)!!.primaryMuscles)
     }
 }

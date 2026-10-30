@@ -5,10 +5,6 @@ import com.training.trackplanner.analysis.strengthperformance.StrengthPosteriorM
 import com.training.trackplanner.analysis.strengthperformance.VersionedDoubleArrayCodec
 import com.training.trackplanner.analysis.strengthperformance.toPosterior
 
-private val LEGACY_BUILTIN_MUSCLE_FIELDS = setOf(
-    "exercise.primaryMuscles", "exercise.secondaryMuscles"
-)
-
 internal class BackupRestoreImportService(
     private val db: TrainingDatabase,
     private val initialUserProfileDao: InitialUserProfileDao,
@@ -183,21 +179,9 @@ internal class BackupRestoreImportService(
                         }
                 }
             }
-            // Built-ins are resolved by stableKey in every backup generation.
-            // Only old muscle-field overrides are retired; other user state remains.
-            val restoredBuiltinKeys = data.exerciseRows
-                .filter { row -> !row.isCustom && row.stableKey in seedByStableKey }
-                .mapTo(linkedSetOf(), RestoreExerciseRow::stableKey)
-            restoredBuiltinKeys.forEach { stableKey ->
-                LEGACY_BUILTIN_MUSCLE_FIELDS.forEach { field ->
-                    exerciseMetadataUserOverrideDao.deleteField(
-                        stableKey, ExerciseMetadataFieldScope.EXERCISE.name, field
-                    )
-                }
-            }
-            if (restoredBuiltinKeys.isNotEmpty()) {
-                appMetaDao.upsert(AppMeta("canonical_stablekey_restore_cutover_v1", "complete"))
-            }
+            // StableKey rehydrates the built-in baseline. Explicit USER_EDIT /
+            // RESTORED_USER_OVERRIDE rows are a different authority and must
+            // survive the one-time developer-baseline cutover.
             data.programSnapshot?.let { snapshot ->
                 val counts = restoreProgramSnapshot(snapshot)
                 programCount = counts.programs
@@ -501,15 +485,16 @@ internal class BackupRestoreImportService(
         data: RecordCsvImportData.Restore,
         mode: ExerciseListRestoreMode
     ) {
-        val builtInKeys = seedExercisesByStableKey().keys
-        val acceptedRows = data.metadataUserOverrideRows.filterNot { row ->
-            row.stableKey in builtInKeys && row.fieldKey in LEGACY_BUILTIN_MUSCLE_FIELDS
-        }
-        val rowsByStableKey = acceptedRows
+        // Only explicit override rows carry user intent. Do not infer an
+        // override from differences in materialized legacy exercise fields.
+        // In particular, preserve even explicitly cleared built-in muscles.
+        val userRows = data.metadataUserOverrideRows
+            .onEach(ExerciseMetadataUserOverrideEntity::validated)
+        val rowsByStableKey = userRows
             .groupBy(ExerciseMetadataUserOverrideEntity::stableKey)
         when (mode) {
             ExerciseListRestoreMode.PRESERVE_CURRENT_ACTIVE_EXERCISES ->
-                exerciseMetadataUserOverrideDao.upsertAll(acceptedRows)
+                exerciseMetadataUserOverrideDao.upsertAll(userRows)
             ExerciseListRestoreMode.APPLY_BACKUP_ACTIVE_EXERCISE_LIST ->
                 data.exerciseRows.map(RestoreExerciseRow::stableKey).distinct().forEach { stableKey ->
                     exerciseMetadataUserOverrideDao.replaceForStableKey(
@@ -517,6 +502,49 @@ internal class BackupRestoreImportService(
                         rowsByStableKey[stableKey].orEmpty()
                     )
                 }
+        }
+        // Persisted user edits must be visible immediately after import, not
+        // only after a future seed/reconciliation or application restart.
+        val seeds = seedExercisesByStableKey()
+        val affectedBuiltIns = data.exerciseRows
+            .filter { !it.isCustom && it.stableKey in seeds }
+            .mapTo(linkedSetOf(), RestoreExerciseRow::stableKey)
+        val resolver = ExerciseMetadataEffectiveStateResolver(
+            canonicalExercisesByStableKey = seeds,
+            canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog,
+            canonicalTrainingRolesByStableKey = canonicalMetadataRepository.trainingRoleRelations()
+                .groupBy(ExerciseTrainingRoleRelation::exerciseStableKey)
+                .mapValues { (_, rows) -> rows.mapTo(sortedSetOf(), ExerciseTrainingRoleRelation::trainingRoleCode) },
+            canonicalProgramSlotsByStableKey = canonicalMetadataRepository.programSlotCapabilityRelations()
+                .groupBy(ExerciseProgramSlotCapabilityRelation::exerciseStableKey)
+                .mapValues { (_, rows) -> rows.mapTo(sortedSetOf(), ExerciseProgramSlotCapabilityRelation::capabilityCode) }
+        )
+        affectedBuiltIns.forEach { stableKey ->
+            val existing = exerciseDao.findByStableKey(stableKey) ?: return@forEach
+            val overrides = exerciseMetadataUserOverrideDao.findByStableKey(stableKey)
+            if (overrides.isEmpty()) return@forEach
+            val effective = resolver.resolve(
+                materializedExercise = existing,
+                materializedRuntimeMetadata = runtimeExerciseMetadataDao.findByStableKey(stableKey)
+                    ?.toRuntimeMetadata(),
+                materializedTrainingRoles = exerciseRoleRelationDao.allTrainingRoles()
+                    .filter { it.exerciseStableKey == stableKey }
+                    .mapTo(sortedSetOf(), ExerciseTrainingRoleRelation::trainingRoleCode),
+                materializedProgramSlotCapabilities = exerciseRoleRelationDao.allProgramSlotCapabilities()
+                    .filter { it.exerciseStableKey == stableKey }
+                    .mapTo(sortedSetOf(), ExerciseProgramSlotCapabilityRelation::capabilityCode),
+                overrides = overrides
+            )
+            exerciseDao.updateExercise(effective.exercise)
+            runtimeExerciseMetadataDao.upsert(effective.runtimeMetadata.toEntity())
+            exerciseRoleRelationDao.deleteTrainingRoles(stableKey)
+            exerciseRoleRelationDao.upsertTrainingRoles(effective.trainingRoles.map { role ->
+                ExerciseTrainingRoleRelation(stableKey, role, "RESTORED_USER_OVERRIDE", "APPROVED")
+            })
+            exerciseRoleRelationDao.deleteProgramSlotCapabilities(stableKey)
+            exerciseRoleRelationDao.upsertProgramSlotCapabilities(effective.programSlotCapabilities.map { capability ->
+                ExerciseProgramSlotCapabilityRelation(stableKey, capability, "RESTORED_USER_OVERRIDE", "APPROVED")
+            })
         }
     }
 

@@ -15,23 +15,15 @@ internal class ExerciseMetadataReconciliationService(
     private val seedExercisesByStableKey: () -> Map<String, Exercise>
 ) {
     /**
-     * One-time local cutover of old built-in muscle edits. The canonical
-     * stableKey already defines all six roles; legacy fields are discarded.
-     * Separate user-created exercises and non-muscle user settings survive.
-     * Clearing COMPLETED_KEY forces the normal reconciliation to rehydrate
-     * built-in metadata from the currently shipped canonical catalogue.
+     * One-time local cutover of developer-materialized built-in metadata.
+     * Always refresh from the stableKey canonical baseline, but retain explicit
+     * persisted USER_EDIT / RESTORED_USER_OVERRIDE rows (including muscle fields).
+     * Differing old materialized columns are not evidence of user intent.
      */
     suspend fun cutoverBuiltinMuscleOverridesOnce(): Boolean = db.withTransaction {
         if (appMetaDao.value(MUSCLE_CUTOVER_KEY) == "done") return@withTransaction false
-        val seeds = seedExercisesByStableKey()
-        exerciseDao.allExercises().forEach { exercise ->
-            if (exercise.isCustom || exercise.stableKey !in seeds) return@forEach
-            listOf("exercise.primaryMuscles", "exercise.secondaryMuscles").forEach { field ->
-                overrideDao.deleteField(
-                    exercise.stableKey, ExerciseMetadataFieldScope.EXERCISE.name, field
-                )
-            }
-        }
+        // Do not delete USER_EDIT or RESTORED_USER_OVERRIDE rows: the
+        // normal effective-state resolver layers them above canonical defaults.
         appMetaDao.delete(COMPLETED_KEY)
         appMetaDao.upsert(AppMeta(MUSCLE_CUTOVER_KEY, "done"))
         true

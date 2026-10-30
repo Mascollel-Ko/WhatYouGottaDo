@@ -175,3 +175,11 @@
 - MUS-16–22 are VERIFY_ONLY in the original queue. We have not redefined residual fatigue, statistical baseline, pressure, home/current readiness, projected readiness or B program recovery signals. New Robolectric contract exercises `DailyAnalysisLoadAggregator` with a tampered legacy squat and the stableKey canonical resolver, then verifies the downstream residual, baseline and pressure keys remain canonical. Complements existing application tests and the MUS-08/09 trend graph and MUS-06/07 readiness source tests.
 - MUS-12 alias normalizer is a **temporary import/custom compatibility parser** only, never an authoritative replacement for explicit verified `MUSCLE_GROUP` codes. Its removal from runtime requires final custom typed exercise storage and a versioned backup format change, which have not yet been done. Do not remove compatibility from external backup imports before migrated backups are testable.
 - All seven VERIFY_ONLY stages need hosted CI success and a saved source gate before upgrading to CI_VERIFIED.
+
+## 개발 기준선과 실제 사용자 수정값의 구분 (2026-10-30)
+
+- 개발 중인 구형 운동/런타임 메타데이터의 materialized row·snapshot·차이값은 `stableKey`의 최신 정식본으로 재구성한다. 구형 필드가 다르다는 사실만으로 사용자 수정으로 승격하지 않는다.
+- `exercise_metadata_user_overrides`의 검증된 명시적 `USER_EDIT` 또는 `RESTORED_USER_OVERRIDE` 행은 **사용자의 저장된 의사**이므로 개발 기준선 교체로 삭제해서는 안 된다. 빈값의 명시적 변경(`isExplicitEmpty`)도 여기에 포함한다.
+- 1회 로컬 cutover는 reconciliation을 강제하여 옛 materialized 개발 기본값을 바꾸지만 명시적 override 행은 유지한다. v12 백업 가져오기는 기존 explicit override 행을 검사·업서트/교체하고 가져온 직후 정식 기준선 위로 즉시 materialize 한다. 재복원 시에도 기본 운동의 USER_EDIT 수정값이 왕복 가능해야 한다.
+- 이 구분은 기본 운동과 사용자 추가 운동 모두에 적용하고, 기록 및 계획 연결을 변경하지 않는다. 단, 기존 두 문자열 기반 사용자 근육 편집을 새 여섯 역할/계수 타입으로 전환하는 작업은 별개로 남는다. 현재 검색·근육 그래프·준비도는 정식 stableKey를 사용하므로 편집된 근육과 계산을 완전히 일치시키는 것은 추후 typed user-role override를 연결해야 한다. UI의 기본 운동 근육 편집 잠금은 영구적인 사용자 수정 정책이 아니다.
+- 이 수정은 현 개발 데이터 기준선 덮어쓰기 규칙을 유지하며 사용자 수정 복원 기능을 제거하지 않기 위한 CI 회귀 수정이다. 전체 CI 완료 전 검증 완료로 표시하지 않는다.

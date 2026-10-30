@@ -57,7 +57,10 @@ class BackupRestoreImportBehaviorTest {
 
         assertEquals("restore", result.format)
         assertEquals(1, result.exerciseCount)
-        assertEquals("RESTORED_SLOT", restoredOverride.programSlot)
+        // A materialized legacy runtime snapshot has no USER_EDIT provenance.
+        // The stableKey baseline is therefore rehydrated instead of retaining
+        // the developer-time RESTORED_SLOT string.
+        assertEquals(canonical.programSlot, restoredOverride.programSlot)
         assertEquals(canonical.programSlot, resolved.programSlot)
         assertTrue(db.exerciseMetadataUserOverrideDao().findByStableKey(seed.stableKey).isEmpty())
         assertFalse(restoredOverride.safeForSeedMutation)
