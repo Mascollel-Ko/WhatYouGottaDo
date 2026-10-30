@@ -58,7 +58,7 @@ internal object ExerciseSubcategoryMapper {
         if (candidates.isEmpty()) return emptySet()
         val movement = movementTokens(exercise, metadata)
         val primary = primaryMuscleCodes(muscleMetadata)
-        val hasCanonical = !exercise.isCustom && muscleMetadata?.canonical?.hasCanonicalRelations == true
+        val hasCanonical = muscleMetadata?.usesCanonicalRoles == true
         val directCoreMovement = listOf(
             exercise.movementPattern, metadata?.movementFamily.orEmpty(), metadata?.movementSubtype.orEmpty()
         ).any { token ->
@@ -125,10 +125,12 @@ internal object ExerciseSubcategoryMapper {
     private fun primaryMuscleCodes(muscle: EffectiveMuscleMetadata?): Set<String> =
         when {
             muscle == null -> emptySet()
-            muscle.canonical.hasCanonicalRelations ->
+            muscle.usesCanonicalRoles ->
                 muscle.canonical.forRole(CanonicalMuscleRole.PRIMARY)
                     .mapTo(mutableSetOf()) { it.muscleCode.uppercase(Locale.ROOT) }
-            // Transient compatibility only for user-created/history identities.
+            // Unreviewed user-created exercise muscle strings are hints, not classification input.
+            muscle.source == com.training.trackplanner.data.EffectiveMuscleMetadataSource.LEGACY_CUSTOM_EXERCISE -> emptySet()
+            // History-only legacy identities retain read-only import compatibility.
             else -> muscle.legacy?.primaryMuscles.orEmpty()
                 .split(',', '|', ';')
                 .mapTo(mutableSetOf()) { it.trim().uppercase(Locale.ROOT) }
