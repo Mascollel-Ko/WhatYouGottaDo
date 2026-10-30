@@ -94,7 +94,8 @@ internal fun ExerciseScreen(
             muscleMetadataByKey = muscleMetadataByKey
         ).mapNotNull { (subcategory, count) -> if (count > 0) subcategory to count else null }
     }
-    val showSubcategoryOverview = subcategoryCounts.isNotEmpty() && selectedSubcategory == null
+    val showSubcategoryOverview = query.isBlank() && advanced.values.isEmpty() &&
+        subcategoryCounts.isNotEmpty() && selectedSubcategory == null
     val filtered = remember(
         broadAndSearchFiltered, selectedSubcategory, runtimeMetadataById, muscleMetadataByKey
     ) {
@@ -206,7 +207,7 @@ internal fun ExerciseScreen(
                 modifier = Modifier.fillMaxWidth(),
                 value = query,
                 onValueChange = { query = it },
-                label = { Text("검색") },
+                label = { Text("운동명·근육·동작·기구 검색") },
                 singleLine = true
             )
         }

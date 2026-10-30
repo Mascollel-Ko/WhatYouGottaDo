@@ -305,7 +305,7 @@ internal fun ExercisePickerDialog(
                 )
                 MaterialText("검색 결과 ${filtered.size}개", style = MaterialTheme.typography.labelSmall)
                 LazyColumn(
-                    modifier = Modifier.heightIn(max = 420.dp),
+                    modifier = Modifier.heightIn(max = 290.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(filtered, key = Exercise::stableKey) { exercise ->
