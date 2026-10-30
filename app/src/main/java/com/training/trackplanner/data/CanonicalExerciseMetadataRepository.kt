@@ -526,8 +526,10 @@ class CanonicalExerciseMetadataRepository(private val context: Context) {
         familyE1rmMultiplier = fields.required("familyE1rmMultiplier").toDouble(),
         movementPattern = fields["movementPattern"].orEmpty(),
         movementCategory = fields["movementCategory"].orEmpty(),
-        primaryMuscles = fields["primaryMuscles"].orEmpty(),
-        secondaryMuscles = fields["secondaryMuscles"].orEmpty(),
+        // The bundled legacy columns remain on disk for compatibility, but
+        // production seed exercises never hydrate them as runtime authority.
+        primaryMuscles = "",
+        secondaryMuscles = "",
         equipment = fields["equipment"].orEmpty(),
         equipmentTags = fields["equipmentTags"].orEmpty(),
         compoundType = fields["compoundType"].orEmpty(),
