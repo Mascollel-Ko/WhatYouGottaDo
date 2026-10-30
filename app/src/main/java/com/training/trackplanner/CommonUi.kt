@@ -746,6 +746,10 @@ internal fun Exercise.matchesMetadataQuery(
 
     val muscles = when {
         muscleMetadata == null -> emptyList()
+        // A built-in's canonical identity remains searchable even with old
+        // explicit two-field overrides; never search stale built-in aliases.
+        !isCustom && muscleMetadata.canonical.hasCanonicalRelations ->
+            presenter.searchableOptions(muscleMetadata)
         muscleMetadata.usesCanonicalRoles -> presenter.searchableOptions(muscleMetadata)
         muscleMetadata.source ==
             com.training.trackplanner.data.EffectiveMuscleMetadataSource.LEGACY_CUSTOM_EXERCISE ->
