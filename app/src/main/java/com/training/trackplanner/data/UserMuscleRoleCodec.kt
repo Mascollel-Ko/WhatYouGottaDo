@@ -55,34 +55,6 @@ object UserMuscleRoleCodec {
         return rows
     }
 
-    /** No fabricated roles: unmappable old custom tokens are kept in the legacy record. */
-    fun legacyDraft(exercise: Exercise): List<CanonicalMuscleRoleEntry> {
-        val mapping = mapOf(
-            "QUADRICEPS" to "QUADS", "RECTUS_FEMORIS" to "QUADS",
-            "HAMSTRING" to "HAMSTRINGS", "GLUTE" to "GLUTES",
-            "CALF" to "CALVES", "TIBIALIS" to "CALVES",
-            "ERECTOR_SPINAE" to "POSTERIOR_CHAIN_ERECTORS",
-            "BACK" to "BACK_LATS", "LAT" to "BACK_LATS",
-            "RHOMBOID" to "BACK_LATS", "TRAPEZIUS" to "BACK_LATS",
-            "FOREARM" to "FOREARM_GRIP", "GRIP" to "FOREARM_GRIP",
-            "CORE" to "ANTERIOR_CORE", "OBLIQUE" to "LATERAL_CORE",
-            "SHOULDER" to "SHOULDERS", "GLUTE_MEDIUS" to "GLUTE_MEDIUS",
-            "HIP_ADDUCTOR" to "HIP_ADDUCTOR"
-        )
-        fun mapped(raw: String): List<String>? {
-            val values = raw.split(',', '|', '/', ';').map(String::trim)
-                .filter(String::isNotBlank)
-                .map { it.uppercase(java.util.Locale.ROOT) }
-                .map { mapping[it] ?: it }
-            return values.takeIf { it.all(allowed::contains) }
-        }
-        val primary = mapped(exercise.primaryMuscles) ?: return emptyList()
-        val secondary = mapped(exercise.secondaryMuscles) ?: return emptyList()
-        return (primary.map { it to CanonicalMuscleRole.PRIMARY } +
-            secondary.filterNot(primary::contains).map { it to CanonicalMuscleRole.SECONDARY })
-            .distinctBy { it.first }
-            .map { (code, role) -> entry(exercise.stableKey, code, role) }
-    }
     /**
      * Consumers that take relation CSV rows (weekly anatomy/Program B) must see
      * precisely the same effective muscle roles as the exercise editor and graphs.
