@@ -409,7 +409,7 @@ internal fun ExerciseMetadataCopyDialog(
 }
 
 @Composable
-private fun MuscleRoleChoiceRow(
+internal fun MuscleRoleChoiceRow(
     label: String,
     selected: CanonicalMuscleRole?,
     onChange: (CanonicalMuscleRole?) -> Unit
