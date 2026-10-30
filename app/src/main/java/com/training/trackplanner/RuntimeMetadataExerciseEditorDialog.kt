@@ -2,6 +2,7 @@ package com.training.trackplanner
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,6 +15,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -27,12 +30,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.training.trackplanner.data.ExerciseMetadataCopySource
+import com.training.trackplanner.data.CanonicalMuscleRole
+import com.training.trackplanner.data.UserMuscleRoleCodec
 import com.training.trackplanner.data.ExerciseRuntimeMetadataEditorData
 import com.training.trackplanner.data.ExerciseTaxonomy
 import com.training.trackplanner.data.FatigueForceType
@@ -51,6 +57,9 @@ internal fun RuntimeMetadataExerciseEditorDialog(
 ) {
     var exercise by remember(initial) { mutableStateOf(initial.exercise) }
     var metadata by remember(initial) { mutableStateOf(initial.metadata) }
+    var muscleRoles by remember(initial) { mutableStateOf(initial.muscleRoles) }
+    val context = LocalContext.current
+    val muscleCatalogue = remember(context) { MetadataDisplayCatalogue.from(context) }
     var restText by remember(initial) { mutableStateOf(initial.exercise.defaultRestSeconds.toString()) }
     var error by remember(initial) { mutableStateOf<String?>(null) }
     var showCopyDialog by remember { mutableStateOf(false) }
@@ -145,20 +154,26 @@ internal fun RuntimeMetadataExerciseEditorDialog(
                     }
                     item {
                         MetadataEditorSection("3. 동작 분류") {
-                            if (exercise.isCustom || exercise.stableKey.isBlank()) {
-                                // Temporary compatibility editor for user-created exercises.
-                                // Final typed import must preserve these user-owned records.
-                                MetadataMultiSelectField("주동근", splitExerciseTokens(exercise.primaryMuscles), ExerciseTaxonomy.muscles.sorted(), "exercise.primaryMuscles") {
-                                    exercise = exercise.copy(primaryMuscles = joinExerciseTokens(it))
-                                }
-                                MetadataMultiSelectField("보조근", splitExerciseTokens(exercise.secondaryMuscles), ExerciseTaxonomy.muscles.sorted(), "exercise.secondaryMuscles") {
-                                    exercise = exercise.copy(secondaryMuscles = joinExerciseTokens(it))
-                                }
-                            } else {
-                                MaterialText(
-                                    "기본 운동의 근육 역할은 stableKey에 연결된 정식 메타데이터를 사용합니다. 주동근·보조근을 옛 형식으로 수정하지 않습니다.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                            MaterialText(
+                                "근육별 역할을 수정할 수 있습니다. 주동근·보조근은 운동량에, 부위별 피로는 별도 계산식에 반영됩니다.",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            UserMuscleRoleCodec.MUSCLE_CODES.forEach { code ->
+                                val role = muscleRoles.firstOrNull { it.muscleCode == code }?.role
+                                MuscleRoleChoiceRow(
+                                    label = muscleCatalogue.option(MetadataDisplayField.MUSCLE_GROUP, code).label,
+                                    selected = role,
+                                    onChange = { next ->
+                                        val key = exercise.stableKey
+                                        val previous = muscleRoles.firstOrNull { it.muscleCode == code }
+                                        muscleRoles = muscleRoles.filterNot { it.muscleCode == code } +
+                                            listOfNotNull(next?.let {
+                                                UserMuscleRoleCodec.entry(key, code, it).copy(
+                                                    coefficient = if (previous?.role == it) previous.coefficient
+                                                        else UserMuscleRoleCodec.coefficient(it)
+                                                )
+                                            })
+                                    }
                                 )
                             }
                             MetadataMultiSelectField("장비", splitExerciseTokens(exercise.equipment.ifBlank { exercise.equipmentTags }), ExerciseTaxonomy.equipment.sorted(), "exercise.equipment") {
@@ -248,6 +263,7 @@ internal fun RuntimeMetadataExerciseEditorDialog(
                             onSave(
                                 initial.copy(
                                     exercise = exercise.copy(defaultRestSeconds = rest!!),
+                                    muscleRoles = muscleRoles,
                                     metadata = metadata.copy(
                                         exerciseName = exercise.name,
                                         safeForSeedMutation = false
@@ -287,6 +303,9 @@ internal fun RuntimeMetadataExerciseEditorDialog(
                     restText = source.exercise.defaultRestSeconds.toString()
                 }
                 metadata = metadata.copyEditableMetadataFrom(source.metadata)
+                if (exercise.isCustom || exercise.stableKey.isBlank()) {
+                    muscleRoles = source.muscleRoles
+                }
                 copiedFrom = source.exercise.name
                 showCopyDialog = false
             }
@@ -374,4 +393,41 @@ internal fun ExerciseMetadataCopyDialog(
             TextButton(onClick = onDismiss) { Text("닫기") }
         }
     )
+}
+
+@Composable
+private fun MuscleRoleChoiceRow(
+    label: String,
+    selected: CanonicalMuscleRole?,
+    onChange: (CanonicalMuscleRole?) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val labels = mapOf(
+        CanonicalMuscleRole.PRIMARY to "주동근",
+        CanonicalMuscleRole.SECONDARY to "보조근",
+        CanonicalMuscleRole.STABILIZER to "안정화",
+        CanonicalMuscleRole.GENERAL_PARTICIPATION to "일반 참여",
+        CanonicalMuscleRole.NOT_SUPPORTED to "분류 불가",
+        CanonicalMuscleRole.REVIEW_REQUIRED to "재검토"
+    )
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        MaterialText(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+        Box {
+            OutlinedButton(onClick = { expanded = true }) {
+                MaterialText(labels[selected] ?: "제외", maxLines = 1)
+            }
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                DropdownMenuItem(
+                    text = { MaterialText("제외") },
+                    onClick = { expanded = false; onChange(null) }
+                )
+                CanonicalMuscleRole.entries.forEach { role ->
+                    DropdownMenuItem(
+                        text = { MaterialText(labels.getValue(role)) },
+                        onClick = { expanded = false; onChange(role) }
+                    )
+                }
+            }
+        }
+    }
 }
