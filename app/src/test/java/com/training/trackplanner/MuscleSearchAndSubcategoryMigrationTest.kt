@@ -48,7 +48,8 @@ class MuscleSearchAndSubcategoryMigrationTest {
             semanticCanonicalRevisionAtEdit = "test"
         )
         val effective = resolver.resolve(press, listOf(override))
-        assertFalse(effective.usesCanonicalRoles) // MUS-00.5's interim editor projection.
+        assertTrue(effective.usesCanonicalRoles) // Show canonical roles until old edit is explicitly reviewed.
+        assertTrue(effective.needsMigrationReview)
         assertTrue(press.matchesMetadataQuery("CHEST", translator, effective, presenter))
         assertFalse(press.matchesMetadataQuery("BICEPS", translator, effective, presenter))
         assertFalse(press.matchesMetadataQuery("FOREARM", translator, effective, presenter))
