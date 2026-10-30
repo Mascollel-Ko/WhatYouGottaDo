@@ -22,7 +22,8 @@ enum class CanonicalMuscleLookupKind {
     SELECTABLE_WITHOUT_RELATIONS,
     HISTORY_ONLY_UNMAPPED,
     USER_CUSTOM_UNMAPPED,
-    UNKNOWN_UNMAPPED
+    UNKNOWN_UNMAPPED,
+    USER_CUSTOM_WITH_RELATIONS
 }
 
 data class CanonicalMuscleRoleEntry(
@@ -61,9 +62,10 @@ data class CanonicalMuscleLookup(
  * Custom/unknown exercises never inherit a similarly named built-in identity.
  */
 class CanonicalMuscleRoleResolver(
-    selectableStableKeys: Set<String>,
-    historyOnlyStableKeys: Set<String>,
-    relations: List<CanonicalMetadataRelation>
+    private val selectableStableKeys: Set<String>,
+    private val historyOnlyStableKeys: Set<String>,
+    private val relations: List<CanonicalMetadataRelation>,
+    private val typedOverrides: Map<String, String> = emptyMap()
 ) {
     private val selectableKeys = selectableStableKeys.mapTo(mutableSetOf(), ::normalizeKey)
     private val historyKeys = historyOnlyStableKeys.mapTo(mutableSetOf(), ::normalizeKey)
@@ -103,14 +105,26 @@ class CanonicalMuscleRoleResolver(
             .mapValues { (_, rows) -> rows.sortedBy(CanonicalMuscleRoleEntry::relationKey) }
     }
 
+    fun withUserOverrides(rows: List<ExerciseMetadataUserOverrideEntity>): CanonicalMuscleRoleResolver =
+        CanonicalMuscleRoleResolver(
+            selectableStableKeys, historyOnlyStableKeys, relations,
+            rows.filter { it.fieldKey == UserMuscleRoleCodec.FIELD_KEY }
+                .associate { it.stableKey.trim().lowercase(Locale.ROOT) to it.validated().value }
+        )
+
     fun lookup(
         stableKey: String,
         isCustom: Boolean = false,
         legacyMuscleOverridePresent: Boolean = false
     ): CanonicalMuscleLookup {
         val normalizedKey = normalizeKey(stableKey)
-        val rows = if (!isCustom) relationsByStableKey[normalizedKey].orEmpty() else emptyList()
+        val userRows = typedOverrides[normalizedKey]?.let {
+            UserMuscleRoleCodec.decode(it, normalizedKey)
+        }
+        val rows = userRows ?: if (!isCustom) relationsByStableKey[normalizedKey].orEmpty() else emptyList()
         val kind = when {
+            isCustom && userRows != null -> CanonicalMuscleLookupKind.USER_CUSTOM_WITH_RELATIONS
+            userRows != null -> CanonicalMuscleLookupKind.SELECTABLE_WITH_RELATIONS
             isCustom -> CanonicalMuscleLookupKind.USER_CUSTOM_UNMAPPED
             normalizedKey in selectableKeys && rows.isNotEmpty() ->
                 CanonicalMuscleLookupKind.SELECTABLE_WITH_RELATIONS
