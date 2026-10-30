@@ -260,9 +260,10 @@ object ExerciseAnalysisMapper {
         CanonicalMuscleLookupKind.SELECTABLE_WITH_RELATIONS,
         CanonicalMuscleLookupKind.USER_CUSTOM_WITH_RELATIONS ->
             canonical.forRole(role).mapTo(linkedSetOf()) { it.muscleCode }
-        CanonicalMuscleLookupKind.USER_CUSTOM_UNMAPPED, null ->
+        null ->
             (if (role == CanonicalMuscleRole.PRIMARY) exercise.primaryMuscles else exercise.secondaryMuscles)
                 .splitTokens()
+        CanonicalMuscleLookupKind.USER_CUSTOM_UNMAPPED -> emptySet()
         CanonicalMuscleLookupKind.SELECTABLE_WITHOUT_RELATIONS,
         CanonicalMuscleLookupKind.HISTORY_ONLY_UNMAPPED,
         CanonicalMuscleLookupKind.UNKNOWN_UNMAPPED -> emptySet()
