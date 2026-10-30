@@ -142,6 +142,12 @@ class ExerciseMetadataEditorBehaviorTest {
         assertTrue(repo.resolvedMuscleMetadata(canonical.stableKey)!!.usesCanonicalRoles)
         assertEquals("CHEST", repo.resolvedMuscleMetadata(canonical.stableKey)!!.canonical
             .forRole(CanonicalMuscleRole.PRIMARY).single().muscleCode)
+        repo.saveExerciseEditor(editor.copy(
+            exercise = editor.exercise.copy(description = "Changed unrelated note")
+        ))
+        assertEquals("BICEPS", db.exerciseMetadataUserOverrideDao()
+            .findByStableKey(canonical.stableKey)
+            .single { it.fieldKey == old.fieldKey }.value)
         repo.confirmCustomMuscleRoles(canonical.stableKey, editor.muscleRoles)
         assertTrue(repo.pendingCustomMuscleRoleReviews().isEmpty())
         assertEquals(original, db.exerciseDao().findByStableKey(canonical.stableKey))
