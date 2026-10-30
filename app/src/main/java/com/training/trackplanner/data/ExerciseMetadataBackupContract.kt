@@ -237,13 +237,6 @@ internal object ExerciseMetadataFieldPolicyRegistry {
             ExerciseMetadataFieldScope.TRAINING_ROLE_RELATION,
             ExerciseMetadataValueEncoding.TOKEN_SET
         ) { it.trainingRoles.joinToString("|") }
-        // Typed muscle overrides are user-owned; canonical muscle snapshots remain asset-owned.
-        add(ExerciseMetadataFieldDefinition(
-            "relation.muscleRoles",
-            ExerciseMetadataFieldScope.MUSCLE_RELATION,
-            ExerciseMetadataFieldPolicy.USER_OVERRIDE_ELIGIBLE,
-            ExerciseMetadataValueEncoding.TOKEN_SET
-        ))
         backupRelation(
             "relation.programSlotCapabilities",
             ExerciseMetadataFieldScope.PROGRAM_SLOT_CAPABILITY_RELATION,
@@ -273,7 +266,18 @@ internal object ExerciseMetadataFieldPolicyRegistry {
         }
     }
 
-    fun definition(fieldKey: String): ExerciseMetadataFieldDefinition? = byKey[fieldKey]
+    // Transitional v1 typed-role override is carried by the existing versioned
+    // override CSV rows; it is deliberately not a generated canonical field/snapshot.
+    // Keep the audited developer-owned canonical contract untouched.
+    private val typedMuscleOverrideDefinition = ExerciseMetadataFieldDefinition(
+        "relation.muscleRoles",
+        ExerciseMetadataFieldScope.MUSCLE_RELATION,
+        ExerciseMetadataFieldPolicy.USER_OVERRIDE_ELIGIBLE,
+        ExerciseMetadataValueEncoding.TOKEN_SET
+    )
+    fun definition(fieldKey: String): ExerciseMetadataFieldDefinition? =
+        if (fieldKey == typedMuscleOverrideDefinition.fieldKey) typedMuscleOverrideDefinition
+        else byKey[fieldKey]
 
     fun policyCounts(): Map<ExerciseMetadataFieldPolicy, Int> =
         fields.groupingBy(ExerciseMetadataFieldDefinition::policy).eachCount()
