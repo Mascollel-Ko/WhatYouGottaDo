@@ -95,14 +95,36 @@ class CanonicalReadinessMuscleSourceTest {
     }
 
     @Test
-    fun customExerciseRetainsTemporaryExplicitLegacyRolesUntilImport() {
+    fun customExerciseRequiresConfirmedRolesBeforeReadinessMuscleAttribution() {
         val custom = Exercise(
             stableKey = "user_custom_a", name = "사용자 운동", category = "근력운동",
             isCustom = true, primaryMuscles = "CHEST", secondaryMuscles = "TRICEPS"
         )
-        val features = ExerciseAnalysisMapper.fromExercise(custom, canonicalMuscles = roles.lookup(custom))
-        assertEquals(setOf("CHEST"), features.primaryMuscles)
-        assertEquals(setOf("TRICEPS"), features.secondaryMuscles)
+        val unreviewed = ExerciseAnalysisMapper.fromExercise(
+            custom, canonicalMuscles = roles.lookup(custom)
+        )
+        assertTrue(unreviewed.primaryMuscles.isEmpty())
+        assertTrue(unreviewed.secondaryMuscles.isEmpty())
+        val codec = com.training.trackplanner.data.UserMuscleRoleCodec
+        val choice = listOf(
+            codec.entry(custom.stableKey, "CHEST", com.training.trackplanner.data.CanonicalMuscleRole.PRIMARY),
+            codec.entry(custom.stableKey, "TRICEPS", com.training.trackplanner.data.CanonicalMuscleRole.SECONDARY)
+        )
+        val override = com.training.trackplanner.data.ExerciseMetadataUserOverrideEntity(
+            stableKey = custom.stableKey,
+            fieldScope = com.training.trackplanner.data.ExerciseMetadataFieldScope.MUSCLE_RELATION.name,
+            fieldKey = codec.FIELD_KEY,
+            valueEncoding = com.training.trackplanner.data.ExerciseMetadataValueEncoding.TOKEN_SET.name,
+            value = codec.encode(choice),
+            isExplicitEmpty = false,
+            source = com.training.trackplanner.data.ExerciseMetadataOverrideSource.USER_EDIT.name,
+            semanticCanonicalRevisionAtEdit = "test"
+        )
+        val reviewed = ExerciseAnalysisMapper.fromExercise(
+            custom, canonicalMuscles = roles.withUserOverrides(listOf(override)).lookup(custom)
+        )
+        assertEquals(setOf("CHEST"), reviewed.primaryMuscles)
+        assertEquals(setOf("TRICEPS"), reviewed.secondaryMuscles)
     }
 
     @Test
