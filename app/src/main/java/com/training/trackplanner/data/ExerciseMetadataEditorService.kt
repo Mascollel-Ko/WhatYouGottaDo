@@ -49,12 +49,8 @@ internal class ExerciseMetadataEditorService(
         )
         val roleResolver = canonicalMetadataRepository.muscleRoleResolver()
             .withUserOverrides(overridesByKey.values.flatten())
-        fun draftRoles(exercise: Exercise): List<CanonicalMuscleRoleEntry> {
-            val lookup = roleResolver.lookup(exercise)
-            return if (lookup.kind == CanonicalMuscleLookupKind.USER_CUSTOM_UNMAPPED)
-                UserMuscleRoleCodec.legacyDraft(exercise)
-            else lookup.relations
-        }
+        fun draftRoles(exercise: Exercise): List<CanonicalMuscleRoleEntry> =
+            roleResolver.lookup(exercise).relations
         val selectedRoles = draftRoles(exercise)
         val copySources = effectiveByKey.values
             .asSequence()
