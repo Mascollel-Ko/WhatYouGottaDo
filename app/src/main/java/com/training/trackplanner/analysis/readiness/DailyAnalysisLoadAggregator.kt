@@ -8,7 +8,6 @@ import com.training.trackplanner.analysis.features.ExerciseAnalysisMapper
 import com.training.trackplanner.data.CanonicalMuscleRoleResolver
 import com.training.trackplanner.data.DailyMetric
 import com.training.trackplanner.data.Exercise
-import com.training.trackplanner.data.ExerciseTaxonomy
 import com.training.trackplanner.data.InitialUserProfile
 import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 import com.training.trackplanner.data.WorkoutEntryWithSets
@@ -211,44 +210,23 @@ class DailyAnalysisLoadAggregator {
         return loads.filterValues { value -> value > 0.0 }
     }
 
-    private fun muscleBodyParts(token: String): List<String> {
-        // A canonical MUSCLE_GROUP code is an exact identifier, never a fuzzy
-        // legacy alias. In particular LATERAL_CORE contains "LAT" and would
-        // otherwise be misread as latissimus/back by the old string normalizer.
-        // Only user-created/old backup tokens may need compatibility aliases.
-        when (token.trim().uppercase(java.util.Locale.ROOT)) {
-            "QUADS" -> return listOf("quads")
-            "HAMSTRINGS" -> return listOf("hamstrings")
-            "GLUTES", "GLUTE_MEDIUS" -> return listOf("glutes")
-            "CALVES" -> return listOf("calves_achilles")
-            "POSTERIOR_CHAIN_ERECTORS" -> return listOf("erectors_low_back")
-            "CHEST" -> return listOf("chest")
-            "BACK_LATS" -> return listOf("lats_upper_back")
-            "SHOULDERS" -> return listOf("shoulders")
-            "BICEPS" -> return listOf("elbow_flexors")
-            "TRICEPS" -> return listOf("elbow_extensors")
-            "FOREARM_GRIP" -> return listOf("forearm_grip")
-            "ANTERIOR_CORE", "LATERAL_CORE" -> return listOf("core_abs_obliques")
-            "HIP_ADDUCTOR", "ADDUCTOR_ABDUCTOR" -> return listOf("hips_adductors_abductors")
-        }
-        return when (ExerciseTaxonomy.canonicalMuscleToken(token)) {
-            "QUADS", "QUADRICEPS", "RECTUS_FEMORIS" -> listOf("quads")
-            "HAMSTRINGS", "HAMSTRING" -> listOf("hamstrings")
-            "GLUTES", "GLUTE", "GLUTE_MEDIUS" -> listOf("glutes")
-            "CALVES", "CALF", "TIBIALIS" -> listOf("calves_achilles")
-            "POSTERIOR_CHAIN_ERECTORS", "ERECTOR_SPINAE" -> listOf("erectors_low_back")
-            "CHEST", "UPPER_CHEST" -> listOf("chest")
-            "BACK_LATS", "LAT", "BACK", "RHOMBOID", "TRAPEZIUS", "LOWER_TRAP" -> listOf("lats_upper_back")
-            "SHOULDERS", "SHOULDER", "ANTERIOR_DELTOID", "LATERAL_DELTOID", "REAR_DELT", "SCAPULAR_STABILIZERS" ->
-                listOf("shoulders")
-            "ROTATOR_CUFF" -> listOf("rotator_cuff")
-            "BICEPS" -> listOf("elbow_flexors")
-            "TRICEPS" -> listOf("elbow_extensors")
-            "FOREARM_GRIP", "FOREARM", "GRIP" -> listOf("forearm_grip")
-            "ANTERIOR_CORE", "LATERAL_CORE", "CORE", "DEEP_CORE", "OBLIQUE", "ROTATION_CORE" -> listOf("core_abs_obliques")
-            "HIP_ADDUCTOR", "ADDUCTOR_ABDUCTOR" -> listOf("hips_adductors_abductors")
-            else -> emptyList()
-        }
+    // Analysis accepts only confirmed canonical MUSCLE_GROUP codes.
+    // Obsolete free-text aliases remain available only in backup/review screens.
+    private fun muscleBodyParts(token: String): List<String> = when (token) {
+        "QUADS" -> listOf("quads")
+        "HAMSTRINGS" -> listOf("hamstrings")
+        "GLUTES", "GLUTE_MEDIUS" -> listOf("glutes")
+        "CALVES" -> listOf("calves_achilles")
+        "POSTERIOR_CHAIN_ERECTORS" -> listOf("erectors_low_back")
+        "CHEST" -> listOf("chest")
+        "BACK_LATS" -> listOf("lats_upper_back")
+        "SHOULDERS" -> listOf("shoulders")
+        "BICEPS" -> listOf("elbow_flexors")
+        "TRICEPS" -> listOf("elbow_extensors")
+        "FOREARM_GRIP" -> listOf("forearm_grip")
+        "ANTERIOR_CORE", "LATERAL_CORE" -> listOf("core_abs_obliques")
+        "HIP_ADDUCTOR", "ADDUCTOR_ABDUCTOR" -> listOf("hips_adductors_abductors")
+        else -> emptyList()
     }
 
     private fun String.axisMultiplier(): Double =
