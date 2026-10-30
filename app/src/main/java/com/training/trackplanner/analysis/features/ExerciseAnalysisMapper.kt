@@ -251,8 +251,8 @@ object ExerciseAnalysisMapper {
     }
 
     /**
-     * Only the legacy-import compatibility path reads old muscle strings.
-     * Runtime readiness always supplies canonical roles for built-in exercises.
+     * A missing typed muscle lookup has no muscular attribution. Historical legacy
+     * strings are intentionally not a fallback in live analysis.
      */
     private fun roleMuscles(
         exercise: Exercise, canonical: CanonicalMuscleLookup?, role: CanonicalMuscleRole
@@ -260,9 +260,7 @@ object ExerciseAnalysisMapper {
         CanonicalMuscleLookupKind.SELECTABLE_WITH_RELATIONS,
         CanonicalMuscleLookupKind.USER_CUSTOM_WITH_RELATIONS ->
             canonical.forRole(role).mapTo(linkedSetOf()) { it.muscleCode }
-        null ->
-            (if (role == CanonicalMuscleRole.PRIMARY) exercise.primaryMuscles else exercise.secondaryMuscles)
-                .splitTokens()
+        null,
         CanonicalMuscleLookupKind.USER_CUSTOM_UNMAPPED -> emptySet()
         CanonicalMuscleLookupKind.SELECTABLE_WITHOUT_RELATIONS,
         CanonicalMuscleLookupKind.HISTORY_ONLY_UNMAPPED,
