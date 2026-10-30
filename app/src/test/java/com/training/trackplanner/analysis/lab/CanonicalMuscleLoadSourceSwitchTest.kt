@@ -93,6 +93,39 @@ class CanonicalMuscleLoadSourceSwitchTest {
     }
 
     @Test
+    fun explicitUserRoleDrivesGraphRatherThanDeveloperBaseline() {
+        val bench = exercise("barbell_bench_press")
+        val userRoles = listOf(
+            com.training.trackplanner.data.UserMuscleRoleCodec.entry(
+                bench.stableKey, "BICEPS", com.training.trackplanner.data.CanonicalMuscleRole.PRIMARY
+            ),
+            com.training.trackplanner.data.UserMuscleRoleCodec.entry(
+                bench.stableKey, "CHEST", com.training.trackplanner.data.CanonicalMuscleRole.STABILIZER
+            )
+        )
+        val row = com.training.trackplanner.data.ExerciseMetadataUserOverrideEntity(
+            stableKey = bench.stableKey,
+            fieldScope = com.training.trackplanner.data.ExerciseMetadataFieldScope.MUSCLE_RELATION.name,
+            fieldKey = com.training.trackplanner.data.UserMuscleRoleCodec.FIELD_KEY,
+            valueEncoding = com.training.trackplanner.data.ExerciseMetadataValueEncoding.TOKEN_SET.name,
+            value = com.training.trackplanner.data.UserMuscleRoleCodec.encode(userRoles),
+            isExplicitEmpty = false,
+            source = com.training.trackplanner.data.ExerciseMetadataOverrideSource.USER_EDIT.name,
+            semanticCanonicalRevisionAtEdit = "test"
+        )
+        val effective = roles.withUserOverrides(listOf(row))
+        val credited = MuscleLoadInputBuilder.contributions(bench, effective.lookup(bench))
+        assertEquals(mapOf(MuscleBucket.BICEPS to 1.0), credited)
+        val graph = StrengthAndMuscleMetricSeriesBuilder.build(
+            entriesWithSets = listOf(record(bench.stableKey, "2026-06-10", 80.0, 5, 0, 8.0)),
+            exercises = listOf(bench),
+            canonicalMuscleRoles = effective
+        )
+        assertTrue(graph[TrendMetricId.MUSCLE_BICEPS_LOAD_DAILY].orEmpty().isNotEmpty())
+        assertTrue(graph[TrendMetricId.MUSCLE_CHEST_LOAD_DAILY].isNullOrEmpty())
+    }
+
+    @Test
     fun liveSeriesUsesStableKeyAndPreservesRpeAndWeekAggregation() {
         val squat = exercise("barbell_back_squat").copy(primaryMuscles = "HAMSTRING")
         val row = record("barbell_back_squat", "2026-06-10", 100.0, 5, 0, 8.0)
