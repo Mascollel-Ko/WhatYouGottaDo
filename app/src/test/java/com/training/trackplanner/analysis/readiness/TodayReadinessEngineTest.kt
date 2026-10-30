@@ -130,10 +130,29 @@ class TodayReadinessEngineTest {
 
     @Test
     fun localBodyPartFatigueUsesPrimaryAndSecondaryMuscles() {
-        val exercise = heavyExercise(primaryMuscles = "QUADS", secondaryMuscles = "HAMSTRING")
+        val exercise = heavyExercise(primaryMuscles = "CHEST", secondaryMuscles = "LAT")
+        val rows = listOf(
+            "QUADS" to "PRIMARY",
+            "HAMSTRINGS" to "SECONDARY"
+        )
+        val typed = com.training.trackplanner.data.CanonicalMuscleRoleResolver(
+            setOf(exercise.stableKey), emptySet(),
+            rows.mapIndexed { index, (muscle, role) ->
+                com.training.trackplanner.data.CanonicalMetadataRelation(
+                    domain = com.training.trackplanner.data.CanonicalRelationDomain.MUSCLE,
+                    relationKey = "FIXTURE_$index",
+                    exerciseStableKey = exercise.stableKey,
+                    relationType = role, relationValue = muscle,
+                    coefficient = if (role == "PRIMARY") 1.0 else 0.5,
+                    sourceStableKey = exercise.stableKey,
+                    status = "TEST", provenance = "TEST"
+                )
+            }
+        )
         val daily = DailyAnalysisLoadAggregator().aggregate(
             listOf(record(exercise, confirmedSets = listOf(set(reps = 10, weightKg = 50.0, confirmed = true)))),
-            mapOf(exercise.stableKey to exercise)
+            mapOf(exercise.stableKey to exercise),
+            canonicalMuscleRoles = typed
         ).single()
 
         assertTrue(daily.bodyPartLoads.getValue("quads") > daily.bodyPartLoads.getValue("hamstrings"))
