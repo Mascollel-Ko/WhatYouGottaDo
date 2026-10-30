@@ -164,8 +164,8 @@ object ExerciseAnalysisMapper {
             analysisEligibility = analysisEligibility,
             movementPattern = runtimeMetadata?.movementFamily ?: exercise.movementPattern,
             movementCategory = runtimeMetadata?.movementSubtype ?: exercise.movementCategory,
-            primaryMuscles = roleMuscles(exercise, canonicalMuscles, CanonicalMuscleRole.PRIMARY),
-            secondaryMuscles = roleMuscles(exercise, canonicalMuscles, CanonicalMuscleRole.SECONDARY),
+            primaryMuscles = roleMuscles(canonicalMuscles, CanonicalMuscleRole.PRIMARY),
+            secondaryMuscles = roleMuscles(canonicalMuscles, CanonicalMuscleRole.SECONDARY),
             equipment = exercise.equipment.ifBlank { exercise.equipmentTags }.splitTokens(),
             compoundType = exercise.compoundType,
             forceType = exercise.forceType,
@@ -255,7 +255,7 @@ object ExerciseAnalysisMapper {
      * strings are intentionally not a fallback in live analysis.
      */
     private fun roleMuscles(
-        exercise: Exercise, canonical: CanonicalMuscleLookup?, role: CanonicalMuscleRole
+        canonical: CanonicalMuscleLookup?, role: CanonicalMuscleRole
     ): Set<String> = when (canonical?.kind) {
         CanonicalMuscleLookupKind.SELECTABLE_WITH_RELATIONS,
         CanonicalMuscleLookupKind.USER_CUSTOM_WITH_RELATIONS ->
