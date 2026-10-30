@@ -16,7 +16,8 @@ internal object MuscleLoadInputBuilder {
         exercise ?: return emptyMap()
         if (canonical == null) return legacyCompatibility(exercise)
         return when (canonical.kind) {
-            CanonicalMuscleLookupKind.SELECTABLE_WITH_RELATIONS ->
+            CanonicalMuscleLookupKind.SELECTABLE_WITH_RELATIONS,
+            CanonicalMuscleLookupKind.USER_CUSTOM_WITH_RELATIONS ->
                 canonical.relations
                     .asSequence()
                     .filter { row ->
