@@ -32,9 +32,15 @@ class RecordCalendarOriginNavigationTest {
     @Test
     fun calendarTransientStateConsumesBackBeforeCalendarExit() {
         val calendar = source("RecordCalendarScreen.kt")
-        val handler = calendar.substringAfter("BackHandler {").substringBefore("    }")
-        assertTrue(handler.indexOf("actionMenuDate != null") < handler.indexOf("else -> onBack()"))
-        assertTrue(handler.indexOf("pendingPushDate != null") < handler.indexOf("else -> onBack()"))
+        val marker = "BackHandler(enabled = !planPushInProgress) {"
+        assertTrue("Back navigation must be disabled during plan shifting", calendar.contains(marker))
+        val handler = calendar.substringAfter(marker).substringBefore("    }")
+        assertTrue(handler.indexOf("actionMenuDate != null") in 0 until handler.indexOf("else -> onBack()"))
+        assertTrue(handler.indexOf("pendingPushDate != null") in 0 until handler.indexOf("else -> onBack()"))
+        assertTrue("Plan shifting should display a blocking progress dialog",
+            calendar.contains("if (planPushInProgress) {"))
+        assertTrue(calendar.contains("dismissOnBackPress = false"))
+        assertTrue(calendar.contains("dismissOnClickOutside = false"))
     }
 
     private fun source(name: String): String =
