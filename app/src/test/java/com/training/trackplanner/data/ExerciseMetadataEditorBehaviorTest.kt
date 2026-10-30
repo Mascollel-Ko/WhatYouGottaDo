@@ -64,6 +64,56 @@ class ExerciseMetadataEditorBehaviorTest {
     }
 
     @Test
+    fun upgradeReviewAsksEveryUnconfirmedCustomAndRemembersSavedAndEmptyChoices() = runBlocking {
+        val db = newDatabase()
+        val repository = repository(db)
+        val first = insertExercise(db, name = "A added", stableKey = "user_ex_first", isCustom = true)
+        val second = insertExercise(db, name = "B added", stableKey = "user_ex_second", isCustom = true)
+        val builtIn = SeedData.exactExerciseMetadataByStableKey(context).getValue("barbell_bench_press")
+        db.exerciseDao().insertExercise(builtIn)
+
+        assertEquals(listOf(first, second),
+            repository.pendingCustomMuscleRoleReviews().map { it.stableKey })
+        val editor = repository.exerciseEditorData(first)
+        val copy = editor.copySources.first { it.exercise.stableKey == builtIn.stableKey }
+        assertTrue(copy.muscleRoles.isNotEmpty())
+        val chosen = copy.muscleRoles.map {
+            UserMuscleRoleCodec.entry(first, it.muscleCode, it.role).copy(coefficient = it.coefficient)
+        }
+        repository.confirmCustomMuscleRoles(first, chosen)
+        assertEquals(listOf(second),
+            repository.pendingCustomMuscleRoleReviews().map { it.stableKey })
+        assertEquals(chosen.map { it.muscleCode }.toSet(),
+            repository.resolvedMuscleMetadata(first)!!.canonical.relations.map { it.muscleCode }.toSet())
+
+        // Explicitly confirming no muscles is still an answer, and must not prompt again.
+        repository.confirmCustomMuscleRoles(second, emptyList())
+        assertTrue(repository.pendingCustomMuscleRoleReviews().isEmpty())
+        assertTrue(TrainingRepository(db, context).pendingCustomMuscleRoleReviews().isEmpty())
+        val rows = db.exerciseMetadataUserOverrideDao().findByStableKey(second)
+        assertEquals(UserMuscleRoleCodec.FIELD_KEY, rows.single().fieldKey)
+        assertTrue(rows.single().isExplicitEmpty)
+        assertTrue(db.exerciseDao().findByStableKey(first)!!.isCustom)
+        assertTrue(db.exerciseDao().findByStableKey(second)!!.isCustom)
+    }
+
+    @Test
+    fun confirmationNeverChangesProvidedExerciseMetadataOrAcceptsBuiltInIdentity() = runBlocking {
+        val db = newDatabase()
+        val repository = repository(db)
+        val key = insertExercise(db, name = "My extra", stableKey = "user_ex_preserved", isCustom = true)
+        val original = db.exerciseDao().findByStableKey(key)!!
+        val typed = listOf(UserMuscleRoleCodec.entry(key, "QUADS", CanonicalMuscleRole.PRIMARY))
+        repository.confirmCustomMuscleRoles(key, typed)
+        assertEquals(original, db.exerciseDao().findByStableKey(key))
+        val seed = SeedData.exactExerciseMetadataByStableKey(context).getValue("barbell_bench_press")
+        db.exerciseDao().insertExercise(seed)
+        val failure = runCatching { repository.confirmCustomMuscleRoles(seed.stableKey, typed) }
+        assertTrue(failure.isFailure)
+        assertTrue(db.exerciseMetadataUserOverrideDao().findByStableKey(seed.stableKey).isEmpty())
+    }
+
+    @Test
     fun saveExerciseEditorCreatesCustomExerciseWithUniqueStableKeyAndOverride() = runBlocking {
         val db = newDatabase()
         val repository = repository(db)
