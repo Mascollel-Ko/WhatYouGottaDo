@@ -33,8 +33,12 @@ import com.training.trackplanner.data.ExerciseRuntimeMetadataEditorData
 
 @Composable
 @OptIn(ExperimentalLayoutApi::class)
-internal fun ExerciseScreen(viewModel: TrainingViewModel) {
+internal fun ExerciseScreen(
+    viewModel: TrainingViewModel,
+    onReviewCustomMuscles: () -> Unit = {}
+) {
     val exercises by viewModel.exercises.collectAsState()
+    val pendingCustomReviews by viewModel.pendingCustomMuscleRoleReviews.collectAsState()
     val runtimeMetadataById by viewModel.exerciseRuntimeMetadata.collectAsState()
     val muscleMetadataByKey by viewModel.exerciseMuscleMetadata.collectAsState()
     var query by rememberSaveable { mutableStateOf("") }
@@ -179,6 +183,16 @@ internal fun ExerciseScreen(viewModel: TrainingViewModel) {
                 title = "운동",
                 body = "운동 목록과 기본 기록 방식을 확인합니다."
             )
+        }
+        if (pendingCustomReviews.isNotEmpty()) {
+            item {
+                OutlinedButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = onReviewCustomMuscles
+                ) {
+                    Text("근육 정보 확인할 운동 ${pendingCustomReviews.size}개 · 지금 확인")
+                }
+            }
         }
         item {
             OutlinedTextField(
