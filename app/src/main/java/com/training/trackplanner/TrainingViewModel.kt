@@ -232,6 +232,10 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     private val _exerciseRuntimeMetadata = MutableStateFlow<Map<String, RuntimeExerciseMetadata>>(emptyMap())
     val exerciseRuntimeMetadata: StateFlow<Map<String, RuntimeExerciseMetadata>> =
         _exerciseRuntimeMetadata.asStateFlow()
+    private val _pendingCustomMuscleRoleReviews = MutableStateFlow<List<Exercise>>(emptyList())
+    val pendingCustomMuscleRoleReviews: StateFlow<List<Exercise>> =
+        _pendingCustomMuscleRoleReviews.asStateFlow()
+
     private val _exerciseMuscleMetadata = MutableStateFlow<Map<String, EffectiveMuscleMetadata>>(emptyMap())
     val exerciseMuscleMetadata: StateFlow<Map<String, EffectiveMuscleMetadata>> =
         _exerciseMuscleMetadata.asStateFlow()
@@ -979,10 +983,27 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    /** Confirmation advances exactly one user-owned exercise; the queue survives app restarts. */
+    fun confirmCustomMuscleRoleReview(
+        stableKey: String,
+        roles: List<com.training.trackplanner.data.CanonicalMuscleRoleEntry>,
+        onResult: (Result<Unit>) -> Unit
+    ) {
+        viewModelScope.launch {
+            val result = runCatching { repository.confirmCustomMuscleRoles(stableKey, roles) }
+            if (result.isSuccess) {
+                refreshExerciseRuntimeMetadataInternal()
+                refreshAnalysisSummaries()
+            }
+            onResult(result)
+        }
+    }
+
     private suspend fun refreshExerciseRuntimeMetadataInternal() {
         _exerciseRuntimeMetadata.value = repository.resolvedRuntimeMetadataByExerciseStableKey()
         // Same lifecycle as the editor save/reset and initial seed reconciliation.
         _exerciseMuscleMetadata.value = repository.resolvedMuscleMetadataByStableKey()
+        _pendingCustomMuscleRoleReviews.value = repository.pendingCustomMuscleRoleReviews()
     }
 
     fun deleteExerciseIfUnused(exerciseStableKey: String, onResult: (Boolean) -> Unit) {
