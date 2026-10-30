@@ -127,7 +127,7 @@ class MuscleSearchAndSubcategoryMigrationTest {
     }
 
     @Test
-    fun customExerciseKeepsExplicitLegacyCompatibilityUntilImport() {
+    fun unreviewedCustomUsesOldFieldsAsHintsOnlyAndConfirmedRolesDriveSearchAndCategory() {
         val custom = Exercise(
             stableKey = "user_custom_row",
             name = "내가 만든 운동",
@@ -137,11 +137,28 @@ class MuscleSearchAndSubcategoryMigrationTest {
             primaryMuscles = "LAT",
             secondaryMuscles = "BICEPS"
         )
-        val effective = resolver.resolve(custom, emptyList())
-        assertTrue(custom.matchesMetadataQuery("광배근", translator, effective, presenter))
-        assertTrue(custom.matchesMetadataQuery("BICEPS", translator, effective, presenter))
-        assertTrue(ExerciseSubcategory.STRENGTH_BACK_PULL in ExerciseSubcategoryMapper.categoriesFor(
-            custom, RuntimeExerciseMetadataDefaults.forExercise(custom), effective
+        val unreviewed = resolver.resolve(custom, emptyList())
+        assertFalse(custom.matchesMetadataQuery("광배근", translator, unreviewed, presenter))
+        assertFalse(custom.matchesMetadataQuery("BICEPS", translator, unreviewed, presenter))
+        val codec = com.training.trackplanner.data.UserMuscleRoleCodec
+        val confirmed = listOf(codec.entry(
+            custom.stableKey, "CHEST", com.training.trackplanner.data.CanonicalMuscleRole.PRIMARY
+        ))
+        val row = ExerciseMetadataUserOverrideEntity(
+            stableKey = custom.stableKey,
+            fieldScope = ExerciseMetadataFieldScope.MUSCLE_RELATION.name,
+            fieldKey = codec.FIELD_KEY,
+            valueEncoding = ExerciseMetadataValueEncoding.TOKEN_SET.name,
+            value = codec.encode(confirmed),
+            isExplicitEmpty = false,
+            source = ExerciseMetadataOverrideSource.USER_EDIT.name,
+            semanticCanonicalRevisionAtEdit = "test"
+        )
+        val reviewed = resolver.resolve(custom, listOf(row))
+        assertTrue(custom.matchesMetadataQuery("가슴", translator, reviewed, presenter))
+        assertFalse(custom.matchesMetadataQuery("광배근", translator, reviewed, presenter))
+        assertTrue(ExerciseSubcategory.STRENGTH_CHEST_PUSH in ExerciseSubcategoryMapper.categoriesFor(
+            custom, RuntimeExerciseMetadataDefaults.forExercise(custom), reviewed
         ))
     }
 
