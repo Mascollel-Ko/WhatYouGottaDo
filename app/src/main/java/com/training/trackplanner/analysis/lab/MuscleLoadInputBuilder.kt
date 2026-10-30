@@ -30,7 +30,8 @@ internal object MuscleLoadInputBuilder {
                     .fold(mutableMapOf<MuscleBucket, Double>()) { result, (bucket, coefficient) ->
                         result.apply { merge(bucket, coefficient, ::maxOf) }
                     }
-            CanonicalMuscleLookupKind.USER_CUSTOM_UNMAPPED -> legacyCompatibility(exercise)
+            // A user-added exercise is excluded until its roles are explicitly reviewed.
+            CanonicalMuscleLookupKind.USER_CUSTOM_UNMAPPED -> emptyMap()
             CanonicalMuscleLookupKind.SELECTABLE_WITHOUT_RELATIONS,
             CanonicalMuscleLookupKind.HISTORY_ONLY_UNMAPPED,
             CanonicalMuscleLookupKind.UNKNOWN_UNMAPPED -> emptyMap()
