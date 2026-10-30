@@ -2,6 +2,17 @@ package com.training.trackplanner.analysis.lab
 
 import com.training.trackplanner.analysis.trends.TrendMetricId
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.CanonicalExerciseMetadataRepository
+import com.training.trackplanner.data.CanonicalMuscleRole
+import com.training.trackplanner.data.ExerciseMetadataUserOverrideEntity
+import com.training.trackplanner.data.ExerciseMetadataFieldScope
+import com.training.trackplanner.data.ExerciseMetadataValueEncoding
+import com.training.trackplanner.data.ExerciseMetadataOverrideSource
+import com.training.trackplanner.data.UserMuscleRoleCodec
+import androidx.test.core.app.ApplicationProvider
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.WorkoutSet
@@ -9,7 +20,12 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
 class StrengthAndMuscleMetricSeriesBuilderTest {
+    private val catalog = CanonicalExerciseMetadataRepository(
+        ApplicationProvider.getApplicationContext()
+    )
     @Test
     fun squatMuscleLoadUsesCanonicalRelationsAndRpe() {
         val squat = exercise(1, "renamed", "barbell_back_squat").copy(
@@ -19,7 +35,7 @@ class StrengthAndMuscleMetricSeriesBuilderTest {
 
         assertEquals(575.0, series.value(TrendMetricId.MUSCLE_QUADS_LOAD_DAILY, "2026-06-08"), 0.01)
         assertEquals(575.0, series.value(TrendMetricId.MUSCLE_GLUTES_LOAD_DAILY, "2026-06-08"), 0.01)
-        assertEquals(575.0, series.value(TrendMetricId.MUSCLE_HAMSTRINGS_LOAD_DAILY, "2026-06-08"), 0.01)
+        assertTrue(series[TrendMetricId.MUSCLE_HAMSTRINGS_LOAD_DAILY].orEmpty().isEmpty())
         assertTrue(series[TrendMetricId.MUSCLE_POSTERIOR_CHAIN_ERECTORS_LOAD_DAILY].orEmpty().isEmpty())
     }
 
@@ -30,38 +46,38 @@ class StrengthAndMuscleMetricSeriesBuilderTest {
         )
         val series = build(listOf(record("2026-06-10", deadlift, set(1, 160.0, 3, rpe = 9.0))), listOf(deadlift))
 
-        assertEquals(624.0, series.value(TrendMetricId.MUSCLE_POSTERIOR_CHAIN_ERECTORS_LOAD_DAILY, "2026-06-08"), 0.01)
+        assertTrue(series[TrendMetricId.MUSCLE_POSTERIOR_CHAIN_ERECTORS_LOAD_DAILY].orEmpty().isEmpty())
         assertEquals(624.0, series.value(TrendMetricId.MUSCLE_GLUTES_LOAD_DAILY, "2026-06-08"), 0.01)
         assertEquals(624.0, series.value(TrendMetricId.MUSCLE_HAMSTRINGS_LOAD_DAILY, "2026-06-08"), 0.01)
-        assertEquals(624.0, series.value(TrendMetricId.MUSCLE_BACK_LATS_LOAD_DAILY, "2026-06-08"), 0.01)
+        assertTrue(series[TrendMetricId.MUSCLE_BACK_LATS_LOAD_DAILY].orEmpty().isEmpty())
     }
 
     @Test
     fun deadliftQuadricepsOverrideIncreasesQuadLoad() {
-        val seedDeadlift = exercise(1, "데드리프트", "conventional_deadlift").copy(
-            primaryMuscles = "HAMSTRING|GLUTE|ERECTOR_SPINAE",
-            secondaryMuscles = "FOREARM"
+        val deadlift = exercise(1, "내 데드리프트", "user_ex_deadlift").copy(
+            isCustom = true, primaryMuscles = "HAMSTRING|GLUTE|ERECTOR_SPINAE|quadriceps"
         )
-        val overriddenDeadlift = seedDeadlift.copy(
-            primaryMuscles = "HAMSTRING|GLUTE|ERECTOR_SPINAE|quadriceps"
+        val records = listOf(record("2026-06-10", deadlift, set(1, 160.0, 3, rpe = 9.0)))
+        // Changing the obsolete string cannot change the graph until explicit confirmation.
+        val seedSeries = build(records, listOf(deadlift))
+        val overrideSeries = build(
+            records, listOf(deadlift), editedRoles(deadlift.stableKey, "QUADS" to CanonicalMuscleRole.PRIMARY)
         )
-        val records = listOf(record("2026-06-10", seedDeadlift, set(1, 160.0, 3, rpe = 9.0)))
-
-        val seedSeries = build(records, listOf(seedDeadlift))
-        val overrideSeries = build(records, listOf(overriddenDeadlift))
 
         assertTrue(seedSeries[TrendMetricId.MUSCLE_QUADS_LOAD_DAILY].orEmpty().isEmpty())
         assertEquals(624.0, overrideSeries.value(TrendMetricId.MUSCLE_QUADS_LOAD_DAILY, "2026-06-08"), 0.01)
     }
 
     @Test
-    fun koreanAndEnglishMuscleAliasesNormalizeToSameQuadBucket() {
-        val koreanAlias = exercise(1, "대퇴근 테스트", "user_ex_korean_quad").copy(primaryMuscles = "대퇴근")
-        val englishAlias = exercise(2, "Quadriceps test", "user_ex_english_quad").copy(primaryMuscles = "quadriceps")
-
-        val koreanSeries = build(listOf(record("2026-06-10", koreanAlias, set(1, 100.0, 5, rpe = 8.0))), listOf(koreanAlias))
-        val englishSeries = build(listOf(record("2026-06-10", englishAlias, set(1, 100.0, 5, rpe = 8.0))), listOf(englishAlias))
-
+    fun oldKoreanAndEnglishMuscleAliasesDoNotDriveGraphUntilConfirmed() {
+        val koreanAlias = exercise(1, "대퇴근 테스트", "user_ex_korean_quad").copy(isCustom = true, primaryMuscles = "대퇴근")
+        val englishAlias = exercise(2, "Quadriceps test", "user_ex_english_quad").copy(isCustom = true, primaryMuscles = "quadriceps")
+        val koreanRecords = listOf(record("2026-06-10", koreanAlias, set(1, 100.0, 5, rpe = 8.0)))
+        val englishRecords = listOf(record("2026-06-10", englishAlias, set(1, 100.0, 5, rpe = 8.0)))
+        assertTrue(build(koreanRecords, listOf(koreanAlias))[TrendMetricId.MUSCLE_QUADS_LOAD_DAILY].orEmpty().isEmpty())
+        assertTrue(build(englishRecords, listOf(englishAlias))[TrendMetricId.MUSCLE_QUADS_LOAD_DAILY].orEmpty().isEmpty())
+        val koreanSeries = build(koreanRecords, listOf(koreanAlias), editedRoles(koreanAlias.stableKey, "QUADS" to CanonicalMuscleRole.PRIMARY))
+        val englishSeries = build(englishRecords, listOf(englishAlias), editedRoles(englishAlias.stableKey, "QUADS" to CanonicalMuscleRole.PRIMARY))
         assertEquals(575.0, koreanSeries.value(TrendMetricId.MUSCLE_QUADS_LOAD_DAILY, "2026-06-08"), 0.01)
         assertEquals(575.0, englishSeries.value(TrendMetricId.MUSCLE_QUADS_LOAD_DAILY, "2026-06-08"), 0.01)
     }
@@ -115,7 +131,10 @@ class StrengthAndMuscleMetricSeriesBuilderTest {
             primaryMuscles = "QUADRICEPS",
             secondaryMuscles = "GLUTE"
         )
-        val series = build(listOf(record("2026-06-10", custom, set(1, 100.0, 5, rpe = 8.0))), listOf(custom))
+        val series = build(
+            listOf(record("2026-06-10", custom, set(1, 100.0, 5, rpe = 8.0))), listOf(custom),
+            editedRoles(custom.stableKey, "QUADS" to CanonicalMuscleRole.PRIMARY, "GLUTES" to CanonicalMuscleRole.SECONDARY)
+        )
 
         assertEquals(575.0, series.value(TrendMetricId.MUSCLE_QUADS_LOAD_DAILY, "2026-06-08"), 0.01)
         assertEquals(287.5, series.value(TrendMetricId.MUSCLE_GLUTES_LOAD_DAILY, "2026-06-08"), 0.01)
@@ -154,9 +173,30 @@ class StrengthAndMuscleMetricSeriesBuilderTest {
 
     private fun build(
         records: List<WorkoutEntryWithSets>,
-        exercises: List<Exercise>
+        exercises: List<Exercise>,
+        userOverrides: List<ExerciseMetadataUserOverrideEntity> = emptyList()
     ): Map<TrendMetricId, List<com.training.trackplanner.analysis.trends.TrendDataPoint>> =
-        StrengthAndMuscleMetricSeriesBuilder.build(records, exercises)
+        StrengthAndMuscleMetricSeriesBuilder.build(
+            records, exercises,
+            canonicalMuscleRoles = catalog.muscleRoleResolver().withUserOverrides(userOverrides)
+        )
+
+    private fun editedRoles(
+        stableKey: String, vararg roles: Pair<String, CanonicalMuscleRole>
+    ): List<ExerciseMetadataUserOverrideEntity> = listOf(
+        ExerciseMetadataUserOverrideEntity(
+            stableKey = stableKey,
+            fieldScope = ExerciseMetadataFieldScope.MUSCLE_RELATION.name,
+            fieldKey = UserMuscleRoleCodec.FIELD_KEY,
+            valueEncoding = ExerciseMetadataValueEncoding.TOKEN_SET.name,
+            value = UserMuscleRoleCodec.encode(roles.map { (code, role) ->
+                UserMuscleRoleCodec.entry(stableKey, code, role)
+            }),
+            isExplicitEmpty = roles.isEmpty(),
+            source = ExerciseMetadataOverrideSource.USER_EDIT.name,
+            semanticCanonicalRevisionAtEdit = "test"
+        )
+    )
 
     private fun exercise(id: Long, name: String, stableKey: String): Exercise =
         Exercise(name = name, category = "근력", stableKey = stableKey)
