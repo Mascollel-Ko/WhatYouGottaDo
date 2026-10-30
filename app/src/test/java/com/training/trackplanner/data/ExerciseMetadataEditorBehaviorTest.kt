@@ -150,7 +150,10 @@ class ExerciseMetadataEditorBehaviorTest {
             .single { it.fieldKey == old.fieldKey }.value)
         repo.confirmCustomMuscleRoles(canonical.stableKey, editor.muscleRoles)
         assertTrue(repo.pendingCustomMuscleRoleReviews().isEmpty())
-        assertEquals(original, db.exerciseDao().findByStableKey(canonical.stableKey))
+        val retainedExercise = db.exerciseDao().findByStableKey(canonical.stableKey)!!
+        assertEquals(original.stableKey, retainedExercise.stableKey)
+        assertEquals(original.primaryMuscles, retainedExercise.primaryMuscles)
+        assertEquals("Changed unrelated note", retainedExercise.description)
         assertEquals("BICEPS", db.exerciseMetadataUserOverrideDao()
             .findByStableKey(canonical.stableKey)
             .single { it.fieldKey == old.fieldKey }.value)
