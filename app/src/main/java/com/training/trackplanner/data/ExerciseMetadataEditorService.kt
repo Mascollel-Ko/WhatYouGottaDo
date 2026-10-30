@@ -47,11 +47,20 @@ internal class ExerciseMetadataEditorService(
         val options = RuntimeMetadataEditorOptions.from(
             canonicalMetadataRepository.runtimeMetadataCatalog().all() + effectiveByKey.values.map { it.runtimeMetadata }
         )
+        val roleResolver = canonicalMetadataRepository.muscleRoleResolver()
+            .withUserOverrides(overridesByKey.values.flatten())
+        fun draftRoles(exercise: Exercise): List<CanonicalMuscleRoleEntry> {
+            val lookup = roleResolver.lookup(exercise)
+            return if (lookup.kind == CanonicalMuscleLookupKind.USER_CUSTOM_UNMAPPED)
+                UserMuscleRoleCodec.legacyDraft(exercise)
+            else lookup.relations
+        }
+        val selectedRoles = draftRoles(exercise)
         val copySources = effectiveByKey.values
             .asSequence()
             .filter { source -> source.exercise.stableKey != exercise.stableKey && source.exercise.name.isNotBlank() }
             .sortedBy { source -> source.exercise.name }
-            .map { source -> ExerciseMetadataCopySource(source.exercise, source.runtimeMetadata) }
+            .map { source -> ExerciseMetadataCopySource(source.exercise, source.runtimeMetadata, draftRoles(source.exercise)) }
             .toList()
         return ExerciseRuntimeMetadataEditorData(
             exercise = exercise,
@@ -59,7 +68,9 @@ internal class ExerciseMetadataEditorService(
             options = options,
             copySources = copySources,
             originalExercise = exercise,
-            originalMetadata = metadata
+            originalMetadata = metadata,
+            muscleRoles = selectedRoles,
+            originalMuscleRoles = selectedRoles
         )
     }
 
@@ -82,6 +93,12 @@ internal class ExerciseMetadataEditorService(
                 ExerciseStableKeyPolicy.preserveOnEdit(existing, data.exercise, stableKey)
                     .also { exerciseDao.updateExercise(it) }
             }
+            persistTypedMuscles(
+                savedExercise.stableKey,
+                data.muscleRoles,
+                baseline = null,
+                force = data.muscleRoles.isNotEmpty() || data.originalMuscleRoles != data.muscleRoles
+            )
             runtimeExerciseMetadataDao.upsert(
                 data.metadata.copy(
                     stableKey = savedExercise.stableKey,
@@ -135,6 +152,12 @@ internal class ExerciseMetadataEditorService(
                 )
             }
         }
+        persistTypedMuscles(
+            canonical.stableKey,
+            data.muscleRoles,
+            baseline = canonicalMetadataRepository.muscleRoleResolver().lookup(canonical).relations,
+            force = data.muscleRoles != data.originalMuscleRoles
+        )
         materializeBuiltIn(existing, overrideDao.findByStableKey(canonical.stableKey))
         canonical.stableKey
     }
@@ -211,6 +234,35 @@ internal class ExerciseMetadataEditorService(
             if (exerciseDao.findByStableKey(candidate) == null) return candidate
         }
         error("\uC0AC\uC6A9\uC790 \uC6B4\uB3D9 \uC2DD\uBCC4\uC790 \uCDA9\uB3CC\uC744 \uD574\uACB0\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.")
+    }
+
+    private suspend fun persistTypedMuscles(
+        stableKey: String,
+        roles: List<CanonicalMuscleRoleEntry>,
+        baseline: List<CanonicalMuscleRoleEntry>?,
+        force: Boolean
+    ) {
+        if (!force) return
+        val value = UserMuscleRoleCodec.encode(roles)
+        if (baseline != null && value == UserMuscleRoleCodec.encode(baseline)) {
+            overrideDao.deleteField(
+                stableKey, ExerciseMetadataFieldScope.MUSCLE_RELATION.name,
+                UserMuscleRoleCodec.FIELD_KEY
+            )
+        } else {
+            overrideDao.upsert(
+                ExerciseMetadataUserOverrideEntity(
+                    stableKey = stableKey,
+                    fieldScope = ExerciseMetadataFieldScope.MUSCLE_RELATION.name,
+                    fieldKey = UserMuscleRoleCodec.FIELD_KEY,
+                    valueEncoding = ExerciseMetadataValueEncoding.TOKEN_SET.name,
+                    value = value,
+                    isExplicitEmpty = value.isEmpty(),
+                    source = ExerciseMetadataOverrideSource.USER_EDIT.name,
+                    semanticCanonicalRevisionAtEdit = semanticRevision()
+                )
+            )
+        }
     }
 
     private suspend fun materializeBuiltIn(
