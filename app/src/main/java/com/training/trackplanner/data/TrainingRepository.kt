@@ -394,6 +394,7 @@ class TrainingRepository internal constructor(
         canonicalMovementRelations = canonicalMetadataRepository.movementRelations(),
         canonicalCoreCatalog = canonicalCoreCatalog,
         canonicalMuscleRoles = canonicalMetadataRepository.muscleRoleResolver(),
+        userMuscleOverrideDao = exerciseMetadataUserOverrideDao,
         reviewedCanonicalStableKeys = canonicalMetadataRepository.identities().mapTo(linkedSetOf()) { it.stableKey },
         exerciseRoleRelationDao = exerciseRoleRelationDao,
         tissueStateProvider = { cutoff ->
