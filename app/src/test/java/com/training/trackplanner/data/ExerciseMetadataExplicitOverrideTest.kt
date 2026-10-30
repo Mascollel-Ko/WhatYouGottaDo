@@ -71,6 +71,37 @@ class ExerciseMetadataExplicitOverrideTest {
     }
 
     @Test
+    fun typedMuscleRoleEditPersistsAndResetRestoresCanonicalAnalysis() = runBlocking {
+        val db = newDatabase()
+        val seed = CanonicalExerciseMetadataRepositoryProvider.get(context)
+            .exercises().first { it.stableKey == "barbell_bench_press" }
+        db.exerciseDao().insertExercise(seed)
+        val repository = TrainingRepository(db, context)
+        val original = repository.exerciseEditorData(seed.stableKey)
+        assertTrue(original.muscleRoles.any { it.muscleCode == "CHEST" })
+
+        val changed = listOf(
+            UserMuscleRoleCodec.entry(seed.stableKey, "BICEPS", CanonicalMuscleRole.PRIMARY),
+            UserMuscleRoleCodec.entry(seed.stableKey, "CHEST", CanonicalMuscleRole.STABILIZER)
+        )
+        repository.saveExerciseEditor(original.copy(muscleRoles = changed))
+
+        val saved = db.exerciseMetadataUserOverrideDao().findByStableKey(seed.stableKey)
+        assertEquals(UserMuscleRoleCodec.FIELD_KEY, saved.single().fieldKey)
+        val effective = repository.resolvedMuscleMetadata(seed.stableKey)!!
+        assertTrue(effective.usesCanonicalRoles)
+        assertEquals(setOf("BICEPS"), effective.canonical.forRole(CanonicalMuscleRole.PRIMARY)
+            .mapTo(mutableSetOf()) { it.muscleCode })
+        assertEquals(changed.map { it.muscleCode }.toSet(),
+            repository.exerciseEditorData(seed.stableKey).muscleRoles.map { it.muscleCode }.toSet())
+
+        assertTrue(repository.resetExerciseMetadataOverride(seed.stableKey))
+        assertTrue(db.exerciseMetadataUserOverrideDao().findByStableKey(seed.stableKey).isEmpty())
+        assertTrue(repository.resolvedMuscleMetadata(seed.stableKey)!!
+            .canonical.forRole(CanonicalMuscleRole.PRIMARY).any { it.muscleCode == "CHEST" })
+    }
+
+    @Test
     fun resetRemovesExplicitOverridesAndRestoresCanonicalEffectiveState() = runBlocking {
         val db = newDatabase()
         val seed = canonicalSeed { exercise -> exercise.description.isNotEmpty() }
