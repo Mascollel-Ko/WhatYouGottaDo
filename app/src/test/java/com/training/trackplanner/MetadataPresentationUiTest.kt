@@ -302,6 +302,7 @@ class MetadataPresentationUiTest {
         }
 
         compose.onAllNodesWithText("광배근", substring = true).assertCountEquals(0)
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("덤벨"))
         compose.onNodeWithText("덤벨").assertExists()
         listOf("LAT", "TRICEPS", "DUMBBELL").forEach { rawCode ->
             compose.onAllNodes(hasText(rawCode, substring = true)).assertCountEquals(0)
