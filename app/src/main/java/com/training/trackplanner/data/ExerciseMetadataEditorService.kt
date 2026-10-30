@@ -149,6 +149,10 @@ internal class ExerciseMetadataEditorService(
         }
         val canonicalRows = editableRows(canonical, canonicalRuntime)
         submittedRows.forEach { (fieldKey, submitted) ->
+            // Old muscle fields are read-only migration evidence. Editing some
+            // other property must neither reapply nor silently erase them.
+            if (fieldKey in setOf("exercise.primaryMuscles", "exercise.secondaryMuscles"))
+                return@forEach
             if (submitted.value == originalRows[fieldKey]?.value) return@forEach
             val definition = checkNotNull(ExerciseMetadataFieldPolicyRegistry.definition(fieldKey))
             if (submitted.value == canonicalRows[fieldKey]?.value) {
