@@ -279,7 +279,8 @@ class TrainingRepository internal constructor(
         workoutDao = workoutDao,
         dailyMetricDao = dailyMetricDao,
         initialUserProfileDao = initialUserProfileDao,
-        canonicalMetadataRepository = canonicalMetadataRepository
+        canonicalMetadataRepository = canonicalMetadataRepository,
+        userOverrideDao = exerciseMetadataUserOverrideDao
     )
     private val analysisSummaryService = AnalysisSummaryService(
         exerciseDao = exerciseDao,
@@ -331,7 +332,8 @@ class TrainingRepository internal constructor(
         exerciseDao = exerciseDao,
         workoutDao = workoutDao,
         canonicalMetadataRepository = canonicalMetadataRepository,
-        bBalancedTaskCatalog = com.training.trackplanner.data.personalized.BBalancedTaskCatalog.fromAssets(context)
+        bBalancedTaskCatalog = com.training.trackplanner.data.personalized.BBalancedTaskCatalog.fromAssets(context),
+        userOverrideDao = exerciseMetadataUserOverrideDao
     )
     private val programProgressionService = ProgramProgressionService(db) {
         connectiveTissueAnalysisService.build(System.currentTimeMillis()).loadUnits
