@@ -654,11 +654,7 @@ private fun Exercise.infoSections(
     }
 
 
-/**
- * MUS-01/02: No built-in Exercise.primaryMuscles/secondaryMuscles read.
- * The only legacy path is explicit, verified compatibility data from MUS-00.5.
- * Labels and values remain in a full-width Column to avoid narrow label/value rows.
- */
+/** All exercise details display only confirmed typed muscle-role relations. */
 private fun resolvedMuscleDisplayFields(
     effective: EffectiveMuscleMetadata?,
     presenter: CanonicalMusclePresentation,
@@ -668,18 +664,7 @@ private fun resolvedMuscleDisplayFields(
     if (effective == null) return emptyList() // No data yet; never guess that there are no muscles.
     val primary = if (isEnglish) "Primary muscles" else "주동근"
     val secondary = if (isEnglish) "Secondary muscles" else "보조근"
-    if (!effective.usesCanonicalRoles) {
-        val legacy = effective.legacy ?: return emptyList()
-        val pendingReview = effective.source ==
-            com.training.trackplanner.data.EffectiveMuscleMetadataSource.LEGACY_CUSTOM_EXERCISE
-        val prefix = if (pendingReview) {
-            if (isEnglish) "Previous (review required): " else "이전 정보(확인 필요) · "
-        } else ""
-        return listOf(
-            ExerciseInfoField(prefix + primary, legacy.primaryMuscles.localizedTokens(translator, "exercise.primaryMuscles")),
-            ExerciseInfoField(prefix + secondary, legacy.secondaryMuscles.localizedTokens(translator, "exercise.secondaryMuscles"))
-        ).filter { it.value.isNotBlank() }
-    }
+    if (!effective.usesCanonicalRoles) return emptyList()
     val roles = listOf(
         CanonicalMuscleRole.PRIMARY to primary,
         CanonicalMuscleRole.SECONDARY to secondary,
@@ -724,11 +709,7 @@ private fun Exercise.localizedRecordingMethod(): String {
     return stringResource(label)
 }
 
-/**
- * MUS-03: built-in muscle search uses stableKey canonical relations, not the
- * materialized legacy fields. Non-canonical exercises retain explicit import
- * compatibility until their one-time migration.
- */
+/** Muscle-name search uses confirmed typed relations, never old exercise fields. */
 internal fun Exercise.matchesMetadataQuery(
     query: String,
     translator: MetadataTranslator,
@@ -744,23 +725,8 @@ internal fun Exercise.matchesMetadataQuery(
     ) + equipment.ifBlank { equipmentTags }.split(',', '|', '/', ';')
         .map { translator.option("exercise.equipment", it.trim()) }
 
-    val muscles = when {
-        muscleMetadata == null -> emptyList()
-        // A built-in's canonical identity remains searchable even with old
-        // explicit two-field overrides; never search stale built-in aliases.
-        !isCustom && muscleMetadata.canonical.hasCanonicalRelations ->
-            presenter.searchableOptions(muscleMetadata)
-        muscleMetadata.usesCanonicalRoles -> presenter.searchableOptions(muscleMetadata)
-        muscleMetadata.source ==
-            com.training.trackplanner.data.EffectiveMuscleMetadataSource.LEGACY_CUSTOM_EXERCISE ->
-            emptyList()
-        else -> muscleMetadata.legacy?.let { legacy ->
-            legacy.primaryMuscles.split(',', '|', '/', ';')
-                .map { translator.option("exercise.primaryMuscles", it.trim()) } +
-                legacy.secondaryMuscles.split(',', '|', '/', ';')
-                    .map { translator.option("exercise.secondaryMuscles", it.trim()) }
-        }.orEmpty()
-    }
+    val muscles = if (muscleMetadata?.usesCanonicalRoles == true)
+        presenter.searchableOptions(muscleMetadata) else emptyList()
     return (ordinary + muscles).any { option -> option.matches(normalized) }
 }
 
