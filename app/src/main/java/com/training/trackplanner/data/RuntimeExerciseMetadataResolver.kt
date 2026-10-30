@@ -305,12 +305,15 @@ data class ExerciseRuntimeMetadataEditorData(
     val options: RuntimeMetadataEditorOptions,
     val copySources: List<ExerciseMetadataCopySource> = emptyList(),
     val originalExercise: Exercise = exercise,
-    val originalMetadata: RuntimeExerciseMetadata = metadata
+    val originalMetadata: RuntimeExerciseMetadata = metadata,
+    val muscleRoles: List<CanonicalMuscleRoleEntry> = emptyList(),
+    val originalMuscleRoles: List<CanonicalMuscleRoleEntry> = muscleRoles
 )
 
 data class ExerciseMetadataCopySource(
     val exercise: Exercise,
-    val metadata: RuntimeExerciseMetadata
+    val metadata: RuntimeExerciseMetadata,
+    val muscleRoles: List<CanonicalMuscleRoleEntry> = emptyList()
 )
 
 internal fun Exercise.copyEditableMetadataFrom(source: Exercise): Exercise =
