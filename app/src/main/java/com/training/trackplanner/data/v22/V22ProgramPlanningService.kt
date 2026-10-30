@@ -3,6 +3,8 @@ package com.training.trackplanner.data.v22
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.ExerciseDao
 import com.training.trackplanner.data.CanonicalExerciseMetadataRepository
+import com.training.trackplanner.data.ExerciseMetadataUserOverrideDao
+import com.training.trackplanner.data.UserMuscleRoleCodec
 import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.ProgramDayIntensity
 import com.training.trackplanner.data.ProgramGoal
@@ -19,7 +21,8 @@ internal class V22ProgramPlanningService(
     private val exerciseDao: ExerciseDao,
     private val workoutDao: WorkoutDao,
     private val canonicalMetadataRepository: CanonicalExerciseMetadataRepository,
-    private val bBalancedTaskCatalog: BBalancedTaskCatalog
+    private val bBalancedTaskCatalog: BBalancedTaskCatalog,
+    private val userOverrideDao: ExerciseMetadataUserOverrideDao? = null
 ) {
     suspend fun generate(request: V22GenerationRequest): V22GeneratedProgram {
         val effectiveRequest = if (request.mode == V22Mode.B) request.copy(weeks = 12) else request
@@ -33,7 +36,9 @@ internal class V22ProgramPlanningService(
             rows = history,
             request = effectiveRequest,
             exercises = exercises,
-            muscleRelations = canonicalMetadataRepository.muscleRelations(),
+            muscleRelations = UserMuscleRoleCodec.effectiveRelations(
+                canonicalMetadataRepository.muscleRelations(), userOverrideDao?.all().orEmpty(), exercises.values.toList()
+            ),
             coreCatalog = canonicalMetadataRepository.coreCatalog(),
             badmintonCatalog = canonicalMetadataRepository.badmintonObjectiveCatalog(),
             taskCatalog = bBalancedTaskCatalog
