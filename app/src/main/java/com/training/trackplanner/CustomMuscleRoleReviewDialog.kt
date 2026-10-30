@@ -80,7 +80,7 @@ internal fun CustomMuscleRoleReviewDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 MaterialText(
-                    "직접 추가한 운동의 근육 정보 확인",
+                    "이전 운동 근육 정보 확인",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -110,12 +110,12 @@ internal fun CustomMuscleRoleReviewDialog(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    if (exercise.primaryMuscles.isNotBlank() || exercise.secondaryMuscles.isNotBlank()) {
+                    if (initial.legacyReviewPrimary.isNotBlank() || initial.legacyReviewSecondary.isNotBlank()) {
                         item {
                             MaterialText("이전에 저장한 근육 정보 (참고용)", fontWeight = FontWeight.SemiBold)
                             MaterialText(
-                                "주동근: ${exercise.primaryMuscles.ifBlank { "없음" }} / " +
-                                    "보조근: ${exercise.secondaryMuscles.ifBlank { "없음" }}",
+                                "주동근: ${initial.legacyReviewPrimary.ifBlank { "없음" }} / " +
+                                    "보조근: ${initial.legacyReviewSecondary.ifBlank { "없음" }}",
                                 style = MaterialTheme.typography.bodySmall
                             )
                             MaterialText(
