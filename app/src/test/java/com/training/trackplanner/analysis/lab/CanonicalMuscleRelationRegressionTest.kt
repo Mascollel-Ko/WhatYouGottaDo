@@ -94,7 +94,7 @@ class CanonicalMuscleRelationRegressionTest {
 
         expectedContributions.forEach { (stableKey, expected) ->
             val exercise = exercises.getValue(stableKey)
-            val actual = MuscleLoadInputBuilder.contributions(exercise)
+            val actual = MuscleLoadInputBuilder.contributions(exercise, repository.muscleRoleResolver().lookup(exercise))
             assertEquals(stableKey, expected, actual)
             assertFalse(stableKey, MuscleBucket.CHEST in actual)
         }
@@ -205,7 +205,8 @@ class CanonicalMuscleRelationRegressionTest {
                     )
                 )
             ),
-            exercises = listOf(exercise)
+            exercises = listOf(exercise),
+            canonicalMuscleRoles = repository.muscleRoleResolver()
         )
 
     private fun rowRelations() = mapOf(
