@@ -282,7 +282,10 @@ internal fun TrainingTrackPlannerApp(
                                 }
                             }
                         )
-                        AppTab.Exercise -> ExerciseScreen(viewModel)
+                        AppTab.Exercise -> ExerciseScreen(
+                            viewModel = viewModel,
+                            onReviewCustomMuscles = { customReviewDeferred = false }
+                        )
                         AppTab.Analysis -> AnalysisScreen(viewModel)
                     }
                 }
