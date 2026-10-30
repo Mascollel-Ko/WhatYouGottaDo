@@ -13,7 +13,8 @@ internal class WeeklyAnalysisFeatureSnapshotService(
     private val workoutDao: WorkoutDao,
     private val dailyMetricDao: DailyMetricDao,
     private val initialUserProfileDao: InitialUserProfileDao,
-    private val canonicalMetadataRepository: CanonicalExerciseMetadataRepository
+    private val canonicalMetadataRepository: CanonicalExerciseMetadataRepository,
+    private val userOverrideDao: ExerciseMetadataUserOverrideDao? = null
 ) {
     suspend fun build(
         metricSeries: Map<TrendMetricId, List<TrendDataPoint>>,
@@ -22,14 +23,18 @@ internal class WeeklyAnalysisFeatureSnapshotService(
         val today = SystemAnalysisDateProvider().today()
         val metadataRevision = ExerciseMetadataRevisionPolicy.project(context, canonicalMetadataRepository)
             .semanticCanonicalMetadataRevision
+        val exercises = exerciseDao.allExercises()
+        val effectiveMuscles = UserMuscleRoleCodec.effectiveRelations(
+            canonicalMetadataRepository.muscleRelations(), userOverrideDao?.all().orEmpty(), exercises
+        )
         return WeeklyAnalysisFeatureSnapshotBuilder.build(
             today = today,
             metricSeries = metricSeries,
             entriesWithSets = workoutDao.entriesWithSetsUntil(today.toString()),
-            exercises = exerciseDao.allExercises(),
+            exercises = exercises,
             dailyMetrics = dailyMetricDao.metricsUntil(today.toString()),
             initialProfile = initialUserProfileDao.profile(),
-            muscleRelations = canonicalMetadataRepository.muscleRelations(),
+            muscleRelations = effectiveMuscles,
             sourceRevision = sourceRevision,
             metadataRevision = metadataRevision
         )
