@@ -51,7 +51,6 @@ import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.ExerciseImageAssetMapping
 import com.training.trackplanner.data.ExerciseSearchMatcher
 import com.training.trackplanner.data.RuntimeExerciseMetadata
-import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.localization.localizedExerciseName
 import com.training.trackplanner.localization.localizedExerciseDescription
 import com.training.trackplanner.localization.localizedUiText
