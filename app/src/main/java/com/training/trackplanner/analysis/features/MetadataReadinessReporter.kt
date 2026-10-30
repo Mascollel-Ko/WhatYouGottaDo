@@ -189,7 +189,6 @@ object MetadataReadinessReporter {
         listOf(
             "movementPattern" to movementPattern,
             "movementCategory" to movementCategory,
-            "primaryMuscles" to primaryMuscles,
             "equipment" to equipment,
             "compoundType" to compoundType,
             "forceType" to forceType,
@@ -212,8 +211,7 @@ object MetadataReadinessReporter {
             "mobilityDemandLevel" to mobilityDemandLevel,
             "analysisEligibility" to analysisEligibility
         ).filter { (field, value) ->
-            value.isBlank() && !(field == "primaryMuscles" &&
-                canonicalMuscleRoles != null && !isCustom)
+            value.isBlank()
         }.map { (field, _) -> field } +
             if (canonicalMuscleRoles != null && !isCustom &&
                 canonicalMuscleRoles.lookup(this).kind != CanonicalMuscleLookupKind.SELECTABLE_WITH_RELATIONS
