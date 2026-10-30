@@ -32,14 +32,14 @@ class UserMuscleRoleCodecTest {
         }
     }
 
-    @Test fun customLegacyDraftDoesNotMutateStoredRecord() {
+    @Test fun unreviewedCustomNeverGainsMuscleRelationsFromOldExerciseStrings() {
         val exercise = Exercise(
             stableKey = "user_ex_quad", name = "Custom", category = "Strength",
             isCustom = true, primaryMuscles = "QUADRICEPS", secondaryMuscles = "GLUTE"
         )
-        val rows = UserMuscleRoleCodec.legacyDraft(exercise)
-        assertEquals(setOf("QUADS", "GLUTES"), rows.map { it.muscleCode }.toSet())
-        assertEquals("QUADRICEPS", exercise.primaryMuscles)
+        val resolver = CanonicalMuscleRoleResolver(emptySet(), emptySet(), emptyList())
+        assertEquals(CanonicalMuscleLookupKind.USER_CUSTOM_UNMAPPED, resolver.lookup(exercise).kind)
+        assertTrue(resolver.lookup(exercise).relations.isEmpty())
     }
 
     @Test fun userTypedOverrideReplacesCanonicalOnlyForItsStableKey() {
