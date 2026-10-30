@@ -5,16 +5,15 @@ import com.training.trackplanner.data.CanonicalMuscleLookup
 import com.training.trackplanner.data.CanonicalMuscleLookupKind
 import com.training.trackplanner.data.CanonicalMuscleRole
 import com.training.trackplanner.data.Exercise
-import com.training.trackplanner.data.MuscleGroupKeyNormalizer
 
 /**
- * MUS-08: canonical muscle-role coefficients drive live graph attribution.
- * The no-lookup path is temporary legacy-import compatibility, not the live pipeline.
+ * Muscle-credit input accepts typed muscle roles only. Missing roles mean no credit;
+ * never infer a training target from the retired two-field exercise strings.
  */
 internal object MuscleLoadInputBuilder {
     fun contributions(exercise: Exercise?, canonical: CanonicalMuscleLookup? = null): Map<MuscleBucket, Double> {
         exercise ?: return emptyMap()
-        if (canonical == null) return legacyCompatibility(exercise)
+        if (canonical == null) return emptyMap()
         return when (canonical.kind) {
             CanonicalMuscleLookupKind.SELECTABLE_WITH_RELATIONS,
             CanonicalMuscleLookupKind.USER_CUSTOM_WITH_RELATIONS ->
