@@ -1038,7 +1038,9 @@ class TrainingRepository internal constructor(
         exerciseDao.allExercises()
             .filter {
                 it.stableKey.isNotBlank() && it.stableKey !in confirmed &&
-                    (it.isCustom || it.stableKey in oldEditedKeys)
+                    (it.isCustom || (it.stableKey in oldEditedKeys &&
+                        canonicalMetadataRepository.muscleRoleResolver().lookup(it).kind ==
+                            CanonicalMuscleLookupKind.SELECTABLE_WITH_RELATIONS))
             }
             .sortedWith(compareBy({ it.name.lowercase(Locale.ROOT) }, Exercise::stableKey))
     }
@@ -1060,7 +1062,10 @@ class TrainingRepository internal constructor(
                     row.fieldScope == ExerciseMetadataFieldScope.EXERCISE.name &&
                         row.fieldKey in setOf("exercise.primaryMuscles", "exercise.secondaryMuscles")
                 }
-            require(stableKey.isNotBlank() && (exercise.isCustom || hasOldUserMuscleEdit)) {
+            require(stableKey.isNotBlank() && (exercise.isCustom ||
+                (hasOldUserMuscleEdit &&
+                    canonicalMetadataRepository.muscleRoleResolver().lookup(exercise).kind ==
+                        CanonicalMuscleLookupKind.SELECTABLE_WITH_RELATIONS))) {
                 "이전 근육 정보 확인 대상이 아닙니다."
             }
             val value = UserMuscleRoleCodec.encode(roles)
