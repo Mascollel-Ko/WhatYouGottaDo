@@ -7,6 +7,8 @@ package com.training.trackplanner.data
 enum class EffectiveMuscleMetadataSource {
     CANONICAL,
     LEGACY_USER_OVERRIDE,
+    TYPED_USER_OVERRIDE,
+    TYPED_CUSTOM_EXERCISE,
     LEGACY_CUSTOM_EXERCISE,
     LEGACY_HISTORY_ONLY,
     LEGACY_UNKNOWN_EXERCISE,
@@ -27,7 +29,11 @@ data class EffectiveMuscleMetadata(
 ) {
     /** Safe for role-specific display/analysis only if no legacy user edit exists. */
     val usesCanonicalRoles: Boolean
-        get() = source == EffectiveMuscleMetadataSource.CANONICAL
+        get() = source in setOf(
+            EffectiveMuscleMetadataSource.CANONICAL,
+            EffectiveMuscleMetadataSource.TYPED_USER_OVERRIDE,
+            EffectiveMuscleMetadataSource.TYPED_CUSTOM_EXERCISE
+        )
 
     val requiresLegacyCompatibility: Boolean
         get() = legacy != null
@@ -56,11 +62,14 @@ class EffectiveMuscleMetadataResolver(
             "Duplicate muscle override for exercise: ${exercise.stableKey}"
         }
         val byField = muscleRows.associateBy(ExerciseMetadataUserOverrideEntity::fieldKey)
-        val lookup = canonicalResolver.lookup(
+        val typed = overrides.any { it.fieldKey == UserMuscleRoleCodec.FIELD_KEY }
+        val lookup = canonicalResolver.withUserOverrides(overrides).lookup(
             exercise = exercise,
             legacyMuscleOverridePresent = byField.isNotEmpty()
         )
         val source = when {
+            typed && exercise.isCustom -> EffectiveMuscleMetadataSource.TYPED_CUSTOM_EXERCISE
+            typed -> EffectiveMuscleMetadataSource.TYPED_USER_OVERRIDE
             exercise.isCustom -> EffectiveMuscleMetadataSource.LEGACY_CUSTOM_EXERCISE
             byField.isNotEmpty() -> EffectiveMuscleMetadataSource.LEGACY_USER_OVERRIDE
             lookup.kind == CanonicalMuscleLookupKind.SELECTABLE_WITH_RELATIONS ->
@@ -71,7 +80,11 @@ class EffectiveMuscleMetadataResolver(
                 EffectiveMuscleMetadataSource.LEGACY_HISTORY_ONLY
             else -> EffectiveMuscleMetadataSource.LEGACY_UNKNOWN_EXERCISE
         }
-        val legacy = if (source == EffectiveMuscleMetadataSource.CANONICAL) {
+        val legacy = if (source in setOf(
+            EffectiveMuscleMetadataSource.CANONICAL,
+            EffectiveMuscleMetadataSource.TYPED_USER_OVERRIDE,
+            EffectiveMuscleMetadataSource.TYPED_CUSTOM_EXERCISE
+        )) {
             null
         } else {
             LegacyMuscleFieldProjection(
