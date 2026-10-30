@@ -68,8 +68,10 @@ class EffectiveMuscleMetadataResolver(
             legacyMuscleOverridePresent = byField.isNotEmpty()
         )
         val source = when {
-            typed && exercise.isCustom -> EffectiveMuscleMetadataSource.TYPED_CUSTOM_EXERCISE
-            typed -> EffectiveMuscleMetadataSource.TYPED_USER_OVERRIDE
+            typed && lookup.kind == CanonicalMuscleLookupKind.USER_CUSTOM_WITH_RELATIONS ->
+                EffectiveMuscleMetadataSource.TYPED_CUSTOM_EXERCISE
+            typed && lookup.kind == CanonicalMuscleLookupKind.SELECTABLE_WITH_RELATIONS ->
+                EffectiveMuscleMetadataSource.TYPED_USER_OVERRIDE
             exercise.isCustom -> EffectiveMuscleMetadataSource.LEGACY_CUSTOM_EXERCISE
             byField.isNotEmpty() -> EffectiveMuscleMetadataSource.LEGACY_USER_OVERRIDE
             lookup.kind == CanonicalMuscleLookupKind.SELECTABLE_WITH_RELATIONS ->
