@@ -22,6 +22,7 @@ class CanonicalMuscleUiAnalysisAlignmentTest {
     )
     private val exercises by lazy { repo.exercises(includeHistory = true).associateBy { it.stableKey } }
     private val relations by lazy { repo.muscleRelations().groupBy { it.exerciseStableKey } }
+    private val muscleRoles by lazy { repo.muscleRoleResolver() }
 
     @Test fun skaterSquatAndBoxStepupKeepBothKneeAndHipPrimeMovers() {
         listOf("ex_ee378da7", "ex_6232f4bc").forEach { key ->
@@ -29,7 +30,7 @@ class CanonicalMuscleUiAnalysisAlignmentTest {
                 .mapTo(mutableSetOf()) { it.relationValue }
             assertEquals(key, setOf("QUADS", "GLUTES"), primary)
             assertEquals(key, setOf(MuscleBucket.QUADS, MuscleBucket.GLUTES),
-                MuscleLoadInputBuilder.contributions(exercises.getValue(key)).keys
+                MuscleLoadInputBuilder.contributions(exercises.getValue(key), muscleRoles.lookup(key)).keys
                     .filterTo(mutableSetOf()) { it == MuscleBucket.QUADS || it == MuscleBucket.GLUTES })
         }
     }
@@ -45,7 +46,7 @@ class CanonicalMuscleUiAnalysisAlignmentTest {
         )
         for ((key, expected) in cases) {
             val exercise = exercises.getValue(key)
-            val contributions = MuscleLoadInputBuilder.contributions(exercise)
+            val contributions = MuscleLoadInputBuilder.contributions(exercise, muscleRoles.lookup(key))
             for (p in expected.first) assertEquals(key, 1.0, contributions.getValue(p), 0.001)
             for (s in expected.second) assertEquals(key, 0.5, contributions.getValue(s), 0.001)
             assertEquals(key, expected.first + expected.second, contributions.keys)
