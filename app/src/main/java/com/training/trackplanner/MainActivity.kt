@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.lifecycleScope
 import com.training.trackplanner.data.CloudBackupScheduler
+import com.training.trackplanner.data.ExerciseRuntimeMetadataEditorData
 import com.training.trackplanner.localization.localizedUiText
 import com.training.trackplanner.ui.theme.TrainingTrackPlannerTheme
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -127,6 +128,19 @@ internal fun TrainingTrackPlannerApp(
     var tutorialApplyRequest by rememberSaveable { mutableStateOf(0) }
     val timerState by restTimerSessionController.state.collectAsState()
     val cloudAuth by viewModel.cloudAuthState.collectAsState()
+    val pendingCustomReviews by viewModel.pendingCustomMuscleRoleReviews.collectAsState()
+    val backupRestoreUiState by viewModel.backupRestoreUiState.collectAsState()
+    var customReviewDeferred by rememberSaveable { mutableStateOf(false) }
+    var customReviewData by remember { mutableStateOf<ExerciseRuntimeMetadataEditorData?>(null) }
+    val nextCustomReview = pendingCustomReviews.firstOrNull()
+    LaunchedEffect(nextCustomReview?.stableKey) {
+        customReviewData = null
+        nextCustomReview?.stableKey?.let { stableKey ->
+            viewModel.loadExerciseEditor(stableKey) { data ->
+                if (data.exercise.stableKey == stableKey) customReviewData = data
+            }
+        }
+    }
     val context = LocalContext.current
     val onboardingStore = remember(context) { OnboardingStore(context) }
 
@@ -313,6 +327,29 @@ internal fun TrainingTrackPlannerApp(
                     onboardingStep = null
                 }
             )
+        }
+        // Display after normal first-launch onboarding and after any backup
+        // restore has finished. Unconfirmed exercises remain in the queue.
+        if (!customReviewDeferred &&
+            !cloudAuth.firstLaunchChoiceRequired &&
+            onboardingStep == null &&
+            backupRestoreUiState == BackupRestoreUiState.Idle &&
+            nextCustomReview != null
+        ) {
+            customReviewData
+                ?.takeIf { it.exercise.stableKey == nextCustomReview.stableKey }
+                ?.let { data ->
+                    CustomMuscleRoleReviewDialog(
+                        initial = data,
+                        remaining = pendingCustomReviews.size,
+                        onLater = { customReviewDeferred = true },
+                        onConfirm = { roles, result ->
+                            viewModel.confirmCustomMuscleRoleReview(
+                                nextCustomReview.stableKey, roles, result
+                            )
+                        }
+                    )
+                }
         }
     }
 }
