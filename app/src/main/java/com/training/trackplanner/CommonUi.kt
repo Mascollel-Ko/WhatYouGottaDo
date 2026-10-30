@@ -670,9 +670,14 @@ private fun resolvedMuscleDisplayFields(
     val secondary = if (isEnglish) "Secondary muscles" else "보조근"
     if (!effective.usesCanonicalRoles) {
         val legacy = effective.legacy ?: return emptyList()
+        val pendingReview = effective.source ==
+            com.training.trackplanner.data.EffectiveMuscleMetadataSource.LEGACY_CUSTOM_EXERCISE
+        val prefix = if (pendingReview) {
+            if (isEnglish) "Previous (review required): " else "이전 정보(확인 필요) · "
+        } else ""
         return listOf(
-            ExerciseInfoField(primary, legacy.primaryMuscles.localizedTokens(translator, "exercise.primaryMuscles")),
-            ExerciseInfoField(secondary, legacy.secondaryMuscles.localizedTokens(translator, "exercise.secondaryMuscles"))
+            ExerciseInfoField(prefix + primary, legacy.primaryMuscles.localizedTokens(translator, "exercise.primaryMuscles")),
+            ExerciseInfoField(prefix + secondary, legacy.secondaryMuscles.localizedTokens(translator, "exercise.secondaryMuscles"))
         ).filter { it.value.isNotBlank() }
     }
     val roles = listOf(
@@ -741,8 +746,10 @@ internal fun Exercise.matchesMetadataQuery(
 
     val muscles = when {
         muscleMetadata == null -> emptyList()
-        !isCustom && muscleMetadata.canonical.hasCanonicalRelations ->
-            presenter.searchableOptions(muscleMetadata)
+        muscleMetadata.usesCanonicalRoles -> presenter.searchableOptions(muscleMetadata)
+        muscleMetadata.source ==
+            com.training.trackplanner.data.EffectiveMuscleMetadataSource.LEGACY_CUSTOM_EXERCISE ->
+            emptyList()
         else -> muscleMetadata.legacy?.let { legacy ->
             legacy.primaryMuscles.split(',', '|', '/', ';')
                 .map { translator.option("exercise.primaryMuscles", it.trim()) } +
