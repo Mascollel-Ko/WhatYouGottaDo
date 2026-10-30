@@ -307,7 +307,10 @@ data class ExerciseRuntimeMetadataEditorData(
     val originalExercise: Exercise = exercise,
     val originalMetadata: RuntimeExerciseMetadata = metadata,
     val muscleRoles: List<CanonicalMuscleRoleEntry> = emptyList(),
-    val originalMuscleRoles: List<CanonicalMuscleRoleEntry> = muscleRoles
+    val originalMuscleRoles: List<CanonicalMuscleRoleEntry> = muscleRoles,
+    // Displayed only by the explicit post-upgrade review, never by regular exercise features.
+    val legacyReviewPrimary: String = "",
+    val legacyReviewSecondary: String = ""
 )
 
 data class ExerciseMetadataCopySource(
