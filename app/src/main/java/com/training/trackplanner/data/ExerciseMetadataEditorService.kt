@@ -52,6 +52,24 @@ internal class ExerciseMetadataEditorService(
         fun draftRoles(exercise: Exercise): List<CanonicalMuscleRoleEntry> =
             roleResolver.lookup(exercise).relations
         val selectedRoles = draftRoles(exercise)
+        // Legacy data is read exclusively to prepare a user-visible upgrade
+        // review. It never supplies the typed editor roles or live analyses.
+        val legacyHints = overridesByKey[exercise.stableKey].orEmpty()
+            .filter { it.fieldScope == ExerciseMetadataFieldScope.EXERCISE.name }
+            .associateBy(ExerciseMetadataUserOverrideEntity::fieldKey)
+        val needsReview = (exercise.isCustom || legacyHints.keys.any {
+            it == "exercise.primaryMuscles" || it == "exercise.secondaryMuscles"
+        }) && overridesByKey[exercise.stableKey].orEmpty().none {
+            it.fieldKey == UserMuscleRoleCodec.FIELD_KEY
+        }
+        val reviewPrimary = if (needsReview) {
+            legacyHints["exercise.primaryMuscles"]?.value
+                ?: exercise.takeIf(Exercise::isCustom)?.primaryMuscles.orEmpty()
+        } else ""
+        val reviewSecondary = if (needsReview) {
+            legacyHints["exercise.secondaryMuscles"]?.value
+                ?: exercise.takeIf(Exercise::isCustom)?.secondaryMuscles.orEmpty()
+        } else ""
         val copySources = effectiveByKey.values
             .asSequence()
             .filter { source -> source.exercise.stableKey != exercise.stableKey && source.exercise.name.isNotBlank() }
@@ -66,7 +84,9 @@ internal class ExerciseMetadataEditorService(
             originalExercise = exercise,
             originalMetadata = metadata,
             muscleRoles = selectedRoles,
-            originalMuscleRoles = selectedRoles
+            originalMuscleRoles = selectedRoles,
+            legacyReviewPrimary = reviewPrimary,
+            legacyReviewSecondary = reviewSecondary
         )
     }
 
