@@ -257,7 +257,8 @@ object ExerciseAnalysisMapper {
     private fun roleMuscles(
         exercise: Exercise, canonical: CanonicalMuscleLookup?, role: CanonicalMuscleRole
     ): Set<String> = when (canonical?.kind) {
-        CanonicalMuscleLookupKind.SELECTABLE_WITH_RELATIONS ->
+        CanonicalMuscleLookupKind.SELECTABLE_WITH_RELATIONS,
+        CanonicalMuscleLookupKind.USER_CUSTOM_WITH_RELATIONS ->
             canonical.forRole(role).mapTo(linkedSetOf()) { it.muscleCode }
         CanonicalMuscleLookupKind.USER_CUSTOM_UNMAPPED, null ->
             (if (role == CanonicalMuscleRole.PRIMARY) exercise.primaryMuscles else exercise.secondaryMuscles)
