@@ -47,12 +47,13 @@ class CanonicalMuscleEditorAndValidationTest {
     }
 
     @Test
-    fun importingCustomExerciseStillRequiresUserOwnedMuscleInformation() {
+    fun importingCustomExerciseWithNoTypedRolesIsFlaggedForReviewNotByOldFields() {
         val custom = Exercise(
             stableKey = "user_ex_1", name = "직접 만든 운동", category = "근력운동",
             isCustom = true, primaryMuscles = ""
         )
-        assertTrue(MetadataSanityChecker.check(custom, roles).issues.any { it.field == "primaryMuscles" })
+        assertFalse(MetadataSanityChecker.check(custom, roles).issues.any { it.field == "primaryMuscles" })
+        assertEquals(CanonicalMuscleLookupKind.USER_CUSTOM_UNMAPPED, roles.lookup(custom).kind)
     }
 
     @Test
@@ -70,13 +71,13 @@ class CanonicalMuscleEditorAndValidationTest {
     }
 
     @Test
-    fun copyingIntoCustomStillPreservesExplicitMuscles() {
+    fun copyingIntoCustomNeverCopiesOldMuscleFields() {
         val blank = Exercise(stableKey = "", name = "new", category = "근력운동", isCustom = true)
         val source = Exercise(stableKey = "barbell_back_squat", name = "squat", category = "근력운동",
             primaryMuscles = "QUADRICEPS", secondaryMuscles = "GLUTE"
         )
         val copied = blank.copyEditableMetadataFrom(source)
-        assertEquals("QUADRICEPS", copied.primaryMuscles)
-        assertEquals("GLUTE", copied.secondaryMuscles)
+        assertEquals("", copied.primaryMuscles)
+        assertEquals("", copied.secondaryMuscles)
     }
 }
