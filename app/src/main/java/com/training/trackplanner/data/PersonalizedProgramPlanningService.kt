@@ -130,6 +130,7 @@ internal class PersonalizedProgramPlanningService(
     private val canonicalMovementRelations: List<CanonicalMetadataRelation> = emptyList(),
     private val canonicalCoreCatalog: CanonicalCoreCatalog = CanonicalCoreCatalog.EMPTY,
     private val canonicalMuscleRoles: CanonicalMuscleRoleResolver? = null,
+    private val userMuscleOverrideDao: ExerciseMetadataUserOverrideDao? = null,
     private val reviewedCanonicalStableKeys: Set<String> = emptySet(),
     private val athleteNeedsProfileEngine: AthleteNeedsProfileEngine = AthleteNeedsProfileEngine(),
     private val athleteStimulusNeedEngine: AthleteStimulusNeedEngine = AthleteStimulusNeedEngine(),
@@ -1562,6 +1563,10 @@ internal class PersonalizedProgramPlanningService(
             )
         } else emptyMap()
         val exercises = exerciseDao.allExercises()
+        // Program planning must use the same persisted muscle edits as the
+        // dashboard, fatigue analysis, and exercise details.
+        val effectiveMuscleRoles = canonicalMuscleRoles
+            ?.withUserOverrides(userMuscleOverrideDao?.all().orEmpty())
         val profile = profileDao.profile()
         val dailyMetrics = dailyMetricDao.metricsUntil(cutoff.toString())
         val checkIns = dailyCheckInDao.between(cutoff.minusDays(13).toString(), cutoff.toString())
@@ -1570,7 +1575,7 @@ internal class PersonalizedProgramPlanningService(
         val readiness = TodayReadinessEngine().analyze(
             TodayReadinessEngineInput(
                 cutoff, exercises, history, dailyMetrics, checkIns, profile, runtimeCatalog,
-                canonicalMuscleRoles = canonicalMuscleRoles
+                canonicalMuscleRoles = effectiveMuscleRoles
             )
         )
         val revision = strengthPosteriorDao.revision(StrengthModelRevisionPolicy.CURRENT_REVISION_KEY)
