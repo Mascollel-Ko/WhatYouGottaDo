@@ -96,14 +96,10 @@ object UserMuscleRoleCodec {
             .filter { it.fieldKey == FIELD_KEY }
             .associate { it.stableKey to it.validated().value }
         val generated = mutableListOf<CanonicalMetadataRelation>()
-        val customByKey = exercises.filter(Exercise::isCustom).associateBy(Exercise::stableKey)
-        val keys = byKey.keys + customByKey.keys
-        keys.forEach { key ->
-            val rows = when {
-                key in byKey -> decode(byKey.getValue(key), key)
-                else -> legacyDraft(customByKey.getValue(key))
-            }
-            rows.forEach { row ->
+        // An old custom exercise must be reviewed, not silently converted
+        // into active analysis relations. Its raw legacy fields remain intact.
+        byKey.forEach { (key, value) ->
+            decode(value, key).forEach { row ->
                 generated += CanonicalMetadataRelation(
                     domain = CanonicalRelationDomain.MUSCLE,
                     relationKey = row.relationKey,
