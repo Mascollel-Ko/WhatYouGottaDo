@@ -212,6 +212,25 @@ class DailyAnalysisLoadAggregator {
     }
 
     private fun muscleBodyParts(token: String): List<String> {
+        // A canonical MUSCLE_GROUP code is an exact identifier, never a fuzzy
+        // legacy alias. In particular LATERAL_CORE contains "LAT" and would
+        // otherwise be misread as latissimus/back by the old string normalizer.
+        // Only user-created/old backup tokens may need compatibility aliases.
+        when (token.trim().uppercase(java.util.Locale.ROOT)) {
+            "QUADS" -> return listOf("quads")
+            "HAMSTRINGS" -> return listOf("hamstrings")
+            "GLUTES", "GLUTE_MEDIUS" -> return listOf("glutes")
+            "CALVES" -> return listOf("calves_achilles")
+            "POSTERIOR_CHAIN_ERECTORS" -> return listOf("erectors_low_back")
+            "CHEST" -> return listOf("chest")
+            "BACK_LATS" -> return listOf("lats_upper_back")
+            "SHOULDERS" -> return listOf("shoulders")
+            "BICEPS" -> return listOf("elbow_flexors")
+            "TRICEPS" -> return listOf("elbow_extensors")
+            "FOREARM_GRIP" -> return listOf("forearm_grip")
+            "ANTERIOR_CORE", "LATERAL_CORE" -> return listOf("core_abs_obliques")
+            "HIP_ADDUCTOR", "ADDUCTOR_ABDUCTOR" -> return listOf("hips_adductors_abductors")
+        }
         return when (ExerciseTaxonomy.canonicalMuscleToken(token)) {
             "QUADS", "QUADRICEPS", "RECTUS_FEMORIS" -> listOf("quads")
             "HAMSTRINGS", "HAMSTRING" -> listOf("hamstrings")

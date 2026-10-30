@@ -105,6 +105,30 @@ class CanonicalReadinessMuscleSourceTest {
     }
 
     @Test
+    fun lateralCoreCanonicalCodeIsNotMisreadAsLatissimusInReadiness() {
+        val pallof = exercise("band_pallof_press").copy(
+            primaryMuscles = "LAT", secondaryMuscles = "BACK"
+        )
+        val parts = fatigue(pallof).bodyPartLoads
+        assertTrue(parts.getValue("core_abs_obliques") > 0.0)
+        assertFalse("lats_upper_back" in parts)
+    }
+
+    @Test
+    fun canonicalLateralCoreAndCanonicalBackRemainDistinctInFeatureProjection() {
+        val pallof = exercise("band_pallof_press")
+        val core = ExerciseAnalysisMapper.fromExercise(
+            pallof, canonicalMuscles = roles.lookup(pallof)
+        )
+        assertTrue("LATERAL_CORE" in core.primaryMuscles)
+        assertFalse("BACK_LATS" in core.primaryMuscles)
+        val row = exercise("ex_de46b7f6")
+        val back = ExerciseAnalysisMapper.fromExercise(row, canonicalMuscles = roles.lookup(row))
+        assertTrue("BACK_LATS" in back.primaryMuscles)
+        assertFalse("LATERAL_CORE" in back.primaryMuscles)
+    }
+
+    @Test
     fun roleAssignmentDoesNotChangeSystemicLoad() {
         val squat = exercise("barbell_back_squat")
         val corrupted = squat.copy(primaryMuscles = "HAMSTRING", secondaryMuscles = "BICEPS")

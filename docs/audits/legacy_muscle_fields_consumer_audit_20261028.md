@@ -183,3 +183,10 @@
 - 1회 로컬 cutover는 reconciliation을 강제하여 옛 materialized 개발 기본값을 바꾸지만 명시적 override 행은 유지한다. v12 백업 가져오기는 기존 explicit override 행을 검사·업서트/교체하고 가져온 직후 정식 기준선 위로 즉시 materialize 한다. 재복원 시에도 기본 운동의 USER_EDIT 수정값이 왕복 가능해야 한다.
 - 이 구분은 기본 운동과 사용자 추가 운동 모두에 적용하고, 기록 및 계획 연결을 변경하지 않는다. 단, 기존 두 문자열 기반 사용자 근육 편집을 새 여섯 역할/계수 타입으로 전환하는 작업은 별개로 남는다. 현재 검색·근육 그래프·준비도는 정식 stableKey를 사용하므로 편집된 근육과 계산을 완전히 일치시키는 것은 추후 typed user-role override를 연결해야 한다. UI의 기본 운동 근육 편집 잠금은 영구적인 사용자 수정 정책이 아니다.
 - 이 수정은 현 개발 데이터 기준선 덮어쓰기 규칙을 유지하며 사용자 수정 복원 기능을 제거하지 않기 위한 CI 회귀 수정이다. 전체 CI 완료 전 검증 완료로 표시하지 않는다.
+
+## 2026-10-30 MUS-07 canonical-role readiness wiring hardening
+
+- Actual bug: `DailyAnalysisLoadAggregator.muscleBodyParts` passed canonical `LATERAL_CORE` through `ExerciseTaxonomy.canonicalMuscleToken` / legacy `MuscleGroupKeyNormalizer`. The substring `LAT` matched and yielded latissimus/back, misattributing lateral-core PRIME muscle fatigue to the back.
+- Fix: match all sixteen verified `MUSCLE_GROUP` codes exactly **before** any old free-form alias compatibility. The alias normalizer is only a legacy-import/custom exercise fallback. Existing 1.0/0.45 role coefficients, axial/grip/overhead loads, duration holds, weekly aggregation, UI and stored exercise data remain unchanged.
+- Dedicated regression: band Pallof press `LATERAL_CORE` must load `core_abs_obliques`, not `lats_upper_back`; barbell row `BACK_LATS` must remain the back group.
+- This fixes builtin readiness aggregation only; later user-role typed edit/storage and source-wide consumer audit are separate phases. Hosted CI pending.
