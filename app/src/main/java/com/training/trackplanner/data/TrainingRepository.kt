@@ -1025,12 +1025,21 @@ class TrainingRepository internal constructor(
      * The typed row (including explicit empty) is the durable completion marker.
      */
     suspend fun pendingCustomMuscleRoleReviews(): List<Exercise> = withContext(Dispatchers.IO) {
-        val confirmed = exerciseMetadataUserOverrideDao.all()
+        val allOverrides = exerciseMetadataUserOverrideDao.all()
+        val confirmed = allOverrides
             .asSequence()
-            .filter { it.fieldKey == UserMuscleRoleCodec.FIELD_KEY }
+            .filter { it.fieldScope == ExerciseMetadataFieldScope.MUSCLE_RELATION.name &&
+                it.fieldKey == UserMuscleRoleCodec.FIELD_KEY }
+            .mapTo(mutableSetOf(), ExerciseMetadataUserOverrideEntity::stableKey)
+        val oldEditedKeys = allOverrides.asSequence()
+            .filter { it.fieldScope == ExerciseMetadataFieldScope.EXERCISE.name &&
+                it.fieldKey in setOf("exercise.primaryMuscles", "exercise.secondaryMuscles") }
             .mapTo(mutableSetOf(), ExerciseMetadataUserOverrideEntity::stableKey)
         exerciseDao.allExercises()
-            .filter { it.isCustom && it.stableKey.isNotBlank() && it.stableKey !in confirmed }
+            .filter {
+                it.stableKey.isNotBlank() && it.stableKey !in confirmed &&
+                    (it.isCustom || it.stableKey in oldEditedKeys)
+            }
             .sortedWith(compareBy({ it.name.lowercase(Locale.ROOT) }, Exercise::stableKey))
     }
 
@@ -1046,8 +1055,13 @@ class TrainingRepository internal constructor(
             val exercise = requireNotNull(exerciseDao.findByStableKey(stableKey)) {
                 "운동을 찾지 못했습니다."
             }
-            require(exercise.isCustom && stableKey.isNotBlank()) {
-                "직접 추가한 운동만 여기서 확인할 수 있습니다."
+            val hasOldUserMuscleEdit = exerciseMetadataUserOverrideDao
+                .findByStableKey(stableKey).any { row ->
+                    row.fieldScope == ExerciseMetadataFieldScope.EXERCISE.name &&
+                        row.fieldKey in setOf("exercise.primaryMuscles", "exercise.secondaryMuscles")
+                }
+            require(stableKey.isNotBlank() && (exercise.isCustom || hasOldUserMuscleEdit)) {
+                "이전 근육 정보 확인 대상이 아닙니다."
             }
             val value = UserMuscleRoleCodec.encode(roles)
             exerciseMetadataUserOverrideDao.upsert(
