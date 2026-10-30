@@ -270,7 +270,8 @@ class TrainingRepository internal constructor(
         strengthPosteriorDao = strengthPosteriorDao,
         strengthPerformanceRegistry = strengthPerformanceRegistry,
         appMetaDao = appMetaDao,
-        canonicalMuscleRoles = canonicalMetadataRepository.muscleRoleResolver()
+        canonicalMuscleRoles = canonicalMetadataRepository.muscleRoleResolver(),
+        userOverrideDao = exerciseMetadataUserOverrideDao
     )
     private val weeklyAnalysisFeatureSnapshotService = WeeklyAnalysisFeatureSnapshotService(
         context = context,
@@ -407,7 +408,8 @@ class TrainingRepository internal constructor(
         runtimeExerciseMetadataDao = runtimeExerciseMetadataDao,
         canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog,
         dailyStatusService = dailyStatusService,
-        canonicalMuscleRoles = canonicalMetadataRepository.muscleRoleResolver()
+        canonicalMuscleRoles = canonicalMetadataRepository.muscleRoleResolver(),
+        userOverrideDao = exerciseMetadataUserOverrideDao
     )
     private val todayStatusSummaryService = TodayStatusSummaryService(
         dailyReadinessInputService = dailyReadinessInputService
