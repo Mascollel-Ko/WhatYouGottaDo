@@ -58,6 +58,35 @@ class BBalancedStimulusLedgerV1Test {
     }
 
     @Test
+    fun bBalancedConfirmedRealizationFeedsActualB5HistoryEvidenceWithoutGrantingExtraDose() {
+        val key = "bench_fixture"
+        val resolved = observation(key, 1, classification = realized(RealizedStimulusKind.HYPERTROPHY_LIKE))
+        val unknown = observation(key, 2, classification = RealizedStimulusClassification.UNCLASSIFIED)
+        val ledger = build(
+            listOf(resolved, unknown), listOf(profile(key, withHypertrophy = true)),
+            listOf(muscle(key, "CHEST", "PRIMARY"), muscle(key, "TRICEPS", "SECONDARY"))
+        )
+        assertEquals(setOf(key), ledger.realizedHistoryStableKeys(TrainableQuality.HYPERTROPHY))
+        assertEquals(emptySet<String>(), ledger.realizedHistoryStableKeys(TrainableQuality.STRENGTH))
+        assertEquals(emptySet<String>(), ledger.realizedHistoryStableKeys(TrainableQuality.POWER))
+        assertEquals(2, ledger.summary(StimulusExposureWindow.RECENT_7D).observedPhysicalSets)
+        assertEquals(1, ledger.summary(StimulusExposureWindow.RECENT_7D).realizedHypertrophyPhysicalSets)
+        assertFalse(ledger.prescriptionAuthority)
+        assertFalse(ledger.selectionAuthority)
+    }
+
+    @Test
+    fun bBalancedUnclassifiedHistoryCannotClaimB5DirectHypertrophyEvidence() {
+        val key = "press_fixture"
+        val ledger = build(
+            listOf(observation(key, 1, classification = RealizedStimulusClassification.UNCLASSIFIED)),
+            listOf(profile(key, withHypertrophy = true)),
+            listOf(muscle(key, "CHEST", "PRIMARY"))
+        )
+        assertEquals(emptySet<String>(), ledger.realizedHistoryStableKeys(TrainableQuality.HYPERTROPHY))
+    }
+
+    @Test
     fun reviewedSetWithMissingEffortAuthorityIsUnknownNotZeroOrEffectiveDose() {
         val key = "press_fixture"
         val ledger = build(
