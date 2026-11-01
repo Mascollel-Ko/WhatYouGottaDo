@@ -307,8 +307,12 @@ class StimulusTargetCandidateSelector(
             historyByStableKey = historyByStableKey,
             recentHistoryStableKeys = historyByStableKey.filterValues { rows -> rows.any { !it.date.isBefore(currentStart) } }.keys,
             contextHistoryStableKeys = historyByStableKey.keys,
-            strengthCompatibleHistoryKeys = historyByStableKey.filterValues { rows -> rows.any { historyCompatible(snapshot, TrainableQuality.STRENGTH, it) } }.keys,
-            hypertrophyCompatibleHistoryKeys = historyByStableKey.filterValues { rows -> rows.any { historyCompatible(snapshot, TrainableQuality.HYPERTROPHY, it) } }.keys,
+            strengthCompatibleHistoryKeys = snapshot.bBalancedStimulusLedger
+                ?.realizedHistoryStableKeys(TrainableQuality.STRENGTH)
+                ?: historyByStableKey.filterValues { rows -> rows.any { historyCompatible(snapshot, TrainableQuality.STRENGTH, it) } }.keys,
+            hypertrophyCompatibleHistoryKeys = snapshot.bBalancedStimulusLedger
+                ?.realizedHistoryStableKeys(TrainableQuality.HYPERTROPHY)
+                ?: historyByStableKey.filterValues { rows -> rows.any { historyCompatible(snapshot, TrainableQuality.HYPERTROPHY, it) } }.keys,
             anchorStableKeys = state.anchors.mapTo(linkedSetOf(), UserAnchor::stableKey),
             recentSessionCountByStableKey = historyByStableKey.mapValues { (_, rows) ->
                 rows.filter { !it.date.isBefore(currentStart) }.map(PlanningSetRecord::date).distinct().size

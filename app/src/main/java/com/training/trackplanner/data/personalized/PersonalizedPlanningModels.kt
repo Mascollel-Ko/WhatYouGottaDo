@@ -241,7 +241,9 @@ data class PlanningHistorySnapshot(
     /** Immutable local posterior history already loaded for the planning cutoff. */
     val strengthPerformanceHistory: List<com.training.trackplanner.data.StrengthExercisePerformanceHistoryEntity> = emptyList(),
     /** Phase A/B2 shadow evidence; immutable and deliberately excluded from planner authority. */
-    val stimulusExposureLedger: StimulusExposureLedger = StimulusExposureLedger.EMPTY
+    val stimulusExposureLedger: StimulusExposureLedger = StimulusExposureLedger.EMPTY,
+    /** B-balanced confirmed-set attribution for executable candidate history evidence; no numeric target authority. */
+    val bBalancedStimulusLedger: BBalancedStimulusLedgerV1? = null
 ) {
     val historyStart: LocalDate get() = allConfirmedSets.minOf(PlanningSetRecord::date)
     val historyDays: Int get() = java.time.temporal.ChronoUnit.DAYS.between(historyStart, cutoff).toInt() + 1

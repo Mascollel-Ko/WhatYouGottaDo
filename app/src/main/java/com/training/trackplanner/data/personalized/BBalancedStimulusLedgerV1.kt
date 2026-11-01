@@ -206,6 +206,18 @@ data class BBalancedStimulusLedgerV1(
 
     fun windows(): Map<StimulusExposureWindow, BStimulusWindowSummary> =
         StimulusExposureWindow.entries.associateWith(::summary)
+
+    /** Exact B evidence for B5 familiar-owner ranking. No new sets, dose, or selection permission. */
+    fun realizedHistoryStableKeys(quality: TrainableQuality): Set<String> = sets.asSequence()
+        .filter { attribution ->
+            when (quality) {
+                TrainableQuality.STRENGTH -> attribution.strength == BStimulusEvidenceState.REALIZED_DIRECT
+                TrainableQuality.HYPERTROPHY -> attribution.hypertrophy == BStimulusEvidenceState.REALIZED_DIRECT &&
+                    attribution.directHypertrophyMuscles.isNotEmpty()
+                else -> false
+            }
+        }
+        .mapTo(linkedSetOf()) { it.source.stableKey }
 }
 
 /**
