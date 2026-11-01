@@ -51,7 +51,7 @@ internal class CalendarRecordService(
         val last = maxOf(LocalDate.parse(startDate), LocalDate.parse(endDate)).toString()
         // Track only populated dates, rather than every day in a potentially long interval.
         val dates = workoutDao.datesWithEntriesBetween(first, last)
-        if (dates.isEmpty()) return
+        if (dates.isEmpty()) return@withLocalDataGate
         mutateDates(dates, trackStrengthCompletion = !includeConfirmed) {
             if (includeConfirmed) {
                 workoutDao.deleteSetsBetween(first, last)
