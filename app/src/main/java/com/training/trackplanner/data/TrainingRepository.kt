@@ -510,16 +510,16 @@ class TrainingRepository internal constructor(
 
     suspend fun applyWatchDurationIfUnchanged(
         entryId: Long, setId: Long, expectedSeconds: Int, newSeconds: Int
-    ): Boolean = withContext(Dispatchers.IO) {
-        if (newSeconds <= 0 || newSeconds > 24 * 3600) return@withContext false
-        val original = db.workoutDao().findSetById(setId) ?: return@withContext false
-        if (original.entryId != entryId || original.seconds != expectedSeconds) return@withContext false
+    ): RecordSetMutationResult? = withContext(Dispatchers.IO) {
+        if (newSeconds <= 0 || newSeconds > 24 * 3600) return@withContext null
+        val original = db.workoutDao().findSetById(setId) ?: return@withContext null
+        if (original.entryId != entryId || original.seconds != expectedSeconds) return@withContext null
         val beforeRevision = db.cloudBackupStateDao().getOrCreate().localRevision
         val result = recordMutationService.updateSet(
             original.copy(seconds = newSeconds).edit(RecordSetField.DURATION)
-        ) ?: return@withContext false
+        ) ?: return@withContext null
         scheduleAutomaticCloudBackupIfChanged(beforeRevision)
-        result.derivedAnalysisDirty
+        result.takeIf { it.derivedAnalysisDirty }
     }
 
     suspend fun deleteDailyCheckIn(date: String) = withContext(Dispatchers.IO) {
