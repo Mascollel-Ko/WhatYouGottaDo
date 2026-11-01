@@ -32,6 +32,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import androidx.compose.ui.unit.dp
 
 /** Product-side candidate selector. One or more explicit sessions; never creates or confirms a set. */
 @Composable
@@ -45,6 +46,7 @@ internal fun WatchWorkoutImportDialog(
     val context = LocalContext.current
     val gateway = remember(context) { WatchHealthData(context) }
     val prefs = remember(context) { WatchImportPreferences(context) }
+    val targetKey = target.entry.backupSourceId ?: "local:${target.entry.id}"
     var tick by remember { mutableIntStateOf(0) }
     var granted by remember { mutableStateOf(false) }
     var loading by remember { mutableStateOf(true) }
@@ -83,7 +85,7 @@ internal fun WatchWorkoutImportDialog(
             loading = false
             val qualified = results.filter { WatchSportPolicy.matches(target.entry, it) &&
                 (prefs.linkedTarget(it.sourceId) == null ||
-                    prefs.linkedTarget(it.sourceId) == target.entry.backupSourceId) }
+                    prefs.linkedTarget(it.sourceId) == targetKey) }
             if (automatic && qualified.isEmpty()) {
                 onDismiss()
             } else if (automatic && qualified.size == 1) {
@@ -109,7 +111,7 @@ internal fun WatchWorkoutImportDialog(
     val anyWalking = picked.any { it.walking }
     val allowed = !saving && set != null && seconds != null && picked.isNotEmpty() && !overlapping &&
         picked.all { prefs.linkedTarget(it.sourceId) == null ||
-            prefs.linkedTarget(it.sourceId) == target.entry.backupSourceId }
+            prefs.linkedTarget(it.sourceId) == targetKey }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -117,7 +119,7 @@ internal fun WatchWorkoutImportDialog(
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(androidx.compose.ui.unit.Dp(8f))
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text("${date} · ${target.entry.exerciseName}", fontWeight = FontWeight.SemiBold)
                 when {
@@ -130,9 +132,9 @@ internal fun WatchWorkoutImportDialog(
                         Text("기록할 구간을 선택하세요. 일상 걷기는 자동 선택하지 않습니다.")
                         sessions.forEach { session ->
                             val usedBy = prefs.linkedTarget(session.sourceId)
-                            val unavailable = usedBy != null && usedBy != target.entry.backupSourceId
+                            val unavailable = usedBy != null && usedBy != targetKey
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(
-                                androidx.compose.ui.unit.Dp(6f)
+                                6.dp
                             )) {
                                 Checkbox(
                                     checked = session.sourceId in selected,
@@ -197,7 +199,7 @@ internal fun WatchWorkoutImportDialog(
                         onApply(target.entry.id, targetSet.id, targetSet.seconds, targetSeconds) { success ->
                             saving = false
                             if (success) {
-                                prefs.markSessionsUsed(sources, target.entry.backupSourceId ?: target.entry.id.toString())
+                                prefs.markSessionsUsed(sources, targetKey)
                                 onDismiss()
                             } else {
                                 error = "다른 기록에서 시간이 변경되었거나 저장에 실패했습니다. 다시 열어 확인해 주세요."
