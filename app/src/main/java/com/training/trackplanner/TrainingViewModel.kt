@@ -592,11 +592,11 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         onResult: (Boolean) -> Unit
     ) {
         viewModelScope.launch {
-            val applied = runCatching {
+            val result = runCatching {
                 repository.applyWatchDurationIfUnchanged(entryId, setId, expectedSeconds, newSeconds)
-            }.getOrDefault(false)
-            if (applied) refreshAnalysisSummaries()
-            onResult(applied)
+            }.getOrNull()
+            if (result != null) recordDerivedRefresh.afterCommit(result)
+            onResult(result != null)
         }
     }
 
