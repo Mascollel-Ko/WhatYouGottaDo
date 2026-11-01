@@ -498,6 +498,30 @@ class TrainingRepository internal constructor(
         scheduleAutomaticCloudBackupIfChanged(beforeRevision)
     }
 
+    suspend fun fillSleepHoursIfEmpty(date: String, hours: Double): Boolean = withContext(Dispatchers.IO) {
+        val beforeRevision = db.cloudBackupStateDao().getOrCreate().localRevision
+        val changed = dailyStatusService.fillSleepHoursIfEmpty(date, hours)
+        if (changed) {
+            LocalRecoveryScheduler.schedule(context)
+            scheduleAutomaticCloudBackupIfChanged(beforeRevision)
+        }
+        changed
+    }
+
+    suspend fun applyWatchDurationIfUnchanged(
+        entryId: Long, setId: Long, expectedSeconds: Int, newSeconds: Int
+    ): Boolean = withContext(Dispatchers.IO) {
+        if (newSeconds <= 0 || newSeconds > 24 * 3600) return@withContext false
+        val original = db.workoutDao().findSetById(setId) ?: return@withContext false
+        if (original.entryId != entryId || original.seconds != expectedSeconds) return@withContext false
+        val beforeRevision = db.cloudBackupStateDao().getOrCreate().localRevision
+        val result = recordMutationService.updateSet(
+            original.copy(seconds = newSeconds).edit(RecordSetField.DURATION)
+        ) ?: return@withContext false
+        scheduleAutomaticCloudBackupIfChanged(beforeRevision)
+        result.derivedAnalysisDirty
+    }
+
     suspend fun deleteDailyCheckIn(date: String) = withContext(Dispatchers.IO) {
         val beforeRevision = db.cloudBackupStateDao().getOrCreate().localRevision
         dailyStatusService.deleteDailyCheckIn(date)
