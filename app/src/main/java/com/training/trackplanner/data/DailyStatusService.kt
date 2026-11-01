@@ -55,6 +55,23 @@ internal class DailyStatusService(
         }
     }
 
+    /**
+     * Empty-only import. Rechecks the authoritative row *inside* the same transaction
+     * so a Health Connect response cannot overwrite manual condition edits.
+     */
+    suspend fun fillSleepHoursIfEmpty(date: String, hours: Double): Boolean = withContext(Dispatchers.IO) {
+        require(hours.isFinite() && hours > 0.0 && hours <= 24.0)
+        db.withCloudRevision(CloudMutationScope.DAILY) {
+            val latest = dailyCheckInDao.getForDate(date)
+            if (latest?.sleepHours != null) {
+                false
+            } else {
+                upsertInTransaction((latest ?: DailyCheckIn(date = date)).copy(sleepHours = hours))
+                true
+            }
+        }
+    }
+
     suspend fun deleteDailyCheckIn(date: String) = withContext(Dispatchers.IO) {
         db.withCloudRevision(CloudMutationScope.DAILY) { dailyCheckInDao.deleteForDate(date) }
     }
