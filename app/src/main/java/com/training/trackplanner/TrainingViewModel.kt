@@ -89,6 +89,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.withContext
@@ -244,6 +246,33 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     private val _exerciseMuscleMetadata = MutableStateFlow<Map<String, EffectiveMuscleMetadata>>(emptyMap())
     val exerciseMuscleMetadata: StateFlow<Map<String, EffectiveMuscleMetadata>> =
         _exerciseMuscleMetadata.asStateFlow()
+
+    // Calendar changes commit and update observable Room state before heavier
+    // derived analysis. The conflated worker serializes recalculation after edits.
+    private val calendarAnalysisRefreshQueue = Channel<Unit>(Channel.CONFLATED)
+
+    init {
+        viewModelScope.launch(Dispatchers.Default) {
+            for (ignored in calendarAnalysisRefreshQueue) {
+                try {
+                    refreshAnalysisSummaries()
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (failure: Exception) {
+                    android.util.Log.e("CalendarDerivedRefresh", "Calendar committed; analysis refresh failed", failure)
+                    _fatigueAnalysisState.value = _fatigueAnalysisState.value.copy(isLoading = false,
+                        errorMessage = "분석 갱신에 실패했습니다. 다시 분석을 열어 주세요.")
+                }
+            }
+        }
+    }
+
+    private fun refreshCalendarAnalysisLater() {
+        // The screen's existing pending/ready state remains the UI authority.
+        _fatigueAnalysisState.value = _fatigueAnalysisState.value.copy(isLoading = true)
+        weeklyAnalysisSnapshotStore.markDirty()
+        calendarAnalysisRefreshQueue.trySend(Unit)
+    }
 
     private val recordDerivedRefresh = RecordDerivedRefreshCoordinator(
         scope = viewModelScope,
@@ -921,7 +950,7 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             try {
                 val result = repository.pushFuturePlan(startDate, dayCount)
-                refreshAnalysisSummaries()
+                if (result.shifted) refreshCalendarAnalysisLater()
                 onResult(result)
             } catch (error: Exception) {
                 onError(error.message.orEmpty())
@@ -935,14 +964,14 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     fun deleteDate(date: String) {
         viewModelScope.launch {
             repository.deleteDate(date)
-            refreshAnalysisSummaries()
+            refreshCalendarAnalysisLater()
         }
     }
 
     fun deleteDateRange(startDate: String, endDate: String, includeConfirmed: Boolean) {
         viewModelScope.launch {
             repository.deleteDateRange(startDate, endDate, includeConfirmed)
-            refreshAnalysisSummaries()
+            refreshCalendarAnalysisLater()
         }
     }
 

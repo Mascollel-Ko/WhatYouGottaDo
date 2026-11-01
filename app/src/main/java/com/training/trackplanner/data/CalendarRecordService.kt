@@ -35,7 +35,8 @@ internal class CalendarRecordService(
         }
 
     suspend fun deleteDate(date: String) {
-        mutateDates(listOf(date)) {
+        // Deleting every set cannot complete a strength session.
+        mutateDates(listOf(date), trackStrengthCompletion = false) {
             workoutDao.deleteSetsOnDates(listOf(date))
             workoutDao.deleteEntriesOnDates(listOf(date))
         }
@@ -45,15 +46,19 @@ internal class CalendarRecordService(
         startDate: String,
         endDate: String,
         includeConfirmed: Boolean
-    ) {
-        val dates = dateRange(startDate, endDate)
-        mutateDates(dates) {
-            if (dates.isEmpty()) return@mutateDates
+    ) = withLocalDataGate {
+        val first = minOf(LocalDate.parse(startDate), LocalDate.parse(endDate)).toString()
+        val last = maxOf(LocalDate.parse(startDate), LocalDate.parse(endDate)).toString()
+        // Track only populated dates, rather than every day in a potentially long interval.
+        val dates = workoutDao.datesWithEntriesBetween(first, last)
+        if (dates.isEmpty()) return
+        mutateDates(dates, trackStrengthCompletion = !includeConfirmed) {
             if (includeConfirmed) {
-                workoutDao.deleteSetsOnDates(dates)
-                workoutDao.deleteEntriesOnDates(dates)
+                workoutDao.deleteSetsBetween(first, last)
+                workoutDao.deleteEntriesBetween(first, last)
             } else {
-                val entries = dates.flatMap { date -> workoutDao.entriesWithSets(date) }
+                // Removing only planned sets can newly complete a partly confirmed day.
+                val entries = workoutDao.entriesWithSetsBetween(first, last)
                 entries.forEach { entryWithSets ->
                     entryWithSets.sets
                         .filter { set -> !set.confirmed }
@@ -130,7 +135,7 @@ internal class CalendarRecordService(
         }
     }
 
-    suspend fun pushFuturePlan(startDate: String, dayCount: Int): PlanPushResult {
+    suspend fun pushFuturePlan(startDate: String, dayCount: Int): PlanPushResult = withLocalDataGate {
         require(dayCount in 1..MAX_PLAN_PUSH_DAYS) { "dayCount must be between 1 and $MAX_PLAN_PUSH_DAYS" }
         val start = LocalDate.parse(startDate, DateTimeFormatter.ISO_LOCAL_DATE)
         try {
@@ -142,7 +147,7 @@ internal class CalendarRecordService(
         val snapshot = workoutDao.entriesWithSetsStarting(startDate)
             .filter { record -> record.sets.any { !it.confirmed } }
         val queryMillis = SystemClock.elapsedRealtime() - startedAt
-        if (snapshot.isEmpty()) return PlanPushResult()
+        if (snapshot.isEmpty()) return@withLocalDataGate PlanPushResult()
 
         val shifted = snapshot.map { record ->
             val targetDate = try {
@@ -152,22 +157,24 @@ internal class CalendarRecordService(
             } catch (error: DateTimeException) {
                 throw IllegalArgumentException("dayCount overflows LocalDate", error)
             }
-            ShiftedPlan(record, targetDate, record.sets.filterNot(WorkoutSet::isAnalysisEligibleCompletedSet))
+            ShiftedPlan(record, targetDate, record.sets.filterNot(WorkoutSet::confirmed))
         }
         val affectedDates = shifted.flatMap { listOf(it.source.entry.date, it.targetDate) }.distinct()
 
-        val result = mutateDates(affectedDates) {
-            val progressionLinks = db.programProgressionDao().links().associateBy { it.entryId }
-            val progressionPrescriptions = db.programProgressionDao().prescriptions().groupBy { it.entryId }
-            shifted.forEach { item ->
+        // Pushing plans cannot create a newly completed day: confirmed sets stay
+        // on their original dates and all target sets are unconfirmed.
+        val result = mutateDates(affectedDates, trackStrengthCompletion = false) {
+            val mixed = shifted.filter { item -> item.source.sets.any(WorkoutSet::confirmed) }
+            // Whole-plan shifts retain entry/set IDs, stable keys, source identity,
+            // progression links and prescriptions without delete/reinsert.
+            val progressionLinks = if (mixed.isNotEmpty()) {
+                db.programProgressionDao().links().associateBy { it.entryId }
+            } else emptyMap()
+            mixed.forEach { item ->
                 item.plannedSets.forEach { workoutDao.deleteSet(it) }
-                val confirmed = item.source.sets.filter(WorkoutSet::isAnalysisEligibleCompletedSet).sortedBy(WorkoutSet::setIndex)
-                if (confirmed.isEmpty()) {
-                    workoutDao.deleteEntryById(item.source.entry.id)
-                } else {
-                    confirmed.forEachIndexed { index, set ->
-                        if (set.setIndex != index + 1) workoutDao.updateSetIndex(set.id, index + 1)
-                    }
+                val confirmed = item.source.sets.filter(WorkoutSet::confirmed).sortedBy(WorkoutSet::setIndex)
+                confirmed.forEachIndexed { index, set ->
+                    if (set.setIndex != index + 1) workoutDao.updateSetIndex(set.id, index + 1)
                 }
             }
 
@@ -177,41 +184,41 @@ internal class CalendarRecordService(
                 .chunked(400)
                 .flatMap { workoutDao.maxDisplayOrdersForDates(it) }
                 .associate { it.date to it.maxDisplayOrder }
-            val progressionService = ProgramProgressionService(db)
             shifted.groupBy(ShiftedPlan::targetDate).toSortedMap().forEach { (targetDate, items) ->
                 var displayOrder = targetOrders[targetDate] ?: 0
                 items.sortedWith(compareBy({ it.source.entry.date }, { it.source.entry.createdAt }, { it.source.entry.id }))
                     .forEach { item ->
                         beforePlanShiftInsert(insertIndex++)
-                        val sourceHadConfirmed = item.source.sets.any(WorkoutSet::isAnalysisEligibleCompletedSet)
-                        val entryId = workoutDao.insertEntry(
-                            item.source.entry.copy(
-                                id = 0,
-                                date = targetDate,
-                                createdAt = createdAt++,
-                                completedAt = null,
-                                firstConfirmedAt = null,
-                                performedAt = null,
+                        if (item.source.sets.none(WorkoutSet::confirmed)) {
+                            workoutDao.shiftPlannedEntryDate(
+                                entryId = item.source.entry.id,
+                                targetDate = targetDate,
                                 displayOrder = ++displayOrder,
-                                backupSourceId = if (sourceHadConfirmed) {
-                                    workoutSourceIdentityProvider?.newWorkoutSourceId()
-                                } else {
-                                    item.source.entry.backupSourceId
-                                }
+                                createdAt = createdAt++
                             )
-                        )
-                        progressionLinks[item.source.entry.id]?.let { link ->
-                            if (!sourceHadConfirmed) {
-                                progressionService.relocate(link, progressionPrescriptions[link.entryId].orEmpty(), entryId)
-                            } else {
-                                // A split remainder is a detached plan, never a second occurrence with the same chain identity.
+                        } else {
+                            // Partly completed workouts must leave confirmed history
+                            // behind, with a detached remainder carrying a new source ID.
+                            val entryId = workoutDao.insertEntry(
+                                item.source.entry.copy(
+                                    id = 0,
+                                    date = targetDate,
+                                    createdAt = createdAt++,
+                                    completedAt = null,
+                                    firstConfirmedAt = null,
+                                    performedAt = null,
+                                    displayOrder = ++displayOrder,
+                                    backupSourceId = workoutSourceIdentityProvider?.newWorkoutSourceId()
+                                )
+                            )
+                            progressionLinks[item.source.entry.id]?.let { link ->
                                 db.programProgressionDao().putLink(link.copy(needsReview = true))
                             }
-                        }
-                        item.plannedSets.sortedBy(WorkoutSet::setIndex).forEachIndexed { index, set ->
-                            workoutDao.insertSet(
-                                set.copy(id = 0, entryId = entryId, setIndex = index + 1, confirmed = false)
-                            )
+                            item.plannedSets.sortedBy(WorkoutSet::setIndex).forEachIndexed { index, set ->
+                                workoutDao.insertSet(
+                                    set.copy(id = 0, entryId = entryId, setIndex = index + 1, confirmed = false)
+                                )
+                            }
                         }
                     }
             }
@@ -221,7 +228,7 @@ internal class CalendarRecordService(
             )
         }
         Log.d("CalendarPlanPush", "candidateQuery=${queryMillis}ms total=${SystemClock.elapsedRealtime() - startedAt}ms shiftedEntries=${result.shiftedEntryCount}")
-        return result
+        result
     }
 
     suspend fun copyDateRangeAsPlan(
@@ -336,9 +343,17 @@ internal class CalendarRecordService(
         val plannedSets: List<WorkoutSet>
     )
 
-    private suspend fun <T> mutateDates(dates: Collection<String>, mutation: suspend () -> T): T {
+    private suspend fun <T> mutateDates(
+        dates: Collection<String>,
+        trackStrengthCompletion: Boolean = true,
+        mutation: suspend () -> T
+    ): T {
         val tracked: suspend () -> T = { db.withCloudRevision(CloudMutationScope.workouts(dates), mutation) }
-        return strengthPosteriorCoordinator?.mutateDates(dates, mutation = tracked) ?: tracked()
+        return if (trackStrengthCompletion) {
+            strengthPosteriorCoordinator?.mutateDates(dates, mutation = tracked) ?: tracked()
+        } else {
+            tracked()
+        }
     }
 
     private companion object {

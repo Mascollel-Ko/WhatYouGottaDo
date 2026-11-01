@@ -289,7 +289,44 @@ class CalendarRecordServiceTest {
         val allSets = db.workoutDao().allSets()
         assertEquals(allEntries.size, allEntries.map { it.id }.distinct().size)
         assertEquals(allSets.size, allSets.map { it.id }.distinct().size)
-        assertTrue(sourceIds.none { id -> allEntries.any { it.id == id } })
+        // A planned-only shift preserves entry identity instead of recreating it.
+        assertTrue(sourceIds.all { id -> allEntries.any { it.id == id } })
+    }
+
+    @Test
+    fun pushPlanOnlyPreservesEntrySetAndSessionIdentity() = runBlocking {
+        val db = newDatabase()
+        val key = insertExercise(db)
+        val id = insertEntryWithSets(db, "2026-08-29", key, "Preserve", listOf(false, false))
+        val before = db.workoutDao().entriesWithSets("2026-08-29").single()
+        val originalSource = before.entry.backupSourceId
+        val originalSession = before.entry.sessionStableKey
+        val originalSetIds = before.sets.map { it.id }.sorted()
+
+        service(db).pushFuturePlan("2026-08-29", 2)
+
+        val after = db.workoutDao().entriesWithSets("2026-08-31").single()
+        assertEquals(id, after.entry.id)
+        assertEquals(originalSource, after.entry.backupSourceId)
+        assertEquals(originalSession, after.entry.sessionStableKey)
+        assertEquals(originalSetIds, after.sets.map { it.id }.sorted())
+        assertEquals(listOf(false, false), after.confirmedStates())
+        assertTrue(db.workoutDao().entriesWithSets("2026-08-29").isEmpty())
+    }
+
+    @Test
+    fun deletingLongRangeRemovesOnlyChosenDatesAndDoesNotRequireEveryDayToBePopulated() = runBlocking {
+        val db = newDatabase()
+        val key = insertExercise(db)
+        insertEntryWithSets(db, "2026-01-01", key, "Old", listOf(true))
+        insertEntryWithSets(db, "2026-06-02", key, "Remove", listOf(false, true))
+        insertEntryWithSets(db, "2026-12-31", key, "Keep", listOf(true))
+
+        service(db).deleteDateRange("2026-11-30", "2026-02-01", includeConfirmed = true)
+
+        assertEquals(listOf("Old", "Keep"),
+            db.workoutDao().allEntries().map { it.exerciseName })
+        assertEquals(2, db.workoutDao().allSets().size)
     }
 
     @Test

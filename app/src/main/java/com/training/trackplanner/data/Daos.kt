@@ -214,6 +214,30 @@ interface WorkoutDao {
     suspend fun entriesWithSetsStarting(date: String): List<WorkoutEntryWithSets>
 
     @Query(
+        """
+        UPDATE workout_entries
+        SET date = :targetDate, displayOrder = :displayOrder, createdAt = :createdAt,
+            completedAt = NULL, firstConfirmedAt = NULL, performedAt = NULL
+        WHERE id = :entryId
+        """
+    )
+    suspend fun shiftPlannedEntryDate(entryId: Long, targetDate: String, displayOrder: Int, createdAt: Long)
+
+    @Query("SELECT DISTINCT date FROM workout_entries WHERE date BETWEEN :first AND :last ORDER BY date")
+    suspend fun datesWithEntriesBetween(first: String, last: String): List<String>
+
+    @Query(
+        """
+        DELETE FROM workout_sets
+        WHERE entryId IN (SELECT id FROM workout_entries WHERE date BETWEEN :first AND :last)
+        """
+    )
+    suspend fun deleteSetsBetween(first: String, last: String)
+
+    @Query("DELETE FROM workout_entries WHERE date BETWEEN :first AND :last")
+    suspend fun deleteEntriesBetween(first: String, last: String)
+
+    @Query(
         "SELECT date, COALESCE(MAX(displayOrder), 0) AS maxDisplayOrder " +
             "FROM workout_entries WHERE date IN (:dates) GROUP BY date"
     )

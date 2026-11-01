@@ -1379,8 +1379,10 @@ class TrainingRepository internal constructor(
 
     suspend fun deleteDate(date: String) = withContext(Dispatchers.IO) {
         val beforeRevision = db.cloudBackupStateDao().getOrCreate().localRevision
-        localRecovery.protect(RecoveryTrigger.BEFORE_BULK_CHANGE) { calendarRecordService.deleteDate(date) }
-            .also { LocalRecoveryScheduler.schedule(context) }
+        // Calendar deletes rely on Room atomicity and the existing debounced cloud
+        // backup / stable local recovery schedule; no full pre-edit CSV snapshot.
+        calendarRecordService.deleteDate(date)
+        LocalRecoveryScheduler.schedule(context)
         scheduleAutomaticCloudBackupIfChanged(beforeRevision)
     }
 
@@ -1390,9 +1392,8 @@ class TrainingRepository internal constructor(
         includeConfirmed: Boolean
     ) = withContext(Dispatchers.IO) {
         val beforeRevision = db.cloudBackupStateDao().getOrCreate().localRevision
-        localRecovery.protect(RecoveryTrigger.BEFORE_BULK_CHANGE) {
-            calendarRecordService.deleteDateRange(startDate, endDate, includeConfirmed)
-        }.also { LocalRecoveryScheduler.schedule(context) }
+        calendarRecordService.deleteDateRange(startDate, endDate, includeConfirmed)
+        LocalRecoveryScheduler.schedule(context)
         scheduleAutomaticCloudBackupIfChanged(beforeRevision)
     }
 
@@ -1424,10 +1425,8 @@ class TrainingRepository internal constructor(
     suspend fun pushFuturePlan(startDate: String, dayCount: Int): PlanPushResult =
         withContext(Dispatchers.IO) {
             val beforeRevision = db.cloudBackupStateDao().getOrCreate().localRevision
-            val result =
-            localRecovery.protect(RecoveryTrigger.BEFORE_BULK_CHANGE) {
-                calendarRecordService.pushFuturePlan(startDate, dayCount)
-            }.also { LocalRecoveryScheduler.schedule(context) }
+            val result = calendarRecordService.pushFuturePlan(startDate, dayCount)
+            LocalRecoveryScheduler.schedule(context)
             scheduleAutomaticCloudBackupIfChanged(beforeRevision)
             result
         }
