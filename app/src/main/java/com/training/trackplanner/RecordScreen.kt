@@ -47,6 +47,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import com.training.trackplanner.health.WatchWorkoutImportDialog
+import com.training.trackplanner.health.WatchSleepConditionEntry
 import com.training.trackplanner.data.RecordEntryOrdering
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.WorkoutSet
@@ -94,6 +96,9 @@ internal fun RecordScreen(
     val hapticFeedback = LocalHapticFeedback.current
     val exerciseMap = remember(exercises) { exercises.associateBy { exercise -> exercise.stableKey } }
     var showExercisePicker by rememberSaveable { mutableStateOf(false) }
+    var watchImportEntryId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var watchImportAutomatic by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(selectedDate) { watchImportEntryId = null }
     var showCalendar by rememberSaveable { mutableStateOf(false) }
     var detailOrigin by rememberSaveable { mutableStateOf(RecordDetailOrigin.Normal) }
     var calendarSearchQuery by rememberSaveable { mutableStateOf("") }
@@ -208,9 +213,23 @@ internal fun RecordScreen(
                 viewModel.addWorkout(selectedDate, exercise.stableKey) { addedEntryId ->
                     pendingAddedAfterConfirmed = hadConfirmedSet
                     pendingAddedEntryId = addedEntryId
+                    if (exercise.category == "스포츠" || exercise.category == "유산소운동") {
+                        watchImportAutomatic = true
+                        watchImportEntryId = addedEntryId
+                    }
                 }
                 showExercisePicker = false
             }
+        )
+    }
+
+    sortedEntries.firstOrNull { it.entry.id == watchImportEntryId }?.let { watchTarget ->
+        WatchWorkoutImportDialog(
+            target = watchTarget,
+            date = selectedDate,
+            automatic = watchImportAutomatic,
+            onDismiss = { watchImportEntryId = null },
+            onApply = viewModel::applyWatchDurationIfUnchanged
         )
     }
 
@@ -378,6 +397,10 @@ internal fun RecordScreen(
                     onUpdateSet = viewModel::updateSet,
                     onDeleteSet = viewModel::deleteSet,
                     onDeleteEntry = { viewModel.deleteWorkoutEntry(entryWithSets.entry) },
+                    onWatchImport = {
+                        watchImportAutomatic = false
+                        watchImportEntryId = entryId
+                    },
                     onStopRestTimer = restTimerSessionController::stop,
                     programProvenance = {
                         programLinks.firstOrNull { it.entryId == entryWithSets.entry.id }?.let { link ->
@@ -435,6 +458,12 @@ private fun RecordDailyConditionCard(
                     Text(stringResource(R.string.record_add_exercise), maxLines = 1, softWrap = false)
                 }
             }
+            WatchSleepConditionEntry(
+                date = date,
+                savedHours = checkIn?.sleepHours,
+                editorOpen = showEditor,
+                viewModel = viewModel
+            )
         }
     }
 

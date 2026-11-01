@@ -579,6 +579,27 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun fillSleepHoursIfEmpty(date: String, hours: Double, onResult: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            val applied = runCatching { repository.fillSleepHoursIfEmpty(date, hours) }.getOrDefault(false)
+            if (applied) refreshAnalysisSummaries()
+            onResult(applied)
+        }
+    }
+
+    fun applyWatchDurationIfUnchanged(
+        entryId: Long, setId: Long, expectedSeconds: Int, newSeconds: Int,
+        onResult: (Boolean) -> Unit
+    ) {
+        viewModelScope.launch {
+            val result = runCatching {
+                repository.applyWatchDurationIfUnchanged(entryId, setId, expectedSeconds, newSeconds)
+            }.getOrNull()
+            if (result != null) recordDerivedRefresh.afterCommit(result)
+            onResult(result != null)
+        }
+    }
+
     fun addSmashSpeed(date: String, speedKmh: Double) {
         viewModelScope.launch {
             repository.addSmashSpeed(date, speedKmh)

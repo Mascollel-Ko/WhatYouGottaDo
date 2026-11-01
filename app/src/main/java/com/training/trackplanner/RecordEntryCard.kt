@@ -79,6 +79,7 @@ internal fun WorkoutEntryCard(
     onUpdateSet: (RecordSetEdit) -> Unit,
     onDeleteSet: (WorkoutSet) -> Unit,
     onDeleteEntry: () -> Unit,
+    onWatchImport: () -> Unit = {},
     onStopRestTimer: () -> Unit,
     programProvenance: @Composable () -> Unit = {}
 ) {
@@ -265,6 +266,11 @@ internal fun WorkoutEntryCard(
                 )
             }
             programProvenance()
+            if (isSportDurationInput) {
+                TextButton(onClick = onWatchImport) {
+                    Text("워치에서 운동시간 가져오기")
+                }
+            }
             if (sets.any { it.loadState == com.training.trackplanner.data.ProgramLoadState.USER_CALIBRATION_REQUIRED }) {
                 Text(
                     text = stringResource(R.string.cold_start_strength_guidance),
