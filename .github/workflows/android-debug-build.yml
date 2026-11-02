@@ -205,3 +205,62 @@ jobs:
           name: WhatYouGottaDo-debug-apk
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+
+      # Optional on perf PRs / the corresponding merge or manual dispatch.
+      # This variant uses release-like code generation, not production credentials/signing.
+      - name: Assemble optimized performance APK
+        if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'perf/') || startsWith(github.event.head_commit.message, 'build(perf)')
+        env:
+          ANDROID_CI_KEYSTORE_PATH: ${{ runner.temp }}/whatyougottado-ci-debug.jks
+          ANDROID_CI_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_CI_KEYSTORE_PASSWORD }}
+          ANDROID_CI_KEY_ALIAS: ${{ secrets.ANDROID_CI_KEY_ALIAS }}
+          ANDROID_CI_KEY_PASSWORD: ${{ secrets.ANDROID_CI_KEY_PASSWORD }}
+          GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: ./gradlew :app:assemblePerf -Pgoogle.webClientId="$GOOGLE_WEB_CLIENT_ID" -Psupabase.publishableKey="$SUPABASE_PUBLISHABLE_KEY"
+
+      - name: Verify optimized performance APK is signed and not debuggable
+        if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'perf/') || startsWith(github.event.head_commit.message, 'build(perf)')
+        run: |
+          set -euo pipefail
+          perf_apk="$(find app/build/outputs/apk/perf -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          debug_apk="$(find app/build/outputs/apk/debug -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          test -s "$perf_apk" && test -s "$debug_apk"
+          apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner -print | sort -V | tail -n 1)"
+          aapt="$(find "$ANDROID_HOME/build-tools" -type f -name aapt -print | sort -V | tail -n 1)"
+          test -x "$apksigner" && test -x "$aapt"
+          "$apksigner" verify --print-certs "$perf_apk" > "$RUNNER_TEMP/perf-certs.txt"
+          "$apksigner" verify --print-certs "$debug_apk" > "$RUNNER_TEMP/debug-certs.txt"
+          digest() {
+            grep -i -m1 'SHA-1 digest:' "$1" |
+              sed -En 's/.*SHA-1 digest:[[:space:]]*([0-9A-Fa-f:]+).*/\1/p' |
+              tr -d ':\r[:space:]' | tr '[:lower:]' '[:upper:]'
+          }
+          perf_digest="$(digest "$RUNNER_TEMP/perf-certs.txt")"
+          debug_digest="$(digest "$RUNNER_TEMP/debug-certs.txt")"
+          test -n "$perf_digest" && test "$perf_digest" = "$debug_digest" || {
+            echo "::error::Optimized and debug APK signatures differ"
+            exit 1
+          }
+          badging="$("$aapt" dump badging "$perf_apk")"
+          echo "$badging" | grep -q "^package: name='com.whatyougottado.app'" || {
+            echo "::error::Performance APK uses the wrong application ID"
+            exit 1
+          }
+          if echo "$badging" | grep -q '^application-debuggable'; then
+            echo "::error::Performance build must not be debuggable"
+            exit 1
+          fi
+          {
+            echo '## Optimized performance APK'
+            echo 'Not debuggable; R8 minification enabled; CI test signing matches the debug APK.'
+            echo 'For scrolling comparison only. Not a publishing artifact.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload optimized performance APK
+        if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'perf/') || startsWith(github.event.head_commit.message, 'build(perf)')
+        uses: actions/upload-artifact@v4
+        with:
+          name: WhatYouGottaDo-performance-apk
+          path: app/build/outputs/apk/perf/*.apk
+          if-no-files-found: error
