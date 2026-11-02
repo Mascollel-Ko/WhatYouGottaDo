@@ -67,7 +67,7 @@ internal fun WatchSleepConditionEntry(
             }
             if (LocalDate.parse(date).isAfter(LocalDate.now())) return@LaunchedEffect
             status = "워치 수면 확인 중…"
-            val values = gateway.sleep(LocalDate.parse(date))
+            val values = gateway.sleep(LocalDate.parse(date), forceRefresh = refresh > 0)
             // One unambiguous nightly sleep is required for unattended auto-fill.
             multiple = values.size > 1
             sleep = values.singleOrNull()
