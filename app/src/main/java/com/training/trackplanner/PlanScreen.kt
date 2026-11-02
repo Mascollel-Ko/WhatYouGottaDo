@@ -940,19 +940,27 @@ private fun ProgramDetailScreen(
                 body = "주차와 요일별 운동 구성을 텍스트 요약으로 확인합니다."
             )
         }
-        items(groupedKeys, key = { "${it.first}-${it.second}" }) { key ->
-            val dayItems = dayItemsByKey[key].orEmpty()
-            ProgramDaySummarySection(
-                weekNumber = key.first,
-                dayOfWeek = key.second,
-                items = dayItems,
-                setsByItemId = setsByItemId,
-                onExerciseInfo = { stableKey -> infoExerciseKey = stableKey },
-                availableExerciseKeys = availableExerciseKeys,
-                progressionControl = { itemId ->
-                    ProgressionTrackControl(itemId, progressionIndex, viewModel::configureProgression)
-                }
-            )
+        // A full day used to be one LazyColumn item. Rendering a long day's
+        // every interactive exercise card during one fling caused frame stalls.
+        groupedKeys.forEach { key ->
+            item(key = "day-${key.first}-${key.second}", contentType = "day-header") {
+                ProgramDaySummaryHeader(key.first, key.second)
+            }
+            items(
+                items = dayItemsByKey[key].orEmpty(),
+                key = { exercise -> "program-item-${exercise.id}" },
+                contentType = { "program-exercise" }
+            ) { exercise ->
+                ProgramDaySummaryExerciseCard(
+                    item = exercise,
+                    storedSets = setsByItemId[exercise.id].orEmpty(),
+                    onExerciseInfo = { stableKey -> infoExerciseKey = stableKey },
+                    availableExerciseKeys = availableExerciseKeys,
+                    progressionControl = { itemId ->
+                        ProgressionTrackControl(itemId, progressionIndex, viewModel::configureProgression)
+                    }
+                )
+            }
         }
     }
 }
