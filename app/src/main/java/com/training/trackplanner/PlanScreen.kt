@@ -861,6 +861,7 @@ private fun ProgramDetailScreen(
     val progressionIndex = remember(items, setsByItemId, progressionBindings, progressionTracks) {
         ProgramProgressionDisplayIndex.build(items, setsByItemId, progressionBindings, progressionTracks)
     }
+    val metadataTranslator = rememberMetadataTranslator()
     var infoExerciseKey by rememberSaveable { mutableStateOf<String?>(null) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     val groupedKeys = remember(items) {
@@ -956,6 +957,7 @@ private fun ProgramDetailScreen(
                     storedSets = setsByItemId[exercise.id].orEmpty(),
                     onExerciseInfo = { stableKey -> infoExerciseKey = stableKey },
                     availableExerciseKeys = availableExerciseKeys,
+                    translator = metadataTranslator,
                     progressionControl = { itemId ->
                         ProgressionTrackControl(itemId, progressionIndex, viewModel::configureProgression)
                     }
