@@ -49,9 +49,9 @@ internal fun ProgramDaySummaryExerciseCard(
     storedSets: List<TrainingProgramItemSet>,
     onExerciseInfo: (String) -> Unit,
     availableExerciseKeys: Set<String>,
+    translator: MetadataTranslator,
     progressionControl: @Composable (Long) -> Unit = {}
 ) {
-    val translator = rememberMetadataTranslator()
     val displayName = localizedExerciseName(item.exerciseStableKey, item.exerciseName)
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -118,6 +118,7 @@ internal fun ProgramDaySummarySection(
     availableExerciseKeys: Set<String>,
     progressionControl: @Composable (Long) -> Unit = {}
 ) {
+    val translator = rememberMetadataTranslator()
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -129,6 +130,7 @@ internal fun ProgramDaySummarySection(
                 storedSets = setsByItemId[item.id].orEmpty(),
                 onExerciseInfo = onExerciseInfo,
                 availableExerciseKeys = availableExerciseKeys,
+                translator = translator,
                 progressionControl = progressionControl
             )
         }
