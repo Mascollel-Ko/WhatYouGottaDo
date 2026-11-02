@@ -56,6 +56,7 @@ import com.training.trackplanner.data.isAnalysisEligibleCompletedSet
 import java.time.LocalDate
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.map
 
 internal enum class RecordDetailOrigin { Normal, Calendar }
 
@@ -438,9 +439,12 @@ private fun RecordDailyConditionCard(
     viewModel: TrainingViewModel,
     onAddExercise: () -> Unit
 ) {
-    val checkIn by remember(date) {
-        viewModel.checkInForDate(date)
-    }.collectAsState(initial = null)
+    // The database's initial null state is not the same as a loaded day with no check-in.
+    // Do not issue Health Connect requests until the authoritative value is known.
+    val checkInSnapshot by remember(date) {
+        viewModel.checkInForDate(date).map { loaded -> true to loaded }
+    }.collectAsState(initial = false to null)
+    val (checkInLoaded, checkIn) = checkInSnapshot
     var showEditor by rememberSaveable(date) { mutableStateOf(false) }
 
     Card(
@@ -473,12 +477,16 @@ private fun RecordDailyConditionCard(
                     Text(stringResource(R.string.record_add_exercise), maxLines = 1, softWrap = false)
                 }
             }
-            WatchSleepConditionEntry(
-                date = date,
-                savedHours = checkIn?.sleepHours,
-                editorOpen = showEditor,
-                viewModel = viewModel
-            )
+            // A saved sleep value is final for automatic import. No availability,
+            // permissions or Health Connect read is attempted, even on a fling/re-entry.
+            if (checkInLoaded && checkIn?.sleepHours == null) {
+                WatchSleepConditionEntry(
+                    date = date,
+                    savedHours = null,
+                    editorOpen = showEditor,
+                    viewModel = viewModel
+                )
+            }
         }
     }
 
