@@ -84,7 +84,7 @@ internal fun WorkoutEntryCard(
     programProvenance: @Composable () -> Unit = {}
 ) {
     val entry = entryWithSets.entry
-    val sets = entryWithSets.sets.sortedBy { it.setIndex }
+    val sets = remember(entryWithSets.sets) { entryWithSets.sets.sortedBy { it.setIndex } }
     val showWeight = shouldShowWeight(entry)
     val isSportDurationInput = shouldUseSportDurationInput(entry, exercise, showWeight)
     val hasConfirmedSet = sets.any { set -> set.confirmed }

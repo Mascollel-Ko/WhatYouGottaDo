@@ -39,6 +39,7 @@ internal fun WatchSleepConditionEntry(
     val context = LocalContext.current
     val gateway = remember(context) { WatchHealthData(context) }
     val prefs = remember(context) { WatchImportPreferences(context) }
+    val healthConnectAvailable = remember(gateway) { gateway.available() }
     var refresh by remember { mutableIntStateOf(0) }
     var enabled by remember { mutableStateOf(prefs.autoSleep) }
     var permitted by remember { mutableStateOf(false) }
@@ -54,7 +55,7 @@ internal fun WatchSleepConditionEntry(
     LaunchedEffect(date, refresh) {
         sleep = null
         multiple = false
-        if (!gateway.available()) {
+        if (!healthConnectAvailable) {
             status = "Health Connect를 사용할 수 없습니다."
             permitted = false
             return@LaunchedEffect
@@ -96,7 +97,7 @@ internal fun WatchSleepConditionEntry(
 
     Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
         when {
-            !gateway.available() -> Unit
+            !healthConnectAvailable -> Unit
             !permitted -> {
                 TextButton(
                     onClick = {
