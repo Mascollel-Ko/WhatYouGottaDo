@@ -34,6 +34,81 @@ import com.training.trackplanner.localization.localizedExerciseName
 import com.training.trackplanner.localization.localizedProgramName
 
 @Composable
+internal fun ProgramDaySummaryHeader(weekNumber: Int, dayOfWeek: Int) {
+    Text(
+        text = programDayLabel(weekNumber, dayOfWeek),
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold
+    )
+}
+
+/** A single lazy item: only the exercise cards entering the viewport are composed. */
+@Composable
+internal fun ProgramDaySummaryExerciseCard(
+    item: TrainingProgramItem,
+    storedSets: List<TrainingProgramItemSet>,
+    onExerciseInfo: (String) -> Unit,
+    availableExerciseKeys: Set<String>,
+    progressionControl: @Composable (Long) -> Unit = {}
+) {
+    val translator = rememberMetadataTranslator()
+    val displayName = localizedExerciseName(item.exerciseStableKey, item.exerciseName)
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.weight(1f)) {
+                    MaterialText(displayName, fontWeight = FontWeight.SemiBold)
+                    item.category.takeIf(String::isNotBlank)?.let { category ->
+                        Text(
+                            translator.translate("exercise.category", category).orEmpty(),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                if (item.exerciseStableKey in availableExerciseKeys) {
+                    IconButton(onClick = { onExerciseInfo(item.exerciseStableKey) }) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = stringResource(
+                                R.string.exercise_info_content_description,
+                                displayName
+                            )
+                        )
+                    }
+                }
+            }
+            programPrescriptionLines(item, storedSets).forEach { line ->
+                Text(line, style = MaterialTheme.typography.bodyMedium)
+            }
+            if (item.restSeconds > 0) {
+                Text(
+                    stringResource(R.string.inter_set_rest, item.restSeconds),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            progressionControl(item.id)
+            if (item.prescription.isNotBlank()) {
+                Text(
+                    item.prescription,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+/** Retained for existing call sites; the detailed plan list uses item-level virtualization. */
+@Composable
 internal fun ProgramDaySummarySection(
     weekNumber: Int,
     dayOfWeek: Int,
@@ -43,73 +118,19 @@ internal fun ProgramDaySummarySection(
     availableExerciseKeys: Set<String>,
     progressionControl: @Composable (Long) -> Unit = {}
 ) {
-    val translator = rememberMetadataTranslator()
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text(
-            text = programDayLabel(weekNumber, dayOfWeek),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-        )
+        ProgramDaySummaryHeader(weekNumber, dayOfWeek)
         items.forEach { item ->
-            val displayName = localizedExerciseName(item.exerciseStableKey, item.exerciseName)
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Column(
-                    modifier = Modifier.padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            MaterialText(displayName, fontWeight = FontWeight.SemiBold)
-                            item.category.takeIf(String::isNotBlank)?.let { category ->
-                                Text(
-                                    translator.translate("exercise.category", category).orEmpty(),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                        if (item.exerciseStableKey in availableExerciseKeys) {
-                            IconButton(onClick = { onExerciseInfo(item.exerciseStableKey) }) {
-                                Icon(
-                                    imageVector = Icons.Default.Info,
-                                    contentDescription = stringResource(
-                                        R.string.exercise_info_content_description,
-                                        displayName
-                                    )
-                                )
-                            }
-                        }
-                    }
-                    programPrescriptionLines(
-                        item,
-                        setsByItemId[item.id].orEmpty()
-                    ).forEach { line ->
-                        Text(line, style = MaterialTheme.typography.bodyMedium)
-                    }
-                    if (item.restSeconds > 0) {
-                        Text(
-                            stringResource(R.string.inter_set_rest, item.restSeconds),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    progressionControl(item.id)
-                    if (item.prescription.isNotBlank()) {
-                        Text(
-                            item.prescription,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
+            ProgramDaySummaryExerciseCard(
+                item = item,
+                storedSets = setsByItemId[item.id].orEmpty(),
+                onExerciseInfo = onExerciseInfo,
+                availableExerciseKeys = availableExerciseKeys,
+                progressionControl = progressionControl
+            )
         }
     }
 }
