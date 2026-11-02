@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.training.trackplanner.health.WatchWorkoutImportDialog
 import com.training.trackplanner.health.WatchSleepConditionEntry
+import com.training.trackplanner.health.WatchSleepLookupPolicy
 import com.training.trackplanner.data.RecordEntryOrdering
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.WorkoutSet
@@ -479,7 +480,7 @@ private fun RecordDailyConditionCard(
             }
             // A saved sleep value is final for automatic import. No availability,
             // permissions or Health Connect read is attempted, even on a fling/re-entry.
-            if (checkInLoaded && checkIn?.sleepHours == null) {
+            if (WatchSleepLookupPolicy.shouldRead(checkInLoaded, checkIn?.sleepHours)) {
                 WatchSleepConditionEntry(
                     date = date,
                     savedHours = null,
