@@ -949,7 +949,9 @@ private fun ProgramDetailScreen(
                 setsByItemId = setsByItemId,
                 onExerciseInfo = { stableKey -> infoExerciseKey = stableKey },
                 availableExerciseKeys = availableExerciseKeys,
-                progressionControl = { itemId -> ProgressionTrackControl(itemId, progressionIndex) }
+                progressionControl = { itemId ->
+                    ProgressionTrackControl(itemId, progressionIndex, viewModel::configureProgression)
+                }
             )
         }
     }
