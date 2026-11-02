@@ -95,6 +95,21 @@ android {
                 signingConfig = signingConfigs.getByName("ciDebug")
             }
         }
+
+        // Installable performance comparison, NOT a production publishing artifact.
+        // Same package and CI certificate as the existing debug APK so user data is
+        // retained when installing over the CI debug build.
+        create("perf") {
+            initWith(getByName("release"))
+            matchingFallbacks.add("release")
+            isDebuggable = false
+            isMinifyEnabled = true
+            isShrinkResources = false
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+            if (ciSigningConfigured) {
+                signingConfig = signingConfigs.getByName("ciDebug")
+            }
+        }
     }
 
     sourceSets {
