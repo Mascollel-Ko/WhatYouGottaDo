@@ -316,10 +316,10 @@ internal fun RecordScreen(
                 )
             }
         } else {
-            items(sortedEntries, key = { it.entry.id }) { entryWithSets ->
+            items(sortedEntries, key = { it.entry.id }, contentType = { "workout-entry" }) { entryWithSets ->
                 val entryId = entryWithSets.entry.id
                 val isDragging = draggedEntryId == entryId
-                val dragModifier = Modifier.pointerInput(entryId, selectedDate, sortedEntries) {
+                val dragModifier = Modifier.pointerInput(entryId, selectedDate, sortedEntryIds) {
                     detectDragGesturesAfterLongPress(
                         onDragStart = {
                             draggedEntryId = entryId
