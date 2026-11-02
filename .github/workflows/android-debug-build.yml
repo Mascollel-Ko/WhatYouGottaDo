@@ -233,8 +233,8 @@ jobs:
           "$apksigner" verify --print-certs "$debug_apk" > "$RUNNER_TEMP/debug-certs.txt"
           digest() {
             grep -i -m1 'SHA-1 digest:' "$1" |
-              sed -En 's/.*SHA-1 digest:[[:space:]]*([0-9A-Fa-f:]+).*/\\1/p' |
-              tr -d ':\\r[:space:]' | tr '[:lower:]' '[:upper:]'
+              sed -En 's/.*SHA-1 digest:[[:space:]]*([0-9A-Fa-f:]+).*/\1/p' |
+              tr -d ':\r[:space:]' | tr '[:lower:]' '[:upper:]'
           }
           perf_digest="$(digest "$RUNNER_TEMP/perf-certs.txt")"
           debug_digest="$(digest "$RUNNER_TEMP/debug-certs.txt")"
