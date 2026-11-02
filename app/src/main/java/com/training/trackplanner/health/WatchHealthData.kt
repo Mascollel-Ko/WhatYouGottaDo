@@ -72,7 +72,8 @@ internal class WatchHealthData(context: Context) {
             val now = SystemClock.elapsedRealtime()
             val cached = WatchSleepReadCache.items[key]
             val maxAge = if (cached?.sessions?.isEmpty() == true) 60_000L else 180_000L
-            if (!forceRefresh && cached != null && now - cached.readAtMillis in 0 until maxAge) {
+            if (!forceRefresh && cached != null &&
+                now >= cached.readAtMillis && now - cached.readAtMillis < maxAge) {
                 cached.sessions
             } else {
                 val from = date.minusDays(1).atStartOfDay(zone).toInstant()
