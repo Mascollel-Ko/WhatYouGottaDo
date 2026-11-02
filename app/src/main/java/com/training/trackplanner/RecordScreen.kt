@@ -90,6 +90,18 @@ internal fun RecordScreen(
         viewModel.smashSpeedsForDate(selectedDate)
     }.collectAsState(initial = emptyList())
     val sortedEntries = remember(entries) { entries.sortedForRecordDisplay() }
+    val sortedEntryIds = remember(sortedEntries) { sortedEntries.map { it.entry.id } }
+    val visibleEntryIdSet = remember(sortedEntryIds) { sortedEntryIds.toHashSet() }
+    val programLinkByEntryId = remember(programLinks) { programLinks.associateBy { it.entryId } }
+    val pendingSuggestionByEntryId = remember(progressionSuggestions) {
+        progressionSuggestions
+            .filter { it.resolution == com.training.trackplanner.data.ProgressionResolution.PENDING }
+            .associateBy { it.targetEntryId }
+    }
+    val prescriptionsByEntryId = remember(programPrescriptions) {
+        programPrescriptions.groupBy { it.entryId }
+    }
+    // Retain existing progression refresh authority: only row-level presentation is cached.
     LaunchedEffect(entries, selectedDate) { viewModel.refreshProgression() }
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
@@ -319,7 +331,7 @@ internal fun RecordScreen(
                             dragOffsetY = 0f
                         },
                         onDragEnd = {
-                            val currentIds = sortedEntries.map { record -> record.entry.id }
+                            val currentIds = sortedEntryIds
                             val reorderedIds = RecordExerciseDragPolicy.reorderedEntryIds(
                                 orderedEntryIds = currentIds,
                                 movingEntryId = entryId,
@@ -341,7 +353,7 @@ internal fun RecordScreen(
                                 val center = draggedItem.offset + (draggedItem.size / 2f) + dragOffsetY
                                 val visibleEntries = listState.layoutInfo.visibleItemsInfo.mapNotNull { item ->
                                     val visibleEntryId = item.key as? Long
-                                    if (visibleEntryId != null && sortedEntries.any { it.entry.id == visibleEntryId }) {
+                                    if (visibleEntryId != null && visibleEntryId in visibleEntryIdSet) {
                                         VisibleRecordEntry(
                                             entryId = visibleEntryId,
                                             top = item.offset,
@@ -403,10 +415,13 @@ internal fun RecordScreen(
                     },
                     onStopRestTimer = restTimerSessionController::stop,
                     programProvenance = {
-                        programLinks.firstOrNull { it.entryId == entryWithSets.entry.id }?.let { link ->
-                            ProgramRecordProvenance(link, progressionSuggestions.lastOrNull {
-                                it.targetEntryId == link.entryId && it.resolution == com.training.trackplanner.data.ProgressionResolution.PENDING
-                            }, programPrescriptions.filter { it.entryId == link.entryId }, viewModel::resolveProgression)
+                        programLinkByEntryId[entryId]?.let { link ->
+                            ProgramRecordProvenance(
+                                link,
+                                pendingSuggestionByEntryId[entryId],
+                                prescriptionsByEntryId[entryId].orEmpty(),
+                                viewModel::resolveProgression
+                            )
                         }
                     }
                 )

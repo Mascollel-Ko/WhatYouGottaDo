@@ -1,6 +1,7 @@
 package com.training.trackplanner.health
 
 import android.content.Context
+import android.os.SystemClock
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.ExerciseSessionRecord
@@ -10,6 +11,7 @@ import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -53,29 +55,56 @@ internal class WatchHealthData(context: Context) {
                 .sortedBy { it.start }
         }
 
-    suspend fun sleep(date: LocalDate, zone: ZoneId = ZoneId.systemDefault()): List<WatchSleep> =
-        withContext(Dispatchers.IO) {
-            require(SLEEP_PERMISSION in permissions()) { "SLEEP_PERMISSION_REQUIRED" }
-            val from = date.minusDays(1).atStartOfDay(zone).toInstant()
-            val to = date.plusDays(1).atStartOfDay(zone).toInstant()
-            readPages<SleepSessionRecord>(from, to)
-                .filter { it.endTime > it.startTime && it.endTime.atZone(zone).toLocalDate() == date }
-                .map { record ->
-                    val phases = record.stages.map { WatchSleepMath.Stage(it.startTime, it.endTime, it.stage) }
-                    val evaluation = WatchSleepMath.evaluate(record.startTime, record.endTime, phases)
-                    WatchSleep(
-                        sourceId = record.metadata.dataOrigin.packageName + ":" + record.metadata.id,
-                        sourceName = record.metadata.dataOrigin.packageName,
-                        start = record.startTime,
-                        end = record.endTime,
-                        sleepMinutes = evaluation.sleepMinutes,
-                        elapsedMinutes = Duration.between(record.startTime, record.endTime).toMinutes().toInt(),
-                        reliable = evaluation.reliable
-                    )
+    /**
+     * A short-lived process-only cache avoids repeating the same Health Connect read when
+     * the daily condition card leaves and re-enters LazyColumn composition during scrolling.
+     * Permission is checked on every call; explicit refresh always bypasses the cache.
+     */
+    suspend fun sleep(
+        date: LocalDate,
+        zone: ZoneId = ZoneId.systemDefault(),
+        forceRefresh: Boolean = false
+    ): List<WatchSleep> = withContext(Dispatchers.IO) {
+        require(SLEEP_PERMISSION in permissions()) { "SLEEP_PERMISSION_REQUIRED" }
+        val key = date.toString() + "|" + zone.id
+        WatchSleepReadCache.mutex.lock()
+        try {
+            val now = SystemClock.elapsedRealtime()
+            val cached = WatchSleepReadCache.items[key]
+            val maxAge = if (cached?.sessions?.isEmpty() == true) 60_000L else 180_000L
+            if (!forceRefresh && cached != null &&
+                now >= cached.readAtMillis && now - cached.readAtMillis < maxAge) {
+                cached.sessions
+            } else {
+                val from = date.minusDays(1).atStartOfDay(zone).toInstant()
+                val to = date.plusDays(1).atStartOfDay(zone).toInstant()
+                val fresh = readPages<SleepSessionRecord>(from, to)
+                    .filter { it.endTime > it.startTime && it.endTime.atZone(zone).toLocalDate() == date }
+                    .map { record ->
+                        val phases = record.stages.map { WatchSleepMath.Stage(it.startTime, it.endTime, it.stage) }
+                        val evaluation = WatchSleepMath.evaluate(record.startTime, record.endTime, phases)
+                        WatchSleep(
+                            sourceId = record.metadata.dataOrigin.packageName + ":" + record.metadata.id,
+                            sourceName = record.metadata.dataOrigin.packageName,
+                            start = record.startTime,
+                            end = record.endTime,
+                            sleepMinutes = evaluation.sleepMinutes,
+                            elapsedMinutes = Duration.between(record.startTime, record.endTime).toMinutes().toInt(),
+                            reliable = evaluation.reliable
+                        )
+                    }
+                    .distinctBy { it.sourceId }
+                    .sortedByDescending { it.end }
+                if (WatchSleepReadCache.items.size >= 16) {
+                    WatchSleepReadCache.items.remove(WatchSleepReadCache.items.keys.first())
                 }
-                .distinctBy { it.sourceId }
-                .sortedByDescending { it.end }
+                WatchSleepReadCache.items[key] = CachedWatchSleep(now, fresh)
+                fresh
+            }
+        } finally {
+            WatchSleepReadCache.mutex.unlock()
         }
+    }
 
     private suspend inline fun <reified T : Record> readPages(from: Instant, to: Instant): List<T> {
         val client = HealthConnectClient.getOrCreate(appContext)
@@ -97,6 +126,17 @@ internal class WatchHealthData(context: Context) {
         } while (pageToken != null)
         return result
     }
+}
+
+private data class CachedWatchSleep(
+    val readAtMillis: Long,
+    val sessions: List<WatchSleep>
+)
+
+/** No raw sleep timeline is persisted; entries expire quickly and are bounded in memory. */
+private object WatchSleepReadCache {
+    val mutex = Mutex()
+    val items = LinkedHashMap<String, CachedWatchSleep>()
 }
 
 internal data class WatchSession(

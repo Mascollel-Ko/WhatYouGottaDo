@@ -81,25 +81,65 @@ internal fun progressionModeLabel(mode: ProgressionMode): String = stringResourc
     ProgressionMode.OFF -> R.string.progression_off
 })
 
+/**
+ * A per-screen snapshot, shared by all visible rows. Stable ordering is preserved:
+ * session choices follow tracks, and members follow program item order.
+ * No extra database subscriptions are created by individual exercise rows.
+ */
+internal class ProgramProgressionDisplayIndex private constructor(
+    val itemById: Map<Long, TrainingProgramItem>,
+    val bindingByItemId: Map<Long, ProgramProgressionItem>,
+    val trackById: Map<String, ProgramProgressionTrack>,
+    val tracksByProgramAndExercise: Map<Pair<String, String>, List<ProgramProgressionTrack>>,
+    val membersByTrackId: Map<String?, List<TrainingProgramItem>>,
+    val setsByItemId: Map<Long, List<TrainingProgramItemSet>>
+) {
+    companion object {
+        fun build(
+            items: List<TrainingProgramItem>,
+            setsByItemId: Map<Long, List<TrainingProgramItemSet>>,
+            bindings: List<ProgramProgressionItem>,
+            tracks: List<ProgramProgressionTrack>
+        ): ProgramProgressionDisplayIndex {
+            val byItem = bindings.associateBy { it.programItemId }
+            return ProgramProgressionDisplayIndex(
+                itemById = items.associateBy { it.id },
+                bindingByItemId = byItem,
+                trackById = tracks.associateBy { it.id },
+                tracksByProgramAndExercise = tracks.groupBy { it.programStableKey to it.exerciseStableKey },
+                membersByTrackId = items.groupBy { byItem[it.id]?.trackId },
+                setsByItemId = setsByItemId
+            )
+        }
+    }
+}
+
 @Composable
-internal fun ProgressionTrackControl(itemId: Long, viewModel: TrainingViewModel, items: List<TrainingProgramItem>, sets: List<TrainingProgramItemSet>) {
-    val bindings by viewModel.progressionItems.collectAsState(emptyList())
-    val tracks by viewModel.progressionTracks.collectAsState(emptyList())
-    val binding = bindings.firstOrNull { it.programItemId == itemId } ?: return
-    val track = tracks.firstOrNull { it.id == binding.trackId } ?: return
-    val item = items.firstOrNull { it.id == itemId } ?: return
-    val options = tracks.filter { it.programStableKey == track.programStableKey && it.exerciseStableKey == track.exerciseStableKey }.mapNotNull { session ->
-        val ids = bindings.filter { it.trackId == session.id }.map { it.programItemId }.toSet()
-        val members = items.filter { it.id in ids }
-        if (members.isEmpty()) null else ProgressionSessionOption(session,
-            sessionSummary(item.exerciseStableKey, item.exerciseName, session, members.map { member -> ProgramSetPrescriptionResolver.resolve(member, sets.filter { it.programItemId == member.id }) }),
-            members.map { it.dayOfWeek }.distinct().sorted().map { localizedWeekday(java.time.DayOfWeek.of(it)) }.joinToString(" · "))
+internal fun ProgressionTrackControl(
+    itemId: Long,
+    index: ProgramProgressionDisplayIndex,
+    onConfigure: (Long, ProgressionLinkMode, String?, ProgressionRole, ProgressionMode, ProgressionRule) -> Unit
+) {
+    val binding = index.bindingByItemId[itemId] ?: return
+    val track = index.trackById[binding.trackId] ?: return
+    val item = index.itemById[itemId] ?: return
+    val sessions = index.tracksByProgramAndExercise[track.programStableKey to track.exerciseStableKey].orEmpty()
+    val options = sessions.mapNotNull { session ->
+        val members = index.membersByTrackId[session.id].orEmpty()
+        if (members.isEmpty()) null else ProgressionSessionOption(
+            session,
+            sessionSummary(item.exerciseStableKey, item.exerciseName, session, members.map { member ->
+                ProgramSetPrescriptionResolver.resolve(member, index.setsByItemId[member.id].orEmpty())
+            }),
+            members.map { it.dayOfWeek }.distinct().sorted()
+                .map { localizedWeekday(java.time.DayOfWeek.of(it)) }.joinToString(" · ")
+        )
     }
     var show by remember { mutableStateOf(false) }
     ProgressionSummaryRow(options.firstOrNull { it.track.id == track.id }?.label ?: item.exerciseName, track.needsReview, binding.linkMode == ProgressionLinkMode.OFF) { show = true }
     if (show) ProgressionSettingsSheet(track, binding, options.map { it.track },
         onDismiss = { show = false }, onSave = { link, id, role, mode, rule ->
-            viewModel.configureProgression(itemId, link, id, role, mode, rule)
+            onConfigure(itemId, link, id, role, mode, rule)
             show = false
         }, sessionOptions = options)
 }

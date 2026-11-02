@@ -843,6 +843,24 @@ private fun ProgramDetailScreen(
     val exercises by viewModel.exercises.collectAsState()
     val runtimeMetadata by viewModel.exerciseRuntimeMetadata.collectAsState()
     val muscleMetadataByKey by viewModel.exerciseMuscleMetadata.collectAsState()
+    // Subscribe once per program screen, not twice for every visible exercise row.
+    val progressionBindings by viewModel.progressionItems.collectAsState(emptyList())
+    val progressionTracks by viewModel.progressionTracks.collectAsState(emptyList())
+    val dayItemsByKey = remember(items) {
+        items.groupBy { it.weekNumber to it.dayOfWeek }
+            .mapValues { (_, rows) ->
+                rows.sortedWith(compareBy<TrainingProgramItem> { it.orderIndex }.thenBy { it.id })
+            }
+    }
+    val setsByItemId = remember(itemSets) {
+        itemSets.groupBy(TrainingProgramItemSet::programItemId)
+    }
+    val availableExerciseKeys = remember(exercises) {
+        exercises.mapTo(mutableSetOf()) { it.stableKey }
+    }
+    val progressionIndex = remember(items, setsByItemId, progressionBindings, progressionTracks) {
+        ProgramProgressionDisplayIndex.build(items, setsByItemId, progressionBindings, progressionTracks)
+    }
     var infoExerciseKey by rememberSaveable { mutableStateOf<String?>(null) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     val groupedKeys = remember(items) {
@@ -923,17 +941,17 @@ private fun ProgramDetailScreen(
             )
         }
         items(groupedKeys, key = { "${it.first}-${it.second}" }) { key ->
-            val dayItems = items
-                .filter { it.weekNumber == key.first && it.dayOfWeek == key.second }
-                .sortedWith(compareBy<TrainingProgramItem> { it.orderIndex }.thenBy { it.id })
+            val dayItems = dayItemsByKey[key].orEmpty()
             ProgramDaySummarySection(
                 weekNumber = key.first,
                 dayOfWeek = key.second,
                 items = dayItems,
-                setsByItemId = itemSets.groupBy(TrainingProgramItemSet::programItemId),
+                setsByItemId = setsByItemId,
                 onExerciseInfo = { stableKey -> infoExerciseKey = stableKey },
-                availableExerciseKeys = exercises.mapTo(mutableSetOf()) { it.stableKey },
-                progressionControl = { itemId -> ProgressionTrackControl(itemId, viewModel, items, itemSets) }
+                availableExerciseKeys = availableExerciseKeys,
+                progressionControl = { itemId ->
+                    ProgressionTrackControl(itemId, progressionIndex, viewModel::configureProgression)
+                }
             )
         }
     }
