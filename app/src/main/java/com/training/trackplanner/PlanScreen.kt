@@ -69,6 +69,9 @@ import com.training.trackplanner.data.personalized.PersonalizedPlanningAnswers
 import com.training.trackplanner.data.personalized.PersonalizedGenerationConstraints
 import com.training.trackplanner.data.personalized.PersonalizedPlanningPreflight
 import com.training.trackplanner.data.v22.BBalancedGoalImportance
+import com.training.trackplanner.data.v22.BBlockProgramDefinition
+import com.training.trackplanner.data.v22.BBlockDefinition
+import com.training.trackplanner.data.v22.BVolumePattern
 import com.training.trackplanner.data.v22.newBBalancedGenerationRequest
 import com.training.trackplanner.data.v22.restoredBBalancedWeekPlans
 import com.training.trackplanner.localization.localizedProgramName
@@ -413,6 +416,7 @@ private fun ProgramEditorScreen(
     var bHypertrophyImportance by rememberSaveable(program?.id ?: 0L) { mutableStateOf(0) }
     var bCoreImportance by rememberSaveable(program?.id ?: 0L) { mutableStateOf(0) }
     var bSportImportance by rememberSaveable(program?.id ?: 0L) { mutableStateOf(0) }
+    var bBlockPattern by rememberSaveable(program?.id ?: 0L) { mutableStateOf(BVolumePattern.STEADY) }
     var v22SkeletonCreated by rememberSaveable(program?.id ?: 0L) { mutableStateOf(false) }
 
     LaunchedEffect(program?.id) {
@@ -476,7 +480,8 @@ private fun ProgramEditorScreen(
                     hypertrophy = bHypertrophyImportance.takeIf { it > 0 },
                     core = bCoreImportance.takeIf { it > 0 },
                     sportSupport = bSportImportance.takeIf { it > 0 }
-                )
+                ),
+                blockProgram = BBlockProgramDefinition(blocks = listOf(BBlockDefinition(pattern = bBlockPattern)))
             )
         ) { generated ->
             personalizedDraft = generated.skeleton.withResolvedWeekDaySchedule()
@@ -645,6 +650,13 @@ private fun ProgramEditorScreen(
                                 enabled = !generationRunning
                             )
                         }
+                        Text("4주 블록 · 볼륨 주기화", style = MaterialTheme.typography.titleSmall)
+                        BBlockPatternPicker(
+                            weeks = 4,
+                            selected = bBlockPattern,
+                            onSelect = { bBlockPattern = it },
+                            enabled = !generationRunning
+                        )
                         Text(
                             text = "기본 4주 · 중요도 0은 기록 추천입니다. 4일 분산은 필요할 때만 적용하고, 삭제 후보는 감사 정보로만 기록합니다.",
                             style = MaterialTheme.typography.bodySmall,
