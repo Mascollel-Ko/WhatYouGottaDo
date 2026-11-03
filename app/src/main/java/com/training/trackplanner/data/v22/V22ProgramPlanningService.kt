@@ -58,6 +58,8 @@ internal fun BBalanced12WeekPlan.toSkeleton(
     request: V22GenerationRequest,
     exercises: Map<String, Exercise>
 ): GeneratedProgramSkeleton {
+    val blockCalendar = request.blockProgram?.let(::BBlockCalendar)
+    val calendarWeeks = blockCalendar?.calendarWeeks ?: input.weeks
     val skeletonRequest = ProgramSkeletonRequest(
         name = request.name,
         goal = ProgramGoal.FUNCTIONAL_CONDITIONING,
@@ -68,7 +70,7 @@ internal fun BBalanced12WeekPlan.toSkeleton(
         badmintonTransferRatio = 0.0,
         sportStrengthRatio = "AUTO",
         periodizationType = ProgramPeriodizationType.AUTO,
-        durationWeeks = input.weeks
+        durationWeeks = calendarWeeks
     )
     val focusByBlock = blocks.associate { it.block to it.focus }
     val items = weeks.flatMap { week ->
@@ -87,10 +89,17 @@ internal fun BBalanced12WeekPlan.toSkeleton(
                 val reps = sets.map(ProgramSetPrescription::reps).distinct().singleOrNull() ?: 0
                 val seconds = sets.map(ProgramSetPrescription::seconds).distinct().singleOrNull() ?: 0
                 val focus = focusByBlock.getValue(week.block)
+                val calendar = blockCalendar?.slot(
+                    week.block - 1,
+                    week.week - blocks[week.block - 1].startWeek,
+                    session.session
+                )
+                val calendarWeek = calendar?.week ?: week.week
+                val calendarDay = calendar?.day ?: session.session
                 ProgramSkeletonItem(
-                    localId = "b12-w${week.week}-d${session.session}-o${index + 1}-${item.stableKey}",
-                    weekNumber = week.week,
-                    dayOfWeek = session.session,
+                    localId = "b-w${calendarWeek}-d${calendarDay}-o${index + 1}-${item.stableKey}",
+                    weekNumber = calendarWeek,
+                    dayOfWeek = calendarDay,
                     orderIndex = index + 1,
                     exerciseStableKey = item.stableKey,
                     exerciseName = item.exercise,
@@ -114,14 +123,20 @@ internal fun BBalanced12WeekPlan.toSkeleton(
     }
     return GeneratedProgramSkeleton(
         suggestedName = request.name,
-        durationDays = input.weeks * 7,
+        durationDays = blockCalendar?.durationDays ?: input.weeks * 7,
         request = skeletonRequest,
         periodizationType = ProgramPeriodizationType.AUTO,
-        weekPlans = weeks.map { week ->
-            val focus = focusByBlock.getValue(week.block)
+        weekPlans = (1..calendarWeeks).map { calendarWeek ->
+            val active = weeks.lastOrNull { week ->
+                val block = blocks[week.block - 1]
+                val mapped = blockCalendar?.slot(week.block - 1, week.week - block.startWeek, 1)
+                (mapped?.week ?: week.week) == calendarWeek
+            }
+            val focus = active?.let { focusByBlock.getValue(it.block) }
             com.training.trackplanner.data.ProgramWeekPlan(
-                weekIndex = week.week,
-                weekType = "B_BALANCED_BLOCK_${week.block}_${focus.name}",
+                weekIndex = calendarWeek,
+                weekType = if (active == null) "B_BLOCK_RECOVERY"
+                    else "B_BALANCED_BLOCK_${active.block}_${focus!!.name}",
                 volumeMultiplier = 1.0,
                 intensityMultiplier = 1.0,
                 heavyExposureLimit = 2,
@@ -134,7 +149,9 @@ internal fun BBalanced12WeekPlan.toSkeleton(
             )
         },
         items = items,
-        weekDaySchedule = weeks.associate { week -> week.week to week.sessions.mapTo(linkedSetOf(), V22Session::session) },
+        weekDaySchedule = (1..calendarWeeks).associateWith { week ->
+            items.asSequence().filter { it.weekNumber == week }.mapTo(linkedSetOf()) { it.dayOfWeek }
+        },
         warnings = listOf(
             schema,
             "Historical kilograms are references only; every future load remains USER_CALIBRATION_REQUIRED.",
