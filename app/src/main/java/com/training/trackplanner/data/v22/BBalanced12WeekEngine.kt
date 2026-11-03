@@ -126,7 +126,7 @@ internal object BBalanced12WeekEngine {
             val blocks = focuses.mapIndexed { index, focus ->
                 val roster = rebalance(trimmed, focus, contributions, historyCeilings)
                 if (specification == null) roster else BBlockPurposePrescription.prepare(
-                    roster, specification.blocks[index], mainExerciseKeys, exercises
+                    roster, specification.blocks[index], mainExerciseKeys, exercises, focus
                 )
             }
             if (blocks.any { !structurallyFeasible(it) }) continue
@@ -158,7 +158,8 @@ internal object BBalanced12WeekEngine {
                     sessions = selectedSessions,
                     block = specification.blocks[index],
                     mainKeys = mainExerciseKeys,
-                    exercises = exercises
+                    exercises = exercises,
+                    autoFocus = focus
                 )
             completedSelections[completedSelections.lastIndex] = purposeSessions
             val selectedEvaluation = if (specification == null) chosen.evaluations[index]

@@ -12,12 +12,19 @@ internal object BBlockPurposePrescription {
         sessions: List<V22Session>,
         block: BBlockDefinition,
         mainKeys: Set<String>,
-        exercises: Map<String, Exercise>
+        exercises: Map<String, Exercise>,
+        autoFocus: BBalancedGoal? = null
     ): List<V22Session> = sessions.map { session ->
         val items = session.items.map { item ->
             val exercise = exercises[item.stableKey]
             val isMain = item.stableKey in mainKeys
-            val role = purpose(block.goal, isMain, exercise)
+            val effective = if (block.goal == BBlockGoal.AUTO) when (autoFocus) {
+                BBalancedGoal.STRENGTH -> BBlockGoal.STRENGTH
+                BBalancedGoal.HYPERTROPHY -> BBlockGoal.HYPERTROPHY
+                BBalancedGoal.CORE, BBalancedGoal.SPORT_SUPPORT -> BBlockGoal.SPORT_SUPPORT
+                null -> BBlockGoal.BALANCED
+            } else block.goal
+            val role = purpose(effective, isMain, exercise)
             val bounds = repRange(role, isMain)
             val knownReps = item.sets.mapNotNull(V22ObservedSet::reps).filter { it > 0 }
             val fallback = when (role) {
