@@ -123,8 +123,11 @@ internal object BBalanced12WeekEngine {
         }
         for (focuses in focusSequences) {
             evaluated++
-            val blocks = focuses.map { focus ->
-                rebalance(trimmed, focus, contributions, historyCeilings)
+            val blocks = focuses.mapIndexed { index, focus ->
+                val roster = rebalance(trimmed, focus, contributions, historyCeilings)
+                if (specification == null) roster else BBlockPurposePrescription.prepare(
+                    roster, specification.blocks[index], mainExerciseKeys, exercises
+                )
             }
             if (blocks.any { !structurallyFeasible(it) }) continue
             feasible++
