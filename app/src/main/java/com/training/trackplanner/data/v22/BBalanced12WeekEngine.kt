@@ -150,8 +150,16 @@ internal object BBalanced12WeekEngine {
                     rows, request.asOf, exercises, contributions, targets
                 ) else chosen.sessions[index]
             completedSelections += selectedSessions
+            val purposeSessions = if (specification == null) selectedSessions
+                else BBlockPurposePrescription.prepare(
+                    sessions = selectedSessions,
+                    block = specification.blocks[index],
+                    mainKeys = mainExerciseKeys,
+                    exercises = exercises
+                )
+            completedSelections[completedSelections.lastIndex] = purposeSessions
             val selectedEvaluation = if (specification == null) chosen.evaluations[index]
-                else evaluate(selectedSessions, targets, contributions)
+                else evaluate(purposeSessions, targets, contributions)
             val startWeek = weekCursor
             val endWeek = weekCursor + (specification?.blocks?.get(index)?.weeks ?: 4) - 1
             weekCursor = endWeek + 1
@@ -163,7 +171,7 @@ internal object BBalanced12WeekEngine {
                 focusReasons = focusReasons(focus, targets, selectedEvaluation) +
                     (if (index > 0 && specification != null) listOf("RESELECT_WITH_PREVIOUS_PLANNED_EXPOSURE")
                         else emptyList()),
-                sessions = selectedSessions,
+                sessions = purposeSessions,
                 evaluation = selectedEvaluation
             )
         }
@@ -172,9 +180,14 @@ internal object BBalanced12WeekEngine {
                 val spec = specification?.blocks?.get(block.block - 1)
                 val stage = spec?.let { BBlockPeriodization.steps(it)[week - block.startWeek] } ?: 0
                 val sessions = block.sessions.map { session ->
-                    val adjusted = if (spec == null) session else BBlockPrescriptionApplicator.apply(
-                        session, stage, block.focus, spec, mainExerciseKeys
-                    )
+                    val adjusted = if (spec == null) session else {
+                        val periodized = BBlockPrescriptionApplicator.apply(
+                            session, stage, block.focus, spec, mainExerciseKeys
+                        )
+                        BBlockPurposePrescription.finishWeek(
+                            periodized, spec, week == block.endWeek, mainExerciseKeys
+                        )
+                    }
                     adjusted.copy(items = adjusted.items.map { item ->
                         item.copy(
                             sets = item.sets.map(V22ObservedSet::copy),
@@ -225,6 +238,13 @@ internal object BBalanced12WeekEngine {
                             .put("relation", block.relationToPrevious.name)
                     }))
                     put("recoveryDaysBetween", JSONArray(specification.recoveryDaysBetween))
+                    put("doseAudit", JSONArray(weeks.map { week ->
+                        JSONObject().put("week", week.week).put("block", week.block)
+                            .put("workingSets", week.sessions.sumOf(V22Session::nominalSets))
+                            .put("plannedRepetitions", week.sessions.flatMap(V22Session::items)
+                                .flatMap(V22ExercisePlan::sets).sumOf { it.reps ?: 0 })
+                            .put("note", "REPS_AND_SETS_ONLY_NOT_PHYSIOLOGICAL_VOLUME_OR_LOAD")
+                    }))
                 }
             }
             .put("placementAudit", JSONObject()
