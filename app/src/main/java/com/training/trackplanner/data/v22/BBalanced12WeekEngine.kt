@@ -84,8 +84,11 @@ internal object BBalanced12WeekEngine {
         )
         val incumbent = legacy?.weeks?.firstOrNull()?.sessions
             ?: coldStartBaseline(request, exercises, contributionCatalog)
-        val contributions = contributionCatalog.filterKeys {
-            key -> incumbent.any { session -> session.items.any { it.stableKey == key } }
+        val recentKeys = rows.asSequence().filter { it.date in request.asOf.minusDays(55)..request.asOf }
+            .map(V22HistoryRow::stableKey).toSet()
+        val incumbentKeys = incumbent.flatMap(V22Session::items).map(V22ExercisePlan::stableKey).toSet()
+        val contributions = contributionCatalog.filterKeys { key ->
+            key in incumbentKeys || (specification != null && key in recentKeys)
         }
         // Do not destroy sets to satisfy the old under-counting timer. Preserve the roster,
         // evaluate three versus four days only when explicitly authorized, and surface
@@ -138,7 +141,17 @@ internal object BBalanced12WeekEngine {
         }
         val chosen = requireNotNull(best) { "No feasible B balanced candidate within the supplied time constraint" }
         var weekCursor = 1
+        val completedSelections = mutableListOf<List<V22Session>>()
         val blocks = chosen.focuses.mapIndexed { index, focus ->
+            val relation = specification?.blocks?.get(index)?.relationToPrevious
+            val selectedSessions = if (specification != null && index > 0)
+                reselectBlockFromPlannedHistory(
+                    chosen.sessions[index], completedSelections, focus, relation,
+                    rows, request.asOf, exercises, contributions, targets
+                ) else chosen.sessions[index]
+            completedSelections += selectedSessions
+            val selectedEvaluation = if (specification == null) chosen.evaluations[index]
+                else evaluate(selectedSessions, targets, contributions)
             val startWeek = weekCursor
             val endWeek = weekCursor + (specification?.blocks?.get(index)?.weeks ?: 4) - 1
             weekCursor = endWeek + 1
@@ -147,9 +160,11 @@ internal object BBalanced12WeekEngine {
                 startWeek = startWeek,
                 endWeek = endWeek,
                 focus = focus,
-                focusReasons = focusReasons(focus, targets, chosen.evaluations[index]),
-                sessions = chosen.sessions[index],
-                evaluation = chosen.evaluations[index]
+                focusReasons = focusReasons(focus, targets, selectedEvaluation) +
+                    (if (index > 0 && specification != null) listOf("RESELECT_WITH_PREVIOUS_PLANNED_EXPOSURE")
+                        else emptyList()),
+                sessions = selectedSessions,
+                evaluation = selectedEvaluation
             )
         }
         val weeks = blocks.flatMap { block ->
@@ -664,6 +679,90 @@ internal object BBalanced12WeekEngine {
         }.sortedWith(compareBy<JSONObject> { it.optString("status") != "REVIEW_ELIGIBLE_NOT_AUTOMATICALLY_REMOVABLE" }
             .thenBy { it.optDouble("importanceWeightedLoss") }.thenBy { it.optString("stableKey") })
         return JSONArray(rows)
+    }
+
+    /**
+     * New-block identity re-selection is conservative: only known, recent, active
+     * exercises with enough observed sets can replace a same-category/same-anchor
+     * incumbent. A small planned-shortfall bonus breaks otherwise close choices;
+     * it never fabricates a training outcome or forces a new identity.
+     */
+    private fun reselectBlockFromPlannedHistory(
+        baseline: List<V22Session>,
+        earlier: List<List<V22Session>>,
+        focus: BBalancedGoal,
+        relation: BBlockRelation?,
+        rows: List<V22HistoryRow>,
+        asOf: LocalDate,
+        exercises: Map<String, Exercise>,
+        contributions: Map<String, Contribution>,
+        targets: List<BBalancedGoalTarget>
+    ): List<V22Session> {
+        if (earlier.isEmpty()) return baseline
+        val previousDoses = earlier.map { prior ->
+            val byKey = prior.flatMap(V22Session::items).groupBy(V22ExercisePlan::stableKey)
+                .mapValues { (_, values) -> values.sumOf(V22ExercisePlan::setCount) }
+            dose(byKey, contributions)
+        }
+        val shortfalls = targets.associate { target ->
+            val previousMean = previousDoses.map { it.getValue(target.goal) }.average()
+            val need = target.developmentTarget?.takeIf { it > 0.0 }?.let {
+                ((it - previousMean) / it).coerceIn(0.0, 1.0)
+            } ?: if (previousMean <= 0.0) 1.0 else 0.0
+            target.goal to need
+        }
+        val multiplier = if (relation == BBlockRelation.COMPLEMENT_PLANNED_GAPS) 0.20 else 0.06
+        fun rank(key: String): Double {
+            val contribution = contributions[key] ?: return Double.NEGATIVE_INFINITY
+            return contribution.value(focus) * 4.0 +
+                shortfalls.entries.sumOf { (goal, gap) -> gap * contribution.value(goal) * multiplier }
+        }
+
+        val rowsByKey = rows.filter { it.date in asOf.minusDays(55)..asOf }
+            .groupBy(V22HistoryRow::stableKey)
+        val recentShapes = rowsByKey.mapValues { (_, recorded) ->
+            val last = recorded.maxOf(V22HistoryRow::date)
+            recorded.filter { it.date == last }.sortedBy(V22HistoryRow::setIndex)
+        }
+        val used = baseline.flatMap(V22Session::items).mapTo(mutableSetOf(), V22ExercisePlan::stableKey)
+        return baseline.map { session ->
+            val updated = session.items.map { old ->
+                val original = exercises[old.stableKey]
+                val movement = CanonicalStrengthExposureCapability.movementAnchor(old.stableKey)
+                val replacement = recentShapes.keys.asSequence()
+                    .filter { key -> key !in used && key in contributions }
+                    .mapNotNull { key ->
+                        val exercise = exercises[key] ?: return@mapNotNull null
+                        val recorded = recentShapes[key].orEmpty()
+                        if (!exercise.isActive || exercise.needsReview ||
+                            exercise.planningEligibility == "HISTORY_ONLY" ||
+                            exercise.category != old.category || recorded.size < old.setCount) return@mapNotNull null
+                        val candidateAnchor = CanonicalStrengthExposureCapability.movementAnchor(key)
+                        if (movement != null && candidateAnchor != movement) return@mapNotNull null
+                        if (movement == null && original?.movementPattern?.isNotBlank() == true &&
+                            original.movementPattern != exercise.movementPattern) return@mapNotNull null
+                        key to rank(key)
+                    }.filter { it.second > rank(old.stableKey) + 0.2 }
+                    .sortedWith(compareByDescending<Pair<String, Double>> { it.second }.thenBy { it.first })
+                    .firstOrNull()?.first
+                if (replacement == null) old else {
+                    val exercise = exercises.getValue(replacement)
+                    val shape = recentShapes.getValue(replacement).take(old.setCount)
+                    used.remove(old.stableKey)
+                    used.add(replacement)
+                    old.copy(
+                        stableKey = replacement,
+                        exercise = exercise.name,
+                        sets = shape.map { row ->
+                            V22ObservedSet(row.weightKg, row.reps?.toInt(), row.seconds?.toInt(), row.rpe,
+                                row.date.toString(), "OBSERVED_REFERENCE_USER_CALIBRATION_REQUIRED")
+                        },
+                        source = "B_BLOCK_RESELECT_REVIEW_PLANNED_GAP_BONUS"
+                    )
+                }
+            }
+            session.copy(items = updated, nominalSets = updated.sumOf(V22ExercisePlan::setCount))
+        }
     }
 
     private fun focusReasons(

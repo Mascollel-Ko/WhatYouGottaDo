@@ -195,6 +195,31 @@ class BBalanced12WeekEngineTest {
         assertEquals(false, JSONObject(previous.metadataJson).getJSONObject("placementAudit").getBoolean("expanded"))
     }
 
+    @Test
+    fun `new two block path plans six weeks and remains deterministic`() {
+        val request = request().copy(
+            weeks = 6,
+            blockProgram = BBlockProgramDefinition(
+                blocks = listOf(
+                    BBlockDefinition(weeks = 3, goal = BBlockGoal.HYPERTROPHY),
+                    BBlockDefinition(weeks = 3, goal = BBlockGoal.STRENGTH,
+                        relationToPrevious = BBlockRelation.COMPLEMENT_PLANNED_GAPS)
+                ),
+                recoveryDaysBetween = listOf(3)
+            )
+        )
+        val first = build(realRows(), request)
+        val again = build(realRows(), request)
+        assertEquals(first, again)
+        assertEquals(BBalanced12WeekEngine.BLOCK_SCHEMA, first.schema)
+        assertEquals(6, first.weeks.size)
+        assertEquals(listOf(1 to 3, 4 to 6), first.blocks.map { it.startWeek to it.endWeek })
+        assertTrue(first.blocks.last().focusReasons.any { "RESELECT_WITH_PREVIOUS_PLANNED_EXPOSURE" in it })
+        assertTrue(first.weeks.all { week ->
+            week.sessions.all { session -> session.items.map { it.stableKey }.distinct().size == session.items.size }
+        })
+    }
+
     private fun build(rows: List<V22HistoryRow>, request: V22GenerationRequest): BBalanced12WeekPlan =
         BBalanced12WeekEngine.build(
             rows,
