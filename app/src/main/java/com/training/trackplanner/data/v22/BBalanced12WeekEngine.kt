@@ -175,6 +175,13 @@ internal object BBalanced12WeekEngine {
                 evaluation = selectedEvaluation
             )
         }
+        val resolvedAmplitudes = blocks.mapIndexed { index, block ->
+            specification?.blocks?.get(index)?.let { spec ->
+                BBlockPrescriptionApplicator.resolveAmplitude(
+                    spec, rows, request.asOf, block.sessions
+                )
+            }
+        }
         val weeks = blocks.flatMap { block ->
             (block.startWeek..block.endWeek).map { week ->
                 val spec = specification?.blocks?.get(block.block - 1)
@@ -182,7 +189,8 @@ internal object BBalanced12WeekEngine {
                 val sessions = block.sessions.map { session ->
                     val adjusted = if (spec == null) session else {
                         val periodized = BBlockPrescriptionApplicator.apply(
-                            session, stage, block.focus, spec, mainExerciseKeys
+                            session, stage, block.focus, spec, mainExerciseKeys,
+                            exercises, resolvedAmplitudes[block.block - 1] ?: BChangeAmplitude.SMALL
                         )
                         BBlockPurposePrescription.finishWeek(
                             periodized, spec, week == block.endWeek, mainExerciseKeys
@@ -235,9 +243,25 @@ internal object BBalanced12WeekEngine {
                         JSONObject().put("block", index + 1).put("weeks", block.weeks)
                             .put("goal", block.goal.name).put("pattern", block.pattern.name)
                             .put("adjustment", block.adjustment.name).put("amplitude", block.amplitude.name)
+                            .put("resolvedAmplitude", resolvedAmplitudes[index]?.name ?: BChangeAmplitude.SMALL.name)
+                            .put("customPriority", JSONArray(block.customPriority.map(BProgressionField::name)))
                             .put("relation", block.relationToPrevious.name)
                     }))
                     put("recoveryDaysBetween", JSONArray(specification.recoveryDaysBetween))
+                    put("prescriptionSteps", JSONArray(weeks.flatMap { week ->
+                        week.sessions.flatMap { session ->
+                            session.items.map { item ->
+                                val steps = Regex("LOAD_STEPS=(-?[0-9]+)")
+                                    .find(item.plannedProgression.orEmpty())?.groupValues?.getOrNull(1)
+                                    ?.toIntOrNull() ?: 0
+                                JSONObject().put("block", week.block)
+                                    .put("localWeek", week.week - blocks[week.block - 1].startWeek)
+                                    .put("session", session.session)
+                                    .put("stableKey", item.stableKey)
+                                    .put("loadSteps", steps)
+                            }
+                        }
+                    }))
                     put("doseAudit", JSONArray(weeks.map { week ->
                         JSONObject().put("week", week.week).put("block", week.block)
                             .put("workingSets", week.sessions.sumOf(V22Session::nominalSets))

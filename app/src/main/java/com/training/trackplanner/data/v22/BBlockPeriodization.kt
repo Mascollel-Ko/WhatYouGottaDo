@@ -16,10 +16,18 @@ data class BBlockDefinition(
     val pattern: BVolumePattern = BVolumePattern.STEADY,
     val adjustment: BVolumeAdjustment = BVolumeAdjustment.AUTO,
     val amplitude: BChangeAmplitude = BChangeAmplitude.AUTO,
+    /** Priority order in CUSTOM mode; one physical unit per volume step, not % changes. */
+    val customPriority: List<BProgressionField> = listOf(
+        BProgressionField.REPS, BProgressionField.LOAD, BProgressionField.SETS
+    ),
     val relationToPrevious: BBlockRelation = BBlockRelation.INDEPENDENT
 ) {
     init {
         require(weeks in 1..6) { "Block duration must be 1..6 weeks" }
+        require(customPriority.isNotEmpty() && customPriority.distinct() == customPriority &&
+            customPriority.all { it in setOf(BProgressionField.REPS, BProgressionField.LOAD, BProgressionField.SETS) }) {
+            "Custom priority must contain distinct numeric levers"
+        }
         require(weeks != 1 || pattern == BVolumePattern.STEADY) { "One-week blocks are steady only" }
         require(weeks >= 3 || pattern !in setOf(BVolumePattern.WAVE, BVolumePattern.ACCUMULATE_RECOVER)) {
             "Wave and accumulate/recover require at least three weeks"
