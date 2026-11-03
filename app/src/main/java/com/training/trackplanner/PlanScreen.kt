@@ -422,6 +422,8 @@ private fun ProgramEditorScreen(
     var bCoreImportance by rememberSaveable(program?.id ?: 0L) { mutableStateOf(0) }
     var bSportImportance by rememberSaveable(program?.id ?: 0L) { mutableStateOf(0) }
     var bBlockPattern by rememberSaveable(program?.id ?: 0L) { mutableStateOf(BVolumePattern.STEADY) }
+    var bAdvancedOptions by rememberSaveable(program?.id ?: 0L) { mutableStateOf(false) }
+    var bBasicAdvancedBlock by remember { mutableStateOf(BBlockDefinition()) }
     var bCustomizeBlocks by rememberSaveable(program?.id ?: 0L) { mutableStateOf(false) }
     var bBlocks by remember { mutableStateOf(listOf(BBlockDefinition())) }
     var bRecoveryBetween by remember { mutableStateOf(emptyList<Int>()) }
@@ -483,7 +485,7 @@ private fun ProgramEditorScreen(
         lastGenerationWasV22 = true
         pendingConservativeBBlock = null
         val blockLayout = if (bCustomizeBlocks) BBlockProgramDefinition(bBlocks, bRecoveryBetween)
-            else BBlockProgramDefinition(blocks = listOf(BBlockDefinition(pattern = bBlockPattern)))
+            else BBlockProgramDefinition(blocks = listOf(bBasicAdvancedBlock.copy(pattern = bBlockPattern)))
         viewModel.generateV22Program(
             newBBalancedGenerationRequest(
                 name = normalizedProgramName(),
@@ -721,6 +723,18 @@ private fun ProgramEditorScreen(
                                 enabled = !generationRunning
                             )
                         }
+
+                        ProgramOptionRow {
+                            ProgramDropdown(
+                                modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                                label = "주기화 고급 설정",
+                                selected = bAdvancedOptions,
+                                options = listOf(false, true),
+                                optionLabel = { if (it) "표시" else "기본 자동 설정" },
+                                onSelect = { bAdvancedOptions = it },
+                                enabled = !generationRunning
+                            )
+                        }
                         if (bCustomizeBlocks) {
                             ProgramOptionRow {
                                 ProgramDropdown(
@@ -814,26 +828,13 @@ private fun ProgramEditorScreen(
                                         it[blockIndex] = block.copy(pattern = pattern)
                                     }
                                 }, enabled = !generationRunning)
-                                ProgramOptionRow {
-                                    ProgramDropdown(
-                                        modifier = Modifier.weight(1f).widthIn(min = 180.dp),
-                                        label = "볼륨 조절 우선순위",
-                                        selected = block.adjustment,
-                                        options = listOf(BVolumeAdjustment.AUTO, BVolumeAdjustment.REPS_FIRST,
-                                            BVolumeAdjustment.LOAD_FIRST, BVolumeAdjustment.SETS_FIRST),
-                                        optionLabel = { mode -> when (mode) {
-                                            BVolumeAdjustment.AUTO -> "목적별 자동"
-                                            BVolumeAdjustment.REPS_FIRST -> "횟수 우선"
-                                            BVolumeAdjustment.LOAD_FIRST -> "중량 우선"
-                                            BVolumeAdjustment.SETS_FIRST -> "세트 우선"
-                                            BVolumeAdjustment.CUSTOM -> "직접 조합"
-                                        } },
-                                        onSelect = { adjustment ->
-                                            bBlocks = bBlocks.toMutableList().also {
-                                                it[blockIndex] = block.copy(adjustment = adjustment)
-                                            }
-                                        },
-                                        enabled = !generationRunning
+                                if (bAdvancedOptions) {
+                                    BBlockAdvancedControls(
+                                        block = block,
+                                        enabled = !generationRunning,
+                                        onChange = { next ->
+                                            bBlocks = bBlocks.toMutableList().also { it[blockIndex] = next }
+                                        }
                                     )
                                 }
                                 if (blockIndex < bBlocks.lastIndex) {
@@ -865,6 +866,13 @@ private fun ProgramEditorScreen(
                                 weeks = 4, selected = bBlockPattern,
                                 onSelect = { bBlockPattern = it }, enabled = !generationRunning
                             )
+                            if (bAdvancedOptions) {
+                                BBlockAdvancedControls(
+                                    block = bBasicAdvancedBlock,
+                                    onChange = { bBasicAdvancedBlock = it },
+                                    enabled = !generationRunning
+                                )
+                            }
                         }
                         Text(
                             text = "기본 4주 · 중요도 0은 기록 추천입니다. 4일 분산은 필요할 때만 적용하고, 삭제 후보는 감사 정보로만 기록합니다.",
