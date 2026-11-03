@@ -230,6 +230,7 @@ internal object BBalanced12WeekEngine {
             focusStableKey = null,
             sessionMinutes = request.sessionMinutes
         )
+        val realizedDoseAudit = specification?.let { BBlockDoseAudit.compute(weeks, blocks, it) }
         val limitations = listOf(
             "Core and sport-support targets remain direction-only because reviewed numeric dose authority is unavailable.",
             "Hypertrophy personal-response confidence is zero without direct muscle-size observations.",
@@ -237,7 +238,11 @@ internal object BBalanced12WeekEngine {
             "Candidate search reuses incumbent exercises and never exceeds each exercise's observed weekly ceiling.",
             "Goal satisfaction is a planning coverage ratio, not a predicted adaptation probability.",
             placement.diagnosis
-        )
+        ) + if (realizedDoseAudit != null &&
+            (0 until realizedDoseAudit.length()).any {
+                realizedDoseAudit.getJSONObject(it).optString("status") == "PATTERN_NOT_REALIZED_USER_REVIEW"
+            }) listOf("Some weekly patterns could not be expressed within the exercise prescription bounds; review the preview.")
+            else emptyList()
         val deletionReview = auditDeletionCandidates(trimmed, targets, contributions, exercises)
         val metadata = JSONObject(metadataJson(input, targets, blocks, search, contributions, limitations))
             .apply {
@@ -266,13 +271,7 @@ internal object BBalanced12WeekEngine {
                             }
                         }
                     }))
-                    put("doseAudit", JSONArray(weeks.map { week ->
-                        JSONObject().put("week", week.week).put("block", week.block)
-                            .put("workingSets", week.sessions.sumOf(V22Session::nominalSets))
-                            .put("plannedRepetitions", week.sessions.flatMap(V22Session::items)
-                                .flatMap(V22ExercisePlan::sets).sumOf { it.reps ?: 0 })
-                            .put("note", "REPS_AND_SETS_ONLY_NOT_PHYSIOLOGICAL_VOLUME_OR_LOAD")
-                    }))
+                    put("doseAudit", realizedDoseAudit)
                 }
             }
             .put("placementAudit", JSONObject()
