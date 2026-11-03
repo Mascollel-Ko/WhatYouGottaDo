@@ -12,16 +12,30 @@ internal fun restoredBBalancedWeekPlans(metadataJson: String?, durationWeeks: In
     if (metadata.optString("schema") !in setOf(BBalanced12WeekEngine.SCHEMA, BBalanced12WeekEngine.BLOCK_SCHEMA)) return null
     if (durationWeeks <= 0) return null
     val blocks = metadata.optJSONArray("blocks") ?: return null
+    val isFlexible = metadata.optString("schema") == BBalanced12WeekEngine.BLOCK_SCHEMA
+    val spec = metadata.optJSONArray("blockSpecs")
+    val between = metadata.optJSONArray("recoveryDaysBetween")
     val focusByWeek = mutableMapOf<Int, Pair<Int, String>>()
     repeat(blocks.length()) { index ->
         val block = blocks.getJSONObject(index)
         val number = block.getInt("block")
         val focus = block.getString("focus")
-        for (week in block.getInt("startWeek")..block.getInt("endWeek")) focusByWeek[week] = number to focus
+        if (isFlexible && spec != null) {
+            val weeks = spec.getJSONObject(index).getInt("weeks")
+            val previousTraining = (0 until index).sumOf { spec.getJSONObject(it).getInt("weeks") * 7 }
+            val previousRest = (0 until index).sumOf { between?.optInt(it, 0) ?: 0 }
+            for (localWeek in 0 until weeks) for (day in 0..6) {
+                val absDay = previousTraining + previousRest + localWeek * 7 + day
+                focusByWeek[absDay / 7 + 1] = number to focus
+            }
+        } else {
+            for (week in block.getInt("startWeek")..block.getInt("endWeek")) focusByWeek[week] = number to focus
+        }
     }
-    if (focusByWeek.keys != (1..durationWeeks).toSet()) return null
+    if (!isFlexible && focusByWeek.keys != (1..durationWeeks).toSet()) return null
+    if (focusByWeek.keys.any { it !in 1..durationWeeks }) return null
     return (1..durationWeeks).map { week ->
-        val (block, focus) = focusByWeek.getValue(week)
+        val (block, focus) = focusByWeek[week] ?: (0 to "RECOVERY")
         ProgramWeekPlan(
             weekIndex = week,
             weekType = "B_BALANCED_BLOCK_${block}_$focus",

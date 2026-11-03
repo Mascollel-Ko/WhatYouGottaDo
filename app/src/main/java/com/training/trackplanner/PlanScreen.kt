@@ -72,6 +72,9 @@ import com.training.trackplanner.data.personalized.PersonalizedPlanningPreflight
 import com.training.trackplanner.data.v22.BBalancedGoalImportance
 import com.training.trackplanner.data.v22.BBlockProgramDefinition
 import com.training.trackplanner.data.v22.BBlockDefinition
+import com.training.trackplanner.data.v22.BBlockGoal
+import com.training.trackplanner.data.v22.BBlockRelation
+import com.training.trackplanner.data.v22.BVolumeAdjustment
 import com.training.trackplanner.data.v22.BVolumePattern
 import com.training.trackplanner.data.v22.propagateBBlockStartLoad
 import com.training.trackplanner.data.v22.newBBalancedGenerationRequest
@@ -419,6 +422,9 @@ private fun ProgramEditorScreen(
     var bCoreImportance by rememberSaveable(program?.id ?: 0L) { mutableStateOf(0) }
     var bSportImportance by rememberSaveable(program?.id ?: 0L) { mutableStateOf(0) }
     var bBlockPattern by rememberSaveable(program?.id ?: 0L) { mutableStateOf(BVolumePattern.STEADY) }
+    var bCustomizeBlocks by rememberSaveable(program?.id ?: 0L) { mutableStateOf(false) }
+    var bBlocks by remember { mutableStateOf(listOf(BBlockDefinition())) }
+    var bRecoveryBetween by remember { mutableStateOf(emptyList<Int>()) }
     val trainingProfilePrefs = remember(context) { context.getSharedPreferences("training_profile", Context.MODE_PRIVATE) }
     var smallestPlateText by rememberSaveable { mutableStateOf(trainingProfilePrefs.getFloat("smallest_plate_kg", 1.25f).toString()) }
     var v22SkeletonCreated by rememberSaveable(program?.id ?: 0L) { mutableStateOf(false) }
@@ -485,7 +491,8 @@ private fun ProgramEditorScreen(
                     core = bCoreImportance.takeIf { it > 0 },
                     sportSupport = bSportImportance.takeIf { it > 0 }
                 ),
-                blockProgram = BBlockProgramDefinition(blocks = listOf(BBlockDefinition(pattern = bBlockPattern)))
+                blockProgram = if (bCustomizeBlocks) BBlockProgramDefinition(bBlocks, bRecoveryBetween)
+                    else BBlockProgramDefinition(blocks = listOf(BBlockDefinition(pattern = bBlockPattern)))
             )
         ) { generated ->
             personalizedDraft = generated.skeleton.withResolvedWeekDaySchedule()
@@ -668,13 +675,162 @@ private fun ProgramEditorScreen(
                             singleLine = true,
                             supportingText = { Text("바벨 최소 증량은 이 값의 2배입니다. 덤벨·머신은 사용자 검토가 필요합니다.") }
                         )
-                        Text("4주 블록 · 볼륨 주기화", style = MaterialTheme.typography.titleSmall)
-                        BBlockPatternPicker(
-                            weeks = 4,
-                            selected = bBlockPattern,
-                            onSelect = { bBlockPattern = it },
-                            enabled = !generationRunning
-                        )
+                        ProgramOptionRow {
+                            ProgramDropdown(
+                                modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                                label = "블록 직접 구성",
+                                selected = bCustomizeBlocks,
+                                options = listOf(false, true),
+                                optionLabel = { if (it) "직접 구성" else "기본 4주" },
+                                onSelect = { bCustomizeBlocks = it },
+                                enabled = !generationRunning
+                            )
+                        }
+                        if (bCustomizeBlocks) {
+                            ProgramOptionRow {
+                                ProgramDropdown(
+                                    modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                                    label = "블록 개수",
+                                    selected = bBlocks.size,
+                                    options = (1..4).toList(),
+                                    optionLabel = { it.toString() + "개" },
+                                    onSelect = { count ->
+                                        val updated = bBlocks.take(count) +
+                                            List((count - bBlocks.size).coerceAtLeast(0)) { BBlockDefinition() }
+                                        bBlocks = updated.mapIndexed { index, block ->
+                                            if (index == count - 1 && block.relationToPrevious == BBlockRelation.PREPARE_NEXT)
+                                                block.copy(relationToPrevious = BBlockRelation.INDEPENDENT) else block
+                                        }
+                                        bRecoveryBetween = List((count - 1).coerceAtLeast(0)) { index ->
+                                            bRecoveryBetween.getOrElse(index) { 0 }
+                                        }
+                                    },
+                                    enabled = !generationRunning
+                                )
+                            }
+                            bBlocks.forEachIndexed { blockIndex, block ->
+                                Text("블록 " + (blockIndex + 1), style = MaterialTheme.typography.titleMedium)
+                                ProgramOptionRow {
+                                    ProgramDropdown(
+                                        modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                                        label = "블록 목적",
+                                        selected = block.goal,
+                                        options = BBlockGoal.entries.toList(),
+                                        optionLabel = { goal -> when (goal) {
+                                            BBlockGoal.AUTO -> "자동 결정"
+                                            BBlockGoal.STRENGTH -> "근력"
+                                            BBlockGoal.HYPERTROPHY -> "근비대"
+                                            BBlockGoal.SPORT_SUPPORT -> "스포츠 보조"
+                                            BBlockGoal.BALANCED -> "균형"
+                                            BBlockGoal.PEAK_EVALUATION -> "피크·평가"
+                                        } },
+                                        onSelect = { goal ->
+                                            bBlocks = bBlocks.toMutableList().also { it[blockIndex] = block.copy(goal = goal) }
+                                        },
+                                        enabled = !generationRunning
+                                    )
+                                    ProgramDropdown(
+                                        modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                                        label = "블록 기간",
+                                        selected = block.weeks,
+                                        options = (1..6).toList(),
+                                        optionLabel = { it.toString() + "주" },
+                                        onSelect = { weeks ->
+                                            val pattern = if (weeks == 1 ||
+                                                (weeks == 2 && block.pattern in listOf(BVolumePattern.WAVE,
+                                                    BVolumePattern.ACCUMULATE_RECOVER)))
+                                                BVolumePattern.STEADY else block.pattern
+                                            bBlocks = bBlocks.toMutableList().also {
+                                                it[blockIndex] = block.copy(weeks = weeks, pattern = pattern)
+                                            }
+                                        },
+                                        enabled = !generationRunning
+                                    )
+                                }
+                                val relationChoices = BBlockRelation.entries.filter { relation ->
+                                    (blockIndex > 0 || relation !in listOf(
+                                        BBlockRelation.COMPLEMENT_PLANNED_GAPS,
+                                        BBlockRelation.DEVELOP_PREVIOUS)) &&
+                                    (blockIndex < bBlocks.lastIndex || relation != BBlockRelation.PREPARE_NEXT)
+                                }
+                                ProgramOptionRow {
+                                    ProgramDropdown(
+                                        modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                                        label = "다른 블록과의 관계",
+                                        selected = block.relationToPrevious,
+                                        options = relationChoices,
+                                        optionLabel = { relation -> when (relation) {
+                                            BBlockRelation.INDEPENDENT -> "독립"
+                                            BBlockRelation.COMPLEMENT_PLANNED_GAPS -> "이전 블록 부족분 보완"
+                                            BBlockRelation.DEVELOP_PREVIOUS -> "이전 블록 발전"
+                                            BBlockRelation.PREPARE_NEXT -> "다음 블록 준비"
+                                        } },
+                                        onSelect = { relation ->
+                                            bBlocks = bBlocks.toMutableList().also {
+                                                it[blockIndex] = block.copy(relationToPrevious = relation)
+                                            }
+                                        },
+                                        enabled = !generationRunning
+                                    )
+                                }
+                                Text("볼륨 주기화", style = MaterialTheme.typography.titleSmall)
+                                BBlockPatternPicker(block.weeks, block.pattern, onSelect = { pattern ->
+                                    bBlocks = bBlocks.toMutableList().also {
+                                        it[blockIndex] = block.copy(pattern = pattern)
+                                    }
+                                }, enabled = !generationRunning)
+                                ProgramOptionRow {
+                                    ProgramDropdown(
+                                        modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                                        label = "볼륨 조절 우선순위",
+                                        selected = block.adjustment,
+                                        options = listOf(BVolumeAdjustment.AUTO, BVolumeAdjustment.REPS_FIRST,
+                                            BVolumeAdjustment.LOAD_FIRST, BVolumeAdjustment.SETS_FIRST),
+                                        optionLabel = { mode -> when (mode) {
+                                            BVolumeAdjustment.AUTO -> "목적별 자동"
+                                            BVolumeAdjustment.REPS_FIRST -> "횟수 우선"
+                                            BVolumeAdjustment.LOAD_FIRST -> "중량 우선"
+                                            BVolumeAdjustment.SETS_FIRST -> "세트 우선"
+                                            BVolumeAdjustment.CUSTOM -> "직접 조합"
+                                        } },
+                                        onSelect = { adjustment ->
+                                            bBlocks = bBlocks.toMutableList().also {
+                                                it[blockIndex] = block.copy(adjustment = adjustment)
+                                            }
+                                        },
+                                        enabled = !generationRunning
+                                    )
+                                }
+                                if (blockIndex < bBlocks.lastIndex) {
+                                    ProgramOptionRow {
+                                        ProgramDropdown(
+                                            modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                                            label = "다음 블록 전 회복 기간",
+                                            selected = bRecoveryBetween[blockIndex],
+                                            options = (0..7).toList(),
+                                            optionLabel = { if (it == 0) "없음" else it.toString() + "일" },
+                                            onSelect = { days ->
+                                                bRecoveryBetween = bRecoveryBetween.toMutableList().also {
+                                                    it[blockIndex] = days
+                                                }
+                                            },
+                                            enabled = !generationRunning
+                                        )
+                                    }
+                                }
+                            }
+                            Text(
+                                "전체 " + (bBlocks.sumOf { it.weeks * 7 } + bRecoveryBetween.sum()) +
+                                    "일 · 블록별 운동 재선정 및 회복 기간을 포함합니다.",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        } else {
+                            Text("4주 블록 · 볼륨 주기화", style = MaterialTheme.typography.titleSmall)
+                            BBlockPatternPicker(
+                                weeks = 4, selected = bBlockPattern,
+                                onSelect = { bBlockPattern = it }, enabled = !generationRunning
+                            )
+                        }
                         Text(
                             text = "기본 4주 · 중요도 0은 기록 추천입니다. 4일 분산은 필요할 때만 적용하고, 삭제 후보는 감사 정보로만 기록합니다.",
                             style = MaterialTheme.typography.bodySmall,

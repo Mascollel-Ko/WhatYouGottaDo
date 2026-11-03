@@ -130,7 +130,10 @@ internal fun BBalanced12WeekPlan.toSkeleton(
             val active = weeks.lastOrNull { week ->
                 val block = blocks[week.block - 1]
                 val mapped = blockCalendar?.slot(week.block - 1, week.week - block.startWeek, 1)
-                (mapped?.week ?: week.week) == calendarWeek
+                if (blockCalendar == null) week.week == calendarWeek
+                else (1..7).any { day ->
+                    blockCalendar.slot(week.block - 1, week.week - block.startWeek, day).week == calendarWeek
+                }
             }
             val focus = active?.let { focusByBlock.getValue(it.block) }
             com.training.trackplanner.data.ProgramWeekPlan(
