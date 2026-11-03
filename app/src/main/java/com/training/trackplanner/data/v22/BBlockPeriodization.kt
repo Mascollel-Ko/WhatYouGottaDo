@@ -4,13 +4,13 @@ package com.training.trackplanner.data.v22
  * Opt-in block-program contract. The legacy 12-week B plan and saved metadata remain
  * readable while the new generator/UI are migrated in separate audited commits.
  */
-internal enum class BBlockGoal { AUTO, STRENGTH, HYPERTROPHY, SPORT_SUPPORT, BALANCED, PEAK_EVALUATION }
-internal enum class BVolumePattern { STEADY, PROGRESSIVE, WAVE, ACCUMULATE_RECOVER }
-internal enum class BVolumeAdjustment { AUTO, REPS_FIRST, LOAD_FIRST, SETS_FIRST, CUSTOM }
-internal enum class BChangeAmplitude { AUTO, SMALL, MEDIUM }
-internal enum class BProgressionField { LOAD, SETS, REPS, MOVEMENT_QUALITY }
+enum class BBlockGoal { AUTO, STRENGTH, HYPERTROPHY, SPORT_SUPPORT, BALANCED, PEAK_EVALUATION }
+enum class BVolumePattern { STEADY, PROGRESSIVE, WAVE, ACCUMULATE_RECOVER }
+enum class BVolumeAdjustment { AUTO, REPS_FIRST, LOAD_FIRST, SETS_FIRST, CUSTOM }
+enum class BChangeAmplitude { AUTO, SMALL, MEDIUM }
+enum class BProgressionField { LOAD, SETS, REPS, MOVEMENT_QUALITY }
 
-internal data class BBlockDefinition(
+data class BBlockDefinition(
     val weeks: Int = 4,
     val goal: BBlockGoal = BBlockGoal.AUTO,
     val pattern: BVolumePattern = BVolumePattern.STEADY,
@@ -27,9 +27,9 @@ internal data class BBlockDefinition(
     }
 }
 
-internal enum class BBlockRelation { INDEPENDENT, COMPLEMENT_PLANNED_GAPS, DEVELOP_PREVIOUS, PREPARE_NEXT }
+enum class BBlockRelation { INDEPENDENT, COMPLEMENT_PLANNED_GAPS, DEVELOP_PREVIOUS, PREPARE_NEXT }
 
-internal data class BBlockProgramDefinition(
+data class BBlockProgramDefinition(
     val blocks: List<BBlockDefinition> = listOf(BBlockDefinition()),
     /** Independent recovery days *between* blocks, never inside a training block. */
     val recoveryDaysBetween: List<Int> = List((blocks.size - 1).coerceAtLeast(0)) { 0 }
