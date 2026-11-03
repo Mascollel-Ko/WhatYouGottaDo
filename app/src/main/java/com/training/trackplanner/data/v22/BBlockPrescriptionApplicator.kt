@@ -19,11 +19,11 @@ internal object BBlockPrescriptionApplicator {
         val keys = sessions.flatMap(V22Session::items).mapTo(linkedSetOf(), V22ExercisePlan::stableKey)
         val recent = history.filter { it.stableKey in keys && it.date in asOf.minusDays(27)..asOf }
         val dates = recent.mapTo(linkedSetOf(), V22HistoryRow::date)
-        val rpes = recent.mapNotNull(V22HistoryRow::rpe).filter { it in 1.0..10.0 }
         val recorded = recent.count { (it.reps ?: 0.0) > 0.0 || (it.seconds ?: 0.0) > 0.0 }
+        // RPE is deliberately not a hard limit: high RPE is a user-review
+        // notice, not an automatic reason to refuse or downscale a plan.
         return if (dates.size >= 2 && recent.size >= 6 &&
-            recorded >= recent.size / 2 && rpes.size >= 3 && rpes.average() <= 8.0)
-            BChangeAmplitude.MEDIUM else BChangeAmplitude.SMALL
+            recorded >= recent.size / 2) BChangeAmplitude.MEDIUM else BChangeAmplitude.SMALL
     }
 
     fun apply(

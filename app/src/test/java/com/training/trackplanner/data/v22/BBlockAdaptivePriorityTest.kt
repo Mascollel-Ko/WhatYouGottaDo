@@ -31,7 +31,7 @@ class BBlockAdaptivePriorityTest {
         assertEquals(12, main.sets.first().reps)
     }
 
-    @Test fun highRpeMakesAutoAmplitudeConservative() {
+    @Test fun autoAmplitudeUsesHistoryCoverageNotRpeAsAnAutomaticLimit() {
         val now = LocalDate.of(2026, 11, 1)
         val history = (0..2).flatMap { day ->
             (1..3).map { index ->
@@ -39,15 +39,18 @@ class BBlockAdaptivePriorityTest {
                     index, 5.0, 100.0, null, 9.0)
             }
         }
-        val small = BBlockPrescriptionApplicator.resolveAmplitude(
+        val limited = BBlockPrescriptionApplicator.resolveAmplitude(
+            BBlockDefinition(goal = BBlockGoal.STRENGTH), history.take(3), now, listOf(session())
+        )
+        assertEquals(BChangeAmplitude.SMALL, limited)
+        val adequate = BBlockPrescriptionApplicator.resolveAmplitude(
             BBlockDefinition(goal = BBlockGoal.STRENGTH), history, now, listOf(session())
         )
-        assertEquals(BChangeAmplitude.SMALL, small)
-        val medium = BBlockPrescriptionApplicator.resolveAmplitude(
+        assertEquals(BChangeAmplitude.MEDIUM, adequate)
+        assertEquals(BChangeAmplitude.MEDIUM, BBlockPrescriptionApplicator.resolveAmplitude(
             BBlockDefinition(goal = BBlockGoal.STRENGTH), history.map { it.copy(rpe = 7.0) },
             now, listOf(session())
-        )
-        assertEquals(BChangeAmplitude.MEDIUM, medium)
+        ))
     }
 
     @Test fun smallAndMediumChangeDifferentAccessoryParticipationWithoutDoublingStep() {
