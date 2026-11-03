@@ -428,6 +428,9 @@ private fun ProgramEditorScreen(
     val trainingProfilePrefs = remember(context) { context.getSharedPreferences("training_profile", Context.MODE_PRIVATE) }
     var smallestPlateText by rememberSaveable { mutableStateOf(trainingProfilePrefs.getFloat("smallest_plate_kg", 1.25f).toString()) }
     var v22SkeletonCreated by rememberSaveable(program?.id ?: 0L) { mutableStateOf(false) }
+    var pendingConservativeBBlock by remember(program?.id) {
+        mutableStateOf<GeneratedProgramSkeleton?>(null)
+    }
 
     LaunchedEffect(program?.id) {
         if (program != null && personalizedDraft == null) personalizedDraft = skeletonFromProgram(viewModel.programEditorSnapshot(program.id)).withResolvedWeekDaySchedule()
@@ -478,6 +481,9 @@ private fun ProgramEditorScreen(
         if (!requireProgramName()) return
         if (viewModel.programBuildProgress.value is ProgramBuildProgressState.Running) return
         lastGenerationWasV22 = true
+        pendingConservativeBBlock = null
+        val blockLayout = if (bCustomizeBlocks) BBlockProgramDefinition(bBlocks, bRecoveryBetween)
+            else BBlockProgramDefinition(blocks = listOf(BBlockDefinition(pattern = bBlockPattern)))
         viewModel.generateV22Program(
             newBBalancedGenerationRequest(
                 name = normalizedProgramName(),
@@ -491,13 +497,42 @@ private fun ProgramEditorScreen(
                     core = bCoreImportance.takeIf { it > 0 },
                     sportSupport = bSportImportance.takeIf { it > 0 }
                 ),
-                blockProgram = if (bCustomizeBlocks) BBlockProgramDefinition(bBlocks, bRecoveryBetween)
-                    else BBlockProgramDefinition(blocks = listOf(BBlockDefinition(pattern = bBlockPattern)))
+                blockProgram = blockLayout
             )
         ) { generated ->
-            personalizedDraft = generated.skeleton.withResolvedWeekDaySchedule()
-            v22SkeletonCreated = true
+            val proposed = generated.skeleton.withResolvedWeekDaySchedule()
+            val noReliableHistory = generated.balanced12WeekPlan?.goalTargets
+                ?.all { it.confidence.history <= 0.0 } == true
+            if (noReliableHistory && blockLayout.blocks.any { it.pattern != BVolumePattern.STEADY }) {
+                // Explicit approval is required for periodized plans with no observed baseline.
+                pendingConservativeBBlock = proposed
+            } else {
+                personalizedDraft = proposed
+                v22SkeletonCreated = true
+            }
         }
+    }
+
+    pendingConservativeBBlock?.let { proposed ->
+        AlertDialog(
+            onDismissRequest = { pendingConservativeBBlock = null },
+            title = { Text("기록 부족 · 처방 확인 필요") },
+            text = { Text(
+                "운동 기록이 충분하지 않아 요청한 주기화를 신뢰성 있게 산출할 수 없습니다. " +
+                    "중량은 자동 지정하지 않으며, 표시된 세트·반복도 보수적인 초안입니다. " +
+                    "이 조건을 확인하고 프로그램 미리보기로 진행할까요?"
+            ) },
+            confirmButton = {
+                Button(onClick = {
+                    personalizedDraft = proposed
+                    v22SkeletonCreated = true
+                    pendingConservativeBBlock = null
+                }) { Text("초안 승인 후 검토") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingConservativeBBlock = null }) { Text("설정 수정") }
+            }
+        )
     }
 
     LazyColumn(
@@ -864,6 +899,9 @@ private fun ProgramEditorScreen(
             }
         }
         personalizedDraft?.let { currentSkeleton ->
+            if (lastGenerationWasV22) item {
+                InfoCard("볼륨 주기화와 RPE는 참고 계획입니다. 통증·피로·수행 여유에 맞춰 사용자가 중량·세트·반복을 조절하세요.")
+            }
             if (currentSkeleton.warnings.any { it.startsWith(PROGRAM_ITEM_RESTORE_WARNING) }) {
                 item {
                     InfoCard("일부 프로그램 메타데이터를 복원하지 못했습니다. 저장 전 구성을 확인하세요.")
