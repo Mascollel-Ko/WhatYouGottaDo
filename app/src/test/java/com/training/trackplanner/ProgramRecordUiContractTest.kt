@@ -35,7 +35,7 @@ class ProgramRecordUiContractTest {
         val screen = source("PlanScreen.kt")
         val viewModel = source("TrainingViewModel.kt")
 
-        assertTrue(screen.contains("12주 균형형 프로그램 만들기"))
+        assertTrue(screen.contains("4주 기본 프로그램 만들기"))
         assertTrue(screen.contains("viewModel.generateV22Program"))
         assertTrue(screen.contains("sessionMinutes = v22SessionMinutes"))
         assertTrue(screen.contains("days = v22Days"))

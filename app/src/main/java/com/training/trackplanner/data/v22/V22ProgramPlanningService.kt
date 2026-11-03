@@ -25,7 +25,9 @@ internal class V22ProgramPlanningService(
     private val userOverrideDao: ExerciseMetadataUserOverrideDao? = null
 ) {
     suspend fun generate(request: V22GenerationRequest): V22GeneratedProgram {
-        val effectiveRequest = if (request.mode == V22Mode.B) request.copy(weeks = 12) else request
+        val effectiveRequest = if (request.mode == V22Mode.B && request.blockProgram == null) {
+            request.copy(weeks = 12) // preserve historical B12 callers
+        } else request
         val history = V22HistoryInput.fromWorkoutHistory(workoutDao.entriesWithSetsUntil(effectiveRequest.asOf.toString()))
         val exercises = exerciseDao.allExercises().associateBy(Exercise::stableKey)
         if (effectiveRequest.mode != V22Mode.B) {
@@ -63,7 +65,7 @@ internal fun BBalanced12WeekPlan.toSkeleton(
         badmintonTransferRatio = 0.0,
         sportStrengthRatio = "AUTO",
         periodizationType = ProgramPeriodizationType.AUTO,
-        durationWeeks = 12
+        durationWeeks = input.weeks
     )
     val focusByBlock = blocks.associate { it.block to it.focus }
     val items = weeks.flatMap { week ->
@@ -109,7 +111,7 @@ internal fun BBalanced12WeekPlan.toSkeleton(
     }
     return GeneratedProgramSkeleton(
         suggestedName = request.name,
-        durationDays = 84,
+        durationDays = input.weeks * 7,
         request = skeletonRequest,
         periodizationType = ProgramPeriodizationType.AUTO,
         weekPlans = weeks.map { week ->
@@ -131,12 +133,13 @@ internal fun BBalanced12WeekPlan.toSkeleton(
         items = items,
         weekDaySchedule = weeks.associate { week -> week.week to week.sessions.mapTo(linkedSetOf(), V22Session::session) },
         warnings = listOf(
-            "B_BALANCED_12_WEEK_V1",
+            schema,
             "Historical kilograms are references only; every future load remains USER_CALIBRATION_REQUIRED.",
-            "No automatic four-week deload; each four-week focus block keeps a stable structure.",
-            "Progression is evaluated only after a completed comparable session."
+            "Steady blocks may intentionally keep their weekly prescription unchanged.",
+            "Initial kilograms must be calibrated by the user, not fabricated from history."
         ) + limitations,
-        templateId = BBalanced12WeekEngine.TEMPLATE_ID,
+        templateId = if (schema == BBalanced12WeekEngine.SCHEMA) BBalanced12WeekEngine.TEMPLATE_ID
+            else "V2_2_B_BALANCED_BLOCK_PROGRAM_V1",
         representativeTemplate = false,
         planningMetadataJson = metadataJson
     )

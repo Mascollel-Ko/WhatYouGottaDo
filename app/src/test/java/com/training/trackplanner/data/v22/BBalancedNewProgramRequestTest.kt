@@ -14,7 +14,7 @@ class BBalancedNewProgramRequestTest {
     private val date = LocalDate.of(2026, 10, 23)
 
     @Test
-    fun newProgramAlwaysUsesTwelveWeekBWithUserPreferences() {
+    fun newProgramUsesFourWeekSingleBlockBWithUserPreferences() {
         val importance = BBalancedGoalImportance(
             strength = 5,
             hypertrophy = 3,
@@ -30,7 +30,9 @@ class BBalancedNewProgramRequestTest {
             importance = importance
         )
         assertEquals(V22Mode.B, request.mode)
-        assertEquals(12, request.weeks)
+        assertEquals(4, request.weeks)
+        assertEquals(1, request.blockProgram?.blocks?.size)
+        assertEquals(BVolumePattern.STEADY, request.blockProgram?.blocks?.single()?.pattern)
         assertEquals(3, request.days)
         assertEquals(4, request.bMaxTrainingDays)
         assertEquals(60, request.sessionMinutes)

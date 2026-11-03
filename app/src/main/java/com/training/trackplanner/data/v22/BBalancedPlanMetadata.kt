@@ -9,7 +9,8 @@ import kotlin.math.round
 
 internal fun restoredBBalancedWeekPlans(metadataJson: String?, durationWeeks: Int): List<ProgramWeekPlan>? {
     val metadata = metadataJson?.let { runCatching { JSONObject(it) }.getOrNull() } ?: return null
-    if (metadata.optString("schema") != BBalanced12WeekEngine.SCHEMA || durationWeeks != 12) return null
+    if (metadata.optString("schema") !in setOf(BBalanced12WeekEngine.SCHEMA, BBalanced12WeekEngine.BLOCK_SCHEMA)) return null
+    if (durationWeeks <= 0) return null
     val blocks = metadata.optJSONArray("blocks") ?: return null
     val focusByWeek = mutableMapOf<Int, Pair<Int, String>>()
     repeat(blocks.length()) { index ->
@@ -18,8 +19,8 @@ internal fun restoredBBalancedWeekPlans(metadataJson: String?, durationWeeks: In
         val focus = block.getString("focus")
         for (week in block.getInt("startWeek")..block.getInt("endWeek")) focusByWeek[week] = number to focus
     }
-    if (focusByWeek.keys != (1..12).toSet()) return null
-    return (1..12).map { week ->
+    if (focusByWeek.keys != (1..durationWeeks).toSet()) return null
+    return (1..durationWeeks).map { week ->
         val (block, focus) = focusByWeek.getValue(week)
         ProgramWeekPlan(
             weekIndex = week,
@@ -40,7 +41,7 @@ internal fun restoredBBalancedWeekPlans(metadataJson: String?, durationWeeks: In
 /** Recomputes the persisted coverage/shortfall audit only; user edits are never auto-filled. */
 internal fun GeneratedProgramSkeleton.reassessBBalancedAfterEdit(): GeneratedProgramSkeleton {
     val metadata = planningMetadataJson?.let { runCatching { JSONObject(it) }.getOrNull() } ?: return this
-    if (metadata.optString("schema") != BBalanced12WeekEngine.SCHEMA) return this
+    if (metadata.optString("schema") !in setOf(BBalanced12WeekEngine.SCHEMA, BBalanced12WeekEngine.BLOCK_SCHEMA)) return this
     val contributions = metadata.getJSONObject("contributions")
     val divisors = metadata.getJSONObject("doseDivisors")
     val targets = metadata.getJSONArray("goalTargets")

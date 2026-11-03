@@ -38,7 +38,9 @@ data class V22GenerationRequest(
     val sessionMinutes: Int? = null,
     val backupName: String = "APP_WORKOUT_HISTORY",
     val bGoalImportance: BBalancedGoalImportance = BBalancedGoalImportance(),
-    val bMaxTrainingDays: Int? = null // explicit permission to expand B from three to four days
+    val bMaxTrainingDays: Int? = null, // explicit permission to expand B from three to four days
+    /** Absent for old B12 callers; new B UI carries the precise block layout. */
+    val blockProgram: BBlockProgramDefinition? = null
 )
 
 /**
@@ -54,13 +56,14 @@ internal fun newBBalancedGenerationRequest(
     importance: BBalancedGoalImportance
 ): V22GenerationRequest = V22GenerationRequest(
     name = name,
-    weeks = 12,
+    weeks = 4,
     days = days,
     mode = V22Mode.B,
     asOf = asOf,
     sessionMinutes = sessionMinutes,
     bMaxTrainingDays = if (days == 3 && allowFourthDay) 4 else null,
-    bGoalImportance = importance
+    bGoalImportance = importance,
+    blockProgram = BBlockProgramDefinition()
 )
 
 data class V22HistoryRow(

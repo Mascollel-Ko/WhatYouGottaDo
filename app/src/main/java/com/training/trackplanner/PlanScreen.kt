@@ -492,7 +492,7 @@ private fun ProgramEditorScreen(
         item {
             ScreenHeader(
                 title = if (program == null) "프로그램 새로 만들기" else "프로그램 수정",
-                body = "빈 프로그램을 직접 구성하거나 12주 균형형 프로그램을 만든 뒤, 저장 전에 세트와 중량을 조정합니다."
+                body = "빈 프로그램을 직접 구성하거나 4주 기본 블록 프로그램을 만든 뒤, 저장 전에 세트와 중량을 조정합니다."
             )
         }
         item {
@@ -569,7 +569,7 @@ private fun ProgramEditorScreen(
                             Text("빈 프로그램으로 시작")
                         }
                         Text(
-                            text = "12주 균형형 운동 프로그램",
+                            text = "4주 기본 운동 프로그램",
                             style = MaterialTheme.typography.titleMedium
                         )
                         ProgramOptionRow {
@@ -646,7 +646,7 @@ private fun ProgramEditorScreen(
                             )
                         }
                         Text(
-                            text = "12주 고정 · 중요도 0은 기록 추천입니다. 4일 분산은 필요할 때만 적용하고, 삭제 후보는 감사 정보로만 기록합니다.",
+                            text = "기본 4주 · 중요도 0은 기록 추천입니다. 4일 분산은 필요할 때만 적용하고, 삭제 후보는 감사 정보로만 기록합니다.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -655,7 +655,7 @@ private fun ProgramEditorScreen(
                             enabled = !generationRunning,
                             onClick = { generateV22() }
                         ) {
-                            Text(if (v22SkeletonCreated) "12주 균형형 프로그램 다시 만들기" else "12주 균형형 프로그램 만들기")
+                            Text(if (v22SkeletonCreated) "4주 기본 프로그램 다시 만들기" else "4주 기본 프로그램 만들기")
                         }
                     } else {
                         Text(
@@ -697,7 +697,7 @@ private fun ProgramEditorScreen(
         if (personalizedDraft == null) item {
             InfoCard(
                 if (program == null) {
-                    "빈 프로그램으로 시작하거나 12주 균형형 프로그램을 만들면 저장 전 미리보기와 수정 항목이 표시됩니다."
+                    "빈 프로그램으로 시작하거나 4주 기본 프로그램을 만들면 저장 전 미리보기와 수정 항목이 표시됩니다."
                 } else {
                     "아직 저장된 운동 구성이 없습니다."
                 }

@@ -28,6 +28,7 @@ import kotlin.math.sqrt
 internal object BBalanced12WeekEngine {
     const val SCHEMA = "B_BALANCED_12_WEEK_V1"
     const val TEMPLATE_ID = "V2_2_B_BALANCED_12_WEEK_V1"
+    const val BLOCK_SCHEMA = "B_BALANCED_BLOCK_PROGRAM_V1"
     const val MINIMUM_IMPROVEMENT = 0.005
     private const val FOCUS_ALLOCATION_WEIGHT = 0.1
 
@@ -64,8 +65,10 @@ internal object BBalanced12WeekEngine {
         badmintonCatalog: CanonicalBadmintonObjectiveCatalog,
         taskCatalog: BBalancedTaskCatalog
     ): BBalanced12WeekPlan {
-        require(request.mode == V22Mode.B) { "B 12-week engine only accepts mode B" }
-        require(request.weeks == 12) { "B balanced programs are fixed at 12 weeks" }
+        require(request.mode == V22Mode.B) { "B engine only accepts mode B" }
+        val specification = request.blockProgram
+        require(if (specification == null) request.weeks == 12
+                else request.weeks == specification.trainingWeeks) { "B block duration mismatch" }
         require(request.days in 1..7) { "days" }
         require(request.sessionMinutes == null || request.sessionMinutes > 0) { "minutes" }
 
@@ -99,9 +102,23 @@ internal object BBalanced12WeekEngine {
         var accepted = 0
         var best: Candidate? = null
         val goals = BBalancedGoal.entries
-        for (first in goals) for (second in goals) for (third in goals) {
+        // Legacy B12 keeps its three-focus exhaustive search. New B uses exactly
+        // the requested number of blocks and never generates a hidden 12-week tail.
+        val focusSequences: List<List<BBalancedGoal>> = if (specification == null) {
+            goals.flatMap { a -> goals.flatMap { b -> goals.map { c -> listOf(a, b, c) } } }
+        } else {
+            specification.blocks.fold(listOf(emptyList<BBalancedGoal>())) { sequences, block ->
+                val permitted = when (block.goal) {
+                    BBlockGoal.STRENGTH, BBlockGoal.PEAK_EVALUATION -> listOf(BBalancedGoal.STRENGTH)
+                    BBlockGoal.HYPERTROPHY -> listOf(BBalancedGoal.HYPERTROPHY)
+                    BBlockGoal.SPORT_SUPPORT -> listOf(BBalancedGoal.SPORT_SUPPORT)
+                    BBlockGoal.AUTO, BBlockGoal.BALANCED -> goals
+                }
+                sequences.flatMap { prior -> permitted.map { prior + it } }
+            }
+        }
+        for (focuses in focusSequences) {
             evaluated++
-            val focuses = listOf(first, second, third)
             val blocks = focuses.map { focus ->
                 rebalance(trimmed, focus, contributions, historyCeilings)
             }
@@ -119,11 +136,15 @@ internal object BBalanced12WeekEngine {
             }
         }
         val chosen = requireNotNull(best) { "No feasible B balanced candidate within the supplied time constraint" }
+        var weekCursor = 1
         val blocks = chosen.focuses.mapIndexed { index, focus ->
+            val startWeek = weekCursor
+            val endWeek = weekCursor + (specification?.blocks?.get(index)?.weeks ?: 4) - 1
+            weekCursor = endWeek + 1
             BBalancedBlock(
                 block = index + 1,
-                startWeek = index * 4 + 1,
-                endWeek = index * 4 + 4,
+                startWeek = startWeek,
+                endWeek = endWeek,
                 focus = focus,
                 focusReasons = focusReasons(focus, targets, chosen.evaluations[index]),
                 sessions = chosen.sessions[index],
@@ -150,12 +171,13 @@ internal object BBalanced12WeekEngine {
             feasibleCandidates = feasible,
             acceptedImprovements = accepted,
             minimumImprovement = MINIMUM_IMPROVEMENT,
-            terminationReason = "BOUNDED_EXHAUSTIVE_4x4x4_FOCUS_SEQUENCE"
+            terminationReason = if (specification == null) "BOUNDED_EXHAUSTIVE_4x4x4_FOCUS_SEQUENCE"
+                else "BLOCK_FOCUS_SEARCH_" + specification.blocks.size + "_BLOCKS"
         )
         val input = V22PlanInput(
             backup = request.backupName,
             asOf = request.asOf.toString(),
-            weeks = 12,
+            weeks = request.weeks,
             days = placement.effectiveDays,
             mode = V22Mode.B.name,
             focusStableKey = null,
@@ -171,6 +193,14 @@ internal object BBalanced12WeekEngine {
         )
         val deletionReview = auditDeletionCandidates(trimmed, targets, contributions, exercises)
         val metadata = JSONObject(metadataJson(input, targets, blocks, search, contributions, limitations))
+            .put("schema", if (specification == null) SCHEMA else BLOCK_SCHEMA)
+            .put("blockSpecs", JSONArray(specification?.blocks?.mapIndexed { index, block ->
+                JSONObject().put("block", index + 1).put("weeks", block.weeks)
+                    .put("goal", block.goal.name).put("pattern", block.pattern.name)
+                    .put("adjustment", block.adjustment.name).put("amplitude", block.amplitude.name)
+                    .put("relation", block.relationToPrevious.name)
+            } ?: emptyList<JSONObject>()))
+            .put("recoveryDaysBetween", JSONArray(specification?.recoveryDaysBetween ?: emptyList<Int>()))
             .put("placementAudit", JSONObject()
                 .put("requestedDays", placement.requestedDays)
                 .put("effectiveDays", placement.effectiveDays)
@@ -184,7 +214,7 @@ internal object BBalanced12WeekEngine {
             .put("deletionPolicy", "AUDIT_ONLY_NO_AUTOMATIC_REMOVAL")
             .toString()
         return BBalanced12WeekPlan(
-            schema = SCHEMA,
+            schema = if (specification == null) SCHEMA else BLOCK_SCHEMA,
             input = input,
             goalTargets = targets,
             blocks = blocks,
@@ -240,10 +270,27 @@ internal object BBalanced12WeekEngine {
     }
 
     fun validate(plan: BBalanced12WeekPlan): BBalanced12WeekPlan {
-        check(plan.input.mode == V22Mode.B.name && plan.input.weeks == 12)
-        check(plan.blocks.size == 3)
-        check(plan.blocks.map { it.startWeek to it.endWeek } == listOf(1 to 4, 5 to 8, 9 to 12))
-        check(plan.weeks.map(V22Week::week) == (1..12).toList())
+        check(plan.input.mode == V22Mode.B.name)
+        when (plan.schema) {
+            SCHEMA -> {
+                check(plan.input.weeks == 12)
+                check(plan.blocks.size == 3)
+                check(plan.blocks.map { it.startWeek to it.endWeek } == listOf(1 to 4, 5 to 8, 9 to 12))
+            }
+            BLOCK_SCHEMA -> {
+                val specs = JSONObject(plan.metadataJson).getJSONArray("blockSpecs")
+                check(plan.blocks.size == specs.length())
+                var expectedStart = 1
+                plan.blocks.forEachIndexed { index, block ->
+                    check(block.startWeek == expectedStart)
+                    check(block.endWeek - block.startWeek + 1 == specs.getJSONObject(index).getInt("weeks"))
+                    expectedStart = block.endWeek + 1
+                }
+                check(expectedStart == plan.input.weeks + 1)
+            }
+            else -> error("Unknown B schema")
+        }
+        check(plan.weeks.map(V22Week::week) == (1..plan.input.weeks).toList())
         plan.blocks.forEach { block ->
             check(block.sessions.size == plan.input.days)
             block.sessions.forEach { session ->
