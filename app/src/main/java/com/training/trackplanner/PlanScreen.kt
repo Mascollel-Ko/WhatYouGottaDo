@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.heightIn
 
 import android.widget.Toast
+import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -72,6 +73,7 @@ import com.training.trackplanner.data.v22.BBalancedGoalImportance
 import com.training.trackplanner.data.v22.BBlockProgramDefinition
 import com.training.trackplanner.data.v22.BBlockDefinition
 import com.training.trackplanner.data.v22.BVolumePattern
+import com.training.trackplanner.data.v22.propagateBBlockStartLoad
 import com.training.trackplanner.data.v22.newBBalancedGenerationRequest
 import com.training.trackplanner.data.v22.restoredBBalancedWeekPlans
 import com.training.trackplanner.localization.localizedProgramName
@@ -417,6 +419,8 @@ private fun ProgramEditorScreen(
     var bCoreImportance by rememberSaveable(program?.id ?: 0L) { mutableStateOf(0) }
     var bSportImportance by rememberSaveable(program?.id ?: 0L) { mutableStateOf(0) }
     var bBlockPattern by rememberSaveable(program?.id ?: 0L) { mutableStateOf(BVolumePattern.STEADY) }
+    val trainingProfilePrefs = remember(context) { context.getSharedPreferences("training_profile", Context.MODE_PRIVATE) }
+    var smallestPlateText by rememberSaveable { mutableStateOf(trainingProfilePrefs.getFloat("smallest_plate_kg", 1.25f).toString()) }
     var v22SkeletonCreated by rememberSaveable(program?.id ?: 0L) { mutableStateOf(false) }
 
     LaunchedEffect(program?.id) {
@@ -650,6 +654,20 @@ private fun ProgramEditorScreen(
                                 enabled = !generationRunning
                             )
                         }
+                        OutlinedTextField(
+                            modifier = Modifier.fillMaxWidth(),
+                            value = smallestPlateText,
+                            onValueChange = { text ->
+                                if (generationRunning) return@OutlinedTextField
+                                smallestPlateText = text
+                                val kg = text.toDoubleOrNull()
+                                if (kg != null && kg.isFinite() && kg > 0.0)
+                                    trainingProfilePrefs.edit().putFloat("smallest_plate_kg", kg.toFloat()).apply()
+                            },
+                            label = { Text("최소 원판 1장의 무게 (kg) · 사용자 공통 설정") },
+                            singleLine = true,
+                            supportingText = { Text("바벨 최소 증량은 이 값의 2배입니다. 덤벨·머신은 사용자 검토가 필요합니다.") }
+                        )
                         Text("4주 블록 · 볼륨 주기화", style = MaterialTheme.typography.titleSmall)
                         BBlockPatternPicker(
                             weeks = 4,
@@ -702,7 +720,13 @@ private fun ProgramEditorScreen(
                     metadataByExerciseId = runtimeMetadataByExerciseId,
                     muscleMetadataByKey = muscleMetadataByKey,
                     progressionEligibleKeys = progressionEligibleKeys,
-                    onSkeletonChange = { personalizedDraft = it }
+                    onSkeletonChange = { nextDraft ->
+                        val previousDraft = personalizedDraft
+                        val plate = smallestPlateText.toDoubleOrNull()?.takeIf { it.isFinite() && it > 0.0 }
+                        personalizedDraft = if (previousDraft != null && lastGenerationWasV22 && plate != null)
+                            nextDraft.propagateBBlockStartLoad(previousDraft, plate)
+                            else nextDraft
+                    }
                 )
             }
         }
