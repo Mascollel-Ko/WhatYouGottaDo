@@ -53,17 +53,18 @@ internal fun newBBalancedGenerationRequest(
     asOf: LocalDate,
     sessionMinutes: Int?,
     allowFourthDay: Boolean,
-    importance: BBalancedGoalImportance
+    importance: BBalancedGoalImportance,
+    blockProgram: BBlockProgramDefinition = BBlockProgramDefinition()
 ): V22GenerationRequest = V22GenerationRequest(
     name = name,
-    weeks = 4,
+    weeks = blockProgram.trainingWeeks,
     days = days,
     mode = V22Mode.B,
     asOf = asOf,
     sessionMinutes = sessionMinutes,
     bMaxTrainingDays = if (days == 3 && allowFourthDay) 4 else null,
     bGoalImportance = importance,
-    blockProgram = BBlockProgramDefinition()
+    blockProgram = blockProgram
 )
 
 data class V22HistoryRow(

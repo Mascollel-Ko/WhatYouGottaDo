@@ -63,7 +63,8 @@ internal object BBalanced12WeekEngine {
         muscleRelations: List<CanonicalMetadataRelation>,
         coreCatalog: CanonicalCoreCatalog,
         badmintonCatalog: CanonicalBadmintonObjectiveCatalog,
-        taskCatalog: BBalancedTaskCatalog
+        taskCatalog: BBalancedTaskCatalog,
+        mainExerciseKeys: Set<String> = emptySet()
     ): BBalanced12WeekPlan {
         require(request.mode == V22Mode.B) { "B engine only accepts mode B" }
         val specification = request.blockProgram
@@ -153,12 +154,18 @@ internal object BBalanced12WeekEngine {
         }
         val weeks = blocks.flatMap { block ->
             (block.startWeek..block.endWeek).map { week ->
+                val spec = specification?.blocks?.get(block.block - 1)
+                val stage = spec?.let { BBlockPeriodization.steps(it)[week - block.startWeek] } ?: 0
                 val sessions = block.sessions.map { session ->
-                    session.copy(items = session.items.map { item ->
+                    val adjusted = if (spec == null) session else BBlockPrescriptionApplicator.apply(
+                        session, stage, block.focus, spec, mainExerciseKeys
+                    )
+                    adjusted.copy(items = adjusted.items.map { item ->
                         item.copy(
                             sets = item.sets.map(V22ObservedSet::copy),
                             prescriptionAuthority = "PERSONAL_HISTORY_CONTINUITY_REVIEW_REQUIRED",
-                            plannedProgression = "CONDITIONAL_NEXT_COMPARABLE_SESSION_ONLY",
+                            plannedProgression = if (spec == null) "CONDITIONAL_NEXT_COMPARABLE_SESSION_ONLY"
+                                else item.plannedProgression,
                             block = block.block
                         )
                     })

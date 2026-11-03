@@ -43,7 +43,10 @@ internal class V22ProgramPlanningService(
             ),
             coreCatalog = canonicalMetadataRepository.coreCatalog(),
             badmintonCatalog = canonicalMetadataRepository.badmintonObjectiveCatalog(),
-            taskCatalog = bBalancedTaskCatalog
+            taskCatalog = bBalancedTaskCatalog,
+            mainExerciseKeys = canonicalMetadataRepository.programSlotCapabilityRelations()
+                .filter { it.capabilityCode == "MAIN_STRENGTH_SLOT" }
+                .mapTo(linkedSetOf()) { it.exerciseStableKey }
         )
         val comparator = runCatching { V22PythonParityEngine.build(history, effectiveRequest) }.getOrNull()
             ?.takeIf { plan -> plan.weeks.firstOrNull()?.sessions?.any { it.items.isNotEmpty() } == true }

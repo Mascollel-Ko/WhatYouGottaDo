@@ -68,7 +68,8 @@ internal fun ProgramSkeletonPreview(
     var editingItem by remember { mutableStateOf<ProgramSkeletonItem?>(null) }
     var removeDayTarget by remember { mutableStateOf<Int?>(null) }
     var allWeeks by rememberSaveable(skeleton.suggestedName) { mutableStateOf(true) }
-    val recordBased=skeleton.personalizedDecision!=null || skeleton.planningMetadataJson?.contains("B_BALANCED_12_WEEK_V1")==true
+    val recordBased=skeleton.personalizedDecision!=null || (skeleton.planningMetadataJson?.contains("B_BALANCED_12_WEEK_V1")==true ||
+        skeleton.planningMetadataJson?.contains("B_BALANCED_BLOCK_PROGRAM_V1")==true)
     val supportsAll=remember(skeleton) { ProgramScopedEditor.supportsAll(skeleton) }
     val scope=if(recordBased && allWeeks && supportsAll) ProgramEditScope.ALL_WEEKS else ProgramEditScope.INDIVIDUAL_WEEK
     val editWeek=if(scope==ProgramEditScope.ALL_WEEKS) 1 else selectedWeek
