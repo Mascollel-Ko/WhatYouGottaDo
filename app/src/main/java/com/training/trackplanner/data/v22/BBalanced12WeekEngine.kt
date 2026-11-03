@@ -215,14 +215,18 @@ internal object BBalanced12WeekEngine {
         )
         val deletionReview = auditDeletionCandidates(trimmed, targets, contributions, exercises)
         val metadata = JSONObject(metadataJson(input, targets, blocks, search, contributions, limitations))
-            .put("schema", if (specification == null) SCHEMA else BLOCK_SCHEMA)
-            .put("blockSpecs", JSONArray(specification?.blocks?.mapIndexed { index, block ->
-                JSONObject().put("block", index + 1).put("weeks", block.weeks)
-                    .put("goal", block.goal.name).put("pattern", block.pattern.name)
-                    .put("adjustment", block.adjustment.name).put("amplitude", block.amplitude.name)
-                    .put("relation", block.relationToPrevious.name)
-            } ?: emptyList<JSONObject>()))
-            .put("recoveryDaysBetween", JSONArray(specification?.recoveryDaysBetween ?: emptyList<Int>()))
+            .apply {
+                if (specification != null) {
+                    put("schema", BLOCK_SCHEMA)
+                    put("blockSpecs", JSONArray(specification.blocks.mapIndexed { index, block ->
+                        JSONObject().put("block", index + 1).put("weeks", block.weeks)
+                            .put("goal", block.goal.name).put("pattern", block.pattern.name)
+                            .put("adjustment", block.adjustment.name).put("amplitude", block.amplitude.name)
+                            .put("relation", block.relationToPrevious.name)
+                    }))
+                    put("recoveryDaysBetween", JSONArray(specification.recoveryDaysBetween))
+                }
+            }
             .put("placementAudit", JSONObject()
                 .put("requestedDays", placement.requestedDays)
                 .put("effectiveDays", placement.effectiveDays)

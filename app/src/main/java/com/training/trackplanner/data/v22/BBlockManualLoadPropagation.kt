@@ -19,39 +19,59 @@ internal fun GeneratedProgramSkeleton.propagateBBlockStartLoad(
     if (metadata.optString("schema") != BBalanced12WeekEngine.BLOCK_SCHEMA) return this
     val blocks = metadata.optJSONArray("blocks") ?: return this
     val specifications = metadata.optJSONArray("blockSpecs") ?: return this
-    if (blocks.length() != specifications.length()) return this
+    val between = metadata.optJSONArray("recoveryDaysBetween") ?: return this
+    if (blocks.length() != specifications.length() || between.length() != blocks.length() - 1) return this
+    val layout = runCatching {
+        BBlockProgramDefinition(
+            blocks = (0 until specifications.length()).map { index ->
+                val spec = specifications.getJSONObject(index)
+                BBlockDefinition(
+                    weeks = spec.getInt("weeks"),
+                    pattern = BVolumePattern.valueOf(spec.getString("pattern"))
+                )
+            },
+            recoveryDaysBetween = (0 until between.length()).map(between::getInt)
+        )
+    }.getOrNull() ?: return this
+    val calendar = BBlockCalendar(layout)
     val priorItems = before.items.associateBy { it.localId }
     val derived = mutableMapOf<String, Double>()
-    for (index in 0 until blocks.length()) {
-        val block = blocks.getJSONObject(index)
-        val spec = specifications.getJSONObject(index)
-        val firstWeek = block.getInt("startWeek")
-        val lastWeek = block.getInt("endWeek")
-        val pattern = runCatching { BVolumePattern.valueOf(spec.getString("pattern")) }.getOrNull() ?: continue
-        val stages = BBlockPeriodization.steps(BBlockDefinition(lastWeek - firstWeek + 1, pattern = pattern))
+
+    for (blockIndex in 0 until blocks.length()) {
+        val block = blocks.getJSONObject(blockIndex)
+        val spec = specifications.getJSONObject(blockIndex)
+        val weeks = layout.blocks[blockIndex].weeks
+        val stages = BBlockPeriodization.steps(layout.blocks[blockIndex])
         val adjustment = spec.optString("adjustment", BVolumeAdjustment.AUTO.name)
         val loadFirst = adjustment == BVolumeAdjustment.LOAD_FIRST.name ||
-            (adjustment == BVolumeAdjustment.AUTO.name && block.optString("focus") == BBalancedGoal.STRENGTH.name)
-        val updatedAnchors = items.filter { it.weekNumber == firstWeek }
-        for (anchor in updatedAnchors) {
-            val old = priorItems[anchor.localId] ?: continue
-            val weight = ProgramSetPrescriptionResolver.resolve(anchor).map { it.weightKg }
-                .distinct().singleOrNull()?.takeIf { it.isFinite() && it > 0.0 } ?: continue
-            val previousWeight = ProgramSetPrescriptionResolver.resolve(old).map { it.weightKg }
-                .distinct().singleOrNull()
-            if (previousWeight == weight) continue
-            items.filter { target ->
-                target.weekNumber in firstWeek..lastWeek &&
-                    target.dayOfWeek == anchor.dayOfWeek &&
-                    target.exerciseStableKey == anchor.exerciseStableKey &&
-                    target.weekNumber != firstWeek
-            }.forEach { target ->
-                val existing = ProgramSetPrescriptionResolver.resolve(target)
-                // Explicit previously calibrated values belong to the user.
-                if (existing.any { it.weightKg > 0.0 }) return@forEach
-                val stage = stages[target.weekNumber - firstWeek].coerceAtLeast(0)
-                derived[target.localId] = if (loadFirst) weight + stage * BBlockPeriodization.barbellIncrement(smallestPlateKg)
+            (adjustment == BVolumeAdjustment.AUTO.name &&
+                block.optString("focus") == BBalancedGoal.STRENGTH.name)
+
+        // A break of 1..6 days moves the next block's "first week" across
+        // calendar-week boundaries. Anchor by actual scheduled day, never week index.
+        for (sessionDay in 1..7) {
+            val firstSlot = calendar.slot(blockIndex, 0, sessionDay)
+            val anchors = items.filter { item ->
+                item.weekNumber == firstSlot.week && item.dayOfWeek == firstSlot.day
+            }
+            for (anchor in anchors) {
+                val previous = priorItems[anchor.localId] ?: continue
+                val weight = ProgramSetPrescriptionResolver.resolve(anchor).map { it.weightKg }
+                    .distinct().singleOrNull()?.takeIf { it.isFinite() && it > 0.0 } ?: continue
+                val previousWeight = ProgramSetPrescriptionResolver.resolve(previous).map { it.weightKg }
+                    .distinct().singleOrNull()
+                if (previousWeight == weight) continue
+                for (laterWeek in 1 until weeks) {
+                    val laterSlot = calendar.slot(blockIndex, laterWeek, sessionDay)
+                    val target = items.firstOrNull { it.weekNumber == laterSlot.week &&
+                        it.dayOfWeek == laterSlot.day && it.exerciseStableKey == anchor.exerciseStableKey
+                    } ?: continue
+                    if (ProgramSetPrescriptionResolver.resolve(target).any { it.weightKg > 0.0 }) continue
+                    val stage = stages[laterWeek].coerceAtLeast(0)
+                    derived[target.localId] = if (loadFirst)
+                        weight + stage * BBlockPeriodization.barbellIncrement(smallestPlateKg)
                     else weight
+                }
             }
         }
     }
