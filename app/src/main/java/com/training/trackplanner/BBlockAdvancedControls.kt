@@ -1,6 +1,7 @@
 package com.training.trackplanner
 
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -10,6 +11,7 @@ import com.training.trackplanner.data.v22.BChangeAmplitude
 import com.training.trackplanner.data.v22.BProgressionField
 import com.training.trackplanner.data.v22.BVolumeAdjustment
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun BBlockAdvancedControls(
     block: BBlockDefinition,
