@@ -34,6 +34,20 @@ internal fun GeneratedProgramSkeleton.propagateBBlockStartLoad(
         )
     }.getOrNull() ?: return this
     val calendar = BBlockCalendar(layout)
+    // The actual per-exercise lever may differ from the block default when
+    // repetitions reach their limit or equipment cannot use paired plates.
+    val progressionSteps = metadata.optJSONArray("prescriptionSteps")
+    fun loadSteps(block: Int, week: Int, session: Int, key: String): Int? {
+        if (progressionSteps == null) return null
+        for (i in 0 until progressionSteps.length()) {
+            val entry = progressionSteps.getJSONObject(i)
+            if (entry.getInt("block") == block &&
+                entry.getInt("localWeek") == week &&
+                entry.getInt("session") == session &&
+                entry.getString("stableKey") == key) return entry.getInt("loadSteps")
+        }
+        return null
+    }
     val priorItems = before.items.associateBy { it.localId }
     val derived = mutableMapOf<String, Double>()
 
@@ -66,11 +80,14 @@ internal fun GeneratedProgramSkeleton.propagateBBlockStartLoad(
                     val target = items.firstOrNull { it.weekNumber == laterSlot.week &&
                         it.dayOfWeek == laterSlot.day && it.exerciseStableKey == anchor.exerciseStableKey
                     } ?: continue
-                    if (ProgramSetPrescriptionResolver.resolve(target).any { it.weightKg > 0.0 }) continue
-                    val stage = stages[laterWeek].coerceAtLeast(0)
-                    derived[target.localId] = if (loadFirst)
-                        weight + stage * BBlockPeriodization.barbellIncrement(smallestPlateKg)
-                    else weight
+                    // Previously derived loads follow the edited anchor. A manual
+                    // future-week override is never silently overwritten.
+                    if (target.weightSource != "B_BLOCK_USER_START_LOAD_DERIVED" &&
+                        ProgramSetPrescriptionResolver.resolve(target).any { it.weightKg > 0.0 }) continue
+                    val recordedSteps = loadSteps(blockIndex + 1, laterWeek, sessionDay, anchor.exerciseStableKey)
+                    val steps = recordedSteps ?: (if (loadFirst) stages[laterWeek] else 0)
+                    val newKg = weight + steps * BBlockPeriodization.barbellIncrement(smallestPlateKg)
+                    if (newKg > 0.0) derived[target.localId] = newKg
                 }
             }
         }
