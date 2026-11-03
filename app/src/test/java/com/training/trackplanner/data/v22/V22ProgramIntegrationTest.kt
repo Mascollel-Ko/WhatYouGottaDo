@@ -225,6 +225,82 @@ class V22ProgramIntegrationTest {
         assertEquals(historyBefore, historyAfter)
     }
 
+
+    @Test
+    fun `new block program with partial recovery survives load calibration and save restore`() = runBlocking {
+        val db = Room.inMemoryDatabaseBuilder(context, TrainingDatabase::class.java)
+            .allowMainThreadQueries().build().also(databases::add)
+        seedHistory(db, realHistoryRows())
+        val repository = TrainingRepository(db, context)
+        val layout = BBlockProgramDefinition(
+            blocks = listOf(
+                BBlockDefinition(weeks = 3, goal = BBlockGoal.HYPERTROPHY, pattern = BVolumePattern.WAVE),
+                BBlockDefinition(weeks = 3, goal = BBlockGoal.STRENGTH,
+                    pattern = BVolumePattern.PROGRESSIVE,
+                    relationToPrevious = BBlockRelation.COMPLEMENT_PLANNED_GAPS)
+            ),
+            recoveryDaysBetween = listOf(3)
+        )
+        val generated = repository.generateV22Program(newBBalancedGenerationRequest(
+            name = "B-block partial recovery",
+            days = 3,
+            asOf = LocalDate.of(2026, 10, 11),
+            sessionMinutes = 60,
+            allowFourthDay = false,
+            importance = BBalancedGoalImportance(),
+            blockProgram = layout
+        ))
+        val initial = generated.skeleton
+        assertEquals(BBalanced12WeekEngine.BLOCK_SCHEMA, generated.balanced12WeekPlan?.schema)
+        assertEquals(45, initial.durationDays)
+        assertEquals(7, initial.request.durationWeeks)
+        assertEquals(7, initial.weekPlans.size)
+        assertEquals((1..7).toList(), initial.weekPlans.map { it.weekIndex })
+        assertTrue(initial.items.all { it.weekNumber in 1..7 && it.dayOfWeek in 1..7 })
+        assertTrue(initial.items.any { it.weekNumber == 4 && it.dayOfWeek == 4 })
+        assertFalse(initial.items.any { it.weekNumber == 4 && it.dayOfWeek <= 3 })
+
+        val firstSecondBlockSlot = BBlockCalendar(layout).slot(1, 0, 1)
+        val anchor = initial.items.first {
+            it.weekNumber == firstSecondBlockSlot.week && it.dayOfWeek == firstSecondBlockSlot.day
+        }
+        val filled = initial.copy(items = initial.items.map { item ->
+            if (item.localId != anchor.localId) item else item.copy(
+                weightKg = 100.0,
+                setPrescriptions = item.setPrescriptions.map { set ->
+                    set.copy(weightKg = 100.0,
+                        loadState = com.training.trackplanner.data.ProgramLoadState.EXPLICIT_LOAD)
+                }
+            )
+        })
+        val derived = filled.propagateBBlockStartLoad(initial, 1.25)
+        val nextWeekSlot = BBlockCalendar(layout).slot(1, 1, 1)
+        val next = derived.items.first {
+            it.weekNumber == nextWeekSlot.week &&
+                it.dayOfWeek == nextWeekSlot.day &&
+                it.exerciseStableKey == anchor.exerciseStableKey
+        }
+        assertEquals(102.5, next.weightKg, 0.001)
+        assertTrue(next.setPrescriptions.all { it.weightKg == 102.5 })
+        val thirdWeekSlot = BBlockCalendar(layout).slot(1, 2, 1)
+        val third = derived.items.first {
+            it.weekNumber == thirdWeekSlot.week &&
+                it.dayOfWeek == thirdWeekSlot.day &&
+                it.exerciseStableKey == anchor.exerciseStableKey
+        }
+        assertEquals(105.0, third.weightKg, 0.001)
+
+        val id = repository.saveGeneratedProgram(null, derived)
+        val reopened = skeletonFromProgram(repository.programEditorSnapshot(id))
+        assertEquals(45, reopened.durationDays)
+        assertEquals(7, reopened.weekPlans.size)
+        assertTrue(reopened.items.any {
+            it.weekNumber == next.weekNumber && it.dayOfWeek == next.dayOfWeek &&
+                it.exerciseStableKey == next.exerciseStableKey &&
+                it.setPrescriptions.all { set -> set.weightKg == 102.5 }
+        })
+    }
+
     private suspend fun seedHistory(db: TrainingDatabase, history: List<V22HistoryRow>) {
         val latest = history.groupBy(V22HistoryRow::stableKey).mapValues { (_, values) -> values.maxBy(V22HistoryRow::date) }
         db.exerciseDao().insertAll(latest.values.map { row ->
