@@ -75,6 +75,21 @@ class BBlockAdaptivePriorityTest {
         assertEquals(9, out.items.first().sets.last().reps)
     }
 
+    @Test fun timedSportDrillsDoNotAccumulateFictitiousBarbellLoadSteps() {
+        val item = session().items.last().copy(
+            category = "기능성운동",
+            sets = List(2) { V22ObservedSet(null, null, 20, null, "", "UNSET") },
+            setCount = 2
+        )
+        val output = BBlockPrescriptionApplicator.apply(
+            V22Session(1, listOf(item), 2), 2, BBalancedGoal.SPORT_SUPPORT,
+            BBlockDefinition(goal = BBlockGoal.SPORT_SUPPORT),
+            emptySet(), resolvedAmplitude = BChangeAmplitude.MEDIUM
+        )
+        assertTrue(output.items.single().plannedProgression.orEmpty().contains("LOAD_STEPS=0"))
+        assertEquals(20, output.items.single().sets.first().seconds)
+    }
+
     @Test fun negativeStagesFirstReduceEveryMainSet() {
         val out = BBlockPrescriptionApplicator.apply(session(8), -1, BBalancedGoal.STRENGTH,
             BBlockDefinition(goal = BBlockGoal.STRENGTH), setOf("barbell_squat"),
