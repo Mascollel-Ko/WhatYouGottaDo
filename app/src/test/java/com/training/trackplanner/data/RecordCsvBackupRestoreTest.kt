@@ -295,6 +295,9 @@ class RecordCsvBackupRestoreTest {
             metrics = emptyList(),
             initialProfile = InitialUserProfile(
                 bodyWeightKg = 72.5,
+                smallestPlateKg = 0.5,
+                dumbbellIncrementKg = 2.0,
+                machineIncrementKg = 5.0,
                 birthYear = 1990,
                 sex = "MALE",
                 strengthSessionsPerWeek = 3.0,
@@ -313,6 +316,9 @@ class RecordCsvBackupRestoreTest {
         assertTrue(csv.contains(",profile,"))
         val bodyWeightRow = parsed.profileRows.first { it.key == "bodyWeightKg" }
         assertEquals("72.5", bodyWeightRow.value)
+        assertTrue(parsed.profileRows.any { it.key == "smallestPlateKg" && it.value == "0.5" })
+        assertTrue(parsed.profileRows.any { it.key == "dumbbellIncrementKg" && it.value == "2" })
+        assertTrue(parsed.profileRows.any { it.key == "machineIncrementKg" && it.value == "5" })
         assertTrue(parsed.profileRows.any { it.key == "sex" && it.value == "MALE" })
         assertTrue(parsed.profileRows.any { it.key == "profileRecoveryScaleDirection" && it.value == "HIGH_IS_GOOD" })
         assertTrue(parsed.profileRows.any { it.key == "birthYear" && it.value == "1990" })
