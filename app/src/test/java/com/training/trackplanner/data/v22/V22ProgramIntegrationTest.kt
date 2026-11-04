@@ -280,15 +280,21 @@ class V22ProgramIntegrationTest {
                 it.dayOfWeek == nextWeekSlot.day &&
                 it.exerciseStableKey == anchor.exerciseStableKey
         }
-        assertEquals(102.5, next.weightKg, 0.001)
-        assertTrue(next.setPrescriptions.all { it.weightKg == 102.5 })
+        val equipmentKind = org.json.JSONObject(initial.planningMetadataJson!!)
+            .getJSONObject("equipmentIncrementKinds")
+            .getString(anchor.exerciseStableKey)
+        val unitKg = BBlockEquipmentIncrements(1.25, 1.0, 2.5)
+            .incrementFor(BEquipmentIncrementKind.valueOf(equipmentKind)) ?: 0.0
+        val expectedNext = 100.0 + unitKg
+        assertEquals(expectedNext, next.weightKg, 0.001)
+        assertTrue(next.setPrescriptions.all { it.weightKg == expectedNext })
         val thirdWeekSlot = BBlockCalendar(layout).slot(1, 2, 1)
         val third = derived.items.first {
             it.weekNumber == thirdWeekSlot.week &&
                 it.dayOfWeek == thirdWeekSlot.day &&
                 it.exerciseStableKey == anchor.exerciseStableKey
         }
-        assertEquals(105.0, third.weightKg, 0.001)
+        assertEquals(100.0 + unitKg * 2, third.weightKg, 0.001)
 
         val id = repository.saveGeneratedProgram(null, derived)
         val reopened = skeletonFromProgram(repository.programEditorSnapshot(id))
@@ -297,7 +303,7 @@ class V22ProgramIntegrationTest {
         assertTrue(reopened.items.any {
             it.weekNumber == next.weekNumber && it.dayOfWeek == next.dayOfWeek &&
                 it.exerciseStableKey == next.exerciseStableKey &&
-                it.setPrescriptions.all { set -> set.weightKg == 102.5 }
+                it.setPrescriptions.all { set -> set.weightKg == expectedNext }
         })
     }
 
