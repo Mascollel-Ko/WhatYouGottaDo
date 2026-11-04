@@ -401,17 +401,6 @@ private fun ProgramEditorScreen(
     var nameError by rememberSaveable(program?.id ?: 0L) {
         mutableStateOf(false)
     }
-    var durationWeeks by rememberSaveable(program?.id ?: 0L) {
-        mutableStateOf(
-            program?.let { ((it.durationDays.coerceAtLeast(1) + 6) / 7).coerceAtLeast(1) } ?: 4
-        )
-    }
-    var weeklyDays by rememberSaveable(program?.id ?: 0L) {
-        mutableStateOf((program?.weeklyTrainingDays ?: 3).takeIf { it > 0 } ?: 3)
-    }
-    var blankSessionMinutes by rememberSaveable(program?.id ?: 0L) {
-        mutableStateOf((program?.sessionMinutes ?: 60).takeIf { it > 0 } ?: 60)
-    }
     var v22SessionMinutes by rememberSaveable(program?.id ?: 0L) {
         mutableStateOf((program?.sessionMinutes ?: 60).takeIf { it > 0 } ?: 60)
     }
@@ -478,28 +467,31 @@ private fun ProgramEditorScreen(
         return valid
     }
 
+    // A blank draft starts without setup questions; its days and exercises
+    // remain editable in the existing week/day preview.
     fun blankProgramRequest(): ProgramSkeletonRequest =
         ProgramSkeletonRequest(
-            name = normalizedProgramName(),
+            name = normalizedProgramName().ifBlank { "새 프로그램" },
             goal = ProgramGoal.BADMINTON_SUPPORT,
-            weeklyTrainingDays = weeklyDays,
-            sessionMinutes = blankSessionMinutes,
+            weeklyTrainingDays = 3,
+            sessionMinutes = 60,
             availableEquipment = emptySet(),
             excludedExerciseText = "",
             badmintonTransferRatio = 0.0,
             sportStrengthRatio = "AUTO",
             periodizationType = ProgramPeriodizationType.AUTO,
-            durationWeeks = durationWeeks
+            durationWeeks = 4
         )
 
     fun startBlankProgram() {
-        if (!requireProgramName()) return
         if (viewModel.programBuildProgress.value is ProgramBuildProgressState.Running) return
+        if (nameText.isBlank()) nameText = "새 프로그램"
+        nameError = false
         lastGenerationWasV22 = false
         v22SkeletonCreated = false
         personalizedDraft = emptyProgramSkeleton(
             request = blankProgramRequest(),
-            weekDaySchedule = defaultProgramWeekDaySchedule(durationWeeks, weeklyDays)
+            weekDaySchedule = defaultProgramWeekDaySchedule(4, 3)
         )
     }
 
@@ -661,42 +653,11 @@ private fun ProgramEditorScreen(
                     )
                     if (program == null) {
                         Text(
-                            text = "빈 프로그램 직접 구성",
+                            text = "빈 프로그램",
                             style = MaterialTheme.typography.titleMedium
                         )
-                        ProgramOptionRow {
-                            ProgramDropdown(
-                                modifier = Modifier.weight(1f).widthIn(min = 180.dp),
-                                label = "프로그램 기간",
-                                selected = durationWeeks,
-                                options = (3..8).toList(),
-                                optionLabel = { programWeekLabel(it) },
-                                onSelect = { durationWeeks = it },
-                                enabled = !generationRunning
-                            )
-                            ProgramDropdown(
-                                modifier = Modifier.weight(1f).widthIn(min = 180.dp),
-                                label = "주당 운동일수",
-                                selected = weeklyDays,
-                                options = (3..7).toList(),
-                                optionLabel = { stringResource(R.string.program_days_per_week, it) },
-                                onSelect = { weeklyDays = it },
-                                enabled = !generationRunning
-                            )
-                        }
-                        ProgramOptionRow {
-                            ProgramDropdown(
-                                modifier = Modifier.weight(1f).widthIn(min = 180.dp),
-                                label = "하루 운동시간",
-                                selected = blankSessionMinutes,
-                                options = listOf(30, 45, 60),
-                                optionLabel = { stringResource(R.string.program_minutes, it) },
-                                onSelect = { blankSessionMinutes = it },
-                                enabled = !generationRunning
-                            )
-                        }
                         Text(
-                            text = "기간과 운동일수에 따라 빈 계획을 만듭니다. 운동 종목은 직접 추가하세요.",
+                            text = "기본 4주 · 주 3일(월·수·금)로 빈 계획을 엽니다. 요일과 운동은 직접 수정하세요.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

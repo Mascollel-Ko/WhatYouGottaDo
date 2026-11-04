@@ -7,6 +7,15 @@ import org.junit.Test
 
 class ProgramDraftEditorModelTest {
     @Test
+    fun defaultBlankStartsWithFourWeeksOfThreeEmptyWeekdaySlots() {
+        val draft = emptyProgramSkeleton(request(), defaultProgramWeekDaySchedule(4, 3))
+        assertEquals(28, draft.durationDays)
+        assertEquals((1..4).toList(), draft.weekPlans.map { it.weekIndex })
+        assertTrue(draft.items.isEmpty())
+        assertEquals((1..4).associateWith { setOf(1, 3, 5) }, draft.resolvedWeekDaySchedule())
+    }
+
+    @Test
     fun weekDaySchedule_isIndependentPerWeek() {
         val draft = emptyProgramSkeleton(request(), defaultProgramWeekDaySchedule(4, 3))
             .withWeekDays(1, setOf(1, 3, 5))
