@@ -73,6 +73,7 @@ import com.training.trackplanner.data.v22.BBalancedGoalImportance
 import com.training.trackplanner.data.v22.BBlockProgramDefinition
 import com.training.trackplanner.data.v22.BBlockDefinition
 import com.training.trackplanner.data.v22.BBlockGoal
+import com.training.trackplanner.data.v22.BBlockConfidenceReview
 import com.training.trackplanner.data.v22.BBlockRelation
 import com.training.trackplanner.data.v22.BVolumeAdjustment
 import com.training.trackplanner.data.v22.BVolumePattern
@@ -428,10 +429,13 @@ private fun ProgramEditorScreen(
     var bBlocks by remember { mutableStateOf(listOf(BBlockDefinition())) }
     var bRecoveryBetween by remember { mutableStateOf(emptyList<Int>()) }
     val trainingProfilePrefs = remember(context) { context.getSharedPreferences("training_profile", Context.MODE_PRIVATE) }
-    var smallestPlateText by rememberSaveable { mutableStateOf(trainingProfilePrefs.getFloat("smallest_plate_kg", 1.25f).toString()) }
+    var smallestPlateText by rememberSaveable { mutableStateOf(BBlockPlateProfileSettings.load(context).toString()) }
     var v22SkeletonCreated by rememberSaveable(program?.id ?: 0L) { mutableStateOf(false) }
     var pendingConservativeBBlock by remember(program?.id) {
         mutableStateOf<GeneratedProgramSkeleton?>(null)
+    }
+    var pendingBReview by remember(program?.id) {
+        mutableStateOf<BBlockConfidenceReview.Decision?>(null)
     }
 
     LaunchedEffect(program?.id) {
@@ -484,6 +488,7 @@ private fun ProgramEditorScreen(
         if (viewModel.programBuildProgress.value is ProgramBuildProgressState.Running) return
         lastGenerationWasV22 = true
         pendingConservativeBBlock = null
+        pendingBReview = null
         val blockLayout = if (bCustomizeBlocks) BBlockProgramDefinition(bBlocks, bRecoveryBetween)
             else BBlockProgramDefinition(blocks = listOf(bBasicAdvancedBlock.copy(pattern = bBlockPattern)))
         viewModel.generateV22Program(
@@ -503,10 +508,12 @@ private fun ProgramEditorScreen(
             )
         ) { generated ->
             val proposed = generated.skeleton.withResolvedWeekDaySchedule()
-            val noReliableHistory = generated.balanced12WeekPlan?.goalTargets
-                ?.all { it.confidence.history <= 0.0 } == true
-            if (noReliableHistory && blockLayout.blocks.any { it.pattern != BVolumePattern.STEADY }) {
-                // Explicit approval is required for periodized plans with no observed baseline.
+            val review = generated.balanced12WeekPlan?.let {
+                BBlockConfidenceReview.evaluate(it, blockLayout)
+            }
+            if (review?.requiresApproval == true) {
+                // Review is exercise-scoped: even partly missing records need user approval.
+                pendingBReview = review
                 pendingConservativeBBlock = proposed
             } else {
                 personalizedDraft = proposed
@@ -517,22 +524,24 @@ private fun ProgramEditorScreen(
 
     pendingConservativeBBlock?.let { proposed ->
         AlertDialog(
-            onDismissRequest = { pendingConservativeBBlock = null },
+            onDismissRequest = { pendingConservativeBBlock = null; pendingBReview = null },
             title = { Text("기록 부족 · 처방 확인 필요") },
             text = { Text(
-                "운동 기록이 충분하지 않아 요청한 주기화를 신뢰성 있게 산출할 수 없습니다. " +
-                    "중량은 자동 지정하지 않으며, 표시된 세트·반복도 보수적인 초안입니다. " +
-                    "이 조건을 확인하고 프로그램 미리보기로 진행할까요?"
+                "일부 운동은 비교 가능한 최근 기록이 충분하지 않습니다. " +
+                    "검토 대상: ${pendingBReview?.unreliableExerciseKeys?.size ?: 0}개 운동. " +
+                    "중량은 자동 지정하지 않으며, 세트·반복은 보수적인 초안입니다. " +
+                    "실제 수행 여유에 맞춰 수정할 것을 전제로 미리보기를 승인하시겠습니까?"
             ) },
             confirmButton = {
                 Button(onClick = {
                     personalizedDraft = proposed
                     v22SkeletonCreated = true
                     pendingConservativeBBlock = null
+                    pendingBReview = null
                 }) { Text("초안 승인 후 검토") }
             },
             dismissButton = {
-                TextButton(onClick = { pendingConservativeBBlock = null }) { Text("설정 수정") }
+                TextButton(onClick = { pendingConservativeBBlock = null; pendingBReview = null }) { Text("설정 수정") }
             }
         )
     }
@@ -705,10 +714,10 @@ private fun ProgramEditorScreen(
                                 if (generationRunning) return@OutlinedTextField
                                 smallestPlateText = text
                                 val kg = text.toDoubleOrNull()
-                                if (kg != null && kg.isFinite() && kg > 0.0)
-                                    trainingProfilePrefs.edit().putFloat("smallest_plate_kg", kg.toFloat()).apply()
+                                if (BBlockPlateProfileSettings.isValid(kg))
+                                    BBlockPlateProfileSettings.save(context, kg!!)
                             },
-                            label = { Text("최소 원판 1장의 무게 (kg) · 사용자 공통 설정") },
+                            label = { Text("최소 원판 1장 (kg) · 프로필과 공유") },
                             singleLine = true,
                             supportingText = { Text("바벨 최소 증량은 이 값의 2배입니다. 덤벨·머신은 사용자 검토가 필요합니다.") }
                         )
@@ -924,7 +933,7 @@ private fun ProgramEditorScreen(
                     progressionEligibleKeys = progressionEligibleKeys,
                     onSkeletonChange = { nextDraft ->
                         val previousDraft = personalizedDraft
-                        val plate = smallestPlateText.toDoubleOrNull()?.takeIf { it.isFinite() && it > 0.0 }
+                        val plate = smallestPlateText.toDoubleOrNull()?.takeIf(BBlockPlateProfileSettings::isValid)
                         personalizedDraft = if (previousDraft != null && lastGenerationWasV22 && plate != null)
                             nextDraft.propagateBBlockStartLoad(previousDraft, plate)
                             else nextDraft

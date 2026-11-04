@@ -21,6 +21,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -36,6 +37,8 @@ internal fun InitialProfileDialog(
     onSave: (InitialUserProfile) -> Unit
 ) {
     val base = profile ?: InitialUserProfile()
+    val context = LocalContext.current
+    var plateKgText by rememberSaveable { mutableStateOf(formatDecimal(BBlockPlateProfileSettings.load(context))) }
     var bodyWeight by rememberSaveable { mutableStateOf(base.bodyWeightKg?.let(::formatDecimal).orEmpty()) }
     var height by rememberSaveable { mutableStateOf(base.heightCm?.let(::formatDecimal).orEmpty()) }
     var birthYear by rememberSaveable { mutableStateOf(base.birthYear?.toString().orEmpty()) }
@@ -150,6 +153,14 @@ internal fun InitialProfileDialog(
                     DecimalField("풀업 추가 kg", pullUpWeight, Modifier.fillMaxWidth(), 0.0, 200.0) { pullUpWeight = it }
                 }
                 item {
+                    DecimalField("사용 가능한 최소 원판 1장 (kg)", plateKgText,
+                        Modifier.fillMaxWidth(), 0.1, 25.0) { plateKgText = it; inputError = null }
+                    androidx.compose.material3.Text(
+                        "바벨은 좌우 원판을 하나씩 추가하므로 최소 증량은 이 값의 2배입니다. " +
+                            "덤벨·머신 증량 단위와는 구별됩니다."
+                    )
+                }
+                item {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         DecimalField("평소 수면 h", sleepHours, Modifier.weight(1f), 0.0, 24.0) { sleepHours = it }
                     }
@@ -192,6 +203,12 @@ internal fun InitialProfileDialog(
                         inputError = "근력 평균 RPE는 1부터 10까지의 숫자만 저장됩니다."
                         return@Button
                     }
+                    val minimumPlate = plateKgText.toDoubleOrNull()
+                    if (!BBlockPlateProfileSettings.isValid(minimumPlate)) {
+                        inputError = "최소 원판 무게는 0.1~25kg 사이의 숫자로 입력해 주세요."
+                        return@Button
+                    }
+                    BBlockPlateProfileSettings.save(context, minimumPlate!!)
                     onSave(
                         base.copy(
                             bodyWeightKg = bodyWeight.toDoubleOrNull(),

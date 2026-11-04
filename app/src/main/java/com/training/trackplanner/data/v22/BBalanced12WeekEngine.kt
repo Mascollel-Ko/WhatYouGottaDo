@@ -873,6 +873,12 @@ internal object BBalanced12WeekEngine {
                         exercise = meta.name,
                         stableKey = candidate,
                         sets = shape,
+                        historicalSets28d = rows.count {
+                            it.stableKey == candidate && it.date in asOf.minusDays(27)..asOf
+                        },
+                        historicalSets56d = rows.count {
+                            it.stableKey == candidate && it.date in asOf.minusDays(55)..asOf
+                        },
                         source = "B_BLOCK_INDEPENDENT_RESELECTION_" +
                             (relation ?: BBlockRelation.INDEPENDENT).name
                     )
