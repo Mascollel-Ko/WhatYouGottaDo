@@ -417,6 +417,10 @@ data class InitialUserProfile(
     val benchPressKg: Double? = null,
     val pullUpMaxReps: Int? = null,
     val pullUpAddedWeightKg: Double? = null,
+    /** User equipment increments in kg; stable profile data, backed up with the profile. */
+    val smallestPlateKg: Double = 1.25,
+    val dumbbellIncrementKg: Double = 1.0,
+    val machineIncrementKg: Double = 2.5,
     val typicalSleepHours: Double? = null,
     val usualSleepHours: Double? = null,
     val sleepQuality: Int? = null,

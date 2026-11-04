@@ -1610,6 +1610,12 @@ class TrainingRepository internal constructor(
             benchPressKg = values["benchPressKg"]?.toDoubleOrNull(),
             pullUpMaxReps = values["pullUpMaxReps"]?.toIntOrNull(),
             pullUpAddedWeightKg = values["pullUpAddedWeightKg"]?.toDoubleOrNull(),
+            smallestPlateKg = values["smallestPlateKg"]?.toDoubleOrNull()
+                ?.takeIf { it.isFinite() && it in 0.1..25.0 } ?: 1.25,
+            dumbbellIncrementKg = values["dumbbellIncrementKg"]?.toDoubleOrNull()
+                ?.takeIf { it.isFinite() && it in 0.1..50.0 } ?: 1.0,
+            machineIncrementKg = values["machineIncrementKg"]?.toDoubleOrNull()
+                ?.takeIf { it.isFinite() && it in 0.1..100.0 } ?: 2.5,
             typicalSleepHours = values["typicalSleepHours"]?.toDoubleOrNull(),
             usualSleepHours = values["usualSleepHours"]?.toDoubleOrNull()
                 ?: values["typicalSleepHours"]?.toDoubleOrNull(),

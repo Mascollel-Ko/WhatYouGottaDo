@@ -38,7 +38,11 @@ internal fun InitialProfileDialog(
 ) {
     val base = profile ?: InitialUserProfile()
     val context = LocalContext.current
-    var plateKgText by rememberSaveable { mutableStateOf(formatDecimal(BBlockPlateProfileSettings.load(context))) }
+    var plateKgText by rememberSaveable {
+        mutableStateOf(formatDecimal(profile?.smallestPlateKg ?: BBlockPlateProfileSettings.load(context)))
+    }
+    var dumbbellIncrementText by rememberSaveable { mutableStateOf(formatDecimal(base.dumbbellIncrementKg)) }
+    var machineIncrementText by rememberSaveable { mutableStateOf(formatDecimal(base.machineIncrementKg)) }
     var bodyWeight by rememberSaveable { mutableStateOf(base.bodyWeightKg?.let(::formatDecimal).orEmpty()) }
     var height by rememberSaveable { mutableStateOf(base.heightCm?.let(::formatDecimal).orEmpty()) }
     var birthYear by rememberSaveable { mutableStateOf(base.birthYear?.toString().orEmpty()) }
@@ -155,6 +159,10 @@ internal fun InitialProfileDialog(
                 item {
                     DecimalField("사용 가능한 최소 원판 1장 (kg)", plateKgText,
                         Modifier.fillMaxWidth(), 0.1, 25.0) { plateKgText = it; inputError = null }
+                    DecimalField("덤벨 최소 증량 (표시 중량 kg)", dumbbellIncrementText,
+                        Modifier.fillMaxWidth(), 0.1, 50.0) { dumbbellIncrementText = it; inputError = null }
+                    DecimalField("머신 최소 증량 (표시 중량 kg)", machineIncrementText,
+                        Modifier.fillMaxWidth(), 0.1, 100.0) { machineIncrementText = it; inputError = null }
                     androidx.compose.material3.Text(
                         "바벨은 좌우 원판을 하나씩 추가하므로 최소 증량은 이 값의 2배입니다. " +
                             "덤벨·머신 증량 단위와는 구별됩니다."
@@ -208,9 +216,19 @@ internal fun InitialProfileDialog(
                         inputError = "최소 원판 무게는 0.1~25kg 사이의 숫자로 입력해 주세요."
                         return@Button
                     }
+                    val dumbbellUnit = dumbbellIncrementText.toDoubleOrNull()
+                    val machineUnit = machineIncrementText.toDoubleOrNull()
+                    if (dumbbellUnit == null || !dumbbellUnit.isFinite() || dumbbellUnit !in 0.1..50.0 ||
+                        machineUnit == null || !machineUnit.isFinite() || machineUnit !in 0.1..100.0) {
+                        inputError = "덤벨·머신의 최소 증량 단위를 올바르게 입력해 주세요."
+                        return@Button
+                    }
                     BBlockPlateProfileSettings.save(context, minimumPlate!!)
                     onSave(
                         base.copy(
+                            smallestPlateKg = minimumPlate,
+                            dumbbellIncrementKg = dumbbellUnit,
+                            machineIncrementKg = machineUnit,
                             bodyWeightKg = bodyWeight.toDoubleOrNull(),
                             heightCm = height.toDoubleOrNull(),
                             birthYearOrAgeRange = "",
