@@ -120,11 +120,17 @@ internal object BBlockPurposePrescription {
                 plannedProgression = item.plannedProgression.orEmpty() +
                     ";PEAK_REDUCED_ACCESSORIES_USER_REVIEW"
             ) else {
-                val one = item.sets.firstOrNull()?.copy(reps = 1)
-                val sets = listOfNotNull(one)
+                val targetReps = when (block.peakTestMode) {
+                    BPeakTestMode.ONE_REP -> 1
+                    BPeakTestMode.THREE_REPS -> 3
+                    BPeakTestMode.USER_CHOICE -> item.sets.firstOrNull()?.reps?.coerceIn(1, 3) ?: 3
+                }
+                val chosen = item.sets.firstOrNull()?.copy(reps = targetReps)
+                val sets = listOfNotNull(chosen)
                 item.copy(setCount = sets.size, sets = sets,
                     plannedProgression = item.plannedProgression.orEmpty() +
-                        ";PEAK_TEST_WEEK_ONE_REP_LOAD_USER_SELECTED_NOT_AUTOMATIC_MAX")
+                        ";PEAK_TEST_REPS_USER_REVIEW=" + targetReps +
+                        ";PEAK_TEST_LOAD_USER_SELECTED_NOT_AUTOMATIC_MAX")
             }
         }
         return session.copy(items = items, nominalSets = items.sumOf(V22ExercisePlan::setCount))

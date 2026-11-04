@@ -9,6 +9,7 @@ enum class BVolumePattern { STEADY, PROGRESSIVE, WAVE, ACCUMULATE_RECOVER }
 enum class BVolumeAdjustment { AUTO, REPS_FIRST, LOAD_FIRST, SETS_FIRST, CUSTOM }
 enum class BChangeAmplitude { AUTO, SMALL, MEDIUM }
 enum class BProgressionField { LOAD, SETS, REPS, MOVEMENT_QUALITY }
+enum class BPeakTestMode { USER_CHOICE, ONE_REP, THREE_REPS }
 
 data class BBlockDefinition(
     val weeks: Int = 4,
@@ -16,6 +17,8 @@ data class BBlockDefinition(
     val pattern: BVolumePattern = BVolumePattern.STEADY,
     val adjustment: BVolumeAdjustment = BVolumeAdjustment.AUTO,
     val amplitude: BChangeAmplitude = BChangeAmplitude.AUTO,
+    /** Assessment rep count is selected by the user, never a guessed 1RM test. */
+    val peakTestMode: BPeakTestMode = BPeakTestMode.USER_CHOICE,
     /** Priority order in CUSTOM mode; one physical unit per volume step, not % changes. */
     val customPriority: List<BProgressionField> = listOf(
         BProgressionField.REPS, BProgressionField.LOAD, BProgressionField.SETS

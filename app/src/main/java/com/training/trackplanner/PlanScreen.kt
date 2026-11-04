@@ -75,6 +75,7 @@ import com.training.trackplanner.data.v22.BBlockProgramDefinition
 import com.training.trackplanner.data.v22.BBlockEquipmentIncrements
 import com.training.trackplanner.data.v22.BBlockDefinition
 import com.training.trackplanner.data.v22.BBlockGoal
+import com.training.trackplanner.data.v22.BPeakTestMode
 import com.training.trackplanner.data.v22.BBlockConfidenceReview
 import com.training.trackplanner.data.v22.BBlockRelation
 import com.training.trackplanner.data.v22.BVolumeAdjustment
@@ -907,6 +908,27 @@ private fun ProgramEditorScreen(
                                         },
                                         enabled = !generationRunning
                                     )
+                                }
+                                if (block.goal == BBlockGoal.PEAK_EVALUATION) {
+                                    ProgramOptionRow {
+                                        ProgramDropdown(
+                                            modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                                            label = "최종 평가 반복 방식",
+                                            selected = block.peakTestMode,
+                                            options = BPeakTestMode.entries.toList(),
+                                            optionLabel = { when (it) {
+                                                BPeakTestMode.USER_CHOICE -> "미리보기에서 직접 결정"
+                                                BPeakTestMode.ONE_REP -> "1회 평가"
+                                                BPeakTestMode.THREE_REPS -> "3회 평가"
+                                            } },
+                                            onSelect = { mode ->
+                                                bBlocks = bBlocks.toMutableList().also {
+                                                    it[blockIndex] = block.copy(peakTestMode = mode)
+                                                }
+                                            },
+                                            enabled = !generationRunning
+                                        )
+                                    }
                                 }
                                 val relationChoices = BBlockRelation.entries.filter { relation ->
                                     (blockIndex > 0 || relation !in listOf(

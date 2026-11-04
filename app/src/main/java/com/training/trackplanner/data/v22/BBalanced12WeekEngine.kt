@@ -264,6 +264,7 @@ internal object BBalanced12WeekEngine {
                             .put("goal", block.goal.name).put("pattern", block.pattern.name)
                             .put("adjustment", block.adjustment.name).put("amplitude", block.amplitude.name)
                             .put("resolvedAmplitude", resolvedAmplitudes[index]?.name ?: BChangeAmplitude.SMALL.name)
+                            .put("peakTestMode", block.peakTestMode.name)
                             .put("customPriority", JSONArray(block.customPriority.map(BProgressionField::name)))
                             .put("relation", block.relationToPrevious.name)
                     }))

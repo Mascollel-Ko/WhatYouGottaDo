@@ -69,6 +69,10 @@ class BBlockPurposePrescriptionTest {
         val peaked = BBlockPurposePrescription.finishWeek(prepared.single(),
             BBlockDefinition(goal = BBlockGoal.PEAK_EVALUATION), true, setOf("squat"))
         assertEquals(listOf(1, 2), peaked.items.map { it.setCount })
-        assertEquals(1, peaked.items.first().sets.first().reps)
+        assertEquals(3, peaked.items.first().sets.first().reps)
+        val single = BBlockPurposePrescription.finishWeek(prepared.single(),
+            BBlockDefinition(goal = BBlockGoal.PEAK_EVALUATION, peakTestMode = BPeakTestMode.ONE_REP),
+            true, setOf("squat"))
+        assertEquals(1, single.items.first().sets.first().reps)
     }
 }
