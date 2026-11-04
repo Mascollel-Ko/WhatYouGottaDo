@@ -389,6 +389,10 @@ private fun ProgramDraftItemDialog(
                             reps = summary.reps,
                             seconds = summary.seconds,
                             weightKg = summary.weightKg,
+                            weightSource = if (ProgramSetPrescriptionResolver.resolve(item)
+                                    .map { it.weightKg } != normalizedSets.map { it.weightKg } &&
+                                    item.selectionRole.startsWith("B12_FOCUS_"))
+                                "B_BLOCK_USER_OVERRIDE" else item.weightSource,
                             restSeconds = (restText.toIntOrNull() ?: 0).coerceAtLeast(0),
                             setPrescriptions = normalizedSets
                         )

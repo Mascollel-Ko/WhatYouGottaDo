@@ -321,6 +321,27 @@ private fun ProgramListScreen(
         )
     }
 
+    pendingLoadOverwrite?.let { replacement ->
+        AlertDialog(
+            onDismissRequest = { pendingLoadOverwrite = null },
+            title = { Text("이후 주차의 중량 재계산") },
+            text = { Text(
+                "1주차 중량을 변경하면 이후 주차가 다시 계산됩니다. " +
+                    "이미 직접 수정한 중량 ${pendingLoadOverwriteCount}개도 변경됩니다. " +
+                    "1주차 중량을 먼저 확정한 뒤 2주차 이후를 수정하세요. 계속 적용할까요?"
+            ) },
+            confirmButton = {
+                Button(onClick = {
+                    personalizedDraft = replacement
+                    pendingLoadOverwrite = null
+                }) { Text("이후 주차도 재계산") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingLoadOverwrite = null }) { Text("취소") }
+            }
+        )
+    }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         state = listState,
@@ -449,6 +470,10 @@ private fun ProgramEditorScreen(
     var pendingBReview by remember(program?.id) {
         mutableStateOf<BBlockConfidenceReview.Decision?>(null)
     }
+    var pendingLoadOverwrite by remember(program?.id) {
+        mutableStateOf<GeneratedProgramSkeleton?>(null)
+    }
+    var pendingLoadOverwriteCount by remember { mutableStateOf(0) }
 
     LaunchedEffect(program?.id) {
         if (program != null && personalizedDraft == null) personalizedDraft = skeletonFromProgram(viewModel.programEditorSnapshot(program.id)).withResolvedWeekDaySchedule()
@@ -978,9 +1003,21 @@ private fun ProgramEditorScreen(
                             BBlockEquipmentIncrements(profile.smallestPlateKg,
                                 profile.dumbbellIncrementKg, profile.machineIncrementKg)
                         }.getOrNull()
-                        personalizedDraft = if (previousDraft != null && lastGenerationWasV22 && units != null)
+                        val propagated = if (previousDraft != null && lastGenerationWasV22 && units != null)
                             nextDraft.propagateBBlockStartLoad(previousDraft, units)
                             else nextDraft
+                        val autoChanged = propagated.items.filter { item ->
+                            nextDraft.items.firstOrNull { it.localId == item.localId }
+                                ?.setPrescriptions?.map { it.weightKg } !=
+                                item.setPrescriptions.map { it.weightKg }
+                        }.mapTo(linkedSetOf()) { it.localId }
+                        val overrides = previousDraft?.items.orEmpty().count { item ->
+                            item.localId in autoChanged && item.weightSource == "B_BLOCK_USER_OVERRIDE"
+                        }
+                        if (overrides > 0) {
+                            pendingLoadOverwriteCount = overrides
+                            pendingLoadOverwrite = propagated
+                        } else personalizedDraft = propagated
                     }
                 )
             }

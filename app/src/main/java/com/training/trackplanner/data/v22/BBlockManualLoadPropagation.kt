@@ -86,10 +86,9 @@ internal fun GeneratedProgramSkeleton.propagateBBlockStartLoad(
                     val target = items.firstOrNull { it.weekNumber == laterSlot.week &&
                         it.dayOfWeek == laterSlot.day && it.exerciseStableKey == anchor.exerciseStableKey
                     } ?: continue
-                    // Previously derived loads follow the edited anchor. A manual
-                    // future-week override is never silently overwritten.
-                    if (target.weightSource != "B_BLOCK_USER_START_LOAD_DERIVED" &&
-                        ProgramSetPrescriptionResolver.resolve(target).any { it.weightKg > 0.0 }) continue
+                    // An edited start-week load recalculates every later week,
+                    // including manually edited weeks. The caller must warn and
+                    // obtain confirmation before replacing those overrides.
                     val recordedSteps = loadSteps(blockIndex + 1, laterWeek, sessionDay, anchor.exerciseStableKey)
                     val steps = recordedSteps ?: (if (loadFirst) stages[laterWeek] else 0)
                     val kind = equipmentKinds?.optString(anchor.exerciseStableKey)
