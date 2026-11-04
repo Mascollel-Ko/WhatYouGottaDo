@@ -1062,10 +1062,14 @@ private fun ProgramEditorScreen(
                     progressionEligibleKeys = progressionEligibleKeys,
                     onSkeletonChange = { nextDraft ->
                         val previousDraft = personalizedDraft
-                        val profile = initialProfile
-                        val units = if (profile == null) null else runCatching {
-                            BBlockEquipmentIncrements(profile.smallestPlateKg,
-                                profile.dumbbellIncrementKg, profile.machineIncrementKg)
+                        // Default equipment units work even before onboarding;
+                        // current visible entries take precedence over older profile state.
+                        val units = runCatching {
+                            BBlockEquipmentIncrements(
+                                smallestPlateText.toDoubleOrNull() ?: initialProfile?.smallestPlateKg ?: 1.25,
+                                dumbbellUnitText.toDoubleOrNull() ?: initialProfile?.dumbbellIncrementKg ?: 1.0,
+                                machineUnitText.toDoubleOrNull() ?: initialProfile?.machineIncrementKg ?: 2.5
+                            )
                         }.getOrNull()
                         val propagated = if (previousDraft != null && lastGenerationWasV22 && units != null)
                             nextDraft.propagateBBlockStartLoad(previousDraft, units)
