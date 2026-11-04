@@ -905,12 +905,23 @@ internal object BBalanced12WeekEngine {
                 if (candidate == null) current else {
                     reserved += candidate
                     val meta = exercises.getValue(candidate)
-                    // Retain only the prescription shape; new exercise performance
-                    // and start kilograms are not inferred from a different movement.
+                    // A replaced exercise must not inherit another exercise's
+                    // observed repetitions, durations or observation timestamps.
+                    // Only its own recorded sets can inform its starting prescription.
+                    val known = rows.filter { it.stableKey == candidate &&
+                        it.date in asOf.minusDays(55)..asOf }
+                        .sortedWith(compareByDescending<V22HistoryRow> { it.date }
+                            .thenBy(V22HistoryRow::setIndex))
+                    val latest = known.firstOrNull()?.date
+                    val sameDay = known.filter { it.date == latest }
                     val shape = List(current.setCount) { index ->
-                        current.sets[index].copy(
+                        val observed = sameDay.getOrNull(index)
+                        V22ObservedSet(
                             weightKg = null,
+                            reps = observed?.reps?.toInt(),
+                            seconds = observed?.seconds?.toInt(),
                             observedRpe = null,
+                            sourceDate = observed?.date?.toString().orEmpty(),
                             loadStatus = "B_BLOCK_NEW_EXERCISE_USER_CALIBRATION_REQUIRED"
                         )
                     }
