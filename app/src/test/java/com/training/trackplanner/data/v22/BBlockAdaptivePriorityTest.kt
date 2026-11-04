@@ -90,6 +90,22 @@ class BBlockAdaptivePriorityTest {
         assertEquals(20, output.items.single().sets.first().seconds)
     }
 
+    @Test fun metadataTimeUnitWithoutObservedDurationCannotReceiveRepsOrLoad() {
+        val timed = session().items.last().copy(
+            sets = List(2) { V22ObservedSet(null, null, null, null, "", "UNSET") },
+            setCount = 2
+        )
+        val out = BBlockPrescriptionApplicator.apply(
+            V22Session(1, listOf(timed), 2), 2, BBalancedGoal.SPORT_SUPPORT,
+            BBlockDefinition(goal = BBlockGoal.SPORT_SUPPORT), emptySet(),
+            exercises = mapOf("row" to Exercise("row", "Timed drill", "기능성운동",
+                equipment = "MACHINE", progressMetricType = "TIME_OR_DISTANCE")),
+            resolvedAmplitude = BChangeAmplitude.MEDIUM
+        )
+        assertEquals(null, out.items.single().sets.first().reps)
+        assertTrue(out.items.single().plannedProgression.orEmpty().contains("LOAD_STEPS=0"))
+    }
+
     @Test fun negativeStagesFirstReduceEveryMainSet() {
         val out = BBlockPrescriptionApplicator.apply(session(8), -1, BBalancedGoal.STRENGTH,
             BBlockDefinition(goal = BBlockGoal.STRENGTH), setOf("barbell_squat"),

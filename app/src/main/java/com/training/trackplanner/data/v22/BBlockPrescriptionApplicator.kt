@@ -66,7 +66,8 @@ internal object BBlockPrescriptionApplicator {
             var loadSteps = 0
             val participated = main || resolvedAmplitude == BChangeAmplitude.MEDIUM ||
                 (!hasMain && !accessoryChanged)
-            val isTimed = sets.isNotEmpty() && sets.all { (it.reps ?: 0) <= 0 && (it.seconds ?: 0) > 0 }
+            val isTimed = exercises[item.stableKey]?.progressMetricType == "TIME_OR_DISTANCE" ||
+                (sets.isNotEmpty() && sets.all { (it.reps ?: 0) <= 0 && (it.seconds ?: 0) > 0 })
             val loadCompatible = !isTimed && supportsPairedPlateIncrement(item.stableKey, exercises[item.stableKey])
             val amount = if (participated) kotlin.math.abs(stage) else 0
             var applied = 0
