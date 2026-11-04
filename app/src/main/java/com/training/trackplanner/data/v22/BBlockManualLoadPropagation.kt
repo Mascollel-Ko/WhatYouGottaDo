@@ -13,8 +13,13 @@ import org.json.JSONObject
 internal fun GeneratedProgramSkeleton.propagateBBlockStartLoad(
     before: GeneratedProgramSkeleton,
     smallestPlateKg: Double
+): GeneratedProgramSkeleton =
+    propagateBBlockStartLoad(before, BBlockEquipmentIncrements(smallestPlateKg, 1.0, 2.5))
+
+internal fun GeneratedProgramSkeleton.propagateBBlockStartLoad(
+    before: GeneratedProgramSkeleton,
+    units: BBlockEquipmentIncrements
 ): GeneratedProgramSkeleton {
-    if (!smallestPlateKg.isFinite() || smallestPlateKg <= 0.0) return this
     val metadata = planningMetadataJson?.let { runCatching { JSONObject(it) }.getOrNull() } ?: return this
     if (metadata.optString("schema") != BBalanced12WeekEngine.BLOCK_SCHEMA) return this
     val blocks = metadata.optJSONArray("blocks") ?: return this
@@ -37,6 +42,7 @@ internal fun GeneratedProgramSkeleton.propagateBBlockStartLoad(
     // The actual per-exercise lever may differ from the block default when
     // repetitions reach their limit or equipment cannot use paired plates.
     val progressionSteps = metadata.optJSONArray("prescriptionSteps")
+    val equipmentKinds = metadata.optJSONObject("equipmentIncrementKinds")
     fun loadSteps(block: Int, week: Int, session: Int, key: String): Int? {
         if (progressionSteps == null) return null
         for (i in 0 until progressionSteps.length()) {
@@ -86,7 +92,11 @@ internal fun GeneratedProgramSkeleton.propagateBBlockStartLoad(
                         ProgramSetPrescriptionResolver.resolve(target).any { it.weightKg > 0.0 }) continue
                     val recordedSteps = loadSteps(blockIndex + 1, laterWeek, sessionDay, anchor.exerciseStableKey)
                     val steps = recordedSteps ?: (if (loadFirst) stages[laterWeek] else 0)
-                    val newKg = weight + steps * BBlockPeriodization.barbellIncrement(smallestPlateKg)
+                    val kind = equipmentKinds?.optString(anchor.exerciseStableKey)
+                        ?.let { runCatching { BEquipmentIncrementKind.valueOf(it) }.getOrNull() }
+                        ?: BBlockEquipmentIncrements.kind(anchor.exerciseStableKey, null)
+                    val increment = units.incrementFor(kind)
+                    val newKg = if (increment == null) weight else weight + steps * increment
                     if (newKg > 0.0) derived[target.localId] = newKg
                 }
             }

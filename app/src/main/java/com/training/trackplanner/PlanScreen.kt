@@ -72,6 +72,7 @@ import com.training.trackplanner.data.personalized.PersonalizedGenerationConstra
 import com.training.trackplanner.data.personalized.PersonalizedPlanningPreflight
 import com.training.trackplanner.data.v22.BBalancedGoalImportance
 import com.training.trackplanner.data.v22.BBlockProgramDefinition
+import com.training.trackplanner.data.v22.BBlockEquipmentIncrements
 import com.training.trackplanner.data.v22.BBlockDefinition
 import com.training.trackplanner.data.v22.BBlockGoal
 import com.training.trackplanner.data.v22.BBlockConfidenceReview
@@ -972,9 +973,13 @@ private fun ProgramEditorScreen(
                     progressionEligibleKeys = progressionEligibleKeys,
                     onSkeletonChange = { nextDraft ->
                         val previousDraft = personalizedDraft
-                        val plate = smallestPlateText.toDoubleOrNull()?.takeIf(BBlockPlateProfileSettings::isValid)
-                        personalizedDraft = if (previousDraft != null && lastGenerationWasV22 && plate != null)
-                            nextDraft.propagateBBlockStartLoad(previousDraft, plate)
+                        val profile = initialProfile
+                        val units = if (profile == null) null else runCatching {
+                            BBlockEquipmentIncrements(profile.smallestPlateKg,
+                                profile.dumbbellIncrementKg, profile.machineIncrementKg)
+                        }.getOrNull()
+                        personalizedDraft = if (previousDraft != null && lastGenerationWasV22 && units != null)
+                            nextDraft.propagateBBlockStartLoad(previousDraft, units)
                             else nextDraft
                     }
                 )

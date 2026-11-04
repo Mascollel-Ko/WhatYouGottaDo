@@ -123,11 +123,6 @@ internal object BBlockPrescriptionApplicator {
         return session.copy(items = updated, nominalSets = updated.sumOf(V22ExercisePlan::setCount))
     }
 
-    /** Explicit non-barbell equipment cannot use the user's paired-plate increment. */
-    private fun supportsPairedPlateIncrement(key: String, exercise: Exercise?): Boolean {
-        val tags = listOfNotNull(exercise?.equipment, exercise?.equipmentTags).joinToString(" ").lowercase()
-        if ("barbell" in tags || "바벨" in tags || key.startsWith("barbell_")) return true
-        // Unknown equipment remains user-calibrated, not silently excluded as impossible.
-        return tags.isBlank()
-    }
+    private fun supportsPairedPlateIncrement(key: String, exercise: Exercise?): Boolean =
+        BBlockEquipmentIncrements.kind(key, exercise) != BEquipmentIncrementKind.UNKNOWN
 }

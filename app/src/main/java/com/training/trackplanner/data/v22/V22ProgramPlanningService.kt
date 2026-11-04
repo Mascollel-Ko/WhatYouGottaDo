@@ -164,7 +164,16 @@ internal fun BBalanced12WeekPlan.toSkeleton(
         templateId = if (schema == BBalanced12WeekEngine.SCHEMA) BBalanced12WeekEngine.TEMPLATE_ID
             else "V2_2_B_BALANCED_BLOCK_PROGRAM_V1",
         representativeTemplate = false,
-        planningMetadataJson = metadataJson
+        planningMetadataJson = if (schema == BBalanced12WeekEngine.BLOCK_SCHEMA) {
+            org.json.JSONObject(metadataJson).apply {
+                val kinds = org.json.JSONObject()
+                weeks.flatMap(V22Week::sessions).flatMap(V22Session::items)
+                    .map(V22ExercisePlan::stableKey).distinct().forEach { key ->
+                        kinds.put(key, BBlockEquipmentIncrements.kind(key, exercises[key]).name)
+                    }
+                put("equipmentIncrementKinds", kinds)
+            }.toString()
+        } else metadataJson
     )
 }
 
