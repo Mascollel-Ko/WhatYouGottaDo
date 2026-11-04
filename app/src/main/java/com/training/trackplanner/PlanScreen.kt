@@ -84,6 +84,7 @@ import com.training.trackplanner.data.v22.newBBalancedGenerationRequest
 import com.training.trackplanner.data.v22.restoredBBalancedWeekPlans
 import com.training.trackplanner.localization.localizedProgramName
 import java.time.LocalDate
+import org.json.JSONObject
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -342,6 +343,42 @@ private fun ProgramListScreen(
         )
     }
 
+    if (showBReselectionLog) {
+        val readable = personalizedDraft?.planningMetadataJson?.let { raw ->
+            runCatching {
+                val logs = JSONObject(raw).optJSONArray("reselectionAudit")
+                if (logs == null) "이 프로그램에는 운동 재선정 로그가 없습니다."
+                else (0 until logs.length()).joinToString("\n\n") { index ->
+                    val row = logs.getJSONObject(index)
+                    val changes = row.optJSONArray("changeDetails")
+                    val details = if (changes == null || changes.length() == 0) "선정 운동 변경 없음"
+                        else (0 until changes.length()).joinToString("\n") { change ->
+                            val entry = changes.getJSONObject(change)
+                            val target = entry.optJSONArray("primaryMuscles")
+                            val muscles = if (target == null) "" else
+                                (0 until target.length()).joinToString(", ") { target.getString(it) }
+                            "${entry.getString("from")} → ${entry.getString("to")}" +
+                                if (muscles.isBlank()) "" else " · 관련 주동근: $muscles"
+                        }
+                    "블록 ${row.getInt("block")} · ${row.optString("relation")}" +
+                        "\n변경 ${row.optInt("changes")}개" +
+                        "\n${details}"
+                }
+            }.getOrElse { "운동 재선정 로그를 읽을 수 없습니다. 메타데이터를 확인하세요." }
+        } ?: "운동 재선정 로그가 없습니다."
+        AlertDialog(
+            onDismissRequest = { showBReselectionLog = false },
+            title = { Text("운동 선정 상세 로그") },
+            text = {
+                Column(Modifier.heightIn(max = 440.dp).verticalScroll(rememberScrollState())) {
+                    Text("프로그램 생성 당시 계획과 메타데이터에 따른 선정 결과입니다. 실제 훈련 효과를 의미하지 않습니다.")
+                    Text(readable)
+                }
+            },
+            confirmButton = { TextButton(onClick = { showBReselectionLog = false }) { Text("닫기") } }
+        )
+    }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         state = listState,
@@ -474,6 +511,7 @@ private fun ProgramEditorScreen(
         mutableStateOf<GeneratedProgramSkeleton?>(null)
     }
     var pendingLoadOverwriteCount by remember { mutableStateOf(0) }
+    var showBReselectionLog by remember(program?.id) { mutableStateOf(false) }
 
     LaunchedEffect(program?.id) {
         if (program != null && personalizedDraft == null) personalizedDraft = skeletonFromProgram(viewModel.programEditorSnapshot(program.id)).withResolvedWeekDaySchedule()
@@ -983,6 +1021,10 @@ private fun ProgramEditorScreen(
         personalizedDraft?.let { currentSkeleton ->
             if (lastGenerationWasV22) item {
                 InfoCard("볼륨 주기화와 RPE는 참고 계획입니다. 통증·피로·수행 여유에 맞춰 사용자가 중량·세트·반복을 조절하세요.")
+                OutlinedButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { showBReselectionLog = true }
+                ) { Text("운동 선정 로그 자세히 보기") }
             }
             if (currentSkeleton.warnings.any { it.startsWith(PROGRAM_ITEM_RESTORE_WARNING) }) {
                 item {
