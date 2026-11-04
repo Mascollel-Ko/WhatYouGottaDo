@@ -1043,6 +1043,8 @@ private fun ProgramEditorScreen(
         personalizedDraft?.let { currentSkeleton ->
             if (lastGenerationWasV22) item {
                 InfoCard("볼륨 주기화와 RPE는 참고 계획입니다. 통증·피로·수행 여유에 맞춰 사용자가 중량·세트·반복을 조절하세요.")
+            }
+            if (currentSkeleton.planningMetadataJson?.contains("\"reselectionAudit\"") == true) item {
                 OutlinedButton(
                     modifier = Modifier.fillMaxWidth(),
                     onClick = { showBReselectionLog = true }
