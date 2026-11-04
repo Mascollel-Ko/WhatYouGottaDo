@@ -14,7 +14,7 @@ on:
 
 jobs:
   build:
-    name: Test and assemble debug APK
+    name: Test and assemble debug and optimized performance APKs
     runs-on: ubuntu-latest
 
     steps:
@@ -206,10 +206,11 @@ jobs:
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
 
-      # Optional on perf PRs / the corresponding merge or manual dispatch.
-      # This variant uses release-like code generation, not production credentials/signing.
+      # Build the installable R8-optimized performance variant on every main push,
+      # as well as manual dispatch and dedicated perf experiments. This is signed
+      # with the CI debug certificate, not a production publishing credential.
       - name: Assemble optimized performance APK
-        if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'perf/') || startsWith(github.event.head_commit.message, 'build(perf)')
+        if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main') || startsWith(github.head_ref, 'perf/') || startsWith(github.event.head_commit.message, 'build(perf)')
         env:
           ANDROID_CI_KEYSTORE_PATH: ${{ runner.temp }}/whatyougottado-ci-debug.jks
           ANDROID_CI_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_CI_KEYSTORE_PASSWORD }}
@@ -220,7 +221,7 @@ jobs:
         run: ./gradlew :app:assemblePerf -Pgoogle.webClientId="$GOOGLE_WEB_CLIENT_ID" -Psupabase.publishableKey="$SUPABASE_PUBLISHABLE_KEY"
 
       - name: Verify optimized performance APK is signed and not debuggable
-        if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'perf/') || startsWith(github.event.head_commit.message, 'build(perf)')
+        if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main') || startsWith(github.head_ref, 'perf/') || startsWith(github.event.head_commit.message, 'build(perf)')
         run: |
           set -euo pipefail
           perf_apk="$(find app/build/outputs/apk/perf -maxdepth 1 -type f -name '*.apk' -print -quit)"
@@ -258,7 +259,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload optimized performance APK
-        if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'perf/') || startsWith(github.event.head_commit.message, 'build(perf)')
+        if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main') || startsWith(github.head_ref, 'perf/') || startsWith(github.event.head_commit.message, 'build(perf)')
         uses: actions/upload-artifact@v4
         with:
           name: WhatYouGottaDo-performance-apk
