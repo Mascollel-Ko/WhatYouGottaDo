@@ -57,6 +57,7 @@ import com.training.trackplanner.data.ProgramSetPrescriptionResolver
 import com.training.trackplanner.data.ProgramUserNotice
 import com.training.trackplanner.data.ProgramUserNoticeLevel
 import com.training.trackplanner.data.ProgramWeekPlan
+import com.training.trackplanner.data.InitialUserProfile
 import com.training.trackplanner.data.TrainingProgram
 import com.training.trackplanner.data.TrainingProgramItem
 import com.training.trackplanner.data.TrainingProgramItemSet
@@ -385,6 +386,7 @@ private fun ProgramEditorScreen(
 ) {
     val context = LocalContext.current
     val exercises by viewModel.exercises.collectAsState()
+    val initialProfile by viewModel.initialUserProfile.collectAsState()
     val runtimeMetadataByExerciseId by viewModel.exerciseRuntimeMetadata.collectAsState()
     val muscleMetadataByKey by viewModel.exerciseMuscleMetadata.collectAsState()
     var progressionContext by remember { mutableStateOf<com.training.trackplanner.data.ProgressionDraftContext?>(null) }
@@ -428,8 +430,17 @@ private fun ProgramEditorScreen(
     var bCustomizeBlocks by rememberSaveable(program?.id ?: 0L) { mutableStateOf(false) }
     var bBlocks by remember { mutableStateOf(listOf(BBlockDefinition())) }
     var bRecoveryBetween by remember { mutableStateOf(emptyList<Int>()) }
-    val trainingProfilePrefs = remember(context) { context.getSharedPreferences("training_profile", Context.MODE_PRIVATE) }
-    var smallestPlateText by rememberSaveable { mutableStateOf(BBlockPlateProfileSettings.load(context).toString()) }
+    var smallestPlateText by rememberSaveable { mutableStateOf((initialProfile?.smallestPlateKg ?: 1.25).toString()) }
+    var dumbbellUnitText by rememberSaveable { mutableStateOf((initialProfile?.dumbbellIncrementKg ?: 1.0).toString()) }
+    var machineUnitText by rememberSaveable { mutableStateOf((initialProfile?.machineIncrementKg ?: 2.5).toString()) }
+    var equipmentUnitError by remember { mutableStateOf<String?>(null) }
+    // Profile changes from the home profile dialog or a restore refresh this screen.
+    LaunchedEffect(initialProfile?.smallestPlateKg,
+        initialProfile?.dumbbellIncrementKg, initialProfile?.machineIncrementKg) {
+        smallestPlateText = (initialProfile?.smallestPlateKg ?: 1.25).toString()
+        dumbbellUnitText = (initialProfile?.dumbbellIncrementKg ?: 1.0).toString()
+        machineUnitText = (initialProfile?.machineIncrementKg ?: 2.5).toString()
+    }
     var v22SkeletonCreated by rememberSaveable(program?.id ?: 0L) { mutableStateOf(false) }
     var pendingConservativeBBlock by remember(program?.id) {
         mutableStateOf<GeneratedProgramSkeleton?>(null)
@@ -707,20 +718,48 @@ private fun ProgramEditorScreen(
                                 enabled = !generationRunning
                             )
                         }
+                        Text("내 장비의 최소 증량 단위 (프로필과 동기화)", style = MaterialTheme.typography.titleSmall)
                         OutlinedTextField(
                             modifier = Modifier.fillMaxWidth(),
-                            value = smallestPlateText,
-                            onValueChange = { text ->
-                                if (generationRunning) return@OutlinedTextField
-                                smallestPlateText = text
-                                val kg = text.toDoubleOrNull()
-                                if (BBlockPlateProfileSettings.isValid(kg))
-                                    BBlockPlateProfileSettings.save(context, kg!!)
-                            },
-                            label = { Text("최소 원판 1장 (kg) · 프로필과 공유") },
-                            singleLine = true,
-                            supportingText = { Text("바벨 최소 증량은 이 값의 2배입니다. 덤벨·머신은 사용자 검토가 필요합니다.") }
+                            value = smallestPlateText, onValueChange = { smallestPlateText = it; equipmentUnitError = null },
+                            label = { Text("원판 1장 무게 (kg) · 바벨 증량은 2배") },
+                            singleLine = true, enabled = !generationRunning
                         )
+                        OutlinedTextField(
+                            modifier = Modifier.fillMaxWidth(),
+                            value = dumbbellUnitText, onValueChange = { dumbbellUnitText = it; equipmentUnitError = null },
+                            label = { Text("덤벨 최소 증량 (표시 중량 kg)") },
+                            singleLine = true, enabled = !generationRunning
+                        )
+                        OutlinedTextField(
+                            modifier = Modifier.fillMaxWidth(),
+                            value = machineUnitText, onValueChange = { machineUnitText = it; equipmentUnitError = null },
+                            label = { Text("머신 최소 증량 (표시 중량 kg)") },
+                            singleLine = true, enabled = !generationRunning
+                        )
+                        equipmentUnitError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                        OutlinedButton(
+                            modifier = Modifier.fillMaxWidth(), enabled = !generationRunning,
+                            onClick = {
+                                val plate = smallestPlateText.toDoubleOrNull()
+                                val dumbbell = dumbbellUnitText.toDoubleOrNull()
+                                val machine = machineUnitText.toDoubleOrNull()
+                                if (!BBlockPlateProfileSettings.isValid(plate) ||
+                                    dumbbell == null || !dumbbell.isFinite() || dumbbell !in 0.1..50.0 ||
+                                    machine == null || !machine.isFinite() || machine !in 0.1..100.0) {
+                                    equipmentUnitError = "세 증량 단위 모두 올바른 양수로 입력해 주세요."
+                                } else {
+                                    viewModel.saveInitialUserProfile(
+                                        (initialProfile ?: InitialUserProfile()).copy(
+                                            smallestPlateKg = plate!!,
+                                            dumbbellIncrementKg = dumbbell,
+                                            machineIncrementKg = machine
+                                        )
+                                    )
+                                    equipmentUnitError = null
+                                }
+                            }
+                        ) { Text("증량 단위 프로필에 저장") }
                         ProgramOptionRow {
                             ProgramDropdown(
                                 modifier = Modifier.weight(1f).widthIn(min = 180.dp),
