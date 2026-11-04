@@ -78,6 +78,7 @@ import com.training.trackplanner.data.v22.BBlockGoal
 import com.training.trackplanner.data.v22.BPeakTestMode
 import com.training.trackplanner.data.v22.BBlockConfidenceReview
 import com.training.trackplanner.data.v22.BBlockRelation
+import com.training.trackplanner.data.v22.active
 import com.training.trackplanner.data.v22.BVolumeAdjustment
 import com.training.trackplanner.data.v22.BVolumePattern
 import com.training.trackplanner.data.v22.propagateBBlockStartLoad
@@ -859,9 +860,8 @@ private fun ProgramEditorScreen(
                                     onSelect = { count ->
                                         val updated = bBlocks.take(count) +
                                             List((count - bBlocks.size).coerceAtLeast(0)) { BBlockDefinition() }
-                                        bBlocks = updated.mapIndexed { index, block ->
-                                            if (index == count - 1 && block.relationToPrevious == BBlockRelation.PREPARE_NEXT)
-                                                block.copy(relationToPrevious = BBlockRelation.INDEPENDENT) else block
+                                        bBlocks = updated.map { block ->
+                                            block.copy(relationToPrevious = block.relationToPrevious.active())
                                         }
                                         bRecoveryBetween = List((count - 1).coerceAtLeast(0)) { index ->
                                             bRecoveryBetween.getOrElse(index) { 0 }
@@ -931,22 +931,20 @@ private fun ProgramEditorScreen(
                                     }
                                 }
                                 val relationChoices = BBlockRelation.entries.filter { relation ->
-                                    (blockIndex > 0 || relation !in listOf(
-                                        BBlockRelation.COMPLEMENT_PLANNED_GAPS,
-                                        BBlockRelation.DEVELOP_PREVIOUS)) &&
-                                    (blockIndex < bBlocks.lastIndex || relation != BBlockRelation.PREPARE_NEXT)
+                                    relation != BBlockRelation.PREPARE_NEXT &&
+                                        (blockIndex > 0 || relation == BBlockRelation.INDEPENDENT)
                                 }
                                 ProgramOptionRow {
                                     ProgramDropdown(
                                         modifier = Modifier.weight(1f).widthIn(min = 180.dp),
                                         label = "다른 블록과의 관계",
-                                        selected = block.relationToPrevious,
+                                        selected = block.relationToPrevious.active(),
                                         options = relationChoices,
                                         optionLabel = { relation -> when (relation) {
                                             BBlockRelation.INDEPENDENT -> "독립"
                                             BBlockRelation.COMPLEMENT_PLANNED_GAPS -> "이전 블록 부족분 보완"
                                             BBlockRelation.DEVELOP_PREVIOUS -> "이전 블록 발전"
-                                            BBlockRelation.PREPARE_NEXT -> "다음 블록 준비"
+                                            BBlockRelation.PREPARE_NEXT -> "종료된 설정(독립형으로 처리)"
                                         } },
                                         onSelect = { relation ->
                                             bBlocks = bBlocks.toMutableList().also {

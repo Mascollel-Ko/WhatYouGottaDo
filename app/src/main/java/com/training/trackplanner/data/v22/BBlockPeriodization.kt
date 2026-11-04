@@ -38,7 +38,12 @@ data class BBlockDefinition(
     }
 }
 
+// PREPARE_NEXT remains solely to decode previously saved block specifications.
 enum class BBlockRelation { INDEPENDENT, COMPLEMENT_PLANNED_GAPS, DEVELOP_PREVIOUS, PREPARE_NEXT }
+
+/** Retired forward-looking relation is read as independent; no future block affects this block. */
+internal fun BBlockRelation.active(): BBlockRelation =
+    if (this == BBlockRelation.PREPARE_NEXT) BBlockRelation.INDEPENDENT else this
 
 data class BBlockProgramDefinition(
     val blocks: List<BBlockDefinition> = listOf(BBlockDefinition()),
@@ -52,9 +57,6 @@ data class BBlockProgramDefinition(
         require(blocks.first().relationToPrevious != BBlockRelation.COMPLEMENT_PLANNED_GAPS &&
             blocks.first().relationToPrevious != BBlockRelation.DEVELOP_PREVIOUS) {
             "The first block has no previous block"
-        }
-        require(blocks.last().relationToPrevious != BBlockRelation.PREPARE_NEXT) {
-            "The last block has no next block"
         }
     }
 

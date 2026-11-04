@@ -153,13 +153,10 @@ internal object BBalanced12WeekEngine {
         var weekCursor = 1
         val completedSelections = mutableListOf<List<V22Session>>()
         val blocks = chosen.focuses.mapIndexed { index, focus ->
-            val relation = specification?.blocks?.get(index)?.relationToPrevious
-            val selectedSessions = if (specification != null &&
-                (index > 0 || (relation == BBlockRelation.PREPARE_NEXT &&
-                    chosen.focuses.getOrNull(index + 1) != null)))
+            val relation = specification?.blocks?.get(index)?.relationToPrevious?.active()
+            val selectedSessions = if (specification != null && index > 0)
                 reselectBlockFromPlannedHistory(
                     chosen.sessions[index], completedSelections, focus, relation,
-                    chosen.focuses.getOrNull(index + 1),
                     specification.blocks.take(index).map(BBlockDefinition::weeks),
                     rows, request.asOf, exercises, contributions, targets, mainExerciseKeys
                 ) else chosen.sessions[index]
@@ -266,7 +263,7 @@ internal object BBalanced12WeekEngine {
                             .put("resolvedAmplitude", resolvedAmplitudes[index]?.name ?: BChangeAmplitude.SMALL.name)
                             .put("peakTestMode", block.peakTestMode.name)
                             .put("customPriority", JSONArray(block.customPriority.map(BProgressionField::name)))
-                            .put("relation", block.relationToPrevious.name)
+                            .put("relation", block.relationToPrevious.active().name)
                     }))
                     put("recoveryDaysBetween", JSONArray(specification.recoveryDaysBetween))
                     put("reselectionAudit", JSONArray(blocks.mapIndexed { index, block ->
@@ -274,17 +271,20 @@ internal object BBalanced12WeekEngine {
                         val to = block.sessions.flatMap(V22Session::items).map(V22ExercisePlan::stableKey)
                         val changes = from.zip(to).filter { (old, selected) -> old != selected }
                         JSONObject().put("block", block.block)
-                            .put("relation", specification.blocks[index].relationToPrevious.name)
+                            .put("relation", specification.blocks[index].relationToPrevious.active().name)
                             .put("originalStableKeys", JSONArray(from))
                             .put("selectedStableKeys", JSONArray(to))
                             .put("changes", changes.size)
                             .put("changeDetails", JSONArray(changes.map { (old, selected) ->
                                 JSONObject().put("from", old).put("to", selected)
-                                    .put("reason", specification.blocks[index].relationToPrevious.name)
+                                    .put("reason", specification.blocks[index].relationToPrevious.active().name)
                                     .put("primaryMuscles", JSONArray(
                                         contributions[selected]?.hypertrophyMuscles.orEmpty().sorted()))
                             }))
-                            .put("policy", "PLANNED_PREVIOUS_BLOCKS_GOAL_AND_PRIMARY_MUSCLE_GAP_BONUS")
+                            .put("policy", if (specification.blocks[index].relationToPrevious.active() ==
+                                BBlockRelation.COMPLEMENT_PLANNED_GAPS)
+                                "PLANNED_PREVIOUS_BLOCKS_GOAL_AND_PRIMARY_MUSCLE_GAP_BONUS"
+                                else "GOAL_AND_HISTORY_WITHOUT_GAP_BONUS")
                             .put("plannedHistoryOnly", true)
                     }))
                     put("prescriptionSteps", JSONArray(weeks.flatMap { week ->
@@ -775,7 +775,6 @@ internal object BBalanced12WeekEngine {
         earlier: List<List<V22Session>>,
         focus: BBalancedGoal,
         relation: BBlockRelation?,
-        nextFocus: BBalancedGoal?,
         earlierDurations: List<Int>,
         rows: List<V22HistoryRow>,
         asOf: LocalDate,
@@ -784,8 +783,7 @@ internal object BBalanced12WeekEngine {
         targets: List<BBalancedGoalTarget>,
         mainKeys: Set<String>
     ): List<V22Session> {
-        if (earlier.isEmpty() && (relation != BBlockRelation.PREPARE_NEXT || nextFocus == null))
-            return baseline
+        if (earlier.isEmpty()) return baseline
 
         // Account for all earlier plans, with more training weeks contributing
         // more exposure. This is not a claim about real adaptation.
@@ -852,7 +850,6 @@ internal object BBalanced12WeekEngine {
                 deficits = shortfalls.entries.sumOf { (goal, gap) ->
                     gap * part.value(goal)
                 },
-                preparesNext = nextFocus?.let(part::value) ?: 0.0,
                 inPreviousBlock = key in earlierKeys,
                 isKnownEquipment = key in recentlyUsed,
                 relation = relation ?: BBlockRelation.INDEPENDENT,

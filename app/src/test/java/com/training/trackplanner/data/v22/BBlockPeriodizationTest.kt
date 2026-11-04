@@ -14,6 +14,16 @@ class BBlockPeriodizationTest {
         assertEquals(listOf(0, 0, 0, 0), BBlockPeriodization.steps(p.blocks.single()))
     }
 
+    @Test fun savedPrepareNextCanStillBeParsedButIsIndependent() {
+        val legacy = BBlockProgramDefinition(blocks = listOf(
+            BBlockDefinition(relationToPrevious = BBlockRelation.PREPARE_NEXT)
+        ))
+        assertEquals(BBlockRelation.INDEPENDENT, legacy.blocks.single().relationToPrevious.active())
+        assertEquals(BBlockRelation.INDEPENDENT, BBlockRelation.INDEPENDENT.active())
+        assertEquals(BBlockRelation.COMPLEMENT_PLANNED_GAPS,
+            BBlockRelation.COMPLEMENT_PLANNED_GAPS.active())
+    }
+
     @Test fun supportedWaveLengthsHaveTheAgreedShapes() {
         val expected = mapOf(
             3 to listOf(0, 2, 1),
