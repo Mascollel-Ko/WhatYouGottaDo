@@ -154,7 +154,9 @@ internal object BBalanced12WeekEngine {
         val completedSelections = mutableListOf<List<V22Session>>()
         val blocks = chosen.focuses.mapIndexed { index, focus ->
             val relation = specification?.blocks?.get(index)?.relationToPrevious
-            val selectedSessions = if (specification != null && index > 0)
+            val selectedSessions = if (specification != null &&
+                (index > 0 || (relation == BBlockRelation.PREPARE_NEXT &&
+                    chosen.focuses.getOrNull(index + 1) != null)))
                 reselectBlockFromPlannedHistory(
                     chosen.sessions[index], completedSelections, focus, relation,
                     chosen.focuses.getOrNull(index + 1),
@@ -269,11 +271,19 @@ internal object BBalanced12WeekEngine {
                     put("reselectionAudit", JSONArray(blocks.mapIndexed { index, block ->
                         val from = chosen.sessions[index].flatMap(V22Session::items).map(V22ExercisePlan::stableKey)
                         val to = block.sessions.flatMap(V22Session::items).map(V22ExercisePlan::stableKey)
+                        val changes = from.zip(to).filter { (old, selected) -> old != selected }
                         JSONObject().put("block", block.block)
                             .put("relation", specification.blocks[index].relationToPrevious.name)
                             .put("originalStableKeys", JSONArray(from))
                             .put("selectedStableKeys", JSONArray(to))
-                            .put("changes", from.zip(to).count { (old, selected) -> old != selected })
+                            .put("changes", changes.size)
+                            .put("changeDetails", JSONArray(changes.map { (old, selected) ->
+                                JSONObject().put("from", old).put("to", selected)
+                                    .put("reason", specification.blocks[index].relationToPrevious.name)
+                                    .put("primaryMuscles", JSONArray(
+                                        contributions[selected]?.hypertrophyMuscles.orEmpty().sorted()))
+                            }))
+                            .put("policy", "PLANNED_PREVIOUS_BLOCKS_GOAL_AND_PRIMARY_MUSCLE_GAP_BONUS")
                             .put("plannedHistoryOnly", true)
                     }))
                     put("prescriptionSteps", JSONArray(weeks.flatMap { week ->
@@ -773,7 +783,8 @@ internal object BBalanced12WeekEngine {
         targets: List<BBalancedGoalTarget>,
         mainKeys: Set<String>
     ): List<V22Session> {
-        if (earlier.isEmpty()) return baseline
+        if (earlier.isEmpty() && (relation != BBlockRelation.PREPARE_NEXT || nextFocus == null))
+            return baseline
 
         // Account for all earlier plans, with more training weeks contributing
         // more exposure. This is not a claim about real adaptation.
@@ -789,10 +800,36 @@ internal object BBalanced12WeekEngine {
         }
         val shortfalls = targets.associate { target ->
             val planned = plannedTotals.getValue(target.goal)
-            val gap = target.developmentTarget?.takeIf { it > 0.0 }?.let {
-                ((it - planned) / it).coerceIn(0.0, 1.0)
-            } ?: if (planned <= 0.0) 1.0 else 0.0
+            val gap = if (earlier.isEmpty()) 0.0
+                else target.developmentTarget?.takeIf { it > 0.0 }?.let {
+                    ((it - planned) / it).coerceIn(0.0, 1.0)
+                } ?: if (planned <= 0.0) 1.0 else 0.0
             target.goal to gap
+        }
+
+        // Muscle-specific planned exposure across every preceding block.
+        // PRIMARY muscle metadata is used; this does not predict adaptation.
+        val muscleSetTotals = mutableMapOf<String, Double>()
+        earlier.forEachIndexed { index, sessions ->
+            val weeklyCounts = sessions.flatMap(V22Session::items)
+                .groupBy(V22ExercisePlan::stableKey)
+                .mapValues { (_, items) -> items.sumOf(V22ExercisePlan::setCount) }
+            weeklyCounts.forEach { (key, sets) ->
+                contributions[key]?.hypertrophyMuscles.orEmpty().forEach { muscle ->
+                    muscleSetTotals[muscle] = (muscleSetTotals[muscle] ?: 0.0) +
+                        sets * earlierDurations.getOrElse(index) { 1 }
+                }
+            }
+        }
+        val dosesByMuscle = muscleSetTotals.mapValues { (_, total) -> total / earlierWeeks }
+        val positive = dosesByMuscle.values.filter { it > 0 }.sorted()
+        val reference = (positive.getOrNull(positive.size / 2) ?: 2.0).coerceAtLeast(2.0)
+        fun muscleGap(key: String): Double {
+            val muscles = contributions[key]?.hypertrophyMuscles.orEmpty()
+            if (muscles.isEmpty() || earlier.isEmpty()) return 0.0
+            return muscles.map { muscle ->
+                ((reference - (dosesByMuscle[muscle] ?: 0.0)) / reference).coerceIn(0.0, 1.0)
+            }.average()
         }
         val recentlyUsed = rows.asSequence()
             .filter { it.date in asOf.minusDays(55)..asOf }
@@ -817,12 +854,19 @@ internal object BBalanced12WeekEngine {
                 preparesNext = nextFocus?.let(part::value) ?: 0.0,
                 inPreviousBlock = key in earlierKeys,
                 isKnownEquipment = key in recentlyUsed,
-                relation = relation ?: BBlockRelation.INDEPENDENT
+                relation = relation ?: BBlockRelation.INDEPENDENT,
+                muscleGap = muscleGap(key)
             )
         }
         fun compatible(old: Exercise?, candidate: Exercise, oldKey: String, key: String): Boolean {
             if (old == null || candidate.category != old.category) return false
             if ((oldKey in mainKeys) != (key in mainKeys)) return false
+            // A deficiency-complement block may replace a *non-main* movement
+            // across movement families if this materially improves underserved
+            // PRIMARY muscle exposure, with category/equipment/time still guarded.
+            if (relation == BBlockRelation.COMPLEMENT_PLANNED_GAPS &&
+                oldKey !in mainKeys && muscleGap(key) > muscleGap(oldKey) + 0.25 &&
+                contributions[key]?.hypertrophyMuscles?.isNotEmpty() == true) return true
             val anchor = CanonicalStrengthExposureCapability.movementAnchor(oldKey)
             val newAnchor = CanonicalStrengthExposureCapability.movementAnchor(key)
             if (anchor != null || newAnchor != null) return anchor != null && anchor == newAnchor

@@ -18,6 +18,14 @@ class BBlockRelationScoringTest {
             score(BBlockRelation.DEVELOP_PREVIOUS, false))
     }
 
+    @Test fun muscleSpecificUnderexposureAffectsComplementRanking() {
+        val lacking = BBlockRelationScoring.score(1.0, 1.0, 0.0,
+            false, true, BBlockRelation.COMPLEMENT_PLANNED_GAPS, muscleGap = 0.9)
+        val covered = BBlockRelationScoring.score(1.0, 1.0, 0.0,
+            false, true, BBlockRelation.COMPLEMENT_PLANNED_GAPS, muscleGap = 0.1)
+        assertTrue(lacking > covered)
+    }
+
     @Test fun preparationLooksAheadWhileIndependentDoesNot() {
         assertTrue(score(BBlockRelation.PREPARE_NEXT, future = 2.0) >
             score(BBlockRelation.PREPARE_NEXT, future = 0.0))
