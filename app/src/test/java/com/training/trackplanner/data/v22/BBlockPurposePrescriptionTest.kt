@@ -50,6 +50,18 @@ class BBlockPurposePrescriptionTest {
         assertEquals(30, shaped.sets.first().seconds)
     }
 
+    @Test fun metadataTimeUnitWithNoHistoryNeverReceivesFictitiousRepetitions() {
+        val exercise = Exercise("timed", "Timed drill", "기능성운동", progressMetricType = "TIME_OR_DISTANCE")
+        val cold = item("timed", null, 1).copy(source = "COLD_START")
+        val proposed = BBlockPurposePrescription.prepare(
+            listOf(V22Session(1, listOf(cold), 1)),
+            BBlockDefinition(goal = BBlockGoal.SPORT_SUPPORT), emptySet(), mapOf("timed" to exercise)
+        ).single().items.single()
+        assertEquals(2, proposed.setCount)
+        assertNull(proposed.sets.first().reps)
+        assertTrue(proposed.plannedProgression.orEmpty().contains("DURATION_OR_DISTANCE_USER_INPUT_REQUIRED"))
+    }
+
     @Test fun finalPeakWeekUsesOneRepOneSetOfMainExercise() {
         val base = listOf(V22Session(1, listOf(item("squat", 3, 4), item("curl", 8, 3)), 7))
         val prepared = BBlockPurposePrescription.prepare(base,

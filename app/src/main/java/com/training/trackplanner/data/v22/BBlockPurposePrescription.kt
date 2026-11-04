@@ -36,9 +36,14 @@ internal object BBlockPurposePrescription {
             }
             val reps = (knownReps.sorted().getOrNull(knownReps.size / 2) ?: fallback)
                 .coerceIn(bounds.first, bounds.last)
-            val timed = item.sets.isNotEmpty() && item.sets.all {
-                (it.seconds ?: 0) > 0 && (it.reps ?: 0) <= 0
-            }
+            // Measurement authority comes from exercise metadata, not inferred
+            // from an absent history record. TIME_OR_DISTANCE uses seconds where
+            // the existing observed unit is time; distance remains user-entered.
+            val unit = exercise?.progressMetricType
+            val timed = unit == "TIME_OR_DISTANCE" ||
+                (item.sets.isNotEmpty() && item.sets.all {
+                    (it.seconds ?: 0) > 0 && (it.reps ?: 0) <= 0
+                })
             val emptyBaseline = item.source.contains("COLD_START") ||
                 item.sets.all { (it.reps ?: 0) <= 0 && (it.seconds ?: 0) <= 0 }
             val sets = if (emptyBaseline) {
@@ -68,7 +73,9 @@ internal object BBlockPurposePrescription {
                 prescriptionAuthority = "B_BLOCK_GOAL_PRESCRIPTION_USER_REVIEW",
                 plannedProgression = "B_BLOCK_BASE_GOAL=" + role.name +
                     ";REP_RANGE=" + bounds.first + ".." + bounds.last +
-                    ";NO_AUTOMATIC_LOAD_OR_RPE"
+                    ";NO_AUTOMATIC_LOAD_OR_RPE" +
+                    (if (timed && item.sets.all { (it.seconds ?: 0) <= 0 })
+                        ";DURATION_OR_DISTANCE_USER_INPUT_REQUIRED" else "")
             )
         }
         session.copy(items = items, nominalSets = items.sumOf(V22ExercisePlan::setCount))
