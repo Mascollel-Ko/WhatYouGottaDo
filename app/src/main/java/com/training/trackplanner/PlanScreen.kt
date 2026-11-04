@@ -322,63 +322,6 @@ private fun ProgramListScreen(
         )
     }
 
-    pendingLoadOverwrite?.let { replacement ->
-        AlertDialog(
-            onDismissRequest = { pendingLoadOverwrite = null },
-            title = { Text("이후 주차의 중량 재계산") },
-            text = { Text(
-                "1주차 중량을 변경하면 이후 주차가 다시 계산됩니다. " +
-                    "이미 직접 수정한 중량 ${pendingLoadOverwriteCount}개도 변경됩니다. " +
-                    "1주차 중량을 먼저 확정한 뒤 2주차 이후를 수정하세요. 계속 적용할까요?"
-            ) },
-            confirmButton = {
-                Button(onClick = {
-                    personalizedDraft = replacement
-                    pendingLoadOverwrite = null
-                }) { Text("이후 주차도 재계산") }
-            },
-            dismissButton = {
-                TextButton(onClick = { pendingLoadOverwrite = null }) { Text("취소") }
-            }
-        )
-    }
-
-    if (showBReselectionLog) {
-        val readable = personalizedDraft?.planningMetadataJson?.let { raw ->
-            runCatching {
-                val logs = JSONObject(raw).optJSONArray("reselectionAudit")
-                if (logs == null) "이 프로그램에는 운동 재선정 로그가 없습니다."
-                else (0 until logs.length()).joinToString("\n\n") { index ->
-                    val row = logs.getJSONObject(index)
-                    val changes = row.optJSONArray("changeDetails")
-                    val details = if (changes == null || changes.length() == 0) "선정 운동 변경 없음"
-                        else (0 until changes.length()).joinToString("\n") { change ->
-                            val entry = changes.getJSONObject(change)
-                            val target = entry.optJSONArray("primaryMuscles")
-                            val muscles = if (target == null) "" else
-                                (0 until target.length()).joinToString(", ") { target.getString(it) }
-                            "${entry.getString("from")} → ${entry.getString("to")}" +
-                                if (muscles.isBlank()) "" else " · 관련 주동근: $muscles"
-                        }
-                    "블록 ${row.getInt("block")} · ${row.optString("relation")}" +
-                        "\n변경 ${row.optInt("changes")}개" +
-                        "\n${details}"
-                }
-            }.getOrElse { "운동 재선정 로그를 읽을 수 없습니다. 메타데이터를 확인하세요." }
-        } ?: "운동 재선정 로그가 없습니다."
-        AlertDialog(
-            onDismissRequest = { showBReselectionLog = false },
-            title = { Text("운동 선정 상세 로그") },
-            text = {
-                Column(Modifier.heightIn(max = 440.dp).verticalScroll(rememberScrollState())) {
-                    Text("프로그램 생성 당시 계획과 메타데이터에 따른 선정 결과입니다. 실제 훈련 효과를 의미하지 않습니다.")
-                    Text(readable)
-                }
-            },
-            confirmButton = { TextButton(onClick = { showBReselectionLog = false }) { Text("닫기") } }
-        )
-    }
-
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         state = listState,
@@ -618,6 +561,63 @@ private fun ProgramEditorScreen(
             dismissButton = {
                 TextButton(onClick = { pendingConservativeBBlock = null; pendingBReview = null }) { Text("설정 수정") }
             }
+        )
+    }
+
+    pendingLoadOverwrite?.let { replacement ->
+        AlertDialog(
+            onDismissRequest = { pendingLoadOverwrite = null },
+            title = { Text("이후 주차의 중량 재계산") },
+            text = { Text(
+                "1주차 중량을 변경하면 이후 주차가 다시 계산됩니다. " +
+                    "이미 직접 수정한 중량 ${pendingLoadOverwriteCount}개도 변경됩니다. " +
+                    "1주차 중량을 먼저 확정한 뒤 2주차 이후를 수정하세요. 계속 적용할까요?"
+            ) },
+            confirmButton = {
+                Button(onClick = {
+                    personalizedDraft = replacement
+                    pendingLoadOverwrite = null
+                }) { Text("이후 주차도 재계산") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingLoadOverwrite = null }) { Text("취소") }
+            }
+        )
+    }
+
+    if (showBReselectionLog) {
+        val readable = personalizedDraft?.planningMetadataJson?.let { raw ->
+            runCatching {
+                val logs = JSONObject(raw).optJSONArray("reselectionAudit")
+                if (logs == null) "이 프로그램에는 운동 재선정 로그가 없습니다."
+                else (0 until logs.length()).joinToString("\n\n") { index ->
+                    val row = logs.getJSONObject(index)
+                    val changes = row.optJSONArray("changeDetails")
+                    val details = if (changes == null || changes.length() == 0) "선정 운동 변경 없음"
+                        else (0 until changes.length()).joinToString("\n") { change ->
+                            val entry = changes.getJSONObject(change)
+                            val target = entry.optJSONArray("primaryMuscles")
+                            val muscles = if (target == null) "" else
+                                (0 until target.length()).joinToString(", ") { target.getString(it) }
+                            "${entry.getString("from")} → ${entry.getString("to")}" +
+                                if (muscles.isBlank()) "" else " · 관련 주동근: $muscles"
+                        }
+                    "블록 ${row.getInt("block")} · ${row.optString("relation")}" +
+                        "\n변경 ${row.optInt("changes")}개" +
+                        "\n${details}"
+                }
+            }.getOrElse { "운동 재선정 로그를 읽을 수 없습니다. 메타데이터를 확인하세요." }
+        } ?: "운동 재선정 로그가 없습니다."
+        AlertDialog(
+            onDismissRequest = { showBReselectionLog = false },
+            title = { Text("운동 선정 상세 로그") },
+            text = {
+                Column(Modifier.heightIn(max = 440.dp).verticalScroll(rememberScrollState())) {
+                    Text("프로그램 생성 당시 계획과 메타데이터에 따른 선정 결과입니다. 실제 훈련 효과를 의미하지 않습니다.")
+                    Text(readable)
+                }
+            },
+            confirmButton = { TextButton(onClick = { showBReselectionLog = false }) { Text("닫기") } }
         )
     }
 
