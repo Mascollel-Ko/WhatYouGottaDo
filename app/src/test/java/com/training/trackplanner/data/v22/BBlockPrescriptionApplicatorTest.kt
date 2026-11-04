@@ -41,7 +41,11 @@ class BBlockPrescriptionApplicatorTest {
         val changed = BBlockPrescriptionApplicator.apply(
             session(), 2, BBalancedGoal.STRENGTH, BBlockDefinition(), setOf("squat")
         )
-        assertEquals(session().items.map { it.sets }, changed.items.map { it.sets })
+        // Equipment without metadata cannot safely inherit a paired barbell plate.
+        // Continue to the next feasible lever: sets for a main exercise, then reps.
+        assertEquals(5, changed.items.first().setCount)
+        assertTrue(changed.items.flatMap { it.sets }.all { it.weightKg == null })
+        assertTrue(changed.items.first().plannedProgression!!.contains("LOAD_STEPS=0"))
         assertTrue(changed.items.first().plannedProgression!!.contains("START_LOAD_USER_REQUIRED"))
     }
 }
