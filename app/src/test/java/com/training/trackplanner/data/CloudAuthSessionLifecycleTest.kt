@@ -100,7 +100,7 @@ class CloudAuthSessionLifecycleTest {
         val manager = CloudAuthSessionManager(context)
         manager.persist(session)
         val repository = repository(manager) {
-            CloudAuthTokenResponse(400, "{\"error_code\":\"refresh_token_not_found\"}")
+            CloudAuthTokenResponse(400, """{"error_code":"refresh_token_not_found"}""")
         }
 
         val result = repository.refreshIfNeededDetailed(nowEpochSeconds = 1_000L)
