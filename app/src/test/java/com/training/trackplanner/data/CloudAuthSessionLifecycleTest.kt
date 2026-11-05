@@ -149,6 +149,64 @@ class CloudAuthSessionLifecycleTest {
         assertEquals("refreshed-refresh", observer.session.value?.refreshToken)
     }
 
+    @Test
+    fun staleRefreshCannotReauthenticateAfterLogout() = runBlocking {
+        val manager = CloudAuthSessionManager(context)
+        manager.persist(session)
+        val repository = repository(manager) {
+            manager.clear()
+            refreshedResponse(session)
+        }
+        assertEquals(CloudAuthRefreshResult.NoSession, repository.refreshIfNeededDetailed(nowEpochSeconds = 1_000L))
+        assertNull(manager.currentSession())
+        assertNull(CloudAuthSessionStore(context).read())
+    }
+
+    @Test
+    fun staleRefreshCannotOverwriteNewAccount() = runBlocking {
+        val manager = CloudAuthSessionManager(context)
+        manager.persist(session)
+        val other = session.copy(
+            userId = "22222222-2222-4222-8222-222222222222",
+            accessToken = "other-access",
+            refreshToken = "other-refresh"
+        )
+        val repository = repository(manager) {
+            manager.persist(other)
+            refreshedResponse(session)
+        }
+        assertEquals(CloudAuthRefreshResult.NoSession, repository.refreshIfNeededDetailed(nowEpochSeconds = 1_000L))
+        assertEquals(other, manager.currentSession())
+        assertEquals(other, CloudAuthSessionStore(context).read())
+    }
+
+    @Test
+    fun staleTerminalFailureCannotLogoutNewAccount() = runBlocking {
+        val manager = CloudAuthSessionManager(context)
+        manager.persist(session)
+        val other = session.copy(
+            userId = "22222222-2222-4222-8222-222222222222",
+            accessToken = "other-access"
+        )
+        val repository = repository(manager) {
+            manager.persist(other)
+            CloudAuthTokenResponse(400, "{\\"error_code\\":\\"refresh_token_not_found\\"}")
+        }
+        assertEquals(CloudAuthRefreshResult.NoSession, repository.refreshIfNeededDetailed(nowEpochSeconds = 1_000L))
+        assertEquals(other, manager.currentSession())
+    }
+
+    private fun refreshedResponse(user: CloudAuthSession): CloudAuthTokenResponse =
+        CloudAuthTokenResponse(
+            200,
+            JSONObject()
+                .put("access_token", "new-access")
+                .put("refresh_token", "new-refresh")
+                .put("expires_in", 3600)
+                .put("user", JSONObject().put("id", user.userId).put("email", user.displayEmail))
+                .toString()
+        )
+
     private fun repository(
         manager: CloudAuthSessionManager,
         response: suspend () -> CloudAuthTokenResponse
