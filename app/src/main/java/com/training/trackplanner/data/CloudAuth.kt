@@ -102,17 +102,48 @@ internal class CloudAuthSessionManager internal constructor(
 ) {
     private val _session = MutableStateFlow(store.read())
     val session: StateFlow<CloudAuthSession?> = _session.asStateFlow()
+    private val mutationLock = Any()
+    private var mutationVersion = 0L
 
-    fun currentSession(): CloudAuthSession? = _session.value ?: store.read()?.also { _session.value = it }
-
-    fun persist(value: CloudAuthSession) {
-        store.write(value)
-        _session.value = value
+    fun currentSession(): CloudAuthSession? = synchronized(mutationLock) {
+        _session.value ?: store.read()?.also { _session.value = it }
     }
 
-    fun clear() {
+    /** Invalidates any in-flight authentication work whenever identity/session changes. */
+    fun generation(): Long = synchronized(mutationLock) { mutationVersion }
+
+    fun persist(value: CloudAuthSession) = synchronized(mutationLock) {
+        store.write(value)
+        _session.value = value
+        mutationVersion += 1
+    }
+
+    /** An old refresh/sign-in response must never resurrect a logged-out or replaced account. */
+    fun persistIfUnchanged(
+        value: CloudAuthSession,
+        expected: CloudAuthSession?,
+        expectedGeneration: Long
+    ): Boolean = synchronized(mutationLock) {
+        if (mutationVersion != expectedGeneration || currentSession() != expected) return@synchronized false
+        store.write(value)
+        _session.value = value
+        mutationVersion += 1
+        true
+    }
+
+    fun clearIfUnchanged(expected: CloudAuthSession, expectedGeneration: Long): Boolean =
+        synchronized(mutationLock) {
+            if (mutationVersion != expectedGeneration || currentSession() != expected) return@synchronized false
+            store.clear()
+            _session.value = null
+            mutationVersion += 1
+            true
+        }
+
+    fun clear() = synchronized(mutationLock) {
         store.clear()
         _session.value = null
+        mutationVersion += 1
     }
 
     fun firstLaunchChoiceRequired(): Boolean = !store.hasFirstLaunchChoice()
@@ -199,6 +230,8 @@ internal class CloudAuthRepository(
         if (!config.configured) return CloudAuthResult.Failure("CLOUD_NOT_CONFIGURED")
         val webClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID.trim()
         if (webClientId.isBlank()) return CloudAuthResult.Failure("GOOGLE_PROVIDER_NOT_CONFIGURED")
+        val startedGeneration = sessionManager.generation()
+        val startedSession = sessionManager.currentSession()
         return try {
             val rawNonce = secureNonce()
             val authorizedCredential = try {
@@ -212,7 +245,9 @@ internal class CloudAuthRepository(
             val googleToken = (credential as? GoogleIdTokenCredential)?.idToken
                 ?: return CloudAuthResult.Failure("INVALID_GOOGLE_CREDENTIAL")
             val session = exchangeIdToken(googleToken, rawNonce)
-            sessionManager.persist(session)
+            if (!sessionManager.persistIfUnchanged(session, startedSession, startedGeneration)) {
+                return CloudAuthResult.Failure("SESSION_CHANGED")
+            }
             sessionManager.chooseGuest()
             CloudAuthResult.Success(session)
         } catch (_: NoCredentialException) {
@@ -233,13 +268,15 @@ internal class CloudAuthRepository(
     suspend fun refreshIfNeededDetailed(
         nowEpochSeconds: Long = System.currentTimeMillis() / 1000
     ): CloudAuthRefreshResult {
+        val generation = sessionManager.generation()
         val current = sessionManager.currentSession() ?: return CloudAuthRefreshResult.NoSession
         if (current.expiresAtEpochSeconds > nowEpochSeconds + 60) {
             return CloudAuthRefreshResult.Valid(current)
         }
         if (current.refreshToken.isBlank()) {
-            sessionManager.clear()
-            return CloudAuthRefreshResult.TerminalFailure("REFRESH_TOKEN_MISSING")
+            return if (sessionManager.clearIfUnchanged(current, generation)) {
+                CloudAuthRefreshResult.TerminalFailure("REFRESH_TOKEN_MISSING")
+            } else CloudAuthRefreshResult.NoSession
         }
         return try {
             val response = postToken(
@@ -247,13 +284,20 @@ internal class CloudAuthRepository(
                 body = JSONObject().put("refresh_token", current.refreshToken)
             )
             val refreshed = sessionFromResponse(response, current)
-            sessionManager.persist(refreshed)
-            CloudAuthRefreshResult.Valid(refreshed)
+            require(refreshed.userId.equals(current.userId, ignoreCase = true)) {
+                "REFRESH_ACCOUNT_CHANGED"
+            }
+            if (sessionManager.persistIfUnchanged(refreshed, current, generation)) {
+                CloudAuthRefreshResult.Valid(refreshed)
+            } else CloudAuthRefreshResult.NoSession
         } catch (error: Throwable) {
             if (error is CancellationException) throw error
-            if (isTerminalRefreshFailure(error)) {
-                sessionManager.clear()
-                CloudAuthRefreshResult.TerminalFailure("SESSION_EXPIRED")
+            if (sessionManager.generation() != generation || sessionManager.currentSession() != current) {
+                CloudAuthRefreshResult.NoSession
+            } else if (isTerminalRefreshFailure(error)) {
+                if (sessionManager.clearIfUnchanged(current, generation)) {
+                    CloudAuthRefreshResult.TerminalFailure("SESSION_EXPIRED")
+                } else CloudAuthRefreshResult.NoSession
             } else {
                 CloudAuthRefreshResult.TransientFailure(current, transientFailureCode(error))
             }
