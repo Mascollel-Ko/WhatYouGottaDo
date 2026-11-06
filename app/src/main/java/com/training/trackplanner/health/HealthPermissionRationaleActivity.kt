@@ -4,6 +4,9 @@ import android.os.Bundle
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 
 /** System-launched permission usage/rationale screen; never a separate launcher. */
 class HealthPermissionRationaleActivity : AppCompatActivity() {
@@ -26,12 +29,28 @@ class HealthPermissionRationaleActivity : AppCompatActivity() {
             권한은 언제든 Health Connect 설정에서 철회할 수 있습니다.
             권한을 거절해도 기존 수동 기록 기능은 정상 작동합니다.
         """.trimIndent()
-        setContentView(ScrollView(this).apply {
+        // Android 16 enforces edge-to-edge for targetSdk 36.
+        // Keep the Health Connect permission explanation clear of system bars
+        // on all supported Android versions.
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        val scrollView = ScrollView(this).apply {
+            clipToPadding = false
             addView(TextView(this@HealthPermissionRationaleActivity).apply {
                 text = description
                 textSize = 16f
                 setPadding(36, 36, 36, 36)
             })
-        })
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(scrollView) { view, insets ->
+            val systemInsets = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+            )
+            view.setPadding(
+                systemInsets.left, systemInsets.top,
+                systemInsets.right, systemInsets.bottom
+            )
+            insets
+        }
+        setContentView(scrollView)
     }
 }
