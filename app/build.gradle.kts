@@ -90,6 +90,9 @@ android {
     }
 
     buildTypes {
+        getByName("release") {
+            proguardFiles("proguard-rules.pro")
+        }
         getByName("debug") {
             if (ciSigningConfigured) {
                 signingConfig = signingConfigs.getByName("ciDebug")
@@ -105,7 +108,7 @@ android {
             isDebuggable = false
             isMinifyEnabled = true
             isShrinkResources = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             if (ciSigningConfigured) {
                 signingConfig = signingConfigs.getByName("ciDebug")
             }
@@ -171,6 +174,7 @@ dependencies {
     // User-authorized P1: record and sleep read integration.
     implementation("androidx.health.connect:connect-client:1.1.0")
     implementation("androidx.work:work-runtime-ktx:2.9.1")
+    implementation("com.google.code.gson:gson:2.11.0")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
     implementation("org.apache.commons:commons-math3:3.6.1")
     kapt("androidx.room:room-compiler:2.6.1")
