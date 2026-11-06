@@ -3,6 +3,18 @@ package com.training.trackplanner.data
 import java.nio.charset.StandardCharsets
 import java.util.Base64
 import java.util.UUID
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
+
+/** Display persisted epoch-millisecond report times in the user's local timezone. */
+internal fun formatTransferTimestamp(
+    epochMillis: Long,
+    locale: Locale = Locale.getDefault(),
+    zone: ZoneId = ZoneId.systemDefault()
+): String = Instant.ofEpochMilli(epochMillis).atZone(zone)
+    .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", locale))
 
 enum class DataTransferOperation {
     BACKUP,
@@ -60,14 +72,14 @@ data class DataTransferReport(
         appendLine("상태: ${status.name}")
         appendLine("작업 ID: $operationId")
         appendLine("파일: ${fileDisplayName.ifBlank { "(알 수 없음)" }}")
-        appendLine("시작: $startedAt")
-        appendLine("완료: ${completedAt ?: "-"}")
+        appendLine("시작: ${formatTransferTimestamp(startedAt)}")
+        appendLine("완료: ${completedAt?.let(::formatTransferTimestamp) ?: "-"}")
         appendLine("현재 단계: $currentStage")
         if (stages.isNotEmpty()) {
             appendLine()
             appendLine("[단계]")
             stages.forEach { stage ->
-                appendLine("- ${stage.name}: ${stage.startedAt} ~ ${stage.completedAt ?: "진행 중"}")
+                appendLine("- ${stage.name}: ${formatTransferTimestamp(stage.startedAt)} ~ ${stage.completedAt?.let(::formatTransferTimestamp) ?: "진행 중"}")
             }
         }
         if (entityCounts.isNotEmpty()) {
