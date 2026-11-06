@@ -44,7 +44,7 @@ internal data class ProgramDraftSummary(
 )
 
 internal object ProgramDraftIdentity {
-    const val AUTO_SAVE_INTERVAL_MILLIS = 2 * 60 * 1000L
+    const val AUTO_SAVE_DEBOUNCE_MILLIS = 3_000L
 
     fun forExistingProgram(stableKey: String): String {
         require(stableKey.isNotBlank())
