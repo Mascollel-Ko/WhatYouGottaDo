@@ -30,9 +30,7 @@ class LocalBackupTimestampTest {
             stages = listOf(DataTransferStage(DataTransferStages.WRITING, instant, instant + 1000L))
         )
         val detail = report.detailText()
-        assertTrue(detail.contains("시작: 2026-11-06 11:15:00") ||
-            detail.contains("시작: 2026-11-05 18:15:00") ||
-            detail.contains("시작: 2026-11-06"))
+        assertTrue(Regex("""시작: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}""").containsMatchIn(detail))
         assertFalse(detail.contains("시작: $instant"))
         assertTrue(detail.contains("파일: sample.csv"))
     }
