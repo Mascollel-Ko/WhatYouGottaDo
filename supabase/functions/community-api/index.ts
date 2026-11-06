@@ -273,7 +273,7 @@ function programDto(
   return {
     publicProgramId: row.public_program_id,
     ...(isMine ? { sourceProgramStableKey: row.source_program_stable_key } : {}),
-    nickname: profile?.nickname ?? "",
+    nickname: profile?.nickname ?? (row.owner_user_id == null ? "탈퇴한 사용자" : ""),
     authorReceivedLikeCount: Number(profile?.received_program_likes ?? 0),
     publishedAt: row.published_at,
     updatedAt: row.updated_at,
