@@ -45,41 +45,102 @@ internal data class CloudAuthUiState(
 internal class CloudAuthSessionStore(context: Context) {
     private val preferences = context.getSharedPreferences("cloud_auth_session", Context.MODE_PRIVATE)
 
+    @Synchronized
     fun read(): CloudAuthSession? {
-        val userId = preferences.getString(KEY_USER_ID, null)?.takeIf(String::isNotBlank) ?: return null
-        val access = preferences.getString(KEY_ACCESS_TOKEN, null)?.takeIf(String::isNotBlank) ?: return null
-        return CloudAuthSession(
-            userId = userId,
-            accessToken = access,
+        val secureBlob = preferences.getString(KEY_SECURE_BLOB, null)
+        if (secureBlob != null) {
+            // Fail closed for corrupted ciphertext/invalid Keystore keys.
+            // Do not silently trust a stale plaintext legacy copy.
+            val session = runCatching {
+                sessionFromJson(JSONObject(CloudSessionCipherProvider.decrypt(secureBlob)))
+            }.getOrNull()
+            if (session != null && hasLegacyKeys()) clearLegacyKeys()
+            return session
+        }
+
+        // Upgrade older installations without losing an existing login.
+        val oldUser = preferences.getString(KEY_USER_ID, null)?.takeIf(String::isNotBlank) ?: return null
+        val oldAccess = preferences.getString(KEY_ACCESS_TOKEN, null)?.takeIf(String::isNotBlank) ?: return null
+        val legacy = CloudAuthSession(
+            userId = oldUser,
+            accessToken = oldAccess,
             refreshToken = preferences.getString(KEY_REFRESH_TOKEN, "").orEmpty(),
             expiresAtEpochSeconds = preferences.getLong(KEY_EXPIRES_AT, 0L),
             displayEmail = preferences.getString(KEY_EMAIL, null)
         )
+        // Encryption might be unavailable on an injured/locked device. Keep
+        // the existing session intact and try migration on a later launch.
+        runCatching { write(legacy) }
+        return legacy
     }
 
+    @Synchronized
     fun write(session: CloudAuthSession) {
-        preferences.edit()
-            .putString(KEY_USER_ID, session.userId)
-            .putString(KEY_ACCESS_TOKEN, session.accessToken)
-            .putString(KEY_REFRESH_TOKEN, session.refreshToken)
-            .putLong(KEY_EXPIRES_AT, session.expiresAtEpochSeconds)
-            .putString(KEY_EMAIL, session.displayEmail)
-            .apply()
+        val payload = JSONObject()
+            .put("user_id", session.userId)
+            .put("access_token", session.accessToken)
+            .put("refresh_token", session.refreshToken)
+            .put("expires_at", session.expiresAtEpochSeconds)
+            .put("email", session.displayEmail ?: JSONObject.NULL)
+            .toString()
+        // Encrypt before touching the last usable on-disk credentials.
+        val encrypted = CloudSessionCipherProvider.encrypt(payload)
+        check(preferences.edit().putString(KEY_SECURE_BLOB, encrypted).commit()) {
+            "AUTH_SECURE_WRITE_FAILED"
+        }
+        // Two-stage commit: the durable ciphertext always exists before the
+        // old plaintext tokens are removed, including after process death.
+        clearLegacyKeys()
     }
 
-    /** Logout removes only credentials; the installation's first-launch choice remains set. */
-    fun clear() = preferences.edit()
-        .remove(KEY_USER_ID)
-        .remove(KEY_ACCESS_TOKEN)
-        .remove(KEY_REFRESH_TOKEN)
-        .remove(KEY_EXPIRES_AT)
-        .remove(KEY_EMAIL)
-        .apply()
+    private fun sessionFromJson(json: JSONObject): CloudAuthSession {
+        val userId = json.getString("user_id").takeIf(String::isNotBlank)
+            ?: error("Missing session user")
+        val access = json.getString("access_token").takeIf(String::isNotBlank)
+            ?: error("Missing access token")
+        return CloudAuthSession(
+            userId = userId,
+            accessToken = access,
+            refreshToken = json.optString("refresh_token"),
+            expiresAtEpochSeconds = json.optLong("expires_at"),
+            displayEmail = if (json.isNull("email")) null else json.optString("email")
+        )
+    }
+
+    private fun hasLegacyKeys() =
+        preferences.contains(KEY_ACCESS_TOKEN) || preferences.contains(KEY_REFRESH_TOKEN) ||
+            preferences.contains(KEY_USER_ID) || preferences.contains(KEY_EMAIL) ||
+            preferences.contains(KEY_EXPIRES_AT)
+
+    private fun clearLegacyKeys() {
+        if (!hasLegacyKeys()) return
+        check(preferences.edit()
+            .remove(KEY_USER_ID)
+            .remove(KEY_ACCESS_TOKEN)
+            .remove(KEY_REFRESH_TOKEN)
+            .remove(KEY_EXPIRES_AT)
+            .remove(KEY_EMAIL)
+            .commit()) { "AUTH_PLAINTEXT_CLEANUP_FAILED" }
+    }
+
+    /** Logout clears ciphertext and any unfinished legacy migration. */
+    @Synchronized
+    fun clear() {
+        check(preferences.edit()
+            .remove(KEY_SECURE_BLOB)
+            .remove(KEY_USER_ID)
+            .remove(KEY_ACCESS_TOKEN)
+            .remove(KEY_REFRESH_TOKEN)
+            .remove(KEY_EXPIRES_AT)
+            .remove(KEY_EMAIL)
+            .commit()) { "AUTH_LOGOUT_PERSIST_FAILED" }
+    }
 
     fun hasFirstLaunchChoice(): Boolean = preferences.getBoolean(KEY_CHOICE_SET, false)
     fun setFirstLaunchChoice() = preferences.edit().putBoolean(KEY_CHOICE_SET, true).apply()
 
     private companion object {
+        const val KEY_SECURE_BLOB = "secure_session_v1"
         const val KEY_USER_ID = "user_id"
         const val KEY_ACCESS_TOKEN = "access_token"
         const val KEY_REFRESH_TOKEN = "refresh_token"
