@@ -492,30 +492,30 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     private val accountDeleteRunning = AtomicBoolean(false)
     private val accountDeletionClient = AccountDeletionClient()
 
-    fun deleteCloudAccount(activity: Activity, onResult: (String?) -> Unit) {
+    fun deleteCloudAccount(activity: Activity, onResult: (String?, Boolean) -> Unit) {
         if (!accountDeleteRunning.compareAndSet(false, true)) return
         viewModelScope.launch {
             try {
                 val current = authRepository.currentSession()
                 if (current == null) {
-                    onResult("로그인한 계정이 없습니다.")
+                    onResult("로그인한 계정이 없습니다.", false)
                     return@launch
                 }
                 val reauth = when (val check = authRepository.reauthenticateForAccountDeletion(activity)) {
                     is CloudAuthResult.Success -> check
                     is CloudAuthResult.Failure -> {
-                        onResult(AccountDeletionError.message(check.code))
+                        onResult(AccountDeletionError.message(check.code), false)
                         return@launch
                     }
                 }
                 val fresh = reauth.session
                 if (!fresh.userId.equals(current.userId, ignoreCase = true)) {
-                    onResult(AccountDeletionError.message("GOOGLE_ACCOUNT_MISMATCH"))
+                    onResult(AccountDeletionError.message("GOOGLE_ACCOUNT_MISMATCH"), false)
                     return@launch
                 }
                 // The server checks the JWT as well as the public-share
                 // preservation contract before deleting anything.
-                accountDeletionClient.delete(fresh, requireNotNull(reauth.googleProof), requireNotNull(reauth.nonce))
+                val deletion = accountDeletionClient.delete(fresh, requireNotNull(reauth.googleProof), requireNotNull(reauth.nonce))
                 com.training.trackplanner.data.CloudBackupScheduler.cancel(getApplication())
                 authRepository.logout()
                 _cloudAuthState.value = CloudAuthUiState(
@@ -526,16 +526,16 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
                     repository.purgeLocalAccountData()
                     refreshExerciseRuntimeMetadataInternal()
                     refreshAnalysisSummaries()
-                    onResult(null)
+                    onResult(null, deletion.backupCleanupPending)
                 } catch (error: Exception) {
                     android.util.Log.e("AccountDelete", "Server deleted; local purge failed", error)
-                    onResult("서버 계정은 삭제됐지만 휴대폰 기록 정리가 완료되지 않았습니다. 앱 데이터를 삭제한 뒤 다시 실행해 주세요.")
+                    onResult("서버 계정은 삭제됐지만 휴대폰 기록 정리가 완료되지 않았습니다. 앱 데이터를 삭제한 뒤 다시 실행해 주세요.", deletion.backupCleanupPending)
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
                 android.util.Log.e("AccountDelete", "Account deletion failed", error)
-                onResult(AccountDeletionError.message(error.message.orEmpty()))
+                onResult(AccountDeletionError.message(error.message.orEmpty()), false)
             } finally {
                 accountDeleteRunning.set(false)
             }

@@ -312,13 +312,15 @@ internal fun HomeScreen(
                         val currentActivity = activity ?: return@Button
                         deleteInProgress = true
                         deleteError = null
-                        viewModel.deleteCloudAccount(currentActivity) { message ->
+                        viewModel.deleteCloudAccount(currentActivity) { message, backupCleanupPending ->
                             deleteInProgress = false
                             if (message == null) {
                                 showDeleteConfirmation = false
                                 android.widget.Toast.makeText(
                                     currentActivity,
-                                    "계정과 개인 기록을 삭제했습니다.",
+                                    if (backupCleanupPending)
+                                        "계정은 삭제됐습니다. 클라우드 파일 정리는 서버에서 계속 진행됩니다."
+                                    else "계정과 개인 기록을 삭제했습니다.",
                                     android.widget.Toast.LENGTH_LONG
                                 ).show()
                             } else {

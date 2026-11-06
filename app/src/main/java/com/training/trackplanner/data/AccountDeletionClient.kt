@@ -7,11 +7,13 @@ import org.json.JSONObject
  * Privileged deletion is only ever handled in the Supabase Edge Function.
  * The APK contains no service-role or R2 secret credentials.
  */
+internal data class AccountDeletionResult(val backupCleanupPending: Boolean)
+
 internal class AccountDeletionClient(
     private val config: CloudBackupConfig = CloudBackupConfig.fromBuildConfig(),
     private val transport: CloudHttpTransport = UrlConnectionCloudHttpTransport(config.publishableKey)
 ) {
-    suspend fun delete(freshSession: CloudAuthSession, googleProof: String, nonce: String) {
+    suspend fun delete(freshSession: CloudAuthSession, googleProof: String, nonce: String): AccountDeletionResult {
         require(googleProof.isNotBlank() && nonce.isNotBlank()) { "GOOGLE_REAUTH_FAILED" }
         check(config.configured) { "CLOUD_NOT_CONFIGURED" }
         val response = try {
@@ -35,6 +37,7 @@ internal class AccountDeletionClient(
                     ?: "ACCOUNT_DELETION_FAILED"
             )
         }
+        return AccountDeletionResult(payload.optBoolean("backupCleanupPending", false))
     }
 }
 

@@ -25,7 +25,8 @@ class AccountDeletionClientTest {
 
     @Test fun postsExplicitDeletionConfirmationOnlyToPrivilegedEndpoint() = runBlocking {
         val fake = RecordingTransport(CloudHttpResponse(200, """{"deleted":true}"""))
-        AccountDeletionClient(config, fake).delete(fresh, "fresh-google-id-token", "fresh-nonce-for-recheck")
+        val result = AccountDeletionClient(config, fake).delete(fresh, "fresh-google-id-token", "fresh-nonce-for-recheck")
+        assertTrue(!result.backupCleanupPending)
         assertEquals("https://project.supabase.co/functions/v1/account-delete", fake.url)
         assertEquals(fresh, fake.session)
         assertTrue(fake.body.contains("DELETE_ACCOUNT"))

@@ -13,7 +13,9 @@ test("account deletion is privileged, interactive and fails closed", () => {
   assert.match(edge, /UPLOAD_URLS_STILL_ACTIVE/);
   assert.match(edge, /removeR2PrivateObjects/);
   assert.match(edge, /auth\.admin\.deleteUser\(userId, false\)/);
-  assert.ok(edge.indexOf("removeR2PrivateObjects") < edge.lastIndexOf("auth.admin.deleteUser"));
+  assert.ok(edge.indexOf("auth.admin.deleteUser") < edge.lastIndexOf("removeR2PrivateObjects"));
+  assert.match(edge, /account_deletion_cleanup_jobs/);
+  assert.match(read("supabase/functions/cloud-backup-gc/index.ts"), /getUserById/);
 });
 test("published programs are detached, all private user records cascade", () => {
   const migration = read("supabase/migrations/20261106000000_account_deletion_preserve_public_programs.sql");
