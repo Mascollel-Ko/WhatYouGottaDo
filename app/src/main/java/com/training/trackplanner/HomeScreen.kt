@@ -100,6 +100,9 @@ internal fun HomeScreen(
     var showInitialProfile by rememberSaveable { mutableStateOf(false) }
     var showTransferReport by rememberSaveable { mutableStateOf(false) }
     var showAccountDialog by rememberSaveable { mutableStateOf(false) }
+    var showDeleteConfirmation by rememberSaveable { mutableStateOf(false) }
+    var deleteInProgress by rememberSaveable { mutableStateOf(false) }
+    var deleteError by rememberSaveable { mutableStateOf<String?>(null) }
     // In-progress is modal: no touch-through or premature success notification.
     var manualCloudUploadStatus by remember { mutableStateOf("idle") }
     var showGuestWarning by rememberSaveable { mutableStateOf(false) }
@@ -243,7 +246,12 @@ internal fun HomeScreen(
                 }
             },
             onRestore = { showAccountDialog = false; viewModel.restoreCloudBackup() },
-            onLogout = { viewModel.logoutCloud() }
+            onLogout = { viewModel.logoutCloud() },
+            onDelete = {
+                deleteError = null
+                showAccountDialog = false
+                showDeleteConfirmation = true
+            }
         )
     }
     if (manualCloudUploadStatus != "idle") {
@@ -278,6 +286,55 @@ internal fun HomeScreen(
                         Text("계속하기")
                     }
                 }
+            }
+        )
+    }
+    if (showDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = { if (!deleteInProgress) showDeleteConfirmation = false },
+            title = { Text("계정 영구 삭제") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("이 계정에 연결된 서버의 운동 기록, 개인 정보, 클라우드 백업 및 이 기기의 개인 기록이 삭제됩니다. 삭제된 자료는 복구할 수 없습니다.")
+                    Text("직접 공개 공유한 프로그램은 '탈퇴한 사용자'의 게시물로 계속 공개됩니다. Google 계정 자체는 삭제되지 않습니다.")
+                    Text("휴대폰 외부에 직접 저장한 CSV 백업 파일은 자동으로 삭제되지 않습니다.")
+                    Text("계속하려면 Google 계정을 다시 선택해 본인임을 확인해야 합니다.")
+                    deleteError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                    if (deleteInProgress) {
+                        Text("계정 삭제 요청을 처리 중입니다. 앱을 종료하지 마세요.")
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    enabled = !deleteInProgress && activity != null,
+                    onClick = {
+                        val currentActivity = activity ?: return@Button
+                        deleteInProgress = true
+                        deleteError = null
+                        viewModel.deleteCloudAccount(currentActivity) { message, backupCleanupPending ->
+                            deleteInProgress = false
+                            if (message == null) {
+                                showDeleteConfirmation = false
+                                android.widget.Toast.makeText(
+                                    currentActivity,
+                                    if (backupCleanupPending)
+                                        "계정은 삭제됐습니다. 클라우드 파일 정리는 서버에서 계속 진행됩니다."
+                                    else "계정과 개인 기록을 삭제했습니다.",
+                                    android.widget.Toast.LENGTH_LONG
+                                ).show()
+                            } else {
+                                deleteError = message
+                            }
+                        }
+                    }
+                ) { Text("Google로 재확인하고 계정 삭제") }
+            },
+            dismissButton = {
+                TextButton(
+                    enabled = !deleteInProgress,
+                    onClick = { showDeleteConfirmation = false }
+                ) { Text("취소") }
             }
         )
     }
@@ -471,7 +528,8 @@ private fun CloudAccountDialog(
     onLogin: () -> Unit,
     onUpload: () -> Unit,
     onRestore: () -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onDelete: () -> Unit
 ) {
     val message = auth.message?.let { code ->
         when (code) {
@@ -523,6 +581,9 @@ private fun CloudAccountDialog(
                     }
                     TextButton(onClick = { onLogout(); onDismiss() }, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.cloud_logout))
+                    }
+                    TextButton(onClick = onDelete, modifier = Modifier.fillMaxWidth()) {
+                        Text("계정 영구 삭제")
                     }
                 } else {
                     Text(stringResource(R.string.cloud_account_signed_out))
