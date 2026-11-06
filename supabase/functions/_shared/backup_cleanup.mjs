@@ -9,7 +9,7 @@ const LIMIT = 15;
 async function readProtectedBackups(service, userId) {
   const [curr, retained] = await Promise.all([
     service.from("cloud_backups")
-      .select("backup_id,object_key,compressed_size_bytes")
+      .select("backup_id,object_key,compressed_size_bytes,created_at")
       .eq("user_id", userId).eq("status", "CURRENT").maybeSingle(),
     service.from("cloud_backups")
       .select("backup_id,object_key,compressed_size_bytes")
@@ -85,10 +85,28 @@ export async function cleanupUserBackups(service, userId, limit = LIMIT) {
   if (listError) throw new Error("CLEANUP_CANDIDATE_LIST_FAILED");
 
   const protectedRows = await readProtectedBackups(service, userId);
+  // The newest unresolved upload may contain the user's only recent changes
+  // when CURRENT has been stale due to repeated lineage conflicts. Never
+  // purge that fallback solely because 24h elapsed.
+  const unresolved = await service.from("cloud_backups")
+    .select("backup_id,created_at")
+    .eq("user_id", userId)
+    .in("status", ["FAILED", "UPLOADING", "VERIFIED"])
+    .order("created_at", { ascending: false }).limit(1).maybeSingle();
+  if (unresolved.error) throw new Error("UNRESOLVED_BACKUP_LOOKUP_FAILED");
+  const latestUnresolved = unresolved.data;
+  const preserveLatestUnresolved = latestUnresolved &&
+    (!protectedRows.current ||
+      Date.parse(latestUnresolved.created_at) > Date.parse(protectedRows.current.created_at));
+
   let config, client, retentionVerified;
   let pruned = 0, failures = 0, skipped = 0;
   for (const row of candidates ?? []) {
     if (pruned + failures >= limit) break;
+    if (preserveLatestUnresolved && row.backup_id === latestUnresolved.backup_id) {
+      skipped++;
+      continue;
+    }
     if (row.status === "RETAINED" && retentionVerified === undefined) {
       try {
         config = requiredR2Config();
