@@ -72,7 +72,7 @@ class ProgramDraftStoreTest {
         val one = ProgramDraftIdentity.forExistingProgram("user_program_1")
         assertEquals(one, ProgramDraftIdentity.forExistingProgram("user_program_1"))
         assertTrue(one != ProgramDraftIdentity.forExistingProgram("user_program_2"))
-        assertEquals(120000L, ProgramDraftIdentity.AUTO_SAVE_DEBOUNCE_MILLIS)
+        assertEquals(3_000L, ProgramDraftIdentity.AUTO_SAVE_DEBOUNCE_MILLIS)
     }
 
     @Test
