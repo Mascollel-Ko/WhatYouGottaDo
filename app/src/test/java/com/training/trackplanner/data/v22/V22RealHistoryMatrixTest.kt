@@ -5,12 +5,21 @@ import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
+import org.junit.Before
 import org.junit.Test
 import java.io.InputStreamReader
 import java.time.LocalDate
 import java.util.zip.GZIPInputStream
 
 class V22RealHistoryMatrixTest {
+    @Before
+    fun skipPrivateFixtureTestsWhenUnavailable() {
+        assumeTrue(
+            "Historical private fixture intentionally absent from public repository",
+            javaClass.classLoader?.getResource("v22-real-history/whatyougottado_backup_2026-10-12-v22.csv.gz") != null
+        )
+    }
+
     @Test
     fun `all 528 real history cases match Python v1 semantics`() {
         val expected = gzipJson("python_expected_528.json.gz")

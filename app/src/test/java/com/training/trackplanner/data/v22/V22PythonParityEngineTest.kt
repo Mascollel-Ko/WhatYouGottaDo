@@ -8,12 +8,21 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
+import org.junit.Before
 import org.junit.Test
 import java.io.InputStreamReader
 import java.time.LocalDate
 import java.util.zip.GZIPInputStream
 
 class V22PythonParityEngineTest {
+    @Before
+    fun skipPrivateFixtureTestsWhenUnavailable() {
+        assumeTrue(
+            "Historical private fixture intentionally absent from public repository",
+            javaClass.classLoader?.getResource("v22-python-v1/whatyougottado_backup_2026-10-11.csv.gz") != null
+        )
+    }
+
     @Test
     fun `A B and C match the complete Python v1 json semantics`() {
         V22Mode.entries.forEach { mode ->

@@ -9,6 +9,8 @@ import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -23,6 +25,14 @@ import kotlin.system.measureNanoTime
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [34])
 class BBalancedRealHistoryValidationTest {
+    @Before
+    fun skipPrivateFixtureTestsWhenUnavailable() {
+        assumeTrue(
+            "Historical private fixture intentionally absent from public repository",
+            javaClass.classLoader?.getResource("v22-real-history/whatyougottado_backup_2026-10-12-v22.csv.gz") != null
+        )
+    }
+
     @Test
     fun `generate committed real fixture twelve week artifacts`() {
         val context = ApplicationProvider.getApplicationContext<Context>()
