@@ -929,6 +929,26 @@ class TrainingRepository internal constructor(
         )
     }
 
+    /**
+     * Called only after server-confirmed account deletion. Clear every Room
+     * table (including cloud lineage), private drafts and local recovery
+     * snapshots; then restore only bundled non-user reference exercises.
+     * Manual CSV exports outside app storage cannot be erased here.
+     */
+    suspend fun purgeLocalAccountData() = withContext(Dispatchers.IO) {
+        db.clearAllTables()
+        val directories = listOf(
+            java.io.File(context.noBackupFilesDir, "recovery"),
+            java.io.File(context.filesDir, "program_drafts")
+        )
+        directories.forEach { directory ->
+            if (directory.exists()) check(directory.deleteRecursively()) {
+                "LOCAL_PRIVATE_FILE_DELETE_FAILED"
+            }
+        }
+        seedIfNeeded()
+    }
+
     suspend fun seedIfNeeded() = withContext(Dispatchers.IO) {
         db.cloudBackupStateDao().getOrCreate()
         runCatching { localRecovery.cleanup() }

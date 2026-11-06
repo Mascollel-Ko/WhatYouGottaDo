@@ -222,6 +222,38 @@ internal class CloudAuthRepository(
         }
     }
 
+    /**
+     * An explicit Google credential picker, without changing the logged-in
+     * installation session. The caller compares the fresh Supabase identity
+     * with the current account before requesting irreversible deletion.
+     */
+    suspend fun reauthenticateForAccountDeletion(activity: Activity): CloudAuthResult {
+        val current = sessionManager.currentSession()
+            ?: return CloudAuthResult.Failure("LOGIN_REQUIRED")
+        if (!config.configured) return CloudAuthResult.Failure("CLOUD_NOT_CONFIGURED")
+        val webClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID.trim()
+        if (webClientId.isBlank()) return CloudAuthResult.Failure("GOOGLE_PROVIDER_NOT_CONFIGURED")
+        return try {
+            val rawNonce = secureNonce()
+            // This operation must require user interaction: never auto-select.
+            val token = requestCredential(
+                activity, webClientId, sha256Hex(rawNonce), authorizedOnly = false
+            )?.idToken ?: return CloudAuthResult.Failure("GOOGLE_REAUTH_CANCELLED")
+            val fresh = exchangeIdToken(token, rawNonce)
+            if (!current.userId.equals(fresh.userId, ignoreCase = true)) {
+                CloudAuthResult.Failure("GOOGLE_ACCOUNT_MISMATCH")
+            } else {
+                CloudAuthResult.Success(fresh)
+            }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: NoCredentialException) {
+            CloudAuthResult.Failure("GOOGLE_REAUTH_CANCELLED")
+        } catch (_: Exception) {
+            CloudAuthResult.Failure("GOOGLE_REAUTH_FAILED")
+        }
+    }
+
     suspend fun refreshIfNeeded(nowEpochSeconds: Long = System.currentTimeMillis() / 1000): CloudAuthSession? =
         when (val result = refreshIfNeededDetailed(nowEpochSeconds)) {
             is CloudAuthRefreshResult.Valid -> result.session

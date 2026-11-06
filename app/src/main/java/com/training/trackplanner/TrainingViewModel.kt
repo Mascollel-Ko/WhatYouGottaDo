@@ -39,6 +39,8 @@ import com.training.trackplanner.data.CloudAuthRepository
 import com.training.trackplanner.data.CloudAuthRefreshResult
 import com.training.trackplanner.data.CloudAuthResult
 import com.training.trackplanner.data.CloudAuthSessionManager
+import com.training.trackplanner.data.AccountDeletionClient
+import com.training.trackplanner.data.AccountDeletionError
 import com.training.trackplanner.data.CloudAuthStatus
 import com.training.trackplanner.data.CloudAuthUiState
 import com.training.trackplanner.data.CommunityActivityPublisher
@@ -416,6 +418,58 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
                         message = result.code
                     )
                 }
+            }
+        }
+    }
+
+    private val accountDeleteRunning = AtomicBoolean(false)
+    private val accountDeletionClient = AccountDeletionClient()
+
+    fun deleteCloudAccount(activity: Activity, onResult: (String?) -> Unit) {
+        if (!accountDeleteRunning.compareAndSet(false, true)) return
+        viewModelScope.launch {
+            try {
+                val current = authRepository.currentSession()
+                if (current == null) {
+                    onResult("로그인한 계정이 없습니다.")
+                    return@launch
+                }
+                val fresh = when (val check = authRepository.reauthenticateForAccountDeletion(activity)) {
+                    is CloudAuthResult.Success -> check.session
+                    is CloudAuthResult.Failure -> {
+                        onResult(AccountDeletionError.message(check.code))
+                        return@launch
+                    }
+                }
+                if (!fresh.userId.equals(current.userId, ignoreCase = true)) {
+                    onResult(AccountDeletionError.message("GOOGLE_ACCOUNT_MISMATCH"))
+                    return@launch
+                }
+                // The server checks the JWT as well as the public-share
+                // preservation contract before deleting anything.
+                accountDeletionClient.delete(fresh)
+                com.training.trackplanner.data.CloudBackupScheduler.cancel(getApplication())
+                authRepository.logout()
+                _cloudAuthState.value = CloudAuthUiState(
+                    status = CloudAuthStatus.LOGGED_OUT,
+                    firstLaunchChoiceRequired = false
+                )
+                try {
+                    repository.purgeLocalAccountData()
+                    refreshExerciseRuntimeMetadataInternal()
+                    refreshAnalysisSummaries()
+                    onResult(null)
+                } catch (error: Exception) {
+                    android.util.Log.e("AccountDelete", "Server deleted; local purge failed", error)
+                    onResult("서버 계정은 삭제됐지만 휴대폰 기록 정리가 완료되지 않았습니다. 앱 데이터를 삭제한 뒤 다시 실행해 주세요.")
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                android.util.Log.e("AccountDelete", "Account deletion failed", error)
+                onResult(AccountDeletionError.message(error.message.orEmpty()))
+            } finally {
+                accountDeleteRunning.set(false)
             }
         }
     }
