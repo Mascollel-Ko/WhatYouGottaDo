@@ -402,7 +402,7 @@ private fun ProgramListScreen(
                                 Column {
                                     Text(draft.programName.ifBlank { "이름 없는 프로그램" })
                                     Text(
-                                        "마지막 수정: $"+"modified",
+                                        "마지막 수정: ${modified}",
                                         style = MaterialTheme.typography.bodySmall
                                     )
                                 }
