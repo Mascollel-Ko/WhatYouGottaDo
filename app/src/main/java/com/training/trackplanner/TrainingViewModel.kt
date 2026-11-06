@@ -135,7 +135,7 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     // program data until Save succeeds. In-memory staging survives rotation.
     private val programDraftStore = ProgramDraftStore(application)
     private val _savedProgramDrafts = MutableStateFlow<List<ProgramDraftSummary>>(emptyList())
-    val savedProgramDrafts: StateFlow<List<ProgramDraftSummary>> = _savedProgramDrafts.asStateFlow()
+    internal val savedProgramDrafts: StateFlow<List<ProgramDraftSummary>> = _savedProgramDrafts.asStateFlow()
     private val stagedProgramDrafts = mutableMapOf<String, SavedProgramDraft>()
     private val finalizedDraftIds = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
     private val draftWriteMutex = Mutex()
@@ -146,22 +146,22 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun activateProgramDraft(draftId: String) {
+    internal fun activateProgramDraft(draftId: String) {
         finalizedDraftIds.remove(draftId)
     }
 
-    fun stagedProgramDraft(draftId: String): SavedProgramDraft? = stagedProgramDrafts[draftId]
+    internal fun stagedProgramDraft(draftId: String): SavedProgramDraft? = stagedProgramDrafts[draftId]
 
-    fun stageProgramDraft(value: SavedProgramDraft) {
+    internal fun stageProgramDraft(value: SavedProgramDraft) {
         if (!finalizedDraftIds.contains(value.draftId)) stagedProgramDrafts[value.draftId] = value
     }
 
-    suspend fun loadSavedProgramDraft(draftId: String): SavedProgramDraft? =
+    internal suspend fun loadSavedProgramDraft(draftId: String): SavedProgramDraft? =
         stagedProgramDrafts[draftId] ?: withContext(Dispatchers.IO) {
             programDraftStore.load(draftId)
         }
 
-    fun saveProgramDraft(value: SavedProgramDraft, onResult: (Boolean) -> Unit = {}) {
+    internal fun saveProgramDraft(value: SavedProgramDraft, onResult: (Boolean) -> Unit = {}) {
         if (finalizedDraftIds.contains(value.draftId)) return
         stageProgramDraft(value)
         viewModelScope.launch {
@@ -177,7 +177,7 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun deleteProgramDraftAfterFinalSave(draftId: String) {
+    internal fun deleteProgramDraftAfterFinalSave(draftId: String) {
         finalizedDraftIds.add(draftId)
         stagedProgramDrafts.remove(draftId)
         viewModelScope.launch {
