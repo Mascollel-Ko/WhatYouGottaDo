@@ -324,7 +324,11 @@ internal class CloudBackupClient(
     private val transport: CloudHttpTransport by lazy {
         http ?: UrlConnectionCloudHttpTransport(config.publishableKey)
     }
-    suspend fun uploadNow(session: CloudAuthSession, now: Long = System.currentTimeMillis()): CloudBackupUploadResult =
+    suspend fun uploadNow(
+        session: CloudAuthSession,
+        now: Long = System.currentTimeMillis(),
+        expectedCloudCurrentForLocalWins: String? = null
+    ): CloudBackupUploadResult =
         withContext(Dispatchers.IO) {
             require(config.configured) { "Cloud Backup is not configured for this build." }
             require(session.userId.isNotBlank() && session.accessToken.isNotBlank()) {
@@ -366,7 +370,13 @@ internal class CloudBackupClient(
                 if (put.status !in 200..299) throw CloudBackupException("R2_PUT_FAILED")
                 val finalized = post(
                     "cloud-backup-finalize", session,
-                    JSONObject().put("backup_id", backupId).toString()
+                    JSONObject().apply {
+                        put("backup_id", backupId)
+                        if (expectedCloudCurrentForLocalWins != null) {
+                            put("resolution", "LOCAL_WINS")
+                            put("expected_current_backup_id", expectedCloudCurrentForLocalWins)
+                        }
+                    }.toString()
                 )
                 if (finalized.optString("status") != "CURRENT") {
                     throw CloudBackupException(finalized.optString("error", "FINALIZE_FAILED"))
