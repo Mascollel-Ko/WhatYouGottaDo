@@ -1,9 +1,6 @@
-import {
-  DeleteObjectsCommand,
-  ListObjectsV2Command,
-} from "npm:@aws-sdk/client-s3@3.842.0";
 import { authenticateRequest, createServiceClient, requiredR2Config } from "../_shared/supabase_auth.mjs";
 import { createR2Client } from "../_shared/r2.mjs";
+import { removeR2PrivateObjects } from "../_shared/r2_user_cleanup.mjs";
 import { emptyResponse, jsonResponse, isUuid } from "../_shared/cloud_backup.mjs";
 
 const MAX_REAUTH_SECONDS = 300;
@@ -35,28 +32,6 @@ async function verifyFreshGoogleProof(userId, token, nonce) {
     const age = Date.now() / 1000 - claims.iat;
     return Number.isFinite(age) && age >= -15 && age <= MAX_REAUTH_SECONDS;
   } catch { return false; }
-}
-
-/** Delete only objects under the JWT user's exact immutable UUID prefix. */
-async function removeR2PrivateObjects(client, bucket, userId) {
-  if (!isUuid(userId)) throw new Error("Invalid user identifier");
-  const prefix = `users/${userId}/`;
-  // Always start at page one: deleting while paginating by continuation token
-  // can skip keys depending on the backend's listing semantics.
-  for (let pass = 0; pass < 1000; pass++) {
-    const listing = await client.send(new ListObjectsV2Command({
-      Bucket: bucket, Prefix: prefix, MaxKeys: 1000,
-    }));
-    const items = (listing.Contents ?? []).filter((x) =>
-      typeof x.Key === "string" && x.Key.startsWith(prefix));
-    if (items.length === 0) return;
-    const deleted = await client.send(new DeleteObjectsCommand({
-      Bucket: bucket,
-      Delete: { Objects: items.map((x) => ({ Key: x.Key })), Quiet: true },
-    }));
-    if ((deleted.Errors ?? []).length !== 0) throw new Error("R2_DELETE_FAILED");
-  }
-  throw new Error("R2_DELETE_INCOMPLETE");
 }
 
 async function handler(request) {
@@ -102,14 +77,29 @@ async function handler(request) {
         retryAfter: active.data[0].expires_at }, 409);
     }
 
-    const config = requiredR2Config();
-    await removeR2PrivateObjects(createR2Client(config), config.bucket, userId);
+    // Persist the retry ticket before removing the authentication account.
+    // Garbage collection verifies that the account no longer exists.
+    const ticket = await service.from("account_deletion_cleanup_jobs")
+      .upsert({ user_id: userId }, { onConflict: "user_id" });
+    if (ticket.error) throw new Error("ACCOUNT_CLEANUP_QUEUE_FAILED");
 
-    // FK SET NULL leaves only user-published public snapshots; all private
-    // profile, friend, weekly summary, backup metadata and likes rows cascade.
     const deleted = await service.auth.admin.deleteUser(userId, false);
     if (deleted.error) throw new Error("SUPABASE_AUTH_DELETE_FAILED");
-    return jsonResponse({ ok: true, deleted: true, sharedProgramsPreserved: true });
+
+    let backupCleanupPending = false;
+    try {
+      const config = requiredR2Config();
+      await removeR2PrivateObjects(createR2Client(config), config.bucket, userId);
+      const cleared = await service.from("account_deletion_cleanup_jobs")
+        .delete().eq("user_id", userId);
+      if (cleared.error) backupCleanupPending = true;
+    } catch {
+      backupCleanupPending = true;
+    }
+    return jsonResponse({
+      ok: true, deleted: true, sharedProgramsPreserved: true,
+      backupCleanupPending,
+    });
   } catch (error) {
     console.error("account-delete failed", error instanceof Error ? error.message : "unknown");
     return jsonResponse({ error: "ACCOUNT_DELETION_FAILED" }, 500);
