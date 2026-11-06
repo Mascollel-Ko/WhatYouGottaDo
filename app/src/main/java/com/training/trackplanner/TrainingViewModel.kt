@@ -65,6 +65,7 @@ import com.training.trackplanner.data.InitialUserProfile
 import com.training.trackplanner.data.ProgramBuildProgressState
 import com.training.trackplanner.data.ProgramApplyConflictSummary
 import com.training.trackplanner.data.ProgramApplyMode
+import com.training.trackplanner.data.ProgramApplyErrorMessage
 import com.training.trackplanner.data.RecordRangeProgramSummary
 import com.training.trackplanner.data.ProgramSkeletonRequest
 import com.training.trackplanner.data.RuntimeExerciseMetadata
@@ -893,11 +894,30 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     fun applyProgram(
         programId: Long,
         startDate: String,
-        mode: ProgramApplyMode
+        mode: ProgramApplyMode,
+        onResult: (String?) -> Unit = {}
     ) {
         viewModelScope.launch {
-            repository.applyProgramToDates(programId, startDate, mode)
-            refreshAnalysisSummaries()
+            try {
+                repository.applyProgramToDates(programId, startDate, mode)
+                onResult(null) // Raw records committed; derived analysis is separate.
+                try {
+                    refreshAnalysisSummaries()
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (error: Exception) {
+                    android.util.Log.e("ProgramApply", "Applied; derived analysis refresh failed", error)
+                    _fatigueAnalysisState.value = _fatigueAnalysisState.value.copy(
+                        isLoading = false,
+                        errorMessage = "계획은 적용됐지만 분석 갱신에 실패했습니다. 분석 화면을 다시 열어 주세요."
+                    )
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                android.util.Log.e("ProgramApply", "Program apply failed", error)
+                onResult(ProgramApplyErrorMessage.from(error))
+            }
         }
     }
 
@@ -914,10 +934,18 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     fun loadProgramApplyConflictSummary(
         programId: Long,
         startDate: String,
-        onResult: (ProgramApplyConflictSummary) -> Unit
+        onResult: (ProgramApplyConflictSummary) -> Unit,
+        onError: (String) -> Unit = {}
     ) {
         viewModelScope.launch {
-            onResult(repository.programApplyConflictSummary(programId, startDate))
+            try {
+                onResult(repository.programApplyConflictSummary(programId, startDate))
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                android.util.Log.e("ProgramApply", "Conflict preflight failed", error)
+                onError(ProgramApplyErrorMessage.from(error))
+            }
         }
     }
 

@@ -288,12 +288,18 @@ internal class ProgramPlanService(
         startDate: String,
         mode: ProgramApplyMode
     ) {
-        val program = programDao.findProgram(programId) ?: return
+        val program = programDao.findProgram(programId)
+            ?: throw ProgramApplyException(ProgramApplyFailureReason.PROGRAM_MISSING)
         val items = programDao.itemsForProgram(program.id)
-        if (items.isEmpty()) return
+        if (items.isEmpty()) throw ProgramApplyException(ProgramApplyFailureReason.NO_EXERCISES)
         val storedSetsByItemId = programDao.programItemSetsForProgram(program.id)
             .groupBy(TrainingProgramItemSet::programItemId)
-        val range = program.dateRangeFor(startDate) ?: return
+        val range = program.dateRangeFor(startDate)
+            ?: throw ProgramApplyException(ProgramApplyFailureReason.INVALID_DATE)
+        if (program.durationDays <= 0 || items.any {
+            it.weekNumber < 1 || it.dayOfWeek !in 1..7 ||
+                (it.weekNumber - 1) * 7L + it.dayOfWeek > program.durationDays
+        }) throw ProgramApplyException(ProgramApplyFailureReason.INVALID_STRUCTURE)
         db.withTransaction {
             if (mode == ProgramApplyMode.Overwrite) {
                 workoutDao.deletePlannedOnlySetsBetween(range.first, range.second)
