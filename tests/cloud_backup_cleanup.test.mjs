@@ -45,6 +45,8 @@ test("cleanup physically deletes from canonical UUID-scoped R2 path and keeps li
   assert.match(source, /status: "PRUNED"/);
   assert.match(source, /status: "CLEANUP_PENDING"/);
   assert.match(source, /protectedFilesPresent/);
+  assert.match(source, /latestUnresolved/);
+  assert.match(source, /preserveLatestUnresolved/);
   assert.match(upload, /cleanupUserBackups\(service, userId, 10\)/);
   assert.match(finalize, /cleanupUserBackups\(service, userId, 10\)/);
 });
