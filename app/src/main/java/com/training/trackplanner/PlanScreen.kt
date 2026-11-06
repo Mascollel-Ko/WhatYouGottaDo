@@ -30,6 +30,9 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,6 +48,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.data.GeneratedProgramSkeleton
+import com.training.trackplanner.data.SavedProgramDraft
+import com.training.trackplanner.data.ProgramDraftSummary
+import com.training.trackplanner.data.ProgramDraftIdentity
 import com.training.trackplanner.data.ProgramBuildProgressState
 import com.training.trackplanner.data.ProgramApplyConflictSummary
 import com.training.trackplanner.data.ProgramApplyMode
@@ -86,6 +92,11 @@ import com.training.trackplanner.data.v22.newBBalancedGenerationRequest
 import com.training.trackplanner.data.v22.restoredBBalancedWeekPlans
 import com.training.trackplanner.localization.localizedProgramName
 import java.time.LocalDate
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.UUID
+import kotlinx.coroutines.delay
 import org.json.JSONObject
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.DropdownMenu
@@ -170,6 +181,9 @@ internal fun PlanScreen(
     onApplyTargetPositioned: (Rect) -> Unit = {}
 ) {
     val programs by viewModel.programs.collectAsState()
+    val savedDrafts by viewModel.savedProgramDrafts.collectAsState()
+    var activeDraftId by rememberSaveable { mutableStateOf<String?>(null) }
+    var resumeDraft by rememberSaveable { mutableStateOf(false) }
     var selectedProgramId by rememberSaveable { mutableStateOf<Long?>(null) }
     var editingProgramId by rememberSaveable { mutableStateOf<Long?>(null) }
     var creatingProgram by rememberSaveable { mutableStateOf(false) }
@@ -202,24 +216,53 @@ internal fun PlanScreen(
             ProgramEditorScreen(
                 program = editingProgram,
                 viewModel = viewModel,
+                draftId = requireNotNull(activeDraftId),
+                resumeDraft = resumeDraft,
                 onCancel = {
                     creatingProgram = false
                     editingProgramId = null
+                    activeDraftId = null
+                    resumeDraft = false
                 },
                 onSaved = { programId ->
                     creatingProgram = false
                     editingProgramId = null
                     selectedProgramId = programId
+                    activeDraftId = null
+                    resumeDraft = false
                 }
             )
         }
         selectedProgram == null -> {
         ProgramListScreen(
             programs = programs,
+                savedDrafts = savedDrafts,
                 viewModel = viewModel,
-                onCreateProgram = { creatingProgram = true },
+                onCreateProgram = {
+                    val id = UUID.randomUUID().toString()
+                    viewModel.activateProgramDraft(id)
+                    activeDraftId = id
+                    resumeDraft = false
+                    creatingProgram = true
+                },
+                onContinueDraft = { draft ->
+                    val current = programs.firstOrNull {
+                        it.id == draft.sourceProgramId && it.stableKey == draft.sourceProgramStableKey
+                    }
+                    viewModel.activateProgramDraft(draft.draftId)
+                    activeDraftId = draft.draftId
+                    resumeDraft = true
+                    editingProgramId = current?.id
+                    creatingProgram = current == null
+                },
                 onSelectProgram = { selectedProgramId = it.id },
-                onEditProgram = { editingProgramId = it.id },
+                onEditProgram = {
+                    val id = ProgramDraftIdentity.forExistingProgram(it.stableKey)
+                    viewModel.activateProgramDraft(id)
+                    activeDraftId = id
+                    resumeDraft = true
+                    editingProgramId = it.id
+                },
                 onDeleteProgram = { program ->
                     viewModel.deleteProgram(program.id) {
                         if (selectedProgramId == program.id) selectedProgramId = null
@@ -237,7 +280,13 @@ internal fun PlanScreen(
             program = selectedProgram,
             viewModel = viewModel,
             onBack = { selectedProgramId = null },
-                onEdit = { editingProgramId = selectedProgram.id },
+                onEdit = {
+                    val id = ProgramDraftIdentity.forExistingProgram(selectedProgram.stableKey)
+                    viewModel.activateProgramDraft(id)
+                    activeDraftId = id
+                    resumeDraft = true
+                    editingProgramId = selectedProgram.id
+                },
                 onDeleted = { selectedProgramId = null }
         )
         }
@@ -246,8 +295,10 @@ internal fun PlanScreen(
 @Composable
 private fun ProgramListScreen(
     programs: List<TrainingProgram>,
+    savedDrafts: List<ProgramDraftSummary>,
     viewModel: TrainingViewModel,
     onCreateProgram: () -> Unit,
+    onContinueDraft: (ProgramDraftSummary) -> Unit,
     onSelectProgram: (TrainingProgram) -> Unit,
     onEditProgram: (TrainingProgram) -> Unit,
     onDeleteProgram: (TrainingProgram) -> Unit,
@@ -260,6 +311,7 @@ private fun ProgramListScreen(
     val context = LocalContext.current
     var deleteTarget by remember { mutableStateOf<TrainingProgram?>(null) }
     var applyTarget by remember { mutableStateOf<TrainingProgram?>(null) }
+    var showDraftPicker by remember { mutableStateOf(false) }
     var handledTutorialApplyRequest by rememberSaveable { mutableStateOf(0) }
     val listState = rememberLazyListState()
 
@@ -324,6 +376,47 @@ private fun ProgramListScreen(
         )
     }
 
+    if (showDraftPicker) {
+        AlertDialog(
+            onDismissRequest = { showDraftPicker = false },
+            title = { Text("임시저장한 프로그램") },
+            text = {
+                if (savedDrafts.isEmpty()) {
+                    Text("아직 임시저장한 프로그램이 없습니다.")
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.heightIn(max = 400.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(savedDrafts, key = { it.draftId }) { draft ->
+                            val modified = DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm")
+                                .withZone(ZoneId.systemDefault())
+                                .format(Instant.ofEpochMilli(draft.updatedAt))
+                            OutlinedButton(
+                                modifier = Modifier.fillMaxWidth(),
+                                onClick = {
+                                    showDraftPicker = false
+                                    onContinueDraft(draft)
+                                }
+                            ) {
+                                Column {
+                                    Text(draft.programName.ifBlank { "이름 없는 프로그램" })
+                                    Text(
+                                        "마지막 수정: ${modified}",
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showDraftPicker = false }) { Text("닫기") }
+            }
+        )
+    }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         state = listState,
@@ -345,6 +438,12 @@ private fun ProgramListScreen(
                 onClick = onCreateProgram
             ) {
                 Text("프로그램 새로 만들기")
+            }
+            OutlinedButton(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { showDraftPicker = true }
+            ) {
+                Text("임시저장한 곳에서 계속하기")
             }
         }
         item {
@@ -385,6 +484,8 @@ private fun ProgramListScreen(
 private fun ProgramEditorScreen(
     program: TrainingProgram?,
     viewModel: TrainingViewModel,
+    draftId: String,
+    resumeDraft: Boolean,
     onCancel: () -> Unit,
     onSaved: (Long) -> Unit
 ) {
@@ -395,8 +496,9 @@ private fun ProgramEditorScreen(
     val muscleMetadataByKey by viewModel.exerciseMuscleMetadata.collectAsState()
     var progressionContext by remember { mutableStateOf<com.training.trackplanner.data.ProgressionDraftContext?>(null) }
     val progressionEligibleKeys = progressionContext?.eligibleKeys.orEmpty()
-    var nameText by rememberSaveable(program?.id ?: 0L) {
-        mutableStateOf(program?.name ?: "")
+    val staged = remember(draftId) { viewModel.stagedProgramDraft(draftId) }
+    var nameText by rememberSaveable(program?.id ?: 0L, draftId) {
+        mutableStateOf(staged?.programName ?: program?.name.orEmpty())
     }
     var nameError by rememberSaveable(program?.id ?: 0L) {
         mutableStateOf(false)
@@ -404,13 +506,19 @@ private fun ProgramEditorScreen(
     var v22SessionMinutes by rememberSaveable(program?.id ?: 0L) {
         mutableStateOf((program?.sessionMinutes ?: 60).takeIf { it > 0 } ?: 60)
     }
-    var personalizedDraft by remember(program?.id) {
-        mutableStateOf<GeneratedProgramSkeleton?>(null)
+    var personalizedDraft by remember(program?.id, draftId) {
+        mutableStateOf<GeneratedProgramSkeleton?>(staged?.skeleton)
     }
+    var initialDraftLoaded by remember(draftId) {
+        mutableStateOf(staged != null || (program == null && !resumeDraft))
+    }
+    val finalized = remember(draftId) { mutableStateOf(false) }
     val hasDraftItems = personalizedDraft?.items?.isNotEmpty() == true
     val buildProgress by viewModel.programBuildProgress.collectAsState()
     val generationRunning = buildProgress is ProgramBuildProgressState.Running
-    var lastGenerationWasV22 by rememberSaveable { mutableStateOf(false) }
+    var lastGenerationWasV22 by rememberSaveable(draftId) {
+        mutableStateOf(staged?.wasBBlockGenerated ?: false)
+    }
     var v22Days by rememberSaveable(program?.id ?: 0L) { mutableStateOf(4) }
     var bAllowFourthDay by rememberSaveable(program?.id ?: 0L) { mutableStateOf(true) }
     var bStrengthImportance by rememberSaveable(program?.id ?: 0L) { mutableStateOf(0) }
@@ -447,8 +555,60 @@ private fun ProgramEditorScreen(
     var pendingLoadOverwriteCount by remember { mutableStateOf(0) }
     var showBReselectionLog by remember(program?.id) { mutableStateOf(false) }
 
-    LaunchedEffect(program?.id) {
-        if (program != null && personalizedDraft == null) personalizedDraft = skeletonFromProgram(viewModel.programEditorSnapshot(program.id)).withResolvedWeekDaySchedule()
+    LaunchedEffect(draftId, program?.id, resumeDraft) {
+        val saved = if (resumeDraft) viewModel.loadSavedProgramDraft(draftId) else null
+        if (saved != null) {
+            nameText = saved.programName
+            personalizedDraft = saved.skeleton?.withResolvedWeekDaySchedule()
+            lastGenerationWasV22 = saved.wasBBlockGenerated
+        } else if (program != null && personalizedDraft == null) {
+            personalizedDraft = skeletonFromProgram(
+                viewModel.programEditorSnapshot(program.id)
+            ).withResolvedWeekDaySchedule()
+        }
+        initialDraftLoaded = true
+    }
+    val currentSnapshot by rememberUpdatedState(
+        SavedProgramDraft(
+            draftId = draftId,
+            sourceProgramId = program?.id,
+            sourceProgramStableKey = program?.stableKey,
+            programName = nameText.ifBlank { "새 프로그램" },
+            skeleton = personalizedDraft?.let {
+                val currentName = nameText.ifBlank { "새 프로그램" }
+                it.copy(
+                    suggestedName = currentName,
+                    request = it.request.copy(name = currentName)
+                )
+            },
+            wasBBlockGenerated = lastGenerationWasV22
+        )
+    )
+    val currentName by rememberUpdatedState(nameText)
+    val loadedState by rememberUpdatedState(initialDraftLoaded)
+    SideEffect {
+        if (initialDraftLoaded && !finalized.value) {
+            viewModel.stageProgramDraft(currentSnapshot)
+        }
+    }
+    LaunchedEffect(draftId) {
+        while (true) {
+            delay(ProgramDraftIdentity.AUTO_SAVE_INTERVAL_MILLIS)
+            if (loadedState && !finalized.value &&
+                (currentSnapshot.skeleton != null || currentName.isNotBlank())
+            ) {
+                viewModel.saveProgramDraft(currentSnapshot)
+            }
+        }
+    }
+    DisposableEffect(draftId) {
+        onDispose {
+            if (loadedState && !finalized.value &&
+                (currentSnapshot.skeleton != null || currentName.isNotBlank())
+            ) {
+                viewModel.saveProgramDraft(currentSnapshot)
+            }
+        }
     }
     LaunchedEffect(exercises, runtimeMetadataByExerciseId) {
         progressionContext = viewModel.progressionDraftContext()
@@ -645,7 +805,7 @@ private fun ProgramEditorScreen(
                         },
                         label = { Text("프로그램명") },
                         isError = nameError,
-                        enabled = !generationRunning,
+                        enabled = !generationRunning && initialDraftLoaded,
                         supportingText = {
                             if (nameError) Text("프로그램명을 입력하세요.")
                         },
@@ -1061,6 +1221,22 @@ private fun ProgramEditorScreen(
             )
         }
         item {
+            OutlinedButton(
+                modifier = Modifier.fillMaxWidth(),
+                enabled = initialDraftLoaded && !generationRunning &&
+                    (personalizedDraft != null || nameText.isNotBlank()),
+                onClick = {
+                    viewModel.saveProgramDraft(currentSnapshot) { success ->
+                        Toast.makeText(
+                            context,
+                            if (success) "임시저장했습니다." else "임시저장에 실패했습니다. 다시 시도해 주세요.",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            ) {
+                Text("임시저장")
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(
                     modifier = Modifier.weight(1f),
@@ -1081,7 +1257,11 @@ private fun ProgramEditorScreen(
                                 suggestedName = name,
                                 request = current.request.copy(name = name)
                             ),
-                            onSaved = onSaved
+                            onSaved = { programId ->
+                                finalized.value = true
+                                viewModel.deleteProgramDraftAfterFinalSave(draftId)
+                                onSaved(programId)
+                            }
                         )
                     }
                 ) {

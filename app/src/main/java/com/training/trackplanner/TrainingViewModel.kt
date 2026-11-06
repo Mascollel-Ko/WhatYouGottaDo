@@ -57,6 +57,9 @@ import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.ExerciseListRestoreMode
 import com.training.trackplanner.data.ExerciseRuntimeMetadataEditorData
 import com.training.trackplanner.data.GeneratedProgramSkeleton
+import com.training.trackplanner.data.SavedProgramDraft
+import com.training.trackplanner.data.ProgramDraftSummary
+import com.training.trackplanner.data.ProgramDraftStore
 import com.training.trackplanner.data.personalized.PersonalizedPlanningAnswers
 import com.training.trackplanner.data.personalized.PersonalizedGenerationConstraints
 import com.training.trackplanner.data.personalized.PersonalizedPlanningOutcome
@@ -92,6 +95,8 @@ import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
@@ -125,6 +130,67 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         SharingStarted.WhileSubscribed(5_000),
         emptyList()
     )
+
+    // Draft snapshots deliberately do not enter the user's canonical Room/Cloud
+    // program data until Save succeeds. In-memory staging survives rotation.
+    private val programDraftStore = ProgramDraftStore(application)
+    private val _savedProgramDrafts = MutableStateFlow<List<ProgramDraftSummary>>(emptyList())
+    internal val savedProgramDrafts: StateFlow<List<ProgramDraftSummary>> = _savedProgramDrafts.asStateFlow()
+    private val stagedProgramDrafts = mutableMapOf<String, SavedProgramDraft>()
+    private val finalizedDraftIds = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+    private val draftWriteMutex = Mutex()
+
+    init {
+        viewModelScope.launch {
+            refreshSavedProgramDrafts()
+        }
+    }
+
+    internal fun activateProgramDraft(draftId: String) {
+        finalizedDraftIds.remove(draftId)
+    }
+
+    internal fun stagedProgramDraft(draftId: String): SavedProgramDraft? = stagedProgramDrafts[draftId]
+
+    internal fun stageProgramDraft(value: SavedProgramDraft) {
+        if (!finalizedDraftIds.contains(value.draftId)) stagedProgramDrafts[value.draftId] = value
+    }
+
+    internal suspend fun loadSavedProgramDraft(draftId: String): SavedProgramDraft? =
+        stagedProgramDrafts[draftId] ?: withContext(Dispatchers.IO) {
+            programDraftStore.load(draftId)
+        }
+
+    internal fun saveProgramDraft(value: SavedProgramDraft, onResult: (Boolean) -> Unit = {}) {
+        if (finalizedDraftIds.contains(value.draftId)) return
+        stageProgramDraft(value)
+        viewModelScope.launch {
+            val success = runCatching {
+                withContext(Dispatchers.IO) {
+                    draftWriteMutex.withLock {
+                        if (!finalizedDraftIds.contains(value.draftId)) programDraftStore.save(value)
+                    }
+                }
+            }.isSuccess
+            refreshSavedProgramDrafts()
+            onResult(success)
+        }
+    }
+
+    internal fun deleteProgramDraftAfterFinalSave(draftId: String) {
+        finalizedDraftIds.add(draftId)
+        stagedProgramDrafts.remove(draftId)
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                draftWriteMutex.withLock { programDraftStore.delete(draftId) }
+            }
+            refreshSavedProgramDrafts()
+        }
+    }
+
+    private suspend fun refreshSavedProgramDrafts() {
+        _savedProgramDrafts.value = withContext(Dispatchers.IO) { programDraftStore.list() }
+    }
 
     private val _programBuildProgress =
         MutableStateFlow<ProgramBuildProgressState>(ProgramBuildProgressState.Idle)
