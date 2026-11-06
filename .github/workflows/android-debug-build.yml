@@ -108,7 +108,22 @@ jobs:
           python -m unittest discover -s tools/metadata_authority/tests -p 'test_physical_quality_relations.py' -v
           python -m unittest discover -s tools/metadata_authority/tests -p 'test_b_balanced_target_task_relations.py' -v
 
+      # Diagnostic isolation: new draft tests must finish independently of the
+      # existing 2,000+ JVM tests. Keep the timeout to prevent 2h+ hanging CI.
+      - name: Isolate new draft persistence and UI contract tests
+        timeout-minutes: 15
+        env:
+          ANDROID_CI_KEYSTORE_PATH: ${{ runner.temp }}/whatyougottado-ci-debug.jks
+          ANDROID_CI_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_CI_KEYSTORE_PASSWORD }}
+          ANDROID_CI_KEY_ALIAS: ${{ secrets.ANDROID_CI_KEY_ALIAS }}
+          ANDROID_CI_KEY_PASSWORD: ${{ secrets.ANDROID_CI_KEY_PASSWORD }}
+          GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          ./gradlew testDebugUnitTest --tests 'com.training.trackplanner.data.ProgramDraftStoreTest' --tests 'com.training.trackplanner.ProgramDraftUiContractTest' --info --stacktrace -Pgoogle.webClientId="$GOOGLE_WEB_CLIENT_ID" -Psupabase.publishableKey="$SUPABASE_PUBLISHABLE_KEY"
+
       - name: Run debug unit tests
+        timeout-minutes: 35
         env:
           ANDROID_CI_KEYSTORE_PATH: ${{ runner.temp }}/whatyougottado-ci-debug.jks
           ANDROID_CI_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_CI_KEYSTORE_PASSWORD }}
