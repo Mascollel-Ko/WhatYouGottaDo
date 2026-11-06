@@ -2,9 +2,14 @@ package com.training.trackplanner.data
 
 import android.database.sqlite.SQLiteFullException
 import org.junit.Assert.assertTrue
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import org.junit.Test
 import java.io.IOException
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
 class ProgramApplyErrorMessageTest {
     @Test fun mapsAllExplicitPreflightFailuresToActionableKorean() {
         ProgramApplyFailureReason.values().forEach { reason ->

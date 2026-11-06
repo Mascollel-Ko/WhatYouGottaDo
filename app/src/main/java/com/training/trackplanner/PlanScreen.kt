@@ -1426,18 +1426,20 @@ private fun ProgramApplyCard(
                     applyError = null
                     viewModel.loadProgramApplyConflictSummary(
                         programId = program.id,
-                        startDate = startDateText
-                    , onResult = { summary ->
+                        startDate = startDateText,
+                        onResult = { summary ->
                         applying = false
                         if (summary.hasExistingEntries) {
                             conflictSummary = summary
                         } else {
                             apply(ProgramApplyMode.Append)
                         }
-                    }, onError = { error ->
-                        applying = false
-                        applyError = error
-                    })
+                        },
+                        onError = { error ->
+                            applying = false
+                            applyError = error
+                        }
+                    )
                 }
             ) {
                 Text("시작일 적용")
