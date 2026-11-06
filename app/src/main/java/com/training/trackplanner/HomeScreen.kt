@@ -28,6 +28,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -99,6 +100,8 @@ internal fun HomeScreen(
     var showInitialProfile by rememberSaveable { mutableStateOf(false) }
     var showTransferReport by rememberSaveable { mutableStateOf(false) }
     var showAccountDialog by rememberSaveable { mutableStateOf(false) }
+    // In-progress is modal: no touch-through or premature success notification.
+    var manualCloudUploadStatus by remember { mutableStateOf("idle") }
     var showGuestWarning by rememberSaveable { mutableStateOf(false) }
     val backupLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("text/csv")
@@ -232,9 +235,50 @@ internal fun HomeScreen(
             onLogin = {
                 if (activity != null) viewModel.signInWithGoogle(activity)
             },
-            onUpload = { viewModel.uploadCloudBackup() },
+            onUpload = {
+                showAccountDialog = false
+                manualCloudUploadStatus = "uploading"
+                viewModel.uploadCloudBackup { acknowledged ->
+                    manualCloudUploadStatus = if (acknowledged) "success" else "failed"
+                }
+            },
             onRestore = { showAccountDialog = false; viewModel.restoreCloudBackup() },
             onLogout = { viewModel.logoutCloud() }
+        )
+    }
+    if (manualCloudUploadStatus != "idle") {
+        val loading = manualCloudUploadStatus == "uploading"
+        AlertDialog(
+            onDismissRequest = { if (!loading) manualCloudUploadStatus = "idle" },
+            title = {
+                Text(
+                    when (manualCloudUploadStatus) {
+                        "success" -> "클라우드 백업 성공"
+                        "failed" -> "클라우드 백업 실패"
+                        else -> "클라우드 백업 중"
+                    }
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    if (loading) {
+                        CircularProgressIndicator()
+                        Text("백업 파일을 전송하고 서버의 저장 완료 확인을 기다리고 있습니다.")
+                        Text("완료될 때까지 다른 화면으로 이동할 수 없습니다.")
+                    } else if (manualCloudUploadStatus == "success") {
+                        Text("성공하였습니다! 최신 백업이 서버에 저장됐습니다.")
+                    } else {
+                        Text("백업이 완료되지 않았습니다. 계정 화면에서 오류를 확인하고 다시 시도해 주세요.")
+                    }
+                }
+            },
+            confirmButton = {
+                if (!loading) {
+                    TextButton(onClick = { manualCloudUploadStatus = "idle" }) {
+                        Text("계속하기")
+                    }
+                }
+            }
         )
     }
     if (cloudAuth.firstLaunchChoiceRequired) {
