@@ -62,7 +62,7 @@ android {
     defaultConfig {
         applicationId = "com.whatyougottado.app"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 501005
         versionName = "0.5.1.5"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
