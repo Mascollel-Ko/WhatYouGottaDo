@@ -4,6 +4,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Test
 import java.io.InputStreamReader
 import java.time.LocalDate
@@ -104,15 +105,21 @@ class V22RealHistoryMatrixTest {
     }
 
     private fun gzipResource(name: String): GZIPInputStream = GZIPInputStream(
-        checkNotNull(javaClass.classLoader?.getResourceAsStream("v22-real-history/$name"))
+        (\javaClass.classLoader?.getResourceAsStream("v22-real-history/$name") ?: run {
+                assumeTrue("Private historical training fixture removed from public repository", false)
+                error("Fixture unavailable")
+            })
     )
 
     private companion object {
         const val FIXTURE_NAME = "whatyougottado_backup_2026-10-12-v22.csv"
         val rows: List<V22HistoryRow> by lazy {
-            GZIPInputStream(checkNotNull(javaClass.classLoader?.getResourceAsStream(
+            GZIPInputStream((\javaClass.classLoader?.getResourceAsStream(
                 "v22-real-history/$FIXTURE_NAME.gz"
-            ))).use { input -> V22HistoryInput.fromBackupCsv(InputStreamReader(input, Charsets.UTF_8)) }
+            ) ?: run {
+                assumeTrue("Private historical training fixture removed from public repository", false)
+                error("Fixture unavailable")
+            })).use { input -> V22HistoryInput.fromBackupCsv(InputStreamReader(input, Charsets.UTF_8)) }
         }
     }
 }

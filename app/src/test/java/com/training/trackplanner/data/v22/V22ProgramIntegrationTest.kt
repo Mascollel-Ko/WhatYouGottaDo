@@ -16,6 +16,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -347,8 +348,11 @@ class V22ProgramIntegrationTest {
     }
 
     private fun realHistoryRows(): List<V22HistoryRow> = GZIPInputStream(
-        checkNotNull(javaClass.classLoader?.getResourceAsStream(
+        (\javaClass.classLoader?.getResourceAsStream(
             "v22-real-history/whatyougottado_backup_2026-10-12-v22.csv.gz"
-        ))
+        ) ?: run {
+                assumeTrue("Private historical training fixture removed from public repository", false)
+                error("Fixture unavailable")
+            })
     ).use { input -> V22HistoryInput.fromBackupCsv(InputStreamReader(input, Charsets.UTF_8)) }
 }
