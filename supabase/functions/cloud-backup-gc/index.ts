@@ -1,6 +1,8 @@
 import { emptyResponse, isUuid, jsonResponse } from "../_shared/cloud_backup.mjs";
 import { cleanupUserBackups } from "../_shared/backup_cleanup.mjs";
-import { createServiceClient } from "../_shared/supabase_auth.mjs";
+import { createServiceClient, requiredR2Config } from "../_shared/supabase_auth.mjs";
+import { createR2Client } from "../_shared/r2.mjs";
+import { removeR2PrivateObjects } from "../_shared/r2_user_cleanup.mjs";
 
 async function handler(request) {
   if (request.method === "OPTIONS") return emptyResponse();
@@ -47,7 +49,35 @@ async function handler(request) {
         summary.failures++;
       }
     }
-    return jsonResponse({ ok: true, ...summary });
+    // Delete orphaned backup objects for accounts already removed from Auth.
+    // A job can be queued before Auth deletion, so verify nonexistence first.
+    const jobs = await service.from("account_deletion_cleanup_jobs")
+      .select("user_id,attempts")
+      .order("created_at", { ascending: true }).limit(10);
+    if (jobs.error) throw new Error("ACCOUNT_CLEANUP_DISCOVERY_FAILED");
+    let accountObjectsRemoved = 0, accountCleanupDeferred = 0;
+    for (const job of jobs.data ?? []) {
+      if (!isUuid(job.user_id)) continue;
+      try {
+        const lookup = await service.auth.admin.getUserById(job.user_id);
+        if (lookup.data?.user || lookup.error?.status !== 404) {
+          accountCleanupDeferred++;
+          continue;
+        }
+        const r2 = requiredR2Config();
+        await removeR2PrivateObjects(createR2Client(r2), r2.bucket, job.user_id);
+        const removed = await service.from("account_deletion_cleanup_jobs")
+          .delete().eq("user_id", job.user_id);
+        if (removed.error) throw new Error("ACCOUNT_CLEANUP_ACK_FAILED");
+        accountObjectsRemoved++;
+      } catch {
+        accountCleanupDeferred++;
+        await service.from("account_deletion_cleanup_jobs")
+          .update({ attempts: Number(job.attempts ?? 0) + 1, last_attempt_at: new Date().toISOString() })
+          .eq("user_id", job.user_id);
+      }
+    }
+    return jsonResponse({ ok: true, ...summary, accountObjectsRemoved, accountCleanupDeferred });
   } catch {
     return jsonResponse({ error: "CLEANUP_TEMPORARILY_UNAVAILABLE" }, 503);
   }
