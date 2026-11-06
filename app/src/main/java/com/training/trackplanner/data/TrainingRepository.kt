@@ -946,6 +946,12 @@ class TrainingRepository internal constructor(
                 "LOCAL_PRIVATE_FILE_DELETE_FAILED"
             }
         }
+        // Preferences hold other personal state, including watch-source IDs,
+        // rest timers and custom plate profiles; they are not in the Room DB.
+        listOf("watch_health_p1", "training_profile", "rest_timer", "onboarding").forEach { file ->
+            check(context.getSharedPreferences(file, Context.MODE_PRIVATE)
+                .edit().clear().commit()) { "LOCAL_PREFERENCES_DELETE_FAILED" }
+        }
         seedIfNeeded()
     }
 
