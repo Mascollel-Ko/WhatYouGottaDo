@@ -11,6 +11,7 @@ import {
 } from "../_shared/cloud_backup.mjs";
 import { authenticateRequest, createServiceClient, requiredR2Config } from "../_shared/supabase_auth.mjs";
 import { createR2Client, getObject, headObject, readBodyBytes } from "../_shared/r2.mjs";
+import { cleanupUserBackups } from "../_shared/backup_cleanup.mjs";
 
 function failurePayload(code, technicalDetail = null) {
   return {
@@ -101,6 +102,12 @@ async function handler(request) {
     const { backup_id: backupId } = validateFinalizeRequest(await parseJsonRequest(request));
     service = createServiceClient();
     const userId = auth.user.id;
+    const deletionState = await service.from("account_deletion_requests")
+      .select("user_id").eq("user_id", userId).maybeSingle();
+    if (deletionState.error) throw new Error("Account deletion lookup failed");
+    if (deletionState.data) throw new CloudRequestError(
+      "ACCOUNT_DELETION_PENDING", "Account deletion in progress.", 409,
+    );
     const lookup = await service.from("cloud_backups")
       .select("backup_id,user_id,parent_backup_id,install_id,object_key,status,compressed_size_bytes,uncompressed_size_bytes,checksum,checksum_algorithm,backup_format_version,schema_version")
       .eq("backup_id", backupId).eq("user_id", userId).maybeSingle();
@@ -124,6 +131,8 @@ async function handler(request) {
     const promotion = await service.rpc("cloud_promote_backup", { p_backup_id: backupId, p_user_id: userId });
     if (promotion.error) throw new Error("atomic promotion failed");
     assertCurrentPromotion(promotion.data);
+    try { await cleanupUserBackups(service, userId, 10); }
+    catch { console.error("cloud backup cleanup deferred"); }
     return jsonResponse({ backup_id: backupId, status: "CURRENT" });
   } catch (error) {
     if (backup && service && backup.status === "UPLOADING" && !(error instanceof CloudRequestError && error.code === "BACKUP_NOT_FOUND")) {

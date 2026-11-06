@@ -13,6 +13,7 @@ import {
 } from "../_shared/cloud_backup.mjs";
 import { authenticateRequest, createServiceClient, requiredR2Config } from "../_shared/supabase_auth.mjs";
 import { createR2Client, presignPut, measureR2BucketBytes } from "../_shared/r2.mjs";
+import { cleanupUserBackups } from "../_shared/backup_cleanup.mjs";
 
 const STORAGE_CACHE_TTL_MILLIS = 10 * 60 * 1000;
 
@@ -87,6 +88,15 @@ async function handler(request) {
     const requestBody = validateUploadRequest(await parseJsonRequest(request));
     const service = createServiceClient();
     const userId = auth.user.id;
+    const deletionState = await service.from("account_deletion_requests")
+      .select("user_id").eq("user_id", userId).maybeSingle();
+    if (deletionState.error) throw new Error("Account deletion lookup failed");
+    if (deletionState.data) throw new CloudRequestError(
+      "ACCOUNT_DELETION_PENDING", "Account deletion in progress.", 409,
+    );
+
+    try { await cleanupUserBackups(service, userId, 10); }
+    catch { console.error("cloud backup cleanup deferred"); }
 
     if (requestBody.parent_backup_id !== null) {
       const { data: parent, error: parentError } = await service
