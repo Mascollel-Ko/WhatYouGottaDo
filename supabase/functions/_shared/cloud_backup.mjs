@@ -195,7 +195,7 @@ export function validateFinalizeRequest(value) {
   if (value.resolution !== undefined || value.expected_current_backup_id !== undefined) {
     throw new CloudRequestError("INVALID_RESOLUTION", "Only explicit LOCAL_WINS with expected CURRENT is supported.");
   }
-  return { backup_id: requireUuid(value.backup_id, "backup_id"), resolution: null };
+  return { backup_id: requireUuid(value.backup_id, "backup_id") };
 }
 
 export function assertCurrentPromotion(value) {
