@@ -28,7 +28,7 @@ jobs:
         run: python scripts/validate_protocol_docs.py
 
       - name: Run Community and Cloud contract tests
-        run: node --test tests/community_sharing.test.mjs tests/cloud_backup_current.test.mjs tests/watch_p1_integration_contract.test.mjs tests/scroll_performance_contract.test.mjs
+        run: node --test tests/cloud_storage_usage_contract.test.mjs tests/community_sharing.test.mjs tests/cloud_backup_current.test.mjs tests/watch_p1_integration_contract.test.mjs tests/scroll_performance_contract.test.mjs
 
       - name: Check whitespace errors
         run: git diff --check
