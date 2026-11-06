@@ -105,7 +105,7 @@ class V22RealHistoryMatrixTest {
     }
 
     private fun gzipResource(name: String): GZIPInputStream = GZIPInputStream(
-        (\javaClass.classLoader?.getResourceAsStream("v22-real-history/$name") ?: run {
+        (javaClass.classLoader?.getResourceAsStream("v22-real-history/$name") ?: run {
                 assumeTrue("Private historical training fixture removed from public repository", false)
                 error("Fixture unavailable")
             })
@@ -114,7 +114,7 @@ class V22RealHistoryMatrixTest {
     private companion object {
         const val FIXTURE_NAME = "whatyougottado_backup_2026-10-12-v22.csv"
         val rows: List<V22HistoryRow> by lazy {
-            GZIPInputStream((\javaClass.classLoader?.getResourceAsStream(
+            GZIPInputStream((javaClass.classLoader?.getResourceAsStream(
                 "v22-real-history/$FIXTURE_NAME.gz"
             ) ?: run {
                 assumeTrue("Private historical training fixture removed from public repository", false)

@@ -102,7 +102,7 @@ class V22PythonParityEngineTest {
     }
 
     private fun gzipResource(name: String): GZIPInputStream = GZIPInputStream(
-        (\javaClass.classLoader?.getResourceAsStream("v22-python-v1/$name") ?: run {
+        (javaClass.classLoader?.getResourceAsStream("v22-python-v1/$name") ?: run {
                 assumeTrue("Private historical training fixture removed from public repository", false)
                 error("Fixture unavailable")
             })
@@ -131,7 +131,7 @@ class V22PythonParityEngineTest {
 
     private companion object {
         val rows: List<V22HistoryRow> by lazy {
-            GZIPInputStream((\javaClass.classLoader?.getResourceAsStream(
+            GZIPInputStream((javaClass.classLoader?.getResourceAsStream(
                 "v22-python-v1/whatyougottado_backup_2026-10-11.csv.gz"
             ) ?: run {
                 assumeTrue("Private historical training fixture removed from public repository", false)

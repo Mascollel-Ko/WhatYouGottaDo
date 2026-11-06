@@ -242,7 +242,7 @@ class BBalanced12WeekEngineTest {
         bGoalImportance = importance
     )
 
-    private fun realRows(): List<V22HistoryRow> = GZIPInputStream((\javaClass.classLoader?.getResourceAsStream(
+    private fun realRows(): List<V22HistoryRow> = GZIPInputStream((javaClass.classLoader?.getResourceAsStream(
         "v22-real-history/whatyougottado_backup_2026-10-12-v22.csv.gz"
     ) ?: run {
                 assumeTrue("Private historical training fixture removed from public repository", false)
