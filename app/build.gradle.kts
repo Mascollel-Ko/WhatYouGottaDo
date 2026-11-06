@@ -99,6 +99,22 @@ android {
             }
         }
 
+        // Development comparison: run the debugger on R8-optimized code.
+        // The app ID/version and CI signing certificate remain identical to debug/perf;
+        // do NOT add an applicationIdSuffix or versionNameSuffix.
+        // Breakpoints/variables may be less reliable in R8-inlined or removed code.
+        create("optimizedDebug") {
+            initWith(getByName("debug"))
+            matchingFallbacks.add("debug")
+            isDebuggable = true
+            isMinifyEnabled = true
+            isShrinkResources = false
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+            if (ciSigningConfigured) {
+                signingConfig = signingConfigs.getByName("ciDebug")
+            }
+        }
+
         // Installable performance comparison, NOT a production publishing artifact.
         // Same package and CI certificate as the existing debug APK so user data is
         // retained when installing over the CI debug build.

@@ -28,7 +28,7 @@ jobs:
         run: python scripts/validate_protocol_docs.py
 
       - name: Run Community and Cloud contract tests
-        run: node --test tests/community_sharing.test.mjs tests/cloud_backup_current.test.mjs tests/watch_p1_integration_contract.test.mjs tests/scroll_performance_contract.test.mjs
+        run: node --test tests/community_sharing.test.mjs tests/cloud_backup_current.test.mjs tests/watch_p1_integration_contract.test.mjs tests/scroll_performance_contract.test.mjs tests/optimized_debug_build_contract.test.mjs
 
       - name: Check whitespace errors
         run: git diff --check
@@ -272,6 +272,70 @@ jobs:
             echo 'Not debuggable; R8 minification enabled; CI test signing matches the debug APK.'
             echo 'For scrolling comparison only. Not a publishing artifact.'
           } >> "$GITHUB_STEP_SUMMARY"
+
+      # Opt-in performance/debugger tradeoff: minified R8 bytecode plus JDWP.
+      # Same applicationId/version/signing as the existing CI debug and perf variants.
+      - name: Assemble R8 optimized debuggable APK
+        if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'perf/') || startsWith(github.event.head_commit.message, 'build(perf)') || startsWith(github.event.head_commit.message, 'build(optimized-debug)')
+        env:
+          ANDROID_CI_KEYSTORE_PATH: ${{ runner.temp }}/whatyougottado-ci-debug.jks
+          ANDROID_CI_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_CI_KEYSTORE_PASSWORD }}
+          ANDROID_CI_KEY_ALIAS: ${{ secrets.ANDROID_CI_KEY_ALIAS }}
+          ANDROID_CI_KEY_PASSWORD: ${{ secrets.ANDROID_CI_KEY_PASSWORD }}
+          GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: ./gradlew :app:assembleOptimizedDebug -Pgoogle.webClientId="$GOOGLE_WEB_CLIENT_ID" -Psupabase.publishableKey="$SUPABASE_PUBLISHABLE_KEY"
+
+      - name: Verify R8 optimized debuggable APK manifest, mapping, and signing
+        if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'perf/') || startsWith(github.event.head_commit.message, 'build(perf)') || startsWith(github.event.head_commit.message, 'build(optimized-debug)')
+        run: |
+          set -euo pipefail
+          optimized_apk="$(find app/build/outputs/apk/optimizedDebug -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          debug_apk="$(find app/build/outputs/apk/debug -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          test -s "$optimized_apk" && test -s "$debug_apk"
+          # Mapping proves that the minification pipeline executed, not just that the build type was named.
+          test -s "app/build/outputs/mapping/optimizedDebug/mapping.txt" || {
+            echo "::error::R8 mapping output not found"
+            exit 1
+          }
+          aapt="$(find "$ANDROID_HOME/build-tools" -type f -name aapt -print | sort -V | tail -n 1)"
+          apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner -print | sort -V | tail -n 1)"
+          test -x "$aapt" && test -x "$apksigner"
+          badging="$("$aapt" dump badging "$optimized_apk")"
+          echo "$badging" | grep -q "^package: name='com.whatyougottado.app'" || {
+            echo "::error::Optimized Debug package ID changed"
+            exit 1
+          }
+          echo "$badging" | grep -q '^application-debuggable' || {
+            echo "::error::Optimized Debug is not debuggable"
+            exit 1
+          }
+          "$apksigner" verify --print-certs "$optimized_apk" > "$RUNNER_TEMP/optimized-debug-certs.txt"
+          "$apksigner" verify --print-certs "$debug_apk" > "$RUNNER_TEMP/regular-debug-certs.txt"
+          digest() {
+            grep -i -m1 'SHA-1 digest:' "$1" |
+              sed -En 's/.*SHA-1 digest:[[:space:]]*([0-9A-Fa-f:]+).*/\1/p' |
+              tr -d ':\r[:space:]' | tr '[:lower:]' '[:upper:]'
+          }
+          optimized_digest="$(digest "$RUNNER_TEMP/optimized-debug-certs.txt")"
+          debug_digest="$(digest "$RUNNER_TEMP/regular-debug-certs.txt")"
+          test -n "$optimized_digest" && test "$optimized_digest" = "$debug_digest" || {
+            echo "::error::Optimized Debug signer does not match regular Debug signer"
+            exit 1
+          }
+          {
+            echo '## R8 Optimized Debug APK'
+            echo 'debuggable=true, R8 mapping present, identical package ID and CI signing cert to Debug.'
+            echo 'Breakpoints may be less faithful due to R8 transformations.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload R8 optimized debuggable APK
+        if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'perf/') || startsWith(github.event.head_commit.message, 'build(perf)') || startsWith(github.event.head_commit.message, 'build(optimized-debug)')
+        uses: actions/upload-artifact@v4
+        with:
+          name: WhatYouGottaDo-optimized-debug-apk
+          path: app/build/outputs/apk/optimizedDebug/*.apk
+          if-no-files-found: error
 
       - name: Upload optimized performance APK
         if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main') || startsWith(github.head_ref, 'perf/') || startsWith(github.event.head_commit.message, 'build(perf)')
