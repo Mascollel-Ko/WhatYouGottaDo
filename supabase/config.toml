@@ -398,6 +398,11 @@ verify_jwt = true
 [functions.community-api]
 verify_jwt = true
 
+# This function never accepts end-user credentials. Calls need a single-use,
+# 5-minute database ticket minted by the private pg_cron job.
+[functions.cloud-backup-gc]
+verify_jwt = false
+
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
