@@ -11,13 +11,17 @@ internal class AccountDeletionClient(
     private val config: CloudBackupConfig = CloudBackupConfig.fromBuildConfig(),
     private val transport: CloudHttpTransport = UrlConnectionCloudHttpTransport(config.publishableKey)
 ) {
-    suspend fun delete(freshSession: CloudAuthSession) {
+    suspend fun delete(freshSession: CloudAuthSession, googleProof: String, nonce: String) {
+        require(googleProof.isNotBlank() && nonce.isNotBlank()) { "GOOGLE_REAUTH_FAILED" }
         check(config.configured) { "CLOUD_NOT_CONFIGURED" }
         val response = try {
             transport.postJson(
                 "${config.supabaseUrl}/functions/v1/account-delete",
                 freshSession,
-                JSONObject().put("confirmation", "DELETE_ACCOUNT").toString()
+                JSONObject().put("confirmation", "DELETE_ACCOUNT")
+                    .put("google_id_token", googleProof)
+                    .put("nonce", nonce)
+                    .toString()
             )
         } catch (cancelled: CancellationException) {
             throw cancelled

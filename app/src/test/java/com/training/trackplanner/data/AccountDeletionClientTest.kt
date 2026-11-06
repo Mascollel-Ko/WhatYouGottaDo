@@ -25,17 +25,19 @@ class AccountDeletionClientTest {
 
     @Test fun postsExplicitDeletionConfirmationOnlyToPrivilegedEndpoint() = runBlocking {
         val fake = RecordingTransport(CloudHttpResponse(200, """{"deleted":true}"""))
-        AccountDeletionClient(config, fake).delete(fresh)
+        AccountDeletionClient(config, fake).delete(fresh, "fresh-google-id-token", "fresh-nonce-for-recheck")
         assertEquals("https://project.supabase.co/functions/v1/account-delete", fake.url)
         assertEquals(fresh, fake.session)
         assertTrue(fake.body.contains("DELETE_ACCOUNT"))
+        assertTrue(fake.body.contains("google_id_token"))
+        assertTrue(fake.body.contains("nonce"))
         assertTrue(!fake.body.contains("service_role"))
     }
 
     @Test fun serverErrorNeverLooksLikeSuccess() = runBlocking {
         val fake = RecordingTransport(CloudHttpResponse(409, """{"error":"UPLOAD_URLS_STILL_ACTIVE"}"""))
         try {
-            AccountDeletionClient(config, fake).delete(fresh)
+            AccountDeletionClient(config, fake).delete(fresh, "fresh-google-id-token", "fresh-nonce-for-recheck")
             fail("Expected a retryable failure")
         } catch (error: IllegalStateException) {
             assertEquals("UPLOAD_URLS_STILL_ACTIVE", error.message)
@@ -45,7 +47,7 @@ class AccountDeletionClientTest {
     @Test fun failedOrMalformedSuccessResponsesDoNotDeleteLocally() = runBlocking {
         val fake = RecordingTransport(CloudHttpResponse(200, """{"ok":true}"""))
         try {
-            AccountDeletionClient(config, fake).delete(fresh)
+            AccountDeletionClient(config, fake).delete(fresh, "fresh-google-id-token", "fresh-nonce-for-recheck")
             fail("Expected failure")
         } catch (error: IllegalStateException) {
             assertEquals("ACCOUNT_DELETION_FAILED", error.message)

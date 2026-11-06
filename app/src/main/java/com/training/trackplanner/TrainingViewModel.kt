@@ -434,20 +434,21 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
                     onResult("로그인한 계정이 없습니다.")
                     return@launch
                 }
-                val fresh = when (val check = authRepository.reauthenticateForAccountDeletion(activity)) {
-                    is CloudAuthResult.Success -> check.session
+                val reauth = when (val check = authRepository.reauthenticateForAccountDeletion(activity)) {
+                    is CloudAuthResult.Success -> check
                     is CloudAuthResult.Failure -> {
                         onResult(AccountDeletionError.message(check.code))
                         return@launch
                     }
                 }
+                val fresh = reauth.session
                 if (!fresh.userId.equals(current.userId, ignoreCase = true)) {
                     onResult(AccountDeletionError.message("GOOGLE_ACCOUNT_MISMATCH"))
                     return@launch
                 }
                 // The server checks the JWT as well as the public-share
                 // preservation contract before deleting anything.
-                accountDeletionClient.delete(fresh)
+                accountDeletionClient.delete(fresh, requireNotNull(reauth.googleProof), requireNotNull(reauth.nonce))
                 com.training.trackplanner.data.CloudBackupScheduler.cancel(getApplication())
                 authRepository.logout()
                 _cloudAuthState.value = CloudAuthUiState(

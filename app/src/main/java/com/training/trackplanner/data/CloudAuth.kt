@@ -134,7 +134,11 @@ internal class CloudAuthSessionManager internal constructor(
 }
 
 internal sealed interface CloudAuthResult {
-    data class Success(val session: CloudAuthSession) : CloudAuthResult
+    data class Success(
+        val session: CloudAuthSession,
+        val googleProof: String? = null,
+        val nonce: String? = null
+    ) : CloudAuthResult
     data class Failure(val code: String) : CloudAuthResult
 }
 
@@ -243,7 +247,7 @@ internal class CloudAuthRepository(
             if (!current.userId.equals(fresh.userId, ignoreCase = true)) {
                 CloudAuthResult.Failure("GOOGLE_ACCOUNT_MISMATCH")
             } else {
-                CloudAuthResult.Success(fresh)
+                CloudAuthResult.Success(fresh, googleProof = token, nonce = rawNonce)
             }
         } catch (cancelled: CancellationException) {
             throw cancelled

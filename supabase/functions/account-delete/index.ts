@@ -6,23 +6,35 @@ import { authenticateRequest, createServiceClient, requiredR2Config } from "../_
 import { createR2Client } from "../_shared/r2.mjs";
 import { emptyResponse, jsonResponse, isUuid } from "../_shared/cloud_backup.mjs";
 
-const MAX_REAUTH_SECONDS = 180;
+const MAX_REAUTH_SECONDS = 300;
 const CONFIRMATION = "DELETE_ACCOUNT";
 
-function freshAccessToken(request, userId) {
-  const bearer = (request.headers.get("authorization") ?? "").match(/^Bearer\\s+(.+)$/i)?.[1];
-  if (!bearer) return false;
+// A freshly issued Supabase JWT is not sufficient proof of Google reauthentication.
+// Validate the Google ID token and the nonce with Supabase Auth itself.
+async function verifyFreshGoogleProof(userId, token, nonce) {
+  if (typeof token !== "string" || token.length < 100 || token.length > 10000 ||
+      typeof nonce !== "string" || nonce.length < 24 || nonce.length > 256) return false;
+  const url = Deno.env.get("SUPABASE_URL");
+  const apiKey = Deno.env.get("SUPABASE_ANON_KEY");
+  if (!url || !apiKey) throw new Error("SUPABASE_AUTH_CONFIG_MISSING");
+  const response = await fetch(`${url}/auth/v1/token?grant_type=id_token`, {
+    method: "POST",
+    headers: { apikey: apiKey, "content-type": "application/json" },
+    body: JSON.stringify({ provider: "google", id_token: token, nonce }),
+    signal: AbortSignal.timeout(12000),
+  });
+  if (!response.ok) return false;
+  const validated = await response.json();
+  if (validated?.user?.id !== userId) return false;
+  // Supabase Auth verified signature/audience/issuer/nonce. Bound the proof
+  // to a recently issued Google credential, not a reusable old JWT.
   try {
-    const encoded = bearer.split(".")[1];
-    const padded = encoded.replace(/-/g, "+").replace(/_/g, "/");
-    const claims = JSON.parse(atob(padded + "=".repeat((4 - padded.length % 4) % 4)));
-    const now = Math.floor(Date.now() / 1000);
-    return claims.sub === userId && claims.role === "authenticated" &&
-      Number.isFinite(claims.iat) && claims.iat <= now + 15 &&
-      now - claims.iat <= MAX_REAUTH_SECONDS;
-  } catch {
-    return false;
-  }
+    const segment = token.split(".")[1];
+    const raw = segment.replace(/-/g, "+").replace(/_/g, "/");
+    const claims = JSON.parse(atob(raw + "=".repeat((4 - raw.length % 4) % 4)));
+    const age = Date.now() / 1000 - claims.iat;
+    return Number.isFinite(age) && age >= -15 && age <= MAX_REAUTH_SECONDS;
+  } catch { return false; }
 }
 
 /** Delete only objects under the JWT user's exact immutable UUID prefix. */
@@ -53,17 +65,18 @@ async function handler(request) {
   const auth = await authenticateRequest(request);
   if (auth.error) return auth.error;
   const userId = auth.user.id;
-  if (!freshAccessToken(request, userId)) {
-    return jsonResponse({ error: "RECENT_GOOGLE_LOGIN_REQUIRED" }, 403);
-  }
   let body;
   try { body = await request.json(); } catch { return jsonResponse({ error: "INVALID_JSON" }, 400); }
   if (!body || typeof body !== "object" || Array.isArray(body) ||
-      Object.keys(body).length !== 1 || body.confirmation !== CONFIRMATION) {
+      Object.keys(body).sort().join(",") !== "confirmation,google_id_token,nonce" ||
+      body.confirmation !== CONFIRMATION) {
     return jsonResponse({ error: "CONFIRMATION_REQUIRED" }, 400);
   }
 
   try {
+    if (!(await verifyFreshGoogleProof(userId, body.google_id_token, body.nonce))) {
+      return jsonResponse({ error: "RECENT_GOOGLE_LOGIN_REQUIRED" }, 403);
+    }
     const service = createServiceClient();
     const contract = await service.rpc("account_deletion_contract_ready");
     if (contract.error || contract.data !== true) {

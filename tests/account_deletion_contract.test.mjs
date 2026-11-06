@@ -6,7 +6,8 @@ const read = (path) => readFileSync(path, "utf8");
 test("account deletion is privileged, interactive and fails closed", () => {
   const edge = read("supabase/functions/account-delete/index.ts");
   assert.match(edge, /authenticateRequest\(request\)/);
-  assert.match(edge, /freshAccessToken\(request, userId\)/);
+  assert.match(edge, /verifyFreshGoogleProof\(userId, body\.google_id_token, body\.nonce\)/);
+  assert.match(edge, /grant_type=id_token/);
   assert.match(edge, /body\.confirmation !== CONFIRMATION/);
   assert.match(edge, /account_deletion_contract_ready/);
   assert.match(edge, /UPLOAD_URLS_STILL_ACTIVE/);
