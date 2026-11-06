@@ -1,7 +1,7 @@
 import { emptyResponse, isUuid, jsonResponse } from "../_shared/cloud_backup.mjs";
 import { cleanupUserBackups } from "../_shared/backup_cleanup.mjs";
 import { createServiceClient, requiredR2Config } from "../_shared/supabase_auth.mjs";
-import { createR2Client } from "../_shared/r2.mjs";
+import { createR2Client, measureR2BucketBytes } from "../_shared/r2.mjs";
 import { removeR2PrivateObjects } from "../_shared/r2_user_cleanup.mjs";
 
 async function handler(request) {
@@ -14,7 +14,9 @@ async function handler(request) {
     return jsonResponse({ error: "INVALID_JSON" }, 400);
   }
   if (!body || typeof body !== "object" || Array.isArray(body) ||
-      Object.keys(body).length !== 1 || !isUuid(body.ticket)) {
+      !isUuid(body.ticket) ||
+      (Object.keys(body).length !== 1 &&
+        !(Object.keys(body).length === 2 && body.audit_usage === true))) {
     return jsonResponse({ error: "INVALID_CLEANUP_TICKET" }, 403);
   }
 
@@ -26,6 +28,18 @@ async function handler(request) {
   });
   if (verified.error || verified.data !== true) {
     return jsonResponse({ error: "CLEANUP_NOT_AUTHORIZED" }, 403);
+  }
+
+  // A valid one-time ticket can request read-only R2 inventory for operational
+  // verification. No user files are downloaded or modified by this route.
+  if (body.audit_usage === true) {
+    try {
+      const r2 = requiredR2Config();
+      const bucketBytes = await measureR2BucketBytes(createR2Client(r2), r2.bucket);
+      return jsonResponse({ ok: true, bucketBytes });
+    } catch {
+      return jsonResponse({ error: "R2_LIST_UNAVAILABLE" }, 503);
+    }
   }
 
   try {

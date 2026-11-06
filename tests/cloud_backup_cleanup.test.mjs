@@ -50,3 +50,9 @@ test("cleanup physically deletes from canonical UUID-scoped R2 path and keeps li
   assert.match(upload, /cleanupUserBackups\(service, userId, 10\)/);
   assert.match(finalize, /cleanupUserBackups\(service, userId, 10\)/);
 });
+
+test("physical pruning is opt-in and paused during lineage investigation", () => {
+  const source = readFileSync("supabase/functions/_shared/backup_cleanup.mjs", "utf8");
+  assert.match(source, /CLOUD_BACKUP_PRUNING_ENABLED/);
+  assert.match(source, /paused: true/);
+});

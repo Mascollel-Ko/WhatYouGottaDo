@@ -14,6 +14,8 @@ test("hourly backup cleanup is ticket-gated, not public or app-token gated", () 
   assert.match(sql, /'0 \* \* \* \*'/);
   assert.match(sql, /net\.http_post\(/);
   assert.match(edge, /cloud_consume_cleanup_ticket/);
+  assert.match(edge, /body\.audit_usage === true/);
+  assert.match(edge, /measureR2BucketBytes/);
   assert.match(edge, /verified\.data !== true/);
   assert.match(edge, /cleanupUserBackups\(service, userId, 50\)/);
   assert.match(config, /\[functions.cloud-backup-gc\]\nverify_jwt = false/);
