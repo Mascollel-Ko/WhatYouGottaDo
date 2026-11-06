@@ -13,6 +13,7 @@ import {
 } from "../_shared/cloud_backup.mjs";
 import { authenticateRequest, createServiceClient, requiredR2Config } from "../_shared/supabase_auth.mjs";
 import { createR2Client, presignPut } from "../_shared/r2.mjs";
+import { cleanupUserBackups } from "../_shared/backup_cleanup.mjs";
 
 function failurePayload(error) {
   return {
@@ -52,6 +53,14 @@ async function handler(request) {
     const requestBody = validateUploadRequest(await parseJsonRequest(request));
     const service = createServiceClient();
     const userId = auth.user.id;
+
+    // Best-effort maintenance on ordinary authenticated cloud activity;
+    // cleanup errors never block restoring or uploading new backups.
+    try {
+      await cleanupUserBackups(service, userId, 10);
+    } catch {
+      console.error("cloud backup cleanup deferred");
+    }
 
     if (requestBody.parent_backup_id !== null) {
       const { data: parent, error: parentError } = await service

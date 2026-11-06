@@ -11,6 +11,7 @@ import {
 } from "../_shared/cloud_backup.mjs";
 import { authenticateRequest, createServiceClient, requiredR2Config } from "../_shared/supabase_auth.mjs";
 import { createR2Client, getObject, headObject, readBodyBytes } from "../_shared/r2.mjs";
+import { cleanupUserBackups } from "../_shared/backup_cleanup.mjs";
 
 function failurePayload(code, technicalDetail = null) {
   return {
@@ -124,6 +125,11 @@ async function handler(request) {
     const promotion = await service.rpc("cloud_promote_backup", { p_backup_id: backupId, p_user_id: userId });
     if (promotion.error) throw new Error("atomic promotion failed");
     assertCurrentPromotion(promotion.data);
+    try {
+      await cleanupUserBackups(service, userId, 10);
+    } catch {
+      console.error("cloud backup cleanup deferred");
+    }
     return jsonResponse({ backup_id: backupId, status: "CURRENT" });
   } catch (error) {
     if (backup && service && backup.status === "UPLOADING" && !(error instanceof CloudRequestError && error.code === "BACKUP_NOT_FOUND")) {
