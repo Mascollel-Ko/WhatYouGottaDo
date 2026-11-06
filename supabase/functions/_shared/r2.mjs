@@ -1,6 +1,7 @@
 import {
   GetObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
 } from "npm:@aws-sdk/client-s3@3.842.0";
@@ -80,4 +81,32 @@ export async function readBodyBytes(body, maxBytes) {
     offset += chunk.byteLength;
   }
   return output;
+}
+
+/** The R2 bucket is the source of truth for paid storage bytes. Do not derive
+ * usage from backup metadata (FAILED and orphan objects may still exist).
+ * Bounded pagination fails closed on malformed / unavailable listings.
+ */
+export async function measureR2BucketBytes(client, bucket) {
+  let cursor;
+  let total = 0;
+  for (let page = 0; page < 10000; page++) {
+    const listing = await client.send(new ListObjectsV2Command({
+      Bucket: bucket,
+      MaxKeys: 1000,
+      ...(cursor ? { ContinuationToken: cursor } : {}),
+    }));
+    for (const object of listing.Contents ?? []) {
+      if (!Number.isSafeInteger(object.Size) || object.Size < 0 ||
+          total > Number.MAX_SAFE_INTEGER - object.Size) {
+        throw new Error("R2_SIZE_INVALID");
+      }
+      total += object.Size;
+    }
+    if (!listing.IsTruncated) return total;
+    if (!listing.NextContinuationToken ||
+        listing.NextContinuationToken === cursor) throw new Error("R2_PAGINATION_INVALID");
+    cursor = listing.NextContinuationToken;
+  }
+  throw new Error("R2_LISTING_TOO_LARGE");
 }

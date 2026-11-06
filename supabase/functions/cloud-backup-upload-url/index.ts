@@ -12,7 +12,42 @@ import {
   isDownloadableStatus,
 } from "../_shared/cloud_backup.mjs";
 import { authenticateRequest, createServiceClient, requiredR2Config } from "../_shared/supabase_auth.mjs";
-import { createR2Client, presignPut } from "../_shared/r2.mjs";
+import { createR2Client, presignPut, measureR2BucketBytes } from "../_shared/r2.mjs";
+
+const STORAGE_CACHE_TTL_MILLIS = 10 * 60 * 1000;
+
+async function checkedR2Usage(service) {
+  const state = await service.from("cloud_storage_state")
+    .select("cached_total_bytes,measured_at").eq("state_id", true).maybeSingle();
+  if (state.error) throw new Error("storage guard lookup failed");
+
+  const row = state.data;
+  const age = row ? Date.now() - Date.parse(row.measured_at) : Number.POSITIVE_INFINITY;
+  if (row && Number.isSafeInteger(row.cached_total_bytes) &&
+      row.cached_total_bytes >= 0 && age >= 0 && age < STORAGE_CACHE_TTL_MILLIS) {
+    return row.cached_total_bytes;
+  }
+
+  // No row, stale row or invalid cached value: measure actual R2 objects.
+  // Never interpret a missing measurement as zero usage.
+  let total;
+  try {
+    const config = requiredR2Config();
+    total = await measureR2BucketBytes(createR2Client(config), config.bucket);
+  } catch (error) {
+    console.error("R2 storage measurement unavailable", error instanceof Error ? error.name : "unknown");
+    throw new CloudRequestError("STORAGE_USAGE_UNAVAILABLE",
+      "Storage usage cannot be verified; uploads are paused.", 503);
+  }
+
+  const saved = await service.from("cloud_storage_state").upsert({
+    state_id: true,
+    cached_total_bytes: total,
+    measured_at: new Date().toISOString(),
+  }, { onConflict: "state_id" });
+  if (saved.error) throw new Error("R2 storage usage cache write failed");
+  return total;
+}
 
 function failurePayload(error) {
   return {
@@ -77,13 +112,8 @@ async function handler(request) {
       throw new CloudRequestError("UPLOAD_QUOTA_EXCEEDED", "Upload authorization quota exceeded.", 429);
     }
 
-    const { data: storageState, error: storageError } = await service
-      .from("cloud_storage_state")
-      .select("cached_total_bytes")
-      .eq("state_id", true)
-      .maybeSingle();
-    if (storageError) throw new Error("storage guard lookup failed");
-    if ((storageState?.cached_total_bytes ?? 0) >= GLOBAL_STORAGE_GUARD_BYTES) {
+    const measuredBytes = await checkedR2Usage(service);
+    if (measuredBytes >= GLOBAL_STORAGE_GUARD_BYTES) {
       throw new CloudRequestError("GLOBAL_STORAGE_GUARD", "New uploads are temporarily paused.", 429);
     }
 
