@@ -481,4 +481,21 @@
     <string name="home_build_commit_timestamp">Installed code committed: %1$s (KST)</string>
     <string name="home_build_timestamp_unknown">Build time unavailable</string>
     <string name="home_build_version_revision">v%1$s · %2$s</string>
+    <string name="cloud_conflict_title">Cloud backup conflict</string>
+    <string name="cloud_conflict_description">The device and Cloud backup histories do not match. Cloud backup date: %1$s\nChoose which data to keep. Nothing changes until you confirm.</string>
+    <string name="cloud_conflict_unknown_time">Date unavailable</string>
+    <string name="cloud_conflict_local_wins">Keep device data and replace Cloud backup</string>
+    <string name="cloud_conflict_cloud_wins">Replace device data with Cloud backup</string>
+    <string name="cloud_conflict_safety_title">Save your device data first</string>
+    <string name="cloud_conflict_safety_description">The Cloud backup may be older than this device. Continuing replaces the device workout records and programs. First save the current device records as a CSV file. Restoration proceeds only after the archive is saved successfully. Canceling or a failed save leaves device data unchanged.</string>
+    <string name="cloud_conflict_archive_first">Save device backup file, then replace</string>
+    <string name="cloud_conflict_success">Backup conflict resolved</string>
+    <string name="cloud_conflict_failed">Backup conflict resolution failed</string>
+    <string name="cloud_conflict_saving_local">Saving device archive</string>
+    <string name="cloud_conflict_restoring">Replacing device data with Cloud backup</string>
+    <string name="cloud_backup_in_progress">Cloud backup in progress</string>
+    <string name="cloud_conflict_progress">You cannot leave this dialog until the operation completes.</string>
+    <string name="cloud_conflict_completed">Complete. Backup lineage now follows the data you chose.</string>
+    <string name="cloud_conflict_error">The operation did not complete. Error: %1$s</string>
+    <string name="cloud_continue">Continue</string>
 </resources>
