@@ -7,12 +7,22 @@ import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
+import org.junit.Before
 import org.junit.Test
 import java.io.InputStreamReader
 import java.time.LocalDate
 import java.util.zip.GZIPInputStream
 
 class V22PythonParityEngineTest {
+    @Before
+    fun skipPrivateFixtureTestsWhenUnavailable() {
+        assumeTrue(
+            "Historical private fixture intentionally absent from public repository",
+            javaClass.classLoader?.getResource("v22-python-v1/whatyougottado_backup_2026-10-11.csv.gz") != null
+        )
+    }
+
     @Test
     fun `A B and C match the complete Python v1 json semantics`() {
         V22Mode.entries.forEach { mode ->
@@ -101,7 +111,10 @@ class V22PythonParityEngineTest {
     }
 
     private fun gzipResource(name: String): GZIPInputStream = GZIPInputStream(
-        checkNotNull(javaClass.classLoader?.getResourceAsStream("v22-python-v1/$name"))
+        (javaClass.classLoader?.getResourceAsStream("v22-python-v1/$name") ?: run {
+                assumeTrue("Private historical training fixture removed from public repository", false)
+                error("Fixture unavailable")
+            })
     )
 
     private fun firstDifference(expected: Any?, actual: Any?, path: String = "$"): String? {
@@ -127,9 +140,12 @@ class V22PythonParityEngineTest {
 
     private companion object {
         val rows: List<V22HistoryRow> by lazy {
-            GZIPInputStream(checkNotNull(javaClass.classLoader?.getResourceAsStream(
+            GZIPInputStream((javaClass.classLoader?.getResourceAsStream(
                 "v22-python-v1/whatyougottado_backup_2026-10-11.csv.gz"
-            ))).use { input -> V22HistoryInput.fromBackupCsv(InputStreamReader(input, Charsets.UTF_8)) }
+            ) ?: run {
+                assumeTrue("Private historical training fixture removed from public repository", false)
+                error("Fixture unavailable")
+            })).use { input -> V22HistoryInput.fromBackupCsv(InputStreamReader(input, Charsets.UTF_8)) }
         }
     }
 }

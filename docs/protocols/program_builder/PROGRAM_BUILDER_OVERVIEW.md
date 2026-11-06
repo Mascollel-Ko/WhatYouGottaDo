@@ -30,7 +30,7 @@
   운동을 자동 보충하지 않는다.
 
 실제 최소화 기록 검증은
-[`docs/validation/b-balanced-12week-real-history-2026-10-12/report.md`](../../validation/b-balanced-12week-real-history-2026-10-12/report.md)에 있다.
+private-fixture validation report (removed from public repository)에 있다.
 
 | Field | Value |
 |---|---|
