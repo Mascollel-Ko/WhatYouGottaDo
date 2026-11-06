@@ -504,11 +504,12 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun uploadCloudBackup() {
+    fun uploadCloudBackup(onCompleted: (Boolean) -> Unit = {}) {
         viewModelScope.launch {
             val session = authRepository.refreshIfNeeded()
             if (session == null) {
                 _cloudAuthState.value = _cloudAuthState.value.copy(message = "LOGIN_REQUIRED")
+                onCompleted(false)
                 return@launch
             }
             _cloudAuthState.value = _cloudAuthState.value.copy(session = session, status = CloudAuthStatus.LOGGED_IN)
@@ -517,6 +518,7 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
             } catch (_: Throwable) {
                 // Unknown CURRENT is fail-closed: keep Guest/local data and let the user retry.
                 _cloudAuthState.value = _cloudAuthState.value.copy(message = "CLOUD_CURRENT_DISCOVERY_FAILED")
+                onCompleted(false)
                 return@launch
             }
             runCatching {
@@ -536,8 +538,10 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
                 _cloudAuthState.value = _cloudAuthState.value.copy(
                     message = if (result.acknowledged) "BACKUP_CURRENT" else "BACKUP_UPLOADED_PENDING"
                 )
+                onCompleted(result.acknowledged)
             }.onFailure { error ->
                 _cloudAuthState.value = _cloudAuthState.value.copy(message = error.message ?: "CLOUD_UPLOAD_FAILED")
+                onCompleted(false)
             }
         }
     }
