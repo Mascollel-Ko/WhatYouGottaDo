@@ -53,6 +53,13 @@ async function handler(request) {
     const service = createServiceClient();
     const userId = auth.user.id;
 
+    const deletionState = await service.from("account_deletion_requests")
+      .select("user_id").eq("user_id", userId).maybeSingle();
+    if (deletionState.error) throw new Error("Account deletion lookup failed");
+    if (deletionState.data) throw new CloudRequestError(
+      "ACCOUNT_DELETION_PENDING", "Account deletion in progress.", 409,
+    );
+
     if (requestBody.parent_backup_id !== null) {
       const { data: parent, error: parentError } = await service
         .from("cloud_backups")
