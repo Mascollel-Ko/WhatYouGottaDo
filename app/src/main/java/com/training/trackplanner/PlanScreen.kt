@@ -32,6 +32,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -97,6 +98,9 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filterNotNull
 import org.json.JSONObject
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.DropdownMenu
@@ -591,15 +595,20 @@ private fun ProgramEditorScreen(
             viewModel.stageProgramDraft(currentSnapshot)
         }
     }
+    // Observe actual editor changes, not a periodic timer: every new edit
+    // cancels the pending write. The first loaded snapshot is not an edit.
     LaunchedEffect(draftId) {
-        while (true) {
-            delay(ProgramDraftIdentity.AUTO_SAVE_INTERVAL_MILLIS)
-            if (loadedState && !finalized.value &&
-                (currentSnapshot.skeleton != null || currentName.isNotBlank())
-            ) {
-                viewModel.saveProgramDraft(currentSnapshot)
+        snapshotFlow { if (loadedState) currentSnapshot else null }
+            .filterNotNull()
+            .drop(1)
+            .collectLatest { edited ->
+                delay(ProgramDraftIdentity.AUTO_SAVE_DEBOUNCE_MILLIS)
+                if (!finalized.value &&
+                    (edited.skeleton != null || edited.programName.isNotBlank())
+                ) {
+                    viewModel.saveProgramDraft(edited)
+                }
             }
-        }
     }
     DisposableEffect(draftId) {
         onDispose {
