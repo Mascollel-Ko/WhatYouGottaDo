@@ -99,7 +99,8 @@ async function handler(request) {
   let r2;
   let client;
   try {
-    const { backup_id: backupId } = validateFinalizeRequest(await parseJsonRequest(request));
+    const { backup_id: backupId, resolution, expected_current_backup_id: expectedCurrentId } =
+      validateFinalizeRequest(await parseJsonRequest(request));
     service = createServiceClient();
     const userId = auth.user.id;
     const deletionState = await service.from("account_deletion_requests")
@@ -128,7 +129,12 @@ async function handler(request) {
     }).eq("backup_id", backupId).eq("user_id", userId).eq("status", "UPLOADING");
     if (verified.error) throw new Error("failed to mark backup VERIFIED");
 
-    const promotion = await service.rpc("cloud_promote_backup", { p_backup_id: backupId, p_user_id: userId });
+    const promotion = resolution === "LOCAL_WINS"
+      ? await service.rpc("cloud_promote_explicit_local_wins", {
+          p_backup_id: backupId, p_user_id: userId,
+          p_expected_current_backup_id: expectedCurrentId,
+        })
+      : await service.rpc("cloud_promote_backup", { p_backup_id: backupId, p_user_id: userId });
     if (promotion.error) throw new Error("atomic promotion failed");
     assertCurrentPromotion(promotion.data);
     try { await cleanupUserBackups(service, userId, 10); }
