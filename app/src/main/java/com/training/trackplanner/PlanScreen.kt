@@ -1512,12 +1512,24 @@ private fun ProgramApplyCard(
 ) {
     var startDateText by rememberSaveable { mutableStateOf(LocalDate.now().toString()) }
     var conflictSummary by remember { mutableStateOf<ProgramApplyConflictSummary?>(null) }
+    var applying by remember { mutableStateOf(false) }
+    var applyError by remember { mutableStateOf<String?>(null) }
     val canApply = runCatching { LocalDate.parse(startDateText) }.isSuccess
 
     fun apply(mode: ProgramApplyMode) {
-        viewModel.applyProgram(program.id, startDateText, mode)
-        conflictSummary = null
-        onApplied()
+        if (applying) return
+        applying = true
+        applyError = null
+        viewModel.applyProgram(program.id, startDateText, mode) { error ->
+            applying = false
+            if (error == null) {
+                conflictSummary = null
+                onApplied()
+            } else {
+                conflictSummary = null
+                applyError = error
+            }
+        }
     }
 
     conflictSummary?.let { summary ->
@@ -1542,7 +1554,7 @@ private fun ProgramApplyCard(
                     TextButton(onClick = { conflictSummary = null }) {
                         Text("취소")
                     }
-                    Button(onClick = { apply(ProgramApplyMode.Overwrite) }) {
+                    Button(enabled = !applying, onClick = { apply(ProgramApplyMode.Overwrite) }) {
                         Text("덮어쓰기")
                     }
                 }
@@ -1567,22 +1579,47 @@ private fun ProgramApplyCard(
             )
             InlineDateSwitcher(
                 dateText = startDateText,
-                onDateChange = { startDateText = it }
+                onDateChange = {
+                    if (!applying) {
+                        startDateText = it
+                        applyError = null
+                    }
+                }
             )
+            applyError?.let { error ->
+                Text(
+                    text = error,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            if (applying) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                Text("계획을 적용하는 중입니다.", style = MaterialTheme.typography.bodySmall)
+            }
             Button(
                 modifier = Modifier.fillMaxWidth(),
-                enabled = canApply,
+                enabled = canApply && !applying,
                 onClick = {
+                    if (applying) return@Button
+                    applying = true
+                    applyError = null
                     viewModel.loadProgramApplyConflictSummary(
                         programId = program.id,
-                        startDate = startDateText
-                    ) { summary ->
+                        startDate = startDateText,
+                        onResult = { summary ->
+                        applying = false
                         if (summary.hasExistingEntries) {
                             conflictSummary = summary
                         } else {
                             apply(ProgramApplyMode.Append)
                         }
-                    }
+                        },
+                        onError = { error ->
+                            applying = false
+                            applyError = error
+                        }
+                    )
                 }
             ) {
                 Text("시작일 적용")
