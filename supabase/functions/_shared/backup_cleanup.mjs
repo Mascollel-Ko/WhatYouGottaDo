@@ -69,6 +69,12 @@ async function claimCleanup(service, row, nowIso, retryCutoff) {
  * Delete the R2 object first, then mark its lineage row PRUNED.
  */
 export async function cleanupUserBackups(service, userId, limit = LIMIT) {
+  // Production fail-safe: until existing LINEAGE_CONFLICT failures are
+  // reconciled and R2 copies are independently audited, preserve every
+  // historical object. Account-initiated deletion is handled separately.
+  if (Deno.env.get("CLOUD_BACKUP_PRUNING_ENABLED") !== "true") {
+    return { pruned: 0, failures: 0, skipped: 0, paused: true };
+  }
   if (!isUuid(userId)) throw new Error("INVALID_CLEANUP_USER");
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > 50) throw new Error("INVALID_CLEANUP_LIMIT");
 
