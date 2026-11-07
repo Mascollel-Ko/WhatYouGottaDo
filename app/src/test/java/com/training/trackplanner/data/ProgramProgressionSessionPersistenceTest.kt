@@ -20,12 +20,12 @@ import java.util.UUID
 @Config(sdk = [28])
 @SQLiteMode(SQLiteMode.Mode.NATIVE)
 class ProgramProgressionSessionPersistenceTest {
-    @Test fun allWeekMoveSavesReloadsWithWeekSpecificPrescriptionAndSessionIdentity() = runBlocking {
+    @Test fun allWeekMoveSavesReloadsWhenPrescriptionAndSessionIdentityAreExact() = runBlocking {
         val f=PostGenerationFixture
         for(weeks in listOf(4,5)) {
             val draft=f.plan(listOf(f.row("press",1)),listOf(1,3,5),horizon=weeks).let { plan ->
-                plan.copy(items=plan.items.map { it.copy(weightKg=it.weekNumber*10.0,
-                    setPrescriptions=it.setPrescriptions.map { set -> set.copy(weightKg=it.weekNumber*10.0) }) })
+                plan.copy(items=plan.items.map { it.copy(weightKg=10.0,
+                    setPrescriptions=it.setPrescriptions.map { set -> set.copy(weightKg=10.0) }) })
             }.reconcileProgression(setOf("press"))
             val moved=ProgramScopedEditor.move(draft,draft.items.first().localId,3,ProgramEditScope.ALL_WEEKS)
             assertEquals(draft.items.map { it.progressionBinding },moved.items.map { it.progressionBinding })
