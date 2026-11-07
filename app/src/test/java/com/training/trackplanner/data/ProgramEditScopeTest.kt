@@ -1,6 +1,9 @@
 package com.training.trackplanner.data
 
 import com.training.trackplanner.data.personalized.*
+import com.training.trackplanner.data.v22.*
+import org.json.JSONArray
+import org.json.JSONObject
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -8,8 +11,8 @@ class ProgramEditScopeTest {
     private val f=PostGenerationFixture
     private val all=ProgramEditScope.ALL_WEEKS
     private fun plan(weeks: Int)=f.plan(listOf(f.row("press",1,id="press"),f.row("row",1,id="row",order=2)),listOf(1,3,5),horizon=weeks)
-        .let { p -> p.copy(items=p.items.map { it.copy(weightKg=it.weekNumber*10.0,
-            setPrescriptions=f.rx(it.weekNumber).sets.map { set -> set.copy(weightKg=it.weekNumber*10.0) }) }) }
+        .let { p -> p.copy(items=p.items.map { item -> item.copy(weightKg=10.0,
+            setPrescriptions=f.rx(item.setCount).sets.map { set -> set.copy(weightKg=10.0) }) }) }
     @Test fun fourAndFiveWeeksMoveKeepsEveryWeekPrescriptionIdentityAndDecision() {
         for(weeks in listOf(4,5)) {
             val original=plan(weeks)
@@ -43,7 +46,8 @@ class ProgramEditScopeTest {
         val original=plan(4)
         val moved=ProgramScopedEditor.move(original,"w2_press",3,ProgramEditScope.INDIVIDUAL_WEEK)
         assertEquals(original.items.filter { it.weekNumber!=2 },moved.items.filter { it.weekNumber!=2 })
-        assertFalse(ProgramScopedEditor.supportsAll(moved))
+        assertTrue(ProgramScopedEditor.supportsAll(moved))
+        assertFalse(ProgramScopedEditor.canEditAll(moved,"w1_press"))
         assertThrows(IllegalArgumentException::class.java) { ProgramScopedEditor.move(moved,"w1_press",3,all) }
         assertEquals(1,original.items.first().dayOfWeek)
     }
@@ -59,6 +63,73 @@ class ProgramEditScopeTest {
     @Test fun ambiguousRepeatedUnownedKeysNeverUseDisplayOrderAsIdentity() {
         val original=plan(4)
         val duplicate=original.copy(items=original.items+original.items.map { it.copy(localId=it.localId+"_second",orderIndex=it.orderIndex+2) })
-        assertFalse(ProgramScopedEditor.supportsAll(duplicate))
+        assertTrue(ProgramScopedEditor.supportsAll(duplicate))
+        assertFalse(ProgramScopedEditor.canEditAll(duplicate,"w1_press"))
+    }
+    @Test fun exactPrescriptionDifferencesAndMissingWeekRejectOnlyThatExercise() {
+        val base=plan(4)
+        fun changed(week: Int, key: String="press", change: (ProgramSkeletonItem)->ProgramSkeletonItem) =
+            base.copy(items=base.items.map { if(it.weekNumber==week && it.exerciseStableKey==key) change(it) else it })
+        val cases=listOf(
+            changed(3) { item -> item.copy(weightKg=12.5,setPrescriptions=item.setPrescriptions.map { it.copy(weightKg=12.5) }) },
+            changed(2) { item -> item.copy(reps=9,setPrescriptions=item.setPrescriptions.map { it.copy(reps=9) }) },
+            changed(4) { item -> item.copy(setCount=1,setPrescriptions=item.setPrescriptions.take(1)) },
+            base.copy(items=base.items.filterNot { it.weekNumber==3 && it.exerciseStableKey=="press" }),
+            changed(3) { item -> item.copy(setPrescriptions=item.setPrescriptions.mapIndexed { index,set -> if(index==0) set.copy(weightKg=11.0) else set }) },
+            changed(2) { item -> item.copy(stableKey="different-logical-id") },
+            changed(2) { item -> item.copy(setPrescriptions=item.setPrescriptions.map { it.copy(weightKg=0.0,loadState=ProgramLoadState.USER_CALIBRATION_REQUIRED) }) }
+        )
+        cases.forEach { draft ->
+            assertFalse(ProgramScopedEditor.canEditAll(draft,"w1_press"))
+            assertTrue(ProgramScopedEditor.canEditAll(draft,"w1_row"))
+            assertThrows(IllegalArgumentException::class.java) { ProgramScopedEditor.delete(draft,"w1_press",all) }
+        }
+        val partial=cases.first()
+        val row=partial.items.single { it.localId=="w1_row" }
+        val rowSets=row.setPrescriptions.map { it.copy(reps=12) }
+        val updated=ProgramScopedEditor.update(partial,row.localId,row.copy(reps=12,setPrescriptions=rowSets),all)
+        assertTrue(updated.items.filter { it.exerciseStableKey=="row" }.all { it.setPrescriptions==rowSets })
+    }
+    @Test fun unsetLoadAndExplicitZeroAreDifferent() {
+        val base=plan(4)
+        val zero=base.copy(items=base.items.map { item ->
+            if(item.weekNumber!=2 || item.exerciseStableKey!="press") item else item.copy(
+                weightKg=0.0,setPrescriptions=item.setPrescriptions.map {
+                    it.copy(weightKg=0.0,loadState=ProgramLoadState.REAL_ZERO_LOAD)
+                })
+        })
+        val unset=zero.copy(items=zero.items.map { item ->
+            if(item.exerciseStableKey!="press" || item.weekNumber==2) item else item.copy(
+                weightKg=0.0,setPrescriptions=item.setPrescriptions.map {
+                    it.copy(weightKg=0.0,loadState=ProgramLoadState.USER_CALIBRATION_REQUIRED)
+                })
+        })
+        assertFalse(ProgramScopedEditor.canEditAll(unset,"w1_press"))
+    }
+    @Test fun numericEditCopiesSetsRepsWeightsAndTimeToEveryWeek() {
+        val base=plan(4)
+        val source=base.items.single { it.localId=="w1_press" }
+        val sets=listOf(
+            ProgramSetPrescription(1,6,20.0,30,loadState=ProgramLoadState.EXPLICIT_LOAD),
+            ProgramSetPrescription(2,7,22.5,35,loadState=ProgramLoadState.EXPLICIT_LOAD),
+            ProgramSetPrescription(3,8,25.0,40,loadState=ProgramLoadState.EXPLICIT_LOAD)
+        )
+        val edited=source.copy(setCount=3,reps=0,weightKg=0.0,seconds=0,restSeconds=90,setPrescriptions=sets)
+        val result=ProgramScopedEditor.update(base,source.localId,edited,all)
+        val rows=result.items.filter { it.exerciseStableKey=="press" }
+        assertEquals(4,rows.size)
+        assertTrue(rows.all { it.setCount==3 && it.restSeconds==90 && it.setPrescriptions==sets })
+        assertEquals(base.items.filter { it.exerciseStableKey=="row" },result.items.filter { it.exerciseStableKey=="row" })
+    }
+    @Test fun nonSteadyBlocksForceIndividualWeekWhileSteadyOffersAllWeeks() {
+        fun withPattern(pattern: BVolumePattern)=plan(4).copy(planningMetadataJson=JSONObject()
+            .put("schema",BBalanced12WeekEngine.BLOCK_SCHEMA)
+            .put("blockSpecs",JSONArray().put(JSONObject().put("pattern",pattern.name))).toString())
+        assertTrue(ProgramScopedEditor.supportsAll(withPattern(BVolumePattern.STEADY)))
+        for(pattern in listOf(BVolumePattern.PROGRESSIVE,BVolumePattern.WAVE,BVolumePattern.ACCUMULATE_RECOVER)) {
+            val draft=withPattern(pattern)
+            assertFalse(ProgramScopedEditor.supportsAll(draft))
+            assertFalse(ProgramScopedEditor.canEditAll(draft,"w1_press"))
+        }
     }
 }

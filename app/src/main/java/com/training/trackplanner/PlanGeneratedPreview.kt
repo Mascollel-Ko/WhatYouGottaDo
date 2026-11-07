@@ -1,5 +1,7 @@
 package com.training.trackplanner
 
+import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,6 +28,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -48,6 +52,7 @@ import com.training.trackplanner.data.upsertDraftItem
 import com.training.trackplanner.data.withWeekDays
 import com.training.trackplanner.data.ProgramEditScope
 import com.training.trackplanner.data.ProgramScopedEditor
+import com.training.trackplanner.data.PROGRAM_ALL_WEEKS_MISMATCH_MESSAGE
 import com.training.trackplanner.data.v22.reassessBBalancedAfterEdit
 import androidx.compose.ui.platform.testTag
 import com.training.trackplanner.localization.localizedExerciseName
@@ -67,7 +72,14 @@ internal fun ProgramSkeletonPreview(
     var showExercisePicker by rememberSaveable { mutableStateOf(false) }
     var editingItem by remember { mutableStateOf<ProgramSkeletonItem?>(null) }
     var removeDayTarget by remember { mutableStateOf<Int?>(null) }
-    var allWeeks by rememberSaveable(skeleton.suggestedName) { mutableStateOf(true) }
+    var allWeeks by rememberSaveable(skeleton.suggestedName) { mutableStateOf(false) }
+    val context = LocalContext.current
+    val showAllWeeksMismatch = {
+        Toast.makeText(context, PROGRAM_ALL_WEEKS_MISMATCH_MESSAGE, Toast.LENGTH_SHORT).show()
+    }
+    fun applyScoped(change: () -> GeneratedProgramSkeleton) {
+        runCatching(change).onSuccess(onSkeletonChange).onFailure { showAllWeeksMismatch() }
+    }
     val recordBased=skeleton.personalizedDecision!=null || (skeleton.planningMetadataJson?.contains("B_BALANCED_12_WEEK_V1")==true ||
         skeleton.planningMetadataJson?.contains("B_BALANCED_BLOCK_PROGRAM_V1")==true)
     val supportsAll=remember(skeleton) { ProgramScopedEditor.supportsAll(skeleton) }
@@ -92,7 +104,7 @@ internal fun ProgramSkeletonPreview(
                 Button(
                     onClick = {
                         val nextDays = schedule[editWeek].orEmpty() - day
-                        onSkeletonChange(if(recordBased) ProgramScopedEditor.days(skeleton,editWeek,nextDays,scope) else skeleton.withWeekDays(editWeek,nextDays))
+                        applyScoped { if(recordBased) ProgramScopedEditor.days(skeleton,editWeek,nextDays,scope) else skeleton.withWeekDays(editWeek,nextDays) }
                         removeDayTarget = null
                     }
                 ) { Text("제거") }
@@ -126,9 +138,18 @@ internal fun ProgramSkeletonPreview(
             item = item,
             onDismiss = { editingItem = null },
             onSave = { updated ->
-                // Existing prescription edits remain current-week-only, even in structural template mode.
-                onSkeletonChange(if(recordBased && skeleton.items.none { it.localId==updated.localId })
-                    ProgramScopedEditor.add(skeleton,updated,scope) else skeleton.upsertDraftItem(updated).reassessBBalancedAfterEdit())
+                val next = runCatching {
+                    when {
+                        recordBased && skeleton.items.none { it.localId == updated.localId } ->
+                            ProgramScopedEditor.add(skeleton, updated, scope)
+                        recordBased -> ProgramScopedEditor.update(skeleton, updated.localId, updated, scope)
+                        else -> skeleton.upsertDraftItem(updated).reassessBBalancedAfterEdit()
+                    }
+                }.getOrElse {
+                    showAllWeeksMismatch()
+                    return@ProgramDraftItemDialog
+                }
+                onSkeletonChange(next)
                 editingItem = null
             }
         )
@@ -149,7 +170,12 @@ internal fun ProgramSkeletonPreview(
             ) {
                 if(recordBased) {
                     ProgramEditScopeControl(scope,supportsAll) { allWeeks=it==ProgramEditScope.ALL_WEEKS }
-                    MaterialText(stringResource(R.string.program_prescription_week_only,editWeek),style=MaterialTheme.typography.bodySmall)
+                    MaterialText(
+                        if (scope == ProgramEditScope.ALL_WEEKS)
+                            stringResource(R.string.program_prescription_all_weeks)
+                        else stringResource(R.string.program_prescription_week_only, editWeek),
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
                 ProgramDraftEditTab(
                     skeleton = skeleton,
@@ -167,19 +193,23 @@ internal fun ProgramSkeletonPreview(
                             if (hasItems) {
                                 removeDayTarget = day
                             } else {
-                                onSkeletonChange(if(recordBased) ProgramScopedEditor.days(skeleton,editWeek,currentDays-day,scope) else skeleton.withWeekDays(editWeek,currentDays-day))
+                                applyScoped { if(recordBased) ProgramScopedEditor.days(skeleton,editWeek,currentDays-day,scope) else skeleton.withWeekDays(editWeek,currentDays-day) }
                             }
                         } else {
-                            onSkeletonChange(if(recordBased) ProgramScopedEditor.days(skeleton,editWeek,currentDays+day,scope) else skeleton.withWeekDays(editWeek,currentDays+day))
+                            applyScoped { if(recordBased) ProgramScopedEditor.days(skeleton,editWeek,currentDays+day,scope) else skeleton.withWeekDays(editWeek,currentDays+day) }
                             selectedDay = day
                         }
                     },
                     onAddExercise = { showExercisePicker = true },
                     onEditItem = { editingItem = it },
+                    canEditItem = { item ->
+                        scope != ProgramEditScope.ALL_WEEKS || ProgramScopedEditor.canEditAll(skeleton, item.localId)
+                    },
+                    onBlockedItem = showAllWeeksMismatch,
                     onProgressionChange = onSkeletonChange,
-                    onDeleteItem = { item -> onSkeletonChange(if(recordBased) ProgramScopedEditor.delete(skeleton,item.localId,scope) else skeleton.deleteDraftItem(item.localId)) },
-                    onMoveItem = if(recordBased) { item,day -> onSkeletonChange(ProgramScopedEditor.move(skeleton,item.localId,day,scope)) } else null,
-                    onReorderItem = if(recordBased) { item,offset -> onSkeletonChange(ProgramScopedEditor.reorder(skeleton,item.localId,offset,scope)) } else null
+                    onDeleteItem = { item -> applyScoped { if(recordBased) ProgramScopedEditor.delete(skeleton,item.localId,scope) else skeleton.deleteDraftItem(item.localId) } },
+                    onMoveItem = if(recordBased) { item,day -> applyScoped { ProgramScopedEditor.move(skeleton,item.localId,day,scope) } } else null,
+                    onReorderItem = if(recordBased) { item,offset -> applyScoped { ProgramScopedEditor.reorder(skeleton,item.localId,offset,scope) } } else null
                 )
             }
         }
@@ -214,6 +244,8 @@ private fun ProgramDraftEditTab(
     onToggleDay: (Int) -> Unit,
     onAddExercise: () -> Unit,
     onEditItem: (ProgramSkeletonItem) -> Unit,
+    canEditItem: (ProgramSkeletonItem) -> Boolean,
+    onBlockedItem: () -> Unit,
     onProgressionChange: (GeneratedProgramSkeleton) -> Unit,
     onDeleteItem: (ProgramSkeletonItem) -> Unit,
     onMoveItem: ((ProgramSkeletonItem,Int)->Unit)? = null,
@@ -239,20 +271,25 @@ private fun ProgramDraftEditTab(
             Text("이 요일에는 아직 운동이 없습니다.")
         } else {
             dayItems.forEach { item ->
+                val canEdit = canEditItem(item)
                 ProgramDraftItemRow(
                     item = item,
-                    onEdit = { onEditItem(item) },
-                    onDelete = { onDeleteItem(item) }
+                    enabled = canEdit,
+                    onBlocked = onBlockedItem,
+                    onEdit = { if (canEdit) onEditItem(item) else onBlockedItem() },
+                    onDelete = { if (canEdit) onDeleteItem(item) else onBlockedItem() }
                 )
                 if(onMoveItem!=null) {
                     ProgramTemporalSelector(selectedDays,setOf(item.dayOfWeek),"move-${item.localId}",
-                        { programWeekdayChipLabel(it) },{ onMoveItem(item,it) },{ programWeekdayLabel(it) })
+                        { programWeekdayChipLabel(it) },
+                        { if (canEdit) onMoveItem(item,it) else onBlockedItem() },
+                        { programWeekdayLabel(it) })
                 }
                 if(onReorderItem!=null) Row {
-                    TextButton(onClick={onReorderItem(item,-1)},enabled=item!=dayItems.first()) { MaterialText(stringResource(R.string.program_move_up)) }
-                    TextButton(onClick={onReorderItem(item,1)},enabled=item!=dayItems.last()) { MaterialText(stringResource(R.string.program_move_down)) }
+                    TextButton(onClick={if(canEdit) onReorderItem(item,-1) else onBlockedItem()},enabled=item!=dayItems.first()) { MaterialText(stringResource(R.string.program_move_up)) }
+                    TextButton(onClick={if(canEdit) onReorderItem(item,1) else onBlockedItem()},enabled=item!=dayItems.last()) { MaterialText(stringResource(R.string.program_move_down)) }
                 }
-                if (item.exerciseStableKey in progressionEligibleKeys && item.progressionBinding != null) {
+                if (canEdit && item.exerciseStableKey in progressionEligibleKeys && item.progressionBinding != null) {
                     ProgressionDraftControl(item, skeleton, onProgressionChange)
                 }
             }
@@ -266,12 +303,15 @@ private fun ProgramDraftEditTab(
 @Composable
 private fun ProgramDraftItemRow(
     item: ProgramSkeletonItem,
+    enabled: Boolean,
+    onBlocked: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
     val displayName = localizedExerciseName(item.exerciseStableKey, item.exerciseName)
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().alpha(if (enabled) 1f else .68f)
+            .clickable(enabled = !enabled, onClick = onBlocked),
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
@@ -345,12 +385,18 @@ private fun ProgramDraftItemDialog(
                             "중량",
                             if (set.loadState == ProgramLoadState.USER_CALIBRATION_REQUIRED) "" else formatDecimal(set.weightKg),
                             onChange = { value ->
-                                val weight = (value.toDoubleOrNull() ?: 0.0).coerceAtLeast(0.0)
-                                sets = sets.updated(
-                                    index,
-                                    set.copy(weightKg = weight,
-                                        loadState = if (weight > 0.0) ProgramLoadState.EXPLICIT_LOAD else set.loadState)
-                                )
+                                val parsed = value.toDoubleOrNull()
+                                if (value.isBlank() || parsed != null) {
+                                    val weight = parsed?.coerceAtLeast(0.0) ?: 0.0
+                                    sets = sets.updated(index, set.copy(
+                                        weightKg = weight,
+                                        loadState = when {
+                                            value.isBlank() -> ProgramLoadState.USER_CALIBRATION_REQUIRED
+                                            weight == 0.0 -> ProgramLoadState.REAL_ZERO_LOAD
+                                            else -> ProgramLoadState.EXPLICIT_LOAD
+                                        }
+                                    ))
+                                }
                             },
                             suffix = stringResource(R.string.program_unit_kg)
                         )
@@ -426,14 +472,17 @@ private fun programSetSummaryLines(item: ProgramSkeletonItem): List<String> {
         return listOf(
                 "${pluralStringResource(R.plurals.set_count, sets.size, sets.size)} · " +
                 "${sets.first().displayText()}$rest${effort.commonTargetRpeMin.plannedRpeSuffix()}"
-        )
+        ) + item.periodizationPreviewLine()
     }
     return sets.mapIndexed { index, set ->
         val suffix = effort.commonTargetRpeMin?.plannedRpeSuffix()
             ?: effort.perSetTargetRpeMin.getOrNull(index).plannedRpeSuffix()
         "${stringResource(R.string.set_ordinal, set.setIndex)} · ${set.displayText()}$rest${if (index == 0) suffix else if (effort.commonTargetRpeMin != null) "" else suffix}"
-    }
+    } + item.periodizationPreviewLine()
 }
+
+private fun ProgramSkeletonItem.periodizationPreviewLine(): List<String> =
+    listOfNotNull(prescription.takeIf { it.startsWith("주기화") })
 
 @Composable
 private fun ProgramSetPrescription.displayText(): String =

@@ -260,6 +260,11 @@ class V22ProgramIntegrationTest {
         assertTrue(initial.items.all { it.weekNumber in 1..7 && it.dayOfWeek in 1..7 })
         assertTrue(initial.items.any { it.weekNumber == 4 && it.dayOfWeek == 4 })
         assertFalse(initial.items.any { it.weekNumber == 4 && it.dayOfWeek <= 3 })
+        assertTrue(initial.items.filter { it.weekNumber<=3 }
+            .groupBy { it.dayOfWeek to it.exerciseStableKey }.values.any { rows ->
+                rows.map { row -> row.setPrescriptions.map { set -> listOf(set.reps,set.seconds) } }.distinct().size>1
+            })
+        assertTrue(initial.items.any { it.prescription.contains("시작 중량 입력 후 실제 중량에 반영") })
 
         val firstSecondBlockSlot = BBlockCalendar(layout).slot(1, 0, 1)
         val anchor = initial.items.first {
@@ -306,6 +311,13 @@ class V22ProgramIntegrationTest {
                 it.exerciseStableKey == next.exerciseStableKey &&
                 it.setPrescriptions.all { set -> set.weightKg == expectedNext }
         })
+        val startDate=LocalDate.of(2026,11,2)
+        repository.applyProgramToDates(id,startDate.toString(),ProgramApplyMode.Append)
+        val nextDate=startDate.plusDays((next.weekNumber-1)*7L+next.dayOfWeek-1L).toString()
+        val applied=db.workoutDao().entriesWithSets(nextDate)
+            .single { it.entry.exerciseStableKey==next.exerciseStableKey }
+        assertTrue(applied.sets.all { it.weightKg==expectedNext &&
+            it.loadState==com.training.trackplanner.data.ProgramLoadState.EXPLICIT_LOAD })
     }
 
     private suspend fun seedHistory(db: TrainingDatabase, history: List<V22HistoryRow>) {

@@ -48,4 +48,23 @@ class BBlockPrescriptionApplicatorTest {
         assertTrue(changed.items.first().plannedProgression!!.contains("LOAD_STEPS=0"))
         assertTrue(changed.items.first().plannedProgression!!.contains("START_LOAD_USER_REQUIRED"))
     }
+
+    @Test fun fourWeekPatternsChangeActualSetAndRepPrescriptions() {
+        fun doses(pattern: BVolumePattern) = BBlockPeriodization.steps(
+            BBlockDefinition(weeks=4,goal=BBlockGoal.HYPERTROPHY,pattern=pattern,
+                adjustment=BVolumeAdjustment.REPS_FIRST)
+        ).map { stage ->
+            val item=BBlockPrescriptionApplicator.apply(
+                session(),stage,BBalancedGoal.HYPERTROPHY,
+                BBlockDefinition(weeks=4,goal=BBlockGoal.HYPERTROPHY,pattern=pattern,
+                    adjustment=BVolumeAdjustment.REPS_FIRST),
+                setOf("squat"),resolvedAmplitude=BChangeAmplitude.SMALL
+            ).items.first()
+            item.setCount to item.sets.first().reps
+        }
+        assertEquals(List(4) { 3 to 5 },doses(BVolumePattern.STEADY))
+        assertEquals(listOf(3 to 5,3 to 6,3 to 7,3 to 8),doses(BVolumePattern.PROGRESSIVE))
+        assertEquals(listOf(3 to 5,3 to 7,3 to 5,3 to 7),doses(BVolumePattern.WAVE))
+        assertEquals(listOf(3 to 5,3 to 6,3 to 7,2 to 5),doses(BVolumePattern.ACCUMULATE_RECOVER))
+    }
 }

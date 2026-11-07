@@ -105,7 +105,7 @@ internal fun BBalanced12WeekPlan.toSkeleton(
                     exerciseName = item.exercise,
                     category = item.category,
                     restSeconds = exercises[item.stableKey]?.defaultRestSeconds ?: 60,
-                    prescription = "HISTORICAL_REFERENCE_ONLY · USER_CALIBRATION_REQUIRED",
+                    prescription = item.periodizationPreviewNote(),
                     setCount = item.setCount,
                     reps = reps,
                     weightKg = 0.0,
@@ -175,6 +175,23 @@ internal fun BBalanced12WeekPlan.toSkeleton(
             }.toString()
         } else metadataJson
     )
+}
+
+private fun V22ExercisePlan.periodizationPreviewNote(): String {
+    val plan = plannedProgression.orEmpty()
+    val stage = Regex("B_BLOCK_VOLUME_STEP=(-?[0-9]+)").find(plan)
+        ?.groupValues?.getOrNull(1)?.toIntOrNull()
+        ?: return "HISTORICAL_REFERENCE_ONLY · USER_CALIBRATION_REQUIRED"
+    val applied = Regex("APPLIED_STEPS=([0-9]+)").find(plan)
+        ?.groupValues?.getOrNull(1)?.toIntOrNull() ?: 0
+    val loadSteps = Regex("LOAD_STEPS=(-?[0-9]+)").find(plan)
+        ?.groupValues?.getOrNull(1)?.toIntOrNull() ?: 0
+    return when {
+        stage == 0 -> "주기화 기준 주차 · 현재 처방 유지"
+        applied == 0 -> "주기화 변화 미적용 · 반복·세트·중량 조정 수단을 적용할 수 없음"
+        loadSteps != 0 -> "주기화 중량 ${if (loadSteps > 0) "+" else ""}${loadSteps}단계 · 시작 중량 입력 후 실제 중량에 반영"
+        else -> "주기화 ${if (stage > 0) "+" else ""}${stage}단계 · 실제 세트·반복 처방에 반영"
+    }
 }
 
 internal fun V22Plan.toSkeleton(
