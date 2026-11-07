@@ -96,6 +96,7 @@ internal fun HomeScreen(
     val todayCheckIn by viewModel.todayCheckIn.collectAsState()
     val cloudAuth by viewModel.cloudAuthState.collectAsState()
     val cloudBackup by viewModel.cloudBackupState.collectAsState()
+    val cloudConflictCurrent by viewModel.cloudConflictCurrent.collectAsState()
     val activity = LocalContext.current as? android.app.Activity
     var showInitialProfile by rememberSaveable { mutableStateOf(false) }
     var showTransferReport by rememberSaveable { mutableStateOf(false) }
@@ -105,11 +106,34 @@ internal fun HomeScreen(
     var deleteError by rememberSaveable { mutableStateOf<String?>(null) }
     // In-progress is modal: no touch-through or premature success notification.
     var manualCloudUploadStatus by remember { mutableStateOf("idle") }
+    var manualCloudError by remember { mutableStateOf<String?>(null) }
+    var showCloudRestoreSafety by rememberSaveable { mutableStateOf(false) }
     var showGuestWarning by rememberSaveable { mutableStateOf(false) }
     val backupLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("text/csv")
     ) { uri ->
         uri?.let(viewModel::backupRecords)
+    }
+    val protectLocalBeforeCloudReplaceLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("text/csv")
+    ) { uri ->
+        if (uri == null) {
+            manualCloudUploadStatus = "conflict"
+        } else {
+            manualCloudUploadStatus = "savingLocal"
+            viewModel.saveLocalArchiveBeforeCloudReplace(uri) { saved, code ->
+                if (!saved) {
+                    manualCloudError = code
+                    manualCloudUploadStatus = "conflictFailed"
+                } else {
+                    manualCloudUploadStatus = "restoringCloud"
+                    viewModel.keepCloudAndReplaceLocal { success, restoreCode ->
+                        manualCloudError = restoreCode
+                        manualCloudUploadStatus = if (success) "conflictSuccess" else "conflictFailed"
+                    }
+                }
+            }
+        }
     }
     val restoreLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
@@ -241,8 +265,14 @@ internal fun HomeScreen(
             onUpload = {
                 showAccountDialog = false
                 manualCloudUploadStatus = "uploading"
-                viewModel.uploadCloudBackup { acknowledged ->
-                    manualCloudUploadStatus = if (acknowledged) "success" else "failed"
+                manualCloudError = null
+                viewModel.uploadCloudBackup { acknowledged, code ->
+                    manualCloudError = code
+                    manualCloudUploadStatus = when {
+                        acknowledged -> "success"
+                        code == "LINEAGE_CONFLICT" -> "conflict"
+                        else -> "failed"
+                    }
                 }
             },
             onRestore = { showAccountDialog = false; viewModel.restoreCloudBackup() },
@@ -254,16 +284,85 @@ internal fun HomeScreen(
             }
         )
     }
-    if (manualCloudUploadStatus != "idle") {
-        val loading = manualCloudUploadStatus == "uploading"
+    if (manualCloudUploadStatus == "conflict") {
+        val cloudTime = cloudConflictCurrent?.createdAt?.let { timestamp ->
+            runCatching {
+                OffsetDateTime.parse(timestamp)
+                    .atZoneSameInstant(ZoneId.systemDefault())
+                    .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+            }.getOrNull()
+        } ?: stringResource(R.string.cloud_conflict_unknown_time)
+        AlertDialog(
+            onDismissRequest = { manualCloudUploadStatus = "idle" },
+            title = { Text(stringResource(R.string.cloud_conflict_title)) },
+            text = { Text(stringResource(R.string.cloud_conflict_description, cloudTime)) },
+            confirmButton = {
+                Column {
+                    Button(
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = cloudConflictCurrent != null,
+                        onClick = {
+                            manualCloudUploadStatus = "uploading"
+                            manualCloudError = null
+                            viewModel.keepLocalAndReplaceCloud { success, code ->
+                                manualCloudError = code
+                                manualCloudUploadStatus = if (success) "conflictSuccess" else "conflictFailed"
+                            }
+                        }
+                    ) { Text(stringResource(R.string.cloud_conflict_local_wins)) }
+                    OutlinedButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = cloudConflictCurrent != null,
+                        onClick = {
+                            manualCloudUploadStatus = "idle"
+                            showCloudRestoreSafety = true
+                        }
+                    ) { Text(stringResource(R.string.cloud_conflict_cloud_wins)) }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { manualCloudUploadStatus = "idle" }) {
+                    Text(stringResource(R.string.restore_cancel))
+                }
+            }
+        )
+    }
+    if (showCloudRestoreSafety) {
+        AlertDialog(
+            onDismissRequest = {
+                showCloudRestoreSafety = false
+                manualCloudUploadStatus = "conflict"
+            },
+            title = { Text(stringResource(R.string.cloud_conflict_safety_title)) },
+            text = { Text(stringResource(R.string.cloud_conflict_safety_description)) },
+            confirmButton = {
+                Button(onClick = {
+                    showCloudRestoreSafety = false
+                    protectLocalBeforeCloudReplaceLauncher.launch("whatyougottado_before_cloud_restore_$today.csv")
+                }) { Text(stringResource(R.string.cloud_conflict_archive_first)) }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showCloudRestoreSafety = false
+                    manualCloudUploadStatus = "conflict"
+                }) { Text(stringResource(R.string.restore_cancel)) }
+            }
+        )
+    }
+    if (manualCloudUploadStatus != "idle" && manualCloudUploadStatus != "conflict") {
+        val loading = manualCloudUploadStatus in setOf("uploading", "savingLocal", "restoringCloud")
         AlertDialog(
             onDismissRequest = { if (!loading) manualCloudUploadStatus = "idle" },
             title = {
                 Text(
                     when (manualCloudUploadStatus) {
-                        "success" -> "클라우드 백업 성공"
-                        "failed" -> "클라우드 백업 실패"
-                        else -> "클라우드 백업 중"
+                        "success" -> stringResource(R.string.cloud_upload_success)
+                        "conflictSuccess" -> stringResource(R.string.cloud_conflict_success)
+                        "failed" -> stringResource(R.string.cloud_upload_failed)
+                        "conflictFailed" -> stringResource(R.string.cloud_conflict_failed)
+                        "savingLocal" -> stringResource(R.string.cloud_conflict_saving_local)
+                        "restoringCloud" -> stringResource(R.string.cloud_conflict_restoring)
+                        else -> stringResource(R.string.cloud_backup_in_progress)
                     }
                 )
             },
@@ -271,19 +370,22 @@ internal fun HomeScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     if (loading) {
                         CircularProgressIndicator()
-                        Text("백업 파일을 전송하고 서버의 저장 완료 확인을 기다리고 있습니다.")
-                        Text("완료될 때까지 다른 화면으로 이동할 수 없습니다.")
+                        Text(stringResource(R.string.cloud_conflict_progress))
                     } else if (manualCloudUploadStatus == "success") {
-                        Text("성공하였습니다! 최신 백업이 서버에 저장됐습니다.")
+                        Text(stringResource(R.string.cloud_upload_completed))
+                    } else if (manualCloudUploadStatus == "conflictSuccess") {
+                        Text(stringResource(R.string.cloud_conflict_completed))
+                    } else if (manualCloudUploadStatus == "failed") {
+                        Text(stringResource(R.string.cloud_upload_error, manualCloudError ?: "-"))
                     } else {
-                        Text("백업이 완료되지 않았습니다. 계정 화면에서 오류를 확인하고 다시 시도해 주세요.")
+                        Text(stringResource(R.string.cloud_conflict_error, manualCloudError ?: "-"))
                     }
                 }
             },
             confirmButton = {
                 if (!loading) {
                     TextButton(onClick = { manualCloudUploadStatus = "idle" }) {
-                        Text("계속하기")
+                        Text(stringResource(R.string.cloud_continue))
                     }
                 }
             }

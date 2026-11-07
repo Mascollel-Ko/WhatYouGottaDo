@@ -595,7 +595,8 @@ class TrainingRepository internal constructor(
         config: CloudBackupConfig = CloudBackupConfig.fromBuildConfig(),
         http: CloudHttpTransport = UrlConnectionCloudHttpTransport(),
         now: Long = System.currentTimeMillis(),
-        automatic: Boolean = false
+        automatic: Boolean = false,
+        expectedCloudCurrentForLocalWins: String? = null
     ): CloudBackupUploadResult = withContext(Dispatchers.IO) {
         if (!automatic) CloudBackupScheduler.cancel(context)
         try {
@@ -605,7 +606,7 @@ class TrainingRepository internal constructor(
                     canonicalBackup = { canonicalRecordsBackup() },
                     config = config,
                     http = http
-                ).uploadNow(session, now)
+                ).uploadNow(session, now, expectedCloudCurrentForLocalWins)
                 scheduleAutomaticCloudBackupIfPending()
                 result
             }
@@ -616,6 +617,56 @@ class TrainingRepository internal constructor(
             // backoff. Do not enqueue a replacement here: doing so would turn permanent
             // account/configuration failures into a retry loop.
             throw error
+        }
+    }
+
+    /** Always query the server, not lastSuccessfulBackupId from an older device state. */
+    internal suspend fun discoverCloudCurrentFresh(session: CloudAuthSession): CloudCurrentBackupMetadata? =
+        withContext(Dispatchers.IO) { cloudCurrentDiscovery(session) }
+
+    /** LOCAL_WINS is a user-confirmed CAS operation. The Cloud CURRENT recorded
+     * in the confirmation UI must still be CURRENT at server promotion time. */
+    internal suspend fun replaceCloudCurrentWithLocal(
+        session: CloudAuthSession, expectedCloudCurrentId: String
+    ): CloudBackupUploadResult {
+        check(java.util.UUID.fromString(expectedCloudCurrentId).toString() == expectedCloudCurrentId)
+        return uploadCloudBackup(session, expectedCloudCurrentForLocalWins = expectedCloudCurrentId)
+    }
+
+    /** CLOUD_WINS is full replacement, not the generic date-by-date CSV import.
+     * The caller must first save a verified external CSV archive. Both previous
+     * local data and its cloud lineage are also protected by Local Recovery. */
+    internal suspend fun replaceLocalWithCloudCurrent(
+        session: CloudAuthSession, expectedCloudCurrentId: String
+    ) = withContext(Dispatchers.IO) {
+        CloudBackupScheduler.cancel(context)
+        CloudBackupRuntimeMutex.withLock {
+            withLocalDataGate {
+                val remote = cloudCurrentDiscovery(session)
+                    ?: error("NO_CLOUD_BACKUP")
+                check(remote.backupId == expectedCloudCurrentId) { "CURRENT_CHANGED" }
+                val downloaded = downloadCloudBackup(session, expectedCloudCurrentId)
+                check(downloaded.metadata.status == "CURRENT") { "CURRENT_CHANGED" }
+                val data = preflightRecovery(downloaded.csv)
+                // Don't replace local data if CURRENT changed during download/preflight.
+                check(cloudCurrentDiscovery(session)?.backupId == expectedCloudCurrentId) {
+                    "CURRENT_CHANGED"
+                }
+                localRecovery.protect(RecoveryTrigger.BEFORE_CONFLICT_CLOUD_RESTORE) {
+                    db.withTransaction {
+                        val state = db.cloudBackupStateDao().getOrCreate()
+                        check(state.accountUserId == null ||
+                            state.accountUserId.equals(session.userId, ignoreCase = true)) {
+                            "ACCOUNT_ARCHIVE_REQUIRED"
+                        }
+                        applyLocalRecovery(data)
+                        check(db.cloudBackupStateDao().adoptVerifiedCloudCurrent(
+                            session.userId, expectedCloudCurrentId, System.currentTimeMillis()
+                        ) == 1) { "CLOUD_ADOPTION_FAILED" }
+                    }
+                }
+                LocalRecoveryScheduler.schedule(context)
+            }
         }
     }
 

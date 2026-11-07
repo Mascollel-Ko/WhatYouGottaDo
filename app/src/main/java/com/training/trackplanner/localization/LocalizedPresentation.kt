@@ -18,6 +18,7 @@ import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.DataTransferOperation
 import com.training.trackplanner.data.DataTransferReport
 import com.training.trackplanner.data.DataTransferStatus
+import com.training.trackplanner.data.formatTransferTimestamp
 import com.training.trackplanner.data.TrainingProgram
 import java.time.DateTimeException
 import java.time.DayOfWeek
@@ -62,15 +63,22 @@ internal object LocalizedPresentation {
         appendLine(uiText(context, "상태: $status"))
         appendLine(uiText(context, "작업 ID: ${report.operationId}"))
         appendLine(uiText(context, "파일: ${report.fileDisplayName.ifBlank { "(알 수 없음)" }}"))
-        appendLine(uiText(context, "시작: ${report.startedAt}"))
-        appendLine(uiText(context, "완료: ${report.completedAt ?: "-"}"))
+        val locale = context.resources.configuration.locales[0]
+        val started = formatTransferTimestamp(report.startedAt, locale)
+        val completed = report.completedAt?.let { formatTransferTimestamp(it, locale) } ?: "-"
+        if (report.operation == DataTransferOperation.BACKUP) {
+            appendLine(if (locale.language == "ko") "백업 날짜·시간: $completed" else "Backup date/time: $completed")
+        }
+        appendLine(uiText(context, "시작: $started"))
+        appendLine(uiText(context, "완료: $completed"))
         appendLine(uiText(context, "현재 단계: ${uiText(context, report.currentStage)}"))
         if (report.stages.isNotEmpty()) {
             appendLine()
             appendLine(uiText(context, "[단계]"))
             report.stages.forEach { stage ->
-                val completed = stage.completedAt?.toString() ?: uiText(context, "진행 중")
-                appendLine("- ${uiText(context, stage.name)}: ${stage.startedAt} ~ $completed")
+                val completedStage = stage.completedAt?.let { formatTransferTimestamp(it, locale) }
+                    ?: uiText(context, "진행 중")
+                appendLine("- ${uiText(context, stage.name)}: ${formatTransferTimestamp(stage.startedAt, locale)} ~ $completedStage")
             }
         }
         if (report.entityCounts.isNotEmpty()) {

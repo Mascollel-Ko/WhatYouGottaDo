@@ -67,6 +67,18 @@ abstract class CloudBackupStateDao {
     @Query("UPDATE cloud_backup_state SET cloudBackupEnabled = :enabled WHERE id = 1 AND accountUserId = :accountUserId")
     internal abstract suspend fun setEnabledForAccount(accountUserId: String, enabled: Boolean)
 
+    /** Explicit CLOUD_WINS restore: only after verified file import committed in the same
+     * Room transaction. Never inherit an older local cloud branch. */
+    @Query("""UPDATE cloud_backup_state SET accountUserId = :accountUserId,
+        localBaseBackupId = :backupId, lastSuccessfulBackupId = :backupId,
+        lastSuccessfulBackupAt = :now, localRevision = 0, cloudBackupPending = 0,
+        lastLocalChangeAt = NULL, retryAttempt = 0, nextRetryAt = NULL,
+        lastFailureCode = NULL
+        WHERE id = 1 AND (accountUserId IS NULL OR accountUserId = :accountUserId)""")
+    internal abstract suspend fun adoptVerifiedCloudCurrent(
+        accountUserId: String, backupId: String, now: Long
+    ): Int
+
     /** Acknowledge only the account/base snapshot used for the upload. */
     @Query("""UPDATE cloud_backup_state SET localBaseBackupId = :backupId,
         localRevision = CASE WHEN localRevision <= :snapshotRevision THEN 0

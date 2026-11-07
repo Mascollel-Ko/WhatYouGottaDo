@@ -26,7 +26,7 @@ const ALLOWED_UPLOAD_FIELDS = new Set([
   "local_revision",
   "compression",
 ]);
-const ALLOWED_FINALIZE_FIELDS = new Set(["backup_id"]);
+const ALLOWED_FINALIZE_FIELDS = new Set(["backup_id", "resolution", "expected_current_backup_id"]);
 
 export class CloudRequestError extends Error {
   constructor(code, message, status = 400) {
@@ -184,6 +184,17 @@ export function validateFinalizeRequest(value) {
       throw new CloudRequestError("UNKNOWN_FIELD", `Unsupported request field: ${key}.`);
     }
   }
+  const localWins = value.resolution === "LOCAL_WINS";
+  if (localWins) {
+    return {
+      backup_id: requireUuid(value.backup_id, "backup_id"),
+      resolution: "LOCAL_WINS",
+      expected_current_backup_id: requireUuid(value.expected_current_backup_id, "expected_current_backup_id"),
+    };
+  }
+  if (value.resolution !== undefined || value.expected_current_backup_id !== undefined) {
+    throw new CloudRequestError("INVALID_RESOLUTION", "Only explicit LOCAL_WINS with expected CURRENT is supported.");
+  }
   return { backup_id: requireUuid(value.backup_id, "backup_id") };
 }
 
@@ -201,6 +212,8 @@ export function assertCurrentPromotion(value) {
   switch (result.status) {
     case "CURRENT":
       return result;
+    case "CURRENT_CHANGED":
+      throw new CloudRequestError("CURRENT_CHANGED", "The Cloud CURRENT changed; review both versions again.", 409);
     case "LINEAGE_CONFLICT":
       throw new CloudRequestError(
         "LINEAGE_CONFLICT",

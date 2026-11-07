@@ -118,6 +118,42 @@ class CloudBackupClientTest {
         assertEquals(0L, db.cloudBackupStateDao().get()!!.localRevision)
     }
 
+    @Test fun explicitLocalWinsIncludesServerCurrentCasAndOrdinaryUploadDoesNot() = runBlocking {
+        val backupId = "11111111-1111-4111-8111-111111111111"
+        val expected = "44444444-4444-4444-8444-444444444444"
+        val transport = RecordingTransport(backupId)
+        val result = CloudBackupClient(
+            db = db(),
+            canonicalBackup = {
+                CanonicalBackupContent("canonical csv",
+                    RecordCsvTransferResult("restore-v14"), emptyList())
+            },
+            config = CloudBackupConfig("https://example.supabase.co", "publishable"),
+            http = transport
+        ).uploadNow(
+            CloudAuthSession("user-1", "token"),
+            now = 1234L,
+            expectedCloudCurrentForLocalWins = expected
+        )
+        assertTrue(result.acknowledged)
+        assertEquals("LOCAL_WINS", transport.posts[1].getString("resolution"))
+        assertEquals(expected, transport.posts[1].getString("expected_current_backup_id"))
+        assertEquals(backupId, transport.posts[1].getString("backup_id"))
+
+        val ordinary = RecordingTransport(backupId)
+        CloudBackupClient(
+            db = db(),
+            canonicalBackup = {
+                CanonicalBackupContent("canonical csv",
+                    RecordCsvTransferResult("restore-v14"), emptyList())
+            },
+            config = CloudBackupConfig("https://example.supabase.co", "publishable"),
+            http = ordinary
+        ).uploadNow(CloudAuthSession("user-1", "token"), now = 1234L)
+        assertFalse(ordinary.posts[1].has("resolution"))
+        assertFalse(ordinary.posts[1].has("expected_current_backup_id"))
+    }
+
     private class DiscoveryTransport(
         private val response: CloudHttpResponse
     ) : CloudHttpTransport {
