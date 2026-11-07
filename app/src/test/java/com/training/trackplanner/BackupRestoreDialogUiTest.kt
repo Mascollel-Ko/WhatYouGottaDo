@@ -119,6 +119,78 @@ class BackupRestoreDialogUiTest {
         compose.onNodeWithText(context.getString(R.string.restore_stale_preflight)).assertIsDisplayed()
     }
 
+
+    @Test
+    fun cloudConflictCancelIsBelowBothFullWidthChoices() {
+        compose.setContent {
+            TrainingTrackPlannerTheme {
+                CloudBackupConflictDialog(
+                    cloudTime = "2026-11-07 21:36",
+                    cloudCurrentAvailable = true,
+                    onKeepLocal = {},
+                    onKeepCloud = {},
+                    onCancel = {}
+                )
+            }
+        }
+        assertBelow(
+            R.string.restore_cancel,
+            R.string.cloud_conflict_local_wins,
+            R.string.cloud_conflict_cloud_wins
+        )
+    }
+
+    @Test
+    fun workoutRestoreCancelIsBelowBothChoices() {
+        content(BackupRestoreUiState.ChooseWorkoutMode(BackupRestoreImpact(overlappingWorkoutDateCount = 2)))
+        assertBelow(
+            R.string.restore_cancel,
+            R.string.restore_workout_replace,
+            R.string.restore_workout_append
+        )
+    }
+
+    @Test
+    fun exerciseRestoreCancelIsBelowChoicesAndBack() {
+        content(
+            BackupRestoreUiState.ChooseExerciseMode(
+                WorkoutRestoreMode.REPLACE_OVERLAPPING_DATES,
+                customReplacementImpact()
+            )
+        )
+        assertBelow(
+            R.string.restore_cancel,
+            R.string.restore_exercise_preserve,
+            R.string.restore_exercise_apply,
+            R.string.restore_back
+        )
+    }
+
+    @Test
+    fun finalRestoreCancelIsBelowConfirmAndBack() {
+        content(
+            BackupRestoreUiState.Confirm(
+                WorkoutRestoreMode.APPEND_TO_CURRENT,
+                ExerciseListRestoreMode.PRESERVE_CURRENT_ACTIVE_EXERCISES,
+                customReplacementImpact()
+            )
+        )
+        assertBelow(R.string.restore_cancel, R.string.restore_confirm, R.string.restore_back)
+    }
+
+    private fun assertBelow(cancelTextRes: Int, vararg precedingTextRes: Int) {
+        val cancel = compose.onNodeWithText(context.getString(cancelTextRes))
+            .assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        precedingTextRes.forEach { res ->
+            val action = compose.onNodeWithText(context.getString(res))
+                .assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+            assertTrue(
+                "Cancel must be completely below ${context.getString(res)}, not on its row",
+                cancel.top >= action.bottom
+            )
+        }
+    }
+
     private fun customReplacementImpact() = BackupRestoreImpact(
         overlappingWorkoutDateCount = 2,
         representedExerciseCount = 7,
