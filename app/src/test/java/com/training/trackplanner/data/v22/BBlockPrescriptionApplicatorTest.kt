@@ -1,7 +1,11 @@
 package com.training.trackplanner.data.v22
 
+import com.training.trackplanner.data.ProgramLoadState
+import com.training.trackplanner.data.personalized.PostGenerationFixture
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.json.JSONArray
+import org.json.JSONObject
 import org.junit.Test
 
 class BBlockPrescriptionApplicatorTest {
@@ -66,5 +70,59 @@ class BBlockPrescriptionApplicatorTest {
         assertEquals(listOf(3 to 5,3 to 6,3 to 7,3 to 8),doses(BVolumePattern.PROGRESSIVE))
         assertEquals(listOf(3 to 5,3 to 7,3 to 5,3 to 7),doses(BVolumePattern.WAVE))
         assertEquals(listOf(3 to 5,3 to 6,3 to 7,2 to 5),doses(BVolumePattern.ACCUMULATE_RECOVER))
+    }
+
+    @Test fun manualStartLoadAuthorizesLaterWeeksWithoutInventingAnUnknownStart() {
+        val fixture = PostGenerationFixture
+        val base = fixture.plan(listOf(fixture.row("squat", 1)), days = listOf(1), horizon = 4)
+        val steps = JSONArray().apply {
+            (1..3).forEach { localWeek ->
+                put(JSONObject()
+                    .put("block", 1)
+                    .put("localWeek", localWeek)
+                    .put("session", 1)
+                    .put("stableKey", "squat")
+                    .put("loadSteps", localWeek))
+            }
+        }
+        val metadata = JSONObject()
+            .put("schema", BBalanced12WeekEngine.BLOCK_SCHEMA)
+            .put("blocks", JSONArray().put(JSONObject().put("focus", BBalancedGoal.STRENGTH.name)))
+            .put("blockSpecs", JSONArray().put(JSONObject()
+                .put("weeks", 4)
+                .put("pattern", BVolumePattern.PROGRESSIVE.name)
+                .put("adjustment", BVolumeAdjustment.LOAD_FIRST.name)))
+            .put("recoveryDaysBetween", JSONArray())
+            .put("prescriptionSteps", steps)
+            .put("equipmentIncrementKinds", JSONObject().put("squat", BEquipmentIncrementKind.BARBELL.name))
+            .toString()
+        val unresolved = base.copy(
+            planningMetadataJson = metadata,
+            items = base.items.map { item -> item.copy(
+                weightKg = 0.0,
+                setPrescriptions = item.setPrescriptions.map { set -> set.copy(
+                    weightKg = 0.0,
+                    loadState = ProgramLoadState.USER_CALIBRATION_REQUIRED
+                ) }
+            ) }
+        )
+        assertEquals(unresolved, unresolved.propagateBBlockStartLoad(unresolved, 1.25))
+
+        val entered = unresolved.copy(items = unresolved.items.map { item ->
+            if (item.weekNumber != 1) item else item.copy(
+                weightKg = 100.0,
+                setPrescriptions = item.setPrescriptions.map { set -> set.copy(
+                    weightKg = 100.0,
+                    loadState = ProgramLoadState.EXPLICIT_LOAD
+                ) }
+            )
+        })
+        val propagated = entered.propagateBBlockStartLoad(unresolved, 1.25)
+        assertEquals(listOf(100.0, 102.5, 105.0, 107.5), propagated.items
+            .sortedBy { it.weekNumber }
+            .map { it.setPrescriptions.first().weightKg })
+        assertTrue(propagated.items.all { item ->
+            item.setPrescriptions.all { it.loadState == ProgramLoadState.EXPLICIT_LOAD }
+        })
     }
 }
