@@ -124,6 +124,11 @@ android {
 
     testOptions {
         unitTests.isIncludeAndroidResources = true
+        unitTests.all {
+            // The full Robolectric suite includes a memory-heavy production coverage census.
+            // Keep enough headroom when persistence/UI regressions run in the same worker.
+            it.maxHeapSize = "1024m"
+        }
     }
 
     buildFeatures {
