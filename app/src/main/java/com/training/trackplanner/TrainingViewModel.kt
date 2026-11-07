@@ -47,6 +47,7 @@ import com.training.trackplanner.data.CommunityActivityPublisher
 import com.training.trackplanner.data.CommunityActivityConfirmationPolicy
 import com.training.trackplanner.data.DefaultCommunityActivityPublisher
 import com.training.trackplanner.data.CloudBackupState
+import com.training.trackplanner.data.CloudCurrentBackupMetadata
 import com.training.trackplanner.data.DataTransferDiagnosticCodes
 import com.training.trackplanner.data.DataTransferFailure
 import com.training.trackplanner.data.DataTransferFormatException
@@ -301,6 +302,9 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         }
     )
     internal val cloudAuthState: StateFlow<CloudAuthUiState> = _cloudAuthState.asStateFlow()
+    private val _cloudConflictCurrent = MutableStateFlow<CloudCurrentBackupMetadata?>(null)
+    internal val cloudConflictCurrent: StateFlow<CloudCurrentBackupMetadata?> = _cloudConflictCurrent.asStateFlow()
+
     val cloudBackupState: StateFlow<CloudBackupState?> = repository.observeCloudBackupState().stateIn(
         viewModelScope, SharingStarted.WhileSubscribed(5_000), null
     )
@@ -559,12 +563,12 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun uploadCloudBackup(onCompleted: (Boolean) -> Unit = {}) {
+    fun uploadCloudBackup(onCompleted: (Boolean, String?) -> Unit = { _, _ -> }) {
         viewModelScope.launch {
             val session = authRepository.refreshIfNeeded()
             if (session == null) {
                 _cloudAuthState.value = _cloudAuthState.value.copy(message = "LOGIN_REQUIRED")
-                onCompleted(false)
+                onCompleted(false, "LOGIN_REQUIRED")
                 return@launch
             }
             _cloudAuthState.value = _cloudAuthState.value.copy(session = session, status = CloudAuthStatus.LOGGED_IN)
@@ -573,7 +577,7 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
             } catch (_: Throwable) {
                 // Unknown CURRENT is fail-closed: keep Guest/local data and let the user retry.
                 _cloudAuthState.value = _cloudAuthState.value.copy(message = "CLOUD_CURRENT_DISCOVERY_FAILED")
-                onCompleted(false)
+                onCompleted(false, "CLOUD_CURRENT_DISCOVERY_FAILED")
                 return@launch
             }
             runCatching {
@@ -593,11 +597,80 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
                 _cloudAuthState.value = _cloudAuthState.value.copy(
                     message = if (result.acknowledged) "BACKUP_CURRENT" else "BACKUP_UPLOADED_PENDING"
                 )
-                onCompleted(result.acknowledged)
+                onCompleted(result.acknowledged, if (result.acknowledged) null else "BACKUP_UPLOADED_PENDING")
             }.onFailure { error ->
-                _cloudAuthState.value = _cloudAuthState.value.copy(message = error.message ?: "CLOUD_UPLOAD_FAILED")
-                onCompleted(false)
+                val code = error.message ?: "CLOUD_UPLOAD_FAILED"
+                if (code == "LINEAGE_CONFLICT" || code == "GUEST_CLOUD_COMPARISON_REQUIRED") {
+                    _cloudConflictCurrent.value = runCatching {
+                        repository.discoverCloudCurrentFresh(session)
+                    }.getOrNull()
+                }
+                _cloudAuthState.value = _cloudAuthState.value.copy(message = code)
+                onCompleted(false, if (_cloudConflictCurrent.value != null &&
+                    code in setOf("LINEAGE_CONFLICT", "GUEST_CLOUD_COMPARISON_REQUIRED"))
+                    "LINEAGE_CONFLICT" else code)
             }
+        }
+    }
+
+    /** Called only from the explicit two-choice conflict dialog. */
+    internal fun keepLocalAndReplaceCloud(onCompleted: (Boolean, String?) -> Unit) {
+        val expected = _cloudConflictCurrent.value?.backupId
+        if (expected == null) { onCompleted(false, "CLOUD_CURRENT_DISCOVERY_FAILED"); return }
+        viewModelScope.launch {
+            val session = authRepository.refreshIfNeeded()
+            if (session == null) { onCompleted(false, "LOGIN_REQUIRED"); return@launch }
+            runCatching { repository.replaceCloudCurrentWithLocal(session, expected) }
+                .onSuccess { result ->
+                    if (result.acknowledged) {
+                        _cloudConflictCurrent.value = null
+                        _cloudAuthState.value = _cloudAuthState.value.copy(message = "BACKUP_CURRENT")
+                    }
+                    onCompleted(result.acknowledged, if (result.acknowledged) null else "BACKUP_UPLOADED_PENDING")
+                }.onFailure { error ->
+                    val code = error.message ?: "CLOUD_UPLOAD_FAILED"
+                    if (code == "CURRENT_CHANGED") {
+                        _cloudConflictCurrent.value = runCatching {
+                            repository.discoverCloudCurrentFresh(session)
+                        }.getOrNull()
+                    }
+                    _cloudAuthState.value = _cloudAuthState.value.copy(message = code)
+                    onCompleted(false, code)
+                }
+        }
+    }
+
+    /** A SAF export must complete before this destructive action is offered. */
+    internal fun saveLocalArchiveBeforeCloudReplace(uri: Uri, onCompleted: (Boolean, String?) -> Unit) {
+        viewModelScope.launch {
+            runCatching {
+                repository.exportRecordsBackup(uri) { report -> _dataTransferReport.value = report }
+            }.onSuccess {
+                onCompleted(true, null)
+            }.onFailure { error ->
+                onCompleted(false, error.message ?: "LOCAL_ARCHIVE_FAILED")
+            }
+        }
+    }
+
+    internal fun keepCloudAndReplaceLocal(onCompleted: (Boolean, String?) -> Unit) {
+        val expected = _cloudConflictCurrent.value?.backupId
+        if (expected == null) { onCompleted(false, "CLOUD_CURRENT_DISCOVERY_FAILED"); return }
+        viewModelScope.launch {
+            val session = authRepository.refreshIfNeeded()
+            if (session == null) { onCompleted(false, "LOGIN_REQUIRED"); return@launch }
+            runCatching { repository.replaceLocalWithCloudCurrent(session, expected) }
+                .onSuccess {
+                    _cloudConflictCurrent.value = null
+                    _cloudAuthState.value = _cloudAuthState.value.copy(message = "BACKUP_CURRENT")
+                    onCompleted(true, null)
+                    // An analysis rebuild failure must not falsely mark committed data as failed.
+                    runCatching { refreshExerciseRuntimeMetadataInternal(); refreshAnalysisSummaries() }
+                }.onFailure { error ->
+                    val code = error.message ?: "CLOUD_RESTORE_FAILED"
+                    _cloudAuthState.value = _cloudAuthState.value.copy(message = code)
+                    onCompleted(false, code)
+                }
         }
     }
 
