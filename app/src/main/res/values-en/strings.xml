@@ -489,6 +489,10 @@
     <string name="cloud_conflict_safety_title">Save your device data first</string>
     <string name="cloud_conflict_safety_description">The Cloud backup may be older than this device. Continuing replaces the device workout records and programs. First save the current device records as a CSV file. Restoration proceeds only after the archive is saved successfully. Canceling or a failed save leaves device data unchanged.</string>
     <string name="cloud_conflict_archive_first">Save device backup file, then replace</string>
+    <string name="cloud_upload_success">Cloud backup successful</string>
+    <string name="cloud_upload_completed">Success! Your latest backup is saved in the cloud.</string>
+    <string name="cloud_upload_failed">Cloud backup failed</string>
+    <string name="cloud_upload_error">Backup could not be completed. Error: %1$s</string>
     <string name="cloud_conflict_success">Backup conflict resolved</string>
     <string name="cloud_conflict_failed">Backup conflict resolution failed</string>
     <string name="cloud_conflict_saving_local">Saving device archive</string>

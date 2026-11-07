@@ -124,12 +124,12 @@ internal fun HomeScreen(
             viewModel.saveLocalArchiveBeforeCloudReplace(uri) { saved, code ->
                 if (!saved) {
                     manualCloudError = code
-                    manualCloudUploadStatus = "failed"
+                    manualCloudUploadStatus = "conflictFailed"
                 } else {
                     manualCloudUploadStatus = "restoringCloud"
                     viewModel.keepCloudAndReplaceLocal { success, restoreCode ->
                         manualCloudError = restoreCode
-                        manualCloudUploadStatus = if (success) "success" else "failed"
+                        manualCloudUploadStatus = if (success) "conflictSuccess" else "conflictFailed"
                     }
                 }
             }
@@ -265,6 +265,7 @@ internal fun HomeScreen(
             onUpload = {
                 showAccountDialog = false
                 manualCloudUploadStatus = "uploading"
+                manualCloudError = null
                 viewModel.uploadCloudBackup { acknowledged, code ->
                     manualCloudError = code
                     manualCloudUploadStatus = when {
@@ -305,7 +306,7 @@ internal fun HomeScreen(
                             manualCloudError = null
                             viewModel.keepLocalAndReplaceCloud { success, code ->
                                 manualCloudError = code
-                                manualCloudUploadStatus = if (success) "success" else "failed"
+                                manualCloudUploadStatus = if (success) "conflictSuccess" else "conflictFailed"
                             }
                         }
                     ) { Text(stringResource(R.string.cloud_conflict_local_wins)) }
@@ -355,8 +356,10 @@ internal fun HomeScreen(
             title = {
                 Text(
                     when (manualCloudUploadStatus) {
-                        "success" -> stringResource(R.string.cloud_conflict_success)
-                        "failed" -> stringResource(R.string.cloud_conflict_failed)
+                        "success" -> stringResource(R.string.cloud_upload_success)
+                        "conflictSuccess" -> stringResource(R.string.cloud_conflict_success)
+                        "failed" -> stringResource(R.string.cloud_upload_failed)
+                        "conflictFailed" -> stringResource(R.string.cloud_conflict_failed)
                         "savingLocal" -> stringResource(R.string.cloud_conflict_saving_local)
                         "restoringCloud" -> stringResource(R.string.cloud_conflict_restoring)
                         else -> stringResource(R.string.cloud_backup_in_progress)
@@ -369,7 +372,11 @@ internal fun HomeScreen(
                         CircularProgressIndicator()
                         Text(stringResource(R.string.cloud_conflict_progress))
                     } else if (manualCloudUploadStatus == "success") {
+                        Text(stringResource(R.string.cloud_upload_completed))
+                    } else if (manualCloudUploadStatus == "conflictSuccess") {
                         Text(stringResource(R.string.cloud_conflict_completed))
+                    } else if (manualCloudUploadStatus == "failed") {
+                        Text(stringResource(R.string.cloud_upload_error, manualCloudError ?: "-"))
                     } else {
                         Text(stringResource(R.string.cloud_conflict_error, manualCloudError ?: "-"))
                     }
