@@ -8,6 +8,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -292,39 +293,22 @@ internal fun HomeScreen(
                     .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
             }.getOrNull()
         } ?: stringResource(R.string.cloud_conflict_unknown_time)
-        AlertDialog(
-            onDismissRequest = { manualCloudUploadStatus = "idle" },
-            title = { Text(stringResource(R.string.cloud_conflict_title)) },
-            text = { Text(stringResource(R.string.cloud_conflict_description, cloudTime)) },
-            confirmButton = {
-                Column {
-                    Button(
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = cloudConflictCurrent != null,
-                        onClick = {
-                            manualCloudUploadStatus = "uploading"
-                            manualCloudError = null
-                            viewModel.keepLocalAndReplaceCloud { success, code ->
-                                manualCloudError = code
-                                manualCloudUploadStatus = if (success) "conflictSuccess" else "conflictFailed"
-                            }
-                        }
-                    ) { Text(stringResource(R.string.cloud_conflict_local_wins)) }
-                    OutlinedButton(
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = cloudConflictCurrent != null,
-                        onClick = {
-                            manualCloudUploadStatus = "idle"
-                            showCloudRestoreSafety = true
-                        }
-                    ) { Text(stringResource(R.string.cloud_conflict_cloud_wins)) }
+        CloudBackupConflictDialog(
+            cloudTime = cloudTime,
+            cloudCurrentAvailable = cloudConflictCurrent != null,
+            onKeepLocal = {
+                manualCloudUploadStatus = "uploading"
+                manualCloudError = null
+                viewModel.keepLocalAndReplaceCloud { success, code ->
+                    manualCloudError = code
+                    manualCloudUploadStatus = if (success) "conflictSuccess" else "conflictFailed"
                 }
             },
-            dismissButton = {
-                TextButton(onClick = { manualCloudUploadStatus = "idle" }) {
-                    Text(stringResource(R.string.restore_cancel))
-                }
-            }
+            onKeepCloud = {
+                manualCloudUploadStatus = "idle"
+                showCloudRestoreSafety = true
+            },
+            onCancel = { manualCloudUploadStatus = "idle" }
         )
     }
     if (showCloudRestoreSafety) {
@@ -336,16 +320,22 @@ internal fun HomeScreen(
             title = { Text(stringResource(R.string.cloud_conflict_safety_title)) },
             text = { Text(stringResource(R.string.cloud_conflict_safety_description)) },
             confirmButton = {
-                Button(onClick = {
-                    showCloudRestoreSafety = false
-                    protectLocalBeforeCloudReplaceLauncher.launch("whatyougottado_before_cloud_restore_$today.csv")
-                }) { Text(stringResource(R.string.cloud_conflict_archive_first)) }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    showCloudRestoreSafety = false
-                    manualCloudUploadStatus = "conflict"
-                }) { Text(stringResource(R.string.restore_cancel)) }
+                BackupDialogActionColumn {
+                    Button(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            showCloudRestoreSafety = false
+                            protectLocalBeforeCloudReplaceLauncher.launch("whatyougottado_before_cloud_restore_$today.csv")
+                        }
+                    ) { Text(stringResource(R.string.cloud_conflict_archive_first)) }
+                    TextButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            showCloudRestoreSafety = false
+                            manualCloudUploadStatus = "conflict"
+                        }
+                    ) { Text(stringResource(R.string.restore_cancel)) }
+                }
             }
         )
     }
@@ -408,35 +398,37 @@ internal fun HomeScreen(
                 }
             },
             confirmButton = {
-                Button(
-                    enabled = !deleteInProgress && activity != null,
-                    onClick = {
-                        val currentActivity = activity ?: return@Button
-                        deleteInProgress = true
-                        deleteError = null
-                        viewModel.deleteCloudAccount(currentActivity) { message, backupCleanupPending ->
-                            deleteInProgress = false
-                            if (message == null) {
-                                showDeleteConfirmation = false
-                                android.widget.Toast.makeText(
-                                    currentActivity,
-                                    if (backupCleanupPending)
-                                        "계정은 삭제됐습니다. 클라우드 파일 정리는 서버에서 계속 진행됩니다."
-                                    else "계정과 개인 기록을 삭제했습니다.",
-                                    android.widget.Toast.LENGTH_LONG
-                                ).show()
-                            } else {
-                                deleteError = message
+                BackupDialogActionColumn {
+                    Button(
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !deleteInProgress && activity != null,
+                        onClick = {
+                            val currentActivity = activity ?: return@Button
+                            deleteInProgress = true
+                            deleteError = null
+                            viewModel.deleteCloudAccount(currentActivity) { message, backupCleanupPending ->
+                                deleteInProgress = false
+                                if (message == null) {
+                                    showDeleteConfirmation = false
+                                    android.widget.Toast.makeText(
+                                        currentActivity,
+                                        if (backupCleanupPending)
+                                            "계정은 삭제됐습니다. 클라우드 파일 정리는 서버에서 계속 진행됩니다."
+                                        else "계정과 개인 기록을 삭제했습니다.",
+                                        android.widget.Toast.LENGTH_LONG
+                                    ).show()
+                                } else {
+                                    deleteError = message
+                                }
                             }
                         }
-                    }
-                ) { Text("Google로 재확인하고 계정 삭제") }
-            },
-            dismissButton = {
-                TextButton(
-                    enabled = !deleteInProgress,
-                    onClick = { showDeleteConfirmation = false }
-                ) { Text("취소") }
+                    ) { Text("Google로 재확인하고 계정 삭제") }
+                    TextButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !deleteInProgress,
+                        onClick = { showDeleteConfirmation = false }
+                    ) { Text("취소") }
+                }
             }
         )
     }
@@ -561,6 +553,50 @@ internal fun AppLanguageSelector(modifier: Modifier = Modifier) {
             }
         }
     }
+}
+
+/** Keep backup actions in a single column. AlertDialog's separate confirm/dismiss
+ * slots may occupy the same row and overlap when confirm holds multiple buttons. */
+@Composable
+internal fun BackupDialogActionColumn(content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        content = content
+    )
+}
+
+@Composable
+internal fun CloudBackupConflictDialog(
+    cloudTime: String,
+    cloudCurrentAvailable: Boolean,
+    onKeepLocal: () -> Unit,
+    onKeepCloud: () -> Unit,
+    onCancel: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = { Text(stringResource(R.string.cloud_conflict_title)) },
+        text = { Text(stringResource(R.string.cloud_conflict_description, cloudTime)) },
+        confirmButton = {
+            BackupDialogActionColumn {
+                Button(
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = cloudCurrentAvailable,
+                    onClick = onKeepLocal
+                ) { Text(stringResource(R.string.cloud_conflict_local_wins)) }
+                OutlinedButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = cloudCurrentAvailable,
+                    onClick = onKeepCloud
+                ) { Text(stringResource(R.string.cloud_conflict_cloud_wins)) }
+                TextButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = onCancel
+                ) { Text(stringResource(R.string.restore_cancel)) }
+            }
+        }
+    )
 }
 
 @Composable
@@ -735,17 +771,20 @@ internal fun BackupRestoreDialogHost(
                 )
             },
             confirmButton = {
-                Column {
-                    TextButton(onClick = { onWorkoutMode(WorkoutRestoreMode.REPLACE_OVERLAPPING_DATES) }) {
-                        Text(stringResource(R.string.restore_workout_replace))
-                    }
-                    TextButton(onClick = { onWorkoutMode(WorkoutRestoreMode.APPEND_TO_CURRENT) }) {
-                        Text(stringResource(R.string.restore_workout_append))
-                    }
+                BackupDialogActionColumn {
+                    TextButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { onWorkoutMode(WorkoutRestoreMode.REPLACE_OVERLAPPING_DATES) }
+                    ) { Text(stringResource(R.string.restore_workout_replace)) }
+                    TextButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { onWorkoutMode(WorkoutRestoreMode.APPEND_TO_CURRENT) }
+                    ) { Text(stringResource(R.string.restore_workout_append)) }
+                    TextButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onCancel
+                    ) { Text(stringResource(R.string.restore_cancel)) }
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = onCancel) { Text(stringResource(R.string.restore_cancel)) }
             }
         )
         is BackupRestoreUiState.ChooseExerciseMode -> AlertDialog(
@@ -771,27 +810,29 @@ internal fun BackupRestoreDialogHost(
                 }
             },
             confirmButton = {
-                Column {
+                BackupDialogActionColumn {
                     TextButton(
+                        modifier = Modifier.fillMaxWidth(),
                         onClick = {
                             onExerciseMode(ExerciseListRestoreMode.PRESERVE_CURRENT_ACTIVE_EXERCISES)
                         }
                     ) { Text(stringResource(R.string.restore_exercise_preserve)) }
                     TextButton(
+                        modifier = Modifier.fillMaxWidth(),
                         onClick = {
                             onExerciseMode(ExerciseListRestoreMode.APPLY_BACKUP_ACTIVE_EXERCISE_LIST)
                         }
                     ) { Text(stringResource(R.string.restore_exercise_apply)) }
-                }
-            },
-            dismissButton = {
-                Row {
                     if (state.impact.overlappingWorkoutDateCount > 0) {
-                        TextButton(onClick = onBackToWorkout) {
-                            Text(stringResource(R.string.restore_back))
-                        }
+                        TextButton(
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = onBackToWorkout
+                        ) { Text(stringResource(R.string.restore_back)) }
                     }
-                    TextButton(onClick = onCancel) { Text(stringResource(R.string.restore_cancel)) }
+                    TextButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onCancel
+                    ) { Text(stringResource(R.string.restore_cancel)) }
                 }
             }
         )
@@ -877,14 +918,19 @@ internal fun BackupRestoreDialogHost(
                 }
             },
             confirmButton = {
-                TextButton(onClick = onConfirm) { Text(stringResource(R.string.restore_confirm)) }
-            },
-            dismissButton = {
-                Row {
-                    TextButton(onClick = onBackToExercise) {
-                        Text(stringResource(R.string.restore_back))
-                    }
-                    TextButton(onClick = onCancel) { Text(stringResource(R.string.restore_cancel)) }
+                BackupDialogActionColumn {
+                    TextButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onConfirm
+                    ) { Text(stringResource(R.string.restore_confirm)) }
+                    TextButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onBackToExercise
+                    ) { Text(stringResource(R.string.restore_back)) }
+                    TextButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onCancel
+                    ) { Text(stringResource(R.string.restore_cancel)) }
                 }
             }
         )
@@ -1264,18 +1310,19 @@ internal fun DataTransferReportDialog(
             )
         },
         confirmButton = {
-            TextButton(onClick = { clipboard.setText(AnnotatedString(report.detailText())) }) {
-                Text("상세 내용 복사")
-            }
-        },
-        dismissButton = {
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                TextButton(onClick = onSave) {
-                    Text("진단 보고서 파일로 저장")
-                }
-                TextButton(onClick = onDismiss) {
-                    Text("닫기")
-                }
+            BackupDialogActionColumn {
+                TextButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { clipboard.setText(AnnotatedString(report.detailText())) }
+                ) { Text("상세 내용 복사") }
+                TextButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = onSave
+                ) { Text("진단 보고서 파일로 저장") }
+                TextButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = onDismiss
+                ) { Text("닫기") }
             }
         }
     )
