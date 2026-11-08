@@ -72,6 +72,16 @@ internal class DailyStatusService(
         }
     }
 
+    /** Explicit user-confirmed watch replacement. Only sleepHours is changed. */
+    suspend fun replaceSleepHoursFromWatch(date: String, hours: Double): Boolean = withContext(Dispatchers.IO) {
+        require(hours.isFinite() && hours > 0.0 && hours <= 24.0)
+        db.withCloudRevision(CloudMutationScope.DAILY) {
+            val latest = dailyCheckInDao.getForDate(date)
+            upsertInTransaction((latest ?: DailyCheckIn(date = date)).copy(sleepHours = hours))
+            true
+        }
+    }
+
     suspend fun deleteDailyCheckIn(date: String) = withContext(Dispatchers.IO) {
         db.withCloudRevision(CloudMutationScope.DAILY) { dailyCheckInDao.deleteForDate(date) }
     }
