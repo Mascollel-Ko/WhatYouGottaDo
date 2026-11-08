@@ -13,7 +13,7 @@ test("saved sleep defers Health Connect reads until explicit user action", () =>
   assert.match(health, /savedHours != null && !manualLookup/);
   assert.match(health, /manualLookup = true/);
   assert.match(health, /return@LaunchedEffect/);
-  assert.doesNotMatch(record, /if \\(WatchSleepLookupPolicy\\.shouldRead/);
+  assert.doesNotMatch(record, /WatchSleepLookupPolicy[.]shouldRead/);
 });
 
 test("plan detail lazily composes each exercise separately from its day heading", () => {
