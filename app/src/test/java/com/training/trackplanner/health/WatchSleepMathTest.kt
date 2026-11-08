@@ -62,3 +62,28 @@ class WatchSleepMathTest {
         assertFalse(r.reliable)
     }
 }
+
+class WatchSleepAggregateTest {
+    private val base = Instant.parse("2026-11-07T12:00:00Z")
+    private fun session(start: Long, end: Long, sleep: Int?, reliable: Boolean = true) =
+        WatchSleep("id:$start", "watch", base.plusSeconds(start * 60),
+            base.plusSeconds(end * 60), sleep, (end - start).toInt(), reliable)
+
+    @Test fun splitSessionsAreSummed() {
+        assertEquals(390, WatchSleepAggregate.combine(listOf(
+            session(60, 270, 210), session(330, 510, 180)
+        ))?.sleepMinutes)
+    }
+
+    @Test fun overlappingSessionsAreNotDoubleCounted() {
+        assertNull(WatchSleepAggregate.combine(listOf(
+            session(60, 270, 210), session(240, 510, 270)
+        )))
+    }
+
+    @Test fun unreliableSessionsPreventAutomaticFill() {
+        assertNull(WatchSleepAggregate.combine(listOf(
+            session(60, 270, 210), session(330, 510, null, false)
+        )))
+    }
+}
