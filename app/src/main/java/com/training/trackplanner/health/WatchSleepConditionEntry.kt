@@ -69,12 +69,13 @@ internal fun WatchSleepConditionEntry(
             if (LocalDate.parse(date).isAfter(LocalDate.now())) return@LaunchedEffect
             status = "워치 수면 확인 중…"
             val values = gateway.sleep(LocalDate.parse(date), forceRefresh = refresh > 0)
-            // One unambiguous nightly sleep is required for unattended auto-fill.
             multiple = values.size > 1
-            sleep = values.singleOrNull()
-            status = if (values.isEmpty()) "공유된 수면기록 없음" else if (multiple) {
-                "여러 수면 기록이 있어 자동 입력하지 않습니다."
-            } else null
+            sleep = WatchSleepAggregate.combine(values)
+            status = when {
+                values.isEmpty() -> "공유된 수면기록 없음"
+                sleep == null -> "수면 단계가 부족하거나 기록이 겹쳐 자동 입력하지 않습니다."
+                else -> null
+            }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -111,7 +112,7 @@ internal fun WatchSleepConditionEntry(
                 if (candidate != null) {
                     val label = candidate.sleepMinutes ?: candidate.elapsedMinutes
                     Text(
-                        if (candidate.reliable) "워치 수면: ${label / 60}시간 ${label % 60}분" else
+                        if (candidate.reliable) "워치 수면${if (multiple) " 합계" else ""}: ${label / 60}시간 ${label % 60}분" else
                             "워치 수면 구간: ${label / 60}시간 ${label % 60}분 (실제 수면시간 미확인)",
                         style = MaterialTheme.typography.bodySmall
                     )
