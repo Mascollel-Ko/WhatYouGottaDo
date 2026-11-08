@@ -130,6 +130,32 @@ internal fun WatchSleepConditionEntry(
         }
     }
 
+                if (replacementMinutes != null) {
+                    val minutes = replacementMinutes ?: 0
+                    AlertDialog(
+                        onDismissRequest = { replacementMinutes = null },
+                        title = { Text("수면시간 교체") },
+                        text = { Text("기존 수면시간을 워치에서 선택한 ${minutes / 60}시간 ${minutes % 60}분으로 교체할까요? 다른 컨디션 기록은 유지됩니다.") },
+                        confirmButton = {
+                            TextButton(enabled = !applying, onClick = {
+                                applying = true
+                                viewModel.replaceSleepHoursFromWatch(date, minutes / 60.0) { successful ->
+                                    if (successful) {
+                                        prefs.markSleepHandled(date)
+                                        pickerOpen = false
+                                        replacementMinutes = null
+                                    }
+                                    applying = false
+                                }
+                            }) { Text("교체") }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { replacementMinutes = null }) { Text("취소") }
+                        }
+                    )
+                }
+            }
+
     if (lookupDialog) {
         AlertDialog(
             onDismissRequest = { lookupDialog = false },
@@ -316,31 +342,7 @@ internal fun WatchSleepConditionEntry(
                             ) { Text(if (savedHours == null) "선택한 수면시간 적용" else "기존 수면시간 교체") }
                         }
                     }
-                    if (replacementMinutes != null) {
-                        val minutes = replacementMinutes ?: 0
-                        AlertDialog(
-                            onDismissRequest = { replacementMinutes = null },
-                            title = { Text("수면시간 교체") },
-                            text = { Text("기존 수면시간을 워치에서 선택한 ${minutes / 60}시간 ${minutes % 60}분으로 교체할까요? 다른 컨디션 기록은 유지됩니다.") },
-                            confirmButton = {
-                                TextButton(enabled = !applying, onClick = {
-                                    applying = true
-                                    viewModel.replaceSleepHoursFromWatch(date, minutes / 60.0) { successful ->
-                                        if (successful) {
-                                            prefs.markSleepHandled(date)
-                                            pickerOpen = false
-                                            replacementMinutes = null
-                                        }
-                                        applying = false
-                                    }
-                                }) { Text("교체") }
-                            },
-                            dismissButton = {
-                                TextButton(onClick = { replacementMinutes = null }) { Text("취소") }
-                            }
-                        )
-                    }
-                }
+
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     OutlinedButton(onClick = {
                         prefs.autoSleep = !enabled
