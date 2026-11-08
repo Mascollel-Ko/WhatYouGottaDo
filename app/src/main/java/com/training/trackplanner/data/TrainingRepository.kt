@@ -508,6 +508,16 @@ class TrainingRepository internal constructor(
         changed
     }
 
+    suspend fun replaceSleepHoursFromWatch(date: String, hours: Double): Boolean = withContext(Dispatchers.IO) {
+        val beforeRevision = db.cloudBackupStateDao().getOrCreate().localRevision
+        val changed = dailyStatusService.replaceSleepHoursFromWatch(date, hours)
+        if (changed) {
+            LocalRecoveryScheduler.schedule(context)
+            scheduleAutomaticCloudBackupIfChanged(beforeRevision)
+        }
+        changed
+    }
+
     suspend fun applyWatchDurationIfUnchanged(
         entryId: Long, setId: Long, expectedSeconds: Int, newSeconds: Int
     ): RecordSetMutationResult? = withContext(Dispatchers.IO) {
