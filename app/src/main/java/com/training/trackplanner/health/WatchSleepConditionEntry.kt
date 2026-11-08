@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -50,6 +51,7 @@ internal fun WatchSleepConditionEntry(
     var sessions by remember(date) { mutableStateOf<List<WatchSleep>>(emptyList()) }
     var selectedIds by remember(date) { mutableStateOf<Set<String>>(emptySet()) }
     var pickerOpen by remember(date) { mutableStateOf(false) }
+    var replacementMinutes by remember(date) { mutableStateOf<Int?>(null) }
     var status by remember(date) { mutableStateOf<String?>(null) }
     var applying by remember(date) { mutableStateOf(false) }
 
@@ -136,9 +138,9 @@ internal fun WatchSleepConditionEntry(
                 if (sessions.size > 1) {
                     val formatter = remember { DateTimeFormatter.ofPattern("MM/dd HH:mm") }
                     val zone = ZoneId.systemDefault()
-                    if (savedHours == null && !editorOpen && !prefs.hasHandledSleep(date)) {
+                    if (!editorOpen) {
                         OutlinedButton(onClick = { pickerOpen = !pickerOpen }) {
-                            Text(if (pickerOpen) "수면 선택 닫기" else "워치 수면 선택")
+                            Text(if (pickerOpen) "수면 선택 닫기" else if (savedHours != null) "워치 수면 다시 선택" else "워치 수면 선택")
                         }
                         if (pickerOpen) {
                             Text("실제로 잔 구간만 선택하세요.", style = MaterialTheme.typography.bodySmall)
@@ -178,19 +180,45 @@ internal fun WatchSleepConditionEntry(
                                 enabled = combined != null && !applying,
                                 onClick = {
                                     val minutes = combined?.sleepMinutes ?: return@OutlinedButton
+                                    if (savedHours != null) {
+                                        replacementMinutes = minutes
+                                    } else {
+                                        applying = true
+                                        viewModel.fillSleepHoursIfEmpty(date, minutes / 60.0) { successful ->
+                                            if (successful) {
+                                                prefs.markSleepHandled(date)
+                                                pickerOpen = false
+                                            }
+                                            applying = false
+                                        }
+                                    }
+                                }
+                            ) { Text(if (savedHours == null) "선택한 수면시간 적용" else "기존 수면시간 교체") }
+                        }
+                    }
+                    if (replacementMinutes != null) {
+                        val minutes = replacementMinutes ?: 0
+                        AlertDialog(
+                            onDismissRequest = { replacementMinutes = null },
+                            title = { Text("수면시간 교체") },
+                            text = { Text("기존 수면시간을 워치에서 선택한 ${minutes / 60}시간 ${minutes % 60}분으로 교체할까요? 다른 컨디션 기록은 유지됩니다.") },
+                            confirmButton = {
+                                TextButton(enabled = !applying, onClick = {
                                     applying = true
-                                    viewModel.fillSleepHoursIfEmpty(date, minutes / 60.0) { successful ->
+                                    viewModel.replaceSleepHoursFromWatch(date, minutes / 60.0) { successful ->
                                         if (successful) {
                                             prefs.markSleepHandled(date)
                                             pickerOpen = false
+                                            replacementMinutes = null
                                         }
                                         applying = false
                                     }
-                                }
-                            ) { Text("선택한 수면시간 적용") }
-                        }
-                    } else if (savedHours != null) {
-                        Text("기존 수면시간을 보존했습니다.", style = MaterialTheme.typography.labelSmall)
+                                }) { Text("교체") }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { replacementMinutes = null }) { Text("취소") }
+                            }
+                        )
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
