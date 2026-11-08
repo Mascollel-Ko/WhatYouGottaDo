@@ -45,6 +45,7 @@ internal fun WatchSleepConditionEntry(
     val prefs = remember(context) { WatchImportPreferences(context) }
     val healthConnectAvailable = remember(gateway) { gateway.available() }
     var refresh by remember { mutableIntStateOf(0) }
+    var manualLookup by remember(date) { mutableStateOf(false) }
     var enabled by remember { mutableStateOf(prefs.autoSleep) }
     var permitted by remember { mutableStateOf(false) }
     var sleep by remember(date) { mutableStateOf<WatchSleep?>(null) }
@@ -59,7 +60,14 @@ internal fun WatchSleepConditionEntry(
         refresh++
     }
 
-    LaunchedEffect(date, refresh) {
+    LaunchedEffect(date, refresh, savedHours, manualLookup) {
+        if (savedHours != null && !manualLookup) {
+            // Keep the selector available without reading Health Connect on every screen entry.
+            sessions = emptyList()
+            sleep = null
+            status = null
+            return@LaunchedEffect
+        }
         sleep = null
         sessions = emptyList()
         if (!healthConnectAvailable) {
@@ -134,6 +142,11 @@ internal fun WatchSleepConditionEntry(
                     }
                 } else if (status != null) {
                     Text(status.orEmpty(), style = MaterialTheme.typography.labelSmall)
+                }
+                if (savedHours != null && !manualLookup) {
+                    OutlinedButton(onClick = { manualLookup = true }) {
+                        Text("워치 수면 다시 선택")
+                    }
                 }
                 if (sessions.size > 1) {
                     val formatter = remember { DateTimeFormatter.ofPattern("MM/dd HH:mm") }
@@ -228,7 +241,10 @@ internal fun WatchSleepConditionEntry(
                     }) {
                         Text(if (enabled) "수면 자동 채우기 끄기" else "수면 자동 채우기 켜기")
                     }
-                    TextButton(onClick = { refresh++ }) { Text("새로고침") }
+                    TextButton(onClick = {
+                        manualLookup = true
+                        refresh++
+                    }) { Text("새로고침") }
                 }
             }
         }
