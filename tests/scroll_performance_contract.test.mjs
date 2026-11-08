@@ -4,12 +4,16 @@ import test from "node:test";
 
 const source = path => fs.readFileSync(path, "utf8");
 
-test("a saved sleep time blocks the Health Connect reader after the daily state loads", () => {
+test("saved sleep defers Health Connect reads until explicit user action", () => {
   const record = source("app/src/main/java/com/training/trackplanner/RecordScreen.kt");
   const policy = source("app/src/main/java/com/training/trackplanner/health/WatchSleepLookupPolicy.kt");
   assert.match(record, /checkInForDate\(date\)\.map/);
-  assert.match(record, /WatchSleepLookupPolicy\.shouldRead\(checkInLoaded, checkIn\?\.sleepHours\)/);
+  assert.match(record, /if \(checkInLoaded\)/);
+  assert.match(record, /savedHours = checkIn\?\.sleepHours/);
   assert.match(policy, /checkInLoaded && savedSleepHours == null/);
+  const health = source("app/src/main/java/com/training/trackplanner/health/WatchSleepConditionEntry.kt");
+  assert.match(health, /savedHours != null && !manualLookup/);
+  assert.match(health, /manualLookup = true/);
 });
 
 test("plan detail lazily composes each exercise separately from its day heading", () => {
