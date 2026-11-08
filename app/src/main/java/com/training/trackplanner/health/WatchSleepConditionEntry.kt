@@ -6,6 +6,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
@@ -53,13 +56,13 @@ internal fun WatchSleepConditionEntry(
     var sleep by remember(date) { mutableStateOf<WatchSleep?>(null) }
     var sessions by remember(date) { mutableStateOf<List<WatchSleep>>(emptyList()) }
     var selectedIds by remember(date) { mutableStateOf<Set<String>>(emptySet()) }
-    var pickerOpen by remember(date) { mutableStateOf(false) }
     var replacementMinutes by remember(date) { mutableStateOf<Int?>(null) }
     var status by remember(date) { mutableStateOf<String?>(null) }
     var applying by remember(date) { mutableStateOf(false) }
 
     val launcher = rememberLauncherForActivityResult(PermissionController.createRequestPermissionResultContract()) { granted ->
         if (WatchHealthData.SLEEP_PERMISSION in granted) {
+            permitted = true
             manualLookup = true
             lookupDialog = true
             refresh++
@@ -70,28 +73,30 @@ internal fun WatchSleepConditionEntry(
         }
     }
 
-    LaunchedEffect(date, refresh, savedHours, manualLookup) {
-        if (savedHours != null && !manualLookup) {
-            // Keep the selector available without reading Health Connect on every screen entry.
-            sessions = emptyList()
-            sleep = null
-            status = null
-            return@LaunchedEffect
-        }
-        sleep = null
-        sessions = emptyList()
+    LaunchedEffect(date, refresh, manualLookup) {
         if (!healthConnectAvailable) {
-            status = "Health Connect를 사용할 수 없습니다."
             permitted = false
+            lookupPending = false
+            status = "Health Connect를 사용할 수 없습니다."
             return@LaunchedEffect
         }
         try {
             permitted = WatchHealthData.SLEEP_PERMISSION in gateway.permissions()
             if (!permitted) {
+                lookupPending = false
                 status = "수면 기록 조회 권한이 필요합니다."
+                return@LaunchedEffect
+            }
+            if (savedHours != null && !manualLookup) {
+                // Manual replacement remains available, but stored sleep causes no automatic read.
+                sessions = emptyList()
+                sleep = null
+                status = null
                 lookupPending = false
                 return@LaunchedEffect
             }
+            sleep = null
+            sessions = emptyList()
             if (LocalDate.parse(date).isAfter(LocalDate.now())) {
                 status = "미래 날짜의 수면 기록은 조회할 수 없습니다."
                 lookupPending = false
@@ -101,7 +106,6 @@ internal fun WatchSleepConditionEntry(
             val values = gateway.sleep(LocalDate.parse(date), forceRefresh = refresh > 0)
             sessions = values
             sleep = if (values.size == 1) values.single() else null
-            if (lookupDialog && values.size > 1) pickerOpen = true
             lookupPending = false
             status = when {
                 values.isEmpty() -> "공유된 수면기록 없음"
@@ -142,7 +146,6 @@ internal fun WatchSleepConditionEntry(
                                 viewModel.replaceSleepHoursFromWatch(date, minutes / 60.0) { successful ->
                                     if (successful) {
                                         prefs.markSleepHandled(date)
-                                        pickerOpen = false
                                         replacementMinutes = null
                                     }
                                     applying = false
@@ -160,7 +163,10 @@ internal fun WatchSleepConditionEntry(
             onDismissRequest = { lookupDialog = false },
             title = { Text("워치 수면 기록") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(
+                    modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     when {
                         lookupPending -> Text("수면 기록을 조회하고 있습니다.")
                         sessions.isEmpty() -> Text(
@@ -173,11 +179,24 @@ internal fun WatchSleepConditionEntry(
                             Text(if (item.reliable && minutes != null)
                                 "수면 기록 1개: ${minutes / 60}시간 ${minutes % 60}분"
                                 else "수면 단계가 불충분해 실제 수면시간을 확인할 수 없습니다.")
-                            if (savedHours != null && item.reliable && minutes != null) {
-                                TextButton(onClick = {
-                                    lookupDialog = false
-                                    replacementMinutes = minutes
-                                }) { Text("기존 수면시간 교체") }
+                            if (item.reliable && minutes != null) {
+                                TextButton(enabled = !applying, onClick = {
+                                    if (savedHours != null) {
+                                        lookupDialog = false
+                                        replacementMinutes = minutes
+                                    } else {
+                                        applying = true
+                                        viewModel.fillSleepHoursIfEmpty(date, minutes / 60.0) { successful ->
+                                            if (successful) {
+                                                prefs.markSleepHandled(date)
+                                                lookupDialog = false
+                                            } else {
+                                                status = "수면시간 저장에 실패했습니다. 현재 기록을 확인해 주세요."
+                                            }
+                                            applying = false
+                                        }
+                                    }
+                                }) { Text(if (savedHours == null) "수면시간 적용" else "기존 수면시간 교체") }
                             }
                         }
                         else -> {
@@ -238,126 +257,35 @@ internal fun WatchSleepConditionEntry(
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        when {
-            !healthConnectAvailable -> Unit
-            !permitted -> {
-                TextButton(
-                    onClick = {
-                        // Granting the permission only enables reading. Auto-fill is a separate choice.
-                        lookupPending = true
-                        lookupDialog = true
-                        launcher.launch(setOf(WatchHealthData.SLEEP_PERMISSION))
-                    }
-                ) { Text("워치 수면 연동") }
-            }
-            else -> {
-                val candidate = sleep
-                if (candidate != null) {
-                    val label = candidate.sleepMinutes ?: candidate.elapsedMinutes
-                    Text(
-                        if (candidate.reliable) "워치 수면: ${label / 60}시간 ${label % 60}분" else
-                            "워치 수면 구간: ${label / 60}시간 ${label % 60}분 (실제 수면시간 미확인)",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    Text("출처: ${candidate.sourceName}", style = MaterialTheme.typography.labelSmall)
-                    if (savedHours != null) {
-                        Text("기존 수면시간을 보존했습니다.", style = MaterialTheme.typography.labelSmall)
-                    }
-                    if (savedHours == null && !candidate.reliable) {
-                        Text("수면 단계가 부족해 자동 저장하지 않습니다. 컨디션에서 직접 입력할 수 있습니다.",
-                            style = MaterialTheme.typography.labelSmall)
-                    }
-                } else if (status != null) {
-                    Text(status.orEmpty(), style = MaterialTheme.typography.labelSmall)
-                }
-                if (savedHours != null && !manualLookup) {
-                    OutlinedButton(onClick = {
-                        manualLookup = true
-                        lookupDialog = true
-                        lookupPending = true
-                        refresh++
-                    }) {
-                        Text("워치 수면 다시 선택")
-                    }
-                }
-                if (sessions.size > 1) {
-                    val formatter = remember { DateTimeFormatter.ofPattern("MM/dd HH:mm") }
-                    val zone = ZoneId.systemDefault()
-                    if (!editorOpen) {
-                        OutlinedButton(onClick = { pickerOpen = !pickerOpen }) {
-                            Text(if (pickerOpen) "수면 선택 닫기" else if (savedHours != null) "워치 수면 다시 선택" else "워치 수면 선택")
-                        }
-                        if (pickerOpen) {
-                            Text("실제로 잔 구간만 선택하세요.", style = MaterialTheme.typography.bodySmall)
-                            sessions.forEach { item ->
-                                val eligible = item.reliable && item.sleepMinutes != null
-                                Row {
-                                    Checkbox(
-                                        checked = item.sourceId in selectedIds,
-                                        enabled = eligible && !applying,
-                                        onCheckedChange = { checked ->
-                                            selectedIds = if (checked) selectedIds + item.sourceId
-                                                else selectedIds - item.sourceId
-                                        }
-                                    )
-                                    val minutes = item.sleepMinutes
-                                    Text(
-                                        "${item.start.atZone(zone).format(formatter)} ~ " +
-                                            "${item.end.atZone(zone).format(formatter)} · " +
-                                            (if (minutes != null && eligible) "${minutes / 60}시간 ${minutes % 60}분"
-                                            else "실제 수면시간 미확인") +
-                                            " · ${item.sourceName}",
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
-                                }
-                            }
-                            val chosen = sessions.filter { it.sourceId in selectedIds }
-                            val combined = WatchSleepAggregate.combine(chosen)
-                            if (chosen.isNotEmpty() && combined == null) {
-                                Text("선택 구간이 겹치거나 불확실해 합산할 수 없습니다.",
-                                    style = MaterialTheme.typography.bodySmall)
-                            }
-                            if (combined != null) {
-                                val total = combined.sleepMinutes ?: 0
-                                Text("선택 합계: ${total / 60}시간 ${total % 60}분")
-                            }
-                            OutlinedButton(
-                                enabled = combined != null && !applying,
-                                onClick = {
-                                    val minutes = combined?.sleepMinutes ?: return@OutlinedButton
-                                    if (savedHours != null) {
-                                        replacementMinutes = minutes
-                                    } else {
-                                        applying = true
-                                        viewModel.fillSleepHoursIfEmpty(date, minutes / 60.0) { successful ->
-                                            if (successful) {
-                                                prefs.markSleepHandled(date)
-                                                pickerOpen = false
-                                            }
-                                            applying = false
-                                        }
-                                    }
-                                }
-                            ) { Text(if (savedHours == null) "선택한 수면시간 적용" else "기존 수면시간 교체") }
-                        }
-                    }
-                }
-
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    OutlinedButton(onClick = {
-                        prefs.autoSleep = !enabled
-                        enabled = prefs.autoSleep
-                    }) {
-                        Text(if (enabled) "수면 자동 채우기 끄기" else "수면 자동 채우기 켜기")
-                    }
-                    TextButton(onClick = {
-                        manualLookup = true
-                        lookupDialog = true
-                        lookupPending = true
-                        refresh++
-                    }) { Text("새로고침") }
+        OutlinedButton(
+            enabled = !applying && !lookupPending,
+            onClick = {
+                selectedIds = emptySet()
+                status = null
+                lookupPending = true
+                lookupDialog = true
+                if (!healthConnectAvailable) {
+                    lookupPending = false
+                    status = "Health Connect를 사용할 수 없습니다."
+                } else if (permitted) {
+                    manualLookup = true
+                    refresh++
+                } else {
+                    launcher.launch(setOf(WatchHealthData.SLEEP_PERMISSION))
                 }
             }
+        ) {
+            Text(if (savedHours != null) "워치 수면 다시 선택" else "워치 수면 연동")
+        }
+        if (savedHours != null) {
+            Text("현재 수면시간은 워치 기록을 선택하고 교체를 확인하기 전까지 유지됩니다.",
+                style = MaterialTheme.typography.labelSmall)
+        }
+        OutlinedButton(onClick = {
+            prefs.autoSleep = !enabled
+            enabled = prefs.autoSleep
+        }) {
+            Text(if (enabled) "수면 자동 채우기 끄기" else "수면 자동 채우기 켜기")
         }
     }
 }
