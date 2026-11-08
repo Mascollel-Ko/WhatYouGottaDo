@@ -46,3 +46,29 @@ test("Sleep permission grant and auto-fill remain separate actions", () => {
   assert.match(screen, /수면 자동 채우기 켜기/);
   assert.match(screen, /fillSleepHoursIfEmpty/);
 });
+
+test("Watch sleep import offers explicit feedback and selection without duplicate picker", () => {
+  const screen = read("app/src/main/java/com/training/trackplanner/health/WatchSleepConditionEntry.kt");
+  assert.match(screen, /if \(lookupDialog\)/);
+  assert.match(screen, /수면 기록이 없습니다\./);
+  assert.match(screen, /sessions\.size == 1/);
+  assert.match(screen, /sessions\.forEach/);
+  assert.match(screen, /WatchSleepAggregate\.combine\(chosen\)/);
+  assert.match(screen, /replacementMinutes = minutes/);
+  assert.match(screen, /launcher\.launch\(setOf\(WatchHealthData\.SLEEP_PERMISSION\)\)/);
+  assert.doesNotMatch(screen, /pickerOpen/);
+});
+
+test("Daily sleep candidate uses previous 21:00 through current 12:00 only", () => {
+  const gateway = read("app/src/main/java/com/training/trackplanner/health/WatchHealthData.kt");
+  assert.match(gateway, /date\.minusDays\(1\)\.atTime\(21, 0\)/);
+  assert.match(gateway, /date\.atTime\(12, 0\)/);
+  assert.match(gateway, /maxOf\(record\.startTime, from\)/);
+  assert.match(gateway, /minOf\(record\.endTime, to\)/);
+});
+
+test("Explicit replacement updates only daily sleepHours", () => {
+  const service = read("app/src/main/java/com/training/trackplanner/data/DailyStatusService.kt");
+  assert.match(service, /replaceSleepHoursFromWatch/);
+  assert.match(service, /\(latest \?: DailyCheckIn\(date = date\)\)\.copy\(sleepHours = hours\)/);
+});
