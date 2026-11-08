@@ -76,20 +76,26 @@ internal class WatchHealthData(context: Context) {
                 now >= cached.readAtMillis && now - cached.readAtMillis < maxAge) {
                 cached.sessions
             } else {
-                val from = date.minusDays(1).atStartOfDay(zone).toInstant()
-                val to = date.plusDays(1).atStartOfDay(zone).toInstant()
+                val from = date.minusDays(1).atTime(21, 0).atZone(zone).toInstant()
+                val to = date.atTime(12, 0).atZone(zone).toInstant()
                 val fresh = readPages<SleepSessionRecord>(from, to)
-                    .filter { it.endTime > it.startTime && it.endTime.atZone(zone).toLocalDate() == date }
+                    .filter { it.endTime > from && it.startTime < to && it.endTime > it.startTime }
                     .map { record ->
-                        val phases = record.stages.map { WatchSleepMath.Stage(it.startTime, it.endTime, it.stage) }
-                        val evaluation = WatchSleepMath.evaluate(record.startTime, record.endTime, phases)
+                        val clippedStart = maxOf(record.startTime, from)
+                        val clippedEnd = minOf(record.endTime, to)
+                        val phases = record.stages.mapNotNull {
+                            val stageStart = maxOf(it.startTime, clippedStart)
+                            val stageEnd = minOf(it.endTime, clippedEnd)
+                            if (stageEnd > stageStart) WatchSleepMath.Stage(stageStart, stageEnd, it.stage) else null
+                        }
+                        val evaluation = WatchSleepMath.evaluate(clippedStart, clippedEnd, phases)
                         WatchSleep(
                             sourceId = record.metadata.dataOrigin.packageName + ":" + record.metadata.id,
                             sourceName = record.metadata.dataOrigin.packageName,
-                            start = record.startTime,
-                            end = record.endTime,
+                            start = clippedStart,
+                            end = clippedEnd,
                             sleepMinutes = evaluation.sleepMinutes,
-                            elapsedMinutes = Duration.between(record.startTime, record.endTime).toMinutes().toInt(),
+                            elapsedMinutes = Duration.between(clippedStart, clippedEnd).toMinutes().toInt(),
                             reliable = evaluation.reliable
                         )
                     }
@@ -210,5 +216,26 @@ internal class WatchImportPreferences(context: Context) {
         store.edit().apply {
             ids.forEach { putString("session_used_$it", target) }
         }.apply()
+    }
+}
+
+/** Aggregates only non-overlapping, stage-verified sessions within the daily sleep window. */
+internal object WatchSleepAggregate {
+    fun combine(sessions: List<WatchSleep>): WatchSleep? {
+        if (sessions.isEmpty()) return null
+        val sorted = sessions.sortedWith(compareBy<WatchSleep> { it.start }.thenBy { it.end })
+        if (sorted.any { !it.reliable || it.sleepMinutes == null || it.sleepMinutes <= 0 }) return null
+        if (sorted.zipWithNext().any { (a, b) -> b.start < a.end }) return null
+        val minutes = sorted.sumOf { it.sleepMinutes ?: 0 }
+        if (minutes !in 1..900) return null
+        return WatchSleep(
+            sourceId = "aggregate",
+            sourceName = sorted.map { it.sourceName }.distinct().joinToString(", "),
+            start = sorted.first().start,
+            end = sorted.last().end,
+            sleepMinutes = minutes,
+            elapsedMinutes = sorted.sumOf { it.elapsedMinutes },
+            reliable = true
+        )
     }
 }
