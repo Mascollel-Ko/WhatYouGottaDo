@@ -154,7 +154,6 @@ internal fun WatchSleepConditionEntry(
                         }
                     )
                 }
-            }
 
     if (lookupDialog) {
         AlertDialog(
