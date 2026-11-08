@@ -478,12 +478,12 @@ private fun RecordDailyConditionCard(
                     Text(stringResource(R.string.record_add_exercise), maxLines = 1, softWrap = false)
                 }
             }
-            // A saved sleep value is final for automatic import. No availability,
-            // permissions or Health Connect read is attempted, even on a fling/re-entry.
-            if (WatchSleepLookupPolicy.shouldRead(checkInLoaded, checkIn?.sleepHours)) {
+            // Keep the manual watch selection available even when sleep was entered.
+            // The child component still prevents unattended overwrite of saved values.
+            if (checkInLoaded) {
                 WatchSleepConditionEntry(
                     date = date,
-                    savedHours = null,
+                    savedHours = checkIn?.sleepHours,
                     editorOpen = showEditor,
                     viewModel = viewModel
                 )
