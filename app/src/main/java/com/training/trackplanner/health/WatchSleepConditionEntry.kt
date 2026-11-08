@@ -341,6 +341,7 @@ internal fun WatchSleepConditionEntry(
                             ) { Text(if (savedHours == null) "선택한 수면시간 적용" else "기존 수면시간 교체") }
                         }
                     }
+                }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     OutlinedButton(onClick = {
