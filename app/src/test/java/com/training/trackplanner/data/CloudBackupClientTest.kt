@@ -154,6 +154,104 @@ class CloudBackupClientTest {
         assertFalse(ordinary.posts[1].has("expected_current_backup_id"))
     }
 
+    @Test fun verifiedSameInstallChildRepairsMissedAckWithoutDiscardingLaterEdits() = runBlocking {
+        val db = db()
+        val dao = db.cloudBackupStateDao()
+        dao.getOrCreate()
+        dao.bindAccount("user-1")
+        dao.recordLocalChange(100L)
+        val old = "11111111-1111-4111-8111-111111111111"
+        val confirmed = "22222222-2222-4222-8222-222222222222"
+        val next = "33333333-3333-4333-8333-333333333333"
+        assertEquals(1, dao.acknowledgeIfSnapshotUnchanged("user-1", null, 1L, old, 101L))
+        dao.recordLocalChange(102L)
+        dao.recordLocalChange(103L)
+        val state = dao.get()!!
+        val transport = RecoveryTransport(next, verifiedChild(confirmed, old, state.installId, 1L))
+        val result = CloudBackupClient(
+            db, { CanonicalBackupContent("canonical csv", RecordCsvTransferResult("restore-v14"), emptyList()) },
+            CloudBackupConfig("https://example.supabase.co", "publishable"), transport
+        ).uploadNow(CloudAuthSession("user-1", "token"), 104L)
+
+        assertTrue(result.acknowledged)
+        // The new upload carries only changes made AFTER the recovered snapshot.
+        assertEquals(confirmed, transport.uploadParent)
+        assertEquals(1L, transport.uploadRevision)
+        assertEquals(next, dao.get()!!.localBaseBackupId)
+        assertEquals(0L, dao.get()!!.localRevision)
+        assertFalse(dao.get()!!.cloudBackupPending)
+    }
+
+    @Test fun anotherInstallOrParentOrUnverifiedCurrentCannotBeAutoAdopted() = runBlocking {
+        val db = db()
+        val dao = db.cloudBackupStateDao()
+        dao.getOrCreate()
+        dao.bindAccount("user-1")
+        dao.recordLocalChange(100L)
+        val old = "11111111-1111-4111-8111-111111111111"
+        assertEquals(1, dao.acknowledgeIfSnapshotUnchanged("user-1", null, 1L, old, 101L))
+        dao.recordLocalChange(102L)
+        val state = dao.get()!!
+        val remoteId = "22222222-2222-4222-8222-222222222222"
+        val next = "33333333-3333-4333-8333-333333333333"
+        val candidates = listOf(
+            verifiedChild(remoteId, old, UUID.randomUUID().toString(), 1L),
+            verifiedChild(remoteId, UUID.randomUUID().toString(), state.installId, 1L),
+            verifiedChild(remoteId, old, state.installId, 9L),
+            verifiedChild(remoteId, old, state.installId, 1L).put("verified_at", JSONObject.NULL),
+            verifiedChild(remoteId, old, state.installId, 1L).put("checksum", JSONObject.NULL)
+        )
+        for (candidate in candidates) {
+            val transport = RecoveryTransport(next, candidate)
+            val failure = runCatching {
+                CloudBackupClient(
+                    db, { CanonicalBackupContent("canonical csv", RecordCsvTransferResult("restore-v14"), emptyList()) },
+                    CloudBackupConfig("https://example.supabase.co", "publishable"), transport
+                ).uploadNow(CloudAuthSession("user-1", "token"), 104L)
+            }.exceptionOrNull()
+            assertEquals("LINEAGE_CONFLICT", failure?.message)
+            assertEquals(null, transport.uploadParent)
+            assertEquals(old, dao.get()!!.localBaseBackupId)
+            assertEquals(1L, dao.get()!!.localRevision)
+        }
+    }
+
+    private fun verifiedChild(id: String, parent: String, install: String, revision: Long) =
+        JSONObject()
+            .put("backup_id", id)
+            .put("status", "CURRENT")
+            .put("backup_format_version", 14)
+            .put("schema_version", 13)
+            .put("local_revision", revision)
+            .put("parent_backup_id", parent)
+            .put("install_id", install)
+            .put("verified_at", "2026-11-09T00:44:39Z")
+            .put("checksum", "a".repeat(64))
+            .put("checksum_algorithm", "SHA-256")
+
+    private class RecoveryTransport(
+        private val backupId: String,
+        private val remoteCurrent: JSONObject
+    ) : CloudHttpTransport {
+        var uploadParent: String? = null
+        var uploadRevision: Long? = null
+        override suspend fun postJson(url: String, session: CloudAuthSession, body: String): CloudHttpResponse =
+            when {
+                url.endsWith("cloud-backup-current") ->
+                    CloudHttpResponse(200, JSONObject().put("current", remoteCurrent).toString())
+                url.endsWith("cloud-backup-upload-url") -> {
+                    val request = JSONObject(body)
+                    uploadParent = request.optString("parent_backup_id")
+                    uploadRevision = request.getLong("local_revision")
+                    CloudHttpResponse(200, JSONObject().put("backup_id", backupId)
+                        .put("upload_url", "https://r2.invalid/" + backupId).toString())
+                }
+                else -> CloudHttpResponse(200, JSONObject().put("backup_id", backupId)
+                    .put("status", "CURRENT").toString())
+            }
+        override suspend fun putBytes(url: String, bytes: ByteArray) = CloudHttpResponse(200)
+    }
+
     private class DiscoveryTransport(
         private val response: CloudHttpResponse
     ) : CloudHttpTransport {
@@ -173,6 +271,9 @@ class CloudBackupClientTest {
     private class RecordingTransport(private val backupId: String) : CloudHttpTransport {
         val posts = mutableListOf<JSONObject>()
         override suspend fun postJson(url: String, session: CloudAuthSession, body: String): CloudHttpResponse {
+            if (url.endsWith("cloud-backup-current")) {
+                return CloudHttpResponse(200, "{\"current\":null}")
+            }
             val json = JSONObject(body)
             posts += json
             return if (url.endsWith("upload-url")) {

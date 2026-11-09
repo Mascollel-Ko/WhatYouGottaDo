@@ -20,7 +20,7 @@ async function handler(request) {
     const service = createServiceClient();
     const { data: current, error } = await service
       .from("cloud_backups")
-      .select("backup_id,created_at,local_revision,backup_format_version,schema_version,status")
+      .select("backup_id,created_at,local_revision,parent_backup_id,install_id,verified_at,checksum,checksum_algorithm,backup_format_version,schema_version,status")
       .eq("user_id", auth.user.id)
       .eq("status", "CURRENT")
       .maybeSingle();
@@ -32,6 +32,13 @@ async function handler(request) {
         backup_id: current.backup_id,
         created_at: current.created_at,
         local_revision: current.local_revision,
+        // Authenticated same-account metadata for recovering a lost local
+        // acknowledgement. Never expose R2 credentials or object capabilities.
+        parent_backup_id: current.parent_backup_id,
+        install_id: current.install_id,
+        verified_at: current.verified_at,
+        checksum: current.checksum,
+        checksum_algorithm: current.checksum_algorithm,
         backup_format_version: current.backup_format_version,
         schema_version: current.schema_version,
         status: "CURRENT",

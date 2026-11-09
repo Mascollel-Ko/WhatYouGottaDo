@@ -16,31 +16,34 @@ import java.util.concurrent.TimeUnit
 /** Durable scheduling for automatic Cloud Backup. The worker contains the runtime safety gate. */
 internal object CloudBackupScheduler {
     const val UNIQUE_WORK_NAME = "whatyougottado-cloud-backup"
+    const val COALESCING_WORK_NAME = "whatyougottado-cloud-backup-debounce"
     const val PERIODIC_WORK_NAME = "whatyougottado-cloud-backup-safety-check"
     const val COALESCING_DELAY_MILLIS = 10 * 60 * 1000L
     const val RETRY_BACKOFF_MILLIS = 15 * 60 * 1000L
     const val PERIODIC_INTERVAL_HOURS = 12L
 
     fun schedule(context: Context, delayMillis: Long = COALESCING_DELAY_MILLIS) {
-        val request = OneTimeWorkRequestBuilder<CloudBackupWorker>()
+        val wake = OneTimeWorkRequestBuilder<CloudBackupWakeWorker>()
             .setConstraints(connectedConstraint())
             .setInitialDelay(delayMillis.coerceAtLeast(0L), TimeUnit.MILLISECONDS)
-            .setBackoffCriteria(
-                BackoffPolicy.EXPONENTIAL,
-                RETRY_BACKOFF_MILLIS,
-                TimeUnit.MILLISECONDS
-            )
             .build()
         runCatching {
-            val workManager = WorkManager.getInstance(context.applicationContext)
-            workManager.enqueueUniqueWork(
-                UNIQUE_WORK_NAME,
-                // Replacing an active worker coalesces the latest edit. The repository mutex
-                // keeps a cancelled network call from overlapping the replacement upload.
-                ExistingWorkPolicy.REPLACE,
-                request
+            // Reschedule waiting debounce work without cancelling an upload.
+            WorkManager.getInstance(context.applicationContext).enqueueUniqueWork(
+                COALESCING_WORK_NAME, ExistingWorkPolicy.REPLACE, wake
             )
         }
+    }
+
+    /** Only the debounce worker starts uploads. An active upload is never REPLACEd. */
+    internal fun enqueueUpload(context: Context) {
+        val upload = OneTimeWorkRequestBuilder<CloudBackupWorker>()
+            .setConstraints(connectedConstraint())
+            .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, RETRY_BACKOFF_MILLIS, TimeUnit.MILLISECONDS)
+            .build()
+        WorkManager.getInstance(context.applicationContext).enqueueUniqueWork(
+            UNIQUE_WORK_NAME, ExistingWorkPolicy.KEEP, upload
+        )
     }
 
     /** Schedule only an outstanding, enabled obligation. A disabled backup is not retried. */
@@ -63,7 +66,9 @@ internal object CloudBackupScheduler {
 
     fun cancel(context: Context) {
         runCatching {
-            WorkManager.getInstance(context.applicationContext).cancelUniqueWork(UNIQUE_WORK_NAME)
+            val manager = WorkManager.getInstance(context.applicationContext)
+            manager.cancelUniqueWork(COALESCING_WORK_NAME)
+            manager.cancelUniqueWork(UNIQUE_WORK_NAME)
         }
     }
 
@@ -84,6 +89,29 @@ internal object CloudBackupScheduler {
     private fun connectedConstraint(): Constraints = Constraints.Builder()
         .setRequiredNetworkType(NetworkType.CONNECTED)
         .build()
+}
+
+/** Replaceable 10-minute debounce trigger. A new edit never cancels CloudBackupWorker. */
+internal class CloudBackupWakeWorker(
+    appContext: Context,
+    params: WorkerParameters
+) : CoroutineWorker(appContext, params) {
+    override suspend fun doWork(): Result {
+        val db = TrainingDatabase.get(applicationContext)
+        val state = db.cloudBackupStateDao().getOrCreate()
+        if (!state.cloudBackupPending || !state.cloudBackupEnabled) return Result.success()
+        val delay = state.lastLocalChangeAt
+            ?.let {
+                (it + CloudBackupScheduler.COALESCING_DELAY_MILLIS -
+                    System.currentTimeMillis()).coerceAtLeast(0L)
+            } ?: 0L
+        if (delay > 0L) {
+            CloudBackupScheduler.schedule(applicationContext, delay)
+        } else {
+            CloudBackupScheduler.enqueueUpload(applicationContext)
+        }
+        return Result.success()
+    }
 }
 
 internal class CloudBackupSafetyWorker(
