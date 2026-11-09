@@ -10,7 +10,7 @@ export const FAILURE_AUDIT_MS = 30 * 24 * 60 * 60 * 1000;
 
 export function canCleanObject(row, {
   nowMs,
-  newestRetainedId,
+  protectedBackupIds,
   currentId,
   retentionVerified,
 }) {
@@ -23,8 +23,12 @@ export function canCleanObject(row, {
       return Number.isFinite(Date.parse(row.recovery_expires_at)) &&
         Date.parse(row.recovery_expires_at) <= nowMs;
     case "RETAINED":
-      return !!currentId && !!newestRetainedId && retentionVerified &&
-        row.backup_id !== newestRetainedId && age >= RETIRED_BACKUP_GRACE_MS;
+      return !!currentId && retentionVerified &&
+        Array.isArray(protectedBackupIds) &&
+        protectedBackupIds.length === 3 &&
+        protectedBackupIds.includes(currentId) &&
+        !protectedBackupIds.includes(row.backup_id) &&
+        age >= RETIRED_BACKUP_GRACE_MS;
     case "CLEANUP_PENDING":
       return Number.isFinite(Date.parse(row.cleanup_requested_at)) &&
         Date.parse(row.cleanup_requested_at) <= nowMs - PENDING_RETRY_MS;
