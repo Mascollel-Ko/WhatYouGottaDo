@@ -650,7 +650,7 @@ cached actual R2 usage >= 8 GB
 정상 backup은 사용자당:
 
 - `CURRENT` 1개
-- `RETAINED` 1개
+- `RETAINED` 2개 (최신 두 세대, 합계 3개 보존)
 
 새 backup `N`이 VERIFIED이고 기존 `CURRENT=B`, `RETAINED=A`이면:
 
@@ -676,6 +676,22 @@ A object/metadata cleanup
 - 서버 cleanup에서 재시도
 
 정상 CURRENT 승격 전에 기존 A를 먼저 삭제하지 않습니다.
+
+#### 운영 보존 정책 (2026-11-09)
+정상 백업의 물리 R2 파일은 **CURRENT 1개 + 최신 VERIFIED RETAINED 2개**를 보존합니다.
+첫 두 세대만 존재하면 그 세대 모두 보존합니다. 최신 3개는 R2 객체가 실제로 존재하는지
+검증하고, 운영자 전용 일회용 GC ticket을 사용하는 명시적 3개 보존 정리 시에는
+각 보호본의 compressed SHA-256까지 검증한 후 나머지 R2 백업 파일을 정리합니다.
+삭제된 서버 행의 lineage는 `PRUNED` tombstone으로 남깁니다. 실제 삭제된 본문은
+되돌릴 수 없으므로, 오랫동안 오프라인이었던 기기의 오래된 공통 기준본을
+서버에서 계속 내려받을 수 있다고 가정해서는 안 됩니다.
+
+기존 물리 삭제 일시 중단은 `LINEAGE_CONFLICT` 장애 당시 보호 목적이었습니다.
+정상 3개 보호 검증이 추가된 이후에는 정기 정리를 기본으로 하되,
+`CLOUD_BACKUP_PRUNING_ENABLED=false`는 긴급 중단 스위치입니다.
+정기 정리는 오래된 UPLOADING/FAILED와 사용자 복구 기간을 보호합니다.
+운영자 전용 `audit_three`는 사전 읽기 전용 점검이고 `prune_to_three`는
+백업 세 개의 체크섬을 검증한 후 제한된 영역만 정리하는 명시적 작업입니다.
 
 ### 8.8 Conflict recovery retention
 
