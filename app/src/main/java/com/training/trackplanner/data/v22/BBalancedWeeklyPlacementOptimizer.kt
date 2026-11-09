@@ -42,7 +42,12 @@ internal object BBalancedWeeklyPlacementOptimizer {
     }
 
     private data class Atom(val sourceIndex: Int, val sourceDay: Int, val item: V22ExercisePlan)
-    private data class Scored(val assignment: IntArray, val metrics: Metrics, val weeklyOvertime: List<Double>)
+    private data class Scored(
+        val assignment: IntArray,
+        val metrics: Metrics,
+        val weeklyOvertime: List<Double>,
+        val weeklyAdjacent: List<Double>
+    )
     private data class MuscleProfile(val roles: Map<String, Double>)
 
     fun optimize(
@@ -79,15 +84,23 @@ internal object BBalancedWeeklyPlacementOptimizer {
                 })
             }
 
+        // Provisional muscle-role rows may aid review but do not grant movement authority.
+        val provisionalKeys = muscleRelations.asSequence()
+            .filter { it.domain == CanonicalRelationDomain.MUSCLE &&
+                it.relationType in setOf("PRIMARY", "SECONDARY") &&
+                it.status.startsWith("PROVISIONAL", ignoreCase = true) }
+            .map(CanonicalMetadataRelation::exerciseStableKey).toSet()
+
         val atoms = sessions.flatMapIndexed { index, session ->
             session.items.map { Atom(index, session.session, it) }
         }
         val movable = atoms.map { atom ->
             val exercise = exercises[atom.item.stableKey]
-            atom.item.stableKey !in mainKeys &&
+            atom.item.stableKey !in mainKeys && atom.item.stableKey !in provisionalKeys &&
                 !atom.item.role.contains("MAIN", ignoreCase = true) &&
                 exercise != null && exercise.isActive && !exercise.needsReview &&
-                !exercise.isCustom && profiles[atom.item.stableKey]?.roles?.isNotEmpty() == true
+                !exercise.isCustom && exercise.planningEligibility != "HISTORY_ONLY" &&
+                profiles[atom.item.stableKey]?.roles?.isNotEmpty() == true
         }
         if (movable.none { it }) return unchanged("NO_REVIEWED_MOVABLE_EXERCISES")
 
@@ -127,6 +140,7 @@ internal object BBalancedWeeklyPlacementOptimizer {
             var overtime = 0.0
             var timeSpread = 0.0
             val overByWeek = mutableListOf<Double>()
+            val adjacentByWeek = mutableListOf<Double>()
             for (week in weeks) {
                 val allocated = distribute(week, assignment)
                 val time = allocated.map { BBalancedDayPlacementPlanner.estimateMinutes(it, exercises) }
@@ -146,6 +160,7 @@ internal object BBalancedWeeklyPlacementOptimizer {
                         }
                     }
                 }
+                val beforeWeekAdjacent = adjacent
                 perMuscle.values.forEach { loads ->
                     val total = loads.sum()
                     if (total <= 0.0) return@forEach
@@ -170,6 +185,7 @@ internal object BBalancedWeeklyPlacementOptimizer {
                         if (min(delta, 7 - delta) == 1) adjacent += min(a.second, b.second) * 2.0
                     }
                 }
+                adjacentByWeek += adjacent - beforeWeekAdjacent
             }
             val normalizer = weeks.size.toDouble()
             concentration /= normalizer
@@ -179,7 +195,7 @@ internal object BBalancedWeeklyPlacementOptimizer {
             val cost = 1.8 * concentration + 3.0 * adjacent +
                 2.5 * overtime + 0.11 * peak + 0.035 * timeSpread
             return Scored(assignment.copyOf(),
-                Metrics(concentration, adjacent, peak, overtime, cost), overByWeek)
+                Metrics(concentration, adjacent, peak, overtime, cost), overByWeek, adjacentByWeek)
         }
 
         val original = IntArray(atoms.size) { atoms[it].sourceIndex }
@@ -196,7 +212,8 @@ internal object BBalancedWeeklyPlacementOptimizer {
                 // A previously feasible prescription must remain feasible in EVERY
                 // week. If already over time, never worsen that week's excess.
                 if (candidate.weeklyOvertime.indices.any { index ->
-                        candidate.weeklyOvertime[index] > initial.weeklyOvertime[index] + EPS
+                        candidate.weeklyOvertime[index] > initial.weeklyOvertime[index] + EPS ||
+                            candidate.weeklyAdjacent[index] > initial.weeklyAdjacent[index] + EPS
                     }) return
                 if (candidate.metrics.totalCost >= best.metrics.totalCost - MIN_IMPROVEMENT) return
                 if (next == null || candidate.metrics.totalCost < next!!.metrics.totalCost - EPS) {
