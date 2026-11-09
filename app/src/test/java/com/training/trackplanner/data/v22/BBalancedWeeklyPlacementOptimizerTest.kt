@@ -165,6 +165,54 @@ class BBalancedWeeklyPlacementOptimizerTest {
     }
 
     @Test
+    fun neverPushesAnOriginallyValidWeekdayOverItsOwnTimeLimit() {
+        val baseline = listOf(
+            session(1, "squat", "row"),
+            session(3, "deadlift", "core"),
+            session(5, "main_press", "press_b", "press_c", "triceps")
+        )
+        val cap = 22
+        val oldTimes = baseline.map { BBalancedDayPlacementPlanner.estimateMinutes(it, exercises) }
+        assertTrue(oldTimes[0] <= cap && oldTimes[1] <= cap && oldTimes[2] > cap)
+        val result = BBalancedWeeklyPlacementOptimizer.optimize(
+            baseline, listOf(baseline), exercises, muscles,
+            setOf("squat", "deadlift", "main_press"), cap
+        )
+        val newTimes = result.weeks.single().map {
+            BBalancedDayPlacementPlanner.estimateMinutes(it, exercises)
+        }
+        assertTrue(newTimes[0] <= cap)
+        assertTrue(newTimes[1] <= cap)
+        assertTrue(newTimes[2] <= oldTimes[2] + 1e-8)
+        assertTrue(newTimes.max() <= oldTimes.max() + 1e-8)
+        assertEquals(weeklyPrescriptions(baseline), weeklyPrescriptions(result.weeks.single()))
+    }
+
+    @Test
+    fun neverCreatesANewHighestPhysicalOrMainWeightedSetDay() {
+        val baseline = listOf(
+            session(1, "squat", "row"),
+            session(3, "deadlift", "core"),
+            session(5, "main_press", "press_b", "press_c", "triceps")
+        )
+        val main = setOf("squat", "deadlift", "main_press")
+        val result = BBalancedWeeklyPlacementOptimizer.optimize(
+            baseline, listOf(baseline), exercises, muscles, main, 60
+        )
+        fun totals(sessions: List<V22Session>) = sessions.map { session ->
+            session.items.sumOf { item -> item.setCount }
+        }
+        fun weighted(sessions: List<V22Session>) = sessions.map { session ->
+            session.items.sumOf { item ->
+                item.setCount * if (item.stableKey in main) 1.5 else 1.0
+            }
+        }
+        assertTrue(totals(result.sessions).max() <= totals(baseline).max())
+        assertTrue(weighted(result.sessions).max() <= weighted(baseline).max() + 1e-8)
+        assertEquals(baseline.map(V22Session::session), result.sessions.map(V22Session::session))
+    }
+
+    @Test
     fun refusesMismatchedWeeksInsteadOfMovingAnUnmatchedPrescription() {
         val base = listOf(session(1, "squat"), session(3, "row"), session(5, "press_b"))
         val invalid = base.map { day ->
