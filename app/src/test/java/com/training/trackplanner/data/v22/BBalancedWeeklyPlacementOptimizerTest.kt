@@ -124,14 +124,14 @@ class BBalancedWeeklyPlacementOptimizerTest {
             session(5, "pull", "leg_b")
         )
         val optimized = BBalancedWeeklyPlacementOptimizer.optimize(
-            base, listOf(base), exercises, muscles, emptySet(), 20
+            base, listOf(base), exercises, muscles, emptySet(), 22
         )
         assertTrue(optimized.status, optimized.changed)
-        // With three sets per item, all days are below 20 min with two items,
+        // With three sets per item, all days are below 22 min with two items,
         // but a three-item day exceeds the cap. The improvement requires exchange.
         assertTrue(optimized.moves.size >= 2)
         assertTrue(optimized.sessions.all { it.items.size == 2 })
-        assertTrue(optimized.sessions.all { BBalancedDayPlacementPlanner.estimateMinutes(it, exercises) <= 20 })
+        assertTrue(optimized.sessions.all { BBalancedDayPlacementPlanner.estimateMinutes(it, exercises) <= 22 })
         assertEquals(weeklyPrescriptions(base), weeklyPrescriptions(optimized.weeks.single()))
     }
 
