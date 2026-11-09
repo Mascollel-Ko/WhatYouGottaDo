@@ -67,10 +67,15 @@ internal class CloudBackupWorker(
             check(current.userId.equals(session.userId, ignoreCase = true)) {
                 "LOGGED_OUT"
             }
-            repository.uploadCloudBackup(
+            val upload = repository.uploadCloudBackup(
                 session = current,
                 automatic = true
             )
+            if (!upload.acknowledged) {
+                // Server promotion can succeed while a different local lineage
+                // takes over. Do not silently mark this backup as synced.
+                throw CloudBackupException("CLOUD_LOCAL_ACK_MISMATCH")
+            }
             // An edit during the upload leaves the newer revision pending. Re-arm the
             // unique work using the latest change/retry timestamps.
             CloudBackupScheduler.scheduleIfPending(context, db)
@@ -120,7 +125,10 @@ internal class CloudBackupWorker(
             "ACCOUNT_ARCHIVE_REQUIRED",
             "INVALID_CANONICAL_BACKUP",
             "UNSUPPORTED_BACKUP_VERSION",
-            "INVALID_SERVER_RESPONSE"
+            "INVALID_SERVER_RESPONSE",
+            "LINEAGE_CONFLICT",
+            "CURRENT_CHANGED",
+            "CLOUD_LOCAL_ACK_MISMATCH"
         )
         val TRANSIENT_CODES = setOf(
             "NETWORK_UNAVAILABLE",
