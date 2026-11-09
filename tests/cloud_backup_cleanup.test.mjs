@@ -9,13 +9,20 @@ import {
 const nowMs = Date.parse("2026-11-06T09:00:00Z");
 const ago = (ms) => new Date(nowMs-ms).toISOString();
 const base = { backup_id: "old", created_at: ago(2 * STALE_UPLOAD_MS) };
-const flags = { nowMs, currentId: "current", newestRetainedId: "latest", retentionVerified: true };
-test("only the older RETAINED is eligible after verifying CURRENT and newest retained", () => {
+const flags = {
+  nowMs, currentId: "current",
+  protectedBackupIds: ["current", "retained1", "retained2"], retentionVerified: true,
+};
+test("only RETAINED outside the verified latest three is eligible", () => {
   assert.equal(canCleanObject({ ...base, status: "CURRENT" }, flags), false);
-  assert.equal(canCleanObject({ ...base, backup_id: "latest", status: "RETAINED" }, flags), false);
+  assert.equal(canCleanObject({ ...base, backup_id: "retained1", status: "RETAINED" }, flags), false);
+  assert.equal(canCleanObject({ ...base, backup_id: "retained2", status: "RETAINED" }, flags), false);
   assert.equal(canCleanObject({ ...base, status: "RETAINED" }, flags), true);
   assert.equal(canCleanObject({ ...base, status: "RETAINED" }, { ...flags, currentId: null }), false);
   assert.equal(canCleanObject({ ...base, status: "RETAINED" }, { ...flags, retentionVerified: false }), false);
+  assert.equal(canCleanObject({ ...base, status: "RETAINED" }, {
+    ...flags, protectedBackupIds: ["current", "retained1"],
+  }), false);
   assert.equal(canCleanObject({ ...base, status: "RETAINED", created_at: ago(RETIRED_BACKUP_GRACE_MS-1) }, flags), false);
 });
 test("recent failed / active uploading backups cannot be swept", () => {
@@ -51,8 +58,10 @@ test("cleanup physically deletes from canonical UUID-scoped R2 path and keeps li
   assert.match(finalize, /cleanupUserBackups\(service, userId, 10\)/);
 });
 
-test("physical pruning is opt-in and paused during lineage investigation", () => {
+test("physical pruning remains emergency-pausable while protected-three checks are mandatory", () => {
   const source = readFileSync("supabase/functions/_shared/backup_cleanup.mjs", "utf8");
   assert.match(source, /CLOUD_BACKUP_PRUNING_ENABLED/);
   assert.match(source, /paused: true/);
+  assert.match(source, /protectedRows\.retained\.length !== 2/);
+  assert.match(source, /protectedBackupIds/);
 });
