@@ -36,7 +36,7 @@ class BBalancedWeeklyPlacementOptimizerTest {
     )
 
     private fun session(day: Int, vararg keys: String): V22Session {
-        val items = keys.map(::item)
+        val items = keys.map { item(it) }
         return V22Session(day, items, items.sumOf(V22ExercisePlan::setCount))
     }
 
