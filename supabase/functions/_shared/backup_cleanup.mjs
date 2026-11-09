@@ -9,21 +9,22 @@ const LIMIT = 15;
 async function readProtectedBackups(service, userId) {
   const [curr, retained] = await Promise.all([
     service.from("cloud_backups")
-      .select("backup_id,object_key,compressed_size_bytes,created_at")
+      .select("backup_id,object_key,compressed_size_bytes,created_at,verified_at")
       .eq("user_id", userId).eq("status", "CURRENT").maybeSingle(),
     service.from("cloud_backups")
-      .select("backup_id,object_key,compressed_size_bytes")
+      .select("backup_id,object_key,compressed_size_bytes,created_at,verified_at")
       .eq("user_id", userId).eq("status", "RETAINED")
-      .order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      .order("created_at", { ascending: false }).limit(2),
   ]);
   if (curr.error || retained.error) throw new Error("PROTECTED_BACKUP_LOOKUP_FAILED");
-  return { current: curr.data, retained: retained.data };
+  return { current: curr.data, retained: retained.data ?? [] };
 }
 
-/** Verify both copies still exist before pruning older RETAINED objects. */
+/** Verify all three protected R2 objects before pruning older RETAINED files. */
 async function protectedFilesPresent(client, bucket, userId, protectedRows) {
-  if (!protectedRows.current || !protectedRows.retained) return false;
-  for (const row of [protectedRows.current, protectedRows.retained]) {
+  if (!protectedRows.current || protectedRows.retained.length !== 2) return false;
+  for (const row of [protectedRows.current, ...protectedRows.retained]) {
+    if (!row.verified_at) return false;
     if (row.object_key !== buildObjectKey(userId, row.backup_id)) return false;
     try {
       const head = await headObject(client, bucket, row.object_key);
@@ -65,14 +66,14 @@ async function claimCleanup(service, row, nowIso, retryCutoff) {
 
 /**
  * Runs with service_role, but only for the authenticated caller's own userId.
- * Idempotent, bounded, and never removes CURRENT or the newest RETAINED.
+ * Idempotent, bounded, and never removes CURRENT or either newest RETAINED.
  * Delete the R2 object first, then mark its lineage row PRUNED.
  */
 export async function cleanupUserBackups(service, userId, limit = LIMIT) {
-  // Production fail-safe: until existing LINEAGE_CONFLICT failures are
-  // reconciled and R2 copies are independently audited, preserve every
-  // historical object. Account-initiated deletion is handled separately.
-  if (Deno.env.get("CLOUD_BACKUP_PRUNING_ENABLED") !== "true") {
+  // The previous opt-in pause protected unresolved LINEAGE_CONFLICT history.
+  // Physical pruning is now on by default, but requires the protected three
+  // files to exist for RETAINED deletion. Set this secret to "false" to stop.
+  if (Deno.env.get("CLOUD_BACKUP_PRUNING_ENABLED") === "false") {
     return { pruned: 0, failures: 0, skipped: 0, paused: true };
   }
   if (!isUuid(userId)) throw new Error("INVALID_CLEANUP_USER");
@@ -125,7 +126,10 @@ export async function cleanupUserBackups(service, userId, limit = LIMIT) {
     if (!canCleanObject(row, {
       nowMs,
       currentId: protectedRows.current?.backup_id,
-      newestRetainedId: protectedRows.retained?.backup_id,
+      protectedBackupIds: [
+        protectedRows.current?.backup_id,
+        ...protectedRows.retained.map((row) => row.backup_id),
+      ].filter(Boolean),
       retentionVerified: retentionVerified === true,
     })) { skipped++; continue; }
     if (row.object_key !== buildObjectKey(userId, row.backup_id)) {
