@@ -46,9 +46,13 @@ internal object BBalancedWeeklyPlacementOptimizer {
         val assignment: IntArray,
         val metrics: Metrics,
         val weeklyOvertime: List<Double>,
-        val weeklyAdjacent: List<Double>
+        val weeklyAdjacent: List<Double>,
+        val dailyTimes: List<List<Double>>,
+        val dailyPhysicalSets: List<List<Int>>,
+        val dailyWeightedSets: List<List<Double>>
     )
     private data class MuscleProfile(val roles: Map<String, Double>)
+    private fun V22ExercisePlan.itemRoleIsMain(): Boolean = role.contains("MAIN", ignoreCase = true)
 
     fun optimize(
         sessions: List<V22Session>,
@@ -139,12 +143,35 @@ internal object BBalancedWeeklyPlacementOptimizer {
             var peak = 0.0
             var overtime = 0.0
             var timeSpread = 0.0
+            var setSpread = 0.0
+            var workloadSpread = 0.0
+            val dailyTimes = mutableListOf<List<Double>>()
+            val dailyPhysicalSets = mutableListOf<List<Int>>()
+            val dailyWeightedSets = mutableListOf<List<Double>>()
             val overByWeek = mutableListOf<Double>()
             val adjacentByWeek = mutableListOf<Double>()
             for (week in weeks) {
                 val allocated = distribute(week, assignment)
                 val time = allocated.map { BBalancedDayPlacementPlanner.estimateMinutes(it, exercises) }
                 peak = max(peak, time.maxOrNull() ?: 0.0)
+                dailyTimes += time
+                val daySets = allocated.map(V22Session::nominalSets)
+                dailyPhysicalSets += daySets
+                val weightedSets = allocated.map { session ->
+                    session.items.sumOf { item ->
+                        val primary = item.stableKey in mainKeys ||
+                            item.itemRoleIsMain() ||
+                            item.stableKey in setOf("barbell_back_squat", "barbell_deadlift", "barbell_romanian_deadlift")
+                        item.setCount * if (primary) 1.5 else 1.0
+                    }
+                }
+                dailyWeightedSets += weightedSets
+                val averageSets = daySets.average()
+                setSpread += daySets.sumOf { (it - averageSets) * (it - averageSets) } / days.size
+                val averageWorkload = weightedSets.average()
+                workloadSpread += weightedSets.sumOf {
+                    (it - averageWorkload) * (it - averageWorkload)
+                } / days.size
                 val averageTime = time.average()
                 timeSpread += time.sumOf { (it - averageTime) * (it - averageTime) } / time.size
                 val over = if (sessionMinutes == null) 0.0 else
@@ -192,10 +219,14 @@ internal object BBalancedWeeklyPlacementOptimizer {
             adjacent /= normalizer
             overtime /= normalizer
             timeSpread /= normalizer
+            setSpread /= normalizer
+            workloadSpread /= normalizer
             val cost = 1.8 * concentration + 3.0 * adjacent +
-                2.5 * overtime + 0.11 * peak + 0.035 * timeSpread
+                2.5 * overtime + 0.11 * peak + 0.035 * timeSpread +
+                0.18 * setSpread + 0.30 * workloadSpread
             return Scored(assignment.copyOf(),
-                Metrics(concentration, adjacent, peak, overtime, cost), overByWeek, adjacentByWeek)
+                Metrics(concentration, adjacent, peak, overtime, cost),
+                overByWeek, adjacentByWeek, dailyTimes, dailyPhysicalSets, dailyWeightedSets)
         }
 
         val original = IntArray(atoms.size) { atoms[it].sourceIndex }
@@ -215,6 +246,46 @@ internal object BBalancedWeeklyPlacementOptimizer {
                         candidate.weeklyOvertime[index] > initial.weeklyOvertime[index] + EPS ||
                             candidate.weeklyAdjacent[index] > initial.weeklyAdjacent[index] + EPS
                     }) return
+                // Every evaluated week must remain safe independently. A lower summed
+                // overtime penalty must never make an originally valid day exceed its
+                // individual time limit or create a new busiest training day.
+                if (candidate.dailyTimes.indices.any { week ->
+                    val beforeTime = initial.dailyTimes[week]
+                    val afterTime = candidate.dailyTimes[week]
+                    if ((afterTime.maxOrNull() ?: 0.0) > (beforeTime.maxOrNull() ?: 0.0) + EPS)
+                        return@any true
+                    if (sessionMinutes == null) return@any false
+                    beforeTime.indices.any { day ->
+                        val before = beforeTime[day]
+                        val after = afterTime[day]
+                        if (before <= sessionMinutes + EPS) after > sessionMinutes + EPS
+                        else after > before + EPS
+                    }
+                }) return
+                // Set and workload caps are bounded by the original peak AND an
+                // explicit relative-to-week-mean envelope. This is not a measured
+                // fatigue or one-repetition-max calculation.
+                if (candidate.dailyPhysicalSets.indices.any { week ->
+                    val beforeSets = initial.dailyPhysicalSets[week]
+                    val afterSets = candidate.dailyPhysicalSets[week]
+                    val beforeLoads = initial.dailyWeightedSets[week]
+                    val afterLoads = candidate.dailyWeightedSets[week]
+                    val setCap = max(beforeSets.average() * 1.4, beforeSets.average() + 2.0)
+                    val loadCap = max(beforeLoads.average() * 1.4, beforeLoads.average() + 2.0)
+                    val peakSets = beforeSets.maxOrNull() ?: 0
+                    val peakLoad = beforeLoads.maxOrNull() ?: 0.0
+                    if ((afterSets.maxOrNull() ?: 0) > peakSets ||
+                        (afterLoads.maxOrNull() ?: 0.0) > peakLoad + EPS) return@any true
+                    beforeSets.indices.any { day ->
+                        val badSets = if (beforeSets[day] <= setCap + EPS)
+                            afterSets[day] > setCap + EPS
+                        else afterSets[day] > beforeSets[day]
+                        val badLoad = if (beforeLoads[day] <= loadCap + EPS)
+                            afterLoads[day] > loadCap + EPS
+                        else afterLoads[day] > beforeLoads[day] + EPS
+                        badSets || badLoad
+                    }
+                }) return
                 if (candidate.metrics.totalCost >= best.metrics.totalCost - MIN_IMPROVEMENT) return
                 if (next == null || candidate.metrics.totalCost < next!!.metrics.totalCost - EPS) {
                     next = candidate
