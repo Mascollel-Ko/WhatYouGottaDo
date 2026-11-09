@@ -3,6 +3,7 @@ import { cleanupUserBackups } from "../_shared/backup_cleanup.mjs";
 import { createServiceClient, requiredR2Config } from "../_shared/supabase_auth.mjs";
 import { createR2Client, measureR2BucketBytes } from "../_shared/r2.mjs";
 import { removeR2PrivateObjects } from "../_shared/r2_user_cleanup.mjs";
+import { reconcileR2Three } from "../_shared/r2_three_retention.mjs";
 
 async function handler(request) {
   if (request.method === "OPTIONS") return emptyResponse();
@@ -16,7 +17,9 @@ async function handler(request) {
   if (!body || typeof body !== "object" || Array.isArray(body) ||
       !isUuid(body.ticket) ||
       (Object.keys(body).length !== 1 &&
-        !(Object.keys(body).length === 2 && body.audit_usage === true))) {
+        !(Object.keys(body).length === 2 &&
+          (body.audit_usage === true || body.audit_three === true ||
+           body.prune_to_three === true)))) {
     return jsonResponse({ error: "INVALID_CLEANUP_TICKET" }, 403);
   }
 
@@ -39,6 +42,37 @@ async function handler(request) {
       return jsonResponse({ ok: true, bucketBytes });
     } catch {
       return jsonResponse({ error: "R2_LIST_UNAVAILABLE" }, 503);
+    }
+  }
+
+  // Ticket-only administrative R2 inventory and one-shot precise retention.
+  // audit_three verifies all three stored payloads without mutating data.
+  // prune_to_three is deliberately never available to signed-in app users.
+  if (body.audit_three === true || body.prune_to_three === true) {
+    try {
+      const { data, error } = await service.from("cloud_backups")
+        .select("user_id").in("status", ["CURRENT", "RETAINED"])
+        .order("created_at", { ascending: false }).limit(500);
+      if (error) throw new Error("THREE_RETENTION_USER_DISCOVERY_FAILED");
+      const users = [...new Set((data ?? []).map((row) => row.user_id))].filter(isUuid).slice(0, 8);
+      if (users.length === 0) throw new Error("THREE_RETENTION_NO_ACCOUNT");
+      const results = [];
+      for (const userId of users) {
+        try {
+          results.push(await reconcileR2Three(service, userId, {
+            dryRun: body.audit_three === true,
+          }));
+        } catch (failure) {
+          results.push({ error: failure instanceof Error ? failure.message : "THREE_RETENTION_FAILED" });
+        }
+      }
+      return jsonResponse({
+        ok: results.every((x) => !x.error && (body.audit_three === true || x.exactThree)),
+        accounts: results.length,
+        results,
+      });
+    } catch {
+      return jsonResponse({ error: "THREE_RETENTION_UNAVAILABLE" }, 503);
     }
   }
 
