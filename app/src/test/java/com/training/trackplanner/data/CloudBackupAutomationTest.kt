@@ -38,12 +38,14 @@ class CloudBackupAutomationTest {
             )
         }
         WorkManager.getInstance(context).cancelUniqueWork(CloudBackupScheduler.UNIQUE_WORK_NAME)
+        WorkManager.getInstance(context).cancelUniqueWork(CloudBackupScheduler.COALESCING_WORK_NAME)
         WorkManager.getInstance(context).cancelUniqueWork(CloudBackupScheduler.PERIODIC_WORK_NAME)
     }
 
     @After
     fun close() {
         WorkManager.getInstance(context).cancelUniqueWork(CloudBackupScheduler.UNIQUE_WORK_NAME)
+        WorkManager.getInstance(context).cancelUniqueWork(CloudBackupScheduler.COALESCING_WORK_NAME)
         WorkManager.getInstance(context).cancelUniqueWork(CloudBackupScheduler.PERIODIC_WORK_NAME)
         databases.forEach(TrainingDatabase::close)
     }
@@ -52,7 +54,7 @@ class CloudBackupAutomationTest {
         .allowMainThreadQueries().build().also { databases += it }
 
     private fun automaticWork(): List<WorkInfo> = WorkManager.getInstance(context)
-        .getWorkInfosForUniqueWork(CloudBackupScheduler.UNIQUE_WORK_NAME).get()
+        .getWorkInfosForUniqueWork(CloudBackupScheduler.COALESCING_WORK_NAME).get()
         .filter { it.state == WorkInfo.State.ENQUEUED || it.state == WorkInfo.State.RUNNING }
 
     @Test
@@ -85,6 +87,28 @@ class CloudBackupAutomationTest {
         repository.addWorkoutEntry("2026-09-17", exercise.stableKey)
 
         assertEquals(1, automaticWork().size)
+    }
+
+    @Test
+    fun replacingQueuedDebounceCannotReplaceTheActualUploadWorker() = runBlocking {
+        val db = database()
+        db.cloudBackupStateDao().getOrCreate()
+        db.cloudBackupStateDao().bindAccount("user-1")
+        db.cloudBackupStateDao().recordLocalChange(100L)
+        CloudBackupScheduler.schedule(context)
+        CloudBackupScheduler.schedule(context)
+        assertEquals(1, automaticWork().size)
+
+        CloudBackupScheduler.enqueueUpload(context)
+        val uploadWork = {
+            WorkManager.getInstance(context)
+                .getWorkInfosForUniqueWork(CloudBackupScheduler.UNIQUE_WORK_NAME).get()
+                .filter { it.state == WorkInfo.State.ENQUEUED || it.state == WorkInfo.State.RUNNING }
+        }
+        val existing = uploadWork().single().id
+        CloudBackupScheduler.schedule(context)
+        assertEquals(1, automaticWork().size)
+        assertEquals(existing, uploadWork().single().id)
     }
 
     @Test
