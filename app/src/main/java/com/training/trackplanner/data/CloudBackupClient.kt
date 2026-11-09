@@ -4,6 +4,7 @@ import com.training.trackplanner.BuildConfig
 import androidx.room.withTransaction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
@@ -177,8 +178,28 @@ internal data class CloudBackupDownloadResult(
 internal data class CloudCurrentBackupMetadata(
     val backupId: String,
     val createdAt: String? = null,
-    val localRevision: Long? = null
+    val localRevision: Long? = null,
+    val parentBackupId: String? = null,
+    val installId: String? = null,
+    val verifiedAt: String? = null,
+    val checksum: String? = null,
+    val checksumAlgorithm: String? = null
 )
+
+/** Repair only a verified CURRENT directly descended from the same installation's
+ * acknowledged base. Never infer equivalence from user ID alone. */
+internal object CloudBackupLineageRecovery {
+    fun recoverableRevision(state: CloudBackupState, current: CloudCurrentBackupMetadata): Long? {
+        val base = state.localBaseBackupId ?: return null
+        if (base != state.lastSuccessfulBackupId || current.backupId == base) return null
+        if (current.parentBackupId != base || current.installId != state.installId) return null
+        val revision = current.localRevision ?: return null
+        if (revision < 0L || revision > state.localRevision) return null
+        if (current.verifiedAt.isNullOrBlank() || current.checksumAlgorithm != "SHA-256") return null
+        if (current.checksum?.matches(Regex("[0-9a-fA-F]{64}")) != true) return null
+        return revision
+    }
+}
 
 /** Discovers CURRENT without exposing an object URL or accepting a client user id. */
 internal class CloudCurrentBackupClient(
@@ -220,7 +241,12 @@ internal class CloudCurrentBackupClient(
                 backupId = backupId,
                 createdAt = current.optString("created_at").takeIf(String::isNotBlank),
                 localRevision = current.optLong("local_revision", Long.MIN_VALUE)
-                    .takeIf { it >= 0L }
+                    .takeIf { it >= 0L },
+                parentBackupId = current.optString("parent_backup_id").takeIf { it.isNotBlank() && it != "null" },
+                installId = current.optString("install_id").takeIf(String::isNotBlank),
+                verifiedAt = current.optString("verified_at").takeIf { it.isNotBlank() && it != "null" },
+                checksum = current.optString("checksum").takeIf(String::isNotBlank),
+                checksumAlgorithm = current.optString("checksum_algorithm").takeIf(String::isNotBlank)
             )
         }
 
@@ -343,6 +369,29 @@ internal class CloudBackupClient(
             check(state.accountUserId == session.userId) {
                 "Cloud account changed; refresh authentication before uploading."
             }
+            if (expectedCloudCurrentForLocalWins == null) {
+                // A cached local acknowledgement is not evidence of server CURRENT.
+                val remote = CloudCurrentBackupClient(config, transport).discover(session)
+                when {
+                    remote == null && state.localBaseBackupId == null -> Unit
+                    remote?.backupId == state.localBaseBackupId -> Unit
+                    remote != null -> {
+                        val completedRevision = CloudBackupLineageRecovery.recoverableRevision(state, remote)
+                            ?: throw CloudBackupException("LINEAGE_CONFLICT")
+                        // Subtract only the completed snapshot: later workout/sleep edits
+                        // remain locally pending. Never replace any user data.
+                        val repaired = db.withTransaction {
+                            stateDao.acknowledgeIfSnapshotUnchanged(
+                                session.userId, state.localBaseBackupId,
+                                completedRevision, remote.backupId, System.currentTimeMillis()
+                            ) == 1
+                        }
+                        if (!repaired) throw CloudBackupException("CLOUD_LOCAL_ACK_MISMATCH")
+                        state = stateDao.getOrCreate()
+                    }
+                    else -> throw CloudBackupException("LINEAGE_CONFLICT")
+                }
+            }
             val snapshotBase = state.localBaseBackupId
             val snapshotRevision = state.localRevision
             val canonical = canonicalBackup()
@@ -368,25 +417,29 @@ internal class CloudBackupClient(
                 val uploadUrl = uploadAuth.getString("upload_url")
                 val put = transport.putBytes(uploadUrl, compressed)
                 if (put.status !in 200..299) throw CloudBackupException("R2_PUT_FAILED")
-                val finalized = post(
-                    "cloud-backup-finalize", session,
-                    JSONObject().apply {
-                        put("backup_id", backupId)
-                        if (expectedCloudCurrentForLocalWins != null) {
-                            put("resolution", "LOCAL_WINS")
-                            put("expected_current_backup_id", expectedCloudCurrentForLocalWins)
-                        }
-                    }.toString()
-                )
-                if (finalized.optString("status") != "CURRENT") {
-                    throw CloudBackupException(finalized.optString("error", "FINALIZE_FAILED"))
+                // Once R2 accepted the bytes, do not interrupt the server promotion
+                // between CURRENT verification and the local acknowledgement.
+                withContext(NonCancellable) {
+                    val finalized = post(
+                        "cloud-backup-finalize", session,
+                        JSONObject().apply {
+                            put("backup_id", backupId)
+                            if (expectedCloudCurrentForLocalWins != null) {
+                                put("resolution", "LOCAL_WINS")
+                                put("expected_current_backup_id", expectedCloudCurrentForLocalWins)
+                            }
+                        }.toString()
+                    )
+                    if (finalized.optString("status") != "CURRENT") {
+                        throw CloudBackupException(finalized.optString("error", "FINALIZE_FAILED"))
+                    }
+                    val acknowledged = db.withTransaction {
+                        stateDao.acknowledgeIfSnapshotUnchanged(
+                            session.userId, snapshotBase, snapshotRevision, backupId, System.currentTimeMillis()
+                        ) > 0
+                    }
+                    CloudBackupUploadResult(backupId, compressed.size, checksum, acknowledged)
                 }
-                val acknowledged = db.withTransaction {
-                    stateDao.acknowledgeIfSnapshotUnchanged(
-                        session.userId, snapshotBase, snapshotRevision, backupId, now
-                    ) > 0
-                }
-                CloudBackupUploadResult(backupId, compressed.size, checksum, acknowledged)
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Throwable) {
