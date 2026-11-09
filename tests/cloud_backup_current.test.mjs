@@ -31,6 +31,9 @@ test("CURRENT discovery is JWT-authenticated and scoped to the verified user", (
   assert.match(endpoint, /\.eq\("status", "CURRENT"\)/);
   assert.match(endpoint, /current:\s*null/);
   assert.doesNotMatch(endpoint, /download_url|object_key|presign/i);
+  for (const field of ["parent_backup_id", "install_id", "verified_at", "checksum", "checksum_algorithm"]) {
+    assert.match(endpoint, new RegExp(field));
+  }
 });
 
 test("CURRENT discovery keeps gateway JWT verification enabled", () => {
