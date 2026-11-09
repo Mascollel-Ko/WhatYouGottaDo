@@ -49,7 +49,8 @@ internal object BBalancedWeeklyPlacementOptimizer {
         val weeklyAdjacent: List<Double>,
         val dailyTimes: List<List<Double>>,
         val dailyPhysicalSets: List<List<Int>>,
-        val dailyWeightedSets: List<List<Double>>
+        val dailyWeightedSets: List<List<Double>>,
+        val muscleLoadsByWeek: List<Map<String, List<Double>>>
     )
     private data class MuscleProfile(val roles: Map<String, Double>)
     private fun V22ExercisePlan.itemRoleIsMain(): Boolean = role.contains("MAIN", ignoreCase = true)
@@ -148,6 +149,7 @@ internal object BBalancedWeeklyPlacementOptimizer {
             val dailyTimes = mutableListOf<List<Double>>()
             val dailyPhysicalSets = mutableListOf<List<Int>>()
             val dailyWeightedSets = mutableListOf<List<Double>>()
+            val muscleLoadsByWeek = mutableListOf<Map<String, List<Double>>>()
             val overByWeek = mutableListOf<Double>()
             val adjacentByWeek = mutableListOf<Double>()
             for (week in weeks) {
@@ -187,6 +189,7 @@ internal object BBalancedWeeklyPlacementOptimizer {
                         }
                     }
                 }
+                muscleLoadsByWeek += perMuscle.mapValues { (_, loads) -> loads.toList() }
                 val beforeWeekAdjacent = adjacent
                 perMuscle.values.forEach { loads ->
                     val total = loads.sum()
@@ -226,7 +229,8 @@ internal object BBalancedWeeklyPlacementOptimizer {
                 0.18 * setSpread + 0.30 * workloadSpread
             return Scored(assignment.copyOf(),
                 Metrics(concentration, adjacent, peak, overtime, cost),
-                overByWeek, adjacentByWeek, dailyTimes, dailyPhysicalSets, dailyWeightedSets)
+                overByWeek, adjacentByWeek, dailyTimes, dailyPhysicalSets, dailyWeightedSets,
+                muscleLoadsByWeek)
         }
 
         val original = IntArray(atoms.size) { atoms[it].sourceIndex }
@@ -284,6 +288,14 @@ internal object BBalancedWeeklyPlacementOptimizer {
                             afterLoads[day] > loadCap + EPS
                         else afterLoads[day] > beforeLoads[day] + EPS
                         badSets || badLoad
+                    }
+                }) return
+                // No single muscle may develop a larger single-day planned-set peak
+                // just because a different muscle's distribution improved more.
+                if (candidate.muscleLoadsByWeek.indices.any { week ->
+                    initial.muscleLoadsByWeek[week].any { (muscle, before) ->
+                        val after = candidate.muscleLoadsByWeek[week][muscle].orEmpty()
+                        (after.maxOrNull() ?: 0.0) > (before.maxOrNull() ?: 0.0) + EPS
                     }
                 }) return
                 if (candidate.metrics.totalCost >= best.metrics.totalCost - MIN_IMPROVEMENT) return
