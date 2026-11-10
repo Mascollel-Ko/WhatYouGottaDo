@@ -152,7 +152,7 @@ internal object BBalanced12WeekEngine {
         val chosen = requireNotNull(best) { "No feasible B balanced candidate within the supplied time constraint" }
         var weekCursor = 1
         val completedSelections = mutableListOf<List<V22Session>>()
-        val blocks = chosen.focuses.mapIndexed { index, focus ->
+        val originalBlocks = chosen.focuses.mapIndexed { index, focus ->
             val relation = specification?.blocks?.get(index)?.relationToPrevious?.active()
             val selectedSessions = if (specification != null && index > 0)
                 reselectBlockFromPlannedHistory(
@@ -187,14 +187,14 @@ internal object BBalanced12WeekEngine {
                 evaluation = selectedEvaluation
             )
         }
-        val resolvedAmplitudes = blocks.mapIndexed { index, block ->
+        val resolvedAmplitudes = originalBlocks.mapIndexed { index, block ->
             specification?.blocks?.get(index)?.let { spec ->
                 BBlockPrescriptionApplicator.resolveAmplitude(
                     spec, rows, request.asOf, block.sessions
                 )
             }
         }
-        val weeks = blocks.flatMap { block ->
+        val unplacedWeeks = originalBlocks.flatMap { block ->
             (block.startWeek..block.endWeek).map { week ->
                 val spec = specification?.blocks?.get(block.block - 1)
                 val stage = spec?.let { BBlockPeriodization.steps(it)[week - block.startWeek] } ?: 0
@@ -221,6 +221,27 @@ internal object BBalanced12WeekEngine {
                 V22Week(week, block.block, sessions, sessions.sumOf(V22Session::nominalSets))
             }
         }
+        // Final, per-block post-prescription reflow. The weekly variants already contain
+        // periodization and peak-week adjustments; move whole items in every variant
+        // rather than recreating or averaging their actual set prescriptions.
+        val weeklyPlacement = originalBlocks.map { block ->
+            BBalancedWeeklyPlacementOptimizer.optimize(
+                sessions = block.sessions,
+                weeks = unplacedWeeks.filter { it.block == block.block }.map(V22Week::sessions),
+                exercises = exercises,
+                muscleRelations = muscleRelations,
+                mainKeys = mainExerciseKeys,
+                sessionMinutes = request.sessionMinutes
+            )
+        }
+        val blocks = originalBlocks.mapIndexed { index, block ->
+            block.copy(sessions = weeklyPlacement[index].sessions)
+        }
+        val weeks = unplacedWeeks.map { week ->
+            val slot = week.week - originalBlocks[week.block - 1].startWeek
+            val sessions = weeklyPlacement[week.block - 1].weeks[slot]
+            week.copy(sessions = sessions, weeklyNominalSets = sessions.sumOf(V22Session::nominalSets))
+        }
         val search = BBalancedSearchStats(
             evaluatedCandidates = evaluated,
             feasibleCandidates = feasible,
@@ -245,7 +266,8 @@ internal object BBalanced12WeekEngine {
             "Historical kilograms are references only; the future skeleton requires user calibration.",
             "Candidate search reuses incumbent exercises and never exceeds each exercise's observed weekly ceiling.",
             "Goal satisfaction is a planning coverage ratio, not a predicted adaptation probability.",
-            placement.diagnosis
+            placement.diagnosis,
+            "Final B weekly reflow is a bounded heuristic, not measured muscular fatigue or recovery clearance."
         ) + if (realizedDoseAudit != null &&
             (0 until realizedDoseAudit.length()).any {
                 realizedDoseAudit.getJSONObject(it).optString("status") == "PATTERN_NOT_REALIZED_USER_REVIEW"
@@ -268,7 +290,7 @@ internal object BBalanced12WeekEngine {
                     put("recoveryDaysBetween", JSONArray(specification.recoveryDaysBetween))
                     put("reselectionAudit", JSONArray(blocks.mapIndexed { index, block ->
                         val from = chosen.sessions[index].flatMap(V22Session::items).map(V22ExercisePlan::stableKey)
-                        val to = block.sessions.flatMap(V22Session::items).map(V22ExercisePlan::stableKey)
+                        val to = originalBlocks[index].sessions.flatMap(V22Session::items).map(V22ExercisePlan::stableKey)
                         val changes = from.zip(to).filter { (old, selected) -> old != selected }
                         JSONObject().put("block", block.block)
                             .put("relation", specification.blocks[index].relationToPrevious.active().name)
@@ -313,6 +335,22 @@ internal object BBalanced12WeekEngine {
                 .put("requestedDaysEstimatedPeakMinutes", placement.requestedMaxEstimatedMinutes ?: JSONObject.NULL)
                 .put("status", placement.diagnosis)
                 .put("authority", "HEURISTIC_PLACEMENT_REVIEW_ONLY_NOT_OFI_OR_TISSUE_PROJECTION"))
+            .put("weeklyReflowAudit", JSONArray(weeklyPlacement.mapIndexed { index, result ->
+                JSONObject()
+                    .put("block", index + 1)
+                    .put("status", result.status)
+                    .put("changed", result.changed)
+                    .put("evaluatedCandidates", result.evaluated)
+                    .put("costBefore", result.before?.totalCost ?: JSONObject.NULL)
+                    .put("costAfter", result.after?.totalCost ?: JSONObject.NULL)
+                    .put("estimatedPeakMinutesBefore", result.before?.estimatedPeakMinutes ?: JSONObject.NULL)
+                    .put("estimatedPeakMinutesAfter", result.after?.estimatedPeakMinutes ?: JSONObject.NULL)
+                    .put("changes", JSONArray(result.moves.map { move ->
+                        JSONObject().put("stableKey", move.stableKey)
+                            .put("fromDay", move.fromDay).put("toDay", move.toDay)
+                    }))
+                    .put("authority", "DETERMINISTIC_PLANNING_HEURISTIC_NOT_OFI_OR_RECOVERY_CLEARANCE")
+            }))
             .put("deletionAudit", deletionReview)
             .put("deletionPolicy", "AUDIT_ONLY_NO_AUTOMATIC_REMOVAL")
             .toString()
