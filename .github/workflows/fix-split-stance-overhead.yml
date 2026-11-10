@@ -1,0 +1,98 @@
+name: Correct split-stance cable row and overhead dumbbell press
+on:
+  push:
+    branches:
+      - feature/split-stance-row-press-20261110
+permissions:
+  contents: write
+jobs:
+  correct:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install canonical authority dependencies
+        run: python -m pip install -r tools/metadata_authority/requirements.txt
+      - name: Correct workbook and synchronize canonical assets
+        run: |
+          python tools/metadata_authority/correct_split_stance_overhead_press.py
+          python tools/metadata_authority/validate_authority_workbook.py --workbook docs/metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx
+          python tools/metadata_authority/export_canonical_metadata.py --workbook docs/metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx --output app/src/main/assets/metadata/canonical_v1
+          python tools/metadata_authority/export_canonical_metadata.py --check --workbook docs/metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx --output app/src/main/assets/metadata/canonical_v1
+      - name: Update exact approved source hash contract
+        run: |
+          python - <<'PY'
+          import hashlib, pathlib, re
+          source = pathlib.Path('docs/metadata_authority/core_training_classification_review_2026-08-13.csv')
+          digest = hashlib.sha256(source.read_bytes()).hexdigest()
+          test = pathlib.Path('app/src/test/java/com/training/trackplanner/data/CanonicalAnalysisAuthorityTest.kt')
+          contents = test.read_text(encoding='utf-8')
+          match = re.search(r'(val approved = projectFile\("docs/metadata_authority/core_training_classification_review_2026-08-13.csv"\)[\s\S]{0,90}?)"([a-f0-9]{64})"', contents)
+          assert match, 'Cannot locate exact source pin'
+          contents = contents[:match.start(2)] + digest + contents[match.end(2):]
+          test.write_text(contents, encoding='utf-8')
+          PY
+      - name: Run focused canonical authority regression
+        run: |
+          python -m unittest discover -s tools/metadata_authority/tests -p 'test_metadata_authority.py' -k test_workbook -k test_export -k test_manifest -k test_approved_core -k test_display_resources
+          python - <<'PY'
+          import csv, pathlib
+          root=pathlib.Path('app/src/main/assets/metadata/canonical_v1')
+          key='split_stance_contralateral_cable_row_dumbbell_press'
+          def rows(name):
+              with (root / name).open(encoding='utf-8-sig', newline='') as f:
+                  return [r for r in csv.DictReader(f) if key in (r.get('stableKey'), r.get('exerciseStableKey'))]
+          b=rows('exercise_bootstrap.csv')[0]
+          m=rows('movement_relations.csv')
+          mr=rows('muscle_relations.csv')
+          p={r['relationValue'] for r in m if r['relationType']=='MOVEMENT_PATTERN'}
+          assert p=={'ANTI_ROTATION','VERTICAL_PUSH','HORIZONTAL_PULL'},p
+          assert 'SCAPULAR_UPWARD_ROTATION' in {r['relationValue'] for r in m}
+          assert b['name']=='스플릿 스탠스 케이블 로우 + 덤벨 오버헤드 프레스'
+          assert b['primaryMuscles']=='LAT,SHOULDER,OBLIQUE'
+          assert next(r['muscleRelationType'] for r in mr if r['muscleCode']=='SHOULDERS')=='PRIMARY'
+          assert next(r['muscleRelationType'] for r in mr if r['muscleCode']=='CHEST')=='SECONDARY'
+          assert rows('runtime_metadata.csv')[0]['badmintonTransferLevel']=='DIRECT'
+          print('Corrected overhead movement and muscle roles verified')
+          PY
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Refresh deterministic semantic revision and metadata artifacts
+        env:
+          UPDATE_METADATA_CONTRACT_ARTIFACTS: '1'
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:testDebugUnitTest --tests 'com.training.trackplanner.data.ExerciseMetadataFieldRegistryContractTest.artifactsAreDeterministicAndCurrent' --no-daemon
+      - name: Refresh pinned revision regression
+        run: |
+          python - <<'PY'
+          import json, pathlib
+          manifest = json.loads(pathlib.Path('app/src/main/assets/metadata/canonical_v1/metadata_revision_manifest.json').read_text())
+          p=pathlib.Path('app/src/test/java/com/training/trackplanner/data/ExerciseMetadataFieldRegistryContractTest.kt')
+          s=p.read_text(encoding='utf-8')
+          # Both expected values are each a literal in releasePreservesPersistenceAndRevisionInvariants.
+          for field in ['semanticCanonicalMetadataRevision','metadataDisplayDictionaryRevision']:
+              match=s.index('revisions.'+field)
+              head=s[:match]
+              import re
+              old=list(re.finditer(r'"[0-9a-f]{64}"',head))[-1]
+              new=manifest[field]
+              s=s[:old.start()+1]+new+s[old.end()-1:]
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit authoritative correction and its exports
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/metadata_authority tools/metadata_authority/analysis_cutover_authority.py app/src/main/assets/metadata/canonical_v1 app/src/main/res/values/metadata_display_catalog.xml app/src/main/res/values-en/metadata_display_catalog.xml app/src/test/java/com/training/trackplanner/data/CanonicalAnalysisAuthorityTest.kt app/src/test/java/com/training/trackplanner/data/ExerciseMetadataFieldRegistryContractTest.kt docs/generated/metadata_field_display_contract.csv
+          if ! git diff --cached --quiet; then
+            git commit -m "fix: align canonical exercise, muscle, and movement assets with overhead press"
+            git push origin HEAD:feature/split-stance-row-press-20261110
+          fi
