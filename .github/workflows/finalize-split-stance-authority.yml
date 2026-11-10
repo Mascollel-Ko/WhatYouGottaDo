@@ -1,0 +1,92 @@
+name: Finalize reviewed split-stance exercise authority
+on:
+  push:
+    branches:
+      - feature/split-stance-row-press-20261110
+permissions:
+  contents: write
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install authority dependencies
+        run: pip install -r tools/metadata_authority/requirements.txt
+      - name: Repair duplicate core source-row identity and regenerate canonical exports
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import csv,hashlib,re
+          key='split_stance_contralateral_cable_row_dumbbell_press'
+          path=Path('docs/metadata_authority/core_training_classification_review_2026-08-13.csv')
+          with path.open(encoding='utf-8-sig',newline='') as f:
+              rows=list(csv.DictReader(f))
+          assert sum(r['stableKey']==key for r in rows)==1
+          assert sum(r['sourceRowOrder']=='243' for r in rows)==2
+          for row in rows:
+              if row['stableKey']==key: row['sourceRowOrder']='244'
+          assert len({r['sourceRowOrder'] for r in rows})==len(rows)
+          with path.open('w',encoding='utf-8-sig',newline='') as f:
+              writer=csv.DictWriter(f,fieldnames=list(rows[0]),lineterminator='\n')
+              writer.writeheader()
+              writer.writerows(rows)
+          digest=hashlib.sha256(path.read_bytes()).hexdigest()
+          for target in [
+              Path('tools/metadata_authority/analysis_cutover_authority.py'),
+              Path('app/src/test/java/com/training/trackplanner/data/CanonicalAnalysisAuthorityTest.kt')
+          ]:
+              s=target.read_text(encoding='utf-8')
+              if target.suffix=='.py':
+                  s,n=re.subn(r'(CORE_APPROVED_SHA256 = ")[0-9a-f]{64}(")',lambda m:m.group(1)+digest+m.group(2),s)
+              else:
+                  s,n=re.subn(r'"1807feb9b184cb3697003e8d25f99246d57ec670ae45dd33a4816ac0457aa8e4"',lambda m:'"'+digest+'"',s)
+              assert n==1,(target,n)
+              target.write_text(s,encoding='utf-8')
+          PY
+          python tools/metadata_authority/validate_authority_workbook.py --workbook docs/metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx
+          python tools/metadata_authority/export_canonical_metadata.py --workbook docs/metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx --output app/src/main/assets/metadata/canonical_v1
+          python tools/metadata_authority/export_canonical_metadata.py --check --workbook docs/metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx --output app/src/main/assets/metadata/canonical_v1
+          python -m unittest discover -s tools/metadata_authority/tests
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Refresh semantic revision artifacts from actual app metadata
+        env:
+          UPDATE_METADATA_CONTRACT_ARTIFACTS: '1'
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:testDebugUnitTest --tests 'com.training.trackplanner.data.ExerciseMetadataFieldRegistryContractTest.artifactsAreDeterministicAndCurrent' --no-daemon
+      - name: Refresh pinned revision regression expectations
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json,re
+          values=json.loads(Path('app/src/main/assets/metadata/canonical_v1/metadata_revision_manifest.json').read_text())
+          path=Path('app/src/test/java/com/training/trackplanner/data/ExerciseMetadataFieldRegistryContractTest.kt')
+          s=path.read_text()
+          for old,new in [
+              ('2bac4309c8a652f9220f553bb4069c231b3bcaa16e789da6932d8abd93b544c0',values['semanticCanonicalMetadataRevision']),
+              ('d5c6a5515efd013e97224f3418c3402619c6d68e589c1cd618cd14502f8b5406',values['metadataDisplayDictionaryRevision'])
+          ]:
+              assert s.count(old)==1,(old,s.count(old))
+              s=s.replace(old,new)
+          path.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit generated authority and validated regression expectations
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/metadata_authority/core_training_classification_review_2026-08-13.csv tools/metadata_authority/analysis_cutover_authority.py app/src/main/assets/metadata/canonical_v1 docs/metadata_authority/metadata_display_resource_manifest.json app/src/main/res/values/metadata_display_catalog.xml app/src/main/res/values-en/metadata_display_catalog.xml docs/generated/metadata_field_display_contract.csv app/src/test/java/com/training/trackplanner/data/CanonicalAnalysisAuthorityTest.kt app/src/test/java/com/training/trackplanner/data/ExerciseMetadataFieldRegistryContractTest.kt
+          if ! git diff --cached --quiet; then
+            git commit -m "fix: finalize split-stance canonical core ID and revision artifacts"
+            git push origin HEAD:feature/split-stance-row-press-20261110
+          fi
