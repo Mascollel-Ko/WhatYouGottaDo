@@ -162,6 +162,8 @@ data class WorkoutSet(
     val seconds: Int = 0,
     val confirmed: Boolean = false,
     val manualWeight: Boolean = false,
+    /** Second independently recorded load for the split-stance cable-row + DB press. Null for legacy sets. */
+    val secondaryWeightKg: Double? = null,
     val rpe: Double? = null,
     val restSecondsOverride: Int? = null,
     val loadState: ProgramLoadState = ProgramLoadState.EXPLICIT_LOAD,
