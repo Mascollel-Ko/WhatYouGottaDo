@@ -83,7 +83,7 @@ internal object BBalanced12WeekEngine {
             taskCatalog
         )
         val incumbent = legacy?.weeks?.firstOrNull()?.sessions
-            ?: coldStartBaseline(request, exercises, contributionCatalog)
+            ?: coldStartBaseline(request, exercises, contributionCatalog, badmintonCatalog)
         val recentKeys = rows.asSequence().filter { it.date in request.asOf.minusDays(55)..request.asOf }
             .map(V22HistoryRow::stableKey).toSet()
         val incumbentKeys = incumbent.flatMap(V22Session::items).map(V22ExercisePlan::stableKey).toSet()
@@ -332,7 +332,8 @@ internal object BBalanced12WeekEngine {
     private fun coldStartBaseline(
         request: V22GenerationRequest,
         exercises: Map<String, Exercise>,
-        contributions: Map<String, Contribution>
+        contributions: Map<String, Contribution>,
+        badmintonCatalog: CanonicalBadmintonObjectiveCatalog
     ): List<V22Session> {
         val eligible = exercises.values.filter { it.isActive && it.planningEligibility != "HISTORY_ONLY" }
             .sortedBy(Exercise::stableKey)
