@@ -65,6 +65,8 @@ class RestTimerSessionController(context: Context) {
             targetEntryId = targetEntryId,
             targetSetId = targetSetId
         )
+        // A new rest interval must never inherit the previous interval's alert claims.
+        preferences.edit().clear().commit()
         persist(started)
         alarmBridge.schedule(started)
         publish(started, notifyRunning = true)
