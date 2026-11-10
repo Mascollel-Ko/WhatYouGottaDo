@@ -21,7 +21,7 @@ class ExerciseCatalogCanonicalizationTest {
         val keys = exercises.map(Exercise::stableKey)
         val names = exercises.map(Exercise::name)
 
-        assertEquals(242, exercises.size)
+        assertEquals(243, exercises.size)
         assertTrue(keys.all(String::isNotBlank))
         assertEquals(keys.size, keys.distinct().size)
         assertEquals(names.size, names.distinct().size)
