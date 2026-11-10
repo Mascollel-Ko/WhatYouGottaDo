@@ -60,14 +60,22 @@ internal class RestTimerAlarmBridge(context: Context) {
     private fun scheduleAt(atMillis: Long, action: String, request: Int, runId: Long) {
         val pending = pendingIntent(action, request, runId, PendingIntent.FLAG_UPDATE_CURRENT) ?: return
         try {
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()) {
+            val exactAllowed = Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+                alarmManager.canScheduleExactAlarms()
+            if (action == ACTION_WARNING) {
+                // A prewarning must NOT consume the app's limited allow-while-idle
+                // quota just 10 seconds before the more important completion.
+                if (exactAllowed) alarmManager.setExact(AlarmManager.RTC_WAKEUP, atMillis, pending)
+                else alarmManager.set(AlarmManager.RTC_WAKEUP, atMillis, pending)
+            } else if (exactAllowed) {
                 alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atMillis, pending)
             } else {
                 // Fallback is not second-precise. Settings UI explains this limitation.
                 alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atMillis, pending)
             }
         } catch (_: SecurityException) {
-            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atMillis, pending)
+            if (action == ACTION_WARNING) alarmManager.set(AlarmManager.RTC_WAKEUP, atMillis, pending)
+            else alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atMillis, pending)
         }
     }
 
