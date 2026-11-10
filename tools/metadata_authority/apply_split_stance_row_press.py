@@ -145,7 +145,9 @@ def patch_workbook():
         analysisInheritance='EXPLICIT_NEW_EXERCISE_AUTHORITIES', evidence=EVIDENCE,
         provenance='USER_APPROVED_SPLIT_STANCE_ROW_PRESS_2026_11_10')])
 
+    new_runtime = {}
     def runtime(rs):
+        nonlocal new_runtime
         r = copy(rs, 'cable_pallof_press', stableKey=KEY, exerciseName=NAME,
             currentActivityKind='EXERCISE', currentPlanningEligibility='PROGRAM_SELECTABLE',
             movementFamily='ANTI_ROTATION_ANTI_EXTENSION_CORE_VARIANTS', movementSubtype='PALLOF_PRESS',
@@ -166,11 +168,12 @@ def patch_workbook():
             systemicMuscularStressLevel='LOW', localMuscularStressLevel='MODERATE',
             jointTendonImpactStressLevel='MODERATE', movementFocusDemandLevel='HIGH',
             recoveryDurationClass='SHORT', appCueProfile='NONE')
+        new_runtime = r
         return [r]
     update('07_RUNTIME_SNAPSHOT', runtime)
     update('08_SCALAR_METADATA', lambda rs: [dict(copy(rs, 'cable_pallof_press',
         stableKey=KEY, metadataSourceStableKey=KEY),
-        **{k:v for k,v in runtime([])[0].items() if k not in ('stableKey', 'exerciseName')
+        **{k:v for k,v in new_runtime.items() if k not in ('stableKey', 'exerciseName')
            and k in rs[0]})])
 
     def movements(rs):
