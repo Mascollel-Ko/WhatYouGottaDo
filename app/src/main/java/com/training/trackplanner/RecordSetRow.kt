@@ -63,6 +63,9 @@ internal fun WorkoutSetRow(
     var weightText by rememberSaveable(set.id, set.loadState) {
         mutableStateOf(if (set.loadState == ProgramLoadState.USER_CALIBRATION_REQUIRED) "" else formatDecimal(set.weightKg))
     }
+    val isDualLoad = entry.exerciseStableKey == "split_stance_contralateral_cable_row_dumbbell_press"
+    var secondaryWeightText by rememberSaveable(set.id) { mutableStateOf(set.secondaryWeightKg?.let(::formatDecimal).orEmpty()) }
+    var secondaryWeightFocused by rememberSaveable(set.id) { mutableStateOf(false) }
     var secondsText by rememberSaveable(set.id) { mutableStateOf(set.seconds.toString()) }
     var sportHoursText by rememberSaveable(set.id) { mutableStateOf(totalDurationToHoursMinutes(set.seconds).hours.toString()) }
     var sportMinutesText by rememberSaveable(set.id) { mutableStateOf(totalDurationToHoursMinutes(set.seconds).minutes.toString()) }
@@ -77,7 +80,8 @@ internal fun WorkoutSetRow(
     val effectiveRestSeconds = set.restSecondsOverride ?: entry.restSeconds
     val isTimerTarget = timerState.targetEntryId == entry.id && timerState.targetSetId == set.id
 
-    LaunchedEffect(set.reps, set.weightKg, set.seconds, set.loadState) {
+    LaunchedEffect(set.reps, set.weightKg, set.secondaryWeightKg, set.seconds, set.loadState) {
+        if (!secondaryWeightFocused) secondaryWeightText = set.secondaryWeightKg?.let(::formatDecimal).orEmpty()
         if (!repsFocused) repsText = set.reps.toString()
         if (!weightFocused) weightText = if (set.loadState == ProgramLoadState.USER_CALIBRATION_REQUIRED) "" else formatDecimal(set.weightKg)
         if (!secondsFocused) secondsText = set.seconds.toString()
@@ -204,9 +208,12 @@ internal fun WorkoutSetRow(
                     )
                     if (showWeight) {
                         CompactChip(
-                            text = "${formatWeight(set.weightKg)}kg",
+                            text = if (isDualLoad) "로우 ${formatWeight(set.weightKg)}kg" else "${formatWeight(set.weightKg)}kg",
                             onClick = { editField = SetEditField.Weight }
                         )
+                    }
+                    if (isDualLoad) {
+                        Text("프레스 ${set.secondaryWeightKg?.let { formatWeight(it) } ?: "-"}kg", style = MaterialTheme.typography.labelSmall)
                     }
                     CompactChip(
                         text = set.rpe?.let { "RPE${formatRpe(it)}" } ?: "RPE-",
@@ -396,10 +403,12 @@ internal fun WorkoutSetRow(
                     Checkbox(
                         modifier = Modifier.size(40.dp),
                         checked = set.confirmed,
-                        enabled = (!isSportDurationInput || set.seconds > 0 || set.confirmed) &&
+                        enabled = (!isDualLoad || set.secondaryWeightKg != null || set.confirmed) &&
+                            (!isSportDurationInput || set.seconds > 0 || set.confirmed) &&
                             (set.loadState != ProgramLoadState.USER_CALIBRATION_REQUIRED || set.confirmed),
                         onCheckedChange = { checked ->
-                            if (checked && (isSportDurationInput && set.seconds <= 0 ||
+                            if (checked && (isDualLoad && set.secondaryWeightKg == null ||
+                                    isSportDurationInput && set.seconds <= 0 ||
                                     set.loadState == ProgramLoadState.USER_CALIBRATION_REQUIRED)) return@Checkbox
                             val updated = set.copy(confirmed = checked)
                             onUpdateSet(updated.edit(CONFIRMATION))
@@ -412,6 +421,33 @@ internal fun WorkoutSetRow(
                         text = if (set.confirmed) "완료" else "확인",
                         style = MaterialTheme.typography.labelSmall
                     )
+                }
+            }
+            if (isDualLoad && showWeight) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    androidx.compose.material3.Text("케이블 로우 ${formatWeight(set.weightKg)}kg / 덤벨 프레스", style = MaterialTheme.typography.labelSmall)
+                    CompactNumberField(
+                        modifier = Modifier.width(76.dp),
+                        value = secondaryWeightText,
+                        suffix = "kg",
+                        keyboardType = KeyboardType.Decimal,
+                        onValueChange = { value ->
+                            if (value.isEmpty() || isDecimalInput(value)) {
+                                secondaryWeightText = value
+                                val kg = value.toDoubleOrNull()
+                                if (kg == null && value.isEmpty() || kg != null && kg.isFinite() && kg >= 0.0) {
+                                    onUpdateSet(set.copy(secondaryWeightKg = kg).edit(SECONDARY_WEIGHT))
+                                }
+                            }
+                        },
+                        onFocusChanged = { focused ->
+                            secondaryWeightFocused = focused
+                            if (!focused && secondaryWeightText.isNotBlank()) {
+                                secondaryWeightText = NumericInputTextPolicy.onBlur(secondaryWeightText)
+                            }
+                        }
+                    )
+                    Text("회/측", style = MaterialTheme.typography.labelSmall)
                 }
             }
             if (isSportDurationInput && set.seconds <= 0) {
