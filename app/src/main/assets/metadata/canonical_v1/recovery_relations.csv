@@ -232,7 +232,7 @@ one_arm_gymnastic_ring_row,짐내스틱 링 원암 로우,MEDIUM,MEDIUM,MODERATE
 one_arm_suspension_trainer_row,서스펜션 트레이너 원암 로우,MEDIUM,MEDIUM,MODERATE,ex_d9084b5e,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
 plate_rotational_press_out,플레이트 로테이셔널 프레스아웃,SHORT,SHORT,LOW,plate_rotational_press_out,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
 single_leg_hip_bridge,원레그 힙 브릿지,MEDIUM,MEDIUM,MODERATE,single_leg_hip_bridge,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
-split_stance_contralateral_cable_row_dumbbell_press,스플릿 스탠스 케이블 로우 + 덤벨 프레스,SHORT,SHORT,LOW,split_stance_contralateral_cable_row_dumbbell_press,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,USER_APPROVED_SPLIT_STANCE_ROW_PRESS_2026_11_10
+split_stance_contralateral_cable_row_dumbbell_press,스플릿 스탠스 케이블 로우 + 덤벨 오버헤드 프레스,SHORT,SHORT,LOW,split_stance_contralateral_cable_row_dumbbell_press,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,USER_APPROVED_SPLIT_STANCE_ROW_PRESS_2026_11_10
 standing_bodyweight_calf_raise,맨몸 스탠딩 카프 레이즈,SHORT,SHORT,MODERATE,ex_bd072cd,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
 standing_calf_raise_machine,스탠딩 카프 레이즈 머신,SHORT,SHORT,MODERATE,ex_bd072cd,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
 standing_dumbbell_calf_raise,덤벨 스탠딩 카프 레이즈,SHORT,SHORT,MODERATE,ex_bd072cd,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset

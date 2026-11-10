@@ -1,4 +1,4 @@
-displayField,canonicalCode,sourceFiles,productionUsageCount,currentKoreanLabel,currentEnglishLabel,coverageStatus,rawUiExposureLocations
+﻿displayField,canonicalCode,sourceFiles,productionUsageCount,currentKoreanLabel,currentEnglishLabel,coverageStatus,rawUiExposureLocations
 ACTIVITY_KIND,EXERCISE,app/src/main/assets/metadata/canonical_v1,1,운동,Exercise,RETAIN,
 ACTIVITY_KIND,SPORT_SESSION,app/src/main/assets/metadata/canonical_v1,1,스포츠 세션,Sport session,RETAIN,
 ANALYSIS_ELIGIBILITY,ACCESSORY_VOLUME,app/src/main/assets/metadata/canonical_v1,1,보조 볼륨,Accessory volume,RETAIN,
@@ -1825,8 +1825,8 @@ TRANSFER_CONFIDENCE,HIGH,app/src/main/assets/metadata/canonical_v1,1,높음,High
 TRANSFER_CONFIDENCE,LOW,app/src/main/assets/metadata/canonical_v1,1,낮음,Low,RETAIN,
 TRANSFER_CONFIDENCE,MEDIUM,app/src/main/assets/metadata/canonical_v1,1,보통,Medium,RETAIN,
 TRANSFER_CONFIDENCE,NONE,app/src/main/assets/metadata/canonical_v1,0,평가 없음,Not assessed,RETAINED_SEARCH_ONLY,
-EXERCISE_DETAIL,광배근/대흉근/복사근,app/src/main/assets/metadata/canonical_v1,1,광배근/대흉근/복사근,Lats / chest / obliques,PRODUCT_OWNER_APPROVED,
-EXERCISE_DETAIL,삼각근/이두근/삼두근/코어,app/src/main/assets/metadata/canonical_v1,1,삼각근/이두근/삼두근/코어,Deltoids / biceps / triceps / core,PRODUCT_OWNER_APPROVED,
+EXERCISE_DETAIL,광배근/삼각근/복사근,app/src/main/assets/metadata/canonical_v1,1,광배근/삼각근/복사근,Lats / deltoids / obliques,PRODUCT_OWNER_APPROVED,
+EXERCISE_DETAIL,삼두근/이두근/대흉근/코어,app/src/main/assets/metadata/canonical_v1,1,삼두근/이두근/대흉근/코어,Triceps / biceps / chest / core,PRODUCT_OWNER_APPROVED,
 EXERCISE_MODE,케이블+덤벨,app/src/main/assets/metadata/canonical_v1,1,케이블+덤벨,Cable and dumbbell,PRODUCT_OWNER_APPROVED,
-MOVEMENT_SUBTYPE,SPLIT_STANCE_CONTRALATERAL_ROW_PRESS,app/src/main/assets/metadata/canonical_v1,1,스플릿 스탠스 반대팔 로우·프레스,Split-stance contralateral row and press,PRODUCT_OWNER_APPROVED,
+MOVEMENT_SUBTYPE,SPLIT_STANCE_CONTRALATERAL_ROW_PRESS,app/src/main/assets/metadata/canonical_v1,1,스플릿 스탠스 반대팔 로우·오버헤드 프레스,Split-stance cable row and contralateral dumbbell overhead press,PRODUCT_OWNER_APPROVED,
 STABILITY_ROLE,SHOULDER_STABILITY,app/src/main/assets/metadata/canonical_v1,1,어깨 안정화,Shoulder stability,PRODUCT_OWNER_APPROVED,

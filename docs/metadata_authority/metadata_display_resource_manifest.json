@@ -1,15 +1,15 @@
 {
-  "authorityWorkbookSha256": "d048aed552d6ca3bcd866de3017bfe525863083761e1c38966c20bc1441de07a",
+  "authorityWorkbookSha256": "dc1ad7857244e84f7d0cb582033d69ca04f4b6cc3af979804e8b31239920a06b",
   "files": [
     {
       "path": "app/src/main/res/values/metadata_display_catalog.xml",
       "rowCount": 1830,
-      "sha256": "6c2da7ba6c6f362ec5c2f812c12ff330e8a031d6c0f6e7fabf662bf82beb1f7f"
+      "sha256": "196d5728d78939804eb3d577f96f5a8e4fafbf805055a70314b6245005d4af6b"
     },
     {
       "path": "app/src/main/res/values-en/metadata_display_catalog.xml",
       "rowCount": 1830,
-      "sha256": "ef8d820c3c6e17f554768591c180ea01388aea99ecb99f65c23562dbf50ef74d"
+      "sha256": "c35213eaab63006f57ff13e6a8c048ac13e321093add651fc2b3f40fb9890535"
     }
   ],
   "productionRowCount": 1697,

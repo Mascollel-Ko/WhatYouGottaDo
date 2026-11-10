@@ -258,8 +258,8 @@ one_arm_gymnastic_ring_row,짐내스틱 링 원암 로우,eqreq_one_arm_gymnasti
 one_arm_suspension_trainer_row,서스펜션 트레이너 원암 로우,eqreq_one_arm_suspension_trainer_row,SINGLE,1,SUSPENSION_TRAINER,NO,ex_d9084b5e,Single atomic equipment requirement.
 plate_rotational_press_out,플레이트 로테이셔널 프레스아웃,eqreq_plate_rotational_press_out,SINGLE,1,WEIGHT_PLATE,NO,plate_rotational_press_out,Single atomic equipment requirement.
 single_leg_hip_bridge,원레그 힙 브릿지,,NONE,,,NO,single_leg_hip_bridge,Bodyweight/no equipment is represented by the absence of EquipmentRef.
-split_stance_contralateral_cable_row_dumbbell_press,스플릿 스탠스 케이블 로우 + 덤벨 프레스,eqreq_split_stance_contralateral_cable_row_dumbbell_press,ALL_REQUIRED,1,CABLE,YES,split_stance_contralateral_cable_row_dumbbell_press,Both cable and dumbbell must be available in the same set.
-split_stance_contralateral_cable_row_dumbbell_press,스플릿 스탠스 케이블 로우 + 덤벨 프레스,eqreq_split_stance_contralateral_cable_row_dumbbell_press,ALL_REQUIRED,2,DUMBBELL,YES,split_stance_contralateral_cable_row_dumbbell_press,Both cable and dumbbell must be available in the same set.
+split_stance_contralateral_cable_row_dumbbell_press,스플릿 스탠스 케이블 로우 + 덤벨 오버헤드 프레스,eqreq_split_stance_contralateral_cable_row_dumbbell_press,ALL_REQUIRED,1,CABLE,YES,split_stance_contralateral_cable_row_dumbbell_press,Both cable and dumbbell must be available in the same set.
+split_stance_contralateral_cable_row_dumbbell_press,스플릿 스탠스 케이블 로우 + 덤벨 오버헤드 프레스,eqreq_split_stance_contralateral_cable_row_dumbbell_press,ALL_REQUIRED,2,DUMBBELL,YES,split_stance_contralateral_cable_row_dumbbell_press,Both cable and dumbbell must be available in the same set.
 standing_bodyweight_calf_raise,맨몸 스탠딩 카프 레이즈,,NONE,,,NO,ex_bd072cd,Bodyweight/no equipment is represented by the absence of EquipmentRef.
 standing_calf_raise_machine,스탠딩 카프 레이즈 머신,eqreq_standing_calf_raise_machine,SINGLE,1,STANDING_CALF_RAISE_MACHINE,NO,ex_bd072cd,Single atomic equipment requirement.
 standing_dumbbell_calf_raise,덤벨 스탠딩 카프 레이즈,eqreq_standing_dumbbell_calf_raise,SINGLE,1,DUMBBELL,NO,ex_bd072cd,Single atomic equipment requirement.
