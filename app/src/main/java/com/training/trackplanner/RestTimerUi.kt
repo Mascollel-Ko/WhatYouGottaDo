@@ -200,10 +200,10 @@ internal fun RestTimerMiniBar(
 @Composable
 internal fun RestTimerPermissionHint(
     notificationPermissionNeeded: Boolean,
-    exactAlarmPermissionNeeded: Boolean,
+    exactAlarmPermissionNeeded: Boolean = false,
     overlayPermissionGranted: Boolean,
     onRequestNotification: () -> Unit,
-    onOpenExactAlarmSettings: () -> Unit,
+    onOpenExactAlarmSettings: () -> Unit = {},
     onOpenOverlaySettings: () -> Unit
 ) {
     if (!notificationPermissionNeeded && !exactAlarmPermissionNeeded && overlayPermissionGranted) return
