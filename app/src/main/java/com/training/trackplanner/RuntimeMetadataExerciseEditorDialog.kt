@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
@@ -79,7 +79,8 @@ internal fun RuntimeMetadataExerciseEditorDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Surface(modifier = Modifier.fillMaxSize()) {
+        // Keep the editor below full-screen height; the weighted LazyColumn scrolls independently.
+        Surface(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.9f)) {
             Column(
                 modifier = Modifier
                     .padding(16.dp)
