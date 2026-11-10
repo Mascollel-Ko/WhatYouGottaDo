@@ -17,13 +17,13 @@ class RestTimerSessionController(context: Context) {
     private val preferences = appContext.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
     private val notifier = RestTimerNotifier(appContext)
     private val overlayController = RestTimerOverlayController(appContext)
-    private val soundVibration = RestTimerSoundVibration(appContext)
+    private val alarmBridge = RestTimerAlarmBridge(appContext)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val _state = MutableStateFlow(RestTimerState.Idle)
     private var timerJob: Job? = null
     private var backgroundRetryJob: Job? = null
     private var appInForeground = true
-    private var nextRunId = 1L
+    private var nextRunId = maxOf(System.currentTimeMillis(), preferences.getLong(RestTimerAlarmBridge.KEY_RUN_ID, 0L) + 1L)
 
     val state: StateFlow<RestTimerState> = _state
 
@@ -44,6 +44,8 @@ class RestTimerSessionController(context: Context) {
 
         timerJob?.cancel()
         backgroundRetryJob?.cancel()
+        alarmBridge.cancelScheduled()
+        notifier.cancel()
         overlayController.resetDismissedForCurrentAwaySession()
 
         val runId = nextRunId++
@@ -64,6 +66,7 @@ class RestTimerSessionController(context: Context) {
             targetSetId = targetSetId
         )
         persist(started)
+        alarmBridge.schedule(started)
         publish(started, notifyRunning = true)
         launchCountdown(endAt)
     }
@@ -73,9 +76,11 @@ class RestTimerSessionController(context: Context) {
         backgroundRetryJob?.cancel()
         timerJob = null
         backgroundRetryJob = null
-        preferences.edit().clear().apply()
+        alarmBridge.cancelScheduled()
+        preferences.edit().clear().commit()
         _state.value = RestTimerState.Idle.copy(
             notificationPermissionNeeded = notifier.needsNotificationPermission(),
+            exactAlarmPermissionNeeded = alarmBridge.needsExactAlarmPermission(),
             overlayPermissionGranted = overlayController.canDrawOverlays(),
             appInForeground = appInForeground
         )
@@ -88,6 +93,7 @@ class RestTimerSessionController(context: Context) {
         backgroundRetryJob?.cancel()
         overlayController.resetDismissedForCurrentAwaySession()
         overlayController.remove()
+        alarmBridge.schedule(_state.value)
         refreshPermissions()
     }
 
@@ -118,16 +124,21 @@ class RestTimerSessionController(context: Context) {
         val targetDate = preferences.getString(KEY_REST_TARGET_DATE, "").orEmpty()
         val targetEntryId = preferences.getLong(KEY_REST_TARGET_ENTRY_ID, 0L)
         val targetSetId = preferences.getLong(KEY_REST_TARGET_SET_ID, 0L)
-        val finished = preferences.getBoolean(KEY_REST_FINISHED, false)
+        var finished = preferences.getBoolean(KEY_REST_FINISHED, false)
+        val storedRunId = preferences.getLong(RestTimerAlarmBridge.KEY_RUN_ID, 0L)
         if (endAt <= 0L && !finished) {
             refreshPermissions()
             return
         }
 
         val remaining = remainingSecondsUntil(endAt)
+        if (!finished && remaining <= 0 && storedRunId > 0L) {
+            alarmBridge.deliverFinish(storedRunId)
+            finished = preferences.getBoolean(KEY_REST_FINISHED, false)
+        }
         val total = preferences.getInt(KEY_REST_TOTAL_SECONDS, remaining).coerceAtLeast(remaining)
         val restored = RestTimerState(
-            runId = nextRunId++,
+            runId = storedRunId.takeIf { it > 0L } ?: nextRunId++,
             isRunning = !finished && remaining > 0,
             isFinished = finished || remaining <= 0,
             remainingSeconds = remaining,
@@ -146,6 +157,7 @@ class RestTimerSessionController(context: Context) {
         )
         publish(restored, notifyRunning = restored.isRunning)
         if (restored.isRunning) {
+            alarmBridge.schedule(restored)
             launchCountdown(endAt)
         }
     }
@@ -158,6 +170,9 @@ class RestTimerSessionController(context: Context) {
                 if (remaining <= 0) {
                     finish()
                     break
+                }
+                if (remaining <= 10 && _state.value.totalSeconds > 10) {
+                    alarmBridge.deliverWarning(_state.value.runId)
                 }
                 publish(
                     _state.value.copy(
@@ -175,6 +190,7 @@ class RestTimerSessionController(context: Context) {
     private fun finish() {
         timerJob?.cancel()
         timerJob = null
+        alarmBridge.deliverFinish(_state.value.runId)
         val finished = _state.value.copy(
             isRunning = false,
             isFinished = true,
@@ -182,8 +198,6 @@ class RestTimerSessionController(context: Context) {
         )
         persist(finished)
         publish(finished, notifyRunning = false)
-        notifier.showFinished(_state.value)
-        soundVibration.playFinishAlert()
     }
 
     private fun publish(state: RestTimerState, notifyRunning: Boolean) {
@@ -212,6 +226,7 @@ class RestTimerSessionController(context: Context) {
 
     private fun persist(state: RestTimerState) {
         preferences.edit()
+            .putLong(RestTimerAlarmBridge.KEY_RUN_ID, state.runId)
             .putLong(KEY_REST_END_AT, state.endAtEpochMillis)
             .putInt(KEY_REST_TOTAL_SECONDS, state.totalSeconds)
             .putString(KEY_REST_EXERCISE_STABLE_KEY, state.exerciseStableKey)
@@ -225,12 +240,13 @@ class RestTimerSessionController(context: Context) {
             .putLong(KEY_REST_TARGET_ENTRY_ID, state.targetEntryId)
             .putLong(KEY_REST_TARGET_SET_ID, state.targetSetId)
             .putBoolean(KEY_REST_FINISHED, state.isFinished)
-            .apply()
+            .commit()
     }
 
     private fun enrich(state: RestTimerState): RestTimerState =
         state.copy(
             notificationPermissionNeeded = notifier.needsNotificationPermission(),
+            exactAlarmPermissionNeeded = alarmBridge.needsExactAlarmPermission(),
             overlayPermissionGranted = overlayController.canDrawOverlays(),
             appInForeground = appInForeground
         )
