@@ -352,9 +352,20 @@ internal object BBalanced12WeekEngine {
             val selected = chosen.mapNotNull(contributions::get)
             val coveredMuscles = selected.flatMap { it.hypertrophyMuscles }.toSet()
             val coveredCoreTasks = selected.flatMap { it.reviewedCoreTasks }.toSet()
-            val existingSport = selected.maxOfOrNull { it.sport } ?: 0.0
+            val selectedAnchors = chosen.mapNotNull(CanonicalStrengthExposureCapability::movementAnchor).toSet()
+            val candidateAnchor = CanonicalStrengthExposureCapability.movementAnchor(key)
+            val coveredSportObjectives = chosen.flatMap { selectedKey ->
+                badmintonCatalog.relations(selectedKey).filter {
+                    it.transferLevel != BadmintonObjectiveTransferLevel.NONE
+                }.map { it.objective }
+            }.toSet()
+            val newSportObjectives = badmintonCatalog.relations(key).count {
+                it.transferLevel != BadmintonObjectiveTransferLevel.NONE &&
+                    it.objective !in coveredSportObjectives
+            }
             return importance(BBalancedGoal.STRENGTH) *
-                    (if (contribution.strength > 0.0 && selected.none { it.strength > 0.0 }) 1.0 else 0.0) +
+                    (if (contribution.strength > 0.0 && candidateAnchor != null &&
+                        candidateAnchor !in selectedAnchors) 1.0 else 0.0) +
                 importance(BBalancedGoal.HYPERTROPHY) *
                     (contribution.hypertrophyMuscles - coveredMuscles).size.toDouble() +
                 importance(BBalancedGoal.CORE) *
@@ -362,7 +373,7 @@ internal object BBalanced12WeekEngine {
                 importance(BBalancedGoal.CORE) *
                     (contribution.reviewedCoreTasks - coveredCoreTasks).size.toDouble() +
                 importance(BBalancedGoal.SPORT_SUPPORT) *
-                    (contribution.sport - existingSport).coerceAtLeast(0.0)
+                    (if (contribution.sport > 0.0) newSportObjectives.toDouble() else 0.0)
         }
         // Preserve direct core and reviewed sport coverage when available, but choose
         // the best marginal candidate instead of the lexicographically first key.
