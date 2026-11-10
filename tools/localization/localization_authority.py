@@ -27,6 +27,7 @@ ANDROID_BASELINE_EN = ROOT / "tools/localization/current_baseline_android_en.csv
 EXERCISE_DESCRIPTION_EN = ROOT / "tools/localization/exercise_description_generated_en.csv"
 PROGRAM_NAME_EN = ROOT / "tools/localization/program_name_generated_en.csv"
 EXERCISE_BOOTSTRAP = ROOT / "app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv"
+REVIEWED_EXERCISE_NAMES = ROOT / "tools/localization/reviewed_exercise_name_extensions.csv"
 TRAINING_SETTINGS_SEED = ROOT / "app/src/main/assets/training_settings_seed.csv"
 STRENGTH_TARGET_REGISTRY = (
     ROOT / "app/src/main/assets/strength_performance/strength_target_registry_v1.csv"
@@ -593,13 +594,16 @@ def _generated_kotlin(
 
 def _artifacts() -> dict[Path, str]:
     ui = _xlsx_rows(AUTHORITY, "02_UI_APPROVED_FULL")
-    exercises = _xlsx_rows(AUTHORITY, "03_EXERCISE_NAMES")
+    workbook_exercises = _xlsx_rows(AUTHORITY, "03_EXERCISE_NAMES")
+    exercises = workbook_exercises + _csv_rows(REVIEWED_EXERCISE_NAMES)
     metadata = _xlsx_rows(AUTHORITY, "04_METADATA_DICTIONARY")
     tissues = _xlsx_rows(AUTHORITY, "05_TISSUE_EDU_EN")
     baseline = _xlsx_rows(AUTHORITY, "10_CURRENT_BASELINE_APPROVAL")
     baseline_generated = _csv_rows(BASELINE_GENERATED_EN)
-    if len(ui) != 612 or len(exercises) != 253 or len(metadata) != 1834 or len(tissues) != 92:
+    if len(ui) != 612 or len(workbook_exercises) != 253 or len(metadata) != 1834 or len(tissues) != 92:
         raise ValueError("Localization authority row counts do not match the approved baseline")
+    if len({_text(row.get('stableKey')) for row in exercises}) != len(exercises):
+        raise ValueError("Duplicate canonical exercise name identity")
     if any(_text(row.get("authorityStatus")) != "APPROVED" for row in ui + exercises + tissues):
         raise ValueError("Localization authority contains an unapproved runtime row")
     check_required = next(
@@ -629,6 +633,7 @@ def _artifacts() -> dict[Path, str]:
         "currentBaselineCheckRequired": 0,
         "uiApprovedRows": len(ui),
         "exerciseApprovedRows": len(exercises),
+        "exerciseNameExtensionSha256": hashlib.sha256(REVIEWED_EXERCISE_NAMES.read_bytes()).hexdigest().upper(),
         "exerciseDescriptionLocalizedRows": len(exercise_description_keys),
         "seedProgramLocalizedRows": len(program_name_keys),
         "strengthTargetLocalizedRows": len(strength_target_keys),
