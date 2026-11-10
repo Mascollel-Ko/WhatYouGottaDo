@@ -21,9 +21,9 @@ class BalancedTargetTaskRelationsTest(unittest.TestCase):
     def test_overlay_is_bounded_non_prescriptive_and_references_selectable_keys(self):
         overlay = rows(OVERLAY)
         identities = {r["stableKey"]: r for r in rows(CANONICAL / "identity_master.csv")}
-        self.assertEqual(38, len(overlay))
-        self.assertEqual(38, len({r["relationId"] for r in overlay}))
-        self.assertEqual(38, len({(r["exerciseStableKey"], r["targetDomain"], r["targetTask"]) for r in overlay}))
+        self.assertEqual(39, len(overlay))
+        self.assertEqual(39, len({r["relationId"] for r in overlay}))
+        self.assertEqual(39, len({(r["exerciseStableKey"], r["targetDomain"], r["targetTask"]) for r in overlay}))
         for r in overlay:
             self.assertIn(r["exerciseStableKey"], identities)
             self.assertEqual("YES", identities[r["exerciseStableKey"]]["selectable"])
@@ -60,7 +60,7 @@ class BalancedTargetTaskRelationsTest(unittest.TestCase):
             core_by_key.setdefault(r["exerciseStableKey"], {})[r["relationType"]] = r["relationValue"]
         direct_keys = {key for key, relations in core_by_key.items() if relations.get("CORE_CLASS") == "DIRECT"}
         reviewed = [r for r in overlay if r["reviewStatus"] == "REVIEWED_B_OVERLAY_V2"]
-        self.assertEqual(31, len(direct_keys))
+        self.assertEqual(32, len(direct_keys))
         self.assertEqual(direct_keys, {r["exerciseStableKey"] for r in reviewed})
         allowed = {
             "ANTI_EXTENSION", "ANTI_ROTATION", "ANTI_LATERAL_FLEXION",
