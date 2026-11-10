@@ -18,8 +18,8 @@ class LocalizationAuthorityTest(unittest.TestCase):
         manifest = json.loads(artifacts[authority.OUTPUTS["manifest"]])
 
         self.assertEqual(612, manifest["uiApprovedRows"])
-        self.assertEqual(253, manifest["exerciseApprovedRows"])
-        self.assertEqual(253, manifest["exerciseDescriptionLocalizedRows"])
+        self.assertEqual(254, manifest["exerciseApprovedRows"])
+        self.assertEqual(254, manifest["exerciseDescriptionLocalizedRows"])
         self.assertEqual(12, manifest["seedProgramLocalizedRows"])
         self.assertEqual(4, manifest["strengthTargetLocalizedRows"])
         self.assertEqual(1834, manifest["metadataAuthoritativeRows"])
