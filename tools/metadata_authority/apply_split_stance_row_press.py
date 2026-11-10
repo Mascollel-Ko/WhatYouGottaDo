@@ -132,9 +132,40 @@ def patch_workbook():
         _, cols, rows = rows_of(tree, shared)
         if any(row.get('stableKey', row.get('exerciseStableKey')) == KEY for row in rows):
             return
+        modified = False
+        if sheet == '30_METADATA_DISPLAY_LABELS':
+            promote = {('BADMINTON_PHYSICAL_QUALITY', code)
+                       for code in ('ANTI_ROTATION', 'SCAPULAR_STABILITY', 'UNILATERAL_UPPER')}
+            promote.add(('SUPPORTIVE_TRANSFER', 'SHOULDER_CARE'))
+            by_header = {header: col for col, header in cols}
+            xml_rows = tree.find('.//x:sheetData', NS).findall('x:row', NS)[1:]
+            for data, row in zip(rows, xml_rows):
+                if (data.get('displayField'), data.get('canonicalCode')) not in promote:
+                    continue
+                overrides = {
+                    'displayScope': 'PRODUCTION',
+                    'reviewStatus': 'PRODUCT_OWNER_APPROVED',
+                    'sourceTier': 'PRODUCT_OWNER_DECISION',
+                    'selectionPolicy': 'PRODUCT_DEFINED',
+                    'sourceReferences': 'https://github.com/Mascollel-Ko/WhatYouGottaDo/issues/60',
+                    'selectionRationale': 'Reviewed direct anti-rotation and shoulder-control metadata for the new exercise.',
+                    'notes': 'Product-priority interpretation, not direct proof of match-performance effects.',
+                }
+                for header, value in overrides.items():
+                    col = by_header[header]
+                    existing = next((c for c in row.findall('x:c', NS)
+                                     if c.attrib.get('r', '').rstrip('0123456789') == col), None)
+                    if existing is None:
+                        existing = ET.SubElement(row, f'{{{N}}}c', {'r': f'{col}{row.get("r")}'})
+                    for child in list(existing):
+                        existing.remove(child)
+                    existing.set('t','inlineStr')
+                    ET.SubElement(ET.SubElement(existing, f'{{{N}}}is'), f'{{{N}}}t').text = value
+                modified = True
         additions = builder(rows)
         if additions:
             append(tree, cols, additions)
+        if additions or modified:
             changes[path] = ET.tostring(tree, encoding='utf-8', xml_declaration=True)
 
     update('05_IDENTITY_MASTER', lambda rs: [copy(rs, 'cable_pallof_press',
