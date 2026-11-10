@@ -10,11 +10,11 @@ ROOT = Path(__file__).resolve().parents[2]
 CORE_APPROVED_SOURCE = (
     ROOT / "docs/metadata_authority/core_training_classification_review_2026-08-13.csv"
 )
-CORE_APPROVED_SHA256 = "241f44ceefa0dcda9b7cf543f576f6b7c16d6e726cd3018ebd1db3275cf7eaf5"
+CORE_APPROVED_SHA256 = "1807feb9b184cb3697003e8d25f99246d57ec670ae45dd33a4816ac0457aa8e4"
 BADMINTON_OBJECTIVE_AUTHORITY_SOURCE = (
     ROOT / "docs/metadata_authority/badminton_objective_relations_v2_authority.csv"
 )
-BADMINTON_OBJECTIVE_AUTHORITY_SHA256 = "bbd4277111e52fc37a09840ebe41ef0dbe91347b9d17bbff6b4dac9a4cf47a56"
+BADMINTON_OBJECTIVE_AUTHORITY_SHA256 = "1aaa7b7c66b27b0d5f5e26e6aed7d204a92604b51ff407ad35d0c12eced3b329"
 USER_APPROVED_BADMINTON_OBJECTIVE_PROVENANCE = (
     "USER_APPROVED_BADMINTON_OBJECTIVE_2026_08_14"
 )
@@ -66,8 +66,8 @@ def read_csv(path: Path) -> list[dict[str, str]]:
 
 
 def build_core_relations(core_rows: list[dict[str, str]]) -> list[dict[str, str]]:
-    if len(core_rows) != 242:
-        raise ValueError(f"Approved core authority must have 242 rows, found {len(core_rows)}")
+    if len(core_rows) != 243:
+        raise ValueError(f"Approved core authority must have 243 rows, found {len(core_rows)}")
     relations: list[dict[str, str]] = []
     for row in sorted(core_rows, key=lambda item: int(item["sourceRowOrder"])):
         stable_key = row["stableKey"]
@@ -96,8 +96,8 @@ def build_core_relations(core_rows: list[dict[str, str]]) -> list[dict[str, str]
             })
         elif target:
             raise ValueError(f"Non-DIRECT core row has target: {stable_key}")
-    if len(relations) != 273:
-        raise ValueError(f"Canonical core relation count must be 273, found {len(relations)}")
+    if len(relations) != 275:
+        raise ValueError(f"Canonical core relation count must be 275, found {len(relations)}")
     return relations
 
 
@@ -105,8 +105,8 @@ def build_badminton_objective_relations() -> list[dict[str, str]]:
     if sha256(BADMINTON_OBJECTIVE_AUTHORITY_SOURCE) != BADMINTON_OBJECTIVE_AUTHORITY_SHA256:
         raise ValueError("Canonical badminton objective authority SHA-256 mismatch")
     relations = read_csv(BADMINTON_OBJECTIVE_AUTHORITY_SOURCE)
-    if len(relations) != 280:
-        raise ValueError(f"Canonical badminton objective relation count must be 280, found {len(relations)}")
+    if len(relations) != 281:
+        raise ValueError(f"Canonical badminton objective relation count must be 281, found {len(relations)}")
     if set(relations[0]) != set(BADMINTON_OBJECTIVE_HEADERS):
         raise ValueError("Canonical badminton objective authority has an invalid schema")
     if len({row["relationId"] for row in relations}) != len(relations):

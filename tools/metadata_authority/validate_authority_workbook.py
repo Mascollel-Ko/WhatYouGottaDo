@@ -70,11 +70,11 @@ def validate(path: Path) -> dict[str, int]:
 
     identities = sheet_rows(workbook, IDENTITY_SHEET)
     identity_by_key = index_by(identities, "stableKey")
-    require(len(identities) == 253, f"Expected 253 identities, found {len(identities)}")
+    require(len(identities) == 254, f"Expected 254 identities, found {len(identities)}")
     history = [row for row in identities if row["identityStatus"] == HISTORY_ONLY_STATUS]
     selectable = [row for row in identities if row["selectable"] == "YES"]
     require(len(history) == 11, f"Expected 11 history-only identities, found {len(history)}")
-    require(len(selectable) == 242, f"Expected 242 selectable identities, found {len(selectable)}")
+    require(len(selectable) == 243, f"Expected 243 selectable identities, found {len(selectable)}")
     require(all(row["selectable"] == "NO" for row in history), "History-only identities must be non-selectable")
     require(all("PRESERVE" in row["historyTreatment"] for row in history), "History-only treatment must preserve history")
     require(not any(row["mappingConfidence"] in DECISION_TOKENS for row in identities), "Decision token found in mappingConfidence")
@@ -148,6 +148,17 @@ def validate(path: Path) -> dict[str, int]:
         for row in sheet_rows(workbook, "10_MUSCLE_REL")
         if row["muscleCode"] and row["muscleCode"] != "NONE"
     )
+    expected_production.update({
+        ('MOVEMENT_SUBTYPE', 'SPLIT_STANCE_CONTRALATERAL_ROW_PRESS'),
+        ('BADMINTON_PHYSICAL_QUALITY', 'ANTI_ROTATION'),
+        ('BADMINTON_PHYSICAL_QUALITY', 'SCAPULAR_STABILITY'),
+        ('BADMINTON_PHYSICAL_QUALITY', 'UNILATERAL_UPPER'),
+        ('EXERCISE_DETAIL', '광배근/대흉근/복사근'),
+        ('EXERCISE_DETAIL', '삼각근/이두근/삼두근/코어'),
+        ('EXERCISE_MODE', '케이블+덤벨'),
+        ('STABILITY_ROLE', 'SHOULDER_STABILITY'),
+        ('SUPPORTIVE_TRANSFER', 'SHOULDER_CARE'),
+    })
     actual_production = {
         (row["displayField"], row["canonicalCode"])
         for row in display_rows

@@ -23,6 +23,7 @@ med_ball_overhead_slam,POWER_SLOT,PRODUCTION_ACTIVE,LEGACY-TRAINING-ROLE-SEED-V1
 med_ball_rotational_slam,POWER_SLOT,PRODUCTION_ACTIVE,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Exact 26-row compatibility migration from POWER
 medicine_ball_rotational_throw,POWER_SLOT,PRODUCTION_ACTIVE,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Exact 26-row compatibility migration from POWER
 single_leg_hip_bridge,STABILITY_SLOT,PRODUCTION_ACTIVE,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Exact 26-row compatibility migration from STABILITY
+split_stance_contralateral_cable_row_dumbbell_press,STABILITY_SLOT,PRODUCTION_ACTIVE,USER_APPROVED_SPLIT_STANCE_ROW_PRESS_2026_11_10,APPROVED,"Directly trains anti-rotation task, not overhead swing power."
 standing_bodyweight_calf_raise,ACCESSORY_SLOT,PRODUCTION_ACTIVE,USER_APPROVED_CAPABILITY_TRANSFER_2026_08_05,APPROVED,Approved equipment variant receives active accessory capability.
 standing_calf_raise_machine,ACCESSORY_SLOT,PRODUCTION_ACTIVE,USER_APPROVED_CAPABILITY_TRANSFER_2026_08_05,APPROVED,Approved equipment variant receives active accessory capability.
 standing_dumbbell_calf_raise,ACCESSORY_SLOT,PRODUCTION_ACTIVE,USER_APPROVED_CAPABILITY_TRANSFER_2026_08_05,APPROVED,Approved equipment variant receives active accessory capability.
