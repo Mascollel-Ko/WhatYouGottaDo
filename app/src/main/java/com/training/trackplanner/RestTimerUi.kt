@@ -200,11 +200,13 @@ internal fun RestTimerMiniBar(
 @Composable
 internal fun RestTimerPermissionHint(
     notificationPermissionNeeded: Boolean,
+    exactAlarmPermissionNeeded: Boolean,
     overlayPermissionGranted: Boolean,
     onRequestNotification: () -> Unit,
+    onOpenExactAlarmSettings: () -> Unit,
     onOpenOverlaySettings: () -> Unit
 ) {
-    if (!notificationPermissionNeeded && overlayPermissionGranted) return
+    if (!notificationPermissionNeeded && !exactAlarmPermissionNeeded && overlayPermissionGranted) return
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -225,6 +227,18 @@ internal fun RestTimerPermissionHint(
                     onClick = onRequestNotification
                 ) {
                     Text(stringResource(R.string.rest_timer_notification_allow))
+                }
+            }
+            if (exactAlarmPermissionNeeded) {
+                Text(
+                    text = stringResource(R.string.rest_timer_exact_alarm_permission),
+                    style = MaterialTheme.typography.bodySmall
+                )
+                OutlinedButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = onOpenExactAlarmSettings
+                ) {
+                    Text(stringResource(R.string.rest_timer_exact_alarm_settings))
                 }
             }
             if (!overlayPermissionGranted) {
