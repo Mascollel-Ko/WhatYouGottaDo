@@ -99,7 +99,8 @@ internal object LocalizedPresentation {
     }.trimEnd()
 
     fun exerciseName(context: Context, stableKey: String, storedName: String): String =
-        GeneratedLocalizationCatalogue.exerciseNameIds[stableKey]
+        (ApprovedExerciseLocalizationExtensions.exerciseNameIds[stableKey]
+            ?: GeneratedLocalizationCatalogue.exerciseNameIds[stableKey])
             ?.let(context::getString)
             ?: storedName
 
@@ -114,7 +115,8 @@ internal object LocalizedPresentation {
 
     fun exerciseDescription(context: Context, exercise: Exercise): String =
         if (exercise.isCustom) exercise.description
-        else GeneratedLocalizationCatalogue.exerciseDescriptionIds[exercise.stableKey]
+        else (ApprovedExerciseLocalizationExtensions.exerciseDescriptionIds[exercise.stableKey]
+            ?: GeneratedLocalizationCatalogue.exerciseDescriptionIds[exercise.stableKey])
             ?.let(context::getString)
             ?: exercise.description
 
