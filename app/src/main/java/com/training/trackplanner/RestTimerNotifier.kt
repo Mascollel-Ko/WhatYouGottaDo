@@ -39,6 +39,12 @@ class RestTimerNotifier(private val context: Context) {
             baseBuilder(state, CHANNEL_RUNNING)
                 .setContentTitle(restTimerNotificationTitle(context, state))
                 .setContentText(restTimerNotificationText(context, state))
+                // System-managed chronometer keeps counting even if the activity
+                // or process no longer refreshes the ongoing notification.
+                .setWhen(state.endAtEpochMillis)
+                .setShowWhen(true)
+                .setUsesChronometer(true)
+                .setChronometerCountDown(true)
                 .setOngoing(true)
                 .setOnlyAlertOnce(true)
                 .build()
