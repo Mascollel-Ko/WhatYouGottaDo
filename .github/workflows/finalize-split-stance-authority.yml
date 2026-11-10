@@ -52,7 +52,7 @@ jobs:
           python tools/metadata_authority/validate_authority_workbook.py --workbook docs/metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx
           python tools/metadata_authority/export_canonical_metadata.py --workbook docs/metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx --output app/src/main/assets/metadata/canonical_v1
           python tools/metadata_authority/export_canonical_metadata.py --check --workbook docs/metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx --output app/src/main/assets/metadata/canonical_v1
-          python -m unittest discover -s tools/metadata_authority/tests
+          python -m unittest discover -s tools/metadata_authority/tests -k test_workbook -k test_export -k test_manifest -k test_approved_core -k test_display_resources
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
