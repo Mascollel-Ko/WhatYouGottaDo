@@ -128,6 +128,8 @@ def patch_workbook():
         _, cols, rows = rows_of(tree, shared)
         if any(row.get('stableKey', row.get('exerciseStableKey')) == KEY for row in rows):
             return
+        if sheet == '30_METADATA_DISPLAY_LABELS' and any(r.get('displayField') == 'MOVEMENT_SUBTYPE' and r.get('canonicalCode') == 'SPLIT_STANCE_CONTRALATERAL_ROW_PRESS' for r in rows):
+            return
         additions = builder(rows)
         if additions:
             append(tree, cols, additions)
@@ -150,7 +152,7 @@ def patch_workbook():
         nonlocal new_runtime
         r = copy(rs, 'cable_pallof_press', stableKey=KEY, exerciseName=NAME,
             currentActivityKind='EXERCISE', currentPlanningEligibility='PROGRAM_SELECTABLE',
-            movementFamily='ANTI_ROTATION_ANTI_EXTENSION_CORE_VARIANTS', movementSubtype='PALLOF_PRESS',
+            movementFamily='ANTI_ROTATION_ANTI_EXTENSION_CORE_VARIANTS', movementSubtype='SPLIT_STANCE_CONTRALATERAL_ROW_PRESS',
             programSlot='TRUNK_ANTI_ROTATION_STABILITY', redundancyGroup='TRUNK_ANTI_MOVEMENT',
             progressMetricType='QUALITY_BASED', strengthProgressionGroup='NONE',
             analysisEligibility='FATIGUE|BADMINTON_TRANSFER|BALANCE',
@@ -281,6 +283,24 @@ def patch_workbook():
         return [row]
     update('29_EXERCISE_BOOTSTRAP', bootstrap)
 
+    def display(rs):
+        base = next(r for r in rs if r.get('displayField') == 'MOVEMENT_SUBTYPE' and r.get('displayScope') == 'PRODUCTION')
+        return [dict(base,
+            displayField='MOVEMENT_SUBTYPE', canonicalCode='SPLIT_STANCE_CONTRALATERAL_ROW_PRESS',
+            termCategory='TRAINING', koreanLabel='스플릿 스탠스 반대팔 로우·프레스',
+            koreanShortLabel='반대팔 로우·프레스',
+            koreanFormalLabel='스플릿 스탠스 교차측 당기기·밀기',
+            koreanDescription='한 팔로 케이블을 당기면서 반대팔로 덤벨을 밀어 몸통 회전을 제어하는 훈련',
+            koreanSearchAliases='교차측 로우 프레스|반대팔 로우 프레스',
+            englishLabel='Split-stance contralateral row and press',
+            englishSearchAliases='Split-Stance Contralateral Cable Row + Dumbbell Press',
+            selectionPolicy='PRODUCT_DEFINED',sourceTier='PRODUCT_OWNER_DECISION',
+            sourceReferences='https://github.com/Mascollel-Ko/WhatYouGottaDo/issues/60',
+            allowedLatinTokens='',displayScope='PRODUCTION',reviewStatus='PRODUCT_OWNER_APPROVED',
+            selectionRationale='Named hybrid movement variant approved as a badminton anti-rotation training task.',
+            notes='Direct transfer level is a product priority decision; not proof of badminton performance improvement.')]
+    update('30_METADATA_DISPLAY_LABELS', display)
+
     if changes:
         out = WORKBOOK.with_suffix('.xlsx.tmp')
         with zipfile.ZipFile(out,'w') as dst:
@@ -296,7 +316,9 @@ def patch_fixed_counts():
            [('len(identities) == 253','len(identities) == 254'),
             ('Expected 253 identities','Expected 254 identities'),
             ('len(selectable) == 242','len(selectable) == 243'),
-            ('Expected 242 selectable identities','Expected 243 selectable identities')],
+            ('Expected 242 selectable identities','Expected 243 selectable identities'),
+            ('    actual_production = {',
+             "    expected_production.add(('MOVEMENT_SUBTYPE', 'SPLIT_STANCE_CONTRALATERAL_ROW_PRESS'))\n    actual_production = {")],
        ROOT/'app/src/main/java/com/training/trackplanner/data/CanonicalExerciseMetadataRepository.kt':
            [('EXPECTED_IDENTITY_ROWS = 253','EXPECTED_IDENTITY_ROWS = 254'),
             ('EXPECTED_SELECTABLE_ROWS = 242','EXPECTED_SELECTABLE_ROWS = 243'),
@@ -312,7 +334,8 @@ def patch_fixed_counts():
     for path,replacements in paths.items():
         text=path.read_text(encoding='utf-8')
         for old,new in replacements:
-            text=text.replace(old,new)
+            if new not in text:
+                text=text.replace(old,new)
         path.write_text(text,encoding='utf-8',newline='\n')
 
 
