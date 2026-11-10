@@ -71,7 +71,7 @@ class CanonicalExerciseMetadataRepositoryTest {
 
     @Test
     fun canonicalRepositoryExposesEveryProductionMetadataDomain() {
-        assertEquals(2257, repository.movementRelations().size)
+        assertEquals(2258, repository.movementRelations().size)
         assertEquals(790, repository.muscleRelations().size)
         assertEquals(3929, repository.ofiRelations().size)
         assertEquals(242, repository.recoveryProfiles().size)
