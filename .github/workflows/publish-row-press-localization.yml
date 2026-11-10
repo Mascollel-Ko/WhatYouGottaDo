@@ -1,0 +1,34 @@
+name: Publish reviewed row-press exercise localization
+on:
+  push:
+    branches:
+      - feature/split-stance-row-press-20261110
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Generate approved exercise name and description resources
+        run: |
+          python tools/localization/localization_authority.py --write
+          python tools/localization/localization_authority.py
+          python -m unittest discover -s tools/localization/tests -v
+          git diff --check
+      - name: Commit generated localized resources and remove temporary workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm .github/workflows/publish-row-press-localization.yml
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "feat(localization): publish row-press Korean and English resources"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
