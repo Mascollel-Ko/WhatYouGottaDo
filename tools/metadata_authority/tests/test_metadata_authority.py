@@ -51,11 +51,11 @@ def export_to(directory: Path):
 class MetadataAuthorityTest(unittest.TestCase):
     def test_workbook_encodes_approved_identity_and_relation_decisions(self):
         counts = validate(WORKBOOK)
-        self.assertEqual(253, counts["identityRows"])
-        self.assertEqual(242, counts["selectableIdentityRows"])
+        self.assertEqual(254, counts["identityRows"])
+        self.assertEqual(243, counts["selectableIdentityRows"])
         self.assertEqual(11, counts["historyOnlyIdentityRows"])
-        self.assertEqual(242, counts["timingRows"])
-        self.assertEqual(253, counts["bootstrapRows"])
+        self.assertEqual(243, counts["timingRows"])
+        self.assertEqual(254, counts["bootstrapRows"])
         self.assertEqual(1825, counts["displayRows"])
         self.assertEqual(1688, counts["productionDisplayRows"])
         workbook = load_workbook(WORKBOOK, read_only=True)
@@ -140,8 +140,8 @@ class MetadataAuthorityTest(unittest.TestCase):
             hashlib.sha256(BADMINTON_OBJECTIVE_AUTHORITY_SOURCE.read_bytes()).hexdigest(),
         )
         core, objectives, rotation_audit = build_analysis_assets()
-        self.assertEqual(273, len(core))
-        self.assertEqual(280, len(objectives))
+        self.assertEqual(275, len(core))
+        self.assertEqual(281, len(objectives))
         self.assertEqual(19, len(rotation_audit))
         self.assertEqual(4, sum(row["coreDirectTarget"] == "ANTI_ROTATION" and row["decision"] == "CREATE_EXPLICIT_OBJECTIVE" for row in rotation_audit))
         self.assertEqual(15, sum(row["coreDirectTarget"] == "ROTATION_GENERATION" and row["decision"] == "CREATE_EXPLICIT_OBJECTIVE" for row in rotation_audit))
