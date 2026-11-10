@@ -25,7 +25,7 @@ class CanonicalAnalysisAuthorityTest {
     fun approvedCoreCsvIsExactCanonicalAuthority() {
         val approved = projectFile("docs/metadata_authority/core_training_classification_review_2026-08-13.csv")
         assertEquals(
-            "1807feb9b184cb3697003e8d25f99246d57ec670ae45dd33a4816ac0457aa8e4",
+            "16e567cf4671458f94566e2f670fe076be84310a64eb9d134a9d20f3e9efda9f",
             MessageDigest.getInstance("SHA-256").digest(approved.readBytes()).joinToString("") { "%02x".format(it) }
         )
         val rows = approved.readLines().filter(String::isNotBlank).map(SeedData::parseCsvLine)

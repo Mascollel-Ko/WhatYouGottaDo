@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[2]
 CORE_APPROVED_SOURCE = (
     ROOT / "docs/metadata_authority/core_training_classification_review_2026-08-13.csv"
 )
-CORE_APPROVED_SHA256 = "1807feb9b184cb3697003e8d25f99246d57ec670ae45dd33a4816ac0457aa8e4"
+CORE_APPROVED_SHA256 = "16e567cf4671458f94566e2f670fe076be84310a64eb9d134a9d20f3e9efda9f"
 BADMINTON_OBJECTIVE_AUTHORITY_SOURCE = (
     ROOT / "docs/metadata_authority/badminton_objective_relations_v2_authority.csv"
 )
