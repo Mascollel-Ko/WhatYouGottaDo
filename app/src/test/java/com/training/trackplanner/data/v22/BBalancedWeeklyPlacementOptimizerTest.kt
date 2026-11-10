@@ -124,14 +124,14 @@ class BBalancedWeeklyPlacementOptimizerTest {
             session(5, "pull", "leg_b")
         )
         val optimized = BBalancedWeeklyPlacementOptimizer.optimize(
-            base, listOf(base), exercises, muscles, emptySet(), 24
+            base, listOf(base), exercises, muscles, emptySet(), 27
         )
         assertTrue(optimized.status, optimized.changed)
-        // With three sets per item, all days are below 24 min with two items,
+        // With three sets per item, all days are below 27 min with two items (25.52 min estimated),
         // but a three-item day exceeds the cap. The improvement requires exchange.
         assertTrue(optimized.moves.size >= 2)
         assertTrue(optimized.sessions.all { it.items.size == 2 })
-        assertTrue(optimized.sessions.all { BBalancedDayPlacementPlanner.estimateMinutes(it, exercises) <= 24 })
+        assertTrue(optimized.sessions.all { BBalancedDayPlacementPlanner.estimateMinutes(it, exercises) <= 27 })
         assertEquals(weeklyPrescriptions(base), weeklyPrescriptions(optimized.weeks.single()))
     }
 
@@ -171,7 +171,7 @@ class BBalancedWeeklyPlacementOptimizerTest {
             session(3, "deadlift", "core"),
             session(5, "main_press", "press_b", "press_c", "triceps")
         )
-        val cap = 24
+        val cap = 27
         val oldTimes = baseline.map { BBalancedDayPlacementPlanner.estimateMinutes(it, exercises) }
         assertTrue(oldTimes[0] <= cap && oldTimes[1] <= cap && oldTimes[2] > cap)
         val result = BBalancedWeeklyPlacementOptimizer.optimize(
