@@ -341,11 +341,44 @@ internal object BBalanced12WeekEngine {
             eligible.firstOrNull { it.stableKey in CanonicalStrengthExposureCapability.approvedStableKeys(anchor) }
                 ?.let { chosen += it.stableKey }
         }
-        eligible.firstOrNull { contributions[it.stableKey]?.core == 1.0 }?.let { chosen += it.stableKey }
-        eligible.firstOrNull { (contributions[it.stableKey]?.sport ?: 0.0) >= 0.6 }?.let { chosen += it.stableKey }
+        // Cold starts have no observed response ceiling. Rank the existing eligible roster
+        // by the requested goals and the *additional* coverage it contributes, rather
+        // than admitting the first stableKey in table order. This is candidate selection,
+        // not a post-generation correction or a new scoring layer.
+        fun importance(goal: BBalancedGoal): Double =
+            (request.bGoalImportance.value(goal) ?: 3).toDouble()
+        fun incrementalValue(key: String): Double {
+            val contribution = contributions[key] ?: return 0.0
+            val selected = chosen.mapNotNull(contributions::get)
+            val coveredMuscles = selected.flatMap { it.hypertrophyMuscles }.toSet()
+            val coveredCoreTasks = selected.flatMap { it.reviewedCoreTasks }.toSet()
+            val existingSport = selected.maxOfOrNull { it.sport } ?: 0.0
+            return importance(BBalancedGoal.STRENGTH) *
+                    (if (contribution.strength > 0.0 && selected.none { it.strength > 0.0 }) 1.0 else 0.0) +
+                importance(BBalancedGoal.HYPERTROPHY) *
+                    (contribution.hypertrophyMuscles - coveredMuscles).size.toDouble() +
+                importance(BBalancedGoal.CORE) *
+                    (if (contribution.core > 0.0 && selected.none { it.core > 0.0 }) 1.0 else 0.0) +
+                importance(BBalancedGoal.CORE) *
+                    (contribution.reviewedCoreTasks - coveredCoreTasks).size.toDouble() +
+                importance(BBalancedGoal.SPORT_SUPPORT) *
+                    (contribution.sport - existingSport).coerceAtLeast(0.0)
+        }
+        // Preserve direct core and reviewed sport coverage when available, but choose
+        // the best marginal candidate instead of the lexicographically first key.
+        eligible.filter { contributions[it.stableKey]?.core == 1.0 }
+            .maxWithOrNull(compareBy<Exercise> { incrementalValue(it.stableKey) }
+                .thenByDescending { it.stableKey })?.let { chosen += it.stableKey }
+        eligible.filter { (contributions[it.stableKey]?.sport ?: 0.0) >= 0.6 }
+            .maxWithOrNull(compareBy<Exercise> { incrementalValue(it.stableKey) }
+                .thenByDescending { it.stableKey })?.let { chosen += it.stableKey }
         if (chosen.isEmpty()) eligible.firstOrNull()?.let { chosen += it.stableKey }
-        eligible.asSequence().filter { it.stableKey !in chosen }.take((request.days - chosen.size).coerceAtLeast(0))
-            .forEach { chosen += it.stableKey }
+        while (chosen.size < request.days) {
+            val next = eligible.asSequence().filter { it.stableKey !in chosen }
+                .maxWithOrNull(compareBy<Exercise> { incrementalValue(it.stableKey) }
+                    .thenByDescending { it.stableKey }) ?: break
+            chosen += next.stableKey
+        }
         require(chosen.isNotEmpty()) { "No eligible exercise metadata for B cold-start generation" }
         val items = chosen.map { key ->
             val exercise = exercises.getValue(key)
