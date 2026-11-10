@@ -42,6 +42,7 @@ internal class RecordMutationService(
                     default.copy(
                         reps = source.reps,
                         weightKg = source.weightKg,
+                        secondaryWeightKg = source.secondaryWeightKg,
                         manualWeight = source.manualWeight,
                         loadState = source.loadState,
                         targetRpeMin = source.targetRpeMin
