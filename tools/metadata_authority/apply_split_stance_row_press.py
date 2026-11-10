@@ -82,7 +82,11 @@ def append(tree, columns, entries):
 
 
 def copy(rows, key, **changes):
-    source = next(row for row in rows if row.get('stableKey', row.get('exerciseStableKey')) == key)
+    source = next((row for row in rows if row.get('stableKey', row.get('exerciseStableKey')) == key), None)
+    if source is None and key == 'cable_pallof_press':
+        source = next((row for row in rows if row.get('stableKey', row.get('exerciseStableKey')) == 'ex_99728d25'), None)
+    if source is None:
+        raise KeyError(f'Cannot locate workbook source identity {key}; sample keys={[r.get("stableKey",r.get("exerciseStableKey")) for r in rows[:20]]}')
     return {**source, **changes}
 
 
