@@ -132,8 +132,6 @@ def patch_workbook():
         _, cols, rows = rows_of(tree, shared)
         if any(row.get('stableKey', row.get('exerciseStableKey')) == KEY for row in rows):
             return
-        if sheet == '30_METADATA_DISPLAY_LABELS' and any(r.get('displayField') == 'MOVEMENT_SUBTYPE' and r.get('canonicalCode') == 'SPLIT_STANCE_CONTRALATERAL_ROW_PRESS' for r in rows):
-            return
         additions = builder(rows)
         if additions:
             append(tree, cols, additions)
@@ -288,21 +286,37 @@ def patch_workbook():
     update('29_EXERCISE_BOOTSTRAP', bootstrap)
 
     def display(rs):
-        base = next(r for r in rs if r.get('displayField') == 'MOVEMENT_SUBTYPE' and r.get('displayScope') == 'PRODUCTION')
-        return [dict(base,
-            displayField='MOVEMENT_SUBTYPE', canonicalCode='SPLIT_STANCE_CONTRALATERAL_ROW_PRESS',
-            termCategory='TRAINING', koreanLabel='스플릿 스탠스 반대팔 로우·프레스',
-            koreanShortLabel='반대팔 로우·프레스',
-            koreanFormalLabel='스플릿 스탠스 교차측 당기기·밀기',
-            koreanDescription='한 팔로 케이블을 당기면서 반대팔로 덤벨을 밀어 몸통 회전을 제어하는 훈련',
-            koreanSearchAliases='교차측 로우 프레스|반대팔 로우 프레스',
-            englishLabel='Split-stance contralateral row and press',
-            englishSearchAliases='Split-Stance Contralateral Cable Row + Dumbbell Press',
-            selectionPolicy='PRODUCT_DEFINED',sourceTier='PRODUCT_OWNER_DECISION',
-            sourceReferences='https://github.com/Mascollel-Ko/WhatYouGottaDo/issues/60',
-            allowedLatinTokens='',displayScope='PRODUCTION',reviewStatus='PRODUCT_OWNER_APPROVED',
-            selectionRationale='Named hybrid movement variant approved as a badminton anti-rotation training task.',
-            notes='Direct transfer level is a product priority decision; not proof of badminton performance improvement.')]
+        terms = [
+            ('MOVEMENT_SUBTYPE','SPLIT_STANCE_CONTRALATERAL_ROW_PRESS','스플릿 스탠스 반대팔 로우·프레스','Split-stance contralateral row and press'),
+            ('BADMINTON_PHYSICAL_QUALITY','ANTI_ROTATION','회전 저항','Anti-rotation'),
+            ('BADMINTON_PHYSICAL_QUALITY','SCAPULAR_STABILITY','견갑 안정성','Scapular stability'),
+            ('BADMINTON_PHYSICAL_QUALITY','UNILATERAL_UPPER','한쪽 상지 제어','Unilateral upper-body control'),
+            ('EXERCISE_DETAIL','광배근/대흉근/복사근','광배근/대흉근/복사근','Lats / chest / obliques'),
+            ('EXERCISE_DETAIL','삼각근/이두근/삼두근/코어','삼각근/이두근/삼두근/코어','Deltoids / biceps / triceps / core'),
+            ('EXERCISE_MODE','케이블+덤벨','케이블+덤벨','Cable and dumbbell'),
+            ('STABILITY_ROLE','SHOULDER_STABILITY','어깨 안정화','Shoulder stability'),
+            ('SUPPORTIVE_TRANSFER','SHOULDER_CARE','어깨 제어 보조','Shoulder control support'),
+        ]
+        output=[]
+        present={(r.get('displayField'),r.get('canonicalCode')) for r in rs}
+        for field,code,ko,en in terms:
+            if (field,code) in present:
+                continue
+            base = next(r for r in rs if r.get('displayField') == field and r.get('displayScope') == 'PRODUCTION')
+            output.append(dict(base,
+                displayField=field,canonicalCode=code,
+                termCategory='TRAINING', koreanLabel=ko,
+                koreanShortLabel=ko,koreanFormalLabel=ko,
+                koreanDescription='배드민턴용 스플릿 스탠스 교차측 로우·프레스 메타데이터',
+                koreanSearchAliases='',englishLabel=en,
+                englishSearchAliases='',selectionPolicy='PRODUCT_DEFINED',
+                sourceTier='PRODUCT_OWNER_DECISION',
+                sourceReferences='https://github.com/Mascollel-Ko/WhatYouGottaDo/issues/60',
+                allowedLatinTokens='',displayScope='PRODUCTION',
+                reviewStatus='PRODUCT_OWNER_APPROVED',
+                selectionRationale='Reviewed canonical code for the new asymmetric row and press.',
+                notes='Product metadata coding, not evidence that match performance improves.'))
+        return output
     update('30_METADATA_DISPLAY_LABELS', display)
 
     if changes:
@@ -322,7 +336,17 @@ def patch_fixed_counts():
             ('len(selectable) == 242','len(selectable) == 243'),
             ('Expected 242 selectable identities','Expected 243 selectable identities'),
             ('    actual_production = {',
-             "    expected_production.add(('MOVEMENT_SUBTYPE', 'SPLIT_STANCE_CONTRALATERAL_ROW_PRESS'))\n    actual_production = {")],
+             "    expected_production.update({\n"
+             "        ('MOVEMENT_SUBTYPE', 'SPLIT_STANCE_CONTRALATERAL_ROW_PRESS'),\n"
+             "        ('BADMINTON_PHYSICAL_QUALITY', 'ANTI_ROTATION'),\n"
+             "        ('BADMINTON_PHYSICAL_QUALITY', 'SCAPULAR_STABILITY'),\n"
+             "        ('BADMINTON_PHYSICAL_QUALITY', 'UNILATERAL_UPPER'),\n"
+             "        ('EXERCISE_DETAIL', '광배근/대흉근/복사근'),\n"
+             "        ('EXERCISE_DETAIL', '삼각근/이두근/삼두근/코어'),\n"
+             "        ('EXERCISE_MODE', '케이블+덤벨'),\n"
+             "        ('STABILITY_ROLE', 'SHOULDER_STABILITY'),\n"
+             "        ('SUPPORTIVE_TRANSFER', 'SHOULDER_CARE'),\n"
+             "    })\n    actual_production = {")],
        ROOT/'app/src/main/java/com/training/trackplanner/data/CanonicalExerciseMetadataRepository.kt':
            [('EXPECTED_IDENTITY_ROWS = 253','EXPECTED_IDENTITY_ROWS = 254'),
             ('EXPECTED_SELECTABLE_ROWS = 242','EXPECTED_SELECTABLE_ROWS = 243'),
