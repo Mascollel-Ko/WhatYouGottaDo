@@ -217,6 +217,27 @@ class CanonicalExerciseMetadataRepositoryTest {
     }
 
     @Test
+    fun splitStanceContralateralRowHasOverheadPressMechanicsNotHorizontalPress() {
+        val key = "split_stance_contralateral_cable_row_dumbbell_press"
+        val exercise = repository.exercises().single { it.stableKey == key }
+        assertTrue(exercise.name.contains("오버헤드 프레스"))
+        assertTrue(exercise.description.contains("머리 위로 밀어 올린다"))
+        assertEquals("LAT,SHOULDER,OBLIQUE", exercise.primaryMuscles)
+        assertTrue("CHEST" in exercise.secondaryMuscles.split(","))
+        val movements = repository.movementRelations().filter { it.exerciseStableKey == key }
+        val patterns = movements.filter { it.relationType == "MOVEMENT_PATTERN" }.map { it.relationValue }.toSet()
+        assertEquals(setOf("ANTI_ROTATION", "VERTICAL_PUSH", "HORIZONTAL_PULL"), patterns)
+        assertTrue(movements.any {
+            it.relationType == "JOINT_ACTION" && it.relationValue == "SCAPULAR_UPWARD_ROTATION"
+        })
+        assertFalse(movements.any { it.relationValue == "SHOULDER_HORIZONTAL_ADDUCTION" })
+        val muscles = repository.muscleRelations().filter { it.exerciseStableKey == key }
+        assertEquals("PRIMARY", muscles.single { it.relationValue == "SHOULDERS" }.relationType)
+        assertEquals("SECONDARY", muscles.single { it.relationValue == "CHEST" }.relationType)
+        assertEquals("DIRECT", repository.runtimeMetadataCatalog().all().single { it.stableKey == key }.badmintonTransferLevel)
+    }
+
+    @Test
     fun protectedCanonicalMetadataCannotBeReplacedByPersistedOverride() {
         val exercise = repository.exercises().first()
         val canonical = repository.runtimeMetadataCatalog().resolve(exercise)!!
