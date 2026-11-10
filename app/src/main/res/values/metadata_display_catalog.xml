@@ -264,6 +264,7 @@
         <item>EXERCISE_DETAIL|광배근/능형근|광배근/능형근</item>
         <item>EXERCISE_DETAIL|광배근/대원근|광배근/대원근</item>
         <item>EXERCISE_DETAIL|광배근/대흉근|광배근/대흉근</item>
+        <item>EXERCISE_DETAIL|광배근/삼각근/복사근|광배근/삼각근/복사근</item>
         <item>EXERCISE_DETAIL|광배근/이두근|광배근/이두근</item>
         <item>EXERCISE_DETAIL|광배근/코어|광배근/코어</item>
         <item>EXERCISE_DETAIL|광배근/하부승모근|광배근/하부승모근</item>
@@ -337,6 +338,7 @@
         <item>EXERCISE_DETAIL|삼두근/견갑안정근|삼두근/견갑안정근</item>
         <item>EXERCISE_DETAIL|삼두근/대흉근|삼두근/대흉근</item>
         <item>EXERCISE_DETAIL|삼두근/상부승모근/코어|삼두근/상부승모근/코어</item>
+        <item>EXERCISE_DETAIL|삼두근/이두근/대흉근/코어|삼두근/이두근/대흉근/코어</item>
         <item>EXERCISE_DETAIL|삼두근/전면삼각근|삼두근/전면삼각근</item>
         <item>EXERCISE_DETAIL|삼두근/전면삼각근/견갑고정|삼두근/전면삼각근/견갑고정</item>
         <item>EXERCISE_DETAIL|삼두근/전면삼각근/코어|삼두근/전면삼각근/코어</item>
@@ -517,6 +519,7 @@
         <item>EXERCISE_MODE|케이블|케이블</item>
         <item>EXERCISE_MODE|케이블 로프|케이블 로프</item>
         <item>EXERCISE_MODE|케이블 머신|케이블 머신</item>
+        <item>EXERCISE_MODE|케이블+덤벨|케이블+덤벨</item>
         <item>EXERCISE_MODE|케틀벨|케틀벨</item>
         <item>EXERCISE_MODE|평행봉|평행봉</item>
         <item>EXERCISE_MODE|플레이트|플레이트</item>
@@ -1028,6 +1031,7 @@
         <item>MOVEMENT_SUBTYPE|SOCCER_SESSION|축구</item>
         <item>MOVEMENT_SUBTYPE|SPIDER_CURL|스파이더 컬</item>
         <item>MOVEMENT_SUBTYPE|SPLIT_SQUAT|스플릿 스쿼트</item>
+        <item>MOVEMENT_SUBTYPE|SPLIT_STANCE_CONTRALATERAL_ROW_PRESS|스플릿 스탠스 반대팔 로우·오버헤드 프레스</item>
         <item>MOVEMENT_SUBTYPE|SPLIT_STEP|스플릿 스텝</item>
         <item>MOVEMENT_SUBTYPE|SPLIT_STEP_LATERAL_REACTIVE_LUNGE|스플릿 스텝 후 좌우 런지</item>
         <item>MOVEMENT_SUBTYPE|SPLIT_STEP_REACTION|스플릿 스텝 리액션</item>
@@ -1553,6 +1557,7 @@
         <item>STABILITY_ROLE|PELVIC_STABILITY|골반 안정성</item>
         <item>STABILITY_ROLE|ROTATOR_CUFF_CONTROL|회전근개 회전근개 제어</item>
         <item>STABILITY_ROLE|SCAPULAR_STABILITY|견갑 안정성</item>
+        <item>STABILITY_ROLE|SHOULDER_STABILITY|어깨 안정화</item>
         <item>STABILITY_ROLE|SINGLE_LEG_STABILITY|한쪽 다리 안정성</item>
         <item>STABILITY_ROLE|TRUNK_CONTROL|몸통 제어</item>
         <item>STRENGTH_PROGRESSION_GROUP|ACCESSORY_ROTATION|보조 회전</item>
@@ -2091,6 +2096,7 @@
         <item>EXERCISE_DETAIL|광배근/능형근|광배근/능형근</item>
         <item>EXERCISE_DETAIL|광배근/대원근|광배근/대원근</item>
         <item>EXERCISE_DETAIL|광배근/대흉근|광배근/대흉근</item>
+        <item>EXERCISE_DETAIL|광배근/삼각근/복사근|광배근/삼각근/복사근</item>
         <item>EXERCISE_DETAIL|광배근/이두근|광배근/이두근</item>
         <item>EXERCISE_DETAIL|광배근/코어|광배근/코어</item>
         <item>EXERCISE_DETAIL|광배근/하부승모근|광배근/하부승모근</item>
@@ -2164,6 +2170,7 @@
         <item>EXERCISE_DETAIL|삼두근/견갑안정근|삼두근/견갑안정근</item>
         <item>EXERCISE_DETAIL|삼두근/대흉근|삼두근/대흉근</item>
         <item>EXERCISE_DETAIL|삼두근/상부승모근/코어|삼두근/상부승모근/코어</item>
+        <item>EXERCISE_DETAIL|삼두근/이두근/대흉근/코어|삼두근/이두근/대흉근/코어</item>
         <item>EXERCISE_DETAIL|삼두근/전면삼각근|삼두근/전면삼각근</item>
         <item>EXERCISE_DETAIL|삼두근/전면삼각근/견갑고정|삼두근/전면삼각근/견갑고정</item>
         <item>EXERCISE_DETAIL|삼두근/전면삼각근/코어|삼두근/전면삼각근/코어</item>
@@ -2344,6 +2351,7 @@
         <item>EXERCISE_MODE|케이블|케이블</item>
         <item>EXERCISE_MODE|케이블 로프|케이블 로프</item>
         <item>EXERCISE_MODE|케이블 머신|케이블 머신</item>
+        <item>EXERCISE_MODE|케이블+덤벨|케이블+덤벨</item>
         <item>EXERCISE_MODE|케틀벨|케틀벨</item>
         <item>EXERCISE_MODE|평행봉|평행봉</item>
         <item>EXERCISE_MODE|플레이트|플레이트</item>
@@ -2855,6 +2863,7 @@
         <item>MOVEMENT_SUBTYPE|SOCCER_SESSION|축구</item>
         <item>MOVEMENT_SUBTYPE|SPIDER_CURL|스파이더 컬</item>
         <item>MOVEMENT_SUBTYPE|SPLIT_SQUAT|스플릿 스쿼트</item>
+        <item>MOVEMENT_SUBTYPE|SPLIT_STANCE_CONTRALATERAL_ROW_PRESS|스플릿 스탠스 반대팔 로우·오버헤드 프레스</item>
         <item>MOVEMENT_SUBTYPE|SPLIT_STEP|스플릿 스텝</item>
         <item>MOVEMENT_SUBTYPE|SPLIT_STEP_LATERAL_REACTIVE_LUNGE|스플릿 스텝 후 좌우 런지</item>
         <item>MOVEMENT_SUBTYPE|SPLIT_STEP_REACTION|스플릿 스텝 리액션</item>
@@ -3380,6 +3389,7 @@
         <item>STABILITY_ROLE|PELVIC_STABILITY|골반 안정성</item>
         <item>STABILITY_ROLE|ROTATOR_CUFF_CONTROL|회전근개 회전근개 제어</item>
         <item>STABILITY_ROLE|SCAPULAR_STABILITY|견갑 안정성</item>
+        <item>STABILITY_ROLE|SHOULDER_STABILITY|어깨 안정화</item>
         <item>STABILITY_ROLE|SINGLE_LEG_STABILITY|한쪽 다리 안정성</item>
         <item>STABILITY_ROLE|TRUNK_CONTROL|몸통 제어</item>
         <item>STRENGTH_PROGRESSION_GROUP|ACCESSORY_ROTATION|보조 회전</item>

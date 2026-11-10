@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="split_stance_row_press_name">스플릿 스탠스 케이블 로우 + 덤벨 오버헤드 프레스</string>
+    <string name="split_stance_row_press_description">스플릿 스탠스에서 한 손으로 케이블 손잡이를 앞으로 뻗고 반대 손의 덤벨을 어깨 앞에 든다. 케이블을 몸통 쪽으로 당기는 동시에 덤벨을 머리 위로 밀어 올린다. 골반과 흉곽이 기울거나 회전하지 않도록 유지하며 천천히 시작 자세로 돌아온다. 좌우를 바꿔 반복한다.</string>
+</resources>

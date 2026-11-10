@@ -15,5 +15,6 @@ med_ball_overhead_slam,POWER,PRODUCTION_ACTIVE,LEGACY-TRAINING-ROLE-SEED-V1,APPR
 med_ball_rotational_slam,POWER,PRODUCTION_ACTIVE,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Explicit decomposition of POWER
 medicine_ball_rotational_throw,POWER,PRODUCTION_ACTIVE,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Explicit decomposition of POWER
 single_leg_hip_bridge,STABILITY,PRODUCTION_ACTIVE,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Explicit decomposition of STABILITY
+split_stance_contralateral_cable_row_dumbbell_press,STABILITY,PRODUCTION_ACTIVE,USER_APPROVED_SPLIT_STANCE_ROW_PRESS_2026_11_10,APPROVED,Badminton anti-rotation stability: horizontal cable row with opposite-arm overhead dumbbell press.
 vipr_chop,POWER,PRODUCTION_ACTIVE,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Explicit decomposition of POWER
 vipr_rotational_lift,POWER,PRODUCTION_ACTIVE,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Explicit decomposition of POWER

@@ -34,7 +34,7 @@ BADMINTON_PHYSICAL_QUALITY,AEROBIC_BASE,유산소 기초,유산소 기초,,유�
 BADMINTON_PHYSICAL_QUALITY,ANAEROBIC_REPEATABILITY,무산소 반복 능력,무산소 반복 능력,,무산소 반복 능력 항목을 나타내는 앱 표시 용어입니다.,,Anaerobic repeatability,ANAEROBIC REPEATABILITY,,PRODUCTION,APPROVED_RESEARCHED
 BADMINTON_PHYSICAL_QUALITY,ANKLE_STIFFNESS,발목 강성,발목 강성,,발목 강성 항목을 나타내는 앱 표시 용어입니다.,,Ankle stiffness,ANKLE STIFFNESS,,PRODUCTION,APPROVED_RESEARCHED
 BADMINTON_PHYSICAL_QUALITY,ANTERIOR_CHAIN,전면 운동사슬,전면 운동사슬,,전면 운동사슬 항목을 나타내는 앱 표시 용어입니다.,,Anterior chain,ANTERIOR CHAIN,,SEARCH_ONLY,APPROVED_RESEARCHED
-BADMINTON_PHYSICAL_QUALITY,ANTI_ROTATION,항 회전,항 회전,,항 회전 항목을 나타내는 앱 표시 용어입니다.,,Anti rotation,ANTI ROTATION,,SEARCH_ONLY,APPROVED_RESEARCHED
+BADMINTON_PHYSICAL_QUALITY,ANTI_ROTATION,항 회전,항 회전,,항 회전 항목을 나타내는 앱 표시 용어입니다.,,Anti rotation,ANTI ROTATION,,PRODUCTION,PRODUCT_OWNER_APPROVED
 BADMINTON_PHYSICAL_QUALITY,ANTI_ROTATION_STABILITY,항 회전 안정성,항 회전 안정성,,항 회전 안정성 항목을 나타내는 앱 표시 용어입니다.,,Anti rotation stability,ANTI ROTATION STABILITY,,PRODUCTION,APPROVED_RESEARCHED
 BADMINTON_PHYSICAL_QUALITY,CALF_ACHILLES,종아리 아킬레스,종아리 아킬레스,,종아리 아킬레스 항목을 나타내는 앱 표시 용어입니다.,,Calf achilles,CALF ACHILLES,,SEARCH_ONLY,APPROVED_RESEARCHED
 BADMINTON_PHYSICAL_QUALITY,CALF_ELASTICITY,종아리 탄성,종아리 탄성,,종아리 탄성 항목을 나타내는 앱 표시 용어입니다.,,Calf elasticity,CALF ELASTICITY,,PRODUCTION,APPROVED_RESEARCHED
@@ -69,14 +69,14 @@ BADMINTON_PHYSICAL_QUALITY,ROTATIONAL_POWER,회전 파워,회전 파워,,회전 
 BADMINTON_PHYSICAL_QUALITY,ROTATIONAL_STRENGTH,회전 근력,회전 근력,,회전 근력 항목을 나타내는 앱 표시 용어입니다.,,Rotational strength,ROTATIONAL STRENGTH,,PRODUCTION,APPROVED_RESEARCHED
 BADMINTON_PHYSICAL_QUALITY,ROTATOR_CUFF_CONTROL,회전근개 제어,회전근개 제어,,회전근개 제어 항목을 나타내는 앱 표시 용어입니다.,,Rotator cuff control,ROTATOR CUFF CONTROL,,PRODUCTION,APPROVED_RESEARCHED
 BADMINTON_PHYSICAL_QUALITY,SCAPULAR_CONTROL,견갑 제어,견갑 제어,,견갑 제어 항목을 나타내는 앱 표시 용어입니다.,,Scapular control,SCAPULAR CONTROL,,PRODUCTION,APPROVED_RESEARCHED
-BADMINTON_PHYSICAL_QUALITY,SCAPULAR_STABILITY,견갑 안정성,견갑 안정성,,견갑 안정성 항목을 나타내는 앱 표시 용어입니다.,,Scapular stability,SCAPULAR STABILITY,,SEARCH_ONLY,APPROVED_RESEARCHED
+BADMINTON_PHYSICAL_QUALITY,SCAPULAR_STABILITY,견갑 안정성,견갑 안정성,,견갑 안정성 항목을 나타내는 앱 표시 용어입니다.,,Scapular stability,SCAPULAR STABILITY,,PRODUCTION,PRODUCT_OWNER_APPROVED
 BADMINTON_PHYSICAL_QUALITY,SHOULDER_CARE,어깨 관리,어깨 관리,,어깨 관리 항목을 나타내는 앱 표시 용어입니다.,,Shoulder care,SHOULDER CARE,,SEARCH_ONLY,APPROVED_RESEARCHED
 BADMINTON_PHYSICAL_QUALITY,SHOULDER_DURABILITY,어깨 지구성,어깨 지구성,,어깨 지구성 항목을 나타내는 앱 표시 용어입니다.,,Shoulder durability,SHOULDER DURABILITY,,PRODUCTION,APPROVED_RESEARCHED
 BADMINTON_PHYSICAL_QUALITY,SINGLE_LEG_STABILITY,한발 안정성,한발 안정성,,한발 안정성 항목을 나타내는 앱 표시 용어입니다.,,Single leg stability,SINGLE LEG STABILITY,,PRODUCTION,APPROVED_RESEARCHED
 BADMINTON_PHYSICAL_QUALITY,SPLIT_STEP,스플릿 스텝,스플릿 스텝,,스플릿 스텝 항목을 나타내는 앱 표시 용어입니다.,,Split step,SPLIT STEP,,SEARCH_ONLY,APPROVED_RESEARCHED
 BADMINTON_PHYSICAL_QUALITY,SQUAT_PATTERN,스쿼트 패턴,스쿼트 패턴,,스쿼트 패턴 항목을 나타내는 앱 표시 용어입니다.,,Squat pattern,SQUAT PATTERN,,SEARCH_ONLY,APPROVED_RESEARCHED
 BADMINTON_PHYSICAL_QUALITY,UNILATERAL_LOWER,편측 하체,편측 하체,,편측 하체 항목을 나타내는 앱 표시 용어입니다.,,Unilateral lower,UNILATERAL LOWER,,SEARCH_ONLY,APPROVED_RESEARCHED
-BADMINTON_PHYSICAL_QUALITY,UNILATERAL_UPPER,편측 상체,편측 상체,,편측 상체 항목을 나타내는 앱 표시 용어입니다.,,Unilateral upper,UNILATERAL UPPER,,SEARCH_ONLY,APPROVED_RESEARCHED
+BADMINTON_PHYSICAL_QUALITY,UNILATERAL_UPPER,편측 상체,편측 상체,,편측 상체 항목을 나타내는 앱 표시 용어입니다.,,Unilateral upper,UNILATERAL UPPER,,PRODUCTION,PRODUCT_OWNER_APPROVED
 BADMINTON_PHYSICAL_QUALITY,UPPER_BODY_EXPLOSIVE_POWER,상체 폭발력,상체 폭발력,,상체 폭발력 항목을 나타내는 앱 표시 용어입니다.,,Upper body explosive power,UPPER BODY EXPLOSIVE POWER,,PRODUCTION,APPROVED_RESEARCHED
 BADMINTON_PHYSICAL_QUALITY,UPPER_PULL,상체 당기기,상체 당기기,,상체 당기기 항목을 나타내는 앱 표시 용어입니다.,,Upper pull,UPPER PULL,,SEARCH_ONLY,APPROVED_RESEARCHED
 BADMINTON_PHYSICAL_QUALITY,UPPER_PUSH,상체 밀기,상체 밀기,,상체 밀기 항목을 나타내는 앱 표시 용어입니다.,,Upper push,UPPER PUSH,,SEARCH_ONLY,APPROVED_RESEARCHED
@@ -262,6 +262,7 @@ EXERCISE_DETAIL,광배근,광배근,광배근,,광배근 항목을 나타내는 
 EXERCISE_DETAIL,광배근/능형근,광배근/능형근,광배근/능형근,,광배근/능형근 항목을 나타내는 앱 표시 용어입니다.,,광배근/능형근,광배근/능형근,,PRODUCTION,APPROVED_RESEARCHED
 EXERCISE_DETAIL,광배근/대원근,광배근/대원근,광배근/대원근,,광배근/대원근 항목을 나타내는 앱 표시 용어입니다.,,광배근/대원근,광배근/대원근,,PRODUCTION,APPROVED_RESEARCHED
 EXERCISE_DETAIL,광배근/대흉근,광배근/대흉근,광배근/대흉근,,광배근/대흉근 항목을 나타내는 앱 표시 용어입니다.,,광배근/대흉근,광배근/대흉근,,PRODUCTION,APPROVED_RESEARCHED
+EXERCISE_DETAIL,광배근/삼각근/복사근,광배근/삼각근/복사근,광배근/삼각근/복사근,광배근/삼각근/복사근,케이블 로우와 반대쪽 덤벨 오버헤드 프레스를 동시에 수행하는 항회전 안정화 훈련,,Lats / deltoids / obliques,,,PRODUCTION,PRODUCT_OWNER_APPROVED
 EXERCISE_DETAIL,광배근/이두근,광배근/이두근,광배근/이두근,,광배근/이두근 항목을 나타내는 앱 표시 용어입니다.,,광배근/이두근,광배근/이두근,,PRODUCTION,APPROVED_RESEARCHED
 EXERCISE_DETAIL,광배근/코어,광배근/코어,광배근/코어,,광배근/코어 항목을 나타내는 앱 표시 용어입니다.,,광배근/코어,광배근/코어,,PRODUCTION,APPROVED_RESEARCHED
 EXERCISE_DETAIL,광배근/하부승모근,광배근/하부승모근,광배근/하부승모근,,광배근/하부승모근 항목을 나타내는 앱 표시 용어입니다.,,광배근/하부승모근,광배근/하부승모근,,PRODUCTION,APPROVED_RESEARCHED
@@ -335,6 +336,7 @@ EXERCISE_DETAIL,삼두근 장두,삼두근 장두,삼두근 장두,,삼두근 �
 EXERCISE_DETAIL,삼두근/견갑안정근,삼두근/견갑안정근,삼두근/견갑안정근,,삼두근/견갑안정근 항목을 나타내는 앱 표시 용어입니다.,,삼두근/견갑안정근,삼두근/견갑안정근,,PRODUCTION,APPROVED_RESEARCHED
 EXERCISE_DETAIL,삼두근/대흉근,삼두근/대흉근,삼두근/대흉근,,삼두근/대흉근 항목을 나타내는 앱 표시 용어입니다.,,삼두근/대흉근,삼두근/대흉근,,PRODUCTION,APPROVED_RESEARCHED
 EXERCISE_DETAIL,삼두근/상부승모근/코어,삼두근/상부승모근/코어,삼두근/상부승모근/코어,,삼두근/상부승모근/코어 항목을 나타내는 앱 표시 용어입니다.,,삼두근/상부승모근/코어,삼두근/상부승모근/코어,,PRODUCTION,APPROVED_RESEARCHED
+EXERCISE_DETAIL,삼두근/이두근/대흉근/코어,삼두근/이두근/대흉근/코어,삼두근/이두근/대흉근/코어,삼두근/이두근/대흉근/코어,케이블 로우와 반대쪽 덤벨 오버헤드 프레스를 동시에 수행하는 항회전 안정화 훈련,,Triceps / biceps / chest / core,,,PRODUCTION,PRODUCT_OWNER_APPROVED
 EXERCISE_DETAIL,삼두근/전면삼각근,삼두근/전면삼각근,삼두근/전면삼각근,,삼두근/전면삼각근 항목을 나타내는 앱 표시 용어입니다.,,삼두근/전면삼각근,삼두근/전면삼각근,,PRODUCTION,APPROVED_RESEARCHED
 EXERCISE_DETAIL,삼두근/전면삼각근/견갑고정,삼두근/전면삼각근/견갑고정,삼두근/전면삼각근/견갑고정,,삼두근/전면삼각근/견갑고정 항목을 나타내는 앱 표시 용어입니다.,,삼두근/전면삼각근/견갑고정,삼두근/전면삼각근/견갑고정,,PRODUCTION,APPROVED_RESEARCHED
 EXERCISE_DETAIL,삼두근/전면삼각근/코어,삼두근/전면삼각근/코어,삼두근/전면삼각근/코어,,삼두근/전면삼각근/코어 항목을 나타내는 앱 표시 용어입니다.,,삼두근/전면삼각근/코어,삼두근/전면삼각근/코어,,PRODUCTION,APPROVED_RESEARCHED
@@ -515,6 +517,7 @@ EXERCISE_MODE,캡틴체어,캡틴체어,캡틴체어,,캡틴체어 항목을 나
 EXERCISE_MODE,케이블,케이블,케이블,,케이블 항목을 나타내는 앱 표시 용어입니다.,,케이블,케이블,,PRODUCTION,APPROVED_RESEARCHED
 EXERCISE_MODE,케이블 로프,케이블 로프,케이블 로프,,케이블 로프 항목을 나타내는 앱 표시 용어입니다.,,케이블 로프,케이블 로프,,PRODUCTION,APPROVED_RESEARCHED
 EXERCISE_MODE,케이블 머신,케이블 머신,케이블 머신,,케이블 머신 항목을 나타내는 앱 표시 용어입니다.,,케이블 머신,케이블 머신,,PRODUCTION,APPROVED_RESEARCHED
+EXERCISE_MODE,케이블+덤벨,케이블+덤벨,케이블+덤벨,케이블+덤벨,배드민턴용 스플릿 스탠스 교차측 로우·프레스 메타데이터,,Cable and dumbbell,,,PRODUCTION,PRODUCT_OWNER_APPROVED
 EXERCISE_MODE,케틀벨,케틀벨,케틀벨,,케틀벨 항목을 나타내는 앱 표시 용어입니다.,,케틀벨,케틀벨,,PRODUCTION,APPROVED_RESEARCHED
 EXERCISE_MODE,평행봉,평행봉,평행봉,,평행봉 항목을 나타내는 앱 표시 용어입니다.,,평행봉,평행봉,,PRODUCTION,APPROVED_RESEARCHED
 EXERCISE_MODE,플레이트,플레이트,플레이트,,플레이트 항목을 나타내는 앱 표시 용어입니다.,,플레이트,플레이트,,PRODUCTION,APPROVED_RESEARCHED
@@ -1026,6 +1029,7 @@ MOVEMENT_SUBTYPE,SMITH_MACHINE_SQUAT,스미스 머신 스쿼트,스미스 머신
 MOVEMENT_SUBTYPE,SOCCER_SESSION,축구,축구,,축구 항목을 나타내는 앱 표시 용어입니다.,,Soccer session,SOCCER SESSION,,PRODUCTION,APPROVED_RESEARCHED
 MOVEMENT_SUBTYPE,SPIDER_CURL,스파이더 컬,스파이더 컬,,스파이더 컬 항목을 나타내는 앱 표시 용어입니다.,,Spider curl,SPIDER CURL,,PRODUCTION,APPROVED_RESEARCHED
 MOVEMENT_SUBTYPE,SPLIT_SQUAT,스플릿 스쿼트,스플릿 스쿼트,,스플릿 스쿼트 항목을 나타내는 앱 표시 용어입니다.,,Split squat,SPLIT SQUAT,,PRODUCTION,APPROVED_RESEARCHED
+MOVEMENT_SUBTYPE,SPLIT_STANCE_CONTRALATERAL_ROW_PRESS,스플릿 스탠스 반대팔 로우·오버헤드 프레스,스플릿 스탠스 반대팔 로우·오버헤드 프레스,스플릿 스탠스 반대팔 로우·오버헤드 프레스,케이블 로우와 반대쪽 덤벨 오버헤드 프레스를 동시에 수행하는 항회전 안정화 훈련,,Split-stance cable row and contralateral dumbbell overhead press,,,PRODUCTION,PRODUCT_OWNER_APPROVED
 MOVEMENT_SUBTYPE,SPLIT_STEP,스플릿 스텝,스플릿 스텝,,스플릿 스텝 항목을 나타내는 앱 표시 용어입니다.,,Split step,SPLIT STEP,,PRODUCTION,APPROVED_RESEARCHED
 MOVEMENT_SUBTYPE,SPLIT_STEP_LATERAL_REACTIVE_LUNGE,스플릿 스텝 후 좌우 런지,스플릿 스텝 후 좌우 런지,,스플릿 스텝 후 좌우 런지 항목을 나타내는 앱 표시 용어입니다.,,Split step lateral reactive lunge,SPLIT STEP LATERAL REACTIVE LUNGE,,PRODUCTION,APPROVED_RESEARCHED
 MOVEMENT_SUBTYPE,SPLIT_STEP_REACTION,스플릿 스텝 리액션,스플릿 스텝 리액션,,스플릿 스텝 리액션 항목을 나타내는 앱 표시 용어입니다.,,Split step reaction,SPLIT STEP REACTION,,PRODUCTION,APPROVED_RESEARCHED
@@ -1551,6 +1555,7 @@ STABILITY_ROLE,LANDING_STABILITY,착지 안정성,착지 안정성,,착지 안�
 STABILITY_ROLE,PELVIC_STABILITY,골반 안정성,골반 안정성,,골반 안정성 항목을 나타내는 앱 표시 용어입니다.,,Pelvic stability,PELVIC STABILITY,,PRODUCTION,APPROVED_RESEARCHED
 STABILITY_ROLE,ROTATOR_CUFF_CONTROL,회전근개 회전근개 제어,회전근개 회전근개 제어,,회전근개 회전근개 제어 항목을 나타내는 앱 표시 용어입니다.,,Rotator cuff control,ROTATOR CUFF CONTROL,,PRODUCTION,APPROVED_RESEARCHED
 STABILITY_ROLE,SCAPULAR_STABILITY,견갑 안정성,견갑 안정성,,견갑 안정성 항목을 나타내는 앱 표시 용어입니다.,,Scapular stability,SCAPULAR STABILITY,,PRODUCTION,APPROVED_RESEARCHED
+STABILITY_ROLE,SHOULDER_STABILITY,어깨 안정화,어깨 안정화,어깨 안정화,배드민턴용 스플릿 스탠스 교차측 로우·프레스 메타데이터,,Shoulder stability,,,PRODUCTION,PRODUCT_OWNER_APPROVED
 STABILITY_ROLE,SINGLE_LEG_STABILITY,한쪽 다리 안정성,한쪽 다리 안정성,,한쪽 다리 안정성 항목을 나타내는 앱 표시 용어입니다.,,Single leg stability,SINGLE LEG STABILITY,,PRODUCTION,APPROVED_RESEARCHED
 STABILITY_ROLE,TRUNK_CONTROL,몸통 제어,몸통 제어,,몸통 제어 항목을 나타내는 앱 표시 용어입니다.,,Trunk control,TRUNK CONTROL,,PRODUCTION,APPROVED_RESEARCHED
 STRENGTH_PROGRESSION_GROUP,ACCESSORY_ROTATION,보조 회전,보조 회전,,보조 회전 항목을 나타내는 앱 표시 용어입니다.,,Accessory rotation,ACCESSORY ROTATION,,PRODUCTION,APPROVED_RESEARCHED
@@ -1668,7 +1673,7 @@ SUPPORTIVE_TRANSFER,POSTERIOR_CHAIN_CAPACITY,후면 운동사슬 능력,후면 �
 SUPPORTIVE_TRANSFER,REACTION,반응,반응,,반응 항목을 나타내는 앱 표시 용어입니다.,,Reaction,REACTION,,SEARCH_ONLY,APPROVED_RESEARCHED
 SUPPORTIVE_TRANSFER,ROTATION_POWER,회전 파워,회전 파워,,회전 파워 항목을 나타내는 앱 표시 용어입니다.,,Rotation power,ROTATION POWER,,SEARCH_ONLY,APPROVED_RESEARCHED
 SUPPORTIVE_TRANSFER,ROTATOR_CUFF_SUPPORT,회전근개 회전근개 보조,회전근개 회전근개 보조,,회전근개 회전근개 보조 항목을 나타내는 앱 표시 용어입니다.,,Rotator cuff support,ROTATOR CUFF SUPPORT,,PRODUCTION,APPROVED_RESEARCHED
-SUPPORTIVE_TRANSFER,SHOULDER_CARE,어깨 관리,어깨 관리,,어깨 관리 항목을 나타내는 앱 표시 용어입니다.,,Shoulder care,SHOULDER CARE,,SEARCH_ONLY,APPROVED_RESEARCHED
+SUPPORTIVE_TRANSFER,SHOULDER_CARE,어깨 관리,어깨 관리,,어깨 관리 항목을 나타내는 앱 표시 용어입니다.,,Shoulder care,SHOULDER CARE,,PRODUCTION,PRODUCT_OWNER_APPROVED
 SUPPORTIVE_TRANSFER,SHOULDER_STABILITY_SUPPORT,어깨 안정성 보조,어깨 안정성 보조,,어깨 안정성 보조 항목을 나타내는 앱 표시 용어입니다.,,Shoulder stability support,SHOULDER STABILITY SUPPORT,,PRODUCTION,APPROVED_RESEARCHED
 SUPPORTIVE_TRANSFER,SINGLE_LEG_STRENGTH_SUPPORT,한쪽 다리 근력 보조,한쪽 다리 근력 보조,,한쪽 다리 근력 보조 항목을 나타내는 앱 표시 용어입니다.,,Single leg strength support,SINGLE LEG STRENGTH SUPPORT,,PRODUCTION,APPROVED_RESEARCHED
 SUPPORTIVE_TRANSFER,TRUNK_CONTROL_SUPPORT,몸통 제어 보조,몸통 제어 보조,,몸통 제어 보조 항목을 나타내는 앱 표시 용어입니다.,,Trunk control support,TRUNK CONTROL SUPPORT,,PRODUCTION,APPROVED_RESEARCHED

@@ -17,10 +17,10 @@ class RuntimeExerciseMetadataAssetLoaderTest {
 
         val rows = RuntimeExerciseMetadataAssetLoader.parseCanonicalCsv(asset.readText(Charsets.UTF_8))
 
-        assertEquals(253, rows.size)
-        assertEquals(253, rows.map { it.stableKey.lowercase() }.distinct().size)
+        assertEquals(254, rows.size)
+        assertEquals(254, rows.map { it.stableKey.lowercase() }.distinct().size)
         assertFalse(rows.any { it.stableKey.isBlank() })
-        assertEquals(18, rows.count { it.badmintonTransferLevel == "DIRECT" })
+        assertEquals(19, rows.count { it.badmintonTransferLevel == "DIRECT" })
         assertEquals(99, rows.count { it.badmintonTransferLevel == "SUPPORTIVE" })
         assertEquals(102, rows.count { it.badmintonTransferLevel == "GENERAL" })
         assertEquals(34, rows.count { it.badmintonTransferLevel == "NONE" })

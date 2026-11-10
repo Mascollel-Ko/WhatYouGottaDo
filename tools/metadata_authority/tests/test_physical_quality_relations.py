@@ -95,7 +95,7 @@ class PhysicalQualityRelationsTest(unittest.TestCase):
             key for key, row in runtime.items()
             if identities[key]["selectable"] == "YES" and row["currentPlanningEligibility"] == "PROGRAM_SELECTABLE"
         }
-        self.assertEqual(234, len(selectable))
+        self.assertEqual(235, len(selectable))
         self.assertEqual(selectable, {row["exerciseStableKey"] for row in queue})
         self.assertTrue(all(row["primarySemanticLayer"] for row in queue))
         for field in ("hasGeneralQuality", "hasCoreRelation", "hasSportTaskRelation", "hasRecoveryPrehabRelation"):

@@ -228,10 +228,10 @@ class BBalancedStimulusLedgerV1Test {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val repository = CanonicalExerciseMetadataRepository(context)
         val catalog = BBalancedTaskCatalog.fromAssets(context)
-        assertEquals(38, catalog.relations.size)
+        assertEquals(39, catalog.relations.size)
         val direct = repository.coreCatalog().selectableProfiles()
             .filter { it.coreClass == CoreClass.DIRECT }.map { it.exerciseStableKey }.toSet()
-        assertEquals(31, direct.size)
+        assertEquals(32, direct.size)
         assertEquals(direct, catalog.relations.filter {
             it.domain == BBalancedTaskDomain.CORE && it.review == BBalancedTaskReview.REVIEWED
         }.map { it.stableKey }.toSet())

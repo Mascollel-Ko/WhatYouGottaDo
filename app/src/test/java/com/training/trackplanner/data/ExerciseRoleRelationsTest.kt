@@ -37,6 +37,7 @@ class ExerciseRoleRelationsTest {
             this["standing_calf_raise_machine"] = ProgramSlotCapability.ACCESSORY_SLOT
             this["standing_dumbbell_calf_raise"] = ProgramSlotCapability.ACCESSORY_SLOT
             this["ex_8824026f"] = ProgramSlotCapability.ACCESSORY_SLOT
+            this["split_stance_contralateral_cable_row_dumbbell_press"] = ProgramSlotCapability.STABILITY_SLOT
         }
         val actual = exercises.associateNotNull { exercise ->
             catalog.programSlotCapabilities(exercise.stableKey)
@@ -45,7 +46,7 @@ class ExerciseRoleRelationsTest {
         }
 
         assertEquals(26, baseline.size)
-        assertEquals(29, expected.size)
+        assertEquals(30, expected.size)
         assertEquals(expected, actual)
         assertTrue(catalog.programSlotCapabilities("barbell_back_squat").isEmpty())
     }

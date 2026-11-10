@@ -51,13 +51,13 @@ def export_to(directory: Path):
 class MetadataAuthorityTest(unittest.TestCase):
     def test_workbook_encodes_approved_identity_and_relation_decisions(self):
         counts = validate(WORKBOOK)
-        self.assertEqual(253, counts["identityRows"])
-        self.assertEqual(242, counts["selectableIdentityRows"])
+        self.assertEqual(254, counts["identityRows"])
+        self.assertEqual(243, counts["selectableIdentityRows"])
         self.assertEqual(11, counts["historyOnlyIdentityRows"])
-        self.assertEqual(242, counts["timingRows"])
-        self.assertEqual(253, counts["bootstrapRows"])
-        self.assertEqual(1825, counts["displayRows"])
-        self.assertEqual(1688, counts["productionDisplayRows"])
+        self.assertEqual(243, counts["timingRows"])
+        self.assertEqual(254, counts["bootstrapRows"])
+        self.assertEqual(1830, counts["displayRows"])
+        self.assertEqual(1697, counts["productionDisplayRows"])
         workbook = load_workbook(WORKBOOK, read_only=True)
         self.assertEqual(DISPLAY_HEADERS, [str(cell.value or "").strip() for cell in workbook[DISPLAY_SHEET][1]])
 
@@ -140,10 +140,10 @@ class MetadataAuthorityTest(unittest.TestCase):
             hashlib.sha256(BADMINTON_OBJECTIVE_AUTHORITY_SOURCE.read_bytes()).hexdigest(),
         )
         core, objectives, rotation_audit = build_analysis_assets()
-        self.assertEqual(273, len(core))
-        self.assertEqual(280, len(objectives))
-        self.assertEqual(19, len(rotation_audit))
-        self.assertEqual(4, sum(row["coreDirectTarget"] == "ANTI_ROTATION" and row["decision"] == "CREATE_EXPLICIT_OBJECTIVE" for row in rotation_audit))
+        self.assertEqual(275, len(core))
+        self.assertEqual(281, len(objectives))
+        self.assertEqual(20, len(rotation_audit))
+        self.assertEqual(5, sum(row["coreDirectTarget"] == "ANTI_ROTATION" and row["decision"] == "CREATE_EXPLICIT_OBJECTIVE" for row in rotation_audit))
         self.assertEqual(15, sum(row["coreDirectTarget"] == "ROTATION_GENERATION" and row["decision"] == "CREATE_EXPLICIT_OBJECTIVE" for row in rotation_audit))
         self.assertNotIn("ROTATION_POWER", {row["objectiveId"] for row in objectives})
         approved = [
@@ -151,10 +151,10 @@ class MetadataAuthorityTest(unittest.TestCase):
             if row["provenance"] == "USER_APPROVED_BADMINTON_OBJECTIVE_2026_08_14"
         ]
         self.assertEqual(
-            {("band_pallof_press", "ANTI_ROTATION"), ("cable_pallof_press", "ANTI_ROTATION")},
+            {("band_pallof_press", "ANTI_ROTATION"), ("cable_pallof_press", "ANTI_ROTATION"), ("split_stance_contralateral_cable_row_dumbbell_press", "ANTI_ROTATION")},
             {(row["exerciseStableKey"], row["objectiveId"]) for row in approved},
         )
-        self.assertTrue(all(row["transferLevel"] == "SUPPORTIVE" for row in approved))
+        self.assertEqual({"band_pallof_press": "SUPPORTIVE", "cable_pallof_press": "SUPPORTIVE", "split_stance_contralateral_cable_row_dumbbell_press": "DIRECT"}, {row["exerciseStableKey"]: row["transferLevel"] for row in approved})
         self.assertTrue(all(row["evidenceRelationKeys"] == "" for row in approved))
         self.assertTrue(all(row["reviewStatus"] == "PASS" and row["reviewReason"] for row in approved))
 
@@ -167,13 +167,13 @@ class MetadataAuthorityTest(unittest.TestCase):
         korean = resource_keys(RESOURCES / "values/metadata_display_catalog.xml")
         english = resource_keys(RESOURCES / "values-en/metadata_display_catalog.xml")
         self.assertEqual(korean, english)
-        self.assertEqual(1825, len(korean))
+        self.assertEqual(1830, len(korean))
 
     def test_display_routing_audit_is_current_and_complete(self):
         metrics = collect_display_routing(REPO)
         validate_display_routing(metrics)
-        self.assertEqual(1688, metrics["reachableProductionPairCount"])
-        self.assertEqual(1688, metrics["translatedReachableProductionPairCount"])
+        self.assertEqual(1697, metrics["reachableProductionPairCount"])
+        self.assertEqual(1697, metrics["translatedReachableProductionPairCount"])
         self.assertEqual(137, metrics["expectedCompatibilityOnlyPairCount"])
         self.assertEqual(70, metrics["preRefactorRawCodeProneUiPathCount"])
         self.assertEqual(0, metrics["postRefactorRawCodeProneUiPathCount"])

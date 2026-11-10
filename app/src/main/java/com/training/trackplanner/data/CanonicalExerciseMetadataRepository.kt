@@ -292,7 +292,7 @@ class CanonicalExerciseMetadataRepository(private val context: Context) {
 
     fun coreCatalog(): CanonicalCoreCatalog {
         val rows = parseVerifiedCsv("core_relations.csv")
-        require(rows.size == 273)
+        require(rows.size == 275)
         val grouped = rows.groupBy { it.required("exerciseStableKey").normalizedCanonicalKey() }
         val selectableKeys = selectableIdentities().mapTo(mutableSetOf(), CanonicalExerciseIdentity::stableKey)
         require(grouped.keys == selectableKeys) {
@@ -714,8 +714,8 @@ class CanonicalExerciseMetadataRepository(private val context: Context) {
     companion object {
         const val ASSET_DIRECTORY = "metadata/canonical_v1"
         const val MANIFEST_FILE = "manifest.json"
-        const val EXPECTED_IDENTITY_ROWS = 253
-        const val EXPECTED_SELECTABLE_ROWS = 242
+        const val EXPECTED_IDENTITY_ROWS = 254
+        const val EXPECTED_SELECTABLE_ROWS = 243
         const val EXPECTED_HISTORY_ROWS = 11
         private const val SCHEMA_VERSION = 1
         private val IDENTITY_DECISION_TOKENS = setOf("KEEP_CANONICAL", "PROPOSED_USER_APPROVED")

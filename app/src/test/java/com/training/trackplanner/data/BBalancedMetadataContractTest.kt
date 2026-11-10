@@ -51,7 +51,7 @@ class BBalancedMetadataContractTest {
         val file = asset("metadata/b_balanced_v1/target_task_relations.csv")
         val rows = file.readLines(Charsets.UTF_8).drop(1).filter(String::isNotBlank)
             .map { it.split(",") }
-        assertEquals(38, rows.size)
+        assertEquals(39, rows.size)
         assertTrue(rows.all { it.size == 9 && it[7] == "NONE" && it[8].isNotBlank() })
         assertEquals(rows.size, rows.map { it[0] }.distinct().size)
         val tasks = rows.groupBy({ it[1] }, { it[3] }).mapValues { (_, values) -> values.toSet() }
@@ -66,7 +66,7 @@ class BBalancedMetadataContractTest {
         assertEquals(setOf("AXIAL_BRACING"), tasks["kettlebell_farmer_carry"])
         assertEquals(setOf("DYNAMIC_TRUNK_STABILIZATION", "ANTI_EXTENSION"), tasks["ex_a9b52886"])
         assertEquals(setOf("ANTI_LATERAL_FLEXION"), tasks["ex_a8385c4a"])
-        assertEquals(31, rows.filter { it[2] == "CORE" && it[6] == "REVIEWED_B_OVERLAY_V2" }
+        assertEquals(32, rows.filter { it[2] == "CORE" && it[6] == "REVIEWED_B_OVERLAY_V2" }
             .map { it[1] }.distinct().size)
         assertTrue(rows.single { it[1] == "ex_a8385c4a" }[6] == "REVIEW_REQUIRED")
     }
