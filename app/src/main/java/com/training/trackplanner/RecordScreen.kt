@@ -126,7 +126,7 @@ internal fun RecordScreen(
     var pendingAddedEntryId by rememberSaveable { mutableStateOf<Long?>(null) }
     var pendingAddedAfterConfirmed by rememberSaveable { mutableStateOf(false) }
     val showPermissionHint = timerState.isActive &&
-        (timerState.notificationPermissionNeeded || !timerState.overlayPermissionGranted)
+        (timerState.notificationPermissionNeeded || timerState.exactAlarmPermissionNeeded || !timerState.overlayPermissionGranted)
 
     LaunchedEffect(showOnboardingWorkoutTarget, sortedEntries, showPermissionHint) {
         if (showOnboardingWorkoutTarget && sortedEntries.isNotEmpty()) {
@@ -263,10 +263,20 @@ internal fun RecordScreen(
             item {
                 RestTimerPermissionHint(
                     notificationPermissionNeeded = timerState.notificationPermissionNeeded,
+                    exactAlarmPermissionNeeded = timerState.exactAlarmPermissionNeeded,
                     overlayPermissionGranted = timerState.overlayPermissionGranted,
                     onRequestNotification = {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                    },
+                    onOpenExactAlarmSettings = {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            val intent = Intent(
+                                Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
+                                Uri.parse("package:${context.packageName}")
+                            )
+                            runCatching { context.startActivity(intent) }
                         }
                     },
                     onOpenOverlaySettings = {
