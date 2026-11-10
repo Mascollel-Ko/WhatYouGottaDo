@@ -54,6 +54,11 @@
     <string name="rest_timer_hide">Hide rest timer bar</string>
     <string name="rest_timer_running_notification">%1$s remaining · %2$s</string>
     <string name="rest_timer_finished_notification">%1$s · Prepare for the next set.</string>
+    <string name="rest_timer_warning_title">Rest ends in 10 seconds</string>
+    <string name="rest_timer_warning_channel">Rest almost finished</string>
+    <string name="rest_timer_finished_channel">Rest finished alerts</string>
+    <string name="rest_timer_exact_alarm_permission">For more precise alerts outside the app, allow Alarms and reminders. Without permission, Android may delay notifications. Power-saving modes can still delay closely spaced alerts.</string>
+    <string name="rest_timer_exact_alarm_settings">Allow precise rest alerts</string>
     <string name="rest_timer_channel_name">Rest timer</string>
     <string name="rest_timer_channel_description">Notifies you when rest between sets is finished.</string>
     <string name="rest_timer_notification_permission">Notification permission is required to show rest completion outside the app.</string>

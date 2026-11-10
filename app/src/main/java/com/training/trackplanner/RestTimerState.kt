@@ -22,6 +22,7 @@ data class RestTimerState(
     val targetEntryId: Long = 0,
     val targetSetId: Long = 0,
     val notificationPermissionNeeded: Boolean = false,
+    val exactAlarmPermissionNeeded: Boolean = false,
     val overlayPermissionGranted: Boolean = false,
     val appInForeground: Boolean = true
 ) {

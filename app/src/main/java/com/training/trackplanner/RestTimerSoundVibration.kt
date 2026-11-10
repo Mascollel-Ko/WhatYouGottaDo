@@ -9,9 +9,14 @@ import android.os.Vibrator
 import android.os.VibratorManager
 
 class RestTimerSoundVibration(private val context: Context) {
+    fun playWarningAlert() {
+        playSound()
+        vibrateBriefly(100L)
+    }
+
     fun playFinishAlert() {
         playSound()
-        vibrateBriefly()
+        vibrateBriefly(320L)
     }
 
     private fun playSound() {
@@ -28,7 +33,7 @@ class RestTimerSoundVibration(private val context: Context) {
         }
     }
 
-    private fun vibrateBriefly() {
+    private fun vibrateBriefly(durationMillis: Long) {
         val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val manager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
             manager.defaultVibrator
@@ -41,13 +46,13 @@ class RestTimerSoundVibration(private val context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             vibrator.vibrate(
                 VibrationEffect.createOneShot(
-                    180L,
+                    durationMillis,
                     VibrationEffect.DEFAULT_AMPLITUDE
                 )
             )
         } else {
             @Suppress("DEPRECATION")
-            vibrator.vibrate(180L)
+            vibrator.vibrate(durationMillis)
         }
     }
 }
