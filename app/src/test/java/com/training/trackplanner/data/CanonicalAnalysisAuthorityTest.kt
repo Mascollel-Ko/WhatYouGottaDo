@@ -25,7 +25,7 @@ class CanonicalAnalysisAuthorityTest {
     fun approvedCoreCsvIsExactCanonicalAuthority() {
         val approved = projectFile("docs/metadata_authority/core_training_classification_review_2026-08-13.csv")
         assertEquals(
-            "241f44ceefa0dcda9b7cf543f576f6b7c16d6e726cd3018ebd1db3275cf7eaf5",
+            "1807feb9b184cb3697003e8d25f99246d57ec670ae45dd33a4816ac0457aa8e4",
             MessageDigest.getInstance("SHA-256").digest(approved.readBytes()).joinToString("") { "%02x".format(it) }
         )
         val rows = approved.readLines().filter(String::isNotBlank).map(SeedData::parseCsvLine)
@@ -36,7 +36,7 @@ class CanonicalAnalysisAuthorityTest {
         }
         val profiles = repository.coreCatalog().selectableProfiles()
 
-        assertEquals(242, profiles.size)
+        assertEquals(243, profiles.size)
         assertEquals(values.keys, profiles.mapTo(mutableSetOf()) { it.exerciseStableKey })
         profiles.forEach { profile ->
             val approvedValue = values.getValue(profile.exerciseStableKey)
@@ -49,8 +49,8 @@ class CanonicalAnalysisAuthorityTest {
     fun coreClassAndDirectTargetCountsMatchApprovedReview() {
         val profiles = repository.coreCatalog().selectableProfiles()
 
-        assertEquals(mapOf(CoreClass.DIRECT to 31, CoreClass.HIDDEN_HIGH to 45, CoreClass.HIDDEN_MODERATE to 82, CoreClass.HIDDEN_LOW to 56, CoreClass.NONE to 28), profiles.groupingBy { it.coreClass }.eachCount())
-        assertEquals(mapOf(CoreDirectTarget.ROTATION_GENERATION to 15, CoreDirectTarget.BRACING to 8, CoreDirectTarget.ANTI_ROTATION to 4, CoreDirectTarget.TRUNK_FLEXION to 3, CoreDirectTarget.TRUNK_EXTENSION to 1), profiles.mapNotNull { it.directTarget }.groupingBy { it }.eachCount())
+        assertEquals(mapOf(CoreClass.DIRECT to 32, CoreClass.HIDDEN_HIGH to 45, CoreClass.HIDDEN_MODERATE to 82, CoreClass.HIDDEN_LOW to 56, CoreClass.NONE to 28), profiles.groupingBy { it.coreClass }.eachCount())
+        assertEquals(mapOf(CoreDirectTarget.ROTATION_GENERATION to 15, CoreDirectTarget.BRACING to 8, CoreDirectTarget.ANTI_ROTATION to 5, CoreDirectTarget.TRUNK_FLEXION to 3, CoreDirectTarget.TRUNK_EXTENSION to 1), profiles.mapNotNull { it.directTarget }.groupingBy { it }.eachCount())
         assertTrue(profiles.all { (it.coreClass == CoreClass.DIRECT) == (it.directTarget != null) })
     }
 
@@ -68,13 +68,13 @@ class CanonicalAnalysisAuthorityTest {
     fun badmintonObjectiveAuthorityIsExplicitNineAxisAndObjectiveSpecific() {
         val relations = repository.badmintonObjectiveCatalog().allRelations()
 
-        assertEquals(280, relations.size)
+        assertEquals(281, relations.size)
         assertEquals(BadmintonObjective.entries.toSet(), relations.mapTo(mutableSetOf()) { it.objective })
         assertFalse(relations.any { it.objective.name == "ROTATION_POWER" })
         val userApproved = relations.filter {
             it.provenance == "USER_APPROVED_BADMINTON_OBJECTIVE_2026_08_14"
         }
-        assertEquals(2, userApproved.size)
+        assertEquals(3, userApproved.size)
         assertTrue(userApproved.all { it.evidenceRelationKeys.isEmpty() && it.reviewReason.isNotBlank() })
         assertTrue(
             relations.filterNot { it in userApproved }.all { it.evidenceRelationKeys.isNotEmpty() }
