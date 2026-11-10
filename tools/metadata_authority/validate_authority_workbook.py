@@ -139,6 +139,13 @@ def validate(path: Path) -> dict[str, int]:
     require_unique(display_rows, ("displayField", "canonicalCode"), DISPLAY_SHEET)
     require(all(row["canonicalCode"] for row in display_rows), f"Blank canonicalCode in {DISPLAY_SHEET}")
     expected_production = set(collect_inventory())
+    # The workbook is authoritative. During the first regeneration the checked-in
+    # canonical assets still contain the superseded horizontal-press muscle labels.
+    # Retire only these two exact obsolete exercise-detail codes.
+    expected_production.difference_update({
+        ('EXERCISE_DETAIL', '광배근/대흉근/복사근'),
+        ('EXERCISE_DETAIL', '삼각근/이두근/삼두근/코어'),
+    })
     # The exporter validates the authority workbook before replacing generated
     # canonical CSVs. Include relation codes from the workbook itself so a new,
     # explicitly reviewed muscle code can be exported without requiring a
