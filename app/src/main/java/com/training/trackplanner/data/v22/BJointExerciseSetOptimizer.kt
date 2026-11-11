@@ -26,7 +26,7 @@ import kotlin.math.min
 internal object BJointExerciseSetOptimizer {
     private const val BEAM_WIDTH = 6
     private const val MAX_ROUNDS = 14
-    private const val MAX_EVALUATIONS = 4400
+    private const val MAX_EVALUATIONS = 4800
     private const val MIN_GAIN = 0.001
     private const val EPS = 1e-8
 
@@ -264,6 +264,17 @@ internal object BJointExerciseSetOptimizer {
                 profile.core.isNotEmpty() || profile.badminton.isNotEmpty())
         }.sortedBy(Exercise::stableKey)
 
+        // Only introduce equipment already represented by the user's current plan,
+        // or unloaded/bodyweight exercises. Missing equipment availability is never
+        // inferred from an exercise's attractive utility score.
+        val knownEquipment = initialKeys.mapNotNull { exercises[it]?.equipment?.trim() }
+            .filter(String::isNotBlank).toSet()
+        val insertionPool = eligible.filter { exercise ->
+            val equipment = exercise.equipment.trim()
+            equipment.isBlank() || equipment in knownEquipment ||
+                equipment.equals("맨몸", true) || equipment.equals("BODYWEIGHT", true)
+        }
+
         for (round in 0 until MAX_ROUNDS) {
             if (evaluated >= MAX_EVALUATIONS) break
             val pool = linkedMapOf<String, Candidate>()
@@ -281,12 +292,95 @@ internal object BJointExerciseSetOptimizer {
                         value > baseline + MIN_GAIN && key < best.signature)) best = next
             }
             for (node in beam) {
+                // Each missing or underrepresented reviewed target may compete with
+                // more sets of a current exercise. Shortlisting uses metadata,
+                // but the final acceptance decision always uses the complete score.
+                val current = node.sessions.flatMap(V22Session::items)
+                val usedKeys = current.mapTo(hashSetOf(), V22ExercisePlan::stableKey)
+                val currentMuscleSets = hashMapOf<String, Int>()
+                val currentCoreSets = hashMapOf<String, Int>()
+                val currentSportSets = hashMapOf<BadmintonObjective, Double>()
+                current.forEach { item ->
+                    val f = facets(item.stableKey)
+                    f.primary.forEach { currentMuscleSets[it] = (currentMuscleSets[it] ?: 0) + item.setCount }
+                    f.core.forEach { currentCoreSets[it] = (currentCoreSets[it] ?: 0) + item.setCount }
+                    f.badminton.forEach { (objective, coefficient) ->
+                        currentSportSets[objective] = (currentSportSets[objective] ?: 0.0) +
+                            coefficient * item.setCount
+                    }
+                }
+                val additions = insertionPool.asSequence().filter {
+                    it.stableKey !in usedKeys
+                }.map { exercise ->
+                    val f = facets(exercise.stableKey)
+                    val gap = f.primary.sumOf { 1.0 / (1.0 + (currentMuscleSets[it] ?: 0)) } +
+                        1.5 * f.core.sumOf { 1.0 / (1.0 + (currentCoreSets[it] ?: 0)) } +
+                        1.5 * f.badminton.entries.sumOf { (objective, coefficient) ->
+                            coefficient / (1.0 + (currentSportSets[objective] ?: 0.0))
+                        }
+                    exercise to gap
+                }.filter { it.second > 0.0 }
+                    .sortedWith(compareByDescending<Pair<Exercise, Double>> { it.second }
+                        .thenBy { it.first.stableKey }).take(5).map { it.first }.toList()
+                for (dayIndex in node.sessions.indices) {
+                    val day = node.sessions[dayIndex]
+                    if (day.items.size >= 12) continue
+                    for (addition in additions) {
+                        val timed = addition.progressMetricType == "TIME_OR_DISTANCE"
+                        val effective = if (blockGoal == BBlockGoal.AUTO) when (autoFocus) {
+                            BBalancedGoal.STRENGTH -> BBlockGoal.STRENGTH
+                            BBalancedGoal.HYPERTROPHY -> BBlockGoal.HYPERTROPHY
+                            BBalancedGoal.CORE, BBalancedGoal.SPORT_SUPPORT -> BBlockGoal.SPORT_SUPPORT
+                        } else blockGoal
+                        val purpose = BBlockPurposePrescription.purpose(effective, false, addition)
+                        val range = BBlockPurposePrescription.repRange(purpose, false)
+                        val item = V22ExercisePlan(
+                            exercise = addition.name, stableKey = addition.stableKey,
+                            category = addition.category, role = "B_JOINT_NEW_ACCESSORY_REVIEW",
+                            setCount = 1,
+                            sets = listOf(V22ObservedSet(null,
+                                if (timed) null else (range.first + range.last) / 2,
+                                null, null, "", "B_JOINT_NEW_EXERCISE_USER_CALIBRATION_REQUIRED")),
+                            historicalSets28d = 0, historicalSets56d = 0,
+                            source = "B_JOINT_ADDITION_USER_REVIEW_REQUIRED",
+                            prescriptionAuthority = "B_JOINT_NEW_EXERCISE_REVIEW_REQUIRED",
+                            plannedProgression = "B_JOINT_ADDITION_NO_INHERITED_LOAD_OR_REPS"
+                        )
+                        val candidate = node.sessions.toMutableList()
+                        candidate[dayIndex] = rebuilt(day, day.items + item)
+                        offer(candidate, node.changes,
+                            "INSERT:" + day.session + ":" + addition.stableKey)
+                    }
+                }
                 for (dayIndex in node.sessions.indices) {
                     val day = node.sessions[dayIndex]
                     for (index in day.items.indices) {
                         val item = day.items[index]
                         if (isProtected(item)) continue
                         val key = item.stableKey
+                        // Reallocate one physical set between accessory exercises
+                        // as a single candidate, even if a temporary drop/add alone
+                        // would score worse than the incumbent.
+                        for (receiverIndex in day.items.indices) {
+                            if (receiverIndex == index) continue
+                            val receiver = day.items[receiverIndex]
+                            if (isProtected(receiver) || receiver.setCount >= 4) continue
+                            if (item.setCount == 1 && day.items.size <= 2) continue
+                            val movedSet = receiver.sets.last().copy(
+                                weightKg = null, observedRpe = null, sourceDate = "",
+                                loadStatus = "B_JOINT_REALLOCATED_SET_USER_REVIEW")
+                            val updatedItems = day.items.toMutableList()
+                            updatedItems[receiverIndex] = receiver.copy(
+                                setCount = receiver.setCount + 1, sets = receiver.sets + movedSet)
+                            if (item.setCount == 1) updatedItems.removeAt(index)
+                            else updatedItems[index] = item.copy(
+                                setCount = item.setCount - 1, sets = item.sets.dropLast(1))
+                            val next = node.sessions.toMutableList()
+                            next[dayIndex] = rebuilt(day, updatedItems)
+                            offer(next, node.changes,
+                                "TRANSFER_SET:" + day.session + ":" + key + "->" +
+                                    receiver.stableKey)
+                        }
                         fun modify(items: List<V22ExercisePlan>, action: String) {
                             val candidate = node.sessions.toMutableList()
                             candidate[dayIndex] = rebuilt(day, items)
