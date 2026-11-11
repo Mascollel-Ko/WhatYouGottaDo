@@ -106,7 +106,8 @@ internal object BJointExerciseSetOptimizer {
                 CanonicalStrengthExposureCapability.movementAnchor(key)?.name,
                 exercise != null && exercise.isActive && !exercise.needsReview &&
                     !exercise.isCustom && exercise.planningEligibility != "HISTORY_ONLY" &&
-                    key !in provisional)
+                    key !in provisional &&
+                    (primary[key]?.isNotEmpty() == true || directCore || sport.isNotEmpty()))
         }
         fun isProtected(item: V22ExercisePlan): Boolean =
             item.stableKey in mainKeys || item.role.contains("MAIN", true) ||
