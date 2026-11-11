@@ -751,8 +751,9 @@ private fun ProgramEditorScreen(
     if (showBReselectionLog) {
         val readable = personalizedDraft?.planningMetadataJson?.let { raw ->
             runCatching {
-                val logs = JSONObject(raw).optJSONArray("reselectionAudit")
-                if (logs == null) "이 프로그램에는 운동 재선정 로그가 없습니다."
+                val metadata = JSONObject(raw)
+                val logs = metadata.optJSONArray("reselectionAudit")
+                val selectionText = if (logs == null) "이 프로그램에는 운동 재선정 로그가 없습니다."
                 else (0 until logs.length()).joinToString("\n\n") { index ->
                     val row = logs.getJSONObject(index)
                     val changes = row.optJSONArray("changeDetails")
@@ -769,7 +770,22 @@ private fun ProgramEditorScreen(
                         "\n변경 ${row.optInt("changes")}개" +
                         "\n${details}"
                 }
-            }.getOrElse { "운동 재선정 로그를 읽을 수 없습니다. 메타데이터를 확인하세요." }
+                val joint = metadata.optJSONArray("jointExerciseSetAudit")
+                val jointText = if (joint == null) "이 프로그램에는 공동 최적화 기록이 없습니다."
+                else (0 until joint.length()).joinToString("\n\n") { index ->
+                    val row = joint.getJSONObject(index)
+                    val actions = row.optJSONArray("changes")
+                    val details = if (actions == null || actions.length() == 0) "운동/세트 변경 없음"
+                        else (0 until actions.length()).joinToString("\n") { action ->
+                            actions.getString(action)
+                        }
+                    "블록 ${row.optInt("block")} · ${row.optString("status")}" +
+                        "\n후보 평가 ${row.optInt("evaluatedCandidates")}개" +
+                        " · 점수 ${row.optDouble("baselineScore")} → ${row.optDouble("finalScore")}" +
+                        "\n${details}"
+                }
+                selectionText + "\n\n[운동·세트 공동 최적화]\n" + jointText
+            }.getOrElse { "운동 선택·세트 최적화 로그를 읽을 수 없습니다. 메타데이터를 확인하세요." }
         } ?: "운동 재선정 로그가 없습니다."
         AlertDialog(
             onDismissRequest = { showBReselectionLog = false },
