@@ -201,4 +201,37 @@ class BJointExerciseSetOptimizerTest {
         optimize()
         assertEquals(immutableBefore, baseline)
     }
+
+    @Test
+    fun provisionalStabilizerMetadataDoesNotFreezeReviewedPrimaryAccessory() {
+        // Real canonical inventory contains reviewed PRIMARY and provisional
+        // STABILIZER rows on the same exercise. Do not equate these statuses.
+        val trial = listOf(
+            session(1, "main_a" to 3, "acc_a" to 4),
+            session(2, "main_b" to 3),
+            session(3, "main_c" to 3),
+            session(4, "main_d" to 3)
+        )
+        val provisionalStabilizer = muscle("acc_a", "SHOULDER_STABILIZER").copy(
+            relationKey = "acc_a:provisional_stabilizer",
+            relationType = "STABILIZER",
+            coefficient = 0.0,
+            status = "PROVISIONAL_MECHANICS_V1"
+        )
+        val result = optimize(
+            input = trial,
+            muscleRelations = relations + provisionalStabilizer
+        )
+        assertTrue(result.status, result.changed)
+        val optimizedAccessory = result.sessions.flatMap(V22Session::items)
+            .single { it.stableKey == "acc_a" }
+        assertTrue("Reviewed accessory must remain eligible for volume optimization",
+            optimizedAccessory.setCount < 4)
+        main.forEach { key ->
+            assertEquals(
+                trial.flatMap(V22Session::items).single { it.stableKey == key },
+                result.sessions.flatMap(V22Session::items).single { it.stableKey == key }
+            )
+        }
+    }
 }
