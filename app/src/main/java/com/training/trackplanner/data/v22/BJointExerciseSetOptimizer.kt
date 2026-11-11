@@ -250,10 +250,10 @@ internal object BJointExerciseSetOptimizer {
             // Set volume, exercise setup, repeated local exposure and session
             // time are resource costs. Do not penalize 1-set exercises by fiat.
             val physicalSets = items.sumOf(V22ExercisePlan::setCount)
-            return utility - 0.012 * physicalSets - 0.014 * items.size -
+            return utility - 0.005 * physicalSets - 0.008 * items.size -
                 0.10 * duration / ((maxTime ?: 60) * plan.size) -
                 0.010 * newKeys.size - 0.0020 * adjacent -
-                0.045 * directionalImbalance
+                0.085 * directionalImbalance
         }
 
         val baseline = score(sessions)
@@ -349,10 +349,20 @@ internal object BJointExerciseSetOptimizer {
                             prescriptionAuthority = "B_JOINT_NEW_EXERCISE_REVIEW_REQUIRED",
                             plannedProgression = "B_JOINT_ADDITION_NO_INHERITED_LOAD_OR_REPS"
                         )
-                        val candidate = node.sessions.toMutableList()
-                        candidate[dayIndex] = rebuilt(day, day.items + item)
-                        offer(candidate, node.changes,
-                            "INSERT:" + day.session + ":" + addition.stableKey)
+                        // Search both a single-exposure probe and a concentrated
+                        // two-set option. Otherwise a good two-set replacement can
+                        // be invisible because its intermediate 1-set candidate loses.
+                        for (insertSets in 1..2) {
+                            val chosen = item.copy(
+                                setCount = insertSets,
+                                sets = List(insertSets) { item.sets.single().copy() }
+                            )
+                            val candidate = node.sessions.toMutableList()
+                            candidate[dayIndex] = rebuilt(day, day.items + chosen)
+                            offer(candidate, node.changes,
+                                "INSERT:" + day.session + ":" + addition.stableKey +
+                                    ":" + insertSets)
+                        }
                     }
                 }
                 for (dayIndex in node.sessions.indices) {
