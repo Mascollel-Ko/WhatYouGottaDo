@@ -86,6 +86,7 @@ internal data class RestoreWorkoutGraph(
                 row.setConfirmed,
                 row.reps,
                 row.weightKg,
+                row.secondaryWeightKg,
                 row.seconds,
                 row.rpe,
                 row.setManualWeight,
@@ -399,6 +400,7 @@ internal fun WorkoutEntryWithSets.toRestoreGraph(): RestoreWorkoutGraph = Restor
             entryFirstConfirmedAt = entry.firstConfirmedAt,
             entryPerformedAt = entry.performedAt,
             setManualWeight = set.manualWeight,
+            secondaryWeightKg = set.secondaryWeightKg,
             setRestSecondsOverride = set.restSecondsOverride,
             setLoadState = set.loadState,
             targetRpeMin = set.targetRpeMin

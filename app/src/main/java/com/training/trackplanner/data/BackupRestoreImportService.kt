@@ -326,6 +326,7 @@ internal class BackupRestoreImportService(
                             setIndex = row.setIndex,
                             reps = row.reps,
                             weightKg = row.weightKg,
+                            secondaryWeightKg = row.secondaryWeightKg,
                             seconds = row.seconds,
                             confirmed = row.setConfirmed,
                             manualWeight = row.setManualWeight ?: (row.weightKg > 0.0),
@@ -1016,6 +1017,7 @@ private fun List<WorkoutSet>.matchesRestoreRows(rows: List<RestoreSetRow>): Bool
         set.confirmed == row.setConfirmed &&
             set.reps == row.reps &&
             kotlin.math.abs(set.weightKg - row.weightKg) < 0.001 &&
+            set.secondaryWeightKg == row.secondaryWeightKg &&
             set.seconds == row.seconds &&
             set.rpe == row.rpe &&
             (row.setManualWeight == null || set.manualWeight == row.setManualWeight) &&

@@ -285,7 +285,7 @@ class CloudBackupStateTest {
             .addMigrations(MIGRATION_32_33, TrainingDatabase.MIGRATION_33_34, TrainingDatabase.MIGRATION_34_35,
                 TrainingDatabase.MIGRATION_35_36, TrainingDatabase.MIGRATION_36_37,
                 TrainingDatabase.MIGRATION_37_38, TrainingDatabase.MIGRATION_38_39,
-                TrainingDatabase.MIGRATION_39_40).build()
+                TrainingDatabase.MIGRATION_39_40, TrainingDatabase.MIGRATION_40_41).build()
         try {
             val state = state(db)
             assertEquals(before, snapshot(db.openHelper.writableDatabase))

@@ -178,6 +178,7 @@ data class RestoreSetRow(
     val entryFirstConfirmedAt: Long? = null,
     val entryPerformedAt: Long? = null,
     val setManualWeight: Boolean? = null,
+    val secondaryWeightKg: Double? = null,
     val setRestSecondsOverride: Int? = null,
     val setLoadState: ProgramLoadState? = null,
     val targetRpeMin: Double? = null
@@ -277,6 +278,7 @@ object RecordCsvBackupRestore {
         "set_load_state",
         "reps",
         "weight_kg",
+        "secondary_weight_kg",
         "seconds",
         "sleep_hours",
         "body_weight_kg",
@@ -849,6 +851,7 @@ object RecordCsvBackupRestore {
                                 "target_rpe_min" to set.targetRpeMin?.formatNumber().orEmpty(),
                                 "reps" to set.reps.toString(),
                                 "weight_kg" to set.weightKg.formatNumber(),
+                                "secondary_weight_kg" to set.secondaryWeightKg?.formatNumber().orEmpty(),
                                 "seconds" to set.seconds.toString(),
                                 "stable_key" to exercisesById[entry.exerciseStableKey]?.stableKey.orEmpty()
                             )
@@ -1480,6 +1483,7 @@ object RecordCsvBackupRestore {
                         setConfirmed = setConfirmed,
                         reps = row.safeInt(index, "reps") ?: 0,
                         weightKg = rowWeight,
+                        secondaryWeightKg = row.safeDouble(index, "secondary_weight_kg")?.takeIf { it.isFinite() && it >= 0.0 },
                         seconds = row.safeInt(index, "seconds") ?: 0,
                         sleepHours = row.safeSleepHours(index),
                         bodyWeightKg = row.safeDouble(index, "body_weight_kg"),
