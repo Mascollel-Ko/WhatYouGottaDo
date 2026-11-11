@@ -87,11 +87,14 @@ class BJointExerciseSetOptimizerTest {
     )
 
     @Test
-    fun fourDayOneSetAccessoriesCanEarnAdditionalSetsWithinSixtyMinutes() {
+    fun fourDayExerciseSetSearchCanReduceRedundancyWithoutForcingMoreSets() {
         val result = optimize()
         assertTrue(result.status, result.changed)
-        assertTrue(result.changes.any { it.startsWith("ADD_SET:") })
         assertTrue(result.finalScore > result.baselineScore)
+        assertTrue(result.changes.any {
+            it.startsWith("DROP_REDUNDANT:") || it.startsWith("TRANSFER_SET:") ||
+                it.startsWith("REPLACE:")
+        })
         assertEquals(listOf(1, 2, 3, 4), result.sessions.map(V22Session::session))
         assertTrue(result.sessions.all { it.items.isNotEmpty() })
         assertTrue(result.sessions.all {
@@ -137,11 +140,65 @@ class BJointExerciseSetOptimizerTest {
             day.items.map(V22ExercisePlan::stableKey).distinct().size == day.items.size
         })
         assertFalse(result.sessions.any { it.items.isEmpty() })
-        assertEquals(zeroBudgetBaseline.flatMap(V22Session::items).map { it.stableKey }.toSet(),
-            result.sessions.flatMap(V22Session::items).map { it.stableKey }.toSet())
+        // No time budget does not force preservation of needless accessories;
+        // it only prohibits worsening the schedule or removing explicit mains.
+        main.forEach { key ->
+            assertTrue(result.sessions.any { day -> day.items.any { it.stableKey == key } })
+        }
         result.sessions.forEachIndexed { index, day ->
             assertTrue(BBalancedDayPlacementPlanner.estimateMinutes(day, exercises) <=
                 BBalancedDayPlacementPlanner.estimateMinutes(zeroBudgetBaseline[index], exercises))
         }
+    }
+
+    @Test
+    fun strengthCapableOneSetAccessoryIsNotAutomaticallyLockedAsMain() {
+        val overhead = "ex_32219f7a" // registered strength capability, not an explicit main
+        val candidate = exercise(overhead).copy(movementPattern = "VERTICAL_PUSH")
+        val trial = baseline.mapIndexed { index, day ->
+            if (index == 0) day.copy(items = day.items + item(overhead, 1))
+            else day
+        }
+        val augmented = exercises + (overhead to candidate)
+        val reviewed = relations + muscle(overhead, "CORE_A")
+        val result = BJointExerciseSetOptimizer.optimize(
+            sessions = trial,
+            goalImportance = BBalancedGoalImportance(5, 1, 3, 5),
+            blockGoal = BBlockGoal.BALANCED,
+            autoFocus = BBalancedGoal.SPORT_SUPPORT,
+            sessionMinutes = 60,
+            exercises = augmented,
+            muscleRelations = reviewed,
+            coreCatalog = CanonicalCoreCatalog.EMPTY,
+            badmintonCatalog = CanonicalBadmintonObjectiveCatalog.EMPTY,
+            taskCatalog = BBalancedTaskCatalog.EMPTY,
+            mainKeys = main + overhead
+        )
+        assertTrue(result.status, result.changed)
+        assertFalse(result.sessions.flatMap(V22Session::items).any { it.stableKey == overhead })
+        main.forEach { key ->
+            assertTrue(result.sessions.flatMap(V22Session::items).any { it.stableKey == key })
+        }
+    }
+
+    @Test
+    fun unsupportedEquipmentIsNotInferredFromHighCoverageValue() {
+        val inaccessible = "special_equipment_unique"
+        val available = exercises + (inaccessible to exercise(inaccessible).copy(
+            equipment = "SPECIAL_EQUIPMENT_NOT_OWNED", movementPattern = "HORIZONTAL_PULL"))
+        val reviewed = relations + muscle(inaccessible, "UNIQUE_BACK")
+        val result = optimize(available = available, muscleRelations = reviewed)
+        assertFalse(result.sessions.flatMap(V22Session::items).any {
+            it.stableKey == inaccessible
+        })
+    }
+
+    @Test
+    fun candidateSearchDoesNotMutateSourceInput() {
+        val immutableBefore = baseline.map { day ->
+            day.copy(items = day.items.map { it.copy(sets = it.sets.toList()) })
+        }
+        optimize()
+        assertEquals(immutableBefore, baseline)
     }
 }
