@@ -134,10 +134,13 @@ internal object BJointExerciseSetOptimizer {
         val mustKeepMuscles = initialKeys.flatMap { facets(it).primary }.toSet()
         val mustKeepCore = initialKeys.flatMap { facets(it).core }.toSet()
         val mustKeepSport = initialKeys.flatMap { facets(it).badminton.keys }.toSet()
-        val mainAnchors = sessions.flatMap(V22Session::items).filter { item ->
-            CanonicalStrengthExposureCapability.strengthPossible(item.stableKey) &&
-                item.sets.any { (it.reps ?: 0) in 1..6 }
-        }.mapNotNull { facets(it.stableKey).anchor }.distinct()
+        // A capability alone does not establish a primary strength objective.
+        // Plan-level anchor priorities come from preserved primary prescriptions.
+        val mainAnchors = originalMain.mapNotNull { (_, item) ->
+            if (CanonicalStrengthExposureCapability.strengthPossible(item.stableKey) &&
+                item.sets.any { (it.reps ?: 0) in 1..6 }) facets(item.stableKey).anchor
+            else null
+        }.distinct()
         val originalTimes = sessions.map { BBalancedDayPlacementPlanner.estimateMinutes(it, exercises) }
         val maxTime = sessionMinutes?.takeIf { it > 0 }
         val weights = BBalancedGoal.entries.associateWith { (goalImportance.value(it) ?: 3).toDouble() }
@@ -236,11 +239,11 @@ internal object BJointExerciseSetOptimizer {
             // never automatically forbidden by a pull deficit.
             val pushSets = items.sumOf { item ->
                 if (exercises[item.stableKey]?.movementPattern.orEmpty().uppercase()
-                        .contains("PUSH")) item.setCount else 0
+                        .let { "PUSH" in it || "PRESS" in it }) item.setCount else 0
             }
             val pullSets = items.sumOf { item ->
                 if (exercises[item.stableKey]?.movementPattern.orEmpty().uppercase()
-                        .contains("PULL")) item.setCount else 0
+                        .let { "PULL" in it || "ROW" in it }) item.setCount else 0
             }
             val directionalImbalance = if (pushSets + pullSets == 0) 0.0 else
                 abs(pushSets - pullSets).toDouble() / (pushSets + pullSets)
