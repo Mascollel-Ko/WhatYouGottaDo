@@ -218,15 +218,24 @@ class BJointExerciseSetOptimizerTest {
             coefficient = 0.0,
             status = "PROVISIONAL_MECHANICS_V1"
         )
+        val withoutProvisional = optimize(
+            input = trial,
+            muscleRelations = relations
+        )
         val result = optimize(
             input = trial,
             muscleRelations = relations + provisionalStabilizer
         )
         assertTrue(result.status, result.changed)
-        val optimizedAccessory = result.sessions.flatMap(V22Session::items)
-            .single { it.stableKey == "acc_a" }
-        assertTrue("Reviewed accessory must remain eligible for volume optimization",
-            optimizedAccessory.setCount < 4)
+        // A provisional STABILIZER must neither grant new training credits nor
+        // prohibit a change to an otherwise reviewed PRIMARY exercise. The
+        // optimizer may reduce sets OR drop a redundant accessory completely.
+        assertEquals(withoutProvisional.sessions, result.sessions)
+        assertEquals(withoutProvisional.baselineScore, result.baselineScore, 1e-9)
+        assertEquals(withoutProvisional.finalScore, result.finalScore, 1e-9)
+        assertTrue("Reviewed accessory must be eligible for change",
+            result.sessions.flatMap(V22Session::items)
+                .firstOrNull { it.stableKey == "acc_a" }?.setCount != 4)
         main.forEach { key ->
             assertEquals(
                 trial.flatMap(V22Session::items).single { it.stableKey == key },
