@@ -2023,7 +2023,7 @@ class TrainingRepository internal constructor(
         }
 
     private companion object {
-        const val EXERCISE_SEED_VERSION = 10
+        const val EXERCISE_SEED_VERSION = 11
         const val PROGRAM_SEED_VERSION = 1
         const val PROGRAM_STABLE_KEY_REPAIR_VERSION = 1
         const val META_EXERCISE_SEED_VERSION = "exercise_seed_version"
