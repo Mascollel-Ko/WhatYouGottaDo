@@ -81,9 +81,9 @@ internal object BJointExerciseSetOptimizer {
                 it.relationValue.isNotBlank() && !it.status.startsWith("PROVISIONAL", true)
         }.groupBy(CanonicalMetadataRelation::exerciseStableKey)
             .mapValues { (_, rows) -> rows.mapTo(linkedSetOf(), CanonicalMetadataRelation::relationValue) }
-        val provisional = muscleRelations.asSequence().filter {
-            it.domain == CanonicalRelationDomain.MUSCLE && it.status.startsWith("PROVISIONAL", true)
-        }.mapTo(hashSetOf(), CanonicalMetadataRelation::exerciseStableKey)
+        // Only validated PRIMARY relations contribute to muscle utility. A
+        // provisional stabilizer/secondary relation does NOT invalidate the
+        // exercise's independently reviewed primary-muscle evidence.
         val cache = hashMapOf<String, Facets>()
         fun facets(key: String): Facets = cache.getOrPut(key) {
             val exercise = exercises[key]
@@ -106,7 +106,6 @@ internal object BJointExerciseSetOptimizer {
                 CanonicalStrengthExposureCapability.movementAnchor(key)?.name,
                 exercise != null && exercise.isActive && !exercise.needsReview &&
                     !exercise.isCustom && exercise.planningEligibility != "HISTORY_ONLY" &&
-                    key !in provisional &&
                     (primary[key]?.isNotEmpty() == true || directCore || sport.isNotEmpty()))
         }
         // MAIN_STRENGTH_SLOT is a capability, not a user lock. Protect explicit mains
