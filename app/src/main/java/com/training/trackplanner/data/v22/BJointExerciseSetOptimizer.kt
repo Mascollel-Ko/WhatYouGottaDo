@@ -26,8 +26,8 @@ import kotlin.math.min
 internal object BJointExerciseSetOptimizer {
     private const val BEAM_WIDTH = 6
     private const val MAX_ROUNDS = 14
-    private const val MAX_EVALUATIONS = 2800
-    private const val MIN_GAIN = 0.002
+    private const val MAX_EVALUATIONS = 4400
+    private const val MIN_GAIN = 0.001
     private const val EPS = 1e-8
 
     data class Result(
@@ -109,9 +109,22 @@ internal object BJointExerciseSetOptimizer {
                     key !in provisional &&
                     (primary[key]?.isNotEmpty() == true || directCore || sport.isNotEmpty()))
         }
+        // MAIN_STRENGTH_SLOT is a capability, not a user lock. Protect explicit mains
+        // and the dominant prescribed strength anchor, not every capable accessory.
+        val explicitMains = sessions.flatMap(V22Session::items).filter {
+            it.role.contains("MAIN", true)
+        }.mapTo(hashSetOf(), V22ExercisePlan::stableKey)
+        val anchorMains = sessions.flatMap(V22Session::items).filter { item ->
+            item.stableKey in mainKeys && item.setCount >= 2 &&
+                item.sets.any { (it.reps ?: 0) in 1..6 } &&
+                CanonicalStrengthExposureCapability.movementAnchor(item.stableKey) != null
+        }.groupBy { CanonicalStrengthExposureCapability.movementAnchor(it.stableKey) }
+            .values.mapNotNull { group ->
+                group.maxWithOrNull(compareBy<V22ExercisePlan> { it.setCount }
+                    .thenByDescending { it.stableKey })?.stableKey
+            }.toSet()
         fun isProtected(item: V22ExercisePlan): Boolean =
-            item.stableKey in mainKeys || item.role.contains("MAIN", true) ||
-                CanonicalStrengthExposureCapability.strengthPossible(item.stableKey) ||
+            item.stableKey in explicitMains || item.stableKey in anchorMains ||
                 !facets(item.stableKey).reviewed
 
         val originalMain = sessions.flatMap { day ->
@@ -121,7 +134,10 @@ internal object BJointExerciseSetOptimizer {
         val mustKeepMuscles = initialKeys.flatMap { facets(it).primary }.toSet()
         val mustKeepCore = initialKeys.flatMap { facets(it).core }.toSet()
         val mustKeepSport = initialKeys.flatMap { facets(it).badminton.keys }.toSet()
-        val mainAnchors = originalMain.mapNotNull { (_, item) -> facets(item.stableKey).anchor }.distinct()
+        val mainAnchors = sessions.flatMap(V22Session::items).filter { item ->
+            CanonicalStrengthExposureCapability.strengthPossible(item.stableKey) &&
+                item.sets.any { (it.reps ?: 0) in 1..6 }
+        }.mapNotNull { facets(it.stableKey).anchor }.distinct()
         val originalTimes = sessions.map { BBalancedDayPlacementPlanner.estimateMinutes(it, exercises) }
         val maxTime = sessionMinutes?.takeIf { it > 0 }
         val weights = BBalancedGoal.entries.associateWith { (goalImportance.value(it) ?: 3).toDouble() }
@@ -143,9 +159,6 @@ internal object BJointExerciseSetOptimizer {
                 day.items.filter(::isProtected).map { item -> day.session to item }
             } != originalMain) return false
             val keys = plan.flatMap(V22Session::items).mapTo(linkedSetOf(), V22ExercisePlan::stableKey)
-            if (!keys.flatMap { facets(it).primary }.containsAll(mustKeepMuscles) ||
-                !keys.flatMap { facets(it).core }.containsAll(mustKeepCore) ||
-                !keys.flatMap { facets(it).badminton.keys }.containsAll(mustKeepSport)) return false
             for (index in plan.indices) {
                 val after = BBalancedDayPlacementPlanner.estimateMinutes(plan[index], exercises)
                 val before = originalTimes[index]
@@ -165,9 +178,9 @@ internal object BJointExerciseSetOptimizer {
             val items = plan.flatMap(V22Session::items)
             for (item in items) {
                 val facet = facets(item.stableKey)
-                if (isProtected(item) && facet.anchor != null &&
-                    (item.stableKey in mainKeys || item.role.contains("MAIN", true) ||
-                        item.sets.any { (it.reps ?: 0) in 1..6 })) {
+                if (facet.anchor != null &&
+                    item.sets.any { (it.reps ?: 0) in 1..6 } &&
+                    CanonicalStrengthExposureCapability.strengthPossible(item.stableKey)) {
                     mainSets[facet.anchor] = (mainSets[facet.anchor] ?: 0) + item.setCount
                 }
                 facet.primary.forEach { muscles[it] = (muscles[it] ?: 0.0) + item.setCount }
@@ -176,18 +189,25 @@ internal object BJointExerciseSetOptimizer {
                     sport[objective] = (sport[objective] ?: 0.0) + item.setCount * coefficient
                 }
             }
+            // The first supported exposure is more valuable than stacking another
+            // nearly identical one. Saturation scales are planning heuristics.
             fun diminishing(value: Double, scale: Double) = 1.0 - exp(-value / scale)
             val strengthUtility = if (mainAnchors.isEmpty()) 0.0 else mainAnchors.map {
-                min(1.0, (mainSets[it] ?: 0) / 2.0)
+                diminishing((mainSets[it] ?: 0).toDouble(), 1.75)
             }.average()
-            val hypertrophyUtility = if (mustKeepMuscles.isEmpty()) 0.0 else mustKeepMuscles.map {
-                diminishing(muscles[it] ?: 0.0, 4.0)
+            val hypertrophyBase = if (mustKeepMuscles.isEmpty()) 0.0 else mustKeepMuscles.map {
+                diminishing(muscles[it] ?: 0.0, 1.6)
             }.average()
+            val additionalMuscles = muscles.keys - mustKeepMuscles
+            val novelMuscleCoverage = additionalMuscles.sumOf {
+                diminishing(muscles[it] ?: 0.0, 1.6)
+            } / max(5, mustKeepMuscles.size)
+            val hypertrophyUtility = hypertrophyBase + 0.30 * novelMuscleCoverage
             val coreUtility = if (mustKeepCore.isEmpty()) 0.0 else mustKeepCore.map {
-                diminishing(core[it] ?: 0.0, 2.5)
+                diminishing(core[it] ?: 0.0, 1.4)
             }.average()
             val sportUtility = if (mustKeepSport.isEmpty()) 0.0 else mustKeepSport.map {
-                diminishing(sport[it] ?: 0.0, 2.5)
+                diminishing(sport[it] ?: 0.0, 1.5)
             }.average()
             val utility = (
                 weights.getValue(BBalancedGoal.STRENGTH) * strengthUtility +
@@ -196,8 +216,6 @@ internal object BJointExerciseSetOptimizer {
                 weights.getValue(BBalancedGoal.SPORT_SUPPORT) * sportUtility
             ) / weightSum
             val duration = plan.sumOf { BBalancedDayPlacementPlanner.estimateMinutes(it, exercises) }
-            val exerciseCount = items.map(V22ExercisePlan::stableKey).distinct().size
-            val oneSetCount = items.count { it.setCount == 1 && !isProtected(it) }
             val newKeys = items.map(V22ExercisePlan::stableKey).toSet() - initialKeys
             val adjacent = plan.indices.sumOf { i ->
                 val firstDay = plan[i]
@@ -214,9 +232,25 @@ internal object BJointExerciseSetOptimizer {
                     first.entries.sumOf { (muscle, count) -> min(count, second[muscle] ?: 0) }
                 }
             }
-            return utility - 0.038 * duration / ((maxTime ?: 60) * plan.size) -
-                0.0045 * exerciseCount - 0.0025 * oneSetCount -
-                0.012 * newKeys.size - 0.0009 * adjacent
+            // Complementary movement-pattern balance is soft: one set of push is
+            // never automatically forbidden by a pull deficit.
+            val pushSets = items.sumOf { item ->
+                if (exercises[item.stableKey]?.movementPattern.orEmpty().uppercase()
+                        .contains("PUSH")) item.setCount else 0
+            }
+            val pullSets = items.sumOf { item ->
+                if (exercises[item.stableKey]?.movementPattern.orEmpty().uppercase()
+                        .contains("PULL")) item.setCount else 0
+            }
+            val directionalImbalance = if (pushSets + pullSets == 0) 0.0 else
+                abs(pushSets - pullSets).toDouble() / (pushSets + pullSets)
+            // Set volume, exercise setup, repeated local exposure and session
+            // time are resource costs. Do not penalize 1-set exercises by fiat.
+            val physicalSets = items.sumOf(V22ExercisePlan::setCount)
+            return utility - 0.012 * physicalSets - 0.014 * items.size -
+                0.10 * duration / ((maxTime ?: 60) * plan.size) -
+                0.010 * newKeys.size - 0.0020 * adjacent -
+                0.045 * directionalImbalance
         }
 
         val baseline = score(sessions)
