@@ -1,0 +1,49 @@
+name: B-Coach Gate A Shadow Tests
+
+on:
+  push:
+    branches:
+      - test/b-coach-squat-shadow-gate-a-20261112
+
+permissions:
+  contents: read
+
+jobs:
+  gate-a:
+    name: Compile and test squat posterior read-only adapter
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Check out Gate A experimental branch
+        uses: actions/checkout@v4
+
+      - name: Configure JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Configure Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run focused Gradle unit tests (also compiles Android sources)
+        env:
+          GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :app:testDebugUnitTest \
+            --tests 'com.training.trackplanner.data.v22.BCoachSquatShadowEvidenceTest' \
+            --stacktrace \
+            -Pgoogle.webClientId="$GOOGLE_WEB_CLIENT_ID" \
+            -Psupabase.publishableKey="$SUPABASE_PUBLISHABLE_KEY"
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: b-coach-gate-a-unit-tests
+          path: |
+            app/build/test-results/testDebugUnitTest/
+            app/build/reports/tests/testDebugUnitTest/
+          if-no-files-found: warn
