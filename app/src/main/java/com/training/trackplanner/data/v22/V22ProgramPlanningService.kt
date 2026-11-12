@@ -15,6 +15,7 @@ import com.training.trackplanner.data.ProgramSkeletonItem
 import com.training.trackplanner.data.ProgramSkeletonRequest
 import com.training.trackplanner.data.ProgramTrainingSlot
 import com.training.trackplanner.data.WorkoutDao
+import com.training.trackplanner.data.ProgramProgressionDao
 import com.training.trackplanner.data.personalized.BBalancedTaskCatalog
 
 internal class V22ProgramPlanningService(
@@ -22,13 +23,33 @@ internal class V22ProgramPlanningService(
     private val workoutDao: WorkoutDao,
     private val canonicalMetadataRepository: CanonicalExerciseMetadataRepository,
     private val bBalancedTaskCatalog: BBalancedTaskCatalog,
-    private val userOverrideDao: ExerciseMetadataUserOverrideDao? = null
+    private val userOverrideDao: ExerciseMetadataUserOverrideDao? = null,
+    private val progressionDao: ProgramProgressionDao? = null
 ) {
     suspend fun generate(request: V22GenerationRequest): V22GeneratedProgram {
         val effectiveRequest = if (request.mode == V22Mode.B && request.blockProgram == null) {
             request.copy(weeks = 12) // preserve historical B12 callers
         } else request
-        val history = V22HistoryInput.fromWorkoutHistory(workoutDao.entriesWithSetsUntil(effectiveRequest.asOf.toString()))
+        val recordedWorkouts = workoutDao.entriesWithSetsUntil(effectiveRequest.asOf.toString())
+        val history = V22HistoryInput.fromWorkoutHistory(recordedWorkouts)
+        val linkedEvidence = effectiveRequest.sourceProgramStableKey?.let { source ->
+            progressionDao?.let { dao ->
+                BCoachLinkedExecutionReader.read(
+                    sourceProgramStableKey = source,
+                    asOf = effectiveRequest.asOf,
+                    workouts = recordedWorkouts,
+                    applications = dao.applications(),
+                    links = dao.links(),
+                    prescriptions = dao.prescriptions()
+                )
+            }
+        }
+        val coachRequest = if (linkedEvidence == null) effectiveRequest
+            else effectiveRequest.copy(
+                linkedDuePlannedSets = linkedEvidence.duePlannedSets,
+                linkedConfirmedSets = linkedEvidence.confirmedSets,
+                linkedEvidenceApplicationId = linkedEvidence.applicationId
+            )
         val exercises = exerciseDao.allExercises().associateBy(Exercise::stableKey)
         if (effectiveRequest.mode != V22Mode.B) {
             val plan = V22PythonParityEngine.build(history, effectiveRequest)
@@ -36,7 +57,7 @@ internal class V22ProgramPlanningService(
         }
         val balanced = BBalanced12WeekEngine.build(
             rows = history,
-            request = effectiveRequest,
+            request = coachRequest,
             exercises = exercises,
             muscleRelations = UserMuscleRoleCodec.effectiveRelations(
                 canonicalMetadataRepository.muscleRelations(), userOverrideDao?.all().orEmpty(), exercises.values.toList()
