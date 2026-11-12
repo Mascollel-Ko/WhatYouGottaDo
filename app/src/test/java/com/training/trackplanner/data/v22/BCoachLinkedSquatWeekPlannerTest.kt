@@ -5,6 +5,7 @@ import com.training.trackplanner.data.ProgramLoadState
 import com.training.trackplanner.data.ProgramPrescriptionSet
 import com.training.trackplanner.data.ProgramWorkoutLink
 import com.training.trackplanner.data.ProgressionBase
+import com.training.trackplanner.data.ProgressionLinkMode
 import com.training.trackplanner.data.ProgressionMode
 import com.training.trackplanner.data.ProgressionRole
 import com.training.trackplanner.data.ProgressionRule
@@ -102,11 +103,15 @@ class BCoachLinkedSquatWeekPlannerTest {
         workouts: List<WorkoutEntryWithSets> = listOf(source, target),
         links: List<ProgramWorkoutLink> = listOf(link(1,1,1), link(2,2,2)),
         prescriptions: List<ProgramPrescriptionSet> = targets(source) + targets(target),
+        linkModesByLogicalItemId: Map<String, ProgressionLinkMode> =
+            mapOf("item-1" to ProgressionLinkMode.AUTO, "item-2" to ProgressionLinkMode.AUTO,
+                "item-3" to ProgressionLinkMode.AUTO),
         anchor: BCoachSquatAnchorSession? = this.anchor,
         ranking: BCoachSquatCurveProgressionReport? = ranking()
     ) = BCoachLinkedSquatWeekPlanner.inspect(
         asOf = today, targetEntryId = 2L, workouts = workouts,
         applications = listOf(application), links = links, prescriptions = prescriptions,
+        linkModesByLogicalItemId = linkModesByLogicalItemId,
         anchor = anchor, ranking = ranking
     )
 
@@ -161,6 +166,16 @@ class BCoachLinkedSquatWeekPlannerTest {
             prescriptions=targets(source)+targets(duplicate)+targets(target))
         assertEquals("AMBIGUOUS_LINKED_PREVIOUS_WEEK",proposal.status)
         assertFalse(proposal.canApply)
+    }
+
+    @Test fun `manual separate session must not be joined by B review fallback`() {
+        val prior = link(1,1,1,track="week-one").copy(basePolicy=ProgressionBase.REVIEW)
+        val next = link(2,2,2,track="week-two").copy(basePolicy=ProgressionBase.REVIEW)
+        val result=inspect(links=listOf(prior,next),
+            linkModesByLogicalItemId=mapOf(
+                "item-1" to ProgressionLinkMode.SEPARATE,
+                "item-2" to ProgressionLinkMode.AUTO))
+        assertEquals("NO_LINKED_PREVIOUS_WEEK",result.status)
     }
 
     @Test fun `unconfirmed or missed previous sets cannot cause progression`() {
