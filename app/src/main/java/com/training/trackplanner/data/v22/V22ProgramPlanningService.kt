@@ -76,7 +76,17 @@ internal class V22ProgramPlanningService(
         )
         val comparator = runCatching { V22PythonParityEngine.build(history, effectiveRequest) }.getOrNull()
             ?.takeIf { plan -> plan.weeks.firstOrNull()?.sessions?.any { it.items.isNotEmpty() } == true }
-        val skeleton = balanced.toSkeleton(effectiveRequest, exercises)
+        val baseSkeleton = balanced.toSkeleton(effectiveRequest, exercises)
+        // Preserve the actual plate size the user entered at generation time. The profile
+        // can change later; an applied program must never silently pick up a different grid.
+        val skeleton = effectiveRequest.bShadowPlateOneSideKg
+            ?.takeIf { it.isFinite() && it in 0.1..25.0 }
+            ?.let { plate ->
+                val metadata = org.json.JSONObject(baseSkeleton.planningMetadataJson ?: "{}")
+                metadata.put("bCoachProgressionEquipmentSchema", "linked-g-1")
+                metadata.put("bCoachPlateOneSideKg", plate)
+                baseSkeleton.copy(planningMetadataJson = metadata.toString())
+            } ?: baseSkeleton
         // Gate D is strictly a side-channel. No exception, missing posterior, or score may
         // modify or prevent the existing B program from being generated and saved as before.
         val shadow = effectiveRequest.bShadowPlateOneSideKg
