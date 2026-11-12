@@ -33,6 +33,7 @@ internal sealed interface BCoachSquatEvidenceResult {
         STALE_OR_MISSING_MODEL,
         FUTURE_POSTERIOR_LEAKAGE,
         UNPROCESSED_MODEL_EVENT,
+        MODEL_BEHIND_CONFIRMED_SETS,
         UNREADABLE_POSTERIOR,
         UNREADABLE_CURVE
     }
@@ -122,6 +123,16 @@ internal object BCoachSquatEvidenceAdapter {
             ?: return BCoachSquatEvidenceResult.Unavailable(
                 BCoachSquatEvidenceResult.Reason.UNREADABLE_POSTERIOR
             )
+        val hasNewConfirmedSquat = records.any { workout ->
+            workout.entry.exerciseStableKey == key &&
+                runCatching { LocalDate.parse(workout.entry.date) > posteriorDate &&
+                    LocalDate.parse(workout.entry.date) <= asOf }.getOrDefault(false) &&
+                workout.sets.any { it.confirmed && it.loadState == ProgramLoadState.EXPLICIT_LOAD &&
+                    it.weightKg.isFinite() && it.weightKg > 0.0 && it.reps in 1..20 }
+        }
+        if (hasNewConfirmedSquat) return BCoachSquatEvidenceResult.Unavailable(
+            BCoachSquatEvidenceResult.Reason.MODEL_BEHIND_CONFIRMED_SETS
+        )
         val storedCurve = exerciseCurve ?: sharedCurve
         val personalCurve = if (storedCurve == null) null else {
             if (storedCurve.curveVersion != RepetitionCurveRegistry.CURVE_VERSION)
@@ -159,8 +170,8 @@ internal object BCoachSquatEvidenceAdapter {
                             setIndex = set.setIndex,
                             loadKg = set.weightKg,
                             repetitions = set.reps,
-                            observedRpe = (set.rpe ?: workout.entry.rpe)
-                                ?.takeIf { it.isFinite() && it in 6.0..10.0 }
+                            observedRpe = set.rpe?.takeIf { it.isFinite() && it in 6.0..10.0 }
+                                ?: workout.entry.rpe?.takeIf { it.isFinite() && it in 6.0..10.0 }
                         )
                     }.toList()
                 if (sets.isEmpty()) return@mapNotNull null
