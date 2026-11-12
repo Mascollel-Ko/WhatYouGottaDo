@@ -84,7 +84,10 @@ internal object BCoachJointBlockOptimizer {
         val changes: List<String>
     )
 
-    fun evidence(rows: List<V22HistoryRow>, asOf: LocalDate): Evidence {
+    fun evidence(
+        rows: List<V22HistoryRow>, asOf: LocalDate,
+        linkedDuePlannedSets: Int? = null, linkedConfirmedSets: Int? = null
+    ): Evidence {
         val recent28 = rows.filter { !it.date.isAfter(asOf) && !it.date.isBefore(asOf.minusDays(27)) }
         val recent56 = rows.filter { !it.date.isAfter(asOf) && !it.date.isBefore(asOf.minusDays(55)) }
         // Rows represent recorded sets. There is no guaranteed completed-plan link
@@ -100,6 +103,10 @@ internal object BCoachJointBlockOptimizer {
             }
         }
         val rated = recent28.mapNotNull(V22HistoryRow::rpe).filter { it in 1.0..10.0 }
+        val completion = if (linkedDuePlannedSets != null && linkedDuePlannedSets > 0 &&
+            linkedConfirmedSets != null && linkedConfirmedSets >= 0)
+            (linkedConfirmedSets.toDouble() / linkedDuePlannedSets).coerceIn(0.0, 1.0)
+            else null
         return Evidence(
             completedObservedSets28d = recent28.size,
             completedObservedSets56d = recent56.size,
@@ -108,8 +115,9 @@ internal object BCoachJointBlockOptimizer {
             relativeStrengthTrend = trends.takeIf { it.size >= 2 }?.average(),
             ratedSets28d = rated.size,
             meanObservedRpe28d = rated.takeIf { it.size >= 6 }?.average(),
-            plannedCompletionRate = null,
-            authority = "OBSERVED_WORKOUT_ROWS_ONLY_NO_PLAN_EXECUTION_LINK"
+            plannedCompletionRate = completion,
+            authority = if (completion != null) "LINKED_SAME_APPLICATION_CONFIRMED_SETS"
+                else "OBSERVED_WORKOUT_ROWS_ONLY_NO_PLAN_EXECUTION_LINK"
         )
     }
 
@@ -143,7 +151,8 @@ internal object BCoachJointBlockOptimizer {
         badmintonCatalog: CanonicalBadmintonObjectiveCatalog,
         capabilityKeys: Set<String>
     ): Result {
-        val observations = evidence(history, request.asOf)
+        val observations = evidence(history, request.asOf,
+            request.linkedDuePlannedSets, request.linkedConfirmedSets)
         fun unchanged(status: String) = Result(baseline, Strategy.MAINTAIN,
             observations, 0.0, 0.0, 0, emptyList(), emptyList(), status)
         if (baseline.size != request.days || baseline.isEmpty() ||
@@ -360,6 +369,7 @@ internal object BCoachJointBlockOptimizer {
             val baseCost = burden + 0.0012 * totalSets + 0.006 * itemCount +
                 0.012 * newKeys.size + 0.006 * removedKeys.size + uncertainty +
                 overtime * 0.08
+            val lowLinkedCompletion = observations.plannedCompletionRate?.let { it < 0.65 } == true
             val stressSignal = observations.meanObservedRpe28d?.let {
                 if (it >= 8.5 && observations.ratedSets28d >= 6) 1.0 else 0.0
             } ?: 0.0
@@ -373,8 +383,9 @@ internal object BCoachJointBlockOptimizer {
                 }
                 val volumeMismatch = abs(totalSets - referenceSets * targetRatio) / referenceSets
                 val prior = when (strategy) {
-                    Strategy.DEVELOP -> if ((observations.relativeStrengthTrend ?: 0.0) > 0.015) 0.012 else -0.005
-                    Strategy.MAINTAIN -> 0.006
+                    Strategy.DEVELOP -> if (lowLinkedCompletion) -0.020
+                        else if ((observations.relativeStrengthTrend ?: 0.0) > 0.015) 0.012 else -0.005
+                    Strategy.MAINTAIN -> if (lowLinkedCompletion) 0.015 else 0.006
                     Strategy.RECOVER -> if (stressSignal > 0.0) 0.015 else -0.05
                     Strategy.REDISTRIBUTE -> 0.005
                 }
