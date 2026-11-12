@@ -791,7 +791,7 @@ private fun ProgramEditorScreen(
                 }
                 appendLine()
                 appendLine("※ 위 질량은 마지막 확인 세트의 RPE→RIR 가정에 따른 비중으로, 미래 성공확률이나 수행능력 posterior 확률이 아닙니다.")
-                appendLine("※ HOLD는 최근 확인 140kg 같은 실제 관측 수준 유지이며, 기존 B 생성의 6회 처방과 별개입니다.")
+                appendLine("※ HOLD는 최근 확인 세트 수준 유지이며, 기존 B 생성 처방과 별개입니다.")
                 appendLine("[가중치·앵커RIR 민감도: 후보 선택]")
                 appendLine("실험계수 1=유지 중심, 2=발전 중심, 3=강도·급증 중심 (목표 RIR 1~3 가정)")
                 report.experiments.forEach { trial ->
