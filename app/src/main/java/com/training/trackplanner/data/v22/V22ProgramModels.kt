@@ -40,7 +40,11 @@ data class V22GenerationRequest(
     val bGoalImportance: BBalancedGoalImportance = BBalancedGoalImportance(),
     val bMaxTrainingDays: Int? = null, // explicit permission to expand B from three to four days
     /** Absent for old B12 callers; new B UI carries the precise block layout. */
-    val blockProgram: BBlockProgramDefinition? = null
+    val blockProgram: BBlockProgramDefinition? = null,
+    /** Null means evaluate all combinations; never infer user-supplied availability. */
+    val allowedWeekdays: Set<Int>? = null,
+    /** Explicit days are immutable when supplied. */
+    val fixedWeekdays: Set<Int>? = null
 )
 
 /**
@@ -54,7 +58,9 @@ internal fun newBBalancedGenerationRequest(
     sessionMinutes: Int?,
     allowFourthDay: Boolean,
     importance: BBalancedGoalImportance,
-    blockProgram: BBlockProgramDefinition = BBlockProgramDefinition()
+    blockProgram: BBlockProgramDefinition = BBlockProgramDefinition(),
+    allowedWeekdays: Set<Int>? = null,
+    fixedWeekdays: Set<Int>? = null
 ): V22GenerationRequest = V22GenerationRequest(
     name = name,
     weeks = blockProgram.trainingWeeks,
@@ -64,7 +70,9 @@ internal fun newBBalancedGenerationRequest(
     sessionMinutes = sessionMinutes,
     bMaxTrainingDays = if (days == 3 && allowFourthDay) 4 else null,
     bGoalImportance = importance,
-    blockProgram = blockProgram
+    blockProgram = blockProgram,
+    allowedWeekdays = allowedWeekdays,
+    fixedWeekdays = fixedWeekdays
 )
 
 data class V22HistoryRow(
