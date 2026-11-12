@@ -109,24 +109,14 @@ internal class BCoachLinkedSquatNextWeekService(
         if (sets.size != proposal.proposedSets || sets.isEmpty() ||
             sets.any { it.confirmed } || targets.size != sets.size
         ) return@withTransaction false
-        val proposedKg = proposal.proposedLoadKg ?: return@withTransaction false
-        val proposedReps = proposal.proposedReps ?: return@withTransaction false
+        val patch = BCoachLinkedSquatPlanPatch.build(proposal, sets, targets)
+            ?: return@withTransaction false
+        val proposedKg = checkNotNull(proposal.proposedLoadKg)
+        val proposedReps = checkNotNull(proposal.proposedReps)
         val originalKg = sets.first().weightKg
-        for (set in sets) {
-            val prescribed = targets.singleOrNull { it.plannedSetIndex == set.setIndex }
-                ?: return@withTransaction false
-            workoutDao.updateSet(set.copy(
-                reps = proposedReps,
-                weightKg = proposedKg,
-                loadState = ProgramLoadState.EXPLICIT_LOAD,
-                manualWeight = false
-            ))
-            dao.putPrescription(prescribed.copy(
-                plannedReps = proposedReps,
-                plannedKg = proposedKg,
-                plannedLoadState = ProgramLoadState.EXPLICIT_LOAD
-            ))
-        }
+        // All validation above this point; nothing written on a failed/edited target.
+        patch.nextSets.forEach { workoutDao.updateSet(it) }
+        patch.nextPrescriptions.forEach { dao.putPrescription(it) }
         val prior = workoutDao.setsForEntry(checkNotNull(proposal.sourceEntryId))
         val priorKg = prior.maxOfOrNull { it.weightKg }
         val priorRpe = prior.mapNotNull { it.rpe }.maxOrNull()
