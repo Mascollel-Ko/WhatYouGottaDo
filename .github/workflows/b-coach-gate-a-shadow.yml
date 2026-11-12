@@ -96,6 +96,66 @@ jobs:
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
 
+      # The perf variant uses the same CI debug signing certificate as the debug APK,
+      # but follows release R8 minification and is not debuggable.
+      - name: Assemble R8-optimized Gate D performance APK
+        env:
+          ANDROID_CI_KEYSTORE_PATH: ${{ runner.temp }}/whatyougottado-ci-debug.jks
+          ANDROID_CI_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_CI_KEYSTORE_PASSWORD }}
+          ANDROID_CI_KEY_ALIAS: ${{ secrets.ANDROID_CI_KEY_ALIAS }}
+          ANDROID_CI_KEY_PASSWORD: ${{ secrets.ANDROID_CI_KEY_PASSWORD }}
+          GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          ./gradlew :app:assemblePerf \
+            -Pgoogle.webClientId="$GOOGLE_WEB_CLIENT_ID" \
+            -Psupabase.publishableKey="$SUPABASE_PUBLISHABLE_KEY"
+
+      - name: Verify Gate D performance signing, package and non-debuggable status
+        run: |
+          set -euo pipefail
+          perf_apk="$(find app/build/outputs/apk/perf -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          debug_apk="$(find app/build/outputs/apk/debug -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          test -s "$perf_apk" && test -s "$debug_apk"
+          apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner -print | sort -V | tail -n 1)"
+          aapt="$(find "$ANDROID_HOME/build-tools" -type f -name aapt -print | sort -V | tail -n 1)"
+          test -x "$apksigner" && test -x "$aapt"
+          "$apksigner" verify --print-certs "$perf_apk" > "$RUNNER_TEMP/gate-d-perf-certs.txt"
+          "$apksigner" verify --print-certs "$debug_apk" > "$RUNNER_TEMP/gate-d-debug-certs.txt"
+          digest() {
+            grep -i -m1 'SHA-1 digest:' "$1" |
+              sed -En 's/.*SHA-1 digest:[[:space:]]*([0-9A-Fa-f:]+).*/\1/p' |
+              tr -d ':\r[:space:]' | tr '[:lower:]' '[:upper:]'
+          }
+          perf_digest="$(digest "$RUNNER_TEMP/gate-d-perf-certs.txt")"
+          debug_digest="$(digest "$RUNNER_TEMP/gate-d-debug-certs.txt")"
+          test -n "$perf_digest" && test "$perf_digest" = "$debug_digest" || {
+            echo "::error::Gate D performance/debug APK signatures differ"
+            exit 1
+          }
+          badging="$("$aapt" dump badging "$perf_apk")"
+          echo "$badging" | grep -q "^package: name='com.whatyougottado.app'" || {
+            echo "::error::Unexpected performance package name"
+            exit 1
+          }
+          if echo "$badging" | grep -q '^application-debuggable'; then
+            echo "::error::Performance APK must not be debuggable"
+            exit 1
+          fi
+          {
+            echo '## B-Coach Gate D Performance APK'
+            echo 'Optimized, not debuggable, same CI signature as Gate D debug APK.'
+            echo 'Experimental shadow comparison only; not a publishing artifact.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload optimized Gate D performance APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: b-coach-gate-d-ci-signed-performance-apk
+          path: app/build/outputs/apk/perf/*.apk
+          if-no-files-found: error
+
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v4
