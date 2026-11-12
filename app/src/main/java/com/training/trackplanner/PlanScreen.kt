@@ -685,7 +685,8 @@ private fun ProgramEditorScreen(
                     core = bCoreImportance.takeIf { it > 0 },
                     sportSupport = bSportImportance.takeIf { it > 0 }
                 ),
-                blockProgram = blockLayout
+                blockProgram = blockLayout,
+                sourceProgramStableKey = program?.stableKey
             )
         ) { generated ->
             val proposed = generated.skeleton.withResolvedWeekDaySchedule()
