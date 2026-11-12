@@ -334,7 +334,11 @@ class TrainingRepository internal constructor(
         canonicalMetadataRepository = canonicalMetadataRepository,
         bBalancedTaskCatalog = com.training.trackplanner.data.personalized.BBalancedTaskCatalog.fromAssets(context),
         userOverrideDao = exerciseMetadataUserOverrideDao,
-        progressionDao = db.programProgressionDao()
+        progressionDao = db.programProgressionDao(),
+        squatShadowReader = com.training.trackplanner.data.v22.BCoachSquatShadowEvidenceReader(
+            strengthPosteriorDao, workoutDao, strengthPerformanceRegistry, repetitionCurveRegistry
+        ),
+        rirPolicy = rpeRirPolicy
     )
     private val programProgressionService = ProgramProgressionService(db) {
         connectiveTissueAnalysisService.build(System.currentTimeMillis()).loadUnits
