@@ -78,6 +78,7 @@ internal object BCoachJointBlockOptimizer {
         val sessions: List<V22Session>,
         val score: Double,
         val strategy: Strategy,
+        val strategyScores: Map<Strategy, Double>,
         val peakMinutes: Double,
         val feasible: Boolean,
         val signature: String,
@@ -402,7 +403,8 @@ internal object BCoachJointBlockOptimizer {
             val feasible = overtime < EPS && weekly.all { week ->
                 week.all { it.items.isNotEmpty() }
             }
-            return Scored(sessions, winner.second, winner.first, peak, feasible,
+            return Scored(sessions, winner.second, winner.first,
+                values.toMap(), peak, feasible,
                 signature(sessions), changes)
         }
 
@@ -462,13 +464,14 @@ internal object BCoachJointBlockOptimizer {
                     for (j in day.items.indices) {
                         val item = day.items[j]
                         val key = item.stableKey
+                        val adjustable = profile(key).eligible
                         val editable = key !in locked
                         fun modify(items: List<V22ExercisePlan>, action: String) {
                             val next = plan.toMutableList()
                             next[i] = rebuilt(day, items)
                             offer(next, node, action)
                         }
-                        if (editable && item.setCount < 6) {
+                        if (adjustable && item.setCount < 6) {
                             val newSet = item.sets.last().copy(
                                 weightKg = null, observedRpe = null,
                                 sourceDate = "", loadStatus = "B_COACH_EXTRA_SET_USER_REVIEW")
@@ -477,7 +480,8 @@ internal object BCoachJointBlockOptimizer {
                                     sets = item.sets + newSet)
                             }, "ADD_SET:" + day.session + ":" + key)
                         }
-                        if (editable && item.setCount > 1) {
+                        if (adjustable &&
+                            item.setCount > if (key in selectedMains) 2 else 1) {
                             modify(day.items.toMutableList().also {
                                 it[j] = item.copy(setCount = item.setCount - 1,
                                     sets = item.sets.dropLast(1))
@@ -487,6 +491,8 @@ internal object BCoachJointBlockOptimizer {
                             modify(day.items.filterIndexed { index, _ -> index != j },
                                 "REMOVE_EXERCISE:" + day.session + ":" + key)
                         }
+                        // Unreviewed metadata does not authorize moving an item.
+                        if (!profile(key).eligible) continue
                         // Move entire prescription; no load/RPE copied between exercises.
                         for (k in plan.indices) {
                             if (k == i || day.items.size <= 1 ||
