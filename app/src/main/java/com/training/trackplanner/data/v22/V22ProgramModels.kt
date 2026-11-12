@@ -52,7 +52,10 @@ data class V22GenerationRequest(
     val linkedConfirmedSets: Int? = null,
     val linkedEvidenceApplicationId: String? = null,
     /** Ephemeral, UI-confirmed plate size for read-only squat shadow; never a prescription override. */
-    val bShadowPlateOneSideKg: Double? = null
+    val bShadowPlateOneSideKg: Double? = null,
+    /** Ephemeral display-unit increments used only for other-exercise Shadow coverage. */
+    val bShadowDumbbellIncrementKg: Double? = null,
+    val bShadowMachineIncrementKg: Double? = null
 )
 
 /**
@@ -70,7 +73,9 @@ internal fun newBBalancedGenerationRequest(
     allowedWeekdays: Set<Int>? = null,
     fixedWeekdays: Set<Int>? = null,
     sourceProgramStableKey: String? = null,
-    shadowPlateOneSideKg: Double? = null
+    shadowPlateOneSideKg: Double? = null,
+    shadowDumbbellIncrementKg: Double? = null,
+    shadowMachineIncrementKg: Double? = null
 ): V22GenerationRequest = V22GenerationRequest(
     name = name,
     weeks = blockProgram.trainingWeeks,
@@ -84,7 +89,9 @@ internal fun newBBalancedGenerationRequest(
     allowedWeekdays = allowedWeekdays,
     fixedWeekdays = fixedWeekdays,
     sourceProgramStableKey = sourceProgramStableKey,
-    bShadowPlateOneSideKg = shadowPlateOneSideKg
+    bShadowPlateOneSideKg = shadowPlateOneSideKg,
+    bShadowDumbbellIncrementKg = shadowDumbbellIncrementKg,
+    bShadowMachineIncrementKg = shadowMachineIncrementKg
 )
 
 data class V22HistoryRow(
