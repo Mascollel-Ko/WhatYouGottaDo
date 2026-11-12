@@ -6,6 +6,7 @@ import com.training.trackplanner.data.ProgramPrescriptionSet
 import com.training.trackplanner.data.ProgramWorkoutLink
 import com.training.trackplanner.data.ProgressionMode
 import com.training.trackplanner.data.ProgressionBase
+import com.training.trackplanner.data.ProgressionLinkMode
 import com.training.trackplanner.data.ProgressionSession
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import java.security.MessageDigest
@@ -51,6 +52,7 @@ internal object BCoachLinkedSquatWeekPlanner {
         applications: List<ProgramApplication>,
         links: List<ProgramWorkoutLink>,
         prescriptions: List<ProgramPrescriptionSet>,
+        linkModesByLogicalItemId: Map<String, ProgressionLinkMode> = emptyMap(),
         anchor: BCoachSquatAnchorSession?,
         ranking: BCoachSquatCurveProgressionReport?
     ): BCoachLinkedSquatNextWeekProposal {
@@ -123,7 +125,10 @@ internal object BCoachLinkedSquatWeekPlanner {
                 (
                     link.trackId == targetLink.trackId ||
                         (targetLink.basePolicy == ProgressionBase.REVIEW &&
-                            link.basePolicy == ProgressionBase.REVIEW)
+                            link.basePolicy == ProgressionBase.REVIEW &&
+                            // Never collapse user's explicit SEPARATE / EXISTING track links.
+                            linkModesByLogicalItemId[targetLink.sourceItemId] == ProgressionLinkMode.AUTO &&
+                            linkModesByLogicalItemId[link.sourceItemId] == ProgressionLinkMode.AUTO)
                 ) &&
                 link.mode == ProgressionMode.APP &&
                 link.dayOfWeek == targetLink.dayOfWeek &&
