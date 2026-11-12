@@ -261,7 +261,9 @@ data class V22GeneratedProgram(
     /** Present only for the live B path. [plan] remains the frozen Python-parity comparator. */
     val balanced12WeekPlan: BBalanced12WeekPlan? = null,
     /** Transient read-only experiment; never persisted in GeneratedProgramSkeleton. */
-    val squatShadowComparison: BCoachSquatShadowProgramComparison? = null
+    val squatShadowComparison: BCoachSquatShadowProgramComparison? = null,
+    /** Gate E: other exercise coverage only. Never an approved progression. */
+    val otherExerciseShadowCoverage: List<BCoachExerciseShadowCoverageRow> = emptyList()
 )
 
 enum class BBalancedNumericAuthority {
