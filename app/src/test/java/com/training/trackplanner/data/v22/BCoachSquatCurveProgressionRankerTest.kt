@@ -137,6 +137,17 @@ class BCoachSquatCurveProgressionRankerTest {
     }
 
     @Test
+    fun `hardest confirmed work set RPE is the curve anchor, not the first optimistic set`() {
+        val p = pipeline(rpe = 7.5, actualLaterRpe = 8.0)
+        assertEquals(8.0, checkNotNull(p.relative.anchorSet).observedRpe!!, 0.0)
+        val hold = p.relative.candidates.single {
+            it.action == BCoachSquatRelativeShadow.Action.HOLD
+        }
+        assertEquals(policy.resolve(8.0)!!.expectedRir,
+            checkNotNull(hold.expectedRirGivenSupport), 1e-8)
+    }
+
+    @Test
     fun `missing RPE does not fabricate reference e1rm or automatic winner`() {
         val result = rank(pipeline(rpe = null, actualLaterRpe = null))
         assertEquals("INSUFFICIENT_CANONICAL_RPE_EVIDENCE", result.status)
