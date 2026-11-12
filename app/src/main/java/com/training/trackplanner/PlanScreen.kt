@@ -792,7 +792,27 @@ private fun ProgramEditorScreen(
                 appendLine()
                 appendLine("※ 위 질량은 마지막 확인 세트의 RPE→RIR 가정에 따른 비중으로, 미래 성공확률이나 수행능력 posterior 확률이 아닙니다.")
                 appendLine("※ HOLD는 최근 확인 세트 수준 유지이며, 기존 B 생성 처방과 별개입니다.")
-                appendLine("[가중치·앵커RIR 민감도: 후보 선택]")
+                report.curveRanking?.let { ranking ->
+                    appendLine("[Gate F: e1RM 곡선 기반 단일 후보 순위 — 저장에 미반영]")
+                    appendLine("기록일: ${ranking.referenceDate ?: "확인 불가"} · 상태 ${ranking.status}")
+                    appendLine("목표 RIR: ${"%.1f".format(ranking.targetRir)} · 계획상 세트 목표: ${ranking.doseTargetSets ?: "미확정"}")
+                    appendLine("과거 확인 세트 기반 e1RM: ${ranking.historicalE1rmKg?.let { "%.1fkg".format(it) } ?: "평가 불가"}")
+                    appendLine("잠정 1순위: ${ranking.selectedAction ?: "판단 보류"}")
+                    ranking.ranked.forEachIndexed { i, candidate ->
+                        appendLine(
+                            "${i + 1}. ${candidate.action}: ${candidate.loadKg}kg×${candidate.reps}회×${candidate.sets}세트" +
+                                " · 필요 e1RM ${candidate.requiredE1rmKg?.let { "%.1fkg".format(it) } ?: "-"}" +
+                                " · e1RM 기록차 ${candidate.historicalE1rmLogGap?.let { "%.3f".format(it) } ?: "-"}" +
+                                " · 보수적 후회 ${candidate.worstCaseRegret?.let { "%.3f".format(it) } ?: "미평가"}" +
+                                " · 명목 훈련량 변화 ${"%.1f%%".format(candidate.volumeLoadChange * 100.0)}" +
+                                " · ${if (candidate.eligible) "비교 가능" else "선정 제외: ${candidate.reason}"}"
+                        )
+                    }
+                    appendLine("※ 기존 곡선과 과거 확인 세트로 계산합니다. 실제 다음 세션 성공확률이나 미래 2~4주차 처방이 아닙니다.")
+                    appendLine("※ 세트 증가의 목표치는 생성 계획의 구조를 참고하며, 근비대 효과가 검증된 수치가 아닙니다.")
+                    appendLine()
+                }
+                appendLine("[기존 Gate C: 가중치 민감도 비교(참고용)]")
                 appendLine("실험계수 1=유지 중심, 2=발전 중심, 3=강도·급증 중심 (목표 RIR 1~3 가정)")
                 report.experiments.forEach { trial ->
                     appendLine("${trial.scenario.replace("CENTRAL_80", "RPE-RIR 중앙80%").replace("CENTRAL_90", "RPE-RIR 중앙90%")} · ${trial.coefficientPolicy}: ${trial.tentativeWinner}")
