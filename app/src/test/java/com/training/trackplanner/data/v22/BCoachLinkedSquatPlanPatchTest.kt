@@ -43,7 +43,7 @@ class BCoachLinkedSquatPlanPatchTest {
         assertEquals(3, patch.nextSets.size)
         assertTrue(patch.nextSets.all {
             it.weightKg == 141.5 && it.reps == 5 && !it.confirmed &&
-                it.loadState == ProgramLoadState.EXPLICIT_LOAD && !it.manualWeight
+                it.loadState == ProgramLoadState.EXPLICIT_LOAD && it.manualWeight
         })
         assertTrue(patch.nextPrescriptions.all {
             it.plannedKg == 141.5 && it.plannedReps == 5 &&
