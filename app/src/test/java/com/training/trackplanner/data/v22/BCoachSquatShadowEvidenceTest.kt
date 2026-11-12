@@ -154,6 +154,29 @@ class BCoachSquatShadowEvidenceTest {
         assertNotNull(result.evidence.capacity)
     }
 
+
+    @Test
+    fun `a newly confirmed squat session cannot be silently omitted behind an older model snapshot`() {
+        val newer = record(day = date)
+        assertEquals(
+            BCoachSquatEvidenceResult.Unavailable(
+                BCoachSquatEvidenceResult.Reason.MODEL_BEHIND_CONFIRMED_SETS
+            ),
+            adapt(records = listOf(newer))
+        )
+    }
+
+    @Test
+    fun `invalid set RPE falls back to a valid entry RPE without inventing RIR`() {
+        val invalid = record(
+            sets = listOf(WorkoutSet(id = 53L, entryId = 1L, setIndex = 1,
+                weightKg = 120.0, reps = 5, confirmed = true, rpe = 12.0)),
+            rpe = 8.0
+        )
+        val result = adapt(records = listOf(invalid)) as BCoachSquatEvidenceResult.Ready
+        assertEquals(8.0, result.evidence.latestAnchor!!.confirmedSets.single().observedRpe!!, 0.0)
+    }
+
     @Test
     fun `an invalid or outdated model cannot supply a shadow posterior`() {
         assertEquals(
