@@ -80,6 +80,7 @@ import com.training.trackplanner.data.personalized.PersonalizedPlanningPreflight
 import com.training.trackplanner.data.v22.BBalancedGoalImportance
 import com.training.trackplanner.data.v22.BBlockProgramDefinition
 import com.training.trackplanner.data.v22.BBlockEquipmentIncrements
+import com.training.trackplanner.data.v22.BCoachSquatShadowProgramComparison
 import com.training.trackplanner.data.v22.BBlockDefinition
 import com.training.trackplanner.data.v22.BBlockGoal
 import com.training.trackplanner.data.v22.BPeakTestMode
@@ -558,6 +559,10 @@ private fun ProgramEditorScreen(
     }
     var pendingLoadOverwriteCount by remember { mutableStateOf(0) }
     var showBReselectionLog by remember(program?.id) { mutableStateOf(false) }
+    var squatShadowComparison by remember(program?.id, draftId) {
+        mutableStateOf<BCoachSquatShadowProgramComparison?>(null)
+    }
+    var showSquatShadowComparison by remember { mutableStateOf(false) }
 
     LaunchedEffect(draftId, program?.id, resumeDraft) {
         val saved = if (resumeDraft) viewModel.loadSavedProgramDraft(draftId) else null
@@ -658,6 +663,7 @@ private fun ProgramEditorScreen(
         nameError = false
         lastGenerationWasV22 = false
         v22SkeletonCreated = false
+        squatShadowComparison = null
         personalizedDraft = emptyProgramSkeleton(
             request = blankProgramRequest(),
             weekDaySchedule = defaultProgramWeekDaySchedule(4, 3)
@@ -668,6 +674,7 @@ private fun ProgramEditorScreen(
         if (!requireProgramName()) return
         if (viewModel.programBuildProgress.value is ProgramBuildProgressState.Running) return
         lastGenerationWasV22 = true
+        squatShadowComparison = null
         pendingConservativeBBlock = null
         pendingBReview = null
         val blockLayout = if (bCustomizeBlocks) BBlockProgramDefinition(bBlocks, bRecoveryBetween)
@@ -686,9 +693,11 @@ private fun ProgramEditorScreen(
                     sportSupport = bSportImportance.takeIf { it > 0 }
                 ),
                 blockProgram = blockLayout,
-                sourceProgramStableKey = program?.stableKey
+                sourceProgramStableKey = program?.stableKey,
+                shadowPlateOneSideKg = smallestPlateText.toDoubleOrNull()
             )
         ) { generated ->
+            squatShadowComparison = generated.squatShadowComparison
             val proposed = generated.skeleton.withResolvedWeekDaySchedule()
             val review = generated.balanced12WeekPlan?.let {
                 BBlockConfidenceReview.evaluate(it, blockLayout)
@@ -747,6 +756,50 @@ private fun ProgramEditorScreen(
                 TextButton(onClick = { pendingLoadOverwrite = null }) { Text("취소") }
             }
         )
+    }
+
+    if (showSquatShadowComparison) {
+        squatShadowComparison?.let { report ->
+            val details = buildString {
+                appendLine("상태: ${report.status}")
+                appendLine("기준일: ${report.snapshotDate ?: "확인 불가"}")
+                appendLine("최근 확인 세트: ${report.observedReference ?: "확인 불가"}")
+                appendLine()
+                appendLine("[기존 B 생성 결과: 스쿼트 모든 주차]")
+                if (report.plannedSquatRows.isEmpty()) appendLine("백스쿼트 배치 없음")
+                report.plannedSquatRows.forEach { row ->
+                    appendLine("${row.week}주차·${row.day}요일: ${row.sets}세트×${row.reps}회" +
+                        " · 중량 ${row.loadKg?.let { "${it}kg" } ?: "사용자 입력 대기"}")
+                }
+                appendLine()
+                appendLine("[Shadow 단기 후보: 전체 주차 처방 아님]")
+                if (report.experimentCandidates.isEmpty()) appendLine("계산 가능한 후보 없음")
+                report.experimentCandidates.forEach { candidate ->
+                    appendLine("${candidate.action}: ${candidate.loadKg}kg×${candidate.reps}회×${candidate.sets}세트" +
+                        " · 목표 RIR 질량 ${candidate.targetRirMass?.let { "%.1f%%".format(it * 100.0) } ?: "불확실"}" +
+                        " · 후속 미예측 ${candidate.followUpSetsUnmodeled}세트")
+                }
+                appendLine()
+                appendLine("[가중치·RIR 민감도: 후보 선택]")
+                appendLine("실험계수 1=유지 중심, 2=발전 중심, 3=강도·급증 중심 (목표 RIR 1~3 가정)")
+                report.experiments.forEach { trial ->
+                    appendLine("${trial.scenario} · ${trial.coefficientPolicy}: ${trial.tentativeWinner}")
+                }
+                appendLine()
+                report.notices.forEach { appendLine("• ${it}") }
+            }
+            AlertDialog(
+                onDismissRequest = { showSquatShadowComparison = false },
+                title = { Text("백스쿼트: 기존 생성 vs Shadow") },
+                text = {
+                    Column(Modifier.heightIn(max = 440.dp).verticalScroll(rememberScrollState())) {
+                        Text("이 비교 결과는 저장될 중량·반복·세트를 수정하지 않습니다.")
+                        Text(details)
+                    }
+                },
+                confirmButton = { TextButton(onClick = { showSquatShadowComparison = false }) { Text("닫기") } }
+            )
+        }
     }
 
     if (showBReselectionLog) {
@@ -1230,6 +1283,17 @@ private fun ProgramEditorScreen(
             if (lastGenerationWasV22) item {
                 InfoCard("볼륨 주기화와 RPE는 참고 계획입니다. 통증·피로·수행 여유에 맞춰 사용자가 중량·세트·반복을 조절하세요.")
             }
+            if (lastGenerationWasV22 && squatShadowComparison != null) item {
+                OutlinedButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { showSquatShadowComparison = true }
+                ) { Text("백스쿼트 생성 결과와 Shadow 비교") }
+                Text(
+                    "실험용·읽기 전용 비교입니다. 다른 운동은 아직 평가하지 않고 저장 중량은 변경하지 않습니다.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             if (currentSkeleton.planningMetadataJson?.contains("\"reselectionAudit\"") == true) item {
                 OutlinedButton(
                     modifier = Modifier.fillMaxWidth(),
@@ -1249,6 +1313,7 @@ private fun ProgramEditorScreen(
                     muscleMetadataByKey = muscleMetadataByKey,
                     progressionEligibleKeys = progressionEligibleKeys,
                     onSkeletonChange = { nextDraft ->
+                        squatShadowComparison = null // comparing an edited draft with the old shadow is invalid
                         val previousDraft = personalizedDraft
                         // Default equipment units work even before onboarding;
                         // current visible entries take precedence over older profile state.
