@@ -16,6 +16,7 @@ import com.training.trackplanner.data.ProgramSkeletonRequest
 import com.training.trackplanner.data.ProgramTrainingSlot
 import com.training.trackplanner.data.WorkoutDao
 import com.training.trackplanner.data.ProgramProgressionDao
+import com.training.trackplanner.analysis.strengthperformance.RpeRirPolicy
 import com.training.trackplanner.data.personalized.BBalancedTaskCatalog
 
 internal class V22ProgramPlanningService(
@@ -24,7 +25,9 @@ internal class V22ProgramPlanningService(
     private val canonicalMetadataRepository: CanonicalExerciseMetadataRepository,
     private val bBalancedTaskCatalog: BBalancedTaskCatalog,
     private val userOverrideDao: ExerciseMetadataUserOverrideDao? = null,
-    private val progressionDao: ProgramProgressionDao? = null
+    private val progressionDao: ProgramProgressionDao? = null,
+    private val squatShadowReader: BCoachSquatShadowEvidenceReader? = null,
+    private val rirPolicy: RpeRirPolicy? = null
 ) {
     suspend fun generate(request: V22GenerationRequest): V22GeneratedProgram {
         val effectiveRequest = if (request.mode == V22Mode.B && request.blockProgram == null) {
@@ -71,7 +74,51 @@ internal class V22ProgramPlanningService(
         )
         val comparator = runCatching { V22PythonParityEngine.build(history, effectiveRequest) }.getOrNull()
             ?.takeIf { plan -> plan.weeks.firstOrNull()?.sessions?.any { it.items.isNotEmpty() } == true }
-        return V22GeneratedProgram(comparator, balanced.toSkeleton(effectiveRequest, exercises), balanced)
+        val skeleton = balanced.toSkeleton(effectiveRequest, exercises)
+        // Gate D is strictly a side-channel. No exception, missing posterior, or score may
+        // modify or prevent the existing B program from being generated and saved as before.
+        val shadow = effectiveRequest.bShadowPlateOneSideKg
+            ?.takeIf { it.isFinite() && it in 0.1..25.0 }
+            ?.let { plate ->
+                runCatching {
+                    val reader = squatShadowReader ?: return@runCatching null
+                    val policy = rirPolicy ?: return@runCatching null
+                    val observed = reader.read(effectiveRequest.asOf)
+                    val pipeline = BCoachSquatShadowPipeline.evaluate(
+                        input = observed,
+                        rirPolicy = policy,
+                        smallestPlateOneSideKg = plate,
+                        // Experimental RIR band only. Neither user preference nor approved default.
+                        targetRirMin = 1.0,
+                        targetRirMax = 3.0,
+                        policies = listOf(
+                            BCoachSquatShadowSelector.Weights(0.0, 0.0, 0.0, 1.0, 1.0, 1.0),
+                            BCoachSquatShadowSelector.Weights(1.0, 0.5, 0.25, 1.0, 0.5, 0.1),
+                            BCoachSquatShadowSelector.Weights(0.25, 0.25, 0.1, 3.0, 2.0, 0.5)
+                        ),
+                        omegaBands = listOf(
+                            BCoachSquatShadowSelector.OmegaBand.CENTRAL_80,
+                            BCoachSquatShadowSelector.OmegaBand.CENTRAL_90
+                        )
+                    )
+                    BCoachSquatShadowProgramComparator.compare(
+                        asOf = effectiveRequest.asOf,
+                        plannedItems = skeleton.items,
+                        pipeline = pipeline
+                    )
+                }.getOrElse {
+                    BCoachSquatShadowProgramComparison(
+                        status = "SHADOW_COMPARISON_ERROR",
+                        snapshotDate = effectiveRequest.asOf,
+                        observedReference = null,
+                        plannedSquatRows = emptyList(),
+                        experimentCandidates = emptyList(),
+                        experiments = emptyList(),
+                        notices = listOf("Shadow 비교를 계산하지 못했습니다. 기존 프로그램 생성 결과에는 영향이 없습니다.")
+                    )
+                }
+            }
+        return V22GeneratedProgram(comparator, skeleton, balanced, shadow)
     }
 }
 
