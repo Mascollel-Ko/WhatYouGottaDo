@@ -756,6 +756,21 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     val progressionSuggestions = repository.progressionSuggestions
     val programPrescriptions = repository.programPrescriptions
     fun refreshProgression() { viewModelScope.launch { repository.refreshProgression() } }
+    suspend fun inspectBCoachLinkedSquatNextWeek(
+        entryId: Long
+    ): com.training.trackplanner.data.v22.BCoachLinkedSquatNextWeekProposal =
+        repository.inspectBCoachLinkedSquatNextWeek(entryId)
+
+    fun approveBCoachLinkedSquatNextWeek(
+        entryId: Long, expectedFingerprint: String, onResult: (Boolean) -> Unit
+    ) {
+        viewModelScope.launch {
+            val result = runCatching {
+                repository.approveBCoachLinkedSquatNextWeek(entryId, expectedFingerprint)
+            }.getOrDefault(false)
+            onResult(result)
+        }
+    }
     fun configureProgression(itemId: Long, linkMode: com.training.trackplanner.data.ProgressionLinkMode,
         trackId: String?, role: com.training.trackplanner.data.ProgressionRole,
         mode: com.training.trackplanner.data.ProgressionMode, rule: com.training.trackplanner.data.ProgressionRule) {
