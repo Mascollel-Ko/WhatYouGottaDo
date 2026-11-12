@@ -366,7 +366,8 @@ internal object BBalanced12WeekEngine {
                                     result.evidence.relativeStrengthTrend ?: JSONObject.NULL)
                                 .put("meanObservedRpe28d",
                                     result.evidence.meanObservedRpe28d ?: JSONObject.NULL)
-                                .put("plannedCompletionRate", JSONObject.NULL)
+                                .put("plannedCompletionRate",
+                                    result.evidence.plannedCompletionRate ?: JSONObject.NULL)
                                 .put("authority", result.evidence.authority))
                             .put("alternatives", JSONArray(result.alternatives.map { alternative ->
                                 JSONObject().put("strategy", alternative.strategy.name)
