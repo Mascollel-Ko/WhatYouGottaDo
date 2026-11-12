@@ -13,7 +13,7 @@ Week 1 uses confirmed historical records available **as of** generation. On late
 
 ## Existing canonical nonlinear curve — do not replace
 
-Let `q_theta(n)` be the existing canonical nonlinear, monotone PCHIP relative-load curve as resolved with the stored personal theta. For anchor performed load `L0`, performed repetitions `r0`, and discrete anchor RIR scenario `s` from the existing RPE/RIR policy:
+Let `q_theta(n)` be the existing canonical nonlinear, monotone PCHIP relative-load curve as resolved with the stored personal theta. Among the most heavily loaded confirmed sets in the latest real session, the **highest reported RPE** (with later set index resolving ties) supplies the conservative reference; this avoids using an optimistic earlier work set while still **not** predicting next-session set fatigue. For anchor performed load `L0`, performed repetitions `r0`, and discrete anchor RIR scenario `s` from the existing RPE/RIR policy:
 
 ```
 E_observed(s) = L0 / q_theta(r0 + s)
