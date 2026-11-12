@@ -481,7 +481,7 @@ internal object BCoachJointBlockOptimizer {
                             }, "ADD_SET:" + day.session + ":" + key)
                         }
                         if (adjustable &&
-                            item.setCount > if (key in selectedMains) 2 else 1) {
+                            item.setCount > (if (key in selectedMains) 2 else 1)) {
                             modify(day.items.toMutableList().also {
                                 it[j] = item.copy(setCount = item.setCount - 1,
                                     sets = item.sets.dropLast(1))
@@ -551,23 +551,33 @@ internal object BCoachJointBlockOptimizer {
             beam = roundCandidates.sortedWith(compareByDescending<Scored> { it.score }
                 .thenBy { it.signature }).take(BEAM_WIDTH)
         }
+        fun topAlternatives(): List<Alternative> {
+            val feasible = all.filter(Scored::feasible)
+            val bestByStrategy = Strategy.entries.mapNotNull { strategy ->
+                val candidate = feasible.maxWithOrNull(
+                    compareBy<Scored> { it.strategyScores.getValue(strategy) }
+                        .thenByDescending { it.signature }
+                ) ?: return@mapNotNull null
+                Alternative(strategy, candidate.sessions.map(V22Session::session),
+                    candidate.sessions.sumOf(V22Session::nominalSets), candidate.peakMinutes,
+                    candidate.strategyScores.getValue(strategy), "FEASIBLE_STRATEGY_COMPARISON")
+            }
+            val distinctWeekdays = feasible.sortedWith(compareByDescending<Scored> { it.score }
+                .thenBy { it.signature }).distinctBy {
+                    it.sessions.map(V22Session::session)
+                }.take(4).map { candidate ->
+                    Alternative(candidate.strategy, candidate.sessions.map(V22Session::session),
+                        candidate.sessions.sumOf(V22Session::nominalSets), candidate.peakMinutes,
+                        candidate.score, "FEASIBLE_WEEKDAY_COMPARISON")
+                }
+            return bestByStrategy + distinctWeekdays
+        }
         if (best == null) return Result(baseline, Strategy.MAINTAIN, observations,
-            initial.score, initial.score, evaluated, all.sortedByDescending(Scored::score)
-                .take(5).map { Alternative(it.strategy,
-                    it.sessions.map(V22Session::session),
-                    it.sessions.sumOf(V22Session::nominalSets), it.peakMinutes,
-                    it.score, if (it.feasible) "FEASIBLE" else "TIME_REVIEW") },
+            initial.score, initial.score, evaluated, topAlternatives(),
             emptyList(), "NO_FEASIBLE_PROGRAM_KEEP_BASELINE_REVIEW_REQUIRED")
         val chosen = best!!
         return Result(chosen.sessions, chosen.strategy, observations,
-            initial.score, chosen.score, evaluated,
-            all.filter(Scored::feasible).sortedWith(compareByDescending<Scored> { it.score }
-                .thenBy { it.signature })
-                .distinctBy { it.strategy to it.sessions.map(V22Session::session) }
-                .take(6).map { Alternative(it.strategy,
-                    it.sessions.map(V22Session::session),
-                    it.sessions.sumOf(V22Session::nominalSets), it.peakMinutes,
-                    it.score, "FEASIBLE") },
+            initial.score, chosen.score, evaluated, topAlternatives(),
             chosen.changes,
             if (chosen.changes.isEmpty()) "BASELINE_PREFERRED_BY_WHOLE_BLOCK_SCORE"
             else "COACH_WHOLE_BLOCK_JOINT_OPTIMIZATION_USER_REVIEW")
