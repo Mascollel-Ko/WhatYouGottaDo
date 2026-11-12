@@ -139,6 +139,30 @@ class BCoachLinkedSquatWeekPlannerTest {
         assertEquals("NO_LINKED_PREVIOUS_WEEK", wrong.status)
     }
 
+    @Test fun `uncalibrated B plan uses same application and exercise despite split REVIEW tracks`() {
+        val prior = link(1,1,1,track="week-one").copy(
+            basePolicy=ProgressionBase.REVIEW, needsReview=true
+        )
+        val next = link(2,2,2,track="week-two").copy(
+            basePolicy=ProgressionBase.REVIEW, needsReview=true
+        )
+        val proposal=inspect(links=listOf(prior,next))
+        assertEquals("READY_FOR_USER_APPROVAL",proposal.status)
+        assertTrue(proposal.canApply)
+    }
+
+    @Test fun `ambiguous uncalibrated previous squat occurrences block the proposal`() {
+        val duplicate=record(3L,"2026-11-12",true,session="session-3")
+        val previous=link(1,1,1,track="w1").copy(basePolicy=ProgressionBase.REVIEW)
+        val other=link(3,1,3,track="w1b").copy(basePolicy=ProgressionBase.REVIEW)
+        val next=link(2,2,4,track="w2").copy(basePolicy=ProgressionBase.REVIEW)
+        val proposal=inspect(workouts=listOf(source,duplicate,target),
+            links=listOf(previous,other,next),
+            prescriptions=targets(source)+targets(duplicate)+targets(target))
+        assertEquals("AMBIGUOUS_LINKED_PREVIOUS_WEEK",proposal.status)
+        assertFalse(proposal.canApply)
+    }
+
     @Test fun `unconfirmed or missed previous sets cannot cause progression`() {
         val partly = source.copy(sets = source.sets.mapIndexed { i, s ->
             if (i == 2) s.copy(confirmed=false) else s
