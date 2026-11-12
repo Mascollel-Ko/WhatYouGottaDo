@@ -64,7 +64,9 @@ internal data class BCoachSquatEvidence(
     val curve: ResolvedRepetitionCurve,
     /** Entire curve posterior, not just its mean, for later uncertainty scenarios. */
     val curvePosterior: PersonalCurvePosterior?,
-    val latestAnchor: BCoachSquatAnchorSession?
+    val latestAnchor: BCoachSquatAnchorSession?,
+    /** Completed squat loads observed in the preceding 56 days, for grid-conflict audit only. */
+    val recentObservedLoadsKg: List<Double> = emptyList()
 )
 
 /** A pure, deterministic boundary, independently unit-testable without Room. */
@@ -193,7 +195,21 @@ internal object BCoachSquatEvidenceAdapter {
                 capacity = capacity,
                 curve = resolvedCurve,
                 curvePosterior = personalCurve,
-                latestAnchor = latest
+                latestAnchor = latest,
+                recentObservedLoadsKg = records.asSequence()
+                    .filter { it.entry.exerciseStableKey == key }
+                    .filter { workout ->
+                        val day = runCatching { LocalDate.parse(workout.entry.date) }.getOrNull()
+                        day != null && !day.isAfter(asOf) && !day.isAfter(posteriorDate) &&
+                            !day.isBefore(asOf.minusDays(56))
+                    }
+                    .flatMap { it.sets.asSequence() }
+                    .filter { it.confirmed && it.loadState == ProgramLoadState.EXPLICIT_LOAD &&
+                        it.weightKg.isFinite() && it.weightKg > 0.0 && it.reps in 1..20 }
+                    .map { it.weightKg }
+                    .distinct()
+                    .sorted()
+                    .toList()
             )
         )
     }
