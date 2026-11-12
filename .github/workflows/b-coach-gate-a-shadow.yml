@@ -42,6 +42,60 @@ jobs:
             -Pgoogle.webClientId="$GOOGLE_WEB_CLIENT_ID" \
             -Psupabase.publishableKey="$SUPABASE_PUBLISHABLE_KEY"
 
+      - name: Restore canonical CI debug keystore
+        env:
+          ANDROID_CI_KEYSTORE_B64: ${{ secrets.ANDROID_CI_KEYSTORE_B64 }}
+        run: |
+          set -euo pipefail
+          test -n "${ANDROID_CI_KEYSTORE_B64:-}"
+          printf '%s' "$ANDROID_CI_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/whatyougottado-ci-debug.jks"
+          test -s "$RUNNER_TEMP/whatyougottado-ci-debug.jks"
+          chmod 600 "$RUNNER_TEMP/whatyougottado-ci-debug.jks"
+
+      - name: Assemble existing-certificate signed debug APK
+        env:
+          ANDROID_CI_KEYSTORE_PATH: ${{ runner.temp }}/whatyougottado-ci-debug.jks
+          ANDROID_CI_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_CI_KEYSTORE_PASSWORD }}
+          ANDROID_CI_KEY_ALIAS: ${{ secrets.ANDROID_CI_KEY_ALIAS }}
+          ANDROID_CI_KEY_PASSWORD: ${{ secrets.ANDROID_CI_KEY_PASSWORD }}
+          GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$ANDROID_CI_KEYSTORE_PASSWORD" -a -n "$ANDROID_CI_KEY_ALIAS" -a -n "$ANDROID_CI_KEY_PASSWORD"
+          ./gradlew :app:assembleDebug \
+            -Pgoogle.webClientId="$GOOGLE_WEB_CLIENT_ID" \
+            -Psupabase.publishableKey="$SUPABASE_PUBLISHABLE_KEY"
+
+      - name: Verify APK uses the canonical CI certificate
+        env:
+          ANDROID_CI_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_CI_KEYSTORE_PASSWORD }}
+          ANDROID_CI_KEY_ALIAS: ${{ secrets.ANDROID_CI_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          apk="$(find app/build/outputs/apk/debug -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          test -s "$apk"
+          apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner -print | sort -V | tail -n 1)"
+          test -x "$apksigner"
+          "$apksigner" verify --print-certs "$apk" > "$RUNNER_TEMP/squat-shadow-apk-signature.txt"
+          expected="$(keytool -list -v \
+            -keystore "$RUNNER_TEMP/whatyougottado-ci-debug.jks" \
+            -alias "$ANDROID_CI_KEY_ALIAS" \
+            '-storepass:env' ANDROID_CI_KEYSTORE_PASSWORD |
+            awk -F': ' '/SHA1:/{print $2; exit}' |
+            tr -d ':\r[:space:]' | tr '[:lower:]' '[:upper:]')"
+          actual="$(grep -i -m1 'SHA-1 digest:' "$RUNNER_TEMP/squat-shadow-apk-signature.txt" |
+            sed -En 's/.*SHA-1 digest:[[:space:]]*([0-9A-Fa-f:]+).*/\1/p' |
+            tr -d ':\r[:space:]' | tr '[:lower:]' '[:upper:]')"
+          test -n "$expected" -a -n "$actual" -a "$expected" = "$actual"
+
+      - name: Upload signed Gate D device-test APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: b-coach-gate-d-ci-signed-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v4
