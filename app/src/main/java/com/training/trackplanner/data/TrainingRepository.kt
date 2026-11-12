@@ -338,7 +338,8 @@ class TrainingRepository internal constructor(
         squatShadowReader = com.training.trackplanner.data.v22.BCoachSquatShadowEvidenceReader(
             strengthPosteriorDao, workoutDao, strengthPerformanceRegistry, repetitionCurveRegistry
         ),
-        rirPolicy = rpeRirPolicy
+        rirPolicy = rpeRirPolicy,
+        strengthRegistry = strengthPerformanceRegistry
     )
     private val programProgressionService = ProgramProgressionService(db) {
         connectiveTissueAnalysisService.build(System.currentTimeMillis()).loadUnits
