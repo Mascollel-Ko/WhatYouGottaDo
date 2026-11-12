@@ -104,6 +104,17 @@ class BCoachExerciseShadowCoverageTest {
     }
 
     @Test
+    fun `task exercise above twenty repetitions is observed but not run through e1rm curve`() {
+        val key = "functional_fast_footwork"
+        val row = inspect(listOf(plan(key)), listOf(
+            observed(key, load = null, reps = 30.0)
+        )).single()
+        assertEquals("D_TASK", row.tier)
+        assertTrue(row.confirmedObservation!!.contains("30.0회"))
+        assertFalse(row.unrankedAlternatives.any { it.contains("중량 +") })
+    }
+
+    @Test
     fun `future completed events and unplanned exercises cannot contaminate audit`() {
         val key = "barbell_noncanonical_auxiliary"
         val before = listOf(plan(key))
