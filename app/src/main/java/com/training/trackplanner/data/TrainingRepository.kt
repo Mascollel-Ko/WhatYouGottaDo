@@ -333,7 +333,8 @@ class TrainingRepository internal constructor(
         workoutDao = workoutDao,
         canonicalMetadataRepository = canonicalMetadataRepository,
         bBalancedTaskCatalog = com.training.trackplanner.data.personalized.BBalancedTaskCatalog.fromAssets(context),
-        userOverrideDao = exerciseMetadataUserOverrideDao
+        userOverrideDao = exerciseMetadataUserOverrideDao,
+        progressionDao = db.programProgressionDao()
     )
     private val programProgressionService = ProgramProgressionService(db) {
         connectiveTissueAnalysisService.build(System.currentTimeMillis()).loadUnits
