@@ -76,6 +76,7 @@ internal class BCoachLinkedSquatNextWeekService(
             applications = dao.applications(),
             links = dao.links(),
             prescriptions = dao.prescriptions(),
+            linkModesByLogicalItemId = dao.items().associate { it.logicalItemId to it.linkMode },
             anchor = pipeline.input.latestAnchor,
             ranking = ranking
         )
