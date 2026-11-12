@@ -148,6 +148,20 @@ class BCoachSquatCurveProgressionRankerTest {
     }
 
     @Test
+    fun `user confirmed 0_75 per side allows 1_5 increment even if old gaps were 2_5`() {
+        val p = pipeline(observedLoads=listOf(137.5, 140.0, 142.5))
+        val x = BCoachSquatCurveProgressionRanker.evaluate(
+            input=p, targetRirMin=1.0, targetRirMax=3.0,
+            doseTargetSets=3, userConfirmedEquipmentStep=true
+        )
+        assertEquals("CONFIRMED_GRID_HISTORICAL_GAPS_DIFFER", x.status)
+        val increased=x.ranked.single { it.action=="LOAD_UP_ONE_STEP" }
+        assertEquals(143.0, increased.loadKg, 0.0)
+        assertTrue(increased.eligible)
+        assertTrue(x.notes.any { it.contains("Historical load gaps differ") })
+    }
+
+    @Test
     fun `missing RPE does not fabricate reference e1rm or automatic winner`() {
         val result = rank(pipeline(rpe = null, actualLaterRpe = null))
         assertEquals("INSUFFICIENT_CANONICAL_RPE_EVIDENCE", result.status)
