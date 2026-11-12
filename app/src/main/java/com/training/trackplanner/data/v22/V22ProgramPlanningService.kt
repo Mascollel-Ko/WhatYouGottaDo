@@ -116,7 +116,8 @@ internal class V22ProgramPlanningService(
                     BCoachSquatShadowProgramComparator.compare(
                         asOf = effectiveRequest.asOf,
                         plannedItems = skeleton.items,
-                        pipeline = pipeline
+                        pipeline = pipeline,
+                        userConfirmedEquipmentStep = true
                     )
                 }.getOrElse {
                     BCoachSquatShadowProgramComparison(
