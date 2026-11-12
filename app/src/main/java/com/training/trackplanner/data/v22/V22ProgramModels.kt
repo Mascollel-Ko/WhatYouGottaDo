@@ -44,7 +44,13 @@ data class V22GenerationRequest(
     /** Null means evaluate all combinations; never infer user-supplied availability. */
     val allowedWeekdays: Set<Int>? = null,
     /** Explicit days are immutable when supplied. */
-    val fixedWeekdays: Set<Int>? = null
+    val fixedWeekdays: Set<Int>? = null,
+    /** Optional source program identity for linked, actual prior-block evidence. */
+    val sourceProgramStableKey: String? = null,
+    /** Populated only from matched application+entry links; never from raw dates. */
+    val linkedDuePlannedSets: Int? = null,
+    val linkedConfirmedSets: Int? = null,
+    val linkedEvidenceApplicationId: String? = null
 )
 
 /**
@@ -60,7 +66,8 @@ internal fun newBBalancedGenerationRequest(
     importance: BBalancedGoalImportance,
     blockProgram: BBlockProgramDefinition = BBlockProgramDefinition(),
     allowedWeekdays: Set<Int>? = null,
-    fixedWeekdays: Set<Int>? = null
+    fixedWeekdays: Set<Int>? = null,
+    sourceProgramStableKey: String? = null
 ): V22GenerationRequest = V22GenerationRequest(
     name = name,
     weeks = blockProgram.trainingWeeks,
@@ -72,7 +79,8 @@ internal fun newBBalancedGenerationRequest(
     bGoalImportance = importance,
     blockProgram = blockProgram,
     allowedWeekdays = allowedWeekdays,
-    fixedWeekdays = fixedWeekdays
+    fixedWeekdays = fixedWeekdays,
+    sourceProgramStableKey = sourceProgramStableKey
 )
 
 data class V22HistoryRow(
