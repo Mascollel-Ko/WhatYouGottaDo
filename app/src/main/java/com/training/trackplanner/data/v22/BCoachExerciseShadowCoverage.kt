@@ -43,7 +43,7 @@ internal object BCoachExerciseShadowCoverage {
             .map { planned ->
                 val key = planned.exerciseStableKey
                 val observed = history[key].orEmpty().filter { row ->
-                    row.reps?.let { it.isFinite() && it > 0 && it <= 20 } == true ||
+                    row.reps?.let { it.isFinite() && it > 0 } == true ||
                         row.seconds?.let { it.isFinite() && it > 0 } == true
                 }
                 val lastDay = observed.maxOfOrNull { it.date }
@@ -60,12 +60,14 @@ internal object BCoachExerciseShadowCoverage {
                 val reps = anchor?.reps?.takeIf { it.isFinite() && it in 1.0..20.0 &&
                     it == it.toInt().toDouble() }?.toInt()
                 val seconds = anchor?.seconds?.takeIf { it.isFinite() && it > 0.0 }
+                val observedReps = anchor?.reps?.takeIf { it.isFinite() && it > 0.0 }
                 val observation = if (lastDay == null) null else buildString {
                     append(lastDay.toString())
                     when {
                         load != null && reps != null -> append(" · ${load}kg × ${reps}회")
                         seconds != null -> append(" · ${seconds}초")
                         reps != null -> append(" · ${reps}회 (중량정보 없음)")
+                        observedReps != null -> append(" · ${observedReps}회 (과제별 지표 검토)")
                     }
                     if (anchor?.rpe != null) append(" · RPE ${anchor.rpe}")
                     append(" (당일 확인 기록; 세션 일치 미검증)")
