@@ -5,6 +5,10 @@ on:
     branches:
       - test/b-coach-linked-next-week-g-20261113
 
+concurrency:
+  group: b-coach-gate-g-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -41,6 +45,7 @@ jobs:
             --tests 'com.training.trackplanner.data.v22.BCoachExerciseShadowCoverageTest' \
             --tests 'com.training.trackplanner.data.v22.BCoachSquatCurveProgressionRankerTest' \
             --tests 'com.training.trackplanner.data.v22.BCoachLinkedSquatWeekPlannerTest' \
+            --tests 'com.training.trackplanner.data.v22.BCoachLinkedSquatPlanPatchTest' \
             --stacktrace \
             -Pgoogle.webClientId="$GOOGLE_WEB_CLIENT_ID" \
             -Psupabase.publishableKey="$SUPABASE_PUBLISHABLE_KEY"
