@@ -120,8 +120,13 @@ internal object BCoachSquatRelativeShadow {
         val step = BBlockPeriodization.barbellIncrement(smallestPlateOneSideKg)
         val grid = auditGrid(step, evidence.recentObservedLoadsKg)
         val anchorSession = evidence.latestAnchor
+        // Compare the heaviest completed working sets using the most demanding reported RPE.
+        // Taking the earliest max-load set alone can overstate headroom when later sets are harder.
+        // This is a conservative anchor, NOT a fatigue model for future sets.
         val anchor = anchorSession?.confirmedSets
-            ?.maxWithOrNull(compareBy<BCoachConfirmedSquatSet>({ it.loadKg }, { -it.setIndex }))
+            ?.maxWithOrNull(compareBy<BCoachConfirmedSquatSet>(
+                { it.loadKg }, { it.observedRpe ?: Double.NEGATIVE_INFINITY }, { it.setIndex }
+            ))
         val notes = mutableListOf<String>()
         if (grid.userConfirmationRequired) {
             notes += "RECENT_LOAD_GRID_CONFLICT: compare configured and observed steps; do not silently alter settings"
