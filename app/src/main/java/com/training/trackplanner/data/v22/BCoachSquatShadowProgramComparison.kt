@@ -11,7 +11,9 @@ data class BCoachSquatShadowProgramComparison(
     val plannedSquatRows: List<PlannedSquatRow>,
     val experimentCandidates: List<ExperimentalSquatCandidate>,
     val experiments: List<ExperimentalSquatDecision>,
-    val notices: List<String>
+    val notices: List<String>,
+    /** Gate F: deterministic curve-based ranking; no persistence or program mutation. */
+    val curveRanking: BCoachSquatCurveProgressionReport? = null
 ) {
     data class PlannedSquatRow(
         val week: Int,
@@ -91,6 +93,12 @@ internal object BCoachSquatShadowProgramComparator {
         pipeline as BCoachSquatShadowPipelineResult.ShadowReport
         val ref = pipeline.relative.anchorSet
         val selector = pipeline.selection
+        val curveRanking = BCoachSquatCurveProgressionRanker.evaluate(
+            input = pipeline,
+            targetRirMin = 1.0,
+            targetRirMax = 3.0,
+            doseTargetSets = rows.firstOrNull()?.sets
+        )
         val comparison = BCoachSquatShadowProgramComparison(
             status = when {
                 pipeline.relative.status != BCoachSquatRelativeShadow.ResultStatus.READY -> "ANCHOR_UNAVAILABLE"
@@ -130,7 +138,8 @@ internal object BCoachSquatShadowProgramComparator {
                 if (rows.any { it.loadKg == null }) add("생성 프로그램의 스쿼트 중량은 미설정입니다. Shadow 값을 대신 저장하지 않습니다.")
                 addAll(pipeline.relative.notes.filter { it.contains("GRID_CONFLICT") || it.contains("FOLLOW_UP") })
                 addAll(selector.warnings.filter { it.contains("REVERSAL") || it.contains("GRID_REVIEW") })
-            }.distinct()
+            }.distinct(),
+            curveRanking = curveRanking
         )
         return comparison
     }
