@@ -805,6 +805,9 @@ private fun ProgramEditorScreen(
                                 " · " + "%.1f".format(alt.optDouble("peakMinutes")) + "분" +
                                 " · 점수 " + "%.3f".format(alt.optDouble("score"))
                         }
+                    val completionLabel = if (evidence == null ||
+                        evidence.isNull("plannedCompletionRate")) "확인 불가"
+                    else "%.1f%%".format(evidence.optDouble("plannedCompletionRate") * 100.0)
                     val actions = row.optJSONArray("changes")
                     val changes = if (actions == null || actions.length() == 0) "원안 유지"
                         else (0 until actions.length()).take(20).joinToString("\n") { actions.getString(it) }
@@ -817,7 +820,7 @@ private fun ProgramEditorScreen(
                         "\n실제 기록 " + (evidence?.optInt("observedSets28d") ?: 0) +
                         "세트 / 최근 28일, 운동일 " +
                         (evidence?.optInt("observedTrainingDates28d") ?: 0) +
-                        "일 (계획 완료율은 판정 불가)" +
+                        "일 (계획 대비 완료율 " + completionLabel + ")" +
                         "\n상위 대안:\n" + ranked +
                         "\n변경 사항:\n" + changes
                 }
