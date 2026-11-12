@@ -195,7 +195,7 @@ internal object BCoachSquatShadowSelector {
                 add("Only anchor RPE/RIR scenarios; no independently validated daily performance distribution")
                 add("Later working-set completion and rest-time fatigue are NOT predicted")
                 add("Progress reward is an explicit intent credit, NOT estimated muscle/strength adaptation")
-                if (gridConflict) add("CONFIGURED_3KG_VS_OBSERVED_GRID_REVIEW: user confirmation required")
+                if (gridConflict) add("CONFIGURED_${input.grid.configuredTotalStepKg}KG_VS_OBSERVED_GRID_REVIEW: user confirmation required")
                 if (winners.size > 1) add("POLICY_OR_OMEGA_WINNER_REVERSAL: no unique robust winner")
                 if (excluded.isNotEmpty()) add("Additional generated candidates ignored outside frozen benchmark")
             }
