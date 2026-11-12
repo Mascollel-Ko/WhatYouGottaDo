@@ -1,20 +1,20 @@
-name: B-Coach Gate A+B+C Shadow Tests
+name: B-Coach Gate A+B+C+D Shadow Tests
 
 on:
   push:
     branches:
-      - test/b-coach-squat-shadow-gate-c-20261112
+      - test/b-coach-squat-shadow-gate-d-20261112
 
 permissions:
   contents: read
 
 jobs:
-  gate-abc:
-    name: Compile and test read-only squat shadow Gate A through C
+  gate-abcd:
+    name: Compile and test squat shadow Gate A through D with preview integration
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
-      - name: Check out Gate C experimental branch
+      - name: Check out Gate D experimental branch
         uses: actions/checkout@v4
 
       - name: Configure JDK 17
@@ -37,6 +37,7 @@ jobs:
             --tests 'com.training.trackplanner.data.v22.BCoachSquatRelativeShadowTest' \
             --tests 'com.training.trackplanner.data.v22.BCoachSquatShadowSelectorTest' \
             --tests 'com.training.trackplanner.data.v22.BCoachSquatShadowPipelineTest' \
+            --tests 'com.training.trackplanner.data.v22.BCoachSquatShadowProgramComparisonTest' \
             --stacktrace \
             -Pgoogle.webClientId="$GOOGLE_WEB_CLIENT_ID" \
             -Psupabase.publishableKey="$SUPABASE_PUBLISHABLE_KEY"
@@ -45,7 +46,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: b-coach-gate-abc-unit-tests
+          name: b-coach-gate-abcd-unit-tests
           path: |
             app/build/test-results/testDebugUnitTest/
             app/build/reports/tests/testDebugUnitTest/
