@@ -435,7 +435,11 @@ internal fun RecordScreen(
                                     prescriptionsByEntryId[entryId].orEmpty(),
                                     viewModel::resolveProgression
                                 )
-                                if (entryWithSets.entry.exerciseStableKey == "barbell_back_squat") {
+                                if (entryWithSets.entry.exerciseStableKey == "barbell_back_squat" &&
+                                    selectedDate >= LocalDate.now().toString() &&
+                                    entryWithSets.sets.isNotEmpty() &&
+                                    entryWithSets.sets.none { it.confirmed }
+                                ) {
                                     BCoachLinkedSquatNextWeekControl(viewModel, entryWithSets)
                                 }
                             }
@@ -500,7 +504,7 @@ private fun BCoachLinkedSquatNextWeekControl(
             }
         }
     } else if (proposal.status in setOf(
-        "EQUIPMENT_SNAPSHOT_MISSING", "USER_EDIT_PROTECTED", "TARGET_STRUCTURE_CHANGED",
+        "USER_EDIT_PROTECTED", "TARGET_STRUCTURE_CHANGED",
         "SOURCE_NOT_SUCCESSFUL", "PREVIOUS_WEEK_NOT_FULLY_SUCCESSFUL",
         "LATEST_CANONICAL_ANCHOR_NOT_LINKED_SOURCE", "SET_COUNT_REQUIRES_REVIEW",
         "CANONICAL_MODEL_NOT_READY", "PRIOR_EXPLICIT_PROGRESSION_DECISION"
