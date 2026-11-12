@@ -51,7 +51,8 @@ internal object BCoachSquatShadowProgramComparator {
     fun compare(
         asOf: LocalDate,
         plannedItems: List<ProgramSkeletonItem>,
-        pipeline: BCoachSquatShadowPipelineResult
+        pipeline: BCoachSquatShadowPipelineResult,
+        userConfirmedEquipmentStep: Boolean = false
     ): BCoachSquatShadowProgramComparison {
         val rows = plannedItems.filter { it.exerciseStableKey == "barbell_back_squat" }
             .sortedWith(compareBy({ it.weekNumber }, { it.dayOfWeek }, { it.orderIndex }))
@@ -97,7 +98,8 @@ internal object BCoachSquatShadowProgramComparator {
             input = pipeline,
             targetRirMin = 1.0,
             targetRirMax = 3.0,
-            doseTargetSets = rows.firstOrNull()?.sets
+            doseTargetSets = rows.firstOrNull()?.sets,
+            userConfirmedEquipmentStep = userConfirmedEquipmentStep
         )
         val comparison = BCoachSquatShadowProgramComparison(
             status = when {
