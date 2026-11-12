@@ -138,4 +138,37 @@ class BCoachJointBlockOptimizerTest {
         assertEquals(setOf("main_a"),
             BCoachJointBlockOptimizer.selectedMainKeys(trial, mainKeys.toSet()))
     }
+
+    @Test
+    fun heavilySkewedDaysAreRebalancedWithoutFixingWeeklyPhysicalSets() {
+        val skewed = listOf(
+            day(1, item("main_a", 3, true), item("accessory_a", 4),
+                item("accessory_b", 4), item("accessory_c", 4),
+                item("accessory_d", 3)),
+            day(2, item("main_b", 3, true), item("pull_new", 2)),
+            day(3, item("main_c", 3, true), item("accessory_a", 2)),
+            day(4, item("main_d", 3, true), item("accessory_b", 2))
+        )
+        val beforeCounts = skewed.map(V22Session::nominalSets)
+        assertEquals(listOf(18, 5, 5, 5), beforeCounts)
+        val result = optimize(sessions = skewed)
+        val afterCounts = result.sessions.map(V22Session::nominalSets)
+        assertTrue("The optimizer must examine alternatives to an 18/5/5/5 split",
+            result.evaluated >= 35)
+        assertTrue("A less skewed arrangement should outrank the baseline here: " + afterCounts,
+            (afterCounts.maxOrNull()!! - afterCounts.minOrNull()!!) <
+                (beforeCounts.maxOrNull()!! - beforeCounts.minOrNull()!!))
+        mainKeys.forEach { key ->
+            assertEquals(1, result.sessions.flatMap(V22Session::items).count { it.stableKey == key })
+        }
+    }
+
+    @Test
+    fun twentySetsCanFitAnHourWhenExerciseSetupAndRestPermit() {
+        val twenty = day(1, item("main_a", 5, true),
+            item("accessory_a", 5), item("accessory_b", 5),
+            item("accessory_c", 5))
+        assertEquals(20, twenty.nominalSets)
+        assertTrue(BBalancedDayPlacementPlanner.estimateMinutes(twenty, exerciseMap) <= 60.0)
+    }
 }
