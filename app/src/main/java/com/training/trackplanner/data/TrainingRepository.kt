@@ -341,6 +341,24 @@ class TrainingRepository internal constructor(
         rirPolicy = rpeRirPolicy,
         strengthRegistry = strengthPerformanceRegistry
     )
+    private val linkedSquatNextWeekService = com.training.trackplanner.data.v22.BCoachLinkedSquatNextWeekService(
+        db = db,
+        evidenceReader = com.training.trackplanner.data.v22.BCoachSquatShadowEvidenceReader(
+            strengthPosteriorDao, workoutDao, strengthPerformanceRegistry, repetitionCurveRegistry
+        ),
+        rirPolicy = rpeRirPolicy
+    )
+    suspend fun inspectBCoachLinkedSquatNextWeek(
+        targetEntryId: Long
+    ): com.training.trackplanner.data.v22.BCoachLinkedSquatNextWeekProposal =
+        withContext(Dispatchers.IO) { linkedSquatNextWeekService.inspect(targetEntryId) }
+
+    suspend fun approveBCoachLinkedSquatNextWeek(
+        targetEntryId: Long, expectedFingerprint: String
+    ): Boolean = cloudMutation(CloudMutationScope.APPLICATION) {
+        linkedSquatNextWeekService.approve(targetEntryId, expectedFingerprint)
+    }
+
     private val programProgressionService = ProgramProgressionService(db) {
         connectiveTissueAnalysisService.build(System.currentTimeMillis()).loadUnits
             .filter { it.status in setOf(com.training.trackplanner.analysis.tissue.TissueCanonicalStatus.HIGH, com.training.trackplanner.analysis.tissue.TissueCanonicalStatus.VERY_HIGH) }

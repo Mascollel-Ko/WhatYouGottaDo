@@ -31,7 +31,8 @@ class BCoachSquatCurveProgressionRankerTest {
         actualLaterRpe: Double? = 8.0,
         observedLoads: List<Double> = listOf(134.0, 137.0, 140.0),
         actualLoads: List<Double> = listOf(140.0, 140.0, 140.0),
-        actualReps: List<Int> = listOf(5, 5, 5)
+        actualReps: List<Int> = listOf(5, 5, 5),
+        plateOneSideKg: Double = 1.5
     ): BCoachSquatShadowPipelineResult.ShadowReport {
         val capacity = StrengthPosteriorModel.distribution(
             StrengthPosteriorModel.initialState(registry, null),
@@ -57,7 +58,7 @@ class BCoachSquatCurveProgressionRankerTest {
         val input = BCoachSquatEvidenceResult.Ready(evidence)
         val result = BCoachSquatShadowPipeline.evaluate(
             input = input, rirPolicy = policy,
-            smallestPlateOneSideKg = 1.5,
+            smallestPlateOneSideKg = plateOneSideKg,
             targetRirMin = 1.0, targetRirMax = 3.0,
             policies = listOf(BCoachSquatShadowSelector.Weights(
                 0.0, 0.0, 0.0, 1.0, 1.0, 1.0
@@ -145,6 +146,20 @@ class BCoachSquatCurveProgressionRankerTest {
         }
         assertEquals(policy.resolve(8.0)!!.expectedRir,
             checkNotNull(hold.expectedRirGivenSupport), 1e-8)
+    }
+
+    @Test
+    fun `user confirmed 0_75 per side allows 1_5 increment even if old gaps were 2_5`() {
+        val p = pipeline(observedLoads=listOf(137.5, 140.0, 142.5), plateOneSideKg=0.75)
+        val x = BCoachSquatCurveProgressionRanker.evaluate(
+            input=p, targetRirMin=1.0, targetRirMax=3.0,
+            doseTargetSets=3, userConfirmedEquipmentStep=true
+        )
+        assertEquals("CONFIRMED_GRID_HISTORICAL_GAPS_DIFFER", x.status)
+        val increased=x.ranked.single { it.action=="LOAD_UP_ONE_STEP" }
+        assertEquals(141.5, increased.loadKg, 0.0)
+        assertTrue(increased.eligible)
+        assertTrue(x.notes.any { it.contains("Historical load gaps differ") })
     }
 
     @Test

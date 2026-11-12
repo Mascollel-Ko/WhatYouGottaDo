@@ -68,7 +68,8 @@ internal object BCoachSquatCurveProgressionRanker {
         input: BCoachSquatShadowPipelineResult.ShadowReport,
         targetRirMin: Double,
         targetRirMax: Double,
-        doseTargetSets: Int?
+        doseTargetSets: Int?,
+        userConfirmedEquipmentStep: Boolean = false
     ): BCoachSquatCurveProgressionReport {
         require(targetRirMin.isFinite() && targetRirMax.isFinite() &&
             targetRirMin >= 0.0 && targetRirMax > targetRirMin)
@@ -146,7 +147,8 @@ internal object BCoachSquatCurveProgressionRanker {
                 !supported -> "CURVE_OR_RPE_SCENARIO_UNSUPPORTED"
                 action == BCoachSquatRelativeShadow.Action.HOLD -> "OBSERVED_HOLD"
                 !progressEvidence -> "NO_CONFIRMED_ALL_SET_RPE_HEADROOM"
-                action == BCoachSquatRelativeShadow.Action.LOAD_UP_ONE_STEP && gridConflict ->
+                action == BCoachSquatRelativeShadow.Action.LOAD_UP_ONE_STEP &&
+                    gridConflict && !userConfirmedEquipmentStep ->
                     "EQUIPMENT_INCREMENT_REVIEW"
                 action == BCoachSquatRelativeShadow.Action.SETS_UP_ONE &&
                     (doseTargetSets == null || doseTargetSets <= actualSets.size) ->
@@ -181,7 +183,8 @@ internal object BCoachSquatCurveProgressionRanker {
         val status = when {
             !fullReference -> "INSUFFICIENT_CANONICAL_RPE_EVIDENCE"
             !progressEvidence -> "HOLD_ONLY_NO_VERIFIED_RPE_HEADROOM"
-            gridConflict -> "GRID_CONFLICT_SHADOW_REVIEW"
+            gridConflict && !userConfirmedEquipmentStep -> "GRID_CONFLICT_SHADOW_REVIEW"
+            gridConflict && userConfirmedEquipmentStep -> "CONFIRMED_GRID_HISTORICAL_GAPS_DIFFER"
             else -> "EXPERIMENTAL_RANKING_ONLY"
         }
         val rows = ordered.map { work ->
@@ -217,8 +220,12 @@ internal object BCoachSquatCurveProgressionRanker {
                 "Only the reference working set has a modeled RIR; later sets' fatigue is unknown",
                 "Observed confirmed sets do not prove completion of an earlier prescribed program",
                 "Dose set target comes from generated plan structure, not independently validated dose response",
-                if (gridConflict) "Observed weight steps disagree with settings: do not auto-select load increase"
-                else "No equipment-grid conflict detected (not proof of available plates)"
+                when {
+                    gridConflict && userConfirmedEquipmentStep ->
+                        "Historical load gaps differ from the user-confirmed current plate grid; use the declared step for candidate comparison only"
+                    gridConflict -> "Observed weight steps disagree with settings: do not auto-select load increase"
+                    else -> "No historical weight-step mismatch detected (not proof of plate availability)"
+                }
             )
         )
     }
