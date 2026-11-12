@@ -428,17 +428,95 @@ internal fun RecordScreen(
                     onStopRestTimer = restTimerSessionController::stop,
                     programProvenance = {
                         programLinkByEntryId[entryId]?.let { link ->
-                            ProgramRecordProvenance(
-                                link,
-                                pendingSuggestionByEntryId[entryId],
-                                prescriptionsByEntryId[entryId].orEmpty(),
-                                viewModel::resolveProgression
-                            )
+                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                ProgramRecordProvenance(
+                                    link,
+                                    pendingSuggestionByEntryId[entryId],
+                                    prescriptionsByEntryId[entryId].orEmpty(),
+                                    viewModel::resolveProgression
+                                )
+                                if (entryWithSets.entry.exerciseStableKey == "barbell_back_squat") {
+                                    BCoachLinkedSquatNextWeekControl(viewModel, entryWithSets)
+                                }
+                            }
                         }
                     }
                 )
             }
         }
+    }
+}
+
+
+/**
+ * Explicit approval only: the ranking chooses automatically, but does not overwrite plans
+ * while a user merely views the record page. Show only program-linked squat entries.
+ */
+@Composable
+private fun BCoachLinkedSquatNextWeekControl(
+    viewModel: TrainingViewModel,
+    record: WorkoutEntryWithSets
+) {
+    val entryId = record.entry.id
+    var report by remember(entryId) {
+        mutableStateOf<com.training.trackplanner.data.v22.BCoachLinkedSquatNextWeekProposal?>(null)
+    }
+    var busy by remember(entryId) { mutableStateOf(false) }
+    var applied by remember(entryId) { mutableStateOf(false) }
+    LaunchedEffect(entryId, record.entry.date, record.sets) {
+        report = runCatching { viewModel.inspectBCoachLinkedSquatNextWeek(entryId) }.getOrNull()
+    }
+    val proposal = report ?: return
+    if (applied) {
+        Text("B-Coach: 다음 주 스쿼트 계획을 적용했습니다.", style = MaterialTheme.typography.bodySmall)
+        return
+    }
+    if (proposal.canApply) {
+        Column(Modifier.fillMaxWidth().padding(vertical = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Text("B-Coach · 다음 주 스쿼트 후보 (실험)", style = MaterialTheme.typography.labelLarge)
+            Text("${proposal.sourceWeek}주차 실제 기록: ${proposal.sourceText ?: "-"}",
+                style = MaterialTheme.typography.bodySmall)
+            Text("기존 ${proposal.targetWeek}주차: ${proposal.originalPlanText ?: "-"}",
+                style = MaterialTheme.typography.bodySmall)
+            Text("선정: ${proposal.proposedLoadKg}kg × ${proposal.proposedReps}회 × ${proposal.proposedSets}세트" +
+                " (${proposal.selectedAction})", style = MaterialTheme.typography.bodySmall)
+            Text("실제 완료·RPE와 e1RM 곡선을 비교한 잠정 결과입니다. 해당 미완료 운동만 수정합니다.",
+                style = MaterialTheme.typography.bodySmall)
+            Button(
+                enabled = !busy,
+                onClick = {
+                    val hash = proposal.evidenceFingerprint ?: return@Button
+                    busy = true
+                    viewModel.approveBCoachLinkedSquatNextWeek(entryId, hash) { ok ->
+                        busy = false
+                        applied = ok
+                        if (!ok) report = null
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("이번 주차 계획에 적용", maxLines = 1)
+            }
+        }
+    } else if (proposal.status in setOf(
+        "EQUIPMENT_SNAPSHOT_MISSING", "USER_EDIT_PROTECTED", "TARGET_STRUCTURE_CHANGED",
+        "SOURCE_NOT_SUCCESSFUL", "PREVIOUS_WEEK_NOT_FULLY_SUCCESSFUL",
+        "LATEST_CANONICAL_ANCHOR_NOT_LINKED_SOURCE", "SET_COUNT_REQUIRES_REVIEW",
+        "CANONICAL_MODEL_NOT_READY", "PRIOR_EXPLICIT_PROGRESSION_DECISION"
+    )) {
+        val reason = when (proposal.status) {
+            "EQUIPMENT_SNAPSHOT_MISSING" -> "저장된 원판 규격이 없어 자동 계획 변경을 보류합니다."
+            "USER_EDIT_PROTECTED" -> "사용자가 수정한 처방은 자동 변경하지 않습니다."
+            "TARGET_STRUCTURE_CHANGED" -> "세트 구성이나 현재 계획이 변경되어 재검토가 필요합니다."
+            "PREVIOUS_WEEK_NOT_FULLY_SUCCESSFUL" -> "이전 주차 세트·반복·RPE 성공 조건이 충족되지 않았습니다."
+            "LATEST_CANONICAL_ANCHOR_NOT_LINKED_SOURCE" -> "최근 근력 기록이 이 프로그램의 직전 주차와 일치하지 않습니다."
+            "SET_COUNT_REQUIRES_REVIEW" -> "다음 주 계획의 세트 수 변경은 별도 검토가 필요합니다."
+            "CANONICAL_MODEL_NOT_READY" -> "최신 근력 모델 계산을 확인해야 합니다."
+            else -> "이미 진행 결정을 했거나 재검토가 필요합니다."
+        }
+        Text("B-Coach 다음 주 자동 조정 보류: $reason",
+            style = MaterialTheme.typography.bodySmall)
     }
 }
 
