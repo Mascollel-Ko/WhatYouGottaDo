@@ -3,7 +3,7 @@ name: B-Coach Gate G Linked Next Week Progression
 on:
   push:
     branches:
-      - test/b-coach-curve-progression-gate-g-20261112
+      - test/b-coach-linked-next-week-g-20261113
 
 permissions:
   contents: read
