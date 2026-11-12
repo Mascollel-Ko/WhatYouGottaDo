@@ -50,7 +50,9 @@ data class V22GenerationRequest(
     /** Populated only from matched application+entry links; never from raw dates. */
     val linkedDuePlannedSets: Int? = null,
     val linkedConfirmedSets: Int? = null,
-    val linkedEvidenceApplicationId: String? = null
+    val linkedEvidenceApplicationId: String? = null,
+    /** Ephemeral, UI-confirmed plate size for read-only squat shadow; never a prescription override. */
+    val bShadowPlateOneSideKg: Double? = null
 )
 
 /**
@@ -67,7 +69,8 @@ internal fun newBBalancedGenerationRequest(
     blockProgram: BBlockProgramDefinition = BBlockProgramDefinition(),
     allowedWeekdays: Set<Int>? = null,
     fixedWeekdays: Set<Int>? = null,
-    sourceProgramStableKey: String? = null
+    sourceProgramStableKey: String? = null,
+    shadowPlateOneSideKg: Double? = null
 ): V22GenerationRequest = V22GenerationRequest(
     name = name,
     weeks = blockProgram.trainingWeeks,
@@ -80,7 +83,8 @@ internal fun newBBalancedGenerationRequest(
     blockProgram = blockProgram,
     allowedWeekdays = allowedWeekdays,
     fixedWeekdays = fixedWeekdays,
-    sourceProgramStableKey = sourceProgramStableKey
+    sourceProgramStableKey = sourceProgramStableKey,
+    bShadowPlateOneSideKg = shadowPlateOneSideKg
 )
 
 data class V22HistoryRow(
@@ -255,7 +259,9 @@ data class V22GeneratedProgram(
     val plan: V22Plan?,
     val skeleton: GeneratedProgramSkeleton,
     /** Present only for the live B path. [plan] remains the frozen Python-parity comparator. */
-    val balanced12WeekPlan: BBalanced12WeekPlan? = null
+    val balanced12WeekPlan: BBalanced12WeekPlan? = null,
+    /** Transient read-only experiment; never persisted in GeneratedProgramSkeleton. */
+    val squatShadowComparison: BCoachSquatShadowProgramComparison? = null
 )
 
 enum class BBalancedNumericAuthority {
