@@ -5,6 +5,7 @@ import com.training.trackplanner.data.ProgramLoadState
 import com.training.trackplanner.data.ProgramPrescriptionSet
 import com.training.trackplanner.data.ProgramWorkoutLink
 import com.training.trackplanner.data.ProgressionMode
+import com.training.trackplanner.data.ProgressionBase
 import com.training.trackplanner.data.ProgressionSession
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import java.security.MessageDigest
@@ -64,7 +65,7 @@ internal object BCoachLinkedSquatWeekPlanner {
             )
         if (target.entry.exerciseStableKey != SQUAT || targetLink.trackId == "untracked" ||
             targetLink.mode in setOf(ProgressionMode.OFF, ProgressionMode.DIRECT) ||
-            targetLink.needsReview
+            (targetLink.needsReview && targetLink.basePolicy != ProgressionBase.REVIEW)
         ) return result("LINK_OR_MODE_NOT_ELIGIBLE")
         val application = applications.firstOrNull {
             it.id == targetLink.applicationId &&
@@ -105,10 +106,26 @@ internal object BCoachLinkedSquatWeekPlanner {
             }
         ) return result("USER_EDIT_PROTECTED")
 
+        // B programs start with USER_CALIBRATION_REQUIRED, so legacy progression tracks
+        // may be split PER WEEK with basePolicy REVIEW. For those only, match by the
+        // explicit application + original weekday + stableKey, rejecting ambiguity.
+        val targetDuplicates = links.filter { other ->
+            other.applicationId == targetLink.applicationId &&
+                other.weekNumber == targetLink.weekNumber &&
+                other.dayOfWeek == targetLink.dayOfWeek &&
+                byEntry[other.entryId]?.entry?.exerciseStableKey == SQUAT
+        }
+        if (targetDuplicates.size != 1) return result("AMBIGUOUS_SQUAT_OCCURRENCE")
+
         val eligibleSources = links.asSequence().filter { link ->
             link.applicationId == targetLink.applicationId &&
                 link.sourceProgramStableKey == targetLink.sourceProgramStableKey &&
-                link.trackId == targetLink.trackId &&
+                (
+                    link.trackId == targetLink.trackId ||
+                        (targetLink.basePolicy == ProgressionBase.REVIEW &&
+                            link.basePolicy == ProgressionBase.REVIEW)
+                ) &&
+                link.mode == ProgressionMode.APP &&
                 link.dayOfWeek == targetLink.dayOfWeek &&
                 link.weekNumber == targetLink.weekNumber - 1 &&
                 link.sequence < targetLink.sequence
@@ -121,6 +138,7 @@ internal object BCoachLinkedSquatWeekPlanner {
             ) null else Triple(link, record, date)
         }.sortedWith(compareByDescending<Triple<ProgramWorkoutLink, WorkoutEntryWithSets, LocalDate>> { it.first.sequence }
             .thenByDescending { it.third }).toList()
+        if (eligibleSources.size > 1) return result("AMBIGUOUS_LINKED_PREVIOUS_WEEK")
         val source = eligibleSources.firstOrNull() ?: return result("NO_LINKED_PREVIOUS_WEEK")
         val sourceLink = source.first
         val sourceRecord = source.second
