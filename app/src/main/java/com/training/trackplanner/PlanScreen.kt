@@ -786,14 +786,16 @@ private fun ProgramEditorScreen(
                 if (report.experimentCandidates.isEmpty()) appendLine("계산 가능한 후보 없음")
                 report.experimentCandidates.forEach { candidate ->
                     appendLine("${candidate.action}: ${candidate.loadKg}kg×${candidate.reps}회×${candidate.sets}세트" +
-                        " · 목표 RIR 질량 ${candidate.targetRirMass?.let { "%.1f%%".format(it * 100.0) } ?: "불확실"}" +
+                        " · 앵커 RPE기반 RIR 적합질량 ${candidate.targetRirMass?.let { "%.1f%%".format(it * 100.0) } ?: "불확실"}" +
                         " · 후속 미예측 ${candidate.followUpSetsUnmodeled}세트")
                 }
                 appendLine()
-                appendLine("[가중치·RIR 민감도: 후보 선택]")
+                appendLine("※ 위 질량은 마지막 확인 세트의 RPE→RIR 가정에 따른 비중으로, 미래 성공확률이나 수행능력 posterior 확률이 아닙니다.")
+                appendLine("※ HOLD는 최근 확인 140kg 같은 실제 관측 수준 유지이며, 기존 B 생성의 6회 처방과 별개입니다.")
+                appendLine("[가중치·앵커RIR 민감도: 후보 선택]")
                 appendLine("실험계수 1=유지 중심, 2=발전 중심, 3=강도·급증 중심 (목표 RIR 1~3 가정)")
                 report.experiments.forEach { trial ->
-                    appendLine("${trial.scenario} · ${trial.coefficientPolicy}: ${trial.tentativeWinner}")
+                    appendLine("${trial.scenario.replace("CENTRAL_80", "RPE-RIR 중앙80%").replace("CENTRAL_90", "RPE-RIR 중앙90%")} · ${trial.coefficientPolicy}: ${trial.tentativeWinner}")
                 }
                 appendLine()
                 report.notices.forEach { appendLine("• ${it}") }
