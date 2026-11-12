@@ -17,6 +17,7 @@ import com.training.trackplanner.data.ProgramTrainingSlot
 import com.training.trackplanner.data.WorkoutDao
 import com.training.trackplanner.data.ProgramProgressionDao
 import com.training.trackplanner.analysis.strengthperformance.RpeRirPolicy
+import com.training.trackplanner.analysis.strengthperformance.StrengthPerformanceRegistry
 import com.training.trackplanner.data.personalized.BBalancedTaskCatalog
 
 internal class V22ProgramPlanningService(
@@ -27,7 +28,8 @@ internal class V22ProgramPlanningService(
     private val userOverrideDao: ExerciseMetadataUserOverrideDao? = null,
     private val progressionDao: ProgramProgressionDao? = null,
     private val squatShadowReader: BCoachSquatShadowEvidenceReader? = null,
-    private val rirPolicy: RpeRirPolicy? = null
+    private val rirPolicy: RpeRirPolicy? = null,
+    private val strengthRegistry: StrengthPerformanceRegistry? = null
 ) {
     suspend fun generate(request: V22GenerationRequest): V22GeneratedProgram {
         val effectiveRequest = if (request.mode == V22Mode.B && request.blockProgram == null) {
@@ -118,7 +120,26 @@ internal class V22ProgramPlanningService(
                     )
                 }
             }
-        return V22GeneratedProgram(comparator, skeleton, balanced, shadow)
+        // Gate E is informational coverage, not a second B generator or automatic load selector.
+        val otherCoverage = runCatching {
+            val registry = strengthRegistry ?: return@runCatching emptyList()
+            val increments = runCatching {
+                BBlockEquipmentIncrements(
+                    effectiveRequest.bShadowPlateOneSideKg ?: Double.NaN,
+                    effectiveRequest.bShadowDumbbellIncrementKg ?: Double.NaN,
+                    effectiveRequest.bShadowMachineIncrementKg ?: Double.NaN
+                )
+            }.getOrNull()
+            BCoachExerciseShadowCoverage.inspect(
+                asOf = effectiveRequest.asOf,
+                plannedItems = skeleton.items,
+                confirmedHistory = history,
+                registry = registry,
+                exercises = exercises,
+                increments = increments
+            )
+        }.getOrDefault(emptyList())
+        return V22GeneratedProgram(comparator, skeleton, balanced, shadow, otherCoverage)
     }
 }
 
