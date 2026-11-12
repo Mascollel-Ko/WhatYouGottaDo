@@ -46,7 +46,7 @@ internal object BCoachLinkedSquatPlanPatch {
             val nextSet = set.copy(
                 reps = reps, weightKg = kg,
                 loadState = ProgramLoadState.EXPLICIT_LOAD,
-                manualWeight = false
+                manualWeight = true
             )
             val nextTarget = target.copy(
                 plannedReps = reps, plannedKg = kg,
