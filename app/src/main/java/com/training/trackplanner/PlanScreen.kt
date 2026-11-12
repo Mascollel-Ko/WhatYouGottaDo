@@ -784,7 +784,45 @@ private fun ProgramEditorScreen(
                         " · 점수 ${row.optDouble("baselineScore")} → ${row.optDouble("finalScore")}" +
                         "\n${details}"
                 }
-                selectionText + "\n\n[운동·세트 공동 최적화]\n" + jointText
+                val coach = metadata.optJSONArray("coachWholeBlockAudit")
+                val coachText = if (coach == null) "전체 블록 공동 탐색 기록 없음"
+                else (0 until coach.length()).joinToString("\n\n") { index ->
+                    val row = coach.getJSONObject(index)
+                    val evidence = row.optJSONObject("actualEvidence")
+                    val alternatives = row.optJSONArray("alternatives")
+                    val ranked = if (alternatives == null || alternatives.length() == 0) "실행 가능한 대안 기록 없음"
+                        else (0 until alternatives.length()).joinToString("\n") { rank ->
+                            val alt = alternatives.getJSONObject(rank)
+                            val days = alt.optJSONArray("weekdays")
+                            val dayText = if (days == null) "-" else
+                                (0 until days.length()).joinToString("·") {
+                                    listOf("월", "화", "수", "목", "금", "토", "일")[days.getInt(it) - 1]
+                                }
+                            "  " + (rank + 1) + ". " + dayText +
+                                " · " + alt.optString("strategy") +
+                                " · " + alt.optInt("weeklySets") + "세트" +
+                                " · " + "%.1f".format(alt.optDouble("peakMinutes")) + "분" +
+                                " · 점수 " + "%.3f".format(alt.optDouble("score"))
+                        }
+                    val actions = row.optJSONArray("changes")
+                    val changes = if (actions == null || actions.length() == 0) "원안 유지"
+                        else (0 until actions.length()).take(20).joinToString("\n") { actions.getString(it) }
+                    "블록 " + row.optInt("block") + " · 선택 전략 " + row.optString("strategy") +
+                        (if (row.optBoolean("conditionalFuturePlan")) " (미래 조건부 계획)" else "") +
+                        "\n" + row.optString("status") +
+                        "\n평가 후보 " + row.optInt("evaluated") +
+                        " · 점수 " + "%.3f".format(row.optDouble("originalScore")) +
+                        " → " + "%.3f".format(row.optDouble("finalScore")) +
+                        "\n실제 기록 " + (evidence?.optInt("observedSets28d") ?: 0) +
+                        "세트 / 최근 28일, 운동일 " +
+                        (evidence?.optInt("observedTrainingDates28d") ?: 0) +
+                        "일 (계획 완료율은 판정 불가)" +
+                        "\n상위 대안:\n" + ranked +
+                        "\n변경 사항:\n" + changes
+                }
+                "[코치형 블록 최적화]\n" + coachText +
+                    "\n\n[운동 선정]\n" + selectionText +
+                    "\n\n[기존 운동·세트 탐색]\n" + jointText
             }.getOrElse { "운동 선택·세트 최적화 로그를 읽을 수 없습니다. 메타데이터를 확인하세요." }
         } ?: "운동 재선정 로그가 없습니다."
         AlertDialog(
