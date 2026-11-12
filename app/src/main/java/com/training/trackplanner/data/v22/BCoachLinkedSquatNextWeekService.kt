@@ -66,7 +66,8 @@ internal class BCoachLinkedSquatNextWeekService(
         val targetSetCount = dao.prescriptions(targetEntryId).count { it.plannedSetIndex != null }
         val ranking = BCoachSquatCurveProgressionRanker.evaluate(
             input = pipeline, targetRirMin = 1.0, targetRirMax = 3.0,
-            doseTargetSets = targetSetCount.takeIf { it > 0 }
+            doseTargetSets = targetSetCount.takeIf { it > 0 },
+            userConfirmedEquipmentStep = true
         )
         val report = BCoachLinkedSquatWeekPlanner.inspect(
             asOf = asOf,
