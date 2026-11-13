@@ -476,14 +476,15 @@ internal fun RecordScreen(
                                     BCoachLinkedSquatNextWeekControl(viewModel, entryWithSets)
                                 }
                             }
-                            if (entryWithSets.entry.exerciseStableKey == "barbell_back_squat" &&
+                            if (programLinkByEntryId.containsKey(entryId) &&
                                 entryWithSets.sets.isNotEmpty() &&
                                 entryWithSets.sets.all { it.confirmed }
                             ) {
                                 val status = bCoachPostConfirmOutcomes[entryId]
                                 val appliedKg = progressionSuggestions.firstOrNull { suggestion ->
                                     suggestion.sourceEntryId == entryId &&
-                                        suggestion.reasons.startsWith("B_COACH_GATE_H_AUTO_AFTER_CONFIRM") &&
+                                        (suggestion.reasons.startsWith("B_COACH_GATE_H_AUTO_AFTER_CONFIRM") ||
+                                            suggestion.reasons.startsWith("B_COACH_GATE_M_AUTO_AFTER_CONFIRM")) &&
                                         suggestion.resolution == com.training.trackplanner.data.ProgressionResolution.ACCEPTED
                                 }?.suggestedKg
                                 // Existing already-completed sessions from older APKs also need
@@ -517,7 +518,7 @@ private fun BCoachConfirmedSquatProgressionNotice(
     Column(Modifier.fillMaxWidth().padding(vertical = 5.dp),
         verticalArrangement = Arrangement.spacedBy(5.dp)) {
         if (appliedKg != null) {
-            Text("B-Coach · 다음 연결 스쿼트 자동 반영 완료 (${appliedKg}kg)",
+            Text("B-Coach · 연결 운동 중량 자동 반영 완료 (${appliedKg}kg)",
                 style = MaterialTheme.typography.bodySmall)
             if (outcome?.wasApplied == true) {
                 Text("${outcome.nextLoadKg}kg × ${outcome.nextReps}회 × ${outcome.nextSets}세트 · ${outcome.selectedAction}",
@@ -531,7 +532,7 @@ private fun BCoachConfirmedSquatProgressionNotice(
                 "TRACK_EXERCISE_MISMATCH" -> "연결된 다음 운동의 종목이 스쿼트가 아니어서 자동 변경하지 않았습니다."
                 "LINKED_PREDECESSOR_RECORD_MISSING" -> "프로그램 연결에 해당하는 실제 운동기록이 없습니다."
                 "NO_LINKED_PREDECESSOR" -> "계획에서 연결한 이전 운동이 없습니다."
-                "NO_NEXT_LINKED_EXERCISE" -> "계획에서 연결한 다음 스쿼트가 없습니다. 운동 간 연결을 확인하세요."
+                "NO_NEXT_LINKED_EXERCISE" -> "계획에서 연결한 다음 운동이 없습니다. 운동 간 연결을 확인하세요."
                 "AMBIGUOUS_LINKED_SEQUENCE" -> "연결된 운동의 순서가 중복되어 다음 운동을 특정할 수 없습니다."
                 "EQUIPMENT_SNAPSHOT_MISSING" -> "이전 버전의 프로그램에 원판 간격이 저장돼 있지 않습니다. 새 B 프로그램이 필요합니다."
                 "PREVIOUS_WEEK_NOT_FULLY_SUCCESSFUL" -> "기록한 세트가 프로그램 목표를 모두 달성하지 못했습니다."
@@ -548,17 +549,26 @@ private fun BCoachConfirmedSquatProgressionNotice(
                 "LINKED_TARGET_REP_SCHEME_REVIEW" ->
                     "연결된 다음 운동의 목표 반복 수가 달라 자동 덮어쓰지 않았습니다."
                 "RANKING_NOT_AVAILABLE" -> "중량·반복·세트 후보를 선정할 근거가 부족합니다."
+                "NONMAIN_FIRST_SESSION_ONLY" -> "보조 운동은 첫 연결 세션의 중량만 이후 주차로 전달합니다."
+                "WAITING_FOR_CONFIRMED_WEIGHT_SETS" -> "모든 세트의 확정 중량·반복 기록이 필요합니다."
+                "MAIN_RPE_OR_REPS_REQUIRED" -> "메인 운동의 RPE와 반복 수를 기록해야 e1RM·RIR을 계산할 수 있습니다."
+                "MAIN_RIR_REVIEW_REQUIRED" -> "연결된 메인 운동의 다음 반복 구조를 검토해야 합니다."
+                "WEIGHTED_PULLUP_BODYWEIGHT_REQUIRED" -> "중량 풀업의 체중·추가중량 합산 근거가 필요합니다. 임의로 외부중량 모델을 적용하지 않습니다."
+                "SOURCE_NON_UNIFORM_LOAD_REVIEW" -> "한 운동 안에서 세트별 중량 또는 반복이 달라 단일 중량을 임의로 전달하지 않습니다."
+                "USER_EDIT_OR_STRUCTURE_PROTECTED" -> "다음 운동의 사용자 수정 내용과 세트 구성을 보호했습니다."
+                "NO_UNMODIFIED_FUTURE_TARGET" -> "미완료·미수정된 연결 운동이 없습니다."
                 "PRIOR_EXPLICIT_PROGRESSION_DECISION" ->
                     "다음 연결 운동에 이미 확정된 진행 결정을 보호했습니다."
                 "STALE_OR_EDITED_TARGET" -> "계산 후 기록이 변경되어 자동 적용을 취소했습니다."
                 else -> "안전 조건을 충족하지 않아 자동 반영을 보류했습니다 (${outcome.status})."
             }
-            Text("B-Coach · 다음 연결 운동 조정 보류: $explanation",
+            Text("B-Coach · 연결 운동 중량 검토: $explanation",
                 style = MaterialTheme.typography.bodySmall)
         } else {
             Text("B-Coach · 이 완료 기록으로 다음 연결 운동의 계획을 평가할 수 있습니다.",
                 style = MaterialTheme.typography.bodySmall)
         }
+        outcome?.detail?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
         if (appliedKg == null) {
             OutlinedButton(onClick = retry, modifier = Modifier.fillMaxWidth()) {
                 Text("다음 연결 운동 재평가", maxLines = 1)

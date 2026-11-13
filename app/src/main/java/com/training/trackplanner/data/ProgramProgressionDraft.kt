@@ -54,10 +54,14 @@ internal fun ProgramExecutionDraft.reconcileProgression(
     eligibleKeys: Set<String>, oneRmSnapshots: Map<String, Double> = emptyMap(),
     bUncalibratedAuto: Boolean = false
 ): ProgramExecutionDraft {
+    // B links all generated exercise occurrences, including task-based and
+    // bodyweight movements, without forcing an e1RM or artificial external kg.
+    val effectiveEligibleKeys = if (bUncalibratedAuto)
+        eligibleKeys + items.map { it.exerciseStableKey } else eligibleKeys
     val sessions = progressionSessions.associateBy { it.key }.toMutableMap()
     val assigned = mutableListOf<ProgramSkeletonItem>()
     for (item in items.sortedWith(compareBy({ it.weekNumber }, { it.dayOfWeek }, { it.orderIndex }))) {
-        if (item.exerciseStableKey !in eligibleKeys) {
+        if (item.exerciseStableKey !in effectiveEligibleKeys) {
             assigned += item.copy(progressionBinding = null)
             continue
         }
@@ -68,12 +72,13 @@ internal fun ProgramExecutionDraft.reconcileProgression(
             slot = item.trainingSlot, intensity = item.dayIntensity, anchor = item.progressionAnchorSetIndex).copy(plannerRole = item.progressionRole)
         val oldSession = old?.let { sessions[it.sessionKey] ?: error("Missing draft progression session") }
         require(oldSession == null || oldSession.track.exerciseStableKey == item.exerciseStableKey)
-        val candidate = assigned.mapNotNull { it.progressionBinding }.firstOrNull {
-            it.linkMode == ProgressionLinkMode.AUTO &&
-                (ProgressionTrackInference.sameTrack(it.signature, signature) ||
-                    (bUncalibratedAuto &&
-                        BCoachUncalibratedLinkPolicy.sameUncalibratedIntent(it.signature, signature)))
-        }
+        val candidate = assigned.firstOrNull { earlier ->
+            val binding = earlier.progressionBinding
+            binding != null && binding.linkMode == ProgressionLinkMode.AUTO &&
+                (ProgressionTrackInference.sameTrack(binding.signature, signature) ||
+                    (bUncalibratedAuto && BCoachUncalibratedLinkPolicy.sameBRepeatedExercise(
+                        binding.signature, signature, earlier.dayOfWeek, item.dayOfWeek)))
+        }?.progressionBinding
         // Only change a provisional B AUTO session if an *earlier* compatible
         // session is now available. Once joined, repeated reconciliation is stable.
         // Explicit and previously persisted identities always take precedence.
@@ -149,12 +154,16 @@ internal fun ProgramExecutionDraft.configureProgressionSession(
     val selected = when (linkMode) {
         ProgressionLinkMode.EXISTING -> progressionSessions.single { it.key == selectedKey }
         ProgressionLinkMode.SEPARATE -> original.copy(track = original.track.copy(id = UUID.randomUUID().toString()))
-        ProgressionLinkMode.AUTO -> items.mapNotNull { it.progressionBinding }.firstOrNull {
-            it.logicalItemId != binding.logicalItemId && it.linkMode == ProgressionLinkMode.AUTO &&
-                (ProgressionTrackInference.sameTrack(it.signature, binding.signature) ||
-                    (bUncalibratedAuto &&
-                        BCoachUncalibratedLinkPolicy.sameUncalibratedIntent(it.signature, binding.signature)))
-        }?.let { other -> progressionSessions.single { it.key == other.sessionKey } } ?: original
+        ProgressionLinkMode.AUTO -> items.firstOrNull { earlier ->
+            val other = earlier.progressionBinding
+            earlier.localId != localId && other != null &&
+                other.linkMode == ProgressionLinkMode.AUTO &&
+                (ProgressionTrackInference.sameTrack(other.signature, binding.signature) ||
+                    (bUncalibratedAuto && BCoachUncalibratedLinkPolicy.sameBRepeatedExercise(
+                        other.signature, binding.signature, earlier.dayOfWeek, item.dayOfWeek)))
+        }?.progressionBinding?.let { other ->
+            progressionSessions.single { it.key == other.sessionKey }
+        } ?: original
         ProgressionLinkMode.OFF -> original
     }
     require(selected.track.exerciseStableKey == item.exerciseStableKey) { "Progression sessions require the same exact exercise key" }

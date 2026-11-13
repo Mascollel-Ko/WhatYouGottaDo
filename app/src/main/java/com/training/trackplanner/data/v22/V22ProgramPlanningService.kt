@@ -85,6 +85,12 @@ internal class V22ProgramPlanningService(
                 val metadata = org.json.JSONObject(baseSkeleton.planningMetadataJson ?: "{}")
                 metadata.put("bCoachProgressionEquipmentSchema", "linked-g-1")
                 metadata.put("bCoachPlateOneSideKg", plate)
+                effectiveRequest.bShadowDumbbellIncrementKg
+                    ?.takeIf { it.isFinite() && it in 0.1..50.0 }
+                    ?.let { metadata.put("bCoachDumbbellIncrementKg", it) }
+                effectiveRequest.bShadowMachineIncrementKg
+                    ?.takeIf { it.isFinite() && it in 0.1..100.0 }
+                    ?.let { metadata.put("bCoachMachineIncrementKg", it) }
                 baseSkeleton.copy(planningMetadataJson = metadata.toString())
             } ?: baseSkeleton
         // Gate D is strictly a side-channel. No exception, missing posterior, or score may

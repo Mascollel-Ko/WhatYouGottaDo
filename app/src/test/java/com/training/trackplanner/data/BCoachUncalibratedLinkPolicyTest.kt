@@ -48,6 +48,18 @@ class BCoachUncalibratedLinkPolicyTest {
             signature(role=ProgressionRole.ASSISTANCE)))
     }
 
+    @Test fun BRepeatedExerciseLinksDifferentWeekRepsButNeverCrossesWeekdayOrRole() {
+        val one = signature(key="dumbbell_calf_raise",reps="6|6|6")
+        val two = signature(key="dumbbell_calf_raise",reps="10|10|10")
+        assertTrue(BCoachUncalibratedLinkPolicy.sameBRepeatedExercise(one,two,1,1))
+        assertFalse(BCoachUncalibratedLinkPolicy.sameBRepeatedExercise(one,two,1,3))
+        assertFalse(BCoachUncalibratedLinkPolicy.sameBRepeatedExercise(one,
+            signature(key="dumbbell_calf_raise",reps="10|10|10",
+                role=ProgressionRole.MAIN),1,1))
+        assertFalse(BCoachUncalibratedLinkPolicy.sameBRepeatedExercise(one,
+            signature(key="dumbbell_other_calf_raise",reps="10|10|10"),1,1))
+    }
+
     @Test fun `weighted and unweighted tracks never auto-collapse`() {
         assertFalse(BCoachUncalibratedLinkPolicy.sameUncalibratedIntent(signature(),
             signature(policy=ProgressionBase.UNIFORM,base=135.0)))
