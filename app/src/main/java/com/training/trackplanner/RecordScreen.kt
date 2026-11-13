@@ -516,12 +516,18 @@ private fun BCoachConfirmedSquatProgressionNotice(
     // Visible on the confirmed source workout, not hidden in a future linked workout.
     Column(Modifier.fillMaxWidth().padding(vertical = 5.dp),
         verticalArrangement = Arrangement.spacedBy(5.dp)) {
-        if (appliedKg != null) {
-            Text("B-Coach · 다음 연결 운동 자동 반영 완료 (${appliedKg}kg)",
+        if (appliedKg != null || outcome?.wasApplied == true) {
+            val kg = appliedKg ?: outcome?.nextLoadKg
+            Text("B-Coach · 다음 연결 운동 자동 반영 완료 (${kg ?: "-"}kg)",
                 style = MaterialTheme.typography.bodySmall)
             if (outcome?.wasApplied == true) {
-                Text("${outcome.nextLoadKg}kg × ${outcome.nextReps}회 × ${outcome.nextSets}세트 · ${outcome.selectedAction}",
-                    style = MaterialTheme.typography.bodySmall)
+                if (outcome.selectedAction == "FIRST_WEEK_HOLD") {
+                    Text("일반 운동 · 첫 주 중량 유지 · ${outcome.detail.orEmpty()}",
+                        style = MaterialTheme.typography.bodySmall)
+                } else {
+                    Text("${outcome.nextLoadKg}kg × ${outcome.nextReps}회 × ${outcome.nextSets}세트 · ${outcome.selectedAction}",
+                        style = MaterialTheme.typography.bodySmall)
+                }
             }
         } else if (outcome != null) {
             val explanation = when (outcome.status) {
@@ -564,7 +570,7 @@ private fun BCoachConfirmedSquatProgressionNotice(
             Text("B-Coach · 이 완료 기록으로 다음 연결 운동의 계획을 평가할 수 있습니다.",
                 style = MaterialTheme.typography.bodySmall)
         }
-        if (appliedKg == null) {
+        if (appliedKg == null && outcome?.wasApplied != true) {
             OutlinedButton(onClick = retry, modifier = Modifier.fillMaxWidth()) {
                 Text("다음 연결 운동 재평가", maxLines = 1)
             }
