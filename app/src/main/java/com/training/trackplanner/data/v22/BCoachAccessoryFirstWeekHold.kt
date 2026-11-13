@@ -97,11 +97,15 @@ internal class BCoachAccessoryFirstWeekHoldService(private val db: TrainingDatab
                 detail = if (changed > 0) "$changed future linked occurrences" else null
             )
             val link = dao.link(sourceEntryId) ?: return@withTransaction result("SOURCE_NOT_PROGRAM_LINKED")
-            if (link.mode != ProgressionMode.APP || link.role == com.training.trackplanner.data.ProgressionRole.MAIN)
+            if (link.mode != ProgressionMode.APP)
                 return@withTransaction result("NOT_ACCESSORY")
             val program = db.programDao().findProgramByStableKey(link.sourceProgramStableKey)
             if (!BCoachUncalibratedLinkPolicy.isBProgram(program?.planningMetadataJson))
                 return@withTransaction result("NOT_B_COACH")
+            val sourceExercise = workouts.findEntryById(sourceEntryId)?.exerciseStableKey
+                ?: return@withTransaction result("SOURCE_MISSING")
+            if (BCoachMainPolicy.canChangeLoad(link.role, sourceExercise,
+                    program?.planningMetadataJson)) return@withTransaction result("NOT_ACCESSORY")
             val entries = workouts.allEntriesWithSets()
             val source = entries.singleOrNull { it.entry.id == sourceEntryId }
                 ?: return@withTransaction result("SOURCE_MISSING")
