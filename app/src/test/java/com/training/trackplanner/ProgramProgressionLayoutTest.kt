@@ -59,7 +59,7 @@ class ProgramProgressionLayoutTest {
         val keep = compose.onNodeWithTag("progression-keep").getUnclippedBoundsInRoot()
         assertTrue(keep.top > apply.top)
         compose.runOnIdle { settings.value = true }
-        for (label in listOf("진행 세션", "자동으로 연결", "새 진행 세션", "연결하지 않음")) {
+        for (label in listOf("운동 간 연결", "앱에 연결 판단 맡기기", "새 독립 세션 만들기", "중량 자동 연동 끄기")) {
             compose.onNodeWithText(label).performScrollTo().assertIsDisplayed()
             assertSingleLineWithin(label, width)
         }
@@ -85,13 +85,34 @@ class ProgramProgressionLayoutTest {
             }
         }
         compose.onNodeWithTag("progression-session-control").assertIsDisplayed().performClick()
-        compose.onNodeWithText("새 진행 세션").performScrollTo().performClick()
+        compose.onNodeWithText("새 독립 세션 만들기").performScrollTo().performClick()
         compose.onNodeWithTag("progression-save").performScrollTo().performClick()
         compose.runOnIdle {
             assertNotEquals(original, draft.value.sessionKey("item-0"))
             assertEquals(ProgressionLinkMode.SEPARATE, draft.value.items.single { it.localId == "item-0" }.progressionBinding!!.linkMode)
         }
     }
+    @Test fun draftSheetShowsWhichWeeksAreActuallyInSameTrack() {
+        val draft = mutableStateOf(manualSessionDraft(0.0).copy(
+            planningMetadataJson = """{"bCoachProgressionEquipmentSchema":"linked-g-1"}"""
+        ).reconcileProgression(setOf("squat", "bench")))
+        compose.setContent {
+            TrainingTrackPlannerTheme {
+                Box(Modifier.width(360.dp)) {
+                    ProgressionDraftControl(draft.value.items.single { it.localId == "item-0" }, draft.value) {
+                        draft.value = it
+                    }
+                }
+            }
+        }
+        compose.onNodeWithTag("progression-session-control").performClick()
+        compose.onNodeWithText("수정 중인 운동: 1주차 월요일", substring = true).assertExists()
+        compose.onAllNodesWithText("연결 순서: 1주차 월요일 → 1주차 수요일 → 1주차 금요일",
+            substring = true).onFirst().assertExists()
+        compose.onAllNodesWithText("1주차 월요일 시작 · 3개", substring = true).onFirst().assertExists()
+        compose.onNodeWithText("같은 운동·훈련 구성을 기준으로 자동 분류합니다.", substring = true).assertExists()
+    }
+
     private fun assertSingleLineWithin(label: String, width: Int) {
         val node = compose.onNodeWithText(label, useUnmergedTree = true)
         val bounds = node.getUnclippedBoundsInRoot()

@@ -87,6 +87,50 @@ class ProgramProgressionDraftTest {
         assertEquals(ProgressionAuthority.USER_EXPLICIT, draft.progressionSessions.single { it.key == key }.source)
         assertEquals(ProgressionRole.ASSISTANCE, draft.session("item-2").role)
     }
+    @Test fun bPreviewClearlyLinksAllFourMatchingWeeksAndRemainsStable() {
+        val original = manualSessionDraft(0.0)
+        val squat = original.items.first { it.exerciseStableKey == "squat" }
+        val bench = original.items.single { it.localId == "bench" }
+        val draft = original.copy(
+            items = (1..4).map { week ->
+                squat.copy(
+                    localId = "week-$week", weekNumber = week, dayOfWeek = 1,
+                    progressionBinding = null
+                )
+            } + bench.copy(progressionBinding = null),
+            progressionSessions = emptyList(),
+            planningMetadataJson = """{"bCoachProgressionEquipmentSchema":"linked-g-1"}"""
+        ).reconcileProgression(setOf("squat", "bench"))
+        val weekIds = (1..4).map { draft.sessionKey("week-$it") }
+        assertEquals(1, weekIds.distinct().size)
+        assertNotEquals(weekIds.first(), draft.sessionKey("bench"))
+
+        // The editor recomputes its draft repeatedly. Track identity must not change.
+        val recomputed = draft.reconcileProgression(setOf("squat", "bench"))
+        assertEquals(draft, recomputed)
+        val recomputedAgain = recomputed.reconcileProgression(setOf("squat", "bench"))
+        assertEquals(recomputed, recomputedAgain)
+
+        // A deliberate separate choice must remain separate from weeks 1/3/4.
+        val separate = recomputed.configureProgressionSession(
+            "week-2", ProgressionLinkMode.SEPARATE, null,
+            ProgressionRole.MAIN, ProgressionMode.APP, ProgressionRule()
+        )
+        assertNotEquals(separate.sessionKey("week-1"), separate.sessionKey("week-2"))
+        assertEquals(separate.sessionKey("week-1"), separate.sessionKey("week-3"))
+        assertEquals(separate.sessionKey("week-1"), separate.sessionKey("week-4"))
+    }
+
+    @Test fun oldNonBUncalibratedPreviewStillDoesNotMergeAutomatically() {
+        val original = manualSessionDraft(0.0)
+        val originalSquats = original.items.filter { it.exerciseStableKey == "squat" }
+            .mapNotNull { it.progressionBinding?.sessionKey }
+        assertEquals(3, originalSquats.distinct().size)
+        val again = original.reconcileProgression(setOf("squat", "bench"))
+        assertEquals(3, again.items.filter { it.exerciseStableKey == "squat" }
+            .mapNotNull { it.progressionBinding?.sessionKey }.distinct().size)
+    }
+
     @Test fun automaticClassifierAndGeneratedDriftRemainUnchanged() {
         val a = ProgressionTrackInference.signature("squat", List(3) { ProgramSetPrescription(it + 1, 5, 100.0, 0) })
         assertFalse(ProgressionTrackInference.sameTrack(a, a.copy(setCount = 4)))

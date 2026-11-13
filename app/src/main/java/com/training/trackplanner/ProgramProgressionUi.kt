@@ -18,34 +18,50 @@ import com.training.trackplanner.localization.localizedWeekday
 
 @Composable
 internal fun ProgressionDraftControl(item: ProgramSkeletonItem, skeleton: GeneratedProgramSkeleton, onChange: (GeneratedProgramSkeleton) -> Unit) {
-    ProgressionDraftControl(item, skeleton.executionDraft()) { onChange(skeleton.withExecutionDraft(it)) }
+    ProgressionDraftControl(
+        item, skeleton.executionDraft(),
+        bUncalibratedAuto = BCoachUncalibratedLinkPolicy.isBProgram(skeleton.planningMetadataJson)
+    ) { onChange(skeleton.withExecutionDraft(it)) }
 }
 
 @Composable
-internal fun ProgressionDraftControl(item: ProgramSkeletonItem, skeleton: ProgramExecutionDraft, onChange: (ProgramExecutionDraft) -> Unit) {
+internal fun ProgressionDraftControl(
+    item: ProgramSkeletonItem,
+    skeleton: ProgramExecutionDraft,
+    bUncalibratedAuto: Boolean = false,
+    onChange: (ProgramExecutionDraft) -> Unit
+) {
     var show by remember { mutableStateOf(false) }
     val binding = item.progressionBinding ?: return
     val track = skeleton.progressionSessions.single { it.key == binding.sessionKey }.track
     val options = skeleton.progressionSessions.filter { it.track.exerciseStableKey == item.exerciseStableKey }.map { session ->
-        val members = skeleton.items.filter { it.progressionBinding?.sessionKey == session.key }
-        ProgressionSessionOption(session.track, sessionSummary(item.exerciseStableKey, item.exerciseName, session.track,
-            members.map { ProgramSetPrescriptionResolver.resolve(it) }),
-            members.map { it.dayOfWeek }.distinct().sorted().map { localizedWeekday(java.time.DayOfWeek.of(it)) }.joinToString(" · "))
+        val inSession = skeleton.items.filter { it.progressionBinding?.sessionKey == session.key }
+        val positions = inSession.map { Triple(it.weekNumber, it.dayOfWeek, it.orderIndex) }
+        ProgressionSessionOption(
+            session.track,
+            ProgressionSessionLabels.title(item.exerciseName, positions),
+            "연결 순서: ${ProgressionSessionLabels.members(positions)}"
+        )
     }
     val members = skeleton.items.filter { it.progressionBinding?.sessionKey == binding.sessionKey }
         .sortedWith(compareBy({ it.weekNumber }, { it.dayOfWeek }, { it.orderIndex }))
     val i = members.indexOfFirst { it.localId == item.localId }
     val detail = if (binding.linkMode == ProgressionLinkMode.OFF) "중량 연동 꺼짐"
         else if (members.size == 1) "단독 세션 · 다른 운동과 연결되지 않음"
-        else "연결 ${i + 1}/${members.size} · 앞 ${members.getOrNull(i - 1)?.let { "${it.weekNumber}주차 ${it.dayOfWeek}일" } ?: "없음"} · 뒤 ${members.getOrNull(i + 1)?.let { "${it.weekNumber}주차 ${it.dayOfWeek}일" } ?: "없음"}"
+        else "연결 ${i + 1}/${members.size} · 이전 ${members.getOrNull(i - 1)?.let { ProgressionSessionLabels.occurrence(it.weekNumber, it.dayOfWeek, it.orderIndex) } ?: "없음"} · 다음 ${members.getOrNull(i + 1)?.let { ProgressionSessionLabels.occurrence(it.weekNumber, it.dayOfWeek, it.orderIndex) } ?: "없음"}"
     ProgressionSummaryRow(options.single { it.track.id == track.id }.label,
         track.needsReview, binding.linkMode == ProgressionLinkMode.OFF, detail) { show = true }
     if (show) ProgressionSettingsSheet(track,
         ProgramProgressionItem(0, binding.logicalItemId, track.id, binding.linkMode, binding.signature),
         options.map { it.track }, onDismiss = { show = false }, onSave = { link, target, role, mode, rule ->
-            onChange(skeleton.configureProgressionSession(item.localId, link, target, role, mode, rule))
+            onChange(skeleton.configureProgressionSession(
+                item.localId, link, target, role, mode, rule,
+                bUncalibratedAuto = bUncalibratedAuto
+            ))
             show = false
-        }, sessionOptions = options)
+        }, sessionOptions = options,
+        currentOccurrence = ProgressionSessionLabels.occurrence(item.weekNumber, item.dayOfWeek, item.orderIndex),
+        currentMembership = options.firstOrNull { it.track.id == track.id }?.membership.orEmpty())
 }
 
 internal data class ProgressionSessionOption(val track: ProgramProgressionTrack, val label: String, val membership: String = "")
@@ -140,15 +156,15 @@ internal fun ProgressionTrackControl(
     val item = index.itemById[itemId] ?: return
     val sessions = index.tracksByProgramAndExercise[track.programStableKey to track.exerciseStableKey].orEmpty()
     val options = sessions.mapNotNull { session ->
-        val members = index.membersByTrackId[session.id].orEmpty()
-        if (members.isEmpty()) null else ProgressionSessionOption(
-            session,
-            sessionSummary(item.exerciseStableKey, item.exerciseName, session, members.map { member ->
-                ProgramSetPrescriptionResolver.resolve(member, index.setsByItemId[member.id].orEmpty())
-            }),
-            members.map { it.dayOfWeek }.distinct().sorted()
-                .map { localizedWeekday(java.time.DayOfWeek.of(it)) }.joinToString(" · ")
-        )
+        val inSession = index.membersByTrackId[session.id].orEmpty()
+        if (inSession.isEmpty()) null else {
+            val positions = inSession.map { Triple(it.weekNumber, it.dayOfWeek, it.orderIndex) }
+            ProgressionSessionOption(
+                session,
+                ProgressionSessionLabels.title(item.exerciseName, positions),
+                "연결 순서: ${ProgressionSessionLabels.members(positions)}"
+            )
+        }
     }
     var show by remember { mutableStateOf(false) }
     val linked = index.membersByTrackId[track.id].orEmpty()
@@ -159,8 +175,8 @@ internal fun ProgressionTrackControl(
         linkedAt < 0 -> "연결 확인 필요"
         linked.size == 1 -> "단독 세션 · 다음 연결 운동 없음 · 탭하여 연결"
         else -> "연결 세션 ${linkedAt + 1}/${linked.size} · " +
-            "이전 ${linked.getOrNull(linkedAt - 1)?.let { "${it.weekNumber}주차 ${it.dayOfWeek}일" } ?: "없음"} · " +
-            "다음 ${linked.getOrNull(linkedAt + 1)?.let { "${it.weekNumber}주차 ${it.dayOfWeek}일" } ?: "없음"}"
+            "이전 ${linked.getOrNull(linkedAt - 1)?.let { ProgressionSessionLabels.occurrence(it.weekNumber, it.dayOfWeek, it.orderIndex) } ?: "없음"} · " +
+            "다음 ${linked.getOrNull(linkedAt + 1)?.let { ProgressionSessionLabels.occurrence(it.weekNumber, it.dayOfWeek, it.orderIndex) } ?: "없음"}"
     }
     ProgressionSummaryRow(options.firstOrNull { it.track.id == track.id }?.label ?: item.exerciseName,
         track.needsReview, binding.linkMode == ProgressionLinkMode.OFF, relation) { show = true }
@@ -168,23 +184,31 @@ internal fun ProgressionTrackControl(
         onDismiss = { show = false }, onSave = { link, id, role, mode, rule ->
             onConfigure(itemId, link, id, role, mode, rule)
             show = false
-        }, sessionOptions = options)
+        }, sessionOptions = options,
+        currentOccurrence = ProgressionSessionLabels.occurrence(item.weekNumber, item.dayOfWeek, item.orderIndex),
+        currentMembership = options.firstOrNull { it.track.id == track.id }?.membership.orEmpty())
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ProgressionSettingsSheet(track: ProgramProgressionTrack, binding: ProgramProgressionItem, tracks: List<ProgramProgressionTrack>,
     onDismiss: () -> Unit, onSave: (ProgressionLinkMode, String?, ProgressionRole, ProgressionMode, ProgressionRule) -> Unit,
-    sessionOptions: List<ProgressionSessionOption> = tracks.map { ProgressionSessionOption(it, it.label) }) {
+    sessionOptions: List<ProgressionSessionOption> = tracks.map { ProgressionSessionOption(it, it.label) },
+    currentOccurrence: String = "",
+    currentMembership: String = ""
+) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        ProgressionSettingsContent(track, binding, tracks, sessionOptions, onSave)
+        ProgressionSettingsContent(track, binding, tracks, sessionOptions, currentOccurrence, currentMembership, onSave)
     }
 }
 
 @Composable
 internal fun ProgressionSettingsContent(track: ProgramProgressionTrack, binding: ProgramProgressionItem, tracks: List<ProgramProgressionTrack>,
     sessionOptions: List<ProgressionSessionOption> = tracks.map { ProgressionSessionOption(it, it.label) },
-    onSave: (ProgressionLinkMode, String?, ProgressionRole, ProgressionMode, ProgressionRule) -> Unit) {
+    currentOccurrence: String = "",
+    currentMembership: String = "",
+    onSave: (ProgressionLinkMode, String?, ProgressionRole, ProgressionMode, ProgressionRule) -> Unit
+) {
     var link by remember { mutableStateOf(if (binding.linkMode == ProgressionLinkMode.SEPARATE) ProgressionLinkMode.EXISTING else binding.linkMode) }
     var target by remember { mutableStateOf(track.id) }
     var role by remember { mutableStateOf(track.roleOverride) }
@@ -215,13 +239,64 @@ internal fun ProgressionSettingsContent(track: ProgramProgressionTrack, binding:
             successesRequired = successes.toInt(), failuresBeforeDecrease = failures.toInt(), decreasePercent = decrease.toDouble()).also { it.validate() }
     }.getOrNull()
     Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        MaterialText(stringResource(R.string.progression_settings), style = MaterialTheme.typography.titleLarge, maxLines = 1)
-        ProgressionSessionChoice(stringResource(R.string.progression_auto_connect), selected = link == ProgressionLinkMode.AUTO, tag = "progression-choice-AUTO") { link = ProgressionLinkMode.AUTO }
-        sessionOptions.filter { it.track.exerciseStableKey == track.exerciseStableKey }.forEach { option ->
-            ProgressionSessionChoice(option.label, option.membership, link == ProgressionLinkMode.EXISTING && target == option.track.id, dynamic = true, tag = "progression-choice-${option.track.id}") { selectSession(option.track) }
+        MaterialText("운동 간 연결", style = MaterialTheme.typography.titleLarge)
+        if (currentOccurrence.isNotBlank()) {
+            MaterialText("수정 중인 운동: $currentOccurrence",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary)
         }
-        ProgressionSessionChoice(stringResource(R.string.progression_separate), selected = link == ProgressionLinkMode.SEPARATE, tag = "progression-choice-SEPARATE") { link = ProgressionLinkMode.SEPARATE }
-        ProgressionSessionChoice(stringResource(R.string.progression_disconnected), selected = link == ProgressionLinkMode.OFF, tag = "progression-choice-OFF") { link = ProgressionLinkMode.OFF }
+        if (currentMembership.isNotBlank()) {
+            MaterialText("현재 화면의 연결 · $currentMembership",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface)
+        } else {
+            MaterialText("현재 세션의 연결된 주차 정보를 확인할 수 없습니다.",
+                style = MaterialTheme.typography.bodySmall)
+        }
+        MaterialText(
+            "이 화면의 주차·요일은 프로그램상의 위치입니다. 실제 11월 13일 같은 날짜는 시작일 적용 후 기록에서 확인합니다.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        HorizontalDivider()
+        MaterialText("어떻게 연결할까요?", style = MaterialTheme.typography.titleMedium)
+        ProgressionSessionChoice(
+            "앱에 연결 판단 맡기기",
+            "같은 운동·훈련 구성을 기준으로 자동 분류합니다. 연결을 보장하지 않으며, 실제 연결 결과는 위 목록에서 확인하세요.",
+            selected = link == ProgressionLinkMode.AUTO, tag = "progression-choice-AUTO"
+        ) { link = ProgressionLinkMode.AUTO }
+        MaterialText("기존 진행 세션에 직접 연결",
+            style = MaterialTheme.typography.labelLarge)
+        sessionOptions.filter { it.track.exerciseStableKey == track.exerciseStableKey }.forEach { option ->
+            val current = option.track.id == track.id
+            ProgressionSessionChoice(
+                (if (current) "현재 세션 · " else "다른 세션 · ") + option.label,
+                option.membership,
+                selected = link == ProgressionLinkMode.EXISTING && target == option.track.id,
+                dynamic = true, tag = "progression-choice-${option.track.id}"
+            ) { selectSession(option.track) }
+        }
+        ProgressionSessionChoice(
+            "새 독립 세션 만들기",
+            "이 운동을 기존 연결에서 분리합니다. 이후 같은 세션의 중량 변동을 자동으로 이어받지 않습니다.",
+            selected = link == ProgressionLinkMode.SEPARATE, tag = "progression-choice-SEPARATE"
+        ) { link = ProgressionLinkMode.SEPARATE }
+        ProgressionSessionChoice(
+            "중량 자동 연동 끄기",
+            "이 운동을 프로그램에는 남기되 연결에 의한 자동 조정을 끕니다.",
+            selected = link == ProgressionLinkMode.OFF, tag = "progression-choice-OFF"
+        ) { link = ProgressionLinkMode.OFF }
+        val selectionPreview = when (link) {
+            ProgressionLinkMode.AUTO -> "앱이 연결을 판단합니다. 자동 연결이 실제로 성립했는지는 저장 후 다시 확인하세요."
+            ProgressionLinkMode.EXISTING -> sessionOptions.firstOrNull { it.track.id == target }
+                ?.membership?.let { "선택 예정: $it" } ?: "선택할 세션의 구성 확인 필요"
+            ProgressionLinkMode.SEPARATE -> "이 운동을 독립적인 진행 세션으로 분리합니다."
+            ProgressionLinkMode.OFF -> "이 운동의 중량 자동 연동을 해제합니다."
+        }
+        MaterialText(selectionPreview,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.primary)
+        HorizontalDivider()
         ProgramDropdown(stringResource(R.string.progression_role), role, ProgressionRole.entries, { roleLabels.getValue(it) }, { role = it })
         ProgramDropdown(stringResource(R.string.progression_mode), mode, ProgressionMode.entries, { modeLabels.getValue(it) }, { mode = it })
         if (mode == ProgressionMode.CUSTOM) {
@@ -250,8 +325,8 @@ internal fun ProgressionSessionChoice(label: String, membership: String = "", se
     Row(Modifier.fillMaxWidth().testTag(tag).selectable(selected, onClick = onClick), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
         RadioButton(selected, onClick = null)
         Column(Modifier.weight(1f).padding(vertical = 10.dp, horizontal = 8.dp)) {
-            MaterialText(label, maxLines = 1, overflow = if (dynamic) TextOverflow.Ellipsis else TextOverflow.Clip)
-            if (membership.isNotBlank()) MaterialText(membership, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            MaterialText(label, maxLines = 3, overflow = TextOverflow.Ellipsis)
+            if (membership.isNotBlank()) MaterialText(membership, style = MaterialTheme.typography.bodySmall, maxLines = 7, overflow = TextOverflow.Ellipsis)
         }
     }
 }
