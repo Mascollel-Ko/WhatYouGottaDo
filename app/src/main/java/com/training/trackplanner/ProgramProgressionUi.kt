@@ -246,7 +246,7 @@ internal fun ProgressionSettingsContent(track: ProgramProgressionTrack, binding:
                 color = MaterialTheme.colorScheme.primary)
         }
         if (currentMembership.isNotBlank()) {
-            MaterialText("현재 저장된 연결 · $currentMembership",
+            MaterialText("현재 화면의 연결 · $currentMembership",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface)
         } else {
