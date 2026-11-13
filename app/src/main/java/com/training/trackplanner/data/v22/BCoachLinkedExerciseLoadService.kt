@@ -227,12 +227,12 @@ internal class BCoachLinkedExerciseLoadService(
                 choice
             }
             val selectedKg = if (candidate != null && targetBodyweight != null) {
-                (candidate.loadKg - targetBodyweight).takeIf { it.isFinite() && it >= 0.0 }
-                    ?: run {
-                        if (firstProblem == null) firstProblem = "WEIGHTED_PULLUP_ADDED_LOAD_REVIEW"
-                        continue
-                    }
+                candidate.loadKg - targetBodyweight
             } else candidate?.loadKg ?: kg
+            if (!selectedKg.isFinite() || selectedKg < 0.0) {
+                if (firstProblem == null) firstProblem = "WEIGHTED_PULLUP_ADDED_LOAD_REVIEW"
+                continue
+            }
             val action = candidate?.action ?: "FIRST_WEEK_LOAD_HOLD"
             // A nonmain's reps and number of sets are never overwritten.
             // We only calibrate the planned kg of the existing set structure.
