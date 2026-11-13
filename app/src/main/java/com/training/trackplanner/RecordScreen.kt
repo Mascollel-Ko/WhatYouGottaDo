@@ -468,7 +468,7 @@ internal fun RecordScreen(
                                     prescriptionsByEntryId[entryId].orEmpty(),
                                     viewModel::resolveProgression
                                 )
-                                if (entryWithSets.entry.exerciseStableKey == "barbell_back_squat" &&
+                                if (link.role == com.training.trackplanner.data.ProgressionRole.MAIN &&
                                     selectedDate >= LocalDate.now().toString() &&
                                     entryWithSets.sets.isNotEmpty() &&
                                     entryWithSets.sets.none { it.confirmed }
@@ -476,7 +476,7 @@ internal fun RecordScreen(
                                     BCoachLinkedSquatNextWeekControl(viewModel, entryWithSets)
                                 }
                             }
-                            if (entryWithSets.entry.exerciseStableKey == "barbell_back_squat" &&
+                            if (programLinkByEntryId.containsKey(entryId) &&
                                 entryWithSets.sets.isNotEmpty() &&
                                 entryWithSets.sets.all { it.confirmed }
                             ) {
@@ -517,7 +517,7 @@ private fun BCoachConfirmedSquatProgressionNotice(
     Column(Modifier.fillMaxWidth().padding(vertical = 5.dp),
         verticalArrangement = Arrangement.spacedBy(5.dp)) {
         if (appliedKg != null) {
-            Text("B-Coach · 다음 연결 스쿼트 자동 반영 완료 (${appliedKg}kg)",
+            Text("B-Coach · 다음 연결 운동 자동 반영 완료 (${appliedKg}kg)",
                 style = MaterialTheme.typography.bodySmall)
             if (outcome?.wasApplied == true) {
                 Text("${outcome.nextLoadKg}kg × ${outcome.nextReps}회 × ${outcome.nextSets}세트 · ${outcome.selectedAction}",
@@ -548,6 +548,11 @@ private fun BCoachConfirmedSquatProgressionNotice(
                 "LINKED_TARGET_REP_SCHEME_REVIEW" ->
                     "연결된 다음 운동의 목표 반복 수가 달라 자동 덮어쓰지 않았습니다."
                 "RANKING_NOT_AVAILABLE" -> "중량·반복·세트 후보를 선정할 근거가 부족합니다."
+                "ACCESSORY_NO_UNMODIFIED_FUTURE" -> "첫 주 중량을 적용할 미시작·미수정 연결 운동이 없습니다."
+                "ACCESSORY_FIRST_LOAD_NOT_CALIBRATED" -> "첫 운동의 확인된 중량이 없거나 세트 중량이 서로 다릅니다."
+                "ACCESSORY_NOT_FIRST_OCCURRENCE" -> "일반 운동 중량은 첫 연결 세션의 기록을 기준으로 유지합니다."
+                "BODYWEIGHT_REQUIRED" -> "중량 풀업 계산을 위한 최근 체중 기록이 필요합니다."
+                "EQUIPMENT_INCREMENT_UNKNOWN" -> "실제 기구의 중량 증량 단위가 없어 계산을 보류했습니다."
                 "PRIOR_EXPLICIT_PROGRESSION_DECISION" ->
                     "다음 연결 운동에 이미 확정된 진행 결정을 보호했습니다."
                 "STALE_OR_EDITED_TARGET" -> "계산 후 기록이 변경되어 자동 적용을 취소했습니다."
@@ -587,13 +592,13 @@ private fun BCoachLinkedSquatNextWeekControl(
     }
     val proposal = report ?: return
     if (applied) {
-        Text("B-Coach: 다음 연결 스쿼트 계획을 적용했습니다.", style = MaterialTheme.typography.bodySmall)
+        Text("B-Coach: 다음 연결 운동 계획을 적용했습니다.", style = MaterialTheme.typography.bodySmall)
         return
     }
     if (proposal.canApply) {
         Column(Modifier.fillMaxWidth().padding(vertical = 6.dp),
             verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            Text("B-Coach · 다음 연결 스쿼트 후보 (실험)", style = MaterialTheme.typography.labelLarge)
+            Text("B-Coach · 다음 연결 운동 후보 (실험)", style = MaterialTheme.typography.labelLarge)
             Text("${proposal.sourceWeek}주차 실제 기록: ${proposal.sourceText ?: "-"}",
                 style = MaterialTheme.typography.bodySmall)
             Text("기존 ${proposal.targetWeek}주차: ${proposal.originalPlanText ?: "-"}",
