@@ -347,8 +347,12 @@ class TrainingRepository internal constructor(
             strengthPosteriorDao, workoutDao, strengthPerformanceRegistry, repetitionCurveRegistry
         ),
         rirPolicy = rpeRirPolicy,
-        curves = repetitionCurveRegistry
+        curves = repetitionCurveRegistry,
+        strengthRegistry = strengthPerformanceRegistry
     )
+    private val bCoachAccessoryHoldService =
+        com.training.trackplanner.data.v22.BCoachAccessoryFirstWeekHoldService(db)
+
     suspend fun inspectBCoachLinkedSquatNextWeek(
         targetEntryId: Long
     ): com.training.trackplanner.data.v22.BCoachLinkedSquatNextWeekProposal =
@@ -361,10 +365,10 @@ class TrainingRepository internal constructor(
     }
 
     /**
-     * Called after a confirmed squat set mutation. Completion of a real applied-program
-     * entry triggers exactly one future next-week B-Coach adjustment. The existing
-     * inspected evidence fingerprint and all manual-edit protections are rechecked
-     * transactionally by the Gate G service. No generic historical squat matching.
+     * B-only post-confirmation dispatcher. Main exercises use their own canonical
+     * repetition curve/RPE evidence; ordinary accessories copy the first calibrated
+     * external kg forward without e1RM or automatic progression. No legacy threshold
+     * recommendations and no mutation of confirmed/manual future workouts.
      */
     suspend fun progressBCoachAfterConfirmedSquat(
         sourceEntryId: Long
@@ -372,11 +376,26 @@ class TrainingRepository internal constructor(
         val now = LocalDate.now()
         val source = workoutDao.findEntryById(sourceEntryId)
             ?: return@withContext com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(sourceEntryId, "SOURCE_MISSING")
-        if (source.exerciseStableKey != com.training.trackplanner.data.v22.BCoachLinkedSquatWeekPlanner.SQUAT) {
-            return@withContext com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(sourceEntryId, "NOT_SQUAT")
+        val sourceLink = db.programProgressionDao().link(sourceEntryId)
+            ?: return@withContext com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(
+                sourceEntryId, "SOURCE_NOT_PROGRAM_LINKED"
+            )
+        val sourceProgram = db.programDao().findProgramByStableKey(sourceLink.sourceProgramStableKey)
+        if (!BCoachUncalibratedLinkPolicy.isBProgram(sourceProgram?.planningMetadataJson)) {
+            return@withContext com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(
+                sourceEntryId, "NOT_B_COACH"
+            )
         }
-        if (db.programProgressionDao().link(sourceEntryId) == null) {
-            return@withContext com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(sourceEntryId, "SOURCE_NOT_PROGRAM_LINKED")
+        if (sourceLink.mode != ProgressionMode.APP) {
+            return@withContext com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(
+                sourceEntryId, "LINK_MODE_NOT_ELIGIBLE"
+            )
+        }
+        if (!com.training.trackplanner.data.v22.BCoachMainPolicy.canChangeLoad(
+                sourceLink.role, source.exerciseStableKey, sourceProgram?.planningMetadataJson)) {
+            return@withContext cloudMutation(CloudMutationScope.APPLICATION) {
+                bCoachAccessoryHoldService.propagate(sourceEntryId, now)
+            }
         }
         val sets = workoutDao.setsForEntry(sourceEntryId)
         if (sets.isEmpty() || sets.any { !it.confirmed }) {
@@ -387,7 +406,8 @@ class TrainingRepository internal constructor(
         val links = db.programProgressionDao().links()
         val records = workoutDao.allEntriesWithSets()
         val target = com.training.trackplanner.data.v22.BCoachPostConfirmLinkResolver.resolve(
-            sourceEntryId = sourceEntryId, asOf = now, records = records, links = links
+            sourceEntryId = sourceEntryId, asOf = now, records = records, links = links,
+            exerciseStableKey = source.exerciseStableKey
         )
         fun outcome(status: String, detail: String? = null) =
             com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(
@@ -399,15 +419,16 @@ class TrainingRepository internal constructor(
         }
         // The raw confirmation has already committed. Bring the canonical posterior up
         // to that committed revision before asking the Gate F RPE/e1RM comparator.
-        try {
-            strengthPosteriorCoordinator.ensureCurrentRevision()
-        } catch (failure: kotlinx.coroutines.CancellationException) {
-            throw failure
-        } catch (failure: Exception) {
-            // The posterior is a secondary signal. The observed-only fallback in
-            // the linked squat service can still evaluate actual confirmed sets
-            // without pretending that a posterior was successfully computed.
-            android.util.Log.e("BCoachGateH", "Posterior unavailable; inspect observed-only evidence", failure)
+        if (source.exerciseStableKey in com.training.trackplanner.data.v22.BCoachMainPolicy.canonicalFour) {
+            try {
+                strengthPosteriorCoordinator.ensureCurrentRevision()
+            } catch (failure: kotlinx.coroutines.CancellationException) {
+                throw failure
+            } catch (failure: Exception) {
+                // Confirmed actual work can still be assessed against the existing
+                // nonlinear curve; do not pretend the async posterior was updated.
+                android.util.Log.e("BCoachGateM", "Posterior unavailable; use observed curve evidence", failure)
+            }
         }
         val futureId = checkNotNull(target.targetEntryId)
         val proposal = linkedSquatNextWeekService.inspect(futureId, now)

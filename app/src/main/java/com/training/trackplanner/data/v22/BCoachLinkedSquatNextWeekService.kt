@@ -2,6 +2,8 @@ package com.training.trackplanner.data.v22
 
 import androidx.room.withTransaction
 import com.training.trackplanner.analysis.strengthperformance.RpeRirPolicy
+import com.training.trackplanner.analysis.strengthperformance.StrengthPerformanceRegistry
+import com.training.trackplanner.analysis.strengthperformance.StrengthLoadSemantics
 import com.training.trackplanner.analysis.strengthperformance.curve.RepetitionCurveRegistry
 import com.training.trackplanner.data.ProgressionDirection
 import com.training.trackplanner.data.ProgressionResolution
@@ -22,7 +24,8 @@ internal class BCoachLinkedSquatNextWeekService(
     private val db: TrainingDatabase,
     private val evidenceReader: BCoachSquatShadowEvidenceReader,
     private val rirPolicy: RpeRirPolicy,
-    private val curves: RepetitionCurveRegistry
+    private val curves: RepetitionCurveRegistry,
+    private val strengthRegistry: StrengthPerformanceRegistry? = null
 ) {
     private val workoutDao = db.workoutDao()
     private val dao = db.programProgressionDao()
@@ -33,8 +36,27 @@ internal class BCoachLinkedSquatNextWeekService(
     ): BCoachLinkedSquatNextWeekProposal {
         val link = dao.link(targetEntryId)
             ?: return BCoachLinkedSquatNextWeekProposal("TARGET_NOT_PROGRAM_LINKED")
+        val targetKey = workoutDao.findEntryById(targetEntryId)?.exerciseStableKey
+            ?: return BCoachLinkedSquatNextWeekProposal("TARGET_MISSING")
         val program = db.programDao().findProgramByStableKey(link.sourceProgramStableKey)
             ?: return BCoachLinkedSquatNextWeekProposal("PROGRAM_TEMPLATE_MISSING")
+        if (!BCoachMainPolicy.canChangeLoad(link.role, targetKey, program.planningMetadataJson)) {
+            return BCoachLinkedSquatNextWeekProposal("ACCESSORY_HOLD_NO_E1RM")
+        }
+        val nonCanonical = targetKey !in BCoachMainPolicy.canonicalFour
+        val exercise = db.exerciseDao().findByStableKey(targetKey)
+        val reviewedCurve = curves.assignment(targetKey)?.reviewedStatus == "REVIEWED"
+        if (nonCanonical && exercise?.estimated1RmEligible != true && !reviewedCurve) {
+            return BCoachLinkedSquatNextWeekProposal("E1RM_NOT_ELIGIBLE_FOR_EXERCISE")
+        }
+        val unsupportedBodyweight = strengthRegistry?.proxyLoadings(targetKey).orEmpty().any {
+            it.loadSemantics in setOf(StrengthLoadSemantics.BODYWEIGHT_PLUS_ADDED_LOAD,
+                StrengthLoadSemantics.BODYWEIGHT_MINUS_ASSISTANCE,
+                StrengthLoadSemantics.BODYWEIGHT_FRACTION_PLUS_ADDED_LOAD)
+        }
+        if (nonCanonical && unsupportedBodyweight) {
+            return BCoachLinkedSquatNextWeekProposal("BODYWEIGHT_VARIATION_REQUIRES_LOAD_MODEL")
+        }
         val metadata = runCatching { JSONObject(program.planningMetadataJson ?: "{}") }.getOrNull()
         if (metadata?.optString("bCoachProgressionEquipmentSchema") != "linked-g-1") {
             return BCoachLinkedSquatNextWeekProposal(
@@ -47,18 +69,48 @@ internal class BCoachLinkedSquatNextWeekService(
         if (!plate.isFinite() || plate !in 0.1..25.0) {
             return BCoachLinkedSquatNextWeekProposal("INVALID_EQUIPMENT_SNAPSHOT")
         }
-        val evidence = evidenceReader.read(asOf)
-        val pipeline = BCoachSquatShadowPipeline.evaluate(
-            input = evidence,
-            rirPolicy = rirPolicy,
-            smallestPlateOneSideKg = plate,
-            targetRirMin = 1.0,
-            targetRirMax = 3.0,
-            policies = listOf(
-                BCoachSquatShadowSelector.Weights(0.0, 0.0, 0.0, 1.0, 1.0, 1.0)
-            ),
-            omegaBands = listOf(BCoachSquatShadowSelector.OmegaBand.CENTRAL_80)
-        )
+        val step = when {
+            targetKey == BCoachMainPolicy.WEIGHTED_PULL_UP -> plate // added load, not bilateral plates
+            else -> when (BBlockEquipmentIncrements.kind(targetKey,
+                exercise)) {
+                BEquipmentIncrementKind.BARBELL -> plate * 2.0
+                BEquipmentIncrementKind.DUMBBELL -> metadata.optDouble("bCoachDumbbellDisplayedKg", Double.NaN)
+                BEquipmentIncrementKind.MACHINE -> metadata.optDouble("bCoachMachineDisplayedKg", Double.NaN)
+                BEquipmentIncrementKind.UNKNOWN -> Double.NaN
+            }
+        }
+        if (!step.isFinite() || step <= 0.0) {
+            return BCoachLinkedSquatNextWeekProposal("EQUIPMENT_INCREMENT_UNKNOWN")
+        }
+        // Weighted pull-up is measured in BW + external added kg. Reuse recorded
+        // check-in/metric bodyweight; never treat added plates as total load.
+        suspend fun weightAtOrBefore(date: LocalDate): Double? {
+            val start = date.minusDays(7).toString()
+            val end = date.toString()
+            val checkIns = db.dailyCheckInDao().between(start, end)
+                .mapNotNull { row -> row.bodyWeightKg?.takeIf { it.isFinite() && it > 0.0 }
+                    ?.let { row.date to it } }
+            val metrics = db.dailyMetricDao().metricsUntil(end)
+                .filter { it.date >= start }
+                .mapNotNull { row -> row.bodyWeightKg?.takeIf { it.isFinite() && it > 0.0 }
+                    ?.let { row.date to it } }
+            return (checkIns + metrics).maxByOrNull { it.first }?.second
+        }
+        // The squat-only shadow pipeline is diagnostic; other main lifts use
+        // their own reviewed/general curve assignment, never squat's posterior.
+        val pipeline = if (targetKey == BCoachLinkedSquatWeekPlanner.SQUAT) {
+            BCoachSquatShadowPipeline.evaluate(
+                input = evidenceReader.read(asOf),
+                rirPolicy = rirPolicy,
+                smallestPlateOneSideKg = plate,
+                targetRirMin = 1.0,
+                targetRirMax = 3.0,
+                policies = listOf(
+                    BCoachSquatShadowSelector.Weights(0.0, 0.0, 0.0, 1.0, 1.0, 1.0)
+                ),
+                omegaBands = listOf(BCoachSquatShadowSelector.OmegaBand.CENTRAL_80)
+            )
+        } else null
         val records = workoutDao.allEntriesWithSets()
         val links = dao.links()
         val prescriptions = dao.prescriptions()
@@ -70,13 +122,29 @@ internal class BCoachLinkedSquatNextWeekService(
         // stored posterior has not caught up with the last confirmed workout,
         // the canonical asset q(n) and existing RPE/RIR mixture are still available
         // and can evaluate the actual same-track confirmed sets.
-        val curve = canonicalReport?.input?.curve
-            ?: curves.resolve(BCoachLinkedSquatWeekPlanner.SQUAT)
+        val curve = if (targetKey == BCoachLinkedSquatWeekPlanner.SQUAT)
+            canonicalReport?.input?.curve ?: curves.resolve(targetKey)
+        else curves.resolve(targetKey)
+        val sourceLink = links.singleOrNull { it.entryId == targetEntryId }
+            ?.let { BCoachProgramLinkChain.predecessor(it, links).link }
+        val sourceEntry = sourceLink?.let { prior -> records.singleOrNull { it.entry.id == prior.entryId } }
+        val sourceWeight = if (targetKey == BCoachMainPolicy.WEIGHTED_PULL_UP)
+            sourceEntry?.let { runCatching { LocalDate.parse(it.entry.date) }.getOrNull() }
+                ?.let { weightAtOrBefore(it) } else null
+        val targetWeight = if (targetKey == BCoachMainPolicy.WEIGHTED_PULL_UP)
+            weightAtOrBefore(asOf) else null
+        if (targetKey == BCoachMainPolicy.WEIGHTED_PULL_UP &&
+            (sourceWeight == null || targetWeight == null)) {
+            return BCoachLinkedSquatNextWeekProposal("BODYWEIGHT_REQUIRED")
+        }
         val evidenceForPlan = BCoachObservedSquatProgression.evaluate(
             targetEntryId = targetEntryId, asOf = asOf,
             links = links, records = records, prescriptions = prescriptions,
             plateOneSideKg = plate,
-            curve = curve, rirPolicy = rirPolicy
+            curve = curve, rirPolicy = rirPolicy,
+            exerciseStableKey = targetKey, loadStepKg = step,
+            sourceBodyWeightKg = sourceWeight, targetBodyWeightKg = targetWeight,
+            maxSingleStepFraction = if (targetKey in BCoachMainPolicy.canonicalFour) 0.02 else 0.15
         )
         // The global Gate F ranker remains a separate diagnostic. This production
         // decision is intentionally anchored to the immediate linked completed
@@ -89,7 +157,8 @@ internal class BCoachLinkedSquatNextWeekService(
             links = links,
             prescriptions = prescriptions,
             anchor = evidenceForPlan?.anchor,
-            ranking = evidenceForPlan?.ranking
+            ranking = evidenceForPlan?.ranking,
+            exerciseStableKey = targetKey
         )
         if (report.canApply && dao.suggestions().any {
                 it.targetEntryId == targetEntryId &&

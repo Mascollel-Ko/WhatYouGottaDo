@@ -24,7 +24,7 @@ internal object BCoachLinkedSquatPlanPatch {
         val kg = proposal.proposedLoadKg ?: return null
         val reps = proposal.proposedReps ?: return null
         val count = proposal.proposedSets ?: return null
-        if (!kg.isFinite() || kg <= 0.0 || reps <= 0 || count < 1 ||
+        if (!kg.isFinite() || kg < 0.0 || reps <= 0 || count < 1 ||
             currentSets.size != count || originalTargets.size != count ||
             currentSets.any { it.confirmed }
         ) return null

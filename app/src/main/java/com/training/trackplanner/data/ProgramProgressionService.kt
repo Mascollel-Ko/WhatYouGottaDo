@@ -114,10 +114,16 @@ internal class ProgramProgressionService(
     suspend fun attach(application: ProgramApplication, item: TrainingProgramItem, entryId: Long, sequence: Int, sets: List<ProgramSetPrescription>) {
         val binding = dao.items().firstOrNull { it.programItemId == item.id }
         val track = binding?.let { b -> dao.tracks().firstOrNull { it.id == b.trackId } }
+        val bCoach = BCoachUncalibratedLinkPolicy.isBProgram(
+            db.programDao().findProgramByStableKey(application.programStableKey)?.planningMetadataJson
+        )
+        val appliedRole = if (bCoach) com.training.trackplanner.data.v22.BCoachMainPolicy.appliedRole(
+            item.exerciseStableKey, track, binding, dao.items()
+        ) else track?.role ?: ProgressionRole.AUTO
         dao.putLink(ProgramWorkoutLink(entryId, application.id, application.programStableKey,
             binding?.logicalItemId ?: UUID.randomUUID().toString(), application.programName, item.weekNumber, item.dayOfWeek,
             track?.id ?: "untracked", track?.label.orEmpty(), sequence,
-            track?.role ?: ProgressionRole.AUTO,
+            appliedRole,
             if (binding?.linkMode == ProgressionLinkMode.OFF) ProgressionMode.OFF else track?.mode ?: ProgressionMode.OFF,
             track?.basePolicy ?: ProgressionBase.REVIEW, track?.anchorSetIndex,
             track?.needsReview ?: false, track?.rule ?: ProgressionRule()))
@@ -209,10 +215,19 @@ internal class ProgramProgressionService(
         // Including all same-chain evidence makes removals, edits and trend changes observable.
         for (old in suggestions.filter { it.resolution == ProgressionResolution.PENDING }) {
             val target = sessions.firstOrNull { it.link.entryId == old.targetEntryId }
-            if (target == null || target.actual.any { it.confirmed } || evidence(target, sessions, restricted) != old.evidenceHash)
-                dao.putSuggestion(old.copy(resolution = ProgressionResolution.STALE))
+            val sourceProgram = target?.link?.sourceProgramStableKey?.let {
+                db.programDao().findProgramByStableKey(it)
+            }
+            if (BCoachUncalibratedLinkPolicy.isBProgram(sourceProgram?.planningMetadataJson) ||
+                target == null || target.actual.any { it.confirmed } ||
+                evidence(target, sessions, restricted) != old.evidenceHash
+            ) dao.putSuggestion(old.copy(resolution = ProgressionResolution.STALE))
         }
         for (chain in sessions.groupBy { it.link.applicationId to it.link.trackId }.values) {
+            // B-Coach has a separate e1RM/RIR main path and a first-week hold path.
+            // Never issue the legacy RPE-threshold progression suggestion for B accessories.
+            val sourceProgram = db.programDao().findProgramByStableKey(chain.first().link.sourceProgramStableKey)
+            if (BCoachUncalibratedLinkPolicy.isBProgram(sourceProgram?.planningMetadataJson)) continue
             val target = chain.sortedBy { it.link.sequence }.firstOrNull { session ->
                 session.link.mode != ProgressionMode.OFF && session.actual.isNotEmpty() && session.actual.none { it.confirmed } &&
                     ProgressionEngine.predecessors(session.link, sessions).isNotEmpty() &&
