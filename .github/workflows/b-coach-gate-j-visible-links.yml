@@ -3,7 +3,7 @@ name: B-Coach Gate J Visible Plan-Record Session Links
 on:
   push:
     branches:
-      - test/b-coach-program-linked-progression-gate-j-20261113
+      - test/b-coach-visible-links-gate-j-20261113
 
 concurrency:
   group: b-coach-gate-j-${{ github.ref }}
