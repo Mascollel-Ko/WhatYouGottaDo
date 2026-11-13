@@ -62,6 +62,7 @@ private fun sessionSummary(key: String, name: String, track: ProgramProgressionT
     return "${localizedExerciseName(key, name)} · $shape · ${progressionRoleLabel(track.role)}"
 }
 
+@Composable
 private fun planWeekDay(week: Int, day: Int): String =
     week.toString() + "주차 " + localizedWeekday(java.time.DayOfWeek.of(day.coerceIn(1, 7)))
 
