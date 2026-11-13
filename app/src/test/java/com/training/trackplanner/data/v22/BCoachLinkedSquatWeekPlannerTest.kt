@@ -131,12 +131,12 @@ class BCoachLinkedSquatWeekPlannerTest {
 
     @Test fun `another application cannot supply previous week even on same track`() {
         val wrong = inspect(links = listOf(link(1,1,1,appId="app-else"), link(2,2,2)))
-        assertEquals("NO_LINKED_PREVIOUS_WEEK", wrong.status)
+        assertEquals("NO_LINKED_PREDECESSOR", wrong.status)
     }
 
     @Test fun `another track cannot supply previous week`() {
         val wrong = inspect(links = listOf(link(1,1,1,track="other-track"), link(2,2,2)))
-        assertEquals("NO_LINKED_PREVIOUS_WEEK", wrong.status)
+        assertEquals("NO_LINKED_PREDECESSOR", wrong.status)
     }
 
     @Test fun `uncalibrated workouts do not automatically merge split REVIEW tracks`() {
@@ -176,7 +176,7 @@ class BCoachLinkedSquatWeekPlannerTest {
         val prior = link(1,1,1,track="week-one").copy(basePolicy=ProgressionBase.REVIEW)
         val next = link(2,2,2,track="week-two").copy(basePolicy=ProgressionBase.REVIEW)
         val result=inspect(links=listOf(prior,next))
-        assertEquals("NO_LINKED_PREVIOUS_WEEK",result.status)
+        assertEquals("NO_LINKED_PREDECESSOR",result.status)
     }
 
     @Test fun `unconfirmed or missed previous sets cannot cause progression`() {
