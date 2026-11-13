@@ -6,7 +6,6 @@ import com.training.trackplanner.data.ProgramPrescriptionSet
 import com.training.trackplanner.data.ProgramWorkoutLink
 import com.training.trackplanner.data.ProgressionMode
 import com.training.trackplanner.data.ProgressionBase
-import com.training.trackplanner.data.ProgressionLinkMode
 import com.training.trackplanner.data.ProgressionSession
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import java.security.MessageDigest
@@ -52,7 +51,6 @@ internal object BCoachLinkedSquatWeekPlanner {
         applications: List<ProgramApplication>,
         links: List<ProgramWorkoutLink>,
         prescriptions: List<ProgramPrescriptionSet>,
-        linkModesByLogicalItemId: Map<String, ProgressionLinkMode> = emptyMap(),
         anchor: BCoachSquatAnchorSession?,
         ranking: BCoachSquatCurveProgressionReport?
     ): BCoachLinkedSquatNextWeekProposal {
@@ -108,45 +106,22 @@ internal object BCoachLinkedSquatWeekPlanner {
             }
         ) return result("USER_EDIT_PROTECTED")
 
-        // B programs start with USER_CALIBRATION_REQUIRED, so legacy progression tracks
-        // may be split PER WEEK with basePolicy REVIEW. For those only, match by the
-        // explicit application + original weekday + stableKey, rejecting ambiguity.
-        val targetDuplicates = links.filter { other ->
-            other.applicationId == targetLink.applicationId &&
-                other.weekNumber == targetLink.weekNumber &&
-                other.dayOfWeek == targetLink.dayOfWeek &&
-                byEntry[other.entryId]?.entry?.exerciseStableKey == SQUAT
+        // Follow precisely the Plan editor's explicitly linked progression track.
+        // A separate (even same-day or same-exercise) track cannot become evidence.
+        // The nearest earlier sequence is authoritative regardless of week or weekday.
+        val predecessor = BCoachProgramLinkChain.predecessor(targetLink, links)
+        if (!predecessor.found) return result(predecessor.status)
+        val sourceLink = checkNotNull(predecessor.link)
+        val sourceRecord = byEntry[sourceLink.entryId]
+            ?: return result("LINKED_PREDECESSOR_RECORD_MISSING")
+        if (sourceRecord.entry.exerciseStableKey != SQUAT) {
+            return result("TRACK_EXERCISE_MISMATCH")
         }
-        if (targetDuplicates.size != 1) return result("AMBIGUOUS_SQUAT_OCCURRENCE")
-
-        val eligibleSources = links.asSequence().filter { link ->
-            link.applicationId == targetLink.applicationId &&
-                link.sourceProgramStableKey == targetLink.sourceProgramStableKey &&
-                (
-                    link.trackId == targetLink.trackId ||
-                        (targetLink.basePolicy == ProgressionBase.REVIEW &&
-                            link.basePolicy == ProgressionBase.REVIEW &&
-                            // Never collapse user's explicit SEPARATE / EXISTING track links.
-                            linkModesByLogicalItemId[targetLink.sourceItemId] == ProgressionLinkMode.AUTO &&
-                            linkModesByLogicalItemId[link.sourceItemId] == ProgressionLinkMode.AUTO)
-                ) &&
-                link.mode == ProgressionMode.APP &&
-                link.dayOfWeek == targetLink.dayOfWeek &&
-                link.weekNumber == targetLink.weekNumber - 1 &&
-                link.sequence < targetLink.sequence
-        }.mapNotNull { link ->
-            val record = byEntry[link.entryId] ?: return@mapNotNull null
-            val date = runCatching { LocalDate.parse(record.entry.date) }.getOrNull()
-                ?: return@mapNotNull null
-            if (date > asOf || date >= targetDate ||
-                record.entry.exerciseStableKey != SQUAT
-            ) null else Triple(link, record, date)
-        }.sortedWith(compareByDescending<Triple<ProgramWorkoutLink, WorkoutEntryWithSets, LocalDate>> { it.first.sequence }
-            .thenByDescending { it.third }).toList()
-        if (eligibleSources.size > 1) return result("AMBIGUOUS_LINKED_PREVIOUS_WEEK")
-        val source = eligibleSources.firstOrNull() ?: return result("NO_LINKED_PREVIOUS_WEEK")
-        val sourceLink = source.first
-        val sourceRecord = source.second
+        val sourceDate = runCatching { LocalDate.parse(sourceRecord.entry.date) }.getOrNull()
+            ?: return result("INVALID_SOURCE_DATE")
+        if (sourceDate > asOf || sourceDate > targetDate) {
+            return result("LINKED_PREDECESSOR_NOT_CHRONOLOGICAL")
+        }
         val sourceSets = sourceRecord.sets.sortedBy { it.setIndex }
         val sourceTargets = prescriptions.filter { it.entryId == sourceLink.entryId }
         val session = ProgressionSession(sourceLink, sourceSets, sourceTargets)
@@ -170,13 +145,21 @@ internal object BCoachLinkedSquatWeekPlanner {
             }
         ) return result("PREVIOUS_WEEK_NOT_FULLY_SUCCESSFUL", sourceLink.entryId)
         val actualIds = sourceSets.map { it.id }.sorted()
-        if (anchor?.date != source.third ||
+        if (anchor?.date != sourceDate ||
             anchor.sessionStableKey != sourceRecord.entry.sessionStableKey ||
             anchor.confirmedSets.map { it.setId }.sorted() != actualIds
         ) return result("LATEST_CANONICAL_ANCHOR_NOT_LINKED_SOURCE", sourceLink.entryId)
 
         val candidate = ranking?.ranked?.firstOrNull { it.action == ranking.selectedAction && it.eligible }
             ?: return result("RANKING_NOT_AVAILABLE", sourceLink.entryId)
+        // Connecting two program items does not authorize flattening deliberately
+        // different heavy/volume repetition schemes. A different target pattern is
+        // acceptable only if the ranked candidate already exactly matches it.
+        val performedReps = sourceSets.map { it.reps }.distinct().singleOrNull()
+        val targetReps = targets.map { it.originalReps }.distinct().singleOrNull()
+        if (performedReps == null || targetReps == null ||
+            (targetReps != performedReps && targetReps != candidate.reps)
+        ) return result("LINKED_TARGET_REP_SCHEME_REVIEW", sourceLink.entryId)
         if (candidate.loadKg <= 0.0 || candidate.reps <= 0 || candidate.sets <= 0 ||
             !candidate.loadKg.isFinite()
         ) return result("INVALID_CANDIDATE", sourceLink.entryId)
@@ -204,7 +187,7 @@ internal object BCoachLinkedSquatWeekPlanner {
             selectedAction = candidate.action,
             evidenceFingerprint = fingerprint,
             notes = listOf(
-                "같은 프로그램·같은 연결 세션의 직전 주차 성공 기록만 사용했습니다.",
+                "같은 프로그램에서 명시적으로 연결한 세션의 직전 운동 순서만 사용했습니다.",
                 "현재 날짜와 실제 운동기록으로 계산한 Gate F 후보입니다. 다음 주 성공확률이 아닙니다.",
                 "확인 시 선택한 다음 주 미완료 계획만 갱신하며 지난 기록·원본 템플릿은 유지합니다."
             )

@@ -5,7 +5,6 @@ import com.training.trackplanner.data.ProgramLoadState
 import com.training.trackplanner.data.ProgramPrescriptionSet
 import com.training.trackplanner.data.ProgramWorkoutLink
 import com.training.trackplanner.data.ProgressionBase
-import com.training.trackplanner.data.ProgressionLinkMode
 import com.training.trackplanner.data.ProgressionMode
 import com.training.trackplanner.data.ProgressionRole
 import com.training.trackplanner.data.ProgressionRule
@@ -76,7 +75,7 @@ class BCoachLinkedSquatWeekPlannerTest {
         )
     }
     private val source get() = record(1L, "2026-11-12", true)
-    private val target get() = record(2L, "2026-11-19", false)
+    private val target get() = record(2L, "2026-11-19", false, reps = 5)
     private val anchor get() = BCoachSquatAnchorSession(
         sessionStableKey = "session-1", date = LocalDate.of(2026, 11, 12),
         confirmedSets = source.sets.map {
@@ -103,15 +102,11 @@ class BCoachLinkedSquatWeekPlannerTest {
         workouts: List<WorkoutEntryWithSets> = listOf(source, target),
         links: List<ProgramWorkoutLink> = listOf(link(1,1,1), link(2,2,2)),
         prescriptions: List<ProgramPrescriptionSet> = targets(source) + targets(target),
-        linkModesByLogicalItemId: Map<String, ProgressionLinkMode> =
-            mapOf("item-1" to ProgressionLinkMode.AUTO, "item-2" to ProgressionLinkMode.AUTO,
-                "item-3" to ProgressionLinkMode.AUTO),
         anchor: BCoachSquatAnchorSession? = this.anchor,
         ranking: BCoachSquatCurveProgressionReport? = ranking()
     ) = BCoachLinkedSquatWeekPlanner.inspect(
         asOf = today, targetEntryId = 2L, workouts = workouts,
         applications = listOf(application), links = links, prescriptions = prescriptions,
-        linkModesByLogicalItemId = linkModesByLogicalItemId,
         anchor = anchor, ranking = ranking
     )
 
@@ -130,21 +125,21 @@ class BCoachLinkedSquatWeekPlannerTest {
 
     @Test fun `same day squat without explicit program link cannot anchor`() {
         val wrong = inspect(links = listOf(link(2,2,2)))
-        assertEquals("NO_LINKED_PREVIOUS_WEEK", wrong.status)
+        assertEquals("NO_LINKED_PREDECESSOR", wrong.status)
         assertFalse(wrong.canApply)
     }
 
     @Test fun `another application cannot supply previous week even on same track`() {
         val wrong = inspect(links = listOf(link(1,1,1,appId="app-else"), link(2,2,2)))
-        assertEquals("NO_LINKED_PREVIOUS_WEEK", wrong.status)
+        assertEquals("NO_LINKED_PREDECESSOR", wrong.status)
     }
 
     @Test fun `another track cannot supply previous week`() {
         val wrong = inspect(links = listOf(link(1,1,1,track="other-track"), link(2,2,2)))
-        assertEquals("NO_LINKED_PREVIOUS_WEEK", wrong.status)
+        assertEquals("NO_LINKED_PREDECESSOR", wrong.status)
     }
 
-    @Test fun `uncalibrated B plan uses same application and exercise despite split REVIEW tracks`() {
+    @Test fun `uncalibrated workouts do not automatically merge split REVIEW tracks`() {
         val prior = link(1,1,1,track="week-one").copy(
             basePolicy=ProgressionBase.REVIEW, needsReview=true
         )
@@ -152,30 +147,36 @@ class BCoachLinkedSquatWeekPlannerTest {
             basePolicy=ProgressionBase.REVIEW, needsReview=true
         )
         val proposal=inspect(links=listOf(prior,next))
-        assertEquals("READY_FOR_USER_APPROVAL",proposal.status)
-        assertTrue(proposal.canApply)
+        assertEquals("NO_LINKED_PREDECESSOR", proposal.status)
+        assertFalse(proposal.canApply)
     }
 
-    @Test fun `ambiguous uncalibrated previous squat occurrences block the proposal`() {
+    @Test fun `explicit Plan link works across different weeks and weekdays`() {
+        val first = link(1,1,3,track="chosen-track").copy(dayOfWeek=1)
+        val later = link(2,4,28,track="chosen-track").copy(dayOfWeek=5)
+        val proposal = inspect(links=listOf(first,later))
+        assertEquals("READY_FOR_USER_APPROVAL",proposal.status)
+        assertEquals(1L,proposal.sourceEntryId)
+        assertEquals(2L,proposal.targetEntryId)
+    }
+
+    @Test fun `nearest linked previous occurrence cannot be skipped to older successful one`() {
         val duplicate=record(3L,"2026-11-12",true,session="session-3")
-        val previous=link(1,1,1,track="w1").copy(basePolicy=ProgressionBase.REVIEW)
-        val other=link(3,1,3,track="w1b").copy(basePolicy=ProgressionBase.REVIEW)
-        val next=link(2,2,4,track="w2").copy(basePolicy=ProgressionBase.REVIEW)
+        val previous=link(1,1,1,track="chosen-track")
+        val nearer=link(3,2,3,track="chosen-track")
+        val next=link(2,4,4,track="chosen-track")
         val proposal=inspect(workouts=listOf(source,duplicate,target),
-            links=listOf(previous,other,next),
+            links=listOf(previous,nearer,next),
             prescriptions=targets(source)+targets(duplicate)+targets(target))
-        assertEquals("AMBIGUOUS_LINKED_PREVIOUS_WEEK",proposal.status)
+        assertEquals("LATEST_CANONICAL_ANCHOR_NOT_LINKED_SOURCE",proposal.status)
         assertFalse(proposal.canApply)
     }
 
     @Test fun `manual separate session must not be joined by B review fallback`() {
         val prior = link(1,1,1,track="week-one").copy(basePolicy=ProgressionBase.REVIEW)
         val next = link(2,2,2,track="week-two").copy(basePolicy=ProgressionBase.REVIEW)
-        val result=inspect(links=listOf(prior,next),
-            linkModesByLogicalItemId=mapOf(
-                "item-1" to ProgressionLinkMode.SEPARATE,
-                "item-2" to ProgressionLinkMode.AUTO))
-        assertEquals("NO_LINKED_PREVIOUS_WEEK",result.status)
+        val result=inspect(links=listOf(prior,next))
+        assertEquals("NO_LINKED_PREDECESSOR",result.status)
     }
 
     @Test fun `unconfirmed or missed previous sets cannot cause progression`() {
@@ -224,6 +225,18 @@ class BCoachLinkedSquatWeekPlannerTest {
             inspect(anchor=anchor.copy(confirmedSets=anchor.confirmedSets.drop(1))).status)
     }
 
+    @Test fun `linked strength days with different planned rep ranges stay separate prescriptions`() {
+        // A 5-rep heavy day explicitly linked to an 8-rep volume day is linked for
+        // progress tracking, but the 5-rep candidate must not overwrite its 8-rep plan.
+        val differentTarget = target.copy(sets = target.sets.map { it.copy(reps = 8) })
+        val out = inspect(
+            workouts = listOf(source, differentTarget),
+            prescriptions = targets(source) + targets(differentTarget)
+        )
+        assertEquals("LINKED_TARGET_REP_SCHEME_REVIEW",out.status)
+        assertFalse(out.canApply)
+    }
+
     @Test fun `different target set count refuses accidental add or deletion`() {
         val mismatch = inspect(ranking=ranking("SETS_UP_ONE",4))
         assertEquals("SET_COUNT_REQUIRES_REVIEW",mismatch.status)
@@ -234,6 +247,17 @@ class BCoachLinkedSquatWeekPlannerTest {
         assertTrue(p.canApply)
         assertEquals(140.0,p.proposedLoadKg!!,0.0)
         assertEquals(6,p.proposedReps)
+    }
+
+    @Test fun `future planned repetition increase can be preserved when selected action matches`() {
+        val programmedSix = record(2L, "2026-11-19", false, reps = 6)
+        val result = inspect(
+            workouts = listOf(source, programmedSix),
+            prescriptions = targets(source) + targets(programmedSix),
+            ranking = ranking("REPS_UP_ONE")
+        )
+        assertEquals("READY_FOR_USER_APPROVAL", result.status)
+        assertEquals(6, result.proposedReps)
     }
 
     @Test fun `missing model or ranking fails closed`() {

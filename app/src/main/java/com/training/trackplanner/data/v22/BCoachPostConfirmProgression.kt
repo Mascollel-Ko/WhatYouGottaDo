@@ -6,8 +6,8 @@ import com.training.trackplanner.data.WorkoutEntryWithSets
 import java.time.LocalDate
 
 /**
- * Gate H: find the single future next-week workout after a confirmed workout.
- * Pure and intentionally pessimistic: ambiguous/missing lineage is never guessed.
+ * Gate I: follow the Plan editor's explicit session links after a confirmed workout.
+ * The next linked program occurrence is not necessarily the next calendar week or day.
  */
 data class BCoachPostConfirmOutcome(
     val sourceEntryId: Long,
@@ -19,7 +19,7 @@ data class BCoachPostConfirmOutcome(
     val selectedAction: String? = null,
     val detail: String? = null
 ) {
-    val wasApplied: Boolean get() = status == "NEXT_WEEK_UPDATED"
+    val wasApplied: Boolean get() = status == "NEXT_LINKED_UPDATED"
 }
 
 internal object BCoachPostConfirmLinkResolver {
@@ -41,25 +41,19 @@ internal object BCoachPostConfirmLinkResolver {
         if (source.sets.isEmpty() || source.sets.any {
             !it.confirmed || it.loadState != ProgramLoadState.EXPLICIT_LOAD ||
                 !it.weightKg.isFinite() || it.weightKg <= 0.0 || it.reps !in 1..20 ||
-                it.rpe?.takeIf { r -> r.isFinite() && r in 6.0..10.0 } == null
+                (it.rpe ?: source.entry.rpe)?.takeIf { r -> r.isFinite() && r in 6.0..10.0 } == null
         }) return Target("WAITING_FOR_CONFIRMED_RPE_SETS")
         val sourceLink = links.singleOrNull { it.entryId == sourceEntryId }
             ?: return Target("SOURCE_NOT_PROGRAM_LINKED")
-        val byId = records.associateBy { it.entry.id }
-        val targets = links.filter { link ->
-            link.applicationId == sourceLink.applicationId &&
-                link.sourceProgramStableKey == sourceLink.sourceProgramStableKey &&
-                link.dayOfWeek == sourceLink.dayOfWeek &&
-                link.weekNumber == sourceLink.weekNumber + 1 &&
-                link.sequence > sourceLink.sequence &&
-                byId[link.entryId]?.entry?.exerciseStableKey == SQUAT
-        }
-        if (targets.isEmpty()) return Target("NO_NEXT_WEEK_SQUAT")
-        if (targets.size != 1) return Target("MULTIPLE_NEXT_WEEK_SQUATS")
-        val target = byId[targets.single().entryId] ?: return Target("TARGET_MISSING")
+        val matched = BCoachProgramLinkChain.successor(sourceLink, links)
+        if (!matched.found) return Target(matched.status)
+        val matchedLink = checkNotNull(matched.link)
+        val target = records.singleOrNull { it.entry.id == matchedLink.entryId }
+            ?: return Target("TARGET_MISSING")
+        if (target.entry.exerciseStableKey != SQUAT) return Target("TRACK_EXERCISE_MISMATCH")
         val targetDate = runCatching { LocalDate.parse(target.entry.date) }.getOrNull()
             ?: return Target("TARGET_DATE_INVALID")
-        if (targetDate <= sourceDate || targetDate < asOf) return Target("TARGET_DATE_NOT_FUTURE")
+        if (targetDate < asOf || targetDate < sourceDate) return Target("TARGET_DATE_NOT_FUTURE")
         if (target.sets.isEmpty() || target.sets.any { it.confirmed } ||
             target.entry.firstConfirmedAt != null || target.entry.completedAt != null
         ) return Target("TARGET_ALREADY_STARTED")
