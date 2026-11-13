@@ -42,13 +42,38 @@ class ProgramEditScopeUiTest {
                 TrainingTrackPlannerTheme { Box(Modifier.width(288.dp)) { ProgramEditScopeControl(scope,true) { scope=it } } }
             }
         }
-        compose.onNodeWithText("전체 주에 적용 ✓").assertIsDisplayed()
+        compose.onNodeWithText("이후 수정사항을 모든 주에 반영 ✓").assertIsDisplayed()
         compose.onNodeWithTag("scope-week").performClick()
         restoration.emulateSavedInstanceStateRestore()
         compose.onNodeWithText("주별 수정 ✓").assertIsDisplayed()
         val bounds=compose.onNodeWithTag("scope-all").getUnclippedBoundsInRoot()
         assertTrue(bounds.right-bounds.left<=288.dp)
     }
+    @Test fun explicitCopyButtonRequiresConfirmationAndThenUpdatesEveryWeek() {
+        val fixture=PostGenerationFixture
+        val base=fixture.plan(listOf(fixture.row("press",1,id="press")),
+            horizon=4).copy(planningMetadataJson="""{"kind":"B_BALANCED_STANDARD"}""")
+        val changed=base.copy(items=base.items.map { item ->
+            if(item.weekNumber==2) item.copy(exerciseStableKey="different_calf_raise",
+                exerciseName="Calf Raise") else item
+        })
+        val state=mutableStateOf(changed)
+        compose.setContent { TrainingTrackPlannerTheme {
+            ProgramSkeletonPreview(state.value,emptyList(),emptyMap()) { state.value=it }
+        } }
+        assertTrue(state.value.items.any { it.exerciseStableKey=="different_calf_raise" })
+        compose.onNodeWithTag("scope-copy-week-to-all").performScrollTo().performClick()
+        compose.onNodeWithText("모든 주 구성 덮어쓰기").assertExists()
+        compose.onNodeWithText("취소").performClick()
+        compose.runOnIdle { assertTrue(state.value.items.any { it.exerciseStableKey=="different_calf_raise" }) }
+        compose.onNodeWithTag("scope-copy-week-to-all").performScrollTo().performClick()
+        compose.onNodeWithText("모든 주 구성 덮어쓰기").performClick()
+        compose.runOnIdle {
+            assertEquals(4,state.value.items.size)
+            assertTrue(state.value.items.all { it.exerciseStableKey=="press" })
+        }
+    }
+
     @Test fun divergentDraftDisablesAllWeeksWithoutMutation() {
         var calls=0
         compose.setContent { TrainingTrackPlannerTheme { ProgramEditScopeControl(ProgramEditScope.INDIVIDUAL_WEEK,false) { calls++ } } }
@@ -73,7 +98,7 @@ class ProgramEditScopeUiTest {
         } }
         compose.onNodeWithText("주별 수정 ✓").assertIsDisplayed()
         compose.onNodeWithTag("scope-all").performClick()
-        compose.onNodeWithText("세트·반복·중량 수정은 동일한 모든 주에 적용됩니다.").assertIsDisplayed()
+        compose.onNodeWithText("이 모드는 지금부터 수정하는 항목만 모든 주에 반영합니다.").assertIsDisplayed()
         compose.onAllNodesWithText("수정")[0].performClick()
         assertEquals(PROGRAM_ALL_WEEKS_MISMATCH_MESSAGE,ShadowToast.getTextOfLatestToast())
     }
