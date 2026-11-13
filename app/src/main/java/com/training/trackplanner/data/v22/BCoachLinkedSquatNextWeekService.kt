@@ -33,6 +33,11 @@ internal class BCoachLinkedSquatNextWeekService(
     ): BCoachLinkedSquatNextWeekProposal {
         val link = dao.link(targetEntryId)
             ?: return BCoachLinkedSquatNextWeekProposal("TARGET_NOT_PROGRAM_LINKED")
+        val targetKey = workoutDao.findEntryById(targetEntryId)?.exerciseStableKey
+            ?: return BCoachLinkedSquatNextWeekProposal("TARGET_MISSING")
+        if (!BCoachMainPolicy.canChangeLoad(link.role, targetKey)) {
+            return BCoachLinkedSquatNextWeekProposal("ACCESSORY_HOLD_NO_E1RM")
+        }
         val program = db.programDao().findProgramByStableKey(link.sourceProgramStableKey)
             ?: return BCoachLinkedSquatNextWeekProposal("PROGRAM_TEMPLATE_MISSING")
         val metadata = runCatching { JSONObject(program.planningMetadataJson ?: "{}") }.getOrNull()
@@ -46,6 +51,33 @@ internal class BCoachLinkedSquatNextWeekService(
         val plate = metadata.optDouble("bCoachPlateOneSideKg", Double.NaN)
         if (!plate.isFinite() || plate !in 0.1..25.0) {
             return BCoachLinkedSquatNextWeekProposal("INVALID_EQUIPMENT_SNAPSHOT")
+        }
+        val step = when {
+            targetKey == BCoachMainPolicy.WEIGHTED_PULL_UP -> plate // added load, not bilateral plates
+            else -> when (BBlockEquipmentIncrements.kind(targetKey,
+                db.exerciseDao().findByStableKey(targetKey))) {
+                BEquipmentIncrementKind.BARBELL -> plate * 2.0
+                BEquipmentIncrementKind.DUMBBELL -> metadata.optDouble("bCoachDumbbellDisplayedKg", Double.NaN)
+                BEquipmentIncrementKind.MACHINE -> metadata.optDouble("bCoachMachineDisplayedKg", Double.NaN)
+                BEquipmentIncrementKind.UNKNOWN -> Double.NaN
+            }
+        }
+        if (!step.isFinite() || step <= 0.0) {
+            return BCoachLinkedSquatNextWeekProposal("EQUIPMENT_INCREMENT_UNKNOWN")
+        }
+        // Weighted pull-up is measured in BW + external added kg. Reuse recorded
+        // check-in/metric bodyweight; never treat added plates as total load.
+        suspend fun weightAtOrBefore(date: LocalDate): Double? {
+            val start = date.minusDays(7).toString()
+            val end = date.toString()
+            val checkIns = db.dailyCheckInDao().between(start, end)
+                .mapNotNull { row -> row.bodyWeightKg?.takeIf { it.isFinite() && it > 0.0 }
+                    ?.let { row.date to it } }
+            val metrics = db.dailyMetricDao().metricsUntil(end)
+                .filter { it.date >= start }
+                .mapNotNull { row -> row.bodyWeightKg?.takeIf { it.isFinite() && it > 0.0 }
+                    ?.let { row.date to it } }
+            return (checkIns + metrics).maxByOrNull { it.first }?.second
         }
         val evidence = evidenceReader.read(asOf)
         val pipeline = BCoachSquatShadowPipeline.evaluate(
@@ -70,13 +102,28 @@ internal class BCoachLinkedSquatNextWeekService(
         // stored posterior has not caught up with the last confirmed workout,
         // the canonical asset q(n) and existing RPE/RIR mixture are still available
         // and can evaluate the actual same-track confirmed sets.
-        val curve = canonicalReport?.input?.curve
-            ?: curves.resolve(BCoachLinkedSquatWeekPlanner.SQUAT)
+        val curve = if (targetKey == BCoachLinkedSquatWeekPlanner.SQUAT)
+            canonicalReport?.input?.curve ?: curves.resolve(targetKey)
+        else curves.resolve(targetKey)
+        val sourceLink = links.singleOrNull { it.entryId == targetEntryId }
+            ?.let { BCoachProgramLinkChain.predecessor(it, links).link }
+        val sourceEntry = sourceLink?.let { prior -> records.singleOrNull { it.entry.id == prior.entryId } }
+        val sourceWeight = if (targetKey == BCoachMainPolicy.WEIGHTED_PULL_UP)
+            sourceEntry?.let { runCatching { LocalDate.parse(it.entry.date) }.getOrNull() }
+                ?.let { weightAtOrBefore(it) } else null
+        val targetWeight = if (targetKey == BCoachMainPolicy.WEIGHTED_PULL_UP)
+            weightAtOrBefore(asOf) else null
+        if (targetKey == BCoachMainPolicy.WEIGHTED_PULL_UP &&
+            (sourceWeight == null || targetWeight == null)) {
+            return BCoachLinkedSquatNextWeekProposal("BODYWEIGHT_REQUIRED")
+        }
         val evidenceForPlan = BCoachObservedSquatProgression.evaluate(
             targetEntryId = targetEntryId, asOf = asOf,
             links = links, records = records, prescriptions = prescriptions,
             plateOneSideKg = plate,
-            curve = curve, rirPolicy = rirPolicy
+            curve = curve, rirPolicy = rirPolicy,
+            exerciseStableKey = targetKey, loadStepKg = step,
+            sourceBodyWeightKg = sourceWeight, targetBodyWeightKg = targetWeight
         )
         // The global Gate F ranker remains a separate diagnostic. This production
         // decision is intentionally anchored to the immediate linked completed
@@ -89,7 +136,8 @@ internal class BCoachLinkedSquatNextWeekService(
             links = links,
             prescriptions = prescriptions,
             anchor = evidenceForPlan?.anchor,
-            ranking = evidenceForPlan?.ranking
+            ranking = evidenceForPlan?.ranking,
+            exerciseStableKey = targetKey
         )
         if (report.canApply && dao.suggestions().any {
                 it.targetEntryId == targetEntryId &&
