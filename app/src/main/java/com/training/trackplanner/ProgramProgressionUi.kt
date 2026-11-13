@@ -27,10 +27,13 @@ internal fun ProgressionDraftControl(item: ProgramSkeletonItem, skeleton: Progra
     val binding = item.progressionBinding ?: return
     val track = skeleton.progressionSessions.single { it.key == binding.sessionKey }.track
     val options = skeleton.progressionSessions.filter { it.track.exerciseStableKey == item.exerciseStableKey }.map { session ->
-        val members = skeleton.items.filter { it.progressionBinding?.sessionKey == session.key }
-        ProgressionSessionOption(session.track, sessionSummary(item.exerciseStableKey, item.exerciseName, session.track,
-            members.map { ProgramSetPrescriptionResolver.resolve(it) }),
-            members.map { it.dayOfWeek }.distinct().sorted().map { localizedWeekday(java.time.DayOfWeek.of(it)) }.joinToString(" · "))
+        val inSession = skeleton.items.filter { it.progressionBinding?.sessionKey == session.key }
+        val positions = inSession.map { Triple(it.weekNumber, it.dayOfWeek, it.orderIndex) }
+        ProgressionSessionOption(
+            session.track,
+            ProgressionSessionLabels.title(item.exerciseName, positions),
+            "연결 순서: ${ProgressionSessionLabels.members(positions)}"
+        )
     }
     val members = skeleton.items.filter { it.progressionBinding?.sessionKey == binding.sessionKey }
         .sortedWith(compareBy({ it.weekNumber }, { it.dayOfWeek }, { it.orderIndex }))
@@ -45,7 +48,9 @@ internal fun ProgressionDraftControl(item: ProgramSkeletonItem, skeleton: Progra
         options.map { it.track }, onDismiss = { show = false }, onSave = { link, target, role, mode, rule ->
             onChange(skeleton.configureProgressionSession(item.localId, link, target, role, mode, rule))
             show = false
-        }, sessionOptions = options)
+        }, sessionOptions = options,
+        currentOccurrence = ProgressionSessionLabels.occurrence(item.weekNumber, item.dayOfWeek, item.orderIndex),
+        currentMembership = options.firstOrNull { it.track.id == track.id }?.membership.orEmpty())
 }
 
 internal data class ProgressionSessionOption(val track: ProgramProgressionTrack, val label: String, val membership: String = "")
@@ -140,15 +145,15 @@ internal fun ProgressionTrackControl(
     val item = index.itemById[itemId] ?: return
     val sessions = index.tracksByProgramAndExercise[track.programStableKey to track.exerciseStableKey].orEmpty()
     val options = sessions.mapNotNull { session ->
-        val members = index.membersByTrackId[session.id].orEmpty()
-        if (members.isEmpty()) null else ProgressionSessionOption(
-            session,
-            sessionSummary(item.exerciseStableKey, item.exerciseName, session, members.map { member ->
-                ProgramSetPrescriptionResolver.resolve(member, index.setsByItemId[member.id].orEmpty())
-            }),
-            members.map { it.dayOfWeek }.distinct().sorted()
-                .map { localizedWeekday(java.time.DayOfWeek.of(it)) }.joinToString(" · ")
-        )
+        val inSession = index.membersByTrackId[session.id].orEmpty()
+        if (inSession.isEmpty()) null else {
+            val positions = inSession.map { Triple(it.weekNumber, it.dayOfWeek, it.orderIndex) }
+            ProgressionSessionOption(
+                session,
+                ProgressionSessionLabels.title(item.exerciseName, positions),
+                "연결 순서: ${ProgressionSessionLabels.members(positions)}"
+            )
+        }
     }
     var show by remember { mutableStateOf(false) }
     val linked = index.membersByTrackId[track.id].orEmpty()
@@ -159,8 +164,8 @@ internal fun ProgressionTrackControl(
         linkedAt < 0 -> "연결 확인 필요"
         linked.size == 1 -> "단독 세션 · 다음 연결 운동 없음 · 탭하여 연결"
         else -> "연결 세션 ${linkedAt + 1}/${linked.size} · " +
-            "이전 ${linked.getOrNull(linkedAt - 1)?.let { "${it.weekNumber}주차 ${it.dayOfWeek}일" } ?: "없음"} · " +
-            "다음 ${linked.getOrNull(linkedAt + 1)?.let { "${it.weekNumber}주차 ${it.dayOfWeek}일" } ?: "없음"}"
+            "이전 ${linked.getOrNull(linkedAt - 1)?.let { ProgressionSessionLabels.occurrence(it.weekNumber, it.dayOfWeek, it.orderIndex) } ?: "없음"} · " +
+            "다음 ${linked.getOrNull(linkedAt + 1)?.let { ProgressionSessionLabels.occurrence(it.weekNumber, it.dayOfWeek, it.orderIndex) } ?: "없음"}"
     }
     ProgressionSummaryRow(options.firstOrNull { it.track.id == track.id }?.label ?: item.exerciseName,
         track.needsReview, binding.linkMode == ProgressionLinkMode.OFF, relation) { show = true }
@@ -168,7 +173,9 @@ internal fun ProgressionTrackControl(
         onDismiss = { show = false }, onSave = { link, id, role, mode, rule ->
             onConfigure(itemId, link, id, role, mode, rule)
             show = false
-        }, sessionOptions = options)
+        }, sessionOptions = options,
+        currentOccurrence = ProgressionSessionLabels.occurrence(item.weekNumber, item.dayOfWeek, item.orderIndex),
+        currentMembership = options.firstOrNull { it.track.id == track.id }?.membership.orEmpty())
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
