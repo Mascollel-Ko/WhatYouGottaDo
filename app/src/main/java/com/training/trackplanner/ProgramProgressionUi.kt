@@ -187,16 +187,16 @@ internal fun ProgressionSettingsSheet(track: ProgramProgressionTrack, binding: P
     currentMembership: String = ""
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        ProgressionSettingsContent(track, binding, tracks, sessionOptions, onSave, currentOccurrence, currentMembership)
+        ProgressionSettingsContent(track, binding, tracks, sessionOptions, currentOccurrence, currentMembership, onSave)
     }
 }
 
 @Composable
 internal fun ProgressionSettingsContent(track: ProgramProgressionTrack, binding: ProgramProgressionItem, tracks: List<ProgramProgressionTrack>,
     sessionOptions: List<ProgressionSessionOption> = tracks.map { ProgressionSessionOption(it, it.label) },
-    onSave: (ProgressionLinkMode, String?, ProgressionRole, ProgressionMode, ProgressionRule) -> Unit,
     currentOccurrence: String = "",
-    currentMembership: String = ""
+    currentMembership: String = "",
+    onSave: (ProgressionLinkMode, String?, ProgressionRole, ProgressionMode, ProgressionRule) -> Unit
 ) {
     var link by remember { mutableStateOf(if (binding.linkMode == ProgressionLinkMode.SEPARATE) ProgressionLinkMode.EXISTING else binding.linkMode) }
     var target by remember { mutableStateOf(track.id) }
