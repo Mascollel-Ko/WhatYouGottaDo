@@ -126,7 +126,8 @@ internal class BCoachLinkedSquatNextWeekService(
             plateOneSideKg = plate,
             curve = curve, rirPolicy = rirPolicy,
             exerciseStableKey = targetKey, loadStepKg = step,
-            sourceBodyWeightKg = sourceWeight, targetBodyWeightKg = targetWeight
+            sourceBodyWeightKg = sourceWeight, targetBodyWeightKg = targetWeight,
+            maxSingleStepFraction = if (targetKey in BCoachMainPolicy.canonicalFour) 0.02 else 0.15
         )
         // The global Gate F ranker remains a separate diagnostic. This production
         // decision is intentionally anchored to the immediate linked completed
