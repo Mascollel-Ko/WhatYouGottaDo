@@ -209,7 +209,7 @@ private fun ProgramDraftEditTab(
                 val executionItem = execution.items.single { it.localId == item.localId }
                 if (executionItem.progressionBinding != null) {
                     Box(Modifier.testTag("legacy-progression-${item.localId}")) {
-                        ProgressionDraftControl(executionItem, execution, onProgressionChange)
+                        ProgressionDraftControl(executionItem, execution, onChange = onProgressionChange)
                     }
                 }
             }
