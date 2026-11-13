@@ -54,10 +54,14 @@ internal fun ProgramExecutionDraft.reconcileProgression(
     eligibleKeys: Set<String>, oneRmSnapshots: Map<String, Double> = emptyMap(),
     bUncalibratedAuto: Boolean = false
 ): ProgramExecutionDraft {
+    // B links all generated exercise occurrences, including task-based and
+    // bodyweight movements, without forcing an e1RM or artificial external kg.
+    val effectiveEligibleKeys = if (bUncalibratedAuto)
+        eligibleKeys + items.map { it.exerciseStableKey } else eligibleKeys
     val sessions = progressionSessions.associateBy { it.key }.toMutableMap()
     val assigned = mutableListOf<ProgramSkeletonItem>()
     for (item in items.sortedWith(compareBy({ it.weekNumber }, { it.dayOfWeek }, { it.orderIndex }))) {
-        if (item.exerciseStableKey !in eligibleKeys) {
+        if (item.exerciseStableKey !in effectiveEligibleKeys) {
             assigned += item.copy(progressionBinding = null)
             continue
         }
