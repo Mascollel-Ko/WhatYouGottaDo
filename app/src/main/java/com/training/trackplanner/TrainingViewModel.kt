@@ -1090,10 +1090,25 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun deleteProgram(programId: Long, onDeleted: () -> Unit = {}) {
+    fun deleteProgram(
+        programId: Long,
+        onDeleted: () -> Unit = {},
+        onError: (String) -> Unit = {}
+    ) {
         viewModelScope.launch {
-            repository.deleteProgram(programId)
-            onDeleted()
+            try {
+                repository.deleteProgram(programId)
+                onDeleted()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                // A recovery-snapshot, database, or post-commit scheduling failure must
+                // not escape viewModelScope and terminate the entire Android process.
+                // Log the full cause; do not claim the transaction committed or rolled
+                // back, because an error may occur after the DB mutation completed.
+                android.util.Log.e("ProgramDelete", "Failed to delete program id=$programId", error)
+                onError("프로그램 삭제 처리 중 오류가 발생했습니다. 목록에서 삭제 여부를 확인해 주세요.")
+            }
         }
     }
 
