@@ -269,10 +269,15 @@ internal fun PlanScreen(
                     resumeDraft = true
                     editingProgramId = it.id
                 },
-                onDeleteProgram = { program ->
-                    viewModel.deleteProgram(program.id) {
-                        if (selectedProgramId == program.id) selectedProgramId = null
-                    }
+                onDeleteProgram = { program, onSuccess, onError ->
+                    viewModel.deleteProgram(
+                        program.id,
+                        onDeleted = {
+                            if (selectedProgramId == program.id) selectedProgramId = null
+                            onSuccess()
+                        },
+                        onError = onError
+                    )
                 },
                 onShareProgram = onShareProgram,
                 onOpenRecord = onOpenRecord,
@@ -307,7 +312,7 @@ private fun ProgramListScreen(
     onContinueDraft: (ProgramDraftSummary) -> Unit,
     onSelectProgram: (TrainingProgram) -> Unit,
     onEditProgram: (TrainingProgram) -> Unit,
-    onDeleteProgram: (TrainingProgram) -> Unit,
+    onDeleteProgram: (TrainingProgram, () -> Unit, (String) -> Unit) -> Unit,
     onShareProgram: (TrainingProgram) -> Unit,
     onOpenRecord: () -> Unit,
     tutorialApplyRequest: Int,
@@ -342,9 +347,13 @@ private fun ProgramListScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        onDeleteProgram(program)
                         deleteTarget = null
-                        Toast.makeText(context, "운동 프로그램을 삭제했습니다.", Toast.LENGTH_SHORT).show()
+                        // Report success only after the repository confirms completion.
+                        onDeleteProgram(
+                            program,
+                            { Toast.makeText(context, "운동 프로그램을 삭제했습니다.", Toast.LENGTH_SHORT).show() },
+                            { message -> Toast.makeText(context, message, Toast.LENGTH_LONG).show() }
+                        )
                     }
                 ) {
                     Text("삭제")
@@ -1634,11 +1643,17 @@ private fun ProgramDetailScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        viewModel.deleteProgram(program.id) {
-                            Toast.makeText(context, "운동 프로그램을 삭제했습니다.", Toast.LENGTH_SHORT).show()
-                            onDeleted()
-                        }
                         confirmDelete = false
+                        viewModel.deleteProgram(
+                            program.id,
+                            onDeleted = {
+                                Toast.makeText(context, "운동 프로그램을 삭제했습니다.", Toast.LENGTH_SHORT).show()
+                                onDeleted()
+                            },
+                            onError = { message ->
+                                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                            }
+                        )
                     }
                 ) {
                     Text("삭제")
