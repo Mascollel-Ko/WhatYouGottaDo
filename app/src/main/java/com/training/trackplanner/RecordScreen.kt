@@ -454,7 +454,11 @@ internal fun RecordScreen(
                                         suggestion.reasons.startsWith("B_COACH_GATE_H_AUTO_AFTER_CONFIRM") &&
                                         suggestion.resolution == com.training.trackplanner.data.ProgressionResolution.ACCEPTED
                                 }?.suggestedKg
-                                if (status != null || appliedKg != null) {
+                                // Existing already-completed sessions from older APKs also need
+                                // a visible recheck entrypoint after upgrading to Gate H.
+                                if (status != null || appliedKg != null ||
+                                    programLinkByEntryId.containsKey(entryId)
+                                ) {
                                     BCoachConfirmedSquatProgressionNotice(
                                         outcome = status,
                                         appliedKg = appliedKg,
@@ -515,7 +519,7 @@ private fun BCoachConfirmedSquatProgressionNotice(
             Text("B-Coach · 다음 주 자동 조정 보류: $explanation",
                 style = MaterialTheme.typography.bodySmall)
         } else {
-            Text("B-Coach · 마지막 세트를 확인하면 다음 주 계획을 재평가합니다.",
+            Text("B-Coach · 이 완료 기록으로 다음 주 계획을 평가할 수 있습니다.",
                 style = MaterialTheme.typography.bodySmall)
         }
         if (appliedKg == null) {
