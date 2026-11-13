@@ -481,11 +481,11 @@ private fun BCoachConfirmedSquatProgressionNotice(
     appliedKg: Double?,
     retry: () -> Unit
 ) {
-    // Visible on the confirmed source workout, not hidden in next week's future screen.
+    // Visible on the confirmed source workout, not hidden in a future linked workout.
     Column(Modifier.fillMaxWidth().padding(vertical = 5.dp),
         verticalArrangement = Arrangement.spacedBy(5.dp)) {
         if (appliedKg != null) {
-            Text("B-Coach · 다음 주 스쿼트 자동 반영 완료 (${appliedKg}kg)",
+            Text("B-Coach · 다음 연결 스쿼트 자동 반영 완료 (${appliedKg}kg)",
                 style = MaterialTheme.typography.bodySmall)
             if (outcome?.wasApplied == true) {
                 Text("${outcome.nextLoadKg}kg × ${outcome.nextReps}회 × ${outcome.nextSets}세트 · ${outcome.selectedAction}",
@@ -493,38 +493,41 @@ private fun BCoachConfirmedSquatProgressionNotice(
             }
         } else if (outcome != null) {
             val explanation = when (outcome.status) {
-                "NEXT_WEEK_UPDATED" -> "다음 주 계획에 자동 반영했습니다."
+                "NEXT_LINKED_UPDATED" -> "다음 연결 운동의 계획에 자동 반영했습니다."
                 "WAITING_FOR_CONFIRMED_RPE_SETS" -> "모든 세트의 확인과 RPE 기록이 필요합니다."
                 "SOURCE_NOT_PROGRAM_LINKED" -> "이 기록이 적용 프로그램과 연결되지 않았습니다."
-                "NO_NEXT_WEEK_SQUAT" -> "같은 프로그램의 다음 주 스쿼트를 찾지 못했습니다."
-                "MULTIPLE_NEXT_WEEK_SQUATS" -> "다음 주 스쿼트가 여러 개라 연결을 결정할 수 없습니다."
+                "TRACK_EXERCISE_MISMATCH" -> "연결된 다음 운동의 종목이 스쿼트가 아니어서 자동 변경하지 않았습니다."
+                "LINKED_PREDECESSOR_RECORD_MISSING" -> "프로그램 연결에 해당하는 실제 운동기록이 없습니다."
+                "NO_LINKED_PREDECESSOR" -> "계획에서 연결한 이전 운동이 없습니다."
+                "NO_NEXT_LINKED_EXERCISE" -> "계획에서 연결한 다음 스쿼트가 없습니다. 운동 간 연결을 확인하세요."
+                "AMBIGUOUS_LINKED_SEQUENCE" -> "연결된 운동의 순서가 중복되어 다음 운동을 특정할 수 없습니다."
                 "EQUIPMENT_SNAPSHOT_MISSING" -> "이전 버전의 프로그램에 원판 간격이 저장돼 있지 않습니다. 새 B 프로그램이 필요합니다."
                 "PREVIOUS_WEEK_NOT_FULLY_SUCCESSFUL" -> "기록한 세트가 프로그램 목표를 모두 달성하지 못했습니다."
                 "CANONICAL_MODEL_NOT_READY", "MODEL_UPDATE_FAILED" ->
                     "새 운동기록을 반영한 근력 추정치가 준비되지 않았습니다."
                 "LATEST_CANONICAL_ANCHOR_NOT_LINKED_SOURCE" ->
-                    "최신 근력 기록과 이 프로그램의 직전 주차가 일치하지 않습니다."
+                    "최신 근력 기록과 이 프로그램에서 직전에 연결된 운동이 일치하지 않습니다."
                 "TARGET_STRUCTURE_CHANGED", "USER_EDIT_PROTECTED" ->
-                    "다음 주차의 사용자 수정 사항을 보호해 자동 변경하지 않았습니다."
-                "LINK_OR_MODE_NOT_ELIGIBLE", "NO_LINKED_PREVIOUS_WEEK" ->
-                    "프로그램의 주차·세션 연결이 불명확합니다."
+                    "다음 연결 운동의 사용자 수정 사항을 보호해 자동 변경하지 않았습니다."
+                "LINK_OR_MODE_NOT_ELIGIBLE", "LINK_MODE_NOT_ELIGIBLE", "NO_LINKED_PREDECESSOR" ->
+                    "프로그램의 운동 간 연결이 없거나 자동 진행이 꺼져 있습니다."
                 "TARGET_ALREADY_STARTED", "TARGET_DATE_NOT_FUTURE" ->
-                    "다음 주 운동이 시작됐거나 과거 날짜여서 보호했습니다."
+                    "다음 연결 운동이 시작됐거나 과거 날짜여서 보호했습니다."
                 "RANKING_NOT_AVAILABLE" -> "중량·반복·세트 후보를 선정할 근거가 부족합니다."
                 "PRIOR_EXPLICIT_PROGRESSION_DECISION" ->
-                    "다음 주차에 이미 확정된 진행 결정을 보호했습니다."
+                    "다음 연결 운동에 이미 확정된 진행 결정을 보호했습니다."
                 "STALE_OR_EDITED_TARGET" -> "계산 후 기록이 변경되어 자동 적용을 취소했습니다."
                 else -> "안전 조건을 충족하지 않아 자동 반영을 보류했습니다 (${outcome.status})."
             }
-            Text("B-Coach · 다음 주 자동 조정 보류: $explanation",
+            Text("B-Coach · 다음 연결 운동 조정 보류: $explanation",
                 style = MaterialTheme.typography.bodySmall)
         } else {
-            Text("B-Coach · 이 완료 기록으로 다음 주 계획을 평가할 수 있습니다.",
+            Text("B-Coach · 이 완료 기록으로 다음 연결 운동의 계획을 평가할 수 있습니다.",
                 style = MaterialTheme.typography.bodySmall)
         }
         if (appliedKg == null) {
             OutlinedButton(onClick = retry, modifier = Modifier.fillMaxWidth()) {
-                Text("다음 주 B-Coach 재평가", maxLines = 1)
+                Text("다음 연결 운동 재평가", maxLines = 1)
             }
         }
     }
@@ -550,13 +553,13 @@ private fun BCoachLinkedSquatNextWeekControl(
     }
     val proposal = report ?: return
     if (applied) {
-        Text("B-Coach: 다음 주 스쿼트 계획을 적용했습니다.", style = MaterialTheme.typography.bodySmall)
+        Text("B-Coach: 다음 연결 스쿼트 계획을 적용했습니다.", style = MaterialTheme.typography.bodySmall)
         return
     }
     if (proposal.canApply) {
         Column(Modifier.fillMaxWidth().padding(vertical = 6.dp),
             verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            Text("B-Coach · 다음 주 스쿼트 후보 (실험)", style = MaterialTheme.typography.labelLarge)
+            Text("B-Coach · 다음 연결 스쿼트 후보 (실험)", style = MaterialTheme.typography.labelLarge)
             Text("${proposal.sourceWeek}주차 실제 기록: ${proposal.sourceText ?: "-"}",
                 style = MaterialTheme.typography.bodySmall)
             Text("기존 ${proposal.targetWeek}주차: ${proposal.originalPlanText ?: "-"}",
@@ -578,7 +581,7 @@ private fun BCoachLinkedSquatNextWeekControl(
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("이번 주차 계획에 적용", maxLines = 1)
+                Text("선택한 연결 운동에 적용", maxLines = 1)
             }
         }
     } else if (proposal.status in setOf(
@@ -591,13 +594,13 @@ private fun BCoachLinkedSquatNextWeekControl(
             "EQUIPMENT_SNAPSHOT_MISSING" -> "저장된 원판 규격이 없어 자동 계획 변경을 보류합니다."
             "USER_EDIT_PROTECTED" -> "사용자가 수정한 처방은 자동 변경하지 않습니다."
             "TARGET_STRUCTURE_CHANGED" -> "세트 구성이나 현재 계획이 변경되어 재검토가 필요합니다."
-            "PREVIOUS_WEEK_NOT_FULLY_SUCCESSFUL" -> "이전 주차 세트·반복·RPE 성공 조건이 충족되지 않았습니다."
-            "LATEST_CANONICAL_ANCHOR_NOT_LINKED_SOURCE" -> "최근 근력 기록이 이 프로그램의 직전 주차와 일치하지 않습니다."
-            "SET_COUNT_REQUIRES_REVIEW" -> "다음 주 계획의 세트 수 변경은 별도 검토가 필요합니다."
+            "PREVIOUS_WEEK_NOT_FULLY_SUCCESSFUL" -> "이전 연결 운동의 세트·반복·RPE 성공 조건이 충족되지 않았습니다."
+            "LATEST_CANONICAL_ANCHOR_NOT_LINKED_SOURCE" -> "최근 근력 기록이 프로그램에서 직전에 연결된 운동과 일치하지 않습니다."
+            "SET_COUNT_REQUIRES_REVIEW" -> "다음 연결 운동의 세트 수 변경은 별도 검토가 필요합니다."
             "CANONICAL_MODEL_NOT_READY" -> "최신 근력 모델 계산을 확인해야 합니다."
             else -> "이미 진행 결정을 했거나 재검토가 필요합니다."
         }
-        Text("B-Coach 다음 주 자동 조정 보류: $reason",
+        Text("B-Coach 연결 운동 조정 보류: $reason",
             style = MaterialTheme.typography.bodySmall)
     }
 }
