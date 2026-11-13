@@ -61,9 +61,11 @@ internal object BCoachObservedSquatProgression {
         exerciseStableKey: String = BCoachLinkedSquatWeekPlanner.SQUAT,
         loadStepKg: Double? = null,
         sourceBodyWeightKg: Double? = null,
-        targetBodyWeightKg: Double? = null
+        targetBodyWeightKg: Double? = null,
+        maxSingleStepFraction: Double = MAX_SINGLE_STEP_FRACTION
     ): ProposalEvidence? {
-        if (!plateOneSideKg.isFinite() || plateOneSideKg !in 0.1..25.0) return null
+        if (!plateOneSideKg.isFinite() || plateOneSideKg !in 0.1..25.0 ||
+            !maxSingleStepFraction.isFinite() || maxSingleStepFraction !in 0.0..0.20) return null
         val targetLink = links.singleOrNull { it.entryId == targetEntryId } ?: return null
         val predecessor = BCoachProgramLinkChain.predecessor(targetLink, links)
         if (!predecessor.found) return null
@@ -162,7 +164,7 @@ internal object BCoachObservedSquatProgression {
         }
 
         val hold = score(load)
-        val up = if (step.isFinite() && step > 0 && step / observedTotal <= MAX_SINGLE_STEP_FRACTION)
+        val up = if (step.isFinite() && step > 0 && step / observedTotal <= maxSingleStepFraction)
             score(load + step) else null
         // The same canonical q curve computes both capacity and projected RIR.
         // Prefer a one-step increase only when it improves target-RIR fit without
