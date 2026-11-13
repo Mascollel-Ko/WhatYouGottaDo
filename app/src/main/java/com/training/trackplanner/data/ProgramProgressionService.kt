@@ -215,8 +215,13 @@ internal class ProgramProgressionService(
         // Including all same-chain evidence makes removals, edits and trend changes observable.
         for (old in suggestions.filter { it.resolution == ProgressionResolution.PENDING }) {
             val target = sessions.firstOrNull { it.link.entryId == old.targetEntryId }
-            if (target == null || target.actual.any { it.confirmed } || evidence(target, sessions, restricted) != old.evidenceHash)
-                dao.putSuggestion(old.copy(resolution = ProgressionResolution.STALE))
+            val sourceProgram = target?.link?.sourceProgramStableKey?.let {
+                db.programDao().findProgramByStableKey(it)
+            }
+            if (BCoachUncalibratedLinkPolicy.isBProgram(sourceProgram?.planningMetadataJson) ||
+                target == null || target.actual.any { it.confirmed } ||
+                evidence(target, sessions, restricted) != old.evidenceHash
+            ) dao.putSuggestion(old.copy(resolution = ProgressionResolution.STALE))
         }
         for (chain in sessions.groupBy { it.link.applicationId to it.link.trackId }.values) {
             // B-Coach has a separate e1RM/RIR main path and a first-week hold path.
