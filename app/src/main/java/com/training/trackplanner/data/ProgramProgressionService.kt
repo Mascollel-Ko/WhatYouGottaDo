@@ -17,6 +17,11 @@ internal class ProgramProgressionService(
         val sets = db.programDao().programItemSetsForProgram(programId).groupBy { it.programItemId }
         val previous = dao.items().associateBy { it.programItemId } + restored
         val assigned = mutableListOf<ProgramProgressionItem>()
+        val rowsById = rows.associateBy { it.id }
+        val bCoachUncalibrated = runCatching {
+            org.json.JSONObject(program.planningMetadataJson ?: "{}")
+                .optString("bCoachSessionAutoLinkSchema") == "uncalibrated-v1"
+        }.getOrDefault(false)
         val allTracks = dao.tracks().associateBy { it.id }.toMutableMap()
         val roles = db.exerciseRoleRelationDao().allTrainingRoles().groupBy { it.exerciseStableKey }
         val metadata = db.runtimeExerciseMetadataDao().all().associate { it.stableKey to it.toRuntimeMetadata() }
@@ -42,13 +47,28 @@ internal class ProgramProgressionService(
                 anchor = source?.progressionAnchorSetIndex ?: old?.signature?.anchorSetIndex).copy(
                     plannerRole = source?.progressionRole?.takeUnless { it == ProgressionRole.AUTO } ?: old?.signature?.plannerRole ?: ProgressionRole.AUTO)
             val explicit = old?.takeIf { it.linkMode != ProgressionLinkMode.AUTO }
-            val candidate = assigned.firstOrNull { it.linkMode == ProgressionLinkMode.AUTO && ProgressionTrackInference.sameTrack(it.signature, signature) }
+            val candidate = assigned.firstOrNull { other ->
+                other.linkMode == ProgressionLinkMode.AUTO && (
+                    ProgressionTrackInference.sameTrack(other.signature, signature) ||
+                        (bCoachUncalibrated &&
+                            BCoachUncalibratedAutoSessionLink.compatible(other.signature, signature) &&
+                            rowsById[other.programItemId]?.let { previous ->
+                                previous.weekNumber != item.weekNumber || previous.dayOfWeek != item.dayOfWeek
+                            } == true)
+                )
+            }
             val oldTrack = old?.let { allTracks[it.trackId] }
             // New AUTO previews have no confirmed-history e1RM snapshot yet. Finalize with the
             // existing canonical comparator; only persisted or user-explicit choices bypass it.
             val provisionalAuto = source?.progressionBinding?.let { !it.persisted && it.linkMode == ProgressionLinkMode.AUTO } == true
             val retain = !provisionalAuto && (explicit != null || old != null && (old.signature == signature || ProgressionTrackInference.sameTrack(old.signature, signature)))
             val track = when {
+                // Source preview bindings can be on separate provisional REVIEW tracks.
+                // Merge only automatic B occurrences with identical training intent.
+                bCoachUncalibrated && candidate != null &&
+                    (old == null || old.linkMode == ProgressionLinkMode.AUTO) &&
+                    BCoachUncalibratedAutoSessionLink.compatible(candidate.signature, signature) ->
+                    allTracks.getValue(candidate.trackId)
                 retain && oldTrack != null -> oldTrack
                 candidate != null -> allTracks.getValue(candidate.trackId)
                 provisionalAuto && oldTrack != null -> oldTrack

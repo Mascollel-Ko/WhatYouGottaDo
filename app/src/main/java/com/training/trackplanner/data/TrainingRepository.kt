@@ -464,6 +464,7 @@ class TrainingRepository internal constructor(
     }
     val progressionItems = db.programProgressionDao().observeItems()
     val programWorkoutLinks = db.programProgressionDao().observeLinks()
+    val programLinkedEntries = workoutDao.observeProgramLinkedEntries()
     val progressionSuggestions = db.programProgressionDao().observeSuggestions()
     val programPrescriptions = db.programProgressionDao().observePrescriptions()
     suspend fun refreshProgression() = withContext(Dispatchers.IO) { programProgressionService.refresh() }
