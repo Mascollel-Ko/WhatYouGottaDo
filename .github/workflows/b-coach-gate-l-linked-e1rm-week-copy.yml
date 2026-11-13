@@ -3,7 +3,7 @@ name: B-Coach Gate L Linked e1RM and Explicit Week Copy
 on:
   push:
     branches:
-      - test/b-coach-readable-progression-sessions-gate-l-20261113
+      - test/b-coach-observed-progression-unify-weeks-gate-l-20261113
 
 concurrency:
   group: b-coach-gate-l-${{ github.ref }}
