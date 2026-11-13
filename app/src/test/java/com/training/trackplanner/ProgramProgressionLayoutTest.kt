@@ -94,7 +94,7 @@ class ProgramProgressionLayoutTest {
     }
     @Test fun draftSheetShowsWhichWeeksAreActuallyInSameTrack() {
         val draft = mutableStateOf(manualSessionDraft(0.0).copy(
-            planningMetadataJson = "{\\"bCoachProgressionEquipmentSchema\\":\\"linked-g-1\\"}"
+            planningMetadataJson = """{"bCoachProgressionEquipmentSchema":"linked-g-1"}"""
         ).reconcileProgression(setOf("squat", "bench")))
         compose.setContent {
             TrainingTrackPlannerTheme {
