@@ -27,7 +27,8 @@ internal class ProgramProgressionService(
             val exercise = db.exerciseDao().findByStableKey(item.exerciseStableKey) ?: continue
             val prescriptions = ProgramSetPrescriptionResolver.resolve(item, sets[item.id].orEmpty())
             // Canonical activity kind only; never category/name/equipment guesses.
-            if (!progressionEligible(exercise, roles[item.exerciseStableKey].orEmpty().mapTo(mutableSetOf()) { it.trainingRoleCode }, metadata[item.exerciseStableKey])) {
+            if (!bUncalibratedLinking &&
+                !progressionEligible(exercise, roles[item.exerciseStableKey].orEmpty().mapTo(mutableSetOf()) { it.trainingRoleCode }, metadata[item.exerciseStableKey])) {
                 dao.deleteItem(item.id)
                 continue
             }
