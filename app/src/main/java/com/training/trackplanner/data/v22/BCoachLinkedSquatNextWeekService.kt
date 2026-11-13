@@ -79,18 +79,21 @@ internal class BCoachLinkedSquatNextWeekService(
                     ?.let { row.date to it } }
             return (checkIns + metrics).maxByOrNull { it.first }?.second
         }
-        val evidence = evidenceReader.read(asOf)
-        val pipeline = BCoachSquatShadowPipeline.evaluate(
-            input = evidence,
-            rirPolicy = rirPolicy,
-            smallestPlateOneSideKg = plate,
-            targetRirMin = 1.0,
-            targetRirMax = 3.0,
-            policies = listOf(
-                BCoachSquatShadowSelector.Weights(0.0, 0.0, 0.0, 1.0, 1.0, 1.0)
-            ),
-            omegaBands = listOf(BCoachSquatShadowSelector.OmegaBand.CENTRAL_80)
-        )
+        // The squat-only shadow pipeline is diagnostic; other main lifts use
+        // their own reviewed/general curve assignment, never squat's posterior.
+        val pipeline = if (targetKey == BCoachLinkedSquatWeekPlanner.SQUAT) {
+            BCoachSquatShadowPipeline.evaluate(
+                input = evidenceReader.read(asOf),
+                rirPolicy = rirPolicy,
+                smallestPlateOneSideKg = plate,
+                targetRirMin = 1.0,
+                targetRirMax = 3.0,
+                policies = listOf(
+                    BCoachSquatShadowSelector.Weights(0.0, 0.0, 0.0, 1.0, 1.0, 1.0)
+                ),
+                omegaBands = listOf(BCoachSquatShadowSelector.OmegaBand.CENTRAL_80)
+            )
+        } else null
         val records = workoutDao.allEntriesWithSets()
         val links = dao.links()
         val prescriptions = dao.prescriptions()
