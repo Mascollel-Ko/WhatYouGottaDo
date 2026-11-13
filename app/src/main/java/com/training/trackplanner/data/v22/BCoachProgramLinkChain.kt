@@ -40,8 +40,8 @@ internal object BCoachProgramLinkChain {
                 candidate.applicationId == current.applicationId &&
                 candidate.sourceProgramStableKey == current.sourceProgramStableKey &&
                 candidate.trackId == current.trackId &&
-                if (forward) candidate.sequence > current.sequence
-                else candidate.sequence < current.sequence
+                (if (forward) candidate.sequence > current.sequence
+                else candidate.sequence < current.sequence)
         }
         val nextSequence = if (forward) siblings.minOfOrNull { it.sequence }
             else siblings.maxOfOrNull { it.sequence }
