@@ -369,6 +369,20 @@ class TrainingRepository internal constructor(
         sourceEntryId: Long
     ): com.training.trackplanner.data.v22.BCoachPostConfirmOutcome = withContext(Dispatchers.IO) {
         val now = LocalDate.now()
+        val source = workoutDao.findEntryById(sourceEntryId)
+            ?: return@withContext com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(sourceEntryId, "SOURCE_MISSING")
+        if (source.exerciseStableKey != com.training.trackplanner.data.v22.BCoachLinkedSquatWeekPlanner.SQUAT) {
+            return@withContext com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(sourceEntryId, "NOT_SQUAT")
+        }
+        if (db.programProgressionDao().link(sourceEntryId) == null) {
+            return@withContext com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(sourceEntryId, "SOURCE_NOT_PROGRAM_LINKED")
+        }
+        val sets = workoutDao.setsForEntry(sourceEntryId)
+        if (sets.isEmpty() || sets.any { !it.confirmed }) {
+            return@withContext com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(
+                sourceEntryId, "WAITING_FOR_CONFIRMED_RPE_SETS"
+            )
+        }
         val links = db.programProgressionDao().links()
         val records = workoutDao.allEntriesWithSets()
         val target = com.training.trackplanner.data.v22.BCoachPostConfirmLinkResolver.resolve(
