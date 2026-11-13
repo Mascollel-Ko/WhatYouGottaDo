@@ -225,6 +225,18 @@ class BCoachLinkedSquatWeekPlannerTest {
             inspect(anchor=anchor.copy(confirmedSets=anchor.confirmedSets.drop(1))).status)
     }
 
+    @Test fun `linked strength days with different planned rep ranges stay separate prescriptions`() {
+        // A 5-rep heavy day explicitly linked to an 8-rep volume day is linked for
+        // progress tracking, but the 5-rep candidate must not overwrite its 8-rep plan.
+        val differentTarget = target.copy(sets = target.sets.map { it.copy(reps = 8) })
+        val out = inspect(
+            workouts = listOf(source, differentTarget),
+            prescriptions = targets(source) + targets(differentTarget)
+        )
+        assertEquals("LINKED_TARGET_REP_SCHEME_REVIEW",out.status)
+        assertFalse(out.canApply)
+    }
+
     @Test fun `different target set count refuses accidental add or deletion`() {
         val mismatch = inspect(ranking=ranking("SETS_UP_ONE",4))
         assertEquals("SET_COUNT_REQUIRES_REVIEW",mismatch.status)
