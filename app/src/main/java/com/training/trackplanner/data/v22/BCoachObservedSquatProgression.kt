@@ -1,25 +1,53 @@
 package com.training.trackplanner.data.v22
 
+import com.training.trackplanner.analysis.strengthperformance.RpeRirPolicy
+import com.training.trackplanner.analysis.strengthperformance.curve.RepetitionCurveEvaluationStatus
+import com.training.trackplanner.analysis.strengthperformance.curve.ResolvedRepetitionCurve
 import com.training.trackplanner.data.ProgramLoadState
 import com.training.trackplanner.data.ProgramPrescriptionSet
 import com.training.trackplanner.data.ProgramWorkoutLink
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import java.time.LocalDate
 import kotlin.math.abs
+import kotlin.math.exp
+import kotlin.math.ln
 
 /**
- * Evidence-only progression for a linked, fully confirmed and uniform squat session.
+ * Uses confirmed linked squat work as a CURRENT capacity observation, even when
+ * the persisted multi-session posterior has not processed the newest workout.
+ * The actual RPE->RIR distribution and canonical nonlinear repetition curve
+ * supply e1RM scenarios and next-load projected RIR; no RPE<=7 shortcut.
  *
- * Used when the asynchronous strength-posterior state is not ready. This is a
- * transparent, bounded engineering rule, not a posterior probability or
- * physiological forecast. All future-target/plan-edit guards stay in Gate I.
+ * Not a prediction of future success or adaptation and not a substitute for
+ * the personalized posterior when that has been evaluated.
  */
 internal object BCoachObservedSquatProgression {
     data class ProposalEvidence(
         val anchor: BCoachSquatAnchorSession,
         val ranking: BCoachSquatCurveProgressionReport
     )
+
     private const val EPS = 1e-6
+    private const val TARGET_RIR_MIN = 1.0
+    private const val TARGET_RIR_MAX = 3.0
+    private const val TARGET_RIR = 2.0
+    private const val MAX_LOW_RIR_MIXTURE_MASS = 0.10
+    private const val MAX_SINGLE_STEP_FRACTION = 0.02
+
+    private data class CurveScenario(
+        val probability: Double,
+        val estimatedOneRm: Double,
+        val projectedRir: Double
+    )
+    private data class Evaluation(
+        val loadKg: Double,
+        val scenarios: List<CurveScenario>,
+        val expectedE1rmKg: Double,
+        val averageSquaredRirError: Double,
+        val lowRirMixtureMass: Double,
+        val targetRirMixtureMass: Double,
+        val requiredE1rmKg: Double
+    )
 
     fun evaluate(
         targetEntryId: Long,
@@ -27,7 +55,9 @@ internal object BCoachObservedSquatProgression {
         links: List<ProgramWorkoutLink>,
         records: List<WorkoutEntryWithSets>,
         prescriptions: List<ProgramPrescriptionSet>,
-        plateOneSideKg: Double
+        plateOneSideKg: Double,
+        curve: ResolvedRepetitionCurve,
+        rirPolicy: RpeRirPolicy
     ): ProposalEvidence? {
         if (!plateOneSideKg.isFinite() || plateOneSideKg !in 0.1..25.0) return null
         val targetLink = links.singleOrNull { it.entryId == targetEntryId } ?: return null
@@ -57,7 +87,7 @@ internal object BCoachObservedSquatProgression {
         val load = done.first().weightKg
         val reps = done.first().reps
         if (done.any { abs(it.weightKg - load) > EPS || it.reps != reps }) return null
-        // Never treat intentionally missed/reduced original prescriptions as success.
+        // A changed/reduced original goal never manufactures a completed program.
         if (sourceOriginal.any { p ->
             !p.originalExists || p.plannedSetIndex == null ||
                 done.singleOrNull { it.setIndex == p.plannedSetIndex }?.let { actual ->
@@ -67,20 +97,69 @@ internal object BCoachObservedSquatProgression {
                 } != false
         }) return null
 
-        // The next B occurrence may have a different SET count; preserve that
-        // structure. A change of REP scheme needs a purpose-aware intensity model.
+        // Only a comparable repetition scheme is automatically eligible.
+        // Deliberate heavy/volume switches require a separate policy.
         if (targetOriginal.any { !it.originalExists || it.originalReps != reps } ||
             planned.any { it.reps != reps || it.confirmed } ||
             targetOriginal.mapNotNull { it.plannedSetIndex }.distinct().size != planned.size
         ) return null
+
         val maxRpe = done.maxOf { it.rpe ?: source.entry.rpe!! }
+        val rirDistribution = rirPolicy.resolve(maxRpe)
         val step = BBlockPeriodization.barbellIncrement(plateOneSideKg)
-        val modestStep = step.isFinite() && step > 0.0 && step / load <= 0.02
-        // Very easy, completed work can justify only one small step; otherwise
-        // retain the last actually performed weight instead of leaving kg blank.
-        val increase = maxRpe <= 7.0 && modestStep &&
+
+        fun score(candidateKg: Double): Evaluation? {
+            val distribution = rirDistribution ?: return null
+            val scenarios = distribution.probabilities.map { item ->
+                val relative = curve.evaluate(reps + item.rir.toDouble())
+                if (relative.status != RepetitionCurveEvaluationStatus.SUPPORTED) return null
+                val q = relative.relativeLoad?.takeIf { it.isFinite() && it > 0.0 }
+                    ?: return null
+                val projectedRelative = q * candidateKg / load
+                val inverse = curve.profile.invert(projectedRelative)
+                if (inverse.status != RepetitionCurveEvaluationStatus.SUPPORTED) return null
+                val effectiveRepLimit = inverse.repetitions?.let {
+                    1.0 + exp(curve.personalTheta) * (it - 1.0)
+                } ?: return null
+                val projectedRir = effectiveRepLimit - reps
+                if (!projectedRir.isFinite()) return null
+                CurveScenario(item.probability, load / q, projectedRir)
+            }
+            if (abs(scenarios.sumOf { it.probability } - 1.0) > EPS) return null
+            val requiredRelative = curve.evaluate(reps + TARGET_RIR)
+            val requiredQ = requiredRelative.relativeLoad ?: return null
+            if (requiredRelative.status != RepetitionCurveEvaluationStatus.SUPPORTED ||
+                requiredQ <= 0.0) return null
+            return Evaluation(
+                loadKg = candidateKg,
+                scenarios = scenarios,
+                expectedE1rmKg = scenarios.sumOf { it.probability * it.estimatedOneRm },
+                averageSquaredRirError = scenarios.sumOf {
+                    it.probability * (it.projectedRir - TARGET_RIR) *
+                        (it.projectedRir - TARGET_RIR)
+                },
+                lowRirMixtureMass = scenarios.filter { it.projectedRir < TARGET_RIR_MIN }
+                    .sumOf { it.probability },
+                targetRirMixtureMass = scenarios.filter {
+                    it.projectedRir in TARGET_RIR_MIN..TARGET_RIR_MAX
+                }.sumOf { it.probability },
+                requiredE1rmKg = candidateKg / requiredQ
+            )
+        }
+
+        val hold = score(load)
+        val up = if (step.isFinite() && step > 0 && step / load <= MAX_SINGLE_STEP_FRACTION)
+            score(load + step) else null
+        // The same canonical q curve computes both capacity and projected RIR.
+        // Prefer a one-step increase only when it improves target-RIR fit without
+        // appreciable low-RIR tail risk. Four completed sets corroborate session
+        // completion but do not imply four independent maximal-capacity draws.
+        val increase = hold != null && up != null &&
+            up.lowRirMixtureMass <= MAX_LOW_RIR_MIXTURE_MASS + EPS &&
+            up.averageSquaredRirError + EPS < hold.averageSquaredRirError &&
             planned.size <= done.size
-        val kg = if (increase) load + step else load
+        val chosen = if (increase) checkNotNull(up) else hold
+        val kg = chosen?.loadKg ?: load
         val action = if (increase) "LOAD_UP_ONE_STEP" else "HOLD"
         val anchor = BCoachSquatAnchorSession(
             sessionStableKey = source.entry.sessionStableKey,
@@ -92,25 +171,36 @@ internal object BCoachObservedSquatProgression {
         )
         val candidate = BCoachSquatCurveProgressionReport.Candidate(
             action = action, loadKg = kg, reps = reps, sets = planned.size,
-            requiredE1rmKg = null, historicalE1rmLogGap = null,
-            worstCaseRegret = null, weightedCost = null,
-            targetRirMixtureMass = null,
-            volumeLoadChange = (kg * reps * planned.size - load * reps * done.size),
-            eligible = true, reason = if (increase)
-                "OBSERVED_UNIFORM_COMPLETION_RPE_AT_MOST_7_STEP_AT_MOST_2_PERCENT"
-            else "OBSERVED_UNIFORM_COMPLETION_HOLD_NO_CANONICAL_POSTERIOR"
+            requiredE1rmKg = chosen?.requiredE1rmKg,
+            historicalE1rmLogGap = chosen?.let {
+                abs(ln(it.requiredE1rmKg / it.expectedE1rmKg))
+            },
+            worstCaseRegret = null,
+            weightedCost = chosen?.averageSquaredRirError,
+            targetRirMixtureMass = chosen?.targetRirMixtureMass,
+            volumeLoadChange = (kg * reps * planned.size).toDouble() /
+                (load * reps * done.size).toDouble() - 1.0,
+            eligible = true,
+            reason = when {
+                increase -> "LINKED_E1RM_CURVE_RIR_ONE_STEP"
+                hold != null -> "LINKED_E1RM_CURVE_RIR_HOLD"
+                else -> "LINKED_CONFIRMED_HOLD_CURVE_UNSUPPORTED"
+            }
         )
         return ProposalEvidence(
             anchor = anchor,
             ranking = BCoachSquatCurveProgressionReport(
-                status = "OBSERVATION_ONLY_NO_POSTERIOR",
+                status = if (chosen == null) "CONFIRMED_HOLD_CURVE_UNSUPPORTED"
+                    else "LINKED_E1RM_CURVE_RIR_RANKING",
                 asOf = asOf, referenceDate = day,
-                selectedAction = action, historicalE1rmKg = null,
-                targetRir = 2.0, doseTargetSets = planned.size,
+                selectedAction = action,
+                historicalE1rmKg = chosen?.expectedE1rmKg,
+                targetRir = TARGET_RIR, doseTargetSets = planned.size,
                 ranked = listOf(candidate),
                 notes = listOf(
-                    "연결된 직전 세션에서 실제 확인한 세트만 사용했습니다.",
-                    "모델이 준비되지 않아 미래 수행 확률이나 e1RM을 계산하지 않았습니다."
+                    "확정된 연결 세트, 기존 RPE→RIR 분포, 비선형 반복곡선으로 e1RM 시나리오를 계산했습니다.",
+                    "다음 중량은 목표 RIR과 위험 구간을 비교해 결정합니다. 미래 성공률이 아닙니다.",
+                    "후속 세트의 누적피로는 별도로 예측하지 않습니다."
                 )
             )
         )
