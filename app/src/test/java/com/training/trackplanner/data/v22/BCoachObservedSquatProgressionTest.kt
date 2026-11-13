@@ -1,11 +1,23 @@
 package com.training.trackplanner.data.v22
 
 import com.training.trackplanner.data.*
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
+import com.training.trackplanner.analysis.strengthperformance.RpeRirPolicy
+import com.training.trackplanner.analysis.strengthperformance.curve.RepetitionCurveRegistry
 import java.time.LocalDate
 import org.junit.Assert.*
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
 class BCoachObservedSquatProgressionTest {
+    private val context: Context = ApplicationProvider.getApplicationContext()
+    private val rirPolicy = RpeRirPolicy.fromContext(context)
+    private val curve = RepetitionCurveRegistry.fromContext(context).resolve("barbell_back_squat")
     private val today = LocalDate.of(2026, 11, 13)
     private val app = ProgramApplication(id="app", programStableKey="b-program",
         programName="B", startDate="2026-11-13", appliedAt=1L)
@@ -54,14 +66,16 @@ class BCoachObservedSquatProgressionTest {
     ) = BCoachObservedSquatProgression.evaluate(
         targetEntryId=2,asOf=today,links=links,
         records=listOf(source,target),prescriptions=prescriptions,
-        plateOneSideKg=plate
+        plateOneSideKg=plate,curve=curve,rirPolicy=rirPolicy
     )
 
     @Test fun `four confirmed 130kg six rep RPE 6_5 sets prescribe 131_5 not blank`() {
         val model=checkNotNull(evidence())
-        assertEquals("OBSERVATION_ONLY_NO_POSTERIOR",model.ranking.status)
+        assertEquals("LINKED_E1RM_CURVE_RIR_RANKING",model.ranking.status)
         assertEquals("LOAD_UP_ONE_STEP",model.ranking.selectedAction)
-        assertNull(model.ranking.historicalE1rmKg)
+        assertTrue(model.ranking.historicalE1rmKg!! > 130.0)
+        assertTrue(model.ranking.ranked.single().targetRirMixtureMass!! >= 0.0)
+        assertTrue(model.ranking.ranked.single().requiredE1rmKg!! > 130.0)
         assertEquals(131.5,model.ranking.ranked.single().loadKg,1e-9)
         assertEquals(4,model.ranking.ranked.single().sets)
         val plan=BCoachLinkedSquatWeekPlanner.inspect(
