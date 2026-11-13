@@ -403,8 +403,10 @@ class TrainingRepository internal constructor(
         } catch (failure: kotlinx.coroutines.CancellationException) {
             throw failure
         } catch (failure: Exception) {
-            android.util.Log.e("BCoachGateH", "Posterior update failed after confirmation", failure)
-            return@withContext outcome("MODEL_UPDATE_FAILED")
+            // The posterior is a secondary signal. The observed-only fallback in
+            // the linked squat service can still evaluate actual confirmed sets
+            // without pretending that a posterior was successfully computed.
+            android.util.Log.e("BCoachGateH", "Posterior unavailable; inspect observed-only evidence", failure)
         }
         val futureId = checkNotNull(target.targetEntryId)
         val proposal = linkedSquatNextWeekService.inspect(futureId, now)
