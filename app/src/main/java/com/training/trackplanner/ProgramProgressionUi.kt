@@ -32,7 +32,16 @@ internal fun ProgressionDraftControl(item: ProgramSkeletonItem, skeleton: Progra
             members.map { ProgramSetPrescriptionResolver.resolve(it) }),
             members.map { it.dayOfWeek }.distinct().sorted().map { localizedWeekday(java.time.DayOfWeek.of(it)) }.joinToString(" · "))
     }
-    ProgressionSummaryRow(options.single { it.track.id == track.id }.label, track.needsReview, binding.linkMode == ProgressionLinkMode.OFF) { show = true }
+    val members = skeleton.items
+        .filter { it.progressionBinding?.sessionKey == binding.sessionKey }
+        .sortedWith(compareBy({ it.weekNumber }, { it.dayOfWeek }, { it.orderIndex }))
+    val index = members.indexOfFirst { it.localId == item.localId }
+    val connection = planConnectionText(members.size, index,
+        members.getOrNull(index - 1)?.let { planWeekDay(it.weekNumber, it.dayOfWeek) },
+        members.getOrNull(index + 1)?.let { planWeekDay(it.weekNumber, it.dayOfWeek) },
+        binding.linkMode == ProgressionLinkMode.OFF)
+    ProgressionSummaryRow(options.single { it.track.id == track.id }.label,
+        track.needsReview, binding.linkMode == ProgressionLinkMode.OFF, connection) { show = true }
     if (show) ProgressionSettingsSheet(track,
         ProgramProgressionItem(0, binding.logicalItemId, track.id, binding.linkMode, binding.signature),
         options.map { it.track }, onDismiss = { show = false }, onSave = { link, target, role, mode, rule ->
@@ -53,14 +62,38 @@ private fun sessionSummary(key: String, name: String, track: ProgramProgressionT
     return "${localizedExerciseName(key, name)} · $shape · ${progressionRoleLabel(track.role)}"
 }
 
+private fun planWeekDay(week: Int, day: Int): String =
+    week.toString() + "주차 " + localizedWeekday(java.time.DayOfWeek.of(day.coerceIn(1, 7)))
+
+internal fun planConnectionText(
+    total: Int, index: Int, previous: String?, next: String?, off: Boolean
+): String = when {
+    off -> "세션 연결 해제 · 중량 연동 안 함"
+    total < 2 || index < 0 -> "연결된 다음 운동 없음 · 눌러서 운동 간 연결 설정"
+    else -> "연결된 진행 세션 " + (index + 1) + "/" + total +
+        " · 이전 " + (previous ?: "없음") + " · 다음 " + (next ?: "없음")
+}
+
 @Composable
-private fun ProgressionSummaryRow(label: String, review: Boolean, disconnected: Boolean, onClick: () -> Unit) {
+private fun ProgressionSummaryRow(
+    label: String, review: Boolean, disconnected: Boolean, connection: String, onClick: () -> Unit
+) {
     Column(Modifier.fillMaxWidth()) {
         TextButton(onClick, Modifier.fillMaxWidth().testTag("progression-session-control"), contentPadding = PaddingValues(0.dp)) {
             MaterialText(stringResource(R.string.progression_progression), maxLines = 1, style = MaterialTheme.typography.labelMedium)
             Spacer(Modifier.width(8.dp))
             MaterialText(if (disconnected) stringResource(R.string.progression_disconnected) else label,
                 Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        Surface(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 2.dp),
+            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f),
+            shape = MaterialTheme.shapes.small
+        ) {
+            MaterialText(connection, Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
         if (review) MaterialText(stringResource(R.string.progression_review), style = MaterialTheme.typography.bodySmall)
     }
@@ -136,7 +169,15 @@ internal fun ProgressionTrackControl(
         )
     }
     var show by remember { mutableStateOf(false) }
-    ProgressionSummaryRow(options.firstOrNull { it.track.id == track.id }?.label ?: item.exerciseName, track.needsReview, binding.linkMode == ProgressionLinkMode.OFF) { show = true }
+    val members = index.membersByTrackId[track.id].orEmpty()
+        .sortedWith(compareBy({ it.weekNumber }, { it.dayOfWeek }, { it.orderIndex }))
+    val position = members.indexOfFirst { it.id == itemId }
+    val connection = planConnectionText(members.size, position,
+        members.getOrNull(position - 1)?.let { planWeekDay(it.weekNumber, it.dayOfWeek) },
+        members.getOrNull(position + 1)?.let { planWeekDay(it.weekNumber, it.dayOfWeek) },
+        binding.linkMode == ProgressionLinkMode.OFF)
+    ProgressionSummaryRow(options.firstOrNull { it.track.id == track.id }?.label ?: item.exerciseName,
+        track.needsReview, binding.linkMode == ProgressionLinkMode.OFF, connection) { show = true }
     if (show) ProgressionSettingsSheet(track, binding, options.map { it.track },
         onDismiss = { show = false }, onSave = { link, id, role, mode, rule ->
             onConfigure(itemId, link, id, role, mode, rule)
@@ -239,11 +280,39 @@ private fun ProgressionNumberField(label: Int, value: String, onChange: (String)
 @Composable
 internal fun ProgramRecordProvenance(link: ProgramWorkoutLink, suggestion: ProgressionSuggestion?,
     plannedPrescriptions: List<ProgramPrescriptionSet> = emptyList(),
-    resolve: (String, ProgressionResolution, Double?, (Boolean) -> Unit) -> Unit) {
+    resolve: (String, ProgressionResolution, Double?, (Boolean) -> Unit) -> Unit,
+    linkedDates: ProgramLinkedTimeline.Item? = null
+) {
     var details by remember { mutableStateOf(false) }
     var showSuggestion by remember { mutableStateOf(false) }
     var stale by remember { mutableStateOf(false) }
     AssistChip(onClick = { details = true }, label = { MaterialText(stringResource(R.string.progression_program), maxLines = 1) })
+    if (linkedDates != null) {
+        val title = if (linkedDates.total > 1)
+            "연결된 진행 세션 " + linkedDates.position + "/" + linkedDates.total
+        else "연결된 다른 운동 없음"
+        Surface(modifier = Modifier.fillMaxWidth(),
+            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f),
+            shape = MaterialTheme.shapes.small) {
+            Column(Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                MaterialText(title, style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer)
+                linkedDates.previous?.let {
+                    MaterialText("이전 연결: " + programLinkedDateLabel(it.date),
+                        style = MaterialTheme.typography.bodySmall)
+                }
+                linkedDates.next?.let {
+                    MaterialText("다음 연결: " + programLinkedDateLabel(it.date),
+                        style = MaterialTheme.typography.bodySmall)
+                }
+                if (linkedDates.previous == null && linkedDates.next == null) {
+                    MaterialText("계획 탭에서 운동 간 연결을 설정할 수 있습니다.",
+                        style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+    }
     val targets = plannedPrescriptions.map { it.plannedTargetRpeMin }.distinct()
     val commonTarget = targets.singleOrNull()?.takeIf { targets.all { target -> target != null } }
     if (commonTarget != null) {

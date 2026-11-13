@@ -186,6 +186,13 @@ interface WorkoutDao {
     @Query("SELECT * FROM workout_entries ORDER BY date, createdAt, id")
     suspend fun allEntries(): List<WorkoutEntry>
 
+    @Query("""
+        SELECT e.* FROM workout_entries e
+        INNER JOIN program_workout_links p ON p.entryId = e.id
+        ORDER BY e.date, e.id
+    """)
+    fun observeProgramLinkedEntries(): Flow<List<WorkoutEntry>>
+
     @Query("SELECT * FROM workout_sets ORDER BY entryId, setIndex, id")
     suspend fun allSets(): List<WorkoutSet>
 

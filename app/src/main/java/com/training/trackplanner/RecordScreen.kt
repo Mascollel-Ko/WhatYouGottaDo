@@ -74,6 +74,7 @@ internal fun RecordScreen(
     val muscleMetadataByKey by viewModel.exerciseMuscleMetadata.collectAsState()
     val runtimeMetadataByKey by viewModel.exerciseRuntimeMetadata.collectAsState()
     val programLinks by viewModel.programWorkoutLinks.collectAsState(emptyList())
+    val programLinkedEntries by viewModel.programLinkedEntries.collectAsState(emptyList())
     val progressionSuggestions by viewModel.progressionSuggestions.collectAsState(emptyList())
     val bCoachPostConfirmOutcomes by viewModel.bCoachPostConfirmOutcomes.collectAsState()
     val programPrescriptions by viewModel.programPrescriptions.collectAsState(emptyList())
@@ -96,6 +97,9 @@ internal fun RecordScreen(
     val sortedEntryIds = remember(sortedEntries) { sortedEntries.map { it.entry.id } }
     val visibleEntryIdSet = remember(sortedEntryIds) { sortedEntryIds.toHashSet() }
     val programLinkByEntryId = remember(programLinks) { programLinks.associateBy { it.entryId } }
+    val linkedDateIndex = remember(programLinks, programLinkedEntries) {
+        com.training.trackplanner.data.ProgramLinkedTimeline.build(programLinks, programLinkedEntries)
+    }
     val pendingSuggestionByEntryId = remember(progressionSuggestions) {
         progressionSuggestions
             .filter { it.resolution == com.training.trackplanner.data.ProgressionResolution.PENDING }
@@ -434,7 +438,8 @@ internal fun RecordScreen(
                                     link,
                                     pendingSuggestionByEntryId[entryId],
                                     prescriptionsByEntryId[entryId].orEmpty(),
-                                    viewModel::resolveProgression
+                                    viewModel::resolveProgression,
+                                    linkedDateIndex[entryId]
                                 )
                                 if (entryWithSets.entry.exerciseStableKey == "barbell_back_squat" &&
                                     selectedDate >= LocalDate.now().toString() &&
