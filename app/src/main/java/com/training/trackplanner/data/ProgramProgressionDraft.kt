@@ -79,8 +79,8 @@ internal fun ProgramExecutionDraft.reconcileProgression(
         // Explicit and previously persisted identities always take precedence.
         val provisionalBJoin = bUncalibratedAuto &&
             old?.linkMode == ProgressionLinkMode.AUTO &&
-            old.persisted == false && signature.basePolicy == ProgressionBase.REVIEW &&
-            candidate != null && candidate.sessionKey != old.sessionKey
+            old?.persisted == false && signature.basePolicy == ProgressionBase.REVIEW &&
+            candidate != null && candidate.sessionKey != old?.sessionKey
         val retain = old != null && (old.linkMode != ProgressionLinkMode.AUTO ||
             (!provisionalBJoin && (old.signature == signature ||
                 ProgressionTrackInference.sameTrack(old.signature, signature))))
