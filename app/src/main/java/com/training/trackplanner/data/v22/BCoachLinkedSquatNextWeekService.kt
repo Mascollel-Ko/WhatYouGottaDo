@@ -2,6 +2,7 @@ package com.training.trackplanner.data.v22
 
 import androidx.room.withTransaction
 import com.training.trackplanner.analysis.strengthperformance.RpeRirPolicy
+import com.training.trackplanner.analysis.strengthperformance.curve.RepetitionCurveRegistry
 import com.training.trackplanner.data.ProgressionDirection
 import com.training.trackplanner.data.ProgressionResolution
 import com.training.trackplanner.data.ProgressionSuggestion
@@ -20,7 +21,8 @@ import org.json.JSONObject
 internal class BCoachLinkedSquatNextWeekService(
     private val db: TrainingDatabase,
     private val evidenceReader: BCoachSquatShadowEvidenceReader,
-    private val rirPolicy: RpeRirPolicy
+    private val rirPolicy: RpeRirPolicy,
+    private val curves: RepetitionCurveRegistry
 ) {
     private val workoutDao = db.workoutDao()
     private val dao = db.programProgressionDao()
@@ -63,27 +65,22 @@ internal class BCoachLinkedSquatNextWeekService(
         val targetSetCount = prescriptions.count {
             it.entryId == targetEntryId && it.plannedSetIndex != null
         }
-        val canonical = (pipeline as? BCoachSquatShadowPipelineResult.ShadowReport)
-            ?.let { ready ->
-                val ranking = BCoachSquatCurveProgressionRanker.evaluate(
-                    input = ready, targetRirMin = 1.0, targetRirMax = 3.0,
-                    doseTargetSets = targetSetCount.takeIf { it > 0 },
-                    userConfirmedEquipmentStep = true
-                )
-                if (ranking.selectedAction == null) null
-                else BCoachObservedSquatProgression.ProposalEvidence(
-                    anchor = ready.input.latestAnchor ?: return@let null, ranking = ranking
-                )
-            }
-        // A newly completed set is real evidence even before the canonical
-        // posterior rebuilds. Never let missing model state leave the next
-        // linked workout's load blank when confirmed evidence is sufficient.
-        val fallback = if (canonical == null) BCoachObservedSquatProgression.evaluate(
+        val canonicalReport = pipeline as? BCoachSquatShadowPipelineResult.ShadowReport
+        // Use the canonical personal curve when available. Even if the async
+        // stored posterior has not caught up with the last confirmed workout,
+        // the canonical asset q(n) and existing RPE/RIR mixture are still available
+        // and can evaluate the actual same-track confirmed sets.
+        val curve = canonicalReport?.input?.curve
+            ?: curves.resolve(BCoachLinkedSquatWeekPlanner.SQUAT)
+        val evidenceForPlan = BCoachObservedSquatProgression.evaluate(
             targetEntryId = targetEntryId, asOf = asOf,
             links = links, records = records, prescriptions = prescriptions,
-            plateOneSideKg = plate
-        ) else null
-        val evidenceForPlan = canonical ?: fallback
+            plateOneSideKg = plate,
+            curve = curve, rirPolicy = rirPolicy
+        )
+        // The global Gate F ranker remains a separate diagnostic. This production
+        // decision is intentionally anchored to the immediate linked completed
+        // workout and requires a monotone improvement in projected RIR distance.
         val report = BCoachLinkedSquatWeekPlanner.inspect(
             asOf = asOf,
             targetEntryId = targetEntryId,
