@@ -57,27 +57,42 @@ internal class BCoachLinkedSquatNextWeekService(
             ),
             omegaBands = listOf(BCoachSquatShadowSelector.OmegaBand.CENTRAL_80)
         )
-        if (pipeline !is BCoachSquatShadowPipelineResult.ShadowReport) {
-            return BCoachLinkedSquatNextWeekProposal(
-                "CANONICAL_MODEL_NOT_READY",
-                targetEntryId = targetEntryId
-            )
+        val records = workoutDao.allEntriesWithSets()
+        val links = dao.links()
+        val prescriptions = dao.prescriptions()
+        val targetSetCount = prescriptions.count {
+            it.entryId == targetEntryId && it.plannedSetIndex != null
         }
-        val targetSetCount = dao.prescriptions(targetEntryId).count { it.plannedSetIndex != null }
-        val ranking = BCoachSquatCurveProgressionRanker.evaluate(
-            input = pipeline, targetRirMin = 1.0, targetRirMax = 3.0,
-            doseTargetSets = targetSetCount.takeIf { it > 0 },
-            userConfirmedEquipmentStep = true
-        )
+        val canonical = (pipeline as? BCoachSquatShadowPipelineResult.ShadowReport)
+            ?.let { ready ->
+                val ranking = BCoachSquatCurveProgressionRanker.evaluate(
+                    input = ready, targetRirMin = 1.0, targetRirMax = 3.0,
+                    doseTargetSets = targetSetCount.takeIf { it > 0 },
+                    userConfirmedEquipmentStep = true
+                )
+                if (ranking.selectedAction == null) null
+                else BCoachObservedSquatProgression.ProposalEvidence(
+                    anchor = ready.input.latestAnchor ?: return@let null, ranking = ranking
+                )
+            }
+        // A newly completed set is real evidence even before the canonical
+        // posterior rebuilds. Never let missing model state leave the next
+        // linked workout's load blank when confirmed evidence is sufficient.
+        val fallback = if (canonical == null) BCoachObservedSquatProgression.evaluate(
+            targetEntryId = targetEntryId, asOf = asOf,
+            links = links, records = records, prescriptions = prescriptions,
+            plateOneSideKg = plate
+        ) else null
+        val evidenceForPlan = canonical ?: fallback
         val report = BCoachLinkedSquatWeekPlanner.inspect(
             asOf = asOf,
             targetEntryId = targetEntryId,
-            workouts = workoutDao.allEntriesWithSets(),
+            workouts = records,
             applications = dao.applications(),
-            links = dao.links(),
-            prescriptions = dao.prescriptions(),
-            anchor = pipeline.input.latestAnchor,
-            ranking = ranking
+            links = links,
+            prescriptions = prescriptions,
+            anchor = evidenceForPlan?.anchor,
+            ranking = evidenceForPlan?.ranking
         )
         if (report.canApply && dao.suggestions().any {
                 it.targetEntryId == targetEntryId &&
