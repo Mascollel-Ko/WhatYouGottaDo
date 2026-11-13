@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - test/b-coach-main-progression-accessory-hold-gate-m-20261114
+  pull_request:
+    branches:
+      - test/b-coach-observed-progression-unify-weeks-gate-l-20261113
 
 concurrency:
   group: b-coach-gate-m-${{ github.ref }}
