@@ -135,6 +135,54 @@ class ProgramProgressionSessionPersistenceTest {
             assertEquals(tracks, db.programProgressionDao().tracks().sortedBy { it.id })
         }
     }
+    @Test fun bGeneratedUncalibratedSquatsShareAppliedTrackButLegacyRemainsIsolated() = runBlocking {
+        val db = database()
+        seed(db)
+        val bDraft = manualSessionDraft(0.0).copy(
+            planningMetadataJson = "{\"bCoachProgressionEquipmentSchema\":\"linked-g-1\",\"bCoachPlateOneSideKg\":0.75}"
+        )
+        // The generic preview classifier refuses to infer zero-load sessions.
+        assertEquals(3, bDraft.items.filter { it.exerciseStableKey == "squat" }
+            .map { it.progressionBinding?.sessionKey }.distinct().size)
+        val id = service(db).saveGeneratedProgram(null, bDraft)
+        val saved = db.programDao().itemsForProgram(id)
+        val bindings = db.programProgressionDao().items().associateBy { it.programItemId }
+        val squat = saved.filter { it.exerciseStableKey == "squat" }
+        assertEquals(3, squat.size)
+        assertEquals(1, squat.map { bindings.getValue(it.id).trackId }.distinct().size)
+        val bench = saved.single { it.exerciseStableKey == "bench" }
+        assertFalse(bindings.getValue(bench.id).trackId ==
+            bindings.getValue(squat.first().id).trackId)
+
+        service(db).applyProgramToDates(id, "2026-11-13", ProgramApplyMode.Append)
+        val applied = db.programProgressionDao().links()
+        val squatLinks = applied.filter { link ->
+            db.workoutDao().findEntryById(link.entryId)?.exerciseStableKey == "squat"
+        }
+        assertEquals(3, squatLinks.size)
+        assertEquals(1, squatLinks.map { it.trackId }.distinct().size)
+        assertEquals(3, squatLinks.map { it.sequence }.distinct().size)
+        val workoutRows = db.workoutDao().allEntries()
+        val second = squatLinks.sortedBy { it.sequence }[1]
+        val timeline = ProgramLinkTimelineResolver.resolve(second.entryId, applied, workoutRows)
+        assertNotNull(timeline)
+        assertEquals(2, timeline!!.ordinal)
+        assertEquals(3, timeline.total)
+        assertNotNull(timeline.previousDate)
+        assertNotNull(timeline.nextDate)
+    }
+
+    @Test fun legacyZeroLoadWithoutBMetadataStillKeepsDistinctAutoTracks() = runBlocking {
+        val db = database()
+        seed(db)
+        val id = service(db).saveGeneratedProgram(null, manualSessionDraft(0.0))
+        val saved = db.programDao().itemsForProgram(id)
+        val bindings = db.programProgressionDao().items().associateBy { it.programItemId }
+        val squatTracks = saved.filter { it.exerciseStableKey == "squat" }
+            .map { bindings.getValue(it.id).trackId }.distinct()
+        assertEquals(3, squatTracks.size)
+    }
+
     @Test fun zeroWeightSessionPersistsThenPositivePrescriptionKeepsExplicitIdentity() = runBlocking {
         val db = database(); seed(db)
         val draft = manualSessionDraft(0.0).choose("item-0", ProgressionLinkMode.SEPARATE)
