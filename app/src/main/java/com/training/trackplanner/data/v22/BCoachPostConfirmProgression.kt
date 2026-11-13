@@ -31,16 +31,19 @@ internal object BCoachPostConfirmLinkResolver {
         sourceEntryId: Long,
         asOf: LocalDate,
         records: List<WorkoutEntryWithSets>,
-        links: List<ProgramWorkoutLink>
+        links: List<ProgramWorkoutLink>,
+        exerciseStableKey: String = SQUAT
     ): Target {
         val source = records.singleOrNull { it.entry.id == sourceEntryId } ?: return Target("SOURCE_MISSING")
-        if (source.entry.exerciseStableKey != SQUAT) return Target("NOT_SQUAT")
+        if (source.entry.exerciseStableKey != exerciseStableKey) return Target("TRACK_EXERCISE_MISMATCH")
         val sourceDate = runCatching { LocalDate.parse(source.entry.date) }.getOrNull()
             ?: return Target("SOURCE_DATE_INVALID")
         if (sourceDate > asOf) return Target("SOURCE_IN_FUTURE")
         if (source.sets.isEmpty() || source.sets.any {
             !it.confirmed || it.loadState != ProgramLoadState.EXPLICIT_LOAD ||
-                !it.weightKg.isFinite() || it.weightKg <= 0.0 || it.reps !in 1..20 ||
+                !it.weightKg.isFinite() ||
+                (if (exerciseStableKey == BCoachMainPolicy.WEIGHTED_PULL_UP)
+                    it.weightKg < 0.0 else it.weightKg <= 0.0) || it.reps !in 1..20 ||
                 (it.rpe ?: source.entry.rpe)?.takeIf { r -> r.isFinite() && r in 6.0..10.0 } == null
         }) return Target("WAITING_FOR_CONFIRMED_RPE_SETS")
         val sourceLink = links.singleOrNull { it.entryId == sourceEntryId }
@@ -50,7 +53,7 @@ internal object BCoachPostConfirmLinkResolver {
         val matchedLink = checkNotNull(matched.link)
         val target = records.singleOrNull { it.entry.id == matchedLink.entryId }
             ?: return Target("TARGET_MISSING")
-        if (target.entry.exerciseStableKey != SQUAT) return Target("TRACK_EXERCISE_MISMATCH")
+        if (target.entry.exerciseStableKey != exerciseStableKey) return Target("TRACK_EXERCISE_MISMATCH")
         val targetDate = runCatching { LocalDate.parse(target.entry.date) }.getOrNull()
             ?: return Target("TARGET_DATE_INVALID")
         if (targetDate < asOf || targetDate < sourceDate) return Target("TARGET_DATE_NOT_FUTURE")
