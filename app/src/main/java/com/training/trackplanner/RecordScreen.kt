@@ -431,6 +431,15 @@ internal fun RecordScreen(
                     programProvenance = {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             programLinkByEntryId[entryId]?.let { link ->
+                                if (link.mode == com.training.trackplanner.data.ProgressionMode.OFF ||
+                                    link.mode == com.training.trackplanner.data.ProgressionMode.DIRECT
+                                ) {
+                                    Text(
+                                        "이 운동은 프로그램에 포함돼 있지만 중량 자동 연동은 꺼져 있습니다.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                                 com.training.trackplanner.data.ProgramLinkTimelineResolver.resolve(
                                     entryId, programLinks, allAppliedEntries
                                 )?.let { timeline ->
