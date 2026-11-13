@@ -84,6 +84,8 @@ internal object BCoachObservedSquatProgression {
 
         val done = source.sets.sortedBy { it.setIndex }
         val planned = target.sets.sortedBy { it.setIndex }
+        if (done.any { it.secondaryWeightKg != null } ||
+            planned.any { it.secondaryWeightKg != null }) return null
         val sourceOriginal = prescriptions.filter { it.entryId == source.entry.id }
         val targetOriginal = prescriptions.filter { it.entryId == targetEntryId }
         if (done.isEmpty() || planned.isEmpty() || sourceOriginal.size != done.size ||
