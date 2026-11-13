@@ -4,6 +4,8 @@ import com.training.trackplanner.data.ProgramLoadState
 import com.training.trackplanner.data.ProgramWorkoutLink
 import com.training.trackplanner.data.ProgressionBase
 import com.training.trackplanner.data.ProgressionMode
+import com.training.trackplanner.data.ProgressionRole
+import com.training.trackplanner.data.ProgressionRule
 import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.WorkoutSet
@@ -45,8 +47,9 @@ class BCoachPostConfirmLinkResolverTest {
         sourceItemId = "item-$id", programName = "Training",
         weekNumber = week, dayOfWeek = day, trackId = exerciseTrack,
         trackLabel = "Squat", sequence = sequence,
-        mode = ProgressionMode.APP, basePolicy = ProgressionBase.REVIEW,
-        needsReview = true
+        role = ProgressionRole.MAIN, mode = ProgressionMode.APP,
+        basePolicy = ProgressionBase.REVIEW, anchorSetIndex = null,
+        needsReview = true, rule = ProgressionRule()
     )
     private fun resolve(
         records: List<WorkoutEntryWithSets> = listOf(
