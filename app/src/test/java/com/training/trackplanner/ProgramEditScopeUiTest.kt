@@ -98,7 +98,7 @@ class ProgramEditScopeUiTest {
         } }
         compose.onNodeWithText("주별 수정 ✓").assertIsDisplayed()
         compose.onNodeWithTag("scope-all").performClick()
-        compose.onNodeWithText("이 모드는 지금부터 수정하는 항목만 모든 주에 반영합니다.").assertIsDisplayed()
+        compose.onNodeWithText("이 모드는 지금부터 수정하는 항목만 모든 주에 반영합니다.", substring = true).assertIsDisplayed()
         compose.onAllNodesWithText("수정")[0].performClick()
         assertEquals(PROGRAM_ALL_WEEKS_MISMATCH_MESSAGE,ShadowToast.getTextOfLatestToast())
     }
