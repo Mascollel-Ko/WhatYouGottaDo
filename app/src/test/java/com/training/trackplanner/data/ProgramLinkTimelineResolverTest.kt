@@ -60,6 +60,19 @@ class ProgramLinkTimelineResolverTest {
             listOf(record(1,"2026-11-13"),record(2,"2026-11-20"),record(3,"2026-11-21"))))
     }
 
+    @Test fun `disabled and direct-only rows do not claim automatic linkage`() {
+        val first=link(1,1)
+        val second=link(2,2)
+        val records=listOf(record(1,"2026-11-13"),record(2,"2026-11-20"))
+        assertNull(ProgramLinkTimelineResolver.resolve(1,
+            listOf(first.copy(mode=ProgressionMode.OFF),second),records))
+        assertNull(ProgramLinkTimelineResolver.resolve(1,
+            listOf(first.copy(mode=ProgressionMode.DIRECT),second),records))
+        val chain=checkNotNull(ProgramLinkTimelineResolver.resolve(1,
+            listOf(first,second.copy(mode=ProgressionMode.OFF)),records))
+        assertEquals(1,chain.total)
+    }
+
     @Test fun `untracked and unlinked entries have no timeline`() {
         assertNull(ProgramLinkTimelineResolver.resolve(1,emptyList(),
             listOf(record(1,"2026-11-13"))))
