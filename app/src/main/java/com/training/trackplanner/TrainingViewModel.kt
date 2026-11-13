@@ -753,6 +753,7 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     suspend fun progressionDraftContext() = repository.progressionDraftContext()
     val progressionItems = repository.progressionItems
     val programWorkoutLinks = repository.programWorkoutLinks
+    val appliedWorkoutEntries = repository.appliedWorkoutEntries
     val progressionSuggestions = repository.progressionSuggestions
     val programPrescriptions = repository.programPrescriptions
     private val _bCoachPostConfirmOutcomes =
