@@ -90,6 +90,7 @@ internal class V22ProgramPlanningService(
                 val metadata = org.json.JSONObject(baseSkeleton.planningMetadataJson ?: "{}")
                 metadata.put("bCoachProgressionEquipmentSchema", "linked-g-1")
                 metadata.put("bCoachPlateOneSideKg", plate)
+                metadata.put("bCoachRolePolicySchema", "main-role-snapshot-1")
                 effectiveRequest.bShadowDumbbellIncrementKg?.takeIf { it.isFinite() && it in 0.1..50.0 }
                     ?.let { metadata.put("bCoachDumbbellDisplayedKg", it) }
                 effectiveRequest.bShadowMachineIncrementKg?.takeIf { it.isFinite() && it in 0.1..100.0 }
