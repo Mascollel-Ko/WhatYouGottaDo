@@ -75,6 +75,7 @@ internal fun RecordScreen(
     val runtimeMetadataByKey by viewModel.exerciseRuntimeMetadata.collectAsState()
     val programLinks by viewModel.programWorkoutLinks.collectAsState(emptyList())
     val progressionSuggestions by viewModel.progressionSuggestions.collectAsState(emptyList())
+    val bCoachPostConfirmOutcomes by viewModel.bCoachPostConfirmOutcomes.collectAsState()
     val programPrescriptions by viewModel.programPrescriptions.collectAsState(emptyList())
     val timerState by restTimerSessionController.state.collectAsState()
     val context = LocalContext.current
@@ -442,6 +443,20 @@ internal fun RecordScreen(
                                 ) {
                                     BCoachLinkedSquatNextWeekControl(viewModel, entryWithSets)
                                 }
+                                if (entryWithSets.entry.exerciseStableKey == "barbell_back_squat" &&
+                                    entryWithSets.sets.isNotEmpty() &&
+                                    entryWithSets.sets.all { it.confirmed }
+                                ) {
+                                    BCoachConfirmedSquatProgressionNotice(
+                                        outcome = bCoachPostConfirmOutcomes[entryId],
+                                        appliedKg = progressionSuggestions.firstOrNull { suggestion ->
+                                            suggestion.sourceEntryId == entryId &&
+                                                suggestion.reasons.startsWith("B_COACH_GATE_H_AUTO_AFTER_CONFIRM") &&
+                                                suggestion.resolution == com.training.trackplanner.data.ProgressionResolution.ACCEPTED
+                                        }?.suggestedKg,
+                                        retry = { viewModel.retryBCoachAfterConfirmedSquat(entryId) }
+                                    )
+                                }
                             }
                         }
                     }
@@ -451,6 +466,61 @@ internal fun RecordScreen(
     }
 }
 
+
+@Composable
+private fun BCoachConfirmedSquatProgressionNotice(
+    outcome: com.training.trackplanner.data.v22.BCoachPostConfirmOutcome?,
+    appliedKg: Double?,
+    retry: () -> Unit
+) {
+    // Visible on the confirmed source workout, not hidden in next week's future screen.
+    Column(Modifier.fillMaxWidth().padding(vertical = 5.dp),
+        verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        if (appliedKg != null) {
+            Text("B-Coach · 다음 주 스쿼트 자동 반영 완료 (${appliedKg}kg)",
+                style = MaterialTheme.typography.bodySmall)
+            if (outcome?.wasApplied == true) {
+                Text("${outcome.nextLoadKg}kg × ${outcome.nextReps}회 × ${outcome.nextSets}세트 · ${outcome.selectedAction}",
+                    style = MaterialTheme.typography.bodySmall)
+            }
+        } else if (outcome != null) {
+            val explanation = when (outcome.status) {
+                "NEXT_WEEK_UPDATED" -> "다음 주 계획에 자동 반영했습니다."
+                "WAITING_FOR_CONFIRMED_RPE_SETS" -> "모든 세트의 확인과 RPE 기록이 필요합니다."
+                "SOURCE_NOT_PROGRAM_LINKED" -> "이 기록이 적용 프로그램과 연결되지 않았습니다."
+                "NO_NEXT_WEEK_SQUAT" -> "같은 프로그램의 다음 주 스쿼트를 찾지 못했습니다."
+                "MULTIPLE_NEXT_WEEK_SQUATS" -> "다음 주 스쿼트가 여러 개라 연결을 결정할 수 없습니다."
+                "EQUIPMENT_SNAPSHOT_MISSING" -> "이전 버전의 프로그램에 원판 간격이 저장돼 있지 않습니다. 새 B 프로그램이 필요합니다."
+                "PREVIOUS_WEEK_NOT_FULLY_SUCCESSFUL" -> "기록한 세트가 프로그램 목표를 모두 달성하지 못했습니다."
+                "CANONICAL_MODEL_NOT_READY", "MODEL_UPDATE_FAILED" ->
+                    "새 운동기록을 반영한 근력 추정치가 준비되지 않았습니다."
+                "LATEST_CANONICAL_ANCHOR_NOT_LINKED_SOURCE" ->
+                    "최신 근력 기록과 이 프로그램의 직전 주차가 일치하지 않습니다."
+                "TARGET_STRUCTURE_CHANGED", "USER_EDIT_PROTECTED" ->
+                    "다음 주차의 사용자 수정 사항을 보호해 자동 변경하지 않았습니다."
+                "LINK_OR_MODE_NOT_ELIGIBLE", "NO_LINKED_PREVIOUS_WEEK" ->
+                    "프로그램의 주차·세션 연결이 불명확합니다."
+                "TARGET_ALREADY_STARTED", "TARGET_DATE_NOT_FUTURE" ->
+                    "다음 주 운동이 시작됐거나 과거 날짜여서 보호했습니다."
+                "RANKING_NOT_AVAILABLE" -> "중량·반복·세트 후보를 선정할 근거가 부족합니다."
+                "PRIOR_EXPLICIT_PROGRESSION_DECISION" ->
+                    "다음 주차에 이미 확정된 진행 결정을 보호했습니다."
+                "STALE_OR_EDITED_TARGET" -> "계산 후 기록이 변경되어 자동 적용을 취소했습니다."
+                else -> "안전 조건을 충족하지 않아 자동 반영을 보류했습니다 (${outcome.status})."
+            }
+            Text("B-Coach · 다음 주 자동 조정 보류: $explanation",
+                style = MaterialTheme.typography.bodySmall)
+        } else {
+            Text("B-Coach · 마지막 세트를 확인하면 다음 주 계획을 재평가합니다.",
+                style = MaterialTheme.typography.bodySmall)
+        }
+        if (appliedKg == null) {
+            OutlinedButton(onClick = retry, modifier = Modifier.fillMaxWidth()) {
+                Text("다음 주 B-Coach 재평가", maxLines = 1)
+            }
+        }
+    }
+}
 
 /**
  * Explicit approval only: the ranking chooses automatically, but does not overwrite plans
