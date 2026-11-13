@@ -347,7 +347,8 @@ class TrainingRepository internal constructor(
             strengthPosteriorDao, workoutDao, strengthPerformanceRegistry, repetitionCurveRegistry
         ),
         rirPolicy = rpeRirPolicy,
-        curves = repetitionCurveRegistry
+        curves = repetitionCurveRegistry,
+        strengthRegistry = strengthPerformanceRegistry
     )
     private val bCoachAccessoryHoldService =
         com.training.trackplanner.data.v22.BCoachAccessoryFirstWeekHoldService(db)
