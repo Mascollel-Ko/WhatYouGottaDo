@@ -3,7 +3,7 @@ name: B-Coach Gate I Program Linked Progression
 on:
   push:
     branches:
-      - test/b-coach-post-confirm-auto-apply-gate-i-20261113
+      - test/b-coach-program-linked-progression-gate-i-20261113
 
 concurrency:
   group: b-coach-gate-i-${{ github.ref }}
