@@ -80,9 +80,6 @@ class BCoachLinkedExerciseLoadServiceTest {
             assertTrue(db.programProgressionDao().prescriptions(chain[i].entryId)
                 .all { it.plannedKg==30.0 && it.originalKg==0.0 })
         }
-        assertEquals("NONMAIN_FIRST_SESSION_ONLY",
-            engine(db).afterConfirmation(chain[1].entryId,asOf).status.takeIf { false } ?:
-                "NONMAIN_FIRST_SESSION_ONLY")
         val again=engine(db).afterConfirmation(chain.first().entryId,asOf)
         assertNotEquals("NEXT_LINKED_UPDATED",again.status)
     }
