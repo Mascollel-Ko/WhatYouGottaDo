@@ -428,8 +428,8 @@ internal fun RecordScreen(
                     },
                     onStopRestTimer = restTimerSessionController::stop,
                     programProvenance = {
-                        programLinkByEntryId[entryId]?.let { link ->
-                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            programLinkByEntryId[entryId]?.let { link ->
                                 ProgramRecordProvenance(
                                     link,
                                     pendingSuggestionByEntryId[entryId],
@@ -443,17 +443,21 @@ internal fun RecordScreen(
                                 ) {
                                     BCoachLinkedSquatNextWeekControl(viewModel, entryWithSets)
                                 }
-                                if (entryWithSets.entry.exerciseStableKey == "barbell_back_squat" &&
-                                    entryWithSets.sets.isNotEmpty() &&
-                                    entryWithSets.sets.all { it.confirmed }
-                                ) {
+                            }
+                            if (entryWithSets.entry.exerciseStableKey == "barbell_back_squat" &&
+                                entryWithSets.sets.isNotEmpty() &&
+                                entryWithSets.sets.all { it.confirmed }
+                            ) {
+                                val status = bCoachPostConfirmOutcomes[entryId]
+                                val appliedKg = progressionSuggestions.firstOrNull { suggestion ->
+                                    suggestion.sourceEntryId == entryId &&
+                                        suggestion.reasons.startsWith("B_COACH_GATE_H_AUTO_AFTER_CONFIRM") &&
+                                        suggestion.resolution == com.training.trackplanner.data.ProgressionResolution.ACCEPTED
+                                }?.suggestedKg
+                                if (status != null || appliedKg != null) {
                                     BCoachConfirmedSquatProgressionNotice(
-                                        outcome = bCoachPostConfirmOutcomes[entryId],
-                                        appliedKg = progressionSuggestions.firstOrNull { suggestion ->
-                                            suggestion.sourceEntryId == entryId &&
-                                                suggestion.reasons.startsWith("B_COACH_GATE_H_AUTO_AFTER_CONFIRM") &&
-                                                suggestion.resolution == com.training.trackplanner.data.ProgressionResolution.ACCEPTED
-                                        }?.suggestedKg,
+                                        outcome = status,
+                                        appliedKg = appliedKg,
                                         retry = { viewModel.retryBCoachAfterConfirmedSquat(entryId) }
                                     )
                                 }
