@@ -44,11 +44,13 @@ internal class ProgramProgressionService(
                 anchor = source?.progressionAnchorSetIndex ?: old?.signature?.anchorSetIndex).copy(
                     plannerRole = source?.progressionRole?.takeUnless { it == ProgressionRole.AUTO } ?: old?.signature?.plannerRole ?: ProgressionRole.AUTO)
             val explicit = old?.takeIf { it.linkMode != ProgressionLinkMode.AUTO }
-            val candidate = if (explicit != null) null else assigned.firstOrNull {
-                it.linkMode == ProgressionLinkMode.AUTO &&
-                    (ProgressionTrackInference.sameTrack(it.signature, signature) ||
-                        (bUncalibratedLinking &&
-                            BCoachUncalibratedLinkPolicy.sameUncalibratedIntent(it.signature, signature)))
+            val candidate = if (explicit != null) null else assigned.firstOrNull { earlier ->
+                val earlierDay = rows.firstOrNull { it.id == earlier.programItemId }?.dayOfWeek
+                earlier.linkMode == ProgressionLinkMode.AUTO &&
+                    (ProgressionTrackInference.sameTrack(earlier.signature, signature) ||
+                        (bUncalibratedLinking && earlierDay != null &&
+                            BCoachUncalibratedLinkPolicy.sameBRepeatedExercise(
+                                earlier.signature, signature, earlierDay, item.dayOfWeek)))
             }
             val oldTrack = old?.let { allTracks[it.trackId] }
             // New AUTO previews have no confirmed-history e1RM snapshot yet. Finalize with the
