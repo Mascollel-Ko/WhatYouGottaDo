@@ -74,6 +74,7 @@ internal fun RecordScreen(
     val muscleMetadataByKey by viewModel.exerciseMuscleMetadata.collectAsState()
     val runtimeMetadataByKey by viewModel.exerciseRuntimeMetadata.collectAsState()
     val programLinks by viewModel.programWorkoutLinks.collectAsState(emptyList())
+    val allAppliedEntries by viewModel.appliedWorkoutEntries.collectAsState(emptyList())
     val progressionSuggestions by viewModel.progressionSuggestions.collectAsState(emptyList())
     val bCoachPostConfirmOutcomes by viewModel.bCoachPostConfirmOutcomes.collectAsState()
     val programPrescriptions by viewModel.programPrescriptions.collectAsState(emptyList())
@@ -430,6 +431,37 @@ internal fun RecordScreen(
                     programProvenance = {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             programLinkByEntryId[entryId]?.let { link ->
+                                if (link.mode == com.training.trackplanner.data.ProgressionMode.OFF ||
+                                    link.mode == com.training.trackplanner.data.ProgressionMode.DIRECT
+                                ) {
+                                    Text(
+                                        "이 운동은 프로그램에 포함돼 있지만 중량 자동 연동은 꺼져 있습니다.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                com.training.trackplanner.data.ProgramLinkTimelineResolver.resolve(
+                                    entryId, programLinks, allAppliedEntries
+                                )?.let { timeline ->
+                                    val previousLabel = timeline.previousDate?.let {
+                                        com.training.trackplanner.data.ProgramLinkTimelineResolver.koreanDate(it)
+                                    } ?: if (timeline.previousEntryId == null) "없음" else "날짜 확인 필요"
+                                    val nextLabel = timeline.nextDate?.let {
+                                        com.training.trackplanner.data.ProgramLinkTimelineResolver.koreanDate(it)
+                                    } ?: if (timeline.nextEntryId == null) "없음" else "날짜 확인 필요"
+                                    Text(
+                                        "연결 세션 ${timeline.ordinal}/${timeline.total} · 이전 $previousLabel → 현재 ${com.training.trackplanner.data.ProgramLinkTimelineResolver.koreanDate(selectedDate)} → 다음 $nextLabel",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                    if (timeline.total == 1) {
+                                        Text(
+                                            "현재 운동은 단독 세션입니다. 계획 탭에서 같은 운동을 연결하면 중량 진행이 연동됩니다.",
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                    }
+                                }
                                 ProgramRecordProvenance(
                                     link,
                                     pendingSuggestionByEntryId[entryId],
