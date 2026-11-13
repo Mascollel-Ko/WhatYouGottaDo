@@ -13,6 +13,55 @@ class ProgramEditScopeTest {
     private fun plan(weeks: Int)=f.plan(listOf(f.row("press",1,id="press"),f.row("row",1,id="row",order=2)),listOf(1,3,5),horizon=weeks)
         .let { p -> p.copy(items=p.items.map { item -> item.copy(weightKg=10.0,
             setPrescriptions=f.rx(item.setCount).sets.map { set -> set.copy(weightKg=10.0) }) }) }
+    @Test fun explicitWeekOneCopyReallyUnifiesFourWeeksIncludingExerciseNamesAndSets() {
+        val base=plan(4)
+        val altered=base.copy(
+            planningMetadataJson = """{"kind":"B_BALANCED_STANDARD"}""",
+            items=base.items.map { row ->
+                if(row.weekNumber==2 && row.exerciseStableKey=="press")
+                    row.copy(exerciseStableKey="different_calf_raise", exerciseName="Calf",
+                        reps=20,setCount=2) else row
+            }
+        )
+        assertTrue(altered.items.any { it.exerciseStableKey=="different_calf_raise" })
+        val next=ProgramScopedEditor.copyBWeekToAll(altered,1)
+        assertEquals(8,next.items.size)
+        assertEquals(8,next.items.map { it.localId }.distinct().size)
+        assertFalse(next.items.any { it.exerciseStableKey=="different_calf_raise" })
+        for(week in 2..4) {
+            val expected=next.items.filter { it.weekNumber==1 }.sortedBy { it.orderIndex }
+            val actual=next.items.filter { it.weekNumber==week }.sortedBy { it.orderIndex }
+            assertEquals(expected.map { it.exerciseStableKey },actual.map { it.exerciseStableKey })
+            assertEquals(expected.map { it.reps },actual.map { it.reps })
+            assertEquals(expected.map { it.setCount },actual.map { it.setCount })
+            assertEquals(expected.map { it.setPrescriptions },actual.map { it.setPrescriptions })
+        }
+        assertEquals(1,next.weekDaySchedule.values.distinct().size)
+    }
+
+    @Test fun editScopeSelectionNeverCopiesWeeksWithoutExplicitConfirmedAction() {
+        val base=plan(4).copy(
+            planningMetadataJson = """{"kind":"B_BALANCED_STANDARD"}"""
+        )
+        val altered=base.copy(items=base.items.map {
+            if(it.weekNumber==3) it.copy(reps=18) else it
+        })
+        assertNotEquals(altered.items.filter { it.weekNumber==1 }.map { it.reps },
+            altered.items.filter { it.weekNumber==3 }.map { it.reps })
+        // User selecting edit scope does not mutate the skeleton.
+        assertTrue(ProgramScopedEditor.supportsAll(altered))
+        assertEquals(18,altered.items.first { it.weekNumber==3 }.reps)
+        val synchronized=ProgramScopedEditor.copyBWeekToAll(altered,1)
+        assertEquals(synchronized.items.filter { it.weekNumber==1 }.map { it.reps },
+            synchronized.items.filter { it.weekNumber==3 }.map { it.reps })
+    }
+
+    @Test fun nonBPlansCannotUseDestructiveFullWeekCopy() {
+        assertThrows(IllegalArgumentException::class.java) {
+            ProgramScopedEditor.copyBWeekToAll(plan(4),1)
+        }
+    }
+
     @Test fun fourAndFiveWeeksMoveKeepsEveryWeekPrescriptionIdentityAndDecision() {
         for(weeks in listOf(4,5)) {
             val original=plan(weeks)
