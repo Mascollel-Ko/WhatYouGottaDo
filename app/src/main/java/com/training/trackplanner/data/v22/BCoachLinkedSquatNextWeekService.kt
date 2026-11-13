@@ -35,11 +35,11 @@ internal class BCoachLinkedSquatNextWeekService(
             ?: return BCoachLinkedSquatNextWeekProposal("TARGET_NOT_PROGRAM_LINKED")
         val targetKey = workoutDao.findEntryById(targetEntryId)?.exerciseStableKey
             ?: return BCoachLinkedSquatNextWeekProposal("TARGET_MISSING")
-        if (!BCoachMainPolicy.canChangeLoad(link.role, targetKey)) {
-            return BCoachLinkedSquatNextWeekProposal("ACCESSORY_HOLD_NO_E1RM")
-        }
         val program = db.programDao().findProgramByStableKey(link.sourceProgramStableKey)
             ?: return BCoachLinkedSquatNextWeekProposal("PROGRAM_TEMPLATE_MISSING")
+        if (!BCoachMainPolicy.canChangeLoad(link.role, targetKey, program.planningMetadataJson)) {
+            return BCoachLinkedSquatNextWeekProposal("ACCESSORY_HOLD_NO_E1RM")
+        }
         val metadata = runCatching { JSONObject(program.planningMetadataJson ?: "{}") }.getOrNull()
         if (metadata?.optString("bCoachProgressionEquipmentSchema") != "linked-g-1") {
             return BCoachLinkedSquatNextWeekProposal(
