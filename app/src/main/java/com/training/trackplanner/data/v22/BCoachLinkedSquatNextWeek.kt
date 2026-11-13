@@ -52,7 +52,8 @@ internal object BCoachLinkedSquatWeekPlanner {
         links: List<ProgramWorkoutLink>,
         prescriptions: List<ProgramPrescriptionSet>,
         anchor: BCoachSquatAnchorSession?,
-        ranking: BCoachSquatCurveProgressionReport?
+        ranking: BCoachSquatCurveProgressionReport?,
+        exerciseStableKey: String = SQUAT
     ): BCoachLinkedSquatNextWeekProposal {
         val byEntry = workouts.associateBy { it.entry.id }
         val target = byEntry[targetEntryId] ?: return BCoachLinkedSquatNextWeekProposal("TARGET_MISSING")
@@ -63,7 +64,7 @@ internal object BCoachLinkedSquatWeekPlanner {
                 status = status, sourceEntryId = sourceEntryId,
                 targetEntryId = targetEntryId, targetWeek = targetLink.weekNumber, notes = notes
             )
-        if (target.entry.exerciseStableKey != SQUAT || targetLink.trackId == "untracked" ||
+        if (target.entry.exerciseStableKey != exerciseStableKey || targetLink.trackId == "untracked" ||
             targetLink.mode in setOf(ProgressionMode.OFF, ProgressionMode.DIRECT) ||
             (targetLink.needsReview && targetLink.basePolicy != ProgressionBase.REVIEW)
         ) return result("LINK_OR_MODE_NOT_ELIGIBLE")
@@ -114,7 +115,7 @@ internal object BCoachLinkedSquatWeekPlanner {
         val sourceLink = checkNotNull(predecessor.link)
         val sourceRecord = byEntry[sourceLink.entryId]
             ?: return result("LINKED_PREDECESSOR_RECORD_MISSING")
-        if (sourceRecord.entry.exerciseStableKey != SQUAT) {
+        if (sourceRecord.entry.exerciseStableKey != exerciseStableKey) {
             return result("TRACK_EXERCISE_MISMATCH")
         }
         val sourceDate = runCatching { LocalDate.parse(sourceRecord.entry.date) }.getOrNull()
@@ -140,7 +141,9 @@ internal object BCoachLinkedSquatWeekPlanner {
         if (!session.targetCompleted || !originalProgramTargetsMet ||
             sourceSets.size != sourceTargets.size ||
             sourceSets.any { !it.confirmed || it.loadState != ProgramLoadState.EXPLICIT_LOAD ||
-                !it.weightKg.isFinite() || it.weightKg <= 0.0 || it.reps !in 1..20 ||
+                !it.weightKg.isFinite() ||
+                (if (exerciseStableKey == BCoachMainPolicy.WEIGHTED_PULL_UP)
+                    it.weightKg < 0.0 else it.weightKg <= 0.0) || it.reps !in 1..20 ||
                 (it.rpe ?: sourceRecord.entry.rpe)?.let { r -> !r.isFinite() || r !in 6.0..10.0 } != false
             }
         ) return result("PREVIOUS_WEEK_NOT_FULLY_SUCCESSFUL", sourceLink.entryId)
@@ -160,7 +163,9 @@ internal object BCoachLinkedSquatWeekPlanner {
         if (performedReps == null || targetReps == null ||
             (targetReps != performedReps && targetReps != candidate.reps)
         ) return result("LINKED_TARGET_REP_SCHEME_REVIEW", sourceLink.entryId)
-        if (candidate.loadKg <= 0.0 || candidate.reps <= 0 || candidate.sets <= 0 ||
+        if ((if (exerciseStableKey == BCoachMainPolicy.WEIGHTED_PULL_UP)
+                candidate.loadKg < 0.0 else candidate.loadKg <= 0.0) ||
+            candidate.reps <= 0 || candidate.sets <= 0 ||
             !candidate.loadKg.isFinite()
         ) return result("INVALID_CANDIDATE", sourceLink.entryId)
         if (candidate.sets != sets.size) return result(
