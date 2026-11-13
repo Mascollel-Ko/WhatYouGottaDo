@@ -18,11 +18,19 @@ import com.training.trackplanner.localization.localizedWeekday
 
 @Composable
 internal fun ProgressionDraftControl(item: ProgramSkeletonItem, skeleton: GeneratedProgramSkeleton, onChange: (GeneratedProgramSkeleton) -> Unit) {
-    ProgressionDraftControl(item, skeleton.executionDraft()) { onChange(skeleton.withExecutionDraft(it)) }
+    ProgressionDraftControl(
+        item, skeleton.executionDraft(),
+        bUncalibratedAuto = BCoachUncalibratedLinkPolicy.isBProgram(skeleton.planningMetadataJson)
+    ) { onChange(skeleton.withExecutionDraft(it)) }
 }
 
 @Composable
-internal fun ProgressionDraftControl(item: ProgramSkeletonItem, skeleton: ProgramExecutionDraft, onChange: (ProgramExecutionDraft) -> Unit) {
+internal fun ProgressionDraftControl(
+    item: ProgramSkeletonItem,
+    skeleton: ProgramExecutionDraft,
+    bUncalibratedAuto: Boolean = false,
+    onChange: (ProgramExecutionDraft) -> Unit
+) {
     var show by remember { mutableStateOf(false) }
     val binding = item.progressionBinding ?: return
     val track = skeleton.progressionSessions.single { it.key == binding.sessionKey }.track
@@ -46,7 +54,10 @@ internal fun ProgressionDraftControl(item: ProgramSkeletonItem, skeleton: Progra
     if (show) ProgressionSettingsSheet(track,
         ProgramProgressionItem(0, binding.logicalItemId, track.id, binding.linkMode, binding.signature),
         options.map { it.track }, onDismiss = { show = false }, onSave = { link, target, role, mode, rule ->
-            onChange(skeleton.configureProgressionSession(item.localId, link, target, role, mode, rule))
+            onChange(skeleton.configureProgressionSession(
+                item.localId, link, target, role, mode, rule,
+                bUncalibratedAuto = bUncalibratedAuto
+            ))
             show = false
         }, sessionOptions = options,
         currentOccurrence = ProgressionSessionLabels.occurrence(item.weekNumber, item.dayOfWeek, item.orderIndex),
