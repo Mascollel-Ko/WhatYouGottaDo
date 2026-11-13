@@ -53,7 +53,7 @@ internal object BCoachAccessoryFirstWeekHold {
                 val entry = byEntry[link.entryId] ?: return@mapNotNull null
                 if (entry.entry.exerciseStableKey != byEntry[sourceLink.entryId]?.entry?.exerciseStableKey ||
                     entry.entry.completedAt != null || entry.entry.firstConfirmedAt != null ||
-                    entry.sets.isEmpty() || entry.sets.any { it.confirmed }
+                    entry.sets.isEmpty() || entry.sets.any { it.confirmed || it.manualWeight }
                 ) return@mapNotNull null
                 val date = runCatching { LocalDate.parse(entry.entry.date) }.getOrNull()
                     ?: return@mapNotNull null
@@ -102,6 +102,13 @@ internal class BCoachAccessoryFirstWeekHoldService(private val db: TrainingDatab
             val program = db.programDao().findProgramByStableKey(link.sourceProgramStableKey)
             if (!BCoachUncalibratedLinkPolicy.isBProgram(program?.planningMetadataJson))
                 return@withTransaction result("NOT_B_COACH")
+            val application = dao.applications().singleOrNull { it.id == link.applicationId }
+                ?: return@withTransaction result("APPLICATION_MISSING")
+            if (dao.applications().any { it.id != application.id &&
+                it.programStableKey == application.programStableKey &&
+                it.appliedAt > application.appliedAt &&
+                runCatching { LocalDate.parse(it.startDate) <= asOf }.getOrDefault(false)
+            }) return@withTransaction result("SUPERSEDED_APPLICATION")
             val sourceExercise = workouts.findEntryById(sourceEntryId)?.exerciseStableKey
                 ?: return@withTransaction result("SOURCE_MISSING")
             if (BCoachMainPolicy.canChangeLoad(link.role, sourceExercise,
