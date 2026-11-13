@@ -2,6 +2,9 @@ package com.training.trackplanner.data.v22
 
 import androidx.room.withTransaction
 import com.training.trackplanner.analysis.strengthperformance.RpeRirPolicy
+import com.training.trackplanner.analysis.strengthperformance.StrengthPerformanceLoadResolver
+import com.training.trackplanner.analysis.strengthperformance.StrengthLoadSemantics
+import com.training.trackplanner.analysis.strengthperformance.LoadResolutionConfidence
 import com.training.trackplanner.analysis.strengthperformance.curve.RepetitionCurveRegistry
 import com.training.trackplanner.data.BCoachUncalibratedLinkPolicy
 import com.training.trackplanner.data.ProgramLoadState
@@ -80,9 +83,12 @@ internal class BCoachLinkedExerciseLoadService(
             ?: return@withTransaction result("SOURCE_DATE_INVALID")
         if (sourceDate > asOf) return@withTransaction result("SOURCE_IN_FUTURE")
         val actuals = source.sets.sortedBy { it.setIndex }
+        val weightedPullup = key == "ex_e41f4c2b"
         if (actuals.isEmpty() || actuals.any {
             !it.confirmed || it.loadState != ProgramLoadState.EXPLICIT_LOAD ||
-                !it.weightKg.isFinite() || it.weightKg <= 0.0 || it.reps !in 1..20
+                !it.weightKg.isFinite() ||
+                (if (weightedPullup) it.weightKg < 0.0 else it.weightKg <= 0.0) ||
+                it.reps !in 1..20
         }) return@withTransaction result("WAITING_FOR_CONFIRMED_WEIGHT_SETS")
         val kg = actuals.first().weightKg
         val reps = actuals.first().reps
@@ -119,10 +125,22 @@ internal class BCoachLinkedExerciseLoadService(
         if (!main && chain.first().entryId != sourceEntryId) {
             return@withTransaction result("NONMAIN_FIRST_SESSION_ONLY")
         }
-        if (main && key == "ex_e41f4c2b") {
-            return@withTransaction result("WEIGHTED_PULLUP_BODYWEIGHT_REQUIRED",
-                detail = "중량 풀업은 당시 체중과 추가중량을 합쳐야 하므로 단순 외부중량 e1RM을 적용하지 않았습니다.")
-        }
+        val weightResolver = if (weightedPullup) StrengthPerformanceLoadResolver(
+            db.dailyMetricDao().allMetrics(), db.dailyCheckInDao().all(),
+            db.initialUserProfileDao().profile()
+        ) else null
+        val sourceTotalKg = if (weightedPullup) {
+            val strengthLoad = checkNotNull(weightResolver).resolve(
+                sourceDate, actuals.first(), StrengthLoadSemantics.BODYWEIGHT_PLUS_ADDED_LOAD
+            )
+            if (!strengthLoad.isResolved ||
+                strengthLoad.confidence !in setOf(
+                    LoadResolutionConfidence.HIGH, LoadResolutionConfidence.MODERATE
+                )
+            ) return@withTransaction result("WEIGHTED_PULLUP_BODYWEIGHT_REQUIRED",
+                detail = "당일 또는 최근 30일 이내의 실제 체중 기록이 필요합니다.")
+            checkNotNull(strengthLoad.totalLoadKg)
+        } else kg
         val metadata = runCatching { JSONObject(program.planningMetadataJson ?: "{}") }.getOrNull()
         val exercise = db.exerciseDao().findByStableKey(key)
         val instrument = BBlockEquipmentIncrements.kind(key, exercise)
@@ -141,6 +159,11 @@ internal class BCoachLinkedExerciseLoadService(
                 }
             BEquipmentIncrementKind.UNKNOWN -> null
         }
+
+        val userOverrideStep = sourceLink.rule.incrementKg?.takeIf {
+            it.isFinite() && it > 0.0
+        }
+        val verifiedStep = if (weightedPullup) userOverrideStep else userOverrideStep ?: step
 
         val destinations = if (main) next.take(1) else next
         var updated = 0
@@ -170,12 +193,22 @@ internal class BCoachLinkedExerciseLoadService(
             }
             val setTargets = dao.prescriptions(destination.entryId)
             val targetSets = target.sets.sortedBy { it.setIndex }
-            val baseline = sourceEntryId to destination.entryId
-            if (!unmodifiedTarget(destination, target, targetSets, setTargets)) {
+             if (!unmodifiedTarget(destination, target, targetSets, setTargets)) {
                 if (firstProblem == null) firstProblem = "USER_EDIT_OR_STRUCTURE_PROTECTED"
                 continue
             }
             val targetReps = targetSets.map { it.reps }.distinct().singleOrNull()
+            val targetBodyweight = if (weightedPullup && main) {
+                val bw = checkNotNull(weightResolver).resolveBodyWeight(targetDate)
+                if (bw == null || bw.confidence !in setOf(
+                        LoadResolutionConfidence.HIGH, LoadResolutionConfidence.MODERATE
+                    )
+                ) {
+                    if (firstProblem == null) firstProblem = "WEIGHTED_PULLUP_BODYWEIGHT_REQUIRED"
+                    continue
+                }
+                bw.kg
+            } else null
             val candidate = if (!main) null else {
                 val rpe = actuals.mapNotNull { it.rpe ?: source.entry.rpe }.maxOrNull()
                 if (rpe == null || targetReps == null) {
@@ -183,9 +216,9 @@ internal class BCoachLinkedExerciseLoadService(
                     continue
                 }
                 val choice = BCoachCommonStrengthRirCalculator.choose(
-                    performedKg = kg, performedReps = reps,
+                    performedKg = sourceTotalKg, performedReps = reps,
                     reportedMaxRpe = rpe, nextReps = targetReps,
-                    incrementKg = step, curve = curves.resolve(key), rirPolicy = rirPolicy
+                    incrementKg = verifiedStep, curve = curves.resolve(key), rirPolicy = rirPolicy
                 )
                 if (choice == null || choice.action == "REP_SCHEME_REVIEW") {
                     if (firstProblem == null) firstProblem = "MAIN_RIR_REVIEW_REQUIRED"
@@ -193,7 +226,13 @@ internal class BCoachLinkedExerciseLoadService(
                 }
                 choice
             }
-            val selectedKg = candidate?.loadKg ?: kg
+            val selectedKg = if (candidate != null && targetBodyweight != null) {
+                (candidate.loadKg - targetBodyweight).takeIf { it.isFinite() && it >= 0.0 }
+                    ?: run {
+                        if (firstProblem == null) firstProblem = "WEIGHTED_PULLUP_ADDED_LOAD_REVIEW"
+                        continue
+                    }
+            } else candidate?.loadKg ?: kg
             val action = candidate?.action ?: "FIRST_WEEK_LOAD_HOLD"
             // A nonmain's reps and number of sets are never overwritten.
             // We only calibrate the planned kg of the existing set structure.
