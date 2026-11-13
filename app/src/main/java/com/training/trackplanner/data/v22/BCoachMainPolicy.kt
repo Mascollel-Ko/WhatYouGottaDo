@@ -37,6 +37,13 @@ internal object BCoachMainPolicy {
         return if (main) ProgressionRole.MAIN else ProgressionRole.ASSISTANCE
     }
 
-    fun canChangeLoad(role: ProgressionRole, exerciseStableKey: String): Boolean =
-        role == ProgressionRole.MAIN && exerciseStableKey.isNotBlank()
+    /** Legacy B links may have an inferred MAIN role from a single AUTO track.
+     * For noncanonical lifts, automatic progression requires the new role snapshot.
+     * Old applied programs can be safely recreated with the explicit role policy.
+     */
+    fun canChangeLoad(role: ProgressionRole, exerciseStableKey: String,
+                      programMetadataJson: String?): Boolean =
+        role == ProgressionRole.MAIN &&
+            (exerciseStableKey in canonicalFour ||
+                programMetadataJson?.contains("\\\"bCoachRolePolicySchema\\\":\\\"main-role-snapshot-1\\\"") == true)
 }
