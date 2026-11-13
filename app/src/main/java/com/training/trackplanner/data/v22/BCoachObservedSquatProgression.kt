@@ -57,7 +57,11 @@ internal object BCoachObservedSquatProgression {
         prescriptions: List<ProgramPrescriptionSet>,
         plateOneSideKg: Double,
         curve: ResolvedRepetitionCurve,
-        rirPolicy: RpeRirPolicy
+        rirPolicy: RpeRirPolicy,
+        exerciseStableKey: String = BCoachLinkedSquatWeekPlanner.SQUAT,
+        loadStepKg: Double? = null,
+        sourceBodyWeightKg: Double? = null,
+        targetBodyWeightKg: Double? = null
     ): ProposalEvidence? {
         if (!plateOneSideKg.isFinite() || plateOneSideKg !in 0.1..25.0) return null
         val targetLink = links.singleOrNull { it.entryId == targetEntryId } ?: return null
@@ -66,8 +70,12 @@ internal object BCoachObservedSquatProgression {
         val sourceLink = predecessor.link ?: return null
         val source = records.singleOrNull { it.entry.id == sourceLink.entryId } ?: return null
         val target = records.singleOrNull { it.entry.id == targetEntryId } ?: return null
-        if (source.entry.exerciseStableKey != BCoachLinkedSquatWeekPlanner.SQUAT ||
-            target.entry.exerciseStableKey != BCoachLinkedSquatWeekPlanner.SQUAT) return null
+        if (source.entry.exerciseStableKey != exerciseStableKey ||
+            target.entry.exerciseStableKey != exerciseStableKey) return null
+        val bodyweightLift = exerciseStableKey == BCoachMainPolicy.WEIGHTED_PULL_UP
+        if (bodyweightLift && (sourceBodyWeightKg == null || targetBodyWeightKg == null ||
+                !sourceBodyWeightKg.isFinite() || sourceBodyWeightKg <= 0 ||
+                !targetBodyWeightKg.isFinite() || targetBodyWeightKg <= 0)) return null
         val day = runCatching { LocalDate.parse(source.entry.date) }.getOrNull() ?: return null
         val targetDay = runCatching { LocalDate.parse(target.entry.date) }.getOrNull() ?: return null
         if (day > asOf || targetDay < asOf || targetDay < day) return null
@@ -79,7 +87,8 @@ internal object BCoachObservedSquatProgression {
         if (done.isEmpty() || planned.isEmpty() || sourceOriginal.size != done.size ||
             targetOriginal.size != planned.size ||
             done.any { !it.confirmed || it.loadState != ProgramLoadState.EXPLICIT_LOAD ||
-                !it.weightKg.isFinite() || it.weightKg <= 0.0 ||
+                !it.weightKg.isFinite() ||
+                (if (bodyweightLift) it.weightKg < 0.0 else it.weightKg <= 0.0) ||
                 it.reps !in 1..20 || (it.rpe ?: source.entry.rpe)?.let { r ->
                     !r.isFinite() || r !in 6.0..10.0
                 } != false
@@ -106,16 +115,21 @@ internal object BCoachObservedSquatProgression {
 
         val maxRpe = done.maxOf { it.rpe ?: source.entry.rpe!! }
         val rirDistribution = rirPolicy.resolve(maxRpe)
-        val step = BBlockPeriodization.barbellIncrement(plateOneSideKg)
+        val step = loadStepKg ?: BBlockPeriodization.barbellIncrement(plateOneSideKg)
+        val observedTotal = load + (if (bodyweightLift) checkNotNull(sourceBodyWeightKg) else 0.0)
+        if (observedTotal <= 0.0) return null
 
         fun score(candidateKg: Double): Evaluation? {
             val distribution = rirDistribution ?: return null
+            val candidateTotal = candidateKg +
+                (if (bodyweightLift) checkNotNull(targetBodyWeightKg) else 0.0)
+            if (candidateTotal <= 0.0) return null
             val scenarios = distribution.probabilities.map { item ->
                 val relative = curve.evaluate(reps + item.rir.toDouble())
                 if (relative.status != RepetitionCurveEvaluationStatus.SUPPORTED) return null
                 val q = relative.relativeLoad?.takeIf { it.isFinite() && it > 0.0 }
                     ?: return null
-                val projectedRelative = q * candidateKg / load
+                val projectedRelative = q * candidateTotal / observedTotal
                 val inverse = curve.profile.invert(projectedRelative)
                 if (inverse.status != RepetitionCurveEvaluationStatus.SUPPORTED) return null
                 val effectiveRepLimit = inverse.repetitions?.let {
@@ -123,7 +137,7 @@ internal object BCoachObservedSquatProgression {
                 } ?: return null
                 val projectedRir = effectiveRepLimit - reps
                 if (!projectedRir.isFinite()) return null
-                CurveScenario(item.probability, load / q, projectedRir)
+                CurveScenario(item.probability, observedTotal / q, projectedRir)
             }
             if (abs(scenarios.sumOf { it.probability } - 1.0) > EPS) return null
             val requiredRelative = curve.evaluate(reps + TARGET_RIR)
@@ -143,12 +157,12 @@ internal object BCoachObservedSquatProgression {
                 targetRirMixtureMass = scenarios.filter {
                     it.projectedRir in TARGET_RIR_MIN..TARGET_RIR_MAX
                 }.sumOf { it.probability },
-                requiredE1rmKg = candidateKg / requiredQ
+                requiredE1rmKg = candidateTotal / requiredQ
             )
         }
 
         val hold = score(load)
-        val up = if (step.isFinite() && step > 0 && step / load <= MAX_SINGLE_STEP_FRACTION)
+        val up = if (step.isFinite() && step > 0 && step / observedTotal <= MAX_SINGLE_STEP_FRACTION)
             score(load + step) else null
         // The same canonical q curve computes both capacity and projected RIR.
         // Prefer a one-step increase only when it improves target-RIR fit without
@@ -178,8 +192,8 @@ internal object BCoachObservedSquatProgression {
             worstCaseRegret = null,
             weightedCost = chosen?.averageSquaredRirError,
             targetRirMixtureMass = chosen?.targetRirMixtureMass,
-            volumeLoadChange = (kg * reps * planned.size).toDouble() /
-                (load * reps * done.size).toDouble() - 1.0,
+            volumeLoadChange = ((kg + (if (bodyweightLift) checkNotNull(targetBodyWeightKg) else 0.0)) * reps * planned.size) /
+                (observedTotal * reps * done.size) - 1.0,
             eligible = true,
             reason = when {
                 increase -> "LINKED_E1RM_CURVE_RIR_ONE_STEP"
