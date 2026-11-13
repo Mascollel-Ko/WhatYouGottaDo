@@ -50,6 +50,7 @@ jobs:
             --tests 'com.training.trackplanner.data.v22.BCoachProgramLinkChainTest' \
             --tests 'com.training.trackplanner.data.BCoachUncalibratedLinkPolicyTest' \
             --tests 'com.training.trackplanner.data.ProgramLinkTimelineResolverTest' \
+            --tests 'com.training.trackplanner.data.ProgramProgressionSessionPersistenceTest' \
             --stacktrace \
             -Pgoogle.webClientId="$GOOGLE_WEB_CLIENT_ID" \
             -Psupabase.publishableKey="$SUPABASE_PUBLISHABLE_KEY"
