@@ -32,7 +32,14 @@ internal fun ProgressionDraftControl(item: ProgramSkeletonItem, skeleton: Progra
             members.map { ProgramSetPrescriptionResolver.resolve(it) }),
             members.map { it.dayOfWeek }.distinct().sorted().map { localizedWeekday(java.time.DayOfWeek.of(it)) }.joinToString(" · "))
     }
-    ProgressionSummaryRow(options.single { it.track.id == track.id }.label, track.needsReview, binding.linkMode == ProgressionLinkMode.OFF) { show = true }
+    val members = skeleton.items.filter { it.progressionBinding?.sessionKey == binding.sessionKey }
+        .sortedWith(compareBy({ it.weekNumber }, { it.dayOfWeek }, { it.orderIndex }))
+    val i = members.indexOfFirst { it.localId == item.localId }
+    val detail = if (binding.linkMode == ProgressionLinkMode.OFF) "중량 연동 꺼짐"
+        else if (members.size == 1) "단독 세션 · 다른 운동과 연결되지 않음"
+        else "연결 ${i + 1}/${members.size} · 앞 ${members.getOrNull(i - 1)?.let { "${it.weekNumber}주차 ${it.dayOfWeek}일" } ?: "없음"} · 뒤 ${members.getOrNull(i + 1)?.let { "${it.weekNumber}주차 ${it.dayOfWeek}일" } ?: "없음"}"
+    ProgressionSummaryRow(options.single { it.track.id == track.id }.label,
+        track.needsReview, binding.linkMode == ProgressionLinkMode.OFF, detail) { show = true }
     if (show) ProgressionSettingsSheet(track,
         ProgramProgressionItem(0, binding.logicalItemId, track.id, binding.linkMode, binding.signature),
         options.map { it.track }, onDismiss = { show = false }, onSave = { link, target, role, mode, rule ->
@@ -54,13 +61,21 @@ private fun sessionSummary(key: String, name: String, track: ProgramProgressionT
 }
 
 @Composable
-private fun ProgressionSummaryRow(label: String, review: Boolean, disconnected: Boolean, onClick: () -> Unit) {
+private fun ProgressionSummaryRow(
+    label: String, review: Boolean, disconnected: Boolean,
+    detail: String? = null, onClick: () -> Unit
+) {
     Column(Modifier.fillMaxWidth()) {
         TextButton(onClick, Modifier.fillMaxWidth().testTag("progression-session-control"), contentPadding = PaddingValues(0.dp)) {
             MaterialText(stringResource(R.string.progression_progression), maxLines = 1, style = MaterialTheme.typography.labelMedium)
             Spacer(Modifier.width(8.dp))
             MaterialText(if (disconnected) stringResource(R.string.progression_disconnected) else label,
                 Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        detail?.let {
+            MaterialText(it, style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary, maxLines = 2,
+                overflow = TextOverflow.Ellipsis)
         }
         if (review) MaterialText(stringResource(R.string.progression_review), style = MaterialTheme.typography.bodySmall)
     }
@@ -136,7 +151,19 @@ internal fun ProgressionTrackControl(
         )
     }
     var show by remember { mutableStateOf(false) }
-    ProgressionSummaryRow(options.firstOrNull { it.track.id == track.id }?.label ?: item.exerciseName, track.needsReview, binding.linkMode == ProgressionLinkMode.OFF) { show = true }
+    val linked = index.membersByTrackId[track.id].orEmpty()
+        .sortedWith(compareBy({ it.weekNumber }, { it.dayOfWeek }, { it.orderIndex }, { it.id }))
+    val linkedAt = linked.indexOfFirst { it.id == itemId }
+    val relation = when {
+        binding.linkMode == ProgressionLinkMode.OFF || track.mode == ProgressionMode.OFF -> "연동 해제 · 중량 자동 반영 안 함"
+        linkedAt < 0 -> "연결 확인 필요"
+        linked.size == 1 -> "단독 세션 · 다음 연결 운동 없음 · 탭하여 연결"
+        else -> "연결 세션 ${linkedAt + 1}/${linked.size} · " +
+            "이전 ${linked.getOrNull(linkedAt - 1)?.let { "${it.weekNumber}주차 ${it.dayOfWeek}일" } ?: "없음"} · " +
+            "다음 ${linked.getOrNull(linkedAt + 1)?.let { "${it.weekNumber}주차 ${it.dayOfWeek}일" } ?: "없음"}"
+    }
+    ProgressionSummaryRow(options.firstOrNull { it.track.id == track.id }?.label ?: item.exerciseName,
+        track.needsReview, binding.linkMode == ProgressionLinkMode.OFF, relation) { show = true }
     if (show) ProgressionSettingsSheet(track, binding, options.map { it.track },
         onDismiss = { show = false }, onSave = { link, id, role, mode, rule ->
             onConfigure(itemId, link, id, role, mode, rule)
