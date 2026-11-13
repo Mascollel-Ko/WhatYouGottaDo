@@ -109,7 +109,7 @@ class ProgramProgressionLayoutTest {
         compose.onNodeWithText("수정 중인 운동: 1주차 월요일", substring = true).assertExists()
         compose.onAllNodesWithText("연결 순서: 1주차 월요일 → 1주차 수요일 → 1주차 금요일",
             substring = true).onFirst().assertExists()
-        compose.onNodeWithText("1주차 월요일 시작 · 3개", substring = true).assertExists()
+        compose.onAllNodesWithText("1주차 월요일 시작 · 3개", substring = true).onFirst().assertExists()
         compose.onNodeWithText("같은 운동·훈련 구성을 기준으로 자동 분류합니다.", substring = true).assertExists()
     }
 
