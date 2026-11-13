@@ -755,6 +755,34 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     val programWorkoutLinks = repository.programWorkoutLinks
     val progressionSuggestions = repository.progressionSuggestions
     val programPrescriptions = repository.programPrescriptions
+    private val _bCoachPostConfirmOutcomes =
+        MutableStateFlow<Map<Long, com.training.trackplanner.data.v22.BCoachPostConfirmOutcome>>(emptyMap())
+    val bCoachPostConfirmOutcomes:
+        StateFlow<Map<Long, com.training.trackplanner.data.v22.BCoachPostConfirmOutcome>> =
+        _bCoachPostConfirmOutcomes.asStateFlow()
+
+    suspend fun recheckBCoachAfterConfirmedSquat(
+        entryId: Long
+    ): com.training.trackplanner.data.v22.BCoachPostConfirmOutcome {
+        val result = try {
+            repository.progressBCoachAfterConfirmedSquat(entryId)
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (failure: Exception) {
+            android.util.Log.e("BCoachGateH", "After-confirm progression failed", failure)
+            com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(
+                sourceEntryId = entryId, status = "RECONCILIATION_ERROR"
+            )
+        }
+        _bCoachPostConfirmOutcomes.value =
+            _bCoachPostConfirmOutcomes.value + (entryId to result)
+        return result
+    }
+
+    fun retryBCoachAfterConfirmedSquat(entryId: Long) {
+        viewModelScope.launch { recheckBCoachAfterConfirmedSquat(entryId) }
+    }
+
     fun refreshProgression() { viewModelScope.launch { repository.refreshProgression() } }
     suspend fun inspectBCoachLinkedSquatNextWeek(
         entryId: Long
@@ -869,6 +897,11 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             repository.updateSet(set)?.let { result ->
                 recordDerivedRefresh.afterCommit(result)
+                if (result.derivedAnalysisDirty && set.values.confirmed) {
+                    // Real sets are already committed; evaluate only linked squat workouts.
+                    // Incomplete sets yield an explicit WAITING status without changing plans.
+                    recheckBCoachAfterConfirmedSquat(set.values.entryId)
+                }
                 if (result.newlyConfirmed) publishCommunityActivityAfterConfirmation(set, result)
             }
         }

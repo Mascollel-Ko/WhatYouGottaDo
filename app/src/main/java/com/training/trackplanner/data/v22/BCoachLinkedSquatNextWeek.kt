@@ -150,7 +150,20 @@ internal object BCoachLinkedSquatWeekPlanner {
         val sourceSets = sourceRecord.sets.sortedBy { it.setIndex }
         val sourceTargets = prescriptions.filter { it.entryId == sourceLink.entryId }
         val session = ProgressionSession(sourceLink, sourceSets, sourceTargets)
-        if (!session.targetCompleted || sourceSets.size != sourceTargets.size ||
+        // Set edits made immediately before confirmation can change plannedReps/plannedKg.
+        // They cannot turn a failed original B prescription into a synthetic success.
+        // A deliberately lowered manual plan should require a separate explicit decision.
+        val originalProgramTargetsMet = sourceTargets.isNotEmpty() &&
+            sourceTargets.all { p ->
+                p.originalExists && p.plannedSetIndex != null &&
+                    sourceSets.singleOrNull { it.setIndex == p.plannedSetIndex }?.let { done ->
+                        done.reps >= maxOf(p.originalReps, p.plannedReps) &&
+                            done.weightKg >= maxOf(p.originalKg, p.plannedKg) &&
+                            done.seconds >= maxOf(p.originalSeconds, p.plannedSeconds)
+                    } == true
+            }
+        if (!session.targetCompleted || !originalProgramTargetsMet ||
+            sourceSets.size != sourceTargets.size ||
             sourceSets.any { !it.confirmed || it.loadState != ProgramLoadState.EXPLICIT_LOAD ||
                 !it.weightKg.isFinite() || it.weightKg <= 0.0 || it.reps !in 1..20 ||
                 (it.rpe ?: sourceRecord.entry.rpe)?.let { r -> !r.isFinite() || r !in 6.0..10.0 } != false

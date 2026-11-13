@@ -359,6 +359,82 @@ class TrainingRepository internal constructor(
         linkedSquatNextWeekService.approve(targetEntryId, expectedFingerprint)
     }
 
+    /**
+     * Called after a confirmed squat set mutation. Completion of a real applied-program
+     * entry triggers exactly one future next-week B-Coach adjustment. The existing
+     * inspected evidence fingerprint and all manual-edit protections are rechecked
+     * transactionally by the Gate G service. No generic historical squat matching.
+     */
+    suspend fun progressBCoachAfterConfirmedSquat(
+        sourceEntryId: Long
+    ): com.training.trackplanner.data.v22.BCoachPostConfirmOutcome = withContext(Dispatchers.IO) {
+        val now = LocalDate.now()
+        val source = workoutDao.findEntryById(sourceEntryId)
+            ?: return@withContext com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(sourceEntryId, "SOURCE_MISSING")
+        if (source.exerciseStableKey != com.training.trackplanner.data.v22.BCoachLinkedSquatWeekPlanner.SQUAT) {
+            return@withContext com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(sourceEntryId, "NOT_SQUAT")
+        }
+        if (db.programProgressionDao().link(sourceEntryId) == null) {
+            return@withContext com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(sourceEntryId, "SOURCE_NOT_PROGRAM_LINKED")
+        }
+        val sets = workoutDao.setsForEntry(sourceEntryId)
+        if (sets.isEmpty() || sets.any { !it.confirmed }) {
+            return@withContext com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(
+                sourceEntryId, "WAITING_FOR_CONFIRMED_RPE_SETS"
+            )
+        }
+        val links = db.programProgressionDao().links()
+        val records = workoutDao.allEntriesWithSets()
+        val target = com.training.trackplanner.data.v22.BCoachPostConfirmLinkResolver.resolve(
+            sourceEntryId = sourceEntryId, asOf = now, records = records, links = links
+        )
+        fun outcome(status: String, detail: String? = null) =
+            com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(
+                sourceEntryId = sourceEntryId, status = status,
+                targetEntryId = target.targetEntryId, detail = detail
+            )
+        if (target.status != "LINKED_FUTURE_TARGET_READY") {
+            return@withContext outcome(target.status)
+        }
+        // The raw confirmation has already committed. Bring the canonical posterior up
+        // to that committed revision before asking the Gate F RPE/e1RM comparator.
+        try {
+            strengthPosteriorCoordinator.ensureCurrentRevision()
+        } catch (failure: kotlinx.coroutines.CancellationException) {
+            throw failure
+        } catch (failure: Exception) {
+            android.util.Log.e("BCoachGateH", "Posterior update failed after confirmation", failure)
+            return@withContext outcome("MODEL_UPDATE_FAILED")
+        }
+        val futureId = checkNotNull(target.targetEntryId)
+        val proposal = linkedSquatNextWeekService.inspect(futureId, now)
+        if (!proposal.canApply || proposal.sourceEntryId != sourceEntryId) {
+            return@withContext outcome(
+                if (proposal.canApply) "SOURCE_LINK_MISMATCH" else proposal.status
+            )
+        }
+        // No silent overwrites of modified plans: approve rechecks the fingerprint,
+        // original prescription, all confirmed flags and prior explicit decisions.
+        val didApply = cloudMutation(CloudMutationScope.APPLICATION) {
+            linkedSquatNextWeekService.approve(
+                targetEntryId = futureId,
+                expectedFingerprint = checkNotNull(proposal.evidenceFingerprint),
+                asOf = now,
+                automaticallyAfterConfirm = true
+            )
+        }
+        if (!didApply) return@withContext outcome("STALE_OR_EDITED_TARGET")
+        com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(
+            sourceEntryId = sourceEntryId,
+            status = "NEXT_WEEK_UPDATED",
+            targetEntryId = futureId,
+            nextLoadKg = proposal.proposedLoadKg,
+            nextReps = proposal.proposedReps,
+            nextSets = proposal.proposedSets,
+            selectedAction = proposal.selectedAction
+        )
+    }
+
     private val programProgressionService = ProgramProgressionService(db) {
         connectiveTissueAnalysisService.build(System.currentTimeMillis()).loadUnits
             .filter { it.status in setOf(com.training.trackplanner.analysis.tissue.TissueCanonicalStatus.HIGH, com.training.trackplanner.analysis.tissue.TissueCanonicalStatus.VERY_HIGH) }

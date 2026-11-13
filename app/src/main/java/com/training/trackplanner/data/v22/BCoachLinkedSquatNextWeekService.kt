@@ -95,7 +95,8 @@ internal class BCoachLinkedSquatNextWeekService(
     suspend fun approve(
         targetEntryId: Long,
         expectedFingerprint: String,
-        asOf: LocalDate = LocalDate.now()
+        asOf: LocalDate = LocalDate.now(),
+        automaticallyAfterConfirm: Boolean = false
     ): Boolean = db.withTransaction {
         if (expectedFingerprint.isBlank()) return@withTransaction false
         val proposal = inspect(targetEntryId, asOf)
@@ -118,6 +119,15 @@ internal class BCoachLinkedSquatNextWeekService(
         // All validation above this point; nothing written on a failed/edited target.
         patch.nextSets.forEach { workoutDao.updateSet(it) }
         patch.nextPrescriptions.forEach { dao.putPrescription(it) }
+        // A legacy progression suggestion may have been created before the B-Coach
+        // decision. Mark it stale in the same transaction so it cannot conflict with
+        // the newly applied Gate H prescription on the record screen.
+        dao.suggestions().filter {
+            it.targetEntryId == targetEntryId &&
+                it.resolution == ProgressionResolution.PENDING
+        }.forEach { previous ->
+            dao.putSuggestion(previous.copy(resolution = ProgressionResolution.STALE))
+        }
         val prior = workoutDao.setsForEntry(checkNotNull(proposal.sourceEntryId))
         val priorKg = prior.maxOfOrNull { it.weightKg }
         val priorRpe = prior.mapNotNull { it.rpe }.maxOrNull()
@@ -132,7 +142,7 @@ internal class BCoachLinkedSquatNextWeekService(
             judgmentRpe = priorRpe,
             direction = if (proposal.selectedAction == "HOLD") ProgressionDirection.HOLD
                 else ProgressionDirection.INCREASE,
-            reasons = "B_COACH_GATE_G_USER_APPROVED_${proposal.selectedAction}_REPS_${proposedReps}_SETS_${proposal.proposedSets}",
+            reasons = "B_COACH_${if (automaticallyAfterConfirm) "GATE_H_AUTO_AFTER_CONFIRM" else "GATE_G_USER_APPROVED"}_${proposal.selectedAction}_REPS_${proposedReps}_SETS_${proposal.proposedSets}",
             evidenceHash = expectedFingerprint,
             resolution = ProgressionResolution.ACCEPTED,
             resolvedAt = System.currentTimeMillis(),

@@ -189,6 +189,19 @@ class BCoachLinkedSquatWeekPlannerTest {
             inspect(workouts=listOf(missed,target)).status)
     }
 
+    @Test fun `editing a future planned six reps to four before confirming never fabricates success`() {
+        val failed = source.copy(sets = source.sets.map { it.copy(reps = 4) })
+        val changedTargets = targets(
+            failed, plannedReps = 4, originalReps = 6
+        ) + targets(target)
+        val result = inspect(
+            workouts = listOf(failed, target),
+            prescriptions = changedTargets
+        )
+        assertEquals("PREVIOUS_WEEK_NOT_FULLY_SUCCESSFUL", result.status)
+        assertFalse(result.canApply)
+    }
+
     @Test fun `target started with one confirmed set is always protected`() {
         val started = target.copy(sets=target.sets.mapIndexed { i,s ->
             if (i==0) s.copy(confirmed=true) else s
