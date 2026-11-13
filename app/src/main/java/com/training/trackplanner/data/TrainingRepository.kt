@@ -426,7 +426,7 @@ class TrainingRepository internal constructor(
         if (!didApply) return@withContext outcome("STALE_OR_EDITED_TARGET")
         com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(
             sourceEntryId = sourceEntryId,
-            status = "NEXT_WEEK_UPDATED",
+            status = "NEXT_LINKED_UPDATED",
             targetEntryId = futureId,
             nextLoadKg = proposal.proposedLoadKg,
             nextReps = proposal.proposedReps,
