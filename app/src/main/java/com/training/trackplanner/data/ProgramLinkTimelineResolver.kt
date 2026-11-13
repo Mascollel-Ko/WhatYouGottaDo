@@ -23,11 +23,15 @@ internal object ProgramLinkTimelineResolver {
         entries: List<WorkoutEntry>
     ): ProgramLinkTimeline? {
         val current = links.singleOrNull { it.entryId == entryId } ?: return null
-        if (current.trackId.isBlank() || current.trackId == "untracked") return null
+        if (current.trackId.isBlank() || current.trackId == "untracked" ||
+            current.mode == ProgressionMode.OFF || current.mode == ProgressionMode.DIRECT
+        ) return null
         val chain = links.filter {
             it.applicationId == current.applicationId &&
                 it.sourceProgramStableKey == current.sourceProgramStableKey &&
-                it.trackId == current.trackId
+                it.trackId == current.trackId &&
+                it.mode != ProgressionMode.OFF &&
+                it.mode != ProgressionMode.DIRECT
         }.sortedWith(compareBy<ProgramWorkoutLink> { it.sequence }.thenBy { it.entryId })
         val index = chain.indexOfFirst { it.entryId == entryId }
         if (index < 0 || chain.map { it.sequence }.distinct().size != chain.size) return null
