@@ -52,7 +52,7 @@ class ProgramEditScopeUiTest {
     @Test fun explicitCopyButtonRequiresConfirmationAndThenUpdatesEveryWeek() {
         val fixture=PostGenerationFixture
         val base=fixture.plan(listOf(fixture.row("press",1,id="press")),
-            horizon=4).copy(planningMetadataJson="""{"kind":"B_BALANCED_STANDARD"}""")
+            horizon=4).copy(planningMetadataJson="""{"kind":"B_BALANCED_12_WEEK_V1"}""")
         val changed=base.copy(items=base.items.map { item ->
             if(item.weekNumber==2) item.copy(exerciseStableKey="different_calf_raise",
                 exerciseName="Calf Raise") else item
