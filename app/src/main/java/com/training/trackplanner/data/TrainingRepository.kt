@@ -346,7 +346,8 @@ class TrainingRepository internal constructor(
         evidenceReader = com.training.trackplanner.data.v22.BCoachSquatShadowEvidenceReader(
             strengthPosteriorDao, workoutDao, strengthPerformanceRegistry, repetitionCurveRegistry
         ),
-        rirPolicy = rpeRirPolicy
+        rirPolicy = rpeRirPolicy,
+        curves = repetitionCurveRegistry
     )
     suspend fun inspectBCoachLinkedSquatNextWeek(
         targetEntryId: Long
