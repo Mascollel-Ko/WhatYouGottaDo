@@ -182,16 +182,22 @@ internal fun ProgressionTrackControl(
 @Composable
 internal fun ProgressionSettingsSheet(track: ProgramProgressionTrack, binding: ProgramProgressionItem, tracks: List<ProgramProgressionTrack>,
     onDismiss: () -> Unit, onSave: (ProgressionLinkMode, String?, ProgressionRole, ProgressionMode, ProgressionRule) -> Unit,
-    sessionOptions: List<ProgressionSessionOption> = tracks.map { ProgressionSessionOption(it, it.label) }) {
+    sessionOptions: List<ProgressionSessionOption> = tracks.map { ProgressionSessionOption(it, it.label) },
+    currentOccurrence: String = "",
+    currentMembership: String = ""
+) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        ProgressionSettingsContent(track, binding, tracks, sessionOptions, onSave)
+        ProgressionSettingsContent(track, binding, tracks, sessionOptions, onSave, currentOccurrence, currentMembership)
     }
 }
 
 @Composable
 internal fun ProgressionSettingsContent(track: ProgramProgressionTrack, binding: ProgramProgressionItem, tracks: List<ProgramProgressionTrack>,
     sessionOptions: List<ProgressionSessionOption> = tracks.map { ProgressionSessionOption(it, it.label) },
-    onSave: (ProgressionLinkMode, String?, ProgressionRole, ProgressionMode, ProgressionRule) -> Unit) {
+    onSave: (ProgressionLinkMode, String?, ProgressionRole, ProgressionMode, ProgressionRule) -> Unit,
+    currentOccurrence: String = "",
+    currentMembership: String = ""
+) {
     var link by remember { mutableStateOf(if (binding.linkMode == ProgressionLinkMode.SEPARATE) ProgressionLinkMode.EXISTING else binding.linkMode) }
     var target by remember { mutableStateOf(track.id) }
     var role by remember { mutableStateOf(track.roleOverride) }
@@ -222,13 +228,64 @@ internal fun ProgressionSettingsContent(track: ProgramProgressionTrack, binding:
             successesRequired = successes.toInt(), failuresBeforeDecrease = failures.toInt(), decreasePercent = decrease.toDouble()).also { it.validate() }
     }.getOrNull()
     Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        MaterialText(stringResource(R.string.progression_settings), style = MaterialTheme.typography.titleLarge, maxLines = 1)
-        ProgressionSessionChoice(stringResource(R.string.progression_auto_connect), selected = link == ProgressionLinkMode.AUTO, tag = "progression-choice-AUTO") { link = ProgressionLinkMode.AUTO }
-        sessionOptions.filter { it.track.exerciseStableKey == track.exerciseStableKey }.forEach { option ->
-            ProgressionSessionChoice(option.label, option.membership, link == ProgressionLinkMode.EXISTING && target == option.track.id, dynamic = true, tag = "progression-choice-${option.track.id}") { selectSession(option.track) }
+        MaterialText("운동 간 연결", style = MaterialTheme.typography.titleLarge)
+        if (currentOccurrence.isNotBlank()) {
+            MaterialText("수정 중인 운동: $currentOccurrence",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary)
         }
-        ProgressionSessionChoice(stringResource(R.string.progression_separate), selected = link == ProgressionLinkMode.SEPARATE, tag = "progression-choice-SEPARATE") { link = ProgressionLinkMode.SEPARATE }
-        ProgressionSessionChoice(stringResource(R.string.progression_disconnected), selected = link == ProgressionLinkMode.OFF, tag = "progression-choice-OFF") { link = ProgressionLinkMode.OFF }
+        if (currentMembership.isNotBlank()) {
+            MaterialText("현재 저장된 연결 · $currentMembership",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface)
+        } else {
+            MaterialText("현재 세션의 연결된 주차 정보를 확인할 수 없습니다.",
+                style = MaterialTheme.typography.bodySmall)
+        }
+        MaterialText(
+            "이 화면의 주차·요일은 프로그램상의 위치입니다. 실제 11월 13일 같은 날짜는 시작일 적용 후 기록에서 확인합니다.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        HorizontalDivider()
+        MaterialText("어떻게 연결할까요?", style = MaterialTheme.typography.titleMedium)
+        ProgressionSessionChoice(
+            "앱에 연결 판단 맡기기",
+            "같은 운동·훈련 구성을 기준으로 자동 분류합니다. 연결을 보장하지 않으며, 실제 연결 결과는 위 목록에서 확인하세요.",
+            selected = link == ProgressionLinkMode.AUTO, tag = "progression-choice-AUTO"
+        ) { link = ProgressionLinkMode.AUTO }
+        MaterialText("기존 진행 세션에 직접 연결",
+            style = MaterialTheme.typography.labelLarge)
+        sessionOptions.filter { it.track.exerciseStableKey == track.exerciseStableKey }.forEach { option ->
+            val current = option.track.id == track.id
+            ProgressionSessionChoice(
+                (if (current) "현재 세션 · " else "다른 세션 · ") + option.label,
+                option.membership,
+                selected = link == ProgressionLinkMode.EXISTING && target == option.track.id,
+                dynamic = true, tag = "progression-choice-${option.track.id}"
+            ) { selectSession(option.track) }
+        }
+        ProgressionSessionChoice(
+            "새 독립 세션 만들기",
+            "이 운동을 기존 연결에서 분리합니다. 이후 같은 세션의 중량 변동을 자동으로 이어받지 않습니다.",
+            selected = link == ProgressionLinkMode.SEPARATE, tag = "progression-choice-SEPARATE"
+        ) { link = ProgressionLinkMode.SEPARATE }
+        ProgressionSessionChoice(
+            "중량 자동 연동 끄기",
+            "이 운동을 프로그램에는 남기되 연결에 의한 자동 조정을 끕니다.",
+            selected = link == ProgressionLinkMode.OFF, tag = "progression-choice-OFF"
+        ) { link = ProgressionLinkMode.OFF }
+        val selectionPreview = when (link) {
+            ProgressionLinkMode.AUTO -> "앱이 연결을 판단합니다. 자동 연결이 실제로 성립했는지는 저장 후 다시 확인하세요."
+            ProgressionLinkMode.EXISTING -> sessionOptions.firstOrNull { it.track.id == target }
+                ?.membership?.let { "선택 예정: $it" } ?: "선택할 세션의 구성 확인 필요"
+            ProgressionLinkMode.SEPARATE -> "이 운동을 독립적인 진행 세션으로 분리합니다."
+            ProgressionLinkMode.OFF -> "이 운동의 중량 자동 연동을 해제합니다."
+        }
+        MaterialText(selectionPreview,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.primary)
+        HorizontalDivider()
         ProgramDropdown(stringResource(R.string.progression_role), role, ProgressionRole.entries, { roleLabels.getValue(it) }, { role = it })
         ProgramDropdown(stringResource(R.string.progression_mode), mode, ProgressionMode.entries, { modeLabels.getValue(it) }, { mode = it })
         if (mode == ProgressionMode.CUSTOM) {
@@ -257,8 +314,8 @@ internal fun ProgressionSessionChoice(label: String, membership: String = "", se
     Row(Modifier.fillMaxWidth().testTag(tag).selectable(selected, onClick = onClick), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
         RadioButton(selected, onClick = null)
         Column(Modifier.weight(1f).padding(vertical = 10.dp, horizontal = 8.dp)) {
-            MaterialText(label, maxLines = 1, overflow = if (dynamic) TextOverflow.Ellipsis else TextOverflow.Clip)
-            if (membership.isNotBlank()) MaterialText(membership, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            MaterialText(label, maxLines = 3, overflow = TextOverflow.Ellipsis)
+            if (membership.isNotBlank()) MaterialText(membership, style = MaterialTheme.typography.bodySmall, maxLines = 7, overflow = TextOverflow.Ellipsis)
         }
     }
 }
