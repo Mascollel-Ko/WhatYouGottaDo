@@ -3,7 +3,7 @@ name: B-Coach Gate M Main Progression and Accessory Hold
 on:
   push:
     branches:
-      - test/b-coach-observed-progression-unify-weeks-gate-m-20261113
+      - test/b-coach-main-progression-accessory-hold-gate-m-20261114
 
 concurrency:
   group: b-coach-gate-m-${{ github.ref }}
