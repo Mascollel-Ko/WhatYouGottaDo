@@ -119,6 +119,15 @@ internal class BCoachLinkedSquatNextWeekService(
         // All validation above this point; nothing written on a failed/edited target.
         patch.nextSets.forEach { workoutDao.updateSet(it) }
         patch.nextPrescriptions.forEach { dao.putPrescription(it) }
+        // A legacy progression suggestion may have been created before the B-Coach
+        // decision. Mark it stale in the same transaction so it cannot conflict with
+        // the newly applied Gate H prescription on the record screen.
+        dao.suggestions().filter {
+            it.targetEntryId == targetEntryId &&
+                it.resolution == ProgressionResolution.PENDING
+        }.forEach { previous ->
+            dao.putSuggestion(previous.copy(resolution = ProgressionResolution.STALE))
+        }
         val prior = workoutDao.setsForEntry(checkNotNull(proposal.sourceEntryId))
         val priorKg = prior.maxOfOrNull { it.weightKg }
         val priorRpe = prior.mapNotNull { it.rpe }.maxOrNull()
