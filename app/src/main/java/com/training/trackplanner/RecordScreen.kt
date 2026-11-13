@@ -513,6 +513,8 @@ private fun BCoachConfirmedSquatProgressionNotice(
                     "프로그램의 운동 간 연결이 없거나 자동 진행이 꺼져 있습니다."
                 "TARGET_ALREADY_STARTED", "TARGET_DATE_NOT_FUTURE" ->
                     "다음 연결 운동이 시작됐거나 과거 날짜여서 보호했습니다."
+                "LINKED_TARGET_REP_SCHEME_REVIEW" ->
+                    "연결된 다음 운동의 목표 반복 수가 달라 자동 덮어쓰지 않았습니다."
                 "RANKING_NOT_AVAILABLE" -> "중량·반복·세트 후보를 선정할 근거가 부족합니다."
                 "PRIOR_EXPLICIT_PROGRESSION_DECISION" ->
                     "다음 연결 운동에 이미 확정된 진행 결정을 보호했습니다."
@@ -588,7 +590,8 @@ private fun BCoachLinkedSquatNextWeekControl(
         "USER_EDIT_PROTECTED", "TARGET_STRUCTURE_CHANGED",
         "SOURCE_NOT_SUCCESSFUL", "PREVIOUS_WEEK_NOT_FULLY_SUCCESSFUL",
         "LATEST_CANONICAL_ANCHOR_NOT_LINKED_SOURCE", "SET_COUNT_REQUIRES_REVIEW",
-        "CANONICAL_MODEL_NOT_READY", "PRIOR_EXPLICIT_PROGRESSION_DECISION"
+        "CANONICAL_MODEL_NOT_READY", "LINKED_TARGET_REP_SCHEME_REVIEW",
+        "PRIOR_EXPLICIT_PROGRESSION_DECISION"
     )) {
         val reason = when (proposal.status) {
             "EQUIPMENT_SNAPSHOT_MISSING" -> "저장된 원판 규격이 없어 자동 계획 변경을 보류합니다."
@@ -597,6 +600,8 @@ private fun BCoachLinkedSquatNextWeekControl(
             "PREVIOUS_WEEK_NOT_FULLY_SUCCESSFUL" -> "이전 연결 운동의 세트·반복·RPE 성공 조건이 충족되지 않았습니다."
             "LATEST_CANONICAL_ANCHOR_NOT_LINKED_SOURCE" -> "최근 근력 기록이 프로그램에서 직전에 연결된 운동과 일치하지 않습니다."
             "SET_COUNT_REQUIRES_REVIEW" -> "다음 연결 운동의 세트 수 변경은 별도 검토가 필요합니다."
+            "LINKED_TARGET_REP_SCHEME_REVIEW" ->
+                "연결된 다음 운동의 반복 목표가 달라 무리하게 덮어쓰지 않습니다."
             "CANONICAL_MODEL_NOT_READY" -> "최신 근력 모델 계산을 확인해야 합니다."
             else -> "이미 진행 결정을 했거나 재검토가 필요합니다."
         }
