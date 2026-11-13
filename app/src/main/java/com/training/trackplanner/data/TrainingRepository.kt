@@ -349,6 +349,10 @@ class TrainingRepository internal constructor(
         rirPolicy = rpeRirPolicy,
         curves = repetitionCurveRegistry
     )
+    private val linkedExerciseLoadService = com.training.trackplanner.data.v22.BCoachLinkedExerciseLoadService(
+        db = db, curves = repetitionCurveRegistry, rirPolicy = rpeRirPolicy
+    )
+
     suspend fun inspectBCoachLinkedSquatNextWeek(
         targetEntryId: Long
     ): com.training.trackplanner.data.v22.BCoachLinkedSquatNextWeekProposal =
@@ -373,7 +377,9 @@ class TrainingRepository internal constructor(
         val source = workoutDao.findEntryById(sourceEntryId)
             ?: return@withContext com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(sourceEntryId, "SOURCE_MISSING")
         if (source.exerciseStableKey != com.training.trackplanner.data.v22.BCoachLinkedSquatWeekPlanner.SQUAT) {
-            return@withContext com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(sourceEntryId, "NOT_SQUAT")
+            return@withContext cloudMutation(CloudMutationScope.APPLICATION) {
+                linkedExerciseLoadService.afterConfirmation(sourceEntryId)
+            }
         }
         if (db.programProgressionDao().link(sourceEntryId) == null) {
             return@withContext com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(sourceEntryId, "SOURCE_NOT_PROGRAM_LINKED")
@@ -404,9 +410,8 @@ class TrainingRepository internal constructor(
         } catch (failure: kotlinx.coroutines.CancellationException) {
             throw failure
         } catch (failure: Exception) {
-            // The posterior is a secondary signal. The observed-only fallback in
-            // the linked squat service can still evaluate actual confirmed sets
-            // without pretending that a posterior was successfully computed.
+            // The canonical curve can calculate current e1RM from real confirmed
+            // sets even if the persisted multi-session posterior refresh is delayed.
             android.util.Log.e("BCoachGateH", "Posterior unavailable; inspect observed-only evidence", failure)
         }
         val futureId = checkNotNull(target.targetEntryId)
