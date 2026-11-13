@@ -75,7 +75,7 @@ class BCoachLinkedSquatWeekPlannerTest {
         )
     }
     private val source get() = record(1L, "2026-11-12", true)
-    private val target get() = record(2L, "2026-11-19", false)
+    private val target get() = record(2L, "2026-11-19", false, reps = 5)
     private val anchor get() = BCoachSquatAnchorSession(
         sessionStableKey = "session-1", date = LocalDate.of(2026, 11, 12),
         confirmedSets = source.sets.map {
@@ -247,6 +247,17 @@ class BCoachLinkedSquatWeekPlannerTest {
         assertTrue(p.canApply)
         assertEquals(140.0,p.proposedLoadKg!!,0.0)
         assertEquals(6,p.proposedReps)
+    }
+
+    @Test fun `future planned repetition increase can be preserved when selected action matches`() {
+        val programmedSix = record(2L, "2026-11-19", false, reps = 6)
+        val result = inspect(
+            workouts = listOf(source, programmedSix),
+            prescriptions = targets(source) + targets(programmedSix),
+            ranking = ranking("REPS_UP_ONE")
+        )
+        assertEquals("READY_FOR_USER_APPROVAL", result.status)
+        assertEquals(6, result.proposedReps)
     }
 
     @Test fun `missing model or ranking fails closed`() {
