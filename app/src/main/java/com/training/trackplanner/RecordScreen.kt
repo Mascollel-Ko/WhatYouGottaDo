@@ -441,7 +441,7 @@ internal fun RecordScreen(
                                         com.training.trackplanner.data.ProgramLinkTimelineResolver.koreanDate(it)
                                     } ?: if (timeline.nextEntryId == null) "없음" else "날짜 확인 필요"
                                     Text(
-                                        "연결 세션 ${timeline.ordinal}/${timeline.total} · 이전 $previousLabel → 오늘 기록 → 다음 $nextLabel",
+                                        "연결 세션 ${timeline.ordinal}/${timeline.total} · 이전 $previousLabel → 현재 ${com.training.trackplanner.data.ProgramLinkTimelineResolver.koreanDate(selectedDate)} → 다음 $nextLabel",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.fillMaxWidth()
