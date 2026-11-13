@@ -3,7 +3,7 @@ name: B-Coach Gate M All Strength Linked Load and User-MAIN e1RM
 on:
   push:
     branches:
-      - test/b-coach-observed-progression-unify-weeks-gate-m-20261113
+      - test/b-coach-all-strength-links-gate-m-20261113
 
 concurrency:
   group: b-coach-gate-m-${{ github.ref }}
