@@ -48,7 +48,7 @@ internal fun ProgressionDraftControl(
     val i = members.indexOfFirst { it.localId == item.localId }
     val detail = if (binding.linkMode == ProgressionLinkMode.OFF) "중량 연동 꺼짐"
         else if (members.size == 1) "단독 세션 · 다른 운동과 연결되지 않음"
-        else "연결 ${i + 1}/${members.size} · 앞 ${members.getOrNull(i - 1)?.let { "${it.weekNumber}주차 ${it.dayOfWeek}일" } ?: "없음"} · 뒤 ${members.getOrNull(i + 1)?.let { "${it.weekNumber}주차 ${it.dayOfWeek}일" } ?: "없음"}"
+        else "연결 ${i + 1}/${members.size} · 이전 ${members.getOrNull(i - 1)?.let { ProgressionSessionLabels.occurrence(it.weekNumber, it.dayOfWeek, it.orderIndex) } ?: "없음"} · 다음 ${members.getOrNull(i + 1)?.let { ProgressionSessionLabels.occurrence(it.weekNumber, it.dayOfWeek, it.orderIndex) } ?: "없음"}"
     ProgressionSummaryRow(options.single { it.track.id == track.id }.label,
         track.needsReview, binding.linkMode == ProgressionLinkMode.OFF, detail) { show = true }
     if (show) ProgressionSettingsSheet(track,
