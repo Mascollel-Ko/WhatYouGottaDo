@@ -131,7 +131,10 @@ internal fun GeneratedProgramSkeleton.configureProgressionSession(
     localId: String, linkMode: ProgressionLinkMode, selectedKey: String?, role: ProgressionRole,
     mode: ProgressionMode, rule: ProgressionRule
 ): GeneratedProgramSkeleton {
-    return withExecutionDraft(executionDraft().configureProgressionSession(localId, linkMode, selectedKey, role, mode, rule))
+    return withExecutionDraft(executionDraft().configureProgressionSession(
+        localId, linkMode, selectedKey, role, mode, rule,
+        bUncalibratedAuto = BCoachUncalibratedLinkPolicy.isBProgram(planningMetadataJson)
+    ))
 }
 
 internal fun ProgramExecutionDraft.configureProgressionSession(
