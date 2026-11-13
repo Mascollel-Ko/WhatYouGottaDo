@@ -150,15 +150,16 @@ internal object BCoachLinkedSquatWeekPlanner {
             anchor.confirmedSets.map { it.setId }.sorted() != actualIds
         ) return result("LATEST_CANONICAL_ANCHOR_NOT_LINKED_SOURCE", sourceLink.entryId)
 
-        // Connecting two program items does not authorize flattening different rep schemes.
-        // Gate F currently ranks the previous workout's anchor reps; a deliberately different
-        // future prescription (e.g. heavy 5 vs volume 8) needs its own target-aware curve score.
-        val performedReps = sourceSets.map { it.reps }.distinct().singleOrNull()
-        if (performedReps == null || targets.any { it.originalReps != performedReps }) {
-            return result("LINKED_TARGET_REP_SCHEME_REVIEW", sourceLink.entryId)
-        }
         val candidate = ranking?.ranked?.firstOrNull { it.action == ranking.selectedAction && it.eligible }
             ?: return result("RANKING_NOT_AVAILABLE", sourceLink.entryId)
+        // Connecting two program items does not authorize flattening deliberately
+        // different heavy/volume repetition schemes. A different target pattern is
+        // acceptable only if the ranked candidate already exactly matches it.
+        val performedReps = sourceSets.map { it.reps }.distinct().singleOrNull()
+        val targetReps = targets.map { it.originalReps }.distinct().singleOrNull()
+        if (performedReps == null || targetReps == null ||
+            (targetReps != performedReps && targetReps != candidate.reps)
+        ) return result("LINKED_TARGET_REP_SCHEME_REVIEW", sourceLink.entryId)
         if (candidate.loadKg <= 0.0 || candidate.reps <= 0 || candidate.sets <= 0 ||
             !candidate.loadKg.isFinite()
         ) return result("INVALID_CANDIDATE", sourceLink.entryId)
