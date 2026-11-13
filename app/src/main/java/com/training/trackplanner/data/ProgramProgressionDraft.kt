@@ -68,19 +68,22 @@ internal fun ProgramExecutionDraft.reconcileProgression(
             slot = item.trainingSlot, intensity = item.dayIntensity, anchor = item.progressionAnchorSetIndex).copy(plannerRole = item.progressionRole)
         val oldSession = old?.let { sessions[it.sessionKey] ?: error("Missing draft progression session") }
         require(oldSession == null || oldSession.track.exerciseStableKey == item.exerciseStableKey)
-        // B generator's uncalibrated AUTO rows are provisional until linked by intent.
-        // A manual explicit link and a persisted link must never be silently rearranged.
-        val provisionalB = bUncalibratedAuto && old?.linkMode == ProgressionLinkMode.AUTO &&
-            old.persisted == false && signature.basePolicy == ProgressionBase.REVIEW
-        val retain = old != null && (old.linkMode != ProgressionLinkMode.AUTO ||
-            (!provisionalB && (old.signature == signature ||
-                ProgressionTrackInference.sameTrack(old.signature, signature))))
         val candidate = assigned.mapNotNull { it.progressionBinding }.firstOrNull {
             it.linkMode == ProgressionLinkMode.AUTO &&
                 (ProgressionTrackInference.sameTrack(it.signature, signature) ||
                     (bUncalibratedAuto &&
                         BCoachUncalibratedLinkPolicy.sameUncalibratedIntent(it.signature, signature)))
         }
+        // Only change a provisional B AUTO session if an *earlier* compatible
+        // session is now available. Once joined, repeated reconciliation is stable.
+        // Explicit and previously persisted identities always take precedence.
+        val provisionalBJoin = bUncalibratedAuto &&
+            old?.linkMode == ProgressionLinkMode.AUTO &&
+            old.persisted == false && signature.basePolicy == ProgressionBase.REVIEW &&
+            candidate != null && candidate.sessionKey != old.sessionKey
+        val retain = old != null && (old.linkMode != ProgressionLinkMode.AUTO ||
+            (!provisionalBJoin && (old.signature == signature ||
+                ProgressionTrackInference.sameTrack(old.signature, signature))))
         val session = when {
             retain -> requireNotNull(oldSession)
             candidate != null -> sessions.getValue(candidate.sessionKey)
