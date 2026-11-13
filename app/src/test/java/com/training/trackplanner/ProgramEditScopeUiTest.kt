@@ -62,11 +62,11 @@ class ProgramEditScopeUiTest {
             ProgramSkeletonPreview(state.value,emptyList(),emptyMap()) { state.value=it }
         } }
         assertTrue(state.value.items.any { it.exerciseStableKey=="different_calf_raise" })
-        compose.onNodeWithTag("scope-copy-week-to-all").performScrollTo().performClick()
+        compose.onNodeWithTag("scope-copy-week-to-all").performClick()
         compose.onNodeWithText("모든 주 구성 덮어쓰기").assertExists()
         compose.onNodeWithText("취소").performClick()
         compose.runOnIdle { assertTrue(state.value.items.any { it.exerciseStableKey=="different_calf_raise" }) }
-        compose.onNodeWithTag("scope-copy-week-to-all").performScrollTo().performClick()
+        compose.onNodeWithTag("scope-copy-week-to-all").performClick()
         compose.onNodeWithText("모든 주 구성 덮어쓰기").performClick()
         compose.runOnIdle {
             assertEquals(4,state.value.items.size)
