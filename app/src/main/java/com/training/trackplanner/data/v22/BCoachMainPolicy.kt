@@ -45,5 +45,5 @@ internal object BCoachMainPolicy {
                       programMetadataJson: String?): Boolean =
         role == ProgressionRole.MAIN &&
             (exerciseStableKey in canonicalFour ||
-                programMetadataJson?.contains("\\\"bCoachRolePolicySchema\\\":\\\"main-role-snapshot-1\\\"") == true)
+                programMetadataJson?.contains("\"bCoachRolePolicySchema\":\"main-role-snapshot-1\"") == true)
 }
