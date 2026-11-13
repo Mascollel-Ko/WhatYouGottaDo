@@ -391,7 +391,7 @@ class TrainingRepository internal constructor(
             )
         }
         if (!com.training.trackplanner.data.v22.BCoachMainPolicy.canChangeLoad(
-                sourceLink.role, source.exerciseStableKey)) {
+                sourceLink.role, source.exerciseStableKey, sourceProgram?.planningMetadataJson)) {
             return@withContext cloudMutation(CloudMutationScope.APPLICATION) {
                 bCoachAccessoryHoldService.propagate(sourceEntryId, now)
             }
