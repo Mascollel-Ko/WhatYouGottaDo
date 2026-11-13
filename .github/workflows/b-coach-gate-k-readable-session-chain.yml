@@ -3,7 +3,7 @@ name: B-Coach Gate K Readable Program Session Chain UI
 on:
   push:
     branches:
-      - test/b-coach-visible-links-gate-k-20261113
+      - test/b-coach-session-link-clarity-gate-k-20261113
 
 concurrency:
   group: b-coach-gate-k-${{ github.ref }}
