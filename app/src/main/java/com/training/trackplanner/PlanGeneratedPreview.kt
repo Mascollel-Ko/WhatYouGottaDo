@@ -73,6 +73,7 @@ internal fun ProgramSkeletonPreview(
     var editingItem by remember { mutableStateOf<ProgramSkeletonItem?>(null) }
     var removeDayTarget by remember { mutableStateOf<Int?>(null) }
     var allWeeks by rememberSaveable(skeleton.suggestedName) { mutableStateOf(false) }
+    var confirmCopyToAll by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val showAllWeeksMismatch = {
         Toast.makeText(context, PROGRAM_ALL_WEEKS_MISMATCH_MESSAGE, Toast.LENGTH_SHORT).show()
@@ -93,6 +94,29 @@ internal fun ProgramSkeletonPreview(
         if (selectedWeek !in schedule.keys) selectedWeek = schedule.keys.minOrNull() ?: 1
         val days = schedule[selectedWeek].orEmpty().sorted()
         selectedDay = days.firstOrNull { it == selectedDay } ?: days.firstOrNull() ?: 1
+    }
+
+    if (confirmCopyToAll) {
+        AlertDialog(
+            onDismissRequest = { confirmCopyToAll = false },
+            title = { MaterialText("1주차 구성을 모든 주에 복사") },
+            text = { MaterialText(
+                "1주차의 요일·운동·세트·반복·중량을 2~${skeleton.request.durationWeeks}주차에 복사합니다. " +
+                    "다른 주차의 기존 구성과 주기화 차이는 사라집니다. " +
+                    "아직 기록 달력에 적용한 운동은 변경하지 않습니다. 계속할까요?"
+            ) },
+            confirmButton = {
+                Button(onClick = {
+                    applyScoped { ProgramScopedEditor.copyBWeekToAll(skeleton, 1) }
+                    confirmCopyToAll = false
+                    allWeeks = false
+                    selectedWeek = 1
+                }) { MaterialText("모든 주 구성 덮어쓰기") }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmCopyToAll = false }) { MaterialText("취소") }
+            }
+        )
     }
 
     removeDayTarget?.let { day ->
@@ -172,10 +196,20 @@ internal fun ProgramSkeletonPreview(
                     ProgramEditScopeControl(scope,supportsAll) { allWeeks=it==ProgramEditScope.ALL_WEEKS }
                     MaterialText(
                         if (scope == ProgramEditScope.ALL_WEEKS)
-                            stringResource(R.string.program_prescription_all_weeks)
-                        else stringResource(R.string.program_prescription_week_only, editWeek),
+                            "이 모드는 지금부터 수정하는 항목만 모든 주에 반영합니다. 기존 주차의 운동 목록을 자동으로 복사하지 않습니다."
+                        else "현재 ${editWeek}주차의 운동만 수정합니다. 다른 주차는 그대로 유지됩니다.",
                         style = MaterialTheme.typography.bodySmall
                     )
+                    if (supportsAll && skeleton.planningMetadataJson?.contains("B_BALANCED") == true) {
+                        OutlinedButton(
+                            onClick = { confirmCopyToAll = true },
+                            modifier = Modifier.fillMaxWidth().testTag("scope-copy-week-to-all")
+                        ) { MaterialText("1주차 전체 운동 구성을 모든 주에 복사") }
+                        MaterialText(
+                            "위 버튼은 이후 수정 범위 설정과 별개입니다. 확인 후 2주차부터 실제 운동 목록까지 변경됩니다.",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
                 }
                 ProgramDraftEditTab(
                     skeleton = skeleton,
@@ -222,7 +256,7 @@ internal fun ProgramEditScopeControl(scope: ProgramEditScope,supportsAll: Boolea
         // Full-width choices keep Korean readable at narrow widths and increased font scale.
         OutlinedButton(onClick={onChange(ProgramEditScope.ALL_WEEKS)},enabled=supportsAll,
             modifier=Modifier.fillMaxWidth().testTag("scope-all")) {
-            MaterialText(stringResource(R.string.program_scope_all)+(if(scope==ProgramEditScope.ALL_WEEKS) " ✓" else ""))
+            MaterialText("이후 수정사항을 모든 주에 반영"+(if(scope==ProgramEditScope.ALL_WEEKS) " ✓" else ""))
         }
         OutlinedButton(onClick={onChange(ProgramEditScope.INDIVIDUAL_WEEK)},modifier=Modifier.fillMaxWidth().testTag("scope-week")) {
             MaterialText(stringResource(R.string.program_scope_week)+(if(scope==ProgramEditScope.INDIVIDUAL_WEEK) " ✓" else ""))
