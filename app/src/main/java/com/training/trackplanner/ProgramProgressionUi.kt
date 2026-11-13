@@ -80,7 +80,7 @@ private fun ProgressionSummaryRow(
 ) {
     Column(Modifier.fillMaxWidth()) {
         TextButton(onClick, Modifier.fillMaxWidth().testTag("progression-session-control"), contentPadding = PaddingValues(0.dp)) {
-            MaterialText(stringResource(R.string.progression_progression), maxLines = 1, style = MaterialTheme.typography.labelMedium)
+            MaterialText("연결 설정", maxLines = 1, style = MaterialTheme.typography.labelMedium)
             Spacer(Modifier.width(8.dp))
             MaterialText(if (disconnected) stringResource(R.string.progression_disconnected) else label,
                 Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
