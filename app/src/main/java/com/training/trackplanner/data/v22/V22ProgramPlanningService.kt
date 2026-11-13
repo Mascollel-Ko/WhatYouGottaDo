@@ -9,6 +9,7 @@ import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.ProgramDayIntensity
 import com.training.trackplanner.data.ProgramGoal
 import com.training.trackplanner.data.ProgramLoadState
+import com.training.trackplanner.data.ProgressionRole
 import com.training.trackplanner.data.ProgramPeriodizationType
 import com.training.trackplanner.data.ProgramSetPrescription
 import com.training.trackplanner.data.ProgramSkeletonItem
@@ -76,7 +77,11 @@ internal class V22ProgramPlanningService(
         )
         val comparator = runCatching { V22PythonParityEngine.build(history, effectiveRequest) }.getOrNull()
             ?.takeIf { plan -> plan.weeks.firstOrNull()?.sessions?.any { it.items.isNotEmpty() } == true }
-        val baseSkeleton = balanced.toSkeleton(effectiveRequest, exercises)
+        val baseSkeleton = balanced.toSkeleton(effectiveRequest, exercises,
+            mainCapabilityKeys = canonicalMetadataRepository.programSlotCapabilityRelations()
+                .filter { it.capabilityCode == "MAIN_STRENGTH_SLOT" }
+                .mapTo(linkedSetOf()) { it.exerciseStableKey }
+        )
         // Preserve the actual plate size the user entered at generation time. The profile
         // can change later; an applied program must never silently pick up a different grid.
         val skeleton = effectiveRequest.bShadowPlateOneSideKg
@@ -85,6 +90,10 @@ internal class V22ProgramPlanningService(
                 val metadata = org.json.JSONObject(baseSkeleton.planningMetadataJson ?: "{}")
                 metadata.put("bCoachProgressionEquipmentSchema", "linked-g-1")
                 metadata.put("bCoachPlateOneSideKg", plate)
+                effectiveRequest.bShadowDumbbellIncrementKg?.takeIf { it.isFinite() && it in 0.1..50.0 }
+                    ?.let { metadata.put("bCoachDumbbellDisplayedKg", it) }
+                effectiveRequest.bShadowMachineIncrementKg?.takeIf { it.isFinite() && it in 0.1..100.0 }
+                    ?.let { metadata.put("bCoachMachineDisplayedKg", it) }
                 baseSkeleton.copy(planningMetadataJson = metadata.toString())
             } ?: baseSkeleton
         // Gate D is strictly a side-channel. No exception, missing posterior, or score may
@@ -156,7 +165,8 @@ internal class V22ProgramPlanningService(
 
 internal fun BBalanced12WeekPlan.toSkeleton(
     request: V22GenerationRequest,
-    exercises: Map<String, Exercise>
+    exercises: Map<String, Exercise>,
+    mainCapabilityKeys: Set<String> = emptySet()
 ): GeneratedProgramSkeleton {
     val blockCalendar = request.blockProgram?.let(::BBlockCalendar)
     val calendarWeeks = blockCalendar?.calendarWeeks ?: input.weeks
@@ -173,6 +183,9 @@ internal fun BBalanced12WeekPlan.toSkeleton(
         durationWeeks = calendarWeeks
     )
     val focusByBlock = blocks.associate { it.block to it.focus }
+    val selectedMains = blocks.associate { block ->
+        block.block to BCoachJointBlockOptimizer.selectedMainKeys(block.sessions, mainCapabilityKeys)
+    }
     val items = weeks.flatMap { week ->
         week.sessions.flatMap { session ->
             session.items.mapIndexed { index, item ->
@@ -216,6 +229,8 @@ internal fun BBalanced12WeekPlan.toSkeleton(
                     dayIntensity = ProgramDayIntensity.MODERATE.name,
                     stableKey = item.stableKey,
                     selectionRole = "B12_FOCUS_${focus.name}",
+                    progressionRole = if (item.stableKey in selectedMains[week.block].orEmpty())
+                        ProgressionRole.MAIN else ProgressionRole.AUTO,
                     setPrescriptions = sets
                 )
             }
