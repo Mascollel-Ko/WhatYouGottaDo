@@ -30,14 +30,14 @@ internal fun ProgressionDraftControl(item: ProgramSkeletonItem, skeleton: Progra
         val members = skeleton.items.filter { it.progressionBinding?.sessionKey == session.key }
         ProgressionSessionOption(session.track, sessionSummary(item.exerciseStableKey, item.exerciseName, session.track,
             members.map { ProgramSetPrescriptionResolver.resolve(it) }),
-            members.map { it.dayOfWeek }.distinct().sorted().map { localizedWeekday(java.time.DayOfWeek.of(it)) }.joinToString(" · "))
+            progressionOccurrencePath(members.map { it.weekNumber to it.dayOfWeek }))
     }
     val members = skeleton.items.filter { it.progressionBinding?.sessionKey == binding.sessionKey }
         .sortedWith(compareBy({ it.weekNumber }, { it.dayOfWeek }, { it.orderIndex }))
     val i = members.indexOfFirst { it.localId == item.localId }
     val detail = if (binding.linkMode == ProgressionLinkMode.OFF) "중량 연동 꺼짐"
         else if (members.size == 1) "단독 세션 · 다른 운동과 연결되지 않음"
-        else "연결 ${i + 1}/${members.size} · 앞 ${members.getOrNull(i - 1)?.let { "${it.weekNumber}주차 ${it.dayOfWeek}일" } ?: "없음"} · 뒤 ${members.getOrNull(i + 1)?.let { "${it.weekNumber}주차 ${it.dayOfWeek}일" } ?: "없음"}"
+        else "연결 ${i + 1}/${members.size} · 이전 ${members.getOrNull(i - 1)?.let { progressionOccurrenceLabel(it.weekNumber,it.dayOfWeek) } ?: "없음"} · 다음 ${members.getOrNull(i + 1)?.let { progressionOccurrenceLabel(it.weekNumber,it.dayOfWeek) } ?: "없음"}"
     ProgressionSummaryRow(options.single { it.track.id == track.id }.label,
         track.needsReview, binding.linkMode == ProgressionLinkMode.OFF, detail) { show = true }
     if (show) ProgressionSettingsSheet(track,
@@ -47,6 +47,19 @@ internal fun ProgressionDraftControl(item: ProgramSkeletonItem, skeleton: Progra
             show = false
         }, sessionOptions = options)
 }
+
+/**
+ * Program-editor order, not a calendar date. Dates are only known after applying.
+ * Keep this shared by the preview editor, saved-program editor and radio choices.
+ */
+internal fun progressionOccurrenceLabel(week: Int, day: Int): String {
+    val days = listOf("월", "화", "수", "목", "금", "토", "일")
+    return "${week}주차 ${days.getOrNull(day - 1) ?: "요일 확인"}"
+}
+
+internal fun progressionOccurrencePath(occurrences: List<Pair<Int, Int>>): String =
+    occurrences.sortedWith(compareBy({ it.first }, { it.second }))
+        .joinToString(" → ") { progressionOccurrenceLabel(it.first, it.second) }
 
 internal data class ProgressionSessionOption(val track: ProgramProgressionTrack, val label: String, val membership: String = "")
 
@@ -67,7 +80,7 @@ private fun ProgressionSummaryRow(
 ) {
     Column(Modifier.fillMaxWidth()) {
         TextButton(onClick, Modifier.fillMaxWidth().testTag("progression-session-control"), contentPadding = PaddingValues(0.dp)) {
-            MaterialText(stringResource(R.string.progression_progression), maxLines = 1, style = MaterialTheme.typography.labelMedium)
+            MaterialText("연결 설정", maxLines = 1, style = MaterialTheme.typography.labelMedium)
             Spacer(Modifier.width(8.dp))
             MaterialText(if (disconnected) stringResource(R.string.progression_disconnected) else label,
                 Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -146,8 +159,7 @@ internal fun ProgressionTrackControl(
             sessionSummary(item.exerciseStableKey, item.exerciseName, session, members.map { member ->
                 ProgramSetPrescriptionResolver.resolve(member, index.setsByItemId[member.id].orEmpty())
             }),
-            members.map { it.dayOfWeek }.distinct().sorted()
-                .map { localizedWeekday(java.time.DayOfWeek.of(it)) }.joinToString(" · ")
+            progressionOccurrencePath(members.map { it.weekNumber to it.dayOfWeek })
         )
     }
     var show by remember { mutableStateOf(false) }
@@ -159,8 +171,8 @@ internal fun ProgressionTrackControl(
         linkedAt < 0 -> "연결 확인 필요"
         linked.size == 1 -> "단독 세션 · 다음 연결 운동 없음 · 탭하여 연결"
         else -> "연결 세션 ${linkedAt + 1}/${linked.size} · " +
-            "이전 ${linked.getOrNull(linkedAt - 1)?.let { "${it.weekNumber}주차 ${it.dayOfWeek}일" } ?: "없음"} · " +
-            "다음 ${linked.getOrNull(linkedAt + 1)?.let { "${it.weekNumber}주차 ${it.dayOfWeek}일" } ?: "없음"}"
+            "이전 ${linked.getOrNull(linkedAt - 1)?.let { progressionOccurrenceLabel(it.weekNumber,it.dayOfWeek) } ?: "없음"} · " +
+            "다음 ${linked.getOrNull(linkedAt + 1)?.let { progressionOccurrenceLabel(it.weekNumber,it.dayOfWeek) } ?: "없음"}"
     }
     ProgressionSummaryRow(options.firstOrNull { it.track.id == track.id }?.label ?: item.exerciseName,
         track.needsReview, binding.linkMode == ProgressionLinkMode.OFF, relation) { show = true }
@@ -185,7 +197,7 @@ internal fun ProgressionSettingsSheet(track: ProgramProgressionTrack, binding: P
 internal fun ProgressionSettingsContent(track: ProgramProgressionTrack, binding: ProgramProgressionItem, tracks: List<ProgramProgressionTrack>,
     sessionOptions: List<ProgressionSessionOption> = tracks.map { ProgressionSessionOption(it, it.label) },
     onSave: (ProgressionLinkMode, String?, ProgressionRole, ProgressionMode, ProgressionRule) -> Unit) {
-    var link by remember { mutableStateOf(if (binding.linkMode == ProgressionLinkMode.SEPARATE) ProgressionLinkMode.EXISTING else binding.linkMode) }
+    var link by remember { mutableStateOf(binding.linkMode) }
     var target by remember { mutableStateOf(track.id) }
     var role by remember { mutableStateOf(track.roleOverride) }
     var mode by remember { mutableStateOf(track.mode) }
@@ -215,13 +227,57 @@ internal fun ProgressionSettingsContent(track: ProgramProgressionTrack, binding:
             successesRequired = successes.toInt(), failuresBeforeDecrease = failures.toInt(), decreasePercent = decrease.toDouble()).also { it.validate() }
     }.getOrNull()
     Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        MaterialText(stringResource(R.string.progression_settings), style = MaterialTheme.typography.titleLarge, maxLines = 1)
-        ProgressionSessionChoice(stringResource(R.string.progression_auto_connect), selected = link == ProgressionLinkMode.AUTO, tag = "progression-choice-AUTO") { link = ProgressionLinkMode.AUTO }
-        sessionOptions.filter { it.track.exerciseStableKey == track.exerciseStableKey }.forEach { option ->
-            ProgressionSessionChoice(option.label, option.membership, link == ProgressionLinkMode.EXISTING && target == option.track.id, dynamic = true, tag = "progression-choice-${option.track.id}") { selectSession(option.track) }
+        MaterialText("운동 연결 설정", style = MaterialTheme.typography.titleLarge)
+        val currentSession = sessionOptions.firstOrNull { it.track.id == track.id }
+        MaterialText("현재 저장된 연결", style = MaterialTheme.typography.titleMedium)
+        MaterialText(
+            currentSession?.membership?.takeIf { it.isNotBlank() }
+                ?: "이 운동만 포함된 세션입니다.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
+        MaterialText(
+            "이 화면의 주차·요일은 프로그램상 순서입니다. 실제 날짜는 달력에 적용한 뒤 기록 탭에서 확인할 수 있습니다.",
+            style = MaterialTheme.typography.bodySmall
+        )
+        MaterialText("연결 방법 선택", style = MaterialTheme.typography.titleMedium)
+        ProgressionSessionChoice(
+            "자동 연결 규칙 사용",
+            "같은 운동·훈련 목적의 다른 주차와 연결할지 앱이 판단합니다. 지금 보이는 세션과는 별개의 선택 방식입니다.",
+            selected = link == ProgressionLinkMode.AUTO,
+            tag = "progression-choice-AUTO"
+        ) { link = ProgressionLinkMode.AUTO }
+        sessionOptions.filter {
+            it.track.exerciseStableKey == track.exerciseStableKey && it.track.id != track.id
+        }.forEach { option ->
+            ProgressionSessionChoice(
+                "이 세션에 직접 연결 · ${option.label}",
+                option.membership,
+                link == ProgressionLinkMode.EXISTING && target == option.track.id,
+                dynamic = true, tag = "progression-choice-${option.track.id}"
+            ) { selectSession(option.track) }
         }
-        ProgressionSessionChoice(stringResource(R.string.progression_separate), selected = link == ProgressionLinkMode.SEPARATE, tag = "progression-choice-SEPARATE") { link = ProgressionLinkMode.SEPARATE }
-        ProgressionSessionChoice(stringResource(R.string.progression_disconnected), selected = link == ProgressionLinkMode.OFF, tag = "progression-choice-OFF") { link = ProgressionLinkMode.OFF }
+        if (link == ProgressionLinkMode.EXISTING && target == track.id) {
+            ProgressionSessionChoice(
+                "현재 세션 유지",
+                currentSession?.membership ?: "",
+                selected = true,
+                dynamic = true,
+                tag = "progression-choice-current"
+            ) { selectSession(track) }
+        }
+        ProgressionSessionChoice(
+            "새로운 독립 세션으로 분리",
+            "이 운동부터 별도의 중량 진행 기록을 만듭니다. 다른 주차의 연결은 임의로 바꾸지 않습니다.",
+            selected = link == ProgressionLinkMode.SEPARATE,
+            tag = "progression-choice-SEPARATE"
+        ) { link = ProgressionLinkMode.SEPARATE }
+        ProgressionSessionChoice(
+            "중량 자동 연동 끄기",
+            "프로그램에는 남기되 다음 연결 운동으로 자동 계산하지 않습니다.",
+            selected = link == ProgressionLinkMode.OFF,
+            tag = "progression-choice-OFF"
+        ) { link = ProgressionLinkMode.OFF }
         ProgramDropdown(stringResource(R.string.progression_role), role, ProgressionRole.entries, { roleLabels.getValue(it) }, { role = it })
         ProgramDropdown(stringResource(R.string.progression_mode), mode, ProgressionMode.entries, { modeLabels.getValue(it) }, { mode = it })
         if (mode == ProgressionMode.CUSTOM) {
@@ -251,7 +307,10 @@ internal fun ProgressionSessionChoice(label: String, membership: String = "", se
         RadioButton(selected, onClick = null)
         Column(Modifier.weight(1f).padding(vertical = 10.dp, horizontal = 8.dp)) {
             MaterialText(label, maxLines = 1, overflow = if (dynamic) TextOverflow.Ellipsis else TextOverflow.Clip)
-            if (membership.isNotBlank()) MaterialText(membership, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (membership.isNotBlank()) MaterialText(
+                membership, style = MaterialTheme.typography.bodySmall,
+                maxLines = 4, overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
