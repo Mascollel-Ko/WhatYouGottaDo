@@ -308,6 +308,44 @@ class ProgramProgressionPersistenceTest {
         assertTrue(runCatching { ProgramProgressionBackup.validate(invalid) }.isFailure)
     }
 
+    @Test fun historicalZeroPlanProgressionRemainsBackupSafeAfterAllAppliedRecordsAreDeleted() = runBlocking {
+        val db = database()
+        val programId = fixture(db)
+        apply(db, programId)
+        val dao = db.programProgressionDao()
+        val records = db.workoutDao().allEntriesWithSets().sortedBy { it.entry.date }
+        val link = requireNotNull(dao.link(records[1].entry.id))
+        dao.putSuggestion(ProgressionSuggestion(
+            applicationId = link.applicationId,
+            trackId = link.trackId,
+            sourceEntryId = records[0].entry.id,
+            targetEntryId = records[1].entry.id,
+            previousActualKg = 130.0,
+            currentPlanKg = 0.0,
+            suggestedKg = 131.5,
+            judgmentRpe = 6.5,
+            direction = ProgressionDirection.INCREASE,
+            reasons = "B_COACH_GATE_H_AUTO_AFTER_CONFIRM",
+            evidenceHash = "historical-zero-plan",
+            resolution = ProgressionResolution.ACCEPTED,
+            resolvedKg = 131.5
+        ))
+
+        records.forEach { record ->
+            db.workoutDao().deleteSetsForEntry(record.entry.id)
+            db.workoutDao().deleteEntryById(record.entry.id)
+        }
+        assertTrue(db.workoutDao().allEntries().isEmpty())
+        assertTrue(dao.links().isEmpty())
+        assertEquals(1, dao.suggestions().size) // intentionally retained evidence
+
+        // Deleting the template does not delete the historical decision, either.
+        service(db).deleteProgram(programId)
+        assertTrue(db.programDao().allPrograms().isEmpty())
+        assertEquals(1, dao.suggestions().size)
+        ProgramProgressionBackup.validate(ProgramProgressionBackup.export(db))
+    }
+
     @Test fun negativeSuggestedLoadInBackupFailsClosed() = runBlocking {
         val db = database(); apply(db, fixture(db))
         confirm(db, db.workoutDao().allEntriesWithSets().minBy { it.entry.date }.entry.id)
