@@ -124,6 +124,23 @@ class ProgramProgressionOrphanCleanupTest {
         assertTrue(database.programDao().allPrograms().isEmpty())
     }
 
+    @Test fun calendarDateAndRangeDeletionPruneOldLinksAndDecisions() = runBlocking {
+        val database = db()
+        val f = fixture(database)
+        val repository = TrainingRepository(database, context)
+
+        repository.deleteDate(f.target.date)
+        assertTrue(database.programProgressionDao().suggestions().isEmpty())
+        assertEquals(listOf(f.source.id), database.programProgressionDao().links().map { it.entryId })
+
+        repository.deleteDateRange(f.source.date, f.source.date, includeConfirmed = true)
+        assertTrue(database.programProgressionDao().links().isEmpty())
+        assertTrue(database.programProgressionDao().applications().isEmpty())
+        // The template still needs its track until the user removes it.
+        assertEquals(1, database.programProgressionDao().tracks().size)
+        assertNotNull(database.programDao().findProgram(f.programId))
+    }
+
     @Test fun deletingTemplateOnlyPreservesAppliedWorkoutsAndProgressionDecisions() = runBlocking {
         val database = db()
         val f = fixture(database)
