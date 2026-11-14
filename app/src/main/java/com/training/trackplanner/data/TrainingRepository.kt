@@ -698,17 +698,44 @@ class TrainingRepository internal constructor(
     fun entriesForDate(date: String): Flow<List<WorkoutEntryWithSets>> =
         readQueryService.entriesForDate(date)
 
+    /**
+     * Shared conservative reconciliation for legacy orphans, idempotent on launch
+     * and before every local/manual/cloud backup. Only derived progression graph
+     * tables are pruned; raw workout records are never changed.
+     */
+    internal suspend fun reconcileProgressionOrphans(): ProgramProgressionOrphanCleanup.Result =
+        withContext(Dispatchers.IO) {
+            val previousRevision = db.cloudBackupStateDao().getOrCreate().localRevision
+            val result = db.withCloudRevision(CloudMutationScope.PROGRESSION_ORPHANS) {
+                ProgramProgressionOrphanCleanup.pruneInTransaction(db)
+            }
+            if (result.removed > 0) {
+                LocalRecoveryScheduler.schedule(context)
+                scheduleAutomaticCloudBackupIfChanged(previousRevision)
+            }
+            result
+        }
+
+    private suspend fun pruneProgressionBeforeBackup(): ProgramProgressionOrphanCleanup.Result =
+        db.withCloudRevision(CloudMutationScope.PROGRESSION_ORPHANS) {
+            ProgramProgressionOrphanCleanup.pruneInTransaction(db)
+        }
+
     suspend fun exportRecordsBackup(
         uri: Uri,
         onReportChanged: (DataTransferReport) -> Unit = {}
     ): RecordCsvTransferResult = withContext(Dispatchers.IO) {
+        reconcileProgressionOrphans()
         backupExportService().export(uri, onReportChanged)
     }
 
     /** Current canonical payload, without a user-selected Uri or any Cloud lineage. */
     internal suspend fun canonicalRecordsBackup(exportedAt: Long = System.currentTimeMillis()): CanonicalBackupContent =
         withContext(Dispatchers.IO) {
-            db.withTransaction { backupExportService().buildCanonicalBackup(exportedAt = exportedAt) }
+            db.withTransaction {
+                pruneProgressionBeforeBackup()
+                backupExportService().buildCanonicalBackup(exportedAt = exportedAt)
+            }
         }
 
     internal suspend fun uploadCloudBackup(
@@ -722,6 +749,9 @@ class TrainingRepository internal constructor(
         if (!automatic) CloudBackupScheduler.cancel(context)
         try {
             CloudBackupRuntimeMutex.withLock {
+                // CloudBackupClient captures localRevision BEFORE asking for CSV.
+                // Prune first, so cleanup belongs to the uploaded revision.
+                reconcileProgressionOrphans()
                 val result = CloudBackupClient(
                     db = db,
                     canonicalBackup = { canonicalRecordsBackup() },
@@ -1009,7 +1039,10 @@ class TrainingRepository internal constructor(
     internal val localRecovery: LocalRecoveryService by lazy {
         LocalRecoveryService(db, LocalRecoveryStore(
             java.io.File(context.noBackupFilesDir, "recovery"), ::preflightRecovery
-        ), { time -> backupExportService().buildCanonicalBackup(exportedAt = time) }, ::applyLocalRecovery)
+        ), { time ->
+            pruneProgressionBeforeBackup()
+            backupExportService().buildCanonicalBackup(exportedAt = time)
+        }, ::applyLocalRecovery)
     }
 
     /** Creates the one valid previous-state snapshot after canonical preflight. */
@@ -1174,6 +1207,7 @@ class TrainingRepository internal constructor(
         }
 
         programDao.allPrograms().forEach { ProgramProgressionService(db).author(it.id) }
+        reconcileProgressionOrphans()
         val strengthAnalysisLifecycle = strengthPosteriorCoordinator.ensureCurrentRevision()
 
         logDebugSummary()
