@@ -40,7 +40,22 @@ data class V22GenerationRequest(
     val bGoalImportance: BBalancedGoalImportance = BBalancedGoalImportance(),
     val bMaxTrainingDays: Int? = null, // explicit permission to expand B from three to four days
     /** Absent for old B12 callers; new B UI carries the precise block layout. */
-    val blockProgram: BBlockProgramDefinition? = null
+    val blockProgram: BBlockProgramDefinition? = null,
+    /** Null means evaluate all combinations; never infer user-supplied availability. */
+    val allowedWeekdays: Set<Int>? = null,
+    /** Explicit days are immutable when supplied. */
+    val fixedWeekdays: Set<Int>? = null,
+    /** Optional source program identity for linked, actual prior-block evidence. */
+    val sourceProgramStableKey: String? = null,
+    /** Populated only from matched application+entry links; never from raw dates. */
+    val linkedDuePlannedSets: Int? = null,
+    val linkedConfirmedSets: Int? = null,
+    val linkedEvidenceApplicationId: String? = null,
+    /** Ephemeral, UI-confirmed plate size for read-only squat shadow; never a prescription override. */
+    val bShadowPlateOneSideKg: Double? = null,
+    /** Ephemeral display-unit increments used only for other-exercise Shadow coverage. */
+    val bShadowDumbbellIncrementKg: Double? = null,
+    val bShadowMachineIncrementKg: Double? = null
 )
 
 /**
@@ -54,7 +69,13 @@ internal fun newBBalancedGenerationRequest(
     sessionMinutes: Int?,
     allowFourthDay: Boolean,
     importance: BBalancedGoalImportance,
-    blockProgram: BBlockProgramDefinition = BBlockProgramDefinition()
+    blockProgram: BBlockProgramDefinition = BBlockProgramDefinition(),
+    allowedWeekdays: Set<Int>? = null,
+    fixedWeekdays: Set<Int>? = null,
+    sourceProgramStableKey: String? = null,
+    shadowPlateOneSideKg: Double? = null,
+    shadowDumbbellIncrementKg: Double? = null,
+    shadowMachineIncrementKg: Double? = null
 ): V22GenerationRequest = V22GenerationRequest(
     name = name,
     weeks = blockProgram.trainingWeeks,
@@ -64,7 +85,13 @@ internal fun newBBalancedGenerationRequest(
     sessionMinutes = sessionMinutes,
     bMaxTrainingDays = if (days == 3 && allowFourthDay) 4 else null,
     bGoalImportance = importance,
-    blockProgram = blockProgram
+    blockProgram = blockProgram,
+    allowedWeekdays = allowedWeekdays,
+    fixedWeekdays = fixedWeekdays,
+    sourceProgramStableKey = sourceProgramStableKey,
+    bShadowPlateOneSideKg = shadowPlateOneSideKg,
+    bShadowDumbbellIncrementKg = shadowDumbbellIncrementKg,
+    bShadowMachineIncrementKg = shadowMachineIncrementKg
 )
 
 data class V22HistoryRow(
@@ -239,7 +266,11 @@ data class V22GeneratedProgram(
     val plan: V22Plan?,
     val skeleton: GeneratedProgramSkeleton,
     /** Present only for the live B path. [plan] remains the frozen Python-parity comparator. */
-    val balanced12WeekPlan: BBalanced12WeekPlan? = null
+    val balanced12WeekPlan: BBalanced12WeekPlan? = null,
+    /** Transient read-only experiment; never persisted in GeneratedProgramSkeleton. */
+    val squatShadowComparison: BCoachSquatShadowProgramComparison? = null,
+    /** Gate E: other exercise coverage only. Never an approved progression. */
+    val otherExerciseShadowCoverage: List<BCoachExerciseShadowCoverageRow> = emptyList()
 )
 
 enum class BBalancedNumericAuthority {

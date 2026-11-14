@@ -59,6 +59,48 @@ internal object ProgramScopedEditor {
     fun canEditAll(plan: GeneratedProgramSkeleton, id: String): Boolean =
         allWeekTargets(plan, id) != null
 
+    /**
+     * Explicit user action, NOT a side effect of selecting ALL_WEEKS edit scope:
+     * replicate one chosen B steady-week's full schedule and prescription to every week.
+     * The user must confirm this destructive replacement in the UI.
+     *
+     * Each copied occurrence has a fresh local/logical identity, while progression
+     * track membership intentionally follows the selected week's exercise. A manual
+     * OFF remains OFF. Reconciliation preserves linked sessions without guessing dates.
+     */
+    fun copyBWeekToAll(plan: GeneratedProgramSkeleton, sourceWeek: Int): GeneratedProgramSkeleton {
+        require(supportsAll(plan)) { PROGRAM_ALL_WEEKS_MISMATCH_MESSAGE }
+        require(plan.planningMetadataJson?.contains("B_BALANCED") == true) {
+            "전체 주 구성 복사는 B 프로그램에서만 지원됩니다."
+        }
+        val weeks = (1..plan.request.durationWeeks).toList()
+        require(sourceWeek in weeks)
+        val source = plan.items.filter { it.weekNumber == sourceWeek }
+            .sortedWith(compareBy({ it.dayOfWeek }, { it.orderIndex }, { it.localId }))
+        require(source.isNotEmpty()) { "복사할 주차에 운동이 없습니다." }
+        val days = plan.resolvedWeekDaySchedule()[sourceWeek]
+            ?: source.map { it.dayOfWeek }.toSet()
+        val cloned = weeks.flatMap { week ->
+            source.map { item ->
+                if (week == sourceWeek) item else item.copy(
+                    localId = UUID.randomUUID().toString(),
+                    weekNumber = week,
+                    progressionBinding = item.progressionBinding?.copy(
+                        logicalItemId = UUID.randomUUID().toString(),
+                        persisted = false
+                    )
+                )
+            }
+        }
+        val draft = plan.copy(
+            items = cloned,
+            weekDaySchedule = weeks.associateWith { days }
+        )
+        val eligible = cloned.filter { it.progressionBinding != null }
+            .mapTo(mutableSetOf()) { it.exerciseStableKey }
+        return draft.reconcileProgression(eligible).reassessBBalancedAfterEdit()
+    }
+
     private fun identity(plan: GeneratedProgramSkeleton, row: ProgramSkeletonItem): Identity {
         val origin = plan.personalizedDecision?.authorizedScheduling?.localOrigins?.get(row.localId)
         val stableKey = row.stableKey.ifBlank { row.exerciseStableKey }

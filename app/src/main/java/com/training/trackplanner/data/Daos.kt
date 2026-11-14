@@ -186,6 +186,10 @@ interface WorkoutDao {
     @Query("SELECT * FROM workout_entries ORDER BY date, createdAt, id")
     suspend fun allEntries(): List<WorkoutEntry>
 
+    /** Live actual dates for applied-program links (including calendar moves and shifts). */
+    @Query("SELECT * FROM workout_entries ORDER BY date, createdAt, id")
+    fun observeAllEntries(): Flow<List<WorkoutEntry>>
+
     @Query("SELECT * FROM workout_sets ORDER BY entryId, setIndex, id")
     suspend fun allSets(): List<WorkoutSet>
 

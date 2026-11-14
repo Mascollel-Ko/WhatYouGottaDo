@@ -80,6 +80,8 @@ import com.training.trackplanner.data.personalized.PersonalizedPlanningPreflight
 import com.training.trackplanner.data.v22.BBalancedGoalImportance
 import com.training.trackplanner.data.v22.BBlockProgramDefinition
 import com.training.trackplanner.data.v22.BBlockEquipmentIncrements
+import com.training.trackplanner.data.v22.BCoachSquatShadowProgramComparison
+import com.training.trackplanner.data.v22.BCoachExerciseShadowCoverageRow
 import com.training.trackplanner.data.v22.BBlockDefinition
 import com.training.trackplanner.data.v22.BBlockGoal
 import com.training.trackplanner.data.v22.BPeakTestMode
@@ -267,10 +269,15 @@ internal fun PlanScreen(
                     resumeDraft = true
                     editingProgramId = it.id
                 },
-                onDeleteProgram = { program ->
-                    viewModel.deleteProgram(program.id) {
-                        if (selectedProgramId == program.id) selectedProgramId = null
-                    }
+                onDeleteProgram = { program, onSuccess, onError ->
+                    viewModel.deleteProgram(
+                        program.id,
+                        onDeleted = {
+                            if (selectedProgramId == program.id) selectedProgramId = null
+                            onSuccess()
+                        },
+                        onError = onError
+                    )
                 },
                 onShareProgram = onShareProgram,
                 onOpenRecord = onOpenRecord,
@@ -305,7 +312,7 @@ private fun ProgramListScreen(
     onContinueDraft: (ProgramDraftSummary) -> Unit,
     onSelectProgram: (TrainingProgram) -> Unit,
     onEditProgram: (TrainingProgram) -> Unit,
-    onDeleteProgram: (TrainingProgram) -> Unit,
+    onDeleteProgram: (TrainingProgram, () -> Unit, (String) -> Unit) -> Unit,
     onShareProgram: (TrainingProgram) -> Unit,
     onOpenRecord: () -> Unit,
     tutorialApplyRequest: Int,
@@ -340,9 +347,13 @@ private fun ProgramListScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        onDeleteProgram(program)
                         deleteTarget = null
-                        Toast.makeText(context, "운동 프로그램을 삭제했습니다.", Toast.LENGTH_SHORT).show()
+                        // Report success only after the repository confirms completion.
+                        onDeleteProgram(
+                            program,
+                            { Toast.makeText(context, "운동 프로그램을 삭제했습니다.", Toast.LENGTH_SHORT).show() },
+                            { message -> Toast.makeText(context, message, Toast.LENGTH_LONG).show() }
+                        )
                     }
                 ) {
                     Text("삭제")
@@ -558,6 +569,14 @@ private fun ProgramEditorScreen(
     }
     var pendingLoadOverwriteCount by remember { mutableStateOf(0) }
     var showBReselectionLog by remember(program?.id) { mutableStateOf(false) }
+    var squatShadowComparison by remember(program?.id, draftId) {
+        mutableStateOf<BCoachSquatShadowProgramComparison?>(null)
+    }
+    var showSquatShadowComparison by remember { mutableStateOf(false) }
+    var otherExerciseShadowCoverage by remember(program?.id, draftId) {
+        mutableStateOf<List<BCoachExerciseShadowCoverageRow>>(emptyList())
+    }
+    var showOtherExerciseShadowCoverage by remember { mutableStateOf(false) }
 
     LaunchedEffect(draftId, program?.id, resumeDraft) {
         val saved = if (resumeDraft) viewModel.loadSavedProgramDraft(draftId) else null
@@ -658,6 +677,8 @@ private fun ProgramEditorScreen(
         nameError = false
         lastGenerationWasV22 = false
         v22SkeletonCreated = false
+        squatShadowComparison = null
+        otherExerciseShadowCoverage = emptyList()
         personalizedDraft = emptyProgramSkeleton(
             request = blankProgramRequest(),
             weekDaySchedule = defaultProgramWeekDaySchedule(4, 3)
@@ -668,6 +689,8 @@ private fun ProgramEditorScreen(
         if (!requireProgramName()) return
         if (viewModel.programBuildProgress.value is ProgramBuildProgressState.Running) return
         lastGenerationWasV22 = true
+        squatShadowComparison = null
+        otherExerciseShadowCoverage = emptyList()
         pendingConservativeBBlock = null
         pendingBReview = null
         val blockLayout = if (bCustomizeBlocks) BBlockProgramDefinition(bBlocks, bRecoveryBetween)
@@ -685,9 +708,15 @@ private fun ProgramEditorScreen(
                     core = bCoreImportance.takeIf { it > 0 },
                     sportSupport = bSportImportance.takeIf { it > 0 }
                 ),
-                blockProgram = blockLayout
+                blockProgram = blockLayout,
+                sourceProgramStableKey = program?.stableKey,
+                shadowPlateOneSideKg = smallestPlateText.toDoubleOrNull(),
+                shadowDumbbellIncrementKg = dumbbellUnitText.toDoubleOrNull(),
+                shadowMachineIncrementKg = machineUnitText.toDoubleOrNull()
             )
         ) { generated ->
+            squatShadowComparison = generated.squatShadowComparison
+            otherExerciseShadowCoverage = generated.otherExerciseShadowCoverage
             val proposed = generated.skeleton.withResolvedWeekDaySchedule()
             val review = generated.balanced12WeekPlan?.let {
                 BBlockConfidenceReview.evaluate(it, blockLayout)
@@ -748,11 +777,109 @@ private fun ProgramEditorScreen(
         )
     }
 
+    if (showSquatShadowComparison) {
+        squatShadowComparison?.let { report ->
+            val details = buildString {
+                appendLine("상태: ${report.status}")
+                appendLine("기준일: ${report.snapshotDate ?: "확인 불가"}")
+                appendLine("최근 확인 세트: ${report.observedReference ?: "확인 불가"}")
+                appendLine()
+                appendLine("[기존 B 생성 결과: 스쿼트 모든 주차]")
+                if (report.plannedSquatRows.isEmpty()) appendLine("백스쿼트 배치 없음")
+                report.plannedSquatRows.forEach { row ->
+                    appendLine("${row.week}주차·${row.day}요일: ${row.sets}세트×${row.reps}회" +
+                        " · 중량 ${row.loadKg?.let { "${it}kg" } ?: "사용자 입력 대기"}")
+                }
+                appendLine()
+                appendLine("[Shadow 단기 후보: 전체 주차 처방 아님]")
+                if (report.experimentCandidates.isEmpty()) appendLine("계산 가능한 후보 없음")
+                report.experimentCandidates.forEach { candidate ->
+                    appendLine("${candidate.action}: ${candidate.loadKg}kg×${candidate.reps}회×${candidate.sets}세트" +
+                        " · 앵커 RPE기반 RIR 적합질량 ${candidate.targetRirMass?.let { "%.1f%%".format(it * 100.0) } ?: "불확실"}" +
+                        " · 후속 미예측 ${candidate.followUpSetsUnmodeled}세트")
+                }
+                appendLine()
+                appendLine("※ 위 질량은 마지막 확인 세트의 RPE→RIR 가정에 따른 비중으로, 미래 성공확률이나 수행능력 posterior 확률이 아닙니다.")
+                appendLine("※ HOLD는 최근 확인 세트 수준 유지이며, 기존 B 생성 처방과 별개입니다.")
+                report.curveRanking?.let { ranking ->
+                    appendLine("[Gate F: e1RM 곡선 기반 단일 후보 순위 — 저장에 미반영]")
+                    appendLine("기록일: ${ranking.referenceDate ?: "확인 불가"} · 상태 ${ranking.status}")
+                    appendLine("목표 RIR: ${"%.1f".format(ranking.targetRir)} · 계획상 세트 목표: ${ranking.doseTargetSets ?: "미확정"}")
+                    appendLine("과거 확인 세트 기반 e1RM: ${ranking.historicalE1rmKg?.let { "%.1fkg".format(it) } ?: "평가 불가"}")
+                    appendLine("잠정 1순위: ${ranking.selectedAction ?: "판단 보류"}")
+                    ranking.ranked.forEachIndexed { i, candidate ->
+                        appendLine(
+                            "${i + 1}. ${candidate.action}: ${candidate.loadKg}kg×${candidate.reps}회×${candidate.sets}세트" +
+                                " · 필요 e1RM ${candidate.requiredE1rmKg?.let { "%.1fkg".format(it) } ?: "-"}" +
+                                " · e1RM 기록차 ${candidate.historicalE1rmLogGap?.let { "%.3f".format(it) } ?: "-"}" +
+                                " · 보수적 후회 ${candidate.worstCaseRegret?.let { "%.3f".format(it) } ?: "미평가"}" +
+                                " · 명목 훈련량 변화 ${"%.1f%%".format(candidate.volumeLoadChange * 100.0)}" +
+                                " · ${if (candidate.eligible) "비교 가능" else "선정 제외: ${candidate.reason}"}"
+                        )
+                    }
+                    appendLine("※ 기존 곡선과 과거 확인 세트로 계산합니다. 실제 다음 세션 성공확률이나 미래 2~4주차 처방이 아닙니다.")
+                    appendLine("※ 세트 증가의 목표치는 생성 계획의 구조를 참고하며, 근비대 효과가 검증된 수치가 아닙니다.")
+                    appendLine()
+                }
+                appendLine("[기존 Gate C: 가중치 민감도 비교(참고용)]")
+                appendLine("실험계수 1=유지 중심, 2=발전 중심, 3=강도·급증 중심 (목표 RIR 1~3 가정)")
+                report.experiments.forEach { trial ->
+                    appendLine("${trial.scenario.replace("CENTRAL_80", "RPE-RIR 중앙80%").replace("CENTRAL_90", "RPE-RIR 중앙90%")} · ${trial.coefficientPolicy}: ${trial.tentativeWinner}")
+                }
+                appendLine()
+                report.notices.forEach { appendLine("• ${it}") }
+            }
+            AlertDialog(
+                onDismissRequest = { showSquatShadowComparison = false },
+                title = { Text("백스쿼트: 기존 생성 vs Shadow") },
+                text = {
+                    Column(Modifier.heightIn(max = 440.dp).verticalScroll(rememberScrollState())) {
+                        Text("이 비교 결과는 저장될 중량·반복·세트를 수정하지 않습니다.")
+                        Text(details)
+                    }
+                },
+                confirmButton = { TextButton(onClick = { showSquatShadowComparison = false }) { Text("닫기") } }
+            )
+        }
+    }
+
+    if (showOtherExerciseShadowCoverage) {
+        val reportText = buildString {
+            appendLine("이 화면은 타 운동의 진행 모델 적용 가능 범위를 점검합니다.")
+            appendLine("실제 중량·반복·세트 처방은 변경하거나 승인하지 않습니다.")
+            appendLine("스쿼트 이외 운동의 RIR 예측/최적 후보 선택은 아직 구현되지 않았습니다.")
+            appendLine()
+            otherExerciseShadowCoverage.take(40).forEach { row ->
+                appendLine("[${row.tier}] ${row.exerciseName}")
+                appendLine("상태: ${row.status}")
+                appendLine("최근 기록: ${row.confirmedObservation ?: "비교 가능한 기록 없음"}")
+                appendLine("가능한 검토 방향: ${row.unrankedAlternatives.joinToString(" · ").ifBlank { "근거 부족" }}")
+                appendLine(row.explanation)
+                appendLine()
+            }
+            if (otherExerciseShadowCoverage.size > 40)
+                appendLine("나머지 ${otherExerciseShadowCoverage.size - 40}개 운동은 표시 생략")
+        }
+        AlertDialog(
+            onDismissRequest = { showOtherExerciseShadowCoverage = false },
+            title = { Text("타 운동 Shadow 근거 점검") },
+            text = {
+                Column(Modifier.heightIn(max = 440.dp).verticalScroll(rememberScrollState())) {
+                    Text(reportText)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showOtherExerciseShadowCoverage = false }) { Text("닫기") }
+            }
+        )
+    }
+
     if (showBReselectionLog) {
         val readable = personalizedDraft?.planningMetadataJson?.let { raw ->
             runCatching {
-                val logs = JSONObject(raw).optJSONArray("reselectionAudit")
-                if (logs == null) "이 프로그램에는 운동 재선정 로그가 없습니다."
+                val metadata = JSONObject(raw)
+                val logs = metadata.optJSONArray("reselectionAudit")
+                val selectionText = if (logs == null) "이 프로그램에는 운동 재선정 로그가 없습니다."
                 else (0 until logs.length()).joinToString("\n\n") { index ->
                     val row = logs.getJSONObject(index)
                     val changes = row.optJSONArray("changeDetails")
@@ -769,7 +896,63 @@ private fun ProgramEditorScreen(
                         "\n변경 ${row.optInt("changes")}개" +
                         "\n${details}"
                 }
-            }.getOrElse { "운동 재선정 로그를 읽을 수 없습니다. 메타데이터를 확인하세요." }
+                val joint = metadata.optJSONArray("jointExerciseSetAudit")
+                val jointText = if (joint == null) "이 프로그램에는 공동 최적화 기록이 없습니다."
+                else (0 until joint.length()).joinToString("\n\n") { index ->
+                    val row = joint.getJSONObject(index)
+                    val actions = row.optJSONArray("changes")
+                    val details = if (actions == null || actions.length() == 0) "운동/세트 변경 없음"
+                        else (0 until actions.length()).joinToString("\n") { action ->
+                            actions.getString(action)
+                        }
+                    "블록 ${row.optInt("block")} · ${row.optString("status")}" +
+                        "\n후보 평가 ${row.optInt("evaluatedCandidates")}개" +
+                        " · 점수 ${row.optDouble("baselineScore")} → ${row.optDouble("finalScore")}" +
+                        "\n${details}"
+                }
+                val coach = metadata.optJSONArray("coachWholeBlockAudit")
+                val coachText = if (coach == null) "전체 블록 공동 탐색 기록 없음"
+                else (0 until coach.length()).joinToString("\n\n") { index ->
+                    val row = coach.getJSONObject(index)
+                    val evidence = row.optJSONObject("actualEvidence")
+                    val alternatives = row.optJSONArray("alternatives")
+                    val ranked = if (alternatives == null || alternatives.length() == 0) "실행 가능한 대안 기록 없음"
+                        else (0 until alternatives.length()).joinToString("\n") { rank ->
+                            val alt = alternatives.getJSONObject(rank)
+                            val days = alt.optJSONArray("weekdays")
+                            val dayText = if (days == null) "-" else
+                                (0 until days.length()).joinToString("·") {
+                                    listOf("월", "화", "수", "목", "금", "토", "일")[days.getInt(it) - 1]
+                                }
+                            "  " + (rank + 1) + ". " + dayText +
+                                " · " + alt.optString("strategy") +
+                                " · " + alt.optInt("weeklySets") + "세트" +
+                                " · " + "%.1f".format(alt.optDouble("peakMinutes")) + "분" +
+                                " · 점수 " + "%.3f".format(alt.optDouble("score"))
+                        }
+                    val completionLabel = if (evidence == null ||
+                        evidence.isNull("plannedCompletionRate")) "확인 불가"
+                    else "%.1f%%".format(evidence.optDouble("plannedCompletionRate") * 100.0)
+                    val actions = row.optJSONArray("changes")
+                    val changes = if (actions == null || actions.length() == 0) "원안 유지"
+                        else (0 until actions.length()).take(20).joinToString("\n") { actions.getString(it) }
+                    "블록 " + row.optInt("block") + " · 선택 전략 " + row.optString("strategy") +
+                        (if (row.optBoolean("conditionalFuturePlan")) " (미래 조건부 계획)" else "") +
+                        "\n" + row.optString("status") +
+                        "\n평가 후보 " + row.optInt("evaluated") +
+                        " · 점수 " + "%.3f".format(row.optDouble("originalScore")) +
+                        " → " + "%.3f".format(row.optDouble("finalScore")) +
+                        "\n실제 기록 " + (evidence?.optInt("observedSets28d") ?: 0) +
+                        "세트 / 최근 28일, 운동일 " +
+                        (evidence?.optInt("observedTrainingDates28d") ?: 0) +
+                        "일 (계획 대비 완료율 " + completionLabel + ")" +
+                        "\n상위 대안:\n" + ranked +
+                        "\n변경 사항:\n" + changes
+                }
+                "[코치형 블록 최적화]\n" + coachText +
+                    "\n\n[운동 선정]\n" + selectionText +
+                    "\n\n[기존 운동·세트 탐색]\n" + jointText
+            }.getOrElse { "운동 선택·세트 최적화 로그를 읽을 수 없습니다. 메타데이터를 확인하세요." }
         } ?: "운동 재선정 로그가 없습니다."
         AlertDialog(
             onDismissRequest = { showBReselectionLog = false },
@@ -1172,6 +1355,28 @@ private fun ProgramEditorScreen(
             if (lastGenerationWasV22) item {
                 InfoCard("볼륨 주기화와 RPE는 참고 계획입니다. 통증·피로·수행 여유에 맞춰 사용자가 중량·세트·반복을 조절하세요.")
             }
+            if (lastGenerationWasV22 && squatShadowComparison != null) item {
+                OutlinedButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { showSquatShadowComparison = true }
+                ) { Text("백스쿼트 생성 결과와 Shadow 비교") }
+                Text(
+                    "스쿼트 단기 실험 결과이며, 타 운동 진행은 아직 자동 선정하지 않습니다.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (lastGenerationWasV22 && otherExerciseShadowCoverage.isNotEmpty()) item {
+                OutlinedButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { showOtherExerciseShadowCoverage = true }
+                ) { Text("타 운동 Shadow 근거·진행 후보 점검") }
+                Text(
+                    "운동 유형별 적용 가능성과 미확정 사항만 표시합니다. 자동 증량이나 저장 변경은 없습니다.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             if (currentSkeleton.planningMetadataJson?.contains("\"reselectionAudit\"") == true) item {
                 OutlinedButton(
                     modifier = Modifier.fillMaxWidth(),
@@ -1191,6 +1396,8 @@ private fun ProgramEditorScreen(
                     muscleMetadataByKey = muscleMetadataByKey,
                     progressionEligibleKeys = progressionEligibleKeys,
                     onSkeletonChange = { nextDraft ->
+                        squatShadowComparison = null // comparing an edited draft with the old shadow is invalid
+                        otherExerciseShadowCoverage = emptyList() // edited plans invalidate coverage evidence
                         val previousDraft = personalizedDraft
                         // Default equipment units work even before onboarding;
                         // current visible entries take precedence over older profile state.
@@ -1436,11 +1643,17 @@ private fun ProgramDetailScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        viewModel.deleteProgram(program.id) {
-                            Toast.makeText(context, "운동 프로그램을 삭제했습니다.", Toast.LENGTH_SHORT).show()
-                            onDeleted()
-                        }
                         confirmDelete = false
+                        viewModel.deleteProgram(
+                            program.id,
+                            onDeleted = {
+                                Toast.makeText(context, "운동 프로그램을 삭제했습니다.", Toast.LENGTH_SHORT).show()
+                                onDeleted()
+                            },
+                            onError = { message ->
+                                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                            }
+                        )
                     }
                 ) {
                     Text("삭제")

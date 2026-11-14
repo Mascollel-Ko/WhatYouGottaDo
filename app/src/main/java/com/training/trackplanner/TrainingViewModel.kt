@@ -753,9 +753,53 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     suspend fun progressionDraftContext() = repository.progressionDraftContext()
     val progressionItems = repository.progressionItems
     val programWorkoutLinks = repository.programWorkoutLinks
+    val appliedWorkoutEntries = repository.appliedWorkoutEntries
     val progressionSuggestions = repository.progressionSuggestions
     val programPrescriptions = repository.programPrescriptions
+    private val _bCoachPostConfirmOutcomes =
+        MutableStateFlow<Map<Long, com.training.trackplanner.data.v22.BCoachPostConfirmOutcome>>(emptyMap())
+    val bCoachPostConfirmOutcomes:
+        StateFlow<Map<Long, com.training.trackplanner.data.v22.BCoachPostConfirmOutcome>> =
+        _bCoachPostConfirmOutcomes.asStateFlow()
+
+    suspend fun recheckBCoachAfterConfirmedSquat(
+        entryId: Long
+    ): com.training.trackplanner.data.v22.BCoachPostConfirmOutcome {
+        val result = try {
+            repository.progressBCoachAfterConfirmedSquat(entryId)
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (failure: Exception) {
+            android.util.Log.e("BCoachGateH", "After-confirm progression failed", failure)
+            com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(
+                sourceEntryId = entryId, status = "RECONCILIATION_ERROR"
+            )
+        }
+        _bCoachPostConfirmOutcomes.value =
+            _bCoachPostConfirmOutcomes.value + (entryId to result)
+        return result
+    }
+
+    fun retryBCoachAfterConfirmedSquat(entryId: Long) {
+        viewModelScope.launch { recheckBCoachAfterConfirmedSquat(entryId) }
+    }
+
     fun refreshProgression() { viewModelScope.launch { repository.refreshProgression() } }
+    suspend fun inspectBCoachLinkedSquatNextWeek(
+        entryId: Long
+    ): com.training.trackplanner.data.v22.BCoachLinkedSquatNextWeekProposal =
+        repository.inspectBCoachLinkedSquatNextWeek(entryId)
+
+    fun approveBCoachLinkedSquatNextWeek(
+        entryId: Long, expectedFingerprint: String, onResult: (Boolean) -> Unit
+    ) {
+        viewModelScope.launch {
+            val result = runCatching {
+                repository.approveBCoachLinkedSquatNextWeek(entryId, expectedFingerprint)
+            }.getOrDefault(false)
+            onResult(result)
+        }
+    }
     fun configureProgression(itemId: Long, linkMode: com.training.trackplanner.data.ProgressionLinkMode,
         trackId: String?, role: com.training.trackplanner.data.ProgressionRole,
         mode: com.training.trackplanner.data.ProgressionMode, rule: com.training.trackplanner.data.ProgressionRule) {
@@ -854,6 +898,11 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             repository.updateSet(set)?.let { result ->
                 recordDerivedRefresh.afterCommit(result)
+                if (result.derivedAnalysisDirty && set.values.confirmed) {
+                    // Real sets are already committed; evaluate only linked squat workouts.
+                    // Incomplete sets yield an explicit WAITING status without changing plans.
+                    recheckBCoachAfterConfirmedSquat(set.values.entryId)
+                }
                 if (result.newlyConfirmed) publishCommunityActivityAfterConfirmation(set, result)
             }
         }
@@ -1041,10 +1090,35 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun deleteProgram(programId: Long, onDeleted: () -> Unit = {}) {
+    fun deleteProgram(
+        programId: Long,
+        onDeleted: () -> Unit = {},
+        onError: (String) -> Unit = {}
+    ) {
         viewModelScope.launch {
-            repository.deleteProgram(programId)
-            onDeleted()
+            try {
+                repository.deleteProgram(programId)
+                onDeleted()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                // Preserve the full exception in logcat while showing a useful
+                // failure phase without requiring the user to collect device logs.
+                android.util.Log.e("ProgramDelete", "Failed to delete program id=$programId", error)
+                val message = when (
+                    (error as? com.training.trackplanner.data.ProgramDeleteFailure)?.phase
+                ) {
+                    com.training.trackplanner.data.ProgramDeleteFailurePhase.BACKUP ->
+                        "삭제 전 안전 백업 검사 실패 (PD-BACKUP). 프로그램은 그대로입니다."
+                    com.training.trackplanner.data.ProgramDeleteFailurePhase.DATABASE ->
+                        "프로그램 데이터 삭제 실패 (PD-DB). 변경은 취소되었습니다."
+                    com.training.trackplanner.data.ProgramDeleteFailurePhase.POST_COMMIT ->
+                        "프로그램은 삭제되었지만 후속 처리 오류가 발생했습니다 (PD-POST)."
+                    else ->
+                        "프로그램 삭제 처리 오류 (PD-UNKNOWN). 목록에서 삭제 여부를 확인해 주세요."
+                }
+                onError(message)
+            }
         }
     }
 

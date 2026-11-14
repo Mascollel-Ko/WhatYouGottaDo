@@ -43,11 +43,17 @@ internal fun GeneratedProgramSkeleton.hydrateProgression(snapshot: ProgramEditor
 
 /** Uses the existing classifier unchanged. User bindings bypass comparability, never identity checks. */
 internal fun GeneratedProgramSkeleton.reconcileProgression(eligibleKeys: Set<String>, oneRmSnapshots: Map<String, Double> = emptyMap()): GeneratedProgramSkeleton {
-    return withExecutionDraft(executionDraft().reconcileProgression(eligibleKeys, oneRmSnapshots))
+    return withExecutionDraft(executionDraft().reconcileProgression(
+        eligibleKeys, oneRmSnapshots,
+        bUncalibratedAuto = BCoachUncalibratedLinkPolicy.isBProgram(planningMetadataJson)
+    ))
 }
 
 /** Same session authority for all editors; this overload has no planner result or request. */
-internal fun ProgramExecutionDraft.reconcileProgression(eligibleKeys: Set<String>, oneRmSnapshots: Map<String, Double> = emptyMap()): ProgramExecutionDraft {
+internal fun ProgramExecutionDraft.reconcileProgression(
+    eligibleKeys: Set<String>, oneRmSnapshots: Map<String, Double> = emptyMap(),
+    bUncalibratedAuto: Boolean = false
+): ProgramExecutionDraft {
     val sessions = progressionSessions.associateBy { it.key }.toMutableMap()
     val assigned = mutableListOf<ProgramSkeletonItem>()
     for (item in items.sortedWith(compareBy({ it.weekNumber }, { it.dayOfWeek }, { it.orderIndex }))) {
@@ -62,10 +68,22 @@ internal fun ProgramExecutionDraft.reconcileProgression(eligibleKeys: Set<String
             slot = item.trainingSlot, intensity = item.dayIntensity, anchor = item.progressionAnchorSetIndex).copy(plannerRole = item.progressionRole)
         val oldSession = old?.let { sessions[it.sessionKey] ?: error("Missing draft progression session") }
         require(oldSession == null || oldSession.track.exerciseStableKey == item.exerciseStableKey)
-        val retain = old != null && (old.linkMode != ProgressionLinkMode.AUTO || old.signature == signature || ProgressionTrackInference.sameTrack(old.signature, signature))
         val candidate = assigned.mapNotNull { it.progressionBinding }.firstOrNull {
-            it.linkMode == ProgressionLinkMode.AUTO && ProgressionTrackInference.sameTrack(it.signature, signature)
+            it.linkMode == ProgressionLinkMode.AUTO &&
+                (ProgressionTrackInference.sameTrack(it.signature, signature) ||
+                    (bUncalibratedAuto &&
+                        BCoachUncalibratedLinkPolicy.sameUncalibratedIntent(it.signature, signature)))
         }
+        // Only change a provisional B AUTO session if an *earlier* compatible
+        // session is now available. Once joined, repeated reconciliation is stable.
+        // Explicit and previously persisted identities always take precedence.
+        val provisionalBJoin = bUncalibratedAuto &&
+            old?.linkMode == ProgressionLinkMode.AUTO &&
+            old?.persisted == false && signature.basePolicy == ProgressionBase.REVIEW &&
+            candidate != null && candidate.sessionKey != old?.sessionKey
+        val retain = old != null && (old.linkMode != ProgressionLinkMode.AUTO ||
+            (!provisionalBJoin && (old.signature == signature ||
+                ProgressionTrackInference.sameTrack(old.signature, signature))))
         val session = when {
             retain -> requireNotNull(oldSession)
             candidate != null -> sessions.getValue(candidate.sessionKey)
@@ -113,12 +131,16 @@ internal fun GeneratedProgramSkeleton.configureProgressionSession(
     localId: String, linkMode: ProgressionLinkMode, selectedKey: String?, role: ProgressionRole,
     mode: ProgressionMode, rule: ProgressionRule
 ): GeneratedProgramSkeleton {
-    return withExecutionDraft(executionDraft().configureProgressionSession(localId, linkMode, selectedKey, role, mode, rule))
+    return withExecutionDraft(executionDraft().configureProgressionSession(
+        localId, linkMode, selectedKey, role, mode, rule,
+        bUncalibratedAuto = BCoachUncalibratedLinkPolicy.isBProgram(planningMetadataJson)
+    ))
 }
 
 internal fun ProgramExecutionDraft.configureProgressionSession(
     localId: String, linkMode: ProgressionLinkMode, selectedKey: String?, role: ProgressionRole,
-    mode: ProgressionMode, rule: ProgressionRule
+    mode: ProgressionMode, rule: ProgressionRule,
+    bUncalibratedAuto: Boolean = false
 ): ProgramExecutionDraft {
     rule.validate()
     val item = items.single { it.localId == localId }
@@ -128,7 +150,10 @@ internal fun ProgramExecutionDraft.configureProgressionSession(
         ProgressionLinkMode.EXISTING -> progressionSessions.single { it.key == selectedKey }
         ProgressionLinkMode.SEPARATE -> original.copy(track = original.track.copy(id = UUID.randomUUID().toString()))
         ProgressionLinkMode.AUTO -> items.mapNotNull { it.progressionBinding }.firstOrNull {
-            it.logicalItemId != binding.logicalItemId && it.linkMode == ProgressionLinkMode.AUTO && ProgressionTrackInference.sameTrack(it.signature, binding.signature)
+            it.logicalItemId != binding.logicalItemId && it.linkMode == ProgressionLinkMode.AUTO &&
+                (ProgressionTrackInference.sameTrack(it.signature, binding.signature) ||
+                    (bUncalibratedAuto &&
+                        BCoachUncalibratedLinkPolicy.sameUncalibratedIntent(it.signature, binding.signature)))
         }?.let { other -> progressionSessions.single { it.key == other.sessionKey } } ?: original
         ProgressionLinkMode.OFF -> original
     }
@@ -137,5 +162,8 @@ internal fun ProgramExecutionDraft.configureProgressionSession(
         mode = mode, rule = rule))
     return copy(items = items.map { if (it.localId == localId) it.copy(progressionBinding = binding.copy(sessionKey = selected.key, linkMode = linkMode)) else it },
         progressionSessions = progressionSessions.filterNot { it.key == selected.key } + updated)
-        .reconcileProgression(items.filter { it.progressionBinding != null }.mapTo(mutableSetOf()) { it.exerciseStableKey })
+        .reconcileProgression(
+            items.filter { it.progressionBinding != null }.mapTo(mutableSetOf()) { it.exerciseStableKey },
+            bUncalibratedAuto = bUncalibratedAuto
+        )
 }
