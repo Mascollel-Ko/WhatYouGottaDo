@@ -15,6 +15,7 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertThrows
 import org.junit.Test
 import java.time.LocalDate
 
@@ -41,11 +42,12 @@ class BCoachMultiobjectiveProductionTest {
         assertNotNull(outcome.proposal)
         assertTrue(outcome.decision.changes.isNotEmpty())
         val accepted = requireNotNull(outcome.proposal).accept(
-            requireNotNull(outcome.decision.candidateFingerprint),
+            requireNotNull(outcome.decision.proposalFingerprint),
             outcome.skeleton
         )
         assertTrue(accepted.accepted)
         assertEquals(3, requireNotNull(accepted.skeleton).items.single().setCount)
+        assertTrue(accepted.skeleton.warnings.none { "승인 전에는" in it })
         val metadata = JSONObject(accepted.skeleton.planningMetadataJson!!)
             .getJSONObject("bCoachMultiobjectiveDecision")
         assertEquals("ACCEPTED_AFTER_EXPLICIT_USER_REVIEW", metadata.getString("proposalAcceptance"))
@@ -61,7 +63,7 @@ class BCoachMultiobjectiveProductionTest {
         })
 
         val rejected = requireNotNull(outcome.proposal).accept(
-            requireNotNull(outcome.decision.candidateFingerprint),
+            requireNotNull(outcome.decision.proposalFingerprint),
             stale
         )
         assertFalse(rejected.accepted)
@@ -87,17 +89,37 @@ class BCoachMultiobjectiveProductionTest {
     }
 
     @Test
-    fun `null importance stays missing while explicit weights normalize only explicit values`() {
+    fun `partial importance stays missing and no incomplete vector is normalized`() {
         val request = request(BBalancedGoalImportance(strength = 5, sportSupport = 1))
         val outcome = BCoachMultiobjectiveProduction.prepare(
             request, emptyList(), mapOf(exercise.stableKey to exercise), skeleton(2), skeleton(3)
         )
         val weights = outcome.decision.goalWeights.associateBy { it.goal }
 
-        assertEquals(5.0 / 6.0, weights.getValue(BBalancedGoal.STRENGTH).normalizedImportance!!, 1e-12)
-        assertEquals(1.0 / 6.0, weights.getValue(BBalancedGoal.SPORT_SUPPORT).normalizedImportance!!, 1e-12)
+        assertNull(weights.getValue(BBalancedGoal.STRENGTH).normalizedImportance)
+        assertNull(weights.getValue(BBalancedGoal.SPORT_SUPPORT).normalizedImportance)
         assertNull(weights.getValue(BBalancedGoal.CORE).normalizedImportance)
         assertEquals("MISSING_NOT_ZERO", weights.getValue(BBalancedGoal.CORE).source)
+        assertEquals("EXPLICIT_USER_PARTIAL_VECTOR_NOT_NORMALIZED",
+            weights.getValue(BBalancedGoal.STRENGTH).source)
+    }
+
+    @Test
+    fun `complete explicit importance vector normalizes to one`() {
+        val outcome = BCoachMultiobjectiveProduction.prepare(
+            request(BBalancedGoalImportance(5, 3, 1, 1)), emptyList(),
+            mapOf(exercise.stableKey to exercise), skeleton(2), skeleton(3)
+        )
+        val normalized = outcome.decision.goalWeights.map { requireNotNull(it.normalizedImportance) }
+        assertEquals(1.0, normalized.sum(), 1e-12)
+        assertEquals(0.5, normalized.first(), 1e-12)
+    }
+
+    @Test
+    fun `T06 zero importance is invalid rather than unset`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            BBalancedGoalImportance(strength = 0)
+        }
     }
 
     @Test
@@ -121,14 +143,23 @@ class BCoachMultiobjectiveProductionTest {
 
     @Test
     fun `T04 a candidate over the per-session limit is held rather than offered`() {
-        val baseline = skeleton(2)
-        val candidate = skeleton(3).copy(items = skeleton(3).items.map { it.copy(restSeconds = 3_600) })
+        fun withLastWeek(plan: GeneratedProgramSkeleton, lastWeekRest: Int) = plan.copy(
+            items = plan.items + plan.items.single().copy(
+                localId = "w2-d1-squat", weekNumber = 2, restSeconds = lastWeekRest
+            )
+        )
+        val baseline = withLastWeek(skeleton(2), 120)
+        val candidate = withLastWeek(skeleton(3), 3_600)
         val outcome = prepare(baseline, candidate)
 
         assertEquals(BCoachProductionStatus.HOLD_CALIBRATE, outcome.decision.status)
         assertNull(outcome.proposal)
         assertNull(outcome.decision.candidateFingerprint)
         assertTrue(requireNotNull(outcome.decision.fallbackReason).contains("SESSION_TIME_LIMIT"))
+        val execution = outcome.decision.candidateObjectives.single {
+            it.axis == BCoachObjectiveAxis.EXECUTION
+        }.values.associateBy { it.name }
+        assertTrue(requireNotNull(execution.getValue("lastWeekMaximumDayMinutes").value) > 60.0)
     }
 
     @Test
@@ -167,7 +198,7 @@ class BCoachMultiobjectiveProductionTest {
         val outcome = prepare(skeleton(2), skeleton(3))
         val rejected = requireNotNull(outcome.proposal).accept("wrong", outcome.skeleton)
         assertFalse(rejected.accepted)
-        assertEquals("CANDIDATE_FINGERPRINT_MISMATCH", rejected.reason)
+        assertEquals("PROPOSAL_FINGERPRINT_MISMATCH", rejected.reason)
     }
 
     @Test
@@ -257,7 +288,7 @@ class BCoachMultiobjectiveProductionTest {
         val outcome = prepare(skeleton(2), skeleton(3))
         val edited = outcome.skeleton.copy(items = outcome.skeleton.items.map { it.copy(restSeconds = 180) })
         val acceptance = requireNotNull(outcome.proposal).accept(
-            requireNotNull(outcome.decision.candidateFingerprint), edited)
+            requireNotNull(outcome.decision.proposalFingerprint), edited)
         assertFalse(acceptance.accepted)
         assertEquals("STALE_INPUT_REGENERATE_REQUIRED", acceptance.reason)
     }
@@ -272,17 +303,130 @@ class BCoachMultiobjectiveProductionTest {
         assertTrue(outcome.decision.changes.any { it.startsWith("PRESCRIPTION:") })
     }
 
+    @Test
+    fun `accepted structure permits manual kg calibration but rejects stale evidence and edits`() {
+        val outcome = prepare(skeleton(2), skeleton(3))
+        val accepted = requireNotNull(requireNotNull(outcome.proposal).accept(
+            requireNotNull(outcome.decision.proposalFingerprint), outcome.skeleton
+        ).skeleton)
+        val calibrated = accepted.copy(items = accepted.items.map { item ->
+            item.copy(
+                weightKg = 100.0,
+                setPrescriptions = item.setPrescriptions.map { set ->
+                    set.copy(weightKg = 100.0, loadState = ProgramLoadState.EXPLICIT_LOAD)
+                }
+            )
+        })
+        val history = history()
+        val linked = BCoachMultiobjectiveProduction.linkedEvidenceFingerprint(request())
+        BCoachMultiobjectiveProduction.validateAcceptedForPersistence(
+            calibrated, history, mapOf(exercise.stableKey to exercise), linked
+        )
+
+        val staleHistory = assertThrows(IllegalStateException::class.java) {
+            BCoachMultiobjectiveProduction.validateAcceptedForPersistence(
+                calibrated,
+                history + history.single().copy(date = LocalDate.of(2026, 11, 11), setIndex = 2),
+                mapOf(exercise.stableKey to exercise),
+                linked
+            )
+        }
+        assertEquals("B_COACH_ACCEPTANCE_HISTORY_STALE", staleHistory.message)
+
+        val staleMetadata = assertThrows(IllegalStateException::class.java) {
+            BCoachMultiobjectiveProduction.validateAcceptedForPersistence(
+                calibrated, history, mapOf(exercise.stableKey to exercise.copy(equipment = "MACHINE")), linked
+            )
+        }
+        assertEquals("B_COACH_ACCEPTANCE_EXERCISE_METADATA_STALE", staleMetadata.message)
+
+        val editedReps = calibrated.copy(items = calibrated.items.map { item ->
+            item.copy(setPrescriptions = item.setPrescriptions.map { it.copy(reps = 6) })
+        })
+        val staleStructure = assertThrows(IllegalStateException::class.java) {
+            BCoachMultiobjectiveProduction.validateAcceptedForPersistence(
+                editedReps, history, mapOf(exercise.stableKey to exercise), linked
+            )
+        }
+        assertEquals("B_COACH_ACCEPTANCE_STRUCTURE_STALE", staleStructure.message)
+    }
+
+    @Test
+    fun `value and constraint states distinguish unknown from zero and pass`() {
+        val noTime = request().copy(sessionMinutes = null)
+        val outcome = BCoachMultiobjectiveProduction.prepare(
+            noTime, history(), mapOf(exercise.stableKey to exercise), skeleton(2), skeleton(3)
+        )
+        val daysOver = outcome.decision.candidateObjectives.single {
+            it.axis == BCoachObjectiveAxis.EXECUTION
+        }.values.single { it.name == "daysOverUserLimit" }
+        assertNull(daysOver.value)
+        assertEquals(BCoachValueStatus.NOT_APPLICABLE, daysOver.status)
+        assertEquals(BCoachConstraintStatus.UNKNOWN, outcome.decision.hardConstraints.single {
+            it.id == "SESSION_TIME_LIMIT"
+        }.status)
+        assertTrue(outcome.decision.needEnvelopes.all {
+            it.status == BCoachValueStatus.UNKNOWN && it.lower == null && it.upper == null
+        })
+    }
+
+    @Test
+    fun `unapproved explicit automatic kg candidate is suppressed even with a known device`() {
+        val candidate = skeleton(3).copy(items = skeleton(3).items.map { item ->
+            item.copy(weightKg = 100.0, setPrescriptions = item.setPrescriptions.map {
+                it.copy(weightKg = 100.0, loadState = ProgramLoadState.EXPLICIT_LOAD)
+            })
+        })
+        val outcome = prepare(skeleton(2), candidate)
+        assertEquals(BCoachProductionStatus.HOLD_CALIBRATE, outcome.decision.status)
+        assertNull(outcome.proposal)
+        assertEquals(BCoachConstraintStatus.FAIL, outcome.decision.hardConstraints.single {
+            it.id == "AUTOMATIC_LOAD_AUTHORITY"
+        }.status)
+    }
+
+    @Test
+    fun `canonical fingerprint covers schedule request and non-load item content`() {
+        val base = skeleton(2)
+        assertNotEquals(
+            BCoachMultiobjectiveProduction.fingerprint(base),
+            BCoachMultiobjectiveProduction.fingerprint(base.copy(weekDaySchedule = mapOf(1 to setOf(1))))
+        )
+        assertNotEquals(
+            BCoachMultiobjectiveProduction.fingerprint(base),
+            BCoachMultiobjectiveProduction.fingerprint(base.copy(items = base.items.map {
+                it.copy(selectionReason = "changed")
+            }))
+        )
+    }
+
+    @Test
+    fun `legacy persisted acceptance without replay schema remains editable`() {
+        val outcome = prepare(skeleton(2), skeleton(3))
+        val accepted = requireNotNull(requireNotNull(outcome.proposal).accept(
+            requireNotNull(outcome.decision.proposalFingerprint), outcome.skeleton
+        ).skeleton)
+        val root = JSONObject(accepted.planningMetadataJson!!)
+        root.getJSONObject("bCoachMultiobjectiveDecision").remove("acceptanceSchemaVersion")
+        val legacy = accepted.copy(planningMetadataJson = root.toString())
+        assertNull(BCoachMultiobjectiveProduction.acceptedPersistenceSnapshot(legacy))
+    }
+
     private fun prepare(
         baseline: GeneratedProgramSkeleton,
         candidate: GeneratedProgramSkeleton
     ): BCoachMultiobjectiveProduction.Outcome = BCoachMultiobjectiveProduction.prepare(
         request(),
-        listOf(V22HistoryRow(LocalDate.of(2026, 11, 10), "Back squat", exercise.stableKey,
-            "Strength", 1, 5.0, 100.0, null, 8.0)),
+        history(),
         mapOf(exercise.stableKey to exercise),
         baseline,
         candidate
     )
+
+    private fun history() = listOf(V22HistoryRow(
+        LocalDate.of(2026, 11, 10), "Back squat", exercise.stableKey,
+        "Strength", 1, 5.0, 100.0, null, 8.0
+    ))
 
     private fun request(importance: BBalancedGoalImportance = BBalancedGoalImportance()) =
         V22GenerationRequest(

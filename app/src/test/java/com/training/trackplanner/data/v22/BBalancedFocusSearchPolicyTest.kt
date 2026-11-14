@@ -52,4 +52,35 @@ class BBalancedFocusSearchPolicyTest {
         assertNotEquals("Joint production candidate must be material for the public cold-start case",
             auto.reviewBaselineWeeks, auto.weeks)
     }
+
+    @Test
+    fun `T43 complete goal vector changes the public whole-block candidate deterministically`() {
+        fun request(importance: BBalancedGoalImportance) = V22GenerationRequest(
+            name = "goal sensitivity", weeks = 4, days = 3, mode = V22Mode.B,
+            asOf = LocalDate.of(2026, 11, 14), sessionMinutes = 60,
+            bGoalImportance = importance,
+            blockProgram = BBlockProgramDefinition(listOf(BBlockDefinition(weeks = 4)))
+        )
+        fun build(request: V22GenerationRequest) = BBalanced12WeekEngine.build(
+            rows = emptyList(), request = request, exercises = exercises,
+            muscleRelations = metadata.muscleRelations(), coreCatalog = metadata.coreCatalog(),
+            badmintonCatalog = metadata.badmintonObjectiveCatalog(),
+            taskCatalog = BBalancedTaskCatalog.fromAssets(context)
+        )
+        fun material(plan: BBalanced12WeekPlan) = plan.weeks.flatMap { week ->
+            week.sessions.flatMap { session -> session.items.map { item ->
+                listOf(week.week, session.session, item.stableKey, item.sets.map { it.reps })
+            } }
+        }
+
+        val strengthRequest = request(BBalancedGoalImportance(5, 1, 1, 1))
+        val sportRequest = request(BBalancedGoalImportance(1, 1, 1, 5))
+        val strength = build(strengthRequest)
+        val strengthReplay = build(strengthRequest)
+        val sport = build(sportRequest)
+
+        assertEquals(material(strength), material(strengthReplay))
+        assertNotEquals(strength.goalTargets, sport.goalTargets)
+        assertNotEquals(material(strength), material(sport))
+    }
 }

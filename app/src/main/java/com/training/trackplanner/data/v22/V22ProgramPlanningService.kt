@@ -179,6 +179,42 @@ internal class V22ProgramPlanningService(
             production?.proposal
         )
     }
+
+    /** Rechecks the evidence snapshot before an accepted B proposal can enter persistence. */
+    suspend fun validateAcceptedForPersistence(
+        skeleton: GeneratedProgramSkeleton
+    ): GeneratedProgramSkeleton {
+        val snapshot = BCoachMultiobjectiveProduction.acceptedPersistenceSnapshot(skeleton)
+            ?: return skeleton
+        val recordedWorkouts = workoutDao.entriesWithSetsUntil(snapshot.cutoff.toString())
+        val history = V22HistoryInput.fromWorkoutHistory(recordedWorkouts)
+        val exercises = exerciseDao.allExercises().associateBy(Exercise::stableKey)
+        val linked = snapshot.sourceProgramStableKey?.let { source ->
+            progressionDao?.let { dao ->
+                BCoachLinkedExecutionReader.read(
+                    sourceProgramStableKey = source,
+                    asOf = snapshot.cutoff,
+                    workouts = recordedWorkouts,
+                    applications = dao.applications(),
+                    links = dao.links(),
+                    prescriptions = dao.prescriptions()
+                )
+            }
+        }
+        val linkedFingerprint = BCoachMultiobjectiveProduction.linkedEvidenceFingerprint(
+            snapshot.sourceProgramStableKey,
+            linked?.applicationId,
+            linked?.duePlannedSets,
+            linked?.confirmedSets
+        )
+        BCoachMultiobjectiveProduction.validateAcceptedForPersistence(
+            skeleton = skeleton,
+            history = history,
+            exercises = exercises,
+            currentLinkedEvidenceFingerprint = linkedFingerprint
+        )
+        return BCoachMultiobjectiveProduction.markAcceptedAndPersisted(skeleton)
+    }
 }
 
 internal fun BBalanced12WeekPlan.toSkeleton(

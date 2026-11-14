@@ -34,7 +34,8 @@ class BCoachProductionReviewDialogUiTest {
             CompositionLocalProvider(LocalDensity provides Density(density.density, 1.3f)) {
                 TrainingTrackPlannerTheme {
                     BCoachProductionReviewDialog(
-                        changeCount = 12,
+                        changes = List(12) { "PRESCRIPTION:1/1/ex_$it:2->3sets" },
+                        unresolvedCodes = listOf("APPROVED_NEED_INTERVAL_UNAVAILABLE"),
                         unreliableExerciseCount = 4,
                         onApply = { applied = true },
                         onDismiss = { kept = true }

@@ -83,6 +83,7 @@ import com.training.trackplanner.data.v22.BBlockEquipmentIncrements
 import com.training.trackplanner.data.v22.BCoachSquatShadowProgramComparison
 import com.training.trackplanner.data.v22.BCoachExerciseShadowCoverageRow
 import com.training.trackplanner.data.v22.BCoachMultiobjectiveProposal
+import com.training.trackplanner.data.v22.BCoachConstraintStatus
 import com.training.trackplanner.data.v22.BBlockDefinition
 import com.training.trackplanner.data.v22.BBlockGoal
 import com.training.trackplanner.data.v22.BPeakTestMode
@@ -130,7 +131,8 @@ internal fun personalizedQuestionShortLabel(question: PersonalizedPlanningQuesti
 
 @Composable
 internal fun BCoachProductionReviewDialog(
-    changeCount: Int,
+    changes: List<String>,
+    unresolvedCodes: List<String>,
     unreliableExerciseCount: Int,
     onApply: () -> Unit,
     onDismiss: () -> Unit
@@ -142,13 +144,22 @@ internal fun BCoachProductionReviewDialog(
             Column(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState())
                 .testTag("b_coach_review_content")) {
                 Text(
-                    "현재 초안은 안전한 유지안입니다. 다목적 후보는 ${changeCount}개 변경을 " +
+                    "현재 초안은 안전한 유지안입니다. 다목적 후보는 ${changes.size}개 변경을 " +
                         "제안하지만 Need·회복 한도·교환 가중치는 아직 승인되지 않아 자동 적용하지 않습니다. " +
                         "미확정 중량은 계속 사용자 보정으로 남습니다. " +
                         (unreliableExerciseCount.takeIf { it > 0 }
                             ?.let { "기록 부족 운동 ${it}개가 포함됩니다. " } ?: "") +
                         "이 후보를 현재 초안에 명시적으로 적용할까요?"
                 )
+                if (changes.isNotEmpty()) {
+                    Text("변경 내용", modifier = Modifier.padding(top = 12.dp))
+                    changes.take(8).forEach { change -> Text("• $change") }
+                    if (changes.size > 8) Text("• 외 ${changes.size - 8}개")
+                }
+                if (unresolvedCodes.isNotEmpty()) {
+                    Text("자동 판단에서 제외된 항목", modifier = Modifier.padding(top = 12.dp))
+                    unresolvedCodes.distinct().take(6).forEach { code -> Text("• $code") }
+                }
             }
         },
         confirmButton = {
@@ -790,7 +801,9 @@ private fun ProgramEditorScreen(
     pendingBProductionProposal?.let { proposal ->
         val decision = proposal.decision
         BCoachProductionReviewDialog(
-            changeCount = decision.changes.size,
+            changes = decision.changes,
+            unresolvedCodes = decision.unknowns + decision.hardConstraints
+                .filter { it.status == BCoachConstraintStatus.UNKNOWN }.map { it.id },
             unreliableExerciseCount = pendingBReview?.unreliableExerciseKeys?.size ?: 0,
             onDismiss = {
                 pendingBProductionProposal = null
@@ -798,7 +811,7 @@ private fun ProgramEditorScreen(
             },
             onApply = {
                 val current = personalizedDraft
-                val fingerprint = decision.candidateFingerprint
+                val fingerprint = decision.proposalFingerprint
                 val acceptance = if (current == null || fingerprint == null) null
                     else proposal.accept(fingerprint, current)
                 if (acceptance?.accepted == true && acceptance.skeleton != null) {

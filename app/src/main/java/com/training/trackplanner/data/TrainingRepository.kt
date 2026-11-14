@@ -1563,12 +1563,17 @@ class TrainingRepository internal constructor(
     suspend fun saveGeneratedProgram(
         existingProgramId: Long?,
         skeleton: GeneratedProgramSkeleton
-    ): Long = cloudMutation(CloudMutationScope.PROGRAMS) {
-        programPlanService.saveGeneratedProgram(existingProgramId, skeleton).also { programId ->
-            skeleton.personalizedDecision?.let { decision ->
-                val stableKey = requireNotNull(programPlanService.programStableKey(programId))
-                val fingerprint = personalizedProgramFingerprint(skeleton.request, skeleton.items)
-                personalizedProgramPlanningService.persistDecision(programId, stableKey, decision, fingerprint)
+    ): Long {
+        return cloudMutation(CloudMutationScope.PROGRAMS) {
+            // withCloudRevision owns the Room transaction, so stale-evidence validation and
+            // exact accepted-plan persistence cannot observe different database snapshots.
+            val validated = v22ProgramPlanningService.validateAcceptedForPersistence(skeleton)
+            programPlanService.saveGeneratedProgram(existingProgramId, validated).also { programId ->
+                validated.personalizedDecision?.let { decision ->
+                    val stableKey = requireNotNull(programPlanService.programStableKey(programId))
+                    val fingerprint = personalizedProgramFingerprint(validated.request, validated.items)
+                    personalizedProgramPlanningService.persistDecision(programId, stableKey, decision, fingerprint)
+                }
             }
         }
     }

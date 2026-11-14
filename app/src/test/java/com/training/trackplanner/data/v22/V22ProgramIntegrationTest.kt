@@ -159,24 +159,55 @@ class V22ProgramIntegrationTest {
             baseline = skeleton(2), candidate = skeleton(3)
         )
         val accepted = requireNotNull(outcome.proposal).accept(
-            requireNotNull(outcome.decision.candidateFingerprint), outcome.skeleton
+            requireNotNull(outcome.decision.proposalFingerprint), outcome.skeleton
         )
         val acceptedSkeleton = requireNotNull(accepted.skeleton)
         assertEquals(3, acceptedSkeleton.items.single().setCount)
+        val calibratedSkeleton = acceptedSkeleton.copy(items = acceptedSkeleton.items.map { item ->
+            item.copy(
+                weightKg = 100.0,
+                weightSource = "B_BLOCK_USER_OVERRIDE",
+                setPrescriptions = item.setPrescriptions.map { set ->
+                    set.copy(weightKg = 100.0, loadState = ProgramLoadState.EXPLICIT_LOAD)
+                }
+            )
+        })
 
         val repository = TrainingRepository(db, context)
-        val programId = repository.saveGeneratedProgram(null, acceptedSkeleton)
+        val programId = repository.saveGeneratedProgram(null, calibratedSkeleton)
         val reopened = skeletonFromProgram(repository.programEditorSnapshot(programId))
         assertEquals(3, reopened.items.single().setCount)
+        assertTrue(reopened.items.single().setPrescriptions.all {
+            it.weightKg == 100.0 && it.loadState == ProgramLoadState.EXPLICIT_LOAD
+        })
         assertTrue(reopened.planningMetadataJson.orEmpty()
-            .contains("ACCEPTED_AFTER_EXPLICIT_USER_REVIEW"))
+            .contains("ACCEPTED_AND_PERSISTED"))
+
+        val staleEntryId = db.workoutDao().insertEntry(WorkoutEntry(
+            date = "2026-11-13", exerciseStableKey = exercise.stableKey,
+            exerciseName = exercise.name, category = exercise.category, completedAt = 2L
+        ))
+        db.workoutDao().insertSet(WorkoutSet(
+            entryId = staleEntryId, setIndex = 1, reps = 5, weightKg = 100.0,
+            rpe = 8.0, confirmed = true, manualWeight = true
+        ))
+        val countBeforeRejectedSave = db.programDao().countPrograms()
+        val staleSave = runCatching { repository.saveGeneratedProgram(null, calibratedSkeleton) }
+            .exceptionOrNull()
+        assertEquals("B_COACH_ACCEPTANCE_HISTORY_STALE", staleSave?.message)
+        assertEquals(countBeforeRejectedSave, db.programDao().countPrograms())
+        repository.saveGeneratedProgram(programId, reopened.copy(
+            suggestedName = "review integration renamed",
+            request = reopened.request.copy(name = "review integration renamed")
+        ))
+        assertEquals("review integration renamed", db.programDao().findProgram(programId)?.name)
 
         repository.applyProgramToDates(programId, "2026-11-16", ProgramApplyMode.Append)
         val applied = db.workoutDao().entriesWithSets("2026-11-16").single()
         assertEquals(exercise.stableKey, applied.entry.exerciseStableKey)
         assertEquals(3, applied.sets.size)
         assertTrue(applied.sets.all {
-            !it.confirmed && it.weightKg == 0.0 && it.loadState == ProgramLoadState.USER_CALIBRATION_REQUIRED
+            !it.confirmed && it.weightKg == 100.0 && it.loadState == ProgramLoadState.EXPLICIT_LOAD
         })
     }
 
@@ -326,7 +357,7 @@ class V22ProgramIntegrationTest {
             "Expected the joint whole-block candidate to require explicit review"
         }
         val acceptance = proposal.accept(
-            requireNotNull(generated.bCoachMultiobjectiveDecision?.candidateFingerprint),
+            requireNotNull(generated.bCoachMultiobjectiveDecision?.proposalFingerprint),
             generated.skeleton
         )
         assertTrue(acceptance.accepted)
@@ -388,7 +419,7 @@ class V22ProgramIntegrationTest {
         assertEquals(45, reopened.durationDays)
         assertEquals(7, reopened.weekPlans.size)
         assertTrue(reopened.planningMetadataJson.orEmpty()
-            .contains("ACCEPTED_AFTER_EXPLICIT_USER_REVIEW"))
+            .contains("ACCEPTED_AND_PERSISTED"))
         assertTrue(reopened.items.any {
             it.weekNumber == next.weekNumber && it.dayOfWeek == next.dayOfWeek &&
                 it.exerciseStableKey == next.exerciseStableKey &&
