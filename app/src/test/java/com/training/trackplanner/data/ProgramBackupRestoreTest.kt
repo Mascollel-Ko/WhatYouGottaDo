@@ -345,7 +345,7 @@ class ProgramBackupRestoreTest {
     }
 
     @Test
-    fun `program deletion succeeds when only historic B coach zero plan load evidence remains`() = runBlocking {
+    fun `program deletion prunes orphan B coach history after all records are gone`() = runBlocking {
         val db = newDatabase()
         val repository = repository(db)
         val programId = db.programDao().insertProgram(
@@ -388,8 +388,11 @@ class ProgramBackupRestoreTest {
 
         repository.deleteProgram(programId)
         assertNull(db.programDao().findProgram(programId))
-        assertEquals(1, dao.suggestions().size)
-        assertEquals(0.0, dao.suggestions().single().currentPlanKg!!, 0.0)
+        // The orphan progression decision is discarded before backup.
+        // Its source/target records no longer exist; there is nothing to replay.
+        assertTrue(dao.suggestions().isEmpty())
+        assertTrue(dao.applications().isEmpty())
+        assertTrue(dao.tracks().isEmpty())
     }
 
     @Test
