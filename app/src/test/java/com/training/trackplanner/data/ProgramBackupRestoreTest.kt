@@ -243,6 +243,58 @@ class ProgramBackupRestoreTest {
     }
 
     @Test
+    fun `backup says why a valid database row with no sets blocks program deletion`() = runBlocking {
+        val db = newDatabase()
+        val repo = repository(db)
+        db.exerciseDao().insertExercise(Exercise(
+            stableKey = "old_entry_without_sets", name = "Old log", category = "Strength", isCustom = true
+        ))
+        val entry = db.workoutDao().insertEntry(WorkoutEntry(
+            date = "2026-10-20", exerciseStableKey = "old_entry_without_sets",
+            exerciseName = "Old log", category = "Strength"
+        ))
+        val programId = db.programDao().insertProgram(
+            TrainingProgram(name = "Unrelated program", durationDays = 28)
+        )
+        val problem = runCatching { repo.deleteProgram(programId) }.exceptionOrNull()
+        assertTrue(problem is ProgramDeleteFailure)
+        assertEquals(ProgramDeleteFailurePhase.BACKUP, (problem as ProgramDeleteFailure).phase)
+        assertTrue(ProgramDeleteFailureMessage.describe(problem).contains(
+            DataTransferDiagnosticCodes.WORKOUT_ENTRY_WITHOUT_SET
+        ))
+        assertNotNull(db.workoutDao().findEntryById(entry))
+        assertNotNull(db.programDao().findProgram(programId))
+    }
+
+    @Test
+    fun `duplicate positions allowed in Room are pinpointed by canonical backup`() = runBlocking {
+        val db = newDatabase()
+        val repo = repository(db)
+        db.exerciseDao().insertExercise(Exercise(
+            stableKey = "duplicate_plan_position", name = "Lift", category = "Strength", isCustom = true
+        ))
+        val otherProgramId = db.programDao().insertProgram(
+            TrainingProgram(name = "Older program with duplicates", durationDays = 28)
+        )
+        val targetProgramId = db.programDao().insertProgram(
+            TrainingProgram(name = "Program I want to delete", durationDays = 28)
+        )
+        val row = TrainingProgramItem(
+            programId = otherProgramId, weekNumber = 1, dayOfWeek = 1, orderIndex = 1,
+            exerciseStableKey = "duplicate_plan_position", exerciseName = "Lift", category = "Strength"
+        )
+        db.programDao().insertProgramItem(row)
+        db.programDao().insertProgramItem(row)
+        // No unique Room constraint prevents the duplicate, yet the restore
+        // importer requires every (program, week, day, order) to be unique.
+        val failure = runCatching { repo.deleteProgram(targetProgramId) }.exceptionOrNull()
+        assertTrue(failure is ProgramDeleteFailure)
+        assertEquals(ProgramDeleteFailurePhase.BACKUP, (failure as ProgramDeleteFailure).phase)
+        assertNotNull(db.programDao().findProgram(targetProgramId))
+        assertTrue(ProgramDeleteFailureMessage.describe(failure).contains("PD-BACKUP"))
+    }
+
+    @Test
     fun `an unrelated legacy migration issue blocks backup but leaves the program intact`() = runBlocking {
         val db = newDatabase()
         val trainingRepository = repository(db)
