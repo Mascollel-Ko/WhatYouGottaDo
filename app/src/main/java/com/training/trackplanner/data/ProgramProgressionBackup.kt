@@ -49,7 +49,16 @@ internal object ProgramProgressionBackup {
             require(json.getInt("wireVersion") == 1)
             val identity = when (row.type) {
                 "execution_track" -> ProgramProgressionWireCodec.programProgressionTrack(json).also { it.rule.validate(); tracks[it.id] = it }.id
-                "execution_item" -> ProgramProgressionWireCodec.programProgressionItem(json).logicalItemId
+                // logicalItemId is NOT the Room primary key and has no global
+                // unique constraint. Separate templates (or imported drafts) may
+                // legitimately carry the same logical id. The restore authority
+                // is owner program + week/day/order, not logicalItemId.
+                "execution_item" -> listOf(
+                    json.getString("ownerProgramStableKey"),
+                    json.getInt("week").toString(),
+                    json.getInt("day").toString(),
+                    json.getInt("order").toString()
+                ).joinToString("|")
                 "execution_application" -> ProgramProgressionWireCodec.programApplication(json).also { applications += it.id }.id
                 "execution_link" -> ProgramProgressionWireCodec.programWorkoutLink(json).let {
                     it.rule.validate()
