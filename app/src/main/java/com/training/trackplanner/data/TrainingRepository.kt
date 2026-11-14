@@ -1530,10 +1530,10 @@ class TrainingRepository internal constructor(
     }
 
     suspend fun deleteProgram(programId: Long) = withContext(Dispatchers.IO) {
-        var recoverySucceeded = false
+        var canonicalSnapshotSucceeded = false
         try {
             localRecovery.protect(RecoveryTrigger.BEFORE_BULK_CHANGE) {
-                recoverySucceeded = true
+                canonicalSnapshotSucceeded = true
                 cloudMutation(CloudMutationScope.PROGRAM_TEMPLATE_DELETE) {
                     programPlanService.deleteProgram(programId)
                 }
@@ -1541,18 +1541,45 @@ class TrainingRepository internal constructor(
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (error: Exception) {
-            // Distinguish failure before backup completion from transaction failure
-            // and errors after the deletion was committed. Never retry implicitly.
-            val phase = if (!recoverySucceeded) {
-                ProgramDeleteFailurePhase.BACKUP
+            if (!canonicalSnapshotSucceeded) {
+                // An unrelated historical entry/metadata problem may prevent a
+                // canonical *whole database* backup. Template deletion must not
+                // depend on the validity of unrelated training records.
+                // Never delete without a durable, verified alternative snapshot
+                // of ALL rows this operation can actually remove.
+                Log.w("ProgramDelete", "Canonical recovery rejected existing user data; using scoped archive", error)
+                var archiveCompleted = false
+                try {
+                    withLocalDataGate {
+                        ProgramDeleteRecoveryStore(
+                            db, java.io.File(context.noBackupFilesDir, "program-delete-recovery")
+                        ).protect(programId) {
+                            archiveCompleted = true
+                            cloudMutation(CloudMutationScope.PROGRAM_TEMPLATE_DELETE) {
+                                programPlanService.deleteProgram(programId)
+                            }
+                        }
+                    }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (fallback: Exception) {
+                    val phase = if (!archiveCompleted) ProgramDeleteFailurePhase.BACKUP
+                        else when (runCatching { db.programDao().findProgram(programId) != null }.getOrNull()) {
+                            true -> ProgramDeleteFailurePhase.DATABASE
+                            false -> ProgramDeleteFailurePhase.POST_COMMIT
+                            null -> ProgramDeleteFailurePhase.UNKNOWN
+                        }
+                    fallback.addSuppressed(error)
+                    throw ProgramDeleteFailure(phase, fallback)
+                }
             } else {
-                when (runCatching { db.programDao().findProgram(programId) != null }.getOrNull()) {
+                val phase = when (runCatching { db.programDao().findProgram(programId) != null }.getOrNull()) {
                     true -> ProgramDeleteFailurePhase.DATABASE
                     false -> ProgramDeleteFailurePhase.POST_COMMIT
                     null -> ProgramDeleteFailurePhase.UNKNOWN
                 }
+                throw ProgramDeleteFailure(phase, error)
             }
-            throw ProgramDeleteFailure(phase, error)
         }
     }
 
