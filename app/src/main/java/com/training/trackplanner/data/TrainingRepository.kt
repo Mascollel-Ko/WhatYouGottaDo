@@ -751,7 +751,10 @@ class TrainingRepository internal constructor(
             CloudBackupRuntimeMutex.withLock {
                 // CloudBackupClient captures localRevision BEFORE asking for CSV.
                 // Prune first, so cleanup belongs to the uploaded revision.
-                reconcileProgressionOrphans()
+                // Do not enqueue a second backup while this upload owns
+                // CloudBackupRuntimeMutex. The cleanup revision is included in
+                // the snapshot obtained immediately below.
+                pruneProgressionBeforeBackup()
                 val result = CloudBackupClient(
                     db = db,
                     canonicalBackup = { canonicalRecordsBackup() },
