@@ -1534,7 +1534,7 @@ class TrainingRepository internal constructor(
         try {
             localRecovery.protect(RecoveryTrigger.BEFORE_BULK_CHANGE) {
                 recoverySucceeded = true
-                cloudMutation(CloudMutationScope.PROGRAMS) {
+                cloudMutation(CloudMutationScope.PROGRAM_TEMPLATE_DELETE) {
                     programPlanService.deleteProgram(programId)
                 }
             }
