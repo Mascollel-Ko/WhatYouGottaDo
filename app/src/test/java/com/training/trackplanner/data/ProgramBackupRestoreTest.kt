@@ -243,6 +243,53 @@ class ProgramBackupRestoreTest {
     }
 
     @Test
+    fun `deleting a program after removing every applied workout preserves database integrity`() = runBlocking {
+        val db = newDatabase()
+        val trainingRepository = repository(db)
+        val key = "delete_after_record_cleanup"
+        db.exerciseDao().insertExercise(Exercise(
+            stableKey = key,
+            name = "Delete regression",
+            category = "Strength",
+            activityKind = "TRAINING_EXERCISE",
+            volumeLoadEligible = true
+        ))
+        val programId = db.programDao().insertProgram(
+            TrainingProgram(name = "Delete regression program", durationDays = 7)
+        )
+        db.programDao().insertProgramItem(TrainingProgramItem(
+            programId = programId,
+            weekNumber = 1,
+            dayOfWeek = 1,
+            orderIndex = 1,
+            exerciseStableKey = key,
+            exerciseName = "Delete regression",
+            category = "Strength",
+            setCount = 3,
+            reps = 6,
+            weightKg = 80.0
+        ))
+        ProgramProgressionService(db).author(programId)
+        assertTrue(db.programProgressionDao().items().isNotEmpty())
+
+        trainingRepository.applyProgramToDates(programId, "2026-10-20", ProgramApplyMode.Append)
+        val appliedEntries = db.workoutDao().allEntries()
+        assertTrue(appliedEntries.isNotEmpty())
+        assertTrue(db.programProgressionDao().links().isNotEmpty())
+
+        // A user may clear the Record calendar before deleting the original template.
+        appliedEntries.forEach { trainingRepository.deleteWorkoutEntry(it) }
+        assertTrue(db.workoutDao().allEntries().isEmpty())
+        assertTrue(db.programProgressionDao().links().isEmpty())
+
+        // This exercises both the pre-delete local recovery snapshot and Room deletion.
+        trainingRepository.deleteProgram(programId)
+        assertNull(db.programDao().findProgram(programId))
+        assertTrue(db.programProgressionDao().items().isEmpty())
+        assertTrue(db.programProgressionDao().links().isEmpty())
+    }
+
+    @Test
     fun `deleting a built in program persists tombstone through restore and later seeding`() = runBlocking {
         val seed = SeedData.programs(context).first { it.key == "10" }
         val source = newDatabase()
