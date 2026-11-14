@@ -243,6 +243,61 @@ class ProgramBackupRestoreTest {
     }
 
     @Test
+    fun `deleting a program remains possible when an old smash speed points at a removed workout`() = runBlocking {
+        val db = newDatabase()
+        val trainingRepository = repository(db)
+        val programId = db.programDao().insertProgram(
+            TrainingProgram(name = "Historical parent regression", durationDays = 28)
+        )
+        // Historical database state: record deletion removed the workout but left
+        // the optional smash speed's numeric parent. The measurement must survive.
+        db.smashSpeedDao().upsert(
+            SmashSpeedRecord(date = "2026-10-20", speedKmh = 212.0, parentWorkoutEntryId = 987654L)
+        )
+
+        // Previously this failed during LocalRecoveryService snapshot preflight,
+        // before the program DELETE transaction could even begin.
+        trainingRepository.deleteProgram(programId)
+        assertNull(db.programDao().findProgram(programId))
+        assertEquals(1, db.smashSpeedDao().all().size)
+
+        val exported = RecordCsvBackupRestore.parse(exportBackup(trainingRepository))
+            as RecordCsvImportData.Restore
+        val speed = exported.smashSpeedRows.single()
+        assertEquals(212.0, speed.speedKmh, 0.0)
+        assertNull(speed.parentWorkoutEntryId)
+        assertNull(speed.parentWorkoutEntrySourceId)
+    }
+
+    @Test
+    fun `existing workout parent is retained in smash speed backup`() = runBlocking {
+        val db = newDatabase()
+        val trainingRepository = repository(db)
+        db.exerciseDao().insertExercise(
+            Exercise(stableKey = "smash_parent_test", name = "Badminton", category = "Sport", isCustom = true)
+        )
+        val entryId = db.workoutDao().insertEntry(
+            WorkoutEntry(
+                date = "2026-10-20",
+                exerciseStableKey = "smash_parent_test",
+                exerciseName = "Badminton",
+                category = "Sport",
+                backupSourceId = "smash-parent-regression-entry"
+            )
+        )
+        db.workoutDao().insertSet(WorkoutSet(entryId = entryId, reps = 1, seconds = 120))
+        db.smashSpeedDao().upsert(
+            SmashSpeedRecord(date = "2026-10-20", speedKmh = 205.0, parentWorkoutEntryId = entryId)
+        )
+
+        val exported = RecordCsvBackupRestore.parse(exportBackup(trainingRepository))
+            as RecordCsvImportData.Restore
+        val speed = exported.smashSpeedRows.single()
+        assertEquals(entryId, speed.parentWorkoutEntryId)
+        assertEquals("smash-parent-regression-entry", speed.parentWorkoutEntrySourceId)
+    }
+
+    @Test
     fun `deleting a program after removing every applied workout preserves database integrity`() = runBlocking {
         val db = newDatabase()
         val trainingRepository = repository(db)
