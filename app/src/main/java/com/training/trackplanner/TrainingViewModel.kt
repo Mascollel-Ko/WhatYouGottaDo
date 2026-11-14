@@ -1105,18 +1105,9 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
                 // Preserve the full exception in logcat while showing a useful
                 // failure phase without requiring the user to collect device logs.
                 android.util.Log.e("ProgramDelete", "Failed to delete program id=$programId", error)
-                val message = when (
-                    (error as? com.training.trackplanner.data.ProgramDeleteFailure)?.phase
-                ) {
-                    com.training.trackplanner.data.ProgramDeleteFailurePhase.BACKUP ->
-                        "삭제 전 안전 백업 검사 실패 (PD-BACKUP). 프로그램은 그대로입니다."
-                    com.training.trackplanner.data.ProgramDeleteFailurePhase.DATABASE ->
-                        "프로그램 데이터 삭제 실패 (PD-DB). 변경은 취소되었습니다."
-                    com.training.trackplanner.data.ProgramDeleteFailurePhase.POST_COMMIT ->
-                        "프로그램은 삭제되었지만 후속 처리 오류가 발생했습니다 (PD-POST)."
-                    else ->
-                        "프로그램 삭제 처리 오류 (PD-UNKNOWN). 목록에서 삭제 여부를 확인해 주세요."
-                }
+                // The full database-specific validation error is visible in a
+                // dialog, so users do not need ADB just to identify the cause.
+                val message = com.training.trackplanner.data.ProgramDeleteFailureMessage.describe(error)
                 onError(message)
             }
         }
