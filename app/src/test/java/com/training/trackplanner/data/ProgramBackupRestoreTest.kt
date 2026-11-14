@@ -243,24 +243,81 @@ class ProgramBackupRestoreTest {
     }
 
     @Test
-    fun `an unrelated legacy migration issue blocks backup but leaves the program intact`() = runBlocking {
+    fun `unrelated legacy migration issue no longer blocks safe program deletion`() = runBlocking {
         val db = newDatabase()
         val trainingRepository = repository(db)
         val programId = db.programDao().insertProgram(
             TrainingProgram(name = "Independent program", durationDays = 28)
         )
+        val stableKey = requireNotNull(db.programDao().findProgram(programId)).stableKey
         db.openHelper.writableDatabase.execSQL(
             "INSERT INTO exercise_identity_migration_issues " +
                 "(issueCode, sourceExerciseId, sourceStableKey, canonicalStableKey, entityType, entityRowId, message, createdAt) " +
                 "VALUES ('UNRESOLVED_LEGACY_REFERENCE', NULL, 'old_missing', 'migration_review_9', 'EXERCISE', NULL, 'Needs review', 1)"
         )
 
-        // Fail-closed recovery is intentional, but the error must be classified:
-        // a problem in a different historical exercise is not a program FK error.
-        val failure = runCatching { trainingRepository.deleteProgram(programId) }.exceptionOrNull()
-        assertTrue(failure is ProgramDeleteFailure)
-        assertEquals(ProgramDeleteFailurePhase.BACKUP, (failure as ProgramDeleteFailure).phase)
-        assertNotNull(db.programDao().findProgram(programId))
+        // The canonical whole-database preflight must still reject the invalid
+        // migration issue, but a verified, lossless scoped snapshot protects
+        // exactly the template rows that are about to be deleted.
+        trainingRepository.deleteProgram(programId)
+        assertNull(db.programDao().findProgram(programId))
+        assertEquals(1, db.exerciseIdentityMigrationIssueDao().all().size)
+
+        val recovery = ProgramDeleteRecoveryStore(
+            db, File(context.noBackupFilesDir, "program-delete-recovery")
+        )
+        val archivedFile = File(context.noBackupFilesDir, "program-delete-recovery")
+            .listFiles().orEmpty().filter { it.extension == "json" }
+            .single { file ->
+                recovery.readValidated(file).getString("programStableKey") == stableKey
+            }
+        val archived = recovery.readValidated(archivedFile)
+        assertEquals(programId, archived.getLong("programId"))
+        // An exact inverse exists, but the app never silently resurrects it.
+        recovery.restore(archivedFile)
+        assertEquals("Independent program", db.programDao().findProgram(programId)?.name)
+        assertEquals(1, db.exerciseIdentityMigrationIssueDao().all().size)
+    }
+
+    @Test
+    fun `unrelated empty workout entry no longer blocks protected program deletion`() = runBlocking {
+        val db = newDatabase()
+        val trainingRepository = repository(db)
+        db.exerciseDao().insertExercise(
+            Exercise(stableKey = "legacy_empty_entry", name = "Old exercise", category = "Strength", isCustom = true)
+        )
+        val emptyEntryId = db.workoutDao().insertEntry(
+            WorkoutEntry(date = "2026-09-01", exerciseStableKey = "legacy_empty_entry",
+                exerciseName = "Old exercise", category = "Strength")
+        )
+        val programId = db.programDao().insertProgram(
+            TrainingProgram(name = "Delete while unrelated record is incomplete", durationDays = 28)
+        )
+        trainingRepository.deleteProgram(programId)
+        assertNull(db.programDao().findProgram(programId))
+        assertNotNull(db.workoutDao().findEntryById(emptyEntryId))
+        assertTrue(db.workoutDao().setsForEntry(emptyEntryId).isEmpty())
+    }
+
+    @Test
+    fun `scoped program archive failure refuses delete before mutation`() = runBlocking {
+        val db = newDatabase()
+        val programId = db.programDao().insertProgram(
+            TrainingProgram(name = "Never delete without archive", durationDays = 7)
+        )
+        val obstruction = File(context.cacheDir, "program-delete-archive-obstruction-${System.nanoTime()}")
+        obstruction.writeText("not a directory")
+        try {
+            val failure = runCatching {
+                ProgramDeleteRecoveryStore(db, obstruction).protect(programId) {
+                    db.programDao().deleteProgram(programId)
+                }
+            }.exceptionOrNull()
+            assertNotNull(failure)
+            assertNotNull(db.programDao().findProgram(programId))
+        } finally {
+            obstruction.delete()
+        }
     }
 
     @Test
