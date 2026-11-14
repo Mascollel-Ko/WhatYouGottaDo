@@ -39,7 +39,9 @@ internal class CalendarRecordService(
         mutateDates(listOf(date), trackStrengthCompletion = false) {
             workoutDao.deleteSetsOnDates(listOf(date))
             workoutDao.deleteEntriesOnDates(listOf(date))
-            ProgramProgressionOrphanCleanup.pruneInTransaction(db)
+            db.withCloudRevision(CloudMutationScope.PROGRESSION_ORPHANS) {
+                ProgramProgressionOrphanCleanup.pruneInTransaction(db)
+            }
         }
     }
 
