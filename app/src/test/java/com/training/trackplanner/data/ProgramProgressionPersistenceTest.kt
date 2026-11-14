@@ -309,7 +309,7 @@ class ProgramProgressionPersistenceTest {
         assertTrue(runCatching { ProgramProgressionBackup.validate(invalid) }.isFailure)
     }
 
-    @Test fun historicalZeroPlanProgressionRemainsBackupSafeAfterAllAppliedRecordsAreDeleted() = runBlocking {
+    @Test fun historicalZeroPlanProgressionIsPrunedWhenAllAppliedRecordsAreDeleted() = runBlocking {
         val db = database()
         val programId = fixture(db)
         apply(db, programId)
@@ -339,12 +339,15 @@ class ProgramProgressionPersistenceTest {
         }
         assertTrue(db.workoutDao().allEntries().isEmpty())
         assertTrue(dao.links().isEmpty())
-        assertEquals(1, dao.suggestions().size) // intentionally retained evidence
+        assertEquals(1, dao.suggestions().size) // legacy orphan until reconciliation
 
-        // Deleting the template does not delete the historical decision, either.
+        // The template-deletion transaction now clears the orphan decision and
+        // its unused application/track, rather than archiving garbage forever.
         service(db).deleteProgram(programId)
         assertTrue(db.programDao().allPrograms().isEmpty())
-        assertEquals(1, dao.suggestions().size)
+        assertTrue(dao.suggestions().isEmpty())
+        assertTrue(dao.applications().isEmpty())
+        assertTrue(dao.tracks().isEmpty())
         ProgramProgressionBackup.validate(ProgramProgressionBackup.export(db))
     }
 
