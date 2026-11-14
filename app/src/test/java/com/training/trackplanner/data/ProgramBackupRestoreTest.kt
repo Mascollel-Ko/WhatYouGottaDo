@@ -324,7 +324,7 @@ class ProgramBackupRestoreTest {
                 backupSourceId = "smash-parent-regression-entry"
             )
         )
-        db.workoutDao().insertSet(WorkoutSet(entryId = entryId, reps = 1, seconds = 120))
+        db.workoutDao().insertSet(WorkoutSet(entryId = entryId, setIndex = 1, reps = 1, seconds = 120))
         db.smashSpeedDao().upsert(
             SmashSpeedRecord(date = "2026-10-20", speedKmh = 205.0, parentWorkoutEntryId = entryId)
         )
