@@ -381,7 +381,8 @@ class ProgramBackupRestoreTest {
             reasons = "B_COACH_GATE_H_AUTO_AFTER_CONFIRM_LOAD_UP_ONE_STEP",
             evidenceHash = "observed-e1rm",
             resolution = ProgressionResolution.ACCEPTED,
-            resolvedKg = 131.5
+            resolvedKg = 131.5,
+            rule = ProgressionRule()
         ))
         assertTrue(db.workoutDao().allEntries().isEmpty())
 
