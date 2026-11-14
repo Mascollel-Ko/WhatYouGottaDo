@@ -3,7 +3,7 @@
 ## Scope, authority, and source drift
 
 - Follow-up work started from `main` at `7191410502c1e67ec56c375c2c1d938aafa96e9a` and was implemented on local branch `fix/b-coach-production-footnotes`.
-- The follow-up implementation is local commit `4e506163` (`fix: harden B-Coach proposal persistence`). The branch was not pushed or merged.
+- The follow-up implementation is commit `4e506163` (`fix: harden B-Coach proposal persistence`). The dedicated branch was pushed after explicit approval and was not merged.
 - The request authority was `B_Coach_Multiobjective_Production_Completion_Codex_Prompt_Annotated_2026-11-15.md`. `B_Coach_Multiobjective_Equations_and_Implementation_Footnotes_2026-11-15.md` and the earlier 2026-11-14 audit were supporting references, not independent authorization to invent coefficients.
 - The earlier production path normalized an incomplete importance vector, fingerprinted only part of the proposal state, and did not re-read persistence evidence atomically. This follow-up closes those gaps without promoting pending v1.2 equations to automatic authority.
 - The shipped boundary remains a safe baseline plus an exact, explicit-review candidate. Unknown Need, recovery caps/decay, normalizers, lambdas, epsilon, and universal load progression remain unavailable rather than being guessed.
@@ -58,54 +58,54 @@ The same test inserts a new confirmed 100 kg workout dated before the evidence c
 
 ## T01–T44 counterexample matrix
 
-`LocalResult=PASS` means the mapped public executable evidence passed in the 2,806-test local suite. It does not upgrade a `SHADOW`, `TOY`, `UNKNOWN`, or `UNSUPPORTED` physiological rule. `CIResult=NOT_RUN` means this local branch was intentionally not pushed; the successful `main` CI run is recorded separately below.
+`LocalResult=PASS` means the mapped public executable evidence passed in the 2,806-test local suite. It does not upgrade a `SHADOW`, `TOY`, `UNKNOWN`, or `UNSUPPORTED` physiological rule. `CIResult=PASS` means the complete branch workflow passed at audit commit `3892a6bf` in run `43614686319`.
 
 | ID | TestClass | TestMethod | SourceCommit | LocalResult | CIResult |
 |---|---|---|---|---|---|
-| T01 | `BCoachJointBlockOptimizerTest` | `T01 another program observations cannot change linked-plan completion` | `49d5ccef` | PASS | NOT_RUN |
-| T02 | `WorkoutSessionIdentityTest` | `eachProgramApplicationCreatesNewSessionsPerScheduledDay` | `1a9308ca` | PASS | NOT_RUN |
-| T03 | `BCoachJointBlockOptimizerTest` | `fixedWeekdaysMustRemainFixedAndUnapprovedEquipmentCannotBeInvented` | `49d5ccef` | PASS | NOT_RUN |
-| T04 | `BCoachMultiobjectiveProductionTest` | `T04 a candidate over the per-session limit is held rather than offered` | `4e506163` | PASS | NOT_RUN |
-| T05 | `BJointExerciseSetOptimizerTest` | `provisionalStabilizerMetadataDoesNotFreezeReviewedPrimaryAccessory` | `d76965eb` | PASS | NOT_RUN |
-| T06 | `BCoachMultiobjectiveProductionTest` | `partial importance stays missing and no incomplete vector is normalized`; `T06 zero importance is invalid rather than unset` | `4e506163` | PASS | NOT_RUN |
-| T07 | `BBalancedFocusSearchPolicyTest` | `T07 T08 T12 fixed and balanced blocks never run hidden multi-focus search` | `49d5ccef` | PASS | NOT_RUN |
-| T08 | `BBalancedFocusSearchPolicyTest` | `T07 T08 T12 fixed and balanced blocks never run hidden multi-focus search` (`BALANCED_NO_HIDDEN_FOCUS`) | `49d5ccef` | PASS | NOT_RUN |
-| T09 | `BBlockPurposePrescriptionTest` | `finalPeakWeekUsesOneRepOneSetOfMainExercise` | `9162504b` | PASS | NOT_RUN |
-| T10 | `V22ProgramIntegrationTest` | `reviewed B candidate materially persists reopens and applies without private fixtures` | `4e506163` | PASS | NOT_RUN |
-| T11 | `BBlockPrescriptionApplicatorTest` | `fourWeekPatternsChangeActualSetAndRepPrescriptions` | `49d5ccef` | PASS | NOT_RUN |
-| T12 | `BBalancedFocusSearchPolicyTest` | `T07 T08 T12 fixed and balanced blocks never run hidden multi-focus search` | `49d5ccef` | PASS | NOT_RUN |
-| T13 | `BCoachExerciseShadowCoverageTest` | `only exact canonical keys receive canonical tier and weighted pullup demands bodyweight` | `44476a1a` | PASS | NOT_RUN |
-| T14 | `BCoachSquatCurveProgressionRankerTest` | `missing RPE does not fabricate reference e1rm or automatic winner` | `454976ee` | PASS | NOT_RUN |
-| T15 | `BCoachSquatShadowProgramComparisonTest` | `unavailable posterior still preserves baseline and does not invent weight` | `4ea4fed9` | PASS | NOT_RUN |
-| T16 | `BCoachSquatRelativeShadowTest` | `T16 observed 205kg one-rep limit is retained as a posterior conflict` | `49d5ccef` | PASS | NOT_RUN |
-| T17 | `RepetitionCurveRegistryTest` | `canonical assets are finite monotone and invert deterministically` | `49d5ccef` | PASS | NOT_RUN |
-| T18 | `RepetitionCurveRegistryTest` | `T18 T19 reviewed TOY grid and minimax-regret values stay reproducible` | `49d5ccef` | PASS | NOT_RUN |
-| T19 | `RepetitionCurveRegistryTest` | `T18 T19 reviewed TOY grid and minimax-regret values stay reproducible` | `49d5ccef` | PASS | NOT_RUN |
-| T20 | `BCoachSquatCurveProgressionRankerTest` | `unknown set target never rewards extra sets` | `454976ee` | PASS | NOT_RUN |
-| T21 | `BCoachLinkedSquatWeekPlannerTest` | `unconfirmed or missed previous sets cannot cause progression` | `3225a57f` | PASS | NOT_RUN |
-| T22 | `BCoachObservedSquatProgressionTest` | `load step above two percent falls back to hold` | `81b65dc6` | PASS | NOT_RUN |
-| T23 | `RpeRirPolicyTest` | `known RPE likelihood represents RIR uncertainty exactly once` | `47ac7d33` | PASS | NOT_RUN |
-| T24 | `BBlockEquipmentIncrementsTest` | `oneStepUsesEquipmentDisplayUnit` | `3dcd370b` | PASS | NOT_RUN |
-| T25 | `StrengthPerformanceLikelihoodTest` | `weighted pull-up resolves total load with bodyweight priority and age uncertainty` | `e6056bf7` | PASS | NOT_RUN |
-| T26 | `BCoachExerciseShadowCoverageTest` | `only exact canonical keys receive canonical tier and weighted pullup demands bodyweight` | `44476a1a` | PASS | NOT_RUN |
-| T27 | `BCoachExerciseShadowCoverageTest` | `task exercise above twenty repetitions is observed but not run through e1rm curve` | `44476a1a` | PASS | NOT_RUN |
-| T28 | `BCoachSquatRelativeShadowTest` | `multiset scenarios do not invent predictive performance for later sets` | `49d5ccef` | PASS | NOT_RUN |
-| T29 | `BCoachExerciseShadowCoverageTest` | `reviewed RDL proxy relation cannot pretend to be a canonical posterior` | `44476a1a` | PASS | NOT_RUN |
-| T30 | `BCoachObservedSquatProgressionTest` | `mismatched exercise track cannot source an increment` | `81b65dc6` | PASS | NOT_RUN |
-| T31 | `BCoachExerciseShadowCoverageTest` | `ordinary barbell lift receives only unranked hold reps and configured-grid actions` | `44476a1a` | PASS | NOT_RUN |
-| T32 | `BCoachExerciseShadowCoverageTest` | `time hold without mechanical load is task-specific and never uses RIR` | `44476a1a` | PASS | NOT_RUN |
-| T33 | `BCoachExerciseShadowCoverageTest` | `no observed evidence is explicit unknown rather than zero performance` | `44476a1a` | PASS | NOT_RUN |
-| T34 | `BCoachMultiobjectiveProductionTest` | `T34 approved Need is absent so extra sets never become an automatic reward` | `49d5ccef` | PASS | NOT_RUN |
-| T35 | `BCoachMultiobjectiveProductionTest` | `T35 raw recent six-axis load is retained while residual decay remains missing` | `49d5ccef` | PASS | NOT_RUN |
-| T36 | `BCoachMultiobjectiveProductionTest` | `T36 recovery maximum and mean remain distinct raw values` | `49d5ccef` | PASS | NOT_RUN |
-| T37 | `BCoachMultiobjectiveProductionTest` | `T37 no candidate claims an approved risk-cap pass when no cap exists` | `49d5ccef` | PASS_WITHHELD | NOT_RUN |
-| T38 | `BCoachMultiobjectiveProductionTest` | `T38 an unapproved fatigue cap does not hard-reject a reviewable candidate` | `49d5ccef` | PASS | NOT_RUN |
-| T39 | `BCoachMultiobjectiveProductionTest` | `T39 execution axis reports engineering time without inventing a time-pressure cause` | `49d5ccef` | PASS | NOT_RUN |
-| T40 | `BCoachMultiobjectiveProductionTest` | `T40 missing lambda epsilon and Need keep the candidate in review` | `49d5ccef` | PASS | NOT_RUN |
-| T41 | `BCoachMultiobjectiveProductionTest` | `T41 rest-only mutation is not an active production candidate` | `49d5ccef` | PASS | NOT_RUN |
-| T42 | `BCoachMultiobjectiveProductionTest` | `T42 set action changes both validity route and evaluated ramp value` | `49d5ccef` | PASS | NOT_RUN |
-| T43 | `BBalancedFocusSearchPolicyTest` | `T43 complete goal vector changes the public whole-block candidate deterministically` | `4e506163` | PASS | NOT_RUN |
-| T44 | `BCoachMultiobjectiveProductionTest` | `T44 fixed inputs equipment and unavailable bodyweight are traceable` | `49d5ccef` | PASS | NOT_RUN |
+| T01 | `BCoachJointBlockOptimizerTest` | `T01 another program observations cannot change linked-plan completion` | `49d5ccef` | PASS | PASS |
+| T02 | `WorkoutSessionIdentityTest` | `eachProgramApplicationCreatesNewSessionsPerScheduledDay` | `1a9308ca` | PASS | PASS |
+| T03 | `BCoachJointBlockOptimizerTest` | `fixedWeekdaysMustRemainFixedAndUnapprovedEquipmentCannotBeInvented` | `49d5ccef` | PASS | PASS |
+| T04 | `BCoachMultiobjectiveProductionTest` | `T04 a candidate over the per-session limit is held rather than offered` | `4e506163` | PASS | PASS |
+| T05 | `BJointExerciseSetOptimizerTest` | `provisionalStabilizerMetadataDoesNotFreezeReviewedPrimaryAccessory` | `d76965eb` | PASS | PASS |
+| T06 | `BCoachMultiobjectiveProductionTest` | `partial importance stays missing and no incomplete vector is normalized`; `T06 zero importance is invalid rather than unset` | `4e506163` | PASS | PASS |
+| T07 | `BBalancedFocusSearchPolicyTest` | `T07 T08 T12 fixed and balanced blocks never run hidden multi-focus search` | `49d5ccef` | PASS | PASS |
+| T08 | `BBalancedFocusSearchPolicyTest` | `T07 T08 T12 fixed and balanced blocks never run hidden multi-focus search` (`BALANCED_NO_HIDDEN_FOCUS`) | `49d5ccef` | PASS | PASS |
+| T09 | `BBlockPurposePrescriptionTest` | `finalPeakWeekUsesOneRepOneSetOfMainExercise` | `9162504b` | PASS | PASS |
+| T10 | `V22ProgramIntegrationTest` | `reviewed B candidate materially persists reopens and applies without private fixtures` | `4e506163` | PASS | PASS |
+| T11 | `BBlockPrescriptionApplicatorTest` | `fourWeekPatternsChangeActualSetAndRepPrescriptions` | `49d5ccef` | PASS | PASS |
+| T12 | `BBalancedFocusSearchPolicyTest` | `T07 T08 T12 fixed and balanced blocks never run hidden multi-focus search` | `49d5ccef` | PASS | PASS |
+| T13 | `BCoachExerciseShadowCoverageTest` | `only exact canonical keys receive canonical tier and weighted pullup demands bodyweight` | `44476a1a` | PASS | PASS |
+| T14 | `BCoachSquatCurveProgressionRankerTest` | `missing RPE does not fabricate reference e1rm or automatic winner` | `454976ee` | PASS | PASS |
+| T15 | `BCoachSquatShadowProgramComparisonTest` | `unavailable posterior still preserves baseline and does not invent weight` | `4ea4fed9` | PASS | PASS |
+| T16 | `BCoachSquatRelativeShadowTest` | `T16 observed 205kg one-rep limit is retained as a posterior conflict` | `49d5ccef` | PASS | PASS |
+| T17 | `RepetitionCurveRegistryTest` | `canonical assets are finite monotone and invert deterministically` | `49d5ccef` | PASS | PASS |
+| T18 | `RepetitionCurveRegistryTest` | `T18 T19 reviewed TOY grid and minimax-regret values stay reproducible` | `49d5ccef` | PASS | PASS |
+| T19 | `RepetitionCurveRegistryTest` | `T18 T19 reviewed TOY grid and minimax-regret values stay reproducible` | `49d5ccef` | PASS | PASS |
+| T20 | `BCoachSquatCurveProgressionRankerTest` | `unknown set target never rewards extra sets` | `454976ee` | PASS | PASS |
+| T21 | `BCoachLinkedSquatWeekPlannerTest` | `unconfirmed or missed previous sets cannot cause progression` | `3225a57f` | PASS | PASS |
+| T22 | `BCoachObservedSquatProgressionTest` | `load step above two percent falls back to hold` | `81b65dc6` | PASS | PASS |
+| T23 | `RpeRirPolicyTest` | `known RPE likelihood represents RIR uncertainty exactly once` | `47ac7d33` | PASS | PASS |
+| T24 | `BBlockEquipmentIncrementsTest` | `oneStepUsesEquipmentDisplayUnit` | `3dcd370b` | PASS | PASS |
+| T25 | `StrengthPerformanceLikelihoodTest` | `weighted pull-up resolves total load with bodyweight priority and age uncertainty` | `e6056bf7` | PASS | PASS |
+| T26 | `BCoachExerciseShadowCoverageTest` | `only exact canonical keys receive canonical tier and weighted pullup demands bodyweight` | `44476a1a` | PASS | PASS |
+| T27 | `BCoachExerciseShadowCoverageTest` | `task exercise above twenty repetitions is observed but not run through e1rm curve` | `44476a1a` | PASS | PASS |
+| T28 | `BCoachSquatRelativeShadowTest` | `multiset scenarios do not invent predictive performance for later sets` | `49d5ccef` | PASS | PASS |
+| T29 | `BCoachExerciseShadowCoverageTest` | `reviewed RDL proxy relation cannot pretend to be a canonical posterior` | `44476a1a` | PASS | PASS |
+| T30 | `BCoachObservedSquatProgressionTest` | `mismatched exercise track cannot source an increment` | `81b65dc6` | PASS | PASS |
+| T31 | `BCoachExerciseShadowCoverageTest` | `ordinary barbell lift receives only unranked hold reps and configured-grid actions` | `44476a1a` | PASS | PASS |
+| T32 | `BCoachExerciseShadowCoverageTest` | `time hold without mechanical load is task-specific and never uses RIR` | `44476a1a` | PASS | PASS |
+| T33 | `BCoachExerciseShadowCoverageTest` | `no observed evidence is explicit unknown rather than zero performance` | `44476a1a` | PASS | PASS |
+| T34 | `BCoachMultiobjectiveProductionTest` | `T34 approved Need is absent so extra sets never become an automatic reward` | `49d5ccef` | PASS | PASS |
+| T35 | `BCoachMultiobjectiveProductionTest` | `T35 raw recent six-axis load is retained while residual decay remains missing` | `49d5ccef` | PASS | PASS |
+| T36 | `BCoachMultiobjectiveProductionTest` | `T36 recovery maximum and mean remain distinct raw values` | `49d5ccef` | PASS | PASS |
+| T37 | `BCoachMultiobjectiveProductionTest` | `T37 no candidate claims an approved risk-cap pass when no cap exists` | `49d5ccef` | PASS_WITHHELD | PASS |
+| T38 | `BCoachMultiobjectiveProductionTest` | `T38 an unapproved fatigue cap does not hard-reject a reviewable candidate` | `49d5ccef` | PASS | PASS |
+| T39 | `BCoachMultiobjectiveProductionTest` | `T39 execution axis reports engineering time without inventing a time-pressure cause` | `49d5ccef` | PASS | PASS |
+| T40 | `BCoachMultiobjectiveProductionTest` | `T40 missing lambda epsilon and Need keep the candidate in review` | `49d5ccef` | PASS | PASS |
+| T41 | `BCoachMultiobjectiveProductionTest` | `T41 rest-only mutation is not an active production candidate` | `49d5ccef` | PASS | PASS |
+| T42 | `BCoachMultiobjectiveProductionTest` | `T42 set action changes both validity route and evaluated ramp value` | `49d5ccef` | PASS | PASS |
+| T43 | `BBalancedFocusSearchPolicyTest` | `T43 complete goal vector changes the public whole-block candidate deterministically` | `4e506163` | PASS | PASS |
+| T44 | `BCoachMultiobjectiveProductionTest` | `T44 fixed inputs equipment and unavailable bodyweight are traceable` | `49d5ccef` | PASS | PASS |
 
 Additional production-route evidence in `4e506163` covers exact canonical fingerprints, proposal-integrity rejection, manual-kg-only mutation tolerance, stale history/exercise/link rejection, typed unknown/partial/not-applicable values, suppression of unapproved automatic kg, legacy schema compatibility, narrow 320 dp/large-text review UI, exact backup metadata round-trip, and the public accept → calibrate → save → reopen → calendar flow.
 
@@ -118,7 +118,7 @@ Environment: Windows, Android Studio JBR 21, Android SDK `C:/Users/pki08/AppData
 - `:app:lintDebug :app:assembleDebug --no-daemon --max-workers=2` — **PASS**, 3m03s. Lint: 0 errors, 209 warnings, 22 information findings (existing repository findings).
 - Debug APK: `app/build/outputs/apk/debug/app-debug.apk`, 74,383,963 bytes (70.94 MiB), SHA-256 `EBF043C7B0B138E91E219C970B8410F1890A5D191F1487662CDA1700A0B67A1F`.
 - `adb devices -l` returned no connected device, so `connectedDebugAndroidTest` and real-device interaction were not run.
-- Hosted CI baseline: `main` SHA `7191410502c1e67ec56c375c2c1d938aafa96e9a` passed `Android Debug Build`, run `43599468361`. Current local commit `4e506163` has no hosted result because the branch was not pushed.
+- Hosted CI: branch audit commit `3892a6bf20dc0eda5485901aac2eea96c2220c0b` passed the complete `Android Debug Build` workflow in run `43614686319`, including selected persistence/UI contracts, all debug unit tests, release Kotlin compilation, debug APK signing, and signed non-debuggable optimized APK validation. The starting `main` SHA `7191410502c1e67ec56c375c2c1d938aafa96e9a` also passed baseline run `43599468361`.
 
 ## Deliberately withheld automatic decisions
 
@@ -128,4 +128,4 @@ Environment: Windows, Android Studio JBR 21, Android SDK `C:/Users/pki08/AppData
 - No universal initial kg, Epley fallback, proxy-exercise posterior, cross-exercise kg transfer, or future bodyweight fabrication.
 - No automatic non-main kg step. Unknown loads remain manual even after roster/set/rep acceptance.
 - No claim that engineering time estimates are observed duration or that missed work proves time pressure.
-- No real-device, remote backup-provider, or hosted current-branch validation claim.
+- No real-device or remote backup-provider validation claim.
