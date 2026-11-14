@@ -787,9 +787,16 @@ object RecordCsvBackupRestore {
                 }
             )
         }
+        // Smash history is independent of its optional workout parent.
+        // Record deletion can leave a historical numeric parent ID with no matching
+        // workout. A restore backup must not serialize that dangling reference:
+        // recovery preflight cannot resolve it and would otherwise block unrelated
+        // changes such as deleting a saved training program.
+        val liveWorkoutSourcesById = entriesWithSets.associate { it.entry.id to it.entry.backupSourceId }
         smashSpeeds
             .sortedWith(compareBy<SmashSpeedRecord> { it.date }.thenBy { it.attemptIndex ?: Int.MAX_VALUE }.thenBy { it.id })
             .forEach { record ->
+                val existingParentId = record.parentWorkoutEntryId?.takeIf { it in liveWorkoutSourcesById }
                 builder.appendCsvRow(
                     restoreHeader.map { column ->
                         when (column) {
@@ -801,10 +808,9 @@ object RecordCsvBackupRestore {
                             "attempt_index" -> record.attemptIndex?.toString().orEmpty()
                             "source" -> record.source
                             "smash_note" -> record.note.orEmpty()
-                            "parent_workout_entry_id" -> record.parentWorkoutEntryId?.toString().orEmpty()
-                            "parent_workout_entry_source_id" -> record.parentWorkoutEntryId
-                                ?.let { parentId -> entriesWithSets.firstOrNull { it.entry.id == parentId }?.entry?.backupSourceId }
-                                .orEmpty()
+                            "parent_workout_entry_id" -> existingParentId?.toString().orEmpty()
+                            "parent_workout_entry_source_id" -> existingParentId
+                                ?.let(liveWorkoutSourcesById::get).orEmpty()
                             "smash_created_at" -> record.createdAt.toString()
                             "smash_updated_at" -> record.updatedAt.toString()
                             else -> ""
