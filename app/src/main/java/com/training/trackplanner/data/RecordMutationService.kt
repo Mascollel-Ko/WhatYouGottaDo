@@ -77,7 +77,11 @@ internal class RecordMutationService(
         mutateDate(entry.date) {
             workoutDao.deleteSetsForEntry(entry.id)
             workoutDao.deleteEntryById(entry.id)
-            ProgramProgressionOrphanCleanup.pruneInTransaction(db)
+            // Record the orphan-only change even if a stale delete request no
+            // longer changes workout_entries. Nested scopes coalesce to +1.
+            db.withCloudRevision(CloudMutationScope.PROGRESSION_ORPHANS) {
+                ProgramProgressionOrphanCleanup.pruneInTransaction(db)
+            }
         }
     }
 
