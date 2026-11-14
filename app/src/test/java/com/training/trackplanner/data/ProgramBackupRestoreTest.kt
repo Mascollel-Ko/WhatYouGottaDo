@@ -296,7 +296,9 @@ class ProgramBackupRestoreTest {
 
         // Previously this failed during LocalRecoveryService snapshot preflight,
         // before the program DELETE transaction could even begin.
+        val revisionBefore = db.cloudBackupStateDao().getOrCreate().localRevision
         trainingRepository.deleteProgram(programId)
+        assertEquals(revisionBefore + 1, db.cloudBackupStateDao().getOrCreate().localRevision)
         assertNull(db.programDao().findProgram(programId))
         assertEquals(1, db.smashSpeedDao().all().size)
 
