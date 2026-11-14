@@ -1,121 +1,131 @@
 # B-Coach multi-objective production completion
 
-## Scope and source drift
+## Scope, authority, and source drift
 
-- Work started from `main` at `a41bf89e4b27fc38c1bf4d116d1ea09bbb95b04f` (`Merge B-Coach progression and orphan-safe backup cleanup into main`).
-- The reviewed implementation and executable evidence are recorded in local commit `49d5ccef`.
-- The user explicitly requested work on `main`, overriding the attached prompt's dedicated-branch instruction.
-- The supporting audit `WhatYouGottaDo_BCoach_미적용_설계_수식_총정리_2026-11-14.md` was available and reviewed. Its `LIVE`, `SHADOW`, `PENDING`, `DESIGN`, and `TOY` labels remain authority boundaries.
-- This change does not promote the v1.2 equations to a universal automatic optimizer. It ships the production-safe, explicit-review route requested by the audit.
+- Follow-up work started from `main` at `7191410502c1e67ec56c375c2c1d938aafa96e9a` and was implemented on local branch `fix/b-coach-production-footnotes`.
+- The follow-up implementation is local commit `4e506163` (`fix: harden B-Coach proposal persistence`). The branch was not pushed or merged.
+- The request authority was `B_Coach_Multiobjective_Production_Completion_Codex_Prompt_Annotated_2026-11-15.md`. `B_Coach_Multiobjective_Equations_and_Implementation_Footnotes_2026-11-15.md` and the earlier 2026-11-14 audit were supporting references, not independent authorization to invent coefficients.
+- The earlier production path normalized an incomplete importance vector, fingerprinted only part of the proposal state, and did not re-read persistence evidence atomically. This follow-up closes those gaps without promoting pending v1.2 equations to automatic authority.
+- The shipped boundary remains a safe baseline plus an exact, explicit-review candidate. Unknown Need, recovery caps/decay, normalizers, lambdas, epsilon, and universal load progression remain unavailable rather than being guessed.
 
 ## Architecture and authoritative call chain
 
-`PlanScreen.generateV22` → `TrainingViewModel.generateV22Program` → `TrainingRepository.generateV22Program` → `V22ProgramPlanningService.generate` → `BBalanced12WeekEngine.build` → independent safe baseline and joint candidate skeletons → `BCoachMultiobjectiveProduction.prepare` → safe baseline preview plus an optional fingerprint-bound proposal → explicit user acceptance in `PlanScreen` → edited draft → `TrainingRepository.saveGeneratedProgram` → `ProgramPlanService.saveGeneratedProgram` → reopen/apply through the existing program and calendar services.
+Generation:
 
-The engine now retains the pre-joint-search block result as `reviewBaselineWeeks`. The joint optimizer can still produce a materially different whole-block candidate, but generation returns the safe baseline until the user accepts the exact candidate fingerprint against the unchanged baseline fingerprint. An edit, regeneration, or stale draft invalidates acceptance.
+`PlanScreen.generateV22` → `TrainingViewModel.generateV22Program` → `TrainingRepository.generateV22Program` → `V22ProgramPlanningService.generate` → `BBalanced12WeekEngine.build` → independent safe baseline and joint candidate → `BCoachMultiobjectiveProduction.prepare` → safe preview plus optional proposal.
 
-The decision metadata records engine/policy version, source owner, evidence cutoff, baseline/candidate/input SHA-256 fingerprints, normalized explicit goal weights, all eight objective axes, input audit, changes, alternatives, unknowns, adverse scenario, acceptance state, and fallback reason. Metadata is backward-compatible JSON stored in the existing planning metadata field.
+Acceptance and persistence:
+
+`PlanScreen` review dialog → display material change vector and unresolved reason codes → user accepts the exact `proposalFingerprint` → optional manual load calibration → `TrainingRepository.saveGeneratedProgram` → one Room/cloud-revision transaction → `V22ProgramPlanningService.validateAcceptedForPersistence` re-reads history, relevant exercise metadata, and linked evidence → exact structure/evidence verification → `ProgramPlanService.saveGeneratedProgram` → metadata state `ACCEPTED_AND_PERSISTED` → reopen/apply through existing program/calendar services.
+
+The proposal fingerprint binds engine/policy version, source owner, full baseline and candidate skeletons, all request inputs, evidence cutoff/history, relevant exercise metadata, and linked evidence. The persistence structure fingerprint permits only expected post-review edits such as program naming and explicit user load calibration; changes to exercise identity, ordering, sets, repetitions, rest, schedule, or evidence reject the save. Revalidation and persistence share the same Room transaction, so they cannot observe different database snapshots.
+
+Acceptance schema v2 performs this replay validation. Legacy v1 accepted metadata remains editable as already-persisted data; it is not retroactively treated as a pending v2 proposal.
 
 ## Authority and promotion matrix
 
 | Component | Production status | Implemented boundary |
 |---|---|---|
-| Pre-joint safe B plan | `AUTO` | Always materialized independently and returned by default. |
-| Roster/set/repetition whole-block candidate | `USER_REVIEW` | Can change saved items only after exact fingerprint acceptance. |
-| User session minutes, fixed/allowed weekdays, program bounds, set integrity | `AUTO` hard gate | Any failure suppresses the proposal and keeps the safe plan. |
-| Explicit goal importance 1–5 | `USER_REVIEW` input | Explicit values normalize; `NULL` remains missing, never zero. |
-| Fixed block goal/pattern | `AUTO` constraint | Fixed goals are not replaced; `BALANCED` has one neutral compatibility label and no hidden focus allocation; only `AUTO` searches multiple goals. |
-| Goal Need intervals and direct/secondary credit equations | `UNSUPPORTED` for automatic scoring | Raw axis is present with unit, provenance, and missing reason; no invented Need values. |
-| Six-axis planned/recent recovery load | `SHADOW` diagnostic | Raw maximum/mean/recent values are visible. Approved caps and decay are unavailable. |
-| Cross-axis normalizers, lambdas, epsilon | `UNSUPPORTED` for automatic winner selection | Candidate stays explicit review; no fabricated weighted sum. |
-| Engineering session-time estimate | `AUTO` hard limit, `SHADOW` explanation | User limit is enforced on every modeled day; estimate is not called measured time. |
-| Unknown starting load | `HOLD_CALIBRATE` | Remains `USER_CALIBRATION_REQUIRED`; 0 kg is never represented as a real prescribed load. |
-| Main-exercise linked load progression | Existing `LIVE-RECORD` path | Requires confirmed linked evidence and its existing policy. This change grants no blanket kg authority. |
-| Non-main automatic load steps | `HOLD_CALIBRATE` | Always zero, even when an equipment grid is known. Reps/sets may progress. |
-| Squat curve/comparison and other exercise coverage | Existing `SHADOW` | Preserved as diagnostics; not treated as approval for the whole V22 B plan. |
-| Future weighted-pull-up bodyweight | `UNSUPPORTED` | Recorded as unavailable and never fabricated. |
-| Multi-set independent success probability | `UNSUPPORTED` | Follow-up sets are targets, not multiplied independent probabilities. |
+| Pre-joint safe B plan | `AUTO` | Built independently and returned by default. |
+| Whole-block roster/set/repetition candidate | `USER_REVIEW` | Can affect the saved plan only after exact proposal acceptance and atomic revalidation. |
+| Session minutes, fixed/allowed weekdays, program bounds, set integrity, duplicate slots/exercises | Typed hard constraint | `PASS`, `FAIL`, or `UNKNOWN`; a failure suppresses the proposal. |
+| Explicit goal importance 1–5 | `USER_REVIEW` input | Normalize only when all four values are explicit and valid. A partial vector remains partial; missing is not zero. |
+| Fixed block goal/pattern | `AUTO` constraint | Fixed goals are preserved; `BALANCED` has no hidden focus search; only `AUTO` searches multiple goals. |
+| Goal Need intervals and direct/secondary credit | `UNKNOWN` / direction only | Typed envelopes and reasons are persisted, but no numeric Need is invented. |
+| Six-axis planned/recent recovery load | `PARTIAL` diagnostic | Known lower bounds remain partial when metadata is missing; unknown contributions are not treated as zero. |
+| Recovery caps/decay, normalizers, lambdas, epsilon | `UNSUPPORTED` | No fabricated pass, rejection, or automatic weighted winner. |
+| Engineering session-time estimate | Hard limit plus explanation | User limit is enforced on all modeled weeks; no limit is `NOT_APPLICABLE`, not numeric zero. |
+| Unknown starting load | `HOLD_CALIBRATE` | Remains `USER_CALIBRATION_REQUIRED`; zero kg is never represented as a real prescription. |
+| Explicit automatic kg in a new B proposal | `FAIL` | Suppressed even with a known equipment device because V22 has no universal load authority. |
+| Main linked progression | Existing `LIVE-RECORD` route | Requires confirmed, identity-matched linked evidence and the existing policy. |
+| Non-main automatic kg | `HOLD_CALIBRATE` | No automatic load step; reps/sets may change through the reviewed candidate. |
+| Squat curve/comparison and other coverage | Existing `SHADOW` | Diagnostic only; it does not authorize the whole V22 plan. |
+| Future weighted-pull-up bodyweight | `UNSUPPORTED` | Recorded unavailable and never fabricated. |
+| Multi-set independent success probability | `UNSUPPORTED` | Follow-up sets remain targets, not multiplied independent probabilities. |
 
 ## Before/after production example
 
-The deterministic review-gate fixture uses a 14-day B plan applied with a start date of 2026-11-16. The candidate is not active until acceptance.
+The public integration fixture uses a two-week, one-day-per-week B plan with `barbell_back_squat` and applies it on 2026-11-16.
 
-| State | Calendar slot | Exercise | Prescription | Load state | Key objective values |
-|---|---|---|---|---|---|
-| Safe baseline | 2026-11-16 (week 1/day 1) | `barbell_back_squat` | 2 × 5 | `USER_CALIBRATION_REQUIRED`, no kg | work sets 2; systemic daily max 2; set delta 0 |
-| Proposed | 2026-11-16 (week 1/day 1) | `barbell_back_squat` | 3 × 5 | `USER_CALIBRATION_REQUIRED`, no kg | work sets 3; systemic daily max 3; set delta +1 |
-| Accepted and saved | same | same | 3 × 5 | unchanged manual calibration | metadata `ACCEPTED_AFTER_EXPLICIT_USER_REVIEW`; save/reopen/calendar path preserves the accepted plan |
+| State | Material plan | Load state | Persistence result |
+|---|---|---|---|
+| Safe baseline | 2 × 5 | `USER_CALIBRATION_REQUIRED`, no kg | Returned before acceptance. |
+| Review proposal | 3 × 5 | `USER_CALIBRATION_REQUIRED`, no kg | Material change and unresolved reasons are shown; still not active. |
+| Explicitly accepted and calibrated | 3 × 5 at 100 kg | `EXPLICIT_LOAD`, source `B_BLOCK_USER_OVERRIDE` | Exact structure plus allowed user calibration passes atomic validation. |
+| Reopened/applied | 3 × 5 at 100 kg | `EXPLICIT_LOAD` | Metadata is `ACCEPTED_AND_PERSISTED`; all three calendar sets reopen unconfirmed at 100 kg. |
 
-The public cold-start engine test also asserts that the actual joint candidate differs materially from `reviewBaselineWeeks`. A public synthetic integration case accepts a material proposal, saves, reopens, and applies it to a calendar date. The optional private real-history integration case additionally performs explicit starting-load calibration when its fixture is available.
+The same test inserts a new confirmed 100 kg workout dated before the evidence cutoff and retries the still-pending accepted proposal. Save fails with `B_COACH_ACCEPTANCE_HISTORY_STALE`, and the program count does not change. An already-persisted reopened program remains normally editable afterward. A separate public engine test proves that two complete goal-importance vectors produce deterministic but materially different whole-block plans.
 
 ## T01–T44 counterexample matrix
 
-Status means the behavior is executable and regression-tested; it does not upgrade an unapproved physiological formula.
+`LocalResult=PASS` means the mapped public executable evidence passed in the 2,806-test local suite. It does not upgrade a `SHADOW`, `TOY`, `UNKNOWN`, or `UNSUPPORTED` physiological rule. `CIResult=NOT_RUN` means this local branch was intentionally not pushed; the successful `main` CI run is recorded separately below.
 
-| ID | Status | Executable evidence |
-|---|---|---|
-| T01 | `AUTO` isolation | `BCoachJointBlockOptimizerTest.T01 another program observations cannot change linked-plan completion` |
-| T02 | `AUTO` identity | `WorkoutSessionIdentityTest.eachProgramApplicationCreatesNewSessionsPerScheduledDay` |
-| T03 | `AUTO` hard constraint | `BCoachJointBlockOptimizerTest.fixedWeekdaysMustRemainFixedAndUnapprovedEquipmentCannotBeInvented` |
-| T04 | `AUTO` hard constraint | `BCoachMultiobjectiveProductionTest.T04 a candidate over the per-session limit is held rather than offered` |
-| T05 | `AUTO` evidence isolation | `BJointExerciseSetOptimizerTest.provisionalStabilizerMetadataDoesNotFreezeReviewedPrimaryAccessory` |
-| T06 | `USER_REVIEW` input semantics | `BCoachMultiobjectiveProductionTest.null importance stays missing while explicit weights normalize only explicit values` |
-| T07 | `AUTO` fixed goal | `BBalancedFocusSearchPolicyTest.T07 T08 T12 fixed and balanced blocks never run hidden multi-focus search` |
-| T08 | `AUTO` balanced constraint | same test; asserts `BALANCED_NO_HIDDEN_FOCUS` and one focus evaluation |
-| T09 | `AUTO` explicit peak mode | `BBlockPurposePrescriptionTest.finalPeakWeekUsesOneRepOneSetOfMainExercise` preserves explicit 3-rep evaluation unless one-rep mode is chosen |
-| T10 | `AUTO` calendar mapping | `BBlockPeriodizationTest.recoveryOnlyOccupiesBlockBoundaries`; `V22ProgramIntegrationTest.new block program with partial recovery survives load calibration and save restore` |
-| T11 | `AUTO` fixed pattern | `BBlockPrescriptionApplicatorTest.fourWeekPatternsChangeActualSetAndRepPrescriptions`; `BBlockPeriodizationTest.supportedWaveLengthsHaveTheAgreedShapes` |
-| T12 | `AUTO` search boundary | `BBalancedFocusSearchPolicyTest.T07 T08 T12 fixed and balanced blocks never run hidden multi-focus search` |
-| T13 | Existing `SHADOW` authority boundary | `BCoachExerciseShadowCoverageTest.only exact canonical keys receive canonical tier and weighted pullup demands bodyweight` |
-| T14 | Existing `SHADOW` fail closed | `BCoachSquatCurveProgressionRankerTest.missing RPE does not fabricate reference e1rm or automatic winner` |
-| T15 | Existing `SHADOW` fail closed | `BCoachSquatShadowProgramComparisonTest.unavailable posterior still preserves baseline and does not invent weight` |
-| T16 | Existing `SHADOW` conflict audit | `BCoachSquatRelativeShadowTest.T16 observed 205kg one-rep limit is retained as a posterior conflict` |
-| T17 | `TOY` test only | `RepetitionCurveRegistryTest.canonical assets are finite monotone and invert deterministically` checks monotonicity and unsupported domain |
-| T18 | `TOY` test only | `RepetitionCurveRegistryTest.T18 T19 reviewed TOY grid and minimax-regret values stay reproducible` checks the documented RIR table |
-| T19 | `TOY` test only | same test checks conditional per-scenario regret and minimax choice |
-| T20 | Existing `SHADOW` fail closed | `BCoachSquatCurveProgressionRankerTest.unknown set target never rewards extra sets` |
-| T21 | Existing `LIVE-RECORD` gate | `BCoachLinkedSquatWeekPlannerTest.unconfirmed or missed previous sets cannot cause progression`; confirmed case also tested |
-| T22 | Existing `SHADOW`/`LIVE-RECORD` hold | `BCoachObservedSquatProgressionTest.load step above two percent falls back to hold`; high-RPE hold in ranker test |
-| T23 | Existing `SHADOW` uncertainty | `RpeRirPolicyTest.known RPE likelihood represents RIR uncertainty exactly once`; RPE 8 is a distribution, not exact RIR 2 |
-| T24 | Existing equipment-grid rule | `BBlockEquipmentIncrementsTest.oneStepUsesEquipmentDisplayUnit`; one-side 1.25 kg means total 2.5 kg and arbitrary 147.3 kg is not generated |
-| T25 | Existing `SHADOW` typed load | `StrengthPerformanceLikelihoodTest.weighted pull-up resolves total load with bodyweight priority and age uncertainty` |
-| T26 | `UNSUPPORTED` future value | `BCoachExerciseShadowCoverageTest.only exact canonical keys receive canonical tier and weighted pullup demands bodyweight`; production input audit records no fabricated future bodyweight |
-| T27 | Existing `SHADOW` fail closed | repetition-curve registry rejects unsupported repetitions/relative load; task reps above 20 are not passed through e1RM |
-| T28 | Existing `SHADOW` boundary | `BCoachSquatRelativeShadowTest.multiset scenarios do not invent predictive performance for later sets` |
-| T29 | Existing `SHADOW` boundary | `BCoachExerciseShadowCoverageTest.reviewed RDL proxy relation cannot pretend to be a canonical posterior` |
-| T30 | Existing `LIVE-RECORD` identity | `BCoachObservedSquatProgressionTest.mismatched exercise track cannot source an increment` |
-| T31 | Existing `SHADOW` observation route | `BCoachExerciseShadowCoverageTest.ordinary barbell lift receives only unranked hold reps and configured-grid actions` |
-| T32 | Existing `SHADOW` task route | `BCoachExerciseShadowCoverageTest.time hold without mechanical load is task-specific and never uses RIR` |
-| T33 | Existing fail closed | exact-key coverage tests plus `BCoachExerciseShadowCoverageTest.no observed evidence is explicit unknown rather than zero performance` |
-| T34 | `USER_REVIEW` | `BCoachMultiobjectiveProductionTest.T34 approved Need is absent so extra sets never become an automatic reward` |
-| T35 | `SHADOW` raw recovery | `BCoachMultiobjectiveProductionTest.T35 raw recent six-axis load is retained while residual decay remains missing` |
-| T36 | `SHADOW` raw recovery | `BCoachMultiobjectiveProductionTest.T36 recovery maximum and mean remain distinct raw values` |
-| T37 | `UNSUPPORTED` without an approved cap | Test proves no candidate claims a cap pass while caps are unavailable; therefore no fabricated exclusion or auto-approval occurs |
-| T38 | `USER_REVIEW` | `BCoachMultiobjectiveProductionTest.T38 an unapproved fatigue cap does not hard-reject a reviewable candidate` |
-| T39 | `SHADOW` explanation | `BCoachMultiobjectiveProductionTest.T39 execution axis reports engineering time without inventing a time-pressure cause` |
-| T40 | `USER_REVIEW` | `BCoachMultiobjectiveProductionTest.T40 missing lambda epsilon and Need keep the candidate in review` |
-| T41 | `UNSUPPORTED` action | `BCoachMultiobjectiveProductionTest.T41 rest-only mutation is not an active production candidate` |
-| T42 | `USER_REVIEW` active action | `BCoachMultiobjectiveProductionTest.T42 set action changes both validity route and evaluated ramp value` |
-| T43 | `USER_REVIEW` mapping trace | `BCoachMultiobjectiveProductionTest.T43 changing only user goal changes mapped input fingerprint deterministically` |
-| T44 | `USER_REVIEW` audit | `BCoachMultiobjectiveProductionTest.T44 fixed inputs equipment and unavailable bodyweight are traceable` |
+| ID | TestClass | TestMethod | SourceCommit | LocalResult | CIResult |
+|---|---|---|---|---|---|
+| T01 | `BCoachJointBlockOptimizerTest` | `T01 another program observations cannot change linked-plan completion` | `49d5ccef` | PASS | NOT_RUN |
+| T02 | `WorkoutSessionIdentityTest` | `eachProgramApplicationCreatesNewSessionsPerScheduledDay` | `1a9308ca` | PASS | NOT_RUN |
+| T03 | `BCoachJointBlockOptimizerTest` | `fixedWeekdaysMustRemainFixedAndUnapprovedEquipmentCannotBeInvented` | `49d5ccef` | PASS | NOT_RUN |
+| T04 | `BCoachMultiobjectiveProductionTest` | `T04 a candidate over the per-session limit is held rather than offered` | `4e506163` | PASS | NOT_RUN |
+| T05 | `BJointExerciseSetOptimizerTest` | `provisionalStabilizerMetadataDoesNotFreezeReviewedPrimaryAccessory` | `d76965eb` | PASS | NOT_RUN |
+| T06 | `BCoachMultiobjectiveProductionTest` | `partial importance stays missing and no incomplete vector is normalized`; `T06 zero importance is invalid rather than unset` | `4e506163` | PASS | NOT_RUN |
+| T07 | `BBalancedFocusSearchPolicyTest` | `T07 T08 T12 fixed and balanced blocks never run hidden multi-focus search` | `49d5ccef` | PASS | NOT_RUN |
+| T08 | `BBalancedFocusSearchPolicyTest` | `T07 T08 T12 fixed and balanced blocks never run hidden multi-focus search` (`BALANCED_NO_HIDDEN_FOCUS`) | `49d5ccef` | PASS | NOT_RUN |
+| T09 | `BBlockPurposePrescriptionTest` | `finalPeakWeekUsesOneRepOneSetOfMainExercise` | `9162504b` | PASS | NOT_RUN |
+| T10 | `V22ProgramIntegrationTest` | `reviewed B candidate materially persists reopens and applies without private fixtures` | `4e506163` | PASS | NOT_RUN |
+| T11 | `BBlockPrescriptionApplicatorTest` | `fourWeekPatternsChangeActualSetAndRepPrescriptions` | `49d5ccef` | PASS | NOT_RUN |
+| T12 | `BBalancedFocusSearchPolicyTest` | `T07 T08 T12 fixed and balanced blocks never run hidden multi-focus search` | `49d5ccef` | PASS | NOT_RUN |
+| T13 | `BCoachExerciseShadowCoverageTest` | `only exact canonical keys receive canonical tier and weighted pullup demands bodyweight` | `44476a1a` | PASS | NOT_RUN |
+| T14 | `BCoachSquatCurveProgressionRankerTest` | `missing RPE does not fabricate reference e1rm or automatic winner` | `454976ee` | PASS | NOT_RUN |
+| T15 | `BCoachSquatShadowProgramComparisonTest` | `unavailable posterior still preserves baseline and does not invent weight` | `4ea4fed9` | PASS | NOT_RUN |
+| T16 | `BCoachSquatRelativeShadowTest` | `T16 observed 205kg one-rep limit is retained as a posterior conflict` | `49d5ccef` | PASS | NOT_RUN |
+| T17 | `RepetitionCurveRegistryTest` | `canonical assets are finite monotone and invert deterministically` | `49d5ccef` | PASS | NOT_RUN |
+| T18 | `RepetitionCurveRegistryTest` | `T18 T19 reviewed TOY grid and minimax-regret values stay reproducible` | `49d5ccef` | PASS | NOT_RUN |
+| T19 | `RepetitionCurveRegistryTest` | `T18 T19 reviewed TOY grid and minimax-regret values stay reproducible` | `49d5ccef` | PASS | NOT_RUN |
+| T20 | `BCoachSquatCurveProgressionRankerTest` | `unknown set target never rewards extra sets` | `454976ee` | PASS | NOT_RUN |
+| T21 | `BCoachLinkedSquatWeekPlannerTest` | `unconfirmed or missed previous sets cannot cause progression` | `3225a57f` | PASS | NOT_RUN |
+| T22 | `BCoachObservedSquatProgressionTest` | `load step above two percent falls back to hold` | `81b65dc6` | PASS | NOT_RUN |
+| T23 | `RpeRirPolicyTest` | `known RPE likelihood represents RIR uncertainty exactly once` | `47ac7d33` | PASS | NOT_RUN |
+| T24 | `BBlockEquipmentIncrementsTest` | `oneStepUsesEquipmentDisplayUnit` | `3dcd370b` | PASS | NOT_RUN |
+| T25 | `StrengthPerformanceLikelihoodTest` | `weighted pull-up resolves total load with bodyweight priority and age uncertainty` | `e6056bf7` | PASS | NOT_RUN |
+| T26 | `BCoachExerciseShadowCoverageTest` | `only exact canonical keys receive canonical tier and weighted pullup demands bodyweight` | `44476a1a` | PASS | NOT_RUN |
+| T27 | `BCoachExerciseShadowCoverageTest` | `task exercise above twenty repetitions is observed but not run through e1rm curve` | `44476a1a` | PASS | NOT_RUN |
+| T28 | `BCoachSquatRelativeShadowTest` | `multiset scenarios do not invent predictive performance for later sets` | `49d5ccef` | PASS | NOT_RUN |
+| T29 | `BCoachExerciseShadowCoverageTest` | `reviewed RDL proxy relation cannot pretend to be a canonical posterior` | `44476a1a` | PASS | NOT_RUN |
+| T30 | `BCoachObservedSquatProgressionTest` | `mismatched exercise track cannot source an increment` | `81b65dc6` | PASS | NOT_RUN |
+| T31 | `BCoachExerciseShadowCoverageTest` | `ordinary barbell lift receives only unranked hold reps and configured-grid actions` | `44476a1a` | PASS | NOT_RUN |
+| T32 | `BCoachExerciseShadowCoverageTest` | `time hold without mechanical load is task-specific and never uses RIR` | `44476a1a` | PASS | NOT_RUN |
+| T33 | `BCoachExerciseShadowCoverageTest` | `no observed evidence is explicit unknown rather than zero performance` | `44476a1a` | PASS | NOT_RUN |
+| T34 | `BCoachMultiobjectiveProductionTest` | `T34 approved Need is absent so extra sets never become an automatic reward` | `49d5ccef` | PASS | NOT_RUN |
+| T35 | `BCoachMultiobjectiveProductionTest` | `T35 raw recent six-axis load is retained while residual decay remains missing` | `49d5ccef` | PASS | NOT_RUN |
+| T36 | `BCoachMultiobjectiveProductionTest` | `T36 recovery maximum and mean remain distinct raw values` | `49d5ccef` | PASS | NOT_RUN |
+| T37 | `BCoachMultiobjectiveProductionTest` | `T37 no candidate claims an approved risk-cap pass when no cap exists` | `49d5ccef` | PASS_WITHHELD | NOT_RUN |
+| T38 | `BCoachMultiobjectiveProductionTest` | `T38 an unapproved fatigue cap does not hard-reject a reviewable candidate` | `49d5ccef` | PASS | NOT_RUN |
+| T39 | `BCoachMultiobjectiveProductionTest` | `T39 execution axis reports engineering time without inventing a time-pressure cause` | `49d5ccef` | PASS | NOT_RUN |
+| T40 | `BCoachMultiobjectiveProductionTest` | `T40 missing lambda epsilon and Need keep the candidate in review` | `49d5ccef` | PASS | NOT_RUN |
+| T41 | `BCoachMultiobjectiveProductionTest` | `T41 rest-only mutation is not an active production candidate` | `49d5ccef` | PASS | NOT_RUN |
+| T42 | `BCoachMultiobjectiveProductionTest` | `T42 set action changes both validity route and evaluated ramp value` | `49d5ccef` | PASS | NOT_RUN |
+| T43 | `BBalancedFocusSearchPolicyTest` | `T43 complete goal vector changes the public whole-block candidate deterministically` | `4e506163` | PASS | NOT_RUN |
+| T44 | `BCoachMultiobjectiveProductionTest` | `T44 fixed inputs equipment and unavailable bodyweight are traceable` | `49d5ccef` | PASS | NOT_RUN |
+
+Additional production-route evidence in `4e506163` covers exact canonical fingerprints, proposal-integrity rejection, manual-kg-only mutation tolerance, stale history/exercise/link rejection, typed unknown/partial/not-applicable values, suppression of unapproved automatic kg, legacy schema compatibility, narrow 320 dp/large-text review UI, exact backup metadata round-trip, and the public accept → calibrate → save → reopen → calendar flow.
 
 ## Validation record
 
-Environment: Android Studio JBR 21, Android SDK at `C:/Users/pki08/AppData/Local/Android/Sdk`, repository `gradlew.bat`, and task-local `GRADLE_USER_HOME`.
+Environment: Windows, Android Studio JBR 21, Android SDK `C:/Users/pki08/AppData/Local/Android/Sdk`, repository `gradlew.bat`.
 
-- `gradlew.bat :app:testDebugUnitTest --no-daemon` initially reached the test task but the Windows Robolectric native runtime crashed outside the JVM with `EXCEPTION_ACCESS_VIOLATION` in `robolectric-nativeruntime.dll`; this was not an assertion failure.
-- The documented local isolation (`forkEvery=1`, `maxParallelForks=2`, `--max-workers=2`) was applied temporarily and removed after validation. Final clean rerun: `gradlew.bat :app:testDebugUnitTest --no-daemon --max-workers=2 --rerun-tasks` — **PASS**, 2,797 tests, 0 failures, 0 errors, 25 skips, 430 XML suites, 12m28s. The skips require private real-history/backup fixtures not present in this checkout; the new focus-policy and acceptance/persistence tests use public synthetic fixtures and ran rather than skipped.
-- Targeted production, TOY curve, narrow/large-text UI, hard-gate, actual engine material-difference, equipment snapshot, and acceptance/persistence tests also passed individually after the final review edits. The last post-review run covered 23 tests: 21 passed and 2 private-fixture integration cases skipped, with 0 failures and 0 errors.
-- `gradlew.bat :app:lintDebug :app:assembleDebug --no-daemon --max-workers=2` — **PASS**, final rerun 2m56s. Lint: 0 errors, 209 warnings, 22 information findings (existing repository findings; largest groups are unused resources, plurals candidates, typography, and dependency updates).
-- Debug APK: `app/build/outputs/apk/debug/app-debug.apk`, 72,775,986 bytes, SHA-256 `26E0EE1317158EB56B80A82573208D3DFA49D4827BBDD9A9A6B93CB00B183498`.
+- Targeted production, persistence, backup, focus-sensitivity, integration, and narrow/large-text UI tests passed during implementation. One intermediate test-compilation failure used a Compose assertion unavailable in this dependency version; it was replaced with supported assertions before the passing runs.
+- Full clean unit suite used temporary Windows Robolectric isolation (`forkEvery=1`, `maxParallelForks=2`) plus `--max-workers=2`; the two build-script lines were removed immediately afterward. `:app:testDebugUnitTest --rerun-tasks` — **PASS**, 2,806 tests, 0 failures, 0 errors, 25 skips, 430 XML suites, Gradle wall time 11m59s. Skips are existing private fixture-dependent cases; the new production integration is public and passed.
+- `:app:lintDebug :app:assembleDebug --no-daemon --max-workers=2` — **PASS**, 3m03s. Lint: 0 errors, 209 warnings, 22 information findings (existing repository findings).
+- Debug APK: `app/build/outputs/apk/debug/app-debug.apk`, 74,383,963 bytes (70.94 MiB), SHA-256 `EBF043C7B0B138E91E219C970B8410F1890A5D191F1487662CDA1700A0B67A1F`.
 - `adb devices -l` returned no connected device, so `connectedDebugAndroidTest` and real-device interaction were not run.
-- Hosted GitHub Actions was inspected read-only. The starting `main` SHA `a41bf89e4b27fc38c1bf4d116d1ea09bbb95b04f` passed workflow `Android Debug Build` (run `43566793803`). Local completion commits were not pushed, so no hosted run exists for the local changes.
+- Hosted CI baseline: `main` SHA `7191410502c1e67ec56c375c2c1d938aafa96e9a` passed `Android Debug Build`, run `43599468361`. Current local commit `4e506163` has no hosted result because the branch was not pushed.
 
 ## Deliberately withheld automatic decisions
 
-- No automatic Need-band deficit/excess optimization until reviewed task mappings and numeric ranges exist.
-- No automatic recovery-cap rejection or residual decay until reviewed six-axis caps and decay are supplied.
-- No automatic cross-axis winner from invented normalizers, lambda weights, or epsilon.
-- No universal initial training kg, no Epley fallback, no proxy-exercise posterior, no cross-exercise kg transfer, and no future bodyweight fabrication.
-- No automatic non-main load step. Unknown loads remain manual even after a roster/set/rep candidate is accepted.
-- No claim that engineering session-time estimates are observed duration or that missed final work proves time pressure.
+- No numeric Need-band deficit/excess optimization without reviewed task mappings and ranges.
+- No recovery-cap rejection or residual decay without reviewed six-axis caps and decay.
+- No cross-axis automatic winner from invented normalizers, lambda weights, or epsilon.
+- No universal initial kg, Epley fallback, proxy-exercise posterior, cross-exercise kg transfer, or future bodyweight fabrication.
+- No automatic non-main kg step. Unknown loads remain manual even after roster/set/rep acceptance.
+- No claim that engineering time estimates are observed duration or that missed work proves time pressure.
+- No real-device, remote backup-provider, or hosted current-branch validation claim.
