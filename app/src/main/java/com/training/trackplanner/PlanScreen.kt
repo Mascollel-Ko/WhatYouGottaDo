@@ -321,6 +321,7 @@ private fun ProgramListScreen(
 ) {
     val context = LocalContext.current
     var deleteTarget by remember { mutableStateOf<TrainingProgram?>(null) }
+    var deleteError by remember { mutableStateOf<String?>(null) }
     var applyTarget by remember { mutableStateOf<TrainingProgram?>(null) }
     var showDraftPicker by remember { mutableStateOf(false) }
     var handledTutorialApplyRequest by rememberSaveable { mutableStateOf(0) }
@@ -339,6 +340,10 @@ private fun ProgramListScreen(
         }
     }
 
+    deleteError?.let { detail ->
+        ProgramDeleteErrorDialog(detail) { deleteError = null }
+    }
+
     deleteTarget?.let { program ->
         AlertDialog(
             onDismissRequest = { deleteTarget = null },
@@ -352,7 +357,7 @@ private fun ProgramListScreen(
                         onDeleteProgram(
                             program,
                             { Toast.makeText(context, "운동 프로그램을 삭제했습니다.", Toast.LENGTH_SHORT).show() },
-                            { message -> Toast.makeText(context, message, Toast.LENGTH_LONG).show() }
+                            { message -> deleteError = message }
                         )
                     }
                 ) {
@@ -1617,6 +1622,7 @@ private fun ProgramDetailScreen(
     val metadataTranslator = rememberMetadataTranslator()
     var infoExerciseKey by rememberSaveable { mutableStateOf<String?>(null) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
+    var deleteError by remember { mutableStateOf<String?>(null) }
     val groupedKeys = remember(items) {
         items.map { it.weekNumber to it.dayOfWeek }
             .distinct()
@@ -1635,6 +1641,10 @@ private fun ProgramDetailScreen(
         }
     }
 
+    deleteError?.let { detail ->
+        ProgramDeleteErrorDialog(detail) { deleteError = null }
+    }
+
     if (confirmDelete) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
@@ -1651,7 +1661,7 @@ private fun ProgramDetailScreen(
                                 onDeleted()
                             },
                             onError = { message ->
-                                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                                deleteError = message
                             }
                         )
                     }
@@ -1935,3 +1945,28 @@ internal fun skeletonFromProgram(snapshot: ProgramEditorSnapshot): GeneratedProg
 
 private const val PROGRAM_ITEM_RESTORE_WARNING = "PROGRAM_ITEM_RESTORE_METADATA_FALLBACK"
 private const val PROGRAM_ITEM_LEGACY_RESTORE_WARNING = "PROGRAM_ITEM_RESTORE_LEGACY_FALLBACK"
+
+/** Full details are needed because a generic Toast conceals the failed backup invariant. */
+@Composable
+private fun ProgramDeleteErrorDialog(message: String, onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { androidx.compose.material3.Text("프로그램 삭제 실패 원인") },
+        text = { androidx.compose.material3.Text(message) },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { androidx.compose.material3.Text("확인") }
+        },
+        dismissButton = {
+            TextButton(onClick = {
+                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE)
+                    as? android.content.ClipboardManager
+                clipboard?.setPrimaryClip(
+                    android.content.ClipData.newPlainText("프로그램 삭제 실패 원인", message)
+                )
+            }) {
+                androidx.compose.material3.Text("원인 복사")
+            }
+        }
+    )
+}
