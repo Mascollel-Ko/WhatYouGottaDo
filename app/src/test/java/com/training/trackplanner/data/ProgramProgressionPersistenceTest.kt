@@ -293,7 +293,8 @@ class ProgramProgressionPersistenceTest {
             reasons = "B_COACH_GATE_H_AUTO_AFTER_CONFIRM_LOAD_UP_ONE_STEP",
             evidenceHash = "e1rm-observed-130x6",
             resolution = ProgressionResolution.ACCEPTED,
-            resolvedKg = 131.5
+            resolvedKg = 131.5,
+            rule = ProgressionRule()
         ))
         val rows = ProgramProgressionBackup.export(db)
         assertEquals(1, rows.count { it.type == "execution_suggestion" })
@@ -328,7 +329,8 @@ class ProgramProgressionPersistenceTest {
             reasons = "B_COACH_GATE_H_AUTO_AFTER_CONFIRM",
             evidenceHash = "historical-zero-plan",
             resolution = ProgressionResolution.ACCEPTED,
-            resolvedKg = 131.5
+            resolvedKg = 131.5,
+            rule = ProgressionRule()
         ))
 
         records.forEach { record ->
