@@ -197,7 +197,13 @@ internal fun ProgressionSettingsSheet(track: ProgramProgressionTrack, binding: P
     currentOccurrence: String = "",
     currentMembership: String = ""
 ) {
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    // The session selector can be longer than a partially expanded sheet,
+    // especially when linked-program positions and explanatory text are shown.
+    // Open fully so every choice remains reachable by the inner scroll container.
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ) {
         ProgressionSettingsContent(track, binding, tracks, sessionOptions, currentOccurrence, currentMembership, onSave)
     }
 }
