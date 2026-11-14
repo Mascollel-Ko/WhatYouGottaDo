@@ -82,6 +82,7 @@ import com.training.trackplanner.data.v22.BBlockProgramDefinition
 import com.training.trackplanner.data.v22.BBlockEquipmentIncrements
 import com.training.trackplanner.data.v22.BCoachSquatShadowProgramComparison
 import com.training.trackplanner.data.v22.BCoachExerciseShadowCoverageRow
+import com.training.trackplanner.data.v22.BCoachMultiobjectiveProposal
 import com.training.trackplanner.data.v22.BBlockDefinition
 import com.training.trackplanner.data.v22.BBlockGoal
 import com.training.trackplanner.data.v22.BPeakTestMode
@@ -125,6 +126,42 @@ internal fun personalizedQuestionShortLabel(question: PersonalizedPlanningQuesti
             "${start.monthValue}/${start.dayOfMonth}~${end.monthValue}/${end.dayOfMonth} 운동량 감소 이유"
         }
     }
+}
+
+@Composable
+internal fun BCoachProductionReviewDialog(
+    changeCount: Int,
+    unreliableExerciseCount: Int,
+    onApply: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("B-Coach 전체 블록 후보 검토") },
+        text = {
+            Column(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState())
+                .testTag("b_coach_review_content")) {
+                Text(
+                    "현재 초안은 안전한 유지안입니다. 다목적 후보는 ${changeCount}개 변경을 " +
+                        "제안하지만 Need·회복 한도·교환 가중치는 아직 승인되지 않아 자동 적용하지 않습니다. " +
+                        "미확정 중량은 계속 사용자 보정으로 남습니다. " +
+                        (unreliableExerciseCount.takeIf { it > 0 }
+                            ?.let { "기록 부족 운동 ${it}개가 포함됩니다. " } ?: "") +
+                        "이 후보를 현재 초안에 명시적으로 적용할까요?"
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = onApply, modifier = Modifier.testTag("b_coach_review_apply")) {
+                Text("후보 적용")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, modifier = Modifier.testTag("b_coach_review_keep")) {
+                Text("유지안 사용")
+            }
+        }
+    )
 }
 
 @Composable
@@ -569,6 +606,9 @@ private fun ProgramEditorScreen(
     var pendingBReview by remember(program?.id) {
         mutableStateOf<BBlockConfidenceReview.Decision?>(null)
     }
+    var pendingBProductionProposal by remember(program?.id) {
+        mutableStateOf<BCoachMultiobjectiveProposal?>(null)
+    }
     var pendingLoadOverwrite by remember(program?.id) {
         mutableStateOf<GeneratedProgramSkeleton?>(null)
     }
@@ -684,6 +724,7 @@ private fun ProgramEditorScreen(
         v22SkeletonCreated = false
         squatShadowComparison = null
         otherExerciseShadowCoverage = emptyList()
+        pendingBProductionProposal = null
         personalizedDraft = emptyProgramSkeleton(
             request = blankProgramRequest(),
             weekDaySchedule = defaultProgramWeekDaySchedule(4, 3)
@@ -698,6 +739,7 @@ private fun ProgramEditorScreen(
         otherExerciseShadowCoverage = emptyList()
         pendingConservativeBBlock = null
         pendingBReview = null
+        pendingBProductionProposal = null
         val blockLayout = if (bCustomizeBlocks) BBlockProgramDefinition(bBlocks, bRecoveryBetween)
             else BBlockProgramDefinition(blocks = listOf(bBasicAdvancedBlock.copy(pattern = bBlockPattern)))
         viewModel.generateV22Program(
@@ -726,7 +768,15 @@ private fun ProgramEditorScreen(
             val review = generated.balanced12WeekPlan?.let {
                 BBlockConfidenceReview.evaluate(it, blockLayout)
             }
-            if (review?.requiresApproval == true) {
+            val productionProposal = generated.bCoachMultiobjectiveProposal
+            if (productionProposal != null) {
+                // Persisted/draft state remains the safe fallback until this exact
+                // candidate fingerprint is accepted against the unchanged fallback.
+                personalizedDraft = proposed
+                v22SkeletonCreated = true
+                pendingBReview = review
+                pendingBProductionProposal = productionProposal
+            } else if (review?.requiresApproval == true) {
                 // Review is exercise-scoped: even partly missing records need user approval.
                 pendingBReview = review
                 pendingConservativeBBlock = proposed
@@ -735,6 +785,35 @@ private fun ProgramEditorScreen(
                 v22SkeletonCreated = true
             }
         }
+    }
+
+    pendingBProductionProposal?.let { proposal ->
+        val decision = proposal.decision
+        BCoachProductionReviewDialog(
+            changeCount = decision.changes.size,
+            unreliableExerciseCount = pendingBReview?.unreliableExerciseKeys?.size ?: 0,
+            onDismiss = {
+                pendingBProductionProposal = null
+                pendingBReview = null
+            },
+            onApply = {
+                val current = personalizedDraft
+                val fingerprint = decision.candidateFingerprint
+                val acceptance = if (current == null || fingerprint == null) null
+                    else proposal.accept(fingerprint, current)
+                if (acceptance?.accepted == true && acceptance.skeleton != null) {
+                    personalizedDraft = acceptance.skeleton.withResolvedWeekDaySchedule()
+                    pendingBProductionProposal = null
+                    pendingBReview = null
+                } else {
+                    Toast.makeText(
+                        context,
+                        "후보가 오래되었거나 초안이 변경되었습니다. 다시 생성해 주세요.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        )
     }
 
     pendingConservativeBBlock?.let { proposed ->

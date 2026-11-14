@@ -86,7 +86,8 @@ internal object BBlockPrescriptionApplicator {
                             (it.reps ?: 0) > 0 &&
                                 (if (stage > 0) (it.reps ?: 0) < upper else (it.reps ?: 0) > lower)
                         }
-                        BProgressionField.LOAD -> loadCompatible
+                        // Non-main loads stay at the user-confirmed first-week value.
+                        BProgressionField.LOAD -> main && loadCompatible
                         BProgressionField.MOVEMENT_QUALITY -> false
                     }
                 }

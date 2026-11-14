@@ -4,7 +4,14 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.ProgramApplyMode
+import com.training.trackplanner.data.ProgramGoal
+import com.training.trackplanner.data.ProgramLoadState
+import com.training.trackplanner.data.ProgramPeriodizationType
+import com.training.trackplanner.data.ProgramSetPrescription
+import com.training.trackplanner.data.ProgramSkeletonItem
+import com.training.trackplanner.data.ProgramSkeletonRequest
 import com.training.trackplanner.data.TrainingDatabase
 import com.training.trackplanner.data.TrainingRepository
 import com.training.trackplanner.data.WorkoutEntry
@@ -107,6 +114,70 @@ class V22ProgramIntegrationTest {
         assertEquals(8, db.workoutDao().entriesWithSets("2026-10-10").single().sets.size)
         assertFalse(requireNotNull(generated.plan).authority.executionMissCarryover)
         assertTrue(requireNotNull(generated.plan).authority.structuralPlanningOnly)
+    }
+
+    @Test
+    fun `reviewed B candidate materially persists reopens and applies without private fixtures`() = runBlocking {
+        val db = Room.inMemoryDatabaseBuilder(context, TrainingDatabase::class.java)
+            .allowMainThreadQueries().build().also(databases::add)
+        val exercise = Exercise(
+            stableKey = "barbell_back_squat", name = "Back squat", category = "근력운동",
+            equipment = "BARBELL", metadataConfidence = "REVIEWED", systemicLoadWeight = 1.0
+        )
+        db.exerciseDao().insertExercise(exercise)
+        val programRequest = ProgramSkeletonRequest(
+            name = "review integration", goal = ProgramGoal.FUNCTIONAL_CONDITIONING,
+            weeklyTrainingDays = 1, sessionMinutes = 60, availableEquipment = emptySet(),
+            excludedExerciseText = "", badmintonTransferRatio = 0.0, sportStrengthRatio = "AUTO",
+            periodizationType = ProgramPeriodizationType.AUTO, durationWeeks = 2
+        )
+        fun skeleton(setCount: Int): GeneratedProgramSkeleton {
+            val prescriptions = List(setCount) { index -> ProgramSetPrescription(
+                setIndex = index + 1, reps = 5, weightKg = 0.0, seconds = 0,
+                targetRpeMin = null, loadState = ProgramLoadState.USER_CALIBRATION_REQUIRED
+            ) }
+            return GeneratedProgramSkeleton(
+                suggestedName = programRequest.name, durationDays = 14, request = programRequest,
+                periodizationType = ProgramPeriodizationType.AUTO, weekPlans = emptyList(),
+                items = listOf(ProgramSkeletonItem(
+                    localId = "w1-d1-squat", weekNumber = 1, dayOfWeek = 1, orderIndex = 1,
+                    exerciseStableKey = exercise.stableKey, exerciseName = exercise.name,
+                    category = exercise.category, restSeconds = 120, prescription = "review",
+                    setCount = setCount, reps = 5, weightKg = 0.0, seconds = 0,
+                    selectionReason = "integration", weightSource = "USER_CALIBRATION_REQUIRED",
+                    setPrescriptions = prescriptions
+                )), planningMetadataJson = "{}"
+            )
+        }
+        val generationRequest = V22GenerationRequest(
+            name = programRequest.name, weeks = 2, days = 1, mode = V22Mode.B,
+            asOf = LocalDate.of(2026, 11, 14), sessionMinutes = 60,
+            blockProgram = BBlockProgramDefinition(listOf(BBlockDefinition(weeks = 2)))
+        )
+        val outcome = BCoachMultiobjectiveProduction.prepare(
+            generationRequest, emptyList(), mapOf(exercise.stableKey to exercise),
+            baseline = skeleton(2), candidate = skeleton(3)
+        )
+        val accepted = requireNotNull(outcome.proposal).accept(
+            requireNotNull(outcome.decision.candidateFingerprint), outcome.skeleton
+        )
+        val acceptedSkeleton = requireNotNull(accepted.skeleton)
+        assertEquals(3, acceptedSkeleton.items.single().setCount)
+
+        val repository = TrainingRepository(db, context)
+        val programId = repository.saveGeneratedProgram(null, acceptedSkeleton)
+        val reopened = skeletonFromProgram(repository.programEditorSnapshot(programId))
+        assertEquals(3, reopened.items.single().setCount)
+        assertTrue(reopened.planningMetadataJson.orEmpty()
+            .contains("ACCEPTED_AFTER_EXPLICIT_USER_REVIEW"))
+
+        repository.applyProgramToDates(programId, "2026-11-16", ProgramApplyMode.Append)
+        val applied = db.workoutDao().entriesWithSets("2026-11-16").single()
+        assertEquals(exercise.stableKey, applied.entry.exerciseStableKey)
+        assertEquals(3, applied.sets.size)
+        assertTrue(applied.sets.all {
+            !it.confirmed && it.weightKg == 0.0 && it.loadState == ProgramLoadState.USER_CALIBRATION_REQUIRED
+        })
     }
 
     @Test
@@ -251,7 +322,17 @@ class V22ProgramIntegrationTest {
             importance = BBalancedGoalImportance(),
             blockProgram = layout
         ))
-        val initial = generated.skeleton
+        val proposal = requireNotNull(generated.bCoachMultiobjectiveProposal) {
+            "Expected the joint whole-block candidate to require explicit review"
+        }
+        val acceptance = proposal.accept(
+            requireNotNull(generated.bCoachMultiobjectiveDecision?.candidateFingerprint),
+            generated.skeleton
+        )
+        assertTrue(acceptance.accepted)
+        val initial = requireNotNull(acceptance.skeleton)
+        assertTrue(initial.planningMetadataJson.orEmpty()
+            .contains("ACCEPTED_AFTER_EXPLICIT_USER_REVIEW"))
         assertEquals(BBalanced12WeekEngine.BLOCK_SCHEMA, generated.balanced12WeekPlan?.schema)
         assertEquals(45, initial.durationDays)
         assertEquals(7, initial.request.durationWeeks)
@@ -306,6 +387,8 @@ class V22ProgramIntegrationTest {
         val reopened = skeletonFromProgram(repository.programEditorSnapshot(id))
         assertEquals(45, reopened.durationDays)
         assertEquals(7, reopened.weekPlans.size)
+        assertTrue(reopened.planningMetadataJson.orEmpty()
+            .contains("ACCEPTED_AFTER_EXPLICIT_USER_REVIEW"))
         assertTrue(reopened.items.any {
             it.weekNumber == next.weekNumber && it.dayOfWeek == next.dayOfWeek &&
                 it.exerciseStableKey == next.exerciseStableKey &&

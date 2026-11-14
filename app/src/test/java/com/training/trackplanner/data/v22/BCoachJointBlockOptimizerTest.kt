@@ -132,6 +132,20 @@ class BCoachJointBlockOptimizerTest {
     }
 
     @Test
+    fun `T01 another program observations cannot change linked-plan completion`() {
+        val linkedOnly = BCoachJointBlockOptimizer.evidence(
+            emptyList(), today, linkedDuePlannedSets = 10, linkedConfirmedSets = 8)
+        val withOtherProgramRows = BCoachJointBlockOptimizer.evidence(
+            listOf(V22HistoryRow(today.minusDays(1), "other", "other_program_lift", "근력운동",
+                1, 5.0, 200.0, null, 10.0)),
+            today, linkedDuePlannedSets = 10, linkedConfirmedSets = 8)
+
+        assertEquals(0.8, linkedOnly.plannedCompletionRate!!, 0.0)
+        assertEquals(linkedOnly.plannedCompletionRate, withOtherProgramRows.plannedCompletionRate)
+        assertEquals("LINKED_SAME_APPLICATION_CONFIRMED_SETS", withOtherProgramRows.authority)
+    }
+
+    @Test
     fun selectedMainIsNotEveryExerciseWithMainCapability() {
         val trial = listOf(day(1,
             item("main_a", 3, true), item("main_b", 1, false)))

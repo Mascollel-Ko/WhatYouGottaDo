@@ -270,7 +270,11 @@ data class V22GeneratedProgram(
     /** Transient read-only experiment; never persisted in GeneratedProgramSkeleton. */
     val squatShadowComparison: BCoachSquatShadowProgramComparison? = null,
     /** Gate E: other exercise coverage only. Never an approved progression. */
-    val otherExerciseShadowCoverage: List<BCoachExerciseShadowCoverageRow> = emptyList()
+    val otherExerciseShadowCoverage: List<BCoachExerciseShadowCoverageRow> = emptyList(),
+    /** Typed eight-axis decision and authority status for the V22 B production path. */
+    val bCoachMultiobjectiveDecision: BCoachMultiobjectiveDecision? = null,
+    /** Transient candidate. It can change the saved draft only after fingerprinted acceptance. */
+    val bCoachMultiobjectiveProposal: BCoachMultiobjectiveProposal? = null
 )
 
 enum class BBalancedNumericAuthority {
@@ -340,5 +344,7 @@ data class BBalanced12WeekPlan(
     val search: BBalancedSearchStats,
     val legacyComparatorSchema: String,
     val limitations: List<String>,
-    val metadataJson: String
+    val metadataJson: String,
+    /** Pre-joint-search plan retained as the safe persisted fallback until review acceptance. */
+    val reviewBaselineWeeks: List<V22Week> = emptyList()
 )

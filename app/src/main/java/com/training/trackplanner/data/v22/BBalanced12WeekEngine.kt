@@ -123,7 +123,10 @@ internal object BBalanced12WeekEngine {
                     BBlockGoal.STRENGTH, BBlockGoal.PEAK_EVALUATION -> listOf(BBalancedGoal.STRENGTH)
                     BBlockGoal.HYPERTROPHY -> listOf(BBalancedGoal.HYPERTROPHY)
                     BBlockGoal.SPORT_SUPPORT -> listOf(BBalancedGoal.SPORT_SUPPORT)
-                    BBlockGoal.AUTO, BBlockGoal.BALANCED -> goals
+                    BBlockGoal.AUTO -> goals
+                    // Keep the legacy non-null focus field for schema compatibility,
+                    // but do not search or allocate toward any hidden focus.
+                    BBlockGoal.BALANCED -> listOf(BBalancedGoal.STRENGTH)
                 }
                 sequences.flatMap { prior -> permitted.map { prior + it } }
             }
@@ -131,7 +134,11 @@ internal object BBalanced12WeekEngine {
         for (focuses in focusSequences) {
             evaluated++
             val blocks = focuses.mapIndexed { index, focus ->
-                val roster = rebalance(trimmed, focus, contributions, historyCeilings)
+                // BALANCED carries no hidden block focus. Long-term explicit
+                // importance may still rank joint candidates later, but this
+                // legacy focus loop cannot silently reallocate its seed roster.
+                val roster = if (specification?.blocks?.get(index)?.goal == BBlockGoal.BALANCED)
+                    trimmed else rebalance(trimmed, focus, contributions, historyCeilings)
                 if (specification == null) roster else BBlockPurposePrescription.prepare(
                     roster, specification.blocks[index], mainExerciseKeys, exercises, focus
                 )
@@ -152,6 +159,8 @@ internal object BBalanced12WeekEngine {
         val chosen = requireNotNull(best) { "No feasible B balanced candidate within the supplied time constraint" }
         var weekCursor = 1
         val completedSelections = mutableListOf<List<V22Session>>()
+        val completedFallbackSelections = mutableListOf<List<V22Session>>()
+        val fallbackBlockSessions = mutableListOf<List<V22Session>>()
         val selectionBeforeJoint = mutableListOf<List<V22Session>>()
         val jointAudits = mutableListOf<BJointExerciseSetOptimizer.Result>()
         val coachAudits = mutableListOf<BCoachJointBlockOptimizer.Result>()
@@ -163,6 +172,23 @@ internal object BBalanced12WeekEngine {
         )
         val blocks = chosen.focuses.mapIndexed { index, focus ->
             val relation = specification?.blocks?.get(index)?.relationToPrevious?.active()
+            val fallbackSelectedSessions = if (specification != null && index > 0)
+                reselectBlockFromPlannedHistory(
+                    chosen.sessions[index], completedFallbackSelections, focus, relation,
+                    specification.blocks.take(index).map(BBlockDefinition::weeks),
+                    rows, request.asOf, exercises, contributions, targets, mainExerciseKeys
+                ) else chosen.sessions[index]
+            val fallbackPurposeSessions = if (specification == null) fallbackSelectedSessions
+                else BBlockPurposePrescription.prepare(
+                    sessions = fallbackSelectedSessions,
+                    block = specification.blocks[index],
+                    mainKeys = BCoachJointBlockOptimizer.selectedMainKeys(
+                        fallbackSelectedSessions, mainExerciseKeys),
+                    exercises = exercises,
+                    autoFocus = focus
+                )
+            fallbackBlockSessions += fallbackPurposeSessions
+            completedFallbackSelections += fallbackPurposeSessions
             val selectedSessions = if (specification != null && index > 0)
                 reselectBlockFromPlannedHistory(
                     chosen.sessions[index], completedSelections, focus, relation,
@@ -221,7 +247,9 @@ internal object BBalanced12WeekEngine {
                 startWeek = startWeek,
                 endWeek = endWeek,
                 focus = focus,
-                focusReasons = focusReasons(focus, targets, selectedEvaluation) +
+                focusReasons = (if (specification?.blocks?.get(index)?.goal == BBlockGoal.BALANCED)
+                    listOf("BALANCED_NO_HIDDEN_FOCUS", "LEGACY_FOCUS_LABEL_ONLY")
+                else focusReasons(focus, targets, selectedEvaluation)) +
                     (if (index > 0 && specification != null) listOf("RESELECT_WITH_PREVIOUS_PLANNED_EXPOSURE")
                         else emptyList()),
                 sessions = purposeSessions,
@@ -235,17 +263,27 @@ internal object BBalanced12WeekEngine {
                 )
             }
         }
-        val weeks = blocks.flatMap { block ->
-            (block.startWeek..block.endWeek).map { week ->
+        val fallbackResolvedAmplitudes = fallbackBlockSessions.mapIndexed { index, sessions ->
+            specification?.blocks?.get(index)?.let { spec ->
+                BBlockPrescriptionApplicator.resolveAmplitude(spec, rows, request.asOf, sessions)
+            }
+        }
+        fun materializeWeeks(
+            blockSessions: List<List<V22Session>>,
+            amplitudes: List<BChangeAmplitude?>
+        ): List<V22Week> =
+            blocks.flatMap { block ->
+                (block.startWeek..block.endWeek).map { week ->
                 val spec = specification?.blocks?.get(block.block - 1)
                 val stage = spec?.let { BBlockPeriodization.steps(it)[week - block.startWeek] } ?: 0
-                val sessions = block.sessions.map { session ->
+                val sourceSessions = blockSessions[block.block - 1]
+                val sessions = sourceSessions.map { session ->
                     val adjusted = if (spec == null) session else {
                         val selectedMainKeys = BCoachJointBlockOptimizer.selectedMainKeys(
-                            block.sessions, mainExerciseKeys)
+                            sourceSessions, mainExerciseKeys)
                         val periodized = BBlockPrescriptionApplicator.apply(
                             session, stage, block.focus, spec, selectedMainKeys,
-                            exercises, resolvedAmplitudes[block.block - 1] ?: BChangeAmplitude.SMALL
+                            exercises, amplitudes[block.block - 1] ?: BChangeAmplitude.SMALL
                         )
                         BBlockPurposePrescription.finishWeek(
                             periodized, spec, week == block.endWeek, selectedMainKeys
@@ -264,6 +302,8 @@ internal object BBalanced12WeekEngine {
                 V22Week(week, block.block, sessions, sessions.sumOf(V22Session::nominalSets))
             }
         }
+        val weeks = materializeWeeks(blocks.map(BBalancedBlock::sessions), resolvedAmplitudes)
+        val reviewBaselineWeeks = materializeWeeks(fallbackBlockSessions, fallbackResolvedAmplitudes)
         val search = BBalancedSearchStats(
             evaluatedCandidates = evaluated,
             feasibleCandidates = feasible,
@@ -305,6 +345,8 @@ internal object BBalanced12WeekEngine {
                     put("blockSpecs", JSONArray(specification.blocks.mapIndexed { index, block ->
                         JSONObject().put("block", index + 1).put("weeks", block.weeks)
                             .put("goal", block.goal.name).put("pattern", block.pattern.name)
+                            .put("focusPolicy", if (block.goal == BBlockGoal.BALANCED)
+                                "BALANCED_NO_HIDDEN_FOCUS" else "EXPLICIT_OR_AUTO_SEARCH")
                             .put("adjustment", block.adjustment.name).put("amplitude", block.amplitude.name)
                             .put("resolvedAmplitude", resolvedAmplitudes[index]?.name ?: BChangeAmplitude.SMALL.name)
                             .put("peakTestMode", block.peakTestMode.name)
@@ -411,7 +453,8 @@ internal object BBalanced12WeekEngine {
             search = search,
             legacyComparatorSchema = legacy?.schema ?: "UNAVAILABLE_NO_ELIGIBLE_PERSONAL_HISTORY",
             limitations = limitations,
-            metadataJson = metadata
+            metadataJson = metadata,
+            reviewBaselineWeeks = reviewBaselineWeeks
         ).also(::validate)
     }
 

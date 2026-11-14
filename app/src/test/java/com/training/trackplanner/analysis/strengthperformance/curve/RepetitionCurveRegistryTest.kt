@@ -108,4 +108,39 @@ class RepetitionCurveRegistryTest {
             }
         }
     }
+
+    @Test
+    fun `T18 T19 reviewed TOY grid and minimax-regret values stay reproducible`() {
+        val curve = registry.resolve("barbell_back_squat")
+        val capacities = listOf(116.0, 120.0, 124.0)
+        val loads = listOf(100.0, 102.5, 105.0)
+        val expectedRir = listOf(
+            listOf(1.581, 2.995, 4.417),
+            listOf(0.605, 1.960, 3.346),
+            listOf(-0.238, 0.986, 2.319)
+        )
+        fun rir(load: Double, capacity: Double): Double =
+            checkNotNull(curve.profile.invert(load / capacity).repetitions) - 5.0
+        fun bandLoss(value: Double): Double = when {
+            value < 1.0 -> (1.0 - value) * (1.0 - value)
+            value > 3.0 -> (value - 3.0) * (value - 3.0)
+            else -> 0.0
+        }
+
+        val actual = loads.map { load -> capacities.map { capacity -> rir(load, capacity) } }
+        actual.indices.forEach { loadIndex ->
+            actual[loadIndex].indices.forEach { scenarioIndex ->
+                assertEquals(expectedRir[loadIndex][scenarioIndex], actual[loadIndex][scenarioIndex], 0.002)
+            }
+        }
+        val losses = actual.map { row -> row.map(::bandLoss) }
+        val scenarioBest = capacities.indices.map { scenario -> losses.minOf { it[scenario] } }
+        val maxRegret = losses.map { row ->
+            row.indices.maxOf { scenario -> row[scenario] - scenarioBest[scenario] }
+        }
+        assertEquals(2.008, maxRegret[0], 0.006)
+        assertEquals(0.156, maxRegret[1], 0.006)
+        assertEquals(1.532, maxRegret[2], 0.006)
+        assertEquals(1, maxRegret.indices.minBy(maxRegret::get))
+    }
 }

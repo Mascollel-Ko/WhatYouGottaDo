@@ -203,6 +203,16 @@ class BCoachSquatRelativeShadowTest {
     }
 
     @Test
+    fun `T16 observed 205kg one-rep limit is retained as a posterior conflict`() {
+        val result = evaluate(evidence(load = 205.0, reps = 1, rpe = 10.0, sets = 1,
+            high80Override = 190.0))
+        assertEquals(205.0, result.anchorSet!!.loadKg, 0.0)
+        assertEquals(205.0, result.lowerBoundCapacityFromAnchorKg!!, 1e-9)
+        assertTrue(result.observedLowerBoundExceedsPosteriorHigh80)
+        assertTrue(result.notes.any { it.startsWith("OBSERVED_CAPACITY_LOWER_BOUND_EXCEEDS") })
+    }
+
+    @Test
     fun `without a confirmed anchor no relative prediction or fabricated candidate is produced`() {
         val data = evidence().copy(latestAnchor = null)
         val result = evaluate(data)

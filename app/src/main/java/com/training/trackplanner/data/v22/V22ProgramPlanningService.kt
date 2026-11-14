@@ -76,17 +76,36 @@ internal class V22ProgramPlanningService(
         )
         val comparator = runCatching { V22PythonParityEngine.build(history, effectiveRequest) }.getOrNull()
             ?.takeIf { plan -> plan.weeks.firstOrNull()?.sessions?.any { it.items.isNotEmpty() } == true }
-        val baseSkeleton = balanced.toSkeleton(effectiveRequest, exercises)
+        val candidateBaseSkeleton = balanced.toSkeleton(effectiveRequest, exercises)
+        val fallbackBaseSkeleton = balanced.toSkeleton(
+            effectiveRequest,
+            exercises,
+            balanced.reviewBaselineWeeks.ifEmpty { balanced.weeks }
+        )
         // Preserve the actual plate size the user entered at generation time. The profile
         // can change later; an applied program must never silently pick up a different grid.
-        val skeleton = effectiveRequest.bShadowPlateOneSideKg
-            ?.takeIf { it.isFinite() && it in 0.1..25.0 }
-            ?.let { plate ->
-                val metadata = org.json.JSONObject(baseSkeleton.planningMetadataJson ?: "{}")
+        fun withEquipmentSnapshot(value: GeneratedProgramSkeleton): GeneratedProgramSkeleton {
+            val metadata = org.json.JSONObject(value.planningMetadataJson ?: "{}")
+            effectiveRequest.bShadowPlateOneSideKg
+                ?.takeIf { it.isFinite() && it in 0.1..25.0 }
+                ?.let { plate ->
                 metadata.put("bCoachProgressionEquipmentSchema", "linked-g-1")
                 metadata.put("bCoachPlateOneSideKg", plate)
-                baseSkeleton.copy(planningMetadataJson = metadata.toString())
-            } ?: baseSkeleton
+            }
+            metadata.put("bCoachDumbbellDisplayedIncrementKg",
+                effectiveRequest.bShadowDumbbellIncrementKg ?: org.json.JSONObject.NULL)
+            metadata.put("bCoachMachineDisplayedIncrementKg",
+                effectiveRequest.bShadowMachineIncrementKg ?: org.json.JSONObject.NULL)
+            return value.copy(planningMetadataJson = metadata.toString())
+        }
+        val candidateSkeleton = withEquipmentSnapshot(candidateBaseSkeleton)
+        val fallbackSkeleton = withEquipmentSnapshot(fallbackBaseSkeleton)
+        val production = effectiveRequest.blockProgram?.let {
+            BCoachMultiobjectiveProduction.prepare(
+                effectiveRequest, history, exercises, fallbackSkeleton, candidateSkeleton
+            )
+        }
+        val skeleton = production?.skeleton ?: candidateSkeleton
         // Gate D is strictly a side-channel. No exception, missing posterior, or score may
         // modify or prevent the existing B program from being generated and saved as before.
         val shadow = effectiveRequest.bShadowPlateOneSideKg
@@ -150,13 +169,22 @@ internal class V22ProgramPlanningService(
                 increments = increments
             )
         }.getOrDefault(emptyList())
-        return V22GeneratedProgram(comparator, skeleton, balanced, shadow, otherCoverage)
+        return V22GeneratedProgram(
+            comparator,
+            skeleton,
+            balanced,
+            shadow,
+            otherCoverage,
+            production?.decision,
+            production?.proposal
+        )
     }
 }
 
 internal fun BBalanced12WeekPlan.toSkeleton(
     request: V22GenerationRequest,
-    exercises: Map<String, Exercise>
+    exercises: Map<String, Exercise>,
+    sourceWeeks: List<V22Week> = weeks
 ): GeneratedProgramSkeleton {
     val blockCalendar = request.blockProgram?.let(::BBlockCalendar)
     val calendarWeeks = blockCalendar?.calendarWeeks ?: input.weeks
@@ -173,7 +201,7 @@ internal fun BBalanced12WeekPlan.toSkeleton(
         durationWeeks = calendarWeeks
     )
     val focusByBlock = blocks.associate { it.block to it.focus }
-    val items = weeks.flatMap { week ->
+    val items = sourceWeeks.flatMap { week ->
         week.sessions.flatMap { session ->
             session.items.mapIndexed { index, item ->
                 val sets = item.sets.mapIndexed { setIndex, set ->
@@ -227,7 +255,7 @@ internal fun BBalanced12WeekPlan.toSkeleton(
         request = skeletonRequest,
         periodizationType = ProgramPeriodizationType.AUTO,
         weekPlans = (1..calendarWeeks).map { calendarWeek ->
-            val active = weeks.lastOrNull { week ->
+            val active = sourceWeeks.lastOrNull { week ->
                 val block = blocks[week.block - 1]
                 val mapped = blockCalendar?.slot(week.block - 1, week.week - block.startWeek, 1)
                 if (blockCalendar == null) week.week == calendarWeek
@@ -267,11 +295,25 @@ internal fun BBalanced12WeekPlan.toSkeleton(
         planningMetadataJson = if (schema == BBalanced12WeekEngine.BLOCK_SCHEMA) {
             org.json.JSONObject(metadataJson).apply {
                 val kinds = org.json.JSONObject()
-                weeks.flatMap(V22Week::sessions).flatMap(V22Session::items)
+                sourceWeeks.flatMap(V22Week::sessions).flatMap(V22Session::items)
                     .map(V22ExercisePlan::stableKey).distinct().forEach { key ->
                         kinds.put(key, BBlockEquipmentIncrements.kind(key, exercises[key]).name)
                     }
                 put("equipmentIncrementKinds", kinds)
+                put("prescriptionSteps", org.json.JSONArray(sourceWeeks.flatMap { week ->
+                    week.sessions.flatMap { session ->
+                        session.items.map { item ->
+                            val steps = Regex("LOAD_STEPS=(-?[0-9]+)")
+                                .find(item.plannedProgression.orEmpty())?.groupValues?.getOrNull(1)
+                                ?.toIntOrNull() ?: 0
+                            org.json.JSONObject().put("block", week.block)
+                                .put("localWeek", week.week - blocks[week.block - 1].startWeek)
+                                .put("session", session.session)
+                                .put("stableKey", item.stableKey)
+                                .put("loadSteps", steps)
+                        }
+                    }
+                }))
             }.toString()
         } else metadataJson
     )

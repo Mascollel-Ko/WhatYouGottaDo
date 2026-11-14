@@ -1,0 +1,344 @@
+package com.training.trackplanner.data.v22
+
+import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.GeneratedProgramSkeleton
+import com.training.trackplanner.data.ProgramGoal
+import com.training.trackplanner.data.ProgramLoadState
+import com.training.trackplanner.data.ProgramPeriodizationType
+import com.training.trackplanner.data.ProgramSetPrescription
+import com.training.trackplanner.data.ProgramSkeletonItem
+import com.training.trackplanner.data.ProgramSkeletonRequest
+import org.json.JSONObject
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.time.LocalDate
+
+class BCoachMultiobjectiveProductionTest {
+    private val exercise = Exercise(
+        stableKey = "barbell_back_squat",
+        name = "Back squat",
+        category = "Strength",
+        equipment = "BARBELL",
+        metadataConfidence = "REVIEWED",
+        systemicLoadWeight = 1.0,
+        neuralHeavyWeight = 0.8,
+        localLoadWeight = 0.7
+    )
+
+    @Test
+    fun `changed whole-block candidate remains fallback until fingerprinted acceptance`() {
+        val baseline = skeleton(sets = 2)
+        val candidate = skeleton(sets = 3)
+        val outcome = prepare(baseline, candidate)
+
+        assertEquals(BCoachProductionStatus.USER_REVIEW_PROPOSED, outcome.decision.status)
+        assertEquals(2, outcome.skeleton.items.single().setCount)
+        assertNotNull(outcome.proposal)
+        assertTrue(outcome.decision.changes.isNotEmpty())
+        val accepted = requireNotNull(outcome.proposal).accept(
+            requireNotNull(outcome.decision.candidateFingerprint),
+            outcome.skeleton
+        )
+        assertTrue(accepted.accepted)
+        assertEquals(3, requireNotNull(accepted.skeleton).items.single().setCount)
+        val metadata = JSONObject(accepted.skeleton.planningMetadataJson!!)
+            .getJSONObject("bCoachMultiobjectiveDecision")
+        assertEquals("ACCEPTED_AFTER_EXPLICIT_USER_REVIEW", metadata.getString("proposalAcceptance"))
+    }
+
+    @Test
+    fun `stale edited fallback rejects candidate without mutating either plan`() {
+        val baseline = skeleton(sets = 2)
+        val candidate = skeleton(sets = 3)
+        val outcome = prepare(baseline, candidate)
+        val stale = outcome.skeleton.copy(items = outcome.skeleton.items.map {
+            it.copy(reps = 9, setPrescriptions = it.setPrescriptions.map { set -> set.copy(reps = 9) })
+        })
+
+        val rejected = requireNotNull(outcome.proposal).accept(
+            requireNotNull(outcome.decision.candidateFingerprint),
+            stale
+        )
+        assertFalse(rejected.accepted)
+        assertEquals("STALE_INPUT_REGENERATE_REQUIRED", rejected.reason)
+        assertNull(rejected.skeleton)
+        assertEquals(2, outcome.skeleton.items.single().setCount)
+        assertEquals(3, candidate.items.single().setCount)
+    }
+
+    @Test
+    fun `T34 approved Need is absent so extra sets never become an automatic reward`() {
+        val outcome = prepare(skeleton(2), skeleton(3))
+        val axes = outcome.decision.candidateObjectives
+
+        assertEquals(BCoachObjectiveAxis.entries.toSet(), axes.map { it.axis }.toSet())
+        assertTrue(axes.flatMap { it.values }.all { it.unit.isNotBlank() && it.provenance.isNotBlank() })
+        val deficit = axes.single { it.axis == BCoachObjectiveAxis.GOAL_DEFICIT }
+        assertTrue(deficit.values.all { it.value == null && it.missingReason != null })
+        val recovery = axes.single { it.axis == BCoachObjectiveAxis.RECOVERY_LOAD }
+        assertTrue(recovery.values.any { it.name == "systemicPlannedMaximum" && it.value == 3.0 })
+        assertTrue(recovery.values.any { it.name == "daysOverApprovedRecoveryCap" && it.value == null })
+        assertEquals(BCoachProductionStatus.USER_REVIEW_PROPOSED, outcome.decision.status)
+    }
+
+    @Test
+    fun `null importance stays missing while explicit weights normalize only explicit values`() {
+        val request = request(BBalancedGoalImportance(strength = 5, sportSupport = 1))
+        val outcome = BCoachMultiobjectiveProduction.prepare(
+            request, emptyList(), mapOf(exercise.stableKey to exercise), skeleton(2), skeleton(3)
+        )
+        val weights = outcome.decision.goalWeights.associateBy { it.goal }
+
+        assertEquals(5.0 / 6.0, weights.getValue(BBalancedGoal.STRENGTH).normalizedImportance!!, 1e-12)
+        assertEquals(1.0 / 6.0, weights.getValue(BBalancedGoal.SPORT_SUPPORT).normalizedImportance!!, 1e-12)
+        assertNull(weights.getValue(BBalancedGoal.CORE).normalizedImportance)
+        assertEquals("MISSING_NOT_ZERO", weights.getValue(BBalancedGoal.CORE).source)
+    }
+
+    @Test
+    fun `T44 fixed inputs equipment and unavailable bodyweight are traceable`() {
+        val request = request(BBalancedGoalImportance(strength = 5)).copy(
+            fixedWeekdays = setOf(1),
+            allowedWeekdays = setOf(1, 3),
+            bShadowPlateOneSideKg = 1.25,
+            bShadowDumbbellIncrementKg = 2.0,
+            bShadowMachineIncrementKg = 5.0
+        )
+        val outcome = BCoachMultiobjectiveProduction.prepare(
+            request, emptyList(), mapOf(exercise.stableKey to exercise), skeleton(2), skeleton(3)
+        )
+
+        assertEquals("[1]", outcome.decision.inputAudit["fixedWeekdays"])
+        assertEquals("[AUTO]", outcome.decision.inputAudit["blockGoals"])
+        assertEquals("1.25", outcome.decision.inputAudit["plateOneSideKg"])
+        assertEquals("UNAVAILABLE_NOT_FABRICATED", outcome.decision.inputAudit["futureBodyweight"])
+    }
+
+    @Test
+    fun `T04 a candidate over the per-session limit is held rather than offered`() {
+        val baseline = skeleton(2)
+        val candidate = skeleton(3).copy(items = skeleton(3).items.map { it.copy(restSeconds = 3_600) })
+        val outcome = prepare(baseline, candidate)
+
+        assertEquals(BCoachProductionStatus.HOLD_CALIBRATE, outcome.decision.status)
+        assertNull(outcome.proposal)
+        assertNull(outcome.decision.candidateFingerprint)
+        assertTrue(requireNotNull(outcome.decision.fallbackReason).contains("SESSION_TIME_LIMIT"))
+    }
+
+    @Test
+    fun `T43 changing only user goal changes mapped input fingerprint deterministically`() {
+        val first = BCoachMultiobjectiveProduction.prepare(
+            request(BBalancedGoalImportance(strength = 5)), emptyList(),
+            mapOf(exercise.stableKey to exercise), skeleton(2), skeleton(3)
+        ).decision
+        val replay = BCoachMultiobjectiveProduction.prepare(
+            request(BBalancedGoalImportance(strength = 5)), emptyList(),
+            mapOf(exercise.stableKey to exercise), skeleton(2), skeleton(3)
+        ).decision
+        val changed = BCoachMultiobjectiveProduction.prepare(
+            request(BBalancedGoalImportance(hypertrophy = 5)), emptyList(),
+            mapOf(exercise.stableKey to exercise), skeleton(2), skeleton(3)
+        ).decision
+
+        assertEquals(first.inputFingerprint, replay.inputFingerprint)
+        assertNotEquals(first.inputFingerprint, changed.inputFingerprint)
+        assertEquals(first.candidateFingerprint, replay.candidateFingerprint)
+    }
+
+    @Test
+    fun `unchanged candidate holds and exposes no acceptance object`() {
+        val plan = skeleton(2)
+        val outcome = prepare(plan, plan)
+
+        assertEquals(BCoachProductionStatus.HOLD_CALIBRATE, outcome.decision.status)
+        assertNull(outcome.proposal)
+        assertNull(outcome.decision.candidateFingerprint)
+        assertTrue(outcome.decision.changes.isEmpty())
+    }
+
+    @Test
+    fun `wrong candidate fingerprint is rejected before stale-input check`() {
+        val outcome = prepare(skeleton(2), skeleton(3))
+        val rejected = requireNotNull(outcome.proposal).accept("wrong", outcome.skeleton)
+        assertFalse(rejected.accepted)
+        assertEquals("CANDIDATE_FINGERPRINT_MISMATCH", rejected.reason)
+    }
+
+    @Test
+    fun `T35 raw recent six-axis load is retained while residual decay remains missing`() {
+        val decision = prepare(skeleton(2), skeleton(3)).decision
+        val recovery = decision.candidateObjectives.single {
+            it.axis == BCoachObjectiveAxis.RECOVERY_LOAD
+        }.values.associateBy { it.name }
+
+        assertEquals(1.0, recovery.getValue("systemicRecentObservedRaw").value!!, 0.0)
+        assertNull(recovery.getValue("daysOverApprovedRecoveryCap").value)
+        assertEquals("CAP_AND_DECAY_POLICY_UNAVAILABLE",
+            recovery.getValue("daysOverApprovedRecoveryCap").missingReason)
+    }
+
+    @Test
+    fun `T36 recovery maximum and mean remain distinct raw values`() {
+        val baseline = skeleton(3)
+        val secondDay = baseline.items.single().copy(
+            localId = "w1-d2-squat",
+            dayOfWeek = 2,
+            setCount = 1,
+            setPrescriptions = baseline.items.single().setPrescriptions.take(1)
+        )
+        val candidate = baseline.copy(items = baseline.items + secondDay)
+        val recovery = prepare(baseline, candidate).decision.candidateObjectives.single {
+            it.axis == BCoachObjectiveAxis.RECOVERY_LOAD
+        }.values.associateBy { it.name }
+
+        assertEquals(3.0, recovery.getValue("systemicPlannedMaximum").value!!, 0.0)
+        assertEquals(2.0, recovery.getValue("systemicPlannedMean").value!!, 0.0)
+    }
+
+    @Test
+    fun `T37 no candidate claims an approved risk-cap pass when no cap exists`() {
+        val decision = prepare(skeleton(2), skeleton(3)).decision
+        val cap = decision.candidateObjectives.single {
+            it.axis == BCoachObjectiveAxis.RECOVERY_LOAD
+        }.values.single { it.name == "daysOverApprovedRecoveryCap" }
+
+        assertNull(cap.value)
+        assertNotEquals(BCoachProductionStatus.BOUNDED_AUTO_APPLIED, decision.status)
+    }
+
+    @Test
+    fun `T38 an unapproved fatigue cap does not hard-reject a reviewable candidate`() {
+        val outcome = prepare(skeleton(2), skeleton(3))
+        assertEquals(BCoachProductionStatus.USER_REVIEW_PROPOSED, outcome.decision.status)
+        assertNotNull(outcome.proposal)
+        assertTrue(outcome.decision.unknowns.contains(
+            "APPROVED_SIX_AXIS_RECOVERY_CAPS_AND_DECAY_UNAVAILABLE"))
+    }
+
+    @Test
+    fun `T39 execution axis reports engineering time without inventing a time-pressure cause`() {
+        val execution = prepare(skeleton(2), skeleton(3)).decision.candidateObjectives.single {
+            it.axis == BCoachObjectiveAxis.EXECUTION
+        }
+        assertTrue(execution.values.all { "LAST_EXERCISE" !in it.provenance })
+        assertTrue(execution.values.single { it.name == "maximumDayMinutes" }
+            .provenance.contains("NOT_MEASURED"))
+    }
+
+    @Test
+    fun `T40 missing lambda epsilon and Need keep the candidate in review`() {
+        val decision = prepare(skeleton(2), skeleton(3)).decision
+        assertEquals(BCoachProductionStatus.USER_REVIEW_PROPOSED, decision.status)
+        assertTrue(decision.unknowns.contains(
+            "APPROVED_CROSS_AXIS_NORMALIZERS_WEIGHTS_AND_EPSILON_UNAVAILABLE"))
+    }
+
+    @Test
+    fun `T41 rest-only mutation is not an active production candidate`() {
+        val baseline = skeleton(2)
+        val restOnly = baseline.copy(items = baseline.items.map { it.copy(restSeconds = 300) })
+        val outcome = prepare(baseline, restOnly)
+        assertEquals(BCoachProductionStatus.HOLD_CALIBRATE, outcome.decision.status)
+        assertNull(outcome.proposal)
+
+        val orderOnly = baseline.copy(items = baseline.items.map { it.copy(orderIndex = 2) })
+        assertEquals(BCoachProductionStatus.HOLD_CALIBRATE,
+            prepare(baseline, orderOnly).decision.status)
+    }
+
+    @Test
+    fun `acceptance fingerprint preserves a recent user rest edit`() {
+        val outcome = prepare(skeleton(2), skeleton(3))
+        val edited = outcome.skeleton.copy(items = outcome.skeleton.items.map { it.copy(restSeconds = 180) })
+        val acceptance = requireNotNull(outcome.proposal).accept(
+            requireNotNull(outcome.decision.candidateFingerprint), edited)
+        assertFalse(acceptance.accepted)
+        assertEquals("STALE_INPUT_REGENERATE_REQUIRED", acceptance.reason)
+    }
+
+    @Test
+    fun `T42 set action changes both validity route and evaluated ramp value`() {
+        val outcome = prepare(skeleton(2), skeleton(3))
+        val ramp = outcome.decision.candidateObjectives.single {
+            it.axis == BCoachObjectiveAxis.RAMP_CHANGE
+        }.values.single { it.name == "workSetDeltaFromFallback" }
+        assertEquals(1.0, ramp.value!!, 0.0)
+        assertTrue(outcome.decision.changes.any { it.startsWith("PRESCRIPTION:") })
+    }
+
+    private fun prepare(
+        baseline: GeneratedProgramSkeleton,
+        candidate: GeneratedProgramSkeleton
+    ): BCoachMultiobjectiveProduction.Outcome = BCoachMultiobjectiveProduction.prepare(
+        request(),
+        listOf(V22HistoryRow(LocalDate.of(2026, 11, 10), "Back squat", exercise.stableKey,
+            "Strength", 1, 5.0, 100.0, null, 8.0)),
+        mapOf(exercise.stableKey to exercise),
+        baseline,
+        candidate
+    )
+
+    private fun request(importance: BBalancedGoalImportance = BBalancedGoalImportance()) =
+        V22GenerationRequest(
+            name = "B review",
+            weeks = 2,
+            days = 1,
+            mode = V22Mode.B,
+            asOf = LocalDate.of(2026, 11, 14),
+            sessionMinutes = 60,
+            bGoalImportance = importance,
+            blockProgram = BBlockProgramDefinition(listOf(BBlockDefinition(weeks = 2)))
+        )
+
+    private fun skeleton(sets: Int): GeneratedProgramSkeleton {
+        val request = ProgramSkeletonRequest(
+            name = "B review",
+            goal = ProgramGoal.FUNCTIONAL_CONDITIONING,
+            weeklyTrainingDays = 1,
+            sessionMinutes = 60,
+            availableEquipment = emptySet(),
+            excludedExerciseText = "",
+            badmintonTransferRatio = 0.0,
+            sportStrengthRatio = "AUTO",
+            periodizationType = ProgramPeriodizationType.AUTO,
+            durationWeeks = 2
+        )
+        val prescriptions = List(sets) { index ->
+            ProgramSetPrescription(index + 1, 5, 0.0, 0, null,
+                ProgramLoadState.USER_CALIBRATION_REQUIRED)
+        }
+        val item = ProgramSkeletonItem(
+            localId = "w1-d1-squat",
+            weekNumber = 1,
+            dayOfWeek = 1,
+            orderIndex = 1,
+            exerciseStableKey = exercise.stableKey,
+            exerciseName = exercise.name,
+            category = exercise.category,
+            restSeconds = 120,
+            prescription = "review",
+            setCount = sets,
+            reps = 5,
+            weightKg = 0.0,
+            seconds = 0,
+            selectionReason = "test",
+            weightSource = "USER_CALIBRATION_REQUIRED",
+            setPrescriptions = prescriptions
+        )
+        return GeneratedProgramSkeleton(
+            suggestedName = request.name,
+            durationDays = 14,
+            request = request,
+            periodizationType = ProgramPeriodizationType.AUTO,
+            weekPlans = emptyList(),
+            items = listOf(item),
+            planningMetadataJson = JSONObject().put("schema", BBalanced12WeekEngine.BLOCK_SCHEMA).toString()
+        )
+    }
+}

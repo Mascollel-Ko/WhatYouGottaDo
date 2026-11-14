@@ -1,6 +1,7 @@
 package com.training.trackplanner.data.v22
 
 import com.training.trackplanner.data.ProgramLoadState
+import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.personalized.PostGenerationFixture
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -51,6 +52,30 @@ class BBlockPrescriptionApplicatorTest {
         assertTrue(changed.items.flatMap { it.sets }.all { it.weightKg == null })
         assertTrue(changed.items.first().plannedProgression!!.contains("LOAD_STEPS=0"))
         assertTrue(changed.items.first().plannedProgression!!.contains("START_LOAD_USER_REQUIRED"))
+    }
+
+    @Test fun nonMainNeverCreatesAutomaticLoadStepsEvenWithKnownBarbellGrid() {
+        val accessory = V22ExercisePlan(
+            exercise = "Barbell curl", stableKey = "barbell_curl", category = "근력운동",
+            role = "ACCESSORY", setCount = 2,
+            sets = List(2) { V22ObservedSet(null, 8, null, null, "", "USER_CALIBRATION_REQUIRED") },
+            historicalSets28d = 4, historicalSets56d = 8
+        )
+        val changed = BBlockPrescriptionApplicator.apply(
+            V22Session(1, listOf(accessory), 2),
+            stage = 2,
+            focus = BBalancedGoal.STRENGTH,
+            block = BBlockDefinition(goal = BBlockGoal.STRENGTH,
+                adjustment = BVolumeAdjustment.LOAD_FIRST),
+            mainKeys = emptySet(),
+            exercises = mapOf("barbell_curl" to Exercise(
+                "barbell_curl", "Barbell curl", "근력운동", equipment = "BARBELL")),
+            resolvedAmplitude = BChangeAmplitude.MEDIUM
+        ).items.single()
+
+        assertTrue(changed.plannedProgression!!.contains("LOAD_STEPS=0"))
+        assertTrue(changed.sets.all { it.weightKg == null })
+        assertEquals(listOf(10, 10), changed.sets.map { it.reps })
     }
 
     @Test fun fourWeekPatternsChangeActualSetAndRepPrescriptions() {
