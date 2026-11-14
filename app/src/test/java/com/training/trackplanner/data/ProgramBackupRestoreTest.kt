@@ -243,6 +243,45 @@ class ProgramBackupRestoreTest {
     }
 
     @Test
+    fun `an unrelated legacy migration issue blocks backup but leaves the program intact`() = runBlocking {
+        val db = newDatabase()
+        val trainingRepository = repository(db)
+        val programId = db.programDao().insertProgram(
+            TrainingProgram(name = "Independent program", durationDays = 28)
+        )
+        db.openHelper.writableDatabase.execSQL(
+            "INSERT INTO exercise_identity_migration_issues " +
+                "(issueCode, sourceExerciseId, sourceStableKey, canonicalStableKey, entityType, entityRowId, message, createdAt) " +
+                "VALUES ('UNRESOLVED_LEGACY_REFERENCE', NULL, 'old_missing', 'migration_review_9', 'EXERCISE', NULL, 'Needs review', 1)"
+        )
+
+        // Fail-closed recovery is intentional, but the error must be classified:
+        // a problem in a different historical exercise is not a program FK error.
+        val failure = runCatching { trainingRepository.deleteProgram(programId) }.exceptionOrNull()
+        assertTrue(failure is ProgramDeleteFailure)
+        assertEquals(ProgramDeleteFailurePhase.BACKUP, (failure as ProgramDeleteFailure).phase)
+        assertNotNull(db.programDao().findProgram(programId))
+    }
+
+    @Test
+    fun `a database delete constraint failure rolls back the program`() = runBlocking {
+        val db = newDatabase()
+        val trainingRepository = repository(db)
+        val programId = db.programDao().insertProgram(
+            TrainingProgram(name = "Constraint failure program", durationDays = 28)
+        )
+        db.openHelper.writableDatabase.execSQL(
+            "CREATE TRIGGER prevent_test_program_delete BEFORE DELETE ON training_programs " +
+                "BEGIN SELECT RAISE(ABORT, 'forced regression rollback'); END"
+        )
+
+        val failure = runCatching { trainingRepository.deleteProgram(programId) }.exceptionOrNull()
+        assertTrue(failure is ProgramDeleteFailure)
+        assertEquals(ProgramDeleteFailurePhase.DATABASE, (failure as ProgramDeleteFailure).phase)
+        assertNotNull(db.programDao().findProgram(programId))
+    }
+
+    @Test
     fun `deleting a program remains possible when an old smash speed points at a removed workout`() = runBlocking {
         val db = newDatabase()
         val trainingRepository = repository(db)
