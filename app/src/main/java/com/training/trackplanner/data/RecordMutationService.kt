@@ -77,6 +77,7 @@ internal class RecordMutationService(
         mutateDate(entry.date) {
             workoutDao.deleteSetsForEntry(entry.id)
             workoutDao.deleteEntryById(entry.id)
+            ProgramProgressionOrphanCleanup.pruneInTransaction(db)
         }
     }
 
