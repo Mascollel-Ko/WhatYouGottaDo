@@ -115,6 +115,13 @@ data class ExerciseDeleteResult(
     val referenced: Boolean
 )
 
+internal enum class ProgramDeleteFailurePhase { BACKUP, DATABASE, POST_COMMIT, UNKNOWN }
+
+internal class ProgramDeleteFailure(
+    val phase: ProgramDeleteFailurePhase,
+    cause: Exception
+) : IllegalStateException("Program deletion failed at $phase", cause)
+
 class TrainingRepository internal constructor(
     private val db: TrainingDatabase,
     private val context: Context,
@@ -1523,8 +1530,29 @@ class TrainingRepository internal constructor(
     }
 
     suspend fun deleteProgram(programId: Long) = withContext(Dispatchers.IO) {
-        localRecovery.protect(RecoveryTrigger.BEFORE_BULK_CHANGE) {
-            cloudMutation(CloudMutationScope.PROGRAMS) { programPlanService.deleteProgram(programId) }
+        var recoverySucceeded = false
+        try {
+            localRecovery.protect(RecoveryTrigger.BEFORE_BULK_CHANGE) {
+                recoverySucceeded = true
+                cloudMutation(CloudMutationScope.PROGRAMS) {
+                    programPlanService.deleteProgram(programId)
+                }
+            }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            // Distinguish failure before backup completion from transaction failure
+            // and errors after the deletion was committed. Never retry implicitly.
+            val phase = if (!recoverySucceeded) {
+                ProgramDeleteFailurePhase.BACKUP
+            } else {
+                when (runCatching { db.programDao().findProgram(programId) != null }.getOrNull()) {
+                    true -> ProgramDeleteFailurePhase.DATABASE
+                    false -> ProgramDeleteFailurePhase.POST_COMMIT
+                    null -> ProgramDeleteFailurePhase.UNKNOWN
+                }
+            }
+            throw ProgramDeleteFailure(phase, error)
         }
     }
 
