@@ -75,7 +75,18 @@ internal object ProgramProgressionBackup {
                 }
                 else -> ProgramProgressionWireCodec.progressionSuggestion(json).also {
                     it.rule.validate()
-                    require(listOfNotNull(it.previousActualKg, it.currentPlanKg, it.suggestedKg, it.resolvedKg).all { kg -> kg.isFinite() && kg > 0 })
+                    // A generated B-Coach target may start as uncalibrated 0kg.
+                    // Gate G/H/L records that original target as currentPlanKg
+                    // before applying an observed e1RM/RIR progression decision.
+                    // It is historical plan evidence, not a performed/suggested load.
+                    require(it.currentPlanKg == null ||
+                        (it.currentPlanKg.isFinite() && it.currentPlanKg >= 0.0)) {
+                        "Invalid original plan load on progression suggestion ${it.id}: ${it.currentPlanKg}"
+                    }
+                    require(listOfNotNull(it.previousActualKg, it.suggestedKg, it.resolvedKg)
+                        .all { kg -> kg.isFinite() && kg > 0.0 }) {
+                        "Invalid performed/suggested/resolved load on progression suggestion ${it.id}"
+                    }
                     require(it.judgmentRpe == null || it.judgmentRpe.isFinite() && it.judgmentRpe in 1.0..10.0)
                 }.id
             }
