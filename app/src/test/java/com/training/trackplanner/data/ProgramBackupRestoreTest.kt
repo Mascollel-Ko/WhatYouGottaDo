@@ -345,6 +345,53 @@ class ProgramBackupRestoreTest {
     }
 
     @Test
+    fun `program deletion succeeds when only historic B coach zero plan load evidence remains`() = runBlocking {
+        val db = newDatabase()
+        val repository = repository(db)
+        val programId = db.programDao().insertProgram(
+            TrainingProgram(name = "Historical e1RM target", durationDays = 28)
+        )
+        val program = checkNotNull(db.programDao().findProgram(programId))
+        val dao = db.programProgressionDao()
+        val track = ProgramProgressionTrack(
+            programStableKey = program.stableKey,
+            exerciseStableKey = "barbell_back_squat",
+            label = "Squat"
+        )
+        dao.putTrack(track)
+        val application = ProgramApplication(
+            programStableKey = program.stableKey,
+            programName = program.name,
+            startDate = "2026-11-01"
+        )
+        dao.putApplication(application)
+        // Workout entries have already been deleted by the user.
+        // ProgressionSuggestion has no workout-entry foreign key, so historical
+        // evidence of an originally uncalibrated 0 kg target remains.
+        dao.putSuggestion(ProgressionSuggestion(
+            applicationId = application.id,
+            trackId = track.id,
+            sourceEntryId = 101L,
+            targetEntryId = 102L,
+            previousActualKg = 130.0,
+            currentPlanKg = 0.0,
+            suggestedKg = 131.5,
+            judgmentRpe = 6.5,
+            direction = ProgressionDirection.INCREASE,
+            reasons = "B_COACH_GATE_H_AUTO_AFTER_CONFIRM_LOAD_UP_ONE_STEP",
+            evidenceHash = "observed-e1rm",
+            resolution = ProgressionResolution.ACCEPTED,
+            resolvedKg = 131.5
+        ))
+        assertTrue(db.workoutDao().allEntries().isEmpty())
+
+        repository.deleteProgram(programId)
+        assertNull(db.programDao().findProgram(programId))
+        assertEquals(1, dao.suggestions().size)
+        assertEquals(0.0, dao.suggestions().single().currentPlanKg!!, 0.0)
+    }
+
+    @Test
     fun `an unrelated legacy migration issue blocks backup but leaves the program intact`() = runBlocking {
         val db = newDatabase()
         val trainingRepository = repository(db)
