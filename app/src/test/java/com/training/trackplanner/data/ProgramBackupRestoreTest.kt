@@ -243,6 +243,56 @@ class ProgramBackupRestoreTest {
     }
 
     @Test
+    fun `two saved programs may reuse logical progression item ids without breaking canonical backup`() = runBlocking {
+        val db = newDatabase()
+        val key = "shared_logical_id_test"
+        db.exerciseDao().insertExercise(Exercise(
+            stableKey = key, name = "Free weight row", category = "Strength", isCustom = true
+        ))
+        val programs = listOf("One", "Two").map { name ->
+            val id = db.programDao().insertProgram(
+                TrainingProgram(name = name, durationDays = 7)
+            )
+            checkNotNull(db.programDao().findProgram(id))
+        }
+        programs.forEach { program ->
+            val itemId = db.programDao().insertProgramItem(
+                TrainingProgramItem(
+                    programId = program.id, weekNumber = 1, dayOfWeek = 1, orderIndex = 1,
+                    exerciseStableKey = key, exerciseName = "Free weight row", category = "Strength",
+                    setCount = 1, reps = 5, weightKg = 60.0
+                )
+            )
+            db.programDao().insertProgramItemSets(listOf(
+                TrainingProgramItemSet(programItemId = itemId, setIndex = 1, reps = 5, weightKg = 60.0)
+            ))
+            val track = ProgramProgressionTrack(
+                programStableKey = program.stableKey, exerciseStableKey = key, label = "Shared row"
+            )
+            db.programProgressionDao().putTrack(track)
+            db.programProgressionDao().putItem(
+                ProgramProgressionItem(
+                    programItemId = itemId, logicalItemId = "same-imported-logical-id",
+                    trackId = track.id, signature = ProgressionSignature(key, 1, "5", 60.0, null, null)
+                )
+            )
+        }
+        // Room accepts this; backup must not impose an extra unique index
+        // that the database and restore identity system do not have.
+        assertEquals(2, db.programProgressionDao().items().size)
+        val backup = exportBackup(repository(db))
+        val parsed = RecordCsvBackupRestore.parse(backup) as RecordCsvImportData.Restore
+        assertEquals(2, parsed.progressionRows.count { it.type == "execution_item" })
+
+        val target = newDatabase()
+        repository(target).importRecordsBackup(writeBackup(backup))
+        val imported = target.programProgressionDao().items()
+        assertEquals(2, imported.size)
+        assertEquals(setOf("same-imported-logical-id"), imported.map { it.logicalItemId }.toSet())
+        assertEquals(2, target.programDao().countPrograms())
+    }
+
+    @Test
     fun `backup says why a valid database row with no sets blocks program deletion`() = runBlocking {
         val db = newDatabase()
         val repo = repository(db)
