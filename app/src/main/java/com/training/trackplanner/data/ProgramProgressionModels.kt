@@ -178,6 +178,64 @@ interface ProgramProgressionDao {
     @Upsert suspend fun putLink(value: ProgramWorkoutLink)
     @Upsert suspend fun putPrescription(value: ProgramPrescriptionSet)
     @Upsert suspend fun putSuggestion(value: ProgressionSuggestion)
+    /**
+     * Remove only broken execution references. A deleted *template* is not an
+     * orphan: its applied workout entries and their independent links may live
+     * on, so none of these statements requires a live training_program.
+     */
+    @Query("""
+        DELETE FROM program_workout_links
+        WHERE NOT EXISTS (SELECT 1 FROM workout_entries e WHERE e.id = program_workout_links.entryId)
+           OR NOT EXISTS (SELECT 1 FROM program_applications a WHERE a.id = program_workout_links.applicationId)
+           OR (trackId != 'untracked' AND NOT EXISTS (
+                SELECT 1 FROM program_progression_tracks t WHERE t.id = program_workout_links.trackId))
+    """)
+    suspend fun pruneInvalidWorkoutLinks(): Int
+
+    @Query("""
+        DELETE FROM progression_suggestions
+        WHERE NOT EXISTS (SELECT 1 FROM workout_entries e WHERE e.id = progression_suggestions.sourceEntryId)
+           OR NOT EXISTS (SELECT 1 FROM workout_entries e WHERE e.id = progression_suggestions.targetEntryId)
+           OR NOT EXISTS (SELECT 1 FROM program_applications a WHERE a.id = progression_suggestions.applicationId)
+           OR NOT EXISTS (SELECT 1 FROM program_progression_tracks t WHERE t.id = progression_suggestions.trackId)
+           OR NOT EXISTS (SELECT 1 FROM program_workout_links l
+                          WHERE l.entryId = progression_suggestions.sourceEntryId
+                            AND l.applicationId = progression_suggestions.applicationId
+                            AND l.trackId = progression_suggestions.trackId)
+           OR NOT EXISTS (SELECT 1 FROM program_workout_links l
+                          WHERE l.entryId = progression_suggestions.targetEntryId
+                            AND l.applicationId = progression_suggestions.applicationId
+                            AND l.trackId = progression_suggestions.trackId)
+    """)
+    suspend fun pruneInvalidSuggestions(): Int
+
+    @Query("""
+        DELETE FROM program_prescription_sets
+        WHERE NOT EXISTS (SELECT 1 FROM workout_entries e WHERE e.id = program_prescription_sets.entryId)
+           OR NOT EXISTS (SELECT 1 FROM program_workout_links l WHERE l.entryId = program_prescription_sets.entryId)
+    """)
+    suspend fun pruneInvalidPrescriptions(): Int
+
+    @Query("""
+        DELETE FROM program_progression_items
+        WHERE NOT EXISTS (SELECT 1 FROM training_program_items i WHERE i.id = program_progression_items.programItemId)
+           OR NOT EXISTS (SELECT 1 FROM program_progression_tracks t WHERE t.id = program_progression_items.trackId)
+    """)
+    suspend fun pruneInvalidTemplateBindings(): Int
+
+    @Query("""
+        DELETE FROM program_applications
+        WHERE NOT EXISTS (SELECT 1 FROM program_workout_links l WHERE l.applicationId = program_applications.id)
+    """)
+    suspend fun pruneUnusedApplications(): Int
+
+    @Query("""
+        DELETE FROM program_progression_tracks
+        WHERE NOT EXISTS (SELECT 1 FROM program_progression_items i WHERE i.trackId = program_progression_tracks.id)
+          AND NOT EXISTS (SELECT 1 FROM program_workout_links l WHERE l.trackId = program_progression_tracks.id)
+    """)
+    suspend fun pruneUnusedTracks(): Int
+
     @Query("SELECT * FROM program_progression_tracks") suspend fun tracks(): List<ProgramProgressionTrack>
     @Query("SELECT * FROM program_progression_items") suspend fun items(): List<ProgramProgressionItem>
     @Query("DELETE FROM program_progression_items WHERE programItemId = :itemId") suspend fun deleteItem(itemId: Long)
