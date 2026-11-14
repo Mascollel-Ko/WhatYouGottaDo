@@ -1031,7 +1031,14 @@ class TrainingRepository internal constructor(
             ?: error("Local Recovery must contain a canonical restore backup")
         val result = BackupRestoreCanonicalizer(legacyExerciseImportMapper).canonicalize(
             parsed, SeedData.exactExerciseMetadataByStableKey(context))
-        require(result.errors.isEmpty()) { "Local Recovery canonical preflight failed: ${result.errors}" }
+        // Keep the canonicalizer's exact diagnostic. A generic "PD-BACKUP" does
+        // not reveal which persisted row/identity prevented a round-trip.
+        result.errors.firstOrNull()?.let { issue ->
+            throw DataTransferFormatException(
+                issue.code,
+                "복구 사전검사: ${issue.messageKo}"
+            )
+        }
         backupRestorePlanner.prepare(result.data)
         return result.data
     }
