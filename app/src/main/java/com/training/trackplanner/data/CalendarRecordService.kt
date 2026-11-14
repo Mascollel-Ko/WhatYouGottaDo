@@ -81,7 +81,9 @@ internal class CalendarRecordService(
                     }
                 }
             }
-            ProgramProgressionOrphanCleanup.pruneInTransaction(db)
+            db.withCloudRevision(CloudMutationScope.PROGRESSION_ORPHANS) {
+                ProgramProgressionOrphanCleanup.pruneInTransaction(db)
+            }
         }
     }
 
