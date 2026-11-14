@@ -18,17 +18,17 @@ internal object ProgramProgressionBackup {
             fun row(type: String, json: JSONObject) { add(ProgressionBackupRow(type, json.put("wireVersion", 1).toString())) }
             dao.tracks().sortedBy { it.id }.forEach { row("execution_track", ProgramProgressionWireCodec.encode(it)) }
             dao.items().sortedBy { it.logicalItemId }.forEach { binding ->
-                val item = items[binding.programItemId] ?: error("Dangling progression item")
+                val item = items[binding.programItemId] ?: error("Orphan progression item: programItemId=${binding.programItemId}, trackId=${binding.trackId}")
                 row("execution_item", ProgramProgressionWireCodec.encode(binding)
                     .put("ownerProgramStableKey", programs.getValue(item.programId).stableKey)
                     .put("week", item.weekNumber).put("day", item.dayOfWeek).put("order", item.orderIndex))
             }
             dao.applications().sortedBy { it.id }.forEach { row("execution_application", ProgramProgressionWireCodec.encode(it)) }
             dao.links().sortedBy { it.entryId }.forEach {
-                row("execution_link", ProgramProgressionWireCodec.encode(it).put("entrySourceId", requireNotNull(source(it.entryId))))
+                row("execution_link", ProgramProgressionWireCodec.encode(it).put("entrySourceId", requireNotNull(source(it.entryId)) { "Missing workout source identity for progression link entryId=${it.entryId}" }))
             }
             dao.prescriptions().sortedWith(compareBy({ it.entryId }, { it.setIndex })).forEach {
-                row("execution_prescription", ProgramProgressionWireCodec.encode(it).put("entrySourceId", requireNotNull(source(it.entryId))))
+                row("execution_prescription", ProgramProgressionWireCodec.encode(it).put("entrySourceId", requireNotNull(source(it.entryId)) { "Missing workout source identity for prescription entryId=${it.entryId}" }))
             }
             dao.suggestions().sortedBy { it.id }.forEach {
                 row("execution_suggestion", ProgramProgressionWireCodec.encode(it)
@@ -54,7 +54,7 @@ internal object ProgramProgressionBackup {
                 "execution_link" -> ProgramProgressionWireCodec.programWorkoutLink(json).let {
                     it.rule.validate()
                     val source = json.getString("entrySourceId")
-                    require(source.isNotBlank()); links[source] = it
+                    require(source.isNotBlank()) { "Blank workout source on execution link: entryId=${it.entryId}" }; links[source] = it
                     source
                 }
                 "execution_prescription" -> ProgramProgressionWireCodec.programPrescriptionSet(json).let {
@@ -77,20 +77,20 @@ internal object ProgramProgressionBackup {
             val json = JSONObject(row.payload)
             when (row.type) {
                 "execution_item" -> ProgramProgressionWireCodec.programProgressionItem(json).let {
-                    require(tracks[it.trackId]?.exerciseStableKey == it.signature.exerciseStableKey)
-                    require(tracks[it.trackId]?.programStableKey == json.getString("ownerProgramStableKey"))
+                    require(tracks[it.trackId]?.exerciseStableKey == it.signature.exerciseStableKey) { "Progression item ${it.programItemId} references missing/mismatched track ${it.trackId}" }
+                    require(tracks[it.trackId]?.programStableKey == json.getString("ownerProgramStableKey")) { "Progression item ${it.programItemId} has incompatible template key for track ${it.trackId}" }
                 }
                 "execution_link" -> ProgramProgressionWireCodec.programWorkoutLink(json).let {
-                    require(it.applicationId in applications && (it.trackId == "untracked" || it.trackId in tracks))
+                    require(it.applicationId in applications && (it.trackId == "untracked" || it.trackId in tracks)) { "Progression link entryId=${it.entryId} references missing application or track" }
                     if (exercisesBySource != null) {
                         val key = requireNotNull(exercisesBySource[json.getString("entrySourceId")]) { "Unresolved execution workout source" }
-                        require(it.trackId == "untracked" || tracks[it.trackId]?.exerciseStableKey == key)
+                        require(it.trackId == "untracked" || tracks[it.trackId]?.exerciseStableKey == key) { "Progression link entryId=${it.entryId} exercise key mismatches track ${it.trackId}" }
                     }
-                    require(sequences.add("${it.applicationId}|${it.trackId}|${it.sequence}"))
+                    require(sequences.add("${it.applicationId}|${it.trackId}|${it.sequence}")) { "Duplicate progression sequence: application=${it.applicationId}, track=${it.trackId}, sequence=${it.sequence}" }
                 }
-                "execution_prescription" -> require(json.getString("entrySourceId") in links) { "Prescription without program link" }
+                "execution_prescription" -> require(json.getString("entrySourceId") in links) { "Progression prescription without program link: source=${json.getString("entrySourceId")}" }
                 "execution_suggestion" -> ProgramProgressionWireCodec.progressionSuggestion(json).let {
-                    require(it.applicationId in applications && it.trackId in tracks)
+                    require(it.applicationId in applications && it.trackId in tracks) { "Progression suggestion ${it.id} references missing application or track" }
                 }
             }
         }
