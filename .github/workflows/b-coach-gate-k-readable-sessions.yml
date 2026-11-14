@@ -1,0 +1,183 @@
+name: B-Coach Gate K Readable Progression Sessions
+
+on:
+  push:
+    branches:
+      - test/b-coach-readable-progression-sessions-gate-k-20261113
+
+concurrency:
+  group: b-coach-gate-k-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  gate-abcdefghijk:
+    name: Compile and test squat shadow Gate A through K with preview integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Check out Gate K experimental branch
+        uses: actions/checkout@v4
+
+      - name: Configure JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Configure Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run focused Gradle unit tests (also compiles Android sources)
+        env:
+          GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :app:testDebugUnitTest \
+            --tests 'com.training.trackplanner.data.v22.BCoachSquatShadowEvidenceTest' \
+            --tests 'com.training.trackplanner.data.v22.BCoachSquatRelativeShadowTest' \
+            --tests 'com.training.trackplanner.data.v22.BCoachSquatShadowSelectorTest' \
+            --tests 'com.training.trackplanner.data.v22.BCoachSquatShadowPipelineTest' \
+            --tests 'com.training.trackplanner.data.v22.BCoachSquatShadowProgramComparisonTest' \
+            --tests 'com.training.trackplanner.data.v22.BCoachExerciseShadowCoverageTest' \
+            --tests 'com.training.trackplanner.data.v22.BCoachSquatCurveProgressionRankerTest' \
+            --tests 'com.training.trackplanner.data.v22.BCoachLinkedSquatWeekPlannerTest' \
+            --tests 'com.training.trackplanner.data.v22.BCoachLinkedSquatPlanPatchTest' \
+            --tests 'com.training.trackplanner.data.v22.BCoachPostConfirmLinkResolverTest' \
+            --tests 'com.training.trackplanner.data.v22.BCoachProgramLinkChainTest' \
+            --tests 'com.training.trackplanner.data.BCoachUncalibratedLinkPolicyTest' \
+            --tests 'com.training.trackplanner.data.ProgramLinkTimelineResolverTest' \
+            --tests 'com.training.trackplanner.data.ProgramProgressionSessionPersistenceTest' \
+            --tests 'com.training.trackplanner.data.ProgramProgressionDraftTest' \
+            --tests 'com.training.trackplanner.ProgressionSessionLabelsTest' \
+            --tests 'com.training.trackplanner.ProgramProgressionLayoutTest' \
+            --stacktrace \
+            -Pgoogle.webClientId="$GOOGLE_WEB_CLIENT_ID" \
+            -Psupabase.publishableKey="$SUPABASE_PUBLISHABLE_KEY"
+
+      - name: Restore canonical CI debug keystore
+        env:
+          ANDROID_CI_KEYSTORE_B64: ${{ secrets.ANDROID_CI_KEYSTORE_B64 }}
+        run: |
+          set -euo pipefail
+          test -n "${ANDROID_CI_KEYSTORE_B64:-}"
+          printf '%s' "$ANDROID_CI_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/whatyougottado-ci-debug.jks"
+          test -s "$RUNNER_TEMP/whatyougottado-ci-debug.jks"
+          chmod 600 "$RUNNER_TEMP/whatyougottado-ci-debug.jks"
+
+      - name: Assemble existing-certificate signed debug APK
+        env:
+          ANDROID_CI_KEYSTORE_PATH: ${{ runner.temp }}/whatyougottado-ci-debug.jks
+          ANDROID_CI_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_CI_KEYSTORE_PASSWORD }}
+          ANDROID_CI_KEY_ALIAS: ${{ secrets.ANDROID_CI_KEY_ALIAS }}
+          ANDROID_CI_KEY_PASSWORD: ${{ secrets.ANDROID_CI_KEY_PASSWORD }}
+          GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$ANDROID_CI_KEYSTORE_PASSWORD" -a -n "$ANDROID_CI_KEY_ALIAS" -a -n "$ANDROID_CI_KEY_PASSWORD"
+          ./gradlew :app:assembleDebug \
+            -Pgoogle.webClientId="$GOOGLE_WEB_CLIENT_ID" \
+            -Psupabase.publishableKey="$SUPABASE_PUBLISHABLE_KEY"
+
+      - name: Verify APK uses the canonical CI certificate
+        env:
+          ANDROID_CI_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_CI_KEYSTORE_PASSWORD }}
+          ANDROID_CI_KEY_ALIAS: ${{ secrets.ANDROID_CI_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          apk="$(find app/build/outputs/apk/debug -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          test -s "$apk"
+          apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner -print | sort -V | tail -n 1)"
+          test -x "$apksigner"
+          "$apksigner" verify --print-certs "$apk" > "$RUNNER_TEMP/readable-progression-apk-signature.txt"
+          expected="$(keytool -list -v \
+            -keystore "$RUNNER_TEMP/whatyougottado-ci-debug.jks" \
+            -alias "$ANDROID_CI_KEY_ALIAS" \
+            '-storepass:env' ANDROID_CI_KEYSTORE_PASSWORD |
+            awk -F': ' '/SHA1:/{print $2; exit}' |
+            tr -d ':\r[:space:]' | tr '[:lower:]' '[:upper:]')"
+          actual="$(grep -i -m1 'SHA-1 digest:' "$RUNNER_TEMP/readable-progression-apk-signature.txt" |
+            sed -En 's/.*SHA-1 digest:[[:space:]]*([0-9A-Fa-f:]+).*/\1/p' |
+            tr -d ':\r[:space:]' | tr '[:lower:]' '[:upper:]')"
+          test -n "$expected" -a -n "$actual" -a "$expected" = "$actual"
+
+      - name: Upload signed Gate K device-test APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: b-coach-gate-k-ci-signed-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+
+      # The perf variant uses the same CI debug signing certificate as the debug APK,
+      # but follows release R8 minification and is not debuggable.
+      - name: Assemble R8-optimized Gate K performance APK
+        env:
+          ANDROID_CI_KEYSTORE_PATH: ${{ runner.temp }}/whatyougottado-ci-debug.jks
+          ANDROID_CI_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_CI_KEYSTORE_PASSWORD }}
+          ANDROID_CI_KEY_ALIAS: ${{ secrets.ANDROID_CI_KEY_ALIAS }}
+          ANDROID_CI_KEY_PASSWORD: ${{ secrets.ANDROID_CI_KEY_PASSWORD }}
+          GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          ./gradlew :app:assemblePerf \
+            -Pgoogle.webClientId="$GOOGLE_WEB_CLIENT_ID" \
+            -Psupabase.publishableKey="$SUPABASE_PUBLISHABLE_KEY"
+
+      - name: Verify Gate K performance signing, package and non-debuggable status
+        run: |
+          set -euo pipefail
+          perf_apk="$(find app/build/outputs/apk/perf -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          debug_apk="$(find app/build/outputs/apk/debug -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          test -s "$perf_apk" && test -s "$debug_apk"
+          apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner -print | sort -V | tail -n 1)"
+          aapt="$(find "$ANDROID_HOME/build-tools" -type f -name aapt -print | sort -V | tail -n 1)"
+          test -x "$apksigner" && test -x "$aapt"
+          "$apksigner" verify --print-certs "$perf_apk" > "$RUNNER_TEMP/gate-k-perf-certs.txt"
+          "$apksigner" verify --print-certs "$debug_apk" > "$RUNNER_TEMP/gate-k-debug-certs.txt"
+          digest() {
+            grep -i -m1 'SHA-1 digest:' "$1" |
+              sed -En 's/.*SHA-1 digest:[[:space:]]*([0-9A-Fa-f:]+).*/\1/p' |
+              tr -d ':\r[:space:]' | tr '[:lower:]' '[:upper:]'
+          }
+          perf_digest="$(digest "$RUNNER_TEMP/gate-k-perf-certs.txt")"
+          debug_digest="$(digest "$RUNNER_TEMP/gate-k-debug-certs.txt")"
+          test -n "$perf_digest" && test "$perf_digest" = "$debug_digest" || {
+            echo "::error::Gate K performance/debug APK signatures differ"
+            exit 1
+          }
+          badging="$("$aapt" dump badging "$perf_apk")"
+          echo "$badging" | grep -q "^package: name='com.whatyougottado.app'" || {
+            echo "::error::Unexpected performance package name"
+            exit 1
+          }
+          if echo "$badging" | grep -q '^application-debuggable'; then
+            echo "::error::Performance APK must not be debuggable"
+            exit 1
+          fi
+          {
+            echo '## B-Coach Gate K Performance APK'
+            echo 'Optimized, not debuggable, same CI signature as Gate K debug APK.'
+            echo 'Experimental shadow comparison only; not a publishing artifact.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload optimized Gate K performance APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: b-coach-gate-k-ci-signed-performance-apk
+          path: app/build/outputs/apk/perf/*.apk
+          if-no-files-found: error
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: b-coach-gate-abcdefghijk-unit-tests
+          path: |
+            app/build/test-results/testDebugUnitTest/
+            app/build/reports/tests/testDebugUnitTest/
+          if-no-files-found: warn

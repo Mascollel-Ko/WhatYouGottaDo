@@ -79,9 +79,18 @@ class MainActivity : AppCompatActivity() {
             val context = applicationContext
             CloudBackupScheduler.ensurePeriodic(context)
             val db = com.training.trackplanner.data.TrainingDatabase.get(context)
+            val repository = com.training.trackplanner.data.TrainingRepository(db, context)
+            // A warm foreground resume does not recreate TrainingViewModel. Keep
+            // this reconciliation in addition to cold-start seedIfNeeded().
+            try {
+                repository.reconcileProgressionOrphans()
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                android.util.Log.e("ProgressionCleanup", "Startup orphan reconciliation failed", error)
+            }
             val auth = com.training.trackplanner.data.CloudAuthRepository(context)
-            com.training.trackplanner.data.TrainingRepository(db, context)
-                .reconcileAutomaticCloudBackup(auth.refreshIfNeeded())
+            repository.reconcileAutomaticCloudBackup(auth.refreshIfNeeded())
         }
     }
 

@@ -43,6 +43,19 @@ internal class CloudMutationScope(private val queries: List<SimpleSQLiteQuery>) 
         val PROGRAMS = tables("training_programs", "training_program_items", "training_program_item_sets",
             "training_program_tombstones", "program_progression_tracks", "program_progression_items",
             "program_applications", "program_workout_links", "program_prescription_sets", "progression_suggestions", "app_meta", "workout_entries", "workout_sets")
+        // Deleting a saved template changes only these rows. Avoid reading all
+        // historical workout entries, sets, applications and suggestion evidence
+        // twice just to detect that one template was deleted.
+        val PROGRAM_TEMPLATE_DELETE = tables(
+            "training_programs", "training_program_items", "training_program_item_sets",
+            "training_program_tombstones", "community_program_imports", "program_progression_items",
+            "program_progression_tracks", "program_applications", "program_workout_links",
+            "program_prescription_sets", "progression_suggestions"
+        )
+        val PROGRESSION_ORPHANS = tables(
+            "progression_suggestions", "program_workout_links", "program_prescription_sets",
+            "program_progression_items", "program_applications", "program_progression_tracks"
+        )
         val APPLICATION = tables("workout_entries", "workout_sets", "program_applications", "program_workout_links", "program_prescription_sets")
         val EXERCISES = tables("exercises", "runtime_exercise_metadata", "exercise_metadata_user_overrides",
             "exercise_training_role_relations", "exercise_program_slot_capability_relations")

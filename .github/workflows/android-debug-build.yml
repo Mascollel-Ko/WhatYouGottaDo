@@ -5,6 +5,9 @@ on:
     branches:
       - main
       - fatigue-redesign-from-v0.3.6.4
+      - fix/program-delete-error-handling-and-regression-20261114
+      - fix/program-delete-canonical-backup-diagnostics-20261114
+      - fix/progression-orphan-cleanup-on-start-and-backup-20261114
     tags:
       - 'v*'
   pull_request:

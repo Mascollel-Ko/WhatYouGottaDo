@@ -152,6 +152,15 @@ internal object BBalanced12WeekEngine {
         val chosen = requireNotNull(best) { "No feasible B balanced candidate within the supplied time constraint" }
         var weekCursor = 1
         val completedSelections = mutableListOf<List<V22Session>>()
+        val selectionBeforeJoint = mutableListOf<List<V22Session>>()
+        val jointAudits = mutableListOf<BJointExerciseSetOptimizer.Result>()
+        val coachAudits = mutableListOf<BCoachJointBlockOptimizer.Result>()
+        val resolvedImportance = BBalancedGoalImportance(
+            strength = targets.single { it.goal == BBalancedGoal.STRENGTH }.importance,
+            hypertrophy = targets.single { it.goal == BBalancedGoal.HYPERTROPHY }.importance,
+            core = targets.single { it.goal == BBalancedGoal.CORE }.importance,
+            sportSupport = targets.single { it.goal == BBalancedGoal.SPORT_SUPPORT }.importance
+        )
         val blocks = chosen.focuses.mapIndexed { index, focus ->
             val relation = specification?.blocks?.get(index)?.relationToPrevious?.active()
             val selectedSessions = if (specification != null && index > 0)
@@ -160,16 +169,48 @@ internal object BBalanced12WeekEngine {
                     specification.blocks.take(index).map(BBlockDefinition::weeks),
                     rows, request.asOf, exercises, contributions, targets, mainExerciseKeys
                 ) else chosen.sessions[index]
-            completedSelections += selectedSessions
-            val purposeSessions = if (specification == null) selectedSessions
+            selectionBeforeJoint += selectedSessions
+            val purposeBaseline = if (specification == null) selectedSessions
                 else BBlockPurposePrescription.prepare(
                     sessions = selectedSessions,
                     block = specification.blocks[index],
-                    mainKeys = mainExerciseKeys,
+                    mainKeys = BCoachJointBlockOptimizer.selectedMainKeys(selectedSessions, mainExerciseKeys),
                     exercises = exercises,
                     autoFocus = focus
                 )
-            completedSelections[completedSelections.lastIndex] = purposeSessions
+            val joint = if (specification == null) null else BJointExerciseSetOptimizer.optimize(
+                sessions = purposeBaseline,
+                goalImportance = resolvedImportance,
+                blockGoal = specification.blocks[index].goal,
+                autoFocus = focus,
+                sessionMinutes = request.sessionMinutes,
+                exercises = exercises,
+                muscleRelations = muscleRelations,
+                coreCatalog = coreCatalog,
+                badmintonCatalog = badmintonCatalog,
+                taskCatalog = taskCatalog,
+                mainKeys = mainExerciseKeys
+            )
+            if (joint != null) jointAudits += joint
+            // All strategies and weekly weekday/roster/set alternatives share a
+            // single whole-block score. The prior joint optimizer is only a seed.
+            // Future blocks are conditional: no planned sets are treated as performed.
+            val coach = if (specification == null) null else BCoachJointBlockOptimizer.optimize(
+                baseline = joint?.sessions ?: purposeBaseline,
+                block = specification.blocks[index],
+                focus = focus,
+                request = request.copy(days = placement.effectiveDays,
+                    bGoalImportance = resolvedImportance),
+                history = rows,
+                exercises = exercises,
+                muscleRelations = muscleRelations,
+                coreCatalog = coreCatalog,
+                badmintonCatalog = badmintonCatalog,
+                capabilityKeys = mainExerciseKeys
+            )
+            if (coach != null) coachAudits += coach
+            val purposeSessions = coach?.sessions ?: joint?.sessions ?: purposeBaseline
+            completedSelections += purposeSessions
             val selectedEvaluation = if (specification == null) chosen.evaluations[index]
                 else evaluate(purposeSessions, targets, contributions)
             val startWeek = weekCursor
@@ -200,12 +241,14 @@ internal object BBalanced12WeekEngine {
                 val stage = spec?.let { BBlockPeriodization.steps(it)[week - block.startWeek] } ?: 0
                 val sessions = block.sessions.map { session ->
                     val adjusted = if (spec == null) session else {
+                        val selectedMainKeys = BCoachJointBlockOptimizer.selectedMainKeys(
+                            block.sessions, mainExerciseKeys)
                         val periodized = BBlockPrescriptionApplicator.apply(
-                            session, stage, block.focus, spec, mainExerciseKeys,
+                            session, stage, block.focus, spec, selectedMainKeys,
                             exercises, resolvedAmplitudes[block.block - 1] ?: BChangeAmplitude.SMALL
                         )
                         BBlockPurposePrescription.finishWeek(
-                            periodized, spec, week == block.endWeek, mainExerciseKeys
+                            periodized, spec, week == block.endWeek, selectedMainKeys
                         )
                     }
                     adjusted.copy(items = adjusted.items.map { item ->
@@ -243,7 +286,10 @@ internal object BBalanced12WeekEngine {
             "Core and sport-support targets remain direction-only because reviewed numeric dose authority is unavailable.",
             "Hypertrophy personal-response confidence is zero without direct muscle-size observations.",
             "Historical kilograms are references only; the future skeleton requires user calibration.",
-            "Candidate search reuses incumbent exercises and never exceeds each exercise's observed weekly ceiling.",
+            if (specification == null)
+                "Historical B12 comparator reuses incumbent exercises within observed weekly ceilings."
+            else
+                "New B blocks can propose additional accessory sets or reviewed substitutions; every prescription requires user review.",
             "Goal satisfaction is a planning coverage ratio, not a predicted adaptation probability.",
             placement.diagnosis
         ) + if (realizedDoseAudit != null &&
@@ -268,7 +314,7 @@ internal object BBalanced12WeekEngine {
                     put("recoveryDaysBetween", JSONArray(specification.recoveryDaysBetween))
                     put("reselectionAudit", JSONArray(blocks.mapIndexed { index, block ->
                         val from = chosen.sessions[index].flatMap(V22Session::items).map(V22ExercisePlan::stableKey)
-                        val to = block.sessions.flatMap(V22Session::items).map(V22ExercisePlan::stableKey)
+                        val to = selectionBeforeJoint[index].flatMap(V22Session::items).map(V22ExercisePlan::stableKey)
                         val changes = from.zip(to).filter { (old, selected) -> old != selected }
                         JSONObject().put("block", block.block)
                             .put("relation", specification.blocks[index].relationToPrevious.active().name)
@@ -302,6 +348,46 @@ internal object BBalanced12WeekEngine {
                         }
                     }))
                     put("doseAudit", realizedDoseAudit)
+                    put("coachWholeBlockAudit", JSONArray(coachAudits.mapIndexed { index, result ->
+                        JSONObject().put("block", index + 1)
+                            .put("status", result.status)
+                            .put("strategy", result.strategy.name)
+                            .put("conditionalFuturePlan", index > 0)
+                            .put("evaluated", result.evaluated)
+                            .put("originalScore", result.originalScore)
+                            .put("finalScore", result.finalScore)
+                            .put("weekdays", JSONArray(result.sessions.map(V22Session::session)))
+                            .put("changes", JSONArray(result.changes))
+                            .put("actualEvidence", JSONObject()
+                                .put("observedSets28d", result.evidence.completedObservedSets28d)
+                                .put("observedTrainingDates28d", result.evidence.observedTrainingDates28d)
+                                .put("comparableStrengthKeys", result.evidence.comparableStrengthKeys)
+                                .put("relativeStrengthTrend",
+                                    result.evidence.relativeStrengthTrend ?: JSONObject.NULL)
+                                .put("meanObservedRpe28d",
+                                    result.evidence.meanObservedRpe28d ?: JSONObject.NULL)
+                                .put("plannedCompletionRate",
+                                    result.evidence.plannedCompletionRate ?: JSONObject.NULL)
+                                .put("authority", result.evidence.authority))
+                            .put("alternatives", JSONArray(result.alternatives.map { alternative ->
+                                JSONObject().put("strategy", alternative.strategy.name)
+                                    .put("weekdays", JSONArray(alternative.weekdays))
+                                    .put("weeklySets", alternative.weeklySets)
+                                    .put("peakMinutes", alternative.peakMinutes)
+                                    .put("score", alternative.score)
+                                    .put("status", alternative.status)
+                            }))
+                    }))
+                    put("jointExerciseSetAudit", JSONArray(jointAudits.mapIndexed { index, result ->
+                        JSONObject().put("block", index + 1)
+                            .put("status", result.status)
+                            .put("changed", result.changed)
+                            .put("evaluatedCandidates", result.evaluated)
+                            .put("baselineScore", result.baselineScore)
+                            .put("finalScore", result.finalScore)
+                            .put("changes", JSONArray(result.changes))
+                            .put("authority", "BOUNDED_PLANNING_UTILITY_NOT_ADAPTATION_OR_RECOVERY_CLEARANCE")
+                    }))
                 }
             }
             .put("placementAudit", JSONObject()

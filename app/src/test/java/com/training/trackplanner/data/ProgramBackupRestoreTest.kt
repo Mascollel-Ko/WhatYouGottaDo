@@ -243,6 +243,302 @@ class ProgramBackupRestoreTest {
     }
 
     @Test
+    fun `two saved programs may reuse logical progression item ids without breaking canonical backup`() = runBlocking {
+        val db = newDatabase()
+        val key = "shared_logical_id_test"
+        db.exerciseDao().insertExercise(Exercise(
+            stableKey = key, name = "Free weight row", category = "Strength", isCustom = true
+        ))
+        val programs = listOf("One", "Two").map { name ->
+            val id = db.programDao().insertProgram(
+                TrainingProgram(name = name, durationDays = 7)
+            )
+            checkNotNull(db.programDao().findProgram(id))
+        }
+        programs.forEach { program ->
+            val itemId = db.programDao().insertProgramItem(
+                TrainingProgramItem(
+                    programId = program.id, weekNumber = 1, dayOfWeek = 1, orderIndex = 1,
+                    exerciseStableKey = key, exerciseName = "Free weight row", category = "Strength",
+                    setCount = 1, reps = 5, weightKg = 60.0
+                )
+            )
+            db.programDao().insertProgramItemSets(listOf(
+                TrainingProgramItemSet(programItemId = itemId, setIndex = 1, reps = 5, weightKg = 60.0)
+            ))
+            val track = ProgramProgressionTrack(
+                programStableKey = program.stableKey, exerciseStableKey = key, label = "Shared row"
+            )
+            db.programProgressionDao().putTrack(track)
+            db.programProgressionDao().putItem(
+                ProgramProgressionItem(
+                    programItemId = itemId, logicalItemId = "same-imported-logical-id",
+                    trackId = track.id, signature = ProgressionSignature(key, 1, "5", 60.0, null, null)
+                )
+            )
+        }
+        // Room accepts this; backup must not impose an extra unique index
+        // that the database and restore identity system do not have.
+        assertEquals(2, db.programProgressionDao().items().size)
+        val backup = exportBackup(repository(db))
+        val parsed = RecordCsvBackupRestore.parse(backup) as RecordCsvImportData.Restore
+        assertEquals(2, parsed.progressionRows.count { it.type == "execution_item" })
+
+        val target = newDatabase()
+        repository(target).importRecordsBackup(writeBackup(backup))
+        val imported = target.programProgressionDao().items()
+        assertEquals(2, imported.size)
+        assertEquals(setOf("same-imported-logical-id"), imported.map { it.logicalItemId }.toSet())
+        assertEquals(2, target.programDao().countPrograms())
+    }
+
+    @Test
+    fun `backup says why a valid database row with no sets blocks program deletion`() = runBlocking {
+        val db = newDatabase()
+        val repo = repository(db)
+        db.exerciseDao().insertExercise(Exercise(
+            stableKey = "old_entry_without_sets", name = "Old log", category = "Strength", isCustom = true
+        ))
+        val entry = db.workoutDao().insertEntry(WorkoutEntry(
+            date = "2026-10-20", exerciseStableKey = "old_entry_without_sets",
+            exerciseName = "Old log", category = "Strength"
+        ))
+        val programId = db.programDao().insertProgram(
+            TrainingProgram(name = "Unrelated program", durationDays = 28)
+        )
+        val problem = runCatching { repo.deleteProgram(programId) }.exceptionOrNull()
+        assertTrue(problem is ProgramDeleteFailure)
+        assertEquals(ProgramDeleteFailurePhase.BACKUP, (problem as ProgramDeleteFailure).phase)
+        assertTrue(ProgramDeleteFailureMessage.describe(problem).contains(
+            DataTransferDiagnosticCodes.WORKOUT_ENTRY_WITHOUT_SET
+        ))
+        assertNotNull(db.workoutDao().findEntryById(entry))
+        assertNotNull(db.programDao().findProgram(programId))
+    }
+
+    @Test
+    fun `duplicate positions allowed in Room are pinpointed by canonical backup`() = runBlocking {
+        val db = newDatabase()
+        val repo = repository(db)
+        db.exerciseDao().insertExercise(Exercise(
+            stableKey = "duplicate_plan_position", name = "Lift", category = "Strength", isCustom = true
+        ))
+        val otherProgramId = db.programDao().insertProgram(
+            TrainingProgram(name = "Older program with duplicates", durationDays = 28)
+        )
+        val targetProgramId = db.programDao().insertProgram(
+            TrainingProgram(name = "Program I want to delete", durationDays = 28)
+        )
+        val row = TrainingProgramItem(
+            programId = otherProgramId, weekNumber = 1, dayOfWeek = 1, orderIndex = 1,
+            exerciseStableKey = "duplicate_plan_position", exerciseName = "Lift", category = "Strength"
+        )
+        db.programDao().insertProgramItem(row)
+        db.programDao().insertProgramItem(row)
+        // No unique Room constraint prevents the duplicate, yet the restore
+        // importer requires every (program, week, day, order) to be unique.
+        val failure = runCatching { repo.deleteProgram(targetProgramId) }.exceptionOrNull()
+        assertTrue(failure is ProgramDeleteFailure)
+        assertEquals(ProgramDeleteFailurePhase.BACKUP, (failure as ProgramDeleteFailure).phase)
+        assertNotNull(db.programDao().findProgram(targetProgramId))
+        assertTrue(ProgramDeleteFailureMessage.describe(failure).contains("PD-BACKUP"))
+    }
+
+    @Test
+    fun `program deletion prunes orphan B coach history after all records are gone`() = runBlocking {
+        val db = newDatabase()
+        val repository = repository(db)
+        val programId = db.programDao().insertProgram(
+            TrainingProgram(name = "Historical e1RM target", durationDays = 28)
+        )
+        val program = checkNotNull(db.programDao().findProgram(programId))
+        val dao = db.programProgressionDao()
+        val track = ProgramProgressionTrack(
+            programStableKey = program.stableKey,
+            exerciseStableKey = "barbell_back_squat",
+            label = "Squat"
+        )
+        dao.putTrack(track)
+        val application = ProgramApplication(
+            programStableKey = program.stableKey,
+            programName = program.name,
+            startDate = "2026-11-01"
+        )
+        dao.putApplication(application)
+        // Workout entries have already been deleted by the user.
+        // ProgressionSuggestion has no workout-entry foreign key, so historical
+        // evidence of an originally uncalibrated 0 kg target remains.
+        dao.putSuggestion(ProgressionSuggestion(
+            applicationId = application.id,
+            trackId = track.id,
+            sourceEntryId = 101L,
+            targetEntryId = 102L,
+            previousActualKg = 130.0,
+            currentPlanKg = 0.0,
+            suggestedKg = 131.5,
+            judgmentRpe = 6.5,
+            direction = ProgressionDirection.INCREASE,
+            reasons = "B_COACH_GATE_H_AUTO_AFTER_CONFIRM_LOAD_UP_ONE_STEP",
+            evidenceHash = "observed-e1rm",
+            resolution = ProgressionResolution.ACCEPTED,
+            resolvedKg = 131.5,
+            rule = ProgressionRule()
+        ))
+        assertTrue(db.workoutDao().allEntries().isEmpty())
+
+        repository.deleteProgram(programId)
+        assertNull(db.programDao().findProgram(programId))
+        // The orphan progression decision is discarded before backup.
+        // Its source/target records no longer exist; there is nothing to replay.
+        assertTrue(dao.suggestions().isEmpty())
+        assertTrue(dao.applications().isEmpty())
+        assertTrue(dao.tracks().isEmpty())
+    }
+
+    @Test
+    fun `an unrelated legacy migration issue blocks backup but leaves the program intact`() = runBlocking {
+        val db = newDatabase()
+        val trainingRepository = repository(db)
+        val programId = db.programDao().insertProgram(
+            TrainingProgram(name = "Independent program", durationDays = 28)
+        )
+        db.openHelper.writableDatabase.execSQL(
+            "INSERT INTO exercise_identity_migration_issues " +
+                "(issueCode, sourceExerciseId, sourceStableKey, canonicalStableKey, entityType, entityRowId, message, createdAt) " +
+                "VALUES ('UNRESOLVED_LEGACY_REFERENCE', NULL, 'old_missing', 'migration_review_9', 'EXERCISE', NULL, 'Needs review', 1)"
+        )
+
+        // Fail-closed recovery is intentional, but the error must be classified:
+        // a problem in a different historical exercise is not a program FK error.
+        val failure = runCatching { trainingRepository.deleteProgram(programId) }.exceptionOrNull()
+        assertTrue(failure is ProgramDeleteFailure)
+        assertEquals(ProgramDeleteFailurePhase.BACKUP, (failure as ProgramDeleteFailure).phase)
+        assertNotNull(db.programDao().findProgram(programId))
+    }
+
+    @Test
+    fun `a database delete constraint failure rolls back the program`() = runBlocking {
+        val db = newDatabase()
+        val trainingRepository = repository(db)
+        val programId = db.programDao().insertProgram(
+            TrainingProgram(name = "Constraint failure program", durationDays = 28)
+        )
+        db.openHelper.writableDatabase.execSQL(
+            "CREATE TRIGGER prevent_test_program_delete BEFORE DELETE ON training_programs " +
+                "BEGIN SELECT RAISE(ABORT, 'forced regression rollback'); END"
+        )
+
+        val failure = runCatching { trainingRepository.deleteProgram(programId) }.exceptionOrNull()
+        assertTrue(failure is ProgramDeleteFailure)
+        assertEquals(ProgramDeleteFailurePhase.DATABASE, (failure as ProgramDeleteFailure).phase)
+        assertNotNull(db.programDao().findProgram(programId))
+    }
+
+    @Test
+    fun `deleting a program remains possible when an old smash speed points at a removed workout`() = runBlocking {
+        val db = newDatabase()
+        val trainingRepository = repository(db)
+        val programId = db.programDao().insertProgram(
+            TrainingProgram(name = "Historical parent regression", durationDays = 28)
+        )
+        // Historical database state: record deletion removed the workout but left
+        // the optional smash speed's numeric parent. The measurement must survive.
+        db.smashSpeedDao().upsert(
+            SmashSpeedRecord(date = "2026-10-20", speedKmh = 212.0, parentWorkoutEntryId = 987654L)
+        )
+
+        // Previously this failed during LocalRecoveryService snapshot preflight,
+        // before the program DELETE transaction could even begin.
+        val revisionBefore = db.cloudBackupStateDao().getOrCreate().localRevision
+        trainingRepository.deleteProgram(programId)
+        assertEquals(revisionBefore + 1, db.cloudBackupStateDao().getOrCreate().localRevision)
+        assertNull(db.programDao().findProgram(programId))
+        assertEquals(1, db.smashSpeedDao().all().size)
+
+        val exported = RecordCsvBackupRestore.parse(exportBackup(trainingRepository))
+            as RecordCsvImportData.Restore
+        val speed = exported.smashSpeedRows.single()
+        assertEquals(212.0, speed.speedKmh, 0.0)
+        assertNull(speed.parentWorkoutEntryId)
+        assertNull(speed.parentWorkoutEntrySourceId)
+    }
+
+    @Test
+    fun `existing workout parent is retained in smash speed backup`() = runBlocking {
+        val db = newDatabase()
+        val trainingRepository = repository(db)
+        db.exerciseDao().insertExercise(
+            Exercise(stableKey = "smash_parent_test", name = "Badminton", category = "Sport", isCustom = true)
+        )
+        val entryId = db.workoutDao().insertEntry(
+            WorkoutEntry(
+                date = "2026-10-20",
+                exerciseStableKey = "smash_parent_test",
+                exerciseName = "Badminton",
+                category = "Sport",
+                backupSourceId = "smash-parent-regression-entry"
+            )
+        )
+        db.workoutDao().insertSet(WorkoutSet(entryId = entryId, setIndex = 1, reps = 1, seconds = 120))
+        db.smashSpeedDao().upsert(
+            SmashSpeedRecord(date = "2026-10-20", speedKmh = 205.0, parentWorkoutEntryId = entryId)
+        )
+
+        val exported = RecordCsvBackupRestore.parse(exportBackup(trainingRepository))
+            as RecordCsvImportData.Restore
+        val speed = exported.smashSpeedRows.single()
+        assertEquals(entryId, speed.parentWorkoutEntryId)
+        assertEquals("smash-parent-regression-entry", speed.parentWorkoutEntrySourceId)
+    }
+
+    @Test
+    fun `deleting a program after removing every applied workout preserves database integrity`() = runBlocking {
+        val db = newDatabase()
+        val trainingRepository = repository(db)
+        val key = "delete_after_record_cleanup"
+        db.exerciseDao().insertExercise(Exercise(
+            stableKey = key,
+            name = "Delete regression",
+            category = "Strength",
+            activityKind = "TRAINING_EXERCISE",
+            volumeLoadEligible = true
+        ))
+        val programId = db.programDao().insertProgram(
+            TrainingProgram(name = "Delete regression program", durationDays = 7)
+        )
+        db.programDao().insertProgramItem(TrainingProgramItem(
+            programId = programId,
+            weekNumber = 1,
+            dayOfWeek = 1,
+            orderIndex = 1,
+            exerciseStableKey = key,
+            exerciseName = "Delete regression",
+            category = "Strength",
+            setCount = 3,
+            reps = 6,
+            weightKg = 80.0
+        ))
+        ProgramProgressionService(db).author(programId)
+        assertTrue(db.programProgressionDao().items().isNotEmpty())
+
+        trainingRepository.applyProgramToDates(programId, "2026-10-20", ProgramApplyMode.Append)
+        val appliedEntries = db.workoutDao().allEntries()
+        assertTrue(appliedEntries.isNotEmpty())
+        assertTrue(db.programProgressionDao().links().isNotEmpty())
+
+        // A user may clear the Record calendar before deleting the original template.
+        appliedEntries.forEach { trainingRepository.deleteWorkoutEntry(it) }
+        assertTrue(db.workoutDao().allEntries().isEmpty())
+        assertTrue(db.programProgressionDao().links().isEmpty())
+
+        // This exercises both the pre-delete local recovery snapshot and Room deletion.
+        trainingRepository.deleteProgram(programId)
+        assertNull(db.programDao().findProgram(programId))
+        assertTrue(db.programProgressionDao().items().isEmpty())
+        assertTrue(db.programProgressionDao().links().isEmpty())
+    }
+
+    @Test
     fun `deleting a built in program persists tombstone through restore and later seeding`() = runBlocking {
         val seed = SeedData.programs(context).first { it.key == "10" }
         val source = newDatabase()

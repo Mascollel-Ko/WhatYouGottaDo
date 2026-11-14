@@ -21,6 +21,8 @@ internal class ProgramProgressionService(
         val roles = db.exerciseRoleRelationDao().allTrainingRoles().groupBy { it.exerciseStableKey }
         val metadata = db.runtimeExerciseMetadataDao().all().associate { it.stableKey to it.toRuntimeMetadata() }
         val history = workouts.entriesWithSetsUntil(java.time.LocalDate.now().toString()).groupBy { it.entry.exerciseStableKey }
+        val bUncalibratedLinking = BCoachUncalibratedLinkPolicy.isBProgram(program.planningMetadataJson)
+
         for (item in rows.sortedWith(compareBy({ it.weekNumber }, { it.dayOfWeek }, { it.orderIndex }))) {
             val exercise = db.exerciseDao().findByStableKey(item.exerciseStableKey) ?: continue
             val prescriptions = ProgramSetPrescriptionResolver.resolve(item, sets[item.id].orEmpty())
@@ -42,16 +44,22 @@ internal class ProgramProgressionService(
                 anchor = source?.progressionAnchorSetIndex ?: old?.signature?.anchorSetIndex).copy(
                     plannerRole = source?.progressionRole?.takeUnless { it == ProgressionRole.AUTO } ?: old?.signature?.plannerRole ?: ProgressionRole.AUTO)
             val explicit = old?.takeIf { it.linkMode != ProgressionLinkMode.AUTO }
-            val candidate = assigned.firstOrNull { it.linkMode == ProgressionLinkMode.AUTO && ProgressionTrackInference.sameTrack(it.signature, signature) }
+            val candidate = if (explicit != null) null else assigned.firstOrNull {
+                it.linkMode == ProgressionLinkMode.AUTO &&
+                    (ProgressionTrackInference.sameTrack(it.signature, signature) ||
+                        (bUncalibratedLinking &&
+                            BCoachUncalibratedLinkPolicy.sameUncalibratedIntent(it.signature, signature)))
+            }
             val oldTrack = old?.let { allTracks[it.trackId] }
             // New AUTO previews have no confirmed-history e1RM snapshot yet. Finalize with the
             // existing canonical comparator; only persisted or user-explicit choices bypass it.
             val provisionalAuto = source?.progressionBinding?.let { !it.persisted && it.linkMode == ProgressionLinkMode.AUTO } == true
-            val retain = !provisionalAuto && (explicit != null || old != null && (old.signature == signature || ProgressionTrackInference.sameTrack(old.signature, signature)))
+            val retain = explicit != null || (!provisionalAuto && old != null &&
+                (old.signature == signature || ProgressionTrackInference.sameTrack(old.signature, signature)))
             val track = when {
                 retain && oldTrack != null -> oldTrack
                 candidate != null -> allTracks.getValue(candidate.trackId)
-                provisionalAuto && oldTrack != null -> oldTrack
+                provisionalAuto && oldTrack != null && !bUncalibratedLinking -> oldTrack
                 else -> ProgramProgressionTrack(programStableKey = program.stableKey, exerciseStableKey = item.exerciseStableKey,
                     label = "${item.exerciseName} · ${signature.repsPattern.split('|').distinct().joinToString("/")}회" + signature.variant.takeIf { it.isNotBlank() }?.let { " · $it" }.orEmpty(),
                     basePolicy = signature.basePolicy, anchorSetIndex = signature.anchorSetIndex,

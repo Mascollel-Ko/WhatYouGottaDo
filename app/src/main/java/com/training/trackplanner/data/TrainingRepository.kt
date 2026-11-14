@@ -115,6 +115,13 @@ data class ExerciseDeleteResult(
     val referenced: Boolean
 )
 
+internal enum class ProgramDeleteFailurePhase { BACKUP, DATABASE, POST_COMMIT, UNKNOWN }
+
+internal class ProgramDeleteFailure(
+    val phase: ProgramDeleteFailurePhase,
+    cause: Exception
+) : IllegalStateException("Program deletion failed at $phase", cause)
+
 class TrainingRepository internal constructor(
     private val db: TrainingDatabase,
     private val context: Context,
@@ -333,8 +340,111 @@ class TrainingRepository internal constructor(
         workoutDao = workoutDao,
         canonicalMetadataRepository = canonicalMetadataRepository,
         bBalancedTaskCatalog = com.training.trackplanner.data.personalized.BBalancedTaskCatalog.fromAssets(context),
-        userOverrideDao = exerciseMetadataUserOverrideDao
+        userOverrideDao = exerciseMetadataUserOverrideDao,
+        progressionDao = db.programProgressionDao(),
+        squatShadowReader = com.training.trackplanner.data.v22.BCoachSquatShadowEvidenceReader(
+            strengthPosteriorDao, workoutDao, strengthPerformanceRegistry, repetitionCurveRegistry
+        ),
+        rirPolicy = rpeRirPolicy,
+        strengthRegistry = strengthPerformanceRegistry
     )
+    private val linkedSquatNextWeekService = com.training.trackplanner.data.v22.BCoachLinkedSquatNextWeekService(
+        db = db,
+        evidenceReader = com.training.trackplanner.data.v22.BCoachSquatShadowEvidenceReader(
+            strengthPosteriorDao, workoutDao, strengthPerformanceRegistry, repetitionCurveRegistry
+        ),
+        rirPolicy = rpeRirPolicy,
+        curves = repetitionCurveRegistry
+    )
+    suspend fun inspectBCoachLinkedSquatNextWeek(
+        targetEntryId: Long
+    ): com.training.trackplanner.data.v22.BCoachLinkedSquatNextWeekProposal =
+        withContext(Dispatchers.IO) { linkedSquatNextWeekService.inspect(targetEntryId) }
+
+    suspend fun approveBCoachLinkedSquatNextWeek(
+        targetEntryId: Long, expectedFingerprint: String
+    ): Boolean = cloudMutation(CloudMutationScope.APPLICATION) {
+        linkedSquatNextWeekService.approve(targetEntryId, expectedFingerprint)
+    }
+
+    /**
+     * Called after a confirmed squat set mutation. Completion of a real applied-program
+     * entry triggers exactly one future next-week B-Coach adjustment. The existing
+     * inspected evidence fingerprint and all manual-edit protections are rechecked
+     * transactionally by the Gate G service. No generic historical squat matching.
+     */
+    suspend fun progressBCoachAfterConfirmedSquat(
+        sourceEntryId: Long
+    ): com.training.trackplanner.data.v22.BCoachPostConfirmOutcome = withContext(Dispatchers.IO) {
+        val now = LocalDate.now()
+        val source = workoutDao.findEntryById(sourceEntryId)
+            ?: return@withContext com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(sourceEntryId, "SOURCE_MISSING")
+        if (source.exerciseStableKey != com.training.trackplanner.data.v22.BCoachLinkedSquatWeekPlanner.SQUAT) {
+            return@withContext com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(sourceEntryId, "NOT_SQUAT")
+        }
+        if (db.programProgressionDao().link(sourceEntryId) == null) {
+            return@withContext com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(sourceEntryId, "SOURCE_NOT_PROGRAM_LINKED")
+        }
+        val sets = workoutDao.setsForEntry(sourceEntryId)
+        if (sets.isEmpty() || sets.any { !it.confirmed }) {
+            return@withContext com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(
+                sourceEntryId, "WAITING_FOR_CONFIRMED_RPE_SETS"
+            )
+        }
+        val links = db.programProgressionDao().links()
+        val records = workoutDao.allEntriesWithSets()
+        val target = com.training.trackplanner.data.v22.BCoachPostConfirmLinkResolver.resolve(
+            sourceEntryId = sourceEntryId, asOf = now, records = records, links = links
+        )
+        fun outcome(status: String, detail: String? = null) =
+            com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(
+                sourceEntryId = sourceEntryId, status = status,
+                targetEntryId = target.targetEntryId, detail = detail
+            )
+        if (target.status != "LINKED_FUTURE_TARGET_READY") {
+            return@withContext outcome(target.status)
+        }
+        // The raw confirmation has already committed. Bring the canonical posterior up
+        // to that committed revision before asking the Gate F RPE/e1RM comparator.
+        try {
+            strengthPosteriorCoordinator.ensureCurrentRevision()
+        } catch (failure: kotlinx.coroutines.CancellationException) {
+            throw failure
+        } catch (failure: Exception) {
+            // The posterior is a secondary signal. The observed-only fallback in
+            // the linked squat service can still evaluate actual confirmed sets
+            // without pretending that a posterior was successfully computed.
+            android.util.Log.e("BCoachGateH", "Posterior unavailable; inspect observed-only evidence", failure)
+        }
+        val futureId = checkNotNull(target.targetEntryId)
+        val proposal = linkedSquatNextWeekService.inspect(futureId, now)
+        if (!proposal.canApply || proposal.sourceEntryId != sourceEntryId) {
+            return@withContext outcome(
+                if (proposal.canApply) "SOURCE_LINK_MISMATCH" else proposal.status
+            )
+        }
+        // No silent overwrites of modified plans: approve rechecks the fingerprint,
+        // original prescription, all confirmed flags and prior explicit decisions.
+        val didApply = cloudMutation(CloudMutationScope.APPLICATION) {
+            linkedSquatNextWeekService.approve(
+                targetEntryId = futureId,
+                expectedFingerprint = checkNotNull(proposal.evidenceFingerprint),
+                asOf = now,
+                automaticallyAfterConfirm = true
+            )
+        }
+        if (!didApply) return@withContext outcome("STALE_OR_EDITED_TARGET")
+        com.training.trackplanner.data.v22.BCoachPostConfirmOutcome(
+            sourceEntryId = sourceEntryId,
+            status = "NEXT_LINKED_UPDATED",
+            targetEntryId = futureId,
+            nextLoadKg = proposal.proposedLoadKg,
+            nextReps = proposal.proposedReps,
+            nextSets = proposal.proposedSets,
+            selectedAction = proposal.selectedAction
+        )
+    }
+
     private val programProgressionService = ProgramProgressionService(db) {
         connectiveTissueAnalysisService.build(System.currentTimeMillis()).loadUnits
             .filter { it.status in setOf(com.training.trackplanner.analysis.tissue.TissueCanonicalStatus.HIGH, com.training.trackplanner.analysis.tissue.TissueCanonicalStatus.VERY_HIGH) }
@@ -364,6 +474,7 @@ class TrainingRepository internal constructor(
     }
     val progressionItems = db.programProgressionDao().observeItems()
     val programWorkoutLinks = db.programProgressionDao().observeLinks()
+    val appliedWorkoutEntries = workoutDao.observeAllEntries()
     val progressionSuggestions = db.programProgressionDao().observeSuggestions()
     val programPrescriptions = db.programProgressionDao().observePrescriptions()
     suspend fun refreshProgression() = withContext(Dispatchers.IO) { programProgressionService.refresh() }
@@ -587,17 +698,44 @@ class TrainingRepository internal constructor(
     fun entriesForDate(date: String): Flow<List<WorkoutEntryWithSets>> =
         readQueryService.entriesForDate(date)
 
+    /**
+     * Shared conservative reconciliation for legacy orphans, idempotent on launch
+     * and before every local/manual/cloud backup. Only derived progression graph
+     * tables are pruned; raw workout records are never changed.
+     */
+    internal suspend fun reconcileProgressionOrphans(): ProgramProgressionOrphanCleanup.Result =
+        withContext(Dispatchers.IO) {
+            val previousRevision = db.cloudBackupStateDao().getOrCreate().localRevision
+            val result = db.withCloudRevision(CloudMutationScope.PROGRESSION_ORPHANS) {
+                ProgramProgressionOrphanCleanup.pruneInTransaction(db)
+            }
+            if (result.removed > 0) {
+                LocalRecoveryScheduler.schedule(context)
+                scheduleAutomaticCloudBackupIfChanged(previousRevision)
+            }
+            result
+        }
+
+    private suspend fun pruneProgressionBeforeBackup(): ProgramProgressionOrphanCleanup.Result =
+        db.withCloudRevision(CloudMutationScope.PROGRESSION_ORPHANS) {
+            ProgramProgressionOrphanCleanup.pruneInTransaction(db)
+        }
+
     suspend fun exportRecordsBackup(
         uri: Uri,
         onReportChanged: (DataTransferReport) -> Unit = {}
     ): RecordCsvTransferResult = withContext(Dispatchers.IO) {
+        reconcileProgressionOrphans()
         backupExportService().export(uri, onReportChanged)
     }
 
     /** Current canonical payload, without a user-selected Uri or any Cloud lineage. */
     internal suspend fun canonicalRecordsBackup(exportedAt: Long = System.currentTimeMillis()): CanonicalBackupContent =
         withContext(Dispatchers.IO) {
-            db.withTransaction { backupExportService().buildCanonicalBackup(exportedAt = exportedAt) }
+            db.withTransaction {
+                pruneProgressionBeforeBackup()
+                backupExportService().buildCanonicalBackup(exportedAt = exportedAt)
+            }
         }
 
     internal suspend fun uploadCloudBackup(
@@ -611,6 +749,12 @@ class TrainingRepository internal constructor(
         if (!automatic) CloudBackupScheduler.cancel(context)
         try {
             CloudBackupRuntimeMutex.withLock {
+                // CloudBackupClient captures localRevision BEFORE asking for CSV.
+                // Prune first, so cleanup belongs to the uploaded revision.
+                // Do not enqueue a second backup while this upload owns
+                // CloudBackupRuntimeMutex. The cleanup revision is included in
+                // the snapshot obtained immediately below.
+                pruneProgressionBeforeBackup()
                 val result = CloudBackupClient(
                     db = db,
                     canonicalBackup = { canonicalRecordsBackup() },
@@ -898,7 +1042,10 @@ class TrainingRepository internal constructor(
     internal val localRecovery: LocalRecoveryService by lazy {
         LocalRecoveryService(db, LocalRecoveryStore(
             java.io.File(context.noBackupFilesDir, "recovery"), ::preflightRecovery
-        ), { time -> backupExportService().buildCanonicalBackup(exportedAt = time) }, ::applyLocalRecovery)
+        ), { time ->
+            pruneProgressionBeforeBackup()
+            backupExportService().buildCanonicalBackup(exportedAt = time)
+        }, ::applyLocalRecovery)
     }
 
     /** Creates the one valid previous-state snapshot after canonical preflight. */
@@ -920,7 +1067,14 @@ class TrainingRepository internal constructor(
             ?: error("Local Recovery must contain a canonical restore backup")
         val result = BackupRestoreCanonicalizer(legacyExerciseImportMapper).canonicalize(
             parsed, SeedData.exactExerciseMetadataByStableKey(context))
-        require(result.errors.isEmpty()) { "Local Recovery canonical preflight failed: ${result.errors}" }
+        // Keep the canonicalizer's exact diagnostic. A generic "PD-BACKUP" does
+        // not reveal which persisted row/identity prevented a round-trip.
+        result.errors.firstOrNull()?.let { issue ->
+            throw DataTransferFormatException(
+                issue.code,
+                "복구 사전검사: ${issue.messageKo}"
+            )
+        }
         backupRestorePlanner.prepare(result.data)
         return result.data
     }
@@ -1056,6 +1210,7 @@ class TrainingRepository internal constructor(
         }
 
         programDao.allPrograms().forEach { ProgramProgressionService(db).author(it.id) }
+        reconcileProgressionOrphans()
         val strengthAnalysisLifecycle = strengthPosteriorCoordinator.ensureCurrentRevision()
 
         logDebugSummary()
@@ -1419,8 +1574,29 @@ class TrainingRepository internal constructor(
     }
 
     suspend fun deleteProgram(programId: Long) = withContext(Dispatchers.IO) {
-        localRecovery.protect(RecoveryTrigger.BEFORE_BULK_CHANGE) {
-            cloudMutation(CloudMutationScope.PROGRAMS) { programPlanService.deleteProgram(programId) }
+        var recoverySucceeded = false
+        try {
+            localRecovery.protect(RecoveryTrigger.BEFORE_BULK_CHANGE) {
+                recoverySucceeded = true
+                cloudMutation(CloudMutationScope.PROGRAM_TEMPLATE_DELETE) {
+                    programPlanService.deleteProgram(programId)
+                }
+            }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            // Distinguish failure before backup completion from transaction failure
+            // and errors after the deletion was committed. Never retry implicitly.
+            val phase = if (!recoverySucceeded) {
+                ProgramDeleteFailurePhase.BACKUP
+            } else {
+                when (runCatching { db.programDao().findProgram(programId) != null }.getOrNull()) {
+                    true -> ProgramDeleteFailurePhase.DATABASE
+                    false -> ProgramDeleteFailurePhase.POST_COMMIT
+                    null -> ProgramDeleteFailurePhase.UNKNOWN
+                }
+            }
+            throw ProgramDeleteFailure(phase, error)
         }
     }
 

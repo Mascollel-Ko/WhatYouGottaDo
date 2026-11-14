@@ -269,6 +269,88 @@ class ProgramProgressionPersistenceTest {
         assertTrue(runCatching { ProgramProgressionBackup.validate(rows.filterNot { it.type == "execution_link" }) }.isFailure)
     }
 
+    @Test fun zeroOriginalTargetKgFromGateHIsValidForCanonicalBackup() = runBlocking {
+        val db = database()
+        apply(db, fixture(db))
+        val dao = db.programProgressionDao()
+        val records = db.workoutDao().allEntriesWithSets().sortedBy { it.entry.date }
+        val source = records[0].entry.id
+        val target = records[1].entry.id
+        val link = requireNotNull(dao.link(target))
+
+        // Gate H/L persists the target's load *before* changing it.
+        // On a USER_CALIBRATION_REQUIRED B program that target may be 0kg.
+        dao.putSuggestion(ProgressionSuggestion(
+            applicationId = link.applicationId,
+            trackId = link.trackId,
+            sourceEntryId = source,
+            targetEntryId = target,
+            previousActualKg = 130.0,
+            currentPlanKg = 0.0,
+            suggestedKg = 131.5,
+            judgmentRpe = 6.5,
+            direction = ProgressionDirection.INCREASE,
+            reasons = "B_COACH_GATE_H_AUTO_AFTER_CONFIRM_LOAD_UP_ONE_STEP",
+            evidenceHash = "e1rm-observed-130x6",
+            resolution = ProgressionResolution.ACCEPTED,
+            resolvedKg = 131.5,
+            rule = ProgressionRule()
+        ))
+        val rows = ProgramProgressionBackup.export(db)
+        assertEquals(1, rows.count { it.type == "execution_suggestion" })
+        ProgramProgressionBackup.validate(rows)
+
+        val invalid = rows.map { row ->
+            if (row.type == "execution_suggestion") {
+                row.copy(payload = org.json.JSONObject(row.payload)
+                    .put("currentPlanKg", -1.0).toString())
+            } else row
+        }
+        assertTrue(runCatching { ProgramProgressionBackup.validate(invalid) }.isFailure)
+    }
+
+    @Test fun historicalZeroPlanProgressionIsPrunedWhenAllAppliedRecordsAreDeleted() = runBlocking {
+        val db = database()
+        val programId = fixture(db)
+        apply(db, programId)
+        val dao = db.programProgressionDao()
+        val records = db.workoutDao().allEntriesWithSets().sortedBy { it.entry.date }
+        val link = requireNotNull(dao.link(records[1].entry.id))
+        dao.putSuggestion(ProgressionSuggestion(
+            applicationId = link.applicationId,
+            trackId = link.trackId,
+            sourceEntryId = records[0].entry.id,
+            targetEntryId = records[1].entry.id,
+            previousActualKg = 130.0,
+            currentPlanKg = 0.0,
+            suggestedKg = 131.5,
+            judgmentRpe = 6.5,
+            direction = ProgressionDirection.INCREASE,
+            reasons = "B_COACH_GATE_H_AUTO_AFTER_CONFIRM",
+            evidenceHash = "historical-zero-plan",
+            resolution = ProgressionResolution.ACCEPTED,
+            resolvedKg = 131.5,
+            rule = ProgressionRule()
+        ))
+
+        records.forEach { record ->
+            db.workoutDao().deleteSetsForEntry(record.entry.id)
+            db.workoutDao().deleteEntryById(record.entry.id)
+        }
+        assertTrue(db.workoutDao().allEntries().isEmpty())
+        assertTrue(dao.links().isEmpty())
+        assertEquals(1, dao.suggestions().size) // legacy orphan until reconciliation
+
+        // The template-deletion transaction now clears the orphan decision and
+        // its unused application/track, rather than archiving garbage forever.
+        service(db).deleteProgram(programId)
+        assertTrue(db.programDao().allPrograms().isEmpty())
+        assertTrue(dao.suggestions().isEmpty())
+        assertTrue(dao.applications().isEmpty())
+        assertTrue(dao.tracks().isEmpty())
+        ProgramProgressionBackup.validate(ProgramProgressionBackup.export(db))
+    }
+
     @Test fun negativeSuggestedLoadInBackupFailsClosed() = runBlocking {
         val db = database(); apply(db, fixture(db))
         confirm(db, db.workoutDao().allEntriesWithSets().minBy { it.entry.date }.entry.id)

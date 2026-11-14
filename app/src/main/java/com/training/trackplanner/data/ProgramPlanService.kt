@@ -204,6 +204,7 @@ internal class ProgramPlanService(
             programDao.deleteProgramItems(programId)
             db.communityProgramImportDao().deleteByLocalProgramStableKey(program.stableKey)
             programDao.deleteProgram(programId)
+            ProgramProgressionOrphanCleanup.pruneInTransaction(db)
             if (program.stableKey in builtInProgramKeys()) {
                 programDao.upsertProgramTombstone(
                     TrainingProgramTombstone(program.stableKey)
@@ -345,6 +346,9 @@ internal class ProgramPlanService(
                         )
                     )
                 }
+            }
+            if (mode == ProgramApplyMode.Overwrite) {
+                ProgramProgressionOrphanCleanup.pruneInTransaction(db)
             }
         }
     }
