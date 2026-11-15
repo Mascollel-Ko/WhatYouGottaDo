@@ -108,6 +108,22 @@ data class V22HistoryRow(
     val rpe: Double?
 )
 
+data class V22BadmintonHistoryComponent(
+    val entryId: Long,
+    val stableKey: String,
+    val durationMinutes: Double,
+    val practiceLoad: Double,
+    val rpe: Double?
+)
+
+data class V22BadmintonHistorySession(
+    val date: LocalDate,
+    val sessionStableKey: String,
+    val practiceLoad: Double,
+    val durationMinutes: Double,
+    val components: List<V22BadmintonHistoryComponent>
+)
+
 data class V22ObservedSet(
     val weightKg: Double?,
     val reps: Int?,

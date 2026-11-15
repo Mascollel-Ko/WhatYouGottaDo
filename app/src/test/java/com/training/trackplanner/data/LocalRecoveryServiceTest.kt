@@ -65,8 +65,8 @@ class LocalRecoveryServiceTest {
 
         val first = repo.createLocalRecoverySnapshot()
         val installId = db.cloudBackupStateDao().get()!!.installId
-        assertEquals(14, first.metadata.backupFormatVersion)
-        assertEquals(13, first.metadata.schemaVersion)
+        assertEquals(15, first.metadata.backupFormatVersion)
+        assertEquals(14, first.metadata.schemaVersion)
         assertEquals(first.metadata.compressedSizeBytes,
             java.io.File(context.noBackupFilesDir, "recovery/${first.metadata.snapshotId}/${LocalRecoveryStore.PAYLOAD}").length())
         assertEquals(1, db.workoutDao().allEntries().size)

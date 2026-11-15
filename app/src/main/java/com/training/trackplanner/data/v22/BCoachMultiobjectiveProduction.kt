@@ -215,11 +215,13 @@ internal object BCoachMultiobjectiveProduction {
         mainExerciseKeys: Set<String> = candidate.items.mapTo(linkedSetOf(), ProgramSkeletonItem::exerciseStableKey),
         recommendedImportance: Map<BBalancedGoal, Int> = emptyMap(),
         modelSnapshots: Map<String, BCoachV2LoadModelSnapshot> = emptyMap(),
-        rirPolicy: RpeRirPolicy? = null
+        rirPolicy: RpeRirPolicy? = null,
+        badmintonHistory: List<V22BadmintonHistorySession> = emptyList()
     ): Outcome {
         val result = BCoachV2GlobalSelector.select(
             request = request,
             history = history,
+            badmintonHistory = badmintonHistory,
             exercises = exercises,
             baseline = baseline,
             jointCandidate = candidate,
@@ -317,14 +319,24 @@ internal object BCoachMultiobjectiveProduction {
                 ProgramSetPrescriptionResolver.resolve(item).forEach { set ->
                     canonicalField(if (includeLoad) set else set.copy(
                         weightKg = 0.0,
-                        loadState = ProgramLoadState.USER_CALIBRATION_REQUIRED
+                        loadState = ProgramLoadState.USER_CALIBRATION_REQUIRED,
+                        estimatedLoadKg = null,
+                        loadSource = com.training.trackplanner.data.ProgramLoadSource.CALIBRATION_REQUIRED,
+                        freshRir = null,
+                        expectedRir = null,
+                        relativeIntensity = null,
+                        evidenceVersion = null
                     ))
                 }
             }
         skeleton.progressionSessions.sortedBy { it.key }.forEach { canonicalField(it) }
     })
 
-    internal fun inputFingerprint(request: V22GenerationRequest, history: List<V22HistoryRow>): String =
+    internal fun inputFingerprint(
+        request: V22GenerationRequest,
+        history: List<V22HistoryRow>,
+        badmintonHistory: List<V22BadmintonHistorySession> = emptyList()
+    ): String =
         sha256(buildString {
             canonicalField(request.name)
             canonicalField(request.weeks)
@@ -350,13 +362,20 @@ internal object BCoachMultiobjectiveProduction {
                 program.blocks.forEach { canonicalField(it) }
                 canonicalField(program.recoveryDaysBetween.joinToString(","))
             } ?: canonicalField(null)
-            canonicalField(historyFingerprint(history))
+            canonicalField(historyFingerprint(history, badmintonHistory))
         })
 
-    internal fun historyFingerprint(history: List<V22HistoryRow>): String = sha256(buildString {
+    internal fun historyFingerprint(
+        history: List<V22HistoryRow>,
+        badmintonHistory: List<V22BadmintonHistorySession> = emptyList()
+    ): String = sha256(buildString {
+        canonicalField("RESISTANCE_HISTORY")
         history.sortedWith(compareBy<V22HistoryRow> { it.date }.thenBy { it.stableKey }
             .thenBy { it.setIndex }.thenBy { it.exerciseName })
             .forEach { canonicalField(it) }
+        canonicalField("BADMINTON_HISTORY")
+        badmintonHistory.sortedWith(compareBy(V22BadmintonHistorySession::date,
+            V22BadmintonHistorySession::sessionStableKey)).forEach { canonicalField(it) }
     })
 
     internal fun exerciseFingerprint(
@@ -444,7 +463,8 @@ internal object BCoachMultiobjectiveProduction {
         skeleton: GeneratedProgramSkeleton,
         history: List<V22HistoryRow>,
         exercises: Map<String, Exercise>,
-        currentLinkedEvidenceFingerprint: String
+        currentLinkedEvidenceFingerprint: String,
+        badmintonHistory: List<V22BadmintonHistorySession> = emptyList()
     ) {
         val root = runCatching { JSONObject(skeleton.planningMetadataJson ?: return) }
             .getOrElse { throw IllegalStateException("B_COACH_ACCEPTANCE_METADATA_INVALID") }
@@ -475,7 +495,7 @@ internal object BCoachMultiobjectiveProduction {
         if (persistenceStructureFingerprint(skeleton) != structure) {
             throw IllegalStateException("B_COACH_ACCEPTANCE_STRUCTURE_STALE")
         }
-        if (historyFingerprint(history) != originalHistory) {
+        if (historyFingerprint(history, badmintonHistory) != originalHistory) {
             throw IllegalStateException("B_COACH_ACCEPTANCE_HISTORY_STALE")
         }
         if (exerciseFingerprint(relevantKeys, exercises) != originalExercise) {

@@ -132,12 +132,12 @@ class ExerciseMetadataFieldRegistryContractTest {
             revisions.metadataDisplayDictionaryRevision
         )
         assertTrue(
-                Regex("version\\s*=\\s*41").containsMatchIn(
+                Regex("version\\s*=\\s*42").containsMatchIn(
                 File("src/main/java/com/training/trackplanner/data/TrainingDatabase.kt")
                     .readText(Charsets.UTF_8)
             )
         )
-        assertEquals(14, RecordCsvBackupRestore.CURRENT_BACKUP_FORMAT_VERSION)
-        assertEquals(13, RecordCsvBackupRestore.CURRENT_RESTORE_SCHEMA_VERSION)
+        assertEquals(15, RecordCsvBackupRestore.CURRENT_BACKUP_FORMAT_VERSION)
+        assertEquals(14, RecordCsvBackupRestore.CURRENT_RESTORE_SCHEMA_VERSION)
     }
 }

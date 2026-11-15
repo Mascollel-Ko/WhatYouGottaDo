@@ -52,6 +52,7 @@ internal object BCoachV2GlobalSelector {
     fun select(
         request: V22GenerationRequest,
         history: List<V22HistoryRow>,
+        badmintonHistory: List<V22BadmintonHistorySession> = emptyList(),
         exercises: Map<String, Exercise>,
         baseline: GeneratedProgramSkeleton,
         jointCandidate: GeneratedProgramSkeleton,
@@ -64,16 +65,20 @@ internal object BCoachV2GlobalSelector {
         rirPolicy: RpeRirPolicy? = null
     ): Result {
         val historyAtCutoff = history.filter { !it.date.isAfter(request.asOf) }
+        val badmintonAtCutoff = badmintonHistory.filter { !it.date.isAfter(request.asOf) }
         val goalWeights = effectiveGoalWeights(
             request.bGoalImportance,
             historyAtCutoff.isNotEmpty(),
             recommendedImportance
         )
         val baselineFingerprint = BCoachMultiobjectiveProduction.fingerprint(baseline)
-        val inputFingerprint = BCoachMultiobjectiveProduction.inputFingerprint(request, historyAtCutoff)
+        val inputFingerprint = BCoachMultiobjectiveProduction.inputFingerprint(
+            request, historyAtCutoff, badmintonAtCutoff
+        )
         val loadEvidenceFingerprint = sha256(modelSnapshots.toSortedMap().entries.joinToString("|") {
             (key, model) -> "$key:${model.sourceVersion}:${model.evidenceIds.sorted()}:${model.stale}"
-        } + "|rirPolicy=${rirPolicy?.version ?: "NONE"}")
+        } + "|rirPolicy=${rirPolicy?.version ?: "NONE"}|badminton=" +
+            BCoachMultiobjectiveProduction.historyFingerprint(emptyList(), badmintonAtCutoff))
         val baselineLoad = BCoachV2LoadCandidateResolver.resolve(
             baseline, request, historyAtCutoff, exercises, modelSnapshots, mainExerciseKeys, rirPolicy
         )
@@ -107,7 +112,8 @@ internal object BCoachV2GlobalSelector {
                     baseIntensityBySetId = loadData.baseIntensityBySetId,
                     rirByScenarioAndSet = loadData.rirByScenarioAndSet,
                     intensityByScenarioAndSet = loadData.intensityByScenarioAndSet,
-                    rirPolicy = rirPolicy
+                    rirPolicy = rirPolicy,
+                    badmintonHistory = badmintonAtCutoff
                 )
                 ResolvedPlan(
                     skeleton = resolvedSkeleton,
@@ -141,7 +147,9 @@ internal object BCoachV2GlobalSelector {
         }
         val relevantKeys = rawCandidates.flatMap { it.skeleton.items }
             .map(ProgramSkeletonItem::exerciseStableKey).distinct().sorted()
-        val historyFingerprint = BCoachMultiobjectiveProduction.historyFingerprint(historyAtCutoff)
+        val historyFingerprint = BCoachMultiobjectiveProduction.historyFingerprint(
+            historyAtCutoff, badmintonAtCutoff
+        )
         val exerciseFingerprint = BCoachMultiobjectiveProduction.exerciseFingerprint(relevantKeys, exercises)
         val linkedFingerprint = BCoachMultiobjectiveProduction.linkedEvidenceFingerprint(request)
         if (valid.isEmpty()) {
@@ -533,9 +541,13 @@ internal object BCoachV2GlobalSelector {
     private fun canonicalLoad(instruction: BCoachV2LoadInstruction): String = when (instruction) {
         is BCoachV2LoadInstruction.ExactLoad ->
             "EXACT|kg=${instruction.kg}|source=${instruction.loadSource}|tier=${instruction.tier}|" +
-                "targetRir=${instruction.targetRir}|expectedRir=${instruction.expectedRir}|" +
+                "targetRir=${instruction.targetRir}|freshRir=${instruction.freshRir}|workingRir=${instruction.expectedRir}|" +
                 "capacityKg=${instruction.capacityKg}|conservative=${instruction.conservativeFactor}|" +
                 "followUp=${instruction.followUpSetFactor}|${instruction.evidenceStatus}"
+        is BCoachV2LoadInstruction.EstimatedLoad ->
+            "ESTIMATED|kg=${instruction.estimatedKg}|source=${instruction.loadSource}|tier=${instruction.tier}|" +
+                "targetRir=${instruction.targetRir}|freshRir=${instruction.freshRir}|workingRir=${instruction.expectedRir}|" +
+                "capacityKg=${instruction.capacityKg}|equipmentGrid=REQUIRED|${instruction.evidenceStatus}"
         is BCoachV2LoadInstruction.HoldLastConfirmed ->
             "HOLD|kg=${instruction.kg}|date=${instruction.sourceDate}|${instruction.evidenceStatus}"
         is BCoachV2LoadInstruction.Calibrate -> "CALIBRATE|reason=${instruction.reason}|${instruction.evidenceStatus}"
@@ -560,6 +572,7 @@ internal object BCoachV2GlobalSelector {
             }
             val load = when {
                 set.weightKg > 0.0 -> "@${set.weightKg}kg"
+                set.estimatedLoadKg?.let { it > 0.0 } == true -> "@~${set.estimatedLoadKg}kg(EQUIPMENT_GRID_REQUIRED)"
                 else -> "@${set.loadState.name}"
             }
             val evidence = instructions[BCoachV2LoadCandidateResolver.setId(item.localId, set.setIndex)]

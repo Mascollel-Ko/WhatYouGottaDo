@@ -4,6 +4,8 @@ import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.ProgramGoal
 import com.training.trackplanner.data.ProgramPeriodizationType
+import com.training.trackplanner.data.ProgramLoadState
+import com.training.trackplanner.data.ProgramSetPrescription
 import com.training.trackplanner.data.ProgramSetPrescriptionResolver
 import com.training.trackplanner.data.ProgramSkeletonRequest
 import com.training.trackplanner.data.ProgramSkeletonItem
@@ -42,7 +44,10 @@ internal object BCoachV2ScheduleLoad {
         request: V22GenerationRequest,
         history: List<V22HistoryRow>,
         exercises: Map<String, Exercise>,
-        scenario: BCoachV2Scenario
+        scenario: BCoachV2Scenario,
+        badmintonHistory: List<V22BadmintonHistorySession> = emptyList(),
+        rirBySetId: Map<String, Double> = emptyMap(),
+        intensityBySetId: Map<String, Double> = emptyMap()
     ): BCoachV2ScheduleEvaluation {
         val start = request.planningStartDate
             ?: request.asOf.with(TemporalAdjusters.next(DayOfWeek.MONDAY))
@@ -50,22 +55,71 @@ internal object BCoachV2ScheduleLoad {
             start.plusDays((item.weekNumber - 1L) * 7L + (item.dayOfWeek - 1L))
         fun loadByDate(items: List<ProgramSkeletonItem>): Map<LocalDate, Map<String, Double>> =
             items.groupBy(::plannedDate).mapValues { (_, dayItems) ->
-                axisSelectors.mapValues { (_, selector) ->
+                axisSelectors.mapValues { (axis, selector) ->
                     dayItems.sumOf { item ->
                         val exercise = exercises[item.exerciseStableKey]
                         if (exercise == null) 0.0
-                        else ProgramSetPrescriptionResolver.resolve(item).size * selector(exercise)
+                        else ProgramSetPrescriptionResolver.resolve(item).sumOf { set ->
+                            val setId = BCoachV2LoadCandidateResolver.setId(item.localId, set.setIndex)
+                            selector(exercise) * setAdjustment(
+                                axis, set, rirBySetId[setId], intensityBySetId[setId]
+                            )
+                        }
                     }
                 }
             }
         val planned = loadByDate(plan.items)
         val baselineLoads = loadByDate(baseline.items)
-        val observed = history.filter { row -> row.date in request.asOf.minusDays(27)..request.asOf }
+        val capacityByKey = history.groupBy(V22HistoryRow::stableKey).mapValues { (_, rows) ->
+            rows.mapNotNull { row ->
+                val weight = row.weightKg?.takeIf { it.isFinite() && it > 0.0 } ?: return@mapNotNull null
+                val reps = row.reps?.takeIf { it.isFinite() && it in 1.0..20.0 } ?: return@mapNotNull null
+                val rir = row.rpe?.takeIf { it.isFinite() && it in 1.0..10.0 }
+                    ?.let { 10.0 - it } ?: 0.0
+                BCoachV2LoadCandidateResolver.epleyEstimatedOneRepMax(weight, reps, rir)
+            }.maxOrNull()
+        }
+        val resistanceObserved = history.filter { row -> row.date in request.asOf.minusDays(27)..request.asOf }
             .groupBy(V22HistoryRow::date).mapValues { (_, rows) ->
-                axisSelectors.mapValues { (_, selector) ->
-                    rows.sumOf { row -> exercises[row.stableKey]?.let(selector) ?: 0.0 }
+                axisSelectors.mapValues { (axis, selector) ->
+                    rows.sumOf { row ->
+                        val exercise = exercises[row.stableKey] ?: return@sumOf 0.0
+                        val weight = row.weightKg?.takeIf { it.isFinite() && it > 0.0 }
+                        val capacity = capacityByKey[row.stableKey]
+                        val intensity = if (weight != null && capacity != null && capacity > 0.0) {
+                            weight / capacity
+                        } else null
+                        val workingRir = row.rpe?.takeIf { it.isFinite() && it in 1.0..10.0 }
+                            ?.let { 10.0 - it }
+                        val set = ProgramSetPrescription(
+                            setIndex = row.setIndex,
+                            reps = row.reps?.toInt() ?: 0,
+                            weightKg = weight ?: 0.0,
+                            seconds = row.seconds?.toInt() ?: 0,
+                            targetRpeMin = row.rpe,
+                            loadState = if (weight != null) ProgramLoadState.EXPLICIT_LOAD
+                                else ProgramLoadState.USER_CALIBRATION_REQUIRED,
+                            estimatedLoadKg = weight,
+                            expectedRir = workingRir,
+                            relativeIntensity = intensity
+                        )
+                        selector(exercise) * setAdjustment(axis, set, workingRir, intensity)
+                    }
                 }
             }
+        val badmintonObserved = badmintonHistory
+            .filter { it.date in request.asOf.minusDays(27)..request.asOf }
+            .groupBy(V22BadmintonHistorySession::date).mapValues { (_, sessions) ->
+                axisSelectors.mapValues { (axis, selector) ->
+                    sessions.sumOf { session -> badmintonAxisLoad(session, axis, selector, exercises) }
+                }
+            }
+        val observed = (resistanceObserved.keys + badmintonObserved.keys).associateWith { date ->
+            axisSelectors.keys.associateWith { axis ->
+                (resistanceObserved[date]?.get(axis) ?: 0.0) +
+                    (badmintonObserved[date]?.get(axis) ?: 0.0)
+            }
+        }
         val allPlanDates = planned.keys
         val periodStart = allPlanDates.minOrNull()?.minusDays(3) ?: start.minusDays(3)
         val periodEnd = allPlanDates.maxOrNull() ?: start
@@ -127,6 +181,66 @@ internal object BCoachV2ScheduleLoad {
         return sorted[rank - 1]
     }
 
+    internal fun setAdjustment(
+        axis: String,
+        set: com.training.trackplanner.data.ProgramSetPrescription,
+        scenarioRir: Double? = null,
+        scenarioIntensity: Double? = null
+    ): Double {
+        val intensity = scenarioIntensity?.takeIf { it.isFinite() && it > 0.0 }
+            ?: set.relativeIntensity?.takeIf { it.isFinite() && it > 0.0 }
+        val workingRir = scenarioRir?.takeIf(Double::isFinite)
+            ?: set.expectedRir?.takeIf(Double::isFinite)
+        val repFactor = when {
+            set.reps <= 0 -> 1.0
+            else -> (set.reps / 8.0).coerceIn(0.65, 1.35)
+        }
+        val intensityFactor = intensity?.let { (0.65 + it.coerceIn(0.0, 1.2) * 0.55).coerceIn(0.65, 1.30) }
+            ?: 1.0
+        val effortFactor = workingRir?.let { (1.0 + (4.0 - it) * 0.08).coerceIn(0.70, 1.30) }
+            ?: 1.0
+        val exposure = when {
+            set.seconds > 0 -> (set.seconds / 45.0).coerceIn(0.65, 1.35)
+            set.reps > 0 -> (set.reps / 8.0).coerceIn(0.65, 1.35)
+            else -> 1.0
+        }
+        val value = when (axis) {
+            "systemic" -> 0.40 * intensityFactor + 0.35 * repFactor + 0.25 * effortFactor
+            "neuralHeavy" -> 0.75 * intensityFactor + 0.25 * effortFactor
+            "neuralSpeed" -> exposure
+            "localMuscular" -> 0.55 * repFactor + 0.45 * effortFactor
+            "deceleration", "elasticSsc" -> exposure
+            else -> 1.0
+        }
+        return value.coerceIn(
+            BCoachV2Policy.RECOVERY_SET_ADJUSTMENT_MIN,
+            BCoachV2Policy.RECOVERY_SET_ADJUSTMENT_MAX
+        )
+    }
+
+    private fun badmintonAxisLoad(
+        session: V22BadmintonHistorySession,
+        axis: String,
+        selector: (Exercise) -> Double,
+        exercises: Map<String, Exercise>
+    ): Double {
+        val detail = session.components.filterNot { component ->
+            component.stableKey in com.training.trackplanner.analysis.badminton.BadmintonPracticeCatalog.stableKeys
+        }.ifEmpty { session.components }
+        val totalDuration = detail.sumOf(V22BadmintonHistoryComponent::durationMinutes).coerceAtLeast(1e-9)
+        val metadataWeight = detail.sumOf { component ->
+            val base = exercises[component.stableKey]?.let(selector) ?: 0.0
+            base * component.durationMinutes / totalDuration
+        }
+        val conservativeFallback = when (axis) {
+            "systemic", "localMuscular" -> 0.5
+            else -> 0.25
+        }
+        return session.practiceLoad / 60.0 * metadataWeight.takeIf { it > 0.0 }.orDefault(conservativeFallback)
+    }
+
+    private fun Double?.orDefault(default: Double): Double = this ?: default
+
     private fun List<Double>.averageOrZero(): Double = if (isEmpty()) 0.0 else average()
 }
 
@@ -146,7 +260,8 @@ internal object BCoachV2ApplicationRecoveryAudit {
         applicationStartDate: LocalDate,
         cutoff: LocalDate,
         history: List<V22HistoryRow>,
-        exercises: Map<String, Exercise>
+        exercises: Map<String, Exercise>,
+        badmintonHistory: List<V22BadmintonHistorySession> = emptyList()
     ): String? {
         val root = runCatching { JSONObject(program.planningMetadataJson ?: return null) }.getOrNull()
             ?: return null
@@ -207,7 +322,7 @@ internal object BCoachV2ApplicationRecoveryAudit {
         )
         val scores = BCoachV2Scenario.entries.associateWith { scenario ->
             BCoachV2ScheduleLoad.evaluate(
-                skeleton, skeleton, request, history, exercises, scenario
+                skeleton, skeleton, request, history, exercises, scenario, badmintonHistory
             )
         }
         decision.put("applicationRecoveryAudit", JSONObject()

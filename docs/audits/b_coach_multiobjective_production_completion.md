@@ -1,22 +1,28 @@
-# B-Coach v2.1 multi-objective production completion
+# B-Coach v2.2 integrated load, stimulus, and recovery completion
 
 ## Scope and release identity
 
 - Branch: `feat/b-coach-v2-global-optimizer`
-- Base commit: `a1088bbf5665b5034c941186cdad9a1a455067c3`
-- Engine: `B_COACH_V2_1_GLOBAL_OPT`
-- Frozen policy: `B_COACH_V2_1_POLICY_2026_11_15`
+- Base commit: `4aef2bc0fed3969c53bdc4bf04106db07ea1047e`
+- Engine: `B_COACH_V2_2_GLOBAL_OPT`
+- Frozen policy: `B_COACH_V2_2_POLICY_2026_11_15`
 - Coefficient provenance: `PRODUCT_HEURISTIC_NOT_CLINICAL`
-- Request authority: `B_Coach_v2_Implementation_Codex_Instruction_2026-11-15.md` and the pasted Codex request. The design/equation documents are implementation references.
+- Request authority: the pasted `WhatYouGottaDo — B-Coach v2.2 통합 개선 구현 지시`. The v2.2 design text is an implementation reference.
 
-This keeps the v2 production optimizer and corrects the prescription inputs used by it. The existing safe B plan and joint optimizer remain seed providers; v2.1 resolves each candidate's actual per-set load and RIR before Need, recovery, eight-axis, Pareto, and minimax-regret evaluation. Nothing is persisted until the user selects a concrete candidate and explicitly approves it.
+This keeps the v2.1 production optimizer, Need model, six recovery axes, eight objectives, three scenarios, Pareto frontier, minimax regret, and explicit candidate approval. v2.2 completes the evidence path from the highest valid same-exercise e1RM through estimated/prescribed per-set load, working RIR, dose, recovery, badminton history, Room, calendar records, and CSV backup. Nothing is persisted until the user selects a concrete candidate and explicitly approves it.
 
-## v2.1 correction record
+## v2.2 correction record
 
-- Capacity and training load are separate. A personal repetition curve is preferred; otherwise same-`stableKey` confirmed history can supply an Epley lower-bound capacity estimate. The stored capacity is not reduced by the prescription heuristic.
-- First-set training load is `floor(0.97 * capacity * relativeLoad / equipmentStep) * equipmentStep`. The Epley fallback uses `relativeLoad = 1 / (1 + (reps + RIR) / 30)`.
+- Capacity and training load are separate. All valid completed rows for the exact `stableKey` compete by e1RM; the highest is retained even when it is more than 20% above the center. Invalid units, repetitions, non-finite values, and duplicates are excluded. A no-RPE single is the lifted weight itself (`180×1 -> 180 kg`), while other no-RPE rows are labeled completed-repetition lower bounds.
+- A current personal repetition curve remains preferred. When direct evidence exceeds the stored model center, capacity bounds are scaled to the higher valid direct capacity without discarding the personal curve. Otherwise Epley uses `capacity / (1 + (reps + RIR)/30)`.
+- First-set training load is `0.97 * capacity * relativeLoad`. A known equipment grid floors the result and creates a prescribed load; a missing grid retains the unrounded `estimatedLoadKg` and never copies the historical load. For `180×1`, no RPE, target `12@RIR3`, no grid, the result is `116.4 kg estimated`, not `180×12`.
 - Default follow-up factors are `0.985` for sets 2-3 and `0.97` for sets 4-5, floored again to the actual equipment grid. Two or more matching same-exercise sessions replace the default with the median observed set-to-first-set ratio.
-- `setPrescriptions` is authoritative. `USER_FIXED`, `PERSONAL_MODEL`, `DIRECT_HISTORY_ESTIMATE`, `HISTORY_HOLD`, `CALIBRATION_REQUIRED`, and `NON_LOAD_METRIC` are distinct sources; `EXPLICIT_LOAD` alone is not treated as manual authority.
+- `setPrescriptions` is authoritative. `USER_FIXED`, `PERSONAL_MODEL`, `DIRECT_HISTORY_ESTIMATE`, `HISTORY_HOLD`, `CALIBRATION_REQUIRED`, `NON_LOAD_METRIC`, and `LEGACY_UNKNOWN` are persisted set sources; `EXPLICIT_LOAD` alone is not manual authority. An automatic positive load reaches calendar rows with `manualWeight=false`; an actual user weight edit changes the source to `USER_FIXED` and clears stale calculated RIR/intensity.
+- Each resistance set stores `freshRir` and fatigue-adjusted `expectedRir` (working RIR), relative intensity, estimated load, and evidence version. The same set-level working RIR/intensity maps feed both dose and recovery. The working-RIR heuristic uses set index, repetitions, relative intensity, and rest, with bounded fatigue rather than assuming that a back-off load equalizes all sets.
+- Effective dose uses calculated working RIR before target RIR. Effort credit is continuous: `1.0` through RIR 4, linear to `.75` at RIR 6, linear to `.50` at RIR 8, then `.50`. Strength and hypertrophy receive bounded relative-intensity credit; hypertrophy is not made directly proportional to absolute kilograms.
+- Recovery is now `Σ(axis coefficient × set adjustment)` rather than set count alone. The adjustment uses relative intensity, repetitions/exposure, and working RIR; each factor is bounded to `0.5..1.5`. Recent resistance history uses actual weight/repetitions/RPE-derived effort, and the existing six axes, four-day kernels, scenarios, and application-date refresh remain intact.
+- Confirmed badminton duration, RPE, and direct drill metadata are converted through `BadmintonPracticeLoadCalculator`, added to same-day resistance load, and distributed over the six axes. A generic session row is authoritative for total duration/load when detailed drills share its session identity, preventing generic-plus-drill double counting. Badminton history is part of input/history fingerprints and therefore invalidates candidate caches.
+- Room schema 42 adds the six provenance fields to `training_program_item_sets` and `workout_sets`. CSV restore schema 14 / backup format 15 / program snapshot schema 6 carry the same fields; older rows import without guessing and become `LEGACY_UNKNOWN` at persistence.
 - Candidate search resolves loads after every set/repetition mutation. Its local cache key binds the full raw prescription, request/history/equipment input fingerprint, model source/evidence versions, staleness, and RIR-policy version. Progression scoring reads per-set RIR/intensity maps.
 - Need personalization now admits a week only when that specific task has positive related evidence. Unrelated lower-body weeks therefore cannot lower chest/back/direct-core Need, while a new plan's zero dose still produces a real deficit.
 - Recovery dates use an explicit planning start when supplied; otherwise the audit records and uses the next Monday after the cutoff. Monday remains `1` and Sunday `7`. Calendar application recalculates all three recovery scenarios for the actual applied start date and stores them under `applicationRecoveryAudit` without pretending that this recovery-only refresh reran Pareto selection.
@@ -37,14 +43,14 @@ The proposal fingerprint binds the baseline, recommended candidate, full request
 | Goal importance | Missing values use the existing B recommendation when confirmed history exists; otherwise `3`. All four effective values are normalized. |
 | Need | Task-level center `D0`, up to four complete history weeks, max 0.5 personal blend, stage/recovery multiplier, and `[floor(0.85D), ceil(1.20D)]`. PEAK is explicitly exempt with zero Need. |
 | Effective dose | Canonical muscle/core/badminton relations; repeated aliases use max credit per muscle. Unknown resistance receives `0.75` set credit, never zero. |
-| Load | Exact stableKey only. Tier A/B use current personal models and curves. Tier C estimates capacity from recent same-exercise history when a real grid exists, otherwise holds same-exercise load. Tier D uses a non-load metric; otherwise typed calibration. |
-| Weighted pull-up | A future/current bodyweight is never fabricated. Without current bodyweight, a model-derived total-system load is downgraded to calibration; a recent same-exercise external load may still be held. |
-| Recovery | Six canonical axes, four-day kernels, next-Monday or explicit-start calendar mapping, planned/recent separation, q75 normalization, and max/mean pressure diagnostics. No clinical cap or injury probability is claimed. |
+| Load | Exact stableKey only. Tier A/B use current personal models and curves. Direct same-exercise history supplies the highest valid e1RM. A known grid creates a down-rounded prescription; a missing grid creates a labeled estimate, never a history copy. Tier D uses a non-load metric; otherwise typed calibration. |
+| Weighted pull-up | A future/current bodyweight is never fabricated. Without current bodyweight, a model-derived total-system load is downgraded to calibration; external added load is never confused with total-system load. |
+| Recovery | Six canonical axes, per-set `0.5..1.5` adjustment, actual resistance/badminton history, four-day kernels, next-Monday or explicit-start calendar mapping, planned/recent separation, q75 normalization, and max/mean pressure diagnostics. No clinical cap or injury probability is claimed. |
 | Objectives | Goal deficit `.40`, excess `.09`, progression `.16`, recovery `.14`, ramp `.07`, execution `.06`, plan change `.04`, uncertainty `.04`; sum `1.0`. |
 | Scenarios | `LOW_STRESS`, `BASE`, `HIGH_STRESS`; Need, indirect credit, recovery kernels, and model capacity/RIR vary by scenario. |
 | Selection | Hard-constraint filter → Pareto frontier → three-scenario minimax regret → deterministic ties by base loss, anchors, change count, and canonical hash. |
 | Search budget | Frozen ceiling: beam `10`, rounds `12`, candidate evaluations `4000`, finalists `12`, displayed alternatives `2`. Current local action lattice changes set/repetition prescriptions while preserving fixed focus, rest, and order; the existing joint seed supplies exercise/day structure. |
-| UI/persistence | The review shows the exact disclaimer, recommended candidate plus at most two alternatives, axis/scenario values, and requires select + approve. `INPUT_CONFLICT` is not silently saved. |
+| UI/persistence | The review shows actual or `~estimated` load, target/fresh/working RIR, source, and equipment-grid requirement inside the scrollable prescription summary; it retains at most two alternatives and requires select + approve. Room/calendar/CSV preserve set provenance. `INPUT_CONFLICT` is not silently saved. |
 
 Exact visible disclaimer:
 
@@ -81,9 +87,9 @@ All rows are executable methods in `BCoachMultiobjectiveProductionTest`. `PASS` 
 | T11 | Volume patterns retain distinct stage sequences. | PASS |
 | T12 | Search cannot rewrite a fixed block focus. | PASS |
 | T13 | Tier A is restricted to four exact stable keys. | PASS |
-| T14 | Missing RPE keeps direct history without model fabrication. | PASS |
+| T14 | Missing RPE creates a conservative typed estimate without copying history. | PASS |
 | T15 | Stale posterior downgrades one exercise without blocking the plan. | PASS |
-| T16 | Stale model cannot overwrite a recent same-exercise hold. | PASS |
+| T16 | Stale model is reported while usable direct history remains a typed estimate. | PASS |
 | T17 | Canonical curve is monotone and inversion deterministic. | PASS |
 | T18 | A `1.25 kg` plate becomes a `2.5 kg` total barbell grid. | PASS |
 | T19 | Model load stays below capacity and is viable in all capacity scenarios. | PASS |
@@ -98,7 +104,7 @@ All rows are executable methods in `BCoachMultiobjectiveProductionTest`. `PASS` 
 | T28 | Metadata contains no invented multi-set success probability. | PASS |
 | T29 | Duplicate muscle aliases use max, not additive credit. | PASS |
 | T30 | Another exercise history cannot replace same-exercise evidence. | PASS |
-| T31 | Tier C holds recent same-stableKey load or calibrates. | PASS |
+| T31 | Tier C estimates from recent same-stableKey evidence or calibrates. | PASS |
 | T32 | Duration work uses a non-load metric without forced RIR. | PASS |
 | T33 | No history still yields a concrete four-week review proposal. | PASS |
 | T34 | Hypertrophy importance 4 blends to center 10 and Need `[8,12]`. | PASS |
@@ -143,20 +149,37 @@ An additional persistence test rejects both evidence drift (`B_COACH_ACCEPTANCE_
 | T53 | Each chosen alternative persists its own set loads/fingerprint; later manual kg edits invalidate the old score claim. | PASS |
 | T54 | Two matching multi-set sessions replace the default follow-up factor with the observed median. | PASS |
 
+## v2.2 counterexamples 01-46
+
+The new assertions are grouped by the six authority sections while retaining every numbered case. They run in `BCoachMultiobjectiveProductionTest`, `V22BadmintonHistoryIntegrationTest`, `ProgramEffortPersistenceTest`, and `TrainingDatabaseMigrationTest`.
+
+| IDs | Coverage | Result |
+|---|---|---|
+| 01-10 | Highest valid e1RM, >20% high record retention, no-RPE single, RPE/RIR capacity, `180×1 -> 116.4 estimated`, no history copy, grid floor, personal curve priority, unchanged capacity, weighted-pull-up guard. | PASS |
+| 11-17 | Three per-set loads/RIR values, 8→10 recomputation, `60/80/100` manual preservation, automatic source, fresh vs working RIR, observed back-off personalization, deterministic replay. | PASS |
+| 18-23 | Working-RIR effort, target-vs-calculated precedence, strength relative intensity, non-proportional hypertrophy load, continuous RIR boundaries, non-load/core-compatible handling. | PASS |
+| 24-30 | Repetition/intensity/effort axis differences, speed/deceleration exposure, `0.5..1.5` bounds, nonzero unknown-set load, actual-start recovery refresh. | PASS |
+| 31-36 | Real badminton duration/RPE, same-day combination, generic/drill de-duplication, drill-axis metadata, no-history generation, fingerprint/cache invalidation. | PASS |
+| 37-42 | Automatic/manual flags, user edit transition, program reopen, calendar propagation, CSV round trip, old backup parse. | PASS |
+| 43 | Room 41→42 migration and `LEGACY_UNKNOWN` defaults for both set tables. | PASS (compiled; device execution depends on connection) |
+| 44-46 | Approved alternative prescription/RIR preservation, approval/structure replay guard, progression/copy/calendar regression suite. | PASS |
+
 ## Validation record
 
 Environment: Windows, Android Studio JBR 21, Android SDK `C:/Users/pki08/AppData/Local/Android/Sdk`.
 
 - Targeted `BCoachMultiobjectiveProductionTest`, `BCoachProductionReviewDialogUiTest`, and the reviewed-candidate Room save/reopen/calendar integration: **PASS**.
-- Final full `testDebugUnitTest --rerun-tasks --no-daemon --max-workers=2`: **PASS**, 2,844 tests, 0 failures, 0 errors, 25 skips, 430 XML suites, 12m06s. Windows Robolectric workers used temporary `forkEvery=1` / `maxParallelForks=2` isolation; both temporary lines were removed immediately after the passing run.
-- Final `lintDebug assembleDebug compileReleaseKotlin compileDebugAndroidTestKotlin --no-daemon --max-workers=2`: **PASS**, 5m07s. Lint: 0 errors, 209 warnings, 22 information findings.
-- Debug APK: `app/build/outputs/apk/debug/app-debug.apk`, 74,392,204 bytes, SHA-256 `26A67B1BBD4E1DC5B787CDE2A575DC86FB88A8D0DBA2F6E136155309250B3A8F`.
+- Final full `testDebugUnitTest --no-daemon --max-workers=2`: **PASS**, 2,851 tests, 0 failures, 0 errors, 25 skips, 431 XML suites, 9m55s on the final compiled source after the temporary isolation settings were removed. A preceding clean `--rerun-tasks` pass completed the same 2,851-test suite in 12m53s using temporary `forkEvery=1` / `maxParallelForks=2` isolation. An initial unisolated run exposed both stale backup-version fixtures and the known Windows `robolectric-nativeruntime.dll` crash. The fixture/provenance regressions were fixed, and both temporary isolation lines were removed immediately after the clean run.
+- Final `lintDebug assembleDebug compileReleaseKotlin compileDebugAndroidTestKotlin --no-daemon --max-workers=2`: **PASS**, 5m11s. Lint: 0 errors, 209 warnings.
+- Debug APK: `app/build/outputs/apk/debug/app-debug.apk`, 76,433,712 bytes, SHA-256 `F965C37066D66E3BB82C2C4D67332C8CF2ECFF644CFBB36421D98C2EAE067109`.
 - `adb devices -l` returned no connected device, so `connectedDebugAndroidTest` and real-device interaction were not run.
 
 ## Explicit limitations
 
 - Need, recovery, effort, and uncertainty coefficients are frozen product heuristics, not clinical or injury predictions.
-- Unknown starting loads remain calibration-required; exact kg is emitted only from user-fixed load, current exact-stableKey model evidence with a known equipment grid, or recent same-exercise history. Direct-history Epley estimates remain labeled lower bounds when RPE is absent.
+- Unknown starting loads without usable capacity remain calibration-required. Usable exact-stableKey capacity with an unknown equipment increment produces a visible estimate, not a prescription. Direct-history Epley estimates remain labeled lower bounds when RPE is absent.
+- `freshRir`/working-RIR and per-set recovery adjustments are explicit bounded product heuristics, not observed physiology. They are invalidated by a user load edit until recalculated.
+- Badminton drill-axis distribution depends on reviewed exercise metadata. When metadata is missing, conservative nonzero systemic/local or generic axis fallbacks are used rather than fabricating a detailed exposure.
 - The optimizer does not invent future bodyweight, unavailable equipment, cross-exercise capacity, or independent follow-up-set success probabilities.
 - Real-device interaction is outside the local JVM/Compose validation unless a device is connected.
 - Calendar application refreshes the recovery axis for the actual start date, but it does not rerun candidate search or Pareto/minimax selection after approval.

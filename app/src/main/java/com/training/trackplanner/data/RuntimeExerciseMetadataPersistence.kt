@@ -53,6 +53,14 @@ class RuntimeMetadataTypeConverters {
             .getOrDefault(ProgramLoadState.USER_CALIBRATION_REQUIRED)
 
     @TypeConverter
+    fun programLoadSourceToString(source: ProgramLoadSource): String = source.name
+
+    @TypeConverter
+    fun stringToProgramLoadSource(stored: String): ProgramLoadSource =
+        runCatching { ProgramLoadSource.valueOf(stored) }
+            .getOrDefault(ProgramLoadSource.LEGACY_UNKNOWN)
+
+    @TypeConverter
     fun tokenFieldToString(field: MetadataTokenField): String =
         field.raw + RAW_VALUES_SEPARATOR + field.values.joinToString(VALUE_SEPARATOR)
 

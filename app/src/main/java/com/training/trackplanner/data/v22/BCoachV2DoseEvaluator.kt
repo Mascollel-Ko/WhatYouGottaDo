@@ -79,7 +79,8 @@ internal object BCoachV2DoseEvaluator {
         baseIntensityBySetId: Map<String, Double> = emptyMap(),
         rirByScenarioAndSet: Map<BCoachV2Scenario, Map<String, Double>> = emptyMap(),
         intensityByScenarioAndSet: Map<BCoachV2Scenario, Map<String, Double>> = emptyMap(),
-        rirPolicy: RpeRirPolicy? = null
+        rirPolicy: RpeRirPolicy? = null,
+        badmintonHistory: List<V22BadmintonHistorySession> = emptyList()
     ): BCoachV2CandidateEvaluation {
         val historyAtCutoff = history.filter { !it.date.isAfter(request.asOf) }
         val context = Context(
@@ -129,7 +130,11 @@ internal object BCoachV2DoseEvaluator {
                 }
                 val blockWeights = blockGoalWeights(plan, week, weightByGoal)
                 tasks.forEach { task ->
-                    val dose = plannedDose(plan, week, task, scenario, context)
+                    val dose = plannedDose(
+                        plan, week, task, scenario, context,
+                        rirByScenarioAndSet[scenario] ?: baseRirBySetId,
+                        intensityByScenarioAndSet[scenario] ?: baseIntensityBySetId
+                    )
                     val interval = if (peak) 0.0 to 0.0
                         else BCoachV2Policy.interval(task.center, multiplier, scenario)
                     if (scenario == BCoachV2Scenario.BASE) {
@@ -165,7 +170,10 @@ internal object BCoachV2DoseEvaluator {
                 }
             }
             val schedule = BCoachV2ScheduleLoad.evaluate(
-                plan, baseline, request, historyAtCutoff, exercises, scenario
+                plan, baseline, request, historyAtCutoff, exercises, scenario,
+                badmintonHistory = badmintonHistory,
+                rirBySetId = rirByScenarioAndSet[scenario] ?: baseRirBySetId,
+                intensityBySetId = intensityByScenarioAndSet[scenario] ?: baseIntensityBySetId
             )
             val progression = progressionByScenario.getValue(scenario)
             val change = planChange(plan, baseline, historyAtCutoff)
@@ -206,7 +214,10 @@ internal object BCoachV2DoseEvaluator {
         }
         val losses = scenarioAxes.mapValues { (_, scores) -> BCoachV2Policy.weightedLoss(scores) }
         val baseSchedule = BCoachV2ScheduleLoad.evaluate(
-            plan, baseline, request, historyAtCutoff, exercises, BCoachV2Scenario.BASE
+            plan, baseline, request, historyAtCutoff, exercises, BCoachV2Scenario.BASE,
+            badmintonHistory = badmintonHistory,
+            rirBySetId = baseRirBySetId,
+            intensityBySetId = baseIntensityBySetId
         )
         val constraints = hardConstraints(plan, baseline, request, baseSchedule, exercises)
         if (baseSchedule.unmappedAxisExerciseCount > 0) reasons +=
@@ -276,11 +287,17 @@ internal object BCoachV2DoseEvaluator {
         week: Int,
         task: Task,
         scenario: BCoachV2Scenario,
-        context: Context
+        context: Context,
+        rirBySetId: Map<String, Double>,
+        intensityBySetId: Map<String, Double>
     ): Double = plan.items.asSequence().filter { it.weekNumber == week }.sumOf { item ->
         ProgramSetPrescriptionResolver.resolve(item).sumOf { set ->
+            val setId = BCoachV2LoadCandidateResolver.setId(item.localId, set.setIndex)
+            val workingRir = rirBySetId[setId] ?: set.expectedRir ?:
+                set.targetRpeMin?.let { 10.0 - it }
+            val relativeIntensity = intensityBySetId[setId] ?: set.relativeIntensity
             structuralCredit(item.exerciseStableKey, task.id, task.goal, scenario, context) *
-                qRep(set, task.goal) * qEffort(set.targetRpeMin?.let { 10.0 - it }) *
+                qRep(set, task.goal) * qEffort(workingRir) * qRelativeIntensity(task.goal, relativeIntensity) *
                 qLoad(set, item, context.exercises[item.exerciseStableKey]) * qMetric(set, task.goal)
         }
     }
@@ -352,18 +369,27 @@ internal object BCoachV2DoseEvaluator {
         BBalancedGoal.SPORT_SUPPORT -> if (set.reps > 0 || set.seconds > 0) 1.0 else 0.75
     }
 
-    private fun qEffort(rir: Double?): Double = when {
+    internal fun qEffort(rir: Double?): Double = when {
         rir == null -> 1.0
-        rir == 0.0 -> 1.0
-        rir in 1.0..4.0 -> 1.0
-        rir in 5.0..6.0 -> 0.75
-        rir >= 7.0 -> 0.5
-        else -> 0.75
+        rir <= 4.0 -> 1.0
+        rir < 6.0 -> 1.0 - (rir - 4.0) * 0.125
+        rir < 8.0 -> 0.75 - (rir - 6.0) * 0.125
+        else -> 0.5
+    }
+
+    private fun qRelativeIntensity(goal: BBalancedGoal, relativeIntensity: Double?): Double {
+        val value = relativeIntensity?.takeIf { it.isFinite() && it > 0.0 } ?: return 1.0
+        return when (goal) {
+            BBalancedGoal.STRENGTH -> (0.5 + (value - 0.50) / 0.30 * 0.5).coerceIn(0.5, 1.0)
+            BBalancedGoal.HYPERTROPHY -> (0.75 + (value - 0.30) / 0.30 * 0.25).coerceIn(0.75, 1.0)
+            BBalancedGoal.CORE, BBalancedGoal.SPORT_SUPPORT -> 1.0
+        }
     }
 
     private fun qLoad(set: ProgramSetPrescription, item: ProgramSkeletonItem, exercise: Exercise?): Double = when {
         isNonLoad(item, exercise) -> 1.0
         set.loadState == ProgramLoadState.EXPLICIT_LOAD && set.weightKg > 0.0 -> 1.0
+        set.estimatedLoadKg?.let { it.isFinite() && it > 0.0 } == true -> 1.0
         else -> BCoachV2Policy.UNKNOWN_RESISTANCE_SET_CREDIT
     }
 

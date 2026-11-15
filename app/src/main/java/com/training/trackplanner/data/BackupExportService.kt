@@ -265,7 +265,13 @@ internal class BackupExportService(
                 weightKg = set.weightKg,
                 seconds = set.seconds,
                 targetRpeMin = set.targetRpeMin,
-                loadState = set.loadState
+                loadState = set.loadState,
+                estimatedLoadKg = set.estimatedLoadKg,
+                loadSource = set.loadSource,
+                freshRir = set.freshRir,
+                expectedRir = set.expectedRir,
+                relativeIntensity = set.relativeIntensity,
+                evidenceVersion = set.evidenceVersion
             )
         }
         val metadataSnapshots = exercises.flatMap { exercise ->

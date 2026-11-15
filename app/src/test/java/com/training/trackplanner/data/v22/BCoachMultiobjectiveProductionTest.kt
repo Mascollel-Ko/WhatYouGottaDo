@@ -151,12 +151,14 @@ class BCoachMultiobjectiveProductionTest {
         assertFalse("romanian_deadlift" in BCoachV2LoadCandidateResolver.canonicalTierAKeys)
     }
 
-    @Test fun `T14 missing RPE preserves direct history without fabricating model output`() {
+    @Test fun `T14 missing RPE derives a conservative estimate without copying history`() {
         val row = history().single().copy(rpe = null)
         val result = BCoachV2LoadCandidateResolver.resolve(
             skeleton(2), request(), listOf(row), mapOf(squat.stableKey to squat))
-        assertTrue(result.instructionsByLocalId.values.single() is BCoachV2LoadInstruction.HoldLastConfirmed)
-        assertTrue(result.baseRirByLocalId.isEmpty())
+        val instruction = result.instructionsByLocalId.values.single() as BCoachV2LoadInstruction.EstimatedLoad
+        assertEquals(BCoachLoadSource.DIRECT_HISTORY_ESTIMATE, instruction.loadSource)
+        assertNotEquals(row.weightKg, instruction.estimatedKg)
+        assertTrue(result.baseRirByLocalId.isNotEmpty())
     }
 
     @Test fun `T15 stale posterior downgrades one exercise without blocking plan generation`() {
@@ -165,12 +167,13 @@ class BCoachMultiobjectiveProductionTest {
         assertTrue(outcome.decision.loadInstructions.values.any { it.startsWith("CALIBRATE") })
     }
 
-    @Test fun `T16 stale model is reported and never overwrites a same exercise hold`() {
+    @Test fun `T16 stale model is reported and direct history remains a typed estimate`() {
         val result = BCoachV2LoadCandidateResolver.resolve(
             skeleton(2), request(), history(), mapOf(squat.stableKey to squat),
             mapOf(squat.stableKey to modelSnapshot(stale = true)), setOf(squat.stableKey))
         assertTrue(result.reasonCodes.any { it.startsWith("STALE_MODEL") })
-        assertTrue(result.instructionsByLocalId.values.single() is BCoachV2LoadInstruction.HoldLastConfirmed)
+        val instruction = result.instructionsByLocalId.values.single() as BCoachV2LoadInstruction.EstimatedLoad
+        assertEquals(BCoachLoadSource.DIRECT_HISTORY_ESTIMATE, instruction.loadSource)
     }
 
     @Test fun `T17 canonical curve is monotone and inversion deterministic`() {
@@ -288,11 +291,13 @@ class BCoachMultiobjectiveProductionTest {
         assertTrue(result.instructionsByLocalId.values.single() is BCoachV2LoadInstruction.Calibrate)
     }
 
-    @Test fun `T31 Tier C holds the recent same stable key load or calibrates`() {
-        val hold = BCoachV2LoadCandidateResolver.resolve(
+    @Test fun `T31 Tier C estimates from the recent same stable key load or calibrates`() {
+        val estimate = BCoachV2LoadCandidateResolver.resolve(
             skeleton(2), request(), history(), mapOf(squat.stableKey to squat))
-        assertEquals(100.0, (hold.instructionsByLocalId.values.single() as
-            BCoachV2LoadInstruction.HoldLastConfirmed).kg, 0.0)
+        val instruction = estimate.instructionsByLocalId.values.single() as
+            BCoachV2LoadInstruction.EstimatedLoad
+        assertEquals(BCoachLoadSource.DIRECT_HISTORY_ESTIMATE, instruction.loadSource)
+        assertNotEquals(100.0, instruction.estimatedKg, 0.0)
         val calibrate = BCoachV2LoadCandidateResolver.resolve(
             skeleton(2), request(), emptyList(), mapOf(squat.stableKey to squat))
         assertTrue(calibrate.instructionsByLocalId.values.single() is BCoachV2LoadInstruction.Calibrate)
@@ -683,6 +688,156 @@ class BCoachMultiobjectiveProductionTest {
         val second = result.instructionsBySetId.values.elementAt(1) as BCoachV2LoadInstruction.ExactLoad
         assertEquals(0.95, second.followUpSetFactor, 1e-12)
         assertTrue(result.reasonCodes.any { it.startsWith("OBSERVED_FOLLOW_UP_FACTOR") })
+    }
+
+    @Test fun `T55 v22 counterexamples 01 to 10 select valid e1RM and never copy it as a training load`() {
+        val rows = listOf(
+            history().single().copy(date = LocalDate.of(2026, 11, 1), reps = 10.0, weightKg = 100.0, rpe = null),
+            history().single().copy(date = LocalDate.of(2026, 11, 10), reps = 1.0, weightKg = 180.0, rpe = null)
+        )
+        val plan = withTargetRpe(skeleton(1, reps = 12), 7.0)
+        val estimated = BCoachV2LoadCandidateResolver.resolve(
+            plan, request(), rows, mapOf(squat.stableKey to squat), mainExerciseKeys = setOf(squat.stableKey)
+        ).instructionsBySetId.values.single() as BCoachV2LoadInstruction.EstimatedLoad
+        assertEquals(180.0, requireNotNull(estimated.capacityKg), 0.0)
+        assertEquals(116.4, estimated.estimatedKg, 1e-9)
+        assertNotEquals(180.0, estimated.estimatedKg, 0.0)
+        assertEquals(BCoachLoadSource.DIRECT_HISTORY_ESTIMATE, estimated.loadSource)
+        assertEquals(BCoachV2Policy.INITIAL_LOAD_CONSERVATIVE_FACTOR, estimated.conservativeFactor, 0.0)
+
+        val review = prepare(history = rows, baseline = plan, candidate = plan).decision.alternatives
+            .flatMap(BCoachPlanAlternative::prescriptionSummary).joinToString("|")
+        assertTrue("@~" in review)
+        assertTrue("equipmentGrid=REQUIRED" in review)
+        assertTrue("targetRir=3.0" in review && "freshRir=" in review && "workingRir=" in review)
+
+        val prescribed = BCoachV2LoadCandidateResolver.resolve(
+            plan, request().copy(bShadowPlateOneSideKg = 1.25), rows,
+            mapOf(squat.stableKey to squat), mainExerciseKeys = setOf(squat.stableKey)
+        ).instructionsBySetId.values.single() as BCoachV2LoadInstruction.ExactLoad
+        assertEquals(115.0, prescribed.kg, 0.0)
+        assertEquals(180.0, requireNotNull(prescribed.capacityKg), 0.0)
+
+        val rpeEstimate = BCoachV2LoadCandidateResolver.resolve(
+            withTargetRpe(skeleton(1, reps = 8), 7.0), request(),
+            listOf(history().single().copy(reps = 5.0, weightKg = 150.0, rpe = 8.0)),
+            mapOf(squat.stableKey to squat), mainExerciseKeys = setOf(squat.stableKey),
+            rirPolicy = RpeRirPolicy.fromCsv(rpePolicyCsv())
+        ).instructionsBySetId.values.single() as BCoachV2LoadInstruction.EstimatedLoad
+        assertEquals(185.0, requireNotNull(rpeEstimate.capacityKg), 1e-9)
+        assertEquals(BCoachEvidenceStatus.OBSERVED, rpeEstimate.evidenceStatus)
+
+        val stale = BCoachV2LoadCandidateResolver.resolve(
+            plan, request(), listOf(rows.last().copy(date = LocalDate.of(2026, 1, 1))),
+            mapOf(squat.stableKey to squat), mainExerciseKeys = setOf(squat.stableKey)
+        )
+        assertEquals(BCoachEvidenceStatus.STALE,
+            (stale.instructionsBySetId.values.single() as BCoachV2LoadInstruction.EstimatedLoad).evidenceStatus)
+        assertTrue(stale.reasonCodes.any { it.startsWith("STALE_DIRECT_HISTORY_UNCERTAINTY") })
+
+        `T46 personal repetition curve is applied before Epley without mutating capacity`()
+        `T25 future bodyweight remains unavailable rather than fabricated`()
+    }
+
+    @Test fun `T56 v22 counterexamples 11 to 17 preserve per set loads and distinguish working RIR`() {
+        val direct = history().single().copy(reps = 1.0, weightKg = 180.0, rpe = null)
+        fun resolve(reps: Int) = BCoachV2LoadCandidateResolver.resolve(
+            withTargetRpe(skeleton(3, reps = reps), 7.0), request(), listOf(direct),
+            mapOf(squat.stableKey to squat), mainExerciseKeys = setOf(squat.stableKey)
+        )
+        val eight = resolve(8)
+        val sets = eight.skeleton.items.single().setPrescriptions
+        assertEquals(3, sets.size)
+        assertTrue(sets.all { requireNotNull(it.estimatedLoadKg) > 0.0 && it.weightKg == 0.0 })
+        assertTrue(sets.drop(1).all { requireNotNull(it.freshRir) != requireNotNull(it.expectedRir) })
+        assertTrue(sets.all { it.loadSource == BCoachLoadSource.DIRECT_HISTORY_ESTIMATE })
+        assertNotEquals(sets.map { it.estimatedLoadKg }, resolve(10).skeleton.items.single().setPrescriptions.map { it.estimatedLoadKg })
+        assertEquals(eight, resolve(8))
+        `T48 distinct user fixed set loads remain sixty eighty one hundred`()
+        `T54 two matching sessions replace the default follow up set factor`()
+    }
+
+    @Test fun `T57 v22 counterexamples 18 to 23 use calculated RIR and relative intensity in dose`() {
+        fun prescribed(weight: Double, rir: Double, intensity: Double): GeneratedProgramSkeleton {
+            val base = skeleton(1, reps = 8, weightKg = weight)
+            return base.copy(items = base.items.map { item ->
+                item.copy(setPrescriptions = item.setPrescriptions.map { set ->
+                    set.copy(expectedRir = rir, relativeIntensity = intensity, estimatedLoadKg = weight)
+                })
+            })
+        }
+        val relation = listOf(relation(squat.stableKey, "QUADS", "PRIMARY"))
+        assertTrue(dose(evaluate(prescribed(60.0, 3.0, 0.70), relation), "HYPERTROPHY:QUADS") >
+            dose(evaluate(prescribed(60.0, 7.0, 0.70), relation), "HYPERTROPHY:QUADS"))
+        assertTrue(dose(evaluate(prescribed(60.0, 3.0, 0.90)), "STRENGTH:${squat.stableKey}") >
+            dose(evaluate(prescribed(60.0, 3.0, 0.60)), "STRENGTH:${squat.stableKey}"))
+        assertEquals(
+            dose(evaluate(prescribed(40.0, 3.0, 0.70), relation), "HYPERTROPHY:QUADS"),
+            dose(evaluate(prescribed(100.0, 3.0, 0.70), relation), "HYPERTROPHY:QUADS"), 1e-12
+        )
+        assertEquals(1.0, BCoachV2DoseEvaluator.qEffort(4.0), 0.0)
+        assertEquals(0.75, BCoachV2DoseEvaluator.qEffort(6.0), 0.0)
+        assertEquals(0.5, BCoachV2DoseEvaluator.qEffort(8.0), 0.0)
+        assertTrue(kotlin.math.abs(BCoachV2DoseEvaluator.qEffort(6.0 - 1e-8) -
+            BCoachV2DoseEvaluator.qEffort(6.0 + 1e-8)) < 1e-7)
+        `T32 duration work produces a non load metric without forced RIR`()
+    }
+
+    @Test fun `T58 v22 counterexamples 24 to 30 calculate bounded per set six axis recovery`() {
+        fun set(reps: Int, rir: Double?, intensity: Double?, seconds: Int = 0) = ProgramSetPrescription(
+            setIndex = 1, reps = reps, weightKg = 0.0, seconds = seconds,
+            expectedRir = rir, relativeIntensity = intensity
+        )
+        assertNotEquals(
+            BCoachV2ScheduleLoad.setAdjustment("systemic", set(5, 3.0, 0.75)),
+            BCoachV2ScheduleLoad.setAdjustment("systemic", set(10, 3.0, 0.75)), 1e-12
+        )
+        assertTrue(BCoachV2ScheduleLoad.setAdjustment("neuralHeavy", set(5, 3.0, 0.90)) >
+            BCoachV2ScheduleLoad.setAdjustment("neuralHeavy", set(5, 3.0, 0.60)))
+        assertTrue(BCoachV2ScheduleLoad.setAdjustment("localMuscular", set(10, 1.0, 0.70)) >
+            BCoachV2ScheduleLoad.setAdjustment("localMuscular", set(10, 7.0, 0.70)))
+        assertTrue(BCoachV2ScheduleLoad.setAdjustment("deceleration", set(0, null, null, 60)) >
+            BCoachV2ScheduleLoad.setAdjustment("deceleration", set(0, null, null, 20)))
+        listOf(-20.0, 0.0, 50.0).forEach { rir ->
+            val value = BCoachV2ScheduleLoad.setAdjustment("systemic", set(30, rir, 2.0))
+            assertTrue(value in 0.5..1.5)
+        }
+        assertTrue(BCoachV2ScheduleLoad.setAdjustment("systemic", set(0, null, null)) > 0.0)
+        `T52 calendar mapping uses the same next Monday and honors explicit start`()
+    }
+
+    @Test fun `T59 v22 counterexamples 31 to 36 integrate badminton and invalidate fingerprints`() {
+        val session = V22BadmintonHistorySession(
+            date = request().asOf,
+            sessionStableKey = "badminton-session",
+            practiceLoad = 63.0,
+            durationMinutes = 60.0,
+            components = listOf(V22BadmintonHistoryComponent(1L, "footwork", 60.0, 63.0, 8.0))
+        )
+        val badmintonExercise = exercise("footwork", "").copy(
+            category = "스포츠", systemicLoadWeight = 0.6, neuralSpeedWeight = 1.0,
+            decelerationWeight = 1.0, elasticSscWeight = 0.8
+        )
+        val noHistory = BCoachV2ScheduleLoad.evaluate(
+            skeleton(1), skeleton(1), request(), emptyList(),
+            mapOf(squat.stableKey to squat, badmintonExercise.stableKey to badmintonExercise),
+            BCoachV2Scenario.BASE
+        )
+        val withHistory = BCoachV2ScheduleLoad.evaluate(
+            skeleton(1), skeleton(1), request(), emptyList(),
+            mapOf(squat.stableKey to squat, badmintonExercise.stableKey to badmintonExercise),
+            BCoachV2Scenario.BASE, badmintonHistory = listOf(session)
+        )
+        assertNotEquals(noHistory.recoveryScore, withHistory.recoveryScore, 1e-12)
+        assertNotEquals(
+            BCoachMultiobjectiveProduction.inputFingerprint(request(), emptyList(), emptyList()),
+            BCoachMultiobjectiveProduction.inputFingerprint(request(), emptyList(), listOf(session))
+        )
+        assertNotEquals(
+            BCoachMultiobjectiveProduction.historyFingerprint(emptyList(), listOf(session)),
+            BCoachMultiobjectiveProduction.historyFingerprint(emptyList(), listOf(session.copy(practiceLoad = 70.0)))
+        )
+        assertEquals(BCoachProductionStatus.USER_REVIEW_PROPOSED, prepare(history = emptyList()).decision.status)
     }
 
     @Test fun `accepted proposal still rejects stale evidence and structural edits`() {

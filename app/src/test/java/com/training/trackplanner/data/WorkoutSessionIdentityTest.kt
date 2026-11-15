@@ -129,7 +129,7 @@ class WorkoutSessionIdentityTest {
         calendar(source).moveDate("2026-09-02", "2026-09-01", CalendarConflictMode.Append)
         val csv = backup(source)
         val parsed = RecordCsvBackupRestore.parse(csv) as RecordCsvImportData.Restore
-        assertEquals(14, parsed.manifest!!.formatVersion); assertEquals(13, parsed.backupSchemaVersion)
+        assertEquals(15, parsed.manifest!!.formatVersion); assertEquals(14, parsed.backupSchemaVersion)
         val target = database()
         assertEquals(3, restore(target, csv).entryCount)
         val expected = source.workoutDao().allEntriesWithSets().associate { it.entry.backupSourceId to it.entry.sessionStableKey }
@@ -149,7 +149,7 @@ class WorkoutSessionIdentityTest {
         for (format in listOf(11, 12, 13)) {
             val body = RecordCsvBackupRestore.buildRestoreCsv(rows, emptyList(), listOf(exercise))
                 .replace("session_stable_key", "legacy_unused_column")
-                .replace(Regex("(?m)^13,"), "${format - 1},")
+                .replace(Regex("(?m)^${RecordCsvBackupRestore.CURRENT_RESTORE_SCHEMA_VERSION},"), "${format - 1},")
                 .let { if (format == 11) it.replace("entry_source_id", "legacy_unused_source") else it }
             val wrapped = RecordCsvBackupRestore.wrapWithManifest(body, "legacy", 1, emptyMap())
             val header = wrapped.substringBefore('\n').split(',').toMutableList().also { it[1] = format.toString() }.joinToString(",")
@@ -171,8 +171,8 @@ class WorkoutSessionIdentityTest {
             assertEquals(restored, target.workoutDao().allEntriesWithSets().map { it.entry })
             val upgraded = TrainingRepository(target, context).canonicalRecordsBackup(1234L)
             val current = RecordCsvBackupRestore.parse(upgraded.csv) as RecordCsvImportData.Restore
-            assertEquals(14, current.manifest!!.formatVersion)
-            assertEquals(13, current.backupSchemaVersion)
+            assertEquals(15, current.manifest!!.formatVersion)
+            assertEquals(14, current.backupSchemaVersion)
             assertEquals(restored.associate { it.backupSourceId to it.sessionStableKey },
                 current.toWorkoutGraphs().associate { it.sourceId to it.sessionStableKey })
             assertFalse(upgraded.csv.contains("parent_backup_id"))
@@ -272,7 +272,8 @@ class WorkoutSessionIdentityTest {
             source = ExerciseMetadataOverrideSource.USER_EDIT.name, semanticCanonicalRevisionAtEdit = "test", updatedAt = 4L))
         val sourceCanonical = TrainingRepository(source, context).canonicalRecordsBackup(1234L)
         val body = sourceCanonical.csv.substringAfter('\n')
-            .replace("session_stable_key", "legacy_unused_column").replace(Regex("(?m)^13,"), "12,")
+            .replace("session_stable_key", "legacy_unused_column")
+            .replace(Regex("(?m)^${RecordCsvBackupRestore.CURRENT_RESTORE_SCHEMA_VERSION},"), "12,")
         val wrapped = RecordCsvBackupRestore.wrapWithManifest(body, "legacy13", 1, emptyMap())
         val header = wrapped.substringBefore('\n').split(',').toMutableList().also { it[1] = "13" }.joinToString(",")
         val legacy = header + "\n" + wrapped.substringAfter('\n')
@@ -284,7 +285,7 @@ class WorkoutSessionIdentityTest {
         val canonical = TrainingRepository(upgradedDb, context).canonicalRecordsBackup(1234L)
         assertArrayEquals(canonical.csv.toByteArray(Charsets.UTF_8), canonical.utf8Bytes())
         val normalized = RecordCsvBackupRestore.parse(canonical.csv) as RecordCsvImportData.Restore
-        assertEquals(14, normalized.manifest!!.formatVersion); assertEquals(13, normalized.backupSchemaVersion)
+        assertEquals(15, normalized.manifest!!.formatVersion); assertEquals(14, normalized.backupSchemaVersion)
         // Current backup schema 3 adds exact canonical role and source-version columns;
         // restoring this v12 snapshot must preserve program content while upgrading it.
         assertEquals(checkNotNull(historical.programSnapshot).copy(schemaVersion = checkNotNull(normalized.programSnapshot).schemaVersion), normalized.programSnapshot)
@@ -332,8 +333,8 @@ class WorkoutSessionIdentityTest {
         }
         val canonical = TrainingRepository(target, context).canonicalRecordsBackup(1234L)
         val normalized = RecordCsvBackupRestore.parse(canonical.csv) as RecordCsvImportData.Restore
-        assertEquals(14, normalized.manifest!!.formatVersion)
-        assertEquals(13, normalized.backupSchemaVersion)
+        assertEquals(15, normalized.manifest!!.formatVersion)
+        assertEquals(14, normalized.backupSchemaVersion)
         assertTrue(normalized.setRows.all { !it.sessionStableKey.isNullOrBlank() })
         assertEquals(restored.associate { it.backupSourceId to it.sessionStableKey },
             normalized.toWorkoutGraphs().associate { it.sourceId to it.sessionStableKey })
@@ -430,7 +431,8 @@ class WorkoutSessionIdentityTest {
             .allowMainThreadQueries().addMigrations(MIGRATION_31_32, MIGRATION_32_33, TrainingDatabase.MIGRATION_33_34,
                 TrainingDatabase.MIGRATION_34_35, TrainingDatabase.MIGRATION_35_36, TrainingDatabase.MIGRATION_36_37,
                 TrainingDatabase.MIGRATION_37_38, TrainingDatabase.MIGRATION_38_39,
-                TrainingDatabase.MIGRATION_39_40, TrainingDatabase.MIGRATION_40_41).build().also { databases += it }
+                TrainingDatabase.MIGRATION_39_40, TrainingDatabase.MIGRATION_40_41,
+                TrainingDatabase.MIGRATION_41_42).build().also { databases += it }
         val migrated = db.workoutDao().allEntriesWithSets().sortedBy { it.entry.id }
         assertEquals(3, migrated.size)
         assertEquals(migrated[0].entry.sessionStableKey, migrated[1].entry.sessionStableKey)

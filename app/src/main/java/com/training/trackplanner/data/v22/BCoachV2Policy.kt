@@ -1,14 +1,15 @@
 package com.training.trackplanner.data.v22
 
+import com.training.trackplanner.data.ProgramLoadSource
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
 
 /** Frozen product policy. Values are selection heuristics, not clinical limits. */
 internal object BCoachV2Policy {
-    const val ENGINE_VERSION = "B_COACH_V2_1_GLOBAL_OPT"
-    const val POLICY_VERSION = "B_COACH_V2_1_POLICY_2026_11_15"
-    const val SOURCE_OWNER = "B_COACH_V2_1_GLOBAL_OPT"
+    const val ENGINE_VERSION = "B_COACH_V2_2_GLOBAL_OPT"
+    const val POLICY_VERSION = "B_COACH_V2_2_POLICY_2026_11_15"
+    const val SOURCE_OWNER = "B_COACH_V2_2_GLOBAL_OPT"
     const val COEFFICIENT_SOURCE = "PRODUCT_HEURISTIC_NOT_CLINICAL"
     const val DISCLAIMER =
         "이 추천은 운동 기록·선택한 목표와 시범 계산 규칙을 바탕으로 생성한 훈련 계획입니다. 일부 자극·회복 점수는 아직 과학적으로 검증된 개인 예측값이 아니며, 미확정 중량은 직접 입력할 수 있습니다."
@@ -25,6 +26,9 @@ internal object BCoachV2Policy {
     const val INITIAL_LOAD_CONSERVATIVE_FACTOR = 0.97
     const val FOLLOW_UP_SET_2_TO_3_FACTOR = 0.985
     const val FOLLOW_UP_SET_4_TO_5_FACTOR = 0.97
+    const val WORKING_RIR_MAX_FATIGUE = 3.0
+    const val RECOVERY_SET_ADJUSTMENT_MIN = 0.5
+    const val RECOVERY_SET_ADJUSTMENT_MAX = 1.5
     const val MAX_PER_EXERCISE_SETS = 5
     const val MAX_WEEK_TO_WEEK_ADDED_SETS = 2
     const val MAX_SHOWN_ALTERNATIVES = 2
@@ -127,14 +131,7 @@ enum class BCoachEvidenceStatus {
     NOT_APPLICABLE
 }
 
-enum class BCoachLoadSource {
-    USER_FIXED,
-    PERSONAL_MODEL,
-    DIRECT_HISTORY_ESTIMATE,
-    HISTORY_HOLD,
-    CALIBRATION_REQUIRED,
-    NON_LOAD_METRIC
-}
+typealias BCoachLoadSource = ProgramLoadSource
 
 sealed interface BCoachV2LoadInstruction {
     val evidenceStatus: BCoachEvidenceStatus
@@ -147,9 +144,27 @@ sealed interface BCoachV2LoadInstruction {
         val targetRir: Double,
         val loadSource: BCoachLoadSource = BCoachLoadSource.PERSONAL_MODEL,
         val capacityKg: Double? = null,
+        val freshRir: Double? = null,
         val expectedRir: Double? = null,
         val conservativeFactor: Double = 1.0,
         val followUpSetFactor: Double = 1.0,
+        override val evidenceStatus: BCoachEvidenceStatus,
+        override val sourceVersion: String,
+        override val evidenceIds: List<String>
+    ) : BCoachV2LoadInstruction
+
+    /** A usable scientific estimate whose equipment grid is not yet known. */
+    data class EstimatedLoad(
+        val estimatedKg: Double,
+        val tier: String,
+        val targetRir: Double,
+        val loadSource: BCoachLoadSource,
+        val capacityKg: Double,
+        val freshRir: Double,
+        val expectedRir: Double,
+        val relativeIntensity: Double,
+        val conservativeFactor: Double,
+        val followUpSetFactor: Double,
         override val evidenceStatus: BCoachEvidenceStatus,
         override val sourceVersion: String,
         override val evidenceIds: List<String>

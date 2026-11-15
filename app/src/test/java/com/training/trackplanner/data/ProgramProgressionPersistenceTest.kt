@@ -146,7 +146,7 @@ class ProgramProgressionPersistenceTest {
         val csv = RecordCsvBackupRestore.wrapWithManifest(body, "test", 1, mapOf("execution_graph_row" to rows.size))
         val parsed = RecordCsvBackupRestore.parse(csv) as RecordCsvImportData.Restore
         assertEquals(rows, parsed.progressionRows)
-        assertEquals(14, parsed.manifest!!.formatVersion)
+        assertEquals(15, parsed.manifest!!.formatVersion)
         val restored = database()
         restored.exerciseDao().insertExercise(db.exerciseDao().allExercises().single())
         val mapping = entries.associate { row ->

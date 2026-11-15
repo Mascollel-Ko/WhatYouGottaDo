@@ -73,7 +73,9 @@ internal class ProgramPlanService(
             items.sortedWith(compareBy(TrainingProgramItem::weekNumber, TrainingProgramItem::dayOfWeek, TrainingProgramItem::orderIndex, TrainingProgramItem::exerciseStableKey)).forEach { item ->
                 append('\n').append(listOf(item.weekNumber, item.dayOfWeek, item.orderIndex, item.exerciseStableKey, item.selectionRole, item.restSeconds, item.prescription, item.taskProtocolSemanticsJson).joinToString("|"))
                 sets[item.id].orEmpty().sortedBy(TrainingProgramItemSet::setIndex).forEach { set ->
-                    append('|').append("${set.setIndex}:${set.reps}:${set.weightKg}:${set.seconds}")
+                    append('|').append("${set.setIndex}:${set.reps}:${set.weightKg}:${set.seconds}:" +
+                        "${set.estimatedLoadKg}:${set.loadSource}:${set.freshRir}:${set.expectedRir}:" +
+                        "${set.relativeIntensity}:${set.evidenceVersion}")
                     set.targetRpeMin?.let { append(':').append(it.canonicalRpeFingerprint()) }
                 }
             }
@@ -305,8 +307,15 @@ internal class ProgramPlanService(
         val cutoff = com.training.trackplanner.data.v22.BCoachV2ApplicationRecoveryAudit
             .evidenceCutoff(program.planningMetadataJson)
         val refreshedMetadata = cutoff?.let { evidenceCutoff ->
+            val recorded = workoutDao.entriesWithSetsUntil(evidenceCutoff.toString())
+            val exercises = exerciseDao.allExercises().associateBy(Exercise::stableKey)
             val history = com.training.trackplanner.data.v22.V22HistoryInput.fromWorkoutHistory(
-                workoutDao.entriesWithSetsUntil(evidenceCutoff.toString())
+                recorded
+            )
+            val badmintonHistory = com.training.trackplanner.data.v22.V22HistoryInput.badmintonFromWorkoutHistory(
+                recorded,
+                exercises,
+                com.training.trackplanner.analysis.badminton.CanonicalBadmintonObjectiveCatalog.EMPTY
             )
             com.training.trackplanner.data.v22.BCoachV2ApplicationRecoveryAudit.refresh(
                 program = program,
@@ -315,7 +324,8 @@ internal class ProgramPlanService(
                 applicationStartDate = applicationStart,
                 cutoff = evidenceCutoff,
                 history = history,
-                exercises = exerciseDao.allExercises().associateBy(Exercise::stableKey)
+                exercises = exercises,
+                badmintonHistory = badmintonHistory
             )
         }
         db.withTransaction {
@@ -363,9 +373,15 @@ internal class ProgramPlanService(
                             weightKg = set.weightKg,
                             seconds = set.seconds,
                             confirmed = false,
-                            manualWeight = set.weightKg > 0.0,
+                            manualWeight = set.loadSource == ProgramLoadSource.USER_FIXED,
                             loadState = set.loadState,
-                            targetRpeMin = set.targetRpeMin.validatedTargetRpeMin()
+                            targetRpeMin = set.targetRpeMin.validatedTargetRpeMin(),
+                            estimatedLoadKg = set.estimatedLoadKg,
+                            loadSource = set.loadSource,
+                            freshRir = set.freshRir,
+                            expectedRir = set.expectedRir,
+                            relativeIntensity = set.relativeIntensity,
+                            evidenceVersion = set.evidenceVersion
                         )
                     )
                 }
@@ -515,7 +531,13 @@ private fun ProgramSetPrescription.toEntity(programItemId: Long): TrainingProgra
         weightKg = weightKg,
         seconds = seconds,
         targetRpeMin = targetRpeMin.validatedTargetRpeMin(),
-        loadState = loadState
+        loadState = loadState,
+        estimatedLoadKg = estimatedLoadKg,
+        loadSource = loadSource,
+        freshRir = freshRir,
+        expectedRir = expectedRir,
+        relativeIntensity = relativeIntensity,
+        evidenceVersion = evidenceVersion
     )
 
 internal fun ProgramSkeletonItem.toTrainingProgramItem(programId: Long): TrainingProgramItem {

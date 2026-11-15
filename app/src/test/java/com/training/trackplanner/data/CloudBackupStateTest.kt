@@ -180,7 +180,7 @@ class CloudBackupStateTest {
         val before = state(db)
         val content = TrainingRepository(db, context).canonicalRecordsBackup(1234L)
         val parsed = RecordCsvBackupRestore.parse(content.csv) as RecordCsvImportData.Restore
-        assertEquals(14, parsed.manifest!!.formatVersion); assertEquals(13, parsed.backupSchemaVersion)
+        assertEquals(15, parsed.manifest!!.formatVersion); assertEquals(14, parsed.backupSchemaVersion)
         assertFalse(content.csv.contains("cloud_backup_state")); assertFalse(content.csv.contains(before.installId))
         assertEquals(before, state(db))
     }
@@ -285,7 +285,8 @@ class CloudBackupStateTest {
             .addMigrations(MIGRATION_32_33, TrainingDatabase.MIGRATION_33_34, TrainingDatabase.MIGRATION_34_35,
                 TrainingDatabase.MIGRATION_35_36, TrainingDatabase.MIGRATION_36_37,
                 TrainingDatabase.MIGRATION_37_38, TrainingDatabase.MIGRATION_38_39,
-                TrainingDatabase.MIGRATION_39_40, TrainingDatabase.MIGRATION_40_41).build()
+                TrainingDatabase.MIGRATION_39_40, TrainingDatabase.MIGRATION_40_41,
+                TrainingDatabase.MIGRATION_41_42).build()
         try {
             val state = state(db)
             assertEquals(before, snapshot(db.openHelper.writableDatabase))

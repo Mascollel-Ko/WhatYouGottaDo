@@ -66,6 +66,12 @@ internal class V22ProgramPlanningService(
         )
         val coreCatalog = canonicalMetadataRepository.coreCatalog()
         val badmintonCatalog = canonicalMetadataRepository.badmintonObjectiveCatalog()
+        val badmintonHistory = V22HistoryInput.badmintonFromWorkoutHistory(
+            recordedWorkouts,
+            exercises,
+            badmintonCatalog,
+            canonicalMetadataRepository.runtimeMetadataCatalog()
+        )
         val mainExerciseKeys = canonicalMetadataRepository.programSlotCapabilityRelations()
             .filter { it.capabilityCode == "MAIN_STRENGTH_SLOT" }
             .mapTo(linkedSetOf()) { it.exerciseStableKey }
@@ -114,6 +120,7 @@ internal class V22ProgramPlanningService(
             BCoachMultiobjectiveProduction.prepare(
                 request = coachRequest,
                 history = history,
+                badmintonHistory = badmintonHistory,
                 exercises = exercises,
                 baseline = fallbackSkeleton,
                 candidate = candidateSkeleton,
@@ -210,6 +217,12 @@ internal class V22ProgramPlanningService(
         val recordedWorkouts = workoutDao.entriesWithSetsUntil(snapshot.cutoff.toString())
         val history = V22HistoryInput.fromWorkoutHistory(recordedWorkouts)
         val exercises = exerciseDao.allExercises().associateBy(Exercise::stableKey)
+        val badmintonHistory = V22HistoryInput.badmintonFromWorkoutHistory(
+            recordedWorkouts,
+            exercises,
+            canonicalMetadataRepository.badmintonObjectiveCatalog(),
+            canonicalMetadataRepository.runtimeMetadataCatalog()
+        )
         val linked = snapshot.sourceProgramStableKey?.let { source ->
             progressionDao?.let { dao ->
                 BCoachLinkedExecutionReader.read(
@@ -231,6 +244,7 @@ internal class V22ProgramPlanningService(
         BCoachMultiobjectiveProduction.validateAcceptedForPersistence(
             skeleton = skeleton,
             history = history,
+            badmintonHistory = badmintonHistory,
             exercises = exercises,
             currentLinkedEvidenceFingerprint = linkedFingerprint
         )

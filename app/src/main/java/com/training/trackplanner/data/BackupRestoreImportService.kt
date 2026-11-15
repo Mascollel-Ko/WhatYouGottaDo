@@ -329,11 +329,17 @@ internal class BackupRestoreImportService(
                             secondaryWeightKg = row.secondaryWeightKg,
                             seconds = row.seconds,
                             confirmed = row.setConfirmed,
-                            manualWeight = row.setManualWeight ?: (row.weightKg > 0.0),
+                            manualWeight = row.setManualWeight ?: false,
                             rpe = row.rpe,
                             restSecondsOverride = row.setRestSecondsOverride,
                             loadState = row.setLoadState ?: ProgramLoadState.EXPLICIT_LOAD,
-                            targetRpeMin = row.targetRpeMin.validatedTargetRpeMin()
+                            targetRpeMin = row.targetRpeMin.validatedTargetRpeMin(),
+                            estimatedLoadKg = row.estimatedLoadKg,
+                            loadSource = row.loadSource ?: ProgramLoadSource.LEGACY_UNKNOWN,
+                            freshRir = row.freshRir,
+                            expectedRir = row.expectedRir,
+                            relativeIntensity = row.relativeIntensity,
+                            evidenceVersion = row.evidenceVersion
                         )
                     )
                     setCount += 1
@@ -707,7 +713,13 @@ internal class BackupRestoreImportService(
                             weightKg = set.weightKg,
                             seconds = set.seconds,
                             targetRpeMin = set.targetRpeMin,
-                            loadState = set.loadState
+                            loadState = set.loadState,
+                            estimatedLoadKg = set.estimatedLoadKg,
+                            loadSource = set.loadSource,
+                            freshRir = set.freshRir,
+                            expectedRir = set.expectedRir,
+                            relativeIntensity = set.relativeIntensity,
+                            evidenceVersion = set.evidenceVersion
                         )
                     )
                 )
@@ -1021,7 +1033,11 @@ private fun List<WorkoutSet>.matchesRestoreRows(rows: List<RestoreSetRow>): Bool
             set.seconds == row.seconds &&
             set.rpe == row.rpe &&
             (row.setManualWeight == null || set.manualWeight == row.setManualWeight) &&
-            (row.setRestSecondsOverride == null || set.restSecondsOverride == row.setRestSecondsOverride)
+            (row.setRestSecondsOverride == null || set.restSecondsOverride == row.setRestSecondsOverride) &&
+            set.estimatedLoadKg == row.estimatedLoadKg &&
+            (row.loadSource == null || set.loadSource == row.loadSource) &&
+            set.freshRir == row.freshRir && set.expectedRir == row.expectedRir &&
+            set.relativeIntensity == row.relativeIntensity && set.evidenceVersion == row.evidenceVersion
     }
 
 private fun ProgramBackupItem.logicalPosition(): String =
