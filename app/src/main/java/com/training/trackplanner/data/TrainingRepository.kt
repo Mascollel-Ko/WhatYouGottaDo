@@ -329,6 +329,7 @@ class TrainingRepository internal constructor(
         workoutDao = workoutDao,
         programDao = programDao,
         workoutSourceIdentityProvider = workoutSourceIdentityProvider,
+        canonicalMetadataRepository = canonicalMetadataRepository,
         prescriptionNoteFormatter = ::noteFromPrescription,
         builtInProgramKeys = { SeedData.programs(context).mapTo(mutableSetOf(), ProgramSeed::key) }
     )

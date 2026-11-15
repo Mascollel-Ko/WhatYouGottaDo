@@ -414,10 +414,13 @@ internal object BCoachMultiobjectiveProduction {
         inputFingerprint: String,
         historyFingerprint: String,
         exerciseFingerprint: String,
-        linkedEvidenceFingerprint: String
+        linkedEvidenceFingerprint: String,
+        engineVersion: String = ENGINE_VERSION,
+        policyVersion: String = POLICY_VERSION,
+        sourceOwner: String = SOURCE_OWNER
     ): String = sha256(buildString {
         listOf(
-            ENGINE_VERSION, POLICY_VERSION, SOURCE_OWNER, baselineFingerprint, candidateFingerprint,
+            engineVersion, policyVersion, sourceOwner, baselineFingerprint, candidateFingerprint,
             inputFingerprint, historyFingerprint, exerciseFingerprint, linkedEvidenceFingerprint
         ).forEach { canonicalField(it) }
     })
@@ -487,7 +490,10 @@ internal object BCoachMultiobjectiveProduction {
             throw IllegalStateException("B_COACH_ACCEPTANCE_FINGERPRINT_MISSING")
         }
         val expectedProposal = proposalFingerprint(
-            baseline, candidate, input, originalHistory, originalExercise, originalLinked
+            baseline, candidate, input, originalHistory, originalExercise, originalLinked,
+            decision.optString("engineVersion", ENGINE_VERSION),
+            decision.optString("policyVersion", POLICY_VERSION),
+            decision.optString("sourceOwner", SOURCE_OWNER)
         )
         if (proposal != expectedProposal) {
             throw IllegalStateException("B_COACH_ACCEPTANCE_PROPOSAL_TAMPERED")

@@ -270,4 +270,36 @@ class ProgramEffortPersistenceTest {
         ) as RecordCsvImportData.Restore
         assertEquals(null, legacy.setRows.single().loadSource)
     }
+
+    @Test fun mixedUserFixedAndAutomaticSourcesSurviveRoomAndCalendar() = runBlocking {
+        val db = database()
+        val exercise = Exercise("v221-mixed", "V221 mixed", "근력운동")
+        db.exerciseDao().insertExercise(exercise)
+        val programId = db.programDao().insertProgram(TrainingProgram(name = "V221 mixed", durationDays = 7))
+        val itemId = db.programDao().insertProgramItem(TrainingProgramItem(
+            programId = programId, weekNumber = 1, dayOfWeek = 1, orderIndex = 1,
+            exerciseStableKey = exercise.stableKey, exerciseName = exercise.name,
+            category = exercise.category, setCount = 3, reps = 8, weightKg = 0.0,
+            weightSource = "B_COACH_V2_SET_SPECIFIC"
+        ))
+        val sets = listOf(
+            TrainingProgramItemSet(programItemId = itemId, setIndex = 1, reps = 8, weightKg = 100.0,
+                loadSource = ProgramLoadSource.USER_FIXED, freshRir = 3.0, expectedRir = 3.0),
+            TrainingProgramItemSet(programItemId = itemId, setIndex = 2, reps = 8, weightKg = 90.0,
+                loadSource = ProgramLoadSource.PERSONAL_MODEL, freshRir = 4.0, expectedRir = 3.5),
+            TrainingProgramItemSet(programItemId = itemId, setIndex = 3, reps = 8, weightKg = 87.5,
+                loadSource = ProgramLoadSource.DIRECT_HISTORY_ESTIMATE, freshRir = 4.5, expectedRir = 3.7)
+        )
+        db.programDao().insertProgramItemSets(sets)
+        assertEquals(listOf(ProgramLoadSource.USER_FIXED, ProgramLoadSource.PERSONAL_MODEL,
+            ProgramLoadSource.DIRECT_HISTORY_ESTIMATE),
+            db.programDao().programItemSetsForProgram(programId).map { it.loadSource })
+
+        ProgramPlanService(db, db.exerciseDao(), db.workoutDao(), db.programDao(), { it }, { emptySet() })
+            .applyProgramToDates(programId, "2026-11-16", ProgramApplyMode.Append)
+        val applied = db.workoutDao().entriesWithSets("2026-11-16").single().sets.sortedBy { it.setIndex }
+        assertEquals(listOf(100.0, 90.0, 87.5), applied.map { it.weightKg })
+        assertEquals(listOf(true, false, false), applied.map { it.manualWeight })
+        assertEquals(sets.map { it.loadSource }, applied.map { it.loadSource })
+    }
 }

@@ -28,7 +28,8 @@ internal class ProgramPlanService(
     private val programDao: ProgramDao,
     private val prescriptionNoteFormatter: (String) -> String,
     private val builtInProgramKeys: () -> Set<String>,
-    private val workoutSourceIdentityProvider: WorkoutSourceIdentityProvider? = null
+    private val workoutSourceIdentityProvider: WorkoutSourceIdentityProvider? = null,
+    private val canonicalMetadataRepository: CanonicalExerciseMetadataRepository? = null
 ) {
     private val progression = ProgramProgressionService(db)
     val programs: Flow<List<TrainingProgram>> = programDao.observePrograms()
@@ -307,6 +308,13 @@ internal class ProgramPlanService(
         val cutoff = com.training.trackplanner.data.v22.BCoachV2ApplicationRecoveryAudit
             .evidenceCutoff(program.planningMetadataJson)
         val refreshedMetadata = cutoff?.let { evidenceCutoff ->
+            val metadataRepository = canonicalMetadataRepository
+                ?: throw ProgramApplyException(ProgramApplyFailureReason.METADATA_UNAVAILABLE)
+            val badmintonMetadata = runCatching {
+                metadataRepository.badmintonObjectiveCatalog() to metadataRepository.runtimeMetadataCatalog()
+            }.getOrElse {
+                throw ProgramApplyException(ProgramApplyFailureReason.METADATA_UNAVAILABLE)
+            }
             val recorded = workoutDao.entriesWithSetsUntil(evidenceCutoff.toString())
             val exercises = exerciseDao.allExercises().associateBy(Exercise::stableKey)
             val history = com.training.trackplanner.data.v22.V22HistoryInput.fromWorkoutHistory(
@@ -315,7 +323,8 @@ internal class ProgramPlanService(
             val badmintonHistory = com.training.trackplanner.data.v22.V22HistoryInput.badmintonFromWorkoutHistory(
                 recorded,
                 exercises,
-                com.training.trackplanner.analysis.badminton.CanonicalBadmintonObjectiveCatalog.EMPTY
+                badmintonMetadata.first,
+                badmintonMetadata.second
             )
             com.training.trackplanner.data.v22.BCoachV2ApplicationRecoveryAudit.refresh(
                 program = program,

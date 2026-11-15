@@ -1,15 +1,24 @@
-# B-Coach v2.2 integrated load, stimulus, and recovery completion
+# B-Coach v2.2.1 precision repair completion
 
 ## Scope and release identity
 
 - Branch: `feat/b-coach-v2-global-optimizer`
-- Base commit: `4aef2bc0fed3969c53bdc4bf04106db07ea1047e`
-- Engine: `B_COACH_V2_2_GLOBAL_OPT`
-- Frozen policy: `B_COACH_V2_2_POLICY_2026_11_15`
+- v2.2.1 starting commit: `03036a9b34b266ca24e2783724ec3d43dd64f82c`
+- Original v2.2 base commit: `4aef2bc0fed3969c53bdc4bf04106db07ea1047e`
+- Engine: `B_COACH_V2_2_1_GLOBAL_OPT`
+- Frozen policy: `B_COACH_V2_2_1_POLICY_2026_11_15`
 - Coefficient provenance: `PRODUCT_HEURISTIC_NOT_CLINICAL`
-- Request authority: the pasted `WhatYouGottaDo — B-Coach v2.2 통합 개선 구현 지시`. The v2.2 design text is an implementation reference.
+- Request authority: `WhatYouGottaDo — B-Coach v2.2.1 정밀 보완 Codex 작업 지시`; `BCOACH_V2_2_1_REPAIR_NOTES.md` supplies [주1]-[주4]. The earlier v2.2 design and implementation instructions remain reference material.
 
-This keeps the v2.1 production optimizer, Need model, six recovery axes, eight objectives, three scenarios, Pareto frontier, minimax regret, and explicit candidate approval. v2.2 completes the evidence path from the highest valid same-exercise e1RM through estimated/prescribed per-set load, working RIR, dose, recovery, badminton history, Room, calendar records, and CSV backup. Nothing is persisted until the user selects a concrete candidate and explicitly approves it.
+This keeps the v2.2 production optimizer, Need model, six recovery axes, eight objectives, three scenarios, Pareto frontier, minimax regret, Room 42/backup formats, and explicit candidate approval. v2.2.1 repairs three verified evidence paths without changing those policies. Nothing is persisted until the user selects a concrete candidate and explicitly approves it.
+
+## v2.2.1 precision repair record
+
+- Set-level `loadSource` is now authoritative. `USER_FIXED` preserves only that set's positive finite kilograms; known automatic sources are recalculated even if the legacy item source says manual. The item source is consulted only for `LEGACY_UNKNOWN`. Invalid fixed kilograms fail closed to typed calibration rather than being silently replaced.
+- Candidate set addition clears copied kilograms, source, RIR, intensity, and evidence to a calibration-required set. Removing a tail that contains a user-fixed set is rejected. Repetition mutation retains fixed kilograms but runs capacity/RIR evaluation again. Mixed fixed/automatic sets retain the exact source split through approval, Room persistence, reopen, and calendar application.
+- Calendar application now requires and uses the same canonical metadata repository already held by `TrainingRepository`. The live badminton objective catalog, runtime metadata, cutoff, generic-session authority, direct-drill de-duplication, and six-axis aggregation therefore match generation. Missing metadata fails explicitly before workout mutation.
+- Historical and planned effective dose share one set-dose function and one relative-intensity credit. Historical relative intensity uses the highest valid, cutoff-bounded same-`stableKey` e1RM from the existing load resolver/model evidence; it is computed once per optimizer input, not per candidate. Missing RPE remains a labeled neutral-effort uncertainty and never becomes invented `RIR=0`; missing capacity keeps neutral relative-intensity credit with an explicit reason code.
+- Proposal validation recomputes a fingerprint with the engine/policy/owner stored in the accepted decision. Already accepted v2.2 proposals therefore remain replay-valid after the v2.2.1 version bump while tampered, stale-history, stale-metadata, and structurally edited proposals still fail.
 
 ## v2.2 correction record
 
@@ -164,14 +173,23 @@ The new assertions are grouped by the six authority sections while retaining eve
 | 43 | Room 41→42 migration and `LEGACY_UNKNOWN` defaults for both set tables. | PASS (compiled; device execution depends on connection) |
 | 44-46 | Approved alternative prescription/RIR preservation, approval/structure replay guard, progression/copy/calendar regression suite. | PASS |
 
+## v2.2.1 repair counterexamples
+
+| Authority | Covered counterexample | Result |
+|---|---|---|
+| [주1] / T60 | Mixed `USER_FIXED`/automatic sets, item-manual with set-auto, legacy fallback, fixed-set add/remove/repetition mutation, invalid fixed load, and select/approve replay. | PASS |
+| [주1] / persistence | Mixed set kilograms, manual flags, and sources survive Room save/reopen and calendar application. | PASS |
+| [주2] | Direct-drill-only history, generic session plus drill de-duplication, two application start dates, matching history fingerprint/count, and missing-metadata fail-before-mutation. | PASS |
+| [주3] / T61 | Equal plan/history relative intensity, no-RPE labeling, missing-reference neutral fallback, highest valid reference, future-row exclusion, candidate-independent reference, and Need regression. | PASS |
+| Compatibility | An accepted v2.2 proposal validates under its recorded version tuple after the v2.2.1 version bump. | PASS |
+
 ## Validation record
 
 Environment: Windows, Android Studio JBR 21, Android SDK `C:/Users/pki08/AppData/Local/Android/Sdk`.
 
-- Targeted `BCoachMultiobjectiveProductionTest`, `BCoachProductionReviewDialogUiTest`, and the reviewed-candidate Room save/reopen/calendar integration: **PASS**.
-- Final full `testDebugUnitTest --no-daemon --max-workers=2`: **PASS**, 2,851 tests, 0 failures, 0 errors, 25 skips, 431 XML suites, 9m55s on the final compiled source after the temporary isolation settings were removed. A preceding clean `--rerun-tasks` pass completed the same 2,851-test suite in 12m53s using temporary `forkEvery=1` / `maxParallelForks=2` isolation. An initial unisolated run exposed both stale backup-version fixtures and the known Windows `robolectric-nativeruntime.dll` crash. The fixture/provenance regressions were fixed, and both temporary isolation lines were removed immediately after the clean run.
-- Final `lintDebug assembleDebug compileReleaseKotlin compileDebugAndroidTestKotlin --no-daemon --max-workers=2`: **PASS**, 5m11s. Lint: 0 errors, 209 warnings.
-- Debug APK: `app/build/outputs/apk/debug/app-debug.apk`, 76,433,712 bytes, SHA-256 `F965C37066D66E3BB82C2C4D67332C8CF2ECFF644CFBB36421D98C2EAE067109`.
+- Final normal-worker targeted and Gradle run (`BCoachMultiobjectiveProductionTest`, `BCoachApplicationRecoveryMetadataTest`, `ProgramEffortPersistenceTest`, `lintDebug`, `assembleDebug`, `compileReleaseKotlin`, `compileDebugAndroidTestKotlin`): **PASS**, 79 targeted tests, 0 failures, 0 errors, 0 skips, 6m33s. Lint: 0 errors, 209 warnings.
+- Final full `testDebugUnitTest --no-daemon --max-workers=2`: **PASS**, 2,857 tests, 0 failures, 0 errors, 25 skips, 432 XML suites, 9m24s with temporary `forkEvery=1` / `maxParallelForks=2` worker isolation. The first unisolated run terminated in the known Windows `robolectric-nativeruntime.dll` `EXCEPTION_ACCESS_VIOLATION`, outside the JVM and without an assertion failure. Both temporary isolation lines were removed immediately after the final full pass; they are not part of the delivered diff.
+- Debug APK: `app/build/outputs/apk/debug/app-debug.apk`, 76,434,235 bytes, SHA-256 `A3D4D3BFD415302D223B454AFCE425DF29252BF17BCAE0891BA270FC0573C44F`.
 - `adb devices -l` returned no connected device, so `connectedDebugAndroidTest` and real-device interaction were not run.
 
 ## Explicit limitations

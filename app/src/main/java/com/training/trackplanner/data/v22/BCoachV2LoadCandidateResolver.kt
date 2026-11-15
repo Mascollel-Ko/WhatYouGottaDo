@@ -9,6 +9,8 @@ import com.training.trackplanner.analysis.strengthperformance.toPosterior
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.ProgramLoadState
+import com.training.trackplanner.data.ProgramLoadSource
+import com.training.trackplanner.data.ProgramSetPrescription
 import com.training.trackplanner.data.ProgramSetPrescriptionResolver
 import com.training.trackplanner.data.StrengthModelRevisionPolicy
 import com.training.trackplanner.data.StrengthPosteriorDao
@@ -101,7 +103,6 @@ internal object BCoachV2LoadCandidateResolver {
                 "DIRECT_HISTORY_COMPLETED_REPS_LOWER_BOUND:${item.exerciseStableKey}"
             if (directEstimate?.stale == true) reasons +=
                 "STALE_DIRECT_HISTORY_UNCERTAINTY:${item.exerciseStableKey}"
-            val userFixed = isUserFixed(item.weightSource)
             val requiresCurrentBodyweight = item.exerciseStableKey == "ex_e41f4c2b"
             if (model?.stale == true) reasons += "STALE_MODEL:${item.exerciseStableKey}"
             if ((model != null || directEstimate != null) && step == null) reasons +=
@@ -111,6 +112,10 @@ internal object BCoachV2LoadCandidateResolver {
 
             val updatedSets = sets.map { set ->
                 val setId = setId(item.localId, set.setIndex)
+                val fixedBySet = isSetUserFixed(set, item.weightSource)
+                val validFixedLoad = fixedBySet && set.loadState == ProgramLoadState.EXPLICIT_LOAD &&
+                    set.weightKg.isFinite() && set.weightKg > 0.0
+                if (fixedBySet && !validFixedLoad) reasons += "INVALID_USER_FIXED_LOAD:$setId"
                 val observedTargetRir = set.targetRpeMin?.takeIf { it.isFinite() && it in 1.0..10.0 }
                     ?.let { 10.0 - it }
                 val hasStrongEvidence = model?.stale == false ||
@@ -125,8 +130,7 @@ internal object BCoachV2LoadCandidateResolver {
                 val targetRpe = 10.0 - targetRir
                 val nonLoadMetric = nonLoadMetric(set.seconds, set.reps, exercise)
                 val instruction = when {
-                    userFixed && set.loadState == ProgramLoadState.EXPLICIT_LOAD &&
-                        set.weightKg.isFinite() && set.weightKg > 0.0 -> BCoachV2LoadInstruction.ExactLoad(
+                    validFixedLoad -> BCoachV2LoadInstruction.ExactLoad(
                         kg = set.weightKg,
                         tier = "USER_FIXED",
                         targetRir = targetRir,
@@ -139,10 +143,15 @@ internal object BCoachV2LoadCandidateResolver {
                             predictedRir(it.curve, it.capacityBase, set.weightKg, set.reps)
                         } ?: directEstimate?.let { predictedRirEpley(it.capacityKg, set.weightKg, set.reps) })
                             ?.let { fresh -> workingRir(fresh, set.setIndex, set.reps,
-                                set.weightKg / (model?.capacityBase ?: directEstimate?.capacityKg ?: set.weightKg),
+                                set.weightKg / (model?.takeIf { !it.stale }?.capacityBase
+                                    ?: directEstimate?.capacityKg ?: set.weightKg),
                                 item.restSeconds) },
                         evidenceStatus = BCoachEvidenceStatus.OBSERVED,
                         sourceVersion = "USER_FIXED_LOAD",
+                        evidenceIds = listOf(setId)
+                    )
+                    fixedBySet -> BCoachV2LoadInstruction.Calibrate(
+                        reason = "INVALID_USER_FIXED_LOAD",
                         evidenceIds = listOf(setId)
                     )
                     nonLoadMetric != null -> BCoachV2LoadInstruction.NonLoadMetric(
@@ -594,7 +603,37 @@ internal object BCoachV2LoadCandidateResolver {
         )
     }
 
-    private fun isUserFixed(weightSource: String): Boolean {
+    internal fun referenceCapacityByStableKey(
+        request: V22GenerationRequest,
+        history: List<V22HistoryRow>,
+        modelSnapshots: Map<String, BCoachV2LoadModelSnapshot> = emptyMap(),
+        rirPolicy: RpeRirPolicy? = null
+    ): Map<String, Double> {
+        val historyAtCutoff = history.filter { !it.date.isAfter(request.asOf) }
+        return (historyAtCutoff.map(V22HistoryRow::stableKey) + modelSnapshots.keys)
+            .distinct().sorted().mapNotNull { stableKey ->
+                val direct = directHistoryEstimate(
+                    stableKey,
+                    historyAtCutoff.filter { it.stableKey == stableKey },
+                    request,
+                    rirPolicy
+                )
+                val effectiveModel = referenceModel(modelSnapshots[stableKey], direct)
+                val capacity = effectiveModel?.takeIf { !it.stale }?.capacityBase
+                    ?: direct?.capacityKg
+                stableKey to (capacity?.takeIf { it.isFinite() && it > 0.0 }
+                    ?: return@mapNotNull null)
+            }.toMap()
+    }
+
+    internal fun isSetUserFixed(set: ProgramSetPrescription, itemWeightSource: String): Boolean =
+        when (set.loadSource) {
+            ProgramLoadSource.USER_FIXED -> true
+            ProgramLoadSource.LEGACY_UNKNOWN -> isLegacyUserFixed(itemWeightSource)
+            else -> false
+        }
+
+    private fun isLegacyUserFixed(weightSource: String): Boolean {
         val source = weightSource.trim().uppercase()
         return source == BCoachLoadSource.USER_FIXED.name || "USER_OVERRIDE" in source ||
             "MANUAL" in source || source == "B_BLOCK_USER_START_LOAD_DERIVED"

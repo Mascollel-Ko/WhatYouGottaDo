@@ -330,6 +330,9 @@ internal object BCoachV2ApplicationRecoveryAudit {
             .put("planningStartDate", applicationStartDate.toString())
             .put("evidenceCutoff", cutoff.toString())
             .put("scoreScope", "RECOVERY_AXIS_ONLY_NOT_PARETO_RESELECTION")
+            .put("badmintonSessionCount", badmintonHistory.size)
+            .put("badmintonHistoryFingerprint",
+                BCoachMultiobjectiveProduction.historyFingerprint(emptyList(), badmintonHistory))
             .put("scoresByScenario", JSONObject().also { output ->
                 scores.forEach { (scenario, evaluation) ->
                     output.put(scenario.name, evaluation.recoveryScore)

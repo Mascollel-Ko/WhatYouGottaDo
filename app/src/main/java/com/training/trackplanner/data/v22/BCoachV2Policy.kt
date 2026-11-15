@@ -7,9 +7,9 @@ import kotlin.math.max
 
 /** Frozen product policy. Values are selection heuristics, not clinical limits. */
 internal object BCoachV2Policy {
-    const val ENGINE_VERSION = "B_COACH_V2_2_GLOBAL_OPT"
-    const val POLICY_VERSION = "B_COACH_V2_2_POLICY_2026_11_15"
-    const val SOURCE_OWNER = "B_COACH_V2_2_GLOBAL_OPT"
+    const val ENGINE_VERSION = "B_COACH_V2_2_1_GLOBAL_OPT"
+    const val POLICY_VERSION = "B_COACH_V2_2_1_POLICY_2026_11_15"
+    const val SOURCE_OWNER = "B_COACH_V2_2_1_GLOBAL_OPT"
     const val COEFFICIENT_SOURCE = "PRODUCT_HEURISTIC_NOT_CLINICAL"
     const val DISCLAIMER =
         "이 추천은 운동 기록·선택한 목표와 시범 계산 규칙을 바탕으로 생성한 훈련 계획입니다. 일부 자극·회복 점수는 아직 과학적으로 검증된 개인 예측값이 아니며, 미확정 중량은 직접 입력할 수 있습니다."

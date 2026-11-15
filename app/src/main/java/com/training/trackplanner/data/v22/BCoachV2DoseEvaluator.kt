@@ -57,7 +57,8 @@ internal object BCoachV2DoseEvaluator {
         val badmintonCatalog: CanonicalBadmintonObjectiveCatalog,
         val mainExerciseKeys: Set<String>,
         val exercises: Map<String, Exercise>,
-        val rirPolicy: RpeRirPolicy?
+        val rirPolicy: RpeRirPolicy?,
+        val referenceCapacityByStableKey: Map<String, Double>
     )
 
     fun evaluate(
@@ -80,19 +81,28 @@ internal object BCoachV2DoseEvaluator {
         rirByScenarioAndSet: Map<BCoachV2Scenario, Map<String, Double>> = emptyMap(),
         intensityByScenarioAndSet: Map<BCoachV2Scenario, Map<String, Double>> = emptyMap(),
         rirPolicy: RpeRirPolicy? = null,
-        badmintonHistory: List<V22BadmintonHistorySession> = emptyList()
+        badmintonHistory: List<V22BadmintonHistorySession> = emptyList(),
+        referenceCapacityByStableKey: Map<String, Double> = emptyMap()
     ): BCoachV2CandidateEvaluation {
         val historyAtCutoff = history.filter { !it.date.isAfter(request.asOf) }
+        val reasons = linkedSetOf<String>()
+        historyAtCutoff.filter { it.rpe == null }.mapTo(reasons) {
+            "HISTORY_RPE_UNAVAILABLE:${it.stableKey}"
+        }
+        historyAtCutoff.filter { row ->
+            row.weightKg?.let { it.isFinite() && it > 0.0 } == true &&
+                referenceCapacityByStableKey[row.stableKey] == null
+        }.mapTo(reasons) { "HISTORY_RELATIVE_INTENSITY_UNAVAILABLE:${it.stableKey}" }
         val context = Context(
             muscleCredits = muscleCredits(muscleRelations),
             coreCatalog = coreCatalog,
             badmintonCatalog = badmintonCatalog,
             mainExerciseKeys = mainExerciseKeys,
             exercises = exercises,
-            rirPolicy = rirPolicy
+            rirPolicy = rirPolicy,
+            referenceCapacityByStableKey = referenceCapacityByStableKey
         )
         val tasks = tasks(plan, baseline, historyAtCutoff, request, goalWeights, context)
-        val reasons = linkedSetOf<String>()
         BBalancedGoal.entries.filter { goal -> tasks.none { it.goal == goal } }
             .forEach { reasons += "NO_ELIGIBLE_TASK:${it.name}" }
         val weeks = (1..plan.request.durationWeeks.coerceAtLeast(1)).toList()
@@ -296,9 +306,8 @@ internal object BCoachV2DoseEvaluator {
             val workingRir = rirBySetId[setId] ?: set.expectedRir ?:
                 set.targetRpeMin?.let { 10.0 - it }
             val relativeIntensity = intensityBySetId[setId] ?: set.relativeIntensity
-            structuralCredit(item.exerciseStableKey, task.id, task.goal, scenario, context) *
-                qRep(set, task.goal) * qEffort(workingRir) * qRelativeIntensity(task.goal, relativeIntensity) *
-                qLoad(set, item, context.exercises[item.exerciseStableKey]) * qMetric(set, task.goal)
+            setDose(item.exerciseStableKey, task.id, task.goal, scenario, context, item, set,
+                qEffort(workingRir), relativeIntensity)
         }
     }
 
@@ -322,6 +331,9 @@ internal object BCoachV2DoseEvaluator {
                 value.probability * qEffort(value.rir.toDouble())
             }
         } ?: 1.0
+        val relativeIntensity = context.referenceCapacityByStableKey[row.stableKey]
+            ?.takeIf { it.isFinite() && it > 0.0 }
+            ?.let { capacity -> row.weightKg?.takeIf { it.isFinite() && it > 0.0 }?.div(capacity) }
         val item = ProgramSkeletonItem(
             localId = "history", weekNumber = 1, dayOfWeek = 1, orderIndex = 1,
             exerciseStableKey = row.stableKey, exerciseName = row.exerciseName, category = row.category,
@@ -329,9 +341,23 @@ internal object BCoachV2DoseEvaluator {
             weightKg = set.weightKg, seconds = set.seconds, selectionReason = "history",
             weightSource = "history", setPrescriptions = listOf(set)
         )
-        return structuralCredit(row.stableKey, taskId, goal, BCoachV2Scenario.BASE, context) *
-            qRep(set, goal) * effort * qLoad(set, item, context.exercises[row.stableKey]) * qMetric(set, goal)
+        return setDose(row.stableKey, taskId, goal, BCoachV2Scenario.BASE, context, item, set,
+            effort, relativeIntensity)
     }
+
+    private fun setDose(
+        stableKey: String,
+        taskId: String,
+        goal: BBalancedGoal,
+        scenario: BCoachV2Scenario,
+        context: Context,
+        item: ProgramSkeletonItem,
+        set: ProgramSetPrescription,
+        effortCredit: Double,
+        relativeIntensity: Double?
+    ): Double = structuralCredit(stableKey, taskId, goal, scenario, context) *
+        qRep(set, goal) * effortCredit * qRelativeIntensity(goal, relativeIntensity) *
+        qLoad(set, item, context.exercises[stableKey]) * qMetric(set, goal)
 
     private fun structuralCredit(
         stableKey: String,

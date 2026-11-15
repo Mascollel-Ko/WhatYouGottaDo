@@ -15,6 +15,7 @@ import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.ProgramGoal
 import com.training.trackplanner.data.ProgramLoadState
+import com.training.trackplanner.data.ProgramLoadSource
 import com.training.trackplanner.data.ProgramPeriodizationType
 import com.training.trackplanner.data.ProgramSetPrescription
 import com.training.trackplanner.data.ProgramSkeletonItem
@@ -840,6 +841,178 @@ class BCoachMultiobjectiveProductionTest {
         assertEquals(BCoachProductionStatus.USER_REVIEW_PROPOSED, prepare(history = emptyList()).decision.status)
     }
 
+    @Test fun `T60 v221 set provenance protects only the actual user fixed set across mutations`() {
+        val automaticModel = modelSnapshot().copy(
+            capacityLow = 180.0, capacityBase = 180.0, capacityHigh = 180.0
+        )
+        val mixed = withTargetRpe(skeleton(3, reps = 8), 7.0).copy(items = listOf(
+            withTargetRpe(skeleton(3, reps = 8), 7.0).items.single().copy(
+                weightSource = "B_COACH_V2_SET_SPECIFIC",
+                setPrescriptions = listOf(
+                    ProgramSetPrescription(1, 8, 100.0, 0, 7.0, ProgramLoadState.EXPLICIT_LOAD,
+                        loadSource = ProgramLoadSource.USER_FIXED),
+                    ProgramSetPrescription(2, 8, 90.0, 0, 7.0, ProgramLoadState.EXPLICIT_LOAD,
+                        loadSource = ProgramLoadSource.PERSONAL_MODEL),
+                    ProgramSetPrescription(3, 8, 87.5, 0, 7.0, ProgramLoadState.EXPLICIT_LOAD,
+                        loadSource = ProgramLoadSource.DIRECT_HISTORY_ESTIMATE)
+                )
+            )
+        ))
+        val resolved = BCoachV2LoadCandidateResolver.resolve(
+            mixed, request().copy(bShadowPlateOneSideKg = 1.25), emptyList(),
+            mapOf(squat.stableKey to squat), mapOf(squat.stableKey to automaticModel),
+            setOf(squat.stableKey)
+        )
+        val resolvedSets = resolved.skeleton.items.single().setPrescriptions
+        assertEquals(100.0, resolvedSets[0].weightKg, 0.0)
+        assertEquals(ProgramLoadSource.USER_FIXED, resolvedSets[0].loadSource)
+        assertNotEquals(90.0, resolvedSets[1].weightKg, 0.0)
+        assertNotEquals(87.5, resolvedSets[2].weightKg, 0.0)
+        assertTrue(resolvedSets.drop(1).all { it.loadSource == ProgramLoadSource.PERSONAL_MODEL })
+
+        val misleadingItemSource = mixed.copy(items = mixed.items.map { item ->
+            item.copy(weightSource = "USER_FIXED", setPrescriptions = item.setPrescriptions.map {
+                it.copy(weightKg = 90.0, loadSource = ProgramLoadSource.PERSONAL_MODEL)
+            })
+        })
+        val automatic = BCoachV2LoadCandidateResolver.resolve(
+            misleadingItemSource, request().copy(bShadowPlateOneSideKg = 1.25), emptyList(),
+            mapOf(squat.stableKey to squat), mapOf(squat.stableKey to automaticModel),
+            setOf(squat.stableKey)
+        )
+        assertTrue(automatic.instructionsBySetId.values.none {
+            it is BCoachV2LoadInstruction.ExactLoad && it.loadSource == ProgramLoadSource.USER_FIXED
+        })
+
+        val legacy = mixed.copy(items = mixed.items.map { item ->
+            item.copy(weightSource = "USER_FIXED", setPrescriptions = listOf(
+                ProgramSetPrescription(1, 8, 77.5, 0, 7.0, ProgramLoadState.EXPLICIT_LOAD,
+                    loadSource = ProgramLoadSource.LEGACY_UNKNOWN)
+            ), setCount = 1)
+        })
+        assertEquals(77.5, BCoachV2LoadCandidateResolver.resolve(
+            legacy, request(), emptyList(), mapOf(squat.stableKey to squat)
+        ).skeleton.items.single().setPrescriptions.single().weightKg, 0.0)
+
+        val fixedLast = mixed.copy(items = mixed.items.map { item ->
+            item.copy(setPrescriptions = item.setPrescriptions.mapIndexed { index, set ->
+                if (index == 2) set.copy(weightKg = 100.0, loadSource = ProgramLoadSource.USER_FIXED) else set
+            })
+        })
+        val added = BCoachV2GlobalSelector.mutateSets(fixedLast, squat.stableKey, +1)
+        val newSet = added.items.single().setPrescriptions.last()
+        assertEquals(0.0, newSet.weightKg, 0.0)
+        assertEquals(ProgramLoadState.USER_CALIBRATION_REQUIRED, newSet.loadState)
+        assertEquals(ProgramLoadSource.CALIBRATION_REQUIRED, newSet.loadSource)
+        assertNull(newSet.freshRir)
+        assertEquals(3, BCoachV2GlobalSelector.mutateSets(fixedLast, squat.stableKey, -1)
+            .items.single().setCount)
+
+        val fixedEight = mixed.copy(items = mixed.items.map { item ->
+            item.copy(setCount = 1, setPrescriptions = listOf(item.setPrescriptions.first()))
+        })
+        val eight = BCoachV2LoadCandidateResolver.resolve(
+            fixedEight, request(), listOf(history().single().copy(reps = 1.0, weightKg = 180.0, rpe = null)),
+            mapOf(squat.stableKey to squat)
+        ).skeleton.items.single().setPrescriptions.single()
+        val nine = BCoachV2LoadCandidateResolver.resolve(
+            BCoachV2GlobalSelector.mutateReps(fixedEight, squat.stableKey, +1), request(),
+            listOf(history().single().copy(reps = 1.0, weightKg = 180.0, rpe = null)),
+            mapOf(squat.stableKey to squat)
+        ).skeleton.items.single().setPrescriptions.single()
+        assertEquals(100.0, nine.weightKg, 0.0)
+        assertNotEquals(eight.expectedRir, nine.expectedRir)
+
+        val invalid = fixedEight.copy(items = fixedEight.items.map { item ->
+            item.copy(setPrescriptions = item.setPrescriptions.map {
+                it.copy(weightKg = 0.0, loadSource = ProgramLoadSource.USER_FIXED)
+            })
+        })
+        val invalidResolution = BCoachV2LoadCandidateResolver.resolve(
+            invalid, request(), emptyList(), mapOf(squat.stableKey to squat),
+            mapOf(squat.stableKey to automaticModel)
+        )
+        assertTrue(invalidResolution.instructionsBySetId.values.single() is BCoachV2LoadInstruction.Calibrate)
+        assertTrue(invalidResolution.reasonCodes.any { it.startsWith("INVALID_USER_FIXED_LOAD") })
+
+        val reviewed = prepare(
+            request = request().copy(bShadowPlateOneSideKg = 1.25),
+            history = emptyList(),
+            baseline = mixed,
+            candidate = mixed,
+            modelSnapshots = mapOf(squat.stableKey to automaticModel)
+        )
+        val accepted = requireNotNull(requireNotNull(reviewed.proposal).accept(
+            requireNotNull(reviewed.decision.proposalFingerprint), reviewed.skeleton
+        ).skeleton)
+        assertEquals(100.0, accepted.items.single().setPrescriptions.first().weightKg, 0.0)
+        assertEquals(ProgramLoadSource.USER_FIXED,
+            accepted.items.single().setPrescriptions.first().loadSource)
+    }
+
+    @Test fun `T61 v221 history and plan use one candidate independent relative intensity reference`() {
+        val asOf = LocalDate.of(2026, 11, 15)
+        val model = modelSnapshot().copy(capacityLow = 100.0, capacityBase = 100.0, capacityHigh = 100.0)
+        val rows = listOf(
+            history().single().copy(date = LocalDate.of(2026, 10, 13), reps = 5.0, weightKg = 60.0, rpe = null),
+            history().single().copy(date = LocalDate.of(2026, 10, 20), reps = 5.0, weightKg = 60.0, rpe = null)
+        )
+        val reference = BCoachV2LoadCandidateResolver.referenceCapacityByStableKey(
+            request().copy(asOf = asOf), rows, mapOf(squat.stableKey to model)
+        )
+        assertEquals(100.0, reference.getValue(squat.stableKey), 0.0)
+        val plan = skeleton(1, reps = 5, weightKg = 60.0)
+        val setId = BCoachV2LoadCandidateResolver.setId(plan.items.single().localId, 1)
+        val evaluation = BCoachV2DoseEvaluator.evaluate(
+            plan = plan,
+            baseline = plan,
+            request = request().copy(asOf = asOf),
+            history = rows,
+            exercises = mapOf(squat.stableKey to squat),
+            muscleRelations = emptyList(),
+            coreCatalog = CanonicalCoreCatalog.EMPTY,
+            badmintonCatalog = CanonicalBadmintonObjectiveCatalog.EMPTY,
+            mainExerciseKeys = setOf(squat.stableKey),
+            goalWeights = BCoachV2GlobalSelector.effectiveGoalWeights(
+                BBalancedGoalImportance(strength = 3), true, emptyMap()),
+            baseIntensityBySetId = mapOf(setId to 0.60),
+            referenceCapacityByStableKey = reference
+        )
+        val relativeCredit = 2.0 / 3.0
+        assertEquals(relativeCredit, dose(evaluation, "STRENGTH:${squat.stableKey}"), 1e-12)
+        assertEquals(4.0 + 0.25 * (relativeCredit - 4.0),
+            requireNotNull(evaluation.needEnvelopes.first {
+                it.taskId == "STRENGTH:${squat.stableKey}"
+            }.center), 1e-12)
+        assertTrue(evaluation.reasonCodes.any { it == "HISTORY_RPE_UNAVAILABLE:${squat.stableKey}" })
+        assertTrue(evaluation.reasonCodes.none { it.startsWith("HISTORY_RELATIVE_INTENSITY_UNAVAILABLE") })
+
+        val neutral = BCoachV2DoseEvaluator.evaluate(
+            plan = plan, baseline = plan, request = request().copy(asOf = asOf), history = rows,
+            exercises = mapOf(squat.stableKey to squat), muscleRelations = emptyList(),
+            coreCatalog = CanonicalCoreCatalog.EMPTY,
+            badmintonCatalog = CanonicalBadmintonObjectiveCatalog.EMPTY,
+            mainExerciseKeys = setOf(squat.stableKey),
+            goalWeights = BCoachV2GlobalSelector.effectiveGoalWeights(
+                BBalancedGoalImportance(strength = 3), true, emptyMap())
+        )
+        assertEquals(3.25, requireNotNull(neutral.needEnvelopes.first {
+            it.taskId == "STRENGTH:${squat.stableKey}"
+        }.center), 1e-12)
+        assertTrue(neutral.reasonCodes.any {
+            it == "HISTORY_RELATIVE_INTENSITY_UNAVAILABLE:${squat.stableKey}"
+        })
+
+        val highestValid = BCoachV2LoadCandidateResolver.referenceCapacityByStableKey(
+            request().copy(asOf = asOf),
+            rows + history().single().copy(date = asOf.minusDays(1), reps = 1.0, weightKg = 180.0, rpe = null) +
+                history().single().copy(date = asOf.plusDays(1), reps = 1.0, weightKg = 250.0, rpe = null),
+            mapOf(squat.stableKey to model)
+        )
+        assertEquals(180.0, highestValid.getValue(squat.stableKey), 0.0)
+        `T51 lower body history personalizes quads but leaves chest Need at default`()
+    }
+
     @Test fun `accepted proposal still rejects stale evidence and structural edits`() {
         val outcome = prepare()
         val accepted = requireNotNull(requireNotNull(outcome.proposal).accept(
@@ -858,6 +1031,37 @@ class BCoachMultiobjectiveProductionTest {
                 edited, history(), mapOf(squat.stableKey to squat),
                 BCoachMultiobjectiveProduction.linkedEvidenceFingerprint(request()))
         }.message)
+    }
+
+    @Test fun `accepted v2 point two proposal remains valid after repair version bump`() {
+        val outcome = prepare()
+        val accepted = requireNotNull(requireNotNull(outcome.proposal).accept(
+            requireNotNull(outcome.decision.proposalFingerprint), outcome.skeleton).skeleton)
+        val root = JSONObject(requireNotNull(accepted.planningMetadataJson))
+        val decision = root.getJSONObject("bCoachMultiobjectiveDecision")
+        val legacyEngine = "B_COACH_V2_2_GLOBAL_OPT"
+        val legacyPolicy = "B_COACH_V2_2_POLICY_2026_11_15"
+        val legacyOwner = "B_COACH_V2_2_GLOBAL_OPT"
+        decision.put("engineVersion", legacyEngine)
+            .put("policyVersion", legacyPolicy)
+            .put("sourceOwner", legacyOwner)
+            .put("proposalFingerprint", BCoachMultiobjectiveProduction.proposalFingerprint(
+                baselineFingerprint = decision.getString("baselineFingerprint"),
+                candidateFingerprint = decision.getString("candidateFingerprint"),
+                inputFingerprint = decision.getString("inputFingerprint"),
+                historyFingerprint = decision.getString("historyFingerprint"),
+                exerciseFingerprint = decision.getString("exerciseFingerprint"),
+                linkedEvidenceFingerprint = decision.getString("linkedEvidenceFingerprint"),
+                engineVersion = legacyEngine,
+                policyVersion = legacyPolicy,
+                sourceOwner = legacyOwner
+            ))
+        val legacyAccepted = accepted.copy(planningMetadataJson = root.toString())
+
+        BCoachMultiobjectiveProduction.validateAcceptedForPersistence(
+            legacyAccepted, history(), mapOf(squat.stableKey to squat),
+            BCoachMultiobjectiveProduction.linkedEvidenceFingerprint(request())
+        )
     }
 
     private fun prepare(

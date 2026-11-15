@@ -6,6 +6,8 @@ import com.training.trackplanner.analysis.strengthperformance.RpeRirPolicy
 import com.training.trackplanner.data.CanonicalMetadataRelation
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.GeneratedProgramSkeleton
+import com.training.trackplanner.data.ProgramLoadSource
+import com.training.trackplanner.data.ProgramLoadState
 import com.training.trackplanner.data.ProgramSetPrescriptionResolver
 import com.training.trackplanner.data.ProgramSkeletonItem
 import java.security.MessageDigest
@@ -75,10 +77,14 @@ internal object BCoachV2GlobalSelector {
         val inputFingerprint = BCoachMultiobjectiveProduction.inputFingerprint(
             request, historyAtCutoff, badmintonAtCutoff
         )
+        val referenceCapacityByStableKey = BCoachV2LoadCandidateResolver.referenceCapacityByStableKey(
+            request, historyAtCutoff, modelSnapshots, rirPolicy
+        )
         val loadEvidenceFingerprint = sha256(modelSnapshots.toSortedMap().entries.joinToString("|") {
             (key, model) -> "$key:${model.sourceVersion}:${model.evidenceIds.sorted()}:${model.stale}"
         } + "|rirPolicy=${rirPolicy?.version ?: "NONE"}|badminton=" +
-            BCoachMultiobjectiveProduction.historyFingerprint(emptyList(), badmintonAtCutoff))
+            BCoachMultiobjectiveProduction.historyFingerprint(emptyList(), badmintonAtCutoff) +
+            "|referenceCapacity=" + referenceCapacityByStableKey.toSortedMap())
         val baselineLoad = BCoachV2LoadCandidateResolver.resolve(
             baseline, request, historyAtCutoff, exercises, modelSnapshots, mainExerciseKeys, rirPolicy
         )
@@ -113,7 +119,8 @@ internal object BCoachV2GlobalSelector {
                     rirByScenarioAndSet = loadData.rirByScenarioAndSet,
                     intensityByScenarioAndSet = loadData.intensityByScenarioAndSet,
                     rirPolicy = rirPolicy,
-                    badmintonHistory = badmintonAtCutoff
+                    badmintonHistory = badmintonAtCutoff,
+                    referenceCapacityByStableKey = referenceCapacityByStableKey
                 )
                 ResolvedPlan(
                     skeleton = resolvedSkeleton,
@@ -401,7 +408,7 @@ internal object BCoachV2GlobalSelector {
         })
     }
 
-    private fun mutateSets(
+    internal fun mutateSets(
         plan: GeneratedProgramSkeleton,
         key: String,
         delta: Int
@@ -409,9 +416,22 @@ internal object BCoachV2GlobalSelector {
         if (item.exerciseStableKey != key || "PEAK" in item.selectionRole) return@map item
         val old = ProgramSetPrescriptionResolver.resolve(item)
         val target = (old.size + delta).coerceIn(1, BCoachV2Policy.MAX_PER_EXERCISE_SETS)
+        if (target < old.size && old.drop(target).any {
+                BCoachV2LoadCandidateResolver.isSetUserFixed(it, item.weightSource)
+            }) return@map item
         val sets = when {
             target > old.size -> old + List(target - old.size) { index ->
-                old.last().copy(setIndex = old.size + index + 1)
+                old.last().copy(
+                    setIndex = old.size + index + 1,
+                    weightKg = 0.0,
+                    loadState = ProgramLoadState.USER_CALIBRATION_REQUIRED,
+                    estimatedLoadKg = null,
+                    loadSource = ProgramLoadSource.CALIBRATION_REQUIRED,
+                    freshRir = null,
+                    expectedRir = null,
+                    relativeIntensity = null,
+                    evidenceVersion = null
+                )
             }
             else -> old.take(target).mapIndexed { index, set -> set.copy(setIndex = index + 1) }
         }
@@ -424,7 +444,7 @@ internal object BCoachV2GlobalSelector {
         )
     })
 
-    private fun mutateReps(
+    internal fun mutateReps(
         plan: GeneratedProgramSkeleton,
         key: String,
         delta: Int
