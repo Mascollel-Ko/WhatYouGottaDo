@@ -4,6 +4,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.heightIn
 
 import android.widget.Toast
@@ -15,6 +16,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -29,6 +33,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.DisposableEffect
@@ -116,6 +121,9 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.training.trackplanner.data.ProgramLoadState
 import com.training.trackplanner.data.personalized.*
 
 internal fun personalizedQuestionShortLabel(question: PersonalizedPlanningQuestion): String = when (question.id) {
@@ -133,6 +141,7 @@ internal fun personalizedQuestionShortLabel(question: PersonalizedPlanningQuesti
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun BCoachProductionReviewDialog(
     changes: List<String>,
@@ -140,92 +149,186 @@ internal fun BCoachProductionReviewDialog(
     unreliableExerciseCount: Int,
     alternatives: List<BCoachPlanAlternative> = emptyList(),
     selectedCandidateId: String? = alternatives.firstOrNull { it.recommended }?.candidateId,
+    candidateForReview: (String) -> GeneratedProgramSkeleton? = { null },
     onSelectCandidate: (String) -> Unit = {},
     onApply: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    AlertDialog(
+    val selectedAlternative = alternatives.firstOrNull { it.candidateId == selectedCandidateId }
+    val selectedPlan = selectedCandidateId?.let(candidateForReview)
+    val weeks = selectedPlan?.items.orEmpty().map(ProgramSkeletonItem::weekNumber).distinct().sorted()
+    var selectedWeek by remember(selectedCandidateId, weeks) { mutableStateOf(weeks.firstOrNull()) }
+    val days = selectedPlan?.items.orEmpty().filter { it.weekNumber == selectedWeek }
+        .map(ProgramSkeletonItem::dayOfWeek).distinct().sorted()
+    var selectedDay by remember(selectedCandidateId, selectedWeek, days) { mutableStateOf(days.firstOrNull()) }
+    var showDiagnostics by remember(selectedCandidateId) { mutableStateOf(false) }
+    fun changeText(code: String): String {
+        val fields = code.substringAfter(':', "").split(':')
+        val slot = fields.firstOrNull()?.split('/').orEmpty()
+        val location = slot.takeIf { it.size >= 2 }?.let { "${it[0]}주 ${it[1]}요일" }.orEmpty()
+        val key = fields.getOrNull(1)
+        val exerciseName = selectedPlan?.items?.firstOrNull { it.exerciseStableKey == key }?.exerciseName
+        val exercise = exerciseName ?: "운동"
+        return when {
+            code.startsWith("ADD:") || code.startsWith("INSERT:") -> "$location · $exercise 추가"
+            code.startsWith("REMOVE:") || code.startsWith("REMOVE_EXERCISE:") -> "$location · 기존 운동 제외"
+            code.startsWith("PRESCRIPTION:") -> "$location · $exercise 세트·반복 조정"
+            code.startsWith("ADD_SET:") -> "$location · $exercise 세트 추가"
+            code.startsWith("REMOVE_SET:") -> "$location · $exercise 세트 감소"
+            code.startsWith("MOVE:") -> "$exercise 훈련 요일 조정"
+            code.startsWith("WEEKDAYS:") -> "주간 훈련 요일 조정"
+            else -> "계획 세부 조정"
+        }
+    }
+    fun loadText(set: com.training.trackplanner.data.ProgramSetPrescription): String = when {
+        set.loadState == ProgramLoadState.USER_CALIBRATION_REQUIRED && set.estimatedLoadKg != null ->
+            "약 ${"%.1f".format(set.estimatedLoadKg)}kg · 장비 단위 확인 필요"
+        set.loadState == ProgramLoadState.USER_CALIBRATION_REQUIRED -> "중량 직접 확인 필요"
+        set.loadState == ProgramLoadState.NOT_APPLICABLE -> "중량 적용 안 함"
+        else -> "${"%.1f".format(set.weightKg)}kg"
+    }
+    Dialog(
         onDismissRequest = onDismiss,
-        title = { Text("B-Coach 전체 블록 후보 검토") },
-        text = {
-            Column(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState())
-                .testTag("b_coach_review_content")) {
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
+    ) {
+        Surface(Modifier.fillMaxSize().testTag("b_coach_review_dialog")) {
+            Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(16.dp)) {
+                Text("B-Coach 전체 블록 후보 검토", style = MaterialTheme.typography.titleLarge)
+                LazyColumn(
+                    modifier = Modifier.weight(1f).fillMaxWidth().testTag("b_coach_review_content"),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                  item {
                 Text(BCoachV2Policy.DISCLAIMER)
                 Text(
                     "아래 추천안과 대안은 모든 주차의 시간·요일 제약을 통과한 실제 저장 후보입니다. " +
-                        "선택한 안은 승인 전까지 현재 초안을 바꾸지 않습니다." +
+                        "선택한 안은 승인 전까지 저장되지 않습니다." +
                         (unreliableExerciseCount.takeIf { it > 0 }
                             ?.let { " 기록 부족 운동 ${it}개가 포함됩니다." } ?: ""),
                     modifier = Modifier.padding(top = 8.dp)
                 )
-                if (alternatives.isNotEmpty()) {
+                  }
+                if (alternatives.isNotEmpty()) item {
                     Text("계획 선택", modifier = Modifier.padding(top = 12.dp))
-                    alternatives.forEach { alternative ->
+                    Column(Modifier.fillMaxWidth()) {
+                    alternatives.forEachIndexed { index, alternative ->
                         val selected = alternative.candidateId == selectedCandidateId
-                        Column(Modifier.fillMaxWidth()) {
-                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                 RadioButton(
                                     selected = selected,
                                     onClick = { onSelectCandidate(alternative.candidateId) },
                                     modifier = Modifier.testTag("b_coach_candidate_${alternative.candidateId}")
                                 )
                                 Text(
-                                    (if (alternative.recommended) "추천 · " else "대안 · ") +
-                                        "${alternative.label} · robust ${"%.3f".format(alternative.robustRegret)}"
+                                    if (alternative.recommended) "추천안 A" else "대안 ${('A'.code + index).toChar()}"
                                 )
+                        }
+                    }
+                    }
+                }
+                selectedPlan?.let { plan ->
+                    item {
+                        val weeklySets = plan.items.sumOf { ProgramSetPrescriptionResolver.resolve(it).size }
+                            .toDouble() / plan.request.durationWeeks.coerceAtLeast(1)
+                        val trainingDays = plan.weekDaySchedule.values.flatten().distinct().sorted()
+                        val restDays = (1..7).filterNot(trainingDays::contains)
+                        val estimatedMinutes = plan.items.groupBy { it.weekNumber to it.dayOfWeek }.values
+                            .map { session -> session.sumOf { item ->
+                                ProgramSetPrescriptionResolver.resolve(item).size * (item.restSeconds + 45)
+                            } / 60.0 }.average().toInt().coerceAtLeast(1)
+                        val weekStages = plan.weekPlans.groupBy { it.weekType }.entries.joinToString(" · ") {
+                            (type, rows) -> "${rows.minOf { it.weekIndex }}~${rows.maxOf { it.weekIndex }}주 $type"
+                        }
+                        Text("${plan.request.durationWeeks}주 · 주 ${plan.request.weeklyTrainingDays}일 · " +
+                            "주당 평균 ${"%.1f".format(weeklySets)}세트")
+                        Text("훈련 요일: ${trainingDays.joinToString(" · ") { "${it}요일" }}")
+                        Text("휴식 요일: ${restDays.joinToString(" · ") { "${it}요일" }}")
+                        Text("세션 목표 ${plan.request.sessionMinutes}분 · 예상 약 ${estimatedMinutes}분(세트·휴식 기준)")
+                        if (weekStages.isNotBlank()) Text("주차 단계: $weekStages")
+                    }
+                    item {
+                        Text("주차", style = MaterialTheme.typography.titleMedium)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            weeks.forEach { week ->
+                                if (week == selectedWeek) Button({ selectedWeek = week }) { Text("${week}주") }
+                                else OutlinedButton({ selectedWeek = week }) { Text("${week}주") }
                             }
-                            if (selected) {
-                                alternative.prescriptionSummary.take(6).forEach { summary ->
-                                    Text("• $summary", style = MaterialTheme.typography.bodySmall)
+                        }
+                        Text("요일", style = MaterialTheme.typography.titleMedium)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            days.forEach { day ->
+                                if (day == selectedDay) Button({ selectedDay = day }) { Text("${day}요일") }
+                                else OutlinedButton({ selectedDay = day }) { Text("${day}요일") }
+                            }
+                        }
+                    }
+                    items(
+                        plan.items.filter { it.weekNumber == selectedWeek && it.dayOfWeek == selectedDay }
+                            .sortedBy(ProgramSkeletonItem::orderIndex),
+                        key = ProgramSkeletonItem::localId
+                    ) { exercise ->
+                        Card(Modifier.fillMaxWidth().testTag("b_coach_review_exercise_${exercise.localId}")) {
+                            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(exercise.exerciseName, fontWeight = FontWeight.Bold)
+                                ProgramSetPrescriptionResolver.resolve(exercise).forEach { set ->
+                                    val effort = set.expectedRir?.let { "예상 RIR ${"%.1f".format(it)}" }
+                                        ?: set.targetRpeMin?.let { "목표 RPE ${"%.1f".format(it)}" }
+                                        ?: "RIR/RPE 확인 필요"
+                                    val volume = if (set.seconds > 0) "${set.seconds}초" else "${set.reps}회"
+                                    Text("${set.setIndex}세트 · $volume · ${loadText(set)} · $effort · 휴식 ${exercise.restSeconds}초",
+                                        style = MaterialTheme.typography.bodySmall)
                                 }
-                                if (alternative.prescriptionSummary.size > 6) {
-                                    Text(
-                                        "• 외 ${alternative.prescriptionSummary.size - 6}개",
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
-                                }
-                                Text(
-                                    alternative.axisScores.entries.joinToString(" · ") {
-                                        "${it.key.name}=${"%.2f".format(it.value)}"
-                                    },
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                                Text(
-                                    alternative.scenarioLosses.entries.joinToString(" · ") {
-                                        "${it.key}=${"%.3f".format(it.value)}"
-                                    },
-                                    style = MaterialTheme.typography.bodySmall
-                                )
                             }
                         }
                     }
                 }
-                if (changes.isNotEmpty()) {
+                val displayedChanges = selectedAlternative?.changeSummary?.ifEmpty { changes } ?: changes
+                if (displayedChanges.isNotEmpty()) item {
                     Text("변경 내용", modifier = Modifier.padding(top = 12.dp))
-                    changes.take(8).forEach { change -> Text("• $change") }
-                    if (changes.size > 8) Text("• 외 ${changes.size - 8}개")
+                    displayedChanges.forEach { change -> Text("• ${changeText(change)}") }
                 }
-                if (unresolvedCodes.isNotEmpty()) {
-                    Text("자동 판단에서 제외된 항목", modifier = Modifier.padding(top = 12.dp))
-                    unresolvedCodes.distinct().take(6).forEach { code -> Text("• $code") }
+                if (unresolvedCodes.isNotEmpty()) item {
+                    Text("주의사항", modifier = Modifier.padding(top = 12.dp))
+                    Text("• 자동 판단이 필요한 항목 ${unresolvedCodes.distinct().size}개를 보수적으로 처리했습니다.")
                 }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = onApply,
-                enabled = alternatives.isEmpty() || selectedCandidateId != null,
-                modifier = Modifier.testTag("b_coach_review_apply")
-            ) {
-                Text("후보 적용")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss, modifier = Modifier.testTag("b_coach_review_keep")) {
-                Text("유지안 사용")
+                selectedAlternative?.let { alternative ->
+                    item {
+                        TextButton({ showDiagnostics = !showDiagnostics },
+                            modifier = Modifier.testTag("b_coach_review_diagnostics")) {
+                            Text(if (showDiagnostics) "고급 진단 접기" else "고급 진단 펼치기")
+                        }
+                        if (showDiagnostics) {
+                            Text("후보 ID ${alternative.candidateId}", style = MaterialTheme.typography.bodySmall)
+                            Text("robust regret ${"%.3f".format(alternative.robustRegret)} · Pareto ${alternative.paretoFrontier}",
+                                style = MaterialTheme.typography.bodySmall)
+                            Text(alternative.axisScores.entries.joinToString(" · ") {
+                                "${it.key.name}=${"%.2f".format(it.value)}"
+                            }, style = MaterialTheme.typography.bodySmall)
+                            Text(alternative.scenarioLosses.entries.joinToString(" · ") {
+                                "${it.key}=${"%.3f".format(it.value)}"
+                            }, style = MaterialTheme.typography.bodySmall)
+                            if (unresolvedCodes.isNotEmpty()) Text(
+                                "unresolved=${unresolvedCodes.distinct().joinToString(",")}",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
+                }
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onDismiss, Modifier.fillMaxWidth().testTag("b_coach_review_keep")) {
+                        Text("검토 취소 · 이전 초안 유지")
+                    }
+                    Button(onApply, Modifier.fillMaxWidth().testTag("b_coach_review_apply"),
+                        enabled = alternatives.isEmpty() || selectedCandidateId != null) {
+                        Text("선택 후보 적용")
+                    }
+                }
             }
         }
-    )
+    }
 }
 
 @Composable
@@ -646,6 +749,10 @@ private fun ProgramEditorScreen(
     var bHypertrophyImportance by rememberSaveable(program?.id ?: 0L) { mutableStateOf(0) }
     var bCoreImportance by rememberSaveable(program?.id ?: 0L) { mutableStateOf(0) }
     var bSportImportance by rememberSaveable(program?.id ?: 0L) { mutableStateOf(0) }
+    var bFreeWeightsAvailable by rememberSaveable(program?.id ?: 0L) { mutableStateOf(true) }
+    var bMachinesAvailable by rememberSaveable(program?.id ?: 0L) { mutableStateOf(true) }
+    var bCourtShuttleAvailable by rememberSaveable(program?.id ?: 0L) { mutableStateOf(false) }
+    var bMarkersAvailable by rememberSaveable(program?.id ?: 0L) { mutableStateOf(false) }
     var bBlockPattern by rememberSaveable(program?.id ?: 0L) { mutableStateOf(BVolumePattern.STEADY) }
     var bAdvancedOptions by rememberSaveable(program?.id ?: 0L) { mutableStateOf(false) }
     var bBasicAdvancedBlock by remember { mutableStateOf(BBlockDefinition()) }
@@ -672,6 +779,9 @@ private fun ProgramEditorScreen(
     }
     var pendingBProductionProposal by remember(program?.id) {
         mutableStateOf<BCoachMultiobjectiveProposal?>(null)
+    }
+    var pendingBPreviousDraft by remember(program?.id, draftId) {
+        mutableStateOf<GeneratedProgramSkeleton?>(null)
     }
     var pendingBSelectedCandidateId by remember(program?.id) { mutableStateOf<String?>(null) }
     var pendingLoadOverwrite by remember(program?.id) {
@@ -751,8 +861,10 @@ private fun ProgramEditorScreen(
     LaunchedEffect(exercises, runtimeMetadataByExerciseId) {
         progressionContext = viewModel.progressionDraftContext()
     }
-    LaunchedEffect(personalizedDraft, progressionContext) {
-        progressionContext?.let { context -> personalizedDraft = personalizedDraft?.reconcileProgression(context.eligibleKeys, context.oneRmSnapshots) }
+    LaunchedEffect(personalizedDraft, progressionContext, pendingBProductionProposal) {
+        if (pendingBProductionProposal == null) progressionContext?.let { context ->
+            personalizedDraft = personalizedDraft?.reconcileProgression(context.eligibleKeys, context.oneRmSnapshots)
+        }
     }
     fun normalizedProgramName(): String = nameText.trim()
 
@@ -791,6 +903,7 @@ private fun ProgramEditorScreen(
         otherExerciseShadowCoverage = emptyList()
         pendingBProductionProposal = null
         pendingBSelectedCandidateId = null
+        pendingBPreviousDraft = null
         personalizedDraft = emptyProgramSkeleton(
             request = blankProgramRequest(),
             weekDaySchedule = defaultProgramWeekDaySchedule(4, 3)
@@ -805,6 +918,7 @@ private fun ProgramEditorScreen(
         otherExerciseShadowCoverage = emptyList()
         pendingConservativeBBlock = null
         pendingBReview = null
+        pendingBPreviousDraft = personalizedDraft
         pendingBProductionProposal = null
         pendingBSelectedCandidateId = null
         val blockLayout = if (bCustomizeBlocks) BBlockProgramDefinition(bBlocks, bRecoveryBetween)
@@ -822,6 +936,18 @@ private fun ProgramEditorScreen(
                     core = bCoreImportance.takeIf { it > 0 },
                     sportSupport = bSportImportance.takeIf { it > 0 }
                 ),
+                availableEquipment = buildSet {
+                    addAll(listOf("BODYWEIGHT", "맨몸"))
+                    if (bFreeWeightsAvailable) addAll(listOf(
+                        "BARBELL", "바벨", "플레이트", "랙", "벤치",
+                        "DUMBBELL", "덤벨", "KETTLEBELL", "케틀벨"
+                    ))
+                    if (bMachinesAvailable) addAll(listOf(
+                        "MACHINE", "머신", "케이블", "케이블 머신", "PULL-UP BAR", "철봉"
+                    ))
+                    if (bCourtShuttleAvailable) addAll(listOf("셔틀콕", "코트"))
+                    if (bMarkersAvailable) addAll(listOf("콘", "마커", "콘/마커"))
+                },
                 blockProgram = blockLayout,
                 sourceProgramStableKey = program?.stableKey,
                 shadowPlateOneSideKg = smallestPlateText.toDoubleOrNull(),
@@ -845,6 +971,7 @@ private fun ProgramEditorScreen(
                 pendingBReview = null
                 pendingBProductionProposal = null
                 pendingBSelectedCandidateId = null
+                pendingBPreviousDraft = null
             } else if (productionProposal != null) {
                 // Persisted/draft state remains the safe fallback until this exact
                 // candidate fingerprint is accepted against the unchanged fallback.
@@ -857,9 +984,11 @@ private fun ProgramEditorScreen(
                 // Review is exercise-scoped: even partly missing records need user approval.
                 pendingBReview = review
                 pendingConservativeBBlock = proposed
+                pendingBPreviousDraft = null
             } else {
                 personalizedDraft = proposed
                 v22SkeletonCreated = true
+                pendingBPreviousDraft = null
             }
         }
     }
@@ -873,11 +1002,14 @@ private fun ProgramEditorScreen(
             unreliableExerciseCount = pendingBReview?.unreliableExerciseKeys?.size ?: 0,
             alternatives = decision.alternatives,
             selectedCandidateId = pendingBSelectedCandidateId,
+            candidateForReview = proposal::candidateForReview,
             onSelectCandidate = { pendingBSelectedCandidateId = it },
             onDismiss = {
+                personalizedDraft = pendingBPreviousDraft
                 pendingBProductionProposal = null
                 pendingBSelectedCandidateId = null
                 pendingBReview = null
+                pendingBPreviousDraft = null
             },
             onApply = {
                 val current = personalizedDraft
@@ -893,10 +1025,18 @@ private fun ProgramEditorScreen(
                     pendingBProductionProposal = null
                     pendingBSelectedCandidateId = null
                     pendingBReview = null
+                    pendingBPreviousDraft = null
                 } else {
+                    val reasonText = when (acceptance?.reason) {
+                        "PROPOSAL_FINGERPRINT_MISMATCH" -> "검토 중인 제안 식별값이 달라졌습니다. 다시 생성해 주세요."
+                        "STALE_INPUT_REGENERATE_REQUIRED" -> "검토하는 동안 초안의 처방이 변경되었습니다. 다시 생성해 주세요."
+                        "UNKNOWN_CANDIDATE" -> "선택한 후보를 찾을 수 없습니다. 다른 후보를 선택하거나 다시 생성해 주세요."
+                        "PROPOSAL_CONTENT_MISMATCH" -> "후보 내용 검증에 실패했습니다. 다시 생성해 주세요."
+                        else -> "후보를 적용하지 못했습니다. 다시 생성해 주세요."
+                    }
                     Toast.makeText(
                         context,
-                        "후보가 오래되었거나 초안이 변경되었습니다. 다시 생성해 주세요.",
+                        reasonText,
                         Toast.LENGTH_LONG
                     ).show()
                 }
@@ -1266,6 +1406,52 @@ private fun ProgramEditorScreen(
                                 options = (0..5).toList(),
                                 optionLabel = { if (it == 0) "기록 추천" else "$it / 5" },
                                 onSelect = { bSportImportance = it },
+                                enabled = !generationRunning
+                            )
+                        }
+                        Text("사용 가능한 운동 장비", style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            "선택하지 않은 장비가 필요한 새 운동은 후보에서 제외됩니다. 맨몸 운동은 항상 사용할 수 있습니다.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        ProgramOptionRow {
+                            ProgramDropdown(
+                                modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                                label = "프리웨이트",
+                                selected = bFreeWeightsAvailable,
+                                options = listOf(true, false),
+                                optionLabel = { if (it) "바벨·덤벨 있음" else "없음" },
+                                onSelect = { bFreeWeightsAvailable = it },
+                                enabled = !generationRunning
+                            )
+                            ProgramDropdown(
+                                modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                                label = "머신·케이블",
+                                selected = bMachinesAvailable,
+                                options = listOf(true, false),
+                                optionLabel = { if (it) "사용 가능" else "없음" },
+                                onSelect = { bMachinesAvailable = it },
+                                enabled = !generationRunning
+                            )
+                        }
+                        ProgramOptionRow {
+                            ProgramDropdown(
+                                modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                                label = "배드민턴 코트·셔틀콕",
+                                selected = bCourtShuttleAvailable,
+                                options = listOf(true, false),
+                                optionLabel = { if (it) "사용 가능" else "없음" },
+                                onSelect = { bCourtShuttleAvailable = it },
+                                enabled = !generationRunning
+                            )
+                            ProgramDropdown(
+                                modifier = Modifier.weight(1f).widthIn(min = 180.dp),
+                                label = "콘·마커",
+                                selected = bMarkersAvailable,
+                                options = listOf(true, false),
+                                optionLabel = { if (it) "사용 가능" else "없음" },
+                                onSelect = { bMarkersAvailable = it },
                                 enabled = !generationRunning
                             )
                         }

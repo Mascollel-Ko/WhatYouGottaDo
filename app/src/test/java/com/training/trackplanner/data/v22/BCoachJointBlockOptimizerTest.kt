@@ -1,6 +1,9 @@
 package com.training.trackplanner.data.v22
 
 import com.training.trackplanner.analysis.badminton.CanonicalBadmintonObjectiveCatalog
+import com.training.trackplanner.analysis.badminton.CanonicalBadmintonObjectiveRelation
+import com.training.trackplanner.analysis.badminton.BadmintonObjective
+import com.training.trackplanner.analysis.badminton.BadmintonObjectiveTransferLevel
 import com.training.trackplanner.analysis.core.CanonicalCoreCatalog
 import com.training.trackplanner.data.CanonicalMetadataRelation
 import com.training.trackplanner.data.CanonicalRelationDomain
@@ -66,28 +69,33 @@ class BCoachJointBlockOptimizerTest {
     private fun request(
         fixed: Set<Int>? = null,
         allowed: Set<Int>? = null,
-        minutes: Int = 60
+        minutes: Int = 60,
+        sportImportance: Int = 1,
+        availableEquipment: Set<String>? = null
     ): V22GenerationRequest = newBBalancedGenerationRequest(
         name = "coach test", days = 4, asOf = today,
         sessionMinutes = minutes, allowFourthDay = false,
-        importance = BBalancedGoalImportance(1, 5, 1, 1),
+        importance = BBalancedGoalImportance(1, 5, 1, sportImportance),
         blockProgram = BBlockProgramDefinition(),
-        allowedWeekdays = allowed, fixedWeekdays = fixed
+        allowedWeekdays = allowed, fixedWeekdays = fixed,
+        availableEquipment = availableEquipment
     )
 
     private fun optimize(
         sessions: List<V22Session> = base,
-        request: V22GenerationRequest = request()
+        request: V22GenerationRequest = request(),
+        exercises: Map<String, Exercise> = exerciseMap,
+        badmintonCatalog: CanonicalBadmintonObjectiveCatalog = CanonicalBadmintonObjectiveCatalog.EMPTY
     ) = BCoachJointBlockOptimizer.optimize(
         baseline = sessions,
         block = BBlockDefinition(weeks = 4, goal = BBlockGoal.BALANCED),
         focus = BBalancedGoal.HYPERTROPHY,
         request = request,
         history = emptyList(),
-        exercises = exerciseMap,
+        exercises = exercises,
         muscleRelations = relations,
         coreCatalog = CanonicalCoreCatalog.EMPTY,
-        badmintonCatalog = CanonicalBadmintonObjectiveCatalog.EMPTY,
+        badmintonCatalog = badmintonCatalog,
         capabilityKeys = mainKeys.toSet()
     )
 
@@ -98,11 +106,18 @@ class BCoachJointBlockOptimizerTest {
         assertEquals(4, result.sessions.size)
         assertEquals(4, result.sessions.map(V22Session::session).distinct().size)
         assertFalse(result.sessions.map(V22Session::session) == listOf(1, 2, 3, 4))
+        val selectedDays = result.sessions.map(V22Session::session).toSet()
+        assertTrue(selectedDays.none { start ->
+            start % 7 + 1 in selectedDays && (start + 1) % 7 + 1 in selectedDays
+        })
         mainKeys.forEach { key ->
             assertEquals(1, result.sessions.flatMap(V22Session::items)
                 .count { it.stableKey == key })
         }
         assertTrue(result.finalScore >= result.originalScore)
+        assertTrue(result.sessions.flatMap(V22Session::items).all { item ->
+            item.setCount >= if (item.stableKey in mainKeys) 3 else 2
+        })
     }
 
     @Test
@@ -112,6 +127,57 @@ class BCoachJointBlockOptimizerTest {
         assertEquals(expected, result.sessions.map(V22Session::session).toSet())
         assertTrue(result.sessions.all { it.items.isNotEmpty() })
         assertTrue(result.alternatives.all { it.peakMinutes <= 60.0 })
+    }
+
+    @Test
+    fun `fixed consecutive days are respected only when explicitly forced`() {
+        val forced = setOf(1, 2, 3, 4)
+        val result = optimize(request = request(fixed = forced))
+        assertEquals(forced, result.sessions.map(V22Session::session).toSet())
+    }
+
+    @Test
+    fun `reviewed badminton drills use real equipment and sport importance`() {
+        val drills = listOf(
+            "footwork_drill" to BadmintonObjective.FOOTWORK,
+            "reaction_drill" to BadmintonObjective.REACTION,
+            "landing_drill" to BadmintonObjective.JUMP_LANDING
+        )
+        val catalog = CanonicalBadmintonObjectiveCatalog.of(drills.mapIndexed { index, (key, objective) ->
+            CanonicalBadmintonObjectiveRelation(
+                "r$index", key, objective, BadmintonObjectiveTransferLevel.DIRECT,
+                "TEST", setOf("e$index"), "test"
+            )
+        })
+        val exercises = exerciseMap + drills.associate { (key, _) ->
+            key to exercise(key).copy(
+                category = "배드민턴 드릴", equipment = "셔틀콕/코트",
+                progressMetricType = "TIME_OR_DISTANCE"
+            )
+        }
+        val unavailable = optimize(
+            request = request(sportImportance = 5, availableEquipment = setOf("BODYWEIGHT")),
+            exercises = exercises, badmintonCatalog = catalog
+        )
+        assertTrue(unavailable.candidateDiagnostics.count { "EQUIPMENT_UNAVAILABLE" in it } == 3)
+        assertTrue(unavailable.sessions.flatMap(V22Session::items).none {
+            item -> item.stableKey in drills.map { it.first }
+        })
+
+        val low = optimize(
+            request = request(sportImportance = 1, availableEquipment = setOf("셔틀콕", "코트")),
+            exercises = exercises, badmintonCatalog = catalog
+        )
+        val high = optimize(
+            request = request(sportImportance = 5, availableEquipment = setOf("셔틀콕", "코트")),
+            exercises = exercises, badmintonCatalog = catalog
+        )
+        fun selectedDrills(result: BCoachJointBlockOptimizer.Result) = result.sessions
+            .flatMap(V22Session::items).count { item -> drills.any { it.first == item.stableKey } }
+        assertTrue(high.candidateDiagnostics.none { "EQUIPMENT_UNKNOWN" in it || "EQUIPMENT_UNAVAILABLE" in it })
+        assertTrue(selectedDrills(high) > 0)
+        assertTrue(selectedDrills(high) >= selectedDrills(low))
+        assertTrue(high.finalScore != low.finalScore)
     }
 
     @Test

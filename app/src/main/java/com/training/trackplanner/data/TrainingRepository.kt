@@ -347,7 +347,8 @@ class TrainingRepository internal constructor(
             strengthPosteriorDao, workoutDao, strengthPerformanceRegistry, repetitionCurveRegistry
         ),
         v2LoadEvidenceReader = com.training.trackplanner.data.v22.BCoachV2LoadEvidenceReader(
-            strengthPosteriorDao, strengthPerformanceRegistry, repetitionCurveRegistry
+            strengthPosteriorDao, strengthPerformanceRegistry, repetitionCurveRegistry,
+            initialUserProfileDao
         ),
         rirPolicy = rpeRirPolicy,
         strengthRegistry = strengthPerformanceRegistry

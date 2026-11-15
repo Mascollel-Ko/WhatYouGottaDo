@@ -201,3 +201,59 @@ Environment: Windows, Android Studio JBR 21, Android SDK `C:/Users/pki08/AppData
 - The optimizer does not invent future bodyweight, unavailable equipment, cross-exercise capacity, or independent follow-up-set success probabilities.
 - Real-device interaction is outside the local JVM/Compose validation unless a device is connected.
 - Calendar application refreshes the recovery axis for the actual start date, but it does not rerun candidate search or Pareto/minimax selection after approval.
+
+## 2026-11-15 emergency correction: A1–A9 and generation quality
+
+Baseline: `61cfc29a23a9e2be09bc96021e8606fc6d0b391e` on `feat/b-coach-v2-global-optimizer`.
+
+### Approval and persistence fingerprint (A9)
+
+- Fingerprint schema 3 compares meaningful exercise identity, resolved weekday, order, prescription, load/source, and explicit progression intent.
+- Automatically inferred progression UUID/session state and schedule normalization are derived state and no longer create a false `STALE_INPUT_REGENERATE_REQUIRED`.
+- Explicit user grouping, link mode, role override, progression mode, or rule remains part of the semantic fingerprint.
+- Persistence replays schema 2 acceptances with the legacy fingerprint and schema 3 acceptances with the semantic fingerprint.
+- The review screen pauses automatic progression reconciliation while a proposal is pending. After acceptance, automatic reconciliation and persistence validation use the same policy.
+- Failure reasons remain distinct: `PROPOSAL_FINGERPRINT_MISMATCH`, `STALE_INPUT_REGENERATE_REQUIRED`, `UNKNOWN_CANDIDATE`, `PROPOSAL_CONTENT_MISMATCH`, and persistence stale errors.
+
+Regression T62/T63 covers unchanged recommendation and both alternatives, automatic reconciliation before approval and before save, schema compatibility, explicit progression edits, and real structural/load edits.
+
+### Load evidence and display (A1–A3, A8)
+
+- `BCoachV2LoadEvidenceReader` reads the initial profile only as a lower-confidence `PROFILE_PR_PRIOR` for exact squat/deadlift targets when no compatible usable posterior exists. A compatible posterior still wins.
+- The safe fallback is the same resolved-load plan used for approval, rather than the pre-resolution 0 kg skeleton.
+- Dismissing review restores the pre-generation editor draft. It does not silently retain an unapproved fallback.
+- `estimatedLoadKg` is visible in the preview and review UI. Manual confirmation changes the set source to `USER_FIXED`; clearing it retains the estimate and calibration-required state.
+- Mixed set loads are rendered per set instead of using the item-level 0 kg compatibility summary.
+
+The cold-start integration fixture with squat 170 kg/deadlift 210 kg and no posterior produced visible per-set estimates (for example squat `124.6/122.7/122.7 kg`) and preserved calibration-required status for exercises with no exact evidence.
+
+### SPORT universe, recruitment, and equipment (A4–A5)
+
+- SPORT task identity now comes from the whole reviewed badminton objective catalog, so absent objectives contribute zero dose and all candidates use one denominator.
+- `V22GenerationRequest.availableEquipment` is an explicit, fingerprinted input. Unknown non-bodyweight equipment fails closed.
+- Joint search has a goal-importance-sized SPORT recruitment lane in addition to general coverage ranking.
+- Audit metadata records metadata presence, DB activity, program selectability, equipment status, recruitment, shortlist, scoring, and final selection/exclusion for every DIRECT/SUPPORTIVE catalog candidate.
+- The five audited stableKeys are asserted in the generated diagnostics. Full-equipment SPORT 5 reaches scoring for all three random shuttle drills; the bodyweight fixture reports `CONE_MARKER` unavailable instead of admitting them.
+
+### Schedule, effective sets, and review UI (A6–A7)
+
+- Non-fixed schedules with a feasible alternative reject cyclic runs of three or more training days, including the Sunday-to-Monday boundary. Explicit fixed weekdays remain authoritative.
+- General main work has a three-set floor and general accessory work a two-set floor; recovery, mobility, tests, drills, and time/distance work retain a one-set exception.
+- Cold-start strength anchors are marked as main work and start at three sets. Final set mutation uses the same floors and cannot delete a user-fixed set.
+- The candidate review is a full-screen structured view backed by the exact `GeneratedProgramSkeleton` for the selected candidate. It displays recommendation A/alternatives, rest and training days, week stages, estimated time, all weeks/days/exercises/sets, per-set load and effort, and a fixed approval/cancel footer.
+- Stable keys, candidate IDs, regret, scenario loss, and unresolved codes appear only in the collapsed advanced diagnostics.
+- The Compose regression uses a 320 dp × 640 dp viewport, font scale 1.3, a long Korean exercise name, mixed confirmed/estimated sets, all 12 weeks, candidate switching, approval, cancel, scrolling, and footer bounds.
+
+### Deterministic production harness
+
+`BCoachProductionQualityHarnessTest` executes six real repository fixtures (4/12 weeks, 30/60/90 minutes, fixed/non-fixed weekdays, SPORT 1/5 and 5/5, full/bodyweight-only equipment). Every displayed candidate is approved; the recommended candidate is reconciled, stored, reopened, and applied to calendar. The complete generated table is written to `app/build/reports/b-coach/b_coach_generation_fixtures.md`.
+
+Representative output and the A1–A9 result table are in `docs/audits/b_coach_generation_quality_2026-11-15.md`.
+
+### Final local validation for this correction
+
+- Core B-Coach/v2.2.1 selection, persistence, badminton, UI, and fixture group: 100 tests, 0 failures, 2 skips.
+- Full debug unit suite with temporary Windows Robolectric worker isolation: 433 suites, 2,865 tests, 0 failures, 0 errors, 25 skips, 15m59s. The final proof run used `forkEvery=1` / `maxParallelForks=1`; the temporary lines and native crash log were removed before delivery. A preceding two-worker run completed all 2,865 tests but had one environment-only `.robolectric-download-lock` creation failure; that class then passed 6/6 standalone and in the final serialized suite.
+- `lintDebug`, `assembleDebug`, `compileReleaseKotlin`, and `compileDebugAndroidTestKotlin`: PASS in the final 4m33s incremental run. Lint contains 0 errors and 209 warnings.
+- Debug APK: `app/build/outputs/apk/debug/app-debug.apk`, 78,634,831 bytes, SHA-256 `69D5D9A2F6A1CA3CADFC258637F1E46B9A15FE01828063356F9FA8CB8C291C24`.
+- No device was returned by `adb devices -l`; connected tests and physical-device interaction were not run.

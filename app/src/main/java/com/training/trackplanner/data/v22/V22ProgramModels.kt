@@ -57,7 +57,9 @@ data class V22GenerationRequest(
     val bShadowDumbbellIncrementKg: Double? = null,
     val bShadowMachineIncrementKg: Double? = null,
     /** Explicit calendar anchor when known; otherwise B-Coach starts on the next Monday. */
-    val planningStartDate: LocalDate? = null
+    val planningStartDate: LocalDate? = null,
+    /** Null means unknown; non-bodyweight additions then fail closed. */
+    val availableEquipment: Set<String>? = null
 )
 
 /**
@@ -77,7 +79,8 @@ internal fun newBBalancedGenerationRequest(
     sourceProgramStableKey: String? = null,
     shadowPlateOneSideKg: Double? = null,
     shadowDumbbellIncrementKg: Double? = null,
-    shadowMachineIncrementKg: Double? = null
+    shadowMachineIncrementKg: Double? = null,
+    availableEquipment: Set<String>? = null
 ): V22GenerationRequest = V22GenerationRequest(
     name = name,
     weeks = blockProgram.trainingWeeks,
@@ -90,6 +93,7 @@ internal fun newBBalancedGenerationRequest(
     blockProgram = blockProgram,
     allowedWeekdays = allowedWeekdays,
     fixedWeekdays = fixedWeekdays,
+    availableEquipment = availableEquipment,
     sourceProgramStableKey = sourceProgramStableKey,
     bShadowPlateOneSideKg = shadowPlateOneSideKg,
     bShadowDumbbellIncrementKg = shadowDumbbellIncrementKg,

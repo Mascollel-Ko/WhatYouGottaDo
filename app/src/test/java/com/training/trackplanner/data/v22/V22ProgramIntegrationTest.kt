@@ -14,6 +14,9 @@ import com.training.trackplanner.data.ProgramSkeletonItem
 import com.training.trackplanner.data.ProgramSkeletonRequest
 import com.training.trackplanner.data.TrainingDatabase
 import com.training.trackplanner.data.TrainingRepository
+import com.training.trackplanner.data.InitialUserProfile
+import com.training.trackplanner.analysis.strengthperformance.StrengthPerformanceRegistry
+import com.training.trackplanner.analysis.strengthperformance.curve.RepetitionCurveRegistry
 import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutSet
 import com.training.trackplanner.skeletonFromProgram
@@ -41,6 +44,51 @@ class V22ProgramIntegrationTest {
 
     @After
     fun closeDatabases() = databases.forEach(TrainingDatabase::close)
+
+    @Test
+    fun `profile squat and deadlift PRs are lower priority load priors on the equipment grid`() = runBlocking {
+        val db = Room.inMemoryDatabaseBuilder(context, TrainingDatabase::class.java)
+            .allowMainThreadQueries().build().also(databases::add)
+        db.initialUserProfileDao().upsert(InitialUserProfile(squatKg = 170.0, deadliftKg = 210.0))
+        val registry = StrengthPerformanceRegistry.fromContext(context)
+        val reader = BCoachV2LoadEvidenceReader(
+            db.strengthPosteriorDao(), registry, RepetitionCurveRegistry.fromContext(context),
+            db.initialUserProfileDao()
+        )
+        val squatKey = registry.target(StrengthPerformanceRegistry.BACK_SQUAT)!!.anchorStableKeys.first()
+        val deadliftKey = registry.target(StrengthPerformanceRegistry.CONVENTIONAL_DEADLIFT)!!.anchorStableKeys.first()
+        val snapshots = reader.read(LocalDate.of(2026, 11, 15), emptyList(), setOf(squatKey, deadliftKey))
+
+        assertEquals("PROFILE_PR_PRIOR", snapshots.getValue(squatKey).tier)
+        assertEquals(170.0, snapshots.getValue(squatKey).capacityBase, 0.0)
+        assertEquals(210.0, snapshots.getValue(deadliftKey).capacityBase, 0.0)
+        assertTrue(snapshots.values.all { it.sourceVersion.startsWith("PROFILE_PR_PRIOR|") })
+
+        val request = ProgramSkeletonRequest(
+            "profile prior", ProgramGoal.FUNCTIONAL_CONDITIONING, 1, 60, setOf("BARBELL"),
+            "", 0.0, "AUTO", ProgramPeriodizationType.AUTO, 1
+        )
+        val plan = GeneratedProgramSkeleton(
+            "profile prior", 7, request, ProgramPeriodizationType.AUTO, emptyList(),
+            listOf(ProgramSkeletonItem(
+                "squat", 1, 1, 1, squatKey, "Squat", "Strength", 120, "test",
+                3, 5, 0.0, 0, "test", "USER_CALIBRATION_REQUIRED",
+                setPrescriptions = List(3) { index -> ProgramSetPrescription(
+                    index + 1, 5, 0.0, 0, loadState = ProgramLoadState.USER_CALIBRATION_REQUIRED
+                ) }
+            )), mapOf(1 to setOf(1))
+        )
+        val resolution = BCoachV2LoadCandidateResolver.resolve(
+            plan,
+            V22GenerationRequest("profile prior", 1, 1, V22Mode.B, LocalDate.of(2026, 11, 15),
+                bShadowPlateOneSideKg = 1.25),
+            emptyList(), mapOf(squatKey to Exercise(
+                stableKey = squatKey, name = "Squat", category = "Strength", equipment = "BARBELL"
+            )), snapshots, setOf(squatKey)
+        )
+        val estimate = requireNotNull(resolution.skeleton.items.single().setPrescriptions.first().estimatedLoadKg)
+        assertEquals(0.0, estimate % 2.5, 1e-9)
+    }
 
     @Test
     fun `generated plan saves and applies through existing program session and progression paths`() = runBlocking {

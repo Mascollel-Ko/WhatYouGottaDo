@@ -262,7 +262,12 @@ internal object BCoachV2DoseEvaluator {
             if (keys.any { context.coreCatalog.resolve(it)?.coreClass == CoreClass.DIRECT }) {
                 add("CORE:DIRECT" to BBalancedGoal.CORE)
             }
-            keys.flatMap { context.badmintonCatalog.relations(it) }.map { it.objective.name }.distinct()
+            // SPORT task identity belongs to the authority catalog, not to whichever
+            // exercises happened to survive in one candidate. Missing objectives then
+            // receive a genuine zero dose and candidates stay comparable.
+            context.badmintonCatalog.allRelations()
+                .filter { it.transferLevel.coefficient > 0.0 }
+                .map { it.objective.name }.distinct()
                 .sorted().forEach { add("SPORT:$it" to BBalancedGoal.SPORT_SUPPORT) }
         }.distinct()
         val importance = goalWeights.associate { it.goal to checkNotNull(it.explicitImportance) }
@@ -506,6 +511,13 @@ internal object BCoachV2DoseEvaluator {
                 plan.items.filter { it.weekNumber == week }.map(ProgramSkeletonItem::dayOfWeek).toSet() == fixed
             })
             BCoachConstraintStatus.PASS else BCoachConstraintStatus.FAIL))
+        if (shouldEnforceNonClusteredSchedule(request)) add(constraint(
+            "CONSECUTIVE_TRAINING_DAYS",
+            if ((1..plan.request.durationWeeks).all { week ->
+                    longestConsecutiveRun(plan.items.filter { it.weekNumber == week }
+                        .map(ProgramSkeletonItem::dayOfWeek).toSet()) < 3
+                }) BCoachConstraintStatus.PASS else BCoachConstraintStatus.FAIL
+        ))
         val allowed = request.allowedWeekdays ?: (1..7).toSet()
         add(constraint("ALLOWED_WEEKDAYS", if (plan.items.all { it.dayOfWeek in allowed })
             BCoachConstraintStatus.PASS else BCoachConstraintStatus.FAIL))
@@ -522,12 +534,39 @@ internal object BCoachV2DoseEvaluator {
                     isReviewedExercise(exercises[key])
                 }) null else "UNREVIEWED_AUTOMATIC_EXERCISE"))
         val userLockedKeys = baseline.items.filter {
-            "USER" in it.selectionReason.uppercase() || "LOCK" in it.selectionReason.uppercase()
+            isExplicitUserExerciseLock(it.selectionReason)
         }.map(ProgramSkeletonItem::exerciseStableKey).toSet()
         add(constraint("USER_EXERCISE_LOCKS", if (userLockedKeys.all { key ->
                 plan.items.any { it.exerciseStableKey == key }
             }) BCoachConstraintStatus.PASS else BCoachConstraintStatus.FAIL))
     }
+
+    internal fun isExplicitUserExerciseLock(selectionReason: String): Boolean {
+        val reason = selectionReason.trim().uppercase()
+        return reason.contains("USER_EXERCISE_LOCK") || reason.contains("USER_LOCKED") ||
+            reason.contains("LOCKED_BY_USER")
+    }
+
+    internal fun shouldEnforceNonClusteredSchedule(request: V22GenerationRequest): Boolean {
+        if (request.fixedWeekdays != null || request.days < 3) return false
+        val allowed = (request.allowedWeekdays ?: (1..7).toSet()).filter { it in 1..7 }.sorted()
+        fun combinations(source: List<Int>, count: Int): List<Set<Int>> =
+            if (count == 0) listOf(emptySet())
+            else source.flatMapIndexed { index, day ->
+                combinations(source.drop(index + 1), count - 1).map { it + day }
+            }
+        return combinations(allowed, request.days).any { longestConsecutiveRun(it) < 3 }
+    }
+
+    internal fun longestConsecutiveRun(days: Set<Int>): Int = days.maxOfOrNull { start ->
+        var count = 0
+        var day = start
+        while (count < 7 && day in days) {
+            count++
+            day = day % 7 + 1
+        }
+        count
+    } ?: 0
 
     private fun isReviewedExercise(exercise: Exercise?): Boolean {
         val confidence = exercise?.metadataConfidence?.trim()?.uppercase().orEmpty()

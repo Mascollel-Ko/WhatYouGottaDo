@@ -39,6 +39,7 @@ import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.ProgramSkeletonItem
 import com.training.trackplanner.data.ProgramSetPrescription
 import com.training.trackplanner.data.ProgramLoadState
+import com.training.trackplanner.data.ProgramLoadSource
 import com.training.trackplanner.data.ProgramSetPrescriptionResolver
 import com.training.trackplanner.data.plannedRpeLabel
 import com.training.trackplanner.data.programEffortDisplay
@@ -428,7 +429,10 @@ private fun ProgramDraftItemDialog(
                                             value.isBlank() -> ProgramLoadState.USER_CALIBRATION_REQUIRED
                                             weight == 0.0 -> ProgramLoadState.REAL_ZERO_LOAD
                                             else -> ProgramLoadState.EXPLICIT_LOAD
-                                        }
+                                        },
+                                        loadSource = if (value.isBlank()) ProgramLoadSource.CALIBRATION_REQUIRED
+                                            else ProgramLoadSource.USER_FIXED,
+                                        estimatedLoadKg = if (value.isBlank()) set.estimatedLoadKg else null
                                     ))
                                 }
                             },
@@ -444,6 +448,13 @@ private fun ProgramDraftItemDialog(
                         ) {
                             Text("삭제")
                         }
+                    }
+                    if (set.loadState == ProgramLoadState.USER_CALIBRATION_REQUIRED && set.estimatedLoadKg != null) {
+                        MaterialText(
+                            "예상 ${formatDecimal(set.estimatedLoadKg)}kg · 장비 단위 확인 필요",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
                 OutlinedButton(
@@ -502,7 +513,10 @@ private fun programSetSummaryLines(item: ProgramSkeletonItem): List<String> {
     val rest = item.restSeconds.takeIf { it > 0 }
         ?.let { stringResource(R.string.rest_seconds_suffix, it) }
         .orEmpty()
-    if (sets.map { listOf(it.reps, it.weightKg, it.seconds, it.loadState) }.distinct().size == 1) {
+    if (sets.map { listOf(
+            it.reps, it.weightKg, it.estimatedLoadKg, it.seconds, it.loadState, it.loadSource,
+            it.targetRpeMin, it.freshRir, it.expectedRir, it.relativeIntensity, it.evidenceVersion
+        ) }.distinct().size == 1) {
         return listOf(
                 "${pluralStringResource(R.plurals.set_count, sets.size, sets.size)} · " +
                 "${sets.first().displayText()}$rest${effort.commonTargetRpeMin.plannedRpeSuffix()}"
@@ -523,7 +537,10 @@ private fun ProgramSetPrescription.displayText(): String =
     buildList {
         if (reps > 0) add(pluralStringResource(R.plurals.repetition_count, reps, reps))
         when (loadState) {
-            ProgramLoadState.USER_CALIBRATION_REQUIRED -> add(stringResource(R.string.cold_start_choose_weight))
+            ProgramLoadState.USER_CALIBRATION_REQUIRED -> add(
+                estimatedLoadKg?.let { "약 ${formatDecimal(it)}kg · 장비 단위 확인 필요" }
+                    ?: stringResource(R.string.cold_start_choose_weight)
+            )
             ProgramLoadState.NOT_APPLICABLE -> Unit
             ProgramLoadState.EXPLICIT_LOAD -> if (weightKg > 0.0) add("${formatDecimal(weightKg)}kg")
             ProgramLoadState.REAL_ZERO_LOAD -> add("${formatDecimal(weightKg)}kg")

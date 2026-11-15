@@ -7,7 +7,12 @@ import com.training.trackplanner.data.CanonicalMetadataRelation
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.ProgramLoadState
+import com.training.trackplanner.data.ProgressionLinkMode
+import com.training.trackplanner.data.ProgressionMode
+import com.training.trackplanner.data.ProgressionRole
+import com.training.trackplanner.data.ProgressionRule
 import com.training.trackplanner.data.ProgramSetPrescriptionResolver
+import com.training.trackplanner.data.resolvedWeekDaySchedule
 import com.training.trackplanner.data.ProgramSkeletonItem
 import org.json.JSONArray
 import org.json.JSONObject
@@ -93,7 +98,9 @@ data class BCoachPlanAlternative(
     val robustRegret: Double = 0.0,
     val paretoFrontier: Boolean = false,
     val reasonCodes: List<String> = emptyList(),
-    val prescriptionSummary: List<String> = emptyList()
+    val prescriptionSummary: List<String> = emptyList(),
+    /** Structured review uses these codes without parsing the legacy summary text. */
+    val changeSummary: List<String> = emptyList()
 )
 
 data class BCoachMultiobjectiveDecision(
@@ -142,6 +149,10 @@ class BCoachMultiobjectiveProposal internal constructor(
     private val loadInstructionsByCandidateId: Map<String, Map<String, String>>,
     private val recommendedCandidateId: String
 ) {
+    /** Read-only structured candidate access for the explicit review UI. */
+    fun candidateForReview(candidateId: String): GeneratedProgramSkeleton? =
+        candidatesById[candidateId]
+
     internal constructor(
         decision: BCoachMultiobjectiveDecision,
         proposedSkeleton: GeneratedProgramSkeleton
@@ -269,15 +280,20 @@ internal object BCoachMultiobjectiveProduction {
     }
 
     internal fun fingerprint(skeleton: GeneratedProgramSkeleton): String =
-        canonicalSkeletonFingerprint(skeleton, includeLoad = true)
+        canonicalSkeletonFingerprint(skeleton, includeLoad = true, includeDerivedProgression = false)
 
     /** Manual kg calibration is an independent user action after accepting roster/set/rep changes. */
     internal fun persistenceStructureFingerprint(skeleton: GeneratedProgramSkeleton): String =
-        canonicalSkeletonFingerprint(skeleton, includeLoad = false)
+        canonicalSkeletonFingerprint(skeleton, includeLoad = false, includeDerivedProgression = false)
+
+    /** Compatibility for acceptances written before derived progression was excluded. */
+    private fun legacyPersistenceStructureFingerprint(skeleton: GeneratedProgramSkeleton): String =
+        canonicalSkeletonFingerprint(skeleton, includeLoad = false, includeDerivedProgression = true)
 
     private fun canonicalSkeletonFingerprint(
         skeleton: GeneratedProgramSkeleton,
-        includeLoad: Boolean
+        includeLoad: Boolean,
+        includeDerivedProgression: Boolean
     ): String = sha256(buildString {
         canonicalField(if (includeLoad) skeleton.suggestedName else "USER_PROGRAM_NAME_ALLOWED")
         canonicalField(skeleton.durationDays)
@@ -298,7 +314,9 @@ internal object BCoachMultiobjectiveProduction {
         canonicalField(request.excludedExerciseStableKeys.sorted().joinToString(","))
         canonicalField(request.preferredExerciseStableKeys.sorted().joinToString(","))
         skeleton.weekPlans.sortedBy { it.weekIndex }.forEach { canonicalField(it) }
-        skeleton.weekDaySchedule.toSortedMap().forEach { (week, days) ->
+        val normalizedSchedule = if (includeDerivedProgression) skeleton.weekDaySchedule
+            else skeleton.resolvedWeekDaySchedule()
+        normalizedSchedule.toSortedMap().forEach { (week, days) ->
             canonicalField(week)
             canonicalField(days.sorted().joinToString(","))
         }
@@ -313,6 +331,7 @@ internal object BCoachMultiobjectiveProduction {
                     secondarySlotCapabilities = item.secondarySlotCapabilities.sorted(),
                     weakSlotCapabilities = item.weakSlotCapabilities.sorted(),
                     slotCapabilityWarnings = item.slotCapabilityWarnings.sorted(),
+                    progressionBinding = if (includeDerivedProgression) item.progressionBinding else null,
                     setPrescriptions = emptyList()
                 )
                 canonicalField(normalized)
@@ -329,8 +348,32 @@ internal object BCoachMultiobjectiveProduction {
                     ))
                 }
             }
-        skeleton.progressionSessions.sortedBy { it.key }.forEach { canonicalField(it) }
+        if (includeDerivedProgression) {
+            skeleton.progressionSessions.sortedBy { it.key }.forEach { canonicalField(it) }
+        } else {
+            explicitProgressionIntents(skeleton).forEach { canonicalField(it) }
+        }
     })
+
+    /** UUIDs and AUTO inference are derived; explicit grouping/mode/rule choices are user structure. */
+    private fun explicitProgressionIntents(skeleton: GeneratedProgramSkeleton): List<String> {
+        val sessions = skeleton.progressionSessions.associateBy { it.key }
+        fun identity(item: ProgramSkeletonItem) =
+            "${item.weekNumber}/${item.dayOfWeek}/${item.orderIndex}/${item.exerciseStableKey}"
+        return skeleton.items.mapNotNull { item ->
+            val binding = item.progressionBinding ?: return@mapNotNull null
+            val session = sessions[binding.sessionKey] ?: return@mapNotNull null
+            val track = session.track
+            val explicit = binding.linkMode != ProgressionLinkMode.AUTO ||
+                track.roleOverride != ProgressionRole.AUTO || track.mode != ProgressionMode.APP ||
+                track.rule != ProgressionRule()
+            if (!explicit) return@mapNotNull null
+            val members = skeleton.items.filter { it.progressionBinding?.sessionKey == binding.sessionKey }
+                .map(::identity).sorted().joinToString(",")
+            "${identity(item)}|link=${binding.linkMode}|members=$members|role=${track.roleOverride}|" +
+                "mode=${track.mode}|rule=${track.rule}"
+        }.distinct().sorted()
+    }
 
     internal fun inputFingerprint(
         request: V22GenerationRequest,
@@ -350,6 +393,7 @@ internal object BCoachMultiobjectiveProduction {
             canonicalField(request.bMaxTrainingDays)
             canonicalField(request.allowedWeekdays?.sorted()?.joinToString(","))
             canonicalField(request.fixedWeekdays?.sorted()?.joinToString(","))
+            canonicalField(request.availableEquipment?.map(String::trim)?.sorted()?.joinToString(","))
             canonicalField(request.sourceProgramStableKey)
             canonicalField(request.linkedDuePlannedSets)
             canonicalField(request.linkedConfirmedSets)
@@ -443,7 +487,7 @@ internal object BCoachMultiobjectiveProduction {
         }.getOrNull() ?: return null
         // v1 accepted plans may already be persisted and lack a replayable snapshot.
         // Only v2+ transient acceptances are eligible for the new atomic revalidation.
-        if (decision.optInt("acceptanceSchemaVersion", 1) != 2) return null
+        if (decision.optInt("acceptanceSchemaVersion", 1) !in 2..3) return null
         if (decision.optString("proposalAcceptance") != "ACCEPTED_AFTER_EXPLICIT_USER_REVIEW") {
             return null
         }
@@ -498,7 +542,13 @@ internal object BCoachMultiobjectiveProduction {
         if (proposal != expectedProposal) {
             throw IllegalStateException("B_COACH_ACCEPTANCE_PROPOSAL_TAMPERED")
         }
-        if (persistenceStructureFingerprint(skeleton) != structure) {
+        val acceptanceSchemaVersion = decision.optInt("acceptanceSchemaVersion", 1)
+        val currentStructure = if (acceptanceSchemaVersion >= 3) {
+            persistenceStructureFingerprint(skeleton)
+        } else {
+            legacyPersistenceStructureFingerprint(skeleton)
+        }
+        if (currentStructure != structure) {
             throw IllegalStateException("B_COACH_ACCEPTANCE_STRUCTURE_STALE")
         }
         if (historyFingerprint(history, badmintonHistory) != originalHistory) {
@@ -553,7 +603,7 @@ internal object BCoachMultiobjectiveProduction {
             .put("engineVersion", decision.engineVersion)
             .put("policyVersion", decision.policyVersion)
             .put("coefficientSource", decision.coefficientSource)
-            .put("acceptanceSchemaVersion", 2)
+            .put("acceptanceSchemaVersion", 3)
             .put("sourceOwner", decision.sourceOwner)
             .put("evidenceCutoff", decision.evidenceCutoff)
             .put("status", decision.status.name)

@@ -1,6 +1,9 @@
 package com.training.trackplanner.data.v22
 
 import com.training.trackplanner.analysis.badminton.CanonicalBadmintonObjectiveCatalog
+import com.training.trackplanner.analysis.badminton.CanonicalBadmintonObjectiveRelation
+import com.training.trackplanner.analysis.badminton.BadmintonObjective
+import com.training.trackplanner.analysis.badminton.BadmintonObjectiveTransferLevel
 import com.training.trackplanner.analysis.core.CanonicalCoreCatalog
 import com.training.trackplanner.analysis.strengthperformance.RpeRirPolicy
 import com.training.trackplanner.analysis.strengthperformance.curve.CurveMatchLevel
@@ -17,10 +20,17 @@ import com.training.trackplanner.data.ProgramGoal
 import com.training.trackplanner.data.ProgramLoadState
 import com.training.trackplanner.data.ProgramLoadSource
 import com.training.trackplanner.data.ProgramPeriodizationType
+import com.training.trackplanner.data.ProgressionLinkMode
+import com.training.trackplanner.data.ProgressionMode
+import com.training.trackplanner.data.ProgressionRole
+import com.training.trackplanner.data.ProgressionRule
 import com.training.trackplanner.data.ProgramSetPrescription
 import com.training.trackplanner.data.ProgramSkeletonItem
 import com.training.trackplanner.data.ProgramSkeletonRequest
 import com.training.trackplanner.data.ProgramWeekPlan
+import com.training.trackplanner.data.reconcileProgression
+import com.training.trackplanner.data.configureProgressionSession
+import com.training.trackplanner.data.withResolvedWeekDaySchedule
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -144,6 +154,21 @@ class BCoachMultiobjectiveProductionTest {
         val accepted = requireNotNull(requireNotNull(outcome.proposal).accept(
             requireNotNull(outcome.decision.proposalFingerprint), outcome.skeleton).skeleton)
         assertTrue(accepted.items.all { "STRENGTH" in it.selectionRole })
+    }
+
+    @Test fun `T12b block marker is not confused with an explicit user lock`() {
+        assertFalse(BCoachV2DoseEvaluator.isExplicitUserExerciseLock("B12_BLOCK_1_FOCUS_CORE"))
+        assertTrue(BCoachV2DoseEvaluator.isExplicitUserExerciseLock("USER_EXERCISE_LOCKED"))
+        assertTrue(BCoachV2DoseEvaluator.isExplicitUserExerciseLock("LOCKED_BY_USER"))
+    }
+
+    @Test fun `T12c three consecutive training days are rejected only when avoidable`() {
+        val open = request().copy(days = 4, allowedWeekdays = (1..7).toSet())
+        val constrained = open.copy(allowedWeekdays = setOf(1, 2, 3, 4))
+        assertTrue(BCoachV2DoseEvaluator.shouldEnforceNonClusteredSchedule(open))
+        assertFalse(BCoachV2DoseEvaluator.shouldEnforceNonClusteredSchedule(constrained))
+        assertEquals(4, BCoachV2DoseEvaluator.longestConsecutiveRun(setOf(1, 2, 3, 4)))
+        assertEquals(3, BCoachV2DoseEvaluator.longestConsecutiveRun(setOf(7, 1, 2)))
     }
 
     @Test fun `T13 Tier A is restricted to the four exact stable keys`() {
@@ -1031,6 +1056,80 @@ class BCoachMultiobjectiveProductionTest {
                 edited, history(), mapOf(squat.stableKey to squat),
                 BCoachMultiobjectiveProduction.linkedEvidenceFingerprint(request()))
         }.message)
+    }
+
+    @Test fun `T62 derived schedule and progression do not invalidate an otherwise unchanged proposal`() {
+        val outcome = prepare(history = emptyList())
+        val proposal = requireNotNull(outcome.proposal)
+        val derived = outcome.skeleton.withResolvedWeekDaySchedule()
+            .reconcileProgression(setOf(squat.stableKey), mapOf(squat.stableKey to 170.0))
+
+        assertTrue(derived.progressionSessions.isNotEmpty())
+        assertEquals(
+            BCoachMultiobjectiveProduction.fingerprint(outcome.skeleton),
+            BCoachMultiobjectiveProduction.fingerprint(derived)
+        )
+        val accepted = proposal.accept(
+            requireNotNull(outcome.decision.proposalFingerprint), derived,
+            requireNotNull(outcome.decision.recommendedCandidateId)
+        )
+        assertTrue(accepted.reason, accepted.accepted)
+        val explicit = derived.configureProgressionSession(
+            derived.items.first().localId, ProgressionLinkMode.SEPARATE, null,
+            ProgressionRole.MAIN, ProgressionMode.CUSTOM, ProgressionRule(rpeThreshold = 7.5)
+        )
+        assertNotEquals(
+            BCoachMultiobjectiveProduction.fingerprint(outcome.skeleton),
+            BCoachMultiobjectiveProduction.fingerprint(explicit)
+        )
+        val acceptedDerived = requireNotNull(accepted.skeleton)
+            .reconcileProgression(setOf(squat.stableKey), mapOf(squat.stableKey to 170.0))
+        BCoachMultiobjectiveProduction.validateAcceptedForPersistence(
+            acceptedDerived, emptyList(), mapOf(squat.stableKey to squat),
+            BCoachMultiobjectiveProduction.linkedEvidenceFingerprint(request())
+        )
+        val explicitAccepted = acceptedDerived.configureProgressionSession(
+            acceptedDerived.items.first().localId, ProgressionLinkMode.SEPARATE, null,
+            ProgressionRole.MAIN, ProgressionMode.CUSTOM, ProgressionRule(rpeThreshold = 7.5)
+        )
+        assertEquals("B_COACH_ACCEPTANCE_STRUCTURE_STALE", assertThrows(IllegalStateException::class.java) {
+            BCoachMultiobjectiveProduction.validateAcceptedForPersistence(
+                explicitAccepted, emptyList(), mapOf(squat.stableKey to squat),
+                BCoachMultiobjectiveProduction.linkedEvidenceFingerprint(request())
+            )
+        }.message)
+    }
+
+    @Test fun `T63 sport objective universe is identical when a candidate omits the drill`() {
+        val catalog = CanonicalBadmintonObjectiveCatalog.of(listOf(
+            CanonicalBadmintonObjectiveRelation(
+                "r-footwork", "footwork_drill", BadmintonObjective.FOOTWORK,
+                BadmintonObjectiveTransferLevel.DIRECT, "TEST", setOf("e-footwork"), "test"
+            ),
+            CanonicalBadmintonObjectiveRelation(
+                "r-reaction", "reaction_drill", BadmintonObjective.REACTION,
+                BadmintonObjectiveTransferLevel.DIRECT, "TEST", setOf("e-reaction"), "test"
+            )
+        ))
+        fun evaluateSport(plan: GeneratedProgramSkeleton) = BCoachV2DoseEvaluator.evaluate(
+            plan = plan, baseline = plan, request = request(), history = emptyList(),
+            exercises = mapOf(squat.stableKey to squat), muscleRelations = emptyList(),
+            coreCatalog = CanonicalCoreCatalog.EMPTY, badmintonCatalog = catalog,
+            mainExerciseKeys = setOf(squat.stableKey),
+            goalWeights = BCoachV2GlobalSelector.effectiveGoalWeights(
+                BBalancedGoalImportance(3, 3, 3, 5), false, emptyMap())
+        )
+        val withoutDrill = evaluateSport(skeleton(3))
+        val withUnrelatedRoster = evaluateSport(skeleton(3).copy(items = skeleton(3).items.map {
+            it.copy(exerciseName = "Same dose, different display name")
+        }))
+        val expected = setOf("SPORT:FOOTWORK", "SPORT:REACTION")
+        fun sportTasks(evaluation: BCoachV2CandidateEvaluation) = evaluation.effectiveSetBreakdown
+            .map { it.substringBefore("|w=") }.filter { it.startsWith("SPORT:") }.toSet()
+        assertEquals(expected, sportTasks(withoutDrill))
+        assertEquals(expected, sportTasks(withUnrelatedRoster))
+        assertTrue(withoutDrill.effectiveSetBreakdown.filter { it.substringBefore("|w=") in expected }
+            .all { row -> Regex("dose=([^|]+)").find(row)!!.groupValues[1].toDouble() == 0.0 })
     }
 
     @Test fun `accepted v2 point two proposal remains valid after repair version bump`() {

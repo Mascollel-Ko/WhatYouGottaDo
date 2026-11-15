@@ -83,7 +83,7 @@ internal object BBalanced12WeekEngine {
             taskCatalog
         )
         val incumbent = legacy?.weeks?.firstOrNull()?.sessions
-            ?: coldStartBaseline(request, exercises, contributionCatalog, badmintonCatalog)
+            ?: coldStartBaseline(request, exercises, contributionCatalog, badmintonCatalog, mainExerciseKeys)
         val recentKeys = rows.asSequence().filter { it.date in request.asOf.minusDays(55)..request.asOf }
             .map(V22HistoryRow::stableKey).toSet()
         val incumbentKeys = incumbent.flatMap(V22Session::items).map(V22ExercisePlan::stableKey).toSet()
@@ -400,6 +400,7 @@ internal object BBalanced12WeekEngine {
                             .put("finalScore", result.finalScore)
                             .put("weekdays", JSONArray(result.sessions.map(V22Session::session)))
                             .put("changes", JSONArray(result.changes))
+                            .put("candidateDiagnostics", JSONArray(result.candidateDiagnostics))
                             .put("actualEvidence", JSONObject()
                                 .put("observedSets28d", result.evidence.completedObservedSets28d)
                                 .put("observedTrainingDates28d", result.evidence.observedTrainingDates28d)
@@ -462,14 +463,28 @@ internal object BBalanced12WeekEngine {
         request: V22GenerationRequest,
         exercises: Map<String, Exercise>,
         contributions: Map<String, Contribution>,
-        badmintonCatalog: CanonicalBadmintonObjectiveCatalog
+        badmintonCatalog: CanonicalBadmintonObjectiveCatalog,
+        mainExerciseKeys: Set<String>
     ): List<V22Session> {
-        val eligible = exercises.values.filter { it.isActive && it.planningEligibility != "HISTORY_ONLY" }
+        fun equipmentTokens(value: String): Set<String> = value.split(Regex("[/,;+&]"))
+            .map { it.trim().uppercase() }.filter(String::isNotEmpty).toSet()
+        val availableEquipment = request.availableEquipment?.flatMap(::equipmentTokens)?.toSet()
+        fun permitted(exercise: Exercise): Boolean {
+            val required = equipmentTokens(exercise.equipment)
+            return required.isEmpty() || required.all { it == "BODYWEIGHT" || it == "맨몸" } ||
+                (availableEquipment != null && required.all { it in availableEquipment })
+        }
+        val eligible = exercises.values.filter { it.isActive && it.planningEligibility != "HISTORY_ONLY" &&
+            permitted(it) }
             .sortedBy(Exercise::stableKey)
         val chosen = linkedSetOf<String>()
+        val selectedStrengthAnchors = linkedSetOf<String>()
         CanonicalStrengthExposureCapability.MovementAnchor.entries.forEach { anchor ->
             eligible.firstOrNull { it.stableKey in CanonicalStrengthExposureCapability.approvedStableKeys(anchor) }
-                ?.let { chosen += it.stableKey }
+                ?.let {
+                    chosen += it.stableKey
+                    selectedStrengthAnchors += it.stableKey
+                }
         }
         // Cold starts have no observed response ceiling. Rank the existing eligible roster
         // by the requested goals and the *additional* coverage it contributes, rather
@@ -523,12 +538,20 @@ internal object BBalanced12WeekEngine {
         require(chosen.isNotEmpty()) { "No eligible exercise metadata for B cold-start generation" }
         val items = chosen.map { key ->
             val exercise = exercises.getValue(key)
-            val setCount = if (contributions[key]?.strength == 1.0) 2 else 1
+            val setCount = when {
+                exercise.progressMetricType == "TIME_OR_DISTANCE" -> 1
+                key in mainExerciseKeys || key in selectedStrengthAnchors -> 3
+                listOf(exercise.category, exercise.movementPattern).joinToString(" ").uppercase()
+                    .let { kind -> listOf("RECOVERY", "MOBILITY", "TEST", "DRILL").any(kind::contains) } -> 1
+                else -> 2
+            }
             V22ExercisePlan(
                 exercise = exercise.name,
                 stableKey = key,
                 category = exercise.category,
-                role = "CANONICAL_METADATA_COLD_START",
+                role = if (key in mainExerciseKeys || key in selectedStrengthAnchors)
+                    "MAIN_CANONICAL_STRENGTH_ANCHOR_COLD_START"
+                    else "ACCESSORY_CANONICAL_METADATA_COLD_START",
                 setCount = setCount,
                 sets = List(setCount) { index ->
                     V22ObservedSet(null, null, null, null, request.asOf.toString(), "NO_HISTORY_USER_CALIBRATION_REQUIRED_${index + 1}")

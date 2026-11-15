@@ -264,7 +264,7 @@ internal fun BBalanced12WeekPlan.toSkeleton(
         goal = ProgramGoal.FUNCTIONAL_CONDITIONING,
         weeklyTrainingDays = input.days,
         sessionMinutes = request.sessionMinutes ?: BCoachV2Policy.DEFAULT_SESSION_MINUTES,
-        availableEquipment = emptySet(),
+        availableEquipment = request.availableEquipment.orEmpty(),
         excludedExerciseText = "",
         badmintonTransferRatio = 0.0,
         sportStrengthRatio = "AUTO",
@@ -314,7 +314,7 @@ internal fun BBalanced12WeekPlan.toSkeleton(
                     trainingSlot = ProgramTrainingSlot.FULL_BODY_BADMINTON_SUPPORT.name,
                     dayIntensity = ProgramDayIntensity.MODERATE.name,
                     stableKey = item.stableKey,
-                    selectionRole = "B12_FOCUS_${focus.name}",
+                    selectionRole = "${item.role}|B12_FOCUS_${focus.name}",
                     setPrescriptions = sets
                 )
             }
@@ -416,7 +416,7 @@ internal fun V22Plan.toSkeleton(
         goal = ProgramGoal.FUNCTIONAL_CONDITIONING,
         weeklyTrainingDays = request.days,
         sessionMinutes = request.sessionMinutes ?: 0,
-        availableEquipment = emptySet(),
+        availableEquipment = request.availableEquipment.orEmpty(),
         excludedExerciseText = "",
         badmintonTransferRatio = 0.0,
         sportStrengthRatio = "AUTO",

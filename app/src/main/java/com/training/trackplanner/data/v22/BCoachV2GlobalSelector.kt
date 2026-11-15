@@ -73,7 +73,6 @@ internal object BCoachV2GlobalSelector {
             historyAtCutoff.isNotEmpty(),
             recommendedImportance
         )
-        val baselineFingerprint = BCoachMultiobjectiveProduction.fingerprint(baseline)
         val inputFingerprint = BCoachMultiobjectiveProduction.inputFingerprint(
             request, historyAtCutoff, badmintonAtCutoff
         )
@@ -131,8 +130,12 @@ internal object BCoachV2GlobalSelector {
             }
         }
         val resolvedBaseline = evaluatePlan(baseline)
+        // The visible safe fallback and the approval baseline must be the same resolved plan.
+        // Otherwise cold-start estimated loads disappear as 0 kg and approval compares against
+        // a skeleton the user was never shown.
+        val baselineFingerprint = resolvedBaseline.signature
         val rawCandidates = searchCandidates(
-            baseline, preserveRestAndOrder(baseline, jointCandidate), ::evaluatePlan
+            baseline, preserveRestAndOrder(baseline, jointCandidate), mainExerciseKeys, ::evaluatePlan
         )
         val baselineSuccessfulAnchors = historyAtCutoff.filter { (it.reps ?: 0.0) > 0.0 }
             .map(V22HistoryRow::stableKey).toSet()
@@ -221,7 +224,8 @@ internal object BCoachV2GlobalSelector {
                 reasonCodes = candidate.evaluation.reasonCodes,
                 prescriptionSummary = prescriptionSummary(
                     candidate.skeleton, candidate.loadData.instructionsBySetId
-                )
+                ),
+                changeSummary = candidate.changes
             )
         }
         val baselineEvaluation = evaluated.firstOrNull { it.label == "SAFE_BASELINE" }?.evaluation
@@ -267,7 +271,7 @@ internal object BCoachV2GlobalSelector {
             scenarioFlip = scenarioFlip(valid)
         )
         val fallback = BCoachMultiobjectiveProduction.withDecisionMetadata(
-            baseline, decision, "NOT_ACCEPTED_SAFE_FALLBACK_PERSISTED"
+            resolvedBaseline.skeleton, decision, "NOT_ACCEPTED_SAFE_FALLBACK_PERSISTED"
         )
         val candidateMap = displayed.associate { candidate ->
             candidate.id to BCoachMultiobjectiveProduction.withDecisionMetadata(
@@ -332,6 +336,7 @@ internal object BCoachV2GlobalSelector {
     private fun searchCandidates(
         baseline: GeneratedProgramSkeleton,
         joint: GeneratedProgramSkeleton,
+        mainExerciseKeys: Set<String>,
         evaluate: (GeneratedProgramSkeleton) -> ResolvedPlan
     ): List<SearchState> {
         val cache = linkedMapOf<String, SearchState>()
@@ -349,7 +354,7 @@ internal object BCoachV2GlobalSelector {
         repeat(BCoachV2Policy.SEARCH_ROUNDS) {
             val added = mutableListOf<SearchState>()
             beam.forEach { parent ->
-                searchNeighbors(parent.skeleton).forEach { (action, neighbor) ->
+                searchNeighbors(parent.skeleton, mainExerciseKeys).forEach { (action, neighbor) ->
                     if (cache.size >= BCoachV2Policy.MAX_CANDIDATE_EVALUATIONS) return@forEach
                     register(compoundLabel(parent.label, action), neighbor)?.let(added::add)
                 }
@@ -378,12 +383,13 @@ internal object BCoachV2GlobalSelector {
             .thenBy { it.signature }
 
     private fun searchNeighbors(
-        plan: GeneratedProgramSkeleton
+        plan: GeneratedProgramSkeleton,
+        mainExerciseKeys: Set<String>
     ): List<Pair<String, GeneratedProgramSkeleton>> = buildList {
         val keys = plan.items.map(ProgramSkeletonItem::exerciseStableKey).distinct().sorted().take(6)
         keys.forEach { key ->
-            add("ADD_ONE_SET_$key" to mutateSets(plan, key, +1))
-            add("REMOVE_ONE_SET_$key" to mutateSets(plan, key, -1))
+            add("ADD_ONE_SET_$key" to mutateSets(plan, key, +1, mainExerciseKeys))
+            add("REMOVE_ONE_SET_$key" to mutateSets(plan, key, -1, mainExerciseKeys))
             add("REPS_PLUS_ONE_$key" to mutateReps(plan, key, +1))
             add("REPS_MINUS_ONE_$key" to mutateReps(plan, key, -1))
         }
@@ -401,21 +407,41 @@ internal object BCoachV2GlobalSelector {
         val fixed = baseline.items.associateBy {
             Triple(it.weekNumber, it.dayOfWeek, it.exerciseStableKey)
         }
-        return candidate.copy(items = candidate.items.map { item ->
-            fixed[Triple(item.weekNumber, item.dayOfWeek, item.exerciseStableKey)]?.let { original ->
-                item.copy(restSeconds = original.restSeconds, orderIndex = original.orderIndex)
-            } ?: item
-        })
+        val normalized = candidate.items.groupBy { it.weekNumber to it.dayOfWeek }
+            .toSortedMap(compareBy<Pair<Int, Int>>({ it.first }, { it.second }))
+            .values.flatMap { sessionItems ->
+                sessionItems.map { item ->
+                    fixed[Triple(item.weekNumber, item.dayOfWeek, item.exerciseStableKey)]?.let { original ->
+                        item.copy(restSeconds = original.restSeconds)
+                    } ?: item
+                }.sortedWith(compareBy<ProgramSkeletonItem> { item ->
+                    fixed[Triple(item.weekNumber, item.dayOfWeek, item.exerciseStableKey)]?.orderIndex
+                        ?: item.orderIndex
+                }.thenBy(ProgramSkeletonItem::orderIndex)
+                    .thenBy(ProgramSkeletonItem::exerciseStableKey))
+                    .mapIndexed { index, item -> item.copy(orderIndex = index + 1) }
+            }
+        return candidate.copy(items = normalized)
     }
 
     internal fun mutateSets(
         plan: GeneratedProgramSkeleton,
         key: String,
-        delta: Int
+        delta: Int,
+        mainExerciseKeys: Set<String> = emptySet()
     ): GeneratedProgramSkeleton = plan.copy(items = plan.items.map { item ->
         if (item.exerciseStableKey != key || "PEAK" in item.selectionRole) return@map item
         val old = ProgramSetPrescriptionResolver.resolve(item)
-        val target = (old.size + delta).coerceIn(1, BCoachV2Policy.MAX_PER_EXERCISE_SETS)
+        val exception = item.seconds > 0 || item.directSportSession || item.rehabLikeActivation ||
+            listOf("RECOVERY", "MOBILITY", "TEST", "DRILL").any {
+                it in (item.category + " " + item.selectionRole).uppercase()
+            }
+        val minimum = when {
+            exception -> 1
+            key in mainExerciseKeys || item.selectionRole.contains("MAIN", ignoreCase = true) -> 3
+            else -> 2
+        }
+        val target = (old.size + delta).coerceIn(minimum, BCoachV2Policy.MAX_PER_EXERCISE_SETS)
         if (target < old.size && old.drop(target).any {
                 BCoachV2LoadCandidateResolver.isSetUserFixed(it, item.weightSource)
             }) return@map item

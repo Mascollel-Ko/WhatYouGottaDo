@@ -8,6 +8,7 @@ import com.training.trackplanner.analysis.strengthperformance.curve.RepetitionCu
 import com.training.trackplanner.analysis.strengthperformance.toPosterior
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.GeneratedProgramSkeleton
+import com.training.trackplanner.data.InitialUserProfileDao
 import com.training.trackplanner.data.ProgramLoadState
 import com.training.trackplanner.data.ProgramLoadSource
 import com.training.trackplanner.data.ProgramSetPrescription
@@ -731,7 +732,8 @@ internal object BCoachV2LoadCandidateResolver {
 internal class BCoachV2LoadEvidenceReader(
     private val posteriorDao: StrengthPosteriorDao,
     private val registry: StrengthPerformanceRegistry,
-    private val curves: RepetitionCurveRegistry
+    private val curves: RepetitionCurveRegistry,
+    private val profileDao: InitialUserProfileDao? = null
 ) {
     suspend fun read(
         asOf: java.time.LocalDate,
@@ -740,19 +742,22 @@ internal class BCoachV2LoadEvidenceReader(
     ): Map<String, BCoachV2LoadModelSnapshot> {
         val revisionKey = StrengthModelRevisionPolicy.CURRENT_REVISION_KEY
         val revision = posteriorDao.activeRevision(revisionKey)
-            ?.takeIf(StrengthModelRevisionPolicy::isCompatible) ?: return emptyMap()
-        val hasPending = posteriorDao.eventsForRevision(revisionKey).any { event ->
+            ?.takeIf(StrengthModelRevisionPolicy::isCompatible)
+        val hasPending = revision != null && posteriorDao.eventsForRevision(revisionKey).any { event ->
             event.status in setOf("PENDING", "FAILED") &&
                 runCatching { java.time.LocalDate.parse(event.sessionDate) <= asOf }.getOrDefault(true)
         }
-        if (hasPending) return emptyMap()
-        val modelEntity = posteriorDao.modelState(StrengthModelRevisionPolicy.modelInstanceKey(revisionKey))
+        val modelEntity = if (revision != null && !hasPending) {
+            posteriorDao.modelState(StrengthModelRevisionPolicy.modelInstanceKey(revisionKey))
+        } else null
         val state = modelEntity?.let { runCatching { StrengthPosteriorModel.fromEntity(it) }.getOrNull() }
         val modelDate = modelEntity?.lastProcessedDate?.let {
             runCatching { java.time.LocalDate.parse(it) }.getOrNull()
         }
-        val localStates = posteriorDao.localStates(revisionKey).associateBy { it.exerciseStableKey }
-        return stableKeys.sorted().mapNotNull { key ->
+        val localStates = if (revision != null && !hasPending) {
+            posteriorDao.localStates(revisionKey).associateBy { it.exerciseStableKey }
+        } else emptyMap()
+        val modelSnapshots = if (revision == null || hasPending) emptyMap() else stableKeys.sorted().mapNotNull { key ->
             val direct = registry.directTarget(key)
             val tier = if (key in BCoachV2LoadCandidateResolver.canonicalTierAKeys && direct != null) "TIER_A"
                 else if (localStates[key]?.baselineEstablished == true) "TIER_B" else return@mapNotNull null
@@ -803,5 +808,31 @@ internal class BCoachV2LoadEvidenceReader(
                 stale = stale
             )
         }.toMap()
+
+        // Onboarding PR values are explicit user evidence, but remain a lower-confidence
+        // prior and never replace a compatible posterior for the same exact exercise.
+        val profile = profileDao?.profile()
+        val profileSnapshots = stableKeys.sorted().mapNotNull { key ->
+            if (key in modelSnapshots) return@mapNotNull null
+            val target = registry.directTarget(key)?.targetKey ?: return@mapNotNull null
+            val pr = when (target) {
+                StrengthPerformanceRegistry.BACK_SQUAT -> profile?.squatKg
+                StrengthPerformanceRegistry.CONVENTIONAL_DEADLIFT -> profile?.deadliftKg
+                else -> null
+            }?.takeIf { it.isFinite() && it > 0.0 } ?: return@mapNotNull null
+            val curve = runCatching { curves.resolve(key) }.getOrNull() ?: return@mapNotNull null
+            key to BCoachV2LoadModelSnapshot(
+                stableKey = key,
+                tier = "PROFILE_PR_PRIOR",
+                capacityLow = pr * 0.90,
+                capacityBase = pr,
+                capacityHigh = pr * 1.05,
+                curve = curve,
+                sourceVersion = "PROFILE_PR_PRIOR|${curve.profile.provenance.curveVersion}",
+                evidenceIds = listOf("profile:${target.value}"),
+                stale = false
+            )
+        }.toMap()
+        return modelSnapshots + profileSnapshots
     }
 }
