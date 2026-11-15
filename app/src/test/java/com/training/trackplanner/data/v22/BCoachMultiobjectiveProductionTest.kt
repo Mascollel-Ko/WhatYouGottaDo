@@ -457,6 +457,234 @@ class BCoachMultiobjectiveProductionTest {
         assertFalse(visible.contains("null", true))
     }
 
+    @Test fun `T45 Epley fallback fixtures preserve capacity conservative factor and downward grid`() {
+        val fixtures = listOf(
+            Triple(5, 3.0, 137.5),
+            Triple(8, 3.0, 127.5),
+            Triple(10, 3.0, 120.0),
+            Triple(12, 3.0, 115.0),
+            Triple(8, 4.0, 122.5)
+        )
+        fixtures.forEach { (reps, rir, expected) ->
+            val base = 180.0 / (1.0 + (reps + rir) / 30.0)
+            assertEquals(base * 0.97, base * BCoachV2Policy.INITIAL_LOAD_CONSERVATIVE_FACTOR, 1e-12)
+            assertEquals(expected, requireNotNull(BCoachV2LoadCandidateResolver.epleyTrainingWeight(
+                capacityKg = 180.0, reps = reps, targetRir = rir, step = 2.5
+            )), 0.0)
+        }
+    }
+
+    @Test fun `T46 personal repetition curve is applied before Epley without mutating capacity`() {
+        val plan = withTargetRpe(skeleton(1, reps = 8), 7.0)
+        val model = modelSnapshot().copy(capacityLow = 180.0, capacityBase = 180.0, capacityHigh = 180.0)
+        val result = BCoachV2LoadCandidateResolver.resolve(
+            plan, request().copy(bShadowPlateOneSideKg = 1.25), emptyList(),
+            mapOf(squat.stableKey to squat), mapOf(squat.stableKey to model), setOf(squat.stableKey)
+        )
+        val instruction = result.instructionsBySetId.values.single() as BCoachV2LoadInstruction.ExactLoad
+        val curveBase = 180.0 * requireNotNull(model.curve.evaluate(11.0).relativeLoad)
+        val expected = kotlin.math.floor(curveBase * 0.97 / 2.5) * 2.5
+        assertEquals(expected, instruction.kg, 0.0)
+        assertNotEquals(127.5, instruction.kg, 0.0)
+        assertEquals(180.0, requireNotNull(instruction.capacityKg), 0.0)
+        assertEquals(BCoachLoadSource.PERSONAL_MODEL, instruction.loadSource)
+    }
+
+    @Test fun `T47 direct history without RPE is a conservative lower bound rather than failure`() {
+        val row = history().single().copy(reps = 6.0, weightKg = 150.0, rpe = null)
+        val result = BCoachV2LoadCandidateResolver.resolve(
+            skeleton(1, reps = 8), request().copy(bShadowPlateOneSideKg = 1.25), listOf(row),
+            mapOf(squat.stableKey to squat), mainExerciseKeys = setOf(squat.stableKey)
+        )
+        val instruction = result.instructionsBySetId.values.single() as BCoachV2LoadInstruction.ExactLoad
+        assertEquals(180.0, requireNotNull(instruction.capacityKg), 1e-12)
+        assertEquals(4.0, instruction.targetRir, 0.0)
+        assertEquals(122.5, instruction.kg, 0.0)
+        assertEquals(BCoachLoadSource.DIRECT_HISTORY_ESTIMATE, instruction.loadSource)
+        assertEquals(BCoachEvidenceStatus.POLICY_ASSUMED, instruction.evidenceStatus)
+    }
+
+    @Test fun `T48 distinct user fixed set loads remain sixty eighty one hundred`() {
+        val base = skeleton(3, reps = 8)
+        val fixed = base.copy(items = base.items.map { item ->
+            item.copy(
+                weightSource = "USER_FIXED",
+                weightKg = 0.0,
+                setPrescriptions = listOf(60.0, 80.0, 100.0).mapIndexed { index, kg ->
+                    ProgramSetPrescription(index + 1, 8, kg, 0, 7.0, ProgramLoadState.EXPLICIT_LOAD)
+                }
+            )
+        })
+        val result = BCoachV2LoadCandidateResolver.resolve(
+            fixed, request().copy(bShadowPlateOneSideKg = 1.25), emptyList(),
+            mapOf(squat.stableKey to squat), mainExerciseKeys = setOf(squat.stableKey)
+        )
+        assertEquals(listOf(60.0, 80.0, 100.0), result.skeleton.items.single().setPrescriptions.map { it.weightKg })
+        assertEquals(0.0, result.skeleton.items.single().weightKg, 0.0)
+        assertTrue(result.instructionsBySetId.values.all {
+            it is BCoachV2LoadInstruction.ExactLoad && it.loadSource == BCoachLoadSource.USER_FIXED
+        })
+    }
+
+    @Test fun `T49 automatic three set prescription uses one twenty seven point five then backoffs`() {
+        val direct = history().single().copy(reps = 6.0, weightKg = 150.0, rpe = null)
+        val result = BCoachV2LoadCandidateResolver.resolve(
+            withTargetRpe(skeleton(3, reps = 8), 7.0),
+            request().copy(bShadowPlateOneSideKg = 1.25), listOf(direct),
+            mapOf(squat.stableKey to squat), mainExerciseKeys = setOf(squat.stableKey)
+        )
+        assertEquals(listOf(127.5, 125.0, 125.0),
+            result.skeleton.items.single().setPrescriptions.map { it.weightKg })
+        assertEquals(listOf(1.0, 0.985, 0.985), result.instructionsBySetId.values.map {
+            (it as BCoachV2LoadInstruction.ExactLoad).followUpSetFactor
+        })
+    }
+
+    @Test fun `T50 changing eight to ten reps recalculates load RIR and progression score without cache pollution`() {
+        val direct = history().single().copy(reps = 6.0, weightKg = 150.0, rpe = null)
+        val req = request().copy(bShadowPlateOneSideKg = 1.25)
+        fun resolve(reps: Int) = BCoachV2LoadCandidateResolver.resolve(
+            withTargetRpe(skeleton(3, reps = reps), 7.0), req, listOf(direct),
+            mapOf(squat.stableKey to squat), mainExerciseKeys = setOf(squat.stableKey)
+        )
+        fun evaluate(result: BCoachV2LoadResolution) = BCoachV2DoseEvaluator.evaluate(
+            plan = result.skeleton, baseline = result.skeleton, request = req, history = listOf(direct),
+            exercises = mapOf(squat.stableKey to squat), muscleRelations = emptyList(),
+            coreCatalog = CanonicalCoreCatalog.EMPTY,
+            badmintonCatalog = CanonicalBadmintonObjectiveCatalog.EMPTY,
+            mainExerciseKeys = setOf(squat.stableKey),
+            goalWeights = BCoachV2GlobalSelector.effectiveGoalWeights(
+                BBalancedGoalImportance(), true, emptyMap()),
+            baseRirByLocalId = result.baseRirByLocalId,
+            baseIntensityByLocalId = result.baseIntensityByLocalId,
+            rirByScenario = result.rirByScenario,
+            intensityByScenario = result.intensityByScenario,
+            baseRirBySetId = result.baseRirBySetId,
+            baseIntensityBySetId = result.baseIntensityBySetId,
+            rirByScenarioAndSet = result.rirByScenarioAndSet,
+            intensityByScenarioAndSet = result.intensityByScenarioAndSet
+        )
+        val eight = resolve(8)
+        val ten = resolve(10)
+        assertEquals(listOf(127.5, 125.0, 125.0), eight.skeleton.items.single().setPrescriptions.map { it.weightKg })
+        assertEquals(listOf(120.0, 117.5, 117.5), ten.skeleton.items.single().setPrescriptions.map { it.weightKg })
+        assertNotEquals(eight.baseRirBySetId, ten.baseRirBySetId)
+        assertNotEquals(evaluate(eight).baseAxes.getValue(BCoachObjectiveAxis.PROGRESSION_FIT),
+            evaluate(ten).baseAxes.getValue(BCoachObjectiveAxis.PROGRESSION_FIT), 1e-12)
+        assertEquals(eight, resolve(8))
+    }
+
+    @Test fun `T51 lower body history personalizes quads but leaves chest Need at default`() {
+        val plan = skeleton(1, weightKg = 50.0)
+        val rows = listOf(
+            history().single().copy(date = LocalDate.of(2026, 10, 13), reps = 8.0),
+            history().single().copy(date = LocalDate.of(2026, 10, 20), reps = 8.0)
+        )
+        val weights = BCoachV2GlobalSelector.effectiveGoalWeights(
+            BBalancedGoalImportance(hypertrophy = 3), true, emptyMap())
+        val evaluation = BCoachV2DoseEvaluator.evaluate(
+            plan = plan, baseline = plan, request = request().copy(asOf = LocalDate.of(2026, 11, 15)),
+            history = rows, exercises = mapOf(squat.stableKey to squat),
+            muscleRelations = listOf(relation(squat.stableKey, "QUADS", "PRIMARY")),
+            coreCatalog = CanonicalCoreCatalog.EMPTY,
+            badmintonCatalog = CanonicalBadmintonObjectiveCatalog.EMPTY,
+            mainExerciseKeys = setOf(squat.stableKey), goalWeights = weights
+        )
+        val chest = evaluation.needEnvelopes.first { it.taskId == "HYPERTROPHY:CHEST" }
+        val quads = evaluation.needEnvelopes.first { it.taskId == "HYPERTROPHY:QUADS" }
+        assertEquals(BCoachV2Policy.d0(BBalancedGoal.HYPERTROPHY, 3), requireNotNull(chest.center), 0.0)
+        assertNotEquals(chest.center, quads.center)
+        assertTrue(evaluation.effectiveSetBreakdown.any {
+            it.startsWith("HYPERTROPHY:CHEST|w=1|") && "dose=0" in it
+        })
+        assertTrue(evaluation.baseAxes.getValue(BCoachObjectiveAxis.GOAL_DEFICIT) > 0.0)
+    }
+
+    @Test fun `T52 calendar mapping uses the same next Monday and honors explicit start`() {
+        val plan = multiDaySkeleton(listOf(1, 3))
+        val wednesday = request().copy(asOf = LocalDate.of(2026, 11, 11))
+        val sunday = request().copy(asOf = LocalDate.of(2026, 11, 15))
+        val fromWednesday = BCoachV2ScheduleLoad.evaluate(
+            plan, plan, wednesday, emptyList(), mapOf(squat.stableKey to squat), BCoachV2Scenario.BASE)
+        val fromSunday = BCoachV2ScheduleLoad.evaluate(
+            plan, plan, sunday, emptyList(), mapOf(squat.stableKey to squat), BCoachV2Scenario.BASE)
+        assertEquals(LocalDate.of(2026, 11, 16), fromWednesday.planningStartDate)
+        assertEquals(fromWednesday.planningStartDate, fromSunday.planningStartDate)
+
+        val observed = history().map { it.copy(date = sunday.asOf) }
+        val defaultStart = BCoachV2ScheduleLoad.evaluate(
+            plan, plan, sunday, observed, mapOf(squat.stableKey to squat), BCoachV2Scenario.BASE)
+        val explicitStart = BCoachV2ScheduleLoad.evaluate(
+            plan, plan, sunday.copy(planningStartDate = LocalDate.of(2026, 11, 23)), observed,
+            mapOf(squat.stableKey to squat), BCoachV2Scenario.BASE)
+        assertEquals(LocalDate.of(2026, 11, 23), explicitStart.planningStartDate)
+        assertNotEquals(defaultStart.recoveryScore, explicitStart.recoveryScore, 1e-12)
+        assertNotEquals(BCoachMultiobjectiveProduction.inputFingerprint(sunday, observed),
+            BCoachMultiobjectiveProduction.inputFingerprint(
+                sunday.copy(planningStartDate = LocalDate.of(2026, 11, 23)), observed))
+    }
+
+    @Test fun `T53 chosen alternative stores its own set loads and post approval calibration audit`() {
+        val direct = history().single().copy(reps = 6.0, weightKg = 150.0, rpe = null)
+        val outcome = prepare(
+            request = request().copy(bShadowPlateOneSideKg = 1.25),
+            history = listOf(direct),
+            baseline = withTargetRpe(skeleton(3, reps = 8), 7.0),
+            candidate = withTargetRpe(skeleton(3, reps = 10), 7.0)
+        )
+        val proposal = requireNotNull(outcome.proposal)
+        outcome.decision.alternatives.forEach { alternative ->
+            val accepted = requireNotNull(proposal.accept(
+                requireNotNull(outcome.decision.proposalFingerprint),
+                outcome.skeleton,
+                alternative.candidateId
+            ).skeleton)
+            val decision = JSONObject(requireNotNull(accepted.planningMetadataJson))
+                .getJSONObject("bCoachMultiobjectiveDecision")
+            assertEquals(alternative.candidateFingerprint, decision.getString("acceptedCandidateFingerprint"))
+            val storedLoads = decision.getJSONObject("loadInstructions").toString()
+            accepted.items.flatMap { it.setPrescriptions }.filter { it.weightKg > 0.0 }.forEach { set ->
+                assertTrue(storedLoads.contains("kg=${set.weightKg}"))
+            }
+        }
+
+        val accepted = requireNotNull(proposal.accept(
+            requireNotNull(outcome.decision.proposalFingerprint), outcome.skeleton
+        ).skeleton)
+        val adjusted = accepted.copy(items = accepted.items.map { item ->
+            item.copy(setPrescriptions = item.setPrescriptions.mapIndexed { index, set ->
+                if (index == 0) set.copy(weightKg = set.weightKg + 2.5) else set
+            })
+        })
+        BCoachMultiobjectiveProduction.validateAcceptedForPersistence(
+            adjusted, listOf(direct), mapOf(squat.stableKey to squat),
+            BCoachMultiobjectiveProduction.linkedEvidenceFingerprint(request())
+        )
+        val persisted = BCoachMultiobjectiveProduction.markAcceptedAndPersisted(adjusted)
+        val audit = JSONObject(requireNotNull(persisted.planningMetadataJson))
+            .getJSONObject("bCoachMultiobjectiveDecision")
+        assertTrue(audit.getBoolean("postApprovalLoadAdjusted"))
+        assertFalse(audit.getBoolean("scoresReflectCurrentPrescription"))
+    }
+
+    @Test fun `T54 two matching sessions replace the default follow up set factor`() {
+        val rows = listOf(
+            history().single().copy(date = LocalDate.of(2026, 11, 3), setIndex = 1, reps = 6.0, weightKg = 150.0),
+            history().single().copy(date = LocalDate.of(2026, 11, 3), setIndex = 2, reps = 8.0, weightKg = 142.5),
+            history().single().copy(date = LocalDate.of(2026, 11, 10), setIndex = 1, reps = 6.0, weightKg = 150.0),
+            history().single().copy(date = LocalDate.of(2026, 11, 10), setIndex = 2, reps = 8.0, weightKg = 142.5)
+        )
+        val result = BCoachV2LoadCandidateResolver.resolve(
+            withTargetRpe(skeleton(2, reps = 8), 7.0),
+            request().copy(bShadowPlateOneSideKg = 1.25), rows,
+            mapOf(squat.stableKey to squat), mainExerciseKeys = setOf(squat.stableKey)
+        )
+        assertEquals(listOf(127.5, 120.0), result.skeleton.items.single().setPrescriptions.map { it.weightKg })
+        val second = result.instructionsBySetId.values.elementAt(1) as BCoachV2LoadInstruction.ExactLoad
+        assertEquals(0.95, second.followUpSetFactor, 1e-12)
+        assertTrue(result.reasonCodes.any { it.startsWith("OBSERVED_FOLLOW_UP_FACTOR") })
+    }
+
     @Test fun `accepted proposal still rejects stale evidence and structural edits`() {
         val outcome = prepare()
         val accepted = requireNotNull(requireNotNull(outcome.proposal).accept(
@@ -514,6 +742,12 @@ class BCoachMultiobjectiveProductionTest {
     private fun modeledResolution() = BCoachV2LoadCandidateResolver.resolve(
         skeleton(2), request().copy(bShadowPlateOneSideKg = 1.25), emptyList(),
         mapOf(squat.stableKey to squat), mapOf(squat.stableKey to modelSnapshot()), setOf(squat.stableKey))
+
+    private fun withTargetRpe(plan: GeneratedProgramSkeleton, targetRpe: Double) = plan.copy(
+        items = plan.items.map { item ->
+            item.copy(setPrescriptions = item.setPrescriptions.map { it.copy(targetRpeMin = targetRpe) })
+        }
+    )
 
     private fun history() = listOf(V22HistoryRow(
         LocalDate.of(2026, 11, 10), "Back squat", squat.stableKey,

@@ -79,11 +79,11 @@ internal class V22ProgramPlanningService(
             taskCatalog = bBalancedTaskCatalog,
             mainExerciseKeys = mainExerciseKeys
         )
-        val comparator = runCatching { V22PythonParityEngine.build(history, effectiveRequest) }.getOrNull()
+        val comparator = runCatching { V22PythonParityEngine.build(history, coachRequest) }.getOrNull()
             ?.takeIf { plan -> plan.weeks.firstOrNull()?.sessions?.any { it.items.isNotEmpty() } == true }
-        val candidateBaseSkeleton = balanced.toSkeleton(effectiveRequest, exercises)
+        val candidateBaseSkeleton = balanced.toSkeleton(coachRequest, exercises)
         val fallbackBaseSkeleton = balanced.toSkeleton(
-            effectiveRequest,
+            coachRequest,
             exercises,
             balanced.reviewBaselineWeeks.ifEmpty { balanced.weeks }
         )
@@ -91,16 +91,16 @@ internal class V22ProgramPlanningService(
         // can change later; an applied program must never silently pick up a different grid.
         fun withEquipmentSnapshot(value: GeneratedProgramSkeleton): GeneratedProgramSkeleton {
             val metadata = org.json.JSONObject(value.planningMetadataJson ?: "{}")
-            effectiveRequest.bShadowPlateOneSideKg
+            coachRequest.bShadowPlateOneSideKg
                 ?.takeIf { it.isFinite() && it in 0.1..25.0 }
                 ?.let { plate ->
                 metadata.put("bCoachProgressionEquipmentSchema", "linked-g-1")
                 metadata.put("bCoachPlateOneSideKg", plate)
             }
             metadata.put("bCoachDumbbellDisplayedIncrementKg",
-                effectiveRequest.bShadowDumbbellIncrementKg ?: org.json.JSONObject.NULL)
+                coachRequest.bShadowDumbbellIncrementKg ?: org.json.JSONObject.NULL)
             metadata.put("bCoachMachineDisplayedIncrementKg",
-                effectiveRequest.bShadowMachineIncrementKg ?: org.json.JSONObject.NULL)
+                coachRequest.bShadowMachineIncrementKg ?: org.json.JSONObject.NULL)
             return value.copy(planningMetadataJson = metadata.toString())
         }
         val candidateSkeleton = withEquipmentSnapshot(candidateBaseSkeleton)
@@ -108,11 +108,11 @@ internal class V22ProgramPlanningService(
         val v2StableKeys = (fallbackSkeleton.items + candidateSkeleton.items)
             .mapTo(linkedSetOf(), ProgramSkeletonItem::exerciseStableKey)
         val v2LoadSnapshots = v2LoadEvidenceReader?.read(
-            effectiveRequest.asOf, history, v2StableKeys
+            coachRequest.asOf, history, v2StableKeys
         ).orEmpty()
-        val production = effectiveRequest.blockProgram?.let {
+        val production = coachRequest.blockProgram?.let {
             BCoachMultiobjectiveProduction.prepare(
-                request = effectiveRequest,
+                request = coachRequest,
                 history = history,
                 exercises = exercises,
                 baseline = fallbackSkeleton,
@@ -129,13 +129,13 @@ internal class V22ProgramPlanningService(
         val skeleton = production?.skeleton ?: candidateSkeleton
         // Gate D is strictly a side-channel. No exception, missing posterior, or score may
         // modify or prevent the existing B program from being generated and saved as before.
-        val shadow = effectiveRequest.bShadowPlateOneSideKg
+        val shadow = coachRequest.bShadowPlateOneSideKg
             ?.takeIf { it.isFinite() && it in 0.1..25.0 }
             ?.let { plate ->
                 runCatching {
                     val reader = squatShadowReader ?: return@runCatching null
                     val policy = rirPolicy ?: return@runCatching null
-                    val observed = reader.read(effectiveRequest.asOf)
+                    val observed = reader.read(coachRequest.asOf)
                     val pipeline = BCoachSquatShadowPipeline.evaluate(
                         input = observed,
                         rirPolicy = policy,
@@ -154,7 +154,7 @@ internal class V22ProgramPlanningService(
                         )
                     )
                     BCoachSquatShadowProgramComparator.compare(
-                        asOf = effectiveRequest.asOf,
+                        asOf = coachRequest.asOf,
                         plannedItems = skeleton.items,
                         pipeline = pipeline,
                         userConfirmedEquipmentStep = true
@@ -162,7 +162,7 @@ internal class V22ProgramPlanningService(
                 }.getOrElse {
                     BCoachSquatShadowProgramComparison(
                         status = "SHADOW_COMPARISON_ERROR",
-                        snapshotDate = effectiveRequest.asOf,
+                        snapshotDate = coachRequest.asOf,
                         observedReference = null,
                         plannedSquatRows = emptyList(),
                         experimentCandidates = emptyList(),
@@ -176,13 +176,13 @@ internal class V22ProgramPlanningService(
             val registry = strengthRegistry ?: return@runCatching emptyList()
             val increments = runCatching {
                 BBlockEquipmentIncrements(
-                    effectiveRequest.bShadowPlateOneSideKg ?: Double.NaN,
-                    effectiveRequest.bShadowDumbbellIncrementKg ?: Double.NaN,
-                    effectiveRequest.bShadowMachineIncrementKg ?: Double.NaN
+                    coachRequest.bShadowPlateOneSideKg ?: Double.NaN,
+                    coachRequest.bShadowDumbbellIncrementKg ?: Double.NaN,
+                    coachRequest.bShadowMachineIncrementKg ?: Double.NaN
                 )
             }.getOrNull()
             BCoachExerciseShadowCoverage.inspect(
-                asOf = effectiveRequest.asOf,
+                asOf = coachRequest.asOf,
                 plannedItems = skeleton.items,
                 confirmedHistory = history,
                 registry = registry,

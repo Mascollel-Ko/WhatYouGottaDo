@@ -301,7 +301,30 @@ internal class ProgramPlanService(
             it.weekNumber < 1 || it.dayOfWeek !in 1..7 ||
                 (it.weekNumber - 1) * 7L + it.dayOfWeek > program.durationDays
         }) throw ProgramApplyException(ProgramApplyFailureReason.INVALID_STRUCTURE)
+        val applicationStart = LocalDate.parse(startDate, DateTimeFormatter.ISO_LOCAL_DATE)
+        val cutoff = com.training.trackplanner.data.v22.BCoachV2ApplicationRecoveryAudit
+            .evidenceCutoff(program.planningMetadataJson)
+        val refreshedMetadata = cutoff?.let { evidenceCutoff ->
+            val history = com.training.trackplanner.data.v22.V22HistoryInput.fromWorkoutHistory(
+                workoutDao.entriesWithSetsUntil(evidenceCutoff.toString())
+            )
+            com.training.trackplanner.data.v22.BCoachV2ApplicationRecoveryAudit.refresh(
+                program = program,
+                items = items,
+                storedSets = storedSetsByItemId.values.flatten(),
+                applicationStartDate = applicationStart,
+                cutoff = evidenceCutoff,
+                history = history,
+                exercises = exerciseDao.allExercises().associateBy(Exercise::stableKey)
+            )
+        }
         db.withTransaction {
+            if (refreshedMetadata != null && refreshedMetadata != program.planningMetadataJson) {
+                programDao.updateProgram(program.copy(
+                    planningMetadataJson = refreshedMetadata,
+                    updatedAt = System.currentTimeMillis()
+                ))
+            }
             if (mode == ProgramApplyMode.Overwrite) {
                 workoutDao.deletePlannedOnlySetsBetween(range.first, range.second)
                 workoutDao.deletePlannedOnlyEntriesBetween(range.first, range.second)

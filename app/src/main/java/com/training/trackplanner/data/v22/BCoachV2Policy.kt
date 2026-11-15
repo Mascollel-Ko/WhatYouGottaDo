@@ -6,9 +6,9 @@ import kotlin.math.max
 
 /** Frozen product policy. Values are selection heuristics, not clinical limits. */
 internal object BCoachV2Policy {
-    const val ENGINE_VERSION = "B_COACH_V2_GLOBAL_OPT"
-    const val POLICY_VERSION = "B_COACH_V2_POLICY_2026_11_15"
-    const val SOURCE_OWNER = "B_COACH_V2_GLOBAL_OPT"
+    const val ENGINE_VERSION = "B_COACH_V2_1_GLOBAL_OPT"
+    const val POLICY_VERSION = "B_COACH_V2_1_POLICY_2026_11_15"
+    const val SOURCE_OWNER = "B_COACH_V2_1_GLOBAL_OPT"
     const val COEFFICIENT_SOURCE = "PRODUCT_HEURISTIC_NOT_CLINICAL"
     const val DISCLAIMER =
         "이 추천은 운동 기록·선택한 목표와 시범 계산 규칙을 바탕으로 생성한 훈련 계획입니다. 일부 자극·회복 점수는 아직 과학적으로 검증된 개인 예측값이 아니며, 미확정 중량은 직접 입력할 수 있습니다."
@@ -22,6 +22,9 @@ internal object BCoachV2Policy {
     const val NEED_UPPER_RATIO = 1.20
     const val RECOVERY_WEEK_MULTIPLIER = 0.75
     const val UNKNOWN_RESISTANCE_SET_CREDIT = 0.75
+    const val INITIAL_LOAD_CONSERVATIVE_FACTOR = 0.97
+    const val FOLLOW_UP_SET_2_TO_3_FACTOR = 0.985
+    const val FOLLOW_UP_SET_4_TO_5_FACTOR = 0.97
     const val MAX_PER_EXERCISE_SETS = 5
     const val MAX_WEEK_TO_WEEK_ADDED_SETS = 2
     const val MAX_SHOWN_ALTERNATIVES = 2
@@ -124,6 +127,15 @@ enum class BCoachEvidenceStatus {
     NOT_APPLICABLE
 }
 
+enum class BCoachLoadSource {
+    USER_FIXED,
+    PERSONAL_MODEL,
+    DIRECT_HISTORY_ESTIMATE,
+    HISTORY_HOLD,
+    CALIBRATION_REQUIRED,
+    NON_LOAD_METRIC
+}
+
 sealed interface BCoachV2LoadInstruction {
     val evidenceStatus: BCoachEvidenceStatus
     val sourceVersion: String
@@ -133,6 +145,11 @@ sealed interface BCoachV2LoadInstruction {
         val kg: Double,
         val tier: String,
         val targetRir: Double,
+        val loadSource: BCoachLoadSource = BCoachLoadSource.PERSONAL_MODEL,
+        val capacityKg: Double? = null,
+        val expectedRir: Double? = null,
+        val conservativeFactor: Double = 1.0,
+        val followUpSetFactor: Double = 1.0,
         override val evidenceStatus: BCoachEvidenceStatus,
         override val sourceVersion: String,
         override val evidenceIds: List<String>
@@ -141,6 +158,7 @@ sealed interface BCoachV2LoadInstruction {
     data class HoldLastConfirmed(
         val kg: Double,
         val sourceDate: String,
+        val loadSource: BCoachLoadSource = BCoachLoadSource.HISTORY_HOLD,
         override val evidenceStatus: BCoachEvidenceStatus = BCoachEvidenceStatus.OBSERVED,
         override val sourceVersion: String = BCoachV2Policy.POLICY_VERSION,
         override val evidenceIds: List<String> = emptyList()
@@ -148,6 +166,7 @@ sealed interface BCoachV2LoadInstruction {
 
     data class Calibrate(
         val reason: String,
+        val loadSource: BCoachLoadSource = BCoachLoadSource.CALIBRATION_REQUIRED,
         override val evidenceStatus: BCoachEvidenceStatus = BCoachEvidenceStatus.MISSING_CALIBRATE,
         override val sourceVersion: String = BCoachV2Policy.POLICY_VERSION,
         override val evidenceIds: List<String> = emptyList()
@@ -156,6 +175,7 @@ sealed interface BCoachV2LoadInstruction {
     data class NonLoadMetric(
         val metric: String,
         val value: Double,
+        val loadSource: BCoachLoadSource = BCoachLoadSource.NON_LOAD_METRIC,
         override val evidenceStatus: BCoachEvidenceStatus = BCoachEvidenceStatus.POLICY_ASSUMED,
         override val sourceVersion: String = BCoachV2Policy.POLICY_VERSION,
         override val evidenceIds: List<String> = emptyList()

@@ -1,15 +1,28 @@
-# B-Coach v2 multi-objective production completion
+# B-Coach v2.1 multi-objective production completion
 
 ## Scope and release identity
 
 - Branch: `feat/b-coach-v2-global-optimizer`
-- Base commit: `f3fcd179e0701bd83859714f72e67ed0576c0701`
-- Engine: `B_COACH_V2_GLOBAL_OPT`
-- Frozen policy: `B_COACH_V2_POLICY_2026_11_15`
+- Base commit: `a1088bbf5665b5034c941186cdad9a1a455067c3`
+- Engine: `B_COACH_V2_1_GLOBAL_OPT`
+- Frozen policy: `B_COACH_V2_1_POLICY_2026_11_15`
 - Coefficient provenance: `PRODUCT_HEURISTIC_NOT_CLINICAL`
 - Request authority: `B_Coach_v2_Implementation_Codex_Instruction_2026-11-15.md` and the pasted Codex request. The design/equation documents are implementation references.
 
-This replaces the earlier review-gate scorer with one production path. The existing safe B plan and joint optimizer remain seed providers; v2 resolves typed load evidence, computes complete four-week Need and dose, rejects hard-constraint failures, scores eight finite losses in three scenarios, forms a Pareto frontier, and recommends by minimax regret. Nothing is persisted until the user selects a concrete candidate and explicitly approves it.
+This keeps the v2 production optimizer and corrects the prescription inputs used by it. The existing safe B plan and joint optimizer remain seed providers; v2.1 resolves each candidate's actual per-set load and RIR before Need, recovery, eight-axis, Pareto, and minimax-regret evaluation. Nothing is persisted until the user selects a concrete candidate and explicitly approves it.
+
+## v2.1 correction record
+
+- Capacity and training load are separate. A personal repetition curve is preferred; otherwise same-`stableKey` confirmed history can supply an Epley lower-bound capacity estimate. The stored capacity is not reduced by the prescription heuristic.
+- First-set training load is `floor(0.97 * capacity * relativeLoad / equipmentStep) * equipmentStep`. The Epley fallback uses `relativeLoad = 1 / (1 + (reps + RIR) / 30)`.
+- Default follow-up factors are `0.985` for sets 2-3 and `0.97` for sets 4-5, floored again to the actual equipment grid. Two or more matching same-exercise sessions replace the default with the median observed set-to-first-set ratio.
+- `setPrescriptions` is authoritative. `USER_FIXED`, `PERSONAL_MODEL`, `DIRECT_HISTORY_ESTIMATE`, `HISTORY_HOLD`, `CALIBRATION_REQUIRED`, and `NON_LOAD_METRIC` are distinct sources; `EXPLICIT_LOAD` alone is not treated as manual authority.
+- Candidate search resolves loads after every set/repetition mutation. Its local cache key binds the full raw prescription, request/history/equipment input fingerprint, model source/evidence versions, staleness, and RIR-policy version. Progression scoring reads per-set RIR/intensity maps.
+- Need personalization now admits a week only when that specific task has positive related evidence. Unrelated lower-body weeks therefore cannot lower chest/back/direct-core Need, while a new plan's zero dose still produces a real deficit.
+- Recovery dates use an explicit planning start when supplied; otherwise the audit records and uses the next Monday after the cutoff. Monday remains `1` and Sunday `7`. Calendar application recalculates all three recovery scenarios for the actual applied start date and stores them under `applicationRecoveryAudit` without pretending that this recovery-only refresh reran Pareto selection.
+- `V22ProgramPlanningService` passes the linked-evidence-enriched `coachRequest` through skeleton construction, model reading, optimization, and diagnostics. Accepted alternatives store their own set-load instructions and full fingerprint. Post-approval load edits are preserved and mark `scoresReflectCurrentPrescription=false` unless the plan is regenerated.
+
+Epley regression fixture for capacity `180 kg`, `2.5 kg` grid, factor `0.97`: `5@RIR3=137.5`, `8@RIR3=127.5`, `10@RIR3=120`, `12@RIR3=115`, and `8@RIR4=122.5 kg`. The default three-set `8@RIR3` prescription is `127.5 / 125 / 125 kg`.
 
 ## Production call chain
 
@@ -24,9 +37,9 @@ The proposal fingerprint binds the baseline, recommended candidate, full request
 | Goal importance | Missing values use the existing B recommendation when confirmed history exists; otherwise `3`. All four effective values are normalized. |
 | Need | Task-level center `D0`, up to four complete history weeks, max 0.5 personal blend, stage/recovery multiplier, and `[floor(0.85D), ceil(1.20D)]`. PEAK is explicitly exempt with zero Need. |
 | Effective dose | Canonical muscle/core/badminton relations; repeated aliases use max credit per muscle. Unknown resistance receives `0.75` set credit, never zero. |
-| Load | Exact stableKey only. Tier A is four frozen keys; Tier B uses a current local posterior; Tier C holds a recent same-exercise load; Tier D uses a non-load metric; otherwise typed calibration. |
+| Load | Exact stableKey only. Tier A/B use current personal models and curves. Tier C estimates capacity from recent same-exercise history when a real grid exists, otherwise holds same-exercise load. Tier D uses a non-load metric; otherwise typed calibration. |
 | Weighted pull-up | A future/current bodyweight is never fabricated. Without current bodyweight, a model-derived total-system load is downgraded to calibration; a recent same-exercise external load may still be held. |
-| Recovery | Six canonical axes, four-day kernels, explicit planned/recent separation, q75 normalization, and max/mean pressure diagnostics. No clinical cap or injury probability is claimed. |
+| Recovery | Six canonical axes, four-day kernels, next-Monday or explicit-start calendar mapping, planned/recent separation, q75 normalization, and max/mean pressure diagnostics. No clinical cap or injury probability is claimed. |
 | Objectives | Goal deficit `.40`, excess `.09`, progression `.16`, recovery `.14`, ramp `.07`, execution `.06`, plan change `.04`, uncertainty `.04`; sum `1.0`. |
 | Scenarios | `LOW_STRESS`, `BASE`, `HIGH_STRESS`; Need, indirect credit, recovery kernels, and model capacity/RIR vary by scenario. |
 | Selection | Hard-constraint filter → Pareto frontier → three-scenario minimax regret → deterministic ties by base loss, anchors, change count, and canonical hash. |
@@ -37,9 +50,9 @@ Exact visible disclaimer:
 
 > 이 추천은 운동 기록·선택한 목표와 시범 계산 규칙을 바탕으로 생성한 훈련 계획입니다. 일부 자극·회복 점수는 아직 과학적으로 검증된 개인 예측값이 아니며, 미확정 중량은 직접 입력할 수 있습니다.
 
-## Concrete three-candidate decision fixture
+## Historical v2 three-candidate decision fixture
 
-The following values were emitted by `T44` from the production selector with identical inputs: a two-week squat fixture, confirmed same-exercise `100 kg` evidence, effective goal importance `3/3/3/3`, and cutoff `2026-11-15`. Values are rounded here only for readability; canonical hashes and stored doubles are unrounded.
+The following values were emitted by `T44` before the v2.1 prescription correction. They are retained only as the v2 baseline comparison; v2.1 deliberately changes versioned fingerprints and may change losses when an equipment grid permits calculated loads.
 
 | Candidate | Prescription and load evidence | Eight BASE losses `(deficit, excess, progression, recovery, ramp, execution, change, uncertainty)` | Scenario weighted losses `(low, base, high)` | Pareto / regret | Result |
 |---|---|---|---|---|---|
@@ -115,20 +128,35 @@ All rows are executable methods in `BCoachMultiobjectiveProductionTest`. `PASS` 
 
 An additional persistence test rejects both evidence drift (`B_COACH_ACCEPTANCE_HISTORY_STALE`) and post-approval structural edits (`B_COACH_ACCEPTANCE_STRUCTURE_STALE`). The Compose UI test verifies the exact disclaimer, concrete prescription and axis detail, selectable alternatives, and explicit approval.
 
+## v2.1 counterexamples T45-T54
+
+| ID | Covered counterexample | Result |
+|---|---|---|
+| T45 | Epley intermediate calculation, 0.97 factor, down-grid, and all five 180 kg fixtures. | PASS |
+| T46 | A personal repetition curve wins over Epley and capacity remains 180 kg. | PASS |
+| T47 | No-RPE direct history becomes a labeled completed-reps lower bound, not a failure claim. | PASS |
+| T48 | User-fixed `60/80/100 kg` sets remain distinct and item-level weight cannot overwrite them. | PASS |
+| T49 | Default automatic three-set output is `127.5/125/125 kg`. | PASS |
+| T50 | `8 -> 10` reps recomputes load, per-set RIR, and progression score; repeated input is deterministic. | PASS |
+| T51 | Two lower-body weeks personalize quads but leave chest Need at its default; zero chest plan dose still creates deficit. | PASS |
+| T52 | Wednesday/Sunday generation maps to the same next Monday; explicit start changes recovery and input fingerprint. | PASS |
+| T53 | Each chosen alternative persists its own set loads/fingerprint; later manual kg edits invalidate the old score claim. | PASS |
+| T54 | Two matching multi-set sessions replace the default follow-up factor with the observed median. | PASS |
+
 ## Validation record
 
 Environment: Windows, Android Studio JBR 21, Android SDK `C:/Users/pki08/AppData/Local/Android/Sdk`.
 
-- `compileDebugKotlin` plus targeted `BCoachMultiobjectiveProductionTest` and `BCoachProductionReviewDialogUiTest`: **PASS**.
-- Full `testDebugUnitTest --rerun-tasks --no-daemon --max-workers=2`: **PASS**, 2,834 tests, 0 failures, 0 errors, 25 skips, 430 XML suites, 12m01s. Windows Robolectric workers used temporary `forkEvery=1` / `maxParallelForks=2` isolation after reproducing a `robolectric-nativeruntime.dll` access violation; both temporary lines were removed immediately after the passing run.
-- `lintDebug assembleDebug compileReleaseKotlin compileDebugAndroidTestKotlin --no-daemon --max-workers=2`: **PASS**, 4m49s. Lint: 0 errors, 209 warnings, 22 information findings.
-- Debug APK: `app/build/outputs/apk/debug/app-debug.apk`, 74,392,297 bytes, SHA-256 `365E0CD748CD67453382E742D7197BA4932989BF5528AEC5F1613087DFA2086D`.
-- The official `tools/generate_metadata_analysis_contract_audit.ps1 -CompatibilityOnly` exporter regenerated the current `progressMetricType` consumer inventory; the final contract test passed.
+- Targeted `BCoachMultiobjectiveProductionTest`, `BCoachProductionReviewDialogUiTest`, and the reviewed-candidate Room save/reopen/calendar integration: **PASS**.
+- Final full `testDebugUnitTest --rerun-tasks --no-daemon --max-workers=2`: **PASS**, 2,844 tests, 0 failures, 0 errors, 25 skips, 430 XML suites, 12m06s. Windows Robolectric workers used temporary `forkEvery=1` / `maxParallelForks=2` isolation; both temporary lines were removed immediately after the passing run.
+- Final `lintDebug assembleDebug compileReleaseKotlin compileDebugAndroidTestKotlin --no-daemon --max-workers=2`: **PASS**, 5m07s. Lint: 0 errors, 209 warnings, 22 information findings.
+- Debug APK: `app/build/outputs/apk/debug/app-debug.apk`, 74,392,204 bytes, SHA-256 `26A67B1BBD4E1DC5B787CDE2A575DC86FB88A8D0DBA2F6E136155309250B3A8F`.
 - `adb devices -l` returned no connected device, so `connectedDebugAndroidTest` and real-device interaction were not run.
 
 ## Explicit limitations
 
 - Need, recovery, effort, and uncertainty coefficients are frozen product heuristics, not clinical or injury predictions.
-- Unknown starting loads remain calibration-required; exact kg is emitted only from user-fixed load, current exact-stableKey model evidence with a known equipment grid, or a recent same-exercise hold.
+- Unknown starting loads remain calibration-required; exact kg is emitted only from user-fixed load, current exact-stableKey model evidence with a known equipment grid, or recent same-exercise history. Direct-history Epley estimates remain labeled lower bounds when RPE is absent.
 - The optimizer does not invent future bodyweight, unavailable equipment, cross-exercise capacity, or independent follow-up-set success probabilities.
 - Real-device interaction is outside the local JVM/Compose validation unless a device is connected.
+- Calendar application refreshes the recovery axis for the actual start date, but it does not rerun candidate search or Pareto/minimax selection after approval.

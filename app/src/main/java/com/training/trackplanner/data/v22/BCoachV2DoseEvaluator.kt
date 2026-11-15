@@ -27,7 +27,8 @@ internal data class BCoachV2CandidateEvaluation(
     val effectiveSetBreakdown: List<String>,
     val hardConstraints: List<BCoachConstraintResult>,
     val reasonCodes: List<String>,
-    val maximumDayMinutes: Double
+    val maximumDayMinutes: Double,
+    val planningStartDate: LocalDate
 ) {
     val baseAxes: Map<BCoachObjectiveAxis, Double>
         get() = axesByScenario.getValue(BCoachV2Scenario.BASE)
@@ -74,6 +75,10 @@ internal object BCoachV2DoseEvaluator {
         baseIntensityByLocalId: Map<String, Double> = emptyMap(),
         rirByScenario: Map<BCoachV2Scenario, Map<String, Double>> = emptyMap(),
         intensityByScenario: Map<BCoachV2Scenario, Map<String, Double>> = emptyMap(),
+        baseRirBySetId: Map<String, Double> = emptyMap(),
+        baseIntensityBySetId: Map<String, Double> = emptyMap(),
+        rirByScenarioAndSet: Map<BCoachV2Scenario, Map<String, Double>> = emptyMap(),
+        intensityByScenarioAndSet: Map<BCoachV2Scenario, Map<String, Double>> = emptyMap(),
         rirPolicy: RpeRirPolicy? = null
     ): BCoachV2CandidateEvaluation {
         val historyAtCutoff = history.filter { !it.date.isAfter(request.asOf) }
@@ -100,7 +105,9 @@ internal object BCoachV2DoseEvaluator {
                 plan,
                 mainExerciseKeys,
                 rirByScenario[scenario] ?: baseRirByLocalId,
-                intensityByScenario[scenario] ?: baseIntensityByLocalId
+                intensityByScenario[scenario] ?: baseIntensityByLocalId,
+                rirByScenarioAndSet[scenario] ?: baseRirBySetId,
+                intensityByScenarioAndSet[scenario] ?: baseIntensityBySetId
             )
         }
         val progressionSpread = progressionByScenario.values.let { values ->
@@ -211,7 +218,8 @@ internal object BCoachV2DoseEvaluator {
             effectiveSetBreakdown = breakdown,
             hardConstraints = constraints,
             reasonCodes = reasons.toList().sorted(),
-            maximumDayMinutes = baseSchedule.maximumDayMinutes
+            maximumDayMinutes = baseSchedule.maximumDayMinutes,
+            planningStartDate = baseSchedule.planningStartDate
         )
     }
 
@@ -241,11 +249,13 @@ internal object BCoachV2DoseEvaluator {
         val rowsByWeek = completeWeeks.associateWith { start ->
             history.filter { it.date in start..start.plusDays(6) }
         }
-        val validWeekStarts = completeWeeks.filter { rowsByWeek.getValue(it).isNotEmpty() }
         return taskDefinitions.map { (id, goal) ->
             val d0 = BCoachV2Policy.d0(goal, importance.getValue(goal))
-            val weekly = validWeekStarts.map { start ->
-                rowsByWeek.getValue(start).sumOf { row -> historyDose(row, id, goal, context) }
+            val weekly = completeWeeks.mapNotNull { start ->
+                val taskDoses = rowsByWeek.getValue(start).map { row ->
+                    historyDose(row, id, goal, context)
+                }
+                taskDoses.sum().takeIf { taskDoses.any { it > 0.0 } }
             }
             val center = BCoachV2Policy.personalizedCenter(d0, weekly, BCoachV2Policy.dMax(goal))
             Task(
@@ -369,17 +379,22 @@ internal object BCoachV2DoseEvaluator {
         plan: GeneratedProgramSkeleton,
         mainExerciseKeys: Set<String>,
         rirByLocalId: Map<String, Double>,
-        intensityByLocalId: Map<String, Double>
+        intensityByLocalId: Map<String, Double>,
+        rirBySetId: Map<String, Double>,
+        intensityBySetId: Map<String, Double>
     ): Double {
         val mains = plan.items.filter { it.exerciseStableKey in mainExerciseKeys }
         if (mains.isEmpty()) return 0.0
-        return mains.map { item ->
-            val rir = rirByLocalId[item.localId] ?: return@map 0.35
-            val bounds = if ("SPORT" in item.selectionRole) 2.0..4.0 else 1.0..3.0
-            val rirDistance = intervalDistance(rir, bounds.start, bounds.endInclusive) / 4.0
-            val intensity = intensityByLocalId[item.localId]
-            if (intensity == null || "STRENGTH" !in item.selectionRole) rirDistance.unitInterval()
-            else (rirDistance + 0.5 * intervalDistance(intensity, 0.80, 1.0) / 0.20).unitInterval()
+        return mains.flatMap { item ->
+            ProgramSetPrescriptionResolver.resolve(item).map { set ->
+                val setId = BCoachV2LoadCandidateResolver.setId(item.localId, set.setIndex)
+                val rir = rirBySetId[setId] ?: rirByLocalId[item.localId] ?: return@map 0.35
+                val bounds = if ("SPORT" in item.selectionRole) 2.0..4.0 else 1.0..3.0
+                val rirDistance = intervalDistance(rir, bounds.start, bounds.endInclusive) / 4.0
+                val intensity = intensityBySetId[setId] ?: intensityByLocalId[item.localId]
+                if (intensity == null || "STRENGTH" !in item.selectionRole) rirDistance.unitInterval()
+                else (rirDistance + 0.5 * intervalDistance(intensity, 0.80, 1.0) / 0.20).unitInterval()
+            }
         }.averageOrZero().unitInterval()
     }
 

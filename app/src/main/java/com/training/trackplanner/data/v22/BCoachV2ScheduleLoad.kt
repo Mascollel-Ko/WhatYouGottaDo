@@ -2,18 +2,28 @@ package com.training.trackplanner.data.v22
 
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.GeneratedProgramSkeleton
+import com.training.trackplanner.data.ProgramGoal
+import com.training.trackplanner.data.ProgramPeriodizationType
 import com.training.trackplanner.data.ProgramSetPrescriptionResolver
+import com.training.trackplanner.data.ProgramSkeletonRequest
 import com.training.trackplanner.data.ProgramSkeletonItem
+import com.training.trackplanner.data.TrainingProgram
+import com.training.trackplanner.data.TrainingProgramItem
+import com.training.trackplanner.data.TrainingProgramItemSet
 import java.time.LocalDate
+import java.time.DayOfWeek
+import java.time.temporal.TemporalAdjusters
 import kotlin.math.ceil
 import kotlin.math.max
+import org.json.JSONObject
 
 internal data class BCoachV2ScheduleEvaluation(
     val recoveryScore: Double,
     val maximumDayMinutes: Double,
     val dayMinutes: Map<String, Double>,
     val daysOverLimit: Int,
-    val unmappedAxisExerciseCount: Int
+    val unmappedAxisExerciseCount: Int,
+    val planningStartDate: LocalDate
 )
 
 internal object BCoachV2ScheduleLoad {
@@ -34,7 +44,8 @@ internal object BCoachV2ScheduleLoad {
         exercises: Map<String, Exercise>,
         scenario: BCoachV2Scenario
     ): BCoachV2ScheduleEvaluation {
-        val start = request.asOf.plusDays(1)
+        val start = request.planningStartDate
+            ?: request.asOf.with(TemporalAdjusters.next(DayOfWeek.MONDAY))
         fun plannedDate(item: ProgramSkeletonItem): LocalDate =
             start.plusDays((item.weekNumber - 1L) * 7L + (item.dayOfWeek - 1L))
         fun loadByDate(items: List<ProgramSkeletonItem>): Map<LocalDate, Map<String, Double>> =
@@ -87,7 +98,8 @@ internal object BCoachV2ScheduleLoad {
             dayMinutes = minutes,
             daysOverLimit = minutes.values.count { it > cap + 1e-9 },
             unmappedAxisExerciseCount = plan.items.map(ProgramSkeletonItem::exerciseStableKey).distinct()
-                .count { exercises[it] == null }
+                .count { exercises[it] == null },
+            planningStartDate = start
         )
     }
 
@@ -116,4 +128,99 @@ internal object BCoachV2ScheduleLoad {
     }
 
     private fun List<Double>.averageOrZero(): Double = if (isEmpty()) 0.0 else average()
+}
+
+/** Re-scores only the recovery axis against the calendar start chosen during application. */
+internal object BCoachV2ApplicationRecoveryAudit {
+    fun evidenceCutoff(metadataJson: String?): LocalDate? {
+        val decision = runCatching { JSONObject(metadataJson ?: return null) }
+            .getOrNull()?.optJSONObject("bCoachMultiobjectiveDecision") ?: return null
+        if (!decision.optString("engineVersion").startsWith("B_COACH_V2")) return null
+        return runCatching { LocalDate.parse(decision.getString("evidenceCutoff")) }.getOrNull()
+    }
+
+    fun refresh(
+        program: TrainingProgram,
+        items: List<TrainingProgramItem>,
+        storedSets: List<TrainingProgramItemSet>,
+        applicationStartDate: LocalDate,
+        cutoff: LocalDate,
+        history: List<V22HistoryRow>,
+        exercises: Map<String, Exercise>
+    ): String? {
+        val root = runCatching { JSONObject(program.planningMetadataJson ?: return null) }.getOrNull()
+            ?: return null
+        val decision = root.optJSONObject("bCoachMultiobjectiveDecision") ?: return null
+        val weeks = ((program.durationDays.coerceAtLeast(1) + 6) / 7).coerceAtLeast(1)
+        val skeletonRequest = ProgramSkeletonRequest(
+            name = program.name,
+            goal = ProgramGoal.FUNCTIONAL_CONDITIONING,
+            weeklyTrainingDays = program.weeklyTrainingDays.coerceIn(1, 7),
+            sessionMinutes = program.sessionMinutes.coerceAtLeast(15),
+            availableEquipment = emptySet(),
+            excludedExerciseText = "",
+            badmintonTransferRatio = program.badmintonTransferRatio,
+            sportStrengthRatio = program.sportStrengthRatio,
+            periodizationType = ProgramPeriodizationType.AUTO,
+            durationWeeks = weeks
+        )
+        val setsByItem = storedSets.groupBy(TrainingProgramItemSet::programItemId)
+        val skeleton = GeneratedProgramSkeleton(
+            suggestedName = program.name,
+            durationDays = program.durationDays,
+            request = skeletonRequest,
+            periodizationType = ProgramPeriodizationType.AUTO,
+            weekPlans = emptyList(),
+            items = items.map { item ->
+                ProgramSkeletonItem(
+                    localId = "persisted-${item.id}",
+                    weekNumber = item.weekNumber,
+                    dayOfWeek = item.dayOfWeek,
+                    orderIndex = item.orderIndex,
+                    exerciseStableKey = item.exerciseStableKey,
+                    exerciseName = item.exerciseName,
+                    category = item.category,
+                    restSeconds = item.restSeconds,
+                    prescription = item.prescription,
+                    setCount = item.setCount,
+                    reps = item.reps,
+                    weightKg = item.weightKg,
+                    seconds = item.seconds,
+                    selectionReason = "PERSISTED_B_COACH_APPLICATION",
+                    weightSource = item.weightSource.orEmpty(),
+                    selectionRole = item.selectionRole.orEmpty(),
+                    setPrescriptions = ProgramSetPrescriptionResolver.resolve(
+                        item, setsByItem[item.id].orEmpty()
+                    )
+                )
+            },
+            planningMetadataJson = program.planningMetadataJson
+        )
+        val request = V22GenerationRequest(
+            name = program.name,
+            weeks = weeks,
+            days = program.weeklyTrainingDays.coerceIn(1, 7),
+            mode = V22Mode.B,
+            asOf = cutoff,
+            sessionMinutes = program.sessionMinutes.takeIf { it > 0 },
+            planningStartDate = applicationStartDate
+        )
+        val scores = BCoachV2Scenario.entries.associateWith { scenario ->
+            BCoachV2ScheduleLoad.evaluate(
+                skeleton, skeleton, request, history, exercises, scenario
+            )
+        }
+        decision.put("applicationRecoveryAudit", JSONObject()
+            .put("status", "RECALCULATED_FOR_APPLICATION_START")
+            .put("planningStartDate", applicationStartDate.toString())
+            .put("evidenceCutoff", cutoff.toString())
+            .put("scoreScope", "RECOVERY_AXIS_ONLY_NOT_PARETO_RESELECTION")
+            .put("scoresByScenario", JSONObject().also { output ->
+                scores.forEach { (scenario, evaluation) ->
+                    output.put(scenario.name, evaluation.recoveryScore)
+                }
+            })
+            .put("maximumDayMinutes", scores.getValue(BCoachV2Scenario.BASE).maximumDayMinutes))
+        return root.toString()
+    }
 }

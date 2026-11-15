@@ -2,6 +2,7 @@ package com.training.trackplanner.data.v22
 
 import com.training.trackplanner.analysis.strengthperformance.StrengthPerformanceRegistry
 import com.training.trackplanner.analysis.strengthperformance.StrengthPosteriorModel
+import com.training.trackplanner.analysis.strengthperformance.RpeRirPolicy
 import com.training.trackplanner.analysis.strengthperformance.curve.ResolvedRepetitionCurve
 import com.training.trackplanner.analysis.strengthperformance.curve.RepetitionCurveRegistry
 import com.training.trackplanner.analysis.strengthperformance.toPosterior
@@ -13,7 +14,7 @@ import com.training.trackplanner.data.StrengthModelRevisionPolicy
 import com.training.trackplanner.data.StrengthPosteriorDao
 import kotlin.math.abs
 import kotlin.math.exp
-import kotlin.math.round
+import kotlin.math.floor
 import kotlin.math.sqrt
 
 internal data class BCoachV2LoadModelSnapshot(
@@ -31,15 +32,28 @@ internal data class BCoachV2LoadModelSnapshot(
 internal data class BCoachV2LoadResolution(
     val skeleton: GeneratedProgramSkeleton,
     val instructionsByLocalId: Map<String, BCoachV2LoadInstruction>,
+    val instructionsBySetId: Map<String, BCoachV2LoadInstruction>,
     val baseRirByLocalId: Map<String, Double>,
     val baseIntensityByLocalId: Map<String, Double>,
     val rirByScenario: Map<BCoachV2Scenario, Map<String, Double>>,
     val intensityByScenario: Map<BCoachV2Scenario, Map<String, Double>>,
+    val baseRirBySetId: Map<String, Double>,
+    val baseIntensityBySetId: Map<String, Double>,
+    val rirByScenarioAndSet: Map<BCoachV2Scenario, Map<String, Double>>,
+    val intensityByScenarioAndSet: Map<BCoachV2Scenario, Map<String, Double>>,
     val reasonCodes: List<String>
 )
 
 /** Exact-stableKey load resolution only; it never borrows another exercise's capacity. */
 internal object BCoachV2LoadCandidateResolver {
+    private data class DirectHistoryEstimate(
+        val capacityKg: Double,
+        val sourceDate: String,
+        val evidenceId: String,
+        val hasRpeEvidence: Boolean,
+        val sourceVersion: String
+    )
+
     val canonicalTierAKeys = setOf(
         "barbell_back_squat",
         "barbell_deadlift",
@@ -53,105 +67,88 @@ internal object BCoachV2LoadCandidateResolver {
         history: List<V22HistoryRow>,
         exercises: Map<String, Exercise>,
         modelSnapshots: Map<String, BCoachV2LoadModelSnapshot> = emptyMap(),
-        mainExerciseKeys: Set<String> = emptySet()
+        mainExerciseKeys: Set<String> = emptySet(),
+        rirPolicy: RpeRirPolicy? = null
     ): BCoachV2LoadResolution {
-        val instructions = linkedMapOf<String, BCoachV2LoadInstruction>()
-        val baseRir = linkedMapOf<String, Double>()
-        val baseIntensity = linkedMapOf<String, Double>()
-        val scenarioRir = BCoachV2Scenario.entries.associateWith { linkedMapOf<String, Double>() }
-        val scenarioIntensity = BCoachV2Scenario.entries.associateWith { linkedMapOf<String, Double>() }
+        val instructionsByItem = linkedMapOf<String, BCoachV2LoadInstruction>()
+        val instructionsBySet = linkedMapOf<String, BCoachV2LoadInstruction>()
+        val baseRirBySet = linkedMapOf<String, Double>()
+        val baseIntensityBySet = linkedMapOf<String, Double>()
+        val scenarioRirBySet = BCoachV2Scenario.entries.associateWith { linkedMapOf<String, Double>() }
+        val scenarioIntensityBySet = BCoachV2Scenario.entries.associateWith { linkedMapOf<String, Double>() }
         val reasons = linkedSetOf<String>()
         val recentStart = request.asOf.minusDays(55)
 
         val resolvedItems = skeleton.items.map { item ->
             val exercise = exercises[item.exerciseStableKey]
             val sets = ProgramSetPrescriptionResolver.resolve(item)
-            val representativeReps = sets.map { it.reps }.filter { it > 0 }.let { values ->
-                values.sorted().getOrNull(values.size / 2) ?: item.reps.coerceAtLeast(1)
+            val model = modelSnapshots[item.exerciseStableKey]
+            val step = equipmentStep(request, item.exerciseStableKey, exercise)
+            val recentRows = history.filter { row ->
+                row.stableKey == item.exerciseStableKey && row.date in recentStart..request.asOf &&
+                    row.weightKg?.let { it.isFinite() && it > 0.0 } == true &&
+                    row.reps?.let { it.isFinite() && it > 0.0 } == true
             }
-            val existingExplicit = sets.firstOrNull {
-                it.loadState == ProgramLoadState.EXPLICIT_LOAD && it.weightKg.isFinite() && it.weightKg > 0.0
-            }
-            val nonLoadMetric = nonLoadMetric(item.seconds, representativeReps, exercise)
-            val targetRir = targetRir(item.selectionRole, item.exerciseStableKey in mainExerciseKeys)
-            val targetRpe = 10.0 - targetRir
-            val instruction = when {
-                existingExplicit != null -> BCoachV2LoadInstruction.ExactLoad(
-                    kg = existingExplicit.weightKg,
-                    tier = "USER_FIXED",
-                    targetRir = targetRir,
-                    evidenceStatus = BCoachEvidenceStatus.OBSERVED,
-                    sourceVersion = "USER_FIXED_LOAD",
-                    evidenceIds = listOf(item.localId)
-                )
-                nonLoadMetric != null -> BCoachV2LoadInstruction.NonLoadMetric(
-                    metric = nonLoadMetric.first,
-                    value = nonLoadMetric.second
-                )
-                else -> {
-                    val model = modelSnapshots[item.exerciseStableKey]
-                    val step = equipmentStep(request, item.exerciseStableKey, exercise)
-                    val requiresCurrentBodyweight = item.exerciseStableKey == "ex_e41f4c2b"
-                    val modeled = if (model != null && !model.stale && step != null &&
-                        !requiresCurrentBodyweight
-                    ) {
-                        modelCandidate(model, representativeReps, targetRir, step)
-                    } else null
-                    if (modeled != null) {
-                        val availableModel = checkNotNull(model)
-                        val rir = predictedRir(
-                            availableModel.curve, availableModel.capacityBase, modeled, representativeReps
-                        )
-                        baseRir[item.localId] = rir
-                        baseIntensity[item.localId] =
-                            (modeled / availableModel.capacityBase).coerceIn(0.0, 1.5)
-                        BCoachV2Scenario.entries.forEach { scenario ->
-                            val capacity = when (scenario) {
-                                BCoachV2Scenario.LOW_STRESS -> availableModel.capacityHigh
-                                BCoachV2Scenario.BASE -> availableModel.capacityBase
-                                BCoachV2Scenario.HIGH_STRESS -> availableModel.capacityLow
-                            }
-                            scenarioRir.getValue(scenario)[item.localId] = predictedRir(
-                                availableModel.curve, capacity, modeled, representativeReps
-                            )
-                            scenarioIntensity.getValue(scenario)[item.localId] =
-                                (modeled / capacity).coerceIn(0.0, 1.5)
-                        }
-                        BCoachV2LoadInstruction.ExactLoad(
-                            kg = modeled,
-                            tier = availableModel.tier,
-                            targetRir = targetRir,
-                            evidenceStatus = BCoachEvidenceStatus.MODEL_ESTIMATED,
-                            sourceVersion = availableModel.sourceVersion,
-                            evidenceIds = availableModel.evidenceIds
-                        )
-                    } else {
-                        if (model?.stale == true) reasons += "STALE_MODEL:${item.exerciseStableKey}"
-                        if (model != null && step == null) reasons += "EQUIPMENT_GRID_REQUIRED:${item.exerciseStableKey}"
-                        if (model != null && requiresCurrentBodyweight) reasons +=
-                            "CURRENT_BODYWEIGHT_REQUIRED:${item.exerciseStableKey}"
-                        tierCHold(
-                            item.exerciseStableKey,
-                            representativeReps,
-                            history.filter { row ->
-                                row.stableKey == item.exerciseStableKey &&
-                                    row.date in recentStart..request.asOf &&
-                                    row.weightKg?.let { it.isFinite() && it > 0.0 } == true &&
-                                    row.reps?.let { it.isFinite() && it > 0.0 } == true
-                            }
-                        ) ?: BCoachV2LoadInstruction.Calibrate(
-                            when {
-                                model?.stale == true -> "STALE_MODEL_NO_RECENT_SAME_EXERCISE_LOAD"
-                                requiresCurrentBodyweight -> "CURRENT_BODYWEIGHT_REQUIRED_FOR_TOTAL_SYSTEM_LOAD"
-                                step == null -> "EQUIPMENT_GRID_OR_SAME_EXERCISE_HISTORY_REQUIRED"
-                                else -> "SAME_EXERCISE_LOAD_EVIDENCE_REQUIRED"
-                            }
-                        )
-                    }
-                }
-            }
-            instructions[item.localId] = instruction
+            val directEstimate = directHistoryEstimate(item.exerciseStableKey, recentRows, rirPolicy)
+            if (directEstimate != null && !directEstimate.hasRpeEvidence) reasons +=
+                "DIRECT_HISTORY_COMPLETED_REPS_LOWER_BOUND:${item.exerciseStableKey}"
+            val userFixed = isUserFixed(item.weightSource)
+            val requiresCurrentBodyweight = item.exerciseStableKey == "ex_e41f4c2b"
+            if (model?.stale == true) reasons += "STALE_MODEL:${item.exerciseStableKey}"
+            if (model != null && step == null) reasons += "EQUIPMENT_GRID_REQUIRED:${item.exerciseStableKey}"
+            if (model != null && requiresCurrentBodyweight) reasons +=
+                "CURRENT_BODYWEIGHT_REQUIRED:${item.exerciseStableKey}"
+
             val updatedSets = sets.map { set ->
+                val setId = setId(item.localId, set.setIndex)
+                val observedTargetRir = set.targetRpeMin?.takeIf { it.isFinite() && it in 1.0..10.0 }
+                    ?.let { 10.0 - it }
+                val hasStrongEvidence = model?.stale == false || directEstimate?.hasRpeEvidence == true
+                val targetRir = observedTargetRir ?: targetRir(
+                    item.selectionRole, item.exerciseStableKey in mainExerciseKeys, hasStrongEvidence
+                )
+                val observedSetFactor = observedFollowUpFactor(set.setIndex, set.reps, recentRows)
+                val setFactor = observedSetFactor ?: followUpSetFactor(set.setIndex)
+                if (observedSetFactor != null) reasons +=
+                    "OBSERVED_FOLLOW_UP_FACTOR:${item.exerciseStableKey}:set=${set.setIndex}"
+                val targetRpe = 10.0 - targetRir
+                val nonLoadMetric = nonLoadMetric(set.seconds, set.reps, exercise)
+                val instruction = when {
+                    userFixed && set.loadState == ProgramLoadState.EXPLICIT_LOAD &&
+                        set.weightKg.isFinite() && set.weightKg > 0.0 -> BCoachV2LoadInstruction.ExactLoad(
+                        kg = set.weightKg,
+                        tier = "USER_FIXED",
+                        targetRir = targetRir,
+                        loadSource = BCoachLoadSource.USER_FIXED,
+                        expectedRir = model?.takeIf { !it.stale }?.let {
+                            predictedRir(it.curve, it.capacityBase, set.weightKg, set.reps)
+                        },
+                        evidenceStatus = BCoachEvidenceStatus.OBSERVED,
+                        sourceVersion = "USER_FIXED_LOAD",
+                        evidenceIds = listOf(setId)
+                    )
+                    nonLoadMetric != null -> BCoachV2LoadInstruction.NonLoadMetric(
+                        metric = nonLoadMetric.first,
+                        value = nonLoadMetric.second
+                    )
+                    model != null && !model.stale && step != null && !requiresCurrentBodyweight -> {
+                        val kg = modelCandidate(model, set.reps, targetRir, step, setFactor)
+                        kg?.let { load -> modelInstruction(model, setId, set.reps, targetRir, load, setFactor) }
+                            ?: fallbackInstruction(
+                                item.exerciseStableKey, set.reps, recentRows, directEstimate, targetRir,
+                                step, set.setIndex, setFactor, model, requiresCurrentBodyweight
+                            )
+                    }
+                    else -> fallbackInstruction(
+                        item.exerciseStableKey, set.reps, recentRows, directEstimate, targetRir,
+                        step, set.setIndex, setFactor, model, requiresCurrentBodyweight
+                    )
+                }
+                instructionsBySet[setId] = instruction
+                instructionMetrics(
+                    instruction, model, set.reps, setId, baseRirBySet, baseIntensityBySet,
+                    scenarioRirBySet, scenarioIntensityBySet
+                )
                 when (instruction) {
                     is BCoachV2LoadInstruction.ExactLoad -> set.copy(
                         weightKg = instruction.kg,
@@ -171,34 +168,45 @@ internal object BCoachV2LoadCandidateResolver {
                     is BCoachV2LoadInstruction.NonLoadMetric -> set.copy(
                         weightKg = 0.0,
                         targetRpeMin = set.targetRpeMin,
-                        loadState = ProgramLoadState.USER_CALIBRATION_REQUIRED
+                        loadState = ProgramLoadState.NOT_APPLICABLE
                     )
                 }
             }
+            instructionsByItem[item.localId] = instructionsBySet.getValue(setId(item.localId, updatedSets.first().setIndex))
             val commonWeight = updatedSets.map { it.weightKg }.distinct().singleOrNull() ?: 0.0
+            val itemSources = updatedSets.map { set ->
+                when (val instruction = instructionsBySet.getValue(setId(item.localId, set.setIndex))) {
+                    is BCoachV2LoadInstruction.ExactLoad -> instruction.loadSource.name
+                    is BCoachV2LoadInstruction.HoldLastConfirmed -> BCoachLoadSource.HISTORY_HOLD.name
+                    is BCoachV2LoadInstruction.Calibrate -> BCoachLoadSource.CALIBRATION_REQUIRED.name
+                    is BCoachV2LoadInstruction.NonLoadMetric -> BCoachLoadSource.NON_LOAD_METRIC.name
+                }
+            }.distinct()
             item.copy(
                 weightKg = commonWeight,
-                weightSource = when (instruction) {
-                    is BCoachV2LoadInstruction.ExactLoad -> "B_COACH_V2_${instruction.tier}_MODEL"
-                    is BCoachV2LoadInstruction.HoldLastConfirmed -> "B_COACH_V2_TIER_C_HOLD"
-                    is BCoachV2LoadInstruction.Calibrate -> "USER_CALIBRATION_REQUIRED"
-                    is BCoachV2LoadInstruction.NonLoadMetric -> "B_COACH_V2_NON_LOAD_METRIC"
-                },
+                weightSource = if (itemSources.size == 1) itemSources.single() else "B_COACH_V2_SET_SPECIFIC",
                 setPrescriptions = updatedSets
             )
         }
+        val baseRirByItem = aggregateByItem(baseRirBySet)
+        val baseIntensityByItem = aggregateByItem(baseIntensityBySet)
         return BCoachV2LoadResolution(
             skeleton = skeleton.copy(items = resolvedItems),
-            instructionsByLocalId = instructions,
-            baseRirByLocalId = baseRir,
-            baseIntensityByLocalId = baseIntensity,
-            rirByScenario = scenarioRir,
-            intensityByScenario = scenarioIntensity,
+            instructionsByLocalId = instructionsByItem,
+            instructionsBySetId = instructionsBySet,
+            baseRirByLocalId = baseRirByItem,
+            baseIntensityByLocalId = baseIntensityByItem,
+            rirByScenario = scenarioRirBySet.mapValues { aggregateByItem(it.value) },
+            intensityByScenario = scenarioIntensityBySet.mapValues { aggregateByItem(it.value) },
+            baseRirBySetId = baseRirBySet,
+            baseIntensityBySetId = baseIntensityBySet,
+            rirByScenarioAndSet = scenarioRirBySet,
+            intensityByScenarioAndSet = scenarioIntensityBySet,
             reasonCodes = reasons.toList().sorted()
         )
     }
 
-    private fun equipmentStep(
+    internal fun equipmentStep(
         request: V22GenerationRequest,
         key: String,
         exercise: Exercise?
@@ -216,23 +224,48 @@ internal object BCoachV2LoadCandidateResolver {
         model: BCoachV2LoadModelSnapshot,
         reps: Int,
         targetRir: Double,
-        step: Double
+        step: Double,
+        followUpFactor: Double
     ): Double? {
         if (reps !in 1..20 || step <= 0.0) return null
         val relative = model.curve.evaluate(reps + targetRir).relativeLoad ?: return null
-        val target = model.capacityBase * relative
+        val firstSet = floorToStep(
+            model.capacityBase * relative * BCoachV2Policy.INITIAL_LOAD_CONSERVATIVE_FACTOR,
+            step
+        )
+        val target = floorToStep(firstSet * followUpFactor, step)
         if (!target.isFinite() || target <= 0.0) return null
-        val centerStep = round(target / step).toInt()
-        val candidates = (centerStep - 8..centerStep + 4).map { it * step }
-            .filter { it > 0.0 }.distinct().sorted()
-        return candidates.filter { load ->
-            listOf(model.capacityLow, model.capacityBase, model.capacityHigh).all { capacity ->
-                predictedRir(model.curve, capacity, load, reps).let { it.isFinite() && it >= 0.0 }
-            }
-        }.minWithOrNull(compareBy<Double> {
-            abs(predictedRir(model.curve, model.capacityBase, it, reps) - targetRir)
-        }.thenBy { abs(it - target) }.thenBy { it })
+        var candidate = target
+        while (candidate > 0.0 && listOf(model.capacityLow, model.capacityBase, model.capacityHigh).any { capacity ->
+                predictedRir(model.curve, capacity, candidate, reps).let { !it.isFinite() || it < 0.0 }
+            }) candidate -= step
+        return candidate.takeIf { it > 0.0 }
     }
+
+    internal fun epleyTrainingWeight(
+        capacityKg: Double,
+        reps: Int,
+        targetRir: Double,
+        step: Double,
+        setIndex: Int = 1,
+        followUpFactor: Double = followUpSetFactor(setIndex)
+    ): Double? {
+        if (!capacityKg.isFinite() || capacityKg <= 0.0 || reps !in 1..20 ||
+            !targetRir.isFinite() || targetRir < 0.0 || !step.isFinite() || step <= 0.0
+        ) return null
+        val base = capacityKg / (1.0 + (reps + targetRir) / 30.0)
+        val firstSet = floorToStep(base * BCoachV2Policy.INITIAL_LOAD_CONSERVATIVE_FACTOR, step)
+        return floorToStep(firstSet * followUpFactor, step).takeIf { it > 0.0 }
+    }
+
+    internal fun epleyEstimatedOneRepMax(weightKg: Double, reps: Double, rir: Double): Double? =
+        if (weightKg.isFinite() && weightKg > 0.0 && reps.isFinite() && reps in 1.0..20.0 &&
+            rir.isFinite() && rir >= 0.0
+        ) weightKg * (1.0 + (reps + rir) / 30.0) else null
+
+    private fun predictedRirEpley(capacityKg: Double, loadKg: Double, reps: Int): Double =
+        if (capacityKg > 0.0 && loadKg > 0.0 && reps > 0) 30.0 * (capacityKg / loadKg - 1.0) - reps
+        else Double.NaN
 
     internal fun predictedRir(
         curve: ResolvedRepetitionCurve,
@@ -256,6 +289,163 @@ internal object BCoachV2LoadCandidateResolver {
         }
         return (low + high) / 2.0 - plannedReps
     }
+
+    private fun modelInstruction(
+        model: BCoachV2LoadModelSnapshot,
+        setId: String,
+        reps: Int,
+        targetRir: Double,
+        load: Double,
+        followUpFactor: Double
+    ) = BCoachV2LoadInstruction.ExactLoad(
+        kg = load,
+        tier = model.tier,
+        targetRir = targetRir,
+        loadSource = BCoachLoadSource.PERSONAL_MODEL,
+        capacityKg = model.capacityBase,
+        expectedRir = predictedRir(model.curve, model.capacityBase, load, reps),
+        conservativeFactor = BCoachV2Policy.INITIAL_LOAD_CONSERVATIVE_FACTOR,
+        followUpSetFactor = followUpFactor,
+        evidenceStatus = BCoachEvidenceStatus.MODEL_ESTIMATED,
+        sourceVersion = model.sourceVersion,
+        evidenceIds = model.evidenceIds + setId
+    )
+
+    private fun fallbackInstruction(
+        stableKey: String,
+        reps: Int,
+        recentRows: List<V22HistoryRow>,
+        directEstimate: DirectHistoryEstimate?,
+        targetRir: Double,
+        step: Double?,
+        setIndex: Int,
+        followUpFactor: Double,
+        model: BCoachV2LoadModelSnapshot?,
+        requiresCurrentBodyweight: Boolean
+    ): BCoachV2LoadInstruction {
+        if (!requiresCurrentBodyweight && directEstimate != null && step != null) {
+            epleyTrainingWeight(
+                directEstimate.capacityKg, reps, targetRir, step, setIndex, followUpFactor
+            )?.let { kg ->
+                return BCoachV2LoadInstruction.ExactLoad(
+                    kg = kg,
+                    tier = "TIER_C_DIRECT_HISTORY",
+                    targetRir = targetRir,
+                    loadSource = BCoachLoadSource.DIRECT_HISTORY_ESTIMATE,
+                    capacityKg = directEstimate.capacityKg,
+                    expectedRir = predictedRirEpley(directEstimate.capacityKg, kg, reps),
+                    conservativeFactor = BCoachV2Policy.INITIAL_LOAD_CONSERVATIVE_FACTOR,
+                    followUpSetFactor = followUpFactor,
+                    evidenceStatus = if (directEstimate.hasRpeEvidence) BCoachEvidenceStatus.OBSERVED
+                        else BCoachEvidenceStatus.POLICY_ASSUMED,
+                    sourceVersion = directEstimate.sourceVersion,
+                    evidenceIds = listOf(directEstimate.evidenceId)
+                )
+            }
+        }
+        return tierCHold(stableKey, reps, recentRows) ?: BCoachV2LoadInstruction.Calibrate(
+            when {
+                requiresCurrentBodyweight -> "CURRENT_BODYWEIGHT_REQUIRED_FOR_TOTAL_SYSTEM_LOAD"
+                model?.stale == true -> "STALE_MODEL_NO_USABLE_DIRECT_HISTORY_ESTIMATE"
+                step == null -> "EQUIPMENT_GRID_OR_SAME_EXERCISE_HISTORY_REQUIRED"
+                else -> "SAME_EXERCISE_LOAD_EVIDENCE_REQUIRED"
+            }
+        )
+    }
+
+    private fun instructionMetrics(
+        instruction: BCoachV2LoadInstruction,
+        model: BCoachV2LoadModelSnapshot?,
+        reps: Int,
+        setId: String,
+        baseRir: MutableMap<String, Double>,
+        baseIntensity: MutableMap<String, Double>,
+        scenarioRir: Map<BCoachV2Scenario, MutableMap<String, Double>>,
+        scenarioIntensity: Map<BCoachV2Scenario, MutableMap<String, Double>>
+    ) {
+        if (instruction !is BCoachV2LoadInstruction.ExactLoad) return
+        val capacity = instruction.capacityKg ?: model?.takeIf { !it.stale }?.capacityBase ?: return
+        val useCurve = model != null && !model.stale &&
+            instruction.loadSource != BCoachLoadSource.DIRECT_HISTORY_ESTIMATE
+        fun rir(value: Double): Double = if (useCurve) {
+            predictedRir(checkNotNull(model).curve, value, instruction.kg, reps)
+        } else predictedRirEpley(value, instruction.kg, reps)
+        baseRir[setId] = rir(capacity)
+        baseIntensity[setId] = (instruction.kg / capacity).coerceIn(0.0, 1.5)
+        BCoachV2Scenario.entries.forEach { scenario ->
+            val scenarioCapacity = if (useCurve) when (scenario) {
+                BCoachV2Scenario.LOW_STRESS -> checkNotNull(model).capacityHigh
+                BCoachV2Scenario.BASE -> model.capacityBase
+                BCoachV2Scenario.HIGH_STRESS -> model.capacityLow
+            } else capacity
+            scenarioRir.getValue(scenario)[setId] = rir(scenarioCapacity)
+            scenarioIntensity.getValue(scenario)[setId] =
+                (instruction.kg / scenarioCapacity).coerceIn(0.0, 1.5)
+        }
+    }
+
+    private fun directHistoryEstimate(
+        stableKey: String,
+        rows: List<V22HistoryRow>,
+        rirPolicy: RpeRirPolicy?
+    ): DirectHistoryEstimate? = rows.mapNotNull { row ->
+        val reps = row.reps ?: return@mapNotNull null
+        val weight = row.weightKg ?: return@mapNotNull null
+        val resolvedRir = row.rpe?.let { rirPolicy?.resolve(it)?.expectedRir }
+        val capacity = epleyEstimatedOneRepMax(weight, reps, resolvedRir ?: 0.0) ?: return@mapNotNull null
+        DirectHistoryEstimate(
+            capacityKg = capacity,
+            sourceDate = row.date.toString(),
+            evidenceId = "$stableKey:${row.date}:${row.setIndex}",
+            hasRpeEvidence = resolvedRir != null,
+            sourceVersion = if (resolvedRir != null) "DIRECT_HISTORY_EPLEY:${rirPolicy?.version}"
+                else "DIRECT_HISTORY_EPLEY_COMPLETED_REPS_LOWER_BOUND"
+        )
+    }.maxWithOrNull(compareBy<DirectHistoryEstimate> { it.capacityKg }.thenBy { it.sourceDate })
+
+    private fun isUserFixed(weightSource: String): Boolean {
+        val source = weightSource.trim().uppercase()
+        return source == BCoachLoadSource.USER_FIXED.name || "USER_OVERRIDE" in source ||
+            "MANUAL" in source || source == "B_BLOCK_USER_START_LOAD_DERIVED"
+    }
+
+    internal fun setId(localId: String, setIndex: Int): String = "$localId#set=$setIndex"
+
+    private fun aggregateByItem(values: Map<String, Double>): Map<String, Double> = values.entries
+        .groupBy { it.key.substringBefore("#set=") }
+        .mapValues { (_, rows) -> rows.map { it.value }.average() }
+
+    private fun followUpSetFactor(setIndex: Int): Double = when (setIndex) {
+        in 2..3 -> BCoachV2Policy.FOLLOW_UP_SET_2_TO_3_FACTOR
+        in 4..Int.MAX_VALUE -> BCoachV2Policy.FOLLOW_UP_SET_4_TO_5_FACTOR
+        else -> 1.0
+    }
+
+    private fun observedFollowUpFactor(
+        setIndex: Int,
+        targetReps: Int,
+        rows: List<V22HistoryRow>
+    ): Double? {
+        if (setIndex <= 1) return null
+        val ratios = rows.groupBy(V22HistoryRow::date).values.mapNotNull { session ->
+            fun closest(index: Int) = session.filter { row ->
+                row.setIndex == index && abs((row.reps ?: 0.0) - targetReps) <= 2.0
+            }.minByOrNull { row -> abs((row.reps ?: 0.0) - targetReps) }
+            val first = closest(1)?.weightKg ?: return@mapNotNull null
+            val later = closest(setIndex)?.weightKg ?: return@mapNotNull null
+            (later / first).takeIf { it.isFinite() && it in 0.70..1.05 }
+        }
+        if (ratios.size < 2) return null
+        val sorted = ratios.sorted()
+        val median = if (sorted.size % 2 == 1) sorted[sorted.size / 2]
+            else (sorted[sorted.size / 2 - 1] + sorted[sorted.size / 2]) / 2.0
+        return median.coerceAtMost(1.0)
+    }
+
+    private fun floorToStep(value: Double, step: Double): Double =
+        if (value.isFinite() && value > 0.0 && step.isFinite() && step > 0.0) {
+            floor((value + 1e-9) / step) * step
+        } else 0.0
 
     private fun tierCHold(
         stableKey: String,
@@ -281,11 +471,13 @@ internal object BCoachV2LoadCandidateResolver {
         }
     }
 
-    private fun targetRir(selectionRole: String, main: Boolean): Double = when {
+    private fun targetRir(selectionRole: String, main: Boolean, strongEvidence: Boolean): Double = when {
+        !strongEvidence -> 4.0
         "SPORT" in selectionRole -> 3.0
         "HYPERTROPHY" in selectionRole -> 2.5
-        main || "STRENGTH" in selectionRole || "PEAK" in selectionRole -> 2.0
-        else -> 2.5
+        "PEAK" in selectionRole -> 2.5
+        main || "STRENGTH" in selectionRole -> 3.0
+        else -> 3.0
     }
 
     private fun nonLoadMetric(

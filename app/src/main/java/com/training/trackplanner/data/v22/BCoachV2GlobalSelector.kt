@@ -17,6 +17,7 @@ internal object BCoachV2GlobalSelector {
         val fallback: GeneratedProgramSkeleton,
         val decision: BCoachMultiobjectiveDecision,
         val candidatesById: Map<String, GeneratedProgramSkeleton>,
+        val loadInstructionsByCandidateId: Map<String, Map<String, String>>,
         val recommendedCandidateId: String?
     )
 
@@ -25,6 +26,7 @@ internal object BCoachV2GlobalSelector {
         val label: String,
         val skeleton: GeneratedProgramSkeleton,
         val evaluation: BCoachV2CandidateEvaluation,
+        val loadData: BCoachV2LoadResolution,
         val signature: String,
         val changes: List<String>,
         val anchorsMaintained: Int,
@@ -36,6 +38,14 @@ internal object BCoachV2GlobalSelector {
         val label: String,
         val skeleton: GeneratedProgramSkeleton,
         val evaluation: BCoachV2CandidateEvaluation,
+        val loadData: BCoachV2LoadResolution,
+        val signature: String
+    )
+
+    private data class ResolvedPlan(
+        val skeleton: GeneratedProgramSkeleton,
+        val evaluation: BCoachV2CandidateEvaluation,
+        val loadData: BCoachV2LoadResolution,
         val signature: String
     )
 
@@ -60,24 +70,27 @@ internal object BCoachV2GlobalSelector {
             recommendedImportance
         )
         val baselineFingerprint = BCoachMultiobjectiveProduction.fingerprint(baseline)
-        val resolvedBaseline = BCoachV2LoadCandidateResolver.resolve(
-            baseline, request, historyAtCutoff, exercises, modelSnapshots, mainExerciseKeys
+        val inputFingerprint = BCoachMultiobjectiveProduction.inputFingerprint(request, historyAtCutoff)
+        val loadEvidenceFingerprint = sha256(modelSnapshots.toSortedMap().entries.joinToString("|") {
+            (key, model) -> "$key:${model.sourceVersion}:${model.evidenceIds.sorted()}:${model.stale}"
+        } + "|rirPolicy=${rirPolicy?.version ?: "NONE"}")
+        val baselineLoad = BCoachV2LoadCandidateResolver.resolve(
+            baseline, request, historyAtCutoff, exercises, modelSnapshots, mainExerciseKeys, rirPolicy
         )
-        val resolvedJoint = BCoachV2LoadCandidateResolver.resolve(
-            preserveRestAndOrder(baseline, jointCandidate),
-            request, historyAtCutoff, exercises, modelSnapshots, mainExerciseKeys
-        )
-        val evaluationCache = mutableMapOf<String, BCoachV2CandidateEvaluation>()
-        val baselineLocalIds = resolvedBaseline.skeleton.items.mapTo(hashSetOf(), ProgramSkeletonItem::localId)
-        fun loadDataFor(skeleton: GeneratedProgramSkeleton): BCoachV2LoadResolution =
-            if (skeleton.items.all { it.localId in baselineLocalIds }) resolvedBaseline else resolvedJoint
-        fun evaluatePlan(skeleton: GeneratedProgramSkeleton): BCoachV2CandidateEvaluation {
-            val signature = BCoachMultiobjectiveProduction.fingerprint(skeleton)
-            return evaluationCache.getOrPut(signature) {
-                val loadData = loadDataFor(skeleton)
-                BCoachV2DoseEvaluator.evaluate(
-                    plan = skeleton,
-                    baseline = resolvedBaseline.skeleton,
+        val evaluationCache = mutableMapOf<String, ResolvedPlan>()
+        fun evaluatePlan(rawSkeleton: GeneratedProgramSkeleton): ResolvedPlan {
+            val rawSignature = BCoachMultiobjectiveProduction.fingerprint(rawSkeleton)
+            val cacheKey = sha256("$rawSignature|$inputFingerprint|$loadEvidenceFingerprint")
+            return evaluationCache.getOrPut(cacheKey) {
+                val loadData = if (rawSkeleton === baseline) baselineLoad else
+                    BCoachV2LoadCandidateResolver.resolve(
+                        rawSkeleton, request, historyAtCutoff, exercises, modelSnapshots,
+                        mainExerciseKeys, rirPolicy
+                    )
+                val resolvedSkeleton = loadData.skeleton
+                val evaluation = BCoachV2DoseEvaluator.evaluate(
+                    plan = resolvedSkeleton,
+                    baseline = baselineLoad.skeleton,
                     request = request,
                     history = historyAtCutoff,
                     exercises = exercises,
@@ -90,38 +103,47 @@ internal object BCoachV2GlobalSelector {
                     baseIntensityByLocalId = loadData.baseIntensityByLocalId,
                     rirByScenario = loadData.rirByScenario,
                     intensityByScenario = loadData.intensityByScenario,
+                    baseRirBySetId = loadData.baseRirBySetId,
+                    baseIntensityBySetId = loadData.baseIntensityBySetId,
+                    rirByScenarioAndSet = loadData.rirByScenarioAndSet,
+                    intensityByScenarioAndSet = loadData.intensityByScenarioAndSet,
                     rirPolicy = rirPolicy
+                )
+                ResolvedPlan(
+                    skeleton = resolvedSkeleton,
+                    evaluation = evaluation,
+                    loadData = loadData,
+                    signature = BCoachMultiobjectiveProduction.fingerprint(resolvedSkeleton)
                 )
             }
         }
+        val resolvedBaseline = evaluatePlan(baseline)
         val rawCandidates = searchCandidates(
-            resolvedBaseline.skeleton, resolvedJoint.skeleton, ::evaluatePlan
+            baseline, preserveRestAndOrder(baseline, jointCandidate), ::evaluatePlan
         )
         val baselineSuccessfulAnchors = historyAtCutoff.filter { (it.reps ?: 0.0) > 0.0 }
             .map(V22HistoryRow::stableKey).toSet()
-        val evaluated = rawCandidates.mapIndexed { index, (label, skeleton) ->
-            val evaluation = evaluatePlan(skeleton)
-            val signature = BCoachMultiobjectiveProduction.fingerprint(skeleton)
+        val evaluated = rawCandidates.mapIndexed { index, state ->
             Candidate(
-                id = "C${(index + 1).toString().padStart(2, '0')}_${signature.take(10)}",
-                label = label,
-                skeleton = skeleton,
-                evaluation = evaluation,
-                signature = signature,
-                changes = BCoachMultiobjectiveProduction.changes(baseline, skeleton),
-                anchorsMaintained = skeleton.items.map(ProgramSkeletonItem::exerciseStableKey)
+                id = "C${(index + 1).toString().padStart(2, '0')}_${state.signature.take(10)}",
+                label = state.label,
+                skeleton = state.skeleton,
+                evaluation = state.evaluation,
+                loadData = state.loadData,
+                signature = state.signature,
+                changes = BCoachMultiobjectiveProduction.changes(baseline, state.skeleton),
+                anchorsMaintained = state.skeleton.items.map(ProgramSkeletonItem::exerciseStableKey)
                     .toSet().intersect(baselineSuccessfulAnchors).size
             )
         }
         val valid = evaluated.filter { candidate ->
             candidate.evaluation.hardConstraints.none { it.status == BCoachConstraintStatus.FAIL }
         }
-        val relevantKeys = rawCandidates.flatMap { it.second.items }
+        val relevantKeys = rawCandidates.flatMap { it.skeleton.items }
             .map(ProgramSkeletonItem::exerciseStableKey).distinct().sorted()
         val historyFingerprint = BCoachMultiobjectiveProduction.historyFingerprint(historyAtCutoff)
         val exerciseFingerprint = BCoachMultiobjectiveProduction.exerciseFingerprint(relevantKeys, exercises)
         val linkedFingerprint = BCoachMultiobjectiveProduction.linkedEvidenceFingerprint(request)
-        val inputFingerprint = BCoachMultiobjectiveProduction.inputFingerprint(request, historyAtCutoff)
         if (valid.isEmpty()) {
             val failed = evaluated.flatMap { it.evaluation.hardConstraints }
                 .filter { it.status == BCoachConstraintStatus.FAIL }.map(BCoachConstraintResult::id)
@@ -134,6 +156,7 @@ internal object BCoachV2GlobalSelector {
                 fallback = BCoachMultiobjectiveProduction.withDecisionMetadata(baseline, decision, "INPUT_CONFLICT"),
                 decision = decision,
                 candidatesById = emptyMap(),
+                loadInstructionsByCandidateId = emptyMap(),
                 recommendedCandidateId = null
             )
         }
@@ -166,7 +189,6 @@ internal object BCoachV2GlobalSelector {
             linkedEvidenceFingerprint = linkedFingerprint
         )
         val alternatives = displayed.map { candidate ->
-            val candidateLoad = loadDataFor(candidate.skeleton)
             BCoachPlanAlternative(
                 status = BCoachProductionStatus.USER_REVIEW_PROPOSED,
                 label = candidate.label,
@@ -183,13 +205,13 @@ internal object BCoachV2GlobalSelector {
                 paretoFrontier = candidate.pareto,
                 reasonCodes = candidate.evaluation.reasonCodes,
                 prescriptionSummary = prescriptionSummary(
-                    candidate.skeleton, candidateLoad.instructionsByLocalId
+                    candidate.skeleton, candidate.loadData.instructionsBySetId
                 )
             )
         }
         val baselineEvaluation = evaluated.firstOrNull { it.label == "SAFE_BASELINE" }?.evaluation
             ?: selected.evaluation
-        val selectedLoad = loadDataFor(selected.skeleton)
+        val selectedLoad = selected.loadData
         val decision = BCoachMultiobjectiveDecision(
             engineVersion = BCoachV2Policy.ENGINE_VERSION,
             policyVersion = BCoachV2Policy.POLICY_VERSION,
@@ -226,7 +248,7 @@ internal object BCoachV2GlobalSelector {
             effectiveSetBreakdown = selected.evaluation.effectiveSetBreakdown,
             paretoFrontierCandidateIds = frontier.map(Candidate::id).sorted(),
             recommendedCandidateId = selected.id,
-            loadInstructions = selectedLoad.instructionsByLocalId.mapValues { canonicalLoad(it.value) },
+            loadInstructions = selectedLoad.instructionsBySetId.mapValues { canonicalLoad(it.value) },
             scenarioFlip = scenarioFlip(valid)
         )
         val fallback = BCoachMultiobjectiveProduction.withDecisionMetadata(
@@ -234,10 +256,19 @@ internal object BCoachV2GlobalSelector {
         )
         val candidateMap = displayed.associate { candidate ->
             candidate.id to BCoachMultiobjectiveProduction.withDecisionMetadata(
-                candidate.skeleton, decision, "PROPOSED_NOT_ACCEPTED", chosenAlternativeId = candidate.id
+                candidate.skeleton,
+                decision,
+                "PROPOSED_NOT_ACCEPTED",
+                chosenAlternativeId = candidate.id,
+                chosenLoadInstructions = candidate.loadData.instructionsBySetId.mapValues {
+                    canonicalLoad(it.value)
+                }
             )
         }
-        return Result(fallback, decision, candidateMap, selected.id)
+        val candidateLoads = displayed.associate { candidate ->
+            candidate.id to candidate.loadData.instructionsBySetId.mapValues { canonicalLoad(it.value) }
+        }
+        return Result(fallback, decision, candidateMap, candidateLoads, selected.id)
     }
 
     internal fun effectiveGoalWeights(
@@ -286,14 +317,16 @@ internal object BCoachV2GlobalSelector {
     private fun searchCandidates(
         baseline: GeneratedProgramSkeleton,
         joint: GeneratedProgramSkeleton,
-        evaluate: (GeneratedProgramSkeleton) -> BCoachV2CandidateEvaluation
-    ): List<Pair<String, GeneratedProgramSkeleton>> {
+        evaluate: (GeneratedProgramSkeleton) -> ResolvedPlan
+    ): List<SearchState> {
         val cache = linkedMapOf<String, SearchState>()
         fun register(label: String, skeleton: GeneratedProgramSkeleton): SearchState? {
-            val signature = BCoachMultiobjectiveProduction.fingerprint(skeleton)
-            cache[signature]?.let { return null }
             if (cache.size >= BCoachV2Policy.MAX_CANDIDATE_EVALUATIONS) return null
-            return SearchState(label, skeleton, evaluate(skeleton), signature).also { cache[signature] = it }
+            val resolved = evaluate(skeleton)
+            cache[resolved.signature]?.let { return null }
+            return SearchState(
+                label, resolved.skeleton, resolved.evaluation, resolved.loadData, resolved.signature
+            ).also { cache[resolved.signature] = it }
         }
         val baselineState = register("SAFE_BASELINE", baseline)!!
         val jointState = register("JOINT_SEED", joint)
@@ -321,7 +354,6 @@ internal object BCoachV2GlobalSelector {
         return (listOfNotNull(baselineState, jointState) + ranked)
             .distinctBy(SearchState::signature)
             .take(BCoachV2Policy.MAX_FINALISTS)
-            .map { it.label to it.skeleton }
     }
 
     private fun searchComparator(): Comparator<SearchState> =
@@ -449,6 +481,7 @@ internal object BCoachV2GlobalSelector {
         "plateOneSideKg" to (request.bShadowPlateOneSideKg?.toString() ?: "UNSET"),
         "dumbbellDisplayedIncrementKg" to (request.bShadowDumbbellIncrementKg?.toString() ?: "UNSET"),
         "machineDisplayedIncrementKg" to (request.bShadowMachineIncrementKg?.toString() ?: "UNSET"),
+        "planningStartDate" to (request.planningStartDate?.toString() ?: "NEXT_MONDAY_AFTER_AS_OF"),
         "searchBudget" to "beam=${BCoachV2Policy.SEARCH_BEAM_WIDTH},rounds=${BCoachV2Policy.SEARCH_ROUNDS}," +
             "maxEvaluations=${BCoachV2Policy.MAX_CANDIDATE_EVALUATIONS},finalists=${BCoachV2Policy.MAX_FINALISTS}",
         "relevantExerciseKeys" to relevantKeys.joinToString(","),
@@ -499,7 +532,10 @@ internal object BCoachV2GlobalSelector {
 
     private fun canonicalLoad(instruction: BCoachV2LoadInstruction): String = when (instruction) {
         is BCoachV2LoadInstruction.ExactLoad ->
-            "EXACT|kg=${instruction.kg}|tier=${instruction.tier}|rir=${instruction.targetRir}|${instruction.evidenceStatus}"
+            "EXACT|kg=${instruction.kg}|source=${instruction.loadSource}|tier=${instruction.tier}|" +
+                "targetRir=${instruction.targetRir}|expectedRir=${instruction.expectedRir}|" +
+                "capacityKg=${instruction.capacityKg}|conservative=${instruction.conservativeFactor}|" +
+                "followUp=${instruction.followUpSetFactor}|${instruction.evidenceStatus}"
         is BCoachV2LoadInstruction.HoldLastConfirmed ->
             "HOLD|kg=${instruction.kg}|date=${instruction.sourceDate}|${instruction.evidenceStatus}"
         is BCoachV2LoadInstruction.Calibrate -> "CALIBRATE|reason=${instruction.reason}|${instruction.evidenceStatus}"
@@ -526,10 +562,11 @@ internal object BCoachV2GlobalSelector {
                 set.weightKg > 0.0 -> "@${set.weightKg}kg"
                 else -> "@${set.loadState.name}"
             }
-            "$metric$load"
+            val evidence = instructions[BCoachV2LoadCandidateResolver.setId(item.localId, set.setIndex)]
+                ?.let(::canonicalLoad) ?: "NOT_APPLICABLE"
+            "S${set.setIndex}:$metric$load{$evidence}"
         }
-        "W${item.weekNumber}/D${item.dayOfWeek} ${item.exerciseStableKey}: " +
-            "$prescription | evidence=${instructions[item.localId]?.let(::canonicalLoad) ?: "NOT_APPLICABLE"}"
+        "W${item.weekNumber}/D${item.dayOfWeek} ${item.exerciseStableKey}: $prescription"
     }
 
     private fun scenarioFlip(candidates: List<Candidate>): Boolean {

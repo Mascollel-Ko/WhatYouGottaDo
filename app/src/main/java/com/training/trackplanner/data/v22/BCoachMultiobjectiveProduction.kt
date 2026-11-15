@@ -139,12 +139,18 @@ data class BCoachProposalAcceptance(
 class BCoachMultiobjectiveProposal internal constructor(
     val decision: BCoachMultiobjectiveDecision,
     private val candidatesById: Map<String, GeneratedProgramSkeleton>,
+    private val loadInstructionsByCandidateId: Map<String, Map<String, String>>,
     private val recommendedCandidateId: String
 ) {
     internal constructor(
         decision: BCoachMultiobjectiveDecision,
         proposedSkeleton: GeneratedProgramSkeleton
-    ) : this(decision, mapOf("RECOMMENDED" to proposedSkeleton), "RECOMMENDED")
+    ) : this(
+        decision,
+        mapOf("RECOMMENDED" to proposedSkeleton),
+        mapOf("RECOMMENDED" to decision.loadInstructions),
+        "RECOMMENDED"
+    )
 
     /** Revalidates the displayed fallback and the selected candidate before applying it. */
     fun accept(
@@ -177,7 +183,9 @@ class BCoachMultiobjectiveProposal internal constructor(
                 acceptedStructureFingerprint = BCoachMultiobjectiveProduction.persistenceStructureFingerprint(
                     proposedSkeleton
                 ),
-                chosenAlternativeId = candidateId
+                acceptedCandidateFingerprint = BCoachMultiobjectiveProduction.fingerprint(proposedSkeleton),
+                chosenAlternativeId = candidateId,
+                chosenLoadInstructions = loadInstructionsByCandidateId.getValue(candidateId)
             ),
             reason = "ACCEPTED"
         )
@@ -224,7 +232,9 @@ internal object BCoachMultiobjectiveProduction {
             rirPolicy = rirPolicy
         )
         val proposal = result.recommendedCandidateId?.let { id ->
-            BCoachMultiobjectiveProposal(result.decision, result.candidatesById, id)
+            BCoachMultiobjectiveProposal(
+                result.decision, result.candidatesById, result.loadInstructionsByCandidateId, id
+            )
         }
         return Outcome(result.fallback, result.decision, proposal)
     }
@@ -335,6 +345,7 @@ internal object BCoachMultiobjectiveProduction {
             canonicalField(request.bShadowPlateOneSideKg)
             canonicalField(request.bShadowDumbbellIncrementKg)
             canonicalField(request.bShadowMachineIncrementKg)
+            canonicalField(request.planningStartDate)
             request.blockProgram?.let { program ->
                 program.blocks.forEach { canonicalField(it) }
                 canonicalField(program.recoveryDaysBetween.joinToString(","))
@@ -491,6 +502,13 @@ internal object BCoachMultiobjectiveProduction {
             return skeleton
         }
         decision.put("proposalAcceptance", "ACCEPTED_AND_PERSISTED")
+        val acceptedCandidate = decision.optString("acceptedCandidateFingerprint").takeIf { it.isNotBlank() }
+        if (acceptedCandidate != null) {
+            val adjusted = fingerprint(skeleton) != acceptedCandidate
+            decision.put("postApprovalLoadAdjusted", adjusted)
+            decision.put("scoresReflectCurrentPrescription", !adjusted)
+            if (adjusted) decision.put("currentPrescriptionFingerprint", fingerprint(skeleton))
+        }
         return skeleton.copy(planningMetadataJson = root.toString())
     }
 
@@ -499,7 +517,9 @@ internal object BCoachMultiobjectiveProduction {
         decision: BCoachMultiobjectiveDecision,
         acceptance: String,
         acceptedStructureFingerprint: String? = null,
-        chosenAlternativeId: String? = decision.recommendedCandidateId
+        acceptedCandidateFingerprint: String? = null,
+        chosenAlternativeId: String? = decision.recommendedCandidateId,
+        chosenLoadInstructions: Map<String, String> = decision.loadInstructions
     ): GeneratedProgramSkeleton {
         val root = runCatching { JSONObject(skeleton.planningMetadataJson ?: "{}") }
             .getOrElse { JSONObject() }
@@ -516,6 +536,7 @@ internal object BCoachMultiobjectiveProduction {
             .put("candidateFingerprint", decision.candidateFingerprint ?: JSONObject.NULL)
             .put("proposalFingerprint", decision.proposalFingerprint ?: JSONObject.NULL)
             .put("acceptedStructureFingerprint", acceptedStructureFingerprint ?: JSONObject.NULL)
+            .put("acceptedCandidateFingerprint", acceptedCandidateFingerprint ?: JSONObject.NULL)
             .put("baselineAndCandidatesCanonicalHash",
                 decision.baselineAndCandidatesCanonicalHash.ifBlank { JSONObject.NULL })
             .put("chosenAlternativeId", chosenAlternativeId ?: JSONObject.NULL)
@@ -533,7 +554,7 @@ internal object BCoachMultiobjectiveProduction {
             .put("effectiveSetBreakdown", JSONArray(decision.effectiveSetBreakdown))
             .put("paretoFrontier", JSONArray(decision.paretoFrontierCandidateIds))
             .put("loadInstructions", JSONObject().also { loads ->
-                decision.loadInstructions.forEach { (key, value) -> loads.put(key, value) }
+                chosenLoadInstructions.forEach { (key, value) -> loads.put(key, value) }
             })
             .put("rejectedActionReasons", JSONArray(decision.rejectedActionReasons))
             .put("goalWeights", JSONArray(decision.goalWeights.map { weight ->

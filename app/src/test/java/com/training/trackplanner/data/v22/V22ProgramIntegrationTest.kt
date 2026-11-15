@@ -18,6 +18,7 @@ import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutSet
 import com.training.trackplanner.skeletonFromProgram
 import kotlinx.coroutines.runBlocking
+import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -210,6 +211,12 @@ class V22ProgramIntegrationTest {
         assertTrue(applied.sets.all {
             !it.confirmed && it.weightKg == 100.0 && it.loadState == ProgramLoadState.EXPLICIT_LOAD
         })
+        val applicationAudit = JSONObject(requireNotNull(
+            db.programDao().findProgram(programId)?.planningMetadataJson
+        )).getJSONObject("bCoachMultiobjectiveDecision").getJSONObject("applicationRecoveryAudit")
+        assertEquals("2026-11-16", applicationAudit.getString("planningStartDate"))
+        assertEquals("RECALCULATED_FOR_APPLICATION_START", applicationAudit.getString("status"))
+        assertTrue(applicationAudit.getJSONObject("scoresByScenario").getDouble("BASE") in 0.0..1.0)
     }
 
     @Test

@@ -55,7 +55,9 @@ data class V22GenerationRequest(
     val bShadowPlateOneSideKg: Double? = null,
     /** Ephemeral display-unit increments used only for other-exercise Shadow coverage. */
     val bShadowDumbbellIncrementKg: Double? = null,
-    val bShadowMachineIncrementKg: Double? = null
+    val bShadowMachineIncrementKg: Double? = null,
+    /** Explicit calendar anchor when known; otherwise B-Coach starts on the next Monday. */
+    val planningStartDate: LocalDate? = null
 )
 
 /**
