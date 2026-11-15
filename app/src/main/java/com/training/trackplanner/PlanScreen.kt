@@ -27,6 +27,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -83,7 +84,10 @@ import com.training.trackplanner.data.v22.BBlockEquipmentIncrements
 import com.training.trackplanner.data.v22.BCoachSquatShadowProgramComparison
 import com.training.trackplanner.data.v22.BCoachExerciseShadowCoverageRow
 import com.training.trackplanner.data.v22.BCoachMultiobjectiveProposal
+import com.training.trackplanner.data.v22.BCoachPlanAlternative
+import com.training.trackplanner.data.v22.BCoachV2Policy
 import com.training.trackplanner.data.v22.BCoachConstraintStatus
+import com.training.trackplanner.data.v22.BCoachProductionStatus
 import com.training.trackplanner.data.v22.BBlockDefinition
 import com.training.trackplanner.data.v22.BBlockGoal
 import com.training.trackplanner.data.v22.BPeakTestMode
@@ -134,6 +138,9 @@ internal fun BCoachProductionReviewDialog(
     changes: List<String>,
     unresolvedCodes: List<String>,
     unreliableExerciseCount: Int,
+    alternatives: List<BCoachPlanAlternative> = emptyList(),
+    selectedCandidateId: String? = alternatives.firstOrNull { it.recommended }?.candidateId,
+    onSelectCandidate: (String) -> Unit = {},
     onApply: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -143,14 +150,56 @@ internal fun BCoachProductionReviewDialog(
         text = {
             Column(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState())
                 .testTag("b_coach_review_content")) {
+                Text(BCoachV2Policy.DISCLAIMER)
                 Text(
-                    "현재 초안은 안전한 유지안입니다. 다목적 후보는 ${changes.size}개 변경을 " +
-                        "제안하지만 Need·회복 한도·교환 가중치는 아직 승인되지 않아 자동 적용하지 않습니다. " +
-                        "미확정 중량은 계속 사용자 보정으로 남습니다. " +
+                    "아래 추천안과 대안은 모든 주차의 시간·요일 제약을 통과한 실제 저장 후보입니다. " +
+                        "선택한 안은 승인 전까지 현재 초안을 바꾸지 않습니다." +
                         (unreliableExerciseCount.takeIf { it > 0 }
-                            ?.let { "기록 부족 운동 ${it}개가 포함됩니다. " } ?: "") +
-                        "이 후보를 현재 초안에 명시적으로 적용할까요?"
+                            ?.let { " 기록 부족 운동 ${it}개가 포함됩니다." } ?: ""),
+                    modifier = Modifier.padding(top = 8.dp)
                 )
+                if (alternatives.isNotEmpty()) {
+                    Text("계획 선택", modifier = Modifier.padding(top = 12.dp))
+                    alternatives.forEach { alternative ->
+                        val selected = alternative.candidateId == selectedCandidateId
+                        Column(Modifier.fillMaxWidth()) {
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                RadioButton(
+                                    selected = selected,
+                                    onClick = { onSelectCandidate(alternative.candidateId) },
+                                    modifier = Modifier.testTag("b_coach_candidate_${alternative.candidateId}")
+                                )
+                                Text(
+                                    (if (alternative.recommended) "추천 · " else "대안 · ") +
+                                        "${alternative.label} · robust ${"%.3f".format(alternative.robustRegret)}"
+                                )
+                            }
+                            if (selected) {
+                                alternative.prescriptionSummary.take(6).forEach { summary ->
+                                    Text("• $summary", style = MaterialTheme.typography.bodySmall)
+                                }
+                                if (alternative.prescriptionSummary.size > 6) {
+                                    Text(
+                                        "• 외 ${alternative.prescriptionSummary.size - 6}개",
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                                Text(
+                                    alternative.axisScores.entries.joinToString(" · ") {
+                                        "${it.key.name}=${"%.2f".format(it.value)}"
+                                    },
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                Text(
+                                    alternative.scenarioLosses.entries.joinToString(" · ") {
+                                        "${it.key}=${"%.3f".format(it.value)}"
+                                    },
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
+                    }
+                }
                 if (changes.isNotEmpty()) {
                     Text("변경 내용", modifier = Modifier.padding(top = 12.dp))
                     changes.take(8).forEach { change -> Text("• $change") }
@@ -163,7 +212,11 @@ internal fun BCoachProductionReviewDialog(
             }
         },
         confirmButton = {
-            Button(onClick = onApply, modifier = Modifier.testTag("b_coach_review_apply")) {
+            Button(
+                onClick = onApply,
+                enabled = alternatives.isEmpty() || selectedCandidateId != null,
+                modifier = Modifier.testTag("b_coach_review_apply")
+            ) {
                 Text("후보 적용")
             }
         },
@@ -620,6 +673,7 @@ private fun ProgramEditorScreen(
     var pendingBProductionProposal by remember(program?.id) {
         mutableStateOf<BCoachMultiobjectiveProposal?>(null)
     }
+    var pendingBSelectedCandidateId by remember(program?.id) { mutableStateOf<String?>(null) }
     var pendingLoadOverwrite by remember(program?.id) {
         mutableStateOf<GeneratedProgramSkeleton?>(null)
     }
@@ -736,6 +790,7 @@ private fun ProgramEditorScreen(
         squatShadowComparison = null
         otherExerciseShadowCoverage = emptyList()
         pendingBProductionProposal = null
+        pendingBSelectedCandidateId = null
         personalizedDraft = emptyProgramSkeleton(
             request = blankProgramRequest(),
             weekDaySchedule = defaultProgramWeekDaySchedule(4, 3)
@@ -751,6 +806,7 @@ private fun ProgramEditorScreen(
         pendingConservativeBBlock = null
         pendingBReview = null
         pendingBProductionProposal = null
+        pendingBSelectedCandidateId = null
         val blockLayout = if (bCustomizeBlocks) BBlockProgramDefinition(bBlocks, bRecoveryBetween)
             else BBlockProgramDefinition(blocks = listOf(bBasicAdvancedBlock.copy(pattern = bBlockPattern)))
         viewModel.generateV22Program(
@@ -780,13 +836,23 @@ private fun ProgramEditorScreen(
                 BBlockConfidenceReview.evaluate(it, blockLayout)
             }
             val productionProposal = generated.bCoachMultiobjectiveProposal
-            if (productionProposal != null) {
+            if (generated.bCoachMultiobjectiveDecision?.status == BCoachProductionStatus.INPUT_CONFLICT) {
+                Toast.makeText(
+                    context,
+                    "고정 요일·시간·운동 조건을 동시에 만족할 수 없습니다. 입력 조건을 확인해 주세요.",
+                    Toast.LENGTH_LONG
+                ).show()
+                pendingBReview = null
+                pendingBProductionProposal = null
+                pendingBSelectedCandidateId = null
+            } else if (productionProposal != null) {
                 // Persisted/draft state remains the safe fallback until this exact
                 // candidate fingerprint is accepted against the unchanged fallback.
                 personalizedDraft = proposed
                 v22SkeletonCreated = true
                 pendingBReview = review
                 pendingBProductionProposal = productionProposal
+                pendingBSelectedCandidateId = productionProposal.decision.recommendedCandidateId
             } else if (review?.requiresApproval == true) {
                 // Review is exercise-scoped: even partly missing records need user approval.
                 pendingBReview = review
@@ -805,18 +871,27 @@ private fun ProgramEditorScreen(
             unresolvedCodes = decision.unknowns + decision.hardConstraints
                 .filter { it.status == BCoachConstraintStatus.UNKNOWN }.map { it.id },
             unreliableExerciseCount = pendingBReview?.unreliableExerciseKeys?.size ?: 0,
+            alternatives = decision.alternatives,
+            selectedCandidateId = pendingBSelectedCandidateId,
+            onSelectCandidate = { pendingBSelectedCandidateId = it },
             onDismiss = {
                 pendingBProductionProposal = null
+                pendingBSelectedCandidateId = null
                 pendingBReview = null
             },
             onApply = {
                 val current = personalizedDraft
                 val fingerprint = decision.proposalFingerprint
                 val acceptance = if (current == null || fingerprint == null) null
-                    else proposal.accept(fingerprint, current)
+                    else proposal.accept(
+                        fingerprint,
+                        current,
+                        pendingBSelectedCandidateId ?: decision.recommendedCandidateId.orEmpty()
+                    )
                 if (acceptance?.accepted == true && acceptance.skeleton != null) {
                     personalizedDraft = acceptance.skeleton.withResolvedWeekDaySchedule()
                     pendingBProductionProposal = null
+                    pendingBSelectedCandidateId = null
                     pendingBReview = null
                 } else {
                     Toast.makeText(

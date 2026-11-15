@@ -28,6 +28,7 @@ internal class V22ProgramPlanningService(
     private val userOverrideDao: ExerciseMetadataUserOverrideDao? = null,
     private val progressionDao: ProgramProgressionDao? = null,
     private val squatShadowReader: BCoachSquatShadowEvidenceReader? = null,
+    private val v2LoadEvidenceReader: BCoachV2LoadEvidenceReader? = null,
     private val rirPolicy: RpeRirPolicy? = null,
     private val strengthRegistry: StrengthPerformanceRegistry? = null
 ) {
@@ -60,19 +61,23 @@ internal class V22ProgramPlanningService(
             val plan = V22PythonParityEngine.build(history, effectiveRequest)
             return V22GeneratedProgram(plan, plan.toSkeleton(effectiveRequest, exercises))
         }
+        val muscleRelations = UserMuscleRoleCodec.effectiveRelations(
+            canonicalMetadataRepository.muscleRelations(), userOverrideDao?.all().orEmpty(), exercises.values.toList()
+        )
+        val coreCatalog = canonicalMetadataRepository.coreCatalog()
+        val badmintonCatalog = canonicalMetadataRepository.badmintonObjectiveCatalog()
+        val mainExerciseKeys = canonicalMetadataRepository.programSlotCapabilityRelations()
+            .filter { it.capabilityCode == "MAIN_STRENGTH_SLOT" }
+            .mapTo(linkedSetOf()) { it.exerciseStableKey }
         val balanced = BBalanced12WeekEngine.build(
             rows = history,
             request = coachRequest,
             exercises = exercises,
-            muscleRelations = UserMuscleRoleCodec.effectiveRelations(
-                canonicalMetadataRepository.muscleRelations(), userOverrideDao?.all().orEmpty(), exercises.values.toList()
-            ),
-            coreCatalog = canonicalMetadataRepository.coreCatalog(),
-            badmintonCatalog = canonicalMetadataRepository.badmintonObjectiveCatalog(),
+            muscleRelations = muscleRelations,
+            coreCatalog = coreCatalog,
+            badmintonCatalog = badmintonCatalog,
             taskCatalog = bBalancedTaskCatalog,
-            mainExerciseKeys = canonicalMetadataRepository.programSlotCapabilityRelations()
-                .filter { it.capabilityCode == "MAIN_STRENGTH_SLOT" }
-                .mapTo(linkedSetOf()) { it.exerciseStableKey }
+            mainExerciseKeys = mainExerciseKeys
         )
         val comparator = runCatching { V22PythonParityEngine.build(history, effectiveRequest) }.getOrNull()
             ?.takeIf { plan -> plan.weeks.firstOrNull()?.sessions?.any { it.items.isNotEmpty() } == true }
@@ -100,9 +105,25 @@ internal class V22ProgramPlanningService(
         }
         val candidateSkeleton = withEquipmentSnapshot(candidateBaseSkeleton)
         val fallbackSkeleton = withEquipmentSnapshot(fallbackBaseSkeleton)
+        val v2StableKeys = (fallbackSkeleton.items + candidateSkeleton.items)
+            .mapTo(linkedSetOf(), ProgramSkeletonItem::exerciseStableKey)
+        val v2LoadSnapshots = v2LoadEvidenceReader?.read(
+            effectiveRequest.asOf, history, v2StableKeys
+        ).orEmpty()
         val production = effectiveRequest.blockProgram?.let {
             BCoachMultiobjectiveProduction.prepare(
-                effectiveRequest, history, exercises, fallbackSkeleton, candidateSkeleton
+                request = effectiveRequest,
+                history = history,
+                exercises = exercises,
+                baseline = fallbackSkeleton,
+                candidate = candidateSkeleton,
+                muscleRelations = muscleRelations,
+                coreCatalog = coreCatalog,
+                badmintonCatalog = badmintonCatalog,
+                mainExerciseKeys = mainExerciseKeys,
+                recommendedImportance = balanced.goalTargets.associate { it.goal to it.importance },
+                modelSnapshots = v2LoadSnapshots,
+                rirPolicy = rirPolicy
             )
         }
         val skeleton = production?.skeleton ?: candidateSkeleton
@@ -228,7 +249,7 @@ internal fun BBalanced12WeekPlan.toSkeleton(
         name = request.name,
         goal = ProgramGoal.FUNCTIONAL_CONDITIONING,
         weeklyTrainingDays = input.days,
-        sessionMinutes = request.sessionMinutes ?: 0,
+        sessionMinutes = request.sessionMinutes ?: BCoachV2Policy.DEFAULT_SESSION_MINUTES,
         availableEquipment = emptySet(),
         excludedExerciseText = "",
         badmintonTransferRatio = 0.0,

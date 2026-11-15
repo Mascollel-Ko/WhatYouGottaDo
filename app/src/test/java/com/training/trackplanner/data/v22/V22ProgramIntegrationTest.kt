@@ -158,8 +158,9 @@ class V22ProgramIntegrationTest {
             generationRequest, emptyList(), mapOf(exercise.stableKey to exercise),
             baseline = skeleton(2), candidate = skeleton(3)
         )
+        val jointCandidateId = outcome.decision.alternatives.single { it.label == "JOINT_SEED" }.candidateId
         val accepted = requireNotNull(outcome.proposal).accept(
-            requireNotNull(outcome.decision.proposalFingerprint), outcome.skeleton
+            requireNotNull(outcome.decision.proposalFingerprint), outcome.skeleton, jointCandidateId
         )
         val acceptedSkeleton = requireNotNull(accepted.skeleton)
         assertEquals(3, acceptedSkeleton.items.single().setCount)
