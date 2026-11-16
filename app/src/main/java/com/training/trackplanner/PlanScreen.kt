@@ -1037,6 +1037,9 @@ private fun ProgramEditorScreen(
                 pendingBSelectedCandidateId = null
                 pendingBReview = null
                 pendingBPreviousDraft = null
+                // A discarded proposal is not a valid post-review shadow snapshot.
+                lastSportShadowProposal = null
+                showSportShadow = false
             },
             onApply = {
                 val current = personalizedDraft
