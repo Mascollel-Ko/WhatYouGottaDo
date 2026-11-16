@@ -150,6 +150,8 @@ internal fun BCoachProductionReviewDialog(
     alternatives: List<BCoachPlanAlternative> = emptyList(),
     selectedCandidateId: String? = alternatives.firstOrNull { it.recommended }?.candidateId,
     candidateForReview: (String) -> GeneratedProgramSkeleton? = { null },
+    sportShadowAvailable: Boolean = false,
+    onOpenSportShadow: () -> Unit = {},
     onSelectCandidate: (String) -> Unit = {},
     onApply: () -> Unit,
     onDismiss: () -> Unit
@@ -208,6 +210,14 @@ internal fun BCoachProductionReviewDialog(
                     modifier = Modifier.padding(top = 8.dp)
                 )
                   }
+                if (sportShadowAvailable) item {
+                    OutlinedButton(
+                        onClick = onOpenSportShadow,
+                        modifier = Modifier.fillMaxWidth().testTag("b_coach_review_open_sport_shadow")
+                    ) { Text("스포츠 Shadow · 후보별 결과 비교") }
+                    Text("실험 화면에서는 추천안을 적용하거나 저장할 수 없습니다.",
+                        style = MaterialTheme.typography.bodySmall)
+                }
                 if (alternatives.isNotEmpty()) item {
                     Text("계획 선택", modifier = Modifier.padding(top = 12.dp))
                     Column(Modifier.fillMaxWidth()) {
@@ -784,6 +794,10 @@ private fun ProgramEditorScreen(
         mutableStateOf<GeneratedProgramSkeleton?>(null)
     }
     var pendingBSelectedCandidateId by remember(program?.id) { mutableStateOf<String?>(null) }
+    var lastSportShadowProposal by remember(program?.id, draftId) {
+        mutableStateOf<BCoachMultiobjectiveProposal?>(null)
+    }
+    var showSportShadow by remember(program?.id, draftId) { mutableStateOf(false) }
     var pendingLoadOverwrite by remember(program?.id) {
         mutableStateOf<GeneratedProgramSkeleton?>(null)
     }
@@ -921,6 +935,8 @@ private fun ProgramEditorScreen(
         pendingBPreviousDraft = personalizedDraft
         pendingBProductionProposal = null
         pendingBSelectedCandidateId = null
+        lastSportShadowProposal = null
+        showSportShadow = false
         val blockLayout = if (bCustomizeBlocks) BBlockProgramDefinition(bBlocks, bRecoveryBetween)
             else BBlockProgramDefinition(blocks = listOf(bBasicAdvancedBlock.copy(pattern = bBlockPattern)))
         viewModel.generateV22Program(
@@ -962,6 +978,7 @@ private fun ProgramEditorScreen(
                 BBlockConfidenceReview.evaluate(it, blockLayout)
             }
             val productionProposal = generated.bCoachMultiobjectiveProposal
+            lastSportShadowProposal = productionProposal
             if (generated.bCoachMultiobjectiveDecision?.status == BCoachProductionStatus.INPUT_CONFLICT) {
                 Toast.makeText(
                     context,
@@ -993,9 +1010,17 @@ private fun ProgramEditorScreen(
         }
     }
 
+    val activeSportShadow = lastSportShadowProposal?.sportShadowReport
+    if (showSportShadow && activeSportShadow != null) {
+        BCoachSportShadowDialog(
+            report = activeSportShadow,
+            candidateForReview = { id -> lastSportShadowProposal?.shadowCandidateForReview(id) },
+            onClose = { showSportShadow = false }
+        )
+    }
     pendingBProductionProposal?.let { proposal ->
         val decision = proposal.decision
-        BCoachProductionReviewDialog(
+        if (!showSportShadow || activeSportShadow == null) BCoachProductionReviewDialog(
             changes = decision.changes,
             unresolvedCodes = decision.unknowns + decision.hardConstraints
                 .filter { it.status == BCoachConstraintStatus.UNKNOWN }.map { it.id },
@@ -1003,6 +1028,8 @@ private fun ProgramEditorScreen(
             alternatives = decision.alternatives,
             selectedCandidateId = pendingBSelectedCandidateId,
             candidateForReview = proposal::candidateForReview,
+            sportShadowAvailable = activeSportShadow?.available == true,
+            onOpenSportShadow = { showSportShadow = true },
             onSelectCandidate = { pendingBSelectedCandidateId = it },
             onDismiss = {
                 personalizedDraft = pendingBPreviousDraft
@@ -1724,6 +1751,15 @@ private fun ProgramEditorScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+            if (lastGenerationWasV22 && pendingBProductionProposal == null &&
+                lastSportShadowProposal?.sportShadowReport?.available == true) item {
+                OutlinedButton(
+                    modifier = Modifier.fillMaxWidth().testTag("b_coach_open_saved_sport_shadow"),
+                    onClick = { showSportShadow = true }
+                ) { Text("스포츠 Shadow · 생성 후보 비교") }
+                Text("원래 생성 시점의 후보를 비교합니다. 직접 수정 후에는 결과가 무효화됩니다.",
+                    style = MaterialTheme.typography.bodySmall)
+            }
             if (lastGenerationWasV22 && otherExerciseShadowCoverage.isNotEmpty()) item {
                 OutlinedButton(
                     modifier = Modifier.fillMaxWidth(),
@@ -1756,6 +1792,8 @@ private fun ProgramEditorScreen(
                     onSkeletonChange = { nextDraft ->
                         squatShadowComparison = null // comparing an edited draft with the old shadow is invalid
                         otherExerciseShadowCoverage = emptyList() // edited plans invalidate coverage evidence
+                        lastSportShadowProposal = null
+                        showSportShadow = false
                         val previousDraft = personalizedDraft
                         // Default equipment units work even before onboarding;
                         // current visible entries take precedence over older profile state.
