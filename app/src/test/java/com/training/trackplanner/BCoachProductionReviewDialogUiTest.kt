@@ -20,6 +20,10 @@ import androidx.compose.ui.unit.dp
 import com.training.trackplanner.data.v22.BCoachObjectiveAxis
 import com.training.trackplanner.data.v22.BCoachPlanAlternative
 import com.training.trackplanner.data.v22.BCoachProductionStatus
+import com.training.trackplanner.data.v22.BCoachSportShadowReport
+import com.training.trackplanner.data.v22.BCoachSportShadowCandidate
+import com.training.trackplanner.data.v22.BCoachSportShadowObjective
+import com.training.trackplanner.data.v22.BCoachSportShadowExercise
 import com.training.trackplanner.data.v22.BCoachV2Policy
 import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.ProgramGoal
@@ -138,4 +142,75 @@ class BCoachProductionReviewDialogUiTest {
             assertTrue("applied=$applied kept=$kept selected=$selected", applied && kept && selected == "C02")
         }
     }
+    @Test
+    fun `sport shadow 320dp screen shows scored objectives and stays read only`(){
+        var closed = false
+        val request = ProgramSkeletonRequest(
+            "Shadow", ProgramGoal.FUNCTIONAL_CONDITIONING, 1, 60, emptySet(),
+            "", 0.0, "AUTO", ProgramPeriodizationType.AUTO, 12
+        )
+        val plan = GeneratedProgramSkeleton(
+            suggestedName = "Shadow", durationDays = 84, request = request,
+            periodizationType = ProgramPeriodizationType.AUTO,
+            weekPlans = (1..12).map { week ->
+                ProgramWeekPlan(week, "BUILD", 1.0, 1.0, 2, 8.0, 2, 1, false)
+            },
+            items = (1..12).map { week ->
+                ProgramSkeletonItem(
+                    localId = "shadow-w" + week, weekNumber = week, dayOfWeek = 1,
+                    orderIndex = 1, exerciseStableKey = "shadow-drill",
+                    exerciseName = "앞뒤 랜덤 콕줍기 장문 이름 " + week + "주",
+                    category = "기능성", restSeconds = 60, prescription = "test",
+                    setCount = 2, reps = 8, weightKg = 0.0, seconds = 0,
+                    selectionReason = "test", weightSource = "B_COACH_V2_SET_SPECIFIC",
+                    setPrescriptions = listOf(
+                        ProgramSetPrescription(1, 8, 0.0, 0, null, ProgramLoadState.NOT_APPLICABLE),
+                        ProgramSetPrescription(2, 8, 0.0, 0, null, ProgramLoadState.NOT_APPLICABLE)
+                    )
+                )
+            },
+            weekDaySchedule = (1..12).associateWith { setOf(1) }
+        )
+        val objective = BCoachSportShadowObjective("REACTION", 12, 3.0, 2.0, 4.0, 0.0)
+        val base = BCoachSportShadowCandidate(
+            "BASE", true, 0.4, 0.7, 0, 1, 58.0, 2.0,
+            listOf(objective.copy(meanDose = 0.0, shortfallFraction = 1.0)), emptyList()
+        )
+        val alternative = BCoachSportShadowCandidate(
+            "ALT", false, 0.5, 0.0, 1, 1, 50.0, 2.0,
+            listOf(objective), listOf(
+                BCoachSportShadowExercise("앞뒤 랜덤 콕줍기", "shadow-drill", 2.0, listOf("REACTION"))
+            )
+        )
+        val report = BCoachSportShadowReport(
+            productionCandidateId = "BASE", shadowLeaderId = "ALT",
+            candidates = listOf(alternative, base),
+            notInEvaluatedPool = listOf("래터럴 바운드"),
+            evaluatedCandidateCount = 2
+        )
+        compose.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, 1.3f)) {
+                TrainingTrackPlannerTheme {
+                    BCoachSportShadowDialog(report, candidateForReview = { plan }, onClose = {
+                        closed = true
+                    })
+                }
+            }
+        }
+        compose.onNodeWithText("스포츠 Shadow · 후보 비교").assertIsDisplayed()
+        compose.onNodeWithTag("b_coach_sport_shadow_content").assert(hasScrollAction())
+        compose.onNodeWithTag("b_coach_sport_shadow_content")
+            .performScrollToNode(hasText("세부 스포츠 목표"))
+        compose.onNodeWithText("세부 스포츠 목표").assertIsDisplayed()
+        compose.onNodeWithText("반응").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("b_coach_sport_shadow_content")
+            .performScrollToNode(hasText("12주"))
+        compose.onNodeWithTag("b_coach_shadow_week_12").performClick()
+        compose.onNodeWithText("앞뒤 랜덤 콕줍기 장문 이름 12주").assertIsDisplayed()
+        compose.onNodeWithTag("b_coach_sport_shadow_close").assertIsDisplayed()
+            .performClick()
+        compose.runOnIdle { assertTrue(closed) }
+    }
+
 }

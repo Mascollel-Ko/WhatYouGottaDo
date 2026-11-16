@@ -488,6 +488,57 @@ class BCoachMultiobjectiveProductionTest {
         assertFalse(visible.contains("null", true))
     }
 
+    @Test fun `T67 shadow sport ranking stays read only and preserves production candidate`() {
+        val base = skeleton(3, weeks = 4, everyWeek = true)
+        val drill = exercise("shadow_reaction_drill", "BODYWEIGHT")
+        val alternative = base.copy(items = base.items.map { item ->
+            item.copy(localId = item.localId + "-shadow",
+                exerciseStableKey = drill.stableKey, exerciseName = "Reaction drill")
+        })
+        fun eval(dose: Double) = BCoachV2CandidateEvaluation(
+            axesByScenario = BCoachV2Scenario.entries.associateWith {
+                BCoachObjectiveAxis.entries.associateWith { 0.1 }
+            },
+            lossesByScenario = BCoachV2Scenario.entries.associateWith { 0.2 },
+            needEnvelopes = emptyList(),
+            effectiveSetBreakdown = emptyList(),
+            hardConstraints = emptyList(),
+            reasonCodes = emptyList(),
+            maximumDayMinutes = 55.0,
+            planningStartDate = LocalDate.of(2026, 11, 16),
+            sportObjectiveWeeks = (1..4).map { week ->
+                BCoachSportShadowWeek("REACTION", week, dose, 2.0, 4.0)
+            }
+        )
+        val catalog = CanonicalBadmintonObjectiveCatalog.of(listOf(
+            CanonicalBadmintonObjectiveRelation(
+                "shadow-reaction", drill.stableKey, BadmintonObjective.REACTION,
+                BadmintonObjectiveTransferLevel.DIRECT, "TEST",
+                setOf("shadow-evidence"), "test verified relation"
+            )
+        ))
+        val before = BCoachMultiobjectiveProduction.fingerprint(base)
+        val report = BCoachSportShadowReview.evaluate(
+            listOf(
+                BCoachSportShadowReview.Input("BASE", base, eval(0.0)),
+                BCoachSportShadowReview.Input("ALT", alternative, eval(2.0))
+            ),
+            productionCandidateId = "BASE",
+            catalog = catalog,
+            exercises = mapOf(squat.stableKey to squat, drill.stableKey to drill)
+        )
+        assertEquals("BASE", report.productionCandidateId)
+        assertEquals("ALT", report.shadowLeaderId)
+        assertEquals(listOf("ALT", "BASE"), report.candidates.map { it.candidateId })
+        assertEquals(1, report.candidates.first().objectiveCoverage)
+        assertEquals(0.0, requireNotNull(report.candidates.first().shadowSportLoss), 1e-12)
+        assertTrue(requireNotNull(report.candidates.last().shadowSportLoss) > 0.0)
+        assertEquals(before, BCoachMultiobjectiveProduction.fingerprint(base))
+        assertTrue(report.candidates.none {
+            it.candidateId == "ALT" && it.productionRecommended
+        })
+    }
+
     @Test fun `T45 Epley fallback fixtures preserve capacity conservative factor and downward grid`() {
         val fixtures = listOf(
             Triple(5, 3.0, 137.5),
