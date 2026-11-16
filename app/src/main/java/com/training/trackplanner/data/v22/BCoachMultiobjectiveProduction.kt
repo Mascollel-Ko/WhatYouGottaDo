@@ -147,11 +147,17 @@ class BCoachMultiobjectiveProposal internal constructor(
     val decision: BCoachMultiobjectiveDecision,
     private val candidatesById: Map<String, GeneratedProgramSkeleton>,
     private val loadInstructionsByCandidateId: Map<String, Map<String, String>>,
-    private val recommendedCandidateId: String
+    private val recommendedCandidateId: String,
+    internal val sportShadowReport: BCoachSportShadowReport? = null,
+    private val shadowCandidatesById: Map<String, GeneratedProgramSkeleton> = emptyMap()
 ) {
     /** Read-only structured candidate access for the explicit review UI. */
     fun candidateForReview(candidateId: String): GeneratedProgramSkeleton? =
         candidatesById[candidateId]
+
+    /** Read-only shadow candidate, never passed to accept() or persistence. */
+    internal fun shadowCandidateForReview(candidateId: String): GeneratedProgramSkeleton? =
+        shadowCandidatesById[candidateId]
 
     internal constructor(
         decision: BCoachMultiobjectiveDecision,
@@ -246,7 +252,8 @@ internal object BCoachMultiobjectiveProduction {
         )
         val proposal = result.recommendedCandidateId?.let { id ->
             BCoachMultiobjectiveProposal(
-                result.decision, result.candidatesById, result.loadInstructionsByCandidateId, id
+                result.decision, result.candidatesById, result.loadInstructionsByCandidateId, id,
+                result.sportShadowReport, result.shadowCandidatesById
             )
         }
         return Outcome(result.fallback, result.decision, proposal)

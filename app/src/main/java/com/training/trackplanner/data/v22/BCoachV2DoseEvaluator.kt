@@ -28,7 +28,8 @@ internal data class BCoachV2CandidateEvaluation(
     val hardConstraints: List<BCoachConstraintResult>,
     val reasonCodes: List<String>,
     val maximumDayMinutes: Double,
-    val planningStartDate: LocalDate
+    val planningStartDate: LocalDate,
+    val sportObjectiveWeeks: List<BCoachSportShadowWeek> = emptyList()
 ) {
     val baseAxes: Map<BCoachObjectiveAxis, Double>
         get() = axesByScenario.getValue(BCoachV2Scenario.BASE)
@@ -111,6 +112,7 @@ internal object BCoachV2DoseEvaluator {
         val scenarioAxes = linkedMapOf<BCoachV2Scenario, Map<BCoachObjectiveAxis, Double>>()
         val needBase = mutableListOf<BCoachNeedEnvelope>()
         val breakdown = mutableListOf<String>()
+        val sportObjectiveWeeks = mutableListOf<BCoachSportShadowWeek>()
         val progressionByScenario = BCoachV2Scenario.entries.associateWith { scenario ->
             progressionFit(
                 plan,
@@ -148,6 +150,12 @@ internal object BCoachV2DoseEvaluator {
                     val interval = if (peak) 0.0 to 0.0
                         else BCoachV2Policy.interval(task.center, multiplier, scenario)
                     if (scenario == BCoachV2Scenario.BASE) {
+                        if (!peak && task.goal == BBalancedGoal.SPORT_SUPPORT) {
+                            sportObjectiveWeeks += BCoachSportShadowWeek(
+                                objective = task.id.removePrefix("SPORT:"), week = week,
+                                dose = dose, lower = interval.first, upper = interval.second
+                            )
+                        }
                         needBase += BCoachNeedEnvelope(
                             goal = task.goal,
                             block = blockForWeek(plan, week),
@@ -240,7 +248,8 @@ internal object BCoachV2DoseEvaluator {
             hardConstraints = constraints,
             reasonCodes = reasons.toList().sorted(),
             maximumDayMinutes = baseSchedule.maximumDayMinutes,
-            planningStartDate = baseSchedule.planningStartDate
+            planningStartDate = baseSchedule.planningStartDate,
+            sportObjectiveWeeks = sportObjectiveWeeks
         )
     }
 

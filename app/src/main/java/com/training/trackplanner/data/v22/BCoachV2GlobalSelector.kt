@@ -20,7 +20,9 @@ internal object BCoachV2GlobalSelector {
         val decision: BCoachMultiobjectiveDecision,
         val candidatesById: Map<String, GeneratedProgramSkeleton>,
         val loadInstructionsByCandidateId: Map<String, Map<String, String>>,
-        val recommendedCandidateId: String?
+        val recommendedCandidateId: String?,
+        val sportShadowReport: BCoachSportShadowReport? = null,
+        val shadowCandidatesById: Map<String, GeneratedProgramSkeleton> = emptyMap()
     )
 
     private data class Candidate(
@@ -287,7 +289,25 @@ internal object BCoachV2GlobalSelector {
         val candidateLoads = displayed.associate { candidate ->
             candidate.id to candidate.loadData.instructionsBySetId.mapValues { canonicalLoad(it.value) }
         }
-        return Result(fallback, decision, candidateMap, candidateLoads, selected.id)
+        // The shadow reads already-evaluated, feasible candidates. It cannot change
+        // the production selected ID, approval fingerprints, fallback or stored plan.
+        val sportShadow = runCatching {
+            BCoachSportShadowReview.evaluate(
+                input = valid.map { candidate -> BCoachSportShadowReview.Input(
+                    candidate.id, candidate.skeleton, candidate.evaluation
+                ) },
+                productionCandidateId = selected.id,
+                catalog = badmintonCatalog,
+                exercises = exercises
+            )
+        }.getOrElse { error ->
+            BCoachSportShadowReport(
+                selected.id, null, emptyList(), emptyList(), valid.size,
+                error = error.javaClass.simpleName
+            )
+        }
+        return Result(fallback, decision, candidateMap, candidateLoads, selected.id,
+            sportShadow, valid.associate { it.id to it.skeleton })
     }
 
     internal fun effectiveGoalWeights(
