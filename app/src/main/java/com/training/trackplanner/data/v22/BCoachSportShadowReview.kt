@@ -56,7 +56,7 @@ internal data class BCoachSportShadowReport(
     val evaluatedCandidateCount: Int,
     val error: String? = null
 ) {
-    val available: Boolean get() = error == null && candidates.isNotEmpty()
+    val available: Boolean get() = candidates.isNotEmpty() || error != null
 }
 
 internal object BCoachSportShadowReview {
