@@ -306,7 +306,14 @@ internal object BCoachV2LoadCandidateResolver {
         val target = floorToStep(firstSet * followUpFactor, step)
         if (!target.isFinite() || target <= 0.0) return null
         var candidate = target
-        while (candidate > 0.0 && listOf(model.capacityLow, model.capacityBase, model.capacityHigh).any { capacity ->
+        // A PROFILE_PR_PRIOR lower bound is an uncertainty scenario, not a hard
+        // prescription ceiling. Keep the original no-failure guard for posteriors.
+        val guardCapacities = if (model.tier == "PROFILE_PR_PRIOR") {
+            listOf(model.capacityBase)
+        } else {
+            listOf(model.capacityLow, model.capacityBase, model.capacityHigh)
+        }
+        while (candidate > 0.0 && guardCapacities.any { capacity ->
                 predictedRir(model.curve, capacity, candidate, reps).let { !it.isFinite() || it < 0.0 }
             }) candidate -= step
         return candidate.takeIf { it > 0.0 }
@@ -322,8 +329,15 @@ internal object BCoachV2LoadCandidateResolver {
         val relative = model.curve.evaluate(reps + targetRir).relativeLoad ?: return null
         val baseCandidate = model.capacityBase * relative *
             BCoachV2Policy.INITIAL_LOAD_CONSERVATIVE_FACTOR * followUpFactor
-        val lowCapacityCeiling = model.capacityLow * relative * followUpFactor
-        return minOf(baseCandidate, lowCapacityCeiling).takeIf { it.isFinite() && it > 0.0 }
+        val candidate = if (model.tier == "PROFILE_PR_PRIOR") {
+            // The 90% PR scenario remains available to risk scoring, but must not
+            // silently override the prescribed target RIR and existing 3% buffer.
+            baseCandidate
+        } else {
+            val lowCapacityCeiling = model.capacityLow * relative * followUpFactor
+            minOf(baseCandidate, lowCapacityCeiling)
+        }
+        return candidate.takeIf { it.isFinite() && it > 0.0 }
     }
 
     internal fun epleyTrainingWeight(

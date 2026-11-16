@@ -521,6 +521,61 @@ class BCoachMultiobjectiveProductionTest {
         assertEquals(BCoachLoadSource.PERSONAL_MODEL, instruction.loadSource)
     }
 
+
+    @Test fun `P01 profile PR lower scenario does not cap prescribed or estimated load`() {
+        val prior = modelSnapshot().copy(
+            tier = "PROFILE_PR_PRIOR", capacityLow = 153.0,
+            capacityBase = 170.0, capacityHigh = 178.5
+        )
+        val plan = withTargetRpe(skeleton(1, reps = 6), 7.0)
+        val ratio = requireNotNull(prior.curve.evaluate(9.0).relativeLoad)
+        val buffered = 170.0 * ratio * BCoachV2Policy.INITIAL_LOAD_CONSERVATIVE_FACTOR
+        val formerLowCap = 153.0 * ratio
+        assertTrue(buffered > formerLowCap)
+
+        fun resolve(oneSidePlateKg: Double?) = BCoachV2LoadCandidateResolver.resolve(
+            plan, request().copy(bShadowPlateOneSideKg = oneSidePlateKg), emptyList(),
+            mapOf(squat.stableKey to squat), mapOf(squat.stableKey to prior),
+            mainExerciseKeys = setOf(squat.stableKey)
+        )
+
+        val rounded = resolve(1.25)
+        val exact = rounded.instructionsBySetId.values.single() as BCoachV2LoadInstruction.ExactLoad
+        assertEquals(kotlin.math.floor(buffered / 2.5) * 2.5, exact.kg, 0.0)
+        assertTrue(exact.kg > formerLowCap)
+        assertTrue(requireNotNull(exact.freshRir) < 5.0)
+
+        val unrounded = resolve(null)
+        val estimated = unrounded.instructionsBySetId.values.single() as BCoachV2LoadInstruction.EstimatedLoad
+        assertEquals(buffered, estimated.estimatedKg, 1e-9)
+        assertTrue(estimated.estimatedKg > formerLowCap)
+
+        // Keep the lower-capacity scenario for risk evaluation, not load capping.
+        assertEquals(153.0, prior.capacityLow, 0.0)
+        val lowStressRir = unrounded.rirByScenarioAndSet
+            .getValue(BCoachV2Scenario.LOW_STRESS).values.single()
+        val highStressRir = unrounded.rirByScenarioAndSet
+            .getValue(BCoachV2Scenario.HIGH_STRESS).values.single()
+        assertTrue(lowStressRir > highStressRir)
+    }
+
+    @Test fun `P02 verified posterior still enforces low capacity no failure guard`() {
+        val posterior = modelSnapshot().copy(
+            tier = "TIER_A", capacityLow = 100.0,
+            capacityBase = 120.0, capacityHigh = 140.0
+        )
+        val result = BCoachV2LoadCandidateResolver.resolve(
+            withTargetRpe(skeleton(1, reps = 6), 7.0),
+            request().copy(bShadowPlateOneSideKg = 1.25), emptyList(),
+            mapOf(squat.stableKey to squat), mapOf(squat.stableKey to posterior),
+            mainExerciseKeys = setOf(squat.stableKey)
+        )
+        val exact = result.instructionsBySetId.values.single() as BCoachV2LoadInstruction.ExactLoad
+        assertTrue(BCoachV2LoadCandidateResolver.predictedRir(
+            posterior.curve, posterior.capacityLow, exact.kg, 6
+        ) >= 0.0)
+    }
+
     @Test fun `T47 direct history without RPE is a conservative lower bound rather than failure`() {
         val row = history().single().copy(reps = 6.0, weightKg = 150.0, rpe = null)
         val result = BCoachV2LoadCandidateResolver.resolve(
