@@ -89,6 +89,44 @@ object V22HistoryInput {
         }.sortedWith(compareBy(V22BadmintonHistorySession::date, V22BadmintonHistorySession::sessionStableKey))
     }
 
+    /**
+     * Preserve actual completed sport-drill set exposures for B-Coach SPORT Need.
+     * Repetitions are not converted into fictional minutes or recovery load.
+     * Functional-category drill sets remain on the existing general history path.
+     */
+    fun sportDrillHistory(
+        entries: List<WorkoutEntryWithSets>,
+        badmintonCatalog: CanonicalBadmintonObjectiveCatalog
+    ): List<V22HistoryRow> {
+        val eligibleKeys = badmintonCatalog.allRelations()
+            .filter { it.transferLevel.coefficient > 0.0 }
+            .mapTo(linkedSetOf()) { it.exerciseStableKey } -
+            BadmintonPracticeCatalog.stableKeys
+        return entries.flatMap { record ->
+            val entry = record.entry
+            if (entry.category != "스포츠" || entry.exerciseStableKey !in eligibleKeys) {
+                return@flatMap emptyList()
+            }
+            val date = runCatching { LocalDate.parse(entry.date) }.getOrNull()
+                ?: return@flatMap emptyList()
+            record.sets.filter { set ->
+                set.confirmed && (set.reps > 0 || set.seconds > 0)
+            }.map { set ->
+                V22HistoryRow(
+                    date = date,
+                    exerciseName = entry.exerciseName,
+                    stableKey = entry.exerciseStableKey,
+                    category = entry.category,
+                    setIndex = set.setIndex,
+                    reps = set.reps.takeIf { it > 0 }?.toDouble(),
+                    weightKg = set.weightKg.takeIf { it.isFinite() && it > 0.0 },
+                    seconds = set.seconds.takeIf { it > 0 }?.toDouble(),
+                    rpe = (set.rpe ?: entry.rpe)?.takeIf(Double::isFinite)
+                )
+            }
+        }
+    }
+
     /** Reads the exact backup shape used by the Python reference, including its leading manifest record. */
     fun fromBackupCsv(reader: Reader): List<V22HistoryRow> {
         val records = CsvRecords(reader).iterator()

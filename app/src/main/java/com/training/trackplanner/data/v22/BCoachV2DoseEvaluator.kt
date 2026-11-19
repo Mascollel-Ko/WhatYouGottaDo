@@ -90,6 +90,8 @@ internal object BCoachV2DoseEvaluator {
         historyAtCutoff.filter { it.rpe == null }.mapTo(reasons) {
             "HISTORY_RPE_UNAVAILABLE:${it.stableKey}"
         }
+        historyAtCutoff.filter { it.category == "스포츠" && it.seconds == null }
+            .mapTo(reasons) { "SPORT_REPS_ONLY_DURATION_UNKNOWN:${it.stableKey}" }
         historyAtCutoff.filter { row ->
             row.weightKg?.let { it.isFinite() && it > 0.0 } == true &&
                 referenceCapacityByStableKey[row.stableKey] == null

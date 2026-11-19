@@ -72,6 +72,11 @@ internal class V22ProgramPlanningService(
             badmintonCatalog,
             canonicalMetadataRepository.runtimeMetadataCatalog()
         )
+        // Include sport-category drill repetitions only in the B-Coach evaluator.
+        // Keep A/C parity and B seed/roster generation on the original history.
+        val coachHistory = history + V22HistoryInput.sportDrillHistory(
+            recordedWorkouts, badmintonCatalog
+        )
         val mainExerciseKeys = canonicalMetadataRepository.programSlotCapabilityRelations()
             .filter { it.capabilityCode == "MAIN_STRENGTH_SLOT" }
             .mapTo(linkedSetOf()) { it.exerciseStableKey }
@@ -119,7 +124,7 @@ internal class V22ProgramPlanningService(
         val production = coachRequest.blockProgram?.let {
             BCoachMultiobjectiveProduction.prepare(
                 request = coachRequest,
-                history = history,
+                history = coachHistory,
                 badmintonHistory = badmintonHistory,
                 exercises = exercises,
                 baseline = fallbackSkeleton,
@@ -217,11 +222,15 @@ internal class V22ProgramPlanningService(
         val recordedWorkouts = workoutDao.entriesWithSetsUntil(snapshot.cutoff.toString())
         val history = V22HistoryInput.fromWorkoutHistory(recordedWorkouts)
         val exercises = exerciseDao.allExercises().associateBy(Exercise::stableKey)
+        val badmintonCatalog = canonicalMetadataRepository.badmintonObjectiveCatalog()
         val badmintonHistory = V22HistoryInput.badmintonFromWorkoutHistory(
             recordedWorkouts,
             exercises,
-            canonicalMetadataRepository.badmintonObjectiveCatalog(),
+            badmintonCatalog,
             canonicalMetadataRepository.runtimeMetadataCatalog()
+        )
+        val coachHistory = history + V22HistoryInput.sportDrillHistory(
+            recordedWorkouts, badmintonCatalog
         )
         val linked = snapshot.sourceProgramStableKey?.let { source ->
             progressionDao?.let { dao ->
@@ -243,7 +252,7 @@ internal class V22ProgramPlanningService(
         )
         BCoachMultiobjectiveProduction.validateAcceptedForPersistence(
             skeleton = skeleton,
-            history = history,
+            history = coachHistory,
             badmintonHistory = badmintonHistory,
             exercises = exercises,
             currentLinkedEvidenceFingerprint = linkedFingerprint

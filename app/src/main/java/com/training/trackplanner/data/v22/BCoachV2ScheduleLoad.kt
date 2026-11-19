@@ -70,7 +70,10 @@ internal object BCoachV2ScheduleLoad {
             }
         val planned = loadByDate(plan.items)
         val baselineLoads = loadByDate(baseline.items)
-        val capacityByKey = history.groupBy(V22HistoryRow::stableKey).mapValues { (_, rows) ->
+        // Timed sport drills already enter badmintonHistory. Do not count them
+        // a second time as resistance, and do not invent load for reps-only drills.
+        val resistanceHistory = history.filter { it.category != "스포츠" }
+        val capacityByKey = resistanceHistory.groupBy(V22HistoryRow::stableKey).mapValues { (_, rows) ->
             rows.mapNotNull { row ->
                 val weight = row.weightKg?.takeIf { it.isFinite() && it > 0.0 } ?: return@mapNotNull null
                 val reps = row.reps?.takeIf { it.isFinite() && it in 1.0..20.0 } ?: return@mapNotNull null
@@ -79,7 +82,9 @@ internal object BCoachV2ScheduleLoad {
                 BCoachV2LoadCandidateResolver.epleyEstimatedOneRepMax(weight, reps, rir)
             }.maxOrNull()
         }
-        val resistanceObserved = history.filter { row -> row.date in request.asOf.minusDays(27)..request.asOf }
+        val resistanceObserved = resistanceHistory.filter { row ->
+            row.date in request.asOf.minusDays(27)..request.asOf
+        }
             .groupBy(V22HistoryRow::date).mapValues { (_, rows) ->
                 axisSelectors.mapValues { (axis, selector) ->
                     rows.sumOf { row ->

@@ -462,6 +462,10 @@ internal object BCoachV2GlobalSelector {
                     BCoachV2LoadCandidateResolver.isSetUserFixed(it, item.weightSource)
                 }
 
+        fun knownSeconds(source: ProgramSkeletonItem): Int =
+            ProgramSetPrescriptionResolver.resolve(source)
+                .firstOrNull { it.seconds > 0 }?.seconds ?: source.seconds.coerceAtLeast(0)
+
         fun reselectedItem(
             source: ProgramSkeletonItem, exercise: Exercise,
             count: Int = source.setCount.coerceAtLeast(2)
@@ -470,7 +474,7 @@ internal object BCoachV2GlobalSelector {
                 "TIME_OR_DISTANCE", "DISTANCE_OR_TIME_LOAD", "DURATION"
             )
             val reps = if (timed) 0 else source.reps.takeIf { it in 4..10 } ?: 6
-            val seconds = if (timed) source.seconds.coerceAtLeast(0) else 0
+            val seconds = if (timed) knownSeconds(source) else 0
             val sets = List(count.coerceIn(2, BCoachV2Policy.MAX_PER_EXERCISE_SETS)) { index ->
                 ProgramSetPrescription(
                     setIndex = index + 1, reps = reps, weightKg = 0.0, seconds = seconds,
@@ -523,6 +527,11 @@ internal object BCoachV2GlobalSelector {
             val alternatives = eligible.asSequence().filter { candidate ->
                 candidate.category == original.category &&
                     candidate.progressMetricType == original.progressMetricType &&
+                    (candidate.progressMetricType !in setOf(
+                        "TIME_OR_DISTANCE", "DISTANCE_OR_TIME_LOAD", "DURATION"
+                    ) || plan.items.filter { it.exerciseStableKey == key }.all {
+                        knownSeconds(it) > 0
+                    }) &&
                     (if (isSport) badmintonCatalog.relations(candidate.stableKey).isNotEmpty()
                     else candidate.movementPattern.isNotBlank() &&
                         candidate.movementPattern == original.movementPattern)
