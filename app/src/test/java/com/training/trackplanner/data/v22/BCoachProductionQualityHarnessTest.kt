@@ -220,6 +220,9 @@ class BCoachProductionQualityHarnessTest {
                 appendLine()
                 appendLine("SPORT goal coverage: ${coveredObjectives.size} distinct objectives with nonzero planned dose.")
                 appendLine("Distinct weekly sport-dose profiles: ${sportDoseProfiles.distinct().size}")
+                appendLine("Feasible sport coverage audit: ${decision.inputAudit.filterKeys {
+                    it.startsWith("sportObjectives") || it.startsWith("sportDosePatterns")
+                }}")
                 appendLine("SPORT/support rosters by week: ${supportByWeek.entries.joinToString("; ") {
                     "W${it.key}=${it.value}"
                 }}")
