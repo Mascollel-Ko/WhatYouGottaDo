@@ -380,7 +380,8 @@ internal object BCoachV2GlobalSelector {
         repeat(BCoachV2Policy.SEARCH_ROUNDS) {
             val added = mutableListOf<SearchState>()
             beam.forEach { parent ->
-                searchNeighbors(parent.skeleton, mainExerciseKeys, request, exercises, badmintonCatalog)
+                searchNeighbors(parent.skeleton, mainExerciseKeys, request, exercises,
+                    badmintonCatalog, parent.evaluation.sportObjectiveWeeks)
                     .forEach { (action, neighbor) ->
                     if (cache.size >= BCoachV2Policy.MAX_CANDIDATE_EVALUATIONS) return@forEach
                     register(compoundLabel(parent.label, action), neighbor)?.let(added::add)
@@ -413,7 +414,8 @@ internal object BCoachV2GlobalSelector {
         request: V22GenerationRequest,
         exercises: Map<String, Exercise>,
         badmintonCatalog: CanonicalBadmintonObjectiveCatalog,
-        mainExerciseKeys: Set<String>
+        mainExerciseKeys: Set<String>,
+        sportObjectiveWeeks: List<BCoachSportShadowWeek> = emptyList()
     ): List<Pair<String, GeneratedProgramSkeleton>> {
         if (plan.items.isEmpty()) return emptyList()
         val selected = plan.items.mapTo(linkedSetOf(), ProgramSkeletonItem::exerciseStableKey)
@@ -448,10 +450,28 @@ internal object BCoachV2GlobalSelector {
         val skillCoverage = selected.flatMap { key ->
             exercises[key]?.let(::skillTags).orEmpty()
         }.toSet()
-        val rank = compareByDescending<Exercise> { e ->
-            badmintonCatalog.relations(e.stableKey)
-                .count { it.transferLevel.coefficient > 0.0 && it.objective.name !in objectiveCoverage }
-        }.thenByDescending { e -> (skillTags(e) - skillCoverage).size }
+        // Prioritize still-unserved targets using the evaluator's actual
+        // week-by-week deficit, not a binary all-horizon coverage flag.
+        val gaps = sportObjectiveWeeks.groupBy { it.objective }.mapValues { (_, weeks) ->
+            weeks.map { week ->
+                if (week.lower <= 0.0) 0.0
+                else ((week.lower - week.dose) / week.lower).coerceIn(0.0, 1.0)
+            }.average()
+        }
+        fun needGain(exercise: Exercise): Double = badmintonCatalog.relations(exercise.stableKey)
+            .groupBy { it.objective.name }
+            .values.sumOf { matches ->
+                val best = matches.maxOf { it.transferLevel.coefficient }
+                val objective = matches.first().objective.name
+                best * (gaps[objective] ?: if (objective !in objectiveCoverage) 1.0 else 0.0)
+            }
+        val rank = compareByDescending<Exercise> { needGain(it) }
+            .thenByDescending { e ->
+                badmintonCatalog.relations(e.stableKey).count {
+                    it.transferLevel == BadmintonObjectiveTransferLevel.DIRECT &&
+                        it.objective.name !in objectiveCoverage
+                }
+            }.thenByDescending { e -> (skillTags(e) - skillCoverage).size }
             .thenBy(Exercise::stableKey)
 
         fun eligibleSource(item: ProgramSkeletonItem): Boolean =
@@ -570,6 +590,75 @@ internal object BCoachV2GlobalSelector {
                 changes += "INSERT_${candidate.stableKey}_ON_DAY_$day" to plan.copy(items = next)
             }
         }
+        // Generate alternating-week sport variants rather than copying the
+        // same drill lineup to every week. The full scorer still applies all
+        // time, recovery, user-lock, and approval constraints to each proposal.
+        if ((request.bGoalImportance.sportSupport ?: 3) >= 4) {
+            val weeks = plan.items.map { it.weekNumber }.distinct().sorted()
+            if (weeks.size >= 3) {
+                val sources = selected.filter { key ->
+                    badmintonCatalog.relations(key).any {
+                        it.transferLevel == BadmintonObjectiveTransferLevel.DIRECT
+                    } && plan.items.filter { it.exerciseStableKey == key }.all(::eligibleSource) &&
+                        plan.items.count { it.exerciseStableKey == key } >= 2
+                }.take(2)
+                for (key in sources) {
+                    val original = exercises[key] ?: continue
+                    val variants = eligible.asSequence().filter { e ->
+                        e.category == original.category &&
+                            e.progressMetricType == original.progressMetricType &&
+                            badmintonCatalog.relations(e.stableKey).any {
+                                it.transferLevel == BadmintonObjectiveTransferLevel.DIRECT
+                            } &&
+                            (e.progressMetricType !in setOf(
+                                "TIME_OR_DISTANCE", "DISTANCE_OR_TIME_LOAD", "DURATION"
+                            ) || plan.items.filter { it.exerciseStableKey == key }
+                                .all { knownSeconds(it) > 0 })
+                    }.sortedWith(rank).take(3).toList()
+                    for (variant in variants) {
+                        val updated = plan.items.map { item ->
+                            if (item.exerciseStableKey != key || item.weekNumber % 2 != 0 ||
+                                plan.items.any { other ->
+                                    other.weekNumber == item.weekNumber &&
+                                        other.exerciseStableKey == variant.stableKey
+                                }) item else reselectedItem(item, variant)
+                        }
+                        if (updated != plan.items) {
+                            changes += "SPORT_ROTATE_EVEN_${key}_TO_${variant.stableKey}" to
+                                plan.copy(items = updated)
+                        }
+                    }
+                }
+                // Alternate-week inserts offer missing direct sport coverage
+                // even when there is no eligible existing sport item to replace.
+                val additions = eligible.asSequence().filter { e ->
+                    e.progressMetricType == "QUALITY_BASED" &&
+                        badmintonCatalog.relations(e.stableKey).any {
+                            it.transferLevel == BadmintonObjectiveTransferLevel.DIRECT
+                        }
+                }.sortedWith(rank).take(3).toList()
+                for (candidate in additions) {
+                    val next = plan.items.toMutableList()
+                    for (week in weeks.filter { it % 2 == 0 }) {
+                        val weekItems = plan.items.filter { it.weekNumber == week }
+                        if (weekItems.any { it.exerciseStableKey == candidate.stableKey }) continue
+                        val targetDay = weekItems.groupBy { it.dayOfWeek }.entries
+                            .minWithOrNull(compareBy<Map.Entry<Int, List<ProgramSkeletonItem>>> {
+                                it.value.size
+                            }.thenBy { it.key }) ?: continue
+                        val source = targetDay.value.firstOrNull() ?: continue
+                        next += reselectedItem(source, candidate, 2).copy(
+                            localId = "B_ROTATE_W${week}_D${targetDay.key}_${candidate.stableKey}",
+                            orderIndex = (targetDay.value.maxOfOrNull { it.orderIndex } ?: 0) + 1,
+                            selectionReason = "B_COACH_ROTATING_DIRECT_SPORT_USER_REVIEW"
+                        )
+                    }
+                    if (next.size > plan.items.size) {
+                        changes += "SPORT_ADD_EVEN_${candidate.stableKey}" to plan.copy(items = next)
+                    }
+                }
+            }
+        }
         return changes.distinctBy { (_, candidate) ->
             BCoachMultiobjectiveProduction.fingerprint(candidate)
         }
@@ -586,11 +675,13 @@ internal object BCoachV2GlobalSelector {
         mainExerciseKeys: Set<String>,
         request: V22GenerationRequest,
         exercises: Map<String, Exercise>,
-        badmintonCatalog: CanonicalBadmintonObjectiveCatalog
+        badmintonCatalog: CanonicalBadmintonObjectiveCatalog,
+        sportObjectiveWeeks: List<BCoachSportShadowWeek>
     ): List<Pair<String, GeneratedProgramSkeleton>> = buildList {
         // Offer roster mutations first. A bounded on-device search must not
         // consume its entire evaluation budget on one-set/repetition tweaks.
-        addAll(rosterNeighbors(plan, request, exercises, badmintonCatalog, mainExerciseKeys))
+        addAll(rosterNeighbors(plan, request, exercises, badmintonCatalog,
+            mainExerciseKeys, sportObjectiveWeeks))
         val keys = plan.items.map(ProgramSkeletonItem::exerciseStableKey).distinct().sorted().take(6)
         keys.forEach { key ->
             add("ADD_ONE_SET_$key" to mutateSets(plan, key, +1, mainExerciseKeys))
