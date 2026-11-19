@@ -264,6 +264,11 @@ class BCoachProductionQualityHarnessTest {
                 persisted = true
             }
         }
+        // Persist the complete exercise/objective audit even when a strict
+        // generation-quality assertion below fails.
+        val output = File("build/reports/b-coach/b_coach_generation_fixtures.md")
+        output.parentFile?.mkdirs()
+        output.writeText(mutableReport)
         assertTrue(persisted)
         // A non-identical weekly support roster is a product-quality contract,
         // not a hard constraint on fixed main resistance exercises.
@@ -290,9 +295,6 @@ class BCoachProductionQualityHarnessTest {
             trackedSportKeys.any { key -> it.startsWith("SPORT_CANDIDATE:$key:") } &&
                 "EQUIPMENT=EQUIPMENT_UNAVAILABLE" in it
         })
-        val output = File("build/reports/b-coach/b_coach_generation_fixtures.md")
-        output.parentFile?.mkdirs()
-        output.writeText(mutableReport)
         assertTrue(output.isFile && output.readText().contains("F6_4W_3D_90M"))
     }
 }
