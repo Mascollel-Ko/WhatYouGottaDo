@@ -269,12 +269,13 @@ class BCoachProductionQualityHarnessTest {
         // not a hard constraint on fixed main resistance exercises.
         val highSportFixtures = listOf("F2_4W_4D_60M_SPORT5", "F3_12W_3D_60M")
         highSportFixtures.forEach { id ->
-            assertTrue("$id: must contain multiple weekly support rosters",
-                (supportRosterVariety[id] ?: 0) >= 2)
-            assertEquals("$id: every eligible badminton objective must receive a nonzero dose",
+            val expectedPatterns = if (id.startsWith("F3_")) 3 else 2
+            assertTrue("$id: need actual weekly support rotation, not a copied roster",
+                (supportRosterVariety[id] ?: 0) >= expectedPatterns)
+            assertEquals("$id: all nine objective domains need some exposure across the block",
                 9, taskCoverage[id])
-            assertTrue("$id: weekly changes must alter SPORT objective dose, not just names",
-                (sportDoseProfileVariety[id] ?: 0) >= 2)
+            assertTrue("$id: sport dose patterns must change, not just exercise names",
+                (sportDoseProfileVariety[id] ?: 0) >= expectedPatterns)
         }
         val lowSport = selectedSportKeys.getValue("F1_4W_4D_60M_SPORT1")
         val highSport = selectedSportKeys.getValue("F2_4W_4D_60M_SPORT5")
