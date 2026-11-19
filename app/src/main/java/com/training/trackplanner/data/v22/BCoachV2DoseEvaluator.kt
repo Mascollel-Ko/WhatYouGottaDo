@@ -509,6 +509,28 @@ internal object BCoachV2DoseEvaluator {
                 item.setCount > 0 && item.setCount <= BCoachV2Policy.MAX_PER_EXERCISE_SETS &&
                     ProgramSetPrescriptionResolver.resolve(item).size == item.setCount
             }) BCoachConstraintStatus.PASS else BCoachConstraintStatus.FAIL))
+        // Most general training prescriptions must not collapse to isolated
+        // single sets. Explicit peak tests and duration-driven exposures are
+        // permitted exceptions; they are not ordinary strength/accessory work.
+        val unsupportedSingles = plan.items.filter { item ->
+            if (item.setCount != 1 || isPeakWeek(plan, item.weekNumber) ||
+                item.directSportSession || item.rehabLikeActivation) return@filter false
+            val exercise = exercises[item.exerciseStableKey]
+            val timed = item.seconds > 0 || exercise?.progressMetricType in setOf(
+                "TIME_OR_DISTANCE", "DISTANCE_OR_TIME_LOAD", "DURATION"
+            )
+            val special = listOf("RECOVERY", "MOBILITY", "TEST").any { token ->
+                token in (item.category + " " + item.selectionRole).uppercase()
+            }
+            !timed && !special
+        }
+        add(constraint("NORMAL_TRAINING_MIN_TWO_SETS",
+            if (unsupportedSingles.isEmpty()) BCoachConstraintStatus.PASS
+            else BCoachConstraintStatus.FAIL,
+            if (unsupportedSingles.isEmpty()) null
+            else "SINGLES=" + unsupportedSingles.take(8).joinToString(",") {
+                "W${it.weekNumber}D${it.dayOfWeek}:${it.exerciseStableKey}"
+            }))
         add(constraint("DUPLICATE_ORDER_SLOT", if (plan.items.map {
                 Triple(it.weekNumber, it.dayOfWeek, it.orderIndex)
             }.distinct().size == plan.items.size) BCoachConstraintStatus.PASS else BCoachConstraintStatus.FAIL))

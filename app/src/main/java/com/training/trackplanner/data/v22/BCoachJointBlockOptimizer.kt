@@ -227,6 +227,11 @@ internal object BCoachJointBlockOptimizer {
         val goalWeights = BBalancedGoal.entries.associateWith {
             (request.bGoalImportance.value(it) ?: 3).toDouble()
         }
+        // Every canonical objective is evaluated separately. Summing all transfer
+        // links into one scalar and clipping each exercise at 1.5 destroyed
+        // distinctions between otherwise different badminton exercises.
+        val sportObjectives = badmintonCatalog.allRelations()
+            .map { it.objective.name }.distinct().sorted()
         val weightTotal = goalWeights.values.sum().coerceAtLeast(1.0)
         val duration = request.sessionMinutes
         val rawCandidateDays = if (request.fixedWeekdays != null) {
@@ -324,7 +329,7 @@ internal object BCoachJointBlockOptimizer {
                 val muscleDose = linkedMapOf<String, Double>()
                 val strengthDose = linkedMapOf<String, Double>()
                 var coreDose = 0.0
-                var sportDose = 0.0
+                val sportDoseByObjective = linkedMapOf<String, Double>()
                 val patterns = linkedMapOf<String, Double>()
                 for (item in all) {
                     val p = profile(item.stableKey)
@@ -339,7 +344,18 @@ internal object BCoachJointBlockOptimizer {
                         strengthDose[p.anchor] = (strengthDose[p.anchor] ?: 0.0) + item.setCount
                     }
                     if (p.directCore) coreDose += item.setCount
-                    sportDose += item.setCount * p.sport.coerceAtMost(1.5)
+                    badmintonCatalog.relations(item.stableKey).forEach { relation ->
+                        val credit = when (relation.transferLevel) {
+                            BadmintonObjectiveTransferLevel.DIRECT -> 1.0
+                            BadmintonObjectiveTransferLevel.SUPPORTIVE -> 0.55
+                            BadmintonObjectiveTransferLevel.GENERAL -> 0.2
+                            BadmintonObjectiveTransferLevel.LOW -> 0.07
+                            BadmintonObjectiveTransferLevel.NONE -> 0.0
+                        }
+                        val objective = relation.objective.name
+                        sportDoseByObjective[objective] =
+                            (sportDoseByObjective[objective] ?: 0.0) + item.setCount * credit
+                    }
                     val pattern = exercises[item.stableKey]?.movementPattern.orEmpty().uppercase()
                     val className = when {
                         "PULL" in pattern || "ROW" in pattern -> "PULL"
@@ -356,7 +372,14 @@ internal object BCoachJointBlockOptimizer {
                 val strengthUtility = if (anchors.isEmpty()) 0.0 else
                     anchors.map { saturate(strengthDose[it] ?: 0.0, 3.0) }.average()
                 val coreUtility = saturate(coreDose, 4.0)
-                val sportUtility = saturate(sportDose, 6.0)
+                // Preserve the full objective vector: a set contributes only to
+                // relations explicitly reviewed for its own stableKey.
+                // The 6.0 scale is a provisional scheduling heuristic, not a
+                // validated sporting adaptation or a mandatory training target.
+                val sportUtility = if (sportObjectives.isEmpty()) 0.0 else
+                    sportObjectives.map { objective ->
+                        saturate(sportDoseByObjective[objective] ?: 0.0, 6.0)
+                    }.average()
                 val weighted = (
                     goalWeights.getValue(BBalancedGoal.STRENGTH) * strengthUtility +
                     goalWeights.getValue(BBalancedGoal.HYPERTROPHY) * muscleUtility +
@@ -502,12 +525,30 @@ internal object BCoachJointBlockOptimizer {
                     sportImportance >= 3 -> 3
                     else -> 1
                 }
+                val coveredObjectives = used.flatMap { key ->
+                    badmintonCatalog.relations(key).filter { row ->
+                        row.transferLevel == BadmintonObjectiveTransferLevel.DIRECT ||
+                            row.transferLevel == BadmintonObjectiveTransferLevel.SUPPORTIVE
+                    }.map { it.objective.name }
+                }.toSet()
+                fun skillTags(e: Exercise): Set<String> =
+                    e.badmintonSkillTargets.split(Regex("[,|;]"))
+                        .map(String::trim).filter(String::isNotEmpty).toSet()
+                val coveredSkillTags = used.flatMap { key ->
+                    exercises[key]?.let(::skillTags).orEmpty()
+                }.toSet()
                 val rankedSport = eligible.asSequence().filter { e ->
                     e.stableKey !in used && badmintonCatalog.relations(e.stableKey).any {
                         it.transferLevel == BadmintonObjectiveTransferLevel.DIRECT ||
                             it.transferLevel == BadmintonObjectiveTransferLevel.SUPPORTIVE
                     }
-                }.sortedWith(compareByDescending<Exercise> { profile(it.stableKey).sport }
+                }.sortedWith(compareByDescending<Exercise> { e ->
+                    badmintonCatalog.relations(e.stableKey).count { row ->
+                        row.transferLevel == BadmintonObjectiveTransferLevel.DIRECT &&
+                            row.objective.name !in coveredObjectives
+                    }
+                }.thenByDescending { e -> (skillTags(e) - coveredSkillTags).size }
+                    .thenByDescending { e -> profile(e.stableKey).sport }
                     .thenBy(Exercise::stableKey)).take(sportLimit).toList()
                 val additions = (rankedSport + rankedGeneral).distinctBy(Exercise::stableKey)
                 shortlistedSportKeys += additions.filter { badmintonCatalog.relations(it.stableKey).any { row ->

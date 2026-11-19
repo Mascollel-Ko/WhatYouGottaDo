@@ -29,6 +29,15 @@ class BBlockPurposePrescriptionTest {
         assertTrue(strength.single().items.flatMap { it.sets }.all { it.weightKg == null && it.observedRpe == null })
     }
 
+    @Test fun recordedOneSetBecomesAtLeastTwoNormalWorkingSets() {
+        val original = listOf(V22Session(1, listOf(item("curl", 10, 1)), 1))
+        val shaped = BBlockPurposePrescription.prepare(original,
+            BBlockDefinition(goal = BBlockGoal.HYPERTROPHY), emptySet(), emptyMap())
+        assertEquals(2, shaped.single().items.single().setCount)
+        assertEquals(2, shaped.single().items.single().sets.size)
+        assertTrue(shaped.single().items.single().sets.all { it.weightKg == null })
+    }
+
     @Test fun zeroHistoryReceivesUsableRepsAndSets() {
         val cold = item("squat", null, 1).copy(source = "COLD_START")
         val shaped = BBlockPurposePrescription.prepare(

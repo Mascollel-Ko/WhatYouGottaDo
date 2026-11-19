@@ -53,7 +53,15 @@ internal object BBlockPurposePrescription {
                     role == BBlockGoal.SPORT_SUPPORT -> 2
                     else -> 2
                 }
-            } else item.sets.size.coerceAtLeast(1)
+            } else {
+                // Recorded one-set exposures are not sufficient authority to
+                // prescribe one-set normal training. Only explicit peak testing
+                // may reduce the working sets in finishWeek().
+                item.sets.size.coerceAtLeast(
+                    if (role == BBlockGoal.PEAK_EVALUATION && isMain) 2
+                    else if (isMain) 3 else 2
+                )
+            }
             val prototype = item.sets.firstOrNull()
                 ?: V22ObservedSet(null, null, null, null, "", "USER_CALIBRATION_REQUIRED")
             val prescribed = List(sets) { index ->
