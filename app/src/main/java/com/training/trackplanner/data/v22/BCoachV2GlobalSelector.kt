@@ -7,6 +7,8 @@ import com.training.trackplanner.data.CanonicalMetadataRelation
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.ProgramLoadSource
+import com.training.trackplanner.data.ProgramSetPrescription
+import com.training.trackplanner.data.ProgressionRole
 import com.training.trackplanner.data.ProgramLoadState
 import com.training.trackplanner.data.ProgramSetPrescriptionResolver
 import com.training.trackplanner.data.ProgramSkeletonItem
@@ -137,7 +139,8 @@ internal object BCoachV2GlobalSelector {
         // a skeleton the user was never shown.
         val baselineFingerprint = resolvedBaseline.signature
         val rawCandidates = searchCandidates(
-            baseline, preserveRestAndOrder(baseline, jointCandidate), mainExerciseKeys, ::evaluatePlan
+            baseline, preserveRestAndOrder(baseline, jointCandidate),
+            mainExerciseKeys, request, exercises, badmintonCatalog, ::evaluatePlan
         )
         val baselineSuccessfulAnchors = historyAtCutoff.filter { (it.reps ?: 0.0) > 0.0 }
             .map(V22HistoryRow::stableKey).toSet()
@@ -357,6 +360,9 @@ internal object BCoachV2GlobalSelector {
         baseline: GeneratedProgramSkeleton,
         joint: GeneratedProgramSkeleton,
         mainExerciseKeys: Set<String>,
+        request: V22GenerationRequest,
+        exercises: Map<String, Exercise>,
+        badmintonCatalog: CanonicalBadmintonObjectiveCatalog,
         evaluate: (GeneratedProgramSkeleton) -> ResolvedPlan
     ): List<SearchState> {
         val cache = linkedMapOf<String, SearchState>()
@@ -374,7 +380,8 @@ internal object BCoachV2GlobalSelector {
         repeat(BCoachV2Policy.SEARCH_ROUNDS) {
             val added = mutableListOf<SearchState>()
             beam.forEach { parent ->
-                searchNeighbors(parent.skeleton, mainExerciseKeys).forEach { (action, neighbor) ->
+                searchNeighbors(parent.skeleton, mainExerciseKeys, request, exercises, badmintonCatalog)
+                    .forEach { (action, neighbor) ->
                     if (cache.size >= BCoachV2Policy.MAX_CANDIDATE_EVALUATIONS) return@forEach
                     register(compoundLabel(parent.label, action), neighbor)?.let(added::add)
                 }
@@ -396,6 +403,165 @@ internal object BCoachV2GlobalSelector {
             .take(BCoachV2Policy.MAX_FINALISTS)
     }
 
+    /**
+     * Search across the reviewed metadata roster, not merely the six stableKeys
+     * already present in a program. New exercise loads are deliberately cleared;
+     * the normal resolver must re-estimate them from that exercise's own evidence.
+     */
+    internal fun rosterNeighbors(
+        plan: GeneratedProgramSkeleton,
+        request: V22GenerationRequest,
+        exercises: Map<String, Exercise>,
+        badmintonCatalog: CanonicalBadmintonObjectiveCatalog,
+        mainExerciseKeys: Set<String>
+    ): List<Pair<String, GeneratedProgramSkeleton>> {
+        if (plan.items.isEmpty()) return emptyList()
+        val selected = plan.items.mapTo(linkedSetOf(), ProgramSkeletonItem::exerciseStableKey)
+        val equipment = request.availableEquipment?.flatMap { value ->
+            value.split(Regex("[,|;/+&]")).map(String::trim).filter(String::isNotEmpty)
+        }?.map(String::uppercase)?.toSet()
+        fun permitted(exercise: Exercise): Boolean {
+            val tokens = exercise.equipment.split(Regex("[,|;/+&]"))
+                .map(String::trim).filter(String::isNotEmpty).map(String::uppercase)
+            if (tokens.isEmpty() || tokens.all { it in setOf("BODYWEIGHT", "맨몸") }) return true
+            return equipment != null && (tokens.all { it in equipment } ||
+                exercise.equipment.uppercase() in request.availableEquipment.orEmpty().map(String::uppercase))
+        }
+        fun reviewed(exercise: Exercise): Boolean =
+            exercise.isActive && !exercise.needsReview && !exercise.isCustom &&
+                exercise.planningEligibility != "HISTORY_ONLY" &&
+                exercise.metadataConfidence.uppercase() !in
+                    setOf("", "UNKNOWN", "UNREVIEWED", "REVIEW_REQUIRED") &&
+                permitted(exercise)
+        val eligible = exercises.values.filter(::reviewed).filter { it.stableKey !in selected }
+        val objectiveCoverage = selected.flatMap { key ->
+            badmintonCatalog.relations(key).filter { it.transferLevel.coefficient > 0.0 }
+                .map { it.objective.name }
+        }.toSet()
+        fun skillTags(exercise: Exercise): Set<String> =
+            exercise.badmintonSkillTargets.split(Regex("[,|;]"))
+                .map(String::trim).filter(String::isNotEmpty).toSet()
+        val skillCoverage = selected.flatMap { key ->
+            exercises[key]?.let(::skillTags).orEmpty()
+        }.toSet()
+        val rank = compareByDescending<Exercise> { e ->
+            badmintonCatalog.relations(e.stableKey)
+                .count { it.transferLevel.coefficient > 0.0 && it.objective.name !in objectiveCoverage }
+        }.thenByDescending { e -> (skillTags(e) - skillCoverage).size }
+            .thenBy(Exercise::stableKey)
+
+        fun eligibleSource(item: ProgramSkeletonItem): Boolean =
+            item.exerciseStableKey !in mainExerciseKeys &&
+                !item.selectionRole.contains("MAIN", ignoreCase = true) &&
+                !BCoachV2DoseEvaluator.isExplicitUserExerciseLock(item.selectionReason) &&
+                !item.weightSource.contains("USER_FIXED", ignoreCase = true) &&
+                ProgramSetPrescriptionResolver.resolve(item).none {
+                    BCoachV2LoadCandidateResolver.isSetUserFixed(it, item.weightSource)
+                }
+
+        fun reselectedItem(
+            source: ProgramSkeletonItem, exercise: Exercise,
+            count: Int = source.setCount.coerceAtLeast(2)
+        ): ProgramSkeletonItem {
+            val timed = exercise.progressMetricType in setOf(
+                "TIME_OR_DISTANCE", "DISTANCE_OR_TIME_LOAD", "DURATION"
+            )
+            val reps = if (timed) 0 else source.reps.takeIf { it in 4..10 } ?: 6
+            val seconds = if (timed) source.seconds.coerceAtLeast(0) else 0
+            val sets = List(count.coerceIn(2, BCoachV2Policy.MAX_PER_EXERCISE_SETS)) { index ->
+                ProgramSetPrescription(
+                    setIndex = index + 1, reps = reps, weightKg = 0.0, seconds = seconds,
+                    loadState = ProgramLoadState.USER_CALIBRATION_REQUIRED,
+                    loadSource = ProgramLoadSource.CALIBRATION_REQUIRED
+                )
+            }
+            return source.copy(
+                localId = source.localId + "_B_RESELECT_" + exercise.stableKey,
+                exerciseStableKey = exercise.stableKey,
+                stableKey = exercise.stableKey,
+                exerciseName = exercise.name,
+                category = exercise.category,
+                restSeconds = exercise.defaultRestSeconds,
+                prescription = "B_COACH_RESELECTED_USER_REVIEW",
+                setCount = sets.size, reps = reps, weightKg = 0.0, seconds = seconds,
+                selectionReason = "B_COACH_GLOBAL_ROSTER_RESELECTED",
+                weightSource = "B_COACH_RESELECT_USER_CALIBRATION_REQUIRED",
+                trainingSlot = "FULL_BODY_BADMINTON_SUPPORT",
+                selectionRole = if (badmintonCatalog.relations(exercise.stableKey).isNotEmpty())
+                    "SPORT_SUPPORT_RESELECTED" else "ACCESSORY_RESELECTED",
+                movementFamily = exercise.movementPattern,
+                movementSubtype = "", metadataProgramSlot = "", redundancyGroup = "",
+                strengthProgressionGroup = exercise.strengthProgressionGroup,
+                primaryStressProfile = "", stressMagnitudeHint = "",
+                neuromuscularStressLevel = "", systemicMuscularStressLevel = "",
+                localMuscularStressLevel = "", jointTendonImpactStressLevel = "",
+                movementFocusDemandLevel = "", recoveryDurationClass = "",
+                badmintonTransferLevel = "", estimatedDurationSeconds = 0,
+                directSportSession = false, rehabLikeActivation = false,
+                scapularStabilityExposure = false,
+                primarySlotCapabilities = emptyList(),
+                secondarySlotCapabilities = emptyList(), weakSlotCapabilities = emptyList(),
+                slotCapabilitySource = "NONE", slotCapabilityConfidence = "NONE",
+                slotCapabilityWarnings = emptyList(), requestedTemplateSlot = "",
+                requiredTemplateAnchor = false, setPrescriptions = sets,
+                taskProtocolSemanticsJson = null, progressionStyle = "",
+                progressionVariant = "", progressionAnchorSetIndex = null,
+                progressionRole = ProgressionRole.AUTO, progressionBinding = null
+            )
+        }
+
+        val changes = mutableListOf<Pair<String, GeneratedProgramSkeleton>>()
+        val mutableKeys = selected.filter { key ->
+            plan.items.filter { it.exerciseStableKey == key }.all(::eligibleSource)
+        }
+        for (key in mutableKeys.take(4)) {
+            val original = exercises[key] ?: continue
+            val isSport = badmintonCatalog.relations(key).isNotEmpty()
+            val alternatives = eligible.asSequence().filter { candidate ->
+                candidate.category == original.category &&
+                    candidate.progressMetricType == original.progressMetricType &&
+                    (if (isSport) badmintonCatalog.relations(candidate.stableKey).isNotEmpty()
+                    else candidate.movementPattern.isNotBlank() &&
+                        candidate.movementPattern == original.movementPattern)
+            }.sortedWith(rank).take(3).toList()
+            for (candidate in alternatives) {
+                val revised = plan.copy(items = plan.items.map { item ->
+                    if (item.exerciseStableKey == key) reselectedItem(item, candidate) else item
+                })
+                changes += "REPLACE_$key_WITH_${candidate.stableKey}" to revised
+            }
+        }
+        // An underfilled day must be able to gain a second accessory rather
+        // than only replacing one. Insert consistently into each existing week.
+        val firstWeek = plan.items.minOf(ProgramSkeletonItem::weekNumber)
+        val day = plan.items.filter { it.weekNumber == firstWeek }
+            .groupBy(ProgramSkeletonItem::dayOfWeek)
+            .minWithOrNull(compareBy<Map.Entry<Int, List<ProgramSkeletonItem>>> { it.value.size }
+                .thenBy { it.key })?.key
+        if (day != null) {
+            val additions = eligible.asSequence()
+                .filter { badmintonCatalog.relations(it.stableKey).isNotEmpty() &&
+                    it.progressMetricType == "QUALITY_BASED" }
+                .sortedWith(rank).take(2).toList()
+            for (candidate in additions) {
+                val next = plan.items.toMutableList()
+                for ((week, items) in plan.items.groupBy(ProgramSkeletonItem::weekNumber)) {
+                    val sameDay = items.filter { it.dayOfWeek == day }
+                    val source = sameDay.firstOrNull() ?: continue
+                    val insertion = reselectedItem(source, candidate, count = 2).copy(
+                        localId = "B_RESELECT_W${week}_D${day}_${candidate.stableKey}",
+                        orderIndex = (sameDay.maxOfOrNull(ProgramSkeletonItem::orderIndex) ?: 0) + 1
+                    )
+                    next += insertion
+                }
+                changes += "INSERT_${candidate.stableKey}_ON_DAY_$day" to plan.copy(items = next)
+            }
+        }
+        return changes.distinctBy { (_, candidate) ->
+            BCoachMultiobjectiveProduction.fingerprint(candidate)
+        }
+    }
+
     private fun searchComparator(): Comparator<SearchState> =
         compareBy<SearchState> { state ->
             state.evaluation.hardConstraints.count { it.status == BCoachConstraintStatus.FAIL }
@@ -404,8 +570,13 @@ internal object BCoachV2GlobalSelector {
 
     private fun searchNeighbors(
         plan: GeneratedProgramSkeleton,
-        mainExerciseKeys: Set<String>
+        mainExerciseKeys: Set<String>,
+        request: V22GenerationRequest,
+        exercises: Map<String, Exercise>,
+        badmintonCatalog: CanonicalBadmintonObjectiveCatalog
     ): List<Pair<String, GeneratedProgramSkeleton>> = buildList {
+        // Original set/rep actions remain available. Roster changes are evaluated
+        // by the very same load resolver, scenario evaluator and hard constraints.
         val keys = plan.items.map(ProgramSkeletonItem::exerciseStableKey).distinct().sorted().take(6)
         keys.forEach { key ->
             add("ADD_ONE_SET_$key" to mutateSets(plan, key, +1, mainExerciseKeys))
@@ -413,6 +584,7 @@ internal object BCoachV2GlobalSelector {
             add("REPS_PLUS_ONE_$key" to mutateReps(plan, key, +1))
             add("REPS_MINUS_ONE_$key" to mutateReps(plan, key, -1))
         }
+        addAll(rosterNeighbors(plan, request, exercises, badmintonCatalog, mainExerciseKeys))
     }.distinctBy { (_, skeleton) -> BCoachMultiobjectiveProduction.fingerprint(skeleton) }
 
     private fun compoundLabel(parent: String, action: String): String {
