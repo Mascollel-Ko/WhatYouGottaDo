@@ -188,6 +188,14 @@ internal object BCoachV2GlobalSelector {
         val regrets = robustRegrets(valid.associate { it.id to it.evaluation.lossesByScenario })
         valid.forEach { it.robustRegret = regrets.getValue(it.id) }
         val frontier = valid.filter(Candidate::pareto).ifEmpty { listOf(valid.minBy(Candidate::signature)) }
+        fun sportCoverageCount(candidate: Candidate): Int =
+            candidate.evaluation.sportObjectiveWeeks.groupBy { it.objective }
+                .count { (_, rows) -> rows.any { it.dose > 0.0 } }
+        fun sportDosePatternCount(candidate: Candidate): Int =
+            candidate.evaluation.sportObjectiveWeeks.groupBy { it.week }.values
+                .map { rows -> rows.sortedBy { it.objective }
+                    .joinToString("|") { "${it.objective}:${it.dose}" } }
+                .distinct().size
         val selected = frontier.sortedWith(
             compareBy<Candidate> { it.robustRegret }
                 .thenBy { it.evaluation.baseLoss }
@@ -264,6 +272,11 @@ internal object BCoachV2GlobalSelector {
             inputAudit = inputAudit(
                 request, historyAtCutoff, relevantKeys, historyFingerprint, exerciseFingerprint,
                 linkedFingerprint, goalWeights
+            ) + mapOf(
+                "sportObjectivesSelected" to sportCoverageCount(selected).toString(),
+                "sportObjectivesMaxFeasible" to valid.maxOf(::sportCoverageCount).toString(),
+                "sportDosePatternsSelected" to sportDosePatternCount(selected).toString(),
+                "sportDosePatternsMaxFeasible" to valid.maxOf(::sportDosePatternCount).toString()
             ),
             unknowns = selectedLoad.reasonCodes + selected.evaluation.reasonCodes,
             mostAdverseModeledScenario = selected.evaluation.lossesByScenario.maxBy { it.value }.key.name,
