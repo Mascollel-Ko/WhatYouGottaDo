@@ -432,6 +432,7 @@ internal object BCoachV2GlobalSelector {
                 exercise.planningEligibility != "HISTORY_ONLY" &&
                 exercise.metadataConfidence.uppercase() !in
                     setOf("", "UNKNOWN", "UNREVIEWED", "REVIEW_REQUIRED") &&
+                !BCoachV2Policy.isTestOnlyExercise(exercise) &&
                 permitted(exercise)
         val eligible = exercises.values.filter(::reviewed).filter {
             it.stableKey !in selected && it.stableKey !in mainExerciseKeys &&

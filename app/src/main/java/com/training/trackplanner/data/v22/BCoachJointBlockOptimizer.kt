@@ -216,6 +216,7 @@ internal object BCoachJointBlockOptimizer {
             return availableEquipment != null && required.all { it in availableEquipment }
         }
         val eligible = exercises.values.asSequence().filter { profile(it.stableKey).eligible &&
+            !BCoachV2Policy.isTestOnlyExercise(it) &&
             permitted(it) }.sortedBy(Exercise::stableKey).toList()
         val shortlistedSportKeys = linkedSetOf<String>()
         val scoredSportKeys = linkedSetOf<String>()

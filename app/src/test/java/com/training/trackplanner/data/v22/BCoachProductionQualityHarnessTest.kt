@@ -151,6 +151,15 @@ class BCoachProductionQualityHarnessTest {
                 items.mapTo(sortedSetOf()) { it.dayOfWeek }
             }
             val oneSetCount = selected.items.count { ProgramSetPrescriptionResolver.resolve(it).size == 1 }
+            val exerciseByKey = exercises.associateBy { it.stableKey }
+            assertTrue("${fixture.id}: test-only exercise automatically prescribed", selected.items
+                .filter { item ->
+                    selected.weekPlans.none { week ->
+                        week.weekIndex == item.weekNumber && "PEAK" in week.weekType
+                    }
+                }.none { item ->
+                    exerciseByKey[item.exerciseStableKey]?.let(BCoachV2Policy::isTestOnlyExercise) == true
+                })
             val totalItems = selected.items.size.coerceAtLeast(1)
             assertEquals("${fixture.id}: unexpected one-set exercises", 0, oneSetCount)
             assertTrue("${fixture.id}: one-set hard constraint", decision.hardConstraints.any {

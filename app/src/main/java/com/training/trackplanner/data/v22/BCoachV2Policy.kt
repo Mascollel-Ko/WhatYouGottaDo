@@ -1,6 +1,7 @@
 package com.training.trackplanner.data.v22
 
 import com.training.trackplanner.data.ProgramLoadSource
+import com.training.trackplanner.data.Exercise
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
@@ -13,6 +14,20 @@ internal object BCoachV2Policy {
     const val COEFFICIENT_SOURCE = "PRODUCT_HEURISTIC_NOT_CLINICAL"
     const val DISCLAIMER =
         "이 추천은 운동 기록·선택한 목표와 시범 계산 규칙을 바탕으로 생성한 훈련 계획입니다. 일부 자극·회복 점수는 아직 과학적으로 검증된 개인 예측값이 아니며, 미확정 중량은 직접 입력할 수 있습니다."
+
+    /**
+     * An outcome/assessment test is not a repeatable routine drill.
+     * Keep explicitly selected tests available to users; do not recruit
+     * them automatically into ordinary week-after-week training.
+     */
+    fun isTestOnlyExercise(exercise: Exercise): Boolean {
+        val name = exercise.name.trim()
+        val patternTags = exercise.movementPattern
+            .split(Regex("[|,;/]")).map(String::trim)
+        return name.endsWith("테스트") || name.endsWith("TEST", ignoreCase = true) ||
+            patternTags.any { it.endsWith("_TEST", ignoreCase = true) ||
+                it.equals("TEST_ONLY", ignoreCase = true) }
+    }
 
     const val DEFAULT_GOAL_IMPORTANCE = 3
     const val DEFAULT_SESSION_MINUTES = 60

@@ -1269,6 +1269,41 @@ class BCoachMultiobjectiveProductionTest {
         )
     }
 
+    @Test fun `T70 standalone performance tests are not automatic routine candidates`() {
+        val test = Exercise(
+            stableKey = "test_only_footwork", name = "6코너 풋워크 최대반복 테스트",
+            category = "기능성운동", equipment = "BODYWEIGHT",
+            progressMetricType = "QUALITY_BASED", metadataConfidence = "REVIEWED",
+            movementPattern = "BADMINTON_SKILL_TEST"
+        )
+        val regular = test.copy(
+            stableKey = "regular_footwork", name = "6코너 풋워크",
+            movementPattern = "FOOTWORK_DIRECT"
+        )
+        assertTrue(BCoachV2Policy.isTestOnlyExercise(test))
+        assertFalse(BCoachV2Policy.isTestOnlyExercise(regular))
+        val catalog = CanonicalBadmintonObjectiveCatalog.of(listOf(
+            CanonicalBadmintonObjectiveRelation(
+                "test-footwork", test.stableKey, BadmintonObjective.FOOTWORK,
+                BadmintonObjectiveTransferLevel.DIRECT, "TEST",
+                setOf("test-review"), "test"),
+            CanonicalBadmintonObjectiveRelation(
+                "normal-footwork", regular.stableKey, BadmintonObjective.FOOTWORK,
+                BadmintonObjectiveTransferLevel.DIRECT, "TEST",
+                setOf("normal-review"), "test")
+        ))
+        val plan = skeleton(2)
+        val neighbors = BCoachV2GlobalSelector.rosterNeighbors(
+            plan, request().copy(availableEquipment = setOf("BODYWEIGHT")),
+            mapOf(squat.stableKey to squat, test.stableKey to test,
+                regular.stableKey to regular), catalog, setOf(squat.stableKey)
+        )
+        assertTrue("A test-only exercise must never be auto inserted",
+            neighbors.none { candidate ->
+                candidate.second.items.any { it.exerciseStableKey == test.stableKey }
+            })
+    }
+
     @Test fun `T64 global search reselects reviewed sport exercises without inheriting weights`() {
         val light = Exercise(
             stableKey = "test_light_court", name = "Light court", category = "기능성운동",
@@ -1358,8 +1393,10 @@ class BCoachMultiobjectiveProductionTest {
         )
         val prior = sport(emptyList())
         val observed = sport(rows)
-        val noHistoryCenter = prior.needEnvelopes.first { it.taskId == "SPORT:FOOTWORK" }.center
-        val observedCenter = observed.needEnvelopes.first { it.taskId == "SPORT:FOOTWORK" }.center
+        val noHistoryCenter = requireNotNull(
+            prior.needEnvelopes.first { it.taskId == "SPORT:FOOTWORK" }.center)
+        val observedCenter = requireNotNull(
+            observed.needEnvelopes.first { it.taskId == "SPORT:FOOTWORK" }.center)
         assertTrue("Completed repetitions must affect SPORT Need",
             observedCenter < noHistoryCenter)
         assertEquals(

@@ -95,6 +95,7 @@ internal object BBalanced12WeekEngine {
         } else contributionCatalog.filterKeys { key ->
             val exercise = exercises[key]
             exercise != null && exercise.isActive && !exercise.needsReview &&
+                !BCoachV2Policy.isTestOnlyExercise(exercise) &&
                 exercise.planningEligibility != "HISTORY_ONLY"
         }
         // Do not destroy sets to satisfy the old under-counting timer. Preserve the roster,
