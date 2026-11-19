@@ -75,6 +75,7 @@ class BCoachProductionQualityHarnessTest {
         val selectedSportKeys = linkedMapOf<String, Set<String>>()
         val supportRosterVariety = linkedMapOf<String, Int>()
         val taskCoverage = linkedMapOf<String, Int>()
+        val sportDoseProfileVariety = linkedMapOf<String, Int>()
         val sportDiagnosticsByFixture = linkedMapOf<String, List<String>>()
         fixtures.forEach { fixture ->
             val blocks = if (fixture.weeks == 12) {
@@ -171,6 +172,14 @@ class BCoachProductionQualityHarnessTest {
                 if (value != null && value > 0.0) row.substringBefore("|w=") else null
             }.toSet()
             taskCoverage[fixture.id] = coveredObjectives.size
+            val sportDoseProfiles = sportObjectiveRows.mapNotNull { row ->
+                val week = Regex("\\|w=(\\d+)").find(row)?.groupValues?.get(1)?.toIntOrNull()
+                val dose = Regex("\\|dose=([^|]+)").find(row)?.groupValues?.get(1)
+                if (week == null || dose == null) null
+                else week to (row.substringBefore("|w=") + "=" + dose)
+            }.groupBy({ it.first }, { it.second })
+                .values.map { it.sorted().joinToString("|") }
+            sportDoseProfileVariety[fixture.id] = sportDoseProfiles.distinct().size
             val supportByWeek = selected.items.groupBy { it.weekNumber }.toSortedMap()
                 .mapValues { (_, items) ->
                     items.filter { item ->
@@ -210,6 +219,7 @@ class BCoachProductionQualityHarnessTest {
                 appendLine("Sport recruitment: ${sportDiagnostics.joinToString("; ").ifBlank { "none recorded" }}")
                 appendLine()
                 appendLine("SPORT goal coverage: ${coveredObjectives.size} distinct objectives with nonzero planned dose.")
+                appendLine("Distinct weekly sport-dose profiles: ${sportDoseProfiles.distinct().size}")
                 appendLine("SPORT/support rosters by week: ${supportByWeek.entries.joinToString("; ") {
                     "W${it.key}=${it.value}"
                 }}")
@@ -261,8 +271,10 @@ class BCoachProductionQualityHarnessTest {
         highSportFixtures.forEach { id ->
             assertTrue("$id: must contain multiple weekly support rosters",
                 (supportRosterVariety[id] ?: 0) >= 2)
-            assertTrue("$id: must address more than one badminton objective",
-                (taskCoverage[id] ?: 0) >= 2)
+            assertEquals("$id: every eligible badminton objective must receive a nonzero dose",
+                9, taskCoverage[id])
+            assertTrue("$id: weekly changes must alter SPORT objective dose, not just names",
+                (sportDoseProfileVariety[id] ?: 0) >= 2)
         }
         val lowSport = selectedSportKeys.getValue("F1_4W_4D_60M_SPORT1")
         val highSport = selectedSportKeys.getValue("F2_4W_4D_60M_SPORT5")
