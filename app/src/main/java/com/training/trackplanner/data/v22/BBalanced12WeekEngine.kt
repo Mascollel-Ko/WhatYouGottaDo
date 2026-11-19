@@ -476,7 +476,7 @@ internal object BBalanced12WeekEngine {
                 (availableEquipment != null && required.all { it in availableEquipment })
         }
         val eligible = exercises.values.filter { it.isActive && it.planningEligibility != "HISTORY_ONLY" &&
-            permitted(it) }
+            !BCoachV2Policy.isTestOnlyExercise(it) && permitted(it) }
             .sortedBy(Exercise::stableKey)
         val chosen = linkedSetOf<String>()
         val selectedStrengthAnchors = linkedSetOf<String>()
