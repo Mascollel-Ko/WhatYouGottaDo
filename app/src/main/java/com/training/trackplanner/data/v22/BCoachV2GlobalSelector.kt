@@ -400,7 +400,32 @@ internal object BCoachV2GlobalSelector {
         val ranked = cache.values.filter { state ->
             state.evaluation.hardConstraints.none { it.status == BCoachConstraintStatus.FAIL }
         }.sortedWith(searchComparator())
-        return (listOfNotNull(baselineState, jointState) + ranked)
+        // The beam can score a rare-objective candidate but drop it from the
+        // twelve finalists because many near-identical established rosters
+        // occupy the first twelve loss ranks. Retain the best feasible example
+        // addressing each absent SPORT objective so minimax/Pareto review can
+        // compare actual counterfactuals rather than a biased candidate pool.
+        val sportSpecialists = if ((request.bGoalImportance.sportSupport ?: 3) >= 4) {
+            val absent = baselineState.evaluation.sportObjectiveWeeks
+                .groupBy { it.objective }.filter { (_, rows) ->
+                    rows.all { it.dose <= 0.0 }
+                }.keys.sorted()
+            absent.mapNotNull { objective ->
+                ranked.firstOrNull { state ->
+                    state.evaluation.sportObjectiveWeeks.any {
+                        it.objective == objective && it.dose > 0.0
+                    }
+                }
+            }.distinctBy(SearchState::signature)
+        } else emptyList()
+        val diverse = if ((request.bGoalImportance.sportSupport ?: 3) >= 4) {
+            ranked.filter { state ->
+                BCoachV2DoseEvaluator.sportRosterRepetition(state.skeleton, badmintonCatalog) <
+                    BCoachV2DoseEvaluator.sportRosterRepetition(
+                        baselineState.skeleton, badmintonCatalog) - 0.05
+            }.take(2)
+        } else emptyList()
+        return (listOfNotNull(baselineState, jointState) + sportSpecialists + diverse + ranked)
             .distinctBy(SearchState::signature)
             .take(BCoachV2Policy.MAX_FINALISTS)
     }
