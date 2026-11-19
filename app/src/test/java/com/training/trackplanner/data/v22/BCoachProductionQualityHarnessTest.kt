@@ -73,6 +73,8 @@ class BCoachProductionQualityHarnessTest {
         var mutableReport = report
         var persisted = false
         val selectedSportKeys = linkedMapOf<String, Set<String>>()
+        val supportRosterVariety = linkedMapOf<String, Int>()
+        val taskCoverage = linkedMapOf<String, Int>()
         val sportDiagnosticsByFixture = linkedMapOf<String, List<String>>()
         fixtures.forEach { fixture ->
             val blocks = if (fixture.weeks == 12) {
@@ -160,6 +162,23 @@ class BCoachProductionQualityHarnessTest {
                 }.none { item ->
                     exerciseByKey[item.exerciseStableKey]?.let(BCoachV2Policy::isTestOnlyExercise) == true
                 })
+            // Evaluate the actual approved candidate by week. A high SPORT
+            // priority must not just copy the same complete plan each week.
+            val sportObjectiveRows = decision.effectiveSetBreakdown
+                .filter { it.startsWith("SPORT:") }
+            val coveredObjectives = sportObjectiveRows.mapNotNull { row ->
+                val value = Regex("dose=([^|]+)").find(row)?.groupValues?.get(1)?.toDoubleOrNull()
+                if (value != null && value > 0.0) row.substringBefore("|w=") else null
+            }.toSet()
+            taskCoverage[fixture.id] = coveredObjectives.size
+            val supportByWeek = selected.items.groupBy { it.weekNumber }.toSortedMap()
+                .mapValues { (_, items) ->
+                    items.filter { item ->
+                        item.category == "기능성운동" ||
+                            item.selectionRole.contains("SPORT", ignoreCase = true)
+                    }.map { it.exerciseStableKey }.toSortedSet()
+                }
+            supportRosterVariety[fixture.id] = supportByWeek.values.toSet().size
             val totalItems = selected.items.size.coerceAtLeast(1)
             assertEquals("${fixture.id}: unexpected one-set exercises", 0, oneSetCount)
             assertTrue("${fixture.id}: one-set hard constraint", decision.hardConstraints.any {
@@ -189,6 +208,13 @@ class BCoachProductionQualityHarnessTest {
                 }
                 appendLine()
                 appendLine("Sport recruitment: ${sportDiagnostics.joinToString("; ").ifBlank { "none recorded" }}")
+                appendLine()
+                appendLine("SPORT goal coverage: ${coveredObjectives.size} distinct objectives with nonzero planned dose.")
+                appendLine("SPORT/support rosters by week: ${supportByWeek.entries.joinToString("; ") {
+                    "W${it.key}=${it.value}"
+                }}")
+                appendLine("SPORT objective doses:")
+                sportObjectiveRows.forEach { appendLine("  ${it}") }
                 appendLine()
                 appendLine("| week/day | exercise | stableKey | prescription | per-set load | source | target / expected RIR | rest |")
                 appendLine("|---|---|---|---|---|---|---|---:|")
@@ -229,6 +255,15 @@ class BCoachProductionQualityHarnessTest {
             }
         }
         assertTrue(persisted)
+        // A non-identical weekly support roster is a product-quality contract,
+        // not a hard constraint on fixed main resistance exercises.
+        val highSportFixtures = listOf("F2_4W_4D_60M_SPORT5", "F3_12W_3D_60M")
+        highSportFixtures.forEach { id ->
+            assertTrue("$id: must contain multiple weekly support rosters",
+                (supportRosterVariety[id] ?: 0) >= 2)
+            assertTrue("$id: must address more than one badminton objective",
+                (taskCoverage[id] ?: 0) >= 2)
+        }
         val lowSport = selectedSportKeys.getValue("F1_4W_4D_60M_SPORT1")
         val highSport = selectedSportKeys.getValue("F2_4W_4D_60M_SPORT5")
         assertTrue("sport importance must change selected sport support", highSport != lowSport)
