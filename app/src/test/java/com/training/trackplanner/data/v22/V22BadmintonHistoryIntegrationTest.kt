@@ -15,6 +15,49 @@ import org.junit.Test
 
 class V22BadmintonHistoryIntegrationTest {
     @Test
+    fun `repetition-only sport drills enter task history without fabricated session minutes`() {
+        val key = "sport_repetition_footwork"
+        val genericKey = BadmintonPracticeCatalog.BADMINTON_STABLE_KEY
+        val catalog = CanonicalBadmintonObjectiveCatalog.of(listOf(
+            CanonicalBadmintonObjectiveRelation(
+                "repetitions-footwork", key, BadmintonObjective.FOOTWORK,
+                BadmintonObjectiveTransferLevel.DIRECT, "TEST",
+                setOf("repetition-evidence"), "test"
+            )
+        ))
+        val drills = mapOf(
+            key to Exercise(stableKey = key, name = "Footwork", category = "스포츠"),
+            genericKey to Exercise(stableKey = genericKey, name = "Badminton",
+                category = "스포츠", activityKind = "SPORT_SESSION")
+        )
+        fun entry(id: Long, stableKey: String, reps: Int, seconds: Int, confirmed: Boolean) =
+            WorkoutEntryWithSets(
+                WorkoutEntry(id = id, date = "2026-11-10", exerciseStableKey = stableKey,
+                    exerciseName = stableKey, category = "스포츠",
+                    sessionStableKey = "sport-session-1"),
+                listOf(WorkoutSet(id = id, entryId = id, setIndex = 1,
+                    reps = reps, seconds = seconds, confirmed = confirmed))
+            )
+        val records = listOf(
+            entry(1L, key, 6, 0, true),
+            entry(2L, key, 10, 0, false),
+            entry(3L, key, 3, 60, true),
+            entry(4L, genericKey, 12, 3600, true)
+        )
+        val rows = V22HistoryInput.sportDrillHistory(records, catalog)
+        assertEquals(2, rows.size)
+        assertEquals(6.0, rows[0].reps!!, 0.0)
+        assertTrue(rows[0].seconds == null)
+        assertEquals(3.0, rows[1].reps!!, 0.0)
+        assertEquals(60.0, rows[1].seconds!!, 0.0)
+        assertTrue(rows.none { it.stableKey == genericKey })
+        val sessions = V22HistoryInput.badmintonFromWorkoutHistory(records, drills, catalog)
+        assertEquals(1, sessions.size)
+        assertEquals(60.0, sessions.single().durationMinutes, 0.0)
+        assertTrue(sessions.single().components.none { it.entryId == 1L })
+    }
+
+    @Test
     fun `v22 counterexamples 31 to 34 keep real RPE and avoid generic plus drill duplication`() {
         val sessionId = "badminton-2026-11-14"
         val genericKey = BadmintonPracticeCatalog.BADMINTON_STABLE_KEY

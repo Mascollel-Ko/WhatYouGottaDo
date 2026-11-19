@@ -1328,6 +1328,49 @@ class BCoachMultiobjectiveProductionTest {
         ).none { it.second.items.any { item -> item.exerciseStableKey == random.stableKey } })
     }
 
+    @Test fun `T68 sport repetition history personalizes Need without fabricating recovery load`() {
+        val key = "sport_history_footwork"
+        val catalog = CanonicalBadmintonObjectiveCatalog.of(listOf(
+            CanonicalBadmintonObjectiveRelation(
+                "history-footwork", key, BadmintonObjective.FOOTWORK,
+                BadmintonObjectiveTransferLevel.DIRECT, "TEST", setOf("history-evidence"), "test"
+            )
+        ))
+        val drill = Exercise(
+            stableKey = key, name = "Sport footwork", category = "스포츠",
+            progressMetricType = "QUALITY_BASED", metadataConfidence = "REVIEWED",
+            neuralSpeedWeight = 1.0, decelerationWeight = 1.0
+        )
+        val plan = skeleton(3)
+        val rows = listOf("2026-10-19", "2026-10-26", "2026-11-02").flatMap { date ->
+            (1..4).map { index ->
+                V22HistoryRow(LocalDate.parse(date), drill.name, key,
+                    "스포츠", index, 8.0, null, null, null)
+            }
+        }
+        fun sport(historyRows: List<V22HistoryRow>) = BCoachV2DoseEvaluator.evaluate(
+            plan = plan, baseline = plan, request = request(), history = historyRows,
+            exercises = mapOf(squat.stableKey to squat, key to drill),
+            muscleRelations = emptyList(), coreCatalog = CanonicalCoreCatalog.EMPTY,
+            badmintonCatalog = catalog, mainExerciseKeys = setOf(squat.stableKey),
+            goalWeights = BCoachV2GlobalSelector.effectiveGoalWeights(
+                BBalancedGoalImportance(3, 3, 3, 5), true, emptyMap())
+        )
+        val prior = sport(emptyList())
+        val observed = sport(rows)
+        val noHistoryCenter = prior.needEnvelopes.first { it.taskId == "SPORT:FOOTWORK" }.center
+        val observedCenter = observed.needEnvelopes.first { it.taskId == "SPORT:FOOTWORK" }.center
+        assertTrue("Completed repetitions must affect SPORT Need",
+            observedCenter < noHistoryCenter)
+        assertEquals(
+            prior.axesByScenario.getValue(BCoachV2Scenario.BASE)
+                .getValue(BCoachObjectiveAxis.RECOVERY_LOAD),
+            observed.axesByScenario.getValue(BCoachV2Scenario.BASE)
+                .getValue(BCoachObjectiveAxis.RECOVERY_LOAD), 1e-12
+        )
+        assertTrue(observed.reasonCodes.contains("SPORT_REPS_ONLY_DURATION_UNKNOWN:$key"))
+    }
+
     @Test fun `T66 longer recorded sport duration is not scored as one identical set`() {
         val catalog = CanonicalBadmintonObjectiveCatalog.of(listOf(
             CanonicalBadmintonObjectiveRelation(
