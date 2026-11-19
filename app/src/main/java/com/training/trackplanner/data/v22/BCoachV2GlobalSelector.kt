@@ -581,8 +581,9 @@ internal object BCoachV2GlobalSelector {
         val firstWeek = plan.items.minOf(ProgramSkeletonItem::weekNumber)
         val day = plan.items.filter { it.weekNumber == firstWeek }
             .groupBy(ProgramSkeletonItem::dayOfWeek)
-            .minWithOrNull(compareBy<Map.Entry<Int, List<ProgramSkeletonItem>>> { it.value.size }
-                .thenBy { it.key })?.key
+            .minWithOrNull(compareBy<Map.Entry<Int, List<ProgramSkeletonItem>>> {
+                BCoachV2ScheduleLoad.timeUpper(it.value, exercises)
+            }.thenBy { it.key })?.key
         if (day != null) {
             val additions = eligible.asSequence()
                 .filter { badmintonCatalog.relations(it.stableKey).isNotEmpty() &&
@@ -597,9 +598,15 @@ internal object BCoachV2GlobalSelector {
                         localId = "B_RESELECT_W${week}_D${day}_${candidate.stableKey}",
                         orderIndex = (sameDay.maxOfOrNull(ProgramSkeletonItem::orderIndex) ?: 0) + 1
                     )
-                    next += insertion
+                    if (BCoachV2ScheduleLoad.timeUpper(sameDay + insertion, exercises) <=
+                        (request.sessionMinutes ?: BCoachV2Policy.DEFAULT_SESSION_MINUTES)) {
+                        next += insertion
+                    }
                 }
-                changes += "INSERT_${candidate.stableKey}_ON_DAY_$day" to plan.copy(items = next)
+                if (next.size > plan.items.size) {
+                    changes += "INSERT_${candidate.stableKey}_ON_DAY_$day" to
+                        plan.copy(items = next)
+                }
             }
         }
         // Generate alternating-week sport variants rather than copying the
@@ -678,16 +685,24 @@ internal object BCoachV2GlobalSelector {
                     for (week in weeks.filter { it % 2 == 0 }) {
                         val weekItems = plan.items.filter { it.weekNumber == week }
                         if (weekItems.any { it.exerciseStableKey == candidate.stableKey }) continue
-                        val targetDay = weekItems.groupBy { it.dayOfWeek }.entries
-                            .minWithOrNull(compareBy<Map.Entry<Int, List<ProgramSkeletonItem>>> {
-                                it.value.size
-                            }.thenBy { it.key }) ?: continue
-                        val source = targetDay.value.firstOrNull() ?: continue
-                        next += reselectedItem(source, candidate, 2).copy(
-                            localId = "B_ROTATE_W${week}_D${targetDay.key}_${candidate.stableKey}",
-                            orderIndex = (targetDay.value.maxOfOrNull { it.orderIndex } ?: 0) + 1,
-                            selectionReason = "B_COACH_ROTATING_DIRECT_SPORT_USER_REVIEW"
-                        )
+                        val options = weekItems.groupBy { it.dayOfWeek }.mapNotNull { (day, items) ->
+                            val source = items.firstOrNull() ?: return@mapNotNull null
+                            val insertion = reselectedItem(source, candidate, 2).copy(
+                                localId = "B_ROTATE_W${week}_D${day}_${candidate.stableKey}",
+                                orderIndex = (items.maxOfOrNull { it.orderIndex } ?: 0) + 1,
+                                selectionReason = "B_COACH_ROTATING_SPORT_USER_REVIEW"
+                            )
+                            val estimate = BCoachV2ScheduleLoad.timeUpper(items + insertion, exercises)
+                            if (estimate <= (request.sessionMinutes ?:
+                                    BCoachV2Policy.DEFAULT_SESSION_MINUTES)) {
+                                Triple(estimate, day, insertion)
+                            } else null
+                        }
+                        val choice = options.minWithOrNull(
+                            compareBy<Triple<Double, Int, ProgramSkeletonItem>> { it.first }
+                                .thenBy { it.second }
+                        ) ?: continue
+                        next += choice.third
                     }
                     if (next.size > plan.items.size) {
                         changes += "SPORT_ADD_EVEN_${candidate.stableKey}" to plan.copy(items = next)
