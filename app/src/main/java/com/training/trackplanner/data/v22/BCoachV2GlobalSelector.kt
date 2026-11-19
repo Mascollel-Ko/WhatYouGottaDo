@@ -608,6 +608,84 @@ internal object BCoachV2GlobalSelector {
         }
 
         val changes = mutableListOf<Pair<String, GeneratedProgramSkeleton>>()
+        // The bounded beam previously exhausted its evaluations on redundant
+        // high-dose exercises before considering JUMP_LANDING (only SUPPORTIVE
+        // in the authoritative catalog). Offer objective-repair substitutions
+        // first. They replace existing, unlocked non-main sport work in selected
+        // weeks, rather than adding load to already-full sessions.
+        if ((request.bGoalImportance.sportSupport ?: 3) >= 4) {
+            val absentObjectives = sportObjectiveWeeks.groupBy { it.objective }
+                .filter { (_, rows) ->
+                    rows.isNotEmpty() && rows.any { it.lower > 0.0 } &&
+                        rows.all { it.dose <= 0.0 }
+                }.keys.sorted()
+            val sourceKeys = selected.filter { key ->
+                plan.items.filter { it.exerciseStableKey == key }.all(::eligibleSource) &&
+                    badmintonCatalog.relations(key).any { it.transferLevel.coefficient > 0.0 } &&
+                    exercises[key]?.progressMetricType == "QUALITY_BASED"
+            }.take(3)
+            for (objective in absentObjectives.take(2)) {
+                val gapExercises = eligible.asSequence().filter { exercise ->
+                    exercise.progressMetricType == "QUALITY_BASED" &&
+                        badmintonCatalog.relations(exercise.stableKey).any {
+                            it.objective.name == objective && it.transferLevel.coefficient > 0.0
+                        }
+                }.sortedWith(rank).take(2).toList()
+                for (repair in gapExercises) {
+                    for (sourceKey in sourceKeys.take(2)) {
+                        val source = exercises[sourceKey] ?: continue
+                        if (source.category != repair.category) continue
+                        val rotated = plan.items.map { item ->
+                            if (item.exerciseStableKey != sourceKey ||
+                                item.weekNumber % 2 != 0 ||
+                                plan.items.any { existing ->
+                                    existing.weekNumber == item.weekNumber &&
+                                        existing.exerciseStableKey == repair.stableKey
+                                }) item
+                            else reselectedItem(item, repair)
+                        }
+                        if (rotated != plan.items) {
+                            changes += "REPAIR_${objective}_EVEN_${sourceKey}_TO_${repair.stableKey}" to
+                                plan.copy(items = rotated)
+                        }
+                        // Three distinct physical training emphases for long
+                        // blocks: original, underserved objective, and a second
+                        // distinct target. Never shuffle main resistance anchors.
+                        if (plan.request.durationWeeks >= 6) {
+                            val second = eligible.asSequence().filter { alternative ->
+                                alternative.stableKey != repair.stableKey &&
+                                    alternative.category == source.category &&
+                                    alternative.progressMetricType == "QUALITY_BASED" &&
+                                    badmintonCatalog.relations(alternative.stableKey).any {
+                                        it.objective.name != objective &&
+                                            it.transferLevel.coefficient > 0.0
+                                    }
+                            }.sortedWith(rank).firstOrNull()
+                            if (second != null) {
+                                val phased = plan.items.map { item ->
+                                    if (item.exerciseStableKey != sourceKey) item
+                                    else {
+                                        val replacement = when (item.weekNumber % 3) {
+                                            2 -> repair
+                                            0 -> second
+                                            else -> null
+                                        }
+                                        if (replacement == null || plan.items.any { existing ->
+                                            existing.weekNumber == item.weekNumber &&
+                                                existing.exerciseStableKey == replacement.stableKey
+                                        }) item else reselectedItem(item, replacement)
+                                    }
+                                }
+                                if (phased != plan.items) {
+                                    changes += "REPAIR_${objective}_THREE_PHASE_${sourceKey}" to
+                                        plan.copy(items = phased)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
         val mutableKeys = selected.filter { key ->
             plan.items.filter { it.exerciseStableKey == key }.all(::eligibleSource)
         }
