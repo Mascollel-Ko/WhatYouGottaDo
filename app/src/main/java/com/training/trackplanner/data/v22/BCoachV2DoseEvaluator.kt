@@ -215,7 +215,11 @@ internal object BCoachV2DoseEvaluator {
                     0.10 * progressionSpread
                 ).unitInterval()
             val cap = (request.sessionMinutes ?: BCoachV2Policy.DEFAULT_SESSION_MINUTES).toDouble()
-            val execution = ((schedule.maximumDayMinutes / cap - 0.75) / 0.25).unitInterval()
+            // The requested session time is a capacity, not a target that
+            // penalizes 45-60 minute sessions. Exceeding it is already a hard
+            // failure; do not incentivize dropping useful training sets.
+            val execution = (schedule.maximumDayMinutes / cap - 1.0)
+                .coerceIn(0.0, 1.0)
             val axes = linkedMapOf(
                 BCoachObjectiveAxis.GOAL_DEFICIT to
                     if (doseWeight == 0.0) 0.0 else (gapWeighted / weeks.size).unitInterval(),
@@ -406,7 +410,11 @@ internal object BCoachV2DoseEvaluator {
             else -> 0.0
         }
         BBalancedGoal.CORE -> if (set.reps > 0 || set.seconds > 0) 1.0 else 0.5
-        BBalancedGoal.SPORT_SUPPORT -> if (set.reps > 0 || set.seconds > 0) 1.0 else 0.75
+        BBalancedGoal.SPORT_SUPPORT -> if (set.reps > 0 || set.seconds > 0)
+            // Reuse the existing measured repetition/duration exposure scale
+            // instead of treating 5 seconds as equal to 60 seconds.
+            BCoachV2ScheduleLoad.setAdjustment("neuralSpeed", set)
+        else 0.75
     }
 
     internal fun qEffort(rir: Double?): Double = when {

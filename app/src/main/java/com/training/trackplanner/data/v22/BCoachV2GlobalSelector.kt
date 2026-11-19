@@ -528,7 +528,7 @@ internal object BCoachV2GlobalSelector {
                 val revised = plan.copy(items = plan.items.map { item ->
                     if (item.exerciseStableKey == key) reselectedItem(item, candidate) else item
                 })
-                changes += "REPLACE_$key_WITH_${candidate.stableKey}" to revised
+                changes += "REPLACE_${key}_WITH_${candidate.stableKey}" to revised
             }
         }
         // An underfilled day must be able to gain a second accessory rather

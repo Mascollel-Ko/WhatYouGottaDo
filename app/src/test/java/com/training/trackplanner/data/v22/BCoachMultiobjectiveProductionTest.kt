@@ -1328,6 +1328,41 @@ class BCoachMultiobjectiveProductionTest {
         ).none { it.second.items.any { item -> item.exerciseStableKey == random.stableKey } })
     }
 
+    @Test fun `T66 longer recorded sport duration is not scored as one identical set`() {
+        val catalog = CanonicalBadmintonObjectiveCatalog.of(listOf(
+            CanonicalBadmintonObjectiveRelation(
+                "duration-footwork", "duration_court", BadmintonObjective.FOOTWORK,
+                BadmintonObjectiveTransferLevel.DIRECT, "TEST",
+                setOf("duration-source"), "test"
+            )
+        ))
+        val exercise = Exercise(
+            stableKey = "duration_court", name = "Duration court", category = "기능성운동",
+            equipment = "BODYWEIGHT", metadataConfidence = "REVIEWED",
+            progressMetricType = "DURATION"
+        )
+        val shorter = skeleton(2, key = exercise.stableKey, seconds = 15, reps = 0)
+        val longer = shorter.copy(items = shorter.items.map { item ->
+            item.copy(seconds = 60, setPrescriptions = item.setPrescriptions.map { it.copy(seconds = 60) })
+        })
+        fun dose(plan: GeneratedProgramSkeleton): Double {
+            val evaluation = BCoachV2DoseEvaluator.evaluate(
+                plan = plan, baseline = shorter, request = request(),
+                history = emptyList(), exercises = mapOf(exercise.stableKey to exercise),
+                muscleRelations = emptyList(), coreCatalog = CanonicalCoreCatalog.EMPTY,
+                badmintonCatalog = catalog, mainExerciseKeys = emptySet(),
+                goalWeights = BCoachV2GlobalSelector.effectiveGoalWeights(
+                    BBalancedGoalImportance(3, 3, 3, 5), false, emptyMap()
+                )
+            )
+            val row = evaluation.effectiveSetBreakdown.single {
+                it.startsWith("SPORT:FOOTWORK|w=1|")
+            }
+            return Regex("dose=([^|]+)").find(row)!!.groupValues[1].toDouble()
+        }
+        assertTrue("Longer recorded duration must increase objective exposure", dose(longer) > dose(shorter))
+    }
+
     @Test fun `T65 normal one-set candidate fails final hard constraints`() {
         val oneSet = skeleton(1)
         val evaluation = evaluate(oneSet)
