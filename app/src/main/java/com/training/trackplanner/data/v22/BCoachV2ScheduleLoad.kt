@@ -71,8 +71,20 @@ internal object BCoachV2ScheduleLoad {
         val planned = loadByDate(plan.items)
         val baselineLoads = loadByDate(baseline.items)
         // Timed sport drills already enter badmintonHistory. Do not count them
-        // a second time as resistance, and do not invent load for reps-only drills.
-        val resistanceHistory = history.filter { it.category != "스포츠" }
+        // a second time as resistance, including drills filed as functional.
+        // Repetition-only functional sets retain their recorded resistance exposure;
+        // no duration or badminton practice load is inferred for them.
+        val timedBadmintonDrillKeys = badmintonHistory.flatMap { session ->
+            session.components.filterNot { component ->
+                component.stableKey in
+                    com.training.trackplanner.analysis.badminton.BadmintonPracticeCatalog.stableKeys
+            }.map { component -> session.date to component.stableKey }
+        }.toSet()
+        val resistanceHistory = history.filterNot { row ->
+            row.category == "스포츠" ||
+                ((row.seconds ?: 0.0) > 0.0 &&
+                    (row.date to row.stableKey) in timedBadmintonDrillKeys)
+        }
         val capacityByKey = resistanceHistory.groupBy(V22HistoryRow::stableKey).mapValues { (_, rows) ->
             rows.mapNotNull { row ->
                 val weight = row.weightKg?.takeIf { it.isFinite() && it > 0.0 } ?: return@mapNotNull null

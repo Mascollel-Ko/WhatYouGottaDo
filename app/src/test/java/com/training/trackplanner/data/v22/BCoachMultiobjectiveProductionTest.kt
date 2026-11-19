@@ -1371,6 +1371,36 @@ class BCoachMultiobjectiveProductionTest {
         assertTrue(observed.reasonCodes.contains("SPORT_REPS_ONLY_DURATION_UNKNOWN:$key"))
     }
 
+    @Test fun `T69 a timed functional drill does not enter recovery twice`() {
+        val key = "timed_functional_footwork"
+        val date = LocalDate.of(2026, 11, 13)
+        val drill = Exercise(
+            stableKey = key, name = "Timed footwork", category = "기능성운동",
+            progressMetricType = "DURATION", metadataConfidence = "REVIEWED",
+            systemicLoadWeight = 1.0, neuralSpeedWeight = 1.0,
+            decelerationWeight = 1.0, elasticSscWeight = 1.0
+        )
+        val planned = skeleton(3)
+        val timedRow = V22HistoryRow(
+            date, drill.name, key, "기능성운동", 1, null, null, 600.0, 8.0
+        )
+        val practice = listOf(V22BadmintonHistorySession(
+            date = date, sessionStableKey = "timed-2026-11-13",
+            practiceLoad = 10.5, durationMinutes = 10.0,
+            components = listOf(V22BadmintonHistoryComponent(
+                entryId = 1L, stableKey = key, durationMinutes = 10.0,
+                practiceLoad = 10.5, rpe = 8.0
+            ))
+        ))
+        fun recovery(rows: List<V22HistoryRow>) = BCoachV2ScheduleLoad.evaluate(
+            plan = planned, baseline = planned, request = request(),
+            history = rows, exercises = mapOf(squat.stableKey to squat, key to drill),
+            scenario = BCoachV2Scenario.BASE, badmintonHistory = practice
+        ).recoveryScore
+        assertEquals("The timed drill must contribute only through badminton practice load",
+            recovery(emptyList()), recovery(listOf(timedRow)), 1e-12)
+    }
+
     @Test fun `T66 longer recorded sport duration is not scored as one identical set`() {
         val catalog = CanonicalBadmintonObjectiveCatalog.of(listOf(
             CanonicalBadmintonObjectiveRelation(
