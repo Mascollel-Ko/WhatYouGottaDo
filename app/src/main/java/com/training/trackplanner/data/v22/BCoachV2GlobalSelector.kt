@@ -196,13 +196,32 @@ internal object BCoachV2GlobalSelector {
                 .map { rows -> rows.sortedBy { it.objective }
                     .joinToString("|") { "${it.objective}:${it.dose}" } }
                 .distinct().size
-        val selected = frontier.sortedWith(
+        val conventional = frontier.sortedWith(
             compareBy<Candidate> { it.robustRegret }
                 .thenBy { it.evaluation.baseLoss }
                 .thenByDescending { it.anchorsMaintained }
                 .thenBy { it.changes.size }
                 .thenBy { it.signature }
         ).first()
+        // SPORT=5 is an explicit request to cover the reviewed sport domains.
+        // When feasible alternatives have similar total loss, prefer real
+        // objective coverage and varied dose over a cosmetic exercise rotation.
+        // Never trade away hard constraints or accept a large loss regression.
+        val sportPriority = request.bGoalImportance.sportSupport == 5
+        val baseCeiling = conventional.evaluation.baseLoss + 0.04
+        val highStressCeiling = conventional.evaluation.lossesByScenario.values.max() + 0.04
+        val closeQualityCandidates = if (sportPriority) valid.filter { candidate ->
+            candidate.evaluation.baseLoss <= baseCeiling &&
+                candidate.evaluation.lossesByScenario.values.max() <= highStressCeiling
+        } else emptyList()
+        val selected = closeQualityCandidates.sortedWith(
+            compareByDescending<Candidate> { sportCoverageCount(it) }
+                .thenByDescending { sportDosePatternCount(it).coerceAtMost(3) }
+                .thenBy { it.robustRegret }
+                .thenBy { it.evaluation.baseLoss }
+                .thenByDescending { it.anchorsMaintained }
+                .thenBy { it.signature }
+        ).firstOrNull() ?: conventional
         val displayed = (listOf(selected) + frontier.filter { it.id != selected.id }
             .sortedWith(compareBy<Candidate> { it.robustRegret }.thenBy { it.evaluation.baseLoss }
                 .thenBy { it.signature }) +
