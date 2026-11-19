@@ -459,12 +459,23 @@ internal object BCoachV2GlobalSelector {
                 else ((week.lower - week.dose) / week.lower).coerceIn(0.0, 1.0)
             }.average()
         }
+        // Some of the nine reviewed objectives have no DIRECT relation.
+        // JUMP_LANDING, for example, has only two SUPPORTIVE exercises in
+        // the authoritative catalog. Never discard them from recruitment.
+        val availabilityByObjective = exercises.values.asSequence().filter(::reviewed)
+            .flatMap { exercise ->
+                badmintonCatalog.relations(exercise.stableKey).asSequence()
+                    .filter { it.transferLevel.coefficient > 0.0 }
+                    .map { it.objective.name }
+            }.groupingBy { it }.eachCount()
         fun needGain(exercise: Exercise): Double = badmintonCatalog.relations(exercise.stableKey)
             .groupBy { it.objective.name }
             .values.sumOf { matches ->
                 val best = matches.maxOf { it.transferLevel.coefficient }
                 val objective = matches.first().objective.name
-                best * (gaps[objective] ?: if (objective !in objectiveCoverage) 1.0 else 0.0)
+                val scarcity = 1.0 + 4.0 / (availabilityByObjective[objective] ?: 1).coerceAtLeast(1)
+                best * scarcity *
+                    (gaps[objective] ?: if (objective !in objectiveCoverage) 1.0 else 0.0)
             }
         val rank = compareByDescending<Exercise> { needGain(it) }
             .thenByDescending { e ->
@@ -609,7 +620,7 @@ internal object BCoachV2GlobalSelector {
                         e.category == original.category &&
                             e.progressMetricType == original.progressMetricType &&
                             badmintonCatalog.relations(e.stableKey).any {
-                                it.transferLevel == BadmintonObjectiveTransferLevel.DIRECT
+                                it.transferLevel.coefficient > 0.0
                             } &&
                             (e.progressMetricType !in setOf(
                                 "TIME_OR_DISTANCE", "DISTANCE_OR_TIME_LOAD", "DURATION"
@@ -635,9 +646,9 @@ internal object BCoachV2GlobalSelector {
                 val additions = eligible.asSequence().filter { e ->
                     e.progressMetricType == "QUALITY_BASED" &&
                         badmintonCatalog.relations(e.stableKey).any {
-                            it.transferLevel == BadmintonObjectiveTransferLevel.DIRECT
+                            it.transferLevel.coefficient > 0.0
                         }
-                }.sortedWith(rank).take(3).toList()
+                }.sortedWith(rank).take(4).toList()
                 for (candidate in additions) {
                     val next = plan.items.toMutableList()
                     for (week in weeks.filter { it % 2 == 0 }) {
