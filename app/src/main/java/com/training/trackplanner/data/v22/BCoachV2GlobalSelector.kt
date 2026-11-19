@@ -1,5 +1,6 @@
 package com.training.trackplanner.data.v22
 
+import com.training.trackplanner.analysis.badminton.BadmintonObjectiveTransferLevel
 import com.training.trackplanner.analysis.badminton.CanonicalBadmintonObjectiveCatalog
 import com.training.trackplanner.analysis.core.CanonicalCoreCatalog
 import com.training.trackplanner.analysis.strengthperformance.RpeRirPolicy
