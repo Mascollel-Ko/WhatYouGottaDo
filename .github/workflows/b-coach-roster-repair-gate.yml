@@ -32,6 +32,9 @@ jobs:
         env:
           GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
           SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          # Robolectric's default repo1.maven.org URL intermittently returns
+          # 404 for android-all-instrumented POM checksums on hosted runners.
+          JAVA_TOOL_OPTIONS: "-Drobolectric.dependency.repo.url=https://repo.maven.apache.org/maven2"
         run: |
           chmod +x ./gradlew
           ./gradlew :app:testDebugUnitTest \
