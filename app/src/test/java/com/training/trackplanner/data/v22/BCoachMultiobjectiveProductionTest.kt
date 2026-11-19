@@ -1304,6 +1304,52 @@ class BCoachMultiobjectiveProductionTest {
             })
     }
 
+    @Test fun `T71 ranked sport rotations change alternating weeks and preserve prior weeks`() {
+        val first = Exercise(
+            stableKey = "first_footwork", name = "First footwork", category = "기능성운동",
+            equipment = "BODYWEIGHT", progressMetricType = "QUALITY_BASED",
+            metadataConfidence = "REVIEWED", badmintonSkillTargets = "FOOTWORK"
+        )
+        val next = first.copy(
+            stableKey = "reaction_footwork", name = "Reaction footwork",
+            badmintonSkillTargets = "FIRST_STEP_REACTION"
+        )
+        val catalog = CanonicalBadmintonObjectiveCatalog.of(listOf(
+            CanonicalBadmintonObjectiveRelation(
+                "footwork-direct", first.stableKey, BadmintonObjective.FOOTWORK,
+                BadmintonObjectiveTransferLevel.DIRECT, "TEST", setOf("source-a"), "test"
+            ),
+            CanonicalBadmintonObjectiveRelation(
+                "reaction-direct", next.stableKey, BadmintonObjective.REACTION,
+                BadmintonObjectiveTransferLevel.DIRECT, "TEST", setOf("source-b"), "test"
+            )
+        ))
+        val plan = skeleton(3, weeks = 4, everyWeek = true).let { original ->
+            original.copy(items = original.items.map { item ->
+                item.copy(exerciseStableKey = first.stableKey, stableKey = first.stableKey,
+                    exerciseName = first.name, category = first.category,
+                    selectionRole = "SPORT_SUPPORT", selectionReason = "AUTO_GENERATED")
+            })
+        }
+        val req = request(BBalancedGoalImportance(3, 3, 3, 5)).copy(
+            weeks = 4, blockProgram = BBlockProgramDefinition(listOf(BBlockDefinition(weeks = 4))),
+            availableEquipment = setOf("BODYWEIGHT")
+        )
+        val neighbors = BCoachV2GlobalSelector.rosterNeighbors(
+            plan, req, mapOf(first.stableKey to first, next.stableKey to next),
+            catalog, emptySet()
+        )
+        val changed = requireNotNull(neighbors.firstOrNull {
+            it.first == "SPORT_ROTATE_EVEN_first_footwork_TO_reaction_footwork"
+        }).second
+        assertEquals(listOf("first_footwork", "reaction_footwork",
+                "first_footwork", "reaction_footwork"),
+            changed.items.sortedBy { it.weekNumber }.map { it.exerciseStableKey })
+        assertTrue(BCoachV2DoseEvaluator.sportRosterRepetition(changed, catalog) <
+            BCoachV2DoseEvaluator.sportRosterRepetition(plan, catalog))
+        assertEquals(plan.items.map { it.setCount }, changed.items.map { it.setCount })
+    }
+
     @Test fun `T64 global search reselects reviewed sport exercises without inheriting weights`() {
         val light = Exercise(
             stableKey = "test_light_court", name = "Light court", category = "기능성운동",
