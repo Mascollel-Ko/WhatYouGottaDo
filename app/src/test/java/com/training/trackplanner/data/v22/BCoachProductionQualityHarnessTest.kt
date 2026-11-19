@@ -152,6 +152,11 @@ class BCoachProductionQualityHarnessTest {
             }
             val oneSetCount = selected.items.count { ProgramSetPrescriptionResolver.resolve(it).size == 1 }
             val totalItems = selected.items.size.coerceAtLeast(1)
+            assertEquals("${fixture.id}: unexpected one-set exercises", 0, oneSetCount)
+            assertTrue("${fixture.id}: one-set hard constraint", decision.hardConstraints.any {
+                it.id == "NORMAL_TRAINING_MIN_TWO_SETS" &&
+                    it.status == BCoachConstraintStatus.PASS
+            })
             mutableReport += buildString {
                 appendLine("## ${fixture.id}")
                 appendLine()

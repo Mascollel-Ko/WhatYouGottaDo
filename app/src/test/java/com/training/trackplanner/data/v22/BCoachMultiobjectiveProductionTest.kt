@@ -1269,6 +1269,78 @@ class BCoachMultiobjectiveProductionTest {
         )
     }
 
+    @Test fun `T64 global search reselects reviewed sport exercises without inheriting weights`() {
+        val light = Exercise(
+            stableKey = "test_light_court", name = "Light court", category = "기능성운동",
+            equipment = "BODYWEIGHT", progressMetricType = "QUALITY_BASED",
+            metadataConfidence = "REVIEWED", badmintonSkillTargets = "FOOTWORK_SPEED"
+        )
+        val random = Exercise(
+            stableKey = "test_random_court", name = "Random court", category = "기능성운동",
+            equipment = "BODYWEIGHT", progressMetricType = "QUALITY_BASED",
+            metadataConfidence = "REVIEWED",
+            badmintonSkillTargets = "FOOTWORK_SPEED,FIRST_STEP_REACTION,DECELERATION_CONTROL"
+        )
+        val catalog = CanonicalBadmintonObjectiveCatalog.of(listOf(
+            CanonicalBadmintonObjectiveRelation(
+                "test-light-footwork", light.stableKey, BadmintonObjective.FOOTWORK,
+                BadmintonObjectiveTransferLevel.DIRECT, "TEST",
+                setOf("source-light"), "test"
+            ),
+            CanonicalBadmintonObjectiveRelation(
+                "test-random-footwork", random.stableKey, BadmintonObjective.FOOTWORK,
+                BadmintonObjectiveTransferLevel.DIRECT, "TEST",
+                setOf("source-random"), "test"
+            ),
+            CanonicalBadmintonObjectiveRelation(
+                "test-random-reaction", random.stableKey, BadmintonObjective.REACTION,
+                BadmintonObjectiveTransferLevel.DIRECT, "TEST",
+                setOf("source-random-reaction"), "test"
+            )
+        ))
+        val base = skeleton(2)
+        val source = base.items.single().copy(
+            exerciseStableKey = light.stableKey, exerciseName = light.name,
+            category = light.category, selectionReason = "AUTO_GENERATED",
+            selectionRole = "SPORT_SUPPORT", weightSource = "CALIBRATION_REQUIRED"
+        )
+        val plan = base.copy(items = listOf(source))
+        val inventory = mapOf(light.stableKey to light, random.stableKey to random)
+        val req = request().copy(availableEquipment = setOf("BODYWEIGHT"))
+        val neighbors = BCoachV2GlobalSelector.rosterNeighbors(
+            plan, req, inventory, catalog, emptySet()
+        )
+        val swapped = neighbors.single { it.first == "REPLACE_test_light_court_WITH_test_random_court" }
+            .second.items.single()
+        assertEquals(random.stableKey, swapped.exerciseStableKey)
+        assertEquals(2, swapped.setCount)
+        assertTrue(swapped.setPrescriptions.all {
+            it.weightKg == 0.0 && it.estimatedLoadKg == null &&
+                it.loadSource == ProgramLoadSource.CALIBRATION_REQUIRED
+        })
+        val locked = plan.copy(items = listOf(source.copy(selectionReason = "USER_EXERCISE_LOCK")))
+        assertTrue(BCoachV2GlobalSelector.rosterNeighbors(
+            locked, req, inventory, catalog, emptySet()
+        ).none { it.first.startsWith("REPLACE_") })
+        val unavailable = inventory + (random.stableKey to random.copy(equipment = "CONE_MARKER"))
+        assertTrue(BCoachV2GlobalSelector.rosterNeighbors(
+            plan, req, unavailable, catalog, emptySet()
+        ).none { it.second.items.any { item -> item.exerciseStableKey == random.stableKey } })
+    }
+
+    @Test fun `T65 normal one-set candidate fails final hard constraints`() {
+        val oneSet = skeleton(1)
+        val evaluation = evaluate(oneSet)
+        assertTrue(evaluation.hardConstraints.any {
+            it.id == "NORMAL_TRAINING_MIN_TWO_SETS" &&
+                it.status == BCoachConstraintStatus.FAIL
+        })
+        assertTrue(evaluate(skeleton(2)).hardConstraints.any {
+            it.id == "NORMAL_TRAINING_MIN_TWO_SETS" &&
+                it.status == BCoachConstraintStatus.PASS
+        })
+    }
+
     private fun prepare(
         request: V22GenerationRequest = request(),
         history: List<V22HistoryRow> = history(),
