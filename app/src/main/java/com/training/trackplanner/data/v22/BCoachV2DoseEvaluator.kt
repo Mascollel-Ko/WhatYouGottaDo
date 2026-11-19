@@ -145,6 +145,7 @@ internal object BCoachV2DoseEvaluator {
             var gapWeighted = 0.0
             var excessWeighted = 0.0
             var doseWeight = 0.0
+            var sportImbalance = 0.0
             val rampValues = mutableListOf<Double>()
             val previous = mutableMapOf<String, Double>()
             weeks.forEach { week ->
@@ -155,6 +156,7 @@ internal object BCoachV2DoseEvaluator {
                     else -> BCoachV2Policy.stageMultiplier(stageForWeek(plan, week))
                 }
                 val blockWeights = blockGoalWeights(plan, week, weightByGoal)
+                val weekSportGaps = mutableListOf<Double>()
                 tasks.forEach { task ->
                     val dose = plannedDose(
                         plan, week, task, scenario, context,
@@ -195,10 +197,21 @@ internal object BCoachV2DoseEvaluator {
                         gapWeighted += taskWeight * gap
                         excessWeighted += taskWeight * excess
                         doseWeight += taskWeight
+                        if (task.goal == BBalancedGoal.SPORT_SUPPORT) weekSportGaps += gap
                     }
                     val reference = previous[task.id] ?: task.historyReference
                     rampValues += BCoachV2Policy.ramp(dose, reference, recovery)
                     previous[task.id] = dose
+                }
+                if (!peak && rotationWeight > 0.0 && weekSportGaps.isNotEmpty()) {
+                    // The three most underserved of nine objectives must matter.
+                    // A high mean score must not hide a zero-credit jump/landing
+                    // objective merely because footwork is already saturated.
+                    val poorest = weekSportGaps.sortedDescending()
+                        .take((weekSportGaps.size + 2) / 3).average()
+                    sportImbalance += (poorest - weekSportGaps.average())
+                        .coerceAtLeast(0.0) *
+                        blockWeights.getValue(BBalancedGoal.SPORT_SUPPORT)
                 }
             }
             val schedule = BCoachV2ScheduleLoad.evaluate(
@@ -238,7 +251,8 @@ internal object BCoachV2DoseEvaluator {
                 .coerceIn(0.0, 1.0)
             val axes = linkedMapOf(
                 BCoachObjectiveAxis.GOAL_DEFICIT to
-                    if (doseWeight == 0.0) 0.0 else (gapWeighted / weeks.size).unitInterval(),
+                    if (doseWeight == 0.0) 0.0
+                    else ((gapWeighted + 0.50 * sportImbalance) / weeks.size).unitInterval(),
                 BCoachObjectiveAxis.GOAL_EXCESS to
                     if (doseWeight == 0.0) 0.0 else (excessWeighted / weeks.size).unitInterval(),
                 BCoachObjectiveAxis.PROGRESSION_FIT to progression,
@@ -286,19 +300,42 @@ internal object BCoachV2DoseEvaluator {
         val roster = weeks.associateWith { week ->
             plan.items.filter { it.weekNumber == week }.mapNotNull { item ->
                 item.exerciseStableKey.takeIf { key ->
-                    catalog.relations(key).any {
-                        it.transferLevel == BadmintonObjectiveTransferLevel.DIRECT
-                    }
+                    catalog.relations(key).any { it.transferLevel.coefficient > 0.0 }
                 }
             }.toSet()
+        }
+        // Profile-level similarity ensures merely renaming a drill without
+        // changing the represented sport objectives gains almost no bonus.
+        val objectiveProfiles = weeks.associateWith { week ->
+            val result = linkedMapOf<String, Double>()
+            plan.items.filter { it.weekNumber == week }.forEach { item ->
+                val sets = ProgramSetPrescriptionResolver.resolve(item).size.toDouble()
+                catalog.relations(item.exerciseStableKey).groupBy { it.objective.name }
+                    .forEach { (objective, relations) ->
+                        result[objective] = (result[objective] ?: 0.0) +
+                            sets * relations.maxOf { it.transferLevel.coefficient }
+                    }
+            }
+            result
         }
         return weeks.zipWithNext().map { (a, b) ->
             val previous = roster.getValue(a)
             val next = roster.getValue(b)
             if (previous.isEmpty() || next.isEmpty()) 1.0
             else {
-                val union = previous + next
-                previous.intersect(next).size.toDouble() / union.size
+                val unionKeys = previous + next
+                val keySimilarity = previous.intersect(next).size.toDouble() / unionKeys.size
+                val before = objectiveProfiles.getValue(a)
+                val after = objectiveProfiles.getValue(b)
+                val objectives = before.keys + after.keys
+                val overlap = objectives.sumOf { objective ->
+                    minOf(before[objective] ?: 0.0, after[objective] ?: 0.0)
+                }
+                val total = objectives.sumOf { objective ->
+                    maxOf(before[objective] ?: 0.0, after[objective] ?: 0.0)
+                }
+                val objectiveSimilarity = if (total > 0.0) overlap / total else 1.0
+                0.85 * objectiveSimilarity + 0.15 * keySimilarity
             }
         }.average().coerceIn(0.0, 1.0)
     }
