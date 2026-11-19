@@ -32,9 +32,12 @@ internal object BCoachV2Policy {
     const val MAX_PER_EXERCISE_SETS = 5
     const val MAX_WEEK_TO_WEEK_ADDED_SETS = 2
     const val MAX_SHOWN_ALTERNATIVES = 2
-    const val SEARCH_BEAM_WIDTH = 10
-    const val SEARCH_ROUNDS = 12
-    const val MAX_CANDIDATE_EVALUATIONS = 4_000
+    // Android must not retain thousands of fully resolved multiweek plans,
+    // each containing per-set load scenarios and objective traces. This is a
+    // search-resource limit, never a clinical volume or adaptation threshold.
+    const val SEARCH_BEAM_WIDTH = 4
+    const val SEARCH_ROUNDS = 5
+    const val MAX_CANDIDATE_EVALUATIONS = 256
     const val MAX_FINALISTS = 12
     const val TIE_TOLERANCE = 1e-6
     const val ESTIMATED_WARMUP_MINUTES = 8.0

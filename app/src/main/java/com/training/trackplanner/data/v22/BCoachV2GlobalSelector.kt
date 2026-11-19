@@ -433,7 +433,10 @@ internal object BCoachV2GlobalSelector {
                 exercise.metadataConfidence.uppercase() !in
                     setOf("", "UNKNOWN", "UNREVIEWED", "REVIEW_REQUIRED") &&
                 permitted(exercise)
-        val eligible = exercises.values.filter(::reviewed).filter { it.stableKey !in selected }
+        val eligible = exercises.values.filter(::reviewed).filter {
+            it.stableKey !in selected && it.stableKey !in mainExerciseKeys &&
+                it.activityKind != "SPORT_SESSION"
+        }
         val objectiveCoverage = selected.flatMap { key ->
             badmintonCatalog.relations(key).filter { it.transferLevel.coefficient > 0.0 }
                 .map { it.objective.name }
@@ -575,8 +578,9 @@ internal object BCoachV2GlobalSelector {
         exercises: Map<String, Exercise>,
         badmintonCatalog: CanonicalBadmintonObjectiveCatalog
     ): List<Pair<String, GeneratedProgramSkeleton>> = buildList {
-        // Original set/rep actions remain available. Roster changes are evaluated
-        // by the very same load resolver, scenario evaluator and hard constraints.
+        // Offer roster mutations first. A bounded on-device search must not
+        // consume its entire evaluation budget on one-set/repetition tweaks.
+        addAll(rosterNeighbors(plan, request, exercises, badmintonCatalog, mainExerciseKeys))
         val keys = plan.items.map(ProgramSkeletonItem::exerciseStableKey).distinct().sorted().take(6)
         keys.forEach { key ->
             add("ADD_ONE_SET_$key" to mutateSets(plan, key, +1, mainExerciseKeys))
@@ -584,7 +588,6 @@ internal object BCoachV2GlobalSelector {
             add("REPS_PLUS_ONE_$key" to mutateReps(plan, key, +1))
             add("REPS_MINUS_ONE_$key" to mutateReps(plan, key, -1))
         }
-        addAll(rosterNeighbors(plan, request, exercises, badmintonCatalog, mainExerciseKeys))
     }.distinctBy { (_, skeleton) -> BCoachMultiobjectiveProduction.fingerprint(skeleton) }
 
     private fun compoundLabel(parent: String, action: String): String {
