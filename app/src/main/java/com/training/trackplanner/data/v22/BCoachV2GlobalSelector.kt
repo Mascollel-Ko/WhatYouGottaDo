@@ -640,6 +640,30 @@ internal object BCoachV2GlobalSelector {
                                 plan.copy(items = updated)
                         }
                     }
+                    // Six- to twelve-week programs can compare three distinct
+                    // objectives/movements over a three-week microcycle, rather
+                    // than being limited to a repetitive odd/even alternation.
+                    if (weeks.size >= 6 && variants.size >= 2) {
+                        val first = variants[0]
+                        val second = variants[1]
+                        val rotated = plan.items.map { item ->
+                            if (item.exerciseStableKey != key) item
+                            else {
+                                val alternative = when (item.weekNumber % 3) {
+                                    2 -> first
+                                    0 -> second
+                                    else -> null
+                                }
+                                if (alternative == null || plan.items.any { other ->
+                                        other.weekNumber == item.weekNumber &&
+                                            other.exerciseStableKey == alternative.stableKey
+                                    }) item else reselectedItem(item, alternative)
+                            }
+                        }
+                        if (rotated != plan.items) {
+                            changes += "SPORT_ROTATE_THREE_PHASE_${key}" to plan.copy(items = rotated)
+                        }
+                    }
                 }
                 // Alternate-week inserts offer missing direct sport coverage
                 // even when there is no eligible existing sport item to replace.
