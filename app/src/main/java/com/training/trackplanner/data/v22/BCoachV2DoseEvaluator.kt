@@ -128,6 +128,18 @@ internal object BCoachV2DoseEvaluator {
         val progressionSpread = progressionByScenario.values.let { values ->
             (values.maxOrNull()!! - values.minOrNull()!!).unitInterval()
         }
+        // SPORT-dominant programs should expose more than an identical set of
+        // direct skill drills every week. This bounded programming heuristic
+        // does not assert a biological advantage for arbitrary exercise changes.
+        val rotationWeight =
+            if (plan.request.durationWeeks >= 3 &&
+                goalWeights.firstOrNull { it.goal == BBalancedGoal.SPORT_SUPPORT }
+                    ?.effectiveImportance?.let { it >= 4 } == true
+            ) 0.25 else 0.0
+        val sportRepetition = sportRosterRepetition(plan, context.badmintonCatalog)
+        if (rotationWeight > 0.0 && sportRepetition >= 0.99) {
+            reasons += "SPORT_WEEKLY_ROSTER_IDENTICAL_REVIEW"
+        }
 
         BCoachV2Scenario.entries.forEach { scenario ->
             var gapWeighted = 0.0
@@ -195,7 +207,9 @@ internal object BCoachV2DoseEvaluator {
                 rirBySetId = rirByScenarioAndSet[scenario] ?: baseRirBySetId,
                 intensityBySetId = intensityByScenarioAndSet[scenario] ?: baseIntensityBySetId
             )
-            val progression = progressionByScenario.getValue(scenario)
+            val progression = ((1.0 - rotationWeight) *
+                progressionByScenario.getValue(scenario) +
+                rotationWeight * sportRepetition).unitInterval()
             val change = planChange(plan, baseline, historyAtCutoff)
             val totalSets = plan.items.sumOf { ProgramSetPrescriptionResolver.resolve(it).size }
             val calibrationSets = plan.items.sumOf { item ->
@@ -257,6 +271,36 @@ internal object BCoachV2DoseEvaluator {
             planningStartDate = baseSchedule.planningStartDate,
             sportObjectiveWeeks = sportObjectiveWeeks
         )
+    }
+
+    /**
+     * Direct skill drills may rotate without changing the main strength lifts.
+     * Missing drills do not earn a diversity benefit: empty weeks need work.
+     */
+    internal fun sportRosterRepetition(
+        plan: GeneratedProgramSkeleton,
+        catalog: CanonicalBadmintonObjectiveCatalog
+    ): Double {
+        val weeks = (1..plan.request.durationWeeks).filterNot { isPeakWeek(plan, it) }
+        if (weeks.size < 2) return 0.0
+        val roster = weeks.associateWith { week ->
+            plan.items.filter { it.weekNumber == week }.mapNotNull { item ->
+                item.exerciseStableKey.takeIf { key ->
+                    catalog.relations(key).any {
+                        it.transferLevel == BadmintonObjectiveTransferLevel.DIRECT
+                    }
+                }
+            }.toSet()
+        }
+        return weeks.zipWithNext().map { (a, b) ->
+            val previous = roster.getValue(a)
+            val next = roster.getValue(b)
+            if (previous.isEmpty() || next.isEmpty()) 1.0
+            else {
+                val union = previous + next
+                previous.intersect(next).size.toDouble() / union.size
+            }
+        }.average().coerceIn(0.0, 1.0)
     }
 
     private fun tasks(
