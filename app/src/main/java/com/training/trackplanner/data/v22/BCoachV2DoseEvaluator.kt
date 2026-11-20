@@ -358,7 +358,13 @@ internal object BCoachV2DoseEvaluator {
                 add("STRENGTH:$it" to BBalancedGoal.STRENGTH)
             }
             defaultHypertrophyMuscles.forEach { add("HYPERTROPHY:$it" to BBalancedGoal.HYPERTROPHY) }
-            if (keys.any { context.coreCatalog.resolve(it)?.coreClass == CoreClass.DIRECT }) {
+            // Core must be candidate-independent: when a reviewed direct-core exercise
+            // exists but the incumbent has none, the missing objective still matters.
+            if (keys.any { context.coreCatalog.resolve(it)?.coreClass == CoreClass.DIRECT } ||
+                context.coreCatalog.selectableProfiles().any { profile ->
+                    profile.coreClass == CoreClass.DIRECT &&
+                        isReviewedExercise(context.exercises[profile.exerciseStableKey])
+                }) {
                 add("CORE:DIRECT" to BBalancedGoal.CORE)
             }
             // SPORT task identity belongs to the authority catalog, not to whichever

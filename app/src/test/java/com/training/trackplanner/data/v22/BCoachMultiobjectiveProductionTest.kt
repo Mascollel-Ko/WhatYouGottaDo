@@ -5,6 +5,9 @@ import com.training.trackplanner.analysis.badminton.CanonicalBadmintonObjectiveR
 import com.training.trackplanner.analysis.badminton.BadmintonObjective
 import com.training.trackplanner.analysis.badminton.BadmintonObjectiveTransferLevel
 import com.training.trackplanner.analysis.core.CanonicalCoreCatalog
+import com.training.trackplanner.analysis.core.CanonicalCoreProfile
+import com.training.trackplanner.analysis.core.CoreClass
+import com.training.trackplanner.analysis.core.CoreDirectTarget
 import com.training.trackplanner.analysis.strengthperformance.RpeRirPolicy
 import com.training.trackplanner.analysis.strengthperformance.curve.CurveMatchLevel
 import com.training.trackplanner.analysis.strengthperformance.curve.RepetitionCurveKnot
@@ -1367,6 +1370,39 @@ class BCoachMultiobjectiveProductionTest {
         assertEquals(2, newItems.size)
         assertTrue(newItems.all { it.setCount == 2 &&
             it.setPrescriptions.all { set -> set.reps == 10 && set.weightKg == 0.0 } })
+    }
+
+    @Test fun `T78 core deficiency is scored even when incumbent has no direct core work`() {
+        val pallofKey = "test_core_pallof"
+        val pallof = exercise(pallofKey, "BAND")
+        val core = CanonicalCoreCatalog.of(listOf(CanonicalCoreProfile(
+            pallofKey, CoreClass.DIRECT, CoreDirectTarget.ANTI_ROTATION)))
+        val plan = skeleton(3, weeks = 2, everyWeek = true)
+        val importance = BBalancedGoalImportance(3, 3, 5, 3)
+        val weights = BCoachV2GlobalSelector.effectiveGoalWeights(
+            importance, false, emptyMap())
+        val evaluation = BCoachV2DoseEvaluator.evaluate(
+            plan = plan, baseline = plan, request = request(importance),
+            history = emptyList(),
+            exercises = mapOf(squat.stableKey to squat, pallofKey to pallof),
+            muscleRelations = emptyList(), coreCatalog = core,
+            badmintonCatalog = CanonicalBadmintonObjectiveCatalog.EMPTY,
+            mainExerciseKeys = setOf(squat.stableKey), goalWeights = weights)
+        assertTrue(evaluation.needEnvelopes.any { it.taskId == "CORE:DIRECT" &&
+            (it.lower ?: 0.0) > 0.0 })
+        assertFalse(evaluation.reasonCodes.contains("NO_ELIGIBLE_TASK:CORE"))
+        val neighbors = BCoachV2GlobalSelector.rosterNeighbors(
+            plan,
+            request(importance).copy(availableEquipment = setOf("BARBELL", "BAND")),
+            mapOf(squat.stableKey to squat, pallofKey to pallof),
+            CanonicalBadmintonObjectiveCatalog.EMPTY,
+            setOf(squat.stableKey),
+            taskWeekDoses = evaluation.taskWeekDoses,
+            coreCatalog = core, goalWeights = weights, explicitlyRequested = importance)
+        val added = requireNotNull(neighbors.firstOrNull {
+            it.first.startsWith("INSERT_GOAL_${pallofKey}_")
+        }).second.items.filter { it.exerciseStableKey == pallofKey }
+        assertEquals("The new core exercise must persist across the whole block", 2, added.size)
     }
 
     @Test fun `T75 unmeasured sport domains remain visible but do not produce forced Need`() {
