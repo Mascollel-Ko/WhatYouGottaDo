@@ -1341,6 +1341,33 @@ class BCoachMultiobjectiveProductionTest {
                 it.second.items.all { item -> item.exerciseStableKey == next.stableKey } })
     }
 
+    @Test fun `T75 unmeasured sport domains remain visible but do not produce forced Need`() {
+        val catalog = CanonicalBadmintonObjectiveCatalog.of(listOf(
+            CanonicalBadmintonObjectiveRelation("a", "footwork_drill",
+                BadmintonObjective.FOOTWORK, BadmintonObjectiveTransferLevel.DIRECT,
+                "TEST", setOf("a"), "test"),
+            CanonicalBadmintonObjectiveRelation("b", "reaction_drill",
+                BadmintonObjective.REACTION, BadmintonObjectiveTransferLevel.DIRECT,
+                "TEST", setOf("b"), "test")
+        ))
+        val plan = skeleton(3)
+        val result = BCoachV2DoseEvaluator.evaluate(
+            plan = plan, baseline = plan, request = request(), history = emptyList(),
+            exercises = mapOf(squat.stableKey to squat), muscleRelations = emptyList(),
+            coreCatalog = CanonicalCoreCatalog.EMPTY, badmintonCatalog = catalog,
+            mainExerciseKeys = setOf(squat.stableKey),
+            goalWeights = BCoachV2GlobalSelector.effectiveGoalWeights(
+                BBalancedGoalImportance(3, 3, 3, 5), false, emptyMap()))
+        assertTrue(result.needEnvelopes.any { it.taskId == "SPORT:GENERAL" &&
+            it.lower > 0.0 })
+        val unobserved = result.needEnvelopes.filter {
+            it.taskId in setOf("SPORT:FOOTWORK", "SPORT:REACTION")
+        }
+        assertTrue(unobserved.isNotEmpty())
+        assertTrue(unobserved.all { it.lower == 0.0 &&
+            "DIRECTION_ONLY_NO_INFERRED_DEFICIT" in it.reasonCodes })
+    }
+
     @Test fun `T73 block stage respects user selected steady and wave patterns`() {
         val skeleton = skeleton(3, weeks = 4, everyWeek = true)
         val steady = request().copy(weeks = 4,
@@ -1463,8 +1490,12 @@ class BCoachMultiobjectiveProductionTest {
             prior.needEnvelopes.first { it.taskId == "SPORT:FOOTWORK" }.center)
         val observedCenter = requireNotNull(
             observed.needEnvelopes.first { it.taskId == "SPORT:FOOTWORK" }.center)
-        assertTrue("Completed repetitions must affect SPORT Need",
-            observedCenter < noHistoryCenter)
+        assertEquals("Unmeasured skill domains must not acquire a synthetic deficit",
+            0.0, noHistoryCenter, 1e-12)
+        assertTrue("Observed drill exposure may create a maintenance reference, not a skill estimate",
+            observedCenter > noHistoryCenter)
+        assertTrue(prior.needEnvelopes.any { it.taskId == "SPORT:FOOTWORK" &&
+            "DIRECTION_ONLY_NO_INFERRED_DEFICIT" in it.reasonCodes })
         assertEquals(
             prior.axesByScenario.getValue(BCoachV2Scenario.BASE)
                 .getValue(BCoachObjectiveAxis.RECOVERY_LOAD),

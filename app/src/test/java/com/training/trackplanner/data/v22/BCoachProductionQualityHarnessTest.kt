@@ -166,7 +166,7 @@ class BCoachProductionQualityHarnessTest {
             // Evaluate the actual approved candidate by week. A high SPORT
             // priority must not just copy the same complete plan each week.
             val sportObjectiveRows = decision.effectiveSetBreakdown
-                .filter { it.startsWith("SPORT:") }
+                .filter { it.startsWith("SPORT:") && !it.startsWith("SPORT:GENERAL|") }
             val coveredObjectives = sportObjectiveRows.mapNotNull { row ->
                 val value = Regex("dose=([^|]+)").find(row)?.groupValues?.get(1)?.toDoubleOrNull()
                 if (value != null && value > 0.0) row.substringBefore("|w=") else null
