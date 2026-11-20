@@ -21,6 +21,16 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.pow
 
+internal data class BCoachV2TaskWeekDose(
+    val taskId: String,
+    val goal: BBalancedGoal,
+    val week: Int,
+    val dose: Double,
+    val lower: Double,
+    val upper: Double,
+    val scored: Boolean
+)
+
 internal data class BCoachV2CandidateEvaluation(
     val axesByScenario: Map<BCoachV2Scenario, Map<BCoachObjectiveAxis, Double>>,
     val lossesByScenario: Map<BCoachV2Scenario, Double>,
@@ -30,7 +40,8 @@ internal data class BCoachV2CandidateEvaluation(
     val reasonCodes: List<String>,
     val maximumDayMinutes: Double,
     val planningStartDate: LocalDate,
-    val sportObjectiveWeeks: List<BCoachSportShadowWeek> = emptyList()
+    val sportObjectiveWeeks: List<BCoachSportShadowWeek> = emptyList(),
+    val taskWeekDoses: List<BCoachV2TaskWeekDose> = emptyList()
 ) {
     val baseAxes: Map<BCoachObjectiveAxis, Double>
         get() = axesByScenario.getValue(BCoachV2Scenario.BASE)
@@ -119,6 +130,7 @@ internal object BCoachV2DoseEvaluator {
         val needBase = mutableListOf<BCoachNeedEnvelope>()
         val breakdown = mutableListOf<String>()
         val sportObjectiveWeeks = mutableListOf<BCoachSportShadowWeek>()
+        val taskWeekDoses = mutableListOf<BCoachV2TaskWeekDose>()
         val progressionByScenario = BCoachV2Scenario.entries.associateWith { scenario ->
             progressionFit(
                 plan,
@@ -158,6 +170,12 @@ internal object BCoachV2DoseEvaluator {
                     val interval = if (peak) 0.0 to 0.0
                         else BCoachV2Policy.interval(task.center, multiplier, scenario)
                     if (scenario == BCoachV2Scenario.BASE) {
+                        if (!peak) {
+                            taskWeekDoses += BCoachV2TaskWeekDose(
+                                task.id, task.goal, week, dose, interval.first, interval.second,
+                                task.scored
+                            )
+                        }
                         if (!peak && task.goal == BBalancedGoal.SPORT_SUPPORT &&
                             task.id != "SPORT:GENERAL") {
                             sportObjectiveWeeks += BCoachSportShadowWeek(
@@ -266,7 +284,8 @@ internal object BCoachV2DoseEvaluator {
             reasonCodes = reasons.toList().sorted(),
             maximumDayMinutes = baseSchedule.maximumDayMinutes,
             planningStartDate = baseSchedule.planningStartDate,
-            sportObjectiveWeeks = sportObjectiveWeeks
+            sportObjectiveWeeks = sportObjectiveWeeks,
+            taskWeekDoses = taskWeekDoses
         )
     }
 

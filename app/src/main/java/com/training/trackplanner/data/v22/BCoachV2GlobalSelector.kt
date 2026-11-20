@@ -3,8 +3,11 @@ package com.training.trackplanner.data.v22
 import com.training.trackplanner.analysis.badminton.BadmintonObjectiveTransferLevel
 import com.training.trackplanner.analysis.badminton.CanonicalBadmintonObjectiveCatalog
 import com.training.trackplanner.analysis.core.CanonicalCoreCatalog
+import com.training.trackplanner.analysis.core.CoreClass
 import com.training.trackplanner.analysis.strengthperformance.RpeRirPolicy
 import com.training.trackplanner.data.CanonicalMetadataRelation
+import com.training.trackplanner.data.CanonicalRelationDomain
+import com.training.trackplanner.data.CanonicalStrengthExposureCapability
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.ProgramLoadSource
@@ -141,7 +144,8 @@ internal object BCoachV2GlobalSelector {
         val baselineFingerprint = resolvedBaseline.signature
         val rawCandidates = searchCandidates(
             baseline, preserveRestAndOrder(baseline, jointCandidate),
-            mainExerciseKeys, request, exercises, badmintonCatalog, ::evaluatePlan
+            mainExerciseKeys, request, exercises, badmintonCatalog,
+            muscleRelations, coreCatalog, goalWeights, ::evaluatePlan
         )
         val baselineSuccessfulAnchors = historyAtCutoff.filter { (it.reps ?: 0.0) > 0.0 }
             .map(V22HistoryRow::stableKey).toSet()
@@ -381,6 +385,9 @@ internal object BCoachV2GlobalSelector {
         request: V22GenerationRequest,
         exercises: Map<String, Exercise>,
         badmintonCatalog: CanonicalBadmintonObjectiveCatalog,
+        muscleRelations: List<CanonicalMetadataRelation>,
+        coreCatalog: CanonicalCoreCatalog,
+        goalWeights: List<BCoachGoalWeight>,
         evaluate: (GeneratedProgramSkeleton) -> ResolvedPlan
     ): List<SearchState> {
         val cache = linkedMapOf<String, SearchState>()
@@ -398,8 +405,8 @@ internal object BCoachV2GlobalSelector {
         repeat(BCoachV2Policy.SEARCH_ROUNDS) {
             val added = mutableListOf<SearchState>()
             beam.forEach { parent ->
-                searchNeighbors(parent.skeleton, mainExerciseKeys, request, exercises,
-                    badmintonCatalog, parent.evaluation.sportObjectiveWeeks)
+                searchNeighbors(parent.skeleton, parent.evaluation, mainExerciseKeys,
+                    request, exercises, badmintonCatalog, muscleRelations, coreCatalog, goalWeights)
                     .forEach { (action, neighbor) ->
                     if (cache.size >= BCoachV2Policy.MAX_CANDIDATE_EVALUATIONS) return@forEach
                     register(compoundLabel(parent.label, action), neighbor)?.let(added::add)
@@ -631,6 +638,72 @@ internal object BCoachV2GlobalSelector {
         }
     }
 
+    /**
+     * Candidate-independent task identities and candidate-specific doses are structured
+     * evaluator outputs. Rank mutation opportunities by the deficits and excesses
+     * that an exercise is actually capable of addressing. This is search ordering,
+     * not a claim that an exercise improves measured sporting performance.
+     */
+    internal fun mutationPriorities(
+        plan: GeneratedProgramSkeleton,
+        evaluation: BCoachV2CandidateEvaluation,
+        muscleRelations: List<CanonicalMetadataRelation>,
+        coreCatalog: CanonicalCoreCatalog,
+        badmintonCatalog: CanonicalBadmintonObjectiveCatalog,
+        goalWeights: List<BCoachGoalWeight>
+    ): Map<String, Pair<Double, Double>> {
+        val needs = evaluation.taskWeekDoses.filter(BCoachV2TaskWeekDose::scored)
+            .groupBy(BCoachV2TaskWeekDose::taskId)
+        val gaps = needs.mapValues { (_, rows) ->
+            val deficit = rows.map { row ->
+                (row.lower - row.dose).coerceAtLeast(0.0) /
+                    row.lower.coerceAtLeast(1.0)
+            }.average()
+            val excess = rows.map { row ->
+                (row.dose - row.upper).coerceAtLeast(0.0) /
+                    row.upper.coerceAtLeast(1.0)
+            }.average()
+            deficit.coerceIn(0.0, 1.0) to excess.coerceIn(0.0, 1.0)
+        }
+        val weights = goalWeights.associate { it.goal to
+            (it.normalizedImportance ?: 0.0).coerceAtLeast(0.0) }
+        val musclesByKey = muscleRelations.filter { it.domain == CanonicalRelationDomain.MUSCLE &&
+            it.relationType in setOf("PRIMARY", "SECONDARY") }
+            .groupBy(CanonicalMetadataRelation::exerciseStableKey)
+        return plan.items.map(ProgramSkeletonItem::exerciseStableKey).distinct()
+            .associateWith { key ->
+                val links = linkedMapOf<String, Pair<BBalancedGoal, Double>>()
+                if (key in CanonicalStrengthExposureCapability.approvedStableKeys) {
+                    links["STRENGTH:$key"] = BBalancedGoal.STRENGTH to 1.0
+                }
+                musclesByKey[key].orEmpty().forEach { relation ->
+                    val task = "HYPERTROPHY:${relation.relationValue}"
+                    val credit = if (relation.relationType == "PRIMARY") 1.0 else 0.5
+                    val previous = links[task]?.second ?: 0.0
+                    links[task] = BBalancedGoal.HYPERTROPHY to maxOf(previous, credit)
+                }
+                if (coreCatalog.resolve(key)?.coreClass == CoreClass.DIRECT) {
+                    links["CORE:DIRECT"] = BBalancedGoal.CORE to 1.0
+                }
+                val sport = badmintonCatalog.relations(key)
+                    .filter { it.transferLevel.coefficient > 0.0 }
+                val general = sport.maxOfOrNull { it.transferLevel.coefficient } ?: 0.0
+                if (general > 0.0) links["SPORT:GENERAL"] = BBalancedGoal.SPORT_SUPPORT to general
+                sport.forEach { relation ->
+                    val task = "SPORT:${relation.objective.name}"
+                    val previous = links[task]?.second ?: 0.0
+                    links[task] = BBalancedGoal.SPORT_SUPPORT to
+                        maxOf(previous, relation.transferLevel.coefficient)
+                }
+                links.entries.fold(0.0 to 0.0) { scores, (task, value) ->
+                    val (deficit, excess) = gaps[task] ?: (0.0 to 0.0)
+                    val weight = weights[value.first] ?: 0.0
+                    scores.first + deficit * value.second * weight to
+                        scores.second + excess * value.second * weight
+                }
+            }
+    }
+
     private fun searchComparator(): Comparator<SearchState> =
         compareBy<SearchState> { state ->
             state.evaluation.hardConstraints.count { it.status == BCoachConstraintStatus.FAIL }
@@ -640,28 +713,53 @@ internal object BCoachV2GlobalSelector {
 
     private fun searchNeighbors(
         plan: GeneratedProgramSkeleton,
+        evaluation: BCoachV2CandidateEvaluation,
         mainExerciseKeys: Set<String>,
         request: V22GenerationRequest,
         exercises: Map<String, Exercise>,
         badmintonCatalog: CanonicalBadmintonObjectiveCatalog,
-        sportObjectiveWeeks: List<BCoachSportShadowWeek>
+        muscleRelations: List<CanonicalMetadataRelation>,
+        coreCatalog: CanonicalCoreCatalog,
+        goalWeights: List<BCoachGoalWeight>
     ): List<Pair<String, GeneratedProgramSkeleton>> = buildList {
         // Offer roster mutations first. A bounded on-device search must not
         // consume its entire evaluation budget on one-set/repetition tweaks.
         addAll(rosterNeighbors(plan, request, exercises, badmintonCatalog,
-            mainExerciseKeys, sportObjectiveWeeks))
-        val uniqueKeys = plan.items.map(ProgramSkeletonItem::exerciseStableKey).distinct().sorted()
+            mainExerciseKeys, evaluation.sportObjectiveWeeks))
+        val priorities = mutationPriorities(plan, evaluation, muscleRelations,
+            coreCatalog, badmintonCatalog, goalWeights)
+        val uniqueKeys = plan.items.map(ProgramSkeletonItem::exerciseStableKey).distinct()
         val mains = uniqueKeys.filter { key -> key in mainExerciseKeys ||
             plan.items.any { it.exerciseStableKey == key && it.selectionRole.contains("MAIN", true) } }
         val accessories = uniqueKeys - mains.toSet()
-        // Give established main lifts and accessory/core/sport work separate
-        // mutation opportunities within the bounded on-device search budget.
-        val keys = (mains.take(3) + accessories.take(5)).distinct()
+        // Rank by actual observed candidate deficit/excess, never by stableKey order.
+        // Keep separate main/accessory lanes so the finite beam explores both.
+        val ranked = compareByDescending<String> { priorities[it]?.first?.plus(priorities[it]?.second ?: 0.0) ?: 0.0 }
+            .thenBy { it }
+        val keys = (mains.sortedWith(ranked).take(3) +
+            accessories.sortedWith(ranked).take(5)).distinct()
         keys.forEach { key ->
             add("ADD_ONE_SET_$key" to mutateSets(plan, key, +1, mainExerciseKeys))
             add("REMOVE_ONE_SET_$key" to mutateSets(plan, key, -1, mainExerciseKeys))
             add("REPS_PLUS_ONE_$key" to mutateReps(plan, key, +1))
             add("REPS_MINUS_ONE_$key" to mutateReps(plan, key, -1))
+        }
+        // A coach may redistribute an existing set instead of increasing total load.
+        // The ordinary evaluator still enforces recovery, duration and manual locks.
+        val receiver = keys.filter { (priorities[it]?.first ?: 0.0) > 0.0 }
+            .maxWithOrNull(compareBy<String> { priorities[it]?.first ?: 0.0 }.thenBy { it })
+        val donor = keys.filter { it != receiver && (priorities[it]?.second ?: 0.0) > 0.0 }
+            .maxWithOrNull(compareBy<String> { priorities[it]?.second ?: 0.0 }.thenBy { it })
+        if (receiver != null && donor != null) {
+            val reduced = mutateSets(plan, donor, -1, mainExerciseKeys)
+            if (BCoachMultiobjectiveProduction.fingerprint(reduced) !=
+                BCoachMultiobjectiveProduction.fingerprint(plan)) {
+                val reallocated = mutateSets(reduced, receiver, +1, mainExerciseKeys)
+                if (BCoachMultiobjectiveProduction.fingerprint(reallocated) !=
+                    BCoachMultiobjectiveProduction.fingerprint(reduced)) {
+                    add("REDISTRIBUTE_SET_${donor}_TO_${receiver}" to reallocated)
+                }
+            }
         }
     }.distinctBy { (_, skeleton) -> BCoachMultiobjectiveProduction.fingerprint(skeleton) }
 
