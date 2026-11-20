@@ -1231,7 +1231,7 @@ class BCoachMultiobjectiveProductionTest {
         }))
         val expected = setOf("SPORT:FOOTWORK", "SPORT:REACTION")
         fun sportTasks(evaluation: BCoachV2CandidateEvaluation) = evaluation.effectiveSetBreakdown
-            .map { it.substringBefore("|w=") }.filter { it.startsWith("SPORT:") }.toSet()
+            .map { it.substringBefore("|w=") }.filter { it.startsWith("SPORT:") && it != "SPORT:GENERAL" }.toSet()
         assertEquals(expected, sportTasks(withoutDrill))
         assertEquals(expected, sportTasks(withUnrelatedRoster))
         assertTrue(withoutDrill.effectiveSetBreakdown.filter { it.substringBefore("|w=") in expected }
@@ -1304,25 +1304,21 @@ class BCoachMultiobjectiveProductionTest {
             })
     }
 
-    @Test fun `T71 ranked sport rotations change alternating weeks and preserve prior weeks`() {
+    @Test fun `T71 block roster continuity is not sacrificed for cosmetic sport rotation`() {
         val first = Exercise(
             stableKey = "first_footwork", name = "First footwork", category = "기능성운동",
             equipment = "BODYWEIGHT", progressMetricType = "QUALITY_BASED",
             metadataConfidence = "REVIEWED", badmintonSkillTargets = "FOOTWORK"
         )
-        val next = first.copy(
-            stableKey = "reaction_footwork", name = "Reaction footwork",
-            badmintonSkillTargets = "FIRST_STEP_REACTION"
-        )
+        val next = first.copy(stableKey = "reaction_footwork", name = "Reaction footwork",
+            badmintonSkillTargets = "FIRST_STEP_REACTION")
         val catalog = CanonicalBadmintonObjectiveCatalog.of(listOf(
             CanonicalBadmintonObjectiveRelation(
                 "footwork-direct", first.stableKey, BadmintonObjective.FOOTWORK,
-                BadmintonObjectiveTransferLevel.DIRECT, "TEST", setOf("source-a"), "test"
-            ),
+                BadmintonObjectiveTransferLevel.DIRECT, "TEST", setOf("source-a"), "test"),
             CanonicalBadmintonObjectiveRelation(
                 "reaction-direct", next.stableKey, BadmintonObjective.REACTION,
-                BadmintonObjectiveTransferLevel.DIRECT, "TEST", setOf("source-b"), "test"
-            )
+                BadmintonObjectiveTransferLevel.DIRECT, "TEST", setOf("source-b"), "test")
         ))
         val plan = skeleton(3, weeks = 4, everyWeek = true).let { original ->
             original.copy(items = original.items.map { item ->
@@ -1336,18 +1332,42 @@ class BCoachMultiobjectiveProductionTest {
             availableEquipment = setOf("BODYWEIGHT")
         )
         val neighbors = BCoachV2GlobalSelector.rosterNeighbors(
-            plan, req, mapOf(first.stableKey to first, next.stableKey to next),
-            catalog, emptySet()
-        )
-        val changed = requireNotNull(neighbors.firstOrNull {
-            it.first == "SPORT_ROTATE_EVEN_first_footwork_TO_reaction_footwork"
-        }).second
-        assertEquals(listOf("first_footwork", "reaction_footwork",
-                "first_footwork", "reaction_footwork"),
-            changed.items.sortedBy { it.weekNumber }.map { it.exerciseStableKey })
-        assertTrue(BCoachV2DoseEvaluator.sportRosterRepetition(changed, catalog) <
-            BCoachV2DoseEvaluator.sportRosterRepetition(plan, catalog))
-        assertEquals(plan.items.map { it.setCount }, changed.items.map { it.setCount })
+            plan, req, mapOf(first.stableKey to first, next.stableKey to next), catalog, emptySet())
+        assertTrue("Do not rotate exercises merely to vary weekly SPORT coverage",
+            neighbors.none { it.first.startsWith("SPORT_ROTATE") || it.first.startsWith("REPAIR_") ||
+                it.first.startsWith("SPORT_ADD_EVEN") })
+        assertTrue("A genuinely different reviewed drill remains an eligible whole-block swap",
+            neighbors.any { it.first == "REPLACE_first_footwork_WITH_reaction_footwork" &&
+                it.second.items.all { item -> item.exerciseStableKey == next.stableKey } })
+    }
+
+    @Test fun `T73 block stage respects user selected steady and wave patterns`() {
+        val skeleton = skeleton(3, weeks = 4, everyWeek = true)
+        val steady = request().copy(weeks = 4,
+            blockProgram = BBlockProgramDefinition(listOf(BBlockDefinition(weeks = 4,
+                pattern = BVolumePattern.STEADY))))
+        val wave = steady.copy(blockProgram = BBlockProgramDefinition(listOf(
+            BBlockDefinition(weeks = 4, pattern = BVolumePattern.WAVE))))
+        assertEquals(listOf(0, 0, 0, 0),
+            (1..4).map { BCoachV2DoseEvaluator.stageForWeek(skeleton, steady, it) })
+        assertEquals(listOf(0, 2, 0, 2),
+            (1..4).map { BCoachV2DoseEvaluator.stageForWeek(skeleton, wave, it) })
+    }
+
+    @Test fun `T74 approved strength exposure is independent of main placement slots`() {
+        val plan = skeleton(3)
+        val result = BCoachV2DoseEvaluator.evaluate(
+            plan = plan, baseline = plan, request = request(), history = emptyList(),
+            exercises = mapOf(squat.stableKey to squat), muscleRelations = emptyList(),
+            coreCatalog = CanonicalCoreCatalog.EMPTY,
+            badmintonCatalog = CanonicalBadmintonObjectiveCatalog.EMPTY,
+            mainExerciseKeys = emptySet(),
+            goalWeights = BCoachV2GlobalSelector.effectiveGoalWeights(
+                BBalancedGoalImportance(5, 3, 3, 3), false, emptyMap()))
+        assertFalse("A squat must create a strength task without placement metadata",
+            result.reasonCodes.contains("NO_ELIGIBLE_TASK:STRENGTH"))
+        assertTrue(result.effectiveSetBreakdown.any { it.startsWith("STRENGTH:barbell_back_squat|") &&
+            !it.contains("|dose=0|") })
     }
 
     @Test fun `T64 global search reselects reviewed sport exercises without inheriting weights`() {

@@ -203,25 +203,10 @@ internal object BCoachV2GlobalSelector {
                 .thenBy { it.changes.size }
                 .thenBy { it.signature }
         ).first()
-        // SPORT=5 is an explicit request to cover the reviewed sport domains.
-        // When feasible alternatives have similar total loss, prefer real
-        // objective coverage and varied dose over a cosmetic exercise rotation.
-        // Never trade away hard constraints or accept a large loss regression.
-        val sportPriority = request.bGoalImportance.sportSupport == 5
-        val baseCeiling = conventional.evaluation.baseLoss + 0.04
-        val highStressCeiling = conventional.evaluation.lossesByScenario.values.max() + 0.04
-        val closeQualityCandidates = if (sportPriority) valid.filter { candidate ->
-            candidate.evaluation.baseLoss <= baseCeiling &&
-                candidate.evaluation.lossesByScenario.values.max() <= highStressCeiling
-        } else emptyList()
-        val selected = closeQualityCandidates.sortedWith(
-            compareByDescending<Candidate> { sportCoverageCount(it) }
-                .thenByDescending { sportDosePatternCount(it).coerceAtMost(3) }
-                .thenBy { it.robustRegret }
-                .thenBy { it.evaluation.baseLoss }
-                .thenByDescending { it.anchorsMaintained }
-                .thenBy { it.signature }
-        ).firstOrNull() ?: conventional
+        // One common multiobjective ranking for every importance vector.
+        // Nine-domain exposure and weekly roster variety are diagnostics, not
+        // substitute objectives that can override strength, recovery or stability.
+        val selected = conventional
         val displayed = (listOf(selected) + frontier.filter { it.id != selected.id }
             .sortedWith(compareBy<Candidate> { it.robustRegret }.thenBy { it.evaluation.baseLoss }
                 .thenBy { it.signature }) +
@@ -432,32 +417,7 @@ internal object BCoachV2GlobalSelector {
         val ranked = cache.values.filter { state ->
             state.evaluation.hardConstraints.none { it.status == BCoachConstraintStatus.FAIL }
         }.sortedWith(searchComparator())
-        // The beam can score a rare-objective candidate but drop it from the
-        // twelve finalists because many near-identical established rosters
-        // occupy the first twelve loss ranks. Retain the best feasible example
-        // addressing each absent SPORT objective so minimax/Pareto review can
-        // compare actual counterfactuals rather than a biased candidate pool.
-        val sportSpecialists = if ((request.bGoalImportance.sportSupport ?: 3) >= 4) {
-            val absent = baselineState.evaluation.sportObjectiveWeeks
-                .groupBy { it.objective }.filter { (_, rows) ->
-                    rows.all { it.dose <= 0.0 }
-                }.keys.sorted()
-            absent.mapNotNull { objective ->
-                ranked.firstOrNull { state ->
-                    state.evaluation.sportObjectiveWeeks.any {
-                        it.objective == objective && it.dose > 0.0
-                    }
-                }
-            }.distinctBy(SearchState::signature)
-        } else emptyList()
-        val diverse = if ((request.bGoalImportance.sportSupport ?: 3) >= 4) {
-            ranked.filter { state ->
-                BCoachV2DoseEvaluator.sportRosterRepetition(state.skeleton, badmintonCatalog) <
-                    BCoachV2DoseEvaluator.sportRosterRepetition(
-                        baselineState.skeleton, badmintonCatalog) - 0.05
-            }.take(2)
-        } else emptyList()
-        return (listOfNotNull(baselineState, jointState) + sportSpecialists + diverse + ranked)
+        return (listOfNotNull(baselineState, jointState) + ranked)
             .distinctBy(SearchState::signature)
             .take(BCoachV2Policy.MAX_FINALISTS)
     }
@@ -608,84 +568,6 @@ internal object BCoachV2GlobalSelector {
         }
 
         val changes = mutableListOf<Pair<String, GeneratedProgramSkeleton>>()
-        // The bounded beam previously exhausted its evaluations on redundant
-        // high-dose exercises before considering JUMP_LANDING (only SUPPORTIVE
-        // in the authoritative catalog). Offer objective-repair substitutions
-        // first. They replace existing, unlocked non-main sport work in selected
-        // weeks, rather than adding load to already-full sessions.
-        if ((request.bGoalImportance.sportSupport ?: 3) >= 4) {
-            val absentObjectives = sportObjectiveWeeks.groupBy { it.objective }
-                .filter { (_, rows) ->
-                    rows.isNotEmpty() && rows.any { it.lower > 0.0 } &&
-                        rows.all { it.dose <= 0.0 }
-                }.keys.sorted()
-            val sourceKeys = selected.filter { key ->
-                plan.items.filter { it.exerciseStableKey == key }.all(::eligibleSource) &&
-                    badmintonCatalog.relations(key).any { it.transferLevel.coefficient > 0.0 } &&
-                    exercises[key]?.progressMetricType == "QUALITY_BASED"
-            }.take(3)
-            for (objective in absentObjectives.take(2)) {
-                val gapExercises = eligible.asSequence().filter { exercise ->
-                    exercise.progressMetricType == "QUALITY_BASED" &&
-                        badmintonCatalog.relations(exercise.stableKey).any {
-                            it.objective.name == objective && it.transferLevel.coefficient > 0.0
-                        }
-                }.sortedWith(rank).take(2).toList()
-                for (repair in gapExercises) {
-                    for (sourceKey in sourceKeys.take(2)) {
-                        val source = exercises[sourceKey] ?: continue
-                        if (source.category != repair.category) continue
-                        val rotated = plan.items.map { item ->
-                            if (item.exerciseStableKey != sourceKey ||
-                                item.weekNumber % 2 != 0 ||
-                                plan.items.any { existing ->
-                                    existing.weekNumber == item.weekNumber &&
-                                        existing.exerciseStableKey == repair.stableKey
-                                }) item
-                            else reselectedItem(item, repair)
-                        }
-                        if (rotated != plan.items) {
-                            changes += "REPAIR_${objective}_EVEN_${sourceKey}_TO_${repair.stableKey}" to
-                                plan.copy(items = rotated)
-                        }
-                        // Three distinct physical training emphases for long
-                        // blocks: original, underserved objective, and a second
-                        // distinct target. Never shuffle main resistance anchors.
-                        if (plan.request.durationWeeks >= 6) {
-                            val second = eligible.asSequence().filter { alternative ->
-                                alternative.stableKey != repair.stableKey &&
-                                    alternative.category == source.category &&
-                                    alternative.progressMetricType == "QUALITY_BASED" &&
-                                    badmintonCatalog.relations(alternative.stableKey).any {
-                                        it.objective.name != objective &&
-                                            it.transferLevel.coefficient > 0.0
-                                    }
-                            }.sortedWith(rank).firstOrNull()
-                            if (second != null) {
-                                val phased = plan.items.map { item ->
-                                    if (item.exerciseStableKey != sourceKey) item
-                                    else {
-                                        val replacement = when (item.weekNumber % 3) {
-                                            2 -> repair
-                                            0 -> second
-                                            else -> null
-                                        }
-                                        if (replacement == null || plan.items.any { existing ->
-                                            existing.weekNumber == item.weekNumber &&
-                                                existing.exerciseStableKey == replacement.stableKey
-                                        }) item else reselectedItem(item, replacement)
-                                    }
-                                }
-                                if (phased != plan.items) {
-                                    changes += "REPAIR_${objective}_THREE_PHASE_${sourceKey}" to
-                                        plan.copy(items = phased)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
         val mutableKeys = selected.filter { key ->
             plan.items.filter { it.exerciseStableKey == key }.all(::eligibleSource)
         }
@@ -744,107 +626,6 @@ internal object BCoachV2GlobalSelector {
                 }
             }
         }
-        // Generate alternating-week sport variants rather than copying the
-        // same drill lineup to every week. The full scorer still applies all
-        // time, recovery, user-lock, and approval constraints to each proposal.
-        if ((request.bGoalImportance.sportSupport ?: 3) >= 4) {
-            val weeks = plan.items.map { it.weekNumber }.distinct().sorted()
-            if (weeks.size >= 3) {
-                val sources = selected.filter { key ->
-                    badmintonCatalog.relations(key).any {
-                        it.transferLevel == BadmintonObjectiveTransferLevel.DIRECT
-                    } && plan.items.filter { it.exerciseStableKey == key }.all(::eligibleSource) &&
-                        plan.items.count { it.exerciseStableKey == key } >= 2
-                }.take(2)
-                for (key in sources) {
-                    val original = exercises[key] ?: continue
-                    val variants = eligible.asSequence().filter { e ->
-                        e.category == original.category &&
-                            e.progressMetricType == original.progressMetricType &&
-                            badmintonCatalog.relations(e.stableKey).any {
-                                it.transferLevel.coefficient > 0.0
-                            } &&
-                            (e.progressMetricType !in setOf(
-                                "TIME_OR_DISTANCE", "DISTANCE_OR_TIME_LOAD", "DURATION"
-                            ) || plan.items.filter { it.exerciseStableKey == key }
-                                .all { knownSeconds(it) > 0 })
-                    }.sortedWith(rank).take(3).toList()
-                    for (variant in variants) {
-                        val updated = plan.items.map { item ->
-                            if (item.exerciseStableKey != key || item.weekNumber % 2 != 0 ||
-                                plan.items.any { other ->
-                                    other.weekNumber == item.weekNumber &&
-                                        other.exerciseStableKey == variant.stableKey
-                                }) item else reselectedItem(item, variant)
-                        }
-                        if (updated != plan.items) {
-                            changes += "SPORT_ROTATE_EVEN_${key}_TO_${variant.stableKey}" to
-                                plan.copy(items = updated)
-                        }
-                    }
-                    // Six- to twelve-week programs can compare three distinct
-                    // objectives/movements over a three-week microcycle, rather
-                    // than being limited to a repetitive odd/even alternation.
-                    if (weeks.size >= 6 && variants.size >= 2) {
-                        val first = variants[0]
-                        val second = variants[1]
-                        val rotated = plan.items.map { item ->
-                            if (item.exerciseStableKey != key) item
-                            else {
-                                val alternative = when (item.weekNumber % 3) {
-                                    2 -> first
-                                    0 -> second
-                                    else -> null
-                                }
-                                if (alternative == null || plan.items.any { other ->
-                                        other.weekNumber == item.weekNumber &&
-                                            other.exerciseStableKey == alternative.stableKey
-                                    }) item else reselectedItem(item, alternative)
-                            }
-                        }
-                        if (rotated != plan.items) {
-                            changes += "SPORT_ROTATE_THREE_PHASE_${key}" to plan.copy(items = rotated)
-                        }
-                    }
-                }
-                // Alternate-week inserts offer missing direct sport coverage
-                // even when there is no eligible existing sport item to replace.
-                val additions = eligible.asSequence().filter { e ->
-                    e.progressMetricType == "QUALITY_BASED" &&
-                        badmintonCatalog.relations(e.stableKey).any {
-                            it.transferLevel.coefficient > 0.0
-                        }
-                }.sortedWith(rank).take(4).toList()
-                for (candidate in additions) {
-                    val next = plan.items.toMutableList()
-                    for (week in weeks.filter { it % 2 == 0 }) {
-                        val weekItems = plan.items.filter { it.weekNumber == week }
-                        if (weekItems.any { it.exerciseStableKey == candidate.stableKey }) continue
-                        val options = weekItems.groupBy { it.dayOfWeek }.mapNotNull { (day, items) ->
-                            val source = items.firstOrNull() ?: return@mapNotNull null
-                            val insertion = reselectedItem(source, candidate, 2).copy(
-                                localId = "B_ROTATE_W${week}_D${day}_${candidate.stableKey}",
-                                orderIndex = (items.maxOfOrNull { it.orderIndex } ?: 0) + 1,
-                                selectionReason = "B_COACH_ROTATING_SPORT_USER_REVIEW"
-                            )
-                            val estimate = BCoachV2ScheduleLoad.timeUpper(items + insertion, exercises)
-                            if (estimate <= (request.sessionMinutes ?:
-                                    BCoachV2Policy.DEFAULT_SESSION_MINUTES)) {
-                                Triple(estimate, day, insertion)
-                            } else null
-                        }
-                        val choice = options.minWithOrNull(
-                            compareBy<Triple<Double, Int, ProgramSkeletonItem>> { it.first }
-                                .thenBy { it.second }
-                        ) ?: continue
-                        next += choice.third
-                    }
-                    if (next.size > plan.items.size) {
-                        changes += "SPORT_ADD_EVEN_${candidate.stableKey}" to plan.copy(items = next)
-                    }
-                }
-            }
-        }
         return changes.distinctBy { (_, candidate) ->
             BCoachMultiobjectiveProduction.fingerprint(candidate)
         }
@@ -853,7 +634,8 @@ internal object BCoachV2GlobalSelector {
     private fun searchComparator(): Comparator<SearchState> =
         compareBy<SearchState> { state ->
             state.evaluation.hardConstraints.count { it.status == BCoachConstraintStatus.FAIL }
-        }.thenBy { it.evaluation.baseLoss }
+        }.thenBy { it.evaluation.lossesByScenario.values.maxOrNull() ?: Double.POSITIVE_INFINITY }
+            .thenBy { it.evaluation.baseLoss }
             .thenBy { it.signature }
 
     private fun searchNeighbors(
@@ -868,7 +650,13 @@ internal object BCoachV2GlobalSelector {
         // consume its entire evaluation budget on one-set/repetition tweaks.
         addAll(rosterNeighbors(plan, request, exercises, badmintonCatalog,
             mainExerciseKeys, sportObjectiveWeeks))
-        val keys = plan.items.map(ProgramSkeletonItem::exerciseStableKey).distinct().sorted().take(6)
+        val uniqueKeys = plan.items.map(ProgramSkeletonItem::exerciseStableKey).distinct().sorted()
+        val mains = uniqueKeys.filter { key -> key in mainExerciseKeys ||
+            plan.items.any { it.exerciseStableKey == key && it.selectionRole.contains("MAIN", true) } }
+        val accessories = uniqueKeys - mains.toSet()
+        // Give established main lifts and accessory/core/sport work separate
+        // mutation opportunities within the bounded on-device search budget.
+        val keys = (mains.take(3) + accessories.take(5)).distinct()
         keys.forEach { key ->
             add("ADD_ONE_SET_$key" to mutateSets(plan, key, +1, mainExerciseKeys))
             add("REMOVE_ONE_SET_$key" to mutateSets(plan, key, -1, mainExerciseKeys))
@@ -912,7 +700,8 @@ internal object BCoachV2GlobalSelector {
         delta: Int,
         mainExerciseKeys: Set<String> = emptySet()
     ): GeneratedProgramSkeleton = plan.copy(items = plan.items.map { item ->
-        if (item.exerciseStableKey != key || "PEAK" in item.selectionRole) return@map item
+        if (item.exerciseStableKey != key || "PEAK" in item.selectionRole ||
+            BCoachV2DoseEvaluator.isExplicitUserExerciseLock(item.selectionReason)) return@map item
         val old = ProgramSetPrescriptionResolver.resolve(item)
         val exception = item.seconds > 0 || item.directSportSession || item.rehabLikeActivation ||
             listOf("RECOVERY", "MOBILITY", "TEST", "DRILL").any {
@@ -957,7 +746,11 @@ internal object BCoachV2GlobalSelector {
         key: String,
         delta: Int
     ): GeneratedProgramSkeleton = plan.copy(items = plan.items.map { item ->
-        if (item.exerciseStableKey != key || item.seconds > 0 || "PEAK" in item.selectionRole) return@map item
+        if (item.exerciseStableKey != key || item.seconds > 0 || "PEAK" in item.selectionRole ||
+            BCoachV2DoseEvaluator.isExplicitUserExerciseLock(item.selectionReason) ||
+            ProgramSetPrescriptionResolver.resolve(item).any {
+                BCoachV2LoadCandidateResolver.isSetUserFixed(it, item.weightSource)
+            }) return@map item
         val sets = ProgramSetPrescriptionResolver.resolve(item).map { set ->
             set.copy(reps = (set.reps + delta).coerceAtLeast(1))
         }
