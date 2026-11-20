@@ -845,10 +845,7 @@ internal object BCoachV2GlobalSelector {
         delta: Int
     ): GeneratedProgramSkeleton = plan.copy(items = plan.items.map { item ->
         if (item.exerciseStableKey != key || item.seconds > 0 || "PEAK" in item.selectionRole ||
-            BCoachV2DoseEvaluator.isExplicitUserExerciseLock(item.selectionReason) ||
-            ProgramSetPrescriptionResolver.resolve(item).any {
-                BCoachV2LoadCandidateResolver.isSetUserFixed(it, item.weightSource)
-            }) return@map item
+            BCoachV2DoseEvaluator.isExplicitUserExerciseLock(item.selectionReason)) return@map item
         val sets = ProgramSetPrescriptionResolver.resolve(item).map { set ->
             set.copy(reps = (set.reps + delta).coerceAtLeast(1))
         }

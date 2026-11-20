@@ -232,7 +232,8 @@ internal object BCoachV2DoseEvaluator {
                         !isNonLoad(item, exercises[item.exerciseStableKey])
                 }
             }
-            val mainItems = plan.items.filter { it.exerciseStableKey in mainExerciseKeys }
+            val mainItems = plan.items.filter { it.exerciseStableKey in mainExerciseKeys ||
+                it.selectionRole.contains("MAIN", ignoreCase = true) }
             val unsupportedMain = mainItems.count { it.localId !in baseRirByLocalId }
             val uniqueItems = plan.items.distinctBy(ProgramSkeletonItem::exerciseStableKey)
             val unreviewed = uniqueItems.count {
@@ -508,7 +509,7 @@ internal object BCoachV2DoseEvaluator {
             // Reuse the existing measured repetition/duration exposure scale
             // instead of treating 5 seconds as equal to 60 seconds.
             BCoachV2ScheduleLoad.setAdjustment("neuralSpeed", set)
-        else 0.75
+        else 0.0 // A set with neither repetitions nor duration has no sport dose.
     }
 
     internal fun qEffort(rir: Double?): Double = when {

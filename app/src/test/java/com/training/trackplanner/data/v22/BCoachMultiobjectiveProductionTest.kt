@@ -890,8 +890,8 @@ class BCoachMultiobjectiveProductionTest {
     }
 
     @Test fun `T57 v22 counterexamples 18 to 23 use calculated RIR and relative intensity in dose`() {
-        fun prescribed(weight: Double, rir: Double, intensity: Double): GeneratedProgramSkeleton {
-            val base = skeleton(1, reps = 8, weightKg = weight)
+        fun prescribed(weight: Double, rir: Double, intensity: Double, reps: Int = 8): GeneratedProgramSkeleton {
+            val base = skeleton(1, reps = reps, weightKg = weight)
             return base.copy(items = base.items.map { item ->
                 item.copy(setPrescriptions = item.setPrescriptions.map { set ->
                     set.copy(expectedRir = rir, relativeIntensity = intensity, estimatedLoadKg = weight)
@@ -901,8 +901,8 @@ class BCoachMultiobjectiveProductionTest {
         val relation = listOf(relation(squat.stableKey, "QUADS", "PRIMARY"))
         assertTrue(dose(evaluate(prescribed(60.0, 3.0, 0.70), relation), "HYPERTROPHY:QUADS") >
             dose(evaluate(prescribed(60.0, 7.0, 0.70), relation), "HYPERTROPHY:QUADS"))
-        assertTrue(dose(evaluate(prescribed(60.0, 3.0, 0.90)), "STRENGTH:${squat.stableKey}") >
-            dose(evaluate(prescribed(60.0, 3.0, 0.60)), "STRENGTH:${squat.stableKey}"))
+        assertTrue(dose(evaluate(prescribed(60.0, 3.0, 0.90, reps = 5)), "STRENGTH:${squat.stableKey}") >
+            dose(evaluate(prescribed(60.0, 3.0, 0.60, reps = 5)), "STRENGTH:${squat.stableKey}"))
         assertEquals(
             dose(evaluate(prescribed(40.0, 3.0, 0.70), relation), "HYPERTROPHY:QUADS"),
             dose(evaluate(prescribed(100.0, 3.0, 0.70), relation), "HYPERTROPHY:QUADS"), 1e-12
@@ -1359,7 +1359,7 @@ class BCoachMultiobjectiveProductionTest {
             goalWeights = BCoachV2GlobalSelector.effectiveGoalWeights(
                 BBalancedGoalImportance(3, 3, 3, 5), false, emptyMap()))
         assertTrue(result.needEnvelopes.any { it.taskId == "SPORT:GENERAL" &&
-            it.lower > 0.0 })
+            (it.lower ?: 0.0) > 0.0 })
         val unobserved = result.needEnvelopes.filter {
             it.taskId in setOf("SPORT:FOOTWORK", "SPORT:REACTION")
         }

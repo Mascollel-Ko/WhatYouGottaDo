@@ -40,7 +40,7 @@ internal object BBlockPurposePrescription {
             // from an absent history record. TIME_OR_DISTANCE uses seconds where
             // the existing observed unit is time; distance remains user-entered.
             val unit = exercise?.progressMetricType
-            val timed = unit == "TIME_OR_DISTANCE" ||
+            val timed = unit in setOf("TIME_OR_DISTANCE", "DISTANCE_OR_TIME_LOAD", "DURATION") ||
                 (item.sets.isNotEmpty() && item.sets.all {
                     (it.seconds ?: 0) > 0 && (it.reps ?: 0) <= 0
                 })

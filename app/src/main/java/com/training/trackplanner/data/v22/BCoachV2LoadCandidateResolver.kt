@@ -130,6 +130,9 @@ internal object BCoachV2LoadCandidateResolver {
                     "OBSERVED_FOLLOW_UP_FACTOR:${item.exerciseStableKey}:set=${set.setIndex}"
                 val targetRpe = 10.0 - targetRir
                 val nonLoadMetric = nonLoadMetric(set.seconds, set.reps, exercise)
+                val metricNeedsInput = set.seconds <= 0 && exercise?.progressMetricType in
+                    setOf("TIME_OR_DISTANCE", "DISTANCE_OR_TIME_LOAD", "DURATION")
+                if (metricNeedsInput) reasons += "NON_LOAD_METRIC_INPUT_REQUIRED:$setId"
                 val instruction = when {
                     validFixedLoad -> BCoachV2LoadInstruction.ExactLoad(
                         kg = set.weightKg,
@@ -154,6 +157,9 @@ internal object BCoachV2LoadCandidateResolver {
                     fixedBySet -> BCoachV2LoadInstruction.Calibrate(
                         reason = "INVALID_USER_FIXED_LOAD",
                         evidenceIds = listOf(setId)
+                    )
+                    metricNeedsInput -> BCoachV2LoadInstruction.Calibrate(
+                        reason = "NON_LOAD_METRIC_INPUT_REQUIRED", evidenceIds = listOf(setId)
                     )
                     nonLoadMetric != null -> BCoachV2LoadInstruction.NonLoadMetric(
                         metric = nonLoadMetric.first,
@@ -219,7 +225,7 @@ internal object BCoachV2LoadCandidateResolver {
                     )
                     is BCoachV2LoadInstruction.Calibrate -> set.copy(
                         weightKg = 0.0,
-                        targetRpeMin = set.targetRpeMin ?: targetRpe,
+                        targetRpeMin = if (metricNeedsInput) null else set.targetRpeMin ?: targetRpe,
                         loadState = ProgramLoadState.USER_CALIBRATION_REQUIRED,
                         estimatedLoadKg = null,
                         loadSource = BCoachLoadSource.CALIBRATION_REQUIRED,

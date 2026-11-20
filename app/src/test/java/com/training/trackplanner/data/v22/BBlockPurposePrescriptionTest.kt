@@ -71,6 +71,21 @@ class BBlockPurposePrescriptionTest {
         assertTrue(proposed.plannedProgression.orEmpty().contains("DURATION_OR_DISTANCE_USER_INPUT_REQUIRED"))
     }
 
+    @Test fun distanceOrTimeMetricIsNotFabricatedAsSixRepetitions() {
+        val exercise = Exercise("farmers_carry", "Farmer carry", "근력운동",
+            progressMetricType = "DISTANCE_OR_TIME_LOAD")
+        val cold = item("farmers_carry", null, 1).copy(source = "COLD_START")
+        val proposed = BBlockPurposePrescription.prepare(
+            listOf(V22Session(1, listOf(cold), 1)),
+            BBlockDefinition(goal = BBlockGoal.HYPERTROPHY), emptySet(),
+            mapOf("farmers_carry" to exercise)
+        ).single().items.single()
+        assertEquals(2, proposed.setCount)
+        assertTrue(proposed.sets.all { it.reps == null && (it.seconds ?: 0) == 0 })
+        assertTrue(proposed.plannedProgression.orEmpty().contains(
+            "DURATION_OR_DISTANCE_USER_INPUT_REQUIRED"))
+    }
+
     @Test fun finalPeakWeekUsesOneRepOneSetOfMainExercise() {
         val base = listOf(V22Session(1, listOf(item("squat", 3, 4), item("curl", 8, 3)), 7))
         val prepared = BBlockPurposePrescription.prepare(base,
