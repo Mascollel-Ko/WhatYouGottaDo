@@ -1341,6 +1341,34 @@ class BCoachMultiobjectiveProductionTest {
                 it.second.items.all { item -> item.exerciseStableKey == next.stableKey } })
     }
 
+    @Test fun `T77 missing hypertrophy muscle can recruit a reviewed accessory within time`() {
+        val key = "test_biceps_curl"
+        val curl = exercise(key, "DUMBBELL")
+        val plan = skeleton(3, weeks = 2, everyWeek = true)
+        val need = listOf(BCoachV2TaskWeekDose(
+            "HYPERTROPHY:BICEPS", BBalancedGoal.HYPERTROPHY,
+            week = 1, dose = 0.0, lower = 4.0, upper = 8.0, scored = true
+        ))
+        val weights = BCoachV2GlobalSelector.effectiveGoalWeights(
+            BBalancedGoalImportance(3, 5, 3, 3), false, emptyMap())
+        val neighbors = BCoachV2GlobalSelector.rosterNeighbors(
+            plan, request(BBalancedGoalImportance(3, 5, 3, 3))
+                .copy(availableEquipment = setOf("DUMBBELL", "BARBELL")),
+            mapOf(squat.stableKey to squat, key to curl),
+            CanonicalBadmintonObjectiveCatalog.EMPTY, setOf(squat.stableKey),
+            taskWeekDoses = need,
+            muscleRelations = listOf(relation(key, "BICEPS", "PRIMARY")),
+            goalWeights = weights,
+            explicitlyRequested = BBalancedGoalImportance(3, 5, 3, 3))
+        val candidate = requireNotNull(neighbors.firstOrNull {
+            it.first.startsWith("INSERT_GOAL_${key}_")
+        }).second
+        val newItems = candidate.items.filter { it.exerciseStableKey == key }
+        assertEquals(2, newItems.size)
+        assertTrue(newItems.all { it.setCount == 2 &&
+            it.setPrescriptions.all { set -> set.reps == 10 && set.weightKg == 0.0 } })
+    }
+
     @Test fun `T75 unmeasured sport domains remain visible but do not produce forced Need`() {
         val catalog = CanonicalBadmintonObjectiveCatalog.of(listOf(
             CanonicalBadmintonObjectiveRelation("a", "footwork_drill",

@@ -440,7 +440,12 @@ internal object BCoachV2GlobalSelector {
         exercises: Map<String, Exercise>,
         badmintonCatalog: CanonicalBadmintonObjectiveCatalog,
         mainExerciseKeys: Set<String>,
-        sportObjectiveWeeks: List<BCoachSportShadowWeek> = emptyList()
+        sportObjectiveWeeks: List<BCoachSportShadowWeek> = emptyList(),
+        taskWeekDoses: List<BCoachV2TaskWeekDose> = emptyList(),
+        muscleRelations: List<CanonicalMetadataRelation> = emptyList(),
+        coreCatalog: CanonicalCoreCatalog = CanonicalCoreCatalog.EMPTY,
+        goalWeights: List<BCoachGoalWeight> = emptyList(),
+        explicitlyRequested: BBalancedGoalImportance = BBalancedGoalImportance()
     ): List<Pair<String, GeneratedProgramSkeleton>> {
         if (plan.items.isEmpty()) return emptyList()
         val selected = plan.items.mapTo(linkedSetOf(), ProgramSkeletonItem::exerciseStableKey)
@@ -633,6 +638,74 @@ internal object BCoachV2GlobalSelector {
                 }
             }
         }
+        // A deficit cannot be improved by changing sets when its primary muscle or
+        // direct core function has no exercise in the incumbent. Admit bounded,
+        // reviewed whole-block accessory inserts instead of SPORT-only inserts.
+        // Do not treat missing personal records as proof of a weakness: only a
+        // user-explicit goal priority or a recorded per-task exposure permits
+        // this additional recruitment lane.
+        if (day != null && (explicitlyRequested.hypertrophy ?: 0) >= 4 ||
+            day != null && (explicitlyRequested.core ?: 0) >= 4 ||
+            day != null && taskWeekDoses.any { it.scored && it.lower > it.dose }) {
+            val need = taskWeekDoses.filter { it.scored && it.lower > it.dose }
+                .groupBy(BCoachV2TaskWeekDose::taskId)
+                .mapValues { (_, rows) ->
+                    rows.map { row -> ((row.lower - row.dose) /
+                        row.lower.coerceAtLeast(1.0)).coerceIn(0.0, 1.0) }.average()
+                }
+            val importance = goalWeights.associate { it.goal to (it.normalizedImportance ?: 0.0) }
+            val muscleCandidates = muscleRelations.filter {
+                it.domain == CanonicalRelationDomain.MUSCLE &&
+                    it.relationType in setOf("PRIMARY", "SECONDARY")
+            }.groupBy(CanonicalMetadataRelation::exerciseStableKey)
+            fun addedValue(exercise: Exercise): Double {
+                val muscleGain = muscleCandidates[exercise.stableKey].orEmpty().sumOf { relation ->
+                    val credit = if (relation.relationType == "PRIMARY") 1.0 else 0.5
+                    credit * (need["HYPERTROPHY:${relation.relationValue}"] ?: 0.0)
+                }
+                val coreGain = if (coreCatalog.resolve(exercise.stableKey)?.coreClass == CoreClass.DIRECT)
+                    (need["CORE:DIRECT"] ?: 0.0) else 0.0
+                return muscleGain * (importance[BBalancedGoal.HYPERTROPHY] ?: 0.0) +
+                    coreGain * (importance[BBalancedGoal.CORE] ?: 0.0)
+            }
+            val candidates = eligible.asSequence()
+                .filter { it.stableKey !in CanonicalStrengthExposureCapability.approvedStableKeys &&
+                    badmintonCatalog.relations(it.stableKey).isEmpty() &&
+                    listOf("DURATION", "TIME", "DISTANCE", "QUALITY", "SPEED", "JUMP")
+                        .none { token -> token in it.progressMetricType.uppercase() } }
+                .map { it to addedValue(it) }
+                .filter { (_, gain) -> gain > 0.0 }
+                .sortedWith(compareByDescending<Pair<Exercise, Double>> { it.second }
+                    .thenBy { it.first.stableKey })
+                .take(2).map { it.first }.toList()
+            for (candidate in candidates) {
+                val proposed = mutableListOf<ProgramSkeletonItem>()
+                var possible = true
+                for ((week, weekItems) in plan.items.groupBy(ProgramSkeletonItem::weekNumber)) {
+                    val sameDay = weekItems.filter { it.dayOfWeek == day }
+                    val source = sameDay.firstOrNull()
+                    if (source == null) { possible = false; break }
+                    val added = reselectedItem(source, candidate, count = 2).let { item ->
+                        item.copy(
+                            localId = "B_GOAL_W${week}_D${day}_${candidate.stableKey}",
+                            orderIndex = (sameDay.maxOfOrNull(ProgramSkeletonItem::orderIndex) ?: 0) + 1,
+                            reps = 10,
+                            setPrescriptions = item.setPrescriptions.map { it.copy(reps = 10) },
+                            selectionReason = "B_COACH_GOAL_GAP_ACCESSORY_USER_REVIEW"
+                        )
+                    }
+                    if (BCoachV2ScheduleLoad.timeUpper(sameDay + added, exercises) >
+                        (request.sessionMinutes ?: BCoachV2Policy.DEFAULT_SESSION_MINUTES)) {
+                        possible = false; break
+                    }
+                    proposed += added
+                }
+                if (possible && proposed.isNotEmpty()) {
+                    changes += "INSERT_GOAL_${candidate.stableKey}_ON_DAY_$day" to
+                        plan.copy(items = plan.items + proposed)
+                }
+            }
+        }
         return changes.distinctBy { (_, candidate) ->
             BCoachMultiobjectiveProduction.fingerprint(candidate)
         }
@@ -725,7 +798,9 @@ internal object BCoachV2GlobalSelector {
         // Offer roster mutations first. A bounded on-device search must not
         // consume its entire evaluation budget on one-set/repetition tweaks.
         addAll(rosterNeighbors(plan, request, exercises, badmintonCatalog,
-            mainExerciseKeys, evaluation.sportObjectiveWeeks))
+            mainExerciseKeys, evaluation.sportObjectiveWeeks,
+            evaluation.taskWeekDoses, muscleRelations, coreCatalog, goalWeights,
+            request.bGoalImportance))
         val priorities = mutationPriorities(plan, evaluation, muscleRelations,
             coreCatalog, badmintonCatalog, goalWeights)
         val uniqueKeys = plan.items.map(ProgramSkeletonItem::exerciseStableKey).distinct()
