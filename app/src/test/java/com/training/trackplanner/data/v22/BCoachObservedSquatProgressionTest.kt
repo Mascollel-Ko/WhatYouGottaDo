@@ -123,6 +123,34 @@ class BCoachObservedSquatProgressionTest {
         assertEquals(130.0,model.ranking.ranked.single().loadKg,1e-9)
     }
 
+    @Test
+    fun `Shadow first-set load can progress to next linked set without flattening later sets`() {
+        val mixed = source.copy(sets = source.sets.mapIndexed { index, set ->
+            if (index == 0) set.copy(weightKg = 130.0, reps = 6, rpe = 6.5)
+            else set.copy(weightKg = 125.0, reps = 6, rpe = 7.0)
+        })
+        val model = requireNotNull(evidence(source = mixed))
+        assertEquals(listOf(1), model.ranking.targetSetIndices)
+        val next = BCoachLinkedSquatWeekPlanner.inspect(
+            asOf = today, targetEntryId = 2,
+            workouts = listOf(mixed, target),
+            applications = listOf(app),
+            links = listOf(link(1, 1), link(2, 2)),
+            prescriptions = targets(mixed) + targets(target),
+            anchor = model.anchor, ranking = model.ranking
+        )
+        assertTrue("status: ${next.status}", next.canApply)
+        assertEquals(listOf(1), next.affectedSetIndices)
+        val patch = requireNotNull(BCoachLinkedSquatPlanPatch.build(
+            next, target.sets, targets(target)
+        ))
+        assertEquals(target.sets.drop(1), patch.nextSets.drop(1))
+        assertEquals(targets(target).drop(1), patch.nextPrescriptions.drop(1))
+        assertEquals(next.proposedLoadKg!!, patch.nextSets.first().weightKg, 1e-9)
+        assertEquals(ProgramLoadState.EXPLICIT_LOAD, patch.nextSets.first().loadState)
+        assertFalse(patch.nextSets.first().confirmed)
+    }
+
     @Test fun `planned heavy versus volume rep scheme is never silently flattened`() {
         assertNull(evidence(target=record(2,"2026-11-22",false,reps=8)))
     }
