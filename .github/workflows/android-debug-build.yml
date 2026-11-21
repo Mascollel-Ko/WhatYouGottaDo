@@ -11,6 +11,7 @@ on:
       - feat/b-coach-v2-global-optimizer
       - fix/b-coach-20261121-review-quality
       - feat/b-coach-squat-shadow-production-bridge-20261121
+      - feat/b-coach-three-lift-shadow-20261122
     tags:
       - 'v*'
   pull_request:
