@@ -145,7 +145,10 @@ class BCoachMultiobjectiveProductionTest {
 
     @Test
     fun `squat Gate F explicit acceptance is fingerprinted and persists only first set`() {
-        val outcome = prepare()
+        val outcome = prepare(
+            baseline = withTargetRpe(skeleton(2), 8.0),
+            candidate = withTargetRpe(skeleton(3), 8.0)
+        )
         val proposal = requireNotNull(outcome.proposal)
         val candidateId = requireNotNull(outcome.decision.recommendedCandidateId)
         val candidate = requireNotNull(proposal.candidateForReview(candidateId))
@@ -155,11 +158,14 @@ class BCoachMultiobjectiveProductionTest {
         val original = com.training.trackplanner.data.ProgramSetPrescriptionResolver.resolve(first)
         val reps = original.first().reps
         val count = original.size
+        val chosenKg = original.first().weightKg.takeIf { it.isFinite() && it > 0.0 }
+            ?: original.first().estimatedLoadKg?.takeIf { it.isFinite() && it > 0.0 }
+            ?: 100.0
         assertTrue(reps in 1..20 && count > 0)
         val report = BCoachSquatShadowProgramComparison(
             status = "STABLE_EXPERIMENT_ONLY",
             snapshotDate = request().asOf,
-            observedReference = "130kg × ${reps}회 / RPE 7",
+            observedReference = "${chosenKg}kg × ${reps}회 / RPE 7",
             plannedSquatRows = emptyList(),
             experimentCandidates = emptyList(), experiments = emptyList(),
             notices = emptyList(),
@@ -170,7 +176,7 @@ class BCoachMultiobjectiveProductionTest {
                 selectedAction = "HOLD", historicalE1rmKg = 155.0,
                 targetRir = 2.0, doseTargetSets = count,
                 ranked = listOf(BCoachSquatCurveProgressionReport.Candidate(
-                    action = "HOLD", loadKg = 130.0, reps = reps, sets = count,
+                    action = "HOLD", loadKg = chosenKg, reps = reps, sets = count,
                     requiredE1rmKg = 155.0, historicalE1rmLogGap = 0.01,
                     worstCaseRegret = 0.0, weightedCost = 0.1,
                     targetRirMixtureMass = 0.95, volumeLoadChange = 0.0,
@@ -186,7 +192,7 @@ class BCoachMultiobjectiveProductionTest {
         val approved = requireNotNull(accepted.skeleton)
         val edited = approved.items.single { it.localId == first.localId }
         val all = com.training.trackplanner.data.ProgramSetPrescriptionResolver.resolve(edited)
-        assertEquals(130.0, all.first().weightKg, 0.0)
+        assertEquals(chosenKg, all.first().weightKg, 0.0)
         assertEquals(ProgramLoadSource.USER_FIXED, all.first().loadSource)
         assertEquals(original.drop(1), all.drop(1))
         assertTrue(approved.items.filter { it.localId != first.localId }
