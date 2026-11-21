@@ -1137,6 +1137,14 @@ private fun ProgramEditorScreen(
                     else proposal.accept(fingerprint, current, chosen)
                 if (acceptance?.accepted == true && acceptance.skeleton != null) {
                     personalizedDraft = acceptance.skeleton.withResolvedWeekDaySchedule()
+                    if (useSquatShadow) {
+                        // The previous compare dialog describes the unmodified B candidate.
+                        // Never keep displaying it as the current accepted prescription.
+                        squatShadowComparison = null
+                        Toast.makeText(context,
+                            "백스쿼트 Shadow는 최초 1세트에만 반영됐습니다. 다른 세트·주차는 유지됩니다.",
+                            Toast.LENGTH_LONG).show()
+                    }
                     pendingBProductionProposal = null
                     pendingBSelectedCandidateId = null
                     pendingBReview = null
