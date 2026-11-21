@@ -351,7 +351,8 @@ class TrainingRepository internal constructor(
             initialUserProfileDao
         ),
         rirPolicy = rpeRirPolicy,
-        strengthRegistry = strengthPerformanceRegistry
+        strengthRegistry = strengthPerformanceRegistry,
+        repetitionCurves = repetitionCurveRegistry
     )
     private val linkedSquatNextWeekService = com.training.trackplanner.data.v22.BCoachLinkedSquatNextWeekService(
         db = db,
