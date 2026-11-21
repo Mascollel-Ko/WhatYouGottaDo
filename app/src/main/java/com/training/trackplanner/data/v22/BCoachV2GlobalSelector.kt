@@ -223,6 +223,8 @@ internal object BCoachV2GlobalSelector {
                     ProgramSetPrescriptionResolver.resolve(item).joinToString(";") { set ->
                         "${set.reps}/${set.seconds}/${set.loadState}/" +
                             "${(set.weightKg * 10).toInt()}/" +
+                            "${set.estimatedLoadKg?.let { (it * 10).toInt() }}/" +
+                            "${set.targetRpeMin?.let { (it * 10).toInt() }}/" +
                             "${set.expectedRir?.let { (it * 10).toInt() }}"
                     }
             }
