@@ -102,6 +102,14 @@ object BCoachAdditionalLiftShadow {
                 { it.first }, { it.second.entry.id }
             ))
         val date = source?.first
+        val newerUnfinished = source != null && records.any { row ->
+            row.entry.exerciseStableKey == key &&
+                runCatching { LocalDate.parse(row.entry.date) }.getOrNull()?.let { day ->
+                    day <= asOf && (day > source.first ||
+                        (day == source.first && row.entry.id > source.second.entry.id))
+                } == true &&
+                (row.sets.isEmpty() || row.sets.any { !it.confirmed })
+        }
         val anchor = source?.second?.sets?.minByOrNull { it.setIndex }
         val observedRpe = source?.second?.sets?.maxOfOrNull {
             it.rpe ?: source?.second?.entry?.rpe ?: Double.NaN
@@ -117,6 +125,7 @@ object BCoachAdditionalLiftShadow {
         )
         when {
             date == null || anchor == null -> fail("동일 운동의 완전히 확인된 세트와 RPE 기록이 없습니다.")
+            newerUnfinished -> fail("더 최근에 시작한 미완료 운동이 있어 오래된 기록으로 처방하지 않습니다.")
             ChronoUnit.DAYS.between(date, asOf) !in 0..MAX_AGE ->
                 fail("최근 56일 이내 확인기록이 없습니다.")
             step == null || !step.isFinite() || step <= 0.0 ->
