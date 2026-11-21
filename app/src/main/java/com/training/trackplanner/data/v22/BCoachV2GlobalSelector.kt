@@ -211,13 +211,28 @@ internal object BCoachV2GlobalSelector {
         // Nine-domain exposure and weekly roster variety are diagnostics, not
         // substitute objectives that can override strength, recovery or stability.
         val selected = conventional
+        // Candidate IDs and internal fingerprints can differ without a meaningful
+        // workout prescription difference. Never expose cosmetic duplicates as A/B/C.
+        fun visiblePlanKey(candidate: Candidate): String = candidate.skeleton.items
+            .sortedWith(compareBy<ProgramSkeletonItem> { it.weekNumber }
+                .thenBy { it.dayOfWeek }.thenBy { it.orderIndex }
+                .thenBy { it.exerciseStableKey })
+            .joinToString("|") { item ->
+                "${item.weekNumber}/${item.dayOfWeek}/${item.orderIndex}/" +
+                    "${item.exerciseStableKey}/${item.restSeconds}:" +
+                    ProgramSetPrescriptionResolver.resolve(item).joinToString(";") { set ->
+                        "${set.reps}/${set.seconds}/${set.loadState}/" +
+                            "${(set.weightKg * 10).toInt()}/" +
+                            "${set.expectedRir?.let { (it * 10).toInt() }}"
+                    }
+            }
         val displayed = (listOf(selected) + frontier.filter { it.id != selected.id }
             .sortedWith(compareBy<Candidate> { it.robustRegret }.thenBy { it.evaluation.baseLoss }
                 .thenBy { it.signature }) +
             valid.filter { candidate -> frontier.none { it.id == candidate.id } && candidate.id != selected.id }
                 .sortedWith(compareBy<Candidate> { it.robustRegret }.thenBy { it.evaluation.baseLoss }
                     .thenBy { it.signature }))
-            .distinctBy(Candidate::id).take(1 + BCoachV2Policy.MAX_SHOWN_ALTERNATIVES)
+            .distinctBy(::visiblePlanKey).take(1 + BCoachV2Policy.MAX_SHOWN_ALTERNATIVES)
         val allCandidatesHash = sha256(valid.sortedBy(Candidate::id)
             .joinToString("|") { "${it.id}:${it.signature}" })
         val proposalFingerprint = BCoachMultiobjectiveProduction.proposalFingerprint(
