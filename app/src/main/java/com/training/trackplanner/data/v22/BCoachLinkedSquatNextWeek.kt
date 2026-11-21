@@ -32,7 +32,9 @@ data class BCoachLinkedSquatNextWeekProposal(
     val proposedSets: Int? = null,
     val selectedAction: String? = null,
     val evidenceFingerprint: String? = null,
-    val notes: List<String> = emptyList()
+    val notes: List<String> = emptyList(),
+    /** Sets approved for change; omitted for old whole-session proposals. */
+    val affectedSetIndices: List<Int> = emptyList()
 ) {
     val canApply: Boolean get() = status == "READY_FOR_USER_APPROVAL" &&
         evidenceFingerprint != null && proposedLoadKg != null &&
@@ -155,8 +157,18 @@ internal object BCoachLinkedSquatWeekPlanner {
         // Connecting two program items does not authorize flattening deliberately
         // different heavy/volume repetition schemes. A different target pattern is
         // acceptable only if the ranked candidate already exactly matches it.
-        val performedReps = sourceSets.map { it.reps }.distinct().singleOrNull()
-        val targetReps = targets.map { it.originalReps }.distinct().singleOrNull()
+        val affectedIndices = ranking.targetSetIndices
+            .ifEmpty { sets.map { it.setIndex } }.distinct().sorted()
+        if (affectedIndices.isEmpty() || affectedIndices.any { index ->
+                index !in sets.map { it.setIndex }
+            } || (affectedIndices.size > 1 && sourceSets.map { it.reps }.distinct().size != 1)
+        ) return result("LINKED_SET_SCHEME_REVIEW", sourceLink.entryId)
+        val performedReps = if (affectedIndices.size == 1)
+            sourceSets.singleOrNull { it.setIndex == affectedIndices.first() }?.reps
+        else sourceSets.map { it.reps }.distinct().singleOrNull()
+        val targetReps = if (affectedIndices.size == 1)
+            targets.singleOrNull { it.plannedSetIndex == affectedIndices.first() }?.originalReps
+        else targets.map { it.originalReps }.distinct().singleOrNull()
         if (performedReps == null || targetReps == null ||
             (targetReps != performedReps && targetReps != candidate.reps)
         ) return result("LINKED_TARGET_REP_SCHEME_REVIEW", sourceLink.entryId)
@@ -185,6 +197,7 @@ internal object BCoachLinkedSquatWeekPlanner {
             proposedReps = candidate.reps,
             proposedSets = candidate.sets,
             selectedAction = candidate.action,
+            affectedSetIndices = affectedIndices,
             evidenceFingerprint = fingerprint,
             notes = listOf(
                 "같은 프로그램에서 명시적으로 연결한 세션의 직전 운동 순서만 사용했습니다.",
