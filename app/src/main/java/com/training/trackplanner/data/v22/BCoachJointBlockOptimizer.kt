@@ -191,7 +191,7 @@ internal object BCoachJointBlockOptimizer {
                 CanonicalStrengthExposureCapability.movementAnchor(key)?.name,
                 e != null && e.isActive && !e.needsReview && !e.isCustom &&
                     e.activityKind != "SPORT_SESSION" &&
-                    e.planningEligibility != "HISTORY_ONLY" &&
+                    e.planningEligibility !in setOf("HISTORY_ONLY", "FATIGUE_ONLY", "ANALYSIS_ONLY") &&
                     (primary.isNotEmpty() || core || sport > 0.0))
         }
         val baselineItems = baseline.flatMap(V22Session::items)
@@ -685,7 +685,7 @@ internal object BCoachJointBlockOptimizer {
                 val exercise = exercises[key]
                 val active = exercise?.isActive == true
                 val selectable = exercise != null && exercise.activityKind != "SPORT_SESSION" &&
-                    exercise.planningEligibility != "HISTORY_ONLY" &&
+                    exercise.planningEligibility !in setOf("HISTORY_ONLY", "FATIGUE_ONLY", "ANALYSIS_ONLY") &&
                     !exercise.needsReview && !exercise.isCustom
                 val equipment = when {
                     exercise == null -> "NOT_EVALUATED"
